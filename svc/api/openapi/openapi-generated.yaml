@@ -2612,6 +2612,20 @@ components:
                     example: "documents.read AND users.view"
                 credits:
                     "$ref": "#/components/schemas/KeysVerifyKeyCredits"
+                keyspaces:
+                    type: array
+                    minItems: 1
+                    maxItems: 5
+                    items:
+                        type: string
+                        minLength: 1
+                        maxLength: 100
+                    description: |
+                        Restricts verification to keys in these keyspaces, matched by exact ID.
+                        Omit this field to verify without a keyspace restriction.
+                        A failed keyspace check returns `NOT_FOUND` without consuming credits or rate limits.
+                    example:
+                        - ks_1234abcd
                 ratelimits:
                     type: array
                     items:
@@ -3154,11 +3168,6 @@ components:
                         Each scope requires the equivalent permission on your own root key. See
                         Required Permissions on this operation.
                     example: ["keys:read", "keys:reroll"]
-                preview:
-                    type: boolean
-                    default: false
-                    description: |
-                        When true, creates a preview session for testing the portal experience.
                 returnUrl:
                     type: string
                     format: uri
@@ -4223,8 +4232,8 @@ components:
                     "$ref": "#/components/schemas/KeyCreditsData"
                 identity:
                     "$ref": "#/components/schemas/Identity"
-                    x-go-type-skip-optional-pointer: true
-                    x-go-type-skip-optional-pointer-with-omitzero: true
+                    # Keep the pointer: nil distinguishes "no identity" from an empty object.
+                    x-go-type-skip-optional-pointer: false
                 plaintext:
                     type: string
                     x-unkey-redact: true
@@ -4260,8 +4269,8 @@ components:
                     example: 1000
                 refill:
                     "$ref": "#/components/schemas/KeyCreditsRefill"
-                    x-go-type-skip-optional-pointer: true
-                    x-go-type-skip-optional-pointer-with-omitzero: true
+                    # Keep the pointer: nil distinguishes "no refill" from an empty object.
+                    x-go-type-skip-optional-pointer: false
             required:
                 - remaining
             additionalProperties: false
@@ -4894,7 +4903,7 @@ components:
                 step:
                     type: string
                     description: |
-                        The pipeline step that failed (e.g. `building`, `deploying`, `starting`).
+                        The pipeline step that failed (e.g. `queued`, `building`, `deploying`).
                     example: deploying
                 message:
                     type: string
@@ -6670,6 +6679,13 @@ components:
                         is returned for both valid and invalid keys (except when `code=NOT_FOUND`).
                     x-go-type-skip-optional-pointer: true
                     x-go-type-skip-optional-pointer-with-omitzero: true
+                keyspaceId:
+                    type: string
+                    description: |
+                        The ID of the keyspace the key belongs to.
+                        Returned for both valid and invalid keys, except when `code=NOT_FOUND`.
+                    x-go-type-skip-optional-pointer: true
+                    x-go-type-skip-optional-pointer-with-omitzero: true
                 name:
                     type: string
                     description: |
@@ -6739,8 +6755,8 @@ components:
                         Information about the identity associated with this key. Identities
                         allow multiple keys to share resources (like rate limits) and represent
                         the same user or entity across different applications or devices.
-                    x-go-type-skip-optional-pointer: true
-                    x-go-type-skip-optional-pointer-with-omitzero: true
+                    # Keep the pointer: nil distinguishes "no identity" from an empty object.
+                    x-go-type-skip-optional-pointer: false
                 ratelimits:
                     type: array
                     items:

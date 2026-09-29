@@ -176,6 +176,7 @@ export const DeploymentListTableActions = ({
   }, [
     selectedDeployment.id,
     selectedDeployment.status,
+    selectedDeployment.desiredState,
     currentDeploymentId,
     isRolledBack,
     environment?.slug,

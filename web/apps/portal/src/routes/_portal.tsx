@@ -1,6 +1,5 @@
 import { Outlet, createFileRoute, redirect } from "@tanstack/react-router";
 import { PortalShell } from "~/components/portal-shell";
-import { PreviewBanner } from "~/components/preview-banner";
 import { sessionQueryOptions } from "~/lib/session";
 
 export const Route = createFileRoute("/_portal")({
@@ -22,11 +21,7 @@ function PortalLayout() {
   const { session, portal } = Route.useRouteContext();
 
   return (
-    <PortalShell
-      session={session}
-      portal={portal}
-      banner={session.preview ? <PreviewBanner /> : null}
-    >
+    <PortalShell session={session} portal={portal}>
       <div className="flex-1">
         <Outlet />
       </div>

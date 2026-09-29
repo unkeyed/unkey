@@ -14,8 +14,7 @@ import {
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { signOut } from "@/lib/auth/utils";
 import { routes } from "@/lib/navigation/routes";
-import { trpc } from "@/lib/trpc/client";
-import { cn } from "@/lib/utils";
+import { useWorkspace } from "@/providers/workspace-provider";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   IconLaptop2Outline18,
@@ -26,19 +25,14 @@ import {
 import { useTheme } from "next-themes";
 import Link from "next/link";
 
-type UserButtonProps = {
-  isCollapsed?: boolean;
-  className?: string;
-};
-
 const THEMES = [
   { value: "system", label: "System", icon: IconLaptop2Outline18 },
   { value: "light", label: "Light", icon: IconSunOutline18 },
   { value: "dark", label: "Dark", icon: IconMoonStarsOutline18 },
 ] as const;
 
-export function UserButton({ isCollapsed = false, className }: UserButtonProps) {
-  const { data: user } = trpc.user.getCurrentUser.useQuery();
+export function UserButton() {
+  const { user } = useWorkspace();
   const workspace = useWorkspaceNavigation();
   const { theme, setTheme } = useTheme();
   const queryClient = useQueryClient();
@@ -47,25 +41,19 @@ export function UserButton({ isCollapsed = false, className }: UserButtonProps) 
     <DropdownMenu>
       <DropdownMenuTrigger
         aria-label="Account menu"
-        className={cn(
-          "px-2 py-1 flex hover:bg-grayA-4 rounded-lg min-w-0 cursor-pointer",
-          isCollapsed ? "justify-center size-8 p-0" : "justify-between gap-2 grow h-8",
-          className,
-        )}
+        className="group/user flex shrink-0 cursor-pointer rounded-full focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-gray-6"
       >
-        <div className="flex items-center gap-2 overflow-hidden whitespace-nowrap">
-          <Avatar className="size-6 rounded-full border border-grayA-6">
-            {user?.avatarUrl && <AvatarImage src={user.avatarUrl} alt="Profile picture" />}
-            <AvatarFallback name={user?.email ?? "Username"} />
-          </Avatar>
-        </div>
+        <Avatar className="size-6 rounded-full border border-input transition-colors group-hover/user:border-strong group-data-[popup-open]/user:border-strong">
+          {user?.avatarUrl && <AvatarImage src={user.avatarUrl} alt="Profile picture" />}
+          <AvatarFallback name={user?.email ?? "Username"} />
+        </Avatar>
       </DropdownMenuTrigger>
       <DropdownMenuContent side="bottom" align="end" className="w-56 p-0">
         {user?.email && (
-          <DropdownMenuGroup className="border-b border-grayA-4 px-2 py-2">
+          <DropdownMenuGroup className="border-b px-2 py-2">
             <DropdownMenuLabel
               title={user.email}
-              className="secret block truncate px-0 py-0 text-[13px] text-accent-12"
+              className="secret block truncate px-0 py-0 text-sm text-gray-12"
             >
               {user.email}
             </DropdownMenuLabel>
@@ -73,7 +61,7 @@ export function UserButton({ isCollapsed = false, className }: UserButtonProps) 
         )}
         <DropdownMenuGroup className="p-1">
           <DropdownMenuItem
-            className="h-8 cursor-pointer gap-2 px-2 text-[13px] font-medium text-accent-12"
+            className="h-8 cursor-pointer gap-2 px-2 text-sm font-medium text-gray-12"
             render={
               <Link href={routes.account.overview({ workspaceSlug: workspace.slug })}>
                 <IconUserOutline18 className="size-4 shrink-0 text-gray-11" />
@@ -94,7 +82,7 @@ export function UserButton({ isCollapsed = false, className }: UserButtonProps) 
               <DropdownMenuRadioItem
                 key={value}
                 value={value}
-                className="h-8 cursor-pointer px-2 text-[13px] font-medium text-accent-12"
+                className="h-8 cursor-pointer px-2 text-sm font-medium text-gray-12"
               >
                 <Icon className="size-4 shrink-0 text-gray-11" />
                 {label}
@@ -105,7 +93,7 @@ export function UserButton({ isCollapsed = false, className }: UserButtonProps) 
         <DropdownMenuSeparator className="mx-0" />
         <DropdownMenuGroup className="p-1">
           <DropdownMenuItem
-            className="h-8 cursor-pointer gap-2 px-2 text-[13px] font-medium text-accent-12"
+            className="h-8 cursor-pointer gap-2 px-2 text-sm font-medium text-gray-12"
             onClick={async () => {
               queryClient.clear();
               await signOut();

@@ -1,10 +1,10 @@
 import { RegionFlag } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/region-flag";
 import { mapRegionToFlag } from "@/lib/trpc/routers/deploy/network/utils";
-import { cn } from "@/lib/utils";
 import { formatLatency } from "@/lib/utils/metric-formatters";
 import type { RequestLogsResponse } from "@unkey/clickhouse/src/frontline";
 import { IconTriangleWarningOutline18 } from "@unkey/icons";
 import { Badge, type DataTableColumnDef, TimestampInfo } from "@unkey/ui";
+import { cn } from "cn";
 import { WARNING_ICON_STYLES, getStatusStyle } from "../utils/get-row-class";
 
 const WarningIcon = ({ status }: { status: number }) => (

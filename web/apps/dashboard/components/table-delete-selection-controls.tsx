@@ -36,7 +36,7 @@ export const TableDeleteSelectionControls = ({
         {selectedCount > 0 && (
           <motion.div
             key="selection-controls"
-            className="border-b border-grayA-3 w-full overflow-hidden"
+            className="border-b w-full overflow-hidden"
             initial={{ opacity: 0, height: 0 }}
             animate={{
               opacity: 1,
@@ -58,13 +58,13 @@ export const TableDeleteSelectionControls = ({
             <div className="flex justify-between items-center w-full p-[18px]">
               <div className="items-center flex gap-2">
                 <AnimatedCounter value={selectedCount} />
-                <div className="text-accent-9 text-[13px] leading-6">selected</div>
+                <div className="text-gray-9 text-sm leading-6">selected</div>
               </div>
               <div className="flex items-center gap-2">
                 <Button
                   variant="outline"
                   size="sm"
-                  className="text-gray-12 font-medium text-[13px]"
+                  className="text-gray-12 font-medium text-sm"
                   disabled={isDeleting}
                   loading={isDeleting}
                   onClick={() => setIsDeleteConfirmOpen(true)}

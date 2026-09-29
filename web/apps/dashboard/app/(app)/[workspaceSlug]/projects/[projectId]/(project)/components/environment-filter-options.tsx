@@ -25,9 +25,9 @@ export function useEnvironmentFilterOptions(): EnvironmentFilterOption[] {
 
 export function renderEnvironmentOption(option: EnvironmentFilterOption) {
   return (
-    <div className="text-accent-12 text-xs">
+    <div className="text-gray-12 text-xs">
       <span className="capitalize">{option.slug}</span>
-      {option.appName ? <span className="text-accent-9"> · {option.appName}</span> : null}
+      {option.appName ? <span className="text-gray-9"> · {option.appName}</span> : null}
     </div>
   );
 }

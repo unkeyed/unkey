@@ -18,7 +18,7 @@ export const CreatedAtColumnSkeleton = () => (
   </div>
 );
 export const KeyColumnSkeleton = () => (
-  <div className="rounded-lg border bg-grayA-2 border-grayA-3 text-transparent w-[160px] px-2 py-1 flex gap-2 items-center h-[28px] animate-pulse">
+  <div className="rounded-lg border bg-grayA-2 text-transparent w-[160px] px-2 py-1 flex gap-2 items-center h-[28px] animate-pulse">
     <div className="h-2 w-2 bg-grayA-3 rounded-full animate-pulse" />
     <div className="h-2 w-full bg-grayA-3 rounded-sm animate-pulse" />
   </div>
@@ -40,7 +40,7 @@ export const ActionColumnSkeleton = () => (
     type="button"
     className={cn(
       "group size-5 p-0 rounded-sm m-0 items-center flex justify-center animate-pulse",
-      "border border-gray-6",
+      "border",
     )}
   >
     <IconDotsOutline12 className="text-gray-11" />

@@ -224,6 +224,7 @@ func New(cfg Config) (*Service, error) {
 		return nil, err
 	}
 	buildLimitSyncH, err := buildlimitsync.New(buildlimitsync.Config{
+		DB:           cfg.DB,
 		RestateRules: cfg.RestateRules,
 		Heartbeat:    cfg.Heartbeats.BuildLimitSync,
 	})

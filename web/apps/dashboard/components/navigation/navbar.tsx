@@ -56,7 +56,7 @@ const BreadcrumbsLink = React.forwardRef<HTMLAnchorElement, LinkProps>(
     return (
       <li className="flex items-center gap-3">
         {renderAsLabel ? (
-          <span className={cn("text-sm", active ? "text-accent-12" : "text-accent-10", className)}>
+          <span className={cn("text-sm", active ? "text-gray-12" : "text-gray-10", className)}>
             {children}
           </span>
         ) : (
@@ -65,7 +65,7 @@ const BreadcrumbsLink = React.forwardRef<HTMLAnchorElement, LinkProps>(
             href={href as Route}
             className={cn(
               "text-sm transition-colors",
-              active ? "text-accent-12" : "text-accent-10 hover:text-accent-11",
+              active ? "text-gray-12" : "text-gray-10 hover:text-gray-11",
               className,
             )}
             {...(active || isLast ? { "aria-current": "page" } : {})}
@@ -75,7 +75,7 @@ const BreadcrumbsLink = React.forwardRef<HTMLAnchorElement, LinkProps>(
           </Link>
         )}
         {!isLast && (
-          <div className="text-accent-10" aria-hidden="true">
+          <div className="text-gray-10" aria-hidden="true">
             /
           </div>
         )}
@@ -88,10 +88,10 @@ BreadcrumbsLink.displayName = "GlobalNavbar.Breadcrumbs.Link";
 const BreadcrumbsEllipsis = React.forwardRef<HTMLLIElement, React.HTMLAttributes<HTMLLIElement>>(
   ({ className, ...props }, ref) => (
     <li ref={ref} className={cn("flex gap-3 items-end", className)} {...props}>
-      <span className="text-sm text-accent-10" aria-label="More pages">
-        <IconDotsOutline18 className="h-4 w-4 text-accent-10" />
+      <span className="text-sm text-gray-10" aria-label="More pages">
+        <IconDotsOutline18 className="h-4 w-4 text-gray-10" />
       </span>
-      <div className="text-accent-10" aria-hidden="true">
+      <div className="text-gray-10" aria-hidden="true">
         /
       </div>
     </li>
@@ -156,7 +156,7 @@ export const Navbar = React.forwardRef<HTMLElement, BaseProps>(
       <nav
         ref={ref}
         className={cn(
-          "w-full p-4 border-b border-gray-4 bg-transparent flex items-center min-h-[65px]",
+          "w-full p-4 border-b bg-transparent flex items-center min-h-[65px]",
           className,
         )}
         {...props}

@@ -101,15 +101,21 @@ describe("dashboard proxy POST", () => {
       userId: "user_1",
       orgId: "org_1",
       role: "admin",
+      user: {
+        id: "user_1",
+        email: "test@example.test",
+        firstName: "Test",
+        lastName: "User",
+        avatarUrl: null,
+        fullName: "Test User",
+      },
     });
-    mockedAuthProvider.getUser.mockResolvedValue({
-      fullName: "Test User",
-      email: "test@example.test",
-    } as Awaited<ReturnType<typeof authProvider.getUser>>);
-
     const res = await POST(makeRequest({ accept: "application/json" }), { params });
 
     expect(res.status).toBe(200);
+    // The sealed session already carries the profile, so minting must not
+    // cost a provider round trip.
+    expect(mockedAuthProvider.getUser).not.toHaveBeenCalled();
     expect(fetch).toHaveBeenCalledOnce();
     const [, init] = vi.mocked(fetch).mock.calls[0];
     expect(init).toBeDefined();

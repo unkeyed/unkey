@@ -15,6 +15,7 @@ import {
   IconWindowLayoutOutline18,
 } from "@unkey/icons";
 import { routes } from "./routes";
+import type { ResourceScope } from "./routes/shared";
 import type { ResolvedNavLink } from "./types";
 
 export function buildWorkspaceSections(slug: string, segments: string[]): ResolvedNavLink[] {
@@ -189,17 +190,16 @@ export function buildAppLinks(
 }
 
 export function buildApiLinks(
-  slug: string,
-  apiId: string,
+  scope: ResourceScope & { apiId: string },
   keyAuthId: string | undefined,
   segments: string[],
   portalManagementEnabled: boolean,
 ): ResolvedNavLink[] {
-  const page = segments[2];
+  const page = resourcePage(segments, scope.projectId);
   const portalLink: ResolvedNavLink = {
     key: "portal",
     label: "Customer portal",
-    href: routes.apis.portal({ workspaceSlug: slug, apiId }),
+    href: routes.apis.portal(scope),
     icon: IconWindowLayoutOutline18,
     isActive: page === "portal",
   };
@@ -207,16 +207,14 @@ export function buildApiLinks(
     {
       key: "requests",
       label: "Requests",
-      href: routes.apis.detail({ workspaceSlug: slug, apiId }),
+      href: routes.apis.detail(scope),
       icon: IconArrowsOppositeDirectionYOutline18,
       isActive: !page,
     },
     {
       key: "keys",
       label: "Keys",
-      href: keyAuthId
-        ? routes.apis.keys.list({ workspaceSlug: slug, apiId, keyAuthId })
-        : routes.apis.detail({ workspaceSlug: slug, apiId }),
+      href: keyAuthId ? routes.apis.keys.list({ ...scope, keyAuthId }) : routes.apis.detail(scope),
       icon: IconKeyOutline18,
       isActive: page === "keys",
       disabled: !keyAuthId,
@@ -225,7 +223,7 @@ export function buildApiLinks(
     {
       key: "settings",
       label: "Settings",
-      href: routes.apis.settings({ workspaceSlug: slug, apiId }),
+      href: routes.apis.settings(scope),
       icon: IconGearOutline18,
       isActive: page === "settings",
     },
@@ -233,12 +231,10 @@ export function buildApiLinks(
 }
 
 export function buildNamespaceLinks(
-  slug: string,
-  namespaceId: string,
+  scope: ResourceScope & { namespaceId: string },
   segments: string[],
 ): ResolvedNavLink[] {
-  const page = segments[2];
-  const scope = { workspaceSlug: slug, namespaceId };
+  const page = resourcePage(segments, scope.projectId);
   return [
     {
       key: "requests",
@@ -269,4 +265,9 @@ export function buildNamespaceLinks(
       isActive: page === "overrides",
     },
   ];
+}
+
+// Inside a project the resource sits two segments deeper, behind projects/<id>.
+function resourcePage(segments: string[], projectId: string | undefined): string | undefined {
+  return segments[projectId ? 4 : 2];
 }

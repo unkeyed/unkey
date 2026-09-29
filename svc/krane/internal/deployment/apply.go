@@ -10,7 +10,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/assert"
 	dbtype "github.com/unkeyed/unkey/pkg/db/types"
 	"github.com/unkeyed/unkey/pkg/logger"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/svc/krane/pkg/labels"
 	"github.com/unkeyed/unkey/svc/krane/pkg/metrics"
 	appsv1 "k8s.io/api/apps/v1"
@@ -41,13 +40,14 @@ import (
 // The namespace is created automatically if it doesn't exist. After the
 // ReplicaSet is applied a CiliumNetworkPolicy is installed in the same
 // namespace, owned by the ReplicaSet, that permits ingress only from
-// frontline pods on the deployment's container port. Pods run with gVisor
-// isolation (RuntimeClass "gvisor") since they execute untrusted user code,
-// and are scheduled on Karpenter-managed untrusted nodes with node- and
-// zone-spread constraints so replicas don't stack on a single node.
+// frontline pods on the deployment's container port. Pods run under the
+// configured RuntimeClass, gVisor in production, since they execute untrusted
+// user code, and are scheduled on Karpenter-managed untrusted nodes with
+// node- and zone-spread constraints so replicas don't stack on a single node.
 func (c *Controller) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeployment) (retErr error) {
 	defer func() { metrics.RecordReconcile("deployment", "apply", retErr) }()
-	logger.Info("applying deployment",
+	logger.Info(
+		"applying deployment",
 		"namespace", req.GetK8SNamespace(),
 		"name", req.GetK8SName(),
 		"deployment_id", req.GetDeploymentId(),
@@ -222,7 +222,7 @@ func (c *Controller) buildReplicaSet(req *ctrlv1.ApplyDeployment, hasSecrets boo
 					VolumeClaimTemplate: &corev1.PersistentVolumeClaimTemplate{
 						Spec: corev1.PersistentVolumeClaimSpec{
 							AccessModes:      []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
-							StorageClassName: ptr.P(c.storageClassName),
+							StorageClassName: new(c.storageClassName),
 							Resources: corev1.VolumeResourceRequirements{
 								Requests: corev1.ResourceList{
 									corev1.ResourceStorage: resource.MustParse(fmt.Sprintf("%dMi", es.GetSizeMib())),
@@ -276,11 +276,16 @@ func (c *Controller) buildReplicaSet(req *ctrlv1.ApplyDeployment, hasSecrets boo
 		}}
 	}
 
+	runtimeClass := new(runtimeClassGvisor)
+	if c.disableGvisor {
+		runtimeClass = nil
+	}
+
 	podSpec := corev1.PodSpec{
-		RuntimeClassName:             ptr.P(runtimeClassGvisor),
+		RuntimeClassName:             runtimeClass,
 		RestartPolicy:                corev1.RestartPolicyAlways,
-		AutomountServiceAccountToken: ptr.P(false),
-		EnableServiceLinks:           ptr.P(false),
+		AutomountServiceAccountToken: new(false),
+		EnableServiceLinks:           new(false),
 		NodeSelector:                 map[string]string{nodeClassLabelKey: CustomerNodeClass},
 		Tolerations:                  []corev1.Toleration{untrustedToleration},
 		TopologySpreadConstraints:    deploymentTopologySpread(req.GetDeploymentId()),
@@ -367,7 +372,7 @@ func (c *Controller) ensureHPAExists(ctx context.Context, req *ctrlv1.ApplyDeplo
 	policy := req.GetAutoscaling()
 	minReplicas := int32(max(policy.GetMinReplicas(), 1))
 	maxReplicas := max(int32(policy.GetMaxReplicas()), minReplicas)
-	cpuThreshold := ptr.P(int32(defaultCPUTargetUtilization))
+	cpuThreshold := new(int32(defaultCPUTargetUtilization))
 
 	var metrics []autoscalingv2.MetricSpec
 
@@ -375,7 +380,8 @@ func (c *Controller) ensureHPAExists(ctx context.Context, req *ctrlv1.ApplyDeplo
 		cpuThreshold = policy.CpuThreshold
 	}
 	if policy.MemoryThreshold != nil {
-		metrics = append(metrics,
+		metrics = append(
+			metrics,
 			//nolint:exhaustruct
 			autoscalingv2.MetricSpec{
 				Type: autoscalingv2.ResourceMetricSourceType,
@@ -392,7 +398,8 @@ func (c *Controller) ensureHPAExists(ctx context.Context, req *ctrlv1.ApplyDeplo
 	}
 
 	// CPU is always a scaling signal.
-	metrics = append(metrics,
+	metrics = append(
+		metrics,
 		//nolint:exhaustruct
 		autoscalingv2.MetricSpec{
 			Type: autoscalingv2.ResourceMetricSourceType,
@@ -426,13 +433,13 @@ func (c *Controller) ensureHPAExists(ctx context.Context, req *ctrlv1.ApplyDeplo
 				Kind:       "ReplicaSet",
 				Name:       req.GetK8SName(),
 			},
-			MinReplicas: ptr.P(minReplicas),
+			MinReplicas: new(minReplicas),
 			MaxReplicas: maxReplicas,
 			//nolint:exhaustruct
 			Behavior: &autoscalingv2.HorizontalPodAutoscalerBehavior{
 				//nolint:exhaustruct
 				ScaleDown: &autoscalingv2.HPAScalingRules{
-					StabilizationWindowSeconds: ptr.P(scaleDownStabilizationSeconds),
+					StabilizationWindowSeconds: new(scaleDownStabilizationSeconds),
 				},
 			},
 			Metrics: metrics,
@@ -527,7 +534,7 @@ func replicaSetOwnerRef(rs *appsv1.ReplicaSet) metav1.OwnerReference {
 		Kind:               "ReplicaSet",
 		Name:               rs.Name,
 		UID:                rs.UID,
-		Controller:         ptr.P(true),
-		BlockOwnerDeletion: ptr.P(true),
+		Controller:         new(true),
+		BlockOwnerDeletion: new(true),
 	}
 }

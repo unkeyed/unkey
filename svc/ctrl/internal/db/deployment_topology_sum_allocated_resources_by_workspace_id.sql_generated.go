@@ -17,8 +17,14 @@ SELECT
 FROM ` + "`" + `deployment_topology` + "`" + ` dt
 JOIN ` + "`" + `deployments` + "`" + ` d ON d.` + "`" + `id` + "`" + ` = dt.` + "`" + `deployment_id` + "`" + `
 WHERE dt.` + "`" + `workspace_id` + "`" + ` = ?
+  AND dt.` + "`" + `deployment_id` + "`" + ` != ?
   AND dt.` + "`" + `desired_status` + "`" + ` = 'running'
 `
+
+type SumAllocatedResourcesByWorkspaceIDParams struct {
+	WorkspaceID         string `db:"workspace_id"`
+	ExcludeDeploymentID string `db:"exclude_deployment_id"`
+}
 
 type SumAllocatedResourcesByWorkspaceIDRow struct {
 	TotalCpuMillicores int64 `db:"total_cpu_millicores"`
@@ -35,9 +41,10 @@ type SumAllocatedResourcesByWorkspaceIDRow struct {
 //	FROM `deployment_topology` dt
 //	JOIN `deployments` d ON d.`id` = dt.`deployment_id`
 //	WHERE dt.`workspace_id` = ?
+//	  AND dt.`deployment_id` != ?
 //	  AND dt.`desired_status` = 'running'
-func (q *Queries) SumAllocatedResourcesByWorkspaceID(ctx context.Context, workspaceID string) (SumAllocatedResourcesByWorkspaceIDRow, error) {
-	row := q.db.QueryRowContext(ctx, sumAllocatedResourcesByWorkspaceID, workspaceID)
+func (q *Queries) SumAllocatedResourcesByWorkspaceID(ctx context.Context, arg SumAllocatedResourcesByWorkspaceIDParams) (SumAllocatedResourcesByWorkspaceIDRow, error) {
+	row := q.db.QueryRowContext(ctx, sumAllocatedResourcesByWorkspaceID, arg.WorkspaceID, arg.ExcludeDeploymentID)
 	var i SumAllocatedResourcesByWorkspaceIDRow
 	err := row.Scan(&i.TotalCpuMillicores, &i.TotalMemoryMib, &i.TotalStorageMib)
 	return i, err

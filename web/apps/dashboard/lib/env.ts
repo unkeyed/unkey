@@ -73,6 +73,8 @@ const workosAuthSchema = z.object({
   WORKOS_API_KEY: z.string().min(1),
   WORKOS_CLIENT_ID: z.string().min(1),
   WORKOS_COOKIE_PASSWORD: z.string().min(32),
+  // AuthKit's own default when unset; see its session module.
+  WORKOS_COOKIE_NAME: z.string().min(1).default("wos-session"),
 });
 
 let parsedWorkOSAuthEnv: z.infer<typeof workosAuthSchema> | undefined;

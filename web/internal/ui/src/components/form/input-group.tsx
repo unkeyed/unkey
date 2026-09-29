@@ -5,7 +5,7 @@ import { type VariantProps, cva } from "class-variance-authority";
 import React from "react";
 import { cn } from "../../lib/utils";
 
-const fieldBaseClasses = "rounded-lg text-[13px] leading-5 transition-colors duration-300";
+const fieldBaseClasses = "rounded-lg text-sm leading-5 transition-colors duration-300";
 
 /**
  * The chrome of a text field: border, background, focus ring and text color.
@@ -17,15 +17,15 @@ const fieldBaseClasses = "rounded-lg text-[13px] leading-5 transition-colors dur
  */
 const fieldSurfaceClasses = {
   default:
-    "border border-gray-5 hover:border-gray-8 bg-white dark:bg-black text-grayA-12 focus:border-accent-12 focus:ring-3 focus:ring-gray-5 focus:ring-offset-0 focus-visible:outline-hidden",
+    "border border-input hover:border-strong bg-raised text-grayA-12 focus:border-gray-12 focus:ring-3 focus:ring-gray-5 focus:ring-offset-0 focus-visible:outline-hidden",
   ghost:
-    "border border-transparent bg-transparent text-grayA-12 focus:border-accent-12 focus:ring-3 focus:ring-gray-5 focus:ring-offset-0 focus-visible:outline-hidden",
+    "border border-transparent bg-transparent text-grayA-12 focus:border-gray-12 focus:ring-3 focus:ring-gray-5 focus:ring-offset-0 focus-visible:outline-hidden",
   success:
-    "border border-success-9 hover:border-success-10 bg-white dark:bg-black text-success-11 focus:border-success-8 focus:ring-3 focus:ring-success-4 focus-visible:outline-hidden",
+    "border border-success-9 hover:border-success-10 bg-raised text-success-11 focus:border-success-8 focus:ring-3 focus:ring-success-4 focus-visible:outline-hidden",
   warning:
-    "border border-warning-9 hover:border-warning-10 bg-white dark:bg-black text-warning-11 focus:border-warning-8 focus:ring-3 focus:ring-warning-4 focus-visible:outline-hidden",
+    "border border-warning-9 hover:border-warning-10 bg-raised text-warning-11 focus:border-warning-8 focus:ring-3 focus:ring-warning-4 focus-visible:outline-hidden",
   error:
-    "border border-error-9 hover:border-error-10 bg-white dark:bg-black text-error-11 focus:border-error-8 focus:ring-3 focus:ring-error-4 focus-visible:outline-hidden",
+    "border border-error-9 hover:border-error-10 bg-raised text-error-11 focus:border-error-8 focus:ring-3 focus:ring-error-4 focus-visible:outline-hidden",
 } as const;
 
 const fieldInvalidClasses =
@@ -33,15 +33,15 @@ const fieldInvalidClasses =
 
 const fieldGroupSurfaceClasses = {
   default:
-    "border border-gray-5 hover:border-gray-8 bg-white dark:bg-black text-grayA-12 focus-within:border-accent-12 focus-within:ring-3 focus-within:ring-gray-5 focus-within:ring-offset-0 focus-visible:outline-hidden",
+    "border border-input hover:border-strong bg-raised text-grayA-12 focus-within:border-gray-12 focus-within:ring-3 focus-within:ring-gray-5 focus-within:ring-offset-0 focus-visible:outline-hidden",
   ghost:
-    "border border-transparent bg-transparent text-grayA-12 focus-within:border-accent-12 focus-within:ring-3 focus-within:ring-gray-5 focus-within:ring-offset-0 focus-visible:outline-hidden",
+    "border border-transparent bg-transparent text-grayA-12 focus-within:border-gray-12 focus-within:ring-3 focus-within:ring-gray-5 focus-within:ring-offset-0 focus-visible:outline-hidden",
   success:
-    "border border-success-9 hover:border-success-10 bg-white dark:bg-black text-success-11 focus-within:border-success-8 focus-within:ring-3 focus-within:ring-success-4 focus-visible:outline-hidden",
+    "border border-success-9 hover:border-success-10 bg-raised text-success-11 focus-within:border-success-8 focus-within:ring-3 focus-within:ring-success-4 focus-visible:outline-hidden",
   warning:
-    "border border-warning-9 hover:border-warning-10 bg-white dark:bg-black text-warning-11 focus-within:border-warning-8 focus-within:ring-3 focus-within:ring-warning-4 focus-visible:outline-hidden",
+    "border border-warning-9 hover:border-warning-10 bg-raised text-warning-11 focus-within:border-warning-8 focus-within:ring-3 focus-within:ring-warning-4 focus-visible:outline-hidden",
   error:
-    "border border-error-9 hover:border-error-10 bg-white dark:bg-black text-error-11 focus-within:border-error-8 focus-within:ring-3 focus-within:ring-error-4 focus-visible:outline-hidden",
+    "border border-error-9 hover:border-error-10 bg-raised text-error-11 focus-within:border-error-8 focus-within:ring-3 focus-within:ring-error-4 focus-visible:outline-hidden",
 } as const;
 
 const fieldGroupInvalidClasses =
@@ -97,7 +97,7 @@ function InputGroupInput({ className, ref, ...props }: InputGroupInputProps) {
     <input
       ref={ref}
       className={cn(
-        "flex h-9 w-full min-w-0 flex-1 bg-transparent px-2 text-[13px] leading-5 text-grayA-12 placeholder:text-grayA-8 focus:outline-hidden disabled:cursor-not-allowed",
+        "flex h-9 w-full min-w-0 flex-1 bg-transparent px-2 text-sm leading-5 text-grayA-12 placeholder:text-grayA-8 focus:outline-hidden disabled:cursor-not-allowed",
         className,
       )}
       {...props}
@@ -114,7 +114,7 @@ function InputGroupTextarea({ className, ref, ...props }: InputGroupTextareaProp
     <textarea
       ref={ref}
       className={cn(
-        "flex min-h-9 w-full min-w-0 flex-1 bg-transparent px-3 py-2 text-[13px] leading-5 text-grayA-12 placeholder:text-grayA-8 focus:outline-hidden disabled:cursor-not-allowed",
+        "flex min-h-9 w-full min-w-0 flex-1 bg-transparent px-3 py-2 text-sm leading-5 text-grayA-12 placeholder:text-grayA-8 focus:outline-hidden disabled:cursor-not-allowed",
         className,
       )}
       {...props}
@@ -141,7 +141,7 @@ function InputGroupText({ className, ref, ...props }: InputGroupTextProps) {
   return (
     <span
       ref={ref}
-      className={cn("shrink-0 select-none text-[13px] leading-5 opacity-40", className)}
+      className={cn("shrink-0 select-none text-sm leading-5 opacity-40", className)}
       {...props}
     />
   );

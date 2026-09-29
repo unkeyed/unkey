@@ -1,5 +1,5 @@
-import { cn } from "@/lib/utils";
 import type { KeyDetailsLog } from "@unkey/clickhouse/src/verifications";
+import { cn } from "cn";
 
 export type StatusStyle = {
   base: string;
@@ -21,7 +21,7 @@ export const STATUS_STYLES = {
       default: "bg-grayA-3 text-grayA-9 group-hover:bg-grayA-4",
       selected: "bg-grayA-4 text-grayA-11",
     },
-    focusRing: "focus:ring-accent-7",
+    focusRing: "focus:ring-gray-7",
   },
   warning: {
     base: "text-warningA-11 bg-warning-2",
@@ -86,7 +86,7 @@ export const getRowClassName = (log: KeyDetailsLog, selectedLog: KeyDetailsLog |
     style.base,
     style.hover,
     "group rounded-md cursor-pointer transition-colors",
-    "focus:outline-hidden focus:ring-1 focus:ring-opacity-40",
+    "focus:outline-hidden focus:ring-1",
     style.focusRing,
     isSelected && style.selected,
   );

@@ -8,9 +8,9 @@ import (
 
 // Service checks and consumes rate-limit tokens.
 //
-// Implementations must be safe for concurrent use. The concrete service in
-// this package enforces a sliding window locally, converges nodes within a
-// region through Redis, and imports foreign-region counts through MySQL.
+// Implementations must be safe for concurrent use. [New] converges sliding-window
+// counters through Redis and MySQL. [NewLocal] keeps counters in memory without
+// sharing them with other instances.
 type Service interface {
 	// Ratelimit checks one limit and consumes req.Cost tokens when the request
 	// fits in the sliding window. A denied request returns a nil error with

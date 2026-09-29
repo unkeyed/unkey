@@ -1,4 +1,4 @@
-import { cn } from "@/lib/utils";
+import { cn } from "cn";
 import { useMemo } from "react";
 import { UsageColumnSkeleton } from "../skeletons";
 import { OutcomeExplainer } from "./components/outcome-explainer";
@@ -14,6 +14,7 @@ type BarData = {
 type VerificationBarChartProps = {
   keyAuthId: string;
   keyId: string;
+  activityTitle?: string;
   maxBars?: number;
   selected: boolean;
 };
@@ -24,6 +25,7 @@ const MAX_BAR_HEIGHT = 28;
 export const VerificationBarChart = ({
   keyAuthId,
   keyId,
+  activityTitle = "API Key Activity",
   selected,
   maxBars = 30,
 }: VerificationBarChartProps) => {
@@ -94,7 +96,7 @@ export const VerificationBarChart = ({
     return (
       <div
         className={cn(
-          "grid items-end h-[28px] bg-grayA-2 dark:bg-grayA-2 w-[158px] border border-inside px-1 py-0 overflow-hidden rounded-t hover:rounded-md group-hover:rounded-md border-transparent hover:border-grayA-2 group-hover:border-grayA-2",
+          "grid items-end h-[28px] bg-grayA-2 dark:bg-grayA-2 w-[158px] border px-1 py-0 overflow-hidden rounded-t hover:rounded-md group-hover:rounded-md border-transparent hover:border-grayA-2 group-hover:border-grayA-2",
           selected ? "border-grayA-3 rounded-md" : "",
         )}
         style={{
@@ -113,7 +115,7 @@ export const VerificationBarChart = ({
     return (
       <div
         className={cn(
-          "grid items-end h-[28px] bg-grayA-2 dark:bg-grayA-2 w-[158px] border border-inside px-1 py-0 overflow-hidden rounded-t hover:rounded-md group-hover:rounded-md border-transparent hover:border-grayA-2 group-hover:border-grayA-2",
+          "grid items-end h-[28px] bg-grayA-2 dark:bg-grayA-2 w-[158px] border px-1 py-0 overflow-hidden rounded-t hover:rounded-md group-hover:rounded-md border-transparent hover:border-grayA-2 group-hover:border-grayA-2",
           selected ? "border-grayA-3 rounded-md" : "",
         )}
         style={{
@@ -129,10 +131,10 @@ export const VerificationBarChart = ({
 
   // Data display with grid layout
   return (
-    <OutcomeExplainer timeseries={timeseries}>
+    <OutcomeExplainer timeseries={timeseries} title={activityTitle}>
       <div
         className={cn(
-          "grid items-end h-[28px] bg-grayA-2 dark:bg-grayA-2 w-[158px] border border-inside px-1 py-0 overflow-hidden rounded-t hover:rounded-md group-hover:rounded-md border-transparent hover:border-grayA-2 group-hover:border-grayA-2",
+          "grid items-end h-[28px] bg-grayA-2 dark:bg-grayA-2 w-[158px] border px-1 py-0 overflow-hidden rounded-t hover:rounded-md group-hover:rounded-md border-transparent hover:border-grayA-2 group-hover:border-grayA-2",
           selected ? "border-grayA-3 rounded-md" : "",
         )}
         style={{

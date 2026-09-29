@@ -2,14 +2,7 @@ import { auth } from "@/lib/auth/server";
 import { db } from "@/lib/db";
 
 export async function getAvailableWorkspaces(userId: string, orgId?: string) {
-  const memberships = await auth.listMemberships(userId);
-  const orgIds = memberships.data
-    .filter(
-      (membership) =>
-        membership.status === "active" &&
-        (orgId === undefined || membership.organization.id === orgId),
-    )
-    .map((membership) => membership.organization.id);
+  const orgIds = await auth.listActiveOrganizationIds(userId, orgId);
 
   if (orgIds.length === 0) {
     return [];

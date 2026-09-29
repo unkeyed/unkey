@@ -45,7 +45,7 @@ export function EnvVarGroupActionMenu({ groupKey, items }: EnvVarGroupActionMenu
         <Button
           ref={deleteButtonRef}
           variant="outline"
-          className="size-5 [&_svg]:size-3 rounded-sm border-transparent group-hover:border-grayA-6"
+          className="size-5 [&_svg]:size-3 rounded-sm border-transparent group-hover:border-strong"
           onClick={(e) => e.stopPropagation()}
         >
           <IconDotsOutline18 className="group-hover:text-gray-12 text-gray-11" />

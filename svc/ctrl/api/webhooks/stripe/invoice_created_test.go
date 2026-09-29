@@ -205,11 +205,12 @@ func TestInvoiceCreated_IgnoresMismatchedSubscription(t *testing.T) {
 	subID := uid.New("sub")
 
 	require.NoError(t, database.InsertWorkspace(context.Background(), db.InsertWorkspaceParams{
-		ID:        wsID,
-		OrgID:     uid.New(uid.OrgPrefix),
-		Name:      "Deploy WS",
-		Slug:      wsID,
-		CreatedAt: time.Now().UnixMilli(),
+		ID:           wsID,
+		OrgID:        uid.New(uid.OrgPrefix),
+		Name:         "Deploy WS",
+		Slug:         wsID,
+		CreatedAt:    time.Now().UnixMilli(),
+		K8sNamespace: uid.DNS1035(),
 	}))
 	_, err = database.RW().ExecContext(context.Background(),
 		`INSERT INTO workspace_billing (workspace_id, plan, stripe_customer_id) VALUES (?, ?, ?)`,

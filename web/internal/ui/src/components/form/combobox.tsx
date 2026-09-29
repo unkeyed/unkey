@@ -8,6 +8,7 @@ import {
 } from "@unkey/icons";
 import { type VariantProps, cva } from "class-variance-authority";
 import * as React from "react";
+import { popupTransition } from "../../lib/popup";
 import { cn } from "../../lib/utils";
 import {
   InputGroup,
@@ -111,7 +112,7 @@ function ComboboxInput({ className, icon, wrapperClassName, ref, ...props }: Com
       </InputGroupAddon>
       <ComboboxPrimitive.Input
         ref={ref}
-        className={cn("h-8 text-[13px] placeholder:text-grayA-8", className)}
+        className={cn("h-8 text-sm placeholder:text-grayA-8", className)}
         render={<InputGroupInput />}
         {...props}
       />
@@ -148,8 +149,8 @@ function ComboboxContent({
           ref={ref}
           data-combobox-popup=""
           className={cn(
-            "isolate relative z-50 flex flex-col overflow-hidden rounded-lg border border-gray-5 bg-gray-2 text-gray-12 shadow-md min-w-(--anchor-width) origin-(--transform-origin)",
-            "transition-[opacity,scale,translate] data-starting-style:opacity-0 data-starting-style:scale-95 data-ending-style:opacity-0 data-ending-style:scale-95",
+            "isolate relative z-50 flex flex-col overflow-hidden rounded-lg bg-raised text-gray-12 shadow-floating min-w-(--anchor-width) origin-(--transform-origin)",
+            popupTransition,
             "data-[side=bottom]:data-starting-style:-translate-y-1 data-[side=top]:data-starting-style:translate-y-1",
             className,
           )}
@@ -186,7 +187,7 @@ function ComboboxEmpty({
   return (
     <ComboboxPrimitive.Empty
       ref={ref}
-      className={cn("py-6 text-center text-[13px] text-grayA-9 empty:hidden", className)}
+      className={cn("py-6 text-center text-sm text-grayA-9 empty:hidden", className)}
       {...props}
     />
   );
@@ -219,7 +220,7 @@ function ComboboxItem({
     <ComboboxPrimitive.Item
       ref={ref}
       className={cn(
-        "relative flex w-full cursor-pointer select-none items-center overflow-hidden rounded-sm px-2 py-1.5 text-[13px] outline-hidden",
+        "relative flex w-full cursor-pointer select-none items-center overflow-hidden rounded-sm px-2 py-1.5 text-sm outline-hidden",
         "text-gray-12 data-highlighted:bg-grayA-3 data-disabled:cursor-not-allowed data-disabled:opacity-50",
         className,
       )}

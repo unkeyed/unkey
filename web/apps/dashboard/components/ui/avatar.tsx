@@ -4,7 +4,7 @@ import { Avatar as AvatarPrimitive } from "@base-ui/react/avatar";
 import BoringAvatar from "boring-avatars";
 import * as React from "react";
 
-import { cn } from "@/lib/utils";
+import { cn } from "cn";
 
 const Avatar = React.forwardRef<
   React.ElementRef<typeof AvatarPrimitive.Root>,

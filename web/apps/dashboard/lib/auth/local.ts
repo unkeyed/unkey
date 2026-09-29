@@ -123,8 +123,17 @@ export class LocalAuthProvider extends BaseAuthProvider {
     return { ...this.organization };
   }
 
-  async listMemberships(userId: string): Promise<MembershipListResponse> {
-    return { data: userId === LOCAL_USER_ID ? [this.membership] : [], metadata: {} };
+  async listMemberships(userId: string, organizationId?: string): Promise<MembershipListResponse> {
+    const matches =
+      userId === LOCAL_USER_ID && (organizationId === undefined || organizationId === LOCAL_ORG_ID);
+    return { data: matches ? [this.membership] : [], metadata: {} };
+  }
+
+  async listActiveOrganizationIds(userId: string, organizationId?: string): Promise<string[]> {
+    const { data } = await this.listMemberships(userId, organizationId);
+    return data
+      .filter((membership) => membership.status === "active")
+      .map((membership) => membership.organization.id);
   }
 
   async getOrganizationMemberList(orgId: string): Promise<MembershipListResponse> {

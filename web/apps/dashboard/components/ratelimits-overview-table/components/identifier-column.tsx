@@ -1,13 +1,13 @@
 import { formatNumber } from "@/lib/fmt";
 import { formatMs } from "@/lib/ms";
-import { cn } from "@/lib/utils";
 import type { RatelimitOverviewLog } from "@unkey/clickhouse/src/ratelimits";
 import {
   IconArrowDotRotateAnticlockwiseOutline18,
   IconFocusOutline18,
   IconTriangleWarningOutline18,
 } from "@unkey/icons";
-import { InfoTooltip } from "@unkey/ui";
+import { InfoHoverCard, InfoTooltip } from "@unkey/ui";
+import { cn } from "cn";
 import { getBlockedPercentage, isMostlyBlocked } from "../utils/calculate-blocked-percentage";
 import { getStatusStyle } from "../utils/get-row-class";
 
@@ -24,7 +24,6 @@ export const IdentifierColumn = ({ log }: IdentifierColumnProps) => {
   return (
     <div className="flex gap-6 items-center pl-2 min-w-0">
       <InfoTooltip
-        variant="inverted"
         content={
           <div className="text-xs">
             {isFullyBlocked ? (
@@ -48,26 +47,25 @@ export const IdentifierColumn = ({ log }: IdentifierColumnProps) => {
           className={cn(
             style.badge.default,
             "rounded-sm p-1 shrink-0",
-            hasMoreBlocked ? "" : "group-hover:bg-accent-6",
+            hasMoreBlocked ? "" : "group-hover:bg-gray-6",
           )}
         >
           {log.override ? (
             <IconArrowDotRotateAnticlockwiseOutline18 className="size-3.5" />
           ) : (
             <IconFocusOutline18
-              className={cn("size-3.5", hasMoreBlocked ? "" : "group-hover:text-accent-12")}
+              className={cn("size-3.5", hasMoreBlocked ? "" : "group-hover:text-gray-12")}
             />
           )}
         </div>
         <InfoTooltip
           asChild
-          variant="inverted"
           content={<span className="font-mono text-xs break-all">{log.identifier}</span>}
         >
           <div
             className={cn(
               "font-mono font-medium truncate min-w-0",
-              hasMoreBlocked ? style.base : "text-accent-12",
+              hasMoreBlocked ? style.base : "text-gray-12",
             )}
           >
             {log.identifier}
@@ -88,15 +86,14 @@ type OverrideIndicatorProps = {
 };
 
 const OverrideIndicator = ({ log, style, hasMoreBlocked }: OverrideIndicatorProps) => (
-  <InfoTooltip
-    variant="muted"
+  <InfoHoverCard
     content={
       <div className="flex flex-row pl-1 pr-5 gap-3 py-0 items-center justify-center leading-none">
         <div
           className={cn(
             style.badge.default,
             "rounded-sm p-1",
-            "bg-accent-4 text-accent-12 group-hover:bg-accent-5",
+            "bg-gray-4 text-gray-12 group-hover:bg-gray-5",
           )}
         >
           <IconArrowDotRotateAnticlockwiseOutline18 className="size-3.5" />
@@ -107,7 +104,7 @@ const OverrideIndicator = ({ log, style, hasMoreBlocked }: OverrideIndicatorProp
             <div className="size-[6px] rounded-full bg-warning-10" />
           </div>
           {log.override && (
-            <div className="text-accent-9 text-xs">
+            <div className="text-gray-9 text-xs">
               Limit set to <span className="text-gray-12">{formatNumber(log.override.limit)} </span>
               requests per <span className="text-gray-12">{formatMs(log.override.duration)}</span>
             </div>
@@ -126,5 +123,5 @@ const OverrideIndicator = ({ log, style, hasMoreBlocked }: OverrideIndicatorProp
         )}
       />
     </div>
-  </InfoTooltip>
+  </InfoHoverCard>
 );

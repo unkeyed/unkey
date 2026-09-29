@@ -16,7 +16,7 @@ describe("DEPLOYMENT_STATUS_GROUPS", () => {
   });
 
   test("expands a selection of groups into their raw statuses", () => {
-    expect(expandDeploymentStatusGroups(["building", "cancelled"])).toEqual([
+    expect(expandDeploymentStatusGroups(["building", "cancelled", "skipped"])).toEqual([
       "starting",
       "building",
       "deploying",
@@ -36,6 +36,7 @@ describe("DEPLOYMENT_STATUS_GROUPS", () => {
       "queued",
       "blocked",
       "cancelled",
+      "skipped",
       "superseded",
       "stopped",
     ]);

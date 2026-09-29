@@ -26,47 +26,47 @@ import (
 //
 // Events are processed concurrently (up to [maxPodWatchConcurrency]) so that a
 // slow RPC for one ReplicaSet does not block reporting for others.
-//
-// The initial watch must succeed for the controller to start. After that the
-// goroutine automatically reconnects with jittered backoff (1-5s) when the
-// watch disconnects or times out. A fresh Watch() call with no ResourceVersion
-// causes the API server to replay ADDED events for every existing matching
-// pod, so startup and reconnect states are covered by the watch itself;
-// anything the watch somehow drops is caught by the 30s actual-state resync.
-//
-// Returns an error if the initial watch setup fails. Once started the goroutine
-// runs until the context is cancelled.
-func (c *Controller) runPodWatchLoop(ctx context.Context) error {
-	// Verify we can establish a watch before returning to the caller.
-	w, err := c.watchPods(ctx)
-	if err != nil {
-		return err
-	}
-
-	go func() {
-		for {
-			c.drainPodWatch(ctx, w)
-
+func (c *Controller) runPodWatchLoop(ctx context.Context) {
+	for ctx.Err() == nil {
+		w, err := c.watchPods(ctx)
+		if err != nil {
 			if ctx.Err() != nil {
 				return
 			}
 
-			metrics.PodWatchReconnectsTotal.WithLabelValues("deployment", "channel_closed").Inc()
-			backoff := time.Second + time.Millisecond*time.Duration(rand.Float64()*4000)
-			logger.Warn("pod watch: disconnected, reconnecting", "backoff", backoff)
-			time.Sleep(backoff)
+			metrics.PodWatchReconnectsTotal.WithLabelValues("deployment", "error").Inc()
+			logger.Error("pod watch: unable to establish watch", "error", err.Error())
 
-			var watchErr error
-			w, watchErr = c.watchPods(ctx)
-			if watchErr != nil {
-				metrics.PodWatchReconnectsTotal.WithLabelValues("deployment", "error").Inc()
-				logger.Error("pod watch: unable to re-establish watch", "error", watchErr.Error())
-				continue
+			if !waitPodWatchBackoff(ctx) {
+				return
 			}
+			continue
 		}
-	}()
 
-	return nil
+		c.drainPodWatch(ctx, w)
+		if ctx.Err() != nil {
+			return
+		}
+
+		metrics.PodWatchReconnectsTotal.WithLabelValues("deployment", "channel_closed").Inc()
+		logger.Warn("pod watch: disconnected, reconnecting")
+		if !waitPodWatchBackoff(ctx) {
+			return
+		}
+	}
+}
+
+func waitPodWatchBackoff(ctx context.Context) bool {
+	backoff := time.Second + time.Millisecond*time.Duration(rand.Float64()*4000)
+	timer := time.NewTimer(backoff)
+	defer timer.Stop()
+
+	select {
+	case <-ctx.Done():
+		return false
+	case <-timer.C:
+		return true
+	}
 }
 
 // watchPods creates a new Kubernetes watch for krane-managed deployment pods.
@@ -84,8 +84,23 @@ func (c *Controller) watchPods(ctx context.Context) (watch.Interface, error) {
 // control plane RPC for one ReplicaSet does not delay reporting for others.
 func (c *Controller) drainPodWatch(ctx context.Context, w watch.Interface) {
 	sem := conc.NewSem(conc.DefaultConcurrency)
+	defer func() {
+		w.Stop()
+		sem.Wait()
+	}()
 
-	for event := range w.ResultChan() {
+	for {
+		var event watch.Event
+		var ok bool
+		select {
+		case <-ctx.Done():
+			return
+		case event, ok = <-w.ResultChan():
+			if !ok {
+				return
+			}
+		}
+
 		switch event.Type {
 		case watch.Error:
 			logger.Error("pod watch: error event", "event", event.Object)
@@ -102,8 +117,6 @@ func (c *Controller) drainPodWatch(ctx context.Context, w watch.Interface) {
 			})
 		}
 	}
-
-	sem.Wait()
 }
 
 // handlePodEvent processes a single pod watch event: finds the owning

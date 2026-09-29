@@ -38,6 +38,11 @@ func New(clk clock.Clock) (*Executor, error) {
 	return &Executor{cache: c}, nil
 }
 
+// Close releases the spec cache's background workers.
+func (e *Executor) Close() {
+	e.cache.Close()
+}
+
 func (e *Executor) Execute(
 	ctx context.Context,
 	_ *zen.Session,

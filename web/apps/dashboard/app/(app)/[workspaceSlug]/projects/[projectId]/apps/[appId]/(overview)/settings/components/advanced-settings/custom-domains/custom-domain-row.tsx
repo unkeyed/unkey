@@ -5,7 +5,6 @@ import {
   type VerificationStatus,
   retryDomainVerification,
 } from "@/lib/collections/deploy/custom-domains";
-import { cn } from "@/lib/utils";
 import {
   IconCircleCheckOutline12,
   IconCircleInfoOutline18,
@@ -15,6 +14,7 @@ import {
   IconTriangleWarningOutline12,
 } from "@unkey/icons";
 import { Badge, Button, ConfirmPopover, Tooltip, TooltipContent, TooltipTrigger } from "@unkey/ui";
+import { cn } from "cn";
 import { useRef, useState } from "react";
 import { RemoveButton } from "../../shared/remove-button";
 import { DnsRecordTable } from "./dns-record-table";
@@ -99,14 +99,14 @@ export function CustomDomainRow({ domain, environmentSlug }: CustomDomainRowProp
   };
 
   return (
-    <div className="border-b border-gray-4 last:border-b-0 group">
+    <div className="border-b last:border-b-0 group">
       <div className="flex items-center justify-between px-4 py-3 h-12">
         <div className="flex items-center gap-3 flex-1 min-w-0">
           <a
             href={`https://${domain.domain}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-[13px] text-gray-12 font-medium hover:underline truncate"
+            className="text-sm text-gray-12 font-medium hover:underline truncate"
           >
             {domain.domain}
           </a>
@@ -177,10 +177,10 @@ export function CustomDomainRow({ domain, environmentSlug }: CustomDomainRowProp
       {domain.verificationStatus !== "verified" &&
         domain.domainConnectUrl &&
         domain.domainConnectProvider && (
-          <div className="mx-4 mb-3 flex items-center gap-3 px-4 py-3 rounded-lg border border-gray-4 bg-gray-2">
+          <div className="mx-4 mb-3 flex items-center gap-3 px-4 py-3 rounded-lg border bg-raised">
             <ProviderIcon provider={domain.domainConnectProvider} className="size-6!" />
             <div className="flex-1">
-              <p className="text-[13px] font-medium text-gray-12">Automatic setup available</p>
+              <p className="text-sm font-medium text-gray-12">Automatic setup available</p>
               <p className="text-xs text-gray-9">
                 We detected your domain uses {domain.domainConnectProvider}. We can configure your
                 DNS records automatically.

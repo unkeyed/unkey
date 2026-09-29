@@ -119,11 +119,12 @@ func seedScaleIdentities(t *testing.T, ctx context.Context, h *testutil.Harness)
 	require.NoError(t, err)
 
 	err = db.Query.InsertWorkspace(ctx, tx, db.InsertWorkspaceParams{
-		ID:        scaleWorkspaceID,
-		Name:      "Identity Search Scale Test",
-		Slug:      scaleWorkspaceID,
-		OrgID:     uid.New(uid.OrgPrefix),
-		CreatedAt: time.Now().UnixMilli(),
+		ID:           scaleWorkspaceID,
+		Name:         "Identity Search Scale Test",
+		Slug:         scaleWorkspaceID,
+		OrgID:        uid.New(uid.OrgPrefix),
+		CreatedAt:    time.Now().UnixMilli(),
+		K8sNamespace: uid.DNS1035(),
 	})
 	require.NoError(t, err)
 

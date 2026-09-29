@@ -13,7 +13,6 @@ import (
 	"github.com/unkeyed/unkey/internal/services/keys"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/hash"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
@@ -46,7 +45,7 @@ func TestUpdateKeySuccess(t *testing.T) {
 	keyResponse := h.CreateKey(seed.CreateKeyRequest{
 		WorkspaceID: h.Resources().UserWorkspace.ID,
 		KeySpaceID:  api.KeyAuthID.String,
-		Name:        ptr.P("test"),
+		Name:        new("test"),
 	})
 
 	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "api.*.update_key")
@@ -62,7 +61,7 @@ func TestUpdateKeySuccess(t *testing.T) {
 		ExternalId: nullable.NewNullableWithValue("test2"),
 		Meta:       nullable.NewNullableWithValue(map[string]any{"test": "test"}),
 		Expires:    nullable.NewNullableWithValue(time.Now().Add(time.Hour).UnixMilli()),
-		Enabled:    ptr.P(true),
+		Enabled:    new(true),
 	}
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
@@ -124,7 +123,7 @@ func TestUpdateKeySuccess(t *testing.T) {
 
 		res = testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
 			KeyId:   keyResponse.KeyID,
-			Enabled: ptr.P(false),
+			Enabled: new(false),
 		})
 		require.Equal(t, 200, res.Status)
 
@@ -166,7 +165,7 @@ func TestUpdateKeyWithURNPermission(t *testing.T) {
 	key := h.CreateKey(seed.CreateKeyRequest{
 		WorkspaceID: workspace.ID,
 		KeySpaceID:  api.KeyAuthID.String,
-		Name:        ptr.P("before"),
+		Name:        new("before"),
 	})
 
 	updateKeyPermission := fmt.Sprintf("unkey:v1:%s:projects/%s/keyspaces/%s/keys/%s#write", workspace.ID, api.ProjectID, api.KeyAuthID.String, key.KeyID)
@@ -210,7 +209,7 @@ func TestUpdateKeyWithTranslatedAdminPermission(t *testing.T) {
 	key := h.CreateKey(seed.CreateKeyRequest{
 		WorkspaceID: workspace.ID,
 		KeySpaceID:  api.KeyAuthID.String,
-		Name:        ptr.P("before"),
+		Name:        new("before"),
 	})
 
 	adminPermission := fmt.Sprintf("unkey:v1:%s:**#*", workspace.ID)
@@ -256,7 +255,7 @@ func TestUpdateKeyUpdateAllFields(t *testing.T) {
 	keyResponse := h.CreateKey(seed.CreateKeyRequest{
 		WorkspaceID: api.WorkspaceID,
 		KeySpaceID:  api.KeyAuthID.String,
-		Name:        ptr.P("test"),
+		Name:        new("test"),
 	})
 
 	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "api.*.update_key")
@@ -275,7 +274,7 @@ func TestUpdateKeyUpdateAllFields(t *testing.T) {
 		ExternalId: nullable.NewNullableWithValue("newExternalId"),
 		Meta:       nullable.NewNullableWithValue(map[string]any{"new": "meta"}),
 		Expires:    nullable.NewNullNullable[int64](),
-		Enabled:    ptr.P(true),
+		Enabled:    new(true),
 		Credits: nullable.NewNullableWithValue(openapi.UpdateKeyCreditsData{
 			Remaining: nullable.NewNullableWithValue(int64(100)),
 			Refill: nullable.NewNullableWithValue(openapi.UpdateKeyCreditsRefill{
@@ -417,7 +416,7 @@ func TestUpdateKeyConcurrentWithSameExternalId(t *testing.T) {
 		keyResponse := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID: h.Resources().UserWorkspace.ID,
 			KeySpaceID:  api.KeyAuthID.String,
-			Name:        ptr.P(fmt.Sprintf("key-%d", i)),
+			Name:        new(fmt.Sprintf("key-%d", i)),
 		})
 		keyIDs[i] = keyResponse.KeyID
 	}
@@ -508,7 +507,7 @@ func TestUpdateKeyConcurrentRatelimits(t *testing.T) {
 	keyResponse := h.CreateKey(seed.CreateKeyRequest{
 		WorkspaceID: h.Resources().UserWorkspace.ID,
 		KeySpaceID:  api.KeyAuthID.String,
-		Name:        ptr.P("concurrent-ratelimit-test-key"),
+		Name:        new("concurrent-ratelimit-test-key"),
 	})
 
 	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "api.*.update_key")

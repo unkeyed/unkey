@@ -42,8 +42,7 @@ export const AnimatedLoadingSpinner = ({
       width={size}
       height={size}
       viewBox="0 0 18 18"
-      className={cn("animate-spin-slow", className)}
-      data-prefers-reduced-motion="respect-motion-preference"
+      className={cn("animate-spin-slow motion-reduce:animate-none", className)}
     >
       <g>
         {segments.map((id, index) => {

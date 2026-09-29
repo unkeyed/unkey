@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { mapAuthkitSession } from "../get-auth";
+import { mapAuthkitSession, toAuthenticatedUser } from "../get-auth";
 
 describe("mapAuthkitSession", () => {
   it("preserves the dashboard authorization contract", () => {
@@ -50,5 +50,33 @@ describe("mapAuthkitSession", () => {
       role: null,
       user: null,
     });
+  });
+});
+
+describe("toAuthenticatedUser", () => {
+  const user = {
+    id: "user_123",
+    email: "user@example.com",
+    firstName: null,
+    lastName: null,
+    avatarUrl: null,
+    fullName: null,
+  };
+
+  it("matches the getCurrentUser shape without leaking session secrets", () => {
+    expect(
+      toAuthenticatedUser({
+        userId: "user_123",
+        orgId: "org_123",
+        role: "member",
+        accessToken: "access_token",
+        permissions: ["admin:*"],
+        user,
+      }),
+    ).toEqual({ ...user, orgId: "org_123", role: "member" });
+  });
+
+  it("returns null when the session has no profile", () => {
+    expect(toAuthenticatedUser({ userId: null, orgId: null, role: null, user: null })).toBeNull();
   });
 });

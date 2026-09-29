@@ -4,6 +4,7 @@ import {
   Popover,
   PopoverContent,
   PopoverTrigger,
+  Separator,
   Tooltip,
   TooltipContent,
   TooltipProvider,
@@ -120,7 +121,7 @@ export const TableActionPopover = ({
           }
         />
         <PopoverContent
-          className="min-w-60 max-w-full bg-gray-1 dark:bg-black drop-shadow-2xl transform-gpu border-gray-6 rounded-lg p-0"
+          className="min-w-60 max-w-full bg-raised rounded-lg p-0"
           align={align}
           initialFocus={() => {
             const firstEnabledIndex = items.findIndex((item) => !isItemDisabled(item));
@@ -162,7 +163,7 @@ export const TableActionPopover = ({
                   <div className="text-gray-9 group-hover:text-gray-12 group-focus:text-gray-12">
                     {item.icon}
                   </div>
-                  <span className="text-[13px] font-medium">{item.label}</span>
+                  <span className="text-sm font-medium">{item.label}</span>
                 </>
               );
               const control =
@@ -189,7 +190,7 @@ export const TableActionPopover = ({
                       control
                     )}
                   </div>
-                  {item.divider && <div aria-hidden className="h-px bg-grayA-3 w-full my-2" />}
+                  {item.divider && <Separator className="my-2" />}
                 </div>
               );
             })}

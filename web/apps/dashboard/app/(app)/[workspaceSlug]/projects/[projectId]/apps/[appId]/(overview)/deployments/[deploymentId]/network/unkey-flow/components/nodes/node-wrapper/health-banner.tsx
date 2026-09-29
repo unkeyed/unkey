@@ -20,7 +20,7 @@ export function HealthBanner({ healthStatus }: HealthBannerProps) {
     <div className={`mx-auto w-[${DEFAULT_NODE_WIDTH}px] -m-[20px]`}>
       <div
         className={cn(
-          "h-12 border rounded-t-[14px]",
+          "h-12 border rounded-t-2xl",
           config.colors.bannerBg,
           config.colors.bannerBorder,
         )}

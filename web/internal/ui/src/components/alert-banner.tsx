@@ -14,8 +14,7 @@ const alertBannerVariants = cva(
   {
     variants: {
       variant: {
-        default:
-          "border-grayA-4 bg-background [&>svg]:text-gray-12 *:data-[slot=alert-banner-title]:text-gray-12",
+        default: "bg-raised [&>svg]:text-gray-12 *:data-[slot=alert-banner-title]:text-gray-12",
         error:
           "border-errorA-4 bg-errorA-2 [&>svg]:text-error-11 *:data-[slot=alert-banner-title]:text-error-11",
         warning:
@@ -63,7 +62,7 @@ function AlertBannerDescription({ className, ...props }: React.ComponentProps<"d
     <div
       data-slot="alert-banner-description"
       className={cn(
-        "col-start-2 min-w-0 text-[13px] leading-5 text-gray-11",
+        "col-start-2 min-w-0 text-sm leading-5 text-gray-11",
         "[[data-slot=alert-banner-title]+&]:mt-0.5",
         linkStyles,
         className,

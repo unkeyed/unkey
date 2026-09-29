@@ -75,7 +75,7 @@ export function useDeploymentHeaderActions({
   // biome-ignore lint/correctness/useExhaustiveDependencies: matches the list menu
   const items = useMemo((): MenuItem[] => {
     const { canRollback, canPromote, canStop, canWake } = getDeploymentActionEligibility({
-      selectedDeployment: { id: deployment.id, status },
+      selectedDeployment: { id: deployment.id, status, desiredState: deployment.desiredState },
       currentDeploymentId,
       isRolledBack,
       environmentKind: environment?.kind ?? null,
@@ -185,6 +185,7 @@ export function useDeploymentHeaderActions({
     ];
   }, [
     deployment.id,
+    deployment.desiredState,
     status,
     currentDeploymentId,
     isRolledBack,

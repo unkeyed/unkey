@@ -8,7 +8,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_keys_add_permissions"
@@ -44,7 +43,7 @@ func TestSuccess(t *testing.T) {
 		key := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID: workspace.ID,
 			KeySpaceID:  api.KeyAuthID.String,
-			Name:        ptr.P("urn-add-permission-key"),
+			Name:        new("urn-add-permission-key"),
 		})
 		permission := h.CreatePermission(seed.CreatePermissionRequest{
 			WorkspaceID: workspace.ID,
@@ -78,7 +77,7 @@ func TestSuccess(t *testing.T) {
 		key := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID: workspace.ID,
 			KeySpaceID:  api.KeyAuthID.String,
-			Name:        ptr.P("urn-create-permission-key"),
+			Name:        new("urn-create-permission-key"),
 		})
 
 		updateKeyPermission := fmt.Sprintf("unkey:v1:%s:projects/%s/keyspaces/%s/keys/%s#write", workspace.ID, api.ProjectID, api.KeyAuthID.String, key.KeyID)
@@ -125,7 +124,7 @@ func TestSuccess(t *testing.T) {
 			WorkspaceID: workspace.ID,
 			Name:        "documents.write.single.name",
 			Slug:        "documents.write.single.name",
-			Description: ptr.P("Write documents permission"),
+			Description: new("Write documents permission"),
 		})
 
 		// Verify key has no permissions initially
@@ -183,14 +182,14 @@ func TestSuccess(t *testing.T) {
 			WorkspaceID: workspace.ID,
 			Name:        "documents.read.multiple",
 			Slug:        "documents.read.multiple",
-			Description: ptr.P("Read documents permission"),
+			Description: new("Read documents permission"),
 		})
 
 		permission2 := h.CreatePermission(seed.CreatePermissionRequest{
 			WorkspaceID: workspace.ID,
 			Name:        "documents.write.multiple",
 			Slug:        "documents.write.multiple",
-			Description: ptr.P("Write documents permission"),
+			Description: new("Write documents permission"),
 		})
 
 		req := handler.Request{
@@ -396,7 +395,7 @@ func TestAddPermissionsConcurrent(t *testing.T) {
 	keyResponse := h.CreateKey(seed.CreateKeyRequest{
 		WorkspaceID: workspace.ID,
 		KeySpaceID:  api.KeyAuthID.String,
-		Name:        ptr.P("concurrent-permissions-test-key"),
+		Name:        new("concurrent-permissions-test-key"),
 	})
 
 	// Create permissions that will be added concurrently

@@ -1,5 +1,5 @@
 import { Github } from "@unkey/icons";
-import { Button, type ChevronState, SettingCard } from "@unkey/ui";
+import { Button, type ChevronState, SettingCard, Skeleton } from "@unkey/ui";
 
 export const GitHubSettingCard = ({
   children,
@@ -25,12 +25,12 @@ export const GitHubSettingCard = ({
 );
 
 export const ComboboxSkeleton = () => (
-  <div className="w-[185px] h-7 rounded-lg border border-gray-5 bg-gray-2 flex items-center justify-between px-3 py-2">
+  <div className="w-[185px] h-7 rounded-lg border bg-raised flex items-center justify-between px-3 py-2">
     <div className="flex gap-1.5 items-center">
-      <div className="h-3.5 w-16 bg-grayA-3 rounded animate-pulse" />
-      <div className="h-3.5 w-24 bg-grayA-3 rounded animate-pulse" />
+      <Skeleton className="h-3.5 w-16 rounded" />
+      <Skeleton className="h-3.5 w-24 rounded" />
     </div>
-    <div className="h-4 w-4 bg-grayA-3 rounded animate-pulse" />
+    <Skeleton className="h-4 w-4 rounded" />
   </div>
 );
 
@@ -39,8 +39,8 @@ export const RepoNameLabel = ({ fullName }: { fullName: string }) => {
   return (
     // This max-w-[185px] and w-[185px] in ComboboxSkeleton should match
     <div className="max-w-[185px] truncate">
-      <span className="text-[13px] text-gray-12 font-medium">{handle}</span>
-      <span className="text-[13px] text-gray-11">/{repoName}</span>
+      <span className="text-sm text-gray-12 font-medium">{handle}</span>
+      <span className="text-sm text-gray-11">/{repoName}</span>
     </div>
   );
 };

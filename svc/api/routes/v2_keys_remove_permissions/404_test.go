@@ -113,11 +113,12 @@ func TestNotFoundErrors(t *testing.T) {
 		// Create another workspace
 		otherWorkspaceID := uid.New(uid.WorkspacePrefix)
 		err := db.Query.InsertWorkspace(ctx, h.DB.RW(), db.InsertWorkspaceParams{
-			ID:        otherWorkspaceID,
-			OrgID:     uid.New("test_org"),
-			Name:      "Other Workspace",
-			Slug:      uid.New("slug"),
-			CreatedAt: time.Now().UnixMilli(),
+			ID:           otherWorkspaceID,
+			OrgID:        uid.New("test_org"),
+			Name:         "Other Workspace",
+			Slug:         uid.New("slug"),
+			CreatedAt:    time.Now().UnixMilli(),
+			K8sNamespace: uid.DNS1035(),
 		})
 		require.NoError(t, err)
 
@@ -185,11 +186,12 @@ func TestNotFoundErrors(t *testing.T) {
 		// Create another workspace
 		otherWorkspaceID := uid.New(uid.WorkspacePrefix)
 		err := db.Query.InsertWorkspace(ctx, h.DB.RW(), db.InsertWorkspaceParams{
-			ID:        otherWorkspaceID,
-			OrgID:     uid.New("test_org"),
-			Name:      "Other Workspace",
-			Slug:      uid.New("slug"),
-			CreatedAt: time.Now().UnixMilli(),
+			ID:           otherWorkspaceID,
+			OrgID:        uid.New("test_org"),
+			Name:         "Other Workspace",
+			Slug:         uid.New("slug"),
+			CreatedAt:    time.Now().UnixMilli(),
+			K8sNamespace: uid.DNS1035(),
 		})
 		require.NoError(t, err)
 

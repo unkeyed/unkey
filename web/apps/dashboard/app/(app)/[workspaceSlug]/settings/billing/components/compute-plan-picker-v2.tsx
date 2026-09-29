@@ -3,7 +3,6 @@
 import { formatDollars } from "@/lib/fmt";
 import type { DeployPlan } from "@/lib/stripe/deployPlan";
 import type { DeployPlanOption } from "@/lib/trpc/routers/stripe/getDeployPlans";
-import { cn } from "@/lib/utils";
 import {
   IconArrowRightOutline18,
   IconArrowUpRightOutline12,
@@ -19,6 +18,7 @@ import {
   DialogDescription,
   DialogTitle,
 } from "@unkey/ui";
+import { cn } from "cn";
 import {
   ALL_PLANS_INCLUDE,
   COMPUTE_PLANS_LINK_HREF,
@@ -47,13 +47,13 @@ export function ComputePlanDialog({
 }: ComputePlanDialogProps) {
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="flex max-h-[90vh] w-[90%] max-w-[560px] flex-col gap-0 overflow-hidden rounded-2xl! border-gray-4 bg-gray-1 p-0">
+      <DialogContent className="flex max-h-[90vh] w-[90%] max-w-[560px] flex-col gap-0 overflow-hidden rounded-2xl! bg-raised p-0">
         <div className="flex flex-col gap-1.5 px-[22px] pt-6 pb-3.5">
-          <DialogTitle className="font-semibold text-[22px] text-gray-12 leading-none tracking-[-0.03em]">
+          <DialogTitle className="font-semibold text-xl text-gray-12 leading-none tracking-[-0.03em]">
             {title}
           </DialogTitle>
           {subTitle ? (
-            <DialogDescription className="text-[14px] text-gray-11 leading-normal">
+            <DialogDescription className="text-sm text-gray-11 leading-normal">
               {subTitle}
             </DialogDescription>
           ) : null}
@@ -121,29 +121,29 @@ function Row({
     .exhaustive();
 
   const cardClassName =
-    "group flex w-full items-center gap-[13px] rounded-[11px] border border-gray-4 bg-gray-1 px-[15px] py-3 text-left transition-colors";
+    "group flex w-full items-center gap-[13px] rounded-xl border bg-raised px-[15px] py-3 text-left transition-colors";
 
   const details = (
     <>
-      <span className="flex size-9 shrink-0 items-center justify-center rounded-[9px] bg-grayA-3 text-gray-12">
+      <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-grayA-3 text-gray-12">
         <PlanTierIcon plan={plan.plan} className="size-[19px]" />
       </span>
 
       <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-        <span className="font-medium text-[15px] text-gray-12">{plan.name}</span>
-        {blurb ? <span className="text-[13px] text-gray-11">{blurb}</span> : null}
+        <span className="font-medium text-base text-gray-12">{plan.name}</span>
+        {blurb ? <span className="text-sm text-gray-11">{blurb}</span> : null}
       </span>
 
       <span className="shrink-0 text-right">
         {plan.amount !== null ? (
           <>
-            <span className="font-semibold text-[15px] text-gray-12 tabular-nums">
+            <span className="font-semibold text-base text-gray-12 tabular-nums">
               {formatDollars(plan.amount)}
             </span>
-            <span className="text-[12px] text-gray-11">{intervalSuffix(plan.interval)}</span>
+            <span className="text-xs text-gray-11">{intervalSuffix(plan.interval)}</span>
           </>
         ) : (
-          <span className="font-semibold text-[15px] text-gray-12">Contact us</span>
+          <span className="font-semibold text-base text-gray-12">Contact us</span>
         )}
       </span>
     </>
@@ -154,7 +154,7 @@ function Row({
       {isCurrent ? (
         <div className={cardClassName}>
           {details}
-          <span className="shrink-0 rounded-md bg-info-3 px-2.5 py-1.5 text-[13px] text-info-11 leading-none">
+          <span className="shrink-0 rounded-md bg-info-3 px-2.5 py-1.5 text-sm text-info-11 leading-none">
             Current
           </span>
         </div>
@@ -167,7 +167,7 @@ function Row({
           onClick={() => onSelect(plan.plan)}
           className={cn(
             cardClassName,
-            disabled ? "cursor-not-allowed opacity-70" : "cursor-pointer hover:border-gray-6",
+            disabled ? "cursor-not-allowed opacity-70" : "cursor-pointer hover:border-strong",
           )}
         >
           {details}
@@ -175,7 +175,7 @@ function Row({
             render={<span />}
             variant={change === "downgrade" ? "outline" : "primary"}
             size="md"
-            className="shrink-0 rounded-lg px-3 text-[13px]"
+            className="shrink-0 rounded-lg px-3 text-sm"
           >
             {isSubmitting ? (
               <>
@@ -195,7 +195,7 @@ function Row({
         </button>
       )}
 
-      {warning ? <p className="text-[13px] text-warning-11 leading-5">{warning}</p> : null}
+      {warning ? <p className="text-sm text-warning-11 leading-5">{warning}</p> : null}
     </div>
   );
 }
@@ -217,9 +217,9 @@ export function ComputePlanFeatures() {
         <div key={title}>
           <div className="flex items-center gap-[9px]">
             <Icon className="size-4 shrink-0 text-gray-12" />
-            <span className="font-medium text-[13px] text-gray-12">{title}</span>
+            <span className="font-medium text-sm text-gray-12">{title}</span>
           </div>
-          <p className="mt-1 text-[12.5px] text-gray-11 leading-relaxed">{description}</p>
+          <p className="mt-1 text-xs text-gray-11 leading-relaxed">{description}</p>
         </div>
       ))}
     </div>
@@ -228,7 +228,7 @@ export function ComputePlanFeatures() {
 
 export function ComputePlansMoreInfo() {
   return (
-    <p className="text-[13px] text-gray-11 leading-normal">
+    <p className="text-sm text-gray-11 leading-normal">
       Get more information about{" "}
       <a
         href={COMPUTE_PLANS_LINK_HREF}
@@ -245,11 +245,11 @@ export function ComputePlansMoreInfo() {
 
 export function AllPlansInclude() {
   return (
-    <div className="rounded-[11px] border border-gray-4 bg-gray-1 px-4 py-3.5">
-      <span className="font-medium text-[13px] text-gray-12">Included in every plan</span>
+    <div className="rounded-xl border bg-raised px-4 py-3.5">
+      <span className="font-medium text-sm text-gray-12">Included in every plan</span>
       <ul className="mt-3 grid grid-cols-2 gap-x-5 gap-y-2.5">
         {ALL_PLANS_INCLUDE.map((feature) => (
-          <li key={feature} className="flex items-center gap-2.5 text-[13px] text-gray-11">
+          <li key={feature} className="flex items-center gap-2.5 text-sm text-gray-11">
             <IconCheckOutline18 className="size-3.5 shrink-0 text-gray-10" />
             {feature}
           </li>
@@ -261,9 +261,9 @@ export function AllPlansInclude() {
 
 export function CreditsInfoStrip() {
   return (
-    <div className="flex items-start gap-2.5 rounded-[11px] border border-gray-4 bg-gray-1 px-3.5 py-3">
+    <div className="flex items-start gap-2.5 rounded-xl border bg-raised px-3.5 py-3">
       <IconCircleInfoOutline18 className="size-4 mt-px shrink-0 text-info-9" />
-      <p className="text-[12.5px] text-gray-11 leading-relaxed">
+      <p className="text-xs text-gray-11 leading-relaxed">
         {CREDITS_INFO}{" "}
         <a
           href={CREDITS_LINK_HREF}
@@ -318,11 +318,11 @@ export function ComputePlanConfirmDialog({
           >
             {currentPlanName ? "Confirm change" : "Subscribe"}
           </Button>
-          {note ? <p className="text-center text-[12px] text-gray-9 leading-5">{note}</p> : null}
+          {note ? <p className="text-center text-xs text-gray-9 leading-5">{note}</p> : null}
         </div>
       }
     >
-      <div className="text-[13px] text-gray-11 leading-6">
+      <div className="text-sm text-gray-11 leading-6">
         {currentPlanName
           ? `You're moving from ${currentPlanName} to ${plan?.name ?? "the selected plan"}.`
           : `You're subscribing to ${plan?.name ?? "the selected plan"}.`}

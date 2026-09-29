@@ -5,7 +5,6 @@ CREATE TABLE `portal_sessions` (
 	`portal_id` varchar(48) COLLATE utf8mb4_0900_as_cs NOT NULL,
 	`external_id` varchar(256) COLLATE utf8mb4_0900_as_cs NOT NULL,
 	`scopes` json NOT NULL,
-	`preview` boolean NOT NULL DEFAULT false,
 	`exchange_code_hash` varchar(256) COLLATE utf8mb4_0900_as_cs NOT NULL,
 	`exchange_code_expires_at` bigint NOT NULL,
 	`access_token_hash` varchar(256) COLLATE utf8mb4_0900_as_cs,

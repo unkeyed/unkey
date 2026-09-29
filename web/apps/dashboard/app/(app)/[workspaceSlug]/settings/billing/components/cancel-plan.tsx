@@ -1,7 +1,14 @@
 "use client";
 import { trpc } from "@/lib/trpc/client";
 import { IconTriangleWarningOutline12 } from "@unkey/icons";
-import { Button, DialogContainer, SettingsZoneRow, toast } from "@unkey/ui";
+import {
+  AlertBanner,
+  AlertBannerDescription,
+  Button,
+  DialogContainer,
+  SettingsZoneRow,
+  toast,
+} from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -75,18 +82,16 @@ export const CancelPlan: React.FC<CancelPlanProps> = ({ disabled = false, disabl
           </div>
         }
       >
-        <div className="rounded-xl bg-errorA-2 dark:bg-black border border-errorA-3 flex items-center gap-4 px-[22px] py-6">
-          <div className="bg-error-9 size-8 rounded-full flex items-center justify-center shrink-0">
-            <IconTriangleWarningOutline12 className="text-white" />
-          </div>
-          <div className="text-error-12 text-[13px] leading-6">
+        <AlertBanner variant="error">
+          <IconTriangleWarningOutline12 aria-hidden="true" />
+          <AlertBannerDescription>
             <span className="font-medium">Warning:</span> cancelling your subscription will
             downgrade your workspace to the free tier at the end of the current billing period. You
             will lose access to paid features and usage limits will be reduced. Unless another paid
             plan (such as Compute) remains active, all team members other than you will also be
             deactivated.
-          </div>
-        </div>
+          </AlertBannerDescription>
+        </AlertBanner>
       </DialogContainer>
     </>
   );

@@ -51,13 +51,13 @@ type CronServiceClient interface {
 	// RunRatelimitGlobalCountersCleanup deletes expired rows from
 	// ratelimit_global_counters (cross-region propagation). Stateless;
 	// key is the fixed slug "ratelimit-global-counters-cleanup" so a
-	// paused/wedged invocation here cannot block the every-minute handlers.
+	// paused or stuck invocation here cannot block the every-minute handlers.
 	// Hourly schedule.
 	RunRatelimitGlobalCountersCleanup(opts ...sdk_go.ClientOption) sdk_go.Client[*RunRatelimitGlobalCountersCleanupRequest, *RunRatelimitGlobalCountersCleanupResponse]
 	// RunAuditLogOutboxCleanup hard-deletes already-exported clickhouse_outbox
 	// rows (deleted_at stamped) older than the retention window so the outbox
 	// stays bounded. Stateless; key is the fixed slug "audit-log-outbox-cleanup"
-	// so a paused/wedged invocation cannot block other handlers. Daily schedule.
+	// so a paused or stuck invocation cannot block other handlers. Daily schedule.
 	RunAuditLogOutboxCleanup(opts ...sdk_go.ClientOption) sdk_go.Client[*RunAuditLogOutboxCleanupRequest, *RunAuditLogOutboxCleanupResponse]
 	// RunDeployBillingPush computes month-to-date Deploy usage (CPU, memory,
 	// egress, disk, active keys) from ClickHouse, fans out one
@@ -96,9 +96,12 @@ type CronServiceClient interface {
 	// cadence costs no Stripe calls.
 	RunDeploySpendCheck(opts ...sdk_go.ClientOption) sdk_go.Client[*RunDeploySpendCheckRequest, *RunDeploySpendCheckResponse]
 	// RunBuildLimitSync keeps the build concurrency rules in Restate. Each rule
-	// caps how many invocations run at once for a scope and a limit key. This handler writes "builds/*", which caps a
-	// workspace's concurrent builds. Key is the fixed slug "build-limit-sync"
-	// so ticks serialize without sharing a queue with other singleton handlers
+	// caps how many invocations run at once for a scope and a limit key. This
+	// handler writes "builds/*" and one "builds/<workspace_id>" rule per
+	// workspace whose limits row is above the default, and deletes such a rule
+	// once the row is back at the default. Key is the fixed slug
+	// "build-limit-sync" so ticks serialize without sharing a queue with other
+	// singleton handlers
 	RunBuildLimitSync(opts ...sdk_go.ClientOption) sdk_go.Client[*RunBuildLimitSyncRequest, *RunBuildLimitSyncResponse]
 	// RunClickhouseUserReconcile reapplies workspace ClickHouse grants when the
 	// desired allowed-table fingerprint changes. Key is the fixed slug
@@ -247,13 +250,13 @@ type CronServiceIngressClient interface {
 	// RunRatelimitGlobalCountersCleanup deletes expired rows from
 	// ratelimit_global_counters (cross-region propagation). Stateless;
 	// key is the fixed slug "ratelimit-global-counters-cleanup" so a
-	// paused/wedged invocation here cannot block the every-minute handlers.
+	// paused or stuck invocation here cannot block the every-minute handlers.
 	// Hourly schedule.
 	RunRatelimitGlobalCountersCleanup() ingress.Requester[*RunRatelimitGlobalCountersCleanupRequest, *RunRatelimitGlobalCountersCleanupResponse]
 	// RunAuditLogOutboxCleanup hard-deletes already-exported clickhouse_outbox
 	// rows (deleted_at stamped) older than the retention window so the outbox
 	// stays bounded. Stateless; key is the fixed slug "audit-log-outbox-cleanup"
-	// so a paused/wedged invocation cannot block other handlers. Daily schedule.
+	// so a paused or stuck invocation cannot block other handlers. Daily schedule.
 	RunAuditLogOutboxCleanup() ingress.Requester[*RunAuditLogOutboxCleanupRequest, *RunAuditLogOutboxCleanupResponse]
 	// RunDeployBillingPush computes month-to-date Deploy usage (CPU, memory,
 	// egress, disk, active keys) from ClickHouse, fans out one
@@ -292,9 +295,12 @@ type CronServiceIngressClient interface {
 	// cadence costs no Stripe calls.
 	RunDeploySpendCheck() ingress.Requester[*RunDeploySpendCheckRequest, *RunDeploySpendCheckResponse]
 	// RunBuildLimitSync keeps the build concurrency rules in Restate. Each rule
-	// caps how many invocations run at once for a scope and a limit key. This handler writes "builds/*", which caps a
-	// workspace's concurrent builds. Key is the fixed slug "build-limit-sync"
-	// so ticks serialize without sharing a queue with other singleton handlers
+	// caps how many invocations run at once for a scope and a limit key. This
+	// handler writes "builds/*" and one "builds/<workspace_id>" rule per
+	// workspace whose limits row is above the default, and deletes such a rule
+	// once the row is back at the default. Key is the fixed slug
+	// "build-limit-sync" so ticks serialize without sharing a queue with other
+	// singleton handlers
 	RunBuildLimitSync() ingress.Requester[*RunBuildLimitSyncRequest, *RunBuildLimitSyncResponse]
 	// RunClickhouseUserReconcile reapplies workspace ClickHouse grants when the
 	// desired allowed-table fingerprint changes. Key is the fixed slug
@@ -421,13 +427,13 @@ type CronServiceServer interface {
 	// RunRatelimitGlobalCountersCleanup deletes expired rows from
 	// ratelimit_global_counters (cross-region propagation). Stateless;
 	// key is the fixed slug "ratelimit-global-counters-cleanup" so a
-	// paused/wedged invocation here cannot block the every-minute handlers.
+	// paused or stuck invocation here cannot block the every-minute handlers.
 	// Hourly schedule.
 	RunRatelimitGlobalCountersCleanup(ctx sdk_go.ObjectContext, req *RunRatelimitGlobalCountersCleanupRequest) (*RunRatelimitGlobalCountersCleanupResponse, error)
 	// RunAuditLogOutboxCleanup hard-deletes already-exported clickhouse_outbox
 	// rows (deleted_at stamped) older than the retention window so the outbox
 	// stays bounded. Stateless; key is the fixed slug "audit-log-outbox-cleanup"
-	// so a paused/wedged invocation cannot block other handlers. Daily schedule.
+	// so a paused or stuck invocation cannot block other handlers. Daily schedule.
 	RunAuditLogOutboxCleanup(ctx sdk_go.ObjectContext, req *RunAuditLogOutboxCleanupRequest) (*RunAuditLogOutboxCleanupResponse, error)
 	// RunDeployBillingPush computes month-to-date Deploy usage (CPU, memory,
 	// egress, disk, active keys) from ClickHouse, fans out one
@@ -466,9 +472,12 @@ type CronServiceServer interface {
 	// cadence costs no Stripe calls.
 	RunDeploySpendCheck(ctx sdk_go.ObjectContext, req *RunDeploySpendCheckRequest) (*RunDeploySpendCheckResponse, error)
 	// RunBuildLimitSync keeps the build concurrency rules in Restate. Each rule
-	// caps how many invocations run at once for a scope and a limit key. This handler writes "builds/*", which caps a
-	// workspace's concurrent builds. Key is the fixed slug "build-limit-sync"
-	// so ticks serialize without sharing a queue with other singleton handlers
+	// caps how many invocations run at once for a scope and a limit key. This
+	// handler writes "builds/*" and one "builds/<workspace_id>" rule per
+	// workspace whose limits row is above the default, and deletes such a rule
+	// once the row is back at the default. Key is the fixed slug
+	// "build-limit-sync" so ticks serialize without sharing a queue with other
+	// singleton handlers
 	RunBuildLimitSync(ctx sdk_go.ObjectContext, req *RunBuildLimitSyncRequest) (*RunBuildLimitSyncResponse, error)
 	// RunClickhouseUserReconcile reapplies workspace ClickHouse grants when the
 	// desired allowed-table fingerprint changes. Key is the fixed slug

@@ -51,7 +51,7 @@ const createLogSections = (log: Log | EnrichedRatelimitLog) => [
     title: "Request Body",
     content:
       JSON.stringify(safeParseJson(log.request_body), null, 2) === "null" ? (
-        <span className="text-xs text-accent-12 truncate">{EMPTY_TEXT}</span>
+        <span className="text-xs text-gray-12 truncate">{EMPTY_TEXT}</span>
       ) : (
         JSON.stringify(safeParseJson(log.request_body), null, 2)
       ),
@@ -64,7 +64,7 @@ const createLogSections = (log: Log | EnrichedRatelimitLog) => [
     title: "Response Body",
     content:
       JSON.stringify(safeParseJson(log.response_body), null, 2) === "null" ? (
-        <span className="text-xs text-accent-12 truncate">{EMPTY_TEXT}</span>
+        <span className="text-xs text-gray-12 truncate">{EMPTY_TEXT}</span>
       ) : (
         JSON.stringify(safeParseJson(log.response_body), null, 2)
       ),
@@ -77,20 +77,20 @@ const createMetaContent = (log: SupportedLogTypes) => {
       const parsedMeta = JSON.parse((log.key_details as { meta: string })?.meta);
       return JSON.stringify(parsedMeta, null, 2);
     } catch {
-      return <span className="text-xs text-accent-12 truncate">{EMPTY_TEXT}</span>;
+      return <span className="text-xs text-gray-12 truncate">{EMPTY_TEXT}</span>;
     }
   }
 
   if (isStandardLog(log)) {
     const meta = extractResponseField(log, "meta");
     return JSON.stringify(meta, null, 2) === "null" ? (
-      <span className="text-xs text-accent-12 truncate">{EMPTY_TEXT}</span>
+      <span className="text-xs text-gray-12 truncate">{EMPTY_TEXT}</span>
     ) : (
       JSON.stringify(meta, null, 2)
     );
   }
 
-  return <span className="text-xs text-accent-12 truncate">{EMPTY_TEXT}</span>;
+  return <span className="text-xs text-gray-12 truncate">{EMPTY_TEXT}</span>;
 };
 
 const isStandardLog = (log: SupportedLogTypes): log is Log | EnrichedRatelimitLog => {
@@ -114,7 +114,7 @@ export const LogDetails = ({ distanceToTop, log, onClose, children }: LogDetails
   return (
     <ResizablePanel
       onClose={onClose}
-      className="bg-gray-1 font-mono drop-shadow-2xl z-20 absolute right-0 overflow-y-auto"
+      className="bg-raised font-mono shadow-floating z-20 absolute right-0 overflow-y-auto"
       style={{
         ...panelStyle,
         width: `${DEFAULT_DRAGGABLE_WIDTH}px`,

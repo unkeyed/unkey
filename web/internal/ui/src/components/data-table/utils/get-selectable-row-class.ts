@@ -9,7 +9,7 @@ export const getSelectableRowClassName = (isSelected: boolean): string =>
     STATUS_STYLES.base,
     STATUS_STYLES.hover,
     "group rounded-sm",
-    "focus:outline-hidden focus:ring-1 focus:ring-opacity-40",
+    "focus:outline-hidden focus:ring-1",
     STATUS_STYLES.focusRing,
     isSelected && STATUS_STYLES.selected,
   );

@@ -12,7 +12,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/hash"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
@@ -97,9 +96,9 @@ func TestSuccess(t *testing.T) {
 		WorkspaceID: workspace.ID,
 		KeySpaceID:  keySpaceID,
 		Prefix:      key1Prefix,
-		Name:        ptr.P("Test Key 1"),
-		IdentityID:  ptr.P(identity1.ID),
-		Meta:        ptr.P(string(key1Meta)),
+		Name:        new("Test Key 1"),
+		IdentityID:  new(identity1.ID),
+		Meta:        new(string(key1Meta)),
 		Recoverable: true,
 	})
 	encryptedKeys[key1.KeyID] = key1.Key
@@ -110,9 +109,9 @@ func TestSuccess(t *testing.T) {
 	key2 := h.CreateKey(seed.CreateKeyRequest{
 		WorkspaceID: workspace.ID,
 		KeySpaceID:  keySpaceID,
-		Name:        ptr.P("Test Key 2"),
-		IdentityID:  ptr.P(identity1.ID),
-		Meta:        ptr.P(string(key2Meta)),
+		Name:        new("Test Key 2"),
+		IdentityID:  new(identity1.ID),
+		Meta:        new(string(key2Meta)),
 		Recoverable: true,
 	})
 	encryptedKeys[key2.KeyID] = key2.Key
@@ -123,9 +122,9 @@ func TestSuccess(t *testing.T) {
 	key3 := h.CreateKey(seed.CreateKeyRequest{
 		WorkspaceID: workspace.ID,
 		KeySpaceID:  keySpaceID,
-		Name:        ptr.P("Test Key 3"),
-		IdentityID:  ptr.P(identity2.ID),
-		Meta:        ptr.P(string(key3Meta)),
+		Name:        new("Test Key 3"),
+		IdentityID:  new(identity2.ID),
+		Meta:        new(string(key3Meta)),
 		Recoverable: true,
 	})
 	encryptedKeys[key3.KeyID] = key3.Key
@@ -134,7 +133,7 @@ func TestSuccess(t *testing.T) {
 	key4 := h.CreateKey(seed.CreateKeyRequest{
 		WorkspaceID: workspace.ID,
 		KeySpaceID:  keySpaceID,
-		Name:        ptr.P("Test Key 4 (No Identity)"),
+		Name:        new("Test Key 4 (No Identity)"),
 		Recoverable: true,
 	})
 	encryptedKeys[key4.KeyID] = key4.Key
@@ -143,7 +142,7 @@ func TestSuccess(t *testing.T) {
 	key5 := h.CreateKey(seed.CreateKeyRequest{
 		WorkspaceID: workspace.ID,
 		KeySpaceID:  keySpaceID,
-		Name:        ptr.P("Test Key 5 (Disabled)"),
+		Name:        new("Test Key 5 (Disabled)"),
 		Disabled:    true,
 		Recoverable: true,
 	})
@@ -556,7 +555,7 @@ func TestSuccess(t *testing.T) {
 	t.Run("verify encrypted key is returned correctly", func(t *testing.T) {
 		req := handler.Request{
 			ApiId:   apiID,
-			Decrypt: ptr.P(true),
+			Decrypt: new(true),
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](

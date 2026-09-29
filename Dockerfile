@@ -1,15 +1,29 @@
 # syntax=docker/dockerfile:1.7
 
-FROM golang:1.25@sha256:cd05a378aaf011e8056745363e5c40f4f2bef0fa4d9bf19b9c38316079c332ff AS builder
+FROM ubuntu:24.04@sha256:c4a8d5503dfb2a3eb8ab5f807da5bc69a85730fb49b5cfca2330194ebcc41c7b AS builder
+
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates curl git \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /src
-ENV CGO_ENABLED=0
+ENV CGO_ENABLED=0 \
+    GOPATH=/go \
+    MISE_DATA_DIR=/opt/mise \
+    MISE_INSTALL_PATH=/usr/local/bin/mise
+
+COPY dev/install-mise ./dev/install-mise
+RUN ./dev/install-mise
+COPY .mise/config.toml .mise/mise.lock ./.mise/
+RUN mise trust .mise/config.toml && mise install --locked --yes go
 
 COPY go.mod go.sum ./
-RUN go mod download
+RUN --mount=type=cache,id=unkey-go-mod,target=/go/pkg/mod \
+    mise exec -- go mod download
 COPY . .
 
-RUN go build -o /out/unkey ./build/cli
+RUN --mount=type=cache,id=unkey-go-mod,target=/go/pkg/mod \
+    --mount=type=cache,id=unkey-go-build,target=/root/.cache/go-build \
+    mise exec -- go build -o /out/unkey ./build/cli
 
 FROM gcr.io/distroless/static-debian13:nonroot@sha256:d29e660cc75a5b6b1334e03c5c81ccf9bc0884a002c6000dbf0fb96034814478
 

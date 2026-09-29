@@ -1,7 +1,7 @@
 import type { AuditLog } from "@/lib/trpc/routers/audit/schema";
-import { cn } from "@/lib/utils";
 import type { DataTableColumnDef } from "@unkey/ui";
-import { CreatedAtColumnSkeleton } from "@unkey/ui";
+import { CreatedAtColumnSkeleton, Skeleton } from "@unkey/ui";
+import { cn } from "cn";
 import { AUDIT_LOG_COLUMN_IDS } from "../../columns/create-audit-log-columns";
 
 type RenderAuditLogSkeletonRowProps = {
@@ -10,10 +10,10 @@ type RenderAuditLogSkeletonRowProps = {
 };
 
 const TextSkeleton = ({ width }: { width: string }) => (
-  <div className={cn("h-3 rounded bg-grayA-3 animate-pulse")} style={{ width }} />
+  <Skeleton className="h-3 rounded" style={{ width }} />
 );
 
-const BadgeSkeleton = () => <div className="h-5 w-14 rounded-md bg-grayA-3 animate-pulse" />;
+const BadgeSkeleton = () => <Skeleton className="h-5 w-14 rounded-md" />;
 
 export const renderAuditLogSkeletonRow = ({ columns, rowHeight }: RenderAuditLogSkeletonRowProps) =>
   columns.map((column) => (

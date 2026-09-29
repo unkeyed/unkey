@@ -21,7 +21,7 @@ import (
 // gracefully and to check the current buffer size.
 type BatchProcessor[T any] struct {
 	name   string
-	buffer *buffer.Buffer[T]
+	buffer buffer.Buffer[T]
 	config Config[T]
 	flush  func(ctx context.Context, batch []T, trigger string)
 	// consumers waits for every consumer goroutine to drain its pending

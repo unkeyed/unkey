@@ -1,9 +1,6 @@
 export function AccountUnavailable({ reason }: { reason: "local" | "impersonation" }) {
   return (
-    <section
-      className="rounded-lg border border-grayA-4 bg-grayA-2 p-6"
-      aria-labelledby="account-unavailable"
-    >
+    <section className="rounded-lg border bg-grayA-2 p-6" aria-labelledby="account-unavailable">
       <h2 id="account-unavailable" className="font-medium">
         Account settings unavailable
       </h2>

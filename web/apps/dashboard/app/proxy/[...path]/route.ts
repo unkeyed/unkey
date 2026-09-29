@@ -1,5 +1,4 @@
 import { getAuth } from "@/lib/auth/get-auth";
-import { auth as authProvider } from "@/lib/auth/server";
 import { env } from "@/lib/env";
 import { SignJWT } from "jose";
 import type { NextRequest } from "next/server";
@@ -32,13 +31,11 @@ export async function POST(req: NextRequest, ctx: RouteContext): Promise<NextRes
       return NextResponse.json({ error: "Role required." }, { status: 403 });
     }
 
-    const user = await authProvider.getUser(userId);
-    const actorName = user?.fullName ?? user?.email ?? userId;
     bearerToken = await mintProxyJWT({
       orgId,
       role: auth.role,
       subject: userId,
-      name: actorName,
+      name: auth.user?.fullName ?? auth.user?.email ?? userId,
     }).catch((error) => {
       console.error("Failed to mint dashboard proxy JWT", { error });
       return null;

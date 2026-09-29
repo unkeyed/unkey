@@ -1,6 +1,7 @@
 package cluster
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -14,6 +15,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/repeat"
 	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/deploymentstream"
 )
 
 // notifiedReadyTTL is how long an entry in notifiedReady is kept before
@@ -54,10 +56,11 @@ type clusterCacheKey struct {
 // and status reporting endpoints for agents to report observed state back to the control plane.
 type Service struct {
 	ctrlv1connect.UnimplementedClusterServiceHandler
-	db           db.Database
-	restate      *ingress.Client
-	restateAdmin *restateadmin.Client
-	bearer       string
+	db               db.Database
+	restate          *ingress.Client
+	restateAdmin     *restateadmin.Client
+	bearer           string
+	deploymentStream DeploymentStream
 	// notifiedReady dedups Restate NotifyInstancesReady calls so we don't
 	// fire on every krane status report once the threshold is met. Keys
 	// are "deployment:<id>".
@@ -90,7 +93,8 @@ type Service struct {
 // Config holds the configuration for creating a new cluster [Service].
 type Config struct {
 	// Database provides read and write access for querying and updating resource state.
-	Database db.Database
+	Database         db.Database
+	DeploymentStream DeploymentStream
 
 	// Restate is the ingress client used to trigger durable workflows.
 	Restate *ingress.Client
@@ -167,6 +171,7 @@ func New(cfg Config) (*Service, error) {
 		restate:                            cfg.Restate,
 		restateAdmin:                       cfg.RestateAdmin,
 		bearer:                             cfg.Bearer,
+		deploymentStream:                   cfg.DeploymentStream,
 		notifiedReady:                      newExpiringSet[string](notifiedReadyTTL),
 		clusterCache:                       clusterCache,
 		topologyCache:                      cfg.TopologyCache,
@@ -183,3 +188,8 @@ func New(cfg Config) (*Service, error) {
 }
 
 var _ ctrlv1connect.ClusterServiceHandler = (*Service)(nil)
+
+// DeploymentStream delivers deployment changes and checkpoints in order.
+type DeploymentStream interface {
+	Watch(context.Context, string, []byte, func(deploymentstream.Event) error) error
+}

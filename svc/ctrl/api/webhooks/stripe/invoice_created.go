@@ -109,8 +109,8 @@ func (h *handler) invoiceCreated(
 	// billed, which is the exact failure this backstop exists to prevent.
 	backstopAt := invoice.PeriodEnd + int64((48 * time.Hour).Seconds())
 	if _, err := h.stripe.V1Invoices.Update(ctx, invoice.ID, &stripesdk.InvoiceUpdateParams{
-		AutoAdvance:              stripesdk.Bool(true),
-		AutomaticallyFinalizesAt: stripesdk.Int64(backstopAt),
+		AutoAdvance:              new(true),
+		AutomaticallyFinalizesAt: new(backstopAt),
 	}); err != nil {
 		// automatically_finalizes_at is draft-only. A redelivery arriving after
 		// the invoice finalized must not error forever; the close path already

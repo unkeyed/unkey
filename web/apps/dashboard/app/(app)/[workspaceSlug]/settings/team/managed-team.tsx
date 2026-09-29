@@ -141,13 +141,7 @@ function ManagedTeamWidgets() {
   }
 
   return (
-    <section aria-labelledby="members-heading" className="flex flex-col gap-3">
-      <div className="flex flex-col gap-1">
-        <h2 id="members-heading" className="m-0 text-lg font-medium">
-          Members
-        </h2>
-        <p className="m-0 text-sm text-gray-11">Manage workspace members and invitations.</p>
-      </div>
+    <section aria-label="Members" className="flex flex-col gap-3">
       <ManagedUsersWidget getAccessToken={getWidgetAccessToken} />
     </section>
   );
@@ -155,34 +149,24 @@ function ManagedTeamWidgets() {
 
 function ManagedTeamSkeleton() {
   return (
-    <section
-      aria-busy="true"
-      aria-labelledby="members-loading-heading"
-      className="flex flex-col gap-3"
-    >
+    <section aria-busy="true" aria-label="Members" className="flex flex-col gap-3">
       <output aria-live="polite" className="sr-only">
         Loading workspace members...
       </output>
-      <div className="flex flex-col gap-1">
-        <h2 id="members-loading-heading" className="m-0 text-lg font-medium">
-          Members
-        </h2>
-        <p className="m-0 text-sm text-gray-11">Manage workspace members and invitations.</p>
-      </div>
       <div aria-hidden="true" className="flex flex-col gap-3">
         <div className="flex gap-2">
           <Skeleton className="h-8 w-80 max-w-full" />
           <Skeleton className="ml-auto h-8 w-28 shrink-0" />
         </div>
-        <div className="overflow-hidden rounded-lg border border-grayA-4">
-          <div className="flex min-h-10 items-center gap-4 border-grayA-4 border-b px-4">
+        <div className="overflow-hidden rounded-lg border bg-raised">
+          <div className="flex min-h-10 items-center gap-4 border-b px-4">
             <Skeleton className="h-3 w-40" />
             <Skeleton className="ml-auto h-3 w-20" />
           </div>
           {[0, 1, 2].map((row) => (
             <div
               key={row}
-              className="flex min-h-16 items-center gap-3 border-grayA-4 border-b px-4 last:border-b-0"
+              className="flex min-h-16 items-center gap-3 border-b px-4 last:border-b-0"
             >
               <Skeleton className="size-8 shrink-0 rounded-full" />
               <div className="flex flex-1 flex-col gap-2">
@@ -208,7 +192,7 @@ function ManagedTeamError({
   action?: React.ReactNode;
 }) {
   return (
-    <section className="rounded-lg border border-grayA-4 p-6" role="alert">
+    <section className="rounded-lg border bg-raised p-6" role="alert">
       <h2 className="m-0 font-medium">{heading}</h2>
       <p className="mt-2 mb-0 text-sm text-gray-11">{description}</p>
       {action ? <div className="mt-4 text-sm font-medium">{action}</div> : null}

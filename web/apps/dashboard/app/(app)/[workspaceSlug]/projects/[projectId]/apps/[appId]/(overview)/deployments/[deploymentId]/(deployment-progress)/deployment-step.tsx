@@ -1,6 +1,5 @@
 "use client";
 
-import { cn } from "@/lib/utils";
 import { formatCompoundDuration } from "@/lib/utils/metric-formatters";
 import {
   IconCheckOutline18,
@@ -9,6 +8,7 @@ import {
 } from "@unkey/icons";
 import { match } from "@unkey/match";
 import { Badge, Loading, SettingCard } from "@unkey/ui";
+import { cn } from "cn";
 import { GlowIcon } from "../../../../components/glow-icon";
 
 type DeploymentStepProps = {
@@ -61,7 +61,7 @@ export function DeploymentStep({
               <Badge
                 variant="error"
                 size="sm"
-                className="transition-all duration-300 font-normal text-[11px] rounded-md h-[18px] opacity-100 scale-100"
+                className="transition-all duration-300 font-normal text-2xs rounded-md h-[18px] opacity-100 scale-100"
               >
                 Failed
               </Badge>
@@ -70,7 +70,7 @@ export function DeploymentStep({
                 variant="success"
                 size="sm"
                 className={cn(
-                  "transition-all duration-300 font-normal text-[11px] rounded-md h-[18px]",
+                  "transition-all duration-300 font-normal text-2xs rounded-md h-[18px]",
                   status === "completed" ? "opacity-100 scale-100" : "opacity-0 scale-95",
                 )}
               >

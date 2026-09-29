@@ -1,5 +1,6 @@
 "use client";
 
+import { useProjectScope } from "@/hooks/use-project-scope";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { collection } from "@/lib/collections";
 import { routes } from "@/lib/navigation/routes";
@@ -34,6 +35,7 @@ export const DeleteNamespaceDialog = ({
 }: DeleteNamespaceProps) => {
   const router = useRouter();
   const workspace = useWorkspaceNavigation();
+  const scope = useProjectScope();
 
   const { register, handleSubmit, watch } = useForm<FormValues>({
     mode: "onChange",
@@ -46,7 +48,7 @@ export const DeleteNamespaceDialog = ({
 
   const onSubmit = async () => {
     collection.ratelimitNamespaces.delete(namespace.id);
-    router.push(routes.ratelimits.list({ workspaceSlug: workspace.slug }));
+    router.push(routes.ratelimits.list({ workspaceSlug: workspace.slug, ...scope }));
 
     //await deleteNamespace.mutateAsync({ namespaceId: namespace.id });
   };
@@ -75,7 +77,7 @@ export const DeleteNamespaceDialog = ({
           </div>
         }
       >
-        <p className="text-gray-11 text-[13px]">
+        <p className="text-gray-11 text-sm">
           <span className="font-medium">Warning: </span>
           Deleting this namespace while it is in use may cause your current requests to fail. You
           will lose access to analytical data.
@@ -83,7 +85,7 @@ export const DeleteNamespaceDialog = ({
 
         <form id="delete-namespace-form" onSubmit={handleSubmit(onSubmit)}>
           <div className="flex flex-col gap-1">
-            <p className="text-gray-11 text-[13px]">
+            <p className="text-gray-11 text-sm">
               Type <span className="text-gray-12 font-medium">{namespace.name}</span> to confirm
             </p>
 

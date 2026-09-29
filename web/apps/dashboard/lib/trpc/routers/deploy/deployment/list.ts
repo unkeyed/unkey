@@ -41,7 +41,11 @@ export const listDeployments = workspaceProcedure
             eq(deployments.workspaceId, ctx.workspace.id),
             eq(deployments.projectId, input.projectId),
             input.appId !== undefined ? eq(deployments.appId, input.appId) : undefined,
-            input.deploymentIds ? inArray(deployments.id, input.deploymentIds) : excludeSkipped(),
+            input.deploymentIds
+              ? inArray(deployments.id, input.deploymentIds)
+              : input.statuses?.includes("skipped")
+                ? undefined
+                : excludeSkipped(),
             input.environmentIds
               ? inArray(deployments.environmentId, input.environmentIds)
               : undefined,

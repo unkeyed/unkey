@@ -2,7 +2,7 @@ import { revalidate } from "@/app/actions";
 import type { ActionComponentProps } from "@/components/logs/table-action.popover";
 import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Button, ConfirmPopover, DialogContainer, FormCheckbox } from "@unkey/ui";
+import { Button, ConfirmPopover, DialogContainer, FormCheckbox, Separator } from "@unkey/ui";
 import { useRef, useState } from "react";
 import { Controller, FormProvider, useForm } from "react-hook-form";
 import { z } from "zod";
@@ -120,9 +120,7 @@ export const UpdateKeyStatus = ({ keyDetails, isOpen, onClose }: UpdateKeyStatus
             }
           >
             <KeyInfo keyDetails={keyDetails} />
-            <div className="py-1 my-2">
-              <div className="h-px bg-grayA-3 w-full" />
-            </div>
+            <Separator className="my-3" />
             <Controller
               name="confirmStatusChange"
               control={control}

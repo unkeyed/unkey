@@ -11,11 +11,10 @@ type PortalShellProps = {
   session: SessionData | null;
   portal: Portal | null;
   pending?: boolean;
-  banner?: ReactNode;
   children: ReactNode;
 };
 
-export function PortalShell({ session, portal, pending, banner, children }: PortalShellProps) {
+export function PortalShell({ session, portal, pending, children }: PortalShellProps) {
   // The foreground is always set (even without a brand color) so surfaces
   // painted with --portal-primary — which falls back to the dark gray-12 — get
   // readable text.
@@ -28,7 +27,6 @@ export function PortalShell({ session, portal, pending, banner, children }: Port
 
   return (
     <div style={brandingStyle} className="portal-shell flex min-h-screen flex-col bg-background">
-      {banner}
       {session ? (
         <PortalHeader
           logoUrl={portal?.branding?.logoUrl ?? undefined}

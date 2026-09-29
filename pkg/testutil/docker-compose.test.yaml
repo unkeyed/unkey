@@ -1,4 +1,37 @@
 services:
+  vitess:
+    image: vitess/vttestserver:v24.0.3-mysql80@sha256:230586284ba936139d0f9afb3e7ef8d2494e0fc752cc6ed3f243bcc5082ef485
+    command:
+      - /vt/bin/vttestserver
+      - --port=33574
+      - --keyspaces=unkey
+      - --num_shards=1
+      - --mysql_bind_host=0.0.0.0
+      - --vtcombo-bind-host=0.0.0.0
+      - --schema_dir=/schema
+    ports:
+      - "33575"
+      - "33577"
+    volumes:
+      - ../mysql/schema:/schema/unkey:ro
+    healthcheck:
+      test: [
+        "CMD",
+        "mysql",
+        "--protocol=tcp",
+        "-h127.0.0.1",
+        "-P33577",
+        "-uunkey",
+        "-ppassword",
+        "unkey",
+        "-e",
+        "SELECT COUNT(*) FROM workspaces",
+      ]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+      start_period: 10s
+
   clickhouse:
     image: clickhouse/clickhouse-server:26.2.1.1139@sha256:f57ed23ab5c4ee0e9a05c2e811bb3580ead222cea30421b3e66234c32e272bce
     environment:

@@ -2,7 +2,6 @@
 
 import type { StringMatchMode } from "@/lib/collections/deploy/policies.schema";
 import { trpc } from "@/lib/trpc/client";
-import { cn } from "@/lib/utils";
 import { IconChevronDownOutline18, IconSparkle3Outline18 } from "@unkey/icons";
 import { match } from "@unkey/match";
 import {
@@ -16,6 +15,7 @@ import {
   toast,
 } from "@unkey/ui";
 import { FormDescription, FormLabel } from "@unkey/ui/src/components/form/form-helpers";
+import { cn } from "cn";
 import { useState } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
 import type { MatchConditionFormValues, PolicyFormValues } from "../schema";
@@ -49,7 +49,7 @@ export function ConditionFields({
           <div className="w-28 shrink-0">
             <fieldset className="flex flex-col gap-1.5 border-0 m-0 p-0">
               {/* h-[22px] needed to match the same height as Input below otherwise Require tag on input causing layout issues*/}
-              <label htmlFor={`path-mode-${c.id}`} className="text-gray-11 text-[13px] h-[22px]">
+              <label htmlFor={`path-mode-${c.id}`} className="text-gray-11 text-sm h-[22px]">
                 Mode
               </label>
               <Select
@@ -136,7 +136,7 @@ export function ConditionFields({
                     "px-2 py-0.5 rounded text-xs font-mono border transition-colors cursor-pointer",
                     active
                       ? "bg-info-3 border-info-7 text-info-11"
-                      : "bg-grayA-2 border-grayA-4 text-grayA-9 hover:text-gray-12",
+                      : "bg-grayA-2 text-grayA-9 hover:text-gray-12",
                   )}
                 >
                   {m}
@@ -176,7 +176,7 @@ export function ConditionFields({
               <div className="flex gap-2">
                 <div className="w-28 shrink-0">
                   <fieldset className="flex flex-col gap-1.5 border-0 m-0 p-0">
-                    <label htmlFor={`hq-mode-${c.id}`} className="text-gray-11 text-[13px]">
+                    <label htmlFor={`hq-mode-${c.id}`} className="text-gray-11 text-sm">
                       Mode
                     </label>
                     <Select

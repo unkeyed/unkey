@@ -7,7 +7,6 @@ import (
 	"github.com/unkeyed/sdks/api/go/v3/models/components"
 	"github.com/unkeyed/unkey/cmd/api/util"
 	"github.com/unkeyed/unkey/pkg/cli"
-	"github.com/unkeyed/unkey/pkg/ptr"
 )
 
 func listDomainsCmd() *cli.Command {
@@ -47,7 +46,7 @@ For full documentation, see https://www.unkey.com/docs/networking/domains` + uti
 				Project:     nil,
 				App:         nil,
 				Environment: nil,
-				Limit:       ptr.P(cmd.Int64("limit")),
+				Limit:       new(cmd.Int64("limit")),
 				Cursor:      nil,
 				Search:      nil,
 			}

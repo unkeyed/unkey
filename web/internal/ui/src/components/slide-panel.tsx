@@ -67,9 +67,9 @@ export function SlidePanel({
         <DialogPrimitive.Popup
           data-slide-panel-open=""
           className={cn(
-            "[--slide-panel-inset:0.75rem] [--slide-panel-radius:0.75rem]",
-            "fixed z-51 flex flex-col p-px shadow-lg",
-            "rounded-(--slide-panel-radius) bg-grayA-4",
+            "[--slide-panel-inset:0.75rem]",
+            "fixed z-51 flex flex-col shadow-floating",
+            "rounded-xl bg-raised",
             "top-(--slide-panel-inset) bottom-(--slide-panel-inset)",
             "max-w-[calc(100dvw_-_var(--slide-panel-inset)_*_2)]",
             side === "right" ? "right-(--slide-panel-inset)" : "left-(--slide-panel-inset)",
@@ -83,9 +83,7 @@ export function SlidePanel({
             className,
           )}
         >
-          <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[calc(var(--slide-panel-radius)_-_1px)] bg-background">
-            {children}
-          </div>
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl">{children}</div>
         </DialogPrimitive.Popup>
       </DialogPrimitive.Portal>
     </DialogPrimitive.Root>
@@ -112,10 +110,7 @@ export type SlidePanelTitleProps = DialogPrimitive.Title.Props & {
 export function SlidePanelTitle({ className, ...props }: SlidePanelTitleProps) {
   return (
     <DialogPrimitive.Title
-      className={cn(
-        "text-[18px] font-semibold leading-tight tracking-tight text-gray-12",
-        className,
-      )}
+      className={cn("text-lg font-semibold leading-tight tracking-tight text-gray-12", className)}
       {...props}
     />
   );
@@ -128,7 +123,7 @@ export type SlidePanelDescriptionProps = DialogPrimitive.Description.Props & {
 export function SlidePanelDescription({ className, ...props }: SlidePanelDescriptionProps) {
   return (
     <DialogPrimitive.Description
-      className={cn("text-[13px] leading-5 text-gray-11", className)}
+      className={cn("text-sm leading-5 text-gray-11", className)}
       {...props}
     />
   );
@@ -149,7 +144,7 @@ export type SlidePanelFooterProps = {
 };
 
 export function SlidePanelFooter({ children, className }: SlidePanelFooterProps) {
-  return <div className={cn("border-t border-gray-4 px-6 py-4", className)}>{children}</div>;
+  return <div className={cn("border-t px-6 py-4", className)}>{children}</div>;
 }
 
 export type SlidePanelCloseButtonProps = DialogPrimitive.Close.Props & {

@@ -1080,6 +1080,42 @@ func (*DeployResponse) Descriptor() ([]byte, []int) {
 	return file_hydra_v1_deploy_proto_rawDescGZIP(), []int{11}
 }
 
+type BuildResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *BuildResponse) Reset() {
+	*x = BuildResponse{}
+	mi := &file_hydra_v1_deploy_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *BuildResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BuildResponse) ProtoMessage() {}
+
+func (x *BuildResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_hydra_v1_deploy_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BuildResponse.ProtoReflect.Descriptor instead.
+func (*BuildResponse) Descriptor() ([]byte, []int) {
+	return file_hydra_v1_deploy_proto_rawDescGZIP(), []int{12}
+}
+
 type TeardownRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Mode selects archive (cancel) vs suspend (spend cap). See TeardownMode.
@@ -1090,7 +1126,7 @@ type TeardownRequest struct {
 
 func (x *TeardownRequest) Reset() {
 	*x = TeardownRequest{}
-	mi := &file_hydra_v1_deploy_proto_msgTypes[12]
+	mi := &file_hydra_v1_deploy_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1102,7 +1138,7 @@ func (x *TeardownRequest) String() string {
 func (*TeardownRequest) ProtoMessage() {}
 
 func (x *TeardownRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_hydra_v1_deploy_proto_msgTypes[12]
+	mi := &file_hydra_v1_deploy_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1115,7 +1151,7 @@ func (x *TeardownRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TeardownRequest.ProtoReflect.Descriptor instead.
 func (*TeardownRequest) Descriptor() ([]byte, []int) {
-	return file_hydra_v1_deploy_proto_rawDescGZIP(), []int{12}
+	return file_hydra_v1_deploy_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *TeardownRequest) GetMode() TeardownMode {
@@ -1140,7 +1176,7 @@ type TeardownResponse struct {
 
 func (x *TeardownResponse) Reset() {
 	*x = TeardownResponse{}
-	mi := &file_hydra_v1_deploy_proto_msgTypes[13]
+	mi := &file_hydra_v1_deploy_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1152,7 +1188,7 @@ func (x *TeardownResponse) String() string {
 func (*TeardownResponse) ProtoMessage() {}
 
 func (x *TeardownResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_hydra_v1_deploy_proto_msgTypes[13]
+	mi := &file_hydra_v1_deploy_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1165,7 +1201,7 @@ func (x *TeardownResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TeardownResponse.ProtoReflect.Descriptor instead.
 func (*TeardownResponse) Descriptor() ([]byte, []int) {
-	return file_hydra_v1_deploy_proto_rawDescGZIP(), []int{13}
+	return file_hydra_v1_deploy_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *TeardownResponse) GetDeploymentsStopped() int32 {
@@ -1190,7 +1226,7 @@ type ResumeRequest struct {
 
 func (x *ResumeRequest) Reset() {
 	*x = ResumeRequest{}
-	mi := &file_hydra_v1_deploy_proto_msgTypes[14]
+	mi := &file_hydra_v1_deploy_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1202,7 +1238,7 @@ func (x *ResumeRequest) String() string {
 func (*ResumeRequest) ProtoMessage() {}
 
 func (x *ResumeRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_hydra_v1_deploy_proto_msgTypes[14]
+	mi := &file_hydra_v1_deploy_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1215,7 +1251,7 @@ func (x *ResumeRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ResumeRequest.ProtoReflect.Descriptor instead.
 func (*ResumeRequest) Descriptor() ([]byte, []int) {
-	return file_hydra_v1_deploy_proto_rawDescGZIP(), []int{14}
+	return file_hydra_v1_deploy_proto_rawDescGZIP(), []int{15}
 }
 
 type ResumeResponse struct {
@@ -1228,7 +1264,7 @@ type ResumeResponse struct {
 
 func (x *ResumeResponse) Reset() {
 	*x = ResumeResponse{}
-	mi := &file_hydra_v1_deploy_proto_msgTypes[15]
+	mi := &file_hydra_v1_deploy_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1240,7 +1276,7 @@ func (x *ResumeResponse) String() string {
 func (*ResumeResponse) ProtoMessage() {}
 
 func (x *ResumeResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_hydra_v1_deploy_proto_msgTypes[15]
+	mi := &file_hydra_v1_deploy_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1253,7 +1289,7 @@ func (x *ResumeResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ResumeResponse.ProtoReflect.Descriptor instead.
 func (*ResumeResponse) Descriptor() ([]byte, []int) {
-	return file_hydra_v1_deploy_proto_rawDescGZIP(), []int{15}
+	return file_hydra_v1_deploy_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *ResumeResponse) GetDeploymentsResumed() int32 {
@@ -1322,7 +1358,8 @@ const file_hydra_v1_deploy_proto_rawDesc = "" +
 	"\toci_image\x18\x04 \x01(\v2\x12.hydra.v1.OciImageH\x00R\bociImage\x12\x18\n" +
 	"\acommand\x18\x05 \x03(\tR\acommandB\b\n" +
 	"\x06sourceJ\x04\b\x02\x10\x03R\vkey_auth_id\"\x10\n" +
-	"\x0eDeployResponse\"=\n" +
+	"\x0eDeployResponse\"\x0f\n" +
+	"\rBuildResponse\"=\n" +
 	"\x0fTeardownRequest\x12*\n" +
 	"\x04mode\x18\x01 \x01(\x0e2\x16.hydra.v1.TeardownModeR\x04mode\"]\n" +
 	"\x10TeardownResponse\x12/\n" +
@@ -1356,10 +1393,11 @@ const file_hydra_v1_deploy_proto_rawDesc = "" +
 	"\fTeardownMode\x12\x1d\n" +
 	"\x19TEARDOWN_MODE_UNSPECIFIED\x10\x00\x12\x19\n" +
 	"\x15TEARDOWN_MODE_ARCHIVE\x10\x01\x12\x19\n" +
-	"\x15TEARDOWN_MODE_SUSPEND\x10\x022\x91\x02\n" +
+	"\x15TEARDOWN_MODE_SUSPEND\x10\x022\xd2\x02\n" +
 	"\x0eDeployWorkflow\x12I\n" +
 	"\x06Create\x12\x1d.hydra.v1.DeployCreateRequest\x1a\x1e.hydra.v1.DeployCreateResponse\"\x00\x12A\n" +
-	"\x06Deploy\x12\x17.hydra.v1.DeployRequest\x1a\x18.hydra.v1.DeployResponse\"\x04\x98\x80\x01\x03\x12k\n" +
+	"\x06Deploy\x12\x17.hydra.v1.DeployRequest\x1a\x18.hydra.v1.DeployResponse\"\x04\x98\x80\x01\x03\x12?\n" +
+	"\x05Build\x12\x17.hydra.v1.DeployRequest\x1a\x17.hydra.v1.BuildResponse\"\x04\x98\x80\x01\x02\x12k\n" +
 	"\x14NotifyInstancesReady\x12%.hydra.v1.NotifyInstancesReadyRequest\x1a&.hydra.v1.NotifyInstancesReadyResponse\"\x04\x98\x80\x01\x02\x1a\x04\x98\x80\x01\x022\xa1\x01\n" +
 	"\x15DeployTeardownService\x12C\n" +
 	"\bTeardown\x12\x19.hydra.v1.TeardownRequest\x1a\x1a.hydra.v1.TeardownResponse\"\x00\x12=\n" +
@@ -1379,7 +1417,7 @@ func file_hydra_v1_deploy_proto_rawDescGZIP() []byte {
 }
 
 var file_hydra_v1_deploy_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
-var file_hydra_v1_deploy_proto_msgTypes = make([]protoimpl.MessageInfo, 16)
+var file_hydra_v1_deploy_proto_msgTypes = make([]protoimpl.MessageInfo, 17)
 var file_hydra_v1_deploy_proto_goTypes = []any{
 	(CreateDecision)(0),                    // 0: hydra.v1.CreateDecision
 	(CreateOutcome)(0),                     // 1: hydra.v1.CreateOutcome
@@ -1396,40 +1434,43 @@ var file_hydra_v1_deploy_proto_goTypes = []any{
 	(*DeployCreateResponse)(nil),           // 12: hydra.v1.DeployCreateResponse
 	(*DeployRequest)(nil),                  // 13: hydra.v1.DeployRequest
 	(*DeployResponse)(nil),                 // 14: hydra.v1.DeployResponse
-	(*TeardownRequest)(nil),                // 15: hydra.v1.TeardownRequest
-	(*TeardownResponse)(nil),               // 16: hydra.v1.TeardownResponse
-	(*ResumeRequest)(nil),                  // 17: hydra.v1.ResumeRequest
-	(*ResumeResponse)(nil),                 // 18: hydra.v1.ResumeResponse
-	(*v1.GitCommitInfo)(nil),               // 19: ctrl.v1.GitCommitInfo
-	(v1.DeploymentTrigger)(0),              // 20: ctrl.v1.DeploymentTrigger
-	(*v1.ActorInfo)(nil),                   // 21: ctrl.v1.ActorInfo
+	(*BuildResponse)(nil),                  // 15: hydra.v1.BuildResponse
+	(*TeardownRequest)(nil),                // 16: hydra.v1.TeardownRequest
+	(*TeardownResponse)(nil),               // 17: hydra.v1.TeardownResponse
+	(*ResumeRequest)(nil),                  // 18: hydra.v1.ResumeRequest
+	(*ResumeResponse)(nil),                 // 19: hydra.v1.ResumeResponse
+	(*v1.GitCommitInfo)(nil),               // 20: ctrl.v1.GitCommitInfo
+	(v1.DeploymentTrigger)(0),              // 21: ctrl.v1.DeploymentTrigger
+	(*v1.ActorInfo)(nil),                   // 22: ctrl.v1.ActorInfo
 }
 var file_hydra_v1_deploy_proto_depIdxs = []int32{
-	19, // 0: hydra.v1.CreateGitSource.commit:type_name -> ctrl.v1.GitCommitInfo
-	19, // 1: hydra.v1.CreateImageSource.commit:type_name -> ctrl.v1.GitCommitInfo
+	20, // 0: hydra.v1.CreateGitSource.commit:type_name -> ctrl.v1.GitCommitInfo
+	20, // 1: hydra.v1.CreateImageSource.commit:type_name -> ctrl.v1.GitCommitInfo
 	7,  // 2: hydra.v1.DeployCreateRequest.git:type_name -> hydra.v1.CreateGitSource
 	8,  // 3: hydra.v1.DeployCreateRequest.image:type_name -> hydra.v1.CreateImageSource
 	9,  // 4: hydra.v1.DeployCreateRequest.existing_deployment:type_name -> hydra.v1.CreateExistingDeploymentSource
 	0,  // 5: hydra.v1.DeployCreateRequest.decision:type_name -> hydra.v1.CreateDecision
 	11, // 6: hydra.v1.DeployCreateRequest.trigger:type_name -> hydra.v1.Trigger
-	20, // 7: hydra.v1.Trigger.source:type_name -> ctrl.v1.DeploymentTrigger
-	21, // 8: hydra.v1.Trigger.actor:type_name -> ctrl.v1.ActorInfo
+	21, // 7: hydra.v1.Trigger.source:type_name -> ctrl.v1.DeploymentTrigger
+	22, // 8: hydra.v1.Trigger.actor:type_name -> ctrl.v1.ActorInfo
 	1,  // 9: hydra.v1.DeployCreateResponse.outcome:type_name -> hydra.v1.CreateOutcome
 	6,  // 10: hydra.v1.DeployRequest.git:type_name -> hydra.v1.GitSource
 	5,  // 11: hydra.v1.DeployRequest.oci_image:type_name -> hydra.v1.OciImage
 	2,  // 12: hydra.v1.TeardownRequest.mode:type_name -> hydra.v1.TeardownMode
 	10, // 13: hydra.v1.DeployWorkflow.Create:input_type -> hydra.v1.DeployCreateRequest
 	13, // 14: hydra.v1.DeployWorkflow.Deploy:input_type -> hydra.v1.DeployRequest
-	3,  // 15: hydra.v1.DeployWorkflow.NotifyInstancesReady:input_type -> hydra.v1.NotifyInstancesReadyRequest
-	15, // 16: hydra.v1.DeployTeardownService.Teardown:input_type -> hydra.v1.TeardownRequest
-	17, // 17: hydra.v1.DeployTeardownService.Resume:input_type -> hydra.v1.ResumeRequest
-	12, // 18: hydra.v1.DeployWorkflow.Create:output_type -> hydra.v1.DeployCreateResponse
-	14, // 19: hydra.v1.DeployWorkflow.Deploy:output_type -> hydra.v1.DeployResponse
-	4,  // 20: hydra.v1.DeployWorkflow.NotifyInstancesReady:output_type -> hydra.v1.NotifyInstancesReadyResponse
-	16, // 21: hydra.v1.DeployTeardownService.Teardown:output_type -> hydra.v1.TeardownResponse
-	18, // 22: hydra.v1.DeployTeardownService.Resume:output_type -> hydra.v1.ResumeResponse
-	18, // [18:23] is the sub-list for method output_type
-	13, // [13:18] is the sub-list for method input_type
+	13, // 15: hydra.v1.DeployWorkflow.Build:input_type -> hydra.v1.DeployRequest
+	3,  // 16: hydra.v1.DeployWorkflow.NotifyInstancesReady:input_type -> hydra.v1.NotifyInstancesReadyRequest
+	16, // 17: hydra.v1.DeployTeardownService.Teardown:input_type -> hydra.v1.TeardownRequest
+	18, // 18: hydra.v1.DeployTeardownService.Resume:input_type -> hydra.v1.ResumeRequest
+	12, // 19: hydra.v1.DeployWorkflow.Create:output_type -> hydra.v1.DeployCreateResponse
+	14, // 20: hydra.v1.DeployWorkflow.Deploy:output_type -> hydra.v1.DeployResponse
+	15, // 21: hydra.v1.DeployWorkflow.Build:output_type -> hydra.v1.BuildResponse
+	4,  // 22: hydra.v1.DeployWorkflow.NotifyInstancesReady:output_type -> hydra.v1.NotifyInstancesReadyResponse
+	17, // 23: hydra.v1.DeployTeardownService.Teardown:output_type -> hydra.v1.TeardownResponse
+	19, // 24: hydra.v1.DeployTeardownService.Resume:output_type -> hydra.v1.ResumeResponse
+	19, // [19:25] is the sub-list for method output_type
+	13, // [13:19] is the sub-list for method input_type
 	13, // [13:13] is the sub-list for extension type_name
 	13, // [13:13] is the sub-list for extension extendee
 	0,  // [0:13] is the sub-list for field type_name
@@ -1455,7 +1496,7 @@ func file_hydra_v1_deploy_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_hydra_v1_deploy_proto_rawDesc), len(file_hydra_v1_deploy_proto_rawDesc)),
 			NumEnums:      3,
-			NumMessages:   16,
+			NumMessages:   17,
 			NumExtensions: 0,
 			NumServices:   2,
 		},

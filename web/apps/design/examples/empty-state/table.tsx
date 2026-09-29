@@ -11,8 +11,8 @@ import {
 
 export default function TableEmptyState() {
   return (
-    <div className="overflow-hidden rounded-lg border border-grayA-4 bg-background">
-      <div className="flex items-center gap-4 border-grayA-4 border-b px-4 py-2.5 text-gray-9 text-xs">
+    <div className="overflow-hidden rounded-lg border bg-background">
+      <div className="flex items-center gap-4 border-b px-4 py-2.5 text-gray-9 text-xs">
         <div className="flex-1">Name</div>
         <div className="w-24">Status</div>
         <div className="w-28">Created</div>

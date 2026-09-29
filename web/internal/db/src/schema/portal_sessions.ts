@@ -1,13 +1,5 @@
 import { relations } from "drizzle-orm";
-import {
-  bigint,
-  boolean,
-  index,
-  json,
-  mysqlTable,
-  uniqueIndex,
-  varchar,
-} from "drizzle-orm/mysql-core";
+import { bigint, index, json, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
 import { portals } from "./portals";
 import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
 import { id } from "./util/id";
@@ -55,7 +47,6 @@ export const portalSessions = mysqlTable(
     portalId: id("portal_id").notNull(),
     externalId: caseSensitiveVarchar("external_id", { length: 256 }).notNull(),
     scopes: json("scopes").notNull(),
-    preview: boolean("preview").notNull().default(false),
 
     exchangeCodeHash: caseSensitiveVarchar("exchange_code_hash", { length: 256 }).notNull(),
     exchangeCodeExpiresAt: bigint("exchange_code_expires_at", { mode: "number" }).notNull(),

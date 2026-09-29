@@ -1,6 +1,6 @@
-import { cn } from "@/lib/utils";
 import { IconXmarkOutline18 } from "@unkey/icons";
 import { Badge, Button } from "@unkey/ui";
+import { cn } from "cn";
 import type { SupportedLogTypes } from "..";
 
 type Props = {
@@ -11,12 +11,12 @@ type Props = {
 
 export const LogHeader = ({ onClose, log }: Props) => {
   return (
-    <div className="border-b flex justify-between items-center border-gray-4 h-[50px] px-4 py-2">
+    <div className="border-b flex justify-between items-center h-[50px] px-4 py-2">
       <div className="flex gap-2 items-center min-w-0">
-        <Badge className="uppercase px-[6px] rounded-md font-mono bg-accent-3 text-accent-11 hover:bg-accent-4">
+        <Badge className="uppercase px-[6px] rounded-md font-mono bg-gray-3 text-gray-11 hover:bg-gray-4">
           {log.method}
         </Badge>
-        <p className="text-xs text-accent-12 truncate flex-1">{log.path} </p>
+        <p className="text-xs text-gray-12 truncate flex-1">{log.path} </p>
 
         <Badge
           className={cn("px-[6px] rounded-md font-mono text-xs", {

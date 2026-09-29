@@ -71,7 +71,7 @@ export const NamespaceList = () => {
           </EmptyStateDescription>
         </EmptyStateHeader>
         <div className="mt-4 w-full max-w-lg">
-          <div className="flex items-start gap-4 rounded-lg border border-grayA-4 bg-background p-4">
+          <div className="flex items-start gap-4 rounded-lg border bg-background p-4">
             <pre className="flex-1 text-xs text-left overflow-x-auto">
               <code>{EXAMPLE_SNIPPET}</code>
             </pre>

@@ -26,6 +26,7 @@ export const DEPLOYMENT_STATUS_META: Record<
   queued: { label: "Queued", colorClass: DEPLOYMENT_GROUP_COLOR.queued },
   blocked: { label: "Awaiting Approval", colorClass: DEPLOYMENT_GROUP_COLOR.blocked },
   cancelled: { label: "Cancelled", colorClass: DEPLOYMENT_GROUP_COLOR.cancelled },
+  skipped: { label: "Skipped", colorClass: DEPLOYMENT_GROUP_COLOR.skipped },
   superseded: { label: "Superseded", colorClass: DEPLOYMENT_GROUP_COLOR.superseded },
   stopped: { label: "Stopped", colorClass: DEPLOYMENT_GROUP_COLOR.stopped },
 };

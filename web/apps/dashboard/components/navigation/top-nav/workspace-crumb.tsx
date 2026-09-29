@@ -38,7 +38,7 @@ export function WorkspaceCrumb({ href }: { href: string }) {
   return (
     <Crumb
       icon={
-        <Avatar className="size-4 rounded-sm border border-grayA-6 shrink-0">
+        <Avatar className="size-4 rounded-sm border border-input shrink-0">
           <AvatarFallback name={workspace.name} variant="marble" square />
         </Avatar>
       }

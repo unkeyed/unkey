@@ -139,8 +139,8 @@ func checkCreatable(target db.FindDeployTargetRow, willBuild bool) *rejection {
 		return nil
 	}
 
-	// Deploy validates port, cpu, memory and regions too, but rejecting here
-	// means the caller gets a reason and no row is written.
+	// Deploy validates regions too, but rejecting here means the caller gets a
+	// reason and no row is written
 	messages := make([]string, 0, 2)
 	for _, violation := range deployfail.RuntimeViolations(target.Port, target.CpuMillicores, target.MemoryMib) {
 		messages = append(messages, fmt.Sprintf("%s (is %d)", violation.Message, violation.Actual))

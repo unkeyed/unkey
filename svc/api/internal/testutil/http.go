@@ -462,7 +462,6 @@ func (h *Harness) CreatePortalSessionForPortal(portalID, workspaceID, externalID
 		PortalID:              portalID,
 		ExternalID:            externalID,
 		Scopes:                scopesJSON,
-		Preview:               false,
 		ExchangeCodeHash:      hash.Sha256(exchangeCode),
 		ExchangeCodeExpiresAt: now.Add(15 * time.Minute).UnixMilli(),
 		ReturnUrl:             sql.NullString{Valid: false, String: ""},

@@ -1,5 +1,8 @@
+import {
+  LastUsedColumnSkeleton,
+  UsageColumnSkeleton,
+} from "@/components/api-keys-table/components/skeletons";
 import type { RootKey } from "@/lib/trpc/routers/settings/root-keys/query";
-import { cn } from "@/lib/utils";
 import type { DataTableColumnDef } from "@unkey/ui";
 import {
   ActionColumnSkeleton,
@@ -9,6 +12,7 @@ import {
   PermissionsColumnSkeleton,
   RootKeyColumnSkeleton,
 } from "@unkey/ui";
+import { cn } from "cn";
 import { ROOT_KEY_COLUMN_IDS } from "../../../root-keys-table/columns/create-root-key-columns";
 
 type RenderRootKeySkeletonRowProps = {
@@ -25,9 +29,10 @@ export const renderRootKeySkeletonRow = ({ columns, rowHeight }: RenderRootKeySk
     >
       {column.id === ROOT_KEY_COLUMN_IDS.ROOT_KEY.id && <RootKeyColumnSkeleton />}
       {column.id === ROOT_KEY_COLUMN_IDS.KEY.id && <KeyColumnSkeleton />}
+      {column.id === ROOT_KEY_COLUMN_IDS.USAGE.id && <UsageColumnSkeleton />}
+      {column.id === ROOT_KEY_COLUMN_IDS.LAST_USED.id && <LastUsedColumnSkeleton />}
       {column.id === ROOT_KEY_COLUMN_IDS.CREATED_AT.id && <CreatedAtColumnSkeleton />}
       {column.id === ROOT_KEY_COLUMN_IDS.PERMISSIONS.id && <PermissionsColumnSkeleton />}
-      {column.id === ROOT_KEY_COLUMN_IDS.LAST_USED.id && <LastUpdatedColumnSkeleton />}
       {column.id === ROOT_KEY_COLUMN_IDS.LAST_UPDATED.id && <LastUpdatedColumnSkeleton />}
       {column.id === ROOT_KEY_COLUMN_IDS.ACTION.id && <ActionColumnSkeleton />}
     </td>

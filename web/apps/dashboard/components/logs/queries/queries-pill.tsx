@@ -1,4 +1,4 @@
-import { cn } from "@/lib/utils";
+import { cn } from "cn";
 type QueriesPillType = {
   value: string;
   className?: string;
@@ -12,7 +12,7 @@ export const QueriesPill = ({ value, className, color }: QueriesPillType) => {
         className,
       )}
     >
-      {color && <div className={cn("w-2 h-2 rounded-[2px]", color)} />}
+      {color && <div className={cn("w-2 h-2 rounded-xs", color)} />}
       <span className="font-mono text-xs font-medium truncate text-gray-12">{value}</span>
     </div>
   );

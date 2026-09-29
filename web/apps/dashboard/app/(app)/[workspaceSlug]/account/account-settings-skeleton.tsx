@@ -15,7 +15,7 @@ export function AccountSettingsSkeleton() {
         <h2 id="profile-loading-heading" className="m-0 text-lg font-medium">
           Profile
         </h2>
-        <div aria-hidden="true" className="overflow-hidden rounded-lg border border-grayA-4">
+        <div aria-hidden="true" className="overflow-hidden rounded-lg border bg-raised">
           <SkeletonRow value="avatar" />
           <SkeletonRow action />
           <SkeletonRow action />
@@ -38,7 +38,7 @@ export function AccountSettingsSkeleton() {
         </div>
         <div
           aria-hidden="true"
-          className="flex min-h-20 items-center gap-4 rounded-lg border border-grayA-4 px-4 py-3"
+          className="flex min-h-20 items-center gap-4 rounded-lg border bg-raised px-4 py-3"
         >
           <Skeleton className="size-10 shrink-0 rounded-md" />
           <div className="flex min-w-0 flex-1 flex-col gap-2">
@@ -60,7 +60,7 @@ function SkeletonRow({
   value?: "avatar" | "text";
 }) {
   return (
-    <div className="flex min-h-16 items-center gap-4 border-grayA-4 border-b px-4 py-3 last:border-b-0">
+    <div className="flex min-h-16 items-center gap-4 border-b px-4 py-3 last:border-b-0">
       <Skeleton className="h-3.5 w-32 max-w-[30%] shrink-0" />
       {value === "avatar" ? (
         <Skeleton className="size-10 rounded-md" />

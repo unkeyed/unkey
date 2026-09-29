@@ -1,10 +1,10 @@
 "use client";
 
 import { CollapsibleTrigger } from "@/components/ui/collapsible";
-import { cn } from "@/lib/utils";
 import { IconCaretRightOutline18 } from "@unkey/icons";
 import type { CheckedState } from "@unkey/ui";
 import { Checkbox } from "@unkey/ui";
+import { cn } from "cn";
 import { type ComponentPropsWithoutRef, type ElementRef, forwardRef } from "react";
 
 export type ExpandableCategoryProps = {

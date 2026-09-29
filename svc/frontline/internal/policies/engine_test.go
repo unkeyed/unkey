@@ -1,15 +1,81 @@
 package policies
 
 import (
+	"context"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 	frontlinev1 "github.com/unkeyed/unkey/gen/proto/frontline/v1"
-	"github.com/unkeyed/unkey/pkg/ptr"
+	"github.com/unkeyed/unkey/pkg/codes"
+	"github.com/unkeyed/unkey/pkg/fault"
+	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/frontline/internal/policies/principal"
 	"google.golang.org/protobuf/encoding/protojson"
-	"google.golang.org/protobuf/proto"
 )
+
+type keyAuthenticatorFunc func(context.Context, *zen.Session, *http.Request, string, *frontlinev1.KeyAuth) (*principal.Principal, error)
+
+func (f keyAuthenticatorFunc) Execute(ctx context.Context, sess *zen.Session, req *http.Request, appID string, cfg *frontlinev1.KeyAuth) (*principal.Principal, error) {
+	return f(ctx, sess, req, appID, cfg)
+}
+
+func TestEvaluate_UsesKeyAuthenticator(t *testing.T) {
+	t.Parallel()
+
+	denied := fault.New("denied", fault.Code(codes.Frontline.Auth.InsufficientPermissions.URN()))
+	for _, tt := range []struct {
+		name      string
+		principal *principal.Principal
+		err       error
+		code      codes.URN
+	}{
+		{name: "success", principal: &principal.Principal{Subject: "customer_42"}},
+		{name: "authentication error", err: denied, code: codes.Frontline.Auth.InsufficientPermissions.URN()},
+		{name: "missing principal", code: codes.Frontline.Internal.InternalServerError.URN()},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			req := httptest.NewRequest(http.MethodGet, "/api/orders", nil)
+			w := httptest.NewRecorder()
+			sess := &zen.Session{}
+			require.NoError(t, sess.Init(w, req, 0))
+			cfg := &frontlinev1.KeyAuth{KeySpaceIds: []string{"ks_orders"}, Credits: new(int64(0))}
+			engine := &Engine{
+				keyAuth: keyAuthenticatorFunc(func(ctx context.Context, session *zen.Session, request *http.Request, appID string, policy *frontlinev1.KeyAuth) (*principal.Principal, error) {
+					require.Equal(t, t.Context(), ctx)
+					require.Same(t, sess, session)
+					require.Same(t, req, request)
+					require.Equal(t, "app_orders", appID)
+					require.Same(t, cfg, policy)
+					session.ResponseWriter().Header().Set("X-RateLimit-Remaining", "7")
+					return tt.principal, tt.err
+				}),
+			}
+
+			result, err := engine.Evaluate(t.Context(), sess, req, "ws_orders", "app_orders", []*frontlinev1.Policy{{
+				Enabled: new(true),
+				Config:  &frontlinev1.Policy_Keyauth{Keyauth: cfg},
+			}})
+			require.Equal(t, tt.principal, result.Principal)
+			require.Equal(t, "7", w.Header().Get("X-RateLimit-Remaining"))
+			if tt.code == "" {
+				require.NoError(t, err)
+				return
+			}
+
+			require.Error(t, err)
+			code, ok := fault.GetCode(err)
+			require.True(t, ok)
+			require.Equal(t, tt.code, code)
+			if tt.err != nil {
+				require.ErrorIs(t, err, tt.err)
+			}
+		})
+	}
+}
 
 func TestParseMiddleware_Nil(t *testing.T) {
 	t.Parallel()
@@ -57,7 +123,7 @@ func TestParseMiddleware_WithPolicies(t *testing.T) {
 			{
 				Id:      "p1",
 				Name:    "key auth",
-				Enabled: proto.Bool(true),
+				Enabled: new(true),
 				Match:   nil,
 				Config: &frontlinev1.Policy_Keyauth{
 					//nolint:exhaustruct
@@ -131,9 +197,9 @@ func TestPrincipal_Marshal_WireFormat(t *testing.T) {
 				Key: &principal.KeySource{
 					KeyID:       "key_abc",
 					KeySpaceID:  "ks_456",
-					Name:        ptr.P("prod"),
-					ExpiresAt:   ptr.P(int64(1717200000000)),
-					Credits:     ptr.P(int64(42)),
+					Name:        new("prod"),
+					ExpiresAt:   new(int64(1717200000000)),
+					Credits:     new(int64(42)),
 					Meta:        map[string]any{},
 					Roles:       []string{"admin"},
 					Permissions: []string{"api.read", "api.write"},

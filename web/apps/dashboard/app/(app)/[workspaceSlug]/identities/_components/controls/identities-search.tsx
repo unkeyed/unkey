@@ -18,7 +18,7 @@ export const IdentitiesSearch = () => {
     <div className="flex h-8 w-full items-center md:w-80">
       <InputGroup className="h-8">
         <InputGroupAddon className="pointer-events-none">
-          <IconMagnifierOutline18 className="text-accent-9 size-4" />
+          <IconMagnifierOutline18 className="text-gray-9 size-4" />
         </InputGroupAddon>
         <InputGroupInput
           aria-label="Search identities"
@@ -26,7 +26,7 @@ export const IdentitiesSearch = () => {
           value={search}
           maxLength={256}
           placeholder="Search identities by ID or external ID..."
-          className="h-8 text-[13px] font-medium"
+          className="h-8 text-sm font-medium"
           onChange={(event) => setSearch(event.target.value || null)}
           onKeyDown={(event) => {
             if (event.key === "Escape") {

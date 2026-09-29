@@ -2,8 +2,7 @@
 
 import { DeploymentStatusLabel } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/deployment-status-dot";
 import { DottedLink } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/dotted-link";
-import type { ProjectApp } from "@/lib/collections/deploy/projects";
-import { cn } from "@/lib/utils";
+import type { ProjectApp } from "@/lib/collections/deploy/project-cards";
 import {
   IconClockOutline18,
   IconCodeBranchOutline18,
@@ -11,7 +10,8 @@ import {
   IconEarthOutline18,
   type IconProps,
 } from "@unkey/icons";
-import { InfoTooltip } from "@unkey/ui";
+import { InfoHoverCard } from "@unkey/ui";
+import { cn } from "cn";
 import Link from "next/link";
 import type { ComponentPropsWithRef, FC, ReactElement, ReactNode } from "react";
 import { type AppDeployment, DeploymentMeta, useDeploymentPhrase } from "./deployment-meta";
@@ -31,7 +31,7 @@ export function AppRow({
         className,
       )}
     >
-      <span className="min-w-0 flex-1 truncate text-[13px] font-medium leading-5 text-accent-12">
+      <span className="min-w-0 flex-1 truncate text-sm font-medium leading-5 text-gray-12">
         {app.name}
       </span>
       {app.headlineDeployment ? <DeploymentMeta deployment={app.headlineDeployment} /> : null}
@@ -39,7 +39,7 @@ export function AppRow({
   );
 }
 
-export function AppDetailTooltip({
+export function AppDetailHoverCard({
   app,
   width,
   children,
@@ -49,7 +49,7 @@ export function AppDetailTooltip({
   }
 
   return (
-    <InfoTooltip
+    <InfoHoverCard
       asChild
       delayDuration={100}
       style={{ width }}
@@ -57,7 +57,7 @@ export function AppDetailTooltip({
       content={<AppDetail app={app} deployment={app.headlineDeployment} />}
     >
       {children}
-    </InfoTooltip>
+    </InfoHoverCard>
   );
 }
 
@@ -79,7 +79,7 @@ function AppDetail({ app, deployment }: { app: ProjectApp; deployment: AppDeploy
         key="domain"
         href={`https://${app.customDomain}`}
         external
-        className="min-w-0 truncate font-mono text-xs font-medium text-accent-12 underline decoration-dotted underline-offset-3 transition-all hover:decoration-solid"
+        className="min-w-0 truncate font-mono text-xs font-medium text-gray-12 underline decoration-dotted underline-offset-3 transition-all hover:decoration-solid"
       >
         {app.customDomain}
       </DottedLink>,
@@ -90,7 +90,7 @@ function AppDetail({ app, deployment }: { app: ProjectApp; deployment: AppDeploy
   return (
     <div className="flex flex-col gap-2">
       <div className="flex items-center gap-2">
-        <span className="min-w-0 truncate text-[13px] font-medium text-accent-12">{app.name}</span>
+        <span className="min-w-0 truncate text-sm font-medium text-gray-12">{app.name}</span>
         <DeploymentStatusLabel
           status={deployment.status}
           className="ml-auto shrink-0 text-xs text-gray-11"

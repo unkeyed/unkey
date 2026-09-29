@@ -1,5 +1,6 @@
 "use client";
 
+import { useProject } from "@/hooks/use-project";
 import {
   PageBody,
   PageContainer,
@@ -12,6 +13,8 @@ import { DeleteProject } from "./components/delete-project";
 import { UpdateProjectSettings } from "./components/update-project-settings";
 
 export default function ProjectSettingsPage() {
+  const { project } = useProject();
+
   return (
     <PageContainer>
       <PageHeader>
@@ -20,10 +23,16 @@ export default function ProjectSettingsPage() {
         </PageHeaderContent>
       </PageHeader>
       <PageBody>
-        <UpdateProjectSettings />
-        <SettingsDangerZone>
-          <DeleteProject />
-        </SettingsDangerZone>
+        {project ? (
+          <>
+            <UpdateProjectSettings project={project} />
+            {project.isDefault ? null : (
+              <SettingsDangerZone>
+                <DeleteProject project={project} />
+              </SettingsDangerZone>
+            )}
+          </>
+        ) : null}
       </PageBody>
     </PageContainer>
   );

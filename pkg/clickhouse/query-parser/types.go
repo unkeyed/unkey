@@ -10,12 +10,19 @@ type SecurityFilter struct {
 	AllowedValues []string // Values user is allowed to access
 }
 
+// SecurityScope is one allowed row scope. Filters within a scope are combined
+// with AND, while Config.SecurityScopes combines scopes with OR.
+type SecurityScope struct {
+	Filters []SecurityFilter
+}
+
 // Config for the parser
 type Config struct {
 	WorkspaceID       string
 	TableAliases      map[string]string
 	AllowedTables     []string
 	SecurityFilters   []SecurityFilter // Row-level security filters (auto-injected)
+	SecurityScopes    []SecurityScope  // nil permits all workspace rows; non-nil empty denies all
 	Limit             int
 	QueryRangeDaysMax int32 // Maximum historical data range user can query in days
 }

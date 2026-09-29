@@ -50,31 +50,33 @@ func (s *service) prepareCheck(ctx context.Context, req RatelimitRequest) checkS
 	cur := s.loadCounter(curKey)
 	prev := s.loadCounter(prevKey)
 
-	// A cold (unhydrated) entry forces this caller to pay the synchronous
-	// fetch_cold or block inside Do until the first caller's fetch returns —
-	// either way the decision is informed by origin state, not local.
 	source := "local"
-	if !cur.hydrated.Load() || !prev.hydrated.Load() {
-		source = "origin"
-	}
-
-	// First caller per entry runs fetchFromOrigin; concurrent callers block
-	// inside Do until it returns. Warm entries refresh from origin when their
-	// last origin fetch is stale, preventing idle replicas from serving an old
-	// local view for the rest of a long window.
-	cur.EnsureFreshFromOrigin(ctx, req.Time)
-	prev.EnsureFreshFromOrigin(ctx, req.Time)
-
-	// Strict mode always refreshes the current window before deciding. The
-	// previous window cannot receive new local decisions anymore, so its normal
-	// cold/stale refresh is enough.
-	if req.Time.UnixMilli() < s.loadStrictUntil(sk) {
-		countOriginCurrent, ok := s.fetchFromOrigin(ctx, curKey, "fetch_strict")
-		if ok {
-			atomicMax(&cur.val, countOriginCurrent)
-			atomicMax(&cur.originFreshUntilMs, req.Time.Add(originFreshDuration).UnixMilli())
+	if s.origin != nil {
+		// A cold (unhydrated) entry forces this caller to pay the synchronous
+		// fetch_cold or block inside Do until the first caller's fetch returns —
+		// either way the decision is informed by origin state, not local.
+		if !cur.hydrated.Load() || !prev.hydrated.Load() {
+			source = "origin"
 		}
-		source = "origin"
+
+		// First caller per entry runs fetchFromOrigin; concurrent callers block
+		// inside Do until it returns. Warm entries refresh from origin when their
+		// last origin fetch is stale, preventing idle replicas from serving an old
+		// local view for the rest of a long window.
+		cur.EnsureFreshFromOrigin(ctx, req.Time)
+		prev.EnsureFreshFromOrigin(ctx, req.Time)
+
+		// Strict mode always refreshes the current window before deciding. The
+		// previous window cannot receive new local decisions anymore, so its normal
+		// cold/stale refresh is enough.
+		if req.Time.UnixMilli() < s.loadStrictUntil(sk) {
+			countOriginCurrent, ok := s.fetchFromOrigin(ctx, curKey, "fetch_strict")
+			if ok {
+				atomicMax(&cur.val, countOriginCurrent)
+				atomicMax(&cur.originFreshUntilMs, req.Time.Add(originFreshDuration).UnixMilli())
+			}
+			source = "origin"
+		}
 	}
 
 	windowStartMs := curSeq * durationMs

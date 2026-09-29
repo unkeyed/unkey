@@ -157,7 +157,7 @@ export function EnvVarsList({
 
   return (
     <>
-      <div ref={listRefCallback} className="border border-grayA-4 rounded-lg overflow-hidden">
+      <div ref={listRefCallback} className="border bg-raised rounded-lg overflow-hidden">
         <div
           style={{
             height: virtualizer.getTotalSize(),
@@ -174,7 +174,7 @@ export function EnvVarsList({
                 key={virtualRow.key}
                 ref={virtualizer.measureElement}
                 data-index={virtualRow.index}
-                className={isLast ? undefined : "border-b border-grayA-4"}
+                className={isLast ? undefined : "border-b"}
                 style={{
                   position: "absolute",
                   top: 0,

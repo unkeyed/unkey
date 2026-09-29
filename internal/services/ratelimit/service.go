@@ -287,18 +287,20 @@ type service struct {
 
 	// origin is the distributed source-of-truth counter (typically Redis).
 	// Local atomics in `counters` converge toward origin via async replay.
+	// Nil disables origin synchronization for [NewLocal].
 	origin counter.Counter
 
 	// replayBuffer holds rate limit events for async propagation to Redis.
-	replayBuffer *buffer.Buffer[RatelimitRequest]
+	// [NewLocal] uses a no-op buffer instead.
+	replayBuffer buffer.Buffer[RatelimitRequest]
 
 	// originCircuitBreaker wraps every call to the origin counter (both
 	// replay INCR and cold/strict-mode GET). When tripped, requests use
 	// whatever local state is available rather than blocking on Redis.
 	originCircuitBreaker circuitbreaker.CircuitBreaker[int64]
 
-	// db is the cross-region propagation backend. Constructed inside [New]
-	// from Config.DB. Always non-nil; Config.DB is required.
+	// db is the cross-region propagation backend. It is nil for [NewLocal],
+	// which does not start the global push and pull loops.
 	db *db.Database
 
 	// region tags every row this service writes to ratelimit_global_counters
@@ -409,6 +411,35 @@ func New(config Config) (*service, error) {
 	return s, nil
 }
 
+// NewLocal creates an independent in-memory limiter without Redis or MySQL.
+// Counters are not shared with other instances and are lost on restart.
+// A nil clock uses the system clock. Call Close when done to release resources.
+func NewLocal(clk clock.Clock) *service {
+	if clk == nil {
+		clk = clock.New()
+	}
+
+	s := &service{
+		clock:                      clk,
+		counters:                   sync.Map{}, //nolint:exhaustruct // sync.Map zero value is ready to use
+		strictUntils:               sync.Map{}, //nolint:exhaustruct // sync.Map zero value is ready to use
+		origin:                     nil,
+		replayBuffer:               buffer.NewNoop[RatelimitRequest](),
+		originCircuitBreaker:       nil,
+		db:                         nil,
+		region:                     "",
+		globalCircuitBreaker:       nil,
+		globalPullMu:               sync.Mutex{},
+		globalPullInitialized:      false,
+		globalPullWatermarkMs:      0,
+		globalPullLastReconciledMs: 0,
+		stopBackground:             nil,
+	}
+	s.startJanitor()
+
+	return s
+}
+
 // Close stops every background goroutine the service started and
 // releases the replay buffer. Stop the periodic loops first so they do
 // not race with the database tearing down underneath them.
@@ -452,10 +483,13 @@ func (s *service) loadStrictUntil(key strictKey) int64 {
 
 // setStrictUntil raises the strict-enforcement deadline to untilMs,
 // atomically. The deadline only ever moves forward; a concurrent caller
-// setting an earlier deadline is a no-op. Every call counts as a
-// strict-mode activation for observability, regardless of whether the
-// deadline actually advanced.
+// setting an earlier deadline is a no-op. Without an origin, this is a no-op.
+// Otherwise, every call counts as a strict-mode activation for observability,
+// regardless of whether the deadline actually advanced.
 func (s *service) setStrictUntil(key strictKey, untilMs int64) {
+	if s.origin == nil {
+		return
+	}
 	val, _ := s.strictUntils.LoadOrStore(key, &atomic.Int64{})
 	atomicMax(val.(*atomic.Int64), untilMs)
 	metrics.RatelimitStrictModeActivations.WithLabelValues(key.workspaceID).Inc()

@@ -2,6 +2,7 @@
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
+import { useWorkspace } from "@/providers/workspace-provider";
 import {
   Button,
   EmptyState,
@@ -37,7 +38,7 @@ export const Client: React.FC = () => {
   // mutation; we mirror it on the client purely for UX so non-admin members
   // get a clear "admin required" affordance instead of a request that fails
   // with FORBIDDEN.
-  const { data: currentUser } = trpc.user.getCurrentUser.useQuery();
+  const { user: currentUser } = useWorkspace();
   const isAdmin = currentUser?.role === "admin";
 
   // Fetch billing info using new tRPC route
@@ -173,7 +174,7 @@ export const Client: React.FC = () => {
                     <span>
                       <Button
                         variant="outline"
-                        className="px-3 py-2 text-gray-12 font-medium text-[13px] bg-grayA-2 shadow-md hover:bg-grayA-3"
+                        className="px-3 py-2 text-gray-12 font-medium text-sm bg-grayA-2 shadow-md hover:bg-grayA-3"
                         aria-label="Add payment method"
                         disabled={!isAdmin}
                         onClick={() => {

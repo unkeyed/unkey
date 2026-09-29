@@ -1,6 +1,6 @@
-import { cn } from "@/lib/utils";
 import { IconChartActivity2Outline12 } from "@unkey/icons";
 import { Badge, Checkbox, TimestampInfo } from "@unkey/ui";
+import { cn } from "cn";
 import type { ReactNode } from "react";
 
 type EnvVarBaseRowProps = {

@@ -10,7 +10,7 @@ import { trpc } from "@/lib/trpc/client";
 import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { V2KeysUpdateKeyRequestBody } from "@unkey/api/models/components";
-import { Button, DialogContainer } from "@unkey/ui";
+import { Button, DialogContainer, Separator } from "@unkey/ui";
 import { useEffect } from "react";
 import { FormProvider } from "react-hook-form";
 import { useEditCredits } from "../hooks/use-edit-credits";
@@ -120,9 +120,7 @@ export const EditCredits = ({ keyDetails, isOpen, onClose }: EditCreditsProps) =
           }
         >
           <KeyInfo keyDetails={keyDetails} />
-          <div className="py-1 my-2">
-            <div className="h-px bg-grayA-3 w-full" />
-          </div>
+          <Separator className="my-3" />
           <div className="[&>*:first-child]:p-0">
             <UsageSetup />
           </div>

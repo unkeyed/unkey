@@ -3,7 +3,6 @@
 import type { Deployment } from "@/lib/collections/deploy/deployments";
 import {
   IconBanOutline18,
-  IconChartActivityOutline18,
   IconCloudUploadOutline18,
   IconEarthOutline18,
   IconHammer2Outline18,
@@ -26,11 +25,6 @@ const STEP_ORDER: Array<{
     key: "queued",
     icon: <IconLayerFrontOutline18 className="size-[18px]" />,
     title: "Deployment Queued",
-  },
-  {
-    key: "starting",
-    icon: <IconChartActivityOutline18 className="size-[18px]" />,
-    title: "Deployment Starting",
   },
   {
     key: "building",
@@ -114,7 +108,7 @@ export function DeploymentCancelled({ deployment, stepsData, reason }: Deploymen
         })}
       </SettingCardGroup>
 
-      <div className="border border-grayA-4 bg-grayA-2 rounded-lg p-4 flex items-center justify-between">
+      <div className="border bg-grayA-2 rounded-lg p-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="flex flex-col gap-0.5">
             <span className="text-sm font-medium text-gray-12">{copy.title}</span>

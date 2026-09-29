@@ -45,8 +45,8 @@ func deriveError(status mysqltype.DeploymentsStatus, steps []db.DeploymentStep) 
 // step is always a build failure, classified by step because the worker's build
 // error message is rewritten across the Restate boundary and is not stable to
 // match on. Other steps are classified by their stored message, which matches
-// the shared deployfail constants the worker writes so the two sides cannot
-// drift. First contained match wins.
+// the shared deployfail constants so the two sides cannot drift. First
+// contained match wins.
 func classifyError(step db.DeploymentStepsStep, message string) openapi.DeploymentErrorCode {
 	if step == db.DeploymentStepsStepBuilding {
 		return openapi.DeploymentErrorCodeBuildFailed

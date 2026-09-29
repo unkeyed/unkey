@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -161,6 +160,21 @@ func TestCreateSessionBadRequest(t *testing.T) {
 			Scopes:     []openapi.V2PortalCreateSessionRequestBodyScopes{"keys:destroy"},
 		}
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
+		require.Equal(t, 400, res.Status)
+		require.NotNil(t, res.Body)
+	})
+
+	// `preview` was removed from the request schema. The body is untyped because
+	// handler.Request no longer carries the field, and the pinned Go SDK still
+	// serializes it, so this is the check that keeps the two in step.
+	t.Run("preview rejected", func(t *testing.T) {
+		req := map[string]any{
+			"portal":     "test-portal",
+			"externalId": "user_123",
+			"scopes":     validScopes,
+			"preview":    true,
+		}
+		res := testutil.CallRoute[map[string]any, openapi.BadRequestErrorResponse](h, route, headers, req)
 		require.Equal(t, 400, res.Status)
 		require.NotNil(t, res.Body)
 	})
@@ -358,7 +372,7 @@ func TestCreateSessionRejectsUnsafeReturnUrl(t *testing.T) {
 				Portal:     "return-url-portal",
 				ExternalId: "user_return_url",
 				Scopes:     scopes,
-				ReturnUrl:  ptr.P(returnURL),
+				ReturnUrl:  new(returnURL),
 			})
 			require.Equal(t, 400, res.Status, "expected 400 for %s, received: %s", name, res.RawBody)
 		})
@@ -369,7 +383,7 @@ func TestCreateSessionRejectsUnsafeReturnUrl(t *testing.T) {
 			Portal:     "return-url-portal",
 			ExternalId: "user_return_url_ok",
 			Scopes:     scopes,
-			ReturnUrl:  ptr.P("https://app.example.com/settings/api-keys"),
+			ReturnUrl:  new("https://app.example.com/settings/api-keys"),
 		})
 		require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
 	})

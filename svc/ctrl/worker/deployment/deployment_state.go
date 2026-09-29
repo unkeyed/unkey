@@ -151,13 +151,10 @@ func (v *VirtualObject) setDesiredState(ctx restate.ObjectContext, deploymentID 
 	return applyTopologyDesiredStatus(ctx, v.db, deploymentID, topologyDesiredStatus)
 }
 
-// ApplyDesiredState writes a deployment's desired state and propagates it to
-// every region's topology, inserting deployment_changes so WatchDeploymentChanges
-// picks the change up. It performs no current-deployment guard: the
-// DeploymentService.ChangeDesiredState caller does that check atomically with
-// its own write, while Resume (DeployTeardownService) calls this to bring a
-// suspended deployment back to running while it is not yet current, so no guard
-// applies. Not for callers that need the guard.
+// ApplyDesiredState updates the deployment and its topology in each region.
+// It does not check whether this is the app's current deployment. Resume needs
+// this so it can start a suspended deployment before making it current.
+// Use ChangeDesiredState when the update needs that check.
 func ApplyDesiredState(ctx restate.ObjectContext, database db.Database, deploymentID string, desiredState mysqltype.DeploymentsDesiredState, topologyStatus db.DeploymentTopologyDesiredStatus) error {
 	err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
 		return database.UpdateDeploymentDesiredState(runCtx, db.UpdateDeploymentDesiredStateParams{
@@ -173,10 +170,7 @@ func ApplyDesiredState(ctx restate.ObjectContext, database db.Database, deployme
 	return applyTopologyDesiredStatus(ctx, database, deploymentID, topologyStatus)
 }
 
-// applyTopologyDesiredStatus propagates a desired status to every region's
-// topology row and inserts a deployment_changes row per region so
-// WatchDeploymentChanges picks the change up. Shared by ChangeDesiredState (after its
-// atomic guard + desired-state write) and ApplyDesiredState.
+// applyTopologyDesiredStatus updates the deployment's topology in each region.
 func applyTopologyDesiredStatus(ctx restate.ObjectContext, database db.Database, deploymentID string, topologyStatus db.DeploymentTopologyDesiredStatus) error {
 	regions, err := restate.Run(ctx, func(runCtx restate.RunContext) ([]db.Region, error) {
 		return database.FindDeploymentRegions(runCtx, deploymentID)
@@ -187,22 +181,11 @@ func applyTopologyDesiredStatus(ctx restate.ObjectContext, database db.Database,
 
 	for _, region := range regions {
 		err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
-			return db.Tx(runCtx, database.RW(), func(txCtx context.Context, tx db.DBTX) error {
-				err := db.NewQueries(tx).UpdateDeploymentTopologyDesiredStatus(txCtx, db.UpdateDeploymentTopologyDesiredStatusParams{
-					DesiredStatus: topologyStatus,
-					UpdatedAt:     sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
-					DeploymentID:  deploymentID,
-					RegionID:      region.ID,
-				})
-				if err != nil {
-					return err
-				}
-				return db.NewQueries(tx).InsertDeploymentChange(txCtx, db.InsertDeploymentChangeParams{
-					ResourceType: db.DeploymentChangesResourceTypeDeploymentTopology,
-					ResourceID:   deploymentID,
-					RegionID:     region.ID,
-					CreatedAt:    time.Now().UnixMilli(),
-				})
+			return database.UpdateDeploymentTopologyDesiredStatus(runCtx, db.UpdateDeploymentTopologyDesiredStatusParams{
+				DesiredStatus: topologyStatus,
+				UpdatedAt:     sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+				DeploymentID:  deploymentID,
+				RegionID:      region.ID,
 			})
 		}, restate.WithName(fmt.Sprintf("updating topology desired status in %s", region.ID)))
 		if err != nil {

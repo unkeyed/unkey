@@ -147,7 +147,7 @@ const formatBody = (body: string): ReactNode => {
 
   const formatted = JSON.stringify(safeParseJson(body), null, 2);
   return formatted === "null" ? (
-    <span className="text-xs text-accent-12 truncate">{EMPTY_TEXT}</span>
+    <span className="text-xs text-gray-12 truncate">{EMPTY_TEXT}</span>
   ) : (
     formatted
   );

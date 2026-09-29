@@ -48,11 +48,12 @@ func TestCrossWorkspaceForbidden(t *testing.T) {
 
 	// First, create the workspace B
 	err = db.Query.InsertWorkspace(ctx, tx, db.InsertWorkspaceParams{
-		ID:        workspaceB,
-		Name:      "Test Workspace B",
-		Slug:      uid.New("slug"),
-		CreatedAt: time.Now().UnixMilli(),
-		OrgID:     uid.New("org"),
+		ID:           workspaceB,
+		Name:         "Test Workspace B",
+		Slug:         uid.New("slug"),
+		CreatedAt:    time.Now().UnixMilli(),
+		OrgID:        uid.New("org"),
+		K8sNamespace: uid.DNS1035(),
 	})
 	require.NoError(t, err)
 

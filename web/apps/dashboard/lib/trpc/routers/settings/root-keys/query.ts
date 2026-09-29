@@ -17,6 +17,7 @@ const PermissionResponse = z.object({
 const RootKeyResponse = z.object({
   id: z.string(),
   prefix: z.string(),
+  keyAuthId: z.string(),
   start: z.string(),
   end: z.string(),
   createdAt: z.number(),
@@ -173,6 +174,7 @@ export const queryRootKeys = workspaceProcedure
           columns: {
             id: true,
             prefix: true,
+            keyAuthId: true,
             start: true,
             end: true,
             createdAtM: true,
@@ -214,6 +216,7 @@ export const queryRootKeys = workspaceProcedure
         return {
           id: key.id,
           prefix: key.prefix,
+          keyAuthId: key.keyAuthId,
           start: key.start,
           end: key.end,
           createdAt: key.createdAtM,

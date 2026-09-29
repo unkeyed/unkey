@@ -1,14 +1,10 @@
 import { routes } from "@/lib/navigation/routes";
+import type { ResourceScope } from "@/lib/navigation/routes/shared";
 
-export const navigation = (workspaceSlug: string) => [
-  {
-    label: "Roles",
-    href: routes.authorization.roles({ workspaceSlug }),
-    segment: "roles",
-  },
-  {
-    label: "Permissions",
-    href: routes.authorization.permissions({ workspaceSlug }),
-    segment: "permissions",
-  },
-];
+const ITEMS = [
+  { segment: "roles", label: "Roles", getHref: routes.authorization.roles },
+  { segment: "permissions", label: "Permissions", getHref: routes.authorization.permissions },
+] as const;
+
+export const navigation = (scope: ResourceScope) =>
+  ITEMS.map((item) => ({ label: item.label, segment: item.segment, href: item.getHref(scope) }));

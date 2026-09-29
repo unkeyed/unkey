@@ -1,5 +1,4 @@
 import type { Permission } from "@/lib/trpc/routers/authorization/permissions/query";
-import { cn } from "@/lib/utils";
 import {
   IconKey2Outline18,
   IconPage2Outline12,
@@ -13,6 +12,7 @@ import {
   LastUpdatedColumnSkeleton,
   NameColumnSkeleton,
 } from "@unkey/ui";
+import { cn } from "cn";
 import { PERMISSION_COLUMN_IDS } from "../../columns/create-permissions-columns";
 
 type RenderPermissionsSkeletonRowProps = {

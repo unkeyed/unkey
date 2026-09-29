@@ -8,7 +8,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/domain/domaingate"
 	"github.com/unkeyed/unkey/pkg/fault"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/urn"
@@ -118,10 +117,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 	}
 	if row.VerificationError.Valid && row.VerificationError.String != "" {
-		data.VerificationError = ptr.P(row.VerificationError.String)
+		data.VerificationError = new(row.VerificationError.String)
 	}
 	if row.UpdatedAt.Valid {
-		data.UpdatedAt = ptr.P(row.UpdatedAt.Int64)
+		data.UpdatedAt = new(row.UpdatedAt.Int64)
 	}
 
 	return s.JSON(http.StatusOK, Response{

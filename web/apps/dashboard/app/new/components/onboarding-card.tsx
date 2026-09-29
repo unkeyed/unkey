@@ -1,8 +1,8 @@
-import { cn } from "@/lib/utils";
+import { cn } from "cn";
 import type React from "react";
 
 export function OnboardingCard({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn("border border-gray-5 rounded-lg w-full p-8", className)} {...props} />;
+  return <div className={cn("border rounded-lg w-full p-8", className)} {...props} />;
 }
 
 export function OnboardingCardHeader({
@@ -25,9 +25,7 @@ export function OnboardingCardDescription({
   className,
   ...props
 }: React.HTMLAttributes<HTMLParagraphElement>) {
-  return (
-    <p className={cn("text-gray-11 font-normal text-[13px] leading-6", className)} {...props} />
-  );
+  return <p className={cn("text-gray-11 font-normal text-sm leading-6", className)} {...props} />;
 }
 
 export function OnboardingCardContent({
@@ -41,5 +39,5 @@ export function OnboardingCardFooter({
   className,
   ...props
 }: React.HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn("mt-8 border-t border-gray-5 pt-8", className)} {...props} />;
+  return <div className={cn("mt-8 border-t pt-8", className)} {...props} />;
 }

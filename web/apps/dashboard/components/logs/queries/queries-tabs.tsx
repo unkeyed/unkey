@@ -1,7 +1,7 @@
 "use client";
-import { cn } from "@/lib/utils";
 import { IconBookmarkOutline18, IconClockRotateClockwiseOutline18 } from "@unkey/icons";
 import { Button } from "@unkey/ui";
+import { cn } from "cn";
 import { useEffect, useState } from "react";
 
 type QueriesTabsProps = {
@@ -22,12 +22,12 @@ export const QueriesTabs = ({ selectedTab, onChange }: QueriesTabsProps) => {
   };
 
   return (
-    <div className="flex mt-2 h-[40px] flex-row justify-center items-center w-full border-b border-gray-6 p-0 m-0 gap-2 shrink-0">
+    <div className="flex mt-2 h-[40px] flex-row justify-center items-center w-full border-b p-0 m-0 gap-2 shrink-0">
       <Button
         variant="ghost"
         className={cn(
-          "h-full bg-base-12 rounded-b-none w-full ml-0 pl-[10px] focus:bg-accent-3 focus:ring-0 cursor-pointer",
-          selected === 0 ? "bg-accent-3" : "",
+          "h-full bg-background rounded-b-none w-full ml-0 pl-[10px] focus:bg-gray-3 focus:ring-0 cursor-pointer",
+          selected === 0 ? "bg-gray-3" : "",
         )}
         type="button"
         aria-label="Log queries"
@@ -42,15 +42,15 @@ export const QueriesTabs = ({ selectedTab, onChange }: QueriesTabsProps) => {
         <div
           className={cn(
             "absolute bottom-0 w-full bg-transparent h-[2px] pb-0 mb-0 ml-[2px]",
-            selected === 0 ? "bg-accent-12" : "",
+            selected === 0 ? "bg-gray-12" : "",
           )}
         />
       </Button>
       <Button
         variant="ghost"
         className={cn(
-          "h-full bg-base-12 rounded-b-none w-full cursor-pointer focus:bg-accent-3 focus:ring-0",
-          selectedTab === 1 ? "bg-accent-3" : "",
+          "h-full bg-background rounded-b-none w-full cursor-pointer focus:bg-gray-3 focus:ring-0",
+          selectedTab === 1 ? "bg-gray-3" : "",
         )}
         type="button"
         aria-label="Log queries"
@@ -67,7 +67,7 @@ export const QueriesTabs = ({ selectedTab, onChange }: QueriesTabsProps) => {
         <div
           className={cn(
             "absolute bottom-0 w-full bg-transparent h-[2px] pb-0 mb-0 ",
-            selected === 1 ? "bg-accent-12" : "",
+            selected === 1 ? "bg-gray-12" : "",
           )}
         />
       </Button>

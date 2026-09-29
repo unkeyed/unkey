@@ -94,7 +94,6 @@ func (s *service) GetSession(ctx context.Context, accessToken string) (*SessionI
 		WorkspaceID: row.WorkspaceID,
 		ExternalID:  row.ExternalID,
 		PortalID:    row.PortalID,
-		Preview:     row.Preview,
 		KeyspaceIDs: grant.KeyspaceIDs,
 		Scopes:      grant.Scopes,
 	}, nil

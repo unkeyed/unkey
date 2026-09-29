@@ -5,7 +5,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/cmd/api/internal/testutil"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
@@ -20,7 +19,7 @@ func TestListOverrides(t *testing.T) {
 			args: "ratelimit list-overrides --namespace=api.requests",
 			want: openapi.V2RatelimitListOverridesRequestBody{
 				Namespace: "api.requests",
-				Limit:     ptr.P(10),
+				Limit:     new(10),
 			},
 		},
 		{
@@ -28,7 +27,7 @@ func TestListOverrides(t *testing.T) {
 			args: "ratelimit list-overrides --namespace=api.requests --limit=50",
 			want: openapi.V2RatelimitListOverridesRequestBody{
 				Namespace: "api.requests",
-				Limit:     ptr.P(50),
+				Limit:     new(50),
 			},
 		},
 		{
@@ -36,8 +35,8 @@ func TestListOverrides(t *testing.T) {
 			args: "ratelimit list-overrides --namespace=api.requests --cursor=cursor_eyJsYXN0SWQiOiJvdnJfM2RITGNOeVN6SnppRHlwMkpla2E5ciJ9",
 			want: openapi.V2RatelimitListOverridesRequestBody{
 				Namespace: "api.requests",
-				Cursor:    ptr.P("cursor_eyJsYXN0SWQiOiJvdnJfM2RITGNOeVN6SnppRHlwMkpla2E5ciJ9"),
-				Limit:     ptr.P(10),
+				Cursor:    new("cursor_eyJsYXN0SWQiOiJvdnJfM2RITGNOeVN6SnppRHlwMkpla2E5ciJ9"),
+				Limit:     new(10),
 			},
 		},
 		{
@@ -45,8 +44,8 @@ func TestListOverrides(t *testing.T) {
 			args: "ratelimit list-overrides --namespace=billing --limit=100 --cursor=next_page_token",
 			want: openapi.V2RatelimitListOverridesRequestBody{
 				Namespace: "billing",
-				Limit:     ptr.P(100),
-				Cursor:    ptr.P("next_page_token"),
+				Limit:     new(100),
+				Cursor:    new("next_page_token"),
 			},
 		},
 	}

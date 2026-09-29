@@ -56,7 +56,7 @@ var (
 			Namespace: "unkey",
 			Subsystem: "control",
 			Name:      "deployment_changes_processed_total",
-			Help:      "Total number of deployment changes processed from the outbox.",
+			Help:      "Total number of deployment changes processed from VStream.",
 		},
 		[]string{"resource_type", "status"},
 	)

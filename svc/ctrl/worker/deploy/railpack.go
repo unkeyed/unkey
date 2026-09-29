@@ -1,6 +1,7 @@
 package deploy
 
 import (
+	"context"
 	_ "embed"
 	"encoding/json"
 	"fmt"
@@ -177,12 +178,12 @@ func (w *Workflow) buildRailpackImageFromGit(
 		)
 
 		// One machine, two solves: plan generation, then the image build.
-		buildID, err := w.withBuildkit(runCtx, bctx.DepotProjectID, params, func(buildClient *client.Client) error {
+		buildID, err := w.withBuildkit(runCtx, bctx.DepotProjectID, params, func(buildCtx context.Context, buildClient *client.Client) error {
 			prepareOptions, optErr := w.buildRailpackPrepareSolverOptions(bctx.GitContextURL, prepareDir, planDir, bctx.GithubToken, bctx.EnvVars, railpackConfig)
 			if optErr != nil {
 				return restate.ToTerminalError(fmt.Errorf("failed to build prepare solver options: %w", optErr))
 			}
-			if solveErr := w.solveWithStatus(runCtx, buildClient, params, prepareOptions); solveErr != nil {
+			if solveErr := w.solveWithStatus(buildCtx, buildClient, params, prepareOptions); solveErr != nil {
 				return fmt.Errorf("railpack prepare failed: %w", solveErr)
 			}
 			if planErr := validateRailpackPlan(filepath.Join(planDir, railpackPlanFilename)); planErr != nil {
@@ -193,7 +194,7 @@ func (w *Workflow) buildRailpackImageFromGit(
 			if optErr != nil {
 				return restate.ToTerminalError(fmt.Errorf("failed to build solver options: %w", optErr))
 			}
-			return w.solveWithStatus(runCtx, buildClient, params, buildOptions)
+			return w.solveWithStatus(buildCtx, buildClient, params, buildOptions)
 		})
 		if err != nil {
 			return nil, err

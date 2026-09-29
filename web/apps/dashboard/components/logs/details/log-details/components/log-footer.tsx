@@ -2,8 +2,8 @@
 
 import { extractResponseField, getRequestHeader } from "@/app/(app)/[workspaceSlug]/logs/utils";
 import { RequestResponseDetails } from "@/components/logs/details/request-response-details";
-import { cn } from "@/lib/utils";
 import { Badge, TimestampInfo } from "@unkey/ui";
+import { cn } from "cn";
 import type { StandardLogTypes } from "..";
 
 type Props = {

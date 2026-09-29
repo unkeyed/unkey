@@ -170,6 +170,7 @@
                 "group": "Gateway",
                 "pages": [
                   "platform/gateway/overview",
+                  "platform/gateway/local-development",
                   {
                     "group": "Authentication",
                     "pages": [

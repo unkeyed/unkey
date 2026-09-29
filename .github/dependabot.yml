@@ -1,15 +1,50 @@
 version: 2
 updates:
   - package-ecosystem: "npm"
-    directory: "/"
+    directory: "/web"
     open-pull-requests-limit: 2
     schedule:
       interval: "daily"
-    ignore:
-      - dependency-name: "*"
-        update-types: ["version-update:semver-patch"]
+    cooldown:
+      default-days: 7
+    versioning-strategy: "increase"
   - package-ecosystem: "github-actions"
     directory: "/"
     open-pull-requests-limit: 2
     schedule:
       interval: "daily"
+    cooldown:
+      default-days: 7
+  - package-ecosystem: "gomod"
+    directories:
+      - "/"
+      - "/tools/pricing"
+      - "/web/tools/gha-fetch-digest"
+    open-pull-requests-limit: 2
+    schedule:
+      interval: "daily"
+    cooldown:
+      default-days: 7
+  - package-ecosystem: "docker"
+    directories:
+      - "/"
+      - "/dev"
+      - "/docs/engineering"
+      - "/docs/product"
+      - "/svc/heimdall/internal/network/bpf"
+      - "/svc/kitchensink"
+      - "/web/apps/portal"
+    open-pull-requests-limit: 2
+    schedule:
+      interval: "daily"
+    cooldown:
+      default-days: 7
+  - package-ecosystem: "docker-compose"
+    directories:
+      - "/pkg/testutil"
+      - "/web/apps/dashboard/dev"
+    open-pull-requests-limit: 2
+    schedule:
+      interval: "daily"
+    cooldown:
+      default-days: 7

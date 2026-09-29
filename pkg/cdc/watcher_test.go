@@ -1,0 +1,443 @@
+package cdc
+
+import (
+	"context"
+	"errors"
+	"io"
+	"net"
+	"testing"
+	"time"
+
+	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/clock"
+	"github.com/unkeyed/unkey/pkg/fault"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
+	binlog "vitess.io/vitess/go/vt/proto/binlogdata"
+	"vitess.io/vitess/go/vt/proto/query"
+	"vitess.io/vitess/go/vt/proto/vtgate"
+	"vitess.io/vitess/go/vt/proto/vtgateservice"
+)
+
+func TestWatcher_RejectsOverlappingWatches(t *testing.T) {
+	watcher := testWatcher(t, &scriptedServer{responses: []*vtgate.VStreamResponse{{Events: []*binlog.VEvent{
+		{Type: binlog.VEventType_FIELD, FieldEvent: &binlog.FieldEvent{TableName: "records"}},
+	}}}}, []Rule{{Table: "records", Query: "select id from records"}})
+	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
+	entered := make(chan struct{})
+	stopped := make(chan struct{})
+	first := make(chan error, 1)
+	go func() {
+		defer close(stopped)
+		first <- watcher.Watch(ctx, nil, func(Event) error {
+			close(entered)
+			<-ctx.Done()
+			return ctx.Err()
+		})
+	}()
+	t.Cleanup(func() { cancel(); <-stopped })
+	select {
+	case <-entered:
+	case <-ctx.Done():
+		t.Fatal("first watch did not reach its callback")
+	}
+	for range 2 {
+		second := make(chan error, 1)
+		go func() {
+			second <- watcher.Watch(ctx, nil, func(Event) error { return errors.New("unexpected callback") })
+		}()
+		select {
+		case err := <-second:
+			require.ErrorContains(t, err, "CDC watcher already has an active watch")
+		case <-ctx.Done():
+			t.Fatal("overlapping watch blocked instead of returning an error")
+		}
+	}
+	cancel()
+	require.ErrorIs(t, <-first, context.Canceled)
+	failure := errors.New("apply failed")
+	require.ErrorIs(t, watcher.Watch(t.Context(), nil, func(Event) error { return failure }), failure)
+}
+
+func TestWatcher_CloseDoesNotCloseOtherWatchers(t *testing.T) {
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	require.NoError(t, err)
+	server := grpc.NewServer()
+	vtgateservice.RegisterVitessServer(server, &scriptedServer{})
+	finished := make(chan error, 1)
+	go func() { finished <- server.Serve(listener) }()
+	t.Cleanup(func() { server.Stop(); require.NoError(t, <-finished) })
+	cfg := Config{
+		Address: listener.Addr().String(), Keyspace: "unkey", Insecure: true,
+		Rules: []Rule{{Table: "records", Query: "select id from records"}},
+	}
+	first, err := New(cfg)
+	require.NoError(t, err)
+	second, err := New(cfg)
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, second.Close()) })
+	require.NoError(t, first.Close())
+	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
+	t.Cleanup(cancel)
+	apply := func(Event) error { return errors.New("unexpected change") }
+	require.Error(t, first.Watch(ctx, nil, apply))
+	require.ErrorIs(t, second.Watch(ctx, nil, apply), io.EOF)
+}
+
+func TestNew_ValidatesSettings(t *testing.T) {
+	for _, test := range []struct {
+		name    string
+		config  Config
+		invalid bool
+	}{
+		{name: "missing address", config: Config{Keyspace: "unkey"}, invalid: true},
+		{name: "missing keyspace", config: Config{Address: "localhost:33575"}, invalid: true},
+		{name: "username only", config: Config{Address: "localhost:33575", Keyspace: "unkey", Username: "user"}, invalid: true},
+		{name: "password only", config: Config{Address: "localhost:33575", Keyspace: "unkey", Password: "test-password"}, invalid: true},
+		{name: "credentials without TLS", config: Config{Address: "localhost:33575", Keyspace: "unkey", Username: "user", Password: "test-password", Insecure: true}, invalid: true},
+		{name: "TLS without credentials", config: Config{Address: "localhost:33575", Keyspace: "unkey"}},
+		{name: "TLS with credentials", config: Config{Address: "localhost:33575", Keyspace: "unkey", Username: "user", Password: "test-password"}},
+		{name: "local plaintext", config: Config{Address: "localhost:33575", Keyspace: "unkey", Insecure: true}},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			test.config.Rules = []Rule{{Table: "records", Query: "select id from records"}}
+			watcher, err := New(test.config)
+			if watcher != nil {
+				t.Cleanup(func() { require.NoError(t, watcher.Close()) })
+			}
+			if test.invalid {
+				require.Error(t, err)
+				require.Nil(t, watcher)
+				_, tagged := fault.GetCode(err)
+				require.True(t, tagged, "invalid settings must return a tagged assertion error")
+				return
+			}
+			require.NoError(t, err)
+			require.NotNil(t, watcher)
+		})
+	}
+}
+
+func TestWatch_PreservesFieldsAndBeforeAfterImages(t *testing.T) {
+	rules := []Rule{{Table: "records", Query: "select id, value from records"}, {Table: "settings", Query: "select name from settings"}}
+	events := []*binlog.VEvent{
+		{Type: binlog.VEventType_FIELD, FieldEvent: &binlog.FieldEvent{TableName: "records", Fields: []*query.Field{{Name: "id", Type: query.Type_INT64}, {Name: "value", Type: query.Type_VARBINARY}}}},
+		{Type: binlog.VEventType_ROW, RowEvent: &binlog.RowEvent{TableName: "records", RowChanges: []*binlog.RowChange{
+			{After: &query.Row{Lengths: []int64{1, -1}, Values: []byte("7")}},
+			{Before: &query.Row{Lengths: []int64{1, -1}, Values: []byte("7")}, After: &query.Row{Lengths: []int64{1, 3}, Values: []byte{'7', 0, 1, 2}}},
+			{Before: &query.Row{Lengths: []int64{1, 3}, Values: []byte{'7', 0, 1, 2}}},
+		}}},
+		{Type: binlog.VEventType_FIELD, FieldEvent: &binlog.FieldEvent{TableName: "settings", Fields: []*query.Field{{Name: "name", Type: query.Type_VARCHAR}}}},
+		{Type: binlog.VEventType_ROW, RowEvent: &binlog.RowEvent{TableName: "settings", RowChanges: []*binlog.RowChange{{After: &query.Row{Lengths: []int64{5}, Values: []byte("theme")}}}}},
+	}
+	server := &scriptedServer{responses: []*vtgate.VStreamResponse{{Events: events}}, requests: make(chan *vtgate.VStreamRequest, 1)}
+	watcher := testWatcher(t, server, rules)
+	var delivered []*binlog.VEvent
+	err := watcher.Watch(t.Context(), nil, func(event Event) error {
+		require.Empty(t, event.ResumeToken)
+		delivered = append(delivered, event.Change)
+		return nil
+	})
+	require.ErrorIs(t, err, io.EOF)
+	require.Len(t, delivered, len(events))
+	for i := range events {
+		require.True(t, proto.Equal(events[i], delivered[i]))
+	}
+	request := <-server.requests
+	require.Len(t, request.Filter.Rules, 2)
+	require.Equal(t, "records", request.Filter.Rules[0].Match)
+	require.Equal(t, "select id, value from records", request.Filter.Rules[0].Filter)
+	require.Equal(t, "settings", request.Filter.Rules[1].Match)
+	require.Equal(t, "select name from settings", request.Filter.Rules[1].Filter)
+}
+
+func TestWatch_UsesOnlySuppliedTokenAndCopiesRules(t *testing.T) {
+	server := &scriptedServer{
+		requests: make(chan *vtgate.VStreamRequest, 3),
+		responses: []*vtgate.VStreamResponse{{Events: []*binlog.VEvent{
+			{Type: binlog.VEventType_VGTID, Vgtid: &binlog.VGtid{ShardGtids: []*binlog.ShardGtid{{Keyspace: "unkey", Shard: "0", Gtid: "position-7"}}}},
+			{Type: binlog.VEventType_COMMIT},
+		}}},
+	}
+	rules := []Rule{{Table: "records", Query: "select id from records"}}
+	watcher := testWatcher(t, server, rules)
+	rules[0].Query = "select value from records"
+	var token []byte
+	for _, test := range []struct {
+		name   string
+		resume bool
+		gtid   string
+	}{
+		{name: "initial snapshot", gtid: ""},
+		{name: "no implicit resume", gtid: ""},
+		{name: "explicit resume", resume: true, gtid: "position-7"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			var start []byte
+			if test.resume {
+				start = token
+			}
+			err := watcher.Watch(t.Context(), start, func(event Event) error {
+				require.Nil(t, event.Change)
+				require.NotEmpty(t, event.ResumeToken)
+				token = event.ResumeToken
+				return nil
+			})
+			require.ErrorIs(t, err, io.EOF)
+			request := <-server.requests
+			require.Equal(t, "select id from records", request.Filter.Rules[0].Filter)
+			require.Equal(t, test.gtid, request.Vgtid.ShardGtids[0].Gtid)
+		})
+	}
+}
+
+func TestWatch_DeliveryPrecedesCheckpointAcrossResponses(t *testing.T) {
+	rules := []Rule{{Table: "records", Query: "select id from records"}}
+	position := &binlog.VGtid{ShardGtids: []*binlog.ShardGtid{{Keyspace: "unkey", Shard: "0", Gtid: "position-7"}}}
+	for _, fail := range []bool{false, true} {
+		name := "successful delivery"
+		if fail {
+			name = "failed delivery"
+		}
+		t.Run(name, func(t *testing.T) {
+			server := &scriptedServer{responses: []*vtgate.VStreamResponse{
+				{Events: []*binlog.VEvent{
+					{Type: binlog.VEventType_BEGIN},
+					{Type: binlog.VEventType_ROW, RowEvent: &binlog.RowEvent{RowChanges: []*binlog.RowChange{
+						{After: &query.Row{Lengths: []int64{8}, Values: []byte("record_a")}},
+						{After: &query.Row{Lengths: []int64{8}, Values: []byte("record_b")}},
+					}}},
+					{Type: binlog.VEventType_VGTID, Vgtid: position},
+				}},
+				{Events: []*binlog.VEvent{{Type: binlog.VEventType_COMMIT}}},
+			}}
+			watcher := testWatcher(t, server, rules)
+			var delivered []string
+			var token []byte
+			failure := errors.New("apply failed")
+			err := watcher.Watch(t.Context(), nil, func(event Event) error {
+				if event.Change == nil {
+					require.Equal(t, []string{"record_a", "record_b"}, delivered)
+					token = event.ResumeToken
+					return nil
+				}
+				require.Empty(t, event.ResumeToken)
+				for _, row := range event.Change.GetRowEvent().GetRowChanges() {
+					id := string(row.After.Values)
+					if fail && id == "record_b" {
+						return failure
+					}
+					delivered = append(delivered, id)
+				}
+				return nil
+			})
+			if fail {
+				require.ErrorIs(t, err, failure)
+				require.Equal(t, []string{"record_a"}, delivered)
+				require.Empty(t, token)
+			} else {
+				require.ErrorIs(t, err, io.EOF)
+				require.NotEmpty(t, token)
+			}
+		})
+	}
+}
+
+func TestWatch_CoalescesOnlyCommittedCheckpoints(t *testing.T) {
+	rules := []Rule{{Table: "records", Query: "select id from records"}}
+	position := func(gtid string) *binlog.VGtid {
+		return &binlog.VGtid{ShardGtids: []*binlog.ShardGtid{{Keyspace: "unkey", Shard: "0", Gtid: gtid}}}
+	}
+	server := &scriptedServer{responses: []*vtgate.VStreamResponse{{Events: []*binlog.VEvent{
+		{Type: binlog.VEventType_VGTID, Vgtid: position("first")},
+		{Type: binlog.VEventType_COMMIT},
+		{Type: binlog.VEventType_VGTID, Vgtid: position("idle")},
+		{Type: binlog.VEventType_COMMIT},
+		{Type: binlog.VEventType_ROW, RowEvent: &binlog.RowEvent{RowChanges: []*binlog.RowChange{{After: &query.Row{Lengths: []int64{8}, Values: []byte("record_a")}}}}},
+		{Type: binlog.VEventType_VGTID, Vgtid: position("pending")},
+		{Type: binlog.VEventType_HEARTBEAT},
+		{Type: binlog.VEventType_COMMIT},
+	}}}}
+	watcher := testWatcher(t, server, rules)
+	controlled := clock.NewTestClock()
+	watcher.clock = controlled
+	var checkpoints [][]byte
+	err := watcher.Watch(t.Context(), nil, func(event Event) error {
+		if event.Change == nil {
+			checkpoints = append(checkpoints, event.ResumeToken)
+			return nil
+		}
+		require.Empty(t, event.ResumeToken)
+		require.Len(t, checkpoints, 1, "unrelated commits must be coalesced")
+		controlled.Tick(31 * time.Second)
+		return nil
+	})
+	require.ErrorIs(t, err, io.EOF)
+	require.Len(t, checkpoints, 3)
+	for i, want := range []string{"first", "idle", "pending"} {
+		resumed := &scriptedServer{requests: make(chan *vtgate.VStreamRequest, 1)}
+		err := testWatcher(t, resumed, rules).Watch(t.Context(), checkpoints[i], func(Event) error { return errors.New("unexpected event") })
+		require.ErrorIs(t, err, io.EOF)
+		request := <-resumed.requests
+		require.Equal(t, want, request.Vgtid.ShardGtids[0].Gtid, "resume must use only committed progress")
+	}
+}
+
+func TestWatch_HeartbeatDoesNotCommitPendingPosition(t *testing.T) {
+	rules := []Rule{{Table: "records", Query: "select id from records"}}
+	watcher := testWatcher(t, &scriptedServer{responses: []*vtgate.VStreamResponse{
+		{Events: []*binlog.VEvent{{Type: binlog.VEventType_VGTID, Vgtid: &binlog.VGtid{ShardGtids: []*binlog.ShardGtid{{Keyspace: "unkey", Shard: "0", Gtid: "uncommitted"}}}}}},
+		{Events: []*binlog.VEvent{{Type: binlog.VEventType_HEARTBEAT}}},
+	}}, rules)
+	err := watcher.Watch(t.Context(), nil, func(Event) error { return errors.New("event before commit") })
+	require.ErrorIs(t, err, io.EOF)
+}
+
+func TestWatch_StopsStalledUpstream(t *testing.T) {
+	rules := []Rule{{Table: "records", Query: "select id from records"}}
+	watcher := testWatcher(t, &scriptedServer{wait: true}, rules)
+	controlled := &observedClock{TestClock: clock.NewTestClock(), started: make(chan struct{}, 1)}
+	watcher.clock = controlled
+	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
+	t.Cleanup(cancel)
+	done := make(chan error, 1)
+	go func() {
+		done <- watcher.Watch(ctx, nil, func(Event) error { return errors.New("unexpected event") })
+	}()
+	select {
+	case <-controlled.started:
+	case <-ctx.Done():
+		t.Fatal("upstream wait did not start its timeout")
+	}
+	controlled.Tick(29 * time.Second)
+	select {
+	case err := <-done:
+		t.Fatalf("stream stopped before timeout: %v", err)
+	default:
+	}
+	controlled.Tick(time.Second)
+	select {
+	case err := <-done:
+		require.Equal(t, codes.Unavailable, status.Code(err))
+		require.Contains(t, err.Error(), "VStream stalled")
+	case <-ctx.Done():
+		t.Fatal("stalled stream was not stopped")
+	}
+}
+
+type observedClock struct {
+	*clock.TestClock
+	started chan struct{}
+}
+
+func (c *observedClock) NewTicker(d time.Duration) clock.Ticker {
+	ticker := c.TestClock.NewTicker(d)
+	c.started <- struct{}{}
+	return ticker
+}
+
+type scriptedServer struct {
+	vtgateservice.UnimplementedVitessServer
+	responses []*vtgate.VStreamResponse
+	err       error
+	wait      bool
+	requests  chan *vtgate.VStreamRequest
+}
+
+func (s *scriptedServer) VStream(request *vtgate.VStreamRequest, stream vtgateservice.Vitess_VStreamServer) error {
+	if s.requests != nil {
+		s.requests <- request
+	}
+	for _, response := range s.responses {
+		if err := stream.Send(response); err != nil {
+			return err
+		}
+	}
+	if s.wait {
+		<-stream.Context().Done()
+		return stream.Context().Err()
+	}
+	return s.err
+}
+
+// testWatcher creates a watcher against a local Vitess protocol server.
+func testWatcher(t *testing.T, implementation vtgateservice.VitessServer, rules []Rule) *Watcher {
+	t.Helper()
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	require.NoError(t, err)
+	server := grpc.NewServer()
+	vtgateservice.RegisterVitessServer(server, implementation)
+	finished := make(chan error, 1)
+	go func() { finished <- server.Serve(listener) }()
+	t.Cleanup(func() { server.Stop(); require.NoError(t, <-finished) })
+	watcher, err := New(Config{Address: listener.Addr().String(), Keyspace: "unkey", Insecure: true, Rules: rules})
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, watcher.Close()) })
+	return watcher
+}
+
+func TestWatch_OnlyExpiredBinlogsRequireSnapshot(t *testing.T) {
+	rules := []Rule{{Table: "records", Query: "select id from records"}}
+	for _, test := range []struct {
+		message string
+		expired bool
+	}{
+		{"Cannot replicate because the source purged required binary logs (errno 1236) (sqlstate HY000)", true},
+		{"Could not find first log file name in binary log index file (errno 1236) (sqlstate HY000)", true},
+		{"source has purged required GTIDs (errno 1789) (sqlstate HY000)", true},
+		{"connection interrupted", false},
+	} {
+		t.Run(test.message, func(t *testing.T) {
+			watcher := testWatcher(t, &scriptedServer{err: status.Error(codes.Unknown, test.message)}, rules)
+			token := []byte(`{"rules":[{"table":"records","query":"select id from records"}],"position":{"shardGtids":[{"keyspace":"unkey","shard":"0","gtid":"position-7"}]}}`)
+			err := watcher.Watch(t.Context(), token, func(Event) error { return errors.New("unexpected event") })
+			require.Error(t, err)
+			require.Equal(t, test.expired, errors.Is(err, ErrExpired))
+		})
+	}
+}
+
+func TestWatch_RejectsForeignSnapshotTable(t *testing.T) {
+	rules := []Rule{{Table: "records", Query: "select id from records"}}
+	watcher := testWatcher(t, &scriptedServer{}, rules)
+	token := []byte(`{"rules":[{"table":"records","query":"select id from records"}],"position":{"shardGtids":[{"keyspace":"unkey","shard":"0","gtid":"position-7","tablePKs":[{"tableName":"workspaces"}]}]}}`)
+	err := watcher.Watch(t.Context(), token, func(Event) error { return errors.New("unexpected event") })
+	require.ErrorIs(t, err, ErrInvalidToken)
+}
+
+func TestWatch_TokensBindToAllRules(t *testing.T) {
+	rules := []Rule{{Table: "records", Query: "select id from records"}, {Table: "settings", Query: "select name from settings where enabled = 1"}}
+	watcher := testWatcher(t, &scriptedServer{responses: []*vtgate.VStreamResponse{{Events: []*binlog.VEvent{
+		{Type: binlog.VEventType_VGTID, Vgtid: &binlog.VGtid{ShardGtids: []*binlog.ShardGtid{{Keyspace: "unkey", Shard: "0", Gtid: "position-7"}}}},
+		{Type: binlog.VEventType_COMMIT},
+	}}}}, rules)
+	var token []byte
+	err := watcher.Watch(t.Context(), nil, func(event Event) error {
+		require.Nil(t, event.Change)
+		token = event.ResumeToken
+		return nil
+	})
+	require.ErrorIs(t, err, io.EOF)
+	require.NotEmpty(t, token)
+	for _, test := range []struct {
+		name  string
+		rules []Rule
+		want  error
+	}{
+		{name: "unchanged", rules: rules, want: io.EOF},
+		{name: "changed predicate", rules: []Rule{rules[0], {Table: "settings", Query: "select name from settings where enabled = 0"}}, want: ErrInvalidToken},
+		{name: "removed table", rules: rules[:1], want: ErrInvalidToken},
+		{name: "changed table", rules: []Rule{rules[0], {Table: "other_settings", Query: rules[1].Query}}, want: ErrInvalidToken},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			watcher := testWatcher(t, &scriptedServer{}, test.rules)
+			err := watcher.Watch(t.Context(), token, func(event Event) error {
+				require.Nil(t, event.Change)
+				return nil
+			})
+			require.ErrorIs(t, err, test.want)
+		})
+	}
+}

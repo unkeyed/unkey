@@ -23,8 +23,8 @@ export const OutcomesFilter = ({ onDrawerClose }: OutcomesFilterProps) => {
       checkPath="outcome"
       renderOptionContent={(checkbox) => (
         <>
-          <div className={`size-2 ${checkbox.color} rounded-[2px]`} />
-          <span className="text-accent-12 text-xs">{checkbox.label}</span>
+          <div className={`size-2 ${checkbox.color} rounded-xs`} />
+          <span className="text-gray-12 text-xs">{checkbox.label}</span>
         </>
       )}
       createFilterValue={(option) => ({

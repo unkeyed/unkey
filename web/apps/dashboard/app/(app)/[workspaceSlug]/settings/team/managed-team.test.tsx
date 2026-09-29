@@ -105,7 +105,7 @@ describe("ManagedTeam", () => {
   it("renders WorkOS user management with the AuthKit token getter", async () => {
     render(<ManagedTeam team />);
 
-    expect(screen.getByRole("heading", { name: "Members" })).toBeTruthy();
+    expect(screen.getByRole("region", { name: "Members" })).toBeTruthy();
     expect(screen.getByTestId("managed-users-widget")).toBeTruthy();
     expect(await mocks.widgetTokenGetter?.()).toBe("access_token");
     expect(mocks.logManagedAuthOutcome).toHaveBeenCalledWith("widget_token", "success");

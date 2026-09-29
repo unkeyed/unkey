@@ -156,8 +156,8 @@ const CustomDomainSettings: React.FC<CustomDomainSettingsProps> = ({
     >
       <SettingField>
         <div className="flex items-center gap-3">
-          <span className="text-[13px] text-gray-11 w-35">Environment</span>
-          <span className="flex-1 text-[13px] text-gray-11">Domain</span>
+          <span className="text-sm text-gray-11 w-35">Environment</span>
+          <span className="flex-1 text-sm text-gray-11">Domain</span>
         </div>
         <div className="flex items-start gap-3">
           <Controller
@@ -194,7 +194,7 @@ const CustomDomainSettings: React.FC<CustomDomainSettingsProps> = ({
       </SettingField>
       <WideContent>
         {customDomains.length > 0 && (
-          <div className="border border-gray-4 rounded-lg overflow-hidden mt-1 dark:bg-black bg-white">
+          <div className="border rounded-lg overflow-hidden mt-1 bg-raised">
             {customDomains.map((d) => (
               <CustomDomainRow
                 key={d.id}

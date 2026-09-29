@@ -7,7 +7,6 @@ import {
   renderRatelimitLogsSkeletonRow,
   useRatelimitLogsQuery,
 } from "@/components/ratelimit-logs-table";
-import { cn } from "@/lib/utils";
 import type { RowSelectionState } from "@tanstack/react-table";
 import { IconBookBookmarkOutline18, IconLayers3Outline18 } from "@unkey/icons";
 import {
@@ -21,6 +20,7 @@ import {
   EmptyStateTitle,
   PaginationFooter,
 } from "@unkey/ui";
+import { cn } from "cn";
 import { useCallback, useMemo } from "react";
 import { useRatelimitLogsContext } from "../../context/logs";
 

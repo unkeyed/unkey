@@ -97,7 +97,7 @@ export function DeploymentsCardList() {
                 {app?.sourceType === "oci"
                   ? "Deploy the configured image or enter another image reference to get started."
                   : "Push to your connected repository or trigger a manual deployment to get started."}{" "}
-                Cancelled, superseded and stopped deployments are hidden by default.
+                Cancelled, skipped, superseded, and stopped deployments are hidden by default.
               </EmptyStateDescription>
             </EmptyStateHeader>
             <EmptyStateActions>

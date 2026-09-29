@@ -86,7 +86,7 @@ type ListAllDeploymentTopologiesByRegionRow struct {
 	DeploymentPort                          int32                           `db:"deployment_port"`
 	DeploymentShutdownSignal                DeploymentsShutdownSignal       `db:"deployment_shutdown_signal"`
 	DeploymentHealthcheck                   mysqltype.NullHealthcheck       `db:"deployment_healthcheck"`
-	K8sNamespace                            sql.NullString                  `db:"k8s_namespace"`
+	K8sNamespace                            string                          `db:"k8s_namespace"`
 	EnvironmentSlug                         string                          `db:"environment_slug"`
 	RegionName                              string                          `db:"region_name"`
 	GitRepo                                 sql.NullString                  `db:"git_repo"`

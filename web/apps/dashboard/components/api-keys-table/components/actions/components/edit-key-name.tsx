@@ -3,7 +3,7 @@ import type { ActionComponentProps } from "@/components/logs/table-action.popove
 import { usePersistedForm } from "@/hooks/use-persisted-form";
 import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Button, DialogContainer, FormInput } from "@unkey/ui";
+import { Button, DialogContainer, FormInput, Separator } from "@unkey/ui";
 import { useEffect } from "react";
 import type { Resolver } from "react-hook-form";
 import { FormProvider } from "react-hook-form";
@@ -115,9 +115,7 @@ export const EditKeyName = ({ keyDetails, isOpen, onClose }: EditKeyNameProps) =
           }
         >
           <KeyInfo keyDetails={keyDetails} />
-          <div className="py-1 my-2">
-            <div className="h-px bg-grayA-3 w-full" />
-          </div>
+          <Separator className="my-3" />
           <div>
             <FormInput
               className="[&_input:first-of-type]:h-9"

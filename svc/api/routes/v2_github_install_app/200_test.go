@@ -81,3 +81,27 @@ func TestInstallGithubSuccessfully(t *testing.T) {
 	require.NotContains(t, state, "returnTo")
 	require.NotContains(t, state, "userId")
 }
+
+// TestInstallGithubWithURNPermission guarantees that a URN-only root key
+// can start an installation for its authenticated workspace.
+func TestInstallGithubWithURNPermission(t *testing.T) {
+	h := testutil.NewHarness(t)
+
+	route := newRoute(h)
+	h.Register(route)
+
+	workspace := h.Resources().UserWorkspace
+	rootKey := h.CreateRootKey(
+		workspace.ID,
+		fmt.Sprintf("unkey:v1:%s:github/apps/*#write", workspace.ID),
+	)
+	headers := http.Header{
+		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+	}
+
+	res := callInstall(h, route, headers)
+	require.Equal(t, http.StatusOK, res.Status, res.RawBody)
+
+	state := stateFrom(t, res.Body.Data.Url)
+	require.Equal(t, workspace.ID, state["workspaceId"])
+}

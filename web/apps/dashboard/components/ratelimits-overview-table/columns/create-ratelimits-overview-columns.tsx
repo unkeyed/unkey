@@ -2,10 +2,10 @@
 
 import { LogsTableAction } from "@/app/(app)/[workspaceSlug]/ratelimits/[namespaceId]/_overview/components/table/components/logs-actions";
 import { formatNumber } from "@/lib/fmt";
-import { cn } from "@/lib/utils";
 import type { RatelimitOverviewLog } from "@unkey/clickhouse/src/ratelimits";
 import { IconBanOutline12 } from "@unkey/icons";
 import { Badge, type DataTableColumnDef, SortableHeader, TimestampInfo } from "@unkey/ui";
+import { cn } from "cn";
 import { IdentifierColumn } from "../components/identifier-column";
 import { InlineFilter } from "../components/inline-filter";
 import { STATUS_STYLES, getStatusStyle } from "../utils/get-row-class";

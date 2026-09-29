@@ -3,7 +3,6 @@
 import { routes } from "@/lib/navigation/routes";
 import {
   IconBanOutline18,
-  IconChartActivityOutline18,
   IconCloudUploadOutline18,
   IconEarthOutline18,
   IconHammer2Outline18,
@@ -40,12 +39,6 @@ export function DeploymentSkipped() {
           status="skipped"
         />
         <DeploymentStep
-          icon={<IconChartActivityOutline18 />}
-          title="Deployment Starting"
-          description="Skipped"
-          status="skipped"
-        />
-        <DeploymentStep
           icon={<IconHammer2Outline18 />}
           title="Building Image"
           description="Skipped"
@@ -71,7 +64,7 @@ export function DeploymentSkipped() {
         />
       </SettingCardGroup>
 
-      <div className="border border-grayA-4 bg-grayA-2 rounded-lg p-4 flex items-center justify-between">
+      <div className="border bg-grayA-2 rounded-lg p-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="flex flex-col gap-0.5">
             <span className="text-sm font-medium text-gray-12">Deployment skipped</span>

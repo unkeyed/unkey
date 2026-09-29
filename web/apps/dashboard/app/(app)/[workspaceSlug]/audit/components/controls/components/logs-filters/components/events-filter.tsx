@@ -22,7 +22,7 @@ export const EventsFilter = () => {
       filterField="events"
       checkPath="display"
       renderOptionContent={(checkbox) => (
-        <div className="text-accent-12 text-xs">{checkbox.display}</div>
+        <div className="text-gray-12 text-xs">{checkbox.display}</div>
       )}
       createFilterValue={(option) => ({
         value: option.display,

@@ -270,11 +270,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	preview := false
-	if req.Preview != nil {
-		preview = *req.Preview
-	}
-
 	// Optional, and an empty string is treated as absent: a portal with no
 	// return URL simply shows no return link.
 	returnURL := sql.NullString{Valid: false, String: ""}
@@ -296,7 +291,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		Scopes:      verbs,
 		KeyspaceIDs: keyspaceIDs,
 		ScopesJSON:  scopesJSON,
-		Preview:     preview,
 		ReturnURL:   returnURL,
 	})
 	if err != nil {
@@ -327,7 +321,6 @@ type mintRequest struct {
 	Scopes      []string
 	KeyspaceIDs []string
 	ScopesJSON  []byte
-	Preview     bool
 	ReturnURL   sql.NullString
 }
 
@@ -386,7 +379,6 @@ func (h *Handler) mintSession(
 			PortalID:              req.Portal.ID,
 			ExternalID:            req.ExternalID,
 			Scopes:                req.ScopesJSON,
-			Preview:               req.Preview,
 			ExchangeCodeHash:      hash.Sha256(exchangeCode),
 			ExchangeCodeExpiresAt: exchangeCodeExpiresAt,
 			ReturnUrl:             req.ReturnURL,

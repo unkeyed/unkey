@@ -112,10 +112,10 @@ export function DeploymentIdFilter<T extends DeploymentFilter>({
               <Checkbox
                 id="deployment-all"
                 checked={allChecked}
-                className="size-4 rounded-sm border-gray-4 [&_svg]:size-3"
+                className="size-4 rounded-sm [&_svg]:size-3"
                 onCheckedChange={handleSelectAll}
               />
-              <span className="text-xs text-accent-12">
+              <span className="text-xs text-gray-12">
                 {allChecked ? "Unselect All" : "Select All"}
               </span>
             </label>
@@ -129,25 +129,23 @@ export function DeploymentIdFilter<T extends DeploymentFilter>({
                 <Checkbox
                   id={`deployment-${row.id}`}
                   checked={checkedIds.has(row.id)}
-                  className="size-4 rounded-sm border-gray-4 [&_svg]:size-3"
+                  className="size-4 rounded-sm [&_svg]:size-3"
                   onCheckedChange={() => toggle(row.id)}
                 />
                 {row.gitBranch && (
-                  <span className="text-accent-12 text-xs font-medium truncate">
-                    {row.gitBranch}
-                  </span>
+                  <span className="text-gray-12 text-xs font-medium truncate">{row.gitBranch}</span>
                 )}
-                <span className="text-accent-9 text-xs font-mono truncate">{row.id}</span>
+                <span className="text-gray-9 text-xs font-mono truncate">{row.id}</span>
               </label>
             ))}
           </>
         ) : (
-          <span className="text-accent-9 text-xs py-1">No deployments found</span>
+          <span className="text-gray-9 text-xs py-1">No deployments found</span>
         )}
       </div>
 
       <div className="flex gap-[18px] items-center px-2 py-1">
-        <IconMagnifierOutline18 className="size-4 text-accent-9 shrink-0" />
+        <IconMagnifierOutline18 className="size-4 text-gray-9 shrink-0" />
         <input
           type="text"
           aria-label="Search deployments"
@@ -160,7 +158,7 @@ export function DeploymentIdFilter<T extends DeploymentFilter>({
             }
           }}
           placeholder="Search deployments"
-          className="text-accent-12 text-xs bg-transparent border-b border-gray-6 outline-none flex-1 font-mono placeholder:text-accent-9/40 focus:border-accent-9"
+          className="text-gray-12 text-xs bg-transparent border-b outline-none flex-1 font-mono placeholder:text-gray-9/40 focus:border-gray-9"
         />
       </div>
 
@@ -171,7 +169,7 @@ export function DeploymentIdFilter<T extends DeploymentFilter>({
       <Button
         variant="primary"
         disabled={!hasChanges}
-        className="mt-2 w-full h-9 rounded-md focus:ring-4 focus:ring-accent-9 focus:ring-offset-2"
+        className="mt-2 w-full h-9 rounded-md focus:ring-4 focus:ring-gray-9 focus:ring-offset-2"
         onClick={handleApply}
       >
         Apply Filter

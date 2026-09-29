@@ -14,7 +14,6 @@ export type SessionData = {
   portalId: string;
   externalId: string;
   scopes: string[];
-  preview: boolean;
   expiresAt: number;
   /**
    * Where to send the user when they leave, or when the session expires
@@ -153,7 +152,6 @@ export const getSessionWithConfig = createServerFn({ method: "GET" }).handler(
         portalId: true,
         externalId: true,
         scopes: true,
-        preview: true,
         accessTokenExpiresAt: true,
         revokedAt: true,
         returnUrl: true,
@@ -207,7 +205,6 @@ export const getSessionWithConfig = createServerFn({ method: "GET" }).handler(
         portalId: session.portalId,
         externalId: session.externalId,
         scopes: readScopes(session.scopes),
-        preview: session.preview,
         expiresAt: session.accessTokenExpiresAt,
         returnUrl: session.returnUrl,
       },

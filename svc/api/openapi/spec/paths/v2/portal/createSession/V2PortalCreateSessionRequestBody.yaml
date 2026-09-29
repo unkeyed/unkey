@@ -37,11 +37,6 @@ properties:
       Each scope requires the equivalent permission on your own root key. See
       Required Permissions on this operation.
     example: ["keys:read", "keys:reroll"]
-  preview:
-    type: boolean
-    default: false
-    description: |
-      When true, creates a preview session for testing the portal experience.
   returnUrl:
     type: string
     format: uri

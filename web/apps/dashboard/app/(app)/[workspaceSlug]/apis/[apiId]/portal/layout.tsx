@@ -11,11 +11,11 @@ export default async function ApiPortalLayout({
   params,
 }: {
   children: ReactNode;
-  params: Promise<{ workspaceSlug: string; apiId: string }>;
+  params: Promise<{ workspaceSlug: string; apiId: string; projectId?: string }>;
 }) {
   if (!(await portalManagement())) {
-    const { workspaceSlug, apiId } = await params;
-    redirect(routes.apis.detail({ workspaceSlug, apiId }));
+    const { workspaceSlug, apiId, projectId } = await params;
+    redirect(routes.apis.detail({ workspaceSlug, apiId, projectId }));
   }
   return children;
 }

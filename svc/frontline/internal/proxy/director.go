@@ -39,7 +39,11 @@ func (s *service) makeInstanceDirector(sess *zen.Session, startTime time.Time) f
 			req.Header.Set("X-Forwarded-For", loc)
 		}
 		req.Header.Set("X-Forwarded-Host", sess.Request().Host)
-		req.Header.Set("X-Forwarded-Proto", "https")
+		scheme := "http"
+		if sess.Request().TLS != nil {
+			scheme = "https"
+		}
+		req.Header.Set("X-Forwarded-Proto", scheme)
 	}
 }
 

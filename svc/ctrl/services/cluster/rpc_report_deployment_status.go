@@ -248,7 +248,7 @@ func (s *Service) maybeNotifyInstancesReady(ctx context.Context, deployment db.D
 
 	healthyRegions := 0
 	for regionID, minReplicas := range regionMinReplicas {
-		if runningPerRegion[regionID] >= minReplicas {
+		if runningPerRegion[regionID] >= max(minReplicas, 1) {
 			healthyRegions++
 		}
 	}

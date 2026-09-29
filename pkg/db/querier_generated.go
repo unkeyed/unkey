@@ -596,6 +596,17 @@ type Querier interface {
 	//  WHERE key_id = ?
 	//    AND role_id = ?
 	FindKeyRoleByKeyAndRoleID(ctx context.Context, db DBTX, arg FindKeyRoleByKeyAndRoleIDParams) ([]KeysRole, error)
+	// FindKeySpaceAnalyticsOwnership resolves candidate keyspaces to their owning projects before analytics authorization.
+	// Rows remain available after soft deletion because historical analytics still reference them.
+	//
+	//  SELECT id, project_id
+	//  FROM key_auth
+	//  WHERE workspace_id = ?
+	//    AND (
+	//      id IN (/*SLICE:key_space_ids*/?)
+	//      OR project_id IN (/*SLICE:project_ids*/?)
+	//    )
+	FindKeySpaceAnalyticsOwnership(ctx context.Context, db DBTX, arg FindKeySpaceAnalyticsOwnershipParams) ([]FindKeySpaceAnalyticsOwnershipRow, error)
 	//FindKeySpaceByID
 	//
 	//  SELECT key_auth.pk, key_auth.id, key_auth.workspace_id, key_auth.project_id, key_auth.created_at_m, key_auth.updated_at_m, key_auth.deleted_at_m, key_auth.store_encrypted_keys, key_auth.default_prefix, key_auth.default_bytes, key_auth.size_approx, key_auth.size_last_updated_at FROM `key_auth` WHERE id = ?
@@ -1019,7 +1030,7 @@ type Querier interface {
 	// true at fill time. The caller derives session state from the row against the
 	// current clock instead.
 	//
-	//  SELECT pk, id, workspace_id, portal_id, external_id, scopes, preview, exchange_code_hash, exchange_code_expires_at, access_token_hash, access_token_created_at, access_token_expires_at, revoked_at, return_url, created_at FROM portal_sessions
+	//  SELECT pk, id, workspace_id, portal_id, external_id, scopes, exchange_code_hash, exchange_code_expires_at, access_token_hash, access_token_created_at, access_token_expires_at, revoked_at, return_url, created_at FROM portal_sessions
 	//  WHERE access_token_hash = ?
 	FindPortalSessionByAccessTokenHash(ctx context.Context, db DBTX, accessTokenHash sql.NullString) (PortalSession, error)
 	// Reads back the row a redemption just claimed, to build the response and the
@@ -1027,7 +1038,7 @@ type Querier interface {
 	// reported one affected row: the hash is UNIQUE, so this is the same row, and
 	// the caller already established it won the race.
 	//
-	//  SELECT pk, id, workspace_id, portal_id, external_id, scopes, preview, exchange_code_hash, exchange_code_expires_at, access_token_hash, access_token_created_at, access_token_expires_at, revoked_at, return_url, created_at FROM portal_sessions
+	//  SELECT pk, id, workspace_id, portal_id, external_id, scopes, exchange_code_hash, exchange_code_expires_at, access_token_hash, access_token_created_at, access_token_expires_at, revoked_at, return_url, created_at FROM portal_sessions
 	//  WHERE exchange_code_hash = ?
 	FindPortalSessionByExchangeCodeHash(ctx context.Context, db DBTX, exchangeCodeHash string) (PortalSession, error)
 	//FindProjectById
@@ -1841,13 +1852,11 @@ type Querier interface {
 	//      portal_id,
 	//      external_id,
 	//      scopes,
-	//      preview,
 	//      exchange_code_hash,
 	//      exchange_code_expires_at,
 	//      return_url,
 	//      created_at
 	//  ) VALUES (
-	//      ?,
 	//      ?,
 	//      ?,
 	//      ?,
@@ -1919,7 +1928,8 @@ type Querier interface {
 	//  ON DUPLICATE KEY UPDATE
 	//      `limit` = VALUES(`limit`),
 	//      duration = VALUES(duration),
-	//      updated_at_m = ?
+	//      updated_at_m = ?,
+	//      deleted_at_m = NULL
 	InsertRatelimitOverride(ctx context.Context, db DBTX, arg InsertRatelimitOverrideParams) error
 	//InsertRole
 	//
@@ -2520,6 +2530,14 @@ type Querier interface {
 	//  ORDER BY id ASC
 	//  LIMIT ?
 	ListProjectsByWorkspaceId(ctx context.Context, db DBTX, arg ListProjectsByWorkspaceIdParams) ([]ListProjectsByWorkspaceIdRow, error)
+	// Resolves URN analytics permissions to namespace IDs owned by one workspace.
+	// Soft-deleted namespaces remain present because their historical ClickHouse
+	// rows must stay queryable, and the unpaginated result prevents scope loss.
+	//
+	//  SELECT id, project_id
+	//  FROM ratelimit_namespaces
+	//  WHERE workspace_id = ?
+	ListRatelimitNamespaceOwnershipByWorkspace(ctx context.Context, db DBTX, workspaceID string) ([]ListRatelimitNamespaceOwnershipByWorkspaceRow, error)
 	//ListRatelimitOverridesByNamespaceID
 	//
 	//  SELECT ratelimit_overrides.pk, ratelimit_overrides.id, ratelimit_overrides.workspace_id, ratelimit_overrides.namespace_id, ratelimit_overrides.identifier, ratelimit_overrides.`limit`, ratelimit_overrides.duration, ratelimit_overrides.created_at_m, ratelimit_overrides.updated_at_m, ratelimit_overrides.deleted_at_m FROM ratelimit_overrides
@@ -2801,6 +2819,31 @@ type Querier interface {
 	//
 	//  UPDATE `keys` SET deleted_at_m = ? WHERE id = ?
 	SoftDeleteKeyByID(ctx context.Context, db DBTX, arg SoftDeleteKeyByIDParams) error
+	//SoftDeleteKeySpace
+	//
+	//  UPDATE key_auth
+	//  SET deleted_at_m = ?
+	//  WHERE id = ?
+	SoftDeleteKeySpace(ctx context.Context, db DBTX, arg SoftDeleteKeySpaceParams) error
+	// SoftDeleteKeysByKeySpaceID tombstones a bounded batch of live keys in one
+	// keyspace and returns the number of rows affected so the caller can loop
+	// until the keyspace is drained.
+	//
+	// LIMIT is required, not an optimization: PlanetScale rejects any single DML
+	// statement that would affect more than 100,000 rows, so an unbounded UPDATE
+	// fails outright on a large keyspace. Bounding each batch also keeps row locks
+	// short.
+	//
+	// deleted_at_m IS NULL both preserves the timestamp on keys deleted earlier
+	// and shrinks the candidate set every batch, so the caller's loop terminates.
+	// key_auth_id_deleted_at_idx makes this a range seek rather than a full scan.
+	//
+	//  UPDATE `keys`
+	//  SET deleted_at_m = ?
+	//  WHERE key_auth_id = ?
+	//    AND deleted_at_m IS NULL
+	//  LIMIT ?
+	SoftDeleteKeysByKeySpaceID(ctx context.Context, db DBTX, arg SoftDeleteKeysByKeySpaceIDParams) (int64, error)
 	//SoftDeleteRatelimitNamespace
 	//
 	//  UPDATE `ratelimit_namespaces`
@@ -3415,7 +3458,8 @@ type Querier interface {
 	//  )
 	//  ON DUPLICATE KEY UPDATE name = name
 	UpsertRegion(ctx context.Context, db DBTX, arg UpsertRegionParams) error
-	//UpsertWorkspace
+	// UpsertWorkspace seeds local workspaces while preserving fields that local tooling does not manage.
+	// New rows receive a caller-generated Kubernetes namespace; existing rows retain their namespace.
 	//
 	//  INSERT INTO workspaces (
 	//      id,
@@ -3424,9 +3468,10 @@ type Querier interface {
 	//      slug,
 	//      created_at_m,
 	//      beta_features,
+	//      k8s_namespace,
 	//      enabled,
 	//      delete_protection
-	//  ) VALUES (?, ?, ?, ?, ?, ?, true, false)
+	//  ) VALUES (?, ?, ?, ?, ?, ?, ?, true, false)
 	//  ON DUPLICATE KEY UPDATE
 	//      beta_features = VALUES(beta_features),
 	//      name = VALUES(name)

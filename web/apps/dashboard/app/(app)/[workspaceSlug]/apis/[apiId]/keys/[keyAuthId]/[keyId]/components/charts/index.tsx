@@ -1,8 +1,8 @@
+import { createOutcomeChartConfig } from "@/components/charts/chart-colors";
 import { OverviewBarChart } from "@/components/logs/overview-charts/overview-bar-chart";
 import { getTimeBufferForGranularity } from "@/lib/trpc/routers/utils/granularity";
 import { useFilters } from "../../hooks/use-filters";
 import { useFetchVerificationTimeseries } from "./bar-chart/hooks/use-fetch-timeseries";
-import { createOutcomeChartConfig } from "./bar-chart/utils";
 
 export const KeyDetailsLogsChart = ({
   keyspaceId,

@@ -83,7 +83,7 @@ export function DeploymentDuration({ status, createdAt, buildEndedAt }: Props) {
 
   return (
     <span className="flex items-center gap-1 text-xs font-mono text-gray-9">
-      {isBuildTicking(status, buildEndedAt) && <Loading size={14} className="text-accent-12" />}
+      {isBuildTicking(status, buildEndedAt) && <Loading size={14} className="text-gray-12" />}
       {duration}
     </span>
   );

@@ -3,7 +3,7 @@ import { Card, Skeleton } from "@unkey/ui";
 export default function SkeletonList() {
   return (
     <Card>
-      <div className="divide-y divide-border">
+      <div className="divide-y divide-grayA-4">
         <div className="flex items-center gap-4 px-5 py-4">
           <Skeleton className="size-8 shrink-0 rounded-full" />
           <div className="flex min-w-0 flex-1 flex-col gap-2">

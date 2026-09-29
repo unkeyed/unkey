@@ -3,8 +3,8 @@
 import { formatNumber } from "@/lib/fmt";
 import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
-import { cn } from "@/lib/utils";
 import { Button, DialogContainer, toast } from "@unkey/ui";
+import { cn } from "cn";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 
@@ -212,12 +212,10 @@ export const PlanSelectionModal = ({
             <label
               key={product.id}
               className={cn(
-                "border rounded-lg px-4 py-1 cursor-pointer transition-all hover:border-gray-6 bg-white dark:bg-black block",
+                "border rounded-lg px-4 py-1 cursor-pointer transition-all hover:border-strong bg-raised block",
                 selectedProductId === product.id
                   ? "border-info-7 bg-info-2 ring-1 ring-info-7"
-                  : currentProductId === product.id
-                    ? "border-gray-5 bg-gray-2"
-                    : "border-gray-4",
+                  : currentProductId === product.id && "bg-gray-2",
               )}
             >
               <input
@@ -234,9 +232,7 @@ export const PlanSelectionModal = ({
                     <div
                       className={cn(
                         "w-4 h-4 rounded-full border-2 flex items-center justify-center",
-                        selectedProductId === product.id
-                          ? "border-info-9 bg-info-9"
-                          : "border-gray-6",
+                        selectedProductId === product.id && "border-info-9 bg-info-9",
                       )}
                     >
                       {selectedProductId === product.id && (
@@ -245,14 +241,14 @@ export const PlanSelectionModal = ({
                     </div>
                     <div>
                       <div className="flex flex-row items-center gap-3">
-                        <h3 className="w-[120px] font-medium text-gray-12 text-[15px]">
+                        <h3 className="w-[120px] font-medium text-gray-12 text-base">
                           {product.name}
                         </h3>
-                        <p className="text-[12px] text-gray-11 text-center mt-[2px]">
+                        <p className="text-xs text-gray-11 text-center mt-[2px]">
                           {formatNumber(product.quotas.requestsPerMonth)} requests/month
                         </p>
                         {currentProductId === product.id && (
-                          <span className="text-[12px] bg-info-3 text-info-11 px-2 rounded-full mt-px">
+                          <span className="text-xs bg-info-3 text-info-11 px-2 rounded-full mt-px">
                             Current
                           </span>
                         )}
@@ -261,9 +257,9 @@ export const PlanSelectionModal = ({
                   </div>
                 </div>
                 <div className="text-right mt-[2px]">
-                  <div className="font-medium text-[15px] text-gray-12">
+                  <div className="font-medium text-base text-gray-12">
                     ${product.dollar}
-                    <span className="text-[12px] font-normal text-gray-11">/mo</span>
+                    <span className="text-xs font-normal text-gray-11">/mo</span>
                   </div>
                 </div>
               </div>
