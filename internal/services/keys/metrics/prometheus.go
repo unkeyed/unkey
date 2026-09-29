@@ -15,11 +15,12 @@ var (
 	// The type should be either "root_key" or "key"
 	// Use this counter to monitor API traffic patterns.
 	//
-	// Emission is owned by keys.Get via a deferred increment, so every caller
-	// gets the counter for free without remembering to flush. The trade-off is
-	// that statuses set later during KeyVerifier.Verify (FORBIDDEN,
-	// INSUFFICIENT_PERMISSIONS, RATE_LIMITED, USAGE_EXCEEDED) are recorded here
-	// as VALID; use the key_verifications ClickHouse stream for the final outcome.
+	// Every verification is recorded exactly once with its terminal status:
+	// keys.Get records the statuses it decides (NOT_FOUND, DISABLED, EXPIRED,
+	// WORKSPACE_DISABLED, WORKSPACE_NOT_FOUND), and KeyVerifier.Verify records
+	// the outcome of a key that passed Get, including the Verify-stage
+	// rejections (FORBIDDEN, INSUFFICIENT_PERMISSIONS, RATE_LIMITED,
+	// USAGE_EXCEEDED).
 	//
 	// Example usage:
 	//   metrics.KeyVerificationsTotal.WithLabelValues("root_key", "VALID").Inc()

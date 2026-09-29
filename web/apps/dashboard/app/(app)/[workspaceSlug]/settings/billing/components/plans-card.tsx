@@ -1,5 +1,6 @@
 "use client";
 
+import { currentApiProduct } from "@/lib/billing/api-plan";
 import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
 import type { Router } from "@/lib/trpc/routers";
@@ -16,7 +17,6 @@ import {
 } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import { AdminGate } from "./admin-gate";
-import { currentApiProduct } from "./api-plan";
 import { ApiPlanRow } from "./api-plan-row";
 import { ComputePlanRow } from "./compute-plan-row";
 import { PlanTableHeader } from "./plan-row";
@@ -30,7 +30,6 @@ type PlansCardProps = {
   products: BillingInfo["products"];
   subscription?: BillingInfo["subscription"];
   currentProductId?: BillingInfo["currentProductId"];
-  checkoutIntent: "compute" | "api" | null;
 };
 
 export function PlansCard({
@@ -40,7 +39,6 @@ export function PlansCard({
   products,
   subscription,
   currentProductId,
-  checkoutIntent,
 }: PlansCardProps) {
   const router = useRouter();
   const trpcUtils = trpc.useUtils();
@@ -123,24 +121,15 @@ export function PlansCard({
       <ItemSeparator />
       <PlanTableHeader />
       <ItemSeparator />
-      <ComputePlanRow
-        isAdmin={isAdmin}
-        hasPaymentMethod={hasPaymentMethod}
-        workspaceSlug={workspaceSlug}
-        emphasize={emphasize}
-        autoOpenPlanModal={checkoutIntent === "compute" && hasPaymentMethod}
-      />
+      <ComputePlanRow isAdmin={isAdmin} emphasize={emphasize} />
 
       <ItemSeparator />
       <ApiPlanRow
         isAdmin={isAdmin}
-        hasPaymentMethod={hasPaymentMethod}
-        workspaceSlug={workspaceSlug}
         emphasize={emphasize}
         products={products}
         subscription={subscription}
         currentProductId={currentProductId}
-        autoOpenPlanModal={checkoutIntent === "api" && hasPaymentMethod}
       />
     </ItemGroup>
   );

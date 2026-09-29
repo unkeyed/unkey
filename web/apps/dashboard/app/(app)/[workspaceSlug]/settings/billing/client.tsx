@@ -23,7 +23,7 @@ import { CancelPlan } from "./components/cancel-plan";
 import { ADMIN_ONLY_TOOLTIP } from "./components/constants";
 import { CurrentPlanCard } from "./components/current-plan-card";
 import { FreeTierAlert } from "./components/free-tier-alert";
-import { PlanSelectionModal } from "./components/plan-selection-modal";
+import { PlansScreen } from "./components/plans-screen";
 import { SubscriptionStatus } from "./components/subscription-status";
 import { Usage } from "./components/usage";
 
@@ -152,14 +152,7 @@ export const Client: React.FC = () => {
               </SettingCard>
             </SettingCardGroup>
 
-            <PlanSelectionModal
-              isOpen={showPlanModal}
-              onOpenChange={setShowPlanModal}
-              products={products}
-              currentProductId={currentProductId}
-              workspaceSlug={workspace.slug}
-              isChangingPlan={Boolean(subscription)}
-            />
+            <PlansScreen open={showPlanModal} onOpenChange={setShowPlanModal} reason="api-plan" />
           </div>
         ) : (
           <div className="w-full">

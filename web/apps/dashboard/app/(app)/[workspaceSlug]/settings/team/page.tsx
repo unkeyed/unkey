@@ -1,7 +1,14 @@
 import { getAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { env, workosAuthEnv } from "@/lib/env";
-import { PageBody, PageContainer, PageHeader, PageHeaderContent, PageHeaderTitle } from "@unkey/ui";
+import {
+  PageBody,
+  PageContainer,
+  PageHeader,
+  PageHeaderContent,
+  PageHeaderDescription,
+  PageHeaderTitle,
+} from "@unkey/ui";
 
 export const revalidate = 0;
 
@@ -40,6 +47,7 @@ export default async function SettingTeamPage() {
       <PageHeader>
         <PageHeaderContent>
           <PageHeaderTitle>Team</PageHeaderTitle>
+          <PageHeaderDescription>Manage workspace members and invitations.</PageHeaderDescription>
         </PageHeaderContent>
       </PageHeader>
       <PageBody>{teamContent}</PageBody>

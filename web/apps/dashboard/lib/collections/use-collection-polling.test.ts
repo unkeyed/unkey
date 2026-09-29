@@ -26,6 +26,20 @@ describe("useCollectionPolling", () => {
     expect(refetch).toHaveBeenCalledTimes(2);
   });
 
+  it("skips ticks while the tab is hidden and refetches when it is shown", () => {
+    const hidden = vi.spyOn(document, "hidden", "get").mockReturnValue(true);
+    const refetch = vi.fn();
+    renderHook(() => useCollectionPolling(refetch, { intervalMs: 5000, enabled: true }));
+
+    vi.advanceTimersByTime(20_000);
+    expect(refetch).not.toHaveBeenCalled();
+
+    hidden.mockReturnValue(false);
+    document.dispatchEvent(new Event("visibilitychange"));
+    expect(refetch).toHaveBeenCalledTimes(1);
+    hidden.mockRestore();
+  });
+
   it("stops polling when disabled", () => {
     const refetch = vi.fn();
     const { rerender } = renderHook(

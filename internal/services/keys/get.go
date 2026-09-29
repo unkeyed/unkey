@@ -10,7 +10,6 @@ import (
 
 	"github.com/unkeyed/unkey/internal/services/caches"
 	keysdb "github.com/unkeyed/unkey/internal/services/keys/db"
-	"github.com/unkeyed/unkey/internal/services/keys/metrics"
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/codes"
@@ -282,11 +281,13 @@ func (s *service) newKeyVerifier(sess *zen.Session, key keysdb.CachedKeyData, hi
 		if kv == nil {
 			return
 		}
-		keyType := "key"
-		if kv.isRootKey {
-			keyType = "root_key"
+		// A key that passed Get is not decided yet: KeyVerifier.Verify records
+		// its terminal status. newKeyVerifier records everything else, including
+		// every root key, which never runs through Verify.
+		if kv.Status == StatusValid && !kv.isRootKey {
+			return
 		}
-		metrics.KeyVerificationsTotal.WithLabelValues(keyType, string(kv.Status)).Inc()
+		kv.recordStatus(kv.Status)
 	}()
 
 	err = loadErr

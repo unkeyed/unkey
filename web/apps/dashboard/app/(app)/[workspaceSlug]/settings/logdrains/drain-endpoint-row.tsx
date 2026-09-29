@@ -15,8 +15,18 @@ const ENCODING_OPTIONS: Array<{
   value: DrainFormValues["format"];
   label: string;
 }> = [
-  { value: "json", label: "JSON" },
-  { value: "ndjson", label: "NDJSON" },
+  {
+    value: "json",
+    label: "JSON",
+  },
+  {
+    value: "ndjson",
+    label: "NDJSON",
+  },
+  {
+    value: "hec",
+    label: "HEC",
+  },
 ];
 
 export function DrainEndpointRow() {

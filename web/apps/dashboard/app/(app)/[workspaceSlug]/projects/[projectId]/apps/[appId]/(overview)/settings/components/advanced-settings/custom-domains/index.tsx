@@ -1,5 +1,6 @@
 "use client";
 
+import { PlansScreen } from "@/app/(app)/[workspaceSlug]/settings/billing/components/plans-screen";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { collection } from "@/lib/collections";
 import {
@@ -212,6 +213,7 @@ const CustomDomainSettings: React.FC<CustomDomainSettingsProps> = ({
 const LimitBanner = ({ message }: { message: string }) => {
   const workspace = useWorkspaceNavigation();
   const billingUpgrades = useBillingUIUpgrades();
+  const [plansOpen, setPlansOpen] = useState(false);
 
   return (
     <AlertBanner variant="error" className="mb-2">
@@ -228,22 +230,11 @@ const LimitBanner = ({ message }: { message: string }) => {
             View limits
           </Button>
         )}
-        <Button
-          variant="primary"
-          size="sm"
-          className="px-3"
-          render={
-            <Link
-              href={routes.settings.billing({
-                workspaceSlug: workspace.slug,
-                intent: "compute",
-              })}
-            />
-          }
-        >
+        <Button variant="primary" size="sm" className="px-3" onClick={() => setPlansOpen(true)}>
           Upgrade plan
         </Button>
       </AlertBannerActions>
+      <PlansScreen open={plansOpen} onOpenChange={setPlansOpen} reason="custom-domains" />
     </AlertBanner>
   );
 };
