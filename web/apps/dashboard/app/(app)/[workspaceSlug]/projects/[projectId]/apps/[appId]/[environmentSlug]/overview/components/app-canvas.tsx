@@ -12,6 +12,7 @@ import {
   TONE_TEXT,
   type Tone,
 } from "@/app/(app)/[workspaceSlug]/projects/_components/canvas/primitives";
+import { CanvasViewport } from "@/app/(app)/[workspaceSlug]/projects/_components/canvas/viewport";
 import { useOverviewWindow } from "@/app/(app)/[workspaceSlug]/projects/_components/canvas/window";
 import type { PolicyRow } from "@/lib/collections/deploy/policies";
 import type { Policy } from "@/lib/collections/deploy/policies.schema";
@@ -68,10 +69,13 @@ export function AppCanvas({ domains, emptyDomain, app }: AppCanvasProps) {
   const serviceCount = policies.length + keyAuthIds.length;
 
   return (
-    <div className="w-full overflow-x-auto overflow-y-hidden border-b border-border bg-gray-3/40 last:rounded-b-lg last:border-b-0">
-      <div className="flex w-full min-w-[980px] items-start px-5 py-5">
+    <div className="w-full border-b border-border bg-gray-3/40 last:rounded-b-lg last:border-b-0">
+      <CanvasViewport
+        label="App canvas"
+        className="flex w-full min-w-[980px] items-start px-5 py-5"
+      >
         <CanvasGroup
-          className="max-h-[320px]"
+          fit="content"
           icon={<IconEarthOutline18 />}
           label={`Domains · ${domains.length}`}
         >
@@ -82,14 +86,14 @@ export function AppCanvas({ domains, emptyDomain, app }: AppCanvasProps) {
 
         <CanvasConnector dashed={domains.length === 0} />
 
-        <CanvasGroup className="max-h-[320px]" icon={<IconCubeOutline18 />} label="App">
+        <CanvasGroup fit="content" icon={<IconCubeOutline18 />} label="App">
           {app}
         </CanvasGroup>
 
         <CanvasConnector dashed={serviceCount === 0} />
 
         <CanvasGroup
-          className="max-h-[320px]"
+          fit="content"
           icon={<IconGridOutline18 />}
           label={serviceCount > 0 ? `Services · ${serviceCount}` : "Services"}
         >
@@ -100,7 +104,7 @@ export function AppCanvas({ domains, emptyDomain, app }: AppCanvasProps) {
             </>
           )}
         </CanvasGroup>
-      </div>
+      </CanvasViewport>
     </div>
   );
 }

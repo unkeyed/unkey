@@ -10,21 +10,22 @@ export function CanvasGroup({
   icon,
   label,
   href,
+  fit = "scroll",
   className,
   children,
 }: {
   icon: ReactNode;
   label: string;
   href?: Route;
+  fit?: "scroll" | "content";
   className?: string;
   children: ReactNode;
 }) {
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const more = useMoreBelow(scrollRef);
   return (
     <div
       className={cn(
-        "flex max-h-full min-w-0 max-w-[340px] flex-1 flex-col gap-2 rounded-xl border border-grayA-3 bg-grayA-2 p-2.5",
+        "flex min-w-0 max-w-[340px] flex-1 flex-col gap-2 rounded-xl border border-grayA-3 bg-grayA-2 p-2.5",
+        fit === "scroll" && "max-h-full",
         className,
       )}
     >
@@ -39,16 +40,28 @@ export function CanvasGroup({
           </Link>
         )}
       </div>
-      <div
-        ref={scrollRef}
-        data-wire-scroll
-        className={cn(
-          "-mx-2.5 -my-1 flex min-h-0 flex-col gap-2 overflow-y-auto px-2.5 py-1 [scrollbar-color:transparent_transparent] [scrollbar-width:thin] hover:[scrollbar-color:var(--color-grayA-6)_transparent]",
-          more && "[mask-image:linear-gradient(to_bottom,black_calc(100%-56px),transparent)]",
-        )}
-      >
-        {children}
-      </div>
+      {fit === "scroll" ? (
+        <GroupScroll>{children}</GroupScroll>
+      ) : (
+        <div className="flex flex-col gap-2">{children}</div>
+      )}
+    </div>
+  );
+}
+
+function GroupScroll({ children }: { children: ReactNode }) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const more = useMoreBelow(scrollRef);
+  return (
+    <div
+      ref={scrollRef}
+      data-wire-scroll
+      className={cn(
+        "-mx-2.5 -my-1 flex min-h-0 flex-col gap-2 overflow-y-auto px-2.5 py-1 [scrollbar-color:transparent_transparent] [scrollbar-width:thin] hover:[scrollbar-color:var(--color-grayA-6)_transparent]",
+        more && "[mask-image:linear-gradient(to_bottom,black_calc(100%-56px),transparent)]",
+      )}
+    >
+      {children}
     </div>
   );
 }
