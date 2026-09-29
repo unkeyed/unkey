@@ -20,7 +20,7 @@
 // a workspace enrolled in private networking, without a stored app binding. A
 // workspace is enrolled while it has an app binding to another app. The name
 // resolves that deployment's ready replicas across regions, excluding other
-// versions of the app. Krane injects it as UNKEY_REPLICA_HOST, points the
+// versions of the app. Krane injects it as UNKEY_DEPLOYMENT_HOST, points the
 // deployment's Pods at undns, and grants unicast TCP and UDP connectivity
 // between those replicas. Pods of other workspaces keep cluster DNS. Binding
 // names can't reuse the caller app's slug or start with unkey.
