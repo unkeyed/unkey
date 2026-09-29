@@ -39,6 +39,7 @@ type MatchExpr struct {
 	//	*MatchExpr_Method
 	//	*MatchExpr_Header
 	//	*MatchExpr_QueryParam
+	//	*MatchExpr_RemoteIp
 	Expr          isMatchExpr_Expr `protobuf_oneof:"expr"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -117,6 +118,15 @@ func (x *MatchExpr) GetQueryParam() *QueryParamMatch {
 	return nil
 }
 
+func (x *MatchExpr) GetRemoteIp() *RemoteIpMatch {
+	if x != nil {
+		if x, ok := x.Expr.(*MatchExpr_RemoteIp); ok {
+			return x.RemoteIp
+		}
+	}
+	return nil
+}
+
 type isMatchExpr_Expr interface {
 	isMatchExpr_Expr()
 }
@@ -137,6 +147,10 @@ type MatchExpr_QueryParam struct {
 	QueryParam *QueryParamMatch `protobuf:"bytes,4,opt,name=query_param,json=queryParam,proto3,oneof"`
 }
 
+type MatchExpr_RemoteIp struct {
+	RemoteIp *RemoteIpMatch `protobuf:"bytes,5,opt,name=remote_ip,json=remoteIp,proto3,oneof"`
+}
+
 func (*MatchExpr_Path) isMatchExpr_Expr() {}
 
 func (*MatchExpr_Method) isMatchExpr_Expr() {}
@@ -144,6 +158,8 @@ func (*MatchExpr_Method) isMatchExpr_Expr() {}
 func (*MatchExpr_Header) isMatchExpr_Expr() {}
 
 func (*MatchExpr_QueryParam) isMatchExpr_Expr() {}
+
+func (*MatchExpr_RemoteIp) isMatchExpr_Expr() {}
 
 // StringMatch is the shared string matching primitive used by all leaf
 // matchers that compare against string values (paths, header values, query
@@ -575,17 +591,79 @@ func (*QueryParamMatch_Present) isQueryParamMatch_Match() {}
 
 func (*QueryParamMatch_Value) isQueryParamMatch_Match() {}
 
+// RemoteIpMatch tests the client IP against CIDR ranges. The client IP is the
+// TCP peer address, or the address carried in authenticated metadata when the
+// request was forwarded by another Frontline region.
+//
+// Set exactly one list. `in` matches when the IP is in at least one range,
+// `not_in` matches when the IP is in none of them. If both are set, `in` is
+// used. If neither is set, every request matches.
+// Entries are CIDRs such as "198.51.100.0/24" or "2001:db8::/32"; single
+// addresses use a full-length prefix such as "198.51.100.7/32".
+type RemoteIpMatch struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	In            []string               `protobuf:"bytes,1,rep,name=in,proto3" json:"in,omitempty"`
+	NotIn         []string               `protobuf:"bytes,2,rep,name=not_in,json=notIn,proto3" json:"not_in,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RemoteIpMatch) Reset() {
+	*x = RemoteIpMatch{}
+	mi := &file_frontline_policies_v1_match_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RemoteIpMatch) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RemoteIpMatch) ProtoMessage() {}
+
+func (x *RemoteIpMatch) ProtoReflect() protoreflect.Message {
+	mi := &file_frontline_policies_v1_match_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RemoteIpMatch.ProtoReflect.Descriptor instead.
+func (*RemoteIpMatch) Descriptor() ([]byte, []int) {
+	return file_frontline_policies_v1_match_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *RemoteIpMatch) GetIn() []string {
+	if x != nil {
+		return x.In
+	}
+	return nil
+}
+
+func (x *RemoteIpMatch) GetNotIn() []string {
+	if x != nil {
+		return x.NotIn
+	}
+	return nil
+}
+
 var File_frontline_policies_v1_match_proto protoreflect.FileDescriptor
 
 const file_frontline_policies_v1_match_proto_rawDesc = "" +
 	"\n" +
-	"!frontline/policies/v1/match.proto\x12\ffrontline.v1\"\xee\x01\n" +
+	"!frontline/policies/v1/match.proto\x12\ffrontline.v1\"\xaa\x02\n" +
 	"\tMatchExpr\x12-\n" +
 	"\x04path\x18\x01 \x01(\v2\x17.frontline.v1.PathMatchH\x00R\x04path\x123\n" +
 	"\x06method\x18\x02 \x01(\v2\x19.frontline.v1.MethodMatchH\x00R\x06method\x123\n" +
 	"\x06header\x18\x03 \x01(\v2\x19.frontline.v1.HeaderMatchH\x00R\x06header\x12@\n" +
 	"\vquery_param\x18\x04 \x01(\v2\x1d.frontline.v1.QueryParamMatchH\x00R\n" +
-	"queryParamB\x06\n" +
+	"queryParam\x12:\n" +
+	"\tremote_ip\x18\x05 \x01(\v2\x1b.frontline.v1.RemoteIpMatchH\x00R\bremoteIpB\x06\n" +
 	"\x04expr\"\x81\x01\n" +
 	"\vStringMatch\x12\x1f\n" +
 	"\vignore_case\x18\x01 \x01(\bR\n" +
@@ -607,7 +685,10 @@ const file_frontline_policies_v1_match_proto_rawDesc = "" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x1a\n" +
 	"\apresent\x18\x02 \x01(\bH\x00R\apresent\x121\n" +
 	"\x05value\x18\x03 \x01(\v2\x19.frontline.v1.StringMatchH\x00R\x05valueB\a\n" +
-	"\x05matchB\xac\x01\n" +
+	"\x05match\"6\n" +
+	"\rRemoteIpMatch\x12\x0e\n" +
+	"\x02in\x18\x01 \x03(\tR\x02in\x12\x15\n" +
+	"\x06not_in\x18\x02 \x03(\tR\x05notInB\xac\x01\n" +
 	"\x10com.frontline.v1B\n" +
 	"MatchProtoP\x01Z;github.com/unkeyed/unkey/gen/proto/frontline/v1;frontlinev1\xa2\x02\x03FXX\xaa\x02\fFrontline.V1\xca\x02\fFrontline\\V1\xe2\x02\x18Frontline\\V1\\GPBMetadata\xea\x02\rFrontline::V1b\x06proto3"
 
@@ -623,7 +704,7 @@ func file_frontline_policies_v1_match_proto_rawDescGZIP() []byte {
 	return file_frontline_policies_v1_match_proto_rawDescData
 }
 
-var file_frontline_policies_v1_match_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
+var file_frontline_policies_v1_match_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
 var file_frontline_policies_v1_match_proto_goTypes = []any{
 	(*MatchExpr)(nil),       // 0: frontline.v1.MatchExpr
 	(*StringMatch)(nil),     // 1: frontline.v1.StringMatch
@@ -631,20 +712,22 @@ var file_frontline_policies_v1_match_proto_goTypes = []any{
 	(*MethodMatch)(nil),     // 3: frontline.v1.MethodMatch
 	(*HeaderMatch)(nil),     // 4: frontline.v1.HeaderMatch
 	(*QueryParamMatch)(nil), // 5: frontline.v1.QueryParamMatch
+	(*RemoteIpMatch)(nil),   // 6: frontline.v1.RemoteIpMatch
 }
 var file_frontline_policies_v1_match_proto_depIdxs = []int32{
 	2, // 0: frontline.v1.MatchExpr.path:type_name -> frontline.v1.PathMatch
 	3, // 1: frontline.v1.MatchExpr.method:type_name -> frontline.v1.MethodMatch
 	4, // 2: frontline.v1.MatchExpr.header:type_name -> frontline.v1.HeaderMatch
 	5, // 3: frontline.v1.MatchExpr.query_param:type_name -> frontline.v1.QueryParamMatch
-	1, // 4: frontline.v1.PathMatch.path:type_name -> frontline.v1.StringMatch
-	1, // 5: frontline.v1.HeaderMatch.value:type_name -> frontline.v1.StringMatch
-	1, // 6: frontline.v1.QueryParamMatch.value:type_name -> frontline.v1.StringMatch
-	7, // [7:7] is the sub-list for method output_type
-	7, // [7:7] is the sub-list for method input_type
-	7, // [7:7] is the sub-list for extension type_name
-	7, // [7:7] is the sub-list for extension extendee
-	0, // [0:7] is the sub-list for field type_name
+	6, // 4: frontline.v1.MatchExpr.remote_ip:type_name -> frontline.v1.RemoteIpMatch
+	1, // 5: frontline.v1.PathMatch.path:type_name -> frontline.v1.StringMatch
+	1, // 6: frontline.v1.HeaderMatch.value:type_name -> frontline.v1.StringMatch
+	1, // 7: frontline.v1.QueryParamMatch.value:type_name -> frontline.v1.StringMatch
+	8, // [8:8] is the sub-list for method output_type
+	8, // [8:8] is the sub-list for method input_type
+	8, // [8:8] is the sub-list for extension type_name
+	8, // [8:8] is the sub-list for extension extendee
+	0, // [0:8] is the sub-list for field type_name
 }
 
 func init() { file_frontline_policies_v1_match_proto_init() }
@@ -657,6 +740,7 @@ func file_frontline_policies_v1_match_proto_init() {
 		(*MatchExpr_Method)(nil),
 		(*MatchExpr_Header)(nil),
 		(*MatchExpr_QueryParam)(nil),
+		(*MatchExpr_RemoteIp)(nil),
 	}
 	file_frontline_policies_v1_match_proto_msgTypes[1].OneofWrappers = []any{
 		(*StringMatch_Exact)(nil),
@@ -677,7 +761,7 @@ func file_frontline_policies_v1_match_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_frontline_policies_v1_match_proto_rawDesc), len(file_frontline_policies_v1_match_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   6,
+			NumMessages:   7,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

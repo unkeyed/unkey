@@ -10,7 +10,9 @@ import (
 	frontlinev1 "github.com/unkeyed/unkey/gen/proto/frontline/v1"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/fault"
+	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/zen"
+	firewallExec "github.com/unkeyed/unkey/svc/frontline/internal/policies/firewall"
 	"github.com/unkeyed/unkey/svc/frontline/internal/policies/principal"
 	"google.golang.org/protobuf/encoding/protojson"
 )
@@ -227,4 +229,52 @@ func TestPrincipal_Marshal_WireFormat(t *testing.T) {
 			}}
 		}`, s)
 	})
+}
+
+func TestEvaluate_FirewallDeniesOutsideRemoteIpRange(t *testing.T) {
+	t.Parallel()
+
+	policies := []*frontlinev1.Policy{{
+		Id:      uid.New(uid.PolicyPrefix),
+		Enabled: new(true),
+		Match: []*frontlinev1.MatchExpr{
+			{Expr: &frontlinev1.MatchExpr_Path{Path: &frontlinev1.PathMatch{
+				Path: &frontlinev1.StringMatch{Match: &frontlinev1.StringMatch_Prefix{Prefix: "/admin"}},
+			}}},
+			{Expr: &frontlinev1.MatchExpr_RemoteIp{RemoteIp: &frontlinev1.RemoteIpMatch{NotIn: []string{"198.51.100.0/24"}}}},
+		},
+		Config: &frontlinev1.Policy_Firewall{Firewall: &frontlinev1.Firewall{Action: frontlinev1.Action_ACTION_DENY}},
+	}}
+
+	for _, tt := range []struct {
+		name       string
+		remoteAddr string
+		path       string
+		denied     bool
+	}{
+		{name: "office on admin", remoteAddr: "198.51.100.10:4321", path: "/admin/users", denied: false},
+		{name: "outside on admin", remoteAddr: "203.0.113.7:4321", path: "/admin/users", denied: true},
+		{name: "outside on other path", remoteAddr: "203.0.113.7:4321", path: "/users", denied: false},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			req := httptest.NewRequest(http.MethodGet, tt.path, nil)
+			req.RemoteAddr = tt.remoteAddr
+			sess := &zen.Session{}
+			require.NoError(t, sess.Init(httptest.NewRecorder(), req, 0))
+			engine := &Engine{firewall: firewallExec.New(), regexCache: newRegexCache()}
+
+			_, err := engine.Evaluate(t.Context(), sess, req, "ws_admin", "app_admin", policies)
+			if !tt.denied {
+				require.NoError(t, err)
+				return
+			}
+
+			require.Error(t, err)
+			code, ok := fault.GetCode(err)
+			require.True(t, ok)
+			require.Equal(t, codes.Frontline.Firewall.Denied.URN(), code)
+		})
+	}
 }

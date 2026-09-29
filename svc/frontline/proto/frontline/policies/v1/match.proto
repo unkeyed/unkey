@@ -20,6 +20,7 @@ message MatchExpr {
     MethodMatch method = 2;
     HeaderMatch header = 3;
     QueryParamMatch query_param = 4;
+    RemoteIpMatch remote_ip = 5;
   }
 }
 
@@ -113,4 +114,18 @@ message QueryParamMatch {
     // Match against the parameter value(s) using a [StringMatch].
     StringMatch value = 3;
   }
+}
+
+// RemoteIpMatch tests the client IP against CIDR ranges. The client IP is the
+// TCP peer address, or the address carried in authenticated metadata when the
+// request was forwarded by another Frontline region.
+//
+// Set exactly one list. `in` matches when the IP is in at least one range,
+// `not_in` matches when the IP is in none of them. If both are set, `in` is
+// used. If neither is set, every request matches.
+// Entries are CIDRs such as "198.51.100.0/24" or "2001:db8::/32"; single
+// addresses use a full-length prefix such as "198.51.100.7/32".
+message RemoteIpMatch {
+  repeated string in = 1;
+  repeated string not_in = 2;
 }
