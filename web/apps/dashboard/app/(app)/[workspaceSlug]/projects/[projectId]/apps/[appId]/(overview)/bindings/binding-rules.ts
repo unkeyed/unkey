@@ -23,8 +23,8 @@ export type BindingTargets = {
 };
 export type ListedBinding = Binding & { name: string; targetAppName: string };
 
-export function isProduction(environment: Pick<Environment, "slug" | "kind">): boolean {
-  return environment.kind === "production" && environment.slug === "production";
+export function isProduction(environment: Pick<Environment, "kind">): boolean {
+  return environment.kind === "production";
 }
 
 export function ruleOf(binding: Binding): TargetRule | undefined {
@@ -51,7 +51,7 @@ export function describeTarget({
 }: {
   binding: Binding;
   targetName: string;
-  callerEnvironment: Pick<Environment, "slug" | "kind">;
+  callerEnvironment: Pick<Environment, "kind">;
   environments: Environment[];
   deployments: Deployment[];
 }): { text: string; unavailable: boolean } {
