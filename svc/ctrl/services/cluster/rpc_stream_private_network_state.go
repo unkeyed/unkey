@@ -5,7 +5,7 @@ import (
 
 	"connectrpc.com/connect"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
-	"github.com/unkeyed/unkey/pkg/privatenetwork"
+	"github.com/unkeyed/unkey/pkg/deploy/appbinding"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auth"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
@@ -98,7 +98,7 @@ func listPrivateNetworkReplicas(ctx context.Context, queries *db.Queries, platfo
 		}
 
 		for _, row := range rows {
-			if _, ok := privatenetwork.ReplicaHost(row.AppSlug); !ok {
+			if _, ok := appbinding.ReplicaHost(row.AppSlug); !ok {
 				continue
 			}
 			apps = append(apps, &ctrlv1.PrivateNetworkApp{
