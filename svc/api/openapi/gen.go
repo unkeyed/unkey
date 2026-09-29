@@ -6448,6 +6448,56 @@ type V2RootKeysCreateKeyResponseData struct {
 	KeyId string `json:"keyId"`
 }
 
+// V2RootKeysListKeysRequestBody defines model for V2RootKeysListKeysRequestBody.
+type V2RootKeysListKeysRequestBody struct {
+	// Cursor Opaque cursor from a previous response. Omit for the first page.
+	Cursor *string `json:"cursor,omitempty"`
+
+	// Limit Maximum number of readable root keys per page.
+	Limit *int `json:"limit,omitempty"`
+}
+
+// V2RootKeysListKeysResponseBody defines model for V2RootKeysListKeysResponseBody.
+type V2RootKeysListKeysResponseBody struct {
+	Data []V2RootKeysListKeysResponseData `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+
+	// Pagination Pagination metadata for list endpoints. Provides information necessary to traverse through large result sets efficiently using cursor-based pagination.
+	Pagination Pagination `json:"pagination"`
+}
+
+// V2RootKeysListKeysResponseData defines model for V2RootKeysListKeysResponseData.
+type V2RootKeysListKeysResponseData struct {
+	// CreatedAt Creation time in Unix milliseconds.
+	CreatedAt int64 `json:"createdAt"`
+
+	// Enabled Whether the key is administratively enabled. An enabled key can still be expired.
+	Enabled bool `json:"enabled"`
+
+	// End Stored trailing display fragment. Empty for keys without a recorded suffix.
+	End string `json:"end"`
+
+	// Expires Expiration time in Unix milliseconds, or null for no expiration.
+	Expires nullable.Nullable[int64] `json:"expires"`
+
+	// KeyId Stable root key identifier.
+	KeyId string `json:"keyId"`
+
+	// Name User-supplied name, or null when absent.
+	Name nullable.Nullable[string] `json:"name"`
+
+	// Permissions Sorted, deduplicated effective permission strings, including role-derived
+	// permissions for legacy keys. Legacy permissions are returned without
+	// translation to URNs. These strings are not expanded into accessible resources.
+	// Results containing legacy permissions cannot be passed unchanged to rootKeys.createKey.
+	Permissions []string `json:"permissions"`
+
+	// Start Stored display fragment, including the prefix when present.
+	Start string `json:"start"`
+}
+
 // V3DeploymentsCreateDeploymentRequestBody Create a deployment. Omit the source to use the app default, or provide one source override.
 type V3DeploymentsCreateDeploymentRequestBody struct {
 	// App Identifies a resource by either its unique ID or its slug.
@@ -6826,6 +6876,9 @@ type RatelimitSetOverrideJSONRequestBody = V2RatelimitSetOverrideRequestBody
 
 // RootKeysCreateKeyJSONRequestBody defines body for RootKeysCreateKey for application/json ContentType.
 type RootKeysCreateKeyJSONRequestBody = V2RootKeysCreateKeyRequestBody
+
+// RootKeysListKeysJSONRequestBody defines body for RootKeysListKeys for application/json ContentType.
+type RootKeysListKeysJSONRequestBody = V2RootKeysListKeysRequestBody
 
 // DeploymentsCreateDeploymentV3JSONRequestBody defines body for DeploymentsCreateDeploymentV3 for application/json ContentType.
 type DeploymentsCreateDeploymentV3JSONRequestBody = V3DeploymentsCreateDeploymentRequestBody

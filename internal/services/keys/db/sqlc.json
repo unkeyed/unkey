@@ -7,7 +7,7 @@
       "schema": [
         "../../../../pkg/mysql/schema/keys.sql",
         "../../../../pkg/mysql/schema/unkey_root_keys.sql",
-        "../../../../pkg/mysql/schema/unkey_permissions.sql",
+        "../../../../pkg/mysql/schema/unkey_principal_permissions.sql",
         "../../../../pkg/mysql/schema/apis.sql",
         "../../../../pkg/mysql/schema/key_auth.sql",
         "../../../../pkg/mysql/schema/workspaces.sql",

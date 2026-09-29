@@ -83,14 +83,14 @@ func TestRootKeyDelegatesCreationThroughBearerAuthentication(t *testing.T) {
 			require.NoError(t, err)
 			require.Equal(t, r.UserWorkspace.ID, child.ForWorkspaceID)
 			require.Equal(t, r.RootWorkspace.ID, child.WorkspaceID)
-			grants, err := db.Query.ListUnkeyPermissionsByPrincipal(t.Context(), h.DB.RO(), db.ListUnkeyPermissionsByPrincipalParams{ForWorkspaceID: r.UserWorkspace.ID, PrincipalType: "root_key", PrincipalID: child.ID})
+			grants, err := db.Query.ListUnkeyPermissionsByPrincipal(t.Context(), h.DB.RO(), db.ListUnkeyPermissionsByPrincipalParams{ForWorkspaceID: r.UserWorkspace.ID, PrincipalType: db.UnkeyPrincipalPermissionsPrincipalTypeRootKey, PrincipalID: child.ID})
 			require.NoError(t, err)
 			require.Equal(t, []string{permission}, grants)
 			grandchild := testutil.CallRoute[handler.Request, handler.Response](h, route, http.Header{
 				"Authorization": {"Bearer " + res.Body.Data.Key}, "Content-Type": {"application/json"},
 			}, handler.Request{Permissions: []string{permission}})
 			require.Equal(t, http.StatusOK, grandchild.Status, "%s", grandchild.RawBody)
-			grandchildGrants, err := db.Query.ListUnkeyPermissionsByPrincipal(t.Context(), h.DB.RO(), db.ListUnkeyPermissionsByPrincipalParams{ForWorkspaceID: r.UserWorkspace.ID, PrincipalType: "root_key", PrincipalID: grandchild.Body.Data.KeyId})
+			grandchildGrants, err := db.Query.ListUnkeyPermissionsByPrincipal(t.Context(), h.DB.RO(), db.ListUnkeyPermissionsByPrincipalParams{ForWorkspaceID: r.UserWorkspace.ID, PrincipalType: db.UnkeyPrincipalPermissionsPrincipalTypeRootKey, PrincipalID: grandchild.Body.Data.KeyId})
 			require.NoError(t, err)
 			require.ElementsMatch(t, []string{permission}, grandchildGrants)
 			logs := h.FindAuditLogsByTargetID(t.Context(), t, grandchild.Body.Data.KeyId)

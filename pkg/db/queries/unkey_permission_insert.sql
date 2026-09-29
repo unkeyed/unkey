@@ -1,7 +1,7 @@
 -- name: InsertUnkeyPermission :exec
 -- InsertUnkeyPermission assigns a permission directly to a principal in the
 -- workspace it authorizes. Duplicate permissions for that principal are rejected.
-INSERT INTO unkey_permissions (
+INSERT INTO unkey_principal_permissions (
     id,
     for_workspace_id,
     principal_type,

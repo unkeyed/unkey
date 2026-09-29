@@ -10,22 +10,22 @@ import (
 )
 
 const listUnkeyPermissionsByPrincipal = `-- name: ListUnkeyPermissionsByPrincipal :many
-SELECT slug FROM unkey_permissions
+SELECT slug FROM unkey_principal_permissions
 WHERE for_workspace_id = ?
   AND principal_type = ?
   AND principal_id = ?
 `
 
 type ListUnkeyPermissionsByPrincipalParams struct {
-	ForWorkspaceID string `db:"for_workspace_id"`
-	PrincipalType  string `db:"principal_type"`
-	PrincipalID    string `db:"principal_id"`
+	ForWorkspaceID string                                 `db:"for_workspace_id"`
+	PrincipalType  UnkeyPrincipalPermissionsPrincipalType `db:"principal_type"`
+	PrincipalID    string                                 `db:"principal_id"`
 }
 
 // ListUnkeyPermissionsByPrincipal loads permissions for exactly one principal
 // and authorized workspace. The same ID under another type or workspace is excluded.
 //
-//	SELECT slug FROM unkey_permissions
+//	SELECT slug FROM unkey_principal_permissions
 //	WHERE for_workspace_id = ?
 //	  AND principal_type = ?
 //	  AND principal_id = ?

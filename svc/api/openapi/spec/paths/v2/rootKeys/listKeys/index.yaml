@@ -1,0 +1,62 @@
+post:
+  tags:
+    - rootKeys
+  summary: List root keys
+  description: |
+    Lists readable root keys in the authenticated workspace, ordered by key ID.
+    Requires `unkey:v1:<workspace_id>:rootKeys/<key_id>#read` for each returned key.
+    Use `rootKeys/*#read` to read all root keys. Write permission does not imply read.
+    A caller with no readable keys receives an empty page.
+
+    Includes disabled and expired keys from both root-key storage tables.
+    Deleted keys are excluded. Secrets and hashes are never returned.
+    Pass the returned cursor when hasMore is true to retrieve the next page.
+  operationId: rootKeys.listKeys
+  x-speakeasy-name-override: listKeys
+  security:
+    - bearer: []
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ./V2RootKeysListKeysRequestBody.yaml
+  responses:
+    "200":
+      description: A page of readable root keys.
+      content:
+        application/json:
+          schema:
+            $ref: ./V2RootKeysListKeysResponseBody.yaml
+    "400":
+      description: Invalid request.
+      content:
+        application/json:
+          schema:
+            $ref: ../../../../error/BadRequestErrorResponse.yaml
+    "401":
+      description: Authentication is required.
+      content:
+        application/json:
+          schema:
+            $ref: ../../../../error/UnauthorizedErrorResponse.yaml
+    "429":
+      description: Too many requests.
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../../../../error/TooManyRequestsErrorResponse.yaml
+    "500":
+      description: The list could not be loaded.
+      content:
+        application/json:
+          schema:
+            $ref: ../../../../error/InternalServerErrorResponse.yaml
+  x-speakeasy-pagination:
+    type: cursor
+    inputs:
+      - name: cursor
+        in: requestBody
+        type: cursor
+    outputs:
+      nextCursor: "$.pagination.cursor"

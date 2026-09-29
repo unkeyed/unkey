@@ -51,7 +51,7 @@ SELECT
         (SELECT JSON_ARRAYAGG(slug)
         FROM (
             SELECT slug
-            FROM unkey_permissions p
+            FROM unkey_principal_permissions p
             WHERE p.for_workspace_id = k.for_workspace_id
                 AND p.principal_type = 'root_key'
                 AND p.principal_id = k.id
@@ -138,7 +138,7 @@ type FindRootKeyForAuthenticationRow struct {
 //	        (SELECT JSON_ARRAYAGG(slug)
 //	        FROM (
 //	            SELECT slug
-//	            FROM unkey_permissions p
+//	            FROM unkey_principal_permissions p
 //	            WHERE p.for_workspace_id = k.for_workspace_id
 //	                AND p.principal_type = 'root_key'
 //	                AND p.principal_id = k.id

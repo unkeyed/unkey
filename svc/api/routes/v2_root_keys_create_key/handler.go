@@ -118,7 +118,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			permissionRows = append(permissionRows, db.InsertUnkeyPermissionParams{
 				ID:             uid.New(uid.PermissionPrefix),
 				ForWorkspaceID: p.AuthorizedWorkspaceID,
-				PrincipalType:  "root_key",
+				PrincipalType:  db.UnkeyPrincipalPermissionsPrincipalTypeRootKey,
 				PrincipalID:    keyID,
 				Slug:           slug,
 				CreatedAt:      h.Clock.Now().UnixMilli(),

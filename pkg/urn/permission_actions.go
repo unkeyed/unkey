@@ -11,7 +11,7 @@ func (a PermissionAction) String() string {
 }
 
 const (
-	// PermissionRead authorizes reading a resource, except root keys.
+	// PermissionRead authorizes reading a resource.
 	PermissionRead PermissionAction = "read"
 	// PermissionWrite authorizes creating or updating a resource.
 	PermissionWrite PermissionAction = "write"
@@ -98,9 +98,9 @@ func newPermissionActionSet(actions ...PermissionAction) permissionActionSet {
 // permissionActions returns the read, write, and delete actions for GitHub apps.
 func (GitHubApp) permissionActions(bool) permissionActionSet { return readWriteDelete }
 
-// permissionActions returns write for root keys.
+// permissionActions returns read and write for root keys.
 func (rootKey) permissionActions(bool) permissionActionSet {
-	return newPermissionActionSet(PermissionWrite)
+	return newPermissionActionSet(PermissionRead, PermissionWrite)
 }
 
 // permissionActions adds descendant-only actions to project patterns.

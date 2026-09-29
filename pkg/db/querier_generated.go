@@ -1989,7 +1989,7 @@ type Querier interface {
 	// InsertUnkeyPermission assigns a permission directly to a principal in the
 	// workspace it authorizes. Duplicate permissions for that principal are rejected.
 	//
-	//  INSERT INTO unkey_permissions (
+	//  INSERT INTO unkey_principal_permissions (
 	//      id,
 	//      for_workspace_id,
 	//      principal_type,
@@ -2683,10 +2683,77 @@ type Querier interface {
 	//  WHERE kr.key_id = ?
 	//  ORDER BY r.name
 	ListRolesByKeyID(ctx context.Context, db DBTX, keyID string) ([]ListRolesByKeyIDRow, error)
+	// ListRootKeyPermissions loads effective permissions for an authorized page.
+	// Legacy role and direct assignments require a legacy root key in the target
+	// workspace. Callers deduplicate exact strings, not collation-equivalent strings.
+	//
+	//  SELECT
+	//      up.principal_id AS key_id,
+	//      up.slug
+	//  FROM unkey_principal_permissions up
+	//  WHERE up.for_workspace_id = ?
+	//      AND up.principal_type = 'root_key'
+	//      AND up.principal_id IN (/*SLICE:key_ids*/?)
+	//  UNION ALL
+	//  SELECT
+	//      k.id AS key_id,
+	//      p.slug
+	//  FROM `keys` k
+	//  JOIN keys_permissions kp ON kp.key_id = k.id
+	//  JOIN permissions p ON p.id = kp.permission_id
+	//  WHERE k.for_workspace_id = ?
+	//      AND k.deleted_at_m IS NULL
+	//      AND k.id IN (/*SLICE:key_ids*/?)
+	//  UNION ALL
+	//  SELECT
+	//      k.id AS key_id,
+	//      p.slug
+	//  FROM `keys` k
+	//  JOIN keys_roles kr ON kr.key_id = k.id
+	//  JOIN roles_permissions rp ON rp.role_id = kr.role_id
+	//  JOIN permissions p ON p.id = rp.permission_id
+	//  WHERE k.for_workspace_id = ?
+	//      AND k.deleted_at_m IS NULL
+	//      AND k.id IN (/*SLICE:key_ids*/?)
+	ListRootKeyPermissions(ctx context.Context, db DBTX, arg ListRootKeyPermissionsParams) ([]ListRootKeyPermissionsRow, error)
+	// ListRootKeys merges both root-key stores into one workspace-scoped ID stream.
+	// The cursor is inclusive: a cursor of key_b returns key_b before key_c.
+	// Disabled and expired keys remain visible; soft-deleted keys are excluded.
+	//
+	//  SELECT
+	//      id,
+	//      name,
+	//      prefix,
+	//      start,
+	//      end,
+	//      enabled,
+	//      expires,
+	//      created_at
+	//  FROM unkey_root_keys
+	//  WHERE unkey_root_keys.for_workspace_id = ?
+	//      AND unkey_root_keys.deleted_at IS NULL
+	//      AND unkey_root_keys.id >= ?
+	//  UNION ALL
+	//  SELECT
+	//      id,
+	//      name,
+	//      prefix,
+	//      start,
+	//      end,
+	//      enabled,
+	//      expires,
+	//      created_at_m AS created_at
+	//  FROM `keys`
+	//  WHERE `keys`.for_workspace_id = ?
+	//      AND `keys`.deleted_at_m IS NULL
+	//      AND `keys`.id >= ?
+	//  ORDER BY id ASC
+	//  LIMIT ?
+	ListRootKeys(ctx context.Context, db DBTX, arg ListRootKeysParams) ([]ListRootKeysRow, error)
 	// ListUnkeyPermissionsByPrincipal loads permissions for exactly one principal
 	// and authorized workspace. The same ID under another type or workspace is excluded.
 	//
-	//  SELECT slug FROM unkey_permissions
+	//  SELECT slug FROM unkey_principal_permissions
 	//  WHERE for_workspace_id = ?
 	//    AND principal_type = ?
 	//    AND principal_id = ?

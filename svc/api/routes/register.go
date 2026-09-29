@@ -65,6 +65,7 @@ import (
 	v2KeysVerifyKey "github.com/unkeyed/unkey/svc/api/routes/v2_keys_verify_key"
 	v2KeysWhoami "github.com/unkeyed/unkey/svc/api/routes/v2_keys_whoami"
 	v2RootKeysCreateKey "github.com/unkeyed/unkey/svc/api/routes/v2_root_keys_create_key"
+	v2RootKeysListKeys "github.com/unkeyed/unkey/svc/api/routes/v2_root_keys_list_keys"
 
 	v2AnalyticsGetGatewayRequests "github.com/unkeyed/unkey/svc/api/routes/v2_analytics_get_gateway_requests"
 	v2AnalyticsGetRatelimits "github.com/unkeyed/unkey/svc/api/routes/v2_analytics_get_ratelimits"
@@ -588,6 +589,7 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 			InternalProjectID:   svc.RootKeyProjectID,
 		},
 	)
+	srv.RegisterRoute(protectedMiddlewares, &v2RootKeysListKeys.Handler{DB: svc.Database})
 
 	// v2/keys.rerollKey
 	srv.RegisterRoute(

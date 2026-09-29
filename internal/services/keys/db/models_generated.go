@@ -95,6 +95,48 @@ func (ns NullKeyMigrationsAlgorithm) Value() (driver.Value, error) {
 	return string(ns.KeyMigrationsAlgorithm), nil
 }
 
+type UnkeyPrincipalPermissionsPrincipalType string
+
+const (
+	UnkeyPrincipalPermissionsPrincipalTypeRootKey UnkeyPrincipalPermissionsPrincipalType = "root_key"
+	UnkeyPrincipalPermissionsPrincipalTypeOidc    UnkeyPrincipalPermissionsPrincipalType = "oidc"
+)
+
+func (e *UnkeyPrincipalPermissionsPrincipalType) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = UnkeyPrincipalPermissionsPrincipalType(s)
+	case string:
+		*e = UnkeyPrincipalPermissionsPrincipalType(s)
+	default:
+		return fmt.Errorf("unsupported scan type for UnkeyPrincipalPermissionsPrincipalType: %T", src)
+	}
+	return nil
+}
+
+type NullUnkeyPrincipalPermissionsPrincipalType struct {
+	UnkeyPrincipalPermissionsPrincipalType UnkeyPrincipalPermissionsPrincipalType
+	Valid                                  bool // Valid is true if UnkeyPrincipalPermissionsPrincipalType is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullUnkeyPrincipalPermissionsPrincipalType) Scan(value interface{}) error {
+	if value == nil {
+		ns.UnkeyPrincipalPermissionsPrincipalType, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.UnkeyPrincipalPermissionsPrincipalType.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullUnkeyPrincipalPermissionsPrincipalType) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.UnkeyPrincipalPermissionsPrincipalType), nil
+}
+
 type Api struct {
 	Pk               uint64           `db:"pk"`
 	ID               string           `db:"id"`
@@ -256,14 +298,14 @@ type RolesPermission struct {
 	UpdatedAtM   sql.NullInt64 `db:"updated_at_m"`
 }
 
-type UnkeyPermission struct {
-	Pk             uint64 `db:"pk"`
-	ID             string `db:"id"`
-	ForWorkspaceID string `db:"for_workspace_id"`
-	PrincipalType  string `db:"principal_type"`
-	PrincipalID    string `db:"principal_id"`
-	Slug           string `db:"slug"`
-	CreatedAt      int64  `db:"created_at"`
+type UnkeyPrincipalPermission struct {
+	Pk             uint64                                 `db:"pk"`
+	ID             string                                 `db:"id"`
+	ForWorkspaceID string                                 `db:"for_workspace_id"`
+	PrincipalType  UnkeyPrincipalPermissionsPrincipalType `db:"principal_type"`
+	PrincipalID    string                                 `db:"principal_id"`
+	Slug           string                                 `db:"slug"`
+	CreatedAt      int64                                  `db:"created_at"`
 }
 
 type UnkeyRootKey struct {

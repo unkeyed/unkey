@@ -44,14 +44,14 @@ func TestUnkeyPermissionLoadingIsScoped(t *testing.T) {
 			permission := "unkey:v1:" + r.UserWorkspace.ID + ":rootKeys/*#write"
 			for _, row := range []struct {
 				workspaceID   string
-				principalType string
+				principalType db.UnkeyPrincipalPermissionsPrincipalType
 				principalID   string
 				slug          string
 			}{
-				{r.UserWorkspace.ID, "root_key", key.KeyID, permission},
-				{h.CreateWorkspace().ID, "root_key", key.KeyID, "wrong-workspace"},
-				{r.UserWorkspace.ID, "oidc", key.KeyID, "wrong-type"},
-				{r.UserWorkspace.ID, "root_key", uid.New(uid.KeyPrefix), "wrong-principal"},
+				{r.UserWorkspace.ID, db.UnkeyPrincipalPermissionsPrincipalTypeRootKey, key.KeyID, permission},
+				{h.CreateWorkspace().ID, db.UnkeyPrincipalPermissionsPrincipalTypeRootKey, key.KeyID, "wrong-workspace"},
+				{r.UserWorkspace.ID, db.UnkeyPrincipalPermissionsPrincipalTypeOidc, key.KeyID, "wrong-type"},
+				{r.UserWorkspace.ID, db.UnkeyPrincipalPermissionsPrincipalTypeRootKey, uid.New(uid.KeyPrefix), "wrong-principal"},
 			} {
 				require.NoError(t, db.Query.InsertUnkeyPermission(t.Context(), h.DB.RW(), db.InsertUnkeyPermissionParams{
 					ID:             uid.New(uid.PermissionPrefix),
@@ -93,7 +93,7 @@ func TestUnkeyPermissionUniquenessIncludesPrincipalScope(t *testing.T) {
 	row := db.InsertUnkeyPermissionParams{
 		ID:             uid.New(uid.PermissionPrefix),
 		ForWorkspaceID: workspaceID,
-		PrincipalType:  "root_key",
+		PrincipalType:  db.UnkeyPrincipalPermissionsPrincipalTypeRootKey,
 		PrincipalID:    principalID,
 		Slug:           permission,
 		CreatedAt:      h.Clock.Now().UnixMilli(),
@@ -106,10 +106,26 @@ func TestUnkeyPermissionUniquenessIncludesPrincipalScope(t *testing.T) {
 	require.NoError(t, db.Query.InsertUnkeyPermission(t.Context(), h.DB.RW(), row))
 	row.ID = uid.New(uid.PermissionPrefix)
 	row.PrincipalID = principalID
-	row.PrincipalType = "oidc"
+	row.PrincipalType = db.UnkeyPrincipalPermissionsPrincipalTypeOidc
 	require.NoError(t, db.Query.InsertUnkeyPermission(t.Context(), h.DB.RW(), row))
 	row.ID = uid.New(uid.PermissionPrefix)
-	row.PrincipalType = "root_key"
+	row.PrincipalType = db.UnkeyPrincipalPermissionsPrincipalTypeRootKey
 	row.ForWorkspaceID = h.CreateWorkspace().ID
 	require.NoError(t, db.Query.InsertUnkeyPermission(t.Context(), h.DB.RW(), row))
+}
+
+// TestUnkeyPermissionsRejectUnknownPrincipalTypes guarantees unsupported principal
+// types cannot enter storage. For example, "unknown" is rejected instead of
+// creating a permission that no supported principal can use.
+func TestUnkeyPermissionsRejectUnknownPrincipalTypes(t *testing.T) {
+	h := testutil.NewHarness(t)
+	err := db.Query.InsertUnkeyPermission(t.Context(), h.DB.RW(), db.InsertUnkeyPermissionParams{
+		ID:             uid.New(uid.PermissionPrefix),
+		ForWorkspaceID: h.Resources().UserWorkspace.ID,
+		PrincipalType:  db.UnkeyPrincipalPermissionsPrincipalType("unknown"),
+		PrincipalID:    uid.New(uid.KeyPrefix),
+		Slug:           "unkey:v1:" + h.Resources().UserWorkspace.ID + ":rootKeys/*#read",
+		CreatedAt:      h.Clock.Now().UnixMilli(),
+	})
+	require.Error(t, err)
 }

@@ -10,7 +10,7 @@ import (
 )
 
 const insertUnkeyPermission = `-- name: InsertUnkeyPermission :exec
-INSERT INTO unkey_permissions (
+INSERT INTO unkey_principal_permissions (
     id,
     for_workspace_id,
     principal_type,
@@ -28,18 +28,18 @@ INSERT INTO unkey_permissions (
 `
 
 type InsertUnkeyPermissionParams struct {
-	ID             string `db:"id"`
-	ForWorkspaceID string `db:"for_workspace_id"`
-	PrincipalType  string `db:"principal_type"`
-	PrincipalID    string `db:"principal_id"`
-	Slug           string `db:"slug"`
-	CreatedAt      int64  `db:"created_at"`
+	ID             string                                 `db:"id"`
+	ForWorkspaceID string                                 `db:"for_workspace_id"`
+	PrincipalType  UnkeyPrincipalPermissionsPrincipalType `db:"principal_type"`
+	PrincipalID    string                                 `db:"principal_id"`
+	Slug           string                                 `db:"slug"`
+	CreatedAt      int64                                  `db:"created_at"`
 }
 
 // InsertUnkeyPermission assigns a permission directly to a principal in the
 // workspace it authorizes. Duplicate permissions for that principal are rejected.
 //
-//	INSERT INTO unkey_permissions (
+//	INSERT INTO unkey_principal_permissions (
 //	    id,
 //	    for_workspace_id,
 //	    principal_type,

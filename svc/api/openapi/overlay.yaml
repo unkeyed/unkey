@@ -6,6 +6,16 @@ info:
 actions:
   - target: $["openapi"]
     update: 3.0.0
+  - target: $["components"]["schemas"]["V2RootKeysListKeysResponseData"]["properties"]["expires"]["type"]
+    update: integer
+  - target: $["components"]["schemas"]["V2RootKeysListKeysResponseData"]["properties"]["expires"]
+    update:
+      nullable: true
+  - target: $["components"]["schemas"]["V2RootKeysListKeysResponseData"]["properties"]["name"]["type"]
+    update: string
+  - target: $["components"]["schemas"]["V2RootKeysListKeysResponseData"]["properties"]["name"]
+    update:
+      nullable: true
   - target: $["components"]["schemas"]["V2RootKeysCreateKeyRequestBody"]["properties"]["expires"]["type"]
     update: integer
   - target: $["components"]["schemas"]["V2RootKeysCreateKeyRequestBody"]["properties"]["expires"]

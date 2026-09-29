@@ -3936,6 +3936,37 @@ components:
                     $ref: '#/components/schemas/Meta'
                 data:
                     $ref: '#/components/schemas/V2RootKeysCreateKeyResponseData'
+        V2RootKeysListKeysRequestBody:
+            type: object
+            additionalProperties: false
+            properties:
+                limit:
+                    type: integer
+                    default: 100
+                    minimum: 1
+                    maximum: 100
+                    description: Maximum number of readable root keys per page.
+                cursor:
+                    type: string
+                    maxLength: 256
+                    description: Opaque cursor from a previous response. Omit for the first page.
+        V2RootKeysListKeysResponseBody:
+            type: object
+            additionalProperties: false
+            required:
+                - meta
+                - data
+                - pagination
+            properties:
+                meta:
+                    $ref: '#/components/schemas/Meta'
+                data:
+                    type: array
+                    maxItems: 100
+                    items:
+                        $ref: '#/components/schemas/V2RootKeysListKeysResponseData'
+                pagination:
+                    $ref: '#/components/schemas/Pagination'
         V3DeploymentsCreateDeploymentRequestBody:
             type: object
             required:
@@ -7465,6 +7496,55 @@ components:
                     type: string
                     x-unkey-redact: true
                     description: Root key secret, returned only once. Store it securely.
+        V2RootKeysListKeysResponseData:
+            type: object
+            additionalProperties: false
+            required:
+                - keyId
+                - name
+                - start
+                - end
+                - enabled
+                - createdAt
+                - expires
+                - permissions
+            properties:
+                keyId:
+                    type: string
+                    description: Stable root key identifier.
+                name:
+                    type:
+                        - string
+                        - "null"
+                    description: User-supplied name, or null when absent.
+                start:
+                    type: string
+                    description: Stored display fragment, including the prefix when present.
+                end:
+                    type: string
+                    description: Stored trailing display fragment. Empty for keys without a recorded suffix.
+                enabled:
+                    type: boolean
+                    description: Whether the key is administratively enabled. An enabled key can still be expired.
+                createdAt:
+                    type: integer
+                    format: int64
+                    description: Creation time in Unix milliseconds.
+                expires:
+                    type:
+                        - integer
+                        - "null"
+                    format: int64
+                    description: Expiration time in Unix milliseconds, or null for no expiration.
+                permissions:
+                    type: array
+                    description: |
+                        Sorted, deduplicated effective permission strings, including role-derived
+                        permissions for legacy keys. Legacy permissions are returned without
+                        translation to URNs. These strings are not expanded into accessible resources.
+                        Results containing legacy permissions cannot be passed unchanged to rootKeys.createKey.
+                    items:
+                        type: string
         DeploymentSourceOCI:
             type: object
             required:
@@ -16496,6 +16576,69 @@ paths:
             tags:
                 - rootKeys
             x-speakeasy-name-override: createKey
+    /v2/rootKeys.listKeys:
+        post:
+            description: |
+                Lists readable root keys in the authenticated workspace, ordered by key ID.
+                Requires `unkey:v1:<workspace_id>:rootKeys/<key_id>#read` for each returned key.
+                Use `rootKeys/*#read` to read all root keys. Write permission does not imply read.
+                A caller with no readable keys receives an empty page.
+
+                Includes disabled and expired keys from both root-key storage tables.
+                Deleted keys are excluded. Secrets and hashes are never returned.
+                Pass the returned cursor when hasMore is true to retrieve the next page.
+            operationId: rootKeys.listKeys
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/V2RootKeysListKeysRequestBody'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/V2RootKeysListKeysResponseBody'
+                    description: A page of readable root keys.
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Invalid request.
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Authentication is required.
+                "429":
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/TooManyRequestsErrorResponse'
+                    description: Too many requests.
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: The list could not be loaded.
+            security:
+                - bearer: []
+            summary: List root keys
+            tags:
+                - rootKeys
+            x-speakeasy-name-override: listKeys
+            x-speakeasy-pagination:
+                inputs:
+                    - in: requestBody
+                      name: cursor
+                      type: cursor
+                outputs:
+                    nextCursor: $.pagination.cursor
+                type: cursor
     /v3/deployments.createDeployment:
         post:
             description: |

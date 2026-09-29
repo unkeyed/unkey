@@ -11,12 +11,14 @@ import (
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_root_keys_create_key"
 )
 
+// TestCreateStoresEveryResourceAction guarantees an administrator can create
+// each supported permission. For example, rootKeys/*#read can be issued for listing.
 func TestCreateStoresEveryResourceAction(t *testing.T) {
 	h, route, p := newHarness(t)
 	base := "unkey:v1:" + p.AuthorizedWorkspaceID + ":"
 	catalog := map[string][]string{
 		"github/apps/*":                    {"read", "write", "delete"},
-		"rootKeys/*":                       {"write"},
+		"rootKeys/*":                       {"read", "write"},
 		"projects/*":                       {"read", "write", "delete"},
 		"projects/*/apps/*":                {"read", "write", "delete"},
 		"projects/*/apps/*/environments/*": {"read", "write", "delete"},
@@ -56,16 +58,18 @@ func TestCreateStoresEveryResourceAction(t *testing.T) {
 		"Authorization": {"Bearer test"}, "Content-Type": {"application/json"},
 	}, handler.Request{Permissions: requested})
 	require.Equal(t, http.StatusOK, res.Status, "%s", res.RawBody)
-	grants, err := db.Query.ListUnkeyPermissionsByPrincipal(t.Context(), h.DB.RO(), db.ListUnkeyPermissionsByPrincipalParams{ForWorkspaceID: p.AuthorizedWorkspaceID, PrincipalType: "root_key", PrincipalID: res.Body.Data.KeyId})
+	storedPermissions, err := db.Query.ListUnkeyPermissionsByPrincipal(t.Context(), h.DB.RO(), db.ListUnkeyPermissionsByPrincipalParams{ForWorkspaceID: p.AuthorizedWorkspaceID, PrincipalType: db.UnkeyPrincipalPermissionsPrincipalTypeRootKey, PrincipalID: res.Body.Data.KeyId})
 	require.NoError(t, err)
-	require.ElementsMatch(t, requested, grants)
+	require.ElementsMatch(t, requested, storedPermissions)
 }
 
+// TestCreateRejectsInvalidResourceActionsAtomically guarantees unsupported
+// permissions leave storage unchanged. For example, rootKeys/*#delete is rejected.
 func TestCreateRejectsInvalidResourceActionsAtomically(t *testing.T) {
 	h, route, p := newHarness(t)
 	base := "unkey:v1:" + p.AuthorizedWorkspaceID + ":"
 	for _, permission := range []string{
-		base + "rootKeys/*#read",
+		base + "rootKeys/*#delete",
 		base + "projects/*/keyspaces/*/logs#decrypt",
 		base + "projects/*/ratelimits/namespaces/*/overrides/*#limit",
 		base + "projects/*/apps/*/environments/*/gateway#write",
