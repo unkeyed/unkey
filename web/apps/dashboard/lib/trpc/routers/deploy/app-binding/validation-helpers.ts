@@ -114,18 +114,9 @@ async function takenNames(
   scope: { appId: string; environmentId: string },
   excludeId?: string,
 ) {
-  const [bindings, variables, callerApp] = await Promise.all([
+  const [bindings, callerApp] = await Promise.all([
     db.query.appBindings.findMany({
       columns: { id: true, name: true },
-      where: (t, { and, eq }) =>
-        and(
-          eq(t.workspaceId, workspaceId),
-          eq(t.appId, scope.appId),
-          eq(t.environmentId, scope.environmentId),
-        ),
-    }),
-    db.query.appEnvironmentVariables.findMany({
-      columns: { key: true },
       where: (t, { and, eq }) =>
         and(
           eq(t.workspaceId, workspaceId),
@@ -139,9 +130,7 @@ async function takenNames(
     }),
   ]);
   const names = new Set(bindings.filter((b) => b.id !== excludeId).map((b) => b.name));
-  const keys = new Set(variables.map((v) => v.key));
-  return (name: string) =>
-    name === callerApp?.slug || names.has(name) || keys.has(bindingHostVariable(name));
+  return (name: string) => name === callerApp?.slug || names.has(name);
 }
 
 export async function pickDefaultName(workspaceId: string, scope: Endpoints, targetSlug: string) {

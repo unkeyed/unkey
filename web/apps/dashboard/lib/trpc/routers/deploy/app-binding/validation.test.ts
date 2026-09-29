@@ -43,7 +43,7 @@ describe("defaultBindingName", () => {
     expect(defaultBindingName("responder", () => false)).toBe("responder");
   });
 
-  it("adds a suffix when the name or its variable is taken", () => {
+  it("adds a suffix when the binding name is taken", () => {
     const taken = new Set(["responder", "responder-2"]);
     expect(defaultBindingName("responder", (name) => taken.has(name))).toBe("responder-3");
   });
