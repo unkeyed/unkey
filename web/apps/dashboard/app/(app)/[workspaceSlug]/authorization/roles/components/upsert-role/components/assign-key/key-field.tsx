@@ -28,8 +28,9 @@ export const KeyField = ({
 }: KeyFieldProps) => {
   const [searchValue, setSearchValue] = useState("");
 
-  const { calculateLimits } = useRoleLimits(roleId);
+  const { calculateLimits, MAX_ATTACH_LIMIT } = useRoleLimits(roleId);
   const { hasKeyWarning, totalKeys } = calculateLimits(value);
+  const isAtKeyLimit = totalKeys >= MAX_ATTACH_LIMIT;
 
   const { keys, isFetchingNextPage, hasNextPage, loadMore, isLoading } = useFetchKeys();
   const { searchResults, isSearching } = useSearchKeys(searchValue);
@@ -128,7 +129,11 @@ export const KeyField = ({
       <FormCombobox
         requirement="optional"
         label="Assign keys"
-        description="Select keys from your workspace."
+        description={
+          isAtKeyLimit
+            ? `You can assign up to ${MAX_ATTACH_LIMIT} keys here. Use the API to assign more.`
+            : "Select keys from your workspace."
+        }
         options={selectableOptions}
         value=""
         onChange={(e) => setSearchValue(e.currentTarget.value)}
@@ -156,7 +161,7 @@ export const KeyField = ({
         }
         variant="default"
         error={error}
-        disabled={disabled || isLoading || hasKeyWarning}
+        disabled={disabled || isLoading || isAtKeyLimit}
         loading={isComboboxLoading}
         title={
           isComboboxLoading
