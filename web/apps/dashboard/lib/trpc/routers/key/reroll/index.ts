@@ -25,7 +25,8 @@ const rerollInputSchema = z.object({
     .int()
     .refine((v): v is GracePeriodMs => allowedExpirations.has(v), {
       error: "expiration must be one of the supported grace periods",
-    }),
+    })
+    .optional(),
 });
 
 // Rotates a root key. Root keys live in the Unkey-owned workspace
@@ -58,7 +59,7 @@ type RerollKeyContext = {
 
 type RerollKeyArgs = {
   keyId: string;
-  expiration: number;
+  expiration?: number;
   scopedWorkspaceId: string;
   forWorkspaceId?: string;
   ctx: RerollKeyContext;
@@ -73,7 +74,6 @@ async function rerollKeyCore({
 }: RerollKeyArgs) {
   const newKeyId = newId("key");
   const now = Date.now();
-  const gracePeriodEnd = new Date(now + expiration);
 
   try {
     return await db.transaction(async (tx) => {
@@ -217,7 +217,10 @@ async function rerollKeyCore({
       // the original lifetime constraint instead of silently producing a
       // permanent key. The old key's grace period is capped against that
       // same expiry.
-      const oldKeyExpiresAt = capGracePeriodAtSourceExpiry(source.expires, gracePeriodEnd);
+      const oldKeyExpiresAt =
+        expiration === undefined
+          ? source.expires
+          : capGracePeriodAtSourceExpiry(source.expires, new Date(now + expiration));
 
       await tx.insert(schema.keys).values({
         id: newKeyId,
@@ -300,7 +303,7 @@ async function rerollKeyCore({
       // missing row. The FOR UPDATE lock above keeps the source row stable
       // for the rest of this tx, so we don't need the WHERE-with-deletedAtM
       // pattern here for soft-delete detection.
-      if (source.expires?.getTime() !== oldKeyExpiresAt.getTime()) {
+      if (oldKeyExpiresAt && source.expires?.getTime() !== oldKeyExpiresAt.getTime()) {
         await tx
           .update(schema.keys)
           .set({ expires: oldKeyExpiresAt })
@@ -315,7 +318,7 @@ async function rerollKeyCore({
           type: "key",
           id: source.id,
           name: source.name ?? undefined,
-          meta: { expiresAt: oldKeyExpiresAt.getTime() },
+          meta: { expiresAt: oldKeyExpiresAt?.getTime() ?? null },
         },
       ];
       if (source.keyAuth.api) {
@@ -330,7 +333,9 @@ async function rerollKeyCore({
         workspaceId: ctx.workspace.id,
         actor: { type: "user", id: ctx.user.id },
         event: "key.reroll",
-        description: `Rerolled key (${source.id}) to (${newKeyId}); old key expires at ${oldKeyExpiresAt.toISOString()}`,
+        description: oldKeyExpiresAt
+          ? `Rerolled key (${source.id}) to (${newKeyId}); old key expires at ${oldKeyExpiresAt.toISOString()}`
+          : `Rerolled key (${source.id}) to (${newKeyId}); old key does not expire`,
         resources,
         context: {
           location: ctx.audit.location,

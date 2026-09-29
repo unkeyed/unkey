@@ -9,13 +9,15 @@ import {
   DEFAULT_GRACE_PERIOD,
   GRACE_PERIOD_OPTIONS,
   type GracePeriodMs,
+  NEVER_GRACE_PERIOD,
+  NEVER_GRACE_PERIOD_OPTION,
   gracePeriodMsFromValue,
   isGracePeriodValue,
 } from "./rotate-key.constants";
 
 type RotatedKeyData = { id: string; key: string; name?: string };
 
-type RotateInput = { keyId: string; expiration: GracePeriodMs };
+type RotateInput = { keyId: string; expiration?: GracePeriodMs };
 
 type RotateMutation = {
   mutateAsync: (input: RotateInput) => Promise<{ keyId: string; key: string; name?: string }>;
@@ -62,7 +64,7 @@ export const RotateKeyDialog = ({
   const schema = useMemo(
     () =>
       z.object({
-        gracePeriod: z.string().refine(isGracePeriodValue, {
+        gracePeriod: z.string().refine((v) => isGracePeriodValue(v) || v === NEVER_GRACE_PERIOD, {
           error: "Please select a valid grace period.",
         }),
         confirmRotation: z.boolean().refine((val) => val === true, {
@@ -110,19 +112,20 @@ export const RotateKeyDialog = ({
   };
 
   const performRotation = async () => {
-    if (!isGracePeriodValue(gracePeriod)) {
-      // Defense-in-depth: the FormSelect is bound to GRACE_PERIOD_OPTIONS
+    const keepsCurrentKey = gracePeriod === NEVER_GRACE_PERIOD;
+    if (!keepsCurrentKey && !isGracePeriodValue(gracePeriod)) {
+      // Defense-in-depth: the FormSelect is bound to the allowed options
       // and the schema rejects anything else, so this branch is
       // unreachable through the UI. Bail rather than coerce an unknown
       // value into a request the server would reject anyway.
       return;
     }
+    const expiration = isGracePeriodValue(gracePeriod)
+      ? gracePeriodMsFromValue(gracePeriod)
+      : undefined;
     try {
       setIsLoading(true);
-      const result = await mutation.mutateAsync({
-        keyId,
-        expiration: gracePeriodMsFromValue(gracePeriod),
-      });
+      const result = await mutation.mutateAsync({ keyId, expiration });
       setRotatedKeyData({ id: result.keyId, key: result.key, name: result.name });
     } catch {
       // The mutation hook surfaces its own toast.
@@ -154,7 +157,10 @@ export const RotateKeyDialog = ({
 
   const titleCase = resourceLabel === "root key" ? "Rotate root key" : "Rotate key";
   const confirmTitle = `Confirm ${resourceLabel} rotation`;
-  const confirmDescription = `A new ${resourceLabel} will be generated now. The current ${resourceLabel} will be revoked after the grace period you selected.`;
+  const keepsCurrentKey = gracePeriod === NEVER_GRACE_PERIOD;
+  const confirmDescription = keepsCurrentKey
+    ? `A new ${resourceLabel} will be generated now. The current ${resourceLabel} will not be revoked.`
+    : `A new ${resourceLabel} will be generated now. The current ${resourceLabel} will be revoked after the grace period you selected.`;
   const subTitle =
     resourceLabel === "root key"
       ? "Generate a fresh root key while preserving this root key's permissions"
@@ -198,7 +204,7 @@ export const RotateKeyDialog = ({
                 <FormSelect
                   label="Grace period"
                   description={gracePeriodDescription}
-                  options={GRACE_PERIOD_OPTIONS}
+                  options={[...GRACE_PERIOD_OPTIONS, NEVER_GRACE_PERIOD_OPTION]}
                   value={field.value}
                   onValueChange={field.onChange}
                   error={errors.gracePeriod?.message}
@@ -217,7 +223,11 @@ export const RotateKeyDialog = ({
                   checked={field.value}
                   onCheckedChange={field.onChange}
                   requirement="required"
-                  label={`I understand this will generate a new ${resourceLabel} and revoke the current one.`}
+                  label={
+                    keepsCurrentKey
+                      ? `I understand this will generate a new ${resourceLabel} and keep the current one valid.`
+                      : `I understand this will generate a new ${resourceLabel} and revoke the current one.`
+                  }
                   error={errors.confirmRotation?.message}
                 />
               )}
