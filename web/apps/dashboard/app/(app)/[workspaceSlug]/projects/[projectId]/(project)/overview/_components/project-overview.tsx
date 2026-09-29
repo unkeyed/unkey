@@ -1,97 +1,60 @@
 "use client";
 
-import { useDeployActionGate } from "@/app/(app)/[workspaceSlug]/projects/_components/hooks/use-deploy-action-gate";
-import { useAppHomeHref } from "@/hooks/use-app-home-href";
 import { useProject } from "@/hooks/use-project";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { projectDisplayName } from "@/lib/collections/deploy/projects";
-import { routes } from "@/lib/navigation/routes";
-import { trpc } from "@/lib/trpc/client";
-import type { ProjectOverview } from "@/lib/trpc/routers/deploy/project/overview";
-import { IconBook2Outline18, IconChatsOutline18, IconSquareTerminalOutline18 } from "@unkey/icons";
-import { PageBody, PageContainer, PageHeader, PageHeaderContent, PageHeaderTitle } from "@unkey/ui";
-import { useParams, useRouter } from "next/navigation";
+import {
+  IconBook2Outline18,
+  IconChatsOutline18,
+  IconGridOutline18,
+  IconSquareTerminalOutline18,
+} from "@unkey/icons";
+import {
+  EmptyState,
+  EmptyStateDescription,
+  EmptyStateHeader,
+  EmptyStateIcon,
+  EmptyStateTitle,
+  PageBody,
+  PageContainer,
+  PageHeader,
+  PageHeaderContent,
+  PageHeaderTitle,
+} from "@unkey/ui";
 import { type ReactNode, useState } from "react";
-import { Canvas, type CanvasActions, type CanvasLinks } from "./canvas";
-import { buildOverviewModel } from "./overview-model";
-import { ScenarioSwitcher } from "./scenario-switcher";
 
 const AGENT_PROMPT =
   "Set up Unkey in my project. Fetch https://unkey.com/agent/setup.md and follow it.";
 
 export function ProjectOverviewPage() {
-  const params = useParams();
-  const projectId = typeof params?.projectId === "string" ? params.projectId : "";
-  const { data, isLoading, error } = trpc.deploy.project.overview.useQuery(
-    { projectId },
-    { enabled: Boolean(projectId), refetchInterval: 10_000 },
-  );
+  const workspace = useWorkspaceNavigation();
+  const { project } = useProject();
 
   return (
     <PageContainer>
-      {data ? (
-        <Loaded data={data} />
-      ) : (
-        <PageBody>
-          <div className="text-sm text-gray-9">
-            {isLoading ? "Loading project…" : (error?.message ?? "No data")}
-          </div>
-        </PageBody>
-      )}
-      <ScenarioSwitcher />
-    </PageContainer>
-  );
-}
-
-function Loaded({ data }: { data: ProjectOverview }) {
-  const router = useRouter();
-  const workspace = useWorkspaceNavigation();
-  const { project } = useProject();
-  const appHomeHref = useAppHomeHref();
-  const { gated, openPaywall, planGate } = useDeployActionGate();
-  const model = buildOverviewModel(data);
-  const scope = { workspaceSlug: workspace.slug, projectId: data.project.id };
-
-  const links: CanvasLinks = {
-    app: (appId) => appHomeHref({ ...scope, appId }),
-    allApps: routes.projects.detail(scope),
-    keyspace: (apiId) => routes.apis.detail({ ...scope, apiId }),
-    allKeyspaces: routes.apis.list(scope),
-    ratelimit: (namespaceId) => routes.ratelimits.detail({ ...scope, namespaceId }),
-    allRatelimits: routes.ratelimits.list(scope),
-  };
-  const actions: CanvasActions = {
-    createApp: () => (gated ? openPaywall() : router.push(routes.projects.apps.new(scope))),
-    createKeyspace: () => router.push(routes.apis.list({ ...scope, new: true })),
-    createRatelimit: () => router.push(routes.ratelimits.list(scope)),
-    openIdentities: () => router.push(routes.identities.list(scope)),
-    openPermissions: () => router.push(routes.authorization.roles(scope)),
-  };
-
-  return (
-    <>
       <PageHeader>
         <PageHeaderContent>
           <PageHeaderTitle>
-            {project ? projectDisplayName(project, workspace.name) : data.project.name}
+            {project ? projectDisplayName(project, workspace.name) : ""}
           </PageHeaderTitle>
         </PageHeaderContent>
       </PageHeader>
       <PageBody className="flex flex-col gap-6">
-        <Canvas data={data} model={model} links={links} actions={actions} />
+        <EmptyState>
+          <EmptyStateIcon>
+            <IconGridOutline18 />
+          </EmptyStateIcon>
+          <EmptyStateHeader>
+            <EmptyStateTitle>Project overview is coming soon</EmptyStateTitle>
+            <EmptyStateDescription>
+              A summary of your apps, services and activity will live here. Open an app to see its
+              overview.
+            </EmptyStateDescription>
+          </EmptyStateHeader>
+        </EmptyState>
         <HelpRow />
       </PageBody>
-      {planGate}
-    </>
-  );
-}
-
-function Section({ title, children }: { title: string; children: ReactNode }) {
-  return (
-    <section className="flex flex-col gap-2">
-      <h2 className="text-[13px] font-medium text-gray-12">{title}</h2>
-      {children}
-    </section>
+    </PageContainer>
   );
 }
 
@@ -105,7 +68,8 @@ function HelpRow() {
   const tile =
     "flex flex-col gap-2 rounded-lg border border-border bg-raised p-3 text-left transition-colors hover:border-strong";
   return (
-    <Section title="Need help?">
+    <section className="flex flex-col gap-2">
+      <h2 className="text-[13px] font-medium text-gray-12">Need help?</h2>
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <button type="button" onClick={copy} className={tile}>
           <IconSquareTerminalOutline18 className="size-4 text-gray-9" />
@@ -137,7 +101,7 @@ function HelpRow() {
           description="Guides and API reference"
         />
       </div>
-    </Section>
+    </section>
   );
 }
 

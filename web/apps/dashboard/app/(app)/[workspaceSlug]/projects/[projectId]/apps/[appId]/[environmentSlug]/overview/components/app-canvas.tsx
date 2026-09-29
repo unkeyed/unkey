@@ -74,11 +74,7 @@ export function AppCanvas({ domains, emptyDomain, app }: AppCanvasProps) {
         label="App canvas"
         className="flex w-full min-w-[980px] items-start px-5 py-5"
       >
-        <CanvasGroup
-          fit="content"
-          icon={<IconEarthOutline18 />}
-          label={`Domains · ${domains.length}`}
-        >
+        <CanvasGroup icon={<IconEarthOutline18 />} label={`Domains · ${domains.length}`}>
           {domains.length > 0
             ? domains.map((d) => <DomainCard key={d.hostname} domain={d} />)
             : emptyDomain}
@@ -86,14 +82,13 @@ export function AppCanvas({ domains, emptyDomain, app }: AppCanvasProps) {
 
         <CanvasConnector dashed={domains.length === 0} />
 
-        <CanvasGroup fit="content" icon={<IconCubeOutline18 />} label="App">
+        <CanvasGroup icon={<IconCubeOutline18 />} label="App">
           {app}
         </CanvasGroup>
 
         <CanvasConnector dashed={serviceCount === 0} />
 
         <CanvasGroup
-          fit="content"
           icon={<IconGridOutline18 />}
           label={serviceCount > 0 ? `Services · ${serviceCount}` : "Services"}
         >
