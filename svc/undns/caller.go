@@ -1,6 +1,7 @@
 package undns
 
 import (
+	"fmt"
 	"net/netip"
 	"slices"
 
@@ -17,10 +18,16 @@ type caller struct {
 	namespace  string
 }
 
-func (c *catalog) identify(ip netip.Addr) (caller, bool) {
+func (c *catalog) identify(ip netip.Addr) (caller, error) {
 	objects, err := c.pods.GetIndexer().ByIndex(podIPIndex, ip.Unmap().String())
-	if err != nil || len(objects) != 1 {
-		return emptyCaller(), false
+	if err != nil {
+		return emptyCaller(), err
+	}
+	switch {
+	case len(objects) == 0:
+		return emptyCaller(), errUnknownCaller
+	case len(objects) > 1:
+		return emptyCaller(), errAmbiguousCaller
 	}
 
 	pod := objects[0].(*corev1.Pod)
@@ -39,12 +46,12 @@ func (c *catalog) identify(ip netip.Addr) (caller, bool) {
 		assert.NotEmpty(l[labels.LabelKeyDeploymentID]),
 	)
 	if err != nil {
-		return emptyCaller(), false
+		return emptyCaller(), fmt.Errorf("%w: %w", errIneligibleCaller, err)
 	}
 
 	kind := l[environmentKindLabel]
 	if kind != "production" && kind != "preview" {
-		return emptyCaller(), false
+		return emptyCaller(), fmt.Errorf("%w: environment kind %q", errIneligibleCaller, kind)
 	}
 
 	return caller{
@@ -53,7 +60,7 @@ func (c *catalog) identify(ip netip.Addr) (caller, bool) {
 		kind:       kind,
 		deployment: l[labels.LabelKeyDeploymentID],
 		namespace:  pod.Namespace,
-	}, true
+	}, nil
 }
 
 func emptyCaller() caller {
