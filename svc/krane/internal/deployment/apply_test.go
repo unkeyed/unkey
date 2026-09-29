@@ -2,6 +2,7 @@ package deployment
 
 import (
 	"encoding/json"
+	"errors"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -9,6 +10,9 @@ import (
 	dbtype "github.com/unkeyed/unkey/pkg/db/types"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/kubernetes/fake"
+	ktesting "k8s.io/client-go/testing"
 )
 
 // Sentinel values for every ApplyDeployment field. Each is distinctive so the
@@ -357,7 +361,7 @@ func TestBuildReplicaSet_PrivateNetworkDNS(t *testing.T) {
 			req.PrivateNetworkReplicaHost = tt.host
 
 			rs := controller.buildReplicaSet(req, false)
-			host, exists := envValue(mainContainer(t, rs), "UNKEY_REPLICA_HOST")
+			host, exists := envValue(mainContainer(t, rs), "UNKEY_DEPLOYMENT_HOST")
 			require.Equal(t, tt.wantDNS, exists)
 			if !tt.wantDNS {
 				require.NotEqual(t, corev1.DNSNone, rs.Spec.Template.Spec.DNSPolicy)
@@ -370,5 +374,44 @@ func TestBuildReplicaSet_PrivateNetworkDNS(t *testing.T) {
 			require.Equal(t, "ndots", rs.Spec.Template.Spec.DNSConfig.Options[0].Name)
 			require.Equal(t, new("1"), rs.Spec.Template.Spec.DNSConfig.Options[0].Value)
 		})
+	}
+}
+
+func TestApplyDeploymentValidatesEnvironmentKindBeforeKubernetes(t *testing.T) {
+	for _, test := range []struct {
+		name  string
+		kind  string
+		valid bool
+	}{
+		{name: "production", kind: "production", valid: true},
+		{name: "preview", kind: "preview", valid: true},
+		{name: "missing", kind: "", valid: false},
+		{name: "slug is not a kind", kind: "staging", valid: false},
+	} {
+		for _, resolver := range []string{"", "10.0.0.53"} {
+			t.Run(test.name+"/"+resolver, func(t *testing.T) {
+				unavailable := errors.New("namespace unavailable")
+				client := fake.NewClientset()
+				client.PrependReactor("create", "namespaces", func(ktesting.Action) (bool, runtime.Object, error) {
+					return true, nil, unavailable
+				})
+				controller := testController()
+				controller.clientSet = client
+				controller.privateNetworkResolverIP = resolver
+				req := fullApplyRequest(t)
+				req.EnvironmentKind = test.kind
+				req.PrivateNetworkReplicaHost = "api.unkey.internal"
+
+				err := controller.ApplyDeployment(t.Context(), req)
+				if test.valid {
+					require.ErrorIs(t, err, unavailable)
+					require.Len(t, client.Actions(), 1)
+					return
+				}
+
+				require.ErrorContains(t, err, "Environment kind must be production or preview")
+				require.Empty(t, client.Actions())
+			})
+		}
 	}
 }
