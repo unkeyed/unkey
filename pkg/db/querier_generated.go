@@ -1965,6 +1965,16 @@ type Querier interface {
 	//    ?
 	//  )
 	InsertRolePermission(ctx context.Context, db DBTX, arg InsertRolePermissionParams) error
+	// InsertUnkeyPermission assigns a permission directly to a principal in the
+	// workspace it authorizes. Duplicate permissions for that principal are rejected.
+	//
+	//  INSERT INTO unkey_permissions (
+	//      id, for_workspace_id, principal_type, principal_id, name, slug, description, created_at_m
+	//  ) VALUES (
+	//      ?, ?, ?, ?,
+	//      ?, ?, ?, ?
+	//  )
+	InsertUnkeyPermission(ctx context.Context, db DBTX, arg InsertUnkeyPermissionParams) error
 	//InsertWorkspace
 	//
 	//  INSERT INTO `workspaces` (
@@ -2612,6 +2622,14 @@ type Querier interface {
 	//  WHERE kr.key_id = ?
 	//  ORDER BY r.name
 	ListRolesByKeyID(ctx context.Context, db DBTX, keyID string) ([]ListRolesByKeyIDRow, error)
+	// ListUnkeyPermissionsByPrincipal loads permissions for exactly one principal
+	// and authorized workspace. The same ID under another type or workspace is excluded.
+	//
+	//  SELECT slug FROM unkey_permissions
+	//  WHERE for_workspace_id = ?
+	//    AND principal_type = ?
+	//    AND principal_id = ?
+	ListUnkeyPermissionsByPrincipal(ctx context.Context, db DBTX, arg ListUnkeyPermissionsByPrincipalParams) ([]string, error)
 	// Fetches the Stripe customer identity for a batch of workspaces, used by the
 	// hourly Deploy billing push to decide where each workspace's month-to-date
 	// usage gets reported. The Stripe Billing Meters map usage to a customer by

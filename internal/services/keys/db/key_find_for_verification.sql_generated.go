@@ -53,7 +53,15 @@ select k.id,
                       FROM keys_roles kr
                                JOIN roles_permissions rp ON kr.role_id = rp.role_id
                                JOIN permissions p ON rp.permission_id = p.id
-                      WHERE kr.key_id = k.id) as combined_perms),
+                      WHERE kr.key_id = k.id
+
+                      UNION ALL
+
+                      SELECT slug COLLATE utf8mb4_0900_as_cs
+                      FROM unkey_permissions up
+                      WHERE up.for_workspace_id = k.for_workspace_id
+                        AND up.principal_type = 'root_key'
+                        AND up.principal_id = k.id) as combined_perms),
                JSON_ARRAY()
        )               as permissions,
 
@@ -134,6 +142,8 @@ type FindKeyForVerificationRow struct {
 // are returned as JSON arrays via JSON_ARRAYAGG so the caller can unmarshal
 // them into typed Go structs. Key-level and identity-level rate limits are
 // unioned so that both sources are available for the verification pipeline.
+// Root keys also load direct Unkey permissions for their authorized workspace;
+// ordinary keys have no for_workspace_id and cannot match those rows.
 //
 //	select k.id,
 //	       k.key_auth_id,
@@ -177,7 +187,15 @@ type FindKeyForVerificationRow struct {
 //	                      FROM keys_roles kr
 //	                               JOIN roles_permissions rp ON kr.role_id = rp.role_id
 //	                               JOIN permissions p ON rp.permission_id = p.id
-//	                      WHERE kr.key_id = k.id) as combined_perms),
+//	                      WHERE kr.key_id = k.id
+//
+//	                      UNION ALL
+//
+//	                      SELECT slug COLLATE utf8mb4_0900_as_cs
+//	                      FROM unkey_permissions up
+//	                      WHERE up.for_workspace_id = k.for_workspace_id
+//	                        AND up.principal_type = 'root_key'
+//	                        AND up.principal_id = k.id) as combined_perms),
 //	               JSON_ARRAY()
 //	       )               as permissions,
 //

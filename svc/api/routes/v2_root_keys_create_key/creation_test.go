@@ -70,7 +70,7 @@ func TestCreatePermissionCountLimits(t *testing.T) {
 				require.Equal(t, before, snapshot(t, h))
 				return
 			}
-			grants, err := db.Query.ListPermissionsByKeyID(t.Context(), h.DB.RO(), db.ListPermissionsByKeyIDParams{KeyID: res.Body.Data.KeyId})
+			grants, err := db.Query.ListUnkeyPermissionsByPrincipal(t.Context(), h.DB.RO(), db.ListUnkeyPermissionsByPrincipalParams{ForWorkspaceID: p.AuthorizedWorkspaceID, PrincipalType: "root_key", PrincipalID: res.Body.Data.KeyId})
 			require.NoError(t, err)
 			if tt.count == 0 {
 				require.Empty(t, grants)
@@ -121,7 +121,7 @@ func TestCreateStoresMaximumDistinctPermissions(t *testing.T) {
 		"Authorization": {"Bearer test"}, "Content-Type": {"application/json"},
 	}, handler.Request{Permissions: requested})
 	require.Equal(t, http.StatusOK, res.Status, "%s", res.RawBody)
-	stored, err := db.Query.ListPermissionsByKeyID(t.Context(), h.DB.RO(), db.ListPermissionsByKeyIDParams{KeyID: res.Body.Data.KeyId})
+	stored, err := db.Query.ListUnkeyPermissionsByPrincipal(t.Context(), h.DB.RO(), db.ListUnkeyPermissionsByPrincipalParams{ForWorkspaceID: p.AuthorizedWorkspaceID, PrincipalType: "root_key", PrincipalID: res.Body.Data.KeyId})
 	require.NoError(t, err)
 	require.ElementsMatch(t, requested, stored)
 	require.Len(t, h.FindAuditLogsByTargetID(t.Context(), t, res.Body.Data.KeyId), 1001)
@@ -136,11 +136,14 @@ func TestCreateStoresPermissionWithoutLegacyEquivalent(t *testing.T) {
 	}, handler.Request{Permissions: []string{grant}})
 	require.Equal(t, http.StatusOK, res.Status, "%s", res.RawBody)
 
-	grants, err := db.Query.ListPermissionsByKeyID(t.Context(), h.DB.RO(), db.ListPermissionsByKeyIDParams{KeyID: res.Body.Data.KeyId})
+	grants, err := db.Query.ListUnkeyPermissionsByPrincipal(t.Context(), h.DB.RO(), db.ListUnkeyPermissionsByPrincipalParams{ForWorkspaceID: p.AuthorizedWorkspaceID, PrincipalType: "root_key", PrincipalID: res.Body.Data.KeyId})
 	require.NoError(t, err)
 	require.Equal(t, []string{grant}, grants)
 }
 
+// TestCreateStoresV1SystemKeyAndPermissions guarantees new root keys store
+// permissions separately from customer permissions and can authenticate with
+// them. For example, duplicate rootKeys/*#write entries become one permission.
 func TestCreateStoresV1SystemKeyAndPermissions(t *testing.T) {
 	h, route, p := newHarness(t)
 	resources := h.Resources()
@@ -159,7 +162,7 @@ func TestCreateStoresV1SystemKeyAndPermissions(t *testing.T) {
 	require.False(t, key.Expires.Valid)
 	grants, err := db.Query.ListPermissionsByKeyID(t.Context(), h.DB.RO(), db.ListPermissionsByKeyIDParams{KeyID: key.ID})
 	require.NoError(t, err)
-	require.Equal(t, []string{permission}, grants)
+	require.Empty(t, grants, "new root keys must not write legacy permission assignments")
 	logs := h.FindAuditLogsByTargetID(t.Context(), t, key.ID)
 	require.Len(t, logs, 2)
 	for _, log := range logs {
@@ -176,7 +179,7 @@ func TestCreateStoresV1SystemKeyAndPermissions(t *testing.T) {
 	resolved, err := rootkey.NewResolver(h.Keys).Resolve(t.Context(), session)
 	require.NoError(t, err)
 	require.Equal(t, p.AuthorizedWorkspaceID, resolved.AuthorizedWorkspaceID)
-	require.ElementsMatch(t, grants, resolved.Permissions)
+	require.Equal(t, []string{permission}, resolved.Permissions)
 
 	api := h.CreateApi(seed.CreateApiRequest{WorkspaceID: resources.UserWorkspace.ID})
 	urn := "unkey:v1:" + resources.UserWorkspace.ID + ":projects/" + api.ProjectID + "/keyspaces/" + api.KeyAuthID.String + "/keys/*#decrypt"
@@ -185,7 +188,7 @@ func TestCreateStoresV1SystemKeyAndPermissions(t *testing.T) {
 		Permissions: []string{urn, urn},
 	})
 	require.Equal(t, http.StatusOK, res.Status, "%s", res.RawBody)
-	grants, err = db.Query.ListPermissionsByKeyID(t.Context(), h.DB.RO(), db.ListPermissionsByKeyIDParams{KeyID: res.Body.Data.KeyId})
+	grants, err = db.Query.ListUnkeyPermissionsByPrincipal(t.Context(), h.DB.RO(), db.ListUnkeyPermissionsByPrincipalParams{ForWorkspaceID: p.AuthorizedWorkspaceID, PrincipalType: "root_key", PrincipalID: res.Body.Data.KeyId})
 	require.NoError(t, err)
 	require.Equal(t, []string{urn}, grants)
 

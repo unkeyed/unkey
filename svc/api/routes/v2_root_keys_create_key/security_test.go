@@ -76,7 +76,10 @@ func TestCreateAcceptsContainedDescendants(t *testing.T) {
 	}
 }
 
-func TestPermissionProjectConflictRollsBackKeyGrantsAndAudit(t *testing.T) {
+// TestLegacyProjectPermissionDoesNotBlockCreation guarantees customer permission
+// rows do not affect root-key creation. For example, an identical slug in another
+// project does not prevent the root key from receiving its own permission.
+func TestLegacyProjectPermissionDoesNotBlockCreation(t *testing.T) {
 	h, route, p := newHarness(t)
 	api := h.CreateApi(seed.CreateApiRequest{WorkspaceID: p.AuthorizedWorkspaceID})
 	otherProject := h.CreateProject(seed.CreateProjectRequest{WorkspaceID: route.InternalWorkspaceID, ID: uid.New(uid.ProjectPrefix)})
@@ -85,16 +88,17 @@ func TestPermissionProjectConflictRollsBackKeyGrantsAndAudit(t *testing.T) {
 		PermissionID: uid.New(uid.PermissionPrefix), WorkspaceID: route.InternalWorkspaceID,
 		ProjectID: otherProject.ID, Name: grant, Slug: grant,
 	}))
-	before := snapshot(t, h)
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, http.Header{"Authorization": {"Bearer test"}, "Content-Type": {"application/json"}}, handler.Request{Permissions: []string{grant}})
-	require.Equal(t, http.StatusInternalServerError, res.Status)
-	require.Equal(t, before, snapshot(t, h))
+	require.Equal(t, http.StatusOK, res.Status)
+	stored, err := db.Query.ListUnkeyPermissionsByPrincipal(t.Context(), h.DB.RO(), db.ListUnkeyPermissionsByPrincipalParams{ForWorkspaceID: p.AuthorizedWorkspaceID, PrincipalType: "root_key", PrincipalID: res.Body.Data.KeyId})
+	require.NoError(t, err)
+	require.Equal(t, []string{grant}, stored)
 }
 
-// TestPermissionCollationSubstitutionRollsBack guarantees SQL cannot substitute
-// a different permission. For example, a stored ks_one with a zero-width space
-// must not replace requested ks_one; the request fails without storing changes.
-func TestPermissionCollationSubstitutionRollsBack(t *testing.T) {
+// TestLegacyCollationCannotSubstitutePermission guarantees legacy SQL rows cannot
+// replace a new root-key permission. For example, stored ks_one with a zero-width
+// space cannot replace requested ks_one in the new table.
+func TestLegacyCollationCannotSubstitutePermission(t *testing.T) {
 	h, route, p := newHarness(t)
 	projectID := uid.New(uid.ProjectPrefix)
 	permission := "unkey:v1:" + p.AuthorizedWorkspaceID + ":projects/" + projectID + "/keyspaces/ks_one#write"
@@ -107,23 +111,25 @@ func TestPermissionCollationSubstitutionRollsBack(t *testing.T) {
 	require.NoError(t, h.DB.RO().QueryRowContext(t.Context(), "SELECT slug = ? FROM permissions WHERE workspace_id = ? AND slug = ?", permission, route.InternalWorkspaceID, stored).Scan(&equal))
 	require.True(t, equal, "fixture must reproduce collation-equivalent but byte-distinct slugs")
 	p.Permissions = []string{"unkey:v1:" + p.AuthorizedWorkspaceID + ":rootKeys/*#write", permission}
-	before := snapshot(t, h)
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, http.Header{"Authorization": {"Bearer test"}, "Content-Type": {"application/json"}}, handler.Request{Permissions: []string{permission}})
-	require.Equal(t, http.StatusInternalServerError, res.Status, "%s", res.RawBody)
-	require.Equal(t, before, snapshot(t, h))
+	require.Equal(t, http.StatusOK, res.Status, "%s", res.RawBody)
+	storedPermissions, err := db.Query.ListUnkeyPermissionsByPrincipal(t.Context(), h.DB.RO(), db.ListUnkeyPermissionsByPrincipalParams{ForWorkspaceID: p.AuthorizedWorkspaceID, PrincipalType: "root_key", PrincipalID: res.Body.Data.KeyId})
+	require.NoError(t, err)
+	require.Equal(t, []string{permission}, storedPermissions)
 }
 
-// TestPermissionCaseCollisionRollsBack guarantees case-insensitive storage
-// cannot silently merge requested permissions. For example, ks_one#read and
-// KS_one#read fail together without storing a key, permissions, or audit events.
-func TestPermissionCaseCollisionRollsBack(t *testing.T) {
+// TestPermissionStoragePreservesCase guarantees differently cased IDs remain
+// separate permissions. For example, ks_one#read and KS_one#read are both
+// stored exactly as requested for the new root key.
+func TestPermissionStoragePreservesCase(t *testing.T) {
 	h, route, p := newHarness(t)
 	base := "unkey:v1:" + p.AuthorizedWorkspaceID + ":projects/proj_one/keyspaces/"
 	requested := []string{base + "ks_one#read", base + "KS_one#read"}
-	before := snapshot(t, h)
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, http.Header{"Authorization": {"Bearer test"}, "Content-Type": {"application/json"}}, handler.Request{Permissions: requested})
-	require.Equal(t, http.StatusInternalServerError, res.Status, "%s", res.RawBody)
-	require.Equal(t, before, snapshot(t, h))
+	require.Equal(t, http.StatusOK, res.Status, "%s", res.RawBody)
+	stored, err := db.Query.ListUnkeyPermissionsByPrincipal(t.Context(), h.DB.RO(), db.ListUnkeyPermissionsByPrincipalParams{ForWorkspaceID: p.AuthorizedWorkspaceID, PrincipalType: "root_key", PrincipalID: res.Body.Data.KeyId})
+	require.NoError(t, err)
+	require.ElementsMatch(t, requested, stored)
 }
 
 func snapshot(t *testing.T, h *testutil.Harness) []int {
@@ -133,6 +139,7 @@ func snapshot(t *testing.T, h *testutil.Harness) []int {
 		{"SELECT COUNT(*) FROM `keys` WHERE workspace_id = ?", h.Resources().RootWorkspace.ID},
 		{"SELECT COUNT(*) FROM permissions WHERE workspace_id = ?", h.Resources().RootWorkspace.ID},
 		{"SELECT COUNT(*) FROM keys_permissions WHERE workspace_id = ?", h.Resources().RootWorkspace.ID},
+		{"SELECT COUNT(*) FROM unkey_permissions WHERE for_workspace_id = ?", h.Resources().UserWorkspace.ID},
 		{"SELECT COUNT(*) FROM clickhouse_outbox WHERE workspace_id = ?", h.Resources().UserWorkspace.ID},
 	} {
 		var count int

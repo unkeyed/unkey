@@ -256,6 +256,19 @@ type RolesPermission struct {
 	UpdatedAtM   sql.NullInt64 `db:"updated_at_m"`
 }
 
+type UnkeyPermission struct {
+	Pk             uint64         `db:"pk"`
+	ID             string         `db:"id"`
+	ForWorkspaceID string         `db:"for_workspace_id"`
+	PrincipalType  string         `db:"principal_type"`
+	PrincipalID    string         `db:"principal_id"`
+	Name           string         `db:"name"`
+	Slug           string         `db:"slug"`
+	Description    sql.NullString `db:"description"`
+	CreatedAtM     int64          `db:"created_at_m"`
+	UpdatedAtM     sql.NullInt64  `db:"updated_at_m"`
+}
+
 type Workspace struct {
 	Pk               uint64          `db:"pk"`
 	ID               string          `db:"id"`

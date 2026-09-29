@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"net/http"
-	"slices"
 	"time"
 
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
@@ -14,7 +13,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
-	dbtype "github.com/unkeyed/unkey/pkg/db/types"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/rbac"
@@ -124,39 +122,21 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		if err != nil {
 			return err
 		}
-		permissionRows := make([]db.UpsertPermissionParams, 0, len(validatedPermissions))
+		permissionRows := make([]db.InsertUnkeyPermissionParams, 0, len(validatedPermissions))
 		for _, slug := range validatedPermissions {
-			permissionRows = append(permissionRows, db.UpsertPermissionParams{
-				PermissionID: uid.New(uid.PermissionPrefix),
-				WorkspaceID:  h.InternalWorkspaceID,
-				ProjectID:    h.InternalProjectID,
-				Name:         slug,
-				Slug:         slug,
-				CreatedAtM:   h.Clock.Now().UnixMilli(),
-				Description: dbtype.NullString{
-					String: "",
-					Valid:  false,
-				},
+			permissionRows = append(permissionRows, db.InsertUnkeyPermissionParams{
+				ID:             uid.New(uid.PermissionPrefix),
+				ForWorkspaceID: p.AuthorizedWorkspaceID,
+				PrincipalType:  "root_key",
+				PrincipalID:    keyID,
+				Name:           slug,
+				Slug:           slug,
+				CreatedAtM:     h.Clock.Now().UnixMilli(),
+				Description:    sql.NullString{},
 			})
 		}
-		if err := db.BulkQuery.UpsertPermission(ctx, tx, permissionRows); err != nil {
+		if err := db.BulkQuery.InsertUnkeyPermissions(ctx, tx, permissionRows); err != nil {
 			return err
-		}
-		permissions, err := db.Query.FindPermissionsBySlugsForUpdate(ctx, tx, db.FindPermissionsBySlugsForUpdateParams{
-			WorkspaceID: h.InternalWorkspaceID,
-			ProjectID:   h.InternalProjectID,
-			Slugs:       validatedPermissions,
-		})
-		if err != nil {
-			return err
-		}
-		if len(permissions) != len(validatedPermissions) {
-			return fault.New("root permission belongs to another project", fault.Code(codes.App.Internal.UnexpectedError.URN()))
-		}
-		for _, permission := range permissions {
-			if _, ok := slices.BinarySearch(validatedPermissions, permission.Slug); !ok {
-				return fault.New("stored permission differs from authorized permission", fault.Code(codes.App.Internal.UnexpectedError.URN()))
-			}
 		}
 		actor := auditactor.FromPrincipal(p)
 		keyResource := auditlog.AuditLogResource{
@@ -179,15 +159,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			CorrelationID: "",
 			Resources:     []auditlog.AuditLogResource{keyResource},
 		}}
-		keyPermissions := make([]db.InsertKeyPermissionParams, 0, len(permissions))
-		for _, permission := range permissions {
-			keyPermissions = append(keyPermissions, db.InsertKeyPermissionParams{
-				KeyID:        keyID,
-				PermissionID: permission.ID,
-				WorkspaceID:  h.InternalWorkspaceID,
-				CreatedAt:    h.Clock.Now().UnixMilli(),
-				UpdatedAt:    sql.NullInt64{},
-			})
+		for _, permission := range permissionRows {
 			logs = append(logs, auditlog.AuditLog{
 				WorkspaceID:   p.AuthorizedWorkspaceID,
 				Event:         auditlog.AuthConnectPermissionKeyEvent,
@@ -210,9 +182,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					},
 				},
 			})
-		}
-		if err := db.BulkQuery.InsertKeyPermissions(ctx, tx, keyPermissions); err != nil {
-			return err
 		}
 		return h.Auditlogs.Insert(ctx, tx, logs)
 	})
