@@ -235,7 +235,7 @@ export function ConditionFields({
     })
     .with({ type: "remoteIp" }, (c) => (
       <div className="flex gap-2">
-        <div className="w-28 shrink-0">
+        <div className="w-36 shrink-0">
           <fieldset className="flex flex-col gap-1.5 border-0 m-0 p-0">
             <label htmlFor={`remote-ip-operator-${c.id}`} className="text-gray-11 text-sm h-[22px]">
               Operator
