@@ -1,34 +1,38 @@
-FROM node:22-alpine@sha256:968df39aedcea65eeb078fb336ed7191baf48f972b4479711397108be0966920 AS base
-RUN corepack enable && corepack prepare pnpm@8.6.9+sha256.c94450b6623ecedb5e8c7045c7e67cb240bbe88e17660b3d8c57207dfd1eff90 --activate
+FROM ubuntu:24.04@sha256:c4a8d5503dfb2a3eb8ab5f807da5bc69a85730fb49b5cfca2330194ebcc41c7b AS os
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates libatomic1 libstdc++6 \
+    && rm -rf /var/lib/apt/lists/*
 
-# --- Dependencies ---
-FROM base AS deps
+FROM os AS base
+RUN apt-get update && apt-get install -y --no-install-recommends curl git \
+    && rm -rf /var/lib/apt/lists/*
+ENV MISE_DATA_DIR=/opt/mise \
+    MISE_INSTALL_PATH=/usr/local/bin/mise
 WORKDIR /app
-COPY web/package.json web/pnpm-lock.yaml web/pnpm-workspace.yaml ./
-COPY web/apps/portal/package.json ./apps/portal/package.json
-# Copy internal packages that portal depends on
-COPY web/internal/ui/package.json ./internal/ui/package.json
-COPY web/internal/icons/package.json ./internal/icons/package.json
-COPY web/internal/id/package.json ./internal/id/package.json
-RUN pnpm install --frozen-lockfile
+COPY dev/install-mise ./dev/install-mise
+RUN ./dev/install-mise
+COPY .mise/config.toml .mise/mise.lock ./.mise/
+RUN mise trust .mise/config.toml && mise install --locked --yes node github:pnpm/pnpm \
+    && cp -a "$(mise where node)" /opt/node
 
 # --- Builder ---
 FROM base AS builder
-WORKDIR /app
-COPY --from=deps /app/node_modules ./node_modules
-COPY --from=deps /app/apps/portal/node_modules ./apps/portal/node_modules
-COPY --from=deps /app/internal ./internal
+ENV CI=true \
+    pnpm_config_store_dir=/pnpm/store
 COPY web/ .
-RUN pnpm --filter @unkey/portal build
+RUN --mount=type=cache,id=unkey-pnpm,target=/pnpm/store \
+    mise exec -- pnpm install --frozen-lockfile \
+    && mise exec -- pnpm --filter @unkey/portal build
 
 # --- Runner ---
-FROM node:22-alpine@sha256:968df39aedcea65eeb078fb336ed7191baf48f972b4479711397108be0966920 AS runner
+FROM os AS runner
 WORKDIR /app
 
-ENV NODE_ENV=production
+COPY --from=base /opt/node /opt/node
+ENV NODE_ENV=production \
+    PATH=/opt/node/bin:$PATH
 
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 portal
+RUN groupadd --system --gid 1001 nodejs \
+    && useradd --system --uid 1001 --gid nodejs portal
 
 COPY --from=builder --chown=portal:nodejs /app/apps/portal/.output ./.output
 

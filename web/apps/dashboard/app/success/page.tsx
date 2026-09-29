@@ -281,7 +281,13 @@ function SuccessContent() {
         if (deployPlan) {
           const subscribed = await subscribeDeployFn({ plan: deployPlan })
             .then(() => true)
-            .catch(() => false);
+            .catch((error) => {
+              console.error("Compute subscribe failed after setup checkout", {
+                plan: deployPlan,
+                error: error instanceof Error ? error.message : error,
+              });
+              return false;
+            });
           if (!isMounted) {
             return;
           }

@@ -4,9 +4,13 @@ import { parseLoadSubsetOptions, queryCollectionOptions } from "@tanstack/query-
 import { createCollection } from "@tanstack/react-db";
 import { z } from "zod";
 import { queryClient, trpcClient } from "../client";
-import { DEPLOYMENT_STATUSES } from "./deployment-status";
+import {
+  DEPLOYMENT_STATUSES,
+  DEPLOYMENT_STATUS_LABELS,
+  type DeploymentStatus,
+} from "./deployment-status";
 import { INSTANCE_STATUSES } from "./instance-status";
-import { type ParsedFilter, extractStringFilter } from "./utils";
+import { type ParsedFilter, extractStringFilter, extractStringValues } from "./utils";
 
 export const deploymentSchema = z.object({
   id: z.string(),
@@ -108,9 +112,13 @@ function extractNumberFilter(filters: ParsedFilter[], fieldName: string, operato
 // its own, however old it is; the paged /deployments list does not go through
 // the collection at all.
 function readDeploymentSubset(opts: Parameters<typeof parseLoadSubsetOptions>[0]) {
-  const { filters } = parseLoadSubsetOptions(opts);
+  const { filters, limit } = parseLoadSubsetOptions(opts);
   return {
+    limit,
     projectId: extractStringFilter(filters, "projectId"),
+    statuses: extractStringValues(filters, "status").filter((s): s is DeploymentStatus =>
+      Object.hasOwn(DEPLOYMENT_STATUS_LABELS, s),
+    ),
     appId: extractStringFilter(filters, "appId"),
     deploymentId: extractStringFilter(filters, "id"),
     startTime: extractNumberFilter(filters, "createdAt", "gte"),
@@ -128,6 +136,9 @@ export const deployments = createCollection<Deployment, string>(
   queryCollectionOptions({
     queryClient,
     queryKey: (opts) => {
+      if (opts.cursor) {
+        return ["deployments", "next-page"];
+      }
       const subset = readDeploymentSubset(opts);
       return subset.projectId
         ? [
@@ -136,6 +147,8 @@ export const deployments = createCollection<Deployment, string>(
             subset.appId ?? null,
             subset.startTime ?? null,
             subset.endTime ?? null,
+            subset.statuses.join(",") || null,
+            subset.limit ?? null,
             subset.deploymentId ?? null,
           ]
         : ["deployments"];
@@ -143,9 +156,11 @@ export const deployments = createCollection<Deployment, string>(
     retry: 3,
     syncMode: "on-demand",
     queryFn: async (ctx) => {
-      const { projectId, appId, deploymentId, startTime, endTime } = readDeploymentSubset(
-        ctx.meta?.loadSubsetOptions,
-      );
+      if (ctx.meta?.loadSubsetOptions?.cursor) {
+        return [];
+      }
+      const { projectId, appId, deploymentId, statuses, startTime, endTime, limit } =
+        readDeploymentSubset(ctx.meta?.loadSubsetOptions);
 
       if (!projectId) {
         throw new Error("Query must include eq(collection.projectId, projectId) constraint");
@@ -155,8 +170,10 @@ export const deployments = createCollection<Deployment, string>(
         projectId,
         ...(appId !== undefined && { appId }),
         ...(deploymentId !== undefined && { deploymentIds: [deploymentId] }),
+        ...(statuses.length > 0 && { statuses }),
         ...(startTime !== undefined && { startTime }),
         ...(endTime !== undefined && { endTime }),
+        ...(limit !== undefined && { limit }),
       });
       return result.deployments;
     },

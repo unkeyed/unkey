@@ -1,4 +1,5 @@
 import { useProjectEnvironments } from "@/hooks/use-project-environments";
+import { useProjectsWithApps } from "@/hooks/use-projects-with-apps";
 import { trpc } from "@/lib/trpc/client";
 import type { UnkeyPermission } from "@unkey/rbac";
 import { toast } from "@unkey/ui";
@@ -99,10 +100,9 @@ export function useRootKeyDialog({
     });
   }, [apisData]);
 
-  const { data: projectsData, isLoading: projectsLoading } = trpc.deploy.project.list.useQuery(
-    undefined,
-    { enabled: isOpen },
-  );
+  const { data: projectsData, isLoading: projectsLoading } = useProjectsWithApps({
+    enabled: isOpen,
+  });
 
   const allProjects = useMemo(() => {
     if (!projectsData) {
