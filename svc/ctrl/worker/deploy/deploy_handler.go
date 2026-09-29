@@ -682,13 +682,12 @@ func (w *Workflow) configureRouting(
 }
 
 func (w *Workflow) replacePreviousDeployments(ctx restate.ObjectContext, deployment db.FindDeploymentForDeployRow) error {
-	promoteLive, replacementDelay := replacementPolicy(deployment.EnvironmentKind, deployment.EnvironmentSlug)
-	if promoteLive {
+	if deployment.EnvironmentKind.IsProduction() {
 		return w.swapLiveDeployment(ctx, deployment)
 	}
 
-	if replacementDelay > 0 {
-		if err := w.spinDownPreviousDeployments(ctx, deployment, replacementDelay); err != nil {
+	if deployment.EnvironmentKind.IsPreview() {
+		if err := w.spinDownPreviousDeployments(ctx, deployment); err != nil {
 			logger.Error("unable to spin down previous deployments", "error", err)
 		}
 	}
@@ -696,23 +695,9 @@ func (w *Workflow) replacePreviousDeployments(ctx restate.ObjectContext, deploym
 	return nil
 }
 
-func replacementPolicy(environmentKind mysqltype.EnvironmentKind, environmentSlug string) (promoteLive bool, replacementDelay time.Duration) {
-	switch {
-	case environmentKind.IsProduction() && environmentSlug == "production":
-		return true, 0
-	case environmentKind.IsProduction():
-		return false, privatecontract.ReplacementOverlap
-	case environmentKind.IsPreview():
-		return false, privatecontract.ReplacementOverlap
-	default:
-		return false, 0
-	}
-}
-
 func (w *Workflow) spinDownPreviousDeployments(
 	ctx restate.ObjectContext,
 	deployment db.FindDeploymentForDeployRow,
-	delay time.Duration,
 ) error {
 	previousDeploymentIDs, err := restate.Run(ctx, func(stepCtx restate.RunContext) ([]string, error) {
 		return w.db.ListRunningDeploymentsByBranch(stepCtx, db.ListRunningDeploymentsByBranchParams{
@@ -731,7 +716,7 @@ func (w *Workflow) spinDownPreviousDeployments(
 		_, err := hydrav1.NewDeploymentServiceClient(ctx, previousDeploymentID).
 			ScheduleDesiredStateChange().Request(
 			&hydrav1.ScheduleDesiredStateChangeRequest{
-				DelayMillis:      delay.Milliseconds(),
+				DelayMillis:      privatecontract.ReplacementOverlap.Milliseconds(),
 				State:            hydrav1.DeploymentDesiredState_DEPLOYMENT_DESIRED_STATE_STOPPED,
 				Overwrite:        false,
 				DeferWhilePinned: true,
@@ -757,7 +742,7 @@ func (w *Workflow) swapLiveDeployment(
 	ctx restate.ObjectContext,
 	deployment db.FindDeploymentForDeployRow,
 ) error {
-	if deployment.AppIsRolledBack || !deployment.EnvironmentKind.IsProduction() || deployment.EnvironmentSlug != "production" {
+	if deployment.AppIsRolledBack || !deployment.EnvironmentKind.IsProduction() {
 		return nil
 	}
 

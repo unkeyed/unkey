@@ -49,9 +49,11 @@ func TestPromoteDeploymentRejectsForeignEnvironment(t *testing.T) {
 	require.Equal(t, 0, countAudits(t, f.ctx, f.db, f.workspaceID, auditlog.DeploymentPromoteEvent, f.candidate.ID, f.actorID))
 }
 
-func TestPromotePrivateOnlyDeployment(t *testing.T) {
+func TestPromotePrivateOnlyDeploymentWithCustomEnvironmentSlug(t *testing.T) {
 	f := newFixture(t)
-	_, err := f.db.RW().ExecContext(f.ctx, "DELETE FROM frontline_routes WHERE environment_id = ?", f.env.ID)
+	_, err := f.db.RW().ExecContext(f.ctx, "UPDATE environments SET slug = 'live' WHERE id = ?", f.env.ID)
+	require.NoError(t, err)
+	_, err = f.db.RW().ExecContext(f.ctx, "DELETE FROM frontline_routes WHERE environment_id = ?", f.env.ID)
 	require.NoError(t, err)
 
 	require.NoError(t, f.promote(f.env.ID, f.candidate.ID))
