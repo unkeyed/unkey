@@ -1,0 +1,21 @@
+type: object
+additionalProperties: false
+required:
+  - keyId
+  - expiration
+properties:
+  keyId:
+    type: string
+    minLength: 3
+    maxLength: 255
+    pattern: "^[a-zA-Z0-9_]+$"
+    description: Root key identifier returned by rootKeys.createKey or rootKeys.listKeys.
+  expiration:
+    type: [integer, "null"]
+    format: int64
+    minimum: 0
+    maximum: 4102444800000
+    description: |
+      Milliseconds until the original root key expires. Use 0 to revoke it immediately.
+      Use null to keep the original key's current expiration. This value never extends
+      an existing expiration.

@@ -15,7 +15,9 @@ SELECT
     id,
     hash,
     name,
+    prefix,
     start,
+    enabled,
     expires,
     is_legacy
 FROM (
@@ -23,7 +25,9 @@ FROM (
         id,
         hash,
         name,
+        prefix,
         start,
+        enabled,
         expires,
         FALSE AS is_legacy
     FROM unkey_root_keys
@@ -35,7 +39,9 @@ FROM (
         id,
         hash,
         name,
+        prefix,
         start,
+        enabled,
         expires,
         TRUE AS is_legacy
     FROM ` + "`" + `keys` + "`" + `
@@ -55,7 +61,9 @@ type FindRootKeysForManagementRow struct {
 	ID       string         `db:"id"`
 	Hash     string         `db:"hash"`
 	Name     sql.NullString `db:"name"`
+	Prefix   string         `db:"prefix"`
 	Start    string         `db:"start"`
+	Enabled  bool           `db:"enabled"`
 	Expires  sql.NullTime   `db:"expires"`
 	IsLegacy int32          `db:"is_legacy"`
 }
@@ -67,7 +75,9 @@ type FindRootKeysForManagementRow struct {
 //	    id,
 //	    hash,
 //	    name,
+//	    prefix,
 //	    start,
+//	    enabled,
 //	    expires,
 //	    is_legacy
 //	FROM (
@@ -75,7 +85,9 @@ type FindRootKeysForManagementRow struct {
 //	        id,
 //	        hash,
 //	        name,
+//	        prefix,
 //	        start,
+//	        enabled,
 //	        expires,
 //	        FALSE AS is_legacy
 //	    FROM unkey_root_keys
@@ -87,7 +99,9 @@ type FindRootKeysForManagementRow struct {
 //	        id,
 //	        hash,
 //	        name,
+//	        prefix,
 //	        start,
+//	        enabled,
 //	        expires,
 //	        TRUE AS is_legacy
 //	    FROM `keys`
@@ -114,7 +128,9 @@ func (q *Queries) FindRootKeysForManagement(ctx context.Context, db DBTX, arg Fi
 			&i.ID,
 			&i.Hash,
 			&i.Name,
+			&i.Prefix,
 			&i.Start,
+			&i.Enabled,
 			&i.Expires,
 			&i.IsLegacy,
 		); err != nil {

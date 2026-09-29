@@ -1,0 +1,66 @@
+post:
+  tags:
+    - rootKeys
+  summary: Reroll root key
+  description: |
+    Creates a new root key secret with the same name, enabled state, expiration, and
+    effective permissions as an existing root key in the authenticated workspace.
+    Requires `unkey:v1:<workspace_id>:rootKeys/<key_id>#write`, and the caller must
+    already hold every permission of the original key.
+
+    `expiration` controls the original key: 0 revokes it immediately, a positive value
+    keeps it valid for that many milliseconds, and null keeps its current expiration.
+    Legacy root keys are rerolled into the new root-key store.
+  operationId: rootKeys.rerollKey
+  x-speakeasy-name-override: rerollKey
+  security:
+    - bearer: []
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ./V2RootKeysRerollKeyRequestBody.yaml
+  responses:
+    "200":
+      description: Root key rerolled. Save the secret now; it cannot be retrieved later.
+      content:
+        application/json:
+          schema:
+            $ref: ./V2RootKeysRerollKeyResponseBody.yaml
+    "400":
+      description: Invalid request.
+      content:
+        application/json:
+          schema:
+            $ref: ../../../../error/BadRequestErrorResponse.yaml
+    "401":
+      description: Authentication is required.
+      content:
+        application/json:
+          schema:
+            $ref: ../../../../error/UnauthorizedErrorResponse.yaml
+    "403":
+      description: The caller cannot reroll this root key or does not hold its permissions.
+      content:
+        application/json:
+          schema:
+            $ref: ../../../../error/ForbiddenErrorResponse.yaml
+    "404":
+      description: The root key was not found.
+      content:
+        application/json:
+          schema:
+            $ref: ../../../../error/NotFoundErrorResponse.yaml
+    "429":
+      description: Too many requests.
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../../../../error/TooManyRequestsErrorResponse.yaml
+    "500":
+      description: The root key could not be rerolled.
+      content:
+        application/json:
+          schema:
+            $ref: ../../../../error/InternalServerErrorResponse.yaml

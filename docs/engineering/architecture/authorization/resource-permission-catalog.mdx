@@ -112,17 +112,17 @@ unkey:v1:ws_123:rootKeys/*#write
 The created root key cannot have more permissions than the caller. Only
 URN permissions are accepted. Legacy permissions are not translated.
 
-### Update or delete a root key
+### Update, reroll, or delete a root key
 
-Use `write` to update a root key and `delete` to delete it.
+Use `write` to update or reroll a root key and `delete` to delete it.
 
 ```plaintext
 unkey:v1:ws_123:rootKeys/key_123#write
 unkey:v1:ws_123:rootKeys/key_123#delete
 ```
 
-A permission replacement cannot give the root key more permissions than the
-caller.
+A permission replacement or reroll cannot give a root key more permissions than
+the caller.
 
 ### Create a key
 

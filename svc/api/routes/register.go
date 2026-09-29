@@ -67,6 +67,7 @@ import (
 	v2RootKeysCreateKey "github.com/unkeyed/unkey/svc/api/routes/v2_root_keys_create_key"
 	v2RootKeysDeleteKey "github.com/unkeyed/unkey/svc/api/routes/v2_root_keys_delete_key"
 	v2RootKeysListKeys "github.com/unkeyed/unkey/svc/api/routes/v2_root_keys_list_keys"
+	v2RootKeysRerollKey "github.com/unkeyed/unkey/svc/api/routes/v2_root_keys_reroll_key"
 	v2RootKeysUpdateKey "github.com/unkeyed/unkey/svc/api/routes/v2_root_keys_update_key"
 
 	v2AnalyticsGetGatewayRequests "github.com/unkeyed/unkey/svc/api/routes/v2_analytics_get_gateway_requests"
@@ -594,6 +595,9 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 	})
 	srv.RegisterRoute(protectedMiddlewares, &v2RootKeysDeleteKey.Handler{
 		DB: svc.Database, Auditlogs: svc.Auditlogs, KeyCache: svc.Caches.VerificationKeyByHash, RootKeyCache: svc.Caches.RootKeyByHash, Clock: svc.Clock,
+	})
+	srv.RegisterRoute(protectedMiddlewares, &v2RootKeysRerollKey.Handler{
+		DB: svc.Database, Keys: svc.Keys, Auditlogs: svc.Auditlogs, KeyCache: svc.Caches.VerificationKeyByHash, RootKeyCache: svc.Caches.RootKeyByHash, Clock: svc.Clock,
 	})
 
 	// v2/keys.rerollKey

@@ -5,7 +5,9 @@ SELECT
     id,
     hash,
     name,
+    prefix,
     start,
+    enabled,
     expires,
     is_legacy
 FROM (
@@ -13,7 +15,9 @@ FROM (
         id,
         hash,
         name,
+        prefix,
         start,
+        enabled,
         expires,
         FALSE AS is_legacy
     FROM unkey_root_keys
@@ -25,7 +29,9 @@ FROM (
         id,
         hash,
         name,
+        prefix,
         start,
+        enabled,
         expires,
         TRUE AS is_legacy
     FROM `keys`

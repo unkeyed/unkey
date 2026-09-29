@@ -212,6 +212,8 @@ paths:
     $ref: "./spec/paths/v2/rootKeys/updateKey/index.yaml"
   /v2/rootKeys.deleteKey:
     $ref: "./spec/paths/v2/rootKeys/deleteKey/index.yaml"
+  /v2/rootKeys.rerollKey:
+    $ref: "./spec/paths/v2/rootKeys/rerollKey/index.yaml"
   /v2/keys.rerollKey:
     $ref: "./spec/paths/v2/keys/rerollKey/index.yaml"
   /v2/keys.updateKey:

@@ -6513,6 +6513,34 @@ type V2RootKeysListKeysResponseData struct {
 	Start string `json:"start"`
 }
 
+// V2RootKeysRerollKeyRequestBody defines model for V2RootKeysRerollKeyRequestBody.
+type V2RootKeysRerollKeyRequestBody struct {
+	// Expiration Milliseconds until the original root key expires. Use 0 to revoke it immediately.
+	// Use null to keep the original key's current expiration. This value never extends
+	// an existing expiration.
+	Expiration nullable.Nullable[int64] `json:"expiration"`
+
+	// KeyId Root key identifier returned by rootKeys.createKey or rootKeys.listKeys.
+	KeyId string `json:"keyId"`
+}
+
+// V2RootKeysRerollKeyResponseBody defines model for V2RootKeysRerollKeyResponseBody.
+type V2RootKeysRerollKeyResponseBody struct {
+	Data V2RootKeysRerollKeyResponseData `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// V2RootKeysRerollKeyResponseData defines model for V2RootKeysRerollKeyResponseData.
+type V2RootKeysRerollKeyResponseData struct {
+	// Key New root key secret, returned only once. Store it securely.
+	Key string `json:"key"`
+
+	// KeyId Identifier of the new root key.
+	KeyId string `json:"keyId"`
+}
+
 // V2RootKeysUpdateKeyRequestBody defines model for V2RootKeysUpdateKeyRequestBody.
 type V2RootKeysUpdateKeyRequestBody struct {
 	// Enabled Whether the root key can authenticate. Omit to keep the current state.
@@ -6922,6 +6950,9 @@ type RootKeysDeleteKeyJSONRequestBody = V2RootKeysDeleteKeyRequestBody
 
 // RootKeysListKeysJSONRequestBody defines body for RootKeysListKeys for application/json ContentType.
 type RootKeysListKeysJSONRequestBody = V2RootKeysListKeysRequestBody
+
+// RootKeysRerollKeyJSONRequestBody defines body for RootKeysRerollKey for application/json ContentType.
+type RootKeysRerollKeyJSONRequestBody = V2RootKeysRerollKeyRequestBody
 
 // RootKeysUpdateKeyJSONRequestBody defines body for RootKeysUpdateKey for application/json ContentType.
 type RootKeysUpdateKeyJSONRequestBody = V2RootKeysUpdateKeyRequestBody

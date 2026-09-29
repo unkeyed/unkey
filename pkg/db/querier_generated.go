@@ -1202,7 +1202,9 @@ type Querier interface {
 	//      id,
 	//      hash,
 	//      name,
+	//      prefix,
 	//      start,
+	//      enabled,
 	//      expires,
 	//      is_legacy
 	//  FROM (
@@ -1210,7 +1212,9 @@ type Querier interface {
 	//          id,
 	//          hash,
 	//          name,
+	//          prefix,
 	//          start,
+	//          enabled,
 	//          expires,
 	//          FALSE AS is_legacy
 	//      FROM unkey_root_keys
@@ -1222,7 +1226,9 @@ type Querier interface {
 	//          id,
 	//          hash,
 	//          name,
+	//          prefix,
 	//          start,
+	//          enabled,
 	//          expires,
 	//          TRUE AS is_legacy
 	//      FROM `keys`
@@ -3331,6 +3337,14 @@ type Querier interface {
 	//      AND for_workspace_id = ?
 	//      AND deleted_at_m IS NULL
 	UpdateLegacyRootKey(ctx context.Context, db DBTX, arg UpdateLegacyRootKeyParams) error
+	// UpdateLegacyRootKeyExpiration sets when a live legacy root key expires.
+	//
+	//  UPDATE `keys`
+	//  SET expires = ?, updated_at_m = ?
+	//  WHERE id = ?
+	//      AND for_workspace_id = ?
+	//      AND deleted_at_m IS NULL
+	UpdateLegacyRootKeyExpiration(ctx context.Context, db DBTX, arg UpdateLegacyRootKeyExpirationParams) error
 	// Updates a portal's mutable fields, scoped to the workspace so one workspace can
 	// never mutate another's portal.
 	//
@@ -3434,6 +3448,14 @@ type Querier interface {
 	//      AND workspace_id = ?
 	//      AND deleted_at IS NULL
 	UpdateUnkeyRootKey(ctx context.Context, db DBTX, arg UpdateUnkeyRootKeyParams) error
+	// UpdateUnkeyRootKeyExpiration sets when a live new-format root key expires.
+	//
+	//  UPDATE unkey_root_keys
+	//  SET expires = ?
+	//  WHERE id = ?
+	//      AND workspace_id = ?
+	//      AND deleted_at IS NULL
+	UpdateUnkeyRootKeyExpiration(ctx context.Context, db DBTX, arg UpdateUnkeyRootKeyExpirationParams) error
 	//UpdateWorkspaceEnabled
 	//
 	//  UPDATE `workspaces`

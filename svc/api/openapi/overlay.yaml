@@ -26,6 +26,11 @@ actions:
   - target: $["components"]["schemas"]["V2RootKeysUpdateKeyRequestBody"]["properties"]["name"]
     update:
       nullable: true
+  - target: $["components"]["schemas"]["V2RootKeysRerollKeyRequestBody"]["properties"]["expiration"]["type"]
+    update: integer
+  - target: $["components"]["schemas"]["V2RootKeysRerollKeyRequestBody"]["properties"]["expiration"]
+    update:
+      nullable: true
   - target: $["components"]["schemas"]["V2KeysUpdateCreditsRequestBody"]["properties"]["value"]["type"]
     update: integer
   - target: $["components"]["schemas"]["V2KeysUpdateCreditsRequestBody"]["properties"]["value"]

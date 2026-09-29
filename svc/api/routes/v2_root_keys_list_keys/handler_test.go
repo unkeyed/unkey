@@ -97,10 +97,11 @@ func TestListRootKeysReturnsEffectivePermissions(t *testing.T) {
 	_, err := h.DB.RW().ExecContext(t.Context(), "UPDATE `keys` SET name = NULL WHERE id = ?", legacy.KeyID)
 	require.NoError(t, err)
 	id := uid.New(uid.KeyPrefix)
+	secretHash := uid.New("hash")
 	require.NoError(t, db.Query.InsertUnkeyRootKey(t.Context(), h.DB.RW(), db.InsertUnkeyRootKeyParams{
 		ID:          id,
 		WorkspaceID: workspace.ID,
-		Hash:        "never-return-this-hash",
+		Hash:        secretHash,
 		Name:        sql.NullString{String: "", Valid: true},
 		Prefix:      "unkey",
 		Start:       "display",
@@ -156,7 +157,7 @@ func TestListRootKeysReturnsEffectivePermissions(t *testing.T) {
 		}
 	}
 	require.NotContains(t, res.RawBody, legacy.Key)
-	require.NotContains(t, res.RawBody, "never-return-this-hash")
+	require.NotContains(t, res.RawBody, secretHash)
 	require.NotContains(t, res.RawBody, `"hash"`)
 	require.NotContains(t, res.RawBody, `"key"`)
 }

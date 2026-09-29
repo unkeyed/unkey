@@ -1,0 +1,10 @@
+type: object
+additionalProperties: false
+required:
+  - meta
+  - data
+properties:
+  meta:
+    $ref: ../../../../common/Meta.yaml
+  data:
+    $ref: ./V2RootKeysRerollKeyResponseData.yaml

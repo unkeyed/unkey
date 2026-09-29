@@ -64,6 +64,38 @@ func (q *Queries) UpdateLegacyRootKey(ctx context.Context, db DBTX, arg UpdateLe
 	return err
 }
 
+const updateLegacyRootKeyExpiration = `-- name: UpdateLegacyRootKeyExpiration :exec
+UPDATE ` + "`" + `keys` + "`" + `
+SET expires = ?, updated_at_m = ?
+WHERE id = ?
+    AND for_workspace_id = ?
+    AND deleted_at_m IS NULL
+`
+
+type UpdateLegacyRootKeyExpirationParams struct {
+	Expires     sql.NullTime   `db:"expires"`
+	Now         sql.NullInt64  `db:"now"`
+	ID          string         `db:"id"`
+	WorkspaceID sql.NullString `db:"workspace_id"`
+}
+
+// UpdateLegacyRootKeyExpiration sets when a live legacy root key expires.
+//
+//	UPDATE `keys`
+//	SET expires = ?, updated_at_m = ?
+//	WHERE id = ?
+//	    AND for_workspace_id = ?
+//	    AND deleted_at_m IS NULL
+func (q *Queries) UpdateLegacyRootKeyExpiration(ctx context.Context, db DBTX, arg UpdateLegacyRootKeyExpirationParams) error {
+	_, err := db.ExecContext(ctx, updateLegacyRootKeyExpiration,
+		arg.Expires,
+		arg.Now,
+		arg.ID,
+		arg.WorkspaceID,
+	)
+	return err
+}
+
 const updateUnkeyRootKey = `-- name: UpdateUnkeyRootKey :exec
 UPDATE unkey_root_keys SET
     name = CASE
@@ -111,5 +143,31 @@ func (q *Queries) UpdateUnkeyRootKey(ctx context.Context, db DBTX, arg UpdateUnk
 		arg.ID,
 		arg.WorkspaceID,
 	)
+	return err
+}
+
+const updateUnkeyRootKeyExpiration = `-- name: UpdateUnkeyRootKeyExpiration :exec
+UPDATE unkey_root_keys
+SET expires = ?
+WHERE id = ?
+    AND workspace_id = ?
+    AND deleted_at IS NULL
+`
+
+type UpdateUnkeyRootKeyExpirationParams struct {
+	Expires     sql.NullTime `db:"expires"`
+	ID          string       `db:"id"`
+	WorkspaceID string       `db:"workspace_id"`
+}
+
+// UpdateUnkeyRootKeyExpiration sets when a live new-format root key expires.
+//
+//	UPDATE unkey_root_keys
+//	SET expires = ?
+//	WHERE id = ?
+//	    AND workspace_id = ?
+//	    AND deleted_at IS NULL
+func (q *Queries) UpdateUnkeyRootKeyExpiration(ctx context.Context, db DBTX, arg UpdateUnkeyRootKeyExpirationParams) error {
+	_, err := db.ExecContext(ctx, updateUnkeyRootKeyExpiration, arg.Expires, arg.ID, arg.WorkspaceID)
 	return err
 }
