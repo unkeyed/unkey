@@ -473,6 +473,7 @@ func TestUpdateKeyConcurrentWithSameExternalId(t *testing.T) {
 	// Verify only one identity was created
 	identity, err := db.Query.FindIdentityByExternalID(ctx, h.DB.RO(), db.FindIdentityByExternalIDParams{
 		WorkspaceID: h.Resources().UserWorkspace.ID,
+		ProjectID:   api.ProjectID,
 		ExternalID:  externalID,
 		Deleted:     false,
 	})

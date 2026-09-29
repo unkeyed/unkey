@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/svc/api/internal/projects"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_identities_get_identity"
@@ -24,6 +25,9 @@ func TestNotFound(t *testing.T) {
 	}
 
 	h.Register(route)
+
+	defaultProjectID, err := projects.EnsureDefaultProject(t.Context(), h.DB.RW(), h.Resources().UserWorkspace.ID)
+	require.NoError(t, err)
 
 	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "identity.*.read_identity")
 	headers := http.Header{
@@ -63,6 +67,7 @@ func TestNotFound(t *testing.T) {
 			ID:          deletedIdentityID,
 			ExternalID:  deletedExternalID,
 			WorkspaceID: h.Resources().UserWorkspace.ID,
+			ProjectID:   defaultProjectID,
 			Environment: "default",
 			CreatedAt:   time.Now().UnixMilli(),
 			Meta:        []byte("{}"),

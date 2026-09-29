@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/svc/api/internal/projects"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_identities_create_identity"
@@ -26,6 +27,9 @@ func TestCreateIdentitySuccessfully(t *testing.T) {
 	}
 
 	h.Register(route)
+
+	defaultProjectID, err := projects.EnsureDefaultProject(t.Context(), h.DB.RW(), h.Resources().UserWorkspace.ID)
+	require.NoError(t, err)
 
 	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "identity.*.create_identity")
 	headers := http.Header{
@@ -108,6 +112,7 @@ func TestCreateIdentitySuccessfully(t *testing.T) {
 
 		identity, err := db.Query.FindIdentityByExternalID(ctx, h.DB.RO(), db.FindIdentityByExternalIDParams{
 			WorkspaceID: h.Resources().UserWorkspace.ID,
+			ProjectID:   defaultProjectID,
 			ExternalID:  externalTestID,
 			Deleted:     false,
 		})
@@ -133,6 +138,7 @@ func TestCreateIdentitySuccessfully(t *testing.T) {
 
 		identity, err := db.Query.FindIdentityByExternalID(ctx, h.DB.RO(), db.FindIdentityByExternalIDParams{
 			WorkspaceID: h.Resources().UserWorkspace.ID,
+			ProjectID:   defaultProjectID,
 			ExternalID:  externalTestID,
 			Deleted:     false,
 		})
@@ -173,6 +179,7 @@ func TestCreateIdentitySuccessfully(t *testing.T) {
 
 		identity, err := db.Query.FindIdentityByExternalID(ctx, h.DB.RO(), db.FindIdentityByExternalIDParams{
 			WorkspaceID: h.Resources().UserWorkspace.ID,
+			ProjectID:   defaultProjectID,
 			ExternalID:  externalTestID,
 			Deleted:     false,
 		})
@@ -232,6 +239,7 @@ func TestCreateIdentitySuccessfully(t *testing.T) {
 
 		identity, err := db.Query.FindIdentityByExternalID(ctx, h.DB.RO(), db.FindIdentityByExternalIDParams{
 			WorkspaceID: h.Resources().UserWorkspace.ID,
+			ProjectID:   defaultProjectID,
 			ExternalID:  externalTestID,
 			Deleted:     false,
 		})
@@ -307,6 +315,7 @@ func TestCreateIdentitySuccessfully(t *testing.T) {
 
 		identity, err := db.Query.FindIdentityByExternalID(ctx, h.DB.RO(), db.FindIdentityByExternalIDParams{
 			WorkspaceID: h.Resources().UserWorkspace.ID,
+			ProjectID:   defaultProjectID,
 			ExternalID:  externalTestID,
 			Deleted:     false,
 		})
@@ -347,6 +356,7 @@ func TestCreateIdentitySuccessfully(t *testing.T) {
 		for i, externalID := range externalIDs {
 			identity, err := db.Query.FindIdentityByExternalID(ctx, h.DB.RO(), db.FindIdentityByExternalIDParams{
 				WorkspaceID: h.Resources().UserWorkspace.ID,
+				ProjectID:   defaultProjectID,
 				ExternalID:  externalID,
 				Deleted:     false,
 			})
@@ -377,6 +387,7 @@ func TestCreateIdentitySuccessfully(t *testing.T) {
 		// Verify in database
 		identity, err := db.Query.FindIdentityByExternalID(ctx, h.DB.RO(), db.FindIdentityByExternalIDParams{
 			WorkspaceID: h.Resources().UserWorkspace.ID,
+			ProjectID:   defaultProjectID,
 			ExternalID:  externalTestID,
 			Deleted:     false,
 		})
@@ -417,6 +428,7 @@ func TestCreateIdentitySuccessfully(t *testing.T) {
 		// Verify in database
 		identity, err := db.Query.FindIdentityByExternalID(ctx, h.DB.RO(), db.FindIdentityByExternalIDParams{
 			WorkspaceID: h.Resources().UserWorkspace.ID,
+			ProjectID:   defaultProjectID,
 			ExternalID:  externalTestID,
 			Deleted:     false,
 		})

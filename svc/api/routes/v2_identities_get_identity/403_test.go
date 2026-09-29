@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/svc/api/internal/projects"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_identities_get_identity"
@@ -24,6 +25,9 @@ func TestForbidden(t *testing.T) {
 	}
 
 	h.Register(route)
+
+	defaultProjectID, err := projects.EnsureDefaultProject(t.Context(), h.DB.RW(), h.Resources().UserWorkspace.ID)
+	require.NoError(t, err)
 
 	// Create a root key with no permissions
 	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID)
@@ -51,6 +55,7 @@ func TestForbidden(t *testing.T) {
 		ID:          identityID,
 		ExternalID:  externalID,
 		WorkspaceID: workspaceID,
+		ProjectID:   defaultProjectID,
 		Environment: "default",
 		CreatedAt:   time.Now().UnixMilli(),
 		Meta:        []byte("{}"),
@@ -62,6 +67,7 @@ func TestForbidden(t *testing.T) {
 		ID:          otherIdentityID,
 		ExternalID:  "other_user_403",
 		WorkspaceID: workspaceID,
+		ProjectID:   defaultProjectID,
 		Environment: "default",
 		CreatedAt:   time.Now().UnixMilli(),
 		Meta:        []byte("{}"),

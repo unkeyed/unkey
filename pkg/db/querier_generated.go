@@ -113,12 +113,15 @@ type Querier interface {
 	//  DELETE FROM roles_permissions
 	//  WHERE role_id = ?
 	DeleteManyRolePermissionsByRoleID(ctx context.Context, db DBTX, roleID string) error
-	//DeleteOldIdentityByExternalID
+	// DeleteOldIdentityByExternalID hard-deletes the soft-deleted identity that
+	// blocks a new soft delete on the per-project unique key. It is scoped to the
+	// project so identities with the same external ID in other projects survive.
 	//
 	//  DELETE i, rl
 	//  FROM identities i
 	//  LEFT JOIN ratelimits rl ON i.id = rl.identity_id
 	//  WHERE i.workspace_id = ?
+	//    AND i.project_id = ?
 	//    AND i.external_id = ?
 	//    AND i.id != ?
 	//    AND i.deleted = true
@@ -472,13 +475,21 @@ type Querier interface {
 	//  FROM github_repo_connections
 	//  WHERE app_id = ?
 	FindGithubRepoConnectionByAppId(ctx context.Context, db DBTX, appID string) (GithubRepoConnection, error)
-	//FindIdentitiesByExternalId
+	// FindIdentitiesByExternalId resolves external IDs within one project, because
+	// external IDs are unique per project.
 	//
 	//  SELECT identities.pk, identities.id, identities.external_id, identities.workspace_id, identities.project_id, identities.environment, identities.meta, identities.deleted, identities.created_at, identities.updated_at
 	//  FROM identities
-	//  WHERE workspace_id = ? AND external_id IN (/*SLICE:externalIds*/?) AND deleted = ?
+	//  WHERE workspace_id = ?
+	//    AND project_id = ?
+	//    AND external_id IN (/*SLICE:externalIds*/?)
+	//    AND deleted = ?
 	FindIdentitiesByExternalId(ctx context.Context, db DBTX, arg FindIdentitiesByExternalIdParams) ([]Identity, error)
-	//FindIdentity
+	// FindIdentity resolves an identity by its ID or by its external ID. An ID
+	// match wins over an external ID match, enforced by lookup_priority.
+	//
+	// IDs are unique per workspace, but external IDs are unique per project, so
+	// only the external ID branch is scoped to project_id.
 	//
 	//  SELECT
 	//      i.pk, i.id, i.external_id, i.workspace_id, i.project_id, i.environment, i.meta,
@@ -514,17 +525,21 @@ type Querier interface {
 	//          1 AS lookup_priority
 	//      FROM identities id2
 	//      WHERE id2.workspace_id = ?
+	//        AND id2.project_id = ?
 	//        AND id2.external_id = ?
 	//        AND id2.deleted = ?
 	//  ) AS i
 	//  ORDER BY i.lookup_priority
 	//  LIMIT 1
 	FindIdentity(ctx context.Context, db DBTX, arg FindIdentityParams) (FindIdentityRow, error)
-	//FindIdentityByExternalID
+	// FindIdentityByExternalID resolves an external ID within one project. External
+	// IDs are unique per project, so the same value can name different identities
+	// in other projects of the workspace.
 	//
 	//  SELECT identities.pk, identities.id, identities.external_id, identities.workspace_id, identities.project_id, identities.environment, identities.meta, identities.deleted, identities.created_at, identities.updated_at
 	//  FROM identities
 	//  WHERE workspace_id = ?
+	//    AND project_id = ?
 	//    AND external_id = ?
 	//    AND deleted = ?
 	FindIdentityByExternalID(ctx context.Context, db DBTX, arg FindIdentityByExternalIDParams) (Identity, error)

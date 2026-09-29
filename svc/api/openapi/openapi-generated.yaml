@@ -1602,7 +1602,7 @@ components:
                     pattern: "^[a-zA-Z0-9_.-]+$"
                     description: |
                         Creates an identity using your system's unique identifier for a user, organization, or entity.
-                        Must be stable and unique across your workspace - duplicate externalIds return CONFLICT errors.
+                        Must be stable and unique within the project - duplicate externalIds return CONFLICT errors.
                         This identifier links Unkey identities to your authentication system, database records, or tenant structure.
 
                         Avoid changing externalIds after creation as this breaks the link between your systems.
@@ -12074,7 +12074,7 @@ paths:
                                     summary: Identity already exists
                                     value:
                                         error:
-                                            detail: Identity with externalId "user_abc123" already exists in this workspace.
+                                            detail: Identity with externalId "user_abc123" already exists in this project.
                                             status: 409
                                             title: Conflict
                                             type: conflict

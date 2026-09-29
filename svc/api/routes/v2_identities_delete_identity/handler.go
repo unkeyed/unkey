@@ -16,6 +16,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
 	apierrors "github.com/unkeyed/unkey/svc/api/internal/errors"
+	"github.com/unkeyed/unkey/svc/api/internal/projects"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
@@ -58,8 +59,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
+	projectID, err := projects.EnsureDefaultProject(ctx, h.DB.RW(), principal.AuthorizedWorkspaceID)
+	if err != nil {
+		return err
+	}
+
 	identity, err := db.Query.FindIdentity(ctx, h.DB.RO(), db.FindIdentityParams{
 		WorkspaceID: principal.AuthorizedWorkspaceID,
+		ProjectID:   projectID,
 		Identity:    req.Identity,
 		Deleted:     false,
 	})
@@ -130,6 +137,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			// Delete the old soft-deleted identity with the same external_id, excluding the current one
 			err = db.Query.DeleteOldIdentityByExternalID(ctx, tx, db.DeleteOldIdentityByExternalIDParams{
 				WorkspaceID:       principal.AuthorizedWorkspaceID,
+				ProjectID:         identity.ProjectID,
 				ExternalID:        identity.ExternalID,
 				CurrentIdentityID: identity.ID,
 			})

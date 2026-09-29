@@ -13,24 +13,33 @@ import (
 const findIdentitiesByExternalId = `-- name: FindIdentitiesByExternalId :many
 SELECT identities.pk, identities.id, identities.external_id, identities.workspace_id, identities.project_id, identities.environment, identities.meta, identities.deleted, identities.created_at, identities.updated_at
 FROM identities
-WHERE workspace_id = ? AND external_id IN (/*SLICE:externalIds*/?) AND deleted = ?
+WHERE workspace_id = ?
+  AND project_id = ?
+  AND external_id IN (/*SLICE:externalIds*/?)
+  AND deleted = ?
 `
 
 type FindIdentitiesByExternalIdParams struct {
 	WorkspaceID string   `db:"workspace_id"`
+	ProjectID   string   `db:"project_id"`
 	ExternalIds []string `db:"externalIds"`
 	Deleted     bool     `db:"deleted"`
 }
 
-// FindIdentitiesByExternalId
+// FindIdentitiesByExternalId resolves external IDs within one project, because
+// external IDs are unique per project.
 //
 //	SELECT identities.pk, identities.id, identities.external_id, identities.workspace_id, identities.project_id, identities.environment, identities.meta, identities.deleted, identities.created_at, identities.updated_at
 //	FROM identities
-//	WHERE workspace_id = ? AND external_id IN (/*SLICE:externalIds*/?) AND deleted = ?
+//	WHERE workspace_id = ?
+//	  AND project_id = ?
+//	  AND external_id IN (/*SLICE:externalIds*/?)
+//	  AND deleted = ?
 func (q *Queries) FindIdentitiesByExternalId(ctx context.Context, db DBTX, arg FindIdentitiesByExternalIdParams) ([]Identity, error) {
 	query := findIdentitiesByExternalId
 	var queryParams []interface{}
 	queryParams = append(queryParams, arg.WorkspaceID)
+	queryParams = append(queryParams, arg.ProjectID)
 	if len(arg.ExternalIds) > 0 {
 		for _, v := range arg.ExternalIds {
 			queryParams = append(queryParams, v)

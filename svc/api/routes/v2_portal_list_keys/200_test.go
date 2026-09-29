@@ -12,6 +12,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/hash"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/svc/api/internal/projects"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -31,6 +32,7 @@ func newHandler(h *testutil.Harness) *handler.Handler {
 // portalSessionSetup holds all objects created for a portal session test scenario.
 type portalSessionSetup struct {
 	keySpaceID string
+	projectID  string
 	workspace  db.Workspace
 
 	identity1ID         string
@@ -52,10 +54,14 @@ func setupPortalSessionTest(t *testing.T, h *testutil.Harness) portalSessionSetu
 
 	workspace := h.Resources().UserWorkspace
 
+	projectID, err := projects.EnsureDefaultProject(ctx, h.DB.RW(), workspace.ID)
+	require.NoError(t, err)
+
 	keySpaceID := uid.New(uid.KeySpacePrefix)
-	err := db.Query.InsertKeySpace(ctx, h.DB.RW(), db.InsertKeySpaceParams{
+	err = db.Query.InsertKeySpace(ctx, h.DB.RW(), db.InsertKeySpaceParams{
 		ID:            keySpaceID,
 		WorkspaceID:   workspace.ID,
+		ProjectID:     projectID,
 		CreatedAtM:    time.Now().UnixMilli(),
 		DefaultPrefix: sql.NullString{Valid: false},
 		DefaultBytes:  sql.NullInt32{Valid: false},
@@ -103,6 +109,7 @@ func setupPortalSessionTest(t *testing.T, h *testutil.Harness) portalSessionSetu
 
 	return portalSessionSetup{
 		keySpaceID:          keySpaceID,
+		projectID:           projectID,
 		workspace:           workspace,
 		identity1ID:         identity1.ID,
 		identity1ExternalID: identity1ExternalID,
@@ -182,6 +189,7 @@ func TestPortalSessionUnionsConfiguredKeyspaces(t *testing.T) {
 	require.NoError(t, db.Query.InsertKeySpace(ctx, h.DB.RW(), db.InsertKeySpaceParams{
 		ID:            keySpaceID2,
 		WorkspaceID:   setup.workspace.ID,
+		ProjectID:     setup.projectID,
 		CreatedAtM:    time.Now().UnixMilli(),
 		DefaultPrefix: sql.NullString{Valid: false},
 		DefaultBytes:  sql.NullInt32{Valid: false},

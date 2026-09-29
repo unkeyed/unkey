@@ -4012,7 +4012,7 @@ type V2GithubInstallAppResponseData struct {
 // V2IdentitiesCreateIdentityRequestBody defines model for V2IdentitiesCreateIdentityRequestBody.
 type V2IdentitiesCreateIdentityRequestBody struct {
 	// ExternalId Creates an identity using your system's unique identifier for a user, organization, or entity.
-	// Must be stable and unique across your workspace - duplicate externalIds return CONFLICT errors.
+	// Must be stable and unique within the project - duplicate externalIds return CONFLICT errors.
 	// This identifier links Unkey identities to your authentication system, database records, or tenant structure.
 	//
 	// Avoid changing externalIds after creation as this breaks the link between your systems.

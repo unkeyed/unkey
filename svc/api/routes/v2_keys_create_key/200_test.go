@@ -214,6 +214,7 @@ func TestCreateKeyWithOptionalFields(t *testing.T) {
 
 	identity, err := db.Query.FindIdentityByExternalID(ctx, h.DB.RO(), db.FindIdentityByExternalIDParams{
 		WorkspaceID: h.Resources().UserWorkspace.ID,
+		ProjectID:   api.ProjectID,
 		ExternalID:  externalID,
 		Deleted:     false,
 	})
@@ -471,6 +472,7 @@ func TestCreateKeyConcurrentWithSameExternalId(t *testing.T) {
 	// Verify only one identity was created
 	identity, err := db.Query.FindIdentityByExternalID(ctx, h.DB.RO(), db.FindIdentityByExternalIDParams{
 		WorkspaceID: h.Resources().UserWorkspace.ID,
+		ProjectID:   api.ProjectID,
 		ExternalID:  externalID,
 		Deleted:     false,
 	})
