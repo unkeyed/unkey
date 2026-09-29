@@ -61,11 +61,29 @@ func TestPrivateNetworkSnapshotStreamsEveryPageThenCompletes(t *testing.T) {
 		return chunks, stream.Err()
 	}
 
+	before := snapshotOutcomes(t)
 	_, err = receive("wrong-bearer")
 	require.Equal(t, connect.CodeUnauthenticated, connect.CodeOf(err))
+	require.Equal(t, map[string]float64{"unauthenticated": 1}, outcomeDelta(before, snapshotOutcomes(t)))
 
+	before = snapshotOutcomes(t)
+	unknown := connect.NewRequest(&ctrlv1.StreamPrivateNetworkStateRequest{
+		Cluster: &ctrlv1.ClusterKey{CellId: uid.New("cell"), Region: "region-" + platform, Platform: platform},
+	})
+	unknown.Header().Set("Authorization", "Bearer test-bearer")
+	unknownStream, err := client.StreamPrivateNetworkState(t.Context(), unknown)
+	require.NoError(t, err)
+	for unknownStream.Receive() {
+	}
+	require.Equal(t, connect.CodeNotFound, connect.CodeOf(unknownStream.Err()))
+	require.NoError(t, unknownStream.Close())
+	require.Equal(t, map[string]float64{"unknown_cluster": 1}, outcomeDelta(before, snapshotOutcomes(t)))
+
+	before, reads := snapshotOutcomes(t), snapshotReads(t)
 	chunks, err := receive("test-bearer")
 	require.NoError(t, err)
+	require.Equal(t, map[string]float64{"success": 1}, outcomeDelta(before, snapshotOutcomes(t)))
+	require.Equal(t, reads+1, snapshotReads(t), "a successful snapshot observes one database read")
 	require.Len(t, chunks, 4, "two pages of bindings and replicas stream as three app chunks and one complete chunk")
 	last := chunks[len(chunks)-1]
 	require.True(t, last.GetComplete())
@@ -101,6 +119,19 @@ func TestPrivateNetworkSnapshotStreamsEveryPageThenCompletes(t *testing.T) {
 		require.Equal(t, "self-"+deployment, app.GetBindingId())
 		require.Contains(t, []string{"api", "db"}, app.GetBindingName(), "replicas resolve under their app slug")
 	}
+
+	unavailable, err := db.New(server.DSN, sqlcomment.Static{})
+	require.NoError(t, err)
+	require.NoError(t, unavailable.Close())
+	_, brokenHandler := ctrlv1connect.NewClusterServiceHandler(&Service{db: unavailable, bearer: "test-bearer", clusterCache: clusterCache})
+	brokenServer := httptest.NewServer(brokenHandler)
+	t.Cleanup(brokenServer.Close)
+	client = ctrlv1connect.NewClusterServiceClient(brokenServer.Client(), brokenServer.URL)
+	before = snapshotOutcomes(t)
+	_, err = receive("test-bearer")
+	require.Equal(t, connect.CodeInternal, connect.CodeOf(err))
+	require.Equal(t, map[string]float64{"database_error": 1}, outcomeDelta(before, snapshotOutcomes(t)),
+		"an unavailable database is a database error, not an unknown cluster")
 }
 
 func seedPrivateNetwork(t *testing.T, database db.Database, platform, cell string) (int, string) {

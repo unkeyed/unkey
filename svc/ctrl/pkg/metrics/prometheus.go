@@ -97,4 +97,39 @@ var (
 		},
 		[]string{"result"},
 	)
+
+	// PrivateNetworkSnapshotsTotal counts StreamPrivateNetworkState calls by
+	// outcome. Each private-networking Krane leader calls it every 5 seconds,
+	// so a missing success rate with Krane snapshot errors points at Ctrl, and
+	// the result names the failing step.
+	//
+	// Labels:
+	//   - "result": "success", "unauthenticated" (bearer token mismatch),
+	//     "unknown_cluster" (the cluster key is invalid or has no cluster
+	//     row), "database_error" (looking up the cluster or reading bindings
+	//     and replicas failed), or "send_error" (Krane went away or timed out
+	//     while the snapshot streamed)
+	PrivateNetworkSnapshotsTotal = lazy.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: "unkey",
+			Subsystem: "control",
+			Name:      "private_network_snapshots_total",
+			Help:      "StreamPrivateNetworkState calls by outcome.",
+		},
+		[]string{"result"},
+	)
+
+	// PrivateNetworkSnapshotReadDurationSeconds measures the read-only
+	// transaction that selects binding targets and replicas for one snapshot.
+	// It grows with the number of enrolled deployments on a platform. Krane
+	// abandons a pass after 30 seconds, including streaming and publication.
+	PrivateNetworkSnapshotReadDurationSeconds = lazy.NewHistogram(
+		prometheus.HistogramOpts{
+			Namespace: "unkey",
+			Subsystem: "control",
+			Name:      "private_network_snapshot_read_duration_seconds",
+			Help:      "Duration of the database read for one private network snapshot.",
+			Buckets:   []float64{0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10, 30},
+		},
+	)
 )
