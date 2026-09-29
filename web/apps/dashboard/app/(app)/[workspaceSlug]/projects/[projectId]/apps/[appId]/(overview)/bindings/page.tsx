@@ -4,6 +4,7 @@ import { PageBody, PageContainer, Skeleton } from "@unkey/ui";
 import { useState } from "react";
 import { useAppId, useProjectData } from "../data-provider";
 import { BindingCanvas, BindingsHeader } from "./binding-canvas";
+import { isProduction } from "./binding-rules";
 
 export default function BindingsPage() {
   const { projectId, environments, isEnvironmentsLoading } = useProjectData();
@@ -11,7 +12,7 @@ export default function BindingsPage() {
   const [selectedEnvironment, setSelectedEnvironment] = useState<string | null>(null);
   const environment =
     environments.find((env) => env.id === selectedEnvironment) ??
-    environments.find((env) => env.slug === "production") ??
+    environments.find(isProduction) ??
     environments[0];
 
   return (
