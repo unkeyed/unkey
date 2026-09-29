@@ -2,6 +2,7 @@ package undns
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"net"
 	"strings"
@@ -334,7 +335,7 @@ func TestFailureLogsAreSampledPerReason(t *testing.T) {
 	attrs := loggertest.FlatAttrs(records[0])
 	require.Equal(t, string(reasonUnknownCaller), attrs["reason"])
 	require.Contains(t, attrs["source"], "127.0.0.9")
-	require.Equal(t, "payments.unkey.internal.", attrs["name"])
+	require.NotContains(t, attrs, "name")
 	require.Equal(t, 3.0, metricValues(t, registry, "unkey_dns_queries_total")[queryLabels(pathPrivate, reasonUnknownCaller, dnswire.RcodeRefused, "udp")],
 		"sampling must not drop counts")
 
@@ -342,6 +343,44 @@ func TestFailureLogsAreSampledPerReason(t *testing.T) {
 	since = capture.Snapshot()
 	serveQuery(t, h, "127.0.0.9", "payments.unkey.internal.", dnswire.TypeA)
 	require.Len(t, queryFailureRecords(capture.Since(since)), 1, "a new interval logs the reason again")
+}
+
+func TestQueryTelemetryDoesNotExposeDNSNames(t *testing.T) {
+	for _, tc := range []struct {
+		path string
+		name string
+	}{
+		{path: pathPrivate, name: "customer-secret.unkey.internal."},
+		{path: pathPublic, name: "customer-secret.example.com."},
+	} {
+		t.Run(tc.path, func(t *testing.T) {
+			registry := prometheus.NewRegistry()
+			h := newHandler(catalogForTest(), Config{}, registry)
+			capture := loggertest.Install(t)
+			response := dnswire.NewMsg(tc.name, dnswire.TypeA)
+			response.Rcode = dnswire.RcodeServerFailure
+			result := outcome{
+				reason: reasonUpstreamError,
+				err:    fmt.Errorf("lookup %s failed", tc.name),
+				caller: emptyCaller(),
+			}
+
+			since := capture.Snapshot()
+			h.observe(tc.path, result, response, "udp", &net.UDPAddr{IP: net.IPv4(127, 0, 0, 1)}, time.Millisecond)
+
+			records := queryFailureRecords(capture.Since(since))
+			require.Len(t, records, 1)
+			attrs := loggertest.FlatAttrs(records[0])
+			require.Equal(t, string(reasonUpstreamError), attrs["reason"])
+			require.NotContains(t, attrs, "name")
+			require.NotContains(t, attrs, "error")
+			require.NotContains(t, fmt.Sprint(attrs), "customer-secret")
+			families, err := registry.Gather()
+			require.NoError(t, err)
+			require.NotEmpty(t, families)
+			require.NotContains(t, fmt.Sprint(families), "customer-secret")
+		})
+	}
 }
 
 func startCatalog(t *testing.T) *catalog {

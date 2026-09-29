@@ -3,6 +3,7 @@ package undns
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"net"
 	"strings"
@@ -98,19 +99,19 @@ func (h *handler) ServeDNS(ctx context.Context, w dnswire.ResponseWriter, reques
 		}
 
 		if err := packTruncated(response, size); err != nil {
-			logger.Warn("pack DNS response", "error", err)
+			logger.Warn("pack DNS response", "error_type", fmt.Sprintf("%T", err))
 			result = outcome{reason: reasonPackError, err: err, caller: result.caller}
 			response = new(dnswire.Msg)
 			dnsutil.SetReply(response, request)
 			response.RecursionAvailable = true
 			response.Rcode = dnswire.RcodeServerFailure
 			if err := response.Pack(); err != nil {
-				logger.Warn("pack DNS failure response", "error", err)
+				logger.Warn("pack DNS failure response", "error_type", fmt.Sprintf("%T", err))
 				return
 			}
 		}
 		if _, err := io.Copy(w, response); err != nil {
-			logger.Warn("write DNS response", "error", err)
+			logger.Warn("write DNS response", "error_type", fmt.Sprintf("%T", err))
 		}
 	}()
 
@@ -160,13 +161,9 @@ func (h *handler) observe(path string, result outcome, response *dnswire.Msg, tr
 		return
 	}
 
-	attrs := []any{
+	logger.Warn("DNS query failed",
 		"path", path, "reason", string(result.reason), "rcode", rcode, "transport", transport,
 		"source", remote.String(), "workspace_id", result.caller.workspace,
-		"caller_deployment_id", result.caller.deployment, "error", result.err,
-	}
-	if path == pathPrivate && len(response.Question) == 1 {
-		attrs = append(attrs, "name", response.Question[0].Header().Name)
-	}
-	logger.Warn("DNS query failed", attrs...)
+		"caller_deployment_id", result.caller.deployment, "error_type", fmt.Sprintf("%T", result.err),
+	)
 }
