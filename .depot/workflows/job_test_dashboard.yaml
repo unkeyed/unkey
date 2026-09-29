@@ -10,19 +10,19 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
-      - name: Setup Node
-        uses: ./.depot/actions/setup-node
+      - uses: ./.depot/actions/setup-mise
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Test
-        run: pnpm turbo run test --filter=@unkey/dashboard
+        run: mise run test-web -- --filter=@unkey/dashboard
         env:
           CI: 1
-        working-directory: web
+          NPM_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Build (WorkOS)
-        run: pnpm turbo run build --filter=@unkey/dashboard
+        run: mise run build-web -- --filter=@unkey/dashboard
         env:
           CI: 1
+          NPM_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DATABASE_HOST: localhost:8080
           DATABASE_USERNAME: unkey
           DATABASE_PASSWORD: password
@@ -36,11 +36,11 @@ jobs:
           WORKOS_API_KEY: "sk_test_"
           WORKOS_COOKIE_PASSWORD: "ci-test-cookie-password-min-32-chars"
           NEXT_PUBLIC_WORKOS_REDIRECT_URI: "http://localhost:3000/auth/sso-callback"
-        working-directory: web
       - name: Build (local)
-        run: pnpm turbo run build --filter=@unkey/dashboard
+        run: mise run build-web -- --filter=@unkey/dashboard
         env:
           CI: 1
+          NPM_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DATABASE_HOST: localhost:8080
           DATABASE_USERNAME: unkey
           DATABASE_PASSWORD: password
@@ -50,4 +50,3 @@ jobs:
           VAULT_URL: "http://localhost:8060"
           VAULT_TOKEN: "not-empty"
           AUTH_PROVIDER: "local"
-        working-directory: web

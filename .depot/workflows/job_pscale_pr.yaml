@@ -25,6 +25,11 @@ jobs:
     steps:
       - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
 
+      - uses: ./.depot/actions/setup-mise
+        if: inputs.db_schema_changed
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
       - name: validate schema
         env:
           DB_SCHEMA_CHANGED: ${{ inputs.db_schema_changed }}
@@ -37,9 +42,6 @@ jobs:
             exit 0
           fi
 
-          ./dev/install-mise
-          export PATH="$HOME/.local/bin:$PATH"
-          mise install --locked --yes node github:pnpm/pnpm github:planetscale/cli github:jqlang/jq
           FROM="$PSCALE_PARENT" mise run pscale-branch
 
           EXISTING=$(mise exec -- pscale deploy-request list "$PSCALE_DB" \

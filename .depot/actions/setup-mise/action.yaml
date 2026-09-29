@@ -1,0 +1,60 @@
+name: Setup mise
+description: Install and cache the repository's locked tools
+
+inputs:
+  github-token:
+    description: GitHub token for tool and package downloads
+    required: false
+
+runs:
+  using: composite
+  steps:
+    - name: Identify tool cache
+      id: cache
+      shell: bash
+      run: |
+        set -euo pipefail
+        platform=$(cat /etc/os-release; ldd --version)
+        echo "platform=$(printf '%s' "$platform" | sha256sum | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
+
+    - name: Cache toolchain
+      uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+      with:
+        path: |
+          ~/.local/bin/mise
+          ~/.local/share/mise/installs
+        key: mise-${{ runner.os }}-${{ runner.arch }}-${{ steps.cache.outputs.platform }}-${{ github.event_name }}-${{ hashFiles('dev/install-mise', '.mise/config.toml', '.mise/mise.lock') }}
+
+    - name: Install locked tools
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ inputs.github-token }}
+      run: |
+        set -euo pipefail
+        ./dev/install-mise
+        export PATH="$HOME/.local/bin:$PATH"
+        echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+        mise trust .mise/config.toml
+        mise install --locked --yes
+
+    - name: Cache Go dependencies and builds
+      uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+      with:
+        path: |
+          ~/go/pkg/mod
+          ~/.cache/go-build
+        key: go-${{ runner.os }}-${{ runner.arch }}-${{ steps.cache.outputs.platform }}-${{ github.event_name }}-${{ hashFiles('.mise/config.toml', '.mise/mise.lock', 'go.sum') }}
+
+    - name: Locate pnpm store
+      id: pnpm
+      shell: bash
+      run: |
+        set -euo pipefail
+        store=$(mise exec -- pnpm --dir=web store path --silent)
+        echo "store=$store" >> "$GITHUB_OUTPUT"
+
+    - name: Cache pnpm store
+      uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+      with:
+        path: ${{ steps.pnpm.outputs.store }}
+        key: pnpm-${{ runner.os }}-${{ runner.arch }}-${{ steps.cache.outputs.platform }}-${{ github.event_name }}-${{ hashFiles('.mise/config.toml', '.mise/mise.lock', 'web/pnpm-lock.yaml') }}
