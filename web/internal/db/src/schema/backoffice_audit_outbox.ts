@@ -10,7 +10,9 @@ import { primaryKey } from "./util/primary_key";
 //
 // Deliberately separate from clickhouse_outbox: that drainer exports to
 // the customer-visible audit log, and staff actions must never appear
-// there. Nothing in this repo reads or writes this table.
+// there. The only thing in this repo that touches this table is the daily
+// RunAuditLogOutboxCleanup cron, which hard-deletes drained rows after the
+// same 30-day retention it applies to clickhouse_outbox.
 export const backofficeAuditOutbox = mysqlTable(
   "backoffice_audit_outbox",
   {
