@@ -24,7 +24,6 @@ func (c *catalog) resolveBinding(identity caller, config *corev1.ConfigMap) ([]n
 	if err != nil {
 		return nil, err
 	}
-
 	if !exists {
 		return nil, fmt.Errorf("selected discovery service is unavailable")
 	}
@@ -39,6 +38,7 @@ func (c *catalog) resolveBinding(identity caller, config *corev1.ConfigMap) ([]n
 			return nil, fmt.Errorf("discovery replacement overlap expired")
 		}
 	}
+
 	l := service.Labels
 	err = assert.All(
 		assert.True(service.DeletionTimestamp == nil, "service is terminating"),

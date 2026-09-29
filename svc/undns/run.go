@@ -50,6 +50,7 @@ func serve(ctx context.Context, cfg Config, c *catalog) error {
 		return 0
 	}))
 	h := newHandler(c, cfg, registry)
+
 	tcp, err := net.Listen("tcp", cfg.ListenAddress)
 	if err != nil {
 		return fmt.Errorf("listen for TCP DNS: %w", err)
@@ -62,6 +63,7 @@ func serve(ctx context.Context, cfg Config, c *catalog) error {
 	if err != nil {
 		return errors.Join(fmt.Errorf("listen for DNS health: %w", err), tcp.Close(), udp.Close())
 	}
+
 	r := runner.New()
 	r.Go(c.run)
 	mux := http.NewServeMux()
@@ -75,6 +77,7 @@ func serve(ctx context.Context, cfg Config, c *catalog) error {
 		}
 		return nil
 	})
+
 	tcpServer := new(dnswire.Server)
 	tcpServer.Listener = tcp
 	udpServer := new(dnswire.Server)
@@ -83,6 +86,7 @@ func serve(ctx context.Context, cfg Config, c *catalog) error {
 		server.Handler = h
 		server.UDPSize = 1232
 		server.ReadTimeout = 5 * time.Second
+
 		started := make(chan struct{})
 		finished := make(chan struct{})
 		server.NotifyStartedFunc = func(context.Context) { close(started) }
@@ -99,10 +103,12 @@ func serve(ctx context.Context, cfg Config, c *catalog) error {
 				return fmt.Errorf("DNS listener has not started")
 			}
 		})
+
 		r.Go(func(context.Context) error {
 			defer close(finished)
 			return server.ListenAndServe()
 		})
+
 		r.DeferCtx(func(shutdownCtx context.Context) error {
 			select {
 			case <-started:
@@ -115,5 +121,6 @@ func serve(ctx context.Context, cfg Config, c *catalog) error {
 			}
 		})
 	}
+
 	return r.Wait(ctx)
 }

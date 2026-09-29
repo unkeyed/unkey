@@ -87,6 +87,7 @@ func TestServerUDPTruncationTCPAndCallerDeploymentIsolation(t *testing.T) {
 			caller, ok := c.identify(netip.MustParseAddr("127.0.0.1"))
 			return ok == (tc.deployment != "") && (!ok || caller.kind == tc.kind && caller.deployment == tc.deployment)
 		}, time.Second, 10*time.Millisecond)
+
 		response, _, err = dns.Exchange(t.Context(), question, "tcp", cfg.ListenAddress)
 		require.NoError(t, err)
 		require.Equal(t, tc.rcode, response.Rcode)
@@ -107,11 +108,14 @@ func TestServerReturnsServfailWhenAnswerExceedsWireLimit(t *testing.T) {
 					Conditions: discoveryv1.EndpointConditions{Ready: new(true)},
 				})
 			}
+
 			c, err := newCatalog(fake.NewSimpleClientset(objects...), 30*time.Second)
 			require.NoError(t, err)
+
 			cfg, err := config.LoadBytes[Config]([]byte(`upstream = "10.96.0.10:53"`))
 			require.NoError(t, err)
 			cfg.ListenAddress, cfg.HealthAddress = unusedTCPAddress(t), unusedTCPAddress(t)
+
 			ctx, cancel := context.WithCancel(t.Context())
 			done := make(chan error, 1)
 			go func() { done <- serve(ctx, cfg, c) }()
@@ -124,6 +128,7 @@ func TestServerReturnsServfailWhenAnswerExceedsWireLimit(t *testing.T) {
 					t.Error("DNS server did not shut down")
 				}
 			})
+
 			require.Eventually(t, c.ready, 5*time.Second, 10*time.Millisecond)
 
 			for _, transport := range []string{"udp", "tcp"} {
@@ -135,6 +140,7 @@ func TestServerReturnsServfailWhenAnswerExceedsWireLimit(t *testing.T) {
 						require.NoError(t, err)
 						require.Equal(t, question.ID, response.ID)
 						require.Equal(t, question.Question[0].Header().Name, response.Question[0].Header().Name)
+
 						if count == 4094 {
 							require.Equal(t, uint16(dnswire.RcodeServerFailure), response.Rcode)
 							require.Empty(t, response.Answer)
@@ -144,6 +150,7 @@ func TestServerReturnsServfailWhenAnswerExceedsWireLimit(t *testing.T) {
 							require.False(t, response.Authoritative)
 							return
 						}
+
 						require.Equal(t, uint16(dnswire.RcodeSuccess), response.Rcode)
 						want := 4093
 						if transport == "udp" {
@@ -190,15 +197,19 @@ func TestColdStartServesPublishedBindingWhileReplacementIsStaged(t *testing.T) {
 				_, err = client.CoreV1().ConfigMaps("default").Update(t.Context(), binding, metav1.UpdateOptions{})
 				require.NoError(t, err)
 			}
+
 			c, err := newCatalog(client, 30*time.Second)
 			require.NoError(t, err)
+
 			cfg, err := config.LoadBytes[Config]([]byte(`upstream = "10.96.0.10:53"`))
 			require.NoError(t, err)
 			cfg.ListenAddress, cfg.HealthAddress = unusedTCPAddress(t), unusedTCPAddress(t)
+
 			ctx, cancel := context.WithCancel(t.Context())
 			done := make(chan error, 1)
 			go func() { done <- serve(ctx, cfg, c) }()
 			t.Cleanup(func() { cancel(); require.NoError(t, <-done) })
+
 			require.Eventually(t, c.ready, 5*time.Second, 10*time.Millisecond)
 			for _, transport := range []string{"udp", "tcp"} {
 				question := dnswire.NewMsg("payments.unkey.internal.", dnswire.TypeA)
@@ -214,6 +225,7 @@ func TestColdStartServesPublishedBindingWhileReplacementIsStaged(t *testing.T) {
 					require.Len(t, response.Answer, 40)
 					require.Contains(t, answerAddresses(response), "10.0.0.1")
 				}
+
 				question = dnswire.NewMsg("unavailable.unkey.internal.", dnswire.TypeA)
 				response, _, err = dns.Exchange(t.Context(), question, transport, cfg.ListenAddress)
 				require.NoError(t, err)
@@ -229,6 +241,7 @@ func TestForwardRetriesTruncatedUDPOverTCPAndStripsClientOptions(t *testing.T) {
 	require.NoError(t, err)
 	udp, err := net.ListenPacket("udp", tcp.Addr().String())
 	require.NoError(t, err)
+
 	queries := make(chan *dnswire.Msg, 2)
 	writeErrors := make(chan error, 2)
 	upstream := dnswire.HandlerFunc(func(_ context.Context, w dnswire.ResponseWriter, query *dnswire.Msg) {
@@ -303,6 +316,7 @@ func TestServerAnswersCallerWhoseIPRemainsOnEvictedPod(t *testing.T) {
 
 	upstreamListener, err := net.Listen("tcp", "127.0.0.1:0")
 	require.NoError(t, err)
+
 	upstream := &dnswire.Server{Listener: upstreamListener, Handler: dnswire.HandlerFunc(func(_ context.Context, w dnswire.ResponseWriter, query *dnswire.Msg) {
 		response := new(dnswire.Msg)
 		dnsutil.SetReply(response, query)
@@ -314,11 +328,13 @@ func TestServerAnswersCallerWhoseIPRemainsOnEvictedPod(t *testing.T) {
 			t.Errorf("write upstream response: %v", err)
 		}
 	})}
+
 	started := make(chan struct{})
 	upstream.NotifyStartedFunc = func(context.Context) { close(started) }
 	upstreamDone := make(chan error, 1)
 	go func() { upstreamDone <- upstream.ListenAndServe() }()
 	<-started
+
 	t.Cleanup(func() {
 		upstream.Shutdown(t.Context())
 		require.NoError(t, <-upstreamDone)
@@ -329,6 +345,7 @@ func TestServerAnswersCallerWhoseIPRemainsOnEvictedPod(t *testing.T) {
 	cfg.Upstream = upstreamListener.Addr().String()
 	cfg.ListenAddress = unusedTCPAddress(t)
 	cfg.HealthAddress = unusedTCPAddress(t)
+
 	ctx, cancel := context.WithCancel(context.Background())
 	done := make(chan error, 1)
 	go func() { done <- serve(ctx, cfg, c) }()
@@ -341,6 +358,7 @@ func TestServerAnswersCallerWhoseIPRemainsOnEvictedPod(t *testing.T) {
 			t.Error("DNS server did not shut down")
 		}
 	})
+
 	require.Eventually(t, c.ready, 5*time.Second, 10*time.Millisecond)
 
 	dns := testDNSClient(time.Second)
@@ -396,6 +414,7 @@ func TestTrackedInformerFailsClosedWhenStale(t *testing.T) {
 func discoveryObjects(t *testing.T) []runtime.Object {
 	t.Helper()
 	pod := callerPod("127.0.0.1", "production")
+
 	binding := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{Name: "binding", Namespace: "default", UID: "binding", Labels: map[string]string{
 			labels.LabelKeyManagedBy: "krane", labels.LabelKeyComponent: bindingComponent,
@@ -405,6 +424,7 @@ func discoveryObjects(t *testing.T) []runtime.Object {
 		}},
 		Data: map[string]string{"appSlug": "payments", "deploymentId": "deployment-a", "serviceName": "service-a", "revision": "1"},
 	}
+
 	service := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{Name: "service-a", Namespace: "default", UID: "service-uid", Labels: map[string]string{
 			labels.LabelKeyManagedBy: "krane", labels.LabelKeyComponent: bindingComponent, labels.LabelKeyWorkspaceID: "workspace-a",
@@ -413,12 +433,14 @@ func discoveryObjects(t *testing.T) []runtime.Object {
 		}},
 		Spec: corev1.ServiceSpec{ClusterIP: corev1.ClusterIPNone},
 	}
+
 	ready := true
 	controller := true
 	endpoints := make([]discoveryv1.Endpoint, 0, 40)
 	for i := 1; i <= 40; i++ {
 		endpoints = append(endpoints, discoveryv1.Endpoint{Addresses: []string{fmt.Sprintf("10.0.0.%d", i)}, Conditions: discoveryv1.EndpointConditions{Ready: &ready}})
 	}
+
 	slice := &discoveryv1.EndpointSlice{
 		ObjectMeta: metav1.ObjectMeta{Name: "imported", Namespace: "default",
 			Labels:          ciliumImportedSliceLabels(service),
@@ -427,6 +449,7 @@ func discoveryObjects(t *testing.T) []runtime.Object {
 		AddressType: discoveryv1.AddressTypeIPv4,
 		Endpoints:   endpoints,
 	}
+
 	return []runtime.Object{pod, binding, service, slice}
 }
 
