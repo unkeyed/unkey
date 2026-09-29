@@ -8,6 +8,7 @@ import (
 
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/pkg/deploy/appbinding"
+	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/svc/krane/pkg/labels"
 	corev1 "k8s.io/api/core/v1"
 	discoveryv1 "k8s.io/api/discovery/v1"
@@ -139,6 +140,7 @@ func (r *Reconciler) ensureBinding(ctx context.Context, app *ctrlv1.PrivateNetwo
 		if err != nil {
 			return nil, fmt.Errorf("update private network binding %s: %w", key, err)
 		}
+		logBindingPublished(app, key, existing.Data["deploymentId"], updated)
 		return updated, nil
 	}
 
@@ -150,7 +152,16 @@ func (r *Reconciler) ensureBinding(ctx context.Context, app *ctrlv1.PrivateNetwo
 	if err != nil {
 		return nil, fmt.Errorf("create private network binding %s: %w", key, err)
 	}
+	logBindingPublished(app, key, "", created)
 	return created, nil
+}
+
+func logBindingPublished(app *ctrlv1.PrivateNetworkApp, key, previousDeployment string, binding *corev1.ConfigMap) {
+	logger.Info("private network binding published",
+		"binding_key", key, "kind", entryKind(app), "workspace_id", app.GetWorkspaceId(),
+		"binding_id", app.GetBindingId(), "caller_deployment_id", app.GetCallerDeploymentId(),
+		"alias", app.GetBindingName(), "previous_deployment_id", previousDeployment,
+		"deployment_id", binding.Data["deploymentId"], "revision", binding.Data["revision"])
 }
 
 func (r *Reconciler) hasReadyEndpoints(ctx context.Context, service *corev1.Service) (bool, error) {

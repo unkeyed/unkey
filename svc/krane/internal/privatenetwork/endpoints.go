@@ -41,6 +41,8 @@ func (r *Reconciler) runEndpoints(ctx context.Context) {
 }
 
 func (r *Reconciler) reconcileEndpoints(ctx context.Context) error {
+	started, completed := time.Now(), false
+	defer func() { observePass(loopEndpoints, started, completed) }()
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 	r.endpointMu.Lock()
@@ -50,15 +52,15 @@ func (r *Reconciler) reconcileEndpoints(ctx context.Context) error {
 	selector[labels.LabelKeyComponent] = component
 	services, err := r.client.CoreV1().Services("").List(ctx, metav1.ListOptions{LabelSelector: selector.ToString()})
 	if err != nil {
-		return fmt.Errorf("list private network Services for endpoint refresh: %w", err)
+		return countError(loopEndpoints, stageList, fmt.Errorf("list private network Services for endpoint refresh: %w", err))
 	}
 	pods, err := r.localPods(ctx)
 	if err != nil {
-		return err
+		return countError(loopEndpoints, stageList, err)
 	}
 	sourceSlices, err := r.sourceSlices(ctx)
 	if err != nil {
-		return err
+		return countError(loopEndpoints, stageList, err)
 	}
 
 	var errs []error
@@ -69,9 +71,10 @@ func (r *Reconciler) reconcileEndpoints(ctx context.Context) error {
 			continue
 		}
 		if err := r.ensureEndpoints(ctx, service, pods, sourceSlices[service.Namespace+"/"+service.Name]); err != nil {
-			errs = append(errs, err)
+			errs = append(errs, countError(loopEndpoints, stageEndpointSlice, err))
 		}
 	}
+	completed = true
 	return errors.Join(errs...)
 }
 
