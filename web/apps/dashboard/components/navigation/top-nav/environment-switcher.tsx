@@ -13,6 +13,11 @@ import { useParams, usePathname } from "next/navigation";
 import { CRUMB_TRIGGER_CLASS } from "./crumb";
 import { CrumbPopover, type CrumbPopoverItem } from "./crumb-popover";
 
+const KIND_ORDER: Record<EnvironmentKind, number> = {
+  [ENVIRONMENT_KIND.production]: 0,
+  [ENVIRONMENT_KIND.preview]: 1,
+};
+
 type EnvironmentSwitcherProps = {
   projectId: string;
   appId: string;
@@ -38,7 +43,9 @@ export function EnvironmentSwitcher({
         .where(({ env }) => and(eq(env.projectId, projectId), eq(env.appId, appId))),
     [projectId, appId],
   );
-  const environments = environmentsQuery.data ?? [];
+  const environments = [...(environmentsQuery.data ?? [])].sort(
+    (a, b) => KIND_ORDER[a.kind] - KIND_ORDER[b.kind],
+  );
   const kind = environments.find((env) => env.slug === environmentSlug)?.kind;
   const scope = { workspaceSlug: workspace.slug, projectId, appId, environmentSlug };
 

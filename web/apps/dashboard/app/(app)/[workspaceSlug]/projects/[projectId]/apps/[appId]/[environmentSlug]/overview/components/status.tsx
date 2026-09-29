@@ -5,7 +5,13 @@ import {
 } from "@/lib/collections/deploy/deployment-status";
 import type { Deployment } from "@/lib/collections/deploy/deployments";
 
-export type DeploymentDisplayStatus = "live" | "deploying" | "crashing" | "failed" | "stopped";
+export type DeploymentDisplayStatus =
+  | "live"
+  | "ready"
+  | "deploying"
+  | "crashing"
+  | "failed"
+  | "stopped";
 
 export function deriveProductionStatus(deployment: Deployment): DeploymentDisplayStatus {
   if (deployment.status === "stopped") {
@@ -28,6 +34,7 @@ export function deriveProductionStatus(deployment: Deployment): DeploymentDispla
 
 export const STATUS_META: Record<DeploymentDisplayStatus, { label: string; dotClass: string }> = {
   live: { label: "Live", dotClass: DEPLOYMENT_GROUP_COLOR.ready },
+  ready: { label: "Ready", dotClass: DEPLOYMENT_GROUP_COLOR.ready },
   deploying: {
     label: DEPLOYMENT_STATUS_LABELS.deploying,
     dotClass: DEPLOYMENT_GROUP_COLOR.building,

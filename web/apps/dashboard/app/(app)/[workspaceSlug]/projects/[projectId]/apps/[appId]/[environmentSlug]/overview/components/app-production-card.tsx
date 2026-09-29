@@ -100,7 +100,8 @@ export function AppProductionCard() {
     return <EnvironmentPendingCard newerDeployment={newerDeployment} />;
   }
 
-  const status = productionStatus ?? deriveProductionStatus(deployment);
+  const derivedStatus = productionStatus ?? deriveProductionStatus(deployment);
+  const status = !isProduction && derivedStatus === "live" ? "ready" : derivedStatus;
   const isRolledBack = isCurrent && appIsRolledBack;
   const sourceRepo = deployment.forkRepositoryFullName || repoFullName;
 
@@ -120,9 +121,11 @@ export function AppProductionCard() {
       d.status === "ready" &&
       d.id !== deployment.id,
   );
-  const rollbackTarget = readySiblings
-    .filter((d) => d.createdAt < deployment.createdAt)
-    .sort((a, b) => b.createdAt - a.createdAt)[0];
+  const rollbackTarget = isCurrent
+    ? readySiblings
+        .filter((d) => d.createdAt < deployment.createdAt)
+        .sort((a, b) => b.createdAt - a.createdAt)[0]
+    : undefined;
   const undoCandidates = isRolledBack
     ? [...readySiblings, deployment].sort((a, b) => b.createdAt - a.createdAt)
     : [];
