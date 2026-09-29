@@ -172,14 +172,10 @@ type Querier interface {
 	//
 	//  SELECT
 	//      k.id,
-	//      k.key_auth_id,
-	//      k.workspace_id,
 	//      k.for_workspace_id,
 	//      k.name,
 	//      k.expires,
 	//      k.enabled,
-	//      a.deleted_at_m AS api_deleted_at_m,
-	//      ws.enabled AS workspace_enabled,
 	//      fws.enabled AS for_workspace_enabled,
 	//      COALESCE(
 	//          (SELECT JSON_ARRAYAGG(p.slug)
@@ -190,9 +186,6 @@ type Querier interface {
 	//          JSON_ARRAY()
 	//      ) AS permissions
 	//  FROM unkey_root_keys k
-	//  JOIN apis a ON a.key_auth_id = k.key_auth_id
-	//  JOIN key_auth ka ON ka.id = k.key_auth_id
-	//  JOIN workspaces ws ON ws.id = k.workspace_id
 	//  LEFT JOIN workspaces fws ON fws.id = k.for_workspace_id
 	//  WHERE k.hash = ? AND k.deleted_at IS NULL
 	FindUnkeyRootKeyForAuthentication(ctx context.Context, db DBTX, hash string) (FindUnkeyRootKeyForAuthenticationRow, error)

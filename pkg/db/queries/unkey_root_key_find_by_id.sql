@@ -4,8 +4,6 @@
 SELECT
     pk,
     id,
-    workspace_id,
-    key_auth_id,
     for_workspace_id,
     hash,
     name,

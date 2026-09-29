@@ -584,9 +584,6 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 		protectedMiddlewares,
 		&v2RootKeysCreateKey.Handler{
 			DB: svc.Database, Keys: svc.Keys, Auditlogs: svc.Auditlogs, Clock: svc.Clock,
-			InternalWorkspaceID: svc.RootKeyWorkspaceID,
-			InternalKeyspaceID:  svc.RootKeyKeyspaceID,
-			InternalProjectID:   svc.RootKeyProjectID,
 		},
 	)
 	srv.RegisterRoute(protectedMiddlewares, &v2RootKeysListKeys.Handler{DB: svc.Database})

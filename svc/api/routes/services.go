@@ -37,11 +37,6 @@ type Services struct {
 	// Keys handles API key verification and key mutation operations.
 	Keys keys.KeyService
 
-	// RootKey storage IDs are server configuration, never caller-controlled scope.
-	RootKeyWorkspaceID string
-	RootKeyKeyspaceID  string
-	RootKeyProjectID   string
-
 	// Auth normalizes supported credential sources into principals for protected routes.
 	Auth auth.Authenticator
 

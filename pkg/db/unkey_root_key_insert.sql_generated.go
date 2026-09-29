@@ -13,8 +13,6 @@ import (
 const insertUnkeyRootKey = `-- name: InsertUnkeyRootKey :exec
 INSERT INTO unkey_root_keys (
     id,
-    workspace_id,
-    key_auth_id,
     for_workspace_id,
     hash,
     name,
@@ -34,16 +32,12 @@ INSERT INTO unkey_root_keys (
     ?,
     ?,
     ?,
-    ?,
-    ?,
     ?
 )
 `
 
 type InsertUnkeyRootKeyParams struct {
 	ID             string         `db:"id"`
-	WorkspaceID    string         `db:"workspace_id"`
-	KeyAuthID      string         `db:"key_auth_id"`
 	ForWorkspaceID string         `db:"for_workspace_id"`
 	Hash           string         `db:"hash"`
 	Name           sql.NullString `db:"name"`
@@ -60,8 +54,6 @@ type InsertUnkeyRootKeyParams struct {
 //
 //	INSERT INTO unkey_root_keys (
 //	    id,
-//	    workspace_id,
-//	    key_auth_id,
 //	    for_workspace_id,
 //	    hash,
 //	    name,
@@ -81,15 +73,11 @@ type InsertUnkeyRootKeyParams struct {
 //	    ?,
 //	    ?,
 //	    ?,
-//	    ?,
-//	    ?,
 //	    ?
 //	)
 func (q *Queries) InsertUnkeyRootKey(ctx context.Context, db DBTX, arg InsertUnkeyRootKeyParams) error {
 	_, err := db.ExecContext(ctx, insertUnkeyRootKey,
 		arg.ID,
-		arg.WorkspaceID,
-		arg.KeyAuthID,
 		arg.ForWorkspaceID,
 		arg.Hash,
 		arg.Name,

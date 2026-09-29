@@ -21,8 +21,6 @@ func TestExpiringRootKeyBoundsChildLifetime(t *testing.T) {
 	r := h.Resources()
 	route := &handler.Handler{
 		DB: h.DB, Keys: h.Keys, Auditlogs: h.Auditlogs, Clock: h.Clock,
-		InternalWorkspaceID: r.RootWorkspace.ID,
-		InternalKeyspaceID:  r.RootKeySpace.ID, InternalProjectID: r.RootKeySpace.ProjectID,
 	}
 	h.Register(route)
 	permission := "unkey:v1:" + r.UserWorkspace.ID + ":rootKeys/*#write"
@@ -66,9 +64,6 @@ func TestRootKeyDelegatesCreationThroughBearerAuthentication(t *testing.T) {
 	r := h.Resources()
 	route := &handler.Handler{
 		DB: h.DB, Keys: h.Keys, Auditlogs: h.Auditlogs, Clock: h.Clock,
-		InternalWorkspaceID: r.RootWorkspace.ID,
-		InternalKeyspaceID:  r.RootKeySpace.ID,
-		InternalProjectID:   r.RootKeySpace.ProjectID,
 	}
 	h.Register(route)
 	permission := "unkey:v1:" + r.UserWorkspace.ID + ":rootKeys/*#write"
@@ -82,7 +77,6 @@ func TestRootKeyDelegatesCreationThroughBearerAuthentication(t *testing.T) {
 			child, err := db.Query.FindUnkeyRootKeyByID(t.Context(), h.DB.RO(), res.Body.Data.KeyId)
 			require.NoError(t, err)
 			require.Equal(t, r.UserWorkspace.ID, child.ForWorkspaceID)
-			require.Equal(t, r.RootWorkspace.ID, child.WorkspaceID)
 			grants, err := db.Query.ListUnkeyPermissionsByPrincipal(t.Context(), h.DB.RO(), db.ListUnkeyPermissionsByPrincipalParams{ForWorkspaceID: r.UserWorkspace.ID, PrincipalType: db.UnkeyPrincipalPermissionsPrincipalTypeRootKey, PrincipalID: child.ID})
 			require.NoError(t, err)
 			require.Equal(t, []string{permission}, grants)
@@ -117,9 +111,6 @@ func TestRootKeyRejectsUnauthorizedCreationWithoutWrites(t *testing.T) {
 	r := h.Resources()
 	route := &handler.Handler{
 		DB: h.DB, Keys: h.Keys, Auditlogs: h.Auditlogs, Clock: h.Clock,
-		InternalWorkspaceID: r.RootWorkspace.ID,
-		InternalKeyspaceID:  r.RootKeySpace.ID,
-		InternalProjectID:   r.RootKeySpace.ProjectID,
 	}
 	h.Register(route)
 	base := "unkey:v1:" + r.UserWorkspace.ID + ":"

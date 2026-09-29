@@ -26,9 +26,6 @@ func newHarness(t *testing.T) (*testutil.Harness, *handler.Handler, *principal.P
 	resources := h.Resources()
 	route := &handler.Handler{
 		DB: h.DB, Keys: h.Keys, Auditlogs: h.Auditlogs, Clock: h.Clock,
-		InternalWorkspaceID: resources.RootWorkspace.ID,
-		InternalKeyspaceID:  resources.RootKeySpace.ID,
-		InternalProjectID:   resources.RootKeySpace.ProjectID,
 	}
 	p := &principal.Principal{
 		Type:                  principal.TypeJWT,
@@ -181,8 +178,6 @@ func TestCreateStoresV1SystemKeyAndPermissions(t *testing.T) {
 	require.Regexp(t, `^unkey_[1-9A-HJ-NP-Za-km-z]{8}unkeyv1[1-9A-HJ-NP-Za-km-z]{42}$`, res.Body.Data.Key)
 	key, err := db.Query.FindUnkeyRootKeyByID(t.Context(), h.DB.RO(), res.Body.Data.KeyId)
 	require.NoError(t, err)
-	require.Equal(t, resources.RootWorkspace.ID, key.WorkspaceID)
-	require.Equal(t, resources.RootKeySpace.ID, key.KeyAuthID)
 	require.Equal(t, resources.UserWorkspace.ID, key.ForWorkspaceID)
 	require.False(t, key.Expires.Valid)
 	grants, err := db.Query.ListPermissionsByKeyID(t.Context(), h.DB.RO(), db.ListPermissionsByKeyIDParams{KeyID: key.ID})
@@ -233,13 +228,5 @@ func TestCreateStoresV1SystemKeyAndPermissions(t *testing.T) {
 		require.NoError(t, err)
 		require.True(t, key.Expires.Valid)
 		require.Equal(t, expires, key.Expires.Time.UnixMilli())
-	})
-	t.Run("mismatched internal ownership fails closed", func(t *testing.T) {
-		route.InternalKeyspaceID = api.KeyAuthID.String
-		t.Cleanup(func() { route.InternalKeyspaceID = resources.RootKeySpace.ID })
-		res := testutil.CallRoute[handler.Request, handler.Response](h, route, http.Header{"Authorization": {"Bearer test"}, "Content-Type": {"application/json"}}, handler.Request{
-			Permissions: []string{urn},
-		})
-		require.Equal(t, http.StatusInternalServerError, res.Status)
 	})
 }

@@ -1,8 +1,6 @@
 CREATE TABLE `unkey_root_keys` (
 	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
 	`id` varchar(48) COLLATE utf8mb4_0900_as_cs NOT NULL,
-	`workspace_id` varchar(48) COLLATE utf8mb4_0900_as_cs NOT NULL,
-	`key_auth_id` varchar(48) COLLATE utf8mb4_0900_as_cs NOT NULL,
 	`for_workspace_id` varchar(48) COLLATE utf8mb4_0900_as_cs NOT NULL,
 	`hash` varchar(256) COLLATE utf8mb4_0900_as_cs NOT NULL,
 	`name` varchar(256),

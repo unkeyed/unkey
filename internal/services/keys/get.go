@@ -206,14 +206,14 @@ func cacheUnkeyRootKey(row keysdb.FindUnkeyRootKeyForAuthenticationRow) (keysdb.
 	}
 	return keysdb.CachedRootKeyData{
 		ID:                  row.ID,
-		KeyAuthID:           row.KeyAuthID,
-		WorkspaceID:         row.WorkspaceID,
+		KeyAuthID:           "",
+		WorkspaceID:         row.ForWorkspaceID,
 		ForWorkspaceID:      row.ForWorkspaceID,
 		Name:                row.Name,
 		Expires:             row.Expires,
 		Enabled:             row.Enabled,
-		ApiDeletedAtM:       row.ApiDeletedAtM,
-		WorkspaceEnabled:    row.WorkspaceEnabled,
+		ApiDeletedAtM:       sql.NullInt64{},
+		WorkspaceEnabled:    true,
 		ForWorkspaceEnabled: row.ForWorkspaceEnabled,
 		Permissions:         permissions,
 	}, nil

@@ -142,7 +142,6 @@ func (h *Harness) RunAPI(config ApiConfig) *ApiCluster {
 		}
 
 		apiConfig := api.Config{
-			RootKeys:   api.RootKeysConfig{WorkspaceID: "", KeyspaceID: "", ProjectID: ""},
 			HttpPort:   7070,
 			Platform:   "test",
 			Image:      "test",

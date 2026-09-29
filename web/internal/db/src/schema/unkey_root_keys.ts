@@ -8,8 +8,6 @@ export const unkeyRootKeys = mysqlTable(
   {
     pk: primaryKey(),
     id: id("id").notNull().unique(),
-    workspaceId: id("workspace_id").notNull(),
-    keyAuthId: id("key_auth_id").notNull(),
     forWorkspaceId: id("for_workspace_id").notNull(),
     hash: caseSensitiveVarchar("hash", { length: 256 }).notNull().unique(),
     name: varchar("name", { length: 256 }),

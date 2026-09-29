@@ -13,8 +13,6 @@ const findUnkeyRootKeyByID = `-- name: FindUnkeyRootKeyByID :one
 SELECT
     pk,
     id,
-    workspace_id,
-    key_auth_id,
     for_workspace_id,
     hash,
     name,
@@ -35,8 +33,6 @@ WHERE id = ? AND deleted_at IS NULL
 //	SELECT
 //	    pk,
 //	    id,
-//	    workspace_id,
-//	    key_auth_id,
 //	    for_workspace_id,
 //	    hash,
 //	    name,
@@ -55,8 +51,6 @@ func (q *Queries) FindUnkeyRootKeyByID(ctx context.Context, db DBTX, id string) 
 	err := row.Scan(
 		&i.Pk,
 		&i.ID,
-		&i.WorkspaceID,
-		&i.KeyAuthID,
 		&i.ForWorkspaceID,
 		&i.Hash,
 		&i.Name,

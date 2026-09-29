@@ -41,8 +41,6 @@ func TestListRootKeysPaginatesBothStores(t *testing.T) {
 		} else {
 			require.NoError(t, db.Query.InsertUnkeyRootKey(t.Context(), h.DB.RW(), db.InsertUnkeyRootKeyParams{
 				ID:             id,
-				WorkspaceID:    h.Resources().RootWorkspace.ID,
-				KeyAuthID:      h.Resources().RootKeySpace.ID,
 				ForWorkspaceID: workspace.ID,
 				Hash:           uid.New("hash"),
 				Name:           sql.NullString{},
@@ -101,8 +99,6 @@ func TestListRootKeysReturnsEffectivePermissions(t *testing.T) {
 	id := uid.New(uid.KeyPrefix)
 	require.NoError(t, db.Query.InsertUnkeyRootKey(t.Context(), h.DB.RW(), db.InsertUnkeyRootKeyParams{
 		ID:             id,
-		WorkspaceID:    h.Resources().RootWorkspace.ID,
-		KeyAuthID:      h.Resources().RootKeySpace.ID,
 		ForWorkspaceID: workspace.ID,
 		Hash:           "never-return-this-hash",
 		Name:           sql.NullString{String: "", Valid: true},
@@ -248,8 +244,6 @@ func TestListRootKeysExcludesForeignAndDeletedKeys(t *testing.T) {
 		id := uid.New(uid.KeyPrefix)
 		require.NoError(t, db.Query.InsertUnkeyRootKey(t.Context(), h.DB.RW(), db.InsertUnkeyRootKeyParams{
 			ID:             id,
-			WorkspaceID:    h.Resources().RootWorkspace.ID,
-			KeyAuthID:      h.Resources().RootKeySpace.ID,
 			ForWorkspaceID: target,
 			Hash:           uid.New("hash"),
 			Name:           sql.NullString{},

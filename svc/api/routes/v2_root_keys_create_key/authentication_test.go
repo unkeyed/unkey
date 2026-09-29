@@ -32,8 +32,6 @@ func TestRootKeyAuthenticationPrefersNewStore(t *testing.T) {
 	newID := uid.New(uid.KeyPrefix)
 	require.NoError(t, db.Query.InsertUnkeyRootKey(t.Context(), h.DB.RW(), db.InsertUnkeyRootKeyParams{
 		ID:             newID,
-		WorkspaceID:    r.RootWorkspace.ID,
-		KeyAuthID:      r.RootKeySpace.ID,
 		ForWorkspaceID: r.UserWorkspace.ID,
 		Hash:           hash.Sha256(legacy.Key),
 		Name:           sql.NullString{},
@@ -53,6 +51,32 @@ func TestRootKeyAuthenticationPrefersNewStore(t *testing.T) {
 	rootKey, err := h.Keys.GetRootKey(t.Context(), session)
 	require.NoError(t, err)
 	require.Equal(t, newID, rootKey.Key.ID)
+}
+
+// TestNewRootKeyAuthenticationIgnoresLegacyOwnership guarantees new root keys
+// do not depend on the internal workspace, API, or keyspace used by legacy keys.
+func TestNewRootKeyAuthenticationIgnoresLegacyOwnership(t *testing.T) {
+	h, route, p := newHarness(t)
+	res := testutil.CallRoute[handler.Request, handler.Response](h, route, http.Header{
+		"Authorization": {"Bearer test"}, "Content-Type": {"application/json"},
+	}, handler.Request{Permissions: []string{}})
+	require.Equal(t, http.StatusOK, res.Status, "%s", res.RawBody)
+
+	r := h.Resources()
+	_, err := h.DB.RW().ExecContext(t.Context(), "UPDATE workspaces SET enabled = FALSE WHERE id = ?", r.RootWorkspace.ID)
+	require.NoError(t, err)
+	_, err = h.DB.RW().ExecContext(t.Context(), "UPDATE apis SET deleted_at_m = 1 WHERE key_auth_id = ?", r.RootKeySpace.ID)
+	require.NoError(t, err)
+	_, err = h.DB.RW().ExecContext(t.Context(), "DELETE FROM key_auth WHERE id = ?", r.RootKeySpace.ID)
+	require.NoError(t, err)
+
+	request := httptest.NewRequest(http.MethodPost, "/", nil)
+	request.Header.Set("Authorization", "Bearer "+res.Body.Data.Key)
+	session := &zen.Session{}
+	require.NoError(t, session.Init(httptest.NewRecorder(), request, 0))
+	rootKey, err := h.Keys.GetRootKey(t.Context(), session)
+	require.NoError(t, err)
+	require.Equal(t, p.AuthorizedWorkspaceID, rootKey.AuthorizedWorkspaceID)
 }
 
 // TestLegacyRootKeyDisableInvalidatesAuthentication guarantees an authorized
@@ -90,7 +114,7 @@ func TestLegacyRootKeyDisableInvalidatesAuthentication(t *testing.T) {
 
 // TestNewRootKeyAuthenticationChecksLifecycle guarantees the new storage does not
 // bypass lifecycle checks. For example, expired or disabled keys fail auth, as do
-// keys whose target workspace is missing or whose internal keyspace was removed.
+// keys whose target workspace is missing or disabled.
 func TestNewRootKeyAuthenticationChecksLifecycle(t *testing.T) {
 	for _, tt := range []struct {
 		name      string
@@ -103,9 +127,6 @@ func TestNewRootKeyAuthenticationChecksLifecycle(t *testing.T) {
 		{"deleted", "UPDATE unkey_root_keys SET deleted_at = 1 WHERE id = ?", "key", codes.Auth.Authentication.KeyNotFound.URN()},
 		{"missing target", "UPDATE unkey_root_keys SET for_workspace_id = 'ws_missing' WHERE id = ?", "key", codes.Data.Workspace.NotFound.URN()},
 		{"disabled target", "UPDATE workspaces SET enabled = FALSE WHERE id = ?", "target", codes.Auth.Authorization.WorkspaceDisabled.URN()},
-		{"disabled owner", "UPDATE workspaces SET enabled = FALSE WHERE id = ?", "owner", codes.Auth.Authorization.WorkspaceDisabled.URN()},
-		{"deleted API", "UPDATE apis SET deleted_at_m = 1 WHERE key_auth_id = ?", "keyspace", codes.Auth.Authentication.KeyNotFound.URN()},
-		{"missing keyspace", "DELETE FROM key_auth WHERE id = ?", "keyspace", codes.Auth.Authentication.KeyNotFound.URN()},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			h, route, p := newHarness(t)
@@ -114,10 +135,8 @@ func TestNewRootKeyAuthenticationChecksLifecycle(t *testing.T) {
 			}, handler.Request{Permissions: []string{}})
 			require.Equal(t, http.StatusOK, res.Status, "%s", res.RawBody)
 			targets := map[string]string{
-				"key":      res.Body.Data.KeyId,
-				"target":   p.AuthorizedWorkspaceID,
-				"owner":    h.Resources().RootWorkspace.ID,
-				"keyspace": h.Resources().RootKeySpace.ID,
+				"key":    res.Body.Data.KeyId,
+				"target": p.AuthorizedWorkspaceID,
 			}
 			_, err := h.DB.RW().ExecContext(t.Context(), tt.statement, targets[tt.target])
 			require.NoError(t, err)

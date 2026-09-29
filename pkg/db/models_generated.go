@@ -1071,8 +1071,6 @@ type RolesPermission struct {
 type UnkeyRootKey struct {
 	Pk             uint64         `db:"pk"`
 	ID             string         `db:"id"`
-	WorkspaceID    string         `db:"workspace_id"`
-	KeyAuthID      string         `db:"key_auth_id"`
 	ForWorkspaceID string         `db:"for_workspace_id"`
 	Hash           string         `db:"hash"`
 	Name           sql.NullString `db:"name"`

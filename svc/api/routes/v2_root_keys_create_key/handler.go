@@ -28,13 +28,10 @@ type Request = openapi.V2RootKeysCreateKeyRequestBody
 type Response = openapi.V2RootKeysCreateKeyResponseBody
 
 type Handler struct {
-	DB                  db.Database
-	Keys                keys.KeyService
-	Auditlogs           auditlogs.AuditLogService
-	Clock               clock.Clock
-	InternalWorkspaceID string
-	InternalKeyspaceID  string
-	InternalProjectID   string
+	DB        db.Database
+	Keys      keys.KeyService
+	Auditlogs auditlogs.AuditLogService
+	Clock     clock.Clock
 }
 
 func (h *Handler) Method() string { return "POST" }
@@ -83,20 +80,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	keyID := uid.New(uid.KeyPrefix)
 	ctx = auditlog.WithCorrelation(ctx, auditlog.NewCorrelationID())
 	err = db.TxRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
-		keyspace, err := db.Query.FindKeySpaceByID(ctx, tx, h.InternalKeyspaceID)
-		if err != nil {
-			return fault.Wrap(err, fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.Public("Root key creation is not available."))
-		}
-		if h.InternalWorkspaceID == "" || h.InternalProjectID == "" || keyspace.WorkspaceID != h.InternalWorkspaceID ||
-			keyspace.ProjectID != h.InternalProjectID || keyspace.DeletedAtM.Valid {
-			return fault.New("invalid internal root key ownership", fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.Public("Root key creation is not available."))
-		}
-		err = db.Query.InsertUnkeyRootKey(ctx, tx, db.InsertUnkeyRootKeyParams{
+		err := db.Query.InsertUnkeyRootKey(ctx, tx, db.InsertUnkeyRootKeyParams{
 			ID:             keyID,
-			KeyAuthID:      h.InternalKeyspaceID,
-			WorkspaceID:    h.InternalWorkspaceID,
 			ForWorkspaceID: p.AuthorizedWorkspaceID,
 			Name: sql.NullString{
 				String: ptr.SafeDeref(req.Name),

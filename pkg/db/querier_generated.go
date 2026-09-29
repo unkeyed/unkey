@@ -1194,8 +1194,6 @@ type Querier interface {
 	//  SELECT
 	//      pk,
 	//      id,
-	//      workspace_id,
-	//      key_auth_id,
 	//      for_workspace_id,
 	//      hash,
 	//      name,
@@ -2010,8 +2008,6 @@ type Querier interface {
 	//
 	//  INSERT INTO unkey_root_keys (
 	//      id,
-	//      workspace_id,
-	//      key_auth_id,
 	//      for_workspace_id,
 	//      hash,
 	//      name,
@@ -2022,8 +2018,6 @@ type Querier interface {
 	//      expires,
 	//      created_at
 	//  ) VALUES (
-	//      ?,
-	//      ?,
 	//      ?,
 	//      ?,
 	//      ?,

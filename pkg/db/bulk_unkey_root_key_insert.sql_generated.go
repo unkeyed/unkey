@@ -9,7 +9,7 @@ import (
 )
 
 // bulkInsertUnkeyRootKey is the base query for bulk insert
-const bulkInsertUnkeyRootKey = `INSERT INTO unkey_root_keys ( id, workspace_id, key_auth_id, for_workspace_id, hash, name, prefix, start, end, enabled, expires, created_at ) VALUES %s`
+const bulkInsertUnkeyRootKey = `INSERT INTO unkey_root_keys ( id, for_workspace_id, hash, name, prefix, start, end, enabled, expires, created_at ) VALUES %s`
 
 // InsertUnkeyRootKeys performs bulk insert in a single query
 func (q *BulkQueries) InsertUnkeyRootKeys(ctx context.Context, db DBTX, args []InsertUnkeyRootKeyParams) error {
@@ -21,7 +21,7 @@ func (q *BulkQueries) InsertUnkeyRootKeys(ctx context.Context, db DBTX, args []I
 	// Build the bulk insert query
 	valueClauses := make([]string, len(args))
 	for i := range args {
-		valueClauses[i] = "( ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? )"
+		valueClauses[i] = "( ?, ?, ?, ?, ?, ?, ?, ?, ?, ? )"
 	}
 
 	bulkQuery := fmt.Sprintf(bulkInsertUnkeyRootKey, strings.Join(valueClauses, ", "))
@@ -30,8 +30,6 @@ func (q *BulkQueries) InsertUnkeyRootKeys(ctx context.Context, db DBTX, args []I
 	var allArgs []any
 	for _, arg := range args {
 		allArgs = append(allArgs, arg.ID)
-		allArgs = append(allArgs, arg.WorkspaceID)
-		allArgs = append(allArgs, arg.KeyAuthID)
 		allArgs = append(allArgs, arg.ForWorkspaceID)
 		allArgs = append(allArgs, arg.Hash)
 		allArgs = append(allArgs, arg.Name)
