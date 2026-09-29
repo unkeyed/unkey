@@ -1147,880 +1147,880 @@
   },
   "redirects": [
     {
-      "source": "/api-reference",
-      "destination": "/platform/api/overview"
+      "destination": "/platform/api/overview",
+      "source": "/api-reference"
     },
     {
-      "source": "/api-reference/analytics/query-gateway-request-data",
-      "destination": "/compute/api-reference/analytics/query-gateway-request-data"
+      "destination": "/compute/api-reference/analytics/query-gateway-request-data",
+      "source": "/api-reference/analytics/query-gateway-request-data"
     },
     {
-      "source": "/api-reference/analytics/query-key-verification-data",
-      "destination": "/api-management/api-reference/analytics/query-key-verification-data"
+      "destination": "/api-management/api-reference/analytics/query-key-verification-data",
+      "source": "/api-reference/analytics/query-key-verification-data"
     },
     {
-      "source": "/api-reference/analytics/query-rate-limit-data",
-      "destination": "/api-management/api-reference/analytics/query-rate-limit-data"
+      "destination": "/api-management/api-reference/analytics/query-rate-limit-data",
+      "source": "/api-reference/analytics/query-rate-limit-data"
     },
     {
-      "source": "/api-reference/analytics/query-runtime-log-data",
-      "destination": "/compute/api-reference/analytics/query-runtime-log-data"
+      "destination": "/compute/api-reference/analytics/query-runtime-log-data",
+      "source": "/api-reference/analytics/query-runtime-log-data"
     },
     {
-      "source": "/api-reference/auth",
-      "destination": "/platform/api/authentication"
+      "destination": "/platform/api/authentication",
+      "source": "/api-reference/auth"
     },
     {
-      "source": "/api-reference/deploy/create-deployment",
-      "destination": "/compute/api-reference/deployments/create-deployment"
+      "destination": "/compute/api-reference/deployments/create-deployment",
+      "source": "/api-reference/deploy/create-deployment"
     },
     {
-      "source": "/api-reference/deploy/get-deployment",
-      "destination": "/compute/api-reference/deployments/get-deployment"
+      "destination": "/compute/api-reference/deployments/get-deployment",
+      "source": "/api-reference/deploy/get-deployment"
     },
     {
-      "source": "/api-reference/deployments/create-deployment",
-      "destination": "/compute/api-reference/deployments/create-deployment"
+      "destination": "/compute/api-reference/deployments/create-deployment",
+      "source": "/api-reference/deployments/create-deployment"
     },
     {
-      "source": "/api-reference/deployments/create-deployment-1",
-      "destination": "/compute/api-reference/deployments/create-deployment"
+      "destination": "/compute/api-reference/deployments/create-deployment",
+      "source": "/api-reference/deployments/create-deployment-1"
     },
     {
-      "source": "/api-reference/deployments/get-deployment",
-      "destination": "/compute/api-reference/deployments/get-deployment"
+      "destination": "/compute/api-reference/deployments/get-deployment",
+      "source": "/api-reference/deployments/get-deployment"
     },
     {
-      "source": "/api-reference/deployments/list-deployments",
-      "destination": "/compute/api-reference/deployments/list-deployments"
+      "destination": "/compute/api-reference/deployments/list-deployments",
+      "source": "/api-reference/deployments/list-deployments"
     },
     {
-      "source": "/api-reference/deployments/promote-deployment",
-      "destination": "/compute/api-reference/deployments/promote-deployment"
+      "destination": "/compute/api-reference/deployments/promote-deployment",
+      "source": "/api-reference/deployments/promote-deployment"
     },
     {
-      "source": "/api-reference/deployments/rollback-deployment",
-      "destination": "/compute/api-reference/deployments/rollback-deployment"
+      "destination": "/compute/api-reference/deployments/rollback-deployment",
+      "source": "/api-reference/deployments/rollback-deployment"
     },
     {
-      "source": "/api-reference/deployments/start-deployment",
-      "destination": "/compute/api-reference/deployments/start-deployment"
+      "destination": "/compute/api-reference/deployments/start-deployment",
+      "source": "/api-reference/deployments/start-deployment"
     },
     {
-      "source": "/api-reference/deployments/stop-deployment",
-      "destination": "/compute/api-reference/deployments/stop-deployment"
+      "destination": "/compute/api-reference/deployments/stop-deployment",
+      "source": "/api-reference/deployments/stop-deployment"
     },
     {
-      "source": "/api-reference/errors",
-      "destination": "/platform/api/errors"
+      "destination": "/platform/api/errors",
+      "source": "/api-reference/errors"
     },
     {
-      "source": "/api-reference/overview",
-      "destination": "/platform/api/overview"
+      "destination": "/platform/api/overview",
+      "source": "/api-reference/overview"
     },
     {
-      "source": "/api-reference/rpc",
-      "destination": "/platform/api/rpc-convention"
+      "destination": "/platform/api/rpc-convention",
+      "source": "/api-reference/rpc"
     },
     {
-      "source": "/apis/features/analytics",
-      "destination": "/api-management/analytics/overview"
+      "destination": "/api-management/analytics/overview",
+      "source": "/apis/features/analytics"
     },
     {
-      "source": "/audit-log/introduction",
-      "destination": "/platform/workspace/audit-logs/overview"
+      "destination": "/platform/workspace/audit-logs/overview",
+      "source": "/audit-log/introduction"
     },
     {
-      "source": "/audit-log/types",
-      "destination": "/platform/workspace/audit-logs/event-types"
+      "destination": "/platform/workspace/audit-logs/event-types",
+      "source": "/audit-log/types"
     },
     {
-      "source": "/build-and-deploy/cli",
-      "destination": "/compute/cli/deploy"
+      "destination": "/compute/cli/deploy",
+      "source": "/build-and-deploy/cli"
     },
     {
-      "source": "/build-and-deploy/cli-vs-github",
-      "destination": "/compute/build/overview"
+      "destination": "/compute/build/overview",
+      "source": "/build-and-deploy/cli-vs-github"
     },
     {
-      "source": "/build-and-deploy/deployments",
-      "destination": "/compute/concepts/deployments"
+      "destination": "/compute/concepts/deployments",
+      "source": "/build-and-deploy/deployments"
     },
     {
-      "source": "/build-and-deploy/github",
-      "destination": "/compute/build/github"
+      "destination": "/compute/build/github",
+      "source": "/build-and-deploy/github"
     },
     {
-      "source": "/build-and-deploy/overview",
-      "destination": "/compute/index"
+      "destination": "/compute/index",
+      "source": "/build-and-deploy/overview"
     },
     {
-      "source": "/build-and-deploy/regions",
-      "destination": "/compute/concepts/regions"
+      "destination": "/compute/concepts/regions",
+      "source": "/build-and-deploy/regions"
     },
     {
-      "source": "/build-and-deploy/rollbacks",
-      "destination": "/compute/concepts/production-and-preview"
+      "destination": "/compute/concepts/production-and-preview",
+      "source": "/build-and-deploy/rollbacks"
     },
     {
-      "source": "/builds/dockerfile",
-      "destination": "/compute/build/dockerfile"
+      "destination": "/compute/build/dockerfile",
+      "source": "/builds/dockerfile"
     },
     {
-      "source": "/builds/dockerfile-prompt",
-      "destination": "/compute/build/dockerfile"
+      "destination": "/compute/build/dockerfile",
+      "source": "/builds/dockerfile-prompt"
     },
     {
-      "source": "/builds/overview",
-      "destination": "/compute/build/overview"
+      "destination": "/compute/build/overview",
+      "source": "/builds/overview"
     },
     {
-      "source": "/cli/analytics/get-gateway-requests",
-      "destination": "/compute/cli/analytics/get-gateway-requests"
+      "destination": "/compute/cli/analytics/get-gateway-requests",
+      "source": "/cli/analytics/get-gateway-requests"
     },
     {
-      "source": "/cli/analytics/get-ratelimits",
-      "destination": "/api-management/cli/analytics/get-ratelimits"
+      "destination": "/api-management/cli/analytics/get-ratelimits",
+      "source": "/cli/analytics/get-ratelimits"
     },
     {
-      "source": "/cli/analytics/get-runtime-logs",
-      "destination": "/compute/cli/analytics/get-runtime-logs"
+      "destination": "/compute/cli/analytics/get-runtime-logs",
+      "source": "/cli/analytics/get-runtime-logs"
     },
     {
-      "source": "/cli/analytics/get-verifications",
-      "destination": "/api-management/cli/analytics/get-verifications"
+      "destination": "/api-management/cli/analytics/get-verifications",
+      "source": "/cli/analytics/get-verifications"
     },
     {
-      "source": "/cli/auth/login",
-      "destination": "/platform/cli/auth/login"
+      "destination": "/platform/cli/auth/login",
+      "source": "/cli/auth/login"
     },
     {
-      "source": "/cli/authentication",
-      "destination": "/platform/cli/authentication"
+      "destination": "/platform/cli/authentication",
+      "source": "/cli/authentication"
     },
     {
-      "source": "/cli/overview",
-      "destination": "/platform/cli/overview"
+      "destination": "/platform/cli/overview",
+      "source": "/cli/overview"
     },
     {
-      "source": "/cookbook",
-      "destination": "/api-management/cookbook/index"
+      "destination": "/api-management/cookbook/index",
+      "source": "/cookbook"
     },
     {
-      "source": "/cookbook/cloudflare-workers",
-      "destination": "/api-management/guides/cloudflare-workers"
+      "destination": "/api-management/guides/cloudflare-workers",
+      "source": "/cookbook/cloudflare-workers"
     },
     {
-      "source": "/cookbook/endpoint-ratelimit",
-      "destination": "/api-management/cookbook/endpoint-rate-limit"
+      "destination": "/api-management/cookbook/endpoint-rate-limit",
+      "source": "/cookbook/endpoint-ratelimit"
     },
     {
-      "source": "/cookbook/express-middleware",
-      "destination": "/api-management/guides/express"
+      "destination": "/api-management/guides/express",
+      "source": "/cookbook/express-middleware"
     },
     {
-      "source": "/cookbook/fastapi-auth",
-      "destination": "/api-management/cookbook/fastapi-auth"
+      "destination": "/api-management/cookbook/fastapi-auth",
+      "source": "/cookbook/fastapi-auth"
     },
     {
-      "source": "/cookbook/go-echo-middleware",
-      "destination": "/api-management/cookbook/go-middleware"
+      "destination": "/api-management/cookbook/go-middleware",
+      "source": "/cookbook/go-echo-middleware"
     },
     {
-      "source": "/cookbook/go-gin-middleware",
-      "destination": "/api-management/cookbook/go-middleware"
+      "destination": "/api-management/cookbook/go-middleware",
+      "source": "/cookbook/go-gin-middleware"
     },
     {
-      "source": "/cookbook/go-stdlib-middleware",
-      "destination": "/api-management/cookbook/go-middleware"
+      "destination": "/api-management/cookbook/go-middleware",
+      "source": "/cookbook/go-stdlib-middleware"
     },
     {
-      "source": "/cookbook/index",
-      "destination": "/api-management/cookbook/index"
+      "destination": "/api-management/cookbook/index",
+      "source": "/cookbook/index"
     },
     {
-      "source": "/cookbook/nextjs-api-routes",
-      "destination": "/api-management/guides/nextjs"
+      "destination": "/api-management/guides/nextjs",
+      "source": "/cookbook/nextjs-api-routes"
     },
     {
-      "source": "/cookbook/per-user-ratelimit",
-      "destination": "/api-management/cookbook/per-user-rate-limit"
+      "destination": "/api-management/cookbook/per-user-rate-limit",
+      "source": "/cookbook/per-user-ratelimit"
     },
     {
-      "source": "/cookbook/tiered-subscriptions",
-      "destination": "/api-management/cookbook/tiered-subscriptions"
+      "destination": "/api-management/cookbook/tiered-subscriptions",
+      "source": "/cookbook/tiered-subscriptions"
     },
     {
-      "source": "/cookbook/usage-billing",
-      "destination": "/api-management/cookbook/usage-billing"
+      "destination": "/api-management/cookbook/usage-billing",
+      "source": "/cookbook/usage-billing"
     },
     {
-      "source": "/environments/overview",
-      "destination": "/compute/concepts/projects-apps-environments"
+      "destination": "/compute/concepts/projects-apps-environments",
+      "source": "/environments/overview"
     },
     {
-      "source": "/glossary",
-      "destination": "/platform/glossary"
+      "destination": "/platform/glossary",
+      "source": "/glossary"
     },
     {
-      "source": "/introduction",
-      "destination": "/"
+      "destination": "/",
+      "source": "/introduction"
     },
     {
-      "source": "/libraries",
-      "destination": "/api-management/sdks/typescript/api"
+      "destination": "/api-management/sdks/typescript/api",
+      "source": "/libraries"
     },
     {
-      "source": "/libraries/go/api",
-      "destination": "/api-management/sdks/go"
+      "destination": "/api-management/sdks/go",
+      "source": "/libraries/go/api"
     },
     {
-      "source": "/libraries/go/overview",
-      "destination": "/api-management/sdks/go"
+      "destination": "/api-management/sdks/go",
+      "source": "/libraries/go/overview"
     },
     {
-      "source": "/libraries/nuxt/overview",
-      "destination": "/api-management/sdks/community/nuxt"
+      "destination": "/api-management/sdks/community/nuxt",
+      "source": "/libraries/nuxt/overview"
     },
     {
-      "source": "/libraries/py/api",
-      "destination": "/api-management/sdks/python"
+      "destination": "/api-management/sdks/python",
+      "source": "/libraries/py/api"
     },
     {
-      "source": "/libraries/py/overview",
-      "destination": "/api-management/sdks/python"
+      "destination": "/api-management/sdks/python",
+      "source": "/libraries/py/overview"
     },
     {
-      "source": "/libraries/ts/api",
-      "destination": "/api-management/sdks/typescript/api"
+      "destination": "/api-management/sdks/typescript/api",
+      "source": "/libraries/ts/api"
     },
     {
-      "source": "/libraries/ts/cache/interface/store",
-      "destination": "/api-management/sdks/typescript/cache"
+      "destination": "/api-management/sdks/typescript/cache",
+      "source": "/libraries/ts/cache/interface/store"
     },
     {
-      "source": "/libraries/ts/cache/overview",
-      "destination": "/api-management/sdks/typescript/cache"
+      "destination": "/api-management/sdks/typescript/cache",
+      "source": "/libraries/ts/cache/overview"
     },
     {
-      "source": "/libraries/ts/hono",
-      "destination": "/api-management/sdks/typescript/hono"
+      "destination": "/api-management/sdks/typescript/hono",
+      "source": "/libraries/ts/hono"
     },
     {
-      "source": "/libraries/ts/nextjs",
-      "destination": "/api-management/sdks/typescript/nextjs"
+      "destination": "/api-management/sdks/typescript/nextjs",
+      "source": "/libraries/ts/nextjs"
     },
     {
-      "source": "/libraries/ts/overview",
-      "destination": "/api-management/sdks/overview"
+      "destination": "/api-management/sdks/overview",
+      "source": "/libraries/ts/overview"
     },
     {
-      "source": "/libraries/ts/ratelimit/override/delete-override",
-      "destination": "/api-management/sdks/typescript/ratelimit"
+      "destination": "/api-management/sdks/typescript/ratelimit",
+      "source": "/libraries/ts/ratelimit/override/delete-override"
     },
     {
-      "source": "/libraries/ts/ratelimit/override/get-override",
-      "destination": "/api-management/sdks/typescript/ratelimit"
+      "destination": "/api-management/sdks/typescript/ratelimit",
+      "source": "/libraries/ts/ratelimit/override/get-override"
     },
     {
-      "source": "/libraries/ts/ratelimit/override/list-overrides",
-      "destination": "/api-management/sdks/typescript/ratelimit"
+      "destination": "/api-management/sdks/typescript/ratelimit",
+      "source": "/libraries/ts/ratelimit/override/list-overrides"
     },
     {
-      "source": "/libraries/ts/ratelimit/override/overview",
-      "destination": "/api-management/sdks/typescript/ratelimit"
+      "destination": "/api-management/sdks/typescript/ratelimit",
+      "source": "/libraries/ts/ratelimit/override/overview"
     },
     {
-      "source": "/libraries/ts/ratelimit/override/set-override",
-      "destination": "/api-management/sdks/typescript/ratelimit"
+      "destination": "/api-management/sdks/typescript/ratelimit",
+      "source": "/libraries/ts/ratelimit/override/set-override"
     },
     {
-      "source": "/libraries/ts/ratelimit/ratelimit",
-      "destination": "/api-management/sdks/typescript/ratelimit"
+      "destination": "/api-management/sdks/typescript/ratelimit",
+      "source": "/libraries/ts/ratelimit/ratelimit"
     },
     {
-      "source": "/log-drains/overview",
-      "destination": "/platform/workspace/log-drains"
+      "destination": "/platform/workspace/log-drains",
+      "source": "/log-drains/overview"
     },
     {
-      "source": "/networking/domains",
-      "destination": "/compute/networking/custom-domains"
+      "destination": "/compute/networking/custom-domains",
+      "source": "/networking/domains"
     },
     {
-      "source": "/networking/overview",
-      "destination": "/compute/networking/automatic-domains"
+      "destination": "/compute/networking/automatic-domains",
+      "source": "/networking/overview"
     },
     {
-      "source": "/networking/private-networking",
-      "destination": "/compute/networking/private-networking"
+      "destination": "/compute/networking/private-networking",
+      "source": "/networking/private-networking"
     },
     {
-      "source": "/networking/public-networking",
-      "destination": "/compute/networking/request-lifecycle"
+      "destination": "/compute/networking/request-lifecycle",
+      "source": "/networking/public-networking"
     },
     {
-      "source": "/networking/websockets",
-      "destination": "/compute/networking/websockets"
+      "destination": "/compute/networking/websockets",
+      "source": "/networking/websockets"
     },
     {
-      "source": "/networking/wildcard-domains",
-      "destination": "/compute/networking/automatic-domains"
+      "destination": "/compute/networking/automatic-domains",
+      "source": "/networking/wildcard-domains"
     },
     {
-      "source": "/observability/logs",
-      "destination": "/compute/observe/runtime-logs"
+      "destination": "/compute/observe/runtime-logs",
+      "source": "/observability/logs"
     },
     {
-      "source": "/observability/metrics",
-      "destination": "/compute/observe/metrics"
+      "destination": "/compute/observe/metrics",
+      "source": "/observability/metrics"
     },
     {
-      "source": "/observability/overview",
-      "destination": "/compute/observe/overview"
+      "destination": "/compute/observe/overview",
+      "source": "/observability/overview"
     },
     {
-      "source": "/observability/requests",
-      "destination": "/compute/observe/requests"
+      "destination": "/compute/observe/requests",
+      "source": "/observability/requests"
     },
     {
-      "source": "/onboarding",
-      "destination": "/api-management/get-started/quickstart"
+      "destination": "/api-management/get-started/quickstart",
+      "source": "/onboarding"
     },
     {
-      "source": "/onboarding/onboarding-api",
-      "destination": "/api-management/get-started/quickstart"
+      "destination": "/api-management/get-started/quickstart",
+      "source": "/onboarding/onboarding-api"
     },
     {
-      "source": "/onboarding/onboarding-ratelimiting",
-      "destination": "/api-management/ratelimiting/overview"
+      "destination": "/api-management/ratelimiting/overview",
+      "source": "/onboarding/onboarding-ratelimiting"
     },
     {
-      "source": "/platform/analytics/get-gateway-requests",
-      "destination": "/compute/observe/analytics-api"
+      "destination": "/compute/observe/analytics-api",
+      "source": "/platform/analytics/get-gateway-requests"
     },
     {
-      "source": "/platform/analytics/get-ratelimits",
-      "destination": "/api-management/analytics/tables/ratelimits"
+      "destination": "/api-management/analytics/tables/ratelimits",
+      "source": "/platform/analytics/get-ratelimits"
     },
     {
-      "source": "/platform/analytics/get-runtime-logs",
-      "destination": "/compute/observe/analytics-api"
+      "destination": "/compute/observe/analytics-api",
+      "source": "/platform/analytics/get-runtime-logs"
     },
     {
-      "source": "/platform/analytics/getting-started",
-      "destination": "/api-management/analytics/overview"
+      "destination": "/api-management/analytics/overview",
+      "source": "/platform/analytics/getting-started"
     },
     {
-      "source": "/platform/analytics/overview",
-      "destination": "/api-management/analytics/overview"
+      "destination": "/api-management/analytics/overview",
+      "source": "/platform/analytics/overview"
     },
     {
-      "source": "/platform/analytics/query-examples",
-      "destination": "/api-management/analytics/examples"
+      "destination": "/api-management/analytics/examples",
+      "source": "/platform/analytics/query-examples"
     },
     {
-      "source": "/platform/analytics/query-restrictions",
-      "destination": "/api-management/analytics/restrictions-and-quotas"
+      "destination": "/api-management/analytics/restrictions-and-quotas",
+      "source": "/platform/analytics/query-restrictions"
     },
     {
-      "source": "/platform/analytics/quick-reference",
-      "destination": "/api-management/analytics/query-language"
+      "destination": "/api-management/analytics/query-language",
+      "source": "/platform/analytics/quick-reference"
     },
     {
-      "source": "/platform/analytics/schema-reference",
-      "destination": "/api-management/analytics/tables/key-verifications"
+      "destination": "/api-management/analytics/tables/key-verifications",
+      "source": "/platform/analytics/schema-reference"
     },
     {
-      "source": "/platform/analytics/troubleshooting",
-      "destination": "/api-management/analytics/troubleshooting"
+      "destination": "/api-management/analytics/troubleshooting",
+      "source": "/platform/analytics/troubleshooting"
     },
     {
-      "source": "/platform/apis/features/authorization/example",
-      "destination": "/api-management/authorization/roles-and-permissions"
+      "destination": "/api-management/authorization/roles-and-permissions",
+      "source": "/platform/apis/features/authorization/example"
     },
     {
-      "source": "/platform/apis/features/authorization/introduction",
-      "destination": "/api-management/authorization/overview"
+      "destination": "/api-management/authorization/overview",
+      "source": "/platform/apis/features/authorization/introduction"
     },
     {
-      "source": "/platform/apis/features/authorization/roles-and-permissions",
-      "destination": "/api-management/authorization/roles-and-permissions"
+      "destination": "/api-management/authorization/roles-and-permissions",
+      "source": "/platform/apis/features/authorization/roles-and-permissions"
     },
     {
-      "source": "/platform/apis/features/authorization/verifying",
-      "destination": "/api-management/authorization/permission-queries"
+      "destination": "/api-management/authorization/permission-queries",
+      "source": "/platform/apis/features/authorization/verifying"
     },
     {
-      "source": "/platform/apis/features/enabled",
-      "destination": "/api-management/keys/enable-disable-delete"
+      "destination": "/api-management/keys/enable-disable-delete",
+      "source": "/platform/apis/features/enabled"
     },
     {
-      "source": "/platform/apis/features/environments",
-      "destination": "/api-management/keys/metadata-and-tags"
+      "destination": "/api-management/keys/metadata-and-tags",
+      "source": "/platform/apis/features/environments"
     },
     {
-      "source": "/platform/apis/features/ratelimiting/overview",
-      "destination": "/api-management/ratelimiting/key-and-identity-limits"
+      "destination": "/api-management/ratelimiting/key-and-identity-limits",
+      "source": "/platform/apis/features/ratelimiting/overview"
     },
     {
-      "source": "/platform/apis/features/refill",
-      "destination": "/api-management/keys/credits-and-refill"
+      "destination": "/api-management/keys/credits-and-refill",
+      "source": "/platform/apis/features/refill"
     },
     {
-      "source": "/platform/apis/features/remaining",
-      "destination": "/api-management/keys/credits-and-refill"
+      "destination": "/api-management/keys/credits-and-refill",
+      "source": "/platform/apis/features/remaining"
     },
     {
-      "source": "/platform/apis/features/rerolling-key",
-      "destination": "/api-management/keys/rerolling-keys"
+      "destination": "/api-management/keys/rerolling-keys",
+      "source": "/platform/apis/features/rerolling-key"
     },
     {
-      "source": "/platform/apis/features/revocation",
-      "destination": "/api-management/keys/enable-disable-delete"
+      "destination": "/api-management/keys/enable-disable-delete",
+      "source": "/platform/apis/features/revocation"
     },
     {
-      "source": "/platform/apis/features/temp-keys",
-      "destination": "/api-management/keys/expiration"
+      "destination": "/api-management/keys/expiration",
+      "source": "/platform/apis/features/temp-keys"
     },
     {
-      "source": "/platform/apis/features/whitelist",
-      "destination": "/api-management/keyspaces/settings"
+      "destination": "/api-management/keyspaces/settings",
+      "source": "/platform/apis/features/whitelist"
     },
     {
-      "source": "/platform/apis/introduction",
-      "destination": "/api-management/index"
+      "destination": "/api-management/index",
+      "source": "/platform/apis/introduction"
     },
     {
-      "source": "/platform/apis/keys",
-      "destination": "/api-management/get-started/concepts"
+      "destination": "/api-management/get-started/concepts",
+      "source": "/platform/apis/keys"
     },
     {
-      "source": "/platform/apis/migrations/introduction",
-      "destination": "/api-management/keys/migrating-keys"
+      "destination": "/api-management/keys/migrating-keys",
+      "source": "/platform/apis/migrations/introduction"
     },
     {
-      "source": "/platform/apis/migrations/keys",
-      "destination": "/api-management/keys/migrating-keys"
+      "destination": "/api-management/keys/migrating-keys",
+      "source": "/platform/apis/migrations/keys"
     },
     {
-      "source": "/platform/apis/overview",
-      "destination": "/api-management/keyspaces/overview"
+      "destination": "/api-management/keyspaces/overview",
+      "source": "/platform/apis/overview"
     },
     {
-      "source": "/platform/apps/overview",
-      "destination": "/compute/concepts/projects-apps-environments"
+      "destination": "/compute/concepts/projects-apps-environments",
+      "source": "/platform/apps/overview"
     },
     {
-      "source": "/platform/apps/settings",
-      "destination": "/compute/configure/runtime-settings"
+      "destination": "/compute/configure/runtime-settings",
+      "source": "/platform/apps/settings"
     },
     {
-      "source": "/platform/gateway/authentication",
-      "destination": "/compute/gateway/principal"
+      "destination": "/compute/gateway/principal",
+      "source": "/platform/gateway/authentication"
     },
     {
-      "source": "/platform/gateway/local-development",
-      "destination": "/compute/gateway/local-development"
+      "destination": "/compute/gateway/local-development",
+      "source": "/platform/gateway/local-development"
     },
     {
-      "source": "/platform/gateway/overview",
-      "destination": "/compute/gateway/overview"
+      "destination": "/compute/gateway/overview",
+      "source": "/platform/gateway/overview"
     },
     {
-      "source": "/platform/gateway/policies/api-key",
-      "destination": "/compute/gateway/api-key-auth"
+      "destination": "/compute/gateway/api-key-auth",
+      "source": "/platform/gateway/policies/api-key"
     },
     {
-      "source": "/platform/gateway/policies/firewall",
-      "destination": "/compute/gateway/firewall"
+      "destination": "/compute/gateway/firewall",
+      "source": "/platform/gateway/policies/firewall"
     },
     {
-      "source": "/platform/gateway/policies/logging",
-      "destination": "/compute/gateway/logging"
+      "destination": "/compute/gateway/logging",
+      "source": "/platform/gateway/policies/logging"
     },
     {
-      "source": "/platform/gateway/policies/openapi-validation",
-      "destination": "/compute/gateway/openapi-validation"
+      "destination": "/compute/gateway/openapi-validation",
+      "source": "/platform/gateway/policies/openapi-validation"
     },
     {
-      "source": "/platform/gateway/policies/overview",
-      "destination": "/compute/gateway/policies"
+      "destination": "/compute/gateway/policies",
+      "source": "/platform/gateway/policies/overview"
     },
     {
-      "source": "/platform/gateway/policies/rate-limiting",
-      "destination": "/compute/gateway/rate-limiting"
+      "destination": "/compute/gateway/rate-limiting",
+      "source": "/platform/gateway/policies/rate-limiting"
     },
     {
-      "source": "/platform/gateway/principal/examples",
-      "destination": "/compute/gateway/principal"
+      "destination": "/compute/gateway/principal",
+      "source": "/platform/gateway/principal/examples"
     },
     {
-      "source": "/platform/gateway/principal/local-development",
-      "destination": "/compute/gateway/local-development"
+      "destination": "/compute/gateway/local-development",
+      "source": "/platform/gateway/principal/local-development"
     },
     {
-      "source": "/platform/gateway/principal/overview",
-      "destination": "/compute/gateway/principal"
+      "destination": "/compute/gateway/principal",
+      "source": "/platform/gateway/principal/overview"
     },
     {
-      "source": "/platform/gateway/principal/sources/api-key",
-      "destination": "/compute/gateway/principal"
+      "destination": "/compute/gateway/principal",
+      "source": "/platform/gateway/principal/sources/api-key"
     },
     {
-      "source": "/platform/identities/overview",
-      "destination": "/api-management/identities/overview"
+      "destination": "/api-management/identities/overview",
+      "source": "/platform/identities/overview"
     },
     {
-      "source": "/platform/identities/ratelimits",
-      "destination": "/api-management/identities/shared-rate-limits"
+      "destination": "/api-management/identities/shared-rate-limits",
+      "source": "/platform/identities/ratelimits"
     },
     {
-      "source": "/platform/instances/overview",
-      "destination": "/compute/concepts/instances-and-autoscaling"
+      "destination": "/compute/concepts/instances-and-autoscaling",
+      "source": "/platform/instances/overview"
     },
     {
-      "source": "/platform/projects/overview",
-      "destination": "/compute/concepts/projects-apps-environments"
+      "destination": "/compute/concepts/projects-apps-environments",
+      "source": "/platform/projects/overview"
     },
     {
-      "source": "/platform/projects/settings",
-      "destination": "/compute/concepts/projects-apps-environments"
+      "destination": "/compute/concepts/projects-apps-environments",
+      "source": "/platform/projects/settings"
     },
     {
-      "source": "/platform/ratelimiting/automated-overrides",
-      "destination": "/api-management/ratelimiting/overrides"
+      "destination": "/api-management/ratelimiting/overrides",
+      "source": "/platform/ratelimiting/automated-overrides"
     },
     {
-      "source": "/platform/ratelimiting/how-it-works",
-      "destination": "/api-management/ratelimiting/how-it-works"
+      "destination": "/api-management/ratelimiting/how-it-works",
+      "source": "/platform/ratelimiting/how-it-works"
     },
     {
-      "source": "/platform/ratelimiting/introduction",
-      "destination": "/api-management/ratelimiting/overview"
+      "destination": "/api-management/ratelimiting/overview",
+      "source": "/platform/ratelimiting/introduction"
     },
     {
-      "source": "/platform/ratelimiting/modes",
-      "destination": "/api-management/ratelimiting/how-it-works"
+      "destination": "/api-management/ratelimiting/how-it-works",
+      "source": "/platform/ratelimiting/modes"
     },
     {
-      "source": "/platform/ratelimiting/overrides",
-      "destination": "/api-management/ratelimiting/overrides"
+      "destination": "/api-management/ratelimiting/overrides",
+      "source": "/platform/ratelimiting/overrides"
     },
     {
-      "source": "/platform/sentinel",
-      "destination": "/compute/gateway/overview"
+      "destination": "/compute/gateway/overview",
+      "source": "/platform/sentinel"
     },
     {
-      "source": "/platform/sentinel/authentication",
-      "destination": "/compute/gateway/principal"
+      "destination": "/compute/gateway/principal",
+      "source": "/platform/sentinel/authentication"
     },
     {
-      "source": "/platform/sentinel/local-development",
-      "destination": "/compute/gateway/local-development"
+      "destination": "/compute/gateway/local-development",
+      "source": "/platform/sentinel/local-development"
     },
     {
-      "source": "/platform/sentinel/overview",
-      "destination": "/compute/gateway/overview"
+      "destination": "/compute/gateway/overview",
+      "source": "/platform/sentinel/overview"
     },
     {
-      "source": "/platform/sentinel/policies/api-key",
-      "destination": "/compute/gateway/api-key-auth"
+      "destination": "/compute/gateway/api-key-auth",
+      "source": "/platform/sentinel/policies/api-key"
     },
     {
-      "source": "/platform/sentinel/policies/firewall",
-      "destination": "/compute/gateway/firewall"
+      "destination": "/compute/gateway/firewall",
+      "source": "/platform/sentinel/policies/firewall"
     },
     {
-      "source": "/platform/sentinel/policies/logging",
-      "destination": "/compute/gateway/logging"
+      "destination": "/compute/gateway/logging",
+      "source": "/platform/sentinel/policies/logging"
     },
     {
-      "source": "/platform/sentinel/policies/openapi-validation",
-      "destination": "/compute/gateway/openapi-validation"
+      "destination": "/compute/gateway/openapi-validation",
+      "source": "/platform/sentinel/policies/openapi-validation"
     },
     {
-      "source": "/platform/sentinel/policies/overview",
-      "destination": "/compute/gateway/policies"
+      "destination": "/compute/gateway/policies",
+      "source": "/platform/sentinel/policies/overview"
     },
     {
-      "source": "/platform/sentinel/policies/rate-limiting",
-      "destination": "/compute/gateway/rate-limiting"
+      "destination": "/compute/gateway/rate-limiting",
+      "source": "/platform/sentinel/policies/rate-limiting"
     },
     {
-      "source": "/platform/sentinel/principal/examples",
-      "destination": "/compute/gateway/principal"
+      "destination": "/compute/gateway/principal",
+      "source": "/platform/sentinel/principal/examples"
     },
     {
-      "source": "/platform/sentinel/principal/local-development",
-      "destination": "/compute/gateway/local-development"
+      "destination": "/compute/gateway/local-development",
+      "source": "/platform/sentinel/principal/local-development"
     },
     {
-      "source": "/platform/sentinel/principal/overview",
-      "destination": "/compute/gateway/principal"
+      "destination": "/compute/gateway/principal",
+      "source": "/platform/sentinel/principal/overview"
     },
     {
-      "source": "/platform/sentinel/principal/sources/api-key",
-      "destination": "/compute/gateway/principal"
+      "destination": "/compute/gateway/principal",
+      "source": "/platform/sentinel/principal/sources/api-key"
     },
     {
-      "source": "/platform/variables/overview",
-      "destination": "/compute/configure/environment-variables"
+      "destination": "/compute/configure/environment-variables",
+      "source": "/platform/variables/overview"
     },
     {
-      "source": "/platform/workspaces/billing",
-      "destination": "/platform/billing/plans"
+      "destination": "/platform/billing/plans",
+      "source": "/platform/workspaces/billing"
     },
     {
-      "source": "/platform/workspaces/billing/api",
-      "destination": "/platform/billing/plans"
+      "destination": "/platform/billing/plans",
+      "source": "/platform/workspaces/billing/api"
     },
     {
-      "source": "/platform/workspaces/billing/compute",
-      "destination": "/compute/get-started/plans"
+      "destination": "/compute/get-started/plans",
+      "source": "/platform/workspaces/billing/compute"
     },
     {
-      "source": "/platform/workspaces/billing/overview",
-      "destination": "/platform/billing/plans"
+      "destination": "/platform/billing/plans",
+      "source": "/platform/workspaces/billing/overview"
     },
     {
-      "source": "/platform/workspaces/billing/spend-budget",
-      "destination": "/compute/configure/spend-budget"
+      "destination": "/compute/configure/spend-budget",
+      "source": "/platform/workspaces/billing/spend-budget"
     },
     {
-      "source": "/platform/workspaces/overview",
-      "destination": "/platform/workspace/overview"
+      "destination": "/platform/workspace/overview",
+      "source": "/platform/workspaces/overview"
     },
     {
-      "source": "/platform/workspaces/quotas",
-      "destination": "/platform/billing/limits"
+      "destination": "/platform/billing/limits",
+      "source": "/platform/workspaces/quotas"
     },
     {
-      "source": "/platform/workspaces/settings",
-      "destination": "/platform/workspace/settings"
+      "destination": "/platform/workspace/settings",
+      "source": "/platform/workspaces/settings"
     },
     {
-      "source": "/platform/workspaces/team-members",
-      "destination": "/platform/workspace/team"
+      "destination": "/platform/workspace/team",
+      "source": "/platform/workspaces/team-members"
     },
     {
-      "source": "/quickstart",
-      "destination": "/api-management/get-started/quickstart"
+      "destination": "/api-management/get-started/quickstart",
+      "source": "/quickstart"
     },
     {
-      "source": "/quickstart/apis/bun",
-      "destination": "/api-management/guides/bun"
+      "destination": "/api-management/guides/bun",
+      "source": "/quickstart/apis/bun"
     },
     {
-      "source": "/quickstart/apis/express",
-      "destination": "/api-management/guides/express"
+      "destination": "/api-management/guides/express",
+      "source": "/quickstart/apis/express"
     },
     {
-      "source": "/quickstart/apis/go",
-      "destination": "/api-management/guides/go"
+      "destination": "/api-management/guides/go",
+      "source": "/quickstart/apis/go"
     },
     {
-      "source": "/quickstart/apis/hono",
-      "destination": "/api-management/guides/hono"
+      "destination": "/api-management/guides/hono",
+      "source": "/quickstart/apis/hono"
     },
     {
-      "source": "/quickstart/apis/nextjs",
-      "destination": "/api-management/guides/nextjs"
+      "destination": "/api-management/guides/nextjs",
+      "source": "/quickstart/apis/nextjs"
     },
     {
-      "source": "/quickstart/apis/python",
-      "destination": "/api-management/guides/python"
+      "destination": "/api-management/guides/python",
+      "source": "/quickstart/apis/python"
     },
     {
-      "source": "/quickstart/deploy",
-      "destination": "/compute/get-started/deploy-from-github"
+      "destination": "/compute/get-started/deploy-from-github",
+      "source": "/quickstart/deploy"
     },
     {
-      "source": "/quickstart/identities/shared-ratelimits",
-      "destination": "/api-management/identities/shared-rate-limits"
+      "destination": "/api-management/identities/shared-rate-limits",
+      "source": "/quickstart/identities/shared-ratelimits"
     },
     {
-      "source": "/quickstart/onboarding/onboarding-api",
-      "destination": "/api-management/get-started/quickstart"
+      "destination": "/api-management/get-started/quickstart",
+      "source": "/quickstart/onboarding/onboarding-api"
     },
     {
-      "source": "/quickstart/onboarding/onboarding-ratelimiting",
-      "destination": "/api-management/ratelimiting/overview"
+      "destination": "/api-management/ratelimiting/overview",
+      "source": "/quickstart/onboarding/onboarding-ratelimiting"
     },
     {
-      "source": "/quickstart/portal",
-      "destination": "/api-management/portal/overview"
+      "destination": "/api-management/portal/overview",
+      "source": "/quickstart/portal"
     },
     {
-      "source": "/quickstart/quickstart",
-      "destination": "/api-management/get-started/quickstart"
+      "destination": "/api-management/get-started/quickstart",
+      "source": "/quickstart/quickstart"
     },
     {
-      "source": "/quickstart/ratelimiting/bun",
-      "destination": "/api-management/sdks/typescript/ratelimit"
+      "destination": "/api-management/sdks/typescript/ratelimit",
+      "source": "/quickstart/ratelimiting/bun"
     },
     {
-      "source": "/quickstart/ratelimiting/express",
-      "destination": "/api-management/sdks/typescript/ratelimit"
+      "destination": "/api-management/sdks/typescript/ratelimit",
+      "source": "/quickstart/ratelimiting/express"
     },
     {
-      "source": "/quickstart/ratelimiting/hono",
-      "destination": "/api-management/sdks/typescript/ratelimit"
+      "destination": "/api-management/sdks/typescript/ratelimit",
+      "source": "/quickstart/ratelimiting/hono"
     },
     {
-      "source": "/quickstart/ratelimiting/nextjs",
-      "destination": "/api-management/sdks/typescript/ratelimit"
+      "destination": "/api-management/sdks/typescript/ratelimit",
+      "source": "/quickstart/ratelimiting/nextjs"
     },
     {
-      "source": "/security/delete-protection",
-      "destination": "/platform/security/delete-protection"
+      "destination": "/platform/security/delete-protection",
+      "source": "/security/delete-protection"
     },
     {
-      "source": "/security/github-scanning",
-      "destination": "/platform/security/github-secret-scanning"
+      "destination": "/platform/security/github-secret-scanning",
+      "source": "/security/github-scanning"
     },
     {
-      "source": "/security/overview",
-      "destination": "/platform/security/overview"
+      "destination": "/platform/security/overview",
+      "source": "/security/overview"
     },
     {
-      "source": "/security/permissions",
-      "destination": "/api-management/authorization/overview"
+      "destination": "/api-management/authorization/overview",
+      "source": "/security/permissions"
     },
     {
-      "source": "/security/recovering-keys",
-      "destination": "/api-management/security/recovering-keys"
+      "destination": "/api-management/security/recovering-keys",
+      "source": "/security/recovering-keys"
     },
     {
-      "source": "/security/roles",
-      "destination": "/api-management/authorization/overview"
+      "destination": "/api-management/authorization/overview",
+      "source": "/security/roles"
     },
     {
-      "source": "/ai-code-gen/cursor",
-      "destination": "/platform/ai-coding/cursor"
+      "destination": "/platform/ai-coding/cursor",
+      "source": "/ai-code-gen/cursor"
     },
     {
-      "source": "/ai-code-gen/overview",
-      "destination": "/platform/ai-coding/overview"
+      "destination": "/platform/ai-coding/overview",
+      "source": "/ai-code-gen/overview"
     },
     {
-      "source": "/ai-code-gen/unkey-mcp",
-      "destination": "/platform/ai-coding/mcp-servers"
+      "destination": "/platform/ai-coding/mcp-servers",
+      "source": "/ai-code-gen/unkey-mcp"
     },
     {
-      "source": "/ai-code-gen/windsurf",
-      "destination": "/platform/ai-coding/other-clients"
+      "destination": "/platform/ai-coding/other-clients",
+      "source": "/ai-code-gen/windsurf"
     },
     {
-      "source": "/api-reference/apis/:slug*",
-      "destination": "/api-management/api-reference/apis/:slug*"
+      "destination": "/api-management/api-reference/apis/:slug*",
+      "source": "/api-reference/apis/:slug*"
     },
     {
-      "source": "/api-reference/keys/:slug*",
-      "destination": "/api-management/api-reference/keys/:slug*"
+      "destination": "/api-management/api-reference/keys/:slug*",
+      "source": "/api-reference/keys/:slug*"
     },
     {
-      "source": "/api-reference/identities/:slug*",
-      "destination": "/api-management/api-reference/identities/:slug*"
+      "destination": "/api-management/api-reference/identities/:slug*",
+      "source": "/api-reference/identities/:slug*"
     },
     {
-      "source": "/api-reference/permissions/:slug*",
-      "destination": "/api-management/api-reference/permissions/:slug*"
+      "destination": "/api-management/api-reference/permissions/:slug*",
+      "source": "/api-reference/permissions/:slug*"
     },
     {
-      "source": "/api-reference/ratelimit/:slug*",
-      "destination": "/api-management/api-reference/ratelimit/:slug*"
+      "destination": "/api-management/api-reference/ratelimit/:slug*",
+      "source": "/api-reference/ratelimit/:slug*"
     },
     {
-      "source": "/api-reference/apps/:slug*",
-      "destination": "/compute/api-reference/apps/:slug*"
+      "destination": "/compute/api-reference/apps/:slug*",
+      "source": "/api-reference/apps/:slug*"
     },
     {
-      "source": "/api-reference/domains/:slug*",
-      "destination": "/compute/api-reference/domains/:slug*"
+      "destination": "/compute/api-reference/domains/:slug*",
+      "source": "/api-reference/domains/:slug*"
     },
     {
-      "source": "/api-reference/environments/:slug*",
-      "destination": "/compute/api-reference/environments/:slug*"
+      "destination": "/compute/api-reference/environments/:slug*",
+      "source": "/api-reference/environments/:slug*"
     },
     {
-      "source": "/api-reference/gateway/:slug*",
-      "destination": "/compute/api-reference/gateway/:slug*"
+      "destination": "/compute/api-reference/gateway/:slug*",
+      "source": "/api-reference/gateway/:slug*"
     },
     {
-      "source": "/api-reference/github/:slug*",
-      "destination": "/compute/api-reference/github/:slug*"
+      "destination": "/compute/api-reference/github/:slug*",
+      "source": "/api-reference/github/:slug*"
     },
     {
-      "source": "/api-reference/projects/:slug*",
-      "destination": "/compute/api-reference/projects/:slug*"
+      "destination": "/compute/api-reference/projects/:slug*",
+      "source": "/api-reference/projects/:slug*"
     },
     {
-      "source": "/cli/apis/:slug*",
-      "destination": "/api-management/cli/apis/:slug*"
+      "destination": "/api-management/cli/apis/:slug*",
+      "source": "/cli/apis/:slug*"
     },
     {
-      "source": "/cli/identities/:slug*",
-      "destination": "/api-management/cli/identities/:slug*"
+      "destination": "/api-management/cli/identities/:slug*",
+      "source": "/cli/identities/:slug*"
     },
     {
-      "source": "/cli/keys/:slug*",
-      "destination": "/api-management/cli/keys/:slug*"
+      "destination": "/api-management/cli/keys/:slug*",
+      "source": "/cli/keys/:slug*"
     },
     {
-      "source": "/cli/permissions/:slug*",
-      "destination": "/api-management/cli/permissions/:slug*"
+      "destination": "/api-management/cli/permissions/:slug*",
+      "source": "/cli/permissions/:slug*"
     },
     {
-      "source": "/cli/portal/:slug*",
-      "destination": "/api-management/cli/portal/:slug*"
+      "destination": "/api-management/cli/portal/:slug*",
+      "source": "/cli/portal/:slug*"
     },
     {
-      "source": "/cli/ratelimit/:slug*",
-      "destination": "/api-management/cli/ratelimit/:slug*"
+      "destination": "/api-management/cli/ratelimit/:slug*",
+      "source": "/cli/ratelimit/:slug*"
     },
     {
-      "source": "/cli/apps/:slug*",
-      "destination": "/compute/cli/apps/:slug*"
+      "destination": "/compute/cli/apps/:slug*",
+      "source": "/cli/apps/:slug*"
     },
     {
-      "source": "/cli/deployments/:slug*",
-      "destination": "/compute/cli/deployments/:slug*"
+      "destination": "/compute/cli/deployments/:slug*",
+      "source": "/cli/deployments/:slug*"
     },
     {
-      "source": "/cli/domains/:slug*",
-      "destination": "/compute/cli/domains/:slug*"
+      "destination": "/compute/cli/domains/:slug*",
+      "source": "/cli/domains/:slug*"
     },
     {
-      "source": "/cli/environments/:slug*",
-      "destination": "/compute/cli/environments/:slug*"
+      "destination": "/compute/cli/environments/:slug*",
+      "source": "/cli/environments/:slug*"
     },
     {
-      "source": "/cli/gateway/:slug*",
-      "destination": "/compute/cli/gateway/:slug*"
+      "destination": "/compute/cli/gateway/:slug*",
+      "source": "/cli/gateway/:slug*"
     },
     {
-      "source": "/cli/github/:slug*",
-      "destination": "/compute/cli/github/:slug*"
+      "destination": "/compute/cli/github/:slug*",
+      "source": "/cli/github/:slug*"
     },
     {
-      "source": "/cli/projects/:slug*",
-      "destination": "/compute/cli/projects/:slug*"
+      "destination": "/compute/cli/projects/:slug*",
+      "source": "/cli/projects/:slug*"
     },
     {
-      "source": "/api-management/audit-logs/log-drains",
-      "destination": "/platform/workspace/log-drains"
+      "destination": "/platform/workspace/log-drains",
+      "source": "/api-management/audit-logs/log-drains"
     },
     {
-      "source": "/api-management/audit-logs/overview",
-      "destination": "/platform/workspace/audit-logs/overview"
+      "destination": "/platform/workspace/audit-logs/overview",
+      "source": "/api-management/audit-logs/overview"
     },
     {
-      "source": "/api-management/audit-logs/event-types",
-      "destination": "/platform/workspace/audit-logs/event-types"
+      "destination": "/platform/workspace/audit-logs/event-types",
+      "source": "/api-management/audit-logs/event-types"
     },
     {
-      "source": "/api-management/audit-logs",
-      "destination": "/platform/workspace/audit-logs/overview"
+      "destination": "/platform/workspace/audit-logs/overview",
+      "source": "/api-management/audit-logs"
     }
   ],
   "seo": {
