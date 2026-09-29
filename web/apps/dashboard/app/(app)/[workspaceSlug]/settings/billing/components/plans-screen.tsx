@@ -127,75 +127,77 @@ export function PlansScreen({ open, onOpenChange, reason, from = "billing" }: Pl
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="group/plans top-0 left-0 block h-dvh w-screen max-w-none translate-x-0 translate-y-0 overflow-y-auto rounded-none bg-background p-0 transition-opacity duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] data-ending-style:scale-100 data-starting-style:scale-100 data-ending-style:duration-150 motion-reduce:transition-none sm:rounded-none">
-        <div className="overflow-clip">
-          <Tabs
-            value={activeProduct}
-            onValueChange={(value) =>
-              setSelectedProduct(products.find((product) => product === value) ?? null)
-            }
-            className="mx-auto flex min-h-dvh w-full max-w-[1040px] flex-col items-center justify-start px-4 pt-24 pb-10 transition-[translate] duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] group-data-starting-style/plans:translate-y-3 motion-reduce:transition-none md:justify-center md:px-6 md:py-16"
-          >
-            <div className="relative">
-              <Logo
-                aria-hidden="true"
-                className="absolute bottom-full left-1/2 mb-10 h-6 w-auto -translate-x-1/2"
-              />
-              <DialogTitle className="text-center font-semibold text-gray-12 text-xl tracking-[-0.03em] md:text-2xl">
-                {copy.title}
-              </DialogTitle>
-            </div>
-            <DialogDescription className="mt-2 max-w-md text-balance text-center text-gray-11 text-sm leading-6">
-              {copy.description}
-              {activeProduct === "compute" ? (
-                <>
-                  {" "}
-                  {CREDITS_INFO}{" "}
-                  <a
-                    href={CREDITS_LINK_HREF}
-                    target="_blank"
-                    rel="noopener noreferrer"
+      <DialogContent className="group/plans top-0 left-0 block h-dvh w-screen max-w-none translate-x-0 translate-y-0 overflow-hidden rounded-none bg-background p-0 transition-opacity duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] data-ending-style:scale-100 data-starting-style:scale-100 data-ending-style:duration-150 motion-reduce:transition-none sm:rounded-none">
+        <div className="h-full overflow-y-auto">
+          <div className="overflow-clip">
+            <Tabs
+              value={activeProduct}
+              onValueChange={(value) =>
+                setSelectedProduct(products.find((product) => product === value) ?? null)
+              }
+              className="mx-auto flex min-h-dvh w-full max-w-[1040px] flex-col items-center justify-start px-4 pt-24 pb-10 transition-[translate] duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] group-data-starting-style/plans:translate-y-3 motion-reduce:transition-none md:justify-center md:px-6 md:pt-28 md:pb-16"
+            >
+              <div className="relative">
+                <Logo
+                  aria-hidden="true"
+                  className="absolute bottom-full left-1/2 mb-10 h-6 w-auto -translate-x-1/2"
+                />
+                <DialogTitle className="text-center font-semibold text-gray-12 text-xl tracking-[-0.03em] md:text-2xl">
+                  {copy.title}
+                </DialogTitle>
+              </div>
+              <DialogDescription className="mt-2 max-w-md text-balance text-center text-gray-11 text-sm leading-6">
+                {copy.description}
+                {activeProduct === "compute" ? (
+                  <>
+                    {" "}
+                    {CREDITS_INFO}{" "}
+                    <a
+                      href={CREDITS_LINK_HREF}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="underline underline-offset-2 hover:text-gray-12"
+                    >
+                      {CREDITS_LINK_LABEL}
+                    </a>
+                  </>
+                ) : null}
+              </DialogDescription>
+              {isAdmin ? null : (
+                <p className="mt-3 rounded-lg bg-grayA-3 px-3 py-1.5 text-center text-gray-12 text-sm">
+                  Only workspace admins can change plans. Ask an admin to upgrade.
+                </p>
+              )}
+              {products.length > 1 ? (
+                <TabsList className="mt-8 w-64">
+                  {products.map((product) => (
+                    <TabsTrigger key={product} value={product} className="flex-1">
+                      {PRODUCT_LABELS[product]}
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
+              ) : null}
+              {products.map((product) => (
+                <TabsContent key={product} value={product} className="mt-8 w-full">
+                  {panels[product]}
+                </TabsContent>
+              ))}
+              {activeProduct === null && products.length > 1 ? (
+                <Skeleton className="mt-8 h-96 w-full max-w-[560px] rounded-xl" />
+              ) : null}
+              {products.length === 0 ? (
+                <p className="mt-8 text-center text-gray-11 text-sm">
+                  Plans aren't available right now.{" "}
+                  <Link
+                    href={routes.settings.billing({ workspaceSlug: workspace.slug })}
                     className="underline underline-offset-2 hover:text-gray-12"
                   >
-                    {CREDITS_LINK_LABEL}
-                  </a>
-                </>
+                    Go to billing
+                  </Link>
+                </p>
               ) : null}
-            </DialogDescription>
-            {isAdmin ? null : (
-              <p className="mt-3 rounded-lg bg-grayA-3 px-3 py-1.5 text-center text-gray-12 text-sm">
-                Only workspace admins can change plans. Ask an admin to upgrade.
-              </p>
-            )}
-            {products.length > 1 ? (
-              <TabsList className="mt-8 w-64">
-                {products.map((product) => (
-                  <TabsTrigger key={product} value={product} className="flex-1">
-                    {PRODUCT_LABELS[product]}
-                  </TabsTrigger>
-                ))}
-              </TabsList>
-            ) : null}
-            {products.map((product) => (
-              <TabsContent key={product} value={product} className="mt-8 w-full">
-                {panels[product]}
-              </TabsContent>
-            ))}
-            {activeProduct === null && products.length > 1 ? (
-              <Skeleton className="mt-8 h-96 w-full max-w-[560px] rounded-xl" />
-            ) : null}
-            {products.length === 0 ? (
-              <p className="mt-8 text-center text-gray-11 text-sm">
-                Plans aren't available right now.{" "}
-                <Link
-                  href={routes.settings.billing({ workspaceSlug: workspace.slug })}
-                  className="underline underline-offset-2 hover:text-gray-12"
-                >
-                  Go to billing
-                </Link>
-              </p>
-            ) : null}
-          </Tabs>
+            </Tabs>
+          </div>
         </div>
       </DialogContent>
     </Dialog>

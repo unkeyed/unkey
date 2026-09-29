@@ -139,6 +139,7 @@ export function ComputePlans({
           />
         ))}
       </div>
+      <EveryPlanIncludesStrip />
       {current.status === "error" ? (
         <p className="text-center text-gray-11 text-sm">
           Your current plan could not be loaded. Reload the page or contact support@unkey.com.
@@ -268,7 +269,7 @@ function PlanFeatureList({ rows }: { rows: PlanFeatureRow[] }) {
 
 function EveryPlanIncludes() {
   return (
-    <div className="mt-auto flex flex-col gap-2.5 border-t pt-4">
+    <div className="mt-auto flex flex-col gap-2.5 border-t pt-4 md:hidden">
       <span className="text-gray-11 text-xs">Every plan includes</span>
       <ul className="flex flex-col gap-2">
         {EVERY_PLAN_INCLUDES.map((feature) => (
@@ -278,6 +279,20 @@ function EveryPlanIncludes() {
           </li>
         ))}
       </ul>
+    </div>
+  );
+}
+
+function EveryPlanIncludesStrip() {
+  return (
+    <div className="hidden flex-wrap items-center justify-center gap-x-6 gap-y-2 text-gray-11 text-sm md:flex">
+      <span className="text-gray-11 text-xs">Every plan includes</span>
+      {EVERY_PLAN_INCLUDES.map((feature) => (
+        <span key={feature} className="flex items-center gap-2">
+          <IconCheckOutline18 className="size-4 shrink-0 text-gray-9" />
+          {feature}
+        </span>
+      ))}
     </div>
   );
 }
