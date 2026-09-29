@@ -25,6 +25,7 @@ func packTruncated(response *dnswire.Msg, size int) error {
 			high = middle - 1
 		}
 	}
+
 	response.Answer = original[:low]
 	response.Truncated = true
 	if err := response.Pack(); err != nil {

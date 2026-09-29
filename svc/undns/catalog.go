@@ -99,6 +99,7 @@ func (c *catalog) run(ctx context.Context) error {
 		if !cache.WaitForCacheSync(ctx.Done(), c.pods.HasSynced, c.bindings.HasSynced, c.services.HasSynced, c.slices.HasSynced) {
 			return
 		}
+
 		ticker := time.NewTicker(time.Second)
 		defer ticker.Stop()
 		for {

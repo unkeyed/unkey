@@ -64,6 +64,7 @@ func (h *handler) answerPrivate(response *dnswire.Msg, question dnswire.RR, iden
 	qtype := dnswire.RRToType(question)
 	response.Authoritative = true
 	app := strings.TrimSuffix(name, "."+privateZone)
+
 	if name == privateZone {
 		if qtype == dnswire.TypeSOA {
 			response.Answer = []dnswire.RR{h.soa()}

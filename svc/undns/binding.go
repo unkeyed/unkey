@@ -27,6 +27,7 @@ func (c *catalog) resolve(identity caller, app string) ([]netip.Addr, bool, erro
 	if identity.deployment == "" {
 		return nil, false, nil
 	}
+
 	c.activeMu.Lock()
 	defer c.activeMu.Unlock()
 	key := appKey(identity.workspace, identity.project, identity.deployment, app)
@@ -39,7 +40,6 @@ func (c *catalog) resolve(identity caller, app string) ([]netip.Addr, bool, erro
 		delete(c.active, key)
 		return nil, false, nil
 	}
-
 	if len(objects) != 1 {
 		delete(c.active, key)
 		return nil, true, fmt.Errorf("ambiguous app binding")
@@ -57,6 +57,7 @@ func (c *catalog) resolve(identity caller, app string) ([]netip.Addr, bool, erro
 func (c *catalog) activate() {
 	c.activeMu.Lock()
 	defer c.activeMu.Unlock()
+
 	desired := make(map[string]*corev1.ConfigMap)
 	ambiguous := make(map[string]bool)
 	for _, object := range c.bindings.GetStore().List() {
@@ -80,6 +81,7 @@ func (c *catalog) activate() {
 			delete(c.active, key)
 		}
 	}
+
 	for key, config := range desired {
 		if ambiguous[key] {
 			continue
@@ -107,6 +109,7 @@ func (c *catalog) activateBinding(key string, config *corev1.ConfigMap) (*corev1
 		delete(c.active, key)
 		return nil, err
 	}
+
 	active := c.active[key]
 	if !sameBinding(active, config) {
 		delete(c.active, key)
@@ -124,10 +127,12 @@ func (c *catalog) activateBinding(key string, config *corev1.ConfigMap) (*corev1
 			return active, nil
 		}
 	}
+
 	if !candidate.resolved {
 		delete(c.active, key)
 		return nil, fmt.Errorf("binding target is unresolved")
 	}
+
 	identity := caller{
 		workspace:  config.Labels[labels.LabelKeyWorkspaceID],
 		project:    config.Labels[labels.LabelKeyProjectID],
@@ -141,6 +146,7 @@ func (c *catalog) activateBinding(key string, config *corev1.ConfigMap) (*corev1
 		}
 		return nil, err
 	}
+
 	if c.active == nil {
 		c.active = make(map[string]*corev1.ConfigMap)
 	}

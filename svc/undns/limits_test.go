@@ -118,6 +118,7 @@ func startLimitedServer(t *testing.T, forwardsInFlight, forwardsPerWorkspace int
 	s := &limitedServer{t: t, address: "", catalog: c, received: make(chan struct{}, 8), release: make(chan struct{}), pending: sync.WaitGroup{}}
 	upstreamListener, err := net.Listen("tcp", "127.0.0.1:0")
 	require.NoError(t, err)
+
 	upstream := &dnswire.Server{Listener: upstreamListener, Handler: dnswire.HandlerFunc(func(_ context.Context, w dnswire.ResponseWriter, query *dnswire.Msg) {
 		if query.Question[0].Header().Name == "slow.example." {
 			s.received <- struct{}{}
@@ -129,6 +130,7 @@ func startLimitedServer(t *testing.T, forwardsInFlight, forwardsPerWorkspace int
 			t.Errorf("write upstream response: %v", err)
 		}
 	})}
+
 	started := make(chan struct{})
 	upstream.NotifyStartedFunc = func(context.Context) { close(started) }
 	upstreamDone := make(chan error, 1)
