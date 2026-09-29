@@ -32,12 +32,14 @@ func TestActivationHandlesIndependentDiscoveryObservations(t *testing.T) {
 			staged := catalogForTest()
 			addBinding(t, staged, "binding", identity.workspace, identity.project, "app-a", "payments", "b", "b", "2")
 			service := addServiceAndSlice(t, staged, "b", "b", "app-a", "uid-b", "10.0.0.22", true)
+
 			binding, found, err := staged.bindings.GetStore().GetByKey("default/binding")
 			require.NoError(t, err)
 			require.True(t, found)
 			slice, found, err := staged.slices.GetStore().GetByKey("default/b")
 			require.NoError(t, err)
 			require.True(t, found)
+
 			for i, event := range order {
 				switch event {
 				case "binding":
@@ -55,6 +57,7 @@ func TestActivationHandlesIndependentDiscoveryObservations(t *testing.T) {
 				}
 				require.Equal(t, []netip.Addr{netip.MustParseAddr(want)}, addresses)
 			}
+
 			require.NoError(t, c.slices.GetStore().Delete(slice))
 			_, _, err = c.resolve(identity, "payments")
 			require.Error(t, err)
@@ -234,7 +237,9 @@ func TestActivationConcurrentQueriesAndRefresh(t *testing.T) {
 	addServiceAndSlice(t, c, "a", "a", "app-a", "uid-a", "10.0.0.11", true)
 	_, _, err := c.resolve(identity, "payments")
 	require.NoError(t, err)
+
 	updateBinding(t, c, "binding", "b", "missing-b", "2")
+
 	var group sync.WaitGroup
 	errors := make(chan error, 9)
 	for range 8 {
@@ -253,6 +258,7 @@ func TestActivationConcurrentQueriesAndRefresh(t *testing.T) {
 			c.activate()
 		}
 	})
+
 	group.Wait()
 	close(errors)
 	for err := range errors {

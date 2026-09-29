@@ -73,6 +73,7 @@ func TestDirectedBindingsIsolateCallerDeployments(t *testing.T) {
 		service.Labels[environmentKindLabel] = tc.kind
 		require.NoError(t, c.services.GetStore().Update(service))
 	}
+
 	for _, tc := range []struct{ kind, callerDeployment, address string }{
 		{"production", "caller-deployment-a", "10.0.0.1"},
 		{"production", "caller-deployment-b", "10.0.0.2"},
@@ -91,6 +92,7 @@ func TestDirectedBindingsIsolateCallerDeployments(t *testing.T) {
 			require.Equal(t, []netip.Addr{netip.MustParseAddr(tc.address)}, addresses)
 		}
 	}
+
 	object, found, err := c.services.GetStore().GetByKey("default/preview-a")
 	require.NoError(t, err)
 	require.True(t, found)
@@ -138,6 +140,7 @@ func TestCatalogRejectsForgedServiceIdentity(t *testing.T) {
 			service := addServiceAndSlice(t, c, "target-service", "target-deployment", "target-app", "service-uid", "10.0.0.1", true).DeepCopy()
 			tc.mutate(service)
 			require.NoError(t, c.services.GetStore().Update(service))
+
 			_, found, err := c.resolve(identity, "api")
 			require.True(t, found)
 			require.Error(t, err)
@@ -227,6 +230,7 @@ func TestCatalogWatchesOnlyKraneObjects(t *testing.T) {
 	)
 	c, err := newCatalog(fake.NewClientset(objects...), 30*time.Second)
 	require.NoError(t, err)
+
 	ctx, cancel := context.WithCancel(t.Context())
 	done := make(chan error, 1)
 	go func() { done <- c.run(ctx) }()
@@ -234,6 +238,7 @@ func TestCatalogWatchesOnlyKraneObjects(t *testing.T) {
 		cancel()
 		require.NoError(t, <-done)
 	})
+
 	require.Eventually(t, c.readyDiscovery, 5*time.Second, 10*time.Millisecond)
 
 	for name, informer := range map[string]*trackedInformer{"pods": c.pods, "bindings": c.bindings, "services": c.services, "endpointslices": c.slices} {

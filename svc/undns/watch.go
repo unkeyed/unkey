@@ -43,6 +43,7 @@ func newTrackedInformer(name string, object runtime.Object, indexes cache.Indexe
 			return result, err
 		},
 	}
+
 	t.SharedIndexInformer = cache.NewSharedIndexInformer(lw, object, 0, indexes)
 	err := t.SetWatchErrorHandlerWithContext(func(_ context.Context, _ *cache.Reflector, err error) {
 		t.lastContact.Store(0)

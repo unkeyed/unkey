@@ -64,6 +64,7 @@ func (h *handler) forward(ctx context.Context, request *dnswire.Msg, transport, 
 	transportConfig.WriteTimeout = h.config.ForwardTimeout
 	client := dnswire.NewClient()
 	client.Transport = transportConfig
+
 	ctx, cancel := context.WithTimeout(ctx, h.config.ForwardTimeout)
 	defer cancel()
 
