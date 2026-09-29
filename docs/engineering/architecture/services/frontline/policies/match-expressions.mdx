@@ -228,7 +228,7 @@ Matches the client IP against CIDR ranges. The client IP is the TCP peer address
   Matches when the client IP is in none of the ranges.
 </ResponseField>
 
-Set exactly one of the two lists. If both are set, `in` is used. If neither is set, every request matches. Entries are IP addresses or CIDRs, such as `203.0.113.7` or `203.0.113.0/24`. An IPv4 client never matches an IPv6 range, and the reverse. An entry that is neither an IP nor a CIDR fails the request with `InvalidConfiguration` when Frontline reaches it. Frontline stops at the first entry that contains the client IP, so an invalid entry after it is not detected.
+Set exactly one of the two lists. If both are set, `in` is used. If neither is set, every request matches. Entries are IPv4 addresses or CIDRs, such as `203.0.113.7` or `203.0.113.0/24`. Frontline accepts IPv4 connections only. An entry that is not an IPv4 address or CIDR fails the request with `InvalidConfiguration` when Frontline reaches it. Frontline stops at the first entry that contains the client IP, so an invalid entry after it is not detected.
 
 <Tabs>
 <Tab title="Block a range">

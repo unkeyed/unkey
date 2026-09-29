@@ -327,7 +327,6 @@ func TestMatchesRequest_RemoteIp(t *testing.T) {
 		{name: "not in miss", clientIP: "198.51.101.10", match: &frontlinev1.RemoteIpMatch{NotIn: []string{"198.51.100.0/24"}}, matched: true},
 		{name: "in second range", clientIP: "10.8.3.9", match: &frontlinev1.RemoteIpMatch{In: []string{"198.51.100.0/24", "10.8.0.0/16"}}, matched: true},
 		{name: "bare ipv4 entry", clientIP: "198.51.100.10", match: &frontlinev1.RemoteIpMatch{In: []string{"198.51.100.10"}}, matched: true},
-		{name: "bare ipv6 entry", clientIP: "2001:db8::1", match: &frontlinev1.RemoteIpMatch{NotIn: []string{"2001:db8::1"}}, matched: false},
 		{name: "both lists set uses in", clientIP: "198.51.100.10", match: &frontlinev1.RemoteIpMatch{In: []string{"198.51.100.0/24"}, NotIn: []string{"198.51.100.0/24"}}, matched: true},
 		{name: "neither list set matches every client", clientIP: "198.51.100.10", match: &frontlinev1.RemoteIpMatch{}, matched: true},
 	} {
@@ -356,8 +355,12 @@ func TestMatchesRequest_InvalidConfiguration(t *testing.T) {
 			expr: &frontlinev1.MatchExpr{Expr: &frontlinev1.MatchExpr_RemoteIp{RemoteIp: &frontlinev1.RemoteIpMatch{In: []string{"198.51.100.0/33"}}}},
 		},
 		{
-			name: "zoned address",
-			expr: &frontlinev1.MatchExpr{Expr: &frontlinev1.MatchExpr_RemoteIp{RemoteIp: &frontlinev1.RemoteIpMatch{In: []string{"fe80::1%eth0"}}}},
+			name: "ipv6 range",
+			expr: &frontlinev1.MatchExpr{Expr: &frontlinev1.MatchExpr_RemoteIp{RemoteIp: &frontlinev1.RemoteIpMatch{In: []string{"2001:db8::/32"}}}},
+		},
+		{
+			name: "bare ipv6 address",
+			expr: &frontlinev1.MatchExpr{Expr: &frontlinev1.MatchExpr_RemoteIp{RemoteIp: &frontlinev1.RemoteIpMatch{NotIn: []string{"2001:db8::1"}}}},
 		},
 		{
 			name: "invalid regex",
