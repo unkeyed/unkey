@@ -181,7 +181,6 @@ wrapper or outer `timestamp` field.
   {
     "id": "evt_01J6Z6X8KZQ1V9X4R7Y2W3ABCD",
     "action": "key.create",
-    "occurred_at": "2026-08-27T12:34:56.789Z",
     "actor": {
       "id": "user_01J6Z6WZ4F8M5N2K7P3Q9RSTUV",
       "type": "user",
@@ -210,12 +209,10 @@ wrapper or outer `timestamp` field.
 ```
 
 ```json NDJSON
-{"id":"evt_01J6Z6X8KZQ1V9X4R7Y2W3ABCD","action":"key.create","occurred_at":"2026-08-27T12:34:56.789Z","actor":{"id":"user_01J6Z6WZ4F8M5N2K7P3Q9RSTUV","type":"user","name":"Ada","metadata":null},"targets":[{"id":"api_01J6Z6VQ9K2T4M8N5P7R3STUVW","type":"api","name":"Production API","metadata":null}],"context":{"location":"203.0.113.10","user_agent":"Mozilla/5.0"},"metadata":null,"description":"Created a key for Production API","correlation_id":"req_01J6Z70J4V9R2K8M5N3P7QSTUW","stream":"audit_logs","time":"2026-08-27T12:34:56.789Z"}
+{"id":"evt_01J6Z6X8KZQ1V9X4R7Y2W3ABCD","action":"key.create","actor":{"id":"user_01J6Z6WZ4F8M5N2K7P3Q9RSTUV","type":"user","name":"Ada","metadata":null},"targets":[{"id":"api_01J6Z6VQ9K2T4M8N5P7R3STUVW","type":"api","name":"Production API","metadata":null}],"context":{"location":"203.0.113.10","user_agent":"Mozilla/5.0"},"metadata":null,"description":"Created a key for Production API","correlation_id":"req_01J6Z70J4V9R2K8M5N3P7QSTUW","stream":"audit_logs","time":"2026-08-27T12:34:56.789Z"}
 ```
 
 </CodeGroup>
-
-Audit `occurred_at` matches `time`.
 
 ### Read a key verification payload
 
@@ -380,7 +377,6 @@ as one NDJSON line. This example is formatted across lines for readability:
   "stream": "audit_logs",
   "id": "evt_01J6Z6X8KZQ1V9X4R7Y2W3ABCD",
   "action": "key.create",
-  "occurred_at": "2026-08-27T12:34:56.789Z",
   "actor": {
     "id": "user_01J6Z6WZ4F8M5N2K7P3Q9RSTUV",
     "type": "user",
