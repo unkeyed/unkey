@@ -61,12 +61,12 @@ export type MatchExpr = {
    */
   queryParam?: FieldMatch | undefined;
   /**
-   * Matches the client IP against CIDR ranges. Exactly one of `in` or `notIn`
+   * Matches the client IP against IPv4 CIDR ranges. Exactly one of `in` or
    *
    * @remarks
-   * must be set. Entries are rejected if they have host bits set (such as
-   * `10.1.2.3/8`), are IPv4-mapped IPv6 addresses, or carry a zone. Single
-   * addresses are returned as full-length prefixes, such as `203.0.113.7/32`.
+   * `notIn` must be set. IPv6 entries and entries with host bits set (such as
+   * `10.1.2.3/8`) are rejected. Single addresses are returned as `/32`
+   * prefixes, such as `203.0.113.7/32`.
    */
   remoteIp?: RemoteIpMatch | undefined;
 };

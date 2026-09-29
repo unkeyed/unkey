@@ -342,13 +342,13 @@ func normalizeCidrs(path string, entries []string) ([]string, error) {
 		prefix, err := netip.ParsePrefix(entry)
 		if err != nil {
 			addr, addrErr := netip.ParseAddr(entry)
-			if addrErr != nil || addr.Zone() != "" {
-				return nil, invalid(fmt.Sprintf("%s[%d] is not a valid IP or CIDR.", path, i))
+			if addrErr != nil {
+				return nil, invalid(fmt.Sprintf("%s[%d] is not a valid IPv4 address or CIDR.", path, i))
 			}
 			prefix = netip.PrefixFrom(addr, addr.BitLen())
 		}
-		if prefix.Addr().Is4In6() {
-			return nil, invalid(fmt.Sprintf("%s[%d] is an IPv4-mapped IPv6 address; use the IPv4 form.", path, i))
+		if !prefix.Addr().Is4() {
+			return nil, invalid(fmt.Sprintf("%s[%d] is not an IPv4 address or CIDR; IPv6 is not supported.", path, i))
 		}
 		if prefix != prefix.Masked() {
 			return nil, invalid(fmt.Sprintf("%s[%d] has host bits set; use %s.", path, i, prefix.Masked()))
