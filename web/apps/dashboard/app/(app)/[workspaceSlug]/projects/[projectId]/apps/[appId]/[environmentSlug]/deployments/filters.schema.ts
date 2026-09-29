@@ -38,7 +38,6 @@ export type DeploymentListFilterOperator = z.infer<typeof deploymentListFilterOp
 
 export type FilterFieldConfigs = {
   status: StringConfig<DeploymentListFilterOperator>;
-  environment: StringConfig<DeploymentListFilterOperator>;
   branch: StringConfig<DeploymentListFilterOperator>;
   startTime: NumberConfig<DeploymentListFilterOperator>;
   endTime: NumberConfig<DeploymentListFilterOperator>;
@@ -52,10 +51,6 @@ export const deploymentListFilterFieldConfig: FilterFieldConfigs = {
     validValues: GROUPED_DEPLOYMENT_STATUSES,
     getColorClass: (value) =>
       isDeploymentStatusGroup(value) ? DEPLOYMENT_STATUS_META[value].colorClass : "bg-info-9",
-  },
-  environment: {
-    type: "string",
-    operators: ["is"],
   },
   branch: {
     type: "string",
@@ -108,7 +103,6 @@ export type DeploymentListFilterValue = FilterValue<
 
 export type DeploymentListQuerySearchParams = {
   status: DeploymentListFilterUrlValue[] | null;
-  environment: DeploymentListFilterUrlValue[] | null;
   branch: DeploymentListFilterUrlValue[] | null;
   startTime: number | null;
   endTime: number | null;

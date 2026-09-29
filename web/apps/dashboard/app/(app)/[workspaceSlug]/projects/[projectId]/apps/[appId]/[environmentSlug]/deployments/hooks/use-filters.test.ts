@@ -21,7 +21,6 @@ const stubSearchParams = (overrides: Partial<DeploymentListQuerySearchParams> = 
   mockUseQueryStates.mockImplementation(() => [
     {
       status: null,
-      environment: null,
       branch: null,
       startTime: null,
       endTime: null,

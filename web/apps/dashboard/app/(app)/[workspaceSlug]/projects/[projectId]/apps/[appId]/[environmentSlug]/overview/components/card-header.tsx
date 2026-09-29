@@ -10,13 +10,26 @@ import {
 import { match } from "@unkey/match";
 import { Button, Popover, PopoverContent, PopoverTrigger } from "@unkey/ui";
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { ProductionCardActionsMenu } from "./production-card-actions-menu";
 import { useProductionCard } from "./production-card-context";
 
+export function CardEyebrow({ children }: { children: ReactNode }) {
+  return (
+    <span className="shrink-0 text-[11px] font-medium uppercase tracking-wide text-gray-9">
+      {children}
+    </span>
+  );
+}
+
+export const CARD_HEADER_CLASS =
+  "flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-3 border-b bg-raised rounded-t-lg";
+
 function DomainHero() {
-  const { primaryDomain, additionalDomains, addCustomDomainHref } = useProductionCard();
+  const { eyebrow, primaryDomain, additionalDomains, addCustomDomainHref } = useProductionCard();
   return (
     <div className="flex items-center gap-2 min-w-0">
+      {eyebrow && <CardEyebrow>{eyebrow}</CardEyebrow>}
       {primaryDomain ? (
         <a
           href={primaryDomain.url}
@@ -92,7 +105,7 @@ export function ProductionCardHeader() {
   } = useProductionCard();
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-3 border-b bg-raised rounded-t-lg">
+    <div className={CARD_HEADER_CLASS}>
       <DomainHero />
       <div className="flex items-center gap-2 shrink-0">
         {diagnostic && (

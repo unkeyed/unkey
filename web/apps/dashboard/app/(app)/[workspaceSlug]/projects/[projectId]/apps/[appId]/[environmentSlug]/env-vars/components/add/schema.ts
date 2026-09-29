@@ -36,7 +36,6 @@ export const envVarsSchema = z.object({
         }
       }
     }),
-  environmentId: z.string().min(1, "Environment is required"),
   secret: z.boolean(),
 });
 
@@ -53,15 +52,14 @@ export function createEmptyEntry(): EnvVarsFormValues["envVars"][number] {
 type ExistingEnvVar = { key: string; environmentId: string };
 
 /**
- * Returns indices of form entries whose key already exists in the given environment(s).
+ * Returns indices of form entries whose key already exists in one of the
+ * target environments.
  */
 export function findConflicts(
   entries: { key: string }[],
-  environmentId: string,
+  targetEnvIds: string[],
   existingVars: ExistingEnvVar[],
-  allEnvironmentIds: string[],
 ): number[] {
-  const targetEnvIds = environmentId === "__all__" ? allEnvironmentIds : [environmentId];
   const existingSet = new Set(existingVars.map((v) => `${v.key}\0${v.environmentId}`));
 
   const conflictIndices: number[] = [];

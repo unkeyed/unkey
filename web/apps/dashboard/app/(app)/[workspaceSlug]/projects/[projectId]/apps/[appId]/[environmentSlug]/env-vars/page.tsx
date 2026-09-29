@@ -12,10 +12,12 @@ import {
   PageHeaderTitle,
 } from "@unkey/ui";
 import { useState } from "react";
+import { useAppEnvironment } from "../environment-context";
 import { EnvVarsBody } from "./deployment-env-vars";
 
 export default function EnvVarsPage() {
   const [isAddOpen, setIsAddOpen] = useState(false);
+  const { environment } = useAppEnvironment();
 
   return (
     <PageContainer>
@@ -38,7 +40,11 @@ export default function EnvVarsPage() {
         </PageHeaderActions>
       </PageHeader>
       <PageBody>
-        <EnvVarsBody isAddOpen={isAddOpen} onCloseAdd={() => setIsAddOpen(false)} />
+        <EnvVarsBody
+          scope={{ kind: "environment", environmentId: environment.id }}
+          isAddOpen={isAddOpen}
+          onCloseAdd={() => setIsAddOpen(false)}
+        />
       </PageBody>
     </PageContainer>
   );

@@ -44,6 +44,9 @@ vi.mock("../environment-context", () => ({
     appId: "app_container",
     environmentSlug: "preview",
   }),
+  useAppEnvironment: () => ({
+    environment: { id: "env_preview", slug: "preview", kind: "preview" },
+  }),
 }));
 vi.mock("../../hooks/use-app-current-deployment", () => ({
   useAppCurrentDeployment: () => ({

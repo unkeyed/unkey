@@ -1,12 +1,8 @@
-import type { Environment } from "@/lib/collections/deploy/environments";
 import { describe, expect, test } from "vitest";
 import type { DeploymentListFilterValue } from "../filters.schema";
 import { buildDeploymentListInput } from "./deployment-list-input";
 
-const environments: Environment[] = [
-  { id: "env_prod", projectId: "proj", appId: "app", slug: "production", kind: "production" },
-  { id: "env_prev", projectId: "proj", appId: "app", slug: "preview", kind: "preview" },
-];
+const environments = "env_prev";
 
 const filter = (
   field: DeploymentListFilterValue["field"],
@@ -14,9 +10,9 @@ const filter = (
 ): DeploymentListFilterValue => ({ id: `${field}:${value}`, field, operator: "is", value });
 
 describe("buildDeploymentListInput", () => {
-  test("no filters yields an empty input", () => {
+  test("no filters still scopes the query to the environment", () => {
     expect(buildDeploymentListInput([], environments)).toEqual({
-      input: {},
+      input: { environmentIds: ["env_prev"] },
       cannotMatch: false,
     });
   });
@@ -62,27 +58,17 @@ describe("buildDeploymentListInput", () => {
     expect(result.cannotMatch).toBe(true);
   });
 
-  test("resolves environment slugs to ids", () => {
-    const { input, cannotMatch } = buildDeploymentListInput(
-      [filter("environment", "production")],
-      environments,
-    );
-    expect(input.environmentIds).toEqual(["env_prod"]);
-    expect(cannotMatch).toBe(false);
-  });
-
-  test("flags an environment slug this app does not have", () => {
-    const result = buildDeploymentListInput([filter("environment", "staging")], environments);
-    expect(result.input.environmentIds).toBeUndefined();
-    expect(result.cannotMatch).toBe(true);
-  });
-
   test("passes branches and explicit time bounds through", () => {
     const { input } = buildDeploymentListInput(
       [filter("branch", "main"), filter("startTime", 1_000), filter("endTime", 2_000)],
       environments,
     );
-    expect(input).toEqual({ branches: ["main"], startTime: 1_000, endTime: 2_000 });
+    expect(input).toEqual({
+      environmentIds: ["env_prev"],
+      branches: ["main"],
+      startTime: 1_000,
+      endTime: 2_000,
+    });
   });
 
   test("turns a relative window into a start time floored to the minute", () => {

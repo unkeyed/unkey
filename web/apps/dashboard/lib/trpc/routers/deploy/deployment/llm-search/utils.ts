@@ -199,28 +199,6 @@ Result: [
   }
 ]
 
-# Environment-based Searches
-Query: "production deployments"
-Result: [
-  {
-    field: "environment",
-    filters: [
-      { operator: "is", value: "production" }
-    ]
-  }
-]
-
-Query: "preview and production deployments"
-Result: [
-  {
-    field: "environment",
-    filters: [
-      { operator: "is", value: "preview" },
-      { operator: "is", value: "production" }
-    ]
-  }
-]
-
 # Branch-based Searches
 Query: "deployments from main branch"
 Result: [
@@ -284,12 +262,6 @@ Result: [
     ]
   },
   {
-    field: "environment",
-    filters: [
-      { operator: "is", value: "production" }
-    ]
-  },
-  {
     field: "branch",
     filters: [
       { operator: "contains", value: "main" }
@@ -303,12 +275,6 @@ Result: [
     field: "status",
     filters: [
       { operator: "is", value: "completed" }
-    ]
-  },
-  {
-    field: "environment",
-    filters: [
-      { operator: "is", value: "preview" }
     ]
   },
   {
@@ -326,12 +292,6 @@ Result: [
     filters: [
       { operator: "is", value: "building" },
       { operator: "is", value: "pending" }
-    ]
-  },
-  {
-    field: "environment",
-    filters: [
-      { operator: "is", value: "production" }
     ]
   }
 ]
@@ -402,7 +362,7 @@ Result: [
 
 Remember:
 ${operatorsByField}
-- Use exact matches (is) for status and environment fields
+- Use exact matches (is) for the status field
 - Use contains for branch names to match partial branch patterns
 - Time fields (startTime, endTime) use exact matches with numeric values
 - Since field uses exact matches with time expressions
@@ -410,7 +370,6 @@ ${operatorsByField}
 Special handling rules:
 1. Map common terms to appropriate fields:
    - Status terms ("failed", "completed", "pending", "building") → status field
-   - Environment terms ("production", "preview", "prod", "staging") → environment field
    - Branch patterns ("main", "master", "develop", "feature", "hotfix") → branch field
    - Time expressions ("yesterday", "24h", "week", "today") → since field
 
@@ -429,35 +388,29 @@ Status aliases and variations:
    - "running", "currently running", "still processing" → "building" and "pending" (deployment process in progress)
    - "finished" → "completed" and "failed" (both finished states)
 
-3. Environment aliases:
-   - "prod" → "production"
-   - "staging", "stage" → "preview"
-
-4. Time expression patterns:
+3. Time expression patterns:
    - "recent", "lately" → "24h"
    - "today" → "today"
    - "yesterday" → "yesterday"
    - "this week" → "week"
 
 Error Handling Rules:
-1. Invalid operators: Default to "is" for status/environment, "contains" for branch
+1. Invalid operators: Default to "is" for status, "contains" for branch
 2. Empty values: Skip filters with empty or whitespace-only values
 3. Invalid status values: Map to closest valid grouped status
 
 Ambiguity Resolution Priority:
 1. Status-based searches when deployment state terms are used
-2. Environment-based searches for deployment target terms
-3. Branch-based searches for code branch patterns
-4. Time-based searches for temporal expressions
+2. Branch-based searches for code branch patterns
+3. Time-based searches for temporal expressions
 
 Output Validation:
 1. Required fields must be present: field, filters
 2. Filters must have: operator, value
 3. Values must be non-empty strings
 4. Operators must match field configuration
-5. Field names must be valid: status, environment, branch, startTime, endTime, since
+5. Field names must be valid: status, branch, startTime, endTime, since
 6. Status values must be one of: pending, building, completed, failed
-7. Environment values must be one of: production, preview
 
 Additional Context:
 - Deployments have grouped statuses for filtering: pending, building, completed, failed
@@ -471,20 +424,14 @@ Additional Context:
 
 Advanced Examples:
 
-# Multi-status with Environment
-Query: "all failed and completed production deployments"
+# Multi-status
+Query: "all failed and completed deployments"
 Result: [
   {
     field: "status",
     filters: [
       { operator: "is", value: "failed" },
       { operator: "is", value: "completed" }
-    ]
-  },
-  {
-    field: "environment",
-    filters: [
-      { operator: "is", value: "production" }
     ]
   }
 ]

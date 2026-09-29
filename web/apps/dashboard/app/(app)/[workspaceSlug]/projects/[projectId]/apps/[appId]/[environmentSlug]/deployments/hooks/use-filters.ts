@@ -18,14 +18,13 @@ const parseAsFilterValArray = parseAsFilterValueArray<DeploymentListFilterOperat
 
 export const queryParamsPayload = {
   status: parseAsFilterValArray,
-  environment: parseAsFilterValArray,
   branch: parseAsFilterValArray,
   startTime: parseAsInteger,
   endTime: parseAsInteger,
   since: parseAsRelativeTime,
 } as const;
 
-const arrayFields = ["status", "environment", "branch"] as const;
+const arrayFields = ["status", "branch"] as const;
 const timeFields = ["startTime", "endTime", "since"] as const;
 
 // The status filter starts pre-selected rather than empty, so an absent url

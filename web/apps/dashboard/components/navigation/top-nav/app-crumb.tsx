@@ -4,10 +4,9 @@ import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { collection } from "@/lib/collections";
 import { PRODUCTION_ENVIRONMENT_SLUG } from "@/lib/collections/deploy/environments";
 import { routes } from "@/lib/navigation/routes";
-import { eq, useLiveQuery } from "@tanstack/react-db";
-import { Github, IconPlusOutline18, IconTerminalOutline18 } from "@unkey/icons";
-import { Crumb } from "./crumb";
-import type { CrumbPopoverItem } from "./crumb-popover";
+import { and, eq, useLiveQuery } from "@tanstack/react-db";
+import { Github, IconTerminalOutline18 } from "@unkey/icons";
+import { CrumbLink } from "./crumb";
 import { EnvironmentSwitcher } from "./environment-switcher";
 
 type AppCrumbProps = {
@@ -16,71 +15,45 @@ type AppCrumbProps = {
   environmentSlug?: string;
 };
 
+// Apps are switched from the project page; the only switcher at this level
+// is the environment one after the pill.
 export function AppCrumb({ projectId, appId, environmentSlug }: AppCrumbProps) {
   const workspace = useWorkspaceNavigation();
-  const appsQuery = useLiveQuery(
-    (q) => q.from({ app: collection.apps }).where(({ app }) => eq(app.projectId, projectId)),
-    [projectId],
-  );
-  const environmentsQuery = useLiveQuery(
+  const appQuery = useLiveQuery(
     (q) =>
-      q.from({ env: collection.environments }).where(({ env }) => eq(env.projectId, projectId)),
-    [projectId],
+      q
+        .from({ app: collection.apps })
+        .where(({ app }) => and(eq(app.projectId, projectId), eq(app.id, appId))),
+    [projectId, appId],
   );
-  const apps = appsQuery.data ?? [];
-  const environments = environmentsQuery.data ?? [];
-  const current = apps.find((a) => a.id === appId);
-
-  // Stay in the same environment across apps when the target has one by that
-  // slug; otherwise fall back to production.
-  const hrefFor = (targetAppId: string) =>
-    routes.projects.apps.overview({
-      workspaceSlug: workspace.slug,
-      projectId,
-      appId: targetAppId,
-      environmentSlug:
-        environmentSlug &&
-        environments.some((e) => e.appId === targetAppId && e.slug === environmentSlug)
-          ? environmentSlug
-          : PRODUCTION_ENVIRONMENT_SLUG,
-    });
-
-  const items: CrumbPopoverItem[] = apps.map((a) => ({
-    id: a.id,
-    label: a.name,
-    href: hrefFor(a.id),
-  }));
+  const app = appQuery.data?.at(0);
 
   return (
-    <Crumb
-      icon={
-        current?.repositoryFullName ? (
-          <Github className="size-3.5 text-gray-11" />
-        ) : (
-          <IconTerminalOutline18 className="size-3.5 text-gray-11" />
-        )
-      }
-      label={current?.name ?? appId}
-      loading={appsQuery.isLoading}
-      href={hrefFor(appId)}
-      items={items}
-      currentId={appId}
-      trailing={
-        environmentSlug ? (
-          <EnvironmentSwitcher
-            projectId={projectId}
-            appId={appId}
-            environmentSlug={environmentSlug}
-          />
-        ) : undefined
-      }
-      searchPlaceholder="Find app..."
-      emptyText="No apps found"
-      footer={{
-        icon: IconPlusOutline18,
-        label: "New app",
-        href: routes.projects.apps.new({ workspaceSlug: workspace.slug, projectId }),
-      }}
-    />
+    <div className="flex min-w-0 items-center gap-0.5">
+      <CrumbLink
+        icon={
+          app?.repositoryFullName ? (
+            <Github className="size-3.5 text-gray-11" />
+          ) : (
+            <IconTerminalOutline18 className="size-3.5 text-gray-11" />
+          )
+        }
+        label={app?.name ?? appId}
+        loading={appQuery.isLoading}
+        href={routes.projects.apps.overview({
+          workspaceSlug: workspace.slug,
+          projectId,
+          appId,
+          environmentSlug: environmentSlug ?? PRODUCTION_ENVIRONMENT_SLUG,
+        })}
+      />
+      {environmentSlug && (
+        <EnvironmentSwitcher
+          projectId={projectId}
+          appId={appId}
+          environmentSlug={environmentSlug}
+        />
+      )}
+    </div>
   );
 }

@@ -9,20 +9,10 @@ import {
 } from "@/lib/collections/deploy/env-vars";
 import { getErrorMessage } from "@/lib/unkey-client";
 import { zodResolver } from "@hookform/resolvers/zod";
-import {
-  IconChevronDownOutline18,
-  IconCircleInfoOutline18,
-  IconCloudUploadOutline18,
-  IconPlusOutline18,
-} from "@unkey/icons";
+import { IconCircleInfoOutline18, IconCloudUploadOutline18, IconPlusOutline18 } from "@unkey/icons";
 import {
   Button,
   InfoTooltip,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
   SlidePanel,
   SlidePanelCloseButton,
   SlidePanelContent,
@@ -35,6 +25,7 @@ import { cn } from "@unkey/ui/src/lib/utils";
 import { type ChangeEvent, useCallback, useEffect, useRef } from "react";
 import { Controller, useFieldArray } from "react-hook-form";
 import { useDropZone } from "../../hooks/use-drop-zone";
+import { type EnvVarsScope, targetEnvironmentIds } from "../../scope";
 import { EnvVarRow } from "./env-var-row";
 import { type EnvVarsFormValues, createEmptyEntry, envVarsSchema, findConflicts } from "./schema";
 
@@ -44,6 +35,7 @@ import { trackSave } from "@/lib/collections/deploy/environment-settings";
 type AddEnvVarExpandableProps = {
   projectId: string;
   appId: string;
+  scope: EnvVarsScope;
   isOpen: boolean;
   onClose: () => void;
 };
@@ -51,10 +43,15 @@ type AddEnvVarExpandableProps = {
 export const AddEnvVarExpandable = ({
   projectId,
   appId,
+  scope,
   isOpen,
   onClose,
 }: AddEnvVarExpandableProps) => {
   const { environments } = useProjectData();
+  const targetEnvIds = targetEnvironmentIds(
+    scope,
+    environments.map((e) => e.id),
+  );
 
   const {
     register,
@@ -77,7 +74,6 @@ export const AddEnvVarExpandable = ({
       mode: "onChange",
       defaultValues: {
         envVars: [createEmptyEntry()],
-        environmentId: "__all__",
         secret: false,
       },
     },
@@ -175,11 +171,8 @@ export const AddEnvVarExpandable = ({
       return;
     }
 
-    const allEnvIds = environments.map((e) => e.id);
-    const targetEnvIds = values.environmentId === "__all__" ? allEnvIds : [values.environmentId];
-
     const existing = await listExistingKeys(projectId, appId, targetEnvIds);
-    const conflicts = findConflicts(nonEmpty, values.environmentId, existing, allEnvIds);
+    const conflicts = findConflicts(nonEmpty, targetEnvIds, existing);
 
     if (conflicts.length > 0) {
       for (const idx of conflicts) {
@@ -225,7 +218,6 @@ export const AddEnvVarExpandable = ({
     clearPersistedData();
     reset({
       envVars: [createEmptyEntry()],
-      environmentId: "__all__",
       secret: false,
     });
     onClose();
@@ -311,49 +303,8 @@ export const AddEnvVarExpandable = ({
           </div>
 
           <div className="border-t">
-            <div className="px-6 py-6 space-y-6">
-              <Controller
-                control={control}
-                name="environmentId"
-                render={({ field }) => (
-                  <fieldset className="flex flex-col gap-1.5 border-0 m-0 p-0">
-                    <label htmlFor="environment-select" className="text-gray-11 text-[13px]">
-                      Environment
-                    </label>
-                    <Select
-                      value={field.value}
-                      onValueChange={field.onChange}
-                      items={[
-                        { value: "__all__", label: "All Environments" },
-                        ...environments.map((env) => ({ value: env.id, label: env.slug })),
-                      ]}
-                    >
-                      <SelectTrigger
-                        id="environment-select"
-                        className="capitalize"
-                        rightIcon={
-                          <IconChevronDownOutline18 className="size-3.5 absolute right-2" />
-                        }
-                      >
-                        <SelectValue placeholder="Select environment" />
-                      </SelectTrigger>
-                      <SelectContent className="z-60">
-                        <SelectItem value="__all__">All Environments</SelectItem>
-                        {environments.map((env) => (
-                          <SelectItem key={env.id} value={env.id} className="capitalize">
-                            {env.slug}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {errors.environmentId?.message && (
-                      <p className="text-error-11 text-[13px]">{errors.environmentId.message}</p>
-                    )}
-                  </fieldset>
-                )}
-              />
-
-              <div className="flex items-center gap-3 pt-6">
+            <div className="px-6 py-6">
+              <div className="flex items-center gap-3">
                 <Controller
                   control={control}
                   name="secret"

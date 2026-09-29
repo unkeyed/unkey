@@ -3,7 +3,6 @@
 import {
   IconBarsFilterOutline18,
   IconChevronDownOutline18,
-  IconLayers3Outline18,
   IconMagnifierOutline18,
 } from "@unkey/icons";
 import {
@@ -19,7 +18,6 @@ import {
 
 const SORT_OPTIONS = ["last-updated", "name-asc"] as const;
 export type SortOption = (typeof SORT_OPTIONS)[number];
-export type EnvironmentFilter = "all" | string;
 
 function isSortOption(value: string): value is SortOption {
   return (SORT_OPTIONS as readonly string[]).includes(value);
@@ -28,9 +26,6 @@ function isSortOption(value: string): value is SortOption {
 type EnvVarsToolbarProps = {
   searchQuery: string;
   onSearchChange: (value: string) => void;
-  environmentFilter: EnvironmentFilter;
-  onEnvironmentFilterChange: (value: EnvironmentFilter) => void;
-  environments: { id: string; slug: string }[];
   sortBy: SortOption;
   onSortChange: (value: SortOption) => void;
 };
@@ -38,15 +33,12 @@ type EnvVarsToolbarProps = {
 export function EnvVarsToolbar({
   searchQuery,
   onSearchChange,
-  environmentFilter,
-  onEnvironmentFilterChange,
-  environments,
   sortBy,
   onSortChange,
 }: EnvVarsToolbarProps) {
   return (
     <div className="flex flex-col md:flex-row items-stretch gap-2">
-      <div className="flex-[50%]">
+      <div className="flex-1">
         <InputGroup className="h-9 w-full bg-gray-1">
           <InputGroupAddon className="pointer-events-none">
             <IconMagnifierOutline18 className="size-4 text-gray-9" />
@@ -59,37 +51,7 @@ export function EnvVarsToolbar({
           />
         </InputGroup>
       </div>
-      <div className="flex-[25%] max-w-[184px]">
-        <Select
-          value={environmentFilter}
-          items={[
-            { value: "all", label: "All Environments" },
-            ...environments.map((env) => ({ value: env.id, label: env.slug })),
-          ]}
-          onValueChange={(value) => {
-            if (value !== null) {
-              onEnvironmentFilterChange(value);
-            }
-          }}
-        >
-          <SelectTrigger
-            className="h-9 w-full bg-gray-1"
-            leftIcon={<IconLayers3Outline18 className="size-3.5 text-gray-9" />}
-            rightIcon={<IconChevronDownOutline18 className="size-3.5 absolute right-2" />}
-          >
-            <SelectValue placeholder="All Environments" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Environments</SelectItem>
-            {environments.map((env) => (
-              <SelectItem key={env.id} value={env.id} className="capitalize">
-                {env.slug}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-      <div className="flex-[25%] max-w-[184px]">
+      <div className="w-full md:w-[184px]">
         <Select
           value={sortBy}
           items={[

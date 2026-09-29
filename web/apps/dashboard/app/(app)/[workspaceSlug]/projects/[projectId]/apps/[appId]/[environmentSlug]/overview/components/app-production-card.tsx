@@ -8,22 +8,20 @@ import { findRolledBackFrom } from "@/lib/collections/deploy/rollback";
 import { useCollectionPolling } from "@/lib/collections/use-collection-polling";
 import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
-import { and, eq, useLiveQuery } from "@tanstack/react-db";
 import { Card } from "@unkey/ui";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import dynamic from "next/dynamic";
 import { useState } from "react";
-import { ActiveDeploymentCardEmpty } from "../../../components/active-deployment-card/components/active-deployment-card-empty";
 import { getDomainPriority } from "../../../components/domain-priority";
 import { useProjectData } from "../../../data-provider";
 import { useAppCurrentDeployment } from "../../../hooks/use-app-current-deployment";
-import { useAppScope } from "../../environment-context";
-import { CreateDeploymentButton } from "../../navigations/create-deployment-button";
-import { AppCanvas } from "./app-canvas";
+import { useAppEnvironment, useAppScope } from "../../environment-context";
+import { AddDomainGhost, AppCanvas, AppNode } from "./app-canvas";
 import { AppProductionCardSkeleton } from "./app-production-card-skeleton";
 import { ProductionCardHeader } from "./card-header";
 import { NewerDeploymentRow, hasVisibleBuildState } from "./card-newer-deployment";
 import { ProductionCardRollbackBanner } from "./card-rollback-banner";
+import { EnvironmentPendingCard } from "./environment-pending-card";
 import { buildPulse } from "./g-pulse";
 import { type ProductionCardContextValue, ProductionCardProvider } from "./production-card-context";
 import { deriveProductionStatus } from "./status";
@@ -42,9 +40,17 @@ const UndoRollbackDialog = dynamic(
 );
 
 export function AppProductionCard() {
-  const { deployments, environments, customDomains, isDeploymentsLoading } = useProjectData();
+  const {
+    deployments,
+    domains,
+    customDomains,
+    isDeploymentsLoading,
+    isDomainsLoading,
+    getLiveDomains,
+  } = useProjectData();
   const scope = useAppScope();
   const { projectId, appId } = scope;
+  const { environment } = useAppEnvironment();
   const { gated, openPaywall, planGate } = useDeployActionGate();
   const reduceMotion = useReducedMotion();
   const [rollbackOpen, setRollbackOpen] = useState(false);
@@ -59,31 +65,17 @@ export function AppProductionCard() {
   const repoFullName = app?.repositoryFullName ?? null;
   const currentDeploymentId = app?.currentDeploymentId ?? null;
 
-  const productionEnvironmentId = environments.find(
-    (e) => e.kind === ENVIRONMENT_KIND.production,
-  )?.id;
-  const latestProductionDeployment = productionEnvironmentId
-    ? deployments.find((d) => d.environmentId === productionEnvironmentId)
-    : undefined;
-
-  const deployment = currentDeployment ?? latestProductionDeployment;
-  const isCurrent = Boolean(currentDeployment);
+  // Production shows what serves traffic; any other environment shows its
+  // latest ready deployment, since nothing there is promoted.
+  const isProduction = environment.kind === ENVIRONMENT_KIND.production;
+  const environmentDeployments = deployments.filter((d) => d.environmentId === environment.id);
+  const latest = environmentDeployments.at(0);
+  const deployment = isProduction
+    ? (currentDeployment ?? latest)
+    : environmentDeployments.find((d) => d.status === "ready");
+  const isCurrent = isProduction && Boolean(currentDeployment);
   const newerDeployment =
-    deployment &&
-    latestProductionDeployment &&
-    latestProductionDeployment.id !== deployment.id &&
-    hasVisibleBuildState(latestProductionDeployment)
-      ? latestProductionDeployment
-      : undefined;
-  const liveDomainsQuery = useLiveQuery(
-    (q) =>
-      q
-        .from({ domain: collection.domains })
-        .where(({ domain }) =>
-          and(eq(domain.projectId, projectId), eq(domain.appId, appId), eq(domain.sticky, "live")),
-        ),
-    [projectId, appId],
-  );
+    latest && latest.id !== deployment?.id && hasVisibleBuildState(latest) ? latest : undefined;
 
   const metrics = trpc.deploy.metrics.getAppRpsMetrics.useQuery(
     { appId },
@@ -100,22 +92,12 @@ export function AppProductionCard() {
       (newerDeployment ? isDeploymentInFlight(newerDeployment.status) : false),
   });
 
-  if (isDeploymentsLoading || isCurrentDeploymentLoading || liveDomainsQuery.isLoading) {
+  if (isDeploymentsLoading || isCurrentDeploymentLoading || isDomainsLoading) {
     return <AppProductionCardSkeleton />;
   }
 
   if (!deployment) {
-    return (
-      <CreateDeploymentButton
-        renderTrigger={({ onClick }) => (
-          <ActiveDeploymentCardEmpty
-            onCreateDeployment={onClick}
-            title="No production deployment yet"
-            description="This app hasn't been deployed to production. Deploy to production to make it live."
-          />
-        )}
-      />
-    );
+    return <EnvironmentPendingCard newerDeployment={newerDeployment} />;
   }
 
   const status = productionStatus ?? deriveProductionStatus(deployment);
@@ -123,7 +105,9 @@ export function AppProductionCard() {
   const sourceRepo = deployment.forkRepositoryFullName || repoFullName;
 
   const { primary, additional } = getDomainPriority({
-    domains: liveDomainsQuery.data ?? [],
+    domains: isProduction
+      ? getLiveDomains()
+      : domains.filter((d) => d.deploymentId === deployment.id),
     customDomains,
     environmentId: deployment.environmentId,
     deploymentId: deployment.id,
@@ -177,6 +161,7 @@ export function AppProductionCard() {
       : null;
 
   const ctx: ProductionCardContextValue = {
+    eyebrow: isProduction ? null : `Latest ${environment.slug}`,
     deployment,
     status,
     isCurrent,
@@ -232,7 +217,11 @@ export function AppProductionCard() {
         {isRolledBack && <ProductionCardRollbackBanner />}
         <Card className="relative z-10 flex flex-col">
           <ProductionCardHeader />
-          <AppCanvas />
+          <AppCanvas
+            domains={primary ? [primary, ...additional] : []}
+            emptyDomain={<AddDomainGhost />}
+            app={<AppNode />}
+          />
           <AnimatePresence initial={false} mode="wait">
             {newerDeployment && (
               <motion.div

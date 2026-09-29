@@ -18,7 +18,6 @@ type CrumbProps = {
   footer?: CrumbPopoverFooter;
   loading?: boolean;
   listStatus?: ReactNode;
-  trailing?: ReactNode;
 };
 
 export function Crumb({
@@ -32,7 +31,6 @@ export function Crumb({
   footer,
   loading = false,
   listStatus,
-  trailing,
 }: CrumbProps) {
   return (
     <div className="flex min-w-0 items-center gap-0.5">
@@ -49,7 +47,6 @@ export function Crumb({
           <IconChevronExpandYOutline12 />
         </button>
       </CrumbPopover>
-      {trailing}
     </div>
   );
 }

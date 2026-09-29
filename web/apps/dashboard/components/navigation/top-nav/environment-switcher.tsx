@@ -1,9 +1,6 @@
 "use client";
 
-import {
-  ENVIRONMENT_BADGE_CLASS,
-  EnvironmentKindIcon,
-} from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/environment-badge";
+import { ENVIRONMENT_BADGE_CLASS } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/environment-badge";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { collection } from "@/lib/collections";
 import { ENVIRONMENT_KIND, type EnvironmentKind } from "@/lib/collections/deploy/environments";
@@ -56,7 +53,6 @@ export function EnvironmentSwitcher({
     id: env.slug,
     label: capitalize(env.slug),
     href: hrefFor(env.slug),
-    icon: <EnvironmentKindIcon kind={env.kind} className={KIND_ICON_CLASS[env.kind]} />,
   }));
 
   return (
@@ -85,11 +81,6 @@ export function EnvironmentSwitcher({
 function capitalize(slug: string): string {
   return slug.charAt(0).toUpperCase() + slug.slice(1);
 }
-
-const KIND_ICON_CLASS: Record<EnvironmentKind, string> = {
-  production: "text-warning-11",
-  preview: "text-success-11",
-};
 
 function pillClass(kind: EnvironmentKind | undefined): string {
   return kind === ENVIRONMENT_KIND.production

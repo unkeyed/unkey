@@ -14,8 +14,9 @@ import {
 import { useCallback, useDeferredValue, useEffect, useMemo, useState } from "react";
 import { useRowSelection } from "../../hooks/use-row-selection";
 import { useVirtualList } from "../../hooks/use-virtual-list";
+import type { EnvVarsScope } from "../../scope";
 import { EnvVarsSkeleton } from "../shared/env-vars-skeleton";
-import type { EnvironmentFilter, SortOption } from "../toolbar/env-vars-toolbar";
+import type { SortOption } from "../toolbar/env-vars-toolbar";
 import { GroupRow } from "./env-var-group-row";
 import {
   type DisplayRow,
@@ -31,8 +32,8 @@ type EnvVarsListProps = {
   projectId: string;
   appId: string;
   environments: Environment[];
+  scope: EnvVarsScope;
   searchQuery: string;
-  environmentFilter: EnvironmentFilter;
   sortBy: SortOption;
 };
 
@@ -40,8 +41,8 @@ export function EnvVarsList({
   projectId,
   appId,
   environments,
+  scope,
   searchQuery,
-  environmentFilter,
   sortBy,
 }: EnvVarsListProps) {
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -85,7 +86,7 @@ export function EnvVarsList({
       if (query && !v.key.toLowerCase().includes(query)) {
         continue;
       }
-      if (environmentFilter !== "all" && v.environmentId !== environmentFilter) {
+      if (scope.kind === "environment" && v.environmentId !== scope.environmentId) {
         continue;
       }
       filtered.push({
@@ -94,10 +95,10 @@ export function EnvVarsList({
       });
     }
 
-    // When filtering by a specific environment, each var is a standalone row.
-    // When viewing all environments, group vars that share the same key.
+    // Within one environment each var is a standalone row; across all of
+    // them, vars that share a key are grouped.
     const rows =
-      environmentFilter !== "all"
+      scope.kind === "environment"
         ? filtered.map((item): DisplayRow => ({ kind: "single", item }))
         : groupByKey(filtered);
 
@@ -109,7 +110,7 @@ export function EnvVarsList({
     }
 
     return rows;
-  }, [envVarData, environments, deferredQuery, environmentFilter, sortBy]);
+  }, [envVarData, environments, deferredQuery, scope, sortBy]);
 
   const {
     selectedIds,

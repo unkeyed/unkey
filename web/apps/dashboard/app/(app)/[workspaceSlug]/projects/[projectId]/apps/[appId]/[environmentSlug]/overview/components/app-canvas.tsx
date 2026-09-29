@@ -31,10 +31,10 @@ import {
 import { cn } from "@unkey/ui/src/lib/utils";
 import type { Route } from "next";
 import { useRouter } from "next/navigation";
-import { useMemo } from "react";
+import { type ReactNode, useMemo } from "react";
 import { RegionFlag } from "../../../components/region-flag";
 import { useAppCurrentDeployment } from "../../../hooks/use-app-current-deployment";
-import { useAppScope } from "../../environment-context";
+import { useAppEnvironment, useAppScope } from "../../environment-context";
 import { usePoliciesData } from "../../policies/hooks/use-policies-data";
 import { type CardDomain, useProductionCard } from "./production-card-context";
 import { STATUS_META } from "./status";
@@ -53,12 +53,17 @@ function linkedKeyspaces(policies: PolicyRow[]): string[] {
   return [...new Set(policies.flatMap((p) => (p.type === "keyauth" ? p.keyauth.keyspaces : [])))];
 }
 
-export function AppCanvas() {
-  const { primaryDomain, additionalDomains } = useProductionCard();
+type AppCanvasProps = {
+  domains: CardDomain[];
+  emptyDomain: ReactNode;
+  app: ReactNode;
+};
+
+export function AppCanvas({ domains, emptyDomain, app }: AppCanvasProps) {
+  const { environment } = useAppEnvironment();
   const { rowsByEnv, isLoading: policiesLoading } = usePoliciesData();
-  const policies = rowsByEnv.production;
+  const policies = rowsByEnv[environment.kind];
   const keyAuthIds = useMemo(() => linkedKeyspaces(policies), [policies]);
-  const domains = primaryDomain ? [primaryDomain, ...additionalDomains] : [];
 
   const serviceCount = policies.length + keyAuthIds.length;
 
@@ -70,17 +75,15 @@ export function AppCanvas() {
           icon={<IconEarthOutline18 />}
           label={`Domains · ${domains.length}`}
         >
-          {domains.length > 0 ? (
-            domains.map((d) => <DomainCard key={d.hostname} domain={d} />)
-          ) : (
-            <AddDomainGhost />
-          )}
+          {domains.length > 0
+            ? domains.map((d) => <DomainCard key={d.hostname} domain={d} />)
+            : emptyDomain}
         </CanvasGroup>
 
         <CanvasConnector dashed={domains.length === 0} />
 
         <CanvasGroup className="max-h-[320px]" icon={<IconCubeOutline18 />} label="App">
-          <AppNode />
+          {app}
         </CanvasGroup>
 
         <CanvasConnector dashed={serviceCount === 0} />
@@ -119,7 +122,7 @@ function DomainCard({ domain }: { domain: CardDomain }) {
   );
 }
 
-function AddDomainGhost() {
+export function AddDomainGhost() {
   const router = useRouter();
   const scope = useAppScope();
   return (
@@ -132,7 +135,7 @@ function AddDomainGhost() {
   );
 }
 
-function AppNode() {
+export function AppNode() {
   const { deployment, status, isRolledBack, deploymentHref } = useProductionCard();
   const { app } = useAppCurrentDeployment();
   const tone: Tone = status === "failed" || status === "crashing" ? "error" : "default";

@@ -3,6 +3,7 @@ import type { Environment } from "@/lib/collections/deploy/environments";
 import { trpc } from "@/lib/trpc/client";
 import { useMemo } from "react";
 import { useAppId, useProjectData } from "../../../data-provider";
+import { useAppEnvironment } from "../../environment-context";
 import { buildDeploymentListInput } from "./deployment-list-input";
 import { useFilters } from "./use-filters";
 
@@ -16,11 +17,12 @@ export type DeploymentListRow = {
 export function useDeployments() {
   const { projectId, environments, isEnvironmentsLoading } = useProjectData();
   const appId = useAppId();
+  const { environment } = useAppEnvironment();
   const { filters, isFiltered } = useFilters();
 
   const { input, cannotMatch } = useMemo(
-    () => buildDeploymentListInput(filters, environments),
-    [filters, environments],
+    () => buildDeploymentListInput(filters, environment.id),
+    [filters, environment.id],
   );
 
   const query = trpc.deploy.deployment.list.useInfiniteQuery(

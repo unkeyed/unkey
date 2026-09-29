@@ -8,11 +8,13 @@ import { useProjectData } from "../../../data-provider";
 import { useAppCurrentDeployment } from "../../../hooks/use-app-current-deployment";
 import { DeploymentRow } from "../../deployments/components/deployment-row";
 import { DeploymentsSkeleton } from "../../deployments/components/deployments-skeleton";
-import { useAppScope } from "../../environment-context";
+import { useAppEnvironment, useAppScope } from "../../environment-context";
 
 export function RecentDeployments() {
   const scope = useAppScope();
+  const { environment } = useAppEnvironment();
   const { deployments, environments, isDeploymentsLoading } = useProjectData();
+  const recent = deployments.filter((d) => d.environmentId === environment.id).slice(0, 5);
   const { app, currentDeployment, isRolledBack } = useAppCurrentDeployment();
   const rolledBackFromId =
     isRolledBack && currentDeployment
@@ -35,7 +37,7 @@ export function RecentDeployments() {
       ) : (
         <ResourceListContent>
           <ResourceListBody>
-            {deployments.slice(0, 5).map((deployment) => (
+            {recent.map((deployment) => (
               <DeploymentRow
                 key={deployment.id}
                 deployment={deployment}

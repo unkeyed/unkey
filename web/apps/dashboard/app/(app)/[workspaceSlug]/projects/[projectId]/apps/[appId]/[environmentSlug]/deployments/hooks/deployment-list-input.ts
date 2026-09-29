@@ -4,13 +4,12 @@ import {
   expandDeploymentStatusGroups,
   isDeploymentStatusGroup,
 } from "@/lib/collections/deploy/deployment-status";
-import type { Environment } from "@/lib/collections/deploy/environments";
 import { parseDuration } from "@/lib/duration";
 import type { DeploymentListFilterValue } from "../filters.schema";
 
 export type DeploymentListInput = {
   statuses?: DeploymentStatus[];
-  environmentIds?: string[];
+  environmentIds: [string];
   branches?: string[];
   startTime?: number;
   endTime?: number;
@@ -18,9 +17,8 @@ export type DeploymentListInput = {
 
 export type DeploymentListFilterInput = {
   input: DeploymentListInput;
-  // A filter names an environment slug this app does not have or a status
-  // that does not exist, so nothing can match. The caller renders the empty
-  // state instead of querying.
+  // A filter names a status that does not exist, so nothing can match. The
+  // caller renders the empty state instead of querying.
   cannotMatch: boolean;
 };
 
@@ -52,7 +50,7 @@ function numberValue(
 
 export function buildDeploymentListInput(
   filters: DeploymentListFilterValue[],
-  environments: Environment[],
+  environmentId: string,
   now: number = Date.now(),
 ): DeploymentListFilterInput {
   const statusValues = stringValues(filters, "status").map(
@@ -60,9 +58,6 @@ export function buildDeploymentListInput(
   );
   const groups = statusValues.filter(isDeploymentStatusGroup);
   const statuses = expandDeploymentStatusGroups(groups);
-
-  const slugs = stringValues(filters, "environment");
-  const environmentIds = environments.filter((e) => slugs.includes(e.slug)).map((e) => e.id);
 
   const branches = stringValues(filters, "branch");
 
@@ -83,13 +78,11 @@ export function buildDeploymentListInput(
   return {
     input: {
       ...(statuses.length > 0 && { statuses }),
-      ...(environmentIds.length > 0 && { environmentIds }),
+      environmentIds: [environmentId],
       ...(branches.length > 0 && { branches }),
       ...(startTime !== undefined && { startTime }),
       ...(endTime !== undefined && { endTime }),
     },
-    cannotMatch:
-      (slugs.length > 0 && environmentIds.length === 0) ||
-      (statusValues.length > 0 && groups.length === 0),
+    cannotMatch: statusValues.length > 0 && groups.length === 0,
   };
 }
