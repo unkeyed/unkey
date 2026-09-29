@@ -644,6 +644,7 @@ func (w *Workflow) loadSecrets(ctx context.Context, target db.FindDeployTargetRo
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch app environment variables: %w", err)
 	}
+
 	bindings, err := w.db.ListAppBindingsByApp(ctx, db.ListAppBindingsByAppParams{
 		WorkspaceID:   target.WorkspaceID,
 		ProjectID:     target.ProjectID,
@@ -653,6 +654,7 @@ func (w *Workflow) loadSecrets(ctx context.Context, target db.FindDeployTargetRo
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch app bindings: %w", err)
 	}
+
 	return w.buildSecretsBlob(ctx, target.EnvironmentID, envVars, bindings)
 }
 
@@ -663,12 +665,12 @@ func (w *Workflow) buildSecretsBlob(ctx context.Context, environmentID string, e
 
 	config := &ctrlv1.SecretsConfig{Secrets: make(map[string]string, len(envVars)+len(bindings))}
 	for _, ev := range envVars {
-		// An invalid key is corrupt stored data. No retry fixes it.
 		if !validation.IsValidEnvVarKey(ev.Key) {
 			return nil, restate.ToTerminalError(fmt.Errorf(
 				"environment variable key %q is invalid: %s", ev.Key, validation.ErrMsgInvalidEnvVarKey,
 			))
 		}
+
 		config.Secrets[ev.Key] = ev.Value
 	}
 
@@ -678,24 +680,26 @@ func (w *Workflow) buildSecretsBlob(ctx context.Context, environmentID string, e
 		if !validation.IsValidEnvVarKey(key) || strings.HasPrefix(key, "UNKEY_") {
 			return nil, restate.ToTerminalError(fmt.Errorf("binding %q produces invalid or reserved environment variable %q", binding.Name, key))
 		}
-		if _, exists := config.Secrets[key]; exists {
-			return nil, restate.ToTerminalError(fmt.Errorf("binding environment variable %q conflicts with an app environment variable", key))
-		}
+
 		bindingValues[key] = host
 	}
+
 	if len(bindingValues) > 0 {
 		if w.vault == nil {
 			return nil, restate.ToTerminalError(errors.New("vault is required to snapshot app bindings"))
 		}
+
 		encrypted, encryptErr := w.vault.EncryptBulk(ctx, &vaultv1.EncryptBulkRequest{Keyring: environmentID, Items: bindingValues})
 		if encryptErr != nil {
 			return nil, fmt.Errorf("failed to encrypt app binding hostnames: %w", encryptErr)
 		}
+
 		for key := range bindingValues {
 			item, ok := encrypted.GetItems()[key]
 			if !ok || item.GetEncrypted() == "" {
 				return nil, restate.ToTerminalError(fmt.Errorf("vault omitted app binding environment variable %q", key))
 			}
+
 			config.Secrets[key] = item.GetEncrypted()
 		}
 	}
@@ -704,6 +708,7 @@ func (w *Workflow) buildSecretsBlob(ctx context.Context, environmentID string, e
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal secrets config: %w", err)
 	}
+
 	return marshaled, nil
 }
 
