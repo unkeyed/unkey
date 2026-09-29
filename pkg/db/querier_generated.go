@@ -1214,6 +1214,25 @@ type Querier interface {
 	//  FROM unkey_root_keys
 	//  WHERE id = ? AND deleted_at IS NULL
 	FindUnkeyRootKeyByID(ctx context.Context, db DBTX, id string) (UnkeyRootKey, error)
+	// FindUnkeyRootKeyByIDForUpdate locks a live new-format root key for a mutation.
+	//
+	//  SELECT
+	//      pk,
+	//      id,
+	//      workspace_id,
+	//      hash,
+	//      name,
+	//      prefix,
+	//      start,
+	//      end,
+	//      enabled,
+	//      expires,
+	//      created_at,
+	//      deleted_at
+	//  FROM unkey_root_keys
+	//  WHERE id = ? AND deleted_at IS NULL
+	//  FOR UPDATE
+	FindUnkeyRootKeyByIDForUpdate(ctx context.Context, db DBTX, id string) (UnkeyRootKey, error)
 	// Reads a workspace's billing row directly (Stripe linkage, tier, Compute plan,
 	// spend budget and spend-cap state). Use this when only billing state is needed;
 	// when a workspace is already being fetched, prefer joining workspace_billing in

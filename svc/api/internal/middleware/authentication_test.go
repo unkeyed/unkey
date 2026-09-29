@@ -395,3 +395,42 @@ func testMiddlewarePrincipal(authorizedWorkspaceID string) *principal.Principal 
 		Permissions:           []string{"api.*.read_key"},
 	}
 }
+
+// TestWithAuthentication_AttributesNewRootKeyUsageToInternalWorkspace
+// guarantees new root-key authentication remains logged without being billed to
+// the customer workspace that owns the key.
+func TestWithAuthentication_AttributesNewRootKeyUsageToInternalWorkspace(t *testing.T) {
+	t.Parallel()
+
+	flushed := make(chan []schema.KeyVerification, 1)
+	verifications := batch.New(batch.Config[schema.KeyVerification]{
+		Name:          "new_root_key_usage_test",
+		Drop:          false,
+		BatchSize:     1,
+		BufferSize:    1,
+		FlushInterval: time.Hour,
+		Consumers:     1,
+		Flush: func(_ context.Context, rows []schema.KeyVerification) {
+			flushed <- slices.Clone(rows)
+		},
+	})
+	t.Cleanup(verifications.Close)
+	p := testMiddlewarePrincipal("ws_customer")
+	p.Source = principal.KeySource{KeyID: "root_key_123", KeySpaceID: "", WorkspaceID: "ws_customer", Permissions: nil, ExpiresAt: nil}
+
+	err := WithAuthentication(AuthenticationConfig{
+		Auth:             &fakeAuth{principal: p},
+		KeyVerifications: verifications,
+	})(func(_ context.Context, _ *zen.Session) error { return nil })(context.Background(), &zen.Session{})
+	require.NoError(t, err)
+
+	select {
+	case rows := <-flushed:
+		require.Len(t, rows, 1)
+		require.Equal(t, "unkey_internal", rows[0].WorkspaceID)
+		require.Empty(t, rows[0].KeySpaceID)
+		require.Equal(t, "root_key_123", rows[0].KeyID)
+	case <-time.After(time.Second):
+		t.Fatal("new root key usage did not flush")
+	}
+}

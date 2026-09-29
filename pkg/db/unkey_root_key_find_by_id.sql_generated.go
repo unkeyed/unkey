@@ -64,3 +64,60 @@ func (q *Queries) FindUnkeyRootKeyByID(ctx context.Context, db DBTX, id string) 
 	)
 	return i, err
 }
+
+const findUnkeyRootKeyByIDForUpdate = `-- name: FindUnkeyRootKeyByIDForUpdate :one
+SELECT
+    pk,
+    id,
+    workspace_id,
+    hash,
+    name,
+    prefix,
+    start,
+    end,
+    enabled,
+    expires,
+    created_at,
+    deleted_at
+FROM unkey_root_keys
+WHERE id = ? AND deleted_at IS NULL
+FOR UPDATE
+`
+
+// FindUnkeyRootKeyByIDForUpdate locks a live new-format root key for a mutation.
+//
+//	SELECT
+//	    pk,
+//	    id,
+//	    workspace_id,
+//	    hash,
+//	    name,
+//	    prefix,
+//	    start,
+//	    end,
+//	    enabled,
+//	    expires,
+//	    created_at,
+//	    deleted_at
+//	FROM unkey_root_keys
+//	WHERE id = ? AND deleted_at IS NULL
+//	FOR UPDATE
+func (q *Queries) FindUnkeyRootKeyByIDForUpdate(ctx context.Context, db DBTX, id string) (UnkeyRootKey, error) {
+	row := db.QueryRowContext(ctx, findUnkeyRootKeyByIDForUpdate, id)
+	var i UnkeyRootKey
+	err := row.Scan(
+		&i.Pk,
+		&i.ID,
+		&i.WorkspaceID,
+		&i.Hash,
+		&i.Name,
+		&i.Prefix,
+		&i.Start,
+		&i.End,
+		&i.Enabled,
+		&i.Expires,
+		&i.CreatedAt,
+		&i.DeletedAt,
+	)
+	return i, err
+}

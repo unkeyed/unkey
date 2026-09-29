@@ -100,7 +100,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	now := h.Clock.Now()
 	ctx = auditlog.WithCorrelation(ctx, auditlog.NewCorrelationID())
 	err = db.TxRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
-		current, err := db.Query.FindUnkeyRootKeyByID(ctx, tx, req.KeyId)
+		current, err := db.Query.FindUnkeyRootKeyByIDForUpdate(ctx, tx, req.KeyId)
 		if db.IsNotFound(err) || err == nil && current.WorkspaceID != p.AuthorizedWorkspaceID {
 			return rootKeyNotFound()
 		}

@@ -146,3 +146,35 @@ func countNewRootKeys(t *testing.T, h *testutil.Harness, workspaceID string) int
 	require.NoError(t, h.DB.RO().QueryRowContext(t.Context(), "SELECT COUNT(*) FROM unkey_root_keys WHERE workspace_id = ?", workspaceID).Scan(&count))
 	return count
 }
+
+// TestRerollRootKeyWaitsForOriginalRowLock guarantees rerolls serialize with
+// other transactions that hold the original key row lock.
+func TestRerollRootKeyWaitsForOriginalRowLock(t *testing.T) {
+	h := testutil.NewHarness(t)
+	route := newRoute(h)
+	workspace := h.Resources().UserWorkspace
+	source := h.CreateUnkeyRootKey(seed.CreateUnkeyRootKeyRequest{WorkspaceID: workspace.ID})
+	caller := h.CreateRootKey(workspace.ID, "unkey:v1:"+workspace.ID+":rootKeys/*#write")
+	tx, err := h.DB.RW().Begin(t.Context())
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = tx.Rollback() })
+	var id string
+	require.NoError(t, tx.QueryRowContext(t.Context(), "SELECT id FROM unkey_root_keys WHERE id = ? FOR UPDATE", source.KeyID).Scan(&id))
+
+	done := make(chan testutil.TestResponse[handler.Response], 1)
+	go func() {
+		done <- call(h, route, caller, handler.Request{KeyId: source.KeyID, Expiration: nullable.NewNullNullable[int64]()})
+	}()
+	select {
+	case res := <-done:
+		t.Fatalf("reroll completed while original row was locked: %d %s", res.Status, res.RawBody)
+	case <-time.After(200 * time.Millisecond):
+	}
+	require.NoError(t, tx.Commit())
+	select {
+	case res := <-done:
+		require.Equal(t, http.StatusOK, res.Status, "%s", res.RawBody)
+	case <-time.After(5 * time.Second):
+		t.Fatal("reroll did not complete after row lock was released")
+	}
+}
