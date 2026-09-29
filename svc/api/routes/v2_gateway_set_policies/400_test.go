@@ -3,6 +3,7 @@ package handler_test
 import (
 	"fmt"
 	"net/http"
+	"slices"
 	"strings"
 	"testing"
 
@@ -56,6 +57,13 @@ func TestSetPoliciesBadRequest(t *testing.T) {
 		}
 		p := firewallPolicy("too many matches", true)
 		p.Match = &match
+		res := callTyped(t, []openapi.Policy{p})
+		require.Equal(t, http.StatusBadRequest, res.Status, "received: %s", res.RawBody)
+	})
+
+	t.Run("more than 100 remote ip ranges", func(t *testing.T) {
+		p := firewallPolicy("too many ranges", true)
+		p.Match = &[]openapi.MatchExpr{{RemoteIp: &openapi.RemoteIpMatch{In: new(slices.Repeat([]string{"203.0.113.0/24"}, 101))}}}
 		res := callTyped(t, []openapi.Policy{p})
 		require.Equal(t, http.StatusBadRequest, res.Status, "received: %s", res.RawBody)
 	})

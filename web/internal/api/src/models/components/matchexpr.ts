@@ -24,12 +24,18 @@ import {
   PathMatch$Outbound,
   PathMatch$outboundSchema,
 } from "./pathmatch.js";
+import {
+  RemoteIpMatch,
+  RemoteIpMatch$inboundSchema,
+  RemoteIpMatch$Outbound,
+  RemoteIpMatch$outboundSchema,
+} from "./remoteipmatch.js";
 
 /**
  * A single request match expression. Exactly one of `path`, `method`,
  *
  * @remarks
- * `header` or `queryParam` must be set.
+ * `header`, `queryParam` or `remoteIp` must be set.
  */
 export type MatchExpr = {
   /**
@@ -54,6 +60,13 @@ export type MatchExpr = {
    * `present` or `value` must be set.
    */
   queryParam?: FieldMatch | undefined;
+  /**
+   * Matches the client IP against CIDR ranges. Exactly one of `in` or `notIn`
+   *
+   * @remarks
+   * must be set. Entries with host bits set, such as `10.1.2.3/8`, are rejected.
+   */
+  remoteIp?: RemoteIpMatch | undefined;
 };
 
 /** @internal */
@@ -66,6 +79,7 @@ export const MatchExpr$inboundSchema: z.ZodType<
   method: MethodMatch$inboundSchema.optional(),
   header: FieldMatch$inboundSchema.optional(),
   queryParam: FieldMatch$inboundSchema.optional(),
+  remoteIp: RemoteIpMatch$inboundSchema.optional(),
 });
 /** @internal */
 export type MatchExpr$Outbound = {
@@ -73,6 +87,7 @@ export type MatchExpr$Outbound = {
   method?: MethodMatch$Outbound | undefined;
   header?: FieldMatch$Outbound | undefined;
   queryParam?: FieldMatch$Outbound | undefined;
+  remoteIp?: RemoteIpMatch$Outbound | undefined;
 };
 
 /** @internal */
@@ -85,6 +100,7 @@ export const MatchExpr$outboundSchema: z.ZodType<
   method: MethodMatch$outboundSchema.optional(),
   header: FieldMatch$outboundSchema.optional(),
   queryParam: FieldMatch$outboundSchema.optional(),
+  remoteIp: RemoteIpMatch$outboundSchema.optional(),
 });
 
 export function matchExprToJSON(matchExpr: MatchExpr): string {

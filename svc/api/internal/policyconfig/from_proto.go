@@ -199,6 +199,7 @@ func mapMatchExprFromProto(m *frontlinev1.MatchExpr) (openapi.MatchExpr, error) 
 		Method:     nil,
 		Header:     nil,
 		QueryParam: nil,
+		RemoteIp:   nil,
 	}
 
 	switch expr := m.GetExpr().(type) {
@@ -255,6 +256,16 @@ func mapMatchExprFromProto(m *frontlinev1.MatchExpr) (openapi.MatchExpr, error) 
 			return out, unmappable("", "queryParam match")
 		}
 		out.QueryParam = &field
+
+	case *frontlinev1.MatchExpr_RemoteIp:
+		remoteIp := openapi.RemoteIpMatch{In: nil, NotIn: nil}
+		if in := expr.RemoteIp.GetIn(); len(in) > 0 {
+			remoteIp.In = &in
+		}
+		if notIn := expr.RemoteIp.GetNotIn(); len(notIn) > 0 {
+			remoteIp.NotIn = &notIn
+		}
+		out.RemoteIp = &remoteIp
 
 	default:
 		return out, unmappable("", "match expression")

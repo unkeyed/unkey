@@ -1,0 +1,32 @@
+type: object
+properties:
+  in:
+    type: array
+    minItems: 1
+    maxItems: 100
+    items:
+      type: string
+      minLength: 1
+      maxLength: 43
+    description: |-
+      Matches when the client IP is in at least one of these ranges. Entries
+      are CIDRs such as `203.0.113.0/24` or single addresses such as
+      `203.0.113.7`.
+  notIn:
+    type: array
+    minItems: 1
+    maxItems: 100
+    items:
+      type: string
+      minLength: 1
+      maxLength: 43
+    description: |-
+      Matches when the client IP is in none of these ranges. Entries are CIDRs
+      such as `198.51.100.0/24` or single addresses such as `198.51.100.7`.
+additionalProperties: false
+description: |-
+  Matches the client IP against CIDR ranges. Exactly one of `in` or `notIn`
+  must be set. Entries with host bits set, such as `10.1.2.3/8`, are rejected.
+example:
+  notIn:
+    - 198.51.100.0/24

@@ -8,10 +8,12 @@ properties:
     "$ref": "./FieldMatch.yaml"
   queryParam:
     "$ref": "./FieldMatch.yaml"
+  remoteIp:
+    "$ref": "./RemoteIpMatch.yaml"
 additionalProperties: false
 description: |-
   A single request match expression. Exactly one of `path`, `method`,
-  `header` or `queryParam` must be set.
+  `header`, `queryParam` or `remoteIp` must be set.
 example:
   path:
     path:

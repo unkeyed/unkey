@@ -73,6 +73,7 @@ export * from "./ratelimitpolicy.js";
 export * from "./ratelimitrequest.js";
 export * from "./ratelimitresponse.js";
 export * from "./remoteipkey.js";
+export * from "./remoteipmatch.js";
 export * from "./replicas.js";
 export * from "./role.js";
 export * from "./security.js";

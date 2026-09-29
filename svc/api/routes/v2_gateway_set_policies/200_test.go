@@ -238,6 +238,8 @@ func TestSetPoliciesSuccessfully(t *testing.T) {
 				{Header: &openapi.FieldMatch{Name: "x-token", Value: &openapi.StringMatch{Prefix: new("tok_")}}},
 				{QueryParam: &openapi.FieldMatch{Name: "debug", Present: &present}},
 				{QueryParam: &openapi.FieldMatch{Name: "v", Value: &openapi.StringMatch{Exact: new("1")}}},
+				{RemoteIp: &openapi.RemoteIpMatch{In: &[]string{"203.0.113.0/24"}}},
+				{RemoteIp: &openapi.RemoteIpMatch{NotIn: &[]string{"198.51.100.0/24", "2001:db8::/32"}}},
 			},
 			Keyauth: &openapi.KeyauthPolicy{
 				Keyspaces: []string{apiA.KeyAuthID.String, apiB.KeyAuthID.String},
@@ -326,7 +328,9 @@ func TestSetPoliciesSuccessfully(t *testing.T) {
 			{"header":{"name":"x-kebap","present":true}},
 			{"header":{"name":"x-token","value":{"prefix":"tok_"}}},
 			{"queryParam":{"name":"debug","present":true}},
-			{"queryParam":{"name":"v","value":{"exact":"1"}}}
+			{"queryParam":{"name":"v","value":{"exact":"1"}}},
+			{"remoteIp":{"in":["203.0.113.0/24"]}},
+			{"remoteIp":{"notIn":["198.51.100.0/24","2001:db8::/32"]}}
 		]`, string(byName["kitchen-sink"]["match"]))
 
 		require.JSONEq(t, fmt.Sprintf(`{
