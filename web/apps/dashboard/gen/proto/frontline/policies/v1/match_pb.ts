@@ -285,15 +285,19 @@ export const QueryParamMatchSchema: GenMessage<QueryParamMatch> = /*@__PURE__*/
   messageDesc(file_frontline_policies_v1_match, 5);
 
 /**
- * RemoteIpMatch tests the client IP against CIDR ranges. The client IP is the
- * TCP peer address, or the address carried in authenticated peer metadata when
- * the request was forwarded by another Frontline region
+ * RemoteIpMatch matches the client's IP address against a list of IP ranges.
+ * The client IP comes from the connection, never from a header such as
+ * X-Forwarded-For
  *
- * Set exactly one list. `in` matches when the IP is in at least one range,
- * `not_in` matches when the IP is in none of them. If both are set, `in` is
- * used. If neither is set, every request matches
- * Entries are CIDRs such as "198.51.100.0/24" or "2001:db8::/32"; single
- * addresses use a full-length prefix such as "198.51.100.7/32"
+ * Set one list:
+ *   in:     matches clients inside any of the ranges
+ *   not_in: matches clients outside all of the ranges
+ *
+ * Entries are CIDRs such as "203.0.113.0/24". Write a single address with
+ * /32 for IPv4 or /128 for IPv6, such as "203.0.113.7/32"
+ *
+ * If both lists are set, only `in` is used. If neither is set, every client
+ * matches
  *
  * @generated from message frontline.v1.RemoteIpMatch
  */
