@@ -164,7 +164,7 @@ func evalRemoteIpMatch(clientIP netip.Addr, rm *frontlinev1.RemoteIpMatch) (bool
 		return listContainsIP(in, clientIP)
 	}
 
-	// not_in flips it: clients in the list are let through, everyone else matches
+	// not_in flips it: clients in the list do not match, everyone else does
 	inList, err := listContainsIP(rm.GetNotIn(), clientIP)
 	if err != nil || inList {
 		return false, err

@@ -184,7 +184,7 @@ func (s *Session) Location() string {
 }
 
 // ClientIP returns the address that [Session.Location] formats. The zero value
-// means no valid client address was captured.
+// means no valid client address was captured
 func (s *Session) ClientIP() netip.Addr {
 	return s.clientIP
 }

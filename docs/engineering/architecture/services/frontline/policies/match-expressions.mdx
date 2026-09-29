@@ -218,7 +218,7 @@ Matches against URL query parameters. Parameter names are matched case-sensitive
 
 ### Remote IP
 
-Matches the client IP against CIDR ranges. The client IP is the TCP peer address. When another Frontline region forwarded the request, it is the address carried in the signed Frontline metadata. Client headers such as `X-Forwarded-For` are never read.
+Matches the client IP against CIDR ranges. The client IP is the TCP peer address. When another Frontline region forwarded the request, it is the address carried in the authenticated peer metadata. Client headers such as `X-Forwarded-For` are never read.
 
 <ResponseField name="in" type="string[]">
   Matches when the client IP is in at least one range.
