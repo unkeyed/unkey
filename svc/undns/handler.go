@@ -10,11 +10,11 @@ import (
 	dnswire "codeberg.org/miekg/dns"
 	"codeberg.org/miekg/dns/dnsutil"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/unkeyed/unkey/pkg/deploy/appbinding"
 	"github.com/unkeyed/unkey/pkg/logger"
-	privatecontract "github.com/unkeyed/unkey/pkg/privatenetwork"
 )
 
-const privateZone = privatecontract.Zone + "."
+const privateZone = appbinding.Zone + "."
 
 type handler struct {
 	catalog  *catalog
