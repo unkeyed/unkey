@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 	"testing"
@@ -11,6 +10,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
+	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 )
 
 func newRoute(t *testing.T, analytics bool) (*testutil.Harness, *Handler, string) {
@@ -21,19 +21,38 @@ func newRoute(t *testing.T, analytics bool) (*testutil.Harness, *Handler, string
 	if analytics {
 		h.SetupAnalytics(workspace.ID)
 	}
-	route := &Handler{AnalyticsConnectionManager: h.AnalyticsConnectionManager}
+	route := &Handler{DB: h.DB, AnalyticsConnectionManager: h.AnalyticsConnectionManager}
 	h.Register(route)
 	return h, route, workspace.ID
 }
 
 func createNamespace(t *testing.T, h *testutil.Harness, workspaceID string) string {
 	t.Helper()
+	return createNamespaceInProject(t, h, workspaceID, "", uid.New("test"))
+}
 
-	id := uid.New(uid.RatelimitNamespacePrefix)
-	require.NoError(t, db.Query.InsertRatelimitNamespace(context.Background(), h.DB.RW(), db.InsertRatelimitNamespaceParams{
+func createProject(t *testing.T, h *testutil.Harness, workspaceID string) string {
+	t.Helper()
+
+	id := uid.New(uid.ProjectPrefix)
+	h.CreateProject(seed.CreateProjectRequest{
 		ID:          id,
 		WorkspaceID: workspaceID,
 		Name:        uid.New("test"),
+		Slug:        uid.New("test"),
+	})
+	return id
+}
+
+func createNamespaceInProject(t *testing.T, h *testutil.Harness, workspaceID, projectID, name string) string {
+	t.Helper()
+
+	id := uid.New(uid.RatelimitNamespacePrefix)
+	require.NoError(t, db.Query.InsertRatelimitNamespace(t.Context(), h.DB.RW(), db.InsertRatelimitNamespaceParams{
+		ID:          id,
+		WorkspaceID: workspaceID,
+		ProjectID:   projectID,
+		Name:        name,
 		CreatedAt:   time.Now().UnixMilli(),
 	}))
 	return id

@@ -18,12 +18,6 @@ describe("settings-scoped paths", () => {
     expect(routes.settings.limits(scope)).toBe("/acme/settings/limits");
   });
 
-  it("carries the plan-picker intent onto billing", () => {
-    expect(routes.settings.billing({ workspaceSlug: ws, intent: "api" })).toBe(
-      "/acme/settings/billing?intent=api",
-    );
-  });
-
   it("builds the stripe redirect paths", () => {
     const scope = { workspaceSlug: ws };
     expect(routes.settings.stripe.portal(scope)).toBe("/acme/stripe/portal");
@@ -39,8 +33,5 @@ describe("settings-scoped paths", () => {
         from: "create",
       }),
     ).toBe("/acme/stripe/checkout?intent=deploy&plan=pro&from=create");
-    expect(
-      routes.projects.pendingSubscribe({ workspaceSlug: ws, plan: "starter", from: "banner" }),
-    ).toBe("/acme/projects?pendingPlan=starter&from=banner");
   });
 });

@@ -17,26 +17,23 @@ import { updateApiName } from "./api/updateName";
 import { fetchAuditLog } from "./audit/fetch";
 import { auditLogsSearch } from "./audit/llm-search";
 import { listAuditMembers } from "./audit/members";
-import { deletePermissionWithRelations } from "./authorization/permissions/delete";
 import { permissionsLlmSearch } from "./authorization/permissions/llm-search";
 import { queryPermissions } from "./authorization/permissions/query";
-import { upsertPermission } from "./authorization/permissions/upsert";
+import { updatePermission } from "./authorization/permissions/update";
 import { getConnectedKeysAndPerms } from "./authorization/roles/connected-keys-and-perms";
-import { deleteRoleWithRelations } from "./authorization/roles/delete";
 import { queryKeys } from "./authorization/roles/keys/query-keys";
 import { searchKeys } from "./authorization/roles/keys/search-key";
 import { rolesLlmSearch } from "./authorization/roles/llm-search";
 import { queryRolesPermissions } from "./authorization/roles/permissions/query-permissions";
 import { searchRolesPermissions } from "./authorization/roles/permissions/search-permissions";
 import { queryRoles } from "./authorization/roles/query";
-import { upsertRole } from "./authorization/roles/upsert";
+import { updateRole } from "./authorization/roles/update";
 import { getDeployBudget, setDeployBudget } from "./billing/deploy-budget";
 import { queryComputeAllocation } from "./billing/query-compute-allocation";
 import { queryDeployUsage } from "./billing/query-deploy-usage";
 import { queryDeployUsageBreakdown } from "./billing/query-deploy-usage-breakdown";
 import { queryDeployUsageTimeseries } from "./billing/query-deploy-usage-timeseries";
 import { queryUsage } from "./billing/query-usage";
-import { listApps } from "./deploy/app/list";
 import { countCustomDomains } from "./deploy/custom-domains/count";
 import { authorizeDeployment } from "./deploy/deployment/authorize";
 import { getDeploymentBuildSteps } from "./deploy/deployment/build-steps";
@@ -47,8 +44,10 @@ import { getOpenApiDiff } from "./deploy/deployment/getOpenApiDiff";
 import { listDeployments } from "./deploy/deployment/list";
 import { listActiveBranches } from "./deploy/deployment/list-active-branches";
 import { listDeploymentBranches } from "./deploy/deployment/list-branches";
+import { listDeploymentHeadlines } from "./deploy/deployment/list-headlines";
 import { getDeploymentRuntimeLogs } from "./deploy/deployment/runtime-logs";
 import { listDomains } from "./deploy/domains/list";
+import { listDisplayDomains } from "./deploy/domains/list-display-domains";
 import { makeSensitive } from "./deploy/env-vars/make-sensitive";
 import { renameEnvVars } from "./deploy/env-vars/rename";
 import { getAvailableKeyspaces } from "./deploy/environment-settings/get-available-keyspaces";
@@ -69,7 +68,7 @@ import { getDeploymentTree } from "./deploy/network/get";
 import { getInstanceRps } from "./deploy/network/get-instance-rps";
 import { getRegionRps } from "./deploy/network/get-region-rps";
 import { creationContext } from "./deploy/project/creation-context";
-import { listProjects } from "./deploy/project/list";
+import { getDefaultProject } from "./deploy/project/get-default";
 import { createSharedSecret } from "./share/create";
 import { revealSharedSecret } from "./share/reveal";
 
@@ -242,8 +241,7 @@ export const router = t.router({
   authorization: t.router({
     permissions: t.router({
       query: queryPermissions,
-      upsert: upsertPermission,
-      delete: deletePermissionWithRelations,
+      update: updatePermission,
       llmSearch: permissionsLlmSearch,
     }),
     roles: t.router({
@@ -256,8 +254,7 @@ export const router = t.router({
         search: searchRolesPermissions,
         query: queryRolesPermissions,
       }),
-      upsert: upsertRole,
-      delete: deleteRoleWithRelations,
+      update: updateRole,
       llmSearch: rolesLlmSearch,
       connectedKeysAndPerms: getConnectedKeysAndPerms,
     }),
@@ -337,11 +334,8 @@ export const router = t.router({
       getRegionRps,
     }),
     project: t.router({
-      list: listProjects,
       creationContext,
-    }),
-    app: t.router({
-      list: listApps,
+      getDefault: getDefaultProject,
     }),
     environmentSettings: t.router({
       getAvailableRegions,
@@ -356,12 +350,14 @@ export const router = t.router({
     }),
     domain: t.router({
       list: listDomains,
+      listDisplayDomains,
     }),
     customDomain: t.router({
       count: countCustomDomains,
     }),
     deployment: t.router({
       list: listDeployments,
+      listHeadlines: listDeploymentHeadlines,
       listBranches: listDeploymentBranches,
       listActiveBranches,
       getById: getDeploymentById,

@@ -138,7 +138,6 @@ func (s *AuditLogs) Read(ctx context.Context, workspaceID string, from Cursor, t
 		payload := sink.AuditLogPayload{
 			ID:            row.EventID,
 			Action:        row.Event,
-			OccurredAt:    sink.FormatTime(row.Time),
 			Actor:         actor,
 			Targets:       targets,
 			Context:       sink.AuditLogContext{Location: row.RemoteIP, UserAgent: row.UserAgent},

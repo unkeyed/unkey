@@ -23,6 +23,78 @@
 @theme {
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+
+  --animate-upgrade-rise: upgrade-rise 260ms cubic-bezier(0.23, 1, 0.32, 1) both;
+  --animate-mark-reveal: mark-reveal 320ms cubic-bezier(0.23, 1, 0.32, 1) 100ms both;
+  --animate-mark-float: mark-float 3.6s cubic-bezier(0.45, 0, 0.55, 1) 1200ms infinite;
+  --animate-coin-hop: coin-hop 1100ms linear 100ms both;
+  --animate-coin-flip: coin-flip 1100ms cubic-bezier(0.3, 0.6, 0.25, 1) 100ms both;
+
+  @keyframes upgrade-rise {
+    from {
+      opacity: 0;
+      transform: translateY(4px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes mark-reveal {
+    from {
+      mask-position: 100% 100%;
+    }
+    to {
+      mask-position: 0% 0%;
+    }
+  }
+
+  @keyframes mark-float {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-4px);
+    }
+  }
+
+  @keyframes coin-hop {
+    0% {
+      opacity: 0;
+      transform: translateY(18px) scale(0.9);
+      animation-timing-function: cubic-bezier(0.2, 0.8, 0.4, 1);
+    }
+    15% {
+      opacity: 1;
+    }
+    45% {
+      transform: translateY(-16px) scale(1);
+      animation-timing-function: cubic-bezier(0.6, 0, 0.8, 0.4);
+    }
+    80% {
+      transform: translateY(0) scale(1);
+      animation-timing-function: cubic-bezier(0.2, 0.8, 0.4, 1);
+    }
+    90% {
+      transform: translateY(-3px) scale(1);
+      animation-timing-function: cubic-bezier(0.6, 0, 0.8, 0.4);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  @keyframes coin-flip {
+    from {
+      transform: rotateY(0deg);
+    }
+    to {
+      transform: rotateY(900deg);
+    }
+  }
 }
 
 @theme static {

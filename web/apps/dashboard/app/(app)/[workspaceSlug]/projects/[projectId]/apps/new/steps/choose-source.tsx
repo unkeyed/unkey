@@ -58,8 +58,8 @@ export const ChooseSourceStep = ({
         isRolledBack: false,
         updatedAt: null,
         id: SERVER_PLACEHOLDER,
-        latestDeploymentId: null,
         domain: null,
+        customDomain: null,
         headlineDeployment: null,
       });
       await transaction.isPersisted.promise;
@@ -67,7 +67,6 @@ export const ChooseSourceStep = ({
       const nextCreatedApp = { id: appId, sourceKind: source.kind };
       setCreatedApp(nextCreatedApp);
       onAppCreated(appId);
-      await collection.projects.utils.refetch();
 
       if (source.kind === "git") {
         try {

@@ -596,6 +596,17 @@ type Querier interface {
 	//  WHERE key_id = ?
 	//    AND role_id = ?
 	FindKeyRoleByKeyAndRoleID(ctx context.Context, db DBTX, arg FindKeyRoleByKeyAndRoleIDParams) ([]KeysRole, error)
+	// FindKeySpaceAnalyticsOwnership resolves candidate keyspaces to their owning projects before analytics authorization.
+	// Rows remain available after soft deletion because historical analytics still reference them.
+	//
+	//  SELECT id, project_id
+	//  FROM key_auth
+	//  WHERE workspace_id = ?
+	//    AND (
+	//      id IN (/*SLICE:key_space_ids*/?)
+	//      OR project_id IN (/*SLICE:project_ids*/?)
+	//    )
+	FindKeySpaceAnalyticsOwnership(ctx context.Context, db DBTX, arg FindKeySpaceAnalyticsOwnershipParams) ([]FindKeySpaceAnalyticsOwnershipRow, error)
 	//FindKeySpaceByID
 	//
 	//  SELECT key_auth.pk, key_auth.id, key_auth.workspace_id, key_auth.project_id, key_auth.created_at_m, key_auth.updated_at_m, key_auth.deleted_at_m, key_auth.store_encrypted_keys, key_auth.default_prefix, key_auth.default_bytes, key_auth.size_approx, key_auth.size_last_updated_at FROM `key_auth` WHERE id = ?
@@ -2519,6 +2530,14 @@ type Querier interface {
 	//  ORDER BY id ASC
 	//  LIMIT ?
 	ListProjectsByWorkspaceId(ctx context.Context, db DBTX, arg ListProjectsByWorkspaceIdParams) ([]ListProjectsByWorkspaceIdRow, error)
+	// Resolves URN analytics permissions to namespace IDs owned by one workspace.
+	// Soft-deleted namespaces remain present because their historical ClickHouse
+	// rows must stay queryable, and the unpaginated result prevents scope loss.
+	//
+	//  SELECT id, project_id
+	//  FROM ratelimit_namespaces
+	//  WHERE workspace_id = ?
+	ListRatelimitNamespaceOwnershipByWorkspace(ctx context.Context, db DBTX, workspaceID string) ([]ListRatelimitNamespaceOwnershipByWorkspaceRow, error)
 	//ListRatelimitOverridesByNamespaceID
 	//
 	//  SELECT ratelimit_overrides.pk, ratelimit_overrides.id, ratelimit_overrides.workspace_id, ratelimit_overrides.namespace_id, ratelimit_overrides.identifier, ratelimit_overrides.`limit`, ratelimit_overrides.duration, ratelimit_overrides.created_at_m, ratelimit_overrides.updated_at_m, ratelimit_overrides.deleted_at_m FROM ratelimit_overrides

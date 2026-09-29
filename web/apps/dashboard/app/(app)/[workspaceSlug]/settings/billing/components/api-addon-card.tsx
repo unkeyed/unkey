@@ -2,7 +2,6 @@
 
 import { formatNumber } from "@/lib/fmt";
 import { formatMs } from "@/lib/ms";
-import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
 import type { Router } from "@/lib/trpc/routers";
 import type { inferRouterOutputs } from "@trpc/server";
@@ -29,23 +28,18 @@ import {
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { ADMIN_ONLY_TOOLTIP } from "./constants";
-import { PlanChangeModal } from "./plan-change-modal";
+import { PlansScreen } from "./plans-screen";
 import { ProductCard } from "./product-card";
 
-const NEEDS_PAYMENT_TOOLTIP = "Add a payment method before upgrading the API plan";
 const FREE_TIER_QUOTA = 150_000;
 
 type BillingInfo = inferRouterOutputs<Router>["stripe"]["getBillingInfo"];
 
 type ApiAddOnCardProps = {
   isAdmin: boolean;
-  hasPaymentMethod: boolean;
-  workspaceSlug: string;
   products: BillingInfo["products"];
   subscription?: BillingInfo["subscription"];
   currentProductId?: BillingInfo["currentProductId"];
-  /** Open the plan picker on mount (post-checkout intent hand-off). */
-  autoOpenPlanModal?: boolean;
 };
 
 /**
@@ -55,16 +49,13 @@ type ApiAddOnCardProps = {
  */
 export const ApiAddOnCard: React.FC<ApiAddOnCardProps> = ({
   isAdmin,
-  hasPaymentMethod,
-  workspaceSlug,
   products,
   subscription,
   currentProductId,
-  autoOpenPlanModal = false,
 }) => {
   const router = useRouter();
   const trpcUtils = trpc.useUtils();
-  const [showPlanModal, setShowPlanModal] = useState(autoOpenPlanModal);
+  const [showPlanModal, setShowPlanModal] = useState(false);
   const [isCancelOpen, setCancelOpen] = useState(false);
 
   const { data: usage } = trpc.billing.queryUsage.useQuery(undefined, {
@@ -81,41 +72,6 @@ export const ApiAddOnCard: React.FC<ApiAddOnCardProps> = ({
       trpcUtils.stripe.getUpcomingInvoice.invalidate(),
     ]);
   };
-
-  const createSubscription = trpc.stripe.createSubscription.useMutation({
-    onSuccess: async (result) => {
-      if (result.status === "checkout") {
-        window.location.assign(result.checkoutUrl);
-        return;
-      }
-      if (result.status === "payment_required") {
-        window.location.assign(
-          result.paymentUrl ?? routes.settings.stripe.checkout({ workspaceSlug, intent: "api" }),
-        );
-        return;
-      }
-      setShowPlanModal(false);
-      toast.success("Plan activated");
-      await revalidate();
-    },
-    onError: (err) => toast.error(err.message),
-  });
-  const updateSubscription = trpc.stripe.updateSubscription.useMutation({
-    onSuccess: async (result) => {
-      if (result.kind === "payment_required") {
-        window.location.assign(result.paymentUrl);
-        return;
-      }
-      setShowPlanModal(false);
-      toast.success(
-        result.kind === "scheduled"
-          ? `API plan downgrade scheduled for ${new Date(result.effectiveAt).toLocaleDateString()}`
-          : "API plan changed",
-      );
-      await revalidate();
-    },
-    onError: (err) => toast.error(err.message),
-  });
 
   const uncancelSubscription = trpc.stripe.uncancelSubscription.useMutation({
     onSuccess: async () => {
@@ -159,9 +115,6 @@ export const ApiAddOnCard: React.FC<ApiAddOnCardProps> = ({
   const quota = currentProduct?.quotas.requestsPerMonth ?? FREE_TIER_QUOTA;
   const used = (usage?.billableVerifications ?? 0) + (usage?.billableRatelimits ?? 0);
 
-  const upgradeDisabled = !isAdmin || !hasPaymentMethod;
-  const upgradeTooltip = isAdmin ? NEEDS_PAYMENT_TOOLTIP : ADMIN_ONLY_TOOLTIP;
-
   return (
     <>
       <ProductCard
@@ -189,21 +142,13 @@ export const ApiAddOnCard: React.FC<ApiAddOnCardProps> = ({
               </span>
             </InfoTooltip>
           ) : (
-            <InfoTooltip content={upgradeTooltip} disabled={!upgradeDisabled} asChild>
+            <InfoTooltip content={ADMIN_ONLY_TOOLTIP} disabled={isAdmin} asChild>
               <span>
                 <Button
                   variant="outline"
                   size="md"
-                  disabled={upgradeDisabled}
-                  onClick={() => {
-                    if (hasPaymentMethod) {
-                      setShowPlanModal(true);
-                    } else {
-                      router.push(
-                        routes.settings.stripe.checkout({ workspaceSlug, intent: "api" }),
-                      );
-                    }
-                  }}
+                  disabled={!isAdmin}
+                  onClick={() => setShowPlanModal(true)}
                 >
                   Upgrade
                 </Button>
@@ -268,39 +213,7 @@ export const ApiAddOnCard: React.FC<ApiAddOnCardProps> = ({
         </div>
       </ProductCard>
 
-      {hasPaymentMethod ? (
-        <PlanChangeModal
-          isOpen={showPlanModal}
-          onOpenChange={setShowPlanModal}
-          title={currentProduct ? "Change API plan" : "Choose an API plan"}
-          subTitle="Tiered plans for key verifications and ratelimits."
-          options={products.map((product) => ({
-            id: product.id,
-            name: product.name,
-            // Catalog products are priced in whole dollars per month.
-            amount: product.dollar * 100,
-            interval: "month",
-            // Compact count for the inline row: "1M requests/month".
-            detail: `${formatNumber(product.quotas.requestsPerMonth)} requests/month`,
-          }))}
-          currentId={currentProduct?.id ?? null}
-          changeNote="Upgrades take effect immediately and are prorated. Downgrades start next billing period; your current plan stays active and no refund is issued."
-          submittingId={
-            createSubscription.isLoading
-              ? createSubscription.variables?.productId
-              : updateSubscription.isLoading
-                ? updateSubscription.variables?.newProductId
-                : undefined
-          }
-          onSelect={(id) => {
-            if (currentProduct) {
-              updateSubscription.mutate({ newProductId: id });
-            } else {
-              createSubscription.mutate({ productId: id });
-            }
-          }}
-        />
-      ) : null}
+      <PlansScreen open={showPlanModal} onOpenChange={setShowPlanModal} reason="api-plan" />
 
       <DialogContainer
         isOpen={isCancelOpen}
