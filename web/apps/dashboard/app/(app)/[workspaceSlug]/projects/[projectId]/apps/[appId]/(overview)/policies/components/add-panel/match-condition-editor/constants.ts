@@ -19,8 +19,8 @@ export const MATCH_TYPE_OPTIONS: { value: MatchConditionFormValues["type"]; labe
 ];
 
 export const REMOTE_IP_OPERATORS: { value: "in" | "notIn"; label: string }[] = [
-  { value: "in", label: "Is in" },
-  { value: "notIn", label: "Is not in" },
+  { value: "in", label: "In range" },
+  { value: "notIn", label: "Not in range" },
 ];
 
 export function validateRegexSyntax(pattern: string): string | undefined {
