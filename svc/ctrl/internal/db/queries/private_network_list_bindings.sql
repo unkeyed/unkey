@@ -21,7 +21,6 @@ WITH binding_candidates AS (
             WHEN b.selection_mode = 'deployment' THEN b.target_deployment_id
             WHEN b.selection_mode = 'automatic'
                 AND caller_env.kind = 'production'
-                AND caller_env.slug = 'production'
                 THEN target_app.current_deployment_id
             WHEN b.selection_mode = 'automatic'
                 AND caller.source = 'git'
@@ -34,7 +33,7 @@ WITH binding_candidates AS (
                 WHERE candidate.app_id = b.resource_id
                     AND candidate.workspace_id = b.workspace_id
                     AND candidate.project_id = b.project_id
-                    AND NOT (candidate_env.kind = 'production' AND candidate_env.slug = 'production')
+                    AND candidate_env.kind = 'preview'
                     AND candidate.source = 'git'
                     AND candidate.git_branch = caller.git_branch
                     AND COALESCE(candidate.fork_repository_full_name, '') = COALESCE(caller.fork_repository_full_name, '')
@@ -60,7 +59,7 @@ WITH binding_candidates AS (
                         AND candidate.workspace_id = b.workspace_id
                         AND candidate.project_id = b.project_id
                         AND candidate.environment_id = b.target_environment_id
-                        AND NOT (candidate_env.kind = 'production' AND candidate_env.slug = 'production')
+                        AND candidate_env.kind = 'preview'
                         AND candidate.first_ready_at IS NOT NULL
                     ORDER BY candidate.created_at DESC, candidate.id DESC
                     LIMIT 1

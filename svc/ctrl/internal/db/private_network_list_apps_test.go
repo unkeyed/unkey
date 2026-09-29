@@ -37,6 +37,7 @@ func TestListPrivateNetworkAppsSelection(t *testing.T) {
 	exec(`INSERT INTO environments (id,workspace_id,project_id,app_id,slug,kind,created_at) VALUES
 		('caller-prod','ws','project','caller','production','production',1),
 		('caller-canary','ws','project','caller','canary','production',1),
+		('caller-staging','ws','project','caller','staging','production',1),
 		('caller-preview','ws','project','caller','preview','preview',1),
 		('caller-manual','ws','project','caller','manual','preview',1),
 		('caller-pin','ws','project','caller','pin','preview',1),
@@ -73,9 +74,11 @@ func TestListPrivateNetworkAppsSelection(t *testing.T) {
 	insertDeployment("caller-manual-dep", "caller", "caller-manual", "git", "feature", nil, "ready", "running", 1, 16, "r")
 	insertDeployment("caller-pin-dep", "caller", "caller-pin", "git", "feature", nil, "ready", "running", 1, 17, "r")
 	insertDeployment("caller-rollback-dep", "caller", "caller-rollback", "oci", "", nil, "ready", "running", 1, 18, "r")
+	insertDeployment("caller-staging-git", "caller", "caller-staging", "git", "feature", nil, "ready", "running", 1, 19, "r")
 
 	insertDeployment("target-live", "target", "target-prod", "git", "main", nil, "ready", "running", 1, 20, "r")
 	insertDeployment("target-canary-ready", "target", "target-canary", "oci", "", nil, "ready", "running", 1, 21, "r")
+	insertDeployment("target-canary-feature", "target", "target-canary", "git", "feature", nil, "ready", "running", 1, 35, "r")
 	insertDeployment("target-new-prod", "target", "target-prod", "git", "main", nil, "ready", "running", 1, 99, "r")
 	insertDeployment("target-preview-old", "target", "target-preview", "git", "feature", nil, "ready", "running", 1, 30, "r")
 	insertDeployment("target-preview-never", "target", "target-preview", "git", "feature", nil, "ready", "running", nil, 31, "r")
@@ -137,6 +140,7 @@ func TestListPrivateNetworkAppsSelection(t *testing.T) {
 	insertBinding("manual", "target", "caller-manual", "target", "environment", "target-manual", nil)
 	insertBinding("pinned", "target", "caller-pin", "target", "deployment", nil, "target-pinned-stopped")
 	insertBinding("explicit-prod", "target", "caller-rollback", "target", "environment", "target-prod", nil)
+	insertBinding("staging-auto", "target", "caller-staging", "target", "automatic", nil, nil)
 	exec(`INSERT INTO app_bindings (id,workspace_id,project_id,app_id,environment_id,resource_type,resource_id,name,selection_mode,created_at)
 		VALUES ('other-project','ws','other-project','caller','caller-prod','app','other-target','leak','automatic',1)`)
 	insertBinding("reserved-own-slug", "caller", "caller-pin", "other-target", "automatic", nil, nil)
@@ -151,16 +155,14 @@ func TestListPrivateNetworkAppsSelection(t *testing.T) {
 	require.ElementsMatch(t, []string{
 		"caller-prod-deploying", "caller-prod-live", "caller-canary-oci",
 		"caller-preview-own", "caller-preview-fork", "caller-preview-missing",
-		"caller-manual-dep", "caller-pin-dep", "caller-rollback-dep",
-		"target-live", "target-canary-ready", "target-new-prod", "target-preview-old",
+		"caller-manual-dep", "caller-pin-dep", "caller-rollback-dep", "caller-staging-git",
+		"target-live", "target-canary-ready", "target-canary-feature", "target-new-prod", "target-preview-old",
 		"target-preview-never", "target-preview-fork", "target-manual-old",
 	}, replicaDeployments, "every active deployment of an enrolled workspace publishes its replicas")
 
 	listPlatform := func(platform string) map[string]ListPrivateNetworkBindingsRow {
 		t.Helper()
 		byBindingCaller := make(map[string]ListPrivateNetworkBindingsRow)
-		// The first page holds two candidates of a workspace without a
-		// namespace, so a page shortened after its limit would end paging early.
 		params := ListPrivateNetworkBindingsParams{Platform: platform, Limit: 3}
 		for {
 			rows, listErr := NewQueries(tx).ListPrivateNetworkBindings(t.Context(), params)
@@ -187,14 +189,12 @@ func TestListPrivateNetworkAppsSelection(t *testing.T) {
 	}
 
 	selected := list()
-	require.Len(t, selected, 10)
+	require.Len(t, selected, 11)
 
 	for key, want := range map[string]string{
 		"production/caller-prod-deploying":  "target-live",
 		"production/caller-prod-live":       "target-live",
-		"canary/caller-canary-oci":          "target-canary-ready",
 		"canary-auto/caller-canary-oci":     "",
-		"preview/caller-preview-own":        "target-preview-old",
 		"preview/caller-preview-fork":       "target-preview-fork",
 		"preview/caller-preview-missing":    "",
 		"manual/caller-manual-dep":          "",
@@ -204,6 +204,10 @@ func TestListPrivateNetworkAppsSelection(t *testing.T) {
 		require.Contains(t, selected, key)
 		require.Equal(t, want, selected[key].DeploymentID, key)
 	}
+	require.Equal(t, "target-live", selected["staging-auto/caller-staging-git"].DeploymentID, "an automatic caller in any production-kind environment follows the live pointer, not its git branch")
+	require.Equal(t, "target-preview-old", selected["preview/caller-preview-own"].DeploymentID, "branch matching selects only preview-kind deployments, never a production-kind custom environment")
+	require.Contains(t, selected, "canary/caller-canary-oci")
+	require.Empty(t, selected["canary/caller-canary-oci"].DeploymentID, "an explicit production-kind environment without the live deployment must not fall back to its newest ready build")
 	require.Equal(t, int32(7946), selected["production/caller-prod-live"].Port, "port comes from the target deployment")
 	for _, excluded := range []string{
 		"cross-workspace/caller-prod-live", "other-project/caller-prod-live",
@@ -218,26 +222,43 @@ func TestListPrivateNetworkAppsSelection(t *testing.T) {
 	selected = list()
 	require.Equal(t, "target-new-prod", selected["production/caller-prod-live"].DeploymentID)
 	require.Equal(t, "target-new-prod", selected["explicit-prod/caller-rollback-dep"].DeploymentID)
+	require.Equal(t, "target-new-prod", selected["staging-auto/caller-staging-git"].DeploymentID)
 	exec(`UPDATE apps SET current_deployment_id = 'target-live' WHERE id = 'target'`)
 	selected = list()
 	require.Equal(t, "target-live", selected["production/caller-prod-live"].DeploymentID, "automatic production follows a rollback")
 	require.Equal(t, "target-live", selected["explicit-prod/caller-rollback-dep"].DeploymentID, "an explicit production environment follows a rollback, not the newest ready deployment")
+	require.Equal(t, "target-live", selected["staging-auto/caller-staging-git"].DeploymentID, "a custom production-kind caller follows a rollback")
+
+	exec(`UPDATE apps SET current_deployment_id = 'target-canary-ready' WHERE id = 'target'`)
+	selected = list()
+	require.Equal(t, "target-canary-ready", selected["canary/caller-canary-oci"].DeploymentID, "an explicit production-kind environment follows the live pointer into that environment")
+	require.Equal(t, "target-canary-ready", selected["staging-auto/caller-staging-git"].DeploymentID)
+	require.Empty(t, selected["explicit-prod/caller-rollback-dep"].DeploymentID, "an explicit environment ignores a live deployment in another environment")
 
 	exec(`UPDATE apps SET current_deployment_id = NULL WHERE id = 'target'`)
 	selected = list()
 	require.Empty(t, selected["production/caller-prod-live"].DeploymentID)
+	require.Empty(t, selected["staging-auto/caller-staging-git"].DeploymentID)
 	require.Empty(t, selected["explicit-prod/caller-rollback-dep"].DeploymentID, "production must not fall back to a non-live build")
+	require.Empty(t, selected["canary/caller-canary-oci"].DeploymentID, "a production-kind custom environment must not fall back to a non-live build")
 	exec(`UPDATE apps SET current_deployment_id = 'target-live' WHERE id = 'target'`)
 	exec(`UPDATE deployments SET status = 'failed' WHERE id = 'target-live'`)
 	selected = list()
 	require.Empty(t, selected["production/caller-prod-live"].DeploymentID)
+	require.Empty(t, selected["staging-auto/caller-staging-git"].DeploymentID, "an unavailable live deployment must not select a branch match")
 	require.Empty(t, selected["explicit-prod/caller-rollback-dep"].DeploymentID, "an unavailable live deployment must not select another production build")
 	exec(`UPDATE deployments SET status = 'ready' WHERE id = 'target-live'`)
+
+	exec(`UPDATE deployments SET status = 'ready' WHERE id = 'target-manual-latest-failed'`)
+	selected = list()
+	require.Equal(t, "target-manual-latest-failed", selected["manual/caller-manual-dep"].DeploymentID, "an explicit preview-kind environment falls back to its newest first-ready deployment")
+	exec(`UPDATE deployments SET status = 'failed' WHERE id = 'target-manual-latest-failed'`)
 
 	for environment, expectedIDs := range map[string][]string{
 		"caller-prod":    {"production", "cross-workspace"},
 		"caller-preview": {"preview"},
 		"caller-canary":  {"canary", "canary-auto"},
+		"caller-staging": {"staging-auto"},
 		"target-prod":    {},
 	} {
 		bindings, listErr := NewQueries(tx).ListAppBindingsByApp(t.Context(), ListAppBindingsByAppParams{
@@ -253,23 +274,27 @@ func TestListPrivateNetworkAppsSelection(t *testing.T) {
 
 	require.Empty(t, listPlatform("missing"))
 
+	exec(`UPDATE apps SET current_deployment_id = 'target-canary-ready' WHERE id = 'target'`)
+	require.Equal(t, "target-canary-ready", list()["canary/caller-canary-oci"].DeploymentID)
 	var remaining int
 	require.NoError(t, NewQueries(tx).DeleteEnvironmentById(t.Context(), "target-canary"))
 	require.NoError(t, tx.QueryRowContext(t.Context(), `SELECT COUNT(*) FROM app_bindings WHERE workspace_id = 'ws'`).Scan(&remaining))
-	require.Equal(t, 14, remaining, "deleting a target environment keeps the binding visible")
+	require.Equal(t, 15, remaining, "deleting a target environment keeps the binding visible")
 	selected = list()
 	require.Contains(t, selected, "canary/caller-canary-oci")
 	require.Empty(t, selected["canary/caller-canary-oci"].DeploymentID, "a deleted target environment fails closed even while its deployments linger")
 	exec(`INSERT INTO environments (id,workspace_id,project_id,app_id,slug,kind,created_at) VALUES ('target-canary-2','ws','project','target','canary','production',2)`)
 	insertDeployment("target-canary-recreated", "target", "target-canary-2", "oci", "", nil, "ready", "running", 1, 70, "r")
+	exec(`UPDATE apps SET current_deployment_id = 'target-canary-recreated' WHERE id = 'target'`)
 	selected = list()
 	require.Empty(t, selected["canary/caller-canary-oci"].DeploymentID, "recreating the slug must not revive the binding")
+	exec(`UPDATE apps SET current_deployment_id = 'target-live' WHERE id = 'target'`)
 
 	require.NoError(t, NewQueries(tx).DeleteEnvironmentById(t.Context(), "caller-prod"))
 	require.NoError(t, tx.QueryRowContext(t.Context(), `SELECT COUNT(*) FROM app_bindings WHERE workspace_id = 'ws'`).Scan(&remaining))
-	require.Equal(t, 10, remaining, "deleting a caller environment removes its bindings")
+	require.Equal(t, 11, remaining, "deleting a caller environment removes its bindings")
 	selected = list()
-	require.Len(t, selected, 8)
+	require.Len(t, selected, 9)
 
 	exec(`INSERT INTO app_bindings (id,workspace_id,project_id,app_id,environment_id,resource_type,resource_id,name,selection_mode,created_at)
 		VALUES ('queue','ws','project','caller','caller-canary','queue','target','jobs','automatic',1),
