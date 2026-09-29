@@ -84,8 +84,8 @@ func TestServerUDPTruncationTCPAndCallerDeploymentIsolation(t *testing.T) {
 		_, err = client.CoreV1().Pods("default").Update(ctx, pod, metav1.UpdateOptions{})
 		require.NoError(t, err)
 		require.Eventually(t, func() bool {
-			caller, ok := c.identify(netip.MustParseAddr("127.0.0.1"))
-			return ok == (tc.deployment != "") && (!ok || caller.kind == tc.kind && caller.deployment == tc.deployment)
+			caller, err := c.identify(netip.MustParseAddr("127.0.0.1"))
+			return (err == nil) == (tc.deployment != "") && (err != nil || caller.kind == tc.kind && caller.deployment == tc.deployment)
 		}, time.Second, 10*time.Millisecond)
 
 		response, _, err = dns.Exchange(t.Context(), question, "tcp", cfg.ListenAddress)
@@ -276,7 +276,8 @@ func TestForwardRetriesTruncatedUDPOverTCPAndStripsClientOptions(t *testing.T) {
 	request := dnswire.NewMsg("example.com.", dnswire.TypeA)
 	request.UDPSize = 4096
 	request.Pseudo = append(request.Pseudo, &dnswire.SUBNET{Family: 1, Netmask: 32, Address: netip.MustParseAddr("10.7.0.1")})
-	response := h.forward(t.Context(), request, "udp", "workspace-a")
+	response, result := h.forward(t.Context(), request, "udp", caller{workspace: "workspace-a"})
+	require.Equal(t, reasonUpstream, result.reason)
 	require.Equal(t, request.ID, response.ID)
 	require.Equal(t, uint16(dnswire.RcodeSuccess), response.Rcode)
 	require.Len(t, response.Answer, 1)
@@ -299,8 +300,9 @@ func TestForwardStopsWhenServerShutsDown(t *testing.T) {
 	cancel()
 
 	started := time.Now()
-	response := h.forward(ctx, dnswire.NewMsg("example.com.", dnswire.TypeA), "udp", "workspace-a")
+	response, result := h.forward(ctx, dnswire.NewMsg("example.com.", dnswire.TypeA), "udp", caller{workspace: "workspace-a"})
 	require.Equal(t, uint16(dnswire.RcodeServerFailure), response.Rcode)
+	require.Equal(t, reasonUpstreamError, result.reason, "a canceled forward is not an upstream timeout")
 	require.Less(t, time.Since(started), 10*time.Second, "forward ignored server shutdown")
 	require.Empty(t, h.workspaceForwards, "forward kept its workspace slot after returning")
 }
@@ -380,19 +382,19 @@ func TestServerAnswersCallerWhoseIPRemainsOnEvictedPod(t *testing.T) {
 
 func TestIdentifyRejectsUnknownAndAcceptsPreview(t *testing.T) {
 	c := catalogForTest()
-	_, ok := c.identify(netipAddress("10.0.0.99"))
-	require.False(t, ok)
+	_, err := c.identify(netipAddress("10.0.0.99"))
+	require.ErrorIs(t, err, errUnknownCaller)
 
 	pod := callerPod("10.0.0.99", "preview")
 	require.NoError(t, c.pods.GetStore().Add(pod))
-	identity, ok := c.identify(netipAddress("10.0.0.99"))
-	require.True(t, ok)
+	identity, err := c.identify(netipAddress("10.0.0.99"))
+	require.NoError(t, err)
 	require.Equal(t, "preview", identity.kind)
 
 	pod.DeletionTimestamp = &metav1.Time{Time: time.Now()}
 	require.NoError(t, c.pods.GetStore().Update(pod))
-	_, ok = c.identify(netipAddress("10.0.0.99"))
-	require.False(t, ok)
+	_, err = c.identify(netipAddress("10.0.0.99"))
+	require.ErrorIs(t, err, errIneligibleCaller)
 }
 
 func TestTrackedInformerFailsClosedWhenStale(t *testing.T) {
