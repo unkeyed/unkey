@@ -147,6 +147,7 @@
                 "pages": [
                   "platform/workspace/overview",
                   "platform/workspace/settings",
+                  "platform/workspace/log-drains",
                   "platform/workspace/team",
                   "platform/workspace/two-factor-auth"
                 ]
@@ -913,8 +914,7 @@
                 "group": "Audit logs",
                 "pages": [
                   "api-management/audit-logs/overview",
-                  "api-management/audit-logs/event-types",
-                  "api-management/audit-logs/log-drains"
+                  "api-management/audit-logs/event-types"
                 ]
               },
               {
@@ -1436,7 +1436,7 @@
     },
     {
       "source": "/log-drains/overview",
-      "destination": "/api-management/audit-logs/log-drains"
+      "destination": "/platform/workspace/log-drains"
     },
     {
       "source": "/networking/domains",
@@ -2001,6 +2001,10 @@
     {
       "source": "/cli/projects/:slug*",
       "destination": "/compute/cli/projects/:slug*"
+    },
+    {
+      "source": "/api-management/audit-logs/log-drains",
+      "destination": "/platform/workspace/log-drains"
     }
   ],
   "seo": {

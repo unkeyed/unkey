@@ -626,7 +626,7 @@
       "product": "api-management",
       "capability": "audit logs: drains",
       "pages": [
-        "api-management/audit-logs/log-drains"
+        "platform/workspace/log-drains"
       ]
     },
     {

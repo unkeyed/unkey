@@ -8,9 +8,9 @@ sources:
   - svc/api/routes/v2_keys_verify_key/handler.go
 ---
 
-Every audit log entry has one of the event names below, in the form `resource.action` (a few have an extra part, such as `portal.session.create`). Filter on them in the dashboard's **Events** menu or in a [log drain](/api-management/audit-logs/log-drains).
+Every audit log entry has one of the event names below, in the form `resource.action` (a few have an extra part, such as `portal.session.create`). Filter on them in the dashboard's **Events** menu or in a [log drain](/platform/workspace/log-drains).
 
-The **Events** menu and the log drain picker also list six names that are never recorded: `environment.create`, `deployment.redeploy`, `secret.update`, and three `webhook.*` names. Filtering on them matches nothing. Unkey doesn't send webhooks. Use a [log drain](/api-management/audit-logs/log-drains) to forward entries to your own endpoint.
+The **Events** menu and the log drain picker also list six names that are never recorded: `environment.create`, `deployment.redeploy`, `secret.update`, and three `webhook.*` names. Filtering on them matches nothing. Unkey doesn't send webhooks. Use a [log drain](/platform/workspace/log-drains) to forward entries to your own endpoint.
 
 ## Workspace
 
@@ -22,7 +22,7 @@ The **Events** menu and the log drain picker also list six names that are never 
 | `workspace.opt_in` | The workspace opts into a feature. |
 | `workspace.install_github` | The GitHub app is installed for the workspace. |
 | `auditLogBucket.create` | An audit log bucket is created. |
-| `logdrain.create`, `logdrain.update`, `logdrain.delete` | A [log drain](/api-management/audit-logs/log-drains) is created, changed, or deleted. |
+| `logdrain.create`, `logdrain.update`, `logdrain.delete` | A [log drain](/platform/workspace/log-drains) is created, changed, or deleted. |
 | `secret.create`, `secret.decrypt` | A one-time share link is created, or someone reveals it. |
 
 ## Keyspaces and keys

@@ -1,0 +1,92 @@
+---
+title: Log drains
+description: "Forward audit logs, verifications, gateway traffic, runtime logs, or rate limits to HTTP or Axiom."
+sources:
+  - web/internal/db/src/schema/logdrains.ts
+  - proto/logdrain/v1/config.proto
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/settings/logdrains/page.tsx
+  - web/apps/dashboard/lib/trpc/routers/logdrain/create.ts
+  - web/apps/dashboard/lib/trpc/routers/logdrain/validation.ts
+  - web/apps/dashboard/lib/limits.ts
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/settings/logdrains/drain-fields.tsx
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/settings/logdrains/logdrains-list.tsx
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/settings/logdrains/[drainId]/logdrain-detail.tsx
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/settings/logdrains/header-fields.ts
+  - svc/logdrain/config.go
+  - svc/logdrain/internal/engine/engine.go
+---
+
+A log drain forwards one stream of workspace events to an HTTPS endpoint or [Axiom](https://axiom.co) dataset you control. When you create a drain, you pick the stream: **Audit logs**, **Key verifications**, **Gateway HTTP requests**, **Runtime logs**, or **Rate limits**. Use drains to keep history past plan retention, feed a SIEM, or alert on events such as `key.delete` or `5xx` gateway responses.
+
+<Note>
+  Every plan starts with a `Log drains` limit of 0, so **Settings > Log Drains** won't let you create one yet. Ask [support@unkey.com](mailto:support@unkey.com) to raise the limit for your workspace.
+</Note>
+
+## Streams
+
+Each drain sends exactly one stream. Create another drain if you need a second stream or destination.
+
+| Stream | What arrives | Filters |
+| --- | --- | --- |
+| Audit logs | Workspace change events (`key.create`, `portal.session.exchange`, and the rest). See [Audit logs](/api-management/audit-logs/overview) and [event types](/api-management/audit-logs/event-types). | **Event types**: all events, or specific names by category |
+| Key verifications | Results from verifying API keys | **Keyspaces** and **Outcomes** (for example `VALID`, `RATE_LIMITED`, `EXPIRED`) |
+| Gateway HTTP requests | HTTP requests your Compute gateway handled | **Sources** (projects, apps, environments) and **HTTP statuses** (`2xx`, `3xx`, `4xx`, `5xx`) |
+| Runtime logs | Application log lines from Compute | **Sources** (projects, apps, environments) and **Severity** (`error`, `warn`, `info`, `debug`) |
+| Rate limits | Pass or block decisions from rate-limit checks | **Namespaces** and **Results** (**Passed** or **Blocked**) |
+
+Leave a filter empty to send every value for that filter, including ones added later. When you set more than one filter on a stream, an event must match all of them.
+
+For audit logs, **Specific event types** opens a category tree (for example `key`). Expanding a category lists full names such as `key.create`. Checking a category selects every listed action under it.
+
+For gateway requests and runtime logs, **All sources** includes current and future resources in the workspace. **Specific sources** limits to the projects, apps, and environments you pick. A selection of whole projects or apps also covers environments added later under those resources; mixed environment IDs do not.
+
+Filter changes apply from the drain's current position. They do not replay events that an earlier filter skipped.
+
+## How delivery works
+
+Unkey sends events in batches after they happen. Your destination must accept the whole batch (HTTP: a `2xx` within 30 seconds) before delivery counts as successful. Failures retry the same batch.
+
+Delivery is at least once, so retries can send an event more than once. Deduplicate in your system: use `id` for audit logs, `request_id` for key verifications and gateway requests, and `log_id` for runtime logs. Rate-limit checks in one multi-limit request share `request_id`, so that field alone does not uniquely identify each decision.
+
+A drain starts when you create it. Earlier events are not backfilled. After a pause or failure, delivery resumes from the last committed position, as long as the events are still within retention. Verification logs are kept for 90 days, gateway requests for seven days, and audit logs for your plan's [audit log retention](/api-management/audit-logs/overview#retention) (up to 90 days).
+
+## Destinations
+
+<ParamField path="HTTP" type="destination">
+  Unkey posts batches to an HTTPS URL you provide. Don't put a username or password in the URL. Use a header instead. Pick a format: **JSON** sends an array of events per request, and **NDJSON** sends one event per line. Add up to 32 unique headers, such as an `Authorization` header your endpoint checks. Names can be up to 256 characters and values up to 8192. Header values are stored encrypted and never shown again after you save.
+</ParamField>
+
+<ParamField path="Axiom" type="destination">
+  Unkey sends events to an Axiom dataset you name, using an Axiom API token you provide. The token is stored encrypted.
+</ParamField>
+
+## Create a drain
+
+<Steps titleSize="h3">
+  <Step title="Choose the destination">
+    Under **Settings > Log Drains**, create a drain and pick **HTTP** or **Axiom**.
+  </Step>
+  <Step title="Name it and pick a stream">
+    Give it a name (shown in the list and on the drain page). Under **Stream**, choose **Audit logs**, **Key verifications**, **Gateway HTTP requests**, **Runtime logs**, or **Rate limits**. Optionally set that stream's filters.
+  </Step>
+  <Step title="Enter destination settings">
+    For HTTP, set the URL, format, and optional headers. For Axiom, set the dataset and API token. Then create the drain.
+  </Step>
+  <Step title="Watch the first deliveries">
+    Delivery is asynchronous and can take a few minutes. The drain's detail page shows events delivered and failed in the past 24 hours, the success rate, and recent deliveries with your endpoint's response.
+  </Step>
+</Steps>
+
+## Pause a drain, or fix a failing one
+
+A drain shows one of three states:
+
+- **Running:** it's delivering.
+- **Paused** (`paused_by_user`): you clicked **Pause deliveries**. Click **Resume deliveries** to pick up where it stopped, including events that arrived in between (within retention).
+- **Failing** (`paused_by_failure`): 50 deliveries in a row failed and Unkey stopped trying. Fix the destination, then click **Resume deliveries**.
+
+Between failed attempts, the wait grows from one minute to about two hours, then settles at every four hours, so it takes about a week of a dead endpoint to reach 50 failures. Because an event can arrive more than once, make your endpoint ignore duplicates.
+
+## Delete a drain
+
+Deleting a drain stops all deliveries and removes its settings. Events already delivered stay where you sent them. Events not yet delivered aren't sent.
