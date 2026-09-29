@@ -1303,6 +1303,10 @@
       "destination": "/platform/cli/overview"
     },
     {
+      "source": "/cookbook",
+      "destination": "/api-management/cookbook/index"
+    },
+    {
       "source": "/cookbook/cloudflare-workers",
       "destination": "/api-management/guides/cloudflare-workers"
     },

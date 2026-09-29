@@ -53,7 +53,7 @@ A drain starts when you create it. Earlier events are not backfilled. After a pa
 ## Destinations
 
 <ParamField path="HTTP" type="destination">
-  Unkey posts batches to an HTTPS URL you provide. Don't put a username or password in the URL. Use a header instead. Pick a format: **JSON** sends an array of events per request, and **NDJSON** sends one event per line. Add up to 32 unique headers, such as an `Authorization` header your endpoint checks. Names can be up to 256 characters and values up to 8192. Header values are stored encrypted and never shown again after you save.
+  Unkey posts batches to an HTTPS URL you provide. Don't put a username or password in the URL. Use a header instead. Under **Encoding**, pick **JSON** (an array of events per request), **NDJSON** (one event per line), or **HEC** (Splunk HTTP Event Collector and compatible sinks such as CrowdStrike NG-SIEM). HEC wraps each event as `time`, `source` (`unkey`), `sourcetype` (the stream name), and `event`, and treats the delivery as successful only when the response is `2xx` with HEC `code` `0`. Add up to 32 unique headers, such as an `Authorization` header your endpoint checks. Names can be up to 256 characters and values up to 8192. Header values are stored encrypted and never shown again after you save.
 </ParamField>
 
 <ParamField path="Axiom" type="destination">
@@ -70,7 +70,7 @@ A drain starts when you create it. Earlier events are not backfilled. After a pa
     Give it a name (shown in the list and on the drain page). Under **Stream**, choose **Audit logs**, **Key verifications**, **Gateway HTTP requests**, **Runtime logs**, or **Rate limits**. Optionally set that stream's filters.
   </Step>
   <Step title="Enter destination settings">
-    For HTTP, set the URL, format, and optional headers. For Axiom, set the dataset and API token. Then create the drain.
+    For HTTP, set the URL, encoding (JSON, NDJSON, or HEC), and optional headers. For Axiom, set the dataset and API token. Then create the drain.
   </Step>
   <Step title="Watch the first deliveries">
     Delivery is asynchronous and can take a few minutes. The drain's detail page shows events delivered and failed in the past 24 hours, the success rate, and recent deliveries with your endpoint's response.
