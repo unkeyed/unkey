@@ -1,0 +1,129 @@
+---
+title: Runtime settings
+description: "Every runtime setting an environment has, with defaults, steps, and plan caps."
+sources:
+  - svc/api/openapi/spec/paths/v2/environments/updateSettings/V2EnvironmentsUpdateSettingsRequestBody.yaml
+  - svc/api/openapi/spec/common/EnvironmentRuntime.yaml
+  - svc/api/openapi/spec/common/EnvironmentRegion.yaml
+  - svc/api/openapi/spec/common/Replicas.yaml
+  - svc/api/openapi/spec/common/EnvironmentShutdownSignal.yaml
+  - svc/api/openapi/spec/common/EnvironmentUpstreamProtocol.yaml
+  - svc/api/routes/v2_environments_update_settings/handler.go
+  - svc/ctrl/services/app/create_app.go
+  - svc/ctrl/worker/openapi/scrape_handler.go
+  - svc/krane/internal/deployment/apply.go
+  - svc/krane/internal/deployment/consts.go
+  - svc/frontline/internal/proxy/transport.go
+  - pkg/deploy/deployfail/messages.go
+  - web/apps/dashboard/lib/limits.ts
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/settings/components/runtime-settings/cpu.tsx
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/settings/components/runtime-settings/memory.tsx
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/settings/components/runtime-settings/storage.tsx
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/settings/components/runtime-settings/command.tsx
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/settings/components/runtime-settings/instances.tsx
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/settings/components/advanced-settings/openapi-spec-path.tsx
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/settings/components/advanced-settings/upstream-protocol.tsx
+---
+
+Runtime settings control how big your container is, how it starts and stops, and where it runs. Each <Tooltip tip="A production or preview environment of a Compute app, not the dashboard label on a key.">environment</Tooltip> of an <Tooltip tip="A Compute app: a deployable service inside a project. Not 'your application' in general.">app</Tooltip> has its own.
+
+## Change runtime settings
+
+Edit them under **App Settings** in the dashboard, with `environments.updateSettings` in the API, or with `unkey api environments update-settings` in the CLI. In the API, send only the fields you want to change. `environments.getEnvironment` returns the current values under `runtime` and `regions`.
+
+<Frame>
+  <img src="/images/dashboard/compute--configure-runtime-settings--runtime.png" alt="App Settings runtime section showing instances, max CPU, memory, storage, healthcheck, port, and command for production and preview" />
+</Frame>
+
+A change applies from the next deployment. Running deployments keep what they started with, so to apply a change without new code, redeploy the current deployment.
+
+Your plan caps CPU, memory, and disk per instance. Going over returns `400` with a message like "CPU per instance cannot exceed 2 vCPU. Contact support@unkey.com to increase it." See [Compute limits](/compute/configure/limits).
+
+## Container
+
+<ParamField body="port" type="integer" default="8080">
+  The port your container listens on, 1 to 65535. We set it as the `PORT` environment variable, overriding any value in the image, and send traffic and health checks to it. A port outside the range fails the deployment with `invalid_runtime_settings`.
+</ParamField>
+
+<ParamField body="vCpus" type="number" default="0.25">
+  CPU per instance in vCPUs, at least 0.25, in steps of 0.25, up to your plan's limit. An instance can use up to this much and is always guaranteed at least half. The dashboard offers 1/4, 1/2, 1, 2, 4, 8, and 16 vCPU, up to what your plan allows.
+</ParamField>
+
+<ParamField body="memoryMib" type="integer" default="256">
+  Memory per instance in MiB, at least 256, in steps of 256, up to your plan's limit. It's a hard limit: an instance that goes over is killed and restarted, and the dashboard shows `OOMKilled` with exit code 137. The dashboard offers 256 MiB, 512 MiB, and 1, 2, 4, 8, 16, and 32 GiB, up to what your plan allows.
+</ParamField>
+
+<ParamField body="storageMib" type="integer" default="0">
+  Temporary disk per instance in MiB, in steps of 512, up to your plan's limit. `0` means none. When set, each instance gets its own disk at `/data`, and `UNKEY_EPHEMERAL_DISK_PATH` is set to `/data`. Nothing on it survives a restart or a new deployment. Without it, the container can write at most 128 MiB. The dashboard offers None, 512 MiB, and 1, 2, 5, 10, 20, and 50 GiB, up to what your plan allows.
+</ParamField>
+
+<ParamField body="command" type="string[]" default="[]">
+  Replaces the image's command, as an array of up to 10 strings of up to 4096 characters each. An empty array runs the image's own command. The dashboard splits a single line on spaces and ignores quotes, so use the API when an argument contains spaces.
+</ParamField>
+
+<ParamField body="shutdownSignal" type="SIGTERM | SIGINT | SIGQUIT | SIGKILL" default="SIGTERM">
+  The signal your container's main process gets when an instance is replaced or scaled in. Set it with the API or CLI. It isn't in the dashboard.
+</ParamField>
+
+<ParamField body="upstreamProtocol" type="http1 | h2c" default="http1">
+  How the gateway talks to your container. `http1` is HTTP/1.1 and works with every framework. `h2c` is HTTP/2 without TLS. Choose it only if your server supports h2c.
+</ParamField>
+
+<ParamField body="openapiSpecPath" type="string | null">
+  The path where your app serves its OpenAPI document, for example `/openapi.yaml`. 1 to 512 characters, starting with `/` and matching `^(/[\w\-]+)+(\.[\w]+)?$`. When a deployment is `ready`, we fetch the document with a `GET` and save it with that deployment. Documents up to 10 MiB are accepted, and a `404` means the deployment has no spec. The spec is used by the gateway's OpenAPI validation policy and the dashboard's spec diff. Send `null`, or leave the dashboard field empty, to turn this off.
+</ParamField>
+
+<ParamField body="healthcheck" type="object | null">
+  An HTTP check we run against each instance. See [Health checks](/compute/configure/health-checks). Send `null` to remove it.
+</ParamField>
+
+## Regions and replicas
+
+<ParamField body="regions" type="EnvironmentRegion[]">
+  The regions the environment runs in, 1 to 5 entries, each like `{ "name": "us-east-1", "replicas": { "min": 1, "max": 3 } }`. The list replaces the whole set, so regions you leave out are removed. The dashboard's **Regions** and **Instances** cards edit this field.
+
+  - The region must be available, or you get "Region 'x' is not available for scheduling."
+  - Each region can appear once.
+  - `min` is at least 1. `max` is at least `min` and at most your plan's replicas-per-region limit.
+  - Every region must use the same bounds, or you get "All regions must specify the same replica bounds; per-region autoscaling is not supported yet."
+
+  A new app starts in one region, `ap-southeast-1` (Singapore), with `min` and `max` both 1, so autoscaling is off until you raise `max`. Pick your regions before you go live. See [Regions](/compute/concepts/regions).
+</ParamField>
+
+## Raise resources and add a region
+
+```bash Raise resources and add a second region
+curl -X POST https://api.unkey.com/v2/environments.updateSettings \
+  -H "Authorization: Bearer $UNKEY_ROOT_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "project": "payments",
+    "app": "api",
+    "environment": "production",
+    "vCpus": 1,
+    "memoryMib": 1024,
+    "regions": [
+      { "name": "us-east-1", "replicas": { "min": 2, "max": 4 } },
+      { "name": "eu-central-1", "replicas": { "min": 2, "max": 4 } }
+    ]
+  }'
+```
+
+The dashboard's **Regions** card lists the regions you can use. The change applies from the next deployment.
+
+## Next steps
+
+<Columns cols={2}>
+  <Card title="Health checks" icon="heart-pulse" href="/compute/configure/health-checks">
+    Probe fields, defaults, and what a failing probe does.
+  </Card>
+  <Card title="Instances and autoscaling" icon="server" href="/compute/concepts/instances-and-autoscaling">
+    What the allocation and replica bounds mean at runtime.
+  </Card>
+  <Card title="Compute limits" icon="gauge-high" href="/compute/configure/limits">
+    The per-instance and workspace ceilings behind the `400`s.
+  </Card>
+  <Card title="Regions" icon="earth-americas" href="/compute/concepts/regions">
+    How regions are discovered, chosen, and used for failover.
+  </Card>
+</Columns>

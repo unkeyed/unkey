@@ -1,0 +1,70 @@
+---
+title: Spend budget
+description: "Cap what Compute can cost you in a month and choose whether it stops at the cap."
+sources:
+  - web/internal/db/src/schema/workspace_billing.ts
+  - web/apps/dashboard/lib/trpc/routers/billing/deploy-budget/index.ts
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/settings/billing/components/spend-budget-v2.tsx
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/settings/billing/components/cost-control.tsx
+  - svc/ctrl/worker/cron/deployspendcheck/doc.go
+  - svc/ctrl/worker/cron/deployspendcheck/thresholds.go
+  - svc/ctrl/worker/cron/deployspendcheck/check.go
+  - svc/ctrl/worker/deployteardown/doc.go
+  - svc/ctrl/worker/deployteardown/resume.go
+  - svc/frontline/internal/router/service.go
+  - pkg/deploy/deploygate/deploygate.go
+---
+
+import { ProductLink } from "/snippets/product-link.jsx";
+
+A spend budget caps what Compute usage can cost you in a month. You get emails as you approach it, and you can choose to stop everything when you reach it. Set it under **Settings > Billing**. Only workspace admins can change it. See [Plans](/platform/billing/plans) for how Compute billing works.
+
+## Set a budget
+
+Enter a whole dollar amount up to $10,000,000, or leave the field empty for no budget. The budget covers usage for the current calendar month across all five Compute meters: CPU, memory, disk, egress, and active keys. It counts usage before any included credit is subtracted, and doesn't include the plan fee.
+
+With a budget set, we email workspace admins the first time spend crosses 50, 75, and 100 percent of it, once per threshold per month. If you raise the budget, the thresholds move with it. Alerts already sent aren't sent again.
+
+<Frame>
+  <img src="/images/dashboard/platform--billing-plans--billing.png" alt="Billing settings page showing the Compute and API management plans with Change and Upgrade buttons, and the Compute cost control budget with its email alerts" />
+</Frame>
+
+## Stop when you hit the budget
+
+**Stop workloads at the budget** is off by default, and you need a budget before you can turn it on. When it's on and spend reaches 100 percent, we suspend Compute for the rest of the month:
+
+- Every running deployment is stopped. We remember which one was live for each app so we can bring it back.
+- Every request to the workspace's domains gets `402` with `spend_limit_reached`.
+- You can't start, wake, or create deployments.
+- The dashboard shows the workspace as paused by its spend cap.
+
+This isn't cancellation. Your plan, settings, environment variables, domains, and deployment history stay. Nothing is billed while nothing runs.
+
+<ProductLink product="platform" href="/errors/frontline/capacity/spend_limit_reached" title="err:frontline:capacity:spend_limit_reached">
+  The 402 response body callers receive while a workspace is suspended, and how to tell it apart from a stopped deployment.
+</ProductLink>
+
+## Resume compute
+
+Do one of these, and each app's live deployment starts again. You don't need to redeploy.
+
+- **Remove the budget or turn off Stop workloads at the budget.** Compute resumes at the next check.
+- **Raise the budget.** Compute resumes once spend has been under the new budget for two checks in a row.
+- **Wait for the next month.** Compute resumes on its own when the new billing month starts.
+
+If someone promoted a different deployment while Compute was suspended, we don't wake the old one.
+
+## Budget vs limits
+
+The budget is about money. [Compute limits](/compute/configure/limits) are about resources: they stop a deployment from using more CPU, memory, or disk than your plan allows, before it runs. The budget acts on what you've actually used this month. Use the budget to control cost, and limits to control size.
+
+## Next steps
+
+<Columns cols={2}>
+  <Card title="Compute plans" icon="credit-card" href="/compute/get-started/plans">
+    What the plan includes and what is metered above it.
+  </Card>
+  <Card title="Usage" icon="chart-line" href="/platform/billing/usage">
+    What your workspace consumed this month.
+  </Card>
+</Columns>

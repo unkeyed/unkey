@@ -1,0 +1,55 @@
+---
+title: Workspace settings
+sidebarTitle: "Settings"
+description: "Rename your workspace, copy its ID, and connect the GitHub App."
+sources:
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/settings/general/page.tsx
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/settings/general/update-workspace-name.tsx
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/settings/general/copy-workspace-id.tsx
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/settings/general/github-connection.tsx
+  - web/apps/dashboard/lib/trpc/routers/workspace/changeName.ts
+  - web/apps/dashboard/lib/trpc/trpc.ts
+---
+
+**Settings > General** holds the three workspace-wide settings: the name, the workspace ID, and the GitHub App connection.
+
+## General
+
+<Frame>
+  <img src="/images/dashboard/platform--workspace-settings--general.png" alt="General settings page showing the workspace name, the workspace ID with a copy button, and the GitHub App card marked Connected" />
+</Frame>
+
+<ParamField path="Workspace name" type="string" required>
+  Between 3 and 50 characters. Internal only: your users never see it. Only an admin can save a new name. Other roles see the field, but **Save** stays disabled with "Admin access required to rename the workspace". Renaming writes a `workspace.update` audit log entry.
+</ParamField>
+
+<ParamField path="Workspace ID" type="string">
+  Read-only. The `ws_` identifier with a copy button. Use it in API calls and support requests. The slug in the URL is a different identifier and can't be changed. See [Workspaces](/platform/workspace/overview).
+</ParamField>
+
+<ParamField path="GitHub" type="connection">
+  Whether the Unkey GitHub App is installed for this workspace. **Install GitHub App** sends you to GitHub to pick the repos Unkey may read. Once it's installed, the card shows **Connected** and the button becomes **Manage on GitHub**. That connection is what lets Compute deploy an <Tooltip tip="A Compute app: a deployable service inside a project. Not 'your application' in general.">app</Tooltip> from a repo and create preview <Tooltip tip="A production or preview environment of a Compute app, not the dashboard label on a key.">environments</Tooltip> per pull request. API Management-only workspaces can leave it disconnected.
+</ParamField>
+
+## Other settings pages
+
+The rest of the settings sidebar lives on its own pages.
+
+<Columns cols={2}>
+  <Card title="Team" icon="users" href="/platform/workspace/team">
+    Roles, invitations, and removing members.
+  </Card>
+  <Card title="Root keys" icon="key-skeleton" href="/platform/root-keys/overview">
+    The credential for the API. Admins only.
+  </Card>
+  <Card title="Billing" icon="credit-card" href="/platform/billing/plans">
+    API tier, Compute plan, payment method, invoices.
+  </Card>
+  <Card title="Usage and limits" icon="gauge" href="/platform/billing/usage">
+    What you used this month and the ceilings your plan sets.
+  </Card>
+</Columns>
+
+**Settings > Billing** is where you see your plan and what you've used this month, and the ceilings themselves are tabulated on [Limits](/platform/billing/limits).
+
+Log drains also live under Settings and are documented under [Log drains](/platform/workspace/log-drains). You set up [two-factor authentication](/platform/workspace/two-factor-auth) from your account page, not from workspace settings.

@@ -1,11 +1,20 @@
 ---
 title: "deployment_is_current"
-description: "The target deployment is already the current deployment, so promoting or rolling back to it would be a no-op."
+sidebarTitle: "deployment_is_current"
+description: "The deployment is already the app's current deployment."
+sources:
+  - pkg/codes/unkey_application.go
+  - svc/api/internal/middleware/errors.go
+  - pkg/deploy/deploygate/deploygate.go
+  - svc/api/routes/v2_deployments_promote_deployment/handler.go
+  - svc/api/routes/v2_deployments_rollback_deployment/handler.go
 ---
 
 <Danger>`err:unkey:application:deployment_is_current`</Danger>
 
-```json Example
+The deployment you're promoting or rolling back to is already the current deployment. You get HTTP 412.
+
+```json Example response
 {
   "meta": {
     "requestId": "req_2c9a0jf23l4k567"
@@ -14,40 +23,22 @@ description: "The target deployment is already the current deployment, so promot
     "detail": "The deployment is already the current deployment.",
     "status": 412,
     "title": "Precondition Failed",
-    "type": "https://unkey.com/docs/errors/unkey/application/deployment_is_current"
+    "type": "/errors/unkey/application/deployment_is_current"
   }
 }
 ```
 
-## What Happened?
+## Likely causes
 
-You called `promoteDeployment` or `rollbackDeployment` targeting the deployment that is already serving production traffic. In the normal case this would not change anything, so it is rejected to surface a likely mistake in the request rather than silently doing nothing.
+- You rolled back to the deployment that's already current. That's always rejected, because there's nothing to change.
+- You promoted the deployment that's already current. The one exception: after a rollback, promoting the current deployment confirms the rollback and is allowed.
 
-The one exception is on `promoteDeployment`: if the app is currently in a rolled-back state, promoting the current deployment is allowed, because it confirms moving forward off the rollback instead of being a no-op. `rollbackDeployment` always rejects the current deployment, whether or not the app is rolled back.
+## How to fix
 
-`getDeployment` reports `isCurrent: true` for the current deployment.
+1. Check which deployment is current with `apps.getApp` or `deployments.listDeployments` before you promote.
+2. If you meant to redeploy, use `deployments.createDeployment` instead.
 
-## How To Fix
+## Related errors
 
-1. Fetch the target with `getDeployment` and check `isCurrent`.
-2. If you intended to change which deployment is current, target a different deployment.
-3. If the deployment is already current and that is what you want, no action is needed.
-
-```bash
-# Check whether the deployment is already the current one
-curl -X POST https://api.unkey.com/v2/deployments.getDeployment \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer unkey_YOUR_API_KEY" \
-  -d '{ "deploymentId": "d_1234abcd" }'
-```
-
-## Common Mistakes
-
-- **Re-promoting the current deployment**: Promoting the deployment that is already current.
-- **Stale deployment id**: Acting on an id that has since become the current deployment.
-
-## Related Errors
-
-- [err:unkey:application:deployment_no_current](./deployment_no_current) - When the app has no current deployment to act over
-- [err:unkey:application:deployment_not_ready](./deployment_not_ready) - When the target deployment cannot serve traffic
-- [err:unkey:application:deployment_not_production](./deployment_not_production) - When the action requires a production deployment
+- [`err:unkey:application:deployment_no_current`](/errors/unkey/application/deployment_no_current): the app has no current deployment.
+- [`err:unkey:application:deployment_not_ready`](/errors/unkey/application/deployment_not_ready): the target isn't ready.

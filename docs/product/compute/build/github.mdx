@@ -1,0 +1,108 @@
+---
+title: GitHub integration
+description: "Connect a GitHub repository so every push becomes a deployment."
+sources:
+  - svc/api/openapi/spec/paths/v2/github/installApp/index.yaml
+  - svc/api/openapi/spec/common/AppGitCreateInput.yaml
+  - svc/api/openapi/spec/common/AppGitUpdateInput.yaml
+  - svc/api/openapi/spec/paths/v2/deployments/createDeployment/DeploymentSourceGit.yaml
+  - svc/ctrl/api/webhooks/github/github.go
+  - svc/ctrl/api/webhooks/github/push.go
+  - svc/ctrl/api/webhooks/github/pull_request.go
+  - svc/ctrl/worker/githubwebhook/handle_push.go
+  - svc/ctrl/services/deployment/authorize_deployment.go
+  - svc/ctrl/internal/db/github_repo_connection_list_deploy_context.sql_generated.go
+  - svc/ctrl/worker/githubstatus/init_handler.go
+  - svc/ctrl/worker/githubstatus/report_handler.go
+  - svc/ctrl/worker/githubstatus/comment.go
+  - svc/ctrl/worker/deploy/deploy_handler.go
+  - svc/ctrl/worker/deploy/domains.go
+  - svc/ctrl/worker/deploy/build.go
+  - pkg/match/watchpath.go
+  - web/internal/db/src/schema/github_app.ts
+  - web/apps/dashboard/lib/trpc/routers/github.ts
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/settings/components/disconnect-github.tsx
+---
+
+Connect a GitHub repository to an <Tooltip tip="A Compute app: a deployable service inside a project. Not 'your application' in general.">app</Tooltip> and every push becomes a deployment. You install the Unkey GitHub App once, connect a repository, and push.
+
+## Install the GitHub App
+
+You install the Unkey GitHub App once per workspace, on a GitHub organization or personal account, and choose which repositories it can see.
+
+1. Start from any of these places in the dashboard: the **Import from GitHub** step when you create an app, the **GitHub** card in an app's settings, or [workspace settings](/platform/workspace/settings).
+2. Approve the installation on GitHub. GitHub sends you back to Unkey.
+
+To do it with the API, call `github.installApp` with a root key that has `workspace.*.install_github`, and open the URL it returns.
+
+You can install the app on more than one GitHub account. An installation belongs to one workspace only, so a second workspace can't use it.
+
+## Connect a repository to an app
+
+Pick the repository when you create the app, or later in the app's settings. From the CLI, pass `--git` to [create-app](/compute/cli/apps/create-app) or [update-app](/compute/cli/apps/update-app).
+
+You connect a repository per app, not per project. In a monorepo, two apps can connect to the same repository and use different build settings.
+
+The app's default branch deploys to production. It starts as the repository's default branch on GitHub, and you can change it with `apps.updateApp`.
+
+To stop deploying from pushes, click **Disconnect repository** in the app's settings. The dashboard warns that "Deployments will no longer be triggered by pushes to this repository." Existing deployments keep running.
+
+## What deploys when you push
+
+Two things on GitHub create a deployment:
+
+- **A push to a branch.** The first push of a new branch counts, which is how a branch gets its first preview. Pushing a tag or deleting a branch doesn't deploy.
+- **A pull request from a fork**, when it's opened or gets new commits. Pull requests from branches in your own repository don't deploy again, because the push already did.
+
+The branch picks the <Tooltip tip="A production or preview environment of a Compute app, not the dashboard label on a key.">environment</Tooltip>. The app's default branch (or `main` if none is set) deploys to production. Every other branch, and every fork pull request, deploys to preview. If several apps are connected to the repository, one push creates one deployment per app.
+
+## Skip deploys with auto deploy and watch paths
+
+Two [build settings](/compute/configure/build-settings) can stop a push from deploying. We check them in this order:
+
+1. **Auto deploy off.** The push is recorded as `skipped` with "Auto deploy is disabled for this environment." Watch paths aren't checked.
+2. **Watch paths set, and no changed file matches.** The push is skipped with "Watch paths did not match any changed files." If a pattern isn't a valid glob, it's skipped with a message naming the pattern.
+
+Otherwise, we create a deployment. Watch paths also apply to fork pull requests.
+
+Patterns use `**` globbing. `src/**` matches everything under `src`, `**/*.go` matches every Go file, and a pattern with no wildcard matches only that exact path.
+
+## Approve pull requests from forks
+
+A fork pull request runs code from someone without write access to your repository, with your environment variables. So we never build it automatically.
+
+1. The deployment waits in `awaiting_approval`. On the pull request, a failing check named **Unkey Deploy Authorization** says "Awaiting authorization from a project member" and links to the deployment.
+2. A project member approves it in the dashboard. The build starts.
+
+Pushes from people with write access to the repository don't need approval.
+
+Fork previews get their own hostname prefix, `<project>[-<app>]-fork-<fork owner>-...`, so you can't confuse them with your own branches. You can also deploy a fork yourself from the **Create Deployment** dialog, or with `deployments.createDeployment` by passing `git.repository` as `owner/repo` and a `commitSha`.
+
+## What you'll see on GitHub
+
+Each deployment of a connected app reports back to GitHub:
+
+- **A GitHub Deployment** on the commit, labeled `project - env` (or `project/app - env` when the app isn't `default`), linking to the environment's `unkey.app` domain. Its status goes from "Deployment queued" to "Deploying to regions...", "Configuring routing...", and "Deployment is live", or to a failure that names the step that failed.
+- **A pull request comment**, when the branch has an open pull request or the deployment came from a fork. We keep one comment per pull request up to date, with a row per app and environment: status, a **Visit Preview** link, an **Inspect** link to the dashboard, and when it last changed.
+- **A commit status**, only for fork deployments waiting for approval.
+
+## Troubleshooting: a push didn't deploy
+
+Check these in order:
+
+1. The Unkey GitHub App is installed on the account that owns the repository, and has access to it.
+2. The repository is connected to the app in its settings.
+3. Auto deploy is on for the environment the branch maps to.
+4. The push changed a file that matches the watch paths, if any are set.
+5. The app's deployments list shows a `skipped` or `failed` row with the reason.
+
+## Next steps
+
+<Columns cols={2}>
+  <Card title="Build settings" icon="sliders" href="/compute/configure/build-settings">
+    Root directory, Dockerfile, build command, watch paths, auto deploy.
+  </Card>
+  <Card title="Production and preview" icon="code-branch" href="/compute/concepts/production-and-preview">
+    What happens after a deployment on either branch kind reaches ready.
+  </Card>
+</Columns>

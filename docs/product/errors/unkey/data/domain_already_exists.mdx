@@ -1,7 +1,46 @@
 ---
 title: "domain_already_exists"
-description: "Duplicate indicates the domain is already attached to this workspace."
+sidebarTitle: "domain_already_exists"
+description: "The custom domain is already attached to your workspace."
+sources:
+  - pkg/codes/unkey_data.go
+  - svc/api/internal/middleware/errors.go
+  - pkg/domain/domaingate/domaingate.go
+  - svc/api/routes/v2_domains_create_domain/handler.go
+  - svc/api/internal/customdomain/error.go
 ---
 
 <Danger>`err:unkey:data:domain_already_exists`</Danger>
 
+The domain you tried to add is already attached to your workspace, maybe on a different environment. You get HTTP 409. It says nothing about whether another workspace uses the domain.
+
+```json Example response
+{
+  "meta": {
+    "requestId": "req_2c9a0jf23l4k567"
+  },
+  "error": {
+    "detail": "The domain 'api.acme.com' is already attached to this workspace.",
+    "status": 409,
+    "title": "Conflicting Resource",
+    "type": "/errors/unkey/data/domain_already_exists"
+  }
+}
+```
+
+## Likely causes
+
+- You already added this domain, on this environment or another one.
+- You added the domain earlier and it isn't verified yet.
+
+## How to fix
+
+1. Look the domain up with `domains.getDomain` or `domains.listDomains`.
+2. If it's on the wrong environment, delete it there and create it on the right one.
+3. If it's there but not verified, call `domains.verifyDomain` instead of creating it again.
+
+## Related errors
+
+- [`err:unkey:data:domain_not_found`](/errors/unkey/data/domain_not_found): the domain isn't attached to this workspace.
+- [`err:unkey:limits:custom_domain_limit_exceeded`](/errors/unkey/limits/custom_domain_limit_exceeded): the workspace is at its domain limit.
+- [`err:unkey:application:precondition_failed`](/errors/unkey/application/precondition_failed): the domain is already verified.

@@ -1,30 +1,32 @@
 ---
 title: "workspace_rate_limited"
-description: "Your workspace has exceeded the Unkey API rate limit for the current time window. Implement backoff and retry logic or upgrade your plan."
+sidebarTitle: "workspace_rate_limited"
+description: "The workspace is sending too many requests to the Unkey API."
+sources:
+  - pkg/codes/user_request.go
+  - svc/api/internal/middleware/errors.go
+  - svc/api/internal/middleware/authentication.go
 ---
 
 <Danger>`err:user:too_many_requests:workspace_rate_limited`</Danger>
 
-```json Example
+Your workspace is sending too many requests to the Unkey API, so this request was refused. Nothing ran, so it's safe to retry. You get HTTP 429.
+
+```json Example response
 {
   "meta": {
-    "requestId": "req_4dgzrNP3Je5mU1tD"
+    "requestId": "req_2c9a0jf23l4k567"
   },
   "error": {
-    "detail": "This workspace has exceeded its API rate limit of 100/10s. Please try again later.",
+    "detail": "This workspace has exceeded its API rate limit of 600/1m0s. Please try again later.",
     "status": 429,
     "title": "Too Many Requests",
-    "type": "https://unkey.com/docs/errors/user/too_many_requests/workspace_rate_limited"
+    "type": "/errors/user/too_many_requests/workspace_rate_limited"
   }
 }
 ```
 
-## What Happened?
+## How to fix
 
-Your workspace has been configured with an API rate limit and you've exceeded it. Most workspaces don't have a rate limit by default, this is only applied when needed.
-
-The response includes standard rate limit headers (`RateLimit-Limit`, `RateLimit-Remaining`, `RateLimit-Reset`, `Retry-After`) so your client knows when to retry.
-
-## Need Help?
-
-If you're hitting this limit unexpectedly, [contact us](mailto:support@unkey.com) and we'll sort it out.
+1. Wait a moment, then retry with exponential backoff.
+2. If it keeps happening, contact [support@unkey.com](mailto:support@unkey.com).

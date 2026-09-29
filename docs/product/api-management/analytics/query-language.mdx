@@ -1,0 +1,71 @@
+---
+title: Analytics query language
+sidebarTitle: "Query language"
+description: "Write SQL against your verification and rate limit data."
+sources:
+  - pkg/clickhouse/query-parser/parser.go
+  - pkg/clickhouse/query-parser/validation.go
+  - pkg/clickhouse/query-parser/tables.go
+  - pkg/clickhouse/query-parser/filter.go
+  - pkg/clickhouse/query-parser/limits.go
+  - pkg/clickhouse/query-parser/time_range.go
+  - pkg/clickhouse/schema/001_key_verifications_raw_v2.sql
+  - pkg/clickhouse/schema/002_key_verifications_per_minute_v3.sql
+---
+
+Analytics queries are ClickHouse SQL. You can filter, group, aggregate, and join your own data. Anything not listed here is rejected with a 400 that names the problem.
+
+## What a query must be
+
+A query is one `SELECT` statement with a `FROM` clause. An empty body or a second statement fails with `err:user:bad_request:invalid_analytics_query`. Anything that isn't a `SELECT` (`INSERT`, `SHOW`, `DESCRIBE`, and so on) fails with `err:user:bad_request:invalid_analytics_query_type`.
+
+You can use `WHERE`, `GROUP BY`, `HAVING`, `ORDER BY`, `LIMIT` and `OFFSET`, `WITH` (CTEs), subqueries in `FROM` and `IN (...)`, `JOIN`, `UNION`, and `EXCEPT`. The same rules apply to every nested `SELECT`.
+
+These aren't allowed:
+
+- A `SETTINGS` clause.
+- Table functions such as `numbers()`, `url()`, or `remote()`.
+- `IN` followed by a table name. Write `IN (SELECT ... FROM ...)` instead.
+
+## Tables
+
+Only the tables listed on the [overview](/api-management/analytics/overview), and CTEs you define, can appear in `FROM` and `JOIN`. Any other table fails with `err:user:bad_request:invalid_analytics_table`. Aliases (`FROM key_verifications_v1 AS v`) work as usual.
+
+## Filters and limits added for you
+
+You don't need a workspace filter. Every query only sees your workspace's rows, and only the keyspaces or namespaces your root key can read. Your own `WHERE` narrows it further. A query for a keyspace you can't see returns no rows, not an error.
+
+Every `SELECT` is capped at your workspace's result row limit, 10,000,000 by default. A smaller `LIMIT` you write is kept.
+
+## Functions
+
+Only the functions in this table are allowed. Names can be any case. Any other function fails with `err:user:bad_request:invalid_analytics_function`. Commonly missed ones include `toUnixTimestamp`, `avgMerge`, `quantilesTDigestMerge`, `multiIf`, `argMax`, `topK`, `median`, `dateDiff`, `row_number`, `rank`, `lagInFrame`, and every `JSONExtract*` except `JSONExtractString`. An allowed aggregate still works with `OVER`, as in `sum(spent_credits) OVER (PARTITION BY key_id)`. Operators such as `+`, `=`, `<`, `AND`, `OR`, `NOT`, `LIKE`, `IN`, and `BETWEEN` always work.
+
+| Family | Allowed functions |
+| --- | --- |
+| Aggregates | `count`, `sum`, `avg`, `min`, `max`, `any`, `groupArray`, `groupUniqArray`, `uniq`, `uniqExact`, `quantile` |
+| Conditional aggregates and expressions | `countIf`, `sumIf`, `if`, `case`, `coalesce` |
+| Date and time | `now`, `now64`, `today`, `toDate`, `toDateTime`, `toDateTime64`, `toStartOfMinute`, `toStartOfHour`, `toStartOfDay`, `toStartOfWeek`, `toStartOfMonth`, `toStartOfQuarter`, `toStartOfYear`, `date_trunc`, `formatDateTime`, `fromUnixTimestamp64Milli`, `toUnixTimestamp64Milli` |
+| Intervals | `toIntervalNanosecond`, `toIntervalMicrosecond`, `toIntervalMillisecond`, `toIntervalSecond`, `toIntervalMinute`, `toIntervalHour`, `toIntervalDay`, `toIntervalWeek`, `toIntervalMonth`, `toIntervalQuarter`, `toIntervalYear`. ClickHouse's `INTERVAL N UNIT` literal, as in `now() - INTERVAL 7 DAY`, is syntax rather than a function and is also accepted. |
+| Strings | `lower`, `upper`, `substring`, `concat`, `length`, `trim`, `startsWith`, `endsWith` |
+| JSON | `JSONExtractString` |
+| Math | `round`, `floor`, `ceil`, `abs` |
+| Type conversion | `toString`, `toInt32`, `toInt64`, `toFloat64` |
+| Arrays | `has`, `hasAny`, `hasAll`, `arrayJoin`, `arrayFilter` |
+
+If you need a function that isn't listed, tell us which one.
+
+## Working with time
+
+In the raw tables, `time` is milliseconds since the Unix epoch (`Int64`), so convert when you compare with "now": `time > toUnixTimestamp64Milli(now() - INTERVAL 1 HOUR)`. To group raw rows by hour, convert the other way: `toStartOfHour(fromUnixTimestamp64Milli(time))`. In the rollups, `time` is a `DateTime` (per-minute, per-hour) or a `Date` (per-day, per-month), so compare directly: `time > now() - INTERVAL 7 DAY`.
+
+Queries only return data inside your plan's retention window. What happens when you ask for older data depends on how you write the time filter:
+
+- **`INTERVAL N UNIT`, a literal date, or `today()`**: a start time older than your retention fails with `err:user:bad_request:query_range_exceeds_retention`.
+- **`toIntervalDay(N)` or no start time at all**: the query runs and quietly returns only the rows inside retention.
+
+For example, `time >= now() - INTERVAL 400 DAY` fails, while `time >= now() - toIntervalDay(400)` returns fewer rows with no error. Use `INTERVAL N UNIT` if you'd rather get an error than a short answer. Retention per plan is on [Analytics restrictions and quotas](/api-management/analytics/restrictions-and-quotas).
+
+## Aggregate state columns
+
+In the rollup tables, read `count`, `spent_credits`, `total`, and similar columns with `sum()`, never `count()`, because each row already sums many verifications. You can't read the rollups' `latency_avg`, `latency_p75`, and `latency_p99` columns, because the `-Merge` functions they need aren't allowed. Use the raw table instead: `avg(latency)` and `quantile(0.99)(latency)`. The [table pages](/api-management/analytics/tables/key-verifications) mark which columns are which.

@@ -1,0 +1,183 @@
+---
+title: Gateway policies
+sidebarTitle: "Policies"
+description: "Add gateway policies to an environment, choose which requests they apply to, and put them in order."
+sources:
+  - svc/api/openapi/spec/common/Policy.yaml
+  - svc/api/openapi/spec/common/PolicyResponse.yaml
+  - svc/api/openapi/spec/common/MatchExpr.yaml
+  - svc/api/openapi/spec/common/PathMatch.yaml
+  - svc/api/openapi/spec/common/MethodMatch.yaml
+  - svc/api/openapi/spec/common/FieldMatch.yaml
+  - svc/api/openapi/spec/common/StringMatch.yaml
+  - svc/api/openapi/spec/paths/v2/gateway/setPolicies/V2GatewaySetPoliciesRequestBody.yaml
+  - svc/api/openapi/spec/paths/v2/gateway/updatePolicy/V2GatewayUpdatePolicyRequestBody.yaml
+  - svc/api/openapi/spec/paths/v2/gateway/listPolicies/V2GatewayListPoliciesRequestBody.yaml
+  - svc/api/routes/v2_gateway_set_policies/handler.go
+  - svc/api/routes/v2_gateway_update_policy/handler.go
+  - svc/api/routes/v2_gateway_list_policies/handler.go
+  - svc/frontline/internal/policies/engine.go
+  - svc/frontline/internal/policies/match.go
+  - svc/ctrl/worker/deploy/create.go
+  - svc/frontline/internal/db/queries/ingress_route_find_by_fqdn.sql
+  - pkg/rbac/permissions.go
+  - cmd/api/gateway/set_policies.go
+  - cmd/api/gateway/update_policy.go
+  - cmd/api/gateway/list_policies.go
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/policies/components/add-panel/index.tsx
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/policies/components/add-panel/schema.ts
+---
+
+A policy is one rule the [gateway](/compute/gateway/overview) applies to the requests you pick, such as "require an API key" or "100 requests per minute". Each <Tooltip tip="A production or preview environment of a Compute app, not the dashboard label on a key.">environment</Tooltip> of an <Tooltip tip="A Compute app: a deployable service inside a project. Not 'your application' in general.">app</Tooltip> has its own list, so production and preview can have different rules.
+
+<Warning>
+Each <Tooltip tip="One built and running version of an app in one environment.">deployment</Tooltip> keeps the policies it was created with. Adding, editing, turning off, or deleting a policy only affects the next deployment. Redeploy to apply a change.
+</Warning>
+
+## Add a policy in the dashboard
+
+1. Open the app and click **Policies** in the sidebar.
+2. Click **Add Policy** and pick a type: Key Auth, Rate Limit, Firewall, OpenAPI Validation, or Logging.
+3. Pick the environment. The default, **All Environments**, adds the same policy to both production and preview.
+4. Add match conditions if the policy should only apply to some requests.
+5. Save, then redeploy.
+
+<Frame>
+  <img src="/images/dashboard/compute--gateway-policies--policies.png" alt="Policies page with no policies yet and the Add policy button" />
+</Frame>
+
+You can't have two policies with the same type and name in one environment. The dashboard suggests adding the existing policy to the other environment instead.
+
+<Visibility for="agents">
+  The dashboard steps above correspond to `POST /v2/gateway.setPolicies` with the environment's complete policy list, or `POST /v2/gateway.updatePolicy` to change one policy. To scope a policy to one environment, call the endpoint once with that environment's slug. Read the current list first with `POST /v2/gateway.listPolicies`. The ids it returns are the only valid `policyId` values for `updatePolicy`.
+</Visibility>
+
+## Set policies with the API
+
+Each endpoint takes the `project`, `app`, and `environment` by ID or slug.
+
+- **`gateway.listPolicies`** returns the list in the order it runs, with IDs.
+- **`gateway.setPolicies`** replaces the whole list with the `policies` array you send, in that order. If any policy is invalid, nothing is saved. An empty array removes every policy. Every policy gets a new ID.
+- **`gateway.updatePolicy`** changes one policy by `policyId`. Fields you leave out keep their values, and `match: null` removes all match expressions. Sending one of `keyauth`, `ratelimit`, `firewall`, `openapi`, or `logging` replaces the rule and can change its type.
+
+```bash
+curl -X POST https://api.unkey.com/v2/gateway.setPolicies \
+  -H "Authorization: Bearer $UNKEY_ROOT_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "project": "my-project",
+    "app": "api",
+    "environment": "production",
+    "policies": [
+      {
+        "name": "Require a key",
+        "enabled": true,
+        "keyauth": { "keyspaces": ["ks_1234abcd"] }
+      },
+      {
+        "name": "100 per minute per key",
+        "enabled": true,
+        "ratelimit": {
+          "limit": 100,
+          "windowMs": 60000,
+          "identifiers": [{ "authenticatedSubject": {} }]
+        }
+      }
+    ]
+  }'
+```
+
+Your root key needs `environment.*.set_policies` to replace the list, `environment.*.read_policies` to list, and `environment.*.update_policy` to change one, or the same actions on `environment.<environment_id>.…`. See [root key permissions](/platform/root-keys/permissions). A keyspace in an authentication policy must be in the same workspace, or the call fails with [`err:unkey:data:key_space_not_found`](/errors/unkey/data/key_space_not_found).
+
+Every change, from the dashboard, API, or CLI, is recorded in the audit log with the full policy list.
+
+## Set policies with the CLI
+
+`unkey api gateway list-policies`, `set-policies`, and `update-policy` do the same as the three endpoints. Each takes `--project`, `--app`, and `--environment`. `set-policies` takes the full list as `--policies '<json array>'`, and `update-policy` takes `--policy-id` and `--policy '<json object>'`.
+
+## What's in a policy
+
+<ParamField body="name" type="string" required>
+  Shown in the dashboard. 1 to 256 characters.
+</ParamField>
+
+<ParamField body="enabled" type="boolean" required>
+  A turned-off policy is kept but skipped.
+</ParamField>
+
+<ParamField body="match" type="MatchExpr[]">
+  Up to 10 expressions. A request must match all of them for the policy to apply. Leave it out to apply the policy to every request.
+</ParamField>
+
+<ParamField body="keyauth | ratelimit | firewall | openapi | logging" type="object" required>
+  Set exactly one. It picks the policy type and holds its settings. See [API key authentication](/compute/gateway/api-key-auth), [Rate limit](/compute/gateway/rate-limiting), [Firewall](/compute/gateway/firewall), [OpenAPI validation](/compute/gateway/openapi-validation), and [Logging](/compute/gateway/logging).
+</ParamField>
+
+Saved policies also have an `id`. It changes every time `gateway.setPolicies` replaces the list.
+
+## Pick which requests a policy applies to
+
+Each match expression sets exactly one of `path`, `method`, `header`, or `queryParam`. A request must match every expression in the policy. To match one thing or another, create two policies.
+
+<ParamField body="path.path" type="StringMatch">
+  Matches the request path. Set exactly one of `exact`, `prefix`, or `regex` (1 to 1024 characters), and optionally `ignoreCase: true`. Regular expressions use RE2 syntax, and one that doesn't compile is rejected when you save.
+</ParamField>
+
+<ParamField body="method.methods" type="string[]">
+  One or more of `GET`, `POST`, `PUT`, `PATCH`, `DELETE`, `HEAD`, `OPTIONS`. Matches any of them, ignoring case.
+</ParamField>
+
+<ParamField body="header" type="FieldMatch">
+  `name` (1 to 256 characters) plus exactly one of `present: true` or `value` (a `StringMatch` like `path`). With `value`, it matches if any value of that header matches.
+</ParamField>
+
+<ParamField body="queryParam" type="FieldMatch">
+  Same as `header`, for a query parameter. Names are case-sensitive.
+</ParamField>
+
+```json Example: block POST and DELETE on internal paths
+{
+  "name": "Block internal paths",
+  "enabled": true,
+  "match": [
+    { "path": { "path": { "prefix": "/internal/" } } },
+    { "method": { "methods": ["POST", "DELETE"] } }
+  ],
+  "firewall": { "action": "ACTION_DENY" }
+}
+```
+
+## Put policies in the right order
+
+The gateway runs every enabled policy that matches, from top to bottom. Order matters in three ways:
+
+- **Authentication first.** The first API key policy that succeeds decides who the caller is. Later API key policies are skipped.
+- **Rate limits by caller go after authentication.** A rate limit that counts by `authenticatedSubject` or `principalField` needs to know the caller. If it runs first, every request counts as `unknown`.
+- **A rejection stops everything.** After a firewall block, a failed key check, a used-up rate limit, or an OpenAPI error, no later policy runs, including logging.
+
+Logging policies never reject. If several match, the request is logged with all of their settings combined.
+
+## Limits
+
+- 50 policies per environment.
+- 10 match expressions per policy.
+- 5 keyspaces and 10 key rate limits per API key policy.
+- 5 identifiers per rate limit policy.
+- Match strings up to 1024 characters, and names up to 256.
+
+## Next steps
+
+<Columns cols={2}>
+  <Card title="API key authentication policy" icon="key" href="/compute/gateway/api-key-auth">
+    Verify Unkey keys and forward the principal.
+  </Card>
+  <Card title="Rate limit policy" icon="gauge-high" href="/compute/gateway/rate-limiting">
+    Limit by IP, header, path, subject, or principal field.
+  </Card>
+  <Card title="Firewall policy" icon="shield" href="/compute/gateway/firewall">
+    Deny the requests your match expressions select.
+  </Card>
+  <Card title="Logging policy" icon="file-lines" href="/compute/gateway/logging">
+    Capture headers, query data, and bodies for matched requests.
+  </Card>
+</Columns>

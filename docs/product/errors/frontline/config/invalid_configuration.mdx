@@ -1,7 +1,62 @@
 ---
 title: "invalid_configuration"
-description: "InvalidConfiguration represents a 422 error - the deployment's policy configuration could not be parsed."
+sidebarTitle: "invalid_configuration"
+description: "The deployment's gateway policy configuration could not be parsed or has an invalid value."
+sources:
+  - pkg/codes/frontline.go
+  - svc/frontline/middleware/observability.go
+  - svc/frontline/internal/policies/engine.go
+  - svc/frontline/internal/policies/keyauth/executor.go
+  - svc/frontline/internal/policies/openapi/executor.go
+  - svc/ctrl/worker/deploy/deploy_handler.go
 ---
 
 <Danger>`err:frontline:config:invalid_configuration`</Danger>
 
+import { ProductLink } from "/snippets/product-link.jsx";
+
+The API you called runs on Unkey, and the gateway can't use the policies its owner deployed. The problem is in the owner's configuration, not in your request. You get `422 Unprocessable Entity`.
+
+```json Example response
+{
+  "meta": {
+    "requestId": "req_3k2j1h0g9f8e7d6c"
+  },
+  "error": {
+    "code": "err:frontline:config:invalid_configuration",
+    "message": "The deployment configuration is invalid. Please check your config or contact support at support@unkey.com."
+  }
+}
+```
+
+Browsers get the same error as an HTML page.
+
+## If you're calling an API hosted on Unkey
+
+Nothing you change will fix this. Requests keep failing until the owner fixes their configuration. Contact the API owner with the request ID.
+
+## If you own this API
+
+Common causes:
+
+- A key-auth policy has a negative `credits` value.
+- A key-auth policy's `permissionQuery` doesn't parse.
+- An OpenAPI policy's spec is invalid.
+- The policy configuration can't be read at all.
+
+For the first three, only routes that the broken policy matches fail. For the last one, every request to the deployment fails.
+
+### How to fix
+
+1. Open the gateway policies for the <Tooltip tip="A Compute app: a deployable service inside a project. Not your application in general.">app</Tooltip>.
+2. Fix the broken value: make `credits` zero or positive, fix the permission query syntax, or repair the OpenAPI document.
+3. Create a new deployment. The running deployment keeps the broken configuration until you deploy again.
+
+<ProductLink product="compute" href="/compute/gateway/errors" title="Compute gateway">
+  Gateway policies, deployments, and domains are Compute features. The Compute docs explain how to configure them.
+</ProductLink>
+
+## Related errors
+
+- [`err:frontline:platform:config_load_failed`](/errors/frontline/platform/config_load_failed): the configuration couldn't be loaded at all, which is a failure on our side.
+- [`err:frontline:client:openapi_validation_failed`](/errors/frontline/client/openapi_validation_failed): the spec compiled and the request failed validation.

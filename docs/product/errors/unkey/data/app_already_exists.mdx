@@ -1,7 +1,44 @@
 ---
 title: "app_already_exists"
-description: "Duplicate indicates the requested app already exists."
+sidebarTitle: "app_already_exists"
+description: "Another app in the project already uses that slug."
+sources:
+  - pkg/codes/unkey_data.go
+  - svc/api/internal/middleware/errors.go
+  - svc/api/routes/v2_apps_create_app/handler.go
+  - svc/api/routes/v2_apps_update_app/handler.go
 ---
 
 <Danger>`err:unkey:data:app_already_exists`</Danger>
 
+Another <Tooltip tip="A Compute app: a deployable service inside a project, not an application in the API Management sense.">app</Tooltip> in the same project already uses that slug. Nothing was created or changed. You get HTTP 409.
+
+```json Example response
+{
+  "meta": {
+    "requestId": "req_2c9a0jf23l4k567"
+  },
+  "error": {
+    "detail": "An app with slug 'api' already exists in this project.",
+    "status": 409,
+    "title": "Conflicting Resource",
+    "type": "/errors/unkey/data/app_already_exists"
+  }
+}
+```
+
+## Likely causes
+
+- You called `apps.createApp`, or changed an app's slug with `apps.updateApp`, and the slug is taken in this project.
+- Two requests created the same slug at the same time, and this one lost.
+
+## How to fix
+
+1. Choose a different slug, or use the existing app.
+
+Slugs only need to be unique within a project, so you can use the same slug in another project.
+
+## Related errors
+
+- [`err:unkey:data:app_not_found`](/errors/unkey/data/app_not_found): the app doesn't exist.
+- [`err:unkey:data:project_already_exists`](/errors/unkey/data/project_already_exists): a project slug collides.

@@ -1,0 +1,87 @@
+---
+title: Rate limit policy
+description: "Limit requests per window at the gateway by IP, header, path, or caller."
+sources:
+  - svc/api/openapi/spec/common/RatelimitPolicy.yaml
+  - svc/api/openapi/spec/common/RatelimitIdentifier.yaml
+  - svc/api/openapi/spec/common/RemoteIpKey.yaml
+  - svc/api/openapi/spec/common/HeaderKey.yaml
+  - svc/api/openapi/spec/common/AuthenticatedSubjectKey.yaml
+  - svc/api/openapi/spec/common/PathKey.yaml
+  - svc/api/openapi/spec/common/PrincipalFieldKey.yaml
+  - svc/frontline/internal/policies/ratelimit/executor.go
+  - svc/frontline/internal/policies/ratelimit/keyextract.go
+  - svc/frontline/internal/policies/ratelimit/headers.go
+  - svc/frontline/internal/policies/engine.go
+  - svc/frontline/internal/policies/principal/principal.go
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/policies/components/add-panel/schema.ts
+---
+
+A rate limit policy tells the [gateway](/compute/gateway/overview) to count requests over a fixed window, such as 100 per minute, and reject the extra ones before they reach your <Tooltip tip="A Compute app: a deployable service inside a project. Not 'your application' in general.">app</Tooltip>. This <Tooltip tip="Here: a gateway rate limit policy. Not the per-key limits an authentication policy enforces or the standalone ratelimit API.">rate limiting</Tooltip> works without API keys. You choose what to count by, such as the client IP or a header. For limits per API key, use the `ratelimits` setting on the [API key authentication policy](/compute/gateway/api-key-auth) instead.
+
+To add one, open the app, go to **Policies**, click **Add Policy**, and pick **Rate Limit**. The form starts at 100 requests per 60 seconds per client IP.
+
+## Settings
+
+<ParamField body="limit" type="integer" required>
+  Maximum requests per window for each caller (or each group you count by). At least 1.
+</ParamField>
+
+<ParamField body="windowMs" type="integer" required>
+  Window length in milliseconds. At least 1.
+</ParamField>
+
+<ParamField body="identifiers" type="RatelimitIdentifier[]" required>
+  1 to 5 things to count by. Each unique combination of values gets its own counter, with the same `limit` and `windowMs`. Each entry sets exactly one of:
+
+  - `remoteIp: {}`: the client IP.
+  - `header: { name }`: the value of a request header.
+  - `path: {}`: the request path.
+  - `authenticatedSubject: {}`: the caller's `subject`, from an earlier API key policy.
+  - `principalField: { path }`: a field in the [principal](/compute/gateway/principal), as a dotted path like `source.key.meta.org_id`, up to 512 characters. Only string values work.
+</ParamField>
+
+The older single `identifier` field still works, but responses always return `identifiers`. Don't set both.
+
+```json Example: 100 requests per minute per subject on each path
+{
+  "name": "Per-user per-route limit",
+  "enabled": true,
+  "ratelimit": {
+    "limit": 100,
+    "windowMs": 60000,
+    "identifiers": [{ "authenticatedSubject": {} }, { "path": {} }]
+  }
+}
+```
+
+<Visibility for="agents">
+  In the dashboard this is the **Rate Limit** type in **Policies > Add Policy**. Programmatically, include the object above in the `policies` array of `POST /v2/gateway.setPolicies`, placed after any `keyauth` policy whose principal it depends on. The change applies to the next deployment.
+</Visibility>
+
+## When a value is missing
+
+If a value can't be found, such as a missing header or no caller on an anonymous request, it counts as `unknown`. All requests missing that value share one counter. For example, with `[authenticatedSubject, path]`, anonymous callers are still limited per path, together.
+
+If none of the values can be found, the request is rejected with `429` [`rate_limited`](/errors/frontline/client/rate_limited) and the message `Rate limit configuration error. Unable to identify the request.` So a policy that counts by a header rejects every request on a route where callers never send it.
+
+`authenticatedSubject` and `principalField` need an [API key authentication policy](/compute/gateway/api-key-auth) earlier in the list. Put the rate limit after it.
+
+Every request counts as 1. Replacing the policy list with `gateway.setPolicies` resets every counter once the next deployment is live.
+
+## What callers see
+
+Over the limit, the caller gets `429` [`rate_limited`](/errors/frontline/client/rate_limited) with `Rate limit exceeded. Please try again later.` If rate limiting itself fails, the request is rejected with `500` [`internal_server_error`](/errors/frontline/platform/internal_server_error), not let through.
+
+Responses to requests the policy applies to include `X-RateLimit-Limit`, `X-RateLimit-Remaining`, and `X-RateLimit-Reset` (Unix seconds). A `429` also has `Retry-After` in whole seconds, at least 1. If an API key policy already set these headers for a per-key limit, the rate limit policy only replaces them when its result is stricter.
+
+## Next steps
+
+<Columns cols={2}>
+  <Card title="API key authentication policy" icon="key" href="/compute/gateway/api-key-auth">
+    Per-key limits and the principal that `authenticatedSubject` reads.
+  </Card>
+  <Card title="Gateway policies" icon="list-check" href="/compute/gateway/policies">
+    Match expressions and evaluation order.
+  </Card>
+</Columns>

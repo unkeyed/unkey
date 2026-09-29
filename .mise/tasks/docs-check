@@ -1,0 +1,61 @@
+#!/usr/bin/env bash
+#MISE description="Check a Mintlify docs site: spec reachability, validate, broken links, a11y (default dir: docs/product; needs network for the OpenAPI spec)"
+#MISE tools=["npm:mint"]
+set -euo pipefail
+
+DOCS_DIR="${1:-docs/product}"
+MANIFEST="$DOCS_DIR/scripts/manifest.json"
+cd "$DOCS_DIR"
+
+# The remote OpenAPI spec is fetched by Mintlify at build time and a fetch failure fails
+# every check for reasons unrelated to the content, so probe it first and name the failure.
+SPEC_URL="$(python3 -c 'import json,sys; d=json.load(open("docs.json")); print(json.dumps(d, sort_keys=True))' | grep -oE 'https://spec\.speakeasy\.com/[^"]+' | head -1 || true)"
+SPEC_TMP="$(mktemp)"
+trap 'rm -f "$SPEC_TMP"' EXIT
+VALIDATE_ARGS=()
+if [[ -n "$SPEC_URL" ]]; then
+  if curl -fsSL --max-time 30 "$SPEC_URL" -o "$SPEC_TMP"; then
+    if [[ -f "scripts/manifest.json" ]]; then
+      # Paths that exist locally but are not yet published upstream cannot be listed in the
+      # rendered reference; report them so a unit can land while the spec catches up.
+      python3 - "$SPEC_TMP" scripts/manifest.json <<'PY'
+import json, re, sys
+
+def spec_paths(path):
+    text = open(path).read()
+    try:
+        return set(json.loads(text).get("paths", {}).keys())
+    except json.JSONDecodeError:
+        # The Speakeasy URL is named json but serves YAML; path keys sit at two-space indent under paths:.
+        _, _, block = text.partition("\npaths:\n")
+        return set(re.findall(r"^  (/\S+?):", block, re.M))
+
+remote = spec_paths(sys.argv[1])
+local = {e["path"] for e in json.load(open(sys.argv[2])).get("endpoints", [])}
+pending = sorted(local - remote)
+if pending:
+    print("pending upstream publish (local endpoints not in the remote spec):")
+    for p in pending:
+        print(f"  {p}")
+PY
+    fi
+  else
+    echo "external spec unreachable: $SPEC_URL"
+    echo "Running validate with --disable-openapi so content checks still run; link and a11y checks may report the API reference as missing."
+    VALIDATE_ARGS+=(--disable-openapi)
+  fi
+fi
+
+step() {
+  local name="$1"; shift
+  echo "==> $name"
+  if ! "$@"; then
+    echo "docs-check: step failed: $name"
+    exit 1
+  fi
+}
+
+step "mint validate" mint validate ${VALIDATE_ARGS[@]+"${VALIDATE_ARGS[@]}"}
+step "mint broken-links" mint broken-links --check-anchors --check-redirects
+step "mint a11y" mint a11y
+echo "docs-check: all steps passed for $DOCS_DIR"

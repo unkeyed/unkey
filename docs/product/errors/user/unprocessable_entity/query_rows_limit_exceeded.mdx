@@ -1,134 +1,51 @@
 ---
 title: "query_rows_limit_exceeded"
-description: "Your analytics query attempted to scan more rows than the Unkey limit allows. Add time range filters or WHERE clauses to reduce the scan scope."
+sidebarTitle: "query_rows_limit_exceeded"
+description: "The analytics query read or returned more rows than the workspace allows."
+sources:
+  - pkg/codes/user_request.go
+  - svc/api/internal/middleware/errors.go
+  - pkg/clickhouse/errors.go
+  - pkg/clickhouse/user.go
+  - pkg/clickhouse/query-parser/limits.go
+  - internal/services/analytics/executor.go
 ---
 
 <Danger>`err:user:unprocessable_entity:query_rows_limit_exceeded`</Danger>
 
-```json Example
+Your analytics query read or tried to return more rows than your workspace allows. You get HTTP 422, and `detail` says which.
+
+```json Example response
 {
   "meta": {
-    "requestId": "req_4dgzrNP3Je5mU1tD"
+    "requestId": "req_2c9a0jf23l4k567"
   },
   "error": {
-    "detail": "Query exceeded the maximum rows to scan limit of 100 million",
+    "detail": "Query attempted to read too many rows. Try adding more filters or reducing the time range.",
     "status": 422,
     "title": "Unprocessable Entity",
-    "type": "https://unkey.com/docs/errors/user/unprocessable_entity/query_rows_limit_exceeded"
+    "type": "/errors/user/unprocessable_entity/query_rows_limit_exceeded"
   }
 }
 ```
 
-## What Happened?
+## Likely causes
 
-Your query tried to scan more than 100 million rows! We limit the number of rows that can be scanned to keep queries fast and prevent resource exhaustion.
+- The query scans too much: a wide time range, few filters, or raw rows instead of an aggregate.
 
-This happens when you query large time ranges or don't filter your data enough, causing ClickHouse to scan millions of rows even if the final result is small.
+The cap is 10,000,000 rows unless we've changed it for you. Every `SELECT`, including subqueries, gets a `LIMIT` at the cap, and a larger `LIMIT` you write is lowered to it. You'll usually hit the 4 MiB result size first, which returns [`query_memory_limit_exceeded`](/errors/user/unprocessable_entity/query_memory_limit_exceeded).
 
-## How to Fix It
+## How to fix
 
-### 1. Add Time Range Filters
+1. Narrow the time range.
+2. Filter on key ID, identity ID, namespace, or another indexed column.
+3. Aggregate instead of selecting raw rows.
+4. If you need every row in a large range, split it into smaller windows and run one query per window.
 
-Always filter by time to limit the number of rows scanned:
+See [Analytics restrictions and quotas](/api-management/analytics/restrictions-and-quotas).
 
-<CodeGroup>
+## Related errors
 
-```sql Scans Too Many Rows
-SELECT COUNT(*)
-FROM key_verifications_v1
-WHERE outcome = 'VALID'
-```
-
-```sql Limited Scan
-SELECT COUNT(*)
-FROM key_verifications_v1
-WHERE time >= now() - INTERVAL 7 DAY
-  AND outcome = 'VALID'
-```
-
-</CodeGroup>
-
-### 2. Use More Selective Filters
-
-Add filters that reduce the data before aggregation:
-
-<CodeGroup>
-
-```sql Scans Everything
-SELECT api_id, COUNT(*) as total
-FROM key_verifications_v1
-WHERE time >= now() - INTERVAL 90 DAY
-GROUP BY api_id
-```
-
-```sql Scans Less
-SELECT api_id, COUNT(*) as total
-FROM key_verifications_v1
-WHERE time >= now() - INTERVAL 7 DAY
-  AND api_id IN ('api_123', 'api_456')
-GROUP BY api_id
-```
-
-</CodeGroup>
-
-### 3. Use Pre-Aggregated Tables
-
-For historical queries, use aggregated tables that have fewer rows:
-
-<CodeGroup>
-
-```sql Raw Table - 100M+ rows
-SELECT
-  toStartOfDay(time) as day,
-  COUNT(*) as total
-FROM key_verifications_v1
-WHERE time >= now() - INTERVAL 90 DAY
-GROUP BY day
-```
-
-```sql Aggregated Table - 2K rows
-SELECT
-  time as day,
-  SUM(count) as total
-FROM key_verifications_v1_per_day_v1
-WHERE time >= now() - INTERVAL 90 DAY
-GROUP BY day
-```
-
-</CodeGroup>
-
-### 4. Query in Smaller Batches
-
-Instead of one large query, break it into smaller time windows:
-
-```javascript
-// Instead of querying 90 days at once
-const results = [];
-for (let i = 0; i < 90; i += 7) {
-  const start = `now() - INTERVAL ${i + 7} DAY`;
-  const end = `now() - INTERVAL ${i} DAY`;
-
-  const result = await query(`
-    SELECT COUNT(*) as total
-    FROM key_verifications_v1
-    WHERE time >= ${start} AND time < ${end}
-  `);
-
-  results.push(result);
-}
-```
-
-## Need Higher Row Limits?
-
-<Note>
-**Have a legitimate need to scan more rows?** Contact our support team!
-
-[Reach out to support](mailto:support@unkey.com) and tell us:
-
-- What you're trying to analyze
-- Why you need to scan more than 100 million rows
-- An example of the query you're running
-
-We'll review your use case and help optimize your query or adjust limits if needed.
-
-</Note>
+- [`err:user:unprocessable_entity:query_memory_limit_exceeded`](/errors/user/unprocessable_entity/query_memory_limit_exceeded): the query used too much memory or the result was too large.
+- [`err:user:unprocessable_entity:query_execution_timeout`](/errors/user/unprocessable_entity/query_execution_timeout): the query ran too long.
+- [`err:user:bad_request:query_range_exceeds_retention`](/errors/user/bad_request/query_range_exceeds_retention): the time filter reaches past the retention window.

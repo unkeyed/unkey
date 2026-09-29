@@ -1,0 +1,71 @@
+---
+title: unkey api keys remove-roles
+sidebarTitle: "remove-roles"
+description: "Remove roles from a key without touching its direct permissions."
+sources:
+  - cmd/api/keys/remove_roles.go
+  - svc/api/routes/v2_keys_remove_roles/handler.go
+  - docs/product/scripts/manifest.json
+---
+
+import RootKeyPrereq from "/snippets/root-key-prereq.mdx";
+
+<RootKeyPrereq />
+
+Remove roles from a key. Direct permissions and other roles stay. Changes can take up to about 10 seconds to apply. Calls `POST /v2/keys.removeRoles`. See [Managing key permissions](/api-management/authorization/managing-key-permissions).
+
+## Usage
+
+```bash
+unkey api keys remove-roles --key-id=<key id> --roles=<roles> [flags]
+```
+
+## Flags
+
+<ParamField body="--key-id" type="string" required>
+  Id of the key.
+</ParamField>
+
+<ParamField body="--roles" type="string[]" required>
+  Comma-separated role names to remove. An unknown name fails the call instead of being ignored.
+</ParamField>
+
+### Shared flags
+
+Every `unkey api` command takes these. See [CLI output and shared flags](/platform/cli/output-and-flags).
+
+<ParamField body="--root-key" type="string">
+  Root key used for the request. Falls back to `UNKEY_ROOT_KEY`, then to the key stored by `unkey auth login`.
+</ParamField>
+
+<ParamField body="--api-url" type="string" default="https://api.unkey.com">
+  Base URL of the API. Falls back to `UNKEY_API_BASE_URL`. You don't normally need to set it.
+</ParamField>
+
+<ParamField body="--config" type="string" default="~/.unkey/config.toml">
+  Path of the config file written by `unkey auth login`. Falls back to `UNKEY_CONFIG`.
+</ParamField>
+
+<ParamField body="--output" type="string">
+  Output format. Falls back to `UNKEY_OUTPUT`. `json` prints the full response. Any other value prints the request ID and `data`.
+</ParamField>
+
+<ParamField body="--body" type="string">
+  Send this JSON as the whole request body instead of using the command's flags. You can't combine it with them.
+</ParamField>
+
+## Required permissions
+
+`api.*.update_key` or `api.<apiId>.update_key` for the API the key belongs to. See [Root key permissions](/platform/root-keys/permissions).
+
+## Examples
+
+```bash Remove a role
+unkey api keys remove-roles --key-id=key_1234abcd --roles=billing_reader
+```
+
+Or send the whole request as JSON:
+
+```bash Raw body
+unkey api keys remove-roles --body='{"keyId":"key_1234abcd","roles":["billing_reader"]}'
+```

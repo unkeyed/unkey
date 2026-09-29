@@ -1,0 +1,96 @@
+---
+title: Delete protection
+description: "Stop a keyspace, project, or app from being deleted by accident."
+sources:
+  - web/internal/db/src/schema/util/delete_protection.ts
+  - web/apps/dashboard/lib/projects/ensure-default-project-id.ts
+  - web/internal/db/src/schema/apis.ts
+  - web/internal/db/src/schema/apps.ts
+  - web/internal/db/src/schema/projects.ts
+  - pkg/codes/unkey_application.go
+  - svc/api/internal/middleware/errors.go
+  - svc/api/routes/v2_apis_delete_api/handler.go
+  - svc/api/routes/v2_apps_delete_app/handler.go
+  - svc/api/routes/v2_projects_delete_project/handler.go
+  - svc/api/routes/v2_apps_update_app/handler.go
+  - svc/api/routes/v2_projects_update_project/handler.go
+  - web/apps/dashboard/lib/trpc/routers/api/updateDeleteProtection.ts
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/apis/[apiId]/settings/components/delete-protection.tsx
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/apis/[apiId]/settings/components/delete-api.tsx
+---
+
+Delete protection stops a keyspace, project, or app from being deleted by accident. While it's on, nobody can delete that resource from the dashboard or the API. To delete it, you first turn protection off, which is logged in the audit log, and then delete it.
+
+## What you can protect
+
+Protection is off until you turn it on. The one exception is the **Default** project we create for your workspace, which starts protected.
+
+| Resource | Product | Where to turn it on |
+| --- | --- | --- |
+| Keyspace (API) | API Management | Dashboard: the keyspace's **Settings** page. |
+| Project | Compute | API or CLI: `deleteProtection` on `projects.updateProject`. |
+| App | Compute | API or CLI: `deleteProtection` on `apps.updateApp`. |
+
+## Protect a keyspace
+
+<Steps titleSize="h3">
+  <Step title="Open the keyspace settings">
+    In the dashboard, open the keyspace and go to its **Settings** page. The **Delete Protection** card shows **Enabled** or **Disabled**.
+
+    <Frame>
+      <img src="/images/dashboard/platform--security-delete-protection--keyspace-settings.png" alt="Keyspace settings page with the name, API ID, keyspace ID, key defaults, and a Danger Zone holding the Delete Protection card and the Delete Keyspace button" />
+    </Frame>
+  </Step>
+  <Step title="Toggle and confirm">
+    Click **Enable** (or **Disable**), type the keyspace name to confirm, and submit. The audit log records the change as `api.update`.
+  </Step>
+</Steps>
+
+## Protect an app or project
+
+Use the CLI or the API with a root key that has `update_app` or `update_project`.
+
+<CodeGroup>
+```bash CLI
+unkey api apps update-app --project=payments --app=payments-api --delete-protection
+```
+```bash API
+curl -X POST https://api.unkey.com/v2/apps.updateApp \
+  -H "Authorization: Bearer <root key>" \
+  -H "Content-Type: application/json" \
+  -d '{"project": "payments", "app": "payments-api", "deleteProtection": true}'
+```
+</CodeGroup>
+
+For a project, use `unkey api projects update-project --delete-protection` or `projects.updateProject`. To turn it off, pass `--delete-protection=false` or `"deleteProtection": false`. If you leave the field out, the current value stays, so an update that only renames the resource doesn't clear protection. `apps.getApp`, `projects.getProject`, and the list endpoints return the current flag.
+
+<Visibility for="agents">
+  Toggle from a script with a root key that is allowed to update the app. `project` and `app` accept either the prefixed ID or the slug.
+
+  ```bash
+  curl -X POST https://api.unkey.com/v2/apps.updateApp \
+    -H "Authorization: Bearer <root key>" \
+    -H "Content-Type: application/json" \
+    -d '{"project": "proj_...", "app": "app_...", "deleteProtection": true}'
+  ```
+</Visibility>
+
+## When you try to delete a protected resource
+
+In the dashboard, the **Delete** action on a protected keyspace refuses with "This API has delete protection enabled. Please disable it before deleting the API."
+
+In the API, `apis.deleteApi`, `apps.deleteApp`, and `projects.deleteProject` return HTTP 412 with the code `err:unkey:application:protected_resource`. The detail names the resource type: "This API has delete protection enabled", "This app has delete protection enabled", or "This project has delete protection enabled".
+
+```json
+{
+  "meta": { "requestId": "req_..." },
+  "error": {
+    "title": "Resource is protected",
+    "type": "/errors/unkey/application/protected_resource",
+    "detail": "This API has delete protection enabled. Disable it before attempting to delete.",
+    "status": 412
+  }
+}
+```
+
+To fix it, turn protection off on that resource, then delete it again. See the [error page](/errors/unkey/application/protected_resource).

@@ -1,39 +1,44 @@
 ---
-title: Ratelimit Namespace Gone
-description: "Returned when you reference a rate limit namespace that was previously deleted. Learn why this 410 Gone error occurs and how to resolve it."
+title: "ratelimit_namespace_gone"
+sidebarTitle: "ratelimit_namespace_gone"
+description: "The rate limit namespace was deleted, so ratelimit.limit refuses to use it."
+sources:
+  - pkg/codes/unkey_data.go
+  - svc/api/internal/middleware/errors.go
+  - svc/api/routes/v2_ratelimit_limit/handler.go
+  - svc/api/routes/v2_ratelimit_multi_limit/handler.go
 ---
 
-## Description
+<Danger>`err:unkey:data:ratelimit_namespace_gone`</Danger>
 
-This error occurs when you attempt to use a ratelimit namespace that has been deleted. Once a namespace is deleted, it cannot be restored through the API or dashboard.
+`ratelimit.limit` or `ratelimit.multiLimit` named a rate limit namespace that was deleted. You get HTTP 410.
 
-## Error Code
+```json Example response
+{
+  "meta": {
+    "requestId": "req_2c9a0jf23l4k567"
+  },
+  "error": {
+    "detail": "This namespace has been deleted. Contact support to restore.",
+    "status": 410,
+    "title": "Resource Gone",
+    "type": "/errors/unkey/data/ratelimit_namespace_gone"
+  }
+}
+```
 
-`unkey/data/ratelimit_namespace_gone`
+## Likely causes
 
-## HTTP Status Code
+- The namespace was deleted. A deleted name can't be reused. Normally `ratelimit.limit` creates a namespace the first time you use a name, but for a deleted name it returns this error instead, so an accidental delete can't turn into unlimited traffic.
 
-`410 Gone`
+## How to fix
 
-## Cause
+1. Use a new namespace name.
+2. Or, if you need the old overrides and history, ask support to restore it.
 
-The ratelimit namespace you're trying to access was previously deleted and is no longer available through the API or dashboard.
+Don't delete a namespace to reset its counters. Only delete one you're retiring.
 
-## Resolution
+## Related errors
 
-<Note>
-  Contact [support@unkey.com](mailto:support@unkey.com) with your workspace ID
-  and namespace name if you need this namespace restored.
-</Note>
-
-## Prevention
-
-To avoid accidentally deleting namespaces:
-
-- Restrict namespace deletion via workspace permissions
-- Carefully review namespace-deletion requests before confirming
-
-## Related
-
-- [Ratelimit Namespace Not Found](/errors/unkey/data/ratelimit_namespace_not_found)
-- [Rate Limiting Documentation](/platform/ratelimiting/introduction)
+- [`err:unkey:data:ratelimit_namespace_not_found`](/errors/unkey/data/ratelimit_namespace_not_found): the namespace never existed.
+- [`err:unkey:data:ratelimit_override_not_found`](/errors/unkey/data/ratelimit_override_not_found): an override doesn't exist.

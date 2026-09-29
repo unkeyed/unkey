@@ -1,75 +1,47 @@
 ---
 title: "request_body_unreadable"
-description: "The request body could not be read due to malformed JSON, encoding issues, or a dropped connection. Validate your payload format and retry."
+sidebarTitle: "request_body_unreadable"
+description: "The API could not read the request body to the end."
+sources:
+  - pkg/codes/user_request.go
+  - svc/api/internal/middleware/errors.go
+  - pkg/zen/session.go
 ---
 
 <Danger>`err:user:bad_request:request_body_unreadable`</Danger>
 
-```json Example
+The API couldn't read your request body to the end, for a reason other than size. You get HTTP 400 on any endpoint.
+
+```json Example response
 {
   "meta": {
-    "requestId": "req_4dgzrNP3Je5mU1tD"
+    "requestId": "req_2c9a0jf23l4k567"
   },
   "error": {
     "detail": "The request body could not be read.",
     "status": 400,
     "title": "Bad Request",
-    "type": "https://unkey.com/docs/errors/user/bad_request/request_body_unreadable",
+    "type": "/errors/user/bad_request/request_body_unreadable",
     "errors": []
   }
 }
 ```
 
-## What Happened?
+## Likely causes
 
-The server couldn't read your request body. This typically happens when there's an issue with how the request was formed or transmitted.
+- Your client disconnected mid-upload.
+- The `Content-Length` header doesn't match the bytes sent.
+- A proxy between you and `api.unkey.com` cut the body short.
 
-Common causes include:
+## How to fix
 
-- Malformed HTTP request structure
-- Network connection closed prematurely during transmission
-- Invalid or mismatched `Content-Length` header
-- Data corruption during transmission
-- Client-side network interruption
+1. Retry the request.
+2. If it keeps failing, make sure your HTTP client sends the full body with a correct `Content-Length` and doesn't close the connection early on a slow network.
+3. Check that any proxy or gateway in between forwards the body unchanged.
 
-## How to Fix It
+The official SDKs avoid most of these problems.
 
-### 1. Check Your Request Structure
+## Related errors
 
-Make sure your HTTP request is properly formatted and all required headers are present:
-
-```bash
-curl -X POST https://api.unkey.com/v2/keys.create \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer unkey_XXXX" \
-  -d '{
-    "apiId": "api_123",
-    "name": "My Key"
-  }'
-```
-
-### 2. Check Network Stability
-
-If you're experiencing intermittent failures:
-
-- Implement retry logic with exponential backoff
-- Check your network connection stability
-- Consider timeout values that may be too aggressive
-
-### 3. Avoid Partial Uploads
-
-Ensure you're sending the complete request body in one go, not streaming partial data that might get interrupted.
-
-## Still Having Issues?
-
-<Note>
-If you continue to see this error after checking the above:
-
-1. Check your HTTP client library documentation for known issues
-2. Try a different HTTP client to isolate the problem
-3. [Contact our support team](mailto:support@unkey.com) with:
-   - Your request ID (from the error response)
-   - The HTTP client/library you're using
-   - Any network logs or error messages
-
-</Note>
+- [`err:user:bad_request:request_body_too_large`](/errors/user/bad_request/request_body_too_large): the body exceeded the size cap.
+- [`err:user:bad_request:client_closed_request`](/errors/user/bad_request/client_closed_request): the client disconnected while the request was being processed.
