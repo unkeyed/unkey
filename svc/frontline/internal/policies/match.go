@@ -3,11 +3,15 @@ package policies
 import (
 	"fmt"
 	"net/http"
+	"net/netip"
 	"regexp"
 	"strings"
 	"sync"
 
 	frontlinev1 "github.com/unkeyed/unkey/gen/proto/frontline/v1"
+	"github.com/unkeyed/unkey/pkg/assert"
+	"github.com/unkeyed/unkey/pkg/codes"
+	"github.com/unkeyed/unkey/pkg/fault"
 )
 
 // regexCache caches compiled regular expressions to avoid recompilation.
@@ -33,7 +37,12 @@ func (rc *regexCache) get(pattern string) (*regexp.Regexp, error) {
 
 	re, err := regexp.Compile(pattern)
 	if err != nil {
-		return nil, fmt.Errorf("invalid regex %q: %w", pattern, err)
+		return nil, fault.Wrap(
+			err,
+			fault.Code(codes.Frontline.Internal.InvalidConfiguration.URN()),
+			fault.Internal(fmt.Sprintf("invalid regex %q", pattern)),
+			fault.Public("Service configuration error."),
+		)
 	}
 
 	rc.mu.Lock()
@@ -44,9 +53,9 @@ func (rc *regexCache) get(pattern string) (*regexp.Regexp, error) {
 
 // matchesRequest evaluates all match expressions against the request.
 // All expressions must match (AND semantics). An empty list matches all requests.
-func matchesRequest(req *http.Request, exprs []*frontlinev1.MatchExpr, rc *regexCache) (bool, error) {
+func matchesRequest(req *http.Request, clientIP netip.Addr, exprs []*frontlinev1.MatchExpr, rc *regexCache) (bool, error) {
 	for _, expr := range exprs {
-		matched, err := evalMatchExpr(req, expr, rc)
+		matched, err := evalMatchExpr(req, clientIP, expr, rc)
 		if err != nil {
 			return false, err
 		}
@@ -57,7 +66,7 @@ func matchesRequest(req *http.Request, exprs []*frontlinev1.MatchExpr, rc *regex
 	return true, nil
 }
 
-func evalMatchExpr(req *http.Request, expr *frontlinev1.MatchExpr, rc *regexCache) (bool, error) {
+func evalMatchExpr(req *http.Request, clientIP netip.Addr, expr *frontlinev1.MatchExpr, rc *regexCache) (bool, error) {
 	if expr == nil {
 		return false, nil
 	}
@@ -70,10 +79,11 @@ func evalMatchExpr(req *http.Request, expr *frontlinev1.MatchExpr, rc *regexCach
 		return evalHeaderMatch(req, e.Header, rc)
 	case *frontlinev1.MatchExpr_QueryParam:
 		return evalQueryParamMatch(req, e.QueryParam, rc)
+	case *frontlinev1.MatchExpr_RemoteIp:
+		return evalRemoteIpMatch(clientIP, e.RemoteIp)
 	default:
 		return false, nil
 	}
-
 }
 
 func evalPathMatch(req *http.Request, pm *frontlinev1.PathMatch, rc *regexCache) (bool, error) {
@@ -143,6 +153,41 @@ func evalQueryParamMatch(req *http.Request, qm *frontlinev1.QueryParamMatch, rc 
 	default:
 		return exists, nil
 	}
+}
+
+func evalRemoteIpMatch(clientIP netip.Addr, rm *frontlinev1.RemoteIpMatch) (bool, error) {
+	if err := assert.True(clientIP.IsValid(), "remote ip match requires a valid client ip"); err != nil {
+		return false, err
+	}
+
+	if in := rm.GetIn(); len(in) > 0 {
+		return listContainsIP(in, clientIP)
+	}
+
+	// not_in flips it: clients in the list are let through, everyone else matches
+	inList, err := listContainsIP(rm.GetNotIn(), clientIP)
+	if err != nil || inList {
+		return false, err
+	}
+	return true, nil
+}
+
+func listContainsIP(cidrs []string, ip netip.Addr) (bool, error) {
+	for _, cidr := range cidrs {
+		prefix, err := netip.ParsePrefix(cidr)
+		if err != nil {
+			return false, fault.Wrap(
+				err,
+				fault.Code(codes.Frontline.Internal.InvalidConfiguration.URN()),
+				fault.Internal(fmt.Sprintf("invalid cidr %q", cidr)),
+				fault.Public("Service configuration error."),
+			)
+		}
+		if prefix.Contains(ip) {
+			return true, nil
+		}
+	}
+	return false, nil
 }
 
 // evalStringMatch evaluates a value against a StringMatch (exact, prefix, or regex).

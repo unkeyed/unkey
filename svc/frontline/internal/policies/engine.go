@@ -147,7 +147,7 @@ func (e *Engine) Evaluate(
 			continue
 		}
 
-		matched, err := matchesRequest(req, policy.GetMatch(), e.regexCache)
+		matched, err := matchesRequest(req, sess.ClientIP(), policy.GetMatch(), e.regexCache)
 		if err != nil {
 			return result, err
 		}

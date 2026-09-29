@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file frontline/policies/v1/match.proto.
  */
 export const file_frontline_policies_v1_match: GenFile = /*@__PURE__*/
-  fileDesc("CiFmcm9udGxpbmUvcG9saWNpZXMvdjEvbWF0Y2gucHJvdG8SDGZyb250bGluZS52MSLMAQoJTWF0Y2hFeHByEicKBHBhdGgYASABKAsyFy5mcm9udGxpbmUudjEuUGF0aE1hdGNoSAASKwoGbWV0aG9kGAIgASgLMhkuZnJvbnRsaW5lLnYxLk1ldGhvZE1hdGNoSAASKwoGaGVhZGVyGAMgASgLMhkuZnJvbnRsaW5lLnYxLkhlYWRlck1hdGNoSAASNAoLcXVlcnlfcGFyYW0YBCABKAsyHS5mcm9udGxpbmUudjEuUXVlcnlQYXJhbU1hdGNoSABCBgoEZXhwciJfCgtTdHJpbmdNYXRjaBITCgtpZ25vcmVfY2FzZRgBIAEoCBIPCgVleGFjdBgCIAEoCUgAEhAKBnByZWZpeBgDIAEoCUgAEg8KBXJlZ2V4GAQgASgJSABCBwoFbWF0Y2giNAoJUGF0aE1hdGNoEicKBHBhdGgYASABKAsyGS5mcm9udGxpbmUudjEuU3RyaW5nTWF0Y2giHgoLTWV0aG9kTWF0Y2gSDwoHbWV0aG9kcxgBIAMoCSJjCgtIZWFkZXJNYXRjaBIMCgRuYW1lGAEgASgJEhEKB3ByZXNlbnQYAiABKAhIABIqCgV2YWx1ZRgDIAEoCzIZLmZyb250bGluZS52MS5TdHJpbmdNYXRjaEgAQgcKBW1hdGNoImcKD1F1ZXJ5UGFyYW1NYXRjaBIMCgRuYW1lGAEgASgJEhEKB3ByZXNlbnQYAiABKAhIABIqCgV2YWx1ZRgDIAEoCzIZLmZyb250bGluZS52MS5TdHJpbmdNYXRjaEgAQgcKBW1hdGNoQqwBChBjb20uZnJvbnRsaW5lLnYxQgpNYXRjaFByb3RvUAFaO2dpdGh1Yi5jb20vdW5rZXllZC91bmtleS9nZW4vcHJvdG8vZnJvbnRsaW5lL3YxO2Zyb250bGluZXYxogIDRlhYqgIMRnJvbnRsaW5lLlYxygIMRnJvbnRsaW5lXFYx4gIYRnJvbnRsaW5lXFYxXEdQQk1ldGFkYXRh6gINRnJvbnRsaW5lOjpWMWIGcHJvdG8z");
+  fileDesc("CiFmcm9udGxpbmUvcG9saWNpZXMvdjEvbWF0Y2gucHJvdG8SDGZyb250bGluZS52MSL+AQoJTWF0Y2hFeHByEicKBHBhdGgYASABKAsyFy5mcm9udGxpbmUudjEuUGF0aE1hdGNoSAASKwoGbWV0aG9kGAIgASgLMhkuZnJvbnRsaW5lLnYxLk1ldGhvZE1hdGNoSAASKwoGaGVhZGVyGAMgASgLMhkuZnJvbnRsaW5lLnYxLkhlYWRlck1hdGNoSAASNAoLcXVlcnlfcGFyYW0YBCABKAsyHS5mcm9udGxpbmUudjEuUXVlcnlQYXJhbU1hdGNoSAASMAoJcmVtb3RlX2lwGAUgASgLMhsuZnJvbnRsaW5lLnYxLlJlbW90ZUlwTWF0Y2hIAEIGCgRleHByIl8KC1N0cmluZ01hdGNoEhMKC2lnbm9yZV9jYXNlGAEgASgIEg8KBWV4YWN0GAIgASgJSAASEAoGcHJlZml4GAMgASgJSAASDwoFcmVnZXgYBCABKAlIAEIHCgVtYXRjaCI0CglQYXRoTWF0Y2gSJwoEcGF0aBgBIAEoCzIZLmZyb250bGluZS52MS5TdHJpbmdNYXRjaCIeCgtNZXRob2RNYXRjaBIPCgdtZXRob2RzGAEgAygJImMKC0hlYWRlck1hdGNoEgwKBG5hbWUYASABKAkSEQoHcHJlc2VudBgCIAEoCEgAEioKBXZhbHVlGAMgASgLMhkuZnJvbnRsaW5lLnYxLlN0cmluZ01hdGNoSABCBwoFbWF0Y2giZwoPUXVlcnlQYXJhbU1hdGNoEgwKBG5hbWUYASABKAkSEQoHcHJlc2VudBgCIAEoCEgAEioKBXZhbHVlGAMgASgLMhkuZnJvbnRsaW5lLnYxLlN0cmluZ01hdGNoSABCBwoFbWF0Y2giKwoNUmVtb3RlSXBNYXRjaBIKCgJpbhgBIAMoCRIOCgZub3RfaW4YAiADKAlCrAEKEGNvbS5mcm9udGxpbmUudjFCCk1hdGNoUHJvdG9QAVo7Z2l0aHViLmNvbS91bmtleWVkL3Vua2V5L2dlbi9wcm90by9mcm9udGxpbmUvdjE7ZnJvbnRsaW5ldjGiAgNGWFiqAgxGcm9udGxpbmUuVjHKAgxGcm9udGxpbmVcVjHiAhhGcm9udGxpbmVcVjFcR1BCTWV0YWRhdGHqAg1Gcm9udGxpbmU6OlYxYgZwcm90bzM");
 
 /**
  * MatchExpr tests a single property of an incoming HTTP request.
@@ -54,6 +54,12 @@ export type MatchExpr = Message<"frontline.v1.MatchExpr"> & {
      */
     value: QueryParamMatch;
     case: "queryParam";
+  } | {
+    /**
+     * @generated from field: frontline.v1.RemoteIpMatch remote_ip = 5;
+     */
+    value: RemoteIpMatch;
+    case: "remoteIp";
   } | { case: undefined; value?: undefined };
 };
 
@@ -277,4 +283,36 @@ export type QueryParamMatch = Message<"frontline.v1.QueryParamMatch"> & {
  */
 export const QueryParamMatchSchema: GenMessage<QueryParamMatch> = /*@__PURE__*/
   messageDesc(file_frontline_policies_v1_match, 5);
+
+/**
+ * RemoteIpMatch tests the client IP against CIDR ranges. The client IP is the
+ * TCP peer address, or the address carried in authenticated metadata when the
+ * request was forwarded by another Frontline region.
+ *
+ * Set exactly one list. `in` matches when the IP is in at least one range,
+ * `not_in` matches when the IP is in none of them. If both are set, `in` is
+ * used. If neither is set, every request matches.
+ * Entries are CIDRs such as "198.51.100.0/24" or "2001:db8::/32"; single
+ * addresses use a full-length prefix such as "198.51.100.7/32".
+ *
+ * @generated from message frontline.v1.RemoteIpMatch
+ */
+export type RemoteIpMatch = Message<"frontline.v1.RemoteIpMatch"> & {
+  /**
+   * @generated from field: repeated string in = 1;
+   */
+  in: string[];
+
+  /**
+   * @generated from field: repeated string not_in = 2;
+   */
+  notIn: string[];
+};
+
+/**
+ * Describes the message frontline.v1.RemoteIpMatch.
+ * Use `create(RemoteIpMatchSchema)` to create a new message.
+ */
+export const RemoteIpMatchSchema: GenMessage<RemoteIpMatch> = /*@__PURE__*/
+  messageDesc(file_frontline_policies_v1_match, 6);
 

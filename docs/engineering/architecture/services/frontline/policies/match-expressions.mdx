@@ -216,6 +216,52 @@ Matches against URL query parameters. Parameter names are matched case-sensitive
 </Tab>
 </Tabs>
 
+### Remote IP
+
+Matches the client IP against CIDR ranges. The client IP is the TCP peer address. When another Frontline region forwarded the request, it is the address carried in the signed Frontline metadata. Client headers such as `X-Forwarded-For` are never read.
+
+<ResponseField name="in" type="string[]">
+  Matches when the client IP is in at least one range.
+</ResponseField>
+
+<ResponseField name="not_in" type="string[]">
+  Matches when the client IP is in none of the ranges.
+</ResponseField>
+
+Set exactly one of the two lists. If both are set, `in` is used. If neither is set, every request matches. Entries are CIDRs, and single addresses use a full-length prefix such as `/32` or `/128`. An entry that is not a valid CIDR fails the request with `InvalidConfiguration`.
+
+<Tabs>
+<Tab title="Block a range">
+```json
+{
+  "policies": [
+    {
+      "match": [
+        { "remote_ip": { "in": ["203.0.113.0/24"] } }
+      ],
+      "firewall": { "action": "ACTION_DENY" }
+    }
+  ]
+}
+```
+</Tab>
+<Tab title="Allow only the office on /admin">
+```json
+{
+  "policies": [
+    {
+      "match": [
+        { "path": { "path": { "prefix": "/admin" } } },
+        { "remote_ip": { "not_in": ["198.51.100.0/24"] } }
+      ],
+      "firewall": { "action": "ACTION_DENY" }
+    }
+  ]
+}
+```
+</Tab>
+</Tabs>
+
 ## String match types
 
 All string comparisons support three modes:
