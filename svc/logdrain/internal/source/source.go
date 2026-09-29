@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
-	"time"
 
 	logdrainv1 "github.com/unkeyed/unkey/gen/proto/logdrain/v1"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
@@ -139,7 +138,6 @@ func (s *AuditLogs) Read(ctx context.Context, workspaceID string, from Cursor, t
 		payload := sink.AuditLogPayload{
 			ID:            row.EventID,
 			Action:        row.Event,
-			OccurredAt:    time.UnixMilli(row.Time).UTC().Format("2006-01-02T15:04:05.000Z"),
 			Actor:         actor,
 			Targets:       targets,
 			Context:       sink.AuditLogContext{Location: row.RemoteIP, UserAgent: row.UserAgent},

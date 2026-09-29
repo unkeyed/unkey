@@ -75,10 +75,8 @@ type AuditLogContext struct {
 
 // AuditLogPayload carries the data for the "audit_logs" stream.
 type AuditLogPayload struct {
-	ID     string `json:"id"`
-	Action string `json:"action"`
-	// OccurredAt is the event time in RFC3339 UTC with millisecond precision.
-	OccurredAt    string           `json:"occurred_at"`
+	ID            string           `json:"id"`
+	Action        string           `json:"action"`
 	Actor         AuditLogActor    `json:"actor"`
 	Targets       []AuditLogTarget `json:"targets"`
 	Context       AuditLogContext  `json:"context"`
