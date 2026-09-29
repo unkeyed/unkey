@@ -53,8 +53,14 @@ describe("projects-first workspace sections", () => {
 });
 
 describe("projects-first project links", () => {
-  it("lists the eight project sections in order", () => {
+  it("lists the nine project sections in order", () => {
     expect(rows(buildProjectLinks(ws, projectId, ["projects", projectId]))).toEqual([
+      {
+        key: "overview",
+        label: "Overview",
+        href: "/acme/projects/proj_123/overview",
+        isActive: false,
+      },
       { key: "apps", label: "Apps", href: "/acme/projects/proj_123", isActive: true },
       {
         key: "keyspaces",
@@ -97,6 +103,7 @@ describe("projects-first project links", () => {
   });
 
   it.each([
+    ["overview", "overview"],
     ["keyspaces", "keyspaces"],
     ["ratelimits", "ratelimits"],
     ["identities", "identities"],
