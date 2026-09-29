@@ -266,3 +266,34 @@ func TestListRootKeysExcludesForeignAndDeletedKeys(t *testing.T) {
 	require.Len(t, res.Body.Data, 1)
 	require.Equal(t, caller.KeyID, res.Body.Data[0].KeyId)
 }
+
+// TestListRootKeysPrefersNewTwin guarantees an ID shared during migration is
+// listed once with the new key's metadata and permissions.
+func TestListRootKeysPrefersNewTwin(t *testing.T) {
+	h := testutil.NewHarness(t)
+	route := &handler.Handler{DB: h.DB}
+	h.Register(route)
+	workspace := h.CreateWorkspace()
+	legacy := h.CreateKey(seed.CreateKeyRequest{
+		WorkspaceID: h.Resources().RootWorkspace.ID, KeySpaceID: h.Resources().RootKeySpace.ID, ForWorkspaceID: &workspace.ID,
+		Permissions: []seed.CreatePermissionRequest{{WorkspaceID: h.Resources().RootWorkspace.ID, Name: "api.*.read_key", Slug: "api.*.read_key"}},
+	})
+	require.NoError(t, db.Query.InsertUnkeyRootKey(t.Context(), h.DB.RW(), db.InsertUnkeyRootKeyParams{
+		ID: legacy.KeyID, ForWorkspaceID: workspace.ID, Hash: uid.New("hash"), Name: sql.NullString{String: "new", Valid: true},
+		Prefix: "unkey", Start: "new", End: "tail", Enabled: true, Expires: sql.NullTime{}, CreatedAt: 1700000000000,
+	}))
+	permission := "unkey:v1:" + workspace.ID + ":rootKeys/*#read"
+	require.NoError(t, db.Query.InsertUnkeyPermission(t.Context(), h.DB.RW(), db.InsertUnkeyPermissionParams{
+		ID: uid.New(uid.PermissionPrefix), ForWorkspaceID: workspace.ID, PrincipalType: db.UnkeyPrincipalPermissionsPrincipalTypeRootKey,
+		PrincipalID: legacy.KeyID, Slug: permission, CreatedAt: 1700000000000,
+	}))
+	caller := h.CreateRootKey(workspace.ID, "unkey:v1:"+workspace.ID+":rootKeys/"+legacy.KeyID+"#read")
+	res := testutil.CallRoute[handler.Request, handler.Response](h, route, http.Header{
+		"Authorization": {"Bearer " + caller}, "Content-Type": {"application/json"},
+	}, handler.Request{Limit: new(1)})
+	require.Equal(t, http.StatusOK, res.Status, "%s", res.RawBody)
+	require.Len(t, res.Body.Data, 1)
+	require.Equal(t, "new", res.Body.Data[0].Name.MustGet())
+	require.Equal(t, []string{permission}, res.Body.Data[0].Permissions)
+	require.False(t, res.Body.Pagination.HasMore)
+}

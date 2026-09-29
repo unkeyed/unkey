@@ -138,6 +138,7 @@ SELECT
     k.name,
     k.expires,
     k.enabled,
+    k.deleted_at,
     fws.enabled AS for_workspace_enabled,
     COALESCE(
         (SELECT JSON_ARRAYAGG(p.slug)
@@ -149,7 +150,7 @@ SELECT
     ) AS permissions
 FROM unkey_root_keys k
 LEFT JOIN workspaces fws ON fws.id = k.for_workspace_id
-WHERE k.hash = ? AND k.deleted_at IS NULL
+WHERE k.hash = ?
 `
 
 type FindUnkeyRootKeyForAuthenticationRow struct {
@@ -158,11 +159,13 @@ type FindUnkeyRootKeyForAuthenticationRow struct {
 	Name                sql.NullString `db:"name"`
 	Expires             sql.NullTime   `db:"expires"`
 	Enabled             bool           `db:"enabled"`
+	DeletedAt           sql.NullInt64  `db:"deleted_at"`
 	ForWorkspaceEnabled sql.NullBool   `db:"for_workspace_enabled"`
 	Permissions         interface{}    `db:"permissions"`
 }
 
-// FindUnkeyRootKeyForAuthentication loads an active root key from the new store.
+// FindUnkeyRootKeyForAuthentication loads a root key from the new store,
+// including tombstones so callers do not fall back to a legacy row with the same hash.
 // Permissions are scoped to the target workspace and root-key principal.
 //
 //	SELECT
@@ -171,6 +174,7 @@ type FindUnkeyRootKeyForAuthenticationRow struct {
 //	    k.name,
 //	    k.expires,
 //	    k.enabled,
+//	    k.deleted_at,
 //	    fws.enabled AS for_workspace_enabled,
 //	    COALESCE(
 //	        (SELECT JSON_ARRAYAGG(p.slug)
@@ -182,7 +186,7 @@ type FindUnkeyRootKeyForAuthenticationRow struct {
 //	    ) AS permissions
 //	FROM unkey_root_keys k
 //	LEFT JOIN workspaces fws ON fws.id = k.for_workspace_id
-//	WHERE k.hash = ? AND k.deleted_at IS NULL
+//	WHERE k.hash = ?
 func (q *Queries) FindUnkeyRootKeyForAuthentication(ctx context.Context, db DBTX, hash string) (FindUnkeyRootKeyForAuthenticationRow, error) {
 	row := db.QueryRowContext(ctx, findUnkeyRootKeyForAuthentication, hash)
 	var i FindUnkeyRootKeyForAuthenticationRow
@@ -192,6 +196,7 @@ func (q *Queries) FindUnkeyRootKeyForAuthentication(ctx context.Context, db DBTX
 		&i.Name,
 		&i.Expires,
 		&i.Enabled,
+		&i.DeletedAt,
 		&i.ForWorkspaceEnabled,
 		&i.Permissions,
 	)

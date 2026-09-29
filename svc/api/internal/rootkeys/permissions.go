@@ -1,4 +1,4 @@
-package handler
+package rootkeys
 
 import (
 	"context"
@@ -13,13 +13,13 @@ import (
 	"github.com/unkeyed/unkey/pkg/urn"
 )
 
-// validateDelegatedPermissions returns sorted, deduplicated permissions that the
+// ValidateDelegatedPermissions returns sorted, deduplicated permissions that the
 // caller may assign to a child root key. Every request must be a supported URN in
 // the caller's workspace and fit within one of the caller's permissions.
 // For example, projects/*#read permits projects/proj_one#read, but not #write.
 // Invalid requests fail with 400; requests beyond the caller's access fail with
 // 403. Cancellation stops validation between permission checks.
-func validateDelegatedPermissions(ctx context.Context, p *principal.Principal, requestedPermissions []string) ([]string, error) {
+func ValidateDelegatedPermissions(ctx context.Context, p *principal.Principal, requestedPermissions []string) ([]string, error) {
 	validatedPermissionSet := make(map[string]struct{}, len(requestedPermissions))
 	for _, requestedPermission := range requestedPermissions {
 		if err := ctx.Err(); err != nil {

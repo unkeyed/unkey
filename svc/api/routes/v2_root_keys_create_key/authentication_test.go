@@ -51,6 +51,14 @@ func TestRootKeyAuthenticationPrefersNewStore(t *testing.T) {
 	rootKey, err := h.Keys.GetRootKey(t.Context(), session)
 	require.NoError(t, err)
 	require.Equal(t, newID, rootKey.Key.ID)
+
+	_, err = h.DB.RW().ExecContext(t.Context(), "UPDATE unkey_root_keys SET deleted_at = 1 WHERE id = ?", newID)
+	require.NoError(t, err)
+	h.Caches.RootKeyByHash.Remove(t.Context(), hash.Sha256(legacy.Key))
+	for range 2 {
+		_, err = h.Keys.GetRootKey(t.Context(), session)
+		require.Error(t, err)
+	}
 }
 
 // TestNewRootKeyAuthenticationIgnoresLegacyOwnership guarantees new root keys

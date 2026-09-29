@@ -64,12 +64,12 @@ func TestCreateStoresEveryResourceAction(t *testing.T) {
 }
 
 // TestCreateRejectsInvalidResourceActionsAtomically guarantees unsupported
-// permissions leave storage unchanged. For example, rootKeys/*#delete is rejected.
+// permissions leave storage unchanged. For example, rootKeys/*#decrypt is rejected.
 func TestCreateRejectsInvalidResourceActionsAtomically(t *testing.T) {
 	h, route, p := newHarness(t)
 	base := "unkey:v1:" + p.AuthorizedWorkspaceID + ":"
 	for _, permission := range []string{
-		base + "rootKeys/*#delete",
+		base + "rootKeys/*#decrypt",
 		base + "projects/*/keyspaces/*/logs#decrypt",
 		base + "projects/*/ratelimits/namespaces/*/overrides/*#limit",
 		base + "projects/*/apps/*/environments/*/gateway#write",

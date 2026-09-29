@@ -1,7 +1,8 @@
 -- name: ListRootKeyPermissions :many
 -- ListRootKeyPermissions loads effective permissions for an authorized page.
 -- Legacy role and direct assignments require a legacy root key in the target
--- workspace. Callers deduplicate exact strings, not collation-equivalent strings.
+-- workspace and no live new key with the same ID. Callers deduplicate exact strings,
+-- not collation-equivalent strings.
 SELECT
     up.principal_id AS key_id,
     up.slug
@@ -19,6 +20,13 @@ JOIN permissions p ON p.id = kp.permission_id
 WHERE k.for_workspace_id = sqlc.narg(for_workspace_id)
     AND k.deleted_at_m IS NULL
     AND k.id IN (sqlc.slice(key_ids))
+    AND NOT EXISTS (
+        SELECT 1
+        FROM unkey_root_keys shadow
+        WHERE shadow.id = k.id
+            AND shadow.for_workspace_id = k.for_workspace_id
+            AND shadow.deleted_at IS NULL
+    )
 UNION ALL
 SELECT
     k.id AS key_id,
@@ -29,4 +37,11 @@ JOIN roles_permissions rp ON rp.role_id = kr.role_id
 JOIN permissions p ON p.id = rp.permission_id
 WHERE k.for_workspace_id = sqlc.narg(for_workspace_id)
     AND k.deleted_at_m IS NULL
-    AND k.id IN (sqlc.slice(key_ids));
+    AND k.id IN (sqlc.slice(key_ids))
+    AND NOT EXISTS (
+        SELECT 1
+        FROM unkey_root_keys shadow
+        WHERE shadow.id = k.id
+            AND shadow.for_workspace_id = k.for_workspace_id
+            AND shadow.deleted_at IS NULL
+    );

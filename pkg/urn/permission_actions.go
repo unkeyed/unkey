@@ -98,10 +98,8 @@ func newPermissionActionSet(actions ...PermissionAction) permissionActionSet {
 // permissionActions returns the read, write, and delete actions for GitHub apps.
 func (GitHubApp) permissionActions(bool) permissionActionSet { return readWriteDelete }
 
-// permissionActions returns read and write for root keys.
-func (rootKey) permissionActions(bool) permissionActionSet {
-	return newPermissionActionSet(PermissionRead, PermissionWrite)
-}
+// permissionActions returns the read, write, and delete actions for root keys.
+func (rootKey) permissionActions(bool) permissionActionSet { return readWriteDelete }
 
 // permissionActions adds descendant-only actions to project patterns.
 func (Project) permissionActions(descendants bool) permissionActionSet {

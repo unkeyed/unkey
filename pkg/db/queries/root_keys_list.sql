@@ -2,6 +2,7 @@
 -- ListRootKeys merges both root-key stores into one workspace-scoped ID stream.
 -- The cursor is inclusive: a cursor of key_b returns key_b before key_c.
 -- Disabled and expired keys remain visible; soft-deleted keys are excluded.
+-- A new key hides a legacy key with the same ID during migration.
 SELECT
     id,
     name,
@@ -29,5 +30,12 @@ FROM `keys`
 WHERE `keys`.for_workspace_id = sqlc.narg(for_workspace_id)
     AND `keys`.deleted_at_m IS NULL
     AND `keys`.id >= sqlc.arg(id_cursor)
+    AND NOT EXISTS (
+        SELECT 1
+        FROM unkey_root_keys shadow
+        WHERE shadow.id = `keys`.id
+            AND shadow.for_workspace_id = `keys`.for_workspace_id
+            AND shadow.deleted_at IS NULL
+    )
 ORDER BY id ASC
 LIMIT ?;

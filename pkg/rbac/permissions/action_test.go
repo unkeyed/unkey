@@ -112,7 +112,6 @@ func TestSupportsPermissionAction_RejectsUnsupportedActions(t *testing.T) {
 		resource string
 		action   permissions.Action
 	}{
-		{name: "root key delete", resource: "rootKeys/key_123", action: permissions.Delete},
 		{name: "keyspace log write", resource: "projects/proj_123/keyspaces/ks_123/logs", action: permissions.Write},
 		{name: "key limit", resource: "projects/proj_123/keyspaces/ks_123/keys/key_123", action: permissions.Limit},
 		{name: "namespace decrypt", resource: "projects/proj_123/ratelimits/namespaces/ns_123", action: permissions.Decrypt},
@@ -132,13 +131,15 @@ func TestSupportsPermissionAction_RejectsUnsupportedActions(t *testing.T) {
 	}
 }
 
-// TestRootKeyReadPermissionIsSupported guarantees read can be delegated for root
-// keys. For example, both rootKeys/key_123#read and rootKeys/*#read are supported.
-func TestRootKeyReadPermissionIsSupported(t *testing.T) {
+// TestRootKeyManagementPermissionsAreSupported guarantees root keys can be read,
+// updated, and deleted by concrete ID or wildcard.
+func TestRootKeyManagementPermissionsAreSupported(t *testing.T) {
 	for _, id := range []string{"key_123", "*"} {
 		resource, err := urn.ParseV1(urn.New().Workspace("ws_123").RootKey(id).String())
 		require.NoError(t, err)
-		require.True(t, resource.SupportsPermissionAction(permissions.Read))
+		for _, action := range []permissions.Action{permissions.Read, permissions.Write, permissions.Delete} {
+			require.True(t, resource.SupportsPermissionAction(action))
+		}
 	}
 }
 

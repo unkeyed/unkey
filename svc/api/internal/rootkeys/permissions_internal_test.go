@@ -1,4 +1,4 @@
-package handler
+package rootkeys
 
 import (
 	"context"
@@ -25,7 +25,7 @@ func TestDelegatedPermissionsPreservesDistinctGrants(t *testing.T) {
 		requested[count-1-i] = permission
 	}
 
-	got, err := validateDelegatedPermissions(t.Context(), p, requested)
+	got, err := ValidateDelegatedPermissions(t.Context(), p, requested)
 	require.NoError(t, err)
 	require.Len(t, got, count)
 	require.Equal(t, base+"proj_0000#read", got[0])
@@ -46,7 +46,7 @@ func TestAuthorizePermissionsRejectsMissingGrantAmongMaximumDistinctPermissions(
 	}
 	requested[count-1] = base + "missing#read"
 
-	_, err := validateDelegatedPermissions(t.Context(), p, requested)
+	_, err := ValidateDelegatedPermissions(t.Context(), p, requested)
 	require.Error(t, err)
 	code, ok := fault.GetCode(err)
 	require.True(t, ok)
@@ -81,7 +81,7 @@ func TestAuthorizePermissionsEnforcesContainmentBoundaries(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			p := &principal.Principal{AuthorizedWorkspaceID: "ws_one", Permissions: []string{tt.caller}}
-			got, err := validateDelegatedPermissions(t.Context(), p, []string{tt.requested})
+			got, err := ValidateDelegatedPermissions(t.Context(), p, []string{tt.requested})
 			if tt.allowed {
 				require.NoError(t, err)
 				require.Equal(t, []string{tt.requested}, got)
@@ -101,7 +101,7 @@ func TestAuthorizePermissionsEnforcesContainmentBoundaries(t *testing.T) {
 func TestAuthorizePermissionsHonorsCancellation(t *testing.T) {
 	ctx, cancel := context.WithCancel(t.Context())
 	cancel()
-	_, err := validateDelegatedPermissions(ctx, &principal.Principal{AuthorizedWorkspaceID: "ws_one"}, []string{"unkey:v1:ws_one:projects/proj_one#read"})
+	_, err := ValidateDelegatedPermissions(ctx, &principal.Principal{AuthorizedWorkspaceID: "ws_one"}, []string{"unkey:v1:ws_one:projects/proj_one#read"})
 	require.ErrorIs(t, err, context.Canceled)
 }
 
@@ -120,7 +120,7 @@ func BenchmarkAuthorizePermissions1000Distinct(b *testing.B) {
 	b.Run("authorized", func(b *testing.B) {
 		b.ReportAllocs()
 		for range b.N {
-			_, err := validateDelegatedPermissions(context.Background(), p, requested)
+			_, err := ValidateDelegatedPermissions(context.Background(), p, requested)
 			if err != nil {
 				b.Fatal(err)
 			}
@@ -130,7 +130,7 @@ func BenchmarkAuthorizePermissions1000Distinct(b *testing.B) {
 		requested[count-1] = "unkey:v1:ws_one:projects/missing#read"
 		b.ReportAllocs()
 		for range b.N {
-			_, err := validateDelegatedPermissions(context.Background(), p, requested)
+			_, err := ValidateDelegatedPermissions(context.Background(), p, requested)
 			if err == nil {
 				b.Fatal("expected denial")
 			}

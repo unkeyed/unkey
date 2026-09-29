@@ -6421,7 +6421,7 @@ type V2RatelimitSetOverrideResponseData struct {
 
 // V2RootKeysCreateKeyRequestBody defines model for V2RootKeysCreateKeyRequestBody.
 type V2RootKeysCreateKeyRequestBody struct {
-	// Expires Expiration as Unix milliseconds, strictly in the future. Null or omitted means no expiration.
+	// Expires Expiration as Unix milliseconds, strictly in the future. Expiring root-key callers must provide a child expiry no later than their own. JWT admins and nonexpiring root-key callers may omit it or set null for no expiration.
 	Expires nullable.Nullable[int64] `json:"expires,omitempty"`
 
 	// Name Optional name for the root key.
@@ -6446,6 +6446,21 @@ type V2RootKeysCreateKeyResponseData struct {
 
 	// KeyId Identifier used to manage the root key.
 	KeyId string `json:"keyId"`
+}
+
+// V2RootKeysDeleteKeyRequestBody defines model for V2RootKeysDeleteKeyRequestBody.
+type V2RootKeysDeleteKeyRequestBody struct {
+	// KeyId Root key identifier returned by rootKeys.createKey or rootKeys.listKeys.
+	KeyId string `json:"keyId"`
+}
+
+// V2RootKeysDeleteKeyResponseBody defines model for V2RootKeysDeleteKeyResponseBody.
+type V2RootKeysDeleteKeyResponseBody struct {
+	// Data Empty response object by design. A successful response indicates this operation was successfully executed.
+	Data EmptyResponse `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
 }
 
 // V2RootKeysListKeysRequestBody defines model for V2RootKeysListKeysRequestBody.
@@ -6496,6 +6511,31 @@ type V2RootKeysListKeysResponseData struct {
 
 	// Start Stored display fragment, including the prefix when present.
 	Start string `json:"start"`
+}
+
+// V2RootKeysUpdateKeyRequestBody defines model for V2RootKeysUpdateKeyRequestBody.
+type V2RootKeysUpdateKeyRequestBody struct {
+	// Enabled Whether the root key can authenticate. Omit to keep the current state.
+	Enabled *bool `json:"enabled,omitempty"`
+
+	// KeyId Root key identifier returned by rootKeys.createKey or rootKeys.listKeys.
+	KeyId string `json:"keyId"`
+
+	// Name New root key name. Set null to remove the name. Omit to keep the current name.
+	Name nullable.Nullable[string] `json:"name,omitempty"`
+
+	// Permissions Complete replacement permission set. Every permission must be a supported URN in the authenticated workspace
+	// and within the caller's permissions. Omit to keep the current permissions.
+	Permissions *[]string `json:"permissions,omitempty"`
+}
+
+// V2RootKeysUpdateKeyResponseBody defines model for V2RootKeysUpdateKeyResponseBody.
+type V2RootKeysUpdateKeyResponseBody struct {
+	// Data Empty response object by design. A successful response indicates this operation was successfully executed.
+	Data EmptyResponse `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
 }
 
 // V3DeploymentsCreateDeploymentRequestBody Create a deployment. Omit the source to use the app default, or provide one source override.
@@ -6877,8 +6917,14 @@ type RatelimitSetOverrideJSONRequestBody = V2RatelimitSetOverrideRequestBody
 // RootKeysCreateKeyJSONRequestBody defines body for RootKeysCreateKey for application/json ContentType.
 type RootKeysCreateKeyJSONRequestBody = V2RootKeysCreateKeyRequestBody
 
+// RootKeysDeleteKeyJSONRequestBody defines body for RootKeysDeleteKey for application/json ContentType.
+type RootKeysDeleteKeyJSONRequestBody = V2RootKeysDeleteKeyRequestBody
+
 // RootKeysListKeysJSONRequestBody defines body for RootKeysListKeys for application/json ContentType.
 type RootKeysListKeysJSONRequestBody = V2RootKeysListKeysRequestBody
+
+// RootKeysUpdateKeyJSONRequestBody defines body for RootKeysUpdateKey for application/json ContentType.
+type RootKeysUpdateKeyJSONRequestBody = V2RootKeysUpdateKeyRequestBody
 
 // DeploymentsCreateDeploymentV3JSONRequestBody defines body for DeploymentsCreateDeploymentV3 for application/json ContentType.
 type DeploymentsCreateDeploymentV3JSONRequestBody = V3DeploymentsCreateDeploymentRequestBody

@@ -21,6 +21,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/internal/auditactor"
+	"github.com/unkeyed/unkey/svc/api/internal/rootkeys"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
@@ -67,7 +68,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				fault.Public("Expires is required and must not be later than the calling root key's expiration."))
 		}
 	}
-	validatedPermissions, err := validateDelegatedPermissions(ctx, p, req.Permissions)
+	validatedPermissions, err := rootkeys.ValidateDelegatedPermissions(ctx, p, req.Permissions)
 	if err != nil {
 		return err
 	}

@@ -3967,6 +3967,74 @@ components:
                         $ref: '#/components/schemas/V2RootKeysListKeysResponseData'
                 pagination:
                     $ref: '#/components/schemas/Pagination'
+        V2RootKeysDeleteKeyRequestBody:
+            type: object
+            additionalProperties: false
+            required:
+                - keyId
+            properties:
+                keyId:
+                    type: string
+                    minLength: 3
+                    maxLength: 255
+                    pattern: "^[a-zA-Z0-9_]+$"
+                    description: Root key identifier returned by rootKeys.createKey or rootKeys.listKeys.
+        V2RootKeysDeleteKeyResponseBody:
+            type: object
+            additionalProperties: false
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    $ref: '#/components/schemas/Meta'
+                data:
+                    $ref: '#/components/schemas/EmptyResponse'
+        V2RootKeysUpdateKeyRequestBody:
+            type: object
+            additionalProperties: false
+            required:
+                - keyId
+            minProperties: 2
+            properties:
+                keyId:
+                    type: string
+                    minLength: 3
+                    maxLength: 255
+                    pattern: "^[a-zA-Z0-9_]+$"
+                    description: Root key identifier returned by rootKeys.createKey or rootKeys.listKeys.
+                name:
+                    type:
+                        - string
+                        - "null"
+                    minLength: 1
+                    maxLength: 255
+                    description: New root key name. Set null to remove the name. Omit to keep the current name.
+                enabled:
+                    type: boolean
+                    description: Whether the root key can authenticate. Omit to keep the current state.
+                permissions:
+                    type: array
+                    minItems: 0
+                    maxItems: 1000
+                    description: |
+                        Complete replacement permission set. Every permission must be a supported URN in the authenticated workspace
+                        and within the caller's permissions. Omit to keep the current permissions.
+                    items:
+                        type: string
+                        minLength: 1
+                        maxLength: 255
+        V2RootKeysUpdateKeyResponseBody:
+            type: object
+            additionalProperties: false
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    $ref: '#/components/schemas/Meta'
+                data:
+                    $ref: '#/components/schemas/EmptyResponse'
         V3DeploymentsCreateDeploymentRequestBody:
             type: object
             required:
@@ -16639,6 +16707,135 @@ paths:
                 outputs:
                     nextCursor: $.pagination.cursor
                 type: cursor
+    /v2/rootKeys.deleteKey:
+        post:
+            description: |
+                Deletes a root key in the authenticated workspace.
+                Requires `unkey:v1:<workspace_id>:rootKeys/<key_id>#delete`.
+                Use `rootKeys/*#delete` to delete any root key in the workspace.
+                Deleted keys cannot authenticate.
+            operationId: rootKeys.deleteKey
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/V2RootKeysDeleteKeyRequestBody'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/V2RootKeysDeleteKeyResponseBody'
+                    description: Root key deleted.
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Invalid request.
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Authentication is required.
+                "403":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: The caller cannot delete this root key.
+                "404":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/NotFoundErrorResponse'
+                    description: The root key was not found.
+                "429":
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/TooManyRequestsErrorResponse'
+                    description: Too many requests.
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: The root key could not be deleted.
+            security:
+                - bearer: []
+            summary: Delete root key
+            tags:
+                - rootKeys
+            x-speakeasy-name-override: deleteKey
+    /v2/rootKeys.updateKey:
+        post:
+            description: |
+                Updates a root key in the authenticated workspace.
+                Requires `unkey:v1:<workspace_id>:rootKeys/<key_id>#write`.
+                Use `rootKeys/*#write` to update any root key in the workspace.
+
+                `permissions` replaces the complete permission set. Each permission must be a supported URN
+                in the authenticated workspace and within the caller's permissions.
+                An expiring root key can only update root keys that expire no later than itself.
+            operationId: rootKeys.updateKey
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/V2RootKeysUpdateKeyRequestBody'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/V2RootKeysUpdateKeyResponseBody'
+                    description: Root key updated.
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Invalid request or unsupported permission.
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Authentication is required.
+                "403":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: The caller cannot update this root key or grant a requested permission.
+                "404":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/NotFoundErrorResponse'
+                    description: The root key was not found.
+                "429":
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/TooManyRequestsErrorResponse'
+                    description: Too many requests.
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: The root key could not be updated.
+            security:
+                - bearer: []
+            summary: Update root key
+            tags:
+                - rootKeys
+            x-speakeasy-name-override: updateKey
     /v3/deployments.createDeployment:
         post:
             description: |

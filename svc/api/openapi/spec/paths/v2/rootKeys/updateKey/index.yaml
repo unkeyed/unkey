@@ -1,0 +1,65 @@
+post:
+  tags:
+    - rootKeys
+  summary: Update root key
+  description: |
+    Updates a root key in the authenticated workspace.
+    Requires `unkey:v1:<workspace_id>:rootKeys/<key_id>#write`.
+    Use `rootKeys/*#write` to update any root key in the workspace.
+
+    `permissions` replaces the complete permission set. Each permission must be a supported URN
+    in the authenticated workspace and within the caller's permissions.
+    An expiring root key can only update root keys that expire no later than itself.
+  operationId: rootKeys.updateKey
+  x-speakeasy-name-override: updateKey
+  security:
+    - bearer: []
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ./V2RootKeysUpdateKeyRequestBody.yaml
+  responses:
+    "200":
+      description: Root key updated.
+      content:
+        application/json:
+          schema:
+            $ref: ./V2RootKeysUpdateKeyResponseBody.yaml
+    "400":
+      description: Invalid request or unsupported permission.
+      content:
+        application/json:
+          schema:
+            $ref: ../../../../error/BadRequestErrorResponse.yaml
+    "401":
+      description: Authentication is required.
+      content:
+        application/json:
+          schema:
+            $ref: ../../../../error/UnauthorizedErrorResponse.yaml
+    "403":
+      description: The caller cannot update this root key or grant a requested permission.
+      content:
+        application/json:
+          schema:
+            $ref: ../../../../error/ForbiddenErrorResponse.yaml
+    "404":
+      description: The root key was not found.
+      content:
+        application/json:
+          schema:
+            $ref: ../../../../error/NotFoundErrorResponse.yaml
+    "429":
+      description: Too many requests.
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../../../../error/TooManyRequestsErrorResponse.yaml
+    "500":
+      description: The root key could not be updated.
+      content:
+        application/json:
+          schema:
+            $ref: ../../../../error/InternalServerErrorResponse.yaml

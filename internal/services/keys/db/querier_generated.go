@@ -167,7 +167,8 @@ type Querier interface {
 	//  FROM `limits`
 	//  WHERE workspace_id = ?
 	FindLimitsByWorkspaceID(ctx context.Context, db DBTX, workspaceID string) (Limit, error)
-	// FindUnkeyRootKeyForAuthentication loads an active root key from the new store.
+	// FindUnkeyRootKeyForAuthentication loads a root key from the new store,
+	// including tombstones so callers do not fall back to a legacy row with the same hash.
 	// Permissions are scoped to the target workspace and root-key principal.
 	//
 	//  SELECT
@@ -176,6 +177,7 @@ type Querier interface {
 	//      k.name,
 	//      k.expires,
 	//      k.enabled,
+	//      k.deleted_at,
 	//      fws.enabled AS for_workspace_enabled,
 	//      COALESCE(
 	//          (SELECT JSON_ARRAYAGG(p.slug)
@@ -187,7 +189,7 @@ type Querier interface {
 	//      ) AS permissions
 	//  FROM unkey_root_keys k
 	//  LEFT JOIN workspaces fws ON fws.id = k.for_workspace_id
-	//  WHERE k.hash = ? AND k.deleted_at IS NULL
+	//  WHERE k.hash = ?
 	FindUnkeyRootKeyForAuthentication(ctx context.Context, db DBTX, hash string) (FindUnkeyRootKeyForAuthenticationRow, error)
 	// UpdateKeyHashAndMigration re-hashes a key to SHA-256 after a successful
 	// on-demand migration and clears the pending migration marker so future

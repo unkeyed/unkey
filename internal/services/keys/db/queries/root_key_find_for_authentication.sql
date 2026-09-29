@@ -1,5 +1,6 @@
 -- name: FindUnkeyRootKeyForAuthentication :one
--- FindUnkeyRootKeyForAuthentication loads an active root key from the new store.
+-- FindUnkeyRootKeyForAuthentication loads a root key from the new store,
+-- including tombstones so callers do not fall back to a legacy row with the same hash.
 -- Permissions are scoped to the target workspace and root-key principal.
 SELECT
     k.id,
@@ -7,6 +8,7 @@ SELECT
     k.name,
     k.expires,
     k.enabled,
+    k.deleted_at,
     fws.enabled AS for_workspace_enabled,
     COALESCE(
         (SELECT JSON_ARRAYAGG(p.slug)
@@ -18,7 +20,7 @@ SELECT
     ) AS permissions
 FROM unkey_root_keys k
 LEFT JOIN workspaces fws ON fws.id = k.for_workspace_id
-WHERE k.hash = sqlc.arg(hash) AND k.deleted_at IS NULL;
+WHERE k.hash = sqlc.arg(hash);
 
 -- name: FindLegacyRootKeyForAuthentication :one
 -- FindLegacyRootKeyForAuthentication loads an active root key from the legacy store.

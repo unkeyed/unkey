@@ -1,0 +1,31 @@
+type: object
+additionalProperties: false
+required:
+  - keyId
+minProperties: 2
+properties:
+  keyId:
+    type: string
+    minLength: 3
+    maxLength: 255
+    pattern: "^[a-zA-Z0-9_]+$"
+    description: Root key identifier returned by rootKeys.createKey or rootKeys.listKeys.
+  name:
+    type: [string, "null"]
+    minLength: 1
+    maxLength: 255
+    description: New root key name. Set null to remove the name. Omit to keep the current name.
+  enabled:
+    type: boolean
+    description: Whether the root key can authenticate. Omit to keep the current state.
+  permissions:
+    type: array
+    minItems: 0
+    maxItems: 1000
+    description: |
+      Complete replacement permission set. Every permission must be a supported URN in the authenticated workspace
+      and within the caller's permissions. Omit to keep the current permissions.
+    items:
+      type: string
+      minLength: 1
+      maxLength: 255

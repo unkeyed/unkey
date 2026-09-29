@@ -184,6 +184,9 @@ func (s *service) loadRootKey(ctx context.Context, sha256Hash string) (keysdb.Ca
 	return mysql.WithRetryContext(ctx, func() (keysdb.CachedRootKeyData, error) {
 		row, err := keysdb.Query.FindUnkeyRootKeyForAuthentication(ctx, s.db.RO(), sha256Hash)
 		if err == nil {
+			if row.DeletedAt.Valid {
+				return keysdb.CachedRootKeyData{}, sql.ErrNoRows
+			}
 			return cacheUnkeyRootKey(row)
 		}
 		if !mysql.IsNotFound(err) {
