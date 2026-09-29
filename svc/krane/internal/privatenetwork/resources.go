@@ -10,7 +10,7 @@ import (
 	"time"
 
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
-	privatecontract "github.com/unkeyed/unkey/pkg/privatenetwork"
+	"github.com/unkeyed/unkey/pkg/deploy/appbinding"
 	"github.com/unkeyed/unkey/svc/krane/pkg/labels"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -44,7 +44,7 @@ func (r *Reconciler) cleanup(ctx context.Context, services *corev1.ServiceList, 
 			if updated.Annotations == nil {
 				updated.Annotations = make(map[string]string)
 			}
-			updated.Annotations[privatecontract.RetireAfterAnnotation] = r.clock().Add(privatecontract.ReplacementOverlap).UTC().Format(time.RFC3339Nano)
+			updated.Annotations[appbinding.RetireAfterAnnotation] = r.clock().Add(appbinding.ReplacementOverlap).UTC().Format(time.RFC3339Nano)
 			if _, err := r.client.CoreV1().Services(item.Namespace).Update(ctx, updated, metav1.UpdateOptions{FieldManager: fieldManager}); err != nil {
 				return fmt.Errorf("schedule obsolete private network Service %s/%s retirement: %w", item.Namespace, item.Name, err)
 			}
@@ -68,7 +68,7 @@ func (r *Reconciler) clock() time.Time {
 }
 
 func retirementDeadline(service *corev1.Service) (time.Time, bool) {
-	raw := service.Annotations[privatecontract.RetireAfterAnnotation]
+	raw := service.Annotations[appbinding.RetireAfterAnnotation]
 	if raw == "" {
 		return time.Time{}, false
 	}
