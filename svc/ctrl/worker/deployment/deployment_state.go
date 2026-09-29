@@ -10,6 +10,7 @@ import (
 
 	restate "github.com/restatedev/sdk-go"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
+	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
@@ -105,6 +106,8 @@ func (v *VirtualObject) ChangeDesiredState(ctx restate.ObjectContext, req *hydra
 	}
 	if deferred {
 		delay := pinnedRetryDelay(t.PinnedRetries)
+		logger.Info("deployment stop deferred because an app binding pins it",
+			"deployment_id", deploymentID, "deferrals", t.PinnedRetries+1, "retry_in", delay.String())
 		t.PinnedRetries++
 		restate.Set(ctx, transitionKey, t)
 		hydrav1.NewDeploymentServiceClient(ctx, deploymentID).ChangeDesiredState().Send(req, restate.WithDelay(delay))

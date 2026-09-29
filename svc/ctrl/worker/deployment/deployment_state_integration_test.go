@@ -8,6 +8,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
+	"github.com/unkeyed/unkey/pkg/logger/loggertest"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/ctrl/integration/harness"
 	"github.com/unkeyed/unkey/svc/ctrl/integration/seed"
@@ -80,6 +81,7 @@ func TestChangeDesiredState_NoOpsWhenDeploymentDeleted(t *testing.T) {
 
 func TestChangeDesiredState_PinnedDeploymentLifecycle(t *testing.T) {
 	h := harness.New(t)
+	capture := loggertest.Install(t)
 
 	ws := h.Seed.CreateWorkspace(h.Ctx)
 	project := h.Seed.CreateProject(h.Ctx, seed.CreateProjectRequest{
@@ -148,6 +150,15 @@ func TestChangeDesiredState_PinnedDeploymentLifecycle(t *testing.T) {
 		deployment, err := h.DB.FindDeploymentById(h.Ctx, automatic.ID)
 		return err != nil || deployment.DesiredState != mysqltype.DeploymentsDesiredStateRunning
 	}, 500*time.Millisecond, 50*time.Millisecond, "a pinned deployment stopped while its binding existed")
+	require.Eventually(t, func() bool {
+		for _, record := range capture.Records() {
+			if record.Message == "deployment stop deferred because an app binding pins it" &&
+				loggertest.FlatAttrs(record)["deployment_id"] == automatic.ID {
+				return true
+			}
+		}
+		return false
+	}, 5*time.Second, 50*time.Millisecond, "a deferred stop must name the pinned deployment in the logs")
 
 	result, err := h.DB.RW().ExecContext(h.Ctx, "DELETE FROM app_bindings WHERE id = ?", bindingID)
 	require.NoError(t, err)
