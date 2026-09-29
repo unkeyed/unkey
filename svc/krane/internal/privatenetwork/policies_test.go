@@ -51,6 +51,7 @@ func TestBindingPolicyGrantsEveryUnicastPortInOneDirection(t *testing.T) {
 		if _, ok := spec["ingress"]; ok {
 			ruleKey = "ingress"
 		}
+
 		ports := rulePorts(t, spec, ruleKey)
 		for _, allowed := range []portProto{
 			{8080, "TCP"}, {8081, "TCP"}, {7946, "TCP"}, {1, "TCP"}, {65535, "TCP"},
@@ -61,12 +62,14 @@ func TestBindingPolicyGrantsEveryUnicastPortInOneDirection(t *testing.T) {
 		for _, denied := range []portProto{{0, "TCP"}, {8080, "SCTP"}, {0, "ICMP"}} {
 			require.False(t, allowsPort(ports, denied), "%s %s/%d must stay denied", ruleKey, denied.protocol, denied.port)
 		}
+
 		expressions := spec["endpointSelector"].(map[string]interface{})["matchExpressions"].([]interface{})
 		require.ElementsMatch(t, []interface{}{
 			map[string]interface{}{"key": labels.LabelKeyNamespace, "operator": "Exists"},
 			map[string]interface{}{"key": "io.cilium.k8s.policy.cluster", "operator": "Exists"},
 		}, expressions)
 	}
+
 	require.Equal(t, []flow{{"caller_1", "target_1"}}, effectiveFlows(t, dynamic, app.GetK8SNamespace()))
 }
 
@@ -210,6 +213,7 @@ func effectiveFlows(t *testing.T, dynamic *fakedynamic.FakeDynamicClient, namesp
 	t.Helper()
 	policies, err := dynamic.Resource(policyResource).Namespace(namespace).List(t.Context(), metav1.ListOptions{})
 	require.NoError(t, err)
+
 	egress := map[flow]bool{}
 	ingress := map[flow]bool{}
 	for i := range policies.Items {
@@ -235,12 +239,14 @@ func effectiveFlows(t *testing.T, dynamic *fakedynamic.FakeDynamicClient, namesp
 			}
 		}
 	}
+
 	var flows []flow
 	for f := range egress {
 		if ingress[f] {
 			flows = append(flows, f)
 		}
 	}
+
 	slices.SortFunc(flows, func(a, b flow) int {
 		return cmp.Or(cmp.Compare(a.from, b.from), cmp.Compare(a.to, b.to))
 	})

@@ -65,7 +65,8 @@ type Controller struct {
 	lagRecorder *podstatus.LagRecorder
 
 	// storageClassName is the Kubernetes StorageClass for ephemeral volumes.
-	storageClassName         string
+	storageClassName string
+
 	privateNetworkResolverIP string
 
 	// disableGvisor drops the gVisor sandbox from user workloads.

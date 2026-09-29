@@ -31,6 +31,7 @@ func (r *Reconciler) cleanup(ctx context.Context, services *corev1.ServiceList, 
 			return fmt.Errorf("delete obsolete private network binding %s/%s: %w", item.Namespace, item.Name, err)
 		}
 	}
+
 	for i := range services.Items {
 		item := &services.Items[i]
 		if _, ok := desiredServices[item.Namespace+"/"+item.Name]; ok || !owned(item.Labels) {

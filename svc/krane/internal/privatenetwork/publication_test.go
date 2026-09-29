@@ -47,10 +47,12 @@ func TestPublicationRetainsBindingUntilRemoteDiscoveryIsReady(t *testing.T) {
 
 	r = &Reconciler{client: client, dynamic: dynamic, cluster: control, now: func() time.Time { return time.Now().Add(time.Hour) }}
 	require.NoError(t, r.reconcile(ctx))
+
 	a, err := client.CoreV1().Services("customer-1").Get(ctx, original.Data["serviceName"], metav1.GetOptions{})
 	require.NoError(t, err)
 	require.NotContains(t, a.Annotations, privatecontract.RetireAfterAnnotation)
 	require.Equal(t, []string{"10.72.0.11"}, sourceAddresses(t, client, a))
+
 	b, err := client.CoreV1().Services("customer-1").Get(ctx, discoveryName("dep_b", selected.GetPort()), metav1.GetOptions{})
 	require.NoError(t, err)
 	ready := false
@@ -64,6 +66,7 @@ func TestPublicationRetainsBindingUntilRemoteDiscoveryIsReady(t *testing.T) {
 	}
 	remote, err = client.DiscoveryV1().EndpointSlices(b.Namespace).Create(ctx, remote, metav1.CreateOptions{})
 	require.NoError(t, err)
+
 	require.NoError(t, r.reconcile(ctx))
 	staged, err = client.CoreV1().ConfigMaps("customer-1").Get(ctx, bindingName, metav1.GetOptions{})
 	require.NoError(t, err)
@@ -71,6 +74,7 @@ func TestPublicationRetainsBindingUntilRemoteDiscoveryIsReady(t *testing.T) {
 
 	ready = true
 	remote.Endpoints[0].Conditions.Ready = &ready
+
 	for _, tc := range []struct {
 		name   string
 		change func(*discoveryv1.EndpointSlice)
@@ -90,13 +94,16 @@ func TestPublicationRetainsBindingUntilRemoteDiscoveryIsReady(t *testing.T) {
 			require.Equal(t, original.Data, staged.Data)
 		})
 	}
+
 	_, err = client.DiscoveryV1().EndpointSlices(b.Namespace).Update(ctx, remote, metav1.UpdateOptions{})
 	require.NoError(t, err)
 	require.NoError(t, r.reconcile(ctx))
+
 	published, err := client.CoreV1().ConfigMaps("customer-1").Get(ctx, bindingName, metav1.GetOptions{})
 	require.NoError(t, err)
 	require.Equal(t, "dep_b", published.Data["deploymentId"])
 	require.Equal(t, "2", published.Data["revision"])
+
 	a, err = client.CoreV1().Services("customer-1").Get(ctx, original.Data["serviceName"], metav1.GetOptions{})
 	require.NoError(t, err)
 	require.Contains(t, a.Annotations, privatecontract.RetireAfterAnnotation)

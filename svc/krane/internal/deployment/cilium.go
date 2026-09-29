@@ -63,6 +63,7 @@ func (c *Controller) ensureCiliumNetworkPolicy(ctx context.Context, req *ctrlv1.
 			},
 		},
 	}
+
 	spec := map[string]interface{}{
 		"endpointSelector": map[string]interface{}{
 			"matchLabels": map[string]interface{}{

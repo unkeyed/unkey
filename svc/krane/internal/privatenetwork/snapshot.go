@@ -50,6 +50,7 @@ func validateSnapshot(apps []*ctrlv1.PrivateNetworkApp) ([]*ctrlv1.PrivateNetwor
 			identities[appIdentity(app)]++
 		}
 	}
+
 	eligible := make([]*ctrlv1.PrivateNetworkApp, 0, len(apps))
 	var rejected []snapshotRejection
 	for i, app := range apps {
