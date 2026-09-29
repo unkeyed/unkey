@@ -9,6 +9,7 @@ const GRACE_PERIODS = [
   { ms: 3_600_000, label: "1 hour" },
   { ms: 21_600_000, label: "6 hours" },
   { ms: 86_400_000, label: "24 hours" },
+  { ms: null, label: "Do not expire original key" },
 ] as const;
 
 export type GracePeriodMs = (typeof GRACE_PERIODS)[number]["ms"];
@@ -46,12 +47,3 @@ export function gracePeriodMsFromValue<V extends GracePeriodValue>(
 // the type annotation forces it to be one of the allowed values.
 const DEFAULT_GRACE_PERIOD_MS: GracePeriodMs = 86_400_000;
 export const DEFAULT_GRACE_PERIOD: GracePeriodValue = `${DEFAULT_GRACE_PERIOD_MS}`;
-
-// Rotation sends `expiration: null` for this choice, so the original key keeps
-// its current expiry instead of being revoked.
-export const NEVER_GRACE_PERIOD = "never";
-
-export const NEVER_GRACE_PERIOD_OPTION: FormSelectOption = {
-  value: NEVER_GRACE_PERIOD,
-  label: "Never",
-};

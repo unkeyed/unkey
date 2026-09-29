@@ -16,14 +16,14 @@ import { capGracePeriodAtSourceExpiry } from "./cap-grace-period-at-source-expir
 
 const vault = createVaultClient(VaultService);
 
-const allowedExpirations = new Set<number>(GRACE_PERIOD_VALUES_MS);
+const allowedExpirations = new Set<number | null>(GRACE_PERIOD_VALUES_MS);
 
 const rerollInputSchema = z.object({
   keyId: z.string().min(3).max(255),
   expiration: z
     .number()
     .int()
-    .refine((v): v is GracePeriodMs => allowedExpirations.has(v), {
+    .refine((v): v is NonNullable<GracePeriodMs> => allowedExpirations.has(v), {
       error: "expiration must be one of the supported grace periods",
     })
     .nullable(),

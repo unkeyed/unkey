@@ -65,7 +65,7 @@ The event is recorded in the audit log as `key.reroll`.
 
 ## From the dashboard
 
-Choose **Rotate key** from the key's actions menu. Pick a grace period: revoke immediately, 15 minutes, 1 hour, 6 hours, 24 hours (the default), or never. With never, the old key is not revoked. The dashboard is stricter than the API: you can't rotate an expired key, and the grace period can't go past the key's original expiry. The new key is shown once.
+Choose **Rotate key** from the key's actions menu. Pick a grace period: revoke immediately, 15 minutes, 1 hour, 6 hours, 24 hours (the default), or **Do not expire original key**. That last option keeps the old key working with its current expiry. The dashboard is stricter than the API: you can't rotate an expired key, and the grace period can't go past the key's original expiry. The new key is shown once.
 
 <Frame>
   <img src="/images/dashboard/api-management--keys-rerolling-keys--rotate-key.png" alt="Rotate key dialog with the grace period dropdown open, from Revoke immediately to 24 hours" />
