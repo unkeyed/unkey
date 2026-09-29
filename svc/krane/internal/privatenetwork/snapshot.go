@@ -39,6 +39,7 @@ func (r *Reconciler) snapshot(ctx context.Context) ([]*ctrlv1.PrivateNetworkApp,
 }
 
 type snapshotRejection struct {
+	app                *ctrlv1.PrivateNetworkApp
 	retainedBindingKey string
 	err                error
 }
@@ -55,7 +56,7 @@ func validateSnapshot(apps []*ctrlv1.PrivateNetworkApp) ([]*ctrlv1.PrivateNetwor
 	var rejected []snapshotRejection
 	for i, app := range apps {
 		if app == nil {
-			rejected = append(rejected, snapshotRejection{retainedBindingKey: "", err: fmt.Errorf("invalid private network snapshot app %d: app is nil", i)})
+			rejected = append(rejected, snapshotRejection{app: nil, retainedBindingKey: "", err: fmt.Errorf("invalid private network snapshot app %d: app is nil", i)})
 			continue
 		}
 		err := assert.All(
@@ -75,6 +76,7 @@ func validateSnapshot(apps []*ctrlv1.PrivateNetworkApp) ([]*ctrlv1.PrivateNetwor
 		)
 		if err != nil {
 			rejected = append(rejected, snapshotRejection{
+				app:                app,
 				retainedBindingKey: publishedBindingKey(app),
 				err:                fmt.Errorf("invalid private network snapshot app %d: %w", i, err),
 			})
