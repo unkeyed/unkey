@@ -1,6 +1,7 @@
 package policyconfig
 
 import (
+	"slices"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -89,6 +90,65 @@ func TestMapPoliciesToProtoValidation(t *testing.T) {
 				Name: "m", Enabled: true, Firewall: firewall,
 				Match: &[]openapi.MatchExpr{{QueryParam: &openapi.FieldMatch{Name: "token", Present: &present}}},
 			}},
+		},
+		{
+			name: "remote ip match with neither in nor notIn",
+			policies: []openapi.Policy{{
+				Name: "m", Enabled: true, Firewall: firewall,
+				Match: &[]openapi.MatchExpr{{RemoteIp: &openapi.RemoteIpMatch{}}},
+			}},
+			wantErr: "policies[0].match[0].remoteIp must set exactly one of in or notIn; none are set.",
+		},
+		{
+			name: "remote ip match with both in and notIn",
+			policies: []openapi.Policy{{
+				Name: "m", Enabled: true, Firewall: firewall,
+				Match: &[]openapi.MatchExpr{{RemoteIp: &openapi.RemoteIpMatch{
+					In:    &[]string{"203.0.113.0/24"},
+					NotIn: &[]string{"198.51.100.0/24"},
+				}}},
+			}},
+			wantErr: "policies[0].match[0].remoteIp must set exactly one of in or notIn; 2 are set.",
+		},
+		{
+			name: "remote ip match with invalid entry",
+			policies: []openapi.Policy{{
+				Name: "m", Enabled: true, Firewall: firewall,
+				Match: &[]openapi.MatchExpr{{RemoteIp: &openapi.RemoteIpMatch{In: &[]string{"203.0.113.0/24", "kebap"}}}},
+			}},
+			wantErr: "policies[0].match[0].remoteIp.in[1] is not a valid IP or CIDR",
+		},
+		{
+			name: "remote ip match with host bits set",
+			policies: []openapi.Policy{{
+				Name: "m", Enabled: true, Firewall: firewall,
+				Match: &[]openapi.MatchExpr{{RemoteIp: &openapi.RemoteIpMatch{NotIn: &[]string{"10.1.2.3/8"}}}},
+			}},
+			wantErr: "policies[0].match[0].remoteIp.notIn[0] has host bits set; use 10.0.0.0/8",
+		},
+		{
+			name: "remote ip match with ipv4-mapped ipv6 entry",
+			policies: []openapi.Policy{{
+				Name: "m", Enabled: true, Firewall: firewall,
+				Match: &[]openapi.MatchExpr{{RemoteIp: &openapi.RemoteIpMatch{In: &[]string{"::ffff:203.0.113.7"}}}},
+			}},
+			wantErr: "policies[0].match[0].remoteIp.in[0] is an IPv4-mapped IPv6 address; use the IPv4 form",
+		},
+		{
+			name: "remote ip match with zoned entry",
+			policies: []openapi.Policy{{
+				Name: "m", Enabled: true, Firewall: firewall,
+				Match: &[]openapi.MatchExpr{{RemoteIp: &openapi.RemoteIpMatch{In: &[]string{"fe80::1%eth0"}}}},
+			}},
+			wantErr: "policies[0].match[0].remoteIp.in[0] is not a valid IP or CIDR",
+		},
+		{
+			name: "remote ip match with too many entries",
+			policies: []openapi.Policy{{
+				Name: "m", Enabled: true, Firewall: firewall,
+				Match: &[]openapi.MatchExpr{{RemoteIp: &openapi.RemoteIpMatch{In: new(slices.Repeat([]string{"203.0.113.0/24"}, 101))}}},
+			}},
+			wantErr: "policies[0].match[0].remoteIp.in must not have more than 100 entries.",
 		},
 		{
 			name: "key location with no variant",
@@ -246,4 +306,24 @@ func TestLegacyIdentifierNormalizesToRepeated(t *testing.T) {
 	require.Nil(t, ratelimit.GetIdentifier())
 	require.Len(t, ratelimit.GetIdentifiers(), 1)
 	require.NotNil(t, ratelimit.GetIdentifiers()[0].GetRemoteIp())
+}
+
+func TestRemoteIpMatchToProtoNormalizesEntries(t *testing.T) {
+	policy, err := PolicyToProto("policies[0]", openapi.Policy{
+		Name: "office only", Enabled: true,
+		Firewall: &openapi.FirewallPolicy{Action: "ACTION_DENY"},
+		Match: &[]openapi.MatchExpr{{RemoteIp: &openapi.RemoteIpMatch{
+			NotIn: &[]string{"198.51.100.0/24", "203.0.113.7", "2001:db8::1"},
+		}}},
+	})
+	require.NoError(t, err)
+	require.Equal(t,
+		[]string{"198.51.100.0/24", "203.0.113.7/32", "2001:db8::1/128"},
+		policy.GetMatch()[0].GetRemoteIp().GetNotIn(),
+	)
+
+	back, err := PolicyFromProto(policy)
+	require.NoError(t, err)
+	require.Equal(t, policy.GetMatch()[0].GetRemoteIp().GetNotIn(), *(*back.Match)[0].RemoteIp.NotIn)
+	require.Nil(t, (*back.Match)[0].RemoteIp.In)
 }

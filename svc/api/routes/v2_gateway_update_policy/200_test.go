@@ -13,6 +13,8 @@ import (
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	listpolicies "github.com/unkeyed/unkey/svc/api/routes/v2_gateway_list_policies"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_gateway_update_policy"
+	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
 )
 
 func TestUpdatePolicySuccessfully(t *testing.T) {
@@ -63,6 +65,31 @@ func TestUpdatePolicySuccessfully(t *testing.T) {
 		require.Equal(t, "KEBAP 0", policies[0].Name)
 		require.Equal(t, "KEBAP renamed", policies[1].Name)
 		require.Equal(t, "KEBAP 2", policies[2].Name)
+	})
+
+	t.Run("rename keeps remote ip ranges unchanged", func(t *testing.T) {
+		env := seedEnvironment(t, h)
+		id := uid.New(uid.PolicyPrefix)
+		match := []*frontlinev1.MatchExpr{{Expr: &frontlinev1.MatchExpr_RemoteIp{RemoteIp: &frontlinev1.RemoteIpMatch{
+			NotIn: []string{"198.51.100.0/24", "203.0.113.7/32", "2001:db8::/32"},
+		}}}}
+		seedSentinelConfig(t, h, env, &frontlinev1.Config{Policies: []*frontlinev1.Policy{{
+			Id:      id,
+			Name:    "office only",
+			Enabled: new(true),
+			Match:   match,
+			Config:  &frontlinev1.Policy_Firewall{Firewall: &frontlinev1.Firewall{Action: frontlinev1.Action_ACTION_DENY}},
+		}}})
+
+		req := makeRequest(env, id)
+		req.Name = new("KEBAP office only")
+		call(t, req)
+
+		stored := &frontlinev1.Config{}
+		require.NoError(t, protojson.Unmarshal([]byte(readStoredBlob(t, h, env)), stored))
+		require.Len(t, stored.GetPolicies(), 1)
+		require.Equal(t, "KEBAP office only", stored.GetPolicies()[0].GetName())
+		require.True(t, proto.Equal(match[0], stored.GetPolicies()[0].GetMatch()[0]), "stored ranges must not be rewritten")
 	})
 
 	t.Run("disable survives storage roundtrip", func(t *testing.T) {
