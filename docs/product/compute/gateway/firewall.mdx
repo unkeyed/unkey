@@ -52,7 +52,7 @@ A `remoteIp` match with `in` blocks the listed ranges. With `notIn` it blocks ev
 }
 ```
 
-The gateway uses the IP of the connection, never a header like `X-Forwarded-For`, so a client can't claim a different address. It accepts IPv4 connections only, so list IPv4 addresses and ranges.
+The gateway uses the IP of the connection, never a header like `X-Forwarded-For`, so a client can't claim a different address. It accepts IPv4 connections today, so IPv6 entries match no request yet.
 
 A firewall policy with no match expressions blocks every request to the <Tooltip tip="A production or preview environment of a Compute app, not the dashboard label on a key.">environment</Tooltip>. That's a quick way to take a preview environment offline.
 

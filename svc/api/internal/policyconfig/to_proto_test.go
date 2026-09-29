@@ -116,7 +116,7 @@ func TestMapPoliciesToProtoValidation(t *testing.T) {
 				Name: "m", Enabled: true, Firewall: firewall,
 				Match: &[]openapi.MatchExpr{{RemoteIp: &openapi.RemoteIpMatch{In: &[]string{"203.0.113.0/24", "kebap"}}}},
 			}},
-			wantErr: "policies[0].match[0].remoteIp.in[1] is not a valid IPv4 address or CIDR.",
+			wantErr: "policies[0].match[0].remoteIp.in[1] is not a valid IP address or CIDR.",
 		},
 		{
 			name: "remote ip match with host bits set",
@@ -132,7 +132,6 @@ func TestMapPoliciesToProtoValidation(t *testing.T) {
 				Name: "m", Enabled: true, Firewall: firewall,
 				Match: &[]openapi.MatchExpr{{RemoteIp: &openapi.RemoteIpMatch{In: &[]string{"2001:db8::/32"}}}},
 			}},
-			wantErr: "policies[0].match[0].remoteIp.in[0] is not an IPv4 address or CIDR; IPv6 is not supported.",
 		},
 		{
 			name: "remote ip match with ipv4-mapped ipv6 entry",
@@ -140,7 +139,15 @@ func TestMapPoliciesToProtoValidation(t *testing.T) {
 				Name: "m", Enabled: true, Firewall: firewall,
 				Match: &[]openapi.MatchExpr{{RemoteIp: &openapi.RemoteIpMatch{In: &[]string{"::ffff:203.0.113.7"}}}},
 			}},
-			wantErr: "policies[0].match[0].remoteIp.in[0] is not an IPv4 address or CIDR; IPv6 is not supported.",
+			wantErr: "policies[0].match[0].remoteIp.in[0] is an IPv4-mapped IPv6 address; use the IPv4 form.",
+		},
+		{
+			name: "remote ip match with zoned entry",
+			policies: []openapi.Policy{{
+				Name: "m", Enabled: true, Firewall: firewall,
+				Match: &[]openapi.MatchExpr{{RemoteIp: &openapi.RemoteIpMatch{In: &[]string{"fe80::1%eth0"}}}},
+			}},
+			wantErr: "policies[0].match[0].remoteIp.in[0] is not a valid IP address or CIDR.",
 		},
 		{
 			name: "remote ip match with too many entries",
@@ -313,12 +320,12 @@ func TestRemoteIpMatchToProtoNormalizesEntries(t *testing.T) {
 		Name: "office only", Enabled: true,
 		Firewall: &openapi.FirewallPolicy{Action: "ACTION_DENY"},
 		Match: &[]openapi.MatchExpr{{RemoteIp: &openapi.RemoteIpMatch{
-			NotIn: &[]string{"198.51.100.0/24", "203.0.113.7"},
+			NotIn: &[]string{"198.51.100.0/24", "203.0.113.7", "2001:db8::1"},
 		}}},
 	})
 	require.NoError(t, err)
 	require.Equal(t,
-		[]string{"198.51.100.0/24", "203.0.113.7/32"},
+		[]string{"198.51.100.0/24", "203.0.113.7/32", "2001:db8::1/128"},
 		policy.GetMatch()[0].GetRemoteIp().GetNotIn(),
 	)
 

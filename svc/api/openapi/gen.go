@@ -1771,10 +1771,10 @@ type MatchExpr struct {
 	// `present` or `value` must be set.
 	QueryParam *FieldMatch `json:"queryParam,omitempty"`
 
-	// RemoteIp Matches the client IP against IPv4 CIDR ranges. Exactly one of `in` or
-	// `notIn` must be set. IPv6 entries and entries with host bits set (such as
-	// `10.1.2.3/8`) are rejected. Single addresses are returned as `/32`
-	// prefixes, such as `203.0.113.7/32`.
+	// RemoteIp Matches the client IP against IPv4 or IPv6 CIDR ranges. Exactly one of `in`
+	// or `notIn` must be set. Entries are rejected if they have host bits set (such
+	// as `10.1.2.3/8`), are IPv4-mapped IPv6 addresses, or carry a zone. Single
+	// addresses are returned as full-length prefixes, such as `203.0.113.7/32`.
 	//
 	// Example: {"notIn":["198.51.100.0/24"]}
 	RemoteIp *RemoteIpMatch `json:"remoteIp,omitempty"`
@@ -2316,21 +2316,20 @@ type RatelimitResponse struct {
 // RemoteIpKey Rate limit by the client's IP address.
 type RemoteIpKey = map[string]interface{}
 
-// RemoteIpMatch Matches the client IP against IPv4 CIDR ranges. Exactly one of `in` or
-// `notIn` must be set. IPv6 entries and entries with host bits set (such as
-// `10.1.2.3/8`) are rejected. Single addresses are returned as `/32`
-// prefixes, such as `203.0.113.7/32`.
+// RemoteIpMatch Matches the client IP against IPv4 or IPv6 CIDR ranges. Exactly one of `in`
+// or `notIn` must be set. Entries are rejected if they have host bits set (such
+// as `10.1.2.3/8`), are IPv4-mapped IPv6 addresses, or carry a zone. Single
+// addresses are returned as full-length prefixes, such as `203.0.113.7/32`.
 //
 // Example: {"notIn":["198.51.100.0/24"]}
 type RemoteIpMatch struct {
 	// In Matches when the client IP is in at least one of these ranges. Entries
-	// are IPv4 CIDRs such as `203.0.113.0/24` or single IPv4 addresses such as
+	// are CIDRs such as `203.0.113.0/24` or single addresses such as
 	// `203.0.113.7`.
 	In *[]string `json:"in,omitempty"`
 
-	// NotIn Matches when the client IP is in none of these ranges. Entries are IPv4
-	// CIDRs such as `198.51.100.0/24` or single IPv4 addresses such as
-	// `198.51.100.7`.
+	// NotIn Matches when the client IP is in none of these ranges. Entries are CIDRs
+	// such as `198.51.100.0/24` or single addresses such as `198.51.100.7`.
 	NotIn *[]string `json:"notIn,omitempty"`
 }
 

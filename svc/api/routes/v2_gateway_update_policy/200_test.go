@@ -71,7 +71,7 @@ func TestUpdatePolicySuccessfully(t *testing.T) {
 		env := seedEnvironment(t, h)
 		id := uid.New(uid.PolicyPrefix)
 		match := []*frontlinev1.MatchExpr{{Expr: &frontlinev1.MatchExpr_RemoteIp{RemoteIp: &frontlinev1.RemoteIpMatch{
-			NotIn: []string{"198.51.100.0/24", "203.0.113.7/32", "192.0.2.0/24"},
+			NotIn: []string{"198.51.100.0/24", "203.0.113.7/32", "192.0.2.0/24", "2001:db8::/32"},
 		}}}}
 		seedSentinelConfig(t, h, env, &frontlinev1.Config{Policies: []*frontlinev1.Policy{{
 			Id:      id,

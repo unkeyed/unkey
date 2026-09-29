@@ -8,28 +8,27 @@ import { Result as SafeParseResult } from "../../types/fp.js";
 import { SDKValidationError } from "../errors/sdkvalidationerror.js";
 
 /**
- * Matches the client IP against IPv4 CIDR ranges. Exactly one of `in` or
+ * Matches the client IP against IPv4 or IPv6 CIDR ranges. Exactly one of `in`
  *
  * @remarks
- * `notIn` must be set. IPv6 entries and entries with host bits set (such as
- * `10.1.2.3/8`) are rejected. Single addresses are returned as `/32`
- * prefixes, such as `203.0.113.7/32`.
+ * or `notIn` must be set. Entries are rejected if they have host bits set (such
+ * as `10.1.2.3/8`), are IPv4-mapped IPv6 addresses, or carry a zone. Single
+ * addresses are returned as full-length prefixes, such as `203.0.113.7/32`.
  */
 export type RemoteIpMatch = {
   /**
    * Matches when the client IP is in at least one of these ranges. Entries
    *
    * @remarks
-   * are IPv4 CIDRs such as `203.0.113.0/24` or single IPv4 addresses such as
+   * are CIDRs such as `203.0.113.0/24` or single addresses such as
    * `203.0.113.7`.
    */
   in?: Array<string> | undefined;
   /**
-   * Matches when the client IP is in none of these ranges. Entries are IPv4
+   * Matches when the client IP is in none of these ranges. Entries are CIDRs
    *
    * @remarks
-   * CIDRs such as `198.51.100.0/24` or single IPv4 addresses such as
-   * `198.51.100.7`.
+   * such as `198.51.100.0/24` or single addresses such as `198.51.100.7`.
    */
   notIn?: Array<string> | undefined;
 };
