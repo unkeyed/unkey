@@ -1,0 +1,96 @@
+"use client";
+
+import {
+  useAppId,
+  useProjectData,
+} from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/data-provider";
+import { type Deployment, collection } from "@/lib/collections";
+import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
+import { and, eq, inArray, useLiveQuery } from "@tanstack/react-db";
+import { useMutation } from "@tanstack/react-query";
+import { Button, DialogContainer, toast } from "@unkey/ui";
+import { DeploymentSection } from "./components/deployment-section";
+import { DomainsSection } from "./components/domains-section";
+
+type RollbackDialogProps = {
+  isOpen: boolean;
+  onClose: () => void;
+  targetDeployment: Deployment;
+  currentDeployment: Deployment;
+};
+
+export const RollbackDialog = ({
+  isOpen,
+  onClose,
+  targetDeployment,
+  currentDeployment,
+}: RollbackDialogProps) => {
+  const { projectId, awaitLiveDeployment } = useProjectData();
+  const appId = useAppId();
+  const domains = useLiveQuery(
+    (q) =>
+      q
+        .from({ domain: collection.domains })
+        .where(({ domain }) => and(eq(domain.projectId, projectId), eq(domain.appId, appId)))
+        .where(({ domain }) => inArray(domain.sticky, ["environment", "live"])),
+    [projectId, appId],
+  );
+
+  const rollback = useMutation({
+    mutationFn: (deploymentId: string) =>
+      getUnkeyClient().deployments.rollbackDeployment({ deploymentId }),
+    onSuccess: () => {
+      awaitLiveDeployment({ deploymentId: targetDeployment.id, rolledBack: true });
+      toast.success("Rollback completed", {
+        description: `Successfully rolled back to deployment ${targetDeployment.id}`,
+      });
+      onClose();
+    },
+    onError: (error) => {
+      toast.error("Rollback failed", {
+        description: getErrorMessage(error),
+      });
+    },
+  });
+
+  const handleRollback = async () => {
+    await rollback.mutateAsync(targetDeployment.id).catch((error) => {
+      console.error("Rollback error:", error);
+    });
+  };
+
+  return (
+    <DialogContainer
+      isOpen={isOpen}
+      onOpenChange={onClose}
+      title="Rollback to version"
+      subTitle="Switch the active deployment to a target stable version"
+      footer={
+        <Button
+          variant="primary"
+          size="xlg"
+          onClick={handleRollback}
+          disabled={rollback.isLoading}
+          loading={rollback.isLoading}
+          className="w-full rounded-lg"
+        >
+          Rollback to target version
+        </Button>
+      }
+    >
+      <div className="flex flex-col gap-9">
+        <DeploymentSection
+          title="Current Deployment"
+          deployment={currentDeployment}
+          isCurrent={true}
+        />
+        <DomainsSection domains={domains.data} />
+        <DeploymentSection
+          title="Target Deployment"
+          deployment={targetDeployment}
+          isCurrent={false}
+        />
+      </div>
+    </DialogContainer>
+  );
+};

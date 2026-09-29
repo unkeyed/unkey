@@ -50,7 +50,7 @@ export function SidebarBody() {
         return workspaceSections(segments);
       case "project":
         return context.appId
-          ? buildAppLinks(slug, context.projectId, context.appId, segments)
+          ? buildAppLinks(slug, context.projectId, context.appId, context.environmentSlug, segments)
           : projectLinks(slug, context.projectId, segments);
       case "api":
         return buildApiLinks(

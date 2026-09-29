@@ -2,6 +2,7 @@
 
 import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
+import { PRODUCTION_ENVIRONMENT_SLUG } from "@/lib/collections/deploy/environments";
 import { routes } from "@/lib/navigation/routes";
 import {
   IconArrowsOppositeDirectionYOutline18,
@@ -75,7 +76,12 @@ const getAppActionItems = (
       label: "View deployments",
       icon: <IconCloudOutline18 className="size-3.5" />,
       onClick: () => {
-        router.push(routes.projects.apps.deployments(appScope));
+        router.push(
+          routes.projects.apps.deployments({
+            ...appScope,
+            environmentSlug: PRODUCTION_ENVIRONMENT_SLUG,
+          }),
+        );
       },
     },
     {
@@ -83,7 +89,12 @@ const getAppActionItems = (
       label: "App settings",
       icon: <IconGearOutline18 className="size-3.5" />,
       onClick: () => {
-        router.push(routes.projects.apps.settings(appScope));
+        router.push(
+          routes.projects.apps.settings({
+            ...appScope,
+            environmentSlug: PRODUCTION_ENVIRONMENT_SLUG,
+          }),
+        );
       },
     },
   ];

@@ -13,9 +13,9 @@ type CrumbProps = {
   href: string;
   items: CrumbPopoverItem[];
   currentId: string;
-  searchPlaceholder: string;
   emptyText: string;
-  footer: CrumbPopoverFooter;
+  searchPlaceholder?: string;
+  footer?: CrumbPopoverFooter;
   loading?: boolean;
   listStatus?: ReactNode;
 };

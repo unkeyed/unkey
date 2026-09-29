@@ -1,6 +1,6 @@
 "use client";
 
-import { ManageGitHubAppLink } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/settings/components/build-settings/github-settings/shared";
+import { ManageGitHubAppLink } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/[environmentSlug]/settings/components/build-settings/github-settings/shared";
 import { trpc } from "@/lib/trpc/client";
 import { Github } from "@unkey/icons";
 import { match } from "@unkey/match";

@@ -1,6 +1,6 @@
 "use client";
 
-import { useProjectData } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/data-provider";
+import { useProjectData } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/data-provider";
 import { Button, Skeleton } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 

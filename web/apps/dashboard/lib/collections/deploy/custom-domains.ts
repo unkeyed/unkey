@@ -1,4 +1,5 @@
 "use client";
+import { PRODUCTION_ENVIRONMENT_SLUG } from "@/lib/collections/deploy/environments";
 import { routes } from "@/lib/navigation/routes";
 import { getErrorMessage, getErrorToast, getUnkeyClient } from "@/lib/unkey-client";
 import { queryCollectionOptions } from "@tanstack/query-db-collection";
@@ -188,6 +189,7 @@ async function openOwningApp(domain: string, workspaceSlug: string): Promise<str
     workspaceSlug,
     projectId: owner.data.projectId,
     appId: owner.data.appId,
+    environmentSlug: PRODUCTION_ENVIRONMENT_SLUG,
   });
 }
 

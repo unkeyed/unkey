@@ -1,10 +1,11 @@
 "use client";
 
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
+import { PRODUCTION_ENVIRONMENT_SLUG } from "@/lib/collections/deploy/environments";
 import { routes } from "@/lib/navigation/routes";
 import { shortenId } from "@/lib/shorten-id";
 import { CopyButton } from "@unkey/ui";
-import { useProjectData } from "../(overview)/data-provider";
+import { useProjectData } from "../data-provider";
 import { DottedLink } from "./dotted-link";
 
 type DeploymentIdLinkProps = {
@@ -13,11 +14,11 @@ type DeploymentIdLinkProps = {
 
 export function DeploymentIdLink({ deploymentId }: DeploymentIdLinkProps) {
   const workspace = useWorkspaceNavigation();
-  const { projectId, getDeploymentById } = useProjectData();
-  // no appId means the deployment is not in the loaded collection, show the id without a broken link
-  const appId = getDeploymentById(deploymentId)?.appId;
+  const { projectId, environments, getDeploymentById } = useProjectData();
+  // An unloaded deployment has no app or environment to link into, so show the id alone.
+  const deployment = getDeploymentById(deploymentId);
 
-  if (!appId) {
+  if (!deployment) {
     return (
       <div className="flex items-center gap-2">
         <span className="font-mono text-xs">{shortenId(deploymentId)}</span>
@@ -31,7 +32,10 @@ export function DeploymentIdLink({ deploymentId }: DeploymentIdLinkProps) {
       href={routes.projects.apps.deployment({
         workspaceSlug: workspace.slug,
         projectId,
-        appId,
+        appId: deployment.appId,
+        environmentSlug:
+          environments.find((e) => e.id === deployment.environmentId)?.slug ??
+          PRODUCTION_ENVIRONMENT_SLUG,
         deploymentId,
       })}
       copyValue={deploymentId}

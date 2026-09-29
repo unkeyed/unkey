@@ -1,6 +1,6 @@
 "use client";
 
-import { ProjectDataProvider } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/data-provider";
+import { ProjectDataProvider } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/data-provider";
 import { useState } from "react";
 import { ConfigureDeploymentContent } from "./content";
 import { OnboardingEnvironmentSettingsProvider } from "./environment-provider";

@@ -2,6 +2,7 @@
 
 import { useFlag } from "@/lib/flags/provider";
 import { routes } from "@/lib/navigation/routes";
+import { isAppPage } from "@/lib/navigation/routes/projects";
 import { useParams, useSelectedLayoutSegments } from "next/navigation";
 import {
   type ProjectOwner,
@@ -15,6 +16,7 @@ export type BreadcrumbDescriptor =
   | { type: "account" }
   | { type: "project"; owner: ProjectOwner }
   | { type: "app"; projectId: string; appId: string }
+  | { type: "environment"; projectId: string; appId: string; environmentSlug: string }
   | { type: "api"; apiId: string; projectId?: string }
   | { type: "namespace"; namespaceId: string; projectId?: string }
   | { type: "identity"; identityId: string; projectId?: string };
@@ -22,6 +24,7 @@ export type BreadcrumbDescriptor =
 type RouteParams = {
   projectId?: string;
   appId?: string;
+  environmentSlug?: string;
   apiId?: string;
   namespaceId?: string;
   identityId?: string;
@@ -54,6 +57,14 @@ export function useBreadcrumbs(): BreadcrumbDescriptor[] {
   }
   if (params.projectId && params.appId) {
     crumbs.push({ type: "app", projectId: params.projectId, appId: params.appId });
+    if (params.environmentSlug && !isAppPage(params.environmentSlug)) {
+      crumbs.push({
+        type: "environment",
+        projectId: params.projectId,
+        appId: params.appId,
+        environmentSlug: params.environmentSlug,
+      });
+    }
   }
   if (params.apiId) {
     crumbs.push({ type: "api", apiId: params.apiId, projectId: params.projectId });

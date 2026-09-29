@@ -1,3 +1,4 @@
+import { PRODUCTION_ENVIRONMENT_SLUG } from "@/lib/collections/deploy/environments";
 import {
   IconArrowDottedRotateAnticlockwiseOutline18,
   IconArrowsOppositeDirectionYOutline18,
@@ -123,10 +124,16 @@ export function buildAppLinks(
   slug: string,
   projectId: string,
   appId: string,
+  environmentSlug: string | undefined,
   segments: string[],
 ): ResolvedNavLink[] {
-  const page = segments[4];
-  const scope = { workspaceSlug: slug, projectId, appId };
+  const page = segments[5];
+  const scope = {
+    workspaceSlug: slug,
+    projectId,
+    appId,
+    environmentSlug: environmentSlug ?? PRODUCTION_ENVIRONMENT_SLUG,
+  };
   return [
     {
       key: "overview",

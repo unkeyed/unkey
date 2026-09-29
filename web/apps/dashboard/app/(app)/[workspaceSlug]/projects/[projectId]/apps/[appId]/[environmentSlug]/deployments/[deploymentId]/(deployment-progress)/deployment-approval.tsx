@@ -1,0 +1,133 @@
+"use client";
+
+import type { Deployment } from "@/lib/collections/deploy/deployments";
+import { githubUrl } from "@/lib/github-url";
+import { trpc } from "@/lib/trpc/client";
+import { IconShieldAlertOutline18 } from "@unkey/icons";
+import { AlertBanner, AlertBannerDescription, Button, Dialog, DialogContent } from "@unkey/ui";
+import { useProjectData } from "../../../../data-provider";
+
+const chipClass = "font-mono text-xs bg-gray-3 px-1.5 py-0.5 rounded-sm text-gray-12 font-medium";
+
+const chipLinkClass =
+  "font-mono text-xs bg-gray-3 px-1.5 py-0.5 rounded-sm text-gray-12 font-medium decoration-dotted underline underline-offset-2 hover:bg-gray-4 transition-colors";
+
+type DeploymentApprovalProps = {
+  isOpen: boolean;
+  onClose: () => void;
+  deployment: Deployment;
+};
+
+export function DeploymentApproval({ isOpen, onClose, deployment }: DeploymentApprovalProps) {
+  const { refetchDeployments, project, environments } = useProjectData();
+
+  const authorize = trpc.deploy.deployment.authorize.useMutation({
+    onSuccess: () => {
+      refetchDeployments();
+      onClose();
+    },
+  });
+
+  const sourceRepo = deployment.forkRepositoryFullName || project?.repositoryFullName;
+
+  // A deployment can land in awaiting_approval for two distinct reasons:
+  //   1. fork PR — `forkRepositoryFullName` is populated by detectForkRepo
+  //   2. operator opt-in via FORCE_DEPLOYMENT_APPROVAL=true — same status,
+  //      no fork metadata, often a same-repo push to main
+  // `prNumber` is set for same-repo PRs too, so it can't gate this copy.
+  const isFork = Boolean(deployment.forkRepositoryFullName);
+
+  const prUrl = githubUrl.pull(project?.repositoryFullName, deployment.prNumber);
+  const commitUrl = githubUrl.commit(sourceRepo, deployment.gitCommitSha);
+  const branchUrl = githubUrl.branch(sourceRepo, deployment.gitBranch);
+
+  const branchName = deployment.gitBranch ?? "unknown";
+  const commitSha = deployment.gitCommitSha?.slice(0, 7) ?? "unknown";
+  const environment =
+    environments.find((e) => e.id === deployment.environmentId)?.slug ?? "Preview";
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent
+        className="max-w-[560px] rounded-2xl! p-0 gap-0 overflow-hidden"
+        style={{
+          background:
+            "radial-gradient(circle at 5% 15%, var(--color-grayA-3) 0%, transparent 20%), var(--color-gray-1)",
+        }}
+      >
+        <div className="flex flex-col items-center p-10">
+          <div className="size-12 rounded-2xl bg-gray-12 dark:bg-white flex items-center justify-center mb-4 shadow-[0_0_0_6px_var(--color-gray-2),0_0_0_8px_var(--color-gray-4)]">
+            <IconShieldAlertOutline18 className="text-white dark:text-black size-[22px]" />
+          </div>
+
+          <h1 className="text-[22px] font-bold tracking-tight text-gray-12 mb-2">
+            {isFork ? "Authorize Fork Deployment" : "Authorize Deployment"}
+          </h1>
+
+          <p className="text-[14px] leading-relaxed text-gray-11 text-center mb-4 max-w-100">
+            {isFork ? "An external contributor pushed commit " : "Commit "}
+            {commitUrl ? (
+              <a
+                href={commitUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={chipLinkClass}
+              >
+                {commitSha}
+              </a>
+            ) : (
+              <code className={chipClass}>{commitSha}</code>
+            )}{" "}
+            on branch{" "}
+            {branchUrl ? (
+              <a
+                href={branchUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={chipLinkClass}
+              >
+                {branchName}
+              </a>
+            ) : (
+              <code className={chipClass}>{branchName}</code>
+            )}{" "}
+            {isFork ? "targeting" : "is awaiting approval before deploying to"} the{" "}
+            <span className="font-semibold text-gray-12">{environment}</span> environment.
+          </p>
+
+          <div className="flex gap-4 mt-0">
+            <Button
+              variant="primary"
+              size="xlg"
+              className="px-8"
+              loading={authorize.isLoading}
+              onClick={() => authorize.mutate({ deploymentId: deployment.id })}
+            >
+              Approve Deployment
+            </Button>
+            {prUrl ? (
+              <a href={prUrl} target="_blank" rel="noopener noreferrer">
+                <Button variant="outline" size="xlg" className="px-7">
+                  Review Pull Request
+                </Button>
+              </a>
+            ) : isFork ? (
+              // Fork without a PR shouldn't normally happen but render
+              // the disabled affordance so the modal layout stays
+              // balanced.
+              <Button variant="outline" size="xlg" className="px-7" disabled>
+                Review Pull Request
+              </Button>
+            ) : null}
+          </div>
+
+          {authorize.error && (
+            <AlertBanner variant="error" className="mt-4">
+              <AlertBannerDescription>{authorize.error.message}</AlertBannerDescription>
+            </AlertBanner>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}

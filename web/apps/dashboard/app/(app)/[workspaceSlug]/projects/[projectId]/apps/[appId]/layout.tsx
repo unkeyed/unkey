@@ -1,7 +1,7 @@
 "use client";
 import type { PropsWithChildren } from "react";
-import { ProjectDataProvider } from "./(overview)/data-provider";
 import { PendingRedeployBanner } from "./components/pending-redeploy-banner";
+import { ProjectDataProvider } from "./data-provider";
 
 export default function ProjectLayoutWrapper({ children }: PropsWithChildren) {
   return (

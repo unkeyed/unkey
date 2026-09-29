@@ -1,6 +1,6 @@
 "use client";
 
-import { EnvironmentContext } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/settings/environment-provider";
+import { EnvironmentContext } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/[environmentSlug]/settings/environment-provider";
 import { collection } from "@/lib/collections";
 import { useSettingsIsSaving } from "@/lib/collections/deploy/environment-settings";
 import { and, eq, useLiveQuery } from "@tanstack/react-db";

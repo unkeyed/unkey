@@ -6,11 +6,33 @@
  * params from the generated ParamMap.
  */
 import type { Route } from "next";
+import type { QueryParams } from "../url";
 import type { DeployCheckoutOrigin, DeployCheckoutPlan } from "./settings";
 import { type WorkspaceScope, buildRoute } from "./shared";
 
 type ProjectScope = WorkspaceScope & { projectId: string };
-type AppScope = ProjectScope & { appId: string };
+export type AppScope = ProjectScope & { appId: string; environmentSlug: string };
+
+/**
+ * Page segments under /apps/[appId]/[environmentSlug]. The environment layout
+ * treats these as reserved so a pre-environment url like /apps/x/settings
+ * redirects instead of resolving "settings" as an environment slug.
+ */
+export const APP_PAGES = [
+  "overview",
+  "deployments",
+  "env-vars",
+  "policies",
+  "settings",
+  "openapi-diff",
+] as const;
+export type AppPage = (typeof APP_PAGES)[number];
+
+export function isAppPage(segment: string): segment is AppPage {
+  return APP_PAGES.some((page) => page === segment);
+}
+
+const APP_ROOT = "/[workspaceSlug]/projects/[projectId]/apps/[appId]/[environmentSlug]";
 
 export const projectRoutes = {
   list({ workspaceSlug, new: isNew }: WorkspaceScope & { new?: boolean }): Route {
@@ -73,38 +95,23 @@ export const projectRoutes = {
     },
 
     overview(scope: AppScope): Route {
-      return buildRoute(
-        "/[workspaceSlug]/projects/[projectId]/apps/[appId]/overview",
-        appParams(scope),
-      );
+      return appPage("overview", scope);
     },
 
     settings(scope: AppScope): Route {
-      return buildRoute(
-        "/[workspaceSlug]/projects/[projectId]/apps/[appId]/settings",
-        appParams(scope),
-      );
+      return appPage("settings", scope);
     },
 
     envVars(scope: AppScope): Route {
-      return buildRoute(
-        "/[workspaceSlug]/projects/[projectId]/apps/[appId]/env-vars",
-        appParams(scope),
-      );
+      return appPage("env-vars", scope);
     },
 
     policies(scope: AppScope): Route {
-      return buildRoute(
-        "/[workspaceSlug]/projects/[projectId]/apps/[appId]/policies",
-        appParams(scope),
-      );
+      return appPage("policies", scope);
     },
 
     deployments(scope: AppScope): Route {
-      return buildRoute(
-        "/[workspaceSlug]/projects/[projectId]/apps/[appId]/deployments",
-        appParams(scope),
-      );
+      return appPage("deployments", scope);
     },
 
     deployment({
@@ -113,18 +120,14 @@ export const projectRoutes = {
       ...scope
     }: AppScope & { deploymentId: string; build?: boolean }): Route {
       return buildRoute(
-        "/[workspaceSlug]/projects/[projectId]/apps/[appId]/deployments/[deploymentId]",
+        `${APP_ROOT}/deployments/[deploymentId]`,
         { ...appParams(scope), deploymentId },
         { build: build || undefined },
       );
     },
 
     openapiDiff({ from, to, ...scope }: AppScope & { from?: string; to?: string }): Route {
-      return buildRoute(
-        "/[workspaceSlug]/projects/[projectId]/apps/[appId]/openapi-diff",
-        appParams(scope),
-        { from, to },
-      );
+      return appPage("openapi-diff", scope, { from, to });
     },
   },
 };
@@ -133,8 +136,12 @@ function projectParams({ workspaceSlug, projectId }: ProjectScope) {
   return { workspaceSlug, projectId };
 }
 
-function appParams({ appId, ...scope }: AppScope) {
-  return { ...projectParams(scope), appId };
+function appParams({ appId, environmentSlug, ...scope }: AppScope) {
+  return { ...projectParams(scope), appId, environmentSlug };
+}
+
+function appPage(page: AppPage, scope: AppScope, query?: QueryParams): Route {
+  return buildRoute(`${APP_ROOT}/${page}`, appParams(scope), query);
 }
 
 /**

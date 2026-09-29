@@ -95,6 +95,7 @@ export const DeployImageCard = ({
             workspaceSlug: workspace.slug,
             projectId,
             appId,
+            environmentSlug,
             deploymentId: deployment.deploymentId,
           }),
         );

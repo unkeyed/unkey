@@ -1,11 +1,11 @@
 "use client";
 
-import { SettingField } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/settings/components/shared/form-blocks";
+import { SettingField } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/[environmentSlug]/settings/components/shared/form-blocks";
 import {
   FormSettingCard,
   resolveSaveState,
-} from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/settings/components/shared/form-setting-card";
-import { SelectedConfig } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/settings/components/shared/selected-config";
+} from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/[environmentSlug]/settings/components/shared/form-setting-card";
+import { SelectedConfig } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/[environmentSlug]/settings/components/shared/selected-config";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { collection } from "@/lib/collections";
 import { type Project, createProjectRequestSchema } from "@/lib/collections/deploy/projects";

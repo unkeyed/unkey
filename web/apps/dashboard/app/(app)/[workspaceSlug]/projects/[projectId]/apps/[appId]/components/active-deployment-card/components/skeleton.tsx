@@ -7,7 +7,7 @@ import {
 } from "@unkey/icons";
 import { Badge, Card, Skeleton } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
-import { StatusIndicator } from "../../../components/status-indicator";
+import { StatusIndicator } from "../../status-indicator";
 
 export function ActiveDeploymentCardSkeleton() {
   return (

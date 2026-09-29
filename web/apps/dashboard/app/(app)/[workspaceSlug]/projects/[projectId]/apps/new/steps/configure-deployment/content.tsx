@@ -1,6 +1,6 @@
 "use client";
 
-import { DeploymentSettings } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/settings/deployment-settings";
+import { DeploymentSettings } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/[environmentSlug]/settings/deployment-settings";
 import { Button, useStepWizard } from "@unkey/ui";
 
 export const ConfigureDeploymentContent = () => {

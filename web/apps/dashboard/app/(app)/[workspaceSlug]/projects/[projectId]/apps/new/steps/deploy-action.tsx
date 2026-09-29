@@ -6,7 +6,7 @@ import { ENVIRONMENT_KIND } from "@/lib/collections/deploy/environments";
 import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
 import { useMutation } from "@tanstack/react-query";
 import { Button, toast, useStepWizard } from "@unkey/ui";
-import { useProjectData } from "../../[appId]/(overview)/data-provider";
+import { useProjectData } from "../../[appId]/data-provider";
 
 type DeployActionProps = {
   projectId: string;

@@ -22,9 +22,9 @@ import {
   Skeleton,
 } from "@unkey/ui";
 import { type ReactNode, useState } from "react";
-import { useProjectData } from "../(overview)/data-provider";
-import { useDeployment } from "../(overview)/deployments/[deploymentId]/layout-provider";
-import { SettingsGroup } from "../(overview)/settings/components/shared/settings-group";
+import { useDeployment } from "../[environmentSlug]/deployments/[deploymentId]/layout-provider";
+import { SettingsGroup } from "../[environmentSlug]/settings/components/shared/settings-group";
+import { useProjectData } from "../data-provider";
 import { getDomainPriority } from "./domain-priority";
 import { GlowIcon } from "./glow-icon";
 import { TagBadge } from "./tag-badge";

@@ -23,6 +23,7 @@ export type CrumbPopoverItem = {
   label: string;
   href?: string;
   onClick?: () => void;
+  icon?: ReactNode;
   badge?: ReactNode;
 };
 
@@ -36,9 +37,9 @@ export type CrumbPopoverFooter = {
 type CrumbPopoverProps = {
   items: CrumbPopoverItem[];
   currentId?: string;
-  searchPlaceholder: string;
   emptyText: string;
-  footer: CrumbPopoverFooter;
+  searchPlaceholder?: string;
+  footer?: CrumbPopoverFooter;
   children: ReactNode;
   listStatus?: ReactNode;
 };
@@ -79,10 +80,12 @@ export function CrumbPopover({
             return value.toLowerCase().includes(search.toLowerCase()) ? 1 : 0;
           }}
         >
-          <CommandInput
-            placeholder={searchPlaceholder}
-            className="text-[13px] placeholder:text-[13px] placeholder:text-gray-8"
-          />
+          {searchPlaceholder && (
+            <CommandInput
+              placeholder={searchPlaceholder}
+              className="text-[13px] placeholder:text-[13px] placeholder:text-gray-8"
+            />
+          )}
           <CommandList>
             {listStatus ?? <CommandEmpty className="py-6">{emptyText}</CommandEmpty>}
             <CommandGroup>
@@ -95,6 +98,7 @@ export function CrumbPopover({
                     onSelect={() => selectItem(item)}
                     className="flex items-center gap-2 py-1 mt-0"
                   >
+                    {item.icon}
                     <span className="flex-1 truncate">{item.label}</span>
                     {item.badge ? <span className="shrink-0">{item.badge}</span> : null}
                     <IconCheckOutline12
@@ -107,20 +111,24 @@ export function CrumbPopover({
                 );
               })}
             </CommandGroup>
-            <CommandSeparator />
-            <CommandGroup>
-              <FooterRow
-                footer={footer}
-                onSelect={() => {
-                  setOpen(false);
-                  if (footer.href) {
-                    router.push(footer.href as Route);
-                  } else if (footer.onClick) {
-                    footer.onClick();
-                  }
-                }}
-              />
-            </CommandGroup>
+            {footer && (
+              <>
+                <CommandSeparator />
+                <CommandGroup>
+                  <FooterRow
+                    footer={footer}
+                    onSelect={() => {
+                      setOpen(false);
+                      if (footer.href) {
+                        router.push(footer.href as Route);
+                      } else if (footer.onClick) {
+                        footer.onClick();
+                      }
+                    }}
+                  />
+                </CommandGroup>
+              </>
+            )}
           </CommandList>
         </Command>
       </PopoverContent>

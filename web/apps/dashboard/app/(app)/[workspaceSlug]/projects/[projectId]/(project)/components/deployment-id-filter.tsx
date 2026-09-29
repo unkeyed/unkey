@@ -1,6 +1,6 @@
 "use client";
 
-import { useProjectData } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/data-provider";
+import { useProjectData } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/data-provider";
 import { IconMagnifierOutline18 } from "@unkey/icons";
 import { Button, Checkbox } from "@unkey/ui";
 import { useCallback, useMemo, useState } from "react";
