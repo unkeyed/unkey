@@ -4,13 +4,14 @@ description: "Block matching requests at the gateway with a 403 before they reac
 sources:
   - svc/api/openapi/spec/common/FirewallPolicy.yaml
   - svc/api/openapi/spec/common/Policy.yaml
+  - svc/api/openapi/spec/common/RemoteIpMatch.yaml
   - svc/frontline/internal/policies/firewall/executor.go
   - svc/frontline/internal/policies/engine.go
   - svc/frontline/middleware/observability.go
   - svc/frontline/middleware/clickhouse_logging.go
 ---
 
-A firewall policy tells the [gateway](/compute/gateway/overview) to block every request that matches its match expressions. Use it to close internal paths, block a method on a route, or refuse requests with a certain header, without changing your <Tooltip tip="A Compute app: a deployable service inside a project. Not 'your application' in general.">app</Tooltip>.
+A firewall policy tells the [gateway](/compute/gateway/overview) to block every request that matches its match expressions. Use it to close internal paths, block a method on a route, refuse requests with a certain header, or block IP ranges, without changing your <Tooltip tip="A Compute app: a deployable service inside a project. Not 'your application' in general.">app</Tooltip>.
 
 To add one, open the app, go to **Policies**, click **Add Policy**, and pick **Firewall**. You only need a name, an environment, and match conditions.
 
@@ -34,6 +35,24 @@ To add one, open the app, go to **Policies**, click **Add Policy**, and pick **F
 ```
 
 A request must match all the expressions, so the example only blocks requests that match all three. To block two unrelated kinds of request, create two firewall policies.
+
+## Block or allow IP ranges
+
+A `remoteIp` match with `in` blocks the listed ranges. With `notIn` it blocks everyone outside them, which turns the policy into an allowlist.
+
+```json Example: allow /admin only from the office
+{
+  "name": "Admin only from the office",
+  "enabled": true,
+  "match": [
+    { "path": { "path": { "prefix": "/admin" } } },
+    { "remoteIp": { "notIn": ["198.51.100.0/24"] } }
+  ],
+  "firewall": { "action": "ACTION_DENY" }
+}
+```
+
+The gateway uses the IP of the connection, never a header like `X-Forwarded-For`, so a client can't claim a different address. It accepts IPv4 connections only, so list IPv4 addresses and ranges.
 
 A firewall policy with no match expressions blocks every request to the <Tooltip tip="A production or preview environment of a Compute app, not the dashboard label on a key.">environment</Tooltip>. That's a quick way to take a preview environment offline.
 

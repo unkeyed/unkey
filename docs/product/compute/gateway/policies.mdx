@@ -10,6 +10,7 @@ sources:
   - svc/api/openapi/spec/common/MethodMatch.yaml
   - svc/api/openapi/spec/common/FieldMatch.yaml
   - svc/api/openapi/spec/common/StringMatch.yaml
+  - svc/api/openapi/spec/common/RemoteIpMatch.yaml
   - svc/api/openapi/spec/paths/v2/gateway/setPolicies/V2GatewaySetPoliciesRequestBody.yaml
   - svc/api/openapi/spec/paths/v2/gateway/updatePolicy/V2GatewayUpdatePolicyRequestBody.yaml
   - svc/api/openapi/spec/paths/v2/gateway/listPolicies/V2GatewayListPoliciesRequestBody.yaml
@@ -117,7 +118,7 @@ Saved policies also have an `id`. It changes every time `gateway.setPolicies` re
 
 ## Pick which requests a policy applies to
 
-Each match expression sets exactly one of `path`, `method`, `header`, or `queryParam`. A request must match every expression in the policy. To match one thing or another, create two policies.
+Each match expression sets exactly one of `path`, `method`, `header`, `queryParam`, or `remoteIp`. A request must match every expression in the policy. To match one thing or another, create two policies.
 
 <ParamField body="path.path" type="StringMatch">
   Matches the request path. Set exactly one of `exact`, `prefix`, or `regex` (1 to 1024 characters), and optionally `ignoreCase: true`. Regular expressions use RE2 syntax, and one that doesn't compile is rejected when you save.
@@ -135,6 +136,10 @@ Each match expression sets exactly one of `path`, `method`, `header`, or `queryP
   Same as `header`, for a query parameter. Names are case-sensitive.
 </ParamField>
 
+<ParamField body="remoteIp" type="RemoteIpMatch">
+  Matches the client IP. Set exactly one of `in` (the client is in one of the ranges) or `notIn` (the client is in none of them). Each is a list of 1 to 100 IPv4 addresses or CIDRs, such as `203.0.113.7` or `203.0.113.0/24`. A single address is saved as `/32`. IPv6 entries and ranges with host bits set, such as `10.1.2.3/8`, are rejected. In the dashboard this is **Remote IP**, with **In range** or **Not in range**.
+</ParamField>
+
 ```json Example: block POST and DELETE on internal paths
 {
   "name": "Block internal paths",
@@ -149,8 +154,9 @@ Each match expression sets exactly one of `path`, `method`, `header`, or `queryP
 
 ## Put policies in the right order
 
-The gateway runs every enabled policy that matches, from top to bottom. Order matters in three ways:
+The gateway runs every enabled policy that matches, from top to bottom. Order matters in four ways:
 
+- **IP blocks before authentication.** Put a firewall policy that blocks by `remoteIp` above your API key policies, so blocked clients can't try keys.
 - **Authentication first.** The first API key policy that succeeds decides who the caller is. Later API key policies are skipped.
 - **Rate limits by caller go after authentication.** A rate limit that counts by `authenticatedSubject` or `principalField` needs to know the caller. If it runs first, every request counts as `unknown`.
 - **A rejection stops everything.** After a firewall block, a failed key check, a used-up rate limit, or an OpenAPI error, no later policy runs, including logging.
@@ -161,6 +167,7 @@ Logging policies never reject. If several match, the request is logged with all 
 
 - 50 policies per environment.
 - 10 match expressions per policy.
+- 100 entries per `remoteIp` list.
 - 5 keyspaces and 10 key rate limits per API key policy.
 - 5 identifiers per rate limit policy.
 - Match strings up to 1024 characters, and names up to 256.
