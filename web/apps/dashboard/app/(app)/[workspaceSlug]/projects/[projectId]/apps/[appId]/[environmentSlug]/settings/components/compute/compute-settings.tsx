@@ -1,9 +1,9 @@
 "use client";
 
-import { trpc } from "@/lib/trpc/client";
 import { IconPlusOutline18 } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { useEffect, useRef, useState } from "react";
+import { unschedulableIn } from "./model";
 import { NewRegionCard, RegionCard } from "./region-card";
 import { RegionViz } from "./region-viz";
 import { useCompute } from "./use-compute";
@@ -36,9 +36,10 @@ export function ComputeSettings() {
   const cardKeys = useCardKeys();
   const [adding, setAdding] = useState(false);
   const [justAdded, setJustAdded] = useState<string | null>(null);
-  const { data: available } = trpc.deploy.environmentSettings.getAvailableRegions.useQuery();
   const names = page.base.regions.map((r) => r.name);
-  const canAdd = (available ?? []).some((r) => r.canSchedule && !names.includes(r.name));
+  const canAdd =
+    page.available.status === "ready" &&
+    page.available.regions.some((r) => r.canSchedule && !names.includes(r.name));
   const addedShown = justAdded !== null && names.includes(justAdded);
   useEffect(() => {
     if (addedShown) {
@@ -50,7 +51,12 @@ export function ComputeSettings() {
       <h2 className="text-base font-medium text-gray-12">Regions</h2>
       <div className="overflow-clip rounded-lg border bg-raised">
         <div className="divide-y divide-grayA-4">
-          <RegionViz draft={page.base} hovered={page.hovered} onHover={page.setHovered} />
+          <RegionViz
+            draft={page.base}
+            unavailable={new Set(unschedulableIn(page.available, names))}
+            hovered={page.hovered}
+            onHover={page.setHovered}
+          />
           <div className="flex flex-col gap-3 px-4 pt-4 pb-5">
             {names.map((name, i) => (
               <RegionCard

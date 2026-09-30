@@ -31,6 +31,7 @@ type View = "map" | "nodes";
 
 type VizProps = {
   draft: ComputeDraft;
+  unavailable: ReadonlySet<string>;
   hovered: string | null;
   onHover: (name: string | null) => void;
 };
@@ -266,7 +267,9 @@ export function RegionViz(props: VizProps) {
   );
 }
 
-function MapView({ draft, hovered, onHover }: VizProps) {
+const UNAVAILABLE = "Unavailable for scheduling";
+
+function MapView({ draft, unavailable, hovered, onHover }: VizProps) {
   const regions = draft.regions.map((r) => ({ ...regionInfo(r.name), count: rangeOf(r) }));
   const offMap = regions.filter((r) => !r.pin);
   return (
@@ -288,6 +291,7 @@ function MapView({ draft, hovered, onHover }: VizProps) {
           const left = ((region.pin.lon - LON_MIN) / MAP_W) * 100;
           const top = ((LAT_MAX - region.pin.lat) / MAP_H) * 100;
           const active = hovered === region.name;
+          const blocked = unavailable.has(region.name);
           return (
             <div
               key={region.name}
@@ -298,7 +302,8 @@ function MapView({ draft, hovered, onHover }: VizProps) {
             >
               <span
                 className={cn(
-                  "absolute -translate-x-1/2 -translate-y-1/2 animate-pop rounded-full bg-gray-12 ring-4 ring-grayA-4 transition-[width,height] duration-150 motion-reduce:animate-none",
+                  "absolute -translate-x-1/2 -translate-y-1/2 animate-pop rounded-full ring-4 transition-[width,height] duration-150 motion-reduce:animate-none",
+                  blocked ? "bg-warning-9 ring-warning-4" : "bg-gray-12 ring-grayA-4",
                   active ? "size-3" : "size-2",
                 )}
               />
@@ -313,6 +318,7 @@ function MapView({ draft, hovered, onHover }: VizProps) {
                   <RectFlag flag={region.flag} size="sm" />
                   {region.name}
                   <span className="text-gray-10">×{region.count}</span>
+                  {blocked ? <span className="text-warning-11">{UNAVAILABLE}</span> : null}
                 </span>
               ) : null}
             </div>
@@ -344,7 +350,7 @@ function MapView({ draft, hovered, onHover }: VizProps) {
 const NODE_W = 208;
 const NODE_GAP = 24;
 
-function NodesView({ draft, hovered, onHover }: VizProps) {
+function NodesView({ draft, unavailable, hovered, onHover }: VizProps) {
   const regions = draft.regions.map((r) => ({ ...regionInfo(r.name), count: rangeOf(r) }));
   const n = Math.max(regions.length, 1);
   const specs = [
@@ -398,15 +404,27 @@ function NodesView({ draft, hovered, onHover }: VizProps) {
               onMouseLeave={() => onHover(null)}
               className={cn(
                 "flex min-w-0 animate-pop flex-col overflow-hidden rounded-lg bg-raised shadow-sm ring-1 transition-shadow motion-reduce:animate-none",
-                hovered === region.name ? "ring-grayA-8" : "ring-grayA-5",
+                unavailable.has(region.name)
+                  ? "ring-warning-7"
+                  : hovered === region.name
+                    ? "ring-grayA-8"
+                    : "ring-grayA-5",
               )}
+              title={unavailable.has(region.name) ? UNAVAILABLE : undefined}
             >
               <span className="flex min-w-0 items-center gap-1.5 px-3 py-2">
                 <RectFlag flag={region.flag} size="sm" />
                 <span className="shrink-0 text-xs font-medium text-gray-12">{region.city}</span>
                 <span className="truncate font-mono text-[11px] text-gray-10">{region.name}</span>
-                <span className="ml-auto shrink-0 rounded-sm border border-grayA-5 bg-grayA-3 px-1 font-mono text-[10px] leading-4 font-medium text-gray-12">
-                  {sizeLabel(draft)}
+                <span className="ml-auto flex shrink-0 gap-1">
+                  {unavailable.has(region.name) ? (
+                    <span className="rounded-sm border border-warning-6 bg-warning-3 px-1 text-[10px] leading-4 text-warning-11">
+                      Unavailable
+                    </span>
+                  ) : null}
+                  <span className="rounded-sm border border-grayA-5 bg-grayA-3 px-1 font-mono text-[10px] leading-4 font-medium text-gray-12">
+                    {sizeLabel(draft)}
+                  </span>
                 </span>
               </span>
               <span className="grid grid-cols-2 gap-x-3 gap-y-1 whitespace-nowrap border-t border-grayA-4 px-3 py-2 font-mono text-[10px]">

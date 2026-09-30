@@ -18,6 +18,7 @@ import {
   resolveLimits,
   sameDraft,
   unitFields,
+  unschedulableIn,
 } from "./model";
 
 type Region = EnvironmentSettings["regions"][number];
@@ -271,6 +272,19 @@ describe("nudgeUnit", () => {
     expect(nudgeUnit(250, -1, cpu)).toBe(250);
     expect(nudgeUnit(8000, 1, cpu)).toBe(8000);
     expect(nudgeUnit(null, 1, cpu)).toBe(250);
+  });
+});
+
+describe("unschedulableIn", () => {
+  it("lists the regions that cannot be scheduled once regions have loaded", () => {
+    const regions = [
+      { name: "us-east-1", canSchedule: true },
+      { name: "eu-central-1", canSchedule: false },
+    ];
+    expect(
+      unschedulableIn({ status: "ready", regions }, ["us-east-1", "eu-central-1", "local"]),
+    ).toEqual(["eu-central-1"]);
+    expect(unschedulableIn({ status: "loading" }, ["eu-central-1"])).toEqual([]);
   });
 });
 

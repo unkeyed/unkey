@@ -1,6 +1,5 @@
 "use client";
 
-import { trpc } from "@/lib/trpc/client";
 import { IconChevronExpandYOutline12 } from "@unkey/icons";
 import {
   AlertDialog,
@@ -27,7 +26,7 @@ import type React from "react";
 import { useEffect, useRef, useState } from "react";
 import { InstanceRange, SizeTrigger, StorageSelect } from "./controls";
 import { RectFlag } from "./flag";
-import { inheritedSummary, regionInfo } from "./model";
+import { inheritedSummary, regionInfo, unschedulableIn } from "./model";
 import { type ComputeCard, type ComputePage, useCardController } from "./use-compute";
 
 function Row({
@@ -69,24 +68,48 @@ function CardSettings({ c }: { c: ComputeCard }) {
   );
 }
 
+type FooterNote = { tone: "error" | "warning" | "muted"; text: string };
+
+const NOTE_TONE = {
+  error: "text-error-11",
+  warning: "text-warning-11",
+  muted: "text-gray-11",
+} satisfies Record<FooterNote["tone"], string>;
+
+function footerNote(c: ComputeCard): FooterNote | null {
+  if (!c.result.ok && c.result.reason === "taken") {
+    return { tone: "error", text: "This region is already in use" };
+  }
+  const [first, ...rest] = c.blocked;
+  if (first) {
+    return {
+      tone: "warning",
+      text:
+        rest.length === 0
+          ? `${first} can't be scheduled. Remove or replace it to save.`
+          : `${rest.length + 1} regions can't be scheduled. Remove or replace them to save.`,
+    };
+  }
+  if (c.dirty && c.saveMode === "manual") {
+    return { tone: "muted", text: "Changes apply on next deploy" };
+  }
+  return null;
+}
+
 function CardFooter({ leading, c }: { leading: React.ReactNode; c: ComputeCard }) {
-  const taken = !c.result.ok && c.result.reason === "taken";
+  const note = footerNote(c);
   return (
     <div className="flex items-center justify-between gap-3 bg-grayA-2 px-5 py-3">
       {leading}
-      {c.saveMode === "manual" || taken ? (
+      {c.saveMode === "manual" || note ? (
         <div className="flex items-center gap-3">
-          {taken ? (
-            <span className="text-xs text-error-11">This region is already in use</span>
-          ) : c.dirty ? (
-            <span className="text-xs text-gray-11">Changes apply on next deploy</span>
-          ) : null}
+          {note ? <span className={cn("text-xs", NOTE_TONE[note.tone])}>{note.text}</span> : null}
           {c.saveMode === "manual" ? (
             <Button
               variant="primary"
               size="sm"
               className="px-3"
-              disabled={!c.dirty}
+              disabled={!c.dirty || c.blocked.length > 0}
               onClick={c.save}
             >
               Save changes
@@ -98,8 +121,24 @@ function CardFooter({ leading, c }: { leading: React.ReactNode; c: ComputeCard }
   );
 }
 
+function UnavailableChip() {
+  return (
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger
+          render={
+            <span className="rounded-sm border border-warning-6 bg-warning-3 px-1 text-[11px] leading-4 text-warning-11" />
+          }
+        >
+          Unavailable
+        </TooltipTrigger>
+        <TooltipContent>This region is currently unavailable for scheduling</TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+}
+
 function RegionSelect({ c }: { c: ComputeCard }) {
-  const { data: available = [] } = trpc.deploy.environmentSettings.getAvailableRegions.useQuery();
   const name = c.view.region;
   const current = name ? regionInfo(name) : null;
   return (
@@ -128,7 +167,7 @@ function RegionSelect({ c }: { c: ComputeCard }) {
         </SelectValue>
       </SelectTrigger>
       <SelectContent>
-        {available.map(({ name: option, canSchedule }) => {
+        {c.options.map(({ name: option, canSchedule }) => {
           const region = regionInfo(option);
           const taken = option !== name && c.taken.has(option);
           return (
@@ -169,6 +208,7 @@ export function RegionCard({
   const shared = page.base.regions.length > 1;
   const shown = regionInfo(card.view.region ?? name);
   const saved = regionInfo(name);
+  const unavailable = unschedulableIn(page.available, [shown.name]).length > 0;
   return (
     <div
       className={cn(
@@ -193,6 +233,7 @@ export function RegionCard({
           <span className="flex items-center gap-2">
             <span className="text-sm font-medium text-gray-12">{shown.city}</span>
             <span className="font-mono text-xs text-gray-10">{shown.name}</span>
+            {unavailable ? <UnavailableChip /> : null}
           </span>
           <span className="truncate text-xs text-gray-11">
             {shared && open ? "Same settings in every region for now" : inheritedSummary(card.view)}

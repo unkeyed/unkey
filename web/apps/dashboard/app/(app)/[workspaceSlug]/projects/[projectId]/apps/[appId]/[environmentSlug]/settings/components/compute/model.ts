@@ -242,6 +242,21 @@ export function activePreset(view: Pick<CardView, "sizeMode" | "cpuMillicores" |
     .exhaustive();
 }
 
+export type AvailableRegion = { name: string; canSchedule: boolean };
+
+export type AvailableRegions =
+  | { status: "loading" }
+  | { status: "error" }
+  | { status: "ready"; regions: AvailableRegion[] };
+
+export function unschedulableIn(available: AvailableRegions, names: string[]): string[] {
+  if (available.status !== "ready") {
+    return [];
+  }
+  const blocked = new Set(available.regions.filter((r) => !r.canSchedule).map((r) => r.name));
+  return names.filter((name) => blocked.has(name));
+}
+
 export type UnitField = { unit: string; scale: number; min: number; max: number; step: number };
 
 export type UnitParse = { ok: true; value: number } | { ok: false; message: string };

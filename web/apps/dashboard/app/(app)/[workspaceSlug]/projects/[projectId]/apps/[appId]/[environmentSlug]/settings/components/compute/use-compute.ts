@@ -1,11 +1,14 @@
 "use client";
 
+import { trpc } from "@/lib/trpc/client";
 import { useWorkspace } from "@/providers/workspace-provider";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useEnvironmentSettings } from "../../environment-provider";
 import { useUpdateEnvironment } from "../../hooks/use-update-environment";
 import { useReportUnsavedChanges } from "../../prevent-leave-context";
 import {
+  type AvailableRegion,
+  type AvailableRegions,
   type CardEdit,
   type CardSlot,
   type CardView,
@@ -18,6 +21,7 @@ import {
   fromSettings,
   resolveLimits,
   sameDraft,
+  unschedulableIn,
 } from "./model";
 
 export type SaveMode = "autosave" | "manual";
@@ -29,14 +33,17 @@ export type ComputePage = {
   setHovered: (name: string | null) => void;
   commit: (change: (current: ComputeDraft) => ComputeDraft | null) => void;
   saveMode: SaveMode;
+  available: AvailableRegions;
 };
 
 export type ComputeCard = {
   view: CardView;
   limits: ComputeLimits;
   saveMode: SaveMode;
+  options: AvailableRegion[];
   taken: ReadonlySet<string>;
   result: EditResult;
+  blocked: string[];
   dirty: boolean;
   edit: (patch: CardEdit) => void;
   save: () => void;
@@ -48,7 +55,14 @@ export function useCompute(): ComputePage {
   const updateEnvironment = useUpdateEnvironment();
   const [hovered, setHovered] = useState<string | null>(null);
   const base = useMemo(() => fromSettings(settings), [settings]);
+  const regionsQuery = trpc.deploy.environmentSettings.getAvailableRegions.useQuery();
+  const available: AvailableRegions = regionsQuery.data
+    ? { status: "ready", regions: regionsQuery.data }
+    : regionsQuery.isError
+      ? { status: "error" }
+      : { status: "loading" };
   return {
+    available,
     base,
     limits: resolveLimits(limits),
     hovered,
@@ -78,6 +92,12 @@ export function useCardController(
   const [edit, setEdit] = useState<CardEdit>({});
   const result = applyCardEdit(page.base, slot, edit);
   const dirty = result.ok && !sameDraft(result.draft, page.base);
+  const blocked = result.ok
+    ? unschedulableIn(
+        page.available,
+        result.draft.regions.map((r) => r.name),
+      )
+    : [];
   useReportUnsavedChanges(page.saveMode === "manual" && dirty);
 
   const commitEdit = (next: CardEdit) => {
@@ -106,7 +126,8 @@ export function useCardController(
 
   const autosave = (next: CardEdit) => {
     const applied = applyCardEdit(page.base, slot, next);
-    if (!applied.ok) {
+    const names = applied.ok ? applied.draft.regions.map((r) => r.name) : [];
+    if (!applied.ok || unschedulableIn(page.available, names).length > 0) {
       pending.current = null;
       clearTimeout(timer.current);
       return;
@@ -124,12 +145,14 @@ export function useCardController(
     view: cardView(page.base, slot, edit),
     limits: page.limits,
     saveMode: page.saveMode,
+    options: page.available.status === "ready" ? page.available.regions : [],
     taken: new Set(
       page.base.regions
         .map((r) => r.name)
         .filter((name) => slot.kind === "new" || name !== slot.name),
     ),
     result,
+    blocked,
     dirty,
     edit: (patch) => {
       const next = { ...edit, ...patch };
@@ -139,7 +162,7 @@ export function useCardController(
       }
     },
     save: () => {
-      if (dirty) {
+      if (dirty && blocked.length === 0) {
         commitEdit(edit);
       }
     },
