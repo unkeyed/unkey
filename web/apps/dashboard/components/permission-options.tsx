@@ -4,6 +4,7 @@ import { Button, HoverCard, HoverCardContent, HoverCardTrigger } from "@unkey/ui
 
 type PermissionSelectorProps = {
   permissions: Permission[];
+  valueField: "id" | "slug";
   hasNextPage?: boolean;
   isFetchingNextPage: boolean;
   loadMore: () => void;
@@ -11,6 +12,7 @@ type PermissionSelectorProps = {
 
 export function createPermissionOptions({
   permissions,
+  valueField,
   hasNextPage,
   isFetchingNextPage,
   loadMore,
@@ -89,13 +91,17 @@ export function createPermissionOptions({
             <IconPage2Outline12 className="text-grayA-11" />
           </div>
           <span className="text-gray-12 font-medium text-xs w-[120px] truncate text-left">
-            {permission.slug}
+            {valueField === "slug"
+              ? permission.slug
+              : permission.id.length > 15
+                ? `${permission.id.slice(0, 8)}...${permission.id.slice(-4)}`
+                : permission.id}
           </span>
         </div>
         <span className="w-[200px] truncate text-gray-8 text-left">{permission.name}</span>
       </div>
     ),
-    value: permission.slug,
+    value: permission[valueField],
     searchValue: `${permission.id} ${permission.name} ${permission.slug} ${
       permission.description || ""
     }`.trim(),

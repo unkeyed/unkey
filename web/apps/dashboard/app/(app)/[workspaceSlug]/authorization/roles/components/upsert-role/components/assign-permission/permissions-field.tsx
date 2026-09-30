@@ -1,3 +1,4 @@
+import { createPermissionOptions } from "@/components/permission-options";
 import { useRoleLimits } from "@/components/roles-table/hooks/use-role-limits";
 import { SelectedItemsList } from "@/components/selected-item-list";
 import { FormCombobox } from "@/components/ui/form-combobox";
@@ -7,7 +8,6 @@ import type { RolePermission } from "@/lib/trpc/routers/authorization/roles/conn
 import { IconPage2Outline12 } from "@unkey/icons";
 import { useMemo, useState } from "react";
 import { RoleWarningCallout } from "../warning-callout";
-import { createPermissionOptions } from "./create-permission-options";
 
 type PermissionFieldProps = {
   value: string[];
@@ -60,6 +60,7 @@ export const PermissionField = ({
 
   const baseOptions = createPermissionOptions({
     permissions: allPermissions,
+    valueField: "id",
     hasNextPage: showLoadMore,
     isFetchingNextPage,
     loadMore,

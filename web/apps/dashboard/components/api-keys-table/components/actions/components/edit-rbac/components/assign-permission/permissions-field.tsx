@@ -1,4 +1,5 @@
 import { StatusBadge } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/settings/components/status-badge";
+import { createPermissionOptions } from "@/components/permission-options";
 import { SelectedItemsList } from "@/components/selected-item-list";
 import { FormCombobox } from "@/components/ui/form-combobox";
 import { useFetchPermissions } from "@/hooks/use-fetch-permissions";
@@ -8,7 +9,6 @@ import { IconPage2Outline12 } from "@unkey/icons";
 import { InfoTooltip } from "@unkey/ui";
 import { useMemo, useState } from "react";
 import { useWatch } from "react-hook-form";
-import { createPermissionOptions } from "./create-permission-options";
 
 type PermissionFieldProps = {
   value: string[];
@@ -84,6 +84,7 @@ export const PermissionField = ({
 
   const baseOptions = createPermissionOptions({
     permissions: allPermissions,
+    valueField: "slug",
     hasNextPage: showLoadMore,
     isFetchingNextPage,
     loadMore,
