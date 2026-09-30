@@ -56,6 +56,8 @@ const schema = z.object({
   openapiSpecPath: z.string().nullable().default(null),
 });
 
+const silentMutationSchema = z.object({ silent: z.literal(true) });
+
 /**
  * Environment settings collection - flattened build + runtime settings.
  *
@@ -99,7 +101,9 @@ export const environmentSettings = createCollection<EnvironmentSettings, string>
     getKey: (item) => item.environmentId,
     id: "environmentSettings",
     onUpdate: async ({ transaction }) => {
-      const silent = transaction.metadata?.silent === true;
+      const silent = transaction.mutations.every(
+        (m) => silentMutationSchema.safeParse(m.metadata).success,
+      );
       // A transaction can carry one environment or every environment of an app,
       // so send them together and report the outcome once.
       await dispatchSettingsMutations(
@@ -335,7 +339,19 @@ async function dispatchSettingsMutations(
       error: (err) => getErrorToast(err, "Failed to update settings"),
     });
   }
-  await trackSave(mutation);
+  await (bodies.some(appliesOnNextDeploy) ? trackSave(mutation) : mutation);
+}
+
+/** Auto-deploy only decides whether a push starts a build, so it needs no redeploy. */
+export function appliesOnNextDeploy(body: V2EnvironmentsUpdateSettingsRequestBody): boolean {
+  const {
+    project: _project,
+    app: _app,
+    environment: _environment,
+    autoDeploy: _autoDeploy,
+    ...rest
+  } = body;
+  return Object.keys(rest).length > 0;
 }
 
 /**

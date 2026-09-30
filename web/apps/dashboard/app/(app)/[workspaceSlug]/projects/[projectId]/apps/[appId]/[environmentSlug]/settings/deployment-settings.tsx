@@ -129,9 +129,11 @@ export function DeploySettings() {
     );
   }
   return (
-    <SettingsGroup>
-      <AutoDeploy />
-    </SettingsGroup>
+    <SettingsSection>
+      <SettingCardGroup>
+        <AutoDeploy />
+      </SettingCardGroup>
+    </SettingsSection>
   );
 }
 
