@@ -145,7 +145,6 @@ func (s *service) GetMigrated(ctx context.Context, sess *zen.Session, rawKey str
 			h,
 			newHash,
 		)
-		s.rootKeyCache.Remove(ctx, h, newHash)
 	}
 
 	return key, nil
