@@ -10,8 +10,9 @@ import {
   usePaginatedNavigation,
   usePaginatedPage,
 } from "@/hooks/use-paginated-list-query";
+import { getTimestampFromRelative } from "@/lib/duration";
 import { trpc } from "@/lib/trpc/client";
-import { DEFAULT_LOGS_SINCE, getTimestampFromRelative } from "@/lib/utils";
+import { DEFAULT_LOGS_SINCE } from "@/lib/utils";
 import type { RequestLogsResponse } from "@unkey/clickhouse/src/frontline";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
