@@ -7,6 +7,7 @@ import (
 
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/internal/services/keys"
+	"github.com/unkeyed/unkey/pkg/array"
 	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/auth/principal"
 	"github.com/unkeyed/unkey/pkg/clock"
@@ -95,17 +96,16 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		if err != nil {
 			return err
 		}
-		permissionRows := make([]db.InsertUnkeyPermissionParams, 0, len(validatedPermissions))
-		for _, slug := range validatedPermissions {
-			permissionRows = append(permissionRows, db.InsertUnkeyPermissionParams{
+		permissionRows := array.Map(validatedPermissions, func(slug string) db.InsertUnkeyPermissionParams {
+			return db.InsertUnkeyPermissionParams{
 				ID:            uid.New(uid.PermissionPrefix),
 				WorkspaceID:   p.AuthorizedWorkspaceID,
 				PrincipalType: db.UnkeyPrincipalPermissionsPrincipalTypeRootKey,
 				PrincipalID:   keyID,
 				Slug:          slug,
 				CreatedAt:     h.Clock.Now().UnixMilli(),
-			})
-		}
+			}
+		})
 		if err := db.BulkQuery.InsertUnkeyPermissions(ctx, tx, permissionRows); err != nil {
 			return err
 		}
