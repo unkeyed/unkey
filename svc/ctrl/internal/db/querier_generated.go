@@ -2432,7 +2432,11 @@ type Querier interface {
 	// mysqltype.ProgressingDeploymentStatuses.
 	//
 	//  UPDATE deployments
-	//  SET status = ?, updated_at = ?
+	//  SET first_ready_at = COALESCE(first_ready_at, CASE
+	//          WHEN ? = 'ready' THEN COALESCE(?, created_at)
+	//          ELSE NULL
+	//      END),
+	//      status = ?, updated_at = ?
 	//  WHERE id = ?
 	//    AND status IN (/*SLICE:progressing_statuses*/?)
 	UpdateDeploymentStatusIfActive(ctx context.Context, arg UpdateDeploymentStatusIfActiveParams) error

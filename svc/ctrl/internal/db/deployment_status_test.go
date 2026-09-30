@@ -65,3 +65,70 @@ VALUES (?,?,'ws','project','app','preview','{}',100,128,'{}',?,10,?)`, id, id, t
 		})
 	}
 }
+
+func TestConditionalDeploymentStatusRecordsFirstReadyAt(t *testing.T) {
+	server := containers.MySQL(t)
+	database, err := sql.Open("mysql", server.DSN)
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, database.Close()) })
+
+	for _, tt := range []struct {
+		name           string
+		status         mysqltype.DeploymentsStatus
+		next           mysqltype.DeploymentsStatus
+		firstReady     sql.NullInt64
+		wantFirstReady sql.NullInt64
+		wantStatus     mysqltype.DeploymentsStatus
+		wantUpdatedAt  int64
+	}{
+		{
+			name: "first successful deployment", status: mysqltype.DeploymentsStatusFinalizing,
+			next: mysqltype.DeploymentsStatusReady, wantStatus: mysqltype.DeploymentsStatusReady,
+			wantFirstReady: sql.NullInt64{Int64: 200, Valid: true}, wantUpdatedAt: 200,
+		},
+		{
+			name: "failed deployment is not ready", status: mysqltype.DeploymentsStatusBuilding,
+			next: mysqltype.DeploymentsStatusFailed, wantStatus: mysqltype.DeploymentsStatusFailed,
+			wantUpdatedAt: 200,
+		},
+		{
+			name: "preserve earlier readiness", status: mysqltype.DeploymentsStatusDeploying,
+			next: mysqltype.DeploymentsStatusReady, wantStatus: mysqltype.DeploymentsStatusReady,
+			firstReady: sql.NullInt64{Int64: 80, Valid: true},
+			wantFirstReady: sql.NullInt64{Int64: 80, Valid: true}, wantUpdatedAt: 200,
+		},
+		{
+			name: "cancellation wins", status: mysqltype.DeploymentsStatusCancelled,
+			next: mysqltype.DeploymentsStatusReady, wantStatus: mysqltype.DeploymentsStatusCancelled,
+			wantUpdatedAt: 100,
+		},
+		{
+			name: "compensation cannot change ready deployment", status: mysqltype.DeploymentsStatusReady,
+			next: mysqltype.DeploymentsStatusFailed, wantStatus: mysqltype.DeploymentsStatusReady,
+			firstReady: sql.NullInt64{Int64: 80, Valid: true},
+			wantFirstReady: sql.NullInt64{Int64: 80, Valid: true}, wantUpdatedAt: 100,
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			tx, err := database.BeginTx(t.Context(), nil)
+			require.NoError(t, err)
+			t.Cleanup(func() { require.NoError(t, tx.Rollback()) })
+			id := uid.New("dep")
+			_, err = tx.ExecContext(t.Context(), `INSERT INTO deployments
+(id,k8s_name,workspace_id,project_id,app_id,environment_id,sentinel_config,cpu_millicores,memory_mib,encrypted_environment_variables,status,created_at,updated_at,first_ready_at)
+VALUES (?,?,'ws','project','app','preview','{}',100,128,'{}',?,10,100,?)`, id, id, tt.status, tt.firstReady)
+			require.NoError(t, err)
+
+			q := NewQueries(tx)
+			require.NoError(t, q.UpdateDeploymentStatusIfActive(t.Context(), UpdateDeploymentStatusIfActiveParams{
+				ID: id, Status: tt.next, UpdatedAt: sql.NullInt64{Int64: 200, Valid: true},
+				ProgressingStatuses: mysqltype.ProgressingDeploymentStatuses,
+			}))
+			deployment, err := q.FindDeploymentById(t.Context(), id)
+			require.NoError(t, err)
+			require.Equal(t, tt.wantStatus, deployment.Status)
+			require.Equal(t, tt.wantFirstReady, deployment.FirstReadyAt)
+			require.Equal(t, sql.NullInt64{Int64: tt.wantUpdatedAt, Valid: true}, deployment.UpdatedAt)
+		})
+	}
+}
