@@ -788,8 +788,6 @@ func (w *Workflow) processBuildStatus(
 				logger.Warn("vertex is nil")
 				continue
 			}
-			// A running step needs its own row, otherwise readers cannot show it
-			// or the log entries it writes before it completes
 			if vertex.Started != nil && vertex.Completed == nil && !started[vertex.Digest] && !completed[vertex.Digest] {
 				started[vertex.Digest] = true
 

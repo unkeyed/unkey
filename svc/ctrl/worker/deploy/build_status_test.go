@@ -53,7 +53,7 @@ func TestProcessBuildStatusWritesStepRows(t *testing.T) {
 	}}
 	close(statusCh)
 
-	w.processBuildStatus(statusCh, "ws_KEBAP", "proj_KEBAP", "d_KEBAP")
+	w.processBuildStatus(statusCh, uid.New(uid.WorkspacePrefix), uid.New(uid.ProjectPrefix), uid.New(uid.DeploymentPrefix))
 	buildSteps.Close()
 
 	type stepRow struct {
