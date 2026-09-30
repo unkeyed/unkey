@@ -83,3 +83,19 @@ export const portalManagement = flag<boolean, Entities>({
   identify,
   adapter: adapter(),
 });
+
+// privateNetworking gates app bindings: the Bindings page, its sidebar link,
+// and creating or editing a binding. The backend enrolls a workspace while it
+// has an app binding, so this flag decides which teams get private networking.
+// Deleting a binding stays allowed so access can always be revoked.
+export const privateNetworking = flag<boolean, Entities>({
+  key: "private-networking",
+  description: "Show app bindings and allow creating them. Off until private networking GA.",
+  defaultValue: false,
+  options: [
+    { value: false, label: "Off" },
+    { value: true, label: "On" },
+  ],
+  identify,
+  adapter: adapter(),
+});

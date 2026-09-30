@@ -34,6 +34,13 @@ import { queryDeployUsage } from "./billing/query-deploy-usage";
 import { queryDeployUsageBreakdown } from "./billing/query-deploy-usage-breakdown";
 import { queryDeployUsageTimeseries } from "./billing/query-deploy-usage-timeseries";
 import { queryUsage } from "./billing/query-usage";
+import {
+  createAppBinding,
+  deleteAppBinding,
+  listAppBindingTargets,
+  listAppBindings,
+  updateAppBinding,
+} from "./deploy/app-binding";
 import { countCustomDomains } from "./deploy/custom-domains/count";
 import { authorizeDeployment } from "./deploy/deployment/authorize";
 import { getDeploymentBuildSteps } from "./deploy/deployment/build-steps";
@@ -151,6 +158,13 @@ import { onboardingKeyCreation } from "./workspace/onboarding";
 
 export const router = t.router({
   logdrain,
+  appBinding: t.router({
+    list: listAppBindings,
+    targets: listAppBindingTargets,
+    create: createAppBinding,
+    update: updateAppBinding,
+    delete: deleteAppBinding,
+  }),
   share: t.router({
     create: createSharedSecret,
     reveal: revealSharedSecret,
