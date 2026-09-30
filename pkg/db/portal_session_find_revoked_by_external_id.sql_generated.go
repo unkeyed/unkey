@@ -25,10 +25,9 @@ type FindPortalSessionsRevokedAtByExternalIDParams struct {
 	RevokedAt   sql.NullInt64 `db:"revoked_at"`
 }
 
-// Reads back the rows RevokePortalSessionsByExternalID just revoked, matched by
-// the exact revoked_at it wrote, so the caller can write their revoked state
-// into the session cache. Run it on the same transaction as the revoke: it then
-// returns exactly the rows that update touched.
+// Reads back the rows RevokePortalSessionsByExternalID just revoked, by the
+// revoked_at it wrote, so they can be written to the session cache. Run it in
+// the same transaction as the revoke.
 //
 //	SELECT pk, id, workspace_id, portal_id, external_id, scopes, exchange_code_hash, exchange_code_expires_at, access_token_hash, access_token_created_at, access_token_expires_at, revoked_at, return_url, created_at FROM portal_sessions
 //	WHERE workspace_id = ?

@@ -329,11 +329,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			}
 		}
 
-		// The session resolver never reads `portals`, so without this a session
-		// would outlive both changes: it keeps the keyspace scope it was minted
-		// with after a re-point, and keeps working on a disabled portal. Re-sending
-		// the same mapping, or disabling an already-disabled portal, is not a
-		// change and must not cut live sessions.
+		// The session resolver never reads `portals`, so a re-point or a disable
+		// has to revoke here or live sessions would outlive it. A request that
+		// changes neither must not cut them.
 		disabled := found.Enabled && !after.Enabled
 		var revoked int64
 		if mappingChanged || disabled {

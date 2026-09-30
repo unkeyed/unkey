@@ -491,9 +491,7 @@ func TestUpdatePortalWithoutMappingChangeKeepsSessions(t *testing.T) {
 	}
 }
 
-// A disabled portal must not keep serving end users, and the session resolver
-// never reads `portals`, so switching a portal off revokes its sessions.
-// Switching it back on does not bring them back.
+// Disabling revokes the portal's sessions, and re-enabling doesn't restore them.
 func TestUpdatePortalDisableRevokesSessions(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route, headers := newRoute(t, h, "portal.*.update_portal")
@@ -520,8 +518,7 @@ func TestUpdatePortalDisableRevokesSessions(t *testing.T) {
 	require.Equal(t, 0, liveSessions(t, h, stored.ID), "re-enabling does not restore revoked sessions")
 }
 
-// Sending enabled:false to a portal that is already off is not a change, so it
-// must not revoke anything.
+// Disabling a portal that's already off revokes nothing.
 func TestUpdatePortalAlreadyDisabledKeepsSessions(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route, headers := newRoute(t, h, "portal.*.update_portal")

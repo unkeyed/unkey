@@ -1,12 +1,7 @@
 -- name: RevokePortalSessionsByExternalID :execrows
--- Revokes every live session one end user holds on a portal, scoped to the
--- workspace.
---
--- Live means a session that could still authenticate: an access token that has
--- not expired, or a pending exchange code that has not. Expired rows are left
--- untouched so the returned count, and the audit log built from it, reflect
--- access that was actually cut. Pending rows are included so a code issued
--- before the revoke cannot be redeemed after it.
+-- Revokes one end user's live sessions on a portal: an unexpired access token,
+-- or an unexpired code that was never exchanged. Expired rows are left alone so
+-- the count reflects access that was actually cut.
 UPDATE portal_sessions
 SET revoked_at = sqlc.arg('revoked_at')
 WHERE workspace_id = sqlc.arg('workspace_id')

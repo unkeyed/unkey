@@ -26,8 +26,8 @@ type (
 	Response = openapi.V2PortalRevokeSessionResponseBody
 )
 
-// notFoundMessage is the single public message for an unknown portal and for a
-// caller who may not revoke its sessions, so neither can be told apart.
+// notFoundMessage is shared by an unknown portal and a denied caller, so the two
+// look the same.
 const notFoundMessage = "Portal not found."
 
 type Handler struct {
@@ -79,9 +79,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			)
 		}
 
-		// The same grant that mints a session for this portal revokes one. Unlike
-		// minting there is no root-key-only guard: revoking removes access rather
-		// than acting as the end user, so a dashboard admin may do it too.
+		// Same grant as minting, but no root-key-only guard: revoking only removes
+		// access, so a dashboard admin may do it too.
 		err = principal.Authorize(rbac.Or(
 			rbac.T(rbac.Tuple{
 				ResourceType: rbac.Portal,
@@ -177,8 +176,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	// Written through rather than removed: a removed entry refills from the
-	// read replica, which may not have the revocation yet.
+	// Written through, not evicted: a refill could read a replica that doesn't
+	// have the revocation yet.
 	cached := make(map[string]db.PortalSession, len(revoked))
 	for _, session := range revoked {
 		if session.AccessTokenHash.Valid {

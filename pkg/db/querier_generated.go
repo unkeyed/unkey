@@ -1048,10 +1048,9 @@ type Querier interface {
 	//  SELECT pk, id, workspace_id, portal_id, external_id, scopes, exchange_code_hash, exchange_code_expires_at, access_token_hash, access_token_created_at, access_token_expires_at, revoked_at, return_url, created_at FROM portal_sessions
 	//  WHERE exchange_code_hash = ?
 	FindPortalSessionByExchangeCodeHash(ctx context.Context, db DBTX, exchangeCodeHash string) (PortalSession, error)
-	// Reads back the rows RevokePortalSessionsByExternalID just revoked, matched by
-	// the exact revoked_at it wrote, so the caller can write their revoked state
-	// into the session cache. Run it on the same transaction as the revoke: it then
-	// returns exactly the rows that update touched.
+	// Reads back the rows RevokePortalSessionsByExternalID just revoked, by the
+	// revoked_at it wrote, so they can be written to the session cache. Run it in
+	// the same transaction as the revoke.
 	//
 	//  SELECT pk, id, workspace_id, portal_id, external_id, scopes, exchange_code_hash, exchange_code_expires_at, access_token_hash, access_token_created_at, access_token_expires_at, revoked_at, return_url, created_at FROM portal_sessions
 	//  WHERE workspace_id = ?
@@ -2936,14 +2935,9 @@ type Querier interface {
 	//      AND (e.id = ? OR e.slug = ?)
 	//  LIMIT 1
 	ResolveDeploymentScope(ctx context.Context, db DBTX, arg ResolveDeploymentScopeParams) (ResolveDeploymentScopeRow, error)
-	// Revokes every live session one end user holds on a portal, scoped to the
-	// workspace.
-	//
-	// Live means a session that could still authenticate: an access token that has
-	// not expired, or a pending exchange code that has not. Expired rows are left
-	// untouched so the returned count, and the audit log built from it, reflect
-	// access that was actually cut. Pending rows are included so a code issued
-	// before the revoke cannot be redeemed after it.
+	// Revokes one end user's live sessions on a portal: an unexpired access token,
+	// or an unexpired code that was never exchanged. Expired rows are left alone so
+	// the count reflects access that was actually cut.
 	//
 	//  UPDATE portal_sessions
 	//  SET revoked_at = ?
