@@ -137,7 +137,7 @@ Each match expression sets exactly one of `path`, `method`, `header`, `queryPara
 </ParamField>
 
 <ParamField body="remoteIp" type="RemoteIpMatch">
-  Matches the remote IP. Set exactly one of `in` (the client is in one of the ranges) or `notIn` (the client is in none of them). Each is a list of 1 to 100 IP addresses or CIDRs, such as `203.0.113.7`, `203.0.113.0/24`, or `2001:db8::/32`. A single address is saved as `/32` or `/128`. Ranges with host bits set, such as `10.1.2.3/8`, are rejected. The gateway accepts IPv4 connections today, so IPv6 entries match no request yet. In the dashboard this is **Remote IP**, with **In range** or **Not in range**.
+  Matches the remote IP. Set exactly one of `in` (the remote IP is in one of the ranges) or `notIn` (the remote IP is in none of them). Each is a list of 1 to 100 IP addresses or CIDRs, such as `203.0.113.7`, `203.0.113.0/24`, or `2001:db8::/32`. A single address is saved as `/32` or `/128`. Ranges with host bits set, such as `10.1.2.3/8`, are rejected. The gateway accepts IPv4 connections today, so IPv6 entries match no request yet. In the dashboard this is **Remote IP**, with **In range** or **Not in range**.
 </ParamField>
 
 ```json Example: block POST and DELETE on internal paths
