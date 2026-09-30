@@ -2805,6 +2805,16 @@ type Querier interface {
 	//  WHERE id = ?
 	//  FOR UPDATE
 	LockKeyForUpdate(ctx context.Context, db DBTX, id string) (string, error)
+	// Locks the portal row while a session is minted. Disabling, re-pointing, and
+	// deleting a portal all write this row before revoking its sessions, so the
+	// lock orders a mint before or after them: either the revoke sees the new
+	// session, or the mint sees the change and refuses.
+	//
+	//  SELECT id, enabled FROM portals
+	//  WHERE id = ?
+	//    AND workspace_id = ?
+	//  FOR UPDATE
+	LockPortalForMint(ctx context.Context, db DBTX, arg LockPortalForMintParams) (LockPortalForMintRow, error)
 	//LockRoleByIDOrNameAndWorkspaceID
 	//
 	//  SELECT id, project_id, name
