@@ -112,7 +112,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		if err != nil {
 			return nil, fault.Wrap(err,
 				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.Internal("unable to revoke portal sessions"),
+				fault.Internal(fmt.Sprintf("unable to revoke portal sessions for portal %s", found.ID)),
 				fault.Public("We're unable to revoke the portal sessions."),
 			)
 		}
