@@ -328,11 +328,8 @@ export function NewRegionCard({
       ref={ref}
       className="animate-pop scroll-mt-20 overflow-hidden rounded-lg border border-dashed border-grayA-7 motion-reduce:animate-none"
     >
-      <div className="flex flex-col gap-0.5 px-4 py-3">
+      <div className="px-4 py-3">
         <span className="text-sm font-medium text-gray-12">New region</span>
-        <span className="text-xs text-gray-11">
-          Pick a region. It uses the same settings as your other regions for now.
-        </span>
       </div>
       <div className="divide-y divide-grayA-4 border-t border-grayA-4">
         <Row title="Region" description="Where this copy of your app runs.">
