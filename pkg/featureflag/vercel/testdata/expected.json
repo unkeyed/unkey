@@ -1,0 +1,49 @@
+[
+  {
+    "flag": "direct",
+    "entities": {
+      "team": {
+        "id": "matching"
+      }
+    },
+    "value": true,
+    "reason": "target_match"
+  },
+  {
+    "flag": "direct",
+    "entities": {
+      "org": {
+        "id": "matching"
+      }
+    },
+    "value": false,
+    "reason": "fallthrough"
+  },
+  {
+    "flag": "direct",
+    "entities": {
+      "account": {
+        "slug": "blue"
+      }
+    },
+    "value": true,
+    "reason": "target_match"
+  },
+  {
+    "flag": "direct",
+    "entities": {
+      "account": {
+        "id": "first",
+        "slug": "blue"
+      }
+    },
+    "value": false,
+    "reason": "target_match"
+  },
+  {
+    "flag": "paused",
+    "entities": {},
+    "value": true,
+    "reason": "paused"
+  }
+]

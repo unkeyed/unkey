@@ -26,12 +26,7 @@ INNER JOIN environments e ON e.id = d.environment_id AND e.app_id = d.app_id
 INNER JOIN workspaces w ON w.id = d.workspace_id AND w.k8s_namespace <> ''
 WHERE d.id > ?
     AND d.status IN ('deploying', 'network', 'finalizing', 'ready') AND d.desired_state = 'running'
-    AND EXISTS (
-        SELECT 1 FROM app_bindings b
-        WHERE b.workspace_id = d.workspace_id
-            AND b.resource_type = 'app'
-            AND b.resource_id <> b.app_id
-    )
+    AND d.private_networking = TRUE
     AND EXISTS (
         SELECT 1 FROM deployment_topology dt
         INNER JOIN regions r ON r.id = dt.region_id
@@ -60,10 +55,9 @@ type ListPrivateNetworkReplicasRow struct {
 	EnvironmentID string `db:"environment_id"`
 }
 
-// ListPrivateNetworkReplicas returns one page of active deployments in
-// workspaces enrolled in private networking, ordered by deployment ID. Each
-// deployment resolves its own replicas under its app's slug. A workspace is
-// enrolled while it has at least one app binding to another app.
+// ListPrivateNetworkReplicas returns one page of active deployments created
+// with private networking, ordered by deployment ID. Each deployment resolves
+// its own replicas under its app's slug.
 //
 //	SELECT
 //	    d.workspace_id,
@@ -81,12 +75,7 @@ type ListPrivateNetworkReplicasRow struct {
 //	INNER JOIN workspaces w ON w.id = d.workspace_id AND w.k8s_namespace <> ''
 //	WHERE d.id > ?
 //	    AND d.status IN ('deploying', 'network', 'finalizing', 'ready') AND d.desired_state = 'running'
-//	    AND EXISTS (
-//	        SELECT 1 FROM app_bindings b
-//	        WHERE b.workspace_id = d.workspace_id
-//	            AND b.resource_type = 'app'
-//	            AND b.resource_id <> b.app_id
-//	    )
+//	    AND d.private_networking = TRUE
 //	    AND EXISTS (
 //	        SELECT 1 FROM deployment_topology dt
 //	        INNER JOIN regions r ON r.id = dt.region_id

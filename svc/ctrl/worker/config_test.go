@@ -2,6 +2,7 @@ package worker
 
 import (
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/config"
@@ -123,5 +124,74 @@ password = "depot-token"
 		require.NoError(t, err)
 		require.Equal(t, "https://api.depot.dev", cfg.GetDepotConfig().APIUrl)
 		require.Equal(t, "us-east-1", cfg.GetDepotConfig().ProjectRegion)
+	})
+}
+
+func TestConfigFeatureFlags(t *testing.T) {
+	base := `
+cname_domain = "unkey.local"
+database = "unkey:password@tcp(mysql:3306)/unkey?parseTime=true"
+
+[vault]
+url = "http://vault:8060"
+token = "vault-token"
+`
+
+	t.Run("defaults to no provider", func(t *testing.T) {
+		cfg, err := config.LoadBytes[Config]([]byte(base))
+		require.NoError(t, err)
+		require.Equal(t, FeatureFlagProviderNone, cfg.FeatureFlags.Provider)
+	})
+
+	t.Run("parses static flags", func(t *testing.T) {
+		cfg, err := config.LoadBytes[Config]([]byte(base + `
+[feature_flags]
+provider = "static"
+
+[feature_flags.static]
+private-networking = true
+other = false
+`))
+		require.NoError(t, err)
+		require.Equal(t, map[string]bool{"private-networking": true, "other": false}, cfg.FeatureFlags.Static)
+	})
+
+	t.Run("static provider requires flags", func(t *testing.T) {
+		_, err := config.LoadBytes[Config]([]byte(base + `
+[feature_flags]
+provider = "static"
+`))
+		require.ErrorContains(t, err, "feature_flags.static")
+	})
+
+	t.Run("parses vercel durations", func(t *testing.T) {
+		cfg, err := config.LoadBytes[Config]([]byte(base + `
+[feature_flags]
+provider = "vercel"
+
+[feature_flags.vercel]
+sdk_key = "vf_server_test"
+refresh_interval = "30s"
+max_staleness = "5m"
+`))
+		require.NoError(t, err)
+		require.Equal(t, 30*time.Second, cfg.FeatureFlags.Vercel.RefreshInterval)
+		require.Equal(t, 5*time.Minute, cfg.FeatureFlags.Vercel.MaxStaleness)
+	})
+
+	t.Run("vercel provider requires sdk key", func(t *testing.T) {
+		_, err := config.LoadBytes[Config]([]byte(base + `
+[feature_flags]
+provider = "vercel"
+`))
+		require.ErrorContains(t, err, "sdk_key")
+	})
+
+	t.Run("rejects unknown provider", func(t *testing.T) {
+		_, err := config.LoadBytes[Config]([]byte(base + `
+[feature_flags]
+provider = "launchdarkly"
+`))
+		require.ErrorContains(t, err, "invalid feature flag provider")
 	})
 }

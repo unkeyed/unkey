@@ -38,6 +38,7 @@ INSERT INTO ` + "`" + `deployments` + "`" + ` (
     port,
     shutdown_signal,
     upstream_protocol,
+    private_networking,
     healthcheck,
     pr_number,
     fork_repository_full_name,
@@ -48,6 +49,7 @@ INSERT INTO ` + "`" + `deployments` + "`" + ` (
     updated_at
 )
 VALUES (
+    ?,
     ?,
     ?,
     ?,
@@ -108,6 +110,7 @@ type InsertDeploymentParams struct {
 	Port                          int32                       `db:"port"`
 	ShutdownSignal                DeploymentsShutdownSignal   `db:"shutdown_signal"`
 	UpstreamProtocol              DeploymentsUpstreamProtocol `db:"upstream_protocol"`
+	PrivateNetworking             bool                        `db:"private_networking"`
 	Healthcheck                   mysqltype.NullHealthcheck   `db:"healthcheck"`
 	PrNumber                      sql.NullInt64               `db:"pr_number"`
 	ForkRepositoryFullName        sql.NullString              `db:"fork_repository_full_name"`
@@ -145,6 +148,7 @@ type InsertDeploymentParams struct {
 //	    port,
 //	    shutdown_signal,
 //	    upstream_protocol,
+//	    private_networking,
 //	    healthcheck,
 //	    pr_number,
 //	    fork_repository_full_name,
@@ -155,6 +159,7 @@ type InsertDeploymentParams struct {
 //	    updated_at
 //	)
 //	VALUES (
+//	    ?,
 //	    ?,
 //	    ?,
 //	    ?,
@@ -214,6 +219,7 @@ func (q *Queries) InsertDeployment(ctx context.Context, arg InsertDeploymentPara
 		arg.Port,
 		arg.ShutdownSignal,
 		arg.UpstreamProtocol,
+		arg.PrivateNetworking,
 		arg.Healthcheck,
 		arg.PrNumber,
 		arg.ForkRepositoryFullName,

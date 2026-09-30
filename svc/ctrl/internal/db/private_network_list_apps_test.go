@@ -56,8 +56,8 @@ func TestListPrivateNetworkAppsSelection(t *testing.T) {
 		if app == "foreign" {
 			workspace, project = "other-ws", "foreign-project"
 		}
-		exec(`INSERT INTO deployments (id,k8s_name,workspace_id,project_id,environment_id,app_id,source,git_branch,fork_repository_full_name,sentinel_config,cpu_millicores,memory_mib,desired_state,encrypted_environment_variables,status,first_ready_at,created_at)
-			VALUES (?,?,?,?,?,?,?,?,?,'{}',100,128,?,'{}',?,?,?)`, id, id, workspace, project, environment, app, source, sql.NullString{String: branch, Valid: branch != ""}, fork, desired, status, firstReady, created)
+		exec(`INSERT INTO deployments (id,k8s_name,workspace_id,project_id,environment_id,app_id,source,git_branch,fork_repository_full_name,sentinel_config,cpu_millicores,memory_mib,desired_state,encrypted_environment_variables,status,first_ready_at,created_at,private_networking)
+			VALUES (?,?,?,?,?,?,?,?,?,'{}',100,128,?,'{}',?,?,?,?)`, id, id, workspace, project, environment, app, source, sql.NullString{String: branch, Valid: branch != ""}, fork, desired, status, firstReady, created, app != "foreign")
 		for _, region := range regions {
 			exec(`INSERT INTO deployment_topology (workspace_id,deployment_id,region_id,desired_status,created_at) VALUES (?,?,?, 'running',1)`, workspace, id, region)
 		}
@@ -88,6 +88,8 @@ func TestListPrivateNetworkAppsSelection(t *testing.T) {
 	insertDeployment("target-manual-latest-failed", "target", "target-manual", "git", "manual", nil, "failed", "running", 1, 41, "r")
 	insertDeployment("target-pinned-stopped", "target", "target-preview", "git", "pin", nil, "stopped", "stopped", 1, 50, "r")
 	insertDeployment("foreign-live", "foreign", "foreign-prod", "git", "main", nil, "ready", "running", 1, 60, "r")
+	insertDeployment("caller-prod-disabled", "caller", "caller-prod", "git", "main", nil, "ready", "running", 1, 8, "r")
+	exec(`UPDATE deployments SET private_networking = FALSE WHERE id = 'caller-prod-disabled'`)
 	exec(`UPDATE deployments SET port = 7946 WHERE id = 'target-live'`)
 	exec(`UPDATE deployments SET port = 4000 WHERE id IN ('caller-prod-live', 'caller-prod-deploying')`)
 
@@ -105,7 +107,22 @@ func TestListPrivateNetworkAppsSelection(t *testing.T) {
 			params.AfterDeploymentID = rows[len(rows)-1].DeploymentID
 		}
 	}
-	require.Empty(t, replicas(), "a workspace without app bindings is not enrolled in private networking")
+	replicaIDs := func() []string {
+		t.Helper()
+		ids := make([]string, 0)
+		for _, replica := range replicas() {
+			ids = append(ids, replica.DeploymentID)
+		}
+		return ids
+	}
+	enabledReplicas := []string{
+		"caller-prod-deploying", "caller-prod-live", "caller-canary-oci",
+		"caller-preview-own", "caller-preview-fork", "caller-preview-missing",
+		"caller-manual-dep", "caller-pin-dep", "caller-rollback-dep", "caller-staging-git",
+		"target-live", "target-canary-ready", "target-canary-feature", "target-new-prod", "target-preview-old",
+		"target-preview-never", "target-preview-fork", "target-manual-old",
+	}
+	require.ElementsMatch(t, enabledReplicas, replicaIDs(), "replicas follow the decision persisted at creation, even before the workspace has bindings")
 
 	insertBinding := func(id, name, environment, target, targetType string, targetEnvironment, targetDeployment any) {
 		t.Helper()
@@ -122,8 +139,8 @@ func TestListPrivateNetworkAppsSelection(t *testing.T) {
 	exec(`INSERT INTO environments (id,workspace_id,project_id,app_id,slug,kind,created_at) VALUES
 		('unscheduled-env','unscheduled-ws','unscheduled-project','unscheduled-caller','preview','preview',1)`)
 	for _, id := range []string{"unscheduled-caller-1", "unscheduled-caller-2"} {
-		exec(`INSERT INTO deployments (id,k8s_name,workspace_id,project_id,environment_id,app_id,sentinel_config,cpu_millicores,memory_mib,desired_state,encrypted_environment_variables,status,created_at)
-			VALUES (?,?,'unscheduled-ws','unscheduled-project','unscheduled-env','unscheduled-caller','{}',100,128,'running','{}','ready',1)`, id, id)
+		exec(`INSERT INTO deployments (id,k8s_name,workspace_id,project_id,environment_id,app_id,sentinel_config,cpu_millicores,memory_mib,desired_state,encrypted_environment_variables,status,created_at,private_networking)
+			VALUES (?,?,'unscheduled-ws','unscheduled-project','unscheduled-env','unscheduled-caller','{}',100,128,'running','{}','ready',1,TRUE)`, id, id)
 		exec(`INSERT INTO deployment_topology (workspace_id,deployment_id,region_id,desired_status,created_at) VALUES ('unscheduled-ws',?,'r','running',1)`, id)
 	}
 	exec(`INSERT INTO app_bindings (id,workspace_id,project_id,app_id,environment_id,resource_type,resource_id,name,selection_mode,created_at)
@@ -146,19 +163,11 @@ func TestListPrivateNetworkAppsSelection(t *testing.T) {
 	insertBinding("reserved-own-slug", "caller", "caller-pin", "other-target", "automatic", nil, nil)
 	insertBinding("reserved-prefix", "unkey-internal", "caller-manual", "other-target", "automatic", nil, nil)
 
-	replicaDeployments := make([]string, 0)
 	for _, replica := range replicas() {
-		require.Equal(t, "ws", replica.WorkspaceID, "only the enrolled workspace publishes replicas")
+		require.Equal(t, "ws", replica.WorkspaceID, "a workspace without a Kubernetes namespace publishes no replicas")
 		require.NotEmpty(t, replica.AppSlug)
-		replicaDeployments = append(replicaDeployments, replica.DeploymentID)
 	}
-	require.ElementsMatch(t, []string{
-		"caller-prod-deploying", "caller-prod-live", "caller-canary-oci",
-		"caller-preview-own", "caller-preview-fork", "caller-preview-missing",
-		"caller-manual-dep", "caller-pin-dep", "caller-rollback-dep", "caller-staging-git",
-		"target-live", "target-canary-ready", "target-canary-feature", "target-new-prod", "target-preview-old",
-		"target-preview-never", "target-preview-fork", "target-manual-old",
-	}, replicaDeployments, "every active deployment of an enrolled workspace publishes its replicas")
+	require.ElementsMatch(t, enabledReplicas, replicaIDs(), "every active deployment created with private networking publishes its replicas")
 
 	listPlatform := func(platform string) map[string]ListPrivateNetworkBindingsRow {
 		t.Helper()
@@ -234,6 +243,7 @@ func TestListPrivateNetworkAppsSelection(t *testing.T) {
 		"preview/caller-unapproved", "preview/caller-wrong-platform",
 		"self-preview/caller-unapproved", "self-preview/caller-wrong-platform",
 		"reserved-own-slug/caller-pin-dep", "reserved-prefix/caller-manual-dep",
+		"production/caller-prod-disabled",
 	} {
 		require.NotContains(t, selected, excluded)
 	}

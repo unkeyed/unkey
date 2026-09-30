@@ -289,6 +289,7 @@ func New(t *testing.T, opts ...Option) *Harness {
 		// A nil admin client leaves a superseded deployment's row marked while its
 		// invocation keeps running.
 		RestateAdmin: nil,
+		Flags:        nil,
 	})
 	require.NoError(t, err)
 

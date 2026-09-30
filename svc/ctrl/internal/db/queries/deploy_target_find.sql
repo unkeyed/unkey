@@ -2,6 +2,7 @@
 SELECT
     p.workspace_id AS workspace_id,
     w.slug AS workspace_slug,
+    w.org_id AS workspace_org_id,
     p.id AS project_id,
     a.id AS app_id,
     a.source_type AS source_type,
@@ -35,7 +36,14 @@ SELECT
         WHERE ars2.app_id = a.id
           AND ars2.environment_id = e.id
           AND r.can_schedule
-    ) AS has_schedulable_region
+    ) AS has_schedulable_region,
+    EXISTS (
+        SELECT 1
+        FROM app_bindings pb
+        WHERE pb.workspace_id = p.workspace_id
+          AND pb.resource_type = 'app'
+          AND pb.resource_id <> pb.app_id
+    ) AS private_network_eligible
 FROM apps a
 INNER JOIN projects p ON p.id = a.project_id
 INNER JOIN workspaces w ON w.id = p.workspace_id

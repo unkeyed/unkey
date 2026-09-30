@@ -42,12 +42,7 @@ SELECT
     e.slug AS environment_slug,
     e.kind AS environment_kind,
     COALESCE(a.slug, '') AS app_slug,
-    EXISTS (
-        SELECT 1 FROM app_bindings pb
-        WHERE pb.workspace_id = d.workspace_id
-            AND pb.resource_type = 'app'
-            AND pb.resource_id <> pb.app_id
-    ) AS private_network_enrolled,
+    d.private_networking AS private_network_enrolled,
     r.name AS region_name,
     grc.repository_full_name AS git_repo
 FROM ` + "`" + `deployment_topology` + "`" + ` dt
@@ -132,12 +127,7 @@ type FindDeploymentTopologyByDeploymentAndRegionRow struct {
 //	    e.slug AS environment_slug,
 //	    e.kind AS environment_kind,
 //	    COALESCE(a.slug, '') AS app_slug,
-//	    EXISTS (
-//	        SELECT 1 FROM app_bindings pb
-//	        WHERE pb.workspace_id = d.workspace_id
-//	            AND pb.resource_type = 'app'
-//	            AND pb.resource_id <> pb.app_id
-//	    ) AS private_network_enrolled,
+//	    d.private_networking AS private_network_enrolled,
 //	    r.name AS region_name,
 //	    grc.repository_full_name AS git_repo
 //	FROM `deployment_topology` dt

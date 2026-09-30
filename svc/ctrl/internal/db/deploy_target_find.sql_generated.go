@@ -16,6 +16,7 @@ const findDeployTarget = `-- name: FindDeployTarget :one
 SELECT
     p.workspace_id AS workspace_id,
     w.slug AS workspace_slug,
+    w.org_id AS workspace_org_id,
     p.id AS project_id,
     a.id AS app_id,
     a.source_type AS source_type,
@@ -49,7 +50,14 @@ SELECT
         WHERE ars2.app_id = a.id
           AND ars2.environment_id = e.id
           AND r.can_schedule
-    ) AS has_schedulable_region
+    ) AS has_schedulable_region,
+    EXISTS (
+        SELECT 1
+        FROM app_bindings pb
+        WHERE pb.workspace_id = p.workspace_id
+          AND pb.resource_type = 'app'
+          AND pb.resource_id <> pb.app_id
+    ) AS private_network_eligible
 FROM apps a
 INNER JOIN projects p ON p.id = a.project_id
 INNER JOIN workspaces w ON w.id = p.workspace_id
@@ -73,6 +81,7 @@ type FindDeployTargetParams struct {
 type FindDeployTargetRow struct {
 	WorkspaceID              string                             `db:"workspace_id"`
 	WorkspaceSlug            string                             `db:"workspace_slug"`
+	WorkspaceOrgID           string                             `db:"workspace_org_id"`
 	ProjectID                string                             `db:"project_id"`
 	AppID                    string                             `db:"app_id"`
 	SourceType               AppsSourceType                     `db:"source_type"`
@@ -100,6 +109,7 @@ type FindDeployTargetRow struct {
 	PlanOverride             sql.NullString                     `db:"plan_override"`
 	SpendSuspended           sql.NullBool                       `db:"spend_suspended"`
 	HasSchedulableRegion     bool                               `db:"has_schedulable_region"`
+	PrivateNetworkEligible   bool                               `db:"private_network_eligible"`
 }
 
 // FindDeployTarget
@@ -107,6 +117,7 @@ type FindDeployTargetRow struct {
 //	SELECT
 //	    p.workspace_id AS workspace_id,
 //	    w.slug AS workspace_slug,
+//	    w.org_id AS workspace_org_id,
 //	    p.id AS project_id,
 //	    a.id AS app_id,
 //	    a.source_type AS source_type,
@@ -140,7 +151,14 @@ type FindDeployTargetRow struct {
 //	        WHERE ars2.app_id = a.id
 //	          AND ars2.environment_id = e.id
 //	          AND r.can_schedule
-//	    ) AS has_schedulable_region
+//	    ) AS has_schedulable_region,
+//	    EXISTS (
+//	        SELECT 1
+//	        FROM app_bindings pb
+//	        WHERE pb.workspace_id = p.workspace_id
+//	          AND pb.resource_type = 'app'
+//	          AND pb.resource_id <> pb.app_id
+//	    ) AS private_network_eligible
 //	FROM apps a
 //	INNER JOIN projects p ON p.id = a.project_id
 //	INNER JOIN workspaces w ON w.id = p.workspace_id
@@ -159,6 +177,7 @@ func (q *Queries) FindDeployTarget(ctx context.Context, arg FindDeployTargetPara
 	err := row.Scan(
 		&i.WorkspaceID,
 		&i.WorkspaceSlug,
+		&i.WorkspaceOrgID,
 		&i.ProjectID,
 		&i.AppID,
 		&i.SourceType,
@@ -186,6 +205,7 @@ func (q *Queries) FindDeployTarget(ctx context.Context, arg FindDeployTargetPara
 		&i.PlanOverride,
 		&i.SpendSuspended,
 		&i.HasSchedulableRegion,
+		&i.PrivateNetworkEligible,
 	)
 	return i, err
 }

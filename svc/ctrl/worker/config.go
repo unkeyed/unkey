@@ -1,8 +1,10 @@
 package worker
 
 import (
+	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/clock"
@@ -277,6 +279,53 @@ type EmailConfig struct {
 	ResendAPIKey string `toml:"resend_api_key"`
 }
 
+// FeatureFlagProvider selects where Ctrl reads feature flags from.
+type FeatureFlagProvider string
+
+const (
+	// FeatureFlagProviderNone resolves every flag to its default. It is the
+	// default so self-hosted and unconfigured workers keep gated features off.
+	FeatureFlagProviderNone FeatureFlagProvider = ""
+
+	// FeatureFlagProviderStatic resolves flags from [FeatureFlagsConfig.Static].
+	// For local development and tests only.
+	FeatureFlagProviderStatic FeatureFlagProvider = "static"
+
+	// FeatureFlagProviderVercel polls the Vercel Flags datafile. See
+	// [github.com/unkeyed/unkey/pkg/featureflag/vercel] for the supported subset.
+	FeatureFlagProviderVercel FeatureFlagProvider = "vercel"
+)
+
+// FeatureFlagsConfig configures feature flag evaluation.
+type FeatureFlagsConfig struct {
+	// Provider is "" (every flag uses its default), "static", or "vercel".
+	Provider FeatureFlagProvider `toml:"provider"`
+
+	// Static maps flag keys to the value they return for every workspace. A
+	// flag missing from the map resolves as an error, not as false.
+	Static map[string]bool `toml:"static"`
+
+	// Vercel configures the "vercel" provider.
+	Vercel VercelFlagsConfig `toml:"vercel"`
+}
+
+// VercelFlagsConfig configures the Vercel Flags datafile provider. Zero
+// durations use the provider defaults.
+type VercelFlagsConfig struct {
+	// SDKKey is the server SDK key, starting with vf_server_.
+	SDKKey string `toml:"sdk_key"`
+
+	// RefreshInterval is how often the datafile is polled. Default 1m.
+	RefreshInterval time.Duration `toml:"refresh_interval"`
+
+	// HTTPTimeout bounds each datafile request. Default 10s.
+	HTTPTimeout time.Duration `toml:"http_timeout"`
+
+	// MaxStaleness is how long the last good datafile answers evaluations
+	// while refreshes fail. Evaluations fail after that. Default 10m.
+	MaxStaleness time.Duration `toml:"max_staleness"`
+}
+
 // Config holds the complete configuration for the Restate worker service.
 // It is designed to be loaded from a TOML file using [config.Load]:
 //
@@ -358,6 +407,9 @@ type Config struct {
 
 	// Email configures transactional email (Resend) for budget alerts.
 	Email EmailConfig `toml:"email"`
+
+	// FeatureFlags configures feature flag evaluation. See [FeatureFlagsConfig].
+	FeatureFlags FeatureFlagsConfig `toml:"feature_flags"`
 
 	// WorkOSAPIKey authenticates the spend-cap check's lookup of org admin
 	// emails (budget-alert recipients). Empty resolves no recipients, so the
@@ -451,6 +503,21 @@ func (c *Config) Validate() error {
 		if _, err := parseBuildPlatform(c.BuildPlatformStr); err != nil {
 			return err
 		}
+	}
+
+	switch c.FeatureFlags.Provider {
+	case FeatureFlagProviderNone:
+	case FeatureFlagProviderStatic:
+		if len(c.FeatureFlags.Static) == 0 {
+			return errors.New("feature_flags.static must list at least one flag when the static provider is selected")
+		}
+	case FeatureFlagProviderVercel:
+		if err := assert.NotEmpty(c.FeatureFlags.Vercel.SDKKey, "feature_flags.vercel.sdk_key is required when the vercel provider is selected"); err != nil {
+			return err
+		}
+	default:
+		return fmt.Errorf("invalid feature flag provider %q: must be empty, %q, or %q",
+			c.FeatureFlags.Provider, FeatureFlagProviderStatic, FeatureFlagProviderVercel)
 	}
 
 	switch deploy.BuildBackend(c.Build.Backend) {

@@ -1,6 +1,8 @@
 package deploy
 
 import (
+	"github.com/open-feature/go-sdk/openfeature"
+	"github.com/open-feature/go-sdk/openfeature/isolated"
 	"k8s.io/client-go/kubernetes"
 
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
@@ -104,6 +106,8 @@ type Workflow struct {
 	dashboardURL                    string
 
 	restateAdmin *restateadmin.Client
+
+	flags openfeature.IClient
 }
 
 var _ hydrav1.DeployWorkflowServer = (*Workflow)(nil)
@@ -162,6 +166,10 @@ type Config struct {
 	// newer create supersedes. Optional: when nil, superseded rows are still
 	// marked but their invocations keep running.
 	RestateAdmin *restateadmin.Client
+
+	// Flags evaluates feature flags. Nil resolves every flag to its default,
+	// which keeps private networking off.
+	Flags openfeature.IClient
 }
 
 // New creates a new deployment workflow instance.
@@ -178,6 +186,11 @@ func New(cfg Config) (*Workflow, error) {
 	// Reclaim build workspaces orphaned by a previous crash. Runs before any
 	// handler is bound, so no live workspace can match.
 	cleanupStaleRailpackWorkspaces()
+
+	flags := cfg.Flags
+	if flags == nil {
+		flags = isolated.NewAPI().NewClient()
+	}
 
 	return &Workflow{
 		UnimplementedDeployWorkflowServer: hydrav1.UnimplementedDeployWorkflowServer{},
@@ -198,5 +211,6 @@ func New(cfg Config) (*Workflow, error) {
 		allowUnauthenticatedDeployments: cfg.AllowUnauthenticatedDeployments,
 		dashboardURL:                    cfg.DashboardURL,
 		restateAdmin:                    cfg.RestateAdmin,
+		flags:                           flags,
 	}, nil
 }

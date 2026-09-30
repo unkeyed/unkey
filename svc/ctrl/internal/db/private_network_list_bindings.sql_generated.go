@@ -79,6 +79,7 @@ WITH binding_candidates AS (
         AND caller.workspace_id = b.workspace_id AND caller.project_id = b.project_id
         AND caller.environment_id = b.environment_id
         AND caller.status IN ('deploying', 'network', 'finalizing', 'ready') AND caller.desired_state = 'running'
+        AND caller.private_networking = TRUE
     INNER JOIN environments caller_env ON caller_env.id = caller.environment_id
         AND caller_env.app_id = caller.app_id
     INNER JOIN workspaces w ON w.id = b.workspace_id AND w.k8s_namespace <> ''
@@ -148,9 +149,10 @@ type ListPrivateNetworkBindingsRow struct {
 }
 
 // ListPrivateNetworkBindings returns one page of directed app bindings, one row
-// per binding and active caller deployment on the platform, ordered by
-// (binding pk, caller deployment ID). Callers page with the last row's pair and
-// must read every page in one transaction so the snapshot is consistent.
+// per binding and active caller deployment created with private networking on
+// the platform, ordered by (binding pk, caller deployment ID). Callers page
+// with the last row's pair and must read every page in one transaction so the
+// snapshot is consistent.
 // Every filter sits inside binding_candidates, before its LIMIT, so a short
 // page always means the last page.
 // Names starting with unkey and the caller app's own slug are reserved.
@@ -224,6 +226,7 @@ type ListPrivateNetworkBindingsRow struct {
 //	        AND caller.workspace_id = b.workspace_id AND caller.project_id = b.project_id
 //	        AND caller.environment_id = b.environment_id
 //	        AND caller.status IN ('deploying', 'network', 'finalizing', 'ready') AND caller.desired_state = 'running'
+//	        AND caller.private_networking = TRUE
 //	    INNER JOIN environments caller_env ON caller_env.id = caller.environment_id
 //	        AND caller_env.app_id = caller.app_id
 //	    INNER JOIN workspaces w ON w.id = b.workspace_id AND w.k8s_namespace <> ''

@@ -1,0 +1,26 @@
+{
+  "projectId": "prj_fixture",
+  "environment": "production",
+  "revision": 7,
+  "configUpdatedAt": 1700000000000,
+  "digest": "fixture",
+  "definitions": {
+    "direct": {
+      "variants": [false, true],
+      "environments": {
+        "production": {
+          "targets": [
+            {"account": {"id": ["first"]}},
+            {"team": {"id": ["matching"]}, "account": {"slug": ["blue"]}}
+          ],
+          "fallthrough": 0
+        }
+      }
+    },
+    "paused": {
+      "variants": [false, true],
+      "environments": {"production": 1}
+    }
+  },
+  "segments": {"unused": {"rules": []}}
+}
