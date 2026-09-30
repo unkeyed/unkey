@@ -1,5 +1,13 @@
 "use client";
 
+import {
+  Badge,
+  FanOut,
+  Node,
+  NodeHeader,
+  SpecGrid,
+  SpecItem,
+} from "@/app/(app)/[workspaceSlug]/projects/_components/canvas/nodes";
 import { RectFlag } from "@/app/(app)/[workspaceSlug]/projects/_components/region/rect-flag";
 import { regionInfo } from "@/app/(app)/[workspaceSlug]/projects/_components/region/region-info";
 import { Logomark } from "@/components/logomark";
@@ -373,72 +381,49 @@ function NodesView({ draft, unavailable, hovered, onHover }: VizProps) {
                 <span className="text-[11px] text-gray-10">Routes to the nearest region</span>
               </span>
             </div>
-            <svg
-              viewBox="0 0 100 100"
-              preserveAspectRatio="none"
-              className="pointer-events-none h-10 w-full"
-              aria-hidden="true"
-            >
-              {regions.map((region, i) => (
-                <path
-                  key={region.name}
-                  d={`M50,0 V50 H${((i + 0.5) / n) * 100} V100`}
-                  fill="none"
-                  vectorEffect="non-scaling-stroke"
-                  strokeWidth={1}
-                  strokeDasharray="3 3"
-                  className="animate-dash-flow stroke-gray-7 motion-reduce:animate-none"
-                />
-              ))}
-            </svg>
+            <FanOut targets={regions.length} />
           </>
         ) : null}
         <div
           className="grid"
           style={{ gridTemplateColumns: `repeat(${n}, minmax(0, 1fr))`, columnGap: NODE_GAP }}
         >
-          {regions.map((region) => (
-            <div
-              key={region.name}
-              onMouseEnter={() => onHover(region.name)}
-              onMouseLeave={() => onHover(null)}
-              className={cn(
-                "flex min-w-0 animate-pop flex-col overflow-hidden rounded-lg bg-raised shadow-sm ring-1 transition-shadow motion-reduce:animate-none",
-                unavailable.has(region.name)
-                  ? "ring-warning-7"
-                  : hovered === region.name
-                    ? "ring-grayA-8"
-                    : "ring-grayA-5",
-              )}
-              title={unavailable.has(region.name) ? UNAVAILABLE : undefined}
-            >
-              <span className="flex min-w-0 items-center gap-1.5 px-3 py-2">
-                <RectFlag flag={region.flag} size="sm" />
-                <span className="shrink-0 text-xs font-medium text-gray-12">{region.city}</span>
-                <span className="truncate font-mono text-[11px] text-gray-10">{region.name}</span>
-                <span className="ml-auto flex shrink-0 gap-1">
-                  {unavailable.has(region.name) ? (
-                    <span className="rounded-sm border border-warning-6 bg-warning-3 px-1 text-[10px] leading-4 text-warning-11">
-                      Unavailable
-                    </span>
-                  ) : null}
-                  <span className="rounded-sm border border-grayA-5 bg-grayA-3 px-1 font-mono text-[10px] leading-4 font-medium text-gray-12">
-                    {sizeLabel(draft)}
-                  </span>
-                </span>
-              </span>
-              <span className="grid grid-cols-2 gap-x-3 gap-y-1 whitespace-nowrap border-t border-grayA-4 px-3 py-2 font-mono text-[10px]">
-                {[["Instances", IconLayers3Outline18, region.count] as const, ...specs].map(
-                  ([label, Icon, value]) => (
-                    <span key={label} className="flex items-center gap-1" title={label}>
-                      <Icon className="size-3 text-gray-10" aria-label={label} />
-                      <span className="text-gray-12">{value}</span>
-                    </span>
-                  ),
-                )}
-              </span>
-            </div>
-          ))}
+          {regions.map((region) => {
+            const blocked = unavailable.has(region.name);
+            return (
+              <Node
+                key={region.name}
+                edge="ring"
+                tone={blocked ? "warning" : "default"}
+                active={hovered === region.name}
+                onMouseEnter={() => onHover(region.name)}
+                onMouseLeave={() => onHover(null)}
+                title={blocked ? UNAVAILABLE : undefined}
+              >
+                <NodeHeader
+                  leading={<RectFlag flag={region.flag} size="sm" />}
+                  title={region.city}
+                  meta={region.name}
+                  right={
+                    <>
+                      {blocked ? <Badge tone="warning">Unavailable</Badge> : null}
+                      <Badge>{sizeLabel(draft)}</Badge>
+                    </>
+                  }
+                />
+                <SpecGrid>
+                  <SpecItem
+                    icon={<IconLayers3Outline18 />}
+                    label="Instances"
+                    value={region.count}
+                  />
+                  {specs.map(([label, Icon, value]) => (
+                    <SpecItem key={label} icon={<Icon />} label={label} value={value} />
+                  ))}
+                </SpecGrid>
+              </Node>
+            );
+          })}
         </div>
       </div>
     </div>
