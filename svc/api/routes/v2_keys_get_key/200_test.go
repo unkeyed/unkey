@@ -188,7 +188,7 @@ func TestGetKey_AdditionalScenarios(t *testing.T) {
 
 	t.Run("key with complex meta data", func(t *testing.T) {
 		// Create test key with complex meta using testutil helper
-		complexMeta := map[string]interface{}{
+		complexMeta := map[string]any{
 			"user_id":    12345,
 			"plan":       "premium",
 			"features":   []string{"analytics", "webhooks"},

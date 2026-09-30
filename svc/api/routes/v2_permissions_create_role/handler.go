@@ -256,7 +256,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			)
 		}
 
-		metaData := map[string]interface{}{
+		metaData := map[string]any{
 			"name":        req.Name,
 			"description": description,
 		}

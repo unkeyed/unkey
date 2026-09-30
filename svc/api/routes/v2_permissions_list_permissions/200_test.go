@@ -145,7 +145,7 @@ func TestSuccess(t *testing.T) {
 	// Test case for pagination with cursor
 	t.Run("pagination with cursor", func(t *testing.T) {
 		// Create 101 additional permissions to test pagination
-		for i := 0; i < 101; i++ {
+		for i := range 101 {
 			permID := uid.New(uid.PermissionPrefix)
 			err := db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
 				PermissionID: permID,

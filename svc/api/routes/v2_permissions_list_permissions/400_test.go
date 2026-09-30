@@ -35,11 +35,11 @@ func TestValidationErrors(t *testing.T) {
 
 	// Test case for malformed JSON body
 	t.Run("malformed JSON body", func(t *testing.T) {
-		req := map[string]interface{}{
+		req := map[string]any{
 			"invalid": "json structure",
 		}
 
-		res := testutil.CallRoute[map[string]interface{}, openapi.BadRequestErrorResponse](
+		res := testutil.CallRoute[map[string]any, openapi.BadRequestErrorResponse](
 			h,
 			route,
 			headers,

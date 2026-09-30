@@ -165,11 +165,11 @@ func (l Labels) BuildID(id string) Labels {
 //
 // Returns an empty string for empty label maps.
 func (l Labels) ToString() string {
-	s := ""
+	var s strings.Builder
 	for k, v := range l {
-		s += fmt.Sprintf("%s=%s,", k, v)
+		s.WriteString(fmt.Sprintf("%s=%s,", k, v))
 	}
-	return strings.TrimSuffix(s, ",")
+	return strings.TrimSuffix(s.String(), ",")
 }
 
 // GetDeploymentID extracts deployment ID from Kubernetes label map.

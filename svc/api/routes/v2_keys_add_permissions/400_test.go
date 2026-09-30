@@ -72,13 +72,13 @@ func TestValidationErrors(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Run("missing keyId", func(t *testing.T) {
-		req := map[string]interface{}{
-			"permissions": []map[string]interface{}{
+		req := map[string]any{
+			"permissions": []map[string]any{
 				{"id": "perm_123"},
 			},
 		}
 
-		res := testutil.CallRoute[map[string]interface{}, openapi.BadRequestErrorResponse](
+		res := testutil.CallRoute[map[string]any, openapi.BadRequestErrorResponse](
 			h,
 			route,
 			headers,
@@ -92,14 +92,14 @@ func TestValidationErrors(t *testing.T) {
 	})
 
 	t.Run("empty keyId", func(t *testing.T) {
-		req := map[string]interface{}{
+		req := map[string]any{
 			"keyId": "",
-			"permissions": []map[string]interface{}{
+			"permissions": []map[string]any{
 				{"id": "perm_123"},
 			},
 		}
 
-		res := testutil.CallRoute[map[string]interface{}, openapi.BadRequestErrorResponse](
+		res := testutil.CallRoute[map[string]any, openapi.BadRequestErrorResponse](
 			h,
 			route,
 			headers,
@@ -113,11 +113,11 @@ func TestValidationErrors(t *testing.T) {
 	})
 
 	t.Run("missing permissions", func(t *testing.T) {
-		req := map[string]interface{}{
+		req := map[string]any{
 			"keyId": validKeyID,
 		}
 
-		res := testutil.CallRoute[map[string]interface{}, openapi.BadRequestErrorResponse](
+		res := testutil.CallRoute[map[string]any, openapi.BadRequestErrorResponse](
 			h,
 			route,
 			headers,
@@ -131,12 +131,12 @@ func TestValidationErrors(t *testing.T) {
 	})
 
 	t.Run("empty permissions array", func(t *testing.T) {
-		req := map[string]interface{}{
+		req := map[string]any{
 			"keyId":       validKeyID,
-			"permissions": []map[string]interface{}{},
+			"permissions": []map[string]any{},
 		}
 
-		res := testutil.CallRoute[map[string]interface{}, openapi.BadRequestErrorResponse](
+		res := testutil.CallRoute[map[string]any, openapi.BadRequestErrorResponse](
 			h,
 			route,
 			headers,
@@ -150,14 +150,14 @@ func TestValidationErrors(t *testing.T) {
 	})
 
 	t.Run("invalid keyId format", func(t *testing.T) {
-		req := map[string]interface{}{
+		req := map[string]any{
 			"keyId": "ab", // too short
-			"permissions": []map[string]interface{}{
+			"permissions": []map[string]any{
 				{"id": "perm_123"},
 			},
 		}
 
-		res := testutil.CallRoute[map[string]interface{}, openapi.BadRequestErrorResponse](
+		res := testutil.CallRoute[map[string]any, openapi.BadRequestErrorResponse](
 			h,
 			route,
 			headers,

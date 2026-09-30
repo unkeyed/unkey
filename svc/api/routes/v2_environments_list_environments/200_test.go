@@ -53,7 +53,7 @@ func TestListEnvironmentsSuccessfully(t *testing.T) {
 	})
 
 	seeded := map[string]string{}
-	for i := 0; i < 3; i++ {
+	for i := range 3 {
 		envSlug := slug(t)
 		env := h.CreateEnvironment(seed.CreateEnvironmentRequest{
 			ID:          uid.New(uid.EnvironmentPrefix),

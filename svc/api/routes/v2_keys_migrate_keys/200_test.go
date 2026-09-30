@@ -76,7 +76,7 @@ func TestMigrateKeysSuccess(t *testing.T) {
 		Enabled:    new(false),
 		Expires:    nil,
 		ExternalId: new("ext_123"),
-		Meta: new(map[string]interface{}{
+		Meta: new(map[string]any{
 			"key": "value",
 		}),
 		Name:        new("Migration-Key"),

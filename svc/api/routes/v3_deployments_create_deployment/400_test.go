@@ -1,6 +1,7 @@
 package handler_test
 
 import (
+	"maps"
 	"net/http"
 	"strings"
 	"testing"
@@ -39,12 +40,8 @@ func TestRequestValidation(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			body := make(map[string]any, len(base)+len(tc.source))
-			for key, value := range base {
-				body[key] = value
-			}
-			for key, value := range tc.source {
-				body[key] = value
-			}
+			maps.Copy(body, base)
+			maps.Copy(body, tc.source)
 
 			res := testutil.CallRoute[map[string]any, openapi.BadRequestErrorResponse](h, route, authHeaders(setup.RootKey), body)
 			require.Equal(t, http.StatusBadRequest, res.Status, "received: %s", res.RawBody)

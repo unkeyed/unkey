@@ -110,7 +110,7 @@ func TestKeyVerificationMigration_PreservesHistory(t *testing.T) {
 	require.NoError(t, client.conn.Exec(ctx, `INSERT INTO `+table+` (workspace_id, request_id, time) VALUES ('workspace', 'old', ?)`, now))
 	migration, err := os.ReadFile("migrations/20260910000000.sql")
 	require.NoError(t, err)
-	for _, statement := range strings.Split(string(migration), ";") {
+	for statement := range strings.SplitSeq(string(migration), ";") {
 		if strings.TrimSpace(statement) == "" {
 			continue
 		}

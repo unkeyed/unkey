@@ -23,7 +23,7 @@ func (r *Redactor) add(path string) {
 	cur := r.root
 	name := ""
 
-	for _, segment := range strings.Split(path, ".") {
+	for segment := range strings.SplitSeq(path, ".") {
 		label, arrays := splitSegment(segment)
 
 		// A segment can be array steps alone, as in the leading "[]" of

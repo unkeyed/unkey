@@ -105,7 +105,7 @@ func TestRuntimeLogMigration_PreservesExistingRows(t *testing.T) {
 	require.NoError(t, client.conn.Exec(ctx, "INSERT INTO "+table+" (workspace_id, log_id, inserted_at, time, expires_at) VALUES ('workspace', 'old', ?, ?, fromUnixTimestamp64Milli(?))", now-3600000, now-7200000, now+86400000))
 	migration, err := os.ReadFile("migrations/20260910020000.sql")
 	require.NoError(t, err)
-	for _, statement := range strings.Split(string(migration), ";") {
+	for statement := range strings.SplitSeq(string(migration), ";") {
 		if strings.TrimSpace(statement) == "" {
 			continue
 		}

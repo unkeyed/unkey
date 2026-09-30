@@ -52,13 +52,13 @@ func TestValidationErrors(t *testing.T) {
 
 	// Test case for missing keyId
 	t.Run("missing keyId", func(t *testing.T) {
-		req := map[string]interface{}{
-			"roles": []map[string]interface{}{
+		req := map[string]any{
+			"roles": []map[string]any{
 				{"id": "role_123"},
 			},
 		}
 
-		res := testutil.CallRoute[map[string]interface{}, openapi.BadRequestErrorResponse](
+		res := testutil.CallRoute[map[string]any, openapi.BadRequestErrorResponse](
 			h,
 			route,
 			headers,
@@ -73,11 +73,11 @@ func TestValidationErrors(t *testing.T) {
 
 	// Test case for missing roles
 	t.Run("missing roles", func(t *testing.T) {
-		req := map[string]interface{}{
+		req := map[string]any{
 			"keyId": "key_123",
 		}
 
-		res := testutil.CallRoute[map[string]interface{}, openapi.BadRequestErrorResponse](
+		res := testutil.CallRoute[map[string]any, openapi.BadRequestErrorResponse](
 			h,
 			route,
 			headers,
@@ -92,14 +92,14 @@ func TestValidationErrors(t *testing.T) {
 
 	// Test case for invalid keyId format
 	t.Run("invalid keyId format", func(t *testing.T) {
-		req := map[string]interface{}{
+		req := map[string]any{
 			"keyId": "ab", // too short
-			"roles": []map[string]interface{}{
+			"roles": []map[string]any{
 				{"id": "role_123"},
 			},
 		}
 
-		res := testutil.CallRoute[map[string]interface{}, openapi.BadRequestErrorResponse](
+		res := testutil.CallRoute[map[string]any, openapi.BadRequestErrorResponse](
 			h,
 			route,
 			headers,
@@ -134,12 +134,12 @@ func TestValidationErrors(t *testing.T) {
 
 	// Test case for malformed JSON body
 	t.Run("malformed JSON body", func(t *testing.T) {
-		req := map[string]interface{}{
+		req := map[string]any{
 			"keyId": validKeyID,
 			"roles": "invalid_not_array",
 		}
 
-		res := testutil.CallRoute[map[string]interface{}, openapi.BadRequestErrorResponse](
+		res := testutil.CallRoute[map[string]any, openapi.BadRequestErrorResponse](
 			h,
 			route,
 			headers,

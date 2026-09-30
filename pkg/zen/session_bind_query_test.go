@@ -15,8 +15,8 @@ func TestSession_BindQuery(t *testing.T) {
 	tests := []struct {
 		name        string
 		queryString string
-		target      interface{}
-		expected    interface{}
+		target      any
+		expected    any
 		wantErr     bool
 		errSubstr   string
 	}{

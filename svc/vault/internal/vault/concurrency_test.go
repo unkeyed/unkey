@@ -23,7 +23,7 @@ func TestConcurrency_ParallelEncrypt(t *testing.T) {
 	errors := make(chan error, numGoroutines)
 	results := make(chan string, numGoroutines)
 
-	for i := 0; i < numGoroutines; i++ {
+	for i := range numGoroutines {
 		wg.Add(1)
 		go func(idx int) {
 			defer wg.Done()
@@ -83,7 +83,7 @@ func TestConcurrency_ParallelDecrypt(t *testing.T) {
 	var wg sync.WaitGroup
 	errors := make(chan error, numGoroutines)
 
-	for i := 0; i < numGoroutines; i++ {
+	for i := range numGoroutines {
 		wg.Add(1)
 		go func(idx int) {
 			defer wg.Done()
@@ -137,7 +137,7 @@ func TestConcurrency_ParallelEncryptDecrypt(t *testing.T) {
 	initialEncrypted := encRes.Msg.GetEncrypted()
 
 	// Run encryptions and decryptions in parallel
-	for i := 0; i < numGoroutines; i++ {
+	for i := range numGoroutines {
 		// Encrypt goroutine
 		wg.Add(1)
 		go func(idx int) {
@@ -197,7 +197,7 @@ func TestConcurrency_ParallelMultipleKeyrings(t *testing.T) {
 	var wg sync.WaitGroup
 	errors := make(chan error, numKeyrings*opsPerKeyring)
 
-	for kr := 0; kr < numKeyrings; kr++ {
+	for kr := range numKeyrings {
 		keyring := fmt.Sprintf("keyring-%d", kr)
 		expectedData := fmt.Sprintf("data-for-keyring-%d", kr)
 
@@ -213,7 +213,7 @@ func TestConcurrency_ParallelMultipleKeyrings(t *testing.T) {
 		encrypted := encRes.Msg.GetEncrypted()
 
 		// Parallel decryptions for this keyring
-		for op := 0; op < opsPerKeyring; op++ {
+		for op := range opsPerKeyring {
 			wg.Add(1)
 			go func(keyring, encrypted, expectedData string, opIdx int) {
 				defer wg.Done()
@@ -269,7 +269,7 @@ func TestConcurrency_SequentialReEncrypt(t *testing.T) {
 	encrypted := encRes.Msg.GetEncrypted()
 
 	// Run re-encryptions sequentially
-	for i := 0; i < 10; i++ {
+	for i := range 10 {
 		req := connect.NewRequest(&vaultv1.ReEncryptRequest{
 			Keyring:   keyring,
 			Encrypted: encrypted,
@@ -307,7 +307,7 @@ func TestConcurrency_RaceConditionDetection(t *testing.T) {
 	// Shared resources that might have race conditions
 	keyrings := []string{"race-kr-1", "race-kr-2", "race-kr-3"}
 
-	for i := 0; i < numGoroutines; i++ {
+	for i := range numGoroutines {
 		wg.Add(1)
 		go func(idx int) {
 			defer wg.Done()

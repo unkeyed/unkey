@@ -133,8 +133,8 @@ func splitSQLStatements(sql string) []string {
 	var statements []string
 	var current strings.Builder
 
-	lines := strings.Split(sql, "\n")
-	for _, line := range lines {
+	lines := strings.SplitSeq(sql, "\n")
+	for line := range lines {
 		// Skip comment-only lines
 		trimmed := strings.TrimSpace(line)
 		if strings.HasPrefix(trimmed, "--") {

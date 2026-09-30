@@ -311,8 +311,8 @@ func parseLabels(input string) (map[string]string, string, error) {
 		}
 		labels[key] = value
 		input = remaining
-		if strings.HasPrefix(input, ",") {
-			input = strings.TrimPrefix(input, ",")
+		if after, ok := strings.CutPrefix(input, ","); ok {
+			input = after
 			if input == "" || strings.HasPrefix(input, "}") {
 				return nil, input, fmt.Errorf("label missing after comma")
 			}
@@ -376,8 +376,8 @@ func splitValueUnit(input string) (time.Duration, string, error) {
 		{suffix: "s", unit: time.Second},
 	}
 	for _, candidate := range units {
-		if strings.HasSuffix(input, candidate.suffix) {
-			number := strings.TrimSuffix(input, candidate.suffix)
+		if before, ok := strings.CutSuffix(input, candidate.suffix); ok {
+			number := before
 			if number == "" {
 				return 0, "", fmt.Errorf("entry missing numeric value")
 			}
