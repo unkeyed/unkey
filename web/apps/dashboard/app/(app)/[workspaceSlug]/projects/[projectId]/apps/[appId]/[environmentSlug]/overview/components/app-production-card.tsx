@@ -154,10 +154,7 @@ export function AppProductionCard() {
 
   const addCustomDomainHref =
     primary?.source === "platform"
-      ? {
-          pathname: routes.projects.apps.settings(scope),
-          hash: "custom-domains",
-        }
+      ? routes.projects.apps.settings({ ...scope, page: "domains" })
       : null;
 
   const ctx: ProductionCardContextValue = {

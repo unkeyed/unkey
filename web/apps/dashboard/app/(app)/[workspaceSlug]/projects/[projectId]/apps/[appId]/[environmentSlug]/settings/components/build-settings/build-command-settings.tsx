@@ -1,5 +1,4 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { IconHammer2Outline18 } from "@unkey/icons";
 import { FormInput } from "@unkey/ui";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
@@ -59,24 +58,20 @@ export const BuildCommand = () => {
 
   return (
     <FormSettingCard
-      icon={<IconHammer2Outline18 className="text-gray-12" />}
       title="Build command"
-      description="Override the auto-detected build command. Useful for monorepos, e.g. pnpm build --filter api. Only applies when no Dockerfile is set."
-      displayValue={
-        dockerfileConfigured ? "Not used (Dockerfile build)" : defaultValue || "Automatic"
-      }
+      description="Override the auto-detected build command. Useful for monorepos, e.g. pnpm build --filter api. Only applies when no Dockerfile is set. Leave empty to let Unkey detect it."
+      requirement="optional"
       onSubmit={handleSubmit(onSubmit)}
       saveState={saveState}
       autoSave={variant === "onboarding"}
     >
       <SettingField>
         <FormInput
-          label="Build command"
-          requirement="optional"
+          aria-label="Build command"
           description={
             dockerfileConfigured
               ? "Disabled because a Dockerfile is configured. Build commands only apply to automatic (Railpack) builds."
-              : "Leave empty to let Unkey detect it automatically. Changes apply on next deploy."
+              : undefined
           }
           placeholder="Automatic"
           disabled={dockerfileConfigured}

@@ -189,6 +189,7 @@ async function openOwningApp(domain: string, workspaceSlug: string): Promise<str
     projectId: owner.data.projectId,
     appId: owner.data.appId,
     environmentSlug: PRODUCTION_ENVIRONMENT_SLUG,
+    page: "domains",
   });
 }
 

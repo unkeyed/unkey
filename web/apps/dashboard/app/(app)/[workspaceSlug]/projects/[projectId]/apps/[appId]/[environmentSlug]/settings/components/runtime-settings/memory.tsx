@@ -1,7 +1,6 @@
 "use client";
 
 import { formatMemoryParts } from "@/lib/utils/deployment-formatters";
-import { IconRamOutline18 } from "@unkey/icons";
 import { ResourceSliderSetting, defineResourceSlider } from "../shared/resource-slider";
 
 // Memory tiers on the slider. resolveStrategy bounds these to the workspace limit
@@ -18,11 +17,8 @@ const MEMORY_OPTIONS = [
 ] as const;
 
 const memoryConfig = defineResourceSlider({
-  icon: <IconRamOutline18 className="text-gray-12" />,
   title: "Memory",
   description: "Memory allocation for each instance",
-  settingDescription:
-    "Changes apply on next deploy. Contact support@unkey.com if you need higher limits.",
   colorVar: "warningA",
   options: MEMORY_OPTIONS,
   fallback: 256,

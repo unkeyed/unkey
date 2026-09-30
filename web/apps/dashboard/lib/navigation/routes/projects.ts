@@ -32,6 +32,17 @@ export function isAppPage(segment: string): segment is AppPage {
   return APP_PAGES.some((page) => page === segment);
 }
 
+/** Sub-pages under /settings. Compute is the settings index, so it has none. */
+export const APP_SETTINGS_PAGES = [
+  "domains",
+  "deploys",
+  "build",
+  "runtime",
+  "advanced",
+  "danger",
+] as const;
+export type AppSettingsPage = (typeof APP_SETTINGS_PAGES)[number];
+
 const APP_ROOT = "/[workspaceSlug]/projects/[projectId]/apps/[appId]/[environmentSlug]";
 
 export const projectRoutes = {
@@ -86,8 +97,10 @@ export const projectRoutes = {
       return appPage("overview", scope);
     },
 
-    settings(scope: AppScope): Route {
-      return appPage("settings", scope);
+    settings({ page, ...scope }: AppScope & { page?: AppSettingsPage }): Route {
+      return page
+        ? buildRoute(`${APP_ROOT}/settings/${page}`, appParams(scope))
+        : appPage("settings", scope);
     },
 
     envVars(scope: AppScope): Route {

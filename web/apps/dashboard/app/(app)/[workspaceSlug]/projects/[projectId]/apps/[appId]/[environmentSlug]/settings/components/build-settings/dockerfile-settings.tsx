@@ -1,6 +1,5 @@
 import { FormCombobox } from "@/components/ui/form-combobox";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { IconFileSettingsOutline18 } from "@unkey/icons";
 import { useMemo } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
@@ -107,22 +106,17 @@ export const Dockerfile = () => {
 
   return (
     <FormSettingCard
-      icon={<IconFileSettingsOutline18 className="text-gray-12" />}
       title="Dockerfile"
       description="Dockerfile location used for docker build. Leave empty and Unkey builds your app automatically without a Dockerfile."
-      displayValue={defaultValue || "Automatic (no Dockerfile)"}
+      requirement="optional"
       onSubmit={handleSubmit(onSubmit)}
       saveState={saveState}
       autoSave={variant === "onboarding"}
     >
       <SettingField>
         <FormCombobox
-          requirement="optional"
-          label="Dockerfile"
-          description={
-            warningMessage ??
-            "Dockerfile location used for docker build. Leave empty to build automatically without a Dockerfile. Changes apply on next deploy."
-          }
+          aria-label="Dockerfile"
+          description={warningMessage}
           options={options}
           wrapperClassName="max-w-[calc(var(--setting-w)-1rem)]"
           className="max-w-[calc(var(--setting-w)-1rem)]"

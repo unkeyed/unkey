@@ -1,8 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { IconSquareTerminalOutline18 } from "@unkey/icons";
-import { FormTextarea, InfoTooltip } from "@unkey/ui";
+import { FormTextarea } from "@unkey/ui";
 import { useEffect } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
@@ -58,30 +57,18 @@ export const Command = () => {
 
   return (
     <FormSettingCard
-      icon={<IconSquareTerminalOutline18 className="text-gray-12" />}
       title="Command"
-      description="The command to start your application. Changes apply on next deploy."
-      displayValue={
-        defaultCommand ? (
-          <InfoTooltip content={defaultCommand} asChild position={{ side: "bottom" }}>
-            <span className="font-medium text-gray-12 font-mono text-xs truncate max-w-[100px]">
-              {defaultCommand}
-            </span>
-          </InfoTooltip>
-        ) : null
-      }
+      description="Overrides the image's startup command. Arguments are split on whitespace. Leave empty to use the image default."
+      requirement="optional"
       onSubmit={handleSubmit(onSubmit)}
       saveState={saveState}
       autoSave={variant === "onboarding"}
     >
       <SettingField>
         <FormTextarea
-          label="Command"
+          aria-label="Command"
           placeholder="~ npm start"
           className="[&_textarea]:font-mono"
-          description="
-          Overrides the default container startup command. Arguments are split on whitespace. Leave
-          empty to use the image's default command."
           variant={errors.command ? "error" : "default"}
           {...register("command")}
         />

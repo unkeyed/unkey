@@ -3,14 +3,12 @@
 import { Switch } from "@/components/ui/switch";
 import { ENVIRONMENT_KIND } from "@/lib/collections/deploy/environments";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { IconHalfDottedCirclePlayOutline18 } from "@unkey/icons";
 import { useEffect } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { useProjectData } from "../../../../data-provider";
 import { useEnvironmentSettings } from "../../environment-provider";
 import { useUpdateEnvironment } from "../../hooks/use-update-environment";
-import { SettingDescription } from "../shared/form-blocks";
 import { FormSettingCard, resolveSaveState } from "../shared/form-setting-card";
 
 const schema = z.object({ autoDeploy: z.boolean() });
@@ -59,19 +57,12 @@ export const AutoDeploy = () => {
 
   return (
     <FormSettingCard
-      icon={<IconHalfDottedCirclePlayOutline18 className="text-gray-12" />}
       title="Auto deploy"
-      description="Automatically trigger deployments when code is pushed to GitHub."
-      displayValue={<span className="font-medium text-gray-12">{defaultValue ? "On" : "Off"}</span>}
+      description="Automatically trigger deployments when code is pushed to GitHub. When off, you can still deploy by hand from the dashboard."
       onSubmit={handleSubmit(onSubmit)}
       saveState={saveState}
-      footerLeft={
-        <SettingDescription>
-          When disabled, you can still deploy manually from the dashboard.
-        </SettingDescription>
-      }
     >
-      <div className="flex items-center gap-3 py-1.5" data-form-wide>
+      <div className="flex items-center gap-3 py-1.5">
         <Switch
           checked={current}
           onCheckedChange={(v) => setValue("autoDeploy", v, { shouldValidate: true })}

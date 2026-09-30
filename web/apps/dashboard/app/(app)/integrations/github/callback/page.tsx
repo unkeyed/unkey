@@ -49,6 +49,7 @@ export default function Page() {
                 projectId: data.projectId,
                 appId: data.appId,
                 environmentSlug: PRODUCTION_ENVIRONMENT_SLUG,
+                page: "build",
               })
             : routes.projects.apps.new({
                 workspaceSlug: data.workspaceSlug,

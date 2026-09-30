@@ -2,25 +2,41 @@
 
 import { collection } from "@/lib/collections";
 import { ociImageReferenceSchema } from "@/lib/collections/deploy/apps";
+import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
 import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { and, eq, useLiveQuery } from "@tanstack/react-db";
 import { useMutation } from "@tanstack/react-query";
+import { IconCodeBranchOutline18 } from "@unkey/icons";
 import { match } from "@unkey/match";
-import { FormInput, SettingCardGroup, toast } from "@unkey/ui";
+import {
+  Button,
+  EmptyState,
+  EmptyStateActions,
+  EmptyStateDescription,
+  EmptyStateHeader,
+  EmptyStateIcon,
+  EmptyStateTitle,
+  FormInput,
+  SettingCardGroup,
+  SettingsGroup,
+  toast,
+} from "@unkey/ui";
+import Link from "next/link";
 import { useEffect } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { useAppId, useProjectData } from "../../data-provider";
+import { useAppScope } from "../environment-context";
+import { OpenapiSpecPath } from "./components/advanced-settings/openapi-spec-path";
+import { UpstreamProtocol } from "./components/advanced-settings/upstream-protocol";
 import { AutoDeploy } from "./components/build-settings/auto-deploy-settings";
 import { BuildCommand } from "./components/build-settings/build-command-settings";
 import { Dockerfile } from "./components/build-settings/dockerfile-settings";
 import { GitHub } from "./components/build-settings/github-settings";
 import { RootDirectory } from "./components/build-settings/root-directory-settings";
 import { WatchPaths } from "./components/build-settings/watch-paths-settings";
-import { useEnvironmentSettings } from "./environment-provider";
-
 import { Command } from "./components/runtime-settings/command";
 import { Cpu } from "./components/runtime-settings/cpu";
 import { Healthcheck } from "./components/runtime-settings/healthcheck";
@@ -29,37 +45,15 @@ import { Memory } from "./components/runtime-settings/memory";
 import { Port } from "./components/runtime-settings/port-settings";
 import { Regions } from "./components/runtime-settings/regions";
 import { Storage } from "./components/runtime-settings/storage";
-
-import { IconCubeOutline18, IconLayers2Outline18, IconLayers3Outline18 } from "@unkey/icons";
-import { CustomDomains } from "./components/advanced-settings/custom-domains";
-import { OpenapiSpecPath } from "./components/advanced-settings/openapi-spec-path";
-import { UpstreamProtocol } from "./components/advanced-settings/upstream-protocol";
 import { SettingField } from "./components/shared/form-blocks";
 import { FormSettingCard, resolveSaveState } from "./components/shared/form-setting-card";
-import { SettingsGroup } from "./components/shared/settings-group";
+import { SettingsSection } from "./components/shared/settings-section";
 
-/**
- * Environment settings hold one value per environment and write only to the
- * environment in scope. Application settings are shared and write to every
- * environment.
- */
-type DeploymentSection = "environment" | "application";
+const NEXT_DEPLOY = "Applies on next deploy";
 
-type DeploymentSettingsProps = {
-  githubReadOnly?: boolean;
-  sections?: Partial<Record<DeploymentSection, true>>;
-  onBeforeNavigate?: () => void;
-};
-
-export const DeploymentSettings = ({
-  githubReadOnly = false,
-  sections = { environment: true, application: true },
-  onBeforeNavigate,
-}: DeploymentSettingsProps) => {
-  const { projectId, environments } = useProjectData();
+function useBuildSource() {
+  const { projectId } = useProjectData();
   const appId = useAppId();
-  const { settings } = useEnvironmentSettings();
-  const environmentSlug = environments.find((e) => e.id === settings.environmentId)?.slug;
   const appQuery = useLiveQuery(
     (q) =>
       q
@@ -80,7 +74,7 @@ export const DeploymentSettings = ({
     { enabled: shouldLoadGitHub },
   );
 
-  const showBuildSettings = app
+  const hasRepository = app
     ? match(app.sourceType)
         .with("oci", () => false)
         .with("git", () => !data || Boolean(data.repoConnection?.repositoryFullName))
@@ -88,78 +82,115 @@ export const DeploymentSettings = ({
         .exhaustive()
     : false;
 
+  return { projectId, appId, app, hasRepository };
+}
+
+export function ComputeSettings() {
   return (
-    <div className="flex flex-col gap-6">
-      <SettingCardGroup>
-        {app
-          ? match(app.sourceType)
-              .with("oci", () => (
-                <OCIImage
-                  projectId={projectId}
-                  appId={appId}
-                  imageReference={app.imageReference ?? ""}
-                />
-              ))
-              .with("git", () => (
-                <GitHub readOnly={githubReadOnly} onBeforeNavigate={onBeforeNavigate} />
-              ))
-              .with("unknown", () => (
-                <GitHub readOnly={githubReadOnly} onBeforeNavigate={onBeforeNavigate} />
-              ))
-              .exhaustive()
-          : null}
-      </SettingCardGroup>
-      <SettingsGroup
-        icon={<IconLayers3Outline18 className="size-3.5" />}
-        title={
-          <>
-            <span className="capitalize">{environmentSlug}</span> environment
-            <span className="font-normal text-gray-9"> · only this environment</span>
-          </>
-        }
-        defaultExpanded={Boolean(sections.environment)}
-      >
-        <SettingCardGroup>
-          <Regions />
-          <Instances />
-          <Cpu />
-          <Memory />
-          <Storage />
-          {showBuildSettings ? <AutoDeploy /> : null}
-          <div id="custom-domains" className="scroll-mt-24">
-            <CustomDomains />
-          </div>
-        </SettingCardGroup>
-      </SettingsGroup>
-      <SettingsGroup
-        icon={<IconCubeOutline18 className="size-3.5" />}
-        title={
-          <>
-            Application
-            <span className="font-normal text-gray-9"> · shared by all environments</span>
-          </>
-        }
-        defaultExpanded={Boolean(sections.application)}
-      >
-        <SettingCardGroup>
-          {showBuildSettings ? (
-            <>
-              <RootDirectory />
-              <Dockerfile />
-              <BuildCommand />
-              <WatchPaths />
-            </>
-          ) : null}
-          <Port />
-          <Command />
-          <Healthcheck />
-          <OpenapiSpecPath />
-          <UpstreamProtocol />
-        </SettingCardGroup>
-      </SettingsGroup>
-    </div>
+    <SettingsGroup title="Resources" pendingNote={NEXT_DEPLOY}>
+      <Regions />
+      <Instances />
+      <Cpu />
+      <Memory />
+      <Storage />
+    </SettingsGroup>
   );
-};
+}
+
+export function DeploySettings() {
+  const { app, hasRepository } = useBuildSource();
+  const scope = useAppScope();
+  if (!app) {
+    return null;
+  }
+  if (!hasRepository) {
+    return (
+      <SettingsSection>
+        <SettingCardGroup>
+          <EmptyState frame="none">
+            <EmptyStateIcon>
+              <IconCodeBranchOutline18 />
+            </EmptyStateIcon>
+            <EmptyStateHeader>
+              <EmptyStateTitle>No repository connected</EmptyStateTitle>
+              <EmptyStateDescription>Connect a repository to deploy on push.</EmptyStateDescription>
+            </EmptyStateHeader>
+            <EmptyStateActions>
+              <Button
+                variant="outline"
+                render={<Link href={routes.projects.apps.settings({ ...scope, page: "build" })} />}
+              >
+                Go to Build
+              </Button>
+            </EmptyStateActions>
+          </EmptyState>
+        </SettingCardGroup>
+      </SettingsSection>
+    );
+  }
+  return (
+    <SettingsGroup>
+      <AutoDeploy />
+    </SettingsGroup>
+  );
+}
+
+export function BuildSettings({ githubReadOnly = false }: { githubReadOnly?: boolean }) {
+  const { projectId, appId, app, hasRepository } = useBuildSource();
+
+  return (
+    <SettingsGroup pendingNote={NEXT_DEPLOY}>
+      {app
+        ? match(app.sourceType)
+            .with("oci", () => (
+              <OCIImage
+                projectId={projectId}
+                appId={appId}
+                imageReference={app.imageReference ?? ""}
+              />
+            ))
+            .with("git", () => <GitHub readOnly={githubReadOnly} />)
+            .with("unknown", () => <GitHub readOnly={githubReadOnly} />)
+            .exhaustive()
+        : null}
+      {hasRepository ? (
+        <>
+          <RootDirectory />
+          <Dockerfile />
+          <BuildCommand />
+          <WatchPaths />
+        </>
+      ) : null}
+    </SettingsGroup>
+  );
+}
+
+export function RuntimeSettings() {
+  return (
+    <>
+      <SettingsGroup title="Process" pendingNote={NEXT_DEPLOY}>
+        <Port />
+        <Command />
+      </SettingsGroup>
+      <SettingsGroup title="Healthcheck" pendingNote={NEXT_DEPLOY}>
+        <Healthcheck />
+      </SettingsGroup>
+    </>
+  );
+}
+
+export function AdvancedSettings() {
+  return (
+    <>
+      <SettingsGroup title="API" pendingNote={NEXT_DEPLOY}>
+        <OpenapiSpecPath />
+      </SettingsGroup>
+      <SettingsGroup title="Networking" pendingNote={NEXT_DEPLOY}>
+        <UpstreamProtocol />
+      </SettingsGroup>
+    </>
+  );
+}
 
 const ociImageFormSchema = z.object({
   imageReference: ociImageReferenceSchema,
@@ -217,18 +248,15 @@ const OCIImage = ({
 
   return (
     <FormSettingCard
-      icon={<IconLayers2Outline18 className="text-gray-12" />}
       title="Image"
-      description="Default image reference for new deployments"
-      displayValue={<span className="font-mono text-xs">{imageReference}</span>}
+      description="Default image reference for new deployments. Include a tag or digest. Saving does not replace the running deployment."
+      requirement="required"
       onSubmit={handleSubmit(onSubmit)}
       saveState={saveState}
     >
       <SettingField>
         <FormInput
-          label="Image reference"
-          requirement="required"
-          description="Include a tag or digest. Saving changes the default for future deployments; it does not replace the running deployment."
+          aria-label="Image reference"
           placeholder="ghcr.io/acme/app:v1.2.3"
           error={errors.imageReference?.message}
           {...register("imageReference")}

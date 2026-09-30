@@ -1,7 +1,6 @@
 "use client";
 
 import { formatStorageParts } from "@/lib/utils/deployment-formatters";
-import { IconDatabaseOutline18 } from "@unkey/icons";
 import { ResourceSliderSetting, defineResourceSlider } from "../shared/resource-slider";
 
 // Storage tiers on the slider. resolveStrategy bounds these to the workspace
@@ -18,11 +17,9 @@ const STORAGE_OPTIONS = [
 ] as const;
 
 const storageConfig = defineResourceSlider({
-  icon: <IconDatabaseOutline18 className="text-gray-12" />,
   title: "Storage",
-  description: "Ephemeral disk space per instance",
-  settingDescription:
-    "We wipe this volume when the instance stops, so don't keep anything you need on it. Changes apply on next deploy. Contact support@unkey.com for larger volumes.",
+  description:
+    "Ephemeral disk space per instance. Unkey wipes it when the instance stops, so keep nothing you need on it.",
   colorVar: "successA",
   options: STORAGE_OPTIONS,
   fallback: 0,

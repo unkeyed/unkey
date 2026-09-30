@@ -1,5 +1,4 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { IconNumberInputOutline18 } from "@unkey/icons";
 import { FormInput } from "@unkey/ui";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
@@ -44,24 +43,21 @@ export const Port = () => {
 
   return (
     <FormSettingCard
-      icon={<IconNumberInputOutline18 className="text-gray-12" />}
       title="Port"
-      description="Port your application listens on"
-      displayValue={String(defaultValue)}
+      description="Port your application listens on."
+      requirement="required"
       onSubmit={handleSubmit(onSubmit)}
       saveState={saveState}
       autoSave={variant === "onboarding"}
     >
       <SettingField>
         <FormInput
-          requirement="required"
           type="number"
           onWheelCapture={(e) => {
             //@ts-expect-error there is no other way to prevent scroll here
             e.target.blur();
           }}
-          label="Port"
-          description="Port your application listens on. Changes apply on next deploy."
+          aria-label="Port"
           placeholder="8080"
           min={1}
           max={65535}

@@ -97,6 +97,15 @@ describe("app-scoped paths", () => {
     );
   });
 
+  it("builds settings sub-page paths", () => {
+    expect(routes.projects.apps.settings({ ...scope, page: "domains" })).toBe(
+      "/acme/projects/proj_123/apps/app_456/preview/settings/domains",
+    );
+    expect(routes.projects.apps.settings({ ...scope, page: "danger" })).toBe(
+      "/acme/projects/proj_123/apps/app_456/preview/settings/danger",
+    );
+  });
+
   it("builds a deployment path", () => {
     expect(routes.projects.apps.deployment({ ...scope, deploymentId })).toBe(
       "/acme/projects/proj_123/apps/app_456/preview/deployments/d_789",

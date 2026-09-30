@@ -17,15 +17,13 @@ import {
 import { trpc } from "@/lib/trpc/client";
 import { mapRegionToFlag } from "@/lib/trpc/routers/deploy/network/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { IconLocation2Outline18 } from "@unkey/icons";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@unkey/ui";
-import { FormLabel } from "@unkey/ui/src/components/form/form-helpers";
 import { useEffect, useId, useMemo } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { useEnvironmentSettings } from "../../environment-provider";
 import { useUpdateEnvironment } from "../../hooks/use-update-environment";
-import { SettingDescription, SettingField } from "../shared/form-blocks";
+import { SettingField } from "../shared/form-blocks";
 import { FormSettingCard, resolveSaveState } from "../shared/form-setting-card";
 
 const RegionMultibox = ({
@@ -116,39 +114,6 @@ const RegionMultibox = ({
   );
 };
 
-const RegionDisplayValue = ({ regions }: { regions: string[] }) => {
-  if (regions.length === 0) {
-    return null;
-  }
-  if (regions.length <= 2) {
-    return (
-      <span className="flex items-center gap-1.5">
-        {regions.map((r, i) => (
-          <span key={r} className="flex items-center gap-1.5">
-            {i > 0 && <span className="text-grayA-4">|</span>}
-            <span className="flex items-center gap-1">
-              <RegionFlag
-                flagCode={mapRegionToFlag(r)}
-                size="xs"
-                shape="circle"
-                className="[&_img]:size-3"
-              />
-              <span className="text-gray-11">{r}</span>
-            </span>
-          </span>
-        ))}
-      </span>
-    );
-  }
-  return (
-    <span className="flex items-center gap-1">
-      {regions.map((r) => (
-        <RegionFlag key={r} flagCode={mapRegionToFlag(r)} size="xs" shape="circle" />
-      ))}
-    </span>
-  );
-};
-
 const regionsSchema = z.object({
   regions: z.array(z.string()).min(1, "Select at least one region"),
 });
@@ -212,17 +177,18 @@ export const Regions = () => {
 
   return (
     <FormSettingCard
-      icon={<IconLocation2Outline18 className="text-gray-12" />}
       title="Regions"
-      description="Geographic regions where your app will run"
-      displayValue={<RegionDisplayValue regions={defaultRegions} />}
+      description="Geographic regions where your app will run. Traffic goes to the nearest selected region."
+      requirement="optional"
       onSubmit={handleSubmit(onSubmit)}
       saveState={saveState}
       autoSave={variant === "onboarding"}
     >
       <SettingField>
         <fieldset className="flex flex-col gap-1.5 border-0 m-0 p-0">
-          <FormLabel label="Region" requirement="optional" htmlFor={inputId} />
+          <label htmlFor={inputId} className="sr-only">
+            Regions
+          </label>
           <RegionMultibox
             inputId={inputId}
             regions={currentRegions}
@@ -231,10 +197,6 @@ export const Regions = () => {
           />
         </fieldset>
       </SettingField>
-
-      <SettingDescription>
-        Traffic is routed to the nearest selected region. Changes apply on next deploy.
-      </SettingDescription>
     </FormSettingCard>
   );
 };

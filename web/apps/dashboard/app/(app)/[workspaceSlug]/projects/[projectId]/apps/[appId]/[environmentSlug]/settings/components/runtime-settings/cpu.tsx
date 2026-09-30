@@ -1,7 +1,6 @@
 "use client";
 
 import { formatCpuParts } from "@/lib/utils/deployment-formatters";
-import { IconMicrochipOutline18 } from "@unkey/icons";
 import { ResourceSliderSetting, defineResourceSlider } from "../shared/resource-slider";
 
 // CPU tiers on the slider. resolveStrategy bounds these to the workspace limit
@@ -17,11 +16,8 @@ const CPU_OPTIONS = [
 ] as const;
 
 const cpuConfig = defineResourceSlider({
-  icon: <IconMicrochipOutline18 className="text-gray-12" />,
   title: "Max CPU",
   description: "Maximum CPU limit per instance. You are only charged for actual usage.",
-  settingDescription:
-    "Changes apply on next deploy. Contact support@unkey.com if you need higher limits.",
   colorVar: "infoA",
   options: CPU_OPTIONS,
   fallback: 250,

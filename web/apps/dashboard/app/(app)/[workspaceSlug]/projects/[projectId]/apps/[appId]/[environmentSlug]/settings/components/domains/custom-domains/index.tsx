@@ -11,41 +11,43 @@ import { useBillingUIUpgrades } from "@/lib/flags/use-billing-ui-upgrades";
 import { routes } from "@/lib/navigation/routes";
 import { getErrorMessage } from "@/lib/unkey-client";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { IconLink4Outline18 } from "@unkey/icons";
+import { IconEarthOutline18 } from "@unkey/icons";
 import {
   AlertBanner,
   AlertBannerActions,
   AlertBannerDescription,
   AlertBannerTitle,
   Button,
+  EmptyState,
+  EmptyStateDescription,
+  EmptyStateHeader,
+  EmptyStateIcon,
+  EmptyStateTitle,
   FormInput,
 } from "@unkey/ui";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { useAppId, useProjectData } from "../../../../../data-provider";
-import { useEnvironmentSettings } from "../../../environment-provider";
-import { SettingField, WideContent } from "../../shared/form-blocks";
-import { FormSettingCard, resolveSaveState } from "../../shared/form-setting-card";
+import { useAppEnvironment } from "../../../../environment-context";
+import { SettingsSection } from "../../shared/settings-section";
 import { CustomDomainRow } from "./custom-domain-row";
 import { type CustomDomainFormValues, customDomainSchema } from "./schema";
 
-export const CustomDomains = () => {
+export function CustomDomains() {
   const { customDomains, projectId } = useProjectData();
   const appId = useAppId();
-  const {
-    settings: { environmentId },
-  } = useEnvironmentSettings();
+  const { environment } = useAppEnvironment();
 
   return (
     <CustomDomainSettings
-      customDomains={customDomains.filter((d) => d.environmentId === environmentId)}
+      customDomains={customDomains.filter((d) => d.environmentId === environment.id)}
       projectId={projectId}
       appId={appId}
-      environmentId={environmentId}
+      environmentId={environment.id}
     />
   );
-};
+}
 
 type CustomDomainSettingsProps = {
   customDomains: CustomDomain[];
@@ -54,20 +56,14 @@ type CustomDomainSettingsProps = {
   environmentId: string;
 };
 
-const CustomDomainSettings: React.FC<CustomDomainSettingsProps> = ({
+function CustomDomainSettings({
   customDomains,
   projectId,
   appId,
   environmentId,
-}) => {
+}: CustomDomainSettingsProps) {
   const workspace = useWorkspaceNavigation();
-  const [expanded, setExpanded] = useState(false);
   const [limitMessage, setLimitMessage] = useState<string | null>(null);
-  useEffect(() => {
-    if (window.location.hash.slice(1) === "custom-domains") {
-      setExpanded(true);
-    }
-  }, []);
 
   const {
     handleSubmit,
@@ -118,54 +114,51 @@ const CustomDomainSettings: React.FC<CustomDomainSettingsProps> = ({
     }
   };
 
-  const saveState = resolveSaveState([
-    [isSubmitting, { status: "saving" }],
-    [!isValid, { status: "disabled" }],
-  ]);
-
-  const displayValue =
-    customDomains.length === 0 ? null : (
-      <div className="space-x-1">
-        <span className="font-medium text-gray-12">{customDomains.length}</span>
-        <span className="text-gray-11 font-normal">
-          domain{customDomains.length !== 1 ? "s" : ""}
-        </span>
-      </div>
-    );
-
   return (
-    <FormSettingCard
-      icon={<IconLink4Outline18 className="text-gray-12" />}
-      title="Custom Domains"
-      description="Serve your deployment from your own domain name"
-      displayValue={displayValue}
-      onSubmit={handleSubmit(onSubmit)}
-      saveState={saveState}
-      expanded={expanded}
-      onExpandedChange={setExpanded}
-      stickyHeader={limitMessage ? <LimitBanner message={limitMessage} /> : undefined}
-    >
-      <SettingField>
-        <FormInput
-          label="Domain"
-          placeholder="api.example.com"
-          className="[&_input]:font-mono"
-          error={errors.domain?.message}
-          {...register("domain")}
-        />
-      </SettingField>
-      <WideContent>
-        {customDomains.length > 0 && (
-          <div className="border rounded-lg overflow-hidden mt-1 bg-raised">
-            {customDomains.map((d) => (
-              <CustomDomainRow key={d.id} domain={d} />
-            ))}
-          </div>
+    <SettingsSection title="Custom domains">
+      {limitMessage ? <LimitBanner message={limitMessage} /> : null}
+      <div className="overflow-hidden rounded-lg border bg-raised">
+        {customDomains.length > 0 ? (
+          customDomains.map((d) => <CustomDomainRow key={d.id} domain={d} />)
+        ) : (
+          <EmptyState frame="none">
+            <EmptyStateIcon>
+              <IconEarthOutline18 />
+            </EmptyStateIcon>
+            <EmptyStateHeader>
+              <EmptyStateTitle>No custom domains</EmptyStateTitle>
+              <EmptyStateDescription>
+                Add a domain below to serve this app from your own hostname.
+              </EmptyStateDescription>
+            </EmptyStateHeader>
+          </EmptyState>
         )}
-      </WideContent>
-    </FormSettingCard>
+        <form
+          onSubmit={handleSubmit(onSubmit)}
+          className="flex items-start gap-2 border-t bg-grayA-2 px-5 py-3"
+        >
+          <FormInput
+            aria-label="Domain"
+            placeholder="api.example.com"
+            className="flex-1 [&_input]:font-mono"
+            error={errors.domain?.message}
+            {...register("domain")}
+          />
+          <Button
+            type="submit"
+            variant="primary"
+            size="lg"
+            className="px-3"
+            disabled={!isValid}
+            loading={isSubmitting}
+          >
+            Add domain
+          </Button>
+        </form>
+      </div>
+    </SettingsSection>
   );
-};
+}
 
 const LimitBanner = ({ message }: { message: string }) => {
   const workspace = useWorkspaceNavigation();
@@ -173,7 +166,7 @@ const LimitBanner = ({ message }: { message: string }) => {
   const [plansOpen, setPlansOpen] = useState(false);
 
   return (
-    <AlertBanner variant="error" className="mb-2">
+    <AlertBanner variant="error">
       <AlertBannerTitle>Custom domain limit reached</AlertBannerTitle>
       <AlertBannerDescription>{message}</AlertBannerDescription>
       <AlertBannerActions>

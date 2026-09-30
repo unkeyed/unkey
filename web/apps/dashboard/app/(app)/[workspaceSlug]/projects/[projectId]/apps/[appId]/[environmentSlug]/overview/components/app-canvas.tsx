@@ -129,7 +129,7 @@ export function AddDomainGhost() {
       icon={<IconEarthOutline18 />}
       title="Add a custom domain"
       description="Serve this app from your own hostname."
-      onClick={() => router.push(`${routes.projects.apps.settings(scope)}#custom-domains`)}
+      onClick={() => router.push(routes.projects.apps.settings({ ...scope, page: "domains" }))}
     />
   );
 }

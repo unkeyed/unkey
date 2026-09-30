@@ -63,8 +63,8 @@ export const GitHubNoRepo = ({
     });
   };
 
-  const collapsed = (
-    <div onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
+  return (
+    <GitHubSettingCard>
       {isLoadingRepos ? (
         <ComboboxSkeleton />
       ) : repoOptions.length ? (
@@ -78,20 +78,20 @@ export const GitHubNoRepo = ({
           disabled={selectRepoMutation.isLoading}
         />
       ) : (
-        <ManageGitHubAppLink
-          onInstall={onInstall}
-          variant="outline"
-          className="ml-0 h-8 px-3 py-2 rounded-lg"
-          text={
-            <>
-              <span className="text-gray-9">Import from</span>
-              <span className="text-gray-12 font-medium"> GitHub</span>
-            </>
-          }
-        />
+        <div className="flex items-center">
+          <ManageGitHubAppLink
+            onInstall={onInstall}
+            variant="outline"
+            className="ml-0 h-8 px-3 py-2 rounded-lg"
+            text={
+              <>
+                <span className="text-gray-9">Import from</span>
+                <span className="text-gray-12 font-medium"> GitHub</span>
+              </>
+            }
+          />
+        </div>
       )}
-    </div>
+    </GitHubSettingCard>
   );
-
-  return <GitHubSettingCard chevronState="disabled">{collapsed}</GitHubSettingCard>;
 };

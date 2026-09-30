@@ -1,27 +1,9 @@
-import { Github } from "@unkey/icons";
-import { Button, type ChevronState, SettingCard, Skeleton } from "@unkey/ui";
+import { Button, SettingsRow, Skeleton } from "@unkey/ui";
 
-export const GitHubSettingCard = ({
-  children,
-  expandable,
-  chevronState,
-}: {
-  children: React.ReactNode;
-  expandable?: React.ReactNode;
-  chevronState: ChevronState;
-}) => (
-  <SettingCard
-    className="px-4 py-[18px] "
-    icon={<Github className="text-gray-12" />}
-    title="Repository"
-    description="Source repository for this deployment"
-    border="top"
-    contentWidth="w-full lg:w-[320px] justify-end"
-    expandable={expandable}
-    chevronState={chevronState}
-  >
+export const GitHubSettingCard = ({ children }: { children: React.ReactNode }) => (
+  <SettingsRow title="Repository" description="Source repository for this deployment">
     {children}
-  </SettingCard>
+  </SettingsRow>
 );
 
 export const ComboboxSkeleton = () => (

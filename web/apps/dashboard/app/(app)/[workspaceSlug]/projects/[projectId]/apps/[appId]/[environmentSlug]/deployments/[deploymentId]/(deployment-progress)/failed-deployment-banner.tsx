@@ -1,5 +1,7 @@
 import type { Deployment } from "@/lib/collections/deploy/deployments";
 import { useBillingUIUpgrades } from "@/lib/flags/use-billing-ui-upgrades";
+import { routes } from "@/lib/navigation/routes";
+import type { AppScope, AppSettingsPage } from "@/lib/navigation/routes/projects";
 import { match } from "@unkey/match";
 import {
   AlertBanner,
@@ -16,23 +18,22 @@ import type { StepsData } from "./deployment-progress";
 import { LIMITS_DOCS_URL, limitFailure } from "./limit-failure";
 
 /** Patterns matched against backend fault.Public messages to decide whether
- *  to show a "Go to Settings" link. Only errors fixable via project settings
- *  (dockerfile path, docker context, regions, git branch) belong here. */
-const SETTINGS_HINT_PATTERNS = [
+ *  to show a "Go to Settings" link, and which settings page fixes the error. */
+const SETTINGS_HINTS: ReadonlyArray<{ pattern: string; page: AppSettingsPage | undefined }> = [
   // Dockerfile path / docker context (from build.go extractUserBuildError)
-  "check that the file path is correct",
-  "dockerfile appears to be empty",
-  "build target stage was not found",
-  "check the root directory",
-  // Region configuration (from deploy_handler.go createTopologies)
-  "configure at least one region",
+  { pattern: "check that the file path is correct", page: "build" },
+  { pattern: "dockerfile appears to be empty", page: "build" },
+  { pattern: "build target stage was not found", page: "build" },
+  { pattern: "check the root directory", page: "build" },
+  // Region configuration (from deploy_handler.go createTopologies); Compute is the settings index
+  { pattern: "configure at least one region", page: undefined },
   // Git branch (from deploy_handler.go buildImage)
-  "git branch could not be resolved",
+  { pattern: "git branch could not be resolved", page: "build" },
 ];
 
-function isSettingsRelatedError(error: string): boolean {
+function settingsHintFor(error: string) {
   const lower = error.toLowerCase();
-  return SETTINGS_HINT_PATTERNS.some((pattern) => lower.includes(pattern));
+  return SETTINGS_HINTS.find((hint) => lower.includes(hint.pattern));
 }
 
 type StepKey = keyof NonNullable<StepsData>;
@@ -60,18 +61,18 @@ function firstStepError(data: NonNullable<StepsData>): string | undefined {
 // handling for the "Cancelled by user" marker here.
 export function FailedDeploymentBanner({
   stepsData,
-  settingsUrl,
+  appScope,
   limitsUrl,
   deployment,
 }: {
   stepsData: StepsData | undefined;
-  settingsUrl: Route;
+  appScope: AppScope;
   limitsUrl: Route;
   deployment: Deployment;
 }) {
   const [redeployOpen, setRedeployOpen] = useState(false);
   const errorMessage = (stepsData && firstStepError(stepsData)) ?? "Deployment failed";
-  const showSettingsLink = isSettingsRelatedError(errorMessage);
+  const settingsHint = settingsHintFor(errorMessage);
   const billingUpgrades = useBillingUIUpgrades();
   const limit = billingUpgrades ? limitFailure(errorMessage) : null;
   const actions = stepsData == null ? "loading" : limit ? "limit" : "generic";
@@ -90,10 +91,12 @@ export function FailedDeploymentBanner({
               </Link>
             </>
           )}
-          {showSettingsLink && (
+          {settingsHint && (
             <>
               {" "}
-              <Link href={settingsUrl}>Go to Settings</Link>
+              <Link href={routes.projects.apps.settings({ ...appScope, page: settingsHint.page })}>
+                Go to Settings
+              </Link>
             </>
           )}
         </AlertBannerDescription>

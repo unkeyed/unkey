@@ -64,6 +64,9 @@ describe("withEnvironmentSlug", () => {
     expect(withEnvironmentSlug(`${base}/prod/settings`, "app_1", "preview")).toBe(
       `${base}/preview/settings`,
     );
+    expect(withEnvironmentSlug(`${base}/prod/settings/domains`, "app_1", "preview")).toBe(
+      `${base}/preview/settings/domains`,
+    );
     expect(withEnvironmentSlug(`${base}/prod/deployments/dep_1`, "app_1", "preview")).toBe(
       `${base}/preview/deployments/dep_1`,
     );
@@ -90,6 +93,12 @@ describe("environmentRedirectPath", () => {
         redirectSlug: "prod",
       }),
     ).toBe(`${base}/prod/settings`);
+    expect(
+      environmentRedirectPath(`${base}/settings/domains`, "app_1", {
+        kind: "legacy",
+        redirectSlug: "prod",
+      }),
+    ).toBe(`${base}/prod/settings/domains`);
   });
 
   it("replaces an unknown slug and keeps the rest of the path", () => {

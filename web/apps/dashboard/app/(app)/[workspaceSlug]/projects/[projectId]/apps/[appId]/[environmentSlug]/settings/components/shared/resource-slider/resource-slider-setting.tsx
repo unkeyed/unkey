@@ -6,15 +6,15 @@ import type { FormattedParts } from "@/lib/utils/deployment-formatters";
 import { useWorkspace } from "@/providers/workspace-provider";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { Limits } from "@unkey/db";
-import { Slider } from "@unkey/ui";
+import { type SaveState, Slider } from "@unkey/ui";
 import type React from "react";
 import { useEffect, useMemo } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { useEnvironmentSettings } from "../../../environment-provider";
 import { useUpdateEnvironment } from "../../../hooks/use-update-environment";
-import { SettingDescription, WideContent } from "../form-blocks";
-import { FormSettingCard, type SaveState, resolveSaveState } from "../form-setting-card";
+import { WideContent } from "../form-blocks";
+import { FormSettingCard, resolveSaveState } from "../form-setting-card";
 import { buildSliderRangeStyle, indexToValue, valueToIndex } from "./slider-utils";
 
 type SliderStrategy =
@@ -26,10 +26,8 @@ type SliderStrategy =
   | { kind: "direct"; min: number; max: number; step: number };
 
 export type ResourceSliderConfig = {
-  icon: React.ReactNode;
   title: string;
   description: string;
-  settingDescription: string;
   colorVar: string;
   slider: SliderStrategy;
   formatValue: (n: number) => FormattedParts;
@@ -119,10 +117,8 @@ function ensureValuesSelectable(
 }
 
 type ResourceSliderDefinition = {
-  icon: React.ReactNode;
   title: string;
   description: string;
-  settingDescription: string;
   colorVar: string;
   options: readonly { readonly label: string; readonly value: number }[];
   fallback: number;
@@ -146,10 +142,8 @@ export function defineResourceSlider(definition: ResourceSliderDefinition): Reso
   const limitMultiplier = definition.limitMultiplier ?? 1;
 
   return {
-    icon: definition.icon,
     title: definition.title,
     description: definition.description,
-    settingDescription: definition.settingDescription,
     colorVar: definition.colorVar,
     slider: { kind: "index-mapped", options: definition.options, fallback: definition.fallback },
     formatValue: definition.formatValue,
@@ -248,19 +242,10 @@ const SliderForm = ({ config }: { config: ResourceSliderConfig }) => {
     [!hasChanges, { status: "disabled", reason: "No changes to save" }],
   ]);
 
-  const displayParts = config.formatValue(defaultValue);
-
   return (
     <FormSettingCard
-      icon={config.icon}
       title={config.title}
       description={config.description}
-      displayValue={
-        <span>
-          <span className="font-medium text-gray-12">{displayParts.value}</span>{" "}
-          <span className="text-gray-11">{displayParts.unit}</span>
-        </span>
-      }
       onSubmit={handleSubmit(onSubmit)}
       saveState={saveState}
       autoSave={variant === "onboarding"}
@@ -307,7 +292,6 @@ const SliderForm = ({ config }: { config: ResourceSliderConfig }) => {
             <span className="text-gray-11">{config.formatValue(currentValue).unit}</span>
           </span>
         </div>
-        <SettingDescription>{config.settingDescription}</SettingDescription>
       </WideContent>
     </FormSettingCard>
   );

@@ -6,16 +6,15 @@ import { freeTierLimits } from "@/lib/limits";
 import { mapRegionToFlag } from "@/lib/trpc/routers/deploy/network/utils";
 import { useWorkspace } from "@/providers/workspace-provider";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { IconConnections3Outline18 } from "@unkey/icons";
-import { Slider } from "@unkey/ui";
+import { type SaveState, Slider } from "@unkey/ui";
 import { useEffect, useMemo } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { RegionFlag } from "../../../../components/region-flag";
 import { useEnvironmentSettings } from "../../environment-provider";
 import { useUpdateEnvironment } from "../../hooks/use-update-environment";
-import { SettingDescription, WideContent } from "../shared/form-blocks";
-import { FormSettingCard, type SaveState, resolveSaveState } from "../shared/form-setting-card";
+import { WideContent } from "../shared/form-blocks";
+import { FormSettingCard, resolveSaveState } from "../shared/form-setting-card";
 
 const REPLICAS_MIN = 1;
 const COLOR_VAR = "featureA";
@@ -97,10 +96,8 @@ const writeRange = (draft: EnvironmentSettings, values: RangeFormValues) => {
   }
 };
 
-const description =
-  "Autoscaling range per region. Scales up to the maximum based on CPU usage, down to the minimum when load is low.";
-const settingDescription = (limit: number) =>
-  `Changes apply on next deploy. Instances are limited to ${limit} per region. Contact support@unkey.com if you need more.`;
+const description = (limit: number) =>
+  `Autoscaling range per region. Scales up to the maximum based on CPU usage, down to the minimum when load is low. Up to ${limit} per region.`;
 
 export const Instances = () => {
   const { settings, variant } = useEnvironmentSettings();
@@ -146,14 +143,10 @@ export const Instances = () => {
     [!hasChanges, { status: "disabled", reason: "No changes to save" }],
   ]);
 
-  const displayParts = formatRangeParts(defaultValues.replicasMin, defaultValues.replicasMax);
-
   return (
     <FormSettingCard
-      icon={<IconConnections3Outline18 className="text-gray-12" />}
       title="Instances"
-      description={description}
-      displayValue={<span className="font-medium text-gray-12">{displayParts.value}</span>}
+      description={description(replicasMaxLimit)}
       onSubmit={handleSubmit(onSubmit)}
       saveState={saveState}
       autoSave={variant === "onboarding"}
@@ -203,7 +196,6 @@ export const Instances = () => {
             {formatRangeParts(currentReplicasMin, currentReplicasMax).value}
           </span>
         </div>
-        <SettingDescription>{settingDescription(replicasMaxLimit)}</SettingDescription>
       </WideContent>
     </FormSettingCard>
   );

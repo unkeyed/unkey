@@ -1,7 +1,6 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { IconConnectionsOutline18 } from "@unkey/icons";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@unkey/ui";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
@@ -18,8 +17,6 @@ const PROTOCOLS = [
 const schema = z.object({
   upstreamProtocol: z.enum(["http1", "h2c"]),
 });
-
-const displayLabel = (value: string) => PROTOCOLS.find((p) => p.value === value)?.label ?? value;
 
 export const UpstreamProtocol = () => {
   const { settings, variant } = useEnvironmentSettings();
@@ -52,8 +49,7 @@ export const UpstreamProtocol = () => {
 
   return (
     <FormSettingCard
-      icon={<IconConnectionsOutline18 className="text-gray-12" />}
-      title="Upstream Protocol"
+      title="Upstream protocol"
       description={
         <>
           Protocol used to connect to your application. If you don&apos;t know what this is, use
@@ -69,7 +65,6 @@ export const UpstreamProtocol = () => {
           .
         </>
       }
-      displayValue={displayLabel(defaultValue)}
       onSubmit={handleSubmit(onSubmit)}
       saveState={saveState}
       autoSave={variant === "onboarding"}

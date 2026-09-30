@@ -64,24 +64,9 @@ export const GitHubConnected = ({
     });
   };
 
-  const expandable = (
-    <div className="px-6 py-4 flex flex-col gap-3 bg-grayA-2 rounded-b-lg">
-      <span className="text-gray-9 text-sm">
-        Pushes to this repository will trigger deployments.
-      </span>
-      <div className="flex items-center gap-5 pt-1">
-        <ManageGitHubAppLink
-          onInstall={onInstall}
-          variant="primary"
-          text={<span>Manage GitHub</span>}
-        />
-      </div>
-    </div>
-  );
-
   return (
-    <GitHubSettingCard expandable={expandable} chevronState="interactive">
-      <div onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
+    <GitHubSettingCard>
+      <div className="flex flex-col items-start gap-2">
         {isLoadingRepos ? (
           <ComboboxSkeleton />
         ) : (
@@ -95,6 +80,16 @@ export const GitHubConnected = ({
             disabled={selectRepoMutation.isLoading}
           />
         )}
+        <span className="text-gray-9 text-sm">
+          Pushes to this repository will trigger deployments.
+        </span>
+        <div className="flex items-center">
+          <ManageGitHubAppLink
+            onInstall={onInstall}
+            variant="primary"
+            text={<span>Manage GitHub</span>}
+          />
+        </div>
       </div>
     </GitHubSettingCard>
   );

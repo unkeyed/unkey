@@ -10,7 +10,7 @@ type DnsRecordTableProps = {
 export function DnsRecordTable({ records, isLoading }: DnsRecordTableProps) {
   if (isLoading) {
     return (
-      <div className="px-4 pb-3 space-y-3">
+      <div className="px-5 pb-3 space-y-3">
         <Skeleton className="h-4 w-64 bg-gray-4 rounded" />
         <div className="rounded-lg border bg-background overflow-hidden text-xs">
           <TableHeader />
@@ -22,7 +22,7 @@ export function DnsRecordTable({ records, isLoading }: DnsRecordTableProps) {
   }
 
   return (
-    <div className="px-4 pb-3 space-y-3">
+    <div className="px-5 pb-3 space-y-3">
       <p className="text-xs text-gray-9">Add the DNS records below at your domain provider.</p>
 
       <div className="rounded-lg border bg-background overflow-hidden text-xs">

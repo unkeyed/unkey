@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { IconChevronDownOutline12, IconHeartPulseOutline18 } from "@unkey/icons";
+import { IconChevronDownOutline12 } from "@unkey/icons";
 import {
   FormInput,
   Select,
@@ -80,18 +80,8 @@ export const Healthcheck = () => {
 
   return (
     <FormSettingCard
-      icon={<IconHeartPulseOutline18 className="text-gray-12" />}
       title="Healthcheck"
       description="Endpoint used to verify the service is healthy"
-      displayValue={
-        healthcheck ? (
-          <div className="flex gap-1.5 items-center justify-center">
-            <MethodBadge method={healthcheck.method} />
-            <span className="font-medium text-gray-12">{healthcheck.path}</span>
-            <span className="text-gray-11 font-normal">every {healthcheck.intervalSeconds}s</span>
-          </div>
-        ) : null
-      }
       onSubmit={handleSubmit(onSubmit)}
       saveState={saveState}
       autoSave={variant === "onboarding"}

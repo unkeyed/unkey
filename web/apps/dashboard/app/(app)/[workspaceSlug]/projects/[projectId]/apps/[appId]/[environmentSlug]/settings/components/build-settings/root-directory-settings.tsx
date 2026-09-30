@@ -1,6 +1,5 @@
 import { FormCombobox } from "@/components/ui/form-combobox";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { IconFolderLinkOutline18 } from "@unkey/icons";
 import { useMemo } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
@@ -114,22 +113,17 @@ export const RootDirectory = () => {
 
   return (
     <FormSettingCard
-      icon={<IconFolderLinkOutline18 className="text-gray-12" />}
       title="Root directory"
       description="The directory your app lives in. Unkey builds from here. Set it when your app is in a subdirectory (e.g., services/api)."
-      displayValue={defaultValue || "."}
+      requirement="required"
       onSubmit={handleSubmit(onSubmit)}
       saveState={saveState}
       autoSave={variant === "onboarding"}
     >
       <SettingField>
         <FormCombobox
-          label="Root directory"
-          requirement="required"
-          description={
-            warningMessage ??
-            "Select a suggested app directory or enter any repository-relative path. Changes apply on next deploy."
-          }
+          aria-label="Root directory"
+          description={warningMessage}
           error={errors.dockerContext?.message}
           variant={inputVariant}
           options={options}

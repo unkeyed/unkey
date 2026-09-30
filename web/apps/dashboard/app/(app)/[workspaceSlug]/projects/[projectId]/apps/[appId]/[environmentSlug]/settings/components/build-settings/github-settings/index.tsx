@@ -8,7 +8,7 @@ import { trpc } from "@/lib/trpc/client";
 import { match } from "@unkey/match";
 import { toast } from "@unkey/ui";
 import { useCallback } from "react";
-import { SelectedConfig } from "../../shared/selected-config";
+import { usePreventLeaveBypass } from "../../../prevent-leave-context";
 import { GitHubConnected } from "./github-connected";
 import { GitHubNoRepo } from "./github-no-repo";
 import { ComboboxSkeleton, GitHubSettingCard, ManageGitHubAppLink, RepoNameLabel } from "./shared";
@@ -27,12 +27,12 @@ type GitHubConnectionState =
 
 type GitHubProps = {
   readOnly?: boolean;
-  onBeforeNavigate?: () => void;
 };
 
-export const GitHub = ({ readOnly = false, onBeforeNavigate }: GitHubProps) => {
+export const GitHub = ({ readOnly = false }: GitHubProps) => {
   const { projectId } = useProjectData();
   const appId = useAppId();
+  const onBeforeNavigate = usePreventLeaveBypass();
 
   // The state on the GitHub install URL is a server-signed token bound to
   // this user, workspace, and project. Computing it requires a tRPC round
@@ -79,17 +79,19 @@ export const GitHub = ({ readOnly = false, onBeforeNavigate }: GitHubProps) => {
 
   return match(connectionState)
     .with({ status: "loading" }, () => (
-      <GitHubSettingCard chevronState="disabled">
+      <GitHubSettingCard>
         <ComboboxSkeleton />
       </GitHubSettingCard>
     ))
     .with({ status: "no-app" }, ({ onInstall: install }) => (
-      <GitHubSettingCard chevronState="disabled">
-        <ManageGitHubAppLink
-          onInstall={install}
-          variant="outline"
-          className="px-2.5 py-3 text-gray-12 font-medium text-sm hover:bg-grayA-2"
-        />
+      <GitHubSettingCard>
+        <div className="flex items-center">
+          <ManageGitHubAppLink
+            onInstall={install}
+            variant="outline"
+            className="px-2.5 py-3 text-gray-12 font-medium text-sm hover:bg-grayA-2"
+          />
+        </div>
       </GitHubSettingCard>
     ))
     .with({ status: "no-repo" }, ({ appId, onInstall: install }) => (
@@ -98,8 +100,8 @@ export const GitHub = ({ readOnly = false, onBeforeNavigate }: GitHubProps) => {
     .with({ status: "connected" }, ({ appId, repoFullName, onInstall: install }) => {
       if (readOnly) {
         return (
-          <GitHubSettingCard chevronState="disabled">
-            <SelectedConfig label={<RepoNameLabel fullName={repoFullName} />} />
+          <GitHubSettingCard>
+            <RepoNameLabel fullName={repoFullName} />
           </GitHubSettingCard>
         );
       }

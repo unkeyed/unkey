@@ -99,7 +99,7 @@ export function CustomDomainRow({ domain }: CustomDomainRowProps) {
 
   return (
     <div className="border-b last:border-b-0 group">
-      <div className="flex items-center justify-between px-4 py-3 h-12">
+      <div className="flex items-center justify-between px-5 py-3 h-12">
         <div className="flex items-center gap-3 flex-1 min-w-0">
           <a
             href={`https://${domain.domain}`}
@@ -171,7 +171,7 @@ export function CustomDomainRow({ domain }: CustomDomainRowProps) {
       {domain.verificationStatus !== "verified" &&
         domain.domainConnectUrl &&
         domain.domainConnectProvider && (
-          <div className="mx-4 mb-3 flex items-center gap-3 px-4 py-3 rounded-lg border bg-raised">
+          <div className="mx-5 mb-3 flex items-center gap-3 px-4 py-3 rounded-lg border bg-raised">
             <ProviderIcon provider={domain.domainConnectProvider} className="size-6!" />
             <div className="flex-1">
               <p className="text-sm font-medium text-gray-12">Automatic setup available</p>
