@@ -101,8 +101,6 @@ Private DNS answers follow these rules:
 - Answers contain IPv4 (`A`) records only. Lookups for IPv6 (`AAAA`) records return no addresses.
 - Addresses come back in random order. Clients that use the first address spread connections across instances. Unkey doesn't add a load balancer in front of private traffic.
 - Answers have a short TTL. Resolve the hostname again when you open new connections. Existing connections aren't moved when the target changes.
-- Use the full hostname. Short names such as `payments` don't resolve.
-- Public hostnames resolve as usual.
 
 ## Connect instances of the same deployment
 
