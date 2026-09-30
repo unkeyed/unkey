@@ -132,7 +132,7 @@ func (h *Harness) CreateDeployment(ctx context.Context, req CreateDeploymentRequ
 		Port:                          8080,
 		ShutdownSignal:                db.DeploymentsShutdownSignalSIGTERM,
 		UpstreamProtocol:              db.DeploymentsUpstreamProtocolHttp1,
-		PrivateNetworking:             false,
+		Features:                      dbtype.DeploymentFeatures{PrivateNetworking: false},
 		Healthcheck:                   dbtype.NullHealthcheck{Healthcheck: nil, Valid: false},
 		PrNumber:                      sql.NullInt64{Int64: 0, Valid: false},
 		ForkRepositoryFullName:        sql.NullString{String: "", Valid: false},

@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
@@ -77,10 +78,10 @@ func TestDeploymentRowToState_PrivateNetworkReplicaHost(t *testing.T) {
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			state, err := deploymentRowToState(db.ListAllDeploymentTopologiesByRegionRow{
-				TopologyDesiredStatus:  db.DeploymentTopologyDesiredStatusRunning,
-				DeploymentID:           "deploy_123",
-				AppSlug:                tt.slug,
-				PrivateNetworkEnrolled: tt.enrolled,
+				TopologyDesiredStatus: db.DeploymentTopologyDesiredStatusRunning,
+				DeploymentID:          "deploy_123",
+				AppSlug:               tt.slug,
+				DeploymentFeatures:    mysqltype.DeploymentFeatures{PrivateNetworking: tt.enrolled},
 			})
 			require.NoError(t, err)
 			require.Equal(t, tt.want, state.GetApply().GetPrivateNetworkReplicaHost())

@@ -43,7 +43,7 @@ SELECT
     e.slug AS environment_slug,
     e.kind AS environment_kind,
     COALESCE(a.slug, '') AS app_slug,
-    d.private_networking AS private_network_enrolled,
+    d.features AS deployment_features,
     r.name AS region_name,
     grc.repository_full_name AS git_repo
 FROM ` + "`" + `deployment_topology` + "`" + ` dt
@@ -94,7 +94,7 @@ type ListAllDeploymentTopologiesByRegionRow struct {
 	EnvironmentSlug                         string                          `db:"environment_slug"`
 	EnvironmentKind                         mysqltype.EnvironmentKind       `db:"environment_kind"`
 	AppSlug                                 string                          `db:"app_slug"`
-	PrivateNetworkEnrolled                  bool                            `db:"private_network_enrolled"`
+	DeploymentFeatures                      mysqltype.DeploymentFeatures    `db:"deployment_features"`
 	RegionName                              string                          `db:"region_name"`
 	GitRepo                                 sql.NullString                  `db:"git_repo"`
 }
@@ -132,7 +132,7 @@ type ListAllDeploymentTopologiesByRegionRow struct {
 //	    e.slug AS environment_slug,
 //	    e.kind AS environment_kind,
 //	    COALESCE(a.slug, '') AS app_slug,
-//	    d.private_networking AS private_network_enrolled,
+//	    d.features AS deployment_features,
 //	    r.name AS region_name,
 //	    grc.repository_full_name AS git_repo
 //	FROM `deployment_topology` dt
@@ -184,7 +184,7 @@ func (q *Queries) ListAllDeploymentTopologiesByRegion(ctx context.Context, arg L
 			&i.EnvironmentSlug,
 			&i.EnvironmentKind,
 			&i.AppSlug,
-			&i.PrivateNetworkEnrolled,
+			&i.DeploymentFeatures,
 			&i.RegionName,
 			&i.GitRepo,
 		); err != nil {

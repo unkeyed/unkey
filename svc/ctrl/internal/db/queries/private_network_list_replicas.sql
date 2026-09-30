@@ -18,7 +18,7 @@ INNER JOIN environments e ON e.id = d.environment_id AND e.app_id = d.app_id
 INNER JOIN workspaces w ON w.id = d.workspace_id AND w.k8s_namespace <> ''
 WHERE d.id > sqlc.arg(after_deployment_id)
     AND d.status IN ('deploying', 'network', 'finalizing', 'ready') AND d.desired_state = 'running'
-    AND d.private_networking = TRUE
+    AND JSON_CONTAINS(d.features, 'true', '$.private_networking')
     AND EXISTS (
         SELECT 1 FROM deployment_topology dt
         INNER JOIN regions r ON r.id = dt.region_id

@@ -413,7 +413,7 @@ type Querier interface {
 	//      source, image_requested, image_resolved, build_id, git_commit_sha, git_branch,
 	//      git_commit_message, git_commit_author_handle, git_commit_author_avatar_url, git_commit_timestamp,
 	//      sentinel_config, cpu_millicores, memory_mib, storage_mib, desired_state,
-	//      encrypted_environment_variables, command, port, shutdown_signal, upstream_protocol, private_networking, healthcheck,
+	//      encrypted_environment_variables, command, port, shutdown_signal, upstream_protocol, features, healthcheck,
 	//      pr_number, fork_repository_full_name, github_deployment_id, invocation_id, status,
 	//      first_ready_at, `trigger`, triggered_by, trigger_reason, created_at, updated_at
 	//  FROM deployments WHERE id = ?
@@ -2198,7 +2198,7 @@ type Querier interface {
 	//      d.source, d.image_requested, d.image_resolved, d.build_id, d.git_commit_sha, d.git_branch,
 	//      d.git_commit_message, d.git_commit_author_handle, d.git_commit_author_avatar_url, d.git_commit_timestamp,
 	//      d.sentinel_config, d.cpu_millicores, d.memory_mib, d.storage_mib, d.desired_state,
-	//      d.encrypted_environment_variables, d.command, d.port, d.shutdown_signal, d.upstream_protocol, d.private_networking, d.healthcheck,
+	//      d.encrypted_environment_variables, d.command, d.port, d.shutdown_signal, d.upstream_protocol, d.features, d.healthcheck,
 	//      d.pr_number, d.fork_repository_full_name, d.github_deployment_id, d.invocation_id, d.status,
 	//      d.first_ready_at, d.`trigger`, d.triggered_by, d.trigger_reason, d.created_at, d.updated_at
 	//  FROM deployments d

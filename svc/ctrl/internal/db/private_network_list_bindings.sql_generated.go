@@ -79,7 +79,7 @@ WITH binding_candidates AS (
         AND caller.workspace_id = b.workspace_id AND caller.project_id = b.project_id
         AND caller.environment_id = b.environment_id
         AND caller.status IN ('deploying', 'network', 'finalizing', 'ready') AND caller.desired_state = 'running'
-        AND caller.private_networking = TRUE
+        AND JSON_CONTAINS(caller.features, 'true', '$.private_networking')
     INNER JOIN environments caller_env ON caller_env.id = caller.environment_id
         AND caller_env.app_id = caller.app_id
     INNER JOIN workspaces w ON w.id = b.workspace_id AND w.k8s_namespace <> ''
@@ -226,7 +226,7 @@ type ListPrivateNetworkBindingsRow struct {
 //	        AND caller.workspace_id = b.workspace_id AND caller.project_id = b.project_id
 //	        AND caller.environment_id = b.environment_id
 //	        AND caller.status IN ('deploying', 'network', 'finalizing', 'ready') AND caller.desired_state = 'running'
-//	        AND caller.private_networking = TRUE
+//	        AND JSON_CONTAINS(caller.features, 'true', '$.private_networking')
 //	    INNER JOIN environments caller_env ON caller_env.id = caller.environment_id
 //	        AND caller_env.app_id = caller.app_id
 //	    INNER JOIN workspaces w ON w.id = b.workspace_id AND w.k8s_namespace <> ''

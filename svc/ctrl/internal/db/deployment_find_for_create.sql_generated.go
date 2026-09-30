@@ -12,28 +12,28 @@ import (
 )
 
 const findDeploymentForCreate = `-- name: FindDeploymentForCreate :one
-SELECT app_id, status, private_networking
+SELECT app_id, status, features
 FROM deployments
 WHERE id = ?
 `
 
 type FindDeploymentForCreateRow struct {
-	AppID             string                      `db:"app_id"`
-	Status            mysqltype.DeploymentsStatus `db:"status"`
-	PrivateNetworking bool                        `db:"private_networking"`
+	AppID    string                       `db:"app_id"`
+	Status   mysqltype.DeploymentsStatus  `db:"status"`
+	Features mysqltype.DeploymentFeatures `db:"features"`
 }
 
 // FindDeploymentForCreate returns the columns Create reads from a row that is
 // already there: the insert checks the app and status, and an approval reuses
-// the private networking decision. Reading the full row would carry the
+// the features decided when the row was written. Reading the full row would carry the
 // encrypted environment variables and sentinel config with it.
 //
-//	SELECT app_id, status, private_networking
+//	SELECT app_id, status, features
 //	FROM deployments
 //	WHERE id = ?
 func (q *Queries) FindDeploymentForCreate(ctx context.Context, id string) (FindDeploymentForCreateRow, error) {
 	row := q.db.QueryRowContext(ctx, findDeploymentForCreate, id)
 	var i FindDeploymentForCreateRow
-	err := row.Scan(&i.AppID, &i.Status, &i.PrivateNetworking)
+	err := row.Scan(&i.AppID, &i.Status, &i.Features)
 	return i, err
 }

@@ -33,8 +33,8 @@ func TestDeploymentTopologyPrivateNetworkFollowsStoredDecision(t *testing.T) {
 		id      string
 		enabled bool
 	}{{id: "pn-enabled", enabled: true}, {id: "pn-disabled", enabled: false}} {
-		exec(`INSERT INTO deployments (id,k8s_name,workspace_id,project_id,environment_id,app_id,sentinel_config,cpu_millicores,memory_mib,desired_state,encrypted_environment_variables,status,created_at,private_networking)
-			VALUES (?,?,'pn-ws','pn-project','pn-env','pn-api','{}',100,128,'running','{}','ready',1,?)`, deployment.id, deployment.id, deployment.enabled)
+		exec(`INSERT INTO deployments (id,k8s_name,workspace_id,project_id,environment_id,app_id,sentinel_config,cpu_millicores,memory_mib,desired_state,encrypted_environment_variables,status,created_at,features)
+			VALUES (?,?,'pn-ws','pn-project','pn-env','pn-api','{}',100,128,'running','{}','ready',1,IF(?, '{"private_networking":true}', '{}'))`, deployment.id, deployment.id, deployment.enabled)
 		exec(`INSERT INTO deployment_topology (workspace_id,deployment_id,region_id,desired_status,created_at) VALUES ('pn-ws',?,'pn-region','running',1)`, deployment.id)
 	}
 
@@ -44,10 +44,10 @@ func TestDeploymentTopologyPrivateNetworkFollowsStoredDecision(t *testing.T) {
 		rows, listErr := NewQueries(tx).ListAllDeploymentTopologiesByRegion(t.Context(), ListAllDeploymentTopologiesByRegionParams{RegionID: "pn-region", AfterPk: 0, Limit: 10})
 		require.NoError(t, listErr)
 		for _, row := range rows {
-			byDeployment[row.DeploymentID] = row.PrivateNetworkEnrolled
+			byDeployment[row.DeploymentID] = row.DeploymentFeatures.PrivateNetworking
 			found, findErr := NewQueries(tx).FindDeploymentTopologyByDeploymentAndRegion(t.Context(), FindDeploymentTopologyByDeploymentAndRegionParams{DeploymentID: row.DeploymentID, RegionID: "pn-region"})
 			require.NoError(t, findErr)
-			require.Equal(t, row.PrivateNetworkEnrolled, found.PrivateNetworkEnrolled, "both topology reads agree for %s", row.DeploymentID)
+			require.Equal(t, row.DeploymentFeatures, found.Features, "both topology reads agree for %s", row.DeploymentID)
 		}
 		return byDeployment
 	}
