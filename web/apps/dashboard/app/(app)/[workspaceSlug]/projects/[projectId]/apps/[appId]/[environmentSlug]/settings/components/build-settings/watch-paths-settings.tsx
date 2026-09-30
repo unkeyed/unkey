@@ -161,7 +161,7 @@ export const WatchPaths = () => {
   return (
     <FormSettingCard
       title="Watch paths"
-      description="Only trigger deployments when changed files match these glob patterns, for example src/** or **/*.go. Leave empty to deploy on all changes."
+      description="Only deploy when these files change."
       onSubmit={handleSubmit(onSubmit)}
       saveState={saveState}
     >
@@ -172,7 +172,7 @@ export const WatchPaths = () => {
             <div key={field.id} className="flex items-start gap-2">
               <FormInput
                 className="flex-1 [&_input]:font-mono"
-                placeholder="e.g. src/** or services/api/**"
+                placeholder="src/**"
                 error={errors.paths?.[index]?.value?.message}
                 {...fieldProps}
                 ref={(el: HTMLInputElement | null) => {
@@ -205,7 +205,11 @@ export const WatchPaths = () => {
           leftIcon={<IconPlusOutline18 />}
           searchPlaceholder="Search suggestions or enter a glob..."
           emptyMessage={<div className="mt-2">No suggested watch paths detected</div>}
-          placeholder={<span className="text-grayA-8">Add a watch path...</span>}
+          placeholder={
+            <span className="text-grayA-8">
+              {fields.length === 0 ? "All files" : "Add a watch path..."}
+            </span>
+          }
         />
       </SettingField>
     </FormSettingCard>

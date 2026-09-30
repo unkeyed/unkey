@@ -178,8 +178,7 @@ export const Regions = () => {
   return (
     <FormSettingCard
       title="Regions"
-      description="Geographic regions where your app will run. Traffic goes to the nearest selected region."
-      requirement="optional"
+      description="Where your app runs."
       onSubmit={handleSubmit(onSubmit)}
       saveState={saveState}
       autoSave={variant === "onboarding"}

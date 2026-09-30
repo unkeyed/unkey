@@ -1,7 +1,7 @@
 import { Button, SettingsRow, Skeleton } from "@unkey/ui";
 
 export const GitHubSettingCard = ({ children }: { children: React.ReactNode }) => (
-  <SettingsRow title="Repository" description="Source repository for this deployment">
+  <SettingsRow title="Repository" description="Repository Unkey deploys from.">
     {children}
   </SettingsRow>
 );

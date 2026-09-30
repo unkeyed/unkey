@@ -58,8 +58,7 @@ export const Command = () => {
   return (
     <FormSettingCard
       title="Command"
-      description="Overrides the image's startup command. Arguments are split on whitespace. Leave empty to use the image default."
-      requirement="optional"
+      description="Command that starts your app."
       onSubmit={handleSubmit(onSubmit)}
       saveState={saveState}
       autoSave={variant === "onboarding"}
@@ -67,7 +66,7 @@ export const Command = () => {
       <SettingField>
         <FormTextarea
           aria-label="Command"
-          placeholder="~ npm start"
+          placeholder="Image default"
           className="[&_textarea]:font-mono"
           variant={errors.command ? "error" : "default"}
           {...register("command")}

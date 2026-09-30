@@ -45,7 +45,6 @@ export const Port = () => {
     <FormSettingCard
       title="Port"
       description="Port your application listens on."
-      requirement="required"
       onSubmit={handleSubmit(onSubmit)}
       saveState={saveState}
       autoSave={variant === "onboarding"}

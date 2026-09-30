@@ -251,8 +251,7 @@ const OCIImage = ({
   return (
     <FormSettingCard
       title="Image"
-      description="Default image reference for new deployments. Include a tag or digest. Saving does not replace the running deployment."
-      requirement="required"
+      description="Image used for new deployments."
       onSubmit={handleSubmit(onSubmit)}
       saveState={saveState}
     >

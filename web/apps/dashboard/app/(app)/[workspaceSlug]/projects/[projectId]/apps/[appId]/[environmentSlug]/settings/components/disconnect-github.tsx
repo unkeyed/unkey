@@ -65,7 +65,7 @@ export function DisconnectGitHub() {
       {shouldLoadGitHub && repositoryFullName ? (
         <SettingsZoneRow
           title="Disconnect repository"
-          description="Deployments will no longer be triggered by pushes to this repository."
+          description="Pushes to this repository stop triggering deploys."
           action={{
             label: "Disconnect repository",
             onClick: () => {

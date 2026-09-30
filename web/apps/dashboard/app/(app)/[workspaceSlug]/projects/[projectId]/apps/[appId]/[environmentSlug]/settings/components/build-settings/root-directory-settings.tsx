@@ -114,8 +114,7 @@ export const RootDirectory = () => {
   return (
     <FormSettingCard
       title="Root directory"
-      description="The directory your app lives in. Unkey builds from here. Set it when your app is in a subdirectory (e.g., services/api)."
-      requirement="required"
+      description="Directory Unkey builds from."
       onSubmit={handleSubmit(onSubmit)}
       saveState={saveState}
       autoSave={variant === "onboarding"}
@@ -134,7 +133,7 @@ export const RootDirectory = () => {
           creatable
           searchPlaceholder="Search or enter a directory..."
           emptyMessage={<div className="mt-2">No app directories detected</div>}
-          placeholder={<span className="text-grayA-8">.</span>}
+          placeholder={<span className="text-grayA-8">services/api</span>}
         />
       </SettingField>
     </FormSettingCard>

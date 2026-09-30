@@ -18,7 +18,7 @@ const MEMORY_OPTIONS = [
 
 const memoryConfig = defineResourceSlider({
   title: "Memory",
-  description: "Memory allocation for each instance",
+  description: "Memory per instance.",
   colorVar: "warningA",
   options: MEMORY_OPTIONS,
   fallback: 256,

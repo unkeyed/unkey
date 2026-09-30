@@ -81,7 +81,7 @@ export const Healthcheck = () => {
   return (
     <FormSettingCard
       title="Healthcheck"
-      description="Endpoint used to verify the service is healthy"
+      description="Endpoint Unkey calls to check your app is healthy."
       onSubmit={handleSubmit(onSubmit)}
       saveState={saveState}
       autoSave={variant === "onboarding"}

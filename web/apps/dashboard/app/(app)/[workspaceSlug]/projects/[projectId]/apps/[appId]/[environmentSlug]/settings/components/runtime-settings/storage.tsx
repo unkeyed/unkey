@@ -18,8 +18,7 @@ const STORAGE_OPTIONS = [
 
 const storageConfig = defineResourceSlider({
   title: "Storage",
-  description:
-    "Ephemeral disk space per instance. Unkey wipes it when the instance stops, so keep nothing you need on it.",
+  description: "Temporary disk per instance, wiped when it stops.",
   colorVar: "successA",
   options: STORAGE_OPTIONS,
   fallback: 0,

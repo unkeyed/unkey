@@ -107,8 +107,7 @@ export const Dockerfile = () => {
   return (
     <FormSettingCard
       title="Dockerfile"
-      description="Dockerfile location used for docker build. Leave empty and Unkey builds your app automatically without a Dockerfile."
-      requirement="optional"
+      description="Dockerfile Unkey builds your app with."
       onSubmit={handleSubmit(onSubmit)}
       saveState={saveState}
       autoSave={variant === "onboarding"}
@@ -125,7 +124,7 @@ export const Dockerfile = () => {
           creatable
           searchPlaceholder="Search or type a path..."
           emptyMessage={<div className="mt-2">No Dockerfiles detected in repository</div>}
-          placeholder={<span className="text-grayA-8">Dockerfile</span>}
+          placeholder={<span className="text-grayA-8">None (auto-detected build)</span>}
           variant={inputVariant}
         />
       </SettingField>

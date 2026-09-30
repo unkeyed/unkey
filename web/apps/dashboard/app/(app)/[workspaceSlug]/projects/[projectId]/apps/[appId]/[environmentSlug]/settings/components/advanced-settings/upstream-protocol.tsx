@@ -52,8 +52,7 @@ export const UpstreamProtocol = () => {
       title="Upstream protocol"
       description={
         <>
-          Protocol used to connect to your application. If you don&apos;t know what this is, use
-          HTTP/1.1.{" "}
+          Protocol Unkey uses to reach your app.{" "}
           <a
             href="https://www.unkey.com/docs/platform/apps/settings#upstream-protocol"
             target="_blank"

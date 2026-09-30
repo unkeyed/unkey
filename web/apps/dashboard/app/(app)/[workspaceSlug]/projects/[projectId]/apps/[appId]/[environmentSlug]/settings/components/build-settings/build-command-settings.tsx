@@ -59,8 +59,7 @@ export const BuildCommand = () => {
   return (
     <FormSettingCard
       title="Build command"
-      description="Override the auto-detected build command. Useful for monorepos, e.g. pnpm build --filter api. Only applies when no Dockerfile is set. Leave empty to let Unkey detect it."
-      requirement="optional"
+      description="Command that builds your app."
       onSubmit={handleSubmit(onSubmit)}
       saveState={saveState}
       autoSave={variant === "onboarding"}
@@ -68,12 +67,8 @@ export const BuildCommand = () => {
       <SettingField>
         <FormInput
           aria-label="Build command"
-          description={
-            dockerfileConfigured
-              ? "Disabled because a Dockerfile is configured. Build commands only apply to automatic (Railpack) builds."
-              : undefined
-          }
-          placeholder="Automatic"
+          description={dockerfileConfigured ? "Not used with a Dockerfile." : undefined}
+          placeholder="Auto-detected"
           disabled={dockerfileConfigured}
           error={errors.buildCommand?.message}
           {...register("buildCommand")}

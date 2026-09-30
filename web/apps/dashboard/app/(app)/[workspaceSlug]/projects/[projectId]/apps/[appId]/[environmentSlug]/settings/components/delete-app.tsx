@@ -68,7 +68,7 @@ export function DeleteApp() {
     <>
       <SettingsZoneRow
         title="Delete this app"
-        description="Once you delete an app, there is no going back. Please be certain."
+        description="Permanently delete this app. This cannot be undone."
         action={{
           label: "Delete this app",
           onClick: () => setIsDialogOpen(true),

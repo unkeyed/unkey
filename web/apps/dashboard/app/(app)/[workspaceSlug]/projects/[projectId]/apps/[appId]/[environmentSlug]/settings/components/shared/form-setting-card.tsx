@@ -6,7 +6,6 @@ import { useReportUnsavedChanges } from "../../prevent-leave-context";
 type FormSettingCardProps = {
   title: string;
   description: React.ReactNode;
-  requirement?: "required" | "optional";
 
   onSubmit: React.FormEventHandler<HTMLFormElement>;
   children: React.ReactNode;
@@ -22,7 +21,6 @@ type FormSettingCardProps = {
 export const FormSettingCard = ({
   title,
   description,
-  requirement,
   onSubmit,
   children,
   stickyHeader,
@@ -62,21 +60,7 @@ export const FormSettingCard = ({
         }
       }}
     >
-      <SettingsRow
-        title={
-          requirement ? (
-            <span className="inline-flex items-center gap-2">
-              {title}
-              <span className="rounded-sm border bg-grayA-3 px-1 py-0.5 font-normal text-grayA-11 text-xs capitalize">
-                {requirement}
-              </span>
-            </span>
-          ) : (
-            title
-          )
-        }
-        description={description}
-      >
+      <SettingsRow title={title} description={description}>
         {stickyHeader}
         <div ref={contentRef} className="flex flex-col gap-2">
           {children}

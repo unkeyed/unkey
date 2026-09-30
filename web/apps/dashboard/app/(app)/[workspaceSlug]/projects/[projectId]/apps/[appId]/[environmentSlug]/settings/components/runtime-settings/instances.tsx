@@ -96,9 +96,6 @@ const writeRange = (draft: EnvironmentSettings, values: RangeFormValues) => {
   }
 };
 
-const description = (limit: number) =>
-  `Autoscaling range per region. Scales up to the maximum based on CPU usage, down to the minimum when load is low. Up to ${limit} per region.`;
-
 export const Instances = () => {
   const { settings, variant } = useEnvironmentSettings();
   const updateEnvironment = useUpdateEnvironment();
@@ -146,7 +143,7 @@ export const Instances = () => {
   return (
     <FormSettingCard
       title="Instances"
-      description={description(replicasMaxLimit)}
+      description="Instances per region, scaled on CPU."
       onSubmit={handleSubmit(onSubmit)}
       saveState={saveState}
       autoSave={variant === "onboarding"}
@@ -195,6 +192,7 @@ export const Instances = () => {
           <span className="text-sm font-medium text-gray-12">
             {formatRangeParts(currentReplicasMin, currentReplicasMax).value}
           </span>
+          <span className="text-xs text-gray-11">Up to {replicasMaxLimit}</span>
         </div>
       </WideContent>
     </FormSettingCard>

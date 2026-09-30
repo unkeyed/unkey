@@ -17,7 +17,7 @@ const CPU_OPTIONS = [
 
 const cpuConfig = defineResourceSlider({
   title: "Max CPU",
-  description: "Maximum CPU limit per instance. You are only charged for actual usage.",
+  description: "CPU limit per instance, billed on actual use.",
   colorVar: "infoA",
   options: CPU_OPTIONS,
   fallback: 250,

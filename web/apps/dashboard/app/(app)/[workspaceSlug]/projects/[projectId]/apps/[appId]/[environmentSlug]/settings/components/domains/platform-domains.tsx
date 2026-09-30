@@ -15,12 +15,12 @@ const PLATFORM_DOMAIN_ROWS: ReadonlyArray<{
   {
     sticky: "live",
     title: "Live URL",
-    description: "Always points at the live deployment. Unkey manages it.",
+    description: "Always points at the live deployment.",
   },
   {
     sticky: "environment",
     title: "Environment URL",
-    description: "Points at the latest deployment in this environment. Unkey manages it.",
+    description: "Points at this environment's latest deployment.",
   },
 ];
 

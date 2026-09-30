@@ -64,8 +64,7 @@ export const OpenapiSpecPath = () => {
   return (
     <FormSettingCard
       title="OpenAPI spec path"
-      description="Path your deployment serves its OpenAPI spec on, for example /openapi.yaml. Leave empty to disable scraping."
-      requirement="optional"
+      description="Path where your app serves its OpenAPI spec."
       onSubmit={handleSubmit(onSubmit)}
       saveState={saveState}
       autoSave={variant === "onboarding"}
