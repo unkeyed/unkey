@@ -73,7 +73,7 @@ func WithAuthentication(config AuthenticationConfig) zen.Middleware {
 				verification := schema.KeyVerification{
 					RequestID:    sess.RequestID(),
 					Time:         time.Now().UnixMilli(),
-					WorkspaceID:  rootKeyUsageWorkspaceID(keySource),
+					WorkspaceID:  keySource.WorkspaceID,
 					KeySpaceID:   keySource.KeySpaceID,
 					IdentityID:   "",
 					ExternalID:   "",
@@ -103,16 +103,6 @@ func WithAuthentication(config AuthenticationConfig) zen.Middleware {
 		}
 	}
 }
-
-// rootKeyUsageWorkspaceID keeps new root-key usage out of customer billing.
-// New keys have no keyspace because their customer workspace owns them.
-func rootKeyUsageWorkspaceID(source principalauth.KeySource) string {
-	if source.KeySpaceID == "" {
-		return "unkey_internal"
-	}
-	return source.WorkspaceID
-}
-
 func checkWorkspaceRateLimit(ctx context.Context, sess *zen.Session, config AuthenticationConfig, workspaceID string) error {
 	if config.LimitsCache == nil || config.Ratelimit == nil {
 		return nil

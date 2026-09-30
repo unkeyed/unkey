@@ -67,35 +67,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	source, err := db.Query.FindUnkeyRootKeyByID(ctx, h.DB.RO(), req.KeyId)
-	if db.IsNotFound(err) || err == nil && source.WorkspaceID != p.AuthorizedWorkspaceID {
-		return rootKeyNotFound()
-	}
-	if err != nil {
-		return err
-	}
-	if err := authorizeLifetime(p, source.Expires); err != nil {
-		return err
-	}
-	grants, err := db.Query.ListUnkeyPermissionsByPrincipal(ctx, h.DB.RO(), db.ListUnkeyPermissionsByPrincipalParams{
-		WorkspaceID:   p.AuthorizedWorkspaceID,
-		PrincipalType: db.UnkeyPrincipalPermissionsPrincipalTypeRootKey,
-		PrincipalID:   source.ID,
-	})
-	if err != nil {
-		return err
-	}
-	slices.Sort(grants)
-	grants = slices.Compact(grants)
-	grants, err = rootkeys.ValidateDelegatedPermissions(ctx, p, grants)
-	if err != nil {
-		return err
-	}
-
-	generated, err := h.Keys.CreateKeyV1(ctx, keys.CreateKeyV1Request{Prefix: source.Prefix})
-	if err != nil {
-		return err
-	}
+	var source db.UnkeyRootKey
+	var generated keys.CreateKeyV1Response
 	keyID := uid.New(uid.KeyPrefix)
 	now := h.Clock.Now()
 	ctx = auditlog.WithCorrelation(ctx, auditlog.NewCorrelationID())
@@ -108,6 +81,27 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			return err
 		}
 		source = current
+		if err := authorizeLifetime(p, source.Expires); err != nil {
+			return err
+		}
+		grants, err := db.Query.ListUnkeyPermissionsByPrincipal(ctx, tx, db.ListUnkeyPermissionsByPrincipalParams{
+			WorkspaceID:   p.AuthorizedWorkspaceID,
+			PrincipalType: db.UnkeyPrincipalPermissionsPrincipalTypeRootKey,
+			PrincipalID:   source.ID,
+		})
+		if err != nil {
+			return err
+		}
+		slices.Sort(grants)
+		grants = slices.Compact(grants)
+		grants, err = rootkeys.ValidateDelegatedPermissions(ctx, p, grants)
+		if err != nil {
+			return err
+		}
+		generated, err = h.Keys.CreateKeyV1(ctx, keys.CreateKeyV1Request{Prefix: source.Prefix})
+		if err != nil {
+			return err
+		}
 		if err := db.Query.InsertUnkeyRootKey(ctx, tx, db.InsertUnkeyRootKeyParams{
 			ID:          keyID,
 			WorkspaceID: p.AuthorizedWorkspaceID,
@@ -191,7 +185,7 @@ func rerollAuditLogs(s *zen.Session, actor auditactor.Actor, workspaceID string,
 	}
 	newKey := auditlog.AuditLogResource{Type: auditlog.KeyResourceType, ID: keyID, Name: name, DisplayName: name, Meta: map[string]any{}}
 	logs := []auditlog.AuditLog{{
-		WorkspaceID: workspaceID, Event: auditlog.KeyRerollEvent,
+		WorkspaceID: workspaceID, Event: auditlog.RootKeyRerollEvent,
 		ActorType: actor.Type, ActorID: actor.ID, ActorName: actor.Name, ActorMeta: actor.Meta,
 		Display: "Rerolled root key " + source.ID + " to " + keyID, RemoteIP: s.Location(), UserAgent: s.UserAgent(),
 		CorrelationID: "",

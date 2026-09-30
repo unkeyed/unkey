@@ -17,7 +17,7 @@ type CachedRootKeyData struct {
 	ID                  string
 	KeyAuthID           string
 	WorkspaceID         string
-	ForWorkspaceID      string
+	ForWorkspaceID      string // Legacy root keys only; retained for backward-compatible authentication.
 	Name                sql.NullString
 	Expires             sql.NullTime
 	Enabled             bool

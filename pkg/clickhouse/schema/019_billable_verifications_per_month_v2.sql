@@ -19,6 +19,7 @@ FROM
 WHERE
   outcome = 'VALID'
   AND source != 'gateway'
+  AND key_space_id != ''
 GROUP BY
   workspace_id,
   year,

@@ -64,7 +64,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	var key db.UnkeyRootKey
 	ctx = auditlog.WithCorrelation(ctx, auditlog.NewCorrelationID())
 	err = db.TxRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
-		key, err = db.Query.FindUnkeyRootKeyByID(ctx, tx, req.KeyId)
+		key, err = db.Query.FindUnkeyRootKeyByIDForUpdate(ctx, tx, req.KeyId)
 		if db.IsNotFound(err) || err == nil && key.WorkspaceID != p.AuthorizedWorkspaceID {
 			return fault.New("root key not found",
 				fault.Code(codes.Data.Key.NotFound.URN()),
@@ -161,7 +161,7 @@ func updateAuditLogs(s *zen.Session, actor auditactor.Actor, workspaceID string,
 	}
 	keyResource := auditlog.AuditLogResource{Type: auditlog.KeyResourceType, ID: key.ID, Name: name, DisplayName: name, Meta: map[string]any{}}
 	logs := []auditlog.AuditLog{{
-		WorkspaceID: workspaceID, Event: auditlog.KeyUpdateEvent,
+		WorkspaceID: workspaceID, Event: auditlog.RootKeyUpdateEvent,
 		ActorType: actor.Type, ActorID: actor.ID, ActorName: actor.Name, ActorMeta: actor.Meta,
 		Display: "Updated root key " + key.ID, RemoteIP: s.Location(), UserAgent: s.UserAgent(),
 		CorrelationID: "",

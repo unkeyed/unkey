@@ -396,10 +396,10 @@ func testMiddlewarePrincipal(authorizedWorkspaceID string) *principal.Principal 
 	}
 }
 
-// TestWithAuthentication_AttributesNewRootKeyUsageToInternalWorkspace
-// guarantees new root-key authentication remains logged without being billed to
-// the customer workspace that owns the key.
-func TestWithAuthentication_AttributesNewRootKeyUsageToInternalWorkspace(t *testing.T) {
+// TestWithAuthentication_AttributesNewRootKeyUsageToOwningWorkspace guarantees
+// new root-key authentication is attributed to the customer workspace that
+// owns the key.
+func TestWithAuthentication_AttributesNewRootKeyUsageToOwningWorkspace(t *testing.T) {
 	t.Parallel()
 
 	flushed := make(chan []schema.KeyVerification, 1)
@@ -427,7 +427,7 @@ func TestWithAuthentication_AttributesNewRootKeyUsageToInternalWorkspace(t *test
 	select {
 	case rows := <-flushed:
 		require.Len(t, rows, 1)
-		require.Equal(t, "unkey_internal", rows[0].WorkspaceID)
+		require.Equal(t, "ws_customer", rows[0].WorkspaceID)
 		require.Empty(t, rows[0].KeySpaceID)
 		require.Equal(t, "root_key_123", rows[0].KeyID)
 	case <-time.After(time.Second):

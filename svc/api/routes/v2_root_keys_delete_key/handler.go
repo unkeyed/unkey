@@ -74,7 +74,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		actor := auditactor.FromPrincipal(p)
 		return h.Auditlogs.Insert(ctx, tx, []auditlog.AuditLog{{
 			WorkspaceID:   p.AuthorizedWorkspaceID,
-			Event:         auditlog.KeyDeleteEvent,
+			Event:         auditlog.RootKeyDeleteEvent,
 			ActorType:     actor.Type,
 			ActorID:       actor.ID,
 			ActorName:     actor.Name,

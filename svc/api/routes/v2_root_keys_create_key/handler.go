@@ -123,7 +123,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 		logs := []auditlog.AuditLog{{
 			WorkspaceID:   p.AuthorizedWorkspaceID,
-			Event:         auditlog.KeyCreateEvent,
+			Event:         auditlog.RootKeyCreateEvent,
 			ActorType:     actor.Type,
 			ActorID:       actor.ID,
 			ActorName:     actor.Name,

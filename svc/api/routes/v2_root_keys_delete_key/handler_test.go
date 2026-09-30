@@ -29,6 +29,27 @@ func TestDeleteRootKeyRevokesWarmAuthentication(t *testing.T) {
 	require.Error(t, err)
 }
 
+// TestDeleteRootKeyRecordsRootKeyAuditEvent guarantees root-key mutations are
+// distinguishable from API-key mutations in the audit log.
+func TestDeleteRootKeyRecordsRootKeyAuditEvent(t *testing.T) {
+	h := testutil.NewHarness(t)
+	route := newRoute(h)
+	workspace := h.Resources().UserWorkspace
+	target := h.CreateUnkeyRootKey(seed.CreateUnkeyRootKeyRequest{WorkspaceID: workspace.ID})
+	caller := h.CreateRootKey(workspace.ID, "unkey:v1:"+workspace.ID+":rootKeys/"+target.KeyID+"#delete")
+
+	res := call(h, route, caller, handler.Request{KeyId: target.KeyID})
+	require.Equal(t, http.StatusOK, res.Status, "%s", res.RawBody)
+
+	var event string
+	err := h.DB.RO().QueryRowContext(t.Context(),
+		"SELECT JSON_UNQUOTE(JSON_EXTRACT(payload, '$.event')) FROM clickhouse_outbox WHERE workspace_id = ? ORDER BY pk DESC LIMIT 1",
+		workspace.ID,
+	).Scan(&event)
+	require.NoError(t, err)
+	require.Equal(t, "rootKey.delete", event)
+}
+
 // TestDeleteRootKeyRequiresConcreteDeletePermission guarantees read, write, or
 // another key's delete permission cannot revoke a root key.
 func TestDeleteRootKeyRequiresConcreteDeletePermission(t *testing.T) {

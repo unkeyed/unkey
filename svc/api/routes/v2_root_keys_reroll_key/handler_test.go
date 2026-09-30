@@ -148,13 +148,15 @@ func countNewRootKeys(t *testing.T, h *testutil.Harness, workspaceID string) int
 }
 
 // TestRerollRootKeyWaitsForOriginalRowLock guarantees rerolls serialize with
-// other transactions that hold the original key row lock.
+// other transactions that hold the original key row lock and copy the grants
+// that remain after the lock is released.
 func TestRerollRootKeyWaitsForOriginalRowLock(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route := newRoute(h)
 	workspace := h.Resources().UserWorkspace
-	source := h.CreateUnkeyRootKey(seed.CreateUnkeyRootKeyRequest{WorkspaceID: workspace.ID})
-	caller := h.CreateRootKey(workspace.ID, "unkey:v1:"+workspace.ID+":rootKeys/*#write")
+	permission := "unkey:v1:" + workspace.ID + ":rootKeys/*#read"
+	source := h.CreateUnkeyRootKey(seed.CreateUnkeyRootKeyRequest{WorkspaceID: workspace.ID, Permissions: []string{permission}})
+	caller := h.CreateRootKey(workspace.ID, "unkey:v1:"+workspace.ID+":rootKeys/*#write", permission)
 	tx, err := h.DB.RW().Begin(t.Context())
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = tx.Rollback() })
@@ -170,10 +172,17 @@ func TestRerollRootKeyWaitsForOriginalRowLock(t *testing.T) {
 		t.Fatalf("reroll completed while original row was locked: %d %s", res.Status, res.RawBody)
 	case <-time.After(200 * time.Millisecond):
 	}
+	_, err = tx.ExecContext(t.Context(), "DELETE FROM unkey_principal_permissions WHERE workspace_id = ? AND principal_type = 'root_key' AND principal_id = ?", workspace.ID, source.KeyID)
+	require.NoError(t, err)
 	require.NoError(t, tx.Commit())
 	select {
 	case res := <-done:
 		require.Equal(t, http.StatusOK, res.Status, "%s", res.RawBody)
+		permissions, err := db.Query.ListUnkeyPermissionsByPrincipal(t.Context(), h.DB.RO(), db.ListUnkeyPermissionsByPrincipalParams{
+			WorkspaceID: workspace.ID, PrincipalType: db.UnkeyPrincipalPermissionsPrincipalTypeRootKey, PrincipalID: res.Body.Data.KeyId,
+		})
+		require.NoError(t, err)
+		require.Empty(t, permissions)
 	case <-time.After(5 * time.Second):
 		t.Fatal("reroll did not complete after row lock was released")
 	}

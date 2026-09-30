@@ -49,14 +49,21 @@ func TestBillableExcludesGatewaySource(t *testing.T) {
 			gatewayVerifications[i].AppID = "app_b"
 		}
 	}
-	insertVerifications(t, ctx, conn, append(verifications, gatewayVerifications...))
+	// Root keys: 30 VALID, attributed to the owning workspace but excluded from
+	// API-key billing because they have no keyspace.
+	rootKeyVerifications := createVerifications(workspaceID, 30, now, "VALID")
+	for i := range rootKeyVerifications {
+		rootKeyVerifications[i].KeySpaceID = ""
+	}
+	allVerifications := append(verifications, gatewayVerifications...)
+	insertVerifications(t, ctx, conn, append(allVerifications, rootKeyVerifications...))
 
 	year, month := now.Year(), int(now.Month())
 
 	require.EventuallyWithT(t, func(c *assert.CollectT) {
 		billableVerifications, err := client.GetBillableVerifications(ctx, workspaceID, year, month)
 		require.NoError(c, err)
-		assert.Equal(c, int64(100), billableVerifications, "gateway and INVALID verifications must not bill")
+		assert.Equal(c, int64(100), billableVerifications, "gateway, root-key, and INVALID verifications must not bill")
 
 		// Analytics rollups keep every source: total includes API + gateway.
 		var totalCount, gatewayCount, appCount, unattributedCount int64
@@ -64,7 +71,7 @@ func TestBillableExcludesGatewaySource(t *testing.T) {
 			"SELECT sum(count) FROM default.key_verifications_per_month_v3 WHERE workspace_id = ?",
 			workspaceID,
 		).Scan(&totalCount))
-		assert.Equal(c, int64(160), totalCount, "analytics rollups must include gateway traffic")
+		assert.Equal(c, int64(190), totalCount, "analytics rollups must include gateway and root-key traffic")
 
 		require.NoError(c, conn.QueryRow(ctx,
 			"SELECT sum(count) FROM default.key_verifications_per_month_v3 WHERE workspace_id = ? AND source = ?",
@@ -82,6 +89,6 @@ func TestBillableExcludesGatewaySource(t *testing.T) {
 			"SELECT sum(count) FROM default.key_verifications_per_month_v3 WHERE workspace_id = ? AND app_id = ''",
 			workspaceID,
 		).Scan(&unattributedCount))
-		assert.Equal(c, int64(120), unattributedCount, "API verifications must remain unattributed")
+		assert.Equal(c, int64(150), unattributedCount, "API and root-key verifications must remain unattributed")
 	}, time.Minute, time.Second)
 }

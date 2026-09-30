@@ -23,6 +23,12 @@ const (
 	KeyDeleteEvent AuditLogEvent = "key.delete"
 	KeyVerifyEvent AuditLogEvent = "key.verify"
 
+	// Root key events
+	RootKeyCreateEvent AuditLogEvent = "rootKey.create"
+	RootKeyRerollEvent AuditLogEvent = "rootKey.reroll"
+	RootKeyUpdateEvent AuditLogEvent = "rootKey.update"
+	RootKeyDeleteEvent AuditLogEvent = "rootKey.delete"
+
 	// Ratelimit namespace events
 	RatelimitNamespaceCreateEvent AuditLogEvent = "ratelimitNamespace.create"
 	RatelimitNamespaceUpdateEvent AuditLogEvent = "ratelimitNamespace.update"
