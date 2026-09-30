@@ -29,10 +29,18 @@ type SettingCardProps = {
 
 const SettingCardGroupContext = React.createContext(false);
 
-function SettingCardGroup({ children }: { children: React.ReactNode }) {
+function SettingCardGroup({
+  children,
+  className,
+}: { children: React.ReactNode; className?: string }) {
   return (
     <SettingCardGroupContext.Provider value={true}>
-      <div className="border rounded-lg overflow-hidden divide-y divide-grayA-4 bg-raised">
+      <div
+        className={cn(
+          "border rounded-lg overflow-hidden divide-y divide-grayA-4 bg-raised",
+          className,
+        )}
+      >
         {children}
       </div>
     </SettingCardGroupContext.Provider>
@@ -277,8 +285,8 @@ function SettingsZone({
   const styles = zoneStyles[variant];
   return (
     <SettingsZoneContext.Provider value={variant}>
-      <div className={cn("w-full", className)}>
-        <h2 className={cn("font-semibold text-lg mb-4", styles.heading)}>{title}</h2>
+      <div className={cn("flex w-full flex-col gap-6", className)}>
+        <h2 className={cn("font-semibold text-lg leading-6", styles.heading)}>{title}</h2>
         <div className={cn("rounded-lg border overflow-hidden divide-y bg-raised", styles.border)}>
           {children}
         </div>

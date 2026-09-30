@@ -1,0 +1,16 @@
+---
+title: Settings row
+description: One setting, laid out inline, inside a group that owns the Save.
+---
+
+<Component path="settings-row/basic" />
+
+Put rows inside a `SettingsGroup`, inside a `SettingsGroups`. The group owns the heading, the card border, the dividers between rows and the one Save; the shell owns the width.
+
+`title` and `description` fill the left column, which is two fifths of the row. `children` is the control and takes the rest. There is no icon, on purpose, because an icon per row competes with the group heading for the reader's eye.
+
+A row has no Save of its own. To take part in the group's Save, call `useSettingsGroupMember` with the row's dirty state, whether its mutation is in flight, and a submit callback. The group enables its button when any member is dirty and submits only those.
+
+The row defines `--setting-w` at `30rem` for field blocks that want a reading width, so `SettingField` and `SettingDescription` cap themselves while a slider or a domain list spans the column.
+
+See [Settings page](/patterns/settings-page) for how rows, groups and the nav rail fit together.
