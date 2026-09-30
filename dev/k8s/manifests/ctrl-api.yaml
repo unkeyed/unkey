@@ -25,6 +25,10 @@ data:
     url = "http://restate:8080"
     admin_url = "http://restate:9070"
 
+    [vault]
+    url = "http://vault:8060"
+    token = "vault-test-token-123"
+
     [clickhouse]
     # Used by ReportInstanceEvents to absorb container lifecycle events from
     # krane into instance_events_raw_v1. Without this URL the buffer falls
