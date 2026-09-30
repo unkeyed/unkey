@@ -132,6 +132,12 @@ export function useCardController(
       clearTimeout(timer.current);
       return;
     }
+    if (sameDraft(applied.draft, page.base)) {
+      pending.current = null;
+      clearTimeout(timer.current);
+      setEdit(modesOf(next));
+      return;
+    }
     pending.current = next;
     if (next.region !== undefined) {
       flush.current();
