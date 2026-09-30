@@ -7,6 +7,7 @@ required:
   - end
   - enabled
   - createdAt
+  - lastUsedAt
   - expires
   - permissions
 properties:
@@ -29,6 +30,11 @@ properties:
     type: integer
     format: int64
     description: Creation time in Unix milliseconds.
+  lastUsedAt:
+    type: integer
+    format: int64
+    minimum: 0
+    description: Last verification time in Unix milliseconds. Zero means the root key has not been used.
   expires:
     type: [integer, "null"]
     format: int64

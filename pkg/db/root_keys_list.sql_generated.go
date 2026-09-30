@@ -20,6 +20,7 @@ SELECT
     enabled,
     expires,
     created_at,
+    last_used_at,
     COALESCE(
         (SELECT JSON_ARRAYAGG(p.slug)
         FROM unkey_principal_permissions p
@@ -51,6 +52,7 @@ type ListRootKeysRow struct {
 	Enabled     bool           `db:"enabled"`
 	Expires     sql.NullInt64  `db:"expires"`
 	CreatedAt   int64          `db:"created_at"`
+	LastUsedAt  uint64         `db:"last_used_at"`
 	Permissions interface{}    `db:"permissions"`
 }
 
@@ -66,6 +68,7 @@ type ListRootKeysRow struct {
 //	    enabled,
 //	    expires,
 //	    created_at,
+//	    last_used_at,
 //	    COALESCE(
 //	        (SELECT JSON_ARRAYAGG(p.slug)
 //	        FROM unkey_principal_permissions p
@@ -98,6 +101,7 @@ func (q *Queries) ListRootKeys(ctx context.Context, db DBTX, arg ListRootKeysPar
 			&i.Enabled,
 			&i.Expires,
 			&i.CreatedAt,
+			&i.LastUsedAt,
 			&i.Permissions,
 		); err != nil {
 			return nil, err

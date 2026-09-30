@@ -10,6 +10,7 @@ CREATE TABLE `unkey_root_keys` (
 	`enabled` boolean NOT NULL,
 	`expires` bigint,
 	`created_at` bigint NOT NULL,
+	`last_used_at` bigint unsigned NOT NULL DEFAULT 0,
 	`deleted_at` bigint,
 	CONSTRAINT `unkey_root_keys_pk` PRIMARY KEY(`pk`),
 	CONSTRAINT `unkey_root_keys_id_unique` UNIQUE(`id`),

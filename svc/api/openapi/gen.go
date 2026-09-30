@@ -6500,6 +6500,9 @@ type V2RootKeysListKeysResponseData struct {
 	// KeyId Stable root key identifier.
 	KeyId string `json:"keyId"`
 
+	// LastUsedAt Last verification time in Unix milliseconds. Zero means the root key has not been used.
+	LastUsedAt int64 `json:"lastUsedAt"`
+
 	// Name User-supplied name, or null when absent.
 	Name nullable.Nullable[string] `json:"name"`
 

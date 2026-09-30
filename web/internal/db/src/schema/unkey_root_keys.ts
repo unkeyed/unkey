@@ -17,6 +17,7 @@ export const unkeyRootKeys = mysqlTable(
     enabled: boolean("enabled").notNull(),
     expires: bigint("expires", { mode: "number" }),
     createdAt: bigint("created_at", { mode: "number" }).notNull(),
+    lastUsedAt: bigint("last_used_at", { mode: "number", unsigned: true }).notNull().default(0),
     deletedAt: bigint("deleted_at", { mode: "number" }),
   },
   (table) => ({

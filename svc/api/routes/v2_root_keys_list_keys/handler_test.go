@@ -58,6 +58,9 @@ func TestListRootKeysReturnsNewMetadataAndPermissions(t *testing.T) {
 	key := h.CreateUnkeyRootKey(seed.CreateUnkeyRootKeyRequest{
 		WorkspaceID: workspace.ID, Name: &name, Disabled: true, Expires: &expires, Permissions: []string{permission},
 	})
+	lastUsedAt := int64(1600000000456)
+	_, err := h.DB.RW().ExecContext(t.Context(), "UPDATE unkey_root_keys SET last_used_at = ? WHERE id = ?", lastUsedAt, key.KeyID)
+	require.NoError(t, err)
 	for _, row := range []struct {
 		workspaceID   string
 		principalType db.UnkeyPrincipalPermissionsPrincipalType
@@ -80,6 +83,7 @@ func TestListRootKeysReturnsNewMetadataAndPermissions(t *testing.T) {
 	require.Equal(t, []string{permission}, item.Permissions)
 	require.Equal(t, "", item.Name.MustGet())
 	require.Equal(t, expires.UnixMilli(), item.Expires.MustGet())
+	require.Equal(t, lastUsedAt, item.LastUsedAt)
 	require.False(t, item.Enabled)
 	require.NotContains(t, res.RawBody, key.Key)
 	require.NotContains(t, res.RawBody, `"hash"`)

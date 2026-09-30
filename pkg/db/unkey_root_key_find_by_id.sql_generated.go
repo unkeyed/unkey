@@ -22,6 +22,7 @@ SELECT
     enabled,
     expires,
     created_at,
+    last_used_at,
     deleted_at
 FROM unkey_root_keys
 WHERE id = ? AND deleted_at IS NULL
@@ -42,6 +43,7 @@ WHERE id = ? AND deleted_at IS NULL
 //	    enabled,
 //	    expires,
 //	    created_at,
+//	    last_used_at,
 //	    deleted_at
 //	FROM unkey_root_keys
 //	WHERE id = ? AND deleted_at IS NULL
@@ -60,6 +62,7 @@ func (q *Queries) FindUnkeyRootKeyByID(ctx context.Context, db DBTX, id string) 
 		&i.Enabled,
 		&i.Expires,
 		&i.CreatedAt,
+		&i.LastUsedAt,
 		&i.DeletedAt,
 	)
 	return i, err
@@ -78,6 +81,7 @@ SELECT
     enabled,
     expires,
     created_at,
+    last_used_at,
     deleted_at
 FROM unkey_root_keys
 WHERE id = ? AND deleted_at IS NULL
@@ -98,6 +102,7 @@ FOR UPDATE
 //	    enabled,
 //	    expires,
 //	    created_at,
+//	    last_used_at,
 //	    deleted_at
 //	FROM unkey_root_keys
 //	WHERE id = ? AND deleted_at IS NULL
@@ -117,6 +122,7 @@ func (q *Queries) FindUnkeyRootKeyByIDForUpdate(ctx context.Context, db DBTX, id
 		&i.Enabled,
 		&i.Expires,
 		&i.CreatedAt,
+		&i.LastUsedAt,
 		&i.DeletedAt,
 	)
 	return i, err

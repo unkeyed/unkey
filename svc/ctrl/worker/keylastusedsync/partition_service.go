@@ -181,10 +181,20 @@ func (s *PartitionService) updateLastUsedBatch(ctx context.Context, partition in
 
 	// Group keys by minute-truncated timestamp. Keys used in the same minute
 	// share a single UPDATE ... WHERE id IN (...) statement.
-	groups := make(map[int64][]string)
+	type keyGroup struct {
+		keys     []string
+		rootKeys []string
+	}
+	groups := make(map[int64]keyGroup)
 	for _, r := range batch {
 		minute := (r.Time / minuteMillis) * minuteMillis
-		groups[minute] = append(groups[minute], r.KeyID)
+		group := groups[minute]
+		if r.KeySpaceID == "" {
+			group.rootKeys = append(group.rootKeys, r.KeyID)
+		} else {
+			group.keys = append(group.keys, r.KeyID)
+		}
+		groups[minute] = group
 	}
 
 	rw := s.db.RW()
@@ -194,10 +204,10 @@ func (s *PartitionService) updateLastUsedBatch(ctx context.Context, partition in
 		retry.ShouldRetry(db.IsTransientError),
 	)
 	const maxKeysPerUpdate = 500
-	for ts, keyIDs := range groups {
-		for start := 0; start < len(keyIDs); start += maxKeysPerUpdate {
-			end := min(start+maxKeysPerUpdate, len(keyIDs))
-			chunk := keyIDs[start:end]
+	for ts, group := range groups {
+		for start := 0; start < len(group.keys); start += maxKeysPerUpdate {
+			end := min(start+maxKeysPerUpdate, len(group.keys))
+			chunk := group.keys[start:end]
 			if err := retrier.DoContext(ctx, func() error {
 				return db.NewQueries(rw).UpdateKeysLastUsed(ctx, db.UpdateKeysLastUsedParams{
 					LastUsedAt: uint64(ts), //nolint:gosec
@@ -205,6 +215,18 @@ func (s *PartitionService) updateLastUsedBatch(ctx context.Context, partition in
 				})
 			}); err != nil {
 				return fmt.Errorf("update minute %d: %w", ts, err)
+			}
+		}
+		for start := 0; start < len(group.rootKeys); start += maxKeysPerUpdate {
+			end := min(start+maxKeysPerUpdate, len(group.rootKeys))
+			chunk := group.rootKeys[start:end]
+			if err := retrier.DoContext(ctx, func() error {
+				return db.NewQueries(rw).UpdateUnkeyRootKeysLastUsed(ctx, db.UpdateUnkeyRootKeysLastUsedParams{
+					LastUsedAt: uint64(ts), //nolint:gosec
+					KeyIds:     chunk,
+				})
+			}); err != nil {
+				return fmt.Errorf("update root keys minute %d: %w", ts, err)
 			}
 		}
 	}

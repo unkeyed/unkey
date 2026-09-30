@@ -1210,6 +1210,7 @@ type Querier interface {
 	//      enabled,
 	//      expires,
 	//      created_at,
+	//      last_used_at,
 	//      deleted_at
 	//  FROM unkey_root_keys
 	//  WHERE id = ? AND deleted_at IS NULL
@@ -1228,6 +1229,7 @@ type Querier interface {
 	//      enabled,
 	//      expires,
 	//      created_at,
+	//      last_used_at,
 	//      deleted_at
 	//  FROM unkey_root_keys
 	//  WHERE id = ? AND deleted_at IS NULL
@@ -2715,6 +2717,7 @@ type Querier interface {
 	//      enabled,
 	//      expires,
 	//      created_at,
+	//      last_used_at,
 	//      COALESCE(
 	//          (SELECT JSON_ARRAYAGG(p.slug)
 	//          FROM unkey_principal_permissions p

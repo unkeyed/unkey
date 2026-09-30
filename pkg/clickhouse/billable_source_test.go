@@ -49,13 +49,23 @@ func TestBillableExcludesGatewaySource(t *testing.T) {
 			gatewayVerifications[i].AppID = "app_b"
 		}
 	}
-	// Root keys: 30 VALID, marked by an empty workspace ID and excluded from
-	// API-key billing.
-	rootKeyVerifications := createVerifications(workspaceID, 30, now, "VALID")
-	rootKeyID := uid.New(uid.KeyPrefix)
-	for i := range rootKeyVerifications {
-		rootKeyVerifications[i].WorkspaceID = ""
-		rootKeyVerifications[i].KeyID = rootKeyID
+	// Legacy root keys: 30 VALID, marked by an empty workspace ID but retaining
+	// their keyspace so last-used synchronization continues to process them.
+	legacyRootKeyVerifications := createVerifications(workspaceID, 30, now, "VALID")
+	legacyRootKeyID := uid.New(uid.KeyPrefix)
+	legacyRootKeySpaceID := uid.New(uid.KeySpacePrefix)
+	for i := range legacyRootKeyVerifications {
+		legacyRootKeyVerifications[i].WorkspaceID = ""
+		legacyRootKeyVerifications[i].KeySpaceID = legacyRootKeySpaceID
+		legacyRootKeyVerifications[i].KeyID = legacyRootKeyID
+	}
+	// New root keys: 10 VALID, marked by empty workspace and keyspace IDs.
+	newRootKeyVerifications := createVerifications(workspaceID, 10, now, "VALID")
+	newRootKeyID := uid.New(uid.KeyPrefix)
+	for i := range newRootKeyVerifications {
+		newRootKeyVerifications[i].WorkspaceID = ""
+		newRootKeyVerifications[i].KeySpaceID = ""
+		newRootKeyVerifications[i].KeyID = newRootKeyID
 	}
 	// Keyless verifications: 10 VALID, excluded from billing even when a
 	// workspace ID is present.
@@ -64,7 +74,8 @@ func TestBillableExcludesGatewaySource(t *testing.T) {
 		keylessVerifications[i].KeySpaceID = ""
 	}
 	allVerifications := append(verifications, gatewayVerifications...)
-	allVerifications = append(allVerifications, rootKeyVerifications...)
+	allVerifications = append(allVerifications, legacyRootKeyVerifications...)
+	allVerifications = append(allVerifications, newRootKeyVerifications...)
 	insertVerifications(t, ctx, conn, append(allVerifications, keylessVerifications...))
 
 	year, month := now.Year(), int(now.Month())
@@ -81,7 +92,7 @@ func TestBillableExcludesGatewaySource(t *testing.T) {
 
 		// Customer analytics include API and gateway traffic. Root-key traffic
 		// remains in the global rollup under the empty workspace marker.
-		var totalCount, rootKeyCount, gatewayCount, appCount, unattributedCount int64
+		var totalCount, legacyRootKeyCount, newRootKeyCount, gatewayCount, appCount, unattributedCount int64
 		require.NoError(c, conn.QueryRow(ctx,
 			"SELECT sum(count) FROM default.key_verifications_per_month_v3 WHERE workspace_id = ?",
 			workspaceID,
@@ -90,9 +101,26 @@ func TestBillableExcludesGatewaySource(t *testing.T) {
 
 		require.NoError(c, conn.QueryRow(ctx,
 			"SELECT sum(count) FROM default.key_verifications_per_month_v3 WHERE workspace_id = '' AND key_id = ?",
-			rootKeyID,
-		).Scan(&rootKeyCount))
-		assert.Equal(c, int64(30), rootKeyCount, "analytics rollups must retain root-key traffic")
+			legacyRootKeyID,
+		).Scan(&legacyRootKeyCount))
+		assert.Equal(c, int64(30), legacyRootKeyCount, "analytics rollups must retain legacy root-key traffic")
+		require.NoError(c, conn.QueryRow(ctx,
+			"SELECT sum(count) FROM default.key_verifications_per_month_v3 WHERE workspace_id = '' AND key_id = ?",
+			newRootKeyID,
+		).Scan(&newRootKeyCount))
+		assert.Equal(c, int64(10), newRootKeyCount, "analytics rollups must retain new root-key traffic")
+
+		var legacyRootKeyLastUsedCount, newRootKeyLastUsedCount uint64
+		require.NoError(c, conn.QueryRow(ctx,
+			"SELECT count() FROM default.key_last_used_v1 WHERE key_id = ?",
+			legacyRootKeyID,
+		).Scan(&legacyRootKeyLastUsedCount))
+		assert.Equal(c, uint64(1), legacyRootKeyLastUsedCount, "legacy root keys must retain last-used synchronization")
+		require.NoError(c, conn.QueryRow(ctx,
+			"SELECT count() FROM default.key_last_used_v1 WHERE key_id = ?",
+			newRootKeyID,
+		).Scan(&newRootKeyLastUsedCount))
+		assert.Equal(c, uint64(1), newRootKeyLastUsedCount, "new root keys must enter last-used synchronization")
 
 		require.NoError(c, conn.QueryRow(ctx,
 			"SELECT sum(count) FROM default.key_verifications_per_month_v3 WHERE workspace_id = ? AND source = ?",

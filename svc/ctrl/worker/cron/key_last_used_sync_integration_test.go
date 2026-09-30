@@ -58,6 +58,39 @@ func TestRunKeyLastUsedSync_Integration(t *testing.T) {
 		}
 	})
 
+	// New root keys emit an empty keyspace, so the sync must route their usage
+	// to unkey_root_keys instead of the legacy keys table.
+	t.Run("syncs new root key last_used_at", func(t *testing.T) {
+		ws := h.Seed.CreateWorkspace(h.Ctx)
+		keyID := uid.New(uid.KeyPrefix)
+		_, err := h.DB.RW().ExecContext(h.Ctx, `
+			INSERT INTO unkey_root_keys (id, workspace_id, hash, name, prefix, start, end, enabled, expires, created_at)
+			VALUES (?, ?, ?, NULL, ?, ?, ?, true, NULL, ?)
+		`, keyID, ws.ID, uid.New("hash"), "unkey", "abcd", "wxyz", time.Now().UnixMilli())
+		require.NoError(t, err)
+
+		now := time.Now().UnixMilli()
+		h.ClickHouseSeed.InsertKeyLastUsed(h.Ctx, []seed.KeyLastUsedRow{{
+			WorkspaceID: "",
+			KeySpaceID:  "",
+			KeyID:       keyID,
+			IdentityID:  "",
+			Time:        now,
+			RequestID:   uid.New(uid.RequestPrefix),
+			Outcome:     "VALID",
+			Tags:        []string{},
+		}})
+
+		_, err = callRunKeyLastUsedSync(h)
+		require.NoError(t, err)
+
+		var lastUsedAt uint64
+		err = h.DB.RW().QueryRowContext(h.Ctx, "SELECT last_used_at FROM unkey_root_keys WHERE id = ?", keyID).Scan(&lastUsedAt)
+		require.NoError(t, err)
+		expectedMinute := (now / 60_000) * 60_000
+		require.GreaterOrEqual(t, int64(lastUsedAt), expectedMinute)
+	})
+
 	t.Run("does not regress last_used_at when MySQL is newer", func(t *testing.T) {
 		ws := h.Seed.CreateWorkspace(h.Ctx)
 		api := h.Seed.CreateAPI(h.Ctx, seed.CreateApiRequest{

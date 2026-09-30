@@ -79,6 +79,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			End:         row.End,
 			Enabled:     row.Enabled,
 			CreatedAt:   row.CreatedAt,
+			LastUsedAt:  int64(row.LastUsedAt),
 			Expires:     expires,
 			Permissions: slices.Compact(rootKeyPermissions),
 		})
