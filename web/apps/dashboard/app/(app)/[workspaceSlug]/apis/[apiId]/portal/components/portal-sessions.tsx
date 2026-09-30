@@ -63,6 +63,7 @@ export function PortalSessions({ portalId }: { portalId: string }) {
           <input
             value={searchInput}
             onChange={(event) => setSearchInput(event.target.value)}
+            maxLength={256}
             placeholder="Search by external ID"
             aria-label="Search sessions by external ID"
             className="w-full bg-transparent text-sm text-gray-12 placeholder:text-gray-9 focus:outline-hidden"
@@ -96,7 +97,7 @@ function SessionList({
   canRevoke: boolean;
   onRevoke: (group: SessionGroup) => void;
 }) {
-  if (query.isLoading) {
+  if (query.isLoading || (query.isPreviousData && query.groups.length === 0)) {
     return <SessionListSkeleton />;
   }
 
@@ -148,14 +149,14 @@ function SessionList({
         <ResourceListFooter className="justify-center gap-3">
           {query.isError ? (
             <span role="alert" className="text-sm text-gray-11">
-              We couldn't load more sessions.
+              We couldn't load sessions.
             </span>
           ) : null}
           <Button
             variant="outline"
             loading={query.isFetchingNextPage}
             disabled={query.isFetchingNextPage}
-            onClick={() => query.fetchNextPage()}
+            onClick={() => (query.hasNextPage ? query.fetchNextPage() : query.refetch())}
           >
             {query.isError ? "Retry" : "Load more"}
           </Button>

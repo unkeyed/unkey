@@ -52,7 +52,8 @@ export function useRevokePortalSessions(portalId: string, options?: PortalMutati
       const response = await getUnkeyClient().portal.revokeSession({ ...input, portal: portalId });
       return response.data;
     },
-    onSuccess: (_data, input) => {
+    onSuccess: async (_data, input) => {
+      await queryClient.cancelQueries({ queryKey: queryKeys.portal.sessionLists(portalId) });
       queryClient.setQueriesData<InfiniteData<SessionPage>>(
         { queryKey: queryKeys.portal.sessionLists(portalId) },
         (data) => removeSessionGroup(data, input.externalId),
