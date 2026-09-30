@@ -26,7 +26,7 @@ export const useFetchPermissionSlugs = (
   const hasError = roleQueries.some((query) => query.isError);
 
   if (isLoading || hasError) {
-    return { data: undefined, isLoading };
+    return { data: undefined, isLoading, hasError };
   }
 
   const slugs = new Set(directPermissionSlugs);
@@ -40,5 +40,6 @@ export const useFetchPermissionSlugs = (
   return {
     data: { slugs: sortedSlugs, totalCount: sortedSlugs.length },
     isLoading,
+    hasError,
   };
 };

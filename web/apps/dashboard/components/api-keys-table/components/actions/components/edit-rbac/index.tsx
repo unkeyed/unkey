@@ -108,11 +108,11 @@ export const KeyRbacDialog = ({
   const watchedRoleNames = watch("roleNames", []);
   const watchedDirectPermissionSlugs = watch("directPermissionSlugs", []);
 
-  const { data: dataSlugs, isLoading: isSlugsLoading } = useFetchPermissionSlugs(
-    watchedRoleNames,
-    watchedDirectPermissionSlugs,
-    isDialogOpen,
-  );
+  const {
+    data: dataSlugs,
+    isLoading: isSlugsLoading,
+    hasError: hasSlugsError,
+  } = useFetchPermissionSlugs(watchedRoleNames, watchedDirectPermissionSlugs, isDialogOpen);
 
   // Reset form data when dialog opens
   useEffect(() => {
@@ -194,7 +194,7 @@ export const KeyRbacDialog = ({
                   variant="primary"
                   size="xlg"
                   className="w-full rounded-lg transition-all duration-200"
-                  disabled={!isValid || updateKeyRbacMutation.isLoading}
+                  disabled={!isValid || isSlugsLoading || updateKeyRbacMutation.isLoading}
                   loading={updateKeyRbacMutation.isLoading}
                 >
                   {DIALOG_CONFIG.buttonText}
@@ -240,6 +240,7 @@ export const KeyRbacDialog = ({
                 slugs={dataSlugs?.slugs}
                 totalCount={dataSlugs?.totalCount}
                 isLoading={isSlugsLoading}
+                hasError={hasSlugsError}
               />
             </div>
           </DialogContainer>
