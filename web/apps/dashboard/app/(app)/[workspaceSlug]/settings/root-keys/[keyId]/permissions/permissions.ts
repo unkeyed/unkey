@@ -182,7 +182,7 @@ export const workspacePermissions = {
       permission: "portal.*.create_portal",
     },
     read_portal: {
-      description: "Read and list portals in this workspace",
+      description: "Read and list portals in this workspace, and the end users signed in to them",
       permission: "portal.*.read_portal",
     },
     update_portal: {
