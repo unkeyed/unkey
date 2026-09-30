@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/go-acme/lego/v4/acme"
+	"github.com/go-acme/lego/v5/acme"
 )
 
 // ACMEErrorType represents the type of ACME error.
@@ -63,12 +63,10 @@ func ParseACMEError(err error) *ParsedACMEError {
 		parsed.IsRetryable = false
 		parsed.Message = fmt.Sprintf("Let's Encrypt rate limit exceeded: %s", rateLimitErr.Detail)
 
-		if rateLimitErr.RetryAfter != "" {
-			if t, parseErr := time.Parse(time.RFC1123, rateLimitErr.RetryAfter); parseErr == nil {
-				parsed.RetryAfter = t
-				parsed.Message = fmt.Sprintf("Let's Encrypt rate limit exceeded. Retry after %s: %s",
-					t.Format(time.RFC3339), rateLimitErr.Detail)
-			}
+		if rateLimitErr.RetryAfter > 0 {
+			parsed.RetryAfter = time.Now().Add(rateLimitErr.RetryAfter)
+			parsed.Message = fmt.Sprintf("Let's Encrypt rate limit exceeded. Retry after %s: %s",
+				parsed.RetryAfter.Format(time.RFC3339), rateLimitErr.Detail)
 		}
 		return parsed
 	}
