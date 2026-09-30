@@ -1,0 +1,78 @@
+---
+title: Limits
+description: "See the limits your plan puts on your workspace."
+sources:
+  - web/internal/db/src/schema/limits.ts
+  - web/apps/dashboard/lib/limits.ts
+  - web/apps/dashboard/lib/stripe/deployPlan.ts
+  - web/apps/dashboard/lib/stripe/setWorkspaceLimits.ts
+  - web/apps/dashboard/lib/stripe/linkApiSubscription.ts
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/settings/limits/limit-groups.ts
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/settings/limits/page.tsx
+  - web/apps/dashboard/lib/flags/index.ts
+  - web/apps/dashboard/lib/flags/use-billing-ui-upgrades.ts
+  - web/internal/db/src/schema/clickhouse_workspace_settings.ts
+  - pkg/clickhouse/user.go
+---
+The two products are bought separately, and your workspace holds one set of limits between them. An API Management tier sets your request quota, key allowance and retention. A Compute plan sets the Compute values, and also sets retention and team members when you have no paid API tier.
+
+Read the API Management table by the tier you pay for, and the Compute tables by your Compute plan: Starter, Pro, or Business. The two products' plan names are unrelated, so a Compute Pro plan says nothing about your API tier.
+
+## API management
+
+API Management is sold as a free tier, seven fixed Pro tiers, and Enterprise. The tier you're on sets your monthly request quota, your key allowance, and how long logs are kept.
+
+
+| Plan       | Price  | Valid requests per month | API keys  | Log retention | Audit log retention |
+| ---------- | ------ | ------------------------ | --------- | ------------- | ------------------- |
+| Free       | $0     | 150,000                  | 1,000     | 1 day         | 3 days              |
+| Pro        | $25    | 250,000                  | 1,000,000 | 7 days        | 14 days             |
+| Pro        | $50    | 500,000                  | 1,000,000 | 7 days        | 14 days             |
+| Pro        | $75    | 1,000,000                | 1,000,000 | 7 days        | 14 days             |
+| Pro        | $100   | 2,000,000                | 1,000,000 | 7 days        | 14 days             |
+| Pro        | $250   | 10,000,000               | 1,000,000 | 7 days        | 14 days             |
+| Pro        | $500   | 50,000,000               | 1,000,000 | 7 days        | 14 days             |
+| Pro        | $1,000 | 100,000,000              | 1,000,000 | 7 days        | 14 days             |
+| Enterprise | Custom | Custom                   | Custom    | Custom        | Custom              |
+
+
+Only valid requests count against the quota. A verification rejected for a bad key, an exhausted rate limit, or any other reason isn't billed, so a key under attack doesn't consume the quota you bought. Passing the quota means moving to a higher tier, and you will receive an email when you do so.
+
+The API keys column is the allowance your plan includes. Unlimited keyspaces are included on every tier.
+
+[Enterprise](mailto:support@unkey.com?subject=Unkey%20Enterprise%20Quote) covers custom quotas, IP allow listing, a dedicated Slack channel, annual contracts and SLAs.
+
+## Logs
+
+A paid API tier owns both retention values, from the table above, whatever Compute plan you hold. Only when you have no paid API tier does your Compute plan set them instead:
+
+
+| Limit                                    | No Compute plan | Starter | Pro     | Business |
+| ---------------------------------------- | --------------- | ------- | ------- | -------- |
+| Log retention (request and runtime logs) | 1 day           | 3 days  | 7 days  | 14 days  |
+| Audit log retention                      | 3 days          | 7 days  | 14 days | 30 days  |
+| Log drains                               | 0               | 0       | 0       | 0        |
+
+
+Log drains aren't included on any plan today. Ask [support@unkey.com](mailto:support@unkey.com) if you need one.
+
+## Compute
+
+These rows apply once you have a Compute plan. Workspace rows measure what your running deployments have allocated. Per-instance rows cap what a single instance can request.
+
+
+| Limit                       | Starter | Pro       | Business  |
+| --------------------------- | ------- | --------- | --------- |
+| Workspace CPU               | 30 vCPU | 120 vCPU  | 240 vCPU  |
+| CPU per instance            | 2 vCPU  | 8 vCPU    | 16 vCPU   |
+| Workspace memory            | 60 GiB  | 240 GiB   | 480 GiB   |
+| Memory per instance         | 2 GiB   | 8 GiB     | 32 GiB    |
+| Workspace ephemeral disk    | 120 GiB | 480 GiB   | 960 GiB   |
+| Ephemeral disk per instance | 10 GiB  | 10 GiB    | 10 GiB    |
+| Concurrent builds           | 1       | 1         | 1         |
+| Replicas per region         | 4       | 8         | 16        |
+| Custom domains              | 1       | Unlimited | Unlimited |
+
+
+At a Compute limit, scale down or remove a deployment, or move to a plan with a higher ceiling. For a higher ceiling on the plan you already hold, ask [support@unkey.com](mailto:support@unkey.com). "Unlimited" custom domains is a very high cap that exists to stop abuse, not a priced feature.
+

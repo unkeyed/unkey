@@ -1,0 +1,101 @@
+---
+title: What portal users can do
+sidebarTitle: "End-user experience"
+description: "What your users see and can do inside the portal."
+sources:
+  - web/apps/portal/src/routes/_portal/keys.tsx
+  - web/apps/portal/src/components/keys-page/keys-page.tsx
+  - web/apps/portal/src/components/keys-page/keys-page-model.ts
+  - web/apps/portal/src/lib/scopes.ts
+  - web/apps/portal/src/components/analytics/schema/analytics.schema.ts
+  - svc/api/routes/v2_portal_get_verifications/handler.go
+  - svc/api/openapi/spec/paths/v2/portal/createSession/V2PortalCreateSessionRequestBody.yaml
+  - svc/api/openapi/spec/paths/v2/portal/listKeys/V2PortalListKeysRequestBody.yaml
+  - svc/api/openapi/spec/paths/v2/portal/getVerifications/V2PortalGetVerificationsRequestBody.yaml
+  - svc/api/openapi/spec/paths/v2/portal/getVerifications/V2PortalGetVerificationsDataPoint.yaml
+  - svc/api/routes/v2_portal_reroll_key/handler.go
+  - svc/api/routes/v2_keys_create_key/handler.go
+  - svc/api/routes/v2_keys_delete_key/handler.go
+---
+
+Here's what your users see in the portal. The scopes on their [session](/api-management/portal/sessions) decide what they can do, and they only ever see their own keys and usage.
+
+## One page, shaped by scope
+
+The portal is one Keys page. The scopes decide what's on it:
+
+- **`keys:read`** shows the key table. Without it the page is empty.
+- **`keys:reroll`** adds a roll-over action to each key.
+- **`analytics:read`** adds a time filter, usage numbers, and an outcomes chart above the table, plus a request count on each key.
+
+If the token expires while the user is on the page, the portal shows "Your session has expired" with a link to the session's `returnUrl`.
+
+## Keys
+
+The key table lists every key the user owns, with its name, status, creation date, and expiry. The full key is never shown.
+
+With `keys:reroll`, the user can roll a key over. They pick a grace period, copy the new key (shown once), and the old key keeps working until the grace period ends.
+
+## Usage
+
+With `analytics:read`, the page shows verification counts over a time range, broken down by outcome, for all the user's keys or one of them. The time ranges on offer fit your workspace's log retention.
+
+## Building your own portal front end
+
+To build your own interface instead of using the hosted portal, call `portal.listKeys`, `portal.rerollKey`, and `portal.getVerifications` with the session's access token as a bearer token. They only return the session user's data.
+
+### List keys
+
+`portal.listKeys` returns the user's keys, up to 100 per page (`limit`, default 100, with `cursor` and `hasMore` as on every [list endpoint](/platform/api/overview)). There are no filters.
+
+### Roll a key over
+
+`portal.rerollKey` takes the same body as `keys.rerollKey`: the key and an `expiration` grace period for the old key. Another user's key returns not found.
+
+### Read usage
+
+`portal.getVerifications` takes `startTime` and `endTime` (Unix milliseconds, start included, end not) and an optional `keyId` for one key. A window longer than your log retention fails with `err:user:bad_request:query_range_exceeds_retention`.
+
+The response has one series per key:
+
+- `bucketMillis` is the bucket size (a minute, hour, or day, based on the window).
+- `keys` has one entry per key with traffic in the window, with every bucket filled in (zeros included), in time order. Sum them for an account total.
+- Keys with no traffic are left out. An entry can be for a key that's since been deleted, so don't assume you can look it up in `portal.listKeys`.
+
+If more than 150 keys had traffic in the window, the request fails with [`per_key_breakout_too_large`](/errors/user/bad_request/per_key_breakout_too_large). Narrow the window or pass a `keyId`.
+
+Each entry's `data` holds one point per bucket:
+
+<ResponseField name="time" type="integer">
+  Bucket start in Unix milliseconds.
+</ResponseField>
+<ResponseField name="total" type="integer">
+  All verifications in the bucket.
+</ResponseField>
+<ResponseField name="valid" type="integer">
+  Verifications with outcome `VALID`.
+</ResponseField>
+<ResponseField name="rateLimited" type="integer">
+  Rejected because a rate limit was exceeded.
+</ResponseField>
+<ResponseField name="insufficientPermissions" type="integer">
+  Rejected for missing permissions.
+</ResponseField>
+<ResponseField name="forbidden" type="integer">
+  Rejected as forbidden.
+</ResponseField>
+<ResponseField name="disabled" type="integer">
+  Rejected because the key was disabled.
+</ResponseField>
+<ResponseField name="expired" type="integer">
+  Rejected because the key had expired.
+</ResponseField>
+<ResponseField name="usageExceeded" type="integer">
+  Rejected because the key's credits were exhausted.
+</ResponseField>
+
+Asking for another user's key returns nothing.
+
+### Create and delete keys
+
+`keys.createKey` and `keys.deleteKey` also accept a portal token, so your interface can let users create and delete their own keys. A new key always belongs to the session's user, whatever the request says. Deleting another user's key returns not found. These actions show in the [audit log](/platform/workspace/audit-logs/overview) with a `portalEndUser` actor.

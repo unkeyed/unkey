@@ -391,10 +391,8 @@ func TestKeyUpdateCreditsInvalidatesCache(t *testing.T) {
 	require.Equal(t, int64(newCredits)-1, authAfter.Key.RemainingRequests.Int64)
 }
 
-// TestUpdateKeyConcurrentWithSameExternalId tests that concurrent updates
-// to different keys with the same new externalId don't deadlock.
-// This was previously possible due to gap locks when inserting identities.
-// The fix uses INSERT ... ON DUPLICATE KEY UPDATE (upsert) to avoid deadlocks.
+// TestUpdateKeyConcurrentWithSameExternalId guarantees that concurrent updates
+// with the same externalId resolve insert races to one identity.
 func TestUpdateKeyConcurrentWithSameExternalId(t *testing.T) {
 	t.Parallel()
 

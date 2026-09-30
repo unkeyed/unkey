@@ -1,0 +1,75 @@
+---
+title: Rate limiting
+sidebarTitle: "Overview"
+description: "Choose between the standalone rate limit API and limits attached to keys."
+sources:
+  - svc/api/routes/v2_ratelimit_limit/handler.go
+  - svc/api/openapi/spec/paths/v2/ratelimit/limit/V2RatelimitLimitRequestBody.yaml
+  - svc/api/openapi/spec/paths/v2/ratelimit/limit/V2RatelimitLimitResponseData.yaml
+  - internal/services/ratelimit/doc.go
+  - internal/services/keys/validation.go
+  - pkg/rbac/permissions.go
+  - web/internal/api/src/sdk/ratelimit.ts
+---
+
+import RootKeyPrereq from "/snippets/root-key-prereq.mdx";
+
+<Tooltip tip="Three Unkey features share this name: the standalone ratelimit API and key or identity limits (this section), and the Compute gateway rate limit policy. See the glossary.">Rate limiting</Tooltip> caps how often something can happen in a time window. API Management gives you two ways to do it: a standalone API you call with any identifier you choose, or limits on a key or identity that are checked when the key is verified. (The Compute gateway's rate limit policy is a separate feature. See the [glossary](/platform/glossary).)
+
+## Choose a rate limit
+
+| | Standalone `ratelimit.limit` | Key and identity rate limits |
+| --- | --- | --- |
+| What you limit | Any string: a user ID, an IP address, an email domain, a tenant | A key, or every key of an identity together |
+| Where it runs | Its own endpoint, whenever you call it | Inside `keys.verifyKey`, as one of its checks |
+| Configuration | You send the limit and duration with every call | Named limits stored on the key or identity |
+| Per-caller exceptions | Overrides on an identifier or wildcard pattern | Different limits per key or identity |
+| Failure signal | `success: false` in the response | `code: RATE_LIMITED` in the verification |
+
+Use the standalone API when the endpoint has no key (sign-up, password reset) or when you want to limit something other than the key holder. Use key and identity limits when the request already carries a key, so the check happens during the verification you already make.
+
+Both count requests the same way. See [How rate limiting works](/api-management/ratelimiting/how-it-works).
+
+## A first rate limit
+
+<RootKeyPrereq />
+
+The root key needs `ratelimit.*.limit`, plus `ratelimit.*.create_namespace` the first time a namespace name is used.
+
+```bash
+curl -X POST https://api.unkey.com/v2/ratelimit.limit \
+  -H "Authorization: Bearer $UNKEY_ROOT_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "namespace": "email.send",
+    "identifier": "user_123",
+    "limit": 10,
+    "duration": 60000
+  }'
+```
+
+```json
+{
+  "meta": { "requestId": "req_..." },
+  "data": { "success": true, "limit": 10, "remaining": 9, "reset": 1704067260000 }
+}
+```
+
+The namespace `email.send` names what you're limiting. The identifier `user_123` is who's being counted. Each user gets ten calls per minute, and the eleventh returns `success: false` until the window moves on. In the TypeScript SDK, the same call is `unkey.ratelimit.limit({ namespace, identifier, limit, duration })`.
+
+## Next steps
+
+<Columns cols={2}>
+  <Card title="How rate limiting works" icon="wave-square" href="/api-management/ratelimiting/how-it-works">
+    Sliding windows, regional counters, cross-region convergence, and what `remaining` and `reset` mean.
+  </Card>
+  <Card title="ratelimit.limit and multiLimit" icon="code" href="/api-management/ratelimiting/limit-and-multi-limit">
+    Request and response fields, bounds, namespaces, cost, and atomic multi-limit checks.
+  </Card>
+  <Card title="Rate limit overrides" icon="sliders" href="/api-management/ratelimiting/overrides">
+    Give one identifier or a wildcard pattern a different limit without changing code.
+  </Card>
+  <Card title="Key and identity rate limits" icon="key" href="/api-management/ratelimiting/key-and-identity-limits">
+    Named limits on keys and identities, auto-apply, cost, and inline limits at verification.
+  </Card>
+</Columns>

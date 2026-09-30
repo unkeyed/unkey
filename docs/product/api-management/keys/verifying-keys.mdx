@@ -1,0 +1,169 @@
+---
+title: Verifying keys
+description: "Check a key on every request and act on the result."
+sources:
+  - svc/api/routes/v2_keys_verify_key/handler.go
+  - svc/api/openapi/spec/paths/v2/keys/verifyKey/V2KeysVerifyKeyRequestBody.yaml
+  - svc/api/openapi/spec/paths/v2/keys/verifyKey/V2KeysVerifyKeyResponseData.yaml
+  - svc/api/openapi/spec/paths/v2/keys/verifyKey/KeysVerifyKeyCredits.yaml
+  - svc/api/openapi/spec/paths/v2/keys/verifyKey/KeysVerifyKeyRatelimit.yaml
+  - svc/api/openapi/spec/paths/v2/keys/verifyKey/index.yaml
+  - internal/services/keys/get.go
+  - internal/services/keys/verifier.go
+  - internal/services/keys/validation.go
+  - internal/services/keys/status.go
+  - internal/services/caches/caches.go
+  - pkg/cache/cache.go
+  - internal/services/ratelimit/ratelimit.go
+  - pkg/rbac/parser.go
+---
+
+import RootKeyPrereq from "/snippets/root-key-prereq.mdx";
+
+Call `keys.verifyKey` on every request that carries a key. Send the key exactly as your user sent it. Unkey runs the checks set on the key, plus any you add to the request, and returns one answer. The response is HTTP 200 for every outcome, so read `data.valid` and `data.code`, not the status code.
+
+<RootKeyPrereq />
+
+The root key needs `api.*.verify_key` or `api.<api_id>.verify_key` for the key's keyspace. Without it you get a 200 with `code: NOT_FOUND`, not a permission error. A missing or invalid root key gets HTTP 401. See [Root key permissions](/platform/root-keys/permissions).
+
+## Request
+
+<ParamField body="key" type="string" required>
+  The key your user sent, 1 to 512 characters, including its prefix. Any change to the string gives `NOT_FOUND`. You don't pass an API ID because the key already belongs to one keyspace.
+</ParamField>
+
+<ParamField body="keyspaces" type="string[]">
+  1 to 5 keyspace IDs (`ks_...`), each up to 100 characters, matched exactly. The key must belong to one of them or the result is `NOT_FOUND`. Use it when one root key verifies several keyspaces but an endpoint should only accept keys from some of them. An empty array is HTTP 400.
+</ParamField>
+
+<ParamField body="permissions" type="string">
+  A permission query, 1 to 1000 characters, such as `documents.read AND (billing.read OR billing.write)`. `AND` binds tighter than `OR`, and parentheses group. Fails the verification with `INSUFFICIENT_PERMISSIONS` when the key's direct and role-derived permissions don't satisfy it. A malformed query is HTTP 400 `err:user:bad_request:permissions_query_syntax_error`. Asterisks inside slugs are matched literally. See [Permission queries](/api-management/authorization/permission-queries).
+</ParamField>
+
+<ParamField body="credits" type="object">
+  `credits.cost` (integer, 0 to 1,000,000,000,000) is how many credits this verification spends. Omitting the object spends 1 on keys that have credits configured and nothing on unlimited keys. `cost: 0` checks the key without spending. See [Credits and refill](/api-management/keys/credits-and-refill).
+</ParamField>
+
+<ParamField body="ratelimits" type="object[]">
+  Rate limits to check on this call. Each entry names a limit configured on the key or its identity (`name`, 3 to 255 characters) and may pass `cost` (default 1). Naming a limit that doesn't exist on the key or its identity fails the whole request with HTTP 412 `err:unkey:application:precondition_failed`. An entry that also carries both `limit` and `duration` defines an inline, key-scoped limit for this call instead. Limits with `autoApply: true` are checked whether or not you list them.
+
+  An inline `limit` must be 1 or more and `duration` at least 1000 milliseconds. Values below that aren't rejected with an error. Instead the verification skips rate limiting entirely, including the auto-applied limits, and can still return `VALID`. Check these two values in your own code before you send them.
+</ParamField>
+
+<ParamField body="tags" type="string[]">
+  Up to 20 strings of up to 512 characters, recorded with the verification for analytics only. They never affect the verdict. See [Metadata and tags](/api-management/keys/metadata-and-tags).
+</ParamField>
+
+<ParamField body="migrationId" type="string">
+  Up to 256 characters. Lets Unkey match a key imported from another provider's hash format on its first use and convert it to the native hash. See [Migrating existing keys](/api-management/keys/migrating-keys).
+</ParamField>
+
+```bash
+curl -X POST https://api.unkey.com/v2/keys.verifyKey \
+  -H "Authorization: Bearer $UNKEY_ROOT_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "key": "sk_live_...",
+    "permissions": "documents.read",
+    "credits": { "cost": 2 },
+    "ratelimits": [{ "name": "requests" }],
+    "tags": ["endpoint=/documents", "method=GET"]
+  }'
+```
+
+## Order of checks
+
+Checks run in this order and stop at the first failure. The order decides which `code` you get, and whether a rate limit or credits get used up.
+
+1. **Existence.** The key must exist, its workspace and keyspace must not be deleted, and your root key must be allowed to verify keys in that keyspace. Anything else is `NOT_FOUND`.
+2. **Keyspace restriction.** If the request lists `keyspaces` and the key's keyspace isn't one of them, the result is `NOT_FOUND` with no key details.
+3. **Workspace.** A disabled workspace produces `FORBIDDEN`.
+4. **Enabled.** A key with `enabled: false` produces `DISABLED`.
+5. **Expiration.** A key whose `expires` is in the past produces `EXPIRED`.
+6. **IP allow list.** If the keyspace has one, the request's client IP must be on it, or the result is `FORBIDDEN`.
+7. **Permissions.** If the request carries a `permissions` query, the key must satisfy it, or the result is `INSUFFICIENT_PERMISSIONS`.
+8. **Rate limits.** Auto-applied limits and limits named in the request are checked together. If any is exceeded, the result is `RATE_LIMITED`, and the other limits aren't used up.
+9. **Credits.** Only if everything above passed, the cost is deducted. Not enough credits gives `USAGE_EXCEEDED` and nothing is deducted.
+
+So a rate-limited request doesn't spend credits, but a request that runs out of credits still counts against its rate limits.
+
+## Response
+
+<ResponseField name="valid" type="boolean" required>
+  `true` only when every check passed. Read this first.
+</ResponseField>
+
+<ResponseField name="code" type="string" required>
+  One of `VALID`, `NOT_FOUND`, `FORBIDDEN`, `INSUFFICIENT_PERMISSIONS`, `USAGE_EXCEEDED`, `RATE_LIMITED`, `DISABLED`, `EXPIRED`. Code values explains each one.
+</ResponseField>
+
+<ResponseField name="keyId" type="string">
+  The key's identifier. Present for every outcome except `NOT_FOUND`.
+</ResponseField>
+
+<ResponseField name="keyspaceId" type="string">
+  The keyspace the key belongs to (`ks_...`). Present for every outcome except `NOT_FOUND`.
+</ResponseField>
+
+<ResponseField name="name" type="string">
+  The key's internal name, when set.
+</ResponseField>
+
+<ResponseField name="enabled" type="boolean">
+  Whether the key is enabled.
+</ResponseField>
+
+<ResponseField name="expires" type="integer">
+  Expiry as Unix milliseconds, when set.
+</ResponseField>
+
+<ResponseField name="credits" type="integer">
+  Credits remaining after this call. Omitted for unlimited keys. After `USAGE_EXCEEDED` it's the unchanged balance.
+</ResponseField>
+
+<ResponseField name="meta" type="object">
+  The key's metadata, when set.
+</ResponseField>
+
+<ResponseField name="permissions" type="string[]">
+  Every permission slug the key holds, directly or through roles.
+</ResponseField>
+
+<ResponseField name="roles" type="string[]">
+  Every role name assigned to the key.
+</ResponseField>
+
+<ResponseField name="identity" type="object">
+  When the key is linked to an identity: `id`, `externalId`, the identity's `meta`, and its `ratelimits` (each with `id`, `name`, `limit`, `duration`, `autoApply`).
+</ResponseField>
+
+<ResponseField name="ratelimits" type="object[]">
+  One entry per rate limit that was checked: `id` (empty for inline limits), `name`, `limit`, `duration`, `remaining`, `reset` (Unix milliseconds), `exceeded`, and `autoApply`.
+</ResponseField>
+
+### Code values
+
+| `code` | Meaning | Typical HTTP status to return to your user |
+| --- | --- | --- |
+| `VALID` | All checks passed. | proceed |
+| `NOT_FOUND` | No such key; the key belongs to a deleted keyspace or a workspace your root key cannot verify for; or the request's `keyspaces` list excluded it. | 401 |
+| `DISABLED` | The key has `enabled: false`. | 401 or 403 |
+| `EXPIRED` | The key's `expires` has passed. | 401 |
+| `FORBIDDEN` | Client IP not on the keyspace's allow list, or the workspace is disabled. | 403 |
+| `INSUFFICIENT_PERMISSIONS` | The `permissions` query was not satisfied. | 403 |
+| `RATE_LIMITED` | At least one checked rate limit is exceeded. | 429 |
+| `USAGE_EXCEEDED` | Not enough credits for the requested cost. | 402 or 429 |
+
+## Why some failures say NOT_FOUND
+
+Unkey never tells a caller that a key exists unless they're allowed to verify it. So you get a 200 with `code: NOT_FOUND` when the key belongs to another workspace, its keyspace was deleted, your root key has no verify permission for its keyspace, or your `keyspaces` list leaves it out. The response looks the same in every case. If you get `NOT_FOUND` for a key you know exists, check your root key's permissions first.
+
+## How quickly changes take effect
+
+A change to a key (disable, delete, new expiry, new permissions or roles) takes about 10 seconds to reach verification, and a few verifications just after that can still see the old state. Plan incident runbooks around a little more than 10 seconds, not an instant cutoff.
+
+Credit balances change instantly. Rate limit counts sync across regions within moments, so `remaining` is approximate. See [How rate limiting works](/api-management/ratelimiting/how-it-works).
+
+## What gets recorded
+
+Every verification, whatever its outcome, is recorded in analytics with its outcome, key, identity, tags, credits spent, and latency. Verifications made with a root key also produce a `key.verify` audit log event. See [Analytics](/api-management/analytics/overview) and [Audit logs](/platform/workspace/audit-logs/overview).

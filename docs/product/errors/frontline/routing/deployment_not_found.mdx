@@ -1,7 +1,22 @@
 ---
-title: "deployment_not_found"
-description: "DeploymentNotFound represents a 404 error - the resolved deployment was not found or did not match the expected environment."
+title: "frontline/routing/deployment_not_found"
+sidebarTitle: "deployment_not_found"
+description: "A reserved gateway code that no request returns."
+sources:
+  - pkg/codes/frontline.go
+  - svc/frontline/middleware/observability.go
+  - svc/frontline/internal/router/lookup.go
 ---
 
 <Danger>`err:frontline:routing:deployment_not_found`</Danger>
 
+This code is reserved, and the gateway doesn't return it. A hostname that doesn't point at a deployment returns [`err:frontline:routing:config_not_found`](/errors/frontline/routing/config_not_found) instead.
+
+## How to fix
+
+There's nothing to fix. If a hostname won't route, start from [`err:frontline:routing:config_not_found`](/errors/frontline/routing/config_not_found).
+
+## Related errors
+
+- [`err:frontline:routing:config_not_found`](/errors/frontline/routing/config_not_found): the hostname has no route, which is the routing error you actually see.
+- [`err:unkey:data:deployment_not_found`](/errors/unkey/data/deployment_not_found): a different error, from the Unkey API, for a deployment ID that doesn't exist.

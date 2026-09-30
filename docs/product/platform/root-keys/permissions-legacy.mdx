@@ -1,0 +1,174 @@
+---
+title: Permission reference
+description: "Find the exact resource.id.action string a root key needs for each operation."
+sources:
+  - pkg/rbac/permissions.go
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/settings/root-keys/components/dialog/permissions.ts
+  - svc/api/routes/v2_analytics_get_verifications/handler.go
+  - svc/api/routes/v2_keys_add_roles/handler.go
+  - svc/api/routes/v2_keys_set_roles/handler.go
+  - svc/api/routes/v2_ratelimit_list_overrides/handler.go
+  - svc/api/routes/v2_analytics_get_gateway_requests/handler.go
+  - svc/api/routes/v2_github_install_app/handler.go
+---
+
+Use this page to find the exact permission a root key needs. A permission is `{resource}.{id}.{action}`: one of the nine resource types below, a resource ID or `*` for all of them, and an action from the tables. [Root key permissions](/platform/root-keys/permissions) explains how to choose permissions and read a permission error.
+
+The tables are grouped by product. The **Scoped** column says whether the dashboard lets you limit the action to one resource ID. Actions that aren't scoped are always granted with `*`.
+
+## API Management
+
+### `api` (keyspaces and their keys)
+
+The `api` resource is a keyspace, identified by its `api_` ID. Key actions are granted on the keyspace the keys belong to.
+
+| Action | Grants | Scoped |
+| --- | --- | --- |
+| `create_api` | Create keyspaces (`apis.createApi`). | No |
+| `read_api` | Read a keyspace (`apis.getApi`). | Yes |
+| `update_api` | No API endpoint uses this. You change keyspace settings in the dashboard. | Yes |
+| `delete_api` | Delete a keyspace (`apis.deleteApi`). Delete protection still applies. | Yes |
+| `create_key` | Create keys in the keyspace (`keys.createKey`, `keys.migrateKeys`, `keys.rerollKey`). | Yes |
+| `read_key` | Read keys and list them (`keys.getKey`, `apis.listKeys`, `keys.whoami`). | Yes |
+| `update_key` | Update keys, their credits, permissions, and roles (`keys.updateKey`, `keys.updateCredits`, and every `keys.*Permissions` and `keys.*Roles` procedure). | Yes |
+| `delete_key` | Delete keys (`keys.deleteKey`). | Yes |
+| `verify_key` | Verify keys in the keyspace (`keys.verifyKey`). | Yes |
+| `encrypt_key` | Create recoverable keys, which are stored encrypted so they can be shown again. | Yes |
+| `decrypt_key` | Return plaintext for recoverable keys (`decrypt: true` on get and list). | Yes |
+| `read_analytics` | Query verification analytics for the keyspace (`analytics.getVerifications`). | Yes |
+
+### `ratelimit` (namespaces and overrides)
+
+The `ratelimit` resource is a <Tooltip tip="Here: the standalone ratelimit API and its namespaces. Not a key's limit and not the gateway policy.">rate limit</Tooltip> namespace. The dashboard grants these with `*` only.
+
+| Action | Grants | Scoped |
+| --- | --- | --- |
+| `limit` | Perform rate limit checks (`ratelimit.limit`, `ratelimit.multiLimit`). | No |
+| `create_namespace` | Create namespaces, including the automatic one on first use. | No |
+| `read_namespace` | Read namespaces. | No |
+| `update_namespace` | Rename or change namespaces. | No |
+| `delete_namespace` | Delete namespaces. | No |
+| `set_override` | Create or change an override for an identifier (`ratelimit.setOverride`). | No |
+| `read_override` | Read and list overrides (`ratelimit.getOverride`, `ratelimit.listOverrides`). | No |
+| `delete_override` | Delete an override (`ratelimit.deleteOverride`). | No |
+| `read_analytics` | Query rate limit analytics (`analytics.getRatelimits`). | No |
+
+No API endpoint uses `read_namespace`, `update_namespace`, or `delete_namespace`. The first `ratelimit.limit` call with a new name creates the namespace, and you manage namespaces in the dashboard.
+
+### `rbac` (permissions and roles for your keys)
+
+These govern the permissions and roles you define for your own users' keys, not root key permissions. All are granted with `*`.
+
+| Action | Grants |
+| --- | --- |
+| `create_permission` | Define a permission (`permissions.createPermission`). Also required when `keys.addPermissions`, `keys.setPermissions`, or `permissions.setRolePermissions` has to create a permission that does not exist yet. |
+| `read_permission` | Read and list permissions. |
+| `update_permission` | Change a permission. |
+| `delete_permission` | Delete a permission. |
+| `create_role` | Define a role (`permissions.createRole`). |
+| `read_role` | Read and list roles. |
+| `update_role` | Change a role. |
+| `delete_role` | Delete a role. |
+| `add_permission_to_key` | Attach permissions to a key (`keys.addPermissions`, `keys.setPermissions`). Required alongside `update_key`. |
+| `remove_permission_from_key` | Detach permissions from a key (`keys.removePermissions`, `keys.setPermissions`). Required alongside `update_key`. |
+| `add_role_to_key` | Attach roles to a key (`keys.addRoles`). Required alongside `update_key`. |
+| `remove_role_from_key` | No API endpoint uses this. `keys.removeRoles` and `keys.setRoles` need `update_key` instead. |
+| `add_permission_to_role` | Attach permissions to a role (`permissions.setRolePermissions`). |
+| `remove_permission_from_role` | Detach permissions from a role (`permissions.setRolePermissions`). |
+
+### `identity`
+
+All granted with `*`.
+
+| Action | Grants |
+| --- | --- |
+| `create_identity` | Create identities (`identities.createIdentity`). |
+| `read_identity` | Read and list identities. |
+| `update_identity` | Change identities, including their shared rate limits. |
+| `delete_identity` | Delete identities. |
+
+### `portal` (developer portals)
+
+Creating an end-user session is separate from managing portals, so a key can create sessions for your users without being able to change the portal. All granted with `*`.
+
+| Action | Grants |
+| --- | --- |
+| `create_portal` | Create portals (`portal.createPortal`). |
+| `read_portal` | Read portals (`portal.getPortal`). |
+| `update_portal` | Change portals (`portal.updatePortal`). |
+| `delete_portal` | Delete portals (`portal.deletePortal`). |
+| `create_portal_session` | Create a portal session for an end user (`portal.createSession`). |
+
+## Compute
+
+### `project`
+
+The `project` resource is identified by its `proj_` ID. Some deployment actions can be granted on the whole project, so a CI key doesn't need to know environment IDs.
+
+| Action | Grants | Scoped |
+| --- | --- | --- |
+| `create_project` | Create projects (`projects.createProject`). | No |
+| `read_project` | Read and list projects. | Yes |
+| `update_project` | Change a project, including its delete protection flag. | Yes |
+| `delete_project` | Delete a project (`projects.deleteProject`). Delete protection still applies. | Yes |
+| `create_app` | Create <Tooltip tip="A Compute app: a deployable service inside a project. Not 'your application' in general.">apps</Tooltip> in the project (`apps.createApp`). | Yes |
+| `create_deployment` | Create deployments in any environment of the project (`deployments.createDeployment`, `unkey deploy`). | Yes |
+| `read_deployment` | Read and list deployments in the project. | Yes |
+| `generate_upload_url` | No API endpoint uses this. | No |
+| `read_gateway_requests` | Query gateway request analytics for the project (`analytics.getGatewayRequests`). | No |
+| `read_runtime_logs` | Query runtime logs for the project's deployments (`analytics.getRuntimeLogs`). | No |
+
+### `app`
+
+The `app` resource is identified by its `app_` ID.
+
+| Action | Grants | Scoped |
+| --- | --- | --- |
+| `read_app` | Read and list apps (`apps.getApp`, `apps.listApps`). | Yes |
+| `update_app` | Change an app, including its delete protection flag (`apps.updateApp`). | Yes |
+| `delete_app` | Delete an app (`apps.deleteApp`). Delete protection still applies. | Yes |
+| `connect_repository` | Connect or disconnect an app's GitHub repository (the `git` field of `apps.createApp` and `apps.updateApp`). Installing the GitHub App is a separate workspace action, below. | Yes |
+
+### `environment`
+
+The `environment` resource is identified by its `env_` ID. Deployment, domain, and gateway policy actions are granted here because those belong to an <Tooltip tip="A production or preview environment of a Compute app, not the dashboard label on a key.">environment</Tooltip>.
+
+| Action | Grants | Scoped |
+| --- | --- | --- |
+| `read_environment` | Read an environment and list environments (`environments.getEnvironment`, `environments.listEnvironments`). | Yes |
+| `update_environment` | Change environment runtime settings (`environments.updateSettings`). | Yes |
+| `read_environment_variables` | List variables (`environments.listEnvironmentVariables`). | Yes |
+| `set_environment_variables` | Create or replace variables (`environments.setEnvironmentVariables`). | Yes |
+| `remove_environment_variables` | Remove variables (`environments.removeEnvironmentVariables`). | Yes |
+| `create_deployment` | Create deployments in the environment. | Yes |
+| `read_deployment` | Read and list deployments in the environment. | Yes |
+| `start_deployment` | Start a stopped preview deployment (`deployments.startDeployment`). | Yes |
+| `stop_deployment` | Stop a running preview deployment (`deployments.stopDeployment`). | Yes |
+| `promote_deployment` | Make a deployment live (`deployments.promoteDeployment`). | Yes |
+| `rollback_deployment` | Roll back to an earlier deployment (`deployments.rollbackDeployment`). | Yes |
+| `read_policies` | Read gateway policies (`gateway.listPolicies`). | Yes |
+| `set_policies` | Replace the policy list (`gateway.setPolicies`). | Yes |
+| `update_policy` | Change one policy in place (`gateway.updatePolicy`). | Yes |
+| `create_domain` | Attach a custom domain (`domains.createDomain`). | Yes |
+| `read_domain` | Read and list custom domains. | Yes |
+| `delete_domain` | Remove a custom domain (`domains.deleteDomain`). | Yes |
+| `verify_domain` | Restart <Tooltip tip="Here: proving you control a custom domain. Not key verification and not the gateway's key-auth policy.">verification</Tooltip> of a custom domain (`domains.verifyDomain`). | Yes |
+
+## Platform
+
+### `workspace`
+
+Actions for the whole workspace. A root key belongs to one workspace, so the id is always `*`.
+
+| Action | Grants |
+| --- | --- |
+| `install_github` | Get the install link for the Unkey GitHub App and connect the installation to the workspace (`github.installApp`). |
+
+## Examples
+
+- `api.*.verify_key` verifies keys in every keyspace.
+- `api.api_1234abcd.verify_key` verifies keys in one keyspace.
+- `environment.env_1234abcd.promote_deployment` promotes deployments in one environment.
+- `project.proj_1234abcd.create_deployment` creates deployments in any environment of that project.
+
+There's no partial wildcard. To cover some keyspaces but not all, grant one permission per keyspace.

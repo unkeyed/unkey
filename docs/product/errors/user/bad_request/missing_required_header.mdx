@@ -1,6 +1,21 @@
 ---
 title: "missing_required_header"
-description: "A required HTTP header is missing from your Unkey API request. Check the API reference for required headers like Authorization and Content-Type."
+sidebarTitle: "missing_required_header"
+description: "A reserved code that no endpoint returns."
+sources:
+  - pkg/codes/user_request.go
+  - pkg/codes/constants_gen.go
 ---
 
 <Danger>`err:user:bad_request:missing_required_header`</Danger>
+
+This code is reserved, and the API doesn't return it.
+
+## How to fix
+
+There's nothing to fix. Send `Authorization: Bearer <root key>` and `Content-Type: application/json` on every request. If one is missing, you get one of the errors below.
+
+## Related errors
+
+- [`err:unkey:authentication:missing`](/errors/unkey/authentication/missing): the endpoint doesn't accept the kind of credential you sent.
+- [`err:unkey:application:invalid_input`](/errors/unkey/application/invalid_input): the request failed validation, including a missing `Authorization` header or a wrong or missing `Content-Type`.

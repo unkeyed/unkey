@@ -1,0 +1,69 @@
+{
+  "$comment": "Literal strings from stale claims in plan Appendix B that must not appear in any page body under docs/product. Frontmatter is not scanned (dashboard route segments such as [namespaceId] appear legitimately in sources). Checked by coverage-report.mjs.",
+  "forbidden": [
+    {
+      "pattern": "namespaceId",
+      "reason": "ratelimit.setOverride takes `namespace`, not `namespaceId`"
+    },
+    {
+      "pattern": "namespaceName",
+      "reason": "ratelimit.setOverride takes `namespace`, not `namespaceName`"
+    },
+    {
+      "pattern": "\"async\"",
+      "reason": "the ratelimit endpoints have no `async` field"
+    },
+    {
+      "pattern": "/v2/ratelimits.",
+      "reason": "the service is `ratelimit`, singular"
+    },
+    {
+      "pattern": "X-Deployment-Id",
+      "reason": "the gateway never sets this header; real headers are in svc/frontline/internal/proxy/director.go"
+    },
+    {
+      "pattern": "query_result_rows_exceeded",
+      "reason": "the code is `query_rows_limit_exceeded`"
+    },
+    {
+      "pattern": "DELETE_PROTECTED",
+      "reason": "the code is `err:unkey:application:protected_resource`"
+    },
+    {
+      "pattern": "webhook.create",
+      "reason": "no webhook.* audit events exist in pkg/auditlog/events.go"
+    },
+    {
+      "pattern": "webhook.update",
+      "reason": "no webhook.* audit events exist in pkg/auditlog/events.go"
+    },
+    {
+      "pattern": "webhook.delete",
+      "reason": "no webhook.* audit events exist in pkg/auditlog/events.go"
+    },
+    {
+      "pattern": "toUnixTimestamp(",
+      "reason": "not in the analytics function allow-list"
+    },
+    {
+      "pattern": "avgMerge(",
+      "reason": "not in the analytics function allow-list (matched in call form; naming the function as rejected is fine)"
+    },
+    {
+      "pattern": "quantilesTDigestMerge(",
+      "reason": "not in the analytics function allow-list (matched in call form; naming the function as rejected is fine)"
+    },
+    {
+      "pattern": "-dep-",
+      "reason": "automatic domains have no `-dep-` segment"
+    },
+    {
+      "pattern": "16-CPU",
+      "reason": "build machine specs are not in the repo"
+    },
+    {
+      "pattern": "32 GB",
+      "reason": "build machine specs are not in the repo"
+    }
+  ]
+}

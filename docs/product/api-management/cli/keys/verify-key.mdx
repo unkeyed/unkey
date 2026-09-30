@@ -1,0 +1,91 @@
+---
+title: unkey api keys verify-key
+sidebarTitle: "verify-key"
+description: "Verify a key the way your API would on a request."
+sources:
+  - cmd/api/keys/verify_key.go
+  - svc/api/routes/v2_keys_verify_key/handler.go
+  - docs/product/scripts/manifest.json
+---
+
+import RootKeyPrereq from "/snippets/root-key-prereq.mdx";
+
+<RootKeyPrereq />
+
+Verify a key the way your API would. An invalid key still returns `200`, with `valid: false`, and the command exits successfully. Check `data.valid` and `data.code`, not the exit status. Calls `POST /v2/keys.verifyKey`. See [Verifying keys](/api-management/keys/verifying-keys).
+
+## Usage
+
+```bash
+unkey api keys verify-key --key=<key> [flags]
+```
+
+## Flags
+
+<ParamField body="--key" type="string" required>
+  The key to verify, including its prefix.
+</ParamField>
+
+<ParamField body="--credits" type="string">
+  JSON object with `cost`, the number of credits this verification uses. Defaults to 1.
+</ParamField>
+
+<ParamField body="--migration-id" type="string">
+  Migration id, to verify a key that hasn't been imported yet. The key is imported on first use.
+</ParamField>
+
+<ParamField body="--permissions" type="string">
+  Permission query the key must satisfy, for example `documents.read AND (billing.read OR billing.write)`.
+</ParamField>
+
+<ParamField body="--ratelimits" type="string">
+  JSON array of rate limits to check, each with `name` and optional `cost`, `limit`, and `duration` overrides.
+</ParamField>
+
+<ParamField body="--tags" type="string[]">
+  Comma-separated `key=value` tags recorded on the verification for analytics. At most 20 tags, each up to 512 characters.
+</ParamField>
+
+### Shared flags
+
+Every `unkey api` command takes these. See [CLI output and shared flags](/platform/cli/output-and-flags).
+
+<ParamField body="--root-key" type="string">
+  Root key used for the request. Falls back to `UNKEY_ROOT_KEY`, then to the key stored by `unkey auth login`.
+</ParamField>
+
+<ParamField body="--api-url" type="string" default="https://api.unkey.com">
+  Base URL of the API. Falls back to `UNKEY_API_BASE_URL`. You don't normally need to set it.
+</ParamField>
+
+<ParamField body="--config" type="string" default="~/.unkey/config.toml">
+  Path of the config file written by `unkey auth login`. Falls back to `UNKEY_CONFIG`.
+</ParamField>
+
+<ParamField body="--output" type="string">
+  Output format. Falls back to `UNKEY_OUTPUT`. `json` prints the full response. Any other value prints the request ID and `data`.
+</ParamField>
+
+<ParamField body="--body" type="string">
+  Send this JSON as the whole request body instead of using the command's flags. You can't combine it with them. The endpoint also accepts `keyspaces`, a list of up to five keyspace ids that the key has to be in. It has no flag of its own, and a key outside them comes back as `NOT_FOUND` without spending credits or rate limits.
+</ParamField>
+
+## Required permissions
+
+`api.*.verify_key` or `api.<apiId>.verify_key` for the API the key belongs to. A missing permission never returns `403`. Whether the root key has no verify permission or has one for a different API, you get `200` with `valid: false` and code `NOT_FOUND`. See [Root key permissions](/platform/root-keys/permissions).
+
+## Examples
+
+```bash Verify
+unkey api keys verify-key --key=sk_1234abcdef
+```
+
+```bash Verify with a permission query and tags
+unkey api keys verify-key --key=sk_1234abcdef --permissions='documents.read AND users.view' --tags=endpoint=/users/profile,method=GET
+```
+
+Or send the whole request as JSON:
+
+```bash Raw body
+unkey api keys verify-key --body='{"key":"sk_1234abcdef","permissions":"documents.read AND users.view","credits":{"cost":1}}'
+```

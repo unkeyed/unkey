@@ -1,0 +1,53 @@
+---
+title: WebSockets
+description: "Run WebSocket servers on Unkey and know how upgrades are routed and checked."
+sources:
+  - svc/frontline/internal/proxy/forward.go
+  - svc/frontline/routes/proxy/handler.go
+  - svc/frontline/routes/redirect/handler.go
+  - svc/frontline/internal/router/routing.go
+  - pkg/zen/middleware_timeout.go
+  - svc/frontline/internal/proxy/transport.go
+  - svc/frontline/run.go
+  - svc/frontline/config.go
+  - svc/frontline/middleware/clickhouse_logging.go
+  - svc/krane/internal/deployment/apply.go
+---
+
+WebSockets work on Unkey with no setup. Listen on your <Tooltip tip="A Compute app: a deployable service inside a project. Not 'your application' in general.">app</Tooltip>'s port and deploy.
+
+Keep the upstream protocol in [runtime settings](/compute/configure/runtime-settings) at `http1`. WebSockets don't work with `h2c`.
+
+```ts
+import { WebSocketServer } from "ws";
+
+const wss = new WebSocketServer({ port: Number(process.env.PORT) });
+
+wss.on("connection", (socket) => {
+  socket.on("message", (data) => socket.send(`echo: ${data}`));
+});
+```
+
+## Connect with wss
+
+Connect to any hostname of the <Tooltip tip="One built and running version of an app in one environment.">deployment</Tooltip>, automatic or custom, with `wss://`. Plain `ws://` fails: it gets a `308` redirect to HTTPS, and WebSocket clients don't follow redirects.
+
+```ts
+const ws = new WebSocket("wss://payments-acme.unkey.app/ws");
+```
+
+## Policies check the handshake
+
+The opening handshake is a normal HTTP request. Your [gateway policies](/compute/gateway/policies) run on it, so a handshake that fails API key authentication, a rate limit, or a firewall rule is rejected before the connection opens. Your server gets the same headers as any other request, including `X-Unkey-Principal` when a key was verified. See [Request lifecycle and headers](/compute/networking/request-lifecycle).
+
+## How long connections last
+
+Once your server accepts the upgrade, the connection stays open as long as both ends keep it. The 15 minute request timeout doesn't apply. We don't limit connection length, frame size, or the number of connections. Your app sets those limits.
+
+The handshake shows up in the [request log](/compute/observe/requests) when the connection closes, with status `101` and a latency covering the whole connection. A [logging policy](/compute/gateway/logging) doesn't save the messages.
+
+## Connections and instances
+
+Each connection goes to a random instance, so two connections from the same client can land on different instances. Keep state on the connection or in a shared store, not in one instance's memory.
+
+If no instance can take the connection, the client gets a `503` right away. When a deployment is replaced or scaled down, the instance gets the shutdown signal and its connections close when the process exits. Make your clients reconnect when a connection closes. The new connection goes to a running instance of the current deployment.

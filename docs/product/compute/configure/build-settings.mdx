@@ -1,0 +1,80 @@
+---
+title: Build settings
+description: "Every build setting an environment has, with defaults and validation rules."
+sources:
+  - svc/api/openapi/spec/paths/v2/environments/updateSettings/V2EnvironmentsUpdateSettingsRequestBody.yaml
+  - svc/api/openapi/spec/common/EnvironmentBuild.yaml
+  - svc/api/routes/v2_environments_update_settings/handler.go
+  - svc/ctrl/services/app/create_app.go
+  - svc/ctrl/worker/deploy/deploy_handler.go
+  - svc/ctrl/worker/deploy/railpack.go
+  - pkg/match/watchpath.go
+  - web/internal/db/src/schema/app_build_settings.ts
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/settings/deployment-settings.tsx
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/settings/components/build-settings/dockerfile-settings.tsx
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/settings/components/build-settings/root-directory-settings.tsx
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/settings/components/build-settings/build-command-settings.tsx
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/settings/components/build-settings/watch-paths-settings.tsx
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/settings/components/build-settings/auto-deploy-settings.tsx
+---
+
+Build settings control how a git-connected <Tooltip tip="A Compute app: a deployable service inside a project. Not 'your application' in general.">app</Tooltip> is built, and which pushes build at all. Each <Tooltip tip="A production or preview environment of a Compute app, not the dashboard label on a key.">environment</Tooltip> has its own, so production and preview can differ. Apps deployed from an image have no build settings.
+
+## Change build settings
+
+Edit them under **App Settings** in the dashboard, with `environments.updateSettings` in the API, or with `unkey api environments update-settings` in the CLI. In the API, send only the fields you want to change. To read the current values, call `environments.getEnvironment` and look under `build`.
+
+<Frame>
+  <img src="/images/dashboard/compute--configure-build-settings--build.png" alt="App Settings build section showing repository, root directory, Dockerfile, build command, watch paths, and auto deploy" />
+</Frame>
+
+A change applies from the next deployment. Existing deployments keep the settings they were built with.
+
+## Fields
+
+<ParamField body="dockerfile" type="string | null">
+  Path to the Dockerfile, relative to the root directory, 1 to 500 characters. When it's unset (the default), we detect your language and build without a Dockerfile. Send `null` to go back to automatic builds. In the dashboard, the **Dockerfile** card lists Dockerfiles in your repository and shows "File not found on this branch" if the path is missing. See [Dockerfile builds](/compute/build/dockerfile).
+</ParamField>
+
+<ParamField body="rootDirectory" type="string" default=".">
+  The directory we build from, 1 to 500 characters. Automatic detection looks here, and a Dockerfile build uses it as the build context. Use `.` or a relative path like `services/api` with letters, digits, `.`, `_`, and `-`. A path that starts with `/` or `./`, or contains `..`, a backslash, or spaces, returns "Root directory must be a relative path like 'api' or 'services/api'." The dashboard suggests app directories it finds in your repository.
+</ParamField>
+
+<ParamField body="buildCommand" type="string | null">
+  Replaces the build command automatic detection would run, 1 to 1000 characters, for example `pnpm --filter api build`. Ignored when a Dockerfile is set, and the dashboard disables the field with "Disabled because a Dockerfile is configured. Build commands only apply to automatic (Railpack) builds." Send `null` to go back to the detected command.
+</ParamField>
+
+<ParamField body="watchPaths" type="string[]" default="[]">
+  Glob patterns that decide whether a push builds. Up to 10 patterns, each up to 500 characters. When the list is empty, every push builds. Otherwise a push builds only if a changed file matches a pattern. `src/**` matches everything under `src`, and `**/*.go` matches every Go file. A pattern without a wildcard matches only that exact path, so `src` isn't the same as `src/**`. Don't start a pattern with `/` or `./`. An invalid pattern returns `400` when you save it. See [GitHub integration](/compute/build/github).
+</ParamField>
+
+<ParamField body="autoDeploy" type="boolean" default="true">
+  Whether GitHub pushes create deployments in this environment. When it's off, a push shows up as a `skipped` deployment with "Auto deploy is disabled for this environment." A common setup is auto deploy on for preview and off for production: every branch gets a preview, and you release to production on purpose from the dashboard, API, or CLI.
+</ParamField>
+
+## Example
+
+```bash Set a Dockerfile and scope the build to a subdirectory
+curl -X POST https://api.unkey.com/v2/environments.updateSettings \
+  -H "Authorization: Bearer $UNKEY_ROOT_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "project": "payments",
+    "app": "api",
+    "environment": "production",
+    "rootDirectory": "services/api",
+    "dockerfile": "Dockerfile",
+    "watchPaths": ["services/api/**", "packages/shared/**"]
+  }'
+```
+
+## Next steps
+
+<Columns cols={2}>
+  <Card title="Builds" icon="hammer" href="/compute/build/overview">
+    How builds run, why they wait or fail, and caching.
+  </Card>
+  <Card title="Runtime settings" icon="sliders" href="/compute/configure/runtime-settings">
+    Port, CPU, memory, disk, command, protocol, regions.
+  </Card>
+</Columns>

@@ -1,0 +1,90 @@
+---
+title: Gateway
+sidebarTitle: "Overview"
+description: "What the gateway in front of every deployment does, and how policies control it."
+sources:
+  - svc/frontline/routes/proxy/handler.go
+  - svc/frontline/internal/router/lookup.go
+  - svc/frontline/internal/db/queries/ingress_route_find_by_fqdn.sql
+  - svc/ctrl/worker/deploy/create.go
+  - svc/frontline/internal/policies/engine.go
+  - svc/frontline/internal/proxy/director.go
+  - svc/frontline/internal/proxy/forward.go
+  - svc/frontline/internal/proxy/headers.go
+  - svc/frontline/middleware/sanitize_headers.go
+  - svc/frontline/middleware/clickhouse_logging.go
+  - pkg/timing/entry.go
+  - svc/api/openapi/spec/common/Policy.yaml
+---
+
+import { ProductLink } from "/snippets/product-link.jsx";
+
+Every <Tooltip tip="One built and running version of an app in one environment.">deployment</Tooltip> on Unkey Compute sits behind the gateway, and there's no other way to reach it. So the gateway can check API keys, <Tooltip tip="Here: a gateway rate limit policy or a per-key limit the gateway enforces. Not the standalone ratelimit API.">rate limit</Tooltip> callers, block requests, validate them against your OpenAPI spec, and log them before they reach your <Tooltip tip="A Compute app: a deployable service inside a project. Not 'your application' in general.">app</Tooltip>. You set this up with policies. With no policies, the gateway just passes requests through.
+
+<Warning>
+Each deployment keeps the policies it was created with. Adding, editing, or turning off a policy only affects the **next** deployment. To apply a change, redeploy (**Redeploy** in the dashboard, or `deployments.createDeployment`).
+</Warning>
+
+## What policies can do
+
+A policy has a name, an on/off switch, up to ten match expressions that pick which requests it applies to, and one rule. There are five kinds of rule:
+
+| Type | What it does | On rejection |
+| --- | --- | --- |
+| [API key authentication](/compute/gateway/api-key-auth) | Checks an Unkey API key on the request and tells your app who's calling with the [principal header](/compute/gateway/principal). | `401`, `403`, or `429` |
+| [Rate limit](/compute/gateway/rate-limiting) | Counts requests per client IP, header, path, authenticated caller, or principal field, and rejects when the limit is used up. | `429` |
+| [Firewall](/compute/gateway/firewall) | Blocks every request its match expressions select. | `403` |
+| [OpenAPI validation](/compute/gateway/openapi-validation) | Checks the path, query, headers, and body against the OpenAPI spec your deployment serves. | `400` |
+| [Logging](/compute/gateway/logging) | Saves headers, query data, and bodies of matched requests in the request log. | Never rejects |
+
+See [Gateway policies](/compute/gateway/policies) to add them from the dashboard, API, or CLI.
+
+## What happens to a request
+
+1. The request arrives at one of your domains, and the gateway finds the deployment it belongs to.
+2. The deployment's policies run in list order. Turned-off policies, and policies whose match expressions don't fit the request, are skipped.
+3. If a policy rejects the request, the caller gets a `4xx` with an `err:frontline:...` code. The request never reaches your app and doesn't appear in your request log. See [Gateway errors](/compute/gateway/errors) for every code.
+4. If every policy passes, the gateway forwards the request to your app with the headers below.
+
+## What your app receives
+
+The gateway keeps the original `Host` header and adds these:
+
+| Header | Value |
+| --- | --- |
+| `X-Unkey-Request-Id` | The request ID. The caller sees the same value on the response and in error bodies. |
+| `X-Unkey-Region` | The gateway's platform and region as `<platform>::<region>`. |
+| `X-Unkey-Frontline-Id` | The ID of the gateway that handled the request. |
+| `X-Unkey-Principal` | Who's calling, as JSON. Only present when an API key authentication policy succeeded. |
+| `X-Forwarded-For` | The client IP. |
+| `X-Forwarded-Host` | The hostname the client requested. |
+| `X-Forwarded-Proto` | Always `https`. |
+
+Callers can't fake these. We remove any `X-Unkey-*` header a client sends before policies run. To get the deployment ID, read the `UNKEY_DEPLOYMENT_ID` environment variable.
+
+The response to the caller includes `X-Unkey-Request-Id`, `X-Unkey-Region`, and `X-Unkey-Frontline-Id`, plus `X-Unkey-Timing` entries for time spent in the gateway. Rate limit headers are added when a rate limit applied.
+
+## Use keys from API Management
+
+The API keys the gateway checks live in API Management. To require a key, create a keyspace and keys in API Management, then add the keyspace to an [API key authentication policy](/compute/gateway/api-key-auth). The same keys also work if your own code calls `keys.verifyKey`.
+
+<ProductLink product="api-management" href="/api-management/keys/creating-keys" title="Keyspaces and keys">
+  Create the keyspace and keys an authentication policy verifies against, and manage their permissions, rate limits, and credits.
+</ProductLink>
+
+## Next steps
+
+<Columns cols={2}>
+  <Card title="Gateway policies" icon="list-check" href="/compute/gateway/policies">
+    Match expressions, evaluation order, limits, and how to set policies.
+  </Card>
+  <Card title="API key authentication policy" icon="key" href="/compute/gateway/api-key-auth">
+    Verify Unkey keys at the edge and forward the identity to your app.
+  </Card>
+  <Card title="The principal header" icon="id-badge" href="/compute/gateway/principal">
+    The JSON your app reads to know who is calling.
+  </Card>
+  <Card title="Gateway errors" icon="triangle-exclamation" href="/compute/gateway/errors">
+    Every code the gateway returns, with its status and cause.
+  </Card>
+</Columns>

@@ -1,0 +1,128 @@
+---
+title: Environment variables
+description: "Give your app configuration and secrets that are encrypted and scoped per environment."
+sources:
+  - svc/api/openapi/spec/common/EnvironmentVariable.yaml
+  - svc/api/openapi/spec/common/EnvironmentVariableKind.yaml
+  - svc/api/openapi/spec/common/EnvironmentVariableInput.yaml
+  - svc/api/openapi/spec/paths/v2/environments/setEnvironmentVariables/V2EnvironmentsSetEnvironmentVariablesRequestBody.yaml
+  - svc/api/openapi/spec/paths/v2/environments/removeEnvironmentVariables/V2EnvironmentsRemoveEnvironmentVariablesRequestBody.yaml
+  - svc/api/routes/v2_environments_set_environment_variables/handler.go
+  - svc/api/routes/v2_environments_list_environment_variables/handler.go
+  - pkg/validation/env_var.go
+  - svc/ctrl/worker/deploy/env_file.go
+  - svc/krane/internal/deployment/apply.go
+  - svc/krane/internal/deployment/secrets.go
+  - web/internal/db/src/schema/app_environment_variables.ts
+  - web/apps/dashboard/lib/schemas/env-var.ts
+  - web/apps/dashboard/lib/trpc/routers/deploy/env-vars/make-sensitive.ts
+  - web/apps/dashboard/lib/trpc/routers/deploy/env-vars/rename.ts
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/env-vars/hooks/use-drop-zone.ts
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/env-vars/components/add/add-env-var-expandable.tsx
+---
+
+Environment variables give your <Tooltip tip="A Compute app: a deployable service inside a project. Not 'your application' in general.">app</Tooltip> configuration and secrets, both while it builds and while it runs. Each variable belongs to one <Tooltip tip="A production or preview environment of a Compute app, not the dashboard label on a key.">environment</Tooltip>, so production and preview can have different values for `DATABASE_URL`. Every value is encrypted at rest.
+
+## Add variables in the dashboard
+
+1. Open the app and go to **Environment Variables**.
+2. Click **Add Environment Variable**.
+3. Enter one or more key-value pairs. To import a `.env` file, drop it on the page, pick it with the file button, or paste its contents into a value field.
+4. Pick the target environment, or **All Environments** to set the same value everywhere.
+5. Turn on **Sensitive** for secrets, and add a description if you like.
+6. Save, then redeploy. See [When a change takes effect](#when-a-change-takes-effect).
+
+<Frame>
+  <img src="/images/dashboard/compute--configure-environment-variables--add.png" alt="Add Environment Variable panel with a key and value, the environment picker set to All Environments, the Sensitive toggle, and the .env import option" />
+</Frame>
+
+The `.env` import skips comments, strips surrounding quotes, and handles multi-line values such as PEM keys. If a key appears twice in the file, the last one wins. Keys that already exist in the target environment are flagged with "Variable already exists in this environment". Unsaved entries are lost if you reload the page.
+
+The list can be filtered by environment, searched, and sorted by name or last update.
+
+## Recoverable or write-only
+
+Every variable is either `recoverable` or `writeonly`. Both are encrypted the same way. The difference is whether you can ever see the value again:
+
+- **`recoverable`**: shown in the dashboard and returned by `environments.listEnvironmentVariables`. Use it for configuration you want to check later.
+- **`writeonly`**: never shown or returned. You can only replace or delete it. Use it for API keys and other credentials.
+
+The dashboard's **Sensitive** toggle makes a variable `writeonly`, with the note "Permanently hides values after saving. Use for API keys and secrets." In the API, `writeonly` is the default.
+
+## Rename, mark sensitive, or delete
+
+These actions are only in the dashboard:
+
+- **Mark as sensitive** turns selected `recoverable` variables into `writeonly`. This can't be undone.
+- **Rename** changes a key in every environment that has it. It fails if the new name is already used in any of them, and it isn't available for sensitive variables.
+- **Delete** removes a variable from one environment or from all of them.
+
+## When a change takes effect
+
+A deployment keeps the variables it was created with, for its build and its instances. Editing a variable doesn't change anything that's already running. To apply a change, push or redeploy. The dashboard shows a redeploy banner after an edit.
+
+## Set variables with the API
+
+`environments.setEnvironmentVariables` creates or overwrites the variables you send, in one atomic call: if any variable is invalid, nothing changes. Variables you don't send stay as they are.
+
+An existing key is fully overwritten. If you leave out `description` or `kind`, they reset to empty and `writeonly`.
+
+```bash Change one variable and leave the rest
+curl -X POST https://api.unkey.com/v2/environments.setEnvironmentVariables \
+  -H "Authorization: Bearer $UNKEY_ROOT_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "project": "payments",
+    "app": "api",
+    "environment": "production",
+    "variables": [
+      { "key": "LOG_LEVEL", "value": "info", "kind": "recoverable", "description": "Log verbosity" }
+    ]
+  }'
+```
+
+To replace the whole set, add `prune: true`. Every variable not in your list is deleted. `prune: true` with an empty list deletes them all.
+
+`environments.removeEnvironmentVariables` deletes the keys you name, and ignores keys that don't exist. `environments.listEnvironmentVariables` returns each variable's `key`, `kind`, `createdAt`, and `description`, plus `value` for `recoverable` ones only.
+
+## Limits
+
+| Rule | Limit |
+| --- | --- |
+| Key | 1 to 256 characters matching `^[A-Za-z_][A-Za-z0-9_]*$`: letters, digits, and underscores, not starting with a digit. |
+| Value | 1 to 16384 bytes of UTF-8. Multibyte characters count as more than one byte. Newlines inside the value are kept. The dashboard trims surrounding whitespace and rejects carriage returns. |
+| Description | Up to 255 characters, optional. |
+| Variables per API call | Up to 50 in one `setEnvironmentVariables` or `removeEnvironmentVariables` call. |
+| Duplicate keys in one call | Rejected with `400`. |
+
+There's no limit on how many variables an environment can have.
+
+## Variables Unkey injects
+
+At build time, your variables are available as described in [Build-time secrets](/compute/build/build-secrets). At run time, they're set as environment variables in each instance, along with these:
+
+| Variable | Value |
+| --- | --- |
+| `PORT` | The environment's configured port. Your app must listen on it. |
+| `UNKEY_DEPLOYMENT_ID` | The deployment's ID. |
+| `UNKEY_ENVIRONMENT_SLUG` | `production` or `preview`. |
+| `UNKEY_REGION` | The region the instance runs in. |
+| `UNKEY_GIT_COMMIT_SHA` | The commit the deployment was built from. Empty for image deployments. |
+| `UNKEY_GIT_BRANCH` | The branch of that commit. Empty for image deployments. |
+| `UNKEY_GIT_REPO` | The repository as `owner/repo`. Empty for image deployments. |
+| `UNKEY_GIT_COMMIT_MESSAGE` | The commit message. Empty for image deployments. |
+| `UNKEY_INSTANCE_ID` | The instance's own ID. |
+| `UNKEY_EPHEMERAL_DISK_PATH` | `/data`, only when the environment has ephemeral disk. |
+
+If one of your variables has the same name as one of these, ours wins. `KUBERNETES_SERVICE_HOST` and the other `KUBERNETES_*` variables some libraries look for are set to empty strings.
+
+## Next steps
+
+<Columns cols={2}>
+  <Card title="Build-time secrets" icon="key" href="/compute/build/build-secrets">
+    Use variables during the build without baking them into layers.
+  </Card>
+  <Card title="Runtime settings" icon="sliders" href="/compute/configure/runtime-settings">
+    The port and disk settings behind `PORT` and `UNKEY_EPHEMERAL_DISK_PATH`.
+  </Card>
+</Columns>

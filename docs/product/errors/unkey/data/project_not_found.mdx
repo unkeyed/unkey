@@ -1,43 +1,47 @@
 ---
 title: "project_not_found"
-description: "The requested project was not found in Unkey. Verify the project ID is correct and that the project exists within your current workspace."
+sidebarTitle: "project_not_found"
+description: "The project does not exist in your workspace."
+sources:
+  - pkg/codes/unkey_data.go
+  - svc/api/internal/middleware/errors.go
+  - svc/api/routes/v2_projects_get_project/handler.go
+  - svc/api/routes/v2_apps_create_app/handler.go
+  - svc/api/internal/ctrlclient/errors.go
 ---
 
-<Danger>err:unkey:data:project_not_found</Danger>
+<Danger>`err:unkey:data:project_not_found`</Danger>
 
-```json Example
+The project you referenced doesn't exist in your workspace. You get HTTP 404. Some Compute calls, including deployment calls, use the shorter message `Project not found.`
+
+```json Example response
 {
   "meta": {
     "requestId": "req_2c9a0jf23l4k567"
   },
   "error": {
-    "detail": "The requested project could not be found",
+    "detail": "The requested project does not exist.",
     "status": 404,
     "title": "Not Found",
-    "type": "https://unkey.com/docs/errors/unkey/data/project_not_found"
+    "type": "/errors/unkey/data/project_not_found"
   }
 }
 ```
 
-## What Happened?
+## Likely causes
 
-This error occurs when you're trying to perform an operation on a project that doesn't exist in the Unkey system.
+- The ID or slug is wrong, or the project was renamed and you're using the old slug.
+- The project is in another workspace.
+- Your root key doesn't have permission on the project. Most of these endpoints return this 404 instead of a 403.
+- You just tried to create the project and the create failed. New projects are available right away.
 
-Common scenarios that trigger this error:
+## How to fix
 
-- Using an incorrect project ID in your requests
-- Referencing a project that has been deleted
-- Attempting to access a project in a workspace you don't have access to
+1. List projects with `projects.listProjects` and use the returned ID or slug.
+2. Check that the root key has the permission the endpoint needs on the project.
 
-## How To Fix
+## Related errors
 
-Verify that you're using the correct project ID and that the project still exists in your workspace:
-
-1. Check the project ID in the Unkey dashboard under **Projects**
-2. Verify the project has not been deleted
-3. Confirm you're working in the correct workspace
-
-## Related Errors
-
-- [err:unkey:data:api_not_found](./api_not_found) - When the requested API doesn't exist
-- [err:unkey:data:workspace_not_found](./workspace_not_found) - When the requested workspace doesn't exist
+- [`err:unkey:data:app_not_found`](/errors/unkey/data/app_not_found): the app within the project doesn't exist.
+- [`err:unkey:data:project_already_exists`](/errors/unkey/data/project_already_exists): a project with that slug already exists.
+- [`err:unkey:application:protected_resource`](/errors/unkey/application/protected_resource): the project can't be deleted while delete protection is on.

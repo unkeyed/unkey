@@ -1,0 +1,150 @@
+---
+title: Updating keys
+description: "Change a key in place, and clear a field rather than recreating the key."
+sources:
+  - svc/api/openapi/spec/paths/v2/keys/updateKey/V2KeysUpdateKeyRequestBody.yaml
+  - svc/api/openapi/spec/paths/v2/keys/updateKey/UpdateKeyCreditsData.yaml
+  - svc/api/openapi/spec/paths/v2/keys/updateKey/UpdateKeyCreditsRefill.yaml
+  - svc/api/openapi/spec/paths/v2/keys/updateKey/V2KeysUpdateKeyResponseBody.yaml
+  - svc/api/openapi/spec/common/RatelimitRequest.yaml
+  - svc/api/openapi/spec/common/KeyCreditsData.yaml
+  - svc/api/routes/v2_keys_update_key/handler.go
+  - svc/api/routes/v2_keys_update_key/three_state_test.go
+  - svc/api/routes/v2_keys_update_key/400_test.go
+  - svc/api/routes/v2_keys_create_key/handler.go
+  - pkg/auditlog/events.go
+---
+
+import RootKeyPrereq from "/snippets/root-key-prereq.mdx";
+
+Use `keys.updateKey` to change what a key can do without issuing a new one. The key string stays the same, so your users keep working. Only `keyId` is required.
+
+For every other field:
+
+- Leave it out to keep the current value.
+- Send a value to replace it.
+- Send `null` to clear it, for example to remove an expiry, a refill schedule, or an identity link.
+
+<RootKeyPrereq />
+
+The root key needs `api.*.update_key` or `api.<api_id>.update_key`. Without it you get HTTP 403 [`err:unkey:authorization:insufficient_permissions`](/errors/unkey/authorization/insufficient_permissions). A `keyId` that doesn't exist or belongs to another workspace returns HTTP 404 [`err:unkey:data:key_not_found`](/errors/unkey/data/key_not_found). See [Root key permissions](/platform/root-keys/permissions).
+
+## Request fields
+
+<ParamField body="keyId" type="string" required>
+  The key's ID (`key_...`), not the key string. 3 to 255 characters matching `^[a-zA-Z0-9_]+$`.
+</ParamField>
+
+<ParamField body="name" type="string | null">
+  1 to 255 characters. `null` removes the name.
+</ParamField>
+
+<ParamField body="externalId" type="string | null">
+  1 to 255 characters matching `^[a-zA-Z0-9_.-]+$`. Moves the key to the identity with that `externalId`, creating the identity in the keyspace's project if it doesn't exist yet. An existing identity in a different project is rejected with HTTP 404 [`err:unkey:data:identity_not_found`](/errors/unkey/data/identity_not_found). `null` unlinks the key from its identity. See [Identities](/api-management/identities/overview).
+</ParamField>
+
+<ParamField body="meta" type="object | null">
+  JSON with at most 100 top-level properties. It replaces the old metadata rather than merging. `null` removes it. See [Metadata and tags](/api-management/keys/metadata-and-tags).
+</ParamField>
+
+<ParamField body="expires" type="integer | null">
+  Unix timestamp in milliseconds, at most `4102444800000` (1 January 2100). `null` makes the key permanent. A timestamp in the past is accepted and expires the key at once. See [Key expiration](/api-management/keys/expiration).
+</ParamField>
+
+<ParamField body="credits" type="object | null">
+  `credits.remaining` (integer or `null`, 0 or more) and `credits.refill` (object or `null`). Unlike `keys.createKey`, neither is required, so you can change a schedule without resending the balance. See [Credits and refill on update](#credits-and-refill-on-update). See [Credits and refill](/api-management/keys/credits-and-refill).
+</ParamField>
+
+<ParamField body="ratelimits" type="object[] | null">
+  Up to 50 limits, each with `name` (3 to 128 characters), `limit` (1 or more), `duration` in milliseconds (1000 or more), and `autoApply`. The list replaces the key's limits rather than adding to them. `null` or `[]` removes them all. See [Key and identity rate limits](/api-management/ratelimiting/key-and-identity-limits).
+</ParamField>
+
+<ParamField body="enabled" type="boolean">
+  `false` suspends the key and `true` restores it. Not nullable. See [Disabling and deleting keys](/api-management/keys/enable-disable-delete).
+</ParamField>
+
+<ParamField body="roles" type="string[]">
+  Up to 100 role names, each 1 to 128 characters. The list replaces the key's roles. Not nullable, so send `[]` to detach them all.
+</ParamField>
+
+<ParamField body="permissions" type="string[]">
+  Up to 1000 permission slugs, each 1 to 128 characters matching `^[a-zA-Z0-9_:\-\.\*]+$`. The list replaces the key's direct permissions. Not nullable, so send `[]` to detach them all.
+</ParamField>
+
+## Credits and refill on update
+
+The balance is `credits.remaining` and the schedule is `credits.refill`. Clearing one sometimes clears the other:
+
+| Sent | Balance | Refill schedule |
+| --- | --- | --- |
+| `credits` omitted | unchanged | unchanged |
+| `credits: null` | cleared, key becomes unlimited | cleared |
+| `credits.remaining: null` | cleared, key becomes unlimited | cleared |
+| `credits.remaining: 500` | set to 500 | unchanged |
+| `credits.refill: null` | unchanged | cleared |
+| `credits.refill: { ... }` | unchanged | replaced |
+
+Removing the balance removes the schedule too. Removing the schedule keeps the balance, so you can stop a subscription from renewing without taking away credits the customer already paid for.
+
+A `refill` object has `interval` (`daily` or `monthly`) and `amount` (1 or more). `refillDay` (1 to 31) is for `monthly` only. Sending it with `daily`, or leaving it out with `monthly`, fails with HTTP 400 [`err:unkey:application:invalid_input`](/errors/unkey/application/invalid_input). (`keys.createKey` ignores `refillDay` with `daily`, so a body that works for create can fail here.)
+
+To change only the balance, use `keys.updateCredits`.
+
+## Lists replace, they don't merge
+
+`ratelimits`, `roles`, and `permissions` are each the full list you want the key to end up with. Send every entry you want to keep, not just the new ones.
+
+- **Rate limits** are matched by `name`. A limit you send keeps its ID and gets the new values. A limit you leave out is deleted.
+- **Roles** must already exist. The first one that doesn't fails the request with HTTP 404 [`err:unkey:data:role_not_found`](/errors/unkey/data/role_not_found).
+- **Permissions** that don't exist yet are created for you. This list only replaces the key's direct permissions, not what its roles grant.
+
+To add or remove one entry without resending the list, use `keys.addPermissions`, `keys.removePermissions`, `keys.addRoles`, or `keys.removeRoles` instead. [Managing key permissions](/api-management/authorization/managing-key-permissions) compares them.
+
+## Example
+
+Move a key to the paid plan, extend it, and stop it expiring:
+
+```bash
+curl -X POST https://api.unkey.com/v2/keys.updateKey \
+  -H "Authorization: Bearer $UNKEY_ROOT_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "keyId": "key_...",
+    "meta": { "plan": "pro" },
+    "expires": null,
+    "credits": {
+      "remaining": 10000,
+      "refill": { "interval": "monthly", "amount": 10000, "refillDay": 1 }
+    },
+    "ratelimits": [
+      { "name": "requests", "limit": 1000, "duration": 60000, "autoApply": true }
+    ]
+  }'
+```
+
+## Response
+
+```json
+{
+  "meta": { "requestId": "req_..." },
+  "data": {}
+}
+```
+
+The response has no key data. Use `keys.getKey` to read the result.
+
+## When the change takes effect
+
+An update applies in full or not at all, so an error leaves the key as it was.
+
+Changes take about 10 seconds to reach verification, and a few verifications just after that can still see the old settings. A new credit balance applies right away. [Verifying keys](/api-management/keys/verifying-keys#how-quickly-changes-take-effect) has the details.
+
+Each update writes a `key.update` [audit event](/platform/workspace/audit-logs/event-types), plus a `permission.create` event for each permission it created.
+
+## What you can't change
+
+You can't change `apiId`, `prefix`, `byteLength`, or `recoverable` after a key is created. To replace the key string while keeping the same configuration, see [Rerolling keys](/api-management/keys/rerolling-keys). To start over, [create a new key](/api-management/keys/creating-keys) and delete the old one.
+
+<Visibility for="agents">
+  `credits.remaining` is optional on `keys.updateKey` although it's required inside `credits` on `keys.createKey`. Omitting a field isn't the same as sending `null`: omitting keeps the stored value and `null` clears it. `enabled`, `roles`, and `permissions` don't accept `null`.
+</Visibility>

@@ -1,0 +1,127 @@
+---
+title: Shared rate limits across keys
+sidebarTitle: "Shared rate limits"
+description: "Put one rate limit on a user so all of their keys share it."
+sources:
+  - svc/api/openapi/spec/paths/v2/identities/createIdentity/V2IdentitiesCreateIdentityRequestBody.yaml
+  - svc/api/openapi/spec/paths/v2/identities/updateIdentity/V2IdentitiesUpdateIdentityRequestBody.yaml
+  - svc/api/openapi/spec/paths/v2/keys/verifyKey/V2KeysVerifyKeyRequestBody.yaml
+  - svc/api/openapi/spec/paths/v2/keys/verifyKey/V2KeysVerifyKeyResponseData.yaml
+  - svc/api/routes/v2_identities_create_identity/handler.go
+  - svc/api/routes/v2_keys_create_key/handler.go
+  - svc/api/routes/v2_keys_verify_key/handler.go
+  - internal/services/keys/get.go
+  - internal/services/keys/validation.go
+  - web/internal/api/src/sdk/identities.ts
+---
+
+import RootKeyPrereq from "/snippets/root-key-prereq.mdx";
+
+A rate limit on a key counts that key alone. If a user has three keys at 100 requests per minute each, they can make 300. Put the limit on the user's identity instead, and all their keys share the same 100. Here's how to set it up.
+
+<RootKeyPrereq />
+
+The root key needs `identity.*.create_identity` (or `identity.*.update_identity` for an existing identity), `api.*.create_key`, and `api.*.verify_key`.
+
+<Steps titleSize="h3">
+  <Step title="Create the identity with a limit">
+    `autoApply: true` makes the limit count on every verification without the caller naming it.
+
+    <CodeGroup>
+    ```bash cURL
+    curl -X POST https://api.unkey.com/v2/identities.createIdentity \
+      -H "Authorization: Bearer $UNKEY_ROOT_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "externalId": "user_123",
+        "ratelimits": [
+          { "name": "requests", "limit": 100, "duration": 60000, "autoApply": true }
+        ]
+      }'
+    ```
+    ```typescript TypeScript
+    const { data } = await unkey.identities.createIdentity({
+      externalId: "user_123",
+      ratelimits: [
+        { name: "requests", limit: 100, duration: 60_000, autoApply: true },
+      ],
+    });
+    console.log(data.identityId);
+    ```
+    </CodeGroup>
+
+    If the identity already exists, for example because a key was created with this `externalId` earlier, the call returns HTTP 409 `err:unkey:data:identity_already_exists`. Use `identities.updateIdentity` with the same `ratelimits` array instead.
+  </Step>
+
+  <Step title="Create keys that belong to it">
+    Any key created with the same `externalId` is linked to the identity.
+
+    <CodeGroup>
+    ```bash cURL
+    curl -X POST https://api.unkey.com/v2/keys.createKey \
+      -H "Authorization: Bearer $UNKEY_ROOT_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{ "apiId": "api_...", "externalId": "user_123", "name": "Production" }'
+    ```
+    ```typescript TypeScript
+    await unkey.keys.createKey({ apiId: "api_...", externalId: "user_123", name: "Production" });
+    await unkey.keys.createKey({ apiId: "api_...", externalId: "user_123", name: "Staging" });
+    ```
+    </CodeGroup>
+  </Step>
+
+  <Step title="Verify any of the keys">
+    The identity limit is auto-applied, so a plain verification enforces it. Requests through the production key and the staging key both draw down the same 100 per minute.
+
+    <CodeGroup>
+    ```bash cURL
+    curl -X POST https://api.unkey.com/v2/keys.verifyKey \
+      -H "Authorization: Bearer $UNKEY_ROOT_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{ "key": "sk_..." }'
+    ```
+    ```typescript TypeScript
+    const { data } = await unkey.keys.verifyKey({ key: incomingKey });
+
+    if (!data.valid && data.code === "RATE_LIMITED") {
+      // the user exceeded 100 requests per minute across all their keys
+    }
+    console.log(data.identity?.externalId); // "user_123"
+    ```
+    </CodeGroup>
+
+    `data.ratelimits` shows the limits that were checked, with `remaining` and `reset`.
+  </Step>
+</Steps>
+
+## Several limits on one identity
+
+Add more than one limit when different operations need different budgets. A limit with `autoApply: false` is only checked when a verification names it, so an expensive endpoint can have its own budget.
+
+```bash
+curl -X POST https://api.unkey.com/v2/identities.updateIdentity \
+  -H "Authorization: Bearer $UNKEY_ROOT_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "identity": "user_123",
+    "ratelimits": [
+      { "name": "requests", "limit": 500, "duration": 3600000, "autoApply": true },
+      { "name": "tokens", "limit": 20000, "duration": 86400000, "autoApply": false }
+    ]
+  }'
+```
+
+Then spend 150 tokens on one call:
+
+```bash
+curl -X POST https://api.unkey.com/v2/keys.verifyKey \
+  -H "Authorization: Bearer $UNKEY_ROOT_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{ "key": "sk_...", "ratelimits": [ { "name": "tokens", "cost": 150 } ] }'
+```
+
+Both `requests` (auto-applied) and `tokens` are checked together. If either is exceeded, the verification returns `RATE_LIMITED` and neither is consumed.
+
+## Exceptions for one key
+
+If a key has a limit with the same `name` as one on its identity, the key's limit wins for that key. Use this to give one integration a higher limit than the user's other keys. Details are in [Key and identity rate limits](/api-management/ratelimiting/key-and-identity-limits).

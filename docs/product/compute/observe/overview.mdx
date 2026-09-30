@@ -1,0 +1,88 @@
+---
+title: Observability
+sidebarTitle: "Overview"
+description: "The signals Unkey records for a running app and where to find each one."
+sources:
+  - web/apps/dashboard/lib/navigation/leaves.ts
+  - svc/frontline/middleware/clickhouse_logging.go
+  - svc/frontline/routes/proxy/handler.go
+  - pkg/clickhouse/schema/022_frontline_requests_raw_v1.sql
+  - pkg/clickhouse/schema/036_frontline_requests_per_minute_v1.sql
+  - pkg/clickhouse/schema/037_frontline_requests_per_5m_v1.sql
+  - pkg/clickhouse/schema/038_frontline_requests_per_15m_v1.sql
+  - pkg/clickhouse/schema/039_frontline_requests_per_hour_v1.sql
+  - pkg/clickhouse/schema/040_frontline_requests_per_day_v1.sql
+  - pkg/clickhouse/schema/023_runtime_logs_raw_v1.sql
+  - pkg/clickhouse/schema/020_build_steps_v1.sql
+  - pkg/clickhouse/schema/021_build_step_logs_v1.sql
+  - pkg/clickhouse/schema/025_instance_checkpoints_v1.sql
+  - pkg/clickhouse/schema/027_instance_resources_per_minute_v1.sql
+  - pkg/clickhouse/schema/028_instance_resources_per_hour_v1.sql
+  - pkg/clickhouse/schema/033_instance_resources_per_15s_v1.sql
+  - pkg/clickhouse/schema/034_instance_resources_per_day_v1.sql
+  - pkg/clickhouse/schema/035_instance_resources_per_month_v1.sql
+  - pkg/clickhouse/schema/029_instance_events_raw_v1.sql
+  - pkg/clickhouse/user.go
+  - internal/services/analytics/executor.go
+  - web/apps/dashboard/lib/limits.ts
+---
+
+We record four kinds of data about your <Tooltip tip="A Compute app: a deployable service inside a project. Not 'your application' in general.">app</Tooltip>, with nothing to install in your code:
+
+- Every request the gateway passes to your app.
+- Everything your instances print to stdout and stderr.
+- CPU, memory, disk, and network for each instance.
+- Each build step and its output.
+
+<Columns cols={2}>
+  <Card title="Request logs" icon="arrow-right-arrow-left" href="/compute/observe/requests">
+    One row per proxied request: method, path, status, and the split between gateway and instance latency. Headers and bodies on request.
+  </Card>
+  <Card title="Runtime logs" icon="terminal" href="/compute/observe/runtime-logs">
+    stdout and stderr from every instance, parsed into severity, message, and searchable attributes.
+  </Card>
+  <Card title="Metrics" icon="chart-line" href="/compute/observe/metrics">
+    Requests per second, latency percentiles, CPU, memory, disk, network, instance count, and instance events.
+  </Card>
+  <Card title="Build logs" icon="hammer" href="/compute/observe/build-logs">
+    Each step of a build, whether it was cached, and its output.
+  </Card>
+</Columns>
+
+## Where to look in the dashboard
+
+- **Request and runtime logs:** open a project and click **Requests** or **Logs** in the sidebar. Filter by app, <Tooltip tip="A production or preview environment of a Compute app, not the dashboard label on a key.">environment</Tooltip>, <Tooltip tip="One built and running version of an app in one environment.">deployment</Tooltip>, or region.
+- **Metrics and build steps:** open the app, click **Deployments**, and open a deployment. Its overview has the traffic and resource charts and the build steps. Its **Network** view shows regions and instances with live request rates.
+
+## Rejected requests aren't in the request log
+
+The request log only has requests that reached your app. Requests rejected by a policy, or that the gateway couldn't route (an unknown hostname, or no running instance), aren't there. So your request log can show less traffic than your callers sent. See [Request logs](/compute/observe/requests).
+
+## Retention
+
+Each kind of data is kept for a fixed time, shown below. The dashboard can show all of it.
+
+The [analytics API](/compute/observe/analytics-api) has a second limit: your plan's log query range, 3 days on Starter, 7 on Pro, and 14 on Business. You can read back whichever is shorter. A query that reaches further fails with [`err:user:bad_request:query_range_exceeds_retention`](/errors/user/bad_request/query_range_exceeds_retention) instead of returning partial results.
+
+| Data | Stored for | Queryable |
+| --- | --- | --- |
+| Request log rows | 7 days | Dashboard: 7 days. Analytics API: the shorter of 7 days and your plan's range |
+| Per-minute request counts and latency percentiles | 14 days | Charts, no plan range |
+| 5 and 15 minute request aggregates | 30 days | Charts, no plan range |
+| Hourly request aggregates | 90 days | Charts, no plan range |
+| Daily request aggregates | 365 days | Charts, no plan range |
+| Runtime logs | 90 days from ingestion | Dashboard: 90 days. Analytics API: the shorter of 90 days and your plan's range |
+| Build steps and build logs | 3 months | Dashboard only |
+| 15 second resource metrics | 7 days | Charts, no plan range |
+| Per-minute resource metrics | 30 days | Charts, no plan range |
+| Hourly resource metrics | 90 days | Charts, no plan range |
+| Daily resource metrics | 365 days | Charts, no plan range |
+| Monthly resource metrics | 1825 days | Charts, no plan range |
+| Raw resource samples | 95 days | Charts, no plan range |
+| Instance events | 90 days | Charts, no plan range |
+
+For example, on Starter the analytics API reaches back 3 days into runtime logs that are kept for 90. On Business it reaches 7 days of request logs, not 14, because that's how long they're kept. See [Compute limits](/compute/configure/limits).
+
+## Query the data yourself
+
+You can query request and runtime logs with SQL through the analytics API, using the `gateway_requests_v1` and `runtime_logs_v1` tables, to build your own dashboards or alerts. See [Query gateway requests and runtime logs](/compute/observe/analytics-api). Build steps and resource metrics are only in the dashboard.

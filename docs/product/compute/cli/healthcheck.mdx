@@ -1,0 +1,42 @@
+---
+title: unkey healthcheck
+sidebarTitle: "healthcheck"
+description: "Probe a URL and exit non-zero unless it answers 200, for scripts and CI."
+sources:
+  - cmd/healthcheck/main.go
+  - docs/product/scripts/manifest.json
+---
+
+Send one HTTP GET request to a URL and exit 0 if the server answers 200, or exit 1 otherwise. The command needs no root key and never contacts the Unkey API. Use it as a small probe for CI pipelines, load balancer checks, and monitoring scripts, for example against the hostname of a deployment.
+
+## Usage
+
+```bash
+unkey healthcheck <url>
+```
+
+The URL is required. Without it, the command exits 1 with `you must provide a url like so: 'unkey healthcheck <url>'`. The command has no flags.
+
+## Behavior
+
+Redirects are followed and there's no request timeout, so a server that never answers keeps the command waiting. A 200 response prints `✓ Healthcheck passed: <url> returned 200` and exits 0. Any other status exits 1 with `healthcheck failed with status code <code>`. A connection error exits 1 with `failed to perform healthcheck:` followed by the underlying error.
+
+## Examples
+
+Probe a deployment hostname:
+
+```bash
+unkey healthcheck https://payments-payments-api-production-acme.unkey.app/health
+```
+
+Alert when a service is down:
+
+```bash
+unkey healthcheck https://example.com/api/status || echo 'Service is down!'
+```
+
+Gate a pipeline step:
+
+```bash
+unkey healthcheck http://localhost:8080/health && npm test
+```

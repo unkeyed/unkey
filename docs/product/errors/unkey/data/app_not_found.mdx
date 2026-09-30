@@ -1,11 +1,20 @@
 ---
 title: "app_not_found"
-description: "The requested app was not found in Unkey. Verify the app ID is correct and that the app exists within your current workspace."
+sidebarTitle: "app_not_found"
+description: "The app does not exist in the project."
+sources:
+  - pkg/codes/unkey_data.go
+  - svc/api/internal/middleware/errors.go
+  - svc/api/routes/v2_apps_get_app/handler.go
+  - svc/api/routes/v2_apps_update_app/handler.go
+  - svc/api/routes/v2_apps_delete_app/handler.go
 ---
 
-<Danger>err:unkey:data:app_not_found</Danger>
+<Danger>`err:unkey:data:app_not_found`</Danger>
 
-```json Example
+The <Tooltip tip="A Compute app: a deployable service inside a project, not an application in the API Management sense.">app</Tooltip> you referenced doesn't exist in the project. You get HTTP 404.
+
+```json Example response
 {
   "meta": {
     "requestId": "req_2c9a0jf23l4k567"
@@ -14,32 +23,25 @@ description: "The requested app was not found in Unkey. Verify the app ID is cor
     "detail": "The requested app does not exist.",
     "status": 404,
     "title": "Not Found",
-    "type": "https://unkey.com/docs/errors/unkey/data/app_not_found"
+    "type": "/errors/unkey/data/app_not_found"
   }
 }
 ```
 
-## What Happened?
+## Likely causes
 
-This error occurs when you're trying to perform an operation on an app that doesn't exist in the Unkey system.
+- The app ID or slug has a typo.
+- You passed the wrong project, so the app isn't in it.
+- Your root key doesn't have read permission on the app. `apps.getApp` returns this 404 instead of a 403.
 
-Common scenarios that trigger this error:
+## How to fix
 
-- Using an incorrect app ID in your request
-- Referencing an app that has been deleted
-- Attempting to access an app in a workspace you don't have access to
-- Using a root key that lacks a permission covering `read_app` for the app (a missing permission returns not found so app existence is never leaked)
+1. List the project's apps with `apps.listApps` and use the returned ID or slug.
+2. Make sure the project you pass is the one that owns the app.
+3. Check that the root key has read (or the relevant write) permission on the app.
 
-## How To Fix
+## Related errors
 
-Verify that you're using the correct app ID and that the app still exists in your workspace:
-
-1. Check the app in the Unkey dashboard
-2. Verify the app has not been deleted
-3. Confirm the app ID belongs to the workspace your root key is in
-4. Ensure your root key has a permission covering `read_app` on the app's project
-
-## Related Errors
-
-- [err:unkey:data:project_not_found](./project_not_found) - When the requested project doesn't exist
-- [err:unkey:data:workspace_not_found](./workspace_not_found) - When the requested workspace doesn't exist
+- [`err:unkey:data:project_not_found`](/errors/unkey/data/project_not_found): the project doesn't exist.
+- [`err:unkey:data:environment_not_found`](/errors/unkey/data/environment_not_found): an environment of the app doesn't exist.
+- [`err:unkey:application:protected_resource`](/errors/unkey/application/protected_resource): the app can't be deleted while delete protection is on.

@@ -1,0 +1,47 @@
+---
+title: API management
+sidebarTitle: "Overview"
+description: "Put API keys in front of an app you host anywhere."
+sources:
+  - svc/api/routes/register.go
+  - svc/api/routes/v2_keys_create_key/handler.go
+  - svc/api/routes/v2_keys_verify_key/handler.go
+  - web/internal/db/src/schema/keyAuth.ts
+boost: 3
+---
+
+API Management issues API keys to the users of your application and checks those keys on every request. Unkey stores only a hash of each key. It runs the checks you configure (expiry, credits, rate limits, permissions, IP allow lists) and returns one verdict your backend can act on. Your app can keep running wherever it already runs.
+
+<Columns cols={2}>
+  <Card title="Issue and verify your first key" icon="rocket" href="/api-management/get-started/quickstart">
+    Create a keyspace, create a key, and verify it with curl or an SDK in a few minutes.
+  </Card>
+  <Card title="Keyspaces, keys, identities, and root keys" icon="sitemap" href="/api-management/get-started/concepts">
+    The four objects you work with and how they fit together.
+  </Card>
+  <Card title="Keyspaces" icon="folder-tree" href="/api-management/keyspaces/overview">
+    The container for keys: settings, defaults, and listing keys.
+  </Card>
+  <Card title="Creating keys" icon="key" href="/api-management/keys/creating-keys">
+    Every field on `keys.createKey`, with bounds and defaults.
+  </Card>
+  <Card title="Verifying keys" icon="shield-check" href="/api-management/keys/verifying-keys">
+    What `keys.verifyKey` checks, in which order, and what it returns.
+  </Card>
+  <Card title="Credits and refill" icon="coins" href="/api-management/keys/credits-and-refill">
+    Meter total usage per key and refill it daily or monthly.
+  </Card>
+  <Card title="Rate limiting, identities, and authorization" icon="gauge-high" href="/api-management/ratelimiting/overview">
+    Per-key and shared rate limits, identities, roles, and permission queries.
+  </Card>
+  <Card title="Analytics" icon="chart-line" href="/api-management/analytics/overview">
+    Query verification and rate-limit data with SQL.
+  </Card>
+  <Card title="Audit logs" icon="scroll" href="/platform/workspace/audit-logs/overview">
+    See who changed what in the workspace, and stream it out with a log drain.
+  </Card>
+</Columns>
+
+## How this ties to Compute and Platform
+
+Root keys authenticate your calls to the Unkey API, and both products share the CLI. You'll find both documented in [Platform](/platform). If you also host your app on Unkey, the Compute gateway can verify keys for you with its key-auth policy. See [API key authentication](/compute/gateway/api-key-auth).

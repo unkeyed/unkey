@@ -1,6 +1,45 @@
 ---
 title: "key_space_not_found"
-description: "The requested key space was not found in Unkey. Verify the key space ID is correct and that it exists within your workspace configuration."
+sidebarTitle: "key_space_not_found"
+description: "A gateway key auth policy references a keyspace that does not exist in your workspace."
+sources:
+  - pkg/codes/unkey_data.go
+  - svc/api/internal/middleware/errors.go
+  - svc/api/routes/v2_gateway_set_policies/handler.go
+  - svc/api/routes/v2_gateway_update_policy/handler.go
 ---
 
 <Danger>`err:unkey:data:key_space_not_found`</Danger>
+
+A gateway key auth policy you're saving points at a <Tooltip tip="The store of keys behind an API in API Management; a gateway key auth policy points at one or more keyspaces.">keyspace</Tooltip> that doesn't exist in your workspace. You get HTTP 404, and `detail` names the first missing keyspace.
+
+```json Example response
+{
+  "meta": {
+    "requestId": "req_2c9a0jf23l4k567"
+  },
+  "error": {
+    "detail": "Keyspace \"ks_123\" does not exist.",
+    "status": 404,
+    "title": "Not Found",
+    "type": "/errors/unkey/data/key_space_not_found"
+  }
+}
+```
+
+## Likely causes
+
+- You passed the API ID (`api_...`) instead of the keyspace ID (`ks_...`). They're different values on the same API.
+- The API behind the keyspace was deleted. Deleting an API from the dashboard also deletes its keyspace, so a policy that used to work can start failing.
+- The keyspace is in another workspace.
+
+## How to fix
+
+1. Use the keyspace ID shown on the API in the dashboard, or returned by `apis.getApi`.
+2. Fix every keyspace ID in the policy. `gateway.setPolicies` and `gateway.updatePolicy` stop at the first missing one, so several bad IDs show up one at a time.
+
+## Related errors
+
+- [`err:unkey:data:key_auth_not_found`](/errors/unkey/data/key_auth_not_found): the deprecated deploy endpoint couldn't find a keyspace.
+- [`err:unkey:data:policy_not_found`](/errors/unkey/data/policy_not_found): the policy id doesn't exist.
+- [`err:unkey:data:api_not_found`](/errors/unkey/data/api_not_found): the API itself doesn't exist.

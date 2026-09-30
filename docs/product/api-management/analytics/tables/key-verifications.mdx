@@ -1,0 +1,123 @@
+---
+title: key_verifications tables
+description: "Every column in the key verification tables and their rollups."
+sources:
+  - svc/api/routes/v2_analytics_get_verifications/handler.go
+  - pkg/clickhouse/schema/001_key_verifications_raw_v2.sql
+  - pkg/clickhouse/schema/002_key_verifications_per_minute_v3.sql
+  - pkg/clickhouse/schema/003_key_verifications_per_hour_v3.sql
+  - pkg/clickhouse/schema/004_key_verifications_per_day_v3.sql
+  - pkg/clickhouse/schema/005_key_verifications_per_month_v3.sql
+  - internal/services/keys/status.go
+---
+
+Query key <Tooltip tip="Here: keys.verifyKey checking one of your users' API keys.">verification</Tooltip> data with `analytics.getVerifications` from five tables. `key_verifications_v1` has one row per verification. The four rollups have one row per time bucket with counts already summed. Use a rollup for charts and totals, and the raw table when you need individual requests, latency, or a column the rollups don't have.
+
+## key_verifications_v1
+
+One row per call to `keys.verifyKey`.
+
+<ResponseField name="request_id" type="String">
+  The `meta.requestId` of the verification request. Join it with your own logs.
+</ResponseField>
+<ResponseField name="time" type="Int64">
+  When the verification happened, in milliseconds since the Unix epoch. Convert with `fromUnixTimestamp64Milli(time)` to bucket or format it.
+</ResponseField>
+<ResponseField name="inserted_at" type="Int64">
+  When the row was recorded, in milliseconds since the Unix epoch. Filter on `time` instead.
+</ResponseField>
+<ResponseField name="workspace_id" type="String">
+  Your workspace. Always the same value.
+</ResponseField>
+<ResponseField name="key_space_id" type="String">
+  The keyspace the key belongs to. This is the keyspace's `ks_` ID, not the `api_` ID you pass to endpoints.
+</ResponseField>
+<ResponseField name="key_id" type="String">
+  The verified key. Empty when the key wasn't found.
+</ResponseField>
+<ResponseField name="identity_id" type="String">
+  The identity attached to the key, or empty.
+</ResponseField>
+<ResponseField name="external_id" type="String">
+  The identity's `externalId`, your own user or tenant ID. Group by it for per-customer usage.
+</ResponseField>
+<ResponseField name="outcome" type="LowCardinality(String)">
+  The verification result: `VALID`, `NOT_FOUND`, `DISABLED`, `EXPIRED`, `FORBIDDEN`, `INSUFFICIENT_PERMISSIONS`, `RATE_LIMITED`, or `USAGE_EXCEEDED`, which are the values `keys.verifyKey` returns in `data.code`, plus `WORKSPACE_DISABLED` and `WORKSPACE_NOT_FOUND`, which the Compute gateway records when the workspace itself can't be used.
+</ResponseField>
+<ResponseField name="tags" type="Array(String)">
+  The `tags` sent with the verification. Use `has(tags, 'x')` or `arrayJoin(tags)`.
+</ResponseField>
+<ResponseField name="spent_credits" type="Int64">
+  Credits deducted by this verification. Zero for keys without credits.
+</ResponseField>
+<ResponseField name="latency" type="Float64">
+  How long Unkey took to process the verification, in milliseconds.
+</ResponseField>
+<ResponseField name="region" type="LowCardinality(String)">
+  The region that served the request.
+</ResponseField>
+<ResponseField name="source" type="LowCardinality(String)" default="api">
+  What performed the verification: `api` for calls to `keys.verifyKey`, or `gateway` when a Compute key-auth policy verified the key.
+</ResponseField>
+<ResponseField name="app_id" type="LowCardinality(String)" default="">
+  The Compute app whose gateway verified the key, or empty for API calls.
+</ResponseField>
+
+## Rollup tables
+
+`key_verifications_per_minute_v1`, `key_verifications_per_hour_v1`, `key_verifications_per_day_v1`, and `key_verifications_per_month_v1` have the same columns. Each row sums one time bucket, so `sum(count)` equals the raw table's row count for the same filter. The rollups don't have `request_id`, `region`, or `latency`.
+
+<ResponseField name="time" type="DateTime | Date">
+  Start of the bucket. `DateTime` on per-minute and per-hour, `Date` on per-day and per-month. Compare directly with `now()` or `today()`.
+</ResponseField>
+<ResponseField name="workspace_id" type="String">
+  Your workspace.
+</ResponseField>
+<ResponseField name="key_space_id" type="String">
+  The keyspace `ks_` ID.
+</ResponseField>
+<ResponseField name="identity_id" type="String">
+  The identity, or empty.
+</ResponseField>
+<ResponseField name="external_id" type="String">
+  The identity's `externalId`, or empty.
+</ResponseField>
+<ResponseField name="key_id" type="String">
+  The key, or empty when not found.
+</ResponseField>
+<ResponseField name="outcome" type="LowCardinality(String)">
+  Same values as the raw table.
+</ResponseField>
+<ResponseField name="source" type="LowCardinality(String)">
+  `api` or `gateway`, as on the raw table.
+</ResponseField>
+<ResponseField name="app_id" type="LowCardinality(String)">
+  The Compute app, or empty.
+</ResponseField>
+<ResponseField name="tags" type="Array(String)">
+  The request tags.
+</ResponseField>
+<ResponseField name="count" type="SimpleAggregateFunction(sum, Int64)">
+  Verifications in the bucket. Read with `sum(count)`.
+</ResponseField>
+<ResponseField name="spent_credits" type="SimpleAggregateFunction(sum, Int64)">
+  Credits deducted in the bucket. Read with `sum(spent_credits)`.
+</ResponseField>
+<ResponseField name="latency_avg" type="AggregateFunction(avg, Float64)">
+  Can't be read, because `avgMerge` isn't allowed. Compute latency from the raw table instead.
+</ResponseField>
+<ResponseField name="latency_p75" type="AggregateFunction(quantilesTDigest(0.75), Float64)">
+  Can't be read. Same as `latency_avg`.
+</ResponseField>
+<ResponseField name="latency_p99" type="AggregateFunction(quantilesTDigest(0.99), Float64)">
+  Can't be read. Same as `latency_avg`.
+</ResponseField>
+
+## Which table to use
+
+- **Raw table:** individual requests and latency.
+- **Per-minute:** the last few hours in fine detail.
+- **Per-hour:** charts over a day to a week.
+- **Per-day and per-month:** billing totals.
+
+Retention caps how far back you can query any of them. See [Analytics restrictions and quotas](/api-management/analytics/restrictions-and-quotas).

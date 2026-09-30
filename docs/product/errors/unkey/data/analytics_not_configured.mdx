@@ -1,6 +1,37 @@
 ---
 title: "analytics_not_configured"
-description: "Analytics is not configured for this workspace in Unkey. Request access to the analytics feature and ensure your workspace plan supports queries."
+sidebarTitle: "analytics_not_configured"
+description: "Analytics isn't enabled for your workspace, so the analytics endpoints can't run."
+sources:
+  - pkg/codes/unkey_data.go
+  - svc/api/internal/middleware/errors.go
+  - internal/services/analytics/service.go
+  - internal/services/analytics/noop.go
 ---
 
 <Danger>`err:unkey:data:analytics_not_configured`</Danger>
+
+Analytics isn't turned on for your workspace, so every analytics query fails, whatever it says. You get HTTP 412.
+
+```json Example response
+{
+  "meta": {
+    "requestId": "req_2c9a0jf23l4k567"
+  },
+  "error": {
+    "detail": "ClickHouse analytics is not configured for this workspace",
+    "status": 412,
+    "title": "Precondition Failed",
+    "type": "/errors/unkey/data/analytics_not_configured"
+  }
+}
+```
+
+## How to fix
+
+There's no setting for this in the dashboard. Contact support with your workspace ID and ask us to turn on analytics.
+
+## Related errors
+
+- [`err:unkey:data:analytics_connection_failed`](/errors/unkey/data/analytics_connection_failed): analytics is on, but the query couldn't run because of a failure on our side.
+- [`err:user:too_many_requests:query_quota_exceeded`](/errors/user/too_many_requests/query_quota_exceeded): analytics is on and your workspace used up its query quota.

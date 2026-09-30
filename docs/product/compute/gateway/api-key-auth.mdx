@@ -1,0 +1,115 @@
+---
+title: API key authentication policy
+sidebarTitle: "API key auth policy"
+description: "Have the gateway verify Unkey API keys before requests reach your app."
+sources:
+  - svc/api/openapi/spec/common/KeyauthPolicy.yaml
+  - svc/api/openapi/spec/common/KeyLocation.yaml
+  - svc/api/openapi/spec/common/BearerTokenLocation.yaml
+  - svc/api/openapi/spec/common/HeaderKeyLocation.yaml
+  - svc/api/openapi/spec/common/QueryParamKeyLocation.yaml
+  - svc/api/openapi/spec/common/KeyRatelimit.yaml
+  - svc/api/routes/v2_gateway_set_policies/handler.go
+  - svc/frontline/internal/policies/keyauth/executor.go
+  - svc/frontline/internal/policies/keyauth/keyextract.go
+  - svc/frontline/internal/policies/keyauth/headers.go
+  - svc/frontline/internal/policies/engine.go
+  - svc/frontline/internal/policies/redaction.go
+  - svc/frontline/middleware/observability.go
+  - internal/services/keys/status.go
+---
+
+import { ProductLink } from "/snippets/product-link.jsx";
+
+<ProductLink product="api-management" href="/api-management/keys/creating-keys" title="Keyspaces and keys">
+  This policy checks keys from an API Management [keyspace](/api-management/keyspaces/overview). Create the keyspace and its keys there first. The API Management docs explain [permission queries](/api-management/authorization/permission-queries), per-key rate limits, credits, and identities.
+</ProductLink>
+
+Have the [gateway](/compute/gateway/overview) <Tooltip tip="Key verification: the same checks keys.verifyKey runs, performed by the gateway. Not domain verification.">verify</Tooltip> an Unkey API key before a request reaches your <Tooltip tip="A Compute app: a deployable service inside a project. Not 'your application' in general.">app</Tooltip>, so your code doesn't have to. If the key is good, your app gets the caller's details in the [principal header](/compute/gateway/principal). If not, the caller gets a `401`, `403`, or `429` and your app never sees the request.
+
+A key behaves the same as it does with `keys.verifyKey`.
+
+To add one, open the app, go to **Policies**, click **Add Policy**, and pick **Key Auth**. Or use the API or CLI as described in [Gateway policies](/compute/gateway/policies).
+
+## Settings
+
+<ParamField body="keyspaces" type="string[]" required>
+  1 to 5 keyspace IDs. A key from any other keyspace is rejected as invalid. Each keyspace must be in the same workspace as the <Tooltip tip="A production or preview environment of a Compute app, not the dashboard label on a key.">environment</Tooltip>, or saving fails with [`err:unkey:data:key_space_not_found`](/errors/unkey/data/key_space_not_found).
+</ParamField>
+
+<ParamField body="locations" type="KeyLocation[]" default="[{ bearer: {} }]">
+  Where to look for the key, tried in order until one has a value. Each entry sets exactly one of:
+
+  - `bearer: {}`: the `Authorization: Bearer <key>` header.
+  - `header: { name, stripPrefix? }`: a custom header. If you set `stripPrefix` and the value doesn't start with it, the header is ignored.
+  - `queryParam: { name }`: a query parameter.
+
+  When you leave it out, only `bearer` is checked.
+</ParamField>
+
+<ParamField body="permissionQuery" type="string">
+  Permissions the key must have, up to 1000 characters, for example `documents.read AND documents.write`. It uses the same syntax as `keys.verifyKey`. A query that can't be parsed rejects every request with `422`.
+</ParamField>
+
+<ParamField body="ratelimits" type="KeyRatelimit[]">
+  Up to 10 per-key rate limits, the same as the `ratelimits` parameter of `keys.verifyKey`. Each has a `name` (a limit on the key or its identity, or a new name), an optional `limit` (requests) and `duration` (milliseconds) that go together, and a `cost` (default 1). If you name a limit the key doesn't have and don't give a `limit` and `duration`, the request gets a `500`.
+</ParamField>
+
+<ParamField body="credits" type="integer" default="1">
+  Credits each matching request takes from the key. `0` checks the key without spending credits, which is useful for read-only routes. Keys with unlimited credits aren't affected.
+</ParamField>
+
+```json Example: header key with a prefix, read permission, no credit spend
+{
+  "name": "Key auth for the public API",
+  "enabled": true,
+  "match": [{ "path": { "path": { "prefix": "/v1/" } } }],
+  "keyauth": {
+    "keyspaces": ["ks_1234abcd"],
+    "locations": [
+      { "header": { "name": "X-API-Key" } },
+      { "bearer": {} }
+    ],
+    "permissionQuery": "api.read",
+    "credits": 0
+  }
+}
+```
+
+<Visibility for="agents">
+  In the dashboard this is the **Key Auth** type in **Policies > Add Policy**. Programmatically, include the object above in the `policies` array of `POST /v2/gateway.setPolicies`, or send it as `keyauth` in `POST /v2/gateway.updatePolicy` to replace an existing policy's rule. The change applies to the next deployment.
+</Visibility>
+
+## What callers get back
+
+Checks run in this order and stop at the first failure, so the order decides which error the caller gets:
+
+1. No key found in any location: `401` [`missing_credentials`](/errors/frontline/client/missing_credentials).
+2. The key doesn't exist, is disabled, has expired, or its workspace is disabled: `401` [`invalid_key`](/errors/frontline/client/invalid_key). The caller can't tell which.
+3. The key is from a keyspace not in `keyspaces`: `401` `invalid_key`.
+4. The key lacks the permissions: `403` [`insufficient_permissions`](/errors/frontline/client/insufficient_permissions).
+5. A rate limit is used up: `429` [`rate_limited`](/errors/frontline/client/rate_limited).
+6. The key has no credits left: `429` [`usage_exceeded`](/errors/frontline/client/usage_exceeded).
+
+On success, the request reaches your app with `X-Unkey-Principal` set. If several API key policies match a request, only the first one that succeeds counts, and the rest are skipped.
+
+Every check, passed or failed, shows up in API Management analytics next to your own `keys.verifyKey` calls.
+
+## Rate limit headers
+
+When a rate limit applies to the key, the response includes `X-RateLimit-Limit`, `X-RateLimit-Remaining`, and `X-RateLimit-Reset` (Unix seconds), whether the request passed or not. If several limits apply, the headers show the strictest one. A `429` also has `Retry-After` in whole seconds, at least 1. A [rate limit policy](/compute/gateway/rate-limiting) uses the same headers and only replaces them if its result is stricter.
+
+## Keys stay out of your logs
+
+When a [logging policy](/compute/gateway/logging) saves headers or query data, we redact the `Authorization` header and every header or query parameter listed in any API key policy's `locations`, even turned-off ones. Keys never reach the request log.
+
+## Next steps
+
+<Columns cols={2}>
+  <Card title="The principal header" icon="id-badge" href="/compute/gateway/principal">
+    What your app receives after a key is verified.
+  </Card>
+  <Card title="Gateway errors" icon="triangle-exclamation" href="/compute/gateway/errors">
+    Every verification outcome and the error it becomes.
+  </Card>
+</Columns>
