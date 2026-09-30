@@ -85,11 +85,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		if err := h.updateFields(ctx, tx, p.AuthorizedWorkspaceID, req); err != nil {
 			return err
 		}
-		permissionRows, err := h.replacePermissions(ctx, tx, p.AuthorizedWorkspaceID, req.KeyId, validatedPermissions, req.Permissions != nil)
+		permissionRows, removedPermissions, err := h.replacePermissions(ctx, tx, p.AuthorizedWorkspaceID, req.KeyId, validatedPermissions, req.Permissions != nil)
 		if err != nil {
 			return err
 		}
-		return h.Auditlogs.Insert(ctx, tx, updateAuditLogs(s, auditactor.FromPrincipal(p), p.AuthorizedWorkspaceID, key, permissionRows))
+		return h.Auditlogs.Insert(ctx, tx, updateAuditLogs(s, auditactor.FromPrincipal(p), p.AuthorizedWorkspaceID, key, permissionRows, removedPermissions))
 	})
 	if err != nil {
 		return err
@@ -126,16 +126,36 @@ func (h *Handler) updateFields(ctx context.Context, tx db.DBTX, workspaceID stri
 }
 
 // replacePermissions makes principal permissions the complete permission set.
-func (h *Handler) replacePermissions(ctx context.Context, tx db.DBTX, workspaceID, keyID string, slugs []string, specified bool) ([]db.InsertUnkeyPermissionParams, error) {
+func (h *Handler) replacePermissions(ctx context.Context, tx db.DBTX, workspaceID, keyID string, slugs []string, specified bool) ([]db.InsertUnkeyPermissionParams, []db.ListUnkeyPermissionRowsByPrincipalRow, error) {
 	if !specified {
-		return nil, nil
+		return nil, nil, nil
+	}
+	previousPermissions, err := db.Query.ListUnkeyPermissionRowsByPrincipal(ctx, tx, db.ListUnkeyPermissionRowsByPrincipalParams{
+		WorkspaceID:   workspaceID,
+		PrincipalType: db.UnkeyPrincipalPermissionsPrincipalTypeRootKey,
+		PrincipalID:   keyID,
+	})
+	if err != nil {
+		return nil, nil, err
+	}
+	requested := make(map[string]struct{}, len(slugs))
+	for _, slug := range slugs {
+		requested[slug] = struct{}{}
+	}
+	previous := make(map[string]struct{}, len(previousPermissions))
+	removedPermissions := make([]db.ListUnkeyPermissionRowsByPrincipalRow, 0, len(previousPermissions))
+	for _, permission := range previousPermissions {
+		previous[permission.Slug] = struct{}{}
+		if _, retained := requested[permission.Slug]; !retained {
+			removedPermissions = append(removedPermissions, permission)
+		}
 	}
 	if err := db.Query.DeleteUnkeyPermissionsByPrincipal(ctx, tx, db.DeleteUnkeyPermissionsByPrincipalParams{
 		WorkspaceID:   workspaceID,
 		PrincipalType: db.UnkeyPrincipalPermissionsPrincipalTypeRootKey,
 		PrincipalID:   keyID,
 	}); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	now := h.Clock.Now().UnixMilli()
 	rows := array.Map(slugs, func(slug string) db.InsertUnkeyPermissionParams {
@@ -148,11 +168,20 @@ func (h *Handler) replacePermissions(ctx context.Context, tx db.DBTX, workspaceI
 			CreatedAt:     now,
 		}
 	})
-	return rows, db.BulkQuery.InsertUnkeyPermissions(ctx, tx, rows)
+	if err := db.BulkQuery.InsertUnkeyPermissions(ctx, tx, rows); err != nil {
+		return nil, nil, err
+	}
+	addedPermissions := make([]db.InsertUnkeyPermissionParams, 0, len(rows))
+	for _, permission := range rows {
+		if _, retained := previous[permission.Slug]; !retained {
+			addedPermissions = append(addedPermissions, permission)
+		}
+	}
+	return addedPermissions, removedPermissions, nil
 }
 
-// updateAuditLogs records the key update and every newly granted permission.
-func updateAuditLogs(s *zen.Session, actor auditactor.Actor, workspaceID string, key db.UnkeyRootKey, permissionRows []db.InsertUnkeyPermissionParams) []auditlog.AuditLog {
+// updateAuditLogs records the key update and its permission changes.
+func updateAuditLogs(s *zen.Session, actor auditactor.Actor, workspaceID string, key db.UnkeyRootKey, permissionRows []db.InsertUnkeyPermissionParams, removedPermissions []db.ListUnkeyPermissionRowsByPrincipalRow) []auditlog.AuditLog {
 	name := key.Name.String
 	if name == "" {
 		name = key.Start
@@ -165,6 +194,18 @@ func updateAuditLogs(s *zen.Session, actor auditactor.Actor, workspaceID string,
 		CorrelationID: "",
 		Resources:     []auditlog.AuditLogResource{keyResource},
 	}}
+	logs = append(logs, array.Map(removedPermissions, func(permission db.ListUnkeyPermissionRowsByPrincipalRow) auditlog.AuditLog {
+		return auditlog.AuditLog{
+			WorkspaceID: workspaceID, Event: auditlog.AuthDisconnectPermissionKeyEvent,
+			ActorType: actor.Type, ActorID: actor.ID, ActorName: actor.Name, ActorMeta: actor.Meta,
+			Display: "Removed permission " + permission.Slug + " from root key " + key.ID, RemoteIP: s.Location(), UserAgent: s.UserAgent(),
+			CorrelationID: "",
+			Resources: []auditlog.AuditLogResource{keyResource, {
+				Type: auditlog.PermissionResourceType, ID: permission.ID,
+				Name: permission.Slug, DisplayName: permission.Slug, Meta: map[string]any{},
+			}},
+		}
+	})...)
 	logs = append(logs, array.Map(permissionRows, func(permission db.InsertUnkeyPermissionParams) auditlog.AuditLog {
 		return auditlog.AuditLog{
 			WorkspaceID: workspaceID, Event: auditlog.AuthConnectPermissionKeyEvent,

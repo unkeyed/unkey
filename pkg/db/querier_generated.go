@@ -2733,6 +2733,14 @@ type Querier interface {
 	//  ORDER BY id ASC
 	//  LIMIT ?
 	ListRootKeys(ctx context.Context, db DBTX, arg ListRootKeysParams) ([]ListRootKeysRow, error)
+	// ListUnkeyPermissionRowsByPrincipal loads permission identities before a
+	// replacement so removed assignments retain their audit target IDs.
+	//
+	//  SELECT id, slug FROM unkey_principal_permissions
+	//  WHERE workspace_id = ?
+	//    AND principal_type = ?
+	//    AND principal_id = ?
+	ListUnkeyPermissionRowsByPrincipal(ctx context.Context, db DBTX, arg ListUnkeyPermissionRowsByPrincipalParams) ([]ListUnkeyPermissionRowsByPrincipalRow, error)
 	// ListUnkeyPermissionsByPrincipal loads permissions for exactly one principal
 	// and authorized workspace. The same ID under another type or workspace is excluded.
 	//

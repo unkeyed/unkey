@@ -9,6 +9,7 @@ import (
 
 	"github.com/oapi-codegen/nullable"
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
@@ -49,6 +50,37 @@ func TestUpdateRootKeyReplacesPermissions(t *testing.T) {
 	res := call(h, route, caller, handler.Request{KeyId: target.KeyID, Permissions: &[]string{permission, permission}})
 	require.Equal(t, http.StatusOK, res.Status, "%s", res.RawBody)
 	require.Equal(t, []string{permission}, storedPermissions(t, h, workspace.ID, target.KeyID))
+}
+
+// TestUpdateRootKeyAuditsRemovedPermissions guarantees replacing permissions
+// records removals without recording retained permissions as new grants.
+func TestUpdateRootKeyAuditsRemovedPermissions(t *testing.T) {
+	h := testutil.NewHarness(t)
+	route := newRoute(h)
+	workspace := h.Resources().UserWorkspace
+	removedPermission := "unkey:v1:" + workspace.ID + ":rootKeys/*#delete"
+	retainedPermission := "unkey:v1:" + workspace.ID + ":rootKeys/*#read"
+	target := h.CreateUnkeyRootKey(seed.CreateUnkeyRootKeyRequest{WorkspaceID: workspace.ID, Permissions: []string{removedPermission, retainedPermission}})
+	caller := h.CreateRootKey(workspace.ID, "unkey:v1:"+workspace.ID+":rootKeys/*#write", retainedPermission)
+
+	res := call(h, route, caller, handler.Request{KeyId: target.KeyID, Permissions: &[]string{retainedPermission}})
+	require.Equal(t, http.StatusOK, res.Status, "%s", res.RawBody)
+	require.Equal(t, []string{retainedPermission}, storedPermissions(t, h, workspace.ID, target.KeyID))
+
+	logs := h.FindAuditLogsByTargetID(t.Context(), t, target.KeyID)
+	require.Len(t, logs, 2)
+	var disconnect *auditlog.Event
+	for i := range logs {
+		require.NotEqual(t, string(auditlog.AuthConnectPermissionKeyEvent), logs[i].Event)
+		if logs[i].Event == string(auditlog.AuthDisconnectPermissionKeyEvent) {
+			disconnect = &logs[i]
+			break
+		}
+	}
+	require.NotNil(t, disconnect)
+	require.Equal(t, "Removed permission "+removedPermission+" from root key "+target.KeyID, disconnect.Description)
+	require.Len(t, disconnect.Targets, 2)
+	require.Equal(t, removedPermission, disconnect.Targets[1].Name)
 }
 
 // TestUpdateRootKeyAcceptsMaximumPermissionLength guarantees the API accepts

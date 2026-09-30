@@ -9,6 +9,54 @@ import (
 	"context"
 )
 
+const listUnkeyPermissionRowsByPrincipal = `-- name: ListUnkeyPermissionRowsByPrincipal :many
+SELECT id, slug FROM unkey_principal_permissions
+WHERE workspace_id = ?
+  AND principal_type = ?
+  AND principal_id = ?
+`
+
+type ListUnkeyPermissionRowsByPrincipalParams struct {
+	WorkspaceID   string                                 `db:"workspace_id"`
+	PrincipalType UnkeyPrincipalPermissionsPrincipalType `db:"principal_type"`
+	PrincipalID   string                                 `db:"principal_id"`
+}
+
+type ListUnkeyPermissionRowsByPrincipalRow struct {
+	ID   string `db:"id"`
+	Slug string `db:"slug"`
+}
+
+// ListUnkeyPermissionRowsByPrincipal loads permission identities before a
+// replacement so removed assignments retain their audit target IDs.
+//
+//	SELECT id, slug FROM unkey_principal_permissions
+//	WHERE workspace_id = ?
+//	  AND principal_type = ?
+//	  AND principal_id = ?
+func (q *Queries) ListUnkeyPermissionRowsByPrincipal(ctx context.Context, db DBTX, arg ListUnkeyPermissionRowsByPrincipalParams) ([]ListUnkeyPermissionRowsByPrincipalRow, error) {
+	rows, err := db.QueryContext(ctx, listUnkeyPermissionRowsByPrincipal, arg.WorkspaceID, arg.PrincipalType, arg.PrincipalID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListUnkeyPermissionRowsByPrincipalRow
+	for rows.Next() {
+		var i ListUnkeyPermissionRowsByPrincipalRow
+		if err := rows.Scan(&i.ID, &i.Slug); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listUnkeyPermissionsByPrincipal = `-- name: ListUnkeyPermissionsByPrincipal :many
 SELECT slug FROM unkey_principal_permissions
 WHERE workspace_id = ?
