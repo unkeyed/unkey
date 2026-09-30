@@ -27,7 +27,7 @@ export const POLICY_LIMITS = {
   permissionQueryMaxLength: 1000,
   maxRatelimitsPerKeyauth: 10,
   maxIdentifiersPerRatelimit: 5,
-  maxCidrsPerMatch: 100,
+  maxRemoteIpEntries: 100,
 } as const;
 
 // protojson emits int64 fields as JSON strings (proto3 JSON mapping), while
@@ -59,7 +59,7 @@ export type StringMatch = z.infer<typeof stringMatchSchema>;
 
 // ── Match expressions (protojson oneof: path | method | header | queryParam | remoteIp)
 
-const cidrListSchema = z.array(z.string().min(1)).min(1).max(POLICY_LIMITS.maxCidrsPerMatch);
+const remoteIpListSchema = z.array(z.string().min(1)).min(1).max(POLICY_LIMITS.maxRemoteIpEntries);
 
 const httpMethod = z.enum(["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"]);
 
@@ -91,8 +91,8 @@ export const matchExprSchema = z.union([
   z
     .object({
       remoteIp: z.union([
-        z.object({ in: cidrListSchema }).strict(),
-        z.object({ notIn: cidrListSchema }).strict(),
+        z.object({ in: remoteIpListSchema }).strict(),
+        z.object({ notIn: remoteIpListSchema }).strict(),
       ]),
     })
     .strict(),
