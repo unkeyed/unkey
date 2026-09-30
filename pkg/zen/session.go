@@ -183,6 +183,13 @@ func (s *Session) Location() string {
 	return ""
 }
 
+// ClientIP returns the TCP peer address, or the address set by
+// [Session.SetClientIP]. The zero value means no valid client address was
+// captured
+func (s *Session) ClientIP() netip.Addr {
+	return s.clientIP
+}
+
 // SetClientIP sets the client address after peer metadata has been authenticated.
 func (s *Session) SetClientIP(ip netip.Addr) {
 	s.clientIP = ip.Unmap()

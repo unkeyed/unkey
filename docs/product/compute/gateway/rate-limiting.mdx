@@ -34,7 +34,7 @@ To add one, open the app, go to **Policies**, click **Add Policy**, and pick **R
 <ParamField body="identifiers" type="RatelimitIdentifier[]" required>
   1 to 5 things to count by. Each unique combination of values gets its own counter, with the same `limit` and `windowMs`. Each entry sets exactly one of:
 
-  - `remoteIp: {}`: the client IP.
+  - `remoteIp: {}`: the remote IP.
   - `header: { name }`: the value of a request header.
   - `path: {}`: the request path.
   - `authenticatedSubject: {}`: the caller's `subject`, from an earlier API key policy.

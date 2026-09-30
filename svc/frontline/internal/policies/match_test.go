@@ -2,17 +2,20 @@ package policies
 
 import (
 	"net/http"
+	"net/netip"
 	"net/url"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 	frontlinev1 "github.com/unkeyed/unkey/gen/proto/frontline/v1"
+	"github.com/unkeyed/unkey/pkg/codes"
+	"github.com/unkeyed/unkey/pkg/fault"
 )
 
 func TestMatchesRequest_EmptyList(t *testing.T) {
 	t.Parallel()
 	req := &http.Request{Method: "GET", URL: &url.URL{Path: "/api"}, Header: http.Header{}}
-	matched, err := matchesRequest(req, nil, newRegexCache())
+	matched, err := matchesRequest(req, netip.Addr{}, nil, newRegexCache())
 	require.NoError(t, err)
 	require.True(t, matched)
 }
@@ -29,7 +32,7 @@ func TestMatchesRequest_PathExact(t *testing.T) {
 		}}},
 	}
 
-	matched, err := matchesRequest(req, exprs, rc)
+	matched, err := matchesRequest(req, netip.Addr{}, exprs, rc)
 	require.NoError(t, err)
 	require.True(t, matched)
 }
@@ -46,7 +49,7 @@ func TestMatchesRequest_PathExactMismatch(t *testing.T) {
 		}}},
 	}
 
-	matched, err := matchesRequest(req, exprs, rc)
+	matched, err := matchesRequest(req, netip.Addr{}, exprs, rc)
 	require.NoError(t, err)
 	require.False(t, matched)
 }
@@ -63,7 +66,7 @@ func TestMatchesRequest_PathPrefix(t *testing.T) {
 		}}},
 	}
 
-	matched, err := matchesRequest(req, exprs, rc)
+	matched, err := matchesRequest(req, netip.Addr{}, exprs, rc)
 	require.NoError(t, err)
 	require.True(t, matched)
 }
@@ -80,7 +83,7 @@ func TestMatchesRequest_PathRegex(t *testing.T) {
 		}}},
 	}
 
-	matched, err := matchesRequest(req, exprs, rc)
+	matched, err := matchesRequest(req, netip.Addr{}, exprs, rc)
 	require.NoError(t, err)
 	require.True(t, matched)
 }
@@ -100,7 +103,7 @@ func TestMatchesRequest_PathCaseInsensitive(t *testing.T) {
 		}}},
 	}
 
-	matched, err := matchesRequest(req, exprs, rc)
+	matched, err := matchesRequest(req, netip.Addr{}, exprs, rc)
 	require.NoError(t, err)
 	require.True(t, matched)
 }
@@ -132,7 +135,7 @@ func TestMatchesRequest_MethodMatch(t *testing.T) {
 				{Expr: &frontlinev1.MatchExpr_Method{Method: &frontlinev1.MethodMatch{Methods: tt.methods}}},
 			}
 
-			matched, err := matchesRequest(req, exprs, rc)
+			matched, err := matchesRequest(req, netip.Addr{}, exprs, rc)
 			require.NoError(t, err)
 			require.Equal(t, tt.expected, matched)
 		})
@@ -154,7 +157,7 @@ func TestMatchesRequest_HeaderPresent(t *testing.T) {
 		}}},
 	}
 
-	matched, err := matchesRequest(req, exprs, rc)
+	matched, err := matchesRequest(req, netip.Addr{}, exprs, rc)
 	require.NoError(t, err)
 	require.True(t, matched)
 }
@@ -173,7 +176,7 @@ func TestMatchesRequest_HeaderNotPresent(t *testing.T) {
 		}}},
 	}
 
-	matched, err := matchesRequest(req, exprs, rc)
+	matched, err := matchesRequest(req, netip.Addr{}, exprs, rc)
 	require.NoError(t, err)
 	require.False(t, matched)
 }
@@ -195,7 +198,7 @@ func TestMatchesRequest_HeaderValue(t *testing.T) {
 		}}},
 	}
 
-	matched, err := matchesRequest(req, exprs, rc)
+	matched, err := matchesRequest(req, netip.Addr{}, exprs, rc)
 	require.NoError(t, err)
 	require.True(t, matched)
 }
@@ -218,7 +221,7 @@ func TestMatchesRequest_QueryParamPresent(t *testing.T) {
 		}}},
 	}
 
-	matched, err := matchesRequest(req, exprs, rc)
+	matched, err := matchesRequest(req, netip.Addr{}, exprs, rc)
 	require.NoError(t, err)
 	require.True(t, matched)
 }
@@ -243,7 +246,7 @@ func TestMatchesRequest_QueryParamValue(t *testing.T) {
 		}}},
 	}
 
-	matched, err := matchesRequest(req, exprs, rc)
+	matched, err := matchesRequest(req, netip.Addr{}, exprs, rc)
 	require.NoError(t, err)
 	require.True(t, matched)
 }
@@ -263,7 +266,7 @@ func TestMatchesRequest_ANDSemantics(t *testing.T) {
 		{Expr: &frontlinev1.MatchExpr_Method{Method: &frontlinev1.MethodMatch{Methods: []string{"GET", "POST"}}}},
 	}
 
-	matched, err := matchesRequest(req, exprs, rc)
+	matched, err := matchesRequest(req, netip.Addr{}, exprs, rc)
 	require.NoError(t, err)
 	require.False(t, matched)
 }
@@ -282,7 +285,7 @@ func TestMatchesRequest_ANDSemanticsAllMatch(t *testing.T) {
 		{Expr: &frontlinev1.MatchExpr_Method{Method: &frontlinev1.MethodMatch{Methods: []string{"GET", "POST"}}}},
 	}
 
-	matched, err := matchesRequest(req, exprs, rc)
+	matched, err := matchesRequest(req, netip.Addr{}, exprs, rc)
 	require.NoError(t, err)
 	require.True(t, matched)
 }
@@ -307,4 +310,84 @@ func TestRegexCache_InvalidPattern(t *testing.T) {
 
 	_, err := rc.get(`[invalid`)
 	require.Error(t, err)
+}
+
+func TestMatchesRequest_RemoteIp(t *testing.T) {
+	t.Parallel()
+
+	for _, tt := range []struct {
+		name     string
+		remoteIP string
+		match    *frontlinev1.RemoteIpMatch
+		matched  bool
+	}{
+		{name: "in hit", remoteIP: "198.51.100.10", match: &frontlinev1.RemoteIpMatch{In: []string{"198.51.100.0/24"}}, matched: true},
+		{name: "in miss", remoteIP: "198.51.101.10", match: &frontlinev1.RemoteIpMatch{In: []string{"198.51.100.0/24"}}, matched: false},
+		{name: "not in hit", remoteIP: "198.51.100.10", match: &frontlinev1.RemoteIpMatch{NotIn: []string{"198.51.100.0/24"}}, matched: false},
+		{name: "not in miss", remoteIP: "198.51.101.10", match: &frontlinev1.RemoteIpMatch{NotIn: []string{"198.51.100.0/24"}}, matched: true},
+		{name: "in second range", remoteIP: "10.8.3.9", match: &frontlinev1.RemoteIpMatch{In: []string{"198.51.100.0/24", "10.8.0.0/16"}}, matched: true},
+		{name: "bare ipv4 entry", remoteIP: "198.51.100.10", match: &frontlinev1.RemoteIpMatch{In: []string{"198.51.100.10"}}, matched: true},
+		{name: "ipv6 range", remoteIP: "2001:db8::1", match: &frontlinev1.RemoteIpMatch{In: []string{"2001:db8::/32"}}, matched: true},
+		{name: "bare ipv6 entry", remoteIP: "2001:db8::1", match: &frontlinev1.RemoteIpMatch{NotIn: []string{"2001:db8::1"}}, matched: false},
+		{name: "ipv4 client against ipv6 range", remoteIP: "198.51.100.10", match: &frontlinev1.RemoteIpMatch{In: []string{"::/0"}}, matched: false},
+		{name: "both lists set uses in", remoteIP: "198.51.100.10", match: &frontlinev1.RemoteIpMatch{In: []string{"198.51.100.0/24"}, NotIn: []string{"198.51.100.0/24"}}, matched: true},
+		{name: "neither list set matches every client", remoteIP: "198.51.100.10", match: &frontlinev1.RemoteIpMatch{}, matched: true},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			req := &http.Request{Method: "GET", URL: &url.URL{Path: "/admin"}, Header: http.Header{}}
+			exprs := []*frontlinev1.MatchExpr{{Expr: &frontlinev1.MatchExpr_RemoteIp{RemoteIp: tt.match}}}
+
+			matched, err := matchesRequest(req, netip.MustParseAddr(tt.remoteIP), exprs, newRegexCache())
+			require.NoError(t, err)
+			require.Equal(t, tt.matched, matched)
+		})
+	}
+}
+
+func TestMatchesRequest_InvalidConfiguration(t *testing.T) {
+	t.Parallel()
+
+	for _, tt := range []struct {
+		name string
+		expr *frontlinev1.MatchExpr
+	}{
+		{
+			name: "invalid cidr",
+			expr: &frontlinev1.MatchExpr{Expr: &frontlinev1.MatchExpr_RemoteIp{RemoteIp: &frontlinev1.RemoteIpMatch{In: []string{"198.51.100.0/33"}}}},
+		},
+		{
+			name: "zoned address",
+			expr: &frontlinev1.MatchExpr{Expr: &frontlinev1.MatchExpr_RemoteIp{RemoteIp: &frontlinev1.RemoteIpMatch{In: []string{"fe80::1%eth0"}}}},
+		},
+		{
+			name: "invalid regex",
+			expr: &frontlinev1.MatchExpr{Expr: &frontlinev1.MatchExpr_Path{Path: &frontlinev1.PathMatch{
+				Path: &frontlinev1.StringMatch{Match: &frontlinev1.StringMatch_Regex{Regex: "[invalid"}},
+			}}},
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			req := &http.Request{Method: "GET", URL: &url.URL{Path: "/admin"}, Header: http.Header{}}
+
+			_, err := matchesRequest(req, netip.MustParseAddr("198.51.100.10"), []*frontlinev1.MatchExpr{tt.expr}, newRegexCache())
+			require.Error(t, err)
+			code, ok := fault.GetCode(err)
+			require.True(t, ok)
+			require.Equal(t, codes.Frontline.Internal.InvalidConfiguration.URN(), code)
+		})
+	}
+}
+
+func TestMatchesRequest_RemoteIpMissing(t *testing.T) {
+	t.Parallel()
+	req := &http.Request{Method: "GET", URL: &url.URL{Path: "/admin"}, Header: http.Header{}}
+	exprs := []*frontlinev1.MatchExpr{{Expr: &frontlinev1.MatchExpr_RemoteIp{RemoteIp: &frontlinev1.RemoteIpMatch{NotIn: []string{"198.51.100.0/24"}}}}}
+
+	matched, err := matchesRequest(req, netip.Addr{}, exprs, newRegexCache())
+	require.Error(t, err)
+	require.False(t, matched)
 }
