@@ -32,8 +32,8 @@ func invoices(ctx context.Context, cmd *cli.Command) error {
 
 func printInvoices(ctx context.Context, out *tui.Renderer, sc *stripesdk.Client, customerID string) error {
 	list := sc.V1Invoices.List(ctx, &stripesdk.InvoiceListParams{
-		ListParams: stripesdk.ListParams{Limit: stripesdk.Int64(5)},
-		Customer:   stripesdk.String(customerID),
+		Limit:    stripesdk.Int64(5),
+		Customer: stripesdk.String(customerID),
 	})
 	count := 0
 	for invoice, err := range list.All(ctx) {

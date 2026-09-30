@@ -244,7 +244,7 @@ func expectedInvoiceLine(t *testing.T, id, invoiceID, workspaceID, period string
 	amount, err := roundedLineAmount(unitAmount, item.Quantity)
 	require.NoError(t, err)
 	return &stripe.InvoiceLineItem{
-		APIResource:  stripe.APIResource{LastResponse: &stripe.APIResponse{RawJSON: rawJSON}},
+		LastResponse: &stripe.APIResponse{RawJSON: rawJSON},
 		ID:           id,
 		Amount:       amount,
 		Subtotal:     amount,

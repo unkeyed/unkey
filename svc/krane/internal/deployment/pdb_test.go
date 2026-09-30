@@ -8,7 +8,6 @@ import (
 	"github.com/unkeyed/unkey/svc/krane/pkg/labels"
 	appsv1 "k8s.io/api/apps/v1"
 	policyv1 "k8s.io/api/policy/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -25,10 +24,8 @@ func TestBuildPodDisruptionBudget(t *testing.T) {
 		K8SNamespace:  "customer-ns",
 	}
 	rs := &appsv1.ReplicaSet{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "dep-123",
-			UID:  types.UID("rs-uid-123"),
-		},
+		Name: "dep-123",
+		UID:  types.UID("rs-uid-123"),
 	}
 	alwaysAllow := policyv1.AlwaysAllow
 

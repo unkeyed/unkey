@@ -19,10 +19,8 @@ import (
 func TestBuildDeploymentStatus_PodStatuses(t *testing.T) {
 	rsSelector := map[string]string{"deployment_id": "dep_abc"}
 	rs := &appsv1.ReplicaSet{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "rs-1",
-			Namespace: "ns-1",
-		},
+		Name:      "rs-1",
+		Namespace: "ns-1",
 		Spec: appsv1.ReplicaSetSpec{
 			Selector: &metav1.LabelSelector{MatchLabels: rsSelector},
 			Template: corev1.PodTemplateSpec{
@@ -38,11 +36,9 @@ func TestBuildDeploymentStatus_PodStatuses(t *testing.T) {
 
 	podBase := func(name string) corev1.Pod {
 		return corev1.Pod{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      name,
-				Namespace: "ns-1",
-				Labels:    rsSelector,
-			},
+			Name:      name,
+			Namespace: "ns-1",
+			Labels:    rsSelector,
 			Status: corev1.PodStatus{
 				PodIP: "10.0.0.1",
 			},

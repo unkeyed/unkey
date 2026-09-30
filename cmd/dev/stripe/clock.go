@@ -72,7 +72,7 @@ func clockStatus(ctx context.Context, cmd *cli.Command) error {
 	out := tui.New(os.Stdout)
 	found := false
 	clocks := sc.V1TestHelpersTestClocks.List(ctx, &stripesdk.TestHelpersTestClockListParams{
-		ListParams: stripesdk.ListParams{Limit: stripesdk.Int64(20)},
+		Limit: stripesdk.Int64(20),
 	})
 	for clock, err := range clocks.All(ctx) {
 		if err != nil {
@@ -282,8 +282,8 @@ func targetTime(ctx context.Context, sc *stripesdk.Client, cmd *cli.Command, clo
 
 func listClockCustomers(ctx context.Context, sc *stripesdk.Client, clockID string) ([]*stripesdk.Customer, error) {
 	list := sc.V1Customers.List(ctx, &stripesdk.CustomerListParams{
-		ListParams: stripesdk.ListParams{Limit: stripesdk.Int64(5)},
-		TestClock:  stripesdk.String(clockID),
+		Limit:     stripesdk.Int64(5),
+		TestClock: stripesdk.String(clockID),
 	})
 	var customers []*stripesdk.Customer
 	for customer, err := range list.All(ctx) {
@@ -300,8 +300,8 @@ func listClockCustomers(ctx context.Context, sc *stripesdk.Client, clockID strin
 // subscription exists at all.
 func latestPeriodEnd(ctx context.Context, sc *stripesdk.Client, customerID string) (int64, bool, error) {
 	list := sc.V1Subscriptions.List(ctx, &stripesdk.SubscriptionListParams{
-		ListParams: stripesdk.ListParams{Limit: stripesdk.Int64(10)},
-		Customer:   stripesdk.String(customerID),
+		Limit:    stripesdk.Int64(10),
+		Customer: stripesdk.String(customerID),
 	})
 	var latest int64
 	found := false
