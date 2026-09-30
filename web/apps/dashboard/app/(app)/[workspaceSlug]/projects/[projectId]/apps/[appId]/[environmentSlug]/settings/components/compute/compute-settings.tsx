@@ -1,7 +1,7 @@
 "use client";
 
 import { trpc } from "@/lib/trpc/client";
-import { IconPlusOutline12 } from "@unkey/icons";
+import { IconPlusOutline18 } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { useState } from "react";
 import { NewRegionCard, RegionCard } from "./region-card";
@@ -49,7 +49,7 @@ export function ComputeSettings() {
                 disabled={!canAdd}
                 onClick={() => setAdding(true)}
               >
-                <IconPlusOutline12 className="size-3" />
+                <IconPlusOutline18 />
                 Add region
               </Button>
             )}
