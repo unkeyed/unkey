@@ -1,8 +1,8 @@
 import { Button, SettingsRow, Skeleton } from "@unkey/ui";
 
 export const GitHubSettingCard = ({ children }: { children: React.ReactNode }) => (
-  <SettingsRow title="Repository" description="Repository Unkey deploys from." layout="stacked">
-    {children}
+  <SettingsRow title="Repository" description="Repository Unkey deploys from.">
+    <div className="max-w-(--setting-w)">{children}</div>
   </SettingsRow>
 );
 

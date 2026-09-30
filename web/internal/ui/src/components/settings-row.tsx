@@ -105,19 +105,15 @@ SettingsGroup.displayName = "SettingsGroup";
 function SettingsRow({
   title,
   description,
-  layout = "inline",
   children,
 }: {
   title: React.ReactNode;
   description?: React.ReactNode;
-  /** `stacked` puts the label above a control that spans the full row. */
-  layout?: "inline" | "stacked";
   children: React.ReactNode;
 }) {
-  const stacked = layout === "stacked";
   return (
-    <div className={cn("flex flex-col gap-4 px-5 py-5", !stacked && "lg:flex-row")}>
-      <div className={cn("shrink-0 flex flex-col gap-1", !stacked && "lg:w-2/5")}>
+    <div className="flex flex-col gap-4 px-5 py-5 lg:flex-row">
+      <div className="shrink-0 flex flex-col gap-1 lg:w-2/5">
         <div className="text-sm font-medium text-gray-12">{title}</div>
         {description && <p className="text-xs leading-5 text-gray-11">{description}</p>}
       </div>

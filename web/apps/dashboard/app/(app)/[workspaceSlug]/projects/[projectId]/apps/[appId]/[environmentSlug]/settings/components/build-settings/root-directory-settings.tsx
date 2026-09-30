@@ -126,8 +126,6 @@ export const RootDirectory = () => {
           error={errors.dockerContext?.message}
           variant={inputVariant}
           options={options}
-          wrapperClassName="max-w-[calc(var(--setting-w)-1rem)]"
-          className="max-w-[calc(var(--setting-w)-1rem)]"
           value={currentDockerContext}
           onSelect={(value) => setValue("dockerContext", value, { shouldValidate: true })}
           creatable
