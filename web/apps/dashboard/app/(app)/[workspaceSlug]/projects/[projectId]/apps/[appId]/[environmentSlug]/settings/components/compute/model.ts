@@ -242,6 +242,57 @@ export function activePreset(view: Pick<CardView, "sizeMode" | "cpuMillicores" |
     .exhaustive();
 }
 
+export type UnitField = { unit: string; scale: number; min: number; max: number; step: number };
+
+export type UnitParse = { ok: true; value: number } | { ok: false; message: string };
+
+const MIB_PER_GIB = 1024;
+
+export function unitFields(limits: ComputeLimits) {
+  return {
+    cpu: { unit: "vCPU", scale: 1000, min: 250, max: limits.cpuMillicores, step: 250 },
+    memory: { unit: "GiB", scale: MIB_PER_GIB, min: 256, max: limits.memoryMib, step: 256 },
+    storage: { unit: "GiB", scale: MIB_PER_GIB, min: 512, max: limits.storageMib, step: 512 },
+  } satisfies Record<string, UnitField>;
+}
+
+export function formatUnit(value: number, field: UnitField): string {
+  return String(Math.round((value / field.scale) * 100) / 100);
+}
+
+export function parseUnit(text: string, field: UnitField): UnitParse {
+  const display = Number(text.trim());
+  if (text.trim() === "" || !Number.isFinite(display)) {
+    return { ok: false, message: "Enter a number." };
+  }
+  const raw = display * field.scale;
+  const value = Math.round(raw);
+  if (value < field.min) {
+    return { ok: false, message: `Minimum is ${formatUnit(field.min, field)} ${field.unit}.` };
+  }
+  if (value > field.max) {
+    return {
+      ok: false,
+      message: `Maximum is ${formatUnit(field.max, field)} ${field.unit} on your plan.`,
+    };
+  }
+  if (Math.abs(raw - value) > 1e-6 || value % field.step !== 0) {
+    return {
+      ok: false,
+      message: `Use steps of ${formatUnit(field.step, field)} ${field.unit}.`,
+    };
+  }
+  return { ok: true, value };
+}
+
+export function nudgeUnit(value: number | null, direction: 1 | -1, field: UnitField): number {
+  if (value === null) {
+    return field.min;
+  }
+  const snapped = Math.round(value / field.step) * field.step;
+  return Math.min(field.max, Math.max(field.min, snapped + direction * field.step));
+}
+
 const joinParts = ({ value, unit }: { value: string; unit: string }) =>
   unit ? `${value} ${unit}` : value;
 

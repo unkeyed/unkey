@@ -19,16 +19,22 @@ import {
   IconRamOutline18,
 } from "@unkey/icons";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@unkey/ui";
-import { useState } from "react";
+import { cn } from "cn";
+import { useId, useState } from "react";
 import {
   PRESETS,
   type Preset,
   STORAGE_OPTIONS,
+  type UnitField,
   activePreset,
   formatCpu,
   formatMemory,
   formatStorage,
+  formatUnit,
+  nudgeUnit,
+  parseUnit,
   presetFits,
+  unitFields,
 } from "./model";
 import type { ComputeCard } from "./use-compute";
 
@@ -130,131 +136,140 @@ export function SizeTrigger({ c }: { c: ComputeCard }) {
   );
 }
 
-const MIB_PER_GIB = 1024;
-
-function trimNumber(n: number): string {
-  return String(Math.round(n * 100) / 100);
-}
-
 function UnitInput({
   label,
-  unit,
+  field,
   value,
-  step,
-  min,
-  max,
-  onChange,
+  live,
+  onCommit,
 }: {
   label: string;
-  unit: string;
+  field: UnitField;
   value: number | null;
-  step: number;
-  min: number;
-  max: number;
-  onChange: (n: number) => void;
+  live: boolean;
+  onCommit: (value: number) => void;
 }) {
-  const [text, setText] = useState(value === null ? "" : trimNumber(value));
-  const commit = (next: string) => {
-    setText(next);
-    const n = Number(next);
-    if (next !== "" && Number.isFinite(n) && n >= min && n <= max) {
-      onChange(n);
+  const [text, setText] = useState<string | null>(null);
+  const errorId = useId();
+  const shown = text ?? (value === null ? "" : formatUnit(value, field));
+  const parsed = text === null ? null : parseUnit(text, field);
+  const error = parsed && !parsed.ok ? parsed.message : null;
+  const settle = () => {
+    if (parsed?.ok) {
+      onCommit(parsed.value);
+      setText(null);
     }
   };
   const nudge = (direction: 1 | -1) => {
-    const base = Number(text);
-    const start = Number.isFinite(base) && text !== "" ? base : min;
-    commit(trimNumber(Math.min(max, Math.max(min, start + direction * step))));
+    setText(null);
+    onCommit(nudgeUnit(parsed?.ok ? parsed.value : value, direction, field));
   };
   return (
-    <div className="flex h-8 w-full items-stretch overflow-hidden rounded-md border border-grayA-5 bg-raised focus-within:border-grayA-8">
-      <input
-        type="text"
-        inputMode="decimal"
-        aria-label={label}
-        value={text}
-        onChange={(e) => commit(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === "ArrowUp" || e.key === "ArrowDown") {
-            e.preventDefault();
-            nudge(e.key === "ArrowUp" ? 1 : -1);
-          }
-        }}
-        className="min-w-0 flex-1 bg-transparent px-3 font-mono text-sm text-gray-12 outline-hidden placeholder:text-gray-9"
-      />
-      <div className="flex flex-col justify-center pr-1.5">
-        <button
-          type="button"
-          tabIndex={-1}
-          aria-label={`Increase ${label}`}
-          onClick={() => nudge(1)}
-          className="flex h-3.5 w-4 items-center justify-center text-gray-10 hover:text-gray-12"
-        >
-          <IconChevronDownOutline12 className="size-2.5 rotate-180" />
-        </button>
-        <button
-          type="button"
-          tabIndex={-1}
-          aria-label={`Decrease ${label}`}
-          onClick={() => nudge(-1)}
-          className="flex h-3.5 w-4 items-center justify-center text-gray-10 hover:text-gray-12"
-        >
-          <IconChevronDownOutline12 className="size-2.5" />
-        </button>
+    <div className="flex flex-col gap-1">
+      <div
+        className={cn(
+          "flex h-8 w-full items-stretch overflow-hidden rounded-md border bg-raised",
+          error ? "border-error-9" : "border-grayA-5 focus-within:border-grayA-8",
+        )}
+      >
+        <input
+          type="text"
+          inputMode="decimal"
+          aria-label={label}
+          aria-invalid={error !== null}
+          aria-describedby={error ? errorId : undefined}
+          value={shown}
+          onChange={(e) => {
+            const next = e.target.value;
+            setText(next);
+            const result = parseUnit(next, field);
+            if (live && result.ok) {
+              onCommit(result.value);
+            }
+          }}
+          onBlur={settle}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              settle();
+            } else if (e.key === "Escape") {
+              setText(null);
+            } else if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+              e.preventDefault();
+              nudge(e.key === "ArrowUp" ? 1 : -1);
+            }
+          }}
+          className="min-w-0 flex-1 bg-transparent px-3 font-mono text-sm text-gray-12 outline-hidden placeholder:text-gray-9"
+        />
+        <div className="flex flex-col justify-center pr-1.5">
+          <button
+            type="button"
+            tabIndex={-1}
+            aria-label={`Increase ${label}`}
+            onClick={() => nudge(1)}
+            className="flex h-3.5 w-4 items-center justify-center text-gray-10 hover:text-gray-12"
+          >
+            <IconChevronDownOutline12 className="size-2.5 rotate-180" />
+          </button>
+          <button
+            type="button"
+            tabIndex={-1}
+            aria-label={`Decrease ${label}`}
+            onClick={() => nudge(-1)}
+            className="flex h-3.5 w-4 items-center justify-center text-gray-10 hover:text-gray-12"
+          >
+            <IconChevronDownOutline12 className="size-2.5" />
+          </button>
+        </div>
+        <span className="flex w-12 items-center justify-center border-l border-grayA-5 bg-grayA-2 text-xs text-gray-11">
+          {field.unit}
+        </span>
       </div>
-      <span className="flex w-12 items-center justify-center border-l border-grayA-5 bg-grayA-2 text-xs text-gray-11">
-        {unit}
-      </span>
+      {error ? (
+        <p id={errorId} className="text-xs text-error-11">
+          {error}
+        </p>
+      ) : null}
     </div>
   );
 }
 
 function CustomSize({ c }: { c: ComputeCard }) {
-  const maxCpu = c.limits.cpuMillicores / 1000;
-  const maxMemory = c.limits.memoryMib / MIB_PER_GIB;
+  const fields = unitFields(c.limits);
+  const live = c.saveMode === "manual";
   return (
     <div className="flex flex-col gap-2">
-      <div className="flex items-center justify-between">
-        <span className="text-xs text-gray-11">CPU</span>
+      <div className="flex items-start justify-between">
+        <span className="pt-2 text-xs text-gray-11">CPU</span>
         <div className="w-40">
           <UnitInput
             label="CPU"
-            unit="vCPU"
-            value={c.view.cpuMillicores / 1000}
-            step={0.25}
-            min={0.25}
-            max={maxCpu}
-            onChange={(v) =>
-              c.edit({
-                size: { cpuMillicores: Math.round(v * 1000), memoryMib: c.view.memoryMib },
-              })
+            field={fields.cpu}
+            value={c.view.cpuMillicores}
+            live={live}
+            onCommit={(cpuMillicores) =>
+              c.edit({ size: { cpuMillicores, memoryMib: c.view.memoryMib } })
             }
           />
         </div>
       </div>
-      <div className="flex items-center justify-between">
-        <span className="text-xs text-gray-11">Memory</span>
+      <div className="flex items-start justify-between">
+        <span className="pt-2 text-xs text-gray-11">Memory</span>
         <div className="w-40">
           <UnitInput
             label="Memory"
-            unit="GiB"
-            value={c.view.memoryMib / MIB_PER_GIB}
-            step={0.25}
-            min={0.25}
-            max={maxMemory}
-            onChange={(v) =>
-              c.edit({
-                size: {
-                  cpuMillicores: c.view.cpuMillicores,
-                  memoryMib: Math.round(v * MIB_PER_GIB),
-                },
-              })
+            field={fields.memory}
+            value={c.view.memoryMib}
+            live={live}
+            onCommit={(memoryMib) =>
+              c.edit({ size: { cpuMillicores: c.view.cpuMillicores, memoryMib } })
             }
           />
         </div>
       </div>
       <p className="text-xs text-gray-10">
-        Max {trimNumber(maxCpu)} vCPU · {trimNumber(maxMemory)} GiB on your plan.
+        Max {formatUnit(fields.cpu.max, fields.cpu)} vCPU ·{" "}
+        {formatUnit(fields.memory.max, fields.memory)} GiB on your plan.
       </p>
     </div>
   );
@@ -340,7 +355,7 @@ const CUSTOM_STORAGE = "custom";
 export function StorageSelect({ c }: { c: ComputeCard }) {
   const options = STORAGE_OPTIONS.filter((mib) => mib <= c.limits.storageMib);
   const custom = c.view.storageMode === "custom";
-  const limitGib = c.limits.storageMib / MIB_PER_GIB;
+  const field = unitFields(c.limits).storage;
   return (
     <div className="flex flex-col gap-2">
       <Select
@@ -376,14 +391,14 @@ export function StorageSelect({ c }: { c: ComputeCard }) {
         <div className="flex flex-col gap-1">
           <UnitInput
             label="Custom storage"
-            unit="GiB"
-            value={c.view.storageMib > 0 ? c.view.storageMib / MIB_PER_GIB : null}
-            step={0.5}
-            min={0.5}
-            max={limitGib}
-            onChange={(v) => c.edit({ storageMib: Math.round(v * MIB_PER_GIB) })}
+            field={field}
+            value={c.view.storageMib > 0 ? c.view.storageMib : null}
+            live={c.saveMode === "manual"}
+            onCommit={(storageMib) => c.edit({ storageMib })}
           />
-          <p className="text-xs text-gray-10">Up to {limitGib} GiB per instance.</p>
+          <p className="text-xs text-gray-10">
+            Up to {formatUnit(field.max, field)} GiB per instance.
+          </p>
         </div>
       ) : null}
     </div>
