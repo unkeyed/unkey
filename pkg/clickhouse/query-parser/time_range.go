@@ -22,7 +22,7 @@ func (p *Parser) validateTimeRange() error {
 	earliestAllowed := time.Now().AddDate(0, 0, -int(p.config.QueryRangeDaysMax))
 	var validationErr error
 
-	walkQueryIncludingExcept(p.stmt, func(node clickhouse.Expr) bool {
+	clickhouse.Walk(p.stmt, func(node clickhouse.Expr) bool {
 		selectQuery, ok := node.(*clickhouse.SelectQuery)
 		if !ok {
 			return true
@@ -377,7 +377,7 @@ func (p *Parser) parseIntervalExpression(expr clickhouse.Expr) (time.Duration, e
 	}
 
 	// Convert to duration based on unit
-	unit := strings.ToUpper(interval.Unit.String())
+	unit := strings.ToUpper(clickhouse.Format(interval.Unit))
 	switch unit {
 	case "SECOND":
 		return time.Duration(value) * time.Second, nil

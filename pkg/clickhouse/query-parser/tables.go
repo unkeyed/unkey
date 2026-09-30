@@ -21,7 +21,7 @@ func (p *Parser) rewriteTables() error {
 	var rewriteErr error
 
 	// Walk every query branch so aliases and table access are validated uniformly.
-	walkQueryIncludingExcept(p.stmt, func(node clickhouse.Expr) bool {
+	clickhouse.Walk(p.stmt, func(node clickhouse.Expr) bool {
 		tableIdent, ok := node.(*clickhouse.TableIdentifier)
 		if !ok {
 			return true
