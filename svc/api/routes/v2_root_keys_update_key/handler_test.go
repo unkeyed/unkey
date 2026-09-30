@@ -3,6 +3,7 @@ package handler_test
 import (
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -46,6 +47,22 @@ func TestUpdateRootKeyReplacesPermissions(t *testing.T) {
 	target := h.CreateUnkeyRootKey(seed.CreateUnkeyRootKeyRequest{WorkspaceID: workspace.ID, Permissions: []string{oldPermission}})
 	caller := h.CreateRootKey(workspace.ID, "unkey:v1:"+workspace.ID+":rootKeys/*#write", permission)
 	res := call(h, route, caller, handler.Request{KeyId: target.KeyID, Permissions: &[]string{permission, permission}})
+	require.Equal(t, http.StatusOK, res.Status, "%s", res.RawBody)
+	require.Equal(t, []string{permission}, storedPermissions(t, h, workspace.ID, target.KeyID))
+}
+
+// TestUpdateRootKeyAcceptsMaximumPermissionLength guarantees the API accepts
+// permission strings up to the storage limit of 512 characters.
+func TestUpdateRootKeyAcceptsMaximumPermissionLength(t *testing.T) {
+	h := testutil.NewHarness(t)
+	route := newRoute(h)
+	workspace := h.Resources().UserWorkspace
+	prefix := "unkey:v1:" + workspace.ID + ":projects/"
+	permission := prefix + strings.Repeat("p", 512-len(prefix)-len("#read")) + "#read"
+	target := h.CreateUnkeyRootKey(seed.CreateUnkeyRootKeyRequest{WorkspaceID: workspace.ID})
+	caller := h.CreateRootKey(workspace.ID, "unkey:v1:"+workspace.ID+":rootKeys/*#write", permission)
+
+	res := call(h, route, caller, handler.Request{KeyId: target.KeyID, Permissions: &[]string{permission}})
 	require.Equal(t, http.StatusOK, res.Status, "%s", res.RawBody)
 	require.Equal(t, []string{permission}, storedPermissions(t, h, workspace.ID, target.KeyID))
 }

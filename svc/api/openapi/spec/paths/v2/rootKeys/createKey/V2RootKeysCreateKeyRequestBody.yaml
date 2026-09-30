@@ -15,7 +15,7 @@ properties:
     items:
       type: string
       minLength: 1
-      maxLength: 255
+      maxLength: 512
   expires:
     type: [integer, "null"]
     format: int64

@@ -3919,7 +3919,7 @@ components:
                     items:
                         type: string
                         minLength: 1
-                        maxLength: 255
+                        maxLength: 512
                 expires:
                     type:
                         - integer
@@ -4058,7 +4058,7 @@ components:
                     items:
                         type: string
                         minLength: 1
-                        maxLength: 255
+                        maxLength: 512
         V2RootKeysUpdateKeyResponseBody:
             type: object
             additionalProperties: false
