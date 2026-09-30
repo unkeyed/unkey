@@ -18,6 +18,8 @@ import (
 	"github.com/unkeyed/unkey/svc/krane/internal/keymutex"
 	"github.com/unkeyed/unkey/svc/krane/internal/podstatus"
 	"github.com/unkeyed/unkey/svc/krane/pkg/metrics"
+	"google.golang.org/protobuf/proto"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
@@ -43,16 +45,10 @@ type Controller struct {
 	region           string
 	platform         string
 
-	// fingerprints tracks the most recently reported state per ReplicaSet
-	// so we can skip redundant reports during resync. Entries auto-expire
-	// via the cache's TTL, preventing unbounded growth from deleted RSs.
 	fingerprints cache.Cache[string, string]
 
 	eventDedup cache.Cache[string, struct{}]
 
-	// reportLocks serializes reportIfChanged per k8s_name so the fingerprint
-	// Get and post-RPC Set can't race with another concurrent event for the
-	// same ReplicaSet and both report the same state.
 	reportLocks keymutex.KeyMutex
 
 	// lagRecorder records pod watch delivery lag, deduplicated per
@@ -181,9 +177,6 @@ func (c *Controller) clusterKey() *ctrlv1.ClusterKey {
 // reportDeploymentStatus reports actual deployment state to the control plane
 // through the circuit breaker. The circuit breaker prevents cascading failures
 // during control plane outages by failing fast after repeated errors.
-//
-// On success, the fingerprint for this report is cached so that
-// [Controller.reportIfChanged] can skip redundant reports during resync.
 func (c *Controller) reportDeploymentStatus(ctx context.Context, status *ctrlv1.ReportDeploymentStatusRequest) error {
 	status.Cluster = c.clusterKey()
 	start := time.Now()
@@ -215,44 +208,54 @@ func (c *Controller) reportDeploymentStatus(ctx context.Context, status *ctrlv1.
 	}
 
 	if update := status.GetUpdate(); update != nil {
-		c.fingerprints.Set(ctx, update.GetK8SName(), instanceFingerprint(update.GetInstances()))
+		fingerprint, err := instanceFingerprint(update.GetInstances())
+		if err != nil {
+			return err
+		}
+		c.fingerprints.Set(ctx, update.GetK8SName(), fingerprint)
 	}
 
 	return nil
 }
 
-// reportIfChanged reports deployment status only when the instance list differs
-// from the last successful report. Returns true if a report was sent.
-//
-// Serialized per k8s_name: pod events for the same ReplicaSet are processed
-// concurrently, so the fingerprint Get/RPC/Set window would otherwise race
-// and let two events both pass the dedupe check.
-func (c *Controller) reportIfChanged(ctx context.Context, status *ctrlv1.ReportDeploymentStatusRequest) (bool, error) {
-	update := status.GetUpdate()
-	if update == nil {
-		// Deletes are always forwarded.
-		return true, c.reportDeploymentStatus(ctx, status)
-	}
-
-	unlock := c.reportLocks.Lock(update.GetK8SName())
+func (c *Controller) reportReplicaSet(ctx context.Context, rs *appsv1.ReplicaSet, force bool) (bool, error) {
+	unlock := c.reportLocks.Lock(rs.Name)
 	defer unlock()
 
-	fp := instanceFingerprint(update.GetInstances())
-	if prev, hit := c.fingerprints.Get(ctx, update.GetK8SName()); hit == cache.Hit && prev == fp {
+	status, err := c.buildDeploymentStatus(ctx, rs)
+	if err != nil {
+		return false, err
+	}
+	update := status.GetUpdate()
+	fp, err := instanceFingerprint(update.GetInstances())
+	if err != nil {
+		return false, err
+	}
+	prev, hit := c.fingerprints.Get(ctx, update.GetK8SName())
+	changed := hit != cache.Hit || prev != fp
+	if !changed && !force {
 		metrics.ReportDedupedTotal.WithLabelValues("deployment").Inc()
 		return false, nil
 	}
 
-	return true, c.reportDeploymentStatus(ctx, status)
+	return changed, c.reportDeploymentStatus(ctx, status)
 }
 
 // instanceFingerprint builds a deterministic string from the instance list so
 // we can cheaply detect whether the actual state changed between resync ticks.
-func instanceFingerprint(instances []*ctrlv1.ReportDeploymentStatusRequest_Update_Instance) string {
+func instanceFingerprint(instances []*ctrlv1.ReportDeploymentStatusRequest_Update_Instance) (string, error) {
 	parts := make([]string, 0, len(instances))
 	for _, inst := range instances {
-		parts = append(parts, fmt.Sprintf("%s|%s|%d", inst.GetK8SName(), inst.GetAddress(), inst.GetStatus()))
+		snapshot := proto.CloneOf(inst)
+		if observation := snapshot.GetContainerObservation(); observation != nil {
+			observation.ObservedAtUnixNano = 0
+		}
+		encoded, err := (proto.MarshalOptions{Deterministic: true}).Marshal(snapshot)
+		if err != nil {
+			return "", err
+		}
+		parts = append(parts, hash.Sha256(string(encoded)))
 	}
 	sort.Strings(parts)
-	return hash.Sha256(strings.Join(parts, ";"))
+	return hash.Sha256(strings.Join(parts, ";")), nil
 }

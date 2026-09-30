@@ -162,14 +162,7 @@ func (c *Controller) handlePodEvent(ctx context.Context, pod *corev1.Pod, eventT
 		return
 	}
 
-	status, err := c.buildDeploymentStatus(ctx, rs)
-	if err != nil {
-		metrics.PodWatchEventsTotal.WithLabelValues("deployment", eventTypeLabel, "error").Inc()
-		logger.Error("pod watch: unable to build status", "error", err.Error(), "replicaSet", rsName)
-		return
-	}
-
-	reported, err := c.reportIfChanged(ctx, status)
+	reported, err := c.reportReplicaSet(ctx, rs, false)
 	if err != nil {
 		metrics.PodWatchEventsTotal.WithLabelValues("deployment", eventTypeLabel, "error").Inc()
 		logger.Error("pod watch: unable to report status", "error", err.Error(), "replicaSet", rsName)
@@ -178,7 +171,7 @@ func (c *Controller) handlePodEvent(ctx context.Context, pod *corev1.Pod, eventT
 
 	if reported {
 		metrics.PodWatchEventsTotal.WithLabelValues("deployment", eventTypeLabel, "reported").Inc()
-		logger.Info("pod watch: reported changed status", "replicaSet", rsName, "pod", pod.Name, "instances", len(status.GetUpdate().GetInstances()))
+		logger.Info("pod watch: reported changed status", "replicaSet", rsName, "pod", pod.Name)
 	} else {
 		metrics.PodWatchEventsTotal.WithLabelValues("deployment", eventTypeLabel, "deduped").Inc()
 		logger.Info("pod watch: status unchanged, skipped report", "replicaSet", rsName, "pod", pod.Name)

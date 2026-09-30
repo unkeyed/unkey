@@ -182,6 +182,136 @@ func TestReportInstanceEventsRetainsPodFailureAfterInstanceReconciliation(t *tes
 		require.Equal(t, "CrashLoopBackOff", waitingReason(t, ctx, database, replacementPodName, region.ID))
 	})
 
+	for _, order := range [][]int{{0, 1, 2}, {0, 2, 1}, {1, 0, 2}, {1, 2, 0}, {2, 0, 1}, {2, 1, 0}} {
+		t.Run("exit history survives delivery order "+strconv.Itoa(order[0])+strconv.Itoa(order[1])+strconv.Itoa(order[2]), func(t *testing.T) {
+			podName := uid.DNS1035()
+			reportDeploymentUpdate(t, ctx, service, bearer, clusterKey, deployment.K8sName, podName,
+				ctrlv1.ReportDeploymentStatusRequest_Update_Instance_STATUS_RUNNING)
+			exited := instanceEvent(deployment, workspace.ID, podName, running.Time+10, "", "")
+			exited.Attributes = nil
+			exited.RestartCount = 4
+			exited.State = &ctrlv1.InstanceEvent_Terminated{Terminated: &ctrlv1.Terminated{
+				Reason: "OOMKilled", ExitCode: 137, Signal: 9,
+			}}
+			waiting := instanceEvent(deployment, workspace.ID, podName, exited.Time+1, "CrashLoopBackOff", "restart delayed")
+			waiting.Attributes = nil
+			waiting.RestartCount = 5
+			recovered := instanceEvent(deployment, workspace.ID, podName, exited.Time+2, "", "")
+			recovered.Attributes = nil
+			recovered.RestartCount = 5
+			recovered.State = &ctrlv1.InstanceEvent_Running{Running: &ctrlv1.Running{}}
+			events := []*ctrlv1.InstanceEvent{exited, waiting, recovered}
+			for _, index := range order {
+				reportEvents(t, ctx, service, bearer, clusterKey, events[index])
+			}
+			var status dbtype.ContainerStatus
+			require.NoError(t, database.RO().QueryRowContext(ctx,
+				"SELECT container_status FROM instances WHERE k8s_name = ? AND region_id = ?",
+				podName, region.ID,
+			).Scan(&status))
+			require.Nil(t, status.Waiting)
+			require.Equal(t, uint32(5), status.RestartCount)
+			require.Equal(t, recovered.Time*int64(time.Millisecond), status.StatusObservedAt)
+			require.Equal(t, &dbtype.TerminatedState{
+				Reason: "OOMKilled", ExitCode: 137, Signal: 9, FinishedAt: exited.Time,
+			}, status.LastTerminationState)
+		})
+	}
+
+	t.Run("other containers cannot change application status", func(t *testing.T) {
+		podName := uid.DNS1035()
+		reportDeploymentUpdate(t, ctx, service, bearer, clusterKey, deployment.K8sName, podName,
+			ctrlv1.ReportDeploymentStatusRequest_Update_Instance_STATUS_PENDING)
+		waiting := instanceEvent(deployment, workspace.ID, podName, running.Time+100, "CrashLoopBackOff", "restart delayed")
+		waiting.Attributes = nil
+		waiting.RestartCount = 3
+		reportEvents(t, ctx, service, bearer, clusterKey, waiting)
+
+		other := instanceEvent(deployment, workspace.ID, podName, waiting.Time+1, "", "")
+		other.ContainerName = "sidecar"
+		other.Attributes = nil
+		other.RestartCount = 10
+		other.State = &ctrlv1.InstanceEvent_Running{Running: &ctrlv1.Running{}}
+		reportEvents(t, ctx, service, bearer, clusterKey, other)
+		require.Equal(t, "CrashLoopBackOff", waitingReason(t, ctx, database, podName, region.ID))
+
+		other.Time++
+		other.State = &ctrlv1.InstanceEvent_Waiting{Waiting: &ctrlv1.Waiting{Reason: "ErrImagePull"}}
+		reportEvents(t, ctx, service, bearer, clusterKey, other)
+		require.Equal(t, "CrashLoopBackOff", waitingReason(t, ctx, database, podName, region.ID))
+
+		other.Time++
+		other.ContainerName = "init"
+		other.State = &ctrlv1.InstanceEvent_Terminated{Terminated: &ctrlv1.Terminated{Reason: "Error", ExitCode: 1}}
+		reportEvents(t, ctx, service, bearer, clusterKey, other)
+		require.Equal(t, "CrashLoopBackOff", waitingReason(t, ctx, database, podName, region.ID))
+
+		waiting.Time = other.Time + 1
+		waiting.State = &ctrlv1.InstanceEvent_Running{Running: &ctrlv1.Running{}}
+		reportEvents(t, ctx, service, bearer, clusterKey, waiting)
+		var status dbtype.ContainerStatus
+		require.NoError(t, database.RO().QueryRowContext(ctx,
+			"SELECT container_status FROM instances WHERE k8s_name = ? AND region_id = ?",
+			podName, region.ID,
+		).Scan(&status))
+		require.Nil(t, status.Waiting)
+		require.Nil(t, status.LastTerminationState)
+		require.Equal(t, uint32(3), status.RestartCount)
+	})
+
+	t.Run("snapshots repair missed events and missing rows without erasing history", func(t *testing.T) {
+		podName := uid.DNS1035()
+		waiting := instanceEvent(deployment, workspace.ID, podName, running.Time+200, "CrashLoopBackOff", "restart delayed")
+		waiting.Attributes = nil
+		waiting.RestartCount = 3
+		reportEvents(t, ctx, service, bearer, clusterKey, waiting)
+		require.NotContains(t, instanceNames(t, ctx, database, deployment.ID), podName)
+
+		instance := &ctrlv1.ReportDeploymentStatusRequest_Update_Instance{
+			K8SName: podName, Status: ctrlv1.ReportDeploymentStatusRequest_Update_Instance_STATUS_PENDING,
+		}
+		snapshot := &ctrlv1.ReportDeploymentStatusRequest{
+			Cluster: clusterKey,
+			Change: &ctrlv1.ReportDeploymentStatusRequest_Update_{Update: &ctrlv1.ReportDeploymentStatusRequest_Update{
+				K8SName:   deployment.K8sName,
+				Instances: []*ctrlv1.ReportDeploymentStatusRequest_Update_Instance{instance},
+			}},
+		}
+		sendSnapshot := func(observation *ctrlv1.ContainerObservation) {
+			t.Helper()
+			instance.ContainerObservation = observation
+			_, err := service.ReportDeploymentStatus(ctx, authenticatedRequest(bearer, snapshot))
+			require.NoError(t, err)
+		}
+		observedAt := (waiting.Time + 1) * int64(time.Millisecond)
+		observation := &ctrlv1.ContainerObservation{
+			RestartCount: 3, ObservedAtUnixNano: observedAt,
+			Waiting:               &ctrlv1.Waiting{Reason: "CrashLoopBackOff", Message: "restart delayed"},
+			LastFailure:           &ctrlv1.Terminated{ExitCode: 137, Signal: 9, Reason: "OOMKilled"},
+			LastFailureFinishedAt: waiting.Time - 1,
+		}
+		sendSnapshot(observation)
+		require.Equal(t, "CrashLoopBackOff", waitingReason(t, ctx, database, podName, region.ID))
+		sendSnapshot(nil)
+		require.Equal(t, "CrashLoopBackOff", waitingReason(t, ctx, database, podName, region.ID))
+
+		sendSnapshot(&ctrlv1.ContainerObservation{RestartCount: 0, ObservedAtUnixNano: observedAt + 1})
+		require.Empty(t, waitingReason(t, ctx, database, podName, region.ID))
+		sendSnapshot(observation)
+		reportEvents(t, ctx, service, bearer, clusterKey, waiting)
+		require.Empty(t, waitingReason(t, ctx, database, podName, region.ID))
+		var status dbtype.ContainerStatus
+		require.NoError(t, database.RO().QueryRowContext(ctx,
+			"SELECT container_status FROM instances WHERE k8s_name = ? AND region_id = ?",
+			podName, region.ID,
+		).Scan(&status))
+		require.Equal(t, &dbtype.TerminatedState{
+			ExitCode: 137, Signal: 9, Reason: "OOMKilled", FinishedAt: waiting.Time - 1,
+		}, status.LastTerminationState)
+		require.Equal(t, observedAt+1, status.StatusObservedAt)
+		require.Zero(t, status.RestartCount)
+	})
+
 	reportEmptyDeploymentSnapshot(t, ctx, service, bearer, clusterKey, deployment.K8sName)
 	require.Equal(t, 0, instanceCount(t, ctx, database, deployment.ID))
 	require.Equal(t, dbtype.DeploymentsStatusReady, deploymentStatus(t, ctx, database, deployment.ID))
@@ -253,7 +383,7 @@ func instanceEvent(deployment db.Deployment, workspaceID, podName string, observ
 	return &ctrlv1.InstanceEvent{
 		WorkspaceId: workspaceID, ProjectId: deployment.ProjectID, AppId: deployment.AppID,
 		EnvironmentId: deployment.EnvironmentID, DeploymentId: deployment.ID,
-		PodUid: podName + "-uid", PodName: podName, Time: observedAt,
+		PodUid: podName + "-uid", PodName: podName, ContainerName: "deployment", Time: observedAt,
 		Attributes: map[string]string{"pod_phase": "Failed"},
 		State:      &ctrlv1.InstanceEvent_Waiting{Waiting: &ctrlv1.Waiting{Reason: reason, Message: message}},
 	}

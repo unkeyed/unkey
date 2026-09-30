@@ -3,6 +3,7 @@ package deployment
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
@@ -119,4 +120,57 @@ func TestBuildDeploymentStatus_PodStatuses(t *testing.T) {
 	)
 	require.NotContains(t, byName, "pod-failed", "failed pods must not remain active instances")
 	require.NotContains(t, byName, "pod-succeeded", "succeeded pods must not remain active instances")
+}
+
+func TestObserveContainerStatus(t *testing.T) {
+	for _, reason := range []string{"ErrImagePull", "CreateContainerConfigError", "CrashLoopBackOff", "NewFailureReason", "ContainerCreating", "PodInitializing"} {
+		t.Run(reason, func(t *testing.T) {
+			pod := &corev1.Pod{Status: corev1.PodStatus{ContainerStatuses: []corev1.ContainerStatus{
+				{Name: "sidecar", RestartCount: 20, State: corev1.ContainerState{Waiting: &corev1.ContainerStateWaiting{Reason: "OtherError"}}},
+				{Name: "deployment", RestartCount: 3,
+					State: corev1.ContainerState{Waiting: &corev1.ContainerStateWaiting{Reason: reason, Message: "exact diagnostic"}},
+					LastTerminationState: corev1.ContainerState{Terminated: &corev1.ContainerStateTerminated{
+						ExitCode: 137, Signal: 9, Reason: "OOMKilled", FinishedAt: metav1.NewTime(time.UnixMilli(1_000)),
+					}},
+				},
+			}}}
+			observation := observeContainerStatus(pod, 2_000_000_000)
+			require.NotNil(t, observation)
+			require.Equal(t, int32(3), observation.RestartCount)
+			require.Equal(t, int64(2_000_000_000), observation.ObservedAtUnixNano)
+			require.Equal(t, int64(1_000), observation.LastFailureFinishedAt)
+			require.Equal(t, int32(137), observation.LastFailure.GetExitCode())
+			if reason == "ContainerCreating" || reason == "PodInitializing" {
+				require.Nil(t, observation.Waiting)
+			} else {
+				require.Equal(t, reason, observation.Waiting.GetReason())
+				require.Equal(t, "exact diagnostic", observation.Waiting.GetMessage())
+			}
+		})
+	}
+
+	pod := &corev1.Pod{}
+	require.Nil(t, observeContainerStatus(pod, 1))
+	pod.Status.Conditions = []corev1.PodCondition{{
+		Type: corev1.PodScheduled, Status: corev1.ConditionFalse, Reason: corev1.PodReasonUnschedulable, Message: "no capacity",
+	}}
+	require.Equal(t, "no capacity", observeContainerStatus(pod, 2).Waiting.GetMessage())
+	pod.Status.Conditions = nil
+	pod.Status.ContainerStatuses = []corev1.ContainerStatus{{
+		Name: "deployment", State: corev1.ContainerState{Running: &corev1.ContainerStateRunning{}},
+		LastTerminationState: corev1.ContainerState{Terminated: &corev1.ContainerStateTerminated{ExitCode: 0}},
+	}}
+	observation := observeContainerStatus(pod, 3)
+	require.NotNil(t, observation)
+	require.Nil(t, observation.Waiting)
+	require.Nil(t, observation.LastFailure)
+	pod.Status.ContainerStatuses[0].LastTerminationState.Terminated = &corev1.ContainerStateTerminated{
+		ExitCode: 137, Reason: "OOMKilled", FinishedAt: metav1.NewTime(time.UnixMilli(1_000)),
+	}
+	pod.Status.ContainerStatuses[0].State = corev1.ContainerState{Terminated: &corev1.ContainerStateTerminated{
+		ExitCode: 1, Reason: "Error", FinishedAt: metav1.NewTime(time.UnixMilli(2_000)),
+	}}
+	observation = observeContainerStatus(pod, 4)
+	require.Equal(t, int32(1), observation.LastFailure.GetExitCode())
+	require.Equal(t, int64(2_000), observation.LastFailureFinishedAt)
 }

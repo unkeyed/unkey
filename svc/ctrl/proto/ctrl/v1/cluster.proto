@@ -114,6 +114,7 @@ message ReportDeploymentStatusRequest {
       int64 cpu_millicores = 3;
       int64 memory_mib = 4;
       Status status = 5;
+      ContainerObservation container_observation = 6;
     }
 
     string k8s_name = 1;
@@ -132,6 +133,16 @@ message ReportDeploymentStatusRequest {
 }
 
 message ReportDeploymentStatusResponse {}
+
+// Absence means unknown or an older producer, not a healthy container.
+// A present observation with no waiting explicitly clears the previous waiting state.
+message ContainerObservation {
+  int32 restart_count = 1;
+  int64 observed_at_unix_nano = 2;
+  Waiting waiting = 3;
+  Terminated last_failure = 4;
+  int64 last_failure_finished_at = 5;
+}
 
 // InstanceEvent describes a single container lifecycle transition observed
 // by krane's pod watch. The (pod_uid, container_name, restart_count, state)

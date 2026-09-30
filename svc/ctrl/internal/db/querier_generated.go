@@ -1908,6 +1908,24 @@ type Querier interface {
 	//    updated_at = ?
 	//  WHERE id = ?
 	ReassignFrontlineRoute(ctx context.Context, arg ReassignFrontlineRouteParams) error
+	//ReconcileInstanceContainerStatus
+	//
+	//  UPDATE instances
+	//  SET container_status = JSON_SET(
+	//  	CASE WHEN CAST(? AS CHAR) = ''
+	//  		THEN JSON_REMOVE(container_status, '$.waiting')
+	//  		ELSE JSON_SET(container_status, '$.waiting', JSON_OBJECT(
+	//  			'reason', CAST(? AS CHAR),
+	//  			'message', CAST(? AS CHAR)
+	//  		))
+	//  	END,
+	//  	'$.restartCount', CAST(? AS UNSIGNED),
+	//  	'$.statusObservedAt', CAST(? AS UNSIGNED)
+	//  )
+	//  WHERE k8s_name = ?
+	//  	AND region_id = ?
+	//  	AND COALESCE(CAST(JSON_VALUE(container_status, '$.statusObservedAt') AS UNSIGNED), 0) <= CAST(? AS UNSIGNED)
+	ReconcileInstanceContainerStatus(ctx context.Context, arg ReconcileInstanceContainerStatusParams) error
 	//RecordDeploymentPodFailure
 	//
 	//  UPDATE deployments
@@ -1923,40 +1941,30 @@ type Querier interface {
 	//    AND workspace_id = ?
 	//    AND COALESCE(CAST(JSON_VALUE(last_pod_failure, '$.observedAt') AS UNSIGNED), 0) < CAST(? AS UNSIGNED)
 	RecordDeploymentPodFailure(ctx context.Context, arg RecordDeploymentPodFailureParams) error
-	// Denormalizes the most recent container exit info onto the instances row's
-	// container_status JSON. Called by ctrl when krane reports an
-	// event_kind='terminated' event.
-	//
-	// The caller computes the full new ContainerStatus value (restartCount,
-	// lastTerminationState, no waiting) and passes it in one typed param. The
-	// WHERE clause inspects the row's *existing* container_status to drop
-	// delayed events; once the guard passes, the new value fully replaces the
-	// old (including clearing $.waiting, since a fresh exit ends any prior
-	// crashloop window).
-	//
-	// Out-of-order events from krane are dropped via a lexicographic
-	// (restartCount, finishedAt) tuple comparison: an incoming row only wins
-	// if its (restartCount, finishedAt) pair is strictly greater than the
-	// pair already on the row. The previous OR-of-clauses formulation let a
-	// delayed terminated event from restart_count-1 sneak past via the
-	// finishedAt branch and regress the row after restart_count had already
-	// advanced.
+	//RecordInstanceExit
 	//
 	//  UPDATE instances
-	//  SET container_status = ?
+	//  SET container_status = JSON_SET(
+	//  	CASE
+	//  		WHEN COALESCE(CAST(JSON_VALUE(container_status, '$.statusObservedAt') AS UNSIGNED), 0) <= CAST(? AS UNSIGNED)
+	//  			AND CAST(JSON_VALUE(container_status, '$.restartCount') AS UNSIGNED) <= CAST(? AS UNSIGNED)
+	//  		THEN JSON_SET(
+	//  			JSON_REMOVE(container_status, '$.waiting'),
+	//  			'$.restartCount', CAST(? AS UNSIGNED),
+	//  			'$.statusObservedAt', CAST(? AS UNSIGNED)
+	//  		)
+	//  		ELSE container_status
+	//  	END,
+	//  	'$.lastTerminationState', JSON_OBJECT(
+	//  		'exitCode', CAST(? AS SIGNED),
+	//  		'signal', CAST(? AS SIGNED),
+	//  		'reason', CAST(? AS CHAR),
+	//  		'finishedAt', CAST(? AS UNSIGNED)
+	//  	)
+	//  )
 	//  WHERE k8s_name = ?
 	//  	AND region_id = ?
-	//  	AND COALESCE(CAST(JSON_VALUE(container_status, '$.statusObservedAt') AS UNSIGNED), 0) <= CAST(? AS UNSIGNED)
-	//  	AND (
-	//  		CAST(JSON_VALUE(container_status, '$.restartCount') AS UNSIGNED) < CAST(? AS UNSIGNED)
-	//  		OR (
-	//  			CAST(JSON_VALUE(container_status, '$.restartCount') AS UNSIGNED) = CAST(? AS UNSIGNED)
-	//  			AND (
-	//  				JSON_VALUE(container_status, '$.lastTerminationState.finishedAt') IS NULL
-	//  				OR CAST(JSON_VALUE(container_status, '$.lastTerminationState.finishedAt') AS UNSIGNED) < CAST(? AS UNSIGNED)
-	//  			)
-	//  		)
-	//  	)
+	//  	AND COALESCE(CAST(JSON_VALUE(container_status, '$.lastTerminationState.finishedAt') AS UNSIGNED), 0) < CAST(? AS UNSIGNED)
 	RecordInstanceExit(ctx context.Context, arg RecordInstanceExitParams) error
 	//RecordInstanceWaiting
 	//

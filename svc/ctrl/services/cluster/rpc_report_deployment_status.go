@@ -139,6 +139,9 @@ func (s *Service) ReportDeploymentStatus(ctx context.Context, req *connect.Reque
 					if err != nil {
 						return err
 					}
+					if err := reconcileContainerObservation(txCtx, db.NewQueries(tx), instance.GetK8SName(), cluster.RegionID, instance.GetContainerObservation()); err != nil {
+						return err
+					}
 				}
 			}
 
@@ -336,4 +339,30 @@ func ctrlDeploymentStatusToDbStatus(status ctrlv1.ReportDeploymentStatusRequest_
 	default:
 		return db.InstancesStatusInactive
 	}
+}
+
+func reconcileContainerObservation(ctx context.Context, queries *db.Queries, podName, regionID string, observation *ctrlv1.ContainerObservation) error {
+	if observation == nil {
+		return nil
+	}
+	observedAt := observation.GetObservedAtUnixNano()
+	restarts := int64(observation.GetRestartCount())
+	if failure := observation.GetLastFailure(); failure != nil && failure.GetExitCode() != 0 {
+		if err := queries.RecordInstanceExit(ctx, db.RecordInstanceExitParams{
+			K8sName: podName, RegionID: regionID,
+			StatusObservedAt: observedAt, StatusObservedAt_2: observedAt,
+			RestartCount: restarts, RestartCount_2: restarts,
+			FinishedAt: observation.GetLastFailureFinishedAt(), FinishedAt_2: observation.GetLastFailureFinishedAt(),
+			ExitCode: int64(failure.GetExitCode()), Signal: int64(failure.GetSignal()), Reason: failure.GetReason(),
+		}); err != nil {
+			return err
+		}
+	}
+	return queries.ReconcileInstanceContainerStatus(ctx, db.ReconcileInstanceContainerStatusParams{
+		K8sName: podName, RegionID: regionID,
+		StatusObservedAt: observedAt, StatusObservedAt_2: observedAt,
+		RestartCount:  restarts,
+		WaitingReason: observation.GetWaiting().GetReason(), WaitingReason_2: observation.GetWaiting().GetReason(),
+		WaitingMessage: observation.GetWaiting().GetMessage(),
+	})
 }
