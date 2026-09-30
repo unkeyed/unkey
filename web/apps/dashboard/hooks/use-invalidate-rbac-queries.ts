@@ -14,7 +14,6 @@ export const useInvalidateRbacQueries = () => {
       trpcUtils.api.keys.list.invalidate(undefined, { refetchType: "all" }),
       trpcUtils.authorization.roles.connectedKeysAndPerms.invalidate(),
       trpcUtils.authorization.roles.keys.invalidate(),
-      trpcUtils.authorization.roles.permissions.invalidate(),
       trpcUtils.key.connectedRolesAndPerms.invalidate(),
       queryClient.invalidateQueries({ queryKey: queryKeys.rbac.all }),
       queryClient.invalidateQueries({ queryKey: queryKeys.keys.all }),
