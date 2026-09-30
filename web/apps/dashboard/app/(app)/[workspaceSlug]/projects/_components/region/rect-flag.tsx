@@ -55,19 +55,16 @@ export function RectFlag({
   size = "md",
 }: { flag: RegionFlag | null; size?: keyof typeof SIZES }) {
   return (
-    <span
-      className={cn(
-        "relative inline-flex shrink-0 overflow-hidden outline-1 outline-offset-1 outline-grayA-6",
-        SIZES[size],
-      )}
-    >
-      {flag === null ? (
-        <span className="size-full bg-grayA-3" />
-      ) : (
-        <svg viewBox="0 0 28 20" className="size-full" aria-hidden="true">
-          {ART[flag]}
-        </svg>
-      )}
+    <span className="inline-flex shrink-0 p-[2px] ring-1 ring-grayA-6 ring-inset">
+      <span className={cn("inline-flex overflow-hidden", SIZES[size])}>
+        {flag === null ? (
+          <span className="size-full bg-grayA-3" />
+        ) : (
+          <svg viewBox="0 0 28 20" className="size-full" aria-hidden="true">
+            {ART[flag]}
+          </svg>
+        )}
+      </span>
     </span>
   );
 }
