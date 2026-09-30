@@ -75,9 +75,9 @@ For each entry, the reconciler maintains a global headless Service per target de
 
 A binding policy lets the caller deployment reach the target deployment on every TCP and UDP port, in one direction, in any cluster. The reverse direction needs a separate binding from the target app. Ctrl also creates a discovery entry for each enrolled deployment's own replicas, named after its app slug, for example `api.unkey.internal`. Users don't add a binding for this: Krane injects the name as `UNKEY_DEPLOYMENT_HOST`. Binding names can't reuse the caller app's slug or start with `unkey`. ICMP, SCTP, broadcast, and multicast are not granted. The Service port is the target deployment's declared port and is metadata only; DNS answers carry Pod IPs, not ports.
 
-An app missing from a complete snapshot loses its binding during cleanup, and its Services retire 30 minutes after they become unreferenced. A failed or partial snapshot skips the pass. An invalid entry or an app that fails to reconcile keeps its published objects, and every other app reconciles and cleans up in the same pass. Cleanup itself is not atomic: a failed deletion does not undo earlier deletions. If the reconciler loses its Lease, Krane exits with an error.
+A binding missing from a complete snapshot loses its published objects during cleanup, and its Services retire 30 minutes after they become unreferenced. A failed or partial snapshot skips the pass. An invalid entry or a binding that fails to reconcile keeps its published objects, and every other binding reconciles and cleans up in the same pass. Cleanup itself is not atomic: a failed deletion does not undo earlier deletions. If the reconciler loses its Lease, Krane exits with an error.
 
-The `unkey_krane_private_network_*` metrics report leadership, loop completion, failures by step, and entry states. See [Troubleshoot private networking](/infra/runbooks/private-networking) for queries and fixes.
+The `unkey_krane_private_network_*` metrics report leadership, loop completion, failures by step, and entry states. See <a href="https://github.com/unkeyed/infra/blob/main/docs/runbooks/eks/0020-private-networking.md" target="_blank">Troubleshoot private networking in the infra repository</a> for queries and fixes.
 
 ## Kubernetes resource model
 
