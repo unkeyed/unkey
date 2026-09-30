@@ -2251,7 +2251,9 @@ components:
                         - API key listing endpoints
                     example: key_2cGKbMxRyIzhCxo1Idjz8q
                 expiration:
-                    type: integer
+                    type:
+                        - integer
+                        - "null"
                     format: int64
                     minimum: 0
                     maximum: 4102444800000
@@ -2261,6 +2263,7 @@ components:
                         This parameter controls the overlap period for key rotation:
                         - Set to `0` to revoke the original key immediately
                         - Positive values keep the original key active for the specified duration
+                        - Set to `null` to keep the original key active; it keeps its current expiration, if any
                         - Allows graceful migration by giving users time to update their credentials
 
                         Common overlap periods:

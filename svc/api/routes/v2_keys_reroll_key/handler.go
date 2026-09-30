@@ -121,6 +121,7 @@ func (h *Handler) RerollKey(
 	if err := assert.All(
 		assert.Equal(key.KeyWorkspaceID, principal.AuthorizedWorkspaceID, "reroll key workspace must match principal"),
 		assert.Equal(key.KeyID, req.KeyId, "preloaded reroll key must match request"),
+		assert.True(req.Expiration.IsSpecified(), "request validation must require expiration"),
 	); err != nil {
 		return err
 	}
@@ -311,32 +312,35 @@ func (h *Handler) RerollKey(
 				}
 			}
 
-			// Calculate the desired expiry time (rounded up to next minute)
-			expiration := time.Now().Add(time.Millisecond * time.Duration(req.Expiration))
-			// Round up to next minute (ceil)
-			if expiration.Truncate(time.Minute) != expiration {
-				expiration = expiration.Truncate(time.Minute).Add(time.Minute)
-			}
+			if !req.Expiration.IsNull() {
+				expirationMs := req.Expiration.MustGet()
+				// Calculate the desired expiry time (rounded up to next minute)
+				expiration := time.Now().Add(time.Millisecond * time.Duration(expirationMs))
+				// Round up to next minute (ceil)
+				if expiration.Truncate(time.Minute) != expiration {
+					expiration = expiration.Truncate(time.Minute).Add(time.Minute)
+				}
 
-			if req.Expiration == 0 {
-				expiration = time.Now()
-			}
+				if expirationMs == 0 {
+					expiration = time.Now()
+				}
 
-			//nolint: exhaustruct
-			err = db.Query.UpdateKey(ctx, tx, db.UpdateKeyParams{
-				ID:               req.KeyId,
-				ExpiresSpecified: 1,
-				Expires: sql.NullTime{
-					Time:  expiration,
-					Valid: true,
-				},
-			})
-			if err != nil {
-				return fault.Wrap(err,
-					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-					fault.Internal("database error"),
-					fault.Public("Failed to expire old key."),
-				)
+				//nolint: exhaustruct
+				err = db.Query.UpdateKey(ctx, tx, db.UpdateKeyParams{
+					ID:               req.KeyId,
+					ExpiresSpecified: 1,
+					Expires: sql.NullTime{
+						Time:  expiration,
+						Valid: true,
+					},
+				})
+				if err != nil {
+					return fault.Wrap(err,
+						fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+						fault.Internal("database error"),
+						fault.Public("Failed to expire old key."),
+					)
+				}
 			}
 
 			var auditLogs []auditlog.AuditLog

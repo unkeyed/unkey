@@ -36,6 +36,11 @@ actions:
   - target: $["components"]["schemas"]["V2KeysUpdateKeyRequestBody"]["properties"]["ratelimits"]
     update:
       nullable: true
+  - target: $["components"]["schemas"]["V2KeysRerollKeyRequestBody"]["properties"]["expiration"]["type"]
+    update: integer
+  - target: $["components"]["schemas"]["V2KeysRerollKeyRequestBody"]["properties"]["expiration"]
+    update:
+      nullable: true
   - target: $["components"]["schemas"]["KeyCreditsData"]["properties"]["remaining"]["type"]
     update: integer
   - target: $["components"]["schemas"]["KeyCreditsData"]["properties"]["remaining"]
