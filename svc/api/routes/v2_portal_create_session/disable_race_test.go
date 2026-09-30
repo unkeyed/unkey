@@ -1,0 +1,153 @@
+package handler_test
+
+import (
+	"bytes"
+	"context"
+	"database/sql"
+	"encoding/json"
+	"fmt"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+	"time"
+
+	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/hash"
+	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/pkg/zen"
+	"github.com/unkeyed/unkey/svc/api/internal/testutil"
+	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
+	"github.com/unkeyed/unkey/svc/api/openapi"
+	handler "github.com/unkeyed/unkey/svc/api/routes/v2_portal_create_session"
+	updateportal "github.com/unkeyed/unkey/svc/api/routes/v2_portal_update_portal"
+)
+
+// blockedFor is how long a request must stay stuck on the portal lock to count
+// as waiting for it.
+const blockedFor = 500 * time.Millisecond
+
+// callAsync serves one request on a goroutine and delivers its status code, so
+// a test can check whether it's waiting on a lock the test holds.
+func callAsync(t *testing.T, h *testutil.Harness, route zen.Route, headers http.Header, body any) <-chan int {
+	t.Helper()
+
+	encoded, err := json.Marshal(body)
+	require.NoError(t, err)
+	status := make(chan int, 1)
+	go func() {
+		rr := httptest.NewRecorder()
+		req := httptest.NewRequest(route.Method(), route.Path(), bytes.NewReader(encoded))
+		req.Header = headers
+		h.Mux().ServeHTTP(rr, req)
+		status <- rr.Code
+	}()
+	return status
+}
+
+func bearer(rootKey string) http.Header {
+	return http.Header{
+		"Content-Type":  {"application/json"},
+		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+	}
+}
+
+// liveSessions counts a portal's unrevoked sessions.
+func liveSessions(t *testing.T, h *testutil.Harness, portalID string) int {
+	t.Helper()
+
+	var count int
+	require.NoError(t, h.DB.RW().QueryRowContext(context.Background(),
+		"SELECT COUNT(*) FROM portal_sessions WHERE portal_id = ? AND revoked_at IS NULL", portalID,
+	).Scan(&count))
+	return count
+}
+
+// A mint that holds the portal lock makes a concurrent disable wait, so the
+// disable's revoke runs after the insert and catches the new session.
+func TestMintLockMakesDisableRevokeTheNewSession(t *testing.T) {
+	h := testutil.NewHarness(t)
+	ctx := context.Background()
+	workspace := h.Resources().UserWorkspace
+	api := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspace.ID})
+	portalID := insertKeyspacePortal(t, h, workspace.ID, "mint-first", api.KeyAuthID.String)
+
+	update := &updateportal.Handler{DB: h.DB, Auditlogs: h.Auditlogs, Clock: h.Clock}
+	h.Register(update)
+	headers := bearer(h.CreateRootKey(workspace.ID, "portal.*.update_portal"))
+
+	mint, err := h.DB.RW().Begin(ctx)
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = mint.Rollback() })
+
+	locked, err := db.Query.LockPortalForMint(ctx, mint, db.LockPortalForMintParams{ID: portalID, WorkspaceID: workspace.ID})
+	require.NoError(t, err)
+	require.True(t, locked.Enabled)
+
+	disabled := callAsync(t, h, update, headers, map[string]any{"portal": portalID, "enabled": false})
+	select {
+	case status := <-disabled:
+		t.Fatalf("the disable must wait for the mint's lock, but finished with %d", status)
+	case <-time.After(blockedFor):
+	}
+
+	now := h.Clock.Now()
+	require.NoError(t, db.Query.InsertPortalSession(ctx, mint, db.InsertPortalSessionParams{
+		ID:                    uid.New(uid.PortalSessionPrefix),
+		WorkspaceID:           workspace.ID,
+		PortalID:              portalID,
+		ExternalID:            "user_racing",
+		Scopes:                []byte(`{"keyspaceIds":[],"scopes":["keys:read"]}`),
+		ExchangeCodeHash:      hash.Sha256(uid.Secure()),
+		ExchangeCodeExpiresAt: now.Add(15 * time.Minute).UnixMilli(),
+		ReturnUrl:             sql.NullString{Valid: false, String: ""},
+		CreatedAt:             now.UnixMilli(),
+	}))
+	require.NoError(t, mint.Commit())
+
+	require.Equal(t, http.StatusOK, <-disabled)
+	require.Equal(t, 0, liveSessions(t, h, portalID), "the disable must revoke the session minted before it")
+}
+
+// A disable that holds the portal lock makes a concurrent createSession wait,
+// and once the disable commits the mint sees it and refuses.
+func TestDisableLockMakesMintRefuse(t *testing.T) {
+	h := testutil.NewHarness(t)
+	ctx := context.Background()
+	workspace := h.Resources().UserWorkspace
+	api := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspace.ID})
+	portalID := insertKeyspacePortal(t, h, workspace.ID, "disable-first", api.KeyAuthID.String)
+
+	create := &handler.Handler{DB: h.DB, Auditlogs: h.Auditlogs, PortalBaseURL: "https://portal.unkey.com", Clock: h.Clock}
+	h.Register(create)
+	headers := bearer(h.CreateRootKey(workspace.ID, "portal.*.create_portal_session", "api.*.read_key", "api.*.read_api"))
+
+	// Stands in for updatePortal's disable: write the portal row, then revoke.
+	disable, err := h.DB.RW().Begin(ctx)
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = disable.Rollback() })
+	_, err = disable.ExecContext(ctx, "UPDATE portals SET enabled = false WHERE id = ?", portalID)
+	require.NoError(t, err)
+	_, err = db.Query.RevokePortalSessionsByPortal(ctx, disable, db.RevokePortalSessionsByPortalParams{
+		RevokedAt:   sql.NullInt64{Valid: true, Int64: h.Clock.Now().UnixMilli()},
+		PortalID:    portalID,
+		WorkspaceID: workspace.ID,
+	})
+	require.NoError(t, err)
+
+	minted := callAsync(t, h, create, headers, handler.Request{
+		Portal:     portalID,
+		ExternalId: "user_racing",
+		Scopes:     []openapi.V2PortalCreateSessionRequestBodyScopes{openapi.KeysRead},
+	})
+	select {
+	case status := <-minted:
+		t.Fatalf("the mint must wait for the disable's lock, but finished with %d", status)
+	case <-time.After(blockedFor):
+	}
+
+	require.NoError(t, disable.Commit())
+
+	require.Equal(t, http.StatusForbidden, <-minted, "the mint must see the committed disable")
+	require.Equal(t, 0, countPortalSessions(t, h, workspace.ID, "user_racing"), "no session may be written")
+}
