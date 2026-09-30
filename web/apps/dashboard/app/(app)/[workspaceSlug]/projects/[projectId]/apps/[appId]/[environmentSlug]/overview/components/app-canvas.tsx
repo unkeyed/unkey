@@ -334,7 +334,7 @@ function KeyspacesCard({
 }) {
   const router = useRouter();
   const scope = useAppScope();
-  const project = trpc.deploy.project.overview.useQuery({ projectId: scope.projectId });
+  const keyspaces = trpc.deploy.project.keyspaces.useQuery({ projectId: scope.projectId });
   const available = trpc.deploy.environmentSettings.getAvailableKeyspaces.useQuery();
   const policiesHref = routes.projects.apps.policies(scope);
 
@@ -349,7 +349,7 @@ function KeyspacesCard({
     );
   }
 
-  const byKeyAuth = new Map(project.data?.keyspaces.map((k) => [k.keyAuthId, k]));
+  const byKeyAuth = new Map(keyspaces.data?.map((k) => [k.keyAuthId, k]));
   return (
     <CanvasCard>
       <MetricHeader

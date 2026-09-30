@@ -69,7 +69,7 @@ import { getInstanceRps } from "./deploy/network/get-instance-rps";
 import { getRegionRps } from "./deploy/network/get-region-rps";
 import { creationContext } from "./deploy/project/creation-context";
 import { getDefaultProject } from "./deploy/project/get-default";
-import { projectOverview } from "./deploy/project/overview";
+import { projectKeyspaces } from "./deploy/project/keyspaces";
 import { createSharedSecret } from "./share/create";
 import { revealSharedSecret } from "./share/reveal";
 
@@ -337,7 +337,7 @@ export const router = t.router({
     project: t.router({
       creationContext,
       getDefault: getDefaultProject,
-      overview: projectOverview,
+      keyspaces: projectKeyspaces,
     }),
     environmentSettings: t.router({
       getAvailableRegions,
