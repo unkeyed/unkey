@@ -1,0 +1,408 @@
+# promtool unit tests for every PromQL query in
+# docs/engineering/infra/runbooks/private-networking.mdx (queries match verbatim).
+# Run from the repository root:
+#   mise exec -- docker run --rm -v "$PWD/docs/engineering/infra/runbooks:/tests:ro" --entrypoint promtool prom/prometheus:v3.5.0 test rules /tests/private-networking.test.yaml
+# Series use regional (local) labels unless a test name says "global".
+rule_files: []
+evaluation_interval: 30s
+
+tests:
+  # ---------------------------------------------------------------- healthy idle
+  - name: local healthy idle Krane reports nothing wrong
+    interval: 30s
+    input_series:
+      - series: 'up{job="krane",namespace="unkey",pod="krane-0"}'
+        values: '1x40'
+      - series: 'up{job="krane",namespace="unkey",pod="krane-1"}'
+        values: '1x40'
+      - series: 'unkey_krane_private_network_leader{job="krane",namespace="unkey",pod="krane-0"}'
+        values: '1x40'
+      - series: 'unkey_krane_private_network_leader{job="krane",namespace="unkey",pod="krane-1"}'
+        values: '0x40'
+      - series: 'unkey_krane_private_network_last_completed_pass_unix_seconds{job="krane",namespace="unkey",pod="krane-0",loop="discovery"}'
+        values: '0+30x40'
+      - series: 'unkey_krane_private_network_last_completed_pass_unix_seconds{job="krane",namespace="unkey",pod="krane-0",loop="endpoints"}'
+        values: '0+30x40'
+      - series: 'unkey_krane_private_network_entries{job="krane",namespace="unkey",pod="krane-0",kind="binding",state="failed"}'
+        values: '0x40'
+      - series: 'unkey_krane_private_network_entries{job="krane",namespace="unkey",pod="krane-1",kind="binding",state="failed"}'
+        values: '0x40'
+      - series: 'unkey_krane_private_network_entries{job="krane",namespace="unkey",pod="krane-0",kind="binding",state="waiting_for_endpoints"}'
+        values: '0x40'
+      - series: 'up{job="undns",namespace="unkey",pod="undns-0"}'
+        values: '1x40'
+      - series: 'unkey_dns_discovery_ready{job="undns",namespace="unkey",pod="undns-0"}'
+        values: '1x40'
+    promql_expr_test:
+      - expr: absent(up{job="krane", namespace="unkey"} == 1)
+        eval_time: 20m
+        exp_samples: []
+      - expr: absent(unkey_krane_private_network_leader{job="krane", namespace="unkey"})
+        eval_time: 20m
+        exp_samples: []
+      - expr: absent(unkey_krane_private_network_leader{job="krane", namespace="unkey"} == 1)
+        eval_time: 20m
+        exp_samples: []
+      - expr: time() - max by (loop) (unkey_krane_private_network_last_completed_pass_unix_seconds{job="krane", namespace="unkey"})
+        eval_time: 20m
+        exp_samples:
+          - labels: '{loop="discovery"}'
+            value: 0
+          - labels: '{loop="endpoints"}'
+            value: 0
+      - expr: max by (kind) (unkey_krane_private_network_entries{job="krane", namespace="unkey", state="failed"}) > 0
+        eval_time: 20m
+        exp_samples: []
+      - expr: absent(up{job="undns", namespace="unkey"} == 1)
+        eval_time: 20m
+        exp_samples: []
+      - expr: unkey_dns_discovery_ready{job="undns", namespace="unkey"} == 0
+        eval_time: 20m
+        exp_samples: []
+      # An idle resolver has answered no query, so the counter doesn't exist.
+      - expr: sum by (reason) (rate(unkey_dns_queries_total{job="undns", namespace="unkey", path="private", rcode=~"SERVFAIL|REFUSED"}[5m])) > 0
+        eval_time: 20m
+        exp_samples: []
+      - expr: min_over_time(max(unkey_krane_private_network_entries{job="krane", namespace="unkey", state="waiting_for_endpoints"})[15m:]) > 0
+        eval_time: 20m
+        exp_samples: []
+
+  # ---------------------------------------------------------- missing telemetry
+  - name: local Krane down leaves no private network series
+    interval: 30s
+    input_series:
+      - series: 'up{job="krane",namespace="unkey",pod="krane-0"}'
+        values: '0x40'
+    promql_expr_test:
+      - expr: absent(up{job="krane", namespace="unkey"} == 1)
+        eval_time: 20m
+        exp_samples:
+          - labels: '{}'
+            value: 1
+      # The naive leader check is silent when the metric is gone.
+      - expr: max(unkey_krane_private_network_leader{job="krane", namespace="unkey"}) == 0
+        eval_time: 20m
+        exp_samples: []
+      - expr: absent(unkey_krane_private_network_leader{job="krane", namespace="unkey"} == 1)
+        eval_time: 20m
+        exp_samples:
+          - labels: '{}'
+            value: 1
+
+  - name: local Krane scraped without private network telemetry
+    interval: 30s
+    input_series:
+      - series: 'up{job="krane",namespace="unkey",pod="krane-0"}'
+        values: '1x40'
+    promql_expr_test:
+      - expr: absent(up{job="krane", namespace="unkey"} == 1)
+        eval_time: 20m
+        exp_samples: []
+      - expr: absent(unkey_krane_private_network_leader{job="krane", namespace="unkey"})
+        eval_time: 20m
+        exp_samples:
+          - labels: '{job="krane",namespace="unkey"}'
+            value: 1
+
+  - name: local undns not scraped
+    interval: 30s
+    input_series:
+      - series: 'up{job="krane",namespace="unkey",pod="krane-0"}'
+        values: '1x40'
+    promql_expr_test:
+      - expr: absent(up{job="undns", namespace="unkey"} == 1)
+        eval_time: 20m
+        exp_samples:
+          - labels: '{}'
+            value: 1
+
+  # ------------------------------------------------------------ leader problems
+  - name: local telemetry present but no replica leads
+    interval: 30s
+    input_series:
+      - series: 'up{job="krane",namespace="unkey",pod="krane-0"}'
+        values: '1x40'
+      - series: 'unkey_krane_private_network_leader{job="krane",namespace="unkey",pod="krane-0"}'
+        values: '0x40'
+    promql_expr_test:
+      - expr: absent(unkey_krane_private_network_leader{job="krane", namespace="unkey"})
+        eval_time: 20m
+        exp_samples: []
+      - expr: absent(unkey_krane_private_network_leader{job="krane", namespace="unkey"} == 1)
+        eval_time: 20m
+        exp_samples:
+          - labels: '{}'
+            value: 1
+
+  - name: local leader whose passes never complete reports a stale timestamp
+    interval: 30s
+    input_series:
+      - series: 'unkey_krane_private_network_leader{job="krane",namespace="unkey",pod="krane-0"}'
+        values: '1x40'
+      - series: 'unkey_krane_private_network_last_completed_pass_unix_seconds{job="krane",namespace="unkey",pod="krane-0",loop="discovery"}'
+        values: '0x40'
+    promql_expr_test:
+      - expr: time() - max by (loop) (unkey_krane_private_network_last_completed_pass_unix_seconds{job="krane", namespace="unkey"})
+        eval_time: 20m
+        exp_samples:
+          - labels: '{loop="discovery"}'
+            value: 1200
+
+  # ------------------------------------------------------------ failure signals
+  - name: local private failures are grouped by reason
+    interval: 30s
+    input_series:
+      - series: 'unkey_dns_queries_total{job="undns",namespace="unkey",pod="undns-0",path="private",reason="answer",rcode="NOERROR",transport="udp"}'
+        values: '0+30x40'
+      - series: 'unkey_dns_queries_total{job="undns",namespace="unkey",pod="undns-0",path="private",reason="no_ready_endpoints",rcode="SERVFAIL",transport="udp"}'
+        values: '0+3x40'
+      - series: 'unkey_dns_queries_total{job="undns",namespace="unkey",pod="undns-0",path="public",reason="upstream",rcode="SERVFAIL",transport="udp"}'
+        values: '0+3x40'
+      - series: 'unkey_dns_queries_total{job="undns",namespace="unkey",pod="undns-0",path="public",reason="upstream_timeout",rcode="SERVFAIL",transport="udp"}'
+        values: '0+6x40'
+    promql_expr_test:
+      - expr: sum by (reason) (rate(unkey_dns_queries_total{job="undns", namespace="unkey", path="private", rcode=~"SERVFAIL|REFUSED"}[5m])) > 0
+        eval_time: 20m
+        exp_samples:
+          - labels: '{reason="no_ready_endpoints"}'
+            value: 0.1
+      # Upstream SERVFAIL passthrough is excluded.
+      - expr: sum by (reason) (rate(unkey_dns_queries_total{job="undns", namespace="unkey", path="public", rcode="SERVFAIL", reason!="upstream"}[5m])) > 0
+        eval_time: 20m
+        exp_samples:
+          - labels: '{reason="upstream_timeout"}'
+            value: 0.2
+
+  - name: local waiting aggregate stays nonzero while different bindings take turns
+    interval: 1m
+    input_series:
+      # Binding A waits for 10 minutes, then binding B for 10 minutes. The
+      # gauge only counts entries, so it reads 1 throughout.
+      - series: 'unkey_krane_private_network_entries{job="krane",namespace="unkey",pod="krane-0",kind="binding",state="waiting_for_endpoints"}'
+        values: '0 1x20'
+    promql_expr_test:
+      - expr: min_over_time(max(unkey_krane_private_network_entries{job="krane", namespace="unkey", state="waiting_for_endpoints"})[15m:]) > 0
+        eval_time: 20m
+        exp_samples:
+          - labels: '{}'
+            value: 1
+
+  - name: local waiting aggregate with a gap returns nothing
+    interval: 1m
+    input_series:
+      - series: 'unkey_krane_private_network_entries{job="krane",namespace="unkey",pod="krane-0",kind="binding",state="waiting_for_endpoints"}'
+        values: '1x10 0 1x9'
+    promql_expr_test:
+      - expr: min_over_time(max(unkey_krane_private_network_entries{job="krane", namespace="unkey", state="waiting_for_endpoints"})[15m:]) > 0
+        eval_time: 20m
+        exp_samples: []
+
+  # ---------------------------------------------------------------- global store
+  - name: global no leader in an expected region, including missing telemetry
+    interval: 30s
+    input_series:
+      - series: 'up{job="krane",namespace="unkey",pod="krane-0",environment="production001",region="us-east-1",cluster="deploy-us-east-1"}'
+        values: '1x40'
+      - series: 'unkey_krane_private_network_leader{job="krane",namespace="unkey",pod="krane-0",environment="production001",region="us-east-1",cluster="deploy-us-east-1"}'
+        values: '1x40'
+      # eu-central-1: Krane scraped, private network telemetry missing.
+      - series: 'up{job="krane",namespace="unkey",pod="krane-0",environment="production001",region="eu-central-1",cluster="deploy-eu-central-1"}'
+        values: '1x40'
+      # ap-southeast-1: private networking not enabled, so not expected.
+      - series: 'up{job="krane",namespace="unkey",pod="krane-0",environment="production001",region="ap-southeast-1",cluster="deploy-ap-southeast-1"}'
+        values: '1x40'
+    promql_expr_test:
+      - expr: |
+          group by (environment, region) (
+            up{job="krane", namespace="unkey", environment="production001", region=~"us-east-1|eu-central-1"}
+          )
+          unless on (environment, region)
+          group by (environment, region) (
+            unkey_krane_private_network_leader{job="krane", namespace="unkey"} == 1
+          )
+        eval_time: 20m
+        exp_samples:
+          - labels: '{environment="production001",region="eu-central-1"}'
+            value: 1
+      - expr: absent(up{job="krane", namespace="unkey", region="us-west-1"})
+        eval_time: 20m
+        exp_samples:
+          - labels: '{job="krane",namespace="unkey",region="us-west-1"}'
+            value: 1
+
+  - name: global expected region with Krane down
+    interval: 30s
+    input_series:
+      - series: 'up{job="krane",namespace="unkey",pod="krane-0",environment="production001",region="us-east-1",cluster="deploy-us-east-1"}'
+        values: '1x40'
+      - series: 'unkey_krane_private_network_leader{job="krane",namespace="unkey",pod="krane-0",environment="production001",region="us-east-1",cluster="deploy-us-east-1"}'
+        values: '1x40'
+      - series: 'up{job="krane",namespace="unkey",pod="krane-0",environment="production001",region="eu-central-1",cluster="deploy-eu-central-1"}'
+        values: '0x40'
+    promql_expr_test:
+      - expr: |
+          group by (environment, region) (
+            up{job="krane", namespace="unkey", environment="production001", region=~"us-east-1|eu-central-1"}
+          )
+          unless on (environment, region)
+          group by (environment, region) (
+            unkey_krane_private_network_leader{job="krane", namespace="unkey"} == 1
+          )
+        eval_time: 20m
+        exp_samples:
+          - labels: '{environment="production001",region="eu-central-1"}'
+            value: 1
+
+  - name: local idle breakdown queries return nothing
+    interval: 30s
+    input_series:
+      - series: 'unkey_dns_bindings{job="undns",namespace="unkey",pod="undns-0",kind="binding",state="active"}'
+        values: '0x40'
+      - series: 'unkey_dns_bindings{job="undns",namespace="unkey",pod="undns-0",kind="binding",state="no_ready_endpoints"}'
+        values: '0x40'
+      - series: 'unkey_dns_discovery_watch_healthy{job="undns",namespace="unkey",pod="undns-0",resource="pods"}'
+        values: '1x40'
+      - series: 'unkey_krane_private_network_errors_total{job="krane",namespace="unkey",pod="krane-0",loop="discovery",stage="snapshot"}'
+        values: '0x40'
+    promql_expr_test:
+      - expr: max by (kind, state) (unkey_dns_bindings{job="undns", namespace="unkey"}) > 0
+        eval_time: 20m
+        exp_samples: []
+      - expr: unkey_dns_discovery_watch_healthy{job="undns", namespace="unkey"} == 0
+        eval_time: 20m
+        exp_samples: []
+      # The shed counter doesn't exist until a query is shed.
+      - expr: sum by (limit) (rate(unkey_dns_shed_total{job="undns", namespace="unkey"}[5m])) > 0
+        eval_time: 20m
+        exp_samples: []
+      - expr: sum by (loop, stage) (increase(unkey_krane_private_network_errors_total{job="krane", namespace="unkey"}[15m])) > 0
+        eval_time: 20m
+        exp_samples: []
+      - expr: |
+          sum by (result) (
+            rate(unkey_control_private_network_snapshots_total{job="control-api", namespace="control", result!="success"}[5m])
+          ) > 0
+        eval_time: 20m
+        exp_samples: []
+
+  - name: local failure breakdown names the failed step
+    interval: 30s
+    input_series:
+      - series: 'unkey_dns_bindings{job="undns",namespace="unkey",pod="undns-0",kind="binding",state="active"}'
+        values: '3x40'
+      - series: 'unkey_dns_bindings{job="undns",namespace="unkey",pod="undns-1",kind="binding",state="active"}'
+        values: '3x40'
+      - series: 'unkey_dns_bindings{job="undns",namespace="unkey",pod="undns-0",kind="binding",state="no_ready_endpoints"}'
+        values: '1x40'
+      - series: 'unkey_dns_discovery_watch_healthy{job="undns",namespace="unkey",pod="undns-1",resource="endpointslices"}'
+        values: '0x40'
+      - series: 'unkey_dns_shed_total{job="undns",namespace="unkey",pod="undns-0",limit="forwards_per_workspace"}'
+        values: '0+15x40'
+      - series: 'unkey_krane_private_network_errors_total{job="krane",namespace="unkey",pod="krane-0",loop="discovery",stage="policy"}'
+        values: '0+6x40'
+      - series: 'unkey_control_private_network_snapshots_total{job="control-api",namespace="control",pod="control-api-0",result="database_error"}'
+        values: '0+3x40'
+      - series: 'unkey_dns_query_duration_seconds_bucket{job="undns",namespace="unkey",pod="undns-0",path="public",le="0.05"}'
+        values: '0x40'
+      - series: 'unkey_dns_query_duration_seconds_bucket{job="undns",namespace="unkey",pod="undns-0",path="public",le="0.1"}'
+        values: '0+30x40'
+      - series: 'unkey_dns_query_duration_seconds_bucket{job="undns",namespace="unkey",pod="undns-0",path="public",le="+Inf"}'
+        values: '0+30x40'
+      - series: 'unkey_krane_private_network_pass_duration_seconds_bucket{job="krane",namespace="unkey",pod="krane-0",loop="discovery",le="20"}'
+        values: '0x40'
+      - series: 'unkey_krane_private_network_pass_duration_seconds_bucket{job="krane",namespace="unkey",pod="krane-0",loop="discovery",le="30"}'
+        values: '0+6x40'
+      - series: 'unkey_krane_private_network_pass_duration_seconds_bucket{job="krane",namespace="unkey",pod="krane-0",loop="discovery",le="+Inf"}'
+        values: '0+6x40'
+      - series: 'unkey_control_private_network_snapshot_read_duration_seconds_bucket{job="control-api",namespace="control",pod="control-api-0",le="1"}'
+        values: '0+6x40'
+      - series: 'unkey_control_private_network_snapshot_read_duration_seconds_bucket{job="control-api",namespace="control",pod="control-api-0",le="+Inf"}'
+        values: '0+6x40'
+    promql_expr_test:
+      # Every replica counts every binding, so max avoids multiplying by replicas.
+      - expr: max by (kind, state) (unkey_dns_bindings{job="undns", namespace="unkey"}) > 0
+        eval_time: 20m
+        exp_samples:
+          - labels: '{kind="binding",state="active"}'
+            value: 3
+          - labels: '{kind="binding",state="no_ready_endpoints"}'
+            value: 1
+      - expr: unkey_dns_discovery_watch_healthy{job="undns", namespace="unkey"} == 0
+        eval_time: 20m
+        exp_samples:
+          - labels: 'unkey_dns_discovery_watch_healthy{job="undns",namespace="unkey",pod="undns-1",resource="endpointslices"}'
+            value: 0
+      - expr: sum by (limit) (rate(unkey_dns_shed_total{job="undns", namespace="unkey"}[5m])) > 0
+        eval_time: 20m
+        exp_samples:
+          - labels: '{limit="forwards_per_workspace"}'
+            value: 0.5
+      - expr: sum by (loop, stage) (increase(unkey_krane_private_network_errors_total{job="krane", namespace="unkey"}[15m])) > 0
+        eval_time: 20m
+        exp_samples:
+          - labels: '{loop="discovery",stage="policy"}'
+            value: 180
+      - expr: |
+          sum by (result) (
+            rate(unkey_control_private_network_snapshots_total{job="control-api", namespace="control", result!="success"}[5m])
+          ) > 0
+        eval_time: 20m
+        exp_samples:
+          - labels: '{result="database_error"}'
+            value: 0.1
+      - expr: |
+          histogram_quantile(0.99,
+            sum by (path, le) (rate(unkey_dns_query_duration_seconds_bucket{job="undns", namespace="unkey"}[5m])))
+        eval_time: 20m
+        exp_samples:
+          - labels: '{path="public"}'
+            value: 0.0995
+      - expr: |
+          histogram_quantile(0.99,
+            sum by (loop, le) (rate(unkey_krane_private_network_pass_duration_seconds_bucket{job="krane", namespace="unkey"}[15m])))
+        eval_time: 20m
+        exp_samples:
+          - labels: '{loop="discovery"}'
+            value: 29.9
+      - expr: |
+          histogram_quantile(0.99,
+            sum by (le) (rate(unkey_control_private_network_snapshot_read_duration_seconds_bucket{job="control-api", namespace="control"}[15m])))
+        eval_time: 20m
+        exp_samples:
+          - labels: '{}'
+            value: 0.99
+
+  - name: global leaders exist but Ctrl serves no snapshots
+    interval: 30s
+    input_series:
+      - series: 'unkey_krane_private_network_leader{job="krane",namespace="unkey",pod="krane-0",environment="production001",region="us-east-1"}'
+        values: '1x40'
+    promql_expr_test:
+      - expr: |
+          count(unkey_krane_private_network_leader{job="krane", namespace="unkey"} == 1)
+          unless
+          sum(rate(unkey_control_private_network_snapshots_total{job="control-api", namespace="control", result="success"}[5m])) > 0
+        eval_time: 20m
+        exp_samples:
+          - labels: '{}'
+            value: 1
+
+  - name: global leaders exist and Ctrl serves snapshots
+    interval: 30s
+    input_series:
+      - series: 'unkey_krane_private_network_leader{job="krane",namespace="unkey",pod="krane-0",environment="production001",region="us-east-1"}'
+        values: '1x40'
+      - series: 'unkey_control_private_network_snapshots_total{job="control-api",namespace="control",pod="control-api-0",environment="production001",region="us-east-1",result="success"}'
+        values: '0+6x40'
+    promql_expr_test:
+      - expr: |
+          count(unkey_krane_private_network_leader{job="krane", namespace="unkey"} == 1)
+          unless
+          sum(rate(unkey_control_private_network_snapshots_total{job="control-api", namespace="control", result="success"}[5m])) > 0
+        eval_time: 20m
+        exp_samples: []
+      - expr: sum by (environment) (rate(unkey_control_private_network_snapshots_total{job="control-api", namespace="control", result="success"}[5m]))
+        eval_time: 20m
+        exp_samples:
+          - labels: '{environment="production001"}'
+            value: 0.2
