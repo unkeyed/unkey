@@ -24,6 +24,9 @@ export const queryKeys = {
   },
   portal: {
     detail: (keyAuthId: string) => ["portal", keyAuthId] as const,
+    sessionLists: (portalId: string) => ["portalSessions", portalId, "list"] as const,
+    sessions: (portalId: string, search: string) =>
+      ["portalSessions", portalId, "list", search] as const,
   },
   rbac: {
     all: rbacRoot,
