@@ -219,3 +219,39 @@ func TestRevokeSessionWritesRevokedStateToCache(t *testing.T) {
 	require.Equal(t, cache.Hit, hit, "the revoked row must be cached")
 	require.True(t, cached.RevokedAt.Valid, "the cached row carries the revocation")
 }
+
+// Two revokes in the same millisecond each report only the sessions they
+// revoked, not rows an earlier revoke already stamped with the same time.
+func TestRevokeSessionAtTheSameClockTick(t *testing.T) {
+	h := testutil.NewHarness(t)
+	route, headers := newRoute(t, h, permission)
+	workspace := h.Resources().UserWorkspace
+
+	stored, mapping := seedPortal(t, h, workspace.ID, "revoke-same-tick")
+	h.CreatePortalSessionForPortal(stored.ID, workspace.ID, "user_1", []string{mapping.ID}, []string{"keys:read"})
+
+	first := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, request(stored.ID, "user_1"))
+	require.Equal(t, http.StatusOK, first.Status, "expected 200, received: %s", first.RawBody)
+	require.Equal(t, int64(1), first.Body.Data.SessionsRevoked)
+
+	h.CreatePortalSessionForPortal(stored.ID, workspace.ID, "user_1", []string{mapping.ID}, []string{"keys:read"})
+	var newSessionID string
+	require.NoError(t, h.DB.RO().QueryRowContext(context.Background(),
+		"SELECT id FROM portal_sessions WHERE portal_id = ? AND external_id = ? AND revoked_at IS NULL", stored.ID, "user_1",
+	).Scan(&newSessionID))
+
+	second := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, request(stored.ID, "user_1"))
+	require.Equal(t, http.StatusOK, second.Status, "expected 200, received: %s", second.RawBody)
+	require.Equal(t, int64(1), second.Body.Data.SessionsRevoked, "only the new session was revoked")
+
+	metas := revokeAuditMetas(t, h, stored.ID)
+	require.Len(t, metas, 2)
+	var latest map[string]any
+	for _, meta := range metas {
+		if ids, ok := meta["sessionIds"].([]any); ok && len(ids) == 1 && ids[0] == newSessionID {
+			latest = meta
+		}
+	}
+	require.NotNil(t, latest, "the second audit entry must name only the new session")
+	require.Equal(t, float64(1), latest["sessionsRevoked"])
+}
