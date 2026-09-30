@@ -59,11 +59,18 @@ export function getBuildSteps(ch: Querier) {
         SELECT
           step_id, started_at, completed_at, name,
           cached, error, has_logs
-        FROM ${STEPS_TABLE}
-        WHERE workspace_id = {workspaceId: String}
-          AND project_id = {projectId: String}
-          AND deployment_id = {deploymentId: String}
-        ORDER BY started_at ASC`,
+        FROM (
+          SELECT
+            step_id, started_at, completed_at, name,
+            cached, error, has_logs
+          FROM ${STEPS_TABLE}
+          WHERE workspace_id = {workspaceId: String}
+            AND project_id = {projectId: String}
+            AND deployment_id = {deploymentId: String}
+          ORDER BY started_at DESC, completed_at DESC
+          LIMIT 1 BY step_id
+        )
+        ORDER BY started_at ASC, step_id ASC`,
       params: buildStepsRequestSchema,
       schema: buildStepSchema,
     });
