@@ -10,7 +10,7 @@ import { DeploymentRow } from "../../deployments/components/deployment-row";
 import { DeploymentsSkeleton } from "../../deployments/components/deployments-skeleton";
 import { useAppEnvironment, useAppScope } from "../../environment-context";
 
-export function RecentDeployments() {
+export function LatestDeployments() {
   const scope = useAppScope();
   const { environment } = useAppEnvironment();
   const { deployments, environments, isDeploymentsLoading } = useProjectData();
@@ -24,7 +24,7 @@ export function RecentDeployments() {
   return (
     <ResourceList>
       <ResourceListHeader className="flex-row items-center justify-between">
-        <h2 className="font-medium text-gray-12 text-sm">Recent Deployments</h2>
+        <h2 className="font-medium text-gray-12 text-sm">Latest deployments</h2>
         <Link
           href={routes.projects.apps.deployments(scope)}
           className="text-sm text-gray-11 transition-colors hover:text-gray-12"
@@ -36,21 +36,25 @@ export function RecentDeployments() {
         <DeploymentsSkeleton rows={5} />
       ) : (
         <ResourceListContent>
-          <ResourceListBody>
-            {recent.map((deployment) => (
-              <DeploymentRow
-                key={deployment.id}
-                deployment={deployment}
-                environment={environments.find((env) => env.id === deployment.environmentId)}
-                repoFullName={app?.repositoryFullName ?? null}
-                currentDeployment={currentDeployment}
-                isRolledBack={isRolledBack}
-                isRolledBackFrom={deployment.id === rolledBackFromId}
-                liveSince={app?.updatedAt ?? null}
-                href={routes.projects.apps.deployment({ ...scope, deploymentId: deployment.id })}
-              />
-            ))}
-          </ResourceListBody>
+          {recent.length === 0 ? (
+            <div className="px-4 py-10 text-center text-sm text-gray-9">No deployments yet.</div>
+          ) : (
+            <ResourceListBody>
+              {recent.map((deployment) => (
+                <DeploymentRow
+                  key={deployment.id}
+                  deployment={deployment}
+                  environment={environments.find((env) => env.id === deployment.environmentId)}
+                  repoFullName={app?.repositoryFullName ?? null}
+                  currentDeployment={currentDeployment}
+                  isRolledBack={isRolledBack}
+                  isRolledBackFrom={deployment.id === rolledBackFromId}
+                  liveSince={app?.updatedAt ?? null}
+                  href={routes.projects.apps.deployment({ ...scope, deploymentId: deployment.id })}
+                />
+              ))}
+            </ResourceListBody>
+          )}
         </ResourceListContent>
       )}
     </ResourceList>

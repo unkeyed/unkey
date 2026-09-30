@@ -16,13 +16,17 @@ vi.mock("@unkey/ui", () => ({
   ResourceListHeader: "header",
 }));
 
-const state = vi.hoisted(() => ({
-  sourceType: "oci",
-  deployments: Array.from({ length: 6 }, (_, index) => ({
+const sixDeployments = (environmentId: string) =>
+  Array.from({ length: 6 }, (_, index) => ({
     id: `d_${6 - index}`,
-    environmentId: "env_preview",
+    environmentId,
     status: "stopped",
-  })),
+  }));
+
+const state = vi.hoisted(() => ({
+  sourceType: "git",
+  kind: "production",
+  deployments: [] as { id: string; environmentId: string; status: string }[],
 }));
 
 vi.mock("@/hooks/use-workspace-navigation", () => ({
@@ -33,7 +37,7 @@ vi.mock("../../data-provider", () => ({
   useProjectData: () => ({
     projectId: "proj_backend",
     deployments: state.deployments,
-    environments: [{ id: "env_preview", slug: "preview" }],
+    environments: [{ id: `env_${state.kind}`, slug: state.kind }],
     isDeploymentsLoading: false,
   }),
 }));
@@ -42,10 +46,10 @@ vi.mock("../environment-context", () => ({
     workspaceSlug: "workspace",
     projectId: "proj_backend",
     appId: "app_container",
-    environmentSlug: "preview",
+    environmentSlug: state.kind,
   }),
   useAppEnvironment: () => ({
-    environment: { id: "env_preview", slug: "preview", kind: "preview" },
+    environment: { id: `env_${state.kind}`, slug: state.kind, kind: state.kind },
   }),
 }));
 vi.mock("../../hooks/use-app-current-deployment", () => ({
@@ -77,13 +81,15 @@ vi.mock("../deployments/components/deployment-row", () => ({
 
 afterEach(cleanup);
 beforeEach(() => {
-  state.sourceType = "oci";
+  state.sourceType = "git";
+  state.kind = "production";
+  state.deployments = sixDeployments("env_production");
 });
 
-describe("Overview deployment history", () => {
-  it("shows the five most recent container deployments, including stopped deployments", () => {
+describe("Overview history section", () => {
+  it("shows the five latest production deployments with a link to all of them", () => {
     render(<Overview />);
-    expect(screen.getByRole("heading", { name: "Recent Deployments" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Latest deployments" })).toBeTruthy();
     expect(screen.queryByRole("heading", { name: "Active Branches" })).toBeNull();
     expect(screen.getAllByRole("listitem").map((row) => row.textContent)).toEqual([
       "d_6",
@@ -93,17 +99,34 @@ describe("Overview deployment history", () => {
       "d_2",
     ]);
     expect(screen.getByRole("link", { name: "d_6" }).getAttribute("href")).toBe(
-      "/workspace/projects/proj_backend/apps/app_container/preview/deployments/d_6",
+      "/workspace/projects/proj_backend/apps/app_container/production/deployments/d_6",
     );
     expect(screen.getByRole("link", { name: "View all deployments" }).getAttribute("href")).toBe(
-      "/workspace/projects/proj_backend/apps/app_container/preview/deployments",
+      "/workspace/projects/proj_backend/apps/app_container/production/deployments",
     );
   });
 
-  it.each(["git", "unknown"])("preserves the existing branch view for %s apps", (source) => {
-    state.sourceType = source;
+  it("shows an empty state when production has no deployments", () => {
+    state.deployments = sixDeployments("env_preview");
+    render(<Overview />);
+    expect(screen.getByRole("heading", { name: "Latest deployments" })).toBeTruthy();
+    expect(screen.getByText("No deployments yet.")).toBeTruthy();
+  });
+
+  it("shows active branches in preview", () => {
+    state.kind = "preview";
+    state.deployments = sixDeployments("env_preview");
     render(<Overview />);
     expect(screen.getByRole("heading", { name: "Active Branches" })).toBeTruthy();
-    expect(screen.queryByRole("heading", { name: "Recent Deployments" })).toBeNull();
+    expect(screen.queryByRole("heading", { name: "Latest deployments" })).toBeNull();
+  });
+
+  it("shows latest deployments in preview for container apps, which have no branches", () => {
+    state.sourceType = "oci";
+    state.kind = "preview";
+    state.deployments = sixDeployments("env_preview");
+    render(<Overview />);
+    expect(screen.getByRole("heading", { name: "Latest deployments" })).toBeTruthy();
+    expect(screen.getAllByRole("listitem")).toHaveLength(5);
   });
 });
