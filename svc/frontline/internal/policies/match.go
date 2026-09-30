@@ -53,9 +53,9 @@ func (rc *regexCache) get(pattern string) (*regexp.Regexp, error) {
 
 // matchesRequest evaluates all match expressions against the request.
 // All expressions must match (AND semantics). An empty list matches all requests.
-func matchesRequest(req *http.Request, clientIP netip.Addr, exprs []*frontlinev1.MatchExpr, rc *regexCache) (bool, error) {
+func matchesRequest(req *http.Request, remoteIP netip.Addr, exprs []*frontlinev1.MatchExpr, rc *regexCache) (bool, error) {
 	for _, expr := range exprs {
-		matched, err := evalMatchExpr(req, clientIP, expr, rc)
+		matched, err := evalMatchExpr(req, remoteIP, expr, rc)
 		if err != nil {
 			return false, err
 		}
@@ -66,7 +66,7 @@ func matchesRequest(req *http.Request, clientIP netip.Addr, exprs []*frontlinev1
 	return true, nil
 }
 
-func evalMatchExpr(req *http.Request, clientIP netip.Addr, expr *frontlinev1.MatchExpr, rc *regexCache) (bool, error) {
+func evalMatchExpr(req *http.Request, remoteIP netip.Addr, expr *frontlinev1.MatchExpr, rc *regexCache) (bool, error) {
 	if expr == nil {
 		return false, nil
 	}
@@ -80,7 +80,7 @@ func evalMatchExpr(req *http.Request, clientIP netip.Addr, expr *frontlinev1.Mat
 	case *frontlinev1.MatchExpr_QueryParam:
 		return evalQueryParamMatch(req, e.QueryParam, rc)
 	case *frontlinev1.MatchExpr_RemoteIp:
-		return evalRemoteIpMatch(clientIP, e.RemoteIp)
+		return evalRemoteIpMatch(remoteIP, e.RemoteIp)
 	default:
 		return false, nil
 	}
@@ -155,17 +155,17 @@ func evalQueryParamMatch(req *http.Request, qm *frontlinev1.QueryParamMatch, rc 
 	}
 }
 
-func evalRemoteIpMatch(clientIP netip.Addr, rm *frontlinev1.RemoteIpMatch) (bool, error) {
-	if err := assert.True(clientIP.IsValid(), "remote ip match requires a valid client ip"); err != nil {
+func evalRemoteIpMatch(remoteIP netip.Addr, rm *frontlinev1.RemoteIpMatch) (bool, error) {
+	if err := assert.True(remoteIP.IsValid(), "remote ip match requires a valid remote ip"); err != nil {
 		return false, err
 	}
 
 	if in := rm.GetIn(); len(in) > 0 {
-		return listContainsIP(in, clientIP)
+		return listContainsIP(in, remoteIP)
 	}
 
 	// not_in flips it: clients in the list do not match, everyone else does
-	inList, err := listContainsIP(rm.GetNotIn(), clientIP)
+	inList, err := listContainsIP(rm.GetNotIn(), remoteIP)
 	if err != nil || inList {
 		return false, err
 	}

@@ -230,10 +230,10 @@ type isRateLimitIdentifier_Source interface {
 }
 
 type RateLimitIdentifier_RemoteIp struct {
-	// Limit by the client's IP address. Effective for anonymous traffic and
+	// Limit by the remote IP. Effective for anonymous traffic and
 	// DDoS protection, but can over-limit legitimate users behind shared
 	// NATs or corporate proxies where many clients share a single IP.
-	// The client IP is derived using the trusted proxy configuration in
+	// The remote IP is derived using the trusted proxy configuration in
 	// [Middleware.trusted_proxy_cidrs].
 	RemoteIp *RemoteIpKey `protobuf:"bytes,1,opt,name=remote_ip,json=remoteIp,proto3,oneof"`
 }

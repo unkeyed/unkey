@@ -97,10 +97,10 @@ export type RateLimitIdentifier = Message<"frontline.v1.RateLimitIdentifier"> & 
    */
   source: {
     /**
-     * Limit by the client's IP address. Effective for anonymous traffic and
+     * Limit by the remote IP. Effective for anonymous traffic and
      * DDoS protection, but can over-limit legitimate users behind shared
      * NATs or corporate proxies where many clients share a single IP.
-     * The client IP is derived using the trusted proxy configuration in
+     * The remote IP is derived using the trusted proxy configuration in
      * [Middleware.trusted_proxy_cidrs].
      *
      * @generated from field: frontline.v1.RemoteIpKey remote_ip = 1;

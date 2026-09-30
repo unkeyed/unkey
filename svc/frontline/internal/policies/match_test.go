@@ -317,21 +317,21 @@ func TestMatchesRequest_RemoteIp(t *testing.T) {
 
 	for _, tt := range []struct {
 		name     string
-		clientIP string
+		remoteIP string
 		match    *frontlinev1.RemoteIpMatch
 		matched  bool
 	}{
-		{name: "in hit", clientIP: "198.51.100.10", match: &frontlinev1.RemoteIpMatch{In: []string{"198.51.100.0/24"}}, matched: true},
-		{name: "in miss", clientIP: "198.51.101.10", match: &frontlinev1.RemoteIpMatch{In: []string{"198.51.100.0/24"}}, matched: false},
-		{name: "not in hit", clientIP: "198.51.100.10", match: &frontlinev1.RemoteIpMatch{NotIn: []string{"198.51.100.0/24"}}, matched: false},
-		{name: "not in miss", clientIP: "198.51.101.10", match: &frontlinev1.RemoteIpMatch{NotIn: []string{"198.51.100.0/24"}}, matched: true},
-		{name: "in second range", clientIP: "10.8.3.9", match: &frontlinev1.RemoteIpMatch{In: []string{"198.51.100.0/24", "10.8.0.0/16"}}, matched: true},
-		{name: "bare ipv4 entry", clientIP: "198.51.100.10", match: &frontlinev1.RemoteIpMatch{In: []string{"198.51.100.10"}}, matched: true},
-		{name: "ipv6 range", clientIP: "2001:db8::1", match: &frontlinev1.RemoteIpMatch{In: []string{"2001:db8::/32"}}, matched: true},
-		{name: "bare ipv6 entry", clientIP: "2001:db8::1", match: &frontlinev1.RemoteIpMatch{NotIn: []string{"2001:db8::1"}}, matched: false},
-		{name: "ipv4 client against ipv6 range", clientIP: "198.51.100.10", match: &frontlinev1.RemoteIpMatch{In: []string{"::/0"}}, matched: false},
-		{name: "both lists set uses in", clientIP: "198.51.100.10", match: &frontlinev1.RemoteIpMatch{In: []string{"198.51.100.0/24"}, NotIn: []string{"198.51.100.0/24"}}, matched: true},
-		{name: "neither list set matches every client", clientIP: "198.51.100.10", match: &frontlinev1.RemoteIpMatch{}, matched: true},
+		{name: "in hit", remoteIP: "198.51.100.10", match: &frontlinev1.RemoteIpMatch{In: []string{"198.51.100.0/24"}}, matched: true},
+		{name: "in miss", remoteIP: "198.51.101.10", match: &frontlinev1.RemoteIpMatch{In: []string{"198.51.100.0/24"}}, matched: false},
+		{name: "not in hit", remoteIP: "198.51.100.10", match: &frontlinev1.RemoteIpMatch{NotIn: []string{"198.51.100.0/24"}}, matched: false},
+		{name: "not in miss", remoteIP: "198.51.101.10", match: &frontlinev1.RemoteIpMatch{NotIn: []string{"198.51.100.0/24"}}, matched: true},
+		{name: "in second range", remoteIP: "10.8.3.9", match: &frontlinev1.RemoteIpMatch{In: []string{"198.51.100.0/24", "10.8.0.0/16"}}, matched: true},
+		{name: "bare ipv4 entry", remoteIP: "198.51.100.10", match: &frontlinev1.RemoteIpMatch{In: []string{"198.51.100.10"}}, matched: true},
+		{name: "ipv6 range", remoteIP: "2001:db8::1", match: &frontlinev1.RemoteIpMatch{In: []string{"2001:db8::/32"}}, matched: true},
+		{name: "bare ipv6 entry", remoteIP: "2001:db8::1", match: &frontlinev1.RemoteIpMatch{NotIn: []string{"2001:db8::1"}}, matched: false},
+		{name: "ipv4 client against ipv6 range", remoteIP: "198.51.100.10", match: &frontlinev1.RemoteIpMatch{In: []string{"::/0"}}, matched: false},
+		{name: "both lists set uses in", remoteIP: "198.51.100.10", match: &frontlinev1.RemoteIpMatch{In: []string{"198.51.100.0/24"}, NotIn: []string{"198.51.100.0/24"}}, matched: true},
+		{name: "neither list set matches every client", remoteIP: "198.51.100.10", match: &frontlinev1.RemoteIpMatch{}, matched: true},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
@@ -339,7 +339,7 @@ func TestMatchesRequest_RemoteIp(t *testing.T) {
 			req := &http.Request{Method: "GET", URL: &url.URL{Path: "/admin"}, Header: http.Header{}}
 			exprs := []*frontlinev1.MatchExpr{{Expr: &frontlinev1.MatchExpr_RemoteIp{RemoteIp: tt.match}}}
 
-			matched, err := matchesRequest(req, netip.MustParseAddr(tt.clientIP), exprs, newRegexCache())
+			matched, err := matchesRequest(req, netip.MustParseAddr(tt.remoteIP), exprs, newRegexCache())
 			require.NoError(t, err)
 			require.Equal(t, tt.matched, matched)
 		})
@@ -382,7 +382,7 @@ func TestMatchesRequest_InvalidConfiguration(t *testing.T) {
 	}
 }
 
-func TestMatchesRequest_RemoteIpWithoutClientIP(t *testing.T) {
+func TestMatchesRequest_RemoteIpMissing(t *testing.T) {
 	t.Parallel()
 	req := &http.Request{Method: "GET", URL: &url.URL{Path: "/admin"}, Header: http.Header{}}
 	exprs := []*frontlinev1.MatchExpr{{Expr: &frontlinev1.MatchExpr_RemoteIp{RemoteIp: &frontlinev1.RemoteIpMatch{NotIn: []string{"198.51.100.0/24"}}}}}

@@ -285,8 +285,8 @@ export const QueryParamMatchSchema: GenMessage<QueryParamMatch> = /*@__PURE__*/
   messageDesc(file_frontline_policies_v1_match, 5);
 
 /**
- * RemoteIpMatch matches the client's IP address against IP ranges.
- * The client IP comes from the connection, never from a header such as
+ * RemoteIpMatch matches the remote IP against IP ranges.
+ * The remote IP comes from the connection, never from a header such as
  * X-Forwarded-For
  *
  * Set one list:

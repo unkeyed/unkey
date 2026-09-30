@@ -591,8 +591,8 @@ func (*QueryParamMatch_Present) isQueryParamMatch_Match() {}
 
 func (*QueryParamMatch_Value) isQueryParamMatch_Match() {}
 
-// RemoteIpMatch matches the client's IP address against IP ranges.
-// The client IP comes from the connection, never from a header such as
+// RemoteIpMatch matches the remote IP against IP ranges.
+// The remote IP comes from the connection, never from a header such as
 // X-Forwarded-For
 //
 // Set one list:
