@@ -774,6 +774,7 @@ func (w *Workflow) processBuildStatus(
 	statusCh <-chan *client.SolveStatus,
 	workspaceID, projectID, deploymentID string,
 ) {
+	started := map[digest.Digest]bool{}
 	completed := map[digest.Digest]bool{}
 	verticesWithLogs := map[digest.Digest]bool{}
 
@@ -786,6 +787,24 @@ func (w *Workflow) processBuildStatus(
 			if vertex == nil {
 				logger.Warn("vertex is nil")
 				continue
+			}
+			// A running step needs its own row, otherwise readers cannot show it
+			// or the log entries it writes before it completes
+			if vertex.Started != nil && vertex.Completed == nil && !started[vertex.Digest] && !completed[vertex.Digest] {
+				started[vertex.Digest] = true
+
+				w.buildSteps.Buffer(schema.BuildStepV1{
+					Error:        "",
+					StartedAt:    vertex.Started.UnixMilli(),
+					CompletedAt:  0,
+					WorkspaceID:  workspaceID,
+					ProjectID:    projectID,
+					DeploymentID: deploymentID,
+					StepID:       vertex.Digest.String(),
+					Name:         vertex.Name,
+					Cached:       false,
+					HasLogs:      false,
+				})
 			}
 			if vertex.Completed != nil && !completed[vertex.Digest] {
 				completed[vertex.Digest] = true
