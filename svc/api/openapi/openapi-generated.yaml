@@ -14876,6 +14876,14 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/NotFoundErrorResponse'
                     description: Not Found
+                "409":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ConflictErrorResponse'
+                    description: |
+                        The portal was pointed at a different app or keyspace while the session
+                        was being created. Retry the request.
                 "429":
                     content:
                         application/problem+json:

@@ -374,6 +374,15 @@ func (h *Handler) mintSession(
 				fault.Public("Portal is disabled."),
 			)
 		}
+		// The grant was built from the replica's mapping. A re-point since then has
+		// already revoked, so a session scoped to the old mapping would never be.
+		if !portalrules.SameAssociation(current.KeyAuthID, req.Portal.KeyAuthID) || !portalrules.SameAssociation(current.AppID, req.Portal.AppID) {
+			return fault.New("portal was re-pointed",
+				fault.Code(codes.Data.Portal.Changed.URN()),
+				fault.Internal(fmt.Sprintf("portal %s was re-pointed after the replica read", req.Portal.ID)),
+				fault.Public("The portal changed while the session was being created. Try again."),
+			)
+		}
 
 		if txErr := db.Query.InsertPortalSession(txCtx, tx, db.InsertPortalSessionParams{
 			ID:                    sessionID,
