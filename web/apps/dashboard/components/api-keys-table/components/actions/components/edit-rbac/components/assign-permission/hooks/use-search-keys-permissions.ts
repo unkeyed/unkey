@@ -1,3 +1,4 @@
+import { queryKeys } from "@/lib/query-keys";
 import { getUnkeyClient } from "@/lib/unkey-client";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
@@ -14,7 +15,7 @@ export const useSearchPermissions = (query: string, debounceMs = 300) => {
   }, [query, debounceMs]);
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ["keys-rbac-permissions-search", debouncedQuery],
+    queryKey: queryKeys.rbac.permissions.search(debouncedQuery),
     queryFn: () => getUnkeyClient().permissions.listPermissions({ search: debouncedQuery }),
     enabled: debouncedQuery.length > 0,
     staleTime: 30_000,

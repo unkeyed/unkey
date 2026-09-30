@@ -83,11 +83,9 @@ import { queryIdentityDetails } from "./identity/query-identity-details";
 import { queryIdentityLogs } from "./identity/query-logs";
 import { queryIdentityTimeseries } from "./identity/query-timeseries";
 import { createRootKey } from "./key/createRootKey";
-import { fetchKeyPermissions } from "./key/fetch-key-permissions";
 import { queryKeyDetailsLogs } from "./key/query-logs";
 import { keyDetailsVerificationsTimeseries } from "./key/query-timeseries";
 import { getConnectedRolesAndPerms } from "./key/rbac/connected-roles-and-perms";
-import { getPermissionSlugs } from "./key/rbac/get-permission-slugs";
 import { rerollRootKey } from "./key/reroll";
 import { updateRootKeyName } from "./key/updateRootKeyName";
 import { updateRootKeyPermissions } from "./key/updateRootKeyPermissions";
@@ -156,12 +154,10 @@ export const router = t.router({
     reveal: revealSharedSecret,
   }),
   key: t.router({
-    fetchPermissions: fetchKeyPermissions,
     logs: t.router({
       query: queryKeyDetailsLogs,
       timeseries: keyDetailsVerificationsTimeseries,
     }),
-    queryPermissionSlugs: getPermissionSlugs,
     connectedRolesAndPerms: getConnectedRolesAndPerms,
   }),
   rootKey: t.router({

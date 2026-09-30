@@ -2,14 +2,18 @@ import { IconPage2Outline12 } from "@unkey/icons";
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useMemo, useState } from "react";
 
+const NO_SLUGS: string[] = [];
+
 export const GrantedAccess = ({
-  slugs = [],
+  slugs = NO_SLUGS,
   totalCount,
   isLoading,
+  hasError,
 }: {
   slugs?: string[];
   totalCount?: number;
   isLoading: boolean;
+  hasError: boolean;
 }) => {
   const [stableSlugs, setStableSlugs] = useState<string[]>([]);
 
@@ -110,6 +114,16 @@ export const GrantedAccess = ({
                   className="h-7 w-20 bg-grayA-4 rounded-md animate-pulse"
                 />
               ))}
+            </motion.div>
+          ) : hasError ? (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.3 }}
+              className="text-error-11 text-xs py-2"
+            >
+              Could not load permissions for the selected roles
             </motion.div>
           ) : stableSlugs.length > 0 ? (
             memoizedSlugs

@@ -1,12 +1,12 @@
+import { useInvalidateRbacQueries } from "@/hooks/use-invalidate-rbac-queries";
 import { trpc } from "@/lib/trpc/client";
 import { toast } from "@unkey/ui";
 
 export const useUpdatePermission = (onSuccess: () => void) => {
-  const trpcUtils = trpc.useUtils();
+  const invalidateRbacQueries = useInvalidateRbacQueries();
   const permission = trpc.authorization.permissions.update.useMutation({
     onSuccess(data) {
-      trpcUtils.authorization.permissions.invalidate();
-      trpcUtils.authorization.roles.invalidate();
+      invalidateRbacQueries();
       // Show success toast
       toast.success("Permission Updated", {
         description: data.message,
