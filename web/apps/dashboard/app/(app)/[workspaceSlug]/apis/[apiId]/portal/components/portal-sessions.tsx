@@ -199,7 +199,7 @@ function SessionGroupRow({
         </button>
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-9">
           <span className="flex items-center gap-1">
-            Latest <TimestampInfo value={summary.lastCreatedAt} displayType="relative" />
+            Last created <TimestampInfo value={summary.lastCreatedAt} displayType="relative" />
           </span>
           <span className="flex items-center gap-1">
             Expires <TimestampInfo value={summary.lastExpiresAt} displayType="relative" />
