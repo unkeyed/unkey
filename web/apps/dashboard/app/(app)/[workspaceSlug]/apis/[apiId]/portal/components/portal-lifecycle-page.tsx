@@ -1,11 +1,7 @@
 "use client";
+import { queryKeys } from "@/lib/query-keys";
 
-import {
-  type PortalState,
-  portalQueryKey,
-  usePortal,
-  useUpdatePortal,
-} from "@/lib/portal/use-portal";
+import { type PortalState, usePortal, useUpdatePortal } from "@/lib/portal/use-portal";
 import { useQueryClient } from "@tanstack/react-query";
 import type { Portal } from "@unkey/api/models/components";
 import {
@@ -148,7 +144,7 @@ export function PortalLifecyclePage({
     ? onRetryKeyAuthId
     : keyAuthId
       ? () => {
-          void queryClient.invalidateQueries({ queryKey: portalQueryKey(keyAuthId) });
+          void queryClient.invalidateQueries({ queryKey: queryKeys.portal.detail(keyAuthId) });
         }
       : undefined;
 

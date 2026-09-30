@@ -1,4 +1,5 @@
 "use client";
+import { queryKeys } from "@/lib/query-keys";
 
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { getUnkeyClient } from "@/lib/unkey-client";
@@ -17,23 +18,11 @@ type IdentityPage = {
   cursor?: string;
 };
 
-export const identityQueryKeys = {
-  all: ["identities"] as const,
-  workspace: (workspaceId: string) => [...identityQueryKeys.all, workspaceId] as const,
-  lists: (workspaceId: string) => [...identityQueryKeys.workspace(workspaceId), "list"] as const,
-  list: (workspaceId: string, search: string) =>
-    [...identityQueryKeys.lists(workspaceId), search] as const,
-  details: (workspaceId: string) =>
-    [...identityQueryKeys.workspace(workspaceId), "detail"] as const,
-  detail: (workspaceId: string, identityId: string) =>
-    [...identityQueryKeys.details(workspaceId), identityId] as const,
-};
-
 export function useIdentities({ search = "" }: { search?: string } = {}) {
   const workspace = useWorkspaceNavigation();
   const normalizedSearch = search.trim();
   const query = useInfiniteQuery({
-    queryKey: identityQueryKeys.list(workspace.id, normalizedSearch),
+    queryKey: queryKeys.identities.list(workspace.id, normalizedSearch),
     queryFn: async ({ pageParam, signal }) => {
       const cursor = typeof pageParam === "string" ? pageParam : undefined;
       const response = await getUnkeyClient().identities.listIdentities(
@@ -70,7 +59,7 @@ export function useIdentity(identityId: string) {
   const workspace = useWorkspaceNavigation();
 
   return useQuery({
-    queryKey: identityQueryKeys.detail(workspace.id, identityId),
+    queryKey: queryKeys.identities.detail(workspace.id, identityId),
     queryFn: async ({ signal }) => {
       try {
         const response = await getUnkeyClient().identities.getIdentity(
@@ -99,11 +88,11 @@ export function useCreateIdentityMutation() {
       return { identityId: response.data.identityId, externalId: input.externalId };
     },
     onMutate: async () => {
-      await queryClient.cancelQueries({ queryKey: identityQueryKeys.lists(workspace.id) });
+      await queryClient.cancelQueries({ queryKey: queryKeys.identities.lists(workspace.id) });
     },
     onSettled: async () => {
       await queryClient.invalidateQueries({
-        queryKey: identityQueryKeys.lists(workspace.id),
+        queryKey: queryKeys.identities.lists(workspace.id),
         refetchType: "all",
       });
     },
@@ -120,15 +109,15 @@ export function useUpdateIdentityMutation() {
       return response.data;
     },
     onMutate: async () => {
-      await queryClient.cancelQueries({ queryKey: identityQueryKeys.workspace(workspace.id) });
+      await queryClient.cancelQueries({ queryKey: queryKeys.identities.workspace(workspace.id) });
     },
     onSettled: async () => {
       await Promise.all([
         queryClient.invalidateQueries({
-          queryKey: identityQueryKeys.lists(workspace.id),
+          queryKey: queryKeys.identities.lists(workspace.id),
           refetchType: "all",
         }),
-        queryClient.invalidateQueries({ queryKey: identityQueryKeys.details(workspace.id) }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.identities.details(workspace.id) }),
       ]);
     },
   });
@@ -144,17 +133,17 @@ export function useDeleteIdentityMutation() {
       return identityId;
     },
     onMutate: async () => {
-      await queryClient.cancelQueries({ queryKey: identityQueryKeys.lists(workspace.id) });
+      await queryClient.cancelQueries({ queryKey: queryKeys.identities.lists(workspace.id) });
     },
     onSuccess: (_data, identityId) => {
       queryClient.removeQueries({
-        queryKey: identityQueryKeys.detail(workspace.id, identityId),
+        queryKey: queryKeys.identities.detail(workspace.id, identityId),
         exact: true,
       });
     },
     onSettled: async () => {
       await queryClient.invalidateQueries({
-        queryKey: identityQueryKeys.lists(workspace.id),
+        queryKey: queryKeys.identities.lists(workspace.id),
         refetchType: "all",
       });
     },
