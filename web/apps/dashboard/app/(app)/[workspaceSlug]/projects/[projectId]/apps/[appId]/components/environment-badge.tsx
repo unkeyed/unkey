@@ -1,6 +1,10 @@
 "use client";
 
-import { ENVIRONMENT_KIND, type Environment } from "@/lib/collections/deploy/environments";
+import {
+  ENVIRONMENT_KIND,
+  type Environment,
+  type EnvironmentKind,
+} from "@/lib/collections/deploy/environments";
 import {
   IconArrowDotRotateAnticlockwiseOutline12,
   IconCircleXmarkOutline12,
@@ -23,6 +27,12 @@ type EnvironmentBadgeProps = {
 export const ENVIRONMENT_BADGE_CLASS =
   "inline-flex h-5.5 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md border px-2 text-xs leading-none";
 const BASE_CLASS = ENVIRONMENT_BADGE_CLASS;
+
+export function environmentPillClass(kind: EnvironmentKind | undefined): string {
+  return kind === ENVIRONMENT_KIND.production
+    ? "border-warningA-4 bg-warningA-2 text-warning-11"
+    : "border-successA-4 bg-successA-2 text-success-11";
+}
 const OUTLINED_CLASS = "text-gray-12";
 const LIVE_CLASS = "border-transparent bg-info-11 text-white dark:bg-info-9 dark:text-gray-1";
 const ROLLED_BACK_FROM_CLASS = "border-transparent bg-errorA-3 text-error-11";

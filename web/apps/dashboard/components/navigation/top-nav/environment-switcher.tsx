@@ -1,6 +1,9 @@
 "use client";
 
-import { ENVIRONMENT_BADGE_CLASS } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/environment-badge";
+import {
+  ENVIRONMENT_BADGE_CLASS,
+  environmentPillClass,
+} from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/environment-badge";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { collection } from "@/lib/collections";
 import { ENVIRONMENT_KIND, type EnvironmentKind } from "@/lib/collections/deploy/environments";
@@ -64,7 +67,7 @@ export function EnvironmentSwitcher({
 
   return (
     <>
-      <span className={cn(ENVIRONMENT_BADGE_CLASS, "h-5 capitalize", pillClass(kind))}>
+      <span className={cn(ENVIRONMENT_BADGE_CLASS, "h-5 capitalize", environmentPillClass(kind))}>
         {environmentSlug}
       </span>
       <CrumbPopover
@@ -87,10 +90,4 @@ export function EnvironmentSwitcher({
 
 function capitalize(slug: string): string {
   return slug.charAt(0).toUpperCase() + slug.slice(1);
-}
-
-function pillClass(kind: EnvironmentKind | undefined): string {
-  return kind === ENVIRONMENT_KIND.production
-    ? "border-warningA-4 bg-warningA-2 text-warning-11"
-    : "border-successA-4 bg-successA-2 text-success-11";
 }

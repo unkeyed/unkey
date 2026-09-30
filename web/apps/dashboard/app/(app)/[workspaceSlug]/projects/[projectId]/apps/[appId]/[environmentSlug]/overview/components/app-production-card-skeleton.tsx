@@ -10,15 +10,6 @@ const METADATA_CELLS = ["status", "region", "resources", "instances", "source", 
 export function AppProductionCardSkeleton() {
   return (
     <Card className="flex flex-col">
-      <div className="flex items-center justify-between gap-4 px-4 py-3 border-b">
-        <Bar className="h-4 w-40" />
-        <div className="flex items-center gap-2">
-          <Bar className="h-7 w-16 rounded-md" />
-          <Bar className="h-7 w-24 rounded-md" />
-          <Bar className="h-7 w-7 rounded-md" />
-        </div>
-      </div>
-
       <div className="grid grid-cols-1 md:grid-cols-2">
         <div className="p-4 md:border-r flex flex-col gap-3">
           <div className="flex items-baseline justify-between">

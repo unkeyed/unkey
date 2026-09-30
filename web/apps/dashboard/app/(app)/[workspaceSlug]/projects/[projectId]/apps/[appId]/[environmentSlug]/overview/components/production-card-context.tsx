@@ -19,9 +19,6 @@ export type ProductionCardContextValue = {
     image: string | null;
   } | null;
   sourceRepo: string | null;
-  primaryDomain: CardDomain | null;
-  additionalDomains: CardDomain[];
-  addCustomDomainHref: Route | null;
   diagnostic: { label: string; href: Route } | null;
   deploymentHref: Route;
   logsHref: Route;

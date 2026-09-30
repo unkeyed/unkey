@@ -15,15 +15,12 @@ import {
   IconLayers2Outline18,
   IconLocation2Outline18,
   IconMicrochipOutline18,
-  IconPlusOutline18,
   IconTerminalOutline18,
 } from "@unkey/icons";
-import { Button, Card } from "@unkey/ui";
+import { Card } from "@unkey/ui";
 import { useAppCurrentDeployment } from "../../../hooks/use-app-current-deployment";
 import { useAppScope } from "../../environment-context";
-import { CreateDeploymentButton } from "../../navigations/create-deployment-button";
 import { AppCanvas } from "./app-canvas";
-import { CARD_HEADER_CLASS, CardEyebrow } from "./card-header";
 import { NewerDeploymentRow } from "./card-newer-deployment";
 
 /**
@@ -38,22 +35,6 @@ export function EnvironmentPendingCard({
   const scope = useAppScope();
   return (
     <Card className="relative z-10 flex flex-col">
-      <div className={CARD_HEADER_CLASS}>
-        <div className="flex items-center gap-2 min-w-0">
-          <CardEyebrow>Never deployed</CardEyebrow>
-          <span className="font-mono text-base font-semibold text-gray-9 truncate">
-            Domain pending
-          </span>
-        </div>
-        <CreateDeploymentButton
-          renderTrigger={({ onClick }) => (
-            <Button variant="outline" size="sm" onClick={onClick}>
-              <IconPlusOutline18 />
-              Create deployment
-            </Button>
-          )}
-        />
-      </div>
       <AppCanvas domains={[]} app={<PendingAppNode />} />
       {newerDeployment && (
         <NewerDeploymentRow
