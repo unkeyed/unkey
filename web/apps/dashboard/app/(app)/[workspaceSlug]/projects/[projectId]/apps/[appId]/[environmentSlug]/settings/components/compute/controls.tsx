@@ -174,7 +174,6 @@ function UnitSelect({
       aria-label={label}
       size="sm"
       wrapperClassName="w-full"
-      className="font-mono"
       value={value === null ? "" : String(value)}
       onChange={(e) => {
         const next = Number(e.target.value);
