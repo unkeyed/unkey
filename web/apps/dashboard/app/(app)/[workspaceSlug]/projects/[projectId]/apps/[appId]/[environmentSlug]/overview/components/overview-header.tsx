@@ -7,6 +7,7 @@ import {
   IconArrowDottedRotateAnticlockwiseOutline18,
   IconEarthOutline18,
   IconLayers2Outline18,
+  IconPlusOutline18,
   IconTriangleWarningOutline18,
 } from "@unkey/icons";
 import { match } from "@unkey/match";
@@ -27,6 +28,7 @@ import {
 } from "../../../components/environment-badge";
 import { useAppCurrentDeployment } from "../../../hooks/use-app-current-deployment";
 import { useAppEnvironment } from "../../environment-context";
+import { CreateDeploymentButton } from "../../navigations/create-deployment-button";
 import { ProductionCardActionsMenu } from "./production-card-actions-menu";
 import type { CardDomain } from "./production-card-context";
 import { useProductionCard } from "./production-card-context";
@@ -57,7 +59,7 @@ export function OverviewHeader({
           <span
             className={cn(
               ENVIRONMENT_BADGE_CLASS,
-              "capitalize",
+              "h-5 font-normal tracking-normal capitalize",
               environmentPillClass(environment.kind),
             )}
           >
@@ -65,7 +67,7 @@ export function OverviewHeader({
           </span>
         </PageHeaderTitle>
         {(source || primaryDomain) && (
-          <PageHeaderDescription className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-1">
+          <PageHeaderDescription className="mt-1 flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 text-xs">
             {source && <SourceMeta source={source} />}
             {primaryDomain && (
               <a
@@ -164,6 +166,14 @@ export function ProductionActions() {
           Instant Rollback
         </Button>
       )}
+      <CreateDeploymentButton
+        renderTrigger={({ onClick }) => (
+          <Button variant="primary" size="sm" onClick={onClick}>
+            <IconPlusOutline18 />
+            New deployment
+          </Button>
+        )}
+      />
       <ProductionCardActionsMenu
         deployment={deployment}
         status={status}

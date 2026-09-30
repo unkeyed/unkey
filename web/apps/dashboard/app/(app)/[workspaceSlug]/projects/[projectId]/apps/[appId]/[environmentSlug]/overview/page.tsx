@@ -44,9 +44,9 @@ export default function Overview() {
           actions={
             <CreateDeploymentButton
               renderTrigger={({ onClick }) => (
-                <Button variant="outline" size="sm" onClick={onClick}>
+                <Button variant="primary" size="sm" onClick={onClick}>
                   <IconPlusOutline18 />
-                  Create deployment
+                  New deployment
                 </Button>
               )}
             />
