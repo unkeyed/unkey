@@ -1,7 +1,6 @@
 import { relations, sql } from "drizzle-orm";
 import {
   bigint,
-  boolean,
   index,
   int,
   json,
@@ -22,6 +21,10 @@ import { lifecycleDates } from "./util/lifecycle_dates";
 import { longblob } from "./util/longblob";
 import { primaryKey } from "./util/primary_key";
 import { workspaces } from "./workspaces";
+
+export type DeploymentFeatures = {
+  private_networking?: boolean;
+};
 
 export const deployments = mysqlTable(
   "deployments",
@@ -89,7 +92,7 @@ export const deployments = mysqlTable(
     // Protocol Frontline uses to proxy to the instance (snapshotted from app_runtime_settings)
     upstreamProtocol: mysqlEnum("upstream_protocol", ["http1", "h2c"]).notNull().default("http1"),
 
-    privateNetworking: boolean("private_networking").notNull().default(false),
+    features: json("features").$type<DeploymentFeatures>().notNull().default(sql`('{}')`),
 
     // HTTP healthcheck configuration (null = no healthcheck)
     healthcheck: json("healthcheck").$type<import("./app_runtime_settings").Healthcheck>(),

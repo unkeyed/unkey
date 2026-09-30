@@ -108,14 +108,20 @@ The Vercel provider in `pkg/featureflag/vercel` supports a subset of Vercel Flag
 
 ### Private networking
 
-Ctrl reads `private-networking` once, when it creates a deployment, and stores the answer in `deployments.private_networking`. Create evaluates the flag inside the journaled step that builds the deployment payload, after the plan, spend, and runtime checks. Only workspaces with an app binding to another app are evaluated. If a row already exists under the same deployment ID, for example when an approval starts a deployment its push created, Create reuses the stored decision without evaluating the flag. A rebuild gets a new deployment ID and evaluates again. Other deployments store `false` without a flag lookup. A deployment stored as `false` also gets no binding variables, because their hostnames resolve only through private DNS.
+Ctrl reads `private-networking` once, when it creates a deployment, and stores the answer as `private_networking` in `deployments.features`. Create evaluates the flag inside the journaled step that builds the deployment payload, after the plan, spend, and runtime checks. Only workspaces with an app binding to another app are evaluated. If a row already exists under the same deployment ID, for example when an approval starts a deployment its push created, Create reuses the stored decision without evaluating the flag. A rebuild gets a new deployment ID and evaluates again. Other deployments store it as off without a flag lookup. A deployment stored as off also gets no binding variables, because their hostnames resolve only through private DNS.
 
 Krane, discovery, and the resolver read the stored value, never the flag. Every region configures the same DNS for a deployment, and a later flag change or flag outage doesn't rewrite DNS for running deployments. To apply a changed flag to an app, redeploy it.
 
 A flag evaluation error fails the payload step, and Restate retries it. If the retries fail, the create fails without writing a row. `unkey_control_feature_flag_evaluations_total{flag, result}` counts evaluations by result.
 
+### Deployment features
+
+`deployments.features` is a JSON object with the capabilities decided once when Ctrl creates a deployment. In Go it's `DeploymentFeatures` in `pkg/mysql/types`. A missing key is off, so rows written before a key existed keep it off. Create writes the whole object in the deployment payload step, and an approval reuses the whole object from the existing row.
+
+To add a feature that must not change for a running deployment, add a field to `DeploymentFeatures` and the `DeploymentFeatures` TypeScript type, then decide it in `decideFeatures` in `svc/ctrl/worker/deploy/features.go`. SQL filters on a feature with `JSON_CONTAINS(features, 'true', '$.<key>')`. A flag that only changes behavior at request time doesn't belong here.
+
 #### Roll out the column
 
-Apply the schema change that adds `deployments.private_networking` before you deploy binaries that read it. Ctrl and the API select the column and Ctrl inserts it, so an older schema fails those queries.
+Apply the schema change that adds `deployments.features` before you deploy binaries that read it. Ctrl and the API select the column and Ctrl inserts it, so an older schema fails those queries.
 
-The column defaults to `false`, and nothing backfills it. Deployments that used private networking before the column existed switch to cluster DNS at their next reconcile. Redeploy them with the flag on, or set the column explicitly for those deployments as a reviewed migration.
+The column defaults to `{}`, and nothing backfills it. Deployments that used private networking before the column existed switch to cluster DNS at their next reconcile. Redeploy them with the flag on, or set their features explicitly as a reviewed migration.

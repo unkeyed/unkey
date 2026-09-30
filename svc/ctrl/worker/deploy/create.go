@@ -216,7 +216,7 @@ type deployPayload struct {
 	// The deployment a rebuild reproduces. Empty otherwise.
 	RebuildSourceID string `json:"rebuild_source_id"`
 
-	PrivateNetworking bool `json:"private_networking"`
+	Features mysqltype.DeploymentFeatures `json:"features"`
 }
 
 // validateAndBuildPayload decides every rejection, then resolves the source and
@@ -264,14 +264,14 @@ func (w *Workflow) validateAndBuildPayload(
 		prNumber := req.GetGit().GetPrNumber()
 		source := buildSource{Image: "", Git: nil}
 		secrets := []byte{}
-		privateNetworking := false
+		features := mysqltype.DeploymentFeatures{PrivateNetworking: false}
 
 		if willBuild {
 			var err error
-			if privateNetworking, err = w.decidePrivateNetworking(runCtx, deploymentID, *target); err != nil {
+			if features, err = w.decideFeatures(runCtx, deploymentID, *target); err != nil {
 				return payload, err
 			}
-			if secrets, err = w.loadSecrets(runCtx, *target, privateNetworking); err != nil {
+			if secrets, err = w.loadSecrets(runCtx, *target, features.PrivateNetworking); err != nil {
 				return payload, err
 			}
 
@@ -301,7 +301,7 @@ func (w *Workflow) validateAndBuildPayload(
 		payload.Status = status
 		payload.CreatedAt = time.Now().UnixMilli()
 		payload.Secrets = secrets
-		payload.PrivateNetworking = privateNetworking
+		payload.Features = features
 		payload.Command = target.Command
 		payload.PRNumber = prNumber
 		payload.Source = source
@@ -404,7 +404,7 @@ func (w *Workflow) insertDeployment(
 				Port:                          target.Port,
 				ShutdownSignal:                db.DeploymentsShutdownSignal(target.ShutdownSignal),
 				UpstreamProtocol:              db.DeploymentsUpstreamProtocol(target.UpstreamProtocol),
-				PrivateNetworking:             payload.PrivateNetworking,
+				Features:                      payload.Features,
 				Healthcheck:                   target.Healthcheck,
 				PrNumber:                      sql.NullInt64{Int64: payload.PRNumber, Valid: payload.PRNumber != 0},
 				ForkRepositoryFullName:        sql.NullString{String: commit.ForkRepository, Valid: commit.ForkRepository != ""},

@@ -8,18 +8,28 @@ import (
 	"github.com/open-feature/go-sdk/openfeature"
 	"github.com/unkeyed/unkey/pkg/featureflag"
 	"github.com/unkeyed/unkey/pkg/logger"
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 	"github.com/unkeyed/unkey/svc/ctrl/pkg/metrics"
 )
 
-func (w *Workflow) decidePrivateNetworking(ctx context.Context, deploymentID string, target db.FindDeployTargetRow) (bool, error) {
+func (w *Workflow) decideFeatures(ctx context.Context, deploymentID string, target db.FindDeployTargetRow) (mysqltype.DeploymentFeatures, error) {
 	existing, err := w.db.FindDeploymentForCreate(ctx, deploymentID)
 	if err == nil {
-		return existing.PrivateNetworking, nil
+		return existing.Features, nil
 	}
 	if !db.IsNotFound(err) {
-		return false, fmt.Errorf("failed to look up deployment %s: %w", deploymentID, err)
+		return mysqltype.DeploymentFeatures{PrivateNetworking: false}, fmt.Errorf("failed to look up deployment %s: %w", deploymentID, err)
 	}
+
+	privateNetworking, err := w.decidePrivateNetworking(ctx, target)
+	if err != nil {
+		return mysqltype.DeploymentFeatures{PrivateNetworking: false}, err
+	}
+	return mysqltype.DeploymentFeatures{PrivateNetworking: privateNetworking}, nil
+}
+
+func (w *Workflow) decidePrivateNetworking(ctx context.Context, target db.FindDeployTargetRow) (bool, error) {
 	if !target.PrivateNetworkEligible {
 		return false, nil
 	}

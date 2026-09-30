@@ -24,7 +24,7 @@ func TestCreatePrivateNetworkingDecision(t *testing.T) {
 		deploymentID := uid.New(uid.DeploymentPrefix)
 		h.create(t, ctx, deploymentID, h.imageRequest())
 
-		require.False(t, h.deployment(t, ctx, deploymentID).PrivateNetworking)
+		require.False(t, h.deployment(t, ctx, deploymentID).Features.PrivateNetworking)
 		require.Zero(t, h.flags.evaluations(h.orgID))
 	})
 
@@ -36,7 +36,7 @@ func TestCreatePrivateNetworkingDecision(t *testing.T) {
 		deploymentID := uid.New(uid.DeploymentPrefix)
 		h.create(t, ctx, deploymentID, h.imageRequest())
 
-		require.True(t, h.deployment(t, ctx, deploymentID).PrivateNetworking)
+		require.True(t, h.deployment(t, ctx, deploymentID).Features.PrivateNetworking)
 		require.Equal(t, 1, h.flags.evaluations(h.orgID))
 		require.NotEqual(t, h.workspaceID, h.orgID, "team.id is the WorkOS organization, not the workspace")
 	})
@@ -51,7 +51,7 @@ func TestCreatePrivateNetworkingDecision(t *testing.T) {
 		h.create(t, ctx, deploymentID, h.imageRequest())
 
 		row := h.deployment(t, ctx, deploymentID)
-		require.False(t, row.PrivateNetworking)
+		require.False(t, row.Features.PrivateNetworking)
 		require.NotContains(t, string(row.EncryptedEnvironmentVariables), "DATABASE_HOST")
 		require.Equal(t, 1, h.flags.evaluations(h.orgID))
 	})
@@ -64,7 +64,7 @@ func TestCreatePrivateNetworkingDecision(t *testing.T) {
 		deploymentID := uid.New(uid.DeploymentPrefix)
 		h.create(t, ctx, deploymentID, h.imageRequest())
 
-		require.True(t, h.deployment(t, ctx, deploymentID).PrivateNetworking)
+		require.True(t, h.deployment(t, ctx, deploymentID).Features.PrivateNetworking)
 		require.Equal(t, 3, h.flags.evaluations(h.orgID))
 		h.awaitDeploy(t, deploymentID)
 	})
@@ -93,7 +93,7 @@ func TestCreatePrivateNetworkingDecision(t *testing.T) {
 		req.Decision = hydrav1.CreateDecision_CREATE_DECISION_SKIP
 		h.create(t, ctx, deploymentID, req)
 
-		require.False(t, h.deployment(t, ctx, deploymentID).PrivateNetworking)
+		require.False(t, h.deployment(t, ctx, deploymentID).Features.PrivateNetworking)
 		require.Zero(t, h.flags.evaluations(h.orgID))
 	})
 }
@@ -121,7 +121,7 @@ func TestCreateApprovalReusesPrivateNetworkingDecision(t *testing.T) {
 			h.create(t, ctx, deploymentID, push)
 
 			pushed := h.deployment(t, ctx, deploymentID)
-			require.True(t, pushed.PrivateNetworking)
+			require.True(t, pushed.Features.PrivateNetworking)
 			require.Contains(t, string(pushed.EncryptedEnvironmentVariables), "ciphertext-for-DATABASE_HOST")
 			require.Equal(t, 1, h.flags.evaluations(h.orgID))
 
@@ -132,7 +132,7 @@ func TestCreateApprovalReusesPrivateNetworkingDecision(t *testing.T) {
 			h.awaitDeploy(t, deploymentID)
 
 			approved := h.deployment(t, ctx, deploymentID)
-			require.True(t, approved.PrivateNetworking)
+			require.True(t, approved.Features.PrivateNetworking)
 			require.Equal(t, pushed.EncryptedEnvironmentVariables, approved.EncryptedEnvironmentVariables)
 			require.Zero(t, h.flags.evaluations(h.orgID), "an approval reuses the stored decision")
 		})
@@ -143,7 +143,7 @@ func TestCreateApprovalReusesPrivateNetworkingDecision(t *testing.T) {
 		target := h.newApp(t, ctx)
 		h.bind(t, ctx, h.appID, h.environmentID, target.appID)
 		source := h.imageDeployment(t, ctx, 1)
-		_, err := h.database.RW().ExecContext(ctx, `UPDATE deployments SET private_networking = TRUE WHERE id = ?`, source.ID)
+		_, err := h.database.RW().ExecContext(ctx, `UPDATE deployments SET features = '{"private_networking":true}' WHERE id = ?`, source.ID)
 		require.NoError(t, err)
 		h.flags.set(h.orgID, 0, false)
 
@@ -151,7 +151,7 @@ func TestCreateApprovalReusesPrivateNetworkingDecision(t *testing.T) {
 		h.create(t, ctx, deploymentID, h.existingRequest(source.ID, false))
 
 		rebuilt := h.deployment(t, ctx, deploymentID)
-		require.False(t, rebuilt.PrivateNetworking)
+		require.False(t, rebuilt.Features.PrivateNetworking)
 		require.NotContains(t, string(rebuilt.EncryptedEnvironmentVariables), "DATABASE_HOST")
 		require.Equal(t, 1, h.flags.evaluations(h.orgID))
 	})

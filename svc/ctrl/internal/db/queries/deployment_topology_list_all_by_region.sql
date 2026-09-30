@@ -31,7 +31,7 @@ SELECT
     e.slug AS environment_slug,
     e.kind AS environment_kind,
     COALESCE(a.slug, '') AS app_slug,
-    d.private_networking AS private_network_enrolled,
+    d.features AS deployment_features,
     r.name AS region_name,
     grc.repository_full_name AS git_repo
 FROM `deployment_topology` dt
