@@ -16,7 +16,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
@@ -72,6 +71,7 @@ func TestSuccess(t *testing.T) {
 		err := db.Query.InsertRole(ctx, h.DB.RW(), db.InsertRoleParams{
 			RoleID:      roleID,
 			WorkspaceID: workspace.ID,
+			ProjectID:   api.ProjectID,
 			Name:        roleName,
 			Description: sql.NullString{Valid: true, String: "Editor role"},
 		})
@@ -126,6 +126,7 @@ func TestSuccess(t *testing.T) {
 		err := db.Query.InsertRole(ctx, h.DB.RW(), db.InsertRoleParams{
 			RoleID:      oldRoleID,
 			WorkspaceID: workspace.ID,
+			ProjectID:   api.ProjectID,
 			Name:        "admin_replace_old",
 			Description: sql.NullString{Valid: true, String: "Old admin role"},
 		})
@@ -136,6 +137,7 @@ func TestSuccess(t *testing.T) {
 		err = db.Query.InsertRole(ctx, h.DB.RW(), db.InsertRoleParams{
 			RoleID:      newRoleID,
 			WorkspaceID: workspace.ID,
+			ProjectID:   api.ProjectID,
 			Name:        roleName,
 			Description: sql.NullString{Valid: true, String: "New editor role"},
 		})
@@ -224,6 +226,7 @@ func TestSuccess(t *testing.T) {
 		err := db.Query.InsertRole(ctx, h.DB.RW(), db.InsertRoleParams{
 			RoleID:      roleID,
 			WorkspaceID: workspace.ID,
+			ProjectID:   api.ProjectID,
 			Name:        "admin_remove_all",
 			Description: sql.NullString{Valid: true, String: "Admin role to be removed"},
 		})
@@ -303,6 +306,7 @@ func TestSuccess(t *testing.T) {
 		err := db.Query.InsertRole(ctx, h.DB.RW(), db.InsertRoleParams{
 			RoleID:      roleID,
 			WorkspaceID: workspace.ID,
+			ProjectID:   api.ProjectID,
 			Name:        roleName,
 			Description: sql.NullString{Valid: true, String: "Admin role - no change"},
 		})
@@ -385,7 +389,7 @@ func TestSetRolesConcurrent(t *testing.T) {
 	keyResponse := h.CreateKey(seed.CreateKeyRequest{
 		WorkspaceID: workspace.ID,
 		KeySpaceID:  api.KeyAuthID.String,
-		Name:        ptr.P("concurrent-set-roles-test-key"),
+		Name:        new("concurrent-set-roles-test-key"),
 	})
 
 	// Create roles that will be set concurrently
@@ -395,7 +399,7 @@ func TestSetRolesConcurrent(t *testing.T) {
 		role := h.CreateRole(seed.CreateRoleRequest{
 			WorkspaceID: workspace.ID,
 			Name:        fmt.Sprintf("concurrent.set.role.%d", i),
-			Description: ptr.P(fmt.Sprintf("Concurrent role %d", i)),
+			Description: new(fmt.Sprintf("Concurrent role %d", i)),
 		})
 		roles[i] = role.Name
 	}
@@ -433,10 +437,9 @@ func TestSetRolesConcurrent(t *testing.T) {
 	require.Len(t, finalRoles, 1, "last-writer-wins should leave exactly 1 role")
 }
 
-// TestValidationConcurrencyStress hammers the OpenAPI validation middleware with
+// TestValidationConcurrencyStress hammers a newly created OpenAPI validator with
 // concurrent requests to verify the libopenapi "circular reference detected
-// during inline rendering" race condition doesn't occur. A warm-up request
-// populates the validator's schema cache before the concurrent burst.
+// during inline rendering" race condition doesn't occur on a cold cache.
 // See unkeyed/unkey#5478 for investigation details.
 func TestValidationConcurrencyStress(t *testing.T) {
 	t.Parallel()
@@ -475,19 +478,6 @@ func TestValidationConcurrencyStress(t *testing.T) {
 		"Authorization": {"Bearer test"},
 	}
 	keyID := uid.New(uid.KeyPrefix)
-
-	// Warm up the validator's schema cache with a single request so the
-	// concurrent burst doesn't race on first-time schema rendering.
-	warmupBody, err := json.Marshal(handler.Request{
-		KeyId: keyID,
-		Roles: []string{roles[0]},
-	})
-	require.NoError(t, err)
-	warmupReq := httptest.NewRequest(route.Method(), route.Path(), bytes.NewReader(warmupBody))
-	warmupReq.Header = headers.Clone()
-	warmupRR := httptest.NewRecorder()
-	h.Mux().ServeHTTP(warmupRR, warmupReq)
-	require.Equal(t, 200, warmupRR.Code, "warmup request should succeed")
 
 	const totalRequests = 100_000
 	const concurrency = 500

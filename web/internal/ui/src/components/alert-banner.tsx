@@ -5,16 +5,16 @@ import { cn } from "../lib/utils";
 const alertBannerVariants = cva(
   [
     "grid w-full grid-cols-[auto_1fr_auto] items-center rounded-lg border px-4 py-3",
-    "has-[>[data-slot=alert-banner-title]]:items-start has-[>[data-slot=alert-banner-title]]:p-4",
     "[&>svg]:col-start-1 [&>svg]:row-start-1 [&>svg]:mr-3 [&>svg]:shrink-0",
-    "has-[>[data-slot=alert-banner-title]]:[&>svg]:translate-y-0.5",
-    "has-[>[data-slot=alert-banner-title]]:has-[>[data-slot=alert-banner-description]]:*:data-[slot=alert-banner-actions]:row-end-3",
+    "has-[>[data-slot=alert-banner-title]+[data-slot=alert-banner-description]]:items-start",
+    "has-[>[data-slot=alert-banner-title]+[data-slot=alert-banner-description]]:p-4",
+    "has-[>[data-slot=alert-banner-title]+[data-slot=alert-banner-description]]:[&>svg]:translate-y-0.5",
+    "has-[>[data-slot=alert-banner-title]+[data-slot=alert-banner-description]]:*:data-[slot=alert-banner-actions]:row-end-3",
   ],
   {
     variants: {
       variant: {
-        default:
-          "border-grayA-4 bg-background [&>svg]:text-gray-12 *:data-[slot=alert-banner-title]:text-gray-12",
+        default: "bg-raised [&>svg]:text-gray-12 *:data-[slot=alert-banner-title]:text-gray-12",
         error:
           "border-errorA-4 bg-errorA-2 [&>svg]:text-error-11 *:data-[slot=alert-banner-title]:text-error-11",
         warning:
@@ -62,7 +62,7 @@ function AlertBannerDescription({ className, ...props }: React.ComponentProps<"d
     <div
       data-slot="alert-banner-description"
       className={cn(
-        "col-start-2 min-w-0 text-[13px] leading-5 text-gray-11",
+        "col-start-2 min-w-0 text-sm leading-5 text-gray-11",
         "[[data-slot=alert-banner-title]+&]:mt-0.5",
         linkStyles,
         className,

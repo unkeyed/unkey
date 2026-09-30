@@ -4,8 +4,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/sdks/api/go/v2/models/apierrors"
-	"github.com/unkeyed/sdks/api/go/v2/models/components"
+	"github.com/unkeyed/sdks/api/go/v3/models/apierrors"
+	"github.com/unkeyed/sdks/api/go/v3/models/components"
 )
 
 func TestFormatPermissionError(t *testing.T) {

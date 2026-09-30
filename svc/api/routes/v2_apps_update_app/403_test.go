@@ -7,7 +7,10 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_apps_update_app"
@@ -34,13 +37,16 @@ func TestUpdateAppForbidden(t *testing.T) {
 
 	appSlug := strings.ToLower(strings.ReplaceAll(uid.New("test"), "_", "-"))
 	app := h.CreateApp(seed.CreateAppRequest{
-		ID:            uid.New(uid.AppPrefix),
-		WorkspaceID:   workspace.ID,
-		ProjectID:     project.ID,
-		Name:          "Forbidden App",
-		Slug:          appSlug,
-		DefaultBranch: "main",
+		ID:          uid.New(uid.AppPrefix),
+		WorkspaceID: workspace.ID,
+		ProjectID:   project.ID,
+		Name:        "Forbidden App",
+		Slug:        appSlug,
 	})
+
+	grant := func(projectID, appID string, action permissions.Action) string {
+		return rbac.U(urn.New().Workspace(workspace.ID).Project(projectID).App(appID), action).Value
+	}
 
 	testCases := []struct {
 		name        string
@@ -55,6 +61,10 @@ func TestUpdateAppForbidden(t *testing.T) {
 		{name: "create does not match update", permissions: []string{"app.*.create_app"}, shouldPass: false},
 		{name: "unrelated permission", permissions: []string{"api.*.create_api"}, shouldPass: false},
 		{name: "no permissions", permissions: []string{}, shouldPass: false},
+		{name: "urn write on this app", permissions: []string{grant(project.ID, app.ID, permissions.Write)}, shouldPass: true},
+		{name: "urn write on every app in the project", permissions: []string{grant(project.ID, "*", permissions.Write)}, shouldPass: true},
+		{name: "urn read does not allow update", permissions: []string{grant(project.ID, app.ID, permissions.Read)}, shouldPass: false},
+		{name: "urn write on another app", permissions: []string{grant(project.ID, uid.New(uid.AppPrefix), permissions.Write)}, shouldPass: false},
 	}
 
 	for _, tc := range testCases {

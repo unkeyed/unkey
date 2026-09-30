@@ -109,11 +109,17 @@ access_key_id = "${UNKEY_S3_ACCESS_KEY_ID}"
 access_key_secret = "${UNKEY_S3_ACCESS_KEY_SECRET}"
 ```
 
-Vault initializes the S3 client on startup and creates the bucket if it does not exist.
+Create the bucket before starting Vault. The credentials must permit reading,
+writing, and listing objects, but don't need permission to create buckets.
+Vault initializes its S3 client without creating the bucket or checking access
+at startup. Storage operations can fail later if the bucket is missing or the
+credentials lack access.
+
+The local Garage container provisions the `vault` bucket during startup.
 
 ### Disk storage
 
-A local filesystem backend exists for local development so you do not need to run a minio container. Object keys are written as forward-slash relative paths under `path`, mirroring the S3 layout. Do not use this backend in production: it does not replicate, it has no durability beyond the host filesystem, and multiple vault replicas pointed at the same path will race.
+A local filesystem backend exists for local development so you do not need to run a Garage container. Object keys are written as forward-slash relative paths under `path`, mirroring the S3 layout. Do not use this backend in production: it does not replicate, it has no durability beyond the host filesystem, and multiple vault replicas pointed at the same path will race.
 
 <ResponseField name="storage.disk" type="object">
   Local filesystem storage configuration.

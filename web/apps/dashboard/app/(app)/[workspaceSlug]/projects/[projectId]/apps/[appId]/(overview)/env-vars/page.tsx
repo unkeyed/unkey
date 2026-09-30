@@ -1,7 +1,6 @@
 "use client";
 
-import { TOP_NAV_HEIGHT } from "@/components/navigation/top-nav";
-import { Plus } from "@unkey/icons";
+import { IconPlusOutline18 } from "@unkey/icons";
 import {
   Button,
   PageBody,
@@ -33,17 +32,13 @@ export default function EnvVarsPage() {
             onClick={() => setIsAddOpen((prev) => !prev)}
             variant={isAddOpen ? "outline" : "primary"}
           >
-            <Plus iconSize="sm-regular" />
+            <IconPlusOutline18 />
             Add environment variable
           </Button>
         </PageHeaderActions>
       </PageHeader>
       <PageBody>
-        <EnvVarsBody
-          isAddOpen={isAddOpen}
-          onCloseAdd={() => setIsAddOpen(false)}
-          panelTopOffset={TOP_NAV_HEIGHT}
-        />
+        <EnvVarsBody isAddOpen={isAddOpen} onCloseAdd={() => setIsAddOpen(false)} />
       </PageBody>
     </PageContainer>
   );

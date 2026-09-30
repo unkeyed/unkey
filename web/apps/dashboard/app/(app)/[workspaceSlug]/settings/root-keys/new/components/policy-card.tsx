@@ -1,6 +1,6 @@
 "use client";
 
-import { CircleInfo, Trash, XMark } from "@unkey/icons";
+import { IconCircleInfoOutline18, IconTrashOutline18, IconXmarkOutline18 } from "@unkey/icons";
 import {
   Button,
   InfoTooltip,
@@ -56,7 +56,7 @@ export function PolicyCard({
           onClick={() => onCollapsedChange(false)}
           className="flex min-w-0 flex-1 cursor-pointer flex-col items-start gap-1 text-left"
         >
-          <span className="w-full truncate text-[13px] text-accent-12">{summary.scopeLine}</span>
+          <span className="w-full truncate text-sm text-gray-12">{summary.scopeLine}</span>
           {error ? (
             <span className="text-xs text-error-11">{error}</span>
           ) : (
@@ -74,7 +74,7 @@ export function PolicyCard({
   return (
     <section className="flex flex-col gap-4 rounded-lg border border-grayA-4 bg-white p-4 dark:bg-black">
       <div className="flex items-center gap-2">
-        <span className="text-[13px] text-accent-12">Edit policy</span>
+        <span className="text-sm text-gray-12">Edit policy</span>
         <div className="ml-auto flex items-center gap-1">
           <RemovePolicyButton onRemove={onRemove} />
           <Button
@@ -85,19 +85,19 @@ export function PolicyCard({
             className="size-8 shrink-0 justify-center rounded-lg px-0 text-gray-11 hover:bg-grayA-3 hover:text-gray-12"
             onClick={() => onCollapsedChange(true)}
           >
-            <XMark />
+            <IconXmarkOutline18 />
           </Button>
         </div>
       </div>
 
       <div className="flex flex-col gap-2">
         <div className="flex h-5 items-center gap-2">
-          <span className="text-[13px] text-gray-11">Scope</span>
+          <span className="text-sm text-gray-11">Scope</span>
           <InfoTooltip
             content="Choose which resources these privileges apply to."
             position={{ side: "right" }}
           >
-            <CircleInfo iconSize="sm-regular" className="shrink-0 text-gray-9" />
+            <IconCircleInfoOutline18 className="shrink-0 text-gray-9" />
           </InfoTooltip>
         </div>
         <div className="flex items-center gap-3">
@@ -160,7 +160,7 @@ function RemovePolicyButton({ onRemove }: { onRemove: () => void }) {
       className="size-8 shrink-0 justify-center rounded-lg px-0 text-gray-11 hover:bg-error-3 hover:text-error-11"
       onClick={onRemove}
     >
-      <Trash />
+      <IconTrashOutline18 />
     </Button>
   );
 }

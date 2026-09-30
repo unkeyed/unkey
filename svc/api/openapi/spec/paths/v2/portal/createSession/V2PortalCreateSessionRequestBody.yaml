@@ -20,7 +20,6 @@ properties:
       type: string
       enum:
         - "keys:read"
-        - "keys:create"
         - "keys:reroll"
         - "analytics:read"
     minItems: 1
@@ -28,20 +27,16 @@ properties:
       The capabilities granted to the end user in the Portal, from a fixed
       vocabulary. All capabilities are scoped to this end user: key capabilities
       (`keys:*`) apply only to keys the end user owns within the keyspace
-      configured on the portal, and `analytics:read` returns only the end user's
-      own verification events. An end user can never see another identity's keys
-      or analytics.
+      configured on the portal. An end user can never see another identity's
+      keys.
 
-      Tab visibility is derived from the scopes:
-      - Keys tab: any `keys:*` scope
-      - Analytics tab: `analytics:read`
-      - Docs tab: visible when any scope is present
-    example: ["keys:read", "keys:reroll", "analytics:read"]
-  preview:
-    type: boolean
-    default: false
-    description: |
-      When true, creates a preview session for testing the portal experience.
+      Rerolling and usage analytics are both reached from the keys page, so
+      `keys:reroll` and `analytics:read` each require `keys:read` in the same
+      session; requesting either without it is rejected.
+
+      Each scope requires the equivalent permission on your own root key. See
+      Required Permissions on this operation.
+    example: ["keys:read", "keys:reroll"]
   returnUrl:
     type: string
     format: uri

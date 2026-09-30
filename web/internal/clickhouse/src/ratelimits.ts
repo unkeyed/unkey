@@ -1,6 +1,6 @@
 import { z } from "zod";
 import type { Inserter, Querier } from "./client";
-import { dateTimeToUnix } from "./util";
+import { assertOrderedTimeRange, dateTimeToUnix } from "./util";
 
 export function insertRatelimit(ch: Inserter) {
   return ch.insert({
@@ -198,6 +198,8 @@ function getRatelimitLogsTimeseriesWhereClause(
 
 function createTimeseriesQuerier(interval: TimeInterval) {
   return (ch: Querier) => async (args: RatelimitLogsTimeseriesParams) => {
+    assertOrderedTimeRange(args.startTime, args.endTime);
+
     const { whereClause, paramSchema } = getRatelimitLogsTimeseriesWhereClause(args, [
       "time >= fromUnixTimestamp64Milli({startTime: Int64})",
       "time <= fromUnixTimestamp64Milli({endTime: Int64})",
@@ -1014,6 +1016,8 @@ function getRatelimitLatencyTimeseriesWhereClause(params: RatelimitLatencyTimese
 
 function createLatencyTimeseriesQuerier(interval: TimeInterval) {
   return (ch: Querier) => async (args: RatelimitLatencyTimeseriesParams) => {
+    assertOrderedTimeRange(args.startTime, args.endTime);
+
     const { whereClause, paramSchema } = getRatelimitLatencyTimeseriesWhereClause(args);
 
     const parameters = {

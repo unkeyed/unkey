@@ -1,13 +1,5 @@
 import { relations } from "drizzle-orm";
-import {
-  bigint,
-  boolean,
-  index,
-  json,
-  mysqlTable,
-  uniqueIndex,
-  varchar,
-} from "drizzle-orm/mysql-core";
+import { bigint, index, json, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
 import { portals } from "./portals";
 import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
 import { id } from "./util/id";
@@ -55,7 +47,6 @@ export const portalSessions = mysqlTable(
     portalId: id("portal_id").notNull(),
     externalId: caseSensitiveVarchar("external_id", { length: 256 }).notNull(),
     scopes: json("scopes").notNull(),
-    preview: boolean("preview").notNull().default(false),
 
     exchangeCodeHash: caseSensitiveVarchar("exchange_code_hash", { length: 256 }).notNull(),
     exchangeCodeExpiresAt: bigint("exchange_code_expires_at", { mode: "number" }).notNull(),
@@ -80,6 +71,22 @@ export const portalSessions = mysqlTable(
     uniqueIndex("idx_exchange_code_hash").on(table.exchangeCodeHash),
     uniqueIndex("idx_access_token_hash").on(table.accessTokenHash),
     index("idx_workspace").on(table.workspaceId),
+    /**
+     * Serves the revocation write that runs when a portal is deleted or
+     * re-pointed at another resource.
+     *
+     * Without it the only usable index is `idx_workspace`, so that UPDATE
+     * examines and locks every session row the workspace has ever created —
+     * including other portals' sessions and already-revoked ones — inside the
+     * same transaction as the delete, on the one table every end-user portal
+     * request reads. Under the route's one-minute budget a large tenant can time
+     * out and roll the whole delete back, leaving the operator unable to delete
+     * the portal or revoke its sessions, on a non-retrying path.
+     *
+     * `revoked_at` is second so the predicate is covered end to end: revocation
+     * filters on it, and the reader checks it on every session lookup.
+     */
+    index("idx_portal_revoked").on(table.portalId, table.revokedAt),
     index("idx_external_id").on(table.externalId),
     index("idx_exchange_code_expires").on(table.exchangeCodeExpiresAt),
     index("idx_access_token_expires").on(table.accessTokenExpiresAt),

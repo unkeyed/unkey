@@ -47,12 +47,11 @@ func TestDeleteAppNotFound(t *testing.T) {
 		})
 		otherAppSlug := strings.ToLower(strings.ReplaceAll(uid.New("test"), "_", "-"))
 		otherApp := h.CreateApp(seed.CreateAppRequest{
-			ID:            uid.New(uid.AppPrefix),
-			WorkspaceID:   otherWorkspace.ID,
-			ProjectID:     otherProject.ID,
-			Name:          "Theirs",
-			Slug:          otherAppSlug,
-			DefaultBranch: "main",
+			ID:          uid.New(uid.AppPrefix),
+			WorkspaceID: otherWorkspace.ID,
+			ProjectID:   otherProject.ID,
+			Name:        "Theirs",
+			Slug:        otherAppSlug,
 		})
 
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{Project: otherProject.ID, App: otherApp.ID})

@@ -2,14 +2,16 @@
 
 import { PageLoading } from "@/components/dashboard/page-loading";
 import { useBillingUIUpgrades } from "@/lib/flags/use-billing-ui-upgrades";
-import { routes } from "@/lib/navigation/routes";
 import { SUPPORT_MAILTO } from "@/lib/support";
 import { trpc } from "@/lib/trpc/client";
 import { useWorkspace } from "@/providers/workspace-provider";
-import { Cube, Layers3, Nodes } from "@unkey/icons";
+import { IconCubeOutline18, IconLayers3Outline18, IconNodesOutline18 } from "@unkey/icons";
 import {
   Button,
-  Empty,
+  EmptyState,
+  EmptyStateDescription,
+  EmptyStateHeader,
+  EmptyStateTitle,
   ItemContent,
   ItemDescription,
   ItemGroup,
@@ -32,15 +34,15 @@ import {
   type GroupKey,
   type LimitGroup,
   type Measured,
-  breachedGroups,
+  breachedKeys,
   buildLimitGroups,
 } from "./limit-groups";
 import { LimitItem } from "./limit-item";
 
 const CHIPS: Record<GroupKey, { icon: ReactNode; className: string }> = {
-  api: { icon: <Nodes />, className: "bg-infoA-3 text-info-11" },
-  logs: { icon: <Layers3 />, className: "bg-grayA-3 text-gray-11" },
-  compute: { icon: <Cube />, className: "bg-orangeA-3 text-orange-11" },
+  api: { icon: <IconNodesOutline18 />, className: "bg-infoA-3 text-info-11" },
+  logs: { icon: <IconLayers3Outline18 />, className: "bg-grayA-3 text-gray-11" },
+  compute: { icon: <IconCubeOutline18 />, className: "bg-orangeA-3 text-orange-11" },
 };
 
 function measured<T>(query: { data: T | undefined; isError: boolean }): Measured<T> {
@@ -65,6 +67,15 @@ export default function LimitsPage() {
     trpc: { context: { skipBatch: true } },
     retry: 1,
   });
+  const customDomains = trpc.deploy.customDomain.count.useQuery(undefined, {
+    enabled: Boolean(workspace) && billingUpgrades && hasComputePlan,
+    trpc: { context: { skipBatch: true } },
+    retry: 1,
+  });
+  const logdrains = trpc.logdrain.list.useQuery(undefined, {
+    enabled: Boolean(workspace) && billingUpgrades,
+    retry: 1,
+  });
 
   if (!billingUpgrades) {
     notFound();
@@ -81,12 +92,14 @@ export default function LimitsPage() {
   if (!limits || !workspace) {
     return (
       <Shell>
-        <Empty>
-          <Empty.Title>Limits unavailable</Empty.Title>
-          <Empty.Description>
-            We could not read the limits for this workspace. Please try again later.
-          </Empty.Description>
-        </Empty>
+        <EmptyState>
+          <EmptyStateHeader>
+            <EmptyStateTitle>Limits unavailable</EmptyStateTitle>
+            <EmptyStateDescription>
+              We could not read the limits for this workspace. Please try again later.
+            </EmptyStateDescription>
+          </EmptyStateHeader>
+        </EmptyState>
       </Shell>
     );
   }
@@ -96,17 +109,14 @@ export default function LimitsPage() {
     hasComputePlan,
     apiOperations: measured({ data: usage.data?.billableTotal, isError: usage.isError }),
     allocation: measured(allocation),
+    customDomains: measured(customDomains),
+    logdrains: measured({ data: logdrains.data?.length, isError: logdrains.isError }),
   });
-  const breached = breachedGroups(groups);
+  const breached = breachedKeys(groups);
 
   return (
     <Shell>
-      {breached.length > 0 ? (
-        <BreachBanner
-          breached={breached}
-          billingHref={routes.settings.billing({ workspaceSlug: workspace.slug, intent: "api" })}
-        />
-      ) : null}
+      {breached.length > 0 ? <BreachBanner breached={breached} /> : null}
       {groups.map((group) => (
         <Group key={group.key} group={group} />
       ))}

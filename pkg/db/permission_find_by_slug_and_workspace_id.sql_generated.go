@@ -10,7 +10,7 @@ import (
 )
 
 const findPermissionBySlugAndWorkspaceID = `-- name: FindPermissionBySlugAndWorkspaceID :one
-SELECT pk, id, workspace_id, project_id, name, slug, description, created_at_m, updated_at_m
+SELECT permissions.pk, permissions.id, permissions.workspace_id, permissions.project_id, permissions.name, permissions.slug, permissions.description, permissions.created_at_m, permissions.updated_at_m
 FROM permissions
 WHERE slug = ?
 AND workspace_id = ?
@@ -24,7 +24,7 @@ type FindPermissionBySlugAndWorkspaceIDParams struct {
 
 // FindPermissionBySlugAndWorkspaceID
 //
-//	SELECT pk, id, workspace_id, project_id, name, slug, description, created_at_m, updated_at_m
+//	SELECT permissions.pk, permissions.id, permissions.workspace_id, permissions.project_id, permissions.name, permissions.slug, permissions.description, permissions.created_at_m, permissions.updated_at_m
 //	FROM permissions
 //	WHERE slug = ?
 //	AND workspace_id = ?

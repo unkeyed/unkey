@@ -9,14 +9,7 @@ import type { inferRouterOutputs } from "@trpc/server";
 import type { Limits } from "@unkey/db";
 import { usePathname } from "next/navigation";
 import type React from "react";
-import {
-  type PropsWithChildren,
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-} from "react";
+import { type PropsWithChildren, createContext, useCallback, useContext, useMemo } from "react";
 
 // Billing state (tier, stripe ids, deploy plan/spend) lives on the
 // workspace_billing relation, not the workspaces row. getCurrent re-surfaces it
@@ -49,7 +42,9 @@ export const useWorkspace = () => {
   return context;
 };
 
-export const WorkspaceProvider: React.FC<PropsWithChildren> = ({ children }) => {
+export const WorkspaceProvider: React.FC<
+  PropsWithChildren<{ initialUser: AuthenticatedUser | null }>
+> = ({ children, initialUser }) => {
   const pathname = usePathname();
 
   // This provider sits in the root layout, so it also wraps the auth pages.
@@ -61,6 +56,7 @@ export const WorkspaceProvider: React.FC<PropsWithChildren> = ({ children }) => 
   const userQuery = trpc.user.getCurrentUser.useQuery(undefined, {
     ...baseQueryOptions,
     enabled: !isAuthRoute,
+    initialData: initialUser ?? undefined,
     retry: createRetryFn(2),
     refetchInterval: 1000 * 60 * 10, // 10 minutes
   });
@@ -84,18 +80,6 @@ export const WorkspaceProvider: React.FC<PropsWithChildren> = ({ children }) => 
   // "No workspace" (fresh sign-up, onboarding not finished) is an expected
   // state, distinct from a failed lookup.
   const workspaceMissing = workspaceError?.data?.code === "NOT_FOUND";
-
-  /**
-   *
-   * fetches the userQuery on login redirect.
-   */
-  useEffect(() => {
-    const isOnApisRoute = pathname === "/apis";
-
-    if (isOnApisRoute && !userLoading && !user) {
-      userQuery.refetch();
-    }
-  }, [pathname, userLoading, user, userQuery.refetch]);
 
   const refetch = useCallback(async () => {
     await Promise.all([userQuery.refetch(), workspaceQuery.refetch()]);

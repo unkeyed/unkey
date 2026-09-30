@@ -1,6 +1,6 @@
-import type { IconProps } from "@unkey/icons";
 import {
-  BracketsCurly,
+  IconBracketsCurlyOutline18,
+  type IconProps,
   LangElixir,
   LangGo,
   LangJava,
@@ -33,8 +33,8 @@ export const LanguageIcon = ({ language }: { language: string | null }) => {
     </div>
   ) : (
     <div className="size-10 grid place-content-center mr-11">
-      <div className="size-6.5 grid place-content-center rounded-md ring-1 ring-grayA-4 shadow-sm shadow-grayA-8/20 dark:shadow-none">
-        <BracketsCurly iconSize="sm-medium" className="text-gray-9 size-4" />
+      <div className="size-6.5 grid place-content-center rounded-md border shadow-sm shadow-grayA-8/20 dark:shadow-none">
+        <IconBracketsCurlyOutline18 className="text-gray-9 size-4" />
       </div>
     </div>
   );

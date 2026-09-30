@@ -2,6 +2,7 @@ package rootkey
 
 import (
 	"context"
+	"time"
 
 	"github.com/unkeyed/unkey/internal/services/keys"
 	"github.com/unkeyed/unkey/pkg/auth/principal"
@@ -36,6 +37,11 @@ func (r *Resolver) Resolve(ctx context.Context, sess *zen.Session) (*principal.P
 		name = "root key"
 	}
 
+	var expiresAt *time.Time
+	if key.Key.Expires.Valid {
+		expiresAt = &key.Key.Expires.Time
+	}
+
 	return &principal.Principal{
 		Version: principal.Version,
 		Subject: principal.Subject{
@@ -47,9 +53,11 @@ func (r *Resolver) Resolve(ctx context.Context, sess *zen.Session) (*principal.P
 		Source: principal.KeySource{
 			KeyID:       key.Key.ID,
 			KeySpaceID:  key.Key.KeyAuthID,
+			WorkspaceID: key.Key.WorkspaceID,
 			Permissions: key.Permissions,
+			ExpiresAt:   expiresAt,
 		},
-		WorkspaceID: key.AuthorizedWorkspaceID,
-		Permissions: key.Permissions,
+		AuthorizedWorkspaceID: key.AuthorizedWorkspaceID,
+		Permissions:           key.Permissions,
 	}, nil
 }

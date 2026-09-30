@@ -1,17 +1,28 @@
 "use client";
 
+import { useProjectScope } from "@/hooks/use-project-scope";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { collection } from "@/lib/collections";
 import { routes } from "@/lib/navigation/routes";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { DuplicateKeyError } from "@tanstack/react-db";
-import { Badge, Button, DialogContainer, FormInput } from "@unkey/ui";
+import { and, createLiveQueryCollection, eq } from "@tanstack/react-db";
+import {
+  Badge,
+  Button,
+  DialogContainer,
+  FormField,
+  FormInput,
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+} from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import type { PropsWithChildren } from "react";
 import type { Resolver } from "react-hook-form";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import type { OverrideDetails } from "../types";
+import { useOverride } from "./use-override";
 
 const overrideValidationSchema = z.object({
   identifier: z
@@ -48,6 +59,7 @@ export const IdentifierDialog = ({
   isLoading = false,
 }: Props) => {
   const workspace = useWorkspaceNavigation();
+  const scope = useProjectScope();
 
   const {
     register,
@@ -65,47 +77,46 @@ export const IdentifierDialog = ({
 
   const router = useRouter();
 
+  const existing = useOverride(namespaceId, identifier);
+
   const onSubmitForm = async (values: FormValues) => {
-    try {
-      if (overrideDetails?.overrideId) {
-        // The overview/logs table sources overrideDetails from ClickHouse data,
-        // not this collection, so the collection may never have been loaded in
-        // that context, leaving update() unable to find the key. preload()
-        // populates it from override.list (no-op once loaded, e.g. on the
-        // overrides page where a live query already drives it).
-        await collection.ratelimitOverrides.preload();
-        collection.ratelimitOverrides.update(overrideDetails.overrideId, (draft) => {
-          draft.limit = values.limit;
-          draft.duration = values.duration;
-        });
-        onOpenChange(false);
-      } else {
-        // workaround until tanstack db throws on index violation
-        collection.ratelimitOverrides.forEach((override) => {
-          if (override.namespaceId === namespaceId && override.identifier === values.identifier) {
-            throw new DuplicateKeyError(override.id);
-          }
-        });
-        collection.ratelimitOverrides.insert({
-          namespaceId,
-          id: new Date().toISOString(), // gets replaced by backend
-          identifier: values.identifier,
-          limit: values.limit,
-          duration: values.duration,
-        });
-        onOpenChange(false);
-        router.push(routes.ratelimits.overrides({ workspaceSlug: workspace.slug, namespaceId }));
-      }
-    } catch (error) {
-      if (error instanceof DuplicateKeyError) {
-        setError("identifier", {
-          type: "custom",
-          message: "Identifier already exists",
-        });
-      } else {
-        throw error;
-      }
+    if (overrideDetails?.overrideId) {
+      await existing.collection?.toArrayWhenReady();
+      collection.ratelimitOverrides.update(overrideDetails.overrideId, (draft) => {
+        draft.limit = values.limit;
+        draft.duration = values.duration;
+      });
+      onOpenChange(false);
+      return;
     }
+
+    const lookup = createLiveQueryCollection((q) =>
+      q
+        .from({ override: collection.ratelimitOverrides })
+        .where(({ override }) =>
+          and(eq(override.namespaceId, namespaceId), eq(override.identifier, values.identifier)),
+        ),
+    );
+    const taken = (await lookup.toArrayWhenReady()).length > 0;
+    await lookup.cleanup();
+    if (taken) {
+      setError("identifier", {
+        type: "custom",
+        message: "Identifier already exists",
+      });
+      return;
+    }
+    collection.ratelimitOverrides.insert({
+      namespaceId,
+      id: new Date().toISOString(), // gets replaced by backend
+      identifier: values.identifier,
+      limit: values.limit,
+      duration: values.duration,
+    });
+    onOpenChange(false);
+    router.push(
+      routes.ratelimits.overrides({ workspaceSlug: workspace.slug, ...scope, namespaceId }),
+    );
   };
 
   return (
@@ -156,19 +167,29 @@ export const IdentifierDialog = ({
           placeholder="Enter amount (3, 7, 10, 12…)"
         />
 
-        <FormInput
+        <FormField
           label="Duration"
           description="Duration of each window in milliseconds."
           error={errors.duration?.message}
-          {...register("duration")}
-          type="number"
-          placeholder="Enter milliseconds (60000, 100000, 1200000…)"
-          rightIcon={
-            <Badge className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 rounded-md font-mono whitespace-nowrap gap-[6px] font-medium bg-accent-4 text-accent-11 hover:bg-accent-6 ">
-              MS
-            </Badge>
-          }
-        />
+        >
+          {(field) => (
+            <InputGroup variant={field.variant}>
+              <InputGroupInput
+                id={field.id}
+                aria-describedby={field.describedBy}
+                aria-invalid={field.invalid}
+                {...register("duration")}
+                type="number"
+                placeholder="Enter milliseconds (60000, 100000, 1200000…)"
+              />
+              <InputGroupAddon align="inline-end">
+                <Badge className="pointer-events-none rounded-md font-mono whitespace-nowrap gap-[6px] font-medium bg-gray-4 text-gray-11 hover:bg-gray-6">
+                  MS
+                </Badge>
+              </InputGroupAddon>
+            </InputGroup>
+          )}
+        </FormField>
       </form>
     </DialogContainer>
   );

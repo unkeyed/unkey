@@ -1,6 +1,11 @@
 import { rootKeysQueryPayload } from "@/components/root-keys-table/schema/query-logs.schema";
 import { and, asc, count, db, desc, eq, exists, gt, isNull, or, schema, sql } from "@/lib/db";
-import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
+import {
+  ratelimit,
+  requireWorkspaceAdmin,
+  withRatelimit,
+  workspaceProcedure,
+} from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
@@ -11,8 +16,12 @@ const PermissionResponse = z.object({
 
 const RootKeyResponse = z.object({
   id: z.string(),
+  prefix: z.string(),
+  keyAuthId: z.string(),
   start: z.string(),
+  end: z.string(),
   createdAt: z.number(),
+  lastUsedAt: z.number(),
   lastUpdatedAt: z.number().nullable(),
   expires: z.number().nullable(),
   name: z.string().nullable(),
@@ -38,6 +47,7 @@ export const LIMIT = 50;
 export const MAX_LIMIT = 200;
 
 export const queryRootKeys = workspaceProcedure
+  .use(requireWorkspaceAdmin)
   .use(withRatelimit(ratelimit.read))
   .input(rootKeysQueryPayload)
   .output(RootKeysResponse)
@@ -102,7 +112,7 @@ export const queryRootKeys = workspaceProcedure
         if (filter.operator === "contains") {
           return exists(
             db
-              .select()
+              .select({ keyId: schema.keysPermissions.keyId })
               .from(schema.keysPermissions)
               .innerJoin(
                 schema.permissions,
@@ -141,6 +151,7 @@ export const queryRootKeys = workspaceProcedure
     const SORT_COLUMN_MAP = {
       name: schema.keys.name,
       createdAt: schema.keys.createdAtM,
+      lastUsedAt: schema.keys.lastUsedAt,
       lastUpdatedAt: schema.keys.updatedAtM,
     } as const;
     const sortColumn = SORT_COLUMN_MAP[input.sortBy ?? "createdAt"];
@@ -162,8 +173,12 @@ export const queryRootKeys = workspaceProcedure
           offset: (page - 1) * pageSize,
           columns: {
             id: true,
+            prefix: true,
+            keyAuthId: true,
             start: true,
+            end: true,
             createdAtM: true,
+            lastUsedAt: true,
             updatedAtM: true,
             expires: true,
             name: true,
@@ -200,8 +215,12 @@ export const queryRootKeys = workspaceProcedure
 
         return {
           id: key.id,
+          prefix: key.prefix,
+          keyAuthId: key.keyAuthId,
           start: key.start,
+          end: key.end,
           createdAt: key.createdAtM,
+          lastUsedAt: key.lastUsedAt,
           lastUpdatedAt: key.updatedAtM,
           expires: key.expires ? key.expires.getTime() : null,
           name: key.name,

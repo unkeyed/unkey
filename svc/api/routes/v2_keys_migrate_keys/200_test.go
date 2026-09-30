@@ -11,7 +11,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/prefixedapikey"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
@@ -32,20 +31,32 @@ func TestMigrateKeysSuccess(t *testing.T) {
 
 	h.Register(route)
 
-	// Create API using testutil helper
+	workspaceID := h.Resources().UserWorkspace.ID
+	defaultAPI := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspaceID})
+	project := h.CreateProject(seed.CreateProjectRequest{
+		ID:          uid.New(uid.ProjectPrefix),
+		WorkspaceID: workspaceID,
+		Name:        "Migration project",
+		Slug:        uid.New("project"),
+	})
+	require.NotEqual(t, defaultAPI.ProjectID, project.ID)
+
+	// Use a non-default project to ensure migrations follow the keyspace project.
 	api := h.CreateApi(seed.CreateApiRequest{
-		WorkspaceID: h.Resources().UserWorkspace.ID,
+		WorkspaceID: workspaceID,
+		ProjectID:   project.ID,
 	})
 
 	migrationID := uid.New(uid.TestPrefix)
 	err := db.Query.InsertKeyMigration(ctx, h.DB.RW(), db.InsertKeyMigrationParams{
 		ID:          migrationID,
-		WorkspaceID: h.Resources().UserWorkspace.ID,
+		WorkspaceID: workspaceID,
 		Algorithm:   db.KeyMigrationsAlgorithmGithubcomSeamapiPrefixedApiKey,
 	})
 	require.NoError(t, err)
 
-	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "api.*.create_key")
+	writeKeys := fmt.Sprintf("unkey:v1:%s:projects/%s/keyspaces/%s/keys/*#write", workspaceID, project.ID, api.KeyAuthID.String)
+	rootKey := h.CreateRootKey(workspaceID, writeKeys)
 
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
@@ -62,14 +73,14 @@ func TestMigrateKeysSuccess(t *testing.T) {
 		Credits: &openapi.KeyCreditsData{
 			Remaining: nullable.Nullable[int64]{},
 		},
-		Enabled:    ptr.P(false),
+		Enabled:    new(false),
 		Expires:    nil,
-		ExternalId: ptr.P("ext_123"),
-		Meta: ptr.P(map[string]interface{}{
+		ExternalId: new("ext_123"),
+		Meta: new(map[string]interface{}{
 			"key": "value",
 		}),
-		Name:        ptr.P("Migration-Key"),
-		Permissions: ptr.P([]string{"test"}),
+		Name:        new("Migration-Key"),
+		Permissions: new([]string{"test"}),
 		Ratelimits: &[]openapi.RatelimitRequest{
 			{
 				AutoApply: true,
@@ -78,8 +89,92 @@ func TestMigrateKeysSuccess(t *testing.T) {
 				Name:      "default",
 			},
 		},
-		Roles: ptr.P([]string{"admin"}),
+		Roles: new([]string{"admin"}),
 	}
+
+	t.Run("rejects identity from another project", func(t *testing.T) {
+		externalID := "ext_wrong_project"
+		err := db.Query.InsertIdentity(ctx, h.DB.RW(), db.InsertIdentityParams{
+			ID:          uid.New(uid.IdentityPrefix),
+			ExternalID:  externalID,
+			WorkspaceID: workspaceID,
+			ProjectID:   defaultAPI.ProjectID,
+			Environment: "default",
+			CreatedAt:   time.Now().UnixMilli(),
+			Meta:        []byte("{}"),
+		})
+		require.NoError(t, err)
+
+		key, err := prefixedapikey.GenerateAPIKey(&prefixedapikey.GenerateAPIKeyOptions{KeyPrefix: "unkeyed"})
+		require.NoError(t, err)
+		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, handler.Request{
+			ApiId:       api.ID,
+			MigrationId: migrationID,
+			Keys: []openapi.V2KeysMigrateKeyData{{
+				Hash:       key.LongTokenHash,
+				ExternalId: new(externalID),
+			}},
+		})
+
+		require.Equal(t, http.StatusNotFound, res.Status, "got: %s", res.RawBody)
+		require.Contains(t, res.Body.Error.Detail, externalID)
+		keys, err := db.Query.FindKeysByHash(ctx, h.DB.RO(), []string{key.LongTokenHash})
+		require.NoError(t, err)
+		require.Empty(t, keys)
+	})
+
+	t.Run("rejects permission from another project", func(t *testing.T) {
+		slug := "migration_permission_wrong_project"
+		err := db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
+			PermissionID: uid.New(uid.PermissionPrefix),
+			WorkspaceID:  workspaceID,
+			ProjectID:    defaultAPI.ProjectID,
+			Name:         slug,
+			Slug:         slug,
+			CreatedAtM:   time.Now().UnixMilli(),
+		})
+		require.NoError(t, err)
+
+		key, err := prefixedapikey.GenerateAPIKey(&prefixedapikey.GenerateAPIKeyOptions{KeyPrefix: "unkeyed"})
+		require.NoError(t, err)
+		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, handler.Request{
+			ApiId:       api.ID,
+			MigrationId: migrationID,
+			Keys: []openapi.V2KeysMigrateKeyData{{
+				Hash:        key.LongTokenHash,
+				Permissions: new([]string{slug}),
+			}},
+		})
+
+		require.Equal(t, http.StatusNotFound, res.Status, "got: %s", res.RawBody)
+		require.Contains(t, res.Body.Error.Detail, slug)
+	})
+
+	t.Run("rejects role from another project", func(t *testing.T) {
+		name := "migration_role_wrong_project"
+		err := db.Query.InsertRole(ctx, h.DB.RW(), db.InsertRoleParams{
+			RoleID:      uid.New(uid.RolePrefix),
+			WorkspaceID: workspaceID,
+			ProjectID:   defaultAPI.ProjectID,
+			Name:        name,
+			CreatedAt:   time.Now().UnixMilli(),
+		})
+		require.NoError(t, err)
+
+		key, err := prefixedapikey.GenerateAPIKey(&prefixedapikey.GenerateAPIKeyOptions{KeyPrefix: "unkeyed"})
+		require.NoError(t, err)
+		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, handler.Request{
+			ApiId:       api.ID,
+			MigrationId: migrationID,
+			Keys: []openapi.V2KeysMigrateKeyData{{
+				Hash:  key.LongTokenHash,
+				Roles: new([]string{name}),
+			}},
+		})
+
+		require.Equal(t, http.StatusNotFound, res.Status, "got: %s", res.RawBody)
+		require.Contains(t, res.Body.Error.Detail, name)
+	})
 
 	t.Run("basic migration", func(t *testing.T) {
 		req := handler.Request{
@@ -101,8 +196,8 @@ func TestMigrateKeysSuccess(t *testing.T) {
 
 		keydata := db.ToKeyData(key)
 
-		require.Equal(t, res.Body.Data.Migrated[0].KeyId, key.ID)
-		require.Equal(t, generatedKey.LongTokenHash, key.Hash)
+		require.Equal(t, res.Body.Data.Migrated[0].KeyId, key.KeyID)
+		require.Equal(t, generatedKey.LongTokenHash, db.ToKeyData(key).Key.Hash)
 		require.Empty(t, keydata.Key.Start)
 		require.False(t, keydata.Key.Enabled)
 		require.NotNil(t, keydata.Identity)
@@ -130,7 +225,7 @@ func TestMigrateKeysSuccess(t *testing.T) {
 			Expires:     keyToMigrate.Expires,
 			ExternalId:  keyToMigrate.ExternalId, // Same external ID
 			Meta:        keyToMigrate.Meta,
-			Name:        ptr.P("Migration-Key-2"),
+			Name:        new("Migration-Key-2"),
 			Permissions: keyToMigrate.Permissions, // Same permissions
 			Ratelimits:  keyToMigrate.Ratelimits,
 			Roles:       keyToMigrate.Roles, // Same roles
@@ -153,6 +248,7 @@ func TestMigrateKeysSuccess(t *testing.T) {
 
 		permissions, err := db.Query.FindPermissionsBySlugs(ctx, h.DB.RO(), db.FindPermissionsBySlugsParams{
 			WorkspaceID: h.Resources().UserWorkspace.ID,
+			ProjectID:   api.ProjectID,
 			Slugs:       []string{"test"},
 		})
 		require.NoError(t, err)
@@ -161,6 +257,7 @@ func TestMigrateKeysSuccess(t *testing.T) {
 
 		roles, err := db.Query.FindRolesByNames(ctx, h.DB.RO(), db.FindRolesByNamesParams{
 			WorkspaceID: h.Resources().UserWorkspace.ID,
+			ProjectID:   api.ProjectID,
 			Names:       []string{"admin"},
 		})
 		require.NoError(t, err)
@@ -198,6 +295,7 @@ func TestMigrateKeysSuccess(t *testing.T) {
 		// Verify no duplicate permissions were created
 		allPermissions, err := db.Query.FindPermissionsBySlugs(ctx, h.DB.RO(), db.FindPermissionsBySlugsParams{
 			WorkspaceID: h.Resources().UserWorkspace.ID,
+			ProjectID:   api.ProjectID,
 			Slugs:       []string{"test"},
 		})
 		require.NoError(t, err)
@@ -206,6 +304,7 @@ func TestMigrateKeysSuccess(t *testing.T) {
 		// Verify no duplicate roles were created
 		allRoles, err := db.Query.FindRolesByNames(ctx, h.DB.RO(), db.FindRolesByNamesParams{
 			WorkspaceID: h.Resources().UserWorkspace.ID,
+			ProjectID:   api.ProjectID,
 			Names:       []string{"admin"},
 		})
 		require.NoError(t, err)

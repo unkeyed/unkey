@@ -1,8 +1,17 @@
 import { StatsListCardSkeleton } from "@/components/stats-list-card/skeleton";
 import { collection } from "@/lib/collections";
 import { ilike, useLiveQuery } from "@tanstack/react-db";
-import { Bookmark } from "@unkey/icons";
-import { Button, CopyButton, Empty } from "@unkey/ui";
+import { IconBook2Outline18, IconGaugeOutline18 } from "@unkey/icons";
+import {
+  Button,
+  CopyButton,
+  EmptyState,
+  EmptyStateActions,
+  EmptyStateDescription,
+  EmptyStateHeader,
+  EmptyStateIcon,
+  EmptyStateTitle,
+} from "@unkey/ui";
 import { useMemo } from "react";
 import { useBatchRatelimitTimeseries } from "../hooks/use-batch-timeseries";
 import { useNamespaceListFilters } from "../hooks/use-namespace-list-filters";
@@ -50,36 +59,38 @@ export const NamespaceList = () => {
 
   if (namespaces.length === 0) {
     return (
-      <div className="w-full flex justify-center items-center h-full min-h-[300px]">
-        <Empty className="w-[600px] flex items-start">
-          <Empty.Icon />
-          <Empty.Title>No Namespaces found</Empty.Title>
-          <Empty.Description className="text-left">
+      <EmptyState>
+        <EmptyStateIcon>
+          <IconGaugeOutline18 />
+        </EmptyStateIcon>
+        <EmptyStateHeader>
+          <EmptyStateTitle>No Namespaces found</EmptyStateTitle>
+          <EmptyStateDescription>
             You haven't created any Namespaces yet. Create one by performing a limit request as
             shown below.
-          </Empty.Description>
-          <div className="w-full mt-8 mb-8">
-            <div className="flex items-start gap-4 p-4 bg-gray-2 border border-gray-6 rounded-lg">
-              <pre className="flex-1 text-xs text-left overflow-x-auto">
-                <code>{EXAMPLE_SNIPPET}</code>
-              </pre>
-              <CopyButton value={EXAMPLE_SNIPPET} />
-            </div>
+          </EmptyStateDescription>
+        </EmptyStateHeader>
+        <div className="mt-4 w-full max-w-lg">
+          <div className="flex items-start gap-4 rounded-lg border bg-background p-4">
+            <pre className="flex-1 text-xs text-left overflow-x-auto">
+              <code>{EXAMPLE_SNIPPET}</code>
+            </pre>
+            <CopyButton value={EXAMPLE_SNIPPET} />
           </div>
-          <Empty.Actions className="mt-4 justify-start">
-            <a
-              href="https://www.unkey.com/docs/platform/ratelimiting/introduction"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <Button className="flex items-center gap-2">
-                <Bookmark className="w-4 h-4" />
-                Read the docs
-              </Button>
-            </a>
-          </Empty.Actions>
-        </Empty>
-      </div>
+        </div>
+        <EmptyStateActions>
+          <a
+            href="https://www.unkey.com/docs/platform/ratelimiting/introduction"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <Button variant="outline" className="flex items-center gap-2">
+              <IconBook2Outline18 className="w-4 h-4" />
+              Read the docs
+            </Button>
+          </a>
+        </EmptyStateActions>
+      </EmptyState>
     );
   }
 

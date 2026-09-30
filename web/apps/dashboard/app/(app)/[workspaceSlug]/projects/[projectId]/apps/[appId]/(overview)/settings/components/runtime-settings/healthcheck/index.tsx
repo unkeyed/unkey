@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ChevronDown, HeartPulse } from "@unkey/icons";
+import { IconChevronDownOutline12, IconHeartPulseOutline18 } from "@unkey/icons";
 import {
   FormInput,
   Select,
@@ -80,7 +80,7 @@ export const Healthcheck = () => {
 
   return (
     <FormSettingCard
-      icon={<HeartPulse className="text-gray-12" iconSize="xl-medium" />}
+      icon={<IconHeartPulseOutline18 className="text-gray-12" />}
       title="Healthcheck"
       description="Endpoint used to verify the service is healthy"
       displayValue={
@@ -98,9 +98,9 @@ export const Healthcheck = () => {
     >
       <SettingField>
         <div className="flex items-center gap-3">
-          <span className="w-24 text-[13px] text-gray-11">Method</span>
-          <span className="flex-1 text-[13px] text-gray-11">Path</span>
-          <span className="flex-1 text-[13px] text-gray-11">Interval</span>
+          <span className="w-24 text-sm text-gray-11">Method</span>
+          <span className="flex-1 text-sm text-gray-11">Path</span>
+          <span className="flex-1 text-sm text-gray-11">Interval</span>
         </div>
         <div className="flex items-start gap-2">
           <Controller
@@ -111,12 +111,7 @@ export const Healthcheck = () => {
                 <SelectTrigger
                   wrapperClassName="w-24"
                   variant={errors.method ? "error" : "default"}
-                  rightIcon={
-                    <ChevronDown
-                      className="absolute right-3 size-3 text-gray-11"
-                      iconSize="sm-medium"
-                    />
-                  }
+                  rightIcon={<IconChevronDownOutline12 className="absolute right-3 text-gray-11" />}
                 >
                   <SelectValue placeholder={<MethodBadge method={"GET"} />}>
                     <MethodBadge method={field.value} />

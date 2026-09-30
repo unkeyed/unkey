@@ -10,12 +10,14 @@ const (
 	// CapKeysRead lets the end user list and read their own keys.
 	CapKeysRead = "keys:read"
 
-	// CapKeysCreate lets the end user create new keys.
+	// CapKeysCreate is unfinished: no route creates keys and createSession does
+	// not accept the scope. Kept for whoever builds it.
 	CapKeysCreate = "keys:create"
 
 	// CapKeysReroll lets the end user rotate the secret of an existing key.
 	CapKeysReroll = "keys:reroll"
 
-	// CapAnalyticsRead lets the end user read their verification analytics.
+	// CapAnalyticsRead lets the end user read a verification timeseries for their
+	// own keys. It is granted alongside keys:read, never on its own.
 	CapAnalyticsRead = "analytics:read"
 )

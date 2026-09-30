@@ -8,8 +8,9 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/domain/domaingate"
 	"github.com/unkeyed/unkey/pkg/fault"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/internal/domain"
 	apierrors "github.com/unkeyed/unkey/svc/api/internal/errors"
@@ -47,7 +48,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	identifier := domaingate.CanonicalizeIdentifier(req.Domain)
 
 	row, err := db.Query.FindCustomDomainByIdentifier(ctx, h.DB.RO(), db.FindCustomDomainByIdentifierParams{
-		WorkspaceID: principal.WorkspaceID,
+		WorkspaceID: principal.AuthorizedWorkspaceID,
 		Domain:      identifier,
 	})
 	if err != nil {
@@ -78,6 +79,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			ResourceID:   row.EnvironmentID,
 			Action:       rbac.ReadDomain,
 		}),
+		rbac.U(
+			urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(row.ProjectID).App(row.AppID).Environment(row.EnvironmentID).Domain(row.ID),
+			permissions.Read,
+		),
 	)); err != nil {
 		return apierrors.MaskInsufficientPermissionsAsNotFound(
 			err,
@@ -101,14 +106,21 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			RoutingVerified:   row.CnameVerified,
 			OwnershipVerified: row.OwnershipVerified,
 		}),
-		CreatedAt: row.CreatedAt,
-		UpdatedAt: nil,
+		DomainConnect: nil,
+		CreatedAt:     row.CreatedAt,
+		UpdatedAt:     nil,
+	}
+	if row.DomainConnectProvider.Valid && row.DomainConnectUrl.Valid {
+		data.DomainConnect = &openapi.DomainConnect{
+			Provider: row.DomainConnectProvider.String,
+			Url:      row.DomainConnectUrl.String,
+		}
 	}
 	if row.VerificationError.Valid && row.VerificationError.String != "" {
-		data.VerificationError = ptr.P(row.VerificationError.String)
+		data.VerificationError = new(row.VerificationError.String)
 	}
 	if row.UpdatedAt.Valid {
-		data.UpdatedAt = ptr.P(row.UpdatedAt.Int64)
+		data.UpdatedAt = new(row.UpdatedAt.Int64)
 	}
 
 	return s.JSON(http.StatusOK, Response{

@@ -33,6 +33,7 @@ export async function setWorkspaceLimits(
     logsRetentionDaysMax: fromUpdate("logsRetentionDaysMax") ?? planLimits.logsRetentionDaysMax,
     logsAuditRetentionDaysMax:
       fromUpdate("logsAuditRetentionDaysMax") ?? planLimits.logsAuditRetentionDaysMax,
+    logdrainsMax: fromUpdate("logdrainsMax") ?? planLimits.logdrainsMax,
     teamEnabled: fromUpdate("teamEnabled") ?? planLimits.teamEnabled,
     cpuCoresMax: fromUpdate("cpuCoresMax") ?? planLimits.cpuCoresMax,
     cpuCoresMaxPerInstance:
@@ -75,6 +76,9 @@ export async function setWorkspaceLimits(
   }
   if (!params.preserveApiLimits || hasRequestedLimit("teamEnabled")) {
     limitUpdate.teamEnabled = limitValues.teamEnabled;
+  }
+  if (hasRequestedLimit("logdrainsMax")) {
+    limitUpdate.logdrainsMax = limitValues.logdrainsMax;
   }
 
   await db.insert(schema.limits).values(limitValues).onDuplicateKeyUpdate({ set: limitUpdate });

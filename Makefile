@@ -86,9 +86,7 @@ generate: generate-sql ## Generate code from protobuf and other sources (NOT eBP
 
 .PHONY: generate-bpf
 generate-bpf: ## Compile the heimdall eBPF program and regenerate Go bindings (uses pinned clang/Go in docker for bytewise reproducibility across hosts)
-	@docker build --platform=linux/amd64 -q -t unkey-bpf-gen -f svc/heimdall/internal/network/bpf/Dockerfile.gen svc/heimdall/internal/network/bpf >/dev/null
-	@docker run --rm --platform=linux/amd64 -v "$$PWD:/work" -w /work unkey-bpf-gen \
-		go generate -tags bpf_generate ./svc/heimdall/internal/network/...
+	mise run generate-bpf
 
 .PHONY: test
 test: ## Run tests
@@ -124,9 +122,9 @@ dashboard: build ## Run local development setup for dashboard
 	@cd web/apps/dashboard && pnpm dev
 
 .PHONY: build-local-image
-build-local-image: ## Build and push image to local registry (usage: make build-local-image DOCKERFILE=./path/to/Dockerfile NAME=myapp TAG=dev)
-	@if [ -z "$(DOCKERFILE)" ]; then echo "Error: DOCKERFILE is required (e.g., DOCKERFILE=./examples/demo_api/Dockerfile)"; exit 1; fi
-	@if [ -z "$(NAME)" ]; then echo "Error: NAME is required (e.g., NAME=demo_api)"; exit 1; fi
+build-local-image: ## Build and push image to local registry (usage: make build-local-image DOCKERFILE=./path/to/Dockerfile NAME=myapp CONTEXT=. TAG=dev)
+	@if [ -z "$(DOCKERFILE)" ]; then echo "Error: DOCKERFILE is required (e.g., DOCKERFILE=./svc/kitchensink/Dockerfile CONTEXT=.)"; exit 1; fi
+	@if [ -z "$(NAME)" ]; then echo "Error: NAME is required (e.g., NAME=kitchensink)"; exit 1; fi
 	$(eval TAG ?= dev)
 	$(eval CONTEXT ?= $(dir $(DOCKERFILE)))
 	$(eval REGISTRY := $(shell kubectl get configmap local-registry-hosting -n kube-public -o jsonpath='{.data.localRegistryHosting\.v1}' 2>/dev/null | grep '^host:' | awk '{print $$2}'))
@@ -152,7 +150,7 @@ fuzz: ## Run fuzz tests
 	done
 .PHONY: unkey
 unkey: ## Run unkey CLI (usage: make unkey dev seed local)
-	@set -a; [ -f .env ] && . ./.env; set +a; go run . $(filter-out unkey,$(MAKECMDGOALS)) $(ARGS)
+	@set -a; [ -f .env ] && . ./.env; set +a; go run ./build/cli $(filter-out unkey,$(MAKECMDGOALS)) $(ARGS)
 
 # Catch-all to swallow extra args passed to unkey target (only when unkey is called)
 ifneq ($(filter unkey,$(MAKECMDGOALS)),)

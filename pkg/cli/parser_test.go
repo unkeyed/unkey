@@ -7,6 +7,68 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestParser_MutuallyExclusive(t *testing.T) {
+	t.Run("conflict", func(t *testing.T) {
+		cmd := &Command{Name: "test", Flags: []Flag{String("request", "", MutuallyExclusive("body")), String("body", "")}}
+		require.EqualError(t, cmd.parse(context.Background(), []string{"--request=value", "--body={}"}), "flags --request and --body are mutually exclusive")
+	})
+
+	t.Run("required and group requirements are waived", func(t *testing.T) {
+		called := false
+		cmd := &Command{Name: "test", Flags: []Flag{
+			String("required", "", Required(), MutuallyExclusive("body")),
+			String("left", "", MutuallyExclusive("body")),
+			String("right", "", MutuallyExclusive("body")),
+			String("body", ""),
+		}, RequireOneOf: [][]string{{"left", "right"}}, Action: func(context.Context, *Command) error { called = true; return nil }}
+		require.NoError(t, cmd.parse(context.Background(), []string{"--body={}"}))
+		require.True(t, called)
+	})
+
+	t.Run("reverse declaration waives required and group requirements", func(t *testing.T) {
+		called := false
+		cmd := &Command{Name: "test", Flags: []Flag{
+			String("required", "", Required()),
+			String("left", ""),
+			String("right", ""),
+			String("body", "", MutuallyExclusive("required", "left", "right")),
+		}, RequireOneOf: [][]string{{"left", "right"}}, Action: func(context.Context, *Command) error { called = true; return nil }}
+		require.NoError(t, cmd.parse(context.Background(), []string{"--body={}"}))
+		require.True(t, called)
+	})
+
+	t.Run("environment value does not activate", func(t *testing.T) {
+		t.Setenv("TEST_BODY", "{}")
+		cmd := &Command{Name: "test", Flags: []Flag{String("required", "", Required(), MutuallyExclusive("body")), String("body", "", EnvVar("TEST_BODY"))}}
+		require.ErrorContains(t, cmd.parse(context.Background(), nil), "required flag missing: required")
+	})
+
+	t.Run("default value does not activate", func(t *testing.T) {
+		cmd := &Command{Name: "test", Flags: []Flag{String("required", "", Required(), MutuallyExclusive("body")), String("body", "", Default("{}"))}}
+		require.ErrorContains(t, cmd.parse(context.Background(), nil), "required flag missing: required")
+	})
+
+	t.Run("explicit empty waives requirement", func(t *testing.T) {
+		cmd := &Command{Name: "test", Flags: []Flag{String("required", "", Required(), MutuallyExclusive("body")), String("body", "")}}
+		require.NoError(t, cmd.parse(context.Background(), []string{"--body="}))
+	})
+
+	t.Run("unknown reference", func(t *testing.T) {
+		cmd := &Command{Name: "test", Flags: []Flag{String("request", "", MutuallyExclusive("missing"))}}
+		require.ErrorContains(t, cmd.parse(context.Background(), nil), "references unknown mutually exclusive flag: missing")
+	})
+
+	t.Run("self reference", func(t *testing.T) {
+		cmd := &Command{Name: "test", Flags: []Flag{String("request", "", MutuallyExclusive("request"))}}
+		require.ErrorContains(t, cmd.parse(context.Background(), nil), "cannot be mutually exclusive with itself")
+	})
+
+	t.Run("empty RequireOneOf group", func(t *testing.T) {
+		cmd := &Command{Name: "test", RequireOneOf: [][]string{{}}}
+		require.ErrorContains(t, cmd.parse(context.Background(), nil), "RequireOneOf group cannot be empty")
+	})
+}
+
 func TestParser_AcceptsArgs_FlagsAfterPositionalArg(t *testing.T) {
 	// AcceptsArgs should allow flags after positional arguments
 	// Example: deploy nginx:latest --project=local --env=preview

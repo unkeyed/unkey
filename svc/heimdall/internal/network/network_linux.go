@@ -26,32 +26,85 @@ import (
 // file holds just the Reader interface methods and the async attach
 // worker pool.
 type linuxReader struct {
-	spec        *ebpf.CollectionSpec // cached; cloned per pod to rewrite POD_KEY
-	podCounters *ebpf.Map            // shared pinned counter map, read by Read()
-	cd          *containerd.Client   // sandbox-container lookups for netns resolution
+	podCounters counterMap         // shared pinned counter map, read by Read()
+	cd          *containerd.Client // owned only for Close; lookups go through listSandboxes
 
-	mu         sync.Mutex
-	attached   map[types.UID]attachedPod // pod uid → per-pod links + collection + cookie
-	pending    map[types.UID]struct{}    // uids currently enqueued or being attached
-	terminated map[types.UID]struct{}    // uids whose CNI netns is confirmed gone (ENOENT); never re-enqueued
+	// The three effectful steps of an attach, plus the netns liveness probe,
+	// are fields so the attach state machine can be driven in tests without
+	// containerd, CAP_BPF, or a TCX-capable kernel. NewReader wires the real
+	// implementations.
+	listSandboxes func(ctx context.Context, filters ...string) ([]containerd.Container, error)
+	netnsGone     func(path string) bool
+	attachEth0    func(netnsPath string) (coll *ebpf.Collection, egress, ingress link.Link, cookie uint64, err error)
+
+	mu       sync.Mutex
+	attached map[types.UID]attachedPod // pod uid → per-pod links + collection + cookie
+	pending  map[types.UID]uint64      // uids currently enqueued or being attached → request generation
+	nextGen  uint64                    // generation handed to the next attach request
 
 	// Async attach worker pool. Attach() enqueues; workers dequeue and
 	// call attachSync. Keeps the 5s collect tick from serialising on
 	// ~200ms-per-pod containerd/netns/TCX work during cold start or
 	// rollout storms.
-	attachQ  chan types.UID
+	attachQ  chan attachRequest
 	workerWG sync.WaitGroup
 	closed   chan struct{}
+}
+
+// attachRequest is one queued attach. gen is unique per request so a worker
+// can tell whether the pending entry it sees at commit time is still its
+// own: Detach cancels a request by clearing pending, and a later Attach for
+// the same UID re-creates pending with a new gen. Without gen, the old
+// worker would read the new request's entry as "still wanted", store links
+// built against the netns that Detach was reacting to, and then clear the
+// new request's marker on its way out.
+type attachRequest struct {
+	uid types.UID
+	gen uint64
 }
 
 // attachedPod holds everything we allocated for one pod's attach: the
 // two TCX links, the per-pod Collection (owns the two loaded programs),
 // and the netns cookie we baked into POD_KEY (also the map key).
+//
+// netnsPath is kept so Attach can notice when the sandbox behind this
+// record has been replaced. A pod UID outlives its sandbox under gVisor:
+// a memory-limit kill takes down the whole runsc sandbox and kubelet
+// builds a new one, with a new netns, for the same pod. The links here
+// then sit on an eth0 that no longer exists and the map entry stops
+// moving, while the informer still shows the pod Running.
 type attachedPod struct {
-	coll    *ebpf.Collection
-	egress  link.Link
-	ingress link.Link
-	cookie  uint64
+	coll      *ebpf.Collection
+	egress    link.Link
+	ingress   link.Link
+	cookie    uint64
+	netnsPath string
+}
+
+// release closes the pod's TCX links, unloads its programs, and drops its
+// counter map entry. Caller holds r.mu.
+func (r *linuxReader) release(p attachedPod) {
+	_ = p.ingress.Close()
+	_ = p.egress.Close()
+	p.coll.Close()
+	_ = r.podCounters.Delete(p.cookie)
+}
+
+// counterMap is the subset of *ebpf.Map the reader uses. Read and Detach
+// only need lookup and delete by cookie; naming the subset lets tests
+// substitute an in-memory map where loading a real BPF map is impossible.
+type counterMap interface {
+	Lookup(key, valueOut any) error
+	Delete(key any) error
+	Close() error
+}
+
+// netnsFileGone reports whether the CNI netns bind mount at path has been
+// removed. Only a definite ENOENT counts: any other stat failure (EACCES,
+// a transient mount error) must not tear down a working attach.
+func netnsFileGone(path string) bool {
+	_, err := os.Stat(path)
+	return errors.Is(err, os.ErrNotExist)
 }
 
 // attachWorkers bounds the number of goroutines doing containerd + netns +
@@ -141,17 +194,29 @@ func NewReader(criSocket string) (Reader, error) {
 		return nil, fmt.Errorf("pod_counters map missing after load")
 	}
 
+	pinOpts := ebpf.MapOptions{ //nolint:exhaustruct // LoadPinOptions optional
+		PinPath: bpfPinDir,
+	}
 	r := &linuxReader{
-		spec:        spec,
-		podCounters: podCounters,
-		cd:          cd,
-		mu:          sync.Mutex{},
-		attached:    make(map[types.UID]attachedPod),
-		pending:     make(map[types.UID]struct{}),
-		terminated:  make(map[types.UID]struct{}),
-		attachQ:     make(chan types.UID, attachQueueSize),
-		closed:      make(chan struct{}),
-		workerWG:    sync.WaitGroup{},
+		podCounters:   podCounters,
+		cd:            cd,
+		listSandboxes: cd.Containers,
+		netnsGone:     netnsFileGone,
+		// attachPodEth0 does everything netns-scoped in one locked-thread
+		// block: enters the pod netns, finds eth0, reads the netns cookie,
+		// clones the spec and bakes POD_KEY = cookie into rodata, loads the
+		// per-pod program pair (sharing the pinned map via pinOpts),
+		// attaches both TCX programs, and setns back.
+		attachEth0: func(netnsPath string) (*ebpf.Collection, link.Link, link.Link, uint64, error) {
+			return attachPodEth0(netnsPath, spec, pinOpts)
+		},
+		mu:       sync.Mutex{},
+		attached: make(map[types.UID]attachedPod),
+		pending:  make(map[types.UID]uint64),
+		nextGen:  0,
+		attachQ:  make(chan attachRequest, attachQueueSize),
+		closed:   make(chan struct{}),
+		workerWG: sync.WaitGroup{},
 	}
 
 	for i := 0; i < attachWorkers; i++ {
@@ -191,44 +256,66 @@ func PinDir() string { return bpfPinDir }
 // why this is async.
 //
 // Idempotent under three possible states:
-//  1. Already attached: return nil (no-op).
+//  1. Attached and the netns is still there: return nil (no-op).
 //  2. Already enqueued or being processed: return nil (no-op, dedup via pending set).
-//  3. Not seen before: add to pending, push on the queue, return nil.
+//  3. Not attached, or attached to a netns that has since been removed:
+//     add to pending, push on the queue, return nil.
+//
+// Case 3's second half is the sandbox-recreation path. Stat'ing the
+// recorded netns path each tick costs a few microseconds per pod and is
+// the only signal that does not depend on a CRI exit event or an informer
+// transition arriving; both are dropped in practice (containerd#3177,
+// coalesced informer updates), and a missed one used to leave a dead
+// attach record reporting frozen counters as measured.
 //
 // ErrAttachQueueFull is returned only when the queue has backed up beyond
 // attachQueueSize. The caller's next tick will re-request the same UID.
 func (r *linuxReader) Attach(uid types.UID) error {
 	r.mu.Lock()
-	if _, ok := r.terminated[uid]; ok {
-		r.mu.Unlock()
-		return nil
-	}
-	if _, ok := r.attached[uid]; ok {
-		r.mu.Unlock()
-		return nil
+	if p, ok := r.attached[uid]; ok {
+		if !r.netnsGone(p.netnsPath) {
+			r.mu.Unlock()
+			return nil
+		}
+		r.release(p)
+		delete(r.attached, uid)
+		metrics.NetworkReattaches.Inc()
+		logger.Info("network attach: pod netns replaced, re-attaching",
+			"pod_uid", string(uid), "netns_path", p.netnsPath)
 	}
 	if _, ok := r.pending[uid]; ok {
 		r.mu.Unlock()
 		return nil
 	}
-	r.pending[uid] = struct{}{}
+	r.nextGen++
+	req := attachRequest{uid: uid, gen: r.nextGen}
+	r.pending[uid] = req.gen
 	r.mu.Unlock()
 
 	select {
-	case r.attachQ <- uid:
+	case r.attachQ <- req:
 		return nil
 	case <-r.closed:
 		r.mu.Lock()
-		delete(r.pending, uid)
+		r.clearPending(req)
 		r.mu.Unlock()
 		return nil
 	default:
 		// Queue full. Roll back the pending entry so the collector's next
 		// tick can try again. Treated as a transient error.
 		r.mu.Lock()
-		delete(r.pending, uid)
+		r.clearPending(req)
 		r.mu.Unlock()
 		return ErrAttachQueueFull
+	}
+}
+
+// clearPending removes req's pending marker, but only if it is still req's
+// own: Detach may have cancelled it and a newer request may own the entry
+// now. Caller holds r.mu.
+func (r *linuxReader) clearPending(req attachRequest) {
+	if gen, ok := r.pending[req.uid]; ok && gen == req.gen {
+		delete(r.pending, req.uid)
 	}
 }
 
@@ -246,45 +333,38 @@ func (r *linuxReader) runAttachWorker() {
 		select {
 		case <-r.closed:
 			return
-		case uid := <-r.attachQ:
-			err := r.attachSync(uid)
+		case req := <-r.attachQ:
+			err := r.attachSync(req)
 
 			r.mu.Lock()
-			delete(r.pending, uid)
-			// ENOENT on the CNI netns path means DEL already ran and the pod
-			// is definitively gone. Mark it terminated so Attach never
-			// re-enqueues it. Set this under the same lock as delete(pending)
-			// to close the window where pending is clear but terminated isn't
-			// set yet and a concurrent Attach call could sneak in.
-			netnsGone := err != nil && errors.Is(err, ErrNetnsOpen) && errors.Is(err, os.ErrNotExist)
-			if netnsGone {
-				r.terminated[uid] = struct{}{}
-			}
+			r.clearPending(req)
 			r.mu.Unlock()
 
-			if err != nil {
-				if netnsGone {
-					// Benign churn: CNI already tore down the netns. No warn,
-					// no alert. Debug log once; future Attach calls are no-ops.
-					metrics.NetworkAttachFailures.WithLabelValues("netns_gone").Inc()
-					logger.Debug("network attach: pod netns gone, suppressing retries",
-						"pod_uid", string(uid),
-					)
-				} else {
-					// Fire-and-forget means the collector can't see this
-					// error; surface it through the metric plus a Warn log so
-					// the full wrap chain is visible without flipping to Debug.
-					// Deeper per-step diagnostics live in sandbox_linux.go and
-					// veth_linux.go.
-					reason := attachFailureReason(err)
-					metrics.NetworkAttachFailures.WithLabelValues(reason).Inc()
-					logger.Warn("network attach failed",
-						"pod_uid", string(uid),
-						"reason", reason,
-						"error", err.Error(),
-					)
-				}
+			if err == nil {
+				continue
 			}
+
+			// Fire-and-forget means the collector can't see this error;
+			// surface it through the metric. Benign churn logs at Debug so
+			// a pod that is between sandboxes for a few ticks (or a
+			// Running pod whose sandbox keeps failing to come up) cannot
+			// turn into a sustained warn stream; real kernel-side failures
+			// log at Warn with the full wrap chain. Deeper per-step
+			// diagnostics live in sandbox_linux.go and veth_linux.go.
+			reason := attachFailureReason(err)
+			metrics.NetworkAttachFailures.WithLabelValues(reason).Inc()
+			if reason == "netns_gone" || reason == "sandbox_not_found" {
+				logger.Debug("network attach: sandbox not ready, will retry next tick",
+					"pod_uid", string(req.uid),
+					"reason", reason,
+				)
+				continue
+			}
+			logger.Warn("network attach failed",
+				"pod_uid", string(req.uid),
+				"reason", reason,
+				"error", err.Error(),
+			)
 		}
 	}
 }
@@ -293,8 +373,17 @@ func (r *linuxReader) runAttachWorker() {
 // Lives here (not in the collector) now that the attach runs on a worker
 // goroutine inside this package. Categories: benign churn vs real
 // kernel-side failures.
+//
+// netns_gone is ENOENT on the CNI netns path: CNI DEL already ran for the
+// sandbox we found. That is not proof the pod is gone. Under gVisor kubelet
+// recreates the sandbox for the same pod UID after a memory-limit kill, and
+// for a tick or two the only sandbox containerd lists is the stopped one.
+// A permanent "terminated" mark on this reason once zeroed network billing
+// for every recreated pod until the next heimdall restart.
 func attachFailureReason(err error) string {
 	switch {
+	case errors.Is(err, ErrNetnsOpen) && errors.Is(err, os.ErrNotExist):
+		return "netns_gone"
 	case errors.Is(err, ErrSandboxNotFound):
 		return "sandbox_not_found"
 	case errors.Is(err, ErrNetnsOpen):
@@ -310,7 +399,9 @@ func attachFailureReason(err error) string {
 
 // attachSync does the real containerd + netns + TCX work for one pod. Blocks
 // for ~100-300ms. Called only from attach workers.
-func (r *linuxReader) attachSync(uid types.UID) error {
+func (r *linuxReader) attachSync(req attachRequest) error {
+	uid := req.uid
+
 	// Short per-call timeout so a wedged containerd gRPC can't pin a
 	// worker indefinitely.
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
@@ -328,14 +419,7 @@ func (r *linuxReader) attachSync(uid types.UID) error {
 		return fmt.Errorf("resolve sandbox netns: %w: %w", ErrNetnsOpen, err)
 	}
 
-	// attachPodEth0 does everything netns-scoped in one locked-thread
-	// block: enters the pod netns, finds eth0, reads the netns cookie,
-	// clones the spec and bakes POD_KEY = cookie into rodata, loads the
-	// per-pod program pair (sharing the pinned map via pinOpts),
-	// attaches both TCX programs, and setns back.
-	coll, egress, ingressLink, cookie, err := attachPodEth0(netnsPath, r.spec, ebpf.MapOptions{ //nolint:exhaustruct // LoadPinOptions optional
-		PinPath: bpfPinDir,
-	})
+	coll, egress, ingressLink, cookie, err := r.attachEth0(netnsPath)
 	if err != nil {
 		return fmt.Errorf("attach pod eth0 (netns=%s): %w", netnsPath, err)
 	}
@@ -355,11 +439,12 @@ func (r *linuxReader) attachSync(uid types.UID) error {
 	}
 
 	// Detach clears r.pending under the same lock; if our entry is gone,
-	// the pod was deleted while we were doing TCX work. Tear down rather
-	// than persist links to a vanished container. The worker's normal
-	// post-attachSync delete(r.pending, uid) still runs, but it's a no-op
-	// when the entry is already absent.
-	if _, stillPending := r.pending[uid]; !stillPending {
+	// or now belongs to a newer request for the same UID, Detach ran while
+	// we were doing TCX work and the netns we attached to is the one it was
+	// reacting to. Tear down rather than persist links to a vanished
+	// container. The worker's post-attachSync clearPending is likewise
+	// generation-checked so we never clear the newer request's marker.
+	if gen, ok := r.pending[uid]; !ok || gen != req.gen {
 		_ = egress.Close()
 		_ = ingressLink.Close()
 		coll.Close()
@@ -368,10 +453,11 @@ func (r *linuxReader) attachSync(uid types.UID) error {
 	}
 
 	r.attached[uid] = attachedPod{
-		coll:    coll,
-		egress:  egress,
-		ingress: ingressLink,
-		cookie:  cookie,
+		coll:      coll,
+		egress:    egress,
+		ingress:   ingressLink,
+		cookie:    cookie,
+		netnsPath: netnsPath,
 	}
 	r.mu.Unlock()
 
@@ -396,17 +482,13 @@ func (r *linuxReader) Detach(uid types.UID) {
 	defer r.mu.Unlock()
 
 	delete(r.pending, uid)
-	delete(r.terminated, uid)
 
 	p, ok := r.attached[uid]
 	if !ok {
 		return
 	}
 
-	_ = p.ingress.Close()
-	_ = p.egress.Close()
-	p.coll.Close()
-	_ = r.podCounters.Delete(p.cookie)
+	r.release(p)
 	delete(r.attached, uid)
 }
 
@@ -421,9 +503,17 @@ func (r *linuxReader) Detach(uid types.UID) {
 // A pod that is attached but has no map entry yet genuinely has seen no packets,
 // so that path still returns zeros.
 func (r *linuxReader) Read(uid types.UID) (Counters, error) {
+	// Hold the lock across the lookup so the attach record and the map
+	// entry are read as one state. Releasing it in between lets a
+	// concurrent Detach or Reconcile delete the entry after we decided the
+	// pod is attached, and the ErrKeyNotExist path below would then report
+	// zero bytes as a measured value. The lookup is a single syscall on a
+	// hash map; holding r.mu for it is cheaper than a mis-stamped
+	// checkpoint.
 	r.mu.Lock()
+	defer r.mu.Unlock()
+
 	p, ok := r.attached[uid]
-	r.mu.Unlock()
 	if !ok {
 		return zeroCounters, ErrNotAttached
 	}
@@ -456,12 +546,11 @@ func (r *linuxReader) MapEntries() int {
 	return len(r.attached)
 }
 
-// Reconcile evicts entries from attached and terminated whose pod UID is
-// absent from active (the current informer pod set). Must be called once
-// per collection tick. It is the backstop for pods whose CRI exit event
-// and informer status update were both missed: without it those entries
-// accumulate across the process lifetime, leaking BPF program FDs (from
-// attached) and map memory (from terminated).
+// Reconcile evicts attached entries whose pod UID is absent from active
+// (the current informer pod set). Must be called once per collection
+// tick. It is the backstop for pods whose CRI exit event and informer
+// status update were both missed: without it those entries accumulate
+// across the process lifetime, leaking BPF program FDs.
 //
 // Reconcile does NOT touch pending — those entries self-clear when the
 // worker finishes attachSync.
@@ -473,18 +562,9 @@ func (r *linuxReader) Reconcile(active map[types.UID]struct{}) {
 		if _, ok := active[uid]; ok {
 			continue
 		}
-		_ = p.ingress.Close()
-		_ = p.egress.Close()
-		p.coll.Close()
-		_ = r.podCounters.Delete(p.cookie)
+		r.release(p)
 		delete(r.attached, uid)
 		metrics.NetworkReconcileEvictions.Inc()
-	}
-
-	for uid := range r.terminated {
-		if _, ok := active[uid]; !ok {
-			delete(r.terminated, uid)
-		}
 	}
 }
 
@@ -507,9 +587,10 @@ func (r *linuxReader) Close() error {
 		delete(r.attached, uid)
 	}
 
-	r.pending = map[types.UID]struct{}{}
-	r.terminated = map[types.UID]struct{}{}
-	_ = r.cd.Close()
+	r.pending = map[types.UID]uint64{}
+	if r.cd != nil {
+		_ = r.cd.Close()
+	}
 
 	// Close the shared map handle. The pinned inode stays on disk (under
 	// bpfPinDir), so the next heimdall process reuses it — that's the point

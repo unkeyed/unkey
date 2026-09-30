@@ -1,17 +1,19 @@
 "use client";
 import type { ChangelogEntry } from "@/gen/proto/ctrl/v1/openapi_pb";
 import {
-  ChevronDown,
-  CircleInfo,
-  CircleWarning,
-  CircleXMark,
-  InputSearch,
-  TriangleWarning,
+  IconChevronDownOutline12,
+  IconCircleInfoOutline18,
+  IconCircleWarningOutline12,
+  IconCircleXmarkOutline12,
+  IconInputSearchOutline18,
+  IconTriangleWarningOutline12,
 } from "@unkey/icons";
 import {
   Badge,
   Button,
-  Input,
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
   Select,
   SelectContent,
   SelectItem,
@@ -105,9 +107,9 @@ export const DiffViewerContent: React.FC<DiffViewerContentProps> = ({
     return (
       <div className="flex flex-col items-center gap-4 px-8 py-12 text-center">
         <div className="relative">
-          <div className="absolute inset-0 bg-linear-to-r from-accent-4 to-accent-3 rounded-full blur-xl opacity-20 transition-opacity duration-300 animate-pulse" />
+          <div className="absolute inset-0 bg-linear-to-r from-gray-4 to-gray-3 rounded-full blur-xl opacity-20 transition-opacity duration-300 animate-pulse" />
           <div className="relative bg-gray-3 rounded-full p-3 transition-all duration-200">
-            <CircleInfo
+            <IconCircleInfoOutline18
               className="text-grayA-9 size-6 transition-all duration-200 animate-pulse"
               style={{ animationDuration: "2s" }}
             />
@@ -130,7 +132,7 @@ export const DiffViewerContent: React.FC<DiffViewerContentProps> = ({
       <div className="px-6 pt-5 pb-4">
         <div className="flex justify-between items-center">
           <div className="flex flex-col gap-1">
-            <div className="text-grayA-12 font-medium text-[13px]">API Changes</div>
+            <div className="text-grayA-12 font-medium text-sm">API Changes</div>
             <div className="text-grayA-9 text-xs">
               {stats.total} changes • {stats.paths.length} endpoints
             </div>
@@ -138,13 +140,13 @@ export const DiffViewerContent: React.FC<DiffViewerContentProps> = ({
           <div className="flex items-center gap-2">
             {stats.breaking > 0 && (
               <Badge variant="error" className="gap-1.5">
-                <TriangleWarning iconSize="sm-regular" className="shrink-0" />
+                <IconTriangleWarningOutline12 className="shrink-0" />
                 <span className="text-xs font-medium">{stats.breaking} breaking</span>
               </Badge>
             )}
             {stats.warning > 0 && (
               <Badge variant="warning" className="gap-1.5">
-                <CircleWarning iconSize="sm-regular" className="shrink-0" />
+                <IconCircleWarningOutline12 className="shrink-0" />
                 <span className="text-xs">
                   {stats.warning} warning{stats.warning !== 1 ? "s" : ""}
                 </span>
@@ -156,26 +158,29 @@ export const DiffViewerContent: React.FC<DiffViewerContentProps> = ({
 
       {/* Filters */}
       <div className="px-4 pb-4 flex gap-2.5 items-center">
-        <Input
-          type="text"
-          value={filters.searchQuery}
-          onChange={(e) => setFilters((p) => ({ ...p, searchQuery: e.target.value }))}
-          placeholder="Search changes..."
-          leftIcon={<InputSearch iconSize="sm-regular" className="text-grayA-9" />}
-          rightIcon={
-            filters.searchQuery ? (
+        <InputGroup className="flex-1 h-9 rounded-md">
+          <InputGroupAddon className="pointer-events-none">
+            <IconInputSearchOutline18 className="size-3 text-grayA-9" />
+          </InputGroupAddon>
+          <InputGroupInput
+            type="text"
+            value={filters.searchQuery}
+            onChange={(e) => setFilters((p) => ({ ...p, searchQuery: e.target.value }))}
+            placeholder="Search changes..."
+            className="text-xs h-9"
+          />
+          {filters.searchQuery ? (
+            <InputGroupAddon align="inline-end">
               <button
                 type="button"
                 onClick={() => setFilters((p) => ({ ...p, searchQuery: "" }))}
                 className="cursor-pointer"
               >
-                <CircleXMark iconSize="sm-regular" className="text-grayA-9 hover:text-grayA-12" />
+                <IconCircleXmarkOutline12 className="text-grayA-9 hover:text-grayA-12" />
               </button>
-            ) : null
-          }
-          wrapperClassName="flex-1"
-          className="text-xs h-9 rounded-md"
-        />
+            </InputGroupAddon>
+          ) : null}
+        </InputGroup>
         <Select
           value={filters.level?.toString() || "all"}
           onValueChange={(value) =>
@@ -247,15 +252,14 @@ export const DiffViewerContent: React.FC<DiffViewerContentProps> = ({
             {Object.entries(groupedChanges).map(([path, operations]) => {
               const isExpanded = expandedPaths.has(path);
               return (
-                <div key={path} className="border border-gray-4 rounded-md overflow-hidden">
+                <div key={path} className="border rounded-md overflow-hidden">
                   <button
                     type="button"
                     onClick={() => togglePathExpansion(path)}
-                    className="w-full flex items-center justify-between py-3 px-4 text-left bg-grayA-1 hover:bg-grayA-2 transition-colors cursor-pointer"
+                    className="w-full flex items-center justify-between py-3 px-4 text-left bg-grayA-2 hover:bg-grayA-3 transition-colors cursor-pointer"
                   >
                     <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                      <ChevronDown
-                        iconSize="sm-regular"
+                      <IconChevronDownOutline12
                         className={cn(
                           "text-grayA-9 shrink-0 transition-transform duration-200",
                           !isExpanded && "-rotate-90",
@@ -293,11 +297,11 @@ export const DiffViewerContent: React.FC<DiffViewerContentProps> = ({
                                   <div className="flex-1 min-w-0">
                                     <p className="text-xs text-grayA-12">{change.text}</p>
                                     <div className="mt-1 flex items-center gap-2 flex-wrap">
-                                      <code className="text-[10px] text-grayA-10 font-mono">
+                                      <code className="text-3xs text-grayA-10 font-mono">
                                         {change.id}
                                       </code>
                                       {change.operationId && (
-                                        <span className="text-[10px] text-grayA-10">
+                                        <span className="text-3xs text-grayA-10">
                                           • {change.operationId}
                                         </span>
                                       )}

@@ -29,18 +29,64 @@ func (u UnkeyPermission) String() string {
 	return fmt.Sprintf("%s#%s", u.Resource.String(), u.Action)
 }
 
-// U creates a leaf query for a typed action on a canonical resource name.
+// U creates a leaf query for an action on a canonical resource name.
 //
 // Handlers should pass the exact resource being accessed. Broader grants such
-// as "unkey:v1:ws_123:ratelimits/**#read_override" are matched during
+// as "unkey:v1:ws_123:ratelimits/**#read" are matched during
 // evaluation, not by writing wildcard-heavy queries at call sites.
-func U[R fmt.Stringer, A permissions.Action[R]](resource R, action A) PermissionQuery {
+func U(resource fmt.Stringer, action permissions.Action) PermissionQuery {
 	return PermissionQuery{
 		Operation:            OperatorNil,
 		Value:                fmt.Sprintf("%s#%s", resource.String(), action.String()),
 		Children:             []PermissionQuery{},
 		matchUnkeyPermission: true,
 	}
+}
+
+// HasPermissionIn reports whether a permission can authorize any member of a
+// valid fixed-depth collection such as projects/*/apps/*. It ignores legacy
+// permissions and does not check whether resources exist. Callers must still
+// authorize each row before returning it.
+func HasPermissionIn(resource urn.V1, action permissions.Action, callerPermissions []string) bool {
+	for _, value := range callerPermissions {
+		permission, err := parseUrnPermission(value)
+		if err != nil || permission.Resource.WorkspaceID != resource.WorkspaceID {
+			continue
+		}
+		if permission.Action != ActionType(action.String()) && permission.Action != permissions.Wildcard {
+			continue
+		}
+		if resourcePatternsOverlap(resource.Resource, permission.Resource.Resource) {
+			return true
+		}
+	}
+	return false
+}
+
+// resourcePatternsOverlap reports whether a permission contains a resource at the
+// collection's fixed depth.
+func resourcePatternsOverlap(collection string, permission string) bool {
+	collectionSegments := strings.Split(collection, "/")
+	permissionSegments := strings.Split(permission, "/")
+	if permission == "**" {
+		return true
+	}
+	if permissionSegments[len(permissionSegments)-1] == "**" {
+		permissionSegments = permissionSegments[:len(permissionSegments)-1]
+		if len(permissionSegments) > len(collectionSegments) {
+			return false
+		}
+		collectionSegments = collectionSegments[:len(permissionSegments)]
+	}
+	if len(collectionSegments) != len(permissionSegments) {
+		return false
+	}
+	for i := range collectionSegments {
+		if collectionSegments[i] != "*" && permissionSegments[i] != "*" && collectionSegments[i] != permissionSegments[i] {
+			return false
+		}
+	}
+	return true
 }
 
 // isUnkeyPermission reports whether a granted string is a canonical Unkey
@@ -77,9 +123,9 @@ func evaluateUnkeyPermission(required UnkeyPermission, granted []string) bool {
 //
 // Accepted:
 //
-//	unkey:v1:ws_1:ratelimits/namespaces/ns_1/overrides/ov_1#read_override
-//	unkey:v1:ws_1:keyspaces/*/keys/*#read_key    wildcard grant
-//	unkey:v1:ws_1:**#*                           admin grant (translated from admin:*)
+//	unkey:v1:ws_1:ratelimits/namespaces/ns_1/overrides/ov_1#read
+//	unkey:v1:ws_1:keyspaces/*/keys/*#read    wildcard grant
+//	unkey:v1:ws_1:**#*                           global admin permission
 //
 // Rejected with errInvalidURNPermission:
 //
@@ -125,20 +171,13 @@ func permissionCovers(required UnkeyPermission, granted UnkeyPermission) bool {
 	return granted.Resource.Covers(required.Resource)
 }
 
-// validatePermissionAction enforces the action grammar after "#": either the
-// "*" wildcard or a word that cannot collide with URN separators.
+// validatePermissionAction accepts only canonical generic actions and the
+// global admin wildcard.
 func validatePermissionAction(action string) error {
-	if action == "*" {
+	switch action {
+	case "read", "write", "delete", "decrypt", "verify", "limit", permissions.Wildcard:
 		return nil
+	default:
+		return fmt.Errorf("unsupported action %q", action)
 	}
-	if action == "" {
-		return errors.New("must not be empty")
-	}
-	if strings.ContainsAny(action, ":#/*") {
-		return errors.New(`must not contain ":", "#", "/", or "*"`)
-	}
-	if strings.HasPrefix(action, "_") || strings.HasSuffix(action, "_") {
-		return errors.New(`must not start or end with "_"`)
-	}
-	return nil
 }

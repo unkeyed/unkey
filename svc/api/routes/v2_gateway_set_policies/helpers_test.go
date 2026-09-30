@@ -58,12 +58,11 @@ func seedEnvironment(t *testing.T, h *testutil.Harness) seededEnv {
 	})
 
 	app := h.CreateApp(seed.CreateAppRequest{
-		ID:            uid.New(uid.AppPrefix),
-		WorkspaceID:   workspace.ID,
-		ProjectID:     project.ID,
-		Name:          "Payments API",
-		Slug:          strings.ToLower(strings.ReplaceAll(uid.New("test"), "_", "-")),
-		DefaultBranch: "main",
+		ID:          uid.New(uid.AppPrefix),
+		WorkspaceID: workspace.ID,
+		ProjectID:   project.ID,
+		Name:        "Payments API",
+		Slug:        strings.ToLower(strings.ReplaceAll(uid.New("test"), "_", "-")),
 	})
 
 	environment := h.CreateEnvironment(seed.CreateEnvironmentRequest{
@@ -114,7 +113,7 @@ func readStoredBlob(t *testing.T, h *testutil.Harness, env seededEnv) string {
 		EnvironmentID: env.environmentID,
 	})
 	require.NoError(t, err)
-	return string(stored.AppRuntimeSetting.SentinelConfig)
+	return string(stored.SentinelConfig)
 }
 
 // readStoredPolicies returns the raw policy documents currently stored for the

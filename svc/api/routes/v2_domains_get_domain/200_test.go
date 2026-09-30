@@ -271,8 +271,61 @@ func TestGetDomainOmitsUnsetOptionalFields(t *testing.T) {
 	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
 	require.Nil(t, res.Body.Data.VerificationError)
 	require.Nil(t, res.Body.Data.UpdatedAt)
+	require.Nil(t, res.Body.Data.DomainConnect)
 	require.NotContains(t, res.RawBody, "lastCheckedAt", "unset optional fields must be absent, received: %s", res.RawBody)
 	require.NotContains(t, res.RawBody, "verificationError", "unset optional fields must be absent, received: %s", res.RawBody)
+	require.NotContains(t, res.RawBody, "domainConnect", "unset optional fields must be absent, received: %s", res.RawBody)
+}
+
+func TestGetDomainReportsDomainConnect(t *testing.T) {
+	h := testutil.NewHarness(t)
+	route := &handler.Handler{DB: h.DB}
+	h.Register(route)
+
+	seeded := seedDomain(t, h, func(req *seed.CreateCustomDomainRequest) {
+		req.DomainConnectProvider = "Cloudflare"
+		req.DomainConnectURL = "https://dash.cloudflare.com/domainconnect?domain=acme.com"
+	})
+	rootKey := h.CreateRootKey(seeded.workspaceID, "environment.*.read_domain")
+
+	res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(rootKey), handler.Request{
+		Domain: seeded.domain,
+	})
+	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
+	require.NotNil(t, res.Body.Data.DomainConnect, "received: %s", res.RawBody)
+	require.Equal(t, "Cloudflare", res.Body.Data.DomainConnect.Provider)
+	require.Equal(t, "https://dash.cloudflare.com/domainconnect?domain=acme.com", res.Body.Data.DomainConnect.Url)
+}
+
+func TestGetDomainOmitsHalfFilledDomainConnect(t *testing.T) {
+	h := testutil.NewHarness(t)
+	route := &handler.Handler{DB: h.DB}
+	h.Register(route)
+
+	testCases := []struct {
+		name     string
+		provider string
+		url      string
+	}{
+		{name: "provider without url", provider: "Cloudflare", url: ""},
+		{name: "url without provider", provider: "", url: "https://dash.cloudflare.com/domainconnect"},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			seeded := seedDomain(t, h, func(req *seed.CreateCustomDomainRequest) {
+				req.DomainConnectProvider = tc.provider
+				req.DomainConnectURL = tc.url
+			})
+			rootKey := h.CreateRootKey(seeded.workspaceID, "environment.*.read_domain")
+
+			res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(rootKey), handler.Request{
+				Domain: seeded.domain,
+			})
+			require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
+			require.Nil(t, res.Body.Data.DomainConnect, "received: %s", res.RawBody)
+		})
+	}
 }
 
 func TestGetDomainWithSpecificEnvironmentPermission(t *testing.T) {

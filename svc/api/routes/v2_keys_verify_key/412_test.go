@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -19,7 +18,7 @@ func TestPreconditionFailed(t *testing.T) {
 	route := &handler.Handler{
 		DB:               h.DB,
 		Keys:             h.Keys,
-		Auditlogs:        h.Auditlogs,
+		DirectAuditLogs:  h.DirectAuditLogs,
 		KeyVerifications: h.KeyVerifications,
 	}
 
@@ -51,7 +50,7 @@ func TestPreconditionFailed(t *testing.T) {
 		key := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID: workspace.ID,
 			KeySpaceID:  api.KeyAuthID.String,
-			IdentityID:  ptr.P(identity.ID),
+			IdentityID:  new(identity.ID),
 		})
 
 		req := handler.Request{
@@ -115,7 +114,7 @@ func TestPreconditionFailed(t *testing.T) {
 			Ratelimits: &[]openapi.KeysVerifyKeyRatelimit{
 				{
 					Name: "missing_config",
-					Cost: ptr.P(4),
+					Cost: new(4),
 					// Missing limit and duration for custom ratelimit
 				},
 			},

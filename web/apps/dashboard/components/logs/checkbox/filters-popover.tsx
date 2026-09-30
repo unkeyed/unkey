@@ -1,6 +1,6 @@
 import { useKeyboardShortcut } from "@/hooks/use-keyboard-shortcut";
-import { CaretRight, Check, Magnifier } from "@unkey/icons";
-import { Drover, Input, KeyboardButton } from "@unkey/ui";
+import { IconCaretRightOutline12, IconCheckOutline12, IconMagnifierOutline18 } from "@unkey/icons";
+import { Drover, InputGroup, InputGroupAddon, InputGroupInput, KeyboardButton } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import React, {
   type KeyboardEvent,
@@ -291,61 +291,63 @@ export const FiltersPopover = ({
       </Drover.Trigger>
 
       <Drover.Content
-        className={cn(
-          "min-w-60 bg-gray-1 dark:bg-black shadow-2xl border-gray-6 rounded-lg",
-          searchItems ? "w-80 p-0" : "p-2",
-        )}
+        className={cn("min-w-60 bg-raised rounded-lg", searchItems ? "w-80 p-0" : "p-2")}
         align="start"
         onKeyDown={handleKeyDown}
       >
         <div className="flex w-full flex-col">
           {searchItems ? (
-            <div className="border-b border-gray-4 p-2">
-              <Input
-                autoFocus
-                value={search}
-                onChange={(event) => {
-                  setSearch(event.target.value);
-                  setFocusedSearchIndex(0);
-                }}
-                onKeyDown={(event) => {
-                  if (event.key === "Escape") {
-                    return;
-                  }
-                  // With no query the main filter list owns navigation keys;
-                  // with a query the search results own them.
-                  if (!search.trim()) {
-                    return;
-                  }
-                  event.stopPropagation();
-
-                  if (activeSearchIndex === null) {
-                    return;
-                  }
-                  if (event.key === "ArrowDown") {
-                    event.preventDefault();
-                    setFocusedSearchIndex((activeSearchIndex + 1) % matchingSearchItems.length);
-                  } else if (event.key === "ArrowUp") {
-                    event.preventDefault();
-                    setFocusedSearchIndex(
-                      (activeSearchIndex - 1 + matchingSearchItems.length) %
-                        matchingSearchItems.length,
-                    );
-                  } else if (event.key === "Enter") {
-                    event.preventDefault();
-                    const item = matchingSearchItems[activeSearchIndex];
-                    if (item) {
-                      activateSearchItem(item);
+            <div className="border-b p-2">
+              <InputGroup variant="ghost" className="h-8">
+                <InputGroupAddon className="pointer-events-none">
+                  <IconMagnifierOutline18 className="size-3.5 text-gray-9" />
+                </InputGroupAddon>
+                <InputGroupInput
+                  autoFocus
+                  value={search}
+                  onChange={(event) => {
+                    setSearch(event.target.value);
+                    setFocusedSearchIndex(0);
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key === "Escape") {
+                      return;
                     }
-                  }
-                }}
-                placeholder={searchPlaceholder}
-                aria-label="Search filters and values"
-                variant="ghost"
-                className="h-8 text-xs"
-                leftIcon={<Magnifier className="size-3.5 text-gray-9" />}
-                rightIcon={<KeyboardButton shortcut="F" />}
-              />
+                    // With no query the main filter list owns navigation keys;
+                    // with a query the search results own them.
+                    if (!search.trim()) {
+                      return;
+                    }
+                    event.stopPropagation();
+
+                    if (activeSearchIndex === null) {
+                      return;
+                    }
+                    if (event.key === "ArrowDown") {
+                      event.preventDefault();
+                      setFocusedSearchIndex((activeSearchIndex + 1) % matchingSearchItems.length);
+                    } else if (event.key === "ArrowUp") {
+                      event.preventDefault();
+                      setFocusedSearchIndex(
+                        (activeSearchIndex - 1 + matchingSearchItems.length) %
+                          matchingSearchItems.length,
+                      );
+                    } else if (event.key === "Enter") {
+                      event.preventDefault();
+                      const item = matchingSearchItems[activeSearchIndex];
+                      if (item) {
+                        activateSearchItem(item);
+                      }
+                    }
+                  }}
+                  placeholder={searchPlaceholder}
+                  aria-label="Search filters and values"
+                  className="h-8 text-xs"
+                />
+                <InputGroupAddon align="inline-end">
+                  <KeyboardButton shortcut="F" />
+                </InputGroupAddon>
+              </InputGroup>
             </div>
           ) : (
             <PopoverHeader />
@@ -366,7 +368,7 @@ export const FiltersPopover = ({
                       }
                       className={cn(
                         "flex h-9 w-full items-center gap-2 rounded-md px-2 text-left outline-hidden",
-                        "hover:bg-gray-3 focus-visible:ring-2 focus-visible:ring-accent-7",
+                        "hover:bg-gray-3 focus-visible:ring-2 focus-visible:ring-gray-7",
                         activeSearchIndex === index && "bg-gray-3",
                         item.kind === "option" && item.checked && "bg-gray-3",
                       )}
@@ -377,34 +379,31 @@ export const FiltersPopover = ({
                       {item.kind === "option" ? (
                         <span
                           className={cn(
-                            "flex size-4 shrink-0 items-center justify-center rounded-sm border border-gray-5",
-                            item.checked &&
-                              "border-accent-9 bg-accent-9 text-white dark:text-black",
+                            "flex size-4 shrink-0 items-center justify-center rounded-sm border",
+                            item.checked && "border-gray-9 bg-gray-9 text-white dark:text-black",
                           )}
                           aria-hidden="true"
                         >
-                          {item.checked ? <Check className="size-3" /> : null}
+                          {item.checked ? <IconCheckOutline12 /> : null}
                         </span>
                       ) : null}
-                      {item.icon ? (
-                        <span className="shrink-0 text-accent-9">{item.icon}</span>
-                      ) : null}
+                      {item.icon ? <span className="shrink-0 text-gray-9">{item.icon}</span> : null}
                       <span className="flex min-w-0 items-center gap-1 text-xs">
                         {item.path.map((segment) => (
                           <React.Fragment key={`${item.id}-${segment}`}>
                             <span className="max-w-28 truncate text-gray-9">{segment}</span>
-                            <CaretRight className="size-2 shrink-0 text-gray-7" />
+                            <IconCaretRightOutline12 className="size-2 shrink-0 text-gray-7" />
                           </React.Fragment>
                         ))}
-                        <span className="truncate font-medium text-accent-12">{item.label}</span>
+                        <span className="truncate font-medium text-gray-12">{item.label}</span>
                       </span>
                       {item.description ? (
-                        <span className="ml-auto max-w-28 shrink-0 truncate font-mono text-[10px] text-gray-8">
+                        <span className="ml-auto max-w-28 shrink-0 truncate font-mono text-3xs text-gray-8">
                           {item.description}
                         </span>
                       ) : null}
                       {item.kind === "filter" ? (
-                        <CaretRight className="ml-auto size-2 shrink-0 text-gray-7" />
+                        <IconCaretRightOutline12 className="ml-auto size-2 shrink-0 text-gray-7" />
                       ) : null}
                     </button>
                   ))}
@@ -435,7 +434,7 @@ export const FiltersPopover = ({
 
 const PopoverHeader = () => (
   <div className="flex w-full justify-between items-center px-2 py-1">
-    <span className="text-gray-9 text-[13px]">Filters...</span>
+    <span className="text-gray-9 text-sm">Filters...</span>
     <KeyboardButton shortcut="F" />
   </div>
 );

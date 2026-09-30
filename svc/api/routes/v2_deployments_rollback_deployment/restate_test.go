@@ -14,38 +14,38 @@ import (
 // observedRollback contains the Restate object key and typed request.
 type observedRollback struct {
 	virtualObjectKey string
-	request          *hydrav1.RollbackRequest
+	request          *hydrav1.RollbackDeploymentRequest
 }
 
-// recordingDeployService captures Rollback invocations for assertions.
-type recordingDeployService struct {
-	hydrav1.UnimplementedDeployServiceServer
+// recordingEnvironmentService captures RollbackDeployment invocations for assertions.
+type recordingEnvironmentService struct {
+	hydrav1.UnimplementedEnvironmentServiceServer
 	rollbacks chan observedRollback
 }
 
-// Rollback records the object key and typed payload received through Restate.
-func (service *recordingDeployService) Rollback(ctx restate.ObjectContext, request *hydrav1.RollbackRequest) (*hydrav1.RollbackResponse, error) {
+// RollbackDeployment records the object key and typed payload received through Restate.
+func (service *recordingEnvironmentService) RollbackDeployment(ctx restate.ObjectContext, request *hydrav1.RollbackDeploymentRequest) (*hydrav1.RollbackDeploymentResponse, error) {
 	service.rollbacks <- observedRollback{
 		virtualObjectKey: restate.Key(ctx),
 		request:          request,
 	}
-	return &hydrav1.RollbackResponse{}, nil
+	return &hydrav1.RollbackDeploymentResponse{}, nil
 }
 
-// newRecordingRestate starts an isolated Restate server whose DeployService
-// reports each Rollback invocation to the returned channel.
+// newRecordingRestate starts an isolated Restate server whose EnvironmentService
+// reports each RollbackDeployment invocation to the returned channel.
 func newRecordingRestate(t *testing.T) (*restateingress.Client, <-chan observedRollback) {
 	t.Helper()
 
-	recorder := &recordingDeployService{
+	recorder := &recordingEnvironmentService{
 		rollbacks: make(chan observedRollback, 1),
 	}
-	restateConfig := containers.Restate(t, hydrav1.NewDeployServiceServer(recorder))
+	restateConfig := containers.Restate(t, hydrav1.NewEnvironmentServiceServer(recorder))
 
 	return restateingress.NewClient(restateConfig.IngressURL), recorder.rollbacks
 }
 
-// newUncalledRestate fails during cleanup if DeployService was invoked.
+// newUncalledRestate fails during cleanup if EnvironmentService was invoked.
 func newUncalledRestate(t *testing.T) *restateingress.Client {
 	t.Helper()
 

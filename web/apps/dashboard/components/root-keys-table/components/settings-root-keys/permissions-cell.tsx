@@ -1,5 +1,5 @@
-import { cn } from "@/lib/utils";
 import { InfoTooltip } from "@unkey/ui";
+import { cn } from "cn";
 import { describePermissions } from "../../utils/describe-permission";
 
 const MAX_VISIBLE = 2;
@@ -21,10 +21,7 @@ export function PermissionsCell({ permissions, isSelected }: PermissionsCellProp
   return (
     <div className="flex min-w-0 items-center gap-2">
       <span
-        className={cn(
-          "truncate text-[13px] leading-5",
-          isSelected ? "text-accent-12" : "text-gray-11",
-        )}
+        className={cn("truncate text-sm leading-5", isSelected ? "text-gray-12" : "text-gray-11")}
       >
         {labels.slice(0, MAX_VISIBLE).join(", ")}
       </span>

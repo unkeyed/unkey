@@ -34,7 +34,7 @@ export function RootKeyRow({ rootKey, onSelect, onEditKey }: RootKeyRowProps) {
       />
 
       <div className="min-w-0 md:w-[35%] md:shrink-0">
-        <span className="truncate text-[13px] font-medium text-accent-12">
+        <span className="truncate text-sm font-medium text-gray-12">
           {rootKey.name ?? "Unnamed root key"}
         </span>
       </div>
@@ -50,7 +50,7 @@ export function RootKeyRow({ rootKey, onSelect, onEditKey }: RootKeyRowProps) {
             displayType="relative"
             side="left"
             align="center"
-            className="text-[13px] text-gray-9"
+            className="text-sm text-gray-9"
           />
         </span>
         <div className="relative z-20" role="presentation">

@@ -3,8 +3,14 @@
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import type { Organization } from "@/lib/auth/types";
 import { trpc } from "@/lib/trpc/client";
-import { Card, CardContent } from "@unkey/ui";
-import { Button, Empty, Loading, toast } from "@unkey/ui";
+import {
+  Card,
+  CardContent,
+  EmptyStateDescription,
+  EmptyStateHeader,
+  EmptyStateTitle,
+} from "@unkey/ui";
+import { Button, EmptyState, Loading, toast } from "@unkey/ui";
 import { memo, useState } from "react";
 import { StatusBadge } from "./status-badge";
 
@@ -40,17 +46,23 @@ export const Invitations = memo<InvitationsProps>(({ organization, isAdmin }) =>
 
   if (!invitations || invitations.length === 0) {
     return (
-      <Empty>
-        <Empty.Title>No pending invitations</Empty.Title>
-        <Empty.Description>Invite members using the form above</Empty.Description>
-      </Empty>
+      <Card>
+        <CardContent className="p-0">
+          <EmptyState frame="none">
+            <EmptyStateHeader>
+              <EmptyStateTitle>No pending invitations</EmptyStateTitle>
+              <EmptyStateDescription>Invite members using the form above</EmptyStateDescription>
+            </EmptyStateHeader>
+          </EmptyState>
+        </CardContent>
+      </Card>
     );
   }
 
   return (
     <Card>
       <CardContent className="p-0">
-        <div className="divide-y divide-border">
+        <div className="divide-y divide-grayA-4">
           {invitations.map((invitation) => (
             <div key={invitation.id} className="flex items-center justify-between px-4 py-3">
               <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -58,7 +70,7 @@ export const Invitations = memo<InvitationsProps>(({ organization, isAdmin }) =>
                   <AvatarFallback name={invitation.email} />
                 </Avatar>
                 <div className="flex flex-col min-w-0 flex-1">
-                  <span className="text-sm text-content truncate secret">{invitation.email}</span>
+                  <span className="text-sm text-gray-12 truncate secret">{invitation.email}</span>
                   <div className="flex items-center">
                     <StatusBadge status={invitation.state} />
                   </div>

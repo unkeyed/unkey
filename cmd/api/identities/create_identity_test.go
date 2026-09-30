@@ -4,8 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/cmd/api/util"
-	"github.com/unkeyed/unkey/pkg/ptr"
+	"github.com/unkeyed/unkey/cmd/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
@@ -24,15 +23,15 @@ func TestCreateIdentity(t *testing.T) {
 		},
 		{
 			name: "with meta json",
-			args: `identities create-identity --external-id=user_123 --meta-json={"email":"alice@acme.com","plan":"premium"}`,
+			args: `identities create-identity --external-id=user_123 --meta='{"email":"alice@acme.com","plan":"premium"}'`,
 			want: openapi.V2IdentitiesCreateIdentityRequestBody{
 				ExternalId: "user_123",
-				Meta:       ptr.P(map[string]interface{}{"email": "alice@acme.com", "plan": "premium"}),
+				Meta:       new(map[string]interface{}{"email": "alice@acme.com", "plan": "premium"}),
 			},
 		},
 		{
 			name: "with ratelimits json",
-			args: `identities create-identity --external-id=user_123 --ratelimits-json=[{"name":"requests","limit":1000,"duration":60000,"autoApply":false}]`,
+			args: `identities create-identity --external-id=user_123 --ratelimits='[{"name":"requests","limit":1000,"duration":60000,"autoApply":false}]'`,
 			want: openapi.V2IdentitiesCreateIdentityRequestBody{
 				ExternalId: "user_123",
 				Ratelimits: &[]openapi.RatelimitRequest{
@@ -42,10 +41,10 @@ func TestCreateIdentity(t *testing.T) {
 		},
 		{
 			name: "all flags",
-			args: `identities create-identity --external-id=user_123 --meta-json={"email":"alice@acme.com","plan":"premium"} --ratelimits-json=[{"name":"requests","limit":1000,"duration":60000,"autoApply":true}]`,
+			args: `identities create-identity --external-id=user_123 --meta='{"email":"alice@acme.com","plan":"premium"}' --ratelimits='[{"name":"requests","limit":1000,"duration":60000,"autoApply":true}]'`,
 			want: openapi.V2IdentitiesCreateIdentityRequestBody{
 				ExternalId: "user_123",
-				Meta:       ptr.P(map[string]interface{}{"email": "alice@acme.com", "plan": "premium"}),
+				Meta:       new(map[string]interface{}{"email": "alice@acme.com", "plan": "premium"}),
 				Ratelimits: &[]openapi.RatelimitRequest{
 					{Name: "requests", Limit: 1000, Duration: 60000, AutoApply: true},
 				},
@@ -55,7 +54,7 @@ func TestCreateIdentity(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			req := util.CaptureRequest[openapi.V2IdentitiesCreateIdentityRequestBody](t, Cmd(), tt.args)
+			req := testutil.CaptureRequest[openapi.V2IdentitiesCreateIdentityRequestBody](t, Cmd(), tt.args)
 			require.Equal(t, tt.want, req)
 		})
 	}

@@ -10,6 +10,8 @@ data:
   unkey.toml: |
     storage_class_name = "topolvm-ssd"
 
+    disable_gvisor = true
+
     [cluster]
     cell_id = "local"
     region = "local"

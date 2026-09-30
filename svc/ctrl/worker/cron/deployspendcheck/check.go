@@ -109,7 +109,7 @@ func (h *CheckHandler) setSuspended(ctx restate.ObjectContext, workspaceID strin
 			UpdatedAt: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 			ID:        workspaceID,
 		})
-	}, restate.WithName("set spend-suspended"))
+	}, restate.WithName("set spend-suspended"), restate.WithMaxRetryAttempts(runMaxAttempts))
 }
 
 // hasActiveDeployPlan reports whether the workspace currently holds a Deploy
@@ -122,7 +122,7 @@ func (h *CheckHandler) setSuspended(ctx restate.ObjectContext, workspaceID strin
 func (h *CheckHandler) hasActiveDeployPlan(ctx restate.ObjectContext, workspaceID string) (bool, error) {
 	entitlement, err := restate.Run(ctx, func(rc restate.RunContext) (db.FindWorkspaceDeployEntitlementRow, error) {
 		return h.db.FindWorkspaceDeployEntitlement(rc, workspaceID)
-	}, restate.WithName("read deploy entitlement"))
+	}, restate.WithName("read deploy entitlement"), restate.WithMaxRetryAttempts(runMaxAttempts))
 	if err != nil {
 		if db.IsNotFound(err) {
 			return false, nil
@@ -157,7 +157,7 @@ func (h *CheckHandler) CheckWorkspaceSpend(
 	// old spend. Journaled Now() so replays agree.
 	reqPeriod, err := billingperiod.Parse(req.GetPeriod())
 	if err != nil {
-		return nil, restate.TerminalError(fmt.Errorf("invalid period %q: %w", req.GetPeriod(), err))
+		return nil, restate.ToTerminalError(fmt.Errorf("invalid period %q: %w", req.GetPeriod(), err))
 	}
 	if reqPeriod != billingperiod.From(now) {
 		logger.Info("deploy spend cap: skipping stale-period tick",

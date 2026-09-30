@@ -2,6 +2,7 @@ package principal
 
 import (
 	"log/slog"
+	"time"
 
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/rbac"
@@ -52,19 +53,29 @@ type Principal struct {
 	// Source carries the method-specific authentication details.
 	Source Source
 
-	// WorkspaceID scopes all handler reads and writes for this principal.
-	WorkspaceID string
+	// AuthorizedWorkspaceID is the workspace this principal can access. For
+	// legacy root keys, it is keys.for_workspace_id.
+	AuthorizedWorkspaceID string
 
-	// Permissions is the flat set of exact or resource-scoped authorization grants.
+	// Permissions is the flat set of exact or resource-scoped permissions.
 	Permissions []string
+
+	// authorizationError records the latest authorization denial for this request.
+	authorizationError error
+}
+
+// AuthorizationError returns the latest error from [Principal.Authorize].
+func AuthorizationError(p *Principal) error {
+	return p.authorizationError
 }
 
 // Authorize evaluates this principal's permissions against the query.
 func (p *Principal) Authorize(query rbac.PermissionQuery) error {
 	err := rbac.Check(query, p.Permissions)
 	if err != nil {
+		p.authorizationError = err
 		logger.Warn("principal authorization denied",
-			slog.String("workspace_id", p.WorkspaceID),
+			slog.String("workspace_id", p.AuthorizedWorkspaceID),
 			slog.String("principal_type", string(p.Type)),
 			slog.String("subject_type", string(p.Subject.Type)),
 			slog.String("subject_id", p.Subject.ID),
@@ -101,8 +112,15 @@ type KeySource struct {
 	// KeySpaceID is the key space that owns the authenticated key.
 	KeySpaceID string
 
+	// WorkspaceID identifies the key owner. New root keys use the customer
+	// workspace. Legacy root keys use Unkey's internal workspace.
+	WorkspaceID string
+
 	// Permissions are the raw RBAC permission strings attached to the key.
 	Permissions []string
+
+	// ExpiresAt is the authenticated key's expiry. Nil means the key does not expire.
+	ExpiresAt *time.Time
 }
 
 func (KeySource) principalSource() {}
@@ -114,6 +132,9 @@ type JWTSource struct {
 
 	// Payload is the decoded token payload with claims preserved by name.
 	Payload map[string]any
+
+	// Roles contains the roles claim from the token.
+	Roles []string
 
 	// Signature is the raw signature string from the token's third segment.
 	Signature string

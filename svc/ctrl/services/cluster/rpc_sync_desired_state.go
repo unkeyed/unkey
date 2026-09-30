@@ -12,9 +12,12 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/pkg/metrics"
 )
 
+// deploymentSyncPageSize bounds each database read during a full sync.
+const deploymentSyncPageSize = 10000
+
 // SyncDesiredState streams the full desired state for a region then closes.
-// It paginates through all running deployments and cilium policies. Krane
-// calls this on startup and periodically as a safety net.
+// It paginates through all running deployments. Krane calls this on startup
+// and periodically as a safety net.
 func (s *Service) SyncDesiredState(
 	ctx context.Context,
 	req *connect.Request[ctrlv1.SyncDesiredStateRequest],
@@ -32,7 +35,7 @@ func (s *Service) SyncDesiredState(
 
 	fullSyncStart := time.Now()
 
-	if err := s.syncDeployments(ctx, stream, cluster.Region.ID); err != nil {
+	if err := s.syncDeployments(ctx, stream, cluster.RegionID); err != nil {
 		metrics.SyncDesiredStateTotal.WithLabelValues("error").Inc()
 		return err
 	}
@@ -55,26 +58,16 @@ func (s *Service) syncDeployments(
 		rows, err := s.db.ListAllDeploymentTopologiesByRegion(ctx, db.ListAllDeploymentTopologiesByRegionParams{
 			RegionID: regionID,
 			AfterPk:  afterPk,
-			Limit:    changePageSize,
+			Limit:    deploymentSyncPageSize,
 		})
 		if err != nil {
 			return connect.NewError(connect.CodeInternal, err)
 		}
 		for _, row := range rows {
-			afterPk = row.DeploymentTopology.Pk
-			state, err := deploymentRowToState(deploymentRow{
-				dt:              row.DeploymentTopology,
-				d:               row.Deployment,
-				k8sNamespace:    row.K8sNamespace,
-				environmentSlug: row.EnvironmentSlug,
-				regionName:      row.RegionName,
-				gitRepo:         row.GitRepo,
-			}, 0)
+			afterPk = row.TopologyPk
+			state, err := deploymentRowToState(row)
 			if err != nil {
 				logger.Error("full sync: failed to convert deployment row", "error", err)
-				continue
-			}
-			if state == nil {
 				continue
 			}
 			if err := stream.Send(&ctrlv1.DeploymentChangeEvent{
@@ -84,7 +77,7 @@ func (s *Service) syncDeployments(
 			}
 			metrics.SyncDesiredStateEventsSentTotal.WithLabelValues("deployment").Inc()
 		}
-		if len(rows) < changePageSize {
+		if len(rows) < deploymentSyncPageSize {
 			return nil
 		}
 	}

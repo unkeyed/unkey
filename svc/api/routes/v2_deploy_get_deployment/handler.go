@@ -10,6 +10,8 @@ import (
 	"github.com/unkeyed/unkey/pkg/logger"
 	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
@@ -55,7 +57,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	// Verify deployment belongs to the authenticated workspace
-	if deployment.WorkspaceID != principal.WorkspaceID {
+	if deployment.WorkspaceID != principal.AuthorizedWorkspaceID {
 		return fault.New("wrong workspace",
 			fault.Code(codes.Data.Project.NotFound.URN()),
 			fault.Internal("wrong workspace, masking as 404"),
@@ -77,6 +79,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			ResourceID:   projectID,
 			Action:       rbac.ReadDeployment,
 		}),
+		rbac.U(
+			urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(deployment.ProjectID).App(deployment.AppID).Environment(deployment.EnvironmentID).Deployment(deployment.ID),
+			permissions.Read,
+		),
 	))
 	if err != nil {
 		return err

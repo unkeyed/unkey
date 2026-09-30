@@ -10,6 +10,8 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/internal/deployment"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -55,7 +57,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	// FindDeploymentById is not workspace-scoped, so a match in another workspace
 	// is masked as not found to avoid leaking a deployment's existence.
-	if db.IsNotFound(err) || dep.WorkspaceID != principal.WorkspaceID {
+	if db.IsNotFound(err) || dep.WorkspaceID != principal.AuthorizedWorkspaceID {
 		return fault.New(
 			"deployment not found",
 			fault.Code(codes.Data.Deployment.NotFound.URN()),
@@ -75,6 +77,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			ResourceID:   dep.EnvironmentID,
 			Action:       rbac.ReadDeployment,
 		}),
+		rbac.U(
+			urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(dep.ProjectID).App(dep.AppID).Environment(dep.EnvironmentID).Deployment(dep.ID),
+			permissions.Read,
+		),
 	))
 	if err != nil {
 		return fault.New(
@@ -86,7 +92,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	states, err := db.Query.ListDeploymentEnvAndAppState(ctx, h.DB.RO(), db.ListDeploymentEnvAndAppStateParams{
-		WorkspaceID:   principal.WorkspaceID,
+		WorkspaceID:   principal.AuthorizedWorkspaceID,
 		DeploymentIds: []string{dep.ID},
 	})
 	if err != nil {
@@ -105,7 +111,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	var steps []db.DeploymentStep
 	if dep.Status == mysqltype.DeploymentsStatusFailed {
 		steps, err = db.Query.ListFailedDeploymentStepsByIds(ctx, h.DB.RO(), db.ListFailedDeploymentStepsByIdsParams{
-			WorkspaceID:   principal.WorkspaceID,
+			WorkspaceID:   principal.AuthorizedWorkspaceID,
 			DeploymentIds: []string{dep.ID},
 		})
 		if err != nil {
@@ -119,7 +125,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	domains, err := db.Query.ListDeploymentDomains(ctx, h.DB.RO(), db.ListDeploymentDomainsParams{
-		WorkspaceID:  principal.WorkspaceID,
+		WorkspaceID:  principal.AuthorizedWorkspaceID,
 		DeploymentID: dep.ID,
 	})
 	if err != nil {
@@ -132,7 +138,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	regions, err := db.Query.ListDeploymentRegions(ctx, h.DB.RO(), db.ListDeploymentRegionsParams{
-		WorkspaceID:  principal.WorkspaceID,
+		WorkspaceID:  principal.AuthorizedWorkspaceID,
 		DeploymentID: dep.ID,
 	})
 	if err != nil {

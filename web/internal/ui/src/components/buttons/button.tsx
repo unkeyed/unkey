@@ -6,11 +6,6 @@ import * as React from "react";
 import { cn } from "../../lib/utils";
 import { AnimatedLoadingSpinner } from "../animated-loading-spinner";
 
-// Render-target composition WITHOUT button semantics. `render` targets are
-// links/anchors (Next.js <Link>, <a>); routing them through the Base UI Button
-// primitive would bolt role="button" + keyboard handlers onto a link, which is
-// wrong semantics. useRender composes the element with the button's visual
-// classes only.
 function ButtonRenderSlot({
   render,
   ref,
@@ -22,7 +17,6 @@ function ButtonRenderSlot({
   return useRender({ render, ref, props });
 }
 
-// Hack to populate fumadocs' AutoTypeTable
 export type DocumentedButtonProps = VariantProps<typeof buttonVariants> & {
   /**
    * Display a loading spinner instead of the children
@@ -66,32 +60,35 @@ export type DocumentedButtonProps = VariantProps<typeof buttonVariants> & {
 };
 
 const buttonVariants = cva(
-  "inline-flex group relative duration-150 items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm transition-colors focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 disabled:cursor-not-allowed cursor-pointer",
+  "inline-flex group relative duration-150 items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition motion-safe:active:not-disabled:not-aria-disabled:scale-97 focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-gray-6 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 disabled:cursor-not-allowed cursor-pointer",
   {
     variants: {
       variant: {
-        default: "", // This is only required for mapping from default -> primary. We rely on this for type generation because CVA types are hard to mutate.
-        destructive: "", // This is only required for mapping from destructive-> danger. We rely on this for type generation because CVA types are hard to mutate.
+        default: "",
+        destructive: "",
         primary: [
-          "p-2 text-white dark:text-black bg-accent-12 hover:bg-accent-12/90 focus:hover:bg-accent-12 rounded-md font-medium border border-grayA-4",
-          "focus:ring-3 focus:ring-gray-5 focus-visible:outline-hidden focus:ring-offset-0 drop-shadow-button transform-gpu",
-          "disabled:border disabled:border-solid disabled:bg-grayA-6 disabled:border-grayA-4 disabled:text-white/85 dark:disabled:text-white/85",
-          "active:bg-accent-12/80",
+          "p-2 text-white bg-gray-12 rounded-md border border-black/15 shadow-sm isolate",
+          "dark:border-white/5 dark:shadow-none",
+          "after:absolute after:inset-0 after:-z-10 after:rounded-[calc(var(--radius-md)-1px)] after:shadow-[inset_0_1px_rgb(255_255_255/0.15)]",
+          "dark:after:-inset-px dark:after:rounded-md",
+          "hover:after:bg-white/10 active:after:bg-white/10 dark:hover:after:bg-white/5 dark:active:after:bg-white/5",
+          "focus:ring-3 focus:ring-gray-5 focus-visible:outline-hidden focus:ring-offset-0",
+          "disabled:border disabled:border-solid disabled:bg-grayA-6 disabled:border-grayA-4 disabled:text-white/85 disabled:shadow-none disabled:after:hidden aria-disabled:after:hidden",
         ],
         outline: [
-          "p-2 text-gray-12 bg-background border border-grayA-6 hover:bg-grayA-2 rounded-md",
-          "focus:border-grayA-12 focus:ring-3 focus:ring-gray-5 focus-visible:outline-hidden focus:ring-offset-0 drop-shadow-button transform-gpu",
+          "p-2 text-gray-12 bg-transparent border dark:border-input hover:bg-grayA-3 focus:hover:bg-transparent rounded-md",
+          "aria-expanded:bg-grayA-3 aria-expanded:text-gray-12",
+          "focus:border-grayA-12 focus:ring-3 focus:ring-gray-5 focus-visible:outline-hidden focus:ring-offset-0",
           "disabled:border disabled:border-solid disabled:border-grayA-5 disabled:text-grayA-7",
-          "active:bg-grayA-3",
+          "active:bg-grayA-4",
         ],
         ghost: [
           "p-2 text-gray-12 bg-transparent hover:bg-grayA-4 rounded-md focus:hover:bg-transparent",
-          "focus:border-grayA-12 focus:ring-3 focus:ring-gray-5 focus-visible:outline-hidden focus:ring-offset-0 drop-shadow-button transform-gpu",
+          "focus:border-grayA-12 focus:ring-3 focus:ring-gray-5 focus-visible:outline-hidden focus:ring-offset-0",
           "disabled:border disabled:border-grayA-4 disabled:text-grayA-7",
           "active:bg-grayA-5",
         ],
       },
-      // TODO: Remove "square" this in the following iterations. This is only needed for backward compatability
       shape: {
         square: "size-8 p-1",
       },
@@ -103,7 +100,6 @@ const buttonVariants = cva(
         info: "",
       },
       size: {
-        // TODO: Remove "icon" this in the following iterations. This is only needed for backward compatability
         icon: "size-6",
         sm: "h-7",
         md: "h-8",
@@ -118,26 +114,31 @@ const buttonVariants = cva(
       size: "sm",
     },
     compoundVariants: [
-      // Danger
+      {
+        variant: "primary",
+        color: "default",
+        className: [
+          "dark:bg-white dark:text-black dark:hover:after:bg-black/5 dark:active:after:bg-black/5",
+          "[&_svg]:text-white/60 hover:[&_svg]:text-white/80 active:[&_svg]:text-white/80",
+          "dark:[&_svg]:text-black/55 dark:hover:[&_svg]:text-black/40 dark:active:[&_svg]:text-black/40",
+          "disabled:[&_svg]:text-white/60",
+        ],
+      },
       {
         variant: "primary",
         color: "danger",
         className: [
-          "dark:text-white/95 bg-error-9 hover:bg-error-10 rounded-md font-medium focus:hover:bg-error-10 ",
+          "dark:text-white/95 bg-error-9 hover:bg-error-10 rounded-md focus:hover:bg-error-10 ",
           "focus:border-error-11 focus:ring-3 focus:ring-error-4 focus-visible:outline-hidden focus:ring-offset-0",
-          "disabled:bg-error-6 disabled:text-white/80  dark:disabled:text-white/80",
+          "disabled:bg-error-7 disabled:text-white/80  dark:disabled:text-white/80",
           "active:bg-error-11",
         ],
       },
       {
         variant: "outline",
         color: "danger",
-        className: [
-          "text-error-11 bg-background border border-grayA-6 hover:bg-grayA-2 font-medium focus:hover:bg-background",
-          "focus:border-error-11 focus:ring-3 focus:ring-error-4 focus-visible:outline-hidden focus:ring-offset-0",
-          "disabled:text-errorA-7 disabled:border-grayA-5",
-          "active:bg-error-3",
-        ],
+        className:
+          "text-error-11 focus:border-error-11 focus:ring-error-4 disabled:text-errorA-7 active:bg-error-3",
       },
       {
         variant: "ghost",
@@ -145,16 +146,15 @@ const buttonVariants = cva(
         className: [
           "text-error-11 bg-transparent hover:bg-error-3 rounded-md",
           "focus:border-error-11 focus:ring-3 focus:ring-error-4 focus-visible:outline-hidden focus:ring-offset-0",
-          "disabled:text-error-7",
+          "disabled:text-errorA-7",
           "active:bg-error-4",
         ],
       },
-      // Warning
       {
         variant: "primary",
         color: "warning",
         className: [
-          "dark:text-white/95 bg-warning-8 hover:bg-warning-8/90 rounded-md font-medium focus:hover:bg-warning-8/90",
+          "dark:text-white/95 bg-warning-8 hover:bg-warning-8/90 rounded-md focus:hover:bg-warning-8/90",
           "focus:border-warning-11 focus:ring-3 focus:ring-warning-4 focus-visible:outline-hidden focus:ring-offset-0",
           "disabled:bg-warning-7 disabled:text-white/80  dark:disabled:text-white/80",
           "active:bg-warning-9",
@@ -163,12 +163,8 @@ const buttonVariants = cva(
       {
         variant: "outline",
         color: "warning",
-        className: [
-          "text-warningA-11 bg-background border border-grayA-6 hover:bg-grayA-2 font-medium focus:hover:bg-background",
-          "focus:border-warning-11 focus:ring-3 focus:ring-warning-4 focus-visible:outline-hidden focus:ring-offset-0",
-          "disabled:text-warningA-7 disabled:border-grayA-5",
-          "active:bg-warning-3",
-        ],
+        className:
+          "text-warningA-11 focus:border-warning-11 focus:ring-warning-4 disabled:text-warningA-7 active:bg-warning-3",
       },
       {
         variant: "ghost",
@@ -176,16 +172,15 @@ const buttonVariants = cva(
         className: [
           "text-warning-11 bg-transparent hover:bg-warning-3 rounded-md",
           "focus:border-warning-11 focus:ring-3 focus:ring-warning-4 focus-visible:outline-hidden focus:ring-offset-0",
-          "disabled:text-warning-7",
+          "disabled:text-warningA-7",
           "active:bg-warning-4",
         ],
       },
-      // Success
       {
         variant: "primary",
         color: "success",
         className: [
-          "dark:text-white/95 bg-success-9 hover:bg-success-10 rounded-md font-medium focus:hover:bg-success-10",
+          "dark:text-white/95 bg-success-9 hover:bg-success-10 rounded-md focus:hover:bg-success-10",
           "focus:border-success-11 focus:ring-3 focus:ring-success-4 focus-visible:outline-hidden focus:ring-offset-0",
           "disabled:bg-success-7 disabled:text-white/80  dark:disabled:text-white/80",
           "active:bg-success-11",
@@ -194,12 +189,8 @@ const buttonVariants = cva(
       {
         variant: "outline",
         color: "success",
-        className: [
-          "text-success-11 bg-background border border-grayA-6 hover:bg-grayA-2 font-medium focus:hover:bg-background",
-          "focus:border-success-11 focus:ring-3 focus:ring-success-4 focus-visible:outline-hidden focus:ring-offset-0",
-          "disabled:text-successA-7 disabled:border-grayA-5",
-          "active:bg-success-3",
-        ],
+        className:
+          "text-success-11 focus:border-success-11 focus:ring-success-4 disabled:text-successA-7 active:bg-success-3",
       },
       {
         variant: "ghost",
@@ -207,17 +198,16 @@ const buttonVariants = cva(
         className: [
           "text-success-11 bg-transparent hover:bg-success-3 rounded-md",
           "focus:border-success-11 focus:ring-3 focus:ring-success-4 focus-visible:outline-hidden focus:ring-offset-0",
-          "disabled:text-success-7",
+          "disabled:text-successA-7",
           "active:bg-success-4",
         ],
       },
 
-      // Info
       {
         variant: "primary",
         color: "info",
         className: [
-          "dark:text-white/95 bg-info-9 hover:bg-info-10 rounded-md font-medium focus:hover:bg-info-10",
+          "dark:text-white/95 bg-info-9 hover:bg-info-10 rounded-md focus:hover:bg-info-10",
           "focus:border-info-11 focus:ring-3 focus:ring-info-4 focus-visible:outline-hidden focus:ring-offset-0",
           "disabled:bg-info-7 disabled:text-white/80  dark:disabled:text-white/80",
           "active:bg-info-11",
@@ -226,12 +216,8 @@ const buttonVariants = cva(
       {
         variant: "outline",
         color: "info",
-        className: [
-          "text-info-11 bg-background border border-grayA-6 hover:bg-grayA-2 font-medium focus:hover:bg-background",
-          "focus:border-info-11 focus:ring-3 focus:ring-info-4 focus-visible:outline-hidden focus:ring-offset-0",
-          "disabled:text-infoA-7 disabled:border-grayA-5",
-          "active:bg-info-3",
-        ],
+        className:
+          "text-info-11 focus:border-info-11 focus:ring-info-4 disabled:text-infoA-7 active:bg-info-3",
       },
       {
         variant: "ghost",
@@ -239,7 +225,7 @@ const buttonVariants = cva(
         className: [
           "text-info-11 bg-transparent hover:bg-info-3 rounded-md",
           "focus:border-info-11 focus:ring-3 focus:ring-info-4 focus-visible:outline-hidden focus:ring-offset-0",
-          "disabled:text-info-7",
+          "disabled:text-infoA-7",
           "active:bg-info-4",
         ],
       },
@@ -281,10 +267,11 @@ export type ButtonProps = VariantProps<typeof buttonVariants> &
      * Optional label for screen readers when in loading state
      */
     loadingLabel?: string;
+    ref?: React.Ref<HTMLButtonElement>;
   };
 
 const keyboardIconVariants = cva(
-  "items-center transition duration-150 text-center justify-center shadow-none text-sm flex justify-center font-mono text-xs font-medium border rounded-[5px] h-5 px-1.5 min-w-[24px]",
+  "items-center transition duration-150 text-center justify-center shadow-none flex font-mono text-xs font-medium border rounded-sm h-5 px-1.5 min-w-[24px]",
   {
     variants: {
       variant: {
@@ -313,94 +300,64 @@ const VARIANT_MAP: Record<string, { variant: ButtonVariant; color?: ButtonColor 
   destructive: { variant: "primary", color: "danger" },
 };
 
-const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  (
-    {
-      className,
-      variant,
-      color = "default",
-      size,
-      render,
-      loading,
-      disabled,
-      loadingLabel = "Loading, please wait",
-      ...props
-    },
-    ref,
-  ) => {
-    let mappedVariant: ButtonVariant = "primary";
-    let mappedColor: ButtonColor = color;
-    if (variant === null || variant === undefined) {
-      mappedVariant = "primary";
-    } else if (VARIANT_MAP[variant as keyof typeof VARIANT_MAP]) {
-      const mapping = VARIANT_MAP[variant as keyof typeof VARIANT_MAP];
-      mappedVariant = mapping.variant;
-      if (mapping.color) {
-        mappedColor = mapping.color;
-      }
-    } else {
-      mappedVariant = variant as ButtonVariant;
+function Button({
+  className,
+  variant,
+  color = "default",
+  size,
+  render,
+  loading,
+  disabled,
+  loadingLabel = "Loading, please wait",
+  ref,
+  ...props
+}: ButtonProps) {
+  let mappedVariant: ButtonVariant = "primary";
+  let mappedColor: ButtonColor = color;
+  if (variant === null || variant === undefined) {
+    mappedVariant = "primary";
+  } else if (VARIANT_MAP[variant as keyof typeof VARIANT_MAP]) {
+    const mapping = VARIANT_MAP[variant as keyof typeof VARIANT_MAP];
+    mappedVariant = mapping.variant;
+    if (mapping.color) {
+      mappedColor = mapping.color;
     }
-    // Only disable the click behavior, not the visual appearance
-    const isClickDisabled = disabled || loading;
-    // Keep separate flag for actual visual disabled state
-    const isVisuallyDisabled = disabled;
-    // Width reference for consistent sizing during loading state
-    const buttonRef = React.useRef<HTMLButtonElement>(null);
-    const [buttonWidth, setButtonWidth] = React.useState<number | undefined>(undefined);
-    // Capture initial width when entering loading state
-    React.useEffect(() => {
-      if (loading && buttonRef.current && !buttonWidth) {
-        setButtonWidth(buttonRef.current.offsetWidth);
-      } else if (!loading) {
-        setButtonWidth(undefined);
-      }
-    }, [loading, buttonWidth]);
-    // Keyboard handler
-    React.useEffect(() => {
-      if (!props.keyboard || isClickDisabled) {
+  } else {
+    mappedVariant = variant as ButtonVariant;
+  }
+  const isClickDisabled = disabled || loading;
+  const isVisuallyDisabled = disabled;
+  const buttonRef = React.useRef<HTMLButtonElement>(null);
+  const [buttonWidth, setButtonWidth] = React.useState<number | undefined>(undefined);
+  React.useEffect(() => {
+    if (loading && buttonRef.current && !buttonWidth) {
+      setButtonWidth(buttonRef.current.offsetWidth);
+    } else if (!loading) {
+      setButtonWidth(undefined);
+    }
+  }, [loading, buttonWidth]);
+  React.useEffect(() => {
+    if (!props.keyboard || isClickDisabled) {
+      return;
+    }
+    const down = (e: KeyboardEvent) => {
+      if (!props.keyboard?.trigger(e)) {
         return;
       }
-      const down = (e: KeyboardEvent) => {
-        if (!props.keyboard?.trigger(e)) {
-          return;
-        }
-        e.preventDefault();
-        props.keyboard?.callback(e);
-      };
-      document.addEventListener("keydown", down);
-      return () => document.removeEventListener("keydown", down);
-    }, [props.keyboard, isClickDisabled]);
+      e.preventDefault();
+      props.keyboard?.callback(e);
+    };
+    document.addEventListener("keydown", down);
+    return () => document.removeEventListener("keydown", down);
+  }, [props.keyboard, isClickDisabled]);
 
-    // When `render` is provided (custom element/component, typically a link),
-    // compose it directly with the button's visual classes — no Base UI Button
-    // primitive, so the link keeps link semantics (no role="button", no
-    // synthetic keyboard handlers, no disabled-button behavior). Only the
-    // children render — the loading spinner and keyboard hint are omitted,
-    // matching the previous `asChild` behavior.
-    if (render) {
-      return (
-        <ButtonRenderSlot
-          render={render as React.ReactElement}
-          className={cn(
-            buttonVariants({
-              variant: mappedVariant,
-              color: mappedColor,
-              size,
-              className,
-            }),
-          )}
-          onClick={loading ? undefined : props.onClick}
-          aria-disabled={isClickDisabled || undefined}
-          aria-busy={loading || undefined}
-          ref={ref as React.Ref<HTMLElement>}
-          {...(props as React.HTMLAttributes<HTMLElement>)}
-        />
-      );
-    }
-
+  // A `render` target is usually a link; the Base UI Button primitive would
+  // bolt role="button" and key handlers onto it. The spinner and keyboard hint
+  // are intentionally omitted on this path.
+  if (render) {
     return (
-      <ButtonPrimitive
+      <ButtonRenderSlot
+        render={render as React.ReactElement}
         className={cn(
           buttonVariants({
             variant: mappedVariant,
@@ -410,76 +367,65 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
           }),
         )}
         onClick={loading ? undefined : props.onClick}
-        disabled={isVisuallyDisabled} // Only apply disabled attribute when explicitly disabled
-        aria-disabled={isClickDisabled} // For accessibility, still indicate it can't be clicked
-        aria-busy={loading}
-        ref={ref}
-        {...props}
-      >
-        {loading && (
-          <div
-            className="absolute inset-0 flex items-center justify-center w-full h-full transition-opacity duration-200"
-            aria-hidden="true"
-          >
-            <AnimatedLoadingSpinner />
-            <span className="sr-only">{loadingLabel}</span>
-          </div>
-        )}
-        <div
-          className={cn(
-            "w-full h-full flex items-center justify-center gap-2 transition-opacity duration-200",
-            {
-              "opacity-0": loading,
-              "opacity-100": !loading,
-            },
-          )}
-        >
-          {props.children}
-          {props.keyboard ? (
-            <kbd
-              className={cn(
-                keyboardIconVariants({
-                  variant:
-                    variant === "primary" ? "primary" : variant === "outline" ? "default" : "ghost",
-                }),
-              )}
-            >
-              {props.keyboard.display}
-            </kbd>
-          ) : null}{" "}
-        </div>
-      </ButtonPrimitive>
+        aria-disabled={isClickDisabled || undefined}
+        aria-busy={loading || undefined}
+        ref={ref as React.Ref<HTMLElement>}
+        {...(props as React.HTMLAttributes<HTMLElement>)}
+      />
     );
-  },
-);
+  }
 
-// Add CSS for respecting reduced motion preference and adding the spin-slow animation
-if (typeof document !== "undefined") {
-  const style = document.createElement("style");
-  style.textContent = `
-    @media (prefers-reduced-motion: reduce) {
-      [data-prefers-reduced-motion="respect-motion-preference"] {
-        animation: none !important;
-        transition: none !important;
-      }
-    }
-
-    @keyframes spin-slow {
-      from {
-        transform: rotate(0deg);
-      }
-      to {
-        transform: rotate(360deg);
-      }
-    }
-
-    .animate-spin-slow {
-      animation: spin-slow 1.5s linear infinite;
-    }
-  `;
-  document.head.appendChild(style);
+  return (
+    <ButtonPrimitive
+      className={cn(
+        buttonVariants({
+          variant: mappedVariant,
+          color: mappedColor,
+          size,
+          className,
+        }),
+      )}
+      onClick={loading ? undefined : props.onClick}
+      disabled={isVisuallyDisabled}
+      aria-disabled={isClickDisabled}
+      aria-busy={loading}
+      ref={ref}
+      {...props}
+    >
+      {loading && (
+        <div
+          className="absolute inset-0 flex items-center justify-center w-full h-full transition-opacity duration-200"
+          aria-hidden="true"
+        >
+          <AnimatedLoadingSpinner />
+          <span className="sr-only">{loadingLabel}</span>
+        </div>
+      )}
+      <div
+        className={cn(
+          "w-full h-full flex items-center justify-center gap-2 transition-opacity duration-200",
+          {
+            "opacity-0": loading,
+            "opacity-100": !loading,
+          },
+        )}
+      >
+        {props.children}
+        {props.keyboard ? (
+          <kbd
+            className={cn(
+              keyboardIconVariants({
+                variant:
+                  variant === "primary" ? "primary" : variant === "outline" ? "default" : "ghost",
+              }),
+            )}
+          >
+            {props.keyboard.display}
+          </kbd>
+        ) : null}{" "}
+      </div>
+    </ButtonPrimitive>
+  );
 }
-
-Button.displayName = "Button";
 
 export { Button, buttonVariants };

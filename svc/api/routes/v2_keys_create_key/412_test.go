@@ -10,9 +10,9 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
+	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_keys_create_key"
 )
@@ -31,13 +31,15 @@ func TestPreconditionError(t *testing.T) {
 	h.Register(route)
 
 	// Create API manually with a stale keyspace reference. Only callers with
-	// create_key on that keyspace may learn that the API is not set up for keys.
+	// write on that keyspace may learn that the API is not set up for keys.
+	projectID := h.CreateApi(seed.CreateApiRequest{WorkspaceID: h.Resources().UserWorkspace.ID}).ProjectID
 	keySpaceID := uid.New(uid.KeySpacePrefix)
 	apiID := uid.New(uid.APIPrefix)
 	err := db.Query.InsertApi(ctx, h.DB.RW(), db.InsertApiParams{
 		ID:          apiID,
 		Name:        "test-api",
 		WorkspaceID: h.Resources().UserWorkspace.ID,
+		ProjectID:   projectID,
 		AuthType:    db.NullApisAuthType{Valid: true, ApisAuthType: db.ApisAuthTypeKey},
 		KeyAuthID:   sql.NullString{Valid: true, String: keySpaceID},
 		CreatedAtM:  time.Now().UnixMilli(),
@@ -47,8 +49,7 @@ func TestPreconditionError(t *testing.T) {
 	// Create a root key with appropriate permissions
 	rootKey := h.CreateRootKey(
 		h.Resources().UserWorkspace.ID,
-		createKeyPermission(h.Resources().UserWorkspace.ID, keySpaceID),
-		encryptKeyPermission(h.Resources().UserWorkspace.ID, keySpaceID),
+		createKeyPermission(h.Resources().UserWorkspace.ID, projectID, keySpaceID),
 	)
 
 	// Set up request headers
@@ -61,7 +62,7 @@ func TestPreconditionError(t *testing.T) {
 	t.Run("Try creating a recoverable key without being opt-in", func(t *testing.T) {
 		req := handler.Request{
 			ApiId:       apiID,
-			Recoverable: ptr.P(true),
+			Recoverable: new(true),
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.PreconditionFailedErrorResponse](

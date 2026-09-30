@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/svc/api/internal/projects"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_identities_list_identities"
 )
@@ -47,12 +48,16 @@ func TestCrossWorkspaceForbidden(t *testing.T) {
 
 	// First, create the workspace B
 	err = db.Query.InsertWorkspace(ctx, tx, db.InsertWorkspaceParams{
-		ID:        workspaceB,
-		Name:      "Test Workspace B",
-		Slug:      uid.New("slug"),
-		CreatedAt: time.Now().UnixMilli(),
-		OrgID:     uid.New("org"),
+		ID:           workspaceB,
+		Name:         "Test Workspace B",
+		Slug:         uid.New("slug"),
+		CreatedAt:    time.Now().UnixMilli(),
+		OrgID:        uid.New("org"),
+		K8sNamespace: uid.DNS1035(),
 	})
+	require.NoError(t, err)
+
+	projectB, err := projects.EnsureDefaultProject(ctx, tx, workspaceB)
 	require.NoError(t, err)
 
 	// Create an identity in workspace B
@@ -62,6 +67,7 @@ func TestCrossWorkspaceForbidden(t *testing.T) {
 		ID:          identityB,
 		ExternalID:  externalID,
 		WorkspaceID: workspaceB,
+		ProjectID:   projectB,
 		Environment: "default",
 		CreatedAt:   time.Now().UnixMilli(),
 		Meta:        []byte("{}"),

@@ -57,9 +57,9 @@ func TestRollbackDeploymentDerivesSource(t *testing.T) {
 	require.NoError(t, err)
 
 	observed := testutil.Receive(t, rollbacks, 10*time.Second)
-	require.Equal(t, live.ID, observed.virtualObjectKey)
-	require.Equal(t, live.ID, observed.request.GetSourceDeploymentId(), "source must be derived from the app's live deployment")
-	require.Equal(t, previous.ID, observed.request.GetTargetDeploymentId())
+	require.Equal(t, setup.Environment.ID, observed.virtualObjectKey)
+	require.Equal(t, live.ID, observed.request.GetFromDeploymentId(), "from must be the app's live deployment")
+	require.Equal(t, previous.ID, observed.request.GetToDeploymentId())
 	require.Equal(t, ctrlv1.ActorType_ACTOR_TYPE_ROOT_KEY, observed.request.GetActor().GetType())
 	require.Equal(t, rootKeyID, observed.request.GetActor().GetId())
 	require.NotEmpty(t, observed.request.GetCorrelationId())

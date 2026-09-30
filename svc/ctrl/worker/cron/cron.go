@@ -28,6 +28,8 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/internal/workos"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/auditlogcleanup"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/auditlogexport"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/buildlimitsync"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/clickhouseuserreconcile"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/deploybilling"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/deployspendcheck"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/idlepreview"
@@ -47,17 +49,19 @@ import (
 type Service struct {
 	hydrav1.UnimplementedCronServiceServer
 
-	auditLogCleanup      *auditlogcleanup.Handler
-	auditLogExport       *auditlogexport.Handler
-	deployBilling        *deploybilling.Handler
-	deployBillingPush    *deploybilling.PushHandler
-	deploySpendCheck     *deployspendcheck.Handler
-	deploySpendCheckWork *deployspendcheck.CheckHandler
-	idlePreview          *idlepreview.Handler
-	keyLastUsedSync      *keylastusedsync.Handler
-	keyRefill            *keyrefill.Handler
-	quotaCheck           *quotacheck.Handler
-	ratelimitCleanup     *ratelimitcleanup.Handler
+	auditLogCleanup         *auditlogcleanup.Handler
+	auditLogExport          *auditlogexport.Handler
+	buildLimitSync          *buildlimitsync.Handler
+	clickhouseUserReconcile *clickhouseuserreconcile.Handler
+	deployBilling           *deploybilling.Handler
+	deployBillingPush       *deploybilling.PushHandler
+	deploySpendCheck        *deployspendcheck.Handler
+	deploySpendCheckWork    *deployspendcheck.CheckHandler
+	idlePreview             *idlepreview.Handler
+	keyLastUsedSync         *keylastusedsync.Handler
+	keyRefill               *keyrefill.Handler
+	quotaCheck              *quotacheck.Handler
+	ratelimitCleanup        *ratelimitcleanup.Handler
 }
 
 var _ hydrav1.CronServiceServer = (*Service)(nil)
@@ -81,6 +85,7 @@ func (s *Service) DeploySpendCheckServer() hydrav1.DeploySpendCheckServiceServer
 // not configured. This keeps each handler's heartbeat call unconditional
 // (no nil checks scattered through the codebase).
 type Heartbeats struct {
+	BuildLimitSync     healthcheck.Heartbeat
 	QuotaCheck         healthcheck.Heartbeat
 	KeyRefill          healthcheck.Heartbeat
 	KeyLastUsedSync    healthcheck.Heartbeat
@@ -104,6 +109,9 @@ type Config struct {
 	Clock clock.Clock
 	// RatelimitDB wraps the ratelimit database. Must not be nil.
 	RatelimitDB *rldb.Database
+	// RestateRules reads and writes Restate's concurrency rules for the build
+	// limit sync. Must not be nil
+	RestateRules buildlimitsync.RestateRules
 
 	// SlackQuotaCheckWebhookURL is the Slack webhook for quota-exceeded
 	// notifications. Empty disables Slack notifications.
@@ -148,6 +156,8 @@ func New(cfg Config) (*Service, error) {
 		assert.NotNil(cfg.DB, "DB must not be nil"),
 		assert.NotNil(cfg.Clickhouse, "Clickhouse must not be nil; use clickhouse.NewNoop() if unavailable"),
 		assert.NotNil(cfg.RatelimitDB, "RatelimitDB must not be nil"),
+		assert.NotNil(cfg.RestateRules, "RestateRules must not be nil"),
+		assert.NotNil(cfg.Heartbeats.BuildLimitSync, "Heartbeats.BuildLimitSync must not be nil; use healthcheck.NewNoop()"),
 		assert.NotNil(cfg.Heartbeats.QuotaCheck, "Heartbeats.QuotaCheck must not be nil; use healthcheck.NewNoop()"),
 		assert.NotNil(cfg.Heartbeats.KeyRefill, "Heartbeats.KeyRefill must not be nil; use healthcheck.NewNoop()"),
 		assert.NotNil(cfg.Heartbeats.KeyLastUsedSync, "Heartbeats.KeyLastUsedSync must not be nil; use healthcheck.NewNoop()"),
@@ -205,6 +215,18 @@ func New(cfg Config) (*Service, error) {
 	auditLogCleanupH, err := auditlogcleanup.New(auditlogcleanup.Config{
 		DB:        cfg.DB,
 		Heartbeat: cfg.Heartbeats.AuditLogCleanup,
+	})
+	if err != nil {
+		return nil, err
+	}
+	clickhouseUserReconcileH, err := clickhouseuserreconcile.New(clickhouseuserreconcile.Config{DB: cfg.DB})
+	if err != nil {
+		return nil, err
+	}
+	buildLimitSyncH, err := buildlimitsync.New(buildlimitsync.Config{
+		DB:           cfg.DB,
+		RestateRules: cfg.RestateRules,
+		Heartbeat:    cfg.Heartbeats.BuildLimitSync,
 	})
 	if err != nil {
 		return nil, err
@@ -310,6 +332,8 @@ func New(cfg Config) (*Service, error) {
 		UnimplementedCronServiceServer: hydrav1.UnimplementedCronServiceServer{},
 		auditLogCleanup:                auditLogCleanupH,
 		auditLogExport:                 auditLogExportH,
+		buildLimitSync:                 buildLimitSyncH,
+		clickhouseUserReconcile:        clickhouseUserReconcileH,
 		deployBilling:                  deployBillingH,
 		deployBillingPush:              deployBillingPushH,
 		deploySpendCheck:               deploySpendCheckH,
@@ -396,4 +420,18 @@ func (s *Service) RunDeploySpendCheck(
 	req *hydrav1.RunDeploySpendCheckRequest,
 ) (*hydrav1.RunDeploySpendCheckResponse, error) {
 	return s.deploySpendCheck.Handle(ctx, req)
+}
+
+func (s *Service) RunBuildLimitSync(
+	ctx restate.ObjectContext,
+	req *hydrav1.RunBuildLimitSyncRequest,
+) (*hydrav1.RunBuildLimitSyncResponse, error) {
+	return s.buildLimitSync.Handle(ctx, req)
+}
+
+func (s *Service) RunClickhouseUserReconcile(
+	ctx restate.ObjectContext,
+	req *hydrav1.RunClickhouseUserReconcileRequest,
+) (*hydrav1.RunClickhouseUserReconcileResponse, error) {
+	return s.clickhouseUserReconcile.Handle(ctx, req)
 }

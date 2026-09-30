@@ -26,6 +26,7 @@ type fakeUsageReader struct {
 	instanceReads              int
 	activeKeyReads             int
 	instanceReadDelay          time.Duration
+	instanceReadErr            error
 	activeInstanceReads        int
 	maxConcurrentInstanceReads int
 }
@@ -38,6 +39,7 @@ func (f *fakeUsageReader) set(rows []clickhouse.InstanceMeterUsage) {
 	f.instanceReads = 0
 	f.activeKeyReads = 0
 	f.instanceReadDelay = 0
+	f.instanceReadErr = nil
 	f.activeInstanceReads = 0
 	f.maxConcurrentInstanceReads = 0
 }
@@ -57,6 +59,7 @@ func (f *fakeUsageReader) GetInstanceMeterUsage(
 	f.activeInstanceReads++
 	f.maxConcurrentInstanceReads = max(f.maxConcurrentInstanceReads, f.activeInstanceReads)
 	delay := f.instanceReadDelay
+	readErr := f.instanceReadErr
 	workspaceIDs := make(map[string]struct{}, len(req.WorkspaceIDs))
 	for _, workspaceID := range req.WorkspaceIDs {
 		workspaceIDs[workspaceID] = struct{}{}
@@ -84,6 +87,9 @@ func (f *fakeUsageReader) GetInstanceMeterUsage(
 		case <-ctx.Done():
 			return nil, ctx.Err()
 		}
+	}
+	if readErr != nil {
+		return nil, readErr
 	}
 	return rows, nil
 }
@@ -123,6 +129,12 @@ func (f *fakeUsageReader) trackInstanceConcurrency(delay time.Duration) {
 	f.maxConcurrentInstanceReads = 0
 }
 
+func (f *fakeUsageReader) failInstanceReads(err error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.instanceReadErr = err
+}
+
 func (f *fakeUsageReader) maxInstanceConcurrency() int {
 	f.mu.Lock()
 	defer f.mu.Unlock()
@@ -154,7 +166,7 @@ func (f *fakePusher) Push(_ context.Context, req billingmeter.PushRequest) (int,
 	defer f.mu.Unlock()
 	if f.failFor[req.StripeCustomerID] {
 		// Terminal: fail fast. A retried push would stall the test for minutes.
-		return 0, restate.TerminalError(errors.New("simulated push failure"))
+		return 0, restate.ToTerminalError(errors.New("simulated push failure"))
 	}
 	f.pushed[req.StripeCustomerID] = req
 	return 4, nil // cpu, memory, disk, egress

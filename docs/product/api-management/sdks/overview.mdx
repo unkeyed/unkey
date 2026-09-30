@@ -1,0 +1,100 @@
+---
+title: SDKs
+sidebarTitle: "Overview"
+description: "Official libraries for TypeScript, Go, and Python, plus a community Nuxt module."
+sources:
+  - docs/product/snippets/versions.mdx
+  - web/internal/api/src/sdk/sdk.ts
+  - web/internal/api/src/models/components/v3deploymentscreatedeploymentrequestbody.ts
+  - cmd/api/util/client.go
+  - cmd/api/deployments/create_deployment.go
+  - https://github.com/unkeyed/sdks/blob/3bb124498270d8aff36e358dc2e0010e9991869a/README.md
+  - https://github.com/unkeyed/sdks/blob/3bb124498270d8aff36e358dc2e0010e9991869a/api/ts/README.md
+  - https://github.com/unkeyed/sdks/blob/49e455e0e6a3204f57ef325054438cf1bd7d6586/api/go/README.md
+  - https://github.com/unkeyed/sdks/blob/3bb124498270d8aff36e358dc2e0010e9991869a/api/py/README.md
+  - https://www.npmjs.com/package/@unkey/nuxt
+---
+
+import { versions } from "/snippets/versions.mdx";
+import RootKeyPrereq from "/snippets/root-key-prereq.mdx";
+
+Use an SDK to call the Unkey API from your code. We publish clients for TypeScript, Go, and Python that cover every endpoint, plus smaller TypeScript packages for one job each, such as verifying keys in a Hono route. The community maintains a Nuxt module. Every package that calls the API needs a root key.
+
+<RootKeyPrereq />
+
+## Packages
+
+| Package | Language | Current version | What it is |
+| --- | --- | --- | --- |
+| [@unkey/api](/api-management/sdks/typescript/api) | TypeScript | {versions.tsApi} | Generated client for the whole API |
+| [@unkey/ratelimit](/api-management/sdks/typescript/ratelimit) | TypeScript | {versions.tsRatelimit} | Standalone rate limiting with timeouts and fallbacks |
+| [@unkey/hono](/api-management/sdks/typescript/hono) | TypeScript | {versions.tsHono} | Hono middleware that verifies the bearer key |
+| [@unkey/nextjs](/api-management/sdks/typescript/nextjs) | TypeScript | {versions.tsNextjs} | `withUnkey` wrapper for Next.js route handlers |
+| [@unkey/cache](/api-management/sdks/typescript/cache) | TypeScript | {versions.tsCache} | Typed tiered cache with stale-while-revalidate |
+| [Go SDK](/api-management/sdks/go) | Go | {versions.goSdk} | Generated client, module `github.com/unkeyed/sdks/api/go/v3` |
+| [Python SDK](/api-management/sdks/python) | Python | {versions.pySdk} | Generated client `unkey.py`, sync and async |
+| [Nuxt module](/api-management/sdks/community/nuxt) | TypeScript | {versions.tsNuxt} | Community-maintained Nuxt integration |
+
+The TypeScript, Go, and Python clients match the [API reference](/api-management/api-reference/keys/verify-api-key), so method names and fields line up across languages. The Python client ({versions.pySdk}) covers API Management only. The TypeScript and Go clients also cover Compute.
+
+## Which package to use
+
+- **`@unkey/api`, the Go SDK, or the Python SDK** when you call several endpoints or want full types.
+- **`@unkey/hono` or `@unkey/nextjs`** when you only need to check incoming requests for a valid key. They call `keys.verifyKey` and give your handler the result.
+- **`@unkey/ratelimit`** to rate limit user IDs or IP addresses without issuing keys. It adds a timeout and fallback so a network problem can't block your function.
+- **`@unkey/cache`** for typed caching in your own services. It doesn't call the Unkey API.
+
+## One client, both products
+
+The TypeScript and Go clients cover Compute too, so the same `Unkey` instance that <Tooltip tip="Here: checking an API key on a request with keys.verifyKey. Not domain verification.">verifies</Tooltip> a key can create a deployment for a Compute <Tooltip tip="A Compute app: a deployable service inside a project. Not 'your application' in general.">app</Tooltip>. The [Go SDK](/api-management/sdks/go) page shows the same pair in Go. From Python, call Compute endpoints over HTTP. The endpoints are [keys.verifyKey](/api-management/api-reference/keys/verify-api-key) and [deployments.createDeploymentV3](/compute/api-reference/deployments/create-deployment).
+
+<CodeGroup>
+
+```typescript Verify a key
+import { Unkey } from "@unkey/api";
+
+const unkey = new Unkey({ rootKey: process.env.UNKEY_ROOT_KEY ?? "" });
+
+const result = await unkey.keys.verifyKey({ key: "prod_abc123" });
+
+if (!result.data.valid) {
+  // result.data.code says why: NOT_FOUND, DISABLED, EXPIRED, RATE_LIMITED, ...
+}
+```
+
+```typescript Create a deployment
+import { Unkey } from "@unkey/api";
+
+const unkey = new Unkey({ rootKey: process.env.UNKEY_ROOT_KEY ?? "" });
+
+const result = await unkey.deployments.createDeploymentV3({
+  project: "my-project",
+  app: "api",
+  environment: "production",
+  oci: { image: "ghcr.io/acme/api:v1.0.0" },
+});
+
+console.log(result.data.deploymentId);
+```
+
+</CodeGroup>
+
+For Compute concepts such as projects, apps, and <Tooltip tip="A production or preview environment of a Compute app, not the dashboard label on a key.">environments</Tooltip>, see [Projects, apps, and environments](/compute/concepts/projects-apps-environments).
+
+## Response shape
+
+Every successful response has `meta.requestId` (quote it when you contact support) and `data`, the result. Errors are thrown or returned as typed errors per HTTP status. Each SDK page shows how to catch them. See [API overview](/platform/api/overview) for the raw format.
+
+## Next steps
+
+<Columns cols={2}>
+  <Card title="@unkey/api" icon="js" href="/api-management/sdks/typescript/api">
+    Install, construct, verify and create keys, handle errors.
+  </Card>
+  <Card title="Go SDK" icon="golang" href="/api-management/sdks/go">
+    `go get` the v3 module the CLI uses.
+  </Card>
+  <Card title="Python SDK" icon="python" href="/api-management/sdks/python">
+    `unkey.py` with sync and async clients.
+  </Card>
+</Columns>

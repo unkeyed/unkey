@@ -1,5 +1,5 @@
 import { insertAuditLogs } from "@/lib/audit";
-import { db, eq, schema } from "@/lib/db";
+import { db, schema } from "@/lib/db";
 import { stripeEnv } from "@/lib/env";
 import Stripe from "stripe";
 import { subscriptionIdsByProduct, upsertBillingSubscription } from "./billingSubscriptions";
@@ -118,7 +118,15 @@ export async function linkApiSubscription(
   const ws = await db.query.workspaces.findFirst({
     where: (table, { and, eq: eqFn, isNull }) =>
       and(eqFn(table.id, input.expectedWorkspaceId), isNull(table.deletedAtM)),
-    with: { billing: true, billingSubscriptions: true },
+    columns: { id: true },
+    with: {
+      billing: {
+        columns: { tier: true, plan: true, planOverride: true },
+      },
+      billingSubscriptions: {
+        columns: { product: true, stripeSubscriptionId: true },
+      },
+    },
   });
   if (!ws) {
     return { ok: false, reason: "workspace_not_found", message: "Workspace not found." };
@@ -152,9 +160,9 @@ export async function linkApiSubscription(
   const { requestsPerMonth, logsRetentionDays, auditLogsRetentionDays } = quotas;
   await db.transaction(async (tx) => {
     await tx
-      .update(schema.workspaceBilling)
-      .set({ stripeCustomerId, tier: product.name })
-      .where(eq(schema.workspaceBilling.workspaceId, ws.id));
+      .insert(schema.workspaceBilling)
+      .values({ workspaceId: ws.id, stripeCustomerId, tier: product.name })
+      .onDuplicateKeyUpdate({ set: { stripeCustomerId, tier: product.name } });
     await upsertBillingSubscription(tx, {
       workspaceId: ws.id,
       product: "api",

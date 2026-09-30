@@ -6,8 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"net"
 	"net/http"
+	"net/netip"
 	"reflect"
 	"strconv"
 	"strings"
@@ -55,10 +55,12 @@ type Session struct {
 	internalError string
 
 	principal *principal.Principal
+	clientIP  netip.Addr
 }
 
 func (s *Session) Init(w http.ResponseWriter, r *http.Request, maxBodySize int64) error {
 	s.requestID = uid.New(uid.RequestPrefix)
+	s.clientIP, _ = parseIP(r.RemoteAddr)
 
 	// Wrap ResponseWriter with status recorder
 	s.w = &statusRecorder{
@@ -89,8 +91,7 @@ func (s *Session) Init(w http.ResponseWriter, r *http.Request, maxBodySize int64
 		// Handle read errors (including MaxBytesError)
 		if err != nil {
 			// Check if this is a MaxBytesError from http.MaxBytesReader
-			var maxBytesErr *http.MaxBytesError
-			if errors.As(err, &maxBytesErr) {
+			if maxBytesErr, ok := errors.AsType[*http.MaxBytesError](err); ok {
 				return fault.Wrap(err,
 					fault.Code(codes.User.BadRequest.RequestBodyTooLarge.URN()),
 					fault.Internal(fmt.Sprintf("request body exceeds size limit of %d bytes", maxBytesErr.Limit)),
@@ -173,33 +174,46 @@ func (s *Session) UserAgent() string {
 	return s.r.UserAgent()
 }
 
-// Location returns the client's IP address, checking X-Forwarded-For header first,
-// then falling back to RemoteAddr. Ports are stripped from the returned IP.
+// Location returns the client IP captured at initialization or replaced by
+// authenticated peer metadata.
 func (s *Session) Location() string {
-	xff := s.r.Header.Get("X-Forwarded-For")
-	if xff != "" {
-		ips := strings.Split(xff, ",")
-		for _, ip := range ips {
-			ip = strings.TrimSpace(ip)
-			if ip != "" {
-				return stripPort(ip)
-			}
-		}
+	if s.clientIP.IsValid() {
+		return s.clientIP.String()
 	}
-
-	// Fall back to RemoteAddr
-	return stripPort(s.r.RemoteAddr)
+	return ""
 }
 
-// stripPort removes the port from an address string.
-// Handles IPv4 (192.168.1.1:8080), IPv6 with brackets ([::1]:8080), and plain addresses.
-func stripPort(addr string) string {
-	host, _, err := net.SplitHostPort(addr)
-	if err == nil {
-		return host
+// ClientIP returns the TCP peer address, or the address set by
+// [Session.SetClientIP]. The zero value means no valid client address was
+// captured
+func (s *Session) ClientIP() netip.Addr {
+	return s.clientIP
+}
+
+// SetClientIP sets the client address after peer metadata has been authenticated.
+func (s *Session) SetClientIP(ip netip.Addr) {
+	s.clientIP = ip.Unmap()
+}
+
+func parseIP(value string) (netip.Addr, bool) {
+	value = strings.TrimSpace(value)
+	if addrPort, err := netip.ParseAddrPort(value); err == nil {
+		return addrPort.Addr(), true
 	}
-	// No port present or invalid format, return as-is
-	return addr
+	if strings.HasPrefix(value, "[") && strings.HasSuffix(value, "]") {
+		value = strings.TrimSuffix(strings.TrimPrefix(value, "["), "]")
+	}
+	addr, err := netip.ParseAddr(value)
+	return addr, err == nil
+}
+
+func containsIP(prefixes []netip.Prefix, addr netip.Addr) bool {
+	for _, prefix := range prefixes {
+		if prefix.Contains(addr.Unmap()) {
+			return true
+		}
+	}
+	return false
 }
 
 // Request returns the underlying http.Request.
@@ -277,7 +291,7 @@ func (s *Session) BindBody(dst any) error {
 //	// Use params.Limit, params.Cursor, and params.Filter
 func (s *Session) BindQuery(dst interface{}) error {
 	val := reflect.ValueOf(dst)
-	if val.Kind() != reflect.Ptr || val.IsNil() {
+	if val.Kind() != reflect.Pointer || val.IsNil() {
 		return fault.New("destination must be a non-nil pointer")
 	}
 
@@ -541,27 +555,6 @@ func (s *Session) SetResponseBody(body []byte) {
 // MaxBodyCapture is the maximum number of bytes captured from streaming
 // request/response bodies for logging. Anything beyond this is silently dropped.
 const MaxBodyCapture = 1 << 20 // 1 MiB
-
-// LimitedWriter wraps an io.Writer and stops writing after N bytes.
-// Excess bytes are silently discarded — no error is returned so the
-// TeeReader (and therefore the stream) is never interrupted.
-type LimitedWriter struct {
-	W io.Writer
-	N int64
-}
-
-func (lw *LimitedWriter) Write(p []byte) (int, error) {
-	total := len(p)
-	if lw.N <= 0 {
-		return total, nil
-	}
-	if int64(len(p)) > lw.N {
-		p = p[:lw.N]
-	}
-	n, err := lw.W.Write(p)
-	lw.N -= int64(n)
-	return total, err
-}
 
 // reset clears request-specific state before the session returns to the pool.
 // Server configuration such as streamRequestBody persists across requests.

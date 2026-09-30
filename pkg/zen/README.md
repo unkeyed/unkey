@@ -65,7 +65,7 @@ func main() {
 
 	// Create a new server
 	server, err := zen.New(zen.Config{
-		NodeID: "quickstart-server",
+		MaxRequestBodySize: 1 << 20,
 	})
 	if err != nil {
 		log.Fatalf("failed to create server: %v", err)

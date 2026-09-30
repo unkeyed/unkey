@@ -9,7 +9,12 @@ import {
 } from "@/lib/collections/deploy/env-vars";
 import { getErrorMessage } from "@/lib/unkey-client";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ChevronDown, CircleInfo, CloudUp, DoubleChevronRight, Plus } from "@unkey/icons";
+import {
+  IconChevronDownOutline18,
+  IconCircleInfoOutline18,
+  IconCloudUploadOutline18,
+  IconPlusOutline18,
+} from "@unkey/icons";
 import {
   Button,
   InfoTooltip,
@@ -19,6 +24,11 @@ import {
   SelectTrigger,
   SelectValue,
   SlidePanel,
+  SlidePanelCloseButton,
+  SlidePanelContent,
+  SlidePanelDescription,
+  SlidePanelHeader,
+  SlidePanelTitle,
   toast,
 } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
@@ -34,7 +44,6 @@ import { trackSave } from "@/lib/collections/deploy/environment-settings";
 type AddEnvVarExpandableProps = {
   projectId: string;
   appId: string;
-  tableDistanceToTop: number;
   isOpen: boolean;
   onClose: () => void;
 };
@@ -42,7 +51,6 @@ type AddEnvVarExpandableProps = {
 export const AddEnvVarExpandable = ({
   projectId,
   appId,
-  tableDistanceToTop,
   isOpen,
   onClose,
 }: AddEnvVarExpandableProps) => {
@@ -224,28 +232,16 @@ export const AddEnvVarExpandable = ({
   };
 
   return (
-    <SlidePanel.Root isOpen={isOpen} onClose={onClose} topOffset={tableDistanceToTop}>
-      <SlidePanel.Header>
-        <div className="flex flex-col">
-          <span className="text-gray-12 font-medium text-base leading-8">
-            Add Environment Variable
-          </span>
-          <span className="text-gray-11 text-[13px] leading-5">
-            Set a key-value pair for your app.
-          </span>
+    <SlidePanel isOpen={isOpen} onClose={onClose}>
+      <SlidePanelHeader>
+        <div className="flex flex-col gap-0.5">
+          <SlidePanelTitle>Add Environment Variable</SlidePanelTitle>
+          <SlidePanelDescription>Set a key-value pair for your app.</SlidePanelDescription>
         </div>
-        <SlidePanel.Close
-          aria-label="Close panel"
-          className="mt-0.5 inline-flex items-center justify-center size-9 rounded-md hover:bg-grayA-3 transition-colors cursor-pointer"
-        >
-          <DoubleChevronRight
-            iconSize="lg-medium"
-            className="text-gray-10 transition-transform duration-300 ease-out group-hover:text-gray-12"
-          />
-        </SlidePanel.Close>
-      </SlidePanel.Header>
+        <SlidePanelCloseButton className="mt-0.5" />
+      </SlidePanelHeader>
 
-      <SlidePanel.Content>
+      <SlidePanelContent>
         <form
           ref={formRef}
           onSubmit={handleSubmit(onSubmit, onInvalid)}
@@ -271,7 +267,7 @@ export const AddEnvVarExpandable = ({
               )}
             >
               <div className="size-12 rounded-xl bg-successA-3 flex items-center justify-center">
-                <CloudUp className="text-success-11" />
+                <IconCloudUploadOutline18 className="text-success-11" />
               </div>
               <div className="flex flex-col items-center gap-1">
                 <span className="text-sm font-medium text-success-11">Drop your .env file</span>
@@ -282,8 +278,8 @@ export const AddEnvVarExpandable = ({
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto pt-6 bg-grayA-2">
-            <div className="flex flex-col gap-4 px-8">
+          <div className="flex-1 overflow-y-auto pt-6">
+            <div className="flex flex-col gap-4 px-6">
               {fields.map((field, index) => (
                 <EnvVarRow
                   key={field.id}
@@ -300,7 +296,7 @@ export const AddEnvVarExpandable = ({
               ))}
             </div>
 
-            <div className="flex py-6 px-8">
+            <div className="flex py-6 px-6">
               <Button
                 type="button"
                 variant="outline"
@@ -308,20 +304,20 @@ export const AddEnvVarExpandable = ({
                 className="font-medium"
                 onClick={() => append(createEmptyEntry())}
               >
-                <Plus iconSize="sm-regular" />
+                <IconPlusOutline18 />
                 Add Another
               </Button>
             </div>
           </div>
 
-          <div className="border-t border-grayA-4">
-            <div className="px-8 py-6 space-y-6">
+          <div className="border-t">
+            <div className="px-6 py-6 space-y-6">
               <Controller
                 control={control}
                 name="environmentId"
                 render={({ field }) => (
                   <fieldset className="flex flex-col gap-1.5 border-0 m-0 p-0">
-                    <label htmlFor="environment-select" className="text-gray-11 text-[13px]">
+                    <label htmlFor="environment-select" className="text-gray-11 text-sm">
                       Environment
                     </label>
                     <Select
@@ -336,7 +332,7 @@ export const AddEnvVarExpandable = ({
                         id="environment-select"
                         className="capitalize"
                         rightIcon={
-                          <ChevronDown className="absolute right-2" iconSize="md-medium" />
+                          <IconChevronDownOutline18 className="size-3.5 absolute right-2" />
                         }
                       >
                         <SelectValue placeholder="Select environment" />
@@ -351,7 +347,7 @@ export const AddEnvVarExpandable = ({
                       </SelectContent>
                     </Select>
                     {errors.environmentId?.message && (
-                      <p className="text-error-11 text-[13px]">{errors.environmentId.message}</p>
+                      <p className="text-error-11 text-sm">{errors.environmentId.message}</p>
                     )}
                   </fieldset>
                 )}
@@ -365,7 +361,7 @@ export const AddEnvVarExpandable = ({
                     <Switch checked={field.value} onCheckedChange={field.onChange} />
                   )}
                 />
-                <span className="text-[13px] text-gray-12 font-medium">Sensitive</span>
+                <span className="text-sm text-gray-12 font-medium">Sensitive</span>
                 <InfoTooltip
                   content="Permanently hides values after saving. Use for API keys and secrets."
                   position={{ side: "top" }}
@@ -373,14 +369,14 @@ export const AddEnvVarExpandable = ({
                   asChild
                 >
                   <span className="text-grayA-9">
-                    <CircleInfo iconSize="md-regular" />
+                    <IconCircleInfoOutline18 className="size-3.5" />
                   </span>
                 </InfoTooltip>
               </div>
             </div>
           </div>
 
-          <div className="border-t border-gray-4 bg-white dark:bg-black px-8 py-5 flex items-center justify-between">
+          <div className="border-t bg-raised px-6 py-5 flex items-center justify-between">
             <div className="hidden md:flex items-center gap-3">
               <input
                 ref={fileInputRef}
@@ -395,12 +391,10 @@ export const AddEnvVarExpandable = ({
                 size="sm"
                 onClick={() => fileInputRef.current?.click()}
               >
-                <CloudUp iconSize="sm-regular" />
+                <IconCloudUploadOutline18 className="size-3" />
                 Import <span className="font-medium">.env</span>
               </Button>
-              <span className="text-[13px] text-gray-11">
-                or drag & drop / paste (⌘V) your .env
-              </span>
+              <span className="text-sm text-gray-11">or drag & drop / paste (⌘V) your .env</span>
             </div>
             <Button
               type="submit"
@@ -414,7 +408,7 @@ export const AddEnvVarExpandable = ({
             </Button>
           </div>
         </form>
-      </SlidePanel.Content>
-    </SlidePanel.Root>
+      </SlidePanelContent>
+    </SlidePanel>
   );
 };

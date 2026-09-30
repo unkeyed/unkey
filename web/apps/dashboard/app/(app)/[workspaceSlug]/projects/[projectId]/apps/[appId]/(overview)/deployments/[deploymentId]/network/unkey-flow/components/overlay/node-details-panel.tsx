@@ -1,6 +1,6 @@
 import { LastExitBadge } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/active-deployment-card";
-import { Layers3, TriangleWarning2 } from "@unkey/icons";
-import { SlidePanel, TimestampInfo } from "@unkey/ui";
+import { IconLayers3Outline18, IconTriangleWarningOutline12 } from "@unkey/icons";
+import { SlidePanel, SlidePanelContent, TimestampInfo } from "@unkey/ui";
 import { useDeployment } from "../../../../layout-provider";
 import { type DeploymentNode, type InstanceNode, isInstanceNode } from "../nodes/types";
 import { NodeDetailsPanelHeader } from "./node-details-panel/components/header";
@@ -24,8 +24,8 @@ const InstanceNodeDetails = ({ node, deploymentId, onClose }: InstanceNodeDetail
           type: "instance",
           variant: "panel",
           icon: (
-            <div className="border rounded-[10px] size-9 flex items-center justify-center border-grayA-5 bg-grayA-2">
-              <Layers3 iconSize="lg-medium" className="text-gray-11" />
+            <div className="border rounded-xl size-9 flex items-center justify-center bg-grayA-2">
+              <IconLayers3Outline18 className="size-4 text-gray-11" />
             </div>
           ),
           title: node.label,
@@ -55,14 +55,14 @@ function LastExitSection({
     <div className="flex flex-col gap-2 px-4 w-full mt-5">
       <div className="flex items-center gap-3 flex-wrap">
         <div className="bg-grayA-3 text-gray-12 rounded-md size-[22px] items-center flex justify-center">
-          <TriangleWarning2 iconSize="sm-regular" className="shrink-0" />
+          <IconTriangleWarningOutline12 className="shrink-0" />
         </div>
         <span className="text-gray-11 text-xs">Last exit</span>
         <div className="ml-auto">
           <LastExitBadge lastExit={lastExit} />
         </div>
       </div>
-      <div className="flex items-baseline gap-1.5 text-[12px] tabular-nums text-grayA-9 ml-[34px]">
+      <div className="flex items-baseline gap-1.5 text-xs tabular-nums text-grayA-9 ml-[34px]">
         <span>
           <span className="text-grayA-11">Restarts</span>{" "}
           <span className="text-gray-12 font-medium">{lastExit.restartCount}</span>
@@ -92,20 +92,19 @@ export function NodeDetailsPanel({ node, deploymentId, onClose }: Props) {
   const isOpen = Boolean(node?.id) && node !== null && isInstanceNode(node);
 
   return (
-    <SlidePanel.Root
+    <SlidePanel
       isOpen={isOpen}
       onClose={onClose}
       side="right"
       widthClassName="w-[600px]"
-      backdrop={false}
-      topOffset={140}
+      backdrop="none"
       fitContent
     >
-      <SlidePanel.Content className="overflow-y-auto pb-6" stagger={false}>
+      <SlidePanelContent className="overflow-y-auto pb-6">
         {node && isInstanceNode(node) && (
           <InstanceNodeDetails node={node} deploymentId={deploymentId} onClose={onClose} />
         )}
-      </SlidePanel.Content>
-    </SlidePanel.Root>
+      </SlidePanelContent>
+    </SlidePanel>
   );
 }

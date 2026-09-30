@@ -1,13 +1,26 @@
 # syntax=docker/dockerfile:1.7
 
-FROM golang:1.25.1-alpine@sha256:b6ed3fd0452c0e9bcdef5597f29cc1418f61672e9d3a2f55bf02e7222c014abd AS builder
+FROM ubuntu:24.04@sha256:c4a8d5503dfb2a3eb8ab5f807da5bc69a85730fb49b5cfca2330194ebcc41c7b AS toolchain
+
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates curl git \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /src
-ENV CGO_ENABLED=0
+ENV CGO_ENABLED=0 \
+    GOPATH=/go \
+    MISE_DATA_DIR=/opt/mise \
+    MISE_INSTALL_PATH=/usr/local/bin/mise
+
+COPY dev/install-mise ./dev/install-mise
+RUN ./dev/install-mise
+COPY .mise/config.toml .mise/mise.lock ./.mise/
+RUN mise trust .mise/config.toml && mise install --locked --yes go
+
+FROM toolchain AS builder
 
 COPY go.mod go.sum ./
 RUN --mount=type=cache,id=unkey-go-mod,target=/go/pkg/mod \
-    go mod download
+    mise exec -- go mod download
 
 # Dashboard services only depend on Go packages in these module directories.
 # Keeping web and docs out prevents frontend edits from invalidating the build.
@@ -19,7 +32,7 @@ COPY svc ./svc
 
 RUN --mount=type=cache,id=unkey-go-build,target=/root/.cache/go-build \
     --mount=type=cache,id=unkey-go-mod,target=/go/pkg/mod \
-    go build -o /out/ \
+    mise exec -- go build -o /out/ \
       ./build/api \
       ./build/control-api \
       ./build/control-worker \

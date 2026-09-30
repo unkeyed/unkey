@@ -1,7 +1,11 @@
 "use client";
 
 import { trpc } from "@/lib/trpc/client";
-import { Clone, ShieldKey, TriangleWarning } from "@unkey/icons";
+import {
+  IconCloneOutline18,
+  IconShieldKeyOutline18,
+  IconTriangleWarningOutline18,
+} from "@unkey/icons";
 import { Button, toast } from "@unkey/ui";
 import type React from "react";
 import { useEffect, useRef, useState } from "react";
@@ -20,7 +24,7 @@ function parseShareId(hash: string): string | null {
 
 function ShareCard({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex flex-col items-center gap-6 rounded-lg border border-gray-5 p-8 text-center">
+    <div className="flex flex-col items-center gap-6 rounded-lg border bg-raised p-8 text-center">
       {children}
     </div>
   );
@@ -28,7 +32,7 @@ function ShareCard({ children }: { children: React.ReactNode }) {
 
 function CardGlyph({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex size-12 items-center justify-center rounded-xl border border-gray-5 bg-grayA-2 text-gray-12">
+    <div className="flex size-12 items-center justify-center rounded-xl border bg-grayA-2 text-gray-12">
       {children}
     </div>
   );
@@ -37,8 +41,8 @@ function CardGlyph({ children }: { children: React.ReactNode }) {
 function CardText({ title, description }: { title: string; description: string }) {
   return (
     <div className="flex flex-col items-center gap-1">
-      <h1 className="font-semibold text-gray-12 text-[16px] leading-[24px]">{title}</h1>
-      <p className="text-gray-10 text-[13px] leading-[20px]">{description}</p>
+      <h1 className="font-semibold text-gray-12 text-base leading-6">{title}</h1>
+      <p className="text-gray-10 text-sm leading-5">{description}</p>
     </div>
   );
 }
@@ -87,7 +91,7 @@ export function ShareReveal() {
     return (
       <ShareCard>
         <CardGlyph>
-          <TriangleWarning iconSize="xl-medium" aria-hidden="true" />
+          <IconTriangleWarningOutline18 aria-hidden="true" />
         </CardGlyph>
         <CardText
           title="This link has expired or was already used"
@@ -101,19 +105,19 @@ export function ShareReveal() {
     return (
       <ShareCard>
         <CardGlyph>
-          <ShieldKey iconSize="xl-medium" aria-hidden="true" />
+          <IconShieldKeyOutline18 aria-hidden="true" />
         </CardGlyph>
         <CardText
           title="Your key"
           description="Copy your key and keep it safe, this link will no longer work once you close this window."
         />
-        <div className="flex w-full items-center rounded-xl border border-gray-5 bg-grayA-2 px-3 py-2 focus-within:ring-2 focus-within:ring-gray-6">
+        <div className="flex w-full items-center rounded-xl border bg-grayA-2 px-3 py-2 focus-within:ring-2 focus-within:ring-gray-6">
           <input
             readOnly
             value={state.key}
             aria-label="Shared key"
             onFocus={(e) => e.currentTarget.select()}
-            className="flex-1 truncate bg-transparent font-mono text-[13px] text-gray-12 outline-none"
+            className="flex-1 truncate bg-transparent font-mono text-sm text-gray-12 outline-none"
           />
         </div>
         <Button
@@ -129,7 +133,7 @@ export function ShareReveal() {
             }
           }}
         >
-          <Clone iconSize="sm-regular" />
+          <IconCloneOutline18 />
           Copy key
         </Button>
       </ShareCard>
@@ -140,7 +144,7 @@ export function ShareReveal() {
   return (
     <ShareCard>
       <CardGlyph>
-        <ShieldKey iconSize="xl-medium" aria-hidden="true" />
+        <IconShieldKeyOutline18 aria-hidden="true" />
       </CardGlyph>
       <CardText
         title="You've been sent a secure key"

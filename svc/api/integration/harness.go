@@ -156,6 +156,7 @@ func (h *Harness) RunAPI(config ApiConfig) *ApiCluster {
 			},
 			TLSConfig:          nil,
 			MaxRequestBodySize: 0,
+			TrustedProxyCIDRs:  nil,
 			Database: sharedconfig.DatabaseConfig{
 				Primary:         h.dbDSN,
 				ReadonlyReplica: "",

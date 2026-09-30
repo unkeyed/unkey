@@ -1,0 +1,88 @@
+---
+title: Portal sessions
+sidebarTitle: "Sessions"
+description: "Sign a user into the portal from your backend."
+sources:
+  - svc/api/routes/v2_portal_create_session/handler.go
+  - svc/api/routes/v2_portal_exchange_code/handler.go
+  - svc/api/openapi/spec/paths/v2/portal/createSession/V2PortalCreateSessionRequestBody.yaml
+  - svc/api/openapi/spec/paths/v2/portal/createSession/index.yaml
+  - svc/api/openapi/spec/paths/v2/portal/exchangeCode/V2PortalExchangeCodeResponseData.yaml
+  - svc/api/routes/v2_portal_update_portal/handler.go
+  - svc/api/routes/v2_portal_delete_portal/handler.go
+  - pkg/auth/portalrbac/portalrbac.go
+  - pkg/codes/constants_gen.go
+---
+
+import RootKeyPrereq from "/snippets/root-key-prereq.mdx";
+
+Sign a user into the [developer portal](/api-management/portal/overview) from your backend, with no second login. After they sign in to your app, ask Unkey for a session for that user and redirect their browser to the URL you get back. Your root key never reaches the browser.
+
+## Sign a user in
+
+<Steps titleSize="h3">
+  <Step title="Your backend mints a session">
+    Call `portal.createSession` with the portal, the user's `externalId`, and the scopes they should have. You get `{ "id": "ps_...", "url": "https://portal.unkey.com/?code=pec_..." }`. The URL works **once**, within **15 minutes**.
+  </Step>
+  <Step title="Redirect the user">
+    Send the browser to `url`.
+  </Step>
+  <Step title="The portal exchanges the code">
+    The portal swaps the code for an access token that lasts **24 hours**. If the code is expired, already used, or unknown, the user sees `err:unkey:authentication:portal_session_not_found`, "Session is invalid, expired, or has already been used."
+  </Step>
+  <Step title="The user works, then leaves">
+    The user only sees their own keys. When the token expires, or they click the return link, the portal sends them to the `returnUrl` you set. Without one, there's no return link. To let them back in, create a new session.
+  </Step>
+</Steps>
+
+You only call `portal.exchangeCode` yourself if you build your own portal front end. It returns `{ "accessToken": "pat_...", "expiresAt": <ms> }`.
+
+## Request
+
+<RootKeyPrereq />
+
+<ParamField body="portal" type="string" required>
+  The portal's `pc_` ID or slug.
+</ParamField>
+<ParamField body="externalId" type="string" required>
+  The user's ID in your system, 1 to 256 characters. A session for `user_123` shows the keys whose identity is `user_123`.
+</ParamField>
+<ParamField body="scopes" type="string[]" required>
+  One or more of `keys:read`, `keys:reroll`, and `analytics:read`. Scopes decide what the user can see and do. See [What portal users can do](/api-management/portal/end-user-experience). `keys:reroll` and `analytics:read` each need `keys:read` too. Without it, the request fails with 400 and `err:unkey:application:invalid_input`.
+</ParamField>
+<ParamField body="returnUrl" type="string">
+  Full URL, up to 500 characters, to send the user back to when they leave or the session expires. You set it per session, so different users can go back to different pages.
+</ParamField>
+<ParamField body="preview" type="boolean" default="false">
+  Create a preview session to try the portal yourself.
+</ParamField>
+
+## Permissions your root key needs
+
+Your root key needs `portal.*.create_portal_session` or `portal.<portalId>.create_portal_session`. Without it, the request fails with **404**, not 403.
+
+It also needs a matching permission for each scope, on every keyspace the portal shows, either as `*` or for each `api_` ID:
+
+| Scope | Required on the root key |
+| --- | --- |
+| `keys:read` | `read_key` and `read_api` |
+| `keys:reroll` | `create_key`, plus `encrypt_key` if the keyspace stores encrypted keys |
+| `analytics:read` | `read_analytics` |
+
+If the root key is missing one, the whole request fails with **403**. A disabled portal can't create sessions at all.
+
+## What ends a session
+
+A session ends when its 24 hour token expires, or when the portal is deleted or pointed at a different keyspace or app. That usually takes effect within about 10 seconds, but can take up to 5 minutes. Disabling a portal doesn't end live sessions. You can't end a single session, so choose scopes with the 24 hour lifetime in mind.
+
+Creating and exchanging a session write `portal.session.create` and `portal.session.exchange` [audit log](/platform/workspace/audit-logs/event-types) entries. What the user does in the portal is logged under a `portalEndUser` actor.
+
+## Errors
+
+| Status | Code | Meaning |
+| --- | --- | --- |
+| 404 | `err:unkey:data:portal_not_found` | The portal does not exist, is not in your workspace, or your root key lacks `create_portal_session` for it. |
+| 403 | `err:unkey:authorization:insufficient_permissions` | A requested scope needs a keyspace permission the root key lacks. |
+| 401 | `err:unkey:authentication:portal_session_not_found` | On exchange: the code is expired, used, or unknown. On end-user endpoints: the token is expired or revoked. |
+| 400 | `err:unkey:application:invalid_input` | `keys:reroll` or `analytics:read` was requested without `keys:read`. |
+| 400 | `err:unkey:authentication:portal_token_missing` | An end-user endpoint was called without a portal token. |

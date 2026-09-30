@@ -1,7 +1,7 @@
 "use client";
 
 import { trpc } from "@/lib/trpc/client";
-import { Clock, Clone, Link4 } from "@unkey/icons";
+import { IconClockOutline12, IconCloneOutline12, IconLink4Outline12 } from "@unkey/icons";
 import { CopyButton, Skeleton, Tabs, TabsContent, TabsList, TabsTrigger, toast } from "@unkey/ui";
 import { useState } from "react";
 import { KeySecret } from "./key-secret-section";
@@ -48,11 +48,11 @@ export function KeyPayloadTabs({ keyValue }: KeyPayloadTabsProps) {
     >
       <TabsList className="w-full bg-grayA-3 h-10">
         <TabsTrigger value="copy-secret" className="flex-1 gap-2 hover:bg-grayA-3">
-          <Clone iconSize="sm-regular" />
+          <IconCloneOutline12 />
           Key secret
         </TabsTrigger>
         <TabsTrigger value="secure-link" className="flex-1 gap-2 hover:bg-grayA-3">
-          <Link4 iconSize="sm-regular" />
+          <IconLink4Outline12 />
           Secure link
         </TabsTrigger>
       </TabsList>
@@ -64,7 +64,7 @@ export function KeyPayloadTabs({ keyValue }: KeyPayloadTabsProps) {
       <TabsContent value="secure-link" className="w-full mt-0 min-h-[76px]">
         <div className="w-full flex flex-col gap-2 items-start">
           {hasError ? (
-            <div className="w-full text-center py-2 text-[13px] text-gray-9">
+            <div className="w-full text-center py-2 text-sm text-gray-9">
               <span className="text-warning-11">Could not create a secure link.</span>{" "}
               <button
                 type="button"
@@ -79,19 +79,17 @@ export function KeyPayloadTabs({ keyValue }: KeyPayloadTabsProps) {
             <Skeleton className="w-full h-[42px] rounded-xl" />
           ) : link ? (
             <>
-              <div className="w-full px-4 py-2 bg-white dark:bg-black border rounded-xl border-grayA-5">
+              <div className="w-full px-4 py-2 bg-raised border rounded-xl">
                 <div className="flex items-center justify-between w-full gap-3">
-                  <Link4 iconSize="sm-regular" className="text-gray-12 shrink-0" />
-                  <p className="flex-1 min-w-0 truncate font-mono text-[13px] text-grayA-12">
-                    {link}
-                  </p>
+                  <IconLink4Outline12 className="text-gray-12 shrink-0" />
+                  <p className="flex-1 min-w-0 truncate font-mono text-sm text-grayA-12">{link}</p>
                   <div className="flex items-center shrink-0">
                     <CopyButton value={link} title="Copy secure link" />
                   </div>
                 </div>
               </div>
-              <div className="text-gray-9 text-[13px] flex items-center gap-1.5 self-center">
-                <Clock className="text-primary" iconSize="sm-regular" />
+              <div className="text-gray-9 text-sm flex items-center gap-1.5 self-center">
+                <IconClockOutline12 className="text-gray-12" />
                 <span>
                   Expires after 72hrs.
                   <button

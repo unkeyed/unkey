@@ -1,7 +1,7 @@
 "use client";
 
-import { Magnifier, XMark } from "@unkey/icons";
-import { Button, Input } from "@unkey/ui";
+import { IconMagnifierOutline18, IconXmarkOutline18 } from "@unkey/icons";
+import { Button, InputGroup, InputGroupAddon, InputGroupInput } from "@unkey/ui";
 import { useFilters } from "../../../../hooks/use-filters";
 
 export const RootKeysSearch = () => {
@@ -19,15 +19,26 @@ export const RootKeysSearch = () => {
 
   return (
     <div className="flex h-8 w-full items-center md:w-80">
-      <Input
-        aria-label="Search root keys"
-        type="text"
-        value={String(search)}
-        maxLength={256}
-        placeholder="Search root keys by name..."
-        leftIcon={<Magnifier className="text-accent-9 size-4" />}
-        rightIcon={
-          search ? (
+      <InputGroup className="h-8">
+        <InputGroupAddon className="pointer-events-none">
+          <IconMagnifierOutline18 className="text-gray-9 size-4" />
+        </InputGroupAddon>
+        <InputGroupInput
+          aria-label="Search root keys"
+          type="text"
+          value={String(search)}
+          maxLength={256}
+          placeholder="Search root keys by name..."
+          className="h-8 text-sm font-medium"
+          onChange={(event) => setSearch(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === "Escape") {
+              setSearch("");
+            }
+          }}
+        />
+        {search ? (
+          <InputGroupAddon align="inline-end">
             <Button
               type="button"
               variant="ghost"
@@ -35,18 +46,11 @@ export const RootKeysSearch = () => {
               aria-label="Clear search"
               onClick={() => setSearch("")}
             >
-              <XMark className="size-4" />
+              <IconXmarkOutline18 className="size-4" />
             </Button>
-          ) : null
-        }
-        className="h-8 text-[13px] font-medium"
-        onChange={(event) => setSearch(event.target.value)}
-        onKeyDown={(event) => {
-          if (event.key === "Escape") {
-            setSearch("");
-          }
-        }}
-      />
+          </InputGroupAddon>
+        ) : null}
+      </InputGroup>
     </div>
   );
 };

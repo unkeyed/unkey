@@ -1,22 +1,24 @@
-import { MAX_KEYS_FETCH_LIMIT } from "@/app/(app)/[workspaceSlug]/authorization/roles/components/upsert-role/components/assign-key/hooks/use-fetch-keys";
 import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
+import { permissionsQueryOptions } from "@/hooks/use-fetch-permissions";
 import { trpc } from "@/lib/trpc/client";
 import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
+import { type QueryClient, useQueryClient } from "@tanstack/react-query";
 import {
-  ArrowDottedRotateAnticlockwise,
-  ArrowOppositeDirectionY,
-  Ban,
-  CalendarClock,
-  ChartPie,
-  Check,
-  Clone,
-  Code,
-  Gauge,
-  PenWriting3,
-  Tag,
-  Trash,
+  IconArrowDottedRotateAnticlockwiseOutline18,
+  IconArrowsOppositeDirectionYOutline18,
+  IconBanOutline18,
+  IconCalendarClockOutline18,
+  IconChartPieOutline18,
+  IconCheckOutline18,
+  IconCloneOutline18,
+  IconCodeOutline18,
+  IconGaugeOutline18,
+  IconPenWriting3Outline18,
+  IconTagOutline18,
+  IconTrashOutline18,
 } from "@unkey/icons";
 import { toast } from "@unkey/ui";
+import { keysRbacRoleQueryOptions } from "../rbac/hooks/use-fetch-permission-slugs";
 import { DeleteKey } from "./components/delete-key";
 import { UpdateKeyStatus } from "./components/disable-key";
 import { EditCredits } from "./components/edit-credits";
@@ -26,8 +28,7 @@ import { EditKeyName } from "./components/edit-key-name";
 import { EditMetadata } from "./components/edit-metadata";
 import { EditRatelimits } from "./components/edit-ratelimits";
 import { KeyRbacDialog } from "./components/edit-rbac";
-import { MAX_PERMS_FETCH_LIMIT } from "./components/edit-rbac/components/assign-permission/hooks/use-fetch-keys-permissions";
-import { MAX_ROLES_FETCH_LIMIT } from "./components/edit-rbac/components/assign-role/hooks/use-fetch-keys-roles";
+import { keysRbacRolesQueryOptions } from "./components/edit-rbac/components/assign-role/hooks/use-fetch-keys-roles";
 import { RotateKey } from "./components/rotate-key/rotate-key";
 
 type KeyContext = {
@@ -38,6 +39,7 @@ type KeyContext = {
 export const getKeysTableActionItems = (
   key: KeyDetails,
   trpcUtils: ReturnType<typeof trpc.useUtils>,
+  queryClient: QueryClient,
   context: KeyContext = {},
 ): MenuItem[] => {
   const { apiId } = context;
@@ -47,7 +49,7 @@ export const getKeysTableActionItems = (
     {
       id: "copy",
       label: "Copy key ID",
-      icon: <Clone iconSize="md-medium" />,
+      icon: <IconCloneOutline18 className="size-3.5" />,
       onClick: () => {
         navigator.clipboard
           .writeText(key.id)
@@ -66,7 +68,7 @@ export const getKeysTableActionItems = (
           {
             id: "copy-external-id",
             label: "Copy External ID",
-            icon: <Clone iconSize="md-medium" />,
+            icon: <IconCloneOutline18 className="size-3.5" />,
             onClick: () => {
               navigator.clipboard
                 // Empty case cannot happen since this will only render if identity exists
@@ -84,43 +86,43 @@ export const getKeysTableActionItems = (
     {
       id: "override",
       label: "Edit key name...",
-      icon: <PenWriting3 iconSize="md-medium" />,
+      icon: <IconPenWriting3Outline18 className="size-3.5" />,
       ActionComponent: (props) => <EditKeyName {...props} keyDetails={key} />,
     },
     {
       id: "edit-external-id",
       label: "Edit External ID...",
-      icon: <ArrowOppositeDirectionY iconSize="md-medium" />,
+      icon: <IconArrowsOppositeDirectionYOutline18 className="size-3.5" />,
       ActionComponent: (props) => <EditExternalId {...props} keyDetails={key} />,
     },
     {
       id: "edit-credits",
       label: "Edit credits...",
-      icon: <ChartPie iconSize="md-medium" />,
+      icon: <IconChartPieOutline18 className="size-3.5" />,
       ActionComponent: (props) => <EditCredits {...props} keyDetails={key} />,
     },
     {
       id: "edit-ratelimit",
       label: "Edit ratelimit...",
-      icon: <Gauge iconSize="md-medium" />,
+      icon: <IconGaugeOutline18 className="size-3.5" />,
       ActionComponent: (props) => <EditRatelimits {...props} keyDetails={key} />,
     },
     {
       id: "edit-expiration",
       label: "Edit expiration...",
-      icon: <CalendarClock iconSize="md-medium" />,
+      icon: <IconCalendarClockOutline18 className="size-3.5" />,
       ActionComponent: (props) => <EditExpiration {...props} keyDetails={key} />,
     },
     {
       id: "edit-metadata",
       label: "Edit metadata...",
-      icon: <Code iconSize="md-medium" />,
+      icon: <IconCodeOutline18 className="size-3.5" />,
       ActionComponent: (props) => <EditMetadata {...props} keyDetails={key} />,
     },
     {
       id: "edit-rbac",
       label: "Manage roles and permissions...",
-      icon: <Tag iconSize="md-medium" />,
+      icon: <IconTagOutline18 className="size-3.5" />,
       ActionComponent: (props) => (
         <KeyRbacDialog
           {...props}
@@ -140,36 +142,16 @@ export const getKeysTableActionItems = (
           });
 
           const currentRoleNames = connectedData?.roles?.map((r) => r.name) ?? [];
-          const directPermissionSlugs =
-            connectedData?.permissions?.filter((p) => p.source === "direct")?.map((p) => p.slug) ??
-            [];
 
           // Prefetch dependent data that requires connectedData
-          const dependentPrefetches = [];
-
-          if (directPermissionSlugs.length > 0 || currentRoleNames.length > 0) {
-            dependentPrefetches.push(
-              trpcUtils.key.queryPermissionSlugs.prefetch({
-                roleNames: currentRoleNames,
-                permissionSlugs: directPermissionSlugs,
-              }),
-            );
-          }
+          const dependentPrefetches = currentRoleNames.map((roleName) =>
+            queryClient.prefetchQuery(keysRbacRoleQueryOptions(roleName)),
+          );
 
           // Always prefetch combobox data - independent of connectedData
           const comboboxDataPromise = Promise.all([
-            trpcUtils.key.update.rbac.permissions.query.prefetchInfinite({
-              limit: MAX_PERMS_FETCH_LIMIT,
-            }),
-            trpcUtils.key.update.rbac.roles.query.prefetchInfinite({
-              limit: MAX_ROLES_FETCH_LIMIT,
-            }),
-            trpcUtils.authorization.roles.keys.query.prefetchInfinite({
-              limit: MAX_KEYS_FETCH_LIMIT,
-            }),
-            trpcUtils.authorization.roles.permissions.query.prefetchInfinite({
-              limit: MAX_PERMS_FETCH_LIMIT,
-            }),
+            queryClient.prefetchInfiniteQuery(permissionsQueryOptions()),
+            queryClient.prefetchInfiniteQuery(keysRbacRolesQueryOptions()),
           ]);
 
           await Promise.all([comboboxDataPromise, ...dependentPrefetches]);
@@ -177,18 +159,8 @@ export const getKeysTableActionItems = (
           // Fallback: prefetch only the combobox data which doesn't depend on connectedData
           try {
             await Promise.all([
-              trpcUtils.key.update.rbac.permissions.query.prefetchInfinite({
-                limit: MAX_PERMS_FETCH_LIMIT,
-              }),
-              trpcUtils.key.update.rbac.roles.query.prefetchInfinite({
-                limit: MAX_ROLES_FETCH_LIMIT,
-              }),
-              trpcUtils.authorization.roles.keys.query.prefetchInfinite({
-                limit: MAX_KEYS_FETCH_LIMIT,
-              }),
-              trpcUtils.authorization.roles.permissions.query.prefetchInfinite({
-                limit: MAX_PERMS_FETCH_LIMIT,
-              }),
+              queryClient.prefetchInfiniteQuery(permissionsQueryOptions()),
+              queryClient.prefetchInfiniteQuery(keysRbacRolesQueryOptions()),
             ]);
           } catch (fallbackError) {
             console.warn("Failed to prefetch combobox data:", fallbackError);
@@ -200,7 +172,11 @@ export const getKeysTableActionItems = (
     {
       id: key.enabled ? "disable-key" : "enable-key",
       label: key.enabled ? "Disable Key..." : "Enable Key...",
-      icon: key.enabled ? <Ban iconSize="md-medium" /> : <Check iconSize="md-medium" />,
+      icon: key.enabled ? (
+        <IconBanOutline18 className="size-3.5" />
+      ) : (
+        <IconCheckOutline18 className="size-3.5" />
+      ),
       ActionComponent: (props) => <UpdateKeyStatus {...props} keyDetails={key} />,
     },
     ...(apiId
@@ -208,7 +184,7 @@ export const getKeysTableActionItems = (
           {
             id: "rotate-key",
             label: "Rotate key...",
-            icon: <ArrowDottedRotateAnticlockwise iconSize="md-medium" />,
+            icon: <IconArrowDottedRotateAnticlockwiseOutline18 className="size-3.5" />,
             disabled: isExpired,
             tooltip: () => (isExpired() ? "Expired keys cannot be rotated" : undefined),
             ActionComponent: (props) => <RotateKey {...props} keyDetails={key} />,
@@ -218,7 +194,7 @@ export const getKeysTableActionItems = (
     {
       id: "delete-key",
       label: "Delete key",
-      icon: <Trash iconSize="md-medium" />,
+      icon: <IconTrashOutline18 className="size-3.5" />,
       ActionComponent: (props) => <DeleteKey {...props} keyDetails={key} />,
     },
   ];
@@ -232,6 +208,7 @@ type KeysTableActionsProps = {
 
 export const KeysTableActions = ({ keyData, apiId, keyspaceId }: KeysTableActionsProps) => {
   const trpcUtils = trpc.useUtils();
-  const items = getKeysTableActionItems(keyData, trpcUtils, { apiId, keyspaceId });
+  const queryClient = useQueryClient();
+  const items = getKeysTableActionItems(keyData, trpcUtils, queryClient, { apiId, keyspaceId });
   return <TableActionPopover items={items} />;
 };

@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/retry"
 )
 
@@ -140,6 +141,113 @@ func (c *Client) FindLiveInvocations(ctx context.Context, invocationIDs []string
 		live[row.ID] = true
 	}
 	return live, nil
+}
+
+// BuildConcurrencyScope is the Restate scope build invocations run in, so
+// every build concurrency rule pattern is this scope, a slash, and a limit
+// key: "builds/*" caps every workspace, "builds/ws_123" caps one
+const BuildConcurrencyScope = "builds"
+
+// Rule is one of Restate's concurrency rules: a pattern of scope and limit key
+// and how many matching invocations may run at once
+type Rule struct {
+	// Pattern selects the scope and limit keys the rule applies to, e.g.
+	// "builds/*" or "builds/ws_123". An exact pattern beats a wildcard
+	Pattern string
+	// Concurrency is the cap on simultaneously running invocations. Zero
+	// means the rule constrains no concurrency, which Restate treats as
+	// unlimited
+	Concurrency uint32
+	// Description is free-form operator text; Restate never consults it
+	Description string
+	// Disabled parks the rule: the runtime treats it as absent
+	Disabled bool
+	// Version advances only when a write changes the limits or the disabled
+	// flag, so a repeated identical upsert leaves it untouched
+	Version uint32
+}
+
+// RuleUpsert is one rule in an UpsertRules call
+type RuleUpsert struct {
+	Pattern     string
+	Concurrency uint32
+	Description string
+}
+
+type ruleRow struct {
+	Pattern     string  `json:"pattern"`
+	Concurrency *uint32 `json:"concurrency"`
+	Description *string `json:"description"`
+	Disabled    bool    `json:"disabled"`
+	Version     uint32  `json:"version"`
+}
+type ruleQueryResponse struct {
+	Rows []ruleRow `json:"rows"`
+}
+
+// ListRules returns every rule through the SQL endpoint; the admin API has no
+// GET for rules
+func (c *Client) ListRules(ctx context.Context) ([]Rule, error) {
+	result, err := call[ruleQueryResponse](ctx, c, "list rules", http.MethodPost, "/query", map[string]string{
+		"query": "select pattern, concurrency, description, disabled, version from sys_rules order by pattern",
+	}, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	rules := make([]Rule, 0, len(result.Rows))
+	for _, row := range result.Rows {
+		rules = append(rules, Rule{
+			Pattern:     row.Pattern,
+			Concurrency: ptr.SafeDeref(row.Concurrency),
+			Description: ptr.SafeDeref(row.Description),
+			Disabled:    row.Disabled,
+			Version:     row.Version,
+		})
+	}
+	return rules, nil
+}
+
+type limits struct {
+	Concurrency uint32 `json:"concurrency"`
+}
+type upsertRule struct {
+	Pattern     string `json:"pattern"`
+	Limits      limits `json:"limits"`
+	Description string `json:"description"`
+}
+
+// UpsertRules creates or updates the given rules. Other rules are untouched.
+// Rewriting a rule with the limits it already has changes nothing, not even
+// its version, so there is no need to read before writing
+func (c *Client) UpsertRules(ctx context.Context, rules []RuleUpsert) error {
+	payload := make([]upsertRule, 0, len(rules))
+	for _, rule := range rules {
+		payload = append(payload, upsertRule{
+			Pattern:     rule.Pattern,
+			Limits:      limits{Concurrency: rule.Concurrency},
+			Description: rule.Description,
+		})
+	}
+	_, err := c.send(ctx, "upsert rules", http.MethodPut, "/limits/rules", payload, nil)
+	return err
+}
+
+type deleteRule struct {
+	Pattern         string `json:"pattern"`
+	ExpectedVersion uint32 `json:"expected_version"`
+}
+
+// DeleteRules removes the given rules as they were read: a rule whose version
+// changed since is left alone and the call fails with 409, so a caller that
+// lists, decides, then deletes cannot remove a rule written in between
+func (c *Client) DeleteRules(ctx context.Context, rules []Rule) error {
+	payload := make([]deleteRule, 0, len(rules))
+	for _, rule := range rules {
+		payload = append(payload, deleteRule{Pattern: rule.Pattern, ExpectedVersion: rule.Version})
+	}
+	_, err := c.send(ctx, "delete rules", http.MethodPost, "/limits/rules/bulk-delete", payload, nil)
+	return err
 }
 
 // call sends one admin API request through [Client.send] and decodes the

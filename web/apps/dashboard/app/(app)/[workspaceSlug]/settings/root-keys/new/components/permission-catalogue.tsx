@@ -1,7 +1,7 @@
 "use client";
 
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { ChevronRight } from "@unkey/icons";
+import { IconChevronRightOutline18 } from "@unkey/icons";
 import { Input } from "@unkey/ui";
 import { useState } from "react";
 import { catalogueRows } from "../lib/catalogue";
@@ -92,11 +92,11 @@ export function PermissionCatalogue({
               onOpenChange={(open) => toggleGroup(group.id, open)}
             >
               <CollapsibleTrigger className="flex items-center gap-3 w-full py-2.5 [&[data-panel-open]>svg]:rotate-90">
-                <ChevronRight
+                <IconChevronRightOutline18
                   className="size-3 transition-transform duration-200 text-gray-11"
                   aria-hidden="true"
                 />
-                <span className="text-[13px] text-accent-12">{group.label}</span>
+                <span className="text-sm text-gray-12">{group.label}</span>
                 <span className="ml-auto text-xs text-gray-9 tabular-nums">
                   {selected}/{total}
                 </span>

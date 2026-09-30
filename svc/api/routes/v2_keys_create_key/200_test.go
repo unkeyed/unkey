@@ -2,16 +2,18 @@ package handler_test
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"net/http"
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/oapi-codegen/nullable"
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
-	"github.com/unkeyed/unkey/pkg/ptr"
+	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -69,8 +71,8 @@ func TestCreateKeySuccess(t *testing.T) {
 	require.True(t, key.Enabled)
 }
 
-// TestCreateKeyWithURNPermission guarantees WorkOS-translated `keys:create`
-// permissions authorize basic key creation without legacy API tuple grants.
+// TestCreateKeyWithURNPermission guarantees a workspace-wide key write
+// permission authorizes basic key creation without legacy API permissions.
 func TestCreateKeyWithURNPermission(t *testing.T) {
 	t.Parallel()
 
@@ -91,7 +93,7 @@ func TestCreateKeyWithURNPermission(t *testing.T) {
 	})
 	rootKey := h.CreateRootKey(
 		h.Resources().UserWorkspace.ID,
-		createKeyPermission(h.Resources().UserWorkspace.ID, api.KeyAuthID.String),
+		createKeyPermission(h.Resources().UserWorkspace.ID, api.ProjectID, api.KeyAuthID.String),
 	)
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
@@ -219,6 +221,72 @@ func TestCreateKeyWithOptionalFields(t *testing.T) {
 	require.Equal(t, api.ProjectID, identity.ProjectID)
 }
 
+// TestCreateKeyWithExistingIdentityDoesNotWaitForIdentityWriteLock guarantees
+// that referencing an existing identity does not turn the request into a write
+// against that identity.
+func TestCreateKeyWithExistingIdentityDoesNotWaitForIdentityWriteLock(t *testing.T) {
+	t.Parallel()
+
+	h := testutil.NewHarness(t)
+	route := &handler.Handler{
+		DB:        h.DB,
+		Keys:      h.Keys,
+		Auditlogs: h.Auditlogs,
+		Vault:     h.Vault,
+	}
+	h.Register(route)
+
+	workspace := h.Resources().UserWorkspace
+	api := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspace.ID})
+	externalID := uid.New("existing_identity_write_lock")
+	identity := h.CreateIdentity(seed.CreateIdentityRequest{
+		WorkspaceID: workspace.ID,
+		ExternalID:  externalID,
+	})
+	rootKey := h.CreateRootKey(workspace.ID, "api.*.create_key")
+	headers := http.Header{
+		"Content-Type":  {"application/json"},
+		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+	}
+
+	tx, err := h.DB.RW().Begin(t.Context())
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		err := tx.Rollback()
+		if err != nil {
+			require.ErrorIs(t, err, sql.ErrTxDone)
+		}
+	})
+
+	_, err = db.Query.LockIdentityForUpdate(t.Context(), tx, identity.ID)
+	require.NoError(t, err)
+
+	responses := make(chan testutil.TestResponse[handler.Response], 1)
+	go func() {
+		responses <- testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
+			ApiId:      api.ID,
+			ExternalId: &externalID,
+		})
+	}()
+
+	var res testutil.TestResponse[handler.Response]
+	blocked := false
+	select {
+	case res = <-responses:
+	case <-time.After(2 * time.Second):
+		blocked = true
+	}
+
+	err = tx.Rollback()
+	require.NoError(t, err)
+	if blocked {
+		res = <-responses
+	}
+
+	require.False(t, blocked, "request waited for a write lock on the existing identity")
+	require.Equal(t, http.StatusOK, res.Status, "got: %s", res.RawBody)
+}
+
 func TestCreateKeyWithEncryption(t *testing.T) {
 	t.Parallel()
 
@@ -257,9 +325,9 @@ func TestCreateKeyWithEncryption(t *testing.T) {
 	req := handler.Request{
 		ApiId:       api.ID,
 		Name:        &name,
-		ExternalId:  ptr.P("user_123"),
-		Enabled:     ptr.P(true),
-		Recoverable: ptr.P(true),
+		ExternalId:  new("user_123"),
+		Enabled:     new(true),
+		Recoverable: new(true),
 	}
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
@@ -284,9 +352,8 @@ func TestCreateKeyWithEncryption(t *testing.T) {
 	require.Equal(t, keyEncryption.WorkspaceID, h.Resources().UserWorkspace.ID)
 }
 
-// TestCreateRecoverableKeyWithURNPermissions guarantees WorkOS-translated
-// `keys:create` and `keys:encrypt` permissions authorize recoverable key
-// creation without legacy API tuple grants.
+// TestCreateRecoverableKeyWithURNPermissions guarantees workspace-wide key
+// permissions authorize recoverable key creation without legacy API permissions.
 func TestCreateRecoverableKeyWithURNPermissions(t *testing.T) {
 	t.Parallel()
 
@@ -308,8 +375,7 @@ func TestCreateRecoverableKeyWithURNPermissions(t *testing.T) {
 	})
 	rootKey := h.CreateRootKey(
 		h.Resources().UserWorkspace.ID,
-		createKeyPermission(h.Resources().UserWorkspace.ID, api.KeyAuthID.String),
-		encryptKeyPermission(h.Resources().UserWorkspace.ID, api.KeyAuthID.String),
+		createKeyPermission(h.Resources().UserWorkspace.ID, api.ProjectID, api.KeyAuthID.String),
 	)
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
@@ -318,7 +384,7 @@ func TestCreateRecoverableKeyWithURNPermissions(t *testing.T) {
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
 		ApiId:       api.ID,
-		Recoverable: ptr.P(true),
+		Recoverable: new(true),
 	})
 	require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
 	require.NotNil(t, res.Body)
@@ -330,10 +396,8 @@ func TestCreateRecoverableKeyWithURNPermissions(t *testing.T) {
 	require.Equal(t, h.Resources().UserWorkspace.ID, keyEncryption.WorkspaceID)
 }
 
-// TestCreateKeyConcurrentWithSameExternalId tests that concurrent key creation
-// with the same externalId doesn't deadlock. This was previously possible due to
-// gap locks when inserting identities. The fix uses INSERT ... ON DUPLICATE KEY
-// UPDATE (upsert) to avoid gap lock deadlocks.
+// TestCreateKeyConcurrentWithSameExternalId guarantees that concurrent key
+// creation with the same externalId resolves insert races to one identity.
 func TestCreateKeyConcurrentWithSameExternalId(t *testing.T) {
 	t.Parallel()
 
@@ -375,7 +439,7 @@ func TestCreateKeyConcurrentWithSameExternalId(t *testing.T) {
 			}
 			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 			if res.Status != 200 {
-				return fmt.Errorf("unexpected status code: %d", res.Status)
+				return fmt.Errorf("unexpected status code: %d: %s", res.Status, res.RawBody)
 			}
 			mu.Lock()
 			keyIDs = append(keyIDs, res.Body.Data.KeyId)
@@ -502,6 +566,11 @@ func TestCreateKeyAppliesKeySpaceDefaults(t *testing.T) {
 		require.Equal(t, 200, res.Status)
 		require.True(t, strings.HasPrefix(res.Body.Data.Key, defaultPrefix+"_"),
 			"key %q should start with keyspace default_prefix %q", res.Body.Data.Key, defaultPrefix)
+
+		storedKey, err := db.Query.FindKeyByID(t.Context(), h.DB.RO(), res.Body.Data.KeyId)
+		require.NoError(t, err)
+		require.Equal(t, defaultPrefix, storedKey.Prefix)
+		require.Equal(t, strings.TrimPrefix(res.Body.Data.Key, defaultPrefix+"_")[:4], storedKey.Start)
 	})
 
 	t.Run("default bytes is applied when request omits byteLength", func(t *testing.T) {
@@ -650,8 +719,8 @@ func TestCreateKeyWithRolesAndPermissions(t *testing.T) {
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
 		ApiId:       api.ID,
-		Roles:       ptr.P(roleNames),
-		Permissions: ptr.P(permissionSlugs),
+		Roles:       new(roleNames),
+		Permissions: new(permissionSlugs),
 	})
 	require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
 	require.NotEmpty(t, res.Body.Data.KeyId)
@@ -675,14 +744,10 @@ func TestCreateKeyWithRolesAndPermissions(t *testing.T) {
 	require.ElementsMatch(t, permissionSlugs, gotPerms)
 }
 
-func createKeyPermission(workspaceID string, keyspaceID string) string {
-	return fmt.Sprintf("unkey:v1:%s:keyspaces/%s#create_key", workspaceID, keyspaceID)
+func createKeyPermission(workspaceID string, projectID string, keyspaceID string) string {
+	return fmt.Sprintf("unkey:v1:%s:projects/%s/keyspaces/%s/keys/*#write", workspaceID, projectID, keyspaceID)
 }
 
 func createAnyKeyPermission(workspaceID string) string {
-	return fmt.Sprintf("unkey:v1:%s:keyspaces/*#create_key", workspaceID)
-}
-
-func encryptKeyPermission(workspaceID string, keyspaceID string) string {
-	return fmt.Sprintf("unkey:v1:%s:keyspaces/%s/keys/*#encrypt_key", workspaceID, keyspaceID)
+	return fmt.Sprintf("unkey:v1:%s:projects/*/keyspaces/*/keys/*#write", workspaceID)
 }

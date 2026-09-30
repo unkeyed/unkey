@@ -1,7 +1,22 @@
 ---
 title: "proxy_forward_failed"
-description: "ProxyForwardFailed represents a 502 error - failed to forward request to backend"
+sidebarTitle: "proxy_forward_failed"
+description: "A reserved gateway code for failing to forward a request that no code path returns today."
+sources:
+  - pkg/codes/frontline.go
+  - svc/frontline/middleware/observability.go
+  - svc/frontline/internal/proxy/error.go
 ---
 
 <Danger>`err:frontline:upstream:proxy_forward_failed`</Danger>
 
+This code is reserved, and the gateway doesn't return it today. Failures to forward a request to the <Tooltip tip="A Compute app: a deployable service inside a project. Not your application in general.">app</Tooltip> return [`err:frontline:upstream:bad_gateway`](/errors/frontline/upstream/bad_gateway). If this code were returned, it would have the same status and message: `502 Bad Gateway` with `Unable to connect. Please try again in a few moments.`
+
+## How to fix
+
+Treat it like [`bad_gateway`](/errors/frontline/upstream/bad_gateway). Callers should retry with backoff. Owners should read the runtime logs around the time of the request for a crash or a reset connection. If you ever see this code, send the request ID to Unkey support.
+
+## Related errors
+
+- [`err:frontline:upstream:bad_gateway`](/errors/frontline/upstream/bad_gateway): the error the gateway actually returns when forwarding fails.
+- [`err:frontline:upstream:service_unavailable`](/errors/frontline/upstream/service_unavailable): the instance refused or was unreachable.

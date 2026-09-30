@@ -13,7 +13,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -62,9 +61,11 @@ func TestGetKeyByKey(t *testing.T) {
 
 	// Create test key with identity and encryption using testutil helper
 	keyName := "test-key"
+	prefix := "prod_sk"
 	key := h.CreateKey(seed.CreateKeyRequest{
 		WorkspaceID: workspace.ID,
 		KeySpaceID:  api.KeyAuthID.String,
+		Prefix:      prefix,
 		Name:        &keyName,
 		IdentityID:  &identity.ID,
 	})
@@ -102,6 +103,7 @@ func TestGetKeyByKey(t *testing.T) {
 		require.Equal(t, 200, res.Status, "Expected status code 200, got %s", res.RawBody)
 		require.NotNil(t, res.Body)
 		require.Equal(t, res.Body.Data.KeyId, keyID)
+		require.Equal(t, key.Key[:len(prefix)+5], res.Body.Data.Start)
 	})
 
 }
@@ -126,7 +128,7 @@ func TestWhoamiWithURNPermission(t *testing.T) {
 		KeySpaceID:  api.KeyAuthID.String,
 	})
 
-	readKeyPermission := fmt.Sprintf("unkey:v1:%s:keyspaces/%s/keys/%s#read_key", workspace.ID, api.KeyAuthID.String, key.KeyID)
+	readKeyPermission := fmt.Sprintf("unkey:v1:%s:projects/%s/keyspaces/%s/keys/%s#read", workspace.ID, api.ProjectID, api.KeyAuthID.String, key.KeyID)
 	rootKey := h.CreateRootKey(workspace.ID, readKeyPermission)
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
@@ -139,6 +141,7 @@ func TestWhoamiWithURNPermission(t *testing.T) {
 	require.Equal(t, 200, res.Status, "Expected status code 200, got %s", res.RawBody)
 	require.NotNil(t, res.Body)
 	require.Equal(t, key.KeyID, res.Body.Data.KeyId)
+	require.Equal(t, key.Key[:4], res.Body.Data.Start)
 }
 
 func TestGetKey_AdditionalScenarios(t *testing.T) {
@@ -227,8 +230,8 @@ func TestGetKey_AdditionalScenarios(t *testing.T) {
 		keyResponse := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID:  workspace.ID,
 			KeySpaceID:   api.KeyAuthID.String,
-			Remaining:    ptr.P(int64(50)),
-			RefillAmount: ptr.P(int64(100)),
+			Remaining:    new(int64(50)),
+			RefillAmount: new(int64(100)),
 		})
 
 		req := handler.Request{
@@ -249,9 +252,9 @@ func TestGetKey_AdditionalScenarios(t *testing.T) {
 		keyResponse := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID:  workspace.ID,
 			KeySpaceID:   api.KeyAuthID.String,
-			Remaining:    ptr.P(int64(50)),
-			RefillAmount: ptr.P(int64(100)),
-			RefillDay:    ptr.P(int16(1)),
+			Remaining:    new(int64(50)),
+			RefillAmount: new(int64(100)),
+			RefillDay:    new(int16(1)),
 		})
 
 		req := handler.Request{

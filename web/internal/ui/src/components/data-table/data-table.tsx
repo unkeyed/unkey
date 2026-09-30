@@ -3,10 +3,8 @@ import { flexRender } from "@tanstack/react-table";
 import {
   Fragment,
   type KeyboardEvent,
-  type ReactElement,
   type ReactNode,
   type Ref,
-  forwardRef,
   useCallback,
   useImperativeHandle,
   useMemo,
@@ -17,7 +15,7 @@ import { useIsMobile } from "../../hooks/use-mobile";
 import { cn } from "../../lib/utils";
 import { LoadMoreFooter } from "./components/footer/load-more-footer";
 import { SkeletonRow } from "./components/rows/skeleton-row";
-import { EmptyState } from "./components/utils/empty-state";
+import { DataTableEmptyState } from "./components/utils/empty-state";
 import { RealtimeSeparator } from "./components/utils/realtime-separator";
 import { DEFAULT_CONFIG, MOBILE_TABLE_HEIGHT } from "./constants/constants";
 import { useDataTable } from "./hooks/use-data-table";
@@ -31,11 +29,27 @@ export type DataTableRef = {
   containerRef: HTMLDivElement | null;
 };
 
+function StickyHeaderUnderline({ colSpan, hasPadding }: { colSpan: number; hasPadding: boolean }) {
+  return (
+    <tr>
+      <th colSpan={colSpan} className="p-0">
+        <div
+          className={cn(
+            "absolute inset-y-0 -z-10 border-b bg-table-header",
+            hasPadding ? "inset-x-[-8px]" : "inset-x-0",
+          )}
+        />
+      </th>
+    </tr>
+  );
+}
+
 /**
  * Main DataTable component with TanStack Table + TanStack Virtual
  */
-function DataTableInner<TData>(props: DataTableProps<TData>, ref: Ref<DataTableRef>) {
+export function DataTable<TData>(props: DataTableProps<TData> & { ref?: Ref<DataTableRef> }) {
   const {
+    ref,
     data: historicData,
     realtimeData = [],
     columns,
@@ -168,7 +182,7 @@ function DataTableInner<TData>(props: DataTableProps<TData>, ref: Ref<DataTableR
   );
 
   const containerClassName = cn(
-    "overflow-auto relative pb-4 bg-white dark:bg-black",
+    "overflow-auto relative pb-4 bg-background",
     config.containerPadding || "px-2",
   );
 
@@ -186,37 +200,31 @@ function DataTableInner<TData>(props: DataTableProps<TData>, ref: Ref<DataTableR
               <col key={col.id ?? idx} style={{ width: colWidths[idx] }} />
             ))}
           </colgroup>
-          <thead className="sticky top-0 z-10 bg-white dark:bg-black">
+          <thead className="sticky top-0 z-10 bg-table-header">
             <tr>
               {table.getHeaderGroups()[0]?.headers.map((header) => (
                 <th
                   key={header.id}
                   className={cn(
-                    "text-sm font-medium text-accent-12 py-1 text-left",
+                    "text-sm font-medium text-gray-12 py-1 text-left",
                     header.column.columnDef.meta?.headerClassName,
                     header.column.columnDef.meta?.cellClassName,
                   )}
                 >
                   {header.isPlaceholder ? null : (
-                    <div className="truncate text-accent-12">
+                    <div className="truncate text-gray-12">
                       {flexRender(header.column.columnDef.header, header.getContext())}
                     </div>
                   )}
                 </th>
               ))}
             </tr>
-            <tr>
-              <th colSpan={columns.length} className="p-0">
-                <div className="w-full border-t border-gray-4" />
-              </th>
-            </tr>
+            <StickyHeaderUnderline colSpan={columns.length} hasPadding={hasPadding} />
           </thead>
         </table>
-        {emptyState ? (
-          <div className="flex-1 flex items-center justify-center">{emptyState}</div>
-        ) : (
-          <EmptyState />
-        )}
+        <div className="flex-1 flex items-center justify-center">
+          {emptyState ?? <DataTableEmptyState />}
+        </div>
       </div>
     );
   }
@@ -237,14 +245,14 @@ function DataTableInner<TData>(props: DataTableProps<TData>, ref: Ref<DataTableR
           </colgroup>
 
           {/* Header */}
-          <thead className="sticky top-0 z-10 bg-white dark:bg-black">
+          <thead className="sticky top-0 z-10 bg-table-header">
             {table.getHeaderGroups().map((headerGroup) => (
               <tr key={headerGroup.id}>
                 {headerGroup.headers.map((header) => (
                   <th
                     key={header.id}
                     className={cn(
-                      "text-sm font-medium text-accent-12 py-1 text-left relative",
+                      "text-sm font-medium text-gray-12 py-1 text-left relative",
                       header.column.columnDef.meta?.headerClassName,
                       header.column.columnDef.meta?.cellClassName,
                     )}
@@ -256,18 +264,7 @@ function DataTableInner<TData>(props: DataTableProps<TData>, ref: Ref<DataTableR
                 ))}
               </tr>
             ))}
-            <tr>
-              <th colSpan={columns.length} className="p-0">
-                <div className="relative w-full">
-                  <div
-                    className={cn(
-                      "absolute border-t border-gray-4",
-                      hasPadding ? "inset-x-[-8px]" : "inset-x-0",
-                    )}
-                  />
-                </div>
-              </th>
-            </tr>
+            <StickyHeaderUnderline colSpan={columns.length} hasPadding={hasPadding} />
           </thead>
 
           {/* Body */}
@@ -281,7 +278,7 @@ function DataTableInner<TData>(props: DataTableProps<TData>, ref: Ref<DataTableR
                       // biome-ignore lint/suspicious/noArrayIndexKey: skeleton rows have no stable id
                       index
                     }`}
-                    className={cn(config.rowBorders && "border-b border-gray-4")}
+                    className={cn(config.rowBorders && "border-b")}
                     style={{ height: `${config.rowHeight}px` }}
                   >
                     {renderSkeletonRow ? (
@@ -344,8 +341,8 @@ function DataTableInner<TData>(props: DataTableProps<TData>, ref: Ref<DataTableR
                             }
                           }}
                           className={cn(
-                            "cursor-pointer transition-colors hover:bg-accent/50 focus:outline-none focus:ring-1 focus:ring-opacity-40",
-                            config.rowBorders && "border-b border-gray-4",
+                            "cursor-pointer transition-colors hover:bg-grayA-3 focus:outline-none focus:ring-1",
+                            config.rowBorders && "border-b",
                             rowClassName?.(typedItem),
                             selectedClassName?.(typedItem, isSelected),
                           )}
@@ -393,8 +390,8 @@ function DataTableInner<TData>(props: DataTableProps<TData>, ref: Ref<DataTableR
                               }
                             }}
                             className={cn(
-                              "cursor-pointer transition-colors hover:bg-accent/50 focus:outline-none focus:ring-1 focus:ring-opacity-40",
-                              config.rowBorders && "border-b border-gray-4",
+                              "cursor-pointer transition-colors hover:bg-grayA-3 focus:outline-none focus:ring-1",
+                              config.rowBorders && "border-b",
                               rowClassName?.(typedItem),
                               selectedClassName?.(typedItem, isSelected),
                             )}
@@ -436,10 +433,3 @@ function DataTableInner<TData>(props: DataTableProps<TData>, ref: Ref<DataTableR
     </div>
   );
 }
-
-/**
- * Exported DataTable component with proper generic type support
- */
-export const DataTable = forwardRef(DataTableInner) as <TData>(
-  props: DataTableProps<TData> & { ref?: Ref<DataTableRef> },
-) => ReactElement;

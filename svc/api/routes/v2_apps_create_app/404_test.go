@@ -10,6 +10,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
+	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_apps_create_app"
 )
 
@@ -35,6 +36,7 @@ func TestCreateAppProjectNotFound(t *testing.T) {
 			Project: "non-existent-project",
 			Name:    "App",
 			Slug:    "app-slug",
+			Oci:     &openapi.AppOCI{Image: "nginx:stable"},
 		})
 		require.Equal(t, http.StatusNotFound, res.Status, "expected 404, received: %s", res.RawBody)
 	})
@@ -53,6 +55,7 @@ func TestCreateAppProjectNotFound(t *testing.T) {
 			Project: projectSlug,
 			Name:    "App",
 			Slug:    "app-slug",
+			Oci:     &openapi.AppOCI{Image: "nginx:stable"},
 		})
 		require.Equal(t, http.StatusNotFound, res.Status, "expected 404 for cross-workspace project, received: %s", res.RawBody)
 	})

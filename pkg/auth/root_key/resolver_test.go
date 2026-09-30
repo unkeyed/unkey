@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/internal/services/keys"
@@ -31,7 +32,6 @@ func newSessionWithAuth(t *testing.T, auth string) *zen.Session {
 type stubKeyService struct {
 	rootKey *keys.KeyVerifier
 	err     error
-	calls   int
 }
 
 func (s *stubKeyService) Get(_ context.Context, _ *zen.Session, _ string) (*keys.KeyVerifier, error) {
@@ -39,7 +39,6 @@ func (s *stubKeyService) Get(_ context.Context, _ *zen.Session, _ string) (*keys
 }
 
 func (s *stubKeyService) GetRootKey(_ context.Context, _ *zen.Session) (*keys.KeyVerifier, error) {
-	s.calls++
 	return s.rootKey, s.err
 }
 
@@ -51,6 +50,10 @@ func (s *stubKeyService) CreateKey(_ context.Context, _ keys.CreateKeyRequest) (
 	return keys.CreateKeyResponse{}, errors.New("not implemented")
 }
 
+func (s *stubKeyService) CreateKeyV1(_ context.Context, _ keys.CreateKeyV1Request) (keys.CreateKeyV1Response, error) {
+	return keys.CreateKeyV1Response{}, errors.New("not implemented")
+}
+
 // TestResolver_ResolveRootKeyPrincipal verifies a verified root key normalizes
 // into the shared principal shape used by the API. The stubbed key service
 // returns the post-verification object so this test focuses on the resolver's
@@ -58,16 +61,22 @@ func (s *stubKeyService) CreateKey(_ context.Context, _ keys.CreateKeyRequest) (
 // the verified root key.
 func TestResolver_ResolveRootKeyPrincipal(t *testing.T) {
 	t.Parallel()
+	expiresAt := time.Date(2027, time.January, 2, 3, 4, 5, 0, time.UTC)
 
 	keyService := &stubKeyService{
 		rootKey: &keys.KeyVerifier{
 			Key: keysdb.FindKeyForVerificationRow{
-				ID:        "key_123",
-				KeyAuthID: "ks_123",
-				Name:      sql.NullString{String: "Production root key", Valid: true},
+				ID:             "key_123",
+				KeyAuthID:      "ks_123",
+				WorkspaceID:    "ws_owner",
+				ForWorkspaceID: sql.NullString{String: "ws_authorized", Valid: true},
+				Name:           sql.NullString{String: "Production root key", Valid: true},
+				Expires:        sql.NullTime{Time: expiresAt, Valid: true},
 			},
+			Roles:                 []string{"admin"},
 			Permissions:           []string{"api.*.read_key"},
-			AuthorizedWorkspaceID: "ws_123",
+			Status:                keys.StatusValid,
+			AuthorizedWorkspaceID: "ws_authorized",
 		},
 	}
 	resolver := NewResolver(keyService)
@@ -75,19 +84,69 @@ func TestResolver_ResolveRootKeyPrincipal(t *testing.T) {
 	p, err := resolver.Resolve(context.Background(), newSessionWithAuth(t, "Bearer unkey_root_key"))
 
 	require.NoError(t, err)
-	require.Equal(t, 1, keyService.calls)
-	require.Equal(t, authprincipal.Version, p.Version)
-	require.Equal(t, authprincipal.TypeAPIKey, p.Type)
-	require.Equal(t, authprincipal.SubjectTypeRootKey, p.Subject.Type)
-	require.Equal(t, "key_123", p.Subject.ID)
-	require.Equal(t, "Production root key", p.Subject.Name)
-	require.Equal(t, "ws_123", p.WorkspaceID)
-	require.Equal(t, []string{"api.*.read_key"}, p.Permissions)
+	require.Equal(t, &authprincipal.Principal{
+		Version: authprincipal.Version,
+		Subject: authprincipal.Subject{
+			ID:   "key_123",
+			Name: "Production root key",
+			Type: authprincipal.SubjectTypeRootKey,
+		},
+		Type: authprincipal.TypeAPIKey,
+		Source: authprincipal.KeySource{
+			KeyID:       "key_123",
+			KeySpaceID:  "ks_123",
+			WorkspaceID: "ws_owner",
+			Permissions: []string{"api.*.read_key"},
+			ExpiresAt:   &expiresAt,
+		},
+		AuthorizedWorkspaceID: "ws_authorized",
+		Permissions:           []string{"api.*.read_key"},
+	}, p)
+}
+
+// TestResolver_MapsNonexpiringRootKey guarantees a root key without a trusted
+// database expiry remains explicitly nonexpiring in the authenticated source.
+// For example, an unset database expiry produces KeySource.ExpiresAt == nil.
+func TestResolver_MapsNonexpiringRootKey(t *testing.T) {
+	t.Parallel()
+
+	keyService := &stubKeyService{
+		rootKey: &keys.KeyVerifier{
+			Key:    keysdb.FindKeyForVerificationRow{ID: "key_nonexpiring"},
+			Status: keys.StatusValid,
+		},
+	}
+	resolver := NewResolver(keyService)
+
+	p, err := resolver.Resolve(context.Background(), newSessionWithAuth(t, "Bearer unkey_root_key"))
+
+	require.NoError(t, err)
 	source, ok := p.Source.(authprincipal.KeySource)
 	require.True(t, ok)
-	require.Equal(t, "key_123", source.KeyID)
-	require.Equal(t, "ks_123", source.KeySpaceID)
-	require.Equal(t, []string{"api.*.read_key"}, source.Permissions)
+	require.Nil(t, source.ExpiresAt)
+}
+
+// TestResolver_UsesFallbackRootKeyName guarantees audit data has a stable
+// subject name when the verified root key has no configured name.
+func TestResolver_UsesFallbackRootKeyName(t *testing.T) {
+	t.Parallel()
+
+	keyService := &stubKeyService{
+		rootKey: &keys.KeyVerifier{
+			Key: keysdb.FindKeyForVerificationRow{
+				ID:   "key_unnamed",
+				Name: sql.NullString{},
+			},
+			Status: keys.StatusValid,
+		},
+	}
+	resolver := NewResolver(keyService)
+
+	p, err := resolver.Resolve(context.Background(), newSessionWithAuth(t, "Bearer unkey_root_key"))
+
+	require.NoError(t, err)
+	require.NotNil(t, p)
+	require.Equal(t, "root key", p.Subject.Name)
 }
 
 // TestResolver_PropagatesRootKeyError verifies root-key verification failures
@@ -105,7 +164,6 @@ func TestResolver_PropagatesRootKeyError(t *testing.T) {
 
 	require.ErrorIs(t, err, wantErr)
 	require.Nil(t, p)
-	require.Equal(t, 1, keyService.calls)
 }
 
 // TestResolver_YieldsWhenAuthorizationMissing verifies the resolver does not
@@ -115,12 +173,41 @@ func TestResolver_PropagatesRootKeyError(t *testing.T) {
 func TestResolver_YieldsWhenAuthorizationMissing(t *testing.T) {
 	t.Parallel()
 
-	keyService := &stubKeyService{}
-	resolver := NewResolver(keyService)
+	tests := []struct {
+		name    string
+		session func(t *testing.T) *zen.Session
+	}{
+		{
+			name: "nil session",
+			session: func(_ *testing.T) *zen.Session {
+				return nil
+			},
+		},
+		{
+			name: "nil request",
+			session: func(_ *testing.T) *zen.Session {
+				return &zen.Session{}
+			},
+		},
+		{
+			name: "missing header",
+			session: func(t *testing.T) *zen.Session {
+				return newSessionWithAuth(t, "")
+			},
+		},
+	}
 
-	p, err := resolver.Resolve(context.Background(), newSessionWithAuth(t, ""))
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
 
-	require.NoError(t, err)
-	require.Nil(t, p)
-	require.Equal(t, 0, keyService.calls)
+			keyService := &stubKeyService{err: errors.New("unexpected GetRootKey call")}
+			resolver := NewResolver(keyService)
+
+			p, err := resolver.Resolve(context.Background(), test.session(t))
+
+			require.NoError(t, err)
+			require.Nil(t, p)
+		})
+	}
 }

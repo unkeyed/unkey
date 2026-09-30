@@ -1,0 +1,67 @@
+---
+title: unkey api permissions delete-role
+sidebarTitle: "delete-role"
+description: "Delete a role and remove it from every key that has it."
+sources:
+  - cmd/api/permissions/delete_role.go
+  - svc/api/routes/v2_permissions_delete_role/handler.go
+  - docs/product/scripts/manifest.json
+---
+
+import RootKeyPrereq from "/snippets/root-key-prereq.mdx";
+
+<RootKeyPrereq />
+
+Delete a role. Keys that had it lose its permissions within about 10 seconds. The permissions themselves aren't deleted. Calls `POST /v2/permissions.deleteRole`. See [Roles and permissions](/api-management/authorization/roles-and-permissions).
+
+## Usage
+
+```bash
+unkey api permissions delete-role --role=<role> [flags]
+```
+
+## Flags
+
+<ParamField body="--role" type="string" required>
+  Role id or name.
+</ParamField>
+
+### Shared flags
+
+Every `unkey api` command takes these. See [CLI output and shared flags](/platform/cli/output-and-flags).
+
+<ParamField body="--root-key" type="string">
+  Root key used for the request. Falls back to `UNKEY_ROOT_KEY`, then to the key stored by `unkey auth login`.
+</ParamField>
+
+<ParamField body="--api-url" type="string" default="https://api.unkey.com">
+  Base URL of the API. Falls back to `UNKEY_API_BASE_URL`. You don't normally need to set it.
+</ParamField>
+
+<ParamField body="--config" type="string" default="~/.unkey/config.toml">
+  Path of the config file written by `unkey auth login`. Falls back to `UNKEY_CONFIG`.
+</ParamField>
+
+<ParamField body="--output" type="string">
+  Output format. Falls back to `UNKEY_OUTPUT`. `json` prints the full response. Any other value prints the request ID and `data`.
+</ParamField>
+
+<ParamField body="--body" type="string">
+  Send this JSON as the whole request body instead of using the command's flags. You can't combine it with them.
+</ParamField>
+
+## Required permissions
+
+`rbac.*.delete_role`. Without the permission you get a 404, not a 403, so the response doesn't reveal whether the resource exists. See [Root key permissions](/platform/root-keys/permissions).
+
+## Examples
+
+```bash Delete
+unkey api permissions delete-role --role=api_reader
+```
+
+Or send the whole request as JSON:
+
+```bash Raw body
+unkey api permissions delete-role --body='{"role":"api_reader"}'
+```

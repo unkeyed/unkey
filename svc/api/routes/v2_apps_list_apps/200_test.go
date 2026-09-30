@@ -3,11 +3,12 @@ package handler_test
 import (
 	"fmt"
 	"net/http"
+	"slices"
 	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/pkg/ptr"
+	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
@@ -21,12 +22,6 @@ func TestListAppsSuccessfully(t *testing.T) {
 	h.Register(route)
 
 	workspace := h.Resources().UserWorkspace
-	rootKey := h.CreateRootKey(workspace.ID, "app.*.read_app")
-	headers := http.Header{
-		"Content-Type":  {"application/json"},
-		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
-	}
-
 	projectSlug := strings.ToLower(strings.ReplaceAll(uid.New("test"), "_", "-"))
 	project := h.CreateProject(seed.CreateProjectRequest{
 		ID:          uid.New(uid.ProjectPrefix),
@@ -34,8 +29,13 @@ func TestListAppsSuccessfully(t *testing.T) {
 		Name:        "Payments Service",
 		Slug:        projectSlug,
 	})
+	rootKey := h.CreateRootKey(workspace.ID, "unkey:v1:"+workspace.ID+":projects/"+project.ID+"/apps/*#read")
+	headers := http.Header{
+		"Content-Type":  {"application/json"},
+		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+	}
 
-	t.Run("project with no apps returns empty list", func(t *testing.T) {
+	t.Run("URN collection permission returns empty list for project with no apps", func(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{Project: project.Slug})
 		require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
 		require.NotNil(t, res.Body)
@@ -49,12 +49,11 @@ func TestListAppsSuccessfully(t *testing.T) {
 	for i := 0; i < 3; i++ {
 		slug := strings.ToLower(strings.ReplaceAll(uid.New("test"), "_", "-"))
 		app := h.CreateApp(seed.CreateAppRequest{
-			ID:            uid.New(uid.AppPrefix),
-			WorkspaceID:   workspace.ID,
-			ProjectID:     project.ID,
-			Name:          fmt.Sprintf("App %d", i),
-			Slug:          slug,
-			DefaultBranch: "main",
+			ID:          uid.New(uid.AppPrefix),
+			WorkspaceID: workspace.ID,
+			ProjectID:   project.ID,
+			Name:        fmt.Sprintf("App %d", i),
+			Slug:        slug,
 		})
 		seeded[app.ID] = slug
 	}
@@ -75,12 +74,14 @@ func TestListAppsSuccessfully(t *testing.T) {
 		require.NotEmpty(t, res.Body.Meta.RequestId)
 		require.Len(t, res.Body.Data, len(seeded))
 		require.False(t, res.Body.Pagination.HasMore)
+		require.NotContains(t, res.RawBody, `"sourceType"`)
 
 		for _, a := range res.Body.Data {
 			slug, ok := seeded[a.Id]
 			require.True(t, ok, "unexpected app %s in response", a.Id)
 			require.True(t, strings.HasPrefix(a.Id, "app_"), "id should have app_ prefix: %s", a.Id)
 			require.Equal(t, slug, a.Slug)
+			require.Empty(t, a.SourceType)
 			require.Nil(t, a.Git, "seeded app has no repo connection")
 			require.NotEmpty(t, a.Name)
 			require.Empty(t, a.CurrentDeploymentId, "freshly seeded app has no active deployment")
@@ -100,12 +101,11 @@ func TestListAppsSuccessfully(t *testing.T) {
 			Slug:        otherSlug,
 		})
 		strayApp := h.CreateApp(seed.CreateAppRequest{
-			ID:            uid.New(uid.AppPrefix),
-			WorkspaceID:   workspace.ID,
-			ProjectID:     otherProject.ID,
-			Name:          "Stray",
-			Slug:          strings.ToLower(strings.ReplaceAll(uid.New("test"), "_", "-")),
-			DefaultBranch: "main",
+			ID:          uid.New(uid.AppPrefix),
+			WorkspaceID: workspace.ID,
+			ProjectID:   otherProject.ID,
+			Name:        "Stray",
+			Slug:        strings.ToLower(strings.ReplaceAll(uid.New("test"), "_", "-")),
 		})
 
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{Project: project.Slug})
@@ -119,7 +119,7 @@ func TestListAppsSuccessfully(t *testing.T) {
 	t.Run("non-existent cursor returns 200 without error", func(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
 			Project: project.Slug,
-			Cursor:  ptr.P("app_doesnotexist"),
+			Cursor:  new("app_doesnotexist"),
 		})
 		require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
 		require.NotNil(t, res.Body.Pagination)
@@ -139,17 +139,16 @@ func TestListAppsSuccessfully(t *testing.T) {
 			Slug:        foreignSlug,
 		})
 		foreignApp := h.CreateApp(seed.CreateAppRequest{
-			ID:            uid.New(uid.AppPrefix),
-			WorkspaceID:   foreignWorkspace.ID,
-			ProjectID:     foreignProject.ID,
-			Name:          "Foreign App",
-			Slug:          strings.ToLower(strings.ReplaceAll(uid.New("test"), "_", "-")),
-			DefaultBranch: "main",
+			ID:          uid.New(uid.AppPrefix),
+			WorkspaceID: foreignWorkspace.ID,
+			ProjectID:   foreignProject.ID,
+			Name:        "Foreign App",
+			Slug:        strings.ToLower(strings.ReplaceAll(uid.New("test"), "_", "-")),
 		})
 
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
 			Project: project.Slug,
-			Cursor:  ptr.P(foreignApp.ID),
+			Cursor:  new(foreignApp.ID),
 		})
 		require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
 		for _, a := range res.Body.Data {
@@ -157,6 +156,47 @@ func TestListAppsSuccessfully(t *testing.T) {
 		}
 		require.NotContains(t, res.RawBody, foreignProject.ID, "response must not leak the foreign project ID")
 	})
+}
+
+func TestListAppsReturnsConfiguredOCISource(t *testing.T) {
+	h := testutil.NewHarness(t)
+	route := &handler.Handler{DB: h.DB}
+	h.Register(route)
+
+	workspace := h.Resources().UserWorkspace
+	project := h.CreateProject(seed.CreateProjectRequest{
+		ID:          uid.New(uid.ProjectPrefix),
+		WorkspaceID: workspace.ID,
+		Name:        "OCI Project",
+		Slug:        strings.ToLower(strings.ReplaceAll(uid.New("test"), "_", "-")),
+	})
+	app := h.CreateApp(seed.CreateAppRequest{
+		ID:             uid.New(uid.AppPrefix),
+		WorkspaceID:    workspace.ID,
+		ProjectID:      project.ID,
+		Name:           "OCI API",
+		Slug:           strings.ToLower(strings.ReplaceAll(uid.New("test"), "_", "-")),
+		SourceType:     db.AppsSourceTypeOci,
+		ImageReference: "ghcr.io/acme/api:v1.2.3",
+	})
+	rootKey := h.CreateRootKey(workspace.ID, "app.*.read_app")
+	headers := http.Header{
+		"Content-Type":  {"application/json"},
+		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+	}
+
+	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{Project: project.ID})
+	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
+	require.Len(t, res.Body.Data, 1)
+	require.Equal(t, app.ID, res.Body.Data[0].Id)
+	require.Equal(t, "oci", string(res.Body.Data[0].SourceType))
+	require.Nil(t, res.Body.Data[0].Git)
+	require.NotNil(t, res.Body.Data[0].Oci)
+	require.Equal(t, "ghcr.io/acme/api:v1.2.3", res.Body.Data[0].Oci.Image)
+
+	require.NoError(t, db.Query.DeleteAppSourceOciByAppId(t.Context(), h.DB.RW(), app.ID))
+	res = testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{Project: project.ID})
+	require.Equal(t, http.StatusInternalServerError, res.Status, "missing OCI source must not produce an empty image")
 }
 
 func TestListAppsPagination(t *testing.T) {
@@ -183,12 +223,11 @@ func TestListAppsPagination(t *testing.T) {
 	total := 5
 	for i := 0; i < total; i++ {
 		h.CreateApp(seed.CreateAppRequest{
-			ID:            uid.New(uid.AppPrefix),
-			WorkspaceID:   workspace.ID,
-			ProjectID:     project.ID,
-			Name:          fmt.Sprintf("App %d", i),
-			Slug:          strings.ToLower(strings.ReplaceAll(uid.New("test"), "_", "-")),
-			DefaultBranch: "main",
+			ID:          uid.New(uid.AppPrefix),
+			WorkspaceID: workspace.ID,
+			ProjectID:   project.ID,
+			Name:        fmt.Sprintf("App %d", i),
+			Slug:        strings.ToLower(strings.ReplaceAll(uid.New("test"), "_", "-")),
 		})
 	}
 
@@ -196,7 +235,7 @@ func TestListAppsPagination(t *testing.T) {
 	cursor := (*string)(nil)
 	pages := 0
 	for {
-		req := handler.Request{Project: project.Slug, Limit: ptr.P(2)}
+		req := handler.Request{Project: project.Slug, Limit: new(2)}
 		if cursor != nil {
 			req.Cursor = cursor
 		}
@@ -222,6 +261,70 @@ func TestListAppsPagination(t *testing.T) {
 	}
 
 	require.Len(t, seen, total)
+}
+
+// TestListAppsRefillsPagesForSpecificPermissions guarantees that permission for
+// the second and fifth apps returns those apps across one-item pages, without
+// exposing denied apps in results or cursors. Searching for the first, denied
+// app returns an empty page rather than bypassing the permission check.
+func TestListAppsRefillsPagesForSpecificPermissions(t *testing.T) {
+	h := testutil.NewHarness(t)
+	route := &handler.Handler{DB: h.DB}
+	h.Register(route)
+
+	workspace := h.Resources().UserWorkspace
+	project := h.CreateProject(seed.CreateProjectRequest{
+		ID:          uid.New(uid.ProjectPrefix),
+		WorkspaceID: workspace.ID,
+		Name:        "Sparse permissions",
+		Slug:        strings.ToLower(strings.ReplaceAll(uid.New("test"), "_", "-")),
+	})
+	appIDs := make([]string, 5)
+	for i := range appIDs {
+		id := strings.ToLower(uid.New(uid.AppPrefix))
+		h.CreateApp(seed.CreateAppRequest{
+			ID: id, WorkspaceID: workspace.ID, ProjectID: project.ID, Name: id,
+			Slug: strings.ToLower(strings.ReplaceAll(uid.New("test"), "_", "-")),
+		})
+		appIDs[i] = id
+	}
+	slices.Sort(appIDs)
+	permissions := []string{
+		fmt.Sprintf("unkey:v1:%s:projects/%s/apps/%s#read", workspace.ID, project.ID, appIDs[1]),
+		fmt.Sprintf("unkey:v1:%s:projects/%s/apps/%s#read", workspace.ID, project.ID, appIDs[4]),
+	}
+	rootKey := h.CreateRootKey(workspace.ID, permissions...)
+
+	res := testutil.CallRoute[handler.Request, handler.Response](h, route, http.Header{
+		"Content-Type": {"application/json"}, "Authorization": {"Bearer " + rootKey},
+	}, handler.Request{Project: project.ID, Limit: new(1)})
+	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
+	require.Len(t, res.Body.Data, 1)
+	require.Equal(t, appIDs[1], res.Body.Data[0].Id)
+	require.True(t, res.Body.Pagination.HasMore)
+	require.Equal(t, new(appIDs[4]), res.Body.Pagination.Cursor)
+	require.NotContains(t, res.RawBody, appIDs[0])
+	require.NotContains(t, res.RawBody, appIDs[2])
+	require.NotContains(t, res.RawBody, appIDs[3])
+
+	res = testutil.CallRoute[handler.Request, handler.Response](h, route, http.Header{
+		"Content-Type": {"application/json"}, "Authorization": {"Bearer " + rootKey},
+	}, handler.Request{Project: project.ID, Limit: new(1), Cursor: res.Body.Pagination.Cursor})
+	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
+	require.Len(t, res.Body.Data, 1)
+	require.Equal(t, appIDs[4], res.Body.Data[0].Id)
+	require.False(t, res.Body.Pagination.HasMore)
+	require.Nil(t, res.Body.Pagination.Cursor)
+	for _, i := range []int{0, 2, 3} {
+		require.NotContains(t, res.RawBody, appIDs[i])
+	}
+	empty := testutil.CallRoute[handler.Request, handler.Response](h, route, http.Header{
+		"Content-Type": {"application/json"}, "Authorization": {"Bearer " + rootKey},
+	}, handler.Request{Project: project.ID, Search: new(appIDs[0])})
+	require.Equal(t, http.StatusOK, empty.Status, "%s", empty.RawBody)
+	require.Empty(t, empty.Body.Data)
+	require.False(t, empty.Body.Pagination.HasMore)
+	require.Nil(t, empty.Body.Pagination.Cursor)
 }
 
 func TestListAppsSearch(t *testing.T) {
@@ -256,12 +359,11 @@ func TestListAppsSearch(t *testing.T) {
 	appIDs := make(map[string]string)
 	for _, a := range seeded {
 		app := h.CreateApp(seed.CreateAppRequest{
-			ID:            uid.New(uid.AppPrefix),
-			WorkspaceID:   workspace.ID,
-			ProjectID:     project.ID,
-			Name:          a.Name,
-			Slug:          a.Slug,
-			DefaultBranch: "main",
+			ID:          uid.New(uid.AppPrefix),
+			WorkspaceID: workspace.ID,
+			ProjectID:   project.ID,
+			Name:        a.Name,
+			Slug:        a.Slug,
 		})
 		appIDs[a.Name] = app.ID
 	}
@@ -270,7 +372,7 @@ func TestListAppsSearch(t *testing.T) {
 		t.Helper()
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
 			Project: project.ID,
-			Search:  ptr.P(search),
+			Search:  new(search),
 		})
 		require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
 		names := make([]string, 0, len(res.Body.Data))

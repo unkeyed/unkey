@@ -13,6 +13,7 @@ import (
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	listpolicies "github.com/unkeyed/unkey/svc/api/routes/v2_gateway_list_policies"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_gateway_update_policy"
+	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -51,7 +52,7 @@ func TestUpdatePolicySuccessfully(t *testing.T) {
 		ids := seedFirewallPolicies(t, h, env, 3)
 
 		req := makeRequest(env, ids[1])
-		req.Name = ptr.P("KEBAP renamed")
+		req.Name = new("KEBAP renamed")
 		call(t, req)
 
 		policies := list(t, env)
@@ -66,12 +67,37 @@ func TestUpdatePolicySuccessfully(t *testing.T) {
 		require.Equal(t, "KEBAP 2", policies[2].Name)
 	})
 
+	t.Run("rename keeps remote ip ranges unchanged", func(t *testing.T) {
+		env := seedEnvironment(t, h)
+		id := uid.New(uid.PolicyPrefix)
+		match := []*frontlinev1.MatchExpr{{Expr: &frontlinev1.MatchExpr_RemoteIp{RemoteIp: &frontlinev1.RemoteIpMatch{
+			NotIn: []string{"198.51.100.0/24", "203.0.113.7/32", "192.0.2.0/24", "2001:db8::/32"},
+		}}}}
+		seedSentinelConfig(t, h, env, &frontlinev1.Config{Policies: []*frontlinev1.Policy{{
+			Id:      id,
+			Name:    "office only",
+			Enabled: new(true),
+			Match:   match,
+			Config:  &frontlinev1.Policy_Firewall{Firewall: &frontlinev1.Firewall{Action: frontlinev1.Action_ACTION_DENY}},
+		}}})
+
+		req := makeRequest(env, id)
+		req.Name = new("KEBAP office only")
+		call(t, req)
+
+		stored := &frontlinev1.Config{}
+		require.NoError(t, protojson.Unmarshal([]byte(readStoredBlob(t, h, env)), stored))
+		require.Len(t, stored.GetPolicies(), 1)
+		require.Equal(t, "KEBAP office only", stored.GetPolicies()[0].GetName())
+		require.True(t, proto.Equal(match[0], stored.GetPolicies()[0].GetMatch()[0]), "stored ranges must not be rewritten")
+	})
+
 	t.Run("disable survives storage roundtrip", func(t *testing.T) {
 		env := seedEnvironment(t, h)
 		ids := seedFirewallPolicies(t, h, env, 1)
 
 		req := makeRequest(env, ids[0])
-		req.Enabled = ptr.P(false)
+		req.Enabled = new(false)
 		call(t, req)
 
 		policies := list(t, env)
@@ -88,7 +114,7 @@ func TestUpdatePolicySuccessfully(t *testing.T) {
 
 		req := makeRequest(env, ids[0])
 		req.Match = nullable.NewNullableWithValue([]openapi.MatchExpr{
-			{Path: &openapi.PathMatch{Path: openapi.StringMatch{Prefix: ptr.P("/internal/")}}},
+			{Path: &openapi.PathMatch{Path: openapi.StringMatch{Prefix: new("/internal/")}}},
 			{Method: &openapi.MethodMatch{Methods: []openapi.MethodMatchMethods{"GET"}}},
 		})
 		call(t, req)
@@ -96,7 +122,7 @@ func TestUpdatePolicySuccessfully(t *testing.T) {
 		policies := list(t, env)
 		match := ptr.SafeDeref(policies[0].Match)
 		require.Len(t, match, 2)
-		require.Equal(t, ptr.P("/internal/"), match[0].Path.Path.Prefix)
+		require.Equal(t, new("/internal/"), match[0].Path.Path.Prefix)
 		require.Equal(t, []openapi.MethodMatchMethods{"GET"}, match[1].Method.Methods)
 	})
 
@@ -106,7 +132,7 @@ func TestUpdatePolicySuccessfully(t *testing.T) {
 		seedSentinelConfig(t, h, env, &frontlinev1.Config{Policies: []*frontlinev1.Policy{{
 			Id:      policyID,
 			Name:    "KEBAP",
-			Enabled: proto.Bool(true),
+			Enabled: new(true),
 			Match: []*frontlinev1.MatchExpr{{Expr: &frontlinev1.MatchExpr_Path{Path: &frontlinev1.PathMatch{
 				Path: &frontlinev1.StringMatch{Match: &frontlinev1.StringMatch_Prefix{Prefix: "/internal/"}},
 			}}}},
@@ -129,7 +155,7 @@ func TestUpdatePolicySuccessfully(t *testing.T) {
 		seedSentinelConfig(t, h, env, &frontlinev1.Config{Policies: []*frontlinev1.Policy{{
 			Id:      policyID,
 			Name:    "KEBAP",
-			Enabled: proto.Bool(true),
+			Enabled: new(true),
 			Match: []*frontlinev1.MatchExpr{{Expr: &frontlinev1.MatchExpr_Path{Path: &frontlinev1.PathMatch{
 				Path: &frontlinev1.StringMatch{Match: &frontlinev1.StringMatch_Prefix{Prefix: "/api/"}},
 			}}}},
@@ -160,7 +186,7 @@ func TestUpdatePolicySuccessfully(t *testing.T) {
 		seedSentinelConfig(t, h, env, &frontlinev1.Config{Policies: []*frontlinev1.Policy{{
 			Id:      policyID,
 			Name:    "KEBAP",
-			Enabled: proto.Bool(true),
+			Enabled: new(true),
 			Config: &frontlinev1.Policy_Firewall{Firewall: &frontlinev1.Firewall{
 				Action: frontlinev1.Action_ACTION_DENY,
 			}},
@@ -168,11 +194,11 @@ func TestUpdatePolicySuccessfully(t *testing.T) {
 
 		req := makeRequest(env, policyID)
 		req.Logging = &openapi.LoggingPolicy{
-			RequestHeaders:  ptr.P(true),
-			ResponseHeaders: ptr.P(false),
-			RequestBody:     ptr.P(true),
-			ResponseBody:    ptr.P(false),
-			Query:           ptr.P(true),
+			RequestHeaders:  new(true),
+			ResponseHeaders: new(false),
+			RequestBody:     new(true),
+			ResponseBody:    new(false),
+			Query:           new(true),
 		}
 		call(t, req)
 
@@ -180,31 +206,49 @@ func TestUpdatePolicySuccessfully(t *testing.T) {
 		require.Len(t, policies, 1)
 		require.Equal(t, policyID, policies[0].Id)
 		require.NotNil(t, policies[0].Logging)
-		require.Equal(t, ptr.P(true), policies[0].Logging.RequestHeaders, "capture flags must survive storage")
-		require.Equal(t, ptr.P(false), policies[0].Logging.ResponseHeaders, "capture flags must survive storage")
-		require.Equal(t, ptr.P(true), policies[0].Logging.RequestBody, "capture flags must survive storage")
-		require.Equal(t, ptr.P(false), policies[0].Logging.ResponseBody, "capture flags must survive storage")
-		require.Equal(t, ptr.P(true), policies[0].Logging.Query, "capture flags must survive storage")
+		require.Equal(t, new(true), policies[0].Logging.RequestHeaders, "capture flags must survive storage")
+		require.Equal(t, new(false), policies[0].Logging.ResponseHeaders, "capture flags must survive storage")
+		require.Equal(t, new(true), policies[0].Logging.RequestBody, "capture flags must survive storage")
+		require.Equal(t, new(false), policies[0].Logging.ResponseBody, "capture flags must survive storage")
+		require.Equal(t, new(true), policies[0].Logging.Query, "capture flags must survive storage")
 		require.Nil(t, policies[0].Firewall, "old rule must be gone")
 	})
 
 	t.Run("update keyauth with owned keyspaces", func(t *testing.T) {
 		env := seedEnvironment(t, h)
 		ids := seedFirewallPolicies(t, h, env, 1)
-		api := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspace.ID})
+		api := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspace.ID, ProjectID: env.projectID})
 
 		req := makeRequest(env, ids[0])
 		req.Keyauth = &openapi.KeyauthPolicy{
 			Keyspaces:       []string{api.KeyAuthID.String},
-			PermissionQuery: ptr.P("documents.read"),
+			PermissionQuery: new("documents.read"),
 		}
 		call(t, req)
 
 		policies := list(t, env)
 		require.NotNil(t, policies[0].Keyauth)
 		require.Equal(t, []string{api.KeyAuthID.String}, policies[0].Keyauth.Keyspaces)
-		require.Equal(t, ptr.P("documents.read"), policies[0].Keyauth.PermissionQuery)
+		require.Equal(t, new("documents.read"), policies[0].Keyauth.PermissionQuery)
 		require.Nil(t, policies[0].Firewall)
+	})
+
+	// Keyspaces are always created in the workspace's internal "default"
+	// ownership project, which a policy's environment can never belong to, so
+	// workspace ownership is the only scope this route can enforce.
+	t.Run("update keyauth with a keyspace in the default ownership project", func(t *testing.T) {
+		env := seedEnvironment(t, h)
+		ids := seedFirewallPolicies(t, h, env, 1)
+		api := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspace.ID})
+		require.NotEqual(t, env.projectID, api.ProjectID)
+
+		req := makeRequest(env, ids[0])
+		req.Keyauth = &openapi.KeyauthPolicy{Keyspaces: []string{api.KeyAuthID.String}}
+		call(t, req)
+
+		policies := list(t, env)
+		require.NotNil(t, policies[0].Keyauth)
+		require.Equal(t, []string{api.KeyAuthID.String}, policies[0].Keyauth.Keyspaces)
 	})
 
 	t.Run("combined patch in one call", func(t *testing.T) {
@@ -212,10 +256,10 @@ func TestUpdatePolicySuccessfully(t *testing.T) {
 		ids := seedFirewallPolicies(t, h, env, 2)
 
 		req := makeRequest(env, ids[0])
-		req.Name = ptr.P("KEBAP combined")
-		req.Enabled = ptr.P(false)
+		req.Name = new("KEBAP combined")
+		req.Enabled = new(false)
 		req.Match = nullable.NewNullableWithValue([]openapi.MatchExpr{
-			{Path: &openapi.PathMatch{Path: openapi.StringMatch{Exact: ptr.P("/health")}}},
+			{Path: &openapi.PathMatch{Path: openapi.StringMatch{Exact: new("/health")}}},
 		})
 		req.Openapi = &openapi.OpenapiPolicy{}
 		call(t, req)

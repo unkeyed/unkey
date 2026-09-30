@@ -10,6 +10,8 @@ import (
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/internal/services/keys"
 
+	"github.com/unkeyed/unkey/pkg/auditlog"
+	authprincipal "github.com/unkeyed/unkey/pkg/auth/principal"
 	"github.com/unkeyed/unkey/pkg/batch"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/codes"
@@ -20,6 +22,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/rbac/permissions"
+	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
 )
@@ -35,7 +38,7 @@ const DefaultCost = 1
 type Handler struct {
 	DB               db.Database
 	Keys             keys.KeyService
-	Auditlogs        auditlogs.AuditLogService
+	DirectAuditLogs  *batch.BatchProcessor[auditlog.Event]
 	KeyVerifications *batch.BatchProcessor[schema.KeyVerification]
 }
 
@@ -75,7 +78,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	// Validate key belongs to authorized workspace
-	if key.Key.WorkspaceID != principal.WorkspaceID {
+	if key.Key.WorkspaceID != principal.AuthorizedWorkspaceID {
 		return s.JSON(http.StatusOK, Response{
 			Meta: openapi.Meta{
 				RequestId: s.RequestID(),
@@ -114,8 +117,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Action:       rbac.VerifyKey,
 		}),
 		rbac.U(
-			urn.New().Workspace(principal.WorkspaceID).Keyspace(key.Key.KeyAuthID).Key(key.Key.ID),
-			permissions.VerifyKey{},
+			urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(key.Key.ProjectID).Keyspace(key.Key.KeyAuthID).Key(key.Key.ID),
+			permissions.Verify,
 		),
 	))
 	if err != nil {
@@ -136,6 +139,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	opts := []keys.VerifyOption{
 		keys.WithTags(ptr.SafeDeref(req.Tags)),
 		keys.WithIPWhitelist(),
+	}
+
+	if req.Keyspaces != nil {
+		opts = append(opts, keys.WithKeyspaces(*req.Keyspaces...))
 	}
 
 	// If a custom cost was specified, use it, otherwise use a DefaultCost of 1
@@ -173,9 +180,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	keyData := openapi.V2KeysVerifyKeyResponseData{
 		Code:        key.ToOpenAPIStatus(),
 		Valid:       key.Status == keys.StatusValid,
-		Enabled:     ptr.P(key.Key.Enabled),
+		Enabled:     new(key.Key.Enabled),
 		Name:        key.Key.Name.String,
 		KeyId:       key.Key.ID,
+		KeyspaceId:  key.Key.KeyAuthID,
 		Permissions: key.Permissions,
 		Roles:       key.Roles,
 		Credits:     nil,
@@ -191,7 +199,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	remaining := key.Key.RemainingRequests
 	if remaining.Valid {
-		keyData.Credits = ptr.P(remaining.Int64)
+		keyData.Credits = new(remaining.Int64)
 	}
 
 	if key.Key.Meta.Valid {
@@ -264,12 +272,72 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 	}
 
-	h.KeyVerifications.Buffer(key.TelemetrySnapshot())
+	verification := key.TelemetrySnapshot()
+	h.KeyVerifications.Buffer(verification)
+	h.bufferAuditLog(s, principal, key, verification.Time)
+
+	// A keyspace mismatch returns NOT_FOUND but leaves the loaded key intact.
+	// Clear its response metadata so it cannot reveal that the key exists.
+	if key.Status == keys.StatusNotFound {
+		// nolint:exhaustruct
+		keyData = openapi.V2KeysVerifyKeyResponseData{Code: openapi.NOTFOUND, Valid: false}
+	}
 
 	return s.JSON(http.StatusOK, Response{
 		Meta: openapi.Meta{
 			RequestId: s.RequestID(),
 		},
 		Data: keyData,
+	})
+}
+
+// bufferAuditLog keeps MySQL out of the high-volume key verification path by
+// sending the action to the direct ClickHouse buffer.
+func (h *Handler) bufferAuditLog(
+	s *zen.Session,
+	principal *authprincipal.Principal,
+	key *keys.KeyVerifier,
+	verificationTimeMillis int64,
+) {
+	if principal.Subject.Type != authprincipal.SubjectTypeRootKey {
+		return
+	}
+
+	targets := []auditlog.EventTarget{
+		{
+			Type: string(auditlog.KeyResourceType),
+			ID:   key.Key.ID,
+			Name: key.Key.Name.String,
+			Meta: nil,
+		},
+	}
+	if key.Key.IdentityID.Valid {
+		targets = append(targets, auditlog.EventTarget{
+			Type: string(auditlog.IdentityResourceType),
+			ID:   key.Key.IdentityID.String,
+			Name: key.Key.ExternalID.String,
+			Meta: nil,
+		})
+	}
+
+	h.DirectAuditLogs.Buffer(auditlog.Event{
+		EventID:     uid.New(uid.AuditLogPrefix),
+		Time:        verificationTimeMillis,
+		WorkspaceID: principal.AuthorizedWorkspaceID,
+		Bucket:      auditlogs.DefaultBucket,
+		Source:      auditlog.EventSourcePlatform,
+		Event:       string(auditlog.KeyVerifyEvent),
+		Description: fmt.Sprintf("Verified key %s", key.Key.ID),
+		Actor: auditlog.EventActor{
+			Type: string(principal.Subject.Type),
+			ID:   principal.Subject.ID,
+			Name: principal.Subject.Name,
+			Meta: nil,
+		},
+		RemoteIP:      s.Location(),
+		UserAgent:     s.UserAgent(),
+		Meta:          nil,
+		Targets:       targets,
+		CorrelationID: "",
 	})
 }

@@ -6,9 +6,19 @@ import {
   useRootKeysListPaginated,
 } from "@/components/root-keys-table";
 import type { RootKey } from "@/lib/trpc/routers/settings/root-keys/query";
+import { IconBookBookmarkOutline18 } from "@unkey/icons";
 import type { UnkeyPermission } from "@unkey/rbac";
 import { unkeyPermissionValidation } from "@unkey/rbac";
-import { DataTable, EmptyRootKeys, PaginationFooter } from "@unkey/ui";
+import {
+  DataTable,
+  EmptyState,
+  EmptyStateActions,
+  EmptyStateDescription,
+  EmptyStateHeader,
+  EmptyStateTitle,
+  PaginationFooter,
+  buttonVariants,
+} from "@unkey/ui";
 import { useCallback, useMemo, useState } from "react";
 import { RootKeyDialog } from "../dialog/root-key-dialog";
 import { type ListVariant, ListVariantDebugBar } from "./list-variant-debug-bar";
@@ -21,7 +31,6 @@ const isUnkeyPermission = (permissionName: string): permissionName is UnkeyPermi
 };
 
 const TABLE_CONFIG = {
-  loadingRows: 5,
   rowHeight: 40,
   layout: "grid" as const,
   rowBorders: true,
@@ -107,7 +116,30 @@ export const RootKeysList = () => {
           onRowClick={handleRowClick}
           selectedItem={selectedRootKey}
           rowClassName={getRowClassNameMemoized}
-          emptyState={<EmptyRootKeys />}
+          emptyState={
+            <EmptyState frame="none">
+              <EmptyStateHeader>
+                <EmptyStateTitle>No Root Keys Found</EmptyStateTitle>
+                <EmptyStateDescription>
+                  There are no root keys configured yet. Create your first root key to start
+                  managing permissions and access control.
+                </EmptyStateDescription>
+              </EmptyStateHeader>
+              <EmptyStateActions>
+                <a
+                  href="https://www.unkey.com/docs/security/overview#root-keys"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={buttonVariants({ variant: "outline", size: "md" })}
+                >
+                  <span className="flex items-center gap-2">
+                    <IconBookBookmarkOutline18 />
+                    Learn about Root Keys
+                  </span>
+                </a>
+              </EmptyStateActions>
+            </EmptyState>
+          }
           config={TABLE_CONFIG}
           renderSkeletonRow={renderRootKeySkeletonRow}
           sorting={sorting}
@@ -116,7 +148,6 @@ export const RootKeysList = () => {
       )}
       <ListVariantDebugBar variant={variant} onChange={setVariant} />
       <PaginationFooter
-        hide={totalPages <= 1}
         page={page}
         pageSize={pageSize}
         totalPages={totalPages}

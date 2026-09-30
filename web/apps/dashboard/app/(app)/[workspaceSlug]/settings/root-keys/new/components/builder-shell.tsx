@@ -4,7 +4,11 @@ import { usePreventLeave } from "@/hooks/use-prevent-leave";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { routes } from "@/lib/navigation/routes";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ChevronLeft, ChevronRight, CircleInfo } from "@unkey/icons";
+import {
+  IconChevronLeftOutline18,
+  IconChevronRightOutline18,
+  IconCircleInfoOutline18,
+} from "@unkey/icons";
 import {
   Button,
   FormInput,
@@ -114,13 +118,13 @@ export function BuilderShell() {
                 />
 
                 <div className="flex flex-col gap-2">
-                  <span className="flex h-5 items-center text-[13px] text-gray-11">
+                  <span className="flex h-5 items-center text-sm text-gray-11">
                     Permissions
                     <InfoTooltip
                       content="Select the privileges you'd like this root key to have."
                       position={{ side: "right" }}
                     >
-                      <CircleInfo iconSize="sm-regular" className="ml-1.5 shrink-0 text-gray-9" />
+                      <IconCircleInfoOutline18 className="ml-1.5 shrink-0 text-gray-9" />
                     </InfoTooltip>
                     <RequiredTag hasError={validated && values.policies.length === 0} />
                   </span>
@@ -139,7 +143,7 @@ export function BuilderShell() {
                     size="md"
                     onClick={() => showStage(false)}
                   >
-                    <ChevronLeft />
+                    <IconChevronLeftOutline18 />
                     Back to edit
                   </Button>
                   <Button
@@ -156,7 +160,7 @@ export function BuilderShell() {
               ) : (
                 <Button type="submit" variant="primary" size="md" className="ml-auto">
                   Review key
-                  <ChevronRight />
+                  <IconChevronRightOutline18 />
                 </Button>
               )}
             </div>

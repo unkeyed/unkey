@@ -18,11 +18,13 @@ var _ ctrl.AppServiceClient = (*MockAppClient)(nil)
 //
 // This mock is safe for concurrent use. All call recording is protected by a mutex.
 type MockAppClient struct {
-	mu             sync.Mutex
-	CreateAppFunc  func(context.Context, *ctrlv1.CreateAppRequest) (*ctrlv1.CreateAppResponse, error)
-	DeleteAppFunc  func(context.Context, *ctrlv1.DeleteAppRequest) (*ctrlv1.DeleteAppResponse, error)
-	CreateAppCalls []*ctrlv1.CreateAppRequest
-	DeleteAppCalls []*ctrlv1.DeleteAppRequest
+	mu                        sync.Mutex
+	CreateAppFunc             func(context.Context, *ctrlv1.CreateAppRequest) (*ctrlv1.CreateAppResponse, error)
+	UpdateOciImageSourceFunc  func(context.Context, *ctrlv1.UpdateOciImageSourceRequest) (*ctrlv1.UpdateOciImageSourceResponse, error)
+	DeleteAppFunc             func(context.Context, *ctrlv1.DeleteAppRequest) (*ctrlv1.DeleteAppResponse, error)
+	CreateAppCalls            []*ctrlv1.CreateAppRequest
+	UpdateOciImageSourceCalls []*ctrlv1.UpdateOciImageSourceRequest
+	DeleteAppCalls            []*ctrlv1.DeleteAppRequest
 }
 
 func (m *MockAppClient) CreateApp(ctx context.Context, req *ctrlv1.CreateAppRequest) (*ctrlv1.CreateAppResponse, error) {
@@ -33,6 +35,16 @@ func (m *MockAppClient) CreateApp(ctx context.Context, req *ctrlv1.CreateAppRequ
 		return m.CreateAppFunc(ctx, req)
 	}
 	return &ctrlv1.CreateAppResponse{}, nil
+}
+
+func (m *MockAppClient) UpdateOciImageSource(ctx context.Context, req *ctrlv1.UpdateOciImageSourceRequest) (*ctrlv1.UpdateOciImageSourceResponse, error) {
+	m.mu.Lock()
+	m.UpdateOciImageSourceCalls = append(m.UpdateOciImageSourceCalls, req)
+	m.mu.Unlock()
+	if m.UpdateOciImageSourceFunc != nil {
+		return m.UpdateOciImageSourceFunc(ctx, req)
+	}
+	return &ctrlv1.UpdateOciImageSourceResponse{}, nil
 }
 
 func (m *MockAppClient) DeleteApp(ctx context.Context, req *ctrlv1.DeleteAppRequest) (*ctrlv1.DeleteAppResponse, error) {

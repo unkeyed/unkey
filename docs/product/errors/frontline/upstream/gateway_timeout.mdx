@@ -1,7 +1,59 @@
 ---
 title: "gateway_timeout"
-description: "GatewayTimeout represents a 504 error - upstream server timeout"
+sidebarTitle: "gateway_timeout"
+description: "The app behind the gateway did not respond before the deadline."
+sources:
+  - pkg/codes/frontline.go
+  - svc/frontline/middleware/observability.go
+  - svc/frontline/internal/proxy/error.go
+  - svc/frontline/internal/proxy/transport.go
+  - svc/frontline/config.go
+  - svc/frontline/routes/register.go
 ---
 
 <Danger>`err:frontline:upstream:gateway_timeout`</Danger>
 
+import { ProductLink } from "/snippets/product-link.jsx";
+
+The gateway sent the request to the <Tooltip tip="A Compute app: a deployable service inside a project. Not your application in general.">app</Tooltip> and didn't get an answer in time. You get `504 Gateway Timeout`.
+
+```json Example response
+{
+  "meta": {
+    "requestId": "req_3k2j1h0g9f8e7d6c"
+  },
+  "error": {
+    "code": "err:frontline:upstream:gateway_timeout",
+    "message": "The request took too long to process. Please try again later."
+  }
+}
+```
+
+Browsers get the same error as an HTML page.
+
+## If you're calling an API hosted on Unkey
+
+If the request is safe to repeat, retry with backoff. If it isn't, ask the API owner whether it went through before you retry, because the app may have finished the work after the gateway stopped waiting. Send them the request ID.
+
+## If you own this API
+
+Each request gets 15 minutes, and each connection attempt to an instance gets 10 seconds. If an instance is slow to accept a connection, the gateway tries your other instances first. A request your app already accepted isn't retried. Common causes:
+
+- A route takes longer than 15 minutes to respond.
+- Instances are too slow to accept connections under load.
+
+### How to fix
+
+1. Find the slow route in the runtime logs and request log.
+2. Move long-running work off the request path, or stream the response so bytes reach the gateway before the deadline.
+3. If instances are slow to accept connections under load, add replicas or raise the CPU in the runtime settings.
+
+<ProductLink product="compute" href="/compute/gateway/errors" title="Compute gateway">
+  Request lifecycle, timeouts, replicas, and runtime settings are Compute features.
+</ProductLink>
+
+## Related errors
+
+- [`err:frontline:upstream:bad_gateway`](/errors/frontline/upstream/bad_gateway): the connection failed rather than timed out.
+- [`err:frontline:upstream:service_unavailable`](/errors/frontline/upstream/service_unavailable): the instance refused the connection outright.
+- [`err:user:bad_request:request_timeout`](/errors/user/bad_request/request_timeout): the Unkey API's own request deadline.

@@ -11,7 +11,6 @@ import (
 	"github.com/stretchr/testify/require"
 	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
 	"github.com/unkeyed/unkey/pkg/db"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_keys_delete_key"
@@ -121,7 +120,7 @@ func TestKeyDeleteSuccess(t *testing.T) {
 	t.Run("permanently delete key", func(t *testing.T) {
 		req := handler.Request{
 			KeyId:     hardDeleteKeyID,
-			Permanent: ptr.P(true),
+			Permanent: new(true),
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
@@ -150,8 +149,8 @@ func TestKeyDeleteSuccess(t *testing.T) {
 	})
 }
 
-// TestKeyDeleteWithURNPermission guarantees WorkOS-translated `keys:delete`
-// permissions authorize key revocation without legacy API tuple grants.
+// TestKeyDeleteWithURNPermission guarantees a workspace-wide key delete
+// permission authorizes key revocation without legacy API permissions.
 func TestKeyDeleteWithURNPermission(t *testing.T) {
 	t.Parallel()
 
@@ -177,7 +176,7 @@ func TestKeyDeleteWithURNPermission(t *testing.T) {
 			WorkspaceID: workspace.ID,
 			KeySpaceID:  api.KeyAuthID.String,
 		})
-		rootKey := h.CreateRootKey(workspace.ID, deleteKeyPermission(workspace.ID, api.KeyAuthID.String, "*"))
+		rootKey := h.CreateRootKey(workspace.ID, deleteKeyPermission(workspace.ID, api.ProjectID, api.KeyAuthID.String, "*"))
 		headers := http.Header{
 			"Content-Type":  {"application/json"},
 			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
@@ -211,10 +210,10 @@ func TestKeyDeleteWithURNPermission(t *testing.T) {
 	})
 }
 
-func deleteKeyPermission(workspaceID string, keyspaceID string, keyID string) string {
-	return fmt.Sprintf("unkey:v1:%s:keyspaces/%s/keys/%s#delete_key", workspaceID, keyspaceID, keyID)
+func deleteKeyPermission(workspaceID string, projectID string, keyspaceID string, keyID string) string {
+	return fmt.Sprintf("unkey:v1:%s:projects/%s/keyspaces/%s/keys/%s#delete", workspaceID, projectID, keyspaceID, keyID)
 }
 
 func deleteAnyKeyPermission(workspaceID string) string {
-	return fmt.Sprintf("unkey:v1:%s:keyspaces/*/keys/*#delete_key", workspaceID)
+	return fmt.Sprintf("unkey:v1:%s:projects/*/keyspaces/*/keys/*#delete", workspaceID)
 }

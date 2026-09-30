@@ -1,5 +1,7 @@
 "use client";
 
+import { useProjectEnvironments } from "@/hooks/use-project-environments";
+import { useProjectsWithApps } from "@/hooks/use-projects-with-apps";
 import { trpc } from "@/lib/trpc/client";
 import type { ResourceScope } from "../lib/catalogue.types";
 import { environmentLabel } from "../lib/policy";
@@ -18,12 +20,8 @@ export type ScopeInstances = {
 const DEPLOY_SCOPES: ResourceScope[] = ["projects", "apps", "environments"];
 
 export function useScopeInstances(scope: ResourceScope): ScopeInstances {
-  const projects = trpc.deploy.project.list.useQuery(undefined, {
-    enabled: DEPLOY_SCOPES.includes(scope),
-  });
-  const environments = trpc.deploy.environment.listAll.useQuery(undefined, {
-    enabled: scope === "environments",
-  });
+  const projects = useProjectsWithApps({ enabled: DEPLOY_SCOPES.includes(scope) });
+  const environments = useProjectEnvironments(scope === "environments" ? projects.data : undefined);
   const keyspaces = trpc.deploy.environmentSettings.getAvailableKeyspaces.useQuery(undefined, {
     enabled: scope === "keyspaces",
   });
@@ -62,7 +60,7 @@ export function useScopeInstances(scope: ResourceScope): ScopeInstances {
       return {
         instances: (environments.data ?? []).map((environment) => ({
           id: environment.id,
-          label: environmentLabel(appNames.get(environment.appId), environment.name),
+          label: environmentLabel(appNames.get(environment.appId), environment.slug),
           hint: environment.id,
         })),
         isLoading: environments.isLoading || projects.isLoading,

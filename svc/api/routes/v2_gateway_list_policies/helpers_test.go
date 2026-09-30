@@ -18,7 +18,6 @@ import (
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_gateway_list_policies"
 	"google.golang.org/protobuf/encoding/protojson"
-	"google.golang.org/protobuf/proto"
 )
 
 func makeRequest(env seededEnv) handler.Request {
@@ -49,12 +48,11 @@ func seedEnvironment(t *testing.T, h *testutil.Harness) seededEnv {
 	})
 
 	app := h.CreateApp(seed.CreateAppRequest{
-		ID:            uid.New(uid.AppPrefix),
-		WorkspaceID:   workspace.ID,
-		ProjectID:     project.ID,
-		Name:          "Payments API",
-		Slug:          strings.ToLower(strings.ReplaceAll(uid.New("test"), "_", "-")),
-		DefaultBranch: "main",
+		ID:          uid.New(uid.AppPrefix),
+		WorkspaceID: workspace.ID,
+		ProjectID:   project.ID,
+		Name:        "Payments API",
+		Slug:        strings.ToLower(strings.ReplaceAll(uid.New("test"), "_", "-")),
 	})
 
 	environment := h.CreateEnvironment(seed.CreateEnvironmentRequest{
@@ -113,7 +111,7 @@ func seedSentinelConfigBlob(t *testing.T, h *testutil.Harness, env seededEnv, bl
 		EnvironmentID: env.environmentID,
 	})
 	require.NoError(t, err)
-	require.Equal(t, blob, stored.AppRuntimeSetting.SentinelConfig)
+	require.Equal(t, blob, stored.SentinelConfig)
 }
 
 // seedFirewallPolicies stores n firewall policies and returns their ids in
@@ -128,7 +126,7 @@ func seedFirewallPolicies(t *testing.T, h *testutil.Harness, env seededEnv, n in
 		policies = append(policies, &frontlinev1.Policy{
 			Id:      id,
 			Name:    fmt.Sprintf("KEBAP %d", i),
-			Enabled: proto.Bool(true),
+			Enabled: new(true),
 			Config: &frontlinev1.Policy_Firewall{Firewall: &frontlinev1.Firewall{
 				Action: frontlinev1.Action_ACTION_DENY,
 			}},

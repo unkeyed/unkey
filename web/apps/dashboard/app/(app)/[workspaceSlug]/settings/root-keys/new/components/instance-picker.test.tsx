@@ -4,9 +4,10 @@ import { ALL_INSTANCES } from "../lib/policy";
 import { InstancePicker } from "./instance-picker";
 
 vi.mock("@unkey/icons", () => ({
-  Check: () => null,
-  ChevronExpandY: () => null,
-  XMark: () => null,
+  IconCheckOutline12: () => null,
+  IconChevronExpandYOutline12: () => null,
+  IconChevronExpandYOutline18: () => null,
+  IconXmarkOutline12: () => null,
 }));
 
 afterEach(cleanup);

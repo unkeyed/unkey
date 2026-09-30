@@ -49,12 +49,11 @@ func TestDeleteCustomDomain_DoesNotDeleteOtherWorkspaceFrontlineRoute(t *testing
 		Slug:        uid.New("slug"),
 	})
 	victimApp := h.Seed.CreateApp(ctx, seed.CreateAppRequest{
-		ID:            uid.New("app"),
-		WorkspaceID:   victimWS,
-		ProjectID:     victimProject.ID,
-		Name:          "default",
-		Slug:          "default",
-		DefaultBranch: "main",
+		ID:          uid.New("app"),
+		WorkspaceID: victimWS,
+		ProjectID:   victimProject.ID,
+		Name:        "default",
+		Slug:        "default",
 	})
 	victimEnv := h.Seed.CreateEnvironment(ctx, seed.CreateEnvironmentRequest{
 		ID:             uid.New("env"),
@@ -102,12 +101,11 @@ func TestDeleteCustomDomain_DoesNotDeleteOtherWorkspaceFrontlineRoute(t *testing
 		Slug:        uid.New("slug"),
 	})
 	attackerApp := h.Seed.CreateApp(ctx, seed.CreateAppRequest{
-		ID:            uid.New("app"),
-		WorkspaceID:   attackerWS,
-		ProjectID:     attackerProject.ID,
-		Name:          "default",
-		Slug:          "default",
-		DefaultBranch: "main",
+		ID:          uid.New("app"),
+		WorkspaceID: attackerWS,
+		ProjectID:   attackerProject.ID,
+		Name:        "default",
+		Slug:        "default",
 	})
 	attackerEnv := h.Seed.CreateEnvironment(ctx, seed.CreateEnvironmentRequest{
 		ID:             uid.New("env"),
@@ -178,12 +176,11 @@ func TestDeleteCustomDomain_DeletesOwnFrontlineRoute(t *testing.T) {
 		Slug:        uid.New("slug"),
 	})
 	app := h.Seed.CreateApp(ctx, seed.CreateAppRequest{
-		ID:            uid.New("app"),
-		WorkspaceID:   ws,
-		ProjectID:     project.ID,
-		Name:          "default",
-		Slug:          "default",
-		DefaultBranch: "main",
+		ID:          uid.New("app"),
+		WorkspaceID: ws,
+		ProjectID:   project.ID,
+		Name:        "default",
+		Slug:        "default",
 	})
 	env := h.Seed.CreateEnvironment(ctx, seed.CreateEnvironmentRequest{
 		ID:             uid.New("env"),

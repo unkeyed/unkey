@@ -20,6 +20,7 @@ export const ratelimitLlmSearch = workspaceProcedure
       .findFirst({
         where: (table, { and, eq, isNull }) =>
           and(eq(table.orgId, ctx.tenant.id), isNull(table.deletedAtM)),
+        columns: { id: true },
       })
       .catch((_err) => {
         throw new TRPCError({

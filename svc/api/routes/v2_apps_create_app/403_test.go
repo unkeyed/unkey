@@ -12,6 +12,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
+	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_apps_create_app"
 )
 
@@ -49,11 +50,11 @@ func TestCreateAppForbidden(t *testing.T) {
 		{name: "wrong action", permissions: []string{"project.*.create_project"}, shouldPass: false},
 		{name: "read does not grant create", permissions: []string{"project.*.read_app"}, shouldPass: false},
 		{name: "unrelated permission", permissions: []string{"api.*.read_api"}, shouldPass: false},
-		{name: "urn style wildcard app permission", permissions: []string{"unkey:v1:" + workspace.ID + ":projects/*/apps/*#create_app"}, shouldPass: true},
-		{name: "urn style specific project permission", permissions: []string{"unkey:v1:" + workspace.ID + ":projects/" + project.ID + "/apps/*#create_app"}, shouldPass: true},
-		{name: "urn style wrong action", permissions: []string{"unkey:v1:" + workspace.ID + ":projects/*/apps/*#read_app"}, shouldPass: false},
-		{name: "urn style other project", permissions: []string{"unkey:v1:" + workspace.ID + ":projects/" + uid.New(uid.ProjectPrefix) + "/apps/*#create_app"}, shouldPass: false},
-		{name: "urn style project resource does not grant app create", permissions: []string{"unkey:v1:" + workspace.ID + ":projects/*#create_app"}, shouldPass: false},
+		{name: "urn style wildcard app permission", permissions: []string{"unkey:v1:" + workspace.ID + ":projects/*/apps/*#write"}, shouldPass: true},
+		{name: "urn style specific project permission", permissions: []string{"unkey:v1:" + workspace.ID + ":projects/" + project.ID + "/apps/*#write"}, shouldPass: true},
+		{name: "urn style wrong action", permissions: []string{"unkey:v1:" + workspace.ID + ":projects/*/apps/*#read"}, shouldPass: false},
+		{name: "urn style other project", permissions: []string{"unkey:v1:" + workspace.ID + ":projects/" + uid.New(uid.ProjectPrefix) + "/apps/*#write"}, shouldPass: false},
+		{name: "urn style project resource does not grant app create", permissions: []string{"unkey:v1:" + workspace.ID + ":projects/*#write"}, shouldPass: false},
 		{name: "no permissions", permissions: []string{}, shouldPass: false},
 	}
 
@@ -68,6 +69,7 @@ func TestCreateAppForbidden(t *testing.T) {
 				Project: projectSlug,
 				Name:    "App",
 				Slug:    "app-slug",
+				Oci:     &openapi.AppOCI{Image: "nginx:stable"},
 			})
 			if tc.shouldPass {
 				require.Equal(t, 200, res.Status, "expected 200 for %v, got: %s", tc.permissions, res.RawBody)

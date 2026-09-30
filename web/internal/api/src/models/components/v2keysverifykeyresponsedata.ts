@@ -72,6 +72,13 @@ export type V2KeysVerifyKeyResponseData = {
    */
   keyId?: string | undefined;
   /**
+   * The ID of the keyspace the key belongs to.
+   *
+   * @remarks
+   * Returned for both valid and invalid keys, except when `code=NOT_FOUND`.
+   */
+  keyspaceId?: string | undefined;
+  /**
    * The human-readable name assigned to this key during creation.
    *
    * @remarks
@@ -148,6 +155,7 @@ export const V2KeysVerifyKeyResponseData$inboundSchema: z.ZodType<
   valid: z.boolean(),
   code: Code$inboundSchema,
   keyId: z.string().optional(),
+  keyspaceId: z.string().optional(),
   name: z.string().optional(),
   meta: z.record(z.any()).optional(),
   expires: z.number().int().optional(),

@@ -1,7 +1,7 @@
 "use client";
 
 import { NavbarActionButton } from "@/components/navigation/action-button";
-import { Plus } from "@unkey/icons";
+import { IconPlusOutline18 } from "@unkey/icons";
 import dynamic from "next/dynamic";
 import { useState } from "react";
 
@@ -19,7 +19,7 @@ export function OverrideIdentifierAction({ namespaceId }: { namespaceId: string 
   return (
     <>
       <NavbarActionButton title="Override Identifier" onClick={() => setOpen(true)}>
-        <Plus />
+        <IconPlusOutline18 />
         Override Identifier
       </NavbarActionButton>
       {open && (

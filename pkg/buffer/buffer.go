@@ -9,9 +9,15 @@ import (
 	"github.com/unkeyed/unkey/pkg/repeat"
 )
 
-// Buffer represents a generic buffered channel that can store elements of type T.
-// It provides configuration for capacity and drop behavior when the buffer is full.
-type Buffer[T any] struct {
+// Buffer provides concurrent-safe buffering and consumption of items.
+type Buffer[T any] interface {
+	Buffer(T)
+	Consume() <-chan *T
+	Size() int
+	Close()
+}
+
+type channelBuffer[T any] struct {
 	c    chan *T // Pointer-based channel — 8 bytes per slot instead of sizeof(T)
 	drop bool    // Whether to drop new elements when buffer is full
 	name string  // name of the buffer
@@ -48,8 +54,8 @@ type Config struct {
 //		Drop:     true,
 //		Name:     "string_buffer",
 //	})
-func New[T any](config Config) *Buffer[T] {
-	b := &Buffer[T]{
+func New[T any](config Config) Buffer[T] {
+	b := &channelBuffer[T]{
 		mu:          sync.RWMutex{},
 		closeOnce:   sync.Once{},
 		isClosed:    false,
@@ -93,7 +99,7 @@ func New[T any](config Config) *Buffer[T] {
 //		Name:     "event_buffer",
 //	})
 //	eventBuffer.Buffer(Event{ID: "1", Data: "example"})
-func (b *Buffer[T]) Buffer(t T) {
+func (b *channelBuffer[T]) Buffer(t T) {
 	b.mu.RLock()
 	defer b.mu.RUnlock()
 
@@ -122,7 +128,7 @@ func (b *Buffer[T]) Buffer(t T) {
 
 // Consume returns a receive-only channel that can be used to read elements from the buffer.
 // Elements are removed from the buffer as they are read from the channel.
-// The channel will remain open until the Buffer.Close() method is called.
+// The channel remains open until Close is called.
 //
 // Example:
 //
@@ -139,7 +145,7 @@ func (b *Buffer[T]) Buffer(t T) {
 //	        fmt.Println(*event)
 //	    }
 //	}()
-func (b *Buffer[T]) Consume() <-chan *T {
+func (b *channelBuffer[T]) Consume() <-chan *T {
 	return b.c
 }
 
@@ -151,7 +157,7 @@ func (b *Buffer[T]) Consume() <-chan *T {
 //
 //	size := b.Size()
 //	fmt.Printf("Buffer snapshot shows %d elements\n", size)
-func (b *Buffer[T]) Size() int {
+func (b *channelBuffer[T]) Size() int {
 	return len(b.c)
 }
 
@@ -168,7 +174,7 @@ func (b *Buffer[T]) Size() int {
 //
 //	// Close the buffer when done
 //	b.Close()
-func (b *Buffer[T]) Close() {
+func (b *channelBuffer[T]) Close() {
 	b.closeOnce.Do(func() {
 		b.mu.Lock()
 		defer b.mu.Unlock()

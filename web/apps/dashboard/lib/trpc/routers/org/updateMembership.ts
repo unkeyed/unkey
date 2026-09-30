@@ -1,8 +1,7 @@
-import { auth as authProvider } from "@/lib/auth/server";
-import { OrganizationScopeError } from "@/lib/auth/types";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { requireOrgAdmin, workspaceProcedure } from "../../trpc";
+import { getLocalTeamProvider } from "./local-team-provider";
 
 export const updateMembership = workspaceProcedure
   .use(requireOrgAdmin)
@@ -14,6 +13,7 @@ export const updateMembership = workspaceProcedure
     }),
   )
   .mutation(async ({ ctx, input }) => {
+    const authProvider = getLocalTeamProvider();
     try {
       if (input.orgId !== ctx.workspace?.orgId) {
         throw new TRPCError({
@@ -29,12 +29,6 @@ export const updateMembership = workspaceProcedure
     } catch (error) {
       if (error instanceof TRPCError) {
         throw error;
-      }
-      if (error instanceof OrganizationScopeError) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Membership not found",
-        });
       }
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",

@@ -3,31 +3,34 @@
  * the hierarchy: `routes.projects.apps.deployment(scope)`. New areas register
  * here as they get builders.
  */
+import { accountRoutes } from "./account";
 import { apiRoutes } from "./apis";
 import { auditRoutes } from "./audit";
 import { authRoutes } from "./auth";
 import { authorizationRoutes } from "./authorization";
 import { identityRoutes } from "./identities";
 import { logRoutes } from "./logs";
-import { portalRoutes } from "./portal";
 import { projectRoutes } from "./projects";
 import { ratelimitRoutes } from "./ratelimits";
+import { rootKeyRoutes } from "./root-keys";
 import { settingsRoutes } from "./settings";
 import { workspaceRoutes } from "./workspaces";
 
 export { buildRoute } from "./shared";
 export type { CheckoutIntent, DeployCheckoutOrigin, DeployCheckoutPlan } from "./settings";
+export { DEPLOY_CHECKOUT_ORIGINS } from "./settings";
 
 export const routes = {
+  account: accountRoutes,
   projects: projectRoutes,
   ratelimits: ratelimitRoutes,
+  rootKeys: rootKeyRoutes,
   settings: settingsRoutes,
   apis: apiRoutes,
   authorization: authorizationRoutes,
   identities: identityRoutes,
   audit: auditRoutes,
   logs: logRoutes,
-  portal: portalRoutes,
   auth: authRoutes,
   workspaces: workspaceRoutes,
 };

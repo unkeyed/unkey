@@ -41,8 +41,8 @@ var _ ConnectionManager = (*fakeManager)(nil)
 func (f *fakeManager) GetConnection(_ context.Context, workspaceID string) (clickhouse.ClickHouse, db.FindClickhouseWorkspaceSettingsByWorkspaceIDRow, error) {
 	f.workspace = workspaceID
 	return f.connection, db.FindClickhouseWorkspaceSettingsByWorkspaceIDRow{
-		ClickhouseWorkspaceSetting: db.ClickhouseWorkspaceSetting{MaxQueryResultRows: 100},
-		Limit:                      db.Limit{LogsRetentionDaysMax: 30},
+		ClickhouseMaxQueryResultRows: 100,
+		QuotaLogsRetentionDays:       30,
 	}, nil
 }
 
@@ -78,6 +78,29 @@ func TestExecuteEmptySecurityFilterFailsClosed(t *testing.T) {
 	})
 	require.NoError(t, err)
 	require.Contains(t, connection.query, "AND (0)")
+}
+
+func TestExecutePreservesNilAndEmptySecurityScopes(t *testing.T) {
+	for name, test := range map[string]struct {
+		scopes   []queryparser.SecurityScope
+		contains string
+	}{
+		"nil is unrestricted": {scopes: nil, contains: "events.workspace_id = 'ws_test' LIMIT 100"},
+		"empty denies all":    {scopes: []queryparser.SecurityScope{}, contains: "AND ((0))"},
+	} {
+		t.Run(name, func(t *testing.T) {
+			connection := &fakeConnection{}
+			_, err := Execute(context.Background(), &fakeManager{connection: connection}, ExecuteRequest{
+				Query:          "SELECT * FROM events",
+				WorkspaceID:    "ws_test",
+				TableAliases:   map[string]string{"events": "default.events"},
+				AllowedTables:  []string{"default.events"},
+				SecurityScopes: test.scopes,
+			})
+			require.NoError(t, err)
+			require.Contains(t, connection.query, test.contains)
+		})
+	}
 }
 
 // TestNonFiniteValueBreaksJSON records the reason for the nullifyNonFinite pass.

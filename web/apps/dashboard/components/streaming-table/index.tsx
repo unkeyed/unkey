@@ -1,6 +1,6 @@
 "use client";
 
-import { cn } from "@/lib/utils";
+import { cn } from "cn";
 import { Fragment, type ReactNode, useEffect, useRef } from "react";
 import type { Column } from "../virtual-table/types";
 

@@ -10,7 +10,7 @@ import (
 )
 
 const findFrontlineRouteByDeploymentIDAndSticky = `-- name: FindFrontlineRouteByDeploymentIDAndSticky :one
-SELECT pk, id, project_id, app_id, deployment_id, environment_id, fully_qualified_domain_name, sticky, created_at, updated_at FROM frontline_routes WHERE deployment_id = ? AND sticky = ?
+SELECT frontline_routes.pk, frontline_routes.id, frontline_routes.project_id, frontline_routes.app_id, frontline_routes.deployment_id, frontline_routes.environment_id, frontline_routes.fully_qualified_domain_name, frontline_routes.sticky, frontline_routes.created_at, frontline_routes.updated_at FROM frontline_routes WHERE deployment_id = ? AND sticky = ?
 `
 
 type FindFrontlineRouteByDeploymentIDAndStickyParams struct {
@@ -20,7 +20,7 @@ type FindFrontlineRouteByDeploymentIDAndStickyParams struct {
 
 // FindFrontlineRouteByDeploymentIDAndSticky
 //
-//	SELECT pk, id, project_id, app_id, deployment_id, environment_id, fully_qualified_domain_name, sticky, created_at, updated_at FROM frontline_routes WHERE deployment_id = ? AND sticky = ?
+//	SELECT frontline_routes.pk, frontline_routes.id, frontline_routes.project_id, frontline_routes.app_id, frontline_routes.deployment_id, frontline_routes.environment_id, frontline_routes.fully_qualified_domain_name, frontline_routes.sticky, frontline_routes.created_at, frontline_routes.updated_at FROM frontline_routes WHERE deployment_id = ? AND sticky = ?
 func (q *Queries) FindFrontlineRouteByDeploymentIDAndSticky(ctx context.Context, arg FindFrontlineRouteByDeploymentIDAndStickyParams) (FrontlineRoute, error) {
 	row := q.db.QueryRowContext(ctx, findFrontlineRouteByDeploymentIDAndSticky, arg.DeploymentID, arg.Sticky)
 	var i FrontlineRoute

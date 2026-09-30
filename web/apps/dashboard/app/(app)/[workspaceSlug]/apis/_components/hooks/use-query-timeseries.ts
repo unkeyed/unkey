@@ -2,6 +2,7 @@ import { formatTimestampForChart } from "@/components/logs/chart/utils/format-ti
 import { HISTORICAL_DATA_WINDOW } from "@/components/logs/constants";
 import { trpc } from "@/lib/trpc/client";
 import { useQueryTime } from "@/providers/query-time-provider";
+import { toast } from "@unkey/ui";
 import { useEffect, useMemo, useState } from "react";
 import type { VerificationQueryTimeseriesPayload } from "./query-timeseries.schema";
 import { useFilters } from "./use-filters";
@@ -67,6 +68,9 @@ export const useFetchVerificationTimeseries = (keyspaceId: string | null) => {
       context: {
         skipBatch: true,
       },
+    },
+    onError(error) {
+      toast.error(error.message || "Could not load API requests data.");
     },
   });
 

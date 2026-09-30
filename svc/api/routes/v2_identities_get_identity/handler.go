@@ -48,7 +48,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	identity, err := db.Query.FindIdentity(ctx, h.DB.RO(), db.FindIdentityParams{
-		WorkspaceID: principal.WorkspaceID,
+		WorkspaceID: principal.AuthorizedWorkspaceID,
 		Identity:    req.Identity,
 		Deleted:     false,
 	})
@@ -88,8 +88,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Action:       rbac.ReadIdentity,
 		}),
 		rbac.U(
-			urn.New().Workspace(principal.WorkspaceID).Project("*").Identity("*"),
-			permissions.ReadIdentity{},
+			urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(identity.ProjectID).Identity(identity.ID),
+			permissions.Read,
 		),
 	))
 	if err != nil {

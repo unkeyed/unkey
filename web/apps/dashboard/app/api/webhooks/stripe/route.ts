@@ -353,6 +353,10 @@ async function resolveApiSubscriptionContext(
 
 export const runtime = "nodejs";
 
+// If the memberlist is too big, we will process the downgrade but the revoking of team members
+// could take longer due to the size. So we increase this to make sure it can be processed.
+export const maxDuration = 300;
+
 export const POST = async (req: Request): Promise<Response> => {
   const signature = req.headers.get("stripe-signature");
   if (!signature) {
@@ -410,7 +414,17 @@ export const POST = async (req: Request): Promise<Response> => {
         // decides the branch, never the subscription's items.
         const subscription = await db.query.billingSubscriptions.findFirst({
           where: (table, { eq }) => eq(table.stripeSubscriptionId, eventSub.id),
-          with: { workspace: { with: { billing: true } } },
+          columns: { workspaceId: true, product: true },
+          with: {
+            workspace: {
+              columns: { id: true, orgId: true, name: true, deletedAtM: true },
+              with: {
+                billing: {
+                  columns: { workspaceId: true, plan: true, planOverride: true, tier: true },
+                },
+              },
+            },
+          },
         });
         const ws = subscription?.workspace ?? null;
         const billing = ws?.billing ?? null;
@@ -708,7 +722,17 @@ export const POST = async (req: Request): Promise<Response> => {
         // decides which product ended.
         const subscription = await db.query.billingSubscriptions.findFirst({
           where: (table, { eq }) => eq(table.stripeSubscriptionId, sub.id),
-          with: { workspace: { with: { billing: true } } },
+          columns: { workspaceId: true, product: true },
+          with: {
+            workspace: {
+              columns: { id: true, orgId: true, name: true, deletedAtM: true },
+              with: {
+                billing: {
+                  columns: { tier: true, plan: true },
+                },
+              },
+            },
+          },
         });
         const ws = subscription?.workspace ?? null;
         const billing = ws?.billing ?? null;
@@ -927,7 +951,17 @@ export const POST = async (req: Request): Promise<Response> => {
         // race-safe source for the API branch below.
         const subscription = await db.query.billingSubscriptions.findFirst({
           where: (table, { eq }) => eq(table.stripeSubscriptionId, sub.id),
-          with: { workspace: { with: { billing: true } } },
+          columns: { workspaceId: true, product: true },
+          with: {
+            workspace: {
+              columns: { id: true, orgId: true, name: true, deletedAtM: true },
+              with: {
+                billing: {
+                  columns: { workspaceId: true, plan: true, tier: true },
+                },
+              },
+            },
+          },
         });
         const ws = subscription?.workspace ?? null;
         const billing = ws?.billing ?? null;

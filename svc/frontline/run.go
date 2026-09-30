@@ -24,6 +24,7 @@ import (
 
 	"github.com/unkeyed/unkey/pkg/batch"
 	"github.com/unkeyed/unkey/pkg/buildinfo"
+	buildinfometrics "github.com/unkeyed/unkey/pkg/buildinfo/metrics"
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
@@ -36,7 +37,6 @@ import (
 	pprofRoute "github.com/unkeyed/unkey/pkg/pprof"
 	"github.com/unkeyed/unkey/pkg/prometheus"
 	"github.com/unkeyed/unkey/pkg/prometheus/lazy"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/rpc/interceptor"
 	"github.com/unkeyed/unkey/pkg/runner"
@@ -46,7 +46,9 @@ import (
 	"github.com/unkeyed/unkey/svc/frontline/internal/certmanager"
 	"github.com/unkeyed/unkey/svc/frontline/internal/db"
 	"github.com/unkeyed/unkey/svc/frontline/internal/errorpage"
+	"github.com/unkeyed/unkey/svc/frontline/internal/meta"
 	"github.com/unkeyed/unkey/svc/frontline/internal/policies"
+	"github.com/unkeyed/unkey/svc/frontline/internal/policies/keyauth"
 	"github.com/unkeyed/unkey/svc/frontline/internal/proxy"
 	"github.com/unkeyed/unkey/svc/frontline/internal/router"
 	"github.com/unkeyed/unkey/svc/frontline/routes"
@@ -119,7 +121,7 @@ func Run(ctx context.Context, cfg Config) error {
 	reg.MustRegister(collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}))
 	reg.MustRegister(prometheus.NewSystemMetricsCollector())
 	lazy.SetRegistry(reg)
-	buildinfo.RegisterBuildInfoMetrics("frontline")
+	buildinfometrics.Register("frontline")
 
 	if cfg.PrometheusPort > 0 {
 		prom, promErr := prometheus.NewWithRegistry(reg)
@@ -253,8 +255,7 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	cacheSet, err := caches.New(caches.Config{
-		Clock:  clk,
-		NodeID: cfg.InstanceID,
+		Clock: clk,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create caches: %w", err)
@@ -286,6 +287,10 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	upstreamTransports := proxy.NewTransportRegistry()
+	metadata, err := meta.New(cfg.FrontlineMetaSigningKey)
+	if err != nil {
+		return fmt.Errorf("unable to create Frontline metadata codec: %w", err)
+	}
 
 	// nolint:exhaustruct
 	proxySvc, err := proxy.New(proxy.Config{
@@ -295,6 +300,7 @@ func Run(ctx context.Context, cfg Config) error {
 		ApexDomain:         cfg.ApexDomain,
 		Clock:              clk,
 		MaxHops:            cfg.MaxHops,
+		Metadata:           metadata,
 		UpstreamTransports: upstreamTransports,
 	})
 	if err != nil {
@@ -312,7 +318,7 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	acmeClient := ctrl.NewConnectAcmeServiceClient(ctrlv1connect.NewAcmeServiceClient(
-		ptr.P(http.Client{}),
+		new(http.Client{}),
 		cfg.Control.URL,
 		connect.WithInterceptors(interceptor.NewHeaderInjector(map[string]string{
 			"Authorization": "Bearer " + cfg.Control.Token,
@@ -323,6 +329,7 @@ func Run(ctx context.Context, cfg Config) error {
 		Region:            cfg.Region,
 		Platform:          cfg.Platform,
 		FrontlineID:       cfg.InstanceID,
+		Metadata:          metadata,
 		RouterService:     routerSvc,
 		ProxyService:      proxySvc,
 		Engine:            policyEngine,
@@ -343,6 +350,7 @@ func Run(ctx context.Context, cfg Config) error {
 			EnableH2C:          false,
 			MaxRequestBodySize: 0,
 			StreamRequestBody:  true,
+			TrustedProxyCIDRs:  nil,
 		})
 		if httpsErr != nil {
 			return fmt.Errorf("unable to create HTTPS server: %w", httpsErr)
@@ -382,6 +390,7 @@ func Run(ctx context.Context, cfg Config) error {
 			EnableH2C:          false,
 			MaxRequestBodySize: 0,
 			StreamRequestBody:  false,
+			TrustedProxyCIDRs:  nil,
 			ReadTimeout:        -1,
 			WriteTimeout:       -1,
 		})
@@ -493,6 +502,18 @@ func buildEngine(
 	if err != nil {
 		return nil, fmt.Errorf("failed to create key cache: %w", err)
 	}
+	r.Defer(func() error { keyCache.Close(); return nil })
+	rootKeyCache, err := cache.New(cache.Config[string, keysdb.CachedRootKeyData]{
+		Fresh:    10 * time.Second,
+		Stale:    10 * time.Minute,
+		MaxSize:  100_000,
+		Resource: "frontline_root_key_cache",
+		Clock:    clk,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create root key cache: %w", err)
+	}
+	r.Defer(func() error { rootKeyCache.Close(); return nil })
 
 	keyService, err := keys.New(keys.Config{
 		DB:           pkgdb.ToMySQL(database),
@@ -502,6 +523,7 @@ func buildEngine(
 		UsageLimiter: usageLimiter,
 		Source:       schema.SourceGateway,
 		KeyCache:     keyCache,
+		RootKeyCache: rootKeyCache,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create key service: %w", err)
@@ -509,10 +531,9 @@ func buildEngine(
 
 	logger.Info("policy engine initialized")
 	eng, err := policies.New(policies.Config{
-		KeyService:       keyService,
-		RateLimiter:      rlSvc,
-		Clock:            clk,
-		KeyVerifications: keyVerifications,
+		KeyAuth:     keyauth.New(keyService, clk, keyVerifications),
+		RateLimiter: rlSvc,
+		Clock:       clk,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize policy engine: %w", err)

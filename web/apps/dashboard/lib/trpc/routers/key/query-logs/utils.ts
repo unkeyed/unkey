@@ -1,5 +1,5 @@
 import type { KeyDetailsLogsPayload } from "@/components/key-details-logs-table/schema/query-logs.schema";
-import { getTimestampFromRelative } from "@/lib/utils";
+import { getTimestampFromRelative } from "@/lib/duration";
 import type { KeyDetailsLogsParams } from "@unkey/clickhouse/src/verifications";
 
 export function transformKeyDetailsFilters(

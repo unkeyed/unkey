@@ -8,12 +8,13 @@
 import type { Route } from "next";
 import { type WorkspaceScope, buildRoute } from "./shared";
 
-export type CheckoutIntent = "compute" | "api" | "payment" | "deploy";
+export type CheckoutIntent = "payment" | "deploy";
 
 /** Compute-plan tiers carried through the deploy-gate checkout round-trip. */
 export type DeployCheckoutPlan = "starter" | "pro" | "business";
 /** Where the deploy-gate dialog was opened from, for post-subscribe routing. */
-export type DeployCheckoutOrigin = "create" | "banner" | "billing" | "deploy";
+export const DEPLOY_CHECKOUT_ORIGINS = ["create", "banner", "billing", "deploy"] as const;
+export type DeployCheckoutOrigin = (typeof DEPLOY_CHECKOUT_ORIGINS)[number];
 
 export const settingsRoutes = {
   general({ workspaceSlug }: WorkspaceScope): Route {
@@ -32,12 +33,21 @@ export const settingsRoutes = {
     return buildRoute("/[workspaceSlug]/settings/root-keys/new", { workspaceSlug });
   },
 
-  billing({ workspaceSlug, intent }: WorkspaceScope & { intent?: "compute" | "api" }): Route {
-    return buildRoute(
-      "/[workspaceSlug]/settings/billing",
-      { workspaceSlug },
-      intent ? { intent } : undefined,
-    );
+  logdrains: {
+    list({ workspaceSlug }: WorkspaceScope): Route {
+      return buildRoute("/[workspaceSlug]/settings/logdrains", { workspaceSlug });
+    },
+
+    detail({ workspaceSlug, drainId }: WorkspaceScope & { drainId: string }): Route {
+      return buildRoute("/[workspaceSlug]/settings/logdrains/[drainId]", {
+        workspaceSlug,
+        drainId,
+      });
+    },
+  },
+
+  billing({ workspaceSlug }: WorkspaceScope): Route {
+    return buildRoute("/[workspaceSlug]/settings/billing", { workspaceSlug });
   },
 
   usage({ workspaceSlug }: WorkspaceScope): Route {
@@ -46,10 +56,6 @@ export const settingsRoutes = {
 
   limits({ workspaceSlug }: WorkspaceScope): Route {
     return buildRoute("/[workspaceSlug]/settings/limits", { workspaceSlug });
-  },
-
-  security({ workspaceSlug }: WorkspaceScope): Route {
-    return buildRoute("/[workspaceSlug]/settings/security", { workspaceSlug });
   },
 
   stripe: {
@@ -62,14 +68,21 @@ export const settingsRoutes = {
       intent,
       plan,
       from,
+      returnTo,
     }: WorkspaceScope & {
       intent?: CheckoutIntent;
       plan?: DeployCheckoutPlan;
       from?: DeployCheckoutOrigin;
+      returnTo?: string;
     }): Route {
       const query =
-        intent || plan || from
-          ? { ...(intent ? { intent } : {}), ...(plan ? { plan } : {}), ...(from ? { from } : {}) }
+        intent || plan || from || returnTo
+          ? {
+              ...(intent ? { intent } : {}),
+              ...(plan ? { plan } : {}),
+              ...(from ? { from } : {}),
+              ...(returnTo ? { returnTo } : {}),
+            }
           : undefined;
       return buildRoute("/[workspaceSlug]/stripe/checkout", { workspaceSlug }, query);
     },

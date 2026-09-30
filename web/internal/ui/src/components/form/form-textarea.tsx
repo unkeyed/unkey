@@ -1,6 +1,7 @@
-import React from "react";
-import { cn } from "../../lib/utils";
-import { FormDescription, FormLabel, type Requirement } from "./form-helpers";
+// biome-ignore lint/style/useImportType: this package compiles JSX with the classic runtime, so React must stay a value import
+import * as React from "react";
+import { FormField } from "./form-field";
+import type { Requirement } from "./form-helpers";
 import { type DocumentedTextareaProps, Textarea, type TextareaProps } from "./textarea";
 
 // Hack to populate fumadocs' AutoTypeTable
@@ -12,67 +13,47 @@ type DocumentedFormTextareaProps = DocumentedTextareaProps & {
   descriptionPosition?: "inline" | "label";
 };
 
-type FormTextareaProps = TextareaProps & DocumentedFormTextareaProps;
+type FormTextareaProps = TextareaProps &
+  DocumentedFormTextareaProps & {
+    ref?: React.Ref<HTMLTextAreaElement>;
+  };
 
-const FormTextarea = React.forwardRef<HTMLTextAreaElement, FormTextareaProps>(
-  (
-    {
-      label,
-      description,
-      error,
-      requirement,
-      id,
-      className,
-      variant,
-      leftIcon,
-      rightIcon,
-      wrapperClassName,
-      descriptionPosition = "inline",
-      ...props
-    },
-    ref,
-  ) => {
-    const descriptionAsTooltip = descriptionPosition === "label";
-    const textareaVariant = error ? "error" : variant;
-    const generatedId = React.useId();
-    const textareaId = id || generatedId;
-    const descriptionId = `${textareaId}-helper`;
-    const errorId = `${textareaId}-error`;
-
-    return (
-      <fieldset className={cn("flex flex-col gap-1.5 border-0 m-0 p-0", className)}>
-        <FormLabel
-          label={label}
-          requirement={requirement}
-          hasError={!!error}
-          htmlFor={textareaId}
-          tooltipContent={descriptionAsTooltip ? description : undefined}
-        />
-
+function FormTextarea({
+  label,
+  description,
+  error,
+  requirement,
+  id,
+  className,
+  variant,
+  descriptionPosition = "inline",
+  ref,
+  ...props
+}: FormTextareaProps) {
+  return (
+    <FormField
+      label={label}
+      description={description}
+      error={error}
+      requirement={requirement}
+      id={id}
+      className={className}
+      variant={variant}
+      descriptionPosition={descriptionPosition}
+    >
+      {(control) => (
         <Textarea
           ref={ref}
-          id={textareaId}
-          variant={textareaVariant}
-          leftIcon={leftIcon}
-          rightIcon={rightIcon}
-          wrapperClassName={wrapperClassName}
-          aria-describedby={error ? errorId : description ? descriptionId : undefined}
-          aria-invalid={!!error}
+          id={control.id}
+          variant={control.variant ?? variant}
+          aria-describedby={control.describedBy}
+          aria-invalid={control.invalid}
           aria-required={requirement === "required"}
           {...props}
         />
-        <FormDescription
-          description={descriptionAsTooltip ? undefined : description}
-          error={error}
-          variant={variant}
-          descriptionId={descriptionId}
-          errorId={errorId}
-        />
-      </fieldset>
-    );
-  },
-);
-
-FormTextarea.displayName = "FormTextarea";
+      )}
+    </FormField>
+  );
+}
 
 export { FormTextarea, type FormTextareaProps, type DocumentedFormTextareaProps };

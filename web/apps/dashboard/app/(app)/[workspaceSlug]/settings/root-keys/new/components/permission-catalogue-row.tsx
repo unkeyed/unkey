@@ -30,7 +30,7 @@ export function PermissionCatalogueRow({
   return (
     <div className="flex items-center justify-between gap-4 py-2">
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-        <span className="truncate text-[13px] text-accent-12">{row.label}</span>
+        <span className="truncate text-sm text-gray-12">{row.label}</span>
         {paths.length === 0 ? null : (
           <span className="whitespace-pre-line break-all font-mono text-xs leading-4 text-gray-9">
             {paths.join("\n")}
@@ -48,7 +48,7 @@ export function PermissionCatalogueRow({
             />
             <label
               htmlFor={`${id}-${action}`}
-              className="text-xs text-accent-12 cursor-pointer select-none"
+              className="text-xs text-gray-12 cursor-pointer select-none"
             >
               {ACTION_LABELS[action]}
             </label>

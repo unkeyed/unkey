@@ -13,6 +13,7 @@ import (
 	"github.com/stretchr/testify/require"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/auditlogs"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deployment"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deployteardown"
@@ -31,8 +32,13 @@ func startTeardown(t *testing.T, database db.Database) *restatetest.TestEnvironm
 	})
 	require.NoError(t, err)
 
+	auditlogSvc, err := auditlogs.New(auditlogs.Config{DB: database})
+	require.NoError(t, err)
+	deploymentSvc, err := deployment.New(deployment.Config{DB: database, Auditlogs: auditlogSvc})
+	require.NoError(t, err)
+
 	return restatetest.Start(t,
-		hydrav1.NewDeploymentServiceServer(deployment.New(deployment.Config{DB: database})),
+		hydrav1.NewDeploymentServiceServer(deploymentSvc),
 		hydrav1.NewDeployTeardownServiceServer(teardownSvc),
 	)
 }
@@ -73,7 +79,7 @@ func TestDeployTeardown_ClearsCurrentAndStops(t *testing.T) {
 	dep := h.CreateDeployment(ctx, CreateDeploymentRequest{
 		Region:       "us-east-1",
 		DesiredState: mysqltype.DeploymentsDesiredStateRunning,
-	}).Deployment
+	})
 
 	// Make the deployment its app's current deployment so we exercise the
 	// guard-bypass-by-clearing path.
@@ -145,7 +151,7 @@ func TestDeployTeardown_NoInstancesDrainsImmediately(t *testing.T) {
 	dep := h.CreateDeployment(ctx, CreateDeploymentRequest{
 		Region:       "us-east-1",
 		DesiredState: mysqltype.DeploymentsDesiredStateRunning,
-	}).Deployment
+	})
 
 	// Model a deployment that never produced instances.
 	require.NoError(t, h.DB.UpdateDeploymentStatus(ctx, db.UpdateDeploymentStatusParams{
@@ -179,7 +185,7 @@ func TestDeployTeardown_SuspendThenResume(t *testing.T) {
 	dep := h.CreateDeployment(ctx, CreateDeploymentRequest{
 		Region:       "us-east-1",
 		DesiredState: mysqltype.DeploymentsDesiredStateRunning,
-	}).Deployment
+	})
 
 	// Make the deployment its app's current deployment so SUSPEND records it.
 	err := h.DB.UpdateAppDeployments(ctx, db.UpdateAppDeploymentsParams{

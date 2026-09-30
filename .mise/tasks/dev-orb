@@ -5,7 +5,6 @@
 set -euo pipefail
 
 ctlptl apply -f ./dev/cluster.orb.yaml
-minikube addons enable metrics-server
 tilt up \
   --file ./dev/Tiltfile \
   --host 0.0.0.0 \

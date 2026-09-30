@@ -9,6 +9,7 @@ import {
   type DeployBillingConfig,
   deployBillingConfig,
   deployCheckoutLineItems,
+  deployResumeSubscriptionParams,
   deploySubscriptionItems,
   findDeployItems,
   findPlanFeeItem,
@@ -161,6 +162,40 @@ describe("deploySubscriptionItems", () => {
       { price: "price_disk" },
       { price: "price_active_keys" },
     ]);
+  });
+});
+
+describe("deployResumeSubscriptionParams", () => {
+  it("atomically resumes a cancelled Starter subscription on Pro", () => {
+    expect(
+      deployResumeSubscriptionParams(CONFIG, { id: "si_plan", plan: "starter" }, "pro"),
+    ).toEqual({
+      cancel_at_period_end: false,
+      items: [{ id: "si_plan", price: "price_pro" }],
+      proration_behavior: "always_invoice",
+      payment_behavior: "error_if_incomplete",
+    });
+  });
+
+  it("resumes the same tier without invoicing it again", () => {
+    expect(
+      deployResumeSubscriptionParams(CONFIG, { id: "si_plan", plan: "starter" }, "starter"),
+    ).toEqual({
+      cancel_at_period_end: false,
+      proration_behavior: "none",
+      payment_behavior: "error_if_incomplete",
+    });
+  });
+
+  it("changes to a lower tier without refunding the paid period", () => {
+    expect(
+      deployResumeSubscriptionParams(CONFIG, { id: "si_plan", plan: "pro" }, "starter"),
+    ).toEqual({
+      cancel_at_period_end: false,
+      items: [{ id: "si_plan", price: "price_starter" }],
+      proration_behavior: "none",
+      payment_behavior: "error_if_incomplete",
+    });
   });
 });
 

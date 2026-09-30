@@ -31,12 +31,14 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/internal/billingmeter"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/invoicecloser"
-	"github.com/unkeyed/unkey/svc/ctrl/worker/buildslot"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/clickhouseuser"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/buildlimitsync"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/deploybilling"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/deployspendcheck"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deploy"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deployment"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/deployteardown"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/keylastusedsync"
 	vaulttestutil "github.com/unkeyed/unkey/svc/vault/testutil"
 )
@@ -209,6 +211,12 @@ func New(t *testing.T, opts ...Option) *Harness {
 
 	seeder := seed.New(t, database, vaultClient)
 
+	// The cron service reads and writes Restate's concurrency rules, but the admin URL
+	// is only known after containers.Restate starts below, and that start needs
+	// the constructed services. The lazy adapter breaks the cycle: it is set
+	// directly after the container is up, and no handler runs before that
+	restateRules := &lazyRestateRules{mu: sync.Mutex{}, client: nil}
+
 	// Unified cron service: every scheduled task runs as a handler on
 	// hydra.v1.CronService. Heartbeats are noop in tests; the slack
 	// webhook is empty so quota-check skips notification calls.
@@ -217,6 +225,7 @@ func New(t *testing.T, opts ...Option) *Harness {
 		Clickhouse:                chClient,
 		Clock:                     o.clock,
 		RatelimitDB:               ratelimitdb.New(database.RW(), database.RO()),
+		RestateRules:              restateRules,
 		SlackQuotaCheckWebhookURL: "",
 		// Deploy billing is a no-op by default (nil reader + empty Stripe key);
 		// WithDeployBilling injects fakes for tests that exercise the push/close.
@@ -230,6 +239,7 @@ func New(t *testing.T, opts ...Option) *Harness {
 		ResendAPIKey:   "",
 		BillingBaseURL: "",
 		Heartbeats: cron.Heartbeats{
+			BuildLimitSync:     healthcheck.NewNoop(),
 			QuotaCheck:         healthcheck.NewNoop(),
 			KeyRefill:          healthcheck.NewNoop(),
 			KeyLastUsedSync:    healthcheck.NewNoop(),
@@ -266,12 +276,19 @@ func New(t *testing.T, opts ...Option) *Harness {
 			Depot:      deploy.DepotConfig{APIUrl: "", ProjectRegion: "", ProjectPrefix: "builds-test"},
 			Kubernetes: deploy.KubernetesBuildConfig{Namespace: "", Image: ""},
 		},
-		K8s:                             nil,
-		BuildSteps:                      batch.NewNoop[schema.BuildStepV1](),
-		BuildStepLogs:                   batch.NewNoop[schema.BuildStepLogV1](),
-		RegistryConfig:                  deploy.RegistryConfig{Repository: "", Username: "", Password: "", Insecure: false},
-		BuildPlatform:                   deploy.BuildPlatform{Platform: "", Architecture: ""},
+		K8s:            nil,
+		BuildSteps:     batch.NewNoop[schema.BuildStepV1](),
+		BuildStepLogs:  batch.NewNoop[schema.BuildStepLogV1](),
+		RegistryConfig: deploy.RegistryConfig{Repository: "", Username: "", Password: "", Insecure: false},
+		BuildPlatform:  deploy.BuildPlatform{Platform: "", Architecture: ""},
+		ImageResolver: deploy.ImageResolverFunc(func(context.Context, string) (string, error) {
+			return "index.docker.io/library/test@sha256:0000000000000000000000000000000000000000000000000000000000000000", nil
+		}),
 		AllowUnauthenticatedDeployments: false,
+
+		// A nil admin client leaves a superseded deployment's row marked while its
+		// invocation keeps running.
+		RestateAdmin: nil,
 	})
 	require.NoError(t, err)
 
@@ -281,41 +298,45 @@ func New(t *testing.T, opts ...Option) *Harness {
 	})
 	require.NoError(t, err)
 
-	deploymentSvc := deployment.New(deployment.Config{
-		DB: database,
+	deploymentSvc, err := deployment.New(deployment.Config{
+		DB:        database,
+		Auditlogs: auditlogSvc,
 	})
+	require.NoError(t, err)
 
-	// The build slot service audits slot occupancy against the Restate
-	// admin API, but the admin URL is only known after containers.Restate
-	// starts below, and that start needs the constructed services. The
-	// lazy adapter breaks the cycle: it is set directly after the
-	// container is up, and no handler runs before that.
-	buildSlotLiveness := &lazyInvocationLiveness{mu: sync.Mutex{}, client: nil}
-	buildSlotSvc := buildslot.New(buildslot.Config{
-		DB:           database,
-		RestateAdmin: buildSlotLiveness,
+	// CheckWorkspaceSpend sends Teardown/Resume to this service. Restate
+	// retries calls to unregistered services indefinitely, so it must be
+	// registered here or a dispatched check never completes.
+	teardownSvc, err := deployteardown.New(deployteardown.Config{
+		DB:                database,
+		DrainPollInterval: 200 * time.Millisecond,
+		DrainGraceTimeout: 2 * time.Second,
 	})
+	require.NoError(t, err)
 
 	// Register every worker service as one deployment on this test's own
 	// Restate. Use the proto-generated wrappers (same as run.go) to get
 	// correct service names.
 	restateCfg := containers.Restate(t,
-		hydrav1.NewCronServiceServer(cronSvc),
+		hydrav1.NewCronServiceServer(cronSvc).
+			ConfigureHandler("RunDeploySpendCheck", deployspendcheck.RetryPolicy()),
 		// The deploy billing orchestrator (push and close) fans out to this
 		// per-workspace push service, so it must be bound for those handlers to
 		// route end to end.
 		hydrav1.NewDeployBillingPushServiceServer(cronSvc.DeployBillingPushServer()),
-		hydrav1.NewDeploySpendCheckServiceServer(cronSvc.DeploySpendCheckServer()),
+		hydrav1.NewDeploySpendCheckServiceServer(cronSvc.DeploySpendCheckServer()).
+			ConfigureHandler("CheckWorkspaceSpend", deployspendcheck.RetryPolicy()),
 		hydrav1.NewClickhouseUserServiceServer(clickhouseUserSvc),
 		hydrav1.NewKeyLastUsedPartitionServiceServer(keyLastUsedPartitionSvc),
-		hydrav1.NewDeployServiceServer(deploySvc),
+		hydrav1.NewDeployWorkflowServer(deploySvc),
 		hydrav1.NewDeploymentServiceServer(deploymentSvc),
-		hydrav1.NewBuildSlotServiceServer(buildSlotSvc),
+		hydrav1.NewDeployTeardownServiceServer(teardownSvc),
 	)
-	buildSlotLiveness.set(restateadmin.New(restateadmin.Config{
+	restateAdmin := restateadmin.New(restateadmin.Config{
 		BaseURL: restateCfg.AdminURL,
 		APIKey:  "",
-	}))
+	})
+	restateRules.set(restateAdmin)
 	t.Logf("Total harness setup in %s", time.Since(start))
 
 	// The timeout limits test operations, not container startup and service
@@ -340,27 +361,50 @@ func New(t *testing.T, opts ...Option) *Harness {
 	}
 }
 
-// lazyInvocationLiveness defers the Restate admin client until the test
-// container is running. See the comment at the buildslot.New call site.
-type lazyInvocationLiveness struct {
+// lazyRestateRules defers the Restate admin client until the test container
+// is running. See the comment at the cron.New call site
+type lazyRestateRules struct {
 	mu     sync.Mutex
 	client *restateadmin.Client
 }
 
-var _ buildslot.InvocationLiveness = (*lazyInvocationLiveness)(nil)
+var _ buildlimitsync.RestateRules = (*lazyRestateRules)(nil)
 
-func (l *lazyInvocationLiveness) set(client *restateadmin.Client) {
+func (l *lazyRestateRules) set(client *restateadmin.Client) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	l.client = client
 }
 
-func (l *lazyInvocationLiveness) FindLiveInvocations(ctx context.Context, invocationIDs []string) (map[string]bool, error) {
+func (l *lazyRestateRules) ListRules(ctx context.Context) ([]restateadmin.Rule, error) {
+	client, err := l.get()
+	if err != nil {
+		return nil, err
+	}
+	return client.ListRules(ctx)
+}
+
+func (l *lazyRestateRules) UpsertRules(ctx context.Context, rules []restateadmin.RuleUpsert) error {
+	client, err := l.get()
+	if err != nil {
+		return err
+	}
+	return client.UpsertRules(ctx, rules)
+}
+
+func (l *lazyRestateRules) DeleteRules(ctx context.Context, rules []restateadmin.Rule) error {
+	client, err := l.get()
+	if err != nil {
+		return err
+	}
+	return client.DeleteRules(ctx, rules)
+}
+
+func (l *lazyRestateRules) get() (*restateadmin.Client, error) {
 	l.mu.Lock()
-	client := l.client
-	l.mu.Unlock()
-	if client == nil {
+	defer l.mu.Unlock()
+	if l.client == nil {
 		return nil, errors.New("restate admin client not initialized yet")
 	}
-	return client.FindLiveInvocations(ctx, invocationIDs)
+	return l.client, nil
 }

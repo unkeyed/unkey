@@ -267,6 +267,49 @@ func (ns NullAppRuntimeSettingsUpstreamProtocol) Value() (driver.Value, error) {
 	return string(ns.AppRuntimeSettingsUpstreamProtocol), nil
 }
 
+type AppsSourceType string
+
+const (
+	AppsSourceTypeUnknown AppsSourceType = "unknown"
+	AppsSourceTypeGit     AppsSourceType = "git"
+	AppsSourceTypeOci     AppsSourceType = "oci"
+)
+
+func (e *AppsSourceType) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = AppsSourceType(s)
+	case string:
+		*e = AppsSourceType(s)
+	default:
+		return fmt.Errorf("unsupported scan type for AppsSourceType: %T", src)
+	}
+	return nil
+}
+
+type NullAppsSourceType struct {
+	AppsSourceType AppsSourceType
+	Valid          bool // Valid is true if AppsSourceType is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullAppsSourceType) Scan(value interface{}) error {
+	if value == nil {
+		ns.AppsSourceType, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.AppsSourceType.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullAppsSourceType) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.AppsSourceType), nil
+}
+
 type BillingSubscriptionsProduct string
 
 const (
@@ -612,6 +655,49 @@ func (ns NullDeploymentsShutdownSignal) Value() (driver.Value, error) {
 	return string(ns.DeploymentsShutdownSignal), nil
 }
 
+type DeploymentsSource string
+
+const (
+	DeploymentsSourceUnknown DeploymentsSource = "unknown"
+	DeploymentsSourceGit     DeploymentsSource = "git"
+	DeploymentsSourceOci     DeploymentsSource = "oci"
+)
+
+func (e *DeploymentsSource) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = DeploymentsSource(s)
+	case string:
+		*e = DeploymentsSource(s)
+	default:
+		return fmt.Errorf("unsupported scan type for DeploymentsSource: %T", src)
+	}
+	return nil
+}
+
+type NullDeploymentsSource struct {
+	DeploymentsSource DeploymentsSource
+	Valid             bool // Valid is true if DeploymentsSource is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullDeploymentsSource) Scan(value interface{}) error {
+	if value == nil {
+		ns.DeploymentsSource, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.DeploymentsSource.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullDeploymentsSource) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.DeploymentsSource), nil
+}
+
 type DeploymentsStatus string
 
 const (
@@ -926,6 +1012,94 @@ func (ns NullKeyMigrationsAlgorithm) Value() (driver.Value, error) {
 	return string(ns.KeyMigrationsAlgorithm), nil
 }
 
+type LogdrainsStatus string
+
+const (
+	LogdrainsStatusRunning         LogdrainsStatus = "running"
+	LogdrainsStatusPausedByUser    LogdrainsStatus = "paused_by_user"
+	LogdrainsStatusPausedByFailure LogdrainsStatus = "paused_by_failure"
+)
+
+func (e *LogdrainsStatus) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = LogdrainsStatus(s)
+	case string:
+		*e = LogdrainsStatus(s)
+	default:
+		return fmt.Errorf("unsupported scan type for LogdrainsStatus: %T", src)
+	}
+	return nil
+}
+
+type NullLogdrainsStatus struct {
+	LogdrainsStatus LogdrainsStatus
+	Valid           bool // Valid is true if LogdrainsStatus is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullLogdrainsStatus) Scan(value interface{}) error {
+	if value == nil {
+		ns.LogdrainsStatus, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.LogdrainsStatus.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullLogdrainsStatus) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.LogdrainsStatus), nil
+}
+
+type LogdrainsStream string
+
+const (
+	LogdrainsStreamAuditLogs        LogdrainsStream = "audit_logs"
+	LogdrainsStreamKeyVerifications LogdrainsStream = "key_verifications"
+	LogdrainsStreamGatewayRequests  LogdrainsStream = "gateway_requests"
+	LogdrainsStreamRuntimeLogs      LogdrainsStream = "runtime_logs"
+	LogdrainsStreamRatelimits       LogdrainsStream = "ratelimits"
+)
+
+func (e *LogdrainsStream) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = LogdrainsStream(s)
+	case string:
+		*e = LogdrainsStream(s)
+	default:
+		return fmt.Errorf("unsupported scan type for LogdrainsStream: %T", src)
+	}
+	return nil
+}
+
+type NullLogdrainsStream struct {
+	LogdrainsStream LogdrainsStream
+	Valid           bool // Valid is true if LogdrainsStream is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullLogdrainsStream) Scan(value interface{}) error {
+	if value == nil {
+		ns.LogdrainsStream, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.LogdrainsStream.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullLogdrainsStream) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.LogdrainsStream), nil
+}
+
 type AcmeChallenge struct {
 	Pk            uint64                      `db:"pk"`
 	DomainID      string                      `db:"domain_id"`
@@ -971,7 +1145,7 @@ type App struct {
 	ProjectID           string         `db:"project_id"`
 	Name                string         `db:"name"`
 	Slug                string         `db:"slug"`
-	DefaultBranch       string         `db:"default_branch"`
+	SourceType          AppsSourceType `db:"source_type"`
 	CurrentDeploymentID sql.NullString `db:"current_deployment_id"`
 	IsRolledBack        bool           `db:"is_rolled_back"`
 	DeleteProtection    sql.NullBool   `db:"delete_protection"`
@@ -1037,6 +1211,15 @@ type AppRuntimeSetting struct {
 	OpenapiSpecPath  sql.NullString                     `db:"openapi_spec_path"`
 	CreatedAt        int64                              `db:"created_at"`
 	UpdatedAt        sql.NullInt64                      `db:"updated_at"`
+}
+
+type AppSourceOci struct {
+	Pk             uint64        `db:"pk"`
+	WorkspaceID    string        `db:"workspace_id"`
+	AppID          string        `db:"app_id"`
+	ImageReference string        `db:"image_reference"`
+	CreatedAt      int64         `db:"created_at"`
+	UpdatedAt      sql.NullInt64 `db:"updated_at"`
 }
 
 type BillingSubscription struct {
@@ -1140,7 +1323,9 @@ type Deployment struct {
 	ProjectID                     string                      `db:"project_id"`
 	EnvironmentID                 string                      `db:"environment_id"`
 	AppID                         string                      `db:"app_id"`
-	Image                         sql.NullString              `db:"image"`
+	Source                        DeploymentsSource           `db:"source"`
+	ImageRequested                sql.NullString              `db:"image_requested"`
+	ImageResolved                 sql.NullString              `db:"image_resolved"`
 	BuildID                       sql.NullString              `db:"build_id"`
 	GitCommitSha                  sql.NullString              `db:"git_commit_sha"`
 	GitBranch                     sql.NullString              `db:"git_branch"`
@@ -1252,15 +1437,16 @@ type GithubAppInstallation struct {
 }
 
 type GithubRepoConnection struct {
-	Pk                 uint64        `db:"pk"`
-	WorkspaceID        string        `db:"workspace_id"`
-	ProjectID          string        `db:"project_id"`
-	AppID              string        `db:"app_id"`
-	InstallationID     int64         `db:"installation_id"`
-	RepositoryID       int64         `db:"repository_id"`
-	RepositoryFullName string        `db:"repository_full_name"`
-	CreatedAt          int64         `db:"created_at"`
-	UpdatedAt          sql.NullInt64 `db:"updated_at"`
+	Pk                 uint64         `db:"pk"`
+	WorkspaceID        string         `db:"workspace_id"`
+	ProjectID          string         `db:"project_id"`
+	AppID              string         `db:"app_id"`
+	InstallationID     int64          `db:"installation_id"`
+	RepositoryID       int64          `db:"repository_id"`
+	RepositoryFullName string         `db:"repository_full_name"`
+	DefaultBranch      sql.NullString `db:"default_branch"`
+	CreatedAt          int64          `db:"created_at"`
+	UpdatedAt          sql.NullInt64  `db:"updated_at"`
 }
 
 type HorizontalAutoscalingPolicy struct {
@@ -1311,7 +1497,9 @@ type Key struct {
 	ID                 string         `db:"id"`
 	KeyAuthID          string         `db:"key_auth_id"`
 	Hash               string         `db:"hash"`
+	Prefix             string         `db:"prefix"`
 	Start              string         `db:"start"`
+	End                string         `db:"end"`
 	WorkspaceID        string         `db:"workspace_id"`
 	ForWorkspaceID     sql.NullString `db:"for_workspace_id"`
 	Name               sql.NullString `db:"name"`
@@ -1378,6 +1566,7 @@ type Limit struct {
 	ApiRequestsCountMaxPerMinute          sql.NullInt32 `db:"api_requests_count_max_per_minute"`
 	LogsRetentionDaysMax                  uint16        `db:"logs_retention_days_max"`
 	LogsAuditRetentionDaysMax             uint16        `db:"logs_audit_retention_days_max"`
+	LogdrainsMax                          uint32        `db:"logdrains_max"`
 	TeamEnabled                           bool          `db:"team_enabled"`
 	CpuCoresMax                           uint32        `db:"cpu_cores_max"`
 	CpuCoresMaxPerInstance                uint32        `db:"cpu_cores_max_per_instance"`
@@ -1388,6 +1577,25 @@ type Limit struct {
 	BuildsConcurrentMax                   uint16        `db:"builds_concurrent_max"`
 	CustomDomainsMax                      uint32        `db:"custom_domains_max"`
 	AutoscalingReplicasMax                uint16        `db:"autoscaling_replicas_max"`
+}
+
+type Logdrain struct {
+	Pk                        uint64          `db:"pk"`
+	ID                        string          `db:"id"`
+	WorkspaceID               string          `db:"workspace_id"`
+	Name                      string          `db:"name"`
+	Stream                    LogdrainsStream `db:"stream"`
+	Config                    []byte          `db:"config"`
+	Status                    LogdrainsStatus `db:"status"`
+	ConsecutiveFailures       int32           `db:"consecutive_failures"`
+	CommittedOffsetInsertedAt int64           `db:"committed_offset_inserted_at"`
+	CommittedOffsetEventID    string          `db:"committed_offset_event_id"`
+	NextAttemptAt             int64           `db:"next_attempt_at"`
+	LeaseID                   string          `db:"lease_id"`
+	FencingToken              string          `db:"fencing_token"`
+	LeaseExpiresAt            int64           `db:"lease_expires_at"`
+	CreatedAt                 int64           `db:"created_at"`
+	UpdatedAt                 sql.NullInt64   `db:"updated_at"`
 }
 
 type OpenapiSpec struct {
@@ -1417,7 +1625,9 @@ type Portal struct {
 	Pk           uint64         `db:"pk"`
 	ID           string         `db:"id"`
 	WorkspaceID  string         `db:"workspace_id"`
+	ProjectID    string         `db:"project_id"`
 	Slug         string         `db:"slug"`
+	DisplayName  string         `db:"display_name"`
 	AppID        sql.NullString `db:"app_id"`
 	KeyAuthID    sql.NullString `db:"key_auth_id"`
 	Enabled      bool           `db:"enabled"`
@@ -1434,7 +1644,6 @@ type PortalSession struct {
 	PortalID              string          `db:"portal_id"`
 	ExternalID            string          `db:"external_id"`
 	Scopes                json.RawMessage `db:"scopes"`
-	Preview               bool            `db:"preview"`
 	ExchangeCodeHash      string          `db:"exchange_code_hash"`
 	ExchangeCodeExpiresAt int64           `db:"exchange_code_expires_at"`
 	AccessTokenHash       sql.NullString  `db:"access_token_hash"`
@@ -1552,7 +1761,7 @@ type Workspace struct {
 	OrgID            string          `db:"org_id"`
 	Name             string          `db:"name"`
 	Slug             string          `db:"slug"`
-	K8sNamespace     sql.NullString  `db:"k8s_namespace"`
+	K8sNamespace     string          `db:"k8s_namespace"`
 	BetaFeatures     json.RawMessage `db:"beta_features"`
 	Subscriptions    json.RawMessage `db:"subscriptions"`
 	Enabled          bool            `db:"enabled"`

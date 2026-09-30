@@ -3,17 +3,22 @@ package storage
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
-	"strings"
+	"net/http"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	awshttp "github.com/aws/aws-sdk-go-v2/aws/transport/http"
 	awsConfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	awsS3 "github.com/aws/aws-sdk-go-v2/service/s3"
+	s3types "github.com/aws/aws-sdk-go-v2/service/s3/types"
+	"github.com/aws/smithy-go"
 
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/svc/vault/internal/metrics"
 )
 
 type s3 struct {
@@ -52,12 +57,6 @@ func NewS3(config S3Config) (Storage, error) {
 	}
 
 	client := awsS3.NewFromConfig(cfg)
-	_, err = client.CreateBucket(context.Background(), &awsS3.CreateBucketInput{
-		Bucket: aws.String(config.S3Bucket),
-	})
-	if err != nil && !strings.Contains(err.Error(), "BucketAlreadyOwnedByYou") {
-		return nil, fmt.Errorf("failed to create bucket: %w", err)
-	}
 
 	logger.Info("s3 storage initialized")
 
@@ -72,8 +71,9 @@ func (s *s3) Latest(workspaceId string) string {
 	return s.Key(workspaceId, "LATEST")
 }
 
-func (s *s3) PutObject(ctx context.Context, key string, data []byte) error {
-	_, err := s.client.PutObject(ctx, &awsS3.PutObjectInput{
+func (s *s3) PutObject(ctx context.Context, key string, data []byte) (err error) {
+	defer func() { observeS3("put", err) }()
+	_, err = s.client.PutObject(ctx, &awsS3.PutObjectInput{
 		Bucket: aws.String(s.config.S3Bucket),
 		Key:    aws.String(key),
 		Body:   bytes.NewReader(data),
@@ -84,14 +84,19 @@ func (s *s3) PutObject(ctx context.Context, key string, data []byte) error {
 	return nil
 }
 
-func (s *s3) GetObject(ctx context.Context, key string) ([]byte, bool, error) {
+func (s *s3) GetObject(ctx context.Context, key string) (data []byte, found bool, err error) {
+	defer func() { observeS3("get", err) }()
 	o, err := s.client.GetObject(ctx, &awsS3.GetObjectInput{
 		Bucket: aws.String(s.config.S3Bucket),
 		Key:    aws.String(key),
 	})
 	if err != nil {
-
-		if strings.Contains(err.Error(), "StatusCode: 404") {
+		// A missing key is an expected miss, not an error. S3 reports it as
+		// NoSuchKey; some S3-compatible stores only surface the 404 status.
+		if _, ok := errors.AsType[*s3types.NoSuchKey](err); ok {
+			return nil, false, nil
+		}
+		if respErr, ok := errors.AsType[*awshttp.ResponseError](err); ok && respErr.HTTPStatusCode() == http.StatusNotFound {
 			return nil, false, nil
 		}
 		return nil, false, fmt.Errorf("failed to get object: %w", err)
@@ -104,7 +109,8 @@ func (s *s3) GetObject(ctx context.Context, key string) ([]byte, bool, error) {
 	return b, true, nil
 }
 
-func (s *s3) ListObjectKeys(ctx context.Context, prefix string) ([]string, error) {
+func (s *s3) ListObjectKeys(ctx context.Context, prefix string) (keys []string, err error) {
+	defer func() { observeS3("list", err) }()
 	input := &awsS3.ListObjectsV2Input{
 		Bucket: aws.String(s.config.S3Bucket),
 	}
@@ -116,9 +122,34 @@ func (s *s3) ListObjectKeys(ctx context.Context, prefix string) ([]string, error
 	if err != nil {
 		return nil, fmt.Errorf("failed to list objects: %w", err)
 	}
-	keys := make([]string, len(o.Contents))
+	keys = make([]string, len(o.Contents))
 	for i, obj := range o.Contents {
 		keys[i] = *obj.Key
 	}
 	return keys, nil
+}
+
+func observeS3(operation string, err error) {
+	outcome, code := "success", ""
+	if errors.Is(err, context.Canceled) {
+		outcome = "canceled"
+	} else if err != nil {
+		outcome, code = "error", "other"
+		if errors.Is(err, context.DeadlineExceeded) {
+			code = "timeout"
+		}
+		if apiErr, ok := errors.AsType[smithy.APIError](err); ok {
+			// Provider messages and unknown codes can contain secrets or object keys.
+			switch apiErr.ErrorCode() {
+			case "InvalidAccessKeyId", "SignatureDoesNotMatch", "AccessDenied", "ExpiredToken", "NoSuchBucket":
+				code = apiErr.ErrorCode()
+			}
+		}
+		status := 0
+		if respErr, ok := errors.AsType[*awshttp.ResponseError](err); ok {
+			status = respErr.HTTPStatusCode()
+		}
+		logger.Error("vault s3 operation failed", "operation", operation, "error_code", code, "http_status", status)
+	}
+	metrics.S3OperationsTotal.WithLabelValues(operation, outcome, code).Inc()
 }

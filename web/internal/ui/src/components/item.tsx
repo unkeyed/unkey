@@ -12,12 +12,12 @@ const interactiveClassName =
 const rowClassName = "flex w-full items-center gap-3 px-4 py-3 text-left";
 
 const itemVariants = cva(
-  `group/item ${rowClassName} rounded-lg border border-transparent transition-colors focus-visible:outline-hidden ${interactiveClassName}`,
+  `group/item ${rowClassName} rounded-lg border transition-colors focus-visible:outline-hidden ${interactiveClassName}`,
   {
     variants: {
       variant: {
-        default: "bg-transparent",
-        outline: "border-grayA-4",
+        default: "bg-transparent border-transparent",
+        outline: "",
       },
     },
     defaultVariants: {
@@ -57,7 +57,7 @@ const itemGroupVariants = cva("flex w-full flex-col", {
   variants: {
     variant: {
       default: "",
-      outline: "rounded-lg border border-grayA-4",
+      outline: "rounded-lg border bg-raised",
     },
   },
   defaultVariants: {
@@ -116,9 +116,7 @@ export function ItemContent({ className, ...props }: React.HTMLAttributes<HTMLDi
 }
 
 export function ItemTitle({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
-  return (
-    <div className={cn("text-[13px] font-medium leading-4 text-gray-12", className)} {...props} />
-  );
+  return <div className={cn("text-sm font-medium leading-4 text-gray-12", className)} {...props} />;
 }
 
 export function ItemDescription({
@@ -133,7 +131,7 @@ export function ItemActions({ className, ...props }: React.HTMLAttributes<HTMLDi
     <div
       data-slot="item-actions"
       className={cn(
-        "flex shrink-0 items-center gap-2 text-[13px] leading-4 text-gray-12 [&_svg]:text-gray-9 [&_svg]:transition-colors group-hover/item:[&_svg]:text-gray-11 [&_svg:not([class*='size-'])]:size-3.5",
+        "flex shrink-0 items-center gap-2 text-sm leading-4 text-gray-12 [&_svg]:text-gray-9 [&_svg]:transition-colors group-hover/item:[&_svg]:text-gray-11 [&_svg:not([class*='size-'])]:size-3.5",
         className,
       )}
       {...props}

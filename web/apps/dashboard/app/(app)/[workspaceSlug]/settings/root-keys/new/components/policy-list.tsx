@@ -1,6 +1,6 @@
 "use client";
 
-import { Plus } from "@unkey/icons";
+import { IconPlusOutline18 } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { useRef, useState } from "react";
 import { useFieldArray, useFormContext, useWatch } from "react-hook-form";
@@ -71,7 +71,7 @@ export function PolicyList({ showErrors, debug }: PolicyListProps) {
       })}
 
       {showErrors && fields.length === 0 ? (
-        <span className="text-[13px] leading-5 text-error-11">Grant at least one permission.</span>
+        <span className="text-sm leading-5 text-error-11">Grant at least one permission.</span>
       ) : null}
 
       {showGallery ? (
@@ -88,7 +88,7 @@ export function PolicyList({ showErrors, debug }: PolicyListProps) {
             className="font-medium"
             onClick={openGallery}
           >
-            <Plus />
+            <IconPlusOutline18 />
             Add policy
           </Button>
         </div>

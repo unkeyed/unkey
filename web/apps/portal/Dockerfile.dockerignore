@@ -12,6 +12,7 @@
 
 # Dev / docs
 /dev
+!/dev/install-mise
 /docs
 /benchmarks
 /.github
@@ -39,7 +40,6 @@
 # Misc
 *.md
 LICENSE
-/demo_api
 /k8s
 /.git
 

@@ -9,7 +9,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -20,10 +19,11 @@ func TestBadRequests(t *testing.T) {
 	h := testutil.NewHarness(t)
 
 	route := &handler.Handler{
-		Ratelimit:      h.Ratelimit,
-		DB:             h.DB,
-		NamespaceCache: h.Caches.RatelimitNamespace,
-		Auditlogs:      h.Auditlogs,
+		Ratelimit:       h.Ratelimit,
+		DirectAuditLogs: h.DirectAuditLogs,
+		DB:              h.DB,
+		NamespaceCache:  h.Caches.RatelimitNamespace,
+		Auditlogs:       h.Auditlogs,
 	}
 
 	h.Register(route)
@@ -34,7 +34,7 @@ func TestBadRequests(t *testing.T) {
 			Identifier: "user_123",
 			Limit:      100,
 			Duration:   60000,
-			Cost:       ptr.P[int64](-5),
+			Cost:       new(int64(-5)),
 		}
 
 		namespace := db.InsertRatelimitNamespaceParams{
@@ -103,10 +103,11 @@ func TestMissingAuthorizationHeader(t *testing.T) {
 	h := testutil.NewHarness(t)
 
 	route := &handler.Handler{
-		Ratelimit:      h.Ratelimit,
-		DB:             h.DB,
-		NamespaceCache: h.Caches.RatelimitNamespace,
-		Auditlogs:      h.Auditlogs,
+		Ratelimit:       h.Ratelimit,
+		DirectAuditLogs: h.DirectAuditLogs,
+		DB:              h.DB,
+		NamespaceCache:  h.Caches.RatelimitNamespace,
+		Auditlogs:       h.Auditlogs,
 	}
 
 	h.Register(route)

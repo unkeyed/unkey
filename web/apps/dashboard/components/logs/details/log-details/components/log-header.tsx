@@ -1,21 +1,22 @@
-import { cn } from "@/lib/utils";
-import { XMark } from "@unkey/icons";
+import { IconXmarkOutline18 } from "@unkey/icons";
 import { Badge, Button } from "@unkey/ui";
-import type { StandardLogTypes } from "..";
+import { cn } from "cn";
+import type { SupportedLogTypes } from "..";
 
 type Props = {
-  log: StandardLogTypes;
+  // Only the request line is rendered here, so any log carrying it fits.
+  log: Pick<Extract<SupportedLogTypes, { method: string }>, "method" | "path" | "response_status">;
   onClose: () => void;
 };
 
 export const LogHeader = ({ onClose, log }: Props) => {
   return (
-    <div className="border-b flex justify-between items-center border-gray-4 h-[50px] px-4 py-2">
+    <div className="border-b flex justify-between items-center h-[50px] px-4 py-2">
       <div className="flex gap-2 items-center min-w-0">
-        <Badge className="uppercase px-[6px] rounded-md font-mono bg-accent-3 text-accent-11 hover:bg-accent-4">
+        <Badge className="uppercase px-[6px] rounded-md font-mono bg-gray-3 text-gray-11 hover:bg-gray-4">
           {log.method}
         </Badge>
-        <p className="text-xs text-accent-12 truncate flex-1">{log.path} </p>
+        <p className="text-xs text-gray-12 truncate flex-1">{log.path} </p>
 
         <Badge
           className={cn("px-[6px] rounded-md font-mono text-xs", {
@@ -33,7 +34,7 @@ export const LogHeader = ({ onClose, log }: Props) => {
       <div className="flex gap-1 items-center shrink-0">
         <div className="flex gap-3">
           <Button size="icon" variant="ghost" onClick={onClose} className="[&_svg]:size-3">
-            <XMark className="text-grayA-9 stroke-2" iconSize="sm-regular" />
+            <IconXmarkOutline18 className="text-grayA-9 stroke-2" />
           </Button>
         </div>
       </div>

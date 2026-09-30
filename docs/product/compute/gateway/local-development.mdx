@@ -1,0 +1,73 @@
+---
+title: Local development with the gateway
+sidebarTitle: "Local development"
+description: "Send your own X-Unkey-Principal header to test your app locally, and use a preview environment to test your policies."
+sources:
+  - svc/frontline/internal/policies/principal/principal.go
+  - svc/frontline/middleware/sanitize_headers.go
+  - svc/frontline/routes/proxy/handler.go
+---
+
+When you run your <Tooltip tip="A Compute app: a deployable service inside a project. Not 'your application' in general.">app</Tooltip> locally, there's no [gateway](/compute/gateway/overview) in front of it, so your code gets no `X-Unkey-Principal` header. You can send one yourself to test the code that reads it.
+
+## Test your app locally
+
+The [principal header](/compute/gateway/principal) is JSON. Put it in the header value of your request:
+
+```bash
+curl http://localhost:8080/documents \
+  -H 'X-Unkey-Principal: {"version":"v1","subject":"user_123","type":"API_KEY","source":{"key":{"keyId":"key_local","keySpaceId":"ks_local","meta":{},"permissions":["documents.read"]}}}'
+```
+
+To test several callers, keep one JSON file per caller and send it with `jq -c`. It also catches invalid JSON before the request goes out.
+
+```bash
+cat > principal-pro-user.json <<'EOF'
+{
+  "version": "v1",
+  "subject": "user_123",
+  "type": "API_KEY",
+  "identity": { "externalId": "user_123", "meta": { "plan": "pro" } },
+  "source": {
+    "key": {
+      "keyId": "key_local",
+      "keySpaceId": "ks_local",
+      "meta": {},
+      "roles": ["editor"],
+      "permissions": ["documents.read", "documents.write"]
+    }
+  }
+}
+EOF
+
+curl http://localhost:8080/documents \
+  -H "X-Unkey-Principal: $(jq -c . principal-pro-user.json)"
+```
+
+Your code will see all of these in production, so test them too:
+
+- **No `identity`.** The key isn't linked to an identity.
+- **No `credits`.** The key has unlimited usage.
+- **No `roles` or `permissions`.** The key has none attached.
+- **No header at all.** This is what a request to an unauthenticated route looks like.
+
+See [the principal header](/compute/gateway/principal) for every field.
+
+<Warning>
+The header isn't signed. On Unkey, only the gateway can set it. If your app can be reached any other way, anyone can send a fake one. Only trust the header on traffic that came through Unkey.
+</Warning>
+
+## Test your policies
+
+To test your [policies](/compute/gateway/policies), deploy to a preview <Tooltip tip="A production or preview environment of a Compute app, not the dashboard label on a key.">environment</Tooltip> and call its preview domain. Preview and production have separate policy lists. A policy change only applies on a new deployment.
+
+## Next steps
+
+<Columns cols={2}>
+  <Card title="The principal header" icon="id-badge" href="/compute/gateway/principal">
+    Every field and when it's omitted.
+  </Card>
+  <Card title="Gateway policies" icon="list-check" href="/compute/gateway/policies">
+    Add authentication, rate limits, and other rules to your app.
+  </Card>
+</Columns>

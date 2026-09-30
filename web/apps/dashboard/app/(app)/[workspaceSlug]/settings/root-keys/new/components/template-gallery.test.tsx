@@ -6,12 +6,12 @@ import { TEMPLATES } from "../lib/templates";
 import { TemplateGallery } from "./template-gallery";
 
 vi.mock("@unkey/icons", () => ({
-  Eye: () => null,
-  Gauge: () => null,
-  PenWriting3: () => null,
-  Plus: () => null,
-  ShieldCheck: () => null,
-  XMark: () => null,
+  IconEyeOutline18: () => null,
+  IconGaugeOutline18: () => null,
+  IconPenWriting3Outline18: () => null,
+  IconPlusOutline18: () => null,
+  IconShieldKeyOutline18: () => null,
+  IconXmarkOutline18: () => null,
 }));
 
 vi.mock("@unkey/ui", () => ({
@@ -30,7 +30,7 @@ vi.mock("@unkey/ui", () => ({
 afterEach(cleanup);
 
 const renderGallery = (onCancel?: () => void) => {
-  const onPick = vi.fn<[Policy[]], void>();
+  const onPick = vi.fn<(policies: Policy[]) => void>();
   render(<TemplateGallery onPick={onPick} onCancel={onCancel} />);
   return onPick;
 };

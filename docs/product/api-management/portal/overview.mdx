@@ -1,0 +1,99 @@
+---
+title: Developer portal
+sidebarTitle: "Overview"
+description: "A hosted page where your users manage their own API keys."
+sources:
+  - svc/api/openapi/spec/common/Portal.yaml
+  - svc/api/openapi/spec/common/PortalBranding.yaml
+  - svc/api/openapi/spec/paths/v2/portal/createPortal/V2PortalCreatePortalRequestBody.yaml
+  - svc/api/openapi/spec/paths/v2/portal/createPortal/index.yaml
+  - svc/api/openapi/spec/paths/v2/portal/createSession/index.yaml
+  - cmd/api/portal/create_portal.go
+  - cmd/api/portal/create_session.go
+  - svc/api/openapi/spec/paths/v2/portal/updatePortal/V2PortalUpdatePortalRequestBody.yaml
+  - svc/api/routes/v2_portal_create_session/handler.go
+  - svc/api/routes/v2_portal_update_portal/handler.go
+  - svc/api/routes/v2_portal_delete_portal/handler.go
+  - web/internal/db/src/schema/portals.ts
+  - pkg/rbac/permissions.go
+  - pkg/codes/constants_gen.go
+---
+
+import RootKeyPrereq from "/snippets/root-key-prereq.mdx";
+
+The developer portal is a hosted page where your users see their API keys, roll them over, and check their usage, without you building any of it. You keep the sign-in: your backend creates a short-lived session for a user who's already signed in, and redirects them to the portal. Each user only sees their own keys.
+
+<Note>
+  You manage portals with the API or the CLI ([create-portal](/api-management/cli/portal/create-portal), [get-portal](/api-management/cli/portal/get-portal), [update-portal](/api-management/cli/portal/update-portal), [delete-portal](/api-management/cli/portal/delete-portal), [create-session](/api-management/cli/portal/create-session)), not the dashboard.
+
+  `portal.createPortal`, `getPortal`, `updatePortal`, and `deletePortal` are unreleased and may change without notice. The session endpoints your backend calls on every sign-in (`portal.createSession` and the ones the portal uses) are stable.
+</Note>
+
+## What a portal is bound to
+
+A portal shows keys from one place. Set `keyspaceId` to show the keys in a keyspace. Or set `appId` to a Compute <Tooltip tip="A Compute app: a deployable service inside a project. Not 'your application' in general.">app</Tooltip> to show keys from every keyspace the gateway accepts for that app. Send one or the other, not both. You can change it later.
+
+A user only sees keys whose identity `externalId` matches the one in their session. Keys without an identity never show up in the portal, so attach identities to keys you want users to manage.
+
+## Fields
+
+<ParamField body="slug" type="string" required>
+  A handle for the portal in API calls, unique in your workspace. 3 to 64 lowercase letters, digits, and hyphens, not starting or ending with a hyphen. Your users never see it. You can use the slug or the `pc_` ID wherever you name a portal. A taken slug, or a second portal for the same keyspace or app, fails with HTTP 409 `err:unkey:data:portal_already_exists`.
+</ParamField>
+<ParamField body="displayName" type="string" required>
+  1 to 64 characters shown in the portal header and page titles. Change it any time.
+</ParamField>
+<ParamField body="keyspaceId" type="string">
+  The keyspace to serve. Mutually exclusive with `appId`.
+</ParamField>
+<ParamField body="appId" type="string">
+  The app to serve. Mutually exclusive with `keyspaceId`.
+</ParamField>
+<ParamField body="enabled" type="boolean" default="true">
+  Whether new sessions can be created. Disabling doesn't end sessions that are already live.
+</ParamField>
+<ParamField body="logoUrl" type="string">
+  `https://` URL of the logo in the portal header, up to 500 characters. Your users' browsers load it directly, so that host sees their IP address. Set `null` on update to remove it.
+</ParamField>
+<ParamField body="primaryColor" type="string">
+  Six-digit hex color (`#6366f1`) for buttons and accents. Set `null` on update to go back to the default.
+</ParamField>
+
+When you read a portal, `logoUrl` and `primaryColor` come back under `branding`, and `createdAt` and `updatedAt` are Unix milliseconds.
+
+## Create a portal
+
+<RootKeyPrereq />
+
+Creating a portal needs `portal.*.create_portal`. Reading, updating, and deleting need `read_portal`, `update_portal`, or `delete_portal`, either as `portal.*.<action>` or scoped to one portal as `portal.<portalId>.<action>`. Creating sessions needs a separate permission, covered on [Portal sessions](/api-management/portal/sessions).
+
+```bash
+curl -X POST https://api.unkey.com/v2/portal.createPortal \
+  -H "Authorization: Bearer <root key>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "slug": "acme-portal",
+    "displayName": "Acme",
+    "keyspaceId": "ks_1234abcd",
+    "primaryColor": "#6366f1"
+  }'
+```
+
+You get the portal back with its `pc_` ID. Next, [create a session](/api-management/portal/sessions) for a signed-in user and redirect them to the URL you get back.
+
+## Change or remove a portal
+
+`portal.updatePortal` takes the same fields, all optional. Leave a field out to keep it. Pointing the portal at a different keyspace or app ends every live session. Disabling it doesn't.
+
+`portal.deletePortal` deletes the portal, ends all its live sessions, and frees the slug. Both write an [audit log](/platform/workspace/audit-logs/overview) entry (`portal.update` or `portal.delete`).
+
+## Next steps
+
+<Columns cols={2}>
+  <Card title="Portal sessions" icon="ticket" href="/api-management/portal/sessions">
+    Mint a session, exchange the code, TTLs, and the permissions your root key needs.
+  </Card>
+  <Card title="What portal users can do" icon="user" href="/api-management/portal/end-user-experience">
+    The keys and analytics tabs, what each scope unlocks, and the endpoints behind them.
+  </Card>
+</Columns>

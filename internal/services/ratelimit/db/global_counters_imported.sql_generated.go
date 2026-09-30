@@ -88,3 +88,118 @@ func (q *Queries) GlobalCountersImported(ctx context.Context, arg GlobalCounters
 	}
 	return items, nil
 }
+
+const globalCountersImportedSince = `-- name: GlobalCountersImportedSince :many
+SELECT
+    counters.workspace_id,
+    counters.namespace,
+    counters.identifier,
+    counters.duration_ms,
+    counters.sequence,
+    CAST(SUM(CASE WHEN counters.region = ? THEN counters.count ELSE 0 END) AS SIGNED) AS regional,
+    CAST(SUM(CASE WHEN counters.region != ? THEN counters.count ELSE 0 END) AS SIGNED) AS imported
+FROM ratelimit_global_counters AS counters
+INNER JOIN (
+    SELECT DISTINCT
+        recent.workspace_id,
+        recent.namespace,
+        recent.identifier,
+        recent.duration_ms,
+        recent.sequence
+    FROM ratelimit_global_counters AS recent
+    WHERE recent.expires_at > ?
+      AND recent.updated_at >= ?
+) AS changed
+    ON changed.workspace_id = counters.workspace_id
+    AND changed.namespace = counters.namespace
+    AND changed.identifier = counters.identifier
+    AND changed.duration_ms = counters.duration_ms
+    AND changed.sequence = counters.sequence
+WHERE counters.expires_at > ?
+GROUP BY counters.workspace_id, counters.namespace, counters.identifier, counters.duration_ms, counters.sequence
+`
+
+type GlobalCountersImportedSinceParams struct {
+	SelfRegion   string `db:"self_region"`
+	Now          uint64 `db:"now"`
+	UpdatedAfter uint64 `db:"updated_after"`
+}
+
+type GlobalCountersImportedSinceRow struct {
+	WorkspaceID string `db:"workspace_id"`
+	Namespace   string `db:"namespace"`
+	Identifier  string `db:"identifier"`
+	DurationMs  uint64 `db:"duration_ms"`
+	Sequence    int64  `db:"sequence"`
+	Regional    int64  `db:"regional"`
+	Imported    int64  `db:"imported"`
+}
+
+// GlobalCountersImportedSince first identifies logical window cells with an
+// active region row updated inside the overlapped watermark, then aggregates
+// every active region row for those cells. Filtering only the changed physical
+// rows would omit unchanged regions and undercount the imported total.
+//
+//	SELECT
+//	    counters.workspace_id,
+//	    counters.namespace,
+//	    counters.identifier,
+//	    counters.duration_ms,
+//	    counters.sequence,
+//	    CAST(SUM(CASE WHEN counters.region = ? THEN counters.count ELSE 0 END) AS SIGNED) AS regional,
+//	    CAST(SUM(CASE WHEN counters.region != ? THEN counters.count ELSE 0 END) AS SIGNED) AS imported
+//	FROM ratelimit_global_counters AS counters
+//	INNER JOIN (
+//	    SELECT DISTINCT
+//	        recent.workspace_id,
+//	        recent.namespace,
+//	        recent.identifier,
+//	        recent.duration_ms,
+//	        recent.sequence
+//	    FROM ratelimit_global_counters AS recent
+//	    WHERE recent.expires_at > ?
+//	      AND recent.updated_at >= ?
+//	) AS changed
+//	    ON changed.workspace_id = counters.workspace_id
+//	    AND changed.namespace = counters.namespace
+//	    AND changed.identifier = counters.identifier
+//	    AND changed.duration_ms = counters.duration_ms
+//	    AND changed.sequence = counters.sequence
+//	WHERE counters.expires_at > ?
+//	GROUP BY counters.workspace_id, counters.namespace, counters.identifier, counters.duration_ms, counters.sequence
+func (q *Queries) GlobalCountersImportedSince(ctx context.Context, arg GlobalCountersImportedSinceParams) ([]GlobalCountersImportedSinceRow, error) {
+	rows, err := q.db.QueryContext(ctx, globalCountersImportedSince,
+		arg.SelfRegion,
+		arg.SelfRegion,
+		arg.Now,
+		arg.UpdatedAfter,
+		arg.Now,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GlobalCountersImportedSinceRow
+	for rows.Next() {
+		var i GlobalCountersImportedSinceRow
+		if err := rows.Scan(
+			&i.WorkspaceID,
+			&i.Namespace,
+			&i.Identifier,
+			&i.DurationMs,
+			&i.Sequence,
+			&i.Regional,
+			&i.Imported,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}

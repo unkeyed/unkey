@@ -11,21 +11,22 @@ import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
 import { newKey } from "@unkey/keys";
 import { z } from "zod";
-import { ratelimit, withRatelimit, workspaceProcedure } from "../../../trpc";
+import { ratelimit, requireWorkspaceAdmin, withRatelimit, workspaceProcedure } from "../../../trpc";
 import { capGracePeriodAtSourceExpiry } from "./cap-grace-period-at-source-expiry";
 
 const vault = createVaultClient(VaultService);
 
-const allowedExpirations = new Set<number>(GRACE_PERIOD_VALUES_MS);
+const allowedExpirations = new Set<number | null>(GRACE_PERIOD_VALUES_MS);
 
 const rerollInputSchema = z.object({
   keyId: z.string().min(3).max(255),
   expiration: z
     .number()
     .int()
-    .refine((v): v is GracePeriodMs => allowedExpirations.has(v), {
+    .refine((v): v is NonNullable<GracePeriodMs> => allowedExpirations.has(v), {
       error: "expiration must be one of the supported grace periods",
-    }),
+    })
+    .nullable(),
 });
 
 // Rotates a root key. Root keys live in the Unkey-owned workspace
@@ -34,6 +35,7 @@ const rerollInputSchema = z.object({
 // the Unkey workspace AND `forWorkspaceId` must match the caller's
 // workspace, so a tenant can only rotate their own root keys.
 export const rerollRootKey = workspaceProcedure
+  .use(requireWorkspaceAdmin)
   .use(withRatelimit(ratelimit.create))
   .input(rerollInputSchema)
   .mutation(async ({ input, ctx }) => {
@@ -57,7 +59,7 @@ type RerollKeyContext = {
 
 type RerollKeyArgs = {
   keyId: string;
-  expiration: number;
+  expiration: number | null;
   scopedWorkspaceId: string;
   forWorkspaceId?: string;
   ctx: RerollKeyContext;
@@ -72,7 +74,6 @@ async function rerollKeyCore({
 }: RerollKeyArgs) {
   const newKeyId = newId("key");
   const now = Date.now();
-  const gracePeriodEnd = new Date(now + expiration);
 
   try {
     return await db.transaction(async (tx) => {
@@ -107,6 +108,7 @@ async function rerollKeyCore({
         columns: {
           id: true,
           keyAuthId: true,
+          prefix: true,
           start: true,
           workspaceId: true,
           forWorkspaceId: true,
@@ -123,14 +125,38 @@ async function rerollKeyCore({
         },
         with: {
           keyAuth: {
+            columns: {
+              storeEncryptedKeys: true,
+              defaultBytes: true,
+            },
             with: {
-              api: true,
+              api: {
+                columns: {
+                  id: true,
+                  name: true,
+                },
+              },
             },
           },
-          encrypted: true,
-          ratelimits: true,
-          roles: true,
-          permissions: true,
+          encrypted: {
+            columns: { keyId: true },
+          },
+          ratelimits: {
+            columns: {
+              keyId: true,
+              identityId: true,
+              name: true,
+              limit: true,
+              duration: true,
+              autoApply: true,
+            },
+          },
+          roles: {
+            columns: { roleId: true },
+          },
+          permissions: {
+            columns: { permissionId: true },
+          },
         },
       });
 
@@ -163,14 +189,10 @@ async function rerollKeyCore({
         });
       }
 
-      // Preserve the source key's prefix exactly. Falling back to the
-      // current keyAuth default would silently add a prefix when the
-      // default has been changed after the key was created. Prefixes may
-      // contain underscores (e.g. "pk_test"), so we split on the *last*
-      // underscore — the base58 alphabet has no `_`, so every underscore
-      // in `start` came from a prefix separator.
+      // New rows store the prefix directly. Legacy rows keep it in `start`.
       const lastUnderscore = source.start.lastIndexOf("_");
-      const prefix = lastUnderscore === -1 ? "" : source.start.slice(0, lastUnderscore);
+      const prefix =
+        source.prefix || (lastUnderscore === -1 ? "" : source.start.slice(0, lastUnderscore));
 
       // Byte length falls back to the workspace's current default because
       // the original per-key length was never persisted (no column on
@@ -180,7 +202,7 @@ async function rerollKeyCore({
       // migration to record it at creation time.
       const byteLength = source.keyAuth.defaultBytes ?? 16;
 
-      const { key: plaintext, hash, start } = await newKey({ prefix, byteLength });
+      const { key: plaintext, hash, start, end } = await newKey({ prefix, byteLength });
 
       // Encrypt inside the tx so the decision uses the locked source
       // state. The lock is held for the duration of this RPC, but key
@@ -195,13 +217,18 @@ async function rerollKeyCore({
       // the original lifetime constraint instead of silently producing a
       // permanent key. The old key's grace period is capped against that
       // same expiry.
-      const oldKeyExpiresAt = capGracePeriodAtSourceExpiry(source.expires, gracePeriodEnd);
+      const oldKeyExpiresAt =
+        expiration === null
+          ? source.expires
+          : capGracePeriodAtSourceExpiry(source.expires, new Date(now + expiration));
 
       await tx.insert(schema.keys).values({
         id: newKeyId,
         keyAuthId: source.keyAuthId,
         hash,
+        prefix,
         start,
+        end,
         workspaceId: source.workspaceId,
         forWorkspaceId: source.forWorkspaceId,
         name: source.name,
@@ -276,7 +303,7 @@ async function rerollKeyCore({
       // missing row. The FOR UPDATE lock above keeps the source row stable
       // for the rest of this tx, so we don't need the WHERE-with-deletedAtM
       // pattern here for soft-delete detection.
-      if (source.expires?.getTime() !== oldKeyExpiresAt.getTime()) {
+      if (oldKeyExpiresAt && source.expires?.getTime() !== oldKeyExpiresAt.getTime()) {
         await tx
           .update(schema.keys)
           .set({ expires: oldKeyExpiresAt })
@@ -291,7 +318,7 @@ async function rerollKeyCore({
           type: "key",
           id: source.id,
           name: source.name ?? undefined,
-          meta: { expiresAt: oldKeyExpiresAt.getTime() },
+          meta: { expiresAt: oldKeyExpiresAt?.getTime() ?? null },
         },
       ];
       if (source.keyAuth.api) {
@@ -306,7 +333,9 @@ async function rerollKeyCore({
         workspaceId: ctx.workspace.id,
         actor: { type: "user", id: ctx.user.id },
         event: "key.reroll",
-        description: `Rerolled key (${source.id}) to (${newKeyId}); old key expires at ${oldKeyExpiresAt.toISOString()}`,
+        description: oldKeyExpiresAt
+          ? `Rerolled key (${source.id}) to (${newKeyId}); old key expires at ${oldKeyExpiresAt.toISOString()}`
+          : `Rerolled key (${source.id}) to (${newKeyId}); old key does not expire`,
         resources,
         context: {
           location: ctx.audit.location,

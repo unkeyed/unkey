@@ -1,17 +1,24 @@
 "use client";
 
-import { Eye, Gauge, PenWriting3, Plus, ShieldCheck, XMark } from "@unkey/icons";
+import {
+  IconEyeOutline18,
+  IconGaugeOutline18,
+  IconPenWriting3Outline18,
+  IconPlusOutline18,
+  IconShieldKeyOutline18,
+  IconXmarkOutline18,
+} from "@unkey/icons";
 import { Button, Item, ItemContent, ItemDescription, ItemMedia, ItemTitle } from "@unkey/ui";
 import type { ReactNode } from "react";
 import type { Policy } from "../lib/policy";
 import { TEMPLATES, type TemplateId } from "../lib/templates";
 
 const TEMPLATE_ICONS: Record<TemplateId, ReactNode> = {
-  read: <Eye />,
-  write: <PenWriting3 />,
-  verify: <ShieldCheck />,
-  ratelimit: <Gauge />,
-  custom: <Plus />,
+  read: <IconEyeOutline18 />,
+  write: <IconPenWriting3Outline18 />,
+  verify: <IconShieldKeyOutline18 />,
+  ratelimit: <IconGaugeOutline18 />,
+  custom: <IconPlusOutline18 />,
 };
 
 type TemplateGalleryProps = {
@@ -32,7 +39,7 @@ export function TemplateGallery({ onPick, onCancel }: TemplateGalleryProps) {
             className="size-8 shrink-0 justify-center rounded-lg px-0 text-gray-11 hover:bg-grayA-3 hover:text-gray-12"
             onClick={onCancel}
           >
-            <XMark />
+            <IconXmarkOutline18 />
           </Button>
         </div>
       ) : null}

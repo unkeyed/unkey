@@ -94,7 +94,8 @@ async function createKeysForApi(
       // Generate key details
       const keyId = `key_${generateRandomString(24)}`;
       const keyPrefix = `uk_${generateRandomString(3)}`;
-      const fullKeyContent = `${keyPrefix}_${generateRandomString(32)}`;
+      const randomPart = generateRandomString(32);
+      const fullKeyContent = `${keyPrefix}_${randomPart}`;
       const keyHash = generateKeyHash(fullKeyContent);
 
       // Determine key attributes with realistic distributions
@@ -124,7 +125,9 @@ async function createKeysForApi(
         id: keyId,
         keyAuthId: keyAuthId,
         hash: keyHash,
-        start: keyPrefix,
+        prefix: keyPrefix,
+        start: randomPart.slice(0, 4),
+        end: randomPart.slice(-4),
         workspaceId: workspaceId,
         forWorkspaceId: null,
         name: name,
@@ -180,7 +183,7 @@ async function getExistingKeys(workspaceId: string, keyAuthId: string): Promise<
       .select({
         id: schema.keys.id,
         name: schema.keys.name,
-        start: schema.keys.start,
+        prefix: schema.keys.prefix,
         enabled: schema.keys.enabled,
         remaining: schema.keys.remaining,
       })
@@ -196,7 +199,7 @@ async function getExistingKeys(workspaceId: string, keyAuthId: string): Promise<
     return keys.map((key: any) => ({
       id: key.id,
       name: key.name ?? `Unnamed Key (${key.id})`,
-      prefix: key.start,
+      prefix: key.prefix,
       enabled: Boolean(key.enabled),
       hasUsageLimit: key.remaining !== null,
     }));

@@ -26,7 +26,7 @@ func newSession(t *testing.T, method, path string) (*zen.Session, *httptest.Resp
 	req := httptest.NewRequest(method, path, nil)
 	req.Header.Set("User-Agent", "test-agent/1.0")
 	req.Header.Set("Referer", "https://example.com/from")
-	req.Header.Set("X-Forwarded-For", "203.0.113.7")
+	req.RemoteAddr = "203.0.113.7:1234"
 	req.Host = "api.test.local"
 
 	w := httptest.NewRecorder()
@@ -40,11 +40,11 @@ func TestErrorMiddleware_500_LogsRichContextAndHidesInternalDetails(t *testing.T
 
 	sess, rec := newSession(t, http.MethodPost, "/v2/keys.verifyKey?debug=1")
 	sess.SetPrincipal(&principal.Principal{
-		Version:     principal.Version,
-		Subject:     principal.Subject{ID: "key_test", Name: "Test Key", Type: principal.SubjectTypeRootKey},
-		Type:        principal.TypeAPIKey,
-		Source:      principal.KeySource{KeyID: "key_test", KeySpaceID: "ks_test"},
-		WorkspaceID: "ws_test_123",
+		Version:               principal.Version,
+		Subject:               principal.Subject{ID: "key_test", Name: "Test Key", Type: principal.SubjectTypeRootKey},
+		Type:                  principal.TypeAPIKey,
+		Source:                principal.KeySource{KeyID: "key_test", KeySpaceID: "ks_test"},
+		AuthorizedWorkspaceID: "ws_test_123",
 	})
 
 	rootErr := fault.New("db connection refused",

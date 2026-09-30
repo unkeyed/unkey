@@ -20,6 +20,10 @@ const (
 	// system maintenance operations.
 	SystemActor AuditLogActor = "system"
 
+	// GitHubActor is a GitHub push or pull request. ActorID is the sender's
+	// GitHub login.
+	GitHubActor AuditLogActor = "github"
+
 	// PortalEndUserActor indicates the action was performed by an end user
 	// authenticated through a customer portal session, rather than by the
 	// workspace owner. The actor's externalId is carried by the audit log's

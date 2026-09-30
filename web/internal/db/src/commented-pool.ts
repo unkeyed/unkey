@@ -7,10 +7,17 @@ type Queryable = Pick<PoolConnection, "query" | "execute">;
 
 function wrapQueryable<T extends Queryable>(target: T, staticTags: SqlCommentStaticTags): T {
   const annotateArg = (sql: unknown): unknown => {
-    if (typeof sql !== "string") {
+    if (typeof sql === "string") {
+      return annotateSql(sql, staticTags, dynamicTagsFromStore());
+    }
+    if (sql === null || typeof sql !== "object" || !("sql" in sql)) {
       return sql;
     }
-    return annotateSql(sql, staticTags, dynamicTagsFromStore());
+    const options = sql as { sql: unknown };
+    if (typeof options.sql !== "string") {
+      return sql;
+    }
+    return { ...options, sql: annotateSql(options.sql, staticTags, dynamicTagsFromStore()) };
   };
 
   return new Proxy(target, {

@@ -6,7 +6,10 @@ import { workspaceCatalogue } from "../lib/catalogue.workspace";
 import { ALL_INSTANCES, setRowActions } from "../lib/policy";
 import { PermissionCatalogue } from "./permission-catalogue";
 
-vi.mock("@unkey/icons", () => ({ ChevronRight: () => null, ChevronDown: () => null }));
+vi.mock("@unkey/icons", () => ({
+  IconChevronDownOutline18: () => null,
+  IconChevronRightOutline18: () => null,
+}));
 
 vi.mock("@unkey/ui", () => ({
   Button: ({ children, ...props }: ButtonHTMLAttributes<HTMLButtonElement>) => (

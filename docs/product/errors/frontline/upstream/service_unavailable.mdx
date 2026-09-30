@@ -1,7 +1,64 @@
 ---
-title: "service_unavailable"
-description: "ServiceUnavailable represents a 503 error - backend service is unavailable"
+title: "frontline/upstream/service_unavailable"
+sidebarTitle: "service_unavailable"
+description: "The app instance refused the connection or could not be reached."
+sources:
+  - pkg/codes/frontline.go
+  - svc/frontline/middleware/observability.go
+  - svc/frontline/internal/proxy/error.go
+  - svc/frontline/routes/proxy/handler.go
 ---
 
 <Danger>`err:frontline:upstream:service_unavailable`</Danger>
 
+import { ProductLink } from "/snippets/product-link.jsx";
+
+The gateway sent the request to a running instance of the <Tooltip tip="A Compute app: a deployable service inside a project. Not your application in general.">app</Tooltip> and couldn't connect. The instance refused the connection or couldn't be reached. You get `503 Service Unavailable`.
+
+This isn't [`err:unkey:application:service_unavailable`](/errors/unkey/application/service_unavailable), which the Unkey API returns when it fails on our side.
+
+```json Example response
+{
+  "meta": {
+    "requestId": "req_3k2j1h0g9f8e7d6c"
+  },
+  "error": {
+    "code": "err:frontline:upstream:service_unavailable",
+    "message": "The service is temporarily unavailable. Please try again later."
+  }
+}
+```
+
+Browsers get the same error as an HTML page.
+
+## If you're calling an API hosted on Unkey
+
+Retry after a few seconds. A refused connection during a restart clears on its own. If it keeps happening, only the API owner can fix it. Send them the request ID.
+
+## If you own this API
+
+The gateway tries your other instances before it gives up, so none of them accepted the connection. Common causes:
+
+- The process hasn't finished starting yet.
+- The process exited.
+- The process listens on a different port than your runtime settings say.
+- The process listens only on localhost instead of all interfaces.
+
+### How to fix
+
+1. Check the runtime logs to see whether the process starts and stays up.
+2. Make sure the port in the runtime settings matches the port your process listens on, and that it listens on all interfaces.
+3. If the process is slow to start, check the health check settings so we can tell when it's ready.
+
+If instances keep being unreachable and none of these apply, contact Unkey support with the request ID.
+
+<ProductLink product="compute" href="/compute/gateway/errors" title="Compute gateway">
+  Runtime settings, ports, health checks, and runtime logs are Compute features.
+</ProductLink>
+
+## Related errors
+
+- [`err:frontline:upstream:bad_gateway`](/errors/frontline/upstream/bad_gateway): the connection opened and then failed.
+- [`err:frontline:upstream:gateway_timeout`](/errors/frontline/upstream/gateway_timeout): the instance didn't answer in time.
+- [`err:frontline:capacity:no_running_instances`](/errors/frontline/capacity/no_running_instances): no instance was running at all.
+- [`err:unkey:application:service_unavailable`](/errors/unkey/application/service_unavailable): the Unkey API failed on our side.

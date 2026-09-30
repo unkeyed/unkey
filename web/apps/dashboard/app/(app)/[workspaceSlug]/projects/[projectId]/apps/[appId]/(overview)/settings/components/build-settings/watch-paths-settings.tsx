@@ -1,10 +1,10 @@
 "use client";
 
 import { FormCombobox } from "@/components/ui/form-combobox";
-import { cn } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Eye, Plus } from "@unkey/icons";
+import { IconEyeOutline18, IconPlusOutline18 } from "@unkey/icons";
 import { FormInput } from "@unkey/ui";
+import { cn } from "cn";
 import { useCallback, useRef } from "react";
 import { useFieldArray, useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
@@ -18,7 +18,12 @@ import { useRepoTree } from "./use-repo-tree";
 const watchPathsSchema = z.object({
   paths: z.array(
     z.object({
-      value: z.string(),
+      value: z
+        .string()
+        .refine(
+          (value) => value === "" || isValidWatchPathPattern(value),
+          "Not a valid glob pattern. Use syntax like 'src/**' or '**/*.go'.",
+        ),
     }),
   ),
 });
@@ -50,6 +55,7 @@ export const WatchPaths = () => {
     control,
     reset,
     setValue,
+    trigger,
   } = useForm<WatchPathsForm>({
     resolver: zodResolver(watchPathsSchema),
     mode: "onChange",
@@ -129,9 +135,13 @@ export const WatchPaths = () => {
         setValue(`paths.${emptyIndex}.value`, value, { shouldValidate: true });
         return;
       }
+      // useFieldArray's append() doesn't run the resolver, unlike setValue's
+      // shouldValidate above, so the newly appended field needs an explicit trigger.
+      const newIndex = fields.length;
       append({ value });
+      trigger(`paths.${newIndex}.value`);
     },
-    [append, currentPaths, currentValues, setValue],
+    [append, currentPaths, currentValues, fields.length, setValue, trigger],
   );
 
   const saveState = resolveSaveState([
@@ -162,7 +172,7 @@ export const WatchPaths = () => {
 
   return (
     <FormSettingCard
-      icon={<Eye className="text-gray-12" iconSize="xl-medium" />}
+      icon={<IconEyeOutline18 className="text-gray-12" />}
       title="Watch paths"
       description="Only trigger deployments when files matching these glob patterns change. Leave empty to deploy on all changes."
       displayValue={displayValue}
@@ -170,7 +180,7 @@ export const WatchPaths = () => {
       saveState={saveState}
     >
       <SettingField>
-        <span className="text-gray-11 text-[13px] flex items-center">Watch paths</span>
+        <span className="text-gray-11 text-sm flex items-center">Watch paths</span>
         {fields.map((field, index) => {
           const { ref: rhfRef, ...fieldProps } = register(`paths.${index}.value`);
           return (
@@ -207,7 +217,7 @@ export const WatchPaths = () => {
           value=""
           onSelect={addWatchPath}
           creatable
-          leftIcon={<Plus iconSize="sm-regular" />}
+          leftIcon={<IconPlusOutline18 />}
           searchPlaceholder="Search suggestions or enter a glob..."
           emptyMessage={<div className="mt-2">No suggested watch paths detected</div>}
           placeholder={<span className="text-grayA-8">Add a watch path...</span>}
@@ -219,3 +229,64 @@ export const WatchPaths = () => {
     </FormSettingCard>
   );
 };
+
+// Mirrors doublestar.ValidatePattern (github.com/bmatcuk/doublestar/v4,
+// validate.go): a pure syntax check for balanced [ ] / { } and a non-trailing
+// backslash escape.
+function isValidWatchPathPattern(pattern: string): boolean {
+  let altDepth = 0;
+  const len = pattern.length;
+
+  for (let i = 0; i < len; i++) {
+    const ch = pattern[i];
+
+    if (ch === "\\") {
+      i++;
+      if (i >= len) {
+        return false;
+      }
+      continue;
+    }
+
+    if (ch === "[") {
+      i++;
+      if (i >= len) {
+        return false;
+      }
+      if (pattern[i] === "^" || pattern[i] === "!") {
+        i++;
+      }
+      if (i >= len || pattern[i] === "]") {
+        return false;
+      }
+
+      let closed = false;
+      for (; i < len; i++) {
+        if (pattern[i] === "\\") {
+          i++;
+        } else if (pattern[i] === "]") {
+          closed = true;
+          break;
+        }
+      }
+      if (!closed) {
+        return false;
+      }
+      continue;
+    }
+
+    if (ch === "{") {
+      altDepth++;
+      continue;
+    }
+
+    if (ch === "}") {
+      if (altDepth === 0) {
+        return false;
+      }
+      altDepth--;
+    }
+  }
+
+  return altDepth === 0;
+}

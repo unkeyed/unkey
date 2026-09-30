@@ -5,13 +5,35 @@ import { ALL_INSTANCES, newPolicy, setRowActions } from "../lib/policy";
 import { PolicyCard } from "./policy-card";
 
 vi.mock("@unkey/icons", () => ({
-  ChevronRight: () => null,
-  CircleInfo: () => null,
-  Check: () => null,
-  ChevronDown: () => null,
-  ChevronExpandY: () => null,
-  Trash: () => null,
-  XMark: () => null,
+  IconCheckOutline12: () => null,
+  IconChevronDownOutline18: () => null,
+  IconChevronExpandYOutline12: () => null,
+  IconChevronExpandYOutline18: () => null,
+  IconChevronRightOutline18: () => null,
+  IconCircleInfoOutline18: () => null,
+  IconTrashOutline18: () => null,
+  IconXmarkOutline12: () => null,
+  IconXmarkOutline18: () => null,
+}));
+
+vi.mock("@/hooks/use-projects-with-apps", () => ({
+  useProjectsWithApps: () => ({
+    data: [
+      {
+        id: "proj_1",
+        name: "web platform",
+        apps: [{ id: "app_1", name: "site" }],
+      },
+    ],
+    isLoading: false,
+  }),
+}));
+
+vi.mock("@/hooks/use-project-environments", () => ({
+  useProjectEnvironments: () => ({
+    data: [{ id: "env_1", slug: "production", projectId: "proj_1", appId: "app_1" }],
+    isLoading: false,
+  }),
 }));
 
 vi.mock("@unkey/ui", () => ({

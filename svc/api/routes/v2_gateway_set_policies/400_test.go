@@ -3,11 +3,11 @@ package handler_test
 import (
 	"fmt"
 	"net/http"
+	"slices"
 	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
@@ -23,7 +23,7 @@ func TestSetPoliciesBadRequest(t *testing.T) {
 
 	workspace := h.Resources().UserWorkspace
 	env := seedEnvironment(t, h)
-	api := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspace.ID})
+	api := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspace.ID, ProjectID: env.projectID})
 	rootKey := h.CreateRootKey(workspace.ID, "environment.*.set_policies")
 	headers := authHeaders(rootKey)
 
@@ -53,10 +53,17 @@ func TestSetPoliciesBadRequest(t *testing.T) {
 	t.Run("more than 10 match expressions", func(t *testing.T) {
 		match := make([]openapi.MatchExpr, 11)
 		for i := range match {
-			match[i] = openapi.MatchExpr{Path: &openapi.PathMatch{Path: openapi.StringMatch{Prefix: ptr.P(fmt.Sprintf("/p%d", i))}}}
+			match[i] = openapi.MatchExpr{Path: &openapi.PathMatch{Path: openapi.StringMatch{Prefix: new(fmt.Sprintf("/p%d", i))}}}
 		}
 		p := firewallPolicy("too many matches", true)
 		p.Match = &match
+		res := callTyped(t, []openapi.Policy{p})
+		require.Equal(t, http.StatusBadRequest, res.Status, "received: %s", res.RawBody)
+	})
+
+	t.Run("more than 100 remote ip ranges", func(t *testing.T) {
+		p := firewallPolicy("too many ranges", true)
+		p.Match = &[]openapi.MatchExpr{{RemoteIp: &openapi.RemoteIpMatch{In: new(slices.Repeat([]string{"203.0.113.0/24"}, 101))}}}
 		res := callTyped(t, []openapi.Policy{p})
 		require.Equal(t, http.StatusBadRequest, res.Status, "received: %s", res.RawBody)
 	})
@@ -89,7 +96,7 @@ func TestSetPoliciesBadRequest(t *testing.T) {
 			Enabled: true,
 			Keyauth: &openapi.KeyauthPolicy{
 				Keyspaces:       []string{api.KeyAuthID.String},
-				PermissionQuery: ptr.P(strings.Repeat("a", 1001)),
+				PermissionQuery: new(strings.Repeat("a", 1001)),
 			},
 		}})
 		require.Equal(t, http.StatusBadRequest, res.Status, "received: %s", res.RawBody)

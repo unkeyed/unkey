@@ -5,8 +5,8 @@ import { LogsClient } from "./components/logs-client";
 export const dynamic = "force-dynamic";
 
 export default async function AuditPage() {
-  const { orgId } = await getAuth();
-  const { workspace, members } = await getWorkspace(orgId);
+  const { orgId, role } = await getAuth();
+  const { workspace } = await getWorkspace(orgId, role);
 
   return (
     <PageContainer width="full">
@@ -16,7 +16,7 @@ export default async function AuditPage() {
         </PageHeaderContent>
       </PageHeader>
       <PageBody>
-        <LogsClient rootKeys={workspace.keys} buckets={["unkey_mutations"]} members={members} />
+        <LogsClient rootKeys={workspace.keys} buckets={["unkey_mutations"]} />
       </PageBody>
     </PageContainer>
   );

@@ -6,6 +6,31 @@ info:
 actions:
   - target: $["openapi"]
     update: 3.0.0
+  - target: $["components"]["schemas"]["V2RootKeysListKeysResponseData"]["properties"]["expires"]["type"]
+    update: integer
+  - target: $["components"]["schemas"]["V2RootKeysListKeysResponseData"]["properties"]["expires"]
+    update:
+      nullable: true
+  - target: $["components"]["schemas"]["V2RootKeysListKeysResponseData"]["properties"]["name"]["type"]
+    update: string
+  - target: $["components"]["schemas"]["V2RootKeysListKeysResponseData"]["properties"]["name"]
+    update:
+      nullable: true
+  - target: $["components"]["schemas"]["V2RootKeysCreateKeyRequestBody"]["properties"]["expires"]["type"]
+    update: integer
+  - target: $["components"]["schemas"]["V2RootKeysCreateKeyRequestBody"]["properties"]["expires"]
+    update:
+      nullable: true
+  - target: $["components"]["schemas"]["V2RootKeysUpdateKeyRequestBody"]["properties"]["name"]["type"]
+    update: string
+  - target: $["components"]["schemas"]["V2RootKeysUpdateKeyRequestBody"]["properties"]["name"]
+    update:
+      nullable: true
+  - target: $["components"]["schemas"]["V2RootKeysRerollKeyRequestBody"]["properties"]["expiration"]["type"]
+    update: integer
+  - target: $["components"]["schemas"]["V2RootKeysRerollKeyRequestBody"]["properties"]["expiration"]
+    update:
+      nullable: true
   - target: $["components"]["schemas"]["V2KeysUpdateCreditsRequestBody"]["properties"]["value"]["type"]
     update: integer
   - target: $["components"]["schemas"]["V2KeysUpdateCreditsRequestBody"]["properties"]["value"]
@@ -29,6 +54,16 @@ actions:
   - target: $["components"]["schemas"]["V2KeysUpdateKeyRequestBody"]["properties"]["expires"]["type"]
     update: integer
   - target: $["components"]["schemas"]["V2KeysUpdateKeyRequestBody"]["properties"]["expires"]
+    update:
+      nullable: true
+  - target: $["components"]["schemas"]["V2KeysUpdateKeyRequestBody"]["properties"]["ratelimits"]["type"]
+    update: array
+  - target: $["components"]["schemas"]["V2KeysUpdateKeyRequestBody"]["properties"]["ratelimits"]
+    update:
+      nullable: true
+  - target: $["components"]["schemas"]["V2KeysRerollKeyRequestBody"]["properties"]["expiration"]["type"]
+    update: integer
+  - target: $["components"]["schemas"]["V2KeysRerollKeyRequestBody"]["properties"]["expiration"]
     update:
       nullable: true
   - target: $["components"]["schemas"]["KeyCreditsData"]["properties"]["remaining"]["type"]
@@ -85,3 +120,13 @@ actions:
       nullable: true
       allOf:
         - "$ref": "#/components/schemas/AppGitUpdateInput"
+  - target: $["components"]["schemas"]["V2PortalUpdatePortalRequestBody"]["properties"]["logoUrl"]["type"]
+    update: string
+  - target: $["components"]["schemas"]["V2PortalUpdatePortalRequestBody"]["properties"]["logoUrl"]
+    update:
+      nullable: true
+  - target: $["components"]["schemas"]["V2PortalUpdatePortalRequestBody"]["properties"]["primaryColor"]["type"]
+    update: string
+  - target: $["components"]["schemas"]["V2PortalUpdatePortalRequestBody"]["properties"]["primaryColor"]
+    update:
+      nullable: true

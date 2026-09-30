@@ -10,7 +10,7 @@ import (
 )
 
 const findPermissionByID = `-- name: FindPermissionByID :one
-SELECT pk, id, workspace_id, project_id, name, slug, description, created_at_m, updated_at_m
+SELECT permissions.pk, permissions.id, permissions.workspace_id, permissions.project_id, permissions.name, permissions.slug, permissions.description, permissions.created_at_m, permissions.updated_at_m
 FROM permissions
 WHERE id = ?
 LIMIT 1
@@ -19,7 +19,7 @@ LIMIT 1
 // Finds a permission record by its ID
 // Returns: The permission record if found
 //
-//	SELECT pk, id, workspace_id, project_id, name, slug, description, created_at_m, updated_at_m
+//	SELECT permissions.pk, permissions.id, permissions.workspace_id, permissions.project_id, permissions.name, permissions.slug, permissions.description, permissions.created_at_m, permissions.updated_at_m
 //	FROM permissions
 //	WHERE id = ?
 //	LIMIT 1

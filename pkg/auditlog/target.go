@@ -15,6 +15,7 @@ const (
 	RatelimitOverrideResourceType  AuditLogResourceType = "ratelimitOverride"
 	RoleResourceType               AuditLogResourceType = "role"
 	WorkspaceResourceType          AuditLogResourceType = "workspace"
+	PortalResourceType             AuditLogResourceType = "portal"
 	PortalSessionResourceType      AuditLogResourceType = "portalSession"
 	DeploymentResourceType         AuditLogResourceType = "deployment"
 	ProjectResourceType            AuditLogResourceType = "project"

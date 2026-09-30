@@ -4,9 +4,9 @@ Local development tools for setting up and testing GitHub App-triggered deployme
 
 ## Commands
 
-- `go run . dev github setup`: create a GitHub App via manifest flow and write all credentials automatically
-- `go run . dev github tunnel`: start an ngrok tunnel and update the GitHub App webhook URL automatically
-- `go run . dev github trigger-webhook`: simulate a GitHub push webhook to trigger a deployment
+- `go run ./build/cli dev github setup`: create a GitHub App via manifest flow and write all credentials automatically
+- `go run ./build/cli dev github tunnel`: start an ngrok tunnel and update the GitHub App webhook URL automatically
+- `go run ./build/cli dev github trigger-webhook`: simulate a GitHub push webhook to trigger a deployment
 
 ---
 
@@ -15,7 +15,7 @@ Local development tools for setting up and testing GitHub App-triggered deployme
 ### Step 1: Create the GitHub App
 
 ```bash
-go run . dev github setup --app-name my-unkey-dev
+go run ./build/cli dev github setup --app-name my-unkey-dev
 ```
 
 This opens a browser, walks you through GitHub's App creation UI, then writes:
@@ -36,13 +36,13 @@ Tilt spins up a `github-tunnel` resource that runs ngrok against ctrl-api and pa
 ### Step 3: Seed the database
 
 ```bash
-go run . dev seed local
+go run ./build/cli dev seed local
 ```
 
 ### Step 4: Trigger a deployment
 
 ```bash
-go run . dev github trigger-webhook \
+go run ./build/cli dev github trigger-webhook \
   --project local-api \
   --repository owner/repo
 ```

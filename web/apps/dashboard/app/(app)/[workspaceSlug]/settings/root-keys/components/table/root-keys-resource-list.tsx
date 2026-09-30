@@ -1,7 +1,18 @@
 "use client";
 
 import type { RootKey } from "@/lib/trpc/routers/settings/root-keys/query";
-import { EmptyRootKeys, ResourceListBody, ResourceListContent, Skeleton } from "@unkey/ui";
+import { IconBookBookmarkOutline18 } from "@unkey/icons";
+import {
+  EmptyState,
+  EmptyStateActions,
+  EmptyStateDescription,
+  EmptyStateHeader,
+  EmptyStateTitle,
+  ResourceListBody,
+  ResourceListContent,
+  Skeleton,
+  buttonVariants,
+} from "@unkey/ui";
 import { RootKeyRow } from "./root-key-row";
 
 type RootKeysResourceListProps = {
@@ -35,7 +46,26 @@ export function RootKeysResourceList({
     return (
       <ResourceListContent>
         <div className="flex w-full items-center justify-center px-4 py-16">
-          <EmptyRootKeys />
+          <EmptyState frame="none">
+            <EmptyStateHeader>
+              <EmptyStateTitle>No Root Keys Found</EmptyStateTitle>
+              <EmptyStateDescription>
+                There are no root keys configured yet. Create your first root key to start managing
+                permissions and access control.
+              </EmptyStateDescription>
+            </EmptyStateHeader>
+            <EmptyStateActions>
+              <a
+                href="https://www.unkey.com/docs/security/overview#root-keys"
+                target="_blank"
+                rel="noopener noreferrer"
+                className={buttonVariants({ variant: "outline", size: "md" })}
+              >
+                <IconBookBookmarkOutline18 />
+                Learn about Root Keys
+              </a>
+            </EmptyStateActions>
+          </EmptyState>
         </div>
       </ResourceListContent>
     );

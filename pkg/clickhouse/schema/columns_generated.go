@@ -89,5 +89,15 @@ func (AuditLogV1) Table() string {
 
 // InsertColumns implements [Row]; derived from AuditLogV1's ch tags.
 func (AuditLogV1) InsertColumns() string {
-	return "`event_id`, `time`, `inserted_at`, `workspace_id`, `bucket`, `source`, `event`, `description`, `actor_type`, `actor_id`, `actor_name`, `actor_meta`, `remote_ip`, `user_agent`, `meta`, `targets.type`, `targets.id`, `targets.name`, `targets.meta`, `correlation_id`"
+	return "`event_id`, `time`, `workspace_id`, `bucket`, `source`, `event`, `description`, `actor_type`, `actor_id`, `actor_name`, `actor_meta`, `remote_ip`, `user_agent`, `meta`, `targets.type`, `targets.id`, `targets.name`, `targets.meta`, `correlation_id`"
+}
+
+// Table implements [Row].
+func (LogdrainDeliveryV1) Table() string {
+	return "default.logdrain_deliveries_raw_v1"
+}
+
+// InsertColumns implements [Row]; derived from LogdrainDeliveryV1's ch tags.
+func (LogdrainDeliveryV1) InsertColumns() string {
+	return "`workspace_id`, `drain_id`, `stream`, `time`, `outcome`, `events`, `webhook_duration_ms`, `request_body_bytes`, `response_status`, `response_body`, `error`"
 }

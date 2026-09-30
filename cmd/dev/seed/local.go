@@ -54,6 +54,7 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 		UsageLimiter: nil,
 		Source:       schema.SourceAPI,
 		KeyCache:     nil,
+		RootKeyCache: nil,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to create key service: %w", err)
@@ -107,6 +108,7 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 				Slug:         slug,
 				CreatedAtM:   now,
 				BetaFeatures: json.RawMessage(`{}`),
+				K8sNamespace: uid.DNS1035(),
 			},
 			{
 				ID:           rootWorkspaceID,
@@ -115,6 +117,7 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 				Slug:         fmt.Sprintf("unkey-%s", slug),
 				CreatedAtM:   now,
 				BetaFeatures: json.RawMessage(`{}`),
+				K8sNamespace: uid.DNS1035(),
 			},
 		})
 		if err != nil {
@@ -169,7 +172,7 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 				ProjectID:        projectID,
 				Name:             projectName,
 				Slug:             "default",
-				DefaultBranch:    "main",
+				SourceType:       db.AppsSourceTypeUnknown,
 				DeleteProtection: sql.NullBool{Valid: false, Bool: false},
 				CreatedAt:        now,
 				UpdatedAt:        sql.NullInt64{Valid: false, Int64: 0},
@@ -186,7 +189,7 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 			if err != nil {
 				return fmt.Errorf("failed to find existing app: %w", err)
 			}
-			appID = existing.App.ID
+			appID = existing.ID
 		}
 
 		err = db.BulkQuery.InsertEnvironments(ctx, tx, []db.InsertEnvironmentParams{
@@ -223,7 +226,7 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 			if err != nil {
 				return fmt.Errorf("failed to find existing preview environment: %w", err)
 			}
-			previewEnvID = previewEnv.Environment.ID
+			previewEnvID = previewEnv.ID
 			productionEnv, err := db.Query.FindEnvironmentByAppIdAndSlug(ctx, tx, db.FindEnvironmentByAppIdAndSlugParams{
 				AppID: appID,
 				Slug:  "production",
@@ -231,7 +234,7 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 			if err != nil {
 				return fmt.Errorf("failed to find existing production environment: %w", err)
 			}
-			productionEnvID = productionEnv.Environment.ID
+			productionEnvID = productionEnv.ID
 		}
 
 		// Create default runtime settings for each environment
@@ -448,7 +451,9 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 			ID:                 rootKeyID,
 			KeySpaceID:         rootKeySpaceID,
 			Hash:               keyResult.Hash,
+			Prefix:             "unkey",
 			Start:              keyResult.Start,
+			End:                keyResult.Key[len(keyResult.Key)-4:],
 			WorkspaceID:        rootWorkspaceID,
 			ForWorkspaceID:     sql.NullString{String: workspaceID, Valid: true},
 			Name:               sql.NullString{String: fmt.Sprintf("%s Dev Root Key", titleCase), Valid: true},
@@ -502,6 +507,14 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 			"project.*.generate_upload_url",
 			"project.*.create_deployment",
 			"project.*.read_deployment",
+			// Portal management plus session minting. The seeded root key needs
+			// these so a locally seeded portal keeps working now that
+			// portal.createSession is gated.
+			"portal.*.create_portal",
+			"portal.*.read_portal",
+			"portal.*.update_portal",
+			"portal.*.delete_portal",
+			"portal.*.create_portal_session",
 		}
 
 		permissionParams := make([]db.InsertPermissionParams, len(allPermissions))
@@ -548,10 +561,15 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 			// portal that sets both. App-mapping additionally resolves its
 			// keyspaces from the app's current deployment, which this seed does
 			// not create, so the keyspace is the only mapping that works here.
+			// Must stay the mapped keyspace's project, which the handlers derive
+			// through portal.ResolveMappingProject. That package is internal to
+			// svc/api and unreachable here, so the two are coupled by hand.
 			err = db.Query.InsertPortal(ctx, tx, db.InsertPortalParams{
 				ID:           portalID,
 				WorkspaceID:  workspaceID,
+				ProjectID:    userDefaultProjectID,
 				Slug:         "awesome",
+				DisplayName:  "Awesome",
 				AppID:        sql.NullString{Valid: false},
 				KeyAuthID:    sql.NullString{Valid: true, String: userKeySpaceID},
 				Enabled:      true,

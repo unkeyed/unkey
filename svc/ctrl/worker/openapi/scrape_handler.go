@@ -38,14 +38,14 @@ func (s *Service) ScrapeSpec(ctx restate.Context, req *hydrav1.ScrapeSpecRequest
 	if err != nil {
 		if db.IsNotFound(err) {
 			return nil, fault.Wrap(
-				restate.TerminalError(fmt.Errorf("deployment not found: %s", deploymentID), 404),
+				restate.ToTerminalError(fmt.Errorf("deployment not found: %s", deploymentID), restate.WithErrorCode(404)),
 				fault.Public("The deployment could not be found"),
 			)
 		}
 		return nil, fault.Wrap(err, fault.Public("Failed to find the deployment."))
 	}
 
-	settings, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.FindAppRuntimeSettingsByAppAndEnvRow, error) {
+	openapiSpecPath, err := restate.Run(ctx, func(runCtx restate.RunContext) (sql.NullString, error) {
 		return s.db.FindAppRuntimeSettingsByAppAndEnv(runCtx, db.FindAppRuntimeSettingsByAppAndEnvParams{
 			AppID:         deployment.AppID,
 			EnvironmentID: deployment.EnvironmentID,
@@ -59,11 +59,11 @@ func (s *Service) ScrapeSpec(ctx restate.Context, req *hydrav1.ScrapeSpecRequest
 		return nil, fault.Wrap(err, fault.Public("Failed to find runtime settings."))
 	}
 
-	if !settings.AppRuntimeSetting.OpenapiSpecPath.Valid || settings.AppRuntimeSetting.OpenapiSpecPath.String == "" {
+	if !openapiSpecPath.Valid || openapiSpecPath.String == "" {
 		logger.Info("openapi_spec_path not configured, skipping scrape", "deployment_id", deploymentID)
 		return &hydrav1.ScrapeSpecResponse{}, nil
 	}
-	specPath := settings.AppRuntimeSetting.OpenapiSpecPath.String
+	specPath := openapiSpecPath.String
 
 	route, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.FrontlineRoute, error) {
 		return s.db.FindFrontlineRouteByDeploymentIDAndSticky(runCtx, db.FindFrontlineRouteByDeploymentIDAndStickyParams{
@@ -84,9 +84,9 @@ func (s *Service) ScrapeSpec(ctx restate.Context, req *hydrav1.ScrapeSpecRequest
 	// is not trusted inside the cluster, so reach the pod directly via plain HTTP.
 	// Production: use HTTPS with the public FQDN.
 	isLocal := strings.HasSuffix(fqdn, ".unkey.local")
-	parsedSpecPath, err := validateSpecPath(specPath)
-	if err != nil {
-		return nil, fault.Wrap(err, fault.Public("Failed to fetch OpenAPI spec."))
+	parsedSpecPath, specPathErr := validateSpecPath(specPath)
+	if specPathErr != nil {
+		return nil, fault.Wrap(specPathErr, fault.Public("Failed to fetch OpenAPI spec."))
 	}
 
 	var baseURL *url.URL

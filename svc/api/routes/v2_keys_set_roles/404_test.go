@@ -65,6 +65,7 @@ func TestNotFoundErrors(t *testing.T) {
 	err := db.Query.InsertRole(ctx, h.DB.RW(), db.InsertRoleParams{
 		RoleID:      validRoleID,
 		WorkspaceID: workspace.ID,
+		ProjectID:   api.ProjectID,
 		Name:        validRoleName,
 		Description: sql.NullString{Valid: true, String: "Valid test role"},
 	})
@@ -147,11 +148,12 @@ func TestNotFoundErrors(t *testing.T) {
 		// Create a different workspace
 		otherWorkspaceID := uid.New("test_ws")
 		err := db.Query.InsertWorkspace(ctx, h.DB.RW(), db.InsertWorkspaceParams{
-			ID:        otherWorkspaceID,
-			OrgID:     uid.New("test_org"),
-			Name:      uid.New("test_name"),
-			Slug:      uid.New("slug"),
-			CreatedAt: time.Now().UnixMilli(),
+			ID:           otherWorkspaceID,
+			OrgID:        uid.New("test_org"),
+			Name:         uid.New("test_name"),
+			Slug:         uid.New("slug"),
+			CreatedAt:    time.Now().UnixMilli(),
+			K8sNamespace: uid.DNS1035(),
 		})
 		require.NoError(t, err)
 
@@ -211,11 +213,12 @@ func TestNotFoundErrors(t *testing.T) {
 		// Create a different workspace
 		otherWorkspaceID := uid.New("test_ws")
 		err := db.Query.InsertWorkspace(ctx, h.DB.RW(), db.InsertWorkspaceParams{
-			ID:        otherWorkspaceID,
-			OrgID:     uid.New("test_org"),
-			Name:      uid.New("test_name"),
-			Slug:      uid.New("slug"),
-			CreatedAt: time.Now().UnixMilli(),
+			ID:           otherWorkspaceID,
+			OrgID:        uid.New("test_org"),
+			Name:         uid.New("test_name"),
+			Slug:         uid.New("slug"),
+			CreatedAt:    time.Now().UnixMilli(),
+			K8sNamespace: uid.DNS1035(),
 		})
 		require.NoError(t, err)
 

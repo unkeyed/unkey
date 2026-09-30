@@ -10,12 +10,15 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/svc/api/internal/projects"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_permissions_delete_role"
 )
 
-func TestPermissionErrors(t *testing.T) {
+// TestDeleteRoleMasksInsufficientPermissions guarantees that callers cannot find
+// or delete roles without delete access.
+func TestDeleteRoleMasksInsufficientPermissions(t *testing.T) {
 	ctx := context.Background()
 	h := testutil.NewHarness(t)
 
@@ -28,6 +31,8 @@ func TestPermissionErrors(t *testing.T) {
 
 	// Create a workspace
 	workspace := h.Resources().UserWorkspace
+	projectID, err := projects.EnsureDefaultProject(ctx, h.DB.RW(), workspace.ID)
+	require.NoError(t, err)
 
 	// Create a role for testing
 	// Create a role to attempt to delete (in the same workspace)
@@ -35,9 +40,10 @@ func TestPermissionErrors(t *testing.T) {
 	roleName := "test.forbidden.role"
 	roleDesc := "Test role for forbidden access"
 
-	err := db.Query.InsertRole(ctx, h.DB.RW(), db.InsertRoleParams{
+	err = db.Query.InsertRole(ctx, h.DB.RW(), db.InsertRoleParams{
 		RoleID:      roleID,
 		WorkspaceID: workspace.ID,
+		ProjectID:   projectID,
 		Name:        roleName,
 		Description: sql.NullString{Valid: true, String: roleDesc},
 	})
@@ -52,7 +58,7 @@ func TestPermissionErrors(t *testing.T) {
 			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 		}
 
-		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](
+		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](
 			h,
 			route,
 			headers,
@@ -61,10 +67,11 @@ func TestPermissionErrors(t *testing.T) {
 			},
 		)
 
-		require.Equal(t, 403, res.Status)
+		require.Equal(t, http.StatusNotFound, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.Contains(t, res.Body.Error.Detail, "permission")
+		require.Equal(t, "https://unkey.com/docs/errors/unkey/data/role_not_found", res.Body.Error.Type)
+		require.Equal(t, "The requested role does not exist.", res.Body.Error.Detail)
 	})
 
 	t.Run("no permissions", func(t *testing.T) {
@@ -76,7 +83,7 @@ func TestPermissionErrors(t *testing.T) {
 			"Authorization": {fmt.Sprintf("Bearer %s", rootKeyNoPerms)},
 		}
 
-		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](
+		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](
 			h,
 			route,
 			headers,
@@ -85,9 +92,13 @@ func TestPermissionErrors(t *testing.T) {
 			},
 		)
 
-		require.Equal(t, 403, res.Status)
+		require.Equal(t, http.StatusNotFound, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.Contains(t, res.Body.Error.Detail, "permission")
+		require.Equal(t, "https://unkey.com/docs/errors/unkey/data/role_not_found", res.Body.Error.Type)
+		require.Equal(t, "The requested role does not exist.", res.Body.Error.Detail)
 	})
+
+	_, err = db.Query.FindRoleByID(ctx, h.DB.RO(), roleID)
+	require.NoError(t, err)
 }

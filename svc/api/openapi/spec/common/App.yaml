@@ -23,13 +23,29 @@ properties:
       URL-safe handle for this app, unique within its project.
       Chosen at creation time.
     example: payments-api
+  sourceType:
+    type: string
+    enum:
+      - git
+      - oci
+    description: |
+      The configured source used to create deployments. Omitted for historical
+      apps whose source could not be classified.
+    example: oci
+    x-go-type-skip-optional-pointer: true
+    x-go-type-skip-optional-pointer-with-omitzero: true
   git:
     description: |
       The connected GitHub repository and the branch its deployments track.
       Omitted when the app has no repository connected (for example a
-      Docker-based app).
+      prebuilt OCI image app).
     allOf:
       - "$ref": "./AppGit.yaml"
+  oci:
+    description: |
+      The configured OCI image source. Omitted when the app is not OCI-sourced.
+    allOf:
+      - "$ref": "./AppOCI.yaml"
   currentDeploymentId:
     type: string
     description: |

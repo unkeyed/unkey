@@ -1,14 +1,17 @@
 "use client";
 
-import { useConsumedSearchParam } from "@/hooks/use-consumed-search-param";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import { routes } from "@/lib/navigation/routes";
+import { currentApiProduct } from "@/lib/billing/api-plan";
 import { SUPPORT_MAILTO } from "@/lib/support";
 import { trpc } from "@/lib/trpc/client";
-import { Phone } from "@unkey/icons";
+import { useWorkspace } from "@/providers/workspace-provider";
+import { IconPhoneOutline18 } from "@unkey/icons";
 import {
   Button,
-  Empty,
+  EmptyState,
+  EmptyStateDescription,
+  EmptyStateHeader,
+  EmptyStateTitle,
   PageBody,
   PageContainer,
   PageHeader,
@@ -19,7 +22,6 @@ import {
 } from "@unkey/ui";
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { currentApiProduct } from "./components/api-plan";
 import { BillingNotices } from "./components/billing-notices";
 import { CostControl } from "./components/cost-control";
 import { PlansCard } from "./components/plans-card";
@@ -40,7 +42,7 @@ function Shell({ children }: { children: ReactNode }) {
             size="md"
             render={<Link href={SALES_CALL_URL} target="_blank" rel="noopener noreferrer" />}
           >
-            <Phone iconSize="md-medium" />
+            <IconPhoneOutline18 className="size-4" />
             Schedule a call
           </Button>
           <Button variant="outline" size="md" render={<Link href={SUPPORT_MAILTO} />}>
@@ -53,20 +55,10 @@ function Shell({ children }: { children: ReactNode }) {
   );
 }
 
-function isCheckoutIntent(value: string | null): value is "compute" | "api" {
-  return value === "compute" || value === "api";
-}
-
 export function DeployBillingClientV2() {
   const workspace = useWorkspaceNavigation();
 
-  const checkoutIntent = useConsumedSearchParam(
-    "intent",
-    (value) => (isCheckoutIntent(value) ? value : null),
-    routes.settings.billing({ workspaceSlug: workspace.slug }),
-  );
-
-  const { data: currentUser } = trpc.user.getCurrentUser.useQuery();
+  const { user: currentUser } = useWorkspace();
   const isAdmin = currentUser ? currentUser.role === "admin" : undefined;
 
   const { data: billingInfo, error: billingError } = trpc.stripe.getBillingInfo.useQuery(
@@ -96,12 +88,14 @@ export function DeployBillingClientV2() {
       <BillingNotices isAdmin={isAdmin} subscription={subscription} />
 
       {billingError ? (
-        <Empty>
-          <Empty.Title>Failed to load API billing information</Empty.Title>
-          <Empty.Description>
-            There was an error loading your API billing information. Please try again later.
-          </Empty.Description>
-        </Empty>
+        <EmptyState>
+          <EmptyStateHeader>
+            <EmptyStateTitle>Failed to load API billing information</EmptyStateTitle>
+            <EmptyStateDescription>
+              There was an error loading your API billing information. Please try again later.
+            </EmptyStateDescription>
+          </EmptyStateHeader>
+        </EmptyState>
       ) : billingInfo ? (
         <PlansCard
           isAdmin={isAdmin}
@@ -110,7 +104,6 @@ export function DeployBillingClientV2() {
           products={billingInfo.products}
           subscription={subscription}
           currentProductId={billingInfo.currentProductId}
-          checkoutIntent={checkoutIntent}
         />
       ) : (
         <Skeleton className="h-[140px] w-full rounded-lg" />

@@ -7,7 +7,7 @@ plugins:
     opt:
       - paths=import
       - module=github.com/unkeyed/unkey/gen/proto
-  - local: protoc-gen-go-restate
+  - local: ["go", "tool", "protoc-gen-go-restate"]
     out: ../../../gen/proto
     opt:
       - paths=import

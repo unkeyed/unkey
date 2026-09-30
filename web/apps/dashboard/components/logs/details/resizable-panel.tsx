@@ -87,7 +87,7 @@ export const ResizablePanel = ({
   return (
     <div
       ref={panelRef}
-      className={`relative border-l border-gray-4 ${className}`}
+      className={`relative border-l ${className}`}
       style={{ ...style, width, right: 0, position: "fixed" }}
     >
       <div

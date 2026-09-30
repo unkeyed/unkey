@@ -1,0 +1,66 @@
+---
+title: Compute plans
+sidebarTitle: "Plans"
+description: "Which Compute plan you need to deploy and what each plan allows."
+sources:
+  - pkg/deploy/deploygate/deploygate.go
+  - svc/ctrl/services/deployment/deploy_gate.go
+  - svc/ctrl/services/project/create_project.go
+  - svc/ctrl/worker/githubwebhook/handle_push.go
+  - web/apps/dashboard/lib/limits.ts
+  - web/apps/dashboard/lib/stripe/deployPlan.ts
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/_components/deploy-plan-gate-dialog.tsx
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/_components/hooks/use-deploy-gate.ts
+  - web/internal/db/src/schema/workspace_billing.ts
+  - web/internal/db/src/schema/limits.ts
+  - svc/ctrl/worker/cron/deployspendcheck/thresholds.go
+  - svc/frontline/internal/router/service.go
+  - web/apps/dashboard/lib/trpc/routers/stripe/cancelDeploy.ts
+  - web/apps/dashboard/lib/trpc/routers/stripe/changeDeployPlan.ts
+  - svc/ctrl/worker/deployteardown/doc.go
+---
+
+You need a Compute plan to deploy. API Management is separate: you can be on the free API tier and still buy Compute, and a paid API plan still can't deploy until you add Compute. How billing and cancellation work for both products is on [Plans](/platform/billing/plans). Here we focus on the Compute plan.
+
+## Before you can deploy
+
+We check for a plan whenever you create or bring back compute: creating a project, creating a <Tooltip tip="One built and running version of an app in one environment.">deployment</Tooltip>, promoting or rolling back, approving a fork deployment, or handling a GitHub push.
+
+## Plans and their limits
+
+There are three plans, cheapest to most capable: Starter, Pro, and Business. The plan sets the limits for your workspace. See [Limits](/platform/billing/limits). These are the same numbers the dashboard shows. [Compute limits](/compute/configure/limits) covers where each limit is enforced.
+
+| Limit | Starter | Pro | Business |
+| --- | --- | --- | --- |
+| CPU per instance | 2 vCPU | 8 vCPU | 16 vCPU |
+| Memory per instance | 2 GiB | 8 GiB | 32 GiB |
+| Ephemeral disk per instance | 10 GiB | 10 GiB | 10 GiB |
+| Workspace CPU across running instances | 30 vCPU | 120 vCPU | 240 vCPU |
+| Workspace memory across running instances | 60 GiB | 240 GiB | 480 GiB |
+| Workspace ephemeral disk across running instances | 120 GiB | 480 GiB | 960 GiB |
+| Replicas per region for one app | 4 | 8 | 16 |
+| Concurrent builds | 1 | 1 | 1 |
+| Custom domains | 1 | Unlimited | Unlimited |
+| Log query range | 3 days | 7 days | 14 days |
+| Team members | No | Yes | Yes |
+
+## Spend budget
+
+A Compute plan meters usage above what the plan includes. Workspace admins can set a monthly spend budget in whole dollars under **Settings > Billing**. Unkey emails the admins when month-to-date Compute spend crosses 50, 75, and 100 percent of the budget. If you also turn on the stop option, hitting 100 percent suspends the workspace's compute: running deployments are stopped, the gateway answers every request with `402` and [`spend_limit_reached`](/errors/frontline/capacity/spend_limit_reached), and starting or waking a deployment is refused. Raise or remove the budget, or turn the stop option off, and compute comes back. You do not need to pick a new plan. Full detail is on [Spend budget](/compute/configure/spend-budget).
+
+## If you cancel Compute
+
+Canceling Compute takes effect immediately: running deployments are torn down for good, the plan is cleared, and the subscription won't renew. The current period isn't refunded. Until someone picks a plan again, you can't deploy, promote, or roll back.
+
+If the workspace is on the free API Management tier and your Compute plan includes team members (Pro or Business), canceling deactivates every member except the workspace creator. Downgrading from Pro or Business to Starter does the same.
+
+## Next steps
+
+<Columns cols={2}>
+  <Card title="Deploy from GitHub" icon="github" href="/compute/get-started/deploy-from-github">
+    Connect a repository and ship the first deployment.
+  </Card>
+  <Card title="Limits" icon="gauge-high" href="/platform/billing/limits">
+    Every workspace limit with your current usage.
+  </Card>
+</Columns>

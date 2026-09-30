@@ -1,6 +1,6 @@
 import type { RootKey } from "@/lib/trpc/routers/settings/root-keys/query";
-import { cn } from "@/lib/utils";
 import { STATUS_STYLES } from "@unkey/ui";
+import { cn } from "cn";
 
 export { STATUS_STYLES };
 
@@ -12,7 +12,7 @@ export const getRowClassName = (log: RootKey, selectedRow: RootKey | null) => {
     style.base,
     style.hover,
     "group rounded",
-    "focus:outline-none focus:ring-1 focus:ring-opacity-40",
+    "focus:outline-none focus:ring-1",
     style.focusRing,
     isSelected && style.selected,
   );

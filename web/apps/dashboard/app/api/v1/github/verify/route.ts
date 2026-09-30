@@ -330,22 +330,9 @@ async function alertSlack({
 async function getUsers(orgId: string): Promise<{ id: string; email: string; name: string }[]> {
   const members = await auth.getOrganizationMemberList(orgId);
 
-  const users = await Promise.all(
-    members.data.map(async (member) => {
-      try {
-        const user = await auth.getUser(member.user.id);
-        return user;
-      } catch {
-        return null;
-      }
-    }),
-  );
-
-  return users
-    .filter((user): user is NonNullable<typeof user> => user !== null)
-    .map((user) => ({
-      id: user.id,
-      name: user.firstName ?? "",
-      email: user.email ?? "",
-    }));
+  return members.data.map((member) => ({
+    id: member.user.id,
+    name: member.user.firstName ?? "",
+    email: member.user.email ?? "",
+  }));
 }

@@ -1,7 +1,7 @@
 import { clickhouse } from "@/lib/clickhouse";
 import { db } from "@/lib/db";
+import { getTimestampFromRelative } from "@/lib/duration";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
-import { getTimestampFromRelative } from "@/lib/utils";
 import { TRPCError } from "@trpc/server";
 import { KEY_VERIFICATION_OUTCOMES } from "@unkey/clickhouse/src/keys/keys";
 import type { VerificationTimeseriesDataPoint } from "@unkey/clickhouse/src/verifications";
@@ -12,6 +12,7 @@ import {
   type TimeseriesGranularity,
   getTimeseriesGranularity,
 } from "../../utils/granularity";
+import { assertValidTimeRange } from "../../utils/time-range";
 
 // Input schema for identity timeseries query
 // Note: granularity is auto-computed based on time range, not provided by caller
@@ -67,11 +68,14 @@ export const queryIdentityTimeseries = workspaceProcedure
   .input(identityTimeseriesPayload)
   .output(identityTimeseriesResponse)
   .query(async ({ ctx, input }) => {
+    assertValidTimeRange(input.startTime, input.endTime);
+
     // First, validate identity exists and get associated keys
     const identity = await db.query.identities
       .findFirst({
         where: (table, { eq, and }) =>
           and(eq(table.id, input.identityId), eq(table.workspaceId, ctx.workspace.id)),
+        columns: { id: true },
         with: {
           keys: {
             where: (keysTable, { isNull }) => isNull(keysTable.deletedAtM),

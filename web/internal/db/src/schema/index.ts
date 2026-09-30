@@ -2,6 +2,7 @@ export * from "./apis";
 export * from "./rbac";
 export * from "./keyAuth";
 export * from "./keys";
+export * from "./unkey_root_keys";
 export * from "./ratelimit";
 export * from "./workspaces";
 export * from "./identity";
@@ -12,10 +13,12 @@ export * from "./clickhouse_outbox";
 export * from "./environments";
 export * from "./clickhouse_workspace_settings";
 export * from "./shared_secrets";
+export * from "./logdrains";
 
 // Deployment platform tables
 export * from "./projects";
 export * from "./apps";
+export * from "./app_source_oci";
 export * from "./app_build_settings";
 export * from "./app_runtime_settings";
 export * from "./app_regional_settings";

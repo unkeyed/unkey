@@ -6,8 +6,8 @@ import { usePersistedForm } from "@/hooks/use-persisted-form";
 import { trpc } from "@/lib/trpc/client";
 import type { KeyPermission, KeyRole } from "@/lib/trpc/routers/key/rbac/connected-roles-and-perms";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { PenWriting3 } from "@unkey/icons";
-import { Button, DialogContainer } from "@unkey/ui";
+import { IconPenWriting3Outline18 } from "@unkey/icons";
+import { Button, DialogContainer, Separator } from "@unkey/ui";
 import { useEffect, useState } from "react";
 import { Controller, FormProvider } from "react-hook-form";
 import { GrantedAccess } from "../../../rbac/granted-access";
@@ -111,7 +111,7 @@ export const KeyRbacDialog = ({
   const {
     data: dataSlugs,
     isLoading: isSlugsLoading,
-    refetch: refetchPermissionSlugs,
+    hasError: hasSlugsError,
   } = useFetchPermissionSlugs(watchedRoleNames, watchedDirectPermissionSlugs, isDialogOpen);
 
   // Reset form data when dialog opens
@@ -137,13 +137,10 @@ export const KeyRbacDialog = ({
     setIsDialogOpen(false);
   });
 
-  const onSubmit = async (data: FormValues) => {
-    const resolved = await refetchPermissionSlugs();
-
+  const onSubmit = (data: FormValues) => {
     updateKeyRbacMutation.mutate({
       ...data,
-      totalEffectivePermissions:
-        resolved.data?.totalCount ?? dataSlugs?.totalCount ?? data.directPermissionSlugs.length,
+      totalEffectivePermissions: dataSlugs?.totalCount ?? data.directPermissionSlugs.length,
     });
   };
 
@@ -169,7 +166,7 @@ export const KeyRbacDialog = ({
 
   const defaultTrigger = (
     <NavbarActionButton title={DIALOG_CONFIG.triggerTitle} onClick={() => setIsDialogOpen(true)}>
-      <PenWriting3 />
+      <IconPenWriting3Outline18 />
       {DIALOG_CONFIG.triggerTitle}
     </NavbarActionButton>
   );
@@ -197,7 +194,7 @@ export const KeyRbacDialog = ({
                   variant="primary"
                   size="xlg"
                   className="w-full rounded-lg transition-all duration-200"
-                  disabled={!isValid || updateKeyRbacMutation.isLoading}
+                  disabled={!isValid || isSlugsLoading || updateKeyRbacMutation.isLoading}
                   loading={updateKeyRbacMutation.isLoading}
                 >
                   {DIALOG_CONFIG.buttonText}
@@ -213,9 +210,7 @@ export const KeyRbacDialog = ({
                   name: existingKey.name ?? null,
                 }}
               />
-              <div className="py-1 my-2">
-                <div className="h-px bg-grayA-3 w-full" />
-              </div>
+              <Separator className="my-3" />
               <Controller
                 name="roleNames"
                 control={control}
@@ -224,7 +219,6 @@ export const KeyRbacDialog = ({
                     value={field.value ?? []}
                     onChange={field.onChange}
                     error={fieldState.error?.message}
-                    keyId={existingKey.id}
                     assignedRoleDetails={connectedRolesAndPerms?.roles ?? []}
                   />
                 )}
@@ -246,6 +240,7 @@ export const KeyRbacDialog = ({
                 slugs={dataSlugs?.slugs}
                 totalCount={dataSlugs?.totalCount}
                 isLoading={isSlugsLoading}
+                hasError={hasSlugsError}
               />
             </div>
           </DialogContainer>

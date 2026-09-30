@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
-	restate "github.com/restatedev/sdk-go"
 	restateingress "github.com/restatedev/sdk-go/ingress"
 	"github.com/unkeyed/unkey/gen/proto/ctrl/v1/ctrlv1connect"
 	"github.com/unkeyed/unkey/gen/proto/vault/v1/vaultv1connect"
@@ -27,6 +26,7 @@ import (
 	promclient "github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/collectors"
 	"github.com/unkeyed/unkey/internal/services/usagelimiter"
+	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/auth"
 	authjwt "github.com/unkeyed/unkey/pkg/auth/jwt"
 	portalsession "github.com/unkeyed/unkey/pkg/auth/portal_session"
@@ -35,6 +35,7 @@ import (
 
 	"github.com/unkeyed/unkey/pkg/batch"
 	"github.com/unkeyed/unkey/pkg/buildinfo"
+	"github.com/unkeyed/unkey/pkg/buildinfo/metrics"
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
@@ -108,7 +109,7 @@ func Run(ctx context.Context, cfg Config) error {
 	reg.MustRegister(collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}))
 	reg.MustRegister(prometheus.NewSystemMetricsCollector())
 	lazy.SetRegistry(reg)
-	buildinfo.RegisterBuildInfoMetrics("api")
+	buildinfometrics.Register("api")
 
 	// This is a little ugly, but the best we can do to resolve the circular dependency until we rework the logger.
 	var shutdownGrafana func(context.Context) error
@@ -167,6 +168,7 @@ func Run(ctx context.Context, cfg Config) error {
 
 	var ch clickhouse.ClickHouse = clickhouse.NewNoop()
 	apiRequests := batch.NewNoop[schema.ApiRequest]()
+	directAuditLogs := batch.NewNoop[auditlog.Event]()
 	keyVerifications := batch.NewNoop[schema.KeyVerification]()
 	ratelimits := batch.NewNoop[schema.Ratelimit]()
 
@@ -181,6 +183,15 @@ func Run(ctx context.Context, cfg Config) error {
 
 		apiRequests = clickhouse.NewBuffer[schema.ApiRequest](chClient, clickhouse.BufferConfig{
 			Name:          "api_requests",
+			BatchSize:     10_000,
+			BufferSize:    20_000,
+			FlushInterval: 5 * time.Second,
+			Consumers:     2,
+			Drop:          true,
+			OnFlushError:  nil,
+		})
+		directAuditLogs = clickhouse.NewAuditLogBuffer(chClient, clickhouse.BufferConfig{
+			Name:          "direct_audit_logs",
 			BatchSize:     10_000,
 			BufferSize:    20_000,
 			FlushInterval: 5 * time.Second,
@@ -207,11 +218,12 @@ func Run(ctx context.Context, cfg Config) error {
 			OnFlushError:  nil,
 		})
 
-		// Close buffers before connection (LIFO)
+		// Close buffers before the connection (LIFO).
+		r.Defer(chClient.Close)
 		r.Defer(func() error { apiRequests.Close(); return nil })
+		r.Defer(func() error { directAuditLogs.Close(); return nil })
 		r.Defer(func() error { keyVerifications.Close(); return nil })
 		r.Defer(func() error { ratelimits.Close(); return nil })
-		r.Defer(chClient.Close)
 	}
 
 	// Caches will be created after invalidation consumer is set up
@@ -223,6 +235,7 @@ func Run(ctx context.Context, cfg Config) error {
 		EnableH2C:          false,
 		StreamRequestBody:  false,
 		MaxRequestBodySize: cfg.MaxRequestBodySize,
+		TrustedProxyCIDRs:  cfg.TrustedProxyCIDRs,
 		ReadTimeout:        0,
 		WriteTimeout:       0,
 	})
@@ -318,16 +331,17 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	caches, err := cachesvc.New(cachesvc.Config{
-		Clock:  clk,
-		NodeID: cfg.InstanceID,
+		Clock: clk,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create caches: %w", err)
 	}
+	r.Defer(caches.Close)
 
 	keySvc, err := keys.New(keys.Config{
 		DB:           db.ToMySQL(database),
 		KeyCache:     caches.VerificationKeyByHash,
+		RootKeyCache: caches.RootKeyByHash,
 		RateLimiter:  rlSvc,
 		RBAC:         rbac.New(),
 		Region:       cfg.Region,
@@ -391,12 +405,8 @@ func Run(ctx context.Context, cfg Config) error {
 			if jwtErr != nil {
 				return fmt.Errorf("unable to create JWT auth resolver from auth[%d]: %w", i, jwtErr)
 			}
-			// A WorkOS entry carries provider permission slugs that must be
-			// translated into canonical Unkey permissions after verification.
-			// This is selected by the explicit provider field, not by the
-			// issuer, so custom auth domains translate the same way.
 			if authConfig.Provider == jwtProviderWorkOS {
-				jwtResolver = authworkos.NewPermissionTranslatingResolver(jwtResolver)
+				jwtResolver = authworkos.NewRoleMappingResolver(jwtResolver)
 			}
 			authResolvers = append(authResolvers, jwtResolver)
 		case PortalSessionAuthConfig:
@@ -427,17 +437,6 @@ func Run(ctx context.Context, cfg Config) error {
 			return fmt.Errorf("unable to create analytics connection manager: %w", err)
 		}
 	}
-
-	// Initialize control plane deployment client
-	ctrlDeploymentClient := ctrl.NewConnectDeployServiceClient(
-		ctrlv1connect.NewDeployServiceClient(
-			&http.Client{},
-			cfg.Control.URL,
-			connect.WithInterceptors(interceptor.NewHeaderInjector(map[string]string{
-				"Authorization": fmt.Sprintf("Bearer %s", cfg.Control.Token),
-			})),
-		),
-	)
 
 	ctrlProjectClient := ctrl.NewConnectProjectServiceClient(
 		ctrlv1connect.NewProjectServiceClient(
@@ -471,8 +470,8 @@ func Run(ctx context.Context, cfg Config) error {
 
 	restateClient := restateingress.NewClient(
 		cfg.Restate.URL,
-		restate.WithAuthKey(cfg.Restate.APIKey),
-		restate.WithHttpClient(&http.Client{Timeout: 30 * time.Second}),
+		restateingress.WithAuthKey(cfg.Restate.APIKey),
+		restateingress.WithHttpClient(&http.Client{Timeout: 30 * time.Second}),
 	)
 
 	logger.Info("Control plane clients initialized", "url", cfg.Control.URL)
@@ -503,24 +502,25 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	routes.Register(srv, &routes.Services{
-		Database:             database,
-		ClickHouse:           ch,
-		ApiRequests:          apiRequests,
-		RatelimitEvents:      ratelimits,
-		KeyVerifications:     keyVerifications,
-		Keys:                 keySvc,
-		Auth:                 authSvc,
-		PortalAuth:           portalAuthSvc,
-		Validator:            validator,
-		Redactor:             redactor,
-		Ratelimit:            rlSvc,
-		Auditlogs:            auditlogSvc,
-		Caches:               caches,
-		Vault:                vaultClient,
-		CtrlDeploymentClient: ctrlDeploymentClient,
-		CtrlProjectClient:    ctrlProjectClient,
-		CtrlAppClient:        ctrlAppClient,
-		Restate:              restateClient,
+		Database:          database,
+		ClickHouse:        ch,
+		ApiRequests:       apiRequests,
+		DirectAuditLogs:   directAuditLogs,
+		RatelimitEvents:   ratelimits,
+		KeyVerifications:  keyVerifications,
+		Clock:             clk,
+		Keys:              keySvc,
+		Auth:              authSvc,
+		PortalAuth:        portalAuthSvc,
+		Validator:         validator,
+		Redactor:          redactor,
+		Ratelimit:         rlSvc,
+		Auditlogs:         auditlogSvc,
+		Caches:            caches,
+		Vault:             vaultClient,
+		CtrlProjectClient: ctrlProjectClient,
+		CtrlAppClient:     ctrlAppClient,
+		Restate:           restateClient,
 
 		CtrlCustomDomainClient: ctrlCustomDomainClient,
 		PprofEnabled:           pprofEnabled,
@@ -558,8 +558,8 @@ func Run(ctx context.Context, cfg Config) error {
 	})
 
 	// Wait for either OS signals or context cancellation, then shutdown
+	// r.Wait already logs shutdown failures; just add context and propagate.
 	if err := r.Wait(ctx, runner.WithTimeout(time.Minute)); err != nil {
-		logger.Error("Shutdown failed", "error", err)
 		return fmt.Errorf("shutdown failed: %w", err)
 	}
 

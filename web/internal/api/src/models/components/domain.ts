@@ -8,6 +8,7 @@ import { ClosedEnum } from "../../types/enums.js";
 import { Result as SafeParseResult } from "../../types/fp.js";
 import { SDKValidationError } from "../errors/sdkvalidationerror.js";
 import { DnsRecord, DnsRecord$inboundSchema } from "./dnsrecord.js";
+import { DomainConnect, DomainConnect$inboundSchema } from "./domainconnect.js";
 
 /**
  * The verification status of the domain.
@@ -91,6 +92,14 @@ export type Domain = {
    */
   dnsRecords: Array<DnsRecord>;
   /**
+   * One-click setup at the domain's DNS provider. Omitted entirely when the provider does not support
+   *
+   * @remarks
+   * Domain Connect or discovery failed, so the object's presence is the signal that the shortcut is
+   * available and both of its fields are filled.
+   */
+  domainConnect?: DomainConnect | undefined;
+  /**
    * Unix timestamp in milliseconds when the domain was created. The 24 hour verification window runs from here.
    */
   createdAt: number;
@@ -115,6 +124,7 @@ export const Domain$inboundSchema: z.ZodType<Domain, z.ZodTypeDef, unknown> = z
     status: DomainStatus$inboundSchema,
     verificationError: z.string().optional(),
     dnsRecords: z.array(DnsRecord$inboundSchema),
+    domainConnect: DomainConnect$inboundSchema.optional(),
     createdAt: z.number().int(),
     updatedAt: z.number().int().optional(),
   });

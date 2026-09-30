@@ -3,11 +3,12 @@ import { NavbarActionButton } from "@/components/navigation/action-button";
 import { Navbar } from "@/components/navigation/navbar";
 import { usePersistedForm } from "@/hooks/use-persisted-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { PenWriting3, Plus } from "@unkey/icons";
+import { IconPenWriting3Outline18, IconPlusOutline18 } from "@unkey/icons";
 import { Button, DialogContainer, FormInput, FormTextarea } from "@unkey/ui";
 import { useEffect, useState } from "react";
 import { FormProvider } from "react-hook-form";
-import { useUpsertPermission } from "./hooks/use-upsert-permission";
+import { useCreatePermission } from "./hooks/use-create-permission";
+import { useUpdatePermission } from "./hooks/use-update-permission";
 import { type PermissionFormValues, permissionSchema } from "./upsert-permission.schema";
 
 const FORM_STORAGE_KEY = "unkey_upsert_permission_form_state";
@@ -103,11 +104,14 @@ export const UpsertPermissionDialog = ({
     loadData();
   }, [existingPermission, reset, loadSavedValues, isDialogOpen]);
 
-  const upsertPermissionMutation = useUpsertPermission(() => {
+  const onSaved = () => {
     clearPersistedData();
     reset(getDefaultValues());
     setIsDialogOpen(false);
-  });
+  };
+  const createPermission = useCreatePermission(onSaved);
+  const updatePermission = useUpdatePermission(onSaved);
+  const isSaving = createPermission.isLoading || updatePermission.isLoading;
 
   const onSubmit = async (data: PermissionFormValues) => {
     if (isEditMode && !data.permissionId) {
@@ -115,7 +119,11 @@ export const UpsertPermissionDialog = ({
       return;
     }
 
-    upsertPermissionMutation.mutate(data);
+    if (data.permissionId) {
+      updatePermission.mutate({ ...data, permissionId: data.permissionId });
+    } else {
+      createPermission.mutate(data);
+    }
   };
 
   const handleDialogToggle = (open: boolean) => {
@@ -139,7 +147,7 @@ export const UpsertPermissionDialog = ({
 
   const defaultTrigger = (
     <NavbarActionButton title={dialogConfig.triggerTitle} onClick={() => setIsDialogOpen(true)}>
-      {isEditMode ? <PenWriting3 /> : <Plus />}
+      {isEditMode ? <IconPenWriting3Outline18 /> : <IconPlusOutline18 />}
       {dialogConfig.triggerTitle}
     </NavbarActionButton>
   );
@@ -166,8 +174,8 @@ export const UpsertPermissionDialog = ({
                   variant="primary"
                   size="xlg"
                   className="w-full rounded-lg"
-                  disabled={!isValid || upsertPermissionMutation.isLoading}
-                  loading={upsertPermissionMutation.isLoading}
+                  disabled={!isValid || isSaving}
+                  loading={isSaving}
                 >
                   {dialogConfig.buttonText}
                 </Button>

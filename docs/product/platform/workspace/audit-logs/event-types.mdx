@@ -1,0 +1,107 @@
+---
+title: Audit log event types
+sidebarTitle: "Event types"
+description: "Every event the audit log records and what triggers it."
+sources:
+  - pkg/auditlog/events.go
+  - web/internal/schema/src/auditlog.ts
+  - svc/api/routes/v2_keys_verify_key/handler.go
+---
+
+Every audit log entry has one of the event names below, in the form `resource.action` (a few have an extra part, such as `portal.session.create`). Filter on them in the dashboard's **Events** menu or in a [log drain](/platform/workspace/log-drains).
+
+The **Events** menu and the log drain picker also list six names that are never recorded: `environment.create`, `deployment.redeploy`, `secret.update`, and three `webhook.*` names. Filtering on them matches nothing. Unkey doesn't send webhooks. Use a [log drain](/platform/workspace/log-drains) to forward entries to your own endpoint.
+
+## Workspace
+
+| Event | Recorded when |
+| --- | --- |
+| `workspace.create` | A workspace is created. |
+| `workspace.update` | The workspace is renamed, changes plan, or another workspace-level setting changes. |
+| `workspace.delete` | A workspace is deleted. |
+| `workspace.opt_in` | The workspace opts into a feature. |
+| `workspace.install_github` | The GitHub app is installed for the workspace. |
+| `auditLogBucket.create` | An audit log bucket is created. |
+| `logdrain.create`, `logdrain.update`, `logdrain.delete` | A [log drain](/platform/workspace/log-drains) is created, changed, or deleted. |
+| `secret.create`, `secret.decrypt` | A one-time share link is created, or someone reveals it. |
+
+## Keyspaces and keys
+
+| Event | Recorded when |
+| --- | --- |
+| `api.create` | A keyspace is created. |
+| `api.update` | A keyspace setting changes, including delete protection. |
+| `api.delete` | A keyspace is deleted. |
+| `key.create` | A key is created, including root keys and keys created through a portal session. |
+| `key.update` | A key's fields, credits, permissions, or roles change. |
+| `key.reroll` | A key is rerolled or a root key is rotated. |
+| `key.delete` | A key is deleted. |
+| `key.verify` | A root key calls `keys.verifyKey`. |
+
+## Authorization
+
+| Event | Recorded when |
+| --- | --- |
+| `permission.create` | A permission is defined. |
+| `permission.update` | A permission changes. |
+| `permission.delete` | A permission is deleted. |
+| `role.create` | A role is defined. |
+| `role.update` | A role changes. |
+| `role.delete` | A role is deleted. |
+| `authorization.connect_role_and_permission` | A permission is added to a role. |
+| `authorization.disconnect_role_and_permissions` | Permissions are removed from a role. |
+| `authorization.connect_role_and_key` | A role is added to a key. |
+| `authorization.disconnect_role_and_key` | A role is removed from a key. |
+| `authorization.connect_permission_and_key` | A permission is attached directly to a key. |
+| `authorization.disconnect_permission_and_key` | A permission is detached from a key. |
+
+## Identities
+
+| Event | Recorded when |
+| --- | --- |
+| `identity.create` | An identity is created. |
+| `identity.update` | An identity's metadata or rate limits change. |
+| `identity.delete` | An identity is deleted. |
+
+## Rate limiting
+
+| Event | Recorded when |
+| --- | --- |
+| `ratelimitNamespace.create` | A namespace is created. |
+| `ratelimitNamespace.update` | A namespace is renamed or changed. |
+| `ratelimitNamespace.delete` | A namespace is deleted. |
+| `ratelimit.create` | A rate limit is created on a key or identity. |
+| `ratelimit.update` | A rate limit on a key or identity changes. |
+| `ratelimit.delete` | A rate limit is removed. |
+| `ratelimit.limit` | A root key calls `ratelimit.limit` or `ratelimit.multiLimit`. |
+| `ratelimit.set_override` | An override is created or changed. |
+| `ratelimit.read_override` | An override is read. |
+| `ratelimit.delete_override` | An override is deleted. |
+
+## Developer portal
+
+| Event | Recorded when |
+| --- | --- |
+| `portal.create` | A portal is created. |
+| `portal.update` | A portal is renamed, re-pointed, enabled, disabled, or rebranded. |
+| `portal.delete` | A portal is deleted, with the number of sessions revoked in the metadata. |
+| `portal.session.create` | `portal.createSession` mints a session. |
+| `portal.session.exchange` | `portal.exchangeCode` turns a code into an access token. |
+
+## Compute
+
+Compute actions appear in the same log.
+
+| Event | Recorded when |
+| --- | --- |
+| `project.create`, `project.update`, `project.delete` | A project is created, changed, or deleted. |
+| `app.create`, `app.update`, `app.delete` | An app is created, changed, or deleted. |
+| `app.connect_repository`, `app.disconnect_repository` | A GitHub repository is connected to or disconnected from an app. |
+| `environment.update`, `environment.delete` | An environment's settings or variables change, or it is deleted. |
+| `deployment.create` | A deployment is created from git, an image, or another deployment. |
+| `deployment.authorize` | A deployment from an unauthorized contributor is approved to run. |
+| `deployment.rebuild` | A deployment is rebuilt. |
+| `deployment.cancel` | A build still in progress is cancelled, for example when its environment is deleted. |
+| `deployment.stop`, `deployment.wake` | A deployment is stopped or started again. |
+| `deployment.promote`, `deployment.rollback` | The environment's live deployment changes. |
+| `domain.create`, `domain.delete`, `domain.verify` | A custom domain is added, removed, or has verification restarted. |

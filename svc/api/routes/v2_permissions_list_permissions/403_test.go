@@ -11,6 +11,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	dbtype "github.com/unkeyed/unkey/pkg/db/types"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/svc/api/internal/projects"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_permissions_list_permissions"
@@ -28,11 +29,14 @@ func TestAuthorizationErrors(t *testing.T) {
 
 	// Create a workspace
 	workspace := h.Resources().UserWorkspace
+	projectID, err := projects.EnsureDefaultProject(ctx, h.DB.RW(), workspace.ID)
+	require.NoError(t, err)
 
 	// Create some test permissions to later try to list
-	err := db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
+	err = db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
 		PermissionID: uid.New(uid.PermissionPrefix),
 		WorkspaceID:  workspace.ID,
+		ProjectID:    projectID,
 		Name:         "test.permission.auth",
 		Slug:         "test-permission-auth",
 		Description:  dbtype.NullString{Valid: true, String: "Test permission for authorization tests"},
@@ -69,11 +73,14 @@ func TestAuthorizationErrors(t *testing.T) {
 	t.Run("wrong workspace", func(t *testing.T) {
 		// Create a different workspace
 		otherWorkspace := h.CreateWorkspace()
+		otherProjectID, projectErr := projects.EnsureDefaultProject(ctx, h.DB.RW(), otherWorkspace.ID)
+		require.NoError(t, projectErr)
 
 		// Create permissions in the other workspace
 		err := db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
 			PermissionID: uid.New(uid.PermissionPrefix),
 			WorkspaceID:  otherWorkspace.ID,
+			ProjectID:    otherProjectID,
 			Name:         "other.workspace.permission",
 			Slug:         "other-workspace-permission",
 			Description:  dbtype.NullString{Valid: true, String: "This permission is in a different workspace"},
@@ -109,4 +116,31 @@ func TestAuthorizationErrors(t *testing.T) {
 			require.NotEqual(t, "other.workspace.permission", perm.Name)
 		}
 	})
+}
+
+// TestAuthorizationFailureDoesNotCreateDefaultProject guarantees that a denied
+// list request cannot mutate project state.
+func TestAuthorizationFailureDoesNotCreateDefaultProject(t *testing.T) {
+	h := testutil.NewHarness(t)
+	route := &handler.Handler{DB: h.DB}
+	h.Register(route)
+
+	workspace := h.CreateWorkspace()
+	rootKey := h.CreateRootKey(workspace.ID, "rbac.*.create_permission")
+	headers := http.Header{
+		"Content-Type":  {"application/json"},
+		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+	}
+
+	res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](
+		h,
+		route,
+		headers,
+		handler.Request{},
+	)
+
+	require.Equal(t, http.StatusForbidden, res.Status, res.RawBody)
+	_, found, err := projects.FindDefaultProject(t.Context(), h.DB.RW(), workspace.ID)
+	require.NoError(t, err)
+	require.False(t, found)
 }

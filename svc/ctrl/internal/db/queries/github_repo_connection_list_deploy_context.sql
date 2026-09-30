@@ -1,18 +1,17 @@
 -- name: ListRepoConnectionDeployContexts :many
 SELECT
-    sqlc.embed(gc),
-    sqlc.embed(p),
-    sqlc.embed(e),
-    sqlc.embed(a),
-    sqlc.embed(abs),
-    sqlc.embed(ars)
+    p.id AS project_id,
+    e.id AS environment_id,
+    a.id AS app_id,
+    abs.auto_deploy AS build_settings_auto_deploy,
+    abs.watch_paths AS build_settings_watch_paths
 FROM github_repo_connections gc
 INNER JOIN apps a ON a.id = gc.app_id
 INNER JOIN projects p ON p.id = gc.project_id
 INNER JOIN environments e ON e.app_id = a.id
   AND CASE
     WHEN CAST(sqlc.arg(is_fork_pr) AS SIGNED) = 1 THEN e.kind = 'preview'
-    WHEN sqlc.arg(branch) = COALESCE(NULLIF(a.default_branch, ''), 'main')
+    WHEN sqlc.arg(branch) = COALESCE(NULLIF(gc.default_branch, ''), 'main')
     THEN e.kind = 'production'
     ELSE e.kind = 'preview'
   END

@@ -18,13 +18,11 @@ INSERT INTO portal_sessions (
     portal_id,
     external_id,
     scopes,
-    preview,
     exchange_code_hash,
     exchange_code_expires_at,
     return_url,
     created_at
 ) VALUES (
-    ?,
     ?,
     ?,
     ?,
@@ -43,7 +41,6 @@ type InsertPortalSessionParams struct {
 	PortalID              string          `db:"portal_id"`
 	ExternalID            string          `db:"external_id"`
 	Scopes                json.RawMessage `db:"scopes"`
-	Preview               bool            `db:"preview"`
 	ExchangeCodeHash      string          `db:"exchange_code_hash"`
 	ExchangeCodeExpiresAt int64           `db:"exchange_code_expires_at"`
 	ReturnUrl             sql.NullString  `db:"return_url"`
@@ -60,13 +57,11 @@ type InsertPortalSessionParams struct {
 //	    portal_id,
 //	    external_id,
 //	    scopes,
-//	    preview,
 //	    exchange_code_hash,
 //	    exchange_code_expires_at,
 //	    return_url,
 //	    created_at
 //	) VALUES (
-//	    ?,
 //	    ?,
 //	    ?,
 //	    ?,
@@ -84,7 +79,6 @@ func (q *Queries) InsertPortalSession(ctx context.Context, db DBTX, arg InsertPo
 		arg.PortalID,
 		arg.ExternalID,
 		arg.Scopes,
-		arg.Preview,
 		arg.ExchangeCodeHash,
 		arg.ExchangeCodeExpiresAt,
 		arg.ReturnUrl,

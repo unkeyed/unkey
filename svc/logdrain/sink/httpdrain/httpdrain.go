@@ -1,0 +1,127 @@
+// Package httpdrain delivers log batches to generic HTTPS endpoints. Each
+// event is one flat object containing its domain fields, stream, and occurrence time:
+//
+//	{"id":"evt_1","stream":"audit_logs","time":"2024-01-15T10:30:00.123Z",...}
+//
+// The body is a JSON array, NDJSON, or HEC, selected by
+// [Config.Format]. HEC wraps each record in an event envelope with Unix-second time.
+// Batch metadata travels in X-Unkey-* request headers.
+package httpdrain
+
+import (
+	"bytes"
+	"context"
+	"fmt"
+	"net/http"
+	"strings"
+	"time"
+
+	logdrainv1 "github.com/unkeyed/unkey/gen/proto/logdrain/v1"
+	"github.com/unkeyed/unkey/pkg/ssrf"
+	"github.com/unkeyed/unkey/svc/logdrain/sink"
+)
+
+// Config configures one generic HTTP drain.
+type Config struct {
+	// Endpoint is the customer-provided HTTPS URL that receives the body.
+	Endpoint string
+	// Format selects the body encoding and must be explicitly specified.
+	Format logdrainv1.HttpBodyFormat
+	// Headers are customer-provided request headers, typically for authentication, sent verbatim on every delivery.
+	Headers http.Header
+	// Timeout is the per-request timeout.
+	Timeout time.Duration
+
+	// UnsafeAllowTestEndpoint disables the transport safety checks so tests
+	// and local development can target private, plain-http endpoints: the
+	// SSRF guard that rejects endpoints resolving to loopback, private, or
+	// link-local addresses, and the requirement that endpoints use https.
+	UnsafeAllowTestEndpoint bool
+}
+
+// Sink delivers event records to one customer HTTP endpoint.
+type Sink struct {
+	cfg    Config
+	client *http.Client
+}
+
+var _ sink.Sink = (*Sink)(nil)
+
+// New validates the endpoint and format and returns an error for a forbidden
+// or non-https endpoint or an unknown format.
+func New(cfg Config) (*Sink, error) {
+	switch cfg.Format {
+	case logdrainv1.HttpBodyFormat_HTTP_BODY_FORMAT_UNSPECIFIED:
+		return nil, fmt.Errorf("unknown http drain format %d", cfg.Format)
+	case logdrainv1.HttpBodyFormat_HTTP_BODY_FORMAT_JSON,
+		logdrainv1.HttpBodyFormat_HTTP_BODY_FORMAT_NDJSON,
+		logdrainv1.HttpBodyFormat_HTTP_BODY_FORMAT_HEC:
+	default:
+		return nil, fmt.Errorf("unknown http drain format %d", cfg.Format)
+	}
+	opts := []ssrf.Option{ssrf.WithTimeout(cfg.Timeout)}
+	if cfg.UnsafeAllowTestEndpoint {
+		opts = append(opts, ssrf.UnsafeAllowAll())
+	}
+	if err := ssrf.ValidateEndpoint(cfg.Endpoint, opts...); err != nil {
+		return nil, err
+	}
+	return &Sink{
+		cfg:    cfg,
+		client: ssrf.New(opts...),
+	}, nil
+}
+
+// Deliver requires a 2xx response and, for HEC, no application-level error.
+func (a *Sink) Deliver(ctx context.Context, batch sink.Batch) (sink.Result, error) {
+	switch a.cfg.Format {
+	case logdrainv1.HttpBodyFormat_HTTP_BODY_FORMAT_UNSPECIFIED:
+		return sink.Result{}, fmt.Errorf("unknown http drain format %d", a.cfg.Format)
+	case logdrainv1.HttpBodyFormat_HTTP_BODY_FORMAT_JSON:
+		return a.deliverJSON(ctx, batch)
+	case logdrainv1.HttpBodyFormat_HTTP_BODY_FORMAT_NDJSON:
+		return a.deliverNDJSON(ctx, batch)
+	case logdrainv1.HttpBodyFormat_HTTP_BODY_FORMAT_HEC:
+		return a.deliverHEC(ctx, batch)
+	default:
+		return sink.Result{}, fmt.Errorf("unknown http drain format %d", a.cfg.Format)
+	}
+}
+
+func (a *Sink) post(ctx context.Context, batch sink.Batch, body []byte, contentType string) (sink.Result, bool, error) {
+	result := sink.Result{
+		Acknowledged:     false,
+		HTTPStatus:       0,
+		ResponseBody:     "",
+		RequestBodyBytes: int64(len(body)),
+		RetryAfter:       0,
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, a.cfg.Endpoint, bytes.NewReader(body))
+	if err != nil {
+		return result, false, fmt.Errorf("create request: %w", err)
+	}
+	for name, values := range a.cfg.Headers {
+		for _, value := range values {
+			req.Header.Add(name, value)
+		}
+	}
+	req.Header.Set("Content-Type", contentType)
+	req.Header.Set("User-Agent", "unkey-logdrain/1")
+	req.Header.Set("X-Unkey-Schema-Version", batch.SchemaVersion)
+	req.Header.Set("X-Unkey-Drain-Id", batch.DrainID)
+	req.Header.Set("X-Unkey-Workspace-Id", batch.WorkspaceID)
+
+	resp, err := a.client.Do(req)
+	if err != nil {
+		return result, false, fmt.Errorf("deliver HTTP request: %w", err)
+	}
+	result.HTTPStatus = resp.StatusCode
+	diagnostic, truncated, err := sink.ReadDiagnostic(resp.Body)
+	if err != nil {
+		return result, false, err
+	}
+	retryAfter, _ := sink.ParseRetryAfter(resp.Header.Get("Retry-After"), time.Now())
+	result.ResponseBody = strings.TrimSpace(string(diagnostic))
+	result.RetryAfter = retryAfter
+	return result, truncated, nil
+}

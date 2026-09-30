@@ -10,7 +10,9 @@ import (
 )
 
 const findAppByWorkspaceAndSlugs = `-- name: FindAppByWorkspaceAndSlugs :one
-SELECT p.pk, p.id, p.workspace_id, p.name, p.slug, p.depot_project_id, p.delete_protection, p.created_at, p.updated_at, a.pk, a.id, a.workspace_id, a.project_id, a.name, a.slug, a.default_branch, a.current_deployment_id, a.is_rolled_back, a.delete_protection, a.created_at, a.updated_at
+SELECT
+  p.id AS project_id,
+  a.id AS app_id
 FROM apps a
 INNER JOIN projects p ON a.project_id = p.id
 WHERE p.workspace_id = ?
@@ -25,13 +27,15 @@ type FindAppByWorkspaceAndSlugsParams struct {
 }
 
 type FindAppByWorkspaceAndSlugsRow struct {
-	Project Project `db:"project"`
-	App     App     `db:"app"`
+	ProjectID string `db:"project_id"`
+	AppID     string `db:"app_id"`
 }
 
 // FindAppByWorkspaceAndSlugs
 //
-//	SELECT p.pk, p.id, p.workspace_id, p.name, p.slug, p.depot_project_id, p.delete_protection, p.created_at, p.updated_at, a.pk, a.id, a.workspace_id, a.project_id, a.name, a.slug, a.default_branch, a.current_deployment_id, a.is_rolled_back, a.delete_protection, a.created_at, a.updated_at
+//	SELECT
+//	  p.id AS project_id,
+//	  a.id AS app_id
 //	FROM apps a
 //	INNER JOIN projects p ON a.project_id = p.id
 //	WHERE p.workspace_id = ?
@@ -40,28 +44,6 @@ type FindAppByWorkspaceAndSlugsRow struct {
 func (q *Queries) FindAppByWorkspaceAndSlugs(ctx context.Context, db DBTX, arg FindAppByWorkspaceAndSlugsParams) (FindAppByWorkspaceAndSlugsRow, error) {
 	row := db.QueryRowContext(ctx, findAppByWorkspaceAndSlugs, arg.WorkspaceID, arg.ProjectSlug, arg.AppSlug)
 	var i FindAppByWorkspaceAndSlugsRow
-	err := row.Scan(
-		&i.Project.Pk,
-		&i.Project.ID,
-		&i.Project.WorkspaceID,
-		&i.Project.Name,
-		&i.Project.Slug,
-		&i.Project.DepotProjectID,
-		&i.Project.DeleteProtection,
-		&i.Project.CreatedAt,
-		&i.Project.UpdatedAt,
-		&i.App.Pk,
-		&i.App.ID,
-		&i.App.WorkspaceID,
-		&i.App.ProjectID,
-		&i.App.Name,
-		&i.App.Slug,
-		&i.App.DefaultBranch,
-		&i.App.CurrentDeploymentID,
-		&i.App.IsRolledBack,
-		&i.App.DeleteProtection,
-		&i.App.CreatedAt,
-		&i.App.UpdatedAt,
-	)
+	err := row.Scan(&i.ProjectID, &i.AppID)
 	return i, err
 }

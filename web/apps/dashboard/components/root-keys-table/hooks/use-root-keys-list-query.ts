@@ -21,11 +21,13 @@ const MAX_PAGE_SIZE = 200;
 const COLUMN_ID_TO_SORT_FIELD: Record<string, RootKeysSortField> = {
   root_key: "name",
   created_at: "createdAt",
+  last_used: "lastUsedAt",
   last_updated: "lastUpdatedAt",
 };
 const SORT_FIELD_TO_COLUMN_ID: Record<RootKeysSortField, string> = {
   name: "root_key",
   createdAt: "created_at",
+  lastUsedAt: "last_used",
   lastUpdatedAt: "last_updated",
 };
 

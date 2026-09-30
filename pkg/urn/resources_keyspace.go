@@ -2,44 +2,75 @@ package urn
 
 import "fmt"
 
+const keyspacePathFormat = "projects/%s/keyspaces/%s"
+
+var keyspacePattern = compileResourcePattern(keyspacePathFormat)
+
 // Keyspace builds keyspace resource paths.
 //
 // Hierarchy:
 //
 //	workspace
-//	└── keyspaces/{keyspace_id}
-//
-// A keyspace can also produce a descendant pattern for grants covering every
-// key and future keyspace child.
+//	└── projects/{project_id}
+//	    └── keyspaces/{keyspace_id}
+//	        ├── logs
+//	        └── keys/{key_id}
 type Keyspace struct {
-	workspaceID string
-	path        string
+	WorkspaceID string
+	ProjectID   string
+	KeyspaceID  string
 }
 
-// String returns this keyspace resource path.
+// String returns the complete URN for this keyspace.
 //
 // Subresource:
 //
 //	workspace
 //	└── keyspaces/{keyspace_id}
 func (k Keyspace) String() string {
-	return V1{WorkspaceID: k.workspaceID, Resource: k.path}.String()
+	return V1{
+		WorkspaceID: k.WorkspaceID,
+		Resource:    fmt.Sprintf(keyspacePathFormat, k.ProjectID, k.KeyspaceID),
+	}.String()
 }
 
-// Key is a key resource path.
-type Key struct {
-	workspaceID string
-	path        string
+// ParseKeyspace parses:
+//
+//	unkey:v1:ws_123:projects/proj_123/keyspaces/ks_123
+//
+// into:
+//
+//	Keyspace{
+//		WorkspaceID: "ws_123",
+//		ProjectID:   "proj_123",
+//		KeyspaceID:  "ks_123",
+//	}
+//
+// Resource ID positions may contain "*".
+func ParseKeyspace(urn string) (Keyspace, error) {
+	matches := keyspacePattern.FindStringSubmatch(urn)
+	if matches == nil {
+		return Keyspace{}, fmt.Errorf("%w: resource does not match keyspace", ErrInvalidResourceName)
+	}
+	return Keyspace{
+		WorkspaceID: matches[1],
+		ProjectID:   matches[2],
+		KeyspaceID:  matches[3],
+	}, nil
 }
 
-// String returns this key resource path.
-func (k Key) String() string {
-	return V1{WorkspaceID: k.workspaceID, Resource: k.path}.String()
-}
-
-// V1 returns this key as a parsed v1 resource name.
-func (k Key) V1() V1 {
-	return V1{WorkspaceID: k.workspaceID, Resource: k.path}
+// Logs returns the keyspace log resource path.
+//
+// Subresource:
+//
+//	keyspaces/{keyspace_id}
+//	└── logs
+func (k Keyspace) Logs() KeyspaceLogs {
+	return KeyspaceLogs{
+		WorkspaceID: k.WorkspaceID,
+		ProjectID:   k.ProjectID,
+		KeyspaceID:  k.KeyspaceID,
+	}
 }
 
 // Key returns a key resource path.
@@ -49,13 +80,10 @@ func (k Key) V1() V1 {
 //	keyspaces/{keyspace_id}
 //	└── keys/{key_id}
 func (k Keyspace) Key(keyID string) Key {
-	return Key{workspaceID: k.workspaceID, path: fmt.Sprintf("%s/keys/%s", k.path, keyID)}
-}
-
-// Any returns a descendant pattern below this keyspace.
-func (k Keyspace) Any() V1 {
-	return V1{
-		WorkspaceID: k.workspaceID,
-		Resource:    k.path + "/**",
+	return Key{
+		WorkspaceID: k.WorkspaceID,
+		ProjectID:   k.ProjectID,
+		KeyspaceID:  k.KeyspaceID,
+		KeyID:       keyID,
 	}
 }

@@ -3,12 +3,10 @@ package keys
 import (
 	"context"
 	"fmt"
-	"time"
 
-	"github.com/unkeyed/sdks/api/go/v2/models/components"
+	"github.com/unkeyed/sdks/api/go/v3/models/components"
 	"github.com/unkeyed/unkey/cmd/api/util"
 	"github.com/unkeyed/unkey/pkg/cli"
-	"github.com/unkeyed/unkey/pkg/ptr"
 )
 
 func getKeyCmd() *cli.Command {
@@ -36,12 +34,13 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/keys/get
 			"unkey api keys get-key --key-id=key_1234abcd --decrypt",
 		},
 		Flags: []cli.Flag{
+			cli.String("body", "Decode this JSON as the endpoint request body. Request-building flags are mutually exclusive."),
 			util.RootKeyFlag(),
 			util.APIURLFlag(),
 			util.ConfigFlag(),
 			util.OutputFlag(),
-			cli.String("key-id", "The key ID to retrieve.", cli.Required()),
-			cli.Bool("decrypt", "Whether to include the plaintext key value in the response.", cli.Default(false)),
+			cli.String("key-id", "The key ID to retrieve.", cli.Required(), cli.MutuallyExclusive("body")),
+			cli.Bool("decrypt", "Whether to include the plaintext key value in the response.", cli.Default(false), cli.MutuallyExclusive("body")),
 		},
 		Action: func(ctx context.Context, cmd *cli.Command) error {
 			client, err := util.CreateClient(cmd)
@@ -49,17 +48,25 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/keys/get
 				return err
 			}
 
-			start := time.Now()
+			if cmd.FlagIsSet("body") {
+				body := cmd.String("body")
+				res, err := util.SendBody(ctx, client.Keys.GetKey, body)
+				if err != nil {
+					return err
+				}
+				return util.Output(cmd, res.V2KeysGetKeyResponseBody)
+			}
+
 			req := components.V2KeysGetKeyRequestBody{
 				KeyID:   cmd.String("key-id"),
-				Decrypt: ptr.P(cmd.Bool("decrypt")),
+				Decrypt: new(cmd.Bool("decrypt")),
 			}
 
 			res, err := client.Keys.GetKey(ctx, req)
 			if err != nil {
 				return fmt.Errorf("%s", util.FormatError(err))
 			}
-			return util.Output(cmd, res.V2KeysGetKeyResponseBody, time.Since(start))
+			return util.Output(cmd, res.V2KeysGetKeyResponseBody)
 		},
 	}
 }

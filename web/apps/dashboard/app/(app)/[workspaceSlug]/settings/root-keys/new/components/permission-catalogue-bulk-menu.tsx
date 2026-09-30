@@ -6,7 +6,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ChevronDown } from "@unkey/icons";
+import { IconChevronDownOutline18 } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { useState } from "react";
 import type { Action } from "../lib/catalogue.types";
@@ -31,7 +31,7 @@ export function PermissionCatalogueBulkMenu({ onSelect }: PermissionCatalogueBul
         render={
           <Button variant="outline" size="md" className="shrink-0">
             Select all…
-            <ChevronDown className="text-gray-9" />
+            <IconChevronDownOutline18 className="text-gray-9" />
           </Button>
         }
       />
@@ -45,7 +45,7 @@ export function PermissionCatalogueBulkMenu({ onSelect }: PermissionCatalogueBul
               onSelect(option.actions);
             }}
           >
-            <span className="text-accent-12 text-sm font-medium">{option.label}</span>
+            <span className="text-gray-12 text-sm font-medium">{option.label}</span>
           </DropdownMenuItem>
         ))}
       </DropdownMenuContent>

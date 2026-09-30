@@ -14,6 +14,7 @@ type BulkQuerier interface {
 	InsertApps(ctx context.Context, args []InsertAppParams) error
 	UpsertAppRegionalSettings(ctx context.Context, args []UpsertAppRegionalSettingsParams) error
 	UpsertAppRuntimeSettings(ctx context.Context, args []UpsertAppRuntimeSettingsParams) error
+	InsertAppSourceOcis(ctx context.Context, args []InsertAppSourceOciParams) error
 	InsertCertificates(ctx context.Context, args []InsertCertificateParams) error
 	InsertCiliumNetworkPolicies(ctx context.Context, args []InsertCiliumNetworkPolicyParams) error
 	InsertClickhouseOutboxes(ctx context.Context, args []InsertClickhouseOutboxParams) error

@@ -78,6 +78,7 @@ func seedVerifications(ctx context.Context, cmd *cli.Command) error {
 		UsageLimiter: nil,
 		Source:       schema.SourceAPI,
 		KeyCache:     nil,
+		RootKeyCache: nil,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to create key service: %w", err)
@@ -282,7 +283,9 @@ func (s *Seeder) createKeysBatched(ctx context.Context, workspaceID, keyAuthID, 
 			ID:                 keyID,
 			KeySpaceID:         keyAuthID,
 			Hash:               keyResult.Hash,
+			Prefix:             prefix,
 			Start:              keyResult.Start,
+			End:                keyResult.Key[len(keyResult.Key)-4:],
 			WorkspaceID:        workspaceID,
 			Name:               sql.NullString{String: name, Valid: true},
 			IdentityID:         identityIDParam,

@@ -13,6 +13,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/svc/api/internal/projects"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_identities_list_identities"
 )
@@ -42,6 +43,8 @@ func TestSuccess(t *testing.T) {
 	}()
 
 	workspaceID := h.Resources().UserWorkspace.ID
+	projectID, err := projects.EnsureDefaultProject(ctx, tx, workspaceID)
+	require.NoError(t, err)
 
 	// Create metadata
 	metaMap := map[string]interface{}{
@@ -63,6 +66,7 @@ func TestSuccess(t *testing.T) {
 			ID:          identityID,
 			ExternalID:  externalID,
 			WorkspaceID: workspaceID,
+			ProjectID:   projectID,
 			Environment: "default",
 			CreatedAt:   time.Now().UnixMilli(),
 			Meta:        metaBytes,
@@ -194,6 +198,7 @@ func TestSuccess(t *testing.T) {
 			ID:          deletedIdentityID,
 			ExternalID:  deletedExternalID,
 			WorkspaceID: workspaceID,
+			ProjectID:   projectID,
 			Environment: "default",
 			CreatedAt:   time.Now().UnixMilli(),
 			Meta:        metaBytes,
@@ -247,6 +252,7 @@ func TestSuccess(t *testing.T) {
 			ID:          unicodeIdentityID,
 			ExternalID:  unicodeExternalID,
 			WorkspaceID: workspaceID,
+			ProjectID:   projectID,
 			Environment: "default",
 			CreatedAt:   time.Now().UnixMilli(),
 			Meta:        unicodeMetaBytes,
@@ -299,12 +305,16 @@ func TestSuccess(t *testing.T) {
 
 		// Create the workspace
 		err = db.Query.InsertWorkspace(ctx, tx, db.InsertWorkspaceParams{
-			ID:        singleWorkspaceID,
-			Name:      "Single Identity Workspace",
-			Slug:      uid.New("slug"),
-			OrgID:     uid.New(uid.OrgPrefix),
-			CreatedAt: time.Now().UnixMilli(),
+			ID:           singleWorkspaceID,
+			Name:         "Single Identity Workspace",
+			Slug:         uid.New("slug"),
+			OrgID:        uid.New(uid.OrgPrefix),
+			CreatedAt:    time.Now().UnixMilli(),
+			K8sNamespace: uid.DNS1035(),
 		})
+		require.NoError(t, err)
+
+		singleProjectID, err := projects.EnsureDefaultProject(ctx, tx, singleWorkspaceID)
 		require.NoError(t, err)
 
 		// Create a single identity in this workspace
@@ -312,6 +322,7 @@ func TestSuccess(t *testing.T) {
 			ID:          singleIdentityID,
 			ExternalID:  singleExternalID,
 			WorkspaceID: singleWorkspaceID,
+			ProjectID:   singleProjectID,
 			Environment: "default",
 			CreatedAt:   time.Now().UnixMilli(),
 			Meta:        metaBytes,
@@ -354,12 +365,16 @@ func TestSuccess(t *testing.T) {
 		}()
 
 		err = db.Query.InsertWorkspace(ctx, tx, db.InsertWorkspaceParams{
-			ID:        searchWorkspaceID,
-			Name:      "Search Workspace",
-			Slug:      uid.New("slug"),
-			OrgID:     uid.New(uid.OrgPrefix),
-			CreatedAt: time.Now().UnixMilli(),
+			ID:           searchWorkspaceID,
+			Name:         "Search Workspace",
+			Slug:         uid.New("slug"),
+			OrgID:        uid.New(uid.OrgPrefix),
+			CreatedAt:    time.Now().UnixMilli(),
+			K8sNamespace: uid.DNS1035(),
 		})
+		require.NoError(t, err)
+
+		searchProjectID, err := projects.EnsureDefaultProject(ctx, tx, searchWorkspaceID)
 		require.NoError(t, err)
 
 		identityIDs := make(map[string]string)
@@ -370,6 +385,7 @@ func TestSuccess(t *testing.T) {
 				ID:          identityID,
 				ExternalID:  externalID,
 				WorkspaceID: searchWorkspaceID,
+				ProjectID:   searchProjectID,
 				Environment: "default",
 				CreatedAt:   time.Now().UnixMilli(),
 				Meta:        nil,

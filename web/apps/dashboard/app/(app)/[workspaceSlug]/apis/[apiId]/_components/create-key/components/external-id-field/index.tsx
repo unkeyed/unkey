@@ -4,8 +4,8 @@ import { identityExternalIdSchema } from "@/lib/schemas/identity";
 import { getErrorMessage } from "@/lib/unkey-client";
 import type { Identity } from "@unkey/api/models/components";
 import { BadRequestErrorResponse, ConflictErrorResponse } from "@unkey/api/models/errors";
-import { TriangleWarning2 } from "@unkey/icons";
-import { Button } from "@unkey/ui";
+import { IconTriangleWarningOutline12 } from "@unkey/icons";
+import { Button, Separator } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import { useMemo, useState } from "react";
 import { createIdentityOptions } from "./create-identity-options";
@@ -101,8 +101,24 @@ export const ExternalIdField = ({
       return;
     }
 
+    const externalId = externalIdValidation.data;
+
+    // Ask the server for this ID once more before creating: the "create"
+    // offer was rendered from whatever results were on screen, which may be
+    // stale. If the ID already exists, select it instead of duplicating it.
+    const fresh = await refetchIdentities();
+    const existing = fresh.data?.pages
+      .flatMap((page) => page.identities)
+      .find((identity) => identity.externalId.toLowerCase() === externalId.toLowerCase());
+    if (existing) {
+      setSelectedIdentity(existing);
+      setSearchValue("");
+      onChange(existing.id, existing.externalId);
+      return;
+    }
+
     try {
-      const data = await createIdentity.mutateAsync({ externalId: externalIdValidation.data });
+      const data = await createIdentity.mutateAsync({ externalId });
       setSelectedIdentity({ id: data.identityId, externalId: data.externalId });
       setSearchValue("");
       onChange(data.identityId, data.externalId);
@@ -147,7 +163,7 @@ export const ExternalIdField = ({
   });
 
   const createOption =
-    externalIdValidation.success && !exactMatch && hasPartialMatches && !isSearching
+    externalIdValidation.success && !exactMatch && hasPartialMatches
       ? {
           label: (
             <div className="flex items-center gap-2 w-full">
@@ -158,10 +174,10 @@ export const ExternalIdField = ({
                   "text-warning-11",
                 )}
               >
-                <TriangleWarning2 iconSize="sm-regular" />
+                <IconTriangleWarningOutline12 />
               </div>
-              <span className="text-[13px] text-gray-12 ">
-                <span className="text-accent-10 font-normal">Create</span> "{trimmedSearchValue}"
+              <span className="text-sm text-gray-12 ">
+                <span className="text-gray-10 font-normal">Create</span> "{trimmedSearchValue}"
               </span>
             </div>
           ),
@@ -228,7 +244,7 @@ export const ExternalIdField = ({
       emptyMessage={
         initialQueryError ? (
           <div role="alert" className="flex flex-col gap-3 px-4 py-4 text-left">
-            <div className="text-error-11 text-[13px] leading-5">
+            <div className="text-error-11 text-sm leading-5">
               {getErrorMessage(
                 identitiesError,
                 trimmedSearchValue
@@ -257,19 +273,17 @@ export const ExternalIdField = ({
                     "transition-colors duration-200",
                   )}
                 >
-                  <TriangleWarning2 iconSize="sm-regular" />
+                  <IconTriangleWarningOutline12 />
                 </div>
-                <div className="font-medium text-[13px] leading-7 text-gray-12">
+                <div className="font-medium text-sm leading-7 text-gray-12">
                   {externalIdValidation.success ? "External ID not found" : "Invalid external ID"}
                 </div>
               </div>
             </div>
-            <div className="w-full">
-              <div className="h-px bg-grayA-3 w-full" />
-            </div>
+            <Separator />
             {externalIdValidation.success ? (
               <>
-                <div className="px-4 w-full text-gray-11 text-[13px] leading-6 my-4 text-left">
+                <div className="px-4 w-full text-gray-11 text-sm leading-6 my-4 text-left">
                   You can create a new identity with this{" "}
                   <span className="font-medium">External ID</span> and connect it{" "}
                   <span className="font-medium">immediately</span>.
@@ -295,21 +309,21 @@ export const ExternalIdField = ({
             ) : (
               <div
                 role="alert"
-                className="px-4 w-full text-error-11 text-[13px] leading-6 my-4 text-left"
+                className="px-4 w-full text-error-11 text-sm leading-6 my-4 text-left"
               >
                 {externalIdError}
               </div>
             )}
           </div>
         ) : isComboboxLoading ? (
-          <div className="px-3 py-3 text-gray-10 text-[13px] flex items-center gap-2">
-            <div className="animate-spin h-3 w-3 border border-gray-6 border-t-gray-11 rounded-full" />
+          <div className="px-3 py-3 text-gray-10 text-sm flex items-center gap-2">
+            <div className="animate-spin h-3 w-3 border border-t-gray-11 rounded-full" />
             {isSearching ? "Searching..." : "Loading identities..."}
           </div>
         ) : (
           <div
             className={cn(
-              "px-3 mt-2 text-gray-10 text-[13px]",
+              "px-3 mt-2 text-gray-10 text-sm",
               "transition-all duration-200 ease-in-out",
               "animate-in fade-in-0",
             )}

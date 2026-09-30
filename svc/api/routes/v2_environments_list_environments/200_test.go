@@ -38,12 +38,11 @@ func TestListEnvironmentsSuccessfully(t *testing.T) {
 		Slug:        slug(t),
 	})
 	app := h.CreateApp(seed.CreateAppRequest{
-		ID:            uid.New(uid.AppPrefix),
-		WorkspaceID:   workspace.ID,
-		ProjectID:     project.ID,
-		Name:          "Payments API",
-		Slug:          slug(t),
-		DefaultBranch: "main",
+		ID:          uid.New(uid.AppPrefix),
+		WorkspaceID: workspace.ID,
+		ProjectID:   project.ID,
+		Name:        "Payments API",
+		Slug:        slug(t),
 	})
 
 	t.Run("app with no environments returns empty list", func(t *testing.T) {
@@ -106,12 +105,11 @@ func TestListEnvironmentsSuccessfully(t *testing.T) {
 
 	t.Run("environments from another app are not listed", func(t *testing.T) {
 		otherApp := h.CreateApp(seed.CreateAppRequest{
-			ID:            uid.New(uid.AppPrefix),
-			WorkspaceID:   workspace.ID,
-			ProjectID:     project.ID,
-			Name:          "Billing API",
-			Slug:          slug(t),
-			DefaultBranch: "main",
+			ID:          uid.New(uid.AppPrefix),
+			WorkspaceID: workspace.ID,
+			ProjectID:   project.ID,
+			Name:        "Billing API",
+			Slug:        slug(t),
 		})
 		strayEnv := h.CreateEnvironment(seed.CreateEnvironmentRequest{
 			ID:          uid.New(uid.EnvironmentPrefix),

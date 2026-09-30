@@ -24,6 +24,7 @@ func TestLimitSuccessfully(t *testing.T) {
 
 	route := &handler.Handler{
 		RatelimitEvents: h.RatelimitEvents,
+		DirectAuditLogs: h.DirectAuditLogs,
 		Ratelimit:       h.Ratelimit,
 		DB:              h.DB,
 		NamespaceCache:  h.Caches.RatelimitNamespace,
@@ -128,7 +129,7 @@ func TestLimitSuccessfully(t *testing.T) {
 			data, err := clickhouse.Select[schema.Ratelimit](
 				ctx,
 				h.ClickHouse.Conn(),
-				"SELECT * FROM default.ratelimits_raw_v2 WHERE workspace_id = {workspace_id:String} AND namespace_id = {namespace_id:String}",
+				"SELECT "+row.InsertColumns()+" FROM default.ratelimits_raw_v2 WHERE workspace_id = {workspace_id:String} AND namespace_id = {namespace_id:String}",
 				map[string]string{
 					"workspace_id": h.Resources().UserWorkspace.ID,
 					"namespace_id": namespaceID,
@@ -444,6 +445,8 @@ func TestLimitSuccessfully(t *testing.T) {
 }
 
 func createNamespace(t *testing.T, h *testutil.Harness) (id, name string) {
+	t.Helper()
+
 	// Create a namespace
 	namespaceID := uid.New(uid.RatelimitNamespacePrefix)
 	namespaceName := uid.New("test")

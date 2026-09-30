@@ -1,71 +1,48 @@
 ---
 title: "permission_not_found"
-description: "The requested permission was not found in Unkey. Verify the permission ID is correct and it exists within your workspace's RBAC configuration."
+sidebarTitle: "permission_not_found"
+description: "A permission named in the request does not exist in the workspace."
+sources:
+  - pkg/codes/unkey_data.go
+  - svc/api/internal/middleware/errors.go
+  - svc/api/routes/v2_permissions_get_permission/handler.go
+  - svc/api/routes/v2_keys_create_key/handler.go
+  - svc/api/routes/v2_keys_set_permissions/handler.go
+  - svc/api/routes/v2_permissions_set_role_permissions/handler.go
 ---
 
-<Danger>err:unkey:data:permission_not_found</Danger>
+<Danger>`err:unkey:data:permission_not_found`</Danger>
 
-```json Example
+A permission you referenced doesn't exist in your workspace. You get HTTP 404, and `detail` names the slug.
+
+```json Example response
 {
   "meta": {
     "requestId": "req_2c9a0jf23l4k567"
   },
   "error": {
-    "detail": "The requested permission could not be found",
+    "detail": "Permission 'documents.read' was not found.",
     "status": 404,
     "title": "Not Found",
-    "type": "https://unkey.com/docs/errors/unkey/data/permission_not_found"
+    "type": "/errors/unkey/data/permission_not_found"
   }
 }
 ```
 
-## What Happened?
+## Likely causes
 
-This error occurs when you're trying to perform an operation on a permission that doesn't exist in the Unkey system. Permissions in Unkey are used to control access to resources and operations.
+- You attached a permission to a key or role before creating it. The whole request fails if any one slug is missing, and `detail` names the first.
+- The slug has a typo. Slugs aren't case-sensitive.
+- Your root key doesn't have permission. `permissions.getPermission` and `permissions.deletePermission` return this 404 instead of a 403.
 
-Common scenarios that trigger this error:
+## How to fix
 
-- Using an incorrect permission ID or name
-- Referencing a permission that has been deleted
-- Trying to assign a permission that doesn't exist in the current workspace
-- Typos in permission names when using name-based lookups
+1. Create every permission you need with `permissions.createPermission` before you reference it.
+2. Check the slug. `permissions.listPermissions` shows what exists.
+3. On `permissions.getPermission` or `permissions.deletePermission`, check the root key's permissions before you decide the permission is missing.
 
-## How To Fix
+## Related errors
 
-Verify that you're using the correct permission ID or name and that the permission still exists in your workspace:
-
-1. List all permissions in your workspace to find the correct ID
-2. Check if the permission has been deleted and recreate it if necessary
-3. Verify you're working in the correct workspace
-
-Here's how to list all permissions in your workspace:
-
-```bash
-curl -X POST https://api.unkey.com/v2/permissions.listPermissions \
-  -H "Authorization: Bearer unkey_YOUR_API_KEY"
-```
-
-If you need to create a new permission, use the appropriate API endpoint:
-
-```bash
-curl -X POST https://api.unkey.com/v2/permissions.createPermission \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer unkey_YOUR_API_KEY" \
-  -d '{
-    "name": "read:keys",
-    "description": "Allows reading key information"
-  }'
-```
-
-## Common Mistakes
-
-- **Incorrect identifiers**: Using wrong permission IDs or names
-- **Deleted permissions**: Referencing permissions that have been removed
-- **Case sensitivity**: Permissions names might be case-sensitive
-- **Workspace boundaries**: Trying to use permissions from another workspace
-
-## Related Errors
-
-- [err:unkey:data:role_not_found](./role_not_found) - When the requested role doesn't exist
-- [err:unkey:data:api_not_found](./api_not_found) - When the requested API doesn't exist
-- [err:unkey:authorization:insufficient_permissions](../authorization/insufficient_permissions) - When you don't have permission to perform operations on permissions
+- [`err:unkey:data:permission_already_exists`](/errors/unkey/data/permission_already_exists): a slug collides on create.
+- [`err:unkey:data:role_not_found`](/errors/unkey/data/role_not_found): a role doesn't exist.
+- [`err:unkey:data:key_not_found`](/errors/unkey/data/key_not_found): the key doesn't exist.

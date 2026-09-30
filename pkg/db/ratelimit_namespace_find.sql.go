@@ -14,6 +14,7 @@ type FindRatelimitNamespaceLimitOverride struct {
 type FindRatelimitNamespace struct {
 	ID                string                                         `db:"id"`
 	WorkspaceID       string                                         `db:"workspace_id"`
+	ProjectID         string                                         `db:"project_id"`
 	Name              string                                         `db:"name"`
 	CreatedAtM        int64                                          `db:"created_at_m"`
 	UpdatedAtM        sql.NullInt64                                  `db:"updated_at_m"`

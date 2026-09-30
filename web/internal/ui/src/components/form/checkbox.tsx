@@ -1,34 +1,38 @@
 "use client";
 
 import { Checkbox as CheckboxPrimitive } from "@base-ui/react/checkbox";
-import { Check, Minus } from "@unkey/icons";
-import type { IconProps } from "@unkey/icons/src/props";
+import {
+  IconCheckOutline12,
+  IconCheckOutline18,
+  IconMinusOutline12,
+  IconMinusOutline18,
+} from "@unkey/icons";
 import { type VariantProps, cva } from "class-variance-authority";
-import * as React from "react";
+import type * as React from "react";
 import { cn } from "../../lib/utils";
 
 const checkboxVariants = cva(
-  "group peer relative flex h-4 w-4 shrink-0 items-center justify-center rounded-sm border transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 data-disabled:cursor-not-allowed",
+  "group peer relative flex h-4 w-4 shrink-0 items-center justify-center rounded-sm border transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-gray-6 focus-visible:ring-offset-2 data-disabled:cursor-not-allowed",
   {
     variants: {
       variant: {
         default: "",
         primary: [
-          "border-grayA-6 data-checked:bg-accent-12 data-checked:border-transparent",
-          "data-indeterminate:bg-accent-12 data-indeterminate:border-transparent",
+          "border-input data-checked:bg-gray-12 data-checked:border-transparent",
+          "data-indeterminate:bg-gray-12 data-indeterminate:border-transparent",
           "focus:ring-3 focus:ring-gray-5 focus-visible:outline-hidden focus:ring-offset-0",
           "data-disabled:border-grayA-4 data-disabled:data-checked:bg-grayA-6",
           "transition-all duration-200 ease-in-out",
         ],
         outline: [
-          "border-grayA-6 bg-transparent data-checked:bg-transparent data-checked:border-grayA-8",
+          "border-input bg-transparent data-checked:bg-transparent data-checked:border-grayA-8",
           "data-indeterminate:bg-transparent data-indeterminate:border-grayA-8",
           "focus:border-grayA-12 focus:ring-3 focus:ring-gray-5 focus-visible:outline-hidden focus:ring-offset-0",
           "data-disabled:border-grayA-5 data-disabled:opacity-70",
           "transition-all duration-200 ease-in-out",
         ],
         ghost: [
-          "border-grayA-6 bg-transparent hover:bg-grayA-2 data-checked:bg-transparent data-checked:border-grayA-8",
+          "border-input bg-transparent hover:bg-grayA-2 data-checked:bg-transparent data-checked:border-grayA-8",
           "data-indeterminate:bg-transparent data-indeterminate:border-grayA-8",
           "focus:border-grayA-12 focus:ring-3 focus:ring-gray-5 focus-visible:outline-hidden focus:ring-offset-0",
           "data-disabled:border-grayA-4 data-disabled:opacity-70",
@@ -198,21 +202,6 @@ const VARIANT_MAP: Record<string, { variant: CheckboxVariant; color?: CheckboxCo
   destructive: { variant: "primary", color: "danger" },
 };
 
-const getIconSize = (size: CheckboxSize | undefined): IconProps["iconSize"] => {
-  switch (size) {
-    case "sm":
-      return "sm-regular";
-    case "md":
-      return "sm-regular";
-    case "lg":
-      return "md-regular";
-    case "xlg":
-      return "lg-regular";
-    default:
-      return "sm-regular";
-  }
-};
-
 export type DocumentedCheckboxProps = VariantProps<typeof checkboxVariants> & {
   /**
    * The variant style to use for the checkbox
@@ -290,59 +279,75 @@ export type CheckboxProps = VariantProps<typeof checkboxVariants> &
      * Whether the checkbox is checked. Accepts `"indeterminate"` for the mixed state.
      */
     checked?: CheckedState;
+    ref?: React.Ref<React.ComponentRef<typeof CheckboxPrimitive.Root>>;
   };
 
-const Checkbox = React.forwardRef<React.ComponentRef<typeof CheckboxPrimitive.Root>, CheckboxProps>(
-  ({ className, variant, color = "default", size, checked, ...props }, ref) => {
-    let mappedVariant: CheckboxVariant = "primary";
-    let mappedColor: CheckboxColor = color;
+function Checkbox({
+  className,
+  variant,
+  color = "default",
+  size,
+  checked,
+  ref,
+  ...props
+}: CheckboxProps) {
+  let mappedVariant: CheckboxVariant = "primary";
+  let mappedColor: CheckboxColor = color;
 
-    if (variant === null || variant === undefined) {
-      mappedVariant = "primary";
-    } else if (VARIANT_MAP[variant as keyof typeof VARIANT_MAP]) {
-      const mapping = VARIANT_MAP[variant as keyof typeof VARIANT_MAP];
-      mappedVariant = mapping.variant;
-      if (mapping.color) {
-        mappedColor = mapping.color;
-      }
-    } else {
-      mappedVariant = variant as CheckboxVariant;
+  if (variant === null || variant === undefined) {
+    mappedVariant = "primary";
+  } else if (VARIANT_MAP[variant as keyof typeof VARIANT_MAP]) {
+    const mapping = VARIANT_MAP[variant as keyof typeof VARIANT_MAP];
+    mappedVariant = mapping.variant;
+    if (mapping.color) {
+      mappedColor = mapping.color;
     }
+  } else {
+    mappedVariant = variant as CheckboxVariant;
+  }
 
-    const iconSize = getIconSize(size);
+  const checkmarkColor =
+    mappedColor === "default" && mappedVariant === "primary"
+      ? "text-white dark:text-black"
+      : "text-white";
 
-    const checkmarkColor =
-      mappedColor === "default" && mappedVariant === "primary"
-        ? "text-white dark:text-black"
-        : "text-white";
+  const checkmarkSize = size === "xlg" ? "size-4" : "size-3.5";
 
-    const indeterminate = checked === "indeterminate";
-    const checkedValue = checked === "indeterminate" ? false : checked;
+  const indeterminate = checked === "indeterminate";
+  const checkedValue = checked === "indeterminate" ? false : checked;
 
-    return (
-      <CheckboxPrimitive.Root
-        ref={ref}
-        checked={checkedValue}
-        indeterminate={indeterminate}
-        className={cn(
-          checkboxVariants({
-            variant: mappedVariant,
-            color: mappedColor,
-            size,
-            className,
-          }),
+  return (
+    <CheckboxPrimitive.Root
+      ref={ref}
+      checked={checkedValue}
+      indeterminate={indeterminate}
+      className={cn(
+        checkboxVariants({
+          variant: mappedVariant,
+          color: mappedColor,
+          size,
+          className,
+        }),
+      )}
+      {...props}
+    >
+      <CheckboxPrimitive.Indicator className={cn(checkmarkVariants(), checkmarkColor)}>
+        {size === "lg" || size === "xlg" ? (
+          <>
+            <IconCheckOutline18 className={cn(checkmarkSize, "hidden group-data-checked:block")} />
+            <IconMinusOutline18
+              className={cn(checkmarkSize, "hidden group-data-indeterminate:block")}
+            />
+          </>
+        ) : (
+          <>
+            <IconCheckOutline12 className="hidden group-data-checked:block" />
+            <IconMinusOutline12 className="hidden group-data-indeterminate:block" />
+          </>
         )}
-        {...props}
-      >
-        <CheckboxPrimitive.Indicator className={cn(checkmarkVariants(), checkmarkColor)}>
-          <Check iconSize={iconSize} className="hidden group-data-checked:block" />
-          <Minus iconSize={iconSize} className="hidden group-data-indeterminate:block" />
-        </CheckboxPrimitive.Indicator>
-      </CheckboxPrimitive.Root>
-    );
-  },
-);
-
-Checkbox.displayName = "Checkbox";
+      </CheckboxPrimitive.Indicator>
+    </CheckboxPrimitive.Root>
+  );
+}
 
 export { Checkbox, checkboxVariants };

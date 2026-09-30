@@ -9,6 +9,7 @@ import (
 	"github.com/go-sql-driver/mysql"
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/hash"
+	"github.com/unkeyed/unkey/pkg/mysql/sqlcomment"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/uid"
 )
@@ -207,7 +208,9 @@ func TestWithRetryContext_Integration(t *testing.T) {
 
 	// Create database instance
 	dbInstance, err := New(Config{
-		PrimaryDSN: mysqlCfg.DSN,
+		PrimaryDSN:  mysqlCfg.DSN,
+		ReadOnlyDSN: "",
+		Tags:        sqlcomment.Disabled(),
 	})
 	require.NoError(t, err)
 	defer func() { require.NoError(t, dbInstance.Close()) }()
@@ -218,11 +221,12 @@ func TestWithRetryContext_Integration(t *testing.T) {
 
 	// Insert workspace using sqlc
 	err = Query.InsertWorkspace(ctx, dbInstance.RW(), InsertWorkspaceParams{
-		ID:        workspaceID,
-		OrgID:     workspaceID,
-		Name:      "Test Workspace",
-		Slug:      uid.New("slug"),
-		CreatedAt: time.Now().UnixMilli(),
+		ID:           workspaceID,
+		OrgID:        workspaceID,
+		Name:         "Test Workspace",
+		Slug:         uid.New("slug"),
+		CreatedAt:    time.Now().UnixMilli(),
+		K8sNamespace: uid.DNS1035(),
 	})
 	require.NoError(t, err)
 

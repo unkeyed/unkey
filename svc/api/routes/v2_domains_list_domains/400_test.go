@@ -6,16 +6,12 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_domains_list_domains"
 )
 
-// TestListDomainsBadRequest covers the spec layer: the OpenAPI middleware rejects
-// every case below before the handler runs. project/app/environment are
-// ResourceIdentifier (minLength 3, maxLength 255, ^[a-zA-Z0-9_-]+$) and search is
-// capped at 256 characters.
+// TestListDomainsBadRequest covers field validation in the OpenAPI middleware.
 func TestListDomainsBadRequest(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route := &handler.Handler{DB: h.DB}
@@ -35,14 +31,14 @@ func TestListDomainsBadRequest(t *testing.T) {
 		name string
 		req  handler.Request
 	}{
-		{name: "empty project", req: withEnv(func(r *handler.Request) { r.Project = "" })},
-		{name: "empty app", req: withEnv(func(r *handler.Request) { r.App = "" })},
-		{name: "empty environment", req: withEnv(func(r *handler.Request) { r.Environment = "" })},
-		{name: "project with illegal character", req: withEnv(func(r *handler.Request) { r.Project = "pay ments" })},
-		{name: "environment with a dot", req: withEnv(func(r *handler.Request) { r.Environment = "prod.uction" })},
-		{name: "search over 256 chars", req: withEnv(func(r *handler.Request) { r.Search = ptr.P(strings.Repeat("a", 257)) })},
-		{name: "limit below minimum", req: withEnv(func(r *handler.Request) { r.Limit = ptr.P(0) })},
-		{name: "limit above maximum", req: withEnv(func(r *handler.Request) { r.Limit = ptr.P(101) })},
+		{name: "empty project", req: withEnv(func(r *handler.Request) { r.Project = new("") })},
+		{name: "empty app", req: withEnv(func(r *handler.Request) { r.App = new("") })},
+		{name: "empty environment", req: withEnv(func(r *handler.Request) { r.Environment = new("") })},
+		{name: "project with illegal character", req: withEnv(func(r *handler.Request) { r.Project = new("pay ments") })},
+		{name: "environment with a dot", req: withEnv(func(r *handler.Request) { r.Environment = new("prod.uction") })},
+		{name: "search over 256 chars", req: withEnv(func(r *handler.Request) { r.Search = new(strings.Repeat("a", 257)) })},
+		{name: "limit below minimum", req: withEnv(func(r *handler.Request) { r.Limit = new(0) })},
+		{name: "limit above maximum", req: withEnv(func(r *handler.Request) { r.Limit = new(101) })},
 	}
 
 	for _, tc := range testCases {

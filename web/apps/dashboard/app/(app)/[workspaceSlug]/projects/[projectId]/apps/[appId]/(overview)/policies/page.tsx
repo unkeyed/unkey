@@ -1,8 +1,13 @@
 "use client";
-import { TOP_NAV_HEIGHT } from "@/components/navigation/top-nav";
-import { Plus } from "@unkey/icons";
+import { policyMatchKey } from "@/lib/collections/deploy/policies.schema";
+import { IconPlusOutline18, IconShieldKeyOutline18 } from "@unkey/icons";
 import {
   Button,
+  EmptyState,
+  EmptyStateDescription,
+  EmptyStateHeader,
+  EmptyStateIcon,
+  EmptyStateTitle,
   PageBody,
   PageContainer,
   PageHeader,
@@ -11,9 +16,9 @@ import {
   PageHeaderDescription,
   PageHeaderTitle,
 } from "@unkey/ui";
+import { useAppId, useProjectData } from "../data-provider";
 import { PolicyPanel } from "./components/add-panel";
 import { PoliciesList } from "./components/list";
-import { PoliciesEmpty } from "./components/list/empty";
 import { PoliciesError } from "./components/list/error";
 import { PoliciesListSkeleton } from "./components/list/skeleton";
 import { usePoliciesData } from "./hooks/use-policies-data";
@@ -21,24 +26,53 @@ import { usePolicyActions } from "./hooks/use-policy-actions";
 import { usePolicyPanels } from "./hooks/use-policy-panels";
 
 export default function PoliciesPage() {
-  const { envAId, envBId, envASlug, envBSlug, merged, isLoading, isError } = usePoliciesData();
-  const actions = usePolicyActions({ envAId, envBId });
+  const { projectId } = useProjectData();
+  const appId = useAppId();
+  const {
+    productionId,
+    previewId,
+    productionSlug,
+    previewSlug,
+    merged,
+    rowsByEnv,
+    isLoading,
+    isError,
+  } = usePoliciesData();
+  const actions = usePolicyActions({
+    productionId,
+    previewId,
+    projectId,
+    appId,
+    merged,
+    rowsByEnv,
+  });
   const panels = usePolicyPanels();
 
-  const editingRow = panels.editing ? merged.find((m) => m.id === panels.editing?.id) : undefined;
+  const editingRow = panels.editing
+    ? merged.find(
+        (m) => m.production?.id === panels.editing?.id || m.preview?.id === panels.editing?.id,
+      )
+    : undefined;
   const editingEnabled = {
-    a: editingRow?.envA?.enabled ?? false,
-    b: editingRow?.envB?.enabled ?? false,
+    a: editingRow?.production?.enabled ?? false,
+    b: editingRow?.preview?.enabled ?? false,
   };
+
+  const existingMatchKeys = merged.map((m) => policyMatchKey(m.type, m.name));
 
   const editingInitialEnvId =
     editingEnabled.a && editingEnabled.b
       ? "__all__"
       : editingEnabled.a
-        ? envASlug
+        ? productionSlug
         : editingEnabled.b
-          ? envBSlug
+          ? previewSlug
           : "__all__";
+
+  const editingPolicy =
+    editingInitialEnvId === previewSlug
+      ? (editingRow?.preview ?? panels.editing)
+      : (editingRow?.production ?? panels.editing);
 
   return (
     <PageContainer>
@@ -52,7 +86,7 @@ export default function PoliciesPage() {
         </PageHeaderContent>
         <PageHeaderActions>
           <Button size="md" onClick={panels.openAdd} variant="primary">
-            <Plus iconSize="sm-regular" />
+            <IconPlusOutline18 />
             Add policy
           </Button>
         </PageHeaderActions>
@@ -63,11 +97,22 @@ export default function PoliciesPage() {
         ) : isLoading ? (
           <PoliciesListSkeleton />
         ) : merged.length === 0 ? (
-          <PoliciesEmpty />
+          <EmptyState>
+            <EmptyStateIcon>
+              <IconShieldKeyOutline18 />
+            </EmptyStateIcon>
+            <EmptyStateHeader>
+              <EmptyStateTitle>No policies</EmptyStateTitle>
+              <EmptyStateDescription>
+                Add policies to protect your API with authentication, rate limiting, and more.
+                Policies are evaluated sequentially on each incoming request.
+              </EmptyStateDescription>
+            </EmptyStateHeader>
+          </EmptyState>
         ) : (
           <PoliciesList
-            envASlug={envASlug}
-            envBSlug={envBSlug}
+            productionSlug={productionSlug}
+            previewSlug={previewSlug}
             merged={merged}
             onToggleEnv={actions.toggleEnv}
             onAddToEnv={actions.addToEnv}
@@ -78,26 +123,26 @@ export default function PoliciesPage() {
         )}
         <PolicyPanel
           mode="add"
-          envASlug={envASlug}
-          envBSlug={envBSlug}
+          productionSlug={productionSlug}
+          previewSlug={previewSlug}
           isOpen={panels.isAddPanelOpen}
-          topOffset={TOP_NAV_HEIGHT}
           onClose={panels.closeAdd}
+          existingMatchKeys={existingMatchKeys}
           onSave={actions.save}
         />
-        {panels.editing !== null && (
+        {editingPolicy !== null && (
           <PolicyPanel
-            key={panels.editing.id}
+            key={editingPolicy.id}
             mode="edit"
-            envASlug={envASlug}
-            envBSlug={envBSlug}
+            productionSlug={productionSlug}
+            previewSlug={previewSlug}
             isOpen={panels.isEditPanelOpen}
-            topOffset={TOP_NAV_HEIGHT}
             onClose={panels.closeEdit}
-            initialPolicy={panels.editing}
+            existingMatchKeys={existingMatchKeys}
+            initialPolicy={editingPolicy}
             initialEnvironmentId={editingInitialEnvId}
             onSave={(prodPolicy, previewPolicy) => {
-              actions.save(prodPolicy, previewPolicy);
+              actions.save(prodPolicy, previewPolicy, editingRow);
               panels.closeEdit();
             }}
           />

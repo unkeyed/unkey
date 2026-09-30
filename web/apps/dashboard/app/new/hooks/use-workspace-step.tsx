@@ -1,9 +1,17 @@
-import { setLastUsedOrgCookie, setSessionCookie } from "@/lib/auth/cookies-actions";
+import { useFlag } from "@/lib/flags/provider";
 import { routes } from "@/lib/navigation/routes";
 import { slugify } from "@/lib/slugify";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Button, FormInput, toast } from "@unkey/ui";
+import {
+  Button,
+  FormField,
+  FormInput,
+  InputGroup,
+  InputGroupInput,
+  InputGroupText,
+  toast,
+} from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -42,11 +50,13 @@ export const useWorkspaceStep = (): WorkspaceStep => {
   const [createdSlug, setCreatedSlug] = useState<string | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
   const router = useRouter();
-  const utils = trpc.useUtils();
 
   useEffect(() => {
     setIsMounted(true);
   }, []);
+
+  const projectsNav = useFlag("projectsNav");
+  const landing = projectsNav ? routes.projects.list : routes.apis.list;
 
   const form = useForm<WorkspaceFormData>({
     resolver: zodResolver(workspaceSchema),
@@ -64,50 +74,18 @@ export const useWorkspaceStep = (): WorkspaceStep => {
     }
   }, [form]);
 
-  const switchOrgMutation = trpc.user.switchOrg.useMutation({
-    onSuccess: async (sessionData) => {
-      if (!sessionData.expiresAt) {
-        console.error("Missing session data: ", sessionData);
-        toast.error(`Failed to switch organizations: ${sessionData.error}`);
-        return;
-      }
-
-      await setSessionCookie({
-        token: sessionData.token,
-        expiresAt: sessionData.expiresAt,
-      });
-
-      // invalidate the user cache and workspace cache.
-      await utils.user.getCurrentUser.invalidate();
-      await utils.workspace.getCurrent.invalidate();
-      await utils.api.invalidate();
-      await utils.ratelimit.invalidate();
-      await utils.stripe.invalidate();
-      // Force a router refresh to ensure the server-side layout
-      // re-renders with the new session context and fresh workspace data
-      router.refresh();
-    },
-    onError: (error) => {
-      toast.error(`Failed to load new workspace: ${error.message}`);
-    },
-  });
-
   const createWorkspace = trpc.workspace.create.useMutation({
     onSuccess: async ({ orgId }, variables) => {
       setWorkspaceCreated(true);
       const slug = variables.slug;
       setCreatedSlug(slug);
 
-      await switchOrgMutation.mutateAsync(orgId);
-      try {
-        await setLastUsedOrgCookie({ orgId });
-      } catch (error) {
-        console.error("Failed to persist last-used workspace:", error);
-        // Continue anyway - cookie is a UX enhancement, not critical
-      }
-
-      // Navigate to the APIs page for the new workspace
-      router.push(routes.apis.list({ workspaceSlug: slug }));
+      window.location.assign(
+        routes.auth.switchOrganization({
+          organizationId: orgId,
+          returnTo: landing({ workspaceSlug: slug }),
+        }),
+      );
     },
     onError: (error) => {
       if (error.data?.code === "METHOD_NOT_SUPPORTED") {
@@ -196,34 +174,46 @@ export const useWorkspaceStep = (): WorkspaceStep => {
               error={form.formState.errors.workspaceName?.message}
               disabled={isLoading || workspaceCreated}
             />
-            <FormInput
-              {...form.register("slug", {
-                onChange: (evt) => {
-                  // If we don't clear the manually set error, it will persist even if the user clears
-                  // or changes the input
-                  form.clearErrors("slug");
-                  const v = evt.currentTarget.value;
-                  setSlugManuallyEdited(v.length > 0);
-                  form.setValue("slug", slugify(v), {
-                    shouldValidate: true,
-                  });
-                  form.trigger("slug");
-                },
-              })}
-              placeholder={isMounted ? "enter-a-handle" : ""}
+            <FormField
               label="Workspace URL handle"
               requirement="required"
               error={form.formState.errors.slug?.message}
-              prefix="app.unkey.com/"
-              maxLength={64}
-            />
+            >
+              {(field) => (
+                <InputGroup variant={field.variant}>
+                  <InputGroupText className="pl-2">app.unkey.com/</InputGroupText>
+                  <InputGroupInput
+                    id={field.id}
+                    className="pl-px"
+                    {...form.register("slug", {
+                      onChange: (evt) => {
+                        // If we don't clear the manually set error, it will persist even if the user clears
+                        // or changes the input
+                        form.clearErrors("slug");
+                        const v = evt.currentTarget.value;
+                        setSlugManuallyEdited(v.length > 0);
+                        form.setValue("slug", slugify(v), {
+                          shouldValidate: true,
+                        });
+                        form.trigger("slug");
+                      },
+                    })}
+                    placeholder={isMounted ? "enter-a-handle" : ""}
+                    aria-describedby={field.describedBy}
+                    aria-invalid={field.invalid}
+                    aria-required
+                    maxLength={64}
+                  />
+                </InputGroup>
+              )}
+            </FormField>
           </div>
         </div>
       </form>
     ),
     submit: () => {
       if (workspaceCreated && createdSlug) {
-        router.push(routes.apis.list({ workspaceSlug: createdSlug }));
+        router.push(landing({ workspaceSlug: createdSlug }));
         return;
       }
       if (!isLoading) {

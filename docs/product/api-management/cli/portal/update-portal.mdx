@@ -1,0 +1,109 @@
+---
+title: unkey api portal update-portal
+sidebarTitle: "update-portal"
+description: "Change a portal's handle, name, branding, enabled state, or the resource it serves."
+sources:
+  - cmd/api/portal/update_portal.go
+  - svc/api/routes/v2_portal_update_portal/handler.go
+  - svc/api/internal/portal/portal.go
+  - docs/product/scripts/manifest.json
+---
+
+import RootKeyPrereq from "/snippets/root-key-prereq.mdx";
+
+<RootKeyPrereq />
+
+Change one or more fields on a [portal](/api-management/portal/overview). Only the flags you pass change. For the two branding fields, `null` clears the value. Calls `POST /v2/portal.updatePortal`. The portal management commands are unreleased and may change without notice.
+
+Two changes affect your end users right away:
+
+- **Pointing the portal at a different keyspace or app** signs out every current [session](/api-management/portal/sessions). Sending the same keyspace or app it already has changes nothing. The new one must be in the same project as the old one, or the call fails with 412. Keyspaces are in the workspace's default project and apps are in the project you created them in, so moving between a keyspace and an app often hits this. Create a new portal instead.
+- **Disabling the portal** stops new sessions and lets current ones run until they expire. Use it to close a portal gradually. To close it at once, use [delete-portal](/api-management/cli/portal/delete-portal).
+
+## Usage
+
+```bash
+unkey api portal update-portal --portal=<portal> [--slug=<slug>] [--display-name=<name>] [--keyspace-id=<id>|--app-id=<id>] [--enabled=<bool>] [--logo-url=<url>|null] [--primary-color=<hex>|null]
+```
+
+## Flags
+
+<ParamField body="--portal" type="string" required>
+  Portal id or slug to update.
+</ParamField>
+
+<ParamField body="--slug" type="string">
+  New portal handle, unique in the workspace. A slug another portal has returns 409 [`err:unkey:data:portal_already_exists`](/errors/unkey/data/portal_already_exists). Update any calls that use the old slug.
+</ParamField>
+
+<ParamField body="--display-name" type="string">
+  New name shown to end users.
+</ParamField>
+
+<ParamField body="--keyspace-id" type="string">
+  Keyspace the portal should serve instead. Mutually exclusive with `--app-id`.
+</ParamField>
+
+<ParamField body="--app-id" type="string">
+  App the portal should serve instead. Mutually exclusive with `--keyspace-id`.
+</ParamField>
+
+<ParamField body="--enabled" type="boolean">
+  Whether you can create new sessions. Leave it off to keep the current state.
+</ParamField>
+
+<ParamField body="--logo-url" type="string">
+  New absolute HTTPS logo URL, or `null` to remove the logo.
+</ParamField>
+
+<ParamField body="--primary-color" type="string">
+  New six-digit hex color, or `null` to fall back to the default styling.
+</ParamField>
+
+### Shared flags
+
+Every `unkey api` command takes these. See [CLI output and shared flags](/platform/cli/output-and-flags).
+
+<ParamField body="--root-key" type="string">
+  Root key used for the request. Falls back to `UNKEY_ROOT_KEY`, then to the key stored by `unkey auth login`.
+</ParamField>
+
+<ParamField body="--api-url" type="string" default="https://api.unkey.com">
+  Base URL of the API. Falls back to `UNKEY_API_BASE_URL`. You don't normally need to set it.
+</ParamField>
+
+<ParamField body="--config" type="string" default="~/.unkey/config.toml">
+  Path of the config file written by `unkey auth login`. Falls back to `UNKEY_CONFIG`.
+</ParamField>
+
+<ParamField body="--output" type="string">
+  Output format. Falls back to `UNKEY_OUTPUT`. `json` prints the full response. Any other value prints the request ID and `data`.
+</ParamField>
+
+<ParamField body="--body" type="string">
+  Send this JSON as the whole request body instead of using the command's flags. You can't combine it with them.
+</ParamField>
+
+## Required permissions
+
+`portal.*.update_portal` or `portal.<portalId>.update_portal`. Without it you get a 404, as if the portal didn't exist. Pointing the portal at a new resource also needs read on it: `api.*.read_api` or `api.<apiId>.read_api` for a keyspace, `app.*.read_app` or `app.<appId>.read_app` for an app. Without that, the call fails with 403 and "You do not have permission to point a portal at that resource." See [Root key permissions](/platform/root-keys/permissions).
+
+## Examples
+
+```bash Rename
+unkey api portal update-portal --portal=acme-portal --display-name='Acme Developer Portal'
+```
+
+```bash Re-point and disable
+unkey api portal update-portal --portal=acme-portal --app-id=app_1234abcd --enabled=false
+```
+
+```bash Clear branding
+unkey api portal update-portal --portal=acme-portal --logo-url=null --primary-color=null
+```
+
+Or send the whole request as JSON:
+
+```bash Raw body
+unkey api portal update-portal --body='{"portal":"acme-portal","displayName":"Acme Developer Portal"}'
+```

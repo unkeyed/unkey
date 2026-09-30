@@ -13,6 +13,7 @@ import (
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/email"
 	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/auditlogs"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/deploybilling"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/deployspendcheck"
@@ -69,8 +70,13 @@ func startSpendCheckCapturing(t *testing.T, database db.Database, sender email.S
 	})
 	require.NoError(t, err)
 
+	auditlogSvc, err := auditlogs.New(auditlogs.Config{DB: database})
+	require.NoError(t, err)
+	deploymentSvc, err := deployment.New(deployment.Config{DB: database, Auditlogs: auditlogSvc})
+	require.NoError(t, err)
+
 	return restatetest.Start(t,
-		hydrav1.NewDeploymentServiceServer(deployment.New(deployment.Config{DB: database})),
+		hydrav1.NewDeploymentServiceServer(deploymentSvc),
 		hydrav1.NewDeployTeardownServiceServer(teardownSvc),
 		hydrav1.NewDeploySpendCheckServiceServer(checkH),
 	)
@@ -91,7 +97,7 @@ func TestDeploySpendCheck_ReAlertAfterBudgetChange(t *testing.T) {
 	dep := h.CreateDeployment(ctx, CreateDeploymentRequest{
 		Region:       "us-east-1",
 		DesiredState: mysqltype.DeploymentsDesiredStateRunning,
-	}).Deployment
+	})
 
 	// Make the deployment its app's current deployment so suspend/resume have
 	// something to act on, mirroring the suspend/resume test.
@@ -176,7 +182,7 @@ func TestDeploySpendCheck_BudgetChurnDoesNotSpam(t *testing.T) {
 	dep := h.CreateDeployment(ctx, CreateDeploymentRequest{
 		Region:       "us-east-1",
 		DesiredState: mysqltype.DeploymentsDesiredStateRunning,
-	}).Deployment
+	})
 
 	sender := email.NewCapture()
 	tEnv := startSpendCheckCapturing(t, h.DB, sender)
@@ -226,7 +232,7 @@ func TestDeploySpendCheck_SuspendedDoesNotWarn(t *testing.T) {
 	dep := h.CreateDeployment(ctx, CreateDeploymentRequest{
 		Region:       "us-east-1",
 		DesiredState: mysqltype.DeploymentsDesiredStateStopped,
-	}).Deployment
+	})
 
 	// Column says suspended, but the VO carries no high-water state (fresh key),
 	// exactly the torn state a killed suspend tick would leave behind.

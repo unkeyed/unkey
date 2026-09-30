@@ -10,15 +10,13 @@ describe("settings-scoped paths", () => {
     expect(routes.settings.team(scope)).toBe("/acme/settings/team");
     expect(routes.settings.rootKeys(scope)).toBe("/acme/settings/root-keys");
     expect(routes.settings.rootKeyNew(scope)).toBe("/acme/settings/root-keys/new");
+    expect(routes.settings.logdrains.list(scope)).toBe("/acme/settings/logdrains");
+    expect(routes.settings.logdrains.detail({ ...scope, drainId: "ld_1" })).toBe(
+      "/acme/settings/logdrains/ld_1",
+    );
     expect(routes.settings.billing(scope)).toBe("/acme/settings/billing");
     expect(routes.settings.usage(scope)).toBe("/acme/settings/usage");
     expect(routes.settings.limits(scope)).toBe("/acme/settings/limits");
-  });
-
-  it("carries the plan-picker intent onto billing", () => {
-    expect(routes.settings.billing({ workspaceSlug: ws, intent: "api" })).toBe(
-      "/acme/settings/billing?intent=api",
-    );
   });
 
   it("builds the stripe redirect paths", () => {
@@ -36,8 +34,5 @@ describe("settings-scoped paths", () => {
         from: "create",
       }),
     ).toBe("/acme/stripe/checkout?intent=deploy&plan=pro&from=create");
-    expect(
-      routes.projects.pendingSubscribe({ workspaceSlug: ws, plan: "starter", from: "banner" }),
-    ).toBe("/acme/projects?pendingPlan=starter&from=banner");
   });
 });

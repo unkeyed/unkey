@@ -9,6 +9,7 @@ import (
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/gen/rpc/ctrl"
 	"github.com/unkeyed/unkey/pkg/codes"
+	"github.com/unkeyed/unkey/pkg/deploy/deploygate"
 	"github.com/unkeyed/unkey/pkg/deploy/projectgate"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/rbac"
@@ -54,8 +55,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Action:       rbac.CreateProject,
 		}),
 		rbac.U(
-			urn.New().Workspace(principal.WorkspaceID).Project("*"),
-			permissions.CreateProject{},
+			urn.New().Workspace(principal.AuthorizedWorkspaceID).Project("*"),
+			permissions.Write,
 		),
 	))
 	if err != nil {
@@ -72,7 +73,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	ctrlResp, err := h.CtrlClient.CreateProject(ctx, &ctrlv1.CreateProjectRequest{
-		WorkspaceId: principal.WorkspaceID,
+		WorkspaceId: principal.AuthorizedWorkspaceID,
 		Name:        req.Name,
 		Slug:        req.Slug,
 		Actor:       actor,
@@ -86,6 +87,16 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				fault.Public(fmt.Sprintf("A project with slug '%s' already exists in this workspace.", req.Slug)),
 			)
 		}
+
+		if connect.CodeOf(err) == connect.CodeFailedPrecondition {
+			return fault.Wrap(
+				err,
+				fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
+				fault.Internal("ctrl rejected project creation because the workspace has no Compute plan"),
+				fault.Public(deploygate.MsgNoComputePlan),
+			)
+		}
+
 		return ctrlclient.HandleError(err, "create project")
 	}
 

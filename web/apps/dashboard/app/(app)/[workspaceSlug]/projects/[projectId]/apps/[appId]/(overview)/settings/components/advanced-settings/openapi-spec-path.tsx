@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { BracketsCurly } from "@unkey/icons";
+import { IconBracketsCurlyOutline18 } from "@unkey/icons";
 import { FormInput } from "@unkey/ui";
 import { useEffect } from "react";
 import { useForm, useWatch } from "react-hook-form";
@@ -64,7 +64,7 @@ export const OpenapiSpecPath = () => {
 
   return (
     <FormSettingCard
-      icon={<BracketsCurly className="text-gray-12" iconSize="xl-medium" />}
+      icon={<IconBracketsCurlyOutline18 className="text-gray-12" />}
       title="OpenAPI Spec Path"
       description="Path to your OpenAPI spec. Leave empty to disable scraping."
       displayValue={
@@ -75,7 +75,7 @@ export const OpenapiSpecPath = () => {
       autoSave={variant === "onboarding"}
     >
       <SettingField>
-        <span className="text-gray-11 text-[13px] flex items-center">OpenAPI Spec Path</span>
+        <span className="text-gray-11 text-sm flex items-center">OpenAPI Spec Path</span>
         <div className="flex items-start gap-2">
           <FormInput
             description="Path your deployment serves the OpenAPI spec (e.g. /openapi.yaml). Changes apply on next deploy."

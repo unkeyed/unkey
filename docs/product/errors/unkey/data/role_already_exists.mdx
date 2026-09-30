@@ -1,95 +1,43 @@
 ---
 title: "role_already_exists"
-description: "A role with this name already exists in your Unkey workspace. Use the existing role or choose a different unique name when creating a new one."
+sidebarTitle: "role_already_exists"
+description: "A role with that name already exists in the workspace."
+sources:
+  - pkg/codes/unkey_data.go
+  - svc/api/internal/middleware/errors.go
+  - svc/api/routes/v2_permissions_create_role/handler.go
+  - web/internal/db/src/schema/rbac.ts
 ---
 
-<Danger>err:unkey:data:role_already_exists</Danger>
+<Danger>`err:unkey:data:role_already_exists`</Danger>
 
-```json Example
+A role with the same name already exists in your workspace, so `permissions.createRole` didn't create one. You get HTTP 409.
+
+```json Example response
 {
   "meta": {
     "requestId": "req_2c9a0jf23l4k567"
   },
   "error": {
-    "detail": "A role with name \"admin\" already exists in this workspace",
+    "detail": "A role with name 'admin' already exists in this workspace",
     "status": 409,
-    "title": "Conflict",
-    "type": "https://unkey.com/docs/errors/unkey/data/role/duplicate"
+    "title": "Conflicting Resource",
+    "type": "/errors/unkey/data/role_already_exists"
   }
 }
 ```
 
-## What Happened?
+## Likely causes
 
-This error occurs when you're trying to create a role with a name that already exists in your Unkey workspace. Role names must be unique within a workspace to avoid confusion and maintain proper access control.
+- You already created this role. Role names are unique per workspace, and separately per project.
+- The name differs only in case. `Admin` clashes with an existing `admin`.
 
-Common scenarios that trigger this error:
+## How to fix
 
-- Creating a role with a name that's already in use
-- Re-creating a previously deleted role with the same name
-- Migration or import processes that don't check for existing roles
-- Duplicate API calls due to retries or network issues
+1. Reuse the existing role (find it with `permissions.listRoles`), or choose another name.
+2. To change what a role grants, use `permissions.setRolePermissions` on the existing role instead of creating a second one.
 
-Here's an example of a request that would trigger this error:
+## Related errors
 
-```bash
-# Attempting to create a role with a name that already exists
-curl -X POST https://api.unkey.com/v2/permissions.createRole \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer unkey_YOUR_API_KEY" \
-  -d '{
-    "name": "admin",
-    "description": "Administrator role with full access"
-  }'
-```
-
-## How To Fix
-
-When you encounter this error, you have several options:
-
-1. **Use a different name**: If creating a new role, use a unique name
-2. **Get the existing role**: If you just need the role information, retrieve it rather than creating it
-3. **List existing roles**: Check what roles already exist before creating new ones
-4. **Implement idempotent creation**: Use a get-or-create pattern in your code
-
-Here's how to list existing roles:
-
-```bash
-curl -X POST https://api.unkey.com/v2/permissions.listRoles \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer unkey_YOUR_API_KEY" \
-  -d '{}'
-```
-
-Or implement a get-or-create pattern in your code:
-
-```javascript
-// Pseudocode for get-or-create pattern
-async function getOrCreateRole(name, description) {
-  try {
-    // Try to create the role
-    return await createRole(name, description);
-  } catch (error) {
-    // If it already exists (409 error), get it instead
-    if (error.status === 409) {
-      // Extract the role name from the error message and get it
-      const roles = await listRoles();
-      return roles.find((r) => r.name.toLowerCase() === name.toLowerCase());
-    }
-    // Otherwise, rethrow the error
-    throw error;
-  }
-}
-```
-
-## Common Mistakes
-
-- **Not checking for existing roles**: Failing to check if a role already exists before creating it
-- **Case sensitivity**: Role names are case-insensitive - "Admin" and "admin" are the same
-- **Retry loops**: Repeatedly trying to create the same role after a failure
-- **Cross-environment duplication**: Using the same role names across development and production without proper namespacing
-
-## Related Errors
-
-- [err:unkey:data:role_not_found](./role_not_found) - When the requested role doesn't exist
-- [err:unkey:authorization:insufficient_permissions](../authorization/insufficient_permissions) - When you don't have permission to manage roles
+- [`err:unkey:data:role_not_found`](/errors/unkey/data/role_not_found): a referenced role doesn't exist.
+- [`err:unkey:data:permission_already_exists`](/errors/unkey/data/permission_already_exists): a permission slug collides.

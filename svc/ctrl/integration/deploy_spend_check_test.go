@@ -13,6 +13,7 @@ import (
 	"github.com/stretchr/testify/require"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/email"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/auditlogs"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/workos"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/deploybilling"
@@ -44,8 +45,13 @@ func startSpendCheck(t *testing.T, database db.Database) *restatetest.TestEnviro
 	})
 	require.NoError(t, err)
 
+	auditlogSvc, err := auditlogs.New(auditlogs.Config{DB: database})
+	require.NoError(t, err)
+	deploymentSvc, err := deployment.New(deployment.Config{DB: database, Auditlogs: auditlogSvc})
+	require.NoError(t, err)
+
 	return restatetest.Start(t,
-		hydrav1.NewDeploymentServiceServer(deployment.New(deployment.Config{DB: database})),
+		hydrav1.NewDeploymentServiceServer(deploymentSvc),
 		hydrav1.NewDeployTeardownServiceServer(teardownSvc),
 		hydrav1.NewDeploySpendCheckServiceServer(checkH),
 	)
@@ -65,7 +71,7 @@ func TestDeploySpendCheck_SuspendThenResume(t *testing.T) {
 	dep := h.CreateDeployment(ctx, CreateDeploymentRequest{
 		Region:       "us-east-1",
 		DesiredState: mysqltype.DeploymentsDesiredStateRunning,
-	}).Deployment
+	})
 
 	// Make the deployment its app's current deployment so SUSPEND records it and
 	// resume restores it.
@@ -171,7 +177,7 @@ func TestDeploySpendCheck_ResumeOnBudgetRemoved(t *testing.T) {
 	dep := h.CreateDeployment(ctx, CreateDeploymentRequest{
 		Region:       "us-east-1",
 		DesiredState: mysqltype.DeploymentsDesiredStateStopped,
-	}).Deployment
+	})
 
 	// Mark the workspace suspended, as a prior trip would have left it. The app
 	// has no current deployment (suspend cleared it), so resume restores nothing;
@@ -217,7 +223,7 @@ func TestDeploySpendCheck_ResumeOnStopDisabled(t *testing.T) {
 	dep := h.CreateDeployment(ctx, CreateDeploymentRequest{
 		Region:       "us-east-1",
 		DesiredState: mysqltype.DeploymentsDesiredStateStopped,
-	}).Deployment
+	})
 
 	err := h.DB.SetWorkspaceDeploySpendSuspended(ctx, db.SetWorkspaceDeploySpendSuspendedParams{
 		Suspended: true,

@@ -1,8 +1,15 @@
 "use client";
 
-import { BarsFilter, ChevronDown, Layers3, Magnifier } from "@unkey/icons";
 import {
-  FormInput,
+  IconBarsFilterOutline18,
+  IconChevronDownOutline18,
+  IconLayers3Outline18,
+  IconMagnifierOutline18,
+} from "@unkey/icons";
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
   Select,
   SelectContent,
   SelectItem,
@@ -40,13 +47,17 @@ export function EnvVarsToolbar({
   return (
     <div className="flex flex-col md:flex-row items-stretch gap-2">
       <div className="flex-[50%]">
-        <FormInput
-          placeholder="Search..."
-          value={searchQuery}
-          onChange={(e) => onSearchChange(e.target.value)}
-          className="[&_input]:h-9 [&_input]:text-[13px] w-full bg-gray-1 [&_input]:bg-gray-1"
-          leftIcon={<Magnifier iconSize="lg-medium" className="text-gray-9" />}
-        />
+        <InputGroup className="h-9 w-full bg-gray-1">
+          <InputGroupAddon className="pointer-events-none">
+            <IconMagnifierOutline18 className="size-4 text-gray-9" />
+          </InputGroupAddon>
+          <InputGroupInput
+            placeholder="Search..."
+            value={searchQuery}
+            onChange={(e) => onSearchChange(e.target.value)}
+            className="h-9 text-sm"
+          />
+        </InputGroup>
       </div>
       <div className="flex-[25%] max-w-[184px]">
         <Select
@@ -63,8 +74,8 @@ export function EnvVarsToolbar({
         >
           <SelectTrigger
             className="h-9 w-full bg-gray-1"
-            leftIcon={<Layers3 iconSize="md-medium" className="text-gray-9" />}
-            rightIcon={<ChevronDown className="absolute right-2" iconSize="md-medium" />}
+            leftIcon={<IconLayers3Outline18 className="size-3.5 text-gray-9" />}
+            rightIcon={<IconChevronDownOutline18 className="size-3.5 absolute right-2" />}
           >
             <SelectValue placeholder="All Environments" />
           </SelectTrigger>
@@ -93,8 +104,8 @@ export function EnvVarsToolbar({
         >
           <SelectTrigger
             className="h-9 w-full bg-gray-1"
-            leftIcon={<BarsFilter iconSize="md-medium" className="text-gray-9" />}
-            rightIcon={<ChevronDown className="absolute right-2" iconSize="md-medium" />}
+            leftIcon={<IconBarsFilterOutline18 className="size-3.5 text-gray-9" />}
+            rightIcon={<IconChevronDownOutline18 className="size-3.5 absolute right-2" />}
           >
             <SelectValue />
           </SelectTrigger>

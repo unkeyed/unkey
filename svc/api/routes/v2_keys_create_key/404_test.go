@@ -12,6 +12,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
+	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_keys_create_key"
 )
@@ -135,11 +136,13 @@ func TestCreateKeyMissingPermissionsDoNotLeakAPIOrKeyspaceState(t *testing.T) {
 	h.Register(route)
 
 	workspaceID := h.Resources().UserWorkspace.ID
+	projectID := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspaceID}).ProjectID
 
 	keySpaceID := uid.New(uid.KeySpacePrefix)
 	err := db.Query.InsertKeySpace(ctx, h.DB.RW(), db.InsertKeySpaceParams{
 		ID:            keySpaceID,
 		WorkspaceID:   workspaceID,
+		ProjectID:     projectID,
 		CreatedAtM:    time.Now().UnixMilli(),
 		DefaultPrefix: sql.NullString{Valid: false, String: ""},
 		DefaultBytes:  sql.NullInt32{Valid: false, Int32: 0},
@@ -151,6 +154,7 @@ func TestCreateKeyMissingPermissionsDoNotLeakAPIOrKeyspaceState(t *testing.T) {
 		ID:          existingApiID,
 		Name:        "existing-api",
 		WorkspaceID: workspaceID,
+		ProjectID:   projectID,
 		AuthType:    db.NullApisAuthType{Valid: true, ApisAuthType: db.ApisAuthTypeKey},
 		KeyAuthID:   sql.NullString{Valid: true, String: keySpaceID},
 		CreatedAtM:  time.Now().UnixMilli(),
@@ -163,6 +167,7 @@ func TestCreateKeyMissingPermissionsDoNotLeakAPIOrKeyspaceState(t *testing.T) {
 		ID:          apiWithoutKeySpaceID,
 		Name:        "api-without-keyspace",
 		WorkspaceID: workspaceID,
+		ProjectID:   projectID,
 		AuthType:    db.NullApisAuthType{Valid: true, ApisAuthType: db.ApisAuthTypeKey},
 		KeyAuthID:   sql.NullString{Valid: true, String: missingKeySpaceID},
 		CreatedAtM:  time.Now().UnixMilli(),
@@ -176,7 +181,7 @@ func TestCreateKeyMissingPermissionsDoNotLeakAPIOrKeyspaceState(t *testing.T) {
 		permissions []string
 	}{
 		{name: "no permissions", permissions: nil},
-		{name: "create permission for a different keyspace", permissions: []string{createKeyPermission(workspaceID, uid.New(uid.KeySpacePrefix))}},
+		{name: "write permission for a different keyspace", permissions: []string{createKeyPermission(workspaceID, projectID, uid.New(uid.KeySpacePrefix))}},
 		{name: "unrelated permission", permissions: []string{"workspace.read"}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -208,4 +213,53 @@ func TestCreateKeyMissingPermissionsDoNotLeakAPIOrKeyspaceState(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestCreateKeyOnDeletedApi covers the two rows a delete tombstones. Issuing a
+// key against either one produced a 200 and a key that could never verify,
+// leaving a live key under a dead keyspace.
+func TestCreateKeyOnDeletedApi(t *testing.T) {
+	ctx := context.Background()
+	h := testutil.NewHarness(t)
+
+	route := &handler.Handler{
+		DB:        h.DB,
+		Keys:      h.Keys,
+		Auditlogs: h.Auditlogs,
+		Vault:     h.Vault,
+	}
+	h.Register(route)
+
+	workspaceID := h.Resources().UserWorkspace.ID
+	headers := http.Header{
+		"Content-Type":  {"application/json"},
+		"Authorization": {fmt.Sprintf("Bearer %s", h.CreateRootKey(workspaceID, "api.*.create_key"))},
+	}
+	now := sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()}
+
+	t.Run("deleted api", func(t *testing.T) {
+		api := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspaceID})
+		require.NoError(t, db.Query.SoftDeleteApi(ctx, h.DB.RW(), db.SoftDeleteApiParams{
+			ApiID: api.ID,
+			Now:   now,
+		}))
+
+		res := testutil.CallRoute[handler.Request, openapi.V2KeysCreateKeyResponseBody](
+			h, route, headers, handler.Request{ApiId: api.ID, Name: new("KEBAP")},
+		)
+		require.Equal(t, http.StatusNotFound, res.Status, "%s", res.RawBody)
+	})
+
+	t.Run("deleted keyspace", func(t *testing.T) {
+		api := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspaceID})
+		require.NoError(t, db.Query.SoftDeleteKeySpace(ctx, h.DB.RW(), db.SoftDeleteKeySpaceParams{
+			KeySpaceID: api.KeyAuthID.String,
+			Now:        now,
+		}))
+
+		res := testutil.CallRoute[handler.Request, openapi.V2KeysCreateKeyResponseBody](
+			h, route, headers, handler.Request{ApiId: api.ID, Name: new("KEBAP")},
+		)
+		require.Equal(t, http.StatusNotFound, res.Status, "%s", res.RawBody)
+	})
 }

@@ -4,12 +4,21 @@ import type { DeployPlan } from "./stripe/deployPlan";
 export type PlanLimits = Omit<Limits, "workspaceId" | "pk">;
 export type LimitsPlan = "free" | DeployPlan;
 
+/**
+ * The cap the plans below use when custom domains are effectively uncapped. It
+ * exists to stop abuse, not to price the feature, so the pricing page and the
+ * dashboard both call this "Unlimited". A real number keeps the gate in ctrl
+ * simple: it compares a count against one column.
+ */
+export const CUSTOM_DOMAINS_UNLIMITED = 1_000_000;
+
 export const limitsByPlan = {
   free: {
     apiBillableOperationsCountMaxPerMonth: 150_000,
     apiRequestsCountMaxPerMinute: null,
     logsRetentionDaysMax: 7,
     logsAuditRetentionDaysMax: 30,
+    logdrainsMax: 0,
     teamEnabled: false,
     cpuCoresMax: 10,
     cpuCoresMaxPerInstance: 2,
@@ -26,6 +35,7 @@ export const limitsByPlan = {
     apiRequestsCountMaxPerMinute: null,
     logsRetentionDaysMax: 3,
     logsAuditRetentionDaysMax: 7,
+    logdrainsMax: 0,
     teamEnabled: false,
     cpuCoresMax: 30,
     cpuCoresMaxPerInstance: 2,
@@ -42,6 +52,7 @@ export const limitsByPlan = {
     apiRequestsCountMaxPerMinute: null,
     logsRetentionDaysMax: 7,
     logsAuditRetentionDaysMax: 14,
+    logdrainsMax: 0,
     teamEnabled: true,
     cpuCoresMax: 120,
     cpuCoresMaxPerInstance: 8,
@@ -50,7 +61,7 @@ export const limitsByPlan = {
     storageMibMax: 491_520,
     storageMibMaxPerInstance: 10_240,
     buildsConcurrentMax: 1,
-    customDomainsMax: 1_000_000,
+    customDomainsMax: CUSTOM_DOMAINS_UNLIMITED,
     autoscalingReplicasMax: 8,
   },
   business: {
@@ -58,6 +69,7 @@ export const limitsByPlan = {
     apiRequestsCountMaxPerMinute: null,
     logsRetentionDaysMax: 14,
     logsAuditRetentionDaysMax: 30,
+    logdrainsMax: 0,
     teamEnabled: true,
     cpuCoresMax: 240,
     cpuCoresMaxPerInstance: 16,
@@ -66,7 +78,7 @@ export const limitsByPlan = {
     storageMibMax: 983_040,
     storageMibMaxPerInstance: 10_240,
     buildsConcurrentMax: 1,
-    customDomainsMax: 1_000_000,
+    customDomainsMax: CUSTOM_DOMAINS_UNLIMITED,
     autoscalingReplicasMax: 16,
   },
 } satisfies Record<LimitsPlan, PlanLimits>;

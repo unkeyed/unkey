@@ -3,16 +3,63 @@ package urn
 import (
 	"errors"
 	"fmt"
+	"regexp"
 	"strings"
 )
 
 const (
-	prefix  = "unkey"
-	version = "v1"
+	prefix             = "unkey"
+	version            = "v1"
+	resourceIDSegment  = "{id}"
+	resourceIDPattern  = `(\*|[^:/#*]+)` // Captures one resource ID or "*".
+	workspaceIDPattern = `([^:/#]+)`     // Captures one workspace ID.
 )
 
-// ErrInvalidResourceName is returned when a resource name cannot be parsed.
-var ErrInvalidResourceName = errors.New("invalid resource name")
+var (
+	// ErrInvalidResourceName is returned when a resource name cannot be parsed.
+	ErrInvalidResourceName = errors.New("invalid resource name")
+	idPattern              = regexp.MustCompile(`^[A-Za-z0-9_]+$`)
+)
+
+// resourcePathShape binds one valid path shape to its resource permissions.
+type resourcePathShape struct {
+	resource permissionResource
+	segments []string
+}
+
+// resourcePathShapes defines every public v1 resource.
+// resourceIDSegment marks a segment that accepts one concrete ID or "*".
+var resourcePathShapes = []resourcePathShape{
+	{resource: new(GitHubApp), segments: []string{"github", "apps", resourceIDSegment}},
+	{resource: rootKey{}, segments: []string{"rootKeys", resourceIDSegment}},
+	{resource: new(Project), segments: []string{"projects", resourceIDSegment}},
+	{resource: new(App), segments: []string{"projects", resourceIDSegment, "apps", resourceIDSegment}},
+	{resource: new(Environment), segments: []string{"projects", resourceIDSegment, "apps", resourceIDSegment, "environments", resourceIDSegment}},
+	{resource: new(Deployment), segments: []string{"projects", resourceIDSegment, "apps", resourceIDSegment, "environments", resourceIDSegment, "deployments", resourceIDSegment}},
+	{resource: new(DeploymentLogs), segments: []string{"projects", resourceIDSegment, "apps", resourceIDSegment, "environments", resourceIDSegment, "deployments", resourceIDSegment, "logs"}},
+	{resource: new(Domain), segments: []string{"projects", resourceIDSegment, "apps", resourceIDSegment, "environments", resourceIDSegment, "domains", resourceIDSegment}},
+	{resource: new(EnvironmentVariable), segments: []string{"projects", resourceIDSegment, "apps", resourceIDSegment, "environments", resourceIDSegment, "variables", resourceIDSegment}},
+	{resource: new(GatewayLogs), segments: []string{"projects", resourceIDSegment, "apps", resourceIDSegment, "environments", resourceIDSegment, "gateway", "logs"}},
+	{resource: new(GatewayPolicy), segments: []string{"projects", resourceIDSegment, "apps", resourceIDSegment, "environments", resourceIDSegment, "gateway", "policies", resourceIDSegment}},
+	{resource: new(Identity), segments: []string{"projects", resourceIDSegment, "identities", resourceIDSegment}},
+	{resource: new(Keyspace), segments: []string{"projects", resourceIDSegment, "keyspaces", resourceIDSegment}},
+	{resource: new(KeyspaceLogs), segments: []string{"projects", resourceIDSegment, "keyspaces", resourceIDSegment, "logs"}},
+	{resource: new(Key), segments: []string{"projects", resourceIDSegment, "keyspaces", resourceIDSegment, "keys", resourceIDSegment}},
+	{resource: new(Portal), segments: []string{"projects", resourceIDSegment, "portals", resourceIDSegment}},
+	{resource: portalSession{}, segments: []string{"projects", resourceIDSegment, "portals", resourceIDSegment, "sessions", resourceIDSegment}},
+	{resource: new(RatelimitNamespace), segments: []string{"projects", resourceIDSegment, "ratelimits", "namespaces", resourceIDSegment}},
+	{resource: new(RatelimitLogs), segments: []string{"projects", resourceIDSegment, "ratelimits", "namespaces", resourceIDSegment, "logs"}},
+	{resource: new(RatelimitOverride), segments: []string{"projects", resourceIDSegment, "ratelimits", "namespaces", resourceIDSegment, "overrides", resourceIDSegment}},
+	{resource: new(Role), segments: []string{"projects", resourceIDSegment, "rbac", "roles", resourceIDSegment}},
+	{resource: new(Permission), segments: []string{"projects", resourceIDSegment, "rbac", "permissions", resourceIDSegment}},
+}
+
+// resourceContainerPathShapes defines path containers that can anchor a
+// descendant pattern but cannot identify a concrete resource.
+var resourceContainerPathShapes = []resourcePathShape{
+	{resource: new(Gateway), segments: []string{"projects", resourceIDSegment, "apps", resourceIDSegment, "environments", resourceIDSegment, "gateway"}},
+	{resource: new(RBAC), segments: []string{"projects", resourceIDSegment, "rbac"}},
+}
 
 // V1 is a parsed v1 Unkey resource name.
 type V1 struct {
@@ -30,22 +77,22 @@ func (v V1) String() string {
 // resource path, "*" matches exactly one path segment and a trailing "**"
 // matches the base path and all descendants. A concrete resource name covers
 // only itself. The standalone path "**" is the global pattern covering every
-// resource in the workspace; the standalone path "*" covers only resources
-// with single-segment paths.
+// resource in the workspace.
 //
-// These patterns cover unkey:v1:ws_1:keyspaces/ks_1/keys/k_1:
+// These patterns cover
+// unkey:v1:ws_1:projects/proj_1/keyspaces/ks_1/keys/k_1:
 //
-//	unkey:v1:ws_1:keyspaces/ks_1/keys/k_1   (itself)
-//	unkey:v1:ws_1:keyspaces/*/keys/*
-//	unkey:v1:ws_1:keyspaces/ks_1/**
+//	unkey:v1:ws_1:projects/proj_1/keyspaces/ks_1/keys/k_1   (itself)
+//	unkey:v1:ws_1:projects/proj_1/keyspaces/*/keys/*
+//	unkey:v1:ws_1:projects/proj_1/keyspaces/ks_1/**
 //	unkey:v1:ws_1:**
 //
 // and these do not:
 //
-//	unkey:v1:ws_1:keyspaces/ks_1            (concrete name, not the same resource)
-//	unkey:v1:ws_1:keyspaces/*               ("*" does not cross into keys/k_1)
-//	unkey:v1:ws_1:*                         ("*" is one segment, not a global wildcard)
-//	unkey:v1:ws_2:**                        (different workspace)
+//	unkey:v1:ws_1:projects/proj_1/keyspaces/ks_1       (not the same resource)
+//	unkey:v1:ws_1:projects/proj_1/keyspaces/*          ("*" matches one segment)
+//	unkey:v1:ws_1:projects/proj_2/**                   (different project)
+//	unkey:v1:ws_2:**                                   (different workspace)
 func (v V1) Covers(target V1) bool {
 	if v.WorkspaceID != target.WorkspaceID {
 		return false
@@ -78,25 +125,24 @@ func segmentsMatch(pattern []string, target []string) bool {
 //
 //	unkey:v1:{workspace_id}:{resource_path}
 //
-// The resource path may be concrete or a pattern: "*" matches exactly one
-// path segment and a trailing "/**" matches the base path and all
-// descendants. Whether a wildcard path is acceptable is the caller's concern;
-// the parser only enforces the grammar.
+// The resource path may be concrete or a pattern: "*" matches exactly one ID
+// segment and a trailing "/**" matches the base path and all descendants. The
+// resource path must match the public v1 resource catalog.
 //
 // Accepted:
 //
-//	unkey:v1:ws_123:keyspaces/ks_1/keys/k_1    concrete resource name
-//	unkey:v1:ws_123:keyspaces/*/keys/*         one wildcard per segment
-//	unkey:v1:ws_123:projects/*/apps/app_123    concrete child below a wildcard parent
-//	unkey:v1:ws_123:ratelimits/**              descendant scope
-//	unkey:v1:ws_123:**                         everything in the workspace
+//	unkey:v1:ws_123:projects/proj_1/keyspaces/ks_1/keys/k_1
+//	unkey:v1:ws_123:projects/proj_1/keyspaces/*/keys/*
+//	unkey:v1:ws_123:projects/proj_1/**
+//	unkey:v1:ws_123:**
 //
 // Rejected with [ErrInvalidResourceName]:
 //
-//	unkey:v1:ws_123                            missing resource path
-//	unkey:v1:ws_123:keyspaces/ks_1#read_key    "#" belongs to permissions, not URNs
-//	unkey:v1:ws_123:keyspaces/ks_*             "*" must be a whole segment
-//	unkey:v1:ws_123:ratelimits/**/overrides    "**" must be the last segment
+//	unkey:v1:ws_123                                      missing resource path
+//	unkey:v1:ws_123:keyspaces/ks_1                       missing project
+//	unkey:v1:ws_123:projects/*/keyspaces/ks_1            narrows after "*"
+//	unkey:v1:ws_123:projects/proj_1/keyspaces/ks_*       partial wildcard
+//	unkey:v1:ws_123:projects/**/keyspaces/*              middle "**"
 func ParseV1(value string) (V1, error) {
 	parts := strings.SplitN(value, ":", 4)
 	if len(parts) != 4 {
@@ -121,22 +167,21 @@ func ParseV1(value string) (V1, error) {
 	}, nil
 }
 
-// validateWorkspaceID enforces two invariants on the workspace field:
-//
-//  1. It is not empty.
-//  2. It contains none of the reserved characters ":" (URN field separator),
-//     "#" (permission action separator), and "/" (path segment separator).
+// compileResourcePattern builds one anchored v1 resource parser from the same
+// path format used by fmt.Sprintf. Each %s captures one concrete ID or "*".
+func compileResourcePattern(pathFormat string) *regexp.Regexp {
+	pathPattern := strings.ReplaceAll(regexp.QuoteMeta(pathFormat), "%s", resourceIDPattern)
+	return regexp.MustCompile(`^` + prefix + `:` + version + `:` + workspaceIDPattern + `:` + pathPattern + `$`)
+}
+
 func validateWorkspaceID(value string) error {
-	if value == "" {
-		return errors.New("must not be empty")
-	}
-	if strings.ContainsAny(value, ":#/") {
-		return errors.New(`must not contain ":", "#", or "/"`)
+	if !idPattern.MatchString(value) {
+		return errors.New("must contain only ASCII letters, digits, or underscores")
 	}
 	return nil
 }
 
-// validateResourcePath enforces four invariants on every "/"-separated path
+// validateResourcePath enforces five invariants on every "/"-separated path
 // segment:
 //
 //  1. No segment is empty. This subsumes rejecting an empty path and paths
@@ -147,6 +192,7 @@ func validateWorkspaceID(value string) error {
 //     can only ever expand to exactly one segment.
 //  4. "**" appears only as the final segment, so a descendant scope cannot
 //     have a suffix constraint the matcher would have to guess about.
+//  5. The path matches the public catalog and never narrows an ID after "*".
 func validateResourcePath(path string) error {
 	segments := strings.Split(path, "/")
 	for i, segment := range segments {
@@ -167,5 +213,59 @@ func validateResourcePath(path string) error {
 			return errors.New(`"*" must be a whole segment`)
 		}
 	}
-	return nil
+
+	if len(segments) == 1 && segments[0] == "**" {
+		return nil
+	}
+
+	descendantPattern := segments[len(segments)-1] == "**"
+	if descendantPattern {
+		segments = segments[:len(segments)-1]
+	}
+
+	for _, shape := range resourcePathShapes {
+		if resourcePathMatchesShape(segments, shape.segments) {
+			return nil
+		}
+	}
+	if descendantPattern {
+		for _, shape := range resourceContainerPathShapes {
+			if resourcePathMatchesShape(segments, shape.segments) {
+				return nil
+			}
+		}
+	}
+
+	return errors.New("must match a canonical resource path")
+}
+
+// resourcePathMatchesShape reports whether path matches one catalog shape.
+// After an ID wildcard, all descendant ID segments must also use wildcards.
+func resourcePathMatchesShape(path []string, shape []string) bool {
+	if len(path) != len(shape) {
+		return false
+	}
+
+	wildcardIDSeen := false
+	for i, shapeSegment := range shape {
+		if shapeSegment != resourceIDSegment {
+			if path[i] != shapeSegment {
+				return false
+			}
+			continue
+		}
+
+		if path[i] == "*" {
+			wildcardIDSeen = true
+			continue
+		}
+		if !idPattern.MatchString(path[i]) {
+			return false
+		}
+		if wildcardIDSeen {
+			return false
+		}
+	}
+
+	return true
 }

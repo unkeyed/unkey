@@ -45,6 +45,10 @@ export async function fetchApiOverview({
         },
       },
     },
+    columns: {
+      id: true,
+      name: true,
+    },
     orderBy: (table, { asc }) => [asc(table.id)],
     limit: limit + 1, // Fetch one extra to determine if there are more
   });

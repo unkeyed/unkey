@@ -1,9 +1,9 @@
 "use client";
 
 import { POLICY_LIMITS } from "@/lib/collections/deploy/policies.schema";
-import { cn } from "@/lib/utils";
-import { Plus } from "@unkey/icons";
+import { IconPlusOutline18 } from "@unkey/icons";
 import { Button, Separator } from "@unkey/ui";
+import { cn } from "cn";
 import { Fragment, type ReactNode } from "react";
 import { useFieldArray, useFormContext, useFormState, useWatch } from "react-hook-form";
 import {
@@ -43,10 +43,10 @@ export function MatchConditionEditorBody() {
           disabled={atCap}
           onClick={() => append(getDefaultCondition("path"))}
         >
-          <Plus iconSize="sm-regular" />
+          <IconPlusOutline18 />
           {fields.length === 0 ? "Add First Condition" : "Add"}
         </Button>
-        <span className="text-[12px] text-gray-11">
+        <span className="text-xs text-gray-11">
           {fields.length} / {POLICY_LIMITS.maxMatchExprsPerPolicy}
           {atCap && " · maximum reached"}
         </span>
@@ -95,7 +95,7 @@ export function MatchConditionsClearAll() {
           shouldValidate: isSubmitted,
         })
       }
-      className="text-xs text-accent-11 hover:text-accent-12 transition-colors cursor-pointer"
+      className="text-xs text-gray-11 hover:text-gray-12 transition-colors cursor-pointer"
     >
       Clear all
     </button>

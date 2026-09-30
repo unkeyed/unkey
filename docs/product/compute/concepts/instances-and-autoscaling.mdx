@@ -1,0 +1,52 @@
+---
+title: Instances and autoscaling
+description: "What an instance is, how many you run, and when Unkey adds more."
+sources:
+  - svc/ctrl/services/app/create_app.go
+  - svc/api/openapi/spec/common/EnvironmentRegion.yaml
+  - svc/api/openapi/spec/common/Replicas.yaml
+  - svc/api/openapi/spec/common/EnvironmentHealthcheck.yaml
+  - svc/api/openapi/spec/paths/v2/environments/updateSettings/V2EnvironmentsUpdateSettingsRequestBody.yaml
+  - svc/api/routes/v2_environments_update_settings/handler.go
+  - svc/krane/internal/deployment/apply.go
+  - svc/krane/internal/deployment/consts.go
+  - svc/frontline/internal/router/routing.go
+  - svc/frontline/routes/proxy/handler.go
+  - web/internal/db/src/schema/limits.ts
+  - web/apps/dashboard/lib/limits.ts
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/settings/components/runtime-settings/instances.tsx
+---
+
+An instance is one running container of a <Tooltip tip="One built and running version of an app in one environment.">deployment</Tooltip> in one region. A deployment with two regions and two replicas each has four instances, all running the same image with the same variables. Instances are ephemeral: nothing written inside one survives its replacement.
+
+## How many replicas you get
+
+Each <Tooltip tip="A production or preview environment of a Compute app, not the dashboard label on a key.">environment</Tooltip> sets, per region, a minimum and a maximum replica count. A new <Tooltip tip="A Compute app: a deployable service inside a project. Not 'your application' in general.">app</Tooltip> starts with one replica in its default region, and the dashboard's **Instances** control defaults both bounds to 1. With minimum and maximum equal, the count is pinned and autoscaling is off. Autoscaling starts only when you raise the maximum above the minimum.
+
+The minimum is at least 1, so you can't scale to zero. The maximum is capped by your plan's replicas-per-region limit: 4 on Starter, 8 on Pro, and 16 on Business. Every region uses the same minimum and maximum.
+
+One replica gives no availability guarantee within a region. Two replicas let the deployment keep serving while one instance is replaced, and Unkey keeps at most one instance of a deployment unavailable at a time during planned disruption. For a regional outage you need a second region. See [Regions](/compute/concepts/regions).
+
+## How autoscaling decides
+
+When the maximum exceeds the minimum, Unkey watches average CPU across the deployment's instances in each region. It adds replicas when average CPU exceeds 80 percent of the requested CPU and removes them when load drops, waiting 60 seconds after a drop before scaling in so short spikes don't cause flapping.
+
+## CPU, memory, and disk
+
+[Runtime settings](/compute/configure/runtime-settings) give each instance a CPU allocation in vCPUs (minimum 0.25, in steps of 0.25), a memory allocation in MiB (minimum 256, in steps of 256), and an optional ephemeral disk in MiB (steps of 512). The upper bounds are your workspace's per-instance limits on [Limits](/platform/billing/limits), and the API returns `400` if you exceed them. The workspace-wide totals are checked when a deployment starts, as described under [Deployments](/compute/concepts/deployments).
+
+The allocation you set is the hard limit for the container. Half of it is guaranteed, and an instance can burst to its full allocation when there's spare capacity. The container's own writable filesystem is capped at 128 MiB. That's scratch space for logs and small files, not storage. When you configure ephemeral disk, it's mounted at `/data` and `UNKEY_EPHEMERAL_DISK_PATH=/data` is set so your code can find it. The disk starts empty with each instance and is deleted when the instance stops.
+
+## What the container sees
+
+Unkey injects `PORT` with the configured port (default 8080) and a set of `UNKEY_*` variables naming the deployment, environment slug, region, instance, and the git commit, branch, repository, and commit message when the deployment came from git. Your environment variables are added alongside, and the injected variables win if the names collide. The container receives the configured shutdown signal (`SIGTERM` by default) when an instance is being replaced or scaled in.
+
+## Health probes
+
+A [health check](/compute/configure/health-checks) is optional. When you configure one, Unkey probes the container over HTTP at the path you give with `GET` or `POST`, every `intervalSeconds` (default 10, at most 3600), with a `timeoutSeconds` (default 5), after an `initialDelaySeconds` (default 0). The same probe drives two decisions: an instance that hasn't passed yet receives no traffic, and an instance that fails `failureThreshold` consecutive probes (default 3) is restarted. A `GET` probe counts any status from 200 to 399 as a pass.
+
+Without a health check, an instance is treated as ready as soon as its container is running, and it's only restarted if the process exits. A probe that checks downstream dependencies can therefore take your whole deployment out when a dependency blips. Probe the process, not the database.
+
+## How traffic reaches instances
+
+The gateway in each region sends a request to a random running instance of the deployment in that region. If it can't connect to one, it tries another. An error after the request was sent is returned as-is rather than retried, so your handlers never run twice for one request. If no instance in the region is running, the gateway forwards the request to the nearest region that has one, and if none does, it answers `503` with [`no_running_instances`](/errors/frontline/capacity/no_running_instances).

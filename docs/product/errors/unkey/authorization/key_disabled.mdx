@@ -1,79 +1,41 @@
 ---
 title: "key_disabled"
-description: "The API key used for authentication is currently disabled in Unkey. Re-enable the key in the dashboard or create a new key to restore access."
+sidebarTitle: "key_disabled"
+description: "The root key used to authenticate has been disabled."
+sources:
+  - pkg/codes/unkey_auth.go
+  - svc/api/internal/middleware/errors.go
+  - internal/services/keys/status.go
 ---
 
 <Danger>`err:unkey:authorization:key_disabled`</Danger>
 
-```json Example
+The root key you're using still exists, but it's disabled, so every request with it fails. You get HTTP 403.
+
+```json Example response
 {
   "meta": {
     "requestId": "req_2c9a0jf23l4k567"
   },
   "error": {
-    "detail": "The API key used for authentication has been disabled",
+    "detail": "The provided root key is invalid. The key is disabled.",
     "status": 403,
-    "title": "Forbidden",
-    "type": "https://unkey.com/docs/errors/unkey/authorization/key_disabled"
+    "title": "Key is disabled",
+    "type": "/errors/unkey/authorization/key_disabled"
   }
 }
 ```
 
-## What Happened?
+Keys you check with `keys.verifyKey` never return this error. A disabled key there comes back as `valid: false` with code `DISABLED`.
 
-This error occurs when you try to use a disabled Unkey API key (one that starts with `unkey_`) to authenticate with the Unkey API. The key exists in the system but has been disabled and can no longer be used for authentication.
+## How to fix
 
-Here's an example of a request that would trigger this error:
+1. Create a new root key under **Settings > Root Keys**, with only the permissions the service needs.
+2. Switch the service to the new key and delete the disabled one.
+3. If you don't know why the key was disabled, contact support with the `requestId`.
 
-```bash
-# Request to Unkey API with a disabled key
-curl -X POST https://api.unkey.com/v2/keys.listKeys \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer unkey_DISABLED_KEY"
-```
+## Related errors
 
-API keys can be disabled for various reasons:
-
-- Administrative action to revoke access
-- Security concerns or suspected compromise
-- Temporary deactivation during maintenance or investigation
-- Automated disabling due to suspicious activity
-- Usage policy violations
-
-## How To Fix
-
-If you encounter this error when using the Unkey API, you have two options:
-
-1. **Get a new Unkey root key**: If your key was permanently disabled, create a new API key with the appropriate permissions in the [Unkey dashboard](https://app.unkey.com/settings/root-keys)
-
-2. **Re-enable your existing key**: If you have administrative access and the key was temporarily disabled, you can re-enable it through the dashboard
-
-To re-enable your Unkey root key:
-
-1. Log in to your Unkey dashboard
-2. Navigate to the API keys section
-3. Search for the key you want to re-enable
-4. Click "Enable"
-
-Then update your API calls to use the re-enabled key:
-
-```bash
-curl -X POST https://api.unkey.com/v2/keys.listKeys \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer unkey_REACTIVATED_KEY"
-```
-
-## Common Mistakes
-
-- **Using old or archived root keys**: Keys from previous projects or configurations may have been disabled
-- **Shared root keys**: When keys are shared among team members, they may be disabled by another administrator
-- **Security triggers**: Unusual usage patterns may automatically disable keys as a security precaution
-- **Environment confusion**: Using disabled staging/development keys in production environments
-- **Account status changes**: Keys may be disabled due to billing or account status changes
-- **Rotation policies**: Keys that should have been rotated according to security policies
-
-## Related Errors
-
-- [err:unkey:authorization:insufficient_permissions](./insufficient_permissions) - When the authenticated entity lacks sufficient permissions
-- [err:unkey:authorization:workspace_disabled](./workspace_disabled) - When the associated workspace is disabled
-- [err:unkey:authentication:key_not_found](../authentication/key_not_found) - When the provided API key doesn't exist at all
+- [`err:unkey:authentication:key_not_found`](/errors/unkey/authentication/key_not_found): the key doesn't exist or was deleted.
+- [`err:unkey:authorization:workspace_disabled`](/errors/unkey/authorization/workspace_disabled): the whole workspace is disabled.
+- [`err:unkey:authorization:forbidden`](/errors/unkey/authorization/forbidden): the key is expired.

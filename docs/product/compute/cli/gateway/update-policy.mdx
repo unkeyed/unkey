@@ -1,0 +1,123 @@
+---
+title: unkey api gateway update-policy
+sidebarTitle: "update-policy"
+description: "Change one gateway policy in place without resending the list."
+sources:
+  - cmd/api/gateway/update_policy.go
+  - svc/api/routes/v2_gateway_update_policy/handler.go
+  - svc/api/openapi/openapi-generated.yaml
+  - docs/product/scripts/manifest.json
+  - cmd/api/util/flags.go
+---
+
+import RootKeyPrereq from "/snippets/root-key-prereq.mdx";
+
+<RootKeyPrereq />
+
+Update one gateway policy of an <Tooltip tip="A production or preview environment of a Compute app, not the dashboard label on a key.">environment</Tooltip> in place. The policy keeps its ID and position, and the other policies are untouched.
+
+Pass the fields to change as a JSON object in `--policy`. Fields you leave out keep their values.
+
+- `"match": null` or an empty array removes all match expressions, so the policy applies to every request.
+- Passing one of `keyauth`, `ratelimit`, `firewall`, `openapi`, or `logging` replaces the rule, and can change its type. Pass at most one.
+
+Policy IDs change every time `set-policies` replaces the list, so get them from `list-policies` first.
+
+## Usage
+
+```bash
+unkey api gateway update-policy --project=<project> --app=<app> --environment=<environment> --policy-id=<policy id> --policy=<json object>
+```
+
+## Flags
+
+<ParamField body="--app" type="string" required>
+  App ID or slug.
+</ParamField>
+
+<ParamField body="--environment" type="string" required>
+  Environment ID or slug.
+</ParamField>
+
+<ParamField body="--policy" type="string" required>
+  Policy fields to update as a JSON object. Accepted keys are `name`, `enabled`, `match`, `keyauth`, `ratelimit`, `firewall`, `openapi`, and `logging`.
+</ParamField>
+
+<ParamField body="--policy-id" type="string" required>
+  ID of the policy to update, from `list-policies`.
+</ParamField>
+
+<ParamField body="--project" type="string" required>
+  Project ID or slug. Both forms resolve to the same project.
+</ParamField>
+
+### Shared flags
+
+Every `unkey api` command accepts these; [CLI output and shared flags](/platform/cli/output-and-flags) describes them in full.
+
+<ParamField body="--body" type="string">
+  A JSON document sent as the request body instead of building it from the flags above. It is mutually exclusive with the request-building flags, and unknown fields are rejected locally. See [Send a raw body](/platform/cli/output-and-flags#send-a-raw-body).
+</ParamField>
+
+<ParamField body="--root-key" type="string">
+  Root key for the request. Falls back to `UNKEY_ROOT_KEY`, then to the config file written by `unkey auth login`. See [CLI authentication](/platform/cli/authentication).
+</ParamField>
+
+<ParamField body="--api-url" type="string" default="https://api.unkey.com">
+  Base URL of the API. Falls back to `UNKEY_API_BASE_URL`. You don't normally need to set it.
+</ParamField>
+
+<ParamField body="--config" type="string" default="~/.unkey/config.toml">
+  Path of the TOML file that `unkey auth login` writes. Falls back to `UNKEY_CONFIG`.
+</ParamField>
+
+<ParamField body="--output" type="string">
+  Output format. Falls back to `UNKEY_OUTPUT`. Set `json` to print the full response envelope (`meta` and `data`) for piping; any other value prints the request ID followed by `data`.
+</ParamField>
+
+## Required permissions
+
+Your root key needs one of:
+
+- `environment.*.update_policy` (any environment)
+- `environment.<environment_id>.update_policy` (a specific environment)
+
+Without a matching permission the API answers 403 and the CLI prints `Permission denied:` followed by the detail. See [Root key permissions](/platform/root-keys/permissions) for the full catalog.
+
+## Examples
+
+Disable a policy:
+
+```bash
+unkey api gateway update-policy --project=payments --app=payments-api --environment=production --policy-id=pol_123 --policy='{"enabled":false}'
+```
+
+Apply a policy to every request:
+
+```bash
+unkey api gateway update-policy --project=payments --app=payments-api --environment=production --policy-id=pol_123 --policy='{"match":null}'
+```
+
+Switch a rule to a firewall deny:
+
+```bash
+unkey api gateway update-policy --project=payments --app=payments-api --environment=production --policy-id=pol_123 --policy='{"firewall":{"action":"ACTION_DENY"}}'
+```
+
+Send the request body as JSON:
+
+```bash
+unkey api gateway update-policy --body='{"project":"payments","app":"payments-api","environment":"production","policyId":"pol_123","enabled":false}'
+```
+
+## API endpoint
+
+The command calls [`POST /v2/gateway.updatePolicy`](/compute/api-reference/gateway/update-policy) and prints its response. The request fields carry the same names as the flags in camelCase, which is the shape `--body` expects.
+
+## Related
+
+<Columns cols={1}>
+  <Card title="Gateway policies" href="/compute/gateway/policies">
+    How policies are ordered, matched, and evaluated at the edge.
+  </Card>
+</Columns>

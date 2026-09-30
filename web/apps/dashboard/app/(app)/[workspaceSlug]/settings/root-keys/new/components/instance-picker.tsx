@@ -10,7 +10,7 @@ import {
   MultiboxTrigger,
   useMultiboxAnchor,
 } from "@/components/ui/multibox";
-import { ChevronExpandY } from "@unkey/icons";
+import { IconChevronExpandYOutline18 } from "@unkey/icons";
 import { Fragment } from "react";
 import type { ScopeInstance } from "../hooks/use-scope-instances";
 import { ALL_INSTANCES, grantsPreview, selectInstances } from "../lib/policy";
@@ -52,7 +52,7 @@ export function InstancePicker({
       <div ref={anchor}>
         <MultiboxTrigger
           aria-label={`Select ${noun}`}
-          className="static right-auto top-auto flex h-9 w-full translate-y-0 items-center gap-2 rounded-lg border border-gray-5 bg-gray-2 px-3 text-[13px] leading-5 text-grayA-12 transition-colors duration-300 hover:border-gray-8 dark:bg-black"
+          className="static right-auto top-auto flex h-9 w-full translate-y-0 items-center gap-2 rounded-lg border border-gray-5 bg-gray-2 px-3 text-sm leading-5 text-grayA-12 transition-colors duration-300 hover:border-gray-8 dark:bg-black"
         >
           <span className="truncate">
             {names.length === 0 ? (
@@ -66,12 +66,12 @@ export function InstancePicker({
               +{more}
             </span>
           ) : null}
-          <ChevronExpandY iconSize="md-medium" className="ml-auto shrink-0 text-grayA-9" />
+          <IconChevronExpandYOutline18 className="ml-auto shrink-0 text-grayA-9" />
         </MultiboxTrigger>
       </div>
       <MultiboxContent anchor={anchor} className="p-0">
         <div className="border-b border-grayA-3 px-2 py-1.5">
-          <MultiboxInput placeholder={`Search ${noun}…`} className="w-full text-[13px]" />
+          <MultiboxInput placeholder={`Search ${noun}…`} className="w-full text-sm" />
         </div>
         <div className="p-1">
           <MultiboxEmpty>{isLoading ? "Loading…" : `No ${noun} match this filter.`}</MultiboxEmpty>

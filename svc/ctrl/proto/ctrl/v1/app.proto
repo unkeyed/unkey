@@ -9,6 +9,9 @@ service AppService {
   // Create a new app within a project
   rpc CreateApp(CreateAppRequest) returns (CreateAppResponse) {}
 
+  // Change the default image reference for an OCI-sourced app.
+  rpc UpdateOciImageSource(UpdateOciImageSourceRequest) returns (UpdateOciImageSourceResponse) {}
+
   // Delete an app and all associated resources
   rpc DeleteApp(DeleteAppRequest) returns (DeleteAppResponse) {}
 }
@@ -19,10 +22,33 @@ message CreateAppRequest {
   string name = 3;
   string slug = 4;
   ActorInfo actor = 5;
+
+  oneof source {
+    GitSource git = 6;
+    OciSource oci = 7;
+  }
 }
 
 message CreateAppResponse {
   string id = 1;
+}
+
+// GitSource has no fields because repository connections have a separate lifecycle.
+message GitSource {}
+
+message OciSource {
+  string image_reference = 1;
+}
+
+message UpdateOciImageSourceRequest {
+  string workspace_id = 1;
+  string app_id = 2;
+  string image_reference = 3;
+  ActorInfo actor = 4;
+}
+
+message UpdateOciImageSourceResponse {
+  string image_reference = 1;
 }
 
 message DeleteAppRequest {

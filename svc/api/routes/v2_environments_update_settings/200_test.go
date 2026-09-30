@@ -60,9 +60,9 @@ func TestUpdateSettingsSuccessfully(t *testing.T) {
 			App:           env.appID,
 			Environment:   env.environmentID,
 			Dockerfile:    nullable.NewNullableWithValue("Dockerfile.prod"),
-			RootDirectory: ptr("app"),
-			WatchPaths:    ptr([]string{"src/**"}),
-			AutoDeploy:    ptr(false),
+			RootDirectory: new("app"),
+			WatchPaths:    new([]string{"src/**"}),
+			AutoDeploy:    new(false),
 		})
 
 		got, err := db.Query.FindAppBuildSettingByAppEnv(ctx, h.DB.RO(), db.FindAppBuildSettingByAppEnvParams{
@@ -113,7 +113,7 @@ func TestUpdateSettingsSuccessfully(t *testing.T) {
 			Project:     env.projectID,
 			App:         env.appID,
 			Environment: env.environmentID,
-			WatchPaths:  ptr([]string{"src/**", "lib/**"}),
+			WatchPaths:  new([]string{"src/**", "lib/**"}),
 		})
 		got, err := db.Query.FindAppBuildSettingByAppEnv(ctx, h.DB.RO(), db.FindAppBuildSettingByAppEnvParams{
 			AppID: env.appID, EnvironmentID: env.environmentID,
@@ -126,7 +126,7 @@ func TestUpdateSettingsSuccessfully(t *testing.T) {
 			Project:     env.projectID,
 			App:         env.appID,
 			Environment: env.environmentID,
-			AutoDeploy:  ptr(false),
+			AutoDeploy:  new(false),
 		})
 		got, err = db.Query.FindAppBuildSettingByAppEnv(ctx, h.DB.RO(), db.FindAppBuildSettingByAppEnvParams{
 			AppID: env.appID, EnvironmentID: env.environmentID,
@@ -139,7 +139,7 @@ func TestUpdateSettingsSuccessfully(t *testing.T) {
 			Project:     env.projectID,
 			App:         env.appID,
 			Environment: env.environmentID,
-			WatchPaths:  ptr([]string{}),
+			WatchPaths:  new([]string{}),
 		})
 		got, err = db.Query.FindAppBuildSettingByAppEnv(ctx, h.DB.RO(), db.FindAppBuildSettingByAppEnvParams{
 			AppID: env.appID, EnvironmentID: env.environmentID,
@@ -155,39 +155,39 @@ func TestUpdateSettingsSuccessfully(t *testing.T) {
 			Project:     env.projectID,
 			App:         env.appID,
 			Environment: env.environmentID,
-			Command:     ptr([]string{"./server", "--prod"}),
+			Command:     new([]string{"./server", "--prod"}),
 		})
 		rt, err := db.Query.FindAppRuntimeSettingsByAppAndEnv(ctx, h.DB.RO(), db.FindAppRuntimeSettingsByAppAndEnvParams{
 			AppID: env.appID, EnvironmentID: env.environmentID,
 		})
 		require.NoError(t, err)
-		require.Equal(t, []string{"./server", "--prod"}, []string(rt.AppRuntimeSetting.Command))
+		require.Equal(t, []string{"./server", "--prod"}, []string(rt.Command))
 
 		// Omit command, touch another runtime field: command must be preserved.
 		call(t, handler.Request{
 			Project:     env.projectID,
 			App:         env.appID,
 			Environment: env.environmentID,
-			Port:        ptr(9090),
+			Port:        new(9090),
 		})
 		rt, err = db.Query.FindAppRuntimeSettingsByAppAndEnv(ctx, h.DB.RO(), db.FindAppRuntimeSettingsByAppAndEnvParams{
 			AppID: env.appID, EnvironmentID: env.environmentID,
 		})
 		require.NoError(t, err)
-		require.Equal(t, []string{"./server", "--prod"}, []string(rt.AppRuntimeSetting.Command), "omitted command must be preserved")
+		require.Equal(t, []string{"./server", "--prod"}, []string(rt.Command), "omitted command must be preserved")
 
 		// An empty array is a meaningful value that clears the command.
 		call(t, handler.Request{
 			Project:     env.projectID,
 			App:         env.appID,
 			Environment: env.environmentID,
-			Command:     ptr([]string{}),
+			Command:     new([]string{}),
 		})
 		rt, err = db.Query.FindAppRuntimeSettingsByAppAndEnv(ctx, h.DB.RO(), db.FindAppRuntimeSettingsByAppAndEnvParams{
 			AppID: env.appID, EnvironmentID: env.environmentID,
 		})
 		require.NoError(t, err)
-		require.Empty(t, []string(rt.AppRuntimeSetting.Command), "empty command must clear the list")
+		require.Empty(t, []string(rt.Command), "empty command must clear the list")
 	})
 
 	t.Run("healthcheck partial sets defaults, omit preserves, null removes", func(t *testing.T) {
@@ -207,8 +207,8 @@ func TestUpdateSettingsSuccessfully(t *testing.T) {
 			AppID: env.appID, EnvironmentID: env.environmentID,
 		})
 		require.NoError(t, err)
-		require.True(t, rt.AppRuntimeSetting.Healthcheck.Valid)
-		hc := rt.AppRuntimeSetting.Healthcheck.Healthcheck
+		require.True(t, rt.Healthcheck.Valid)
+		hc := rt.Healthcheck.Healthcheck
 		require.NotNil(t, hc)
 		require.Equal(t, "GET", hc.Method)
 		require.Equal(t, "/health", hc.Path)
@@ -222,15 +222,15 @@ func TestUpdateSettingsSuccessfully(t *testing.T) {
 			Project:     env.projectID,
 			App:         env.appID,
 			Environment: env.environmentID,
-			Port:        ptr(9090),
+			Port:        new(9090),
 		})
 		rt, err = db.Query.FindAppRuntimeSettingsByAppAndEnv(ctx, h.DB.RO(), db.FindAppRuntimeSettingsByAppAndEnvParams{
 			AppID: env.appID, EnvironmentID: env.environmentID,
 		})
 		require.NoError(t, err)
-		require.True(t, rt.AppRuntimeSetting.Healthcheck.Valid, "omitted healthcheck must be preserved")
-		require.NotNil(t, rt.AppRuntimeSetting.Healthcheck.Healthcheck)
-		require.Equal(t, "/health", rt.AppRuntimeSetting.Healthcheck.Healthcheck.Path)
+		require.True(t, rt.Healthcheck.Valid, "omitted healthcheck must be preserved")
+		require.NotNil(t, rt.Healthcheck.Healthcheck)
+		require.Equal(t, "/health", rt.Healthcheck.Healthcheck.Path)
 
 		// Null removes the healthcheck.
 		call(t, handler.Request{
@@ -243,7 +243,7 @@ func TestUpdateSettingsSuccessfully(t *testing.T) {
 			AppID: env.appID, EnvironmentID: env.environmentID,
 		})
 		require.NoError(t, err)
-		require.False(t, rt.AppRuntimeSetting.Healthcheck.Valid, "null healthcheck must remove it")
+		require.False(t, rt.Healthcheck.Valid, "null healthcheck must remove it")
 	})
 
 	t.Run("nullable string fields omit preserves", func(t *testing.T) {
@@ -264,8 +264,8 @@ func TestUpdateSettingsSuccessfully(t *testing.T) {
 			Project:     env.projectID,
 			App:         env.appID,
 			Environment: env.environmentID,
-			AutoDeploy:  ptr(true),
-			Port:        ptr(9090),
+			AutoDeploy:  new(true),
+			Port:        new(9090),
 		})
 
 		build, err := db.Query.FindAppBuildSettingByAppEnv(ctx, h.DB.RO(), db.FindAppBuildSettingByAppEnvParams{
@@ -281,8 +281,8 @@ func TestUpdateSettingsSuccessfully(t *testing.T) {
 			AppID: env.appID, EnvironmentID: env.environmentID,
 		})
 		require.NoError(t, err)
-		require.True(t, rt.AppRuntimeSetting.OpenapiSpecPath.Valid, "omitted openapiSpecPath must be preserved")
-		require.Equal(t, "/openapi.yaml", rt.AppRuntimeSetting.OpenapiSpecPath.String)
+		require.True(t, rt.OpenapiSpecPath.Valid, "omitted openapiSpecPath must be preserved")
+		require.Equal(t, "/openapi.yaml", rt.OpenapiSpecPath.String)
 	})
 
 	t.Run("runtime settings with healthcheck defaults", func(t *testing.T) {
@@ -291,18 +291,18 @@ func TestUpdateSettingsSuccessfully(t *testing.T) {
 			Project:          env.projectID,
 			App:              env.appID,
 			Environment:      env.environmentID,
-			Port:             ptr(9090),
-			VCpus:            ptr(2.0),
-			MemoryMib:        ptr(1024),
-			StorageMib:       ptr(2048),
-			Command:          ptr([]string{"./server", "--prod"}),
-			ShutdownSignal:   ptr(openapi.SIGINT),
-			UpstreamProtocol: ptr(openapi.H2c),
+			Port:             new(9090),
+			VCpus:            new(2.0),
+			MemoryMib:        new(1024),
+			StorageMib:       new(2048),
+			Command:          new([]string{"./server", "--prod"}),
+			ShutdownSignal:   new(openapi.SIGINT),
+			UpstreamProtocol: new(openapi.H2c),
 			OpenapiSpecPath:  nullable.NewNullableWithValue("/openapi.yaml"),
 			Healthcheck: nullable.NewNullableWithValue(openapi.EnvironmentHealthcheck{
 				Method:          openapi.EnvironmentHealthcheckMethodGET,
 				Path:            "/health",
-				IntervalSeconds: ptr(15),
+				IntervalSeconds: new(15),
 			}),
 		})
 
@@ -310,7 +310,7 @@ func TestUpdateSettingsSuccessfully(t *testing.T) {
 			AppID: env.appID, EnvironmentID: env.environmentID,
 		})
 		require.NoError(t, err)
-		rt := got.AppRuntimeSetting
+		rt := got
 		require.Equal(t, int32(9090), rt.Port)
 		require.Equal(t, int32(2000), rt.CpuMillicores)
 		require.Equal(t, int32(1024), rt.MemoryMib)
@@ -343,10 +343,10 @@ func TestUpdateSettingsSuccessfully(t *testing.T) {
 			Healthcheck: nullable.NewNullableWithValue(openapi.EnvironmentHealthcheck{
 				Method:              openapi.EnvironmentHealthcheckMethodGET,
 				Path:                "/v1/liveness",
-				IntervalSeconds:     ptr(5),
-				TimeoutSeconds:      ptr(5),
-				FailureThreshold:    ptr(3),
-				InitialDelaySeconds: ptr(0),
+				IntervalSeconds:     new(5),
+				TimeoutSeconds:      new(5),
+				FailureThreshold:    new(3),
+				InitialDelaySeconds: new(0),
 			}),
 		})
 
@@ -354,7 +354,7 @@ func TestUpdateSettingsSuccessfully(t *testing.T) {
 			AppID: env.appID, EnvironmentID: env.environmentID,
 		})
 		require.NoError(t, err)
-		hc := got.AppRuntimeSetting.Healthcheck
+		hc := got.Healthcheck
 		require.True(t, hc.Valid)
 		require.NotNil(t, hc.Healthcheck)
 		require.Equal(t, "GET", hc.Healthcheck.Method)
@@ -386,7 +386,7 @@ func TestUpdateSettingsSuccessfully(t *testing.T) {
 			AppID: env.appID, EnvironmentID: env.environmentID,
 		})
 		require.NoError(t, err)
-		require.False(t, rt.AppRuntimeSetting.OpenapiSpecPath.Valid, "openapiSpecPath should be cleared")
+		require.False(t, rt.OpenapiSpecPath.Valid, "openapiSpecPath should be cleared")
 	})
 
 	t.Run("partial update preserves untouched fields", func(t *testing.T) {
@@ -395,16 +395,16 @@ func TestUpdateSettingsSuccessfully(t *testing.T) {
 			Project:     env.projectID,
 			App:         env.appID,
 			Environment: env.environmentID,
-			VCpus:       ptr(0.5),
+			VCpus:       new(0.5),
 		})
 
 		rt, err := db.Query.FindAppRuntimeSettingsByAppAndEnv(ctx, h.DB.RO(), db.FindAppRuntimeSettingsByAppAndEnvParams{
 			AppID: env.appID, EnvironmentID: env.environmentID,
 		})
 		require.NoError(t, err)
-		require.Equal(t, int32(500), rt.AppRuntimeSetting.CpuMillicores)
-		require.Equal(t, int32(256), rt.AppRuntimeSetting.MemoryMib, "memory untouched, keeps seed default")
-		require.Equal(t, int32(8080), rt.AppRuntimeSetting.Port, "port untouched, keeps seed default")
+		require.Equal(t, int32(500), rt.CpuMillicores)
+		require.Equal(t, int32(256), rt.MemoryMib, "memory untouched, keeps seed default")
+		require.Equal(t, int32(8080), rt.Port, "port untouched, keeps seed default")
 	})
 
 	t.Run("regions create and update", func(t *testing.T) {
@@ -477,6 +477,6 @@ func TestUpdateSettingsSuccessfully(t *testing.T) {
 			AppID: env.appID, EnvironmentID: env.environmentID,
 		})
 		require.NoError(t, err)
-		require.Equal(t, int32(8080), rt.AppRuntimeSetting.Port, "unchanged")
+		require.Equal(t, int32(8080), rt.Port, "unchanged")
 	})
 }

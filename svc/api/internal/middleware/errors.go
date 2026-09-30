@@ -27,7 +27,7 @@ import (
 func errorLogAttrs(s *zen.Session, err error, status int, urn codes.URN) []any {
 	workspaceID := ""
 	if principal, principalErr := s.GetPrincipal(); principalErr == nil {
-		workspaceID = principal.WorkspaceID
+		workspaceID = principal.AuthorizedWorkspaceID
 	}
 
 	return []any{
@@ -134,7 +134,8 @@ func WithErrorHandling() zen.Middleware {
 				codes.UserErrorsBadRequestInvalidAnalyticsTable,
 				codes.UserErrorsBadRequestInvalidAnalyticsFunction,
 				codes.UserErrorsBadRequestInvalidAnalyticsQueryType,
-				codes.UserErrorsBadRequestQueryRangeExceedsRetention:
+				codes.UserErrorsBadRequestQueryRangeExceedsRetention,
+				codes.UserErrorsBadRequestPerKeyBreakoutTooLarge:
 				return s.ProblemJSON(http.StatusBadRequest, openapi.BadRequestErrorResponse{
 					Meta: openapi.Meta{
 						RequestId: s.RequestID(),
@@ -303,7 +304,8 @@ func WithErrorHandling() zen.Middleware {
 				codes.UnkeyDataErrorsPermissionDuplicate,
 				codes.UnkeyDataErrorsProjectDuplicate,
 				codes.UnkeyDataErrorsAppDuplicate,
-				codes.UnkeyDataErrorsDomainDuplicate:
+				codes.UnkeyDataErrorsDomainDuplicate,
+				codes.UnkeyDataErrorsPortalDuplicate:
 				return s.ProblemJSON(http.StatusConflict, openapi.ConflictErrorResponse{
 					Meta: openapi.Meta{
 						RequestId: s.RequestID(),

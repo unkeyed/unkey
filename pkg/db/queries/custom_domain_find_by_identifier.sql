@@ -16,6 +16,8 @@
     cd_by_id.cname_verified,
     cd_by_id.target_cname,
     cd_by_id.verification_error,
+    cd_by_id.domain_connect_provider,
+    cd_by_id.domain_connect_url,
     cd_by_id.last_checked_at,
     cd_by_id.created_at,
     cd_by_id.updated_at
@@ -35,6 +37,8 @@ UNION ALL
     cd_by_name.cname_verified,
     cd_by_name.target_cname,
     cd_by_name.verification_error,
+    cd_by_name.domain_connect_provider,
+    cd_by_name.domain_connect_url,
     cd_by_name.last_checked_at,
     cd_by_name.created_at,
     cd_by_name.updated_at

@@ -2,16 +2,18 @@
 
 import { IdentityTableActions } from "@/components/identities-table/components/identity-table-actions";
 import { NavbarActionButton } from "@/components/navigation/action-button";
+import { useProjectScope } from "@/hooks/use-project-scope";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { useIdentity } from "@/lib/identities-query";
 import { routes } from "@/lib/navigation/routes";
-import { Gear } from "@unkey/icons";
+import { IconGearOutline18 } from "@unkey/icons";
 import { useRouter } from "next/navigation";
 
 export const IdentitySettingsDialog = ({ identityId }: { identityId: string }) => {
   const { data: identity, isError, refetch } = useIdentity(identityId);
   const router = useRouter();
   const workspace = useWorkspaceNavigation();
+  const scope = useProjectScope();
 
   if (isError && !identity) {
     return (
@@ -23,7 +25,7 @@ export const IdentitySettingsDialog = ({ identityId }: { identityId: string }) =
           });
         }}
       >
-        <Gear />
+        <IconGearOutline18 />
         Retry Settings
       </NavbarActionButton>
     );
@@ -32,7 +34,7 @@ export const IdentitySettingsDialog = ({ identityId }: { identityId: string }) =
   if (!identity) {
     return (
       <NavbarActionButton variant="outline" disabled>
-        <Gear />
+        <IconGearOutline18 />
         Settings
       </NavbarActionButton>
     );
@@ -43,11 +45,11 @@ export const IdentitySettingsDialog = ({ identityId }: { identityId: string }) =
       <IdentityTableActions
         identity={identity}
         onDeleted={() => {
-          router.push(routes.identities.list({ workspaceSlug: workspace.slug }));
+          router.push(routes.identities.list({ workspaceSlug: workspace.slug, ...scope }));
         }}
       >
         <NavbarActionButton variant="outline">
-          <Gear />
+          <IconGearOutline18 />
           Settings
         </NavbarActionButton>
       </IdentityTableActions>

@@ -1,0 +1,714 @@
+/*
+ * Mintlify loads this sheet site-wide. Colors and type follow the dashboard's
+ * Radix gray scale in web/internal/ui/colors.css and its Geist font pairing.
+ * Component hooks are documented at mintlify.com/docs/customize/custom-scripts;
+ * keep article typography separate from headings inside interactive components.
+ */
+
+@import url("https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&display=swap");
+
+:root {
+  --unkey-font-sans: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --unkey-font-mono: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+  /* Radix gray, light (web/internal/ui/colors.css) */
+  --unkey-bg: hsl(0 0% 100%);
+  --unkey-bg-subtle: hsl(0 0% 98%);
+  --unkey-bg-hover: hsl(0 0% 96%);
+  --unkey-border: hsl(0 0% 91%);
+  --unkey-border-strong: hsl(0 0% 85%);
+  --unkey-text: hsl(0 0% 13%);
+  --unkey-text-muted: hsl(0 0% 39%);
+  --unkey-text-faint: hsl(0 0% 43%);
+  --unkey-ink: hsl(0 0% 13%);
+  --unkey-ink-fg: hsl(0 0% 100%);
+
+  --unkey-radius-sm: 4px;
+  --unkey-radius: 6px;
+  --unkey-radius-lg: 8px;
+  --unkey-radius-panel: 12px;
+  --unkey-success: #067a6f;
+}
+
+.dark {
+  --unkey-bg: hsl(0 0% 7%);
+  --unkey-bg-subtle: hsl(0 0% 10%);
+  --unkey-bg-hover: hsl(0 0% 13%);
+  --unkey-border: hsl(0 0% 19%);
+  --unkey-border-strong: hsl(0 0% 28%);
+  --unkey-text: hsl(0 0% 93%);
+  --unkey-text-muted: hsl(0 0% 71%);
+  --unkey-text-faint: hsl(0 0% 64%);
+  --unkey-ink: #ffffff;
+  --unkey-ink-fg: hsl(0 0% 7%);
+  --unkey-success: #2dd4bf;
+}
+
+/* ---------------------------------------------------------------- type */
+
+html,
+body,
+#content-area,
+#sidebar,
+#navbar {
+  font-family: var(--unkey-font-sans);
+}
+
+code,
+kbd,
+pre {
+  font-family: var(--unkey-font-mono) !important;
+  font-feature-settings: "liga" 0;
+}
+
+#page-title {
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  line-height: 1.2;
+}
+
+#content-area h2:not(.not-prose):not([data-component-part="card-title"]) {
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  border-bottom: 1px solid var(--unkey-border);
+  padding-bottom: 0.5rem;
+  margin-top: 3rem;
+}
+
+#content-area h3,
+#content-area h4 {
+  font-weight: 600;
+  letter-spacing: -0.015em;
+}
+
+#content-area .prose :is(p, li, td) > a:not([data-component-part]) {
+  color: var(--unkey-ink);
+  text-decoration: underline;
+  text-decoration-color: var(--unkey-border-strong);
+  text-underline-offset: 3px;
+  font-weight: 500;
+}
+
+#content-area .prose :is(p, li, td) > a:not([data-component-part]):hover {
+  text-decoration-color: var(--unkey-ink);
+}
+
+/* ------------------------------------------------------------ surfaces */
+
+#background-color,
+body {
+  background-color: var(--unkey-bg) !important;
+}
+
+#navbar,
+#sidebar {
+  background-color: var(--unkey-bg);
+  border-color: var(--unkey-border) !important;
+}
+
+#sidebar .sidebar-group-header {
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--unkey-text-faint);
+}
+
+#table-of-contents a[data-active="true"] {
+  color: var(--unkey-ink);
+  font-weight: 500;
+}
+
+/* Error pages: long snake_case titles. The theme's break-all splits words
+   mid-token. Wrap "Copy page" onto its own row when the title needs the full
+   width, and only break inside a word that can't fit a line by itself. */
+html[data-current-path^="/errors/"]:not([data-current-path="/errors/overview"]) #header div:has(> #page-title) {
+  flex-wrap: wrap;
+}
+
+html[data-current-path^="/errors/"]:not([data-current-path="/errors/overview"]) #page-title {
+  word-break: normal;
+  overflow-wrap: anywhere;
+}
+
+#footer {
+  border-top: 1px solid var(--unkey-border);
+  background-color: var(--unkey-bg);
+}
+
+/* ----------------------------------------------------------- components */
+
+/* Size the grid to the article, not the viewport beside the sidebar. */
+#content-area .columns:has(> .card) {
+  --cols: 1 !important;
+  display: grid;
+  grid-template-columns: repeat(var(--cols), minmax(0, 1fr)) !important;
+  gap: 1rem !important;
+}
+
+@container columns-container (min-width: 35rem) {
+  #content-area .columns:has(> .card) {
+    --cols: 2 !important;
+  }
+}
+
+@container columns-container (min-width: 52rem) {
+  #content-area .columns:has(> .card) {
+    --cols: 3 !important;
+  }
+}
+
+#content-area .card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  margin: 0;
+  border-radius: var(--unkey-radius-lg) !important;
+  border: 1px solid var(--unkey-border) !important;
+  background: var(--unkey-bg) !important;
+  box-shadow: none !important;
+  overflow: visible;
+  transition: background-color 150ms ease, border-color 150ms ease;
+}
+
+#content-area .card:is([role="link"], .unkey-product-card):hover {
+  border-color: var(--unkey-border-strong) !important;
+  background: var(--unkey-bg-subtle) !important;
+}
+
+#content-area .card:focus-visible,
+#content-area .unkey-product-card:has(.unkey-product-card-title:focus-visible) {
+  outline: 2px solid var(--unkey-text);
+  outline-offset: 4px;
+}
+
+#content-area [data-component-part="card-content-container"] {
+  display: block;
+  flex: 1;
+  padding: 1.25rem;
+}
+
+#content-area .card::before {
+  content: none;
+  display: none;
+}
+
+#content-area [data-component-part="card-icon"],
+#content-area [data-component-part="card-content-container"] > a > div:first-child:not([data-component-part]) {
+  display: none;
+}
+
+#content-area [data-component-part="card-content-container"] > a > div:last-child,
+#content-area .unkey-product-card > [data-component-part="card-content-container"] {
+  display: block;
+}
+
+#content-area .card:is([role="link"], .unkey-product-card)::after {
+  content: "→";
+  position: absolute;
+  top: 1.25rem;
+  right: 1.25rem;
+  color: var(--unkey-text-muted);
+  line-height: 1.5rem;
+  pointer-events: none;
+}
+
+#content-area .unkey-product-card {
+  text-decoration: none;
+}
+
+#content-area .unkey-product-card-title {
+  position: static;
+  border: 0;
+  color: inherit;
+  font-weight: inherit;
+  text-decoration: none;
+}
+
+/* Keep contextual links usable above the card's main link hit area. */
+#content-area .unkey-product-card-title::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+}
+
+#content-area .unkey-product-card [data-component-part="card-content"] a {
+  position: relative;
+  z-index: 1;
+}
+
+#content-area [data-component-part="card-title"] {
+  margin: 0;
+  padding: 0 1.5rem 0 0;
+  border: 0;
+  font-weight: 500;
+  font-size: 1rem;
+  line-height: 1.5rem;
+  letter-spacing: -0.015em;
+  color: var(--unkey-text);
+}
+
+#content-area [data-component-part="card-content"] {
+  min-width: 0;
+  margin: 0.5rem 0 0;
+  color: var(--unkey-text-muted);
+  font-size: 0.875rem;
+  line-height: 1.5rem;
+}
+
+/* Retain Mintlify's semantic colors so warnings remain distinct from notes. */
+#content-area .callout {
+  border-radius: var(--unkey-radius-lg) !important;
+}
+
+/* Code blocks: flat panel with a hairline, like the dashboard code component. */
+#content-area .code-block {
+  border-radius: var(--unkey-radius-lg) !important;
+  box-shadow: none !important;
+  border: 1px solid var(--unkey-border);
+}
+
+#content-area :not(pre) > code {
+  border-radius: var(--unkey-radius-sm);
+  border: 1px solid var(--unkey-border);
+  background: var(--unkey-bg-subtle);
+  padding: 0.1rem 0.35rem;
+  font-size: 0.85em;
+  font-weight: 400;
+}
+
+/* Tables: hairlines, no zebra. */
+#content-area table {
+  border: 1px solid var(--unkey-border);
+  border-radius: var(--unkey-radius-lg);
+  overflow: hidden;
+}
+
+#content-area th {
+  background: var(--unkey-bg-subtle);
+  color: var(--unkey-text-muted);
+  font-weight: 500;
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+#content-area td,
+#content-area th {
+  border-color: var(--unkey-border) !important;
+}
+
+/* Buttons and pills: ink on paper (accent-12 in the design system). */
+#topbar-cta-button,
+#topbar-cta-button a,
+#navbar a[href*="github.com"][class*="rounded"] {
+  border-radius: var(--unkey-radius) !important;
+  border: 1px solid var(--unkey-border) !important;
+  background: var(--unkey-bg) !important;
+  color: var(--unkey-text) !important;
+  box-shadow: none !important;
+}
+
+#search-bar-entry,
+#search-bar-entry-mobile {
+  border-radius: var(--unkey-radius) !important;
+  border: 1px solid var(--unkey-border) !important;
+  background: var(--unkey-bg-subtle) !important;
+  box-shadow: none !important;
+}
+
+/* Steps, tabs, accordions: hairlines and the dashboard radius. */
+#content-area [data-component-part="steps"] [data-component-part="step-indicator"],
+#content-area .steps li > div:first-child {
+  border: 1px solid var(--unkey-border);
+  background: var(--unkey-bg-subtle);
+  color: var(--unkey-text);
+  font-family: var(--unkey-font-mono);
+  border-radius: var(--unkey-radius);
+}
+
+#content-area .accordion,
+#content-area .accordion-group,
+#content-area .tabs {
+  border-radius: var(--unkey-radius-lg) !important;
+  border-color: var(--unkey-border) !important;
+}
+
+/* Field docs (ParamField / ResponseField): mono names, muted type pills. */
+#content-area [data-component-part="field-name"] {
+  font-family: var(--unkey-font-mono);
+  font-weight: 500;
+}
+
+#content-area [data-component-part="field-info-pill"] {
+  border-radius: var(--unkey-radius-sm);
+  border: 1px solid var(--unkey-border);
+  background: var(--unkey-bg-subtle);
+  color: var(--unkey-text-muted);
+  font-family: var(--unkey-font-mono);
+  font-size: 0.7rem;
+}
+
+/* Maple stretches the next link and gives the row a second background frame. */
+#pagination {
+  gap: 1rem;
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+#pagination > a {
+  flex: 0 1 auto;
+  width: fit-content;
+  min-height: 3rem;
+  max-width: min(24rem, calc(100% - 8rem));
+  border-radius: var(--unkey-radius-lg);
+  border: 1px solid var(--unkey-border);
+  background: var(--unkey-bg);
+  box-shadow: none;
+  transition: border-color 150ms ease, background-color 150ms ease;
+}
+
+#pagination > a:only-child {
+  max-width: min(24rem, 100%);
+}
+
+#pagination > a[rel="prev"] {
+  padding: 0.75rem 1rem;
+}
+
+#pagination > a[rel="next"] {
+  margin-left: auto;
+}
+
+#pagination > a[rel="next"] > div {
+  height: auto;
+  min-height: 3rem;
+  border-radius: inherit;
+  background: transparent;
+  box-shadow: none;
+}
+
+#pagination > a[rel="next"] > div > div {
+  padding-inline: 0.875rem;
+}
+
+#pagination > a[rel="next"] > div > div:empty,
+#pagination [data-component-part="pagination-description"] {
+  display: none;
+}
+
+#pagination [data-component-part="pagination-title"] {
+  color: var(--unkey-text);
+  font-weight: 500;
+}
+
+#pagination [data-component-part="pagination-chevron"] {
+  color: var(--unkey-text-muted);
+}
+
+#pagination a:hover {
+  border-color: var(--unkey-border-strong);
+  background: var(--unkey-bg-hover);
+}
+
+#sidebar {
+  background-color: var(--unkey-bg-subtle);
+}
+
+#sidebar .sidebar-group-header {
+  color: var(--unkey-text-faint);
+  letter-spacing: 0.025em;
+}
+
+#sidebar [data-component-part="products-selector-trigger"] {
+  border: 1px solid var(--unkey-border);
+  border-radius: var(--unkey-radius);
+  background: var(--unkey-bg);
+}
+
+#search-bar-entry:hover,
+#search-bar-entry-mobile:hover {
+  border-color: var(--unkey-border-strong) !important;
+}
+
+:is(#sidebar, #content-area, #navbar) :is(a, button, [role="link"]):focus-visible {
+  outline: 2px solid var(--unkey-ink);
+  outline-offset: 3px;
+}
+
+/* The home page keeps Mintlify's navigation, search, and page title. */
+#content-area:has(.unkey-home) #header {
+  padding-top: 1rem;
+}
+
+#content-area:has(.unkey-home) #page-title {
+  font-size: clamp(2rem, 3.5vw, 3rem);
+  letter-spacing: -0.045em;
+  font-weight: 500;
+}
+
+.unkey-home {
+  color: var(--unkey-text);
+}
+
+.unkey-product-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+#content-area .unkey-product {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--unkey-border);
+  border-radius: var(--unkey-radius-panel);
+  background: var(--unkey-bg);
+  color: var(--unkey-text);
+  text-decoration: none;
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+
+#content-area .unkey-product:hover {
+  border-color: var(--unkey-border-strong);
+  box-shadow: 0 4px 20px rgb(0 0 0 / 5%);
+}
+
+.unkey-product-art {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 190px;
+  padding: 1.5rem;
+  border-bottom: 1px solid var(--unkey-border);
+  background-color: var(--unkey-bg-subtle);
+  background-image: radial-gradient(var(--unkey-border-strong) 0.7px, transparent 0.7px);
+  background-size: 12px 12px;
+}
+
+.unkey-console {
+  width: 100%;
+  max-width: 290px;
+  overflow: hidden;
+  border: 1px solid var(--unkey-border-strong);
+  border-radius: var(--unkey-radius-lg);
+  background: var(--unkey-bg);
+  box-shadow: 0 4px 12px rgb(0 0 0 / 4%);
+  font-family: var(--unkey-font-mono);
+  font-size: 0.75rem;
+  line-height: 1.5rem;
+}
+
+.unkey-console-head,
+.unkey-console-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.65rem 1rem;
+}
+
+.unkey-console-head {
+  border-bottom: 1px solid var(--unkey-border);
+  color: var(--unkey-text-muted);
+}
+
+.unkey-console-row + .unkey-console-row {
+  border-top: 1px solid var(--unkey-border);
+}
+
+.unkey-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--unkey-success);
+  font-size: 0.6875rem;
+}
+
+.unkey-status::before {
+  content: "";
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.unkey-console-muted {
+  color: var(--unkey-text-faint);
+}
+
+.unkey-product-copy {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 1.5rem;
+}
+
+.unkey-eyebrow {
+  font-family: var(--unkey-font-mono);
+  font-size: 0.6875rem;
+  font-weight: 400;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--unkey-text-faint);
+}
+
+#content-area .unkey-product-title {
+  margin: 0.5rem 0 0.75rem;
+  font-size: 1.375rem;
+  line-height: 1.4;
+  font-weight: 500;
+  letter-spacing: -0.03em;
+}
+
+.unkey-product-description {
+  margin-bottom: 1.5rem;
+  color: var(--unkey-text-muted);
+  font-size: 0.875rem;
+  font-weight: 400;
+  line-height: 1.65;
+}
+
+.unkey-product-cta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  align-self: stretch;
+  margin-top: auto;
+  padding-top: 1rem;
+  border-top: 1px solid var(--unkey-border);
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+
+#content-area .unkey-platform-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0;
+  margin-top: 1rem;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--unkey-border);
+  border-radius: var(--unkey-radius-lg);
+  background: var(--unkey-bg);
+  color: var(--unkey-text);
+  font-size: 0.875rem;
+  text-decoration: none;
+}
+
+.unkey-platform-art {
+  flex: 0 0 38%;
+  align-self: stretch;
+  min-height: 190px;
+  border-right: 1px solid var(--unkey-border);
+  background-color: var(--unkey-bg-subtle);
+  background-image: url("/images/cards/workspace-light.svg"), radial-gradient(var(--unkey-border-strong) 0.7px, transparent 0.7px);
+  background-size: min(100%, 480px) auto, 16px 16px;
+  background-position: center, center;
+  background-repeat: no-repeat, repeat;
+}
+
+.dark .unkey-platform-art {
+  background-image: url("/images/cards/workspace-dark.svg"), radial-gradient(var(--unkey-border-strong) 0.7px, transparent 0.7px);
+}
+
+.unkey-platform-copy {
+  flex: 1;
+  padding: 1.5rem;
+}
+
+.unkey-platform-link > span:last-child {
+  padding-right: 1.5rem;
+}
+
+#content-area .unkey-platform-link:hover {
+  border-color: var(--unkey-border-strong);
+}
+
+.unkey-platform-title {
+  display: block;
+  margin-bottom: 0.25rem;
+  font-weight: 500;
+}
+
+.unkey-platform-description {
+  color: var(--unkey-text-muted);
+  font-weight: 400;
+}
+
+.unkey-resources {
+  margin-top: 2.5rem;
+}
+
+.unkey-resource-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1.5rem;
+  margin-top: 1rem;
+}
+
+#content-area .unkey-resource-grid a {
+  padding-top: 1rem;
+  border-top: 1px solid var(--unkey-border);
+  color: var(--unkey-text);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.unkey-resource-grid a:hover {
+  border-color: var(--unkey-border-strong);
+}
+
+.unkey-resource-title {
+  display: block;
+}
+
+.unkey-resource-description {
+  display: block;
+  margin-top: 0.4rem;
+  color: var(--unkey-text-muted);
+  font-weight: 400;
+  line-height: 1.6;
+}
+
+@media (max-width: 640px) {
+  #content-area .unkey-platform-link {
+    flex-wrap: wrap;
+  }
+
+  .unkey-platform-art {
+    flex-basis: 100%;
+    border-right: 0;
+    border-bottom: 1px solid var(--unkey-border);
+  }
+
+  #pagination > a[rel="next"] > div > div:has([data-component-part="pagination-title"]) {
+    display: none;
+  }
+
+  .unkey-product-grid,
+  .unkey-resource-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .unkey-product-art {
+    min-height: 160px;
+  }
+
+  .unkey-product-copy {
+    padding: 1.25rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #content-area .unkey-product,
+  #content-area .card,
+  #pagination > a {
+    transition: none;
+  }
+}

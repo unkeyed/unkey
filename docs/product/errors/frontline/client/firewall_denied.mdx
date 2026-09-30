@@ -1,7 +1,58 @@
 ---
 title: "firewall_denied"
-description: "Denied represents a 403 error - request rejected by a Firewall policy"
+sidebarTitle: "firewall_denied"
+description: "A gateway firewall policy matched the request and denied it."
+sources:
+  - pkg/codes/frontline.go
+  - svc/frontline/middleware/observability.go
+  - svc/frontline/internal/policies/firewall/executor.go
+  - svc/frontline/internal/policies/engine.go
+  - svc/frontline/internal/policies/match.go
 ---
 
 <Danger>`err:frontline:client:firewall_denied`</Danger>
 
+import { ProductLink } from "/snippets/product-link.jsx";
+
+The API you called runs on Unkey, and its owner set up a firewall rule that blocks requests like yours. The request never reached the <Tooltip tip="A Compute app: a deployable service inside a project. Not your application in general.">app</Tooltip>. You get `403 Forbidden`.
+
+```json Example response
+{
+  "meta": {
+    "requestId": "req_3k2j1h0g9f8e7d6c"
+  },
+  "error": {
+    "code": "err:frontline:client:firewall_denied",
+    "message": "Forbidden"
+  }
+}
+```
+
+Browsers get the same error as an HTML page.
+
+## If you're calling an API hosted on Unkey
+
+The owner blocks requests by path, method, header, query parameter, or a mix of those. The response doesn't say which rule matched. If you think you should have access, contact the API owner with the request ID and the exact request you sent.
+
+## If you own this API
+
+A firewall policy blocks a request when all of its match expressions match. A policy with no match expressions blocks every request. Policies run in order. Common causes:
+
+- A match expression is broader than you meant and catches real traffic.
+- An earlier policy is too broad and blocks traffic before a later one runs.
+- A firewall policy has no match expressions, so it blocks everything.
+
+### How to fix
+
+1. Review the policy's match expressions in the gateway settings and narrow the one that catches real traffic.
+2. Reorder your policies if an earlier one is too broad.
+3. Create a new deployment. The running deployment keeps the policies it started with.
+
+<ProductLink product="compute" href="/compute/gateway/errors" title="Compute gateway">
+  Gateway policies, deployments, and domains are Compute features. The Compute docs explain how to configure them.
+</ProductLink>
+
+## Related errors
+
+- [`err:frontline:client:insufficient_permissions`](/errors/frontline/client/insufficient_permissions): a 403 from a key-auth permission query rather than a firewall rule.
+- [`err:frontline:client:openapi_validation_failed`](/errors/frontline/client/openapi_validation_failed): the request was rejected for not matching the OpenAPI spec.

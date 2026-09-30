@@ -10,14 +10,14 @@ import (
 )
 
 const findProjectById = `-- name: FindProjectById :one
-SELECT pk, id, workspace_id, name, slug, depot_project_id, delete_protection, created_at, updated_at
+SELECT projects.pk, projects.id, projects.workspace_id, projects.name, projects.slug, projects.depot_project_id, projects.delete_protection, projects.created_at, projects.updated_at
 FROM projects
 WHERE id = ?
 `
 
 // FindProjectById
 //
-//	SELECT pk, id, workspace_id, name, slug, depot_project_id, delete_protection, created_at, updated_at
+//	SELECT projects.pk, projects.id, projects.workspace_id, projects.name, projects.slug, projects.depot_project_id, projects.delete_protection, projects.created_at, projects.updated_at
 //	FROM projects
 //	WHERE id = ?
 func (q *Queries) FindProjectById(ctx context.Context, db DBTX, id string) (Project, error) {

@@ -190,15 +190,6 @@ type GitHubConfig struct {
 	AllowUnauthenticatedDeployments bool `toml:"allow_unauthenticated_deployments"`
 }
 
-// DeployGateConfig gates webhook-triggered deployments on a synced Compute
-// plan or manual override.
-type DeployGateConfig struct {
-	// Enforce hard-blocks webhook deployments for workspaces with no entitlement.
-	// Default false runs the plan check in observe mode. Spend-cap suspension is
-	// always enforced.
-	Enforce bool `toml:"enforce"`
-}
-
 // HeartbeatConfig holds heartbeat URLs for health monitoring.
 type HeartbeatConfig struct {
 	// CertRenewalURL is the heartbeat URL for certificate renewal.
@@ -250,6 +241,11 @@ type HeartbeatConfig struct {
 	// check orchestrator. When set, a heartbeat is sent after a successful run.
 	// Optional - if empty, no heartbeat is sent.
 	DeploySpendCheckURL string `toml:"deploy_spend_check_url"`
+
+	// BuildLimitSyncURL is the heartbeat URL for the build concurrency rule
+	// sync. When set, a heartbeat is sent after a run confirms the rule is in
+	// the book. Optional - if empty, no heartbeat is sent
+	BuildLimitSyncURL string `toml:"build_limit_sync_url"`
 }
 
 // BillingConfig holds Stripe configuration for the hourly Deploy billing push.
@@ -350,9 +346,6 @@ type Config struct {
 
 	// GitHub configures GitHub App integration for webhook-triggered deployments.
 	GitHub *GitHubConfig `toml:"github"`
-
-	// DeployGate configures the entitlement gate for webhook deployments.
-	DeployGate DeployGateConfig `toml:"deploy_gate"`
 
 	// Heartbeat configures heartbeat URLs for health monitoring.
 	Heartbeat HeartbeatConfig `toml:"heartbeat"`

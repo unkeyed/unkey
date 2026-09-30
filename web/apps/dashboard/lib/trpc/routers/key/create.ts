@@ -21,8 +21,9 @@ export const createKey = workspaceProcedure
       .findFirst({
         where: (table, { and, eq }) =>
           and(eq(table.workspaceId, ctx.workspace.id), eq(table.id, input.keyAuthId)),
-        with: {
-          api: true,
+        columns: {
+          id: true,
+          storeEncryptedKeys: true,
         },
       })
       .catch((_err) => {
@@ -102,7 +103,7 @@ export async function createKeyCore(
   }
 
   const keyId = newId("key");
-  const { key, hash, start } = await newKey({
+  const { key, hash, prefix, start, end } = await newKey({
     prefix: input.prefix,
     byteLength: input.bytes,
   });
@@ -112,7 +113,9 @@ export async function createKeyCore(
     keyAuthId: input.keyAuthId,
     name: input.name,
     hash,
+    prefix,
     start,
+    end,
     identityId: input.identityId,
     meta: JSON.stringify(input.meta ?? {}),
     workspaceId: ctx.workspace.id,
