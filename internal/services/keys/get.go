@@ -2,6 +2,7 @@ package keys
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"log/slog"
 	"strings"
@@ -36,7 +37,7 @@ func (s *service) GetRootKey(ctx context.Context, sess *zen.Session) (*KeyVerifi
 		)
 	}
 
-	key, err := s.Get(ctx, sess, hash.Sha256(rootKey))
+	key, err := s.getRootKey(ctx, sess, hash.Sha256(rootKey))
 	if err != nil {
 		return nil, err
 	}
@@ -74,34 +75,25 @@ func (s *service) GetRootKey(ctx context.Context, sess *zen.Session) (*KeyVerifi
 // Get retrieves a key from the database and performs basic validation checks.
 // It returns a KeyVerifier that can be used for further validation with specific options.
 // For normal keys, validation failures are indicated by KeyVerifier.Valid=false.
-func (s *service) Get(ctx context.Context, sess *zen.Session, sha256Hash string) (kv *KeyVerifier, err error) {
+func (s *service) Get(ctx context.Context, sess *zen.Session, sha256Hash string) (*KeyVerifier, error) {
+	return s.get(ctx, sess, sha256Hash)
+}
+
+// get loads an API key through the regular verification cache.
+func (s *service) get(ctx context.Context, sess *zen.Session, sha256Hash string) (*KeyVerifier, error) {
 	ctx, span := tracing.Start(ctx, "keys.Get")
 	defer span.End()
 
-	defer func() {
-		if kv == nil {
-			return
-		}
-		// A key that passed Get is not decided yet: KeyVerifier.Verify records
-		// its terminal status. Get records everything else, including every
-		// root key, which never runs through Verify.
-		if kv.Status == StatusValid && !kv.isRootKey {
-			return
-		}
-		kv.recordStatus(kv.Status)
-	}()
-
 	startTime := time.Now()
 
-	err = assert.NotEmpty(sha256Hash)
+	err := assert.NotEmpty(sha256Hash)
 	if err != nil {
 		return nil, fault.Wrap(err, fault.Internal("sha256Hash is empty"))
 	}
 
 	key, hit, err := s.keyCache.SWR(ctx, sha256Hash, func(ctx context.Context) (keysdb.CachedKeyData, error) {
 		// Use database retry with exponential backoff, skipping non-transient errors
-		var row keysdb.FindKeyForVerificationRow
-		row, err = mysql.WithRetryContext(ctx, func() (keysdb.FindKeyForVerificationRow, error) {
+		row, err := mysql.WithRetryContext(ctx, func() (keysdb.FindKeyForVerificationRow, error) {
 			return keysdb.Query.FindKeyForVerification(ctx, s.db.RO(), sha256Hash)
 		})
 		if err != nil {
@@ -165,6 +157,147 @@ func (s *service) Get(ctx context.Context, sess *zen.Session, sha256Hash string)
 			RatelimitConfigs:          ratelimitConfigs,
 		}, nil
 	}, caches.DefaultFindFirstOp)
+
+	return s.newKeyVerifier(sess, key, hit, err, startTime)
+}
+
+// getRootKey loads a root key through the dedicated root-key cache.
+func (s *service) getRootKey(ctx context.Context, sess *zen.Session, sha256Hash string) (*KeyVerifier, error) {
+	ctx, span := tracing.Start(ctx, "keys.GetRootKeyByHash")
+	defer span.End()
+
+	startTime := time.Now()
+	if err := assert.NotEmpty(sha256Hash); err != nil {
+		return nil, fault.Wrap(err, fault.Internal("sha256Hash is empty"))
+	}
+
+	rootKey, hit, err := s.rootKeyCache.SWR(ctx, sha256Hash, func(ctx context.Context) (keysdb.CachedRootKeyData, error) {
+		return s.loadRootKey(ctx, sha256Hash)
+	}, caches.DefaultFindFirstOp)
+
+	return s.newKeyVerifier(sess, asCachedKey(rootKey), hit, err, startTime)
+}
+
+// loadRootKey checks the new store first and falls back to the legacy store only
+// when the hash is absent.
+func (s *service) loadRootKey(ctx context.Context, sha256Hash string) (keysdb.CachedRootKeyData, error) {
+	return mysql.WithRetryContext(ctx, func() (keysdb.CachedRootKeyData, error) {
+		row, err := keysdb.Query.FindUnkeyRootKeyForAuthentication(ctx, s.db.RO(), sha256Hash)
+		if err == nil {
+			if row.DeletedAt.Valid {
+				return keysdb.CachedRootKeyData{}, sql.ErrNoRows
+			}
+			return cacheUnkeyRootKey(row)
+		}
+		if !mysql.IsNotFound(err) {
+			return keysdb.CachedRootKeyData{}, err
+		}
+
+		legacy, err := keysdb.Query.FindLegacyRootKeyForAuthentication(ctx, s.db.RO(), sha256Hash)
+		if err != nil {
+			return keysdb.CachedRootKeyData{}, err
+		}
+		return cacheLegacyRootKey(legacy)
+	})
+}
+
+// cacheUnkeyRootKey converts a new-store query result into cache data.
+func cacheUnkeyRootKey(row keysdb.FindUnkeyRootKeyForAuthenticationRow) (keysdb.CachedRootKeyData, error) {
+	permissions, err := unmarshalPermissions(row.Permissions)
+	if err != nil {
+		return keysdb.CachedRootKeyData{}, err
+	}
+	expires := sql.NullTime{}
+	if row.Expires.Valid {
+		expires = sql.NullTime{Time: time.UnixMilli(row.Expires.Int64), Valid: true}
+	}
+	return keysdb.CachedRootKeyData{
+		ID:                  row.ID,
+		KeyAuthID:           "",
+		WorkspaceID:         row.WorkspaceID,
+		ForWorkspaceID:      row.WorkspaceID,
+		Name:                row.Name,
+		Expires:             expires,
+		Enabled:             row.Enabled,
+		ApiDeletedAtM:       sql.NullInt64{},
+		WorkspaceEnabled:    true,
+		ForWorkspaceEnabled: row.WorkspaceEnabled,
+		Permissions:         permissions,
+	}, nil
+}
+
+// cacheLegacyRootKey converts a legacy-store query result into cache data.
+func cacheLegacyRootKey(row keysdb.FindLegacyRootKeyForAuthenticationRow) (keysdb.CachedRootKeyData, error) {
+	permissions, err := unmarshalPermissions(row.Permissions)
+	if err != nil {
+		return keysdb.CachedRootKeyData{}, err
+	}
+	return keysdb.CachedRootKeyData{
+		ID:                  row.ID,
+		KeyAuthID:           row.KeyAuthID,
+		WorkspaceID:         row.WorkspaceID,
+		ForWorkspaceID:      row.ForWorkspaceID.String,
+		Name:                row.Name,
+		Expires:             row.Expires,
+		Enabled:             row.Enabled,
+		ApiDeletedAtM:       row.ApiDeletedAtM,
+		WorkspaceEnabled:    row.WorkspaceEnabled,
+		ForWorkspaceEnabled: row.ForWorkspaceEnabled,
+		Permissions:         permissions,
+	}, nil
+}
+
+// asCachedKey adapts root-key data to the shared lifecycle validator.
+func asCachedKey(rootKey keysdb.CachedRootKeyData) keysdb.CachedKeyData {
+	//nolint:exhaustruct
+	return keysdb.CachedKeyData{
+		FindKeyForVerificationRow: keysdb.FindKeyForVerificationRow{
+			ID:                  rootKey.ID,
+			KeyAuthID:           rootKey.KeyAuthID,
+			WorkspaceID:         rootKey.WorkspaceID,
+			ForWorkspaceID:      sql.NullString{String: rootKey.ForWorkspaceID, Valid: true},
+			Name:                rootKey.Name,
+			Expires:             rootKey.Expires,
+			Enabled:             rootKey.Enabled,
+			ApiDeletedAtM:       rootKey.ApiDeletedAtM,
+			WorkspaceEnabled:    rootKey.WorkspaceEnabled,
+			ForWorkspaceEnabled: rootKey.ForWorkspaceEnabled,
+		},
+		ParsedIPWhitelist: map[string]struct{}{},
+		Roles:             []string{},
+		Permissions:       rootKey.Permissions,
+		RatelimitConfigs:  map[string]keysdb.KeyFindForVerificationRatelimit{},
+	}
+}
+
+// unmarshalPermissions decodes a query's permission JSON into a non-nil slice.
+func unmarshalPermissions(value any) ([]string, error) {
+	permissions, err := db.UnmarshalNullableJSONTo[[]string](value)
+	if err != nil {
+		return nil, fault.Wrap(err, fault.Internal("failed to unmarshal permissions"))
+	}
+	if permissions == nil {
+		return []string{}, nil
+	}
+	return permissions, nil
+}
+
+// newKeyVerifier applies lifecycle checks shared by API and root keys.
+func (s *service) newKeyVerifier(sess *zen.Session, key keysdb.CachedKeyData, hit cache.CacheHit, loadErr error, startTime time.Time) (kv *KeyVerifier, err error) {
+	defer func() {
+		if kv == nil {
+			return
+		}
+		// A key that passed Get is not decided yet: KeyVerifier.Verify records
+		// its terminal status. newKeyVerifier records everything else, including
+		// every root key, which never runs through Verify.
+		if kv.Status == StatusValid && !kv.isRootKey {
+			return
+		}
+		kv.recordStatus(kv.Status)
+	}()
+
+	err = loadErr
 	if err != nil {
 		if mysql.IsNotFound(err) {
 			// nolint:exhaustruct

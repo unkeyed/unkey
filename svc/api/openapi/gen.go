@@ -6445,6 +6445,153 @@ type V2RatelimitSetOverrideResponseData struct {
 	OverrideId string `json:"overrideId"`
 }
 
+// V2RootKeysCreateKeyRequestBody defines model for V2RootKeysCreateKeyRequestBody.
+type V2RootKeysCreateKeyRequestBody struct {
+	// Expires Expiration as Unix milliseconds, strictly in the future. Expiring root-key callers must provide a child expiry no later than their own. JWT admins and nonexpiring root-key callers may omit it or set null for no expiration.
+	Expires nullable.Nullable[int64] `json:"expires,omitempty"`
+
+	// Name Optional name for the root key.
+	Name *string `json:"name,omitempty"`
+
+	// Permissions Permissions to grant to the root key. Each permission must be within the caller's existing permissions.
+	Permissions []string `json:"permissions"`
+}
+
+// V2RootKeysCreateKeyResponseBody defines model for V2RootKeysCreateKeyResponseBody.
+type V2RootKeysCreateKeyResponseBody struct {
+	Data V2RootKeysCreateKeyResponseData `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// V2RootKeysCreateKeyResponseData defines model for V2RootKeysCreateKeyResponseData.
+type V2RootKeysCreateKeyResponseData struct {
+	// Key Root key secret, returned only once. Store it securely.
+	Key string `json:"key"`
+
+	// KeyId Identifier used to manage the root key.
+	KeyId string `json:"keyId"`
+}
+
+// V2RootKeysDeleteKeyRequestBody defines model for V2RootKeysDeleteKeyRequestBody.
+type V2RootKeysDeleteKeyRequestBody struct {
+	// KeyId Root key identifier returned by rootKeys.createKey or rootKeys.listKeys.
+	KeyId string `json:"keyId"`
+}
+
+// V2RootKeysDeleteKeyResponseBody defines model for V2RootKeysDeleteKeyResponseBody.
+type V2RootKeysDeleteKeyResponseBody struct {
+	// Data Empty response object by design. A successful response indicates this operation was successfully executed.
+	Data EmptyResponse `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// V2RootKeysListKeysRequestBody defines model for V2RootKeysListKeysRequestBody.
+type V2RootKeysListKeysRequestBody struct {
+	// Cursor Opaque cursor from a previous response. Omit for the first page.
+	Cursor *string `json:"cursor,omitempty"`
+
+	// Limit Maximum number of readable root keys per page.
+	Limit *int `json:"limit,omitempty"`
+}
+
+// V2RootKeysListKeysResponseBody defines model for V2RootKeysListKeysResponseBody.
+type V2RootKeysListKeysResponseBody struct {
+	Data []V2RootKeysListKeysResponseData `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+
+	// Pagination Pagination metadata for list endpoints. Provides information necessary to traverse through large result sets efficiently using cursor-based pagination.
+	Pagination Pagination `json:"pagination"`
+}
+
+// V2RootKeysListKeysResponseData defines model for V2RootKeysListKeysResponseData.
+type V2RootKeysListKeysResponseData struct {
+	// CreatedAt Creation time in Unix milliseconds.
+	CreatedAt int64 `json:"createdAt"`
+
+	// Enabled Whether the key is administratively enabled. An enabled key can still be expired.
+	Enabled bool `json:"enabled"`
+
+	// End Stored trailing display fragment. Empty for keys without a recorded suffix.
+	End string `json:"end"`
+
+	// Expires Expiration time in Unix milliseconds, or null for no expiration.
+	Expires nullable.Nullable[int64] `json:"expires"`
+
+	// KeyId Stable root key identifier.
+	KeyId string `json:"keyId"`
+
+	// LastUsedAt Last verification time in Unix milliseconds. Zero means the root key has not been used.
+	LastUsedAt int64 `json:"lastUsedAt"`
+
+	// Name User-supplied name, or null when absent.
+	Name nullable.Nullable[string] `json:"name"`
+
+	// Permissions All permissions assigned to the root key.
+	Permissions []string `json:"permissions"`
+
+	// Start Stored display fragment, including the prefix when present.
+	Start string `json:"start"`
+}
+
+// V2RootKeysRerollKeyRequestBody defines model for V2RootKeysRerollKeyRequestBody.
+type V2RootKeysRerollKeyRequestBody struct {
+	// Expiration Milliseconds until the original root key expires. Use 0 to revoke it immediately.
+	// Use null to keep the original key's current expiration. This value never extends
+	// an existing expiration.
+	Expiration nullable.Nullable[int64] `json:"expiration"`
+
+	// KeyId Root key identifier returned by rootKeys.createKey or rootKeys.listKeys.
+	KeyId string `json:"keyId"`
+}
+
+// V2RootKeysRerollKeyResponseBody defines model for V2RootKeysRerollKeyResponseBody.
+type V2RootKeysRerollKeyResponseBody struct {
+	Data V2RootKeysRerollKeyResponseData `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// V2RootKeysRerollKeyResponseData defines model for V2RootKeysRerollKeyResponseData.
+type V2RootKeysRerollKeyResponseData struct {
+	// Key New root key secret, returned only once. Store it securely.
+	Key string `json:"key"`
+
+	// KeyId Identifier of the new root key.
+	KeyId string `json:"keyId"`
+}
+
+// V2RootKeysUpdateKeyRequestBody defines model for V2RootKeysUpdateKeyRequestBody.
+type V2RootKeysUpdateKeyRequestBody struct {
+	// Enabled Whether the root key can authenticate. Omit to keep the current state.
+	Enabled *bool `json:"enabled,omitempty"`
+
+	// KeyId Root key identifier returned by rootKeys.createKey or rootKeys.listKeys.
+	KeyId string `json:"keyId"`
+
+	// Name New root key name. Set null to remove the name. Omit to keep the current name.
+	Name nullable.Nullable[string] `json:"name,omitempty"`
+
+	// Permissions Complete replacement permission set. Every permission must be a supported URN in the authenticated workspace
+	// and within the caller's permissions. Omit to keep the current permissions.
+	Permissions *[]string `json:"permissions,omitempty"`
+}
+
+// V2RootKeysUpdateKeyResponseBody defines model for V2RootKeysUpdateKeyResponseBody.
+type V2RootKeysUpdateKeyResponseBody struct {
+	// Data Empty response object by design. A successful response indicates this operation was successfully executed.
+	Data EmptyResponse `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
 // V3DeploymentsCreateDeploymentRequestBody Create a deployment. Omit the source to use the app default, or provide one source override.
 type V3DeploymentsCreateDeploymentRequestBody struct {
 	// App Identifies a resource by either its unique ID or its slug.
@@ -6820,6 +6967,21 @@ type RatelimitMultiLimitJSONRequestBody = V2RatelimitMultiLimitRequestBody
 
 // RatelimitSetOverrideJSONRequestBody defines body for RatelimitSetOverride for application/json ContentType.
 type RatelimitSetOverrideJSONRequestBody = V2RatelimitSetOverrideRequestBody
+
+// RootKeysCreateKeyJSONRequestBody defines body for RootKeysCreateKey for application/json ContentType.
+type RootKeysCreateKeyJSONRequestBody = V2RootKeysCreateKeyRequestBody
+
+// RootKeysDeleteKeyJSONRequestBody defines body for RootKeysDeleteKey for application/json ContentType.
+type RootKeysDeleteKeyJSONRequestBody = V2RootKeysDeleteKeyRequestBody
+
+// RootKeysListKeysJSONRequestBody defines body for RootKeysListKeys for application/json ContentType.
+type RootKeysListKeysJSONRequestBody = V2RootKeysListKeysRequestBody
+
+// RootKeysRerollKeyJSONRequestBody defines body for RootKeysRerollKey for application/json ContentType.
+type RootKeysRerollKeyJSONRequestBody = V2RootKeysRerollKeyRequestBody
+
+// RootKeysUpdateKeyJSONRequestBody defines body for RootKeysUpdateKey for application/json ContentType.
+type RootKeysUpdateKeyJSONRequestBody = V2RootKeysUpdateKeyRequestBody
 
 // DeploymentsCreateDeploymentV3JSONRequestBody defines body for DeploymentsCreateDeploymentV3 for application/json ContentType.
 type DeploymentsCreateDeploymentV3JSONRequestBody = V3DeploymentsCreateDeploymentRequestBody

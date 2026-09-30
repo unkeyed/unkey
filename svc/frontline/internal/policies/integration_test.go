@@ -123,6 +123,15 @@ func newTestHarness(t *testing.T) *testHarness {
 		Clock:    clk,
 	})
 	require.NoError(t, err)
+	rootKeyCache, err := cache.New[string, keysdb.CachedRootKeyData](cache.Config[string, keysdb.CachedRootKeyData]{
+		Fresh:    10 * time.Second,
+		Stale:    10 * time.Minute,
+		MaxSize:  1000,
+		Resource: "test_root_key_cache",
+		Clock:    clk,
+	})
+	require.NoError(t, err)
+	t.Cleanup(rootKeyCache.Close)
 
 	keyService, err := keys.New(keys.Config{
 		DB:           db.ToMySQL(database),
@@ -132,6 +141,7 @@ func newTestHarness(t *testing.T) *testHarness {
 		UsageLimiter: usageLimiter,
 		Source:       schema.SourceGateway,
 		KeyCache:     keyCache,
+		RootKeyCache: rootKeyCache,
 	})
 	require.NoError(t, err)
 

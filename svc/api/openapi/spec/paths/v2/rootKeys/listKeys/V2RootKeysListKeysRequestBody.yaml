@@ -1,0 +1,13 @@
+type: object
+additionalProperties: false
+properties:
+  limit:
+    type: integer
+    default: 100
+    minimum: 1
+    maximum: 100
+    description: Maximum number of readable root keys per page.
+  cursor:
+    type: string
+    maxLength: 256
+    description: Opaque cursor from a previous response. Omit for the first page.

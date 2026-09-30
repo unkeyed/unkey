@@ -1,0 +1,16 @@
+type: object
+additionalProperties: false
+required:
+  - meta
+  - data
+  - pagination
+properties:
+  meta:
+    $ref: ../../../../common/Meta.yaml
+  data:
+    type: array
+    maxItems: 100
+    items:
+      $ref: ./V2RootKeysListKeysResponseData.yaml
+  pagination:
+    $ref: ../../../../common/Pagination.yaml

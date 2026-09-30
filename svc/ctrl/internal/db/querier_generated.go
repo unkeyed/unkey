@@ -2217,6 +2217,13 @@ type Querier interface {
 	//      updated_at = ?
 	//  WHERE id = ?
 	UpdateProjectDepotID(ctx context.Context, arg UpdateProjectDepotIDParams) error
+	// UpdateUnkeyRootKeysLastUsed advances last-used time for new root keys without regressing newer values.
+	//
+	//  UPDATE unkey_root_keys
+	//  SET last_used_at = ?
+	//  WHERE id IN (/*SLICE:key_ids*/?)
+	//    AND last_used_at < ?
+	UpdateUnkeyRootKeysLastUsed(ctx context.Context, arg UpdateUnkeyRootKeysLastUsedParams) error
 	//UpdateWorkspaceEnabled
 	//
 	//  UPDATE `workspaces`

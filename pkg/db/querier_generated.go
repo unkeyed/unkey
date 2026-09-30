@@ -142,6 +142,13 @@ type Querier interface {
 	//  DELETE FROM roles
 	//  WHERE id = ?
 	DeleteRoleByID(ctx context.Context, db DBTX, roleID string) error
+	// DeleteUnkeyPermissionsByPrincipal removes principal permissions before a replacement.
+	//
+	//  DELETE FROM unkey_principal_permissions
+	//  WHERE workspace_id = ?
+	//      AND principal_type = ?
+	//      AND principal_id = ?
+	DeleteUnkeyPermissionsByPrincipal(ctx context.Context, db DBTX, arg DeleteUnkeyPermissionsByPrincipalParams) error
 	// Removes every Stripe subscription row for a workspace. Paired with
 	// ResetWorkspaceBilling by the `unkey dev stripe reset` tooling.
 	//
@@ -1188,6 +1195,46 @@ type Querier interface {
 	//  WHERE workspace_id = ?
 	//    AND name IN (/*SLICE:names*/?)
 	FindRolesByNamesInWorkspace(ctx context.Context, db DBTX, arg FindRolesByNamesInWorkspaceParams) ([]FindRolesByNamesInWorkspaceRow, error)
+	// FindUnkeyRootKeyByID reads a new-format root key, excluding soft-deleted keys.
+	// It does not fall back to the legacy keys table.
+	//
+	//  SELECT
+	//      pk,
+	//      id,
+	//      workspace_id,
+	//      hash,
+	//      name,
+	//      prefix,
+	//      start,
+	//      end,
+	//      enabled,
+	//      expires,
+	//      created_at,
+	//      last_used_at,
+	//      deleted_at
+	//  FROM unkey_root_keys
+	//  WHERE id = ? AND deleted_at IS NULL
+	FindUnkeyRootKeyByID(ctx context.Context, db DBTX, id string) (UnkeyRootKey, error)
+	// FindUnkeyRootKeyByIDForUpdate locks a live new-format root key for a mutation.
+	//
+	//  SELECT
+	//      pk,
+	//      id,
+	//      workspace_id,
+	//      hash,
+	//      name,
+	//      prefix,
+	//      start,
+	//      end,
+	//      enabled,
+	//      expires,
+	//      created_at,
+	//      last_used_at,
+	//      deleted_at
+	//  FROM unkey_root_keys
+	//  WHERE id = ? AND deleted_at IS NULL
+	//  FOR UPDATE
+	FindUnkeyRootKeyByIDForUpdate(ctx context.Context, db DBTX, id string) (UnkeyRootKey, error)
 	// Reads a workspace's billing row directly (Stripe linkage, tier, Compute plan,
 	// spend budget and spend-cap state). Use this when only billing state is needed;
 	// when a workspace is already being fetched, prefer joining workspace_billing in
@@ -1965,6 +2012,52 @@ type Querier interface {
 	//    ?
 	//  )
 	InsertRolePermission(ctx context.Context, db DBTX, arg InsertRolePermissionParams) error
+	// InsertUnkeyPermission assigns a permission directly to a principal in the
+	// customer workspace that owns it. Duplicate permissions for that principal are rejected.
+	//
+	//  INSERT INTO unkey_principal_permissions (
+	//      id,
+	//      workspace_id,
+	//      principal_type,
+	//      principal_id,
+	//      slug,
+	//      created_at
+	//  ) VALUES (
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?
+	//  )
+	InsertUnkeyPermission(ctx context.Context, db DBTX, arg InsertUnkeyPermissionParams) error
+	// InsertUnkeyRootKey creates an administrative credential outside the regular
+	// API-key table. Callers insert its permissions and audit events in the same transaction.
+	//
+	//  INSERT INTO unkey_root_keys (
+	//      id,
+	//      workspace_id,
+	//      hash,
+	//      name,
+	//      prefix,
+	//      start,
+	//      end,
+	//      enabled,
+	//      expires,
+	//      created_at
+	//  ) VALUES (
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?
+	//  )
+	InsertUnkeyRootKey(ctx context.Context, db DBTX, arg InsertUnkeyRootKeyParams) error
 	//InsertWorkspace
 	//
 	//  INSERT INTO `workspaces` (
@@ -2612,6 +2705,50 @@ type Querier interface {
 	//  WHERE kr.key_id = ?
 	//  ORDER BY r.name
 	ListRolesByKeyID(ctx context.Context, db DBTX, keyID string) ([]ListRolesByKeyIDRow, error)
+	// ListRootKeys returns live root keys from the new store for one customer workspace.
+	// The cursor is inclusive: a cursor of key_b returns key_b before key_c.
+	//
+	//  SELECT
+	//      id,
+	//      name,
+	//      prefix,
+	//      start,
+	//      end,
+	//      enabled,
+	//      expires,
+	//      created_at,
+	//      last_used_at,
+	//      COALESCE(
+	//          (SELECT JSON_ARRAYAGG(p.slug)
+	//          FROM unkey_principal_permissions p
+	//          WHERE p.workspace_id = k.workspace_id
+	//              AND p.principal_type = 'root_key'
+	//              AND p.principal_id = k.id),
+	//          JSON_ARRAY()
+	//      ) AS permissions
+	//  FROM unkey_root_keys k
+	//  WHERE k.workspace_id = ?
+	//      AND k.deleted_at IS NULL
+	//      AND k.id >= ?
+	//  ORDER BY id ASC
+	//  LIMIT ?
+	ListRootKeys(ctx context.Context, db DBTX, arg ListRootKeysParams) ([]ListRootKeysRow, error)
+	// ListUnkeyPermissionRowsByPrincipal loads permission identities before a
+	// replacement so removed assignments retain their audit target IDs.
+	//
+	//  SELECT id, slug FROM unkey_principal_permissions
+	//  WHERE workspace_id = ?
+	//    AND principal_type = ?
+	//    AND principal_id = ?
+	ListUnkeyPermissionRowsByPrincipal(ctx context.Context, db DBTX, arg ListUnkeyPermissionRowsByPrincipalParams) ([]ListUnkeyPermissionRowsByPrincipalRow, error)
+	// ListUnkeyPermissionsByPrincipal loads permissions for exactly one principal
+	// and authorized workspace. The same ID under another type or workspace is excluded.
+	//
+	//  SELECT slug FROM unkey_principal_permissions
+	//  WHERE workspace_id = ?
+	//    AND principal_type = ?
+	//    AND principal_id = ?
+	ListUnkeyPermissionsByPrincipal(ctx context.Context, db DBTX, arg ListUnkeyPermissionsByPrincipalParams) ([]string, error)
 	// Fetches the Stripe customer identity for a batch of workspaces, used by the
 	// hourly Deploy billing push to decide where each workspace's month-to-date
 	// usage gets reported. The Stripe Billing Meters map usage to a customer by
@@ -2858,6 +2995,14 @@ type Querier interface {
 	//      deleted_at_m =  ?
 	//  WHERE id = ?
 	SoftDeleteRatelimitOverride(ctx context.Context, db DBTX, arg SoftDeleteRatelimitOverrideParams) error
+	// SoftDeleteUnkeyRootKey tombstones a live new-format root key in one workspace.
+	//
+	//  UPDATE unkey_root_keys
+	//  SET deleted_at = ?
+	//  WHERE id = ?
+	//      AND workspace_id = ?
+	//      AND deleted_at IS NULL
+	SoftDeleteUnkeyRootKey(ctx context.Context, db DBTX, arg SoftDeleteUnkeyRootKeyParams) (int64, error)
 	//UpdateApiDeleteProtection
 	//
 	//  UPDATE apis
@@ -3180,6 +3325,29 @@ type Querier interface {
 	//  WHERE
 	//      id = ?
 	UpdateRatelimit(ctx context.Context, db DBTX, arg UpdateRatelimitParams) error
+	// UpdateUnkeyRootKey changes mutable fields on a live new-format root key.
+	//
+	//  UPDATE unkey_root_keys SET
+	//      name = CASE
+	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+	//          ELSE name
+	//      END,
+	//      enabled = CASE
+	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+	//          ELSE enabled
+	//      END
+	//  WHERE id = ?
+	//      AND workspace_id = ?
+	//      AND deleted_at IS NULL
+	UpdateUnkeyRootKey(ctx context.Context, db DBTX, arg UpdateUnkeyRootKeyParams) error
+	// UpdateUnkeyRootKeyExpiration sets when a live new-format root key expires.
+	//
+	//  UPDATE unkey_root_keys
+	//  SET expires = ?
+	//  WHERE id = ?
+	//      AND workspace_id = ?
+	//      AND deleted_at IS NULL
+	UpdateUnkeyRootKeyExpiration(ctx context.Context, db DBTX, arg UpdateUnkeyRootKeyExpirationParams) error
 	//UpdateWorkspaceEnabled
 	//
 	//  UPDATE `workspaces`

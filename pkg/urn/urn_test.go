@@ -222,6 +222,19 @@ func TestResourceSpecificParsersRoundTrip(t *testing.T) {
 	}
 }
 
+// TestRootKeyResource guarantees the workspace builder and parser agree that
+// rootKeys/key_123 identifies a workspace-scoped root key resource.
+func TestRootKeyResource(t *testing.T) {
+	t.Parallel()
+
+	value := New().Workspace("ws_123").RootKey("key_123").String()
+	require.Equal(t, "unkey:v1:ws_123:rootKeys/key_123", value)
+
+	resource, err := ParseV1(value)
+	require.NoError(t, err)
+	require.Equal(t, value, resource.String())
+}
+
 // TestParseV1AllowsCanonicalPatterns guarantees canonical resource patterns use
 // wildcards only in supported positions.
 func TestParseV1AllowsCanonicalPatterns(t *testing.T) {
@@ -229,6 +242,7 @@ func TestParseV1AllowsCanonicalPatterns(t *testing.T) {
 
 	for _, value := range []string{
 		"unkey:v1:ws_123:github/apps/*",
+		"unkey:v1:ws_123:rootKeys/*",
 		"unkey:v1:ws_123:projects/*",
 		"unkey:v1:ws_123:projects/*/portals/*",
 		"unkey:v1:ws_123:projects/*/portals/*/sessions/*",
@@ -297,6 +311,54 @@ func TestParseV1RejectsInvalidValues(t *testing.T) {
 			require.ErrorIs(t, err, ErrInvalidResourceName)
 		})
 	}
+}
+
+// TestParseV1RejectsUnsafeIDs guarantees workspace and resource IDs reject
+// unsupported punctuation and Unicode. For example, ws-admin, proj admin, and proj／admin
+// are invalid IDs rather than alternate spellings of valid IDs.
+func TestParseV1RejectsUnsafeIDs(t *testing.T) {
+	t.Parallel()
+
+	for _, value := range []string{
+		"unkey:v1:ws-admin:projects/proj_123",
+		"unkey:v1:ws_123:projects/proj-admin",
+		"unkey:v1:ws／admin:projects/proj_123",
+		"unkey:v1:ws＊admin:projects/proj_123",
+		"unkey:v1:ws\u200badmin:projects/proj_123",
+		"unkey:v1:ws admin:projects/proj_123",
+		"unkey:v1:ws'admin:projects/proj_123",
+		`unkey:v1:ws"admin:projects/proj_123`,
+		`unkey:v1:ws\admin:projects/proj_123`,
+		"unkey:v1:wés:projects/proj_123",
+		"unkey:v1:ws_123:projects/proj／admin",
+		"unkey:v1:ws_123:projects/proj＊admin",
+		"unkey:v1:ws_123:projects/proj\u200badmin",
+		"unkey:v1:ws_123:projects/proj admin",
+		"unkey:v1:ws_123:projects/proj'admin",
+		`unkey:v1:ws_123:projects/proj"admin`,
+		`unkey:v1:ws_123:projects/proj\admin`,
+		"unkey:v1:ws_123:projects/équipe",
+	} {
+		value := value
+		t.Run(value, func(t *testing.T) {
+			t.Parallel()
+
+			_, err := ParseV1(value)
+			require.ErrorIs(t, err, ErrInvalidResourceName)
+		})
+	}
+}
+
+// TestParseV1PreservesCaseAndAllowsASCIIIDs guarantees letters, digits, and
+// underscores remain unchanged. For example, Ws_One2 and Project_One2 keep
+// their uppercase letters when a resource name is parsed and printed.
+func TestParseV1PreservesCaseAndAllowsASCIIIDs(t *testing.T) {
+	t.Parallel()
+
+	value := "unkey:v1:Ws_One2:projects/Project_One2"
+	parsed, err := ParseV1(value)
+	require.NoError(t, err)
+	require.Equal(t, value, parsed.String())
 }
 
 // TestResourceCatalogBuilders guarantees every typed builder produces a
