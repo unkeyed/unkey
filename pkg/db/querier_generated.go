@@ -2570,9 +2570,11 @@ type Querier interface {
 	// using the same live predicate as LockLivePortalSessionsByExternalID. Ordered
 	// by external_id with external_id >= external_id_cursor, so an empty cursor
 	// starts at the first end user. search is a LIKE pattern from
-	// mysql.SearchPrefix; NULL disables the filter.
+	// mysql.SearchPrefix; NULL disables the filter. The hint pins idx_portal_revoked:
+	// left to itself the planner can walk the workspace-wide idx_external_id and
+	// scan every other portal's sessions to fill a page.
 	//
-	//  SELECT DISTINCT external_id FROM portal_sessions
+	//  SELECT DISTINCT external_id FROM portal_sessions FORCE INDEX (idx_portal_revoked)
 	//  WHERE workspace_id = ?
 	//    AND portal_id = ?
 	//    AND revoked_at IS NULL
