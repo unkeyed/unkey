@@ -70,12 +70,7 @@ export function PortalSessions({ portalId }: { portalId: string }) {
         </label>
       </div>
 
-      <SessionList
-        query={query}
-        search={search}
-        canRevoke={canRevoke}
-        onRevoke={(group) => setRevoking(group)}
-      />
+      <SessionList query={query} search={search} canRevoke={canRevoke} onRevoke={setRevoking} />
 
       <RevokeSessionsDialog
         portalId={portalId}
@@ -105,7 +100,6 @@ function SessionList({
     return <SessionListSkeleton />;
   }
 
-  // A failed further page keeps the rows already loaded.
   if (query.isError && query.groups.length === 0) {
     return (
       <ResourceListContent>
