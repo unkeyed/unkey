@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
+	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/clock"
@@ -101,8 +102,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			return nil, apierrors.MaskInsufficientPermissionsAsNotFound(err, codes.Data.Portal.NotFound.URN(), notFoundMessage)
 		}
 
-		count, err := db.Query.RevokePortalSessionsByExternalID(ctx, tx, db.RevokePortalSessionsByExternalIDParams{
-			RevokedAt:                sql.NullInt64{Valid: true, Int64: now},
+		sessions, err := db.Query.LockLivePortalSessionsByExternalID(ctx, tx, db.LockLivePortalSessionsByExternalIDParams{
 			WorkspaceID:              principal.AuthorizedWorkspaceID,
 			PortalID:                 found.ID,
 			ExternalID:               req.ExternalId,
@@ -112,31 +112,34 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		if err != nil {
 			return nil, fault.Wrap(err,
 				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.Internal(fmt.Sprintf("unable to revoke portal sessions for portal %s", found.ID)),
+				fault.Internal(fmt.Sprintf("unable to lock portal sessions for portal %s", found.ID)),
 				fault.Public("We're unable to revoke the portal sessions."),
 			)
 		}
-		if count == 0 {
+		if len(sessions) == 0 {
 			return nil, nil
 		}
 
-		sessions, err := db.Query.FindPortalSessionsRevokedAtByExternalID(ctx, tx, db.FindPortalSessionsRevokedAtByExternalIDParams{
-			WorkspaceID: principal.AuthorizedWorkspaceID,
-			PortalID:    found.ID,
-			ExternalID:  req.ExternalId,
+		sessionIDs := make([]string, 0, len(sessions))
+		for i := range sessions {
+			sessionIDs = append(sessionIDs, sessions[i].ID)
+			sessions[i].RevokedAt = sql.NullInt64{Valid: true, Int64: now}
+		}
+
+		count, err := db.Query.RevokePortalSessionsByIDs(ctx, tx, db.RevokePortalSessionsByIDsParams{
 			RevokedAt:   sql.NullInt64{Valid: true, Int64: now},
+			WorkspaceID: principal.AuthorizedWorkspaceID,
+			Ids:         sessionIDs,
 		})
 		if err != nil {
 			return nil, fault.Wrap(err,
 				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.Internal("unable to read revoked portal sessions"),
+				fault.Internal(fmt.Sprintf("unable to revoke portal sessions for portal %s", found.ID)),
 				fault.Public("We're unable to revoke the portal sessions."),
 			)
 		}
-
-		sessionIDs := make([]string, 0, len(sessions))
-		for _, session := range sessions {
-			sessionIDs = append(sessionIDs, session.ID)
+		if err = assert.Equal(count, int64(len(sessions)), "revoke must affect exactly the locked sessions"); err != nil {
+			return nil, err
 		}
 
 		err = h.Auditlogs.Insert(ctx, tx, []auditlog.AuditLog{
