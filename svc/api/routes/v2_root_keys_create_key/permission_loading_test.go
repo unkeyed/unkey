@@ -1,84 +1,105 @@
 package handler_test
 
 import (
+	"database/sql"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
-	"github.com/unkeyed/unkey/pkg/hash"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 )
 
-// TestUnkeyPermissionLoadingIsScoped guarantees only the matching root key loads
-// its direct permissions, on both database and cache reads. For example, another
-// workspace, an OIDC principal, and an ordinary API key cannot supply permissions
-// to that root key. Existing legacy permissions remain available during migration.
-func TestUnkeyPermissionLoadingIsScoped(t *testing.T) {
-	for _, isRootKey := range []bool{true, false} {
-		name := "ordinary key"
-		if isRootKey {
-			name = "root key"
-		}
-		t.Run(name, func(t *testing.T) {
-			h := testutil.NewHarness(t)
-			r := h.Resources()
-			var forWorkspaceID *string
-			if isRootKey {
-				forWorkspaceID = &r.UserWorkspace.ID
-			}
-			key := h.CreateKey(seed.CreateKeyRequest{
-				WorkspaceID:    r.RootWorkspace.ID,
-				KeySpaceID:     r.RootKeySpace.ID,
-				ForWorkspaceID: forWorkspaceID,
-				Permissions: []seed.CreatePermissionRequest{{
-					WorkspaceID: r.RootWorkspace.ID,
-					Name:        "api.*.read_key",
-					Slug:        "api.*.read_key",
-				}},
-			})
-			permission := "unkey:v1:" + r.UserWorkspace.ID + ":rootKeys/*#write"
-			for _, row := range []struct {
-				workspaceID   string
-				principalType db.UnkeyPrincipalPermissionsPrincipalType
-				principalID   string
-				slug          string
-			}{
-				{r.UserWorkspace.ID, db.UnkeyPrincipalPermissionsPrincipalTypeRootKey, key.KeyID, permission},
-				{h.CreateWorkspace().ID, db.UnkeyPrincipalPermissionsPrincipalTypeRootKey, key.KeyID, "wrong-workspace"},
-				{r.UserWorkspace.ID, db.UnkeyPrincipalPermissionsPrincipalTypeOidc, key.KeyID, "wrong-type"},
-				{r.UserWorkspace.ID, db.UnkeyPrincipalPermissionsPrincipalTypeRootKey, uid.New(uid.KeyPrefix), "wrong-principal"},
-			} {
-				require.NoError(t, db.Query.InsertUnkeyPermission(t.Context(), h.DB.RW(), db.InsertUnkeyPermissionParams{
-					ID:            uid.New(uid.PermissionPrefix),
-					WorkspaceID:   row.workspaceID,
-					PrincipalType: row.principalType,
-					PrincipalID:   row.principalID,
-					Slug:          row.slug,
-					CreatedAt:     h.Clock.Now().UnixMilli(),
-				}))
-			}
-			request := httptest.NewRequest(http.MethodPost, "/", nil)
-			request.Header.Set("Authorization", "Bearer "+key.Key)
-			session := &zen.Session{}
-			require.NoError(t, session.Init(httptest.NewRecorder(), request, 0))
-			for range 2 {
-				loaded, err := h.Keys.Get(t.Context(), nil, hash.Sha256(key.Key))
-				require.NoError(t, err)
-				require.Equal(t, []string{"api.*.read_key"}, loaded.Permissions)
-				root, err := h.Keys.GetRootKey(t.Context(), session)
-				if isRootKey {
-					require.NoError(t, err)
-					require.ElementsMatch(t, []string{"api.*.read_key", permission}, root.Permissions)
-				} else {
-					require.Error(t, err)
-				}
-			}
-		})
+// TestLegacyRootKeyIgnoresNewPermissions guarantees legacy authentication only
+// loads legacy direct and role assignments, even when the new store has a grant
+// for the same key ID.
+func TestLegacyRootKeyIgnoresNewPermissions(t *testing.T) {
+	h := testutil.NewHarness(t)
+	r := h.Resources()
+	key := h.CreateKey(seed.CreateKeyRequest{
+		WorkspaceID:    r.RootWorkspace.ID,
+		KeySpaceID:     r.RootKeySpace.ID,
+		ForWorkspaceID: &r.UserWorkspace.ID,
+		Permissions: []seed.CreatePermissionRequest{{
+			WorkspaceID: r.RootWorkspace.ID,
+			Name:        "api.*.read_key",
+			Slug:        "api.*.read_key",
+		}},
+	})
+	require.NoError(t, db.Query.InsertUnkeyPermission(t.Context(), h.DB.RW(), db.InsertUnkeyPermissionParams{
+		ID:            uid.New(uid.PermissionPrefix),
+		WorkspaceID:   r.UserWorkspace.ID,
+		PrincipalType: db.UnkeyPrincipalPermissionsPrincipalTypeRootKey,
+		PrincipalID:   key.KeyID,
+		Slug:          "unkey:v1:" + r.UserWorkspace.ID + ":rootKeys/*#write",
+		CreatedAt:     h.Clock.Now().UnixMilli(),
+	}))
+	request := httptest.NewRequest(http.MethodPost, "/", nil)
+	request.Header.Set("Authorization", "Bearer "+key.Key)
+	session := &zen.Session{}
+	require.NoError(t, session.Init(httptest.NewRecorder(), request, 0))
+	for range 2 {
+		root, err := h.Keys.GetRootKey(t.Context(), session)
+		require.NoError(t, err)
+		require.Equal(t, []string{"api.*.read_key"}, root.Permissions)
+	}
+}
+
+// TestNewRootKeyPermissionLoadingIsScoped guarantees new authentication only
+// loads matching new-store grants. Legacy assignments, other workspaces, OIDC
+// principals, and other root keys cannot supply permissions.
+func TestNewRootKeyPermissionLoadingIsScoped(t *testing.T) {
+	h := testutil.NewHarness(t)
+	workspace := h.Resources().UserWorkspace
+	newPermission := "unkey:v1:" + workspace.ID + ":rootKeys/*#read"
+	legacyPermission := h.CreatePermission(seed.CreatePermissionRequest{
+		WorkspaceID: workspace.ID,
+		Name:        "legacy",
+		Slug:        "legacy.permission",
+	})
+	key := h.CreateUnkeyRootKey(seed.CreateUnkeyRootKeyRequest{
+		WorkspaceID: workspace.ID,
+		Permissions: []string{newPermission},
+	})
+	for _, row := range []struct {
+		workspaceID   string
+		principalType db.UnkeyPrincipalPermissionsPrincipalType
+		principalID   string
+		slug          string
+	}{
+		{h.CreateWorkspace().ID, db.UnkeyPrincipalPermissionsPrincipalTypeRootKey, key.KeyID, "wrong-workspace"},
+		{workspace.ID, db.UnkeyPrincipalPermissionsPrincipalTypeOidc, key.KeyID, "wrong-type"},
+		{workspace.ID, db.UnkeyPrincipalPermissionsPrincipalTypeRootKey, uid.New(uid.KeyPrefix), "wrong-principal"},
+	} {
+		require.NoError(t, db.Query.InsertUnkeyPermission(t.Context(), h.DB.RW(), db.InsertUnkeyPermissionParams{
+			ID:            uid.New(uid.PermissionPrefix),
+			WorkspaceID:   row.workspaceID,
+			PrincipalType: row.principalType,
+			PrincipalID:   row.principalID,
+			Slug:          row.slug,
+			CreatedAt:     h.Clock.Now().UnixMilli(),
+		}))
+	}
+	require.NoError(t, db.Query.InsertKeyPermission(t.Context(), h.DB.RW(), db.InsertKeyPermissionParams{
+		KeyID:        key.KeyID,
+		PermissionID: legacyPermission.ID,
+		WorkspaceID:  workspace.ID,
+		CreatedAt:    h.Clock.Now().UnixMilli(),
+		UpdatedAt:    sql.NullInt64{},
+	}))
+
+	request := httptest.NewRequest(http.MethodPost, "/", nil)
+	request.Header.Set("Authorization", "Bearer "+key.Key)
+	session := &zen.Session{}
+	require.NoError(t, session.Init(httptest.NewRecorder(), request, 0))
+	for range 2 {
+		root, err := h.Keys.GetRootKey(t.Context(), session)
+		require.NoError(t, err)
+		require.Equal(t, []string{newPermission}, root.Permissions)
 	}
 }
 

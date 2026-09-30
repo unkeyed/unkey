@@ -114,7 +114,7 @@ type Querier interface {
 	//  and workspace_id = ?
 	FindKeyMigrationByID(ctx context.Context, db DBTX, arg FindKeyMigrationByIDParams) (FindKeyMigrationByIDRow, error)
 	// FindLegacyRootKeyForAuthentication loads an active root key from the legacy store.
-	// It combines principal permissions with legacy direct and role assignments.
+	// It combines legacy direct and role assignments only.
 	//
 	//  SELECT
 	//      k.id,
@@ -130,12 +130,6 @@ type Querier interface {
 	//      COALESCE(
 	//          (SELECT JSON_ARRAYAGG(slug)
 	//          FROM (
-	//              SELECT p.slug
-	//              FROM unkey_principal_permissions p
-	//              WHERE p.workspace_id = k.for_workspace_id
-	//                  AND p.principal_type = 'root_key'
-	//                  AND p.principal_id = k.id
-	//              UNION ALL
 	//              SELECT p.slug
 	//              FROM keys_permissions kp
 	//              JOIN permissions p ON p.id = kp.permission_id
