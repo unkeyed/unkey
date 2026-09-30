@@ -103,7 +103,7 @@ func TestDecrementAccuracy(t *testing.T) {
 
 			// Create request channel
 			requestChan := make(chan int, totalRequests)
-			for i := 0; i < totalRequests; i++ {
+			for i := range totalRequests {
 				requestChan <- i
 			}
 			close(requestChan)
@@ -234,7 +234,7 @@ func TestDecrementEdgeCases(t *testing.T) {
 		lb := integration.NewLoadbalancer(h)
 
 		// All requests should fail immediately
-		for i := 0; i < 5; i++ {
+		for i := range 5 {
 			res, err := integration.CallRandomNode[handler.Request, handler.Response](
 				lb, "POST", "/v2/keys.verifyKey", headers, req)
 
@@ -270,7 +270,7 @@ func TestDecrementEdgeCases(t *testing.T) {
 		lb := integration.NewLoadbalancer(h)
 
 		// First 10 requests should succeed
-		for i := 0; i < 10; i++ {
+		for i := range 10 {
 			res, err := integration.CallRandomNode[handler.Request, handler.Response](
 				lb, "POST", "/v2/keys.verifyKey", headers, req)
 
@@ -280,7 +280,7 @@ func TestDecrementEdgeCases(t *testing.T) {
 
 			if res.Body.Data.Credits != nil {
 				expectedRemaining := 10 - (i + 1)
-				require.Equal(t, int32(expectedRemaining), *res.Body.Data.Credits,
+				require.Equal(t, int64(expectedRemaining), *res.Body.Data.Credits,
 					"Request %d should leave %d credits", i+1, expectedRemaining)
 			}
 		}
@@ -325,7 +325,7 @@ func TestDecrementEdgeCases(t *testing.T) {
 		results := make(chan bool, numGoroutines)
 		var wg sync.WaitGroup
 
-		for i := 0; i < numGoroutines; i++ {
+		for range numGoroutines {
 			wg.Add(1)
 			go func() {
 				defer wg.Done()

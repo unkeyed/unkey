@@ -160,13 +160,13 @@ func runAccuracyTest(t *testing.T, nodeCount int, totalCredits, cost int64, conc
 	requestChan := make(chan int, totalRequests)
 
 	// Fill request channel
-	for i := 0; i < totalRequests; i++ {
+	for i := range totalRequests {
 		requestChan <- i
 	}
 	close(requestChan)
 
 	// Start workers
-	for i := 0; i < concurrency; i++ {
+	for i := range concurrency {
 		wg.Add(1)
 		go func(workerID int) {
 			defer wg.Done()

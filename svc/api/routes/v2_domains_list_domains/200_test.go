@@ -27,7 +27,7 @@ func TestListDomainsRefillsAuthorizedPages(t *testing.T) {
 	h.Register(route)
 	env := seedEnvironment(t, h)
 	var allowed []string
-	for i := 0; i < 8; i++ {
+	for range 8 {
 		d := attachDomain(t, h, env, func(req *seed.CreateCustomDomainRequest) {
 			req.ID = strings.ToLower(req.ID)
 		})
