@@ -19,11 +19,6 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
-// TestPrivateNetworkSnapshotStreamsEveryPageThenCompletes guarantees that the
-// private network snapshot has no size limit: Ctrl reads every page, streams
-// all apps in chunks, and ends with a complete chunk whose total matches, so
-// Krane can tell a whole snapshot from a truncated one. It also guarantees the
-// snapshot is authenticated and scoped to the caller's platform.
 func TestPrivateNetworkSnapshotStreamsEveryPageThenCompletes(t *testing.T) {
 	server := containers.MySQL(t)
 	database, err := db.New(server.DSN, sqlcomment.Static{})
@@ -84,23 +79,23 @@ func TestPrivateNetworkSnapshotStreamsEveryPageThenCompletes(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, map[string]float64{"success": 1}, outcomeDelta(before, snapshotOutcomes(t)))
 	require.Equal(t, reads+1, snapshotReads(t), "a successful snapshot observes one database read")
-	require.Len(t, chunks, 4, "two pages of bindings and replicas stream as three app chunks and one complete chunk")
+	require.Len(t, chunks, 4, "two pages of bindings and replicas stream as three binding chunks and one complete chunk")
 	last := chunks[len(chunks)-1]
 	require.True(t, last.GetComplete())
-	require.Empty(t, last.GetApps())
+	require.Empty(t, last.GetBindings())
 
-	bindings, replicas := map[string]*ctrlv1.PrivateNetworkApp{}, map[string]*ctrlv1.PrivateNetworkApp{}
+	bindings, replicas := map[string]*ctrlv1.PrivateNetworkBinding{}, map[string]*ctrlv1.PrivateNetworkBinding{}
 	for _, chunk := range chunks[:len(chunks)-1] {
 		require.False(t, chunk.GetComplete())
-		require.LessOrEqual(t, len(chunk.GetApps()), privateNetworkPageSize)
-		for _, app := range chunk.GetApps() {
-			if strings.HasPrefix(app.GetBindingId(), "self-") {
-				require.NotContains(t, replicas, app.GetCallerDeploymentId())
-				replicas[app.GetCallerDeploymentId()] = app
+		require.LessOrEqual(t, len(chunk.GetBindings()), privateNetworkPageSize)
+		for _, binding := range chunk.GetBindings() {
+			if strings.HasPrefix(binding.GetBindingId(), "self-") {
+				require.NotContains(t, replicas, binding.GetCallerDeploymentId())
+				replicas[binding.GetCallerDeploymentId()] = binding
 				continue
 			}
-			require.NotContains(t, bindings, app.GetCallerDeploymentId())
-			bindings[app.GetCallerDeploymentId()] = app
+			require.NotContains(t, bindings, binding.GetCallerDeploymentId())
+			bindings[binding.GetCallerDeploymentId()] = binding
 		}
 	}
 
@@ -108,16 +103,16 @@ func TestPrivateNetworkSnapshotStreamsEveryPageThenCompletes(t *testing.T) {
 	require.Len(t, bindings, callers, "every caller deployment across both binding pages")
 	require.Len(t, replicas, callers+1, "every caller and the target publish replicas; the app with an invalid slug does not")
 
-	for caller, app := range bindings {
-		require.Equal(t, "database", app.GetBindingName(), "binding for %s", caller)
-		require.Equal(t, target, app.GetDeploymentId(), "binding for %s", caller)
-		require.Equal(t, int32(5432), app.GetPort(), "binding for %s", caller)
+	for caller, binding := range bindings {
+		require.Equal(t, "database", binding.GetBindingName(), "binding for %s", caller)
+		require.Equal(t, target, binding.GetTargetDeploymentId(), "binding for %s", caller)
+		require.Equal(t, int32(5432), binding.GetTargetPort(), "binding for %s", caller)
 	}
 
-	for deployment, app := range replicas {
-		require.Equal(t, deployment, app.GetDeploymentId())
-		require.Equal(t, "self-"+deployment, app.GetBindingId())
-		require.Contains(t, []string{"api", "db"}, app.GetBindingName(), "replicas resolve under their app slug")
+	for deployment, binding := range replicas {
+		require.Equal(t, deployment, binding.GetTargetDeploymentId())
+		require.Equal(t, "self-"+deployment, binding.GetBindingId())
+		require.Contains(t, []string{"api", "db"}, binding.GetBindingName(), "replicas resolve under their app slug")
 	}
 
 	unavailable, err := db.New(server.DSN, sqlcomment.Static{})

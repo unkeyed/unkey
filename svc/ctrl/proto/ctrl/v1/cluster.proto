@@ -109,21 +109,21 @@ message StreamPrivateNetworkStateRequest {
 }
 
 message PrivateNetworkStateChunk {
-  repeated PrivateNetworkApp apps = 1;
+  repeated PrivateNetworkBinding bindings = 1;
   bool complete = 2;
-  // total is the number of apps in the whole snapshot, set on the complete chunk.
+  // total is the number of bindings in the whole snapshot, set on the complete chunk.
   uint64 total = 3;
 }
 
-message PrivateNetworkApp {
+message PrivateNetworkBinding {
   string workspace_id = 1;
   string project_id = 2;
-  string app_id = 3;
-  string app_slug = 4;
+  string target_app_id = 3;
+  string target_app_slug = 4;
   string k8s_namespace = 5;
-  string deployment_id = 6;
-  int32 port = 7;
-  string environment_id = 8;
+  string target_deployment_id = 6;
+  int32 target_port = 7;
+  string target_environment_id = 8;
   reserved 9;
   string caller_deployment_id = 10;
   string binding_id = 11;

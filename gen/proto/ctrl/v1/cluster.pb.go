@@ -481,10 +481,10 @@ func (x *StreamPrivateNetworkStateRequest) GetCluster() *ClusterKey {
 }
 
 type PrivateNetworkStateChunk struct {
-	state    protoimpl.MessageState `protogen:"open.v1"`
-	Apps     []*PrivateNetworkApp   `protobuf:"bytes,1,rep,name=apps,proto3" json:"apps,omitempty"`
-	Complete bool                   `protobuf:"varint,2,opt,name=complete,proto3" json:"complete,omitempty"`
-	// total is the number of apps in the whole snapshot, set on the complete chunk.
+	state    protoimpl.MessageState   `protogen:"open.v1"`
+	Bindings []*PrivateNetworkBinding `protobuf:"bytes,1,rep,name=bindings,proto3" json:"bindings,omitempty"`
+	Complete bool                     `protobuf:"varint,2,opt,name=complete,proto3" json:"complete,omitempty"`
+	// total is the number of bindings in the whole snapshot, set on the complete chunk.
 	Total         uint64 `protobuf:"varint,3,opt,name=total,proto3" json:"total,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -520,9 +520,9 @@ func (*PrivateNetworkStateChunk) Descriptor() ([]byte, []int) {
 	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{6}
 }
 
-func (x *PrivateNetworkStateChunk) GetApps() []*PrivateNetworkApp {
+func (x *PrivateNetworkStateChunk) GetBindings() []*PrivateNetworkBinding {
 	if x != nil {
-		return x.Apps
+		return x.Bindings
 	}
 	return nil
 }
@@ -541,37 +541,37 @@ func (x *PrivateNetworkStateChunk) GetTotal() uint64 {
 	return 0
 }
 
-type PrivateNetworkApp struct {
-	state              protoimpl.MessageState `protogen:"open.v1"`
-	WorkspaceId        string                 `protobuf:"bytes,1,opt,name=workspace_id,json=workspaceId,proto3" json:"workspace_id,omitempty"`
-	ProjectId          string                 `protobuf:"bytes,2,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
-	AppId              string                 `protobuf:"bytes,3,opt,name=app_id,json=appId,proto3" json:"app_id,omitempty"`
-	AppSlug            string                 `protobuf:"bytes,4,opt,name=app_slug,json=appSlug,proto3" json:"app_slug,omitempty"`
-	K8SNamespace       string                 `protobuf:"bytes,5,opt,name=k8s_namespace,json=k8sNamespace,proto3" json:"k8s_namespace,omitempty"`
-	DeploymentId       string                 `protobuf:"bytes,6,opt,name=deployment_id,json=deploymentId,proto3" json:"deployment_id,omitempty"`
-	Port               int32                  `protobuf:"varint,7,opt,name=port,proto3" json:"port,omitempty"`
-	EnvironmentId      string                 `protobuf:"bytes,8,opt,name=environment_id,json=environmentId,proto3" json:"environment_id,omitempty"`
-	CallerDeploymentId string                 `protobuf:"bytes,10,opt,name=caller_deployment_id,json=callerDeploymentId,proto3" json:"caller_deployment_id,omitempty"`
-	BindingId          string                 `protobuf:"bytes,11,opt,name=binding_id,json=bindingId,proto3" json:"binding_id,omitempty"`
-	BindingName        string                 `protobuf:"bytes,12,opt,name=binding_name,json=bindingName,proto3" json:"binding_name,omitempty"`
-	unknownFields      protoimpl.UnknownFields
-	sizeCache          protoimpl.SizeCache
+type PrivateNetworkBinding struct {
+	state               protoimpl.MessageState `protogen:"open.v1"`
+	WorkspaceId         string                 `protobuf:"bytes,1,opt,name=workspace_id,json=workspaceId,proto3" json:"workspace_id,omitempty"`
+	ProjectId           string                 `protobuf:"bytes,2,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
+	TargetAppId         string                 `protobuf:"bytes,3,opt,name=target_app_id,json=targetAppId,proto3" json:"target_app_id,omitempty"`
+	TargetAppSlug       string                 `protobuf:"bytes,4,opt,name=target_app_slug,json=targetAppSlug,proto3" json:"target_app_slug,omitempty"`
+	K8SNamespace        string                 `protobuf:"bytes,5,opt,name=k8s_namespace,json=k8sNamespace,proto3" json:"k8s_namespace,omitempty"`
+	TargetDeploymentId  string                 `protobuf:"bytes,6,opt,name=target_deployment_id,json=targetDeploymentId,proto3" json:"target_deployment_id,omitempty"`
+	TargetPort          int32                  `protobuf:"varint,7,opt,name=target_port,json=targetPort,proto3" json:"target_port,omitempty"`
+	TargetEnvironmentId string                 `protobuf:"bytes,8,opt,name=target_environment_id,json=targetEnvironmentId,proto3" json:"target_environment_id,omitempty"`
+	CallerDeploymentId  string                 `protobuf:"bytes,10,opt,name=caller_deployment_id,json=callerDeploymentId,proto3" json:"caller_deployment_id,omitempty"`
+	BindingId           string                 `protobuf:"bytes,11,opt,name=binding_id,json=bindingId,proto3" json:"binding_id,omitempty"`
+	BindingName         string                 `protobuf:"bytes,12,opt,name=binding_name,json=bindingName,proto3" json:"binding_name,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
 }
 
-func (x *PrivateNetworkApp) Reset() {
-	*x = PrivateNetworkApp{}
+func (x *PrivateNetworkBinding) Reset() {
+	*x = PrivateNetworkBinding{}
 	mi := &file_ctrl_v1_cluster_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *PrivateNetworkApp) String() string {
+func (x *PrivateNetworkBinding) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*PrivateNetworkApp) ProtoMessage() {}
+func (*PrivateNetworkBinding) ProtoMessage() {}
 
-func (x *PrivateNetworkApp) ProtoReflect() protoreflect.Message {
+func (x *PrivateNetworkBinding) ProtoReflect() protoreflect.Message {
 	mi := &file_ctrl_v1_cluster_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -583,82 +583,82 @@ func (x *PrivateNetworkApp) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use PrivateNetworkApp.ProtoReflect.Descriptor instead.
-func (*PrivateNetworkApp) Descriptor() ([]byte, []int) {
+// Deprecated: Use PrivateNetworkBinding.ProtoReflect.Descriptor instead.
+func (*PrivateNetworkBinding) Descriptor() ([]byte, []int) {
 	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{7}
 }
 
-func (x *PrivateNetworkApp) GetWorkspaceId() string {
+func (x *PrivateNetworkBinding) GetWorkspaceId() string {
 	if x != nil {
 		return x.WorkspaceId
 	}
 	return ""
 }
 
-func (x *PrivateNetworkApp) GetProjectId() string {
+func (x *PrivateNetworkBinding) GetProjectId() string {
 	if x != nil {
 		return x.ProjectId
 	}
 	return ""
 }
 
-func (x *PrivateNetworkApp) GetAppId() string {
+func (x *PrivateNetworkBinding) GetTargetAppId() string {
 	if x != nil {
-		return x.AppId
+		return x.TargetAppId
 	}
 	return ""
 }
 
-func (x *PrivateNetworkApp) GetAppSlug() string {
+func (x *PrivateNetworkBinding) GetTargetAppSlug() string {
 	if x != nil {
-		return x.AppSlug
+		return x.TargetAppSlug
 	}
 	return ""
 }
 
-func (x *PrivateNetworkApp) GetK8SNamespace() string {
+func (x *PrivateNetworkBinding) GetK8SNamespace() string {
 	if x != nil {
 		return x.K8SNamespace
 	}
 	return ""
 }
 
-func (x *PrivateNetworkApp) GetDeploymentId() string {
+func (x *PrivateNetworkBinding) GetTargetDeploymentId() string {
 	if x != nil {
-		return x.DeploymentId
+		return x.TargetDeploymentId
 	}
 	return ""
 }
 
-func (x *PrivateNetworkApp) GetPort() int32 {
+func (x *PrivateNetworkBinding) GetTargetPort() int32 {
 	if x != nil {
-		return x.Port
+		return x.TargetPort
 	}
 	return 0
 }
 
-func (x *PrivateNetworkApp) GetEnvironmentId() string {
+func (x *PrivateNetworkBinding) GetTargetEnvironmentId() string {
 	if x != nil {
-		return x.EnvironmentId
+		return x.TargetEnvironmentId
 	}
 	return ""
 }
 
-func (x *PrivateNetworkApp) GetCallerDeploymentId() string {
+func (x *PrivateNetworkBinding) GetCallerDeploymentId() string {
 	if x != nil {
 		return x.CallerDeploymentId
 	}
 	return ""
 }
 
-func (x *PrivateNetworkApp) GetBindingId() string {
+func (x *PrivateNetworkBinding) GetBindingId() string {
 	if x != nil {
 		return x.BindingId
 	}
 	return ""
 }
 
-func (x *PrivateNetworkApp) GetBindingName() string {
+func (x *PrivateNetworkBinding) GetBindingName() string {
 	if x != nil {
 		return x.BindingName
 	}
@@ -2093,21 +2093,22 @@ const file_ctrl_v1_cluster_proto_rawDesc = "" +
 	"\acluster\x18\x01 \x01(\v2\x13.ctrl.v1.ClusterKeyR\acluster\x12#\n" +
 	"\rdeployment_id\x18\x02 \x01(\tR\fdeploymentId\"Q\n" +
 	" StreamPrivateNetworkStateRequest\x12-\n" +
-	"\acluster\x18\x01 \x01(\v2\x13.ctrl.v1.ClusterKeyR\acluster\"|\n" +
-	"\x18PrivateNetworkStateChunk\x12.\n" +
-	"\x04apps\x18\x01 \x03(\v2\x1a.ctrl.v1.PrivateNetworkAppR\x04apps\x12\x1a\n" +
+	"\acluster\x18\x01 \x01(\v2\x13.ctrl.v1.ClusterKeyR\acluster\"\x88\x01\n" +
+	"\x18PrivateNetworkStateChunk\x12:\n" +
+	"\bbindings\x18\x01 \x03(\v2\x1e.ctrl.v1.PrivateNetworkBindingR\bbindings\x12\x1a\n" +
 	"\bcomplete\x18\x02 \x01(\bR\bcomplete\x12\x14\n" +
-	"\x05total\x18\x03 \x01(\x04R\x05total\"\x86\x03\n" +
-	"\x11PrivateNetworkApp\x12!\n" +
+	"\x05total\x18\x03 \x01(\x04R\x05total\"\xcb\x03\n" +
+	"\x15PrivateNetworkBinding\x12!\n" +
 	"\fworkspace_id\x18\x01 \x01(\tR\vworkspaceId\x12\x1d\n" +
 	"\n" +
-	"project_id\x18\x02 \x01(\tR\tprojectId\x12\x15\n" +
-	"\x06app_id\x18\x03 \x01(\tR\x05appId\x12\x19\n" +
-	"\bapp_slug\x18\x04 \x01(\tR\aappSlug\x12#\n" +
-	"\rk8s_namespace\x18\x05 \x01(\tR\fk8sNamespace\x12#\n" +
-	"\rdeployment_id\x18\x06 \x01(\tR\fdeploymentId\x12\x12\n" +
-	"\x04port\x18\a \x01(\x05R\x04port\x12%\n" +
-	"\x0eenvironment_id\x18\b \x01(\tR\renvironmentId\x120\n" +
+	"project_id\x18\x02 \x01(\tR\tprojectId\x12\"\n" +
+	"\rtarget_app_id\x18\x03 \x01(\tR\vtargetAppId\x12&\n" +
+	"\x0ftarget_app_slug\x18\x04 \x01(\tR\rtargetAppSlug\x12#\n" +
+	"\rk8s_namespace\x18\x05 \x01(\tR\fk8sNamespace\x120\n" +
+	"\x14target_deployment_id\x18\x06 \x01(\tR\x12targetDeploymentId\x12\x1f\n" +
+	"\vtarget_port\x18\a \x01(\x05R\n" +
+	"targetPort\x122\n" +
+	"\x15target_environment_id\x18\b \x01(\tR\x13targetEnvironmentId\x120\n" +
 	"\x14caller_deployment_id\x18\n" +
 	" \x01(\tR\x12callerDeploymentId\x12\x1d\n" +
 	"\n" +
@@ -2275,7 +2276,7 @@ var file_ctrl_v1_cluster_proto_goTypes = []any{
 	(*GetDesiredDeploymentStateRequest)(nil),              // 6: ctrl.v1.GetDesiredDeploymentStateRequest
 	(*StreamPrivateNetworkStateRequest)(nil),              // 7: ctrl.v1.StreamPrivateNetworkStateRequest
 	(*PrivateNetworkStateChunk)(nil),                      // 8: ctrl.v1.PrivateNetworkStateChunk
-	(*PrivateNetworkApp)(nil),                             // 9: ctrl.v1.PrivateNetworkApp
+	(*PrivateNetworkBinding)(nil),                         // 9: ctrl.v1.PrivateNetworkBinding
 	(*ReportDeploymentStatusRequest)(nil),                 // 10: ctrl.v1.ReportDeploymentStatusRequest
 	(*ReportDeploymentStatusResponse)(nil),                // 11: ctrl.v1.ReportDeploymentStatusResponse
 	(*InstanceEvent)(nil),                                 // 12: ctrl.v1.InstanceEvent
@@ -2302,7 +2303,7 @@ var file_ctrl_v1_cluster_proto_depIdxs = []int32{
 	18, // 2: ctrl.v1.DeploymentChangeEvent.deployment:type_name -> ctrl.v1.DeploymentState
 	2,  // 3: ctrl.v1.GetDesiredDeploymentStateRequest.cluster:type_name -> ctrl.v1.ClusterKey
 	2,  // 4: ctrl.v1.StreamPrivateNetworkStateRequest.cluster:type_name -> ctrl.v1.ClusterKey
-	9,  // 5: ctrl.v1.PrivateNetworkStateChunk.apps:type_name -> ctrl.v1.PrivateNetworkApp
+	9,  // 5: ctrl.v1.PrivateNetworkStateChunk.bindings:type_name -> ctrl.v1.PrivateNetworkBinding
 	2,  // 6: ctrl.v1.ReportDeploymentStatusRequest.cluster:type_name -> ctrl.v1.ClusterKey
 	24, // 7: ctrl.v1.ReportDeploymentStatusRequest.update:type_name -> ctrl.v1.ReportDeploymentStatusRequest.Update
 	25, // 8: ctrl.v1.ReportDeploymentStatusRequest.delete:type_name -> ctrl.v1.ReportDeploymentStatusRequest.Delete
