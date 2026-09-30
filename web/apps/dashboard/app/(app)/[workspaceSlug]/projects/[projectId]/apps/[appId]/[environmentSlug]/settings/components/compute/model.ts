@@ -257,6 +257,18 @@ export function unschedulableIn(available: AvailableRegions, names: string[]): s
   return names.filter((name) => blocked.has(name));
 }
 
+export function addRegionBlocker(available: AvailableRegions, names: string[]): string | null {
+  return match(available)
+    .with({ status: "loading" }, () => "Loading regions…")
+    .with({ status: "error" }, () => "Couldn't load regions. Reload the page to try again.")
+    .with({ status: "ready" }, ({ regions }) =>
+      regions.some((r) => r.canSchedule && !names.includes(r.name))
+        ? null
+        : "Your app already runs in every available region.",
+    )
+    .exhaustive();
+}
+
 export type UnitField = { unit: string; scale: number; min: number; max: number; step: number };
 
 export type UnitParse = { ok: true; value: number } | { ok: false; message: string };

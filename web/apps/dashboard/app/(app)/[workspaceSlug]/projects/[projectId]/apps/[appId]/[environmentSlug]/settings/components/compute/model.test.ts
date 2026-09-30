@@ -6,6 +6,7 @@ import {
   type CardSlot,
   type ComputeDraft,
   PRESETS,
+  addRegionBlocker,
   applyCardEdit,
   applyDraft,
   cardView,
@@ -285,6 +286,28 @@ describe("unschedulableIn", () => {
       unschedulableIn({ status: "ready", regions }, ["us-east-1", "eu-central-1", "local"]),
     ).toEqual(["eu-central-1"]);
     expect(unschedulableIn({ status: "loading" }, ["eu-central-1"])).toEqual([]);
+  });
+});
+
+describe("addRegionBlocker", () => {
+  const regions = [
+    { name: "us-east-1", canSchedule: true },
+    { name: "eu-central-1", canSchedule: false },
+    { name: "us-west-2", canSchedule: true },
+  ];
+
+  it("explains why no region can be added", () => {
+    expect(addRegionBlocker({ status: "loading" }, ["us-east-1"])).toBe("Loading regions…");
+    expect(addRegionBlocker({ status: "error" }, ["us-east-1"])).toBe(
+      "Couldn't load regions. Reload the page to try again.",
+    );
+    expect(addRegionBlocker({ status: "ready", regions }, ["us-east-1", "us-west-2"])).toBe(
+      "Your app already runs in every available region.",
+    );
+  });
+
+  it("allows adding while a schedulable region is free", () => {
+    expect(addRegionBlocker({ status: "ready", regions }, ["us-east-1"])).toBeNull();
   });
 });
 

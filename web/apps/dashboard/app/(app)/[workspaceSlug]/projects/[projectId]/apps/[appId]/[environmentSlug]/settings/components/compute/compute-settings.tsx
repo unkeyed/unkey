@@ -1,9 +1,9 @@
 "use client";
 
 import { IconPlusOutline18 } from "@unkey/icons";
-import { Button } from "@unkey/ui";
+import { Button, Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@unkey/ui";
 import { useEffect, useRef, useState } from "react";
-import { unschedulableIn } from "./model";
+import { addRegionBlocker, unschedulableIn } from "./model";
 import { NewRegionCard, RegionCard } from "./region-card";
 import { RegionViz } from "./region-viz";
 import { useCompute } from "./use-compute";
@@ -31,15 +31,45 @@ function useCardKeys() {
   };
 }
 
+function AddRegionButton({
+  blocker,
+  onClick,
+}: {
+  blocker: string | null;
+  onClick: () => void;
+}) {
+  const button = (
+    <Button
+      variant="outline"
+      size="sm"
+      className="w-fit"
+      disabled={blocker !== null}
+      onClick={onClick}
+    >
+      <IconPlusOutline18 />
+      Add region
+    </Button>
+  );
+  if (blocker === null) {
+    return button;
+  }
+  return (
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger render={<span className="inline-flex w-fit" />}>{button}</TooltipTrigger>
+        <TooltipContent>{blocker}</TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+}
+
 export function ComputeSettings() {
   const page = useCompute();
   const cardKeys = useCardKeys();
   const [adding, setAdding] = useState(false);
   const [justAdded, setJustAdded] = useState<string | null>(null);
   const names = page.base.regions.map((r) => r.name);
-  const canAdd =
-    page.available.status === "ready" &&
-    page.available.regions.some((r) => r.canSchedule && !names.includes(r.name));
+  const addBlocker = addRegionBlocker(page.available, names);
   const addedShown = justAdded !== null && names.includes(justAdded);
   useEffect(() => {
     if (addedShown) {
@@ -78,16 +108,7 @@ export function ComputeSettings() {
                 }}
               />
             ) : (
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-fit"
-                disabled={!canAdd}
-                onClick={() => setAdding(true)}
-              >
-                <IconPlusOutline18 />
-                Add region
-              </Button>
+              <AddRegionButton blocker={addBlocker} onClick={() => setAdding(true)} />
             )}
           </div>
         </div>
