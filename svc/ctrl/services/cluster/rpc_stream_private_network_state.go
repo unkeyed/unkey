@@ -38,7 +38,7 @@ func (s *Service) StreamPrivateNetworkState(ctx context.Context, req *connect.Re
 	}
 
 	readStarted := time.Now()
-	apps, err := db.TxWithResult(ctx, s.db.RO(), func(txCtx context.Context, tx db.DBTX) ([]*ctrlv1.PrivateNetworkApp, error) {
+	bindings, err := db.TxWithResult(ctx, s.db.RO(), func(txCtx context.Context, tx db.DBTX) ([]*ctrlv1.PrivateNetworkBinding, error) {
 		queries := db.NewQueries(tx)
 		bindings, err := listPrivateNetworkBindings(txCtx, queries, cluster.RegionPlatform)
 		if err != nil {
@@ -58,23 +58,23 @@ func (s *Service) StreamPrivateNetworkState(ctx context.Context, req *connect.Re
 		return connect.NewError(connect.CodeInternal, err)
 	}
 
-	for start := 0; start < len(apps); start += privateNetworkPageSize {
-		chunk := &ctrlv1.PrivateNetworkStateChunk{Apps: apps[start:min(start+privateNetworkPageSize, len(apps))]}
+	for start := 0; start < len(bindings); start += privateNetworkPageSize {
+		chunk := &ctrlv1.PrivateNetworkStateChunk{Bindings: bindings[start:min(start+privateNetworkPageSize, len(bindings))]}
 		if err := stream.Send(chunk); err != nil {
 			result = "send_error"
 			return err
 		}
 	}
 
-	if err := stream.Send(&ctrlv1.PrivateNetworkStateChunk{Complete: true, Total: uint64(len(apps))}); err != nil {
+	if err := stream.Send(&ctrlv1.PrivateNetworkStateChunk{Complete: true, Total: uint64(len(bindings))}); err != nil {
 		result = "send_error"
 		return err
 	}
 	return nil
 }
 
-func listPrivateNetworkBindings(ctx context.Context, queries *db.Queries, platform string) ([]*ctrlv1.PrivateNetworkApp, error) {
-	var apps []*ctrlv1.PrivateNetworkApp
+func listPrivateNetworkBindings(ctx context.Context, queries *db.Queries, platform string) ([]*ctrlv1.PrivateNetworkBinding, error) {
+	var bindings []*ctrlv1.PrivateNetworkBinding
 	params := db.ListPrivateNetworkBindingsParams{AfterPk: 0, AfterCallerDeploymentID: "", Platform: platform, Limit: privateNetworkPageSize}
 	for {
 		rows, err := queries.ListPrivateNetworkBindings(ctx, params)
@@ -83,31 +83,31 @@ func listPrivateNetworkBindings(ctx context.Context, queries *db.Queries, platfo
 		}
 
 		for _, row := range rows {
-			apps = append(apps, &ctrlv1.PrivateNetworkApp{
-				WorkspaceId:        row.WorkspaceID,
-				ProjectId:          row.ProjectID,
-				AppId:              row.AppID,
-				AppSlug:            row.AppSlug,
-				K8SNamespace:       row.K8sNamespace,
-				DeploymentId:       row.DeploymentID,
-				Port:               row.Port,
-				EnvironmentId:      row.EnvironmentID,
-				CallerDeploymentId: row.CallerDeploymentID,
-				BindingId:          row.BindingID,
-				BindingName:        row.BindingName,
+			bindings = append(bindings, &ctrlv1.PrivateNetworkBinding{
+				WorkspaceId:         row.WorkspaceID,
+				ProjectId:           row.ProjectID,
+				TargetAppId:         row.AppID,
+				TargetAppSlug:       row.AppSlug,
+				K8SNamespace:        row.K8sNamespace,
+				TargetDeploymentId:  row.DeploymentID,
+				TargetPort:          row.Port,
+				TargetEnvironmentId: row.EnvironmentID,
+				CallerDeploymentId:  row.CallerDeploymentID,
+				BindingId:           row.BindingID,
+				BindingName:         row.BindingName,
 			})
 		}
 
 		if len(rows) < privateNetworkPageSize {
-			return apps, nil
+			return bindings, nil
 		}
 		last := rows[len(rows)-1]
 		params.AfterPk, params.AfterCallerDeploymentID = last.Pk, last.CallerDeploymentID
 	}
 }
 
-func listPrivateNetworkReplicas(ctx context.Context, queries *db.Queries, platform string) ([]*ctrlv1.PrivateNetworkApp, error) {
-	var apps []*ctrlv1.PrivateNetworkApp
+func listPrivateNetworkReplicas(ctx context.Context, queries *db.Queries, platform string) ([]*ctrlv1.PrivateNetworkBinding, error) {
+	var bindings []*ctrlv1.PrivateNetworkBinding
 	params := db.ListPrivateNetworkReplicasParams{AfterDeploymentID: "", Platform: platform, Limit: privateNetworkPageSize}
 	for {
 		rows, err := queries.ListPrivateNetworkReplicas(ctx, params)
@@ -119,23 +119,23 @@ func listPrivateNetworkReplicas(ctx context.Context, queries *db.Queries, platfo
 			if _, ok := appbinding.ReplicaHost(row.AppSlug); !ok {
 				continue
 			}
-			apps = append(apps, &ctrlv1.PrivateNetworkApp{
-				WorkspaceId:        row.WorkspaceID,
-				ProjectId:          row.ProjectID,
-				AppId:              row.AppID,
-				AppSlug:            row.AppSlug,
-				K8SNamespace:       row.K8sNamespace,
-				DeploymentId:       row.DeploymentID,
-				Port:               row.Port,
-				EnvironmentId:      row.EnvironmentID,
-				CallerDeploymentId: row.DeploymentID,
-				BindingId:          "self-" + row.DeploymentID,
-				BindingName:        row.AppSlug,
+			bindings = append(bindings, &ctrlv1.PrivateNetworkBinding{
+				WorkspaceId:         row.WorkspaceID,
+				ProjectId:           row.ProjectID,
+				TargetAppId:         row.AppID,
+				TargetAppSlug:       row.AppSlug,
+				K8SNamespace:        row.K8sNamespace,
+				TargetDeploymentId:  row.DeploymentID,
+				TargetPort:          row.Port,
+				TargetEnvironmentId: row.EnvironmentID,
+				CallerDeploymentId:  row.DeploymentID,
+				BindingId:           "self-" + row.DeploymentID,
+				BindingName:         row.AppSlug,
 			})
 		}
 
 		if len(rows) < privateNetworkPageSize {
-			return apps, nil
+			return bindings, nil
 		}
 		params.AfterDeploymentID = rows[len(rows)-1].DeploymentID
 	}
