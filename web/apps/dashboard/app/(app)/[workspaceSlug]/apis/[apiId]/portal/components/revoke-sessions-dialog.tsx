@@ -39,7 +39,12 @@ export function RevokeSessionsDialog({
   return (
     <DialogContainer
       isOpen={group !== null}
-      onOpenChange={onOpenChange}
+      onOpenChange={(open) => {
+        if (!open && revoke.isLoading) {
+          return;
+        }
+        onOpenChange(open);
+      }}
       title="Revoke sessions"
       subTitle="Sign this user out of the portal"
       footer={
