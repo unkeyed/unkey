@@ -3,7 +3,10 @@
 import { usePreventLeave } from "@/hooks/use-prevent-leave";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { routes } from "@/lib/navigation/routes";
+import { ROOT_KEYS_V2_QUERY_KEY } from "@/lib/root-keys-api";
+import { useWorkspace } from "@/providers/workspace-provider";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   IconChevronLeftOutline18,
   IconChevronRightOutline18,
@@ -19,10 +22,12 @@ import {
   PageHeaderContent,
   PageHeaderTitle,
   RequiredTag,
+  toast,
 } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 import { Controller, FormProvider, useForm } from "react-hook-form";
+import { createRootKeyFromForm } from "../lib/create-root-key";
 import { isPolicyComplete } from "../lib/policy";
 import { type RootKeyFormValues, rootKeyDefaultValues, rootKeySchema } from "../schema";
 import { DebugPanel } from "./debug-panel";
@@ -35,17 +40,15 @@ type CreatedKey = {
   secret: string;
 };
 
-function stubCreateRootKey(): CreatedKey {
-  const suffix = Math.random().toString(36).slice(2, 10);
-  return { keyId: `key_${suffix}`, secret: `unkey_root_${suffix}${suffix}${suffix}` };
-}
-
 export function BuilderShell() {
   const workspace = useWorkspaceNavigation();
+  const { workspace: currentWorkspace } = useWorkspace();
+  const queryClient = useQueryClient();
   const router = useRouter();
   const [reviewing, setReviewing] = useState(false);
   const [validated, setValidated] = useState(false);
   const [created, setCreated] = useState<CreatedKey | null>(null);
+  const [isCreating, setIsCreating] = useState(false);
   const [debug, setDebug] = useState(false);
   const form = useForm<RootKeyFormValues>({
     resolver: zodResolver(rootKeySchema),
@@ -80,9 +83,23 @@ export function BuilderShell() {
     () => setValidated(true),
   );
 
-  const create = () => {
-    // TODO: call the create-root-key mutation once the backend lane lands it.
-    setCreated(stubCreateRootKey());
+  const create = async () => {
+    if (!currentWorkspace) {
+      return;
+    }
+
+    setIsCreating(true);
+    try {
+      const rootKey = await createRootKeyFromForm(currentWorkspace.id, form.getValues());
+      await queryClient.invalidateQueries({ queryKey: ROOT_KEYS_V2_QUERY_KEY });
+      setCreated(rootKey);
+    } catch (error) {
+      toast.error("Failed to create root key", {
+        description: error instanceof Error ? error.message : "Please try again.",
+      });
+    } finally {
+      setIsCreating(false);
+    }
   };
 
   const values = form.getValues();
@@ -152,6 +169,8 @@ export function BuilderShell() {
                     variant="primary"
                     size="md"
                     className="ml-auto"
+                    loading={isCreating}
+                    disabled={isCreating}
                     onClick={create}
                   >
                     Create key

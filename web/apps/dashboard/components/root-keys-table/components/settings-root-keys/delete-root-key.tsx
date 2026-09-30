@@ -18,6 +18,8 @@ import { useRef, useState } from "react";
 import { Controller, FormProvider, useForm } from "react-hook-form";
 import { z } from "zod";
 import { useDeleteRootKey } from "../../hooks/use-delete-root-key";
+import { useDeleteRootKeyV2 } from "../../hooks/use-delete-root-key-v2";
+import { useRootKeysTransport } from "../../root-keys-transport";
 import { RootKeyInfo } from "./root-key-info";
 
 const deleteRootKeyFormSchema = z.object({
@@ -30,7 +32,31 @@ type DeleteRootKeyFormValues = z.infer<typeof deleteRootKeyFormSchema>;
 
 type DeleteRootKeyProps = { rootKeyDetails: RootKey } & ActionComponentProps;
 
-export const DeleteRootKey = ({ rootKeyDetails, isOpen, onClose }: DeleteRootKeyProps) => {
+type DeleteMutation = {
+  mutateAsync: (input: { keyIds: string[] }) => Promise<unknown>;
+};
+
+export const DeleteRootKey = (props: DeleteRootKeyProps) => {
+  const transport = useRootKeysTransport();
+  return transport === "v2" ? <V2DeleteRootKey {...props} /> : <LegacyDeleteRootKey {...props} />;
+};
+
+const LegacyDeleteRootKey = (props: DeleteRootKeyProps) => {
+  const deleteRootKey = useDeleteRootKey(props.onClose);
+  return <DeleteRootKeyDialog {...props} deleteRootKey={deleteRootKey} />;
+};
+
+const V2DeleteRootKey = (props: DeleteRootKeyProps) => {
+  const deleteRootKey = useDeleteRootKeyV2(props.onClose);
+  return <DeleteRootKeyDialog {...props} deleteRootKey={deleteRootKey} />;
+};
+
+const DeleteRootKeyDialog = ({
+  rootKeyDetails,
+  isOpen,
+  onClose,
+  deleteRootKey,
+}: DeleteRootKeyProps & { deleteRootKey: DeleteMutation }) => {
   const [isConfirmPopoverOpen, setIsConfirmPopoverOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const deleteButtonRef = useRef<HTMLButtonElement>(null);
@@ -53,10 +79,6 @@ export const DeleteRootKey = ({ rootKeyDetails, isOpen, onClose }: DeleteRootKey
 
   const confirmDeletion = watch("confirmDeletion");
   const recentlyUsed = isRecentlyUsed(rootKeyDetails.lastUsedAt);
-
-  const deleteRootKey = useDeleteRootKey(() => {
-    onClose();
-  });
 
   const handleDialogOpenChange = (open: boolean) => {
     if (isConfirmPopoverOpen) {
@@ -82,8 +104,7 @@ export const DeleteRootKey = ({ rootKeyDetails, isOpen, onClose }: DeleteRootKey
         keyIds: [rootKeyDetails.id],
       });
     } catch {
-      // `useDeleteRootKey` already shows a toast, but we still need to
-      // prevent unhandled‐rejection noise in the console.
+      // The mutation hook shows the error toast. Catch here to prevent an unhandled rejection.
     } finally {
       setIsLoading(false);
     }

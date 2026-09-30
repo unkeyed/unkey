@@ -5,6 +5,11 @@ import {
   renderRootKeySkeletonRow,
   useRootKeysListPaginated,
 } from "@/components/root-keys-table";
+import { useRootKeysV2ListPaginated } from "@/components/root-keys-table/hooks/use-root-keys-v2-list-query";
+import {
+  type RootKeysTransport,
+  RootKeysTransportProvider,
+} from "@/components/root-keys-table/root-keys-transport";
 import type { RootKey } from "@/lib/trpc/routers/settings/root-keys/query";
 import { IconBookBookmarkOutline18 } from "@unkey/icons";
 import type { UnkeyPermission } from "@unkey/rbac";
@@ -21,6 +26,7 @@ import {
 } from "@unkey/ui";
 import { useCallback, useMemo, useState } from "react";
 import { RootKeyDialog } from "../dialog/root-key-dialog";
+import { V2RootKeyDialog } from "../dialog/v2-root-key-dialog";
 import { type ListVariant, ListVariantDebugBar } from "./list-variant-debug-bar";
 import { RootKeysResourceList } from "./root-keys-resource-list";
 
@@ -37,7 +43,25 @@ const TABLE_CONFIG = {
   containerPadding: "px-0",
 };
 
-export const RootKeysList = () => {
+type RootKeysListProps = { useV2: boolean };
+
+export const RootKeysList = ({ useV2 }: RootKeysListProps) =>
+  useV2 ? <V2RootKeysList /> : <LegacyRootKeysList />;
+
+const LegacyRootKeysList = () => (
+  <RootKeysListView transport="legacy" query={useRootKeysListPaginated()} />
+);
+
+const V2RootKeysList = () => (
+  <RootKeysListView transport="v2" query={useRootKeysV2ListPaginated()} />
+);
+
+type RootKeysListViewProps = {
+  transport: RootKeysTransport;
+  query: ReturnType<typeof useRootKeysListPaginated>;
+};
+
+const RootKeysListView = ({ transport, query }: RootKeysListViewProps) => {
   const {
     rootKeys,
     isInitialLoading,
@@ -49,7 +73,7 @@ export const RootKeysList = () => {
     totalPages,
     sorting,
     onSortingChange,
-  } = useRootKeysListPaginated();
+  } = query;
   const [variant, setVariant] = useState<ListVariant>("resource-list");
   const [selectedRootKey, setSelectedRootKey] = useState<RootKey | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -58,6 +82,13 @@ export const RootKeysList = () => {
   const handleEditKey = useCallback((rootKey: RootKey) => {
     setEditingKey(rootKey);
     setEditDialogOpen(true);
+  }, []);
+
+  const handleEditDialogOpenChange = useCallback((open: boolean) => {
+    setEditDialogOpen(open);
+    if (!open) {
+      setEditingKey(null);
+    }
   }, []);
 
   const selectedRootKeyId = selectedRootKey?.id;
@@ -78,7 +109,7 @@ export const RootKeysList = () => {
   );
 
   const existingKey = useMemo(() => {
-    if (!editingKey) {
+    if (!editingKey || transport === "v2") {
       return null;
     }
 
@@ -91,7 +122,7 @@ export const RootKeysList = () => {
       name: editingKey.name,
       permissions: validatedPermissions,
     };
-  }, [editingKey]);
+  }, [editingKey, transport]);
 
   const columns = useMemo(
     () => createRootKeyColumns({ selectedRootKeyId, onEditKey: handleEditKey }),
@@ -99,7 +130,7 @@ export const RootKeysList = () => {
   );
 
   return (
-    <>
+    <RootKeysTransportProvider transport={transport}>
       {variant === "resource-list" ? (
         <RootKeysResourceList
           rootKeys={rootKeys}
@@ -157,21 +188,23 @@ export const RootKeysList = () => {
         loading={isInitialLoading}
         disabled={isNavigating}
       />
-      {editingKey && existingKey && (
-        <RootKeyDialog
-          title="Edit root key"
-          subTitle="Update the name and permissions for this root key"
-          isOpen={editDialogOpen}
-          onOpenChange={(open) => {
-            setEditDialogOpen(open);
-            if (!open) {
-              setEditingKey(null);
-            }
-          }}
-          editMode={true}
-          existingKey={existingKey}
-        />
-      )}
-    </>
+      {editingKey &&
+        (transport === "v2" ? (
+          <V2RootKeyDialog
+            rootKey={editingKey}
+            isOpen={editDialogOpen}
+            onOpenChange={handleEditDialogOpenChange}
+          />
+        ) : existingKey ? (
+          <RootKeyDialog
+            title="Edit root key"
+            subTitle="Update the name and permissions for this root key"
+            isOpen={editDialogOpen}
+            onOpenChange={handleEditDialogOpenChange}
+            editMode={true}
+            existingKey={existingKey}
+          />
+        ) : null)}
+    </RootKeysTransportProvider>
   );
 };

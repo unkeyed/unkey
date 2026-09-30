@@ -1,6 +1,5 @@
-// Root key permissions are stored as `<resource>.<instance>.<action>` (see
-// `unkeyPermissionValidation` in @unkey/rbac). Only the action carries meaning
-// for a reader; the instance is always `*` or an id they cannot read anyway.
+// Root key permissions use either the legacy `<resource>.<instance>.<action>` format or v2 URNs.
+// Only the action segment carries meaning for this label.
 const ACRONYMS: Record<string, string> = {
   api: "API",
   apis: "APIs",
@@ -16,7 +15,7 @@ export function describePermission(name: string): string {
     return "All permissions";
   }
 
-  const action = name.split(".").at(-1);
+  const action = name.includes("#") ? name.split("#").at(-1) : name.split(".").at(-1);
   if (!action) {
     return name;
   }

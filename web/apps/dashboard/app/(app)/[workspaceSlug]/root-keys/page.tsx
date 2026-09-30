@@ -51,7 +51,7 @@ export default function RootKeysPage() {
       <PageBody>
         <div className="flex flex-col">
           <RootKeysListControls />
-          <RootKeysList />
+          <RootKeysList useV2={rootKeyBuilder} />
         </div>
       </PageBody>
     </PageContainer>
