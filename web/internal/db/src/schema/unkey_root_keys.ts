@@ -1,4 +1,4 @@
-import { bigint, boolean, datetime, index, mysqlTable, varchar } from "drizzle-orm/mysql-core";
+import { bigint, boolean, index, mysqlTable, varchar } from "drizzle-orm/mysql-core";
 import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
 import { id } from "./util/id";
 import { primaryKey } from "./util/primary_key";
@@ -15,7 +15,7 @@ export const unkeyRootKeys = mysqlTable(
     start: varchar("start", { length: 256 }).notNull(),
     end: varchar("end", { length: 4 }).notNull(),
     enabled: boolean("enabled").notNull(),
-    expires: datetime("expires", { fsp: 3 }),
+    expires: bigint("expires", { mode: "number" }),
     createdAt: bigint("created_at", { mode: "number" }).notNull(),
     deletedAt: bigint("deleted_at", { mode: "number" }),
   },

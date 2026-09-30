@@ -3936,6 +3936,29 @@ components:
                     $ref: '#/components/schemas/Meta'
                 data:
                     $ref: '#/components/schemas/V2RootKeysCreateKeyResponseData'
+        V2RootKeysDeleteKeyRequestBody:
+            type: object
+            additionalProperties: false
+            required:
+                - keyId
+            properties:
+                keyId:
+                    type: string
+                    minLength: 3
+                    maxLength: 255
+                    pattern: "^[a-zA-Z0-9_]+$"
+                    description: Root key identifier returned by rootKeys.createKey or rootKeys.listKeys.
+        V2RootKeysDeleteKeyResponseBody:
+            type: object
+            additionalProperties: false
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    $ref: '#/components/schemas/Meta'
+                data:
+                    $ref: '#/components/schemas/EmptyResponse'
         V2RootKeysListKeysRequestBody:
             type: object
             additionalProperties: false
@@ -3967,11 +3990,12 @@ components:
                         $ref: '#/components/schemas/V2RootKeysListKeysResponseData'
                 pagination:
                     $ref: '#/components/schemas/Pagination'
-        V2RootKeysDeleteKeyRequestBody:
+        V2RootKeysRerollKeyRequestBody:
             type: object
             additionalProperties: false
             required:
                 - keyId
+                - expiration
             properties:
                 keyId:
                     type: string
@@ -3979,7 +4003,18 @@ components:
                     maxLength: 255
                     pattern: "^[a-zA-Z0-9_]+$"
                     description: Root key identifier returned by rootKeys.createKey or rootKeys.listKeys.
-        V2RootKeysDeleteKeyResponseBody:
+                expiration:
+                    type:
+                        - integer
+                        - "null"
+                    format: int64
+                    minimum: 0
+                    maximum: 4102444800000
+                    description: |
+                        Milliseconds until the original root key expires. Use 0 to revoke it immediately.
+                        Use null to keep the original key's current expiration. This value never extends
+                        an existing expiration.
+        V2RootKeysRerollKeyResponseBody:
             type: object
             additionalProperties: false
             required:
@@ -3989,7 +4024,7 @@ components:
                 meta:
                     $ref: '#/components/schemas/Meta'
                 data:
-                    $ref: '#/components/schemas/EmptyResponse'
+                    $ref: '#/components/schemas/V2RootKeysRerollKeyResponseData'
         V2RootKeysUpdateKeyRequestBody:
             type: object
             additionalProperties: false
@@ -4035,55 +4070,6 @@ components:
                     $ref: '#/components/schemas/Meta'
                 data:
                     $ref: '#/components/schemas/EmptyResponse'
-        V2RootKeysRerollKeyRequestBody:
-            type: object
-            additionalProperties: false
-            required:
-                - keyId
-                - expiration
-            properties:
-                keyId:
-                    type: string
-                    minLength: 3
-                    maxLength: 255
-                    pattern: "^[a-zA-Z0-9_]+$"
-                    description: Root key identifier returned by rootKeys.createKey or rootKeys.listKeys.
-                expiration:
-                    type:
-                        - integer
-                        - "null"
-                    format: int64
-                    minimum: 0
-                    maximum: 4102444800000
-                    description: |
-                        Milliseconds until the original root key expires. Use 0 to revoke it immediately.
-                        Use null to keep the original key's current expiration. This value never extends
-                        an existing expiration.
-        V2RootKeysRerollKeyResponseBody:
-            type: object
-            additionalProperties: false
-            required:
-                - meta
-                - data
-            properties:
-                meta:
-                    $ref: '#/components/schemas/Meta'
-                data:
-                    $ref: '#/components/schemas/V2RootKeysRerollKeyResponseData'
-        V2RootKeysRerollKeyResponseData:
-            type: object
-            additionalProperties: false
-            required:
-                - keyId
-                - key
-            properties:
-                keyId:
-                    type: string
-                    description: Identifier of the new root key.
-                key:
-                    type: string
-                    x-unkey-redact: true
-                    description: New root key secret, returned only once. Store it securely.
         V3DeploymentsCreateDeploymentRequestBody:
             type: object
             required:
@@ -7661,9 +7647,23 @@ components:
                     description: Expiration time in Unix milliseconds, or null for no expiration.
                 permissions:
                     type: array
-                    description: Sorted, deduplicated URN permission strings. These strings are not expanded into accessible resources.
+                    description: All permissions assigned to the root key.
                     items:
                         type: string
+        V2RootKeysRerollKeyResponseData:
+            type: object
+            additionalProperties: false
+            required:
+                - keyId
+                - key
+            properties:
+                keyId:
+                    type: string
+                    description: Identifier of the new root key.
+                key:
+                    type: string
+                    x-unkey-redact: true
+                    description: New root key secret, returned only once. Store it securely.
         DeploymentSourceOCI:
             type: object
             required:
@@ -16695,69 +16695,6 @@ paths:
             tags:
                 - rootKeys
             x-speakeasy-name-override: createKey
-    /v2/rootKeys.listKeys:
-        post:
-            description: |
-                Lists readable root keys in the authenticated workspace, ordered by key ID.
-                Requires `unkey:v1:<workspace_id>:rootKeys/<key_id>#read` for each returned key.
-                Use `rootKeys/*#read` to read all root keys. Write permission does not imply read.
-                A caller with no readable keys receives an empty page.
-
-                Includes disabled and expired keys from the new root-key store.
-                Deleted keys are excluded. Secrets and hashes are never returned.
-                Pass the returned cursor when hasMore is true to retrieve the next page.
-            operationId: rootKeys.listKeys
-            requestBody:
-                content:
-                    application/json:
-                        schema:
-                            $ref: '#/components/schemas/V2RootKeysListKeysRequestBody'
-                required: true
-            responses:
-                "200":
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/V2RootKeysListKeysResponseBody'
-                    description: A page of readable root keys.
-                "400":
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/BadRequestErrorResponse'
-                    description: Invalid request.
-                "401":
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
-                    description: Authentication is required.
-                "429":
-                    content:
-                        application/problem+json:
-                            schema:
-                                $ref: '#/components/schemas/TooManyRequestsErrorResponse'
-                    description: Too many requests.
-                "500":
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/InternalServerErrorResponse'
-                    description: The list could not be loaded.
-            security:
-                - bearer: []
-            summary: List root keys
-            tags:
-                - rootKeys
-            x-speakeasy-name-override: listKeys
-            x-speakeasy-pagination:
-                inputs:
-                    - in: requestBody
-                      name: cursor
-                      type: cursor
-                outputs:
-                    nextCursor: $.pagination.cursor
-                type: cursor
     /v2/rootKeys.deleteKey:
         post:
             description: |
@@ -16821,6 +16758,69 @@ paths:
             tags:
                 - rootKeys
             x-speakeasy-name-override: deleteKey
+    /v2/rootKeys.listKeys:
+        post:
+            description: |
+                Lists readable root keys in the authenticated workspace, ordered by key ID.
+                Requires `unkey:v1:<workspace_id>:rootKeys/<key_id>#read` for each returned key.
+                Use `rootKeys/*#read` to read all root keys. Write permission does not imply read.
+                A caller with no readable keys receives an empty page.
+
+                Includes disabled and expired keys from the new root-key store.
+                Deleted keys are excluded. Secrets and hashes are never returned.
+                Pass the returned cursor when hasMore is true to retrieve the next page.
+            operationId: rootKeys.listKeys
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/V2RootKeysListKeysRequestBody'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/V2RootKeysListKeysResponseBody'
+                    description: A page of readable root keys.
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Invalid request.
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Authentication is required.
+                "429":
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/TooManyRequestsErrorResponse'
+                    description: Too many requests.
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: The list could not be loaded.
+            security:
+                - bearer: []
+            summary: List root keys
+            tags:
+                - rootKeys
+            x-speakeasy-name-override: listKeys
+            x-speakeasy-pagination:
+                inputs:
+                    - in: requestBody
+                      name: cursor
+                      type: cursor
+                outputs:
+                    nextCursor: $.pagination.cursor
+                type: cursor
     /v2/rootKeys.rerollKey:
         post:
             description: |

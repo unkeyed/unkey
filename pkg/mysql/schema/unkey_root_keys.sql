@@ -8,7 +8,7 @@ CREATE TABLE `unkey_root_keys` (
 	`start` varchar(256) NOT NULL,
 	`end` varchar(4) NOT NULL,
 	`enabled` boolean NOT NULL,
-	`expires` datetime(3),
+	`expires` bigint,
 	`created_at` bigint NOT NULL,
 	`deleted_at` bigint,
 	CONSTRAINT `unkey_root_keys_pk` PRIMARY KEY(`pk`),

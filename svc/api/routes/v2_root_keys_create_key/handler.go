@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"net/http"
-	"time"
 
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/internal/services/keys"
@@ -21,7 +20,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/internal/auditactor"
-	"github.com/unkeyed/unkey/svc/api/internal/rootkeys"
+	principalpermissions "github.com/unkeyed/unkey/svc/api/internal/principal"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
@@ -51,24 +50,21 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	if err != nil {
 		return err
 	}
-	var expires sql.NullTime
+	var expires sql.NullInt64
 	if req.Expires.IsSpecified() && !req.Expires.IsNull() {
 		if req.Expires.MustGet() <= h.Clock.Now().UnixMilli() {
 			return fault.New("expiration must be in the future", fault.Code(codes.App.Validation.InvalidInput.URN()),
 				fault.Public("Expires must be a Unix millisecond timestamp in the future."))
 		}
-		expires = sql.NullTime{
-			Time:  time.UnixMilli(req.Expires.MustGet()),
-			Valid: true,
-		}
+		expires = sql.NullInt64{Int64: req.Expires.MustGet(), Valid: true}
 	}
 	if source, ok := p.Source.(principal.KeySource); ok && source.ExpiresAt != nil {
-		if !expires.Valid || expires.Time.After(*source.ExpiresAt) {
+		if !expires.Valid || expires.Int64 > source.ExpiresAt.UnixMilli() {
 			return fault.New("child root key exceeds caller expiration", fault.Code(codes.App.Validation.InvalidInput.URN()),
 				fault.Public("Expires is required and must not be later than the calling root key's expiration."))
 		}
 	}
-	validatedPermissions, err := rootkeys.ValidateDelegatedPermissions(ctx, p, req.Permissions)
+	validatedPermissions, err := principalpermissions.ValidateDelegatedPermissions(ctx, p, req.Permissions)
 	if err != nil {
 		return err
 	}

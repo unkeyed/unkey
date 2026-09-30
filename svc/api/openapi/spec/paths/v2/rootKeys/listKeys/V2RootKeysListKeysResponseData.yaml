@@ -35,6 +35,6 @@ properties:
     description: Expiration time in Unix milliseconds, or null for no expiration.
   permissions:
     type: array
-    description: Sorted, deduplicated URN permission strings. These strings are not expanded into accessible resources.
+    description: All permissions assigned to the root key.
     items:
       type: string

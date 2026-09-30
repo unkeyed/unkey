@@ -11,14 +11,15 @@ const (
 	prefix             = "unkey"
 	version            = "v1"
 	resourceIDSegment  = "{id}"
-	resourceIDPattern  = `(\*|[^:/#*]+)`
-	workspaceIDPattern = `([^:/#]+)`
+	resourceIDPattern  = `(\*|[^:/#*]+)` // Captures one resource ID or "*".
+	workspaceIDPattern = `([^:/#]+)`     // Captures one workspace ID.
 )
 
-// ErrInvalidResourceName is returned when a resource name cannot be parsed.
-var ErrInvalidResourceName = errors.New("invalid resource name")
-
-var idPattern = regexp.MustCompile(`^[A-Za-z0-9_]+$`)
+var (
+	// ErrInvalidResourceName is returned when a resource name cannot be parsed.
+	ErrInvalidResourceName = errors.New("invalid resource name")
+	idPattern              = regexp.MustCompile(`^[A-Za-z0-9_]+$`)
+)
 
 // resourcePathShape binds one valid path shape to its resource permissions.
 type resourcePathShape struct {

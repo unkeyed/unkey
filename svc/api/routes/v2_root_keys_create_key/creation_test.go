@@ -227,6 +227,6 @@ func TestCreateStoresV1SystemKeyAndPermissions(t *testing.T) {
 		key, err := db.Query.FindUnkeyRootKeyByID(t.Context(), h.DB.RO(), res.Body.Data.KeyId)
 		require.NoError(t, err)
 		require.True(t, key.Expires.Valid)
-		require.Equal(t, expires, key.Expires.Time.UnixMilli())
+		require.Equal(t, expires, key.Expires.Int64)
 	})
 }

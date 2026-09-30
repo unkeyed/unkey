@@ -20,7 +20,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/internal/auditactor"
-	"github.com/unkeyed/unkey/svc/api/internal/rootkeys"
+	principalpermissions "github.com/unkeyed/unkey/svc/api/internal/principal"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
@@ -55,7 +55,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 	var validatedPermissions []string
 	if req.Permissions != nil {
-		validatedPermissions, err = rootkeys.ValidateDelegatedPermissions(ctx, p, *req.Permissions)
+		validatedPermissions, err = principalpermissions.ValidateDelegatedPermissions(ctx, p, *req.Permissions)
 		if err != nil {
 			return err
 		}
@@ -75,7 +75,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			return err
 		}
 		if source, ok := p.Source.(principal.KeySource); ok && source.ExpiresAt != nil {
-			if !key.Expires.Valid || key.Expires.Time.After(*source.ExpiresAt) {
+			if !key.Expires.Valid || key.Expires.Int64 > source.ExpiresAt.UnixMilli() {
 				return fault.New("target root key outlives caller",
 					fault.Code(codes.App.Validation.InvalidInput.URN()),
 					fault.Public("An expiring root key can only update root keys that expire no later than itself."),

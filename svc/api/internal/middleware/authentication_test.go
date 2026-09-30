@@ -106,8 +106,8 @@ func TestWithAuthentication_PublishesPrincipalToHandler(t *testing.T) {
 
 // TestWithAuthentication_RecordsRootKeyUsage guarantees successful root key
 // authentication creates one row and any later authorization denial updates its
-// outcome without adding telemetry code to the handler. The event belongs to
-// the key owner workspace, not the customer workspace that the key can access.
+// outcome without adding telemetry code to the handler. An empty workspace ID
+// distinguishes root-key usage from billable API-key usage.
 func TestWithAuthentication_RecordsRootKeyUsage(t *testing.T) {
 	t.Parallel()
 
@@ -132,7 +132,7 @@ func TestWithAuthentication_RecordsRootKeyUsage(t *testing.T) {
 			handler: func(_ context.Context, _ *zen.Session) error {
 				return nil
 			},
-			wantWorkspaceID: "ws_root",
+			wantWorkspaceID: "",
 			wantKeySpaceID:  "ks_123",
 			wantOutcome:     string(keys.StatusValid),
 			wantError:       false,
@@ -152,7 +152,7 @@ func TestWithAuthentication_RecordsRootKeyUsage(t *testing.T) {
 					Action:       rbac.CreateAPI,
 				}))
 			},
-			wantWorkspaceID: "ws_root",
+			wantWorkspaceID: "",
 			wantKeySpaceID:  "ks_123",
 			wantOutcome:     string(keys.StatusInsufficientPermissions),
 			wantError:       true,
@@ -176,7 +176,7 @@ func TestWithAuthentication_RecordsRootKeyUsage(t *testing.T) {
 				}
 				return nil
 			},
-			wantWorkspaceID: "ws_root",
+			wantWorkspaceID: "",
 			wantKeySpaceID:  "ks_123",
 			wantOutcome:     string(keys.StatusInsufficientPermissions),
 			wantError:       false,
@@ -370,7 +370,7 @@ func TestWithAuthentication_EnforcesWorkspaceRateLimit(t *testing.T) {
 	select {
 	case rows := <-flushed:
 		require.Len(t, rows, 1)
-		require.Equal(t, "ws_root", rows[0].WorkspaceID)
+		require.Empty(t, rows[0].WorkspaceID)
 		require.Equal(t, string(keys.StatusValid), rows[0].Outcome)
 	case <-time.After(time.Second):
 		t.Fatal("root key usage did not flush")
@@ -396,10 +396,9 @@ func testMiddlewarePrincipal(authorizedWorkspaceID string) *principal.Principal 
 	}
 }
 
-// TestWithAuthentication_AttributesNewRootKeyUsageToOwningWorkspace guarantees
-// new root-key authentication is attributed to the customer workspace that
-// owns the key.
-func TestWithAuthentication_AttributesNewRootKeyUsageToOwningWorkspace(t *testing.T) {
+// TestWithAuthentication_MarksNewRootKeyUsageWithEmptyWorkspace guarantees
+// root-key authentication is distinguishable from billable API-key usage.
+func TestWithAuthentication_MarksNewRootKeyUsageWithEmptyWorkspace(t *testing.T) {
 	t.Parallel()
 
 	flushed := make(chan []schema.KeyVerification, 1)
@@ -427,7 +426,7 @@ func TestWithAuthentication_AttributesNewRootKeyUsageToOwningWorkspace(t *testin
 	select {
 	case rows := <-flushed:
 		require.Len(t, rows, 1)
-		require.Equal(t, "ws_customer", rows[0].WorkspaceID)
+		require.Empty(t, rows[0].WorkspaceID)
 		require.Empty(t, rows[0].KeySpaceID)
 		require.Equal(t, "root_key_123", rows[0].KeyID)
 	case <-time.After(time.Second):

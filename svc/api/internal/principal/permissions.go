@@ -1,11 +1,11 @@
-package rootkeys
+package principal
 
 import (
 	"context"
 	"slices"
 	"strings"
 
-	"github.com/unkeyed/unkey/pkg/auth/principal"
+	authprincipal "github.com/unkeyed/unkey/pkg/auth/principal"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/rbac"
@@ -19,7 +19,7 @@ import (
 // For example, projects/*#read permits projects/proj_one#read, but not #write.
 // Invalid requests fail with 400; requests beyond the caller's access fail with
 // 403. Cancellation stops validation between permission checks.
-func ValidateDelegatedPermissions(ctx context.Context, p *principal.Principal, requestedPermissions []string) ([]string, error) {
+func ValidateDelegatedPermissions(ctx context.Context, p *authprincipal.Principal, requestedPermissions []string) ([]string, error) {
 	validatedPermissionSet := make(map[string]struct{}, len(requestedPermissions))
 	for _, requestedPermission := range requestedPermissions {
 		if err := ctx.Err(); err != nil {

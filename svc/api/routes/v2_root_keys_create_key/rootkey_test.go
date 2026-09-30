@@ -54,7 +54,7 @@ func TestExpiringRootKeyBoundsChildLifetime(t *testing.T) {
 			child, err := db.Query.FindUnkeyRootKeyByID(t.Context(), h.DB.RO(), res.Body.Data.KeyId)
 			require.NoError(t, err)
 			require.True(t, child.Expires.Valid)
-			require.Equal(t, tt.expires.MustGet(), child.Expires.Time.UnixMilli())
+			require.Equal(t, tt.expires.MustGet(), child.Expires.Int64)
 		})
 	}
 }

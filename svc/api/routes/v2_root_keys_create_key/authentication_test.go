@@ -39,7 +39,7 @@ func TestRootKeyAuthenticationPrefersNewStore(t *testing.T) {
 		Start:       "test",
 		End:         "test",
 		Enabled:     true,
-		Expires:     sql.NullTime{},
+		Expires:     sql.NullInt64{},
 		CreatedAt:   1_700_000_000_000,
 	}))
 
@@ -132,7 +132,7 @@ func TestNewRootKeyAuthenticationChecksLifecycle(t *testing.T) {
 		code      codes.URN
 	}{
 		{"disabled", "UPDATE unkey_root_keys SET enabled = FALSE WHERE id = ?", "key", codes.Auth.Authorization.KeyDisabled.URN()},
-		{"expired", "UPDATE unkey_root_keys SET expires = '2000-01-01' WHERE id = ?", "key", codes.Auth.Authorization.Forbidden.URN()},
+		{"expired", "UPDATE unkey_root_keys SET expires = 946684800000 WHERE id = ?", "key", codes.Auth.Authorization.Forbidden.URN()},
 		{"deleted", "UPDATE unkey_root_keys SET deleted_at = 1 WHERE id = ?", "key", codes.Auth.Authentication.KeyNotFound.URN()},
 		{"missing target", "UPDATE unkey_root_keys SET workspace_id = 'ws_missing' WHERE id = ?", "key", codes.Data.Workspace.NotFound.URN()},
 		{"disabled target", "UPDATE workspaces SET enabled = FALSE WHERE id = ?", "target", codes.Auth.Authorization.WorkspaceDisabled.URN()},

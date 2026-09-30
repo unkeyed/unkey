@@ -586,18 +586,34 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 	srv.RegisterRoute(
 		protectedMiddlewares,
 		&v2RootKeysCreateKey.Handler{
-			DB: svc.Database, Keys: svc.Keys, Auditlogs: svc.Auditlogs, Clock: svc.Clock,
+			DB:        svc.Database,
+			Keys:      svc.Keys,
+			Auditlogs: svc.Auditlogs,
+			Clock:     svc.Clock,
 		},
 	)
 	srv.RegisterRoute(protectedMiddlewares, &v2RootKeysListKeys.Handler{DB: svc.Database})
 	srv.RegisterRoute(protectedMiddlewares, &v2RootKeysUpdateKey.Handler{
-		DB: svc.Database, Auditlogs: svc.Auditlogs, KeyCache: svc.Caches.VerificationKeyByHash, RootKeyCache: svc.Caches.RootKeyByHash, Clock: svc.Clock,
+		DB:           svc.Database,
+		Auditlogs:    svc.Auditlogs,
+		KeyCache:     svc.Caches.VerificationKeyByHash,
+		RootKeyCache: svc.Caches.RootKeyByHash,
+		Clock:        svc.Clock,
 	})
 	srv.RegisterRoute(protectedMiddlewares, &v2RootKeysDeleteKey.Handler{
-		DB: svc.Database, Auditlogs: svc.Auditlogs, KeyCache: svc.Caches.VerificationKeyByHash, RootKeyCache: svc.Caches.RootKeyByHash, Clock: svc.Clock,
+		DB:           svc.Database,
+		Auditlogs:    svc.Auditlogs,
+		KeyCache:     svc.Caches.VerificationKeyByHash,
+		RootKeyCache: svc.Caches.RootKeyByHash,
+		Clock:        svc.Clock,
 	})
 	srv.RegisterRoute(protectedMiddlewares, &v2RootKeysRerollKey.Handler{
-		DB: svc.Database, Keys: svc.Keys, Auditlogs: svc.Auditlogs, KeyCache: svc.Caches.VerificationKeyByHash, RootKeyCache: svc.Caches.RootKeyByHash, Clock: svc.Clock,
+		DB:           svc.Database,
+		Keys:         svc.Keys,
+		Auditlogs:    svc.Auditlogs,
+		KeyCache:     svc.Caches.VerificationKeyByHash,
+		RootKeyCache: svc.Caches.RootKeyByHash,
+		Clock:        svc.Clock,
 	})
 
 	// v2/keys.rerollKey
@@ -675,10 +691,9 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 		protectedMiddlewares,
 		&v2KeysSetRoles.Handler{
 
-			DB:           svc.Database,
-			Auditlogs:    svc.Auditlogs,
-			KeyCache:     svc.Caches.VerificationKeyByHash,
-			RootKeyCache: svc.Caches.RootKeyByHash,
+			DB:        svc.Database,
+			Auditlogs: svc.Auditlogs,
+			KeyCache:  svc.Caches.VerificationKeyByHash,
 		},
 	)
 

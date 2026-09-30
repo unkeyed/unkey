@@ -12,7 +12,6 @@ import (
 	keysdb "github.com/unkeyed/unkey/internal/services/keys/db"
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/auditlog"
-	"github.com/unkeyed/unkey/pkg/auth/principal"
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/codes"
@@ -24,7 +23,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/internal/auditactor"
-	"github.com/unkeyed/unkey/svc/api/internal/rootkeys"
+	"github.com/unkeyed/unkey/svc/api/internal/principal"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
@@ -81,10 +80,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			return err
 		}
 		source = current
-		if err := authorizeLifetime(p, source.Expires); err != nil {
-			return err
-		}
-		grants, err := db.Query.ListUnkeyPermissionsByPrincipal(ctx, tx, db.ListUnkeyPermissionsByPrincipalParams{
+		rootKeyPermissions, err := db.Query.ListUnkeyPermissionsByPrincipal(ctx, tx, db.ListUnkeyPermissionsByPrincipalParams{
 			WorkspaceID:   p.AuthorizedWorkspaceID,
 			PrincipalType: db.UnkeyPrincipalPermissionsPrincipalTypeRootKey,
 			PrincipalID:   source.ID,
@@ -92,9 +88,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		if err != nil {
 			return err
 		}
-		slices.Sort(grants)
-		grants = slices.Compact(grants)
-		grants, err = rootkeys.ValidateDelegatedPermissions(ctx, p, grants)
+		slices.Sort(rootKeyPermissions)
+		rootKeyPermissions = slices.Compact(rootKeyPermissions)
+		rootKeyPermissions, err = principal.ValidateDelegatedPermissions(ctx, p, rootKeyPermissions)
 		if err != nil {
 			return err
 		}
@@ -116,14 +112,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}); err != nil {
 			return err
 		}
-		permissionRows := make([]db.InsertUnkeyPermissionParams, 0, len(grants))
-		for _, grant := range grants {
+		permissionRows := make([]db.InsertUnkeyPermissionParams, 0, len(rootKeyPermissions))
+		for _, permission := range rootKeyPermissions {
 			permissionRows = append(permissionRows, db.InsertUnkeyPermissionParams{
 				ID:            uid.New(uid.PermissionPrefix),
 				WorkspaceID:   p.AuthorizedWorkspaceID,
 				PrincipalType: db.UnkeyPrincipalPermissionsPrincipalTypeRootKey,
 				PrincipalID:   keyID,
-				Slug:          grant,
+				Slug:          permission,
 				CreatedAt:     now.UnixMilli(),
 			})
 		}
@@ -131,10 +127,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			return err
 		}
 		if !req.Expiration.IsNull() {
-			expires := now.Add(time.Duration(req.Expiration.MustGet()) * time.Millisecond)
-			if !source.Expires.Valid || !source.Expires.Time.Before(expires) {
+			expires := now.Add(time.Duration(req.Expiration.MustGet()) * time.Millisecond).UnixMilli()
+			if !source.Expires.Valid || source.Expires.Int64 >= expires {
 				if err := db.Query.UpdateUnkeyRootKeyExpiration(ctx, tx, db.UpdateUnkeyRootKeyExpirationParams{
-					Expires:     sql.NullTime{Time: expires, Valid: true},
+					Expires:     sql.NullInt64{Int64: expires, Valid: true},
 					ID:          source.ID,
 					WorkspaceID: p.AuthorizedWorkspaceID,
 				}); err != nil {
@@ -153,21 +149,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		Meta: openapi.Meta{RequestId: s.RequestID()},
 		Data: openapi.V2RootKeysRerollKeyResponseData{KeyId: keyID, Key: generated.Key},
 	})
-}
-
-// authorizeLifetime prevents an expiring caller from minting a longer-lived secret.
-func authorizeLifetime(p *principal.Principal, expires sql.NullTime) error {
-	source, ok := p.Source.(principal.KeySource)
-	if !ok || source.ExpiresAt == nil {
-		return nil
-	}
-	if expires.Valid && !expires.Time.After(*source.ExpiresAt) {
-		return nil
-	}
-	return fault.New("rerolled root key outlives caller",
-		fault.Code(codes.App.Validation.InvalidInput.URN()),
-		fault.Public("An expiring root key can only reroll root keys that expire no later than itself."),
-	)
 }
 
 func rootKeyNotFound() error {

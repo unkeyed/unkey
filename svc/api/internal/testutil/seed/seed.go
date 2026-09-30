@@ -516,7 +516,7 @@ func (s *Seeder) CreateUnkeyRootKey(ctx context.Context, req CreateUnkeyRootKeyR
 		Start:       key[6:10],
 		End:         key[len(key)-4:],
 		Enabled:     !req.Disabled,
-		Expires:     sql.NullTime{Time: ptr.SafeDeref(req.Expires, time.Time{}), Valid: req.Expires != nil},
+		Expires:     sql.NullInt64{Int64: ptr.SafeDeref(req.Expires, time.Time{}).UnixMilli(), Valid: req.Expires != nil},
 		CreatedAt:   now,
 	})
 	require.NoError(s.t, err)

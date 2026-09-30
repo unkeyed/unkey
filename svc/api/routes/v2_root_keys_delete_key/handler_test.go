@@ -50,6 +50,27 @@ func TestDeleteRootKeyRecordsRootKeyAuditEvent(t *testing.T) {
 	require.Equal(t, "rootKey.delete", event)
 }
 
+// TestDeleteRootKeyAuditFallsBackToID guarantees an unnamed key remains
+// identifiable in the audit log by its stable ID.
+func TestDeleteRootKeyAuditFallsBackToID(t *testing.T) {
+	h := testutil.NewHarness(t)
+	route := newRoute(h)
+	workspace := h.Resources().UserWorkspace
+	target := h.CreateUnkeyRootKey(seed.CreateUnkeyRootKeyRequest{WorkspaceID: workspace.ID})
+	caller := h.CreateRootKey(workspace.ID, "unkey:v1:"+workspace.ID+":rootKeys/"+target.KeyID+"#delete")
+
+	res := call(h, route, caller, handler.Request{KeyId: target.KeyID})
+	require.Equal(t, http.StatusOK, res.Status, "%s", res.RawBody)
+
+	var name string
+	err := h.DB.RO().QueryRowContext(t.Context(),
+		"SELECT JSON_UNQUOTE(JSON_EXTRACT(payload, '$.targets[0].name')) FROM clickhouse_outbox WHERE workspace_id = ? ORDER BY pk DESC LIMIT 1",
+		workspace.ID,
+	).Scan(&name)
+	require.NoError(t, err)
+	require.Equal(t, target.KeyID, name)
+}
+
 // TestDeleteRootKeyRequiresConcreteDeletePermission guarantees read, write, or
 // another key's delete permission cannot revoke a root key.
 func TestDeleteRootKeyRequiresConcreteDeletePermission(t *testing.T) {

@@ -49,11 +49,11 @@ func TestBillableExcludesGatewaySource(t *testing.T) {
 			gatewayVerifications[i].AppID = "app_b"
 		}
 	}
-	// Root keys: 30 VALID, attributed to the owning workspace but excluded from
-	// API-key billing because they have no keyspace.
+	// Root keys: 30 VALID, marked by an empty workspace ID and excluded from
+	// API-key billing.
 	rootKeyVerifications := createVerifications(workspaceID, 30, now, "VALID")
 	for i := range rootKeyVerifications {
-		rootKeyVerifications[i].KeySpaceID = ""
+		rootKeyVerifications[i].WorkspaceID = ""
 	}
 	allVerifications := append(verifications, gatewayVerifications...)
 	insertVerifications(t, ctx, conn, append(allVerifications, rootKeyVerifications...))
@@ -64,14 +64,25 @@ func TestBillableExcludesGatewaySource(t *testing.T) {
 		billableVerifications, err := client.GetBillableVerifications(ctx, workspaceID, year, month)
 		require.NoError(c, err)
 		assert.Equal(c, int64(100), billableVerifications, "gateway, root-key, and INVALID verifications must not bill")
+		var rootKeyBillable int64
+		require.NoError(c, conn.QueryRow(ctx,
+			"SELECT sum(count) FROM default.billable_verifications_per_month_v2 WHERE workspace_id = ''",
+		).Scan(&rootKeyBillable))
+		assert.Zero(c, rootKeyBillable, "root-key verifications must not bill")
 
-		// Analytics rollups keep every source: total includes API + gateway.
-		var totalCount, gatewayCount, appCount, unattributedCount int64
+		// Customer analytics include API and gateway traffic. Root-key traffic
+		// remains in the global rollup under the empty workspace marker.
+		var totalCount, rootKeyCount, gatewayCount, appCount, unattributedCount int64
 		require.NoError(c, conn.QueryRow(ctx,
 			"SELECT sum(count) FROM default.key_verifications_per_month_v3 WHERE workspace_id = ?",
 			workspaceID,
 		).Scan(&totalCount))
-		assert.Equal(c, int64(190), totalCount, "analytics rollups must include gateway and root-key traffic")
+		assert.Equal(c, int64(160), totalCount, "customer analytics must include API and gateway traffic")
+
+		require.NoError(c, conn.QueryRow(ctx,
+			"SELECT sum(count) FROM default.key_verifications_per_month_v3 WHERE workspace_id = ''",
+		).Scan(&rootKeyCount))
+		assert.Equal(c, int64(30), rootKeyCount, "analytics rollups must retain root-key traffic")
 
 		require.NoError(c, conn.QueryRow(ctx,
 			"SELECT sum(count) FROM default.key_verifications_per_month_v3 WHERE workspace_id = ? AND source = ?",
@@ -89,6 +100,6 @@ func TestBillableExcludesGatewaySource(t *testing.T) {
 			"SELECT sum(count) FROM default.key_verifications_per_month_v3 WHERE workspace_id = ? AND app_id = ''",
 			workspaceID,
 		).Scan(&unattributedCount))
-		assert.Equal(c, int64(150), unattributedCount, "API and root-key verifications must remain unattributed")
+		assert.Equal(c, int64(120), unattributedCount, "API verifications must remain unattributed")
 	}, time.Minute, time.Second)
 }

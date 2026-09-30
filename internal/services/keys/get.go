@@ -207,13 +207,17 @@ func cacheUnkeyRootKey(row keysdb.FindUnkeyRootKeyForAuthenticationRow) (keysdb.
 	if err != nil {
 		return keysdb.CachedRootKeyData{}, err
 	}
+	expires := sql.NullTime{}
+	if row.Expires.Valid {
+		expires = sql.NullTime{Time: time.UnixMilli(row.Expires.Int64), Valid: true}
+	}
 	return keysdb.CachedRootKeyData{
 		ID:                  row.ID,
 		KeyAuthID:           "",
 		WorkspaceID:         row.WorkspaceID,
 		ForWorkspaceID:      row.WorkspaceID,
 		Name:                row.Name,
-		Expires:             row.Expires,
+		Expires:             expires,
 		Enabled:             row.Enabled,
 		ApiDeletedAtM:       sql.NullInt64{},
 		WorkspaceEnabled:    true,

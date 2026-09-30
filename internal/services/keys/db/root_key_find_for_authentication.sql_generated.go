@@ -145,7 +145,7 @@ type FindUnkeyRootKeyForAuthenticationRow struct {
 	ID               string         `db:"id"`
 	WorkspaceID      string         `db:"workspace_id"`
 	Name             sql.NullString `db:"name"`
-	Expires          sql.NullTime   `db:"expires"`
+	Expires          sql.NullInt64  `db:"expires"`
 	Enabled          bool           `db:"enabled"`
 	DeletedAt        sql.NullInt64  `db:"deleted_at"`
 	WorkspaceEnabled sql.NullBool   `db:"workspace_enabled"`

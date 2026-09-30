@@ -2703,17 +2703,6 @@ type Querier interface {
 	//  WHERE kr.key_id = ?
 	//  ORDER BY r.name
 	ListRolesByKeyID(ctx context.Context, db DBTX, keyID string) ([]ListRolesByKeyIDRow, error)
-	// ListRootKeyPermissions loads principal permissions for a page of new root keys.
-	// Callers deduplicate exact strings, not collation-equivalent strings.
-	//
-	//  SELECT
-	//      principal_id AS key_id,
-	//      slug
-	//  FROM unkey_principal_permissions
-	//  WHERE workspace_id = ?
-	//      AND principal_type = 'root_key'
-	//      AND principal_id IN (/*SLICE:key_ids*/?)
-	ListRootKeyPermissions(ctx context.Context, db DBTX, arg ListRootKeyPermissionsParams) ([]ListRootKeyPermissionsRow, error)
 	// ListRootKeys returns live root keys from the new store for one customer workspace.
 	// The cursor is inclusive: a cursor of key_b returns key_b before key_c.
 	//
@@ -2725,11 +2714,19 @@ type Querier interface {
 	//      end,
 	//      enabled,
 	//      expires,
-	//      created_at
-	//  FROM unkey_root_keys
-	//  WHERE workspace_id = ?
-	//      AND deleted_at IS NULL
-	//      AND id >= ?
+	//      created_at,
+	//      COALESCE(
+	//          (SELECT JSON_ARRAYAGG(p.slug)
+	//          FROM unkey_principal_permissions p
+	//          WHERE p.workspace_id = k.workspace_id
+	//              AND p.principal_type = 'root_key'
+	//              AND p.principal_id = k.id),
+	//          JSON_ARRAY()
+	//      ) AS permissions
+	//  FROM unkey_root_keys k
+	//  WHERE k.workspace_id = ?
+	//      AND k.deleted_at IS NULL
+	//      AND k.id >= ?
 	//  ORDER BY id ASC
 	//  LIMIT ?
 	ListRootKeys(ctx context.Context, db DBTX, arg ListRootKeysParams) ([]ListRootKeysRow, error)

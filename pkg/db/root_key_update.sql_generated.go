@@ -69,9 +69,9 @@ WHERE id = ?
 `
 
 type UpdateUnkeyRootKeyExpirationParams struct {
-	Expires     sql.NullTime `db:"expires"`
-	ID          string       `db:"id"`
-	WorkspaceID string       `db:"workspace_id"`
+	Expires     sql.NullInt64 `db:"expires"`
+	ID          string        `db:"id"`
+	WorkspaceID string        `db:"workspace_id"`
 }
 
 // UpdateUnkeyRootKeyExpiration sets when a live new-format root key expires.

@@ -45,7 +45,7 @@ type InsertUnkeyRootKeyParams struct {
 	Start       string         `db:"start"`
 	End         string         `db:"end"`
 	Enabled     bool           `db:"enabled"`
-	Expires     sql.NullTime   `db:"expires"`
+	Expires     sql.NullInt64  `db:"expires"`
 	CreatedAt   int64          `db:"created_at"`
 }
 

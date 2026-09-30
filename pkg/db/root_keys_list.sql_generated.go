@@ -19,11 +19,19 @@ SELECT
     end,
     enabled,
     expires,
-    created_at
-FROM unkey_root_keys
-WHERE workspace_id = ?
-    AND deleted_at IS NULL
-    AND id >= ?
+    created_at,
+    COALESCE(
+        (SELECT JSON_ARRAYAGG(p.slug)
+        FROM unkey_principal_permissions p
+        WHERE p.workspace_id = k.workspace_id
+            AND p.principal_type = 'root_key'
+            AND p.principal_id = k.id),
+        JSON_ARRAY()
+    ) AS permissions
+FROM unkey_root_keys k
+WHERE k.workspace_id = ?
+    AND k.deleted_at IS NULL
+    AND k.id >= ?
 ORDER BY id ASC
 LIMIT ?
 `
@@ -35,14 +43,15 @@ type ListRootKeysParams struct {
 }
 
 type ListRootKeysRow struct {
-	ID        string         `db:"id"`
-	Name      sql.NullString `db:"name"`
-	Prefix    string         `db:"prefix"`
-	Start     string         `db:"start"`
-	End       string         `db:"end"`
-	Enabled   bool           `db:"enabled"`
-	Expires   sql.NullTime   `db:"expires"`
-	CreatedAt int64          `db:"created_at"`
+	ID          string         `db:"id"`
+	Name        sql.NullString `db:"name"`
+	Prefix      string         `db:"prefix"`
+	Start       string         `db:"start"`
+	End         string         `db:"end"`
+	Enabled     bool           `db:"enabled"`
+	Expires     sql.NullInt64  `db:"expires"`
+	CreatedAt   int64          `db:"created_at"`
+	Permissions interface{}    `db:"permissions"`
 }
 
 // ListRootKeys returns live root keys from the new store for one customer workspace.
@@ -56,11 +65,19 @@ type ListRootKeysRow struct {
 //	    end,
 //	    enabled,
 //	    expires,
-//	    created_at
-//	FROM unkey_root_keys
-//	WHERE workspace_id = ?
-//	    AND deleted_at IS NULL
-//	    AND id >= ?
+//	    created_at,
+//	    COALESCE(
+//	        (SELECT JSON_ARRAYAGG(p.slug)
+//	        FROM unkey_principal_permissions p
+//	        WHERE p.workspace_id = k.workspace_id
+//	            AND p.principal_type = 'root_key'
+//	            AND p.principal_id = k.id),
+//	        JSON_ARRAY()
+//	    ) AS permissions
+//	FROM unkey_root_keys k
+//	WHERE k.workspace_id = ?
+//	    AND k.deleted_at IS NULL
+//	    AND k.id >= ?
 //	ORDER BY id ASC
 //	LIMIT ?
 func (q *Queries) ListRootKeys(ctx context.Context, db DBTX, arg ListRootKeysParams) ([]ListRootKeysRow, error) {
@@ -81,6 +98,7 @@ func (q *Queries) ListRootKeys(ctx context.Context, db DBTX, arg ListRootKeysPar
 			&i.Enabled,
 			&i.Expires,
 			&i.CreatedAt,
+			&i.Permissions,
 		); err != nil {
 			return nil, err
 		}

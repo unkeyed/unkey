@@ -6503,7 +6503,7 @@ type V2RootKeysListKeysResponseData struct {
 	// Name User-supplied name, or null when absent.
 	Name nullable.Nullable[string] `json:"name"`
 
-	// Permissions Sorted, deduplicated URN permission strings. These strings are not expanded into accessible resources.
+	// Permissions All permissions assigned to the root key.
 	Permissions []string `json:"permissions"`
 
 	// Start Stored display fragment, including the prefix when present.

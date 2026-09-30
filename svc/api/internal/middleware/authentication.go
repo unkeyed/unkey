@@ -73,7 +73,7 @@ func WithAuthentication(config AuthenticationConfig) zen.Middleware {
 				verification := schema.KeyVerification{
 					RequestID:    sess.RequestID(),
 					Time:         time.Now().UnixMilli(),
-					WorkspaceID:  keySource.WorkspaceID,
+					WorkspaceID:  "",
 					KeySpaceID:   keySource.KeySpaceID,
 					IdentityID:   "",
 					ExternalID:   "",

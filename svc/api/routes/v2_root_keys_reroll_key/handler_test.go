@@ -99,10 +99,33 @@ func TestRerollRootKeyOverlapCannotExtendOriginal(t *testing.T) {
 	require.Equal(t, http.StatusOK, res.Status, "%s", res.RawBody)
 	original, err := db.Query.FindUnkeyRootKeyByID(t.Context(), h.DB.RO(), source.KeyID)
 	require.NoError(t, err)
-	require.Equal(t, expires.UnixMilli(), original.Expires.Time.UnixMilli())
+	require.Equal(t, expires.UnixMilli(), original.Expires.Int64)
 	rerolled, err := db.Query.FindUnkeyRootKeyByID(t.Context(), h.DB.RO(), res.Body.Data.KeyId)
 	require.NoError(t, err)
-	require.Equal(t, expires.UnixMilli(), rerolled.Expires.Time.UnixMilli())
+	require.Equal(t, expires.UnixMilli(), rerolled.Expires.Int64)
+}
+
+// TestRerollRootKeyPreservesSourceExpiration guarantees the replacement
+// inherits the source key's expiration even when the caller expires earlier.
+func TestRerollRootKeyPreservesSourceExpiration(t *testing.T) {
+	h := testutil.NewHarness(t)
+	route := newRoute(h)
+	workspace := h.Resources().UserWorkspace
+	sourceExpires := h.Clock.Now().Add(2 * time.Hour).Truncate(time.Millisecond)
+	callerExpires := h.Clock.Now().Add(time.Hour).Truncate(time.Millisecond)
+	source := h.CreateUnkeyRootKey(seed.CreateUnkeyRootKeyRequest{WorkspaceID: workspace.ID, Expires: &sourceExpires})
+	caller := h.CreateUnkeyRootKey(seed.CreateUnkeyRootKeyRequest{
+		WorkspaceID: workspace.ID,
+		Expires:     &callerExpires,
+		Permissions: []string{"unkey:v1:" + workspace.ID + ":rootKeys/" + source.KeyID + "#write"},
+	})
+
+	res := call(h, route, caller.Key, handler.Request{KeyId: source.KeyID, Expiration: nullable.NewNullNullable[int64]()})
+	require.Equal(t, http.StatusOK, res.Status, "%s", res.RawBody)
+
+	rerolled, err := db.Query.FindUnkeyRootKeyByID(t.Context(), h.DB.RO(), res.Body.Data.KeyId)
+	require.NoError(t, err)
+	require.Equal(t, sourceExpires.UnixMilli(), rerolled.Expires.Int64)
 }
 
 // TestRerollRootKeyIgnoresLegacyKeys guarantees rootKeys.rerollKey manages only
@@ -148,7 +171,7 @@ func countNewRootKeys(t *testing.T, h *testutil.Harness, workspaceID string) int
 }
 
 // TestRerollRootKeyWaitsForOriginalRowLock guarantees rerolls serialize with
-// other transactions that hold the original key row lock and copy the grants
+// other transactions that hold the original key row lock and copy the permissions
 // that remain after the lock is released.
 func TestRerollRootKeyWaitsForOriginalRowLock(t *testing.T) {
 	h := testutil.NewHarness(t)

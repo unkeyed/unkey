@@ -53,34 +53,20 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return fault.Wrap(err, fault.Code(codes.App.Internal.ServiceUnavailable.URN()), fault.Public("Failed to retrieve root keys."))
 	}
 	rows, pg := pagination.Paginate(rows, params, func(row db.ListRootKeysRow) string { return row.ID })
-	permissionsByKey := make(map[string][]string, len(rows))
-	if len(rows) > 0 {
-		ids := make([]string, 0, len(rows))
-		for _, row := range rows {
-			ids = append(ids, row.ID)
-			permissionsByKey[row.ID] = []string{}
-		}
-		storedPermissions, err := db.Query.ListRootKeyPermissions(ctx, h.DB.RO(), db.ListRootKeyPermissionsParams{
-			WorkspaceID: p.AuthorizedWorkspaceID,
-			KeyIds:      ids,
-		})
+	data := make([]openapi.V2RootKeysListKeysResponseData, 0, len(rows))
+	for _, row := range rows {
+		rootKeyPermissions, err := db.UnmarshalNullableJSONTo[[]string](row.Permissions)
 		if err != nil {
 			return fault.Wrap(err, fault.Code(codes.App.Internal.ServiceUnavailable.URN()), fault.Public("Failed to retrieve root key permissions."))
 		}
-		for _, permission := range storedPermissions {
-			permissionsByKey[permission.KeyID] = append(permissionsByKey[permission.KeyID], permission.Slug)
-		}
-	}
-	data := make([]openapi.V2RootKeysListKeysResponseData, 0, len(rows))
-	for _, row := range rows {
-		slices.Sort(permissionsByKey[row.ID])
+		slices.Sort(rootKeyPermissions)
 		name := nullable.NewNullNullable[string]()
 		if row.Name.Valid {
 			name = nullable.NewNullableWithValue(row.Name.String)
 		}
 		expires := nullable.NewNullNullable[int64]()
 		if row.Expires.Valid {
-			expires = nullable.NewNullableWithValue(row.Expires.Time.UnixMilli())
+			expires = nullable.NewNullableWithValue(row.Expires.Int64)
 		}
 		start := row.Start
 		if row.Prefix != "" {
@@ -94,7 +80,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Enabled:     row.Enabled,
 			CreatedAt:   row.CreatedAt,
 			Expires:     expires,
-			Permissions: slices.Compact(permissionsByKey[row.ID]),
+			Permissions: slices.Compact(rootKeyPermissions),
 		})
 	}
 	return s.JSON(http.StatusOK, Response{

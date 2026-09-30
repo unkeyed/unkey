@@ -9,10 +9,18 @@ SELECT
     end,
     enabled,
     expires,
-    created_at
-FROM unkey_root_keys
-WHERE workspace_id = sqlc.arg(workspace_id)
-    AND deleted_at IS NULL
-    AND id >= sqlc.arg(id_cursor)
+    created_at,
+    COALESCE(
+        (SELECT JSON_ARRAYAGG(p.slug)
+        FROM unkey_principal_permissions p
+        WHERE p.workspace_id = k.workspace_id
+            AND p.principal_type = 'root_key'
+            AND p.principal_id = k.id),
+        JSON_ARRAY()
+    ) AS permissions
+FROM unkey_root_keys k
+WHERE k.workspace_id = sqlc.arg(workspace_id)
+    AND k.deleted_at IS NULL
+    AND k.id >= sqlc.arg(id_cursor)
 ORDER BY id ASC
 LIMIT ?;

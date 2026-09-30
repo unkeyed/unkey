@@ -69,7 +69,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 		name := key.Name.String
 		if name == "" {
-			name = key.Start
+			name = key.ID
 		}
 		actor := auditactor.FromPrincipal(p)
 		return h.Auditlogs.Insert(ctx, tx, []auditlog.AuditLog{{

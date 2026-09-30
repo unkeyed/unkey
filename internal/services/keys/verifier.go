@@ -156,9 +156,13 @@ func (k *KeyVerifier) recordStatus(status KeyStatus) {
 // mutations (FORBIDDEN, INSUFFICIENT_PERMISSIONS, RATE_LIMITED, USAGE_EXCEEDED)
 // are reflected in the snapshot.
 func (k *KeyVerifier) TelemetrySnapshot() schema.KeyVerification {
+	workspaceID := k.Key.WorkspaceID
+	if k.isRootKey {
+		workspaceID = ""
+	}
 	return schema.KeyVerification{
 		RequestID:    k.session.RequestID(),
-		WorkspaceID:  k.Key.WorkspaceID,
+		WorkspaceID:  workspaceID,
 		Time:         time.Now().UnixMilli(),
 		Outcome:      string(k.Status),
 		KeySpaceID:   k.Key.KeyAuthID,
