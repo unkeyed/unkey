@@ -1,13 +1,13 @@
+import { createPermissionOptions } from "@/components/permission-options";
 import { useRoleLimits } from "@/components/roles-table/hooks/use-role-limits";
 import { SelectedItemsList } from "@/components/selected-item-list";
 import { FormCombobox } from "@/components/ui/form-combobox";
+import { useFetchPermissions } from "@/hooks/use-fetch-permissions";
+import { useSearchPermissions } from "@/hooks/use-search-permissions";
 import type { RolePermission } from "@/lib/trpc/routers/authorization/roles/connected-keys-and-perms";
 import { IconPage2Outline12 } from "@unkey/icons";
 import { useMemo, useState } from "react";
 import { RoleWarningCallout } from "../warning-callout";
-import { createPermissionOptions } from "./create-permission-options";
-import { useFetchPermissions } from "./hooks/use-fetch-permissions";
-import { useSearchPermissions } from "./hooks/use-search-permissions";
 
 type PermissionFieldProps = {
   value: string[];
@@ -60,34 +60,16 @@ export const PermissionField = ({
 
   const baseOptions = createPermissionOptions({
     permissions: allPermissions,
+    valueField: "id",
     hasNextPage: showLoadMore,
     isFetchingNextPage,
-    roleId,
     loadMore,
   });
 
-  const selectableOptions = useMemo(() => {
-    return baseOptions.filter((option) => {
-      if (option.value === "__load_more__") {
-        return true;
-      }
-      if (value.includes(option.value)) {
-        return false;
-      }
-
-      // Find the permission and check if it's already assigned to this role
-      const permission = allPermissions.find((p) => p.id === option.value);
-      if (!permission) {
-        return true;
-      }
-
-      // Filter out permissions that already have this role assigned (if roleId provided)
-      if (roleId) {
-        return !permission.roles?.some((role) => role.id === roleId);
-      }
-      return true;
-    });
-  }, [baseOptions, allPermissions, roleId, value]);
+  const selectableOptions = useMemo(
+    () => baseOptions.filter((option) => !value.includes(option.value)),
+    [baseOptions, value],
+  );
 
   const selectedPermissions = useMemo(() => {
     return value
@@ -133,7 +115,7 @@ export const PermissionField = ({
       if (permission) {
         setSelectedPermissionDetails((permissions) => [
           ...permissions.filter((item) => item.id !== permission.id),
-          permission,
+          { ...permission, description: permission.description ?? null },
         ]);
       }
       onChange([...value, permissionId]);

@@ -92,6 +92,16 @@ describe("buildDeploymentListInput", () => {
     expect(input.startTime).toBe(expected);
   });
 
+  test.each([
+    ["1w", "2026-09-21T12:34:00Z"],
+    ["7d", "2026-09-21T12:34:00Z"],
+    ["1w2d3h30m", "2026-09-19T09:04:00Z"],
+  ])("converts the URL relative window %s", (since, expected) => {
+    const now = Date.parse("2026-09-28T12:34:56.789Z");
+    const { input } = buildDeploymentListInput([filter("since", since)], environments, now);
+    expect(input.startTime).toBe(Date.parse(expected));
+  });
+
   test("keeps the later of an explicit start and a relative window", () => {
     const now = 1_700_000_000_000;
     const { input } = buildDeploymentListInput(

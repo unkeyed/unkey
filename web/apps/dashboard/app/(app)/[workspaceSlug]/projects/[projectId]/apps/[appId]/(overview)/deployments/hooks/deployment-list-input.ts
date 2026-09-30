@@ -5,7 +5,7 @@ import {
   isDeploymentStatusGroup,
 } from "@/lib/collections/deploy/deployment-status";
 import type { Environment } from "@/lib/collections/deploy/environments";
-import { parseDuration } from "@/lib/duration";
+import { getTimestampFromRelative } from "@/lib/duration";
 import type { DeploymentListFilterValue } from "../filters.schema";
 
 export type DeploymentListInput = {
@@ -71,7 +71,7 @@ export function buildDeploymentListInput(
   // stable across renders within the same minute.
   const sinceStart =
     since !== undefined
-      ? Math.floor((now - parseDuration(since)) / MINUTE_MS) * MINUTE_MS
+      ? Math.floor(getTimestampFromRelative(since, now) / MINUTE_MS) * MINUTE_MS
       : undefined;
   const explicitStart = numberValue(filters, "startTime");
   const endTime = numberValue(filters, "endTime");

@@ -24,8 +24,6 @@ import { getConnectedKeysAndPerms } from "./authorization/roles/connected-keys-a
 import { queryKeys } from "./authorization/roles/keys/query-keys";
 import { searchKeys } from "./authorization/roles/keys/search-key";
 import { rolesLlmSearch } from "./authorization/roles/llm-search";
-import { queryRolesPermissions } from "./authorization/roles/permissions/query-permissions";
-import { searchRolesPermissions } from "./authorization/roles/permissions/search-permissions";
 import { queryRoles } from "./authorization/roles/query";
 import { updateRole } from "./authorization/roles/update";
 import { getDeployBudget, setDeployBudget } from "./billing/deploy-budget";
@@ -83,11 +81,9 @@ import { queryIdentityDetails } from "./identity/query-identity-details";
 import { queryIdentityLogs } from "./identity/query-logs";
 import { queryIdentityTimeseries } from "./identity/query-timeseries";
 import { createRootKey } from "./key/createRootKey";
-import { fetchKeyPermissions } from "./key/fetch-key-permissions";
 import { queryKeyDetailsLogs } from "./key/query-logs";
 import { keyDetailsVerificationsTimeseries } from "./key/query-timeseries";
 import { getConnectedRolesAndPerms } from "./key/rbac/connected-roles-and-perms";
-import { getPermissionSlugs } from "./key/rbac/get-permission-slugs";
 import { rerollRootKey } from "./key/reroll";
 import { updateRootKeyName } from "./key/updateRootKeyName";
 import { updateRootKeyPermissions } from "./key/updateRootKeyPermissions";
@@ -156,12 +152,10 @@ export const router = t.router({
     reveal: revealSharedSecret,
   }),
   key: t.router({
-    fetchPermissions: fetchKeyPermissions,
     logs: t.router({
       query: queryKeyDetailsLogs,
       timeseries: keyDetailsVerificationsTimeseries,
     }),
-    queryPermissionSlugs: getPermissionSlugs,
     connectedRolesAndPerms: getConnectedRolesAndPerms,
   }),
   rootKey: t.router({
@@ -249,10 +243,6 @@ export const router = t.router({
       keys: t.router({
         search: searchKeys,
         query: queryKeys,
-      }),
-      permissions: t.router({
-        search: searchRolesPermissions,
-        query: queryRolesPermissions,
       }),
       update: updateRole,
       llmSearch: rolesLlmSearch,

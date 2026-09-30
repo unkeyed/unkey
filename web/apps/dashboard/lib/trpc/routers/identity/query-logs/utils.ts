@@ -1,4 +1,4 @@
-import { getTimestampFromRelative } from "@/lib/utils";
+import { getTimestampFromRelative } from "@/lib/duration";
 import type { KEY_VERIFICATION_OUTCOMES } from "@unkey/clickhouse/src/keys/keys";
 import type { z } from "zod";
 import type { identityLogsPayload } from "./query-logs.schema";

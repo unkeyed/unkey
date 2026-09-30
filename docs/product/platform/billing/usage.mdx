@@ -23,21 +23,24 @@ Usage has two parts, **Key verifications** and **standalone rate limit operation
 
 ## Compute
 
-Compute usage totals cost for the period, broken down by project, then <Tooltip tip="A Compute app: a deployable service inside a project. Not 'your application' in general.">app</Tooltip>, then <Tooltip tip="A production or preview environment of a Compute app, not the dashboard label on a key.">environment</Tooltip>. Each level shows four quantities and a cost.
+Compute usage totals cost for the period, broken down by project, then <Tooltip tip="A Compute app: a deployable service inside a project. Not 'your application' in general.">app</Tooltip>, then <Tooltip tip="A production or preview environment of a Compute app, not the dashboard label on a key.">environment</Tooltip>. Each level shows the metered quantities and a cost.
 
 <Frame>
   <img src="/images/dashboard/platform--billing-usage--compute.png" alt="Usage page with a daily Compute cost chart and a project expanded to show spend by resource and cost per app" />
 </Frame>
 
+### What we meter
 
-| Quantity          | Meaning                                                      |
-| ----------------- | ------------------------------------------------------------ |
-| CPU (vCPU-hrs)    | vCPU allocated to running instances, integrated over time.   |
-| Memory (GiB-hrs)  | Memory allocated to running instances, integrated over time. |
-| Egress (GiB)      | Bytes sent out of the platform.                              |
-| Storage (GiB-hrs) | Ephemeral disk allocated, integrated over time.              |
+| Quantity | How it's billed |
+| --- | --- |
+| CPU (vCPU-hrs) | Average active virtual CPU per running instance. Billed on actual usage, not the vCPU ceiling you configured. Idle time waiting on I/O does not count as active CPU. |
+| Memory (GiB-hrs) | Average memory used per running instance. Billed on actual usage, not the memory ceiling you configured. |
+| Storage (GiB-hrs) | Ephemeral disk volume mounted per instance. Billed on the allocated size for as long as the instance runs, up to 10 GiB per instance. |
+| Egress (GiB) | Total outbound network data transfer for the month. |
+| Verified keys | Distinct keys with at least one verification during the month through a Key Auth policy on Compute. These bill to the project, not a keyspace. |
 
+Runtime settings are ceilings and headroom. Most workloads never pin 100% of CPU or memory, so configuring 1 vCPU while averaging 0.5 vCPU bills the 0.5, not the 1. Preview deployments use the same rates as production.
 
-If a project uses gateway key auth, it also carries **Verified keys**: those verifications bill to the project, not a keyspace.
+Unit rates and the plan fee with included usage credit are on [unkey.com/pricing](https://unkey.com/pricing). Use the calculator at the bottom of that page to estimate a month. The plan fee and included credit are also summarized on [Plans](/platform/billing/plans).
 
-Usage is what you consumed. [Limits](/platform/billing/limits) are the ceilings. Costs here are the metered part of the bill. The plan fee and included credit are on [Plans](/platform/billing/plans).
+Usage is what you consumed. [Limits](/platform/billing/limits) are the ceilings. Costs here are the metered part of the bill.

@@ -111,7 +111,7 @@ export const KeyRbacDialog = ({
   const {
     data: dataSlugs,
     isLoading: isSlugsLoading,
-    refetch: refetchPermissionSlugs,
+    hasError: hasSlugsError,
   } = useFetchPermissionSlugs(watchedRoleNames, watchedDirectPermissionSlugs, isDialogOpen);
 
   // Reset form data when dialog opens
@@ -137,13 +137,10 @@ export const KeyRbacDialog = ({
     setIsDialogOpen(false);
   });
 
-  const onSubmit = async (data: FormValues) => {
-    const resolved = await refetchPermissionSlugs();
-
+  const onSubmit = (data: FormValues) => {
     updateKeyRbacMutation.mutate({
       ...data,
-      totalEffectivePermissions:
-        resolved.data?.totalCount ?? dataSlugs?.totalCount ?? data.directPermissionSlugs.length,
+      totalEffectivePermissions: dataSlugs?.totalCount ?? data.directPermissionSlugs.length,
     });
   };
 
@@ -197,7 +194,7 @@ export const KeyRbacDialog = ({
                   variant="primary"
                   size="xlg"
                   className="w-full rounded-lg transition-all duration-200"
-                  disabled={!isValid || updateKeyRbacMutation.isLoading}
+                  disabled={!isValid || isSlugsLoading || updateKeyRbacMutation.isLoading}
                   loading={updateKeyRbacMutation.isLoading}
                 >
                   {DIALOG_CONFIG.buttonText}
@@ -243,6 +240,7 @@ export const KeyRbacDialog = ({
                 slugs={dataSlugs?.slugs}
                 totalCount={dataSlugs?.totalCount}
                 isLoading={isSlugsLoading}
+                hasError={hasSlugsError}
               />
             </div>
           </DialogContainer>

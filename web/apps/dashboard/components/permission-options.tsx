@@ -1,31 +1,20 @@
-import { StatusBadge } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/settings/components/status-badge";
-import { IconLockOutline12, IconPage2Outline12 } from "@unkey/icons";
-import { Badge, Button, HoverCard, HoverCardContent, HoverCardTrigger } from "@unkey/ui";
-
-type Permission = {
-  id: string;
-  name: string;
-  description: string | null;
-  slug: string;
-  roles: {
-    id: string;
-    name: string;
-  }[];
-};
+import type { Permission } from "@unkey/api/models/components";
+import { IconPage2Outline12 } from "@unkey/icons";
+import { Button, HoverCard, HoverCardContent, HoverCardTrigger } from "@unkey/ui";
 
 type PermissionSelectorProps = {
   permissions: Permission[];
+  valueField: "id" | "slug";
   hasNextPage?: boolean;
   isFetchingNextPage: boolean;
-  roleId?: string;
   loadMore: () => void;
 };
 
 export function createPermissionOptions({
   permissions,
+  valueField,
   hasNextPage,
   isFetchingNextPage,
-  roleId,
   loadMore,
 }: PermissionSelectorProps) {
   const options = permissions.map((permission) => ({
@@ -44,13 +33,6 @@ export function createPermissionOptions({
                       <span className="font-medium text-gray-12 text-left truncate">
                         {permission.name}
                       </span>
-                      {permission.roles.find((item) => item.id === roleId) && (
-                        <StatusBadge
-                          variant="locked"
-                          text="Already assigned"
-                          icon={<IconLockOutline12 />}
-                        />
-                      )}
                     </div>
                     <span className="text-gray-10 text-xs font-mono truncate">
                       {permission.slug}
@@ -70,7 +52,7 @@ export function createPermissionOptions({
           side="right"
           align="start"
           sideOffset={30}
-          className="shadow-floating overflow-hidden rounded-xl p-0 w-[320px] z-100"
+          className="shadow-floating overflow-hidden rounded-xl p-0 w-80 z-100"
         >
           <div className="flex flex-col h-full">
             {/* Header */}
@@ -78,7 +60,7 @@ export function createPermissionOptions({
               Permission Details
             </div>
             {/* Content */}
-            <div className="flex flex-col px-4 py-3 gap-3">
+            <div className="flex flex-col gap-3 px-4 py-3">
               <div>
                 <div className="text-xs font-medium text-gray-11 mb-1">Permission ID</div>
                 <div className="text-xs text-gray-12 font-mono break-all">{permission.id}</div>
@@ -97,18 +79,6 @@ export function createPermissionOptions({
                   <div className="text-xs text-gray-12">{permission.description}</div>
                 </div>
               )}
-              {permission.roles.length > 0 && (
-                <div>
-                  <div className="text-xs font-medium text-gray-11 mb-2">Roles</div>
-                  <div className="flex flex-wrap gap-1">
-                    {permission.roles.map((role) => (
-                      <Badge key={role.id} variant="secondary" className="text-xs">
-                        {role.name}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-              )}
             </div>
           </div>
         </HoverCardContent>
@@ -121,15 +91,17 @@ export function createPermissionOptions({
             <IconPage2Outline12 className="text-grayA-11" />
           </div>
           <span className="text-gray-12 font-medium text-xs w-[120px] truncate text-left">
-            {permission.id.length > 15
-              ? `${permission.id.slice(0, 8)}...${permission.id.slice(-4)}`
-              : permission.id}
+            {valueField === "slug"
+              ? permission.slug
+              : permission.id.length > 15
+                ? `${permission.id.slice(0, 8)}...${permission.id.slice(-4)}`
+                : permission.id}
           </span>
         </div>
         <span className="w-[200px] truncate text-gray-8 text-left">{permission.name}</span>
       </div>
     ),
-    value: permission.id,
+    value: permission[valueField],
     searchValue: `${permission.id} ${permission.name} ${permission.slug} ${
       permission.description || ""
     }`.trim(),

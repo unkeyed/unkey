@@ -1,13 +1,14 @@
 "use client";
 
 import { MAX_KEYS_FETCH_LIMIT } from "@/app/(app)/[workspaceSlug]/authorization/roles/components/upsert-role/components/assign-key/hooks/use-fetch-keys";
-import { MAX_PERMS_FETCH_LIMIT } from "@/app/(app)/[workspaceSlug]/authorization/roles/components/upsert-role/components/assign-permission/hooks/use-fetch-permissions";
 import {
   type MenuItem,
   TableActionPopoverDefaultTrigger,
 } from "@/components/logs/table-action.popover";
+import { permissionsQueryOptions } from "@/hooks/use-fetch-permissions";
 import { trpc } from "@/lib/trpc/client";
 import type { RoleBasic } from "@/lib/trpc/routers/authorization/roles/query";
+import { type QueryClient, useQueryClient } from "@tanstack/react-query";
 import { IconCloneOutline18, IconPenWriting3Outline18, IconTrashOutline18 } from "@unkey/icons";
 import { toast } from "@unkey/ui";
 import dynamic from "next/dynamic";
@@ -30,7 +31,8 @@ type RolesTableActionsProps = {
 
 export const RolesTableActions = ({ role }: RolesTableActionsProps) => {
   const trpcUtils = trpc.useUtils();
-  const menuItems = getRolesTableActionItems(role, trpcUtils);
+  const queryClient = useQueryClient();
+  const menuItems = getRolesTableActionItems(role, trpcUtils, queryClient);
 
   return <KeysTableActionPopover items={menuItems} />;
 };
@@ -38,6 +40,7 @@ export const RolesTableActions = ({ role }: RolesTableActionsProps) => {
 const getRolesTableActionItems = (
   role: RoleBasic,
   trpcUtils: ReturnType<typeof trpc.useUtils>,
+  queryClient: QueryClient,
 ): MenuItem[] => {
   return [
     {
@@ -50,9 +53,7 @@ const getRolesTableActionItems = (
           trpcUtils.authorization.roles.keys.query.prefetchInfinite({
             limit: MAX_KEYS_FETCH_LIMIT,
           }),
-          trpcUtils.authorization.roles.permissions.query.prefetchInfinite({
-            limit: MAX_PERMS_FETCH_LIMIT,
-          }),
+          queryClient.prefetchInfiniteQuery(permissionsQueryOptions()),
           trpcUtils.authorization.roles.connectedKeysAndPerms.prefetch({
             roleId: role.roleId,
           }),
