@@ -151,3 +151,94 @@ func TestDisableLockMakesMintRefuse(t *testing.T) {
 	require.Equal(t, http.StatusForbidden, <-minted, "the mint must see the committed disable")
 	require.Equal(t, 0, countPortalSessions(t, h, workspace.ID, "user_racing"), "no session may be written")
 }
+
+// A re-point that holds the portal lock makes a concurrent createSession wait.
+// The mint already built its grant from the old keyspace, so once the re-point
+// commits it must refuse rather than write a session the re-point can't revoke.
+func TestRepointLockMakesMintRefuse(t *testing.T) {
+	h := testutil.NewHarness(t)
+	ctx := context.Background()
+	workspace := h.Resources().UserWorkspace
+	oldKeyspace := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspace.ID})
+	newKeyspace := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspace.ID})
+	portalID := insertKeyspacePortal(t, h, workspace.ID, "repoint-first", oldKeyspace.KeyAuthID.String)
+
+	create := &handler.Handler{DB: h.DB, Auditlogs: h.Auditlogs, PortalBaseURL: "https://portal.unkey.com", Clock: h.Clock}
+	h.Register(create)
+	headers := bearer(h.CreateRootKey(workspace.ID, "portal.*.create_portal_session", "api.*.read_key", "api.*.read_api"))
+
+	// Stands in for updatePortal's re-point: write the portal row, then revoke.
+	repoint, err := h.DB.RW().Begin(ctx)
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = repoint.Rollback() })
+	_, err = repoint.ExecContext(ctx, "UPDATE portals SET key_auth_id = ? WHERE id = ?", newKeyspace.KeyAuthID.String, portalID)
+	require.NoError(t, err)
+	_, err = db.Query.RevokePortalSessionsByPortal(ctx, repoint, db.RevokePortalSessionsByPortalParams{
+		RevokedAt:   sql.NullInt64{Valid: true, Int64: h.Clock.Now().UnixMilli()},
+		PortalID:    portalID,
+		WorkspaceID: workspace.ID,
+	})
+	require.NoError(t, err)
+
+	minted := callAsync(t, h, create, headers, handler.Request{
+		Portal:     portalID,
+		ExternalId: "user_repoint",
+		Scopes:     []openapi.V2PortalCreateSessionRequestBodyScopes{openapi.KeysRead},
+	})
+	select {
+	case status := <-minted:
+		t.Fatalf("the mint must wait for the re-point's lock, but finished with %d", status)
+	case <-time.After(blockedFor):
+	}
+
+	require.NoError(t, repoint.Commit())
+
+	require.Equal(t, http.StatusConflict, <-minted, "the mint must refuse a grant built from the old keyspace")
+	require.Equal(t, 0, countPortalSessions(t, h, workspace.ID, "user_repoint"), "no session may be written")
+}
+
+// A mint that holds the portal lock makes a concurrent re-point wait, so the
+// re-point's revoke runs after the insert and catches the old-scope session.
+func TestMintLockMakesRepointRevokeTheNewSession(t *testing.T) {
+	h := testutil.NewHarness(t)
+	ctx := context.Background()
+	workspace := h.Resources().UserWorkspace
+	oldKeyspace := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspace.ID})
+	newKeyspace := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspace.ID})
+	portalID := insertKeyspacePortal(t, h, workspace.ID, "mint-before-repoint", oldKeyspace.KeyAuthID.String)
+
+	update := &updateportal.Handler{DB: h.DB, Auditlogs: h.Auditlogs, Clock: h.Clock}
+	h.Register(update)
+	// Re-pointing also needs read access to the new keyspace.
+	headers := bearer(h.CreateRootKey(workspace.ID, "portal.*.update_portal", "api.*.read_api"))
+
+	mint, err := h.DB.RW().Begin(ctx)
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = mint.Rollback() })
+	_, err = db.Query.LockPortalForMint(ctx, mint, db.LockPortalForMintParams{ID: portalID, WorkspaceID: workspace.ID})
+	require.NoError(t, err)
+
+	repointed := callAsync(t, h, update, headers, map[string]any{"portal": portalID, "keyspaceId": newKeyspace.KeyAuthID.String})
+	select {
+	case status := <-repointed:
+		t.Fatalf("the re-point must wait for the mint's lock, but finished with %d", status)
+	case <-time.After(blockedFor):
+	}
+
+	now := h.Clock.Now()
+	require.NoError(t, db.Query.InsertPortalSession(ctx, mint, db.InsertPortalSessionParams{
+		ID:                    uid.New(uid.PortalSessionPrefix),
+		WorkspaceID:           workspace.ID,
+		PortalID:              portalID,
+		ExternalID:            "user_repoint",
+		Scopes:                []byte(fmt.Sprintf(`{"keyspaceIds":[%q],"scopes":["keys:read"]}`, oldKeyspace.KeyAuthID.String)),
+		ExchangeCodeHash:      hash.Sha256(uid.Secure()),
+		ExchangeCodeExpiresAt: now.Add(15 * time.Minute).UnixMilli(),
+		ReturnUrl:             sql.NullString{Valid: false, String: ""},
+		CreatedAt:             now.UnixMilli(),
+	}))
+	require.NoError(t, mint.Commit())
+
+	require.Equal(t, http.StatusOK, <-repointed)
+	require.Equal(t, 0, liveSessions(t, h, portalID), "the re-point must revoke the session minted before it")
+}
