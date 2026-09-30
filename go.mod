@@ -58,6 +58,7 @@ require (
 	github.com/oapi-codegen/nullable v1.1.0
 	github.com/oapi-codegen/runtime v1.4.2
 	github.com/oasdiff/oasdiff v1.32.1
+	github.com/open-feature/go-sdk v1.18.0
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/pb33f/libopenapi v0.38.1
 	github.com/pb33f/libopenapi-validator v0.13.10

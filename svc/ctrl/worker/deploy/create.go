@@ -69,7 +69,7 @@ func (w *Workflow) Create(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 		return nil, err
 	}
 
-	payload, rejection, err := w.validateAndBuildPayload(ctx, req, target, status)
+	payload, rejection, err := w.validateAndBuildPayload(ctx, deploymentID, req, target, status)
 	if err != nil {
 		return nil, err
 	}
@@ -215,12 +215,15 @@ type deployPayload struct {
 
 	// The deployment a rebuild reproduces. Empty otherwise.
 	RebuildSourceID string `json:"rebuild_source_id"`
+
+	PrivateNetworking bool `json:"private_networking"`
 }
 
 // validateAndBuildPayload decides every rejection, then resolves the source and
 // secrets into the complete [deployPayload].
 func (w *Workflow) validateAndBuildPayload(
 	ctx restate.Context,
+	deploymentID string,
 	req *hydrav1.DeployCreateRequest,
 	target *db.FindDeployTargetRow,
 	status mysqltype.DeploymentsStatus,
@@ -261,10 +264,14 @@ func (w *Workflow) validateAndBuildPayload(
 		prNumber := req.GetGit().GetPrNumber()
 		source := buildSource{Image: "", Git: nil}
 		secrets := []byte{}
+		privateNetworking := false
 
 		if willBuild {
 			var err error
-			if secrets, err = w.loadSecrets(runCtx, *target); err != nil {
+			if privateNetworking, err = w.decidePrivateNetworking(runCtx, deploymentID, *target); err != nil {
+				return payload, err
+			}
+			if secrets, err = w.loadSecrets(runCtx, *target, privateNetworking); err != nil {
 				return payload, err
 			}
 
@@ -294,6 +301,7 @@ func (w *Workflow) validateAndBuildPayload(
 		payload.Status = status
 		payload.CreatedAt = time.Now().UnixMilli()
 		payload.Secrets = secrets
+		payload.PrivateNetworking = privateNetworking
 		payload.Command = target.Command
 		payload.PRNumber = prNumber
 		payload.Source = source
@@ -396,6 +404,7 @@ func (w *Workflow) insertDeployment(
 				Port:                          target.Port,
 				ShutdownSignal:                db.DeploymentsShutdownSignal(target.ShutdownSignal),
 				UpstreamProtocol:              db.DeploymentsUpstreamProtocol(target.UpstreamProtocol),
+				PrivateNetworking:             payload.PrivateNetworking,
 				Healthcheck:                   target.Healthcheck,
 				PrNumber:                      sql.NullInt64{Int64: payload.PRNumber, Valid: payload.PRNumber != 0},
 				ForkRepositoryFullName:        sql.NullString{String: commit.ForkRepository, Valid: commit.ForkRepository != ""},
@@ -432,7 +441,7 @@ func (w *Workflow) insertDeployment(
 		// ran the checks above, and deploying it would skip the plan, spend
 		// and approval gates. That one fails.
 		if insertErr != nil && db.IsDuplicateKeyError(insertErr) {
-			existing, findErr := w.db.FindDeploymentAppAndStatus(runCtx, deploymentID)
+			existing, findErr := w.db.FindDeploymentForCreate(runCtx, deploymentID)
 			if findErr != nil || existing.AppID != target.AppID || existing.Status != payload.Status {
 				return restate.ToTerminalError(fmt.Errorf("deployment id %s is not available", deploymentID))
 			}
@@ -636,7 +645,7 @@ func triggerFromProto(trigger ctrlv1.DeploymentTrigger) db.DeploymentsTrigger {
 	}
 }
 
-func (w *Workflow) loadSecrets(ctx context.Context, target db.FindDeployTargetRow) ([]byte, error) {
+func (w *Workflow) loadSecrets(ctx context.Context, target db.FindDeployTargetRow, privateNetworking bool) ([]byte, error) {
 	envVars, err := w.db.FindAppEnvVarsByAppAndEnv(ctx, db.FindAppEnvVarsByAppAndEnvParams{
 		AppID:         target.AppID,
 		EnvironmentID: target.EnvironmentID,
@@ -645,14 +654,17 @@ func (w *Workflow) loadSecrets(ctx context.Context, target db.FindDeployTargetRo
 		return nil, fmt.Errorf("failed to fetch app environment variables: %w", err)
 	}
 
-	bindings, err := w.db.ListAppBindingsByApp(ctx, db.ListAppBindingsByAppParams{
-		WorkspaceID:   target.WorkspaceID,
-		ProjectID:     target.ProjectID,
-		AppID:         target.AppID,
-		EnvironmentID: target.EnvironmentID,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to fetch app bindings: %w", err)
+	var bindings []db.ListAppBindingsByAppRow
+	if privateNetworking {
+		bindings, err = w.db.ListAppBindingsByApp(ctx, db.ListAppBindingsByAppParams{
+			WorkspaceID:   target.WorkspaceID,
+			ProjectID:     target.ProjectID,
+			AppID:         target.AppID,
+			EnvironmentID: target.EnvironmentID,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("failed to fetch app bindings: %w", err)
+		}
 	}
 
 	return w.buildSecretsBlob(ctx, target.EnvironmentID, envVars, bindings)

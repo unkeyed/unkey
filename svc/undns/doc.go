@@ -16,14 +16,15 @@
 // resolver doesn't infer reverse access and doesn't fall back to bindings for
 // another deployment, app, project, or workspace.
 //
-// Ctrl also publishes <app-slug>.unkey.internal for every active deployment in
-// a workspace enrolled in private networking, without a stored app binding. A
-// workspace is enrolled while it has an app binding to another app. The name
-// resolves that deployment's ready replicas across regions, excluding other
-// versions of the app. Krane injects it as UNKEY_DEPLOYMENT_HOST, points the
-// deployment's Pods at undns, and grants unicast TCP and UDP connectivity
-// between those replicas. Pods of other workspaces keep cluster DNS. Binding
-// names can't reuse the caller app's slug or start with unkey.
+// Ctrl also publishes <app-slug>.unkey.internal for every active deployment
+// created with private networking, without a stored app binding. Ctrl decides
+// that once when it creates the deployment: the workspace needs an app binding
+// to another app and the private-networking feature flag. The name resolves
+// that deployment's ready replicas across regions, excluding other versions of
+// the app. Krane injects it as UNKEY_DEPLOYMENT_HOST, points the deployment's
+// Pods at undns, and grants unicast TCP and UDP connectivity between those
+// replicas. Other deployments keep cluster DNS. Binding names can't reuse the
+// caller app's slug or start with unkey.
 //
 // # Answers
 //

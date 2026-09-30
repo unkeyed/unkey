@@ -26,6 +26,7 @@ CREATE TABLE `deployments` (
 	`port` int NOT NULL DEFAULT 8080,
 	`shutdown_signal` enum('SIGTERM','SIGINT','SIGQUIT','SIGKILL') NOT NULL DEFAULT 'SIGTERM',
 	`upstream_protocol` enum('http1','h2c') NOT NULL DEFAULT 'http1',
+	`private_networking` boolean NOT NULL DEFAULT false,
 	`healthcheck` json,
 	`pr_number` bigint,
 	`fork_repository_full_name` varchar(256),

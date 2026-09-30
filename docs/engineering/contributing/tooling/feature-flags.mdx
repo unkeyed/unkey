@@ -1,9 +1,9 @@
 ---
 title: "Feature flags"
-description: "How feature flags work in the dashboard"
+description: "How feature flags work in the dashboard and Ctrl"
 ---
 
-Flags are declared in `web/apps/dashboard/lib/flags/index.ts`. The `identify` helper reads the current session and passes stable `user.id` and `org.id` entities to each flag, so targeting by user or org doesn't need extra wiring per flag.
+Flags are declared in `web/apps/dashboard/lib/flags/index.ts`. The `identify` helper reads the current session and passes stable `user.id` and `team.id` entities to each flag, so targeting by user or organization doesn't need extra wiring per flag. `team.id` is the WorkOS organization ID, which the database stores as `workspaces.org_id`. It isn't the Unkey workspace ID.
 
 The flag registry uses a local adapter wrapper instead of calling `vercelAdapter()` directly. When the Vercel `FLAGS` setup is present, the wrapper returns the Vercel adapter. When `FLAGS` is absent, it returns a noop adapter that resolves each flag to its declared `defaultValue`.
 
@@ -76,3 +76,46 @@ In dev, the Vercel Toolbar appears in the bottom-right. You can override a flag 
 Self-hosted dashboards can import `@/lib/flags` without configuring Vercel Flags. If `FLAGS` is missing, the adapter wrapper logs a warning and evaluates flags through the noop adapter.
 
 The noop adapter doesn't contact Vercel, doesn't report flag values, and doesn't load remote targeting rules. It returns each flag's `defaultValue`, so choose safe defaults before using a flag in a self-hosted path.
+
+## Ctrl
+
+Ctrl evaluates flags through an isolated OpenFeature API from `pkg/featureflag`. Application code depends only on the OpenFeature client. The provider is selected in the ctrl worker config:
+
+```toml
+[feature_flags]
+# "" (default): every flag returns its code default, with no network access.
+# "static": local development and tests only.
+# "vercel": polls the Vercel Flags datafile.
+provider = "static"
+
+[feature_flags.static]
+private-networking = true
+
+[feature_flags.vercel]
+sdk_key = "${VERCEL_FLAGS_SDK_KEY}"
+# refresh_interval = "1m"
+# http_timeout = "10s"
+# max_staleness = "10m"
+```
+
+`sdk_key` is the bare server SDK key for one Vercel environment, starting with `vf_server_`. It isn't the `FLAGS` connection string that the dashboard reads. The provider doesn't send an environment header, so the key selects the environment.
+
+The static provider returns the listed value for every workspace. A flag missing from `feature_flags.static` is an evaluation error, not `false`. Restart the worker to apply config changes.
+
+Ctrl sends only `team.id`, set to `workspaces.org_id`, so dashboard targeting by organization applies to Ctrl too. Infrastructure decisions never use a user identity.
+
+The Vercel provider in `pkg/featureflag/vercel` supports a subset of Vercel Flags: boolean variants, direct targets, a paused flag, and a fixed fallthrough variant. A flag that uses rules, splits, experiments, or environment reuse returns a parse error instead of a value. The provider keeps the last good datafile for up to `max_staleness` while refreshes fail. After that, and before the first successful refresh, evaluations return `PROVIDER_NOT_READY`. The worker exports `unkey_control_feature_flags_ready`, `unkey_control_feature_flags_snapshot_age_seconds`, and `unkey_control_feature_flags_refresh_failures_total`.
+
+### Private networking
+
+Ctrl reads `private-networking` once, when it creates a deployment, and stores the answer in `deployments.private_networking`. Create evaluates the flag inside the journaled step that builds the deployment payload, after the plan, spend, and runtime checks. Only workspaces with an app binding to another app are evaluated. If a row already exists under the same deployment ID, for example when an approval starts a deployment its push created, Create reuses the stored decision without evaluating the flag. A rebuild gets a new deployment ID and evaluates again. Other deployments store `false` without a flag lookup. A deployment stored as `false` also gets no binding variables, because their hostnames resolve only through private DNS.
+
+Krane, discovery, and the resolver read the stored value, never the flag. Every region configures the same DNS for a deployment, and a later flag change or flag outage doesn't rewrite DNS for running deployments. To apply a changed flag to an app, redeploy it.
+
+A flag evaluation error fails the payload step, and Restate retries it. If the retries fail, the create fails without writing a row. `unkey_control_feature_flag_evaluations_total{flag, result}` counts evaluations by result.
+
+#### Roll out the column
+
+Apply the schema change that adds `deployments.private_networking` before you deploy binaries that read it. Ctrl and the API select the column and Ctrl inserts it, so an older schema fails those queries.
+
+The column defaults to `false`, and nothing backfills it. Deployments that used private networking before the column existed switch to cluster DNS at their next reconcile. Redeploy them with the flag on, or set the column explicitly for those deployments as a reviewed migration.

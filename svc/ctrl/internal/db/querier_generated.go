@@ -405,6 +405,7 @@ type Querier interface {
 	//  SELECT
 	//      p.workspace_id AS workspace_id,
 	//      w.slug AS workspace_slug,
+	//      w.org_id AS workspace_org_id,
 	//      p.id AS project_id,
 	//      a.id AS app_id,
 	//      a.source_type AS source_type,
@@ -438,7 +439,14 @@ type Querier interface {
 	//          WHERE ars2.app_id = a.id
 	//            AND ars2.environment_id = e.id
 	//            AND r.can_schedule
-	//      ) AS has_schedulable_region
+	//      ) AS has_schedulable_region,
+	//      EXISTS (
+	//          SELECT 1
+	//          FROM app_bindings pb
+	//          WHERE pb.workspace_id = p.workspace_id
+	//            AND pb.resource_type = 'app'
+	//            AND pb.resource_id <> pb.app_id
+	//      ) AS private_network_eligible
 	//  FROM apps a
 	//  INNER JOIN projects p ON p.id = a.project_id
 	//  INNER JOIN workspaces w ON w.id = p.workspace_id
@@ -468,21 +476,13 @@ type Querier interface {
 	//    AND b.plan IS NOT NULL
 	//    AND w.deleted_at_m IS NULL
 	FindDeployWorkspaceByStripeCustomerID(ctx context.Context, stripeCustomerID sql.NullString) (FindDeployWorkspaceByStripeCustomerIDRow, error)
-	// FindDeploymentAppAndStatus returns the two columns the create insert checks
-	// when it tolerates a row that is already there. Reading the full row for that
-	// would carry the encrypted environment variables and sentinel config with it.
-	//
-	//  SELECT app_id, status
-	//  FROM deployments
-	//  WHERE id = ?
-	FindDeploymentAppAndStatus(ctx context.Context, id string) (FindDeploymentAppAndStatusRow, error)
 	//FindDeploymentById
 	//
 	//  SELECT pk, id, k8s_name, workspace_id, project_id, environment_id, app_id,
 	//      source, image_requested, image_resolved, build_id, git_commit_sha, git_branch,
 	//      git_commit_message, git_commit_author_handle, git_commit_author_avatar_url, git_commit_timestamp,
 	//      sentinel_config, cpu_millicores, memory_mib, storage_mib, desired_state,
-	//      encrypted_environment_variables, command, port, shutdown_signal, upstream_protocol, healthcheck,
+	//      encrypted_environment_variables, command, port, shutdown_signal, upstream_protocol, private_networking, healthcheck,
 	//      pr_number, fork_repository_full_name, github_deployment_id, invocation_id, status,
 	//      first_ready_at, `trigger`, triggered_by, trigger_reason, created_at, updated_at
 	//  FROM deployments WHERE id = ?
@@ -493,7 +493,7 @@ type Querier interface {
 	//      source, image_requested, image_resolved, build_id, git_commit_sha, git_branch,
 	//      git_commit_message, git_commit_author_handle, git_commit_author_avatar_url, git_commit_timestamp,
 	//      sentinel_config, cpu_millicores, memory_mib, storage_mib, desired_state,
-	//      encrypted_environment_variables, command, port, shutdown_signal, upstream_protocol, healthcheck,
+	//      encrypted_environment_variables, command, port, shutdown_signal, upstream_protocol, private_networking, healthcheck,
 	//      pr_number, fork_repository_full_name, github_deployment_id, invocation_id, status,
 	//      first_ready_at, `trigger`, triggered_by, trigger_reason, created_at, updated_at
 	//  FROM deployments WHERE k8s_name = ?
@@ -505,6 +505,15 @@ type Querier interface {
 	//  FROM deployments
 	//  WHERE id = ?
 	FindDeploymentForBuild(ctx context.Context, id string) (FindDeploymentForBuildRow, error)
+	// FindDeploymentForCreate returns the columns Create reads from a row that is
+	// already there: the insert checks the app and status, and an approval reuses
+	// the private networking decision. Reading the full row would carry the
+	// encrypted environment variables and sentinel config with it.
+	//
+	//  SELECT app_id, status, private_networking
+	//  FROM deployments
+	//  WHERE id = ?
+	FindDeploymentForCreate(ctx context.Context, id string) (FindDeploymentForCreateRow, error)
 	//FindDeploymentForDeploy
 	//
 	//  SELECT d.id, d.workspace_id, d.project_id, d.app_id, d.environment_id, d.status, d.created_at,
@@ -568,12 +577,7 @@ type Querier interface {
 	//      e.slug AS environment_slug,
 	//      e.kind AS environment_kind,
 	//      COALESCE(a.slug, '') AS app_slug,
-	//      EXISTS (
-	//          SELECT 1 FROM app_bindings pb
-	//          WHERE pb.workspace_id = d.workspace_id
-	//              AND pb.resource_type = 'app'
-	//              AND pb.resource_id <> pb.app_id
-	//      ) AS private_network_enrolled,
+	//      d.private_networking AS private_network_enrolled,
 	//      r.name AS region_name,
 	//      grc.repository_full_name AS git_repo
 	//  FROM `deployment_topology` dt
@@ -1097,6 +1101,7 @@ type Querier interface {
 	//      port,
 	//      shutdown_signal,
 	//      upstream_protocol,
+	//      private_networking,
 	//      healthcheck,
 	//      pr_number,
 	//      fork_repository_full_name,
@@ -1107,6 +1112,7 @@ type Querier interface {
 	//      updated_at
 	//  )
 	//  VALUES (
+	//      ?,
 	//      ?,
 	//      ?,
 	//      ?,
@@ -1593,12 +1599,7 @@ type Querier interface {
 	//      e.slug AS environment_slug,
 	//      e.kind AS environment_kind,
 	//      COALESCE(a.slug, '') AS app_slug,
-	//      EXISTS (
-	//          SELECT 1 FROM app_bindings pb
-	//          WHERE pb.workspace_id = d.workspace_id
-	//              AND pb.resource_type = 'app'
-	//              AND pb.resource_id <> pb.app_id
-	//      ) AS private_network_enrolled,
+	//      d.private_networking AS private_network_enrolled,
 	//      r.name AS region_name,
 	//      grc.repository_full_name AS git_repo
 	//  FROM `deployment_topology` dt
@@ -1705,7 +1706,7 @@ type Querier interface {
 	//      source, image_requested, image_resolved, build_id, git_commit_sha, git_branch,
 	//      git_commit_message, git_commit_author_handle, git_commit_author_avatar_url, git_commit_timestamp,
 	//      sentinel_config, cpu_millicores, memory_mib, storage_mib, desired_state,
-	//      encrypted_environment_variables, command, port, shutdown_signal, upstream_protocol, healthcheck,
+	//      encrypted_environment_variables, command, port, shutdown_signal, upstream_protocol, private_networking, healthcheck,
 	//      pr_number, fork_repository_full_name, github_deployment_id, invocation_id, status,
 	//      first_ready_at, `trigger`, triggered_by, trigger_reason, created_at, updated_at
 	//  FROM deployments
@@ -1803,9 +1804,10 @@ type Querier interface {
 	//  LIMIT ?
 	ListPreviewEnvironments(ctx context.Context, arg ListPreviewEnvironmentsParams) ([]Environment, error)
 	// ListPrivateNetworkBindings returns one page of directed app bindings, one row
-	// per binding and active caller deployment on the platform, ordered by
-	// (binding pk, caller deployment ID). Callers page with the last row's pair and
-	// must read every page in one transaction so the snapshot is consistent.
+	// per binding and active caller deployment created with private networking on
+	// the platform, ordered by (binding pk, caller deployment ID). Callers page
+	// with the last row's pair and must read every page in one transaction so the
+	// snapshot is consistent.
 	// Every filter sits inside binding_candidates, before its LIMIT, so a short
 	// page always means the last page.
 	// Names starting with unkey and the caller app's own slug are reserved.
@@ -1879,6 +1881,7 @@ type Querier interface {
 	//          AND caller.workspace_id = b.workspace_id AND caller.project_id = b.project_id
 	//          AND caller.environment_id = b.environment_id
 	//          AND caller.status IN ('deploying', 'network', 'finalizing', 'ready') AND caller.desired_state = 'running'
+	//          AND caller.private_networking = TRUE
 	//      INNER JOIN environments caller_env ON caller_env.id = caller.environment_id
 	//          AND caller_env.app_id = caller.app_id
 	//      INNER JOIN workspaces w ON w.id = b.workspace_id AND w.k8s_namespace <> ''
@@ -1924,10 +1927,9 @@ type Querier interface {
 	//      )
 	//  ORDER BY c.pk, c.caller_deployment_id
 	ListPrivateNetworkBindings(ctx context.Context, arg ListPrivateNetworkBindingsParams) ([]ListPrivateNetworkBindingsRow, error)
-	// ListPrivateNetworkReplicas returns one page of active deployments in
-	// workspaces enrolled in private networking, ordered by deployment ID. Each
-	// deployment resolves its own replicas under its app's slug. A workspace is
-	// enrolled while it has at least one app binding to another app.
+	// ListPrivateNetworkReplicas returns one page of active deployments created
+	// with private networking, ordered by deployment ID. Each deployment resolves
+	// its own replicas under its app's slug.
 	//
 	//  SELECT
 	//      d.workspace_id,
@@ -1945,12 +1947,7 @@ type Querier interface {
 	//  INNER JOIN workspaces w ON w.id = d.workspace_id AND w.k8s_namespace <> ''
 	//  WHERE d.id > ?
 	//      AND d.status IN ('deploying', 'network', 'finalizing', 'ready') AND d.desired_state = 'running'
-	//      AND EXISTS (
-	//          SELECT 1 FROM app_bindings b
-	//          WHERE b.workspace_id = d.workspace_id
-	//              AND b.resource_type = 'app'
-	//              AND b.resource_id <> b.app_id
-	//      )
+	//      AND d.private_networking = TRUE
 	//      AND EXISTS (
 	//          SELECT 1 FROM deployment_topology dt
 	//          INNER JOIN regions r ON r.id = dt.region_id

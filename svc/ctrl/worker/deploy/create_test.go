@@ -19,6 +19,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/batch"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/deploy/deployfail"
+	"github.com/unkeyed/unkey/pkg/featureflag"
 	githubclient "github.com/unkeyed/unkey/pkg/github"
 	"github.com/unkeyed/unkey/pkg/mysql/sqlcomment"
 	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
@@ -1271,7 +1272,9 @@ type createHarness struct {
 	seeder   *seed.Seeder
 	client   *restateingress.Client
 	deploys  *createDeployRecorder
+	flags    *teamFlags
 
+	orgID         string
 	workspaceID   string
 	projectID     string
 	appID         string
@@ -1290,6 +1293,7 @@ var sharedCreateDeploy struct {
 	stop     func()
 	client   *restateingress.Client
 	recorder *createDeployRecorder
+	flags    *teamFlags
 }
 
 func TestMain(m *testing.M) {
@@ -1309,6 +1313,10 @@ func newCreateHarness(t *testing.T, ctx context.Context) *createHarness {
 		shared, err := db.New(containers.MySQL(t).DSN, sqlcomment.Disabled())
 		require.NoError(t, err)
 
+		flags := newTeamFlags()
+		flagAPI, err := featureflag.New(context.Background(), flags)
+		require.NoError(t, err)
+
 		auditlogSvc, err := auditlogs.New(auditlogs.Config{DB: shared})
 		require.NoError(t, err)
 
@@ -1317,7 +1325,7 @@ func newCreateHarness(t *testing.T, ctx context.Context) *createHarness {
 			Auditlogs:     auditlogSvc,
 			DefaultDomain: "test.example.com",
 			DashboardURL:  "https://app.unkey.local",
-			Vault:         nil,
+			Vault:         bindingVault{VaultServiceClient: nil},
 			GitHub:        githubclient.NewNoop(),
 			Build: deploy.BuildConfig{
 				Backend:    deploy.BuildBackendDepot,
@@ -1332,6 +1340,7 @@ func newCreateHarness(t *testing.T, ctx context.Context) *createHarness {
 			BuildStepLogs:                   batch.NewNoop[schema.BuildStepLogV1](),
 			AllowUnauthenticatedDeployments: false,
 			RestateAdmin:                    nil,
+			Flags:                           flagAPI.NewClient(),
 		})
 		require.NoError(t, err)
 
@@ -1343,8 +1352,10 @@ func newCreateHarness(t *testing.T, ctx context.Context) *createHarness {
 
 		sharedCreateDeploy.client = cfg.IngressClient
 		sharedCreateDeploy.recorder = recorder
+		sharedCreateDeploy.flags = flags
 		sharedCreateDeploy.stop = func() {
 			stop()
+			_ = flagAPI.Shutdown(context.Background())
 			_ = shared.Close()
 		}
 	})
@@ -1357,6 +1368,8 @@ func newCreateHarness(t *testing.T, ctx context.Context) *createHarness {
 		seeder:        fixture.seeder,
 		client:        sharedCreateDeploy.client,
 		deploys:       sharedCreateDeploy.recorder,
+		flags:         sharedCreateDeploy.flags,
+		orgID:         fixture.seeder.Resources.UserWorkspace.OrgID,
 		workspaceID:   fixture.workspaceID,
 		projectID:     fixture.projectID,
 		appID:         fixture.appID,

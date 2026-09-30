@@ -119,6 +119,24 @@ var (
 		[]string{"result"},
 	)
 
+	// FeatureFlagEvaluationsTotal counts Ctrl feature flag evaluations. An
+	// error result blocks the decision that needed the flag until a retry
+	// succeeds, so a rising error rate delays the affected deployments.
+	//
+	// Labels:
+	//   - "flag": the flag key, for example "private-networking"
+	//   - "result": "enabled", "disabled", or the lowercase OpenFeature error
+	//     code, for example "provider_not_ready" or "flag_not_found"
+	FeatureFlagEvaluationsTotal = lazy.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: "unkey",
+			Subsystem: "control",
+			Name:      "feature_flag_evaluations_total",
+			Help:      "Feature flag evaluations by flag and result.",
+		},
+		[]string{"flag", "result"},
+	)
+
 	// PrivateNetworkSnapshotReadDurationSeconds measures the read-only
 	// transaction that selects binding targets and replicas for one snapshot.
 	// It grows with the number of enrolled deployments on a platform. Krane

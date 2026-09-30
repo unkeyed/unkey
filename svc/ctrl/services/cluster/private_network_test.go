@@ -100,7 +100,7 @@ func TestPrivateNetworkSnapshotStreamsEveryPageThenCompletes(t *testing.T) {
 	}
 
 	require.Equal(t, uint64(len(bindings)+len(replicas)), last.GetTotal())
-	require.Len(t, bindings, callers, "every caller deployment across both binding pages")
+	require.Len(t, bindings, callers, "every caller deployment created with private networking, across both binding pages")
 	require.Len(t, replicas, callers+1, "every caller and the target publish replicas; the app with an invalid slug does not")
 
 	for caller, binding := range bindings {
@@ -173,18 +173,19 @@ func seedPrivateNetwork(t *testing.T, database db.Database, platform, cell strin
 			workspace+"-"+app+"-env", workspace, project, workspace+"-"+app)
 	}
 
-	insertDeployment := func(id, app string, port int) {
+	insertDeployment := func(id, app string, port int, enabled bool) {
 		t.Helper()
-		exec(`INSERT INTO deployments (id,k8s_name,workspace_id,project_id,environment_id,app_id,sentinel_config,cpu_millicores,memory_mib,desired_state,encrypted_environment_variables,status,port,created_at)
-			VALUES (?,?,?,?,?,?,'{}',100,128,'running','{}','ready',?,1)`, id, id, workspace, project, workspace+"-"+app+"-env", workspace+"-"+app, port)
+		exec(`INSERT INTO deployments (id,k8s_name,workspace_id,project_id,environment_id,app_id,sentinel_config,cpu_millicores,memory_mib,desired_state,encrypted_environment_variables,status,port,created_at,private_networking)
+			VALUES (?,?,?,?,?,?,'{}',100,128,'running','{}','ready',?,1,?)`, id, id, workspace, project, workspace+"-"+app+"-env", workspace+"-"+app, port, enabled)
 		exec(`INSERT INTO deployment_topology (workspace_id,deployment_id,region_id,desired_status,created_at) VALUES (?,?,?,'running',1)`, workspace, id, region)
 	}
 
-	insertDeployment(target, "db", 5432)
-	insertDeployment(uid.New("dep"), "Bad_Slug", 8080)
+	insertDeployment(target, "db", 5432, true)
+	insertDeployment(uid.New("dep"), "Bad_Slug", 8080, true)
+	insertDeployment(uid.New("dep"), "api", 8080, false)
 
-	exec(`INSERT INTO deployments (id,k8s_name,workspace_id,project_id,environment_id,app_id,sentinel_config,cpu_millicores,memory_mib,desired_state,encrypted_environment_variables,status,port,created_at)
-		SELECT CONCAT(?, n), CONCAT(?, n), ?, ?, ?, ?, '{}', 100, 128, 'running', '{}', 'ready', 8080, 1
+	exec(`INSERT INTO deployments (id,k8s_name,workspace_id,project_id,environment_id,app_id,sentinel_config,cpu_millicores,memory_mib,desired_state,encrypted_environment_variables,status,port,created_at,private_networking)
+		SELECT CONCAT(?, n), CONCAT(?, n), ?, ?, ?, ?, '{}', 100, 128, 'running', '{}', 'ready', 8080, 1, TRUE
 		FROM (SELECT a.n + 10 * b.n + 100 * c.n + 1000 * d.n AS n
 			FROM (SELECT 0 n UNION ALL SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4 UNION ALL SELECT 5 UNION ALL SELECT 6 UNION ALL SELECT 7 UNION ALL SELECT 8 UNION ALL SELECT 9) a,
 				(SELECT 0 n UNION ALL SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4 UNION ALL SELECT 5 UNION ALL SELECT 6 UNION ALL SELECT 7 UNION ALL SELECT 8 UNION ALL SELECT 9) b,
@@ -193,7 +194,7 @@ func seedPrivateNetwork(t *testing.T, database db.Database, platform, cell strin
 		WHERE n < ?`,
 		workspace+"-caller-", workspace+"-caller-", workspace, project, workspace+"-api-env", workspace+"-api", callers)
 	exec(`INSERT INTO deployment_topology (workspace_id,deployment_id,region_id,desired_status,created_at)
-		SELECT workspace_id, id, ?, 'running', 1 FROM deployments WHERE app_id = ?`, region, workspace+"-api")
+		SELECT workspace_id, id, ?, 'running', 1 FROM deployments WHERE app_id = ? AND private_networking`, region, workspace+"-api")
 
 	exec(`INSERT INTO app_bindings (id,workspace_id,project_id,app_id,environment_id,resource_type,resource_id,name,selection_mode,target_deployment_id,created_at)
 		VALUES (?,?,?,?,?,'app',?,'database','deployment',?,1)`,

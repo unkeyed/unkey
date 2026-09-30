@@ -285,6 +285,13 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("failed to create audit log service: %w", err)
 	}
 
+	featureFlags, err := newFeatureFlags(ctx, cfg.FeatureFlags, reg)
+	if err != nil {
+		return fmt.Errorf("failed to create feature flags: %w", err)
+	}
+	r.DeferCtx(featureFlags.Shutdown)
+	logger.Info("feature flags initialized", "provider", string(cfg.FeatureFlags.Provider))
+
 	deployWorkflow, err := deploy.New(deploy.Config{
 		DB:            database,
 		Auditlogs:     auditlogSvc,
@@ -303,6 +310,7 @@ func Run(ctx context.Context, cfg Config) error {
 		AllowUnauthenticatedDeployments: ptr.SafeDeref(cfg.GitHub).AllowUnauthenticatedDeployments,
 		DashboardURL:                    cfg.DashboardURL,
 		RestateAdmin:                    restateAdminClient,
+		Flags:                           featureFlags.NewClient(),
 	})
 	if err != nil {
 		return fmt.Errorf("failed to create deploy workflow: %w", err)
