@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/array"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
@@ -160,9 +161,5 @@ func call(h *testutil.Harness, route *handler.Handler, bearer string, req handle
 }
 
 func keyIDs(items []openapi.V2RootKeysListKeysResponseData) []string {
-	ids := make([]string, 0, len(items))
-	for _, item := range items {
-		ids = append(ids, item.KeyId)
-	}
-	return ids
+	return array.Map(items, func(item openapi.V2RootKeysListKeysResponseData) string { return item.KeyId })
 }

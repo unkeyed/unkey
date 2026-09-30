@@ -130,8 +130,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			CorrelationID: "",
 			Resources:     []auditlog.AuditLogResource{keyResource},
 		}}
-		for _, permission := range permissionRows {
-			logs = append(logs, auditlog.AuditLog{
+		logs = append(logs, array.Map(permissionRows, func(permission db.InsertUnkeyPermissionParams) auditlog.AuditLog {
+			return auditlog.AuditLog{
 				WorkspaceID:   p.AuthorizedWorkspaceID,
 				Event:         auditlog.AuthConnectPermissionKeyEvent,
 				ActorType:     actor.Type,
@@ -152,8 +152,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 						Meta:        map[string]any{},
 					},
 				},
-			})
-		}
+			}
+		})...)
 		return h.Auditlogs.Insert(ctx, tx, logs)
 	})
 	if err != nil {

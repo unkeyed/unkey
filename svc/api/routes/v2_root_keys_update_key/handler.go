@@ -7,6 +7,7 @@ import (
 
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
 	keysdb "github.com/unkeyed/unkey/internal/services/keys/db"
+	"github.com/unkeyed/unkey/pkg/array"
 	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/auth/principal"
 	"github.com/unkeyed/unkey/pkg/cache"
@@ -136,18 +137,17 @@ func (h *Handler) replacePermissions(ctx context.Context, tx db.DBTX, workspaceI
 	}); err != nil {
 		return nil, err
 	}
-	rows := make([]db.InsertUnkeyPermissionParams, 0, len(slugs))
 	now := h.Clock.Now().UnixMilli()
-	for _, slug := range slugs {
-		rows = append(rows, db.InsertUnkeyPermissionParams{
+	rows := array.Map(slugs, func(slug string) db.InsertUnkeyPermissionParams {
+		return db.InsertUnkeyPermissionParams{
 			ID:            uid.New(uid.PermissionPrefix),
 			WorkspaceID:   workspaceID,
 			PrincipalType: db.UnkeyPrincipalPermissionsPrincipalTypeRootKey,
 			PrincipalID:   keyID,
 			Slug:          slug,
 			CreatedAt:     now,
-		})
-	}
+		}
+	})
 	return rows, db.BulkQuery.InsertUnkeyPermissions(ctx, tx, rows)
 }
 
@@ -165,8 +165,8 @@ func updateAuditLogs(s *zen.Session, actor auditactor.Actor, workspaceID string,
 		CorrelationID: "",
 		Resources:     []auditlog.AuditLogResource{keyResource},
 	}}
-	for _, permission := range permissionRows {
-		logs = append(logs, auditlog.AuditLog{
+	logs = append(logs, array.Map(permissionRows, func(permission db.InsertUnkeyPermissionParams) auditlog.AuditLog {
+		return auditlog.AuditLog{
 			WorkspaceID: workspaceID, Event: auditlog.AuthConnectPermissionKeyEvent,
 			ActorType: actor.Type, ActorID: actor.ID, ActorName: actor.Name, ActorMeta: actor.Meta,
 			Display: "Granted " + permission.Slug, RemoteIP: s.Location(), UserAgent: s.UserAgent(),
@@ -175,7 +175,7 @@ func updateAuditLogs(s *zen.Session, actor auditactor.Actor, workspaceID string,
 				Type: auditlog.PermissionResourceType, ID: permission.ID,
 				Name: permission.Slug, DisplayName: permission.Slug, Meta: map[string]any{},
 			}},
-		})
-	}
+		}
+	})...)
 	return logs
 }

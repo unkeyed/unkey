@@ -10,6 +10,7 @@ import (
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/internal/services/keys"
 	keysdb "github.com/unkeyed/unkey/internal/services/keys/db"
+	"github.com/unkeyed/unkey/pkg/array"
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/cache"
@@ -111,17 +112,16 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}); err != nil {
 			return err
 		}
-		permissionRows := make([]db.InsertUnkeyPermissionParams, 0, len(rootKeyPermissions))
-		for _, permission := range rootKeyPermissions {
-			permissionRows = append(permissionRows, db.InsertUnkeyPermissionParams{
+		permissionRows := array.Map(rootKeyPermissions, func(permission string) db.InsertUnkeyPermissionParams {
+			return db.InsertUnkeyPermissionParams{
 				ID:            uid.New(uid.PermissionPrefix),
 				WorkspaceID:   p.AuthorizedWorkspaceID,
 				PrincipalType: db.UnkeyPrincipalPermissionsPrincipalTypeRootKey,
 				PrincipalID:   keyID,
 				Slug:          permission,
 				CreatedAt:     now.UnixMilli(),
-			})
-		}
+			}
+		})
 		if err := db.BulkQuery.InsertUnkeyPermissions(ctx, tx, permissionRows); err != nil {
 			return err
 		}
@@ -172,8 +172,8 @@ func rerollAuditLogs(s *zen.Session, actor auditactor.Actor, workspaceID string,
 			Type: auditlog.KeyResourceType, ID: source.ID, Name: name, DisplayName: name, Meta: map[string]any{},
 		}},
 	}}
-	for _, permission := range permissionRows {
-		logs = append(logs, auditlog.AuditLog{
+	logs = append(logs, array.Map(permissionRows, func(permission db.InsertUnkeyPermissionParams) auditlog.AuditLog {
+		return auditlog.AuditLog{
 			WorkspaceID: workspaceID, Event: auditlog.AuthConnectPermissionKeyEvent,
 			ActorType: actor.Type, ActorID: actor.ID, ActorName: actor.Name, ActorMeta: actor.Meta,
 			Display: "Granted " + permission.Slug, RemoteIP: s.Location(), UserAgent: s.UserAgent(),
@@ -182,7 +182,7 @@ func rerollAuditLogs(s *zen.Session, actor auditactor.Actor, workspaceID string,
 				Type: auditlog.PermissionResourceType, ID: permission.ID,
 				Name: permission.Slug, DisplayName: permission.Slug, Meta: map[string]any{},
 			}},
-		})
-	}
+		}
+	})...)
 	return logs
 }
