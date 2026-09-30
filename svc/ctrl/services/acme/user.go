@@ -77,7 +77,7 @@ func GetOrCreateUser(ctx context.Context, cfg UserConfig) (*lego.Client, error) 
 
 	// If we have a valid registration URI, use it
 	if foundUser.RegistrationUri.Valid && foundUser.RegistrationUri.String != "" {
-		//nolint:exhaustruct // external library type
+		//nolint:exhaustruct_v5 // external library type
 		user.Registration = &acme.ExtendedAccount{
 			Location: foundUser.RegistrationUri.String,
 		}

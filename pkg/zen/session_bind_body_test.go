@@ -1,4 +1,4 @@
-// nolint:exhaustruct
+// nolint:exhaustruct_v5
 package zen
 
 import (

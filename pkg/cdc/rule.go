@@ -27,7 +27,7 @@ func vstreamFilter(rules []Rule) (*binlog.Filter, error) {
 	if err := assert.True(len(rules) > 0, "CDC requires at least one table rule"); err != nil {
 		return nil, err
 	}
-	filter := &binlog.Filter{Rules: nil} //nolint:exhaustruct // No replication workflow metadata is needed.
+	filter := &binlog.Filter{Rules: nil} //nolint:exhaustruct_v5 // No replication workflow metadata is needed.
 	for _, rule := range rules {
 		if err := assert.All(
 			assert.True(tablePattern.MatchString(rule.Table), "CDC requires literal table names"),
@@ -35,7 +35,7 @@ func vstreamFilter(rules []Rule) (*binlog.Filter, error) {
 		); err != nil {
 			return nil, err
 		}
-		filter.Rules = append(filter.Rules, &binlog.Rule{Match: rule.Table, Filter: rule.Query}) //nolint:exhaustruct // No replication workflow metadata is needed.
+		filter.Rules = append(filter.Rules, &binlog.Rule{Match: rule.Table, Filter: rule.Query}) //nolint:exhaustruct_v5 // No replication workflow metadata is needed.
 	}
 	return filter, nil
 }

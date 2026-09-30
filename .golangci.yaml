@@ -4,7 +4,7 @@ linters:
   enable:
     - errcheck
     - exhaustive
-    - exhaustruct
+    - exhaustruct_v5
     - govet
     - ineffassign
     - reassign
@@ -15,8 +15,8 @@ linters:
     exhaustive:
       check:
         - switch
-    exhaustruct:
-      exclude:
+    exhaustruct_v5:
+      ignore-patterns:
         - ^google\.golang\.org/protobuf/internal/filedesc\..*$
         - ^google\.golang\.org/protobuf/internal/filetype\..*$
         - ^google\.golang\.org/protobuf/reflect/protoreflect\..*$
@@ -94,7 +94,7 @@ linters:
       - std-error-handling
     rules:
       - linters:
-          - exhaustruct
+          - exhaustruct_v5
         path: _test\.go
       - linters:
           - unused

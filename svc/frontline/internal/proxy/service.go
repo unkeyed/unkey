@@ -58,7 +58,7 @@ func New(cfg Config) (*service, error) {
 	if cfg.Transport != nil {
 		transport = cfg.Transport
 	} else {
-		//nolint:exhaustruct
+		//nolint:exhaustruct_v5
 		transport = &http.Transport{
 			Proxy:             http.ProxyFromEnvironment,
 			ForceAttemptHTTP2: true,
@@ -167,7 +167,7 @@ func (s *service) ForwardToRegion(ctx context.Context, sess *zen.Session, target
 	})
 
 	metadata := &meta.Metadata{
-		//nolint:exhaustruct // Frontline metadata only needs an expiry.
+		//nolint:exhaustruct_v5 // Frontline metadata only needs an expiry.
 		Claims: paseto.Claims{
 			ExpiresAt: now.Add(frontlineMetadataTTL),
 		},

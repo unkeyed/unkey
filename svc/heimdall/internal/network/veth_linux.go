@@ -111,7 +111,7 @@ func attachPodEth0(
 		return nil, nil, nil, 0, fmt.Errorf("%w: POD_KEY variable missing from spec (bpf2go regen needed?)", ErrTCXAttach)
 	}
 
-	coll, copyErr = ebpf.NewCollectionWithOptions(perPodSpec, ebpf.CollectionOptions{ //nolint:exhaustruct // Programs optional
+	coll, copyErr = ebpf.NewCollectionWithOptions(perPodSpec, ebpf.CollectionOptions{ //nolint:exhaustruct_v5 // Programs optional
 		Maps: pinOpts,
 	})
 	if copyErr != nil {
@@ -133,7 +133,7 @@ func attachPodEth0(
 	// Head anchor so we run ahead of any other TCX program that might
 	// install here later; our handlers return TCX_NEXT so they don't
 	// terminate the chain.
-	egress, attachErr := link.AttachTCX(link.TCXOptions{ //nolint:exhaustruct // Flags/ExpectedRevision optional
+	egress, attachErr := link.AttachTCX(link.TCXOptions{ //nolint:exhaustruct_v5 // Flags/ExpectedRevision optional
 		Interface: int(eth0),
 		Program:   countEgress,
 		Attach:    ebpf.AttachTCXEgress,
@@ -146,7 +146,7 @@ func attachPodEth0(
 		return nil, nil, nil, 0, fmt.Errorf("attach tcx egress on pod eth0 (pod egress): %w: %w", ErrTCXAttach, attachErr)
 	}
 
-	ingress, attachErr = link.AttachTCX(link.TCXOptions{ //nolint:exhaustruct
+	ingress, attachErr = link.AttachTCX(link.TCXOptions{ //nolint:exhaustruct_v5
 		Interface: int(eth0),
 		Program:   countIngress,
 		Attach:    ebpf.AttachTCXIngress,

@@ -282,20 +282,20 @@ func (h *Handler) getNamespace(ctx context.Context, workspaceID, nameOrID string
 			})
 		})
 		if dbErr != nil {
-			return db.FindRatelimitNamespace{}, dbErr //nolint:exhaustruct
+			return db.FindRatelimitNamespace{}, dbErr //nolint:exhaustruct_v5
 		}
 		return namespace.ParseNamespaceRow(row), nil
 	}, caches.DefaultFindFirstOp)
 
 	if err != nil {
 		if db.IsNotFound(err) {
-			return db.FindRatelimitNamespace{}, false, nil //nolint:exhaustruct
+			return db.FindRatelimitNamespace{}, false, nil //nolint:exhaustruct_v5
 		}
-		return db.FindRatelimitNamespace{}, false, err //nolint:exhaustruct
+		return db.FindRatelimitNamespace{}, false, err //nolint:exhaustruct_v5
 	}
 
 	if hit == cache.Null {
-		return db.FindRatelimitNamespace{}, false, nil //nolint:exhaustruct
+		return db.FindRatelimitNamespace{}, false, nil //nolint:exhaustruct_v5
 	}
 
 	return ns, true, nil
@@ -316,7 +316,7 @@ func (h *Handler) createNamespace(ctx context.Context, s *zen.Session, principal
 				CreatedAt:   now,
 			})
 			if insertErr != nil && !db.IsDuplicateKeyError(insertErr) {
-				return db.FindRatelimitNamespace{}, fault.Wrap(insertErr, //nolint:exhaustruct
+				return db.FindRatelimitNamespace{}, fault.Wrap(insertErr, //nolint:exhaustruct_v5
 					fault.Code(codes.App.Internal.UnexpectedError.URN()),
 					fault.Public("An unexpected error occurred while creating the namespace."),
 				)
@@ -325,7 +325,7 @@ func (h *Handler) createNamespace(ctx context.Context, s *zen.Session, principal
 			if db.IsDuplicateKeyError(insertErr) {
 				// Re-fetch after this transaction closes so a snapshot established by
 				// EnsureDefaultProject cannot hide the concurrently committed row.
-				return db.FindRatelimitNamespace{}, nil //nolint:exhaustruct
+				return db.FindRatelimitNamespace{}, nil //nolint:exhaustruct_v5
 			}
 
 			result := db.FindRatelimitNamespace{

@@ -117,7 +117,7 @@ func Run(ctx context.Context, cfg Config) error {
 
 	reg := promclient.NewRegistry()
 	reg.MustRegister(collectors.NewGoCollector())
-	//nolint:exhaustruct
+	//nolint:exhaustruct_v5
 	reg.MustRegister(collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}))
 	reg.MustRegister(prometheus.NewSystemMetricsCollector())
 	lazy.SetRegistry(reg)
@@ -292,7 +292,7 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("unable to create Frontline metadata codec: %w", err)
 	}
 
-	// nolint:exhaustruct
+	// nolint:exhaustruct_v5
 	proxySvc, err := proxy.New(proxy.Config{
 		InstanceID:         cfg.InstanceID,
 		Platform:           cfg.Platform,

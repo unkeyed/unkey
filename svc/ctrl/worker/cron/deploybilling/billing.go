@@ -83,7 +83,7 @@ func AggregateUsage(rows []clickhouse.InstanceMeterUsage) map[string]billingmete
 	for _, r := range rows {
 		a := sums[r.WorkspaceID]
 		if a == nil {
-			a = &usageAccumulator{} //nolint:exhaustruct // zero-value accumulator, summed into below
+			a = &usageAccumulator{} //nolint:exhaustruct_v5 // zero-value accumulator, summed into below
 			sums[r.WorkspaceID] = a
 		}
 		a.cpuSeconds += r.CPUSeconds

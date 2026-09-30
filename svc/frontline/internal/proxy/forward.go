@@ -93,7 +93,7 @@ func (s *service) forward(ctx context.Context, sess *zen.Session, cfg forwardCon
 		backendStart = time.Time{}
 	}
 
-	// nolint:exhaustruct
+	// nolint:exhaustruct_v5
 	clientTrace := &httptrace.ClientTrace{
 		ConnectDone: func(network, addr string, err error) {
 			outcome := dialOutcomeSuccess
@@ -106,7 +106,7 @@ func (s *service) forward(ctx context.Context, sess *zen.Session, cfg forwardCon
 
 	tracking, hasTracking := RequestTrackingFromContext(ctx)
 
-	// nolint:exhaustruct
+	// nolint:exhaustruct_v5
 	proxy := &httputil.ReverseProxy{
 		Transport:     cfg.transport,
 		BufferPool:    responseCopyBuffers,

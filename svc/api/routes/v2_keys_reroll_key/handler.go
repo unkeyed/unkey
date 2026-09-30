@@ -321,7 +321,7 @@ func (h *Handler) RerollKey(
 				expiration = time.Now()
 			}
 
-			//nolint: exhaustruct
+			//nolint: exhaustruct_v5
 			err = db.Query.UpdateKey(ctx, tx, db.UpdateKeyParams{
 				ID:               req.KeyId,
 				ExpiresSpecified: 1,

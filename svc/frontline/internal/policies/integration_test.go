@@ -354,7 +354,7 @@ func (h *testHarness) seedKeyRatelimit(ctx context.Context, wsID, keyID, name st
 func newSession(t *testing.T, req *http.Request) *zen.Session {
 	t.Helper()
 	w := httptest.NewRecorder()
-	//nolint:exhaustruct
+	//nolint:exhaustruct_v5
 	sess := &zen.Session{}
 	err := sess.Init(w, req, 0)
 	require.NoError(t, err)
@@ -364,7 +364,7 @@ func newSession(t *testing.T, req *http.Request) *zen.Session {
 func newSessionWithRecorder(t *testing.T, req *http.Request) (*zen.Session, *httptest.ResponseRecorder) {
 	t.Helper()
 	w := httptest.NewRecorder()
-	//nolint:exhaustruct
+	//nolint:exhaustruct_v5
 	sess := &zen.Session{}
 	err := sess.Init(w, req, 0)
 	require.NoError(t, err)
@@ -622,7 +622,7 @@ func TestKeyAuth_InvalidKey_NotFound(t *testing.T) {
 	req.Header.Set("Authorization", "Bearer sk_this_key_does_not_exist")
 	sess := newSession(t, req)
 
-	//nolint:exhaustruct
+	//nolint:exhaustruct_v5
 	policies := []*frontlinev1.Policy{
 		{
 			Id:      "auth",

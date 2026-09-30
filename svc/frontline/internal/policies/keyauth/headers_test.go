@@ -18,7 +18,7 @@ func TestFindMostRestrictive(t *testing.T) {
 		return &ratelimit.RatelimitResponse{Success: false, Remaining: remaining}
 	}
 	entry := func(resp *ratelimit.RatelimitResponse) keys.RatelimitConfigAndResult {
-		//nolint:exhaustruct
+		//nolint:exhaustruct_v5
 		return keys.RatelimitConfigAndResult{Response: resp}
 	}
 

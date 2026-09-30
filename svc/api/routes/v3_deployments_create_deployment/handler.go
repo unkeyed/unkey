@@ -138,7 +138,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			)
 		}
 		createReq.Source = &hydrav1.DeployCreateRequest_Git{
-			// nolint: exhaustruct // the worker fills the commit metadata it resolves from git
 			Git: &hydrav1.CreateGitSource{
 				Commit: &ctrlv1.GitCommitInfo{
 					Branch:         ptr.SafeDeref(git.Branch),
