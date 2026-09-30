@@ -34,14 +34,14 @@ allowBuilds:
   ssh2: true
 
 catalog:
-  zod: 4.3.5
+  zod: 4.5.4
   mysql2: 3.10.3
   tailwindcss: 4.2.1
   clsx: 2.1.1
   "@clickhouse/client-web": 1.11.1
 
 overrides:
-  "zod": "4.3.5"
+  "zod": "4.5.4"
   "@tanstack/router-generator>zod": "4.5.4"
   "@tanstack/start-plugin-core>zod": "4.5.4"
   "@tanstack/router-plugin>zod": "4.5.4"
