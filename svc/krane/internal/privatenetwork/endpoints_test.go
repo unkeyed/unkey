@@ -21,29 +21,29 @@ import (
 )
 
 func TestReconcileOmitsIneligibleSourceAddressesBeforeMeshExport(t *testing.T) {
-	app := testApp("dep_a")
-	ready := endpointPod(app, "ready", "10.72.0.87")
-	unready := endpointPod(app, "unready", "10.72.0.94")
+	bindingSpec := testBinding("dep_a")
+	ready := endpointPod(bindingSpec, "ready", "10.72.0.87")
+	unready := endpointPod(bindingSpec, "unready", "10.72.0.94")
 	unready.Status.Conditions[0].Status = corev1.ConditionFalse
-	draining := endpointPod(app, "draining", "10.72.0.84")
+	draining := endpointPod(bindingSpec, "draining", "10.72.0.84")
 	now := metav1.Now()
 	draining.DeletionTimestamp = &now
 
 	client := fake.NewClientset(ready, unready, draining)
 	control := &testutil.MockClusterClient{}
-	control.StreamPrivateNetworkStateFunc = snapshotFunc(t, func(context.Context) ([]*ctrlv1.PrivateNetworkApp, error) {
-		return []*ctrlv1.PrivateNetworkApp{app}, nil
+	control.StreamPrivateNetworkStateFunc = snapshotFunc(t, func(context.Context) ([]*ctrlv1.PrivateNetworkBinding, error) {
+		return []*ctrlv1.PrivateNetworkBinding{bindingSpec}, nil
 	})
 	r := &Reconciler{client: client, dynamic: testDynamicClient(), cluster: control, clusterKey: &ctrlv1.ClusterKey{}}
 
 	require.NoError(t, r.reconcile(t.Context()))
 
-	services, err := client.CoreV1().Services(app.GetK8SNamespace()).List(t.Context(), metav1.ListOptions{})
+	services, err := client.CoreV1().Services(bindingSpec.GetK8SNamespace()).List(t.Context(), metav1.ListOptions{})
 	require.NoError(t, err)
 	require.Len(t, services.Items, 1)
 	require.Empty(t, services.Items[0].Spec.Selector)
 
-	slices, err := client.DiscoveryV1().EndpointSlices(app.GetK8SNamespace()).List(t.Context(), metav1.ListOptions{})
+	slices, err := client.DiscoveryV1().EndpointSlices(bindingSpec.GetK8SNamespace()).List(t.Context(), metav1.ListOptions{})
 	require.NoError(t, err)
 	require.Len(t, slices.Items, 1)
 	require.Len(t, slices.Items[0].Endpoints, 1)
@@ -51,15 +51,15 @@ func TestReconcileOmitsIneligibleSourceAddressesBeforeMeshExport(t *testing.T) {
 }
 
 func TestEndpointRefreshWithdrawsBeforeAddingReplacementAndKeepsImports(t *testing.T) {
-	app := testApp("dep_a")
-	a := endpointPod(app, "a", "10.72.0.84")
-	b := endpointPod(app, "b", "10.72.0.87")
-	c := endpointPod(app, "c", "10.72.0.253")
-	replacement := endpointPod(app, "replacement", "10.72.0.94")
+	bindingSpec := testBinding("dep_a")
+	a := endpointPod(bindingSpec, "a", "10.72.0.84")
+	b := endpointPod(bindingSpec, "b", "10.72.0.87")
+	c := endpointPod(bindingSpec, "c", "10.72.0.253")
+	replacement := endpointPod(bindingSpec, "replacement", "10.72.0.94")
 	replacement.Status.Conditions[0].Status = corev1.ConditionFalse
 	client := fake.NewClientset(a, b, c, replacement)
 	r := &Reconciler{client: client}
-	service, err := r.ensureService(t.Context(), app, discoveryName(app.GetDeploymentId(), app.GetPort()), nil)
+	service, err := r.ensureService(t.Context(), bindingSpec, discoveryName(bindingSpec.GetTargetDeploymentId(), bindingSpec.GetTargetPort()), nil)
 	require.NoError(t, err)
 
 	imported := &discoveryv1.EndpointSlice{
@@ -103,12 +103,12 @@ func TestEndpointRefreshWithdrawsBeforeAddingReplacementAndKeepsImports(t *testi
 }
 
 func TestEndpointRefreshDoesNotWaitForControlPlane(t *testing.T) {
-	app := testApp("dep_a")
-	pod := endpointPod(app, "a", "10.72.0.84")
+	bindingSpec := testBinding("dep_a")
+	pod := endpointPod(bindingSpec, "a", "10.72.0.84")
 	client := fake.NewClientset(pod)
 	control := &testutil.MockClusterClient{}
 	r := &Reconciler{client: client, dynamic: testDynamicClient(), cluster: control}
-	service, err := r.ensureService(t.Context(), app, discoveryName(app.GetDeploymentId(), app.GetPort()), nil)
+	service, err := r.ensureService(t.Context(), bindingSpec, discoveryName(bindingSpec.GetTargetDeploymentId(), bindingSpec.GetTargetPort()), nil)
 	require.NoError(t, err)
 	require.NoError(t, r.reconcileEndpoints(t.Context()))
 	require.Len(t, sourceAddresses(t, client, service), 1)
@@ -118,7 +118,7 @@ func TestEndpointRefreshDoesNotWaitForControlPlane(t *testing.T) {
 	require.NoError(t, err)
 
 	entered := make(chan struct{})
-	control.StreamPrivateNetworkStateFunc = snapshotFunc(t, func(ctx context.Context) ([]*ctrlv1.PrivateNetworkApp, error) {
+	control.StreamPrivateNetworkStateFunc = snapshotFunc(t, func(ctx context.Context) ([]*ctrlv1.PrivateNetworkBinding, error) {
 		close(entered)
 		<-ctx.Done()
 		return nil, ctx.Err()
@@ -142,16 +142,16 @@ func TestEndpointRefreshDoesNotWaitForControlPlane(t *testing.T) {
 }
 
 func TestSourceSliceChunksShrinkAndRejectForeignOwnership(t *testing.T) {
-	app := testApp("dep_a")
+	bindingSpec := testBinding("dep_a")
 	client := fake.NewClientset()
 	r := &Reconciler{client: client}
-	service, err := r.ensureService(t.Context(), app, "source", nil)
+	service, err := r.ensureService(t.Context(), bindingSpec, "source", nil)
 	require.NoError(t, err)
 	service.UID = "new-service"
 
 	pods := make([]corev1.Pod, 101)
 	for i := range pods {
-		pods[i] = *endpointPod(app, fmt.Sprintf("pod-%d", i), fmt.Sprintf("10.72.0.%d", i+1))
+		pods[i] = *endpointPod(bindingSpec, fmt.Sprintf("pod-%d", i), fmt.Sprintf("10.72.0.%d", i+1))
 	}
 
 	require.NoError(t, ensureEndpointsNow(t, r, service, pods))
@@ -184,22 +184,22 @@ func TestSourceSliceChunksShrinkAndRejectForeignOwnership(t *testing.T) {
 }
 
 func TestSourceMigrationPublishesSlicesBeforeBinding(t *testing.T) {
-	app := testApp("dep_a")
-	client := fake.NewClientset(endpointPod(app, "a", "10.72.0.87"))
+	bindingSpec := testBinding("dep_a")
+	client := fake.NewClientset(endpointPod(bindingSpec, "a", "10.72.0.87"))
 	control := &testutil.MockClusterClient{}
-	control.StreamPrivateNetworkStateFunc = snapshotFunc(t, func(context.Context) ([]*ctrlv1.PrivateNetworkApp, error) {
-		return []*ctrlv1.PrivateNetworkApp{app}, nil
+	control.StreamPrivateNetworkStateFunc = snapshotFunc(t, func(context.Context) ([]*ctrlv1.PrivateNetworkBinding, error) {
+		return []*ctrlv1.PrivateNetworkBinding{bindingSpec}, nil
 	})
 	r := &Reconciler{client: client, dynamic: testDynamicClient(), cluster: control}
 
-	oldName := resourceName("unkey-pn", app.GetDeploymentId())
-	oldService, err := r.ensureService(t.Context(), app, oldName, nil)
+	oldName := resourceName("unkey-pn", bindingSpec.GetTargetDeploymentId())
+	oldService, err := r.ensureService(t.Context(), bindingSpec, oldName, nil)
 	require.NoError(t, err)
-	oldService.Spec.Selector = appLabels(app).DeploymentID(app.GetDeploymentId())
-	_, err = client.CoreV1().Services(app.GetK8SNamespace()).Update(t.Context(), oldService, metav1.UpdateOptions{})
+	oldService.Spec.Selector = targetAppLabels(bindingSpec).DeploymentID(bindingSpec.GetTargetDeploymentId())
+	_, err = client.CoreV1().Services(bindingSpec.GetK8SNamespace()).Update(t.Context(), oldService, metav1.UpdateOptions{})
 	require.NoError(t, err)
 	bindingName := resourceName("unkey-pn-binding", "binding_1/caller_1")
-	_, err = r.ensureBinding(t.Context(), app, bindingName, oldService, nil)
+	_, err = r.ensureBinding(t.Context(), bindingSpec, bindingName, oldService, nil)
 	require.NoError(t, err)
 
 	deny := true
@@ -211,22 +211,22 @@ func TestSourceMigrationPublishesSlicesBeforeBinding(t *testing.T) {
 	})
 
 	require.ErrorContains(t, r.reconcile(t.Context()), "endpoint write denied")
-	binding, err := client.CoreV1().ConfigMaps(app.GetK8SNamespace()).Get(t.Context(), bindingName, metav1.GetOptions{})
+	binding, err := client.CoreV1().ConfigMaps(bindingSpec.GetK8SNamespace()).Get(t.Context(), bindingName, metav1.GetOptions{})
 	require.NoError(t, err)
 	require.Equal(t, oldName, binding.Data["serviceName"])
 
 	deny = false
 	require.NoError(t, r.reconcile(t.Context()))
-	binding, err = client.CoreV1().ConfigMaps(app.GetK8SNamespace()).Get(t.Context(), bindingName, metav1.GetOptions{})
+	binding, err = client.CoreV1().ConfigMaps(bindingSpec.GetK8SNamespace()).Get(t.Context(), bindingName, metav1.GetOptions{})
 	require.NoError(t, err)
-	require.Equal(t, discoveryName(app.GetDeploymentId(), app.GetPort()), binding.Data["serviceName"])
+	require.Equal(t, discoveryName(bindingSpec.GetTargetDeploymentId(), bindingSpec.GetTargetPort()), binding.Data["serviceName"])
 	require.Equal(t, "2", binding.Data["revision"])
 }
 
 func TestReadyEndpointsExcludeWrongIdentityAndUnsafePodStates(t *testing.T) {
-	app := testApp("dep_a")
+	bindingSpec := testBinding("dep_a")
 	service := &corev1.Service{ObjectMeta: metav1.ObjectMeta{
-		Namespace: app.GetK8SNamespace(), Labels: appLabels(app).DeploymentID(app.GetDeploymentId()),
+		Namespace: bindingSpec.GetK8SNamespace(), Labels: targetAppLabels(bindingSpec).DeploymentID(bindingSpec.GetTargetDeploymentId()),
 	}}
 
 	for name, mutate := range map[string]func(*corev1.Pod){
@@ -239,10 +239,10 @@ func TestReadyEndpointsExcludeWrongIdentityAndUnsafePodStates(t *testing.T) {
 		"ipv6":          func(p *corev1.Pod) { p.Status.PodIPs = []corev1.PodIP{{IP: "fd00::1"}} },
 	} {
 		t.Run(name, func(t *testing.T) {
-			pod := endpointPod(app, "excluded", "10.72.0.84")
+			pod := endpointPod(bindingSpec, "excluded", "10.72.0.84")
 			mutate(pod)
 			endpoints := readyEndpoints(service, []corev1.Pod{
-				*pod, *endpointPod(app, "survivor", "10.72.0.87"),
+				*pod, *endpointPod(bindingSpec, "survivor", "10.72.0.87"),
 			})
 			require.Len(t, endpoints, 1)
 			require.Equal(t, []string{"10.72.0.87"}, endpoints[0].Addresses)
@@ -255,14 +255,14 @@ func TestReadyEndpointsExcludeWrongIdentityAndUnsafePodStates(t *testing.T) {
 		labels.LabelKeyProjectID, labels.LabelKeyAppID, labels.LabelKeyDeploymentID,
 	} {
 		t.Run(key, func(t *testing.T) {
-			pod := endpointPod(app, "excluded", "10.72.0.84")
+			pod := endpointPod(bindingSpec, "excluded", "10.72.0.84")
 			pod.Labels[key] = "other"
 			require.Empty(t, readyEndpoints(service, []corev1.Pod{*pod}))
 		})
 	}
 
 	for _, kind := range []string{"production", "preview"} {
-		pod := endpointPod(app, "same-network", "10.72.0.84")
+		pod := endpointPod(bindingSpec, "same-network", "10.72.0.84")
 		pod.Labels[labels.LabelKeyEnvironmentKind] = kind
 		endpoints := readyEndpoints(service, []corev1.Pod{*pod})
 		require.Len(t, endpoints, 1)
@@ -287,11 +287,11 @@ func sourceAddresses(t *testing.T, client *fake.Clientset, service *corev1.Servi
 	return addresses
 }
 
-func endpointPod(app *ctrlv1.PrivateNetworkApp, name, ip string) *corev1.Pod {
+func endpointPod(bindingSpec *ctrlv1.PrivateNetworkBinding, name, ip string) *corev1.Pod {
 	return &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: name, Namespace: app.GetK8SNamespace(), UID: types.UID(name),
-			Labels: appLabels(app).DeploymentID(app.GetDeploymentId()).ComponentDeployment(),
+			Name: name, Namespace: bindingSpec.GetK8SNamespace(), UID: types.UID(name),
+			Labels: targetAppLabels(bindingSpec).DeploymentID(bindingSpec.GetTargetDeploymentId()).ComponentDeployment(),
 		},
 		Status: corev1.PodStatus{
 			Phase: corev1.PodRunning, PodIP: ip,

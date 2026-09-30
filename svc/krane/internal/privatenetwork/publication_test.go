@@ -17,13 +17,13 @@ import (
 
 func TestPublicationRetainsBindingUntilRemoteDiscoveryIsReady(t *testing.T) {
 	ctx := t.Context()
-	selected := testApp("dep_a")
+	selected := testBinding("dep_a")
 	client := fake.NewClientset(endpointPod(selected, "a", "10.72.0.11"))
-	other := testApp("other_a")
-	other.AppId, other.AppSlug = "app_2", "metrics"
+	other := testBinding("other_a")
+	other.TargetAppId, other.TargetAppSlug = "app_2", "metrics"
 	other.BindingId, other.BindingName, other.CallerDeploymentId = "binding_2", "metrics-api", "caller_2"
-	control := &testutil.MockClusterClient{StreamPrivateNetworkStateFunc: snapshotFunc(t, func(context.Context) ([]*ctrlv1.PrivateNetworkApp, error) {
-		return []*ctrlv1.PrivateNetworkApp{selected, other}, nil
+	control := &testutil.MockClusterClient{StreamPrivateNetworkStateFunc: snapshotFunc(t, func(context.Context) ([]*ctrlv1.PrivateNetworkBinding, error) {
+		return []*ctrlv1.PrivateNetworkBinding{selected, other}, nil
 	})}
 	dynamic := testDynamicClient()
 	r := &Reconciler{client: client, dynamic: dynamic, cluster: control}
@@ -32,8 +32,8 @@ func TestPublicationRetainsBindingUntilRemoteDiscoveryIsReady(t *testing.T) {
 	original, err := client.CoreV1().ConfigMaps("customer-1").Get(ctx, bindingName, metav1.GetOptions{})
 	require.NoError(t, err)
 
-	selected = testApp("dep_b")
-	other.DeploymentId = "other_b"
+	selected = testBinding("dep_b")
+	other.TargetDeploymentId = "other_b"
 	_, err = client.CoreV1().Pods("customer-1").Create(ctx, endpointPod(other, "other-b", "10.72.0.33"), metav1.CreateOptions{})
 	require.NoError(t, err)
 	require.NoError(t, r.reconcile(ctx))
@@ -53,7 +53,7 @@ func TestPublicationRetainsBindingUntilRemoteDiscoveryIsReady(t *testing.T) {
 	require.NotContains(t, a.Annotations, appbinding.RetireAfterAnnotation)
 	require.Equal(t, []string{"10.72.0.11"}, sourceAddresses(t, client, a))
 
-	b, err := client.CoreV1().Services("customer-1").Get(ctx, discoveryName("dep_b", selected.GetPort()), metav1.GetOptions{})
+	b, err := client.CoreV1().Services("customer-1").Get(ctx, discoveryName("dep_b", selected.GetTargetPort()), metav1.GetOptions{})
 	require.NoError(t, err)
 	ready := false
 	remote := &discoveryv1.EndpointSlice{

@@ -34,17 +34,17 @@ func TestMain(m *testing.M) {
 func TestReconcileReportsEntryStatesAndTargetSwitches(t *testing.T) {
 	ctx := t.Context()
 	capture := loggertest.Install(t)
-	bound := testApp("dep_a")
-	replica := testApp("caller_2")
-	replica.AppId, replica.AppSlug, replica.BindingName = "app_caller", "caller", "caller"
+	bound := testBinding("dep_a")
+	replica := testBinding("caller_2")
+	replica.TargetAppId, replica.TargetAppSlug, replica.BindingName = "app_caller", "caller", "caller"
 	replica.BindingId, replica.CallerDeploymentId = "self-caller_2", "caller_2"
-	unresolved := testApp("")
-	unresolved.Port = 0
+	unresolved := testBinding("")
+	unresolved.TargetPort = 0
 	unresolved.BindingId, unresolved.BindingName, unresolved.CallerDeploymentId = "binding_3", "ledger", "caller_3"
-	snapshot := []*ctrlv1.PrivateNetworkApp{bound, replica, unresolved}
+	snapshot := []*ctrlv1.PrivateNetworkBinding{bound, replica, unresolved}
 
 	client := fake.NewClientset(endpointPod(bound, "a", "10.72.0.11"), endpointPod(replica, "self", "10.72.0.12"))
-	control := &testutil.MockClusterClient{StreamPrivateNetworkStateFunc: snapshotFunc(t, func(context.Context) ([]*ctrlv1.PrivateNetworkApp, error) {
+	control := &testutil.MockClusterClient{StreamPrivateNetworkStateFunc: snapshotFunc(t, func(context.Context) ([]*ctrlv1.PrivateNetworkBinding, error) {
 		return snapshot, nil
 	})}
 	r := &Reconciler{client: client, dynamic: testDynamicClient(), cluster: control, clusterKey: &ctrlv1.ClusterKey{}}
@@ -56,8 +56,8 @@ func TestReconcileReportsEntryStatesAndTargetSwitches(t *testing.T) {
 	}, nonZero(gatherValues(t, "unkey_krane_private_network_entries")))
 	require.GreaterOrEqual(t, gatherValues(t, "unkey_krane_private_network_last_completed_pass_unix_seconds")["loop=discovery"], float64(started))
 
-	switched := testApp("dep_b")
-	snapshot = []*ctrlv1.PrivateNetworkApp{switched, replica, unresolved}
+	switched := testBinding("dep_b")
+	snapshot = []*ctrlv1.PrivateNetworkBinding{switched, replica, unresolved}
 	since := capture.Snapshot()
 	require.NoError(t, r.reconcile(ctx))
 	require.NoError(t, r.reconcile(ctx))
@@ -113,21 +113,21 @@ func TestReconcileEntryFailuresReportTheirStage(t *testing.T) {
 		t.Run(tc.stage, func(t *testing.T) {
 			ctx := t.Context()
 			capture := loggertest.Install(t)
-			app := testApp("dep_a")
-			healthy := testApp("dep_b")
-			healthy.AppId, healthy.K8SNamespace = "app_2", "customer-2"
+			bindingSpec := testBinding("dep_a")
+			healthy := testBinding("dep_b")
+			healthy.TargetAppId, healthy.K8SNamespace = "app_2", "customer-2"
 			healthy.BindingId, healthy.BindingName, healthy.CallerDeploymentId = "binding_2", "ledger-api", "caller_2"
-			client := fake.NewClientset(endpointPod(app, "a", "10.72.0.11"), endpointPod(healthy, "b", "10.72.0.21"))
+			client := fake.NewClientset(endpointPod(bindingSpec, "a", "10.72.0.11"), endpointPod(healthy, "b", "10.72.0.21"))
 			failing := true
-			snapshot := func() []*ctrlv1.PrivateNetworkApp {
+			snapshot := func() []*ctrlv1.PrivateNetworkBinding {
 				if tc.corrupt && failing {
-					broken := testApp("dep_a")
-					broken.Port = 0
-					return []*ctrlv1.PrivateNetworkApp{broken, healthy}
+					broken := testBinding("dep_a")
+					broken.TargetPort = 0
+					return []*ctrlv1.PrivateNetworkBinding{broken, healthy}
 				}
-				return []*ctrlv1.PrivateNetworkApp{app, healthy}
+				return []*ctrlv1.PrivateNetworkBinding{bindingSpec, healthy}
 			}
-			control := &testutil.MockClusterClient{StreamPrivateNetworkStateFunc: snapshotFunc(t, func(context.Context) ([]*ctrlv1.PrivateNetworkApp, error) {
+			control := &testutil.MockClusterClient{StreamPrivateNetworkStateFunc: snapshotFunc(t, func(context.Context) ([]*ctrlv1.PrivateNetworkBinding, error) {
 				return snapshot(), nil
 			})}
 			r := &Reconciler{client: client, dynamic: testDynamicClient(), cluster: control, clusterKey: &ctrlv1.ClusterKey{}}
@@ -171,7 +171,7 @@ func TestReconcileAbortReportsStageWithoutCompletingPass(t *testing.T) {
 		inject func(client *fake.Clientset, control *testutil.MockClusterClient)
 	}{
 		{stage: stageSnapshot, inject: func(_ *fake.Clientset, control *testutil.MockClusterClient) {
-			control.StreamPrivateNetworkStateFunc = snapshotFunc(t, func(context.Context) ([]*ctrlv1.PrivateNetworkApp, error) {
+			control.StreamPrivateNetworkStateFunc = snapshotFunc(t, func(context.Context) ([]*ctrlv1.PrivateNetworkBinding, error) {
 				return nil, fmt.Errorf("ctrl unavailable")
 			})
 		}},
@@ -183,7 +183,7 @@ func TestReconcileAbortReportsStageWithoutCompletingPass(t *testing.T) {
 	} {
 		t.Run(tc.stage, func(t *testing.T) {
 			client := fake.NewClientset()
-			control := &testutil.MockClusterClient{StreamPrivateNetworkStateFunc: snapshotFunc(t, func(context.Context) ([]*ctrlv1.PrivateNetworkApp, error) {
+			control := &testutil.MockClusterClient{StreamPrivateNetworkStateFunc: snapshotFunc(t, func(context.Context) ([]*ctrlv1.PrivateNetworkBinding, error) {
 				return nil, nil
 			})}
 			r := &Reconciler{client: client, dynamic: testDynamicClient(), cluster: control, clusterKey: &ctrlv1.ClusterKey{}}
@@ -205,7 +205,7 @@ func TestReconcileAbortReportsStageWithoutCompletingPass(t *testing.T) {
 
 func TestLeaderWithoutCompletedPassReportsStaleTimestamp(t *testing.T) {
 	startLeading()
-	control := &testutil.MockClusterClient{StreamPrivateNetworkStateFunc: snapshotFunc(t, func(context.Context) ([]*ctrlv1.PrivateNetworkApp, error) {
+	control := &testutil.MockClusterClient{StreamPrivateNetworkStateFunc: snapshotFunc(t, func(context.Context) ([]*ctrlv1.PrivateNetworkBinding, error) {
 		return nil, fmt.Errorf("ctrl unavailable")
 	})}
 	r := &Reconciler{client: fake.NewClientset(), dynamic: testDynamicClient(), cluster: control, clusterKey: &ctrlv1.ClusterKey{}}
@@ -218,10 +218,10 @@ func TestLeaderWithoutCompletedPassReportsStaleTimestamp(t *testing.T) {
 
 func TestEndpointRefreshFailuresReportTheirStage(t *testing.T) {
 	ctx := t.Context()
-	app := testApp("dep_a")
-	client := fake.NewClientset(endpointPod(app, "a", "10.72.0.11"))
-	control := &testutil.MockClusterClient{StreamPrivateNetworkStateFunc: snapshotFunc(t, func(context.Context) ([]*ctrlv1.PrivateNetworkApp, error) {
-		return []*ctrlv1.PrivateNetworkApp{app}, nil
+	bindingSpec := testBinding("dep_a")
+	client := fake.NewClientset(endpointPod(bindingSpec, "a", "10.72.0.11"))
+	control := &testutil.MockClusterClient{StreamPrivateNetworkStateFunc: snapshotFunc(t, func(context.Context) ([]*ctrlv1.PrivateNetworkBinding, error) {
+		return []*ctrlv1.PrivateNetworkBinding{bindingSpec}, nil
 	})}
 	r := &Reconciler{client: client, dynamic: testDynamicClient(), cluster: control, clusterKey: &ctrlv1.ClusterKey{}}
 	require.NoError(t, r.reconcile(ctx))
@@ -232,7 +232,7 @@ func TestEndpointRefreshFailuresReportTheirStage(t *testing.T) {
 
 	failing := true
 	client.PrependReactor("update", "endpointslices", failWhile(&failing, fmt.Errorf("denied")))
-	_, err := client.CoreV1().Pods(app.GetK8SNamespace()).Create(ctx, endpointPod(app, "a2", "10.72.0.12"), metav1.CreateOptions{})
+	_, err := client.CoreV1().Pods(bindingSpec.GetK8SNamespace()).Create(ctx, endpointPod(bindingSpec, "a2", "10.72.0.12"), metav1.CreateOptions{})
 	require.NoError(t, err)
 	before := gatherValues(t, "unkey_krane_private_network_errors_total")
 	require.Error(t, r.reconcileEndpoints(ctx))
@@ -242,7 +242,7 @@ func TestEndpointRefreshFailuresReportTheirStage(t *testing.T) {
 
 func TestLeadershipReportsLeaderGauge(t *testing.T) {
 	client := fake.NewClientset()
-	control := &testutil.MockClusterClient{StreamPrivateNetworkStateFunc: snapshotFunc(t, func(context.Context) ([]*ctrlv1.PrivateNetworkApp, error) {
+	control := &testutil.MockClusterClient{StreamPrivateNetworkStateFunc: snapshotFunc(t, func(context.Context) ([]*ctrlv1.PrivateNetworkBinding, error) {
 		return nil, nil
 	})}
 	r, err := New(Config{

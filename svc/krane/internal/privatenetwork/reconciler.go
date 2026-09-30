@@ -188,7 +188,7 @@ func (r *Reconciler) reconcile(ctx context.Context) error {
 	if err != nil {
 		return countError(loopDiscovery, stageSnapshot, err)
 	}
-	apps, rejected := validateSnapshot(snapshot)
+	snapshotBindings, rejected := validateSnapshot(snapshot)
 
 	r.endpointMu.Lock()
 	defer r.endpointMu.Unlock()
@@ -205,10 +205,10 @@ func (r *Reconciler) reconcile(ctx context.Context) error {
 		return countError(loopDiscovery, stageList, err)
 	}
 
-	desiredServices := make(map[string]struct{}, len(apps))
-	desiredBindings := make(map[string]struct{}, len(apps))
-	desiredPolicies := make(map[string]struct{}, len(apps))
-	ensuredServices := make(map[string]struct{}, len(apps))
+	desiredServices := make(map[string]struct{}, len(snapshotBindings))
+	desiredBindings := make(map[string]struct{}, len(snapshotBindings))
+	desiredPolicies := make(map[string]struct{}, len(snapshotBindings))
+	ensuredServices := make(map[string]struct{}, len(snapshotBindings))
 	entries := make(map[string]entryStatus, len(snapshot))
 	var untracked []entryStatus
 	retain := func(bindingKey string) {
@@ -219,10 +219,10 @@ func (r *Reconciler) reconcile(ctx context.Context) error {
 		}
 	}
 
-	appErrs := make([]error, 0, len(rejected))
-	fail := func(app *ctrlv1.PrivateNetworkApp, bindingKey, stage string, err error) {
-		appErrs = append(appErrs, countError(loopDiscovery, stage, err))
-		entry := entryStatus{kind: entryKind(app), state: stateFailed, stage: stage, err: err, app: app, publishedDeployment: ""}
+	bindingErrs := make([]error, 0, len(rejected))
+	fail := func(bindingSpec *ctrlv1.PrivateNetworkBinding, bindingKey, stage string, err error) {
+		bindingErrs = append(bindingErrs, countError(loopDiscovery, stage, err))
+		entry := entryStatus{kind: entryKind(bindingSpec), state: stateFailed, stage: stage, err: err, bindingSpec: bindingSpec, publishedDeployment: ""}
 		if bindingKey == "" {
 			untracked = append(untracked, entry)
 			return
@@ -235,42 +235,42 @@ func (r *Reconciler) reconcile(ctx context.Context) error {
 	}
 
 	for _, rejection := range rejected {
-		fail(rejection.app, rejection.retainedBindingKey, stageInvalidEntry, rejection.err)
+		fail(rejection.bindingSpec, rejection.retainedBindingKey, stageInvalidEntry, rejection.err)
 	}
 
-	for _, app := range apps {
+	for _, bindingSpec := range snapshotBindings {
 		if err := ctx.Err(); err != nil {
-			return errors.Join(append(appErrs, err)...)
+			return errors.Join(append(bindingErrs, err)...)
 		}
 
-		bindingName := bindingResourceName(app)
-		bindingKey := app.GetK8SNamespace() + "/" + bindingName
+		bindingName := bindingResourceName(bindingSpec)
+		bindingKey := bindingSpec.GetK8SNamespace() + "/" + bindingName
 
-		if _, exists := namespaces[app.GetK8SNamespace()]; !exists {
+		if _, exists := namespaces[bindingSpec.GetK8SNamespace()]; !exists {
 			_, err := r.client.CoreV1().Namespaces().Create(ctx, &corev1.Namespace{
-				ObjectMeta: metav1.ObjectMeta{Name: app.GetK8SNamespace()},
+				ObjectMeta: metav1.ObjectMeta{Name: bindingSpec.GetK8SNamespace()},
 			}, metav1.CreateOptions{})
 			if err != nil && !apierrors.IsAlreadyExists(err) {
-				fail(app, bindingKey, stageNamespace, fmt.Errorf("ensure private network namespace %s: %w", app.GetK8SNamespace(), err))
+				fail(bindingSpec, bindingKey, stageNamespace, fmt.Errorf("ensure private network namespace %s: %w", bindingSpec.GetK8SNamespace(), err))
 				continue
 			}
-			namespaces[app.GetK8SNamespace()] = struct{}{}
+			namespaces[bindingSpec.GetK8SNamespace()] = struct{}{}
 		}
 
 		var service *corev1.Service
-		if app.GetDeploymentId() != "" {
-			name := discoveryName(app.GetDeploymentId(), app.GetPort())
-			serviceKey := app.GetK8SNamespace() + "/" + name
+		if bindingSpec.GetTargetDeploymentId() != "" {
+			name := discoveryName(bindingSpec.GetTargetDeploymentId(), bindingSpec.GetTargetPort())
+			serviceKey := bindingSpec.GetK8SNamespace() + "/" + name
 			if _, ensured := ensuredServices[serviceKey]; !ensured {
-				ensuredService, err := r.ensureService(ctx, app, name, servicesByKey[serviceKey])
+				ensuredService, err := r.ensureService(ctx, bindingSpec, name, servicesByKey[serviceKey])
 				if err != nil {
-					fail(app, bindingKey, stageService, err)
+					fail(bindingSpec, bindingKey, stageService, err)
 					continue
 				}
 				servicesByKey[serviceKey] = ensuredService
 				if err := r.ensureEndpoints(ctx, ensuredService, pods, sourceSlices[serviceKey]); err != nil {
 					desiredServices[serviceKey] = struct{}{}
-					fail(app, bindingKey, stageEndpointSlice, err)
+					fail(bindingSpec, bindingKey, stageEndpointSlice, err)
 					continue
 				}
 				ensuredServices[serviceKey] = struct{}{}
@@ -279,13 +279,13 @@ func (r *Reconciler) reconcile(ctx context.Context) error {
 			service = servicesByKey[serviceKey]
 		}
 
-		if err := r.ensurePolicy(ctx, app, bindingName, bindingsByKey[bindingKey]); err != nil {
-			fail(app, bindingKey, stagePolicy, err)
+		if err := r.ensurePolicy(ctx, bindingSpec, bindingName, bindingsByKey[bindingKey]); err != nil {
+			fail(bindingSpec, bindingKey, stagePolicy, err)
 			continue
 		}
-		binding, err := r.ensureBinding(ctx, app, bindingName, service, bindingsByKey[bindingKey])
+		binding, err := r.ensureBinding(ctx, bindingSpec, bindingName, service, bindingsByKey[bindingKey])
 		if err != nil {
-			fail(app, bindingKey, stageBinding, err)
+			fail(bindingSpec, bindingKey, stageBinding, err)
 			continue
 		}
 
@@ -294,13 +294,13 @@ func (r *Reconciler) reconcile(ctx context.Context) error {
 		}
 		desiredBindings[bindingKey] = struct{}{}
 		desiredPolicies[bindingKey] = struct{}{}
-		entries[bindingKey] = publishedEntry(app, binding)
+		entries[bindingKey] = publishedEntry(bindingSpec, binding)
 	}
 
 	if err := r.cleanupPolicies(ctx, desiredPolicies); err != nil {
-		appErrs = append(appErrs, countError(loopDiscovery, stageCleanup, err))
+		bindingErrs = append(bindingErrs, countError(loopDiscovery, stageCleanup, err))
 	} else if err := r.cleanup(ctx, services, bindings, desiredServices, desiredBindings); err != nil {
-		appErrs = append(appErrs, countError(loopDiscovery, stageCleanup, err))
+		bindingErrs = append(bindingErrs, countError(loopDiscovery, stageCleanup, err))
 	}
 
 	completed = true
@@ -308,21 +308,21 @@ func (r *Reconciler) reconcile(ctx context.Context) error {
 	logEntryChanges(r.entries, entries)
 	r.entries = entries
 
-	if len(appErrs) > 0 {
-		return fmt.Errorf("reconcile private network apps, failed apps kept their published objects: %w", errors.Join(appErrs...))
+	if len(bindingErrs) > 0 {
+		return fmt.Errorf("reconcile private network bindings, failed bindings kept their published objects: %w", errors.Join(bindingErrs...))
 	}
 	return nil
 }
 
-func publishedEntry(app *ctrlv1.PrivateNetworkApp, binding *corev1.ConfigMap) entryStatus {
+func publishedEntry(bindingSpec *ctrlv1.PrivateNetworkBinding, binding *corev1.ConfigMap) entryStatus {
 	entry := entryStatus{
-		kind: entryKind(app), state: stateCurrent, stage: "", err: nil, app: app,
+		kind: entryKind(bindingSpec), state: stateCurrent, stage: "", err: nil, bindingSpec: bindingSpec,
 		publishedDeployment: binding.Data["deploymentId"],
 	}
 	switch {
-	case app.GetDeploymentId() == "":
+	case bindingSpec.GetTargetDeploymentId() == "":
 		entry.state = stateUnresolved
-	case entry.publishedDeployment != app.GetDeploymentId():
+	case entry.publishedDeployment != bindingSpec.GetTargetDeploymentId():
 		entry.state = stateWaitingForEndpoints
 	}
 	return entry

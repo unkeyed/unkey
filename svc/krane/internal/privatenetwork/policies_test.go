@@ -24,13 +24,13 @@ type portProto struct {
 }
 
 func TestBindingPolicyGrantsEveryUnicastPortInOneDirection(t *testing.T) {
-	app := testApp("target_1")
+	bindingSpec := testBinding("target_1")
 	dynamic := testDynamicClient()
 	r := &Reconciler{dynamic: dynamic}
-	name := policyName(app)
-	require.NoError(t, r.ensurePolicy(t.Context(), app, name, nil))
+	name := policyName(bindingSpec)
+	require.NoError(t, r.ensurePolicy(t.Context(), bindingSpec, name, nil))
 
-	policy, err := dynamic.Resource(policyResource).Namespace(app.GetK8SNamespace()).Get(t.Context(), name, metav1.GetOptions{})
+	policy, err := dynamic.Resource(policyResource).Namespace(bindingSpec.GetK8SNamespace()).Get(t.Context(), name, metav1.GetOptions{})
 	require.NoError(t, err)
 	require.NotContains(t, policy.GetAnnotations(), "bindings.unkey.com/port")
 	specs := policySpecs(t, policy)
@@ -41,10 +41,10 @@ func TestBindingPolicyGrantsEveryUnicastPortInOneDirection(t *testing.T) {
 	require.NotContains(t, caller, "ingress")
 	require.Contains(t, target, "ingress")
 	require.NotContains(t, target, "egress")
-	require.Equal(t, app.GetCallerDeploymentId(), selectorLabels(t, caller)[labels.LabelKeyDeploymentID])
-	require.Equal(t, app.GetDeploymentId(), selectorLabels(t, target)[labels.LabelKeyDeploymentID])
+	require.Equal(t, bindingSpec.GetCallerDeploymentId(), selectorLabels(t, caller)[labels.LabelKeyDeploymentID])
+	require.Equal(t, bindingSpec.GetTargetDeploymentId(), selectorLabels(t, target)[labels.LabelKeyDeploymentID])
 	require.NotContains(t, selectorLabels(t, caller), labels.LabelKeyAppID)
-	require.Equal(t, app.GetAppId(), selectorLabels(t, target)[labels.LabelKeyAppID])
+	require.Equal(t, bindingSpec.GetTargetAppId(), selectorLabels(t, target)[labels.LabelKeyAppID])
 
 	for _, spec := range []map[string]interface{}{caller, target} {
 		ruleKey := "egress"
@@ -70,19 +70,19 @@ func TestBindingPolicyGrantsEveryUnicastPortInOneDirection(t *testing.T) {
 		}, expressions)
 	}
 
-	require.Equal(t, []flow{{"caller_1", "target_1"}}, effectiveFlows(t, dynamic, app.GetK8SNamespace()))
+	require.Equal(t, []flow{{"caller_1", "target_1"}}, effectiveFlows(t, dynamic, bindingSpec.GetK8SNamespace()))
 }
 
 func TestBindingPolicyReverseRequiresReciprocalBinding(t *testing.T) {
 	dynamic := testDynamicClient()
 	r := &Reconciler{dynamic: dynamic}
-	forward := testApp("dep_b")
+	forward := testBinding("dep_b")
 	forward.CallerDeploymentId = "dep_a"
 	require.NoError(t, r.ensurePolicy(t.Context(), forward, policyName(forward), nil))
 	require.Equal(t, []flow{{"dep_a", "dep_b"}}, effectiveFlows(t, dynamic, forward.GetK8SNamespace()))
 
-	reverse := testApp("dep_a")
-	reverse.AppId, reverse.BindingId, reverse.CallerDeploymentId = "app_a", "binding_reverse", "dep_b"
+	reverse := testBinding("dep_a")
+	reverse.TargetAppId, reverse.BindingId, reverse.CallerDeploymentId = "app_a", "binding_reverse", "dep_b"
 	require.NoError(t, r.ensurePolicy(t.Context(), reverse, policyName(reverse), nil))
 	require.ElementsMatch(t, []flow{{"dep_a", "dep_b"}, {"dep_b", "dep_a"}}, effectiveFlows(t, dynamic, forward.GetK8SNamespace()))
 }
@@ -90,12 +90,12 @@ func TestBindingPolicyReverseRequiresReciprocalBinding(t *testing.T) {
 func TestBindingPolicyIsNotTransitiveAndExcludesUnrelatedDeployments(t *testing.T) {
 	dynamic := testDynamicClient()
 	r := &Reconciler{dynamic: dynamic}
-	aToB := testApp("dep_b")
+	aToB := testBinding("dep_b")
 	aToB.CallerDeploymentId, aToB.BindingId = "dep_a", "binding_ab"
-	bToC := testApp("dep_c")
-	bToC.AppId, bToC.CallerDeploymentId, bToC.BindingId = "app_c", "dep_b", "binding_bc"
-	for _, app := range []*ctrlv1.PrivateNetworkApp{aToB, bToC} {
-		require.NoError(t, r.ensurePolicy(t.Context(), app, policyName(app), nil))
+	bToC := testBinding("dep_c")
+	bToC.TargetAppId, bToC.CallerDeploymentId, bToC.BindingId = "app_c", "dep_b", "binding_bc"
+	for _, bindingSpec := range []*ctrlv1.PrivateNetworkBinding{aToB, bToC} {
+		require.NoError(t, r.ensurePolicy(t.Context(), bindingSpec, policyName(bindingSpec), nil))
 	}
 
 	flows := effectiveFlows(t, dynamic, aToB.GetK8SNamespace())
@@ -108,8 +108,8 @@ func TestBindingPolicyIsNotTransitiveAndExcludesUnrelatedDeployments(t *testing.
 func TestSelfBindingPeersOnlyReplicasOfCallerDeployment(t *testing.T) {
 	dynamic := testDynamicClient()
 	r := &Reconciler{dynamic: dynamic}
-	self := testApp("caller_1")
-	self.AppId = "app_caller"
+	self := testBinding("caller_1")
+	self.TargetAppId = "app_caller"
 	require.NoError(t, r.ensurePolicy(t.Context(), self, policyName(self), nil))
 
 	require.Equal(t, []flow{{"caller_1", "caller_1"}}, effectiveFlows(t, dynamic, self.GetK8SNamespace()))
@@ -128,17 +128,17 @@ func TestSelfBindingPeersOnlyReplicasOfCallerDeployment(t *testing.T) {
 func TestBindingPolicyIsolationAndImmediateRevocation(t *testing.T) {
 	dynamic := testDynamicClient()
 	r := &Reconciler{dynamic: dynamic}
-	first := testApp("target_1")
-	second := testApp("target_1")
+	first := testBinding("target_1")
+	second := testBinding("target_1")
 	second.CallerDeploymentId, second.BindingId = "caller_2", "binding_2"
-	for _, app := range []*ctrlv1.PrivateNetworkApp{first, second} {
-		require.NoError(t, r.ensurePolicy(t.Context(), app, policyName(app), nil))
+	for _, bindingSpec := range []*ctrlv1.PrivateNetworkBinding{first, second} {
+		require.NoError(t, r.ensurePolicy(t.Context(), bindingSpec, policyName(bindingSpec), nil))
 	}
 	policies, err := dynamic.Resource(policyResource).Namespace(first.GetK8SNamespace()).List(t.Context(), metav1.ListOptions{})
 	require.NoError(t, err)
 	require.Len(t, policies.Items, 2)
 
-	first.DeploymentId, first.Port = "", 0
+	first.TargetDeploymentId, first.TargetPort = "", 0
 	require.NoError(t, r.ensurePolicy(t.Context(), first, policyName(first), nil))
 	_, err = dynamic.Resource(policyResource).Namespace(first.GetK8SNamespace()).Get(t.Context(), policyName(first), metav1.GetOptions{})
 	require.Error(t, err)
@@ -148,20 +148,20 @@ func TestBindingPolicyIsolationAndImmediateRevocation(t *testing.T) {
 func TestBindingPolicyIgnoresTargetPortChanges(t *testing.T) {
 	dynamic := testDynamicClient()
 	r := &Reconciler{dynamic: dynamic}
-	app := testApp("target_1")
-	require.NoError(t, r.ensurePolicy(t.Context(), app, policyName(app), nil))
-	before, err := dynamic.Resource(policyResource).Namespace(app.GetK8SNamespace()).Get(t.Context(), policyName(app), metav1.GetOptions{})
+	bindingSpec := testBinding("target_1")
+	require.NoError(t, r.ensurePolicy(t.Context(), bindingSpec, policyName(bindingSpec), nil))
+	before, err := dynamic.Resource(policyResource).Namespace(bindingSpec.GetK8SNamespace()).Get(t.Context(), policyName(bindingSpec), metav1.GetOptions{})
 	require.NoError(t, err)
 
-	app.Port = 9090
-	require.NoError(t, r.ensurePolicy(t.Context(), app, policyName(app), nil))
-	after, err := dynamic.Resource(policyResource).Namespace(app.GetK8SNamespace()).Get(t.Context(), policyName(app), metav1.GetOptions{})
+	bindingSpec.TargetPort = 9090
+	require.NoError(t, r.ensurePolicy(t.Context(), bindingSpec, policyName(bindingSpec), nil))
+	after, err := dynamic.Resource(policyResource).Namespace(bindingSpec.GetK8SNamespace()).Get(t.Context(), policyName(bindingSpec), metav1.GetOptions{})
 	require.NoError(t, err)
 	require.Equal(t, before.GetResourceVersion(), after.GetResourceVersion(), "a declared port change must not rewrite access")
 }
 
-func policyName(app *ctrlv1.PrivateNetworkApp) string {
-	return resourceName("unkey-pn-binding", app.GetBindingId()+"/"+app.GetCallerDeploymentId())
+func policyName(bindingSpec *ctrlv1.PrivateNetworkBinding) string {
+	return resourceName("unkey-pn-binding", bindingSpec.GetBindingId()+"/"+bindingSpec.GetCallerDeploymentId())
 }
 
 func policySpecs(t *testing.T, policy *unstructured.Unstructured) []map[string]interface{} {
