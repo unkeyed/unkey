@@ -37,7 +37,17 @@ function useSettingsGroupMember({ dirty, saving, submit }: Member) {
   }, [group, id, dirty, saving]);
 }
 
-function SettingsGroup({ title, children }: { title: React.ReactNode; children: React.ReactNode }) {
+function SettingsGroup({
+  title,
+  pendingNote,
+  children,
+}: {
+  /** Omit when the page title already names the group. */
+  title?: React.ReactNode;
+  /** Shown beside Save only while the group has unsaved changes. */
+  pendingNote?: React.ReactNode;
+  children: React.ReactNode;
+}) {
   const [members, setMembers] = React.useState<Readonly<Record<string, Member>>>({});
 
   const sync = React.useCallback((id: string, member: Member | null) => {
@@ -66,10 +76,13 @@ function SettingsGroup({ title, children }: { title: React.ReactNode; children: 
   return (
     <SettingsGroupContext.Provider value={context}>
       <section className="flex flex-col gap-3">
-        <h2 className="text-sm font-medium text-gray-12 px-1">{title}</h2>
+        {title ? <h2 className="text-base font-medium text-gray-12">{title}</h2> : null}
         <div className="border rounded-lg overflow-hidden bg-raised">
           <div className="divide-y divide-grayA-4">{children}</div>
-          <div className="border-t border-grayA-4 bg-grayA-2 px-5 py-3 flex justify-end">
+          <div className="border-t border-grayA-4 bg-grayA-2 px-5 py-3 flex items-center justify-end gap-3">
+            {dirty && pendingNote ? (
+              <span className="text-xs text-gray-11">{pendingNote}</span>
+            ) : null}
             <Button
               variant="primary"
               size="sm"

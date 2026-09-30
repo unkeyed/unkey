@@ -36,7 +36,7 @@ export default function SettingsPageExample() {
             </PageHeaderContent>
           </PageHeader>
           <SettingsGroups>
-            <SettingsGroup title="Runtime settings">
+            <SettingsGroup>
               <SettingsRow title="Port" description="Port your application listens on.">
                 <FormInput defaultValue="8080" />
               </SettingsRow>

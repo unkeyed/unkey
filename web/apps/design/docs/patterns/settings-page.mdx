@@ -13,11 +13,11 @@ This rules out three things we used to do. Do not put a form behind `SettingCard
 
 `SettingCard`'s `expandable` slot still exists, for real progressive disclosure such as build logs on a deployment. A setting is not that.
 
-## Give every group a title
+## Title a group only to tell it apart
 
-A group gets an `h2` sitting above its card rather than inside it, worded as a plain noun phrase, so "Runtime settings" rather than "Manage runtime settings".
+A group title is an `h2` above its card, worded as a plain noun phrase, so "Healthcheck" rather than "Manage healthcheck".
 
-A route with one untitled card is a route that has not been grouped yet. Sections are how a reader scans a settings page, so a page of eight rows under a single heading is the accordion problem in a different costume.
+Leave the title off when it only restates the page. The rail item and the page title already say "Build", so a "Build settings" heading under them is noise. When a page has two or more groups, title each one so the reader can tell them apart.
 
 ## Split sections into routes, not accordions
 
@@ -33,7 +33,7 @@ Two things belong in the layout rather than the page. Any provider the rows read
 
 `SettingsGroups` owns the reading width at `920px` with `px-6`, and stacks groups with a `32px` gap. Inside a group, `12px` separates the heading from the card.
 
-The heading ladder is the page title from `PageHeader`, then a group heading at `14px/500`, then a row label at `13px/500`, with the row description at `12px` in `text-gray-11`.
+The heading ladder is the page title from `PageHeader`, then a group heading at `15px/500` (`text-base`), then a row label at `13px/500`, with the row description at `12px` in `text-gray-11`.
 
 A row is `20px` of padding with a `16px` gap between its columns. The label column is two fifths and the control column takes the rest, stacking below `lg`. Rows are divided by the card's own `divide-y`, and the footer is separated by a border and tinted `bg-grayA-2`.
 
@@ -49,10 +49,12 @@ Put the control's own labels, hints and errors inside the row rather than in the
 
 A group card carries a single "Save changes" in its footer, and it commits every setting in that group that is dirty. Each setting still owns its own form, its own schema and its own mutation, so nothing is merged; rows hand their dirty state and their submit to the group through `useSettingsGroupMember`, and the footer submits only the dirty ones.
 
+When saving takes effect later, such as on the next deploy, pass `pendingNote` to the group. It sits beside Save only while the group has unsaved changes, so a clean page carries no caveats.
+
 That keeps the page quiet. A settings page at rest shows one disabled button per group rather than one per row, which is what made the per-row version feel like furniture.
 
 Drive each row's contribution from `SaveState`, which has three states and no booleans. `ready` means that row has something worth saving, `saving` shows its work in flight, and `disabled` means it does not participate. Build the state with `resolveSaveState`, which returns the first matching case, so order the checks from most specific to least.
 
 ## Danger zone
 
-Destructive actions go last, in `SettingsDangerZone`, which supplies the heading and the red surface. Title the consequence rather than the action, so "Delete this app" over "Delete". Reserve it for irreversible loss. An action that is heavy but undoable stays an ordinary row.
+Destructive actions go last, in `SettingsDangerZone`, which supplies the heading and the red surface. On a page of its own, whose title already says "Danger zone", pass `showTitle={false}`. Title the consequence rather than the action, so "Delete this app" over "Delete". Reserve it for irreversible loss. An action that is heavy but undoable stays an ordinary row.
