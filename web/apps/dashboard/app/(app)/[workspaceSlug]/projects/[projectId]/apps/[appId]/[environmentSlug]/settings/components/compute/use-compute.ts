@@ -1,7 +1,7 @@
 "use client";
 
 import { useWorkspace } from "@/providers/workspace-provider";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useEnvironmentSettings } from "../../environment-provider";
 import { useUpdateEnvironment } from "../../hooks/use-update-environment";
 import { useReportUnsavedChanges } from "../../prevent-leave-context";
@@ -64,6 +64,8 @@ export function useCompute(): ComputePage {
   };
 }
 
+const AUTOSAVE_DELAY_MS = 600;
+
 function modesOf({ sizeMode, storageMode }: CardEdit): CardEdit {
   return { sizeMode, storageMode };
 }
@@ -89,6 +91,35 @@ export function useCardController(
     setEdit(modesOf(next));
   };
 
+  const pending = useRef<CardEdit | null>(null);
+  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const flush = useRef(() => {});
+  flush.current = () => {
+    clearTimeout(timer.current);
+    const next = pending.current;
+    pending.current = null;
+    if (next) {
+      commitEdit(next);
+    }
+  };
+  useEffect(() => () => flush.current(), []);
+
+  const autosave = (next: CardEdit) => {
+    const applied = applyCardEdit(page.base, slot, next);
+    if (!applied.ok) {
+      pending.current = null;
+      clearTimeout(timer.current);
+      return;
+    }
+    pending.current = next;
+    if (next.region !== undefined) {
+      flush.current();
+      return;
+    }
+    clearTimeout(timer.current);
+    timer.current = setTimeout(() => flush.current(), AUTOSAVE_DELAY_MS);
+  };
+
   return {
     view: cardView(page.base, slot, edit),
     limits: page.limits,
@@ -103,8 +134,8 @@ export function useCardController(
     edit: (patch) => {
       const next = { ...edit, ...patch };
       setEdit(next);
-      if (page.saveMode === "autosave" && applyCardEdit(page.base, slot, next).ok) {
-        commitEdit(next);
+      if (page.saveMode === "autosave") {
+        autosave(next);
       }
     },
     save: () => {
