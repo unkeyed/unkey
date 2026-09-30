@@ -346,19 +346,19 @@ func (h *Handler) mintSession(
 
 	err := db.Tx(ctx, h.DB.RW(), func(txCtx context.Context, tx db.DBTX) error {
 		// Re-read on the primary inside the write transaction. The resolve above
-		// runs on the read-only connection, so a portal deleted moments earlier can
-		// still appear live there.
+		// runs on the read-only connection, so a portal deleted or disabled moments
+		// earlier can still appear live there.
 		//
-		// This matters because deleting a portal revokes its sessions: revocation
-		// only touches rows that exist when it runs, so a session minted in the
-		// replica-lag window would survive the delete, and once the portal row is
-		// gone nothing can revoke it afterwards. Losing the race here costs the
-		// caller a retry; losing it silently costs an end user access that was
-		// supposed to be cut.
-		if _, txErr := db.Query.FindPortalByIdOrSlug(txCtx, tx, db.FindPortalByIdOrSlugParams{
+		// This matters because deleting or disabling a portal revokes its sessions:
+		// revocation only touches rows that exist when it runs, so a session minted
+		// in the replica-lag window would survive it, and nothing revokes it
+		// afterwards. Losing the race here costs the caller a retry; losing it
+		// silently costs an end user access that was supposed to be cut.
+		current, txErr := db.Query.FindPortalByIdOrSlug(txCtx, tx, db.FindPortalByIdOrSlugParams{
 			WorkspaceID: principal.AuthorizedWorkspaceID,
 			Portal:      req.Portal.ID,
-		}); txErr != nil {
+		})
+		if txErr != nil {
 			if db.IsNotFound(txErr) {
 				return fault.New("portal not found",
 					fault.Code(codes.Data.Portal.NotFound.URN()),
@@ -370,6 +370,13 @@ func (h *Handler) mintSession(
 				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 				fault.Internal("database error re-reading portal before minting a session"),
 				fault.Public("Failed to create session."),
+			)
+		}
+		if !current.Enabled {
+			return fault.New("portal is disabled",
+				fault.Code(codes.Auth.Authorization.Forbidden.URN()),
+				fault.Internal(fmt.Sprintf("portal %s was disabled between the replica read and the session insert", req.Portal.ID)),
+				fault.Public("Portal is disabled."),
 			)
 		}
 
