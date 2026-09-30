@@ -20,7 +20,7 @@ import { getDomainPriority } from "../../../components/domain-priority";
 import { useProjectData } from "../../../data-provider";
 import { useAppCurrentDeployment } from "../../../hooks/use-app-current-deployment";
 import { useAppEnvironment, useAppScope } from "../../environment-context";
-import { AddDomainGhost, AppCanvas, AppNode } from "./app-canvas";
+import { AppCanvas, AppNode } from "./app-canvas";
 import { AppProductionCardSkeleton } from "./app-production-card-skeleton";
 import { ProductionCardHeader } from "./card-header";
 import { NewerDeploymentRow, hasVisibleBuildState } from "./card-newer-deployment";
@@ -91,7 +91,7 @@ export function AppProductionCard() {
   useCollectionPolling(() => collection.deployments.utils.refetch(), {
     intervalMs: 10_000,
     enabled:
-      productionStatus === "live" ||
+      productionStatus === "ready" ||
       productionStatus === "crashing" ||
       productionStatus === "deploying" ||
       (newerDeployment ? isDeploymentInFlight(newerDeployment.status) : false),
@@ -105,8 +105,7 @@ export function AppProductionCard() {
     return <EnvironmentPendingCard newerDeployment={newerDeployment} />;
   }
 
-  const derivedStatus = productionStatus ?? deriveProductionStatus(deployment);
-  const status = !isProduction && derivedStatus === "live" ? "ready" : derivedStatus;
+  const status = productionStatus ?? deriveProductionStatus(deployment);
   const isRolledBack = isCurrent && appIsRolledBack;
   const sourceRepo = deployment.forkRepositoryFullName || repoFullName;
 
@@ -158,7 +157,6 @@ export function AppProductionCard() {
       : null;
 
   const ctx: ProductionCardContextValue = {
-    eyebrow: isProduction ? null : `Latest ${environment.slug}`,
     deployment,
     status,
     isCurrent,
@@ -227,11 +225,7 @@ export function AppProductionCard() {
         {isRolledBack && <ProductionCardRollbackBanner />}
         <Card className="relative z-10 flex flex-col">
           <ProductionCardHeader />
-          <AppCanvas
-            domains={primary ? [primary, ...additional] : []}
-            emptyDomain={<AddDomainGhost />}
-            app={<AppNode />}
-          />
+          <AppCanvas domains={primary ? [primary, ...additional] : []} app={<AppNode />} />
           <AnimatePresence initial={false} mode="wait">
             {newerDeployment && (
               <motion.div

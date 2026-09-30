@@ -72,32 +72,29 @@ export const TONE_TEXT: Record<Tone, string> = {
 
 export function CanvasCard({
   children,
-  href,
-  external = false,
+  link,
   tone = "default",
 }: {
   children: ReactNode;
-  href?: Route | string;
-  external?: boolean;
+  link?: { href: Route; label: string };
   tone?: Tone;
 }) {
-  const cls = cn(
-    "block rounded-lg border shadow-xs transition-[border-color,box-shadow]",
-    TONE[tone],
-  );
-  if (href && external) {
-    return (
-      <a href={href} target="_blank" rel="noopener noreferrer" className={cls}>
-        {children}
-      </a>
-    );
-  }
-  return href ? (
-    <Link href={href as Route} className={cls}>
+  return (
+    <div
+      className={cn(
+        "relative rounded-lg border shadow-xs transition-[border-color,box-shadow]",
+        TONE[tone],
+      )}
+    >
+      {link && (
+        <Link
+          href={link.href}
+          aria-label={link.label}
+          className="absolute inset-0 rounded-lg focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-gray-7"
+        />
+      )}
       {children}
-    </Link>
-  ) : (
-    <div className={cls}>{children}</div>
+    </div>
   );
 }
 
@@ -124,6 +121,42 @@ export function CanvasCardHeader({
         {title}
       </span>
       {right && <span className="ml-auto shrink-0">{right}</span>}
+    </div>
+  );
+}
+
+export function DetailList({ children }: { children: ReactNode }) {
+  return <dl className="flex flex-col px-3 py-1.5">{children}</dl>;
+}
+
+export function DetailRow({
+  icon,
+  label,
+  value,
+  hint,
+  children,
+}: {
+  icon: ReactNode;
+  label: string;
+  value: ReactNode;
+  hint?: ReactNode;
+  children?: ReactNode;
+}) {
+  return (
+    <div className="flex flex-col gap-0.5 py-1 text-sm">
+      <div className="flex w-full items-center gap-4">
+        <dt className="flex shrink-0 items-center gap-2 font-medium text-gray-11">
+          <span className="inline-flex size-4 items-center justify-center text-gray-9 [&_svg]:size-3.5">
+            {icon}
+          </span>
+          {label}
+        </dt>
+        <dd className="flex min-w-0 flex-1 items-center justify-end gap-1.5 text-right tabular-nums">
+          <span className="min-w-0 truncate text-gray-12">{value}</span>
+          {hint != null && <span className="shrink-0 text-gray-9">{hint}</span>}
+        </dd>
+      </div>
+      {children && <dd className="flex min-w-0 flex-col pl-6">{children}</dd>}
     </div>
   );
 }

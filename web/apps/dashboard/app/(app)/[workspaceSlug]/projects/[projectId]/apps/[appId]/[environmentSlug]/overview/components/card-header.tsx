@@ -26,10 +26,9 @@ export const CARD_HEADER_CLASS =
   "flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-3 border-b bg-raised rounded-t-lg";
 
 function DomainHero() {
-  const { eyebrow, primaryDomain, additionalDomains, addCustomDomainHref } = useProductionCard();
+  const { primaryDomain, additionalDomains, addCustomDomainHref } = useProductionCard();
   return (
     <div className="flex items-center gap-2 min-w-0">
-      {eyebrow && <CardEyebrow>{eyebrow}</CardEyebrow>}
       {primaryDomain ? (
         <a
           href={primaryDomain.url}

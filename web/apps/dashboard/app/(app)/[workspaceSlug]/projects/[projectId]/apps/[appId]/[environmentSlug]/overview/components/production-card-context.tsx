@@ -9,8 +9,6 @@ import type { DeploymentDisplayStatus } from "./status";
 export type CardDomain = { hostname: string; url: string; source: "custom" | "platform" };
 
 export type ProductionCardContextValue = {
-  // Names what the card shows when it is not the live production deployment.
-  eyebrow: string | null;
   deployment: Deployment;
   status: DeploymentDisplayStatus;
   isCurrent: boolean;

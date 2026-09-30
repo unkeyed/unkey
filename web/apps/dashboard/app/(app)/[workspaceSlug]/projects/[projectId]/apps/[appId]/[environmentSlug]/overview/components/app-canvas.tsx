@@ -6,6 +6,8 @@ import {
   CanvasCardHeader,
   CanvasConnector,
   CanvasGroup,
+  DetailList,
+  DetailRow,
   GhostCard,
   MetricHeader,
   MetricRow,
@@ -14,6 +16,7 @@ import {
 } from "@/app/(app)/[workspaceSlug]/projects/_components/canvas/primitives";
 import { CanvasViewport } from "@/app/(app)/[workspaceSlug]/projects/_components/canvas/viewport";
 import { useOverviewWindow } from "@/app/(app)/[workspaceSlug]/projects/_components/canvas/window";
+import { DEPLOYMENT_GROUP_COLOR } from "@/lib/collections/deploy/deployment-status";
 import type { PolicyRow } from "@/lib/collections/deploy/policies";
 import type { Policy } from "@/lib/collections/deploy/policies.schema";
 import { routes } from "@/lib/navigation/routes";
@@ -21,16 +24,23 @@ import { trpc } from "@/lib/trpc/client";
 import {
   Github,
   IconCodeBranchOutline18,
+  IconCodeCommitOutline18,
   IconCubeOutline18,
   IconEarthOutline18,
   IconGridOutline18,
+  IconHardDriveOutline18,
   IconLayers2Outline18,
+  IconLink4Outline18,
+  IconLocation2Outline18,
+  IconMicrochipOutline18,
   IconNodesOutline18,
+  IconPlusOutline18,
   IconShieldKeyOutline18,
   IconTerminalOutline18,
 } from "@unkey/icons";
 import { cn } from "@unkey/ui/src/lib/utils";
 import type { Route } from "next";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { type ReactNode, useMemo } from "react";
 import { RegionFlag } from "../../../components/region-flag";
@@ -56,11 +66,10 @@ function linkedKeyspaces(policies: PolicyRow[]): string[] {
 
 type AppCanvasProps = {
   domains: CardDomain[];
-  emptyDomain: ReactNode;
   app: ReactNode;
 };
 
-export function AppCanvas({ domains, emptyDomain, app }: AppCanvasProps) {
+export function AppCanvas({ domains, app }: AppCanvasProps) {
   const { environment } = useAppEnvironment();
   const { rowsByEnv, isLoading: policiesLoading } = usePoliciesData();
   const policies = rowsByEnv[environment.kind];
@@ -75,9 +84,7 @@ export function AppCanvas({ domains, emptyDomain, app }: AppCanvasProps) {
         className="flex w-full min-w-[980px] items-start px-5 py-5"
       >
         <CanvasGroup icon={<IconEarthOutline18 />} label={`Domains · ${domains.length}`}>
-          {domains.length > 0
-            ? domains.map((d) => <DomainCard key={d.hostname} domain={d} />)
-            : emptyDomain}
+          <DomainsCard domains={domains} />
         </CanvasGroup>
 
         <CanvasConnector dashed={domains.length === 0} />
@@ -104,33 +111,75 @@ export function AppCanvas({ domains, emptyDomain, app }: AppCanvasProps) {
   );
 }
 
-function DomainCard({ domain }: { domain: CardDomain }) {
+function DomainsCard({ domains }: { domains: CardDomain[] }) {
+  const scope = useAppScope();
+  const settingsHref = routes.projects.apps.settings({ ...scope, page: "domains" });
+  const platform = domains.filter((d) => d.source === "platform");
+  const custom = domains.filter((d) => d.source === "custom");
   return (
-    <CanvasCard href={domain.url} external>
-      <CanvasCardHeader
-        icon={<IconEarthOutline18 />}
-        title={domain.hostname}
-        mono
-        right={
-          <span className="text-xs text-gray-9">
-            {domain.source === "custom" ? "Custom" : "Generated"}
-          </span>
-        }
-      />
+    <CanvasCard link={{ href: settingsHref, label: "Domain settings" }}>
+      <CanvasCardHeader icon={<IconEarthOutline18 />} title="Domains" />
+      <DetailList>
+        <DetailRow
+          icon={<IconEarthOutline18 />}
+          label={platform.length > 1 ? "Unkey domains" : "Unkey domain"}
+          value={
+            platform.length > 0 ? (
+              <StatusText dotClass={DEPLOYMENT_GROUP_COLOR.ready}>Enabled</StatusText>
+            ) : (
+              <StatusText dotClass="bg-gray-7">Pending</StatusText>
+            )
+          }
+        >
+          {platform.length > 0 ? (
+            platform.map((d) => <HostnameLink key={d.hostname} domain={d} />)
+          ) : (
+            <span className="text-xs text-gray-9">Assigned on first deploy</span>
+          )}
+        </DetailRow>
+        <DetailRow
+          icon={<IconLink4Outline18 />}
+          label="Custom domains"
+          value={
+            custom.length > 0 ? (
+              <StatusText dotClass={DEPLOYMENT_GROUP_COLOR.ready}>Verified</StatusText>
+            ) : (
+              <Link
+                href={settingsHref}
+                className="relative z-10 flex items-center justify-end gap-1 text-gray-11 hover:text-gray-12"
+              >
+                <IconPlusOutline18 className="size-3.5" />
+                Add domain
+              </Link>
+            )
+          }
+        >
+          {custom.length > 0 && custom.map((d) => <HostnameLink key={d.hostname} domain={d} />)}
+        </DetailRow>
+      </DetailList>
     </CanvasCard>
   );
 }
 
-export function AddDomainGhost() {
-  const router = useRouter();
-  const scope = useAppScope();
+function StatusText({ dotClass, children }: { dotClass: string; children: ReactNode }) {
   return (
-    <GhostCard
-      icon={<IconEarthOutline18 />}
-      title="Add a custom domain"
-      description="Serve this app from your own hostname."
-      onClick={() => router.push(routes.projects.apps.settings({ ...scope, page: "domains" }))}
-    />
+    <span className="inline-flex items-center gap-1.5">
+      <span className={cn("size-1.5 shrink-0 rounded-full", dotClass)} />
+      {children}
+    </span>
+  );
+}
+
+function HostnameLink({ domain }: { domain: CardDomain }) {
+  return (
+    <a
+      href={domain.url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="relative z-10 w-fit max-w-full truncate font-mono text-xs text-gray-9 hover:text-gray-12 hover:underline"
+    >
+      {domain.hostname}
+    </a>
   );
 }
 
@@ -156,69 +205,83 @@ export function AppNode() {
   const image = deployment.requestedImage ?? deployment.resolvedImage;
 
   return (
-    <CanvasCard href={deploymentHref} tone={tone}>
+    <CanvasCard
+      link={{ href: deploymentHref, label: `${app?.name ?? "App"} deployment` }}
+      tone={tone}
+    >
       <CanvasCardHeader
         icon={icon}
         title={app?.name ?? "App"}
         right={
-          <span className={cn("inline-flex items-center gap-1.5 text-xs", TONE_TEXT[tone])}>
+          <span
+            className={cn("inline-flex items-center gap-1.5 text-xs font-medium", TONE_TEXT[tone])}
+          >
             <span className={cn("size-1.5 rounded-full", STATUS_META[status].dotClass)} />
             {STATUS_META[status].label}
             {isRolledBack && <span className="text-warning-11">· Rolled back</span>}
           </span>
         }
       />
-      <div className="flex items-center gap-2 border-b px-3 py-2 text-xs [border-color:var(--divider)]">
+      <DetailList>
         {deployment.source === "git" ? (
           <>
-            <IconCodeBranchOutline18 className="size-3.5 shrink-0 text-gray-9" />
-            <span className="max-w-24 shrink-0 truncate font-mono text-gray-11">
-              {deployment.gitBranch ?? "main"}
-            </span>
-            <span className="min-w-0 flex-1 truncate text-gray-11">
-              {deployment.gitCommitMessage?.split("\n")[0] ?? deployment.gitCommitSha?.slice(0, 7)}
-            </span>
+            <DetailRow
+              icon={<IconCodeBranchOutline18 />}
+              label="Branch"
+              value={<span className="font-mono">{deployment.gitBranch ?? "main"}</span>}
+              hint={
+                deployment.gitCommitSha && (
+                  <span className="font-mono">{deployment.gitCommitSha.slice(0, 7)}</span>
+                )
+              }
+            />
+            <DetailRow
+              icon={<IconCodeCommitOutline18 />}
+              label="Commit"
+              value={deployment.gitCommitMessage?.split("\n")[0] ?? "—"}
+              hint={ago(deployment.createdAt)}
+            />
           </>
         ) : (
-          <>
-            <IconLayers2Outline18 className="size-3.5 shrink-0 text-gray-9" />
-            <span className="min-w-0 flex-1 truncate font-mono text-gray-11">
-              {image ?? "Unknown source"}
-            </span>
-          </>
+          <DetailRow
+            icon={<IconLayers2Outline18 />}
+            label="Image"
+            value={<span className="font-mono">{image ?? "Unknown"}</span>}
+            hint={ago(deployment.createdAt)}
+          />
         )}
-        <span className="shrink-0 text-gray-9">{ago(deployment.createdAt)}</span>
-      </div>
-      <div className="flex flex-col py-1">
-        <Detail label="Regions">
-          {regions.length > 0 ? (
-            <span className="flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-1">
-              {regions.map((r) => (
-                <span key={r.region.id} className="flex items-center gap-1.5">
-                  <RegionFlag flagCode={r.flagCode} size="xs" shape="circle" />
-                  {r.region.name}
-                </span>
-              ))}
-            </span>
-          ) : (
-            "—"
-          )}
-        </Detail>
-        <Detail label="Instances">{`${running} running`}</Detail>
-        <Detail label="Resources">
-          {`${deployment.cpuMillicores / 1000} vCPU · ${deployment.memoryMib} MiB`}
-        </Detail>
-      </div>
+        <DetailRow
+          icon={<IconLocation2Outline18 />}
+          label="Regions"
+          value={
+            regions.length > 0 ? (
+              <span className="flex items-center justify-end gap-2.5">
+                {regions.map((r) => (
+                  <span key={r.region.id} className="flex shrink-0 items-center gap-1.5">
+                    <RegionFlag flagCode={r.flagCode} size="xs" shape="circle" />
+                    {r.region.name}
+                  </span>
+                ))}
+              </span>
+            ) : (
+              "—"
+            )
+          }
+        />
+        <DetailRow
+          icon={<IconHardDriveOutline18 />}
+          label="Instances"
+          value={running}
+          hint="running"
+        />
+        <DetailRow
+          icon={<IconMicrochipOutline18 />}
+          label="Resources"
+          value={`${deployment.cpuMillicores / 1000} vCPU`}
+          hint={`· ${deployment.memoryMib} MiB`}
+        />
+      </DetailList>
     </CanvasCard>
-  );
-}
-
-function Detail({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="grid grid-cols-[72px_minmax(0,1fr)] items-start gap-x-3 px-3 py-1.5 text-xs">
-      <span className="text-gray-9">{label}</span>
-      <span className="min-w-0 text-gray-11 tabular-nums">{children}</span>
-    </div>
   );
 }
 

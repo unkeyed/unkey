@@ -3,14 +3,18 @@
 import {
   CanvasCard,
   CanvasCardHeader,
+  DetailList,
+  DetailRow,
 } from "@/app/(app)/[workspaceSlug]/projects/_components/canvas/primitives";
 import type { Deployment } from "@/lib/collections";
 import { routes } from "@/lib/navigation/routes";
 import {
   Github,
   IconCubeOutline18,
-  IconEarthOutline18,
+  IconHardDriveOutline18,
   IconLayers2Outline18,
+  IconLocation2Outline18,
+  IconMicrochipOutline18,
   IconPlusOutline18,
   IconTerminalOutline18,
 } from "@unkey/icons";
@@ -50,7 +54,7 @@ export function EnvironmentPendingCard({
           )}
         />
       </div>
-      <AppCanvas domains={[]} emptyDomain={<PendingDomainCard />} app={<PendingAppNode />} />
+      <AppCanvas domains={[]} app={<PendingAppNode />} />
       {newerDeployment && (
         <NewerDeploymentRow
           deployment={newerDeployment}
@@ -62,19 +66,6 @@ export function EnvironmentPendingCard({
         />
       )}
     </Card>
-  );
-}
-
-function PendingDomainCard() {
-  return (
-    <CanvasCard>
-      <CanvasCardHeader
-        icon={<IconEarthOutline18 />}
-        title="Domain pending"
-        mono
-        right={<span className="text-xs text-gray-9">Assigned on first deploy</span>}
-      />
-    </CanvasCard>
   );
 }
 
@@ -100,17 +91,11 @@ function PendingAppNode() {
           </span>
         }
       />
-      <div className="flex flex-col py-1">
-        {["Regions", "Instances", "Resources"].map((label) => (
-          <div
-            key={label}
-            className="grid grid-cols-[72px_minmax(0,1fr)] items-start gap-x-3 px-3 py-1.5 text-xs"
-          >
-            <span className="text-gray-9">{label}</span>
-            <span className="text-gray-11">—</span>
-          </div>
-        ))}
-      </div>
+      <DetailList>
+        <DetailRow icon={<IconLocation2Outline18 />} label="Regions" value="—" />
+        <DetailRow icon={<IconHardDriveOutline18 />} label="Instances" value="—" />
+        <DetailRow icon={<IconMicrochipOutline18 />} label="Resources" value="—" />
+      </DetailList>
     </CanvasCard>
   );
 }
