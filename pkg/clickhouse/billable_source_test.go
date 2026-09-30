@@ -33,8 +33,8 @@ func TestBillableExcludesGatewaySource(t *testing.T) {
 	ctx := context.Background()
 	require.NoError(t, conn.Ping(ctx))
 
-	now := time.Now()
 	workspaceID := uid.New(uid.WorkspacePrefix)
+	now := findUnusedRootKeyBillingMonth(t, ctx, conn)
 
 	// API: 100 VALID (billable) + 20 INVALID (never billable).
 	verifications := createVerifications(workspaceID, 100, now, "VALID")
@@ -80,7 +80,8 @@ func TestBillableExcludesGatewaySource(t *testing.T) {
 		assert.Equal(c, int64(100), billableVerifications, "gateway, root-key, and INVALID verifications must not bill the customer workspace")
 		var rootKeyBillable int64
 		require.NoError(c, conn.QueryRow(ctx,
-			"SELECT sum(count) FROM default.billable_verifications_per_month_v2 WHERE workspace_id = ''",
+			"SELECT sum(count) FROM default.billable_verifications_per_month_v2 WHERE workspace_id = '' AND year = ? AND month = ?",
+			year, month,
 		).Scan(&rootKeyBillable))
 		assert.Equal(c, int64(40), rootKeyBillable, "root-key verifications must remain attributed to the empty workspace")
 
@@ -134,4 +135,28 @@ func TestBillableExcludesGatewaySource(t *testing.T) {
 		).Scan(&unattributedCount))
 		assert.Equal(c, int64(120), unattributedCount, "API verifications must remain unattributed")
 	}, time.Minute, time.Second)
+}
+
+// findUnusedRootKeyBillingMonth isolates empty-workspace aggregates from other
+// tests that share the ClickHouse container.
+func findUnusedRootKeyBillingMonth(t *testing.T, ctx context.Context, conn ch.Conn) time.Time {
+	t.Helper()
+
+	month := time.Date(2030, time.January, 1, 0, 0, 0, 0, time.UTC)
+	for range 1_200 {
+		var rows uint64
+		err := conn.QueryRow(ctx, `
+			SELECT count()
+			FROM default.billable_verifications_per_month_v2
+			WHERE workspace_id = '' AND year = ? AND month = ?
+		`, month.Year(), int(month.Month())).Scan(&rows)
+		require.NoError(t, err)
+		if rows == 0 {
+			return month
+		}
+		month = month.AddDate(0, 1, 0)
+	}
+
+	require.FailNow(t, "failed to find an unused root-key billing month")
+	return time.Time{}
 }
