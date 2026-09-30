@@ -18,7 +18,7 @@ import {
   buildWorkspaceSections as buildProjectsNavWorkspaceSections,
 } from "@/lib/navigation/leaves-projects";
 import { useWorkspace } from "@/providers/workspace-provider";
-import { eq, useLiveQuery } from "@tanstack/react-db";
+import { and, eq, useLiveQuery } from "@tanstack/react-db";
 import { useSelectedLayoutSegments } from "next/navigation";
 import { NavLinkList } from "./nav-link-list";
 
@@ -43,13 +43,11 @@ export function SidebarBody() {
       app
         ? q
             .from({ env: collection.environments })
-            .where(({ env }) => eq(env.projectId, app.projectId))
+            .where(({ env }) => and(eq(env.projectId, app.projectId), eq(env.appId, app.appId)))
         : null,
-    [app?.projectId],
+    [app?.projectId, app?.appId],
   );
-  const environmentId = environmentsQuery.data?.find(
-    (env) => env.appId === app?.appId && env.slug === app?.slug,
-  )?.id;
+  const environmentId = environmentsQuery.data?.find((env) => env.slug === app?.slug)?.id;
 
   const workspaceSections = (segs: string[]) =>
     projectsNav
