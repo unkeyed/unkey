@@ -93,7 +93,7 @@ export function ComputeSettings() {
                 key={cardKeys.keyFor(name)}
                 page={page}
                 name={name}
-                defaultOpen={i === 0 || name === justAdded}
+                defaultOpen={name === justAdded || (i === 0 && page.saveMode === "autosave")}
                 popIn={name !== justAdded}
                 onRenamed={cardKeys.rename}
               />
