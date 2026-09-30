@@ -28,10 +28,9 @@ type Request = openapi.V2KeysAddPermissionsRequestBody
 type Response = openapi.V2KeysAddPermissionsResponseBody
 
 type Handler struct {
-	DB           db.Database
-	Auditlogs    auditlogs.AuditLogService
-	KeyCache     cache.Cache[string, keysdb.CachedKeyData]
-	RootKeyCache cache.Cache[string, keysdb.CachedRootKeyData]
+	DB        db.Database
+	Auditlogs auditlogs.AuditLogService
+	KeyCache  cache.Cache[string, keysdb.CachedKeyData]
 }
 
 // Method returns the HTTP method this route responds to
@@ -345,7 +344,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	h.KeyCache.Remove(ctx, key.Key.Hash)
-	h.RootKeyCache.Remove(ctx, key.Key.Hash)
 
 	responseData := make(openapi.V2KeysAddPermissionsResponseData, 0)
 

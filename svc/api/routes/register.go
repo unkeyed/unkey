@@ -714,10 +714,9 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 		protectedMiddlewares,
 		&v2KeysAddPermissions.Handler{
 
-			DB:           svc.Database,
-			Auditlogs:    svc.Auditlogs,
-			KeyCache:     svc.Caches.VerificationKeyByHash,
-			RootKeyCache: svc.Caches.RootKeyByHash,
+			DB:        svc.Database,
+			Auditlogs: svc.Auditlogs,
+			KeyCache:  svc.Caches.VerificationKeyByHash,
 		},
 	)
 
