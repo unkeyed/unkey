@@ -156,9 +156,7 @@ func TestUsageLimitThroughput(t *testing.T) {
 
 	// Start workers
 	for range concurrency {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 
 			for time.Since(start) < testDuration {
 				res, callErr := integration.CallRandomNode[handler.Request, handler.Response](
@@ -172,7 +170,7 @@ func TestUsageLimitThroughput(t *testing.T) {
 				}
 				mu.Unlock()
 			}
-		}()
+		})
 	}
 
 	wg.Wait()
