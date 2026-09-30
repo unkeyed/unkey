@@ -100,8 +100,8 @@ export type RateLimitIdentifier = Message<"frontline.v1.RateLimitIdentifier"> & 
      * Limit by the remote IP. Effective for anonymous traffic and
      * DDoS protection, but can over-limit legitimate users behind shared
      * NATs or corporate proxies where many clients share a single IP.
-     * The remote IP is derived using the trusted proxy configuration in
-     * [Middleware.trusted_proxy_cidrs].
+     * The remote IP is the TCP peer address, or the address in authenticated
+     * peer metadata when another region forwarded the request.
      *
      * @generated from field: frontline.v1.RemoteIpKey remote_ip = 1;
      */

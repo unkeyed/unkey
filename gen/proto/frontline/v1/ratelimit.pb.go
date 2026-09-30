@@ -233,8 +233,8 @@ type RateLimitIdentifier_RemoteIp struct {
 	// Limit by the remote IP. Effective for anonymous traffic and
 	// DDoS protection, but can over-limit legitimate users behind shared
 	// NATs or corporate proxies where many clients share a single IP.
-	// The remote IP is derived using the trusted proxy configuration in
-	// [Middleware.trusted_proxy_cidrs].
+	// The remote IP is the TCP peer address, or the address in authenticated
+	// peer metadata when another region forwarded the request.
 	RemoteIp *RemoteIpKey `protobuf:"bytes,1,opt,name=remote_ip,json=remoteIp,proto3,oneof"`
 }
 
