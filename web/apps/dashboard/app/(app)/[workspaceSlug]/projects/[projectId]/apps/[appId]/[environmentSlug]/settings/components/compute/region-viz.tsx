@@ -1,5 +1,7 @@
 "use client";
 
+import { RectFlag } from "@/app/(app)/[workspaceSlug]/projects/_components/region/rect-flag";
+import { regionInfo } from "@/app/(app)/[workspaceSlug]/projects/_components/region/region-info";
 import { Logomark } from "@/components/logomark";
 import {
   IconEarthOutline18,
@@ -11,7 +13,6 @@ import {
 } from "@unkey/icons";
 import { cn } from "cn";
 import { useState } from "react";
-import { RectFlag } from "./flag";
 import {
   type ComputeDraft,
   type RegionDraft,
@@ -19,7 +20,6 @@ import {
   formatMemory,
   formatReplicas,
   formatStorage,
-  regionInfo,
   sizeLabel,
 } from "./model";
 

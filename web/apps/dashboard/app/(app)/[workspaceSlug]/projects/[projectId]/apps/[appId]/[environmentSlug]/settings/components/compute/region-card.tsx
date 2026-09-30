@@ -1,5 +1,7 @@
 "use client";
 
+import { RectFlag } from "@/app/(app)/[workspaceSlug]/projects/_components/region/rect-flag";
+import { regionInfo } from "@/app/(app)/[workspaceSlug]/projects/_components/region/region-info";
 import { IconChevronExpandYOutline12 } from "@unkey/icons";
 import {
   AlertDialog,
@@ -25,8 +27,7 @@ import { cn } from "cn";
 import type React from "react";
 import { useEffect, useRef, useState } from "react";
 import { InstanceRange, SizeTrigger, StorageSelect } from "./controls";
-import { RectFlag } from "./flag";
-import { inheritedSummary, regionInfo, unschedulableIn } from "./model";
+import { inheritedSummary, unschedulableIn } from "./model";
 import { type ComputeCard, type ComputePage, useCardController } from "./use-compute";
 
 function Row({

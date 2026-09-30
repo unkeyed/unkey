@@ -1,6 +1,6 @@
 import { cn } from "cn";
 import type React from "react";
-import type { RegionFlag } from "./model";
+import type { RegionFlag } from "./region-info";
 
 const SIZES = {
   sm: "h-3.5 w-5",
