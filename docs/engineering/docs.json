@@ -239,8 +239,7 @@
             "group": "Runbooks",
             "pages": [
               "infra/runbooks/key-migration",
-              "infra/runbooks/legacy-billing",
-              "infra/runbooks/private-networking"
+              "infra/runbooks/legacy-billing"
             ]
           },
           {
@@ -302,6 +301,10 @@
     {
       "source": "/architecture/rfcs/0014-sentinel-middleware",
       "destination": "/architecture/rfcs/0014-frontline-middleware"
+    },
+    {
+      "source": "/infra/runbooks/private-networking",
+      "destination": "https://github.com/unkeyed/infra/blob/main/docs/runbooks/eks/0020-private-networking.md"
     }
   ]
 }
