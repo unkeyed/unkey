@@ -14,8 +14,16 @@ const CONFIRM_MESSAGE = "Changes you made may not be saved.";
  *
  * Returns a `bypass` function that can be called before an intentional
  * navigation (e.g. an OAuth redirect) to skip the confirmation.
+ *
+ * Set `interceptBack: false` when the guarded area has routes of its own. The
+ * sentinel cannot tell a back press that leaves the area from one that moves
+ * between its own pages, so it would prompt on both, and cancelling still
+ * leaves the user on the page the back press landed on.
  */
-export function usePreventLeave(enabled = true): { bypass: () => void } {
+export function usePreventLeave(
+  enabled = true,
+  { interceptBack = true }: { interceptBack?: boolean } = {},
+): { bypass: () => void } {
   const skipNextRef = useRef(false);
 
   // Allows exactly the next beforeunload event through (e.g. an OAuth redirect)
@@ -40,6 +48,14 @@ export function usePreventLeave(enabled = true): { bypass: () => void } {
       e.preventDefault();
     };
 
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
+    if (!interceptBack) {
+      return () => {
+        window.removeEventListener("beforeunload", handleBeforeUnload);
+      };
+    }
+
     // Push a sentinel history entry so pressing back triggers popstate instead
     // of leaving the page. On popstate, show a confirm dialog — if the user
     // cancels we re-push the entry; if they confirm we actually navigate back.
@@ -56,14 +72,13 @@ export function usePreventLeave(enabled = true): { bypass: () => void } {
       }
     };
 
-    window.addEventListener("beforeunload", handleBeforeUnload);
     window.addEventListener("popstate", handlePopState);
 
     return () => {
       window.removeEventListener("beforeunload", handleBeforeUnload);
       window.removeEventListener("popstate", handlePopState);
     };
-  }, [enabled]);
+  }, [enabled, interceptBack]);
 
   return { bypass };
 }

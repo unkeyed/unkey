@@ -2,6 +2,7 @@
 
 import { useFlag } from "@/lib/flags/provider";
 import { routes } from "@/lib/navigation/routes";
+import { isAppPage } from "@/lib/navigation/routes/projects";
 import { useParams, useSelectedLayoutSegments } from "next/navigation";
 import {
   type ProjectOwner,
@@ -14,7 +15,7 @@ export type BreadcrumbDescriptor =
   | { type: "workspace"; href: string }
   | { type: "account" }
   | { type: "project"; owner: ProjectOwner }
-  | { type: "app"; projectId: string; appId: string }
+  | { type: "app"; projectId: string; appId: string; environmentSlug?: string }
   | { type: "api"; apiId: string; projectId?: string }
   | { type: "namespace"; namespaceId: string; projectId?: string }
   | { type: "identity"; identityId: string; projectId?: string };
@@ -22,6 +23,7 @@ export type BreadcrumbDescriptor =
 type RouteParams = {
   projectId?: string;
   appId?: string;
+  environmentSlug?: string;
   apiId?: string;
   namespaceId?: string;
   identityId?: string;
@@ -53,7 +55,17 @@ export function useBreadcrumbs(): BreadcrumbDescriptor[] {
     crumbs.push({ type: "project", owner: resourceOwner });
   }
   if (params.projectId && params.appId) {
-    crumbs.push({ type: "app", projectId: params.projectId, appId: params.appId });
+    crumbs.push({
+      type: "app",
+      projectId: params.projectId,
+      appId: params.appId,
+      // A pre-environment url binds a page name to the segment until the
+      // environment layout redirects it.
+      environmentSlug:
+        params.environmentSlug && !isAppPage(params.environmentSlug)
+          ? params.environmentSlug
+          : undefined,
+    });
   }
   if (params.apiId) {
     crumbs.push({ type: "api", apiId: params.apiId, projectId: params.projectId });

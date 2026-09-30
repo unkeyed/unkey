@@ -29,10 +29,18 @@ type SettingCardProps = {
 
 const SettingCardGroupContext = React.createContext(false);
 
-function SettingCardGroup({ children }: { children: React.ReactNode }) {
+function SettingCardGroup({
+  children,
+  className,
+}: { children: React.ReactNode; className?: string }) {
   return (
     <SettingCardGroupContext.Provider value={true}>
-      <div className="border rounded-lg overflow-hidden divide-y divide-grayA-4 bg-raised">
+      <div
+        className={cn(
+          "border rounded-lg overflow-hidden divide-y divide-grayA-4 bg-raised",
+          className,
+        )}
+      >
         {children}
       </div>
     </SettingCardGroupContext.Provider>
@@ -272,13 +280,15 @@ function SettingsZone({
   children: React.ReactNode;
   className?: string;
   variant: SettingsZoneVariant;
-  title: string;
+  title?: string;
 }) {
   const styles = zoneStyles[variant];
   return (
     <SettingsZoneContext.Provider value={variant}>
-      <div className={cn("w-full", className)}>
-        <h2 className={cn("font-semibold text-lg mb-4", styles.heading)}>{title}</h2>
+      <div className={cn("flex w-full flex-col gap-6", className)}>
+        {title ? (
+          <h2 className={cn("font-semibold text-lg leading-6", styles.heading)}>{title}</h2>
+        ) : null}
         <div className={cn("rounded-lg border overflow-hidden divide-y bg-raised", styles.border)}>
           {children}
         </div>
@@ -292,9 +302,14 @@ SettingsZone.displayName = "SettingsZone";
 function SettingsDangerZone({
   children,
   className,
-}: { children: React.ReactNode; className?: string }) {
+  showTitle = true,
+}: { children: React.ReactNode; className?: string; showTitle?: boolean }) {
   return (
-    <SettingsZone variant="danger" title="Danger Zone" className={className}>
+    <SettingsZone
+      variant="danger"
+      title={showTitle ? "Danger Zone" : undefined}
+      className={className}
+    >
       {children}
     </SettingsZone>
   );

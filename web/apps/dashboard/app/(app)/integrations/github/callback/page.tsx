@@ -1,5 +1,6 @@
 "use client";
 import { LoadingState } from "@/components/loading-state";
+import { PRODUCTION_ENVIRONMENT_SLUG } from "@/lib/collections/deploy/environments";
 import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
 import {
@@ -47,6 +48,8 @@ export default function Page() {
                 workspaceSlug: data.workspaceSlug,
                 projectId: data.projectId,
                 appId: data.appId,
+                environmentSlug: PRODUCTION_ENVIRONMENT_SLUG,
+                page: "build",
               })
             : routes.projects.apps.new({
                 workspaceSlug: data.workspaceSlug,

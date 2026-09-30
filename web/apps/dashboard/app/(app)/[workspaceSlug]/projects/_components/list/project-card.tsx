@@ -7,7 +7,7 @@ import { IconCubeOutline18 } from "@unkey/icons";
 import { HoverCard, HoverCardContent, HoverCardTrigger, InfoTooltip, Skeleton } from "@unkey/ui";
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { warmAppPage } from "../../[projectId]/apps/[appId]/(overview)/data-provider-queries";
+import { warmAppPage } from "../../[projectId]/apps/[appId]/data-provider-queries";
 import { AppDetailHoverCard, AppRow } from "../apps/app-row";
 
 type ProjectCardProps = {
@@ -29,7 +29,7 @@ function byRecency(apps: ProjectApp[]): ProjectApp[] {
 export function ProjectCard({ name, projectId, apps, isLoading, actions }: ProjectCardProps) {
   const workspace = useWorkspaceNavigation();
   const appHomeHref = useAppHomeHref();
-  const projectPath = routes.projects.detail({ workspaceSlug: workspace.slug, projectId });
+  const projectPath = routes.projects.overview({ workspaceSlug: workspace.slug, projectId });
   const hrefFor = (app: ProjectApp) =>
     appHomeHref({ workspaceSlug: workspace.slug, projectId, appId: app.id });
 

@@ -22,9 +22,8 @@ import {
   Skeleton,
 } from "@unkey/ui";
 import { type ReactNode, useState } from "react";
-import { useProjectData } from "../(overview)/data-provider";
-import { useDeployment } from "../(overview)/deployments/[deploymentId]/layout-provider";
-import { SettingsGroup } from "../(overview)/settings/components/shared/settings-group";
+import { useDeployment } from "../[environmentSlug]/deployments/[deploymentId]/layout-provider";
+import { useProjectData } from "../data-provider";
 import { getDomainPriority } from "./domain-priority";
 import { GlowIcon } from "./glow-icon";
 import { TagBadge } from "./tag-badge";
@@ -162,12 +161,12 @@ export function DeploymentDomainsCard({
 
 function DomainsGroup({ children }: { children: ReactNode }) {
   return (
-    <SettingsGroup
-      icon={<IconEarthOutline18 className="size-3.5" />}
-      title={<span className="font-medium text-gray-12 text-sm leading-4">Domains</span>}
-      hideChevron
-    >
+    <section className="flex flex-col gap-3">
+      <div className="flex items-center gap-2.5 px-1">
+        <IconEarthOutline18 className="size-3.5 text-gray-9" />
+        <h2 className="font-medium text-gray-12 text-sm leading-4">Domains</h2>
+      </div>
       {children}
-    </SettingsGroup>
+    </section>
   );
 }

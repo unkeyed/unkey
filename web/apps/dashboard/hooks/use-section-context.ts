@@ -1,5 +1,6 @@
 "use client";
 
+import { isAppPage } from "@/lib/navigation/routes/projects";
 import { useParams, useSelectedLayoutSegments } from "next/navigation";
 
 export type SectionContext =
@@ -7,7 +8,7 @@ export type SectionContext =
   | { type: "account" }
   | { type: "settings" }
   | { type: "authorization" }
-  | { type: "project"; projectId: string; appId?: string }
+  | { type: "project"; projectId: string; appId?: string; environmentSlug?: string }
   | { type: "api"; apiId: string; projectId?: string }
   | { type: "namespace"; namespaceId: string; projectId?: string }
   | { type: "identity"; identityId: string; projectId?: string };
@@ -18,6 +19,7 @@ export function useSectionContext(): SectionContext {
     apiId?: string;
     projectId?: string;
     appId?: string;
+    environmentSlug?: string;
     namespaceId?: string;
     identityId?: string;
   }>();
@@ -33,7 +35,12 @@ export function useSectionContext(): SectionContext {
     return { type: "identity", identityId: params.identityId, projectId: params.projectId };
   }
   if (params.projectId) {
-    return { type: "project", projectId: params.projectId, appId: params.appId };
+    return {
+      type: "project",
+      projectId: params.projectId,
+      appId: params.appId,
+      environmentSlug: environmentSlugParam(params.environmentSlug),
+    };
   }
 
   const section = segments[1];
@@ -48,4 +55,10 @@ export function useSectionContext(): SectionContext {
   }
 
   return { type: "workspace" };
+}
+
+// A pre-environment url such as /apps/x/settings binds a page name to the
+// segment until the environment layout redirects it.
+function environmentSlugParam(segment: string | undefined): string | undefined {
+  return segment && !isAppPage(segment) ? segment : undefined;
 }

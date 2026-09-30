@@ -1,7 +1,7 @@
 import { IconPlusOutline18, IconSquareBulletListOutline18 } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
-import { EmptySection } from "../../../(overview)/components/empty-section";
+import { EmptySection } from "../../empty-section";
 
 type ActiveDeploymentCardEmptyProps = {
   onCreateDeployment?: () => void;

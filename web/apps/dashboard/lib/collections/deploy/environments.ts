@@ -23,6 +23,13 @@ export const ENVIRONMENT_KIND = kind.enum;
 export const ENVIRONMENT_KINDS = kind.options;
 export type EnvironmentKind = z.infer<typeof kind>;
 
+/**
+ * The control plane seeds every app with a production environment under this
+ * slug (svc/ctrl/services/app/create_app.go, defaultEnvironments), so links
+ * built outside an environment-scoped page can target it without a lookup.
+ */
+export const PRODUCTION_ENVIRONMENT_SLUG = "production";
+
 const schema = z.object({
   id: z.string(),
   projectId: z.string(),

@@ -1,17 +1,15 @@
 "use client";
 
-import { SettingField } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/settings/components/shared/form-blocks";
+import { SettingField } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/[environmentSlug]/settings/components/shared/form-blocks";
 import {
   FormSettingCard,
   resolveSaveState,
-} from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/settings/components/shared/form-setting-card";
-import { SelectedConfig } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/settings/components/shared/selected-config";
+} from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/[environmentSlug]/settings/components/shared/form-setting-card";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { collection } from "@/lib/collections";
 import { type Project, createProjectRequestSchema } from "@/lib/collections/deploy/projects";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { IconCubeOutline18 } from "@unkey/icons";
-import { FormInput, SettingCard, SettingCardGroup } from "@unkey/ui";
+import { FormInput, SettingCardGroup, SettingsGroup, SettingsRow } from "@unkey/ui";
 import { useForm, useWatch } from "react-hook-form";
 import type { z } from "zod";
 
@@ -20,28 +18,23 @@ const nameSchema = createProjectRequestSchema.pick({ name: true });
 export function UpdateProjectSettings({ project }: { project: Project }) {
   const workspace = useWorkspaceNavigation();
 
-  return (
-    <SettingCardGroup>
-      {project.isDefault ? (
-        <WorkspaceNameCard name={workspace.name} />
-      ) : (
-        <ProjectNameCard project={project} />
-      )}
-    </SettingCardGroup>
-  );
-}
+  if (project.isDefault) {
+    return (
+      <SettingCardGroup>
+        <SettingsRow
+          title="Project name"
+          description="The default project is named after your workspace. Rename it in workspace settings."
+        >
+          <span className="text-sm text-gray-12">{workspace.name}</span>
+        </SettingsRow>
+      </SettingCardGroup>
+    );
+  }
 
-function WorkspaceNameCard({ name }: { name: string }) {
   return (
-    <SettingCard
-      className="px-4 py-[18px]"
-      icon={<IconCubeOutline18 className="text-gray-12" />}
-      title="Project name"
-      description="The default project is named after your workspace. Rename it in workspace settings."
-      contentWidth="w-full lg:w-[320px] justify-end"
-    >
-      <SelectedConfig label={name} />
-    </SettingCard>
+    <SettingsGroup>
+      <ProjectNameCard project={project} />
+    </SettingsGroup>
   );
 }
 
@@ -73,10 +66,8 @@ function ProjectNameCard({ project }: { project: Project }) {
 
   return (
     <FormSettingCard
-      icon={<IconCubeOutline18 className="text-gray-12" />}
       title="Project name"
       description="A descriptive name for your project."
-      displayValue={project.name}
       onSubmit={handleSubmit(onSubmit)}
       saveState={saveState}
     >

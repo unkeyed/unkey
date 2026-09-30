@@ -1,6 +1,6 @@
 "use client";
 
-import { EnvStatusBadge } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/deployments/components/table/components/env-status-badge";
+import { EnvStatusBadge } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/[environmentSlug]/deployments/components/table/components/env-status-badge";
 import { collection } from "@/lib/collections";
 import type { Deployment } from "@/lib/collections/deploy/deployments";
 import { githubUrl } from "@/lib/github-url";
@@ -14,11 +14,11 @@ import { eq, useLiveQuery } from "@tanstack/react-db";
 import { IconCodeBranchOutline18, IconCodeCommitOutline18 } from "@unkey/icons";
 import { match } from "@unkey/match";
 import { Badge, Card, InfoTooltip, TimestampInfo } from "@unkey/ui";
-import { useProjectData } from "../../(overview)/data-provider";
 import { DeploymentTriggerBadge } from "../../../../components/deployment-trigger-badge";
-import { Avatar } from "../../components/git-avatar";
-import { RegionFlag } from "../../components/region-flag";
+import { useProjectData } from "../../data-provider";
 import { DottedLink } from "../dotted-link";
+import { Avatar } from "../git-avatar";
+import { RegionFlag } from "../region-flag";
 import { ActiveDeploymentCardEmpty } from "./components/active-deployment-card-empty";
 import { ImageSource } from "./components/image-source";
 import { MetadataCell } from "./components/metadata-cell";

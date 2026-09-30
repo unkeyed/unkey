@@ -3,6 +3,8 @@
 import { useApiKeyAuthId } from "@/hooks/use-api-key-auth-id";
 import { useSectionContext } from "@/hooks/use-section-context";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
+import { collection } from "@/lib/collections";
+import { PRODUCTION_ENVIRONMENT_SLUG } from "@/lib/collections/deploy/environments";
 import { useFlag } from "@/lib/flags/provider";
 import {
   buildApiLinks,
@@ -16,6 +18,7 @@ import {
   buildWorkspaceSections as buildProjectsNavWorkspaceSections,
 } from "@/lib/navigation/leaves-projects";
 import { useWorkspace } from "@/providers/workspace-provider";
+import { and, eq, useLiveQuery } from "@tanstack/react-db";
 import { useSelectedLayoutSegments } from "next/navigation";
 import { NavLinkList } from "./nav-link-list";
 
@@ -31,6 +34,20 @@ export function SidebarBody() {
   const portalManagement = useFlag("portalManagement");
   const projectsNav = useFlag("projectsNav");
   const { user } = useWorkspace();
+  const app =
+    context.type === "project" && context.appId
+      ? { projectId: context.projectId, appId: context.appId, slug: context.environmentSlug }
+      : null;
+  const environmentsQuery = useLiveQuery(
+    (q) =>
+      app
+        ? q
+            .from({ env: collection.environments })
+            .where(({ env }) => and(eq(env.projectId, app.projectId), eq(env.appId, app.appId)))
+        : null,
+    [app?.projectId, app?.appId],
+  );
+  const environmentId = environmentsQuery.data?.find((env) => env.slug === app?.slug)?.id;
 
   const workspaceSections = (segs: string[]) =>
     projectsNav
@@ -50,7 +67,16 @@ export function SidebarBody() {
         return workspaceSections(segments);
       case "project":
         return context.appId
-          ? buildAppLinks(slug, context.projectId, context.appId, segments)
+          ? buildAppLinks(
+              {
+                workspaceSlug: slug,
+                projectId: context.projectId,
+                appId: context.appId,
+                environmentSlug: context.environmentSlug ?? PRODUCTION_ENVIRONMENT_SLUG,
+                environmentId,
+              },
+              segments,
+            )
           : projectLinks(slug, context.projectId, segments);
       case "api":
         return buildApiLinks(

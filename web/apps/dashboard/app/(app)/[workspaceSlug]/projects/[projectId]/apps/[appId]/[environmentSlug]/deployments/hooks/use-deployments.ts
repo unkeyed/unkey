@@ -1,0 +1,59 @@
+import type { Deployment } from "@/lib/collections";
+import type { Environment } from "@/lib/collections/deploy/environments";
+import { trpc } from "@/lib/trpc/client";
+import { useMemo } from "react";
+import { useAppId, useProjectData } from "../../../data-provider";
+import { useAppEnvironment } from "../../environment-context";
+import { buildDeploymentListInput } from "./deployment-list-input";
+import { useFilters } from "./use-filters";
+
+const PAGE_SIZE = 25;
+
+export type DeploymentListRow = {
+  deployment: Deployment;
+  environment: Environment | undefined;
+};
+
+export function useDeployments() {
+  const { projectId, environments, isEnvironmentsLoading } = useProjectData();
+  const appId = useAppId();
+  const { environment } = useAppEnvironment();
+  const { filters, isFiltered } = useFilters();
+
+  const { input, cannotMatch } = useMemo(
+    () => buildDeploymentListInput(filters, environment.id),
+    [filters, environment.id],
+  );
+
+  const query = trpc.deploy.deployment.list.useInfiniteQuery(
+    { projectId, appId, ...input, limit: PAGE_SIZE },
+    {
+      enabled: !isEnvironmentsLoading && !cannotMatch,
+      // Filters are part of the query input, so a change starts a new query;
+      // the previous rows stay on screen instead of a skeleton flash.
+      keepPreviousData: true,
+      getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
+    },
+  );
+
+  const rows = useMemo((): DeploymentListRow[] => {
+    const environmentById = new Map(environments.map((e) => [e.id, e]));
+    return (query.data?.pages ?? []).flatMap((page) =>
+      page.deployments.map((deployment) => ({
+        deployment,
+        environment: environmentById.get(deployment.environmentId),
+      })),
+    );
+  }, [query.data, environments]);
+
+  return {
+    rows,
+    isLoading: isEnvironmentsLoading || query.isInitialLoading,
+    isError: query.isError,
+    refetch: query.refetch,
+    isFiltered,
+    hasNextPage: query.hasNextPage ?? false,
+    isFetchingNextPage: query.isFetchingNextPage,
+    fetchNextPage: query.fetchNextPage,
+  };
+}

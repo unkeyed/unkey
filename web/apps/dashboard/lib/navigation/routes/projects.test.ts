@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { routes } from "./index";
+import { APP_PAGES, isAppPage } from "./projects";
 
 const ws = "acme";
 const projectId = "proj_123";
@@ -56,6 +57,15 @@ describe("routes.projects.requests", () => {
       routes.projects.requests({ workspaceSlug: ws, projectId, since: "6h", deploymentId }),
     ).toBe("/acme/projects/proj_123/requests?since=6h&deploymentId=is:d_789");
   });
+
+  it("prefixes an environment id filter with is:", () => {
+    expect(
+      routes.projects.requests({ workspaceSlug: ws, projectId, appId, environmentId: "env_1" }),
+    ).toBe("/acme/projects/proj_123/requests?appId=is:app_456&environmentId=is:env_1");
+    expect(routes.projects.logs({ workspaceSlug: ws, projectId, environmentId: "env_1" })).toBe(
+      "/acme/projects/proj_123/logs?environmentId=is:env_1",
+    );
+  });
 });
 
 describe("routes.projects.apps.new", () => {
@@ -73,32 +83,52 @@ describe("routes.projects.apps.new", () => {
 });
 
 describe("app-scoped paths", () => {
-  const scope = { workspaceSlug: ws, projectId, appId };
+  const scope = { workspaceSlug: ws, projectId, appId, environmentSlug: "preview" };
 
-  it("builds app leaf paths", () => {
+  it("builds app leaf paths under the environment", () => {
+    expect(routes.projects.apps.overview(scope)).toBe(
+      "/acme/projects/proj_123/apps/app_456/preview/overview",
+    );
     expect(routes.projects.apps.settings(scope)).toBe(
-      "/acme/projects/proj_123/apps/app_456/settings",
+      "/acme/projects/proj_123/apps/app_456/preview/settings",
     );
     expect(routes.projects.apps.deployments(scope)).toBe(
-      "/acme/projects/proj_123/apps/app_456/deployments",
+      "/acme/projects/proj_123/apps/app_456/preview/deployments",
+    );
+  });
+
+  it("builds settings sub-page paths", () => {
+    expect(routes.projects.apps.settings({ ...scope, page: "domains" })).toBe(
+      "/acme/projects/proj_123/apps/app_456/preview/settings/domains",
+    );
+    expect(routes.projects.apps.settings({ ...scope, page: "danger" })).toBe(
+      "/acme/projects/proj_123/apps/app_456/preview/settings/danger",
     );
   });
 
   it("builds a deployment path", () => {
     expect(routes.projects.apps.deployment({ ...scope, deploymentId })).toBe(
-      "/acme/projects/proj_123/apps/app_456/deployments/d_789",
+      "/acme/projects/proj_123/apps/app_456/preview/deployments/d_789",
     );
   });
 
   it("flags a build deployment", () => {
     expect(routes.projects.apps.deployment({ ...scope, deploymentId, build: true })).toBe(
-      "/acme/projects/proj_123/apps/app_456/deployments/d_789?build=true",
+      "/acme/projects/proj_123/apps/app_456/preview/deployments/d_789?build=true",
     );
   });
 
   it("builds an openapi diff path", () => {
     expect(routes.projects.apps.openapiDiff({ ...scope, from: "dep_old", to: "dep_new" })).toBe(
-      "/acme/projects/proj_123/apps/app_456/openapi-diff?from=dep_old&to=dep_new",
+      "/acme/projects/proj_123/apps/app_456/preview/openapi-diff?from=dep_old&to=dep_new",
     );
+  });
+});
+
+describe("isAppPage", () => {
+  it("recognises every page segment and rejects environment slugs", () => {
+    expect(APP_PAGES.every(isAppPage)).toBe(true);
+    expect(isAppPage("production")).toBe(false);
+    expect(isAppPage("preview")).toBe(false);
   });
 });

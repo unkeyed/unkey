@@ -1,7 +1,7 @@
 "use client";
 
 import { useAppFilterOptionsWithLoading } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/(project)/components/app-filter-options";
-import { useProjectData } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/data-provider";
+import { useProjectData } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/data-provider";
 import { AppEnvironmentFilterList } from "@/components/deploy/app-environment-filter-list";
 
 type FilterLike = {

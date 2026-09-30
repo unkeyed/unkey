@@ -1,0 +1,298 @@
+"use client";
+
+import type { EnvironmentSettings } from "@/lib/collections/deploy/environment-settings";
+import { freeTierLimits } from "@/lib/limits";
+import type { FormattedParts } from "@/lib/utils/deployment-formatters";
+import { useWorkspace } from "@/providers/workspace-provider";
+import { zodResolver } from "@hookform/resolvers/zod";
+import type { Limits } from "@unkey/db";
+import { type SaveState, Slider } from "@unkey/ui";
+import type React from "react";
+import { useEffect, useMemo } from "react";
+import { useForm, useWatch } from "react-hook-form";
+import { z } from "zod";
+import { useEnvironmentSettings } from "../../../environment-provider";
+import { useUpdateEnvironment } from "../../../hooks/use-update-environment";
+import { WideContent } from "../form-blocks";
+import { FormSettingCard, resolveSaveState } from "../form-setting-card";
+import { buildSliderRangeStyle, indexToValue, valueToIndex } from "./slider-utils";
+
+type SliderStrategy =
+  | {
+      kind: "index-mapped";
+      options: readonly { readonly label: string; readonly value: number }[];
+      fallback: number;
+    }
+  | { kind: "direct"; min: number; max: number; step: number };
+
+export type ResourceSliderConfig = {
+  title: string;
+  description: string;
+  colorVar: string;
+  slider: SliderStrategy;
+  formatValue: (n: number) => FormattedParts;
+  readValue: (s: EnvironmentSettings) => number;
+  writeValue: (draft: EnvironmentSettings, value: number) => void;
+  extraSaveChecks?: (settings: EnvironmentSettings) => SaveState | null;
+  sliderAdornment?: (s: EnvironmentSettings) => React.ReactNode;
+  /**
+   * Returns the per-instance limit that caps this resource. Index-mapped sliders
+   * hide options above it, so the slider matches the workspace's real limit.
+   * Falls back to the default limit until limits load.
+   */
+  resolveMax?: (limits: Limits | null) => number;
+};
+
+// Numeric limit columns a slider can bound to. Taken from freeTierLimits so the
+// fallback lookup always resolves; that type omits pk and workspaceId.
+type PerInstanceLimitKey = {
+  [K in keyof typeof freeTierLimits]: (typeof freeTierLimits)[K] extends number ? K : never;
+}[keyof typeof freeTierLimits];
+
+function optionForValue(value: number, formatValue: (n: number) => FormattedParts) {
+  const parts = formatValue(value);
+  return { value, label: parts.unit ? `${parts.value} ${parts.unit}` : parts.value };
+}
+
+/**
+ * Bounds an index-mapped slider to the workspace limit. Drops options above the
+ * cap. When the cap is not already one of the options, adds it as the final stop
+ * so a raised limit is always reachable.
+ */
+function resolveStrategy(
+  strategy: SliderStrategy,
+  limits: Limits | null,
+  resolveMax: ResourceSliderConfig["resolveMax"],
+  formatValue: (n: number) => FormattedParts,
+): SliderStrategy {
+  if (strategy.kind !== "index-mapped" || !resolveMax) {
+    return strategy;
+  }
+  const max = resolveMax(limits);
+  const withinLimit = strategy.options.filter((o) => o.value <= max);
+
+  // Limit sits below the lowest defined tier: the only coherent stop is the
+  // limit itself. Fall back to the smallest tier only for a non-positive cap,
+  // which keeps the option list non-empty.
+  if (withinLimit.length === 0) {
+    return {
+      ...strategy,
+      options: max > 0 ? [optionForValue(max, formatValue)] : strategy.options.slice(0, 1),
+    };
+  }
+
+  const options = [...withinLimit];
+  const top = options.at(-1);
+  if (top && max > 0 && top.value !== max) {
+    options.push(optionForValue(max, formatValue));
+  }
+  return { ...strategy, options };
+}
+
+/**
+ * Keeps stored values selectable. resolveStrategy rebuilds the option list from
+ * the limit alone, so a value saved under an old limit (e.g. 3000 saved when the
+ * cap was 3000, then raised to 5000) can fall off the list. valueToIndex would
+ * then return 0 and the thumb would render at the minimum while the label still
+ * shows the true value; the next drag auto-saves a silent downgrade. Re-inserting
+ * absent stored values and sorting ascending makes the thumb reflect what is
+ * stored and leaves any still-valid value selectable.
+ */
+function ensureValuesSelectable(
+  strategy: SliderStrategy,
+  values: number[],
+  formatValue: (n: number) => FormattedParts,
+): SliderStrategy {
+  if (strategy.kind !== "index-mapped") {
+    return strategy;
+  }
+  const present = new Set(strategy.options.map((o) => o.value));
+  const missing = [...new Set(values.filter((v) => v > 0 && !present.has(v)))];
+  if (missing.length === 0) {
+    return strategy;
+  }
+  const options = [...strategy.options, ...missing.map((v) => optionForValue(v, formatValue))];
+  options.sort((a, b) => a.value - b.value);
+  return { ...strategy, options };
+}
+
+type ResourceSliderDefinition = {
+  title: string;
+  description: string;
+  colorVar: string;
+  options: readonly { readonly label: string; readonly value: number }[];
+  fallback: number;
+  formatValue: (n: number) => FormattedParts;
+  read: (s: EnvironmentSettings) => number;
+  write: (draft: EnvironmentSettings, value: number) => void;
+  /**
+   * Limit column that caps this resource. The slider tops out at the workspace's
+   * value for this column, or the default limit until limits load.
+   */
+  limitKey: PerInstanceLimitKey;
+  limitMultiplier?: number;
+};
+
+/**
+ * Builds a limit-bounded, index-mapped slider config. Callers pass the options,
+ * the limit column, and how to read and write the value. The slider strategy and
+ * limit fallback stay here.
+ */
+export function defineResourceSlider(definition: ResourceSliderDefinition): ResourceSliderConfig {
+  const limitMultiplier = definition.limitMultiplier ?? 1;
+
+  return {
+    title: definition.title,
+    description: definition.description,
+    colorVar: definition.colorVar,
+    slider: { kind: "index-mapped", options: definition.options, fallback: definition.fallback },
+    formatValue: definition.formatValue,
+    readValue: definition.read,
+    writeValue: definition.write,
+    resolveMax: (limits) => {
+      const limit = limits?.[definition.limitKey] ?? freeTierLimits[definition.limitKey];
+      return limit * limitMultiplier;
+    },
+  };
+}
+
+function getSliderProps(strategy: SliderStrategy, currentValue: number) {
+  if (strategy.kind === "index-mapped") {
+    const index = valueToIndex(strategy.options, currentValue);
+    return {
+      min: 0,
+      max: strategy.options.length - 1,
+      step: 1,
+      sliderValue: index,
+      toFormValue: (v: number) => indexToValue(strategy.options, v, strategy.fallback),
+      rangeIndex: index,
+      rangeMin: 0,
+      rangeMax: strategy.options.length - 1,
+    };
+  }
+  return {
+    min: strategy.min,
+    max: strategy.max,
+    step: strategy.step,
+    sliderValue: currentValue,
+    toFormValue: (v: number) => v,
+    rangeIndex: currentValue,
+    rangeMin: strategy.min,
+    rangeMax: strategy.max,
+  };
+}
+
+export const ResourceSliderSetting = ({ config }: { config: ResourceSliderConfig }) => {
+  const { limits } = useWorkspace();
+  const effectiveConfig = useMemo<ResourceSliderConfig>(
+    () => ({
+      ...config,
+      slider: resolveStrategy(config.slider, limits, config.resolveMax, config.formatValue),
+    }),
+    [config, limits],
+  );
+  return <SliderForm config={effectiveConfig} />;
+};
+
+const schema = z.object({ value: z.number() });
+type FormValues = z.infer<typeof schema>;
+
+const SliderForm = ({ config }: { config: ResourceSliderConfig }) => {
+  const { settings, variant } = useEnvironmentSettings();
+  const updateEnvironment = useUpdateEnvironment();
+  const defaultValue = config.readValue(settings);
+
+  const {
+    handleSubmit,
+    setValue,
+    formState: { isValid, isSubmitting },
+    control,
+    reset,
+  } = useForm<FormValues>({
+    resolver: zodResolver(schema),
+    mode: "onChange",
+    defaultValues: { value: defaultValue },
+  });
+
+  useEffect(() => {
+    reset({ value: defaultValue });
+  }, [defaultValue, reset]);
+
+  const currentValue = useWatch({ control, name: "value" });
+
+  const onSubmit = async (values: FormValues) => {
+    updateEnvironment((draft) => {
+      config.writeValue(draft, values.value);
+    });
+  };
+
+  const slider = useMemo(
+    () => ensureValuesSelectable(config.slider, [defaultValue], config.formatValue),
+    [config.slider, config.formatValue, defaultValue],
+  );
+
+  const hasChanges = currentValue !== defaultValue;
+  const sp = getSliderProps(slider, currentValue);
+
+  const extraCheck = config.extraSaveChecks?.(settings);
+  const saveState = resolveSaveState([
+    ...(extraCheck ? [[true, extraCheck] as [boolean, SaveState]] : []),
+    [isSubmitting, { status: "saving" }],
+    [!isValid, { status: "disabled" }],
+    [!hasChanges, { status: "disabled", reason: "No changes to save" }],
+  ]);
+
+  return (
+    <FormSettingCard
+      title={config.title}
+      description={config.description}
+      onSubmit={handleSubmit(onSubmit)}
+      saveState={saveState}
+      autoSave={variant === "onboarding"}
+    >
+      <WideContent>
+        <div className="flex items-center gap-3">
+          <Slider
+            min={sp.min}
+            max={sp.max}
+            step={sp.step}
+            value={[sp.sliderValue]}
+            onValueChange={([v]) => {
+              if (v !== undefined) {
+                setValue("value", sp.toFormValue(v), { shouldValidate: true });
+              }
+            }}
+            onValueCommitted={
+              variant === "onboarding"
+                ? ([v]) => {
+                    if (v !== undefined) {
+                      const newValue = sp.toFormValue(v);
+                      if (newValue !== defaultValue) {
+                        updateEnvironment((draft) => {
+                          config.writeValue(draft, newValue);
+                        });
+                      }
+                    }
+                  }
+                : undefined
+            }
+            className="flex-1 max-w-(--setting-w)"
+            rangeStyle={buildSliderRangeStyle(
+              sp.rangeIndex,
+              sp.rangeMax,
+              sp.rangeMin,
+              config.colorVar,
+            )}
+          />
+          {config.sliderAdornment?.(settings)}
+          <span className="text-sm">
+            <span className="font-medium text-gray-12">
+              {config.formatValue(currentValue).value}
+            </span>{" "}
+            <span className="text-gray-11">{config.formatValue(currentValue).unit}</span>
+          </span>
+        </div>
+      </WideContent>
+    </FormSettingCard>
+  );
+};

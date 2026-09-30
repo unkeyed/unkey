@@ -1,4 +1,4 @@
-import { ProjectDataProvider } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/data-provider";
+import { ProjectDataProvider } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/data-provider";
 import type { PropsWithChildren } from "react";
 
 // Only logs and requests read deploy data. One provider for both keeps its

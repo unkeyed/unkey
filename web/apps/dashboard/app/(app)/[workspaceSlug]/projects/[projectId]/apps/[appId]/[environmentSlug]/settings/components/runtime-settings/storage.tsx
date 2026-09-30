@@ -1,0 +1,34 @@
+"use client";
+
+import { formatStorageParts } from "@/lib/utils/deployment-formatters";
+import { ResourceSliderSetting, defineResourceSlider } from "../shared/resource-slider";
+
+// Storage tiers on the slider. resolveStrategy bounds these to the workspace
+// limit and adds the exact limit value as a stop when it is not one of these tiers.
+const STORAGE_OPTIONS = [
+  { label: "None", value: 0 },
+  { label: "512 MiB", value: 512 },
+  { label: "1 GiB", value: 1024 },
+  { label: "2 GiB", value: 2048 },
+  { label: "5 GiB", value: 5120 },
+  { label: "10 GiB", value: 10240 },
+  { label: "20 GiB", value: 20480 },
+  { label: "50 GiB", value: 51200 },
+] as const;
+
+const storageConfig = defineResourceSlider({
+  title: "Storage",
+  description:
+    "Ephemeral disk space per instance. Unkey wipes it when the instance stops, so keep nothing you need on it.",
+  colorVar: "successA",
+  options: STORAGE_OPTIONS,
+  fallback: 0,
+  formatValue: formatStorageParts,
+  read: (s) => s.storageMib,
+  write: (draft, value) => {
+    draft.storageMib = value;
+  },
+  limitKey: "storageMibMaxPerInstance",
+});
+
+export const Storage = () => <ResourceSliderSetting config={storageConfig} />;

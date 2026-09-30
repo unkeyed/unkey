@@ -1,6 +1,6 @@
 import { and, db, desc, eq, isNotNull, lt, ne, or, sql } from "@/lib/db";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
-import { deployments, environments } from "@unkey/db/src/schema";
+import { deployments } from "@unkey/db/src/schema";
 import { z } from "zod";
 import { deploymentListSelect, excludeSkipped } from "./deployment-query-helpers";
 import { enrichDeploymentRows } from "./enrich-deployment-rows";
@@ -12,6 +12,7 @@ export const listActiveBranches = workspaceProcedure
     z.object({
       projectId: z.string(),
       appId: z.string(),
+      environmentId: z.string(),
       limit: z.number().int().min(1).max(MAX_LIMIT).default(10),
       cursor: z.object({ createdAt: z.number().int(), id: z.string() }).nullish(),
     }),
@@ -31,6 +32,7 @@ export const listActiveBranches = workspaceProcedure
           eq(deployments.workspaceId, ctx.workspace.id),
           eq(deployments.projectId, input.projectId),
           eq(deployments.appId, input.appId),
+          eq(deployments.environmentId, input.environmentId),
           ne(deployments.source, "oci"),
           isNotNull(deployments.gitBranch),
           ne(deployments.gitBranch, ""),
@@ -46,11 +48,9 @@ export const listActiveBranches = workspaceProcedure
       .select(deploymentListSelect)
       .from(deployments)
       .innerJoin(ranked, eq(ranked.id, deployments.id))
-      .innerJoin(environments, eq(environments.id, deployments.environmentId))
       .where(
         and(
           eq(ranked.rn, 1),
-          eq(environments.kind, "preview"),
           input.cursor
             ? or(
                 lt(deployments.createdAt, input.cursor.createdAt),

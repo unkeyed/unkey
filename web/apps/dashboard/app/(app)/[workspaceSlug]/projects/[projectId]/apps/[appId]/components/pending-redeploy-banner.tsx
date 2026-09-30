@@ -7,6 +7,7 @@ import {
   dismissSettingsBanner,
   useSettingsBannerVisible,
 } from "@/lib/collections/deploy/environment-settings";
+import { PRODUCTION_ENVIRONMENT_SLUG } from "@/lib/collections/deploy/environments";
 import { routes } from "@/lib/navigation/routes";
 import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
 import { useMutation } from "@tanstack/react-query";
@@ -15,12 +16,12 @@ import { Button, toast } from "@unkey/ui";
 import { cn } from "cn";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
-import { useProjectData } from "../(overview)/data-provider";
-import { useAppCurrentDeployment } from "../(overview)/hooks/use-app-current-deployment";
-import { GlowIcon } from "../components/glow-icon";
+import { useProjectData } from "../data-provider";
+import { useAppCurrentDeployment } from "../hooks/use-app-current-deployment";
+import { GlowIcon } from "./glow-icon";
 
 export function PendingRedeployBanner() {
-  const { refetchDeployments } = useProjectData();
+  const { refetchDeployments, environments } = useProjectData();
   const { app, currentDeployment } = useAppCurrentDeployment();
   const currentDeploymentId = app?.currentDeploymentId ?? null;
   const router = useRouter();
@@ -56,6 +57,9 @@ export function PendingRedeployBanner() {
           workspaceSlug: workspace.slug,
           projectId: currentDeployment.projectId,
           appId: currentDeployment.appId,
+          environmentSlug:
+            environments.find((e) => e.id === currentDeployment.environmentId)?.slug ??
+            PRODUCTION_ENVIRONMENT_SLUG,
           deploymentId: data.deploymentId,
         }),
       );

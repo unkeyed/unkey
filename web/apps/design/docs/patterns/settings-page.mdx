@@ -1,0 +1,60 @@
+---
+title: Settings page
+description: Use this pattern for any page whose job is to show and change configuration.
+---
+
+<Component path="settings-page/basic" />
+
+## Nothing is collapsed
+
+Every control is visible when the page loads. A settings page answers "what is this configured to" before it answers "how do I change it", and a chevron destroys the first answer to save a little height.
+
+This rules out three things we used to do. Do not put a form behind `SettingCard`'s `expandable` slot. Do not render a summary of a value the user could read off the control itself. Do not give a group of settings a Hide toggle.
+
+`SettingCard`'s `expandable` slot still exists, for real progressive disclosure such as build logs on a deployment. A setting is not that.
+
+## Title a group only to tell it apart
+
+A group title is an `h2` above its card, worded as a plain noun phrase, so "Healthcheck" rather than "Manage healthcheck".
+
+Leave the title off when it only restates the page. The rail item and the page title already say "Build", so a "Build settings" heading under them is noise. When a page has two or more groups, title each one so the reader can tell them apart.
+
+## Split sections into routes, not accordions
+
+A settings surface with more than about eight rows becomes a scroll, and grouping headings do not fix a scroll. Split it into routes behind a `SecondaryNav` rail, one route per group, and let the rail carry the hierarchy.
+
+Mount the rail in the section's `layout.tsx`, give the layout the page title, and let each page render only its own `SettingsGroups`. Derive the active item from `useSelectedLayoutSegments()[0]`, falling back to the index section's id, and keep the rail labels and the page titles in one table so they cannot drift.
+
+Build the rail hrefs through `lib/navigation/routes`, and carry the current search params through them. Settings routes often read state from the URL, so a rail link that drops the query string silently resets what the user selected.
+
+Two things belong in the layout rather than the page. Any provider the rows read from, so it survives a rail click. And the leave guard, because a guard mounted per page re-arms on every rail click.
+
+## Geometry
+
+`SettingsGroups` owns the reading width at `920px` with `px-6`, and stacks groups with a `32px` gap. Inside a group, `12px` separates the heading from the card.
+
+The heading ladder is the page title from `PageHeader`, then a group heading at `15px/500` (`text-base`), then a row label at `13px/500`, with the row description at `12px` in `text-gray-11`.
+
+A row is `20px` of padding with a `16px` gap between its columns. The label column is two fifths and the control column takes the rest, stacking below `lg`. Rows are divided by the card's own `divide-y`, and the footer is separated by a border and tinted `bg-grayA-2`.
+
+## Anatomy of a row
+
+One setting is one `SettingsRow` inside a `SettingCardGroup`. The group draws the border and the dividers, so a row never draws its own.
+
+The row is two columns. Title and description on the left, control on the right. It has no Save of its own, because the Save belongs to the group.
+
+Put the control's own labels, hints and errors inside the row rather than in the description. The description says what the setting is. A hint about what saving will do sits under the control, inside the row.
+
+## One Save per group
+
+A group card carries a single "Save changes" in its footer, and it commits every setting in that group that is dirty. Each setting still owns its own form, its own schema and its own mutation, so nothing is merged; rows hand their dirty state and their submit to the group through `useSettingsGroupMember`, and the footer submits only the dirty ones.
+
+When saving takes effect later, such as on the next deploy, pass `pendingNote` to the group. It sits beside Save only while the group has unsaved changes, so a clean page carries no caveats.
+
+That keeps the page quiet. A settings page at rest shows one disabled button per group rather than one per row, which is what made the per-row version feel like furniture.
+
+Drive each row's contribution from `SaveState`, which has three states and no booleans. `ready` means that row has something worth saving, `saving` shows its work in flight, and `disabled` means it does not participate. Build the state with `resolveSaveState`, which returns the first matching case, so order the checks from most specific to least.
+
+## Danger zone
+
+Destructive actions go last, in `SettingsDangerZone`, which supplies the heading and the red surface. On a page of its own, whose title already says "Danger zone", pass `showTitle={false}`. Title the consequence rather than the action, so "Delete this app" over "Delete". Reserve it for irreversible loss. An action that is heavy but undoable stays an ordinary row.
