@@ -47,7 +47,7 @@ export function Node({
       {...rest}
       data-active={active}
       className={cn(
-        "relative flex min-w-0 animate-pop flex-col overflow-hidden rounded-lg transition-[border-color,box-shadow] motion-reduce:animate-none",
+        "relative flex min-w-0 flex-col overflow-hidden rounded-lg transition-[border-color,box-shadow]",
         NODE_EDGE[edge][tone],
         className,
       )}

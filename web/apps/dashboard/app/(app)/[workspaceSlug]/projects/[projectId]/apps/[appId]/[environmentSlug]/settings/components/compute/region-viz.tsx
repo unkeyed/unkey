@@ -310,7 +310,7 @@ function MapView({ draft, unavailable, hovered, onHover }: VizProps) {
             >
               <span
                 className={cn(
-                  "absolute -translate-x-1/2 -translate-y-1/2 animate-pop rounded-full ring-4 transition-[width,height] duration-150 motion-reduce:animate-none",
+                  "absolute -translate-x-1/2 -translate-y-1/2 rounded-full ring-4 transition-[width,height] duration-150",
                   blocked ? "bg-warning-9 ring-warning-4" : "bg-gray-12 ring-grayA-4",
                   active ? "size-3" : "size-2",
                 )}
