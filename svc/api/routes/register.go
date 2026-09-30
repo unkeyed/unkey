@@ -596,14 +596,12 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 	srv.RegisterRoute(protectedMiddlewares, &v2RootKeysUpdateKey.Handler{
 		DB:           svc.Database,
 		Auditlogs:    svc.Auditlogs,
-		KeyCache:     svc.Caches.VerificationKeyByHash,
 		RootKeyCache: svc.Caches.RootKeyByHash,
 		Clock:        svc.Clock,
 	})
 	srv.RegisterRoute(protectedMiddlewares, &v2RootKeysDeleteKey.Handler{
 		DB:           svc.Database,
 		Auditlogs:    svc.Auditlogs,
-		KeyCache:     svc.Caches.VerificationKeyByHash,
 		RootKeyCache: svc.Caches.RootKeyByHash,
 		Clock:        svc.Clock,
 	})
@@ -611,7 +609,6 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 		DB:           svc.Database,
 		Keys:         svc.Keys,
 		Auditlogs:    svc.Auditlogs,
-		KeyCache:     svc.Caches.VerificationKeyByHash,
 		RootKeyCache: svc.Caches.RootKeyByHash,
 		Clock:        svc.Clock,
 	})
@@ -632,8 +629,7 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 	srv.RegisterRoute(
 		protectedMiddlewares,
 		&v2KeysDeleteKey.Handler{
-			KeyCache:     svc.Caches.VerificationKeyByHash,
-			RootKeyCache: svc.Caches.RootKeyByHash,
+			KeyCache: svc.Caches.VerificationKeyByHash,
 
 			DB:        svc.Database,
 			Auditlogs: svc.Auditlogs,
@@ -647,7 +643,6 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 			DB:           svc.Database,
 			Auditlogs:    svc.Auditlogs,
 			KeyCache:     svc.Caches.VerificationKeyByHash,
-			RootKeyCache: svc.Caches.RootKeyByHash,
 			UsageLimiter: svc.UsageLimiter,
 		},
 	)
@@ -681,7 +676,6 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 			DB:           svc.Database,
 			Auditlogs:    svc.Auditlogs,
 			KeyCache:     svc.Caches.VerificationKeyByHash,
-			RootKeyCache: svc.Caches.RootKeyByHash,
 			UsageLimiter: svc.UsageLimiter,
 		},
 	)
@@ -702,10 +696,9 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 		protectedMiddlewares,
 		&v2KeysSetPermissions.Handler{
 
-			DB:           svc.Database,
-			Auditlogs:    svc.Auditlogs,
-			KeyCache:     svc.Caches.VerificationKeyByHash,
-			RootKeyCache: svc.Caches.RootKeyByHash,
+			DB:        svc.Database,
+			Auditlogs: svc.Auditlogs,
+			KeyCache:  svc.Caches.VerificationKeyByHash,
 		},
 	)
 
@@ -725,10 +718,9 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 		protectedMiddlewares,
 		&v2KeysAddRoles.Handler{
 
-			DB:           svc.Database,
-			Auditlogs:    svc.Auditlogs,
-			KeyCache:     svc.Caches.VerificationKeyByHash,
-			RootKeyCache: svc.Caches.RootKeyByHash,
+			DB:        svc.Database,
+			Auditlogs: svc.Auditlogs,
+			KeyCache:  svc.Caches.VerificationKeyByHash,
 		},
 	)
 
@@ -737,10 +729,9 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 		protectedMiddlewares,
 		&v2KeysRemovePermissions.Handler{
 
-			DB:           svc.Database,
-			Auditlogs:    svc.Auditlogs,
-			KeyCache:     svc.Caches.VerificationKeyByHash,
-			RootKeyCache: svc.Caches.RootKeyByHash,
+			DB:        svc.Database,
+			Auditlogs: svc.Auditlogs,
+			KeyCache:  svc.Caches.VerificationKeyByHash,
 		},
 	)
 
@@ -749,10 +740,9 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 		protectedMiddlewares,
 		&v2KeysRemoveRoles.Handler{
 
-			DB:           svc.Database,
-			Auditlogs:    svc.Auditlogs,
-			KeyCache:     svc.Caches.VerificationKeyByHash,
-			RootKeyCache: svc.Caches.RootKeyByHash,
+			DB:        svc.Database,
+			Auditlogs: svc.Auditlogs,
+			KeyCache:  svc.Caches.VerificationKeyByHash,
 		},
 	)
 

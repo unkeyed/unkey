@@ -27,7 +27,6 @@ func TestKeyUpdateCreditsSuccess(t *testing.T) {
 		DB:           h.DB,
 		Auditlogs:    h.Auditlogs,
 		KeyCache:     h.Caches.VerificationKeyByHash,
-		RootKeyCache: h.Caches.RootKeyByHash,
 		UsageLimiter: h.UsageLimiter,
 	}
 
@@ -230,7 +229,6 @@ func TestKeyUpdateCreditsWithURNPermission(t *testing.T) {
 		DB:           h.DB,
 		Auditlogs:    h.Auditlogs,
 		KeyCache:     h.Caches.VerificationKeyByHash,
-		RootKeyCache: h.Caches.RootKeyByHash,
 		UsageLimiter: h.UsageLimiter,
 	}
 

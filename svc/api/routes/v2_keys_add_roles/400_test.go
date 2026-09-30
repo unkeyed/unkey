@@ -16,10 +16,9 @@ func TestValidationErrors(t *testing.T) {
 	h := testutil.NewHarness(t)
 
 	route := &handler.Handler{
-		DB:           h.DB,
-		Auditlogs:    h.Auditlogs,
-		KeyCache:     h.Caches.VerificationKeyByHash,
-		RootKeyCache: h.Caches.RootKeyByHash,
+		DB:        h.DB,
+		Auditlogs: h.Auditlogs,
+		KeyCache:  h.Caches.VerificationKeyByHash,
 	}
 
 	h.Register(route)

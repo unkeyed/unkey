@@ -35,7 +35,6 @@ type Handler struct {
 	DB           db.Database
 	Keys         keys.KeyService
 	Auditlogs    auditlogs.AuditLogService
-	KeyCache     cache.Cache[string, keysdb.CachedKeyData]
 	RootKeyCache cache.Cache[string, keysdb.CachedRootKeyData]
 	Clock        clock.Clock
 }
@@ -143,7 +142,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	if err != nil {
 		return err
 	}
-	h.KeyCache.Remove(ctx, source.Hash)
 	h.RootKeyCache.Remove(ctx, source.Hash)
 	return s.JSON(http.StatusOK, Response{
 		Meta: openapi.Meta{RequestId: s.RequestID()},

@@ -113,7 +113,7 @@ func TestUpdateRootKeyIgnoresLegacyKeys(t *testing.T) {
 }
 
 func newRoute(h *testutil.Harness) *handler.Handler {
-	route := &handler.Handler{DB: h.DB, Auditlogs: h.Auditlogs, KeyCache: h.Caches.VerificationKeyByHash, RootKeyCache: h.Caches.RootKeyByHash, Clock: h.Clock}
+	route := &handler.Handler{DB: h.DB, Auditlogs: h.Auditlogs, RootKeyCache: h.Caches.RootKeyByHash, Clock: h.Clock}
 	h.Register(route)
 	return route
 }

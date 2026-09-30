@@ -29,10 +29,9 @@ type Response = openapi.V2KeysDeleteKeyResponseBody
 
 // Handler implements zen.Route interface for the v2 keys.deleteKey endpoint
 type Handler struct {
-	DB           db.Database
-	Auditlogs    auditlogs.AuditLogService
-	KeyCache     cache.Cache[string, keysdb.CachedKeyData]
-	RootKeyCache cache.Cache[string, keysdb.CachedRootKeyData]
+	DB        db.Database
+	Auditlogs auditlogs.AuditLogService
+	KeyCache  cache.Cache[string, keysdb.CachedKeyData]
 }
 
 // Method returns the HTTP method this route responds to
@@ -192,7 +191,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	h.KeyCache.Remove(ctx, key.Key.Hash)
-	h.RootKeyCache.Remove(ctx, key.Key.Hash)
 
 	return s.JSON(http.StatusOK, Response{
 		Meta: openapi.Meta{

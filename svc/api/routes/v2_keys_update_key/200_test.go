@@ -31,7 +31,6 @@ func TestUpdateKeySuccess(t *testing.T) {
 		DB:           h.DB,
 		Auditlogs:    h.Auditlogs,
 		KeyCache:     h.Caches.VerificationKeyByHash,
-		RootKeyCache: h.Caches.RootKeyByHash,
 		UsageLimiter: h.UsageLimiter,
 	}
 
@@ -154,7 +153,6 @@ func TestUpdateKeyWithURNPermission(t *testing.T) {
 		DB:           h.DB,
 		Auditlogs:    h.Auditlogs,
 		KeyCache:     h.Caches.VerificationKeyByHash,
-		RootKeyCache: h.Caches.RootKeyByHash,
 		UsageLimiter: h.UsageLimiter,
 	}
 
@@ -199,7 +197,6 @@ func TestUpdateKeyWithTranslatedAdminPermission(t *testing.T) {
 		DB:           h.DB,
 		Auditlogs:    h.Auditlogs,
 		KeyCache:     h.Caches.VerificationKeyByHash,
-		RootKeyCache: h.Caches.RootKeyByHash,
 		UsageLimiter: h.UsageLimiter,
 	}
 
@@ -244,7 +241,6 @@ func TestUpdateKeyUpdateAllFields(t *testing.T) {
 		DB:           h.DB,
 		Auditlogs:    h.Auditlogs,
 		KeyCache:     h.Caches.VerificationKeyByHash,
-		RootKeyCache: h.Caches.RootKeyByHash,
 		UsageLimiter: h.UsageLimiter,
 	}
 
@@ -320,7 +316,6 @@ func TestKeyUpdateCreditsInvalidatesCache(t *testing.T) {
 		DB:           h.DB,
 		Auditlogs:    h.Auditlogs,
 		KeyCache:     h.Caches.VerificationKeyByHash,
-		RootKeyCache: h.Caches.RootKeyByHash,
 		UsageLimiter: h.UsageLimiter,
 	}
 
@@ -403,7 +398,6 @@ func TestUpdateKeyConcurrentWithSameExternalId(t *testing.T) {
 		DB:           h.DB,
 		Auditlogs:    h.Auditlogs,
 		KeyCache:     h.Caches.VerificationKeyByHash,
-		RootKeyCache: h.Caches.RootKeyByHash,
 		UsageLimiter: h.UsageLimiter,
 	}
 
@@ -498,7 +492,6 @@ func TestUpdateKeyConcurrentRatelimits(t *testing.T) {
 		DB:           h.DB,
 		Auditlogs:    h.Auditlogs,
 		KeyCache:     h.Caches.VerificationKeyByHash,
-		RootKeyCache: h.Caches.RootKeyByHash,
 		UsageLimiter: h.UsageLimiter,
 	}
 

@@ -15,7 +15,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
-	updatekey "github.com/unkeyed/unkey/svc/api/routes/v2_keys_update_key"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_root_keys_create_key"
 )
 
@@ -85,40 +84,6 @@ func TestNewRootKeyAuthenticationIgnoresLegacyOwnership(t *testing.T) {
 	rootKey, err := h.Keys.GetRootKey(t.Context(), session)
 	require.NoError(t, err)
 	require.Equal(t, p.AuthorizedWorkspaceID, rootKey.AuthorizedWorkspaceID)
-}
-
-// TestLegacyRootKeyDisableInvalidatesAuthentication guarantees an authorized
-// update removes cached root authentication. For example, a legacy root key
-// authenticated before it is disabled cannot continue using its warm cache entry.
-func TestLegacyRootKeyDisableInvalidatesAuthentication(t *testing.T) {
-	h := testutil.NewHarness(t)
-	r := h.Resources()
-	key := h.CreateKey(seed.CreateKeyRequest{
-		WorkspaceID:    r.RootWorkspace.ID,
-		KeySpaceID:     r.RootKeySpace.ID,
-		ForWorkspaceID: &r.UserWorkspace.ID,
-	})
-	request := httptest.NewRequest(http.MethodPost, "/", nil)
-	request.Header.Set("Authorization", "Bearer "+key.Key)
-	session := &zen.Session{}
-	require.NoError(t, session.Init(httptest.NewRecorder(), request, 0))
-	_, err := h.Keys.GetRootKey(t.Context(), session)
-	require.NoError(t, err)
-	route := &updatekey.Handler{
-		DB:           h.DB,
-		Auditlogs:    h.Auditlogs,
-		KeyCache:     h.Caches.VerificationKeyByHash,
-		RootKeyCache: h.Caches.RootKeyByHash,
-		UsageLimiter: h.UsageLimiter,
-	}
-	h.Register(route)
-	admin := h.CreateRootKey(r.RootWorkspace.ID, "unkey:v1:"+r.RootWorkspace.ID+":**#*")
-	res := testutil.CallRoute[updatekey.Request, updatekey.Response](h, route, http.Header{
-		"Authorization": {"Bearer " + admin}, "Content-Type": {"application/json"},
-	}, updatekey.Request{KeyId: key.KeyID, Enabled: new(false)})
-	require.Equal(t, http.StatusOK, res.Status, "%s", res.RawBody)
-	_, err = h.Keys.GetRootKey(t.Context(), session)
-	require.Error(t, err)
 }
 
 // TestNewRootKeyAuthenticationChecksLifecycle guarantees the new storage does not

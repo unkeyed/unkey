@@ -31,7 +31,6 @@ type Handler struct {
 	DB           db.Database
 	Auditlogs    auditlogs.AuditLogService
 	KeyCache     cache.Cache[string, keysdb.CachedKeyData]
-	RootKeyCache cache.Cache[string, keysdb.CachedRootKeyData]
 	UsageLimiter usagelimiter.Service
 }
 
@@ -272,7 +271,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	h.KeyCache.Remove(ctx, keyData.Key.Hash)
-	h.RootKeyCache.Remove(ctx, keyData.Key.Hash)
 	if err := h.UsageLimiter.Invalidate(ctx, keyData.Key.ID); err != nil {
 		logger.Error("Failed to invalidate usage limit",
 			"error", err.Error(),
