@@ -169,6 +169,7 @@ export * from "./icons/shield-alert-outline-18";
 export * from "./icons/shield-key-outline-18";
 export * from "./icons/sidebar-left-hide-outline-18";
 export * from "./icons/sidebar-left-show-outline-18";
+export * from "./icons/sitemap-outline-18";
 export * from "./icons/sliders-outline-18";
 export * from "./icons/sparkle3-outline-18";
 export * from "./icons/square-bullet-list-outline-18";
