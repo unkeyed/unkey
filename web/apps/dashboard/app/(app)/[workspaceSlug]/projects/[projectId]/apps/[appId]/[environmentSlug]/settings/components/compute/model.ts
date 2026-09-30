@@ -1,5 +1,6 @@
 import type { EnvironmentSettings } from "@/lib/collections/deploy/environment-settings";
-import { type PlanLimits, freeTierLimits } from "@/lib/limits";
+import { type PlanLimits, freeTierLimits, limitsByPlan } from "@/lib/limits";
+import { DEPLOY_PLANS, type DeployPlan } from "@/lib/stripe/deployPlan";
 import {
   formatCpuParts,
   formatMemoryParts,
@@ -65,6 +66,10 @@ export function presetFor(cpuMillicores: number, memoryMib: number): Preset | un
 
 export function presetFits(preset: Preset, limits: ComputeLimits): boolean {
   return preset.cpuMillicores <= limits.cpuMillicores && preset.memoryMib <= limits.memoryMib;
+}
+
+export function planForPreset(preset: Preset): DeployPlan | undefined {
+  return DEPLOY_PLANS.find((plan) => presetFits(preset, resolveLimits(limitsByPlan[plan])));
 }
 
 type Size = Pick<ComputeDraft, "cpuMillicores" | "memoryMib">;

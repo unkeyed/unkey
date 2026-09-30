@@ -13,6 +13,7 @@ import {
   fromSettings,
   nudgeUnit,
   parseUnit,
+  planForPreset,
   presetFits,
   presetFor,
   replicasOf,
@@ -315,6 +316,18 @@ describe("presets", () => {
   it("finds the preset for an exact size only", () => {
     expect(presetFor(2000, 4096)?.label).toBe("L");
     expect(presetFor(2000, 2048)).toBeUndefined();
+  });
+
+  it("names the smallest plan that fits each preset", () => {
+    expect(PRESETS.map((p) => [p.label, planForPreset(p)])).toEqual([
+      ["XS", "starter"],
+      ["S", "starter"],
+      ["M", "starter"],
+      ["L", "pro"],
+      ["XL", "pro"],
+      ["2XL", "business"],
+      ["4XL", "business"],
+    ]);
   });
 
   it("locks presets above the plan limit", () => {

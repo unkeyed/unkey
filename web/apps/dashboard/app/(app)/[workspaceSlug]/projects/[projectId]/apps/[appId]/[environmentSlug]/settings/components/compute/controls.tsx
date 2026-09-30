@@ -1,13 +1,16 @@
 "use client";
 
+import { PlansScreen } from "@/app/(app)/[workspaceSlug]/settings/billing/components/plans-screen";
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuItem,
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { planName } from "@/lib/billing/plan-card-state";
 import {
   IconChevronDownOutline12,
   IconChevronExpandYOutline12,
@@ -33,6 +36,7 @@ import {
   formatUnit,
   nudgeUnit,
   parseUnit,
+  planForPreset,
   presetFits,
   unitFields,
 } from "./model";
@@ -69,6 +73,7 @@ function Spec({ preset }: { preset: Pick<Preset, "cpuMillicores" | "memoryMib"> 
 
 export function SizeTrigger({ c }: { c: ComputeCard }) {
   const value = activePreset(c.view)?.id ?? CUSTOM;
+  const [plansOpen, setPlansOpen] = useState(false);
   return (
     <div className="flex flex-col gap-3">
       <DropdownMenu>
@@ -99,24 +104,35 @@ export function SizeTrigger({ c }: { c: ComputeCard }) {
             }}
           >
             {PRESETS.map((p) => {
-              const locked = !presetFits(p, c.limits);
-              return (
-                <DropdownMenuRadioItem
-                  key={p.id}
-                  value={p.id}
-                  disabled={locked}
-                  closeOnClick
-                  className="gap-3 px-2 py-1.5"
-                >
-                  <span className="w-10 font-mono text-xs font-medium text-gray-12">{p.label}</span>
-                  <Spec preset={p} />
-                  {locked ? (
-                    <span className="ml-auto flex items-center gap-1 text-[11px] text-gray-10">
-                      <IconLockOutline12 className="size-3" />
-                      Upgrade
+              if (presetFits(p, c.limits)) {
+                return (
+                  <DropdownMenuRadioItem
+                    key={p.id}
+                    value={p.id}
+                    closeOnClick
+                    className="gap-3 px-2 py-1.5"
+                  >
+                    <span className="w-10 font-mono text-xs font-medium text-gray-12">
+                      {p.label}
                     </span>
-                  ) : null}
-                </DropdownMenuRadioItem>
+                    <Spec preset={p} />
+                  </DropdownMenuRadioItem>
+                );
+              }
+              const plan = planForPreset(p);
+              return (
+                <DropdownMenuItem
+                  key={p.id}
+                  onClick={() => setPlansOpen(true)}
+                  className="gap-3 px-2 py-1.5 text-gray-11"
+                >
+                  <span className="w-10 font-mono text-xs font-medium text-gray-11">{p.label}</span>
+                  <Spec preset={p} />
+                  <span className="ml-auto flex items-center gap-1 text-[11px] text-gray-11">
+                    <IconLockOutline12 className="size-3" />
+                    {plan ? planName(plan, undefined) : "Contact us"}
+                  </span>
+                </DropdownMenuItem>
               );
             })}
             <DropdownMenuSeparator className="mx-0 my-1" />
@@ -132,6 +148,7 @@ export function SizeTrigger({ c }: { c: ComputeCard }) {
         </DropdownMenuContent>
       </DropdownMenu>
       {value === CUSTOM ? <CustomSize c={c} /> : null}
+      <PlansScreen open={plansOpen} onOpenChange={setPlansOpen} reason="compute-size" />
     </div>
   );
 }
