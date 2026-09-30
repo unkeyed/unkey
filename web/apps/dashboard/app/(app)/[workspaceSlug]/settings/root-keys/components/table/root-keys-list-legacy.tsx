@@ -1,5 +1,6 @@
 "use client";
 
+import { useRootKeysListPaginated } from "@/components/root-keys-table";
 import type { RootKey } from "@/lib/trpc/routers/settings/root-keys/query";
 import type { UnkeyPermission } from "@unkey/rbac";
 import { unkeyPermissionValidation } from "@unkey/rbac";
@@ -13,6 +14,7 @@ const isUnkeyPermission = (permissionName: string): permissionName is UnkeyPermi
 };
 
 export function RootKeysListLegacy() {
+  const list = useRootKeysListPaginated();
   const [editingKey, setEditingKey] = useState<RootKey | null>(null);
   const [isOpen, setIsOpen] = useState(false);
 
@@ -38,7 +40,12 @@ export function RootKeysListLegacy() {
 
   return (
     <>
-      <RootKeysDataTable selectedKeyId={editingKey?.id ?? null} onEditKey={edit} />
+      <RootKeysDataTable
+        selectedKeyId={editingKey?.id ?? null}
+        onEditKey={edit}
+        list={list}
+        transport="legacy"
+      />
       {editingKey && existingKey && (
         <RootKeyDialog
           title="Edit Root Key"

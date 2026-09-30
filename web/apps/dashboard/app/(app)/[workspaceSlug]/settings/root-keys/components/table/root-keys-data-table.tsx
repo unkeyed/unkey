@@ -1,6 +1,5 @@
 "use client";
 
-import { useRootKeysListPaginated } from "@/components/root-keys-table";
 import type { RootKey } from "@/lib/trpc/routers/settings/root-keys/query";
 import { DataTable, EmptyRootKeys, PaginationFooter, getSelectableRowClassName } from "@unkey/ui";
 import { useCallback, useMemo } from "react";
@@ -18,9 +17,25 @@ const TABLE_CONFIG = {
 type RootKeysDataTableProps = {
   selectedKeyId: string | null;
   onEditKey: (rootKey: RootKey) => void;
+  list: {
+    rootKeys: RootKey[];
+    isInitialLoading: boolean;
+    isNavigating: boolean;
+    totalCount: number;
+    onPageChange: (page: number) => void;
+    page: number;
+    pageSize: number;
+    totalPages: number;
+  };
+  transport: "legacy" | "v2";
 };
 
-export function RootKeysDataTable({ selectedKeyId, onEditKey }: RootKeysDataTableProps) {
+export function RootKeysDataTable({
+  selectedKeyId,
+  onEditKey,
+  list,
+  transport,
+}: RootKeysDataTableProps) {
   const {
     rootKeys,
     isInitialLoading,
@@ -30,9 +45,12 @@ export function RootKeysDataTable({ selectedKeyId, onEditKey }: RootKeysDataTabl
     page,
     pageSize,
     totalPages,
-  } = useRootKeysListPaginated();
+  } = list;
 
-  const columns = useMemo(() => createRootKeyColumns({ onEditKey }), [onEditKey]);
+  const columns = useMemo(
+    () => createRootKeyColumns({ onEditKey, transport }),
+    [onEditKey, transport],
+  );
 
   const selectedRootKey = useMemo(
     () => rootKeys.find((rootKey) => rootKey.id === selectedKeyId) ?? null,

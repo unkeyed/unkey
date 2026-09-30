@@ -21,10 +21,12 @@ export const ROOT_KEY_COLUMN_IDS = {
 
 type CreateRootKeyColumnsOptions = {
   onEditKey: (rootKey: RootKey) => void;
+  transport: "legacy" | "v2";
 };
 
 export const createRootKeyColumns = ({
   onEditKey,
+  transport,
 }: CreateRootKeyColumnsOptions): DataTableColumnDef<RootKey>[] => [
   {
     id: ROOT_KEY_COLUMN_IDS.ROOT_KEY.id,
@@ -71,6 +73,8 @@ export const createRootKeyColumns = ({
     meta: {
       width: { min: 60, max: 100 },
     },
-    cell: ({ row }) => <RootKeysTableActions rootKey={row.original} onEditKey={onEditKey} />,
+    cell: ({ row }) => (
+      <RootKeysTableActions rootKey={row.original} onEditKey={onEditKey} transport={transport} />
+    ),
   },
 ];
