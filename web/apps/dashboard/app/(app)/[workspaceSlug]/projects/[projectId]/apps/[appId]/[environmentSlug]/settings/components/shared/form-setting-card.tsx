@@ -57,7 +57,7 @@ export function SettingsForm({
   );
 }
 
-type FormSettingCardProps = Omit<SettingsFormProps, "className"> & {
+type FormSettingCardProps = SettingsFormProps & {
   title: string;
   description: React.ReactNode;
   stickyHeader?: React.ReactNode;

@@ -59,15 +59,17 @@ export const BuildCommand = () => {
   return (
     <FormSettingCard
       title="Build command"
-      description="Command that builds your app."
+      description={
+        dockerfileConfigured ? "Not used with a Dockerfile." : "Command that builds your app."
+      }
       onSubmit={handleSubmit(onSubmit)}
       saveState={saveState}
       autoSave={variant === "onboarding"}
+      className={dockerfileConfigured ? "opacity-50" : undefined}
     >
       <SettingField>
         <FormInput
           aria-label="Build command"
-          description={dockerfileConfigured ? "Not used with a Dockerfile." : undefined}
           placeholder="Auto-detected"
           disabled={dockerfileConfigured}
           error={errors.buildCommand?.message}
