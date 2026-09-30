@@ -49,14 +49,16 @@ export function regionInfo(name: string): RegionInfo {
 
 export type Replicas = { kind: "uniform"; min: number; max: number } | { kind: "mixed" };
 
+export type RegionDraft = { name: string; replicasMin: number; replicasMax: number };
+
 export type ComputeDraft = {
-  sizeMode: "preset" | "custom";
   cpuMillicores: number;
   memoryMib: number;
   storageMib: number;
-  replicas: Replicas;
-  regions: string[];
+  regions: RegionDraft[];
 };
+
+export type Mode = "preset" | "custom";
 
 export type ComputeLimits = {
   cpuMillicores: number;
@@ -91,33 +93,31 @@ export function presetFits(preset: Preset, limits: ComputeLimits): boolean {
   return preset.cpuMillicores <= limits.cpuMillicores && preset.memoryMib <= limits.memoryMib;
 }
 
-type Size = Pick<ComputeDraft, "sizeMode" | "cpuMillicores" | "memoryMib">;
+type Size = Pick<ComputeDraft, "cpuMillicores" | "memoryMib">;
 
-export function activePreset(size: Size): Preset | undefined {
-  return match(size.sizeMode)
-    .with("custom", () => undefined)
-    .with("preset", () => presetFor(size.cpuMillicores, size.memoryMib))
-    .exhaustive();
+export function replicasOf(draft: Pick<ComputeDraft, "regions">): Replicas {
+  const [first, ...rest] = draft.regions;
+  if (!first) {
+    return { kind: "uniform", min: 1, max: 1 };
+  }
+  const same = rest.every(
+    (r) => r.replicasMin === first.replicasMin && r.replicasMax === first.replicasMax,
+  );
+  return same
+    ? { kind: "uniform", min: first.replicasMin, max: first.replicasMax }
+    : { kind: "mixed" };
 }
 
 export function fromSettings(settings: EnvironmentSettings): ComputeDraft {
-  const [first, ...rest] = settings.regions;
-  let replicas: Replicas = { kind: "uniform", min: 1, max: 1 };
-  if (first) {
-    const same = rest.every(
-      (r) => r.replicasMin === first.replicasMin && r.replicasMax === first.replicasMax,
-    );
-    replicas = same
-      ? { kind: "uniform", min: first.replicasMin, max: first.replicasMax }
-      : { kind: "mixed" };
-  }
   return {
-    sizeMode: presetFor(settings.cpuMillicores, settings.memoryMib) ? "preset" : "custom",
     cpuMillicores: settings.cpuMillicores,
     memoryMib: settings.memoryMib,
     storageMib: settings.storageMib,
-    replicas,
-    regions: settings.regions.map((r) => r.name),
+    regions: settings.regions.map(({ name, replicasMin, replicasMax }) => ({
+      name,
+      replicasMin,
+      replicasMax,
+    })),
   };
 }
 
@@ -125,23 +125,121 @@ export function applyDraft(target: EnvironmentSettings, draft: ComputeDraft): vo
   target.cpuMillicores = draft.cpuMillicores;
   target.memoryMib = draft.memoryMib;
   target.storageMib = draft.storageMib;
-  const first = target.regions.at(0) ?? { replicasMin: 1, replicasMax: 1 };
-  const existing = new Map(target.regions.map((r) => [r.name, r]));
-  const { replicas } = draft;
-  target.regions = draft.regions.map((name) =>
-    match(replicas)
-      .with({ kind: "uniform" }, ({ min, max }) => ({ name, replicasMin: min, replicasMax: max }))
-      .with(
-        { kind: "mixed" },
-        () =>
-          existing.get(name) ?? {
-            name,
-            replicasMin: first.replicasMin,
-            replicasMax: first.replicasMax,
-          },
-      )
-      .exhaustive(),
+  target.regions = draft.regions.map((r) => ({ ...r }));
+}
+
+export function sameDraft(a: ComputeDraft, b: ComputeDraft): boolean {
+  return (
+    a.cpuMillicores === b.cpuMillicores &&
+    a.memoryMib === b.memoryMib &&
+    a.storageMib === b.storageMib &&
+    a.regions.length === b.regions.length &&
+    a.regions.every((r, i) => {
+      const other = b.regions[i];
+      return (
+        other !== undefined &&
+        r.name === other.name &&
+        r.replicasMin === other.replicasMin &&
+        r.replicasMax === other.replicasMax
+      );
+    })
   );
+}
+
+export type CardSlot = { kind: "saved"; name: string } | { kind: "new" };
+
+export type CardEdit = {
+  region?: string;
+  sizeMode?: Mode;
+  size?: Size;
+  storageMode?: Mode;
+  storageMib?: number;
+  replicas?: { min: number; max: number };
+};
+
+export type EditResult =
+  | { ok: true; draft: ComputeDraft }
+  | { ok: false; reason: "missing" | "unpicked" | "taken" };
+
+export function applyCardEdit(base: ComputeDraft, slot: CardSlot, edit: CardEdit): EditResult {
+  const own = slot.kind === "saved" ? slot.name : null;
+  const name = edit.region ?? own;
+  if (name === null) {
+    return { ok: false, reason: "unpicked" };
+  }
+  if (name !== own && base.regions.some((r) => r.name === name)) {
+    return { ok: false, reason: "taken" };
+  }
+  const regions = match(slot)
+    .with({ kind: "saved" }, ({ name: saved }) =>
+      base.regions.some((r) => r.name === saved)
+        ? base.regions.map((r) => (r.name === saved ? { ...r, name } : r))
+        : null,
+    )
+    .with({ kind: "new" }, () => {
+      const first = base.regions.at(0);
+      return [
+        ...base.regions,
+        { name, replicasMin: first?.replicasMin ?? 1, replicasMax: first?.replicasMax ?? 1 },
+      ];
+    })
+    .exhaustive();
+  if (!regions) {
+    return { ok: false, reason: "missing" };
+  }
+  const range = edit.replicas;
+  return {
+    ok: true,
+    draft: {
+      cpuMillicores: edit.size?.cpuMillicores ?? base.cpuMillicores,
+      memoryMib: edit.size?.memoryMib ?? base.memoryMib,
+      storageMib: edit.storageMib ?? base.storageMib,
+      regions: range
+        ? regions.map((r) => ({ ...r, replicasMin: range.min, replicasMax: range.max }))
+        : regions,
+    },
+  };
+}
+
+export type CardView = {
+  region: string | null;
+  sizeMode: Mode;
+  cpuMillicores: number;
+  memoryMib: number;
+  storageMode: Mode;
+  storageMib: number;
+  replicas: Replicas;
+};
+
+function resolveMode(picked: Mode | undefined, onTable: boolean): Mode {
+  return onTable && picked !== "custom" ? "preset" : "custom";
+}
+
+export function cardView(base: ComputeDraft, slot: CardSlot, edit: CardEdit): CardView {
+  const cpuMillicores = edit.size?.cpuMillicores ?? base.cpuMillicores;
+  const memoryMib = edit.size?.memoryMib ?? base.memoryMib;
+  const storageMib = edit.storageMib ?? base.storageMib;
+  return {
+    region: edit.region ?? (slot.kind === "saved" ? slot.name : null),
+    sizeMode: resolveMode(edit.sizeMode, presetFor(cpuMillicores, memoryMib) !== undefined),
+    cpuMillicores,
+    memoryMib,
+    storageMode: resolveMode(
+      edit.storageMode,
+      STORAGE_OPTIONS.some((mib) => mib === storageMib),
+    ),
+    storageMib,
+    replicas: edit.replicas
+      ? { kind: "uniform", min: edit.replicas.min, max: edit.replicas.max }
+      : replicasOf(base),
+  };
+}
+
+export function activePreset(view: Pick<CardView, "sizeMode" | "cpuMillicores" | "memoryMib">) {
+  return match(view.sizeMode)
+    .with("custom", () => undefined)
+    .with("preset", () => presetFor(view.cpuMillicores, view.memoryMib))
+    .exhaustive();
 }
 
 const joinParts = ({ value, unit }: { value: string; unit: string }) =>
@@ -159,41 +257,12 @@ export function formatReplicas(replicas: Replicas): string {
 }
 
 export function sizeLabel(size: Size): string {
-  return activePreset(size)?.label ?? "Custom";
+  return presetFor(size.cpuMillicores, size.memoryMib)?.label ?? "Custom";
 }
 
-function sizeSpec(size: Size): string {
-  return `${formatCpu(size.cpuMillicores)} · ${formatMemory(size.memoryMib)}`;
-}
-
-export function inheritedSummary(draft: ComputeDraft): string {
-  const single = draft.replicas.kind === "uniform" && draft.replicas.max === 1;
+export function inheritedSummary(view: CardView): string {
+  const single = view.replicas.kind === "uniform" && view.replicas.max === 1;
   const noun = single ? "instance" : "instances";
-  return `${formatReplicas(draft.replicas)} ${noun} · ${sizeLabel(draft)} · ${sizeSpec(draft)}`;
-}
-
-export function diffDraft(base: ComputeDraft, draft: ComputeDraft): string[] {
-  const changes: string[] = [];
-  if (base.cpuMillicores !== draft.cpuMillicores || base.memoryMib !== draft.memoryMib) {
-    changes.push(
-      `Size ${sizeLabel(base)} (${sizeSpec(base)}) → ${sizeLabel(draft)} (${sizeSpec(draft)})`,
-    );
-  }
-  if (base.storageMib !== draft.storageMib) {
-    changes.push(`Storage ${formatStorage(base.storageMib)} → ${formatStorage(draft.storageMib)}`);
-  }
-  if (formatReplicas(base.replicas) !== formatReplicas(draft.replicas)) {
-    changes.push(`Instances ${formatReplicas(base.replicas)} → ${formatReplicas(draft.replicas)}`);
-  }
-  for (const name of draft.regions) {
-    if (!base.regions.includes(name)) {
-      changes.push(`+ ${name}`);
-    }
-  }
-  for (const name of base.regions) {
-    if (!draft.regions.includes(name)) {
-      changes.push(`− ${name}`);
-    }
-  }
-  return changes;
+  const label = activePreset(view)?.label ?? "Custom";
+  return `${formatReplicas(view.replicas)} ${noun} · ${label} · ${formatCpu(view.cpuMillicores)} · ${formatMemory(view.memoryMib)}`;
 }

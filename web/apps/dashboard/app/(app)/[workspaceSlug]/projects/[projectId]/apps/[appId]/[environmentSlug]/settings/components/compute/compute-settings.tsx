@@ -3,19 +3,48 @@
 import { trpc } from "@/lib/trpc/client";
 import { IconPlusOutline18 } from "@unkey/icons";
 import { Button } from "@unkey/ui";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { NewRegionCard, RegionCard } from "./region-card";
 import { RegionViz } from "./region-viz";
 import { useCompute } from "./use-compute";
 
+function useCardKeys() {
+  const keys = useRef(new Map<string, number>());
+  const next = useRef(0);
+  return {
+    keyFor: (name: string) => {
+      const existing = keys.current.get(name);
+      if (existing !== undefined) {
+        return existing;
+      }
+      const key = next.current++;
+      keys.current.set(name, key);
+      return key;
+    },
+    rename: (from: string, to: string) => {
+      const key = keys.current.get(from);
+      if (key !== undefined && from !== to) {
+        keys.current.delete(from);
+        keys.current.set(to, key);
+      }
+    },
+  };
+}
+
 export function ComputeSettings() {
   const page = useCompute();
+  const cardKeys = useCardKeys();
   const [adding, setAdding] = useState(false);
   const [justAdded, setJustAdded] = useState<string | null>(null);
   const { data: available } = trpc.deploy.environmentSettings.getAvailableRegions.useQuery();
-  const canAdd = (available ?? []).some(
-    (r) => r.canSchedule && !page.base.regions.includes(r.name),
-  );
+  const names = page.base.regions.map((r) => r.name);
+  const canAdd = (available ?? []).some((r) => r.canSchedule && !names.includes(r.name));
+  const addedShown = justAdded !== null && names.includes(justAdded);
+  useEffect(() => {
+    if (addedShown) {
+      setJustAdded(null);
+    }
+  }, [addedShown]);
   return (
     <section className="flex flex-col gap-3">
       <h2 className="text-base font-medium text-gray-12">Regions</h2>
@@ -23,13 +52,14 @@ export function ComputeSettings() {
         <div className="divide-y divide-grayA-4">
           <RegionViz draft={page.base} hovered={page.hovered} onHover={page.setHovered} />
           <div className="flex flex-col gap-3 px-4 pt-4 pb-5">
-            {page.base.regions.map((name, i) => (
+            {names.map((name, i) => (
               <RegionCard
-                key={name}
+                key={cardKeys.keyFor(name)}
                 page={page}
                 name={name}
-                index={i}
                 defaultOpen={i === 0 || name === justAdded}
+                popIn={name !== justAdded}
+                onRenamed={cardKeys.rename}
               />
             ))}
             {adding ? (

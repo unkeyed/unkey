@@ -6,12 +6,18 @@ import { useEnvironmentSettings } from "../../environment-provider";
 import { useUpdateEnvironment } from "../../hooks/use-update-environment";
 import { useReportUnsavedChanges } from "../../prevent-leave-context";
 import {
+  type CardEdit,
+  type CardSlot,
+  type CardView,
   type ComputeDraft,
   type ComputeLimits,
+  type EditResult,
+  applyCardEdit,
   applyDraft,
-  diffDraft,
+  cardView,
   fromSettings,
   resolveLimits,
+  sameDraft,
 } from "./model";
 
 export type SaveMode = "autosave" | "manual";
@@ -21,17 +27,19 @@ export type ComputePage = {
   limits: ComputeLimits;
   hovered: string | null;
   setHovered: (name: string | null) => void;
-  commit: (next: ComputeDraft) => void;
+  commit: (change: (current: ComputeDraft) => ComputeDraft | null) => void;
   saveMode: SaveMode;
 };
 
-export type ComputeCard = ComputePage & {
-  draft: ComputeDraft;
-  edit: (fn: (current: ComputeDraft) => ComputeDraft) => void;
+export type ComputeCard = {
+  view: CardView;
+  limits: ComputeLimits;
+  saveMode: SaveMode;
+  taken: ReadonlySet<string>;
+  result: EditResult;
   dirty: boolean;
-  changes: string[];
+  edit: (patch: CardEdit) => void;
   save: () => void;
-  discard: () => void;
 };
 
 export function useCompute(): ComputePage {
@@ -45,39 +53,64 @@ export function useCompute(): ComputePage {
     limits: resolveLimits(limits),
     hovered,
     setHovered,
-    commit: (next) => updateEnvironment((target) => applyDraft(target, next)),
+    commit: (change) =>
+      updateEnvironment((target) => {
+        const next = change(fromSettings(target));
+        if (next) {
+          applyDraft(target, next);
+        }
+      }),
     saveMode: variant === "onboarding" ? "autosave" : "manual",
   };
 }
 
-export function useCardController(page: ComputePage): ComputeCard {
-  const [edits, setEdits] = useState<ComputeDraft | null>(null);
-  const autosave = page.saveMode === "autosave";
-  // Autosave reads everything but the size mode from the saved settings, so a
-  // card never writes back values another card has since changed. The size
-  // mode is not stored, so picking Custom only lives in the card.
-  const draft = autosave
-    ? { ...page.base, sizeMode: edits?.sizeMode ?? page.base.sizeMode }
-    : (edits ?? page.base);
-  const changes = autosave ? [] : diffDraft(page.base, draft);
-  const dirty = changes.length > 0;
-  useReportUnsavedChanges(dirty);
+function modesOf({ sizeMode, storageMode }: CardEdit): CardEdit {
+  return { sizeMode, storageMode };
+}
+
+export function useCardController(
+  page: ComputePage,
+  slot: CardSlot,
+  onSaved: (region: string) => void,
+): ComputeCard {
+  const [edit, setEdit] = useState<CardEdit>({});
+  const result = applyCardEdit(page.base, slot, edit);
+  const dirty = result.ok && !sameDraft(result.draft, page.base);
+  useReportUnsavedChanges(page.saveMode === "manual" && dirty);
+
+  const commitEdit = (next: CardEdit) => {
+    if (next.region !== undefined) {
+      onSaved(next.region);
+    }
+    page.commit((current) => {
+      const applied = applyCardEdit(current, slot, next);
+      return applied.ok ? applied.draft : null;
+    });
+    setEdit(modesOf(next));
+  };
+
   return {
-    ...page,
-    draft,
-    changes,
+    view: cardView(page.base, slot, edit),
+    limits: page.limits,
+    saveMode: page.saveMode,
+    taken: new Set(
+      page.base.regions
+        .map((r) => r.name)
+        .filter((name) => slot.kind === "new" || name !== slot.name),
+    ),
+    result,
     dirty,
-    edit: (fn) => {
-      const next = fn(draft);
-      setEdits(next);
-      if (autosave) {
-        page.commit(next);
+    edit: (patch) => {
+      const next = { ...edit, ...patch };
+      setEdit(next);
+      if (page.saveMode === "autosave" && applyCardEdit(page.base, slot, next).ok) {
+        commitEdit(next);
       }
     },
     save: () => {
-      page.commit(draft);
-      setEdits(null);
+      if (dirty) {
+        commitEdit(edit);
+      }
     },
-    discard: () => setEdits(null),
   };
 }

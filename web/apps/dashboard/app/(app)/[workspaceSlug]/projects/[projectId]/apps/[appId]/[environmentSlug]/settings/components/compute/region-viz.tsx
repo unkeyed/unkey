@@ -14,6 +14,7 @@ import { useState } from "react";
 import { RectFlag } from "./flag";
 import {
   type ComputeDraft,
+  type RegionDraft,
   formatCpu,
   formatMemory,
   formatReplicas,
@@ -21,6 +22,10 @@ import {
   regionInfo,
   sizeLabel,
 } from "./model";
+
+function rangeOf(region: RegionDraft): string {
+  return formatReplicas({ kind: "uniform", min: region.replicasMin, max: region.replicasMax });
+}
 
 type View = "map" | "nodes";
 
@@ -262,9 +267,8 @@ export function RegionViz(props: VizProps) {
 }
 
 function MapView({ draft, hovered, onHover }: VizProps) {
-  const regions = draft.regions.map(regionInfo);
+  const regions = draft.regions.map((r) => ({ ...regionInfo(r.name), count: rangeOf(r) }));
   const offMap = regions.filter((r) => !r.pin);
-  const count = formatReplicas(draft.replicas);
   return (
     <>
       <div className="absolute top-1/2 right-0 left-0 aspect-[350/128] -translate-y-1/2">
@@ -308,7 +312,7 @@ function MapView({ draft, hovered, onHover }: VizProps) {
                 >
                   <RectFlag flag={region.flag} size="sm" />
                   {region.name}
-                  <span className="text-gray-10">×{count}</span>
+                  <span className="text-gray-10">×{region.count}</span>
                 </span>
               ) : null}
             </div>
@@ -341,10 +345,9 @@ const NODE_W = 208;
 const NODE_GAP = 24;
 
 function NodesView({ draft, hovered, onHover }: VizProps) {
-  const regions = draft.regions.map(regionInfo);
+  const regions = draft.regions.map((r) => ({ ...regionInfo(r.name), count: rangeOf(r) }));
   const n = Math.max(regions.length, 1);
   const specs = [
-    ["Instances", IconLayers3Outline18, formatReplicas(draft.replicas)],
     ["CPU", IconMicrochipOutline18, formatCpu(draft.cpuMillicores)],
     ["RAM", IconRamOutline18, formatMemory(draft.memoryMib)],
     ["Disk", IconHardDriveOutline18, formatStorage(draft.storageMib)],
@@ -407,12 +410,14 @@ function NodesView({ draft, hovered, onHover }: VizProps) {
                 </span>
               </span>
               <span className="grid grid-cols-2 gap-x-3 gap-y-1 whitespace-nowrap border-t border-grayA-4 px-3 py-2 font-mono text-[10px]">
-                {specs.map(([label, Icon, value]) => (
-                  <span key={label} className="flex items-center gap-1" title={label}>
-                    <Icon className="size-3 text-gray-10" aria-label={label} />
-                    <span className="text-gray-12">{value}</span>
-                  </span>
-                ))}
+                {[["Instances", IconLayers3Outline18, region.count] as const, ...specs].map(
+                  ([label, Icon, value]) => (
+                    <span key={label} className="flex items-center gap-1" title={label}>
+                      <Icon className="size-3 text-gray-10" aria-label={label} />
+                      <span className="text-gray-12">{value}</span>
+                    </span>
+                  ),
+                )}
               </span>
             </div>
           ))}

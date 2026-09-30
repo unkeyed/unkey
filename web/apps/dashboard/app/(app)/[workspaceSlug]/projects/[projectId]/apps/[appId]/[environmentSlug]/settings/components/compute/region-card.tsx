@@ -28,12 +28,7 @@ import { useEffect, useRef, useState } from "react";
 import { InstanceRange, SizeTrigger, StorageSelect } from "./controls";
 import { RectFlag } from "./flag";
 import { inheritedSummary, regionInfo } from "./model";
-import {
-  type ComputeCard,
-  type ComputePage,
-  type SaveMode,
-  useCardController,
-} from "./use-compute";
+import { type ComputeCard, type ComputePage, useCardController } from "./use-compute";
 
 function Row({
   title,
@@ -74,51 +69,45 @@ function CardSettings({ c }: { c: ComputeCard }) {
   );
 }
 
-function CardFooter({
-  leading,
-  saveMode,
-  dirty,
-  onSave,
-}: {
-  leading: React.ReactNode;
-  saveMode: SaveMode;
-  dirty: boolean;
-  onSave: () => void;
-}) {
+function CardFooter({ leading, c }: { leading: React.ReactNode; c: ComputeCard }) {
+  const taken = !c.result.ok && c.result.reason === "taken";
   return (
     <div className="flex items-center justify-between gap-3 bg-grayA-2 px-5 py-3">
       {leading}
-      {saveMode === "manual" ? (
+      {c.saveMode === "manual" || taken ? (
         <div className="flex items-center gap-3">
-          {dirty ? (
+          {taken ? (
+            <span className="text-xs text-error-11">This region is already in use</span>
+          ) : c.dirty ? (
             <span className="text-xs text-gray-11">Changes apply on next deploy</span>
           ) : null}
-          <Button variant="primary" size="sm" className="px-3" disabled={!dirty} onClick={onSave}>
-            Save changes
-          </Button>
+          {c.saveMode === "manual" ? (
+            <Button
+              variant="primary"
+              size="sm"
+              className="px-3"
+              disabled={!c.dirty}
+              onClick={c.save}
+            >
+              Save changes
+            </Button>
+          ) : null}
         </div>
       ) : null}
     </div>
   );
 }
 
-function RegionSelect({
-  c,
-  name,
-  onPick,
-}: {
-  c: ComputeCard;
-  name: string | null;
-  onPick: (next: string) => void;
-}) {
+function RegionSelect({ c }: { c: ComputeCard }) {
   const { data: available = [] } = trpc.deploy.environmentSettings.getAvailableRegions.useQuery();
+  const name = c.view.region;
   const current = name ? regionInfo(name) : null;
   return (
     <Select
       value={name}
       onValueChange={(next) => {
         if (typeof next === "string" && next !== name) {
-          onPick(next);
+          c.edit({ region: next });
         }
       }}
     >
@@ -141,7 +130,7 @@ function RegionSelect({
       <SelectContent>
         {available.map(({ name: option, canSchedule }) => {
           const region = regionInfo(option);
-          const taken = option !== name && c.draft.regions.includes(option);
+          const taken = option !== name && c.taken.has(option);
           return (
             <SelectItem key={option} value={option} disabled={!canSchedule || taken}>
               <span className="flex w-full items-center gap-2">
@@ -163,24 +152,28 @@ function RegionSelect({
 export function RegionCard({
   page,
   name,
-  index,
   defaultOpen,
+  popIn,
+  onRenamed,
 }: {
   page: ComputePage;
   name: string;
-  index: number;
   defaultOpen: boolean;
+  popIn: boolean;
+  onRenamed: (from: string, to: string) => void;
 }) {
-  const card = useCardController(page);
+  const card = useCardController(page, { kind: "saved", name }, (to) => onRenamed(name, to));
   const [open, setOpen] = useState(defaultOpen);
+  const [pop] = useState(popIn);
   const [confirmRemove, setConfirmRemove] = useState(false);
   const shared = page.base.regions.length > 1;
-  const shown = regionInfo(card.draft.regions[index] ?? name);
+  const shown = regionInfo(card.view.region ?? name);
   const saved = regionInfo(name);
   return (
     <div
       className={cn(
-        "animate-pop overflow-hidden rounded-lg border transition-colors motion-reduce:animate-none",
+        "overflow-hidden rounded-lg border transition-colors",
+        pop && "animate-pop motion-reduce:animate-none",
         page.hovered === name ? "border-grayA-7" : "border-grayA-5",
       )}
     >
@@ -202,9 +195,7 @@ export function RegionCard({
             <span className="font-mono text-xs text-gray-10">{shown.name}</span>
           </span>
           <span className="truncate text-xs text-gray-11">
-            {shared && open
-              ? "Same settings in every region for now"
-              : inheritedSummary(card.draft)}
+            {shared && open ? "Same settings in every region for now" : inheritedSummary(card.view)}
           </span>
         </span>
         <span className="flex size-7 shrink-0 items-center justify-center rounded-md text-gray-10 transition-colors group-hover:bg-grayA-3 group-hover:text-gray-12">
@@ -214,22 +205,11 @@ export function RegionCard({
       {open ? (
         <div className="divide-y divide-grayA-4 border-t border-grayA-4">
           <Row title="Region" description="Where this copy of your app runs.">
-            <RegionSelect
-              c={card}
-              name={shown.name}
-              onPick={(next) =>
-                card.edit((d) => ({
-                  ...d,
-                  regions: d.regions.map((r) => (r === shown.name ? next : r)),
-                }))
-              }
-            />
+            <RegionSelect c={card} />
           </Row>
           <CardSettings c={card} />
           <CardFooter
-            saveMode={card.saveMode}
-            dirty={card.dirty}
-            onSave={card.save}
+            c={card}
             leading={
               shared ? (
                 <Button
@@ -270,10 +250,11 @@ export function RegionCard({
             <AlertDialogAction
               color="danger"
               onClick={() =>
-                page.commit({
-                  ...page.base,
-                  regions: page.base.regions.filter((r) => r !== name),
-                })
+                page.commit((current) =>
+                  current.regions.length > 1
+                    ? { ...current, regions: current.regions.filter((r) => r.name !== name) }
+                    : null,
+                )
               }
             >
               Remove region
@@ -294,8 +275,7 @@ export function NewRegionCard({
   onCancel: () => void;
   onSaved: (name: string) => void;
 }) {
-  const card = useCardController(page);
-  const picked = card.draft.regions.find((r) => !page.base.regions.includes(r)) ?? null;
+  const card = useCardController(page, { kind: "new" }, onSaved);
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -314,31 +294,11 @@ export function NewRegionCard({
       </div>
       <div className="divide-y divide-grayA-4 border-t border-grayA-4">
         <Row title="Region" description="Where this copy of your app runs.">
-          <RegionSelect
-            c={card}
-            name={picked}
-            onPick={(next) => {
-              card.edit((d) => ({
-                ...d,
-                regions: [...d.regions.filter((r) => r !== picked), next],
-              }));
-              if (card.saveMode === "autosave") {
-                onSaved(next);
-              }
-            }}
-          />
+          <RegionSelect c={card} />
         </Row>
         <CardSettings c={card} />
         <CardFooter
-          saveMode={card.saveMode}
-          dirty={card.dirty && picked !== null}
-          onSave={() => {
-            if (!picked) {
-              return;
-            }
-            card.save();
-            onSaved(picked);
-          }}
+          c={card}
           leading={
             <Button variant="ghost" size="sm" onClick={onCancel}>
               Cancel

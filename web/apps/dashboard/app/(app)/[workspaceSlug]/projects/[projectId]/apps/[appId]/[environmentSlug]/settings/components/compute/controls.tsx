@@ -29,7 +29,6 @@ import {
   formatMemory,
   formatStorage,
   presetFits,
-  sizeLabel,
 } from "./model";
 import type { ComputeCard } from "./use-compute";
 
@@ -37,15 +36,13 @@ const CUSTOM = "custom";
 
 function pickSize(c: ComputeCard, id: string) {
   const preset = PRESETS.find((p) => p.id === id);
-  c.edit((d) =>
+  c.edit(
     preset
       ? {
-          ...d,
           sizeMode: "preset",
-          cpuMillicores: preset.cpuMillicores,
-          memoryMib: preset.memoryMib,
+          size: { cpuMillicores: preset.cpuMillicores, memoryMib: preset.memoryMib },
         }
-      : { ...d, sizeMode: "custom" },
+      : { sizeMode: "custom" },
   );
 }
 
@@ -65,7 +62,7 @@ function Spec({ preset }: { preset: Pick<Preset, "cpuMillicores" | "memoryMib"> 
 }
 
 export function SizeTrigger({ c }: { c: ComputeCard }) {
-  const value = activePreset(c.draft)?.id ?? CUSTOM;
+  const value = activePreset(c.view)?.id ?? CUSTOM;
   return (
     <div className="flex flex-col gap-3">
       <DropdownMenu>
@@ -80,9 +77,9 @@ export function SizeTrigger({ c }: { c: ComputeCard }) {
         >
           <span className="flex items-center gap-3">
             <span className="rounded border border-grayA-5 bg-grayA-3 px-1.5 py-0.5 font-mono text-xs font-medium text-gray-12">
-              {sizeLabel(c.draft)}
+              {activePreset(c.view)?.label ?? "Custom"}
             </span>
-            <Spec preset={c.draft} />
+            <Spec preset={c.view} />
           </span>
           <IconChevronExpandYOutline12 className="size-3 text-gray-10" />
         </DropdownMenuTrigger>
@@ -223,11 +220,15 @@ function CustomSize({ c }: { c: ComputeCard }) {
           <UnitInput
             label="CPU"
             unit="vCPU"
-            value={c.draft.cpuMillicores / 1000}
+            value={c.view.cpuMillicores / 1000}
             step={0.25}
             min={0.25}
             max={maxCpu}
-            onChange={(v) => c.edit((d) => ({ ...d, cpuMillicores: Math.round(v * 1000) }))}
+            onChange={(v) =>
+              c.edit({
+                size: { cpuMillicores: Math.round(v * 1000), memoryMib: c.view.memoryMib },
+              })
+            }
           />
         </div>
       </div>
@@ -237,11 +238,18 @@ function CustomSize({ c }: { c: ComputeCard }) {
           <UnitInput
             label="Memory"
             unit="GiB"
-            value={c.draft.memoryMib / MIB_PER_GIB}
+            value={c.view.memoryMib / MIB_PER_GIB}
             step={0.25}
             min={0.25}
             max={maxMemory}
-            onChange={(v) => c.edit((d) => ({ ...d, memoryMib: Math.round(v * MIB_PER_GIB) }))}
+            onChange={(v) =>
+              c.edit({
+                size: {
+                  cpuMillicores: c.view.cpuMillicores,
+                  memoryMib: Math.round(v * MIB_PER_GIB),
+                },
+              })
+            }
           />
         </div>
       </div>
@@ -297,10 +305,9 @@ function Stepper({
 }
 
 export function InstanceRange({ c }: { c: ComputeCard }) {
-  const { replicas } = c.draft;
+  const { replicas } = c.view;
   const limit = c.limits.replicas;
-  const setRange = (min: number, max: number) =>
-    c.edit((d) => ({ ...d, replicas: { kind: "uniform", min, max } }));
+  const setRange = (min: number, max: number) => c.edit({ replicas: { min, max } });
   const min = replicas.kind === "uniform" ? replicas.min : null;
   const max = replicas.kind === "uniform" ? replicas.max : null;
   return (
@@ -332,22 +339,20 @@ const CUSTOM_STORAGE = "custom";
 
 export function StorageSelect({ c }: { c: ComputeCard }) {
   const options = STORAGE_OPTIONS.filter((mib) => mib <= c.limits.storageMib);
-  const isPreset = options.some((mib) => mib === c.draft.storageMib);
-  const [custom, setCustom] = useState(!isPreset);
+  const custom = c.view.storageMode === "custom";
   const limitGib = c.limits.storageMib / MIB_PER_GIB;
   return (
     <div className="flex flex-col gap-2">
       <Select
-        value={custom ? CUSTOM_STORAGE : String(c.draft.storageMib)}
+        value={custom ? CUSTOM_STORAGE : String(c.view.storageMib)}
         onValueChange={(next) => {
           if (next === CUSTOM_STORAGE) {
-            setCustom(true);
+            c.edit({ storageMode: "custom" });
             return;
           }
           const storageMib = Number(next);
           if (Number.isFinite(storageMib)) {
-            setCustom(false);
-            c.edit((d) => ({ ...d, storageMib }));
+            c.edit({ storageMode: "preset", storageMib });
           }
         }}
       >
@@ -356,7 +361,7 @@ export function StorageSelect({ c }: { c: ComputeCard }) {
           leftIcon={<IconHardDriveOutline18 className="size-3.5 text-gray-11" />}
           aria-label="Ephemeral storage"
         >
-          <SelectValue>{custom ? "Custom" : formatStorage(c.draft.storageMib)}</SelectValue>
+          <SelectValue>{custom ? "Custom" : formatStorage(c.view.storageMib)}</SelectValue>
         </SelectTrigger>
         <SelectContent>
           {options.map((mib) => (
@@ -372,11 +377,11 @@ export function StorageSelect({ c }: { c: ComputeCard }) {
           <UnitInput
             label="Custom storage"
             unit="GiB"
-            value={c.draft.storageMib > 0 ? c.draft.storageMib / MIB_PER_GIB : null}
+            value={c.view.storageMib > 0 ? c.view.storageMib / MIB_PER_GIB : null}
             step={0.5}
             min={0.5}
             max={limitGib}
-            onChange={(v) => c.edit((d) => ({ ...d, storageMib: Math.round(v * MIB_PER_GIB) }))}
+            onChange={(v) => c.edit({ storageMib: Math.round(v * MIB_PER_GIB) })}
           />
           <p className="text-xs text-gray-10">Up to {limitGib} GiB per instance.</p>
         </div>
