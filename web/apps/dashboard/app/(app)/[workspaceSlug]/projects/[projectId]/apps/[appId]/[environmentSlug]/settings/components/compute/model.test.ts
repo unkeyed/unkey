@@ -11,8 +11,6 @@ import {
   applyDraft,
   cardView,
   fromSettings,
-  nudgeUnit,
-  parseUnit,
   planForPreset,
   presetFits,
   presetFor,
@@ -20,6 +18,7 @@ import {
   resolveLimits,
   sameDraft,
   unitFields,
+  unitOptions,
   unschedulableIn,
 } from "./model";
 
@@ -236,44 +235,19 @@ describe("cardView", () => {
   });
 });
 
-describe("parseUnit", () => {
-  const fields = unitFields(resolveLimits(limitsByPlan.pro));
+describe("unitOptions", () => {
+  const fields = unitFields(resolveLimits(limitsByPlan.starter));
 
-  it("accepts on-step values in display units and returns base units", () => {
-    expect(parseUnit("1.25", fields.cpu)).toEqual({ ok: true, value: 1250 });
-    expect(parseUnit("1.5", fields.memory)).toEqual({ ok: true, value: 1536 });
-    expect(parseUnit("2.5", fields.storage)).toEqual({ ok: true, value: 2560 });
+  it("lists every value the API accepts up to the plan limit", () => {
+    expect(unitOptions(fields.cpu, 1000)).toEqual([250, 500, 750, 1000, 1250, 1500, 1750, 2000]);
+    expect(unitOptions(fields.memory, 256)).toEqual([256, 512, 768, 1024, 1280, 1536, 1792, 2048]);
+    expect(unitOptions(fields.storage, null).at(0)).toBe(512);
+    expect(unitOptions(fields.storage, null).at(-1)).toBe(10240);
   });
 
-  it("rejects values the API would refuse", () => {
-    expect(parseUnit("1.3", fields.cpu)).toEqual({ ok: false, message: "Use steps of 0.25 vCPU." });
-    expect(parseUnit("1.1", fields.memory)).toEqual({
-      ok: false,
-      message: "Use steps of 0.25 GiB.",
-    });
-    expect(parseUnit("0.7", fields.storage)).toEqual({
-      ok: false,
-      message: "Use steps of 0.5 GiB.",
-    });
-    expect(parseUnit("0.1", fields.cpu)).toEqual({ ok: false, message: "Minimum is 0.25 vCPU." });
-    expect(parseUnit("9", fields.cpu)).toEqual({
-      ok: false,
-      message: "Maximum is 8 vCPU on your plan.",
-    });
-    expect(parseUnit("", fields.memory)).toEqual({ ok: false, message: "Enter a number." });
-    expect(parseUnit("abc", fields.memory)).toEqual({ ok: false, message: "Enter a number." });
-  });
-});
-
-describe("nudgeUnit", () => {
-  const { cpu } = unitFields(resolveLimits(limitsByPlan.pro));
-
-  it("steps on the grid and stays within range", () => {
-    expect(nudgeUnit(1000, 1, cpu)).toBe(1250);
-    expect(nudgeUnit(1100, 1, cpu)).toBe(1250);
-    expect(nudgeUnit(250, -1, cpu)).toBe(250);
-    expect(nudgeUnit(8000, 1, cpu)).toBe(8000);
-    expect(nudgeUnit(null, 1, cpu)).toBe(250);
+  it("keeps a saved value that is off the list so it stays selectable", () => {
+    expect(unitOptions(fields.cpu, 4000).at(-1)).toBe(4000);
+    expect(unitOptions(fields.cpu, 1100)).toContain(1100);
   });
 });
 

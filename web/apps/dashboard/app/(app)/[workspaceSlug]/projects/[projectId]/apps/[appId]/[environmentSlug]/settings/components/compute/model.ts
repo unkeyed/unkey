@@ -250,8 +250,6 @@ export function addRegionBlocker(available: AvailableRegions, names: string[]): 
 
 export type UnitField = { unit: string; scale: number; min: number; max: number; step: number };
 
-export type UnitParse = { ok: true; value: number } | { ok: false; message: string };
-
 const MIB_PER_GIB = 1024;
 
 export function unitFields(limits: ComputeLimits) {
@@ -266,37 +264,16 @@ export function formatUnit(value: number, field: UnitField): string {
   return String(Math.round((value / field.scale) * 100) / 100);
 }
 
-export function parseUnit(text: string, field: UnitField): UnitParse {
-  const display = Number(text.trim());
-  if (text.trim() === "" || !Number.isFinite(display)) {
-    return { ok: false, message: "Enter a number." };
+export function unitOptions(field: UnitField, current: number | null): number[] {
+  const steps: number[] = [];
+  for (let value = field.min; value <= field.max; value += field.step) {
+    steps.push(value);
   }
-  const raw = display * field.scale;
-  const value = Math.round(raw);
-  if (value < field.min) {
-    return { ok: false, message: `Minimum is ${formatUnit(field.min, field)} ${field.unit}.` };
+  if (current !== null && current > 0 && !steps.includes(current)) {
+    steps.push(current);
+    steps.sort((x, y) => x - y);
   }
-  if (value > field.max) {
-    return {
-      ok: false,
-      message: `Maximum is ${formatUnit(field.max, field)} ${field.unit} on your plan.`,
-    };
-  }
-  if (Math.abs(raw - value) > 1e-6 || value % field.step !== 0) {
-    return {
-      ok: false,
-      message: `Use steps of ${formatUnit(field.step, field)} ${field.unit}.`,
-    };
-  }
-  return { ok: true, value };
-}
-
-export function nudgeUnit(value: number | null, direction: 1 | -1, field: UnitField): number {
-  if (value === null) {
-    return field.min;
-  }
-  const snapped = Math.round(value / field.step) * field.step;
-  return Math.min(field.max, Math.max(field.min, snapped + direction * field.step));
+  return steps;
 }
 
 const joinParts = ({ value, unit }: { value: string; unit: string }) =>

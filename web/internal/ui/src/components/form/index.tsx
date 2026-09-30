@@ -8,5 +8,6 @@ export * from "./form-select";
 export * from "./form-textarea";
 export * from "./input";
 export * from "./input-group";
+export * from "./native-select";
 export * from "./select";
 export * from "./textarea";
