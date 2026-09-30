@@ -38,16 +38,13 @@ import { GitHub } from "./components/build-settings/github-settings";
 import { RootDirectory } from "./components/build-settings/root-directory-settings";
 import { WatchPaths } from "./components/build-settings/watch-paths-settings";
 import { Command } from "./components/runtime-settings/command";
-import { Cpu } from "./components/runtime-settings/cpu";
 import { Healthcheck } from "./components/runtime-settings/healthcheck";
-import { Instances } from "./components/runtime-settings/instances";
-import { Memory } from "./components/runtime-settings/memory";
 import { Port } from "./components/runtime-settings/port-settings";
-import { Regions } from "./components/runtime-settings/regions";
-import { Storage } from "./components/runtime-settings/storage";
 import { SettingField } from "./components/shared/form-blocks";
 import { FormSettingCard, resolveSaveState } from "./components/shared/form-setting-card";
 import { SettingsSection } from "./components/shared/settings-section";
+
+export { ComputeSettings } from "./components/compute/compute-settings";
 
 const NEXT_DEPLOY = "Changes apply on next deploy";
 
@@ -83,18 +80,6 @@ function useBuildSource() {
     : false;
 
   return { projectId, appId, app, hasRepository };
-}
-
-export function ComputeSettings() {
-  return (
-    <SettingsGroup title="Resources" pendingNote={NEXT_DEPLOY}>
-      <Regions />
-      <Instances />
-      <Cpu />
-      <Memory />
-      <Storage />
-    </SettingsGroup>
-  );
 }
 
 export function DeploySettings() {
