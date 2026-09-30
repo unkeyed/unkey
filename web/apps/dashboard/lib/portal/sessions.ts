@@ -28,7 +28,6 @@ export function toSessionPage(response: V2PortalListSessionsResponseBody): Sessi
   };
 }
 
-// The API never returns an empty group, so a group always has a first session.
 export function summarizeSessionGroup(group: SessionGroup): SessionGroupSummary {
   return group.sessions.reduce<SessionGroupSummary>(
     (summary, session) => ({
@@ -40,8 +39,9 @@ export function summarizeSessionGroup(group: SessionGroup): SessionGroupSummary 
   );
 }
 
-// Drops a revoked end user from cached pages so a refetch against a lagging
-// replica cannot bring the row back.
+// Drops a revoked end user from cached pages. The caller updates the cache
+// instead of refetching, because a revoke only changes this end user and an
+// immediate refetch can hit a replica that still lists them.
 export function removeSessionGroup(
   data: InfiniteData<SessionPage> | undefined,
   externalId: string,

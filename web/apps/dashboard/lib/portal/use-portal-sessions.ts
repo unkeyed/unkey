@@ -52,8 +52,6 @@ export function useRevokePortalSessions(portalId: string, options?: PortalMutati
       const response = await getUnkeyClient().portal.revokeSession({ ...input, portal: portalId });
       return response.data;
     },
-    // Updates the cache instead of refetching: a revoke only changes this end
-    // user, and an immediate refetch can hit a replica that still lists them.
     onSuccess: (_data, input) => {
       queryClient.setQueriesData<InfiniteData<SessionPage>>(
         { queryKey: queryKeys.portal.sessionLists(portalId) },
