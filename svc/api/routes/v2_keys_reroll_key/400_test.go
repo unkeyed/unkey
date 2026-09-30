@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/oapi-codegen/nullable"
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
@@ -62,10 +63,18 @@ func TestRerollKeyBadRequest(t *testing.T) {
 		require.NotNil(t, res.Body)
 	})
 
+	t.Run("missing expiration", func(t *testing.T) {
+		req := map[string]any{"keyId": uid.New(uid.KeyPrefix)}
+
+		res := testutil.CallRoute[map[string]any, openapi.BadRequestErrorResponse](h, route, headers, req)
+		require.Equal(t, 400, res.Status)
+		require.NotNil(t, res.Body)
+	})
+
 	t.Run("negative expiration", func(t *testing.T) {
 		req := handler.Request{
 			KeyId:      uid.New(uid.KeyPrefix),
-			Expiration: -1,
+			Expiration: nullable.NewNullableWithValue(int64(-1)),
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
