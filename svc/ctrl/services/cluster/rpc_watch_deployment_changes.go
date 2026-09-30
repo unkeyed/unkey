@@ -131,7 +131,7 @@ func deploymentRowToState[T deploymentStateRow](row T) (*ctrlv1.DeploymentState,
 			EnvironmentSlug:               row.EnvironmentSlug,
 			EnvironmentKind:               row.EnvironmentKind,
 			AppSlug:                       row.AppSlug,
-			Features:                      row.DeploymentFeatures,
+			Capabilities:                  row.DeploymentCapabilities,
 			RegionName:                    row.RegionName,
 			GitRepo:                       row.GitRepo,
 		}
@@ -176,7 +176,7 @@ func deploymentRowToState[T deploymentStateRow](row T) (*ctrlv1.DeploymentState,
 			Region:                        &deployment.RegionName,
 		}
 
-		if deployment.Features.PrivateNetworking {
+		if deployment.Capabilities.PrivateNetworking {
 			if host, ok := appbinding.ReplicaHost(deployment.AppSlug); ok {
 				apply.PrivateNetworkReplicaHost = host
 			}

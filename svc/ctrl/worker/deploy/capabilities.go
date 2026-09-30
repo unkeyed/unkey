@@ -13,20 +13,20 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/pkg/metrics"
 )
 
-func (w *Workflow) decideFeatures(ctx context.Context, deploymentID string, target db.FindDeployTargetRow) (mysqltype.DeploymentFeatures, error) {
+func (w *Workflow) decideCapabilities(ctx context.Context, deploymentID string, target db.FindDeployTargetRow) (mysqltype.DeploymentCapabilities, error) {
 	existing, err := w.db.FindDeploymentForCreate(ctx, deploymentID)
 	if err == nil {
-		return existing.Features, nil
+		return existing.Capabilities, nil
 	}
 	if !db.IsNotFound(err) {
-		return mysqltype.DeploymentFeatures{PrivateNetworking: false}, fmt.Errorf("failed to look up deployment %s: %w", deploymentID, err)
+		return mysqltype.DeploymentCapabilities{PrivateNetworking: false}, fmt.Errorf("failed to look up deployment %s: %w", deploymentID, err)
 	}
 
 	privateNetworking, err := w.decidePrivateNetworking(ctx, target)
 	if err != nil {
-		return mysqltype.DeploymentFeatures{PrivateNetworking: false}, err
+		return mysqltype.DeploymentCapabilities{PrivateNetworking: false}, err
 	}
-	return mysqltype.DeploymentFeatures{PrivateNetworking: privateNetworking}, nil
+	return mysqltype.DeploymentCapabilities{PrivateNetworking: privateNetworking}, nil
 }
 
 func (w *Workflow) decidePrivateNetworking(ctx context.Context, target db.FindDeployTargetRow) (bool, error) {

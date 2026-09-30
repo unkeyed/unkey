@@ -43,7 +43,7 @@ SELECT
     e.slug AS environment_slug,
     e.kind AS environment_kind,
     COALESCE(a.slug, '') AS app_slug,
-    d.features AS deployment_features,
+    d.capabilities AS deployment_capabilities,
     r.name AS region_name,
     grc.repository_full_name AS git_repo
 FROM ` + "`" + `deployment_topology` + "`" + ` dt
@@ -65,38 +65,38 @@ type ListAllDeploymentTopologiesByRegionParams struct {
 }
 
 type ListAllDeploymentTopologiesByRegionRow struct {
-	TopologyPk                              uint64                          `db:"topology_pk"`
-	TopologyAutoscalingReplicasMin          uint32                          `db:"topology_autoscaling_replicas_min"`
-	TopologyAutoscalingReplicasMax          uint32                          `db:"topology_autoscaling_replicas_max"`
-	TopologyAutoscalingThresholdCpu         sql.NullInt16                   `db:"topology_autoscaling_threshold_cpu"`
-	TopologyAutoscalingThresholdMemory      sql.NullInt16                   `db:"topology_autoscaling_threshold_memory"`
-	TopologyDesiredStatus                   DeploymentTopologyDesiredStatus `db:"topology_desired_status"`
-	DeploymentID                            string                          `db:"deployment_id"`
-	DeploymentK8sName                       string                          `db:"deployment_k8s_name"`
-	DeploymentWorkspaceID                   string                          `db:"deployment_workspace_id"`
-	DeploymentProjectID                     string                          `db:"deployment_project_id"`
-	DeploymentEnvironmentID                 string                          `db:"deployment_environment_id"`
-	DeploymentAppID                         string                          `db:"deployment_app_id"`
-	DeploymentImageResolved                 sql.NullString                  `db:"deployment_image_resolved"`
-	DeploymentBuildID                       sql.NullString                  `db:"deployment_build_id"`
-	DeploymentGitCommitSha                  sql.NullString                  `db:"deployment_git_commit_sha"`
-	DeploymentGitBranch                     sql.NullString                  `db:"deployment_git_branch"`
-	DeploymentGitCommitMessage              sql.NullString                  `db:"deployment_git_commit_message"`
-	DeploymentCpuMillicores                 int32                           `db:"deployment_cpu_millicores"`
-	DeploymentMemoryMib                     int32                           `db:"deployment_memory_mib"`
-	DeploymentStorageMib                    uint32                          `db:"deployment_storage_mib"`
-	DeploymentEncryptedEnvironmentVariables []byte                          `db:"deployment_encrypted_environment_variables"`
-	DeploymentCommand                       mysqltype.StringSlice           `db:"deployment_command"`
-	DeploymentPort                          int32                           `db:"deployment_port"`
-	DeploymentShutdownSignal                DeploymentsShutdownSignal       `db:"deployment_shutdown_signal"`
-	DeploymentHealthcheck                   mysqltype.NullHealthcheck       `db:"deployment_healthcheck"`
-	K8sNamespace                            string                          `db:"k8s_namespace"`
-	EnvironmentSlug                         string                          `db:"environment_slug"`
-	EnvironmentKind                         mysqltype.EnvironmentKind       `db:"environment_kind"`
-	AppSlug                                 string                          `db:"app_slug"`
-	DeploymentFeatures                      mysqltype.DeploymentFeatures    `db:"deployment_features"`
-	RegionName                              string                          `db:"region_name"`
-	GitRepo                                 sql.NullString                  `db:"git_repo"`
+	TopologyPk                              uint64                           `db:"topology_pk"`
+	TopologyAutoscalingReplicasMin          uint32                           `db:"topology_autoscaling_replicas_min"`
+	TopologyAutoscalingReplicasMax          uint32                           `db:"topology_autoscaling_replicas_max"`
+	TopologyAutoscalingThresholdCpu         sql.NullInt16                    `db:"topology_autoscaling_threshold_cpu"`
+	TopologyAutoscalingThresholdMemory      sql.NullInt16                    `db:"topology_autoscaling_threshold_memory"`
+	TopologyDesiredStatus                   DeploymentTopologyDesiredStatus  `db:"topology_desired_status"`
+	DeploymentID                            string                           `db:"deployment_id"`
+	DeploymentK8sName                       string                           `db:"deployment_k8s_name"`
+	DeploymentWorkspaceID                   string                           `db:"deployment_workspace_id"`
+	DeploymentProjectID                     string                           `db:"deployment_project_id"`
+	DeploymentEnvironmentID                 string                           `db:"deployment_environment_id"`
+	DeploymentAppID                         string                           `db:"deployment_app_id"`
+	DeploymentImageResolved                 sql.NullString                   `db:"deployment_image_resolved"`
+	DeploymentBuildID                       sql.NullString                   `db:"deployment_build_id"`
+	DeploymentGitCommitSha                  sql.NullString                   `db:"deployment_git_commit_sha"`
+	DeploymentGitBranch                     sql.NullString                   `db:"deployment_git_branch"`
+	DeploymentGitCommitMessage              sql.NullString                   `db:"deployment_git_commit_message"`
+	DeploymentCpuMillicores                 int32                            `db:"deployment_cpu_millicores"`
+	DeploymentMemoryMib                     int32                            `db:"deployment_memory_mib"`
+	DeploymentStorageMib                    uint32                           `db:"deployment_storage_mib"`
+	DeploymentEncryptedEnvironmentVariables []byte                           `db:"deployment_encrypted_environment_variables"`
+	DeploymentCommand                       mysqltype.StringSlice            `db:"deployment_command"`
+	DeploymentPort                          int32                            `db:"deployment_port"`
+	DeploymentShutdownSignal                DeploymentsShutdownSignal        `db:"deployment_shutdown_signal"`
+	DeploymentHealthcheck                   mysqltype.NullHealthcheck        `db:"deployment_healthcheck"`
+	K8sNamespace                            string                           `db:"k8s_namespace"`
+	EnvironmentSlug                         string                           `db:"environment_slug"`
+	EnvironmentKind                         mysqltype.EnvironmentKind        `db:"environment_kind"`
+	AppSlug                                 string                           `db:"app_slug"`
+	DeploymentCapabilities                  mysqltype.DeploymentCapabilities `db:"deployment_capabilities"`
+	RegionName                              string                           `db:"region_name"`
+	GitRepo                                 sql.NullString                   `db:"git_repo"`
 }
 
 // ListAllDeploymentTopologiesByRegion returns running deployment topologies for a region, paginated by pk.
@@ -132,7 +132,7 @@ type ListAllDeploymentTopologiesByRegionRow struct {
 //	    e.slug AS environment_slug,
 //	    e.kind AS environment_kind,
 //	    COALESCE(a.slug, '') AS app_slug,
-//	    d.features AS deployment_features,
+//	    d.capabilities AS deployment_capabilities,
 //	    r.name AS region_name,
 //	    grc.repository_full_name AS git_repo
 //	FROM `deployment_topology` dt
@@ -184,7 +184,7 @@ func (q *Queries) ListAllDeploymentTopologiesByRegion(ctx context.Context, arg L
 			&i.EnvironmentSlug,
 			&i.EnvironmentKind,
 			&i.AppSlug,
-			&i.DeploymentFeatures,
+			&i.DeploymentCapabilities,
 			&i.RegionName,
 			&i.GitRepo,
 		); err != nil {

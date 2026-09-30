@@ -175,7 +175,7 @@ func seedPrivateNetwork(t *testing.T, database db.Database, platform, cell strin
 
 	insertDeployment := func(id, app string, port int, enabled bool) {
 		t.Helper()
-		exec(`INSERT INTO deployments (id,k8s_name,workspace_id,project_id,environment_id,app_id,sentinel_config,cpu_millicores,memory_mib,desired_state,encrypted_environment_variables,status,port,created_at,features)
+		exec(`INSERT INTO deployments (id,k8s_name,workspace_id,project_id,environment_id,app_id,sentinel_config,cpu_millicores,memory_mib,desired_state,encrypted_environment_variables,status,port,created_at,capabilities)
 			VALUES (?,?,?,?,?,?,'{}',100,128,'running','{}','ready',?,1,IF(?, '{"private_networking":true}', '{}'))`, id, id, workspace, project, workspace+"-"+app+"-env", workspace+"-"+app, port, enabled)
 		exec(`INSERT INTO deployment_topology (workspace_id,deployment_id,region_id,desired_status,created_at) VALUES (?,?,?,'running',1)`, workspace, id, region)
 	}
@@ -184,7 +184,7 @@ func seedPrivateNetwork(t *testing.T, database db.Database, platform, cell strin
 	insertDeployment(uid.New("dep"), "Bad_Slug", 8080, true)
 	insertDeployment(uid.New("dep"), "api", 8080, false)
 
-	exec(`INSERT INTO deployments (id,k8s_name,workspace_id,project_id,environment_id,app_id,sentinel_config,cpu_millicores,memory_mib,desired_state,encrypted_environment_variables,status,port,created_at,features)
+	exec(`INSERT INTO deployments (id,k8s_name,workspace_id,project_id,environment_id,app_id,sentinel_config,cpu_millicores,memory_mib,desired_state,encrypted_environment_variables,status,port,created_at,capabilities)
 		SELECT CONCAT(?, n), CONCAT(?, n), ?, ?, ?, ?, '{}', 100, 128, 'running', '{}', 'ready', 8080, 1, '{"private_networking":true}'
 		FROM (SELECT a.n + 10 * b.n + 100 * c.n + 1000 * d.n AS n
 			FROM (SELECT 0 n UNION ALL SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4 UNION ALL SELECT 5 UNION ALL SELECT 6 UNION ALL SELECT 7 UNION ALL SELECT 8 UNION ALL SELECT 9) a,
@@ -194,7 +194,7 @@ func seedPrivateNetwork(t *testing.T, database db.Database, platform, cell strin
 		WHERE n < ?`,
 		workspace+"-caller-", workspace+"-caller-", workspace, project, workspace+"-api-env", workspace+"-api", callers)
 	exec(`INSERT INTO deployment_topology (workspace_id,deployment_id,region_id,desired_status,created_at)
-		SELECT workspace_id, id, ?, 'running', 1 FROM deployments WHERE app_id = ? AND JSON_CONTAINS(features, 'true', '$.private_networking')`, region, workspace+"-api")
+		SELECT workspace_id, id, ?, 'running', 1 FROM deployments WHERE app_id = ? AND JSON_CONTAINS(capabilities, 'true', '$.private_networking')`, region, workspace+"-api")
 
 	exec(`INSERT INTO app_bindings (id,workspace_id,project_id,app_id,environment_id,resource_type,resource_id,name,selection_mode,target_deployment_id,created_at)
 		VALUES (?,?,?,?,?,'app',?,'database','deployment',?,1)`,

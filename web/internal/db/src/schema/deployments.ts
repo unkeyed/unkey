@@ -22,7 +22,7 @@ import { longblob } from "./util/longblob";
 import { primaryKey } from "./util/primary_key";
 import { workspaces } from "./workspaces";
 
-export type DeploymentFeatures = {
+export type DeploymentCapabilities = {
   private_networking?: boolean;
 };
 
@@ -92,7 +92,7 @@ export const deployments = mysqlTable(
     // Protocol Frontline uses to proxy to the instance (snapshotted from app_runtime_settings)
     upstreamProtocol: mysqlEnum("upstream_protocol", ["http1", "h2c"]).notNull().default("http1"),
 
-    features: json("features").$type<DeploymentFeatures>().notNull().default(sql`('{}')`),
+    capabilities: json("capabilities").$type<DeploymentCapabilities>().notNull().default(sql`('{}')`),
 
     // HTTP healthcheck configuration (null = no healthcheck)
     healthcheck: json("healthcheck").$type<import("./app_runtime_settings").Healthcheck>(),

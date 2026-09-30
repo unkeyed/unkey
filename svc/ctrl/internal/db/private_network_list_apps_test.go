@@ -56,7 +56,7 @@ func TestListPrivateNetworkAppsSelection(t *testing.T) {
 		if app == "foreign" {
 			workspace, project = "other-ws", "foreign-project"
 		}
-		exec(`INSERT INTO deployments (id,k8s_name,workspace_id,project_id,environment_id,app_id,source,git_branch,fork_repository_full_name,sentinel_config,cpu_millicores,memory_mib,desired_state,encrypted_environment_variables,status,first_ready_at,created_at,features)
+		exec(`INSERT INTO deployments (id,k8s_name,workspace_id,project_id,environment_id,app_id,source,git_branch,fork_repository_full_name,sentinel_config,cpu_millicores,memory_mib,desired_state,encrypted_environment_variables,status,first_ready_at,created_at,capabilities)
 			VALUES (?,?,?,?,?,?,?,?,?,'{}',100,128,?,'{}',?,?,?,IF(?, '{"private_networking":true}', '{}'))`, id, id, workspace, project, environment, app, source, sql.NullString{String: branch, Valid: branch != ""}, fork, desired, status, firstReady, created, app != "foreign")
 		for _, region := range regions {
 			exec(`INSERT INTO deployment_topology (workspace_id,deployment_id,region_id,desired_status,created_at) VALUES (?,?,?, 'running',1)`, workspace, id, region)
@@ -89,7 +89,7 @@ func TestListPrivateNetworkAppsSelection(t *testing.T) {
 	insertDeployment("target-pinned-stopped", "target", "target-preview", "git", "pin", nil, "stopped", "stopped", 1, 50, "r")
 	insertDeployment("foreign-live", "foreign", "foreign-prod", "git", "main", nil, "ready", "running", 1, 60, "r")
 	insertDeployment("caller-prod-disabled", "caller", "caller-prod", "git", "main", nil, "ready", "running", 1, 8, "r")
-	exec(`UPDATE deployments SET features = '{}' WHERE id = 'caller-prod-disabled'`)
+	exec(`UPDATE deployments SET capabilities = '{}' WHERE id = 'caller-prod-disabled'`)
 	exec(`UPDATE deployments SET port = 7946 WHERE id = 'target-live'`)
 	exec(`UPDATE deployments SET port = 4000 WHERE id IN ('caller-prod-live', 'caller-prod-deploying')`)
 
@@ -139,7 +139,7 @@ func TestListPrivateNetworkAppsSelection(t *testing.T) {
 	exec(`INSERT INTO environments (id,workspace_id,project_id,app_id,slug,kind,created_at) VALUES
 		('unscheduled-env','unscheduled-ws','unscheduled-project','unscheduled-caller','preview','preview',1)`)
 	for _, id := range []string{"unscheduled-caller-1", "unscheduled-caller-2"} {
-		exec(`INSERT INTO deployments (id,k8s_name,workspace_id,project_id,environment_id,app_id,sentinel_config,cpu_millicores,memory_mib,desired_state,encrypted_environment_variables,status,created_at,features)
+		exec(`INSERT INTO deployments (id,k8s_name,workspace_id,project_id,environment_id,app_id,sentinel_config,cpu_millicores,memory_mib,desired_state,encrypted_environment_variables,status,created_at,capabilities)
 			VALUES (?,?,'unscheduled-ws','unscheduled-project','unscheduled-env','unscheduled-caller','{}',100,128,'running','{}','ready',1,'{"private_networking":true}')`, id, id)
 		exec(`INSERT INTO deployment_topology (workspace_id,deployment_id,region_id,desired_status,created_at) VALUES ('unscheduled-ws',?,'r','running',1)`, id)
 	}

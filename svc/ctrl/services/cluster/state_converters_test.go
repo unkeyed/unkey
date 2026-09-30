@@ -78,10 +78,10 @@ func TestDeploymentRowToState_PrivateNetworkReplicaHost(t *testing.T) {
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			state, err := deploymentRowToState(db.ListAllDeploymentTopologiesByRegionRow{
-				TopologyDesiredStatus: db.DeploymentTopologyDesiredStatusRunning,
-				DeploymentID:          "deploy_123",
-				AppSlug:               tt.slug,
-				DeploymentFeatures:    mysqltype.DeploymentFeatures{PrivateNetworking: tt.enrolled},
+				TopologyDesiredStatus:  db.DeploymentTopologyDesiredStatusRunning,
+				DeploymentID:           "deploy_123",
+				AppSlug:                tt.slug,
+				DeploymentCapabilities: mysqltype.DeploymentCapabilities{PrivateNetworking: tt.enrolled},
 			})
 			require.NoError(t, err)
 			require.Equal(t, tt.want, state.GetApply().GetPrivateNetworkReplicaHost())
