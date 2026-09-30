@@ -23,8 +23,8 @@ const policyTargetsAnnotation = "bindings.unkey.com/targets"
 
 var policyResource = schema.GroupVersionResource{Group: "cilium.io", Version: "v2", Resource: "ciliumnetworkpolicies"}
 
-func (r *Reconciler) ensurePolicy(ctx context.Context, app *ctrlv1.PrivateNetworkApp, name string, binding *corev1.ConfigMap) error {
-	client := r.dynamic.Resource(policyResource).Namespace(app.GetK8SNamespace())
+func (r *Reconciler) ensurePolicy(ctx context.Context, bindingSpec *ctrlv1.PrivateNetworkBinding, name string, binding *corev1.ConfigMap) error {
+	client := r.dynamic.Resource(policyResource).Namespace(bindingSpec.GetK8SNamespace())
 	current, err := client.Get(ctx, name, metav1.GetOptions{})
 	if err != nil && !apierrors.IsNotFound(err) {
 		return fmt.Errorf("get binding policy %s: %w", name, err)
@@ -36,25 +36,25 @@ func (r *Reconciler) ensurePolicy(ctx context.Context, app *ctrlv1.PrivateNetwor
 	targets := make(map[string]time.Time)
 	if current != nil {
 		l := current.GetLabels()
-		if !owned(l) || l[labels.LabelKeyWorkspaceID] != app.GetWorkspaceId() ||
-			l[labels.LabelKeyProjectID] != app.GetProjectId() || l[labels.LabelKeyBindingID] != app.GetBindingId() ||
-			l[labels.LabelKeyCallerDeploymentID] != app.GetCallerDeploymentId() {
+		if !owned(l) || l[labels.LabelKeyWorkspaceID] != bindingSpec.GetWorkspaceId() ||
+			l[labels.LabelKeyProjectID] != bindingSpec.GetProjectId() || l[labels.LabelKeyBindingID] != bindingSpec.GetBindingId() ||
+			l[labels.LabelKeyCallerDeploymentID] != bindingSpec.GetCallerDeploymentId() {
 			return fmt.Errorf("refuse to replace foreign binding policy %s", name)
 		}
-		if maps.Equal(l, bindingLabels(app)) && app.GetDeploymentId() != "" {
+		if maps.Equal(l, bindingLabels(bindingSpec)) && bindingSpec.GetTargetDeploymentId() != "" {
 			if err := json.Unmarshal([]byte(current.GetAnnotations()[policyTargetsAnnotation]), &targets); err != nil {
 				return fmt.Errorf("read binding policy targets %s: %w", name, err)
 			}
 		}
 	}
 
-	if app.GetDeploymentId() != "" {
+	if bindingSpec.GetTargetDeploymentId() != "" {
 		active := ""
-		if binding != nil && maps.Equal(binding.Labels, bindingLabels(app)) && binding.Data["appSlug"] == app.GetBindingName() {
+		if binding != nil && maps.Equal(binding.Labels, bindingLabels(bindingSpec)) && binding.Data["appSlug"] == bindingSpec.GetBindingName() {
 			active = binding.Data["deploymentId"]
 		}
 		for target, deadline := range targets {
-			if target == app.GetDeploymentId() || target == active {
+			if target == bindingSpec.GetTargetDeploymentId() || target == active {
 				continue
 			}
 			if deadline.IsZero() {
@@ -63,7 +63,7 @@ func (r *Reconciler) ensurePolicy(ctx context.Context, app *ctrlv1.PrivateNetwor
 				delete(targets, target)
 			}
 		}
-		targets[app.GetDeploymentId()] = time.Time{}
+		targets[bindingSpec.GetTargetDeploymentId()] = time.Time{}
 		if active != "" {
 			targets[active] = time.Time{}
 		}
@@ -76,8 +76,8 @@ func (r *Reconciler) ensurePolicy(ctx context.Context, app *ctrlv1.PrivateNetwor
 
 	specs := make([]interface{}, 0, 2*len(targets))
 	for _, target := range slices.Sorted(maps.Keys(targets)) {
-		caller := bindingEndpoint(app, app.GetCallerDeploymentId(), false)
-		peer := bindingEndpoint(app, target, true)
+		caller := bindingEndpoint(bindingSpec, bindingSpec.GetCallerDeploymentId(), false)
+		peer := bindingEndpoint(bindingSpec, target, true)
 		ports := unicastPorts()
 		specs = append(specs,
 			map[string]interface{}{
@@ -107,8 +107,8 @@ func (r *Reconciler) ensurePolicy(ctx context.Context, app *ctrlv1.PrivateNetwor
 		"apiVersion": "cilium.io/v2", "kind": "CiliumNetworkPolicy", "specs": specs,
 	}}
 	desired.SetName(name)
-	desired.SetNamespace(app.GetK8SNamespace())
-	desired.SetLabels(bindingLabels(app))
+	desired.SetNamespace(bindingSpec.GetK8SNamespace())
+	desired.SetLabels(bindingLabels(bindingSpec))
 	desired.SetAnnotations(map[string]string{policyTargetsAnnotation: string(encoded)})
 
 	if current != nil {
@@ -136,13 +136,13 @@ func unicastPorts() []interface{} {
 	}}}
 }
 
-func bindingEndpoint(app *ctrlv1.PrivateNetworkApp, deployment string, target bool) map[string]interface{} {
+func bindingEndpoint(bindingSpec *ctrlv1.PrivateNetworkBinding, deployment string, target bool) map[string]interface{} {
 	l := map[string]interface{}{
-		labels.LabelKeyWorkspaceID: app.GetWorkspaceId(), labels.LabelKeyProjectID: app.GetProjectId(),
+		labels.LabelKeyWorkspaceID: bindingSpec.GetWorkspaceId(), labels.LabelKeyProjectID: bindingSpec.GetProjectId(),
 		labels.LabelKeyDeploymentID: deployment, labels.LabelKeyManagedBy: "krane", labels.LabelKeyComponent: "deployment",
 	}
 	if target {
-		l[labels.LabelKeyAppID] = app.GetAppId()
+		l[labels.LabelKeyAppID] = bindingSpec.GetTargetAppId()
 	}
 	return map[string]interface{}{
 		"matchLabels": l,

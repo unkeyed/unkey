@@ -17,8 +17,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func bindingResourceName(app *ctrlv1.PrivateNetworkApp) string {
-	return resourceName("unkey-pn-binding", app.GetBindingId()+"/"+app.GetCallerDeploymentId())
+func bindingResourceName(bindingSpec *ctrlv1.PrivateNetworkBinding) string {
+	return resourceName("unkey-pn-binding", bindingSpec.GetBindingId()+"/"+bindingSpec.GetCallerDeploymentId())
 }
 
 func (r *Reconciler) cleanup(ctx context.Context, services *corev1.ServiceList, bindings *corev1.ConfigMapList, desiredServices, desiredBindings map[string]struct{}) error {
@@ -87,11 +87,11 @@ func owned(l map[string]string) bool {
 		l[labels.LabelKeyAppID] != ""
 }
 
-func ownedByApp(l map[string]string, app *ctrlv1.PrivateNetworkApp) bool {
+func ownedByTargetApp(l map[string]string, bindingSpec *ctrlv1.PrivateNetworkBinding) bool {
 	return owned(l) &&
-		l[labels.LabelKeyWorkspaceID] == app.GetWorkspaceId() &&
-		l[labels.LabelKeyProjectID] == app.GetProjectId() &&
-		l[labels.LabelKeyAppID] == app.GetAppId()
+		l[labels.LabelKeyWorkspaceID] == bindingSpec.GetWorkspaceId() &&
+		l[labels.LabelKeyProjectID] == bindingSpec.GetProjectId() &&
+		l[labels.LabelKeyAppID] == bindingSpec.GetTargetAppId()
 }
 
 func discoveryName(deployment string, port int32) string {

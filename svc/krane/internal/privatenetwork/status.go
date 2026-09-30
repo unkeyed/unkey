@@ -78,12 +78,12 @@ type entryStatus struct {
 	state               string
 	stage               string
 	err                 error
-	app                 *ctrlv1.PrivateNetworkApp
+	bindingSpec         *ctrlv1.PrivateNetworkBinding
 	publishedDeployment string
 }
 
-func entryKind(app *ctrlv1.PrivateNetworkApp) string {
-	if app != nil && app.GetDeploymentId() != "" && app.GetDeploymentId() == app.GetCallerDeploymentId() {
+func entryKind(bindingSpec *ctrlv1.PrivateNetworkBinding) string {
+	if bindingSpec != nil && bindingSpec.GetTargetDeploymentId() != "" && bindingSpec.GetTargetDeploymentId() == bindingSpec.GetCallerDeploymentId() {
 		return kindReplica
 	}
 	return kindBinding
@@ -119,9 +119,9 @@ func logEntryChanges(previous, current map[string]entryStatus) {
 
 		attrs := []any{
 			"binding_key", key, "kind", entry.kind, "state", entry.state, "previous_state", before.state,
-			"workspace_id", entry.app.GetWorkspaceId(), "binding_id", entry.app.GetBindingId(),
-			"caller_deployment_id", entry.app.GetCallerDeploymentId(), "alias", entry.app.GetBindingName(),
-			"target_deployment_id", entry.app.GetDeploymentId(), "published_deployment_id", entry.publishedDeployment,
+			"workspace_id", entry.bindingSpec.GetWorkspaceId(), "binding_id", entry.bindingSpec.GetBindingId(),
+			"caller_deployment_id", entry.bindingSpec.GetCallerDeploymentId(), "alias", entry.bindingSpec.GetBindingName(),
+			"target_deployment_id", entry.bindingSpec.GetTargetDeploymentId(), "published_deployment_id", entry.publishedDeployment,
 		}
 		switch entry.state {
 		case stateFailed:
