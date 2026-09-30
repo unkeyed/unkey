@@ -55,14 +55,8 @@ export default function Overview() {
       ),
       card: <EnvironmentPendingCard newerDeployment={newerDeployment} />,
     }))
-    .with({ kind: "deployed" }, ({ card, domains, newerDeployment, dialogs }) => ({
-      header: (
-        <OverviewHeader
-          deployment={card.deployment}
-          primaryDomain={domains.at(0)}
-          actions={<ProductionActions />}
-        />
-      ),
+    .with({ kind: "deployed" }, ({ domains, newerDeployment, dialogs }) => ({
+      header: <OverviewHeader actions={<ProductionActions />} />,
       card: (
         <>
           <AppProductionCard domains={domains} newerDeployment={newerDeployment} />

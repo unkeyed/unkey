@@ -139,25 +139,17 @@ const deployedOverview = ({ rollbackTarget }: { rollbackTarget?: { id: string } 
 });
 
 describe("Overview header", () => {
-  it("shows the app, the environment and the default branch before the first deployment", () => {
+  it("shows the app and the environment before the first deployment", () => {
     state.overview = { kind: "pending", newerDeployment: undefined };
     render(<Overview />);
     expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("Container appproduction");
-    expect(screen.getByRole("link", { name: "acme/api:main" }).getAttribute("href")).toBe(
-      "https://github.com/acme/api/tree/main",
-    );
     expect(screen.getByRole("button", { name: "Create deployment" })).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Instant Rollback" })).toBeNull();
   });
 
-  it("shows the deployed branch, the primary domain and rollback when eligible", () => {
+  it("shows rollback when eligible", () => {
     state.overview = deployedOverview({ rollbackTarget: { id: "d_5" } });
     render(<Overview />);
-    expect(screen.getByRole("link", { name: "acme/api:feat/apple-pay" })).toBeTruthy();
-    expect(screen.getByRole("link", { name: "api.acme.com" }).getAttribute("href")).toBe(
-      "https://api.acme.com",
-    );
-    expect(screen.queryByText("api-acme.unkey.app")).toBeNull();
     expect(screen.getByRole("button", { name: "Instant Rollback" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "More actions" })).toBeTruthy();
   });
@@ -167,13 +159,6 @@ describe("Overview header", () => {
     render(<Overview />);
     expect(screen.queryByRole("button", { name: "Instant Rollback" })).toBeNull();
     expect(screen.getByRole("button", { name: "More actions" })).toBeTruthy();
-  });
-
-  it("shows the image for container apps", () => {
-    state.sourceType = "oci";
-    state.overview = { kind: "pending", newerDeployment: undefined };
-    render(<Overview />);
-    expect(screen.getByText("ghcr.io/acme/api:latest")).toBeTruthy();
   });
 });
 
