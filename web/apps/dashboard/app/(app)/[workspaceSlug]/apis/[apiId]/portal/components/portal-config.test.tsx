@@ -54,6 +54,10 @@ vi.mock("./portal-preview", () => ({
   PortalPreview: ({ slug }: { slug: string }) => <div data-testid="preview">{slug}</div>,
 }));
 
+vi.mock("./portal-sessions", () => ({
+  PortalSessions: () => null,
+}));
+
 vi.mock("@unkey/icons", () => ({
   IconTriangleWarningOutline12: () => null,
 }));

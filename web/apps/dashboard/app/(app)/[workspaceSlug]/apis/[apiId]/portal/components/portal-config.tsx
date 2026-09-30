@@ -29,6 +29,7 @@ import { z } from "zod";
 import { DeletePortalRow } from "./delete-portal-row";
 import { BrandColorField } from "./portal-branding";
 import { PortalPreview } from "./portal-preview";
+import { PortalSessions } from "./portal-sessions";
 
 // The preview renders the logo URL in an `<img>`, so a live value would issue
 // one request per keystroke against the dashboard's own origin.
@@ -225,6 +226,8 @@ export function PortalConfig({ portal, keyAuthId }: Props) {
           </Button>
         </div>
       ) : null}
+
+      {portal.enabled ? <PortalSessions portalId={portal.id} /> : null}
 
       <SettingsDangerZone>
         <DeletePortalRow portal={portal} keyAuthId={keyAuthId} />
