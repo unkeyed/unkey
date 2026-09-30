@@ -13,8 +13,7 @@ import (
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_portal_revoke_session"
 )
 
-// An unknown portal and a foreign one answer the same, so a caller cannot probe
-// which portal ids exist in another workspace.
+// An unknown portal and another workspace's portal get the same 404.
 func TestRevokeSessionUnknownPortal(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route, headers := newRoute(t, h, permission)
@@ -42,9 +41,8 @@ func TestRevokeSessionUnknownPortal(t *testing.T) {
 		"a foreign portal's sessions are untouched")
 }
 
-// Without the minting permission the portal is reported as absent. Administering
-// a portal is not enough: it does not grant authority over its end users'
-// sessions.
+// Without the minting permission the portal reads as absent. Managing the
+// portal is not enough.
 func TestRevokeSessionWithoutPermission(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route := registerRoute(h)

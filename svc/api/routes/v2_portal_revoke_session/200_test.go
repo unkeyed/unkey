@@ -18,9 +18,8 @@ import (
 
 const permission = "portal.*.create_portal_session"
 
-// The session is cached by a first call, so the rejection afterwards proves the
-// revoke wrote its state into the cache rather than waiting for it to turn over.
-// The pending session's code must stop being redeemable too.
+// The first call caches the session, so the rejection proves the revoke wrote
+// through the cache. The pending code stops redeeming too.
 func TestRevokeSessionStopsActiveAndPendingSessions(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route, headers := newRoute(t, h, permission)
@@ -55,8 +54,7 @@ func TestRevokeSessionStopsActiveAndPendingSessions(t *testing.T) {
 		"a revoked pending code must not be redeemable: %s", exchanged.RawBody)
 }
 
-// Expired rows could not authenticate anyway, so they are neither counted nor
-// touched; otherwise the count and the audit entry would overstate what was cut.
+// Expired rows are neither counted nor touched.
 func TestRevokeSessionIgnoresExpiredSessions(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route, headers := newRoute(t, h, permission)
@@ -76,8 +74,7 @@ func TestRevokeSessionIgnoresExpiredSessions(t *testing.T) {
 		"expired rows are left untouched")
 }
 
-// Only this end user on this portal: another user on the same portal, and the
-// same user on another portal, keep their access.
+// Other users on the portal, and this user on other portals, keep access.
 func TestRevokeSessionIsScopedToUserAndPortal(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route, headers := newRoute(t, h, permission)
@@ -100,8 +97,7 @@ func TestRevokeSessionIsScopedToUserAndPortal(t *testing.T) {
 		"the same end user on another portal is untouched")
 }
 
-// A session for the same external id in another workspace is out of reach, even
-// if it names this portal id.
+// Another workspace's session for the same external id is out of reach.
 func TestRevokeSessionLeavesOtherWorkspacesAlone(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route, headers := newRoute(t, h, permission)
@@ -118,8 +114,8 @@ func TestRevokeSessionLeavesOtherWorkspacesAlone(t *testing.T) {
 		"the other workspace's row is untouched")
 }
 
-// A repeat call revokes nothing and writes no second audit entry, and the first
-// revocation's timestamp survives it.
+// A repeat call revokes nothing, writes no audit entry, and keeps the first
+// revoked_at.
 func TestRevokeSessionIsIdempotent(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route, headers := newRoute(t, h, permission)
@@ -157,8 +153,7 @@ func TestRevokeSessionIsIdempotent(t *testing.T) {
 	require.Equal(t, []any{sessionID}, metas[0]["sessionIds"], "the audit entry names the revoked session")
 }
 
-// An end user with no sessions is not an error: the caller wants them logged
-// out, and they are.
+// An end user with no sessions is not an error.
 func TestRevokeSessionWithNoSessions(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route, headers := newRoute(t, h, permission)
@@ -172,8 +167,7 @@ func TestRevokeSessionWithNoSessions(t *testing.T) {
 	require.Empty(t, revokeAuditMetas(t, h, stored.ID))
 }
 
-// Disabling a portal stops new sessions but leaves live ones working, so revoking
-// them must still be possible.
+// Revoking still works on a disabled portal.
 func TestRevokeSessionOnDisabledPortal(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route, headers := newRoute(t, h, permission)
@@ -204,8 +198,7 @@ func TestRevokeSessionBySlug(t *testing.T) {
 	require.Equal(t, 0, sessionsFor(t, h, stored.ID, "user_1", "revoked_at IS NULL"))
 }
 
-// The revoked row read back is the one the update wrote, so the cache holds the
-// revocation timestamp rather than an unrevoked copy.
+// The cache holds the revoked row, not an unrevoked copy.
 func TestRevokeSessionWritesRevokedStateToCache(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route, headers := newRoute(t, h, permission)

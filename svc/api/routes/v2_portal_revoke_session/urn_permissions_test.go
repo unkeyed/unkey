@@ -12,9 +12,8 @@ import (
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_portal_revoke_session"
 )
 
-// Pins which grants reach this route: the same ones that mint a session for the
-// portal. The workspace admin grant is the dashboard's, so this is also what lets
-// a dashboard caller revoke.
+// The grants that mint a session also revoke one, including the dashboard's
+// workspace admin grant.
 func TestRevokeSessionAuthorizesMintingGrants(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route := registerRoute(h)

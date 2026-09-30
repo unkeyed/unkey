@@ -20,8 +20,8 @@ import (
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_portal_revoke_session"
 )
 
-// registerRoute registers the handler against the harness's shared session
-// cache, the same one the portal session authenticator reads.
+// registerRoute registers the handler with the cache the portal authenticator
+// reads.
 func registerRoute(h *testutil.Harness) *handler.Handler {
 	route := &handler.Handler{
 		DB:           h.DB,
@@ -53,8 +53,7 @@ func request(target, externalID string) handler.Request {
 	return handler.Request{Portal: target, ExternalId: externalID}
 }
 
-// keyspaceMapping seeds an api in the workspace and maps to its keyspace,
-// returning the project that owns it for URN grants.
+// keyspaceMapping seeds an api and returns its keyspace mapping and project.
 func keyspaceMapping(t *testing.T, h *testutil.Harness, workspaceID string) (portal.Mapping, string) {
 	t.Helper()
 
@@ -70,10 +69,8 @@ func seedPortal(t *testing.T, h *testutil.Harness, workspaceID, slug string) (db
 	return h.SeedPortal(t, workspaceID, slug, slug, mapping, nil, nil), mapping
 }
 
-// insertSession writes a session row directly, for the states the harness's
-// active-session helper cannot produce: pending (never exchanged) and expired.
-// It returns the plaintext exchange code, which is only meaningful for a
-// pending row.
+// insertSession writes a pending or exchanged session with the given expiry and
+// returns its exchange code. The harness helper only makes active sessions.
 func insertSession(t *testing.T, h *testutil.Harness, portalID, workspaceID, externalID string, exchanged bool, expiresAt time.Time) string {
 	t.Helper()
 
@@ -106,9 +103,8 @@ func insertSession(t *testing.T, h *testutil.Harness, portalID, workspaceID, ext
 	return exchangeCode
 }
 
-// sessionsFor counts a portal's session rows for one end user matching an extra
-// predicate. Scoped on the portal id because the test database is shared between
-// runs, and an external id is not unique to one test while a minted portal id is.
+// sessionsFor counts an end user's session rows on a portal matching predicate.
+// Scoped by portal id because external ids repeat across tests.
 func sessionsFor(t *testing.T, h *testutil.Harness, portalID, externalID, predicate string) int {
 	t.Helper()
 

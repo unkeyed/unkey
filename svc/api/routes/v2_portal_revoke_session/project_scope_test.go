@@ -13,8 +13,7 @@ import (
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_portal_revoke_session"
 )
 
-// A session grant is bound to the portal's owning project, so the same grant
-// naming another project reaches nothing.
+// A session grant naming another project reaches nothing.
 func TestRevokeSessionGrantIsScopedToProject(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route := registerRoute(h)
