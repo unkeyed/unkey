@@ -66,12 +66,12 @@ export const GitHubConnected = ({
 
   return (
     <GitHubSettingCard>
-      <div className="flex flex-col items-start gap-2">
+      <div className="flex flex-col gap-2">
         {isLoadingRepos ? (
           <ComboboxSkeleton />
         ) : (
           <Combobox
-            className="w-[200px] text-left h-7"
+            className="text-left"
             options={repoOptions}
             value={selectedValue}
             onSelect={handleSelectRepository}

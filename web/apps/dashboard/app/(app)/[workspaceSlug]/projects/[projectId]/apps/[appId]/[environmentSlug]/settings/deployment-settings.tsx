@@ -49,7 +49,7 @@ import { SettingField } from "./components/shared/form-blocks";
 import { FormSettingCard, resolveSaveState } from "./components/shared/form-setting-card";
 import { SettingsSection } from "./components/shared/settings-section";
 
-const NEXT_DEPLOY = "Applies on next deploy";
+const NEXT_DEPLOY = "Changes apply on next deploy";
 
 function useBuildSource() {
   const { projectId } = useProjectData();

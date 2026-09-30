@@ -69,7 +69,7 @@ export const GitHubNoRepo = ({
         <ComboboxSkeleton />
       ) : repoOptions.length ? (
         <Combobox
-          className="w-[200px] text-left h-7"
+          className="text-left"
           options={repoOptions}
           value={selectedRepo}
           onSelect={handleSelectRepository}
