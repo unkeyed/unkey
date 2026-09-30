@@ -174,7 +174,7 @@ export function RuntimeSettings() {
         <Port />
         <Command />
       </SettingsGroup>
-      <SettingsGroup title="Healthcheck" pendingNote={NEXT_DEPLOY}>
+      <SettingsGroup title="Health check" pendingNote={NEXT_DEPLOY}>
         <Healthcheck />
       </SettingsGroup>
     </>

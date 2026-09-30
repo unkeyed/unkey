@@ -3,25 +3,33 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { IconChevronDownOutline12 } from "@unkey/icons";
 import {
-  FormInput,
+  FormField,
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+  InputGroupText,
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
+  SettingsRow,
 } from "@unkey/ui";
 import { useEffect } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { useEnvironmentSettings } from "../../../environment-provider";
 import { useUpdateAllEnvironments } from "../../../hooks/use-update-all-environments";
 import { SettingField } from "../../shared/form-blocks";
-import { FormSettingCard, resolveSaveState } from "../../shared/form-setting-card";
-import { RemoveButton } from "../../shared/remove-button";
+import { SettingsForm, resolveSaveState } from "../../shared/form-setting-card";
 import { MethodBadge } from "./method-badge";
-import { HTTP_METHODS, type HealthcheckFormValues, healthcheckSchema } from "./schema";
-import { intervalToSeconds, secondsToInterval } from "./utils";
+import {
+  HTTP_METHODS,
+  type HealthcheckFormValues,
+  INTERVAL_SECONDS,
+  healthcheckSchema,
+} from "./schema";
 
-export const Healthcheck = () => {
+export function Healthcheck() {
   const { settings, variant } = useEnvironmentSettings();
   const { healthcheck } = settings;
   const updateAllEnvironments = useUpdateAllEnvironments();
@@ -29,7 +37,7 @@ export const Healthcheck = () => {
   const defaultValues: HealthcheckFormValues = {
     method: healthcheck?.method ?? "GET",
     path: healthcheck?.path ?? "",
-    interval: healthcheck ? secondsToInterval(healthcheck.intervalSeconds) : "30s",
+    intervalSeconds: healthcheck?.intervalSeconds ?? INTERVAL_SECONDS.default,
   };
 
   const {
@@ -37,6 +45,7 @@ export const Healthcheck = () => {
     control,
     register,
     reset,
+    watch,
     formState: { isValid, isSubmitting, isDirty, errors },
   } = useForm<HealthcheckFormValues>({
     resolver: zodResolver(healthcheckSchema),
@@ -44,32 +53,25 @@ export const Healthcheck = () => {
     defaultValues,
   });
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: we gucci
+  // biome-ignore lint/correctness/useExhaustiveDependencies: reset only when the saved values change
   useEffect(() => {
     reset(defaultValues);
-  }, [defaultValues.method, defaultValues.path, defaultValues.interval, reset]);
+  }, [defaultValues.method, defaultValues.path, defaultValues.intervalSeconds, reset]);
 
   const onSubmit = async (values: HealthcheckFormValues) => {
     updateAllEnvironments((draft) => {
       draft.healthcheck =
-        values.path.trim() === ""
+        values.path === ""
           ? null
           : {
               method: values.method,
-              path: values.path.trim(),
-              intervalSeconds: intervalToSeconds(values.interval),
-              timeoutSeconds: 5,
-              failureThreshold: 3,
-              initialDelaySeconds: 0,
+              path: values.path,
+              intervalSeconds: values.intervalSeconds,
+              timeoutSeconds: draft.healthcheck?.timeoutSeconds ?? 5,
+              failureThreshold: draft.healthcheck?.failureThreshold ?? 3,
+              initialDelaySeconds: draft.healthcheck?.initialDelaySeconds ?? 0,
             };
     });
-  };
-
-  const handleRemove = () => {
-    updateAllEnvironments((draft) => {
-      draft.healthcheck = null;
-    });
-    reset({ method: "GET", path: "", interval: "30s" });
   };
 
   const saveState = resolveSaveState([
@@ -78,60 +80,94 @@ export const Healthcheck = () => {
     [!isDirty, { status: "disabled", reason: "No changes to save" }],
   ]);
 
+  const pathEmpty = watch("path") === "";
+
   return (
-    <FormSettingCard
-      title="Healthcheck"
-      description="Endpoint Unkey calls to check your app is healthy."
+    <SettingsForm
+      className="divide-y divide-grayA-4"
       onSubmit={handleSubmit(onSubmit)}
       saveState={saveState}
       autoSave={variant === "onboarding"}
     >
-      <SettingField>
-        <div className="flex items-center gap-3">
-          <span className="w-24 text-sm text-gray-11">Method</span>
-          <span className="flex-1 text-sm text-gray-11">Path</span>
-          <span className="flex-1 text-sm text-gray-11">Interval</span>
-        </div>
-        <div className="flex items-start gap-2">
-          <Controller
-            control={control}
-            name="method"
-            render={({ field }) => (
-              <Select value={field.value} onValueChange={field.onChange}>
-                <SelectTrigger
-                  wrapperClassName="w-24"
-                  variant={errors.method ? "error" : "default"}
-                  rightIcon={<IconChevronDownOutline12 className="absolute right-3 text-gray-11" />}
-                >
-                  <SelectValue placeholder={<MethodBadge method={"GET"} />}>
-                    <MethodBadge method={field.value} />
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {HTTP_METHODS.map((method) => (
-                    <SelectItem key={method} value={method} className="focus:bg-gray-3">
-                      <MethodBadge method={method} />
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-          />
-          <FormInput
-            placeholder="/health"
-            className="flex-1 [&_input]:font-mono"
+      <SettingsRow title="Endpoint" description="Path your app answers on">
+        <SettingField>
+          <FormField
             error={errors.path?.message}
-            {...register("path")}
-          />
-          <FormInput
-            className="flex-1"
-            placeholder="30s"
-            error={errors.interval?.message}
-            {...register("interval")}
-          />
-          {healthcheck && <RemoveButton onClick={handleRemove} className="shrink-0" />}
-        </div>
-      </SettingField>
-    </FormSettingCard>
+            description={pathEmpty ? "No path, no health checks" : undefined}
+          >
+            {(field) => (
+              <InputGroup variant={field.variant}>
+                <Controller
+                  control={control}
+                  name="method"
+                  render={({ field: method }) => (
+                    <Select value={method.value} onValueChange={method.onChange}>
+                      <SelectTrigger
+                        aria-label="HTTP method"
+                        variant="ghost"
+                        wrapperClassName="w-auto shrink-0"
+                        className="rounded-r-none border-0 border-r border-grayA-4 hover:bg-grayA-2 focus:border-grayA-4 focus:ring-0"
+                        rightIcon={
+                          <IconChevronDownOutline12 className="absolute right-3 text-gray-11" />
+                        }
+                      >
+                        <SelectValue>
+                          <MethodBadge method={method.value} />
+                        </SelectValue>
+                      </SelectTrigger>
+                      <SelectContent>
+                        {HTTP_METHODS.map((option) => (
+                          <SelectItem key={option} value={option} className="focus:bg-gray-3">
+                            <MethodBadge method={option} />
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+                <InputGroupInput
+                  id={field.id}
+                  aria-label="Path"
+                  aria-invalid={field.invalid}
+                  aria-describedby={field.describedBy}
+                  placeholder="/health"
+                  autoComplete="off"
+                  spellCheck={false}
+                  className="px-3 font-mono"
+                  {...register("path")}
+                />
+              </InputGroup>
+            )}
+          </FormField>
+        </SettingField>
+      </SettingsRow>
+      <SettingsRow title="Interval" description="How often Unkey checks">
+        <SettingField>
+          <FormField error={errors.intervalSeconds?.message}>
+            {(field) => (
+              <InputGroup variant={field.variant} className="w-28">
+                <InputGroupInput
+                  id={field.id}
+                  type="number"
+                  inputMode="numeric"
+                  min={INTERVAL_SECONDS.min}
+                  max={INTERVAL_SECONDS.max}
+                  step={1}
+                  aria-label="Interval in seconds"
+                  aria-invalid={field.invalid}
+                  aria-describedby={field.describedBy}
+                  className="pl-3 font-mono tabular-nums"
+                  onWheelCapture={(e) => e.currentTarget.blur()}
+                  {...register("intervalSeconds", { valueAsNumber: true })}
+                />
+                <InputGroupAddon align="inline-end">
+                  <InputGroupText className="font-mono">s</InputGroupText>
+                </InputGroupAddon>
+              </InputGroup>
+            )}
+          </FormField>
+        </SettingField>
+      </SettingsRow>
+    </SettingsForm>
   );
-};
+}

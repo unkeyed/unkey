@@ -3,32 +3,23 @@ import type React from "react";
 import { useRef } from "react";
 import { useReportUnsavedChanges } from "../../prevent-leave-context";
 
-type FormSettingCardProps = {
-  title: string;
-  description: React.ReactNode;
-
+type SettingsFormProps = {
   onSubmit: React.FormEventHandler<HTMLFormElement>;
   children: React.ReactNode;
-  stickyHeader?: React.ReactNode;
-
   saveState: SaveState;
-
+  className?: string;
   ref?: React.Ref<HTMLFormElement>;
-  contentRef?: React.Ref<HTMLDivElement>;
   autoSave?: boolean;
 };
 
-export const FormSettingCard = ({
-  title,
-  description,
+export function SettingsForm({
   onSubmit,
   children,
-  stickyHeader,
   saveState,
+  className,
   ref,
-  contentRef,
   autoSave,
-}: FormSettingCardProps) => {
+}: SettingsFormProps) {
   const formRef = useRef<HTMLFormElement>(null);
 
   const dirty = !autoSave && saveState.status === "ready";
@@ -49,6 +40,7 @@ export const FormSettingCard = ({
           ref.current = node;
         }
       }}
+      className={className}
       onSubmit={onSubmit}
       onBlur={(e) => {
         if (!autoSave || saveState.status !== "ready") {
@@ -60,15 +52,35 @@ export const FormSettingCard = ({
         }
       }}
     >
-      <SettingsRow title={title} description={description}>
-        {stickyHeader}
-        <div ref={contentRef} className="flex flex-col gap-2">
-          {children}
-        </div>
-      </SettingsRow>
+      {children}
     </form>
   );
+}
+
+type FormSettingCardProps = Omit<SettingsFormProps, "className"> & {
+  title: string;
+  description: React.ReactNode;
+  stickyHeader?: React.ReactNode;
+  contentRef?: React.Ref<HTMLDivElement>;
 };
+
+export const FormSettingCard = ({
+  title,
+  description,
+  children,
+  stickyHeader,
+  contentRef,
+  ...formProps
+}: FormSettingCardProps) => (
+  <SettingsForm {...formProps}>
+    <SettingsRow title={title} description={description}>
+      {stickyHeader}
+      <div ref={contentRef} className="flex flex-col gap-2">
+        {children}
+      </div>
+    </SettingsRow>
+  </SettingsForm>
+);
 
 export function resolveSaveState(checks: ReadonlyArray<[boolean, SaveState]>): SaveState {
   for (const [condition, state] of checks) {
