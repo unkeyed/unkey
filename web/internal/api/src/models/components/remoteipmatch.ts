@@ -8,7 +8,7 @@ import { Result as SafeParseResult } from "../../types/fp.js";
 import { SDKValidationError } from "../errors/sdkvalidationerror.js";
 
 /**
- * Matches the client IP against IPv4 or IPv6 CIDR ranges. Exactly one of `in`
+ * Matches the remote IP against IPv4 or IPv6 CIDR ranges. Exactly one of `in`
  *
  * @remarks
  * or `notIn` must be set. Entries are rejected if they have host bits set (such
@@ -17,7 +17,7 @@ import { SDKValidationError } from "../errors/sdkvalidationerror.js";
  */
 export type RemoteIpMatch = {
   /**
-   * Matches when the client IP is in at least one of these ranges. Entries
+   * Matches when the remote IP is in at least one of these ranges. Entries
    *
    * @remarks
    * are CIDRs such as `203.0.113.0/24` or single addresses such as
@@ -25,7 +25,7 @@ export type RemoteIpMatch = {
    */
   in?: Array<string> | undefined;
   /**
-   * Matches when the client IP is in none of these ranges. Entries are CIDRs
+   * Matches when the remote IP is in none of these ranges. Entries are CIDRs
    *
    * @remarks
    * such as `198.51.100.0/24` or single addresses such as `198.51.100.7`.

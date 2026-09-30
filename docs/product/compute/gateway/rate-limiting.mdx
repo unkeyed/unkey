@@ -17,9 +17,9 @@ sources:
   - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/policies/components/add-panel/schema.ts
 ---
 
-A rate limit policy tells the [gateway](/compute/gateway/overview) to count requests over a fixed window, such as 100 per minute, and reject the extra ones before they reach your <Tooltip tip="A Compute app: a deployable service inside a project. Not 'your application' in general.">app</Tooltip>. This <Tooltip tip="Here: a gateway rate limit policy. Not the per-key limits an authentication policy enforces or the standalone ratelimit API.">rate limiting</Tooltip> works without API keys. You choose what to count by, such as the client IP or a header. For limits per API key, use the `ratelimits` setting on the [API key authentication policy](/compute/gateway/api-key-auth) instead.
+A rate limit policy tells the [gateway](/compute/gateway/overview) to count requests over a fixed window, such as 100 per minute, and reject the extra ones before they reach your <Tooltip tip="A Compute app: a deployable service inside a project. Not 'your application' in general.">app</Tooltip>. This <Tooltip tip="Here: a gateway rate limit policy. Not the per-key limits an authentication policy enforces or the standalone ratelimit API.">rate limiting</Tooltip> works without API keys. You choose what to count by, such as the remote IP or a header. For limits per API key, use the `ratelimits` setting on the [API key authentication policy](/compute/gateway/api-key-auth) instead.
 
-To add one, open the app, go to **Policies**, click **Add Policy**, and pick **Rate Limit**. The form starts at 100 requests per 60 seconds per client IP.
+To add one, open the app, go to **Policies**, click **Add Policy**, and pick **Rate Limit**. The form starts at 100 requests per 60 seconds per remote IP.
 
 ## Settings
 

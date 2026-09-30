@@ -61,7 +61,7 @@ export type MatchExpr = {
    */
   queryParam?: FieldMatch | undefined;
   /**
-   * Matches the client IP against IPv4 or IPv6 CIDR ranges. Exactly one of `in`
+   * Matches the remote IP against IPv4 or IPv6 CIDR ranges. Exactly one of `in`
    *
    * @remarks
    * or `notIn` must be set. Entries are rejected if they have host bits set (such

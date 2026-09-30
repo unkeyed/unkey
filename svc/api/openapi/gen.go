@@ -1771,7 +1771,7 @@ type MatchExpr struct {
 	// `present` or `value` must be set.
 	QueryParam *FieldMatch `json:"queryParam,omitempty"`
 
-	// RemoteIp Matches the client IP against IPv4 or IPv6 CIDR ranges. Exactly one of `in`
+	// RemoteIp Matches the remote IP against IPv4 or IPv6 CIDR ranges. Exactly one of `in`
 	// or `notIn` must be set. Entries are rejected if they have host bits set (such
 	// as `10.1.2.3/8`), are IPv4-mapped IPv6 addresses, or carry a zone. Single
 	// addresses are returned as full-length prefixes, such as `203.0.113.7/32`.
@@ -2183,7 +2183,7 @@ type RatelimitIdentifier struct {
 	// PrincipalField Rate limit by a field extracted from the authenticated principal.
 	PrincipalField *PrincipalFieldKey `json:"principalField,omitempty"`
 
-	// RemoteIp Rate limit by the client's IP address.
+	// RemoteIp Rate limit by the remote IP.
 	RemoteIp *RemoteIpKey `json:"remoteIp,omitempty"`
 }
 
@@ -2313,22 +2313,22 @@ type RatelimitResponse struct {
 	Name string `json:"name"`
 }
 
-// RemoteIpKey Rate limit by the client's IP address.
+// RemoteIpKey Rate limit by the remote IP.
 type RemoteIpKey = map[string]interface{}
 
-// RemoteIpMatch Matches the client IP against IPv4 or IPv6 CIDR ranges. Exactly one of `in`
+// RemoteIpMatch Matches the remote IP against IPv4 or IPv6 CIDR ranges. Exactly one of `in`
 // or `notIn` must be set. Entries are rejected if they have host bits set (such
 // as `10.1.2.3/8`), are IPv4-mapped IPv6 addresses, or carry a zone. Single
 // addresses are returned as full-length prefixes, such as `203.0.113.7/32`.
 //
 // Example: {"notIn":["198.51.100.0/24"]}
 type RemoteIpMatch struct {
-	// In Matches when the client IP is in at least one of these ranges. Entries
+	// In Matches when the remote IP is in at least one of these ranges. Entries
 	// are CIDRs such as `203.0.113.0/24` or single addresses such as
 	// `203.0.113.7`.
 	In *[]string `json:"in,omitempty"`
 
-	// NotIn Matches when the client IP is in none of these ranges. Entries are CIDRs
+	// NotIn Matches when the remote IP is in none of these ranges. Entries are CIDRs
 	// such as `198.51.100.0/24` or single addresses such as `198.51.100.7`.
 	NotIn *[]string `json:"notIn,omitempty"`
 }
