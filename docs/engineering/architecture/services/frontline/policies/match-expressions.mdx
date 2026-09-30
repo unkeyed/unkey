@@ -228,7 +228,7 @@ Matches the remote IP against CIDR ranges. The remote IP is the TCP peer address
   Matches when the remote IP is in none of the ranges.
 </ResponseField>
 
-Set exactly one of the two lists. If both are set, `in` is used. If neither is set, every request matches. Entries are IPv4 or IPv6 addresses or CIDRs, such as `203.0.113.7`, `203.0.113.0/24`, or `2001:db8::/32`. An IPv4 client never matches an IPv6 range, and the reverse. Frontline accepts IPv4 connections today, so IPv6 entries match no request yet. An entry that is not an IP address or CIDR fails the request with `InvalidConfiguration` when Frontline reaches it. Frontline stops at the first entry that contains the remote IP, so an invalid entry after it is not detected.
+Set exactly one of the two lists. If both are set, `in` is used. If neither is set, every request matches. Entries are IPv4 or IPv6 addresses or CIDRs, such as `203.0.113.7`, `203.0.113.0/24`, or `2001:db8::/32`. An IPv4 client never matches an IPv6 range, and the reverse. Frontline accepts IPv4 connections today, so IPv6 entries match no request yet. An entry that is not an IP address or CIDR fails the request with `InvalidConfiguration` when Frontline reaches it. Frontline stops at the first entry that contains the remote IP, so an invalid entry after it is not detected. The API validates every entry when the policy is saved.
 
 <Tabs>
 <Tab title="Block a range">

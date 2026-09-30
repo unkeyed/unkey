@@ -2,6 +2,7 @@ package policyconfig
 
 import (
 	"fmt"
+	"net/netip"
 	"regexp"
 
 	frontlinev1 "github.com/unkeyed/unkey/gen/proto/frontline/v1"
@@ -16,7 +17,7 @@ import (
 // ToProto parses request policies into the protos frontline evaluates,
 // generating an id per policy. Conversion is also the validation pass: it
 // enforces the rules the OpenAPI schema cannot express (exactly-one variants,
-// valid regex and permission queries), and its errors are user-facing,
+// valid regex, CIDRs and permission queries), and its errors are user-facing,
 // naming the offending field.
 func ToProto(policies []openapi.Policy) ([]*frontlinev1.Policy, error) {
 	out := make([]*frontlinev1.Policy, 0, len(policies))
@@ -234,8 +235,8 @@ func mapKeyauthToProto(path string, k openapi.KeyauthPolicy) (*frontlinev1.KeyAu
 }
 
 func mapMatchExprToProto(path string, m openapi.MatchExpr) (*frontlinev1.MatchExpr, error) {
-	if err := exactlyOne(path, "path, method, header or queryParam",
-		m.Path != nil, m.Method != nil, m.Header != nil, m.QueryParam != nil); err != nil {
+	if err := exactlyOne(path, "path, method, header, queryParam or remoteIp",
+		m.Path != nil, m.Method != nil, m.Header != nil, m.QueryParam != nil, m.RemoteIp != nil); err != nil {
 		return nil, err
 	}
 
@@ -271,7 +272,7 @@ func mapMatchExprToProto(path string, m openapi.MatchExpr) (*frontlinev1.MatchEx
 		}
 		return &frontlinev1.MatchExpr{Expr: &frontlinev1.MatchExpr_Header{Header: header}}, nil
 
-	default: // m.QueryParam != nil, guaranteed by exactlyOne above
+	case m.QueryParam != nil:
 		queryParam := &frontlinev1.QueryParamMatch{Name: m.QueryParam.Name}
 		if err := exactlyOne(path+".queryParam", "present or value",
 			m.QueryParam.Present != nil, m.QueryParam.Value != nil); err != nil {
@@ -287,7 +288,74 @@ func mapMatchExprToProto(path string, m openapi.MatchExpr) (*frontlinev1.MatchEx
 			queryParam.Match = &frontlinev1.QueryParamMatch_Value{Value: sm}
 		}
 		return &frontlinev1.MatchExpr{Expr: &frontlinev1.MatchExpr_QueryParam{QueryParam: queryParam}}, nil
+
+	case m.RemoteIp != nil:
+		remoteIp, err := mapRemoteIpMatchToProto(path+".remoteIp", *m.RemoteIp)
+		if err != nil {
+			return nil, err
+		}
+		return &frontlinev1.MatchExpr{Expr: &frontlinev1.MatchExpr_RemoteIp{RemoteIp: remoteIp}}, nil
+
+	default:
+		return nil, fault.New("match expression variant not handled",
+			fault.Code(codes.App.Internal.UnexpectedError.URN()),
+			fault.Internal("exactlyOne passed but no match expression case handled the variant"),
+			fault.Public("We're unable to process the policy."),
+		)
 	}
+}
+
+// maxRemoteIpEntries caps one remoteIp list and mirrors the OpenAPI schema's
+// maxItems
+const maxRemoteIpEntries = 100
+
+func mapRemoteIpMatchToProto(path string, m openapi.RemoteIpMatch) (*frontlinev1.RemoteIpMatch, error) {
+	in, notIn := ptr.SafeDeref(m.In), ptr.SafeDeref(m.NotIn)
+	if err := exactlyOne(path, "in or notIn", len(in) > 0, len(notIn) > 0); err != nil {
+		return nil, err
+	}
+
+	if len(in) > 0 {
+		cidrs, err := normalizeCidrs(path+".in", in)
+		if err != nil {
+			return nil, err
+		}
+		return &frontlinev1.RemoteIpMatch{In: cidrs, NotIn: nil}, nil
+	}
+
+	cidrs, err := normalizeCidrs(path+".notIn", notIn)
+	if err != nil {
+		return nil, err
+	}
+	return &frontlinev1.RemoteIpMatch{In: nil, NotIn: cidrs}, nil
+}
+
+// normalizeCidrs stores every entry in canonical prefix form, so an unchanged
+// policy round-trips byte for byte
+func normalizeCidrs(path string, entries []string) ([]string, error) {
+	if len(entries) > maxRemoteIpEntries {
+		return nil, invalid(fmt.Sprintf("%s must not have more than %d entries.", path, maxRemoteIpEntries))
+	}
+
+	out := make([]string, 0, len(entries))
+	for i, entry := range entries {
+		prefix, err := netip.ParsePrefix(entry)
+		if err != nil {
+			addr, addrErr := netip.ParseAddr(entry)
+			if addrErr != nil || addr.Zone() != "" {
+				return nil, invalid(fmt.Sprintf("%s[%d] is not a valid IP address or CIDR.", path, i))
+			}
+			prefix = netip.PrefixFrom(addr, addr.BitLen())
+		}
+		if prefix.Addr().Is4In6() {
+			return nil, invalid(fmt.Sprintf("%s[%d] is an IPv4-mapped IPv6 address; use the IPv4 form.", path, i))
+		}
+		if prefix != prefix.Masked() {
+			return nil, invalid(fmt.Sprintf("%s[%d] has host bits set; use %s.", path, i, prefix.Masked()))
+		}
+		out = append(out, prefix.String())
+	}
+	return out, nil
 }
 
 func mapStringMatchToProto(path string, s openapi.StringMatch) (*frontlinev1.StringMatch, error) {
