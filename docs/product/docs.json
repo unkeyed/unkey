@@ -614,7 +614,14 @@
                   "compute/networking/custom-domains",
                   "compute/networking/request-lifecycle",
                   "compute/networking/websockets",
-                  "compute/networking/private-networking"
+                  {
+                    "group": "Private networking",
+                    "pages": [
+                      "compute/networking/private-networking",
+                      "compute/networking/private-networking/bindings",
+                      "compute/networking/private-networking/troubleshooting"
+                    ]
+                  }
                 ]
               },
               {
@@ -1453,6 +1460,14 @@
     {
       "source": "/networking/private-networking",
       "destination": "/compute/networking/private-networking"
+    },
+    {
+      "source": "/networking/private-networking/bindings",
+      "destination": "/compute/networking/private-networking/bindings"
+    },
+    {
+      "source": "/networking/private-networking/troubleshooting",
+      "destination": "/compute/networking/private-networking/troubleshooting"
     },
     {
       "source": "/networking/public-networking",
