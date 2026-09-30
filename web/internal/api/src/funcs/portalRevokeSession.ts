@@ -49,6 +49,10 @@ import { Result } from "../types/fp.js";
  * - `portal.*.create_portal_session` (for any portal in the workspace)
  * - `portal.<portal_id>.create_portal_session` (for a specific portal)
  *
+ * It also accepts `unkey:v1:<workspace_id>:projects/<project_id>/portals/<portal_id>/sessions/*#write`,
+ * which dashboard roles carry. Unlike `portal.createSession`, a dashboard
+ * session can call this, not just a root key.
+ *
  * Without the permission this returns **404**, not 403.
  *
  * If set, this operation will use {@link Security.rootKey} from the global security.
