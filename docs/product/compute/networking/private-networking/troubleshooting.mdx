@@ -1,0 +1,117 @@
+---
+title: Private networking troubleshooting
+sidebarTitle: Troubleshooting
+description: "Fix missing binding variables, private DNS failures, and connections that fail between apps."
+sources:
+  - svc/undns/handler.go
+  - svc/undns/binding.go
+  - svc/krane/internal/deployment/apply.go
+  - svc/ctrl/internal/db/queries/private_network_list_bindings.sql
+  - web/apps/dashboard/lib/trpc/routers/deploy/app-binding/index.ts
+---
+
+Use this page when an app binding doesn't work as expected. Start with the binding details on the calling app's **Bindings** page. They show the variable, hostname, and target rule. Also check the target's deployment status: the binding panel isn't a live DNS health check.
+
+## The Bindings page is missing
+
+Symptom: The app sidebar has no **Bindings** link.
+
+Cause: Private networking isn't enabled for your workspace.
+
+Solution: Private networking isn't generally available. Only workspaces with private networking enabled can view the page and create or edit bindings.
+
+## The host variable is missing
+
+Symptom: `PAYMENTS_HOST` or another binding variable is empty in the calling app.
+
+Cause: Unkey adds binding variables when it creates a deployment. The running deployment was created before the binding, or the binding belongs to another environment.
+
+Solution:
+
+1. On the **Bindings** page, check that **Environment** shows the environment of the calling deployment.
+2. Confirm the variable name in the binding details.
+3. Redeploy the calling app in that environment.
+
+## The hostname doesn't exist
+
+Symptom: DNS lookups for the hostname fail with a "not found" error, such as `NXDOMAIN` or `ENOTFOUND`.
+
+Cause: The calling deployment has no binding with that name. Common reasons:
+
+- The binding was renamed or deleted after the deployment started.
+- The code uses a short name such as `payments` instead of `payments.unkey.internal`.
+- The deployment belongs to another app or environment than the binding.
+- The deployment was created before the workspace had private networking.
+
+Solution: Read the hostname from the binding variable instead of hard-coding it. Redeploy the calling app after you create or rename a binding.
+
+## The hostname fails to resolve
+
+Symptom: DNS lookups for a known hostname fail with a server error, such as `SERVFAIL` or `EAI_AGAIN`.
+
+Cause: The binding exists, but its target has no ready deployment to resolve to:
+
+- The target app has no live production deployment.
+- An automatic preview binding has no target preview from the same Git branch.
+- The target preview stopped after it was idle.
+- A pinned deployment was stopped.
+- The target environment was deleted.
+- The live deployment belongs to a different environment than the binding's explicit production target.
+- The selected deployment has no ready instances.
+
+Solution: Open the binding details and read the target description. Deploy the target app for that branch or environment, or choose another target. See [Choose a target](/compute/networking/private-networking/bindings#choose-a-target).
+
+Private traffic doesn't pass through the public request router and can't wake an idle preview. Deploy the target again or choose a running target. An explicit deployment pin prevents automatic idle stops, but keeps the deployment using resources.
+
+## The connection is refused or times out
+
+Symptom: The hostname resolves, but connections fail.
+
+Cause: DNS works, but the target doesn't accept the traffic. Common reasons:
+
+- The target app listens on `localhost` instead of `0.0.0.0`.
+- The calling app connects to the wrong port.
+- The client uses IPv6. Private hostnames resolve to IPv4 addresses only.
+- The test uses `ping`. ICMP traffic is denied.
+- The target app calls back without its own binding. Bindings are one-way.
+- A long-lived connection still points at a deployment that was replaced more than 30 minutes ago.
+
+Solution: Make the target listen on `0.0.0.0` and the port your client uses. Test with a TCP or HTTP request instead of `ping`. Add a binding on the target app for traffic in the other direction. Reconnect clients after the target changes.
+
+## The hostname points at the wrong deployment
+
+Symptom: Requests reach an older or unexpected version of the target app.
+
+Cause: The binding target doesn't match what you expect, or the new deployment isn't ready yet:
+
+- The binding is pinned to a specific deployment.
+- The target app is rolled back, so the hostname follows the rolled-back deployment.
+- A preview binding follows the newest ready preview of the branch, not the newest build.
+- The client reuses a connection that it opened before the switch.
+
+Solution: Check the target in the binding details. Promote a deployment to end a rollback. Resolve the hostname again and open a new connection.
+
+## UNKEY_DEPLOYMENT_HOST is missing
+
+Symptom: The `UNKEY_DEPLOYMENT_HOST` variable is empty.
+
+Cause: Unkey sets it only for deployments in a workspace with private networking. Common reasons:
+
+- The workspace has no binding between two apps.
+- The deployment was created before the first binding.
+- The app slug isn't a valid DNS label, for example because it contains an underscore.
+
+Solution: Add a binding in the workspace and redeploy the app. See [Connect instances of the same deployment](/compute/networking/private-networking#connect-instances-of-the-same-deployment).
+
+## A binding can't be created or saved
+
+Symptom: The dashboard shows an error when you add, rename, or retarget a binding.
+
+Cause: The request breaks a binding rule:
+
+- The target app already has a binding in this environment.
+- The name is already used in this environment, or it matches the calling app's slug.
+- The name starts with `unkey` or has invalid characters.
+- The pinned deployment isn't ready and running.
+
+Solution: Edit the existing binding instead of adding a second one, or choose another name or target. See [Names and variables](/compute/networking/private-networking/bindings#names-and-variables).
