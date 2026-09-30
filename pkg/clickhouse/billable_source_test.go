@@ -52,18 +52,27 @@ func TestBillableExcludesGatewaySource(t *testing.T) {
 	// Root keys: 30 VALID, marked by an empty workspace ID and excluded from
 	// API-key billing.
 	rootKeyVerifications := createVerifications(workspaceID, 30, now, "VALID")
+	rootKeyID := uid.New(uid.KeyPrefix)
 	for i := range rootKeyVerifications {
 		rootKeyVerifications[i].WorkspaceID = ""
+		rootKeyVerifications[i].KeyID = rootKeyID
+	}
+	// Keyless verifications: 10 VALID, excluded from billing even when a
+	// workspace ID is present.
+	keylessVerifications := createVerifications(workspaceID, 10, now, "VALID")
+	for i := range keylessVerifications {
+		keylessVerifications[i].KeySpaceID = ""
 	}
 	allVerifications := append(verifications, gatewayVerifications...)
-	insertVerifications(t, ctx, conn, append(allVerifications, rootKeyVerifications...))
+	allVerifications = append(allVerifications, rootKeyVerifications...)
+	insertVerifications(t, ctx, conn, append(allVerifications, keylessVerifications...))
 
 	year, month := now.Year(), int(now.Month())
 
 	require.EventuallyWithT(t, func(c *assert.CollectT) {
 		billableVerifications, err := client.GetBillableVerifications(ctx, workspaceID, year, month)
 		require.NoError(c, err)
-		assert.Equal(c, int64(100), billableVerifications, "gateway, root-key, and INVALID verifications must not bill")
+		assert.Equal(c, int64(100), billableVerifications, "gateway, root-key, keyless, and INVALID verifications must not bill")
 		var rootKeyBillable int64
 		require.NoError(c, conn.QueryRow(ctx,
 			"SELECT sum(count) FROM default.billable_verifications_per_month_v2 WHERE workspace_id = ''",
@@ -77,10 +86,11 @@ func TestBillableExcludesGatewaySource(t *testing.T) {
 			"SELECT sum(count) FROM default.key_verifications_per_month_v3 WHERE workspace_id = ?",
 			workspaceID,
 		).Scan(&totalCount))
-		assert.Equal(c, int64(160), totalCount, "customer analytics must include API and gateway traffic")
+		assert.Equal(c, int64(170), totalCount, "customer analytics must include API, gateway, and keyless traffic")
 
 		require.NoError(c, conn.QueryRow(ctx,
-			"SELECT sum(count) FROM default.key_verifications_per_month_v3 WHERE workspace_id = ''",
+			"SELECT sum(count) FROM default.key_verifications_per_month_v3 WHERE workspace_id = '' AND key_id = ?",
+			rootKeyID,
 		).Scan(&rootKeyCount))
 		assert.Equal(c, int64(30), rootKeyCount, "analytics rollups must retain root-key traffic")
 
@@ -100,6 +110,6 @@ func TestBillableExcludesGatewaySource(t *testing.T) {
 			"SELECT sum(count) FROM default.key_verifications_per_month_v3 WHERE workspace_id = ? AND app_id = ''",
 			workspaceID,
 		).Scan(&unattributedCount))
-		assert.Equal(c, int64(120), unattributedCount, "API verifications must remain unattributed")
+		assert.Equal(c, int64(130), unattributedCount, "API and keyless verifications must remain unattributed")
 	}, time.Minute, time.Second)
 }

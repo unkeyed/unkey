@@ -9,5 +9,6 @@ SELECT
 FROM default.key_verifications_per_month_v3
 WHERE outcome = 'VALID'
   AND source != 'gateway'
+  AND key_space_id != ''
   AND workspace_id != ''
 GROUP BY workspace_id, year, month;
