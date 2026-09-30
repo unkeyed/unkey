@@ -763,7 +763,7 @@ type Deployment struct {
 	Port                          int32                             `db:"port"`
 	ShutdownSignal                DeploymentsShutdownSignal         `db:"shutdown_signal"`
 	UpstreamProtocol              DeploymentsUpstreamProtocol       `db:"upstream_protocol"`
-	Features                      mysqltype.DeploymentFeatures      `db:"features"`
+	Capabilities                  mysqltype.DeploymentCapabilities  `db:"capabilities"`
 	Healthcheck                   dbtype.NullHealthcheck            `db:"healthcheck"`
 	PrNumber                      sql.NullInt64                     `db:"pr_number"`
 	ForkRepositoryFullName        sql.NullString                    `db:"fork_repository_full_name"`

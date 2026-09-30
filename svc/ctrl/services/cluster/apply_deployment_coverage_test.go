@@ -135,7 +135,7 @@ func TestDeploymentRowToState_PopulatesProtoFields(t *testing.T) {
 		EnvironmentSlug: "preview",
 		EnvironmentKind: dbtype.EnvironmentKindPreview,
 		AppSlug:         "api",
-		Features:        dbtype.DeploymentFeatures{PrivateNetworking: true},
+		Capabilities:    dbtype.DeploymentCapabilities{PrivateNetworking: true},
 		RegionName:      "us-east-1",
 		GitRepo:         sql.NullString{Valid: true, String: "github.com/test/sentinel"},
 	}

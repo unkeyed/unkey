@@ -6,16 +6,16 @@ import (
 	"fmt"
 )
 
-// DeploymentFeatures are the capabilities decided once when a deployment is
-// created. Running deployments keep them regardless of later flag or setting
-// changes. They are stored as a JSON object in which a missing key is off.
-type DeploymentFeatures struct {
+// DeploymentCapabilities are decided once when a deployment is created.
+// Running deployments keep them regardless of later flag or setting changes.
+// They are stored as a JSON object in which a missing key is off.
+type DeploymentCapabilities struct {
 	PrivateNetworking bool `json:"private_networking"`
 }
 
 // Scan implements sql.Scanner for reading the JSON object from the database.
-func (f *DeploymentFeatures) Scan(value any) error {
-	*f = DeploymentFeatures{PrivateNetworking: false}
+func (f *DeploymentCapabilities) Scan(value any) error {
+	*f = DeploymentCapabilities{PrivateNetworking: false}
 
 	var bytes []byte
 	switch v := value.(type) {
@@ -26,7 +26,7 @@ func (f *DeploymentFeatures) Scan(value any) error {
 	case string:
 		bytes = []byte(v)
 	default:
-		return fmt.Errorf("DeploymentFeatures.Scan: expected []byte or string, got %T", value)
+		return fmt.Errorf("DeploymentCapabilities.Scan: expected []byte or string, got %T", value)
 	}
 
 	if len(bytes) == 0 {
@@ -36,7 +36,7 @@ func (f *DeploymentFeatures) Scan(value any) error {
 }
 
 // Value implements driver.Valuer for writing the JSON object to the database.
-func (f DeploymentFeatures) Value() (driver.Value, error) {
+func (f DeploymentCapabilities) Value() (driver.Value, error) {
 	bytes, err := json.Marshal(f)
 	if err != nil {
 		return nil, err

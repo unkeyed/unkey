@@ -482,7 +482,7 @@ type Querier interface {
 	//      source, image_requested, image_resolved, build_id, git_commit_sha, git_branch,
 	//      git_commit_message, git_commit_author_handle, git_commit_author_avatar_url, git_commit_timestamp,
 	//      sentinel_config, cpu_millicores, memory_mib, storage_mib, desired_state,
-	//      encrypted_environment_variables, command, port, shutdown_signal, upstream_protocol, features, healthcheck,
+	//      encrypted_environment_variables, command, port, shutdown_signal, upstream_protocol, capabilities, healthcheck,
 	//      pr_number, fork_repository_full_name, github_deployment_id, invocation_id, status,
 	//      first_ready_at, `trigger`, triggered_by, trigger_reason, created_at, updated_at
 	//  FROM deployments WHERE id = ?
@@ -493,7 +493,7 @@ type Querier interface {
 	//      source, image_requested, image_resolved, build_id, git_commit_sha, git_branch,
 	//      git_commit_message, git_commit_author_handle, git_commit_author_avatar_url, git_commit_timestamp,
 	//      sentinel_config, cpu_millicores, memory_mib, storage_mib, desired_state,
-	//      encrypted_environment_variables, command, port, shutdown_signal, upstream_protocol, features, healthcheck,
+	//      encrypted_environment_variables, command, port, shutdown_signal, upstream_protocol, capabilities, healthcheck,
 	//      pr_number, fork_repository_full_name, github_deployment_id, invocation_id, status,
 	//      first_ready_at, `trigger`, triggered_by, trigger_reason, created_at, updated_at
 	//  FROM deployments WHERE k8s_name = ?
@@ -507,10 +507,10 @@ type Querier interface {
 	FindDeploymentForBuild(ctx context.Context, id string) (FindDeploymentForBuildRow, error)
 	// FindDeploymentForCreate returns the columns Create reads from a row that is
 	// already there: the insert checks the app and status, and an approval reuses
-	// the features decided when the row was written. Reading the full row would carry the
-	// encrypted environment variables and sentinel config with it.
+	// the capabilities decided when the row was written. Reading the full row
+	// would carry the encrypted environment variables and sentinel config with it.
 	//
-	//  SELECT app_id, status, features
+	//  SELECT app_id, status, capabilities
 	//  FROM deployments
 	//  WHERE id = ?
 	FindDeploymentForCreate(ctx context.Context, id string) (FindDeploymentForCreateRow, error)
@@ -577,7 +577,7 @@ type Querier interface {
 	//      e.slug AS environment_slug,
 	//      e.kind AS environment_kind,
 	//      COALESCE(a.slug, '') AS app_slug,
-	//      d.features,
+	//      d.capabilities,
 	//      r.name AS region_name,
 	//      grc.repository_full_name AS git_repo
 	//  FROM `deployment_topology` dt
@@ -1101,7 +1101,7 @@ type Querier interface {
 	//      port,
 	//      shutdown_signal,
 	//      upstream_protocol,
-	//      features,
+	//      capabilities,
 	//      healthcheck,
 	//      pr_number,
 	//      fork_repository_full_name,
@@ -1599,7 +1599,7 @@ type Querier interface {
 	//      e.slug AS environment_slug,
 	//      e.kind AS environment_kind,
 	//      COALESCE(a.slug, '') AS app_slug,
-	//      d.features AS deployment_features,
+	//      d.capabilities AS deployment_capabilities,
 	//      r.name AS region_name,
 	//      grc.repository_full_name AS git_repo
 	//  FROM `deployment_topology` dt
@@ -1706,7 +1706,7 @@ type Querier interface {
 	//      source, image_requested, image_resolved, build_id, git_commit_sha, git_branch,
 	//      git_commit_message, git_commit_author_handle, git_commit_author_avatar_url, git_commit_timestamp,
 	//      sentinel_config, cpu_millicores, memory_mib, storage_mib, desired_state,
-	//      encrypted_environment_variables, command, port, shutdown_signal, upstream_protocol, features, healthcheck,
+	//      encrypted_environment_variables, command, port, shutdown_signal, upstream_protocol, capabilities, healthcheck,
 	//      pr_number, fork_repository_full_name, github_deployment_id, invocation_id, status,
 	//      first_ready_at, `trigger`, triggered_by, trigger_reason, created_at, updated_at
 	//  FROM deployments
@@ -1881,7 +1881,7 @@ type Querier interface {
 	//          AND caller.workspace_id = b.workspace_id AND caller.project_id = b.project_id
 	//          AND caller.environment_id = b.environment_id
 	//          AND caller.status IN ('deploying', 'network', 'finalizing', 'ready') AND caller.desired_state = 'running'
-	//          AND JSON_CONTAINS(caller.features, 'true', '$.private_networking')
+	//          AND JSON_CONTAINS(caller.capabilities, 'true', '$.private_networking')
 	//      INNER JOIN environments caller_env ON caller_env.id = caller.environment_id
 	//          AND caller_env.app_id = caller.app_id
 	//      INNER JOIN workspaces w ON w.id = b.workspace_id AND w.k8s_namespace <> ''
@@ -1947,7 +1947,7 @@ type Querier interface {
 	//  INNER JOIN workspaces w ON w.id = d.workspace_id AND w.k8s_namespace <> ''
 	//  WHERE d.id > ?
 	//      AND d.status IN ('deploying', 'network', 'finalizing', 'ready') AND d.desired_state = 'running'
-	//      AND JSON_CONTAINS(d.features, 'true', '$.private_networking')
+	//      AND JSON_CONTAINS(d.capabilities, 'true', '$.private_networking')
 	//      AND EXISTS (
 	//          SELECT 1 FROM deployment_topology dt
 	//          INNER JOIN regions r ON r.id = dt.region_id

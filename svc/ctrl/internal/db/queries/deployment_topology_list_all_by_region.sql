@@ -31,7 +31,7 @@ SELECT
     e.slug AS environment_slug,
     e.kind AS environment_kind,
     COALESCE(a.slug, '') AS app_slug,
-    d.features AS deployment_features,
+    d.capabilities AS deployment_capabilities,
     r.name AS region_name,
     grc.repository_full_name AS git_repo
 FROM `deployment_topology` dt

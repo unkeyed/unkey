@@ -448,7 +448,7 @@ func (s *Seeder) CreateDeployment(ctx context.Context, req CreateDeploymentReque
 		Port:                          8080,
 		ShutdownSignal:                db.DeploymentsShutdownSignalSIGINT,
 		UpstreamProtocol:              db.DeploymentsUpstreamProtocolHttp1,
-		Features:                      dbtype.DeploymentFeatures{PrivateNetworking: false},
+		Capabilities:                  dbtype.DeploymentCapabilities{PrivateNetworking: false},
 		Healthcheck:                   dbtype.NullHealthcheck{Healthcheck: nil, Valid: false},
 		PrNumber:                      req.PrNumber,
 		ForkRepositoryFullName:        req.ForkRepositoryFullName,
