@@ -239,7 +239,8 @@
             "group": "Runbooks",
             "pages": [
               "infra/runbooks/key-migration",
-              "infra/runbooks/legacy-billing"
+              "infra/runbooks/legacy-billing",
+              "infra/runbooks/private-networking"
             ]
           },
           {

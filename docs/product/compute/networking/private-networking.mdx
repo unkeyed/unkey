@@ -1,38 +1,132 @@
 ---
 title: Private networking
-description: "What your instances can and cannot reach, and how to call one app from another today."
+description: "Connect apps in the same project over private DNS with app bindings and hostname variables."
 sources:
-  - svc/krane/internal/deployment/cilium.go
-  - svc/krane/internal/deployment/consts.go
-  - svc/krane/internal/deployment/namespace.go
+  - svc/undns/handler.go
   - svc/krane/internal/deployment/apply.go
+  - svc/krane/internal/privatenetwork/policies.go
+  - svc/ctrl/worker/deploy/env_file.go
+  - svc/ctrl/internal/db/queries/private_network_list_bindings.sql
 ---
 
-We don't offer private networking yet. To call one app from another, call its public hostname. The request goes out over the internet and back in through the [gateway](/compute/gateway/overview), like a call from anywhere else. Your instances can't open connections to each other.
+Private networking lets an app call another app in the same project directly, with a private hostname instead of a public domain. You grant access with an app binding: a named, one-way connection from a calling app to a target app.
 
-## Call one app from another
+<Note>
+  Private networking isn't generally available. The **Bindings** page appears only for workspaces that have private networking enabled. Behavior on this page can change before general availability.
+</Note>
 
-Use the other app's hostname, and treat the call as an external one:
+## How it works
 
-```ts
-const res = await fetch("https://billing-acme.unkey.app/invoices", {
-  headers: { Authorization: `Bearer ${process.env.BILLING_API_KEY}` },
-});
+A binding gives the calling app a hostname in the `unkey.internal` zone and a variable that holds it. For a binding named `payments`, the calling app receives:
+
+```bash
+PAYMENTS_HOST=payments.unkey.internal
 ```
 
-1. **Put the hostname and credential in [environment variables](/compute/configure/environment-variables)** of the calling app, not in code. Then a preview <Tooltip tip="One built and running version of an app in one environment.">deployment</Tooltip> can point at a preview of the other app. See [Automatic domains](/compute/networking/automatic-domains) for hostname patterns.
-2. **Protect the other app with an [API key policy](/compute/gateway/api-key-auth)**, because the call is public. Give the caller a key. Bad requests are rejected at the gateway, and the caller's identity shows up in the [request log](/compute/observe/requests).
-3. **Set a timeout.** Each call is a full HTTP round trip, so avoid chains of internal calls on a latency-sensitive path.
+When the calling app looks up the hostname, Unkey's private DNS returns the IPv4 addresses of the ready instances of one target deployment. Answers can include instances in connected regions. Unkey chooses that deployment from the binding's [target](/compute/networking/private-networking/bindings#choose-a-target). By default, a production caller reaches the target's live production deployment, and a preview caller reaches the target's preview from the same Git branch.
 
-## Share state between instances
+The binding allows traffic from the calling app to the target app on every TCP and UDP port. Traffic goes directly between instances. It doesn't pass through public domains or the [gateway](/compute/gateway/overview).
 
-Instances can't talk to each other, so anything two of them need belongs in a store they can both reach, such as a managed Redis or Postgres. Don't rely on peer-to-peer cache invalidation, leader election, or gossip between replicas. For long-lived connections, see [WebSockets](/compute/networking/websockets).
+## Scope and isolation
 
-## What your instances can and can't reach
+Traffic between deployments is denied unless a binding allows it. Bindings follow these rules:
 
-- **Outbound: anything.** Your app can call any host it can resolve: a database, a third-party API, an object store, or another Unkey app.
-- **Inbound: only the gateway**, on your app's port. Nothing else can reach an instance: not other instances of the same deployment, not other apps in the project, not older deployments of the same app.
+- A binding connects two apps in the same project.
+- Each binding belongs to one environment of the calling app. Production and preview have separate bindings.
+- Access goes in one direction only. For the target app to call the calling app, add a binding on the target app.
+- Hostnames are scoped to the calling app and environment. A deployment without the binding can't resolve the hostname, and two apps can use the same binding name for different targets.
+- Sharing a project or an environment type doesn't grant network access.
 
-A blocked connection isn't refused or reset. It's silently dropped, so the caller just times out. If you see that, this is the likely cause.
+Private traffic skips the gateway, so gateway policies such as [API key authentication](/compute/gateway/api-key-auth) and [rate limiting](/compute/gateway/rate-limiting) don't apply to it. Unkey doesn't issue TLS certificates for `unkey.internal` hostnames. If a private connection needs encryption or authentication, configure it in your apps.
 
-Instances also run in a sandbox and get no credentials to our infrastructure.
+## Connect two apps
+
+A binding needs two apps in the same project. The target app must have a deployment that the binding can select, for example a live production deployment.
+
+1. Open the calling app and navigate to **Bindings**.
+2. Select the calling app's environment from **Environment**.
+3. Click **Add binding**, then click **App**.
+4. Select the target app.
+5. Click **Add binding**.
+6. Redeploy the calling app in that environment.
+
+Unkey names the binding after the target app's slug. For example, a target app with the slug `payments` produces the variable `PAYMENTS_HOST`. Select the binding on the canvas to view its variable and hostname, rename it, or [change its target](/compute/networking/private-networking/bindings#choose-a-target).
+
+The variable reaches the calling app with its next deployment. Existing deployments that already use private DNS can resolve new bindings, but don't receive new variables. Redeploy callers that started before the workspace had private networking to configure private DNS too.
+
+<Note>
+  If the calling app deploys from a container image instead of a Git repository, a preview binding needs a **Target environment**. There's no Git branch to match automatically.
+</Note>
+
+## Use the hostname in your app
+
+The variable holds a hostname only, without a scheme or port. Combine it with the port that the target app listens on. This can be its configured [port](/compute/configure/runtime-settings#container) or an extra private port. Unkey doesn't inject the target's port, so store it in a [variable](/compute/configure/environment-variables) or in your code.
+
+<CodeGroup>
+
+```javascript Node.js
+const host = process.env.PAYMENTS_HOST;
+const port = process.env.PAYMENTS_PORT ?? "8080";
+
+const url = `http://${host}:${port}/charges`;
+const response = await fetch(url);
+```
+
+```python Python
+import os
+import urllib.request
+
+host = os.environ["PAYMENTS_HOST"]
+port = os.environ.get("PAYMENTS_PORT", "8080")
+
+url = f"http://{host}:{port}/charges"
+with urllib.request.urlopen(url, timeout=5) as response:
+    body = response.read()
+```
+
+</CodeGroup>
+
+The same pattern works for any TCP or UDP protocol. Pass the hostname and port to your database driver, gRPC client, or queue client.
+
+### Listen for private traffic
+
+The target app must listen on all IPv4 interfaces (`0.0.0.0`), not only on `localhost`. Most apps that already serve public traffic on `PORT` need no change.
+
+A binding allows every TCP and UDP port, so the target app can serve extra ports for private callers only. Public traffic reaches only the configured port. For example, an app can serve HTTP on its configured port 8080 and gRPC on port 9090 for bound apps.
+
+### DNS behavior
+
+Private DNS answers follow these rules:
+
+- Answers contain IPv4 (`A`) records only. Lookups for IPv6 (`AAAA`) records return no addresses.
+- Addresses come back in random order. Clients that use the first address spread connections across instances. Unkey doesn't add a load balancer in front of private traffic.
+- Answers have a short TTL. Resolve the hostname again when you open new connections. Existing connections aren't moved when the target changes.
+- Use the full hostname. Short names such as `payments` don't resolve.
+- Public hostnames resolve as usual.
+
+## Connect instances of the same deployment
+
+Eligible deployments in a workspace with private networking get the `UNKEY_DEPLOYMENT_HOST` variable, set to `<app-slug>.unkey.internal`. The hostname resolves to the ready instances of that same deployment, including those in connected regions. It doesn't include older or newer deployments of the app.
+
+Instances of a deployment can reach each other through this hostname on every TCP and UDP port. Use it for peer discovery, clustering, or sending messages to every instance. You don't need to add a binding for it.
+
+Unkey sets `UNKEY_DEPLOYMENT_HOST` when all of these are true:
+
+- The workspace has at least one binding between two apps.
+- The app slug is a valid DNS label: up to 63 lowercase letters, numbers, and hyphens, starting and ending with a letter or number.
+- The instance was configured with private networking enabled. Redeploy apps that were already running to add it.
+
+Binding names can't reuse the calling app's own slug, because that name belongs to `UNKEY_DEPLOYMENT_HOST`.
+
+## Limitations
+
+Private networking has these limits:
+
+- Only TCP and UDP over IPv4. ICMP (`ping`), SCTP, broadcast, and multicast traffic is denied.
+- Only apps in the same project.
+- Only running deployments can be binding targets.
+- No TLS certificates for `unkey.internal` hostnames.
+
+## Next steps
+
+Read [App bindings](/compute/networking/private-networking/bindings) for names, targets, rollbacks, and changes to bindings. Use [Private networking troubleshooting](/compute/networking/private-networking/troubleshooting) to fix missing variables, DNS failures, and failed connections.
