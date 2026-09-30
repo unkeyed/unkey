@@ -509,6 +509,24 @@ func (e V2PortalCreateSessionRequestBodyScopes) Valid() bool {
 	}
 }
 
+// Defines values for V2PortalListSessionsSessionStatus.
+const (
+	Active  V2PortalListSessionsSessionStatus = "active"
+	Pending V2PortalListSessionsSessionStatus = "pending"
+)
+
+// Valid indicates whether the value is a known member of the V2PortalListSessionsSessionStatus enum.
+func (e V2PortalListSessionsSessionStatus) Valid() bool {
+	switch e {
+	case Active:
+		return true
+	case Pending:
+		return true
+	default:
+		return false
+	}
+}
+
 // App defines model for App.
 type App struct {
 	// CreatedAt Unix timestamp in milliseconds when the app was created.
@@ -5888,6 +5906,94 @@ type V2PortalListKeysResponseBody struct {
 // V2PortalListKeysResponseData Array of the portal end user's API keys.
 type V2PortalListKeysResponseData = []KeyResponseData
 
+// V2PortalListSessionsRequestBody defines model for V2PortalListSessionsRequestBody.
+type V2PortalListSessionsRequestBody struct {
+	// Cursor Pagination cursor from a previous response to fetch the next page.
+	// Use when `hasMore: true` in the previous response.
+	//
+	//
+	// Example: user_123
+	Cursor *string `json:"cursor,omitempty"`
+
+	// Limit Maximum number of end users to return per request.
+	Limit *int `json:"limit,omitempty"`
+
+	// Portal Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	//
+	//
+	// Example: proj_1234abcd
+	Portal ResourceIdentifier `json:"portal"`
+
+	// Search Returns only end users whose `externalId` starts with this string.
+	// Matching is case-sensitive, and `%` and `_` match literally.
+	//
+	//
+	// Example: user_
+	Search *string `json:"search,omitempty"`
+}
+
+// V2PortalListSessionsResponseBody defines model for V2PortalListSessionsResponseBody.
+type V2PortalListSessionsResponseBody struct {
+	// Data End users with revocable sessions, ordered by `externalId`.
+	Data []V2PortalListSessionsResponseData `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+
+	// Pagination Pagination metadata for list endpoints. Provides information necessary to traverse through large result sets efficiently using cursor-based pagination.
+	Pagination Pagination `json:"pagination"`
+}
+
+// V2PortalListSessionsResponseData defines model for V2PortalListSessionsResponseData.
+type V2PortalListSessionsResponseData struct {
+	// ExternalId The end user's identifier, as passed to `portal.createSession`.
+	//
+	// Example: user_123
+	ExternalId string `json:"externalId"`
+
+	// Sessions The end user's revocable sessions, newest first.
+	Sessions []V2PortalListSessionsSession `json:"sessions"`
+}
+
+// V2PortalListSessionsSession defines model for V2PortalListSessionsSession.
+type V2PortalListSessionsSession struct {
+	// CreatedAt When the session was created, in Unix milliseconds.
+	//
+	// Example: 1704067200000
+	CreatedAt int64 `json:"createdAt"`
+
+	// ExpiresAt When the session stops working, in Unix milliseconds. For a `pending`
+	// session this is when its portal URL expires.
+	//
+	//
+	// Example: 1704153600000
+	ExpiresAt int64 `json:"expiresAt"`
+
+	// Id The session id.
+	//
+	// Example: ps_1234abcd
+	Id string `json:"id"`
+
+	// Scopes The capabilities the session was created with.
+	//
+	// Example: ["keys:read"]
+	Scopes []string `json:"scopes"`
+
+	// Status `pending` when the portal URL was created but not opened yet. `active`
+	// when the end user opened it.
+	//
+	//
+	// Example: active
+	Status V2PortalListSessionsSessionStatus `json:"status"`
+}
+
+// V2PortalListSessionsSessionStatus `pending` when the portal URL was created but not opened yet. `active`
+// when the end user opened it.
+//
+// Example: active
+type V2PortalListSessionsSessionStatus string
+
 // V2PortalRevokeSessionRequestBody defines model for V2PortalRevokeSessionRequestBody.
 type V2PortalRevokeSessionRequestBody struct {
 	// ExternalId The end user's identifier in your system, as passed to
@@ -6965,6 +7071,9 @@ type PortalGetVerificationsJSONRequestBody = V2PortalGetVerificationsRequestBody
 
 // PortalListKeysJSONRequestBody defines body for PortalListKeys for application/json ContentType.
 type PortalListKeysJSONRequestBody = V2PortalListKeysRequestBody
+
+// PortalListSessionsJSONRequestBody defines body for PortalListSessions for application/json ContentType.
+type PortalListSessionsJSONRequestBody = V2PortalListSessionsRequestBody
 
 // PortalRerollKeyJSONRequestBody defines body for PortalRerollKey for application/json ContentType.
 type PortalRerollKeyJSONRequestBody = V2KeysRerollKeyRequestBody

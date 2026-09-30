@@ -1,0 +1,73 @@
+post:
+  x-excluded: true
+  tags:
+    - portal
+  summary: List portal sessions
+  description: |
+    List the end users holding a revocable session on a portal, with each
+    end user's sessions.
+
+    Unreleased and subject to change without notice.
+
+    A session is revocable until it expires or is revoked. That includes
+    sessions whose portal URL was created but not opened yet. Pass an end
+    user's `externalId` to `portal.revokeSession` to end their sessions.
+
+    **Required Permissions**
+
+    Your root key must have one of:
+    - `portal.*.read_portal` (for any portal in the workspace)
+    - `portal.<portal_id>.read_portal` (for a specific portal)
+
+    It also accepts `unkey:v1:<workspace_id>:projects/<project_id>/portals/<portal_id>#read`.
+
+    Without the permission this returns **404**, not 403.
+  operationId: portal.listSessions
+  x-speakeasy-name-override: listSessions
+  security:
+    - bearer: []
+  requestBody:
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2PortalListSessionsRequestBody.yaml"
+    required: true
+  responses:
+    "200":
+      description: |
+        One page of end users with revocable sessions.
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2PortalListSessionsResponseBody.yaml"
+    "400":
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/BadRequestErrorResponse.yaml"
+    "401":
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
+    "404":
+      description: |
+        No such portal, or your root key may not read it.
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/NotFoundErrorResponse.yaml"
+    "429":
+      description: Too Many Requests
+      content:
+        application/problem+json:
+          schema:
+            "$ref": "../../../../error/TooManyRequestsErrorResponse.yaml"
+    "500":
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/InternalServerErrorResponse.yaml"

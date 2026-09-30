@@ -1,0 +1,15 @@
+type: object
+required:
+  - externalId
+  - sessions
+properties:
+  externalId:
+    type: string
+    description: The end user's identifier, as passed to `portal.createSession`.
+    example: user_123
+  sessions:
+    type: array
+    items:
+      "$ref": "./V2PortalListSessionsSession.yaml"
+    description: The end user's revocable sessions, newest first.
+additionalProperties: false
