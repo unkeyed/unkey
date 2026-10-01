@@ -208,6 +208,34 @@ production deploy request is rejected as a rename. Each pass must be present in
 Tightening to `NOT NULL` fails if the additive pass left NULLs behind, so
 backfill or clear the table before the drop pass.
 
+### Backfill additive columns before enabling readers
+
+When existing rows need a value in an additive column, use an idempotent,
+batched migration from `web/tools/migrate`. Run the migration against staging
+and production after the nullable column exists, but before you enable code that
+reads or validates the value. Confirm that the migration completes in each
+environment before continuing the rollout.
+
+Old application instances can keep writing rows without the new value during a
+rolling deployment. After every old writer has stopped, rerun the migration and
+confirm that no eligible rows remain. Only then enable readers, validation, or a
+follow-up `NOT NULL` constraint that depends on the backfill.
+
+For `deployments.first_ready_at`, run:
+
+```bash
+DRIZZLE_DATABASE_URL='<branch connection string>' \
+  mise exec -- pnpm --dir=web/tools/migrate deployment-first-ready-at
+```
+
+The migration preserves existing markers. For historical rows, it uses the end
+of a successful finalizing step as proof that the deployment reached ready. The
+worker writes ready before it completes that step, so `ended_at` is a durable
+upper-bound approximation when the exact event time wasn't recorded. A row that
+is still ready but has no successful finalizing history uses its deployment
+update time, with its creation time as a fallback. Other stopped, failed,
+pending, and awaiting-approval rows remain unmarked.
+
 <Warning>
   Route both passes through `staging`. Do not shortcut a branch straight into
   `main`, and do not skip `main` at the end of the additive pass.
