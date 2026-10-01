@@ -7,6 +7,7 @@ import { match } from "@unkey/match";
 import {
   Button,
   FormInput,
+  FormTextarea,
   Select,
   SelectContent,
   SelectItem,
@@ -19,7 +20,12 @@ import { cn } from "cn";
 import { useState } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
 import type { MatchConditionFormValues, PolicyFormValues } from "../schema";
-import { HTTP_METHODS, STRING_MATCH_MODES, validateRegexSyntax } from "./constants";
+import {
+  HTTP_METHODS,
+  REMOTE_IP_OPERATORS,
+  STRING_MATCH_MODES,
+  validateRegexSyntax,
+} from "./constants";
 
 type ConditionFieldErrors = Partial<Record<string, { message?: string }>> | undefined;
 
@@ -227,6 +233,47 @@ export function ConditionFields({
         </div>
       );
     })
+    .with({ type: "remoteIp" }, (c) => (
+      <div className="flex gap-2">
+        <div className="w-36 shrink-0">
+          <fieldset className="flex flex-col gap-1.5 border-0 m-0 p-0">
+            <label htmlFor={`remote-ip-operator-${c.id}`} className="text-gray-11 text-sm h-[22px]">
+              Operator
+            </label>
+            <Select
+              value={c.operator}
+              onValueChange={(v) => patch({ ...c, operator: v as "in" | "notIn" })}
+              items={REMOTE_IP_OPERATORS}
+            >
+              <SelectTrigger
+                id={`remote-ip-operator-${c.id}`}
+                rightIcon={<IconChevronDownOutline18 className="size-3.5 absolute right-2" />}
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {REMOTE_IP_OPERATORS.map((o) => (
+                  <SelectItem key={o.value} value={o.value}>
+                    {o.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </fieldset>
+        </div>
+        <FormTextarea
+          label="IP ranges"
+          requirement="required"
+          placeholder={"203.0.113.0/24\n198.51.100.7"}
+          value={c.ranges}
+          onChange={(e) => patch({ ...c, ranges: e.target.value })}
+          className="flex-1"
+          descriptionPosition="label"
+          description="One IP address or CIDR per line, or comma separated."
+          error={errors?.ranges?.message}
+        />
+      </div>
+    ))
     .exhaustive();
 }
 
