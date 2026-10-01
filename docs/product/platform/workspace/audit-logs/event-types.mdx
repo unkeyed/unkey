@@ -10,7 +10,16 @@ sources:
 
 Every audit log entry has one of the event names below, in the form `resource.action` (a few have an extra part, such as `portal.session.create`). Filter on them in the dashboard's **Events** menu or in a [log drain](/platform/workspace/log-drains).
 
-The **Events** menu and the log drain picker also list six names that are never recorded: `environment.create`, `deployment.redeploy`, `secret.update`, and three `webhook.*` names. Filtering on them matches nothing. Unkey doesn't send webhooks. Use a [log drain](/platform/workspace/log-drains) to forward entries to your own endpoint.
+The **Events** menu and the log drain picker also list six event types that aren't recorded. Filtering on these event types matches nothing:
+
+- `environment.create`
+- `deployment.redeploy`
+- `secret.update`
+- `webhook.create`
+- `webhook.update`
+- `webhook.delete`
+
+Unkey doesn't send webhooks. Use a [log drain](/platform/workspace/log-drains) to forward entries to your own endpoint.
 
 ## Workspace
 
@@ -32,11 +41,22 @@ The **Events** menu and the log drain picker also list six names that are never 
 | `api.create` | A keyspace is created. |
 | `api.update` | A keyspace setting changes, including delete protection. |
 | `api.delete` | A keyspace is deleted. |
-| `key.create` | A key is created, including root keys and keys created through a portal session. |
+| `key.create` | A key is created, including keys created through a portal session. |
 | `key.update` | A key's fields, credits, permissions, or roles change. |
-| `key.reroll` | A key is rerolled or a root key is rotated. |
+| `key.reroll` | A key is rerolled. |
 | `key.delete` | A key is deleted. |
 | `key.verify` | A root key calls `keys.verifyKey`. |
+
+## Root keys
+
+Root-key lifecycle actions use separate events from API key actions.
+
+| Event | Recorded when |
+| --- | --- |
+| `rootKey.create` | A root key is created. |
+| `rootKey.update` | A root key's name or permissions change. |
+| `rootKey.reroll` | A root key is rerolled. |
+| `rootKey.delete` | A root key is deleted. |
 
 ## Authorization
 
