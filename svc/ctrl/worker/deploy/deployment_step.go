@@ -63,6 +63,12 @@ func DeploymentStep[C restate.Context](
 					restate.WithErrorCode(409),
 				)
 			}
+			if _, err := db.NewQueries(tx).LockActiveEnvironment(txCtx, current.EnvironmentID); err != nil {
+				if db.IsNotFound(err) {
+					return restate.ToTerminalError(fmt.Errorf("environment is not active: %w", err), restate.WithErrorCode(409))
+				}
+				return err
+			}
 
 			if err := db.NewQueries(tx).InsertDeploymentStep(txCtx, db.InsertDeploymentStepParams{
 				WorkspaceID:   current.WorkspaceID,
