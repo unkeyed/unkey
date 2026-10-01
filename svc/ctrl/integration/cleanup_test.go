@@ -31,18 +31,13 @@ import (
 //
 // It seeds a project with a full resource tree, then calls ProjectService/Delete
 // through the Restate ingress and asserts that every table is cleaned up.
-//
-// Note: instances are NOT covered here. They are cleaned up asynchronously by
-// the reconciler once k8s pods are removed, not by the project delete handler.
 func TestProjectDeletion_CleansUpAllData(t *testing.T) {
 	h := New(t)
-	ctx := h.Context()
+	ctx, cancel := context.WithTimeout(t.Context(), 90*time.Second)
+	defer cancel()
 	auditlogsService, err := auditlogs.New(auditlogs.Config{DB: h.DB})
 	require.NoError(t, err)
 
-	// The environment delete handler only calls Admin to cancel a deployment's
-	// in-flight Restate invocation, and seeded deployments have no invocation id,
-	// so Admin is never exercised here. It just has to be non-nil.
 	envSvc, err := workerenvironment.New(workerenvironment.Config{
 		DB:        h.DB,
 		Admin:     restateadmin.New(restateadmin.Config{BaseURL: "http://127.0.0.1:9070", APIKey: ""}),
@@ -252,15 +247,54 @@ func TestProjectDeletion_CleansUpAllData(t *testing.T) {
 		require.Equal(t, 1, countRows(t, ctx, h.DB, c.query, c.arg))
 	}
 
-	// --- Trigger deletion via Restate ingress ---
-
+	secondRegion := h.Seed.CreateRegion(ctx, seed.CreateRegionRequest{Name: uid.DNS1035(), Platform: "test"})
+	require.NoError(t, h.DB.InsertDeploymentTopology(ctx, db.InsertDeploymentTopologyParams{
+		WorkspaceID: workspaceID, DeploymentID: deployment.ID, RegionID: secondRegion.ID,
+		AutoscalingReplicasMin: 1, AutoscalingReplicasMax: 1,
+		DesiredStatus: db.DeploymentTopologyDesiredStatusRunning, CreatedAt: now,
+	}))
+	h.Seed.CreateInstance(ctx, seed.CreateInstanceRequest{
+		WorkspaceID: workspaceID, ProjectID: project.ID, AppID: app.ID,
+		DeploymentID: deployment.ID, RegionID: region.ID, Address: "10.0.0.1",
+	})
 	projectClient := hydrav1.NewProjectServiceIngressClient(tEnv.Ingress(), project.ID)
+	completed := make(chan error, 1)
+	go func() {
+		_, deleteErr := projectClient.Delete().Request(ctx, &hydrav1.DeleteProjectRequest{})
+		completed <- deleteErr
+	}()
+	require.Eventually(t, func() bool {
+		return countRows(t, ctx, h.DB, "SELECT COUNT(*) FROM environments WHERE id = ? AND deleting_at IS NOT NULL", env.ID) == 1
+	}, 30*time.Second, 25*time.Millisecond)
+
+	require.NoError(t, h.DB.DeleteDeploymentInstances(ctx, db.DeleteDeploymentInstancesParams{
+		DeploymentID: deployment.ID, RegionID: region.ID,
+	}))
+	require.Equal(t, 0, countRows(t, ctx, h.DB, "SELECT COUNT(*) FROM instances WHERE deployment_id = ?", deployment.ID))
+	for _, regionID := range []string{region.ID, secondRegion.ID} {
+		select {
+		case err := <-completed:
+			t.Fatalf("deletion completed before every region confirmed removal: %v", err)
+		case <-time.After(1500 * time.Millisecond):
+		}
+		for _, check := range checks[:4] {
+			require.Equal(t, 1, countRows(t, ctx, h.DB, check.query, check.arg))
+		}
+		removed, err := h.DB.ConfirmDeploymentTopologyRemoval(ctx, db.ConfirmDeploymentTopologyRemovalParams{
+			DeploymentID: deployment.ID, RegionID: regionID,
+		})
+		require.NoError(t, err)
+		require.EqualValues(t, 1, removed)
+	}
+	select {
+	case err := <-completed:
+		require.NoError(t, err)
+	case <-ctx.Done():
+		t.Fatal(ctx.Err())
+	}
 	_, err = projectClient.Delete().Request(ctx, &hydrav1.DeleteProjectRequest{})
 	require.NoError(t, err)
 
-	// The project handler fires off app deletions via .Send() (durable but async).
-	// The app handler fires off environment deletions via .Send() (also async).
-	// Poll each table until it's empty.
 	for _, c := range checks {
 		c := c
 		require.Eventually(t, func() bool {
@@ -269,8 +303,6 @@ func TestProjectDeletion_CleansUpAllData(t *testing.T) {
 	}
 }
 
-// countRows executes a query that returns a single COUNT(*) value.
-//
 //nolint:gosec // queries are test constants, not user input
 func countRows(t *testing.T, ctx context.Context, database db.Database, query string, args ...any) int {
 	t.Helper()

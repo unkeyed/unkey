@@ -12,6 +12,46 @@ import (
 	"github.com/unkeyed/unkey/pkg/uid"
 )
 
+func TestCancelInvocation(t *testing.T) {
+	for _, tt := range []struct {
+		name    string
+		status  int
+		body    string
+		wantErr bool
+	}{
+		{name: "cancelled", status: http.StatusOK, body: "", wantErr: false},
+		{name: "cancellation initiated", status: http.StatusAccepted, body: "", wantErr: false},
+		{name: "not found", status: http.StatusNotFound, body: "", wantErr: false},
+		{name: "already completed", status: http.StatusConflict, body: `{"message":"The invocation 'inv_test' was already completed.","restate_code":null}`, wantErr: false},
+		{name: "invalid invocation", status: http.StatusBadRequest, body: "invalid invocation id", wantErr: true},
+		{name: "unauthorized", status: http.StatusUnauthorized, body: "unauthorized", wantErr: true},
+		{name: "forbidden", status: http.StatusForbidden, body: "forbidden", wantErr: true},
+		{name: "server failure", status: http.StatusInternalServerError, body: "internal error", wantErr: true},
+		{name: "unavailable", status: http.StatusServiceUnavailable, body: "unavailable", wantErr: true},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			var method, path string
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				method, path = r.Method, r.URL.Path
+				w.WriteHeader(tt.status)
+				if _, err := io.WriteString(w, tt.body); err != nil {
+					t.Error(err)
+				}
+			}))
+			t.Cleanup(server.Close)
+
+			err := New(Config{BaseURL: server.URL, APIKey: ""}).CancelInvocation(t.Context(), "inv_test")
+			if tt.wantErr {
+				require.ErrorContains(t, err, tt.body)
+			} else {
+				require.NoError(t, err)
+			}
+			require.Equal(t, http.MethodPatch, method)
+			require.Equal(t, "/invocations/inv_test/cancel", path)
+		})
+	}
+}
+
 func TestFindLiveInvocations(t *testing.T) {
 	var gotAccept, gotQuery string
 	aliveInvocationID1 := uid.New("inv")
