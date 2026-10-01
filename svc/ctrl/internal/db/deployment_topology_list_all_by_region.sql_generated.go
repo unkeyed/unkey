@@ -15,6 +15,8 @@ import (
 const listAllDeploymentTopologiesByRegion = `-- name: ListAllDeploymentTopologiesByRegion :many
 SELECT
     dt.pk AS topology_pk,
+    CAST((p.id IS NULL OR a.id IS NULL OR e.id IS NULL
+      OR p.deleting_at IS NOT NULL OR a.deleting_at IS NOT NULL OR e.deleting_at IS NOT NULL) AS SIGNED) AS removal_required,
     dt.autoscaling_replicas_min AS topology_autoscaling_replicas_min,
     dt.autoscaling_replicas_max AS topology_autoscaling_replicas_max,
     dt.autoscaling_threshold_cpu AS topology_autoscaling_threshold_cpu,
@@ -40,16 +42,29 @@ SELECT
     d.shutdown_signal AS deployment_shutdown_signal,
     d.healthcheck AS deployment_healthcheck,
     w.k8s_namespace,
-    e.slug AS environment_slug,
+    COALESCE(e.slug, '') AS environment_slug,
     r.name AS region_name,
     grc.repository_full_name AS git_repo
 FROM ` + "`" + `deployment_topology` + "`" + ` dt
 INNER JOIN ` + "`" + `deployments` + "`" + ` d ON d.id = dt.deployment_id
 INNER JOIN ` + "`" + `workspaces` + "`" + ` w ON w.id = d.workspace_id
 INNER JOIN ` + "`" + `regions` + "`" + ` r ON r.id = dt.region_id
-INNER JOIN ` + "`" + `environments` + "`" + ` e ON e.id = d.environment_id
+LEFT JOIN ` + "`" + `projects` + "`" + ` p ON p.id = d.project_id
+LEFT JOIN ` + "`" + `apps` + "`" + ` a ON a.id = d.app_id
+LEFT JOIN ` + "`" + `environments` + "`" + ` e ON e.id = d.environment_id
 LEFT JOIN ` + "`" + `github_repo_connections` + "`" + ` grc ON grc.app_id = d.app_id
-WHERE r.id = ? AND dt.pk > ? AND dt.desired_status = 'running'
+WHERE r.id = ?
+  AND dt.pk > ?
+  AND (
+    dt.desired_status = 'running'
+    OR p.id IS NULL OR a.id IS NULL OR e.id IS NULL
+    OR p.deleting_at IS NOT NULL OR a.deleting_at IS NOT NULL OR e.deleting_at IS NOT NULL
+    OR (d.desired_state = 'stopped' AND d.status <> 'stopped')
+    OR EXISTS (
+      SELECT 1 FROM ` + "`" + `instances` + "`" + ` i
+      WHERE i.deployment_id = dt.deployment_id AND i.region_id = dt.region_id
+    )
+  )
 ORDER BY dt.pk ASC
 LIMIT ?
 `
@@ -62,6 +77,7 @@ type ListAllDeploymentTopologiesByRegionParams struct {
 
 type ListAllDeploymentTopologiesByRegionRow struct {
 	TopologyPk                              uint64                          `db:"topology_pk"`
+	RemovalRequired                         int64                           `db:"removal_required"`
 	TopologyAutoscalingReplicasMin          uint32                          `db:"topology_autoscaling_replicas_min"`
 	TopologyAutoscalingReplicasMax          uint32                          `db:"topology_autoscaling_replicas_max"`
 	TopologyAutoscalingThresholdCpu         sql.NullInt16                   `db:"topology_autoscaling_threshold_cpu"`
@@ -92,11 +108,12 @@ type ListAllDeploymentTopologiesByRegionRow struct {
 	GitRepo                                 sql.NullString                  `db:"git_repo"`
 }
 
-// ListAllDeploymentTopologiesByRegion returns running deployment topologies for a region, paginated by pk.
-// Used by SyncDesiredState to reconcile krane agents with current desired state.
+// ListAllDeploymentTopologiesByRegion
 //
 //	SELECT
 //	    dt.pk AS topology_pk,
+//	    CAST((p.id IS NULL OR a.id IS NULL OR e.id IS NULL
+//	      OR p.deleting_at IS NOT NULL OR a.deleting_at IS NOT NULL OR e.deleting_at IS NOT NULL) AS SIGNED) AS removal_required,
 //	    dt.autoscaling_replicas_min AS topology_autoscaling_replicas_min,
 //	    dt.autoscaling_replicas_max AS topology_autoscaling_replicas_max,
 //	    dt.autoscaling_threshold_cpu AS topology_autoscaling_threshold_cpu,
@@ -122,16 +139,29 @@ type ListAllDeploymentTopologiesByRegionRow struct {
 //	    d.shutdown_signal AS deployment_shutdown_signal,
 //	    d.healthcheck AS deployment_healthcheck,
 //	    w.k8s_namespace,
-//	    e.slug AS environment_slug,
+//	    COALESCE(e.slug, '') AS environment_slug,
 //	    r.name AS region_name,
 //	    grc.repository_full_name AS git_repo
 //	FROM `deployment_topology` dt
 //	INNER JOIN `deployments` d ON d.id = dt.deployment_id
 //	INNER JOIN `workspaces` w ON w.id = d.workspace_id
 //	INNER JOIN `regions` r ON r.id = dt.region_id
-//	INNER JOIN `environments` e ON e.id = d.environment_id
+//	LEFT JOIN `projects` p ON p.id = d.project_id
+//	LEFT JOIN `apps` a ON a.id = d.app_id
+//	LEFT JOIN `environments` e ON e.id = d.environment_id
 //	LEFT JOIN `github_repo_connections` grc ON grc.app_id = d.app_id
-//	WHERE r.id = ? AND dt.pk > ? AND dt.desired_status = 'running'
+//	WHERE r.id = ?
+//	  AND dt.pk > ?
+//	  AND (
+//	    dt.desired_status = 'running'
+//	    OR p.id IS NULL OR a.id IS NULL OR e.id IS NULL
+//	    OR p.deleting_at IS NOT NULL OR a.deleting_at IS NOT NULL OR e.deleting_at IS NOT NULL
+//	    OR (d.desired_state = 'stopped' AND d.status <> 'stopped')
+//	    OR EXISTS (
+//	      SELECT 1 FROM `instances` i
+//	      WHERE i.deployment_id = dt.deployment_id AND i.region_id = dt.region_id
+//	    )
+//	  )
 //	ORDER BY dt.pk ASC
 //	LIMIT ?
 func (q *Queries) ListAllDeploymentTopologiesByRegion(ctx context.Context, arg ListAllDeploymentTopologiesByRegionParams) ([]ListAllDeploymentTopologiesByRegionRow, error) {
@@ -145,6 +175,7 @@ func (q *Queries) ListAllDeploymentTopologiesByRegion(ctx context.Context, arg L
 		var i ListAllDeploymentTopologiesByRegionRow
 		if err := rows.Scan(
 			&i.TopologyPk,
+			&i.RemovalRequired,
 			&i.TopologyAutoscalingReplicasMin,
 			&i.TopologyAutoscalingReplicasMax,
 			&i.TopologyAutoscalingThresholdCpu,

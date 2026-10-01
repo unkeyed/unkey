@@ -1513,9 +1513,12 @@ func (x *AutoscalingPolicy) GetMemoryThreshold() int32 {
 
 // DeleteDeployment identifies a ReplicaSet to remove by namespace and name.
 type DeleteDeployment struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	K8SNamespace  string                 `protobuf:"bytes,1,opt,name=k8s_namespace,json=k8sNamespace,proto3" json:"k8s_namespace,omitempty"`
-	K8SName       string                 `protobuf:"bytes,2,opt,name=k8s_name,json=k8sName,proto3" json:"k8s_name,omitempty"`
+	state        protoimpl.MessageState `protogen:"open.v1"`
+	K8SNamespace string                 `protobuf:"bytes,1,opt,name=k8s_namespace,json=k8sNamespace,proto3" json:"k8s_namespace,omitempty"`
+	K8SName      string                 `protobuf:"bytes,2,opt,name=k8s_name,json=k8sName,proto3" json:"k8s_name,omitempty"`
+	DeploymentId string                 `protobuf:"bytes,3,opt,name=deployment_id,json=deploymentId,proto3" json:"deployment_id,omitempty"`
+	// Permanent removal requires a removal_confirmed status report.
+	Permanent     bool `protobuf:"varint,4,opt,name=permanent,proto3" json:"permanent,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1562,6 +1565,20 @@ func (x *DeleteDeployment) GetK8SName() string {
 		return x.K8SName
 	}
 	return ""
+}
+
+func (x *DeleteDeployment) GetDeploymentId() string {
+	if x != nil {
+		return x.DeploymentId
+	}
+	return ""
+}
+
+func (x *DeleteDeployment) GetPermanent() bool {
+	if x != nil {
+		return x.Permanent
+	}
+	return false
 }
 
 // HeartbeatRequest is sent periodically by krane agents to register their
@@ -1700,10 +1717,13 @@ func (x *ReportDeploymentStatusRequest_Update) GetInstances() []*ReportDeploymen
 }
 
 type ReportDeploymentStatusRequest_Delete struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	K8SName       string                 `protobuf:"bytes,1,opt,name=k8s_name,json=k8sName,proto3" json:"k8s_name,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state   protoimpl.MessageState `protogen:"open.v1"`
+	K8SName string                 `protobuf:"bytes,1,opt,name=k8s_name,json=k8sName,proto3" json:"k8s_name,omitempty"`
+	// Set only after permanent removal has observed no ReplicaSet or pods.
+	RemovalConfirmed bool   `protobuf:"varint,2,opt,name=removal_confirmed,json=removalConfirmed,proto3" json:"removal_confirmed,omitempty"`
+	DeploymentId     string `protobuf:"bytes,3,opt,name=deployment_id,json=deploymentId,proto3" json:"deployment_id,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *ReportDeploymentStatusRequest_Delete) Reset() {
@@ -1739,6 +1759,20 @@ func (*ReportDeploymentStatusRequest_Delete) Descriptor() ([]byte, []int) {
 func (x *ReportDeploymentStatusRequest_Delete) GetK8SName() string {
 	if x != nil {
 		return x.K8SName
+	}
+	return ""
+}
+
+func (x *ReportDeploymentStatusRequest_Delete) GetRemovalConfirmed() bool {
+	if x != nil {
+		return x.RemovalConfirmed
+	}
+	return false
+}
+
+func (x *ReportDeploymentStatusRequest_Delete) GetDeploymentId() string {
+	if x != nil {
+		return x.DeploymentId
 	}
 	return ""
 }
@@ -1843,7 +1877,7 @@ const file_ctrl_v1_cluster_proto_rawDesc = "" +
 	"\x05event\"v\n" +
 	" GetDesiredDeploymentStateRequest\x12-\n" +
 	"\acluster\x18\x01 \x01(\v2\x13.ctrl.v1.ClusterKeyR\acluster\x12#\n" +
-	"\rdeployment_id\x18\x02 \x01(\tR\fdeploymentId\"\xc7\x05\n" +
+	"\rdeployment_id\x18\x02 \x01(\tR\fdeploymentId\"\x99\x06\n" +
 	"\x1dReportDeploymentStatusRequest\x12-\n" +
 	"\acluster\x18\x03 \x01(\v2\x13.ctrl.v1.ClusterKeyR\acluster\x12G\n" +
 	"\x06update\x18\x01 \x01(\v2-.ctrl.v1.ReportDeploymentStatusRequest.UpdateH\x00R\x06update\x12G\n" +
@@ -1862,9 +1896,11 @@ const file_ctrl_v1_cluster_proto_rawDesc = "" +
 	"\x12STATUS_UNSPECIFIED\x10\x00\x12\x12\n" +
 	"\x0eSTATUS_PENDING\x10\x01\x12\x12\n" +
 	"\x0eSTATUS_RUNNING\x10\x02\x12\x11\n" +
-	"\rSTATUS_FAILED\x10\x03\x1a#\n" +
+	"\rSTATUS_FAILED\x10\x03\x1au\n" +
 	"\x06Delete\x12\x19\n" +
-	"\bk8s_name\x18\x01 \x01(\tR\ak8sNameB\b\n" +
+	"\bk8s_name\x18\x01 \x01(\tR\ak8sName\x12+\n" +
+	"\x11removal_confirmed\x18\x02 \x01(\bR\x10removalConfirmed\x12#\n" +
+	"\rdeployment_id\x18\x03 \x01(\tR\fdeploymentIdB\b\n" +
 	"\x06change\" \n" +
 	"\x1eReportDeploymentStatusResponse\"\xd8\x05\n" +
 	"\rInstanceEvent\x12\x17\n" +
@@ -1957,10 +1993,12 @@ const file_ctrl_v1_cluster_proto_rawDesc = "" +
 	"\rcpu_threshold\x18\x03 \x01(\x05H\x00R\fcpuThreshold\x88\x01\x01\x12.\n" +
 	"\x10memory_threshold\x18\x04 \x01(\x05H\x01R\x0fmemoryThreshold\x88\x01\x01B\x10\n" +
 	"\x0e_cpu_thresholdB\x13\n" +
-	"\x11_memory_threshold\"R\n" +
+	"\x11_memory_threshold\"\x95\x01\n" +
 	"\x10DeleteDeployment\x12#\n" +
 	"\rk8s_namespace\x18\x01 \x01(\tR\fk8sNamespace\x12\x19\n" +
-	"\bk8s_name\x18\x02 \x01(\tR\ak8sName\"A\n" +
+	"\bk8s_name\x18\x02 \x01(\tR\ak8sName\x12#\n" +
+	"\rdeployment_id\x18\x03 \x01(\tR\fdeploymentId\x12\x1c\n" +
+	"\tpermanent\x18\x04 \x01(\bR\tpermanent\"A\n" +
 	"\x10HeartbeatRequest\x12-\n" +
 	"\acluster\x18\x01 \x01(\v2\x13.ctrl.v1.ClusterKeyR\acluster\"\x13\n" +
 	"\x11HeartbeatResponse*]\n" +
