@@ -84,6 +84,7 @@ export type { PaginationFooterProps } from "./components/footer/pagination-foote
 
 // Utility components
 export { RealtimeSeparator } from "./components/utils/realtime-separator";
+export { EmptyRootKeys } from "./components/empty/empty-root-keys";
 
 // Utils
 export { calculateColumnWidth } from "./utils/column-width";
