@@ -81,7 +81,9 @@ func (s *Service) Delete(
 			if txErr := queries.StopDeploymentTopologiesByEnvironment(txCtx, db.StopDeploymentTopologiesByEnvironmentParams{EnvironmentID: envID, UpdatedAt: now}); txErr != nil {
 				return txErr
 			}
-			return nil
+			return queries.ClearAppCurrentDeploymentByEnvironment(txCtx, db.ClearAppCurrentDeploymentByEnvironmentParams{
+				EnvironmentID: envID, UpdatedAt: now,
+			})
 		})
 	}, restate.WithName("mark environment deleting and stop deployments")); err != nil {
 		return nil, fmt.Errorf("begin environment deletion: %w", err)

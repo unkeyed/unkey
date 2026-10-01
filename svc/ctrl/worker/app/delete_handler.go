@@ -89,6 +89,12 @@ func (s *Service) Delete(
 	}
 
 	if err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
+		return s.db.DeletePortalsByAppID(runCtx, sql.NullString{String: appID, Valid: true})
+	}, restate.WithName("delete app portals")); err != nil {
+		return nil, fmt.Errorf("delete app portals: %w", err)
+	}
+
+	if err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
 		return s.db.DeleteAppById(runCtx, appID)
 	}, restate.WithName("delete app")); err != nil {
 		return nil, fmt.Errorf("delete app: %w", err)
