@@ -10,12 +10,20 @@ import (
 )
 
 const deleteCustomDomainsByEnvironmentId = `-- name: DeleteCustomDomainsByEnvironmentId :exec
-DELETE FROM custom_domains WHERE environment_id = ?
+DELETE d, c, cert
+FROM custom_domains d
+LEFT JOIN acme_challenges c ON c.domain_id = d.id
+LEFT JOIN certificates cert ON cert.hostname = d.domain AND cert.workspace_id = d.workspace_id
+WHERE d.environment_id = ?
 `
 
 // DeleteCustomDomainsByEnvironmentId
 //
-//	DELETE FROM custom_domains WHERE environment_id = ?
+//	DELETE d, c, cert
+//	FROM custom_domains d
+//	LEFT JOIN acme_challenges c ON c.domain_id = d.id
+//	LEFT JOIN certificates cert ON cert.hostname = d.domain AND cert.workspace_id = d.workspace_id
+//	WHERE d.environment_id = ?
 func (q *Queries) DeleteCustomDomainsByEnvironmentId(ctx context.Context, environmentID string) error {
 	_, err := q.db.ExecContext(ctx, deleteCustomDomainsByEnvironmentId, environmentID)
 	return err

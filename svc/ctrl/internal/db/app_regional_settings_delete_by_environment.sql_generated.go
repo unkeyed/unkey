@@ -10,12 +10,26 @@ import (
 )
 
 const deleteAppRegionalSettingsByEnvironmentId = `-- name: DeleteAppRegionalSettingsByEnvironmentId :exec
-DELETE FROM app_regional_settings WHERE environment_id = ?
+DELETE s, p
+FROM app_regional_settings s
+LEFT JOIN app_regional_settings other
+    ON other.horizontal_autoscaling_policy_id = s.horizontal_autoscaling_policy_id
+    AND other.environment_id <> s.environment_id
+LEFT JOIN horizontal_autoscaling_policies p
+    ON p.id = s.horizontal_autoscaling_policy_id AND other.pk IS NULL
+WHERE s.environment_id = ?
 `
 
 // DeleteAppRegionalSettingsByEnvironmentId
 //
-//	DELETE FROM app_regional_settings WHERE environment_id = ?
+//	DELETE s, p
+//	FROM app_regional_settings s
+//	LEFT JOIN app_regional_settings other
+//	    ON other.horizontal_autoscaling_policy_id = s.horizontal_autoscaling_policy_id
+//	    AND other.environment_id <> s.environment_id
+//	LEFT JOIN horizontal_autoscaling_policies p
+//	    ON p.id = s.horizontal_autoscaling_policy_id AND other.pk IS NULL
+//	WHERE s.environment_id = ?
 func (q *Queries) DeleteAppRegionalSettingsByEnvironmentId(ctx context.Context, environmentID string) error {
 	_, err := q.db.ExecContext(ctx, deleteAppRegionalSettingsByEnvironmentId, environmentID)
 	return err
