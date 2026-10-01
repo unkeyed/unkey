@@ -156,7 +156,7 @@ func (r *Reconciler) run(ctx context.Context) {
 	}
 }
 
-func (r *Reconciler) reconcile(ctx context.Context) error {
+func (r *Reconciler) reconcile(ctx context.Context) (err error) {
 	started, completed := time.Now(), false
 	defer func() { observePass(loopDiscovery, started, completed) }()
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
@@ -188,7 +188,14 @@ func (r *Reconciler) reconcile(ctx context.Context) error {
 	if err != nil {
 		return countError(loopDiscovery, stageSnapshot, err)
 	}
-	snapshotConnections, rejected := validateSnapshot(snapshot)
+	defer func() {
+		topologyCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+		defer cancel()
+		if topologyErr := r.ensureTopology(topologyCtx, snapshot.GetTopology()); topologyErr != nil {
+			err = errors.Join(err, countError(loopDiscovery, stageSnapshot, topologyErr))
+		}
+	}()
+	snapshotConnections, rejected := validateSnapshot(snapshot.GetConnections())
 
 	r.endpointMu.Lock()
 	defer r.endpointMu.Unlock()
@@ -209,7 +216,7 @@ func (r *Reconciler) reconcile(ctx context.Context) error {
 	desiredConnections := make(map[string]struct{}, len(snapshotConnections))
 	desiredPolicies := make(map[string]struct{}, len(snapshotConnections))
 	ensuredServices := make(map[string]struct{}, len(snapshotConnections))
-	entries := make(map[string]entryStatus, len(snapshot))
+	entries := make(map[string]entryStatus, len(snapshot.GetConnections()))
 	var untracked []entryStatus
 	retain := func(connectionKey string) {
 		desiredConnections[connectionKey] = struct{}{}

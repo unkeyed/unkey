@@ -300,7 +300,7 @@ func (c *Controller) buildReplicaSet(req *ctrlv1.ApplyDeployment, hasSecrets boo
 
 	if c.privateNetworkEnabled(req) {
 		podSpec.Containers[0].Env = append(podSpec.Containers[0].Env, corev1.EnvVar{
-			Name: "UNKEY_DEPLOYMENT_HOST", Value: req.GetPrivateNetworkReplicaHost(),
+			Name: "UNKEY_PRIVATE_DOMAIN", Value: req.GetPrivateNetworkReplicaHost(),
 		})
 		podSpec.DNSPolicy = corev1.DNSNone
 		podSpec.DNSConfig = &corev1.PodDNSConfig{

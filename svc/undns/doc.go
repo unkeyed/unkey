@@ -21,7 +21,7 @@
 // that once when it creates the deployment: the workspace needs an app connection
 // to another app and the private-networking feature flag. The name resolves
 // that deployment's ready replicas across regions, excluding other versions of
-// the app. Krane injects it as UNKEY_DEPLOYMENT_HOST, points the deployment's
+// the app. Krane injects it as UNKEY_PRIVATE_DOMAIN, points the deployment's
 // Pods at undns, and grants unicast TCP and UDP connectivity between those
 // replicas. Other deployments keep cluster DNS. Connection names can't reuse the
 // caller app's slug or start with unkey.
@@ -31,9 +31,18 @@
 // A queries return unique, ready private IPv4 endpoints for the bound target
 // deployment in random order, so clients that take the first address spread
 // across replicas. AAAA queries return NODATA, and unsupported types return
-// NOTIMP. Unknown aliases and multi-label names return NXDOMAIN. A known but
+// NOTIMP. Unknown aliases and invalid selectors return NXDOMAIN. A known but
 // unresolved or unusable connection returns SERVFAIL. Private queries also return
 // SERVFAIL until every discovery watch is healthy and activation has run.
+//
+// <region>.<alias>.unkey.internal selects only ready endpoints in that region;
+// an empty result returns SERVFAIL. local-first.<alias>.unkey.internal selects
+// the caller's region, falling back to all ready endpoints only if none match.
+// Both filter after revision activation and authorization. Ordinary names,
+// including same-deployment peer discovery, still return all ready endpoints.
+// The separate topology watch is not a readiness gate: unknown topology uses
+// known cluster-local endpoints for local-first, or all ready endpoints if empty.
+// Imported slices use Cilium's source-cluster label, not Service region labels.
 //
 // # Load shedding
 //

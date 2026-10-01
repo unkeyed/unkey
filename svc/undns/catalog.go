@@ -5,11 +5,13 @@ import (
 	"sync"
 	"time"
 
+	"github.com/unkeyed/unkey/pkg/deploy/appconnection"
 	"github.com/unkeyed/unkey/svc/krane/pkg/labels"
 	corev1 "k8s.io/api/core/v1"
 	discoveryv1 "k8s.io/api/discovery/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
 )
@@ -27,6 +29,7 @@ type catalog struct {
 	connections *trackedInformer
 	services    *trackedInformer
 	slices      *trackedInformer
+	topology    *trackedInformer
 	activeMu    sync.RWMutex
 	active      map[string]*corev1.ConfigMap
 	activated   bool
@@ -88,12 +91,26 @@ func newCatalog(client kubernetes.Interface, timeout time.Duration) (*catalog, e
 		return nil, err
 	}
 
+	topologyConfigs := client.CoreV1().ConfigMaps(metav1.NamespaceSystem)
+	discovery[labels.LabelKeyComponent] = appconnection.TopologyComponent
+	c.topology, err = newTrackedInformer("topology", &corev1.ConfigMap{}, nil, timeout, discovery.ToString(),
+		func(ctx context.Context, options metav1.ListOptions) (runtime.Object, error) {
+			options.FieldSelector = "metadata.name=" + appconnection.TopologyConfigMap
+			return topologyConfigs.List(ctx, options)
+		}, func(ctx context.Context, options metav1.ListOptions) (watch.Interface, error) {
+			options.FieldSelector = "metadata.name=" + appconnection.TopologyConfigMap
+			return topologyConfigs.Watch(ctx, options)
+		})
+	if err != nil {
+		return nil, err
+	}
+
 	return c, nil
 }
 
 func (c *catalog) run(ctx context.Context) error {
 	var group sync.WaitGroup
-	for _, informer := range []*trackedInformer{c.pods, c.connections, c.services, c.slices} {
+	for _, informer := range []*trackedInformer{c.pods, c.connections, c.services, c.slices, c.topology} {
 		group.Go(func() { informer.RunWithContext(ctx) })
 	}
 

@@ -361,7 +361,7 @@ func TestBuildReplicaSet_PrivateNetworkDNS(t *testing.T) {
 			req.PrivateNetworkReplicaHost = tt.host
 
 			rs := controller.buildReplicaSet(req, false)
-			host, exists := envValue(mainContainer(t, rs), "UNKEY_DEPLOYMENT_HOST")
+			host, exists := envValue(mainContainer(t, rs), "UNKEY_PRIVATE_DOMAIN")
 			require.Equal(t, tt.wantDNS, exists)
 			if !tt.wantDNS {
 				require.NotEqual(t, corev1.DNSNone, rs.Spec.Template.Spec.DNSPolicy)

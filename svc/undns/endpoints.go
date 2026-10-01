@@ -13,7 +13,7 @@ import (
 	discoveryv1 "k8s.io/api/discovery/v1"
 )
 
-func (c *catalog) resolveConnection(identity caller, config *corev1.ConfigMap) ([]netip.Addr, error) {
+func (c *catalog) resolveConnection(identity caller, config *corev1.ConfigMap, selector string) ([]netip.Addr, error) {
 	b, err := parseConnection(config)
 	if err != nil {
 		return nil, err
@@ -58,18 +58,33 @@ func (c *catalog) resolveConnection(identity caller, config *corev1.ConfigMap) (
 		return nil, fmt.Errorf("%w: %w", errServiceRejected, err)
 	}
 
-	return c.endpoints(service)
+	return c.endpoints(service, selector)
 }
 
-func (c *catalog) endpoints(service *corev1.Service) ([]netip.Addr, error) {
+func (c *catalog) endpoints(service *corev1.Service, selector string) ([]netip.Addr, error) {
 	objects, err := c.slices.GetIndexer().ByIndex(serviceIndex, service.Namespace+"/"+service.Name)
 	if err != nil {
 		return nil, err
 	}
 
-	var addresses []netip.Addr
+	var topology map[string]string
+	if selector != "" {
+		topology, err = c.clusterRegions()
+		if err != nil {
+			return nil, err
+		}
+	}
+	var addresses, selected []netip.Addr
 	for _, object := range objects {
-		addresses = appconnection.AppendReadyAddresses(addresses, service, object.(*discoveryv1.EndpointSlice))
+		slice := object.(*discoveryv1.EndpointSlice)
+		start := len(addresses)
+		addresses = appconnection.AppendReadyAddresses(addresses, service, slice)
+		if selector != "" && sliceMatchesRegion(slice, topology, selector) {
+			selected = append(selected, addresses[start:]...)
+		}
+	}
+	if selector != "" && (selector != "local-first" || len(selected) > 0) {
+		addresses = selected
 	}
 
 	slices.SortFunc(addresses, func(a, b netip.Addr) int { return a.Compare(b) })

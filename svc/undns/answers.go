@@ -75,13 +75,6 @@ func (h *handler) answerPrivate(response *dnswire.Msg, question dnswire.RR, iden
 		return result
 	}
 
-	if strings.Contains(app, ".") {
-		response.Rcode = dnswire.RcodeNameError
-		response.Ns = []dnswire.RR{h.soa()}
-		result.reason = reasonUnknownName
-		return result
-	}
-
 	addresses, exists, err := h.catalog.resolve(identity, app)
 	if err != nil {
 		response.Rcode = dnswire.RcodeServerFailure

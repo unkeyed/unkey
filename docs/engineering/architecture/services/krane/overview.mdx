@@ -73,7 +73,23 @@ When `private_network.enabled` is set, one Krane instance per cluster holds a Le
 
 For each entry, the reconciler maintains a global headless Service per target deployment, one connection ConfigMap per connection and caller deployment, and one CiliumNetworkPolicy per connection and caller deployment. It also writes EndpointSlices for local ready Pods, and Cilium ClusterMesh imports the slices of other regions. A connection moves to a replacement deployment only after that deployment has a ready endpoint visible in this region. Each region switches on its own schedule.
 
-A connection policy lets the caller deployment reach the target deployment on every TCP and UDP port, in one direction, in any cluster. The reverse direction needs a separate connection from the target app. Ctrl also creates a discovery entry for the own replicas of each deployment created with private networking, named after its app slug, for example `api.unkey.internal`. Users don't add a connection for this: Krane injects the name as `UNKEY_DEPLOYMENT_HOST`. Connection names can't reuse the caller app's slug or start with `unkey`. ICMP, SCTP, broadcast, and multicast are not granted. The Service port is the target deployment's declared port and is metadata only; DNS answers carry Pod IPs, not ports.
+A connection policy lets the caller deployment reach the target deployment on every TCP and UDP port, in one direction, in any cluster. The reverse direction needs a separate connection from the target app. Ctrl also creates a discovery entry for the own replicas of each deployment created with private networking, named after its app slug, for example `api.unkey.internal`. Users don't add a connection for this: Krane injects the name as `UNKEY_PRIVATE_DOMAIN`. Connection names can't reuse the caller app's slug or start with `unkey`. ICMP, SCTP, broadcast, and multicast are not granted. The Service port is the target deployment's declared port and is metadata only; DNS answers carry Pod IPs, not ports.
+
+The final complete snapshot chunk includes versioned cluster-to-region topology
+for the platform. Krane validates and publishes it separately in
+`kube-system/unkey-private-network-topology`. Undns uses this catalog for
+`<region>.<connection>.unkey.internal` and
+`local-first.<connection>.unkey.internal`, after authorization and revision
+activation. Cilium's `cluster.name` must match the Ctrl `cell_id`: imported slices
+carry that name in `multicluster.kubernetes.io/source-cluster`. Service labels and
+EndpointSlice zones don't identify the source region. Cluster IDs must not be
+reused or moved between regions, so the last complete catalog remains usable
+during a control-plane outage. Endpoint readiness still comes from live discovery.
+
+Deploy Ctrl, then Krane, then undns before enabling region-prefixed names.
+Ordinary names and same-deployment peer discovery continue to return all ready
+addresses. This pre-release rename replaces `UNKEY_DEPLOYMENT_HOST` with
+`UNKEY_PRIVATE_DOMAIN`; update app code and redeploy callers that use it.
 
 A connection missing from a complete snapshot loses its published objects during cleanup, and its Services retire 30 minutes after they become unreferenced. A failed or partial snapshot skips the pass. An invalid entry or a connection that fails to reconcile keeps its published objects, and every other connection reconciles and cleans up in the same pass. Cleanup itself is not atomic: a failed deletion does not undo earlier deletions. If the reconciler loses its Lease, Krane exits with an error.
 

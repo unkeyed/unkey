@@ -28,6 +28,7 @@ func TestPrivateNetworkSnapshotStreamsEveryPageThenCompletes(t *testing.T) {
 	platform := strings.ToLower(uid.New("pf"))
 	cell := uid.New("cell")
 	callers, target := seedPrivateNetwork(t, database, platform, cell)
+	secondCell, secondRegion := seedPrivateNetworkTopology(t, database, platform)
 
 	clusterCache, err := cache.New(cache.Config[clusterCacheKey, db.FindClusterRow]{
 		Fresh: time.Minute, Stale: time.Minute, MaxSize: 1, Resource: "test_private_network_clusters", Clock: clock.New(),
@@ -83,10 +84,20 @@ func TestPrivateNetworkSnapshotStreamsEveryPageThenCompletes(t *testing.T) {
 	last := chunks[len(chunks)-1]
 	require.True(t, last.GetComplete())
 	require.Empty(t, last.GetConnections())
+	require.Equal(t, uint32(1), last.GetTopology().GetVersion())
+	require.ElementsMatch(t, []*ctrlv1.ClusterKey{
+		{CellId: cell, Region: "region-" + platform, Platform: platform},
+		{CellId: secondCell, Region: secondRegion, Platform: platform},
+	}, last.GetTopology().GetClusters())
+	for _, cluster := range last.GetTopology().GetClusters() {
+		require.NotEmpty(t, cluster.GetCellId())
+		require.Equal(t, platform, cluster.GetPlatform())
+	}
 
 	connections, replicas := map[string]*ctrlv1.PrivateNetworkConnection{}, map[string]*ctrlv1.PrivateNetworkConnection{}
 	for _, chunk := range chunks[:len(chunks)-1] {
 		require.False(t, chunk.GetComplete())
+		require.Nil(t, chunk.GetTopology())
 		require.LessOrEqual(t, len(chunk.GetConnections()), privateNetworkPageSize)
 		for _, connection := range chunk.GetConnections() {
 			if strings.HasPrefix(connection.GetConnectionId(), "self-") {
@@ -201,4 +212,42 @@ func seedPrivateNetwork(t *testing.T, database db.Database, platform, cell strin
 		uid.New("connection"), workspace, project, workspace+"-api", workspace+"-api-env", workspace+"-db", target)
 
 	return callers, target
+}
+
+func seedPrivateNetworkTopology(t *testing.T, database db.Database, platform string) (string, string) {
+	t.Helper()
+	secondCell, secondRegion := uid.New("cell"), uid.New("reg")
+	otherPlatform, otherRegion := strings.ToLower(uid.New("pf")), uid.New("reg")
+	nullCellRegion := uid.New("reg")
+
+	exec := func(query string, args ...any) {
+		t.Helper()
+		_, err := database.RW().ExecContext(t.Context(), query, args...)
+		require.NoError(t, err)
+	}
+
+	t.Cleanup(func() {
+		for _, region := range []string{secondRegion, otherRegion, nullCellRegion} {
+			_, err := database.RW().ExecContext(context.Background(), `DELETE FROM clusters WHERE region_id = ?`, region)
+			require.NoError(t, err)
+			_, err = database.RW().ExecContext(context.Background(), `DELETE FROM regions WHERE id = ?`, region)
+			require.NoError(t, err)
+		}
+	})
+
+	for _, region := range []struct {
+		id       string
+		name     string
+		platform string
+		cell     any
+	}{
+		{id: secondRegion, name: "second-" + platform, platform: platform, cell: secondCell},
+		{id: otherRegion, name: "other-" + otherPlatform, platform: otherPlatform, cell: uid.New("cell")},
+		{id: nullCellRegion, name: "null-" + platform, platform: platform, cell: nil},
+	} {
+		exec(`INSERT INTO regions (id,name,platform) VALUES (?,?,?)`, region.id, region.name, region.platform)
+		exec(`INSERT INTO clusters (id,cell_id,region_id,last_heartbeat_at) VALUES (?,?,?,0)`, uid.New("cluster"), region.cell, region.id)
+	}
+
+	return secondCell, "second-" + platform
 }
