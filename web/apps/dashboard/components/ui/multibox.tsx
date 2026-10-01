@@ -2,6 +2,7 @@
 
 import { Combobox as ComboboxPrimitive } from "@base-ui/react/combobox";
 import { IconCheckOutline12, IconChevronExpandYOutline12, IconXmarkOutline12 } from "@unkey/icons";
+import { type VariantProps, cva } from "class-variance-authority";
 import { cn } from "cn";
 import * as React from "react";
 
@@ -85,17 +86,30 @@ export function MultiboxInput({ className, ...props }: ComboboxPrimitive.Input.P
   );
 }
 
+const multiboxTriggerVariants = cva("flex items-center", {
+  variants: {
+    variant: {
+      anchored: "absolute right-2 top-1/2 -translate-y-1/2 text-grayA-9",
+      standalone: [
+        "h-9 w-full gap-2 rounded-lg border bg-raised px-3 text-sm leading-5 text-grayA-12",
+        "transition-colors duration-300 hover:border-strong",
+      ],
+    },
+  },
+  defaultVariants: {
+    variant: "anchored",
+  },
+});
+
 export function MultiboxTrigger({
   className,
   children,
+  variant,
   ...props
-}: ComboboxPrimitive.Trigger.Props) {
+}: ComboboxPrimitive.Trigger.Props & VariantProps<typeof multiboxTriggerVariants>) {
   return (
     <ComboboxPrimitive.Trigger
-      className={cn(
-        "absolute right-2 top-1/2 flex -translate-y-1/2 items-center text-grayA-9",
-        className,
-      )}
+      className={cn(multiboxTriggerVariants({ variant }), className)}
       aria-label="Open list"
       {...props}
     >

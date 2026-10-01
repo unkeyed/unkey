@@ -428,8 +428,14 @@ const urnVersion = "v1";
 const urnPermissionPrefix = `${urnPrefix}:${urnVersion}:`;
 const globalResourcePath = "**";
 
+export type UrnPermissionParts = {
+  workspaceId: string;
+  resourcePath: string;
+  action: string;
+};
+
 type UrnPermissionParseResult =
-  | { ok: true; workspaceId: string; resourcePath: string; action: string }
+  | { ok: true; permission: UrnPermissionParts }
   | { ok: false; error: string };
 
 // validateWorkspaceId, validateResourcePath and validatePermissionAction mirror
@@ -529,7 +535,7 @@ function parseUrnPermission(value: string): UrnPermissionParseResult {
     };
   }
 
-  return { ok: true, workspaceId: urnWorkspaceId, resourcePath, action };
+  return { ok: true, permission: { workspaceId: urnWorkspaceId, resourcePath, action } };
 }
 
 const isParameterSegment = (segment: string): boolean =>
@@ -565,31 +571,35 @@ function catalogPathMatches(pattern: string, resourcePath: string): boolean {
   });
 }
 
-export function catalogPermissionError(resourcePath: string, action: string): string | null {
+export function catalogPermissionError(parts: UrnPermissionParts): string | null {
   const known = workosPermissionDefinitions.some(
     (definition) =>
-      definition.action === action && catalogPathMatches(definition.path, resourcePath),
+      definition.action === parts.action && catalogPathMatches(definition.path, parts.resourcePath),
   );
   return known
     ? null
-    : `"${action}" is not an action on "${resourcePath}". See the permission catalog in @unkey/rbac.`;
+    : `"${parts.action}" is not an action on "${parts.resourcePath}". See the permission catalog in @unkey/rbac.`;
 }
 
 export function isCatalogPermission(value: string): boolean {
   const result = parseUrnPermission(value);
-  return result.ok && catalogPermissionError(result.resourcePath, result.action) === null;
+  return result.ok && catalogPermissionError(result.permission) === null;
 }
 
 // Grammar first, then vocabulary: a URN can be well formed and still name a
 // privilege that does not exist.
 function urnPermissionError(value: string): string | null {
   const result = parseUrnPermission(value);
-  return result.ok ? catalogPermissionError(result.resourcePath, result.action) : result.error;
+  return result.ok ? catalogPermissionError(result.permission) : result.error;
+}
+
+export function parseUrnPermissionParts(value: string): UrnPermissionParts | null {
+  const result = parseUrnPermission(value);
+  return result.ok ? result.permission : null;
 }
 
 export function urnPermissionWorkspaceId(value: string): string | null {
-  const result = parseUrnPermission(value);
-  return result.ok ? result.workspaceId : null;
+  return parseUrnPermissionParts(value)?.workspaceId ?? null;
 }
 
 // Branching on the URN prefix rather than unioning two schemas keeps the error
