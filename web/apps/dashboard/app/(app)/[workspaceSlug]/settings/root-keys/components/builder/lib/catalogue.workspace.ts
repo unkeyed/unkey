@@ -1,5 +1,5 @@
 import { projectsCatalogue } from "./catalogue.deploy";
-import { githubRows } from "./catalogue.rows";
+import { githubRows, rootKeyRows } from "./catalogue.rows";
 import {
   ACTIONS,
   type ActionGrant,
@@ -9,9 +9,8 @@ import {
   instancePath,
 } from "./catalogue.types";
 
-// Everything a root key can reach lives under a project, except the GitHub app
-// the workspace connects. So the workspace scope is the project tree with the
-// project left open, plus that one connection.
+// The workspace scope includes the project tree with the project left open and
+// the workspace-level resources from the canonical URN catalog.
 const WILDCARD = "*";
 
 function wildcardGrant(grant: ActionGrant): ActionGrant {
@@ -38,6 +37,7 @@ export const workspaceCatalogue: ScopeCatalogue = {
   allInstance: WILDCARD,
   groups: [
     ...wildcardGroups(projectsCatalogue),
+    { id: "root_keys", label: "Root keys", rows: rootKeyRows() },
     { id: "github", label: "Connections", rows: githubRows() },
   ],
 };

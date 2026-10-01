@@ -23,25 +23,27 @@ describe("TEMPLATES", () => {
   it("materialises All read permissions into one workspace policy", () => {
     expect(materialise("read")).toHaveLength(1);
     expect(urnsOf("read")).toEqual([
-      "unkey:v1:ws_123:projects/*#read_project",
-      "unkey:v1:ws_123:projects/*/apps/*#read_app",
-      "unkey:v1:ws_123:projects/*/apps/*/environments/*#read_environment",
-      "unkey:v1:ws_123:projects/*/apps/*/environments/*/variables/*#read_environment_variable",
-      "unkey:v1:ws_123:projects/*/apps/*/environments/*/domains/*#read_domain",
-      "unkey:v1:ws_123:projects/*/apps/*/environments/*/deployments/*#read_deployment",
-      "unkey:v1:ws_123:projects/*/apps/*/environments/*/deployments/*/logs#read_deployment_logs",
-      "unkey:v1:ws_123:projects/*/apps/*/environments/*/gateway/logs#read_gateway_logs",
-      "unkey:v1:ws_123:projects/*/apps/*/environments/*/gateway/policies/*#read_gateway_policy",
-      "unkey:v1:ws_123:projects/*/keyspaces/*#read_keyspace",
-      "unkey:v1:ws_123:projects/*/keyspaces/*/logs#read_keyspace_logs",
-      "unkey:v1:ws_123:projects/*/keyspaces/*/keys/*#read_key",
-      "unkey:v1:ws_123:projects/*/ratelimits/namespaces/*#read_ratelimit_namespace",
-      "unkey:v1:ws_123:projects/*/ratelimits/namespaces/*/logs#read_ratelimit_logs",
-      "unkey:v1:ws_123:projects/*/ratelimits/namespaces/*/overrides/*#read_ratelimit_override",
-      "unkey:v1:ws_123:projects/*/identities/*#read_identity",
-      "unkey:v1:ws_123:projects/*/rbac/roles/*#read_role",
-      "unkey:v1:ws_123:projects/*/rbac/permissions/*#read_permission",
-      "unkey:v1:ws_123:github/apps/*#read_github_app",
+      "unkey:v1:ws_123:projects/*#read",
+      "unkey:v1:ws_123:projects/*/apps/*#read",
+      "unkey:v1:ws_123:projects/*/apps/*/environments/*#read",
+      "unkey:v1:ws_123:projects/*/apps/*/environments/*/variables/*#read",
+      "unkey:v1:ws_123:projects/*/apps/*/environments/*/domains/*#read",
+      "unkey:v1:ws_123:projects/*/apps/*/environments/*/deployments/*#read",
+      "unkey:v1:ws_123:projects/*/apps/*/environments/*/deployments/*/logs#read",
+      "unkey:v1:ws_123:projects/*/apps/*/environments/*/gateway/logs#read",
+      "unkey:v1:ws_123:projects/*/apps/*/environments/*/gateway/policies/*#read",
+      "unkey:v1:ws_123:projects/*/keyspaces/*#read",
+      "unkey:v1:ws_123:projects/*/keyspaces/*/logs#read",
+      "unkey:v1:ws_123:projects/*/keyspaces/*/keys/*#read",
+      "unkey:v1:ws_123:projects/*/ratelimits/namespaces/*#read",
+      "unkey:v1:ws_123:projects/*/ratelimits/namespaces/*/logs#read",
+      "unkey:v1:ws_123:projects/*/ratelimits/namespaces/*/overrides/*#read",
+      "unkey:v1:ws_123:projects/*/identities/*#read",
+      "unkey:v1:ws_123:projects/*/rbac/roles/*#read",
+      "unkey:v1:ws_123:projects/*/rbac/permissions/*#read",
+      "unkey:v1:ws_123:projects/*/portals/*#read",
+      "unkey:v1:ws_123:rootKeys/*#read",
+      "unkey:v1:ws_123:github/apps/*#read",
     ]);
   });
 
@@ -55,8 +57,8 @@ describe("TEMPLATES", () => {
   });
 
   it("gives full control the narrow key actions too", () => {
-    expect(urnsOf("write")).toContain("unkey:v1:ws_123:projects/*/keyspaces/*/keys/*#decrypt_key");
-    expect(urnsOf("write")).toContain("unkey:v1:ws_123:projects/*/keyspaces/*/keys/*#verify_key");
+    expect(urnsOf("write")).toContain("unkey:v1:ws_123:projects/*/keyspaces/*/keys/*#decrypt");
+    expect(urnsOf("write")).toContain("unkey:v1:ws_123:projects/*/keyspaces/*/keys/*#verify");
     expect(materialise("write")[0].selection.key).toEqual([
       "read",
       "write",
@@ -75,17 +77,17 @@ describe("TEMPLATES", () => {
 
   it("materialises Verify keys into 1 policy", () => {
     expect(materialise("verify")).toHaveLength(1);
-    expect(urnsOf("verify")).toEqual(["unkey:v1:ws_123:projects/*/keyspaces/*/keys/*#verify_key"]);
+    expect(urnsOf("verify")).toEqual(["unkey:v1:ws_123:projects/*/keyspaces/*/keys/*#verify"]);
   });
 
   it("materialises Standalone ratelimiting into 1 policy", () => {
     expect(materialise("ratelimit")).toHaveLength(1);
     expect(urnsOf("ratelimit")).toEqual([
-      "unkey:v1:ws_123:projects/*/ratelimits/namespaces/*#limit_ratelimit_namespace",
-      "unkey:v1:ws_123:projects/*/ratelimits/namespaces/*/logs#read_ratelimit_logs",
-      "unkey:v1:ws_123:projects/*/ratelimits/namespaces/*/overrides/*#read_ratelimit_override",
-      "unkey:v1:ws_123:projects/*/ratelimits/namespaces/*/overrides/*#write_ratelimit_override",
-      "unkey:v1:ws_123:projects/*/ratelimits/namespaces/*/overrides/*#delete_ratelimit_override",
+      "unkey:v1:ws_123:projects/*/ratelimits/namespaces/*#limit",
+      "unkey:v1:ws_123:projects/*/ratelimits/namespaces/*/logs#read",
+      "unkey:v1:ws_123:projects/*/ratelimits/namespaces/*/overrides/*#read",
+      "unkey:v1:ws_123:projects/*/ratelimits/namespaces/*/overrides/*#write",
+      "unkey:v1:ws_123:projects/*/ratelimits/namespaces/*/overrides/*#delete",
     ]);
   });
 
