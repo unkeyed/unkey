@@ -42,6 +42,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/workos"
+	ctrlmetrics "github.com/unkeyed/unkey/svc/ctrl/pkg/metrics"
 	"github.com/unkeyed/unkey/svc/ctrl/services/acme/providers"
 	workerapp "github.com/unkeyed/unkey/svc/ctrl/worker/app"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/certificate"
@@ -162,6 +163,26 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	r.Defer(database.Close)
+
+	r.Go(func(ctx context.Context) error {
+		ticker := time.NewTicker(time.Minute)
+		defer ticker.Stop()
+		for {
+			queryCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+			startedAt, queryErr := database.FindOldestEnvironmentDeletion(queryCtx)
+			cancel()
+			if queryErr != nil {
+				logger.Error("unable to measure environment deletion age", "error", queryErr)
+			} else {
+				ctrlmetrics.ObserveEnvironmentDeletion(startedAt)
+			}
+			select {
+			case <-ctx.Done():
+				return nil
+			case <-ticker.C:
+			}
+		}
+	})
 
 	// Create GitHub client for deploy workflow (optional)
 	var ghClient githubclient.GitHubClient = githubclient.NewNoop()
