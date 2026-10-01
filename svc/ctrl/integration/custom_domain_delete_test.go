@@ -13,6 +13,7 @@ import (
 	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/ctrl/integration/seed"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/auditlogs"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 	"github.com/unkeyed/unkey/svc/ctrl/services/customdomain"
 )
@@ -33,11 +34,14 @@ func TestDeleteCustomDomain_DoesNotDeleteOtherWorkspaceFrontlineRoute(t *testing
 	ctx := h.Context()
 	now := time.Now().UnixMilli()
 
-	const fqdn = "victim.example.com"
+	fqdn := uid.DNS1035() + ".example.com"
+	audits, err := auditlogs.New(auditlogs.Config{DB: h.DB})
+	require.NoError(t, err)
 
 	svc := customdomain.New(customdomain.Config{
-		Database: h.DB,
-		Bearer:   testBearer,
+		Database:  h.DB,
+		Bearer:    testBearer,
+		Auditlogs: audits,
 	})
 
 	// --- Victim workspace B: verified domain + live frontline route ---
@@ -75,8 +79,13 @@ func TestDeleteCustomDomain_DoesNotDeleteOtherWorkspaceFrontlineRoute(t *testing
 		ChallengeType:      db.CustomDomainsChallengeTypeHTTP01,
 		VerificationStatus: db.CustomDomainsVerificationStatusVerified,
 		VerificationToken:  uid.Secure(24),
-		TargetCname:        "victim-target.cname.unkey.com",
+		TargetCname:        "victim-" + fqdn,
 		CreatedAt:          now,
+	}))
+	certificateID := uid.New(uid.CertificatePrefix)
+	require.NoError(t, h.DB.InsertCertificate(ctx, db.InsertCertificateParams{
+		ID: certificateID, WorkspaceID: victimWS, Hostname: fqdn,
+		Certificate: "victim certificate", EncryptedPrivateKey: "encrypted", CreatedAt: now,
 	}))
 
 	frontlineRouteID := uid.New(uid.FrontlineRoutePrefix)
@@ -128,7 +137,7 @@ func TestDeleteCustomDomain_DoesNotDeleteOtherWorkspaceFrontlineRoute(t *testing
 		ChallengeType:      db.CustomDomainsChallengeTypeHTTP01,
 		VerificationStatus: db.CustomDomainsVerificationStatusPending,
 		VerificationToken:  uid.Secure(24),
-		TargetCname:        "attacker-target.cname.unkey.com",
+		TargetCname:        "attacker-" + fqdn,
 		CreatedAt:          now,
 	}))
 
@@ -140,8 +149,12 @@ func TestDeleteCustomDomain_DoesNotDeleteOtherWorkspaceFrontlineRoute(t *testing
 	})
 	req.Header().Set("Authorization", "Bearer "+testBearer)
 
-	_, err := svc.DeleteCustomDomain(ctx, req)
+	_, err = svc.DeleteCustomDomain(ctx, req)
 	require.NoError(t, err)
+	cert, err := h.DB.FindCertificateByHostname(ctx, fqdn)
+	require.NoError(t, err)
+	require.Equal(t, certificateID, cert.ID)
+	require.Equal(t, victimWS, cert.WorkspaceID)
 
 	// The victim's live frontline route must still exist and be unchanged.
 	route, err := h.DB.FindFrontlineRouteByFQDN(ctx, fqdn)
@@ -161,11 +174,14 @@ func TestDeleteCustomDomain_DeletesOwnFrontlineRoute(t *testing.T) {
 	ctx := h.Context()
 	now := time.Now().UnixMilli()
 
-	const fqdn = "owned.example.com"
+	fqdn := uid.DNS1035() + ".example.com"
+	audits, err := auditlogs.New(auditlogs.Config{DB: h.DB})
+	require.NoError(t, err)
 
 	svc := customdomain.New(customdomain.Config{
-		Database: h.DB,
-		Bearer:   testBearer,
+		Database:  h.DB,
+		Bearer:    testBearer,
+		Auditlogs: audits,
 	})
 
 	ws := h.Seed.Resources.UserWorkspace.ID
@@ -203,7 +219,7 @@ func TestDeleteCustomDomain_DeletesOwnFrontlineRoute(t *testing.T) {
 		ChallengeType:      db.CustomDomainsChallengeTypeHTTP01,
 		VerificationStatus: db.CustomDomainsVerificationStatusVerified,
 		VerificationToken:  uid.Secure(24),
-		TargetCname:        "owner-target.cname.unkey.com",
+		TargetCname:        "owner-" + fqdn,
 		CreatedAt:          now,
 	}))
 	require.NoError(t, h.DB.InsertFrontlineRoute(ctx, db.InsertFrontlineRouteParams{
@@ -225,7 +241,7 @@ func TestDeleteCustomDomain_DeletesOwnFrontlineRoute(t *testing.T) {
 	})
 	req.Header().Set("Authorization", "Bearer "+testBearer)
 
-	_, err := svc.DeleteCustomDomain(ctx, req)
+	_, err = svc.DeleteCustomDomain(ctx, req)
 	require.NoError(t, err)
 
 	_, err = h.DB.FindFrontlineRouteByFQDN(ctx, fqdn)

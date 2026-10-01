@@ -8,6 +8,7 @@ import (
 	"time"
 
 	restate "github.com/restatedev/sdk-go"
+	"github.com/restatedev/sdk-go/ingress"
 	"github.com/stretchr/testify/require"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
@@ -76,6 +77,13 @@ func TestDeleteCancelsProgressingDeploymentsAndAuditsThem(t *testing.T) {
 		EnvironmentID: env.ID,
 		Status:        mysqltype.DeploymentsStatusReady,
 	})
+	require.NoError(t, database.UpsertOpenApiSpec(ctx, db.UpsertOpenApiSpecParams{
+		ID:           uid.New(uid.OpenApiSpecPrefix),
+		WorkspaceID:  workspaceID,
+		DeploymentID: sql.NullString{Valid: true, String: finished.ID},
+		Content:      []byte(`{"openapi":"3.0.0"}`),
+		CreatedAt:    time.Now().UnixMilli(),
+	}))
 
 	// A well-formed invocation id that never existed: the admin API answers
 	// 404, which CancelInvocation treats as "already finished", so the handler
@@ -90,7 +98,38 @@ func TestDeleteCancelsProgressingDeploymentsAndAuditsThem(t *testing.T) {
 	require.NoError(t, err)
 
 	var svc *environment.Service
-	restateCfg := containers.Restate(t, hydrav1.NewEnvironmentServiceServer(&lazyEnvironmentService{svc: &svc}))
+	restateCfg := containers.Restate(t,
+		hydrav1.NewEnvironmentServiceServer(&lazyEnvironmentService{svc: &svc}),
+		restate.NewWorkflow("CompletedDomainVerification").Handler("Run", restate.NewWorkflowHandler(
+			func(_ restate.WorkflowContext, domain string) (string, error) { return domain, nil },
+		)),
+	)
+
+	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
+	t.Cleanup(cancel)
+	domainID := uid.New("dom")
+	verification, err := ingress.Workflow[string, string](restateCfg.IngressClient, "CompletedDomainVerification", domainID, "Run").
+		Send(ctx, "completed.example.com")
+	require.NoError(t, err)
+	verifiedDomain, err := verification.Attach(ctx)
+	require.NoError(t, err)
+	require.Equal(t, "completed.example.com", verifiedDomain)
+	require.NoError(t, database.InsertCustomDomain(ctx, db.InsertCustomDomainParams{
+		ID:                    domainID,
+		WorkspaceID:           workspaceID,
+		ProjectID:             project.ID,
+		AppID:                 app.ID,
+		EnvironmentID:         env.ID,
+		Domain:                verifiedDomain,
+		ChallengeType:         db.CustomDomainsChallengeTypeDNS01,
+		VerificationStatus:    db.CustomDomainsVerificationStatusVerified,
+		VerificationToken:     "test-token",
+		TargetCname:           "test.unkey.cloud",
+		DomainConnectProvider: sql.NullString{},
+		DomainConnectUrl:      sql.NullString{},
+		InvocationID:          sql.NullString{Valid: true, String: verification.Id()},
+		CreatedAt:             time.Now().UnixMilli(),
+	}))
 
 	svc, err = environment.New(environment.Config{
 		DB:        database,
@@ -114,6 +153,11 @@ func TestDeleteCancelsProgressingDeploymentsAndAuditsThem(t *testing.T) {
 	require.True(t, db.IsNotFound(err), "the cascade must drop the building deployment")
 	_, err = database.FindDeploymentById(ctx, finished.ID)
 	require.True(t, db.IsNotFound(err), "the cascade must drop the finished deployment")
+	_, err = database.FindOpenApiSpecByDeploymentID(ctx, sql.NullString{Valid: true, String: finished.ID})
+	require.True(t, db.IsNotFound(err), "the cascade must drop the deployment's openapi spec")
+	domains, err := database.ListCustomDomainsByEnvironmentID(ctx, env.ID)
+	require.NoError(t, err)
+	require.Empty(t, domains, "completed verification must not block domain deletion")
 
 	require.Equal(t, 1, countAudits(t, ctx, database, workspaceID, auditlog.DeploymentCancelEvent, building.ID, actorID),
 		"a progressing deployment killed by the deletion must be audited with the deletion's actor")

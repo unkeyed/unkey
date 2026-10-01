@@ -25,24 +25,20 @@ import (
 	restatetest "github.com/restatedev/sdk-go/testing"
 )
 
-// TestProjectDeletion_CleansUpAllData verifies the full project → app →
-// environment deletion cascade by running the actual Restate virtual objects
-// against a real Restate server.
-//
-// It seeds a project with a full resource tree, then calls ProjectService/Delete
-// through the Restate ingress and asserts that every table is cleaned up.
-//
-// Note: instances are NOT covered here. They are cleaned up asynchronously by
-// the reconciler once k8s pods are removed, not by the project delete handler.
-func TestProjectDeletion_CleansUpAllData(t *testing.T) {
+func TestDeletionCleansUpOwnedData(t *testing.T) {
+	for _, target := range []string{"environment", "app", "project"} {
+		t.Run(target, func(t *testing.T) { testDeletionCleansUpOwnedData(t, target) })
+	}
+}
+
+func testDeletionCleansUpOwnedData(t *testing.T, target string) {
+	t.Helper()
 	h := New(t)
-	ctx := h.Context()
+	ctx, cancel := context.WithTimeout(t.Context(), 90*time.Second)
+	defer cancel()
 	auditlogsService, err := auditlogs.New(auditlogs.Config{DB: h.DB})
 	require.NoError(t, err)
 
-	// The environment delete handler only calls Admin to cancel a deployment's
-	// in-flight Restate invocation, and seeded deployments have no invocation id,
-	// so Admin is never exercised here. It just has to be non-nil.
 	envSvc, err := workerenvironment.New(workerenvironment.Config{
 		DB:        h.DB,
 		Admin:     restateadmin.New(restateadmin.Config{BaseURL: "http://127.0.0.1:9070", APIKey: ""}),
@@ -158,7 +154,7 @@ func TestProjectDeletion_CleansUpAllData(t *testing.T) {
 		AppID:                    app.ID,
 		DeploymentID:             deployment.ID,
 		EnvironmentID:            env.ID,
-		FullyQualifiedDomainName: "cleanup-test.example.com",
+		FullyQualifiedDomainName: uid.DNS1035() + ".example.com",
 		Sticky:                   db.FrontlineRoutesStickyNone,
 		CreatedAt:                now,
 		UpdatedAt:                sql.NullInt64{Valid: false},
@@ -224,26 +220,84 @@ func TestProjectDeletion_CleansUpAllData(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	// Queries to verify each table has exactly one row before deletion
-	// and zero rows after deletion.
-	checks := []struct {
+	domainID := uid.New(uid.DomainPrefix)
+	hostname := uid.DNS1035() + ".example.com"
+	policyID := uid.New("hap")
+	portalID := uid.New(uid.PortalPrefix)
+	deploymentSpecID := uid.New(uid.OpenApiSpecPrefix)
+	portalSpecID := uid.New(uid.OpenApiSpecPrefix)
+	sibling := h.CreateDeployment(ctx, CreateDeploymentRequest{Region: uid.DNS1035(), DesiredState: mysqltype.DeploymentsDesiredStateRunning})
+	siblingPortalID := uid.New(uid.PortalPrefix)
+	for _, statement := range []struct {
 		query string
-		arg   string
+		args  []any
 	}{
-		{"SELECT COUNT(*) FROM projects WHERE id = ?", project.ID},
-		{"SELECT COUNT(*) FROM apps WHERE id = ?", app.ID},
-		{"SELECT COUNT(*) FROM environments WHERE app_id = ?", app.ID},
-		{"SELECT COUNT(*) FROM deployments WHERE app_id = ?", app.ID},
-		{"SELECT COUNT(*) FROM deployment_topology WHERE deployment_id = ?", deployment.ID},
-		{"SELECT COUNT(*) FROM cilium_network_policies WHERE app_id = ?", app.ID},
-		{"SELECT COUNT(*) FROM frontline_routes WHERE app_id = ?", app.ID},
-		{"SELECT COUNT(*) FROM github_repo_connections WHERE app_id = ?", app.ID},
-		{"SELECT COUNT(*) FROM app_source_oci WHERE app_id = ?", app.ID},
-		{"SELECT COUNT(*) FROM deployment_steps WHERE deployment_id = ?", deployment.ID},
-		{"SELECT COUNT(*) FROM app_build_settings WHERE app_id = ?", app.ID},
-		{"SELECT COUNT(*) FROM app_runtime_settings WHERE app_id = ?", app.ID},
-		{"SELECT COUNT(*) FROM app_regional_settings WHERE app_id = ?", app.ID},
-		{"SELECT COUNT(*) FROM app_environment_variables WHERE app_id = ?", app.ID},
+		{"UPDATE apps SET current_deployment_id = ? WHERE id = ?", []any{deployment.ID, app.ID}},
+		{"UPDATE apps SET current_deployment_id = ? WHERE id = ?", []any{sibling.ID, sibling.AppID}},
+		{`INSERT INTO custom_domains (id, workspace_id, project_id, app_id, environment_id, domain, challenge_type, verification_token, target_cname, created_at)
+			VALUES (?, ?, ?, ?, ?, ?, 'HTTP-01', '', ?, 1)`, []any{domainID, workspaceID, project.ID, app.ID, env.ID, hostname, hostname}},
+		{`INSERT INTO acme_challenges (workspace_id, domain_id, token, authorization, status, challenge_type, created_at, expires_at)
+			VALUES (?, ?, '', '', 'waiting', 'HTTP-01', 1, ?)`, []any{workspaceID, domainID, now + time.Hour.Milliseconds()}},
+		{`INSERT INTO certificates (id, workspace_id, hostname, certificate, encrypted_private_key, created_at)
+			VALUES (?, ?, ?, 'certificate', 'encrypted', 1)`, []any{uid.New(uid.CertificatePrefix), workspaceID, hostname}},
+		{`INSERT INTO horizontal_autoscaling_policies (id, workspace_id, replicas_min, replicas_max, created_at)
+			VALUES (?, ?, 1, 3, 1)`, []any{policyID, workspaceID}},
+		{"UPDATE app_regional_settings SET horizontal_autoscaling_policy_id = ? WHERE environment_id = ?", []any{policyID, env.ID}},
+		{`INSERT INTO portals (id, workspace_id, project_id, app_id, slug, display_name, created_at)
+			VALUES (?, ?, ?, ?, ?, 'test', 1)`, []any{portalID, workspaceID, project.ID, app.ID, portalID}},
+		{`INSERT INTO portal_sessions (id, workspace_id, portal_id, external_id, scopes, exchange_code_hash, exchange_code_expires_at, created_at)
+			VALUES (?, ?, ?, 'user', '{}', ?, ?, 1)`, []any{uid.New(uid.PortalSessionPrefix), workspaceID, portalID, portalID, now + time.Hour.Milliseconds()}},
+		{`INSERT INTO portals (id, workspace_id, project_id, app_id, slug, display_name, created_at)
+			VALUES (?, ?, ?, ?, ?, 'sibling', 1)`, []any{siblingPortalID, workspaceID, sibling.ProjectID, sibling.AppID, siblingPortalID}},
+		{`INSERT INTO portal_sessions (id, workspace_id, portal_id, external_id, scopes, exchange_code_hash, exchange_code_expires_at, created_at)
+			VALUES (?, ?, ?, 'user', '{}', ?, ?, 1)`, []any{uid.New(uid.PortalSessionPrefix), workspaceID, siblingPortalID, siblingPortalID, now + time.Hour.Milliseconds()}},
+	} {
+		_, err := h.DB.RW().ExecContext(ctx, statement.query, statement.args...)
+		require.NoError(t, err)
+	}
+	for _, spec := range []db.UpsertOpenApiSpecParams{
+		{ID: deploymentSpecID, WorkspaceID: workspaceID, DeploymentID: sql.NullString{Valid: true, String: deployment.ID}, Content: []byte("{}"), CreatedAt: now},
+		{ID: portalSpecID, WorkspaceID: workspaceID, PortalID: sql.NullString{Valid: true, String: portalID}, Content: []byte("{}"), CreatedAt: now},
+		{ID: uid.New(uid.OpenApiSpecPrefix), WorkspaceID: workspaceID, PortalID: sql.NullString{Valid: true, String: siblingPortalID}, Content: []byte("{}"), CreatedAt: now},
+	} {
+		require.NoError(t, h.DB.UpsertOpenApiSpec(ctx, spec))
+	}
+	appSurvives := target == "environment"
+	checks := []struct {
+		query    string
+		arg      string
+		survives bool
+	}{
+		{"SELECT COUNT(*) FROM projects WHERE id = ?", project.ID, target != "project"},
+		{"SELECT COUNT(*) FROM apps WHERE id = ?", app.ID, appSurvives},
+		{"SELECT COUNT(*) FROM environments WHERE app_id = ?", app.ID, false},
+		{"SELECT COUNT(*) FROM deployments WHERE app_id = ?", app.ID, false},
+		{"SELECT COUNT(*) FROM deployment_topology WHERE deployment_id = ?", deployment.ID, false},
+		{"SELECT COUNT(*) FROM cilium_network_policies WHERE app_id = ?", app.ID, false},
+		{"SELECT COUNT(*) FROM frontline_routes WHERE app_id = ?", app.ID, false},
+		{"SELECT COUNT(*) FROM github_repo_connections WHERE app_id = ?", app.ID, appSurvives},
+		{"SELECT COUNT(*) FROM app_source_oci WHERE app_id = ?", app.ID, appSurvives},
+		{"SELECT COUNT(*) FROM deployment_steps WHERE deployment_id = ?", deployment.ID, false},
+		{"SELECT COUNT(*) FROM app_build_settings WHERE app_id = ?", app.ID, false},
+		{"SELECT COUNT(*) FROM app_runtime_settings WHERE app_id = ?", app.ID, false},
+		{"SELECT COUNT(*) FROM app_regional_settings WHERE app_id = ?", app.ID, false},
+		{"SELECT COUNT(*) FROM app_environment_variables WHERE app_id = ?", app.ID, false},
+		{"SELECT COUNT(*) FROM custom_domains WHERE id = ?", domainID, false},
+		{"SELECT COUNT(*) FROM acme_challenges WHERE domain_id = ?", domainID, false},
+		{"SELECT COUNT(*) FROM certificates WHERE hostname = ?", hostname, false},
+		{"SELECT COUNT(*) FROM horizontal_autoscaling_policies WHERE id = ?", policyID, false},
+		{"SELECT COUNT(*) FROM portals WHERE id = ?", portalID, appSurvives},
+		{"SELECT COUNT(*) FROM portal_sessions WHERE portal_id = ?", portalID, appSurvives},
+		{"SELECT COUNT(*) FROM openapi_specs WHERE id = ?", deploymentSpecID, false},
+		{"SELECT COUNT(*) FROM openapi_specs WHERE id = ?", portalSpecID, appSurvives},
+		{"SELECT COUNT(*) FROM projects WHERE id = ?", sibling.ProjectID, true},
+		{"SELECT COUNT(*) FROM apps WHERE id = ?", sibling.AppID, true},
+		{"SELECT COUNT(*) FROM environments WHERE id = ?", sibling.EnvironmentID, true},
+		{"SELECT COUNT(*) FROM deployments WHERE id = ? AND desired_state = 'running'", sibling.ID, true},
+		{"SELECT COUNT(*) FROM deployment_topology WHERE deployment_id = ? AND desired_status = 'running'", sibling.ID, true},
+		{"SELECT COUNT(*) FROM portals WHERE id = ?", siblingPortalID, true},
+		{"SELECT COUNT(*) FROM portal_sessions WHERE portal_id = ?", siblingPortalID, true},
+		{"SELECT COUNT(*) FROM openapi_specs WHERE portal_id = ?", siblingPortalID, true},
 	}
 
 	// --- Verify all rows exist before deletion ---
@@ -252,25 +306,87 @@ func TestProjectDeletion_CleansUpAllData(t *testing.T) {
 		require.Equal(t, 1, countRows(t, ctx, h.DB, c.query, c.arg))
 	}
 
-	// --- Trigger deletion via Restate ingress ---
+	secondRegion := h.Seed.CreateRegion(ctx, seed.CreateRegionRequest{Name: uid.DNS1035(), Platform: "test"})
+	require.NoError(t, h.DB.InsertDeploymentTopology(ctx, db.InsertDeploymentTopologyParams{
+		WorkspaceID: workspaceID, DeploymentID: deployment.ID, RegionID: secondRegion.ID,
+		AutoscalingReplicasMin: 1, AutoscalingReplicasMax: 1,
+		DesiredStatus: db.DeploymentTopologyDesiredStatusRunning, CreatedAt: now,
+	}))
+	h.Seed.CreateInstance(ctx, seed.CreateInstanceRequest{
+		WorkspaceID: workspaceID, ProjectID: project.ID, AppID: app.ID,
+		DeploymentID: deployment.ID, RegionID: region.ID, Address: "10.0.0.1",
+	})
+	deleteResource := func() error {
+		switch target {
+		case "environment":
+			_, err := hydrav1.NewEnvironmentServiceIngressClient(tEnv.Ingress(), env.ID).Delete().Request(ctx, &hydrav1.DeleteEnvironmentRequest{})
+			return err
+		case "app":
+			_, err := hydrav1.NewAppServiceIngressClient(tEnv.Ingress(), app.ID).Delete().Request(ctx, &hydrav1.DeleteAppRequest{})
+			return err
+		default:
+			_, err := hydrav1.NewProjectServiceIngressClient(tEnv.Ingress(), project.ID).Delete().Request(ctx, &hydrav1.DeleteProjectRequest{})
+			return err
+		}
+	}
+	completed := make(chan error, 1)
+	go func() { completed <- deleteResource() }()
+	require.Eventually(t, func() bool {
+		return countRows(t, ctx, h.DB, "SELECT COUNT(*) FROM environments WHERE id = ? AND deleting_at IS NOT NULL", env.ID) == 1
+	}, 30*time.Second, 25*time.Millisecond)
 
-	projectClient := hydrav1.NewProjectServiceIngressClient(tEnv.Ingress(), project.ID)
-	_, err = projectClient.Delete().Request(ctx, &hydrav1.DeleteProjectRequest{})
-	require.NoError(t, err)
+	require.NoError(t, h.DB.DeleteDeploymentInstances(ctx, db.DeleteDeploymentInstancesParams{
+		DeploymentID: deployment.ID, RegionID: region.ID,
+	}))
+	require.Equal(t, 0, countRows(t, ctx, h.DB, "SELECT COUNT(*) FROM instances WHERE deployment_id = ?", deployment.ID))
+	for _, regionID := range []string{region.ID, secondRegion.ID} {
+		select {
+		case err := <-completed:
+			t.Fatalf("deletion completed before every region confirmed removal: %v", err)
+		case <-time.After(1500 * time.Millisecond):
+		}
+		for _, check := range checks[:4] {
+			require.Equal(t, 1, countRows(t, ctx, h.DB, check.query, check.arg))
+		}
+		removed, err := h.DB.ConfirmDeploymentTopologyRemoval(ctx, db.ConfirmDeploymentTopologyRemovalParams{
+			DeploymentID: deployment.ID, RegionID: regionID,
+		})
+		require.NoError(t, err)
+		require.EqualValues(t, 1, removed)
+	}
+	select {
+	case err := <-completed:
+		require.NoError(t, err)
+	case <-ctx.Done():
+		t.Fatal(ctx.Err())
+	}
+	require.NoError(t, deleteResource())
 
-	// The project handler fires off app deletions via .Send() (durable but async).
-	// The app handler fires off environment deletions via .Send() (also async).
-	// Poll each table until it's empty.
 	for _, c := range checks {
-		c := c
-		require.Eventually(t, func() bool {
-			return countRows(t, ctx, h.DB, c.query, c.arg) == 0
-		}, 30*time.Second, 250*time.Millisecond, "timed out waiting for: %s", c.query)
+		want := 0
+		if c.survives {
+			want = 1
+		}
+		require.Equal(t, want, countRows(t, ctx, h.DB, c.query, c.arg), c.query)
+	}
+	if appSurvives {
+		app, err := h.DB.FindAppById(ctx, app.ID)
+		require.NoError(t, err)
+		require.False(t, app.CurrentDeploymentID.Valid)
+	}
+	siblingApp, err := h.DB.FindAppById(ctx, sibling.AppID)
+	require.NoError(t, err)
+	require.Equal(t, sql.NullString{String: sibling.ID, Valid: true}, siblingApp.CurrentDeploymentID)
+	require.Positive(t, countRows(t, ctx, h.DB, "SELECT COUNT(*) FROM clickhouse_outbox WHERE workspace_id = ?", workspaceID))
+
+	_, err = h.DB.RW().ExecContext(ctx, "DELETE FROM deployment_topology WHERE deployment_id = ?", sibling.ID)
+	require.NoError(t, err)
+	for _, id := range []string{project.ID, sibling.ProjectID} {
+		_, err := hydrav1.NewProjectServiceIngressClient(tEnv.Ingress(), id).Delete().Request(ctx, &hydrav1.DeleteProjectRequest{})
+		require.NoError(t, err)
 	}
 }
 
-// countRows executes a query that returns a single COUNT(*) value.
-//
 //nolint:gosec // queries are test constants, not user input
 func countRows(t *testing.T, ctx context.Context, database db.Database, query string, args ...any) int {
 	t.Helper()

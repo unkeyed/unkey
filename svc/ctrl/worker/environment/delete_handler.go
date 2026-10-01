@@ -1,7 +1,10 @@
 package environment
 
 import (
+	"context"
+	"database/sql"
 	"fmt"
+	"time"
 
 	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 
@@ -18,6 +21,22 @@ import (
 // environment is being deleted. The environment (and its deployment views)
 // are gone by the time anyone could look, so this is never user-visible.
 const envDeletedMessage = "Environment deleted"
+
+const (
+	topologyRemovalInitialPollInterval = time.Second
+	topologyRemovalMaxPollInterval     = 30 * time.Second
+)
+
+func topologyRemovalPollInterval(attempt uint) time.Duration {
+	delay := topologyRemovalInitialPollInterval
+	for range attempt {
+		if delay >= topologyRemovalMaxPollInterval/2 {
+			return topologyRemovalMaxPollInterval
+		}
+		delay *= 2
+	}
+	return delay
+}
 
 // Delete removes an environment and all associated resources.
 //
@@ -36,19 +55,61 @@ func (s *Service) Delete(
 	logger.Info("starting environment deletion", "environment_id", envID)
 
 	// Capture env metadata before the row is deleted, for the audit log.
-	env, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.Environment, error) {
-		return s.db.FindEnvironmentById(runCtx, envID)
+	env, err := restate.Run(ctx, func(runCtx restate.RunContext) (*db.Environment, error) {
+		env, err := s.db.FindEnvironmentById(runCtx, envID)
+		if db.IsNotFound(err) {
+			return nil, nil
+		}
+		return &env, err
 	}, restate.WithName("find environment"))
 	if err != nil {
 		return nil, fmt.Errorf("find environment: %w", err)
 	}
+	if env == nil {
+		return &hydrav1.DeleteEnvironmentResponse{}, nil
+	}
+	if err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
+		return db.TxRetry(runCtx, s.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
+			queries := db.NewQueries(tx)
+			now := sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()}
+			if txErr := queries.MarkEnvironmentDeleting(txCtx, db.MarkEnvironmentDeletingParams{ID: envID, DeletingAt: now}); txErr != nil {
+				return txErr
+			}
+			if txErr := queries.StopDeploymentsByEnvironment(txCtx, db.StopDeploymentsByEnvironmentParams{EnvironmentID: envID, UpdatedAt: now}); txErr != nil {
+				return txErr
+			}
+			if txErr := queries.StopDeploymentTopologiesByEnvironment(txCtx, db.StopDeploymentTopologiesByEnvironmentParams{EnvironmentID: envID, UpdatedAt: now}); txErr != nil {
+				return txErr
+			}
+			return queries.ClearAppCurrentDeploymentByEnvironment(txCtx, db.ClearAppCurrentDeploymentByEnvironmentParams{
+				EnvironmentID: envID, UpdatedAt: now,
+			})
+		})
+	}, restate.WithName("mark environment deleting and stop deployments")); err != nil {
+		return nil, fmt.Errorf("begin environment deletion: %w", err)
+	}
 
-	if err := s.cancelProgressingDeployments(ctx, env, req); err != nil {
+	if err := s.cancelProgressingDeployments(ctx, *env, req); err != nil {
 		return nil, fmt.Errorf("cancel progressing deployments: %w", err)
 	}
 
 	if err := s.cancelDomainVerifications(ctx, envID); err != nil {
 		return nil, fmt.Errorf("cancel domain verifications: %w", err)
+	}
+
+	for pollAttempt := uint(0); ; pollAttempt++ {
+		remaining, countErr := restate.Run(ctx, func(runCtx restate.RunContext) (int64, error) {
+			return s.db.CountDeploymentTopologiesByEnvironment(runCtx, envID)
+		}, restate.WithName("count remaining deployment topologies"))
+		if countErr != nil {
+			return nil, fmt.Errorf("count remaining deployment topologies: %w", countErr)
+		}
+		if remaining == 0 {
+			break
+		}
+		if sleepErr := restate.Sleep(ctx, topologyRemovalPollInterval(pollAttempt)); sleepErr != nil {
+			return nil, fmt.Errorf("wait for deployment topology removal: %w", sleepErr)
+		}
 	}
 
 	if err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
@@ -100,9 +161,15 @@ func (s *Service) Delete(
 	}
 
 	if err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
-		return s.db.DeleteDeploymentTopologiesByEnvironmentId(runCtx, envID)
-	}, restate.WithName("delete deployment topologies")); err != nil {
-		return nil, fmt.Errorf("delete deployment topologies: %w", err)
+		return s.db.DeleteInstancesByEnvironment(runCtx, envID)
+	}, restate.WithName("delete residual instances")); err != nil {
+		return nil, fmt.Errorf("delete residual instances: %w", err)
+	}
+
+	if err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
+		return db.NewQueries(s.db.RW()).DeleteOpenApiSpecsByEnvironmentId(runCtx, envID)
+	}, restate.WithName("delete openapi specs")); err != nil {
+		return nil, fmt.Errorf("delete openapi specs: %w", err)
 	}
 
 	if err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
