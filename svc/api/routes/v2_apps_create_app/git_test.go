@@ -61,6 +61,10 @@ func TestCreateAppConnectRepository(t *testing.T) {
 		Name:        "Payments",
 		Slug:        slug(),
 	})
+	h.CreateApp(seed.CreateAppRequest{
+		ID: appID, WorkspaceID: workspace.ID, ProjectID: project.ID,
+		Name: "Payments API", Slug: slug(),
+	})
 	h.SeedGitHubInstallation(t, workspace.ID, 12345)
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
@@ -125,6 +129,10 @@ func TestCreateAppConnectRepositoryWithURNPermission(t *testing.T) {
 		Slug:        slug(),
 	})
 	permission := fmt.Sprintf("%s#%s", urn.New().Workspace(workspace.ID).Project(project.ID).App("*"), permissions.Write)
+	h.CreateApp(seed.CreateAppRequest{
+		ID: appID, WorkspaceID: workspace.ID, ProjectID: project.ID,
+		Name: "Payments API", Slug: slug(),
+	})
 	rootKey := h.CreateRootKey(workspace.ID, permission)
 	h.SeedGitHubInstallation(t, workspace.ID, 12345)
 
@@ -320,6 +328,10 @@ func TestCreateAppConnectRepositoryWithAppURN(t *testing.T) {
 		WorkspaceID: workspace.ID,
 		Name:        "Payments",
 		Slug:        slug(),
+	})
+	h.CreateApp(seed.CreateAppRequest{
+		ID: appID, WorkspaceID: workspace.ID, ProjectID: project.ID,
+		Name: "Payments API", Slug: slug(),
 	})
 	h.SeedGitHubInstallation(t, workspace.ID, 12345)
 

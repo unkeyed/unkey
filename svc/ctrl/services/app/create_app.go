@@ -98,6 +98,9 @@ func (s *Service) CreateApp(
 	now := time.Now().UnixMilli()
 
 	err = db.TxRetry(ctx, s.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
+		if _, txErr := db.NewQueries(tx).LockActiveProject(txCtx, projectID); txErr != nil {
+			return fmt.Errorf("lock active project: %w", txErr)
+		}
 		if txErr := db.NewQueries(tx).InsertApp(txCtx, db.InsertAppParams{
 			ID:               appID,
 			WorkspaceID:      workspaceID,
@@ -237,6 +240,9 @@ func (s *Service) CreateApp(
 		return nil
 	})
 	if err != nil {
+		if db.IsNotFound(err) {
+			return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("project not found: %w", err))
+		}
 		if db.IsDuplicateKeyError(err) {
 			return nil, connect.NewError(connect.CodeAlreadyExists, fmt.Errorf("app with slug %q already exists in project", req.Msg.GetSlug()))
 		}

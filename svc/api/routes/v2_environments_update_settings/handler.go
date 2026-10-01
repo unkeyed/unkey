@@ -170,26 +170,21 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	now := time.Now().UnixMilli()
 	err = db.TxRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
-		// Lock the environment row before region reconciliation, which reads then
-		// replaces the regional set. Build/runtime UPDATEs skip the lock.
-		if req.Regions != nil {
-			if _, err := db.Query.LockEnvironmentForUpdate(ctx, tx, environment.ID); err != nil {
-				if db.IsNotFound(err) {
-					// Deleted between the read above and acquiring the lock.
-					return fault.New(
-						"environment not found",
-						fault.Code(codes.Data.Environment.NotFound.URN()),
-						fault.Internal("environment deleted before lock"),
-						fault.Public("The requested environment does not exist."),
-					)
-				}
-				return fault.Wrap(
-					err,
-					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-					fault.Internal("unable to lock environment"),
-					fault.Public("We're unable to update the environment settings."),
+		if _, err := db.Query.LockEnvironmentForUpdate(ctx, tx, environment.ID); err != nil {
+			if db.IsNotFound(err) {
+				return fault.New(
+					"environment not found",
+					fault.Code(codes.Data.Environment.NotFound.URN()),
+					fault.Internal("environment deleted before lock"),
+					fault.Public("The requested environment does not exist."),
 				)
 			}
+			return fault.Wrap(
+				err,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("unable to lock environment"),
+				fault.Public("We're unable to update the environment settings."),
+			)
 		}
 
 		if hasBuild {
