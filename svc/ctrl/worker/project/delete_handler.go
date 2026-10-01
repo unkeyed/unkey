@@ -77,6 +77,12 @@ func (s *Service) Delete(
 	}
 
 	if err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
+		return s.db.DeletePortalsByProjectID(runCtx, projectID)
+	}, restate.WithName("delete project portals")); err != nil {
+		return nil, fmt.Errorf("delete project portals: %w", err)
+	}
+
+	if err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
 		return s.db.DeleteProjectById(runCtx, projectID)
 	}, restate.WithName("delete project")); err != nil {
 		return nil, fmt.Errorf("delete project: %w", err)
