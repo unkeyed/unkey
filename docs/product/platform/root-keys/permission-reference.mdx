@@ -1,0 +1,160 @@
+---
+title: Permission reference
+description: "Look up resource paths, supported actions, and permission requirements for common operations."
+sources:
+  - pkg/urn/urn.go
+  - pkg/urn/permission_actions.go
+  - svc/api/internal/principal/permissions.go
+  - svc/api/routes/v2_deployments_create_deployment/handler.go
+  - svc/api/routes/v2_deployments_get_deployment/handler.go
+  - svc/api/routes/v2_deployments_list_deployments/handler.go
+  - svc/api/routes/v2_deployments_start_deployment/handler.go
+  - svc/api/routes/v2_deployments_stop_deployment/handler.go
+  - svc/api/routes/v2_deployments_promote_deployment/handler.go
+  - svc/api/routes/v2_deployments_rollback_deployment/handler.go
+  - svc/api/routes/v2_environments_list_environment_variables/handler.go
+  - svc/api/routes/v2_environments_set_environment_variables/handler.go
+  - svc/api/routes/v2_environments_remove_environment_variables/handler.go
+  - svc/api/routes/v2_apis_list_keys/handler.go
+  - svc/api/routes/v2_keys_add_permissions/handler.go
+  - svc/api/routes/v2_keys_set_permissions/handler.go
+  - svc/api/routes/v2_root_keys_create_key/handler.go
+  - svc/api/routes/v2_root_keys_update_key/handler.go
+  - svc/api/routes/v2_root_keys_list_keys/handler.go
+  - svc/api/routes/v2_root_keys_reroll_key/handler.go
+---
+
+A root key permission has the form `unkey:v1:{workspace_id}:{resource_path}#{action}`. Use this page to choose a path and action. See [Root key permissions](/platform/root-keys/permissions) for least-privilege examples and [Configure root keys](/platform/root-keys/configure) to assign them.
+
+## Build a permission string
+
+Replace placeholders such as `{project_id}` with resource IDs, not names or slugs. A resource ID can be `*` to select all resources at that position, including future resources. After the first wildcard ID, every later ID must also be `*`. The workspace ID must always be exact.
+
+Paths and actions are case-sensitive. Keep path segments such as `rootKeys` exactly as shown. IDs contain letters, digits, and underscores. Partial ID matches such as `proj_*` aren't supported.
+
+For example, to read every app in one project:
+
+```plaintext
+unkey:v1:ws_demo:projects/proj_shop/apps/*#read
+```
+
+The resource tables list supported path/action combinations. They don't mean every combination has a corresponding API endpoint. Use the operation requirements below when an endpoint needs a collection grant or more than one permission.
+
+## Workspace resources
+
+Append one of these paths to `unkey:v1:{workspace_id}:`, then add `#` and an action.
+
+| Resource | Path | Actions |
+| --- | --- | --- |
+| Projects | `projects/{project_id}` | `read`, `write`, `delete` |
+| Root keys | `rootKeys/{root_key_id}` | `read`, `write`, `delete` |
+| GitHub apps | `github/apps/{github_app_id}` | `read`, `write`, `delete` |
+
+## Deploy resources
+
+All paths in this table follow the prefix `unkey:v1:{workspace_id}:projects/{project_id}/`.
+
+| Resource | Path after the project prefix | Actions |
+| --- | --- | --- |
+| Apps | `apps/{app_id}` | `read`, `write`, `delete` |
+| Environments | `apps/{app_id}/environments/{environment_id}` | `read`, `write`, `delete` |
+
+The resources below follow the environment prefix:
+
+```plaintext wrap
+unkey:v1:{workspace_id}:projects/{project_id}/apps/{app_id}/environments/{environment_id}
+```
+
+Append the suffix, then `#` and the action. In these suffixes, `{id}` is the ID of the deployment, domain, variable, or policy. For example, append `/deployments/*#read` to read deployments in that environment.
+
+| Resource | Suffix | Actions |
+| --- | --- | --- |
+| Deployments | `/deployments/{id}` | `read`, `write`, `delete` |
+| Runtime logs | `/deployments/{id}/logs` | `read` |
+| Domains | `/domains/{id}` | `read`, `write`, `delete` |
+| Environment variables | `/variables/{id}` | `read`, `write`, `delete` |
+| HTTP request logs | `/gateway/logs` | `read` |
+| Gateway policies | `/gateway/policies/{id}` | `read`, `write`, `delete` |
+
+### Deployment operations
+
+These requirements use the environment prefix above. Here, `{id}` is the deployment ID. Each row identifies the resource and action the operation checks.
+
+| Operation | Required suffix and action |
+| --- | --- |
+| Create a deployment | `/deployments/*#write` |
+| Get a deployment | `/deployments/{id}#read` |
+| List deployments in an environment | `/deployments/*#read` |
+| Start or stop a deployment | `/deployments/{id}#write` |
+| Read a deployment's runtime logs | `/deployments/{id}/logs#read` |
+| Explicitly promote or roll back a deployment | `#write` on the environment itself |
+
+When listing deployments with an environment-scoped key, include the `project`, `app`, and `environment` request filters. A broader list request needs a broader grant. For logs, the API restricts results to the deployments covered by the key's log permissions.
+
+Environment `write` also authorizes environment settings changes. Deployment `write` authorizes both creation and updates within its scope. Neither action is a create-only or promote-only permission. Permissions don't bypass operation restrictions, such as which deployments can be stopped.
+
+### Environment variable operations
+
+Variable endpoints check the collection path `/variables/*`, not a single variable ID.
+
+| Operation | Required suffix and action |
+| --- | --- |
+| List variables | `/variables/*#read` |
+| Set variables | `/variables/*#write` |
+| Remove variables | `/variables/*#delete` |
+| Set variables with `prune: true` | Both `/variables/*#write` and `/variables/*#delete` |
+
+Read access can reveal recoverable variable values. It doesn't reveal write-only values. There is no separate `decrypt` permission for environment variables. Don't grant variable read access to an agent that only needs deployment logs.
+
+## API management resources
+
+All paths in this table follow `unkey:v1:{workspace_id}:projects/{project_id}/`.
+
+| Resource | Path after the project prefix | Actions |
+| --- | --- | --- |
+| Keyspaces | `keyspaces/{keyspace_id}` | `read`, `write`, `delete` |
+| Verification logs | `keyspaces/{keyspace_id}/logs` | `read` |
+| API keys | `keyspaces/{keyspace_id}/keys/{key_id}` | `read`, `write`, `delete`, `verify`, `decrypt` |
+| Identities | `identities/{identity_id}` | `read`, `write`, `delete` |
+| Rate limit namespaces | `ratelimits/namespaces/{namespace_id}` | `read`, `write`, `delete`, `limit` |
+| Rate limit logs | `ratelimits/namespaces/{namespace_id}/logs` | `read` |
+| Rate limit overrides | `ratelimits/namespaces/{namespace_id}/overrides/{override_id}` | `read`, `write`, `delete` |
+| Roles | `rbac/roles/{role_id}` | `read`, `write`, `delete` |
+| Permission definitions | `rbac/permissions/{permission_id}` | `read`, `write`, `delete` |
+| Portals | `portals/{portal_id}` | `read`, `write`, `delete` |
+| Portal sessions | `portals/{portal_id}/sessions/{session_id}` | `write` |
+
+Use the keyspace ID in permission paths, not the `apiId` accepted by some key-management requests. Roles and permission definitions in this table are resources used to authorize your customers' keys. They aren't the root key grants themselves.
+
+### Key operations
+
+For these operations, append each suffix to `unkey:v1:{workspace_id}:projects/{project_id}/keyspaces/{keyspace_id}`.
+
+| Operation | Required suffix and action |
+| --- | --- |
+| Create a key, including a recoverable key | `/keys/*#write` |
+| Get a key | `/keys/{key_id}#read` |
+| Update a key, its credits, roles, or direct permissions | `/keys/{key_id}#write` |
+| Delete a key | `/keys/{key_id}#delete` |
+| Verify a key | `/keys/{key_id}#verify` |
+| Get a recoverable key's plaintext | Both `/keys/{key_id}#read` and `/keys/{key_id}#decrypt` |
+| List keys | Both `/keys/*#read` and `#read` on the keyspace itself |
+| List keys with plaintext | Both list permissions above, plus `/keys/*#decrypt` |
+
+When `keys.addPermissions` or `keys.setPermissions` must create a missing permission definition, also grant `write` on `projects/{project_id}/rbac/permissions/*`. Attaching an existing definition doesn't need that extra creation grant.
+
+## Root key operations
+
+These suffixes follow `unkey:v1:{workspace_id}:`. A caller that assigns permissions must already cover each assigned grant in the same workspace.
+
+| Operation | Required path and action |
+| --- | --- |
+| Create a root key | `rootKeys/*#write` |
+| List root keys | `rootKeys/{root_key_id}#read` for each returned key, or `rootKeys/*#read` for all |
+| Update a root key | `rootKeys/{root_key_id}#write` |
+| Delete a root key | `rootKeys/{root_key_id}#delete` |
+| Rotate a root key | `rootKeys/{root_key_id}#write`; also `#delete` on that key when setting an expiry on the old key |
+
+Creating or updating a key cannot assign permissions beyond the caller's grants. Rotation checks that the caller covers the permissions being copied to the replacement key. The management permission alone doesn't grant permission to copy broader access.
+
+See [Configure root keys](/platform/root-keys/configure#create-a-key-through-the-api) for creation, permission replacement, and expiry rules.

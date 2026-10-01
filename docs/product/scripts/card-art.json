@@ -6679,9 +6679,9 @@
   {
     "id": "platform--index--23",
     "source": "platform/index.mdx",
-    "href": "/platform/root-keys/permissions-legacy",
+    "href": "/platform/root-keys/permission-reference",
     "title": "Permission reference",
-    "evidence": "platform/root-keys/permissions-legacy.mdx",
+    "evidence": "platform/root-keys/permission-reference.mdx",
     "scene": {
       "kind": "anatomy",
       "heading": "Permission tuple",
@@ -6999,9 +6999,9 @@
   {
     "id": "platform--root-keys--overview--2",
     "source": "platform/root-keys/overview.mdx",
-    "href": "/platform/root-keys/permissions-legacy",
+    "href": "/platform/root-keys/permission-reference",
     "title": "Permission reference",
-    "evidence": "platform/root-keys/permissions-legacy.mdx",
+    "evidence": "platform/root-keys/permission-reference.mdx",
     "scene": {
       "kind": "anatomy",
       "heading": "Break down api.*.read_key",

@@ -1,0 +1,108 @@
+---
+title: Configure root keys
+sidebarTitle: "Configure keys"
+description: "Assign scoped permissions in the dashboard or create and update root keys through the API."
+sources:
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/root-keys/page.tsx
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/settings/root-keys/components/builder/builder-aside.tsx
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/settings/root-keys/components/builder/edit-key-aside.tsx
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/settings/root-keys/components/builder/policy-card.tsx
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/settings/root-keys/components/builder/lib/catalogue.rows.ts
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/settings/root-keys/components/builder/lib/templates.ts
+  - svc/api/routes/v2_root_keys_create_key/handler.go
+  - svc/api/routes/v2_root_keys_update_key/handler.go
+  - svc/api/openapi/spec/paths/v2/rootKeys/createKey/V2RootKeysCreateKeyRequestBody.yaml
+  - svc/api/openapi/spec/paths/v2/rootKeys/createKey/V2RootKeysCreateKeyResponseData.yaml
+  - svc/api/openapi/spec/paths/v2/rootKeys/updateKey/V2RootKeysUpdateKeyRequestBody.yaml
+---
+
+Configure a root key after you've chosen the resources and actions its task needs. The dashboard builds permission URNs from your selections. The API accepts the same URNs as a list of strings.
+
+Read [Root key permissions](/platform/root-keys/permissions) for the scope rules and worked examples. This page configures the read-only debugging key from that guide.
+
+## Create a key in the dashboard
+
+You need the workspace [admin role](/platform/workspace/team) to manage root keys in the dashboard.
+
+1. Open **Root Keys** in your workspace and click **New Root Key**.
+2. Enter a name such as `billing-staging-debugger`.
+3. Under **Permissions**, select **Start new** to build a custom policy.
+4. Set **Scope** to **Environments**, then select the billing app's staging environment instead of all environments.
+5. Select `read` on **Deployments** and **Runtime logs**. Leave the other actions and resources unselected.
+6. Review every policy on the key, then click **Create key**.
+7. Copy the secret into your secret manager. Unkey shows it only once.
+
+A policy groups a scope and its selected actions. Selecting the environment sets the boundary for the deployment and log grants; it doesn't automatically grant access to environment settings or variables.
+
+Use **Add policy** when the key needs another scope. Policies add access together, so a workspace-wide policy can make a narrower environment policy ineffective as a restriction.
+
+Templates are starting points, not least-privilege recommendations. For example, **All read permissions** includes more data than deployment status and logs, and **Verify keys** starts with every keyspace. Review both the resources and actions before saving. Changing **Scope** resets that policy's selections.
+
+Use the API below if you need an expiry or a grant on one exact deployment rather than all deployments in the selected environment.
+
+## Edit permissions in the dashboard
+
+Open the key's row menu and select **Edit root key**. Change its policies, review the complete selection, then click **Save changes**.
+
+Saving replaces the key's permission set. To narrow access, remove broader policies as well as adding narrower ones. Clearing a search filter before reviewing helps you see selections that the filter hides.
+
+For rotation and deletion, see [Root keys](/platform/root-keys/overview).
+
+## Create a key through the API
+
+Authenticate with a root key that has `unkey:v1:ws_demo:rootKeys/*#write` and covers every permission you're assigning. If you don't have a management key yet, create one in the dashboard first. Keep that credential in trusted automation, not in the agent that receives the new key.
+
+This request creates a debugging key that expires in one hour. Replace the example IDs with your workspace's IDs. Set `UNKEY_ROOT_KEY` through your secret manager or environment, rather than putting the secret in the script.
+
+```bash wrap
+EXPIRES_AT_MS=$(( ($(date +%s) + 3600) * 1000 ))
+
+curl --fail-with-body https://api.unkey.com/v2/rootKeys.createKey \
+  -H "Authorization: Bearer $UNKEY_ROOT_KEY" \
+  -H "Content-Type: application/json" \
+  --data @- <<JSON
+{
+  "name": "billing-staging-debugger",
+  "expires": $EXPIRES_AT_MS,
+  "permissions": [
+    "unkey:v1:ws_demo:projects/proj_shop/apps/app_billing/environments/env_staging/deployments/*#read",
+    "unkey:v1:ws_demo:projects/proj_shop/apps/app_billing/environments/env_staging/deployments/*/logs#read"
+  ]
+}
+JSON
+```
+
+The response contains `data.key`, the secret shown only once, and `data.keyId`, the ID used to manage the key. Store the secret without sending it to CI logs or application logs. Give the agent the new secret, not `UNKEY_ROOT_KEY`.
+
+The `permissions` array is required. Every entry must be a supported resource/action combination in the authenticated workspace and fit within the caller's grants. The API accepts an empty array, but that key grants no resource access.
+
+`expires` is a future Unix timestamp in milliseconds. If the caller's root key expires sooner than one hour from now, use an earlier expiry. An expiring caller must set an expiry no later than its own. A nonexpiring caller can omit `expires` or use `null` for a key with no expiry, but use a short lifetime for temporary tasks.
+
+## Replace permissions through the API
+
+Use `rootKeys.updateKey` with the target `keyId` and the complete permission list you want to keep. The caller needs `write` on that root key and must cover every permission in the replacement list.
+
+For example, narrow the debugging key to one deployment:
+
+```bash wrap
+curl --fail-with-body https://api.unkey.com/v2/rootKeys.updateKey \
+  -H "Authorization: Bearer $UNKEY_ROOT_KEY" \
+  -H "Content-Type: application/json" \
+  --data '{
+    "keyId": "key_debugger",
+    "permissions": [
+      "unkey:v1:ws_demo:projects/proj_shop/apps/app_billing/environments/env_staging/deployments/dpl_release#read",
+      "unkey:v1:ws_demo:projects/proj_shop/apps/app_billing/environments/env_staging/deployments/dpl_release/logs#read"
+    ]
+  }'
+```
+
+Replace `key_debugger` with `data.keyId` from creation. This request removes the environment-wide deployment grants and replaces them with grants on `dpl_release`. It doesn't append to the existing list.
+
+Omitting `permissions` leaves the existing grants unchanged. Sending `"permissions": []` removes all grants. An expiring root key can only update keys that expire no later than itself.
+
+## Verify the resulting access
+
+Call an operation the key needs, then check a read outside its scope. For the single-deployment debugging key, `deployments.getDeployment` on `dpl_release` must succeed, while a lookup of a different deployment must fail.
+
+If a request fails unexpectedly, compare its required action and resource IDs with the full permission list. Check list filters too: a request for all deployments asks for more access than a request scoped to one environment. See [permission troubleshooting](/errors/unkey/authorization/insufficient_permissions).

@@ -32,20 +32,21 @@ Your root key is valid, but it doesn't have a permission this endpoint needs. Yo
 ## Likely causes
 
 - The root key was never given this permission.
-- The permission was granted on the wrong resource ID, for example the keyspace ID instead of the API ID.
+- The permission names the wrong resource ID, for example an API ID where the URN needs a keyspace ID.
+- The request asks for a broader scope than the key's grant, such as listing deployments without environment filters.
 - Someone saved the key in **Edit root key** and left the permission unchecked. Saving replaces the whole set.
 
 A missing permission doesn't always return 403. Most endpoints that read or change a resource you named return a 404 for it instead, so a 404 doesn't prove the resource is gone. Check the root key's permissions before you decide the ID is wrong.
 
 ## How to fix
 
-1. Grant the missing permission to the root key in the dashboard, or create a new root key with the right permissions.
-2. Grant it as `resource.id.action`, such as `api.api_123.create_key` for one API or `api.*.create_key` for every API in the workspace.
-3. If `detail` shows the permission as `unkey:v1:{workspace}:{path}#{action}`, the part after `#` is the action and the path is the resource. Grant the matching `resource.id.action`.
+1. Identify the required resource and action. In `unkey:v1:{workspace_id}:{resource_path}#{action}`, the path selects the resource and the part after `#` selects the action.
+2. Check the workspace and resource IDs, including every parent in the path. Narrow the request's filters if it asks for more resources than the task needs.
+3. Assign the missing grant through the [dashboard or API](/platform/root-keys/configure). For example, `unkey:v1:ws_demo:projects/proj_shop/keyspaces/ks_customers/keys/*#write` permits creating and updating keys in one keyspace. Replace the example IDs with your own.
 
 Give each service its own root key with only what it needs, so a leaked key can't do more. See [Root key permissions](/platform/root-keys/permissions).
 
-Keys you check with `keys.verifyKey` never return this error. A failed permission check there comes back as `valid: false` with code `INSUFFICIENT_PERMISSIONS`.
+`keys.verifyKey` distinguishes the root key's access from your customer's permissions. If the root key lacks `verify` access, the response has `valid: false` and code `NOT_FOUND`. If the customer's key lacks a permission required by your verification query, the code is `INSUFFICIENT_PERMISSIONS`.
 
 ## Related errors
 
