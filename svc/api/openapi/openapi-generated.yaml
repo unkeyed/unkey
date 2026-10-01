@@ -736,6 +736,60 @@ components:
                     "$ref": "#/components/schemas/Meta"
                 data:
                     "$ref": "#/components/schemas/V2DeploymentsCreateDeploymentResponseData"
+        V2DeploymentsGetBuildLogsRequestBody:
+            type: object
+            required:
+                - deploymentId
+            properties:
+                deploymentId:
+                    "$ref": "#/components/schemas/ResourceIdentifier"
+                stepId:
+                    type: string
+                    minLength: 1
+                    maxLength: 256
+                    description: |
+                        Return only the log entries of this build step. Use the `stepId` of an
+                        entry from a previous response. An unknown step returns no entries.
+                        Omit this field to return the entries of every step.
+                    example: sha256:3f9c2b7e1d4a6f8c0b5e9d2a7c4f1e8b3d6a9c2f5e8b1d4a7c0f3e6b9d2a5c8f
+                cursor:
+                    type: string
+                    minLength: 1
+                    maxLength: 1024
+                    description: |
+                        Pagination cursor from a previous response to fetch the entries after
+                        it. Omit it to start at the first entry of the build.
+                    example: "1704067201000001"
+                limit:
+                    type: integer
+                    minimum: 1
+                    maximum: 500
+                    default: 100
+                    description: |
+                        Maximum number of log entries to return. A response can contain fewer
+                        entries and still have `hasMore: true` when the entries are large.
+            additionalProperties: false
+            description: |
+                Retrieve the build log entries of a deployment. Get the deployment id from
+                `createDeployment` or `listDeployments`.
+        V2DeploymentsGetBuildLogsResponseBody:
+            type: object
+            required:
+                - meta
+                - data
+                - pagination
+            properties:
+                meta:
+                    "$ref": "#/components/schemas/Meta"
+                data:
+                    type: array
+                    maxItems: 500
+                    items:
+                        "$ref": "#/components/schemas/BuildLogEntry"
+                    description: The log entries, in the order the build printed them.
+                pagination:
+                    "$ref": "#/components/schemas/Pagination"
+            additionalProperties: false
         V2DeploymentsGetDeploymentRequestBody:
             type: object
             required:
@@ -4965,6 +5019,56 @@ components:
                     type: string
                     description: Unique deployment identifier. Poll deployments.getDeployment with this id to watch status.
                     example: "d_abc123xyz"
+        BuildLogEntry:
+            type: object
+            required:
+                - time
+                - stepId
+                - step
+                - output
+                - message
+            properties:
+                time:
+                    type: integer
+                    format: int64
+                    description: When the build printed the entry, in Unix epoch milliseconds.
+                    example: 1704067201000
+                stepId:
+                    type: string
+                    description: |
+                        The build step that printed the entry. Pass it as `stepId` to return only
+                        this step's entries.
+                    example: sha256:3f9c2b7e1d4a6f8c0b5e9d2a7c4f1e8b3d6a9c2f5e8b1d4a7c0f3e6b9d2a5c8f
+                step:
+                    type: string
+                    maxLength: 256
+                    description: |
+                        The name of the build step, such as `[3/7] RUN npm ci`, cut to 256
+                        characters. Empty when the step name is not known.
+                    example: "[3/7] RUN npm ci"
+                output:
+                    "$ref": "#/components/schemas/BuildLogOutput"
+                message:
+                    type: string
+                    description: |
+                        The text the build printed. One entry can contain several lines or part
+                        of a line.
+                    example: |
+                        added 412 packages in 12s
+            additionalProperties: false
+            description: One chunk of build output.
+        BuildLogOutput:
+            type: string
+            enum:
+                - stdout
+                - stderr
+            x-enum-varnames:
+                - BuildLogOutputStdout
+                - BuildLogOutputStderr
+            description: |
+                The output stream a build log entry was printed to. Many tools write progress
+                and warnings to `stderr`, so `stderr` does not mean that the step failed.
+            example: stdout
         Deployment:
             type: object
             required:
@@ -9444,6 +9548,188 @@ paths:
             tags:
                 - deployments
             x-speakeasy-name-override: createDeployment
+    /v2/deployments.getBuildLogs:
+        post:
+            description: |
+                Retrieve the build output of a deployment as a list of log entries, in the
+                order the build printed them. A log entry is one chunk of build output,
+                and can contain several lines or part of a line.
+
+                Poll this endpoint to follow a running build:
+
+                - Send the `pagination.cursor` of the last response as `cursor`. The
+                  response contains only the entries after it.
+                - When `hasMore` is true, request again now.
+                - When `hasMore` is false, you have all entries so far. Wait,
+                  then request again with the same cursor.
+                - The cursor is absent only when the request had no cursor and the build
+                  has no entries yet.
+                - A response can contain fewer than `limit` entries and still have
+                  `hasMore: true` when the entries are large.
+
+                New entries become visible up to a few seconds after the build prints
+                them. To know that a build is done, check the deployment status with
+                `getDeployment`. After the status is no longer `building`, request until
+                you get an empty response at least 5 seconds later.
+
+                When a build attempt is retried, an entry from the earlier attempt can
+                arrive after the cursor has moved past it, and a poll does not return it.
+                A request without a cursor returns it. A deployment from a prebuilt image
+                has no build and returns no entries. Build logs are kept for 3 months.
+
+                **Required Permissions**
+
+                Your root key must have one of the following permissions:
+                - `environment.*.read_deployment` (to read deployments in any environment)
+                - `environment.<environment_id>.read_deployment` (to read deployments in a specific environment)
+            operationId: deployments.getBuildLogs
+            requestBody:
+                content:
+                    application/json:
+                        examples:
+                            firstPage:
+                                description: Fetch the build log entries of a deployment from the start
+                                summary: Start at the first entry
+                                value:
+                                    deploymentId: d_1234abcd
+                            nextPage:
+                                description: Fetch the entries after the previous response
+                                summary: Continue after a cursor
+                                value:
+                                    cursor: "1704067201000001"
+                                    deploymentId: d_1234abcd
+                            oneStep:
+                                description: Fetch only the entries of one build step
+                                summary: Entries of one step
+                                value:
+                                    deploymentId: d_1234abcd
+                                    stepId: sha256:3f9c2b7e1d4a6f8c0b5e9d2a7c4f1e8b3d6a9c2f5e8b1d4a7c0f3e6b9d2a5c8f
+                        schema:
+                            $ref: '#/components/schemas/V2DeploymentsGetBuildLogsRequestBody'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            examples:
+                                caughtUp:
+                                    description: The poll is caught up, so request again later with the same cursor
+                                    summary: No new entries
+                                    value:
+                                        data: []
+                                        meta:
+                                            requestId: req_1234abcd
+                                        pagination:
+                                            cursor: "1704067201000001"
+                                            hasMore: false
+                                entries:
+                                    description: Output of two steps, more entries are available
+                                    summary: Log entries of a running build
+                                    value:
+                                        data:
+                                            - message: |
+                                                OK: 12 MiB in 18 packages
+                                              output: stdout
+                                              step: '[2/7] RUN apk add --no-cache git'
+                                              stepId: sha256:1d4a6f8c0b5e9d2a7c4f1e8b3d6a9c2f5e8b1d4a7c0f3e6b9d2a5c8f3f9c2b7e
+                                              time: 1704067199000
+                                            - message: |
+                                                npm warn deprecated inflight@1.0.6
+                                              output: stderr
+                                              step: '[3/7] RUN npm ci'
+                                              stepId: sha256:3f9c2b7e1d4a6f8c0b5e9d2a7c4f1e8b3d6a9c2f5e8b1d4a7c0f3e6b9d2a5c8f
+                                              time: 1704067201000
+                                        meta:
+                                            requestId: req_1234abcd
+                                        pagination:
+                                            cursor: "1704067201000001"
+                                            hasMore: true
+                            schema:
+                                $ref: '#/components/schemas/V2DeploymentsGetBuildLogsResponseBody'
+                    description: |
+                        Successfully retrieved the build log entries.
+                "400":
+                    content:
+                        application/json:
+                            examples:
+                                invalidCursor:
+                                    summary: Invalid cursor
+                                    value:
+                                        error:
+                                            detail: The cursor is not valid. Send the pagination.cursor of a previous response, or omit it to start at the first entry.
+                                            errors: []
+                                            status: 400
+                                            title: Bad Request
+                                            type: https://unkey.com/docs/errors/unkey/application/invalid_input
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Bad request
+                "401":
+                    content:
+                        application/json:
+                            examples:
+                                invalidRootKey:
+                                    summary: Invalid root key
+                                    value:
+                                        error:
+                                            detail: The provided root key is invalid. We could not find the requested key.
+                                            status: 401
+                                            title: Unauthorized
+                                            type: https://unkey.com/docs/errors/unkey/authentication/key_not_found
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Unauthorized
+                "404":
+                    content:
+                        application/json:
+                            examples:
+                                deploymentNotFound:
+                                    summary: Deployment not found
+                                    value:
+                                        error:
+                                            detail: The requested deployment does not exist.
+                                            status: 404
+                                            title: Not Found
+                                            type: https://unkey.com/docs/errors/unkey/data/deployment_not_found
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/NotFoundErrorResponse'
+                    description: Not Found - The requested deployment does not exist in your workspace
+                "429":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/TooManyRequestsErrorResponse'
+                    description: Too Many Requests
+                "500":
+                    content:
+                        application/json:
+                            examples:
+                                logsUnavailable:
+                                    summary: Build logs unavailable
+                                    value:
+                                        error:
+                                            detail: Failed to retrieve build logs.
+                                            status: 500
+                                            title: Internal Server Error
+                                            type: https://unkey.com/docs/errors/unkey/application/service_unavailable
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error
+            security:
+                - bearer: []
+            summary: Get build logs
+            tags:
+                - deployments
+            x-speakeasy-name-override: getBuildLogs
+            x-unkey-idempotency: idempotent
     /v2/deployments.getDeployment:
         post:
             description: |

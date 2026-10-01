@@ -157,6 +157,8 @@ paths:
   # Deployments Endpoints
   /v2/deployments.createDeployment:
     $ref: "./spec/paths/v2/deployments/createDeployment/index.yaml"
+  /v2/deployments.getBuildLogs:
+    $ref: "./spec/paths/v2/deployments/getBuildLogs/index.yaml"
   /v2/deployments.getDeployment:
     $ref: "./spec/paths/v2/deployments/getDeployment/index.yaml"
   /v2/deployments.listDeployments:

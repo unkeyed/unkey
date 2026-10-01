@@ -4,6 +4,7 @@
 
 import { deploymentsCreateDeployment } from "../funcs/deploymentsCreateDeployment.js";
 import { deploymentsCreateDeploymentV3 } from "../funcs/deploymentsCreateDeploymentV3.js";
+import { deploymentsGetBuildLogs } from "../funcs/deploymentsGetBuildLogs.js";
 import { deploymentsGetDeployment } from "../funcs/deploymentsGetDeployment.js";
 import { deploymentsListDeployments } from "../funcs/deploymentsListDeployments.js";
 import { deploymentsPromoteDeployment } from "../funcs/deploymentsPromoteDeployment.js";
@@ -39,6 +40,53 @@ export class Deployments extends ClientSDK {
     options?: RequestOptions,
   ): Promise<components.V2DeploymentsCreateDeploymentResponseBody> {
     return unwrapAsync(deploymentsCreateDeployment(
+      this,
+      request,
+      options,
+    ));
+  }
+
+  /**
+   * Get build logs
+   *
+   * @remarks
+   * Retrieve the build output of a deployment as a list of log entries, in the
+   * order the build printed them. A log entry is one chunk of build output,
+   * and can contain several lines or part of a line.
+   *
+   * Poll this endpoint to follow a running build:
+   *
+   * - Send the `pagination.cursor` of the last response as `cursor`. The
+   *   response contains only the entries after it.
+   * - When `hasMore` is true, request again now.
+   * - When `hasMore` is false, you have all entries so far. Wait,
+   *   then request again with the same cursor.
+   * - The cursor is absent only when the request had no cursor and the build
+   *   has no entries yet.
+   * - A response can contain fewer than `limit` entries and still have
+   *   `hasMore: true` when the entries are large.
+   *
+   * New entries become visible up to a few seconds after the build prints
+   * them. To know that a build is done, check the deployment status with
+   * `getDeployment`. After the status is no longer `building`, request until
+   * you get an empty response at least 5 seconds later.
+   *
+   * When a build attempt is retried, an entry from the earlier attempt can
+   * arrive after the cursor has moved past it, and a poll does not return it.
+   * A request without a cursor returns it. A deployment from a prebuilt image
+   * has no build and returns no entries. Build logs are kept for 3 months.
+   *
+   * **Required Permissions**
+   *
+   * Your root key must have one of the following permissions:
+   * - `environment.*.read_deployment` (to read deployments in any environment)
+   * - `environment.<environment_id>.read_deployment` (to read deployments in a specific environment)
+   */
+  async getBuildLogs(
+    request: components.V2DeploymentsGetBuildLogsRequestBody,
+    options?: RequestOptions,
+  ): Promise<components.V2DeploymentsGetBuildLogsResponseBody> {
+    return unwrapAsync(deploymentsGetBuildLogs(
       this,
       request,
       options,

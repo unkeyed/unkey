@@ -29,6 +29,24 @@ func (e AppSourceType) Valid() bool {
 	}
 }
 
+// Defines values for BuildLogOutput.
+const (
+	BuildLogOutputStderr BuildLogOutput = "stderr"
+	BuildLogOutputStdout BuildLogOutput = "stdout"
+)
+
+// Valid indicates whether the value is a known member of the BuildLogOutput enum.
+func (e BuildLogOutput) Valid() bool {
+	switch e {
+	case BuildLogOutputStderr:
+		return true
+	case BuildLogOutputStdout:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for DeploymentAction.
 const (
 	DeploymentActionPromote  DeploymentAction = "promote"
@@ -726,6 +744,48 @@ type BaseError struct {
 
 // BearerTokenLocation Extract the key from the `Authorization Bearer` header.
 type BearerTokenLocation = map[string]interface{}
+
+// BuildLogEntry One chunk of build output.
+type BuildLogEntry struct {
+	// Message The text the build printed. One entry can contain several lines or part
+	// of a line.
+	//
+	//
+	// Example: added 412 packages in 12s
+	Message string `json:"message"`
+
+	// Output The output stream a build log entry was printed to. Many tools write progress
+	// and warnings to `stderr`, so `stderr` does not mean that the step failed.
+	//
+	//
+	// Example: stdout
+	Output BuildLogOutput `json:"output"`
+
+	// Step The name of the build step, such as `[3/7] RUN npm ci`, cut to 256
+	// characters. Empty when the step name is not known.
+	//
+	//
+	// Example: [3/7] RUN npm ci
+	Step string `json:"step"`
+
+	// StepId The build step that printed the entry. Pass it as `stepId` to return only
+	// this step's entries.
+	//
+	//
+	// Example: sha256:3f9c2b7e1d4a6f8c0b5e9d2a7c4f1e8b3d6a9c2f5e8b1d4a7c0f3e6b9d2a5c8f
+	StepId string `json:"stepId"`
+
+	// Time When the build printed the entry, in Unix epoch milliseconds.
+	//
+	// Example: 1704067201000
+	Time int64 `json:"time"`
+}
+
+// BuildLogOutput The output stream a build log entry was printed to. Many tools write progress
+// and warnings to `stderr`, so `stderr` does not mean that the step failed.
+//
+// Example: stdout
+type BuildLogOutput string
 
 // ConflictErrorResponse Error response when the request conflicts with the current state of the resource. This occurs when:
 // - Attempting to create a resource that already exists
@@ -3198,6 +3258,48 @@ type V2DeploymentsCreateDeploymentResponseData struct {
 	//
 	// Example: d_abc123xyz
 	DeploymentId string `json:"deploymentId"`
+}
+
+// V2DeploymentsGetBuildLogsRequestBody Retrieve the build log entries of a deployment. Get the deployment id from
+// `createDeployment` or `listDeployments`.
+type V2DeploymentsGetBuildLogsRequestBody struct {
+	// Cursor Pagination cursor from a previous response to fetch the entries after
+	// it. Omit it to start at the first entry of the build.
+	//
+	//
+	// Example: 1704067201000001
+	Cursor *string `json:"cursor,omitempty"`
+
+	// DeploymentId Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	//
+	//
+	// Example: proj_1234abcd
+	DeploymentId ResourceIdentifier `json:"deploymentId"`
+
+	// Limit Maximum number of log entries to return. A response can contain fewer
+	// entries and still have `hasMore: true` when the entries are large.
+	Limit *int `json:"limit,omitempty"`
+
+	// StepId Return only the log entries of this build step. Use the `stepId` of an
+	// entry from a previous response. An unknown step returns no entries.
+	// Omit this field to return the entries of every step.
+	//
+	//
+	// Example: sha256:3f9c2b7e1d4a6f8c0b5e9d2a7c4f1e8b3d6a9c2f5e8b1d4a7c0f3e6b9d2a5c8f
+	StepId *string `json:"stepId,omitempty"`
+}
+
+// V2DeploymentsGetBuildLogsResponseBody defines model for V2DeploymentsGetBuildLogsResponseBody.
+type V2DeploymentsGetBuildLogsResponseBody struct {
+	// Data The log entries, in the order the build printed them.
+	Data []BuildLogEntry `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+
+	// Pagination Pagination metadata for list endpoints. Provides information necessary to traverse through large result sets efficiently using cursor-based pagination.
+	Pagination Pagination `json:"pagination"`
 }
 
 // V2DeploymentsGetDeploymentRequestBody Retrieve a single deployment, including its status and runtime configuration.
@@ -6903,6 +7005,9 @@ type DeployGetDeploymentJSONRequestBody = V2DeployGetDeploymentRequestBody
 //
 // Deprecated: this type has been marked as deprecated upstream, but no `x-deprecated-reason` was set
 type DeploymentsCreateDeploymentJSONRequestBody = V2DeploymentsCreateDeploymentRequestBody
+
+// DeploymentsGetBuildLogsJSONRequestBody defines body for DeploymentsGetBuildLogs for application/json ContentType.
+type DeploymentsGetBuildLogsJSONRequestBody = V2DeploymentsGetBuildLogsRequestBody
 
 // DeploymentsGetDeploymentJSONRequestBody defines body for DeploymentsGetDeployment for application/json ContentType.
 type DeploymentsGetDeploymentJSONRequestBody = V2DeploymentsGetDeploymentRequestBody
