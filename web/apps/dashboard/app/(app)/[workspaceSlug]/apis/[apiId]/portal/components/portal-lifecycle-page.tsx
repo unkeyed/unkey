@@ -51,25 +51,36 @@ type Props = {
   onRetryKeyAuthId: () => void;
 };
 
-function useSurfaceState(
+export function usePortalSurfaceState(
   keyAuthId: string | undefined,
   keyAuthIdLoading: boolean,
   keyAuthIdError: boolean,
-): PortalState {
+  onRetryKeyAuthId: () => void,
+): { state: PortalState; retry: (() => void) | undefined } {
   const portalState = usePortal(keyAuthId);
+  const queryClient = useQueryClient();
+
+  // Only a genuinely absent keyspace has nothing to retry.
+  const retry = keyAuthIdError
+    ? onRetryKeyAuthId
+    : keyAuthId
+      ? () => {
+          void queryClient.invalidateQueries({ queryKey: queryKeys.portal.detail(keyAuthId) });
+        }
+      : undefined;
 
   if (keyAuthIdLoading) {
-    return { status: "loading" };
+    return { state: { status: "loading" }, retry };
   }
   // Must precede the undefined check: a failed lookup also leaves the id
   // undefined, and "no keyspace" offers no retry.
   if (keyAuthIdError) {
-    return { status: "error", message: KEYSPACE_LOOKUP_FAILED_MESSAGE };
+    return { state: { status: "error", message: KEYSPACE_LOOKUP_FAILED_MESSAGE }, retry };
   }
   if (keyAuthId === undefined) {
-    return { status: "error", message: NO_KEYSPACE_MESSAGE };
+    return { state: { status: "error", message: NO_KEYSPACE_MESSAGE }, retry };
   }
-  return portalState;
+  return { state: portalState, retry };
 }
 
 function PortalLoading() {
@@ -81,7 +92,7 @@ function PortalLoading() {
   );
 }
 
-function PortalErrorPanel({ message, onRetry }: { message: string; onRetry?: () => void }) {
+export function PortalErrorPanel({ message, onRetry }: { message: string; onRetry?: () => void }) {
   return (
     <AlertBanner variant="error">
       <IconCircleWarningOutline18 className="size-3.5" />
@@ -98,14 +109,20 @@ function PortalErrorPanel({ message, onRetry }: { message: string; onRetry?: () 
   );
 }
 
-function DisabledBanner({ onEnable, enabling }: { onEnable: () => void; enabling: boolean }) {
+export function DisabledBanner({
+  description,
+  onEnable,
+  enabling,
+}: {
+  description: string;
+  onEnable: () => void;
+  enabling: boolean;
+}) {
   return (
     <AlertBanner variant="warning">
       <IconTriangleWarningOutline18 className="size-3.5" />
       <AlertBannerTitle>Portal disabled</AlertBannerTitle>
-      <AlertBannerDescription>
-        Your users can't sign in right now, but you can still change the settings below.
-      </AlertBannerDescription>
+      <AlertBannerDescription>{description}</AlertBannerDescription>
       <AlertBannerActions>
         <Button
           variant="primary"
@@ -130,8 +147,12 @@ export function PortalLifecyclePage({
   keyAuthIdError,
   onRetryKeyAuthId,
 }: Props) {
-  const state = useSurfaceState(keyAuthId, keyAuthIdLoading, keyAuthIdError);
-  const queryClient = useQueryClient();
+  const { state, retry } = usePortalSurfaceState(
+    keyAuthId,
+    keyAuthIdLoading,
+    keyAuthIdError,
+    onRetryKeyAuthId,
+  );
   const updatePortal = useUpdatePortal(keyAuthId ?? "");
   const [integrateOpen, setIntegrateOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
@@ -139,26 +160,18 @@ export function PortalLifecyclePage({
   const configuredPortal =
     state.status === "enabled" || state.status === "disabled" ? state.portal : undefined;
 
-  // Only a genuinely absent keyspace has nothing to retry.
-  const retry = keyAuthIdError
-    ? onRetryKeyAuthId
-    : keyAuthId
-      ? () => {
-          void queryClient.invalidateQueries({ queryKey: queryKeys.portal.detail(keyAuthId) });
-        }
-      : undefined;
-
   const setEnabled = (portal: Portal, enabled: boolean) => {
     updatePortal.mutate({ portal: portal.id, enabled });
   };
 
-  // `useSurfaceState` reports a missing keyspace as an error, so a configured
+  // `usePortalSurfaceState` reports a missing keyspace as an error, so a configured
   // portal always has one; the fallback covers the impossible case.
   const renderConfigured = (portal: Portal, disabled: boolean): ReactNode =>
     keyAuthId ? (
       <div className="flex w-full flex-col gap-6">
         {disabled && (
           <DisabledBanner
+            description="Your users can't sign in right now, but you can still change the settings below."
             enabling={updatePortal.isLoading}
             onEnable={() => setEnabled(portal, true)}
           />
@@ -185,7 +198,7 @@ export function PortalLifecyclePage({
       {configuredPortal && (
         <PageHeader>
           <PageHeaderContent>
-            <PageHeaderTitle>Customer portal</PageHeaderTitle>
+            <PageHeaderTitle>Portal settings</PageHeaderTitle>
           </PageHeaderContent>
           <PageHeaderActions>
             <Button variant="outline" onClick={() => setIntegrateOpen(true)}>

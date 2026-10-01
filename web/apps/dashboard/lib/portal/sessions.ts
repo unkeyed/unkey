@@ -39,6 +39,10 @@ export function summarizeSessionGroup(group: SessionGroup): SessionGroupSummary 
   );
 }
 
+export function sessionGroupScopes(group: SessionGroup): string[] {
+  return [...new Set(group.sessions.flatMap((session) => session.scopes))].sort();
+}
+
 // Drops a revoked end user from cached pages. The caller updates the cache
 // instead of refetching, because a revoke only changes this end user and an
 // immediate refetch can hit a replica that still lists them.
