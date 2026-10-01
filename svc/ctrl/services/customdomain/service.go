@@ -184,6 +184,12 @@ func (s *Service) AddCustomDomain(
 	now := time.Now().UnixMilli()
 
 	err = db.TxRetry(ctx, s.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
+		if _, txErr := db.NewQueries(tx).LockActiveEnvironment(txCtx, req.Msg.GetEnvironmentId()); txErr != nil {
+			if db.IsNotFound(txErr) {
+				return connect.NewError(connect.CodeNotFound, fmt.Errorf("environment not found"))
+			}
+			return connect.NewError(connect.CodeInternal, fmt.Errorf("lock active environment: %w", txErr))
+		}
 		if txErr := db.NewQueries(tx).InsertCustomDomain(txCtx, db.InsertCustomDomainParams{
 			ID:                    domainID,
 			WorkspaceID:           req.Msg.GetWorkspaceId(),

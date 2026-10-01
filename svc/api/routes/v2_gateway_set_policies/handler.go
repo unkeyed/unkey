@@ -200,6 +200,21 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	now := time.Now().UnixMilli()
 	err = db.TxRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
+		if _, lockErr := db.Query.LockEnvironmentForUpdate(ctx, tx, env.ID); lockErr != nil {
+			if db.IsNotFound(lockErr) {
+				return fault.New(
+					"environment not found",
+					fault.Code(codes.Data.Environment.NotFound.URN()),
+					fault.Internal("environment deleted before lock"),
+					fault.Public("The requested environment does not exist."),
+				)
+			}
+			return fault.Wrap(lockErr,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("unable to lock environment"),
+				fault.Public("We're unable to set the policies."),
+			)
+		}
 		if upsertErr := db.Query.UpsertAppRuntimeSettingsPolicyConfig(ctx, tx, db.UpsertAppRuntimeSettingsPolicyConfigParams{
 			WorkspaceID:    env.WorkspaceID,
 			AppID:          env.AppID,
