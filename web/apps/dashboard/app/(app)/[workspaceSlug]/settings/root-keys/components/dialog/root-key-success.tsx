@@ -36,7 +36,7 @@ export const RootKeySuccess = ({ keyValue, onClose }: RootKeySuccessProps) => {
         onAttemptClose={handleCloseAttempt}
       >
         <DialogTitle className="sr-only">{ROOT_KEY_MESSAGES.SUCCESS.ROOT_KEY_CREATED}</DialogTitle>
-        <div className="bg-grayA-2 py-10 flex flex-col items-center justify-center w-full px-[120px]">
+        <div className="bg-grayA-2 py-10 flex flex-col items-center justify-center w-full min-w-0 px-[120px]">
           <div className="py-4 mt-[30px]">
             <div className="flex gap-4">
               <div className="border rounded-2xl size-14 opacity-35" />

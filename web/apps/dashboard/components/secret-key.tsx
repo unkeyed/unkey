@@ -28,11 +28,8 @@ export const SecretKey = ({
         <div className="shrink-0">
           <IconCircleLockOutline18 className="size-3 text-gray-12" />
         </div>
-        <div className="flex-1 overflow-x-auto min-w-0">
-          {" "}
-          <p className="whitespace-pre-wrap break-all font-mono text-sm text-grayA-12 pr-2">
-            {displayValue}
-          </p>
+        <div className="flex-1 min-w-0 overflow-hidden">
+          <p className="truncate font-mono text-sm text-grayA-12 pr-2">{displayValue}</p>
         </div>
         <div className="flex items-center justify-between gap-2 shrink-0 pointer-events-auto">
           <VisibleButton
