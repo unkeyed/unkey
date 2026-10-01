@@ -616,7 +616,7 @@ func (c *cache[K, V]) revalidateMany(
 	values, err := refreshFromOrigin(ctx, keys)
 
 	if err != nil && !db.IsNotFound(err) {
-		logger.Warn("failed to revalidate many", "error", err.Error(), "keys", keys)
+logger.Warn("failed to revalidate many", "resource", c.resource, "error", err.Error(), "keys", keys)
 	}
 
 	switch op(err) {
