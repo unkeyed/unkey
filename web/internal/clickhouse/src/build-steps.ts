@@ -89,7 +89,7 @@ export function getBuildStepLogs(ch: Querier) {
           AND deployment_id = {deploymentId: String}
           AND step_id IN {stepIds: Array(String)}
         ORDER BY time ASC, step_id ASC
-        LIMIT {limit: Int}`,
+        LIMIT {limit: Int} BY step_id`,
       params: buildStepLogsRequestSchema,
       schema: buildStepLogSchema,
     });
