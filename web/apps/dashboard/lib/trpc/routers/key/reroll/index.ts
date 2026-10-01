@@ -204,13 +204,13 @@ async function rerollKeyCore({
 
       const { key: plaintext, hash, start, end } = await newKey({ prefix, byteLength });
 
-      // Encrypt inside the tx so the decision uses the locked source
-      // state. The lock is held for the duration of this RPC, but key
-      // rotation is rare enough that this is acceptable; the alternative
-      // (speculative pre-tx encrypt) reintroduces a TOCTOU on the
-      // `encrypted` flag and the keyring.
+      // Encryption uses the locked key's settings. Bound the RPC so a Vault
+      // outage cannot hold the key lock until the database transaction timeout.
       const encryptedRecord = source.encrypted
-        ? await vault.encrypt({ keyring: source.workspaceId, data: plaintext })
+        ? await vault.encrypt(
+            { keyring: source.workspaceId, data: plaintext },
+            { timeoutMs: 2_000 },
+          )
         : undefined;
 
       // The new key inherits the source's expiry so rotation preserves

@@ -11,14 +11,27 @@ const vault = createVaultClient(VaultService);
 // used). Distinguishing them would leak whether an id ever existed.
 type RevealResult = { ok: true; secret: string } | { ok: false };
 
-// Public: the share id is the bearer credential. The whole read -> decrypt ->
-// delete -> audit sequence runs in one transaction. `SELECT ... FOR UPDATE` locks
-// the row so concurrent reveals of the same id serialize: the loser blocks until
-// we commit, then reads nothing. Decrypt happens before the delete, so a vault
-// outage rolls the transaction back and leaves the row retryable.
+// Decrypt speculatively without holding a database connection. Only the caller
+// that locks and consumes the same, still-valid row may return the plaintext.
 export const revealSharedSecret = publicProcedure
   .input(z.object({ id: z.string().min(1).max(256) }))
   .mutation(async ({ ctx, input }): Promise<RevealResult> => {
+    const [candidate] = await db
+      .select({
+        workspaceId: schema.sharedSecrets.workspaceId,
+        expiresAt: schema.sharedSecrets.expiresAt,
+        encrypted: schema.sharedSecrets.encrypted,
+      })
+      .from(schema.sharedSecrets)
+      .where(eq(schema.sharedSecrets.id, input.id));
+    if (!candidate || candidate.expiresAt <= Date.now()) {
+      return { ok: false };
+    }
+    const { plaintext } = await vault.decrypt({
+      keyring: candidate.workspaceId,
+      encrypted: candidate.encrypted,
+    });
+
     return db.transaction(async (tx): Promise<RevealResult> => {
       const [row] = await tx
         .select({
@@ -30,14 +43,15 @@ export const revealSharedSecret = publicProcedure
         .where(eq(schema.sharedSecrets.id, input.id))
         .for("update");
 
-      if (!row || row.expiresAt <= Date.now()) {
+      if (
+        !row ||
+        row.expiresAt <= Date.now() ||
+        row.workspaceId !== candidate.workspaceId ||
+        row.encrypted !== candidate.encrypted ||
+        row.expiresAt !== candidate.expiresAt
+      ) {
         return { ok: false };
       }
-
-      const { plaintext } = await vault.decrypt({
-        keyring: row.workspaceId,
-        encrypted: row.encrypted,
-      });
 
       await tx.delete(schema.sharedSecrets).where(eq(schema.sharedSecrets.id, input.id));
 

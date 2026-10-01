@@ -100,6 +100,7 @@ export const createRootKey = workspaceProcedure
         });
 
         const { permissions, auditLogs: createPermissionLogs } = await upsertPermissions(
+          tx,
           ctx,
           env().UNKEY_WORKSPACE_ID,
           input.permissions,
