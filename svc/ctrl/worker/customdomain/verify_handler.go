@@ -350,16 +350,25 @@ func (s *Service) onVerificationSuccess(
 	// Create a placeholder ACME challenge record. Token and Authorization are empty
 	// because they're provided by the ACME server during the challenge flow, not by us.
 	_, err = restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
-		return restate.Void{}, s.db.InsertAcmeChallenge(stepCtx, db.InsertAcmeChallengeParams{
-			DomainID:      dom.ID,
-			WorkspaceID:   dom.WorkspaceID,
-			Token:         "",
-			ChallengeType: db.AcmeChallengesChallengeTypeHTTP01,
-			Authorization: "",
-			Status:        db.AcmeChallengesStatusWaiting,
-			ExpiresAt:     time.Now().Add(30 * 24 * time.Hour).UnixMilli(),
-			CreatedAt:     now,
-			UpdatedAt:     sql.NullInt64{Valid: true, Int64: now},
+		return restate.Void{}, db.TxRetry(stepCtx, s.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
+			q := db.NewQueries(tx)
+			if _, err := q.LockCustomDomain(txCtx, dom.ID); err != nil {
+				if db.IsNotFound(err) {
+					return restate.ToTerminalError(err, restate.WithErrorCode(410))
+				}
+				return err
+			}
+			return q.InsertAcmeChallenge(txCtx, db.InsertAcmeChallengeParams{
+				DomainID:      dom.ID,
+				WorkspaceID:   dom.WorkspaceID,
+				Token:         "",
+				ChallengeType: db.AcmeChallengesChallengeTypeHTTP01,
+				Authorization: "",
+				Status:        db.AcmeChallengesStatusWaiting,
+				ExpiresAt:     time.Now().Add(30 * 24 * time.Hour).UnixMilli(),
+				CreatedAt:     now,
+				UpdatedAt:     sql.NullInt64{Valid: true, Int64: now},
+			})
 		})
 	}, restate.WithName("create acme challenge"))
 	if err != nil {
