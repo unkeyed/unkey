@@ -19,16 +19,13 @@ import { useEffect, useRef, useState } from "react";
 import { DeploymentDomainsCard } from "../../../../components/deployment-domains-card";
 import { useProjectData } from "../../../data-provider";
 import { useDeployment } from "../layout-provider";
-import { useBuildSteps } from "../use-build-steps";
-import { DeploymentBuildStepsTable } from "./build-steps-table/deployment-build-steps-table";
+import { DeploymentBuildLogs } from "./build-logs/deployment-build-logs";
 import { DeploymentContainerLogsTable } from "./container-logs-table/deployment-container-logs-table";
 import { DeploymentStep } from "./deployment-step";
 import { resolveDeploymentStep } from "./deployment-step-resolution";
 
 type RouterOutputs = inferRouterOutputs<Router>;
 export type StepsData = RouterOutputs["deploy"]["deployment"]["steps"];
-
-const EXPAND_ANIMATION_MS = 300;
 
 export function DeploymentProgress({ stepsData }: { stepsData?: StepsData }) {
   const { deployment } = useDeployment();
@@ -37,8 +34,6 @@ export function DeploymentProgress({ stepsData }: { stepsData?: StepsData }) {
   const params = useParams();
   const workspaceSlug = params.workspaceSlug as string;
   const isFailed = deployment.status === "failed";
-
-  const buildSteps = useBuildSteps(deployment);
 
   const { getDomainsForDeployment, projectId } = useProjectData();
 
@@ -75,35 +70,25 @@ export function DeploymentProgress({ stepsData }: { stepsData?: StepsData }) {
   }
   const isPrebuilt = !hasFreshBuild.current && !building?.error;
 
-  const [buildFocus, setBuildFocus] = useState<{ stepId: string; tick: number } | null>(null);
-  const [buildExpanded, setBuildExpanded] = useState(!isPrebuilt);
-  const failedBuildStep = buildSteps.data?.steps.findLast((s) => Boolean(s.error));
-  const failedStepId = failedBuildStep?.step_id;
+  const [buildErrorFocusTick, setBuildErrorFocusTick] = useState(0);
+  // The steps load after the first render, so the card follows isPrebuilt
+  // until the user opens or closes it
+  const [buildExpandedChoice, setBuildExpandedChoice] = useState<boolean>();
+  const buildExpanded = buildExpandedChoice ?? !isPrebuilt;
+  const buildError = building?.error;
 
-  const focusFailedStep = () => {
-    if (failedStepId) {
-      // Bump tick so the table re-scrolls even when the same step is focused again.
-      setBuildFocus((prev) => ({ stepId: failedStepId, tick: (prev?.tick ?? 0) + 1 }));
-    }
+  const revealBuildError = () => {
+    setBuildExpandedChoice(true);
+    setBuildErrorFocusTick((tick) => tick + 1);
   };
 
-  const revealFailedStep = () => {
-    if (buildExpanded) {
-      focusFailedStep();
-      return;
-    }
-    setBuildExpanded(true);
-    return setTimeout(focusFailedStep, EXPAND_ANIMATION_MS);
-  };
-
-  // biome-ignore lint/correctness/useExhaustiveDependencies: revealFailedStep reads buildExpanded for the open-state branch; failedStepId + pathname are the real triggers.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: revealBuildError is new on every render; buildError and pathname are the triggers
   useEffect(() => {
-    if (!failedStepId || isPrebuilt) {
+    if (!buildError || isPrebuilt) {
       return;
     }
-    const timer = revealFailedStep();
-    return () => clearTimeout(timer);
-  }, [failedStepId, isPrebuilt, pathname]);
+    revealBuildError();
+  }, [buildError, isPrebuilt, pathname]);
 
   const queuedStep = resolveDeploymentStep({
     step: queued,
@@ -175,19 +160,13 @@ export function DeploymentProgress({ stepsData }: { stepsData?: StepsData }) {
           description={match(building)
             .when(
               (b) => Boolean(b?.error),
-              (b) => (
-                <BuildErrorDescription
-                  error={b?.error ?? ""}
-                  canViewLogs={Boolean(failedBuildStep)}
-                  onViewLogs={revealFailedStep}
-                />
-              ),
+              (b) => <BuildErrorDescription error={b?.error ?? ""} onViewLogs={revealBuildError} />,
             )
             .when(
               (b) => Boolean(b?.endedAt),
               () => (hasFreshBuild.current ? "Build Complete" : "Image was prebuilt"),
             )
-            .with(P.nonNullable, () => buildSteps.data?.steps.at(-1)?.name ?? "Building...")
+            .with(P.nonNullable, () => "Building...")
             .otherwise(() =>
               deploying ? "Image was prebuilt" : "Waiting for deployment to start",
             )}
@@ -206,16 +185,12 @@ export function DeploymentProgress({ stepsData }: { stepsData?: StepsData }) {
           expandable={
             isPrebuilt ? null : (
               <div className="bg-grayA-2">
-                <DeploymentBuildStepsTable
-                  steps={buildSteps.data?.steps ?? []}
-                  isLoading={buildSteps.isLoading}
-                  focusStep={buildFocus}
-                />
+                <DeploymentBuildLogs focusErrorTick={buildErrorFocusTick} />
               </div>
             )
           }
           expanded={buildExpanded}
-          onExpandedChange={setBuildExpanded}
+          onExpandedChange={setBuildExpandedChoice}
         />
         <DeploymentStep
           key={deploying ? "deploying-active" : "deploying-pending"}
@@ -251,28 +226,24 @@ export function DeploymentProgress({ stepsData }: { stepsData?: StepsData }) {
 
 function BuildErrorDescription({
   error,
-  canViewLogs,
   onViewLogs,
 }: {
   error: string;
-  canViewLogs: boolean;
   onViewLogs: () => void;
 }) {
   return (
     <div className="flex items-center gap-2 min-w-0 max-w-[600px]">
       <span className="truncate min-w-0">{error}</span>
-      {canViewLogs && (
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            onViewLogs();
-          }}
-          className="relative shrink-0 cursor-pointer underline hover:text-gray-12 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-grayA-7 rounded before:absolute before:-inset-x-3 before:-inset-y-2 before:content-['']"
-        >
-          View full error
-        </button>
-      )}
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          onViewLogs();
+        }}
+        className="relative shrink-0 cursor-pointer underline hover:text-gray-12 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-grayA-7 rounded before:absolute before:-inset-x-3 before:-inset-y-2 before:content-['']"
+      >
+        View full error
+      </button>
     </div>
   );
 }
