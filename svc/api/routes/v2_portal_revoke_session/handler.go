@@ -70,9 +70,24 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
+	// Bounded by pk rather than created_at: created_at comes from whichever
+	// instance minted the session, and its clock can run ahead of this one.
+	maxPk, err := db.Query.MaxPortalSessionPkByExternalID(ctx, h.DB.RW(), db.MaxPortalSessionPkByExternalIDParams{
+		WorkspaceID: principal.AuthorizedWorkspaceID,
+		PortalID:    found.ID,
+		ExternalID:  req.ExternalId,
+	})
+	if err != nil {
+		return fault.Wrap(err,
+			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+			fault.Internal(fmt.Sprintf("unable to read portal session bound for portal %s", found.ID)),
+			fault.Public("We're unable to revoke the portal sessions."),
+		)
+	}
+
 	var total int64
-	for {
-		revoked, err := h.revokeBatch(ctx, s, principal, found, req.ExternalId, now)
+	for done := maxPk == 0; !done; {
+		revoked, err := h.revokeBatch(ctx, s, principal, found, req.ExternalId, uint64(maxPk), now)
 		if err != nil {
 			return err
 		}
@@ -86,9 +101,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			}
 		}
 
-		if len(revoked) < revokeBatchSize {
-			break
-		}
+		done = len(revoked) < revokeBatchSize
 	}
 
 	return s.JSON(http.StatusOK, Response{
@@ -148,15 +161,16 @@ func (h *Handler) authorizedPortal(ctx context.Context, principal *authprincipal
 	return found, nil
 }
 
-// revokeBatch revokes up to revokeBatchSize of the end user's live sessions in
-// one transaction, writes their audit entry, and returns them with revoked_at
-// set. It returns no rows once nothing is left to revoke.
+// revokeBatch revokes up to revokeBatchSize of the end user's live sessions at
+// or below maxPk in one transaction, writes their audit entry, and returns them
+// with revoked_at set. It returns no rows once nothing is left to revoke.
 func (h *Handler) revokeBatch(
 	ctx context.Context,
 	s *zen.Session,
 	principal *authprincipal.Principal,
 	found db.Portal,
 	externalID string,
+	maxPk uint64,
 	now int64,
 ) ([]db.PortalSession, error) {
 	return db.TxWithResult(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) ([]db.PortalSession, error) {
@@ -164,7 +178,7 @@ func (h *Handler) revokeBatch(
 			WorkspaceID:              principal.AuthorizedWorkspaceID,
 			PortalID:                 found.ID,
 			ExternalID:               externalID,
-			CreatedBefore:            now,
+			MaxPk:                    maxPk,
 			AccessTokenExpiresAfter:  sql.NullInt64{Valid: true, Int64: now},
 			ExchangeCodeExpiresAfter: now,
 			Limit:                    revokeBatchSize,

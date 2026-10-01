@@ -2,6 +2,7 @@ package handler_test
 
 import (
 	"context"
+	"database/sql"
 	"net/http"
 	"testing"
 	"time"
@@ -9,6 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/unkeyed/unkey/pkg/cache"
+	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	exchangeCode "github.com/unkeyed/unkey/svc/api/routes/v2_portal_exchange_code"
@@ -285,19 +287,19 @@ func TestRevokeSessionInBatches(t *testing.T) {
 	require.Equal(t, float64(sessions), revoked)
 }
 
-// A session created after the call started isn't taken, so a client minting
-// while the revoke runs can't keep the batches going forever.
-func TestRevokeSessionSkipsSessionsCreatedAfterTheCall(t *testing.T) {
+// created_at comes from the minting instance's clock, which can run ahead of
+// the revoking instance. A session already in the database is revoked even when
+// its created_at is later than the revoke's clock.
+func TestRevokeSessionTakesSessionsFromAnAheadClock(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route, headers := newRoute(t, h, permission)
 	workspace := h.Resources().UserWorkspace
 
-	stored, _ := seedPortal(t, h, workspace.ID, "revoke-later-session")
+	stored, _ := seedPortal(t, h, workspace.ID, "revoke-ahead-clock")
 	expiresAt := h.Clock.Now().Add(time.Hour)
 	h.CreatePortalSessionInState(t, stored.ID, workspace.ID, "user_1", true, expiresAt)
-	h.CreatePortalSessionInState(t, stored.ID, workspace.ID, "user_1", true, expiresAt)
 	_, err := h.DB.RW().ExecContext(context.Background(),
-		"UPDATE portal_sessions SET created_at = ? WHERE portal_id = ? ORDER BY pk DESC LIMIT 1",
+		"UPDATE portal_sessions SET created_at = ? WHERE portal_id = ?",
 		h.Clock.Now().Add(time.Minute).UnixMilli(), stored.ID,
 	)
 	require.NoError(t, err)
@@ -305,5 +307,41 @@ func TestRevokeSessionSkipsSessionsCreatedAfterTheCall(t *testing.T) {
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, request(stored.ID, "user_1"))
 	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
 	require.Equal(t, int64(1), res.Body.Data.SessionsRevoked)
-	require.Equal(t, 1, h.CountLivePortalSessions(t, stored.ID, "user_1"), "the later session is left for the next call")
+	require.Equal(t, 0, h.CountLivePortalSessions(t, stored.ID, "user_1"))
+}
+
+// The batches only take rows at or below the pk read before they start, so a
+// session minted while they run is left alone and the loop ends.
+func TestLockLiveSessionsStopsAtTheMaxPk(t *testing.T) {
+	h := testutil.NewHarness(t)
+	ctx := context.Background()
+	workspace := h.Resources().UserWorkspace
+
+	stored, _ := seedPortal(t, h, workspace.ID, "revoke-max-pk")
+	expiresAt := h.Clock.Now().Add(time.Hour)
+	h.CreatePortalSessionInState(t, stored.ID, workspace.ID, "user_1", true, expiresAt)
+
+	maxPk, err := db.Query.MaxPortalSessionPkByExternalID(ctx, h.DB.RW(), db.MaxPortalSessionPkByExternalIDParams{
+		WorkspaceID: workspace.ID,
+		PortalID:    stored.ID,
+		ExternalID:  "user_1",
+	})
+	require.NoError(t, err)
+	require.Positive(t, maxPk)
+
+	h.CreatePortalSessionInState(t, stored.ID, workspace.ID, "user_1", true, expiresAt)
+
+	now := h.Clock.Now().UnixMilli()
+	locked, err := db.Query.LockLivePortalSessionsByExternalID(ctx, h.DB.RW(), db.LockLivePortalSessionsByExternalIDParams{
+		WorkspaceID:              workspace.ID,
+		PortalID:                 stored.ID,
+		ExternalID:               "user_1",
+		MaxPk:                    uint64(maxPk),
+		AccessTokenExpiresAfter:  sql.NullInt64{Valid: true, Int64: now},
+		ExchangeCodeExpiresAfter: now,
+		Limit:                    10,
+	})
+	require.NoError(t, err)
+	require.Len(t, locked, 1, "the session created after the mark is not taken")
+	require.Equal(t, uint64(maxPk), locked[0].Pk)
 }

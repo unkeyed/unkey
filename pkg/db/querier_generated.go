@@ -2797,9 +2797,9 @@ type Querier interface {
 	LockKeyForUpdate(ctx context.Context, db DBTX, id string) (string, error)
 	// Locks up to `limit` of one end user's live sessions on a portal: an unexpired
 	// access token, or an unexpired code that was never exchanged. Expired rows are
-	// left alone so the revoke reports only access it actually cut. Only sessions
-	// created by `created_before` are taken, so a caller revoking in batches stops
-	// even while new sessions are being minted. The lock pins exactly the rows
+	// left alone so the revoke reports only access it actually cut. Only rows at or
+	// below `max_pk` are taken, so a caller revoking in batches stops even while new
+	// sessions are being minted. The lock pins exactly the rows
 	// RevokePortalSessionsByIDs then revokes.
 	//
 	//  SELECT pk, id, workspace_id, portal_id, external_id, scopes, exchange_code_hash, exchange_code_expires_at, access_token_hash, access_token_created_at, access_token_expires_at, revoked_at, return_url, created_at FROM portal_sessions
@@ -2807,7 +2807,7 @@ type Querier interface {
 	//    AND portal_id = ?
 	//    AND external_id = ?
 	//    AND revoked_at IS NULL
-	//    AND created_at <= ?
+	//    AND pk <= ?
 	//    AND (
 	//      (access_token_hash IS NOT NULL AND access_token_expires_at > ?)
 	//      OR (access_token_hash IS NULL AND exchange_code_expires_at > ?)
@@ -2835,6 +2835,16 @@ type Querier interface {
 	//    AND (id = ? OR name = ?)
 	//  FOR UPDATE
 	LockRoleByIDOrNameAndWorkspaceID(ctx context.Context, db DBTX, arg LockRoleByIDOrNameAndWorkspaceIDParams) (LockRoleByIDOrNameAndWorkspaceIDRow, error)
+	// Returns the highest pk among one end user's sessions on a portal, or 0 when
+	// there are none. Read on the primary before revoking in batches, it bounds the
+	// revoke to sessions that already exist: pk is assigned at insert, so a session
+	// minted while the batches run lands above it.
+	//
+	//  SELECT CAST(COALESCE(MAX(pk), 0) AS UNSIGNED) AS max_pk FROM portal_sessions
+	//  WHERE workspace_id = ?
+	//    AND portal_id = ?
+	//    AND external_id = ?
+	MaxPortalSessionPkByExternalID(ctx context.Context, db DBTX, arg MaxPortalSessionPkByExternalIDParams) (int64, error)
 	// Clears the workspace_billing linkage on a workspace, returning it to the
 	// Free tier. Mirrors what the customer.subscription.deleted webhook writes,
 	// plus stripe_customer_id, which no webhook ever clears. Stripe subscription
