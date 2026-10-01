@@ -10,7 +10,7 @@ import (
 )
 
 const listPreviewEnvironments = `-- name: ListPreviewEnvironments :many
-SELECT environments.pk, environments.id, environments.workspace_id, environments.project_id, environments.app_id, environments.slug, environments.description, environments.kind, environments.delete_protection, environments.created_at, environments.updated_at
+SELECT environments.pk, environments.id, environments.workspace_id, environments.project_id, environments.app_id, environments.slug, environments.description, environments.kind, environments.delete_protection, environments.created_at, environments.updated_at, environments.deleting_at
 FROM environments
 WHERE kind = 'preview'
 AND pk > ?
@@ -25,7 +25,7 @@ type ListPreviewEnvironmentsParams struct {
 
 // ListPreviewEnvironments
 //
-//	SELECT environments.pk, environments.id, environments.workspace_id, environments.project_id, environments.app_id, environments.slug, environments.description, environments.kind, environments.delete_protection, environments.created_at, environments.updated_at
+//	SELECT environments.pk, environments.id, environments.workspace_id, environments.project_id, environments.app_id, environments.slug, environments.description, environments.kind, environments.delete_protection, environments.created_at, environments.updated_at, environments.deleting_at
 //	FROM environments
 //	WHERE kind = 'preview'
 //	AND pk > ?
@@ -52,6 +52,7 @@ func (q *Queries) ListPreviewEnvironments(ctx context.Context, arg ListPreviewEn
 			&i.DeleteProtection,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.DeletingAt,
 		); err != nil {
 			return nil, err
 		}
