@@ -113,6 +113,12 @@ message PrivateNetworkStateChunk {
   bool complete = 2;
   // total is the number of connections in the whole snapshot, set on the complete chunk.
   uint64 total = 3;
+  PrivateNetworkTopology topology = 4;
+}
+
+message PrivateNetworkTopology {
+  uint32 version = 1;
+  repeated ClusterKey clusters = 2;
 }
 
 message PrivateNetworkConnection {

@@ -1834,6 +1834,16 @@ type Querier interface {
 	//  ORDER BY pk ASC
 	//  LIMIT ?
 	ListPreviewEnvironments(ctx context.Context, arg ListPreviewEnvironmentsParams) ([]Environment, error)
+	// ListPrivateNetworkClusters supplies cell identities for DNS locality.
+	// Clusters without a cell ID cannot identify imported EndpointSlices.
+	//
+	//  SELECT c.cell_id, r.platform, r.name AS region
+	//  FROM clusters c
+	//  INNER JOIN regions r ON r.id = c.region_id
+	//  WHERE r.platform = ?
+	//      AND c.cell_id IS NOT NULL
+	//  ORDER BY c.cell_id
+	ListPrivateNetworkClusters(ctx context.Context, platform string) ([]ListPrivateNetworkClustersRow, error)
 	// ListPrivateNetworkConnections returns one page of directed app connections, one row
 	// per connection and active caller deployment created with private networking on
 	// the platform, ordered by (connection pk, caller deployment ID). Callers page

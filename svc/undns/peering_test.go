@@ -11,11 +11,14 @@ import (
 
 func TestReplicaDiscoveryResolvesReadyPeersAcrossRegions(t *testing.T) {
 	c := catalogForTest()
+	require.NoError(t, c.topology.GetStore().Add(topologyForTest()))
 	identity := testCaller()
 	addConnection(t, c, "self-"+identity.deployment, "workspace-a", "project-a", "app-caller", "caller", identity.deployment, "self-service", "1")
 	service := addServiceAndSlice(t, c, "self-service", identity.deployment, "app-caller", types.UID("self-uid"), "10.0.0.2", true)
 	addSlice(t, c, service, "imported-from-other-region", "10.1.0.7", true)
 	addSlice(t, c, service, "unready-peer", "10.1.0.8", false)
+	locateSlice(t, c, "self-service", "")
+	locateSlice(t, c, "imported-from-other-region", "remote")
 
 	addresses, exists, err := c.resolve(identity, "caller")
 	require.NoError(t, err)

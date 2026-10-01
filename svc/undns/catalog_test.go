@@ -108,17 +108,17 @@ func TestCatalogEndpointsRequireReadyPrivateControllerOwnedAddresses(t *testing.
 	service := addServiceAndSlice(t, c, "service-a", "deployment-a", "app-a", types.UID("old-uid"), "10.0.0.1", true)
 	service.UID = types.UID("new-uid")
 	require.NoError(t, c.services.GetStore().Update(service))
-	_, err := c.endpoints(service)
+	_, err := c.endpoints(service, "")
 	require.Error(t, err)
 
 	addSlice(t, c, service, "imported", "10.0.0.2", true)
-	addresses, err := c.endpoints(service)
+	addresses, err := c.endpoints(service, "")
 	require.NoError(t, err)
 	require.Equal(t, []netip.Addr{netip.MustParseAddr("10.0.0.2")}, addresses)
 
 	addSlice(t, c, service, "not-ready", "10.0.0.3", false)
 	addSlice(t, c, service, "public", "192.0.2.1", true)
-	addresses, err = c.endpoints(service)
+	addresses, err = c.endpoints(service, "")
 	require.NoError(t, err)
 	require.Equal(t, []netip.Addr{netip.MustParseAddr("10.0.0.2")}, addresses)
 }
@@ -154,6 +154,7 @@ func catalogForTest() *catalog {
 		connections: informerForTest(&corev1.ConfigMap{}, cache.Indexers{appIndex: indexConnection}),
 		services:    informerForTest(&corev1.Service{}, nil),
 		slices:      informerForTest(&discoveryv1.EndpointSlice{}, cache.Indexers{serviceIndex: indexSlice}),
+		topology:    informerForTest(&corev1.ConfigMap{}, nil),
 		active:      make(map[string]*corev1.ConfigMap),
 		now:         time.Now,
 	}

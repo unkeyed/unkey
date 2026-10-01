@@ -7,7 +7,10 @@ import (
 	"testing"
 
 	"connectrpc.com/connect"
+	"github.com/stretchr/testify/require"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
+	"github.com/unkeyed/unkey/svc/krane/internal/testutil"
+	"google.golang.org/protobuf/proto"
 )
 
 const snapshotChunkSize = 2
@@ -71,4 +74,38 @@ func chunkStream(t *testing.T, chunks ...*ctrlv1.PrivateNetworkStateChunk) func(
 	return func(ctx context.Context, req *ctrlv1.StreamPrivateNetworkStateRequest) (*connect.ServerStreamForClient[ctrlv1.PrivateNetworkStateChunk], error) {
 		return client.CallServerStream(ctx, connect.NewRequest(req))
 	}
+}
+
+func TestSnapshotRequiresCompleteStreamAndFinalTopology(t *testing.T) {
+	tests := []struct {
+		name   string
+		chunks []*ctrlv1.PrivateNetworkStateChunk
+	}{
+		{name: "stream ends before complete", chunks: []*ctrlv1.PrivateNetworkStateChunk{{Connections: []*ctrlv1.PrivateNetworkConnection{testConnection("dep_a")}}}},
+		{name: "topology on intermediate chunk", chunks: []*ctrlv1.PrivateNetworkStateChunk{{Topology: testTopology()}, {Complete: true}}},
+		{name: "complete count mismatch", chunks: []*ctrlv1.PrivateNetworkStateChunk{{Connections: []*ctrlv1.PrivateNetworkConnection{testConnection("dep_a")}}, {Complete: true, Total: 2}}},
+		{name: "complete chunk contains connections", chunks: []*ctrlv1.PrivateNetworkStateChunk{{Complete: true, Total: 1, Connections: []*ctrlv1.PrivateNetworkConnection{testConnection("dep_a")}}}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			r := &Reconciler{cluster: &testutil.MockClusterClient{StreamPrivateNetworkStateFunc: chunkStream(t, tt.chunks...)}, clusterKey: &ctrlv1.ClusterKey{}}
+			_, err := r.snapshot(t.Context())
+			require.Error(t, err)
+		})
+	}
+}
+
+func TestSnapshotReturnsCompleteTopologyAndConnections(t *testing.T) {
+	connection := testConnection("dep_a")
+	topology := testTopology()
+	r := &Reconciler{cluster: &testutil.MockClusterClient{StreamPrivateNetworkStateFunc: chunkStream(t,
+		&ctrlv1.PrivateNetworkStateChunk{Connections: []*ctrlv1.PrivateNetworkConnection{connection}},
+		&ctrlv1.PrivateNetworkStateChunk{Complete: true, Total: 1, Topology: topology},
+	)}, clusterKey: &ctrlv1.ClusterKey{}}
+
+	snapshot, err := r.snapshot(t.Context())
+	require.NoError(t, err)
+	require.Len(t, snapshot.GetConnections(), 1)
+	require.True(t, proto.Equal(connection, snapshot.GetConnections()[0]))
+	require.True(t, proto.Equal(topology, snapshot.GetTopology()))
 }

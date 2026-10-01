@@ -102,19 +102,43 @@ Private DNS answers follow these rules:
 - Addresses come back in random order. Clients that use the first address spread connections across instances. Unkey doesn't add a load balancer in front of private traffic.
 - Answers have a short TTL. Resolve the hostname again when you open new connections. Existing connections aren't moved when the target changes.
 
+### Choose a region
+
+Prefix the connection hostname to select where ready instances run:
+
+| Hostname | Answers |
+| --- | --- |
+| `payments.unkey.internal` | All ready instances of the selected deployment |
+| `local-first.payments.unkey.internal` | Ready instances in the caller's region, or all ready instances if none are local |
+| `eu-west-1.payments.unkey.internal` | Ready instances in `eu-west-1` only, with no fallback |
+
+Use the region name shown in `UNKEY_REGION`. All forms use the same connection
+and target deployment. They don't grant access to another app or deployment.
+The injected `PAYMENTS_HOST` value stays `payments.unkey.internal`; opt in with
+`local-first.${PAYMENTS_HOST}` or a region prefix in your code.
+
+`local-first` doesn't mix remote addresses into a nonempty local answer. It
+selects by region, not measured latency or load. If the region catalog is
+unavailable, it uses ready instances known to be in the caller's cluster, then
+falls back to all ready instances. An explicit region with no known ready
+instances returns `SERVFAIL`, even if other regions have ready instances.
+
+DNS readiness and client caches can lag behind a failure. The TTL isn't a
+failover deadline, and existing connections don't move to another region.
+
 ## Connect instances of the same deployment
 
-Eligible deployments in a workspace with private networking get the `UNKEY_DEPLOYMENT_HOST` variable, set to `<app-slug>.unkey.internal`. The hostname resolves to the ready instances of that same deployment, including those in connected regions. It doesn't include older or newer deployments of the app.
+Eligible deployments in a workspace with private networking get the `UNKEY_PRIVATE_DOMAIN` variable, set to `<app-slug>.unkey.internal`. The value is a hostname, without a scheme or port. It resolves to the ready instances of that same deployment, including those in connected regions. It doesn't include older or newer deployments of the app.
 
 Instances of a deployment can reach each other through this hostname on every TCP and UDP port. Use it for peer discovery, clustering, or sending messages to every instance. You don't need to add a connection for it.
 
-Unkey sets `UNKEY_DEPLOYMENT_HOST` when all of these are true:
+Unkey sets `UNKEY_PRIVATE_DOMAIN` when all of these are true:
 
 - The workspace has at least one connection between two apps.
 - The app slug is a valid DNS label: up to 63 lowercase letters, numbers, and hyphens, starting and ending with a letter or number.
 - The instance was configured with private networking enabled. Redeploy apps that were already running to add it.
 
-Connection names can't reuse the calling app's own slug, because that name belongs to `UNKEY_DEPLOYMENT_HOST`.
+Connection names can't reuse the calling app's own slug, because that name belongs to `UNKEY_PRIVATE_DOMAIN`.
 
 ## Limitations
 

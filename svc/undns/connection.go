@@ -23,11 +23,18 @@ type connection struct {
 }
 
 func (c *catalog) resolve(identity caller, app string) ([]netip.Addr, bool, error) {
+	selector := ""
+	if prefix, name, selected := strings.Cut(app, "."); selected {
+		if len(validation.IsDNS1123Label(prefix)) != 0 || len(validation.IsDNS1123Label(name)) != 0 {
+			return nil, false, nil
+		}
+		selector, app = prefix, name
+	}
 	active, exists, err := c.lookupConnection(identity, app)
 	if err != nil || !exists {
 		return nil, exists, err
 	}
-	addresses, err := c.resolveConnection(identity, active)
+	addresses, err := c.resolveConnection(identity, active, selector)
 	return addresses, true, err
 }
 
@@ -121,7 +128,7 @@ func (c *catalog) servingStatus(config, active *corev1.ConfigMap, err error) con
 	if err != nil {
 		return newConnectionStatus(config, failureReason(err), err)
 	}
-	if _, err := c.resolveConnection(connectionCaller(active), active); err != nil {
+	if _, err := c.resolveConnection(connectionCaller(active), active, ""); err != nil {
 		return newConnectionStatus(config, failureReason(err), err)
 	}
 
@@ -185,7 +192,7 @@ func (c *catalog) activateConnection(key string, config *corev1.ConfigMap) (*cor
 		return nil, errConnectionUnresolved
 	}
 
-	if _, err := c.resolveConnection(connectionCaller(config), config); err != nil {
+	if _, err := c.resolveConnection(connectionCaller(config), config, ""); err != nil {
 		if active != nil {
 			return active, nil
 		}

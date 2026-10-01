@@ -10,7 +10,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation"
 )
 
-func (r *Reconciler) snapshot(ctx context.Context) ([]*ctrlv1.PrivateNetworkConnection, error) {
+func (r *Reconciler) snapshot(ctx context.Context) (*ctrlv1.PrivateNetworkStateChunk, error) {
 	stream, err := r.cluster.StreamPrivateNetworkState(ctx, &ctrlv1.StreamPrivateNetworkStateRequest{Cluster: r.clusterKey})
 	if err != nil {
 		return nil, fmt.Errorf("get complete private network snapshot: %w", err)
@@ -28,7 +28,11 @@ func (r *Reconciler) snapshot(ctx context.Context) ([]*ctrlv1.PrivateNetworkConn
 			if chunk.GetTotal() != uint64(len(snapshotConnections)) || len(chunk.GetConnections()) != 0 {
 				return nil, fmt.Errorf("private network snapshot has %d connections, complete chunk reports %d", len(snapshotConnections), chunk.GetTotal())
 			}
-			return snapshotConnections, nil
+			chunk.Connections = snapshotConnections
+			return chunk, nil
+		}
+		if chunk.GetTopology() != nil {
+			return nil, fmt.Errorf("private network topology must appear only on the complete chunk")
 		}
 		snapshotConnections = append(snapshotConnections, chunk.GetConnections()...)
 	}

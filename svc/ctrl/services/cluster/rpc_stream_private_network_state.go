@@ -38,7 +38,7 @@ func (s *Service) StreamPrivateNetworkState(ctx context.Context, req *connect.Re
 	}
 
 	readStarted := time.Now()
-	connections, err := db.TxWithResult(ctx, s.db.RO(), func(txCtx context.Context, tx db.DBTX) ([]*ctrlv1.PrivateNetworkConnection, error) {
+	snapshot, err := db.TxWithResult(ctx, s.db.RO(), func(txCtx context.Context, tx db.DBTX) (*ctrlv1.PrivateNetworkStateChunk, error) {
 		queries := db.NewQueries(tx)
 		connections, err := listPrivateNetworkConnections(txCtx, queries, cluster.RegionPlatform)
 		if err != nil {
@@ -50,7 +50,17 @@ func (s *Service) StreamPrivateNetworkState(ctx context.Context, req *connect.Re
 			return nil, err
 		}
 
-		return append(connections, replicas...), nil
+		clusters, err := queries.ListPrivateNetworkClusters(txCtx, cluster.RegionPlatform)
+		if err != nil {
+			return nil, err
+		}
+		topology := &ctrlv1.PrivateNetworkTopology{Version: 1}
+		for _, location := range clusters {
+			topology.Clusters = append(topology.Clusters, &ctrlv1.ClusterKey{
+				Platform: location.Platform, Region: location.Region, CellId: location.CellID.String,
+			})
+		}
+		return &ctrlv1.PrivateNetworkStateChunk{Connections: append(connections, replicas...), Topology: topology}, nil
 	})
 	metrics.PrivateNetworkSnapshotReadDurationSeconds.Observe(time.Since(readStarted).Seconds())
 	if err != nil {
@@ -58,6 +68,7 @@ func (s *Service) StreamPrivateNetworkState(ctx context.Context, req *connect.Re
 		return connect.NewError(connect.CodeInternal, err)
 	}
 
+	connections := snapshot.GetConnections()
 	for start := 0; start < len(connections); start += privateNetworkPageSize {
 		chunk := &ctrlv1.PrivateNetworkStateChunk{Connections: connections[start:min(start+privateNetworkPageSize, len(connections))]}
 		if err := stream.Send(chunk); err != nil {
@@ -66,7 +77,7 @@ func (s *Service) StreamPrivateNetworkState(ctx context.Context, req *connect.Re
 		}
 	}
 
-	if err := stream.Send(&ctrlv1.PrivateNetworkStateChunk{Complete: true, Total: uint64(len(connections))}); err != nil {
+	if err := stream.Send(&ctrlv1.PrivateNetworkStateChunk{Complete: true, Total: uint64(len(connections)), Topology: snapshot.GetTopology()}); err != nil {
 		result = "send_error"
 		return err
 	}
