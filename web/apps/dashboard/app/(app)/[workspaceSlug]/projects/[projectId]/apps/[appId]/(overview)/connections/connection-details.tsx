@@ -241,7 +241,7 @@ export function ConnectionDetails({
               )}
             {targetDeployments.map((item) => (
               <option key={item.id} value={item.id} disabled={item.status !== "ready"}>
-                {`${item.id} · ${item.gitBranch ?? item.image ?? item.status}${item.status === "ready" ? "" : " (stopped)"}`}
+                {`${item.id} · ${item.gitBranch ?? item.image ?? item.status}${item.status === "ready" ? "" : ` (${item.status})`}`}
               </option>
             ))}
           </select>
