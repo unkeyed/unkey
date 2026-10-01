@@ -11,6 +11,7 @@ export const listAppConnectionTargets = workspaceProcedure
   .input(
     projectInput.extend({
       appId: z.string().min(1),
+      environmentId: z.string().min(1),
       targetAppId: z.string().min(1).optional(),
       cursor: z.object({ createdAt: z.number().int(), id: z.string() }).nullish(),
     }),
@@ -57,16 +58,22 @@ export const listAppConnectionTargets = workspaceProcedure
       db
         .select({ deploymentId: schema.appConnections.targetDeploymentId })
         .from(schema.appConnections)
+        .innerJoin(schema.apps, eq(schema.apps.id, schema.appConnections.resourceId))
         .where(
           and(
             eq(schema.appConnections.workspaceId, ctx.workspace.id),
             eq(schema.appConnections.projectId, input.projectId),
             eq(schema.appConnections.appId, input.appId),
+            eq(schema.appConnections.environmentId, input.environmentId),
             eq(schema.appConnections.resourceType, "app"),
+            ne(schema.appConnections.resourceId, schema.appConnections.appId),
+            eq(schema.apps.workspaceId, ctx.workspace.id),
+            eq(schema.apps.projectId, input.projectId),
             eq(schema.appConnections.selectionMode, "deployment"),
             isNotNull(schema.appConnections.targetDeploymentId),
           ),
         )
+        .orderBy(schema.appConnections.name)
         .limit(500),
     ]);
     const deploymentSelect = {

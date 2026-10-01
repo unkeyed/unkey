@@ -74,7 +74,12 @@ export function ConnectionCanvas({
   const [pickerOpen, setPickerOpen] = useState(false);
   const selectedConnection = connections.data?.find((connection) => connection.id === selectedId);
   const targets = trpc.appConnection.targets.useInfiniteQuery(
-    { projectId, appId, targetAppId: selectedConnection?.targetAppId },
+    {
+      projectId,
+      appId,
+      environmentId: environment.id,
+      targetAppId: selectedConnection?.targetAppId,
+    },
     { getNextPageParam: (page) => page.nextCursor ?? undefined },
   );
   const refresh = async () => {
