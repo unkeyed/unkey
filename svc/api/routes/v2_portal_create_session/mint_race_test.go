@@ -45,24 +45,6 @@ func callAsync(t *testing.T, h *testutil.Harness, route zen.Route, headers http.
 	return status
 }
 
-func bearer(rootKey string) http.Header {
-	return http.Header{
-		"Content-Type":  {"application/json"},
-		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
-	}
-}
-
-// liveSessions counts a portal's unrevoked sessions.
-func liveSessions(t *testing.T, h *testutil.Harness, portalID string) int {
-	t.Helper()
-
-	var count int
-	require.NoError(t, h.DB.RW().QueryRowContext(context.Background(),
-		"SELECT COUNT(*) FROM portal_sessions WHERE portal_id = ? AND revoked_at IS NULL", portalID,
-	).Scan(&count))
-	return count
-}
-
 // A mint that holds the portal lock makes a concurrent disable wait, so the
 // disable's revoke runs after the insert and catches the new session.
 func TestMintLockMakesDisableRevokeTheNewSession(t *testing.T) {
@@ -74,7 +56,7 @@ func TestMintLockMakesDisableRevokeTheNewSession(t *testing.T) {
 
 	update := &updateportal.Handler{DB: h.DB, Auditlogs: h.Auditlogs, Clock: h.Clock}
 	h.Register(update)
-	headers := bearer(h.CreateRootKey(workspace.ID, "portal.*.update_portal"))
+	headers := testutil.RootKeyHeaders(h.CreateRootKey(workspace.ID, "portal.*.update_portal"))
 
 	mint, err := h.DB.RW().Begin(ctx)
 	require.NoError(t, err)
@@ -106,7 +88,7 @@ func TestMintLockMakesDisableRevokeTheNewSession(t *testing.T) {
 	require.NoError(t, mint.Commit())
 
 	require.Equal(t, http.StatusOK, <-disabled)
-	require.Equal(t, 0, liveSessions(t, h, portalID), "the disable must revoke the session minted before it")
+	require.Equal(t, 0, h.CountLivePortalSessions(t, portalID, ""), "the disable must revoke the session minted before it")
 }
 
 // A disable that holds the portal lock makes a concurrent createSession wait,
@@ -120,7 +102,7 @@ func TestDisableLockMakesMintRefuse(t *testing.T) {
 
 	create := &handler.Handler{DB: h.DB, Auditlogs: h.Auditlogs, PortalBaseURL: "https://portal.unkey.com", Clock: h.Clock}
 	h.Register(create)
-	headers := bearer(h.CreateRootKey(workspace.ID, "portal.*.create_portal_session", "api.*.read_key", "api.*.read_api"))
+	headers := testutil.RootKeyHeaders(h.CreateRootKey(workspace.ID, "portal.*.create_portal_session", "api.*.read_key", "api.*.read_api"))
 
 	// Stands in for updatePortal's disable: write the portal row, then revoke.
 	disable, err := h.DB.RW().Begin(ctx)
@@ -165,7 +147,7 @@ func TestRepointLockMakesMintRefuse(t *testing.T) {
 
 	create := &handler.Handler{DB: h.DB, Auditlogs: h.Auditlogs, PortalBaseURL: "https://portal.unkey.com", Clock: h.Clock}
 	h.Register(create)
-	headers := bearer(h.CreateRootKey(workspace.ID, "portal.*.create_portal_session", "api.*.read_key", "api.*.read_api"))
+	headers := testutil.RootKeyHeaders(h.CreateRootKey(workspace.ID, "portal.*.create_portal_session", "api.*.read_key", "api.*.read_api"))
 
 	// Stands in for updatePortal's re-point: write the portal row, then revoke.
 	repoint, err := h.DB.RW().Begin(ctx)
@@ -210,7 +192,7 @@ func TestMintLockMakesRepointRevokeTheNewSession(t *testing.T) {
 	update := &updateportal.Handler{DB: h.DB, Auditlogs: h.Auditlogs, Clock: h.Clock}
 	h.Register(update)
 	// Re-pointing also needs read access to the new keyspace.
-	headers := bearer(h.CreateRootKey(workspace.ID, "portal.*.update_portal", "api.*.read_api"))
+	headers := testutil.RootKeyHeaders(h.CreateRootKey(workspace.ID, "portal.*.update_portal", "api.*.read_api"))
 
 	mint, err := h.DB.RW().Begin(ctx)
 	require.NoError(t, err)
@@ -240,5 +222,5 @@ func TestMintLockMakesRepointRevokeTheNewSession(t *testing.T) {
 	require.NoError(t, mint.Commit())
 
 	require.Equal(t, http.StatusOK, <-repointed)
-	require.Equal(t, 0, liveSessions(t, h, portalID), "the re-point must revoke the session minted before it")
+	require.Equal(t, 0, h.CountLivePortalSessions(t, portalID, ""), "the re-point must revoke the session minted before it")
 }

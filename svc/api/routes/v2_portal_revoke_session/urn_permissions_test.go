@@ -64,7 +64,7 @@ func TestRevokeSessionAuthorizesMintingGrants(t *testing.T) {
 
 	for i, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			mapping, projectID := keyspaceMapping(t, h, workspace.ID)
+			mapping, projectID := h.SeedKeyspaceMapping(t, workspace.ID)
 			slug := fmt.Sprintf("revoke-urn-%d", i)
 			stored := h.SeedPortal(t, workspace.ID, slug, slug, mapping, nil, nil)
 			h.CreatePortalSessionForPortal(stored.ID, workspace.ID, "user_1", []string{mapping.ID}, []string{"keys:read"})
@@ -72,15 +72,15 @@ func TestRevokeSessionAuthorizesMintingGrants(t *testing.T) {
 			rootKey := h.CreateRootKey(workspace.ID, tc.permission(projectID, stored.ID))
 
 			if tc.shouldPass {
-				res := testutil.CallRoute[handler.Request, handler.Response](h, route, headersFor(rootKey), request(stored.Slug, "user_1"))
+				res := testutil.CallRoute[handler.Request, handler.Response](h, route, testutil.RootKeyHeaders(rootKey), request(stored.Slug, "user_1"))
 				require.Equal(t, http.StatusOK, res.Status, "%s must authorize the revoke: %s", tc.name, res.RawBody)
 				require.Equal(t, int64(1), res.Body.Data.SessionsRevoked)
 				return
 			}
 
-			res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headersFor(rootKey), request(stored.Slug, "user_1"))
+			res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, testutil.RootKeyHeaders(rootKey), request(stored.Slug, "user_1"))
 			require.Equal(t, http.StatusNotFound, res.Status, "expected a masked 404 for %s, got: %s", tc.name, res.RawBody)
-			require.Equal(t, 1, sessionsFor(t, h, stored.ID, "user_1", "revoked_at IS NULL"),
+			require.Equal(t, 1, h.CountLivePortalSessions(t, stored.ID, "user_1"),
 				"a denied request must not revoke")
 		})
 	}

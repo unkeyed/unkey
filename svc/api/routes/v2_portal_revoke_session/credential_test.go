@@ -73,7 +73,7 @@ func TestRevokeSessionAcceptsDashboardAdmin(t *testing.T) {
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, jwtHeaders(), request(stored.ID, "user_1"))
 	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
 	require.Equal(t, int64(1), res.Body.Data.SessionsRevoked)
-	require.Equal(t, 0, sessionsFor(t, h, stored.ID, "user_1", "revoked_at IS NULL"))
+	require.Equal(t, 0, h.CountLivePortalSessions(t, stored.ID, "user_1"))
 
 	events := h.FindAuditLogsByTargetID(context.Background(), t, stored.ID)
 	require.Len(t, events, 1)
@@ -91,5 +91,5 @@ func TestRevokeSessionRejectsDashboardUserWithoutGrant(t *testing.T) {
 
 	res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, jwtHeaders(), request(stored.ID, "user_1"))
 	require.Equal(t, http.StatusNotFound, res.Status, "expected 404, received: %s", res.RawBody)
-	require.Equal(t, 1, sessionsFor(t, h, stored.ID, "user_1", "revoked_at IS NULL"))
+	require.Equal(t, 1, h.CountLivePortalSessions(t, stored.ID, "user_1"))
 }

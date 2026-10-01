@@ -33,7 +33,7 @@ func TestRevokeSessionStopsActiveAndPendingSessions(t *testing.T) {
 	stored, mapping := seedPortal(t, h, workspace.ID, "revoke-live")
 	sessionHeaders := h.CreatePortalSessionForPortal(
 		stored.ID, workspace.ID, "user_1", []string{mapping.ID}, []string{"keys:read"})
-	pendingCode := insertSession(t, h, stored.ID, workspace.ID, "user_1", false, h.Clock.Now().Add(15*time.Minute))
+	pendingCode := h.CreatePortalSessionInState(t, stored.ID, workspace.ID, "user_1", false, h.Clock.Now().Add(15*time.Minute))
 
 	warm := testutil.CallRoute[listKeys.Request, listKeys.Response](h, endUserRoute, sessionHeaders, listKeys.Request{})
 	require.Equal(t, http.StatusOK, warm.Status, "the session must work before the revoke: %s", warm.RawBody)
@@ -63,14 +63,14 @@ func TestRevokeSessionIgnoresExpiredSessions(t *testing.T) {
 	stored, mapping := seedPortal(t, h, workspace.ID, "revoke-expired")
 	h.CreatePortalSessionForPortal(stored.ID, workspace.ID, "user_1", []string{mapping.ID}, []string{"keys:read"})
 	past := h.Clock.Now().Add(-time.Hour)
-	insertSession(t, h, stored.ID, workspace.ID, "user_1", true, past)
-	insertSession(t, h, stored.ID, workspace.ID, "user_1", false, past)
+	h.CreatePortalSessionInState(t, stored.ID, workspace.ID, "user_1", true, past)
+	h.CreatePortalSessionInState(t, stored.ID, workspace.ID, "user_1", false, past)
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, request(stored.ID, "user_1"))
 	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
 	require.Equal(t, int64(1), res.Body.Data.SessionsRevoked, "only the live session counts")
 
-	require.Equal(t, 2, sessionsFor(t, h, stored.ID, "user_1", "revoked_at IS NULL"),
+	require.Equal(t, 2, h.CountLivePortalSessions(t, stored.ID, "user_1"),
 		"expired rows are left untouched")
 }
 
@@ -90,10 +90,10 @@ func TestRevokeSessionIsScopedToUserAndPortal(t *testing.T) {
 	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
 	require.Equal(t, int64(1), res.Body.Data.SessionsRevoked)
 
-	require.Equal(t, 0, sessionsFor(t, h, target.ID, "user_1", "revoked_at IS NULL"))
-	require.Equal(t, 1, sessionsFor(t, h, target.ID, "user_2", "revoked_at IS NULL"),
+	require.Equal(t, 0, h.CountLivePortalSessions(t, target.ID, "user_1"))
+	require.Equal(t, 1, h.CountLivePortalSessions(t, target.ID, "user_2"),
 		"another end user on the same portal is untouched")
-	require.Equal(t, 1, sessionsFor(t, h, other.ID, "user_1", "revoked_at IS NULL"),
+	require.Equal(t, 1, h.CountLivePortalSessions(t, other.ID, "user_1"),
 		"the same end user on another portal is untouched")
 }
 
@@ -110,7 +110,7 @@ func TestRevokeSessionLeavesOtherWorkspacesAlone(t *testing.T) {
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, request(stored.ID, "user_1"))
 	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
 	require.Equal(t, int64(0), res.Body.Data.SessionsRevoked)
-	require.Equal(t, 1, sessionsFor(t, h, stored.ID, "user_1", "revoked_at IS NULL"),
+	require.Equal(t, 1, h.CountLivePortalSessions(t, stored.ID, "user_1"),
 		"the other workspace's row is untouched")
 }
 
@@ -195,7 +195,7 @@ func TestRevokeSessionBySlug(t *testing.T) {
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, request(stored.Slug, "user_1"))
 	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
 	require.Equal(t, int64(1), res.Body.Data.SessionsRevoked)
-	require.Equal(t, 0, sessionsFor(t, h, stored.ID, "user_1", "revoked_at IS NULL"))
+	require.Equal(t, 0, h.CountLivePortalSessions(t, stored.ID, "user_1"))
 }
 
 // The cache holds the revoked row, not an unrevoked copy.
@@ -254,4 +254,56 @@ func TestRevokeSessionAtTheSameClockTick(t *testing.T) {
 	}
 	require.NotNil(t, latest, "the second audit entry must name only the new session")
 	require.Equal(t, float64(1), latest["sessionsRevoked"])
+}
+
+// More sessions than one batch holds are all revoked, one audit entry per batch.
+func TestRevokeSessionInBatches(t *testing.T) {
+	h := testutil.NewHarness(t)
+	route, headers := newRoute(t, h, permission)
+	workspace := h.Resources().UserWorkspace
+
+	stored, _ := seedPortal(t, h, workspace.ID, "revoke-batches")
+	expiresAt := h.Clock.Now().Add(time.Hour)
+	const sessions = 1001
+	for range sessions {
+		h.CreatePortalSessionInState(t, stored.ID, workspace.ID, "user_1", true, expiresAt)
+	}
+
+	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, request(stored.ID, "user_1"))
+	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
+	require.Equal(t, int64(sessions), res.Body.Data.SessionsRevoked)
+	require.Equal(t, 0, h.CountLivePortalSessions(t, stored.ID, "user_1"))
+
+	metas := revokeAuditMetas(t, h, stored.ID)
+	require.Len(t, metas, 2, "one audit entry per batch")
+	revoked := 0.0
+	for _, meta := range metas {
+		count, ok := meta["sessionsRevoked"].(float64)
+		require.True(t, ok, "sessionsRevoked must be a number")
+		revoked += count
+	}
+	require.Equal(t, float64(sessions), revoked)
+}
+
+// A session created after the call started isn't taken, so a client minting
+// while the revoke runs can't keep the batches going forever.
+func TestRevokeSessionSkipsSessionsCreatedAfterTheCall(t *testing.T) {
+	h := testutil.NewHarness(t)
+	route, headers := newRoute(t, h, permission)
+	workspace := h.Resources().UserWorkspace
+
+	stored, _ := seedPortal(t, h, workspace.ID, "revoke-later-session")
+	expiresAt := h.Clock.Now().Add(time.Hour)
+	h.CreatePortalSessionInState(t, stored.ID, workspace.ID, "user_1", true, expiresAt)
+	h.CreatePortalSessionInState(t, stored.ID, workspace.ID, "user_1", true, expiresAt)
+	_, err := h.DB.RW().ExecContext(context.Background(),
+		"UPDATE portal_sessions SET created_at = ? WHERE portal_id = ? ORDER BY pk DESC LIMIT 1",
+		h.Clock.Now().Add(time.Minute).UnixMilli(), stored.ID,
+	)
+	require.NoError(t, err)
+
+	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, request(stored.ID, "user_1"))
+	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
+	require.Equal(t, int64(1), res.Body.Data.SessionsRevoked)
+	require.Equal(t, 1, h.CountLivePortalSessions(t, stored.ID, "user_1"), "the later session is left for the next call")
 }

@@ -33,7 +33,7 @@ func TestRevokeSessionRejectsInvalidBody(t *testing.T) {
 		})
 	}
 
-	require.Equal(t, 1, sessionsFor(t, h, stored.ID, "user_1", "revoked_at IS NULL"),
+	require.Equal(t, 1, h.CountLivePortalSessions(t, stored.ID, "user_1"),
 		"an invalid request must not revoke")
 }
 

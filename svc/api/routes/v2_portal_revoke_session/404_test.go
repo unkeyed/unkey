@@ -37,7 +37,7 @@ func TestRevokeSessionUnknownPortal(t *testing.T) {
 		})
 	}
 
-	require.Equal(t, 1, sessionsFor(t, h, theirs.ID, "user_1", "revoked_at IS NULL"),
+	require.Equal(t, 1, h.CountLivePortalSessions(t, theirs.ID, "user_1"),
 		"a foreign portal's sessions are untouched")
 }
 
@@ -60,12 +60,12 @@ func TestRevokeSessionWithoutPermission(t *testing.T) {
 	for name, permissions := range testCases {
 		t.Run(name, func(t *testing.T) {
 			rootKey := h.CreateRootKey(workspace.ID, permissions...)
-			res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headersFor(rootKey), request(stored.ID, "user_1"))
+			res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, testutil.RootKeyHeaders(rootKey), request(stored.ID, "user_1"))
 			require.Equal(t, http.StatusNotFound, res.Status, "expected 404, received: %s", res.RawBody)
 			require.NotContains(t, res.RawBody, stored.ID, "a denial must not disclose the portal id")
 		})
 	}
 
-	require.Equal(t, 1, sessionsFor(t, h, stored.ID, "user_1", "revoked_at IS NULL"),
+	require.Equal(t, 1, h.CountLivePortalSessions(t, stored.ID, "user_1"),
 		"a denied request must not revoke")
 }

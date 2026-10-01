@@ -26,7 +26,7 @@ func TestRevokeSessionGrantIsScopedToProject(t *testing.T) {
 	rootKey := h.CreateRootKey(workspace.ID,
 		fmt.Sprintf("unkey:v1:%s:projects/%s/portals/%s/sessions/*#write", workspace.ID, otherProject, stored.ID))
 
-	res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headersFor(rootKey), request(stored.ID, "user_1"))
+	res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, testutil.RootKeyHeaders(rootKey), request(stored.ID, "user_1"))
 	require.Equal(t, http.StatusNotFound, res.Status, "expected 404, received: %s", res.RawBody)
-	require.Equal(t, 1, sessionsFor(t, h, stored.ID, "user_1", "revoked_at IS NULL"))
+	require.Equal(t, 1, h.CountLivePortalSessions(t, stored.ID, "user_1"))
 }
