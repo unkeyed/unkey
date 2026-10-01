@@ -9,6 +9,7 @@ type BulkQuerier interface {
 	InsertAcmeChallenges(ctx context.Context, args []InsertAcmeChallengeParams) error
 	InsertAcmeUsers(ctx context.Context, args []InsertAcmeUserParams) error
 	InsertApis(ctx context.Context, args []InsertApiParams) error
+	InsertAppBindings(ctx context.Context, args []InsertAppBindingParams) error
 	UpsertAppBuildSettings(ctx context.Context, args []UpsertAppBuildSettingsParams) error
 	InsertAppEnvironmentVariables(ctx context.Context, args []InsertAppEnvironmentVariableParams) error
 	InsertApps(ctx context.Context, args []InsertAppParams) error

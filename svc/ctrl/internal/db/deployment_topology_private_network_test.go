@@ -1,64 +1,92 @@
-package db
+package db_test
 
 import (
-	"database/sql"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/mysql/sqlcomment"
+	dbtype "github.com/unkeyed/unkey/pkg/mysql/types"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
+	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/svc/ctrl/integration/seed"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
 func TestDeploymentTopologyPrivateNetworkFollowsStoredDecision(t *testing.T) {
-	server := containers.MySQL(t)
-	database, err := sql.Open("mysql", server.DSN)
+	ctx := t.Context()
+	database, err := db.New(containers.MySQL(t).DSN, sqlcomment.Disabled())
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, database.Close()) })
-	tx, err := database.BeginTx(t.Context(), nil)
-	require.NoError(t, err)
-	t.Cleanup(func() { require.NoError(t, tx.Rollback()) })
 
-	exec := func(query string, args ...any) {
-		t.Helper()
-		_, execErr := tx.ExecContext(t.Context(), query, args...)
-		require.NoError(t, execErr)
-	}
+	seeder := seed.New(t, database, nil)
+	workspace := seeder.CreateWorkspace(ctx)
+	project := seeder.CreateProject(ctx, seed.CreateProjectRequest{
+		ID:          uid.New(uid.ProjectPrefix),
+		WorkspaceID: workspace.ID,
+		Name:        "Project",
+		Slug:        "project",
+	})
+	api := seeder.CreateApp(ctx, seed.CreateAppRequest{ID: uid.New(uid.AppPrefix), WorkspaceID: workspace.ID, ProjectID: project.ID, Name: "API", Slug: "api"})
+	target := seeder.CreateApp(ctx, seed.CreateAppRequest{ID: uid.New(uid.AppPrefix), WorkspaceID: workspace.ID, ProjectID: project.ID, Name: "DB", Slug: "db"})
+	environment := seeder.CreateEnvironment(ctx, seed.CreateEnvironmentRequest{
+		ID:          uid.New(uid.EnvironmentPrefix),
+		WorkspaceID: workspace.ID,
+		ProjectID:   project.ID,
+		AppID:       api.ID,
+		Slug:        "production",
+		Kind:        dbtype.EnvironmentKindProduction,
+	})
+	region := seeder.CreateRegion(ctx, seed.CreateRegionRequest{Name: uid.New("region"), Platform: "kubernetes"})
 
-	exec(`INSERT INTO workspaces (id,org_id,name,slug,k8s_namespace,beta_features) VALUES ('pn-ws','pn-org','Workspace','pn-topology','pn-namespace','{}')`)
-	exec(`INSERT INTO projects (id,workspace_id,name,slug,created_at) VALUES ('pn-project','pn-ws','Project','project',1)`)
-	exec(`INSERT INTO apps (id,workspace_id,project_id,name,slug,source_type,created_at) VALUES
-		('pn-api','pn-ws','pn-project','API','api','git',1),('pn-db','pn-ws','pn-project','DB','db','git',1)`)
-	exec(`INSERT INTO environments (id,workspace_id,project_id,app_id,slug,kind,created_at) VALUES ('pn-env','pn-ws','pn-project','pn-api','production','production',1)`)
-	exec(`INSERT INTO regions (id,name,platform) VALUES ('pn-region','pn-region','pn-platform')`)
-	for _, deployment := range []struct {
-		id      string
-		enabled bool
-	}{{id: "pn-enabled", enabled: true}, {id: "pn-disabled", enabled: false}} {
-		exec(`INSERT INTO deployments (id,k8s_name,workspace_id,project_id,environment_id,app_id,sentinel_config,cpu_millicores,memory_mib,desired_state,encrypted_environment_variables,status,created_at,capabilities)
-			VALUES (?,?,'pn-ws','pn-project','pn-env','pn-api','{}',100,128,'running','{}','ready',1,IF(?, '{"private_networking":true}', '{}'))`, deployment.id, deployment.id, deployment.enabled)
-		exec(`INSERT INTO deployment_topology (workspace_id,deployment_id,region_id,desired_status,created_at) VALUES ('pn-ws',?,'pn-region','running',1)`, deployment.id)
+	want := map[string]bool{}
+	for _, enabled := range []bool{true, false} {
+		deployment := seeder.CreateDeployment(ctx, seed.CreateDeploymentRequest{
+			WorkspaceID:   workspace.ID,
+			ProjectID:     project.ID,
+			AppID:         api.ID,
+			EnvironmentID: environment.ID,
+			Status:        dbtype.DeploymentsStatusReady,
+			Capabilities:  dbtype.DeploymentCapabilities{PrivateNetworking: enabled},
+		})
+		require.NoError(t, database.InsertDeploymentTopology(ctx, db.InsertDeploymentTopologyParams{
+			WorkspaceID:            workspace.ID,
+			DeploymentID:           deployment.ID,
+			RegionID:               region.ID,
+			AutoscalingReplicasMin: 1,
+			AutoscalingReplicasMax: 1,
+			DesiredStatus:          db.DeploymentTopologyDesiredStatusRunning,
+			CreatedAt:              time.Now().UnixMilli(),
+		}))
+		want[deployment.ID] = enabled
 	}
 
 	enrolled := func() map[string]bool {
 		t.Helper()
-		byDeployment := map[string]bool{}
-		rows, listErr := NewQueries(tx).ListAllDeploymentTopologiesByRegion(t.Context(), ListAllDeploymentTopologiesByRegionParams{RegionID: "pn-region", AfterPk: 0, Limit: 10})
+		rows, listErr := database.ListAllDeploymentTopologiesByRegion(ctx, db.ListAllDeploymentTopologiesByRegionParams{RegionID: region.ID, AfterPk: 0, Limit: 10})
 		require.NoError(t, listErr)
+		byDeployment := map[string]bool{}
 		for _, row := range rows {
 			byDeployment[row.DeploymentID] = row.DeploymentCapabilities.PrivateNetworking
-			found, findErr := NewQueries(tx).FindDeploymentTopologyByDeploymentAndRegion(t.Context(), FindDeploymentTopologyByDeploymentAndRegionParams{DeploymentID: row.DeploymentID, RegionID: "pn-region"})
+			found, findErr := database.FindDeploymentTopologyByDeploymentAndRegion(ctx, db.FindDeploymentTopologyByDeploymentAndRegionParams{DeploymentID: row.DeploymentID, RegionID: region.ID})
 			require.NoError(t, findErr)
 			require.Equal(t, row.DeploymentCapabilities, found.Capabilities, "both topology reads agree for %s", row.DeploymentID)
 		}
 		return byDeployment
 	}
 
-	want := map[string]bool{"pn-enabled": true, "pn-disabled": false}
 	require.Equal(t, want, enrolled(), "without bindings")
 
-	exec(`INSERT INTO app_bindings (id,workspace_id,project_id,app_id,environment_id,resource_type,resource_id,name,selection_mode,created_at)
-		VALUES ('pn-binding','pn-ws','pn-project','pn-api','pn-env','app','pn-db','database','automatic',1)`)
+	seeder.CreateAppBinding(ctx, seed.CreateAppBindingRequest{
+		WorkspaceID:         workspace.ID,
+		ProjectID:           project.ID,
+		CallerAppID:         api.ID,
+		CallerEnvironmentID: environment.ID,
+		TargetAppID:         target.ID,
+		Name:                "database",
+	})
 	require.Equal(t, want, enrolled(), "adding a binding changes no running deployment")
 
-	exec(`DELETE FROM app_bindings WHERE id = 'pn-binding'`)
+	require.NoError(t, database.DeleteAppById(ctx, target.ID))
 	require.Equal(t, want, enrolled(), "deleting every binding changes no running deployment")
 }
