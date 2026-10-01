@@ -14,7 +14,7 @@ func TestInsertQuery(t *testing.T) {
 	t.Parallel()
 
 	require.Equal(t,
-		"INSERT INTO default.build_step_logs_v1 (`time`, `workspace_id`, `project_id`, `deployment_id`, `step_id`, `message`)",
+		"INSERT INTO default.build_step_logs_v1 (`time`, `workspace_id`, `project_id`, `deployment_id`, `step_id`, `message`, `seq`, `error`)",
 		InsertQuery[schema.BuildStepLogV1]())
 
 	query := InsertQuery[schema.KeyVerification]()

@@ -158,6 +158,8 @@ type BuildStepLogV1 struct {
 	DeploymentID string `ch:"deployment_id" json:"deployment_id"`
 	StepID       string `ch:"step_id" json:"step_id"`
 	Message      string `ch:"message" json:"message"`
+	Seq          uint64 `ch:"seq" json:"seq"`
+	Error        bool   `ch:"error" json:"error"`
 }
 
 // InstanceCheckpoint is a single counter reading for one container, written
