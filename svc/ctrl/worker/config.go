@@ -1,7 +1,6 @@
 package worker
 
 import (
-	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -508,8 +507,8 @@ func (c *Config) Validate() error {
 	switch c.FeatureFlags.Provider {
 	case FeatureFlagProviderNone:
 	case FeatureFlagProviderStatic:
-		if len(c.FeatureFlags.Static) == 0 {
-			return errors.New("feature_flags.static must list at least one flag when the static provider is selected")
+		if err := assert.True(len(c.FeatureFlags.Static) > 0, "feature_flags.static must list at least one flag when the static provider is selected"); err != nil {
+			return err
 		}
 	case FeatureFlagProviderVercel:
 		if err := assert.NotEmpty(c.FeatureFlags.Vercel.SDKKey, "feature_flags.vercel.sdk_key is required when the vercel provider is selected"); err != nil {

@@ -7,7 +7,6 @@ import (
 
 	"github.com/open-feature/go-sdk/openfeature"
 	"github.com/unkeyed/unkey/pkg/featureflag"
-	"github.com/unkeyed/unkey/pkg/logger"
 	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 	"github.com/unkeyed/unkey/svc/ctrl/pkg/metrics"
@@ -38,12 +37,7 @@ func (w *Workflow) decidePrivateNetworking(ctx context.Context, target db.FindDe
 	if err != nil {
 		result := flagErrorResult(detail.ErrorCode)
 		metrics.FeatureFlagEvaluationsTotal.WithLabelValues(featureflag.PrivateNetworking, result).Inc()
-		logger.Warn("feature flag evaluation failed",
-			"flag", featureflag.PrivateNetworking,
-			"result", result,
-			"workspace_id", target.WorkspaceID,
-		)
-		return false, fmt.Errorf("evaluate feature flag %s: %s", featureflag.PrivateNetworking, result)
+		return false, fmt.Errorf("evaluate feature flag %s for workspace %s: %s", featureflag.PrivateNetworking, target.WorkspaceID, result)
 	}
 
 	result := "disabled"
@@ -54,19 +48,11 @@ func (w *Workflow) decidePrivateNetworking(ctx context.Context, target db.FindDe
 	return detail.Value, nil
 }
 
+// flagErrorResult turns an OpenFeature error code into a metric label. The
+// SDK sets codes only from its fixed set, so the label stays bounded.
 func flagErrorResult(code openfeature.ErrorCode) string {
-	switch code {
-	case openfeature.ProviderNotReadyCode,
-		openfeature.ProviderFatalCode,
-		openfeature.FlagNotFoundCode,
-		openfeature.ParseErrorCode,
-		openfeature.TypeMismatchCode,
-		openfeature.TargetingKeyMissingCode,
-		openfeature.InvalidContextCode:
-		return strings.ToLower(string(code))
-	case openfeature.GeneralCode:
-		return "general"
-	default:
-		return "general"
+	if code == "" {
+		return strings.ToLower(string(openfeature.GeneralCode))
 	}
+	return strings.ToLower(string(code))
 }
