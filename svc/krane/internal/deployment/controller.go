@@ -58,7 +58,11 @@ type Controller struct {
 	// reportLocks serializes reportIfChanged per k8s_name so the fingerprint
 	// Get and post-RPC Set can't race with another concurrent event for the
 	// same workload and both report the same state.
-	reportLocks keymutex.KeyMutex
+	reportLocks    keymutex.KeyMutex
+	reconcileLocks keymutex.KeyMutex
+
+	removalMu       sync.Mutex
+	pendingRemovals map[string]pendingRemoval
 
 	// lagRecorder records pod watch delivery lag, deduplicated per
 	// (pod UID, transition time).
@@ -159,6 +163,9 @@ func New(cfg Config) *Controller {
 		fingerprints:     cfg.Fingerprints,
 		eventDedup:       cfg.EventDedup,
 		reportLocks:      keymutex.KeyMutex{},
+		reconcileLocks:   keymutex.KeyMutex{},
+		removalMu:        sync.Mutex{},
+		pendingRemovals:  nil,
 		lagRecorder:      podstatus.NewLagRecorder("deployment", cfg.ObservedTransitions),
 		storageClassName: cfg.StorageClassName,
 		disableGvisor:    cfg.DisableGvisor,
@@ -169,7 +176,7 @@ func New(cfg Config) *Controller {
 
 // Run runs the background control loops until ctx is cancelled.
 //
-// Four independent loops run concurrently:
+// Independent loops run concurrently:
 //   - [Controller.runActualStateResyncLoop]: periodic safety net for instance
 //     state reporting (complements the real-time pod watch).
 //   - [Controller.runDesiredStateResyncLoop]: periodic reconciliation of desired
@@ -188,6 +195,7 @@ func (c *Controller) Run(ctx context.Context) {
 	wg.Go(func() { c.runDesiredStateResyncLoop(ctx) })
 	wg.Go(func() { c.runPodWatchLoop(ctx) })
 	wg.Go(func() { c.runRolloutGateLoop(ctx) })
+	wg.Go(func() { c.runRemovalRetryLoop(ctx) })
 
 	wg.Wait()
 }
