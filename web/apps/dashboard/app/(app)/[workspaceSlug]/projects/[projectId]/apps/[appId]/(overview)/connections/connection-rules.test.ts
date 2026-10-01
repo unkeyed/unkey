@@ -117,6 +117,19 @@ describe("describeTarget", () => {
     });
   });
 
+  it("does not describe a failed pinned deployment as stopped", () => {
+    const result = describeTarget({
+      ...common,
+      deployments: common.deployments.map((deployment) => ({ ...deployment, status: "failed" })),
+      connection: connection({ targetType: "deployment", targetDeploymentId: "db-pinned" }),
+      callerEnvironment: callerProd,
+    });
+    expect(result).toEqual({
+      text: "The pinned db deployment is unavailable. Choose another target.",
+      unavailable: true,
+    });
+  });
+
   it("never mentions ports or protocols", () => {
     for (const rule of [
       connection({}),

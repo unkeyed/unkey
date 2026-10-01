@@ -94,7 +94,7 @@ export function describeTarget({
   }
   if (deployment.status !== "ready") {
     return {
-      text: `The pinned ${targetName} deployment is stopped. Choose another target.`,
+      text: `The pinned ${targetName} deployment is ${deployment.status === "stopped" ? "stopped" : "unavailable"}. Choose another target.`,
       unavailable: true,
     };
   }
