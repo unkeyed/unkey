@@ -1,14 +1,15 @@
 export type UsageMonthsAgo = 0 | 1;
+export type UsagePeriodValue = "current" | "previous";
 
 export type UsagePeriod = {
-  value: string;
+  value: UsagePeriodValue;
   label: string;
   monthsAgo: UsageMonthsAgo;
   start: number;
   end: number;
 };
 
-const MONTHS_AGO: UsageMonthsAgo[] = [0, 1];
+const MONTHS_AGO: UsageMonthsAgo[] = [1, 0];
 
 export function getUsagePeriods(now: Date): UsagePeriod[] {
   return MONTHS_AGO.map((monthsAgo) => {
@@ -17,11 +18,13 @@ export function getUsagePeriods(now: Date): UsagePeriod[] {
       monthsAgo === 0
         ? now.getTime()
         : Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - monthsAgo + 1, 1);
-    const date = new Date(start);
-
     return {
-      value: `${String(date.getUTCMonth() + 1).padStart(2, "0")}${date.getUTCFullYear()}`,
-      label: monthsAgo === 0 ? "Current month" : "Last month",
+      value: monthsAgo === 0 ? "current" : "previous",
+      label: new Date(start).toLocaleDateString("en-US", {
+        month: "long",
+        year: "numeric",
+        timeZone: "UTC",
+      }),
       monthsAgo,
       start,
       end,
@@ -30,5 +33,9 @@ export function getUsagePeriods(now: Date): UsagePeriod[] {
 }
 
 export function resolveUsagePeriod(value: string | null, periods: UsagePeriod[]): UsagePeriod {
-  return periods.find((period) => period.value === value) ?? periods[0];
+  return (
+    periods.find((period) => period.value === value) ??
+    periods.find((period) => period.monthsAgo === 0) ??
+    periods[0]
+  );
 }
