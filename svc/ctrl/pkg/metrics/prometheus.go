@@ -1,11 +1,31 @@
 package metrics
 
 import (
+	"time"
+
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/unkeyed/unkey/pkg/prometheus/lazy"
 )
 
+// ObserveEnvironmentDeletion records the oldest durable deletion start, or zero when none remain.
+func ObserveEnvironmentDeletion(startedAtMillis int64) {
+	age := float64(0)
+	if startedAtMillis > 0 {
+		age = max(0, time.Since(time.UnixMilli(startedAtMillis)).Seconds())
+	}
+	EnvironmentDeletionAgeSeconds.Set(age)
+}
+
 var (
+	EnvironmentDeletionAgeSeconds = lazy.NewGauge(
+		prometheus.GaugeOpts{
+			Namespace: "unkey",
+			Subsystem: "control",
+			Name:      "environment_deletion_age_seconds",
+			Help:      "Age in seconds of an environment deletion waiting for physical topology removal.",
+		},
+	)
+
 	// FullSyncDurationSeconds tracks how long full syncs take in the
 	// SyncDesiredState RPC. Growth indicates increasing resource count in the region.
 	FullSyncDurationSeconds = lazy.NewHistogram(
