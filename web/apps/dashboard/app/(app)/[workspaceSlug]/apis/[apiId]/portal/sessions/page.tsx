@@ -7,6 +7,10 @@ import { useUpdatePortal } from "@/lib/portal/use-portal";
 import { useWorkspace } from "@/providers/workspace-provider";
 import { match } from "@unkey/match";
 import {
+  EmptyState,
+  EmptyStateDescription,
+  EmptyStateHeader,
+  EmptyStateTitle,
   PageBody,
   PageContainer,
   PageHeader,
@@ -45,7 +49,7 @@ export default function PortalSessionsPage(props: Props) {
   );
   const updatePortal = useUpdatePortal(keyAuthId ?? "");
   const { user } = useWorkspace();
-  const canRevoke = user?.role === "admin";
+  const isAdmin = user?.role === "admin";
 
   return (
     <PageContainer>
@@ -54,16 +58,26 @@ export default function PortalSessionsPage(props: Props) {
           <PageHeaderTitle>Sessions</PageHeaderTitle>
           <PageHeaderDescription>
             Users with a portal session that has not expired or been revoked.
-            {canRevoke ? null : " Only workspace admins can revoke sessions."}
           </PageHeaderDescription>
         </PageHeaderContent>
       </PageHeader>
       <PageBody>
         {match(state)
           .with({ status: "loading" }, () => <PortalSessionsSkeleton />)
-          .with({ status: "enabled" }, ({ portal }) => (
-            <PortalSessions portalId={portal.id} canRevoke={canRevoke} />
-          ))
+          .with({ status: "enabled" }, ({ portal }) =>
+            isAdmin ? (
+              <PortalSessions portalId={portal.id} canRevoke={isAdmin} />
+            ) : (
+              <EmptyState>
+                <EmptyStateHeader>
+                  <EmptyStateTitle>Sessions are admin-only</EmptyStateTitle>
+                  <EmptyStateDescription>
+                    Ask a workspace admin to see or revoke who is signed in to this portal.
+                  </EmptyStateDescription>
+                </EmptyStateHeader>
+              </EmptyState>
+            ),
+          )
           .with({ status: "disabled" }, ({ portal }) => (
             <DisabledBanner
               description="All sessions ended when the portal was disabled. Your users need a new link from your app after you re-enable it."
