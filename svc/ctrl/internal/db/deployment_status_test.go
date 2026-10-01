@@ -94,7 +94,7 @@ func TestConditionalDeploymentStatusRecordsFirstReadyAt(t *testing.T) {
 		{
 			name: "preserve earlier readiness", status: mysqltype.DeploymentsStatusDeploying,
 			next: mysqltype.DeploymentsStatusReady, wantStatus: mysqltype.DeploymentsStatusReady,
-			firstReady: sql.NullInt64{Int64: 80, Valid: true},
+			firstReady:     sql.NullInt64{Int64: 80, Valid: true},
 			wantFirstReady: sql.NullInt64{Int64: 80, Valid: true}, wantUpdatedAt: 200,
 		},
 		{
@@ -105,7 +105,7 @@ func TestConditionalDeploymentStatusRecordsFirstReadyAt(t *testing.T) {
 		{
 			name: "compensation cannot change ready deployment", status: mysqltype.DeploymentsStatusReady,
 			next: mysqltype.DeploymentsStatusFailed, wantStatus: mysqltype.DeploymentsStatusReady,
-			firstReady: sql.NullInt64{Int64: 80, Valid: true},
+			firstReady:     sql.NullInt64{Int64: 80, Valid: true},
 			wantFirstReady: sql.NullInt64{Int64: 80, Valid: true}, wantUpdatedAt: 100,
 		},
 	} {
