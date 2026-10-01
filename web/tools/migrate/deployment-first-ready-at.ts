@@ -17,7 +17,7 @@ export async function backfillDeploymentFirstReadyAt(
   let updated = 0;
 
   while (true) {
-    const [result] = await pool.execute<ResultSetHeader>(
+    const [result] = await pool.query<ResultSetHeader>(
       `UPDATE deployments AS deployment
        JOIN (
          SELECT candidate.pk, candidate.ready_at
