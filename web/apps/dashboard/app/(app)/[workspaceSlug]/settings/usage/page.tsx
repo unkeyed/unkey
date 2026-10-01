@@ -25,12 +25,17 @@ import {
 } from "@unkey/ui";
 import { notFound } from "next/navigation";
 import { parseAsString, useQueryState } from "nuqs";
-import { type ReactNode, useMemo, useState } from "react";
+import { type ReactNode, useState } from "react";
 import { PlansScreen } from "../billing/components/plans-screen";
 import { ApiCard } from "./api-card";
 import { ComputeCard, ComputeCardShell, ComputeCardSkeleton } from "./compute-card";
 import { buildComputeTree } from "./compute-tree";
-import { type UsagePeriod, getUsagePeriods, resolveUsagePeriod } from "./period";
+import {
+  type UsagePeriod,
+  type UsagePeriodOption,
+  getUsagePeriodOptions,
+  resolveUsagePeriod,
+} from "./period";
 
 const ACTIVE_SUBSCRIPTION_STATES = ["active", "trialing", "past_due"];
 
@@ -38,13 +43,12 @@ export default function UsagePage() {
   const billingUpgrades = useBillingUIUpgrades();
   const { workspace, limits, isLoading } = useWorkspace();
   const hasComputePlan = Boolean(workspace?.deployPlan) || Boolean(workspace?.deployPlanOverride);
-  const now = useMemo(() => new Date(), []);
-  const periods = useMemo(() => getUsagePeriods(now), [now]);
+  const periodOptions = getUsagePeriodOptions(new Date());
   const [periodValue, setPeriodValue] = useQueryState("period", parseAsString);
-  const period = resolveUsagePeriod(periodValue, periods);
+  const period = resolveUsagePeriod(periodValue);
 
   const breakdown = trpc.billing.queryDeployUsageBreakdown.useQuery(
-    { monthsAgo: period.monthsAgo },
+    { period },
     {
       enabled: Boolean(workspace) && billingUpgrades && hasComputePlan,
       trpc: { context: { skipBatch: true } },
@@ -52,7 +56,7 @@ export default function UsagePage() {
     },
   );
   const apiUsage = trpc.billing.queryUsage.useQuery(
-    { monthsAgo: period.monthsAgo },
+    { period },
     {
       enabled: Boolean(workspace) && billingUpgrades,
       trpc: { context: { skipBatch: true } },
@@ -71,7 +75,7 @@ export default function UsagePage() {
 
   if (isLoading) {
     return (
-      <Shell periods={periods} period={period} onPeriodChange={setPeriodValue}>
+      <Shell options={periodOptions} period={period} onPeriodChange={setPeriodValue}>
         <PageLoading message="Loading usage..." />
       </Shell>
     );
@@ -141,7 +145,7 @@ export default function UsagePage() {
   );
 
   return (
-    <Shell periods={periods} period={period} onPeriodChange={setPeriodValue}>
+    <Shell options={periodOptions} period={period} onPeriodChange={setPeriodValue}>
       {hasComputePlan ? (
         <>
           {compute}
@@ -159,12 +163,12 @@ export default function UsagePage() {
 
 function Shell({
   children,
-  periods,
+  options,
   period,
   onPeriodChange,
 }: {
   children: ReactNode;
-  periods: UsagePeriod[];
+  options: UsagePeriodOption[];
   period: UsagePeriod;
   onPeriodChange: (value: string) => Promise<URLSearchParams>;
 }) {
@@ -176,8 +180,8 @@ function Shell({
         </PageHeaderContent>
         <PageHeaderActions>
           <Select
-            value={period.value}
-            items={periods.map((option) => ({ value: option.value, label: option.label }))}
+            value={period}
+            items={options}
             onValueChange={(value) => (value === null ? undefined : onPeriodChange(value))}
           >
             <SelectTrigger
@@ -188,7 +192,7 @@ function Shell({
               <SelectValue />
             </SelectTrigger>
             <SelectContent align="end" className="bg-background">
-              {periods.map((option) => (
+              {options.map((option) => (
                 <SelectItem key={option.value} value={option.value}>
                   {option.label}
                 </SelectItem>

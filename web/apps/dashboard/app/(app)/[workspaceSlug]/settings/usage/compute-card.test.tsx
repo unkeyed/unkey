@@ -3,7 +3,6 @@ import React from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { ComputeCard } from "./compute-card";
 import { buildComputeTree } from "./compute-tree";
-import { getUsagePeriods } from "./period";
 
 vi.stubGlobal("React", React);
 vi.mock("@/lib/trpc/client", () => ({
@@ -42,9 +41,7 @@ describe("deleted billing IDs", () => {
         { projectId: "", projectName: null, appId: "", activeKeys: 0, grossMicroCents: 0 },
       ],
     });
-    render(
-      <ComputeCard tree={tree} period={getUsagePeriods(new Date("2026-10-01T12:00:00Z"))[0]} />,
-    );
+    render(<ComputeCard tree={tree} period="current" />);
 
     for (const id of ["proj_deleted", "app_deleted", "env_deleted"]) {
       expect(screen.getByText(`, ${id}`).classList.contains("sr-only")).toBe(true);

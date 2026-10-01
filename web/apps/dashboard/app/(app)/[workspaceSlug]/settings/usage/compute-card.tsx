@@ -154,14 +154,18 @@ export function ComputeCardSkeleton() {
 
 export function ComputeCard({ tree, period }: { tree: ComputeTree; period: UsagePeriod }) {
   const [open, setOpen] = useState<ReadonlySet<string>>(new Set());
-  const periodEnd = new Date(period.end);
+  const now = new Date();
+  const month = now.getUTCMonth() - (period === "previous" ? 1 : 0);
+  const periodStart = Date.UTC(now.getUTCFullYear(), month, 1);
+  const periodEnd =
+    period === "current" ? now.getTime() : Date.UTC(now.getUTCFullYear(), month + 1, 1);
   const incompleteFrom =
-    period.monthsAgo === 0
-      ? Date.UTC(periodEnd.getUTCFullYear(), periodEnd.getUTCMonth(), periodEnd.getUTCDate())
-      : period.end;
+    period === "current"
+      ? Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
+      : periodEnd;
   const hasComputeUsage = tree.projects.some((project) => project.apps.length > 0);
   const timeseries = trpc.billing.queryDeployUsageTimeseries.useQuery(
-    { interval: "day", groupBy: "project", scope: ALL_PROJECTS, monthsAgo: period.monthsAgo },
+    { interval: "day", groupBy: "project", scope: ALL_PROJECTS, period },
     {
       enabled: hasComputeUsage,
       trpc: { context: { skipBatch: true } },
@@ -174,10 +178,10 @@ export function ComputeCard({ tree, period }: { tree: ComputeTree; period: Usage
       buildSpendSeries({
         tree,
         rows: timeseries.data ?? [],
-        start: period.start,
-        end: period.end,
+        start: periodStart,
+        end: periodEnd,
       }),
-    [tree, timeseries.data, period.start, period.end],
+    [tree, timeseries.data, periodStart, periodEnd],
   );
 
   const toggle = (projectId: string) =>
