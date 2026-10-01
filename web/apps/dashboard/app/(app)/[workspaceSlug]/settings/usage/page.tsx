@@ -17,9 +17,11 @@ import {
   PageHeaderActions,
   PageHeaderContent,
   PageHeaderTitle,
-  Tabs,
-  TabsList,
-  TabsTrigger,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@unkey/ui";
 import { notFound } from "next/navigation";
 import { parseAsString, useQueryState } from "nuqs";
@@ -173,19 +175,26 @@ function Shell({
           <PageHeaderTitle>Usage</PageHeaderTitle>
         </PageHeaderContent>
         <PageHeaderActions>
-          <Tabs value={period.value} onValueChange={(value) => onPeriodChange(value)}>
-            <TabsList aria-label="Usage period" className="h-8 gap-0.5 border bg-raised p-0.5">
+          <Select
+            value={period.value}
+            items={periods.map((option) => ({ value: option.value, label: option.label }))}
+            onValueChange={(value) => (value === null ? undefined : onPeriodChange(value))}
+          >
+            <SelectTrigger
+              aria-label="Usage period"
+              className="h-8 text-xs"
+              wrapperClassName="w-40"
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent align="end" className="bg-background">
               {periods.map((option) => (
-                <TabsTrigger
-                  key={option.value}
-                  value={option.value}
-                  className="h-full px-2.5 py-0 text-xs data-active:bg-grayA-3 data-active:shadow-none"
-                >
+                <SelectItem key={option.value} value={option.value}>
                   {option.label}
-                </TabsTrigger>
+                </SelectItem>
               ))}
-            </TabsList>
-          </Tabs>
+            </SelectContent>
+          </Select>
         </PageHeaderActions>
       </PageHeader>
       <PageBody>{children}</PageBody>
