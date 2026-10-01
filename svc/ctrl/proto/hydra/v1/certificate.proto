@@ -27,7 +27,8 @@ message ProcessChallengeRequest {
 
 message ProcessChallengeResponse {
   string certificate_id = 1;
-  string status = 2; // "success", "failed", "pending"
+  reserved 2;
+  reserved "status";
 }
 
 message RenewExpiringCertificatesRequest {
@@ -38,5 +39,6 @@ message RenewExpiringCertificatesRequest {
 message RenewExpiringCertificatesResponse {
   int32 certificates_checked = 1;
   int32 renewals_triggered = 2;
-  repeated string failed_domains = 3;
+  reserved 3;
+  reserved "failed_domains";
 }

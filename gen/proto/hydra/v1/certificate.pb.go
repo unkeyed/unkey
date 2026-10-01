@@ -77,7 +77,6 @@ func (x *ProcessChallengeRequest) GetDomain() string {
 type ProcessChallengeResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	CertificateId string                 `protobuf:"bytes,1,opt,name=certificate_id,json=certificateId,proto3" json:"certificate_id,omitempty"`
-	Status        string                 `protobuf:"bytes,2,opt,name=status,proto3" json:"status,omitempty"` // "success", "failed", "pending"
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -115,13 +114,6 @@ func (*ProcessChallengeResponse) Descriptor() ([]byte, []int) {
 func (x *ProcessChallengeResponse) GetCertificateId() string {
 	if x != nil {
 		return x.CertificateId
-	}
-	return ""
-}
-
-func (x *ProcessChallengeResponse) GetStatus() string {
-	if x != nil {
-		return x.Status
 	}
 	return ""
 }
@@ -175,7 +167,6 @@ type RenewExpiringCertificatesResponse struct {
 	state               protoimpl.MessageState `protogen:"open.v1"`
 	CertificatesChecked int32                  `protobuf:"varint,1,opt,name=certificates_checked,json=certificatesChecked,proto3" json:"certificates_checked,omitempty"`
 	RenewalsTriggered   int32                  `protobuf:"varint,2,opt,name=renewals_triggered,json=renewalsTriggered,proto3" json:"renewals_triggered,omitempty"`
-	FailedDomains       []string               `protobuf:"bytes,3,rep,name=failed_domains,json=failedDomains,proto3" json:"failed_domains,omitempty"`
 	unknownFields       protoimpl.UnknownFields
 	sizeCache           protoimpl.SizeCache
 }
@@ -224,13 +215,6 @@ func (x *RenewExpiringCertificatesResponse) GetRenewalsTriggered() int32 {
 	return 0
 }
 
-func (x *RenewExpiringCertificatesResponse) GetFailedDomains() []string {
-	if x != nil {
-		return x.FailedDomains
-	}
-	return nil
-}
-
 var File_hydra_v1_certificate_proto protoreflect.FileDescriptor
 
 const file_hydra_v1_certificate_proto_rawDesc = "" +
@@ -238,16 +222,14 @@ const file_hydra_v1_certificate_proto_rawDesc = "" +
 	"\x1ahydra/v1/certificate.proto\x12\bhydra.v1\x1a\x18dev/restate/sdk/go.proto\"T\n" +
 	"\x17ProcessChallengeRequest\x12!\n" +
 	"\fworkspace_id\x18\x01 \x01(\tR\vworkspaceId\x12\x16\n" +
-	"\x06domain\x18\x02 \x01(\tR\x06domain\"Y\n" +
+	"\x06domain\x18\x02 \x01(\tR\x06domain\"O\n" +
 	"\x18ProcessChallengeResponse\x12%\n" +
-	"\x0ecertificate_id\x18\x01 \x01(\tR\rcertificateId\x12\x16\n" +
-	"\x06status\x18\x02 \x01(\tR\x06status\"P\n" +
+	"\x0ecertificate_id\x18\x01 \x01(\tR\rcertificateIdJ\x04\b\x02\x10\x03R\x06status\"P\n" +
 	" RenewExpiringCertificatesRequest\x12,\n" +
-	"\x12days_before_expiry\x18\x01 \x01(\x05R\x10daysBeforeExpiry\"\xac\x01\n" +
+	"\x12days_before_expiry\x18\x01 \x01(\x05R\x10daysBeforeExpiry\"\x9b\x01\n" +
 	"!RenewExpiringCertificatesResponse\x121\n" +
 	"\x14certificates_checked\x18\x01 \x01(\x05R\x13certificatesChecked\x12-\n" +
-	"\x12renewals_triggered\x18\x02 \x01(\x05R\x11renewalsTriggered\x12%\n" +
-	"\x0efailed_domains\x18\x03 \x03(\tR\rfailedDomains2\xef\x01\n" +
+	"\x12renewals_triggered\x18\x02 \x01(\x05R\x11renewalsTriggeredJ\x04\b\x03\x10\x04R\x0efailed_domains2\xef\x01\n" +
 	"\x12CertificateService\x12[\n" +
 	"\x10ProcessChallenge\x12!.hydra.v1.ProcessChallengeRequest\x1a\".hydra.v1.ProcessChallengeResponse\"\x00\x12v\n" +
 	"\x19RenewExpiringCertificates\x12*.hydra.v1.RenewExpiringCertificatesRequest\x1a+.hydra.v1.RenewExpiringCertificatesResponse\"\x00\x1a\x04\x98\x80\x01\x01B\x96\x01\n" +

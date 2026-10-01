@@ -6,6 +6,19 @@ import (
 )
 
 var (
+	CertificateIssuanceAttemptsTotal = lazy.NewCounterVec(prometheus.CounterOpts{
+		Namespace: "unkey",
+		Subsystem: "control",
+		Name:      "certificate_issuance_attempts_total",
+		Help:      "ACME issuance attempts by outcome: issued or ACME error type. Excludes journal replay.",
+	}, []string{"outcome"})
+	CertificateChallengesTotal = lazy.NewCounterVec(prometheus.CounterOpts{
+		Namespace: "unkey",
+		Subsystem: "control",
+		Name:      "certificate_challenges_total",
+		Help:      "Persisted certificate challenge outcomes: verified or failed. Excludes journal replay.",
+	}, []string{"outcome"})
+
 	// FullSyncDurationSeconds tracks how long full syncs take in the
 	// SyncDesiredState RPC. Growth indicates increasing resource count in the region.
 	FullSyncDurationSeconds = lazy.NewHistogram(

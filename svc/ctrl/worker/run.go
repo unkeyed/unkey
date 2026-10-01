@@ -39,6 +39,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/rpc/interceptor"
 	"github.com/unkeyed/unkey/pkg/runner"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 	"github.com/unkeyed/unkey/svc/ctrl/services/acme/providers"
 	workerapp "github.com/unkeyed/unkey/svc/ctrl/worker/app"
@@ -519,14 +520,19 @@ func Run(ctx context.Context, cfg Config) error {
 	if cfg.Heartbeat.CertRenewalURL != "" {
 		certHeartbeat = healthcheck.NewHTTPHeartbeat(cfg.Heartbeat.CertRenewalURL)
 	}
-	restateSrv.Bind(hydrav1.NewCertificateServiceServer(certificate.New(certificate.Config{
+	certificateService := certificate.New(certificate.Config{
 		DB:           database,
 		Vault:        vaultClient,
 		EmailDomain:  cfg.Acme.EmailDomain,
 		DNSProvider:  dnsProvider,
 		HTTPProvider: httpProvider,
 		Heartbeat:    certHeartbeat,
-	}), restate.WithInactivityTimeout(15*time.Minute)))
+	})
+	restateSrv.Bind(hydrav1.NewCertificateServiceServer(certificateService, restate.WithInactivityTimeout(15*time.Minute)).
+		ConfigureHandler("RenewExpiringCertificates", restate.WithInvocationRetryPolicy(
+			restate.WithMaxRetryAttempts(5),
+			restate.KillOnMaxAttempts(),
+		)))
 
 	// ClickHouse user provisioning service (optional - requires admin URL and vault)
 	if cfg.ClickHouse.AdminURL == "" {
@@ -858,6 +864,12 @@ func Run(ctx context.Context, cfg Config) error {
 		if promErr != nil {
 			return fmt.Errorf("failed to create prometheus server: %w", promErr)
 		}
+
+		certificateHealth := certificateService.HealthMetricsHandler()
+		prom.RegisterRoute(nil, zen.NewRoute(http.MethodGet, "/metrics/certificates", func(_ context.Context, s *zen.Session) error {
+			certificateHealth.ServeHTTP(s.ResponseWriter(), s.Request())
+			return nil
+		}))
 
 		ln, lnErr := net.Listen("tcp", fmt.Sprintf(":%d", cfg.Observability.Metrics.PrometheusPort))
 		if lnErr != nil {

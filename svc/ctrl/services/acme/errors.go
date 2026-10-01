@@ -158,25 +158,6 @@ func ParseACMEError(err error) *ParsedACMEError {
 	return parsed
 }
 
-// RateLimitError is a special error type for rate limits that includes retry timing.
-// This is NOT a terminal error - the handler should sleep and retry.
-type RateLimitError struct {
-	Message    string
-	RetryAfter time.Time
-}
-
-func (e *RateLimitError) Error() string {
-	return e.Message
-}
-
-// NewRateLimitError creates a RateLimitError from a parsed ACME error.
-func NewRateLimitError(parsed *ParsedACMEError) *RateLimitError {
-	return &RateLimitError{
-		Message:    parsed.Message,
-		RetryAfter: parsed.RetryAfter,
-	}
-}
-
 // ShouldRetry returns true if the error is transient and the operation should be retried.
 func ShouldRetry(err error) bool {
 	parsed := ParseACMEError(err)
