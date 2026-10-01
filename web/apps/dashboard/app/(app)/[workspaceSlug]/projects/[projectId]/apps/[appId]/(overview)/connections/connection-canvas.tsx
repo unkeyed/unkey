@@ -21,7 +21,7 @@ import {
   cn,
   toast,
 } from "@unkey/ui";
-import { type ReactNode, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import { AddConnectionPicker } from "./add-connection-picker";
 import { ConnectionDetails } from "./connection-details";
 import { ConnectionNode, Group } from "./connection-node";
@@ -66,12 +66,21 @@ export function ConnectionCanvas({
     appId,
     environmentId: environment.id,
   });
-  const targets = trpc.appConnection.targets.useQuery({ projectId, appId });
   const [removingId, setRemovingId] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [canvasRoot, setCanvasRoot] = useState<HTMLDivElement | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const selectedConnection = connections.data?.find((connection) => connection.id === selectedId);
+  const targets = trpc.appConnection.targets.useInfiniteQuery(
+    { projectId, appId, targetAppId: selectedConnection?.targetAppId },
+    { getNextPageParam: (page) => page.nextCursor ?? undefined },
+  );
+  useEffect(() => {
+    if (targets.hasNextPage && !targets.isFetchingNextPage) {
+      void targets.fetchNextPage();
+    }
+  }, [targets.hasNextPage, targets.isFetchingNextPage, targets.fetchNextPage]);
   const refresh = () => utils.appConnection.list.invalidate({ projectId });
   const create = trpc.appConnection.create.useMutation({
     onSuccess: async (result) => {
@@ -119,7 +128,14 @@ export function ConnectionCanvas({
 
   const app = appQuery.data[0];
   const connected = new Set(connections.data.map((connection) => connection.targetAppId));
-  const others = targets.data.apps.filter((target) => !connected.has(target.id));
+  const targetData = {
+    ...targets.data.pages[0],
+    deployments: targets.data.pages.flatMap((page) => page.deployments).filter(
+      (deployment, index, deployments) =>
+        deployments.findIndex(({ id }) => id === deployment.id) === index,
+    ),
+  };
+  const others = targetData.apps.filter((target) => !connected.has(target.id));
   const removing = connections.data.find((connection) => connection.id === removingId);
   const selected = connections.data.find((connection) => connection.id === selectedId);
   const query = search.trim().toLowerCase();
@@ -209,7 +225,7 @@ export function ConnectionCanvas({
                     key={connection.id}
                     connection={connection}
                     environment={environment}
-                    targets={targets.data}
+                    targets={targetData}
                     selected={selected?.id === connection.id}
                     onSelect={() =>
                       setSelectedId(selected?.id === connection.id ? null : connection.id)
@@ -228,7 +244,7 @@ export function ConnectionCanvas({
                   open={pickerOpen}
                   onOpenChange={setPickerOpen}
                   apps={others}
-                  environments={targets.data.environments}
+                  environments={targetData.environments}
                   requiresEnvironment={app.sourceType === "oci" && !isProduction(environment)}
                   pending={create.isLoading}
                   onAdd={(targetAppId, rule) =>
@@ -261,7 +277,7 @@ export function ConnectionCanvas({
                 appName={app.name}
                 connection={selected}
                 environment={environment}
-                targets={targets.data}
+                targets={targetData}
                 onClose={() => {
                   canvasRoot?.querySelector<HTMLElement>('[aria-pressed="true"]')?.focus();
                   setSelectedId(null);
