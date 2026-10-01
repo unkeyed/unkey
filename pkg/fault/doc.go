@@ -1,17 +1,19 @@
 // Package fault provides a clean, concise error handling system designed for
 // building robust applications with rich error context and secure user messaging.
 //
-// The primary API consists of four essential functions:
+// The primary API consists of these essential functions:
 //   - fault.Wrap: Wraps errors while capturing source locations
 //   - fault.Internal: Adds debugging information (not exposed to users)
 //   - fault.Public: Adds user-safe messages (safe for API responses)
 //   - fault.Code: Adds error classification codes
+//   - fault.Validation: Adds user-safe field-level validation details
 //
 // Key features:
 //   - Clean separation between internal debugging and user-facing messages
 //   - Concise, ergonomic API with short function names
 //   - Automatic source location tracking throughout error chains
 //   - Flexible error classification system
+//   - Structured field-level validation details
 //   - Safe error chain unwrapping and inspection
 //
 // Basic usage:

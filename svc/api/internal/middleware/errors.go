@@ -9,7 +9,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/zen"
-	apierrors "github.com/unkeyed/unkey/svc/api/internal/errors"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
@@ -126,7 +125,7 @@ func WithErrorHandling() zen.Middleware {
 						Type:   code.DocsURL(),
 						Detail: fault.UserFacingMessage(err),
 						Status: http.StatusBadRequest,
-						Errors: apierrors.ValidationErrors(err),
+						Errors: validationErrors(err),
 					},
 				})
 
@@ -427,4 +426,17 @@ func WithErrorHandling() zen.Middleware {
 			})
 		}
 	}
+}
+
+func validationErrors(err error) []openapi.ValidationError {
+	details := fault.ValidationErrors(err)
+	errors := make([]openapi.ValidationError, len(details))
+	for i, detail := range details {
+		errors[i] = openapi.ValidationError{
+			Location: detail.Location,
+			Message:  detail.Message,
+			Fix:      detail.Fix,
+		}
+	}
+	return errors
 }

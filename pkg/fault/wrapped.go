@@ -40,6 +40,8 @@ type wrapped struct {
 	// intended for debugging and logging purposes only. This message may contain
 	// sensitive implementation details and should never be exposed to end users.
 	internal string
+
+	validationErrors []ValidationError
 }
 
 // New creates a new error with the given message. The message is stored as an
@@ -57,12 +59,13 @@ type wrapped struct {
 func New(message string, wraps ...Wrapper) error {
 	var err error
 	err = &wrapped{
-		err:      nil,
-		code:     "",
-		category: "",
-		location: getLocation(),
-		public:   "",
-		internal: message,
+		err:              nil,
+		code:             "",
+		category:         "",
+		location:         getLocation(),
+		public:           "",
+		internal:         message,
+		validationErrors: nil,
 	}
 
 	for _, w := range wraps {

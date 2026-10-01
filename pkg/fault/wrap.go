@@ -29,12 +29,13 @@ func Wrap(err error, wraps ...Wrapper) error {
 
 	// Create the base wrapped error
 	result := &wrapped{
-		err:      err,
-		location: getLocation(),
-		code:     "",
-		category: "",
-		internal: "",
-		public:   "",
+		err:              err,
+		location:         getLocation(),
+		code:             "",
+		category:         "",
+		internal:         "",
+		public:           "",
+		validationErrors: nil,
 	}
 
 	// Apply all wrappers to accumulate information into a single instance
@@ -63,6 +64,7 @@ func Wrap(err error, wraps ...Wrapper) error {
 						result.public = nextWrapped.public + " " + result.public
 					}
 				}
+				result.validationErrors = append(result.validationErrors, nextWrapped.validationErrors...)
 			}
 		}
 	}
@@ -83,12 +85,13 @@ func Internal(message string) Wrapper {
 		}
 
 		return &wrapped{
-			err:      err,
-			code:     "",
-			category: "",
-			location: "",
-			internal: message,
-			public:   "",
+			err:              err,
+			code:             "",
+			category:         "",
+			location:         "",
+			internal:         message,
+			public:           "",
+			validationErrors: nil,
 		}
 	}
 }
@@ -106,12 +109,13 @@ func Public(message string) Wrapper {
 		}
 
 		return &wrapped{
-			err:      err,
-			code:     "",
-			category: "",
-			location: "",
-			internal: "",
-			public:   message,
+			err:              err,
+			code:             "",
+			category:         "",
+			location:         "",
+			internal:         "",
+			public:           message,
+			validationErrors: nil,
 		}
 	}
 }
@@ -129,12 +133,13 @@ func Code(code codes.URN) Wrapper {
 		}
 
 		return &wrapped{
-			err:      err,
-			code:     code,
-			category: "",
-			location: "",
-			internal: "",
-			public:   "",
+			err:              err,
+			code:             code,
+			category:         "",
+			location:         "",
+			internal:         "",
+			public:           "",
+			validationErrors: nil,
 		}
 	}
 }
@@ -158,12 +163,13 @@ func Category(category codes.Category) Wrapper {
 		}
 
 		return &wrapped{
-			err:      err,
-			code:     "",
-			category: category,
-			location: "",
-			internal: "",
-			public:   "",
+			err:              err,
+			code:             "",
+			category:         category,
+			location:         "",
+			internal:         "",
+			public:           "",
+			validationErrors: nil,
 		}
 	}
 }

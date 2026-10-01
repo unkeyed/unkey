@@ -118,6 +118,19 @@ func TestCodeNil(t *testing.T) {
 	require.Nil(t, result)
 }
 
+func TestValidationErrorsPreservesPublicFieldDetails(t *testing.T) {
+	fix := "Use a supported permission."
+	detail := ValidationError{
+		Location: "body.permissions[1]",
+		Message:  "The permission is not supported.",
+		Fix:      &fix,
+	}
+	err := Wrap(errors.New("invalid permission"), Validation(detail))
+	err = Wrap(err, Internal("validation failed"))
+
+	require.Equal(t, []ValidationError{detail}, ValidationErrors(err))
+}
+
 func TestNewAPIChaining(t *testing.T) {
 	baseErr := errors.New("base error")
 	first := Wrap(baseErr, Internal("internal 1"), Public("public 1"))
