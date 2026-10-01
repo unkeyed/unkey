@@ -31,8 +31,11 @@ function toRootKey(rootKey: V2RootKey): RootKey {
 
   return {
     id: rootKey.keyId,
+    prefix: "",
     start: rootKey.start,
+    end: rootKey.end,
     createdAt: rootKey.createdAt,
+    lastUsedAt: rootKey.lastUsedAt,
     lastUpdatedAt: null,
     expires: rootKey.expires,
     name: rootKey.name,

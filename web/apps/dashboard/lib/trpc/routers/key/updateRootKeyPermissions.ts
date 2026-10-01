@@ -1,13 +1,12 @@
 import type { UnkeyAuditLog } from "@/lib/audit";
 import { and, db, eq, inArray, schema } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
-import { permissionValidation } from "@unkey/rbac";
-import { z } from "zod";
 import { requireWorkspaceAdmin, workspaceProcedure } from "../../trpc";
 
 import { insertAuditLogs } from "@/lib/audit";
 import { env } from "@/lib/env";
 import { assertPermissionsBelongToWorkspace, upsertPermissions } from "../rbac";
+import { updateRootKeyPermissionsInput } from "./root-key-permissions-input";
 
 /**
  * Replaces the full permission set for the root key — clients must submit the complete,
@@ -15,14 +14,7 @@ import { assertPermissionsBelongToWorkspace, upsertPermissions } from "../rbac";
  */
 export const updateRootKeyPermissions = workspaceProcedure
   .use(requireWorkspaceAdmin)
-  .input(
-    z.object({
-      keyId: z.string(),
-      permissions: z.array(permissionValidation).min(1, {
-        error: "You need to add at least one permission.",
-      }),
-    }),
-  )
+  .input(updateRootKeyPermissionsInput)
   .mutation(async ({ ctx, input }) => {
     assertPermissionsBelongToWorkspace(input.permissions, ctx.workspace.id);
 

@@ -4,23 +4,15 @@ import { env } from "@/lib/env";
 import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
 import { newKey } from "@unkey/keys";
-import { permissionValidation } from "@unkey/rbac";
-import { z } from "zod";
 import { requireWorkspaceAdmin, workspaceProcedure } from "../../trpc";
 
 import { insertAuditLogs } from "@/lib/audit";
 import { assertPermissionsBelongToWorkspace, upsertPermissions } from "../rbac";
+import { createRootKeyInput } from "./root-key-permissions-input";
 
 export const createRootKey = workspaceProcedure
   .use(requireWorkspaceAdmin)
-  .input(
-    z.object({
-      name: z.string().optional(),
-      permissions: z.array(permissionValidation).min(1, {
-        error: "You need to add at least one permissions.",
-      }),
-    }),
-  )
+  .input(createRootKeyInput)
   .mutation(async ({ ctx, input }) => {
     assertPermissionsBelongToWorkspace(input.permissions, ctx.workspace.id);
 

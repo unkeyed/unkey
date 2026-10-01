@@ -1,9 +1,11 @@
 "use client";
 
+import { LastUsedCell } from "@/components/api-keys-table/components/last-used";
 import type { RootKey } from "@/lib/trpc/routers/settings/root-keys/query";
 import { IconKey2Outline18 } from "@unkey/icons";
 import {
   EmptyRootKeys,
+  HiddenValueCell,
   PaginationFooter,
   ResourceListBody,
   ResourceListContent,
@@ -68,7 +70,7 @@ export function RootKeysDataTable({
       ) : (
         <ResourceListContent>
           <div className="overflow-x-auto">
-            <div className="min-w-[640px]">
+            <div className="min-w-[1080px]">
               <RootKeysTableHeader />
               <ResourceListBody aria-label="Root Keys">
                 {rootKeys.map((rootKey) => (
@@ -102,9 +104,11 @@ export function RootKeysDataTable({
 
 function RootKeysTableHeader() {
   return (
-    <div className="grid grid-cols-[minmax(0,1.2fr)_minmax(0,1.5fr)_minmax(0,0.9fr)_32px] items-center gap-4 border-b bg-table-header px-4 py-[7px] text-xs font-medium text-gray-12">
+    <div className="grid grid-cols-[minmax(0,1.1fr)_280px_minmax(0,1.3fr)_minmax(0,0.8fr)_minmax(0,0.8fr)_32px] items-center gap-4 border-b bg-table-header px-4 py-[7px] text-xs font-medium text-gray-12">
       <span>Name</span>
+      <span>Value</span>
       <span>Permissions</span>
+      <span>Last used</span>
       <span>Created</span>
       <span />
     </div>
@@ -127,7 +131,7 @@ function RootKeyRow({
   return (
     <ResourceListItem
       className={cn(
-        "grid h-12 grid-cols-[minmax(0,1.2fr)_minmax(0,1.5fr)_minmax(0,0.9fr)_32px] items-center gap-4 px-4 text-xs text-gray-12 transition-colors hover:bg-grayA-2",
+        "grid h-12 grid-cols-[minmax(0,1.1fr)_280px_minmax(0,1.3fr)_minmax(0,0.8fr)_minmax(0,0.8fr)_32px] items-center gap-4 px-4 text-xs text-gray-12 transition-colors hover:bg-grayA-2",
         selected && "bg-grayA-2",
       )}
     >
@@ -150,8 +154,20 @@ function RootKeyRow({
           {name}
         </span>
       </span>
+      <span className="relative z-10 min-w-0">
+        <HiddenValueCell
+          prefix={rootKey.prefix}
+          start={rootKey.start}
+          end={rootKey.end}
+          title="Root Key"
+          selected={selected}
+        />
+      </span>
       <span className="min-w-0">
         <PermissionsCell permissions={rootKey.permissions} />
+      </span>
+      <span className="relative z-10 min-w-0">
+        <LastUsedCell lastUsedAt={rootKey.lastUsedAt} isSelected={selected} />
       </span>
       <TimestampInfo
         value={rootKey.createdAt}
@@ -172,19 +188,21 @@ function RootKeysTableSkeleton() {
     <ResourceListContent aria-busy="true">
       <output className="sr-only">Loading Root Keys...</output>
       <div className="overflow-x-auto">
-        <div className="min-w-[640px]">
+        <div className="min-w-[1080px]">
           <RootKeysTableHeader />
           <ResourceListBody aria-hidden="true">
             {SKELETON_KEYS.map((key) => (
               <ResourceListItem
                 key={key}
-                className="grid h-12 grid-cols-[minmax(0,1.2fr)_minmax(0,1.5fr)_minmax(0,0.9fr)_32px] items-center gap-4 px-4"
+                className="grid h-12 grid-cols-[minmax(0,1.1fr)_280px_minmax(0,1.3fr)_minmax(0,0.8fr)_minmax(0,0.8fr)_32px] items-center gap-4 px-4"
               >
                 <span className="flex items-center gap-2.5">
                   <Skeleton className="size-6 shrink-0 rounded-md" />
                   <Skeleton className="h-3 w-28" />
                 </span>
+                <Skeleton className="h-7 w-64 rounded-lg" />
                 <Skeleton className="h-3 w-36" />
+                <Skeleton className="h-5 w-24 rounded-md" />
                 <Skeleton className="h-3 w-24" />
                 <Skeleton className="size-7 rounded-md" />
               </ResourceListItem>

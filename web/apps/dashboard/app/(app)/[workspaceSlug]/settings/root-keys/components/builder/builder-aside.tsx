@@ -58,11 +58,17 @@ export function BuilderAside({ isOpen, onClose }: BuilderAsideProps) {
     onClose();
   };
 
+  const close = () => {
+    if (!createKey.isLoading) {
+      onClose();
+    }
+  };
+
   return (
     <>
       <SlidePanel
         isOpen={isOpen && secret === null}
-        onClose={onClose}
+        onClose={close}
         onExitComplete={() => {
           if (secret !== null) {
             setSecretRevealed(true);
@@ -72,7 +78,7 @@ export function BuilderAside({ isOpen, onClose }: BuilderAsideProps) {
       >
         <SlidePanelHeader className="items-center">
           <SlidePanelTitle>New Root Key</SlidePanelTitle>
-          <SlidePanelCloseButton />
+          <SlidePanelCloseButton disabled={createKey.isLoading} />
         </SlidePanelHeader>
 
         <SlidePanelContent>
