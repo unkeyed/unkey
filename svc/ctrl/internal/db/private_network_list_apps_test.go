@@ -191,6 +191,26 @@ func TestListPrivateNetworkAppsSelection(t *testing.T) {
 	selected := list()
 	require.Len(t, selected, 11)
 
+	for _, status := range []string{"deploying", "network", "finalizing", "ready"} {
+		exec(`UPDATE deployments SET status = ? WHERE id = 'caller-prod-deploying'`, status)
+		current := list()
+		require.Contains(t, current, "production/caller-prod-deploying", status)
+		require.Equal(t, "target-live", current["production/caller-prod-deploying"].DeploymentID, status)
+		var self []string
+		for _, replica := range replicas() {
+			self = append(self, replica.DeploymentID)
+		}
+		require.Contains(t, self, "caller-prod-deploying", status)
+	}
+	exec(`UPDATE deployments SET status = 'deploying' WHERE id = 'caller-prod-deploying'`)
+	for _, status := range []string{"deploying", "network", "finalizing"} {
+		exec(`UPDATE deployments SET status = ? WHERE id = 'target-live'`, status)
+		current := list()
+		require.Contains(t, current, "production/caller-prod-live", status)
+		require.Empty(t, current["production/caller-prod-live"].DeploymentID, status)
+	}
+	exec(`UPDATE deployments SET status = 'ready' WHERE id = 'target-live'`)
+
 	for key, want := range map[string]string{
 		"production/caller-prod-deploying":  "target-live",
 		"production/caller-prod-live":       "target-live",
