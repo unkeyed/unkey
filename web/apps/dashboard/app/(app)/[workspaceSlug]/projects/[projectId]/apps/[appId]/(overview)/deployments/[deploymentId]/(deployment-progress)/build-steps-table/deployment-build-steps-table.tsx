@@ -13,7 +13,7 @@ import {
 } from "@unkey/ui";
 import { useEffect, useRef, useState } from "react";
 import { BuildStepLogsExpanded } from "./build-step-logs-expanded";
-import { type BuildStepRow, buildStepsColumns } from "./columns";
+import { type BuildStepRow, buildStepsColumns, canExpandBuildStep } from "./columns";
 import { getBuildStepRowClass } from "./get-row-class";
 import {
   DurationColumnSkeleton,
@@ -61,7 +61,7 @@ export const DeploymentBuildStepsTable: React.FC<Props> = ({
   }, [stepId, tick]);
 
   const toggleExpand = (step: BuildStepRow) => {
-    if (!step.has_logs) {
+    if (!canExpandBuildStep(step)) {
       return;
     }
     setExpandedIds((prev) => {
