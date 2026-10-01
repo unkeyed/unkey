@@ -98,10 +98,11 @@ func (s *Service) CreateApp(
 	now := time.Now().UnixMilli()
 
 	err = db.TxRetry(ctx, s.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
-		if _, txErr := db.NewQueries(tx).LockActiveProject(txCtx, projectID); txErr != nil {
+		q := db.NewQueries(tx)
+		if _, txErr := q.LockActiveProject(txCtx, projectID); txErr != nil {
 			return fmt.Errorf("lock active project: %w", txErr)
 		}
-		if txErr := db.NewQueries(tx).InsertApp(txCtx, db.InsertAppParams{
+		if txErr := q.InsertApp(txCtx, db.InsertAppParams{
 			ID:               appID,
 			WorkspaceID:      workspaceID,
 			ProjectID:        projectID,
@@ -116,7 +117,7 @@ func (s *Service) CreateApp(
 		}
 
 		if source.sourceType == db.AppsSourceTypeOci {
-			if txErr := db.NewQueries(tx).InsertAppSourceOci(txCtx, db.InsertAppSourceOciParams{
+			if txErr := q.InsertAppSourceOci(txCtx, db.InsertAppSourceOciParams{
 				WorkspaceID:    workspaceID,
 				AppID:          appID,
 				ImageReference: source.imageReference,
@@ -130,7 +131,7 @@ func (s *Service) CreateApp(
 		// Pick a default schedulable region to seed so a fresh environment is
 		// deployable without a separate region step. Regions are infra-registered,
 		// so if none are schedulable yet we skip; the deploy-time check reports it.
-		regions, regErr := db.NewQueries(tx).ListRegions(txCtx)
+		regions, regErr := q.ListRegions(txCtx)
 		if regErr != nil {
 			return fmt.Errorf("list regions: %w", regErr)
 		}
@@ -139,7 +140,7 @@ func (s *Service) CreateApp(
 		for _, env := range defaultEnvironments {
 			envID := uid.New(uid.EnvironmentPrefix)
 
-			if txErr := db.NewQueries(tx).InsertEnvironment(txCtx, db.InsertEnvironmentParams{
+			if txErr := q.InsertEnvironment(txCtx, db.InsertEnvironmentParams{
 				ID:          envID,
 				WorkspaceID: workspaceID,
 				ProjectID:   projectID,
@@ -154,7 +155,7 @@ func (s *Service) CreateApp(
 			}
 
 			if source.createBuildSettings {
-				if txErr := db.NewQueries(tx).UpsertAppBuildSettings(txCtx, db.UpsertAppBuildSettingsParams{
+				if txErr := q.UpsertAppBuildSettings(txCtx, db.UpsertAppBuildSettingsParams{
 					WorkspaceID:   workspaceID,
 					AppID:         appID,
 					EnvironmentID: envID,
@@ -170,7 +171,7 @@ func (s *Service) CreateApp(
 				}
 			}
 
-			if txErr := db.NewQueries(tx).UpsertAppRuntimeSettings(txCtx, db.UpsertAppRuntimeSettingsParams{
+			if txErr := q.UpsertAppRuntimeSettings(txCtx, db.UpsertAppRuntimeSettingsParams{
 				WorkspaceID:      workspaceID,
 				AppID:            appID,
 				EnvironmentID:    envID,
@@ -191,7 +192,7 @@ func (s *Service) CreateApp(
 			}
 
 			if hasDefaultRegion {
-				if txErr := db.NewQueries(tx).UpsertAppRegionalSettings(txCtx, db.UpsertAppRegionalSettingsParams{
+				if txErr := q.UpsertAppRegionalSettings(txCtx, db.UpsertAppRegionalSettingsParams{
 					WorkspaceID:   workspaceID,
 					AppID:         appID,
 					EnvironmentID: envID,
