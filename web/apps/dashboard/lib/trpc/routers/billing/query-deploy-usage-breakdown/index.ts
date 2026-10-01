@@ -118,11 +118,14 @@ async function resolveScopeNames(
 
 export const queryDeployUsageBreakdown = workspaceProcedure
   .use(withRatelimit(ratelimit.read))
+  .input(z.object({ monthsAgo: z.union([z.literal(0), z.literal(1)]) }).optional())
   .output(queryDeployUsageBreakdownResponse)
-  .query(async ({ ctx }) => {
+  .query(async ({ ctx, input }) => {
     const now = new Date();
-    const monthStartMillis = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1);
-    const monthEndMillis = Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1);
+    const monthsAgo = input?.monthsAgo ?? 0;
+    const monthStartMillis = Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - monthsAgo, 1);
+    const monthEndMillis = Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - monthsAgo + 1, 1);
+    const monthStart = new Date(monthStartMillis);
 
     try {
       const [usage, keys] = await Promise.all([
@@ -133,8 +136,8 @@ export const queryDeployUsageBreakdown = workspaceProcedure
         }),
         clickhouse.billing.activeKeysByApp({
           workspaceId: ctx.workspace.id,
-          year: now.getUTCFullYear(),
-          month: now.getUTCMonth() + 1,
+          year: monthStart.getUTCFullYear(),
+          month: monthStart.getUTCMonth() + 1,
         }),
       ]);
 

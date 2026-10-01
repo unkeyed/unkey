@@ -32,6 +32,7 @@ import {
   microCentsToDisplayCents,
   priceUsageQuantitiesCents,
 } from "./compute-tree";
+import type { UsagePeriod } from "./period";
 import { SPEND_BAR_CHART_HEIGHT, SpendBarChart } from "./spend-bar-chart";
 import { buildSpendSeries } from "./spend-series";
 
@@ -151,14 +152,16 @@ export function ComputeCardSkeleton() {
   );
 }
 
-export function ComputeCard({ tree }: { tree: ComputeTree }) {
+export function ComputeCard({ tree, period }: { tree: ComputeTree; period: UsagePeriod }) {
   const [open, setOpen] = useState<ReadonlySet<string>>(new Set());
-  const now = useMemo(() => new Date(), []);
-  const periodStart = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1);
-  const currentDayStart = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+  const periodEnd = new Date(period.end);
+  const incompleteFrom =
+    period.monthsAgo === 0
+      ? Date.UTC(periodEnd.getUTCFullYear(), periodEnd.getUTCMonth(), periodEnd.getUTCDate())
+      : period.end;
   const hasComputeUsage = tree.projects.some((project) => project.apps.length > 0);
   const timeseries = trpc.billing.queryDeployUsageTimeseries.useQuery(
-    { interval: "day", groupBy: "project", scope: ALL_PROJECTS, monthsAgo: 0 },
+    { interval: "day", groupBy: "project", scope: ALL_PROJECTS, monthsAgo: period.monthsAgo },
     {
       enabled: hasComputeUsage,
       trpc: { context: { skipBatch: true } },
@@ -171,10 +174,10 @@ export function ComputeCard({ tree }: { tree: ComputeTree }) {
       buildSpendSeries({
         tree,
         rows: timeseries.data ?? [],
-        start: periodStart,
-        end: now.getTime(),
+        start: period.start,
+        end: period.end,
       }),
-    [tree, timeseries.data, periodStart, now],
+    [tree, timeseries.data, period.start, period.end],
   );
 
   const toggle = (projectId: string) =>
@@ -195,7 +198,7 @@ export function ComputeCard({ tree }: { tree: ComputeTree }) {
           <SpendBarChart
             data={spend.points}
             series={spend.series}
-            incompleteFrom={currentDayStart}
+            incompleteFrom={incompleteFrom}
             isLoading={timeseries.isLoading}
             isError={timeseries.isError}
           />

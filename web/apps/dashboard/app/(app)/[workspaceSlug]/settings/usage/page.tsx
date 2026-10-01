@@ -2,7 +2,6 @@
 
 import { PageLoading } from "@/components/dashboard/page-loading";
 import { useBillingUIUpgrades } from "@/lib/flags/use-billing-ui-upgrades";
-import { formatPeriod } from "@/lib/fmt";
 import { trpc } from "@/lib/trpc/client";
 import { useWorkspace } from "@/providers/workspace-provider";
 import {
@@ -18,37 +17,46 @@ import {
   PageHeaderActions,
   PageHeaderContent,
   PageHeaderTitle,
+  Tabs,
+  TabsList,
+  TabsTrigger,
 } from "@unkey/ui";
 import { notFound } from "next/navigation";
-import { type ReactNode, useState } from "react";
+import { parseAsString, useQueryState } from "nuqs";
+import { type ReactNode, useMemo, useState } from "react";
 import { PlansScreen } from "../billing/components/plans-screen";
 import { ApiCard } from "./api-card";
 import { ComputeCard, ComputeCardShell, ComputeCardSkeleton } from "./compute-card";
 import { buildComputeTree } from "./compute-tree";
+import { type UsagePeriod, getUsagePeriods, resolveUsagePeriod } from "./period";
 
 const ACTIVE_SUBSCRIPTION_STATES = ["active", "trialing", "past_due"];
-
-function currentPeriod(): string {
-  const now = new Date();
-  const monthStartMillis = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1);
-  return formatPeriod(monthStartMillis, now.getTime());
-}
 
 export default function UsagePage() {
   const billingUpgrades = useBillingUIUpgrades();
   const { workspace, limits, isLoading } = useWorkspace();
   const hasComputePlan = Boolean(workspace?.deployPlan) || Boolean(workspace?.deployPlanOverride);
+  const now = useMemo(() => new Date(), []);
+  const periods = useMemo(() => getUsagePeriods(now), [now]);
+  const [periodValue, setPeriodValue] = useQueryState("period", parseAsString);
+  const period = resolveUsagePeriod(periodValue, periods);
 
-  const breakdown = trpc.billing.queryDeployUsageBreakdown.useQuery(undefined, {
-    enabled: Boolean(workspace) && billingUpgrades && hasComputePlan,
-    trpc: { context: { skipBatch: true } },
-    retry: 1,
-  });
-  const apiUsage = trpc.billing.queryUsage.useQuery(undefined, {
-    enabled: Boolean(workspace) && billingUpgrades,
-    trpc: { context: { skipBatch: true } },
-    retry: 1,
-  });
+  const breakdown = trpc.billing.queryDeployUsageBreakdown.useQuery(
+    { monthsAgo: period.monthsAgo },
+    {
+      enabled: Boolean(workspace) && billingUpgrades && hasComputePlan,
+      trpc: { context: { skipBatch: true } },
+      retry: 1,
+    },
+  );
+  const apiUsage = trpc.billing.queryUsage.useQuery(
+    { monthsAgo: period.monthsAgo },
+    {
+      enabled: Boolean(workspace) && billingUpgrades,
+      trpc: { context: { skipBatch: true } },
+      retry: 1,
+    },
+  );
   const billingInfo = trpc.stripe.getBillingInfo.useQuery(undefined, {
     enabled: Boolean(workspace) && billingUpgrades,
     staleTime: 30_000,
@@ -61,7 +69,7 @@ export default function UsagePage() {
 
   if (isLoading) {
     return (
-      <Shell>
+      <Shell periods={periods} period={period} onPeriodChange={setPeriodValue}>
         <PageLoading message="Loading usage..." />
       </Shell>
     );
@@ -89,7 +97,7 @@ export default function UsagePage() {
     ) : computeTree === undefined ? (
       <ComputeCardSkeleton />
     ) : (
-      <ComputeCard tree={computeTree} />
+      <ComputeCard tree={computeTree} period={period} />
     )
   ) : (
     <NoComputePlan />
@@ -131,7 +139,7 @@ export default function UsagePage() {
   );
 
   return (
-    <Shell>
+    <Shell periods={periods} period={period} onPeriodChange={setPeriodValue}>
       {hasComputePlan ? (
         <>
           {compute}
@@ -147,7 +155,17 @@ export default function UsagePage() {
   );
 }
 
-function Shell({ children }: { children: ReactNode }) {
+function Shell({
+  children,
+  periods,
+  period,
+  onPeriodChange,
+}: {
+  children: ReactNode;
+  periods: UsagePeriod[];
+  period: UsagePeriod;
+  onPeriodChange: (value: string) => Promise<URLSearchParams>;
+}) {
   return (
     <PageContainer>
       <PageHeader>
@@ -155,7 +173,19 @@ function Shell({ children }: { children: ReactNode }) {
           <PageHeaderTitle>Usage</PageHeaderTitle>
         </PageHeaderContent>
         <PageHeaderActions>
-          <span className="text-sm text-gray-10">{currentPeriod()}</span>
+          <Tabs value={period.value} onValueChange={(value) => onPeriodChange(value)}>
+            <TabsList aria-label="Usage period" className="h-8 gap-0.5 border bg-raised p-0.5">
+              {periods.map((option) => (
+                <TabsTrigger
+                  key={option.value}
+                  value={option.value}
+                  className="h-full px-2.5 py-0 text-xs data-active:bg-grayA-3 data-active:shadow-none"
+                >
+                  {option.label}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </Tabs>
         </PageHeaderActions>
       </PageHeader>
       <PageBody>{children}</PageBody>
