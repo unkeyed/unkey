@@ -16,6 +16,7 @@ import (
 
 // Provider is an OpenFeature provider backed by a polled Vercel datafile.
 // Evaluations read the last good snapshot and never block on the network.
+// Initialization fetches the first datafile; [Provider.Run] keeps it fresh.
 type Provider struct {
 	config   Config
 	endpoint string
@@ -23,10 +24,6 @@ type Provider struct {
 
 	snapshot atomic.Pointer[snapshot]
 	health   health
-
-	lifecycle sync.Mutex
-	stop      context.CancelFunc
-	stopped   chan struct{}
 }
 
 // New validates config and returns a provider. Network access starts during
@@ -37,7 +34,7 @@ func New(config Config) (*Provider, error) {
 
 func newProvider(config Config, endpoint string, client *http.Client) (*Provider, error) {
 	config = config.withDefaults()
-	if err := config.validate(); err != nil {
+	if err := config.Validate(); err != nil {
 		return nil, err
 	}
 	parsed, err := url.Parse(endpoint)
@@ -57,14 +54,11 @@ func newProvider(config Config, endpoint string, client *http.Client) (*Provider
 	bounded.CheckRedirect = rejectRedirect
 
 	return &Provider{
-		config:    config,
-		endpoint:  endpoint,
-		client:    &bounded,
-		snapshot:  atomic.Pointer[snapshot]{},
-		health:    health{mu: sync.Mutex{}, lastErr: "", failedAt: time.Time{}, failures: atomic.Uint64{}},
-		lifecycle: sync.Mutex{},
-		stop:      nil,
-		stopped:   nil,
+		config:   config,
+		endpoint: endpoint,
+		client:   &bounded,
+		snapshot: atomic.Pointer[snapshot]{},
+		health:   health{mu: sync.Mutex{}, lastErr: "", failedAt: time.Time{}, failures: atomic.Uint64{}},
 	}, nil
 }
 
@@ -76,27 +70,16 @@ func (p *Provider) Metadata() openfeature.Metadata { return openfeature.Metadata
 // Hooks returns no provider hooks.
 func (p *Provider) Hooks() []openfeature.Hook { return nil }
 
-// InitWithContext fetches the first datafile and starts polling. A failed
-// first fetch doesn't fail initialization: evaluations report
-// PROVIDER_NOT_READY until a later poll succeeds.
+// InitWithContext fetches the first datafile. A failed fetch doesn't fail
+// initialization: evaluations report PROVIDER_NOT_READY until [Provider.Run]
+// refreshes successfully.
 func (p *Provider) InitWithContext(ctx context.Context, _ openfeature.EvaluationContext) error {
-	p.lifecycle.Lock()
-	defer p.lifecycle.Unlock()
-	if p.stop != nil {
-		return errors.New("vercel feature flags provider already initialized")
-	}
-
 	if err := p.refresh(ctx); err != nil {
 		if ctx.Err() != nil {
 			return ctx.Err()
 		}
 		logger.Warn("feature flag refresh failed, polling continues", "provider", "vercel", "error", err.Error())
 	}
-
-	pollCtx, stop := context.WithCancel(context.WithoutCancel(ctx))
-	p.stop = stop
-	p.stopped = make(chan struct{})
-	go p.poll(pollCtx, p.stopped)
 	return nil
 }
 
@@ -105,8 +88,20 @@ func (p *Provider) Init(evaluationContext openfeature.EvaluationContext) error {
 	return p.InitWithContext(context.Background(), evaluationContext)
 }
 
-func (p *Provider) poll(ctx context.Context, stopped chan<- struct{}) {
-	defer close(stopped)
+// ShutdownWithContext does nothing: polling stops when the context passed to
+// [Provider.Run] ends.
+func (p *Provider) ShutdownWithContext(context.Context) error { return nil }
+
+// Shutdown does nothing: polling stops when the context passed to
+// [Provider.Run] ends.
+func (p *Provider) Shutdown() {}
+
+// Run refreshes the datafile every refresh interval until ctx ends. Failed
+// refreshes keep the last good snapshot and are logged, so Run returns only
+// when ctx ends, with nil. Start it with a runner:
+//
+//	r.Go(provider.Run)
+func (p *Provider) Run(ctx context.Context) error {
 	ticker := time.NewTicker(p.config.RefreshInterval)
 	defer ticker.Stop()
 
@@ -114,7 +109,7 @@ func (p *Provider) poll(ctx context.Context, stopped chan<- struct{}) {
 	for {
 		select {
 		case <-ctx.Done():
-			return
+			return nil
 		case <-ticker.C:
 		}
 
@@ -122,7 +117,7 @@ func (p *Provider) poll(ctx context.Context, stopped chan<- struct{}) {
 		err := p.refresh(refreshCtx)
 		cancel()
 		if ctx.Err() != nil {
-			return
+			return nil
 		}
 
 		switch {
@@ -133,32 +128,4 @@ func (p *Provider) poll(ctx context.Context, stopped chan<- struct{}) {
 		}
 		failing = err != nil
 	}
-}
-
-// ShutdownWithContext stops polling and waits for the poller to exit.
-func (p *Provider) ShutdownWithContext(ctx context.Context) error {
-	p.lifecycle.Lock()
-	defer p.lifecycle.Unlock()
-	if p.stop == nil {
-		return nil
-	}
-
-	p.stop()
-	select {
-	case <-p.stopped:
-		return nil
-	case <-ctx.Done():
-		return ctx.Err()
-	}
-}
-
-// Shutdown implements the context-free OpenFeature state handler.
-func (p *Provider) Shutdown() {
-	p.lifecycle.Lock()
-	defer p.lifecycle.Unlock()
-	if p.stop == nil {
-		return
-	}
-	p.stop()
-	<-p.stopped
 }

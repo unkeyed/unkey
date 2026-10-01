@@ -27,6 +27,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/clock"
+	"github.com/unkeyed/unkey/pkg/featureflag"
 	githubclient "github.com/unkeyed/unkey/pkg/github"
 	"github.com/unkeyed/unkey/pkg/healthcheck"
 	"github.com/unkeyed/unkey/pkg/logger"
@@ -285,11 +286,10 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("failed to create audit log service: %w", err)
 	}
 
-	featureFlags, err := newFeatureFlags(ctx, cfg.FeatureFlags, reg)
+	featureFlags, err := featureflag.NewFromConfig(ctx, r, cfg.FeatureFlags, reg)
 	if err != nil {
 		return fmt.Errorf("failed to create feature flags: %w", err)
 	}
-	r.DeferCtx(featureFlags.Shutdown)
 	logger.Info("feature flags initialized", "provider", string(cfg.FeatureFlags.Provider))
 
 	deployWorkflow, err := deploy.New(deploy.Config{

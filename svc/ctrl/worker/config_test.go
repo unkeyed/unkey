@@ -6,6 +6,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/config"
+	"github.com/unkeyed/unkey/pkg/featureflag"
+	"github.com/unkeyed/unkey/pkg/featureflag/static"
 )
 
 func TestConfigDatabase(t *testing.T) {
@@ -140,7 +142,7 @@ token = "vault-token"
 	t.Run("defaults to no provider", func(t *testing.T) {
 		cfg, err := config.LoadBytes[Config]([]byte(base))
 		require.NoError(t, err)
-		require.Equal(t, FeatureFlagProviderNone, cfg.FeatureFlags.Provider)
+		require.Equal(t, featureflag.ProviderNone, cfg.FeatureFlags.Provider)
 	})
 
 	t.Run("parses static flags", func(t *testing.T) {
@@ -153,7 +155,7 @@ private-networking = true
 other = false
 `))
 		require.NoError(t, err)
-		require.Equal(t, map[string]bool{"private-networking": true, "other": false}, cfg.FeatureFlags.Static)
+		require.Equal(t, static.Values{"private-networking": true, "other": false}, cfg.FeatureFlags.Static)
 	})
 
 	t.Run("static provider requires flags", func(t *testing.T) {
@@ -161,7 +163,7 @@ other = false
 [feature_flags]
 provider = "static"
 `))
-		require.ErrorContains(t, err, "feature_flags.static")
+		require.ErrorContains(t, err, "static feature flags")
 	})
 
 	t.Run("parses vercel durations", func(t *testing.T) {
@@ -179,12 +181,23 @@ max_staleness = "5m"
 		require.Equal(t, 5*time.Minute, cfg.FeatureFlags.Vercel.MaxStaleness)
 	})
 
-	t.Run("vercel provider requires sdk key", func(t *testing.T) {
+	t.Run("vercel provider requires its table", func(t *testing.T) {
 		_, err := config.LoadBytes[Config]([]byte(base + `
 [feature_flags]
 provider = "vercel"
 `))
-		require.ErrorContains(t, err, "sdk_key")
+		require.ErrorContains(t, err, "feature_flags.vercel is required")
+	})
+
+	t.Run("vercel table is validated on load", func(t *testing.T) {
+		_, err := config.LoadBytes[Config]([]byte(base + `
+[feature_flags]
+provider = "vercel"
+
+[feature_flags.vercel]
+sdk_key = "vf_client_test"
+`))
+		require.ErrorContains(t, err, "SDK key")
 	})
 
 	t.Run("rejects unknown provider", func(t *testing.T) {
