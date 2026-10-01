@@ -228,13 +228,30 @@ DRIZZLE_DATABASE_URL='<branch connection string>' \
   mise exec -- pnpm --dir=web/tools/migrate deployment-first-ready-at
 ```
 
-The migration preserves existing markers. For historical rows, it uses the end
-of a successful finalizing step as proof that the deployment reached ready. The
-worker writes ready before it completes that step, so `ended_at` is a durable
-upper-bound approximation when the exact event time wasn't recorded. A row that
-is still ready but has no successful finalizing history uses its deployment
-update time, with its creation time as a fallback. Other stopped, failed,
-pending, and awaiting-approval rows remain unmarked.
+The migration preserves existing markers and fills only rows whose status is
+`ready`. It uses the deployment update time, with creation time as a fallback.
+These timestamps approximate a historical event that wasn't recorded.
+
+A successful finalizing step alone doesn't prove readiness: a concurrent stop
+can make the guarded ready update affect zero rows while finalizing completes
+without an error. The migration leaves non-ready rows unmarked and exits with
+an error if it finds successful finalizing history that needs review.
+
+Find those rows with:
+
+```sql
+SELECT d.id, d.status, d.updated_at, s.ended_at
+FROM deployments d
+JOIN deployment_steps s ON s.deployment_id = d.id
+WHERE d.first_ready_at IS NULL AND d.status <> 'ready'
+  AND s.step = 'finalizing' AND s.ended_at IS NOT NULL AND s.error IS NULL;
+```
+
+Resolve each ambiguous history before enabling readers. Backfill a non-ready
+row only with independent evidence of a ready transition. Leave never-ready
+rows NULL and record the review. Don't delete history or stamp an unproven row
+to clear this check: an incorrect marker can displace a valid preview target.
+If you can't establish readiness, keep the affected app's rollout blocked.
 
 <Warning>
   Route both passes through `staging`. Do not shortcut a branch straight into
