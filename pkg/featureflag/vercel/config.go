@@ -24,11 +24,11 @@ const (
 // staleness.
 type Config struct {
 	// SDKKey is the bare server SDK key for one Vercel environment, starting
-	// with vf_server_.
-	SDKKey          string
-	RefreshInterval time.Duration
-	HTTPTimeout     time.Duration
-	MaxStaleness    time.Duration
+	// with vf_server_. It isn't the FLAGS connection string the dashboard reads.
+	SDKKey          string        `toml:"sdk_key"`
+	RefreshInterval time.Duration `toml:"refresh_interval"`
+	HTTPTimeout     time.Duration `toml:"http_timeout"`
+	MaxStaleness    time.Duration `toml:"max_staleness"`
 }
 
 func (c Config) withDefaults() Config {
@@ -44,7 +44,9 @@ func (c Config) withDefaults() Config {
 	return c
 }
 
-func (c Config) validate() error {
+// Validate checks config after applying defaults.
+func (c Config) Validate() error {
+	c = c.withDefaults()
 	return assert.All(
 		assert.True(strings.HasPrefix(c.SDKKey, "vf_server_"), "vercel feature flags SDK key must start with vf_server_"),
 		assert.GreaterOrEqual(c.RefreshInterval, minRefresh, "refresh interval must be at least 1s"),

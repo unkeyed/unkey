@@ -79,7 +79,7 @@ The noop adapter doesn't contact Vercel, doesn't report flag values, and doesn't
 
 ## Ctrl
 
-Ctrl evaluates flags through an isolated OpenFeature API from `pkg/featureflag`. Application code depends only on the OpenFeature client. The provider is selected in the ctrl worker config:
+Ctrl evaluates flags through an isolated OpenFeature API that `featureflag.NewFromConfig` in `pkg/featureflag` builds from a `featureflag.Config`. It starts the backend's background refresh on the service's runner and shuts the API down with it. Application code depends only on the OpenFeature client. Each backend is an OpenFeature provider in its own package: `pkg/featureflag/static` and `pkg/featureflag/vercel`. Flag keys live in `pkg/featureflag/flags.go`. An empty provider uses the OpenFeature SDK's built-in no-op provider. To add a backend, add a provider package and a case in `NewFromConfig`. The ctrl worker config selects the provider:
 
 ```toml
 [feature_flags]
@@ -104,7 +104,7 @@ The static provider returns the listed value for every workspace. A flag missing
 
 Ctrl sends only `team.id`, set to `workspaces.org_id`, so dashboard targeting by organization applies to Ctrl too. Infrastructure decisions never use a user identity.
 
-The Vercel provider in `pkg/featureflag/vercel` supports a subset of Vercel Flags: boolean variants, direct targets, a paused flag, and a fixed fallthrough variant. A flag that uses rules, splits, experiments, or environment reuse returns a parse error instead of a value. The provider keeps the last good datafile for up to `max_staleness` while refreshes fail. After that, and before the first successful refresh, evaluations return `PROVIDER_NOT_READY`. The worker exports `unkey_control_feature_flags_ready`, `unkey_control_feature_flags_snapshot_age_seconds`, and `unkey_control_feature_flags_refresh_failures_total`.
+The Vercel provider in `pkg/featureflag/vercel` supports a subset of Vercel Flags: boolean variants, direct targets, a paused flag, and a fixed fallthrough variant. A flag that uses rules, splits, experiments, or environment reuse returns a parse error instead of a value. The provider keeps the last good datafile for up to `max_staleness` while refreshes fail. After that, and before the first successful refresh, evaluations return `PROVIDER_NOT_READY`. A service using it exports `unkey_feature_flags_ready`, `unkey_feature_flags_snapshot_age_seconds`, and `unkey_feature_flags_refresh_failures_total`.
 
 ### Private networking
 
