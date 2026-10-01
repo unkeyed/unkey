@@ -759,6 +759,7 @@ type App struct {
 	DeleteProtection    sql.NullBool   `db:"delete_protection"`
 	CreatedAt           int64          `db:"created_at"`
 	UpdatedAt           sql.NullInt64  `db:"updated_at"`
+	DeletingAt          sql.NullInt64  `db:"deleting_at"`
 }
 
 type AppBuildSetting struct {
@@ -872,6 +873,7 @@ type Environment struct {
 	DeleteProtection sql.NullBool              `db:"delete_protection"`
 	CreatedAt        int64                     `db:"created_at"`
 	UpdatedAt        sql.NullInt64             `db:"updated_at"`
+	DeletingAt       sql.NullInt64             `db:"deleting_at"`
 }
 
 type FrontlineRoute struct {
@@ -1012,6 +1014,7 @@ type Project struct {
 	DeleteProtection sql.NullBool   `db:"delete_protection"`
 	CreatedAt        int64          `db:"created_at"`
 	UpdatedAt        sql.NullInt64  `db:"updated_at"`
+	DeletingAt       sql.NullInt64  `db:"deleting_at"`
 }
 
 type Region struct {
