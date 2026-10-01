@@ -278,6 +278,16 @@ func ResolveMappingProject(ctx context.Context, tx db.DBTX, workspaceID string, 
 
 	switch m.Type {
 	case MappingTypeApp:
+		if _, err := db.Query.LockActiveApp(ctx, tx, m.ID); err != nil {
+			if db.IsNotFound(err) {
+				return "", mappingNotFound(fmt.Sprintf("app %s is not active", m.ID))
+			}
+			return "", fault.Wrap(err,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("lock portal app"),
+				fault.Public("Failed to look up the app."),
+			)
+		}
 		app, err := db.Query.FindAppByIdAndWorkspace(ctx, tx, db.FindAppByIdAndWorkspaceParams{
 			ID:          m.ID,
 			WorkspaceID: workspaceID,

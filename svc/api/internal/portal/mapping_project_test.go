@@ -82,6 +82,24 @@ func TestResolveMappingProject(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, project.ID, got)
 	})
+
+	for _, deleting := range []struct{ name, query, id string }{
+		{"deleting app", "UPDATE apps SET deleting_at = 1 WHERE id = ?", app.ID},
+		{"deleting project", "UPDATE projects SET deleting_at = 1 WHERE id = ?", project.ID},
+	} {
+		t.Run(deleting.name, func(t *testing.T) {
+			tx, err := h.DB.RW().Begin(ctx)
+			require.NoError(t, err)
+			t.Cleanup(func() { require.NoError(t, tx.Rollback()) })
+			_, err = tx.ExecContext(ctx, deleting.query, deleting.id)
+			require.NoError(t, err)
+			got, err := portal.ResolveMappingProject(ctx, tx, workspace.ID, portal.Mapping{
+				Type: portal.MappingTypeApp, ID: app.ID,
+			})
+			require.Empty(t, got)
+			requireMappingNotFound(t, err)
+		})
+	}
 }
 
 // A resource in another workspace, or none at all, is reported identically: the
