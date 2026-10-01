@@ -143,15 +143,15 @@ func (c *Controller) handlePodEvent(ctx context.Context, pod *corev1.Pod, eventT
 
 	rsName := owningReplicaSet(pod)
 	if rsName == "" {
+		c.reconcileOrphanPod(ctx, pod)
 		metrics.PodWatchEventsTotal.WithLabelValues("deployment", eventTypeLabel, "skipped_no_rs").Inc()
-		logger.Info("pod watch: pod has no owning replicaset, skipping", "pod", pod.Name)
 		return
 	}
 
 	rs, err := c.clientSet.AppsV1().ReplicaSets(pod.Namespace).Get(ctx, rsName, metav1.GetOptions{})
 	if err != nil {
 		if k8serrors.IsNotFound(err) {
-			// RS already deleted — resync loop handles orphan cleanup.
+			c.reconcileOrphanPod(ctx, pod)
 			metrics.PodWatchEventsTotal.WithLabelValues("deployment", eventTypeLabel, "skipped_rs_gone").Inc()
 			logger.Info("pod watch: replicaset not found, skipping", "pod", pod.Name, "replicaSet", rsName)
 			return
