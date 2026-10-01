@@ -4,28 +4,35 @@ description: "Read the steps and output Unkey records while building a deploymen
 sources:
   - pkg/clickhouse/schema/020_build_steps_v1.sql
   - pkg/clickhouse/schema/021_build_step_logs_v1.sql
-  - web/internal/clickhouse/src/build-steps.ts
-  - web/apps/dashboard/lib/trpc/routers/deploy/deployment/build-steps.ts
-  - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/deployments/[deploymentId]/use-build-step-logs.ts
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/deployments/[deploymentId]/use-build-logs.ts
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/deployments/[deploymentId]/(deployment-progress)/build-logs/build-log-lines.ts
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/deployments/[deploymentId]/(deployment-progress)/build-logs/deployment-build-logs.tsx
+  - svc/ctrl/worker/deploy/build.go
   - pkg/clickhouse/user.go
   - pkg/clickhouse/build_logs.go
   - svc/api/routes/v2_deployments_list_build_logs/handler.go
   - svc/api/openapi/spec/paths/v2/deployments/listBuildLogs/index.yaml
 ---
 
-Build logs show each step of building a <Tooltip tip="One built and running version of an app in one environment.">deployment</Tooltip> and its output. Open the <Tooltip tip="A Compute app: a deployable service inside a project. Not 'your application' in general.">app</Tooltip>, click **Deployments**, and open the deployment. The steps appear as the build runs and stay afterwards. A deployment from a prebuilt image has no build, so it has no build logs. See [Deploy a container image](/compute/get-started/deploy-an-image).
+Build logs show the output of building a <Tooltip tip="One built and running version of an app in one environment.">deployment</Tooltip> as one list, in the order the build printed it. Open the <Tooltip tip="A Compute app: a deployable service inside a project. Not 'your application' in general.">app</Tooltip>, click **Deployments**, and open the deployment. The output appears as the build runs and stays afterwards. A deployment from a prebuilt image has no build, so it has no build logs. See [Deploy a container image](/compute/get-started/deploy-an-image).
 
-## What a step shows
+## What the list shows
 
-Each step shows its name, start and end time, whether it came from the cache, and an error message if it failed. A running step shows running instead of a duration. Click a step to see its output, also while it runs. The dashboard shows the last 500 log entries of a step. A cached step didn't run, because nothing it depends on changed since an earlier build. See [Builds](/compute/build/overview) for what the cache covers.
+Each line has the time and the text the build printed. A header line shows the step name each time the output changes to a different step. Steps that run in parallel can alternate, so one step can have more than one header.
+
+Unkey adds one line when a step ends:
+
+- `CACHED`: the step did not run, because nothing it depends on changed since an earlier build. See [Builds](/compute/build/overview) for what the cache covers.
+- `DONE 5.3s`: the step ran for this time. A step that took less than 0.05 seconds gets no line.
+- `ERROR: <reason>`: the step failed.
+
+Text the build printed to `stderr` is amber. Many tools write progress and warnings to `stderr`, so amber text does not mean that the step failed. `ERROR:` lines are red.
+
+When a finished step printed more than 40 entries in a row, the list shows the first 5 and the last 5. Click **Show N more entries** to see the others. The dashboard keeps the last 5,000 log entries of a build. Click **Jump to latest** to go to the newest output. While you stay at the end of the list, it follows new output.
 
 ## Find why a build failed
 
-Look for the step with the error. Its last lines of output usually name the cause, such as a missing dependency, a compile error, or a Dockerfile instruction that failed. See [Deployments](/compute/concepts/deployments).
-
-<Frame>
-  <img src="/images/dashboard/compute--observe-build-logs--failed-build.png" alt="Build logs of a failed deployment with the failing step's output in red and the later steps skipped" />
-</Frame>
+Click **Jump to error**, or **View full error** in the build status. The list moves to the last `ERROR:` line. The lines before it usually name the cause, such as a missing dependency, a compile error, or a Dockerfile instruction that failed. When one step fails, BuildKit stops the steps that run in parallel, and these can also show an `ERROR:` line. See [Deployments](/compute/concepts/deployments).
 
 ## Read build logs through the API
 
