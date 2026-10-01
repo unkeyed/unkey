@@ -3,7 +3,7 @@ import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { z } from "zod";
 import { requireApp } from "./access";
 import { projectInput } from "./schemas";
-import { mergeDeploymentTargets } from "./target-pagination";
+import { mergeDeploymentTargets, pageTargetDeployments } from "./target-pagination";
 
 const DEPLOYMENT_PAGE_SIZE = 100;
 
@@ -105,7 +105,10 @@ export const listAppConnectionTargets = workspaceProcedure
                 eq(schema.deployments.projectId, input.projectId),
                 eq(schema.deployments.appId, input.targetAppId),
                 isNotNull(schema.deployments.firstReadyAt),
-                or(eq(schema.deployments.status, "ready"), eq(schema.deployments.status, "stopped")),
+                or(
+                  eq(schema.deployments.status, "ready"),
+                  eq(schema.deployments.status, "stopped"),
+                ),
                 input.cursor
                   ? or(
                       lt(schema.deployments.createdAt, input.cursor.createdAt),
@@ -121,9 +124,7 @@ export const listAppConnectionTargets = workspaceProcedure
             .limit(DEPLOYMENT_PAGE_SIZE + 1)
         : Promise.resolve([]),
     ]);
-    const hasMore = choiceRows.length > DEPLOYMENT_PAGE_SIZE;
-    const choices = hasMore ? choiceRows.slice(0, DEPLOYMENT_PAGE_SIZE) : choiceRows;
-    const last = choices.at(-1);
+    const { page: choices, nextCursor } = pageTargetDeployments(choiceRows, DEPLOYMENT_PAGE_SIZE);
     const deployments = mergeDeploymentTargets(pinnedDeployments, choices).map(
       ({ createdAt: _createdAt, ...deployment }) => deployment,
     );
@@ -131,6 +132,6 @@ export const listAppConnectionTargets = workspaceProcedure
       apps,
       environments,
       deployments,
-      nextCursor: hasMore && last ? { createdAt: last.createdAt, id: last.id } : null,
+      nextCursor,
     };
   });

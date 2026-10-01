@@ -2,6 +2,7 @@
 
 import { collection } from "@/lib/collections";
 import { trpc } from "@/lib/trpc/client";
+import { mergeDeploymentTargets } from "@/lib/trpc/routers/deploy/app-connection/target-pagination";
 import { connectionHostVariable } from "@/lib/trpc/routers/deploy/app-connection/validation";
 import { and, eq, useLiveQuery } from "@tanstack/react-db";
 import { IconCubeOutline18, IconLinkOutline18, IconMagnifierOutline18 } from "@unkey/icons";
@@ -21,7 +22,7 @@ import {
   cn,
   toast,
 } from "@unkey/ui";
-import { type ReactNode, useEffect, useState } from "react";
+import { type ReactNode, useState } from "react";
 import { AddConnectionPicker } from "./add-connection-picker";
 import { ConnectionDetails } from "./connection-details";
 import { ConnectionNode, Group } from "./connection-node";
@@ -76,12 +77,12 @@ export function ConnectionCanvas({
     { projectId, appId, targetAppId: selectedConnection?.targetAppId },
     { getNextPageParam: (page) => page.nextCursor ?? undefined },
   );
-  useEffect(() => {
-    if (targets.hasNextPage && !targets.isFetchingNextPage) {
-      void targets.fetchNextPage();
-    }
-  }, [targets.hasNextPage, targets.isFetchingNextPage, targets.fetchNextPage]);
-  const refresh = () => utils.appConnection.list.invalidate({ projectId });
+  const refresh = async () => {
+    await Promise.all([
+      utils.appConnection.list.invalidate({ projectId }),
+      utils.appConnection.targets.invalidate({ projectId, appId }),
+    ]);
+  };
   const create = trpc.appConnection.create.useMutation({
     onSuccess: async (result) => {
       setPickerOpen(false);
@@ -130,9 +131,9 @@ export function ConnectionCanvas({
   const connected = new Set(connections.data.map((connection) => connection.targetAppId));
   const targetData = {
     ...targets.data.pages[0],
-    deployments: targets.data.pages.flatMap((page) => page.deployments).filter(
-      (deployment, index, deployments) =>
-        deployments.findIndex(({ id }) => id === deployment.id) === index,
+    deployments: mergeDeploymentTargets(
+      [],
+      targets.data.pages.flatMap((page) => page.deployments),
     ),
   };
   const others = targetData.apps.filter((target) => !connected.has(target.id));
@@ -278,6 +279,9 @@ export function ConnectionCanvas({
                 connection={selected}
                 environment={environment}
                 targets={targetData}
+                hasMoreDeployments={!!targets.hasNextPage}
+                loadingMoreDeployments={targets.isFetchingNextPage}
+                onLoadMoreDeployments={() => void targets.fetchNextPage()}
                 onClose={() => {
                   canvasRoot?.querySelector<HTMLElement>('[aria-pressed="true"]')?.focus();
                   setSelectedId(null);
