@@ -65,14 +65,11 @@ export default function PortalSessionsPage(props: Props) {
             <PortalSessions portalId={portal.id} canRevoke={canRevoke} />
           ))
           .with({ status: "disabled" }, ({ portal }) => (
-            <div className="flex w-full flex-col gap-6">
-              <DisabledBanner
-                description="Your users can't sign in right now. You can still revoke their sessions below."
-                enabling={updatePortal.isLoading}
-                onEnable={() => updatePortal.mutate({ portal: portal.id, enabled: true })}
-              />
-              <PortalSessions portalId={portal.id} canRevoke={canRevoke} />
-            </div>
+            <DisabledBanner
+              description="All sessions ended when the portal was disabled. Your users need a new link from your app after you re-enable it."
+              enabling={updatePortal.isLoading}
+              onEnable={() => updatePortal.mutate({ portal: portal.id, enabled: true })}
+            />
           ))
           .with({ status: "notConfigured" }, () =>
             redirect(routes.apis.portal({ workspaceSlug: workspace.slug, projectId, apiId })),
