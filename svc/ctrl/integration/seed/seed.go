@@ -227,6 +227,7 @@ func (h *Seeder) CreateProject(ctx context.Context, req CreateProjectRequest) db
 		DeleteProtection: project.DeleteProtection,
 		CreatedAt:        project.CreatedAt,
 		UpdatedAt:        project.UpdatedAt,
+		DeletingAt:       project.DeletingAt,
 		Pk:               0,
 		DepotProjectID:   sql.NullString{String: "", Valid: false},
 	}
@@ -314,6 +315,7 @@ func (s *Seeder) CreateEnvironment(ctx context.Context, req CreateEnvironmentReq
 		DeleteProtection: sql.NullBool{Valid: true, Bool: req.DeleteProtection},
 		CreatedAt:        now,
 		UpdatedAt:        sql.NullInt64{Int64: 0, Valid: false},
+		DeletingAt:       environment.DeletingAt,
 	}
 }
 
