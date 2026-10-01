@@ -35,15 +35,18 @@ type Props = {
 export function DeploymentBuildLogs({ fixedHeight = 500, focusErrorTick = 0 }: Props) {
   const { deployment } = useDeployment();
   const isFailed = deployment.status === "failed";
-  const [followsTail, setFollowsTail] = useState(() =>
-    BUILD_NOT_DONE_STATUSES.has(deployment.status),
-  );
+  const isBuilding = BUILD_NOT_DONE_STATUSES.has(deployment.status);
+  const [followsTail, setFollowsTail] = useState(isBuilding);
   const [pendingJump, setPendingJump] = useState<"error" | "latest" | null>(null);
+  // Rows near a jump target are not measured yet, so the jump repeats as they
+  // are, until the viewer scrolls
+  const [jumpTargetIndex, setJumpTargetIndex] = useState<number | null>(null);
   const readsToEnd = isFailed || followsTail || pendingJump !== null;
 
   const logs = useBuildLogs(deployment, { readsToEnd });
   const entries = logs.data?.entries;
   const hasMore = logs.data?.hasMore === true;
+  const isCaughtUp = logs.data !== undefined && !logs.data.hasMore;
 
   const [expandedRunKeys, setExpandedRunKeys] = useState<ReadonlySet<string>>(new Set());
   const lines = useMemo(
@@ -57,7 +60,7 @@ export function DeploymentBuildLogs({ fixedHeight = 500, focusErrorTick = 0 }: P
   const scrollRef = useRef<HTMLDivElement>(null);
   const lastScrollTop = useRef(0);
   const virtualizer = useVirtualizer({
-    count: hasMore ? lines.length + 1 : lines.length,
+    count: hasMore || isBuilding ? lines.length + 1 : lines.length,
     getScrollElement: () => scrollRef.current,
     estimateSize: () => LINE_HEIGHT_ESTIMATE_PX,
     overscan: 20,
@@ -86,7 +89,7 @@ export function DeploymentBuildLogs({ fixedHeight = 500, focusErrorTick = 0 }: P
   }, [followsTail, totalSize]);
 
   useEffect(() => {
-    if (pendingJump === null || hasMore) {
+    if (pendingJump === null || !isCaughtUp) {
       return;
     }
     setPendingJump(null);
@@ -94,9 +97,16 @@ export function DeploymentBuildLogs({ fixedHeight = 500, focusErrorTick = 0 }: P
       setFollowsTail(true);
     } else if (lastErrorIndex >= 0) {
       setFollowsTail(false);
-      virtualizer.scrollToIndex(lastErrorIndex, { align: "center" });
+      setJumpTargetIndex(lastErrorIndex);
     }
-  }, [pendingJump, hasMore, lastErrorIndex, virtualizer]);
+  }, [pendingJump, isCaughtUp, lastErrorIndex]);
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: totalSize is the trigger, it changes as rows are measured
+  useEffect(() => {
+    if (jumpTargetIndex !== null) {
+      virtualizer.scrollToIndex(jumpTargetIndex, { align: "center" });
+    }
+  }, [jumpTargetIndex, totalSize, virtualizer]);
 
   useEffect(() => {
     if (focusErrorTick > 0) {
@@ -106,6 +116,7 @@ export function DeploymentBuildLogs({ fixedHeight = 500, focusErrorTick = 0 }: P
 
   const expandRun = (runKey: string) => {
     setFollowsTail(false);
+    setJumpTargetIndex(null);
     setExpandedRunKeys((previous) => new Set(previous).add(runKey));
   };
 
@@ -150,7 +161,10 @@ export function DeploymentBuildLogs({ fixedHeight = 500, focusErrorTick = 0 }: P
               size="sm"
               className="[&_svg]:size-3.5"
               loading={pendingJump === "error"}
-              onClick={() => setPendingJump("error")}
+              onClick={() => {
+                setJumpTargetIndex(null);
+                setPendingJump("error");
+              }}
             >
               <IconTriangleWarningOutline18 className="text-error-11" />
               Jump to error
@@ -162,7 +176,10 @@ export function DeploymentBuildLogs({ fixedHeight = 500, focusErrorTick = 0 }: P
               size="sm"
               className="[&_svg]:size-3"
               loading={pendingJump === "latest"}
-              onClick={() => setPendingJump("latest")}
+              onClick={() => {
+                setJumpTargetIndex(null);
+                setPendingJump("latest");
+              }}
             >
               <IconChevronDownOutline12 />
               Jump to latest
@@ -174,6 +191,9 @@ export function DeploymentBuildLogs({ fixedHeight = 500, focusErrorTick = 0 }: P
         ref={scrollRef}
         className="overflow-auto py-2 font-mono text-xs leading-5"
         style={{ height: fixedHeight }}
+        onWheel={() => setJumpTargetIndex(null)}
+        onTouchMove={() => setJumpTargetIndex(null)}
+        onKeyDown={() => setJumpTargetIndex(null)}
         onScroll={(event) => {
           const el = event.currentTarget;
           const scrolledUp = el.scrollTop < lastScrollTop.current;
@@ -199,10 +219,25 @@ export function DeploymentBuildLogs({ fixedHeight = 500, focusErrorTick = 0 }: P
               {item.index < lines.length ? (
                 <BuildLogLineRow line={lines[item.index]} onExpandRun={expandRun} />
               ) : (
-                <div className="flex h-6 items-center gap-2 px-4 text-gray-10">
-                  <span className={GUTTER_WIDTH_CLASS} />
-                  <Loading size={12} />
-                  Loading more
+                <div
+                  className={cn(
+                    "flex gap-4 px-4 py-0.5",
+                    hasMore ? "text-gray-10" : "text-info-11",
+                  )}
+                >
+                  <span className={cn(GUTTER_WIDTH_CLASS, "flex items-center justify-end pr-1")}>
+                    {!hasMore && (
+                      <span className="size-1.5 animate-pulse rounded-full bg-current" />
+                    )}
+                  </span>
+                  {hasMore ? (
+                    <span className="flex items-center gap-2">
+                      <Loading size={12} />
+                      Loading more
+                    </span>
+                  ) : (
+                    "Running"
+                  )}
                 </div>
               )}
             </div>
@@ -257,9 +292,7 @@ function BuildLogLineRow({
           </span>
         </button>
       );
-    case "entry": {
-      const isCached = line.text === "CACHED";
-      const isDone = line.text.startsWith("DONE ");
+    case "entry":
       return (
         <div
           className={cn(
@@ -278,22 +311,24 @@ function BuildLogLineRow({
           <span
             className={cn(
               "min-w-0 whitespace-pre-wrap break-all",
-              isCached || isDone
-                ? "inline-flex items-center gap-1.5 text-gray-11"
-                : {
-                    stdout: "text-gray-12",
-                    stderr: "text-warning-11",
-                    error: "text-error-11",
-                  }[line.tone],
+              {
+                stdout: "text-gray-12",
+                stderr: "text-warning-11",
+                error: "text-error-11",
+                event: "inline-flex items-center gap-1.5 text-gray-11",
+              }[line.tone],
             )}
           >
-            {isCached && <IconBoltOutline18 className="size-3 shrink-0 text-gray-9" />}
-            {isDone && <IconCheckOutline12 className="size-3 shrink-0 text-success-11" />}
+            {line.tone === "event" &&
+              (line.text === "CACHED" ? (
+                <IconBoltOutline18 className="size-3 shrink-0 text-gray-9" />
+              ) : (
+                <IconCheckOutline12 className="size-3 shrink-0 text-success-11" />
+              ))}
             {line.text}
           </span>
         </div>
       );
-    }
   }
 }
 
