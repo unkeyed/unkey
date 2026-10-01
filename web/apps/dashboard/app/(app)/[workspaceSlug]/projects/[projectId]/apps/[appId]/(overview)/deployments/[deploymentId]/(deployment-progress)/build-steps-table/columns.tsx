@@ -1,6 +1,6 @@
 import type { Column } from "@/components/virtual-table/types";
 import { formatLatency } from "@/lib/utils/metric-formatters";
-import type { BuildStep, BuildStepLog } from "@unkey/clickhouse/src/build-steps";
+import type { BuildStep } from "@unkey/clickhouse/src/build-steps";
 import {
   IconBoltOutline18,
   IconCaretRightOutline12,
@@ -11,9 +11,13 @@ import { cn } from "cn";
 import { TruncatedCell } from "../truncated-cell";
 
 export type BuildStepRow = BuildStep & {
-  logs?: Omit<BuildStepLog, "step_id">[];
   _isExpanded?: boolean;
 };
+
+// A cached step never prints
+export function canExpandBuildStep(step: BuildStep): boolean {
+  return !step.cached;
+}
 
 export const buildStepsColumns: Column<BuildStepRow>[] = [
   {
@@ -21,7 +25,7 @@ export const buildStepsColumns: Column<BuildStepRow>[] = [
     width: "25px",
     cellClassName: "p-0 align-top",
     render: (step) =>
-      step.has_logs ? (
+      canExpandBuildStep(step) ? (
         <div className="my-2 size-4 flex items-center justify-center w-full shrink-0">
           <IconCaretRightOutline12
             className={cn(

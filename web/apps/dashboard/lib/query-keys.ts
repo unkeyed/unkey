@@ -9,6 +9,10 @@ export const queryKeys = {
   apis: {
     detail: (apiId: string) => ["apis", "detail", apiId] as const,
   },
+  deployments: {
+    buildLogs: (deploymentId: string, stepId: string) =>
+      ["deployments", "buildLogs", deploymentId, stepId] as const,
+  },
   identities: {
     all: identitiesRoot,
     workspace: (workspaceId: string) => [...identitiesRoot, workspaceId] as const,

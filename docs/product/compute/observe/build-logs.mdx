@@ -6,6 +6,7 @@ sources:
   - pkg/clickhouse/schema/021_build_step_logs_v1.sql
   - web/internal/clickhouse/src/build-steps.ts
   - web/apps/dashboard/lib/trpc/routers/deploy/deployment/build-steps.ts
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/deployments/[deploymentId]/use-build-step-logs.ts
   - pkg/clickhouse/user.go
   - pkg/clickhouse/build_logs.go
   - svc/api/routes/v2_deployments_list_build_logs/handler.go
@@ -16,7 +17,7 @@ Build logs show each step of building a <Tooltip tip="One built and running vers
 
 ## What a step shows
 
-Each step shows its name, start and end time, whether it came from the cache, and an error message if it failed. A running step shows running instead of a duration. Click a step to see its output. A cached step didn't run, because nothing it depends on changed since an earlier build. See [Builds](/compute/build/overview) for what the cache covers.
+Each step shows its name, start and end time, whether it came from the cache, and an error message if it failed. A running step shows running instead of a duration. Click a step to see its output, also while it runs. The dashboard shows the last 500 log entries of a step. A cached step didn't run, because nothing it depends on changed since an earlier build. See [Builds](/compute/build/overview) for what the cache covers.
 
 ## Find why a build failed
 
