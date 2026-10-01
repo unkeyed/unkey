@@ -53,6 +53,15 @@ function scopeTemplates(rows: readonly PermissionRow[]): string[] {
   return [...templates].filter((template) => template.includes(INSTANCE_TOKEN));
 }
 
+function matchesInstanceShape(instance: string, shape: string): boolean {
+  const instanceSegments = instance.split("/");
+  const shapeSegments = shape.split("/");
+  return (
+    instanceSegments.length === shapeSegments.length &&
+    shapeSegments.every((segment, index) => segment === "*" || segment === instanceSegments[index])
+  );
+}
+
 function instanceCandidates(catalogue: ScopeCatalogue, paths: readonly string[]): string[] {
   if (catalogue.instanceNoun === null) {
     return [ALL_INSTANCES];
@@ -62,7 +71,7 @@ function instanceCandidates(catalogue: ScopeCatalogue, paths: readonly string[])
   for (const path of paths) {
     for (const template of templates) {
       const instance = matchInstance(template, path);
-      if (instance !== null) {
+      if (instance !== null && matchesInstanceShape(instance, catalogue.allInstance)) {
         found.add(instance);
       }
     }

@@ -36,7 +36,9 @@ export function PermissionsCell({ permissions }: PermissionsCellProps) {
           position={{ side: "top", align: "start", sideOffset: 5 }}
           asChild
         >
-          <span className="shrink-0 whitespace-nowrap text-xs text-gray-9">+{hidden.length}</span>
+          <span className="relative z-10 shrink-0 whitespace-nowrap text-xs text-gray-9">
+            +{hidden.length}
+          </span>
         </InfoTooltip>
       ) : null}
     </div>

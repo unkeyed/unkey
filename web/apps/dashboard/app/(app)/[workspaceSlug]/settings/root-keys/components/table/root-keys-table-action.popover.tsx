@@ -6,22 +6,28 @@ import {
   IconPenWriting3Outline18,
   IconTrashOutline18,
 } from "@unkey/icons";
-import { DeleteRootKey } from "./delete-root-key";
-import { RotateRootKey } from "./rotate-root-key";
+import { DeleteRootKey, DeleteRootKeyV2 } from "./delete-root-key";
+import { RotateRootKey, RotateRootKeyV2 } from "./rotate-root-key";
 
 type RootKeysTableActionsProps = {
   rootKey: RootKey;
   onEditKey?: (rootKey: RootKey) => void;
+  transport: "legacy" | "v2";
 };
 
-export const RootKeysTableActions = ({ rootKey, onEditKey }: RootKeysTableActionsProps) => {
-  const menuItems = getRootKeyTableActionItems(rootKey, onEditKey);
+export const RootKeysTableActions = ({
+  rootKey,
+  onEditKey,
+  transport,
+}: RootKeysTableActionsProps) => {
+  const menuItems = getRootKeyTableActionItems(rootKey, onEditKey, transport);
   return <TableActionPopover items={menuItems} />;
 };
 
 const getRootKeyTableActionItems = (
   rootKey: RootKey,
   onEditKey?: (rootKey: RootKey) => void,
+  transport: "legacy" | "v2" = "legacy",
 ): MenuItem[] => {
   return [
     {
@@ -36,14 +42,24 @@ const getRootKeyTableActionItems = (
       id: "rotate-root-key",
       label: "Rotate root key...",
       icon: <IconArrowDottedRotateAnticlockwiseOutline18 className="size-3.5" />,
-      ActionComponent: (props) => <RotateRootKey {...props} rootKeyDetails={rootKey} />,
+      ActionComponent: (props) =>
+        transport === "v2" ? (
+          <RotateRootKeyV2 {...props} rootKeyDetails={rootKey} />
+        ) : (
+          <RotateRootKey {...props} rootKeyDetails={rootKey} />
+        ),
       divider: true,
     },
     {
       id: "delete-root-key",
       label: "Delete root key",
       icon: <IconTrashOutline18 className="size-3.5" />,
-      ActionComponent: (props) => <DeleteRootKey {...props} rootKeyDetails={rootKey} />,
+      ActionComponent: (props) =>
+        transport === "v2" ? (
+          <DeleteRootKeyV2 {...props} rootKeyDetails={rootKey} />
+        ) : (
+          <DeleteRootKey {...props} rootKeyDetails={rootKey} />
+        ),
     },
   ];
 };

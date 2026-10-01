@@ -1,6 +1,4 @@
-// The coarse actions below are a UI vocabulary. Each one expands into the
-// resource-suffixed action names of the permission catalog in `@unkey/rbac`
-// ("write" on the key row is `write_key`), which is what the URN carries.
+// These actions are both the UI vocabulary and the action in the permission URN.
 export const ACTIONS = ["read", "write", "delete", "verify", "decrypt", "limit"] as const;
 
 export type Action = (typeof ACTIONS)[number];
@@ -53,18 +51,16 @@ type PermissionRowSpec = {
   id: string;
   label: string;
   path: string;
-  resource: string;
   actions?: Partial<Record<Action, readonly GrantSpec[]>>;
 };
 
-// Create and update are the same privilege, so a row's mutation is a single
-// `write_<resource>`. Verify, decrypt and limit are narrower than a read and
-// belong only to the rows that declare them.
-export function crud(resource: string): Record<Action, readonly GrantSpec[]> {
+// Create and update are the same privilege. Verify, decrypt and limit are
+// narrower than a read and belong only to the rows that declare them.
+export function crud(): Record<Action, readonly GrantSpec[]> {
   return {
-    read: [{ name: `read_${resource}` }],
-    write: [{ name: `write_${resource}` }],
-    delete: [{ name: `delete_${resource}` }],
+    read: [{ name: "read" }],
+    write: [{ name: "write" }],
+    delete: [{ name: "delete" }],
     verify: [],
     decrypt: [],
     limit: [],
@@ -72,7 +68,7 @@ export function crud(resource: string): Record<Action, readonly GrantSpec[]> {
 }
 
 export function permissionRow(spec: PermissionRowSpec): PermissionRow {
-  const convention = crud(spec.resource);
+  const convention = crud();
   const actions = {} as Record<Action, readonly ActionGrant[]>;
   for (const action of ACTIONS) {
     actions[action] = (spec.actions?.[action] ?? convention[action]).map((grant) => ({

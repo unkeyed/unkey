@@ -15,6 +15,7 @@ import {
   PageHeaderActions,
   PageHeaderContent,
   PageHeaderTitle,
+  ResourceList,
   buttonVariants,
 } from "@unkey/ui";
 import { notFound } from "next/navigation";
@@ -30,7 +31,7 @@ export default function RootKeysPage() {
   }
 
   return (
-    <PageContainer width="full" data-docs-target="root-key-list">
+    <PageContainer className="flex-1" data-docs-target="root-key-list">
       <PageHeader>
         <PageHeaderContent>
           <PageHeaderTitle>Root Keys</PageHeaderTitle>
@@ -60,9 +61,11 @@ export default function RootKeysPage() {
           )}
         </PageHeaderActions>
       </PageHeader>
-      <PageBody className="gap-3 pt-3 pb-0">
-        <RootKeysListControls />
-        {rootKeyBuilder ? <RootKeysListBuilder /> : <RootKeysListLegacy />}
+      <PageBody className="flex-1">
+        <ResourceList>
+          <RootKeysListControls />
+          {rootKeyBuilder ? <RootKeysListBuilder /> : <RootKeysListLegacy />}
+        </ResourceList>
       </PageBody>
       {rootKeyBuilder ? (
         <BuilderAside isOpen={asideOpen} onClose={() => setAsideOpen(false)} />

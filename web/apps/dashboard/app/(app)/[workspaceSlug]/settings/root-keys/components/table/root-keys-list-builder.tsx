@@ -3,9 +3,11 @@
 import type { RootKey } from "@/lib/trpc/routers/settings/root-keys/query";
 import { useCallback, useState } from "react";
 import { EditKeyAside } from "../builder/edit-key-aside";
+import { useRootKeysV2List } from "./hooks/use-root-keys-v2-list";
 import { RootKeysDataTable } from "./root-keys-data-table";
 
 export function RootKeysListBuilder() {
+  const list = useRootKeysV2List();
   const [editingKeyId, setEditingKeyId] = useState<string | null>(null);
   const [isOpen, setIsOpen] = useState(false);
 
@@ -18,7 +20,7 @@ export function RootKeysListBuilder() {
 
   return (
     <>
-      <RootKeysDataTable selectedKeyId={editingKeyId} onEditKey={edit} />
+      <RootKeysDataTable selectedKeyId={editingKeyId} onEditKey={edit} list={list} transport="v2" />
       {editingKeyId === null ? null : (
         <EditKeyAside
           key={editingKeyId}

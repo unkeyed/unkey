@@ -2,7 +2,8 @@
 
 import { SecretKeyDialog } from "@/components/secret-key-dialog";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import { trpc } from "@/lib/trpc/client";
+import { createRootKey, rootKeysV2QueryKeys } from "@/lib/root-keys-api";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Button,
   SlidePanel,
@@ -28,27 +29,24 @@ type BuilderAsideProps = {
 
 export function BuilderAside({ isOpen, onClose }: BuilderAsideProps) {
   const workspace = useWorkspaceNavigation();
-  const trpcUtils = trpc.useUtils();
+  const queryClient = useQueryClient();
   const [secret, setSecret] = useState<string | null>(null);
   const [secretRevealed, setSecretRevealed] = useState(false);
 
-  const createKey = trpc.rootKey.create.useMutation({
+  const createKey = useMutation({
+    mutationFn: createRootKey,
     onSuccess(data) {
-      trpcUtils.settings.rootKeys.query.invalidate();
+      void queryClient.invalidateQueries({ queryKey: rootKeysV2QueryKeys.workspace(workspace.id) });
       setSecret(data.key);
     },
-    onError(err) {
-      if (err.data?.code === "BAD_REQUEST") {
-        toast.error("You need to add at least one permission.");
-        return;
-      }
-      toast.error(err.message);
+    onError(error) {
+      toast.error(error instanceof Error ? error.message : "Failed to create the Root Key.");
     },
   });
 
   const { form, bodyRef, submit } = useRootKeyPolicyForm(rootKeyDefaultValues, (values) => {
     createKey.mutate({
-      name: values.name,
+      name: values.name.trim() || undefined,
       permissions: buildUrns(workspace.id, values.policies),
     });
   });

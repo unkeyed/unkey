@@ -1,7 +1,10 @@
 "use client";
 
 import type { ActionComponentProps } from "@/components/logs/table-action.popover";
-import { Button, Dialog, DialogContent, DialogTitle, FormCheckbox } from "@unkey/ui";
+import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
+import { deleteRootKey, rootKeysV2QueryKeys } from "@/lib/root-keys-api";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { Button, Dialog, DialogContent, DialogTitle, FormCheckbox, toast } from "@unkey/ui";
 import { useState } from "react";
 import { useDeleteRootKey } from "./hooks/use-delete-root-key";
 
@@ -11,13 +14,75 @@ type DeleteRootKeyProps = {
 } & ActionComponentProps;
 
 export function DeleteRootKey({ rootKeyDetails, isOpen, onClose, onDeleted }: DeleteRootKeyProps) {
-  const [isConfirmed, setIsConfirmed] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-
   const deleteRootKey = useDeleteRootKey(() => {
     onDeleted?.();
     onClose();
   });
+
+  return (
+    <DeleteRootKeyDialog
+      rootKeyDetails={rootKeyDetails}
+      isOpen={isOpen}
+      onClose={onClose}
+      deleteRootKey={deleteRootKey}
+    />
+  );
+}
+
+export function DeleteRootKeyV2({
+  rootKeyDetails,
+  isOpen,
+  onClose,
+  onDeleted,
+}: DeleteRootKeyProps) {
+  const workspace = useWorkspaceNavigation();
+  const queryClient = useQueryClient();
+  const mutation = useMutation({
+    mutationFn: async ({ keyIds }: { keyIds: string[] }) => {
+      await Promise.all(keyIds.map((keyId) => deleteRootKey({ keyId })));
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({
+        queryKey: rootKeysV2QueryKeys.workspace(workspace.id),
+      });
+      toast.success("Root Key deleted", {
+        description:
+          "The Root Key has been permanently deleted and can no longer create resources.",
+      });
+      onDeleted?.();
+      onClose();
+    },
+    onError: (error) => {
+      toast.error("Failed to revoke Root Key", {
+        description: error instanceof Error ? error.message : "Please try again later.",
+      });
+    },
+  });
+
+  return (
+    <DeleteRootKeyDialog
+      rootKeyDetails={rootKeyDetails}
+      isOpen={isOpen}
+      onClose={onClose}
+      deleteRootKey={mutation}
+    />
+  );
+}
+
+type DeleteRootKeyDialogProps = Omit<DeleteRootKeyProps, "onDeleted"> & {
+  deleteRootKey: {
+    mutateAsync: (input: { keyIds: string[] }) => Promise<unknown>;
+  };
+};
+
+function DeleteRootKeyDialog({
+  rootKeyDetails,
+  isOpen,
+  onClose,
+  deleteRootKey,
+}: DeleteRootKeyDialogProps) {
+  const [isConfirmed, setIsConfirmed] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   const remove = async () => {
     try {

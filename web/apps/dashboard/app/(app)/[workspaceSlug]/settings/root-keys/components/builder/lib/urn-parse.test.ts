@@ -133,7 +133,7 @@ describe("grantsToPolicies", () => {
   });
 
   it("refuses to guess at an action no row offers", () => {
-    const stray = `unkey:v1:ws_123:${KEYSPACE}/keys/*#encrypt_key`;
+    const stray = `unkey:v1:ws_123:${KEYSPACE}/keys/*#encrypt`;
     expect(grantsToPolicies(ws, [stray])).toEqual({ policies: [], unmapped: [stray] });
   });
 
@@ -141,9 +141,10 @@ describe("grantsToPolicies", () => {
     const grants = [
       "api.ks_1.read_key",
       "*",
-      "unkey:v1:ws_other:projects/*/identities/*#read_identity",
-      "unkey:v1:ws_123:teleporters/*#read_teleporter",
+      "unkey:v1:ws_other:projects/*/identities/*#read",
+      "unkey:v1:ws_123:teleporters/*#read",
       "unkey:v1:ws_123:projects/*/identities/*#read_identity",
+      "unkey:v1:ws_123:projects/*/identities/*#read",
     ];
     expect(grantsToPolicies(ws, grants)).toEqual({
       policies: [
@@ -152,8 +153,9 @@ describe("grantsToPolicies", () => {
       unmapped: [
         "api.ks_1.read_key",
         "*",
-        "unkey:v1:ws_other:projects/*/identities/*#read_identity",
-        "unkey:v1:ws_123:teleporters/*#read_teleporter",
+        "unkey:v1:ws_other:projects/*/identities/*#read",
+        "unkey:v1:ws_123:teleporters/*#read",
+        "unkey:v1:ws_123:projects/*/identities/*#read_identity",
       ],
     });
   });

@@ -1,7 +1,8 @@
 "use client";
 
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import { trpc } from "@/lib/trpc/client";
+import { rootKeysV2QueryKeys, updateRootKey } from "@/lib/root-keys-api";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   IconArrowDottedRotateAnticlockwiseOutline18,
   IconTrashOutline18,
@@ -25,8 +26,8 @@ import {
 } from "@unkey/ui";
 import { useRef, useState } from "react";
 import { FormProvider } from "react-hook-form";
-import { DeleteRootKey } from "../table/delete-root-key";
-import { RotateRootKey } from "../table/rotate-root-key";
+import { DeleteRootKeyV2 } from "../table/delete-root-key";
+import { RotateRootKeyV2 } from "../table/rotate-root-key";
 import { GrantList } from "./grant-list";
 import {
   type EditableRootKeyDraft,
@@ -101,7 +102,7 @@ export function EditKeyAside({ keyId, isOpen, onClose, onExitComplete }: EditKey
       </SlidePanel>
 
       {draft !== null && openAction === "rotate" ? (
-        <RotateRootKey
+        <RotateRootKeyV2
           rootKeyDetails={{ id: draft.keyId, name: draft.name === "" ? null : draft.name }}
           isOpen
           onRotated={() => {
@@ -112,7 +113,7 @@ export function EditKeyAside({ keyId, isOpen, onClose, onExitComplete }: EditKey
       ) : null}
 
       {draft !== null && openAction === "delete" ? (
-        <DeleteRootKey
+        <DeleteRootKeyV2
           rootKeyDetails={{ id: draft.keyId, name: draft.name === "" ? null : draft.name }}
           isOpen
           onDeleted={() => {
@@ -135,34 +136,32 @@ function EditablePolicyForm({
   onSaved,
 }: { draft: EditableRootKeyDraft; onSaved: () => void } & ActionProps) {
   const workspace = useWorkspaceNavigation();
-  const trpcUtils = trpc.useUtils();
-  const updatePermissions = trpc.rootKey.update.permissions.useMutation();
-  const updateName = trpc.rootKey.update.name.useMutation();
+  const queryClient = useQueryClient();
+  const update = useMutation({ mutationFn: updateRootKey });
 
   const { form, bodyRef, submit } = useRootKeyPolicyForm(
     { name: draft.name, policies: draft.policies },
     async (values) => {
       try {
-        await updatePermissions.mutateAsync({
+        await update.mutateAsync({
           keyId: draft.keyId,
+          name: values.name.trim() || null,
           permissions: buildUrns(workspace.id, values.policies),
         });
-        if (values.name !== draft.name) {
-          await updateName.mutateAsync({ keyId: draft.keyId, name: values.name });
-        }
       } catch (error) {
         toast.error(error instanceof Error ? error.message : "Failed to update the Root Key.");
         return;
       }
 
       toast.success("Root Key updated");
-      trpcUtils.settings.rootKeys.query.invalidate();
-      trpcUtils.settings.rootKeys.get.invalidate({ keyId: draft.keyId });
+      void queryClient.invalidateQueries({
+        queryKey: rootKeysV2QueryKeys.workspace(workspace.id),
+      });
       onSaved();
     },
   );
 
-  const isSaving = updatePermissions.isLoading || updateName.isLoading;
+  const isSaving = update.isLoading;
 
   return (
     <FormProvider {...form}>
