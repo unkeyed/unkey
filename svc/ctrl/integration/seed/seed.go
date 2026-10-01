@@ -408,6 +408,8 @@ type CreateDeploymentRequest struct {
 	// Optional fork provenance, for tests that rebuild a fork PR's deployment.
 	PrNumber               sql.NullInt64
 	ForkRepositoryFullName sql.NullString
+
+	Capabilities dbtype.DeploymentCapabilities
 }
 
 func (s *Seeder) CreateDeployment(ctx context.Context, req CreateDeploymentRequest) db.Deployment {
@@ -448,7 +450,7 @@ func (s *Seeder) CreateDeployment(ctx context.Context, req CreateDeploymentReque
 		Port:                          8080,
 		ShutdownSignal:                db.DeploymentsShutdownSignalSIGINT,
 		UpstreamProtocol:              db.DeploymentsUpstreamProtocolHttp1,
-		Capabilities:                  dbtype.DeploymentCapabilities{PrivateNetworking: false},
+		Capabilities:                  req.Capabilities,
 		Healthcheck:                   dbtype.NullHealthcheck{Healthcheck: nil, Valid: false},
 		PrNumber:                      req.PrNumber,
 		ForkRepositoryFullName:        req.ForkRepositoryFullName,
@@ -462,6 +464,37 @@ func (s *Seeder) CreateDeployment(ctx context.Context, req CreateDeploymentReque
 	require.NoError(s.t, err)
 
 	return deployment
+}
+
+// CreateAppBindingRequest binds CallerAppID in CallerEnvironmentID to
+// TargetAppID under Name, following the target automatically.
+type CreateAppBindingRequest struct {
+	WorkspaceID         string
+	ProjectID           string
+	CallerAppID         string
+	CallerEnvironmentID string
+	TargetAppID         string
+	Name                string
+}
+
+func (s *Seeder) CreateAppBinding(ctx context.Context, req CreateAppBindingRequest) string {
+	id := uid.New("binding")
+	err := s.DB.InsertAppBinding(ctx, db.InsertAppBindingParams{
+		ID:                  id,
+		WorkspaceID:         req.WorkspaceID,
+		ProjectID:           req.ProjectID,
+		AppID:               req.CallerAppID,
+		EnvironmentID:       req.CallerEnvironmentID,
+		ResourceType:        "app",
+		ResourceID:          req.TargetAppID,
+		Name:                req.Name,
+		SelectionMode:       db.NullAppBindingsSelectionMode{AppBindingsSelectionMode: db.AppBindingsSelectionModeAutomatic, Valid: true},
+		TargetEnvironmentID: sql.NullString{String: "", Valid: false},
+		TargetDeploymentID:  sql.NullString{String: "", Valid: false},
+		CreatedAt:           time.Now().UnixMilli(),
+	})
+	require.NoError(s.t, err)
+	return id
 }
 
 // CreateRootKey creates a root key with optional permissions

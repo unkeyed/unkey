@@ -141,6 +141,49 @@ func (ns NullApisAuthType) Value() (driver.Value, error) {
 	return string(ns.ApisAuthType), nil
 }
 
+type AppBindingsSelectionMode string
+
+const (
+	AppBindingsSelectionModeAutomatic   AppBindingsSelectionMode = "automatic"
+	AppBindingsSelectionModeEnvironment AppBindingsSelectionMode = "environment"
+	AppBindingsSelectionModeDeployment  AppBindingsSelectionMode = "deployment"
+)
+
+func (e *AppBindingsSelectionMode) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = AppBindingsSelectionMode(s)
+	case string:
+		*e = AppBindingsSelectionMode(s)
+	default:
+		return fmt.Errorf("unsupported scan type for AppBindingsSelectionMode: %T", src)
+	}
+	return nil
+}
+
+type NullAppBindingsSelectionMode struct {
+	AppBindingsSelectionMode AppBindingsSelectionMode
+	Valid                    bool // Valid is true if AppBindingsSelectionMode is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullAppBindingsSelectionMode) Scan(value interface{}) error {
+	if value == nil {
+		ns.AppBindingsSelectionMode, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.AppBindingsSelectionMode.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullAppBindingsSelectionMode) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.AppBindingsSelectionMode), nil
+}
+
 type AppRuntimeSettingsShutdownSignal string
 
 const (

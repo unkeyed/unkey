@@ -2,8 +2,10 @@ package deploy_test
 
 import (
 	"context"
+	"database/sql"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/open-feature/go-sdk/openfeature"
 	"github.com/stretchr/testify/require"
@@ -11,7 +13,10 @@ import (
 	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
 	"github.com/unkeyed/unkey/gen/rpc/vault"
 	"github.com/unkeyed/unkey/pkg/featureflag"
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/svc/ctrl/integration/seed"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
 func TestCreatePrivateNetworkingDecision(t *testing.T) {
@@ -142,9 +147,20 @@ func TestCreateApprovalReusesPrivateNetworkingDecision(t *testing.T) {
 		h := newCreateHarness(t, ctx)
 		target := h.newApp(t, ctx)
 		h.bind(t, ctx, h.appID, h.environmentID, target.appID)
-		source := h.imageDeployment(t, ctx, 1)
-		_, err := h.database.RW().ExecContext(ctx, `UPDATE deployments SET capabilities = '{"private_networking":true}' WHERE id = ?`, source.ID)
-		require.NoError(t, err)
+		source := h.seeder.CreateDeployment(ctx, seed.CreateDeploymentRequest{
+			WorkspaceID:   h.workspaceID,
+			ProjectID:     h.projectID,
+			AppID:         h.appID,
+			EnvironmentID: h.environmentID,
+			Status:        mysqltype.DeploymentsStatusReady,
+			CreatedAt:     1,
+			Capabilities:  mysqltype.DeploymentCapabilities{PrivateNetworking: true},
+		})
+		require.NoError(t, h.database.UpdateDeploymentImage(ctx, db.UpdateDeploymentImageParams{
+			ImageResolved: sql.NullString{Valid: true, String: fixtureImage},
+			UpdatedAt:     sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+			ID:            source.ID,
+		}))
 		h.flags.set(h.orgID, 0, false)
 
 		deploymentID := uid.New(uid.DeploymentPrefix)
@@ -159,8 +175,12 @@ func TestCreateApprovalReusesPrivateNetworkingDecision(t *testing.T) {
 
 func (h *createHarness) approve(t *testing.T, ctx context.Context, deploymentID string) {
 	t.Helper()
-	result, err := h.database.RW().ExecContext(ctx,
-		`UPDATE deployments SET status = 'pending' WHERE id = ? AND status = 'awaiting_approval'`, deploymentID)
+	result, err := h.database.CompareAndSwapDeploymentStatus(ctx, db.CompareAndSwapDeploymentStatusParams{
+		NewStatus:      mysqltype.DeploymentsStatusPending,
+		UpdatedAt:      sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+		ID:             deploymentID,
+		ExpectedStatus: mysqltype.DeploymentsStatusAwaitingApproval,
+	})
 	require.NoError(t, err)
 	rows, err := result.RowsAffected()
 	require.NoError(t, err)
@@ -187,11 +207,14 @@ func (h *createHarness) bindOtherApps(t *testing.T, ctx context.Context) {
 
 func (h *createHarness) bind(t *testing.T, ctx context.Context, callerAppID, callerEnvironmentID, targetAppID string) {
 	t.Helper()
-	_, err := h.database.RW().ExecContext(ctx,
-		`INSERT INTO app_bindings (id,workspace_id,project_id,app_id,environment_id,resource_type,resource_id,name,selection_mode,created_at)
-		VALUES (?,?,?,?,?,'app',?,'database','automatic',1)`,
-		uid.New("binding"), h.workspaceID, h.projectID, callerAppID, callerEnvironmentID, targetAppID)
-	require.NoError(t, err)
+	h.seeder.CreateAppBinding(ctx, seed.CreateAppBindingRequest{
+		WorkspaceID:         h.workspaceID,
+		ProjectID:           h.projectID,
+		CallerAppID:         callerAppID,
+		CallerEnvironmentID: callerEnvironmentID,
+		TargetAppID:         targetAppID,
+		Name:                "database",
+	})
 }
 
 type teamFlags struct {

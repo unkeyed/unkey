@@ -955,6 +955,37 @@ type Querier interface {
 	//      ?
 	//  )
 	InsertApp(ctx context.Context, arg InsertAppParams) error
+	//InsertAppBinding
+	//
+	//  INSERT INTO app_bindings (
+	//      id,
+	//      workspace_id,
+	//      project_id,
+	//      app_id,
+	//      environment_id,
+	//      resource_type,
+	//      resource_id,
+	//      name,
+	//      selection_mode,
+	//      target_environment_id,
+	//      target_deployment_id,
+	//      created_at
+	//  )
+	//  VALUES (
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?
+	//  )
+	InsertAppBinding(ctx context.Context, arg InsertAppBindingParams) error
 	//InsertAppEnvironmentVariable
 	//
 	//  INSERT INTO app_environment_variables (id, workspace_id, app_id, environment_id, `key`, value, created_at)
