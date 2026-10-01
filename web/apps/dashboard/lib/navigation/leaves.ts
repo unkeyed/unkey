@@ -129,12 +129,12 @@ export function buildAppLinks(
 ): ResolvedNavLink[] {
   const page = segments[4];
   const scope = { workspaceSlug: slug, projectId, appId };
-  const bindingsLink: ResolvedNavLink = {
-    key: "bindings",
-    label: "Bindings",
-    href: routes.projects.apps.bindings(scope),
+  const connectionsLink: ResolvedNavLink = {
+    key: "connections",
+    label: "Connections",
+    href: routes.projects.apps.connections(scope),
     icon: IconLinkOutline18,
-    isActive: page === "bindings",
+    isActive: page === "connections",
   };
   return [
     {
@@ -158,7 +158,7 @@ export function buildAppLinks(
       icon: IconBracketsSquareDotsOutline18,
       isActive: page === "env-vars",
     },
-    ...(privateNetworkingEnabled ? [bindingsLink] : []),
+    ...(privateNetworkingEnabled ? [connectionsLink] : []),
     {
       key: "policies",
       label: "Policies",

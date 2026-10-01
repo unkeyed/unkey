@@ -12,7 +12,7 @@ import (
 func TestReplicaDiscoveryResolvesReadyPeersAcrossRegions(t *testing.T) {
 	c := catalogForTest()
 	identity := testCaller()
-	addBinding(t, c, "self-"+identity.deployment, "workspace-a", "project-a", "app-caller", "caller", identity.deployment, "self-service", "1")
+	addConnection(t, c, "self-"+identity.deployment, "workspace-a", "project-a", "app-caller", "caller", identity.deployment, "self-service", "1")
 	service := addServiceAndSlice(t, c, "self-service", identity.deployment, "app-caller", types.UID("self-uid"), "10.0.0.2", true)
 	addSlice(t, c, service, "imported-from-other-region", "10.1.0.7", true)
 	addSlice(t, c, service, "unready-peer", "10.1.0.8", false)
@@ -31,7 +31,7 @@ func TestReplicaDiscoveryResolvesReadyPeersAcrossRegions(t *testing.T) {
 
 func TestDiscoveryAnswersDoNotDependOnServicePorts(t *testing.T) {
 	c := catalogForTest()
-	addBinding(t, c, "binding-a", "workspace-a", "project-a", "app-a", "gossip", "deployment-a", "service-a", "1")
+	addConnection(t, c, "connection-a", "workspace-a", "project-a", "app-a", "gossip", "deployment-a", "service-a", "1")
 	service := addServiceAndSlice(t, c, "service-a", "deployment-a", "app-a", types.UID("service-a-uid"), "10.0.0.1", true)
 
 	before, _, err := c.resolve(testCaller(), "gossip")

@@ -618,7 +618,7 @@
                     "group": "Private networking",
                     "pages": [
                       "compute/networking/private-networking",
-                      "compute/networking/private-networking/bindings",
+                      "compute/networking/private-networking/connections",
                       "compute/networking/private-networking/troubleshooting"
                     ]
                   }
@@ -1463,7 +1463,11 @@
     },
     {
       "source": "/networking/private-networking/bindings",
-      "destination": "/compute/networking/private-networking/bindings"
+      "destination": "/compute/networking/private-networking/connections"
+    },
+    {
+      "source": "/compute/networking/private-networking/bindings",
+      "destination": "/compute/networking/private-networking/connections"
     },
     {
       "source": "/networking/private-networking/troubleshooting",

@@ -141,47 +141,47 @@ func (ns NullApisAuthType) Value() (driver.Value, error) {
 	return string(ns.ApisAuthType), nil
 }
 
-type AppBindingsSelectionMode string
+type AppConnectionsSelectionMode string
 
 const (
-	AppBindingsSelectionModeAutomatic   AppBindingsSelectionMode = "automatic"
-	AppBindingsSelectionModeEnvironment AppBindingsSelectionMode = "environment"
-	AppBindingsSelectionModeDeployment  AppBindingsSelectionMode = "deployment"
+	AppConnectionsSelectionModeAutomatic   AppConnectionsSelectionMode = "automatic"
+	AppConnectionsSelectionModeEnvironment AppConnectionsSelectionMode = "environment"
+	AppConnectionsSelectionModeDeployment  AppConnectionsSelectionMode = "deployment"
 )
 
-func (e *AppBindingsSelectionMode) Scan(src interface{}) error {
+func (e *AppConnectionsSelectionMode) Scan(src interface{}) error {
 	switch s := src.(type) {
 	case []byte:
-		*e = AppBindingsSelectionMode(s)
+		*e = AppConnectionsSelectionMode(s)
 	case string:
-		*e = AppBindingsSelectionMode(s)
+		*e = AppConnectionsSelectionMode(s)
 	default:
-		return fmt.Errorf("unsupported scan type for AppBindingsSelectionMode: %T", src)
+		return fmt.Errorf("unsupported scan type for AppConnectionsSelectionMode: %T", src)
 	}
 	return nil
 }
 
-type NullAppBindingsSelectionMode struct {
-	AppBindingsSelectionMode AppBindingsSelectionMode
-	Valid                    bool // Valid is true if AppBindingsSelectionMode is not NULL
+type NullAppConnectionsSelectionMode struct {
+	AppConnectionsSelectionMode AppConnectionsSelectionMode
+	Valid                       bool // Valid is true if AppConnectionsSelectionMode is not NULL
 }
 
 // Scan implements the Scanner interface.
-func (ns *NullAppBindingsSelectionMode) Scan(value interface{}) error {
+func (ns *NullAppConnectionsSelectionMode) Scan(value interface{}) error {
 	if value == nil {
-		ns.AppBindingsSelectionMode, ns.Valid = "", false
+		ns.AppConnectionsSelectionMode, ns.Valid = "", false
 		return nil
 	}
 	ns.Valid = true
-	return ns.AppBindingsSelectionMode.Scan(value)
+	return ns.AppConnectionsSelectionMode.Scan(value)
 }
 
 // Value implements the driver Valuer interface.
-func (ns NullAppBindingsSelectionMode) Value() (driver.Value, error) {
+func (ns NullAppConnectionsSelectionMode) Value() (driver.Value, error) {
 	if !ns.Valid {
 		return nil, nil
 	}
-	return string(ns.AppBindingsSelectionMode), nil
+	return string(ns.AppConnectionsSelectionMode), nil
 }
 
 type AppRuntimeSettingsShutdownSignal string

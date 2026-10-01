@@ -77,9 +77,9 @@ export const projectRoutes = {
       );
     },
 
-    bindings(scope: AppScope): Route {
+    connections(scope: AppScope): Route {
       return buildRoute(
-        "/[workspaceSlug]/projects/[projectId]/apps/[appId]/bindings",
+        "/[workspaceSlug]/projects/[projectId]/apps/[appId]/connections",
         appParams(scope),
       );
     },

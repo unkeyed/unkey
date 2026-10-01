@@ -13,12 +13,12 @@ import (
 	dnswire "codeberg.org/miekg/dns"
 	"codeberg.org/miekg/dns/dnsutil"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/unkeyed/unkey/pkg/deploy/appbinding"
+	"github.com/unkeyed/unkey/pkg/deploy/appconnection"
 	"github.com/unkeyed/unkey/pkg/logger"
 )
 
 const (
-	privateZone = appbinding.Zone + "."
+	privateZone = appconnection.Zone + "."
 
 	pathPrivate = "private"
 	pathPublic  = "public"

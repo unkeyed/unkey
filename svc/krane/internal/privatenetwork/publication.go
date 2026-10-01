@@ -7,7 +7,7 @@ import (
 	"strconv"
 
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
-	"github.com/unkeyed/unkey/pkg/deploy/appbinding"
+	"github.com/unkeyed/unkey/pkg/deploy/appconnection"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/svc/krane/pkg/labels"
 	corev1 "k8s.io/api/core/v1"
@@ -28,22 +28,22 @@ func (r *Reconciler) namespaces(ctx context.Context) (map[string]struct{}, error
 	return namespaces, nil
 }
 
-func targetAppLabels(bindingSpec *ctrlv1.PrivateNetworkBinding) labels.Labels {
+func targetAppLabels(connectionSpec *ctrlv1.PrivateNetworkConnection) labels.Labels {
 	return labels.New().
 		ManagedByKrane().
-		WorkspaceID(bindingSpec.GetWorkspaceId()).
-		ProjectID(bindingSpec.GetProjectId()).
-		AppID(bindingSpec.GetTargetAppId())
+		WorkspaceID(connectionSpec.GetWorkspaceId()).
+		ProjectID(connectionSpec.GetProjectId()).
+		AppID(connectionSpec.GetTargetAppId())
 }
 
-func (r *Reconciler) ensureService(ctx context.Context, bindingSpec *ctrlv1.PrivateNetworkBinding, name string, existing *corev1.Service) (*corev1.Service, error) {
-	client := r.client.CoreV1().Services(bindingSpec.GetK8SNamespace())
-	desiredLabels := targetAppLabels(bindingSpec).DeploymentID(bindingSpec.GetTargetDeploymentId())
+func (r *Reconciler) ensureService(ctx context.Context, connectionSpec *ctrlv1.PrivateNetworkConnection, name string, existing *corev1.Service) (*corev1.Service, error) {
+	client := r.client.CoreV1().Services(connectionSpec.GetK8SNamespace())
+	desiredLabels := targetAppLabels(connectionSpec).DeploymentID(connectionSpec.GetTargetDeploymentId())
 	desiredLabels[labels.LabelKeyComponent] = component
 	desired := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        name,
-			Namespace:   bindingSpec.GetK8SNamespace(),
+			Namespace:   connectionSpec.GetK8SNamespace(),
 			Labels:      desiredLabels,
 			Annotations: map[string]string{ciliumGlobal: "true", ciliumGlobalSlices: "true"},
 		},
@@ -51,8 +51,8 @@ func (r *Reconciler) ensureService(ctx context.Context, bindingSpec *ctrlv1.Priv
 			ClusterIP: corev1.ClusterIPNone,
 			Ports: []corev1.ServicePort{{
 				Name:       "app",
-				Port:       bindingSpec.GetTargetPort(),
-				TargetPort: intstr.FromInt32(bindingSpec.GetTargetPort()),
+				Port:       connectionSpec.GetTargetPort(),
+				TargetPort: intstr.FromInt32(connectionSpec.GetTargetPort()),
 				Protocol:   corev1.ProtocolTCP,
 			}},
 			PublishNotReadyAddresses: false,
@@ -60,8 +60,8 @@ func (r *Reconciler) ensureService(ctx context.Context, bindingSpec *ctrlv1.Priv
 	}
 
 	if existing != nil {
-		if !ownedByTargetApp(existing.Labels, bindingSpec) {
-			return nil, fmt.Errorf("refuse to replace foreign Service %s/%s", bindingSpec.GetK8SNamespace(), name)
+		if !ownedByTargetApp(existing.Labels, connectionSpec) {
+			return nil, fmt.Errorf("refuse to replace foreign Service %s/%s", connectionSpec.GetK8SNamespace(), name)
 		}
 
 		if maps.Equal(existing.Labels, desired.Labels) && maps.Equal(existing.Annotations, desired.Annotations) &&
@@ -78,24 +78,24 @@ func (r *Reconciler) ensureService(ctx context.Context, bindingSpec *ctrlv1.Priv
 		desired.Spec.IPFamilyPolicy = existing.Spec.IPFamilyPolicy
 		updated, err := client.Update(ctx, desired, metav1.UpdateOptions{FieldManager: fieldManager})
 		if err != nil {
-			return nil, fmt.Errorf("update private network Service %s/%s: %w", bindingSpec.GetK8SNamespace(), name, err)
+			return nil, fmt.Errorf("update private network Service %s/%s: %w", connectionSpec.GetK8SNamespace(), name, err)
 		}
 		return updated, nil
 	}
 
 	created, err := client.Create(ctx, desired, metav1.CreateOptions{FieldManager: fieldManager})
 	if err != nil {
-		return nil, fmt.Errorf("create private network Service %s/%s: %w", bindingSpec.GetK8SNamespace(), name, err)
+		return nil, fmt.Errorf("create private network Service %s/%s: %w", connectionSpec.GetK8SNamespace(), name, err)
 	}
 	return created, nil
 }
 
-func (r *Reconciler) ensureBinding(ctx context.Context, bindingSpec *ctrlv1.PrivateNetworkBinding, name string, service *corev1.Service, existing *corev1.ConfigMap) (*corev1.ConfigMap, error) {
-	client := r.client.CoreV1().ConfigMaps(bindingSpec.GetK8SNamespace())
-	key := bindingSpec.GetK8SNamespace() + "/" + name
+func (r *Reconciler) ensureConnection(ctx context.Context, connectionSpec *ctrlv1.PrivateNetworkConnection, name string, service *corev1.Service, existing *corev1.ConfigMap) (*corev1.ConfigMap, error) {
+	client := r.client.CoreV1().ConfigMaps(connectionSpec.GetK8SNamespace())
+	key := connectionSpec.GetK8SNamespace() + "/" + name
 	desiredData := map[string]string{
-		"appSlug":      bindingSpec.GetBindingName(),
-		"deploymentId": bindingSpec.GetTargetDeploymentId(),
+		"appSlug":      connectionSpec.GetConnectionName(),
+		"deploymentId": connectionSpec.GetTargetDeploymentId(),
 		"serviceName":  "",
 	}
 	if service != nil {
@@ -103,22 +103,22 @@ func (r *Reconciler) ensureBinding(ctx context.Context, bindingSpec *ctrlv1.Priv
 	}
 
 	if existing != nil {
-		if !owned(existing.Labels) || existing.Labels[labels.LabelKeyWorkspaceID] != bindingSpec.GetWorkspaceId() ||
-			existing.Labels[labels.LabelKeyProjectID] != bindingSpec.GetProjectId() ||
-			existing.Labels[labels.LabelKeyBindingID] != bindingSpec.GetBindingId() ||
-			existing.Labels[labels.LabelKeyCallerDeploymentID] != bindingSpec.GetCallerDeploymentId() {
+		if !owned(existing.Labels) || existing.Labels[labels.LabelKeyWorkspaceID] != connectionSpec.GetWorkspaceId() ||
+			existing.Labels[labels.LabelKeyProjectID] != connectionSpec.GetProjectId() ||
+			existing.Labels[labels.LabelKeyConnectionID] != connectionSpec.GetConnectionId() ||
+			existing.Labels[labels.LabelKeyCallerDeploymentID] != connectionSpec.GetCallerDeploymentId() {
 			return nil, fmt.Errorf("refuse to replace foreign ConfigMap %s", key)
 		}
 		revision, parseErr := strconv.ParseUint(existing.Data["revision"], 10, 64)
 		if parseErr != nil || revision == 0 {
-			return nil, fmt.Errorf("invalid existing binding revision for %s", key)
+			return nil, fmt.Errorf("invalid existing connection revision for %s", key)
 		}
 
-		if existing.Data["appSlug"] == desiredData["appSlug"] && existing.Data["deploymentId"] == desiredData["deploymentId"] && existing.Data["serviceName"] == desiredData["serviceName"] && maps.Equal(existing.Labels, bindingLabels(bindingSpec)) {
+		if existing.Data["appSlug"] == desiredData["appSlug"] && existing.Data["deploymentId"] == desiredData["deploymentId"] && existing.Data["serviceName"] == desiredData["serviceName"] && maps.Equal(existing.Labels, connectionLabels(connectionSpec)) {
 			return existing, nil
 		}
 
-		if service != nil && existing.Data["appSlug"] == desiredData["appSlug"] && maps.Equal(existing.Labels, bindingLabels(bindingSpec)) {
+		if service != nil && existing.Data["appSlug"] == desiredData["appSlug"] && maps.Equal(existing.Labels, connectionLabels(connectionSpec)) {
 			ready, err := r.hasReadyEndpoints(ctx, service)
 			if err != nil {
 				return nil, err
@@ -129,39 +129,39 @@ func (r *Reconciler) ensureBinding(ctx context.Context, bindingSpec *ctrlv1.Priv
 		}
 
 		if revision == ^uint64(0) {
-			return nil, fmt.Errorf("binding revision exhausted for %s", key)
+			return nil, fmt.Errorf("connection revision exhausted for %s", key)
 		}
 		desiredData["revision"] = strconv.FormatUint(revision+1, 10)
 		desired := &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{
-			Name: name, Namespace: bindingSpec.GetK8SNamespace(), Labels: bindingLabels(bindingSpec),
+			Name: name, Namespace: connectionSpec.GetK8SNamespace(), Labels: connectionLabels(connectionSpec),
 			ResourceVersion: existing.ResourceVersion, UID: existing.UID,
 		}, Data: desiredData}
 		updated, err := client.Update(ctx, desired, metav1.UpdateOptions{FieldManager: fieldManager})
 		if err != nil {
-			return nil, fmt.Errorf("update private network binding %s: %w", key, err)
+			return nil, fmt.Errorf("update private network connection %s: %w", key, err)
 		}
-		logBindingPublished(bindingSpec, key, existing.Data["deploymentId"], updated)
+		logConnectionPublished(connectionSpec, key, existing.Data["deploymentId"], updated)
 		return updated, nil
 	}
 
 	desiredData["revision"] = "1"
 	desired := &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{
-		Name: name, Namespace: bindingSpec.GetK8SNamespace(), Labels: bindingLabels(bindingSpec),
+		Name: name, Namespace: connectionSpec.GetK8SNamespace(), Labels: connectionLabels(connectionSpec),
 	}, Data: desiredData}
 	created, err := client.Create(ctx, desired, metav1.CreateOptions{FieldManager: fieldManager})
 	if err != nil {
-		return nil, fmt.Errorf("create private network binding %s: %w", key, err)
+		return nil, fmt.Errorf("create private network connection %s: %w", key, err)
 	}
-	logBindingPublished(bindingSpec, key, "", created)
+	logConnectionPublished(connectionSpec, key, "", created)
 	return created, nil
 }
 
-func logBindingPublished(bindingSpec *ctrlv1.PrivateNetworkBinding, key, previousDeployment string, binding *corev1.ConfigMap) {
-	logger.Info("private network binding published",
-		"binding_key", key, "kind", entryKind(bindingSpec), "workspace_id", bindingSpec.GetWorkspaceId(),
-		"binding_id", bindingSpec.GetBindingId(), "caller_deployment_id", bindingSpec.GetCallerDeploymentId(),
-		"alias", bindingSpec.GetBindingName(), "previous_deployment_id", previousDeployment,
-		"deployment_id", binding.Data["deploymentId"], "revision", binding.Data["revision"])
+func logConnectionPublished(connectionSpec *ctrlv1.PrivateNetworkConnection, key, previousDeployment string, connection *corev1.ConfigMap) {
+	logger.Info("private network connection published",
+		"connection_key", key, "kind", entryKind(connectionSpec), "workspace_id", connectionSpec.GetWorkspaceId(),
+		"connection_id", connectionSpec.GetConnectionId(), "caller_deployment_id", connectionSpec.GetCallerDeploymentId(),
+		"alias", connectionSpec.GetConnectionName(), "previous_deployment_id", previousDeployment,
+		"deployment_id", connection.Data["deploymentId"], "revision", connection.Data["revision"])
 }
 
 func (r *Reconciler) hasReadyEndpoints(ctx context.Context, service *corev1.Service) (bool, error) {
@@ -172,17 +172,17 @@ func (r *Reconciler) hasReadyEndpoints(ctx context.Context, service *corev1.Serv
 		return false, fmt.Errorf("check discovery readiness for %s/%s: %w", service.Namespace, service.Name, err)
 	}
 	for i := range slices.Items {
-		if len(appbinding.AppendReadyAddresses(nil, service, &slices.Items[i])) > 0 {
+		if len(appconnection.AppendReadyAddresses(nil, service, &slices.Items[i])) > 0 {
 			return true, nil
 		}
 	}
 	return false, nil
 }
 
-func bindingLabels(bindingSpec *ctrlv1.PrivateNetworkBinding) labels.Labels {
-	l := targetAppLabels(bindingSpec)
+func connectionLabels(connectionSpec *ctrlv1.PrivateNetworkConnection) labels.Labels {
+	l := targetAppLabels(connectionSpec)
 	l[labels.LabelKeyComponent] = component
-	l[labels.LabelKeyCallerDeploymentID] = bindingSpec.GetCallerDeploymentId()
-	l[labels.LabelKeyBindingID] = bindingSpec.GetBindingId()
+	l[labels.LabelKeyCallerDeploymentID] = connectionSpec.GetCallerDeploymentId()
+	l[labels.LabelKeyConnectionID] = connectionSpec.GetConnectionId()
 	return l
 }

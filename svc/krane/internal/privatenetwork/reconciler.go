@@ -168,9 +168,9 @@ func (r *Reconciler) reconcile(ctx context.Context) error {
 	if err != nil {
 		return countError(loopDiscovery, stageList, fmt.Errorf("list private network Services: %w", err))
 	}
-	bindings, err := r.client.CoreV1().ConfigMaps("").List(ctx, metav1.ListOptions{LabelSelector: selector.ToString()})
+	connections, err := r.client.CoreV1().ConfigMaps("").List(ctx, metav1.ListOptions{LabelSelector: selector.ToString()})
 	if err != nil {
-		return countError(loopDiscovery, stageList, fmt.Errorf("list private network bindings: %w", err))
+		return countError(loopDiscovery, stageList, fmt.Errorf("list private network connections: %w", err))
 	}
 
 	servicesByKey := make(map[string]*corev1.Service, len(services.Items))
@@ -178,17 +178,17 @@ func (r *Reconciler) reconcile(ctx context.Context) error {
 		service := &services.Items[i]
 		servicesByKey[service.Namespace+"/"+service.Name] = service
 	}
-	bindingsByKey := make(map[string]*corev1.ConfigMap, len(bindings.Items))
-	for i := range bindings.Items {
-		binding := &bindings.Items[i]
-		bindingsByKey[binding.Namespace+"/"+binding.Name] = binding
+	connectionsByKey := make(map[string]*corev1.ConfigMap, len(connections.Items))
+	for i := range connections.Items {
+		connection := &connections.Items[i]
+		connectionsByKey[connection.Namespace+"/"+connection.Name] = connection
 	}
 
 	snapshot, err := r.snapshot(ctx)
 	if err != nil {
 		return countError(loopDiscovery, stageSnapshot, err)
 	}
-	snapshotBindings, rejected := validateSnapshot(snapshot)
+	snapshotConnections, rejected := validateSnapshot(snapshot)
 
 	r.endpointMu.Lock()
 	defer r.endpointMu.Unlock()
@@ -205,72 +205,72 @@ func (r *Reconciler) reconcile(ctx context.Context) error {
 		return countError(loopDiscovery, stageList, err)
 	}
 
-	desiredServices := make(map[string]struct{}, len(snapshotBindings))
-	desiredBindings := make(map[string]struct{}, len(snapshotBindings))
-	desiredPolicies := make(map[string]struct{}, len(snapshotBindings))
-	ensuredServices := make(map[string]struct{}, len(snapshotBindings))
+	desiredServices := make(map[string]struct{}, len(snapshotConnections))
+	desiredConnections := make(map[string]struct{}, len(snapshotConnections))
+	desiredPolicies := make(map[string]struct{}, len(snapshotConnections))
+	ensuredServices := make(map[string]struct{}, len(snapshotConnections))
 	entries := make(map[string]entryStatus, len(snapshot))
 	var untracked []entryStatus
-	retain := func(bindingKey string) {
-		desiredBindings[bindingKey] = struct{}{}
-		desiredPolicies[bindingKey] = struct{}{}
-		if existing := bindingsByKey[bindingKey]; existing != nil && existing.Data["serviceName"] != "" {
+	retain := func(connectionKey string) {
+		desiredConnections[connectionKey] = struct{}{}
+		desiredPolicies[connectionKey] = struct{}{}
+		if existing := connectionsByKey[connectionKey]; existing != nil && existing.Data["serviceName"] != "" {
 			desiredServices[existing.Namespace+"/"+existing.Data["serviceName"]] = struct{}{}
 		}
 	}
 
-	bindingErrs := make([]error, 0, len(rejected))
-	fail := func(bindingSpec *ctrlv1.PrivateNetworkBinding, bindingKey, stage string, err error) {
-		bindingErrs = append(bindingErrs, countError(loopDiscovery, stage, err))
-		entry := entryStatus{kind: entryKind(bindingSpec), state: stateFailed, stage: stage, err: err, bindingSpec: bindingSpec, publishedDeployment: ""}
-		if bindingKey == "" {
+	connectionErrs := make([]error, 0, len(rejected))
+	fail := func(connectionSpec *ctrlv1.PrivateNetworkConnection, connectionKey, stage string, err error) {
+		connectionErrs = append(connectionErrs, countError(loopDiscovery, stage, err))
+		entry := entryStatus{kind: entryKind(connectionSpec), state: stateFailed, stage: stage, err: err, connectionSpec: connectionSpec, publishedDeployment: ""}
+		if connectionKey == "" {
 			untracked = append(untracked, entry)
 			return
 		}
-		if existing := bindingsByKey[bindingKey]; existing != nil {
+		if existing := connectionsByKey[connectionKey]; existing != nil {
 			entry.publishedDeployment = existing.Data["deploymentId"]
 		}
-		entries[bindingKey] = entry
-		retain(bindingKey)
+		entries[connectionKey] = entry
+		retain(connectionKey)
 	}
 
 	for _, rejection := range rejected {
-		fail(rejection.bindingSpec, rejection.retainedBindingKey, stageInvalidEntry, rejection.err)
+		fail(rejection.connectionSpec, rejection.retainedConnectionKey, stageInvalidEntry, rejection.err)
 	}
 
-	for _, bindingSpec := range snapshotBindings {
+	for _, connectionSpec := range snapshotConnections {
 		if err := ctx.Err(); err != nil {
-			return errors.Join(append(bindingErrs, err)...)
+			return errors.Join(append(connectionErrs, err)...)
 		}
 
-		bindingName := bindingResourceName(bindingSpec)
-		bindingKey := bindingSpec.GetK8SNamespace() + "/" + bindingName
+		connectionName := connectionResourceName(connectionSpec)
+		connectionKey := connectionSpec.GetK8SNamespace() + "/" + connectionName
 
-		if _, exists := namespaces[bindingSpec.GetK8SNamespace()]; !exists {
+		if _, exists := namespaces[connectionSpec.GetK8SNamespace()]; !exists {
 			_, err := r.client.CoreV1().Namespaces().Create(ctx, &corev1.Namespace{
-				ObjectMeta: metav1.ObjectMeta{Name: bindingSpec.GetK8SNamespace()},
+				ObjectMeta: metav1.ObjectMeta{Name: connectionSpec.GetK8SNamespace()},
 			}, metav1.CreateOptions{})
 			if err != nil && !apierrors.IsAlreadyExists(err) {
-				fail(bindingSpec, bindingKey, stageNamespace, fmt.Errorf("ensure private network namespace %s: %w", bindingSpec.GetK8SNamespace(), err))
+				fail(connectionSpec, connectionKey, stageNamespace, fmt.Errorf("ensure private network namespace %s: %w", connectionSpec.GetK8SNamespace(), err))
 				continue
 			}
-			namespaces[bindingSpec.GetK8SNamespace()] = struct{}{}
+			namespaces[connectionSpec.GetK8SNamespace()] = struct{}{}
 		}
 
 		var service *corev1.Service
-		if bindingSpec.GetTargetDeploymentId() != "" {
-			name := discoveryName(bindingSpec.GetTargetDeploymentId(), bindingSpec.GetTargetPort())
-			serviceKey := bindingSpec.GetK8SNamespace() + "/" + name
+		if connectionSpec.GetTargetDeploymentId() != "" {
+			name := discoveryName(connectionSpec.GetTargetDeploymentId(), connectionSpec.GetTargetPort())
+			serviceKey := connectionSpec.GetK8SNamespace() + "/" + name
 			if _, ensured := ensuredServices[serviceKey]; !ensured {
-				ensuredService, err := r.ensureService(ctx, bindingSpec, name, servicesByKey[serviceKey])
+				ensuredService, err := r.ensureService(ctx, connectionSpec, name, servicesByKey[serviceKey])
 				if err != nil {
-					fail(bindingSpec, bindingKey, stageService, err)
+					fail(connectionSpec, connectionKey, stageService, err)
 					continue
 				}
 				servicesByKey[serviceKey] = ensuredService
 				if err := r.ensureEndpoints(ctx, ensuredService, pods, sourceSlices[serviceKey]); err != nil {
 					desiredServices[serviceKey] = struct{}{}
-					fail(bindingSpec, bindingKey, stageEndpointSlice, err)
+					fail(connectionSpec, connectionKey, stageEndpointSlice, err)
 					continue
 				}
 				ensuredServices[serviceKey] = struct{}{}
@@ -279,28 +279,28 @@ func (r *Reconciler) reconcile(ctx context.Context) error {
 			service = servicesByKey[serviceKey]
 		}
 
-		if err := r.ensurePolicy(ctx, bindingSpec, bindingName, bindingsByKey[bindingKey]); err != nil {
-			fail(bindingSpec, bindingKey, stagePolicy, err)
+		if err := r.ensurePolicy(ctx, connectionSpec, connectionName, connectionsByKey[connectionKey]); err != nil {
+			fail(connectionSpec, connectionKey, stagePolicy, err)
 			continue
 		}
-		binding, err := r.ensureBinding(ctx, bindingSpec, bindingName, service, bindingsByKey[bindingKey])
+		connection, err := r.ensureConnection(ctx, connectionSpec, connectionName, service, connectionsByKey[connectionKey])
 		if err != nil {
-			fail(bindingSpec, bindingKey, stageBinding, err)
+			fail(connectionSpec, connectionKey, stageConnection, err)
 			continue
 		}
 
-		if binding.Data["serviceName"] != "" {
-			desiredServices[binding.Namespace+"/"+binding.Data["serviceName"]] = struct{}{}
+		if connection.Data["serviceName"] != "" {
+			desiredServices[connection.Namespace+"/"+connection.Data["serviceName"]] = struct{}{}
 		}
-		desiredBindings[bindingKey] = struct{}{}
-		desiredPolicies[bindingKey] = struct{}{}
-		entries[bindingKey] = publishedEntry(bindingSpec, binding)
+		desiredConnections[connectionKey] = struct{}{}
+		desiredPolicies[connectionKey] = struct{}{}
+		entries[connectionKey] = publishedEntry(connectionSpec, connection)
 	}
 
 	if err := r.cleanupPolicies(ctx, desiredPolicies); err != nil {
-		bindingErrs = append(bindingErrs, countError(loopDiscovery, stageCleanup, err))
-	} else if err := r.cleanup(ctx, services, bindings, desiredServices, desiredBindings); err != nil {
-		bindingErrs = append(bindingErrs, countError(loopDiscovery, stageCleanup, err))
+		connectionErrs = append(connectionErrs, countError(loopDiscovery, stageCleanup, err))
+	} else if err := r.cleanup(ctx, services, connections, desiredServices, desiredConnections); err != nil {
+		connectionErrs = append(connectionErrs, countError(loopDiscovery, stageCleanup, err))
 	}
 
 	completed = true
@@ -308,21 +308,21 @@ func (r *Reconciler) reconcile(ctx context.Context) error {
 	logEntryChanges(r.entries, entries)
 	r.entries = entries
 
-	if len(bindingErrs) > 0 {
-		return fmt.Errorf("reconcile private network bindings, failed bindings kept their published objects: %w", errors.Join(bindingErrs...))
+	if len(connectionErrs) > 0 {
+		return fmt.Errorf("reconcile private network connections, failed connections kept their published objects: %w", errors.Join(connectionErrs...))
 	}
 	return nil
 }
 
-func publishedEntry(bindingSpec *ctrlv1.PrivateNetworkBinding, binding *corev1.ConfigMap) entryStatus {
+func publishedEntry(connectionSpec *ctrlv1.PrivateNetworkConnection, connection *corev1.ConfigMap) entryStatus {
 	entry := entryStatus{
-		kind: entryKind(bindingSpec), state: stateCurrent, stage: "", err: nil, bindingSpec: bindingSpec,
-		publishedDeployment: binding.Data["deploymentId"],
+		kind: entryKind(connectionSpec), state: stateCurrent, stage: "", err: nil, connectionSpec: connectionSpec,
+		publishedDeployment: connection.Data["deploymentId"],
 	}
 	switch {
-	case bindingSpec.GetTargetDeploymentId() == "":
+	case connectionSpec.GetTargetDeploymentId() == "":
 		entry.state = stateUnresolved
-	case entry.publishedDeployment != bindingSpec.GetTargetDeploymentId():
+	case entry.publishedDeployment != connectionSpec.GetTargetDeploymentId():
 		entry.state = stateWaitingForEndpoints
 	}
 	return entry

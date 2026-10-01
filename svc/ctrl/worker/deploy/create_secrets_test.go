@@ -13,14 +13,14 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
-type bindingVault struct {
+type connectionVault struct {
 	vault.VaultServiceClient
 	request *vaultv1.EncryptBulkRequest
 	err     error
 	omit    bool
 }
 
-func (v *bindingVault) EncryptBulk(_ context.Context, request *vaultv1.EncryptBulkRequest) (*vaultv1.EncryptBulkResponse, error) {
+func (v *connectionVault) EncryptBulk(_ context.Context, request *vaultv1.EncryptBulkRequest) (*vaultv1.EncryptBulkResponse, error) {
 	v.request = request
 	if v.err != nil {
 		return nil, v.err
@@ -36,8 +36,8 @@ func (v *bindingVault) EncryptBulk(_ context.Context, request *vaultv1.EncryptBu
 	return &vaultv1.EncryptBulkResponse{Items: items}, nil
 }
 
-func TestBuildSecretsBlobBindingHostsOverrideUserValues(t *testing.T) {
-	v := &bindingVault{}
+func TestBuildSecretsBlobConnectionHostsOverrideUserValues(t *testing.T) {
+	v := &connectionVault{}
 	w := &Workflow{vault: v}
 
 	blob, err := w.buildSecretsBlob(t.Context(), "env_123",
@@ -45,7 +45,7 @@ func TestBuildSecretsBlobBindingHostsOverrideUserValues(t *testing.T) {
 			{Key: "EXISTING", Value: "encrypted-existing"},
 			{Key: "DATABASE_HOST", Value: "encrypted-stale-host"},
 		},
-		[]db.ListAppBindingsByAppRow{{Name: "database"}, {Name: "event-store"}},
+		[]db.ListAppConnectionsByAppRow{{Name: "database"}, {Name: "event-store"}},
 	)
 	require.NoError(t, err)
 
@@ -65,22 +65,22 @@ func TestBuildSecretsBlobBindingHostsOverrideUserValues(t *testing.T) {
 	require.NotContains(t, string(blob), "database.unkey.internal")
 }
 
-func TestBuildSecretsBlobRejectsUnsafeBindings(t *testing.T) {
+func TestBuildSecretsBlobRejectsUnsafeConnections(t *testing.T) {
 	tests := []struct {
-		name     string
-		workflow *Workflow
-		binding  string
+		name       string
+		workflow   *Workflow
+		connection string
 	}{
-		{name: "reserved prefix", workflow: &Workflow{vault: &bindingVault{}}, binding: "unkey-internal"},
-		{name: "leading digit", workflow: &Workflow{vault: &bindingVault{}}, binding: "1db"},
-		{name: "missing vault", workflow: &Workflow{}, binding: "api"},
-		{name: "vault failure", workflow: &Workflow{vault: &bindingVault{err: errors.New("unavailable")}}, binding: "api"},
-		{name: "vault omission", workflow: &Workflow{vault: &bindingVault{omit: true}}, binding: "api"},
+		{name: "reserved prefix", workflow: &Workflow{vault: &connectionVault{}}, connection: "unkey-internal"},
+		{name: "leading digit", workflow: &Workflow{vault: &connectionVault{}}, connection: "1db"},
+		{name: "missing vault", workflow: &Workflow{}, connection: "api"},
+		{name: "vault failure", workflow: &Workflow{vault: &connectionVault{err: errors.New("unavailable")}}, connection: "api"},
+		{name: "vault omission", workflow: &Workflow{vault: &connectionVault{omit: true}}, connection: "api"},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			_, err := test.workflow.buildSecretsBlob(t.Context(), "env", nil, []db.ListAppBindingsByAppRow{{Name: test.binding}})
+			_, err := test.workflow.buildSecretsBlob(t.Context(), "env", nil, []db.ListAppConnectionsByAppRow{{Name: test.connection}})
 			require.Error(t, err)
 		})
 	}

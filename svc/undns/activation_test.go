@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/pkg/deploy/appbinding"
+	"github.com/unkeyed/unkey/pkg/deploy/appconnection"
 	"github.com/unkeyed/unkey/svc/krane/pkg/labels"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -16,24 +16,24 @@ import (
 
 func TestActivationHandlesIndependentDiscoveryObservations(t *testing.T) {
 	for _, order := range [][]string{
-		{"binding", "service", "slice"}, {"binding", "slice", "service"},
-		{"service", "binding", "slice"}, {"service", "slice", "binding"},
-		{"slice", "binding", "service"}, {"slice", "service", "binding"},
+		{"connection", "service", "slice"}, {"connection", "slice", "service"},
+		{"service", "connection", "slice"}, {"service", "slice", "connection"},
+		{"slice", "connection", "service"}, {"slice", "service", "connection"},
 	} {
 		t.Run(fmt.Sprint(order), func(t *testing.T) {
 			c := catalogForTest()
 			identity := testCaller()
-			addBinding(t, c, "binding", identity.workspace, identity.project, "app-a", "payments", "a", "a", "1")
+			addConnection(t, c, "connection", identity.workspace, identity.project, "app-a", "payments", "a", "a", "1")
 			addServiceAndSlice(t, c, "a", "a", "app-a", "uid-a", "10.0.0.11", true)
 			addresses, _, err := c.resolve(identity, "payments")
 			require.NoError(t, err)
 			require.Equal(t, []netip.Addr{netip.MustParseAddr("10.0.0.11")}, addresses)
 
 			staged := catalogForTest()
-			addBinding(t, staged, "binding", identity.workspace, identity.project, "app-a", "payments", "b", "b", "2")
+			addConnection(t, staged, "connection", identity.workspace, identity.project, "app-a", "payments", "b", "b", "2")
 			service := addServiceAndSlice(t, staged, "b", "b", "app-a", "uid-b", "10.0.0.22", true)
 
-			binding, found, err := staged.bindings.GetStore().GetByKey("default/binding")
+			connection, found, err := staged.connections.GetStore().GetByKey("default/connection")
 			require.NoError(t, err)
 			require.True(t, found)
 			slice, found, err := staged.slices.GetStore().GetByKey("default/b")
@@ -42,8 +42,8 @@ func TestActivationHandlesIndependentDiscoveryObservations(t *testing.T) {
 
 			for i, event := range order {
 				switch event {
-				case "binding":
-					require.NoError(t, c.bindings.GetStore().Update(binding))
+				case "connection":
+					require.NoError(t, c.connections.GetStore().Update(connection))
 				case "service":
 					require.NoError(t, c.services.GetStore().Add(service))
 				case "slice":
@@ -68,13 +68,13 @@ func TestActivationHandlesIndependentDiscoveryObservations(t *testing.T) {
 func TestActivationSkipsUnreadyRevisionAndNeverImplicitlyRollsBack(t *testing.T) {
 	c := catalogForTest()
 	identity := testCaller()
-	addBinding(t, c, "binding", identity.workspace, identity.project, "app-a", "payments", "a", "a", "1")
+	addConnection(t, c, "connection", identity.workspace, identity.project, "app-a", "payments", "a", "a", "1")
 	addServiceAndSlice(t, c, "a", "a", "app-a", "uid-a", "10.0.0.11", true)
 	_, _, err := c.resolve(identity, "payments")
 	require.NoError(t, err)
 
-	updateBinding(t, c, "binding", "b", "missing-b", "2")
-	updateBinding(t, c, "binding", "c", "missing-c", "3")
+	updateConnection(t, c, "connection", "b", "missing-b", "2")
+	updateConnection(t, c, "connection", "c", "missing-c", "3")
 	addresses, _, err := c.resolve(identity, "payments")
 	require.NoError(t, err)
 	require.Equal(t, []netip.Addr{netip.MustParseAddr("10.0.0.11")}, addresses)
@@ -83,7 +83,7 @@ func TestActivationSkipsUnreadyRevisionAndNeverImplicitlyRollsBack(t *testing.T)
 	require.NoError(t, err)
 	require.Equal(t, []netip.Addr{netip.MustParseAddr("10.0.0.33")}, addresses)
 
-	updateBinding(t, c, "binding", "a", "a", "1")
+	updateConnection(t, c, "connection", "a", "a", "1")
 	addresses, _, err = c.resolve(identity, "payments")
 	require.NoError(t, err)
 	require.Equal(t, []netip.Addr{netip.MustParseAddr("10.0.0.33")}, addresses)
@@ -92,10 +92,10 @@ func TestActivationSkipsUnreadyRevisionAndNeverImplicitlyRollsBack(t *testing.T)
 func TestBackgroundActivationChecksReadinessAndAllowsExplicitRollback(t *testing.T) {
 	c := catalogForTest()
 	identity := testCaller()
-	addBinding(t, c, "binding", identity.workspace, identity.project, "app-a", "payments", "a", "a", "1")
+	addConnection(t, c, "connection", identity.workspace, identity.project, "app-a", "payments", "a", "a", "1")
 	addServiceAndSlice(t, c, "a", "a", "app-a", "uid-a", "10.0.0.11", true)
 	c.activate()
-	updateBinding(t, c, "binding", "b", "b", "2")
+	updateConnection(t, c, "connection", "b", "b", "2")
 	b := addServiceAndSlice(t, c, "b", "b", "app-a", "uid-b", "10.0.0.22", false)
 	c.activate()
 	addresses, _, err := c.resolve(identity, "payments")
@@ -107,54 +107,54 @@ func TestBackgroundActivationChecksReadinessAndAllowsExplicitRollback(t *testing
 	addSlice(t, c, b, "b", "10.0.0.22", false)
 	_, _, err = c.resolve(identity, "payments")
 	require.Error(t, err, "B activated without a query, so its failure must not revive A")
-	updateBinding(t, c, "binding", "a", "a", "2")
+	updateConnection(t, c, "connection", "a", "a", "2")
 	_, _, err = c.resolve(identity, "payments")
 	require.Error(t, err, "rollback requires a new revision")
-	updateBinding(t, c, "binding", "a", "a", "3")
+	updateConnection(t, c, "connection", "a", "a", "3")
 	addresses, _, err = c.resolve(identity, "payments")
 	require.NoError(t, err)
 	require.Equal(t, []netip.Addr{netip.MustParseAddr("10.0.0.11")}, addresses)
 }
 
-func updateBinding(t *testing.T, c *catalog, name, deployment, service, revision string) {
+func updateConnection(t *testing.T, c *catalog, name, deployment, service, revision string) {
 	t.Helper()
-	object, found, err := c.bindings.GetStore().GetByKey("default/" + name)
+	object, found, err := c.connections.GetStore().GetByKey("default/" + name)
 	require.NoError(t, err)
 	require.True(t, found)
 	config := object.(*corev1.ConfigMap).DeepCopy()
 	config.Data["deploymentId"] = deployment
 	config.Data["serviceName"] = service
 	config.Data["revision"] = revision
-	require.NoError(t, c.bindings.GetStore().Update(config))
+	require.NoError(t, c.connections.GetStore().Update(config))
 }
 
-func TestActivationBindingIncarnationDoesNotInheritActiveTarget(t *testing.T) {
+func TestActivationConnectionIncarnationDoesNotInheritActiveTarget(t *testing.T) {
 	c := catalogForTest()
 	identity := testCaller()
-	addBinding(t, c, "binding", identity.workspace, identity.project, "app-a", "payments", "a", "a", "1")
+	addConnection(t, c, "connection", identity.workspace, identity.project, "app-a", "payments", "a", "a", "1")
 	addServiceAndSlice(t, c, "a", "a", "app-a", "uid-a", "10.0.0.11", true)
 	_, _, err := c.resolve(identity, "payments")
 	require.NoError(t, err)
-	object, found, err := c.bindings.GetStore().GetByKey("default/binding")
+	object, found, err := c.connections.GetStore().GetByKey("default/connection")
 	require.NoError(t, err)
 	require.True(t, found)
 	recreated := object.(*corev1.ConfigMap).DeepCopy()
 	recreated.UID = types.UID("recreated")
 	recreated.Data["serviceName"] = "missing"
-	require.NoError(t, c.bindings.GetStore().Update(recreated))
+	require.NoError(t, c.connections.GetStore().Update(recreated))
 	_, _, err = c.resolve(identity, "payments")
 	require.Error(t, err)
 }
 
-func TestUnresolvedBindingRevokesActiveTarget(t *testing.T) {
+func TestUnresolvedConnectionRevokesActiveTarget(t *testing.T) {
 	c := catalogForTest()
 	identity := testCaller()
-	addBinding(t, c, "binding", identity.workspace, identity.project, "app-a", "payments", "a", "a", "1")
+	addConnection(t, c, "connection", identity.workspace, identity.project, "app-a", "payments", "a", "a", "1")
 	addServiceAndSlice(t, c, "a", "a", "app-a", "uid-a", "10.0.0.11", true)
 	_, _, err := c.resolve(identity, "payments")
 	require.NoError(t, err)
 
-	updateBinding(t, c, "binding", "", "", "2")
+	updateConnection(t, c, "connection", "", "", "2")
 	_, found, err := c.resolve(identity, "payments")
 	require.True(t, found)
 	require.Error(t, err)
@@ -164,22 +164,22 @@ func TestUnresolvedBindingRevokesActiveTarget(t *testing.T) {
 func TestActivationExpiryAndColdRestart(t *testing.T) {
 	c := catalogForTest()
 	identity := testCaller()
-	addBinding(t, c, "binding", identity.workspace, identity.project, "app-a", "payments", "a", "a", "1")
+	addConnection(t, c, "connection", identity.workspace, identity.project, "app-a", "payments", "a", "a", "1")
 	service := addServiceAndSlice(t, c, "a", "a", "app-a", "uid-a", "10.0.0.11", true).DeepCopy()
 	_, _, err := c.resolve(identity, "payments")
 	require.NoError(t, err)
 	addServiceAndSlice(t, c, "missing-b", "b", "app-a", "uid-b", "10.0.0.22", false)
 
 	restarted := catalogForTest()
-	restarted.bindings, restarted.services, restarted.slices = c.bindings, c.services, c.slices
+	restarted.connections, restarted.services, restarted.slices = c.connections, c.services, c.slices
 	addresses, found, err := restarted.resolve(identity, "payments")
 	require.True(t, found)
 	require.NoError(t, err)
 	require.Equal(t, []netip.Addr{netip.MustParseAddr("10.0.0.11")}, addresses)
-	updateBinding(t, c, "binding", "b", "missing-b", "2")
+	updateConnection(t, c, "connection", "b", "missing-b", "2")
 
 	deadline := time.Date(2026, 9, 21, 12, 30, 0, 0, time.UTC)
-	service.Annotations = map[string]string{appbinding.RetireAfterAnnotation: deadline.Format(time.RFC3339Nano)}
+	service.Annotations = map[string]string{appconnection.RetireAfterAnnotation: deadline.Format(time.RFC3339Nano)}
 	require.NoError(t, c.services.GetStore().Update(service))
 	c.now = func() time.Time { return deadline.Add(-time.Nanosecond) }
 	addresses, found, err = c.resolve(identity, "payments")
@@ -197,33 +197,33 @@ func TestActivationExpiryAndColdRestart(t *testing.T) {
 	require.Equal(t, []netip.Addr{netip.MustParseAddr("10.0.0.22")}, addresses)
 }
 
-func TestActivationRejectsAmbiguousBindingsAndChangedAppIdentity(t *testing.T) {
+func TestActivationRejectsAmbiguousConnectionsAndChangedAppIdentity(t *testing.T) {
 	c := catalogForTest()
 	identity := testCaller()
-	addBinding(t, c, "binding", identity.workspace, identity.project, "app-a", "payments", "a", "a", "1")
+	addConnection(t, c, "connection", identity.workspace, identity.project, "app-a", "payments", "a", "a", "1")
 	addServiceAndSlice(t, c, "a", "a", "app-a", "uid-a", "10.0.0.11", true)
 	_, _, err := c.resolve(identity, "payments")
 	require.NoError(t, err)
-	object, found, err := c.bindings.GetStore().GetByKey("default/binding")
+	object, found, err := c.connections.GetStore().GetByKey("default/connection")
 	require.NoError(t, err)
 	require.True(t, found)
 	changed := object.(*corev1.ConfigMap).DeepCopy()
 	changed.Labels[labels.LabelKeyAppID] = "another-app"
 	changed.Data["revision"] = "2"
-	require.NoError(t, c.bindings.GetStore().Update(changed))
+	require.NoError(t, c.connections.GetStore().Update(changed))
 	_, _, err = c.resolve(identity, "payments")
 	require.Error(t, err)
 
-	require.NoError(t, c.bindings.GetStore().Update(object))
-	addBinding(t, c, "duplicate", identity.workspace, identity.project, "app-a", "payments", "a", "a", "1")
+	require.NoError(t, c.connections.GetStore().Update(object))
+	addConnection(t, c, "duplicate", identity.workspace, identity.project, "app-a", "payments", "a", "a", "1")
 	c.activate()
 	_, _, err = c.resolve(identity, "payments")
 	require.Error(t, err)
 	require.Empty(t, c.active)
-	deleteBinding(t, c, "duplicate")
+	deleteConnection(t, c, "duplicate")
 	_, _, err = c.resolve(identity, "payments")
 	require.NoError(t, err)
-	deleteBinding(t, c, "binding")
+	deleteConnection(t, c, "connection")
 	_, found, err = c.resolve(identity, "payments")
 	require.NoError(t, err)
 	require.False(t, found)
@@ -233,12 +233,12 @@ func TestActivationRejectsAmbiguousBindingsAndChangedAppIdentity(t *testing.T) {
 func TestActivationConcurrentQueriesAndRefresh(t *testing.T) {
 	c := catalogForTest()
 	identity := testCaller()
-	addBinding(t, c, "binding", identity.workspace, identity.project, "app-a", "payments", "a", "a", "1")
+	addConnection(t, c, "connection", identity.workspace, identity.project, "app-a", "payments", "a", "a", "1")
 	addServiceAndSlice(t, c, "a", "a", "app-a", "uid-a", "10.0.0.11", true)
 	_, _, err := c.resolve(identity, "payments")
 	require.NoError(t, err)
 
-	updateBinding(t, c, "binding", "b", "missing-b", "2")
+	updateConnection(t, c, "connection", "b", "missing-b", "2")
 
 	var group sync.WaitGroup
 	errors := make(chan error, 9)

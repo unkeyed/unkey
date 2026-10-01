@@ -23,7 +23,7 @@ import (
 
 func TestPrivateAnswersShuffleAddresses(t *testing.T) {
 	c := catalogForTest()
-	addBinding(t, c, "binding-a", "workspace-a", "project-a", "app-a", "payments", "deployment-a", "service-a", "1")
+	addConnection(t, c, "connection-a", "workspace-a", "project-a", "app-a", "payments", "deployment-a", "service-a", "1")
 	service := addServiceAndSlice(t, c, "service-a", "deployment-a", "app-a", types.UID("service-a-uid"), "10.0.0.1", true)
 	want := []string{"10.0.0.1"}
 	for i := 2; i <= 8; i++ {

@@ -19,13 +19,13 @@ import (
 	"k8s.io/client-go/tools/cache"
 )
 
-func TestCatalogResolveIsolatesBindingsAndFollowsPromotion(t *testing.T) {
+func TestCatalogResolveIsolatesConnectionsAndFollowsPromotion(t *testing.T) {
 	c := catalogForTest()
 	identity := caller{workspace: "workspace-a", project: "project-a", kind: "production", deployment: "caller-deployment-a", namespace: "default"}
 
-	addBinding(t, c, "binding-a", "workspace-a", "project-a", "app-a", "payments", "deployment-a", "service-a", "1")
-	addBinding(t, c, "binding-other-workspace", "workspace-b", "project-a", "app-b", "payments", "deployment-other", "service-other", "1")
-	addBinding(t, c, "binding-other-project", "workspace-a", "project-b", "app-c", "payments", "deployment-other", "service-other", "1")
+	addConnection(t, c, "connection-a", "workspace-a", "project-a", "app-a", "payments", "deployment-a", "service-a", "1")
+	addConnection(t, c, "connection-other-workspace", "workspace-b", "project-a", "app-b", "payments", "deployment-other", "service-other", "1")
+	addConnection(t, c, "connection-other-project", "workspace-a", "project-b", "app-c", "payments", "deployment-other", "service-other", "1")
 	addServiceAndSlice(t, c, "service-a", "deployment-a", "app-a", types.UID("service-a-uid"), "10.0.0.1", true)
 	addServiceAndSlice(t, c, "service-b", "deployment-b", "app-a", types.UID("service-b-uid"), "10.0.0.2", true)
 
@@ -34,42 +34,42 @@ func TestCatalogResolveIsolatesBindingsAndFollowsPromotion(t *testing.T) {
 	require.True(t, exists)
 	require.Equal(t, []netip.Addr{netip.MustParseAddr("10.0.0.1")}, addresses)
 
-	deleteBinding(t, c, "binding-a")
-	addBinding(t, c, "binding-a", "workspace-a", "project-a", "app-a", "payments", "deployment-b", "service-b", "2")
+	deleteConnection(t, c, "connection-a")
+	addConnection(t, c, "connection-a", "workspace-a", "project-a", "app-a", "payments", "deployment-b", "service-b", "2")
 	addresses, exists, err = c.resolve(identity, "payments")
 	require.NoError(t, err)
 	require.True(t, exists)
 	require.Equal(t, []netip.Addr{netip.MustParseAddr("10.0.0.2")}, addresses)
 
-	deleteBinding(t, c, "binding-a")
-	addBinding(t, c, "binding-a", "workspace-a", "project-a", "app-a", "payments", "deployment-a", "service-a", "3")
+	deleteConnection(t, c, "connection-a")
+	addConnection(t, c, "connection-a", "workspace-a", "project-a", "app-a", "payments", "deployment-a", "service-a", "3")
 	addresses, exists, err = c.resolve(identity, "payments")
 	require.NoError(t, err)
 	require.True(t, exists)
 	require.Equal(t, []netip.Addr{netip.MustParseAddr("10.0.0.1")}, addresses)
 
-	deleteBinding(t, c, "binding-a")
+	deleteConnection(t, c, "connection-a")
 	_, exists, err = c.resolve(identity, "payments")
 	require.NoError(t, err)
 	require.False(t, exists)
 }
 
-func TestDirectedBindingsIsolateCallerDeployments(t *testing.T) {
+func TestDirectedConnectionsIsolateCallerDeployments(t *testing.T) {
 	c := catalogForTest()
 	for _, tc := range []struct{ callerDeployment, name, kind, address string }{
 		{"caller-deployment-a", "production", "production", "10.0.0.1"},
 		{"caller-deployment-b", "preview-a", "production", "10.0.0.2"},
 		{"caller-deployment-c", "preview-b", "preview", "10.0.0.3"},
 	} {
-		addBinding(t, c, tc.name, "workspace-a", "project-a", "app-a", "payments", tc.name, tc.name, "1")
+		addConnection(t, c, tc.name, "workspace-a", "project-a", "app-a", "payments", tc.name, tc.name, "1")
 		service := addServiceAndSlice(t, c, tc.name, tc.name, "app-a", types.UID(tc.name), tc.address, true).DeepCopy()
-		object, found, err := c.bindings.GetStore().GetByKey("default/" + tc.name)
+		object, found, err := c.connections.GetStore().GetByKey("default/" + tc.name)
 		require.NoError(t, err)
 		require.True(t, found)
-		binding := object.(*corev1.ConfigMap).DeepCopy()
-		binding.Labels[environmentKindLabel] = tc.kind
-		binding.Labels[labels.LabelKeyCallerDeploymentID] = tc.callerDeployment
-		require.NoError(t, c.bindings.GetStore().Update(binding))
+		connection := object.(*corev1.ConfigMap).DeepCopy()
+		connection.Labels[environmentKindLabel] = tc.kind
+		connection.Labels[labels.LabelKeyCallerDeploymentID] = tc.callerDeployment
+		require.NoError(t, c.connections.GetStore().Update(connection))
 		service.Labels[environmentKindLabel] = tc.kind
 		require.NoError(t, c.services.GetStore().Update(service))
 	}
@@ -136,7 +136,7 @@ func TestCatalogRejectsForgedServiceIdentity(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			c := catalogForTest()
 			identity := testCaller()
-			addBinding(t, c, "binding", identity.workspace, identity.project, "target-app", "api", "target-deployment", "target-service", "1")
+			addConnection(t, c, "connection", identity.workspace, identity.project, "target-app", "api", "target-deployment", "target-service", "1")
 			service := addServiceAndSlice(t, c, "target-service", "target-deployment", "target-app", "service-uid", "10.0.0.1", true).DeepCopy()
 			tc.mutate(service)
 			require.NoError(t, c.services.GetStore().Update(service))
@@ -150,12 +150,12 @@ func TestCatalogRejectsForgedServiceIdentity(t *testing.T) {
 
 func catalogForTest() *catalog {
 	return &catalog{
-		pods:     informerForTest(&corev1.Pod{}, cache.Indexers{podIPIndex: indexPodIP}),
-		bindings: informerForTest(&corev1.ConfigMap{}, cache.Indexers{appIndex: indexBinding}),
-		services: informerForTest(&corev1.Service{}, nil),
-		slices:   informerForTest(&discoveryv1.EndpointSlice{}, cache.Indexers{serviceIndex: indexSlice}),
-		active:   make(map[string]*corev1.ConfigMap),
-		now:      time.Now,
+		pods:        informerForTest(&corev1.Pod{}, cache.Indexers{podIPIndex: indexPodIP}),
+		connections: informerForTest(&corev1.ConfigMap{}, cache.Indexers{appIndex: indexConnection}),
+		services:    informerForTest(&corev1.Service{}, nil),
+		slices:      informerForTest(&discoveryv1.EndpointSlice{}, cache.Indexers{serviceIndex: indexSlice}),
+		active:      make(map[string]*corev1.ConfigMap),
+		now:         time.Now,
 	}
 }
 
@@ -167,32 +167,32 @@ func informerForTest(object runtime.Object, indexers cache.Indexers) *trackedInf
 	return &trackedInformer{SharedIndexInformer: cache.NewSharedIndexInformer(nil, object, 0, indexers)}
 }
 
-func addBinding(t *testing.T, c *catalog, name, workspace, project, appID, slug, deployment, service, revision string) {
+func addConnection(t *testing.T, c *catalog, name, workspace, project, appID, slug, deployment, service, revision string) {
 	t.Helper()
-	require.NoError(t, c.bindings.GetStore().Add(&corev1.ConfigMap{
+	require.NoError(t, c.connections.GetStore().Add(&corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: "default", UID: types.UID(name), Labels: map[string]string{
-			labels.LabelKeyManagedBy: "krane", labels.LabelKeyComponent: bindingComponent,
+			labels.LabelKeyManagedBy: "krane", labels.LabelKeyComponent: connectionComponent,
 			labels.LabelKeyWorkspaceID: workspace, labels.LabelKeyProjectID: project,
 			labels.LabelKeyAppID: appID, environmentKindLabel: "production",
-			labels.LabelKeyCallerDeploymentID: "caller-deployment-a", labels.LabelKeyBindingID: name,
+			labels.LabelKeyCallerDeploymentID: "caller-deployment-a", labels.LabelKeyConnectionID: name,
 		}},
 		Data: map[string]string{"appSlug": slug, "deploymentId": deployment, "serviceName": service, "revision": revision},
 	}))
 }
 
-func deleteBinding(t *testing.T, c *catalog, name string) {
+func deleteConnection(t *testing.T, c *catalog, name string) {
 	t.Helper()
-	object, exists, err := c.bindings.GetStore().GetByKey("default/" + name)
+	object, exists, err := c.connections.GetStore().GetByKey("default/" + name)
 	require.NoError(t, err)
 	require.True(t, exists)
-	require.NoError(t, c.bindings.GetStore().Delete(object))
+	require.NoError(t, c.connections.GetStore().Delete(object))
 }
 
 func addServiceAndSlice(t *testing.T, c *catalog, name, deployment, appID string, uid types.UID, address string, ready bool) *corev1.Service {
 	t.Helper()
 	service := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: "default", UID: uid, Labels: map[string]string{
-			labels.LabelKeyManagedBy: "krane", labels.LabelKeyComponent: bindingComponent, labels.LabelKeyWorkspaceID: "workspace-a",
+			labels.LabelKeyManagedBy: "krane", labels.LabelKeyComponent: connectionComponent, labels.LabelKeyWorkspaceID: "workspace-a",
 			labels.LabelKeyProjectID: "project-a", labels.LabelKeyAppID: appID,
 			labels.LabelKeyDeploymentID: deployment,
 		}},
@@ -241,7 +241,7 @@ func TestCatalogWatchesOnlyKraneObjects(t *testing.T) {
 
 	require.Eventually(t, c.readyDiscovery, 5*time.Second, 10*time.Millisecond)
 
-	for name, informer := range map[string]*trackedInformer{"pods": c.pods, "bindings": c.bindings, "services": c.services, "endpointslices": c.slices} {
+	for name, informer := range map[string]*trackedInformer{"pods": c.pods, "connections": c.connections, "services": c.services, "endpointslices": c.slices} {
 		keys := informer.GetStore().ListKeys()
 		require.Len(t, keys, 1, "%s cache keys: %v", name, keys)
 		require.NotEqual(t, "default/unrelated", keys[0], "%s cached an object Krane did not publish", name)

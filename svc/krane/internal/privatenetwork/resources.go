@@ -10,25 +10,25 @@ import (
 	"time"
 
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
-	"github.com/unkeyed/unkey/pkg/deploy/appbinding"
+	"github.com/unkeyed/unkey/pkg/deploy/appconnection"
 	"github.com/unkeyed/unkey/svc/krane/pkg/labels"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func bindingResourceName(bindingSpec *ctrlv1.PrivateNetworkBinding) string {
-	return resourceName("unkey-pn-binding", bindingSpec.GetBindingId()+"/"+bindingSpec.GetCallerDeploymentId())
+func connectionResourceName(connectionSpec *ctrlv1.PrivateNetworkConnection) string {
+	return resourceName("unkey-pn-connection", connectionSpec.GetConnectionId()+"/"+connectionSpec.GetCallerDeploymentId())
 }
 
-func (r *Reconciler) cleanup(ctx context.Context, services *corev1.ServiceList, bindings *corev1.ConfigMapList, desiredServices, desiredBindings map[string]struct{}) error {
-	for i := range bindings.Items {
-		item := &bindings.Items[i]
-		if _, ok := desiredBindings[item.Namespace+"/"+item.Name]; ok || !owned(item.Labels) {
+func (r *Reconciler) cleanup(ctx context.Context, services *corev1.ServiceList, connections *corev1.ConfigMapList, desiredServices, desiredConnections map[string]struct{}) error {
+	for i := range connections.Items {
+		item := &connections.Items[i]
+		if _, ok := desiredConnections[item.Namespace+"/"+item.Name]; ok || !owned(item.Labels) {
 			continue
 		}
 		if err := r.client.CoreV1().ConfigMaps(item.Namespace).Delete(ctx, item.Name, deleteOptions(item)); err != nil && !apierrors.IsNotFound(err) {
-			return fmt.Errorf("delete obsolete private network binding %s/%s: %w", item.Namespace, item.Name, err)
+			return fmt.Errorf("delete obsolete private network connection %s/%s: %w", item.Namespace, item.Name, err)
 		}
 	}
 
@@ -44,7 +44,7 @@ func (r *Reconciler) cleanup(ctx context.Context, services *corev1.ServiceList, 
 			if updated.Annotations == nil {
 				updated.Annotations = make(map[string]string)
 			}
-			updated.Annotations[appbinding.RetireAfterAnnotation] = r.clock().Add(appbinding.ReplacementOverlap).UTC().Format(time.RFC3339Nano)
+			updated.Annotations[appconnection.RetireAfterAnnotation] = r.clock().Add(appconnection.ReplacementOverlap).UTC().Format(time.RFC3339Nano)
 			if _, err := r.client.CoreV1().Services(item.Namespace).Update(ctx, updated, metav1.UpdateOptions{FieldManager: fieldManager}); err != nil {
 				return fmt.Errorf("schedule obsolete private network Service %s/%s retirement: %w", item.Namespace, item.Name, err)
 			}
@@ -68,7 +68,7 @@ func (r *Reconciler) clock() time.Time {
 }
 
 func retirementDeadline(service *corev1.Service) (time.Time, bool) {
-	raw := service.Annotations[appbinding.RetireAfterAnnotation]
+	raw := service.Annotations[appconnection.RetireAfterAnnotation]
 	if raw == "" {
 		return time.Time{}, false
 	}
@@ -87,11 +87,11 @@ func owned(l map[string]string) bool {
 		l[labels.LabelKeyAppID] != ""
 }
 
-func ownedByTargetApp(l map[string]string, bindingSpec *ctrlv1.PrivateNetworkBinding) bool {
+func ownedByTargetApp(l map[string]string, connectionSpec *ctrlv1.PrivateNetworkConnection) bool {
 	return owned(l) &&
-		l[labels.LabelKeyWorkspaceID] == bindingSpec.GetWorkspaceId() &&
-		l[labels.LabelKeyProjectID] == bindingSpec.GetProjectId() &&
-		l[labels.LabelKeyAppID] == bindingSpec.GetTargetAppId()
+		l[labels.LabelKeyWorkspaceID] == connectionSpec.GetWorkspaceId() &&
+		l[labels.LabelKeyProjectID] == connectionSpec.GetProjectId() &&
+		l[labels.LabelKeyAppID] == connectionSpec.GetTargetAppId()
 }
 
 func discoveryName(deployment string, port int32) string {

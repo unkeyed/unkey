@@ -47,7 +47,7 @@ func serve(ctx context.Context, cfg Config, c *catalog) error {
 		return boolGauge(c.ready())
 	}))
 	for resource, informer := range map[string]*trackedInformer{
-		"pods": c.pods, "bindings": c.bindings, "services": c.services, "endpointslices": c.slices,
+		"pods": c.pods, "connections": c.connections, "services": c.services, "endpointslices": c.slices,
 	} {
 		registry.MustRegister(prometheus.NewGaugeFunc(prometheus.GaugeOpts{
 			Name:        "unkey_dns_discovery_watch_healthy",
@@ -57,7 +57,7 @@ func serve(ctx context.Context, cfg Config, c *catalog) error {
 			return boolGauge(informer.healthy())
 		}))
 	}
-	registry.MustRegister(newBindingCollector(c))
+	registry.MustRegister(newConnectionCollector(c))
 	h := newHandler(c, cfg, registry)
 
 	tcp, err := net.Listen("tcp", cfg.ListenAddress)

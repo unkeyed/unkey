@@ -15,7 +15,7 @@ import (
 	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/auditlog"
-	"github.com/unkeyed/unkey/pkg/deploy/appbinding"
+	"github.com/unkeyed/unkey/pkg/deploy/appconnection"
 	"github.com/unkeyed/unkey/pkg/deploy/deployfail"
 	"github.com/unkeyed/unkey/pkg/deploy/deploygate"
 	githubclient "github.com/unkeyed/unkey/pkg/github"
@@ -654,28 +654,28 @@ func (w *Workflow) loadSecrets(ctx context.Context, target db.FindDeployTargetRo
 		return nil, fmt.Errorf("failed to fetch app environment variables: %w", err)
 	}
 
-	var bindings []db.ListAppBindingsByAppRow
+	var connections []db.ListAppConnectionsByAppRow
 	if privateNetworking {
-		bindings, err = w.db.ListAppBindingsByApp(ctx, db.ListAppBindingsByAppParams{
+		connections, err = w.db.ListAppConnectionsByApp(ctx, db.ListAppConnectionsByAppParams{
 			WorkspaceID:   target.WorkspaceID,
 			ProjectID:     target.ProjectID,
 			AppID:         target.AppID,
 			EnvironmentID: target.EnvironmentID,
 		})
 		if err != nil {
-			return nil, fmt.Errorf("failed to fetch app bindings: %w", err)
+			return nil, fmt.Errorf("failed to fetch app connections: %w", err)
 		}
 	}
 
-	return w.buildSecretsBlob(ctx, target.EnvironmentID, envVars, bindings)
+	return w.buildSecretsBlob(ctx, target.EnvironmentID, envVars, connections)
 }
 
-func (w *Workflow) buildSecretsBlob(ctx context.Context, environmentID string, envVars []db.FindAppEnvVarsByAppAndEnvRow, bindings []db.ListAppBindingsByAppRow) ([]byte, error) {
-	if len(envVars) == 0 && len(bindings) == 0 {
+func (w *Workflow) buildSecretsBlob(ctx context.Context, environmentID string, envVars []db.FindAppEnvVarsByAppAndEnvRow, connections []db.ListAppConnectionsByAppRow) ([]byte, error) {
+	if len(envVars) == 0 && len(connections) == 0 {
 		return []byte{}, nil
 	}
 
-	config := &ctrlv1.SecretsConfig{Secrets: make(map[string]string, len(envVars)+len(bindings))}
+	config := &ctrlv1.SecretsConfig{Secrets: make(map[string]string, len(envVars)+len(connections))}
 	for _, ev := range envVars {
 		if !validation.IsValidEnvVarKey(ev.Key) {
 			return nil, restate.ToTerminalError(fmt.Errorf(
@@ -686,30 +686,30 @@ func (w *Workflow) buildSecretsBlob(ctx context.Context, environmentID string, e
 		config.Secrets[ev.Key] = ev.Value
 	}
 
-	bindingValues := make(map[string]string, len(bindings))
-	for _, binding := range bindings {
-		key, host := appbinding.HostVariable(binding.Name)
+	connectionValues := make(map[string]string, len(connections))
+	for _, connection := range connections {
+		key, host := appconnection.HostVariable(connection.Name)
 		if !validation.IsValidEnvVarKey(key) || strings.HasPrefix(key, "UNKEY_") {
-			return nil, restate.ToTerminalError(fmt.Errorf("binding %q produces invalid or reserved environment variable %q", binding.Name, key))
+			return nil, restate.ToTerminalError(fmt.Errorf("connection %q produces invalid or reserved environment variable %q", connection.Name, key))
 		}
 
-		bindingValues[key] = host
+		connectionValues[key] = host
 	}
 
-	if len(bindingValues) > 0 {
+	if len(connectionValues) > 0 {
 		if w.vault == nil {
-			return nil, restate.ToTerminalError(errors.New("vault is required to snapshot app bindings"))
+			return nil, restate.ToTerminalError(errors.New("vault is required to snapshot app connections"))
 		}
 
-		encrypted, encryptErr := w.vault.EncryptBulk(ctx, &vaultv1.EncryptBulkRequest{Keyring: environmentID, Items: bindingValues})
+		encrypted, encryptErr := w.vault.EncryptBulk(ctx, &vaultv1.EncryptBulkRequest{Keyring: environmentID, Items: connectionValues})
 		if encryptErr != nil {
-			return nil, fmt.Errorf("failed to encrypt app binding hostnames: %w", encryptErr)
+			return nil, fmt.Errorf("failed to encrypt app connection hostnames: %w", encryptErr)
 		}
 
-		for key := range bindingValues {
+		for key := range connectionValues {
 			item, ok := encrypted.GetItems()[key]
 			if !ok || item.GetEncrypted() == "" {
-				return nil, restate.ToTerminalError(fmt.Errorf("vault omitted app binding environment variable %q", key))
+				return nil, restate.ToTerminalError(fmt.Errorf("vault omitted app connection environment variable %q", key))
 			}
 
 			config.Secrets[key] = item.GetEncrypted()

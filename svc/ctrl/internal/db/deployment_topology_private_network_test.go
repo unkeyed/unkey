@@ -75,9 +75,9 @@ func TestDeploymentTopologyPrivateNetworkFollowsStoredDecision(t *testing.T) {
 		return byDeployment
 	}
 
-	require.Equal(t, want, enrolled(), "without bindings")
+	require.Equal(t, want, enrolled(), "without connections")
 
-	seeder.CreateAppBinding(ctx, seed.CreateAppBindingRequest{
+	seeder.CreateAppConnection(ctx, seed.CreateAppConnectionRequest{
 		WorkspaceID:         workspace.ID,
 		ProjectID:           project.ID,
 		CallerAppID:         api.ID,
@@ -85,8 +85,8 @@ func TestDeploymentTopologyPrivateNetworkFollowsStoredDecision(t *testing.T) {
 		TargetAppID:         target.ID,
 		Name:                "database",
 	})
-	require.Equal(t, want, enrolled(), "adding a binding changes no running deployment")
+	require.Equal(t, want, enrolled(), "adding a connection changes no running deployment")
 
 	require.NoError(t, database.DeleteAppById(ctx, target.ID))
-	require.Equal(t, want, enrolled(), "deleting every binding changes no running deployment")
+	require.Equal(t, want, enrolled(), "deleting every connection changes no running deployment")
 }

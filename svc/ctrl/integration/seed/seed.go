@@ -466,9 +466,7 @@ func (s *Seeder) CreateDeployment(ctx context.Context, req CreateDeploymentReque
 	return deployment
 }
 
-// CreateAppBindingRequest binds CallerAppID in CallerEnvironmentID to
-// TargetAppID under Name, following the target automatically.
-type CreateAppBindingRequest struct {
+type CreateAppConnectionRequest struct {
 	WorkspaceID         string
 	ProjectID           string
 	CallerAppID         string
@@ -477,9 +475,9 @@ type CreateAppBindingRequest struct {
 	Name                string
 }
 
-func (s *Seeder) CreateAppBinding(ctx context.Context, req CreateAppBindingRequest) string {
-	id := uid.New("binding")
-	err := s.DB.InsertAppBinding(ctx, db.InsertAppBindingParams{
+func (s *Seeder) CreateAppConnection(ctx context.Context, req CreateAppConnectionRequest) string {
+	id := uid.New("connection")
+	err := s.DB.InsertAppConnection(ctx, db.InsertAppConnectionParams{
 		ID:                  id,
 		WorkspaceID:         req.WorkspaceID,
 		ProjectID:           req.ProjectID,
@@ -488,7 +486,7 @@ func (s *Seeder) CreateAppBinding(ctx context.Context, req CreateAppBindingReque
 		ResourceType:        "app",
 		ResourceID:          req.TargetAppID,
 		Name:                req.Name,
-		SelectionMode:       db.NullAppBindingsSelectionMode{AppBindingsSelectionMode: db.AppBindingsSelectionModeAutomatic, Valid: true},
+		SelectionMode:       db.NullAppConnectionsSelectionMode{AppConnectionsSelectionMode: db.AppConnectionsSelectionModeAutomatic, Valid: true},
 		TargetEnvironmentID: sql.NullString{String: "", Valid: false},
 		TargetDeploymentID:  sql.NullString{String: "", Valid: false},
 		CreatedAt:           time.Now().UnixMilli(),

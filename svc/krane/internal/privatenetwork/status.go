@@ -19,11 +19,11 @@ const (
 	stageService       = "service"
 	stageEndpointSlice = "endpoint_slice"
 	stagePolicy        = "policy"
-	stageBinding       = "binding"
+	stageConnection    = "connection"
 	stageCleanup       = "cleanup"
 
-	kindBinding = "binding"
-	kindReplica = "replica"
+	kindConnection = "connection"
+	kindReplica    = "replica"
 
 	stateCurrent             = "current"
 	stateWaitingForEndpoints = "waiting_for_endpoints"
@@ -33,10 +33,10 @@ const (
 
 var (
 	loopStages = map[string][]string{
-		loopDiscovery: {stageList, stageSnapshot, stageInvalidEntry, stageNamespace, stageService, stageEndpointSlice, stagePolicy, stageBinding, stageCleanup},
+		loopDiscovery: {stageList, stageSnapshot, stageInvalidEntry, stageNamespace, stageService, stageEndpointSlice, stagePolicy, stageConnection, stageCleanup},
 		loopEndpoints: {stageList, stageEndpointSlice},
 	}
-	entryKinds  = []string{kindBinding, kindReplica}
+	entryKinds  = []string{kindConnection, kindReplica}
 	entryStates = []string{stateCurrent, stateWaitingForEndpoints, stateUnresolved, stateFailed}
 )
 
@@ -78,15 +78,15 @@ type entryStatus struct {
 	state               string
 	stage               string
 	err                 error
-	bindingSpec         *ctrlv1.PrivateNetworkBinding
+	connectionSpec      *ctrlv1.PrivateNetworkConnection
 	publishedDeployment string
 }
 
-func entryKind(bindingSpec *ctrlv1.PrivateNetworkBinding) string {
-	if bindingSpec != nil && bindingSpec.GetTargetDeploymentId() != "" && bindingSpec.GetTargetDeploymentId() == bindingSpec.GetCallerDeploymentId() {
+func entryKind(connectionSpec *ctrlv1.PrivateNetworkConnection) string {
+	if connectionSpec != nil && connectionSpec.GetTargetDeploymentId() != "" && connectionSpec.GetTargetDeploymentId() == connectionSpec.GetCallerDeploymentId() {
 		return kindReplica
 	}
-	return kindBinding
+	return kindConnection
 }
 
 func recordEntries(entries map[string]entryStatus, untracked []entryStatus) {
@@ -118,17 +118,17 @@ func logEntryChanges(previous, current map[string]entryStatus) {
 		}
 
 		attrs := []any{
-			"binding_key", key, "kind", entry.kind, "state", entry.state, "previous_state", before.state,
-			"workspace_id", entry.bindingSpec.GetWorkspaceId(), "binding_id", entry.bindingSpec.GetBindingId(),
-			"caller_deployment_id", entry.bindingSpec.GetCallerDeploymentId(), "alias", entry.bindingSpec.GetBindingName(),
-			"target_deployment_id", entry.bindingSpec.GetTargetDeploymentId(), "published_deployment_id", entry.publishedDeployment,
+			"connection_key", key, "kind", entry.kind, "state", entry.state, "previous_state", before.state,
+			"workspace_id", entry.connectionSpec.GetWorkspaceId(), "connection_id", entry.connectionSpec.GetConnectionId(),
+			"caller_deployment_id", entry.connectionSpec.GetCallerDeploymentId(), "alias", entry.connectionSpec.GetConnectionName(),
+			"target_deployment_id", entry.connectionSpec.GetTargetDeploymentId(), "published_deployment_id", entry.publishedDeployment,
 		}
 		switch entry.state {
 		case stateFailed:
 			logger.Warn("private network entry failed to publish; its previous objects stay published",
 				append(attrs, "stage", entry.stage, "error", entry.err)...)
 		case stateWaitingForEndpoints:
-			logger.Info("private network binding keeps its previous target until the new target has ready endpoints", attrs...)
+			logger.Info("private network connection keeps its previous target until the new target has ready endpoints", attrs...)
 		default:
 			logger.Info("private network entry recovered", attrs...)
 		}

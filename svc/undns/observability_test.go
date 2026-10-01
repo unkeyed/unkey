@@ -14,7 +14,7 @@ import (
 	"codeberg.org/miekg/dns/dnsutil"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/pkg/deploy/appbinding"
+	"github.com/unkeyed/unkey/pkg/deploy/appconnection"
 	"github.com/unkeyed/unkey/pkg/logger/loggertest"
 	"github.com/unkeyed/unkey/svc/krane/pkg/labels"
 	corev1 "k8s.io/api/core/v1"
@@ -26,20 +26,20 @@ import (
 
 func TestPrivateFailuresReportDistinctReasons(t *testing.T) {
 	for _, tc := range []struct {
-		name         string
-		source       string
-		qtype        uint16
-		qname        string
-		mutate       func(t *testing.T, c *catalog)
-		rcode        uint16
-		reason       reason
-		bindingState reason
-		bindings     int
+		name            string
+		source          string
+		qtype           uint16
+		qname           string
+		mutate          func(t *testing.T, c *catalog)
+		rcode           uint16
+		reason          reason
+		connectionState reason
+		connections     int
 	}{
-		{name: "answer", rcode: dnswire.RcodeSuccess, reason: reasonAnswer, bindingState: stateActive},
-		{name: "ipv6", qtype: dnswire.TypeAAAA, rcode: dnswire.RcodeSuccess, reason: reasonNoData, bindingState: stateActive},
-		{name: "unknown alias", qname: "ledger.unkey.internal.", rcode: dnswire.RcodeNameError, reason: reasonUnknownName, bindingState: stateActive},
-		{name: "unknown source", source: "127.0.0.9", rcode: dnswire.RcodeRefused, reason: reasonUnknownCaller, bindingState: stateActive},
+		{name: "answer", rcode: dnswire.RcodeSuccess, reason: reasonAnswer, connectionState: stateActive},
+		{name: "ipv6", qtype: dnswire.TypeAAAA, rcode: dnswire.RcodeSuccess, reason: reasonNoData, connectionState: stateActive},
+		{name: "unknown alias", qname: "ledger.unkey.internal.", rcode: dnswire.RcodeNameError, reason: reasonUnknownName, connectionState: stateActive},
+		{name: "unknown source", source: "127.0.0.9", rcode: dnswire.RcodeRefused, reason: reasonUnknownCaller, connectionState: stateActive},
 		{
 			name: "reused source IP",
 			mutate: func(t *testing.T, c *catalog) {
@@ -47,7 +47,7 @@ func TestPrivateFailuresReportDistinctReasons(t *testing.T) {
 				other.Name, other.UID = "other-caller", "other-caller"
 				require.NoError(t, c.pods.GetStore().Add(other))
 			},
-			rcode: dnswire.RcodeRefused, reason: reasonAmbiguousCaller, bindingState: stateActive,
+			rcode: dnswire.RcodeRefused, reason: reasonAmbiguousCaller, connectionState: stateActive,
 		},
 		{
 			name: "caller without deployment",
@@ -56,45 +56,45 @@ func TestPrivateFailuresReportDistinctReasons(t *testing.T) {
 				delete(pod.Labels, labels.LabelKeyDeploymentID)
 				require.NoError(t, c.pods.GetStore().Update(pod))
 			},
-			rcode: dnswire.RcodeRefused, reason: reasonIneligibleCaller, bindingState: stateActive,
+			rcode: dnswire.RcodeRefused, reason: reasonIneligibleCaller, connectionState: stateActive,
 		},
 		{
 			name:   "pod watch stale",
 			mutate: func(_ *testing.T, c *catalog) { c.pods.lastContact.Store(0) },
-			rcode:  dnswire.RcodeServerFailure, reason: reasonIdentityUnavailable, bindingState: stateActive,
+			rcode:  dnswire.RcodeServerFailure, reason: reasonIdentityUnavailable, connectionState: stateActive,
 		},
 		{
 			name:   "endpoint watch stale",
 			mutate: func(_ *testing.T, c *catalog) { c.slices.lastContact.Store(0) },
-			rcode:  dnswire.RcodeServerFailure, reason: reasonDiscoveryNotReady, bindingState: stateActive,
+			rcode:  dnswire.RcodeServerFailure, reason: reasonDiscoveryNotReady, connectionState: stateActive,
 		},
 		{
 			name: "no selected target",
 			mutate: func(t *testing.T, c *catalog) {
-				updateStoredBinding(t, c, map[string]string{"deploymentId": "", "serviceName": "", "revision": "2"})
+				updateStoredConnection(t, c, map[string]string{"deploymentId": "", "serviceName": "", "revision": "2"})
 			},
-			rcode: dnswire.RcodeServerFailure, reason: reasonBindingUnresolved, bindingState: reasonBindingUnresolved,
+			rcode: dnswire.RcodeServerFailure, reason: reasonConnectionUnresolved, connectionState: reasonConnectionUnresolved,
 		},
 		{
 			name:   "corrupt revision",
-			mutate: func(t *testing.T, c *catalog) { updateStoredBinding(t, c, map[string]string{"revision": "latest"}) },
-			rcode:  dnswire.RcodeServerFailure, reason: reasonBindingInvalid, bindingState: reasonBindingInvalid,
+			mutate: func(t *testing.T, c *catalog) { updateStoredConnection(t, c, map[string]string{"revision": "latest"}) },
+			rcode:  dnswire.RcodeServerFailure, reason: reasonConnectionInvalid, connectionState: reasonConnectionInvalid,
 		},
 		{
-			name: "duplicate binding",
+			name: "duplicate connection",
 			mutate: func(t *testing.T, c *catalog) {
-				duplicate := storedBinding(t, c).DeepCopy()
-				duplicate.Name, duplicate.UID = "binding-copy", "binding-copy"
-				require.NoError(t, c.bindings.GetStore().Add(duplicate))
+				duplicate := storedConnection(t, c).DeepCopy()
+				duplicate.Name, duplicate.UID = "connection-copy", "connection-copy"
+				require.NoError(t, c.connections.GetStore().Add(duplicate))
 			},
-			rcode: dnswire.RcodeServerFailure, reason: reasonBindingAmbiguous, bindingState: reasonBindingAmbiguous, bindings: 2,
+			rcode: dnswire.RcodeServerFailure, reason: reasonConnectionAmbiguous, connectionState: reasonConnectionAmbiguous, connections: 2,
 		},
 		{
 			name: "discovery service deleted",
 			mutate: func(t *testing.T, c *catalog) {
 				require.NoError(t, c.services.GetStore().Delete(storedService(t, c)))
 			},
-			rcode: dnswire.RcodeServerFailure, reason: reasonServiceMissing, bindingState: reasonServiceMissing,
+			rcode: dnswire.RcodeServerFailure, reason: reasonServiceMissing, connectionState: reasonServiceMissing,
 		},
 		{
 			name: "discovery service publishes unready pods",
@@ -103,16 +103,16 @@ func TestPrivateFailuresReportDistinctReasons(t *testing.T) {
 				service.Spec.PublishNotReadyAddresses = true
 				require.NoError(t, c.services.GetStore().Update(service))
 			},
-			rcode: dnswire.RcodeServerFailure, reason: reasonServiceRejected, bindingState: reasonServiceRejected,
+			rcode: dnswire.RcodeServerFailure, reason: reasonServiceRejected, connectionState: reasonServiceRejected,
 		},
 		{
 			name: "discovery service retired",
 			mutate: func(t *testing.T, c *catalog) {
 				service := storedService(t, c).DeepCopy()
-				service.Annotations = map[string]string{appbinding.RetireAfterAnnotation: time.Now().Add(-time.Minute).Format(time.RFC3339Nano)}
+				service.Annotations = map[string]string{appconnection.RetireAfterAnnotation: time.Now().Add(-time.Minute).Format(time.RFC3339Nano)}
 				require.NoError(t, c.services.GetStore().Update(service))
 			},
-			rcode: dnswire.RcodeServerFailure, reason: reasonServiceRetired, bindingState: reasonServiceRetired,
+			rcode: dnswire.RcodeServerFailure, reason: reasonServiceRetired, connectionState: reasonServiceRetired,
 		},
 		{
 			name: "target lost its endpoints",
@@ -126,7 +126,7 @@ func TestPrivateFailuresReportDistinctReasons(t *testing.T) {
 				}
 				require.NoError(t, c.slices.GetStore().Update(slice))
 			},
-			rcode: dnswire.RcodeServerFailure, reason: reasonNoReadyEndpoints, bindingState: reasonNoReadyEndpoints,
+			rcode: dnswire.RcodeServerFailure, reason: reasonNoReadyEndpoints, connectionState: reasonNoReadyEndpoints,
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -153,8 +153,8 @@ func TestPrivateFailuresReportDistinctReasons(t *testing.T) {
 				"unkey_dns_queries_total after %s", tc.name)
 
 			c.activate()
-			want := map[string]map[reason]int{kindBinding: {tc.bindingState: max(tc.bindings, 1)}, kindReplica: {}}
-			require.Equal(t, want, c.bindingCounts(), "binding states after %s", tc.name)
+			want := map[string]map[reason]int{kindConnection: {tc.connectionState: max(tc.connections, 1)}, kindReplica: {}}
+			require.Equal(t, want, c.connectionCounts(), "connection states after %s", tc.name)
 		})
 	}
 }
@@ -236,31 +236,31 @@ func TestMalformedQueriesUseTheInvalidPath(t *testing.T) {
 		metricValues(t, registry, "unkey_dns_queries_total"))
 }
 
-func TestIdleResolverReportsZeroBindingStates(t *testing.T) {
+func TestIdleResolverReportsZeroConnectionStates(t *testing.T) {
 	registry := prometheus.NewRegistry()
-	registry.MustRegister(newBindingCollector(catalogForTest()))
+	registry.MustRegister(newConnectionCollector(catalogForTest()))
 	families, err := registry.Gather()
 	require.NoError(t, err)
 	require.Len(t, families, 1)
-	require.Len(t, families[0].GetMetric(), 2*len(bindingStates))
+	require.Len(t, families[0].GetMetric(), 2*len(connectionStates))
 	for _, metric := range families[0].GetMetric() {
-		require.Zero(t, metric.GetGauge().GetValue(), "idle binding state %v", metric.GetLabel())
+		require.Zero(t, metric.GetGauge().GetValue(), "idle connection state %v", metric.GetLabel())
 	}
 }
 
-func TestReplicaBindingsReportTheirOwnKind(t *testing.T) {
+func TestReplicaConnectionsReportTheirOwnKind(t *testing.T) {
 	c := seededCatalog(t)
-	replica := storedBinding(t, c).DeepCopy()
+	replica := storedConnection(t, c).DeepCopy()
 	replica.Name, replica.UID = "replica", "replica"
 	replica.Labels[labels.LabelKeyCallerDeploymentID] = "deployment-a"
-	replica.Labels[labels.LabelKeyBindingID] = "self-deployment-a"
+	replica.Labels[labels.LabelKeyConnectionID] = "self-deployment-a"
 	replica.Data["appSlug"] = "caller-app"
-	require.NoError(t, c.bindings.GetStore().Add(replica))
+	require.NoError(t, c.connections.GetStore().Add(replica))
 
 	c.activate()
-	counts := c.bindingCounts()
-	require.Equal(t, 1, counts[kindBinding][stateActive], "directed bindings: %v", counts)
-	require.Equal(t, 1, counts[kindReplica][stateActive], "replica bindings: %v", counts)
+	counts := c.connectionCounts()
+	require.Equal(t, 1, counts[kindConnection][stateActive], "directed connections: %v", counts)
+	require.Equal(t, 1, counts[kindReplica][stateActive], "replica connections: %v", counts)
 }
 
 func TestPendingRevisionReportsTheServedTarget(t *testing.T) {
@@ -271,36 +271,36 @@ func TestPendingRevisionReportsTheServedTarget(t *testing.T) {
 	service.Name, service.UID = "service-b", "service-b-uid"
 	service.Labels[labels.LabelKeyDeploymentID] = "deployment-b"
 	require.NoError(t, c.services.GetStore().Add(service))
-	updateStoredBinding(t, c, map[string]string{"deploymentId": "deployment-b", "serviceName": "service-b", "revision": "2"})
+	updateStoredConnection(t, c, map[string]string{"deploymentId": "deployment-b", "serviceName": "service-b", "revision": "2"})
 
 	since := capture.Snapshot()
 	c.activate()
-	require.Equal(t, 1, c.bindingCounts()[kindBinding][statePendingRevision])
-	record := findRecord(t, capture.Since(since), "private DNS binding serves its previous target until the new target has ready endpoints")
+	require.Equal(t, 1, c.connectionCounts()[kindConnection][statePendingRevision])
+	record := findRecord(t, capture.Since(since), "private DNS connection serves its previous target until the new target has ready endpoints")
 	attrs := loggertest.FlatAttrs(record)
 	require.Equal(t, "deployment-a", attrs["serving_deployment_id"])
 	require.Equal(t, "deployment-b", attrs["target_deployment_id"])
 }
 
-func TestBindingStateChangesAreLoggedOnce(t *testing.T) {
+func TestConnectionStateChangesAreLoggedOnce(t *testing.T) {
 	c := seededCatalog(t)
 	capture := loggertest.Install(t)
 	since := capture.Snapshot()
 	c.activate()
-	require.Empty(t, bindingRecords(capture.Since(since)), "healthy bindings seen on startup must not be logged")
+	require.Empty(t, connectionRecords(capture.Since(since)), "healthy connections seen on startup must not be logged")
 
 	service := storedService(t, c)
 	require.NoError(t, c.services.GetStore().Delete(service))
 	since = capture.Snapshot()
 	c.activate()
 	c.activate()
-	records := bindingRecords(capture.Since(since))
-	require.Len(t, records, 1, "a failing binding logs once per state change")
+	records := connectionRecords(capture.Since(since))
+	require.Len(t, records, 1, "a failing connection logs once per state change")
 	require.Equal(t, slog.LevelWarn, records[0].Level)
 	attrs := loggertest.FlatAttrs(records[0])
 	require.Equal(t, string(reasonServiceMissing), attrs["state"])
 	require.Equal(t, string(stateActive), attrs["previous_state"])
-	require.Equal(t, "binding-id", attrs["binding_id"])
+	require.Equal(t, "connection-id", attrs["connection_id"])
 	require.Equal(t, "caller-deployment-a", attrs["caller_deployment_id"])
 	require.Equal(t, "deployment-a", attrs["target_deployment_id"])
 	require.Equal(t, "payments", attrs["alias"])
@@ -309,8 +309,8 @@ func TestBindingStateChangesAreLoggedOnce(t *testing.T) {
 	since = capture.Snapshot()
 	c.activate()
 	c.activate()
-	records = bindingRecords(capture.Since(since))
-	require.Len(t, records, 1, "a recovered binding logs once")
+	records = connectionRecords(capture.Since(since))
+	require.Len(t, records, 1, "a recovered connection logs once")
 	require.Equal(t, slog.LevelInfo, records[0].Level)
 	attrs = loggertest.FlatAttrs(records[0])
 	require.Equal(t, string(stateActive), attrs["state"])
@@ -408,7 +408,7 @@ func seededCatalog(t *testing.T) *catalog {
 		case *corev1.Pod:
 			require.NoError(t, c.pods.GetStore().Add(typed))
 		case *corev1.ConfigMap:
-			require.NoError(t, c.bindings.GetStore().Add(typed))
+			require.NoError(t, c.connections.GetStore().Add(typed))
 		case *corev1.Service:
 			require.NoError(t, c.services.GetStore().Add(typed))
 		case *discoveryv1.EndpointSlice:
@@ -420,21 +420,21 @@ func seededCatalog(t *testing.T) *catalog {
 	return c
 }
 
-func storedBinding(t *testing.T, c *catalog) *corev1.ConfigMap {
+func storedConnection(t *testing.T, c *catalog) *corev1.ConfigMap {
 	t.Helper()
-	object, exists, err := c.bindings.GetStore().GetByKey("default/binding")
+	object, exists, err := c.connections.GetStore().GetByKey("default/connection")
 	require.NoError(t, err)
 	require.True(t, exists)
 	return object.(*corev1.ConfigMap)
 }
 
-func updateStoredBinding(t *testing.T, c *catalog, data map[string]string) {
+func updateStoredConnection(t *testing.T, c *catalog, data map[string]string) {
 	t.Helper()
-	binding := storedBinding(t, c).DeepCopy()
+	connection := storedConnection(t, c).DeepCopy()
 	for key, value := range data {
-		binding.Data[key] = value
+		connection.Data[key] = value
 	}
-	require.NoError(t, c.bindings.GetStore().Update(binding))
+	require.NoError(t, c.connections.GetStore().Update(connection))
 }
 
 func storedService(t *testing.T, c *catalog) *corev1.Service {
@@ -563,13 +563,13 @@ func findRecord(t *testing.T, records []slog.Record, message string) slog.Record
 	return slog.Record{}
 }
 
-func bindingRecords(records []slog.Record) []slog.Record {
+func connectionRecords(records []slog.Record) []slog.Record {
 	var matched []slog.Record
 	for _, record := range records {
 		switch record.Message {
-		case "private DNS binding cannot be served",
-			"private DNS binding serves its target",
-			"private DNS binding serves its previous target until the new target has ready endpoints":
+		case "private DNS connection cannot be served",
+			"private DNS connection serves its target",
+			"private DNS connection serves its previous target until the new target has ready endpoints":
 			matched = append(matched, record)
 		}
 	}

@@ -16,7 +16,7 @@ import (
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
 	"github.com/unkeyed/unkey/pkg/assert"
-	"github.com/unkeyed/unkey/pkg/deploy/appbinding"
+	"github.com/unkeyed/unkey/pkg/deploy/appconnection"
 	"github.com/unkeyed/unkey/pkg/deploy/deployfail"
 	"github.com/unkeyed/unkey/pkg/deploy/imageref"
 	"github.com/unkeyed/unkey/pkg/fault"
@@ -716,7 +716,7 @@ func (w *Workflow) spinDownPreviousDeployments(
 		_, err := hydrav1.NewDeploymentServiceClient(ctx, previousDeploymentID).
 			ScheduleDesiredStateChange().Request(
 			&hydrav1.ScheduleDesiredStateChangeRequest{
-				DelayMillis:      appbinding.ReplacementOverlap.Milliseconds(),
+				DelayMillis:      appconnection.ReplacementOverlap.Milliseconds(),
 				State:            hydrav1.DeploymentDesiredState_DEPLOYMENT_DESIRED_STATE_STOPPED,
 				Overwrite:        false,
 				DeferWhilePinned: true,
@@ -759,7 +759,7 @@ func (w *Workflow) swapLiveDeployment(
 		_, err = hydrav1.NewDeploymentServiceClient(ctx, swapResp.GetPreviousDeploymentId()).
 			ScheduleDesiredStateChange().Request(
 			&hydrav1.ScheduleDesiredStateChangeRequest{
-				DelayMillis:      appbinding.ReplacementOverlap.Milliseconds(),
+				DelayMillis:      appconnection.ReplacementOverlap.Milliseconds(),
 				State:            hydrav1.DeploymentDesiredState_DEPLOYMENT_DESIRED_STATE_STOPPED,
 				Overwrite:        true,
 				DeferWhilePinned: true,

@@ -264,7 +264,7 @@ var (
 	// PrivateNetworkLeader is 1 while this Krane holds the private network
 	// Lease and publishes discovery objects, and 0 otherwise. Krane only
 	// exports it when private networking is enabled. A cluster whose Krane
-	// replicas all report 0 publishes nothing, so bindings stop following
+	// replicas all report 0 publishes nothing, so connections stop following
 	// deployments.
 	PrivateNetworkLeader = lazy.NewGauge(
 		prometheus.GaugeOpts{
@@ -322,7 +322,7 @@ var (
 	//   - "loop": "discovery" or "endpoints"
 	//   - "stage": "list" (Kubernetes reads), "snapshot" (Ctrl stream),
 	//     "invalid_entry" (Ctrl sent an entry Krane can't publish),
-	//     "namespace", "service", "endpoint_slice", "policy", "binding", or
+	//     "namespace", "service", "endpoint_slice", "policy", "connection", or
 	//     "cleanup" (revoking objects missing from the snapshot)
 	PrivateNetworkErrorsTotal = lazy.NewCounterVec(
 		prometheus.CounterOpts{
@@ -335,12 +335,12 @@ var (
 	)
 
 	// PrivateNetworkEntries counts the entries of the last complete snapshot
-	// by kind and publication state. Unresolved bindings are normal for
+	// by kind and publication state. Unresolved connections are normal for
 	// preview callers without a matching target, so their count alone is not
 	// a failure.
 	//
 	// Labels:
-	//   - "kind": "binding" (a directed app binding) or "replica" (a
+	//   - "kind": "connection" (a directed app connection) or "replica" (a
 	//     deployment's own replicas)
 	//   - "state": "current" (published target matches Ctrl),
 	//     "waiting_for_endpoints" (the new target has no ready endpoints, so

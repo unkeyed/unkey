@@ -8,7 +8,7 @@ import (
 )
 
 // TestPinnedRetryDelayBacksOffToCap guarantees that a stop deferred by a
-// pinning binding is rechecked less often the longer the binding stays, and
+// pinning connection is rechecked less often the longer the connection stays, and
 // never less often than pinnedRetryDelayMax.
 func TestPinnedRetryDelayBacksOffToCap(t *testing.T) {
 	for _, tt := range []struct {

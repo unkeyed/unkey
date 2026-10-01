@@ -12,7 +12,7 @@ import (
 const deleteAppById = `-- name: DeleteAppById :exec
 DELETE a, b
 FROM apps a
-LEFT JOIN app_bindings b ON b.app_id = a.id OR (b.resource_type = 'app' AND b.resource_id = a.id)
+LEFT JOIN app_connections b ON b.app_id = a.id OR (b.resource_type = 'app' AND b.resource_id = a.id)
 WHERE a.id = ?
 `
 
@@ -20,7 +20,7 @@ WHERE a.id = ?
 //
 //	DELETE a, b
 //	FROM apps a
-//	LEFT JOIN app_bindings b ON b.app_id = a.id OR (b.resource_type = 'app' AND b.resource_id = a.id)
+//	LEFT JOIN app_connections b ON b.app_id = a.id OR (b.resource_type = 'app' AND b.resource_id = a.id)
 //	WHERE a.id = ?
 func (q *Queries) DeleteAppById(ctx context.Context, id string) error {
 	_, err := q.db.ExecContext(ctx, deleteAppById, id)

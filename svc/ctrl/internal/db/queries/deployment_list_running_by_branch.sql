@@ -4,7 +4,7 @@
 -- deployment id and the app's current deployment. Used to find sibling running
 -- deployments without including the caller's own deployment, the live
 -- deployment, or deployments from another source fork. Pinned deployments are
--- included so their scheduled transition can retry until the binding is removed.
+-- included so their scheduled transition can retry until the connection is removed.
 SELECT d.id
 FROM deployments d
 WHERE d.git_branch <=> sqlc.arg(git_branch)

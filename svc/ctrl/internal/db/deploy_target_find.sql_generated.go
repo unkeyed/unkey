@@ -53,7 +53,7 @@ SELECT
     ) AS has_schedulable_region,
     EXISTS (
         SELECT 1
-        FROM app_bindings pb
+        FROM app_connections pb
         WHERE pb.workspace_id = p.workspace_id
           AND pb.resource_type = 'app'
           AND pb.resource_id <> pb.app_id
@@ -154,7 +154,7 @@ type FindDeployTargetRow struct {
 //	    ) AS has_schedulable_region,
 //	    EXISTS (
 //	        SELECT 1
-//	        FROM app_bindings pb
+//	        FROM app_connections pb
 //	        WHERE pb.workspace_id = p.workspace_id
 //	          AND pb.resource_type = 'app'
 //	          AND pb.resource_id <> pb.app_id

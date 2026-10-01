@@ -23,16 +23,16 @@ type portProto struct {
 	protocol string
 }
 
-func TestBindingPolicyGrantsEveryUnicastPortInOneDirection(t *testing.T) {
-	bindingSpec := testBinding("target_1")
+func TestConnectionPolicyGrantsEveryUnicastPortInOneDirection(t *testing.T) {
+	connectionSpec := testConnection("target_1")
 	dynamic := testDynamicClient()
 	r := &Reconciler{dynamic: dynamic}
-	name := policyName(bindingSpec)
-	require.NoError(t, r.ensurePolicy(t.Context(), bindingSpec, name, nil))
+	name := policyName(connectionSpec)
+	require.NoError(t, r.ensurePolicy(t.Context(), connectionSpec, name, nil))
 
-	policy, err := dynamic.Resource(policyResource).Namespace(bindingSpec.GetK8SNamespace()).Get(t.Context(), name, metav1.GetOptions{})
+	policy, err := dynamic.Resource(policyResource).Namespace(connectionSpec.GetK8SNamespace()).Get(t.Context(), name, metav1.GetOptions{})
 	require.NoError(t, err)
-	require.NotContains(t, policy.GetAnnotations(), "bindings.unkey.com/port")
+	require.NotContains(t, policy.GetAnnotations(), "connections.unkey.com/port")
 	specs := policySpecs(t, policy)
 	require.Len(t, specs, 2)
 
@@ -41,10 +41,10 @@ func TestBindingPolicyGrantsEveryUnicastPortInOneDirection(t *testing.T) {
 	require.NotContains(t, caller, "ingress")
 	require.Contains(t, target, "ingress")
 	require.NotContains(t, target, "egress")
-	require.Equal(t, bindingSpec.GetCallerDeploymentId(), selectorLabels(t, caller)[labels.LabelKeyDeploymentID])
-	require.Equal(t, bindingSpec.GetTargetDeploymentId(), selectorLabels(t, target)[labels.LabelKeyDeploymentID])
+	require.Equal(t, connectionSpec.GetCallerDeploymentId(), selectorLabels(t, caller)[labels.LabelKeyDeploymentID])
+	require.Equal(t, connectionSpec.GetTargetDeploymentId(), selectorLabels(t, target)[labels.LabelKeyDeploymentID])
 	require.NotContains(t, selectorLabels(t, caller), labels.LabelKeyAppID)
-	require.Equal(t, bindingSpec.GetTargetAppId(), selectorLabels(t, target)[labels.LabelKeyAppID])
+	require.Equal(t, connectionSpec.GetTargetAppId(), selectorLabels(t, target)[labels.LabelKeyAppID])
 
 	for _, spec := range []map[string]interface{}{caller, target} {
 		ruleKey := "egress"
@@ -70,32 +70,32 @@ func TestBindingPolicyGrantsEveryUnicastPortInOneDirection(t *testing.T) {
 		}, expressions)
 	}
 
-	require.Equal(t, []flow{{"caller_1", "target_1"}}, effectiveFlows(t, dynamic, bindingSpec.GetK8SNamespace()))
+	require.Equal(t, []flow{{"caller_1", "target_1"}}, effectiveFlows(t, dynamic, connectionSpec.GetK8SNamespace()))
 }
 
-func TestBindingPolicyReverseRequiresReciprocalBinding(t *testing.T) {
+func TestConnectionPolicyReverseRequiresReciprocalConnection(t *testing.T) {
 	dynamic := testDynamicClient()
 	r := &Reconciler{dynamic: dynamic}
-	forward := testBinding("dep_b")
+	forward := testConnection("dep_b")
 	forward.CallerDeploymentId = "dep_a"
 	require.NoError(t, r.ensurePolicy(t.Context(), forward, policyName(forward), nil))
 	require.Equal(t, []flow{{"dep_a", "dep_b"}}, effectiveFlows(t, dynamic, forward.GetK8SNamespace()))
 
-	reverse := testBinding("dep_a")
-	reverse.TargetAppId, reverse.BindingId, reverse.CallerDeploymentId = "app_a", "binding_reverse", "dep_b"
+	reverse := testConnection("dep_a")
+	reverse.TargetAppId, reverse.ConnectionId, reverse.CallerDeploymentId = "app_a", "connection_reverse", "dep_b"
 	require.NoError(t, r.ensurePolicy(t.Context(), reverse, policyName(reverse), nil))
 	require.ElementsMatch(t, []flow{{"dep_a", "dep_b"}, {"dep_b", "dep_a"}}, effectiveFlows(t, dynamic, forward.GetK8SNamespace()))
 }
 
-func TestBindingPolicyIsNotTransitiveAndExcludesUnrelatedDeployments(t *testing.T) {
+func TestConnectionPolicyIsNotTransitiveAndExcludesUnrelatedDeployments(t *testing.T) {
 	dynamic := testDynamicClient()
 	r := &Reconciler{dynamic: dynamic}
-	aToB := testBinding("dep_b")
-	aToB.CallerDeploymentId, aToB.BindingId = "dep_a", "binding_ab"
-	bToC := testBinding("dep_c")
-	bToC.TargetAppId, bToC.CallerDeploymentId, bToC.BindingId = "app_c", "dep_b", "binding_bc"
-	for _, bindingSpec := range []*ctrlv1.PrivateNetworkBinding{aToB, bToC} {
-		require.NoError(t, r.ensurePolicy(t.Context(), bindingSpec, policyName(bindingSpec), nil))
+	aToB := testConnection("dep_b")
+	aToB.CallerDeploymentId, aToB.ConnectionId = "dep_a", "connection_ab"
+	bToC := testConnection("dep_c")
+	bToC.TargetAppId, bToC.CallerDeploymentId, bToC.ConnectionId = "app_c", "dep_b", "connection_bc"
+	for _, connectionSpec := range []*ctrlv1.PrivateNetworkConnection{aToB, bToC} {
+		require.NoError(t, r.ensurePolicy(t.Context(), connectionSpec, policyName(connectionSpec), nil))
 	}
 
 	flows := effectiveFlows(t, dynamic, aToB.GetK8SNamespace())
@@ -105,10 +105,10 @@ func TestBindingPolicyIsNotTransitiveAndExcludesUnrelatedDeployments(t *testing.
 	}
 }
 
-func TestSelfBindingPeersOnlyReplicasOfCallerDeployment(t *testing.T) {
+func TestSelfConnectionPeersOnlyReplicasOfCallerDeployment(t *testing.T) {
 	dynamic := testDynamicClient()
 	r := &Reconciler{dynamic: dynamic}
-	self := testBinding("caller_1")
+	self := testConnection("caller_1")
 	self.TargetAppId = "app_caller"
 	require.NoError(t, r.ensurePolicy(t.Context(), self, policyName(self), nil))
 
@@ -125,14 +125,14 @@ func TestSelfBindingPeersOnlyReplicasOfCallerDeployment(t *testing.T) {
 	}
 }
 
-func TestBindingPolicyIsolationAndImmediateRevocation(t *testing.T) {
+func TestConnectionPolicyIsolationAndImmediateRevocation(t *testing.T) {
 	dynamic := testDynamicClient()
 	r := &Reconciler{dynamic: dynamic}
-	first := testBinding("target_1")
-	second := testBinding("target_1")
-	second.CallerDeploymentId, second.BindingId = "caller_2", "binding_2"
-	for _, bindingSpec := range []*ctrlv1.PrivateNetworkBinding{first, second} {
-		require.NoError(t, r.ensurePolicy(t.Context(), bindingSpec, policyName(bindingSpec), nil))
+	first := testConnection("target_1")
+	second := testConnection("target_1")
+	second.CallerDeploymentId, second.ConnectionId = "caller_2", "connection_2"
+	for _, connectionSpec := range []*ctrlv1.PrivateNetworkConnection{first, second} {
+		require.NoError(t, r.ensurePolicy(t.Context(), connectionSpec, policyName(connectionSpec), nil))
 	}
 	policies, err := dynamic.Resource(policyResource).Namespace(first.GetK8SNamespace()).List(t.Context(), metav1.ListOptions{})
 	require.NoError(t, err)
@@ -145,23 +145,23 @@ func TestBindingPolicyIsolationAndImmediateRevocation(t *testing.T) {
 	require.Equal(t, []flow{{"caller_2", "target_1"}}, effectiveFlows(t, dynamic, first.GetK8SNamespace()))
 }
 
-func TestBindingPolicyIgnoresTargetPortChanges(t *testing.T) {
+func TestConnectionPolicyIgnoresTargetPortChanges(t *testing.T) {
 	dynamic := testDynamicClient()
 	r := &Reconciler{dynamic: dynamic}
-	bindingSpec := testBinding("target_1")
-	require.NoError(t, r.ensurePolicy(t.Context(), bindingSpec, policyName(bindingSpec), nil))
-	before, err := dynamic.Resource(policyResource).Namespace(bindingSpec.GetK8SNamespace()).Get(t.Context(), policyName(bindingSpec), metav1.GetOptions{})
+	connectionSpec := testConnection("target_1")
+	require.NoError(t, r.ensurePolicy(t.Context(), connectionSpec, policyName(connectionSpec), nil))
+	before, err := dynamic.Resource(policyResource).Namespace(connectionSpec.GetK8SNamespace()).Get(t.Context(), policyName(connectionSpec), metav1.GetOptions{})
 	require.NoError(t, err)
 
-	bindingSpec.TargetPort = 9090
-	require.NoError(t, r.ensurePolicy(t.Context(), bindingSpec, policyName(bindingSpec), nil))
-	after, err := dynamic.Resource(policyResource).Namespace(bindingSpec.GetK8SNamespace()).Get(t.Context(), policyName(bindingSpec), metav1.GetOptions{})
+	connectionSpec.TargetPort = 9090
+	require.NoError(t, r.ensurePolicy(t.Context(), connectionSpec, policyName(connectionSpec), nil))
+	after, err := dynamic.Resource(policyResource).Namespace(connectionSpec.GetK8SNamespace()).Get(t.Context(), policyName(connectionSpec), metav1.GetOptions{})
 	require.NoError(t, err)
 	require.Equal(t, before.GetResourceVersion(), after.GetResourceVersion(), "a declared port change must not rewrite access")
 }
 
-func policyName(bindingSpec *ctrlv1.PrivateNetworkBinding) string {
-	return resourceName("unkey-pn-binding", bindingSpec.GetBindingId()+"/"+bindingSpec.GetCallerDeploymentId())
+func policyName(connectionSpec *ctrlv1.PrivateNetworkConnection) string {
+	return resourceName("unkey-pn-connection", connectionSpec.GetConnectionId()+"/"+connectionSpec.GetCallerDeploymentId())
 }
 
 func policySpecs(t *testing.T, policy *unstructured.Unstructured) []map[string]interface{} {

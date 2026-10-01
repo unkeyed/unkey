@@ -168,10 +168,10 @@ func TestServerReturnsServfailWhenAnswerExceedsWireLimit(t *testing.T) {
 	}
 }
 
-func TestColdStartServesPublishedBindingWhileReplacementIsStaged(t *testing.T) {
+func TestColdStartServesPublishedConnectionWhileReplacementIsStaged(t *testing.T) {
 	featuretesting.SetFeatureDuringTest(t, features.WatchListClient, false)
 	objects := discoveryObjects(t)
-	binding := objects[1].(*corev1.ConfigMap)
+	connection := objects[1].(*corev1.ConfigMap)
 	staged := objects[2].(*corev1.Service).DeepCopy()
 	staged.Name, staged.UID = "service-b", "service-b-uid"
 	staged.Labels[labels.LabelKeyDeploymentID] = "deployment-b"
@@ -180,7 +180,7 @@ func TestColdStartServesPublishedBindingWhileReplacementIsStaged(t *testing.T) {
 	remote.Labels[discoveryv1.LabelServiceName] = staged.Name
 	remote.OwnerReferences = []metav1.OwnerReference{*metav1.NewControllerRef(staged, corev1.SchemeGroupVersion.WithKind("Service"))}
 	remote.Endpoints = nil
-	unavailable := binding.DeepCopy()
+	unavailable := connection.DeepCopy()
 	unavailable.Name, unavailable.UID = "unavailable", "unavailable"
 	unavailable.Data["appSlug"] = "unavailable"
 	unavailable.Data["serviceName"] = "missing"
@@ -193,8 +193,8 @@ func TestColdStartServesPublishedBindingWhileReplacementIsStaged(t *testing.T) {
 				remote.Endpoints = []discoveryv1.Endpoint{{Addresses: []string{"10.1.0.22"}, Conditions: discoveryv1.EndpointConditions{Ready: &ready}}}
 				_, err := client.DiscoveryV1().EndpointSlices("default").Update(t.Context(), remote, metav1.UpdateOptions{})
 				require.NoError(t, err)
-				binding.Data["deploymentId"], binding.Data["serviceName"], binding.Data["revision"] = "deployment-b", "service-b", "2"
-				_, err = client.CoreV1().ConfigMaps("default").Update(t.Context(), binding, metav1.UpdateOptions{})
+				connection.Data["deploymentId"], connection.Data["serviceName"], connection.Data["revision"] = "deployment-b", "service-b", "2"
+				_, err = client.CoreV1().ConfigMaps("default").Update(t.Context(), connection, metav1.UpdateOptions{})
 				require.NoError(t, err)
 			}
 
@@ -417,19 +417,19 @@ func discoveryObjects(t *testing.T) []runtime.Object {
 	t.Helper()
 	pod := callerPod("127.0.0.1", "production")
 
-	binding := &corev1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{Name: "binding", Namespace: "default", UID: "binding", Labels: map[string]string{
-			labels.LabelKeyManagedBy: "krane", labels.LabelKeyComponent: bindingComponent,
+	connection := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{Name: "connection", Namespace: "default", UID: "connection", Labels: map[string]string{
+			labels.LabelKeyManagedBy: "krane", labels.LabelKeyComponent: connectionComponent,
 			labels.LabelKeyWorkspaceID: "workspace-a", labels.LabelKeyProjectID: "project-a",
 			labels.LabelKeyAppID: "app-a", environmentKindLabel: "production",
-			labels.LabelKeyCallerDeploymentID: "caller-deployment-a", labels.LabelKeyBindingID: "binding-id",
+			labels.LabelKeyCallerDeploymentID: "caller-deployment-a", labels.LabelKeyConnectionID: "connection-id",
 		}},
 		Data: map[string]string{"appSlug": "payments", "deploymentId": "deployment-a", "serviceName": "service-a", "revision": "1"},
 	}
 
 	service := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{Name: "service-a", Namespace: "default", UID: "service-uid", Labels: map[string]string{
-			labels.LabelKeyManagedBy: "krane", labels.LabelKeyComponent: bindingComponent, labels.LabelKeyWorkspaceID: "workspace-a",
+			labels.LabelKeyManagedBy: "krane", labels.LabelKeyComponent: connectionComponent, labels.LabelKeyWorkspaceID: "workspace-a",
 			labels.LabelKeyProjectID: "project-a", labels.LabelKeyAppID: "app-a",
 			labels.LabelKeyDeploymentID: "deployment-a",
 		}},
@@ -452,7 +452,7 @@ func discoveryObjects(t *testing.T) []runtime.Object {
 		Endpoints:   endpoints,
 	}
 
-	return []runtime.Object{pod, binding, service, slice}
+	return []runtime.Object{pod, connection, service, slice}
 }
 
 // ciliumImportedSliceLabels returns the labels Cilium ClusterMesh puts on an

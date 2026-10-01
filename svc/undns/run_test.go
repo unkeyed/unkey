@@ -140,11 +140,11 @@ func TestPublicDNSAndReadinessSurviveDiscoveryFailure(t *testing.T) {
 	check("synchronized", dnswire.RcodeSuccess, "1")
 
 	for name, informer := range map[string]*trackedInformer{
-		"pods": c.pods, "bindings": c.bindings, "services": c.services, "endpointslices": c.slices,
+		"pods": c.pods, "connections": c.connections, "services": c.services, "endpointslices": c.slices,
 	} {
 		informer.lastContact.Store(0)
 		metrics := check(name+"-failed", dnswire.RcodeServerFailure, "0")
-		for _, resource := range []string{"pods", "bindings", "services", "endpointslices"} {
+		for _, resource := range []string{"pods", "connections", "services", "endpointslices"} {
 			healthy := "1"
 			if resource == name {
 				healthy = "0"

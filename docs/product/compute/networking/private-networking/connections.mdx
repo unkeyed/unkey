@@ -1,0 +1,124 @@
+---
+title: App connections
+sidebarTitle: Connections
+description: "Configure connection names, host variables, and targets, and understand how changes and rollbacks apply."
+sources:
+  - pkg/deploy/appconnection/connection.go
+  - svc/ctrl/internal/db/queries/private_network_list_connections.sql
+  - svc/ctrl/worker/deploy/env_file.go
+  - svc/ctrl/worker/deployment/deployment_state.go
+  - svc/krane/internal/privatenetwork/publication.go
+  - web/apps/dashboard/lib/trpc/routers/deploy/app-connection/index.ts
+---
+
+An app connection grants one environment of a calling app access to a target app in the same project. Each connection has a name, which sets its hostname and variable, and a target, which decides the deployment that the hostname resolves to.
+
+<Note>
+  Private networking isn't generally available. See [Private networking](/compute/networking/private-networking) for an overview.
+</Note>
+
+## Names and variables
+
+The connection name sets the hostname and the variable that the calling app receives:
+
+| Connection name  | Variable            | Value                         |
+| ------------- | ------------------- | ----------------------------- |
+| `payments`    | `PAYMENTS_HOST`     | `payments.unkey.internal`     |
+| `event-store` | `EVENT_STORE_HOST`  | `event-store.unkey.internal`  |
+| `db2`         | `DB2_HOST`          | `db2.unkey.internal`          |
+
+To build the variable, Unkey converts the name to uppercase, replaces hyphens with underscores, and adds `_HOST`.
+
+A connection name must follow these rules:
+
+- Starts with a lowercase letter
+- Contains only lowercase letters, numbers, and hyphens
+- Ends with a letter or number
+- Has at most 63 characters
+- Doesn't start with `unkey`
+- Isn't the calling app's own slug
+- Is unique among the calling app's connections in that environment
+
+A calling app can have one connection per target app in each environment. Unkey normalizes the target app's slug to a valid default name, adding an `app-` prefix when needed. If the default name is taken, Unkey adds a number, such as `payments-2`.
+
+If you also define a [variable](/compute/configure/environment-variables) with the same name as a connection variable, the connection variable takes precedence.
+
+## Choose a target
+
+The target decides which deployment of the target app the hostname resolves to. To change it, select the connection on the **Connections** page and choose an option from **Target**.
+
+| Target | Resolves to |
+| --- | --- |
+| Automatic, production caller (shown as **production**) | The target app's live production deployment |
+| Automatic, preview caller (shown as **Same Git branch**) | The newest preview deployment that reached ready, from the caller's Git branch and repository fork |
+| An environment | Production: the live deployment, only if it belongs to that environment. Preview: the newest deployment in that environment that reached ready |
+| **Specific deployment…** | One deployment that you pick |
+
+Unkey decides whether a caller or target is production or preview by the environment's type, not by its name.
+
+The selected deployment must still be ready and running. Preview selection uses creation time among deployments that have reached ready at least once. If the selected deployment has since stopped, the hostname fails to resolve. Unkey doesn't fall back to an older running deployment.
+
+### Automatic
+
+Connections start with the automatic target, except preview connections of apps that deploy from a container image. In the calling app's production environment, the hostname follows the target app's live production deployment. It moves with each new live deployment, [rollback](/compute/concepts/production-and-preview#rollback), and promotion.
+
+In a preview environment, the hostname resolves to the newest target preview deployment that has reached ready and comes from the same Git branch and repository fork as the calling deployment. This lets a feature branch that spans two apps test against itself. If the target app has no preview for that branch, the hostname doesn't resolve until you deploy one or choose another target.
+
+The automatic preview target needs a calling deployment built from a Git branch. For apps that deploy from a container image, choose an environment instead.
+
+### Environment
+
+An environment target selects one environment of the target app. Use it to connect a preview caller to production, or a production caller to a preview environment.
+
+For a production environment, the hostname follows the live deployment, including rollbacks, only while that deployment belongs to the selected environment. If the live deployment is in another environment, the hostname doesn't resolve. For a preview environment, it selects the newest deployment in that environment that has reached ready, from any branch.
+
+### Specific deployment
+
+A specific deployment target pins the hostname to one deployment. You can pin a deployment that has reached ready and is still running. Use a pin to hold a known version while you test or migrate.
+
+Unkey defers replacement and idle-preview stops while a deployment is pinned, so it continues to use resources. Deferred stops retry with a delay capped at 15 minutes. After the last pin is removed, the next successful retry can stop the deployment. If you stop a pinned deployment yourself, the hostname stops resolving.
+
+## How target changes apply
+
+Target changes apply to running deployments of the calling app. You don't need to redeploy.
+
+A hostname moves to a new deployment only after the caller's resolver sees a ready instance of that deployment. While discovery catches up, a running resolver can keep using its previous target if that target remains ready and its retention period hasn't expired. Resolvers switch independently.
+
+During a target change, access to the previous deployment is retained for up to 30 minutes while it runs. This gives open connections time to finish, but doesn't keep an unavailable instance alive. Unkey doesn't move existing connections. Clients must reconnect to reach the new deployment.
+
+If the target can no longer be selected, for example because a pinned deployment stopped or a target environment was deleted, the hostname fails once that change reaches the resolver instead of falling back to an earlier deployment.
+
+## Rollbacks
+
+A [rollback](/compute/concepts/production-and-preview#rollback) of the target app moves connections that follow its live deployment: automatic targets in a production caller, and environment targets that select the live environment. Those hostnames switch to the rolled-back deployment. While the environment stays rolled back, new pushes don't move the hostname. After you promote a deployment, the hostname follows it.
+
+Pinned connections and preview targets don't change when the target app rolls back.
+
+A rollback of the calling app uses the variables of the deployment you roll back to. Unkey captures connection variables when it creates a deployment. If that deployment is older than a connection or a rename, it doesn't have the current variable. The connection's current target still applies to it.
+
+## Manage connections
+
+Each change to a connection applies on its own schedule:
+
+| Change | Running deployments of the calling app | Redeploy needed |
+| --- | --- | --- |
+| Create a connection | Can resolve it if private DNS is already configured, but don't get the variable | Yes, to receive the variable and configure private DNS if needed |
+| Change the target | Use the new target | No |
+| Rename a connection | Lose the old hostname and keep the old variable value | Yes |
+| Delete a connection | Lose access to the target and keep the variable | Yes, to remove the variable |
+
+<Warning>
+  Renaming a connection changes its hostname and variable. The old hostname stops resolving as soon as the change applies. Update your code, rename the connection, and redeploy the calling app right away.
+</Warning>
+
+Deleting resources also removes connections:
+
+- Deleting an app deletes its connections and every connection that targets it.
+- Deleting an environment of the calling app deletes that environment's connections.
+- Deleting an environment that a connection targets leaves the connection in place. The connection details show **Deleted environment**, and the hostname doesn't resolve until you choose another target.
+
+When you delete the workspace's last connection, `UNKEY_DEPLOYMENT_HOST` hostnames stop resolving.
+
+## Next steps
+
+Read [Private networking](/compute/networking/private-networking) to connect two apps and use the hostname in code. Use [Private networking troubleshooting](/compute/networking/private-networking/troubleshooting) to fix missing variables, DNS failures, and failed connections.

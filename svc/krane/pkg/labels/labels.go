@@ -15,7 +15,7 @@ const (
 	LabelKeyEnvironmentKind    = "unkey.com/environment.kind"
 	LabelKeyDeploymentID       = "unkey.com/deployment.id"
 	LabelKeyCallerDeploymentID = "unkey.com/caller-deployment.id"
-	LabelKeyBindingID          = "unkey.com/binding.id"
+	LabelKeyConnectionID       = "unkey.com/connection.id"
 	LabelKeyBuildID            = "unkey.com/build.id"
 	LabelKeyNetworkPolicyID    = "unkey.com/networkpolicy.id"
 	LabelKeyPlatform           = "unkey.com/platform"

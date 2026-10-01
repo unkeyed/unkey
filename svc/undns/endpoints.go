@@ -7,14 +7,14 @@ import (
 	"time"
 
 	"github.com/unkeyed/unkey/pkg/assert"
-	"github.com/unkeyed/unkey/pkg/deploy/appbinding"
+	"github.com/unkeyed/unkey/pkg/deploy/appconnection"
 	"github.com/unkeyed/unkey/svc/krane/pkg/labels"
 	corev1 "k8s.io/api/core/v1"
 	discoveryv1 "k8s.io/api/discovery/v1"
 )
 
-func (c *catalog) resolveBinding(identity caller, config *corev1.ConfigMap) ([]netip.Addr, error) {
-	b, err := parseBinding(config)
+func (c *catalog) resolveConnection(identity caller, config *corev1.ConfigMap) ([]netip.Addr, error) {
+	b, err := parseConnection(config)
 	if err != nil {
 		return nil, err
 	}
@@ -28,7 +28,7 @@ func (c *catalog) resolveBinding(identity caller, config *corev1.ConfigMap) ([]n
 	}
 
 	service := object.(*corev1.Service)
-	if expiry := service.Annotations[appbinding.RetireAfterAnnotation]; expiry != "" {
+	if expiry := service.Annotations[appconnection.RetireAfterAnnotation]; expiry != "" {
 		deadline, err := time.Parse(time.RFC3339Nano, expiry)
 		if err != nil {
 			return nil, fmt.Errorf("%w: invalid retirement deadline: %w", errServiceRejected, err)
@@ -49,9 +49,9 @@ func (c *catalog) resolveBinding(identity caller, config *corev1.ConfigMap) ([]n
 		assert.Equal(l[labels.LabelKeyAppID], b.appID),
 		assert.Equal(l[labels.LabelKeyDeploymentID], b.deployment),
 		assert.Equal(l[labels.LabelKeyManagedBy], "krane"),
-		assert.Equal(l[labels.LabelKeyComponent], bindingComponent),
+		assert.Equal(l[labels.LabelKeyComponent], connectionComponent),
 		assert.Empty(l[labels.LabelKeyCallerDeploymentID]),
-		assert.Empty(l[labels.LabelKeyBindingID]),
+		assert.Empty(l[labels.LabelKeyConnectionID]),
 		assert.Equal(service.Namespace, identity.namespace),
 	)
 	if err != nil {
@@ -69,7 +69,7 @@ func (c *catalog) endpoints(service *corev1.Service) ([]netip.Addr, error) {
 
 	var addresses []netip.Addr
 	for _, object := range objects {
-		addresses = appbinding.AppendReadyAddresses(addresses, service, object.(*discoveryv1.EndpointSlice))
+		addresses = appconnection.AppendReadyAddresses(addresses, service, object.(*discoveryv1.EndpointSlice))
 	}
 
 	slices.SortFunc(addresses, func(a, b netip.Addr) int { return a.Compare(b) })
