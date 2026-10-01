@@ -16,10 +16,13 @@ WHERE workspace_id = ?
   AND portal_id = ?
   AND external_id = ?
   AND revoked_at IS NULL
+  AND created_at <= ?
   AND (
     (access_token_hash IS NOT NULL AND access_token_expires_at > ?)
     OR (access_token_hash IS NULL AND exchange_code_expires_at > ?)
   )
+ORDER BY pk
+LIMIT ?
 FOR UPDATE
 `
 
@@ -27,13 +30,17 @@ type LockLivePortalSessionsByExternalIDParams struct {
 	WorkspaceID              string        `db:"workspace_id"`
 	PortalID                 string        `db:"portal_id"`
 	ExternalID               string        `db:"external_id"`
+	CreatedBefore            int64         `db:"created_before"`
 	AccessTokenExpiresAfter  sql.NullInt64 `db:"access_token_expires_after"`
 	ExchangeCodeExpiresAfter int64         `db:"exchange_code_expires_after"`
+	Limit                    int32         `db:"limit"`
 }
 
-// Locks one end user's live sessions on a portal: an unexpired access token, or
-// an unexpired code that was never exchanged. Expired rows are left alone so the
-// revoke reports only access it actually cut. The lock pins exactly the rows
+// Locks up to `limit` of one end user's live sessions on a portal: an unexpired
+// access token, or an unexpired code that was never exchanged. Expired rows are
+// left alone so the revoke reports only access it actually cut. Only sessions
+// created by `created_before` are taken, so a caller revoking in batches stops
+// even while new sessions are being minted. The lock pins exactly the rows
 // RevokePortalSessionsByIDs then revokes.
 //
 //	SELECT pk, id, workspace_id, portal_id, external_id, scopes, exchange_code_hash, exchange_code_expires_at, access_token_hash, access_token_created_at, access_token_expires_at, revoked_at, return_url, created_at FROM portal_sessions
@@ -41,18 +48,23 @@ type LockLivePortalSessionsByExternalIDParams struct {
 //	  AND portal_id = ?
 //	  AND external_id = ?
 //	  AND revoked_at IS NULL
+//	  AND created_at <= ?
 //	  AND (
 //	    (access_token_hash IS NOT NULL AND access_token_expires_at > ?)
 //	    OR (access_token_hash IS NULL AND exchange_code_expires_at > ?)
 //	  )
+//	ORDER BY pk
+//	LIMIT ?
 //	FOR UPDATE
 func (q *Queries) LockLivePortalSessionsByExternalID(ctx context.Context, db DBTX, arg LockLivePortalSessionsByExternalIDParams) ([]PortalSession, error) {
 	rows, err := db.QueryContext(ctx, lockLivePortalSessionsByExternalID,
 		arg.WorkspaceID,
 		arg.PortalID,
 		arg.ExternalID,
+		arg.CreatedBefore,
 		arg.AccessTokenExpiresAfter,
 		arg.ExchangeCodeExpiresAfter,
+		arg.Limit,
 	)
 	if err != nil {
 		return nil, err

@@ -2795,9 +2795,11 @@ type Querier interface {
 	//  WHERE id = ?
 	//  FOR UPDATE
 	LockKeyForUpdate(ctx context.Context, db DBTX, id string) (string, error)
-	// Locks one end user's live sessions on a portal: an unexpired access token, or
-	// an unexpired code that was never exchanged. Expired rows are left alone so the
-	// revoke reports only access it actually cut. The lock pins exactly the rows
+	// Locks up to `limit` of one end user's live sessions on a portal: an unexpired
+	// access token, or an unexpired code that was never exchanged. Expired rows are
+	// left alone so the revoke reports only access it actually cut. Only sessions
+	// created by `created_before` are taken, so a caller revoking in batches stops
+	// even while new sessions are being minted. The lock pins exactly the rows
 	// RevokePortalSessionsByIDs then revokes.
 	//
 	//  SELECT pk, id, workspace_id, portal_id, external_id, scopes, exchange_code_hash, exchange_code_expires_at, access_token_hash, access_token_created_at, access_token_expires_at, revoked_at, return_url, created_at FROM portal_sessions
@@ -2805,10 +2807,13 @@ type Querier interface {
 	//    AND portal_id = ?
 	//    AND external_id = ?
 	//    AND revoked_at IS NULL
+	//    AND created_at <= ?
 	//    AND (
 	//      (access_token_hash IS NOT NULL AND access_token_expires_at > ?)
 	//      OR (access_token_hash IS NULL AND exchange_code_expires_at > ?)
 	//    )
+	//  ORDER BY pk
+	//  LIMIT ?
 	//  FOR UPDATE
 	LockLivePortalSessionsByExternalID(ctx context.Context, db DBTX, arg LockLivePortalSessionsByExternalIDParams) ([]PortalSession, error)
 	// Locks the portal row while a session is minted. Disabling, re-pointing, and
