@@ -629,16 +629,17 @@ func (w *Workflow) configureRouting(
 	for _, domain := range allDomains {
 		frontlineRouteID, getFrontlineRouteErr := restate.Run(ctx, func(runCtx restate.RunContext) (string, error) {
 			return db.TxWithResultRetry(runCtx, w.db.RW(), func(txCtx context.Context, tx db.DBTX) (string, error) {
-				if _, err := db.NewQueries(tx).LockActiveEnvironment(txCtx, deployment.EnvironmentID); err != nil {
+				q := db.NewQueries(tx)
+				if _, err := q.LockActiveEnvironment(txCtx, deployment.EnvironmentID); err != nil {
 					if db.IsNotFound(err) {
 						return "", restate.ToTerminalError(fmt.Errorf("environment is not active: %w", err), restate.WithErrorCode(409))
 					}
 					return "", err
 				}
-				found, err := db.NewQueries(tx).FindFrontlineRouteByFQDN(txCtx, domain.domain)
+				found, err := q.FindFrontlineRouteByFQDN(txCtx, domain.domain)
 				if err != nil {
 					if db.IsNotFound(err) {
-						err = db.NewQueries(tx).InsertFrontlineRoute(txCtx, db.InsertFrontlineRouteParams{
+						err = q.InsertFrontlineRoute(txCtx, db.InsertFrontlineRouteParams{
 							ID:                       uid.New(uid.FrontlineRoutePrefix),
 							ProjectID:                deployment.ProjectID,
 							AppID:                    deployment.AppID,
