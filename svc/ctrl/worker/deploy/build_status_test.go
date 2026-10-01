@@ -106,6 +106,59 @@ func TestProcessBuildStatusWritesLogRows(t *testing.T) {
 	}, got)
 }
 
+func TestProcessBuildStatusWritesStepEventLines(t *testing.T) {
+	buildStepLogs, closeAndCollect := collectRows[schema.BuildStepLogV1](t)
+	w := &Workflow{buildSteps: batch.NewNoop[schema.BuildStepV1](), buildStepLogs: buildStepLogs}
+
+	started := time.Now()
+	completed := started.Add(5300 * time.Millisecond)
+	install := digest.FromString(uid.New("vertex"))
+	cached := digest.FromString(uid.New("vertex"))
+	failed := digest.FromString(uid.New("vertex"))
+	instant := digest.FromString(uid.New("vertex"))
+	almostInstant := started.Add(40 * time.Millisecond)
+
+	statusCh := make(chan *client.SolveStatus, 10)
+	statusCh <- &client.SolveStatus{Vertexes: []*client.Vertex{
+		{Digest: install, Name: "[3/4] RUN npm ci", Started: &started},
+		{Digest: cached, Name: "[2/4] COPY . .", Started: &started, Completed: &started, Cached: true},
+	}}
+	statusCh <- &client.SolveStatus{
+		Vertexes: []*client.Vertex{{Digest: install, Name: "[3/4] RUN npm ci", Started: &started, Completed: &completed}},
+		Logs:     []*client.VertexLog{{Vertex: install, Stream: 1, Data: []byte("KEBAP installed"), Timestamp: completed}},
+	}
+	statusCh <- &client.SolveStatus{Vertexes: []*client.Vertex{
+		{Digest: instant, Name: "[1/4] FROM alpine", Started: &started, Completed: &almostInstant},
+	}}
+	statusCh <- &client.SolveStatus{Vertexes: []*client.Vertex{
+		{Digest: failed, Name: "[4/4] RUN npm test", Started: &completed, Completed: &completed, Error: "KEBAP exit code: 1"},
+	}}
+	close(statusCh)
+
+	w.processBuildStatus(statusCh, uid.New(uid.WorkspacePrefix), uid.New(uid.ProjectPrefix), uid.New(uid.DeploymentPrefix), newLogSequence())
+	rows := closeAndCollect()
+
+	type logRow struct {
+		stepID  string
+		time    int64
+		message string
+		stderr  bool
+	}
+	got := make([]logRow, 0, len(rows))
+	for i, row := range rows {
+		got = append(got, logRow{stepID: row.StepID, time: row.Time, message: row.Message, stderr: row.Stderr})
+		if i > 0 {
+			require.Greater(t, row.Seq, rows[i-1].Seq, "event lines take seq from the same counter as log rows")
+		}
+	}
+	require.Equal(t, []logRow{
+		{stepID: cached.String(), time: started.UnixMilli(), message: "CACHED", stderr: false},
+		{stepID: install.String(), time: completed.UnixMilli(), message: "KEBAP installed", stderr: false},
+		{stepID: install.String(), time: completed.UnixMilli(), message: "DONE 5.3s", stderr: false},
+		{stepID: failed.String(), time: completed.UnixMilli(), message: "ERROR: KEBAP exit code: 1", stderr: true},
+	}, got, "a start and a step that rounds to 0.0s add no line, and a completion line follows the output of its status")
+}
+
 func collectRows[T any](t *testing.T) (*batch.BatchProcessor[T], func() []T) {
 	t.Helper()
 	var mu sync.Mutex
