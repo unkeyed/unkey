@@ -10,14 +10,14 @@ import (
 )
 
 const findProjectById = `-- name: FindProjectById :one
-SELECT projects.pk, projects.id, projects.workspace_id, projects.name, projects.slug, projects.depot_project_id, projects.delete_protection, projects.created_at, projects.updated_at
+SELECT projects.pk, projects.id, projects.workspace_id, projects.name, projects.slug, projects.depot_project_id, projects.delete_protection, projects.created_at, projects.updated_at, projects.deleting_at
 FROM projects
 WHERE id = ?
 `
 
 // FindProjectById
 //
-//	SELECT projects.pk, projects.id, projects.workspace_id, projects.name, projects.slug, projects.depot_project_id, projects.delete_protection, projects.created_at, projects.updated_at
+//	SELECT projects.pk, projects.id, projects.workspace_id, projects.name, projects.slug, projects.depot_project_id, projects.delete_protection, projects.created_at, projects.updated_at, projects.deleting_at
 //	FROM projects
 //	WHERE id = ?
 func (q *Queries) FindProjectById(ctx context.Context, db DBTX, id string) (Project, error) {
@@ -33,6 +33,7 @@ func (q *Queries) FindProjectById(ctx context.Context, db DBTX, id string) (Proj
 		&i.DeleteProtection,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.DeletingAt,
 	)
 	return i, err
 }

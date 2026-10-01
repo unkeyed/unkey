@@ -10,7 +10,7 @@ import (
 )
 
 const findProjectBySlug = `-- name: FindProjectBySlug :one
-SELECT projects.pk, projects.id, projects.workspace_id, projects.name, projects.slug, projects.depot_project_id, projects.delete_protection, projects.created_at, projects.updated_at
+SELECT projects.pk, projects.id, projects.workspace_id, projects.name, projects.slug, projects.depot_project_id, projects.delete_protection, projects.created_at, projects.updated_at, projects.deleting_at
 FROM projects
 WHERE slug = ?
 LIMIT 1
@@ -18,7 +18,7 @@ LIMIT 1
 
 // FindProjectBySlug
 //
-//	SELECT projects.pk, projects.id, projects.workspace_id, projects.name, projects.slug, projects.depot_project_id, projects.delete_protection, projects.created_at, projects.updated_at
+//	SELECT projects.pk, projects.id, projects.workspace_id, projects.name, projects.slug, projects.depot_project_id, projects.delete_protection, projects.created_at, projects.updated_at, projects.deleting_at
 //	FROM projects
 //	WHERE slug = ?
 //	LIMIT 1
@@ -35,6 +35,7 @@ func (q *Queries) FindProjectBySlug(ctx context.Context, db DBTX, slug string) (
 		&i.DeleteProtection,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.DeletingAt,
 	)
 	return i, err
 }
