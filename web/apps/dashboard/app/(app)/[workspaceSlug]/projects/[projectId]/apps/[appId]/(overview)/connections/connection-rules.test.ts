@@ -105,6 +105,18 @@ describe("describeTarget", () => {
     ).toBe(true);
   });
 
+  it("does not describe a pin missing from the choices page as stopped", () => {
+    const result = describeTarget({
+      ...common,
+      connection: connection({ targetType: "deployment", targetDeploymentId: "older-live-pin" }),
+      callerEnvironment: callerProd,
+    });
+    expect(result).toEqual({
+      text: "The pinned db deployment is unavailable. Choose another target.",
+      unavailable: true,
+    });
+  });
+
   it("never mentions ports or protocols", () => {
     for (const rule of [
       connection({}),

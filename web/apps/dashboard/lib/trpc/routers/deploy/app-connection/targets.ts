@@ -1,15 +1,27 @@
-import { and, db, desc, eq, isNotNull, ne, schema } from "@/lib/db";
+import { and, db, desc, eq, inArray, isNotNull, lt, ne, or, schema } from "@/lib/db";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { z } from "zod";
 import { requireApp } from "./access";
 import { projectInput } from "./schemas";
+import { mergeDeploymentTargets } from "./target-pagination";
+
+const DEPLOYMENT_PAGE_SIZE = 100;
 
 export const listAppConnectionTargets = workspaceProcedure
-  .input(projectInput.extend({ appId: z.string().min(1) }))
+  .input(
+    projectInput.extend({
+      appId: z.string().min(1),
+      targetAppId: z.string().min(1).optional(),
+      cursor: z.object({ createdAt: z.number().int(), id: z.string() }).nullish(),
+    }),
+  )
   .use(withRatelimit(ratelimit.read))
   .query(async ({ ctx, input }) => {
     await requireApp(ctx.workspace.id, input.projectId, input.appId);
-    const [apps, environments, deployments] = await Promise.all([
+    if (input.targetAppId) {
+      await requireApp(ctx.workspace.id, input.projectId, input.targetAppId);
+    }
+    const [apps, environments, pinnedConnections] = await Promise.all([
       db
         .select({
           id: schema.apps.id,
@@ -43,30 +55,82 @@ export const listAppConnectionTargets = workspaceProcedure
         .orderBy(schema.environments.slug)
         .limit(500),
       db
-        .select({
-          id: schema.deployments.id,
-          appId: schema.deployments.appId,
-          environmentId: schema.deployments.environmentId,
-          status: schema.deployments.status,
-          gitBranch: schema.deployments.gitBranch,
-          image: schema.deployments.imageResolved,
-        })
-        .from(schema.deployments)
+        .select({ deploymentId: schema.appConnections.targetDeploymentId })
+        .from(schema.appConnections)
         .where(
           and(
-            eq(schema.deployments.workspaceId, ctx.workspace.id),
-            eq(schema.deployments.projectId, input.projectId),
-            isNotNull(schema.deployments.firstReadyAt),
+            eq(schema.appConnections.workspaceId, ctx.workspace.id),
+            eq(schema.appConnections.projectId, input.projectId),
+            eq(schema.appConnections.appId, input.appId),
+            eq(schema.appConnections.resourceType, "app"),
+            eq(schema.appConnections.selectionMode, "deployment"),
+            isNotNull(schema.appConnections.targetDeploymentId),
           ),
         )
-        .orderBy(desc(schema.deployments.createdAt))
-        .limit(100),
+        .limit(500),
     ]);
+    const deploymentSelect = {
+      id: schema.deployments.id,
+      appId: schema.deployments.appId,
+      environmentId: schema.deployments.environmentId,
+      status: schema.deployments.status,
+      gitBranch: schema.deployments.gitBranch,
+      image: schema.deployments.imageResolved,
+      createdAt: schema.deployments.createdAt,
+    };
+    const pinnedIds = pinnedConnections.flatMap(({ deploymentId }) =>
+      deploymentId ? [deploymentId] : [],
+    );
+    const [pinnedDeployments, choiceRows] = await Promise.all([
+      pinnedIds.length > 0
+        ? db
+            .select(deploymentSelect)
+            .from(schema.deployments)
+            .where(
+              and(
+                eq(schema.deployments.workspaceId, ctx.workspace.id),
+                eq(schema.deployments.projectId, input.projectId),
+                inArray(schema.deployments.id, pinnedIds),
+                isNotNull(schema.deployments.firstReadyAt),
+              ),
+            )
+        : Promise.resolve([]),
+      input.targetAppId
+        ? db
+            .select(deploymentSelect)
+            .from(schema.deployments)
+            .where(
+              and(
+                eq(schema.deployments.workspaceId, ctx.workspace.id),
+                eq(schema.deployments.projectId, input.projectId),
+                eq(schema.deployments.appId, input.targetAppId),
+                isNotNull(schema.deployments.firstReadyAt),
+                or(eq(schema.deployments.status, "ready"), eq(schema.deployments.status, "stopped")),
+                input.cursor
+                  ? or(
+                      lt(schema.deployments.createdAt, input.cursor.createdAt),
+                      and(
+                        eq(schema.deployments.createdAt, input.cursor.createdAt),
+                        lt(schema.deployments.id, input.cursor.id),
+                      ),
+                    )
+                  : undefined,
+              ),
+            )
+            .orderBy(desc(schema.deployments.createdAt), desc(schema.deployments.id))
+            .limit(DEPLOYMENT_PAGE_SIZE + 1)
+        : Promise.resolve([]),
+    ]);
+    const hasMore = choiceRows.length > DEPLOYMENT_PAGE_SIZE;
+    const choices = hasMore ? choiceRows.slice(0, DEPLOYMENT_PAGE_SIZE) : choiceRows;
+    const last = choices.at(-1);
+    const deployments = mergeDeploymentTargets(pinnedDeployments, choices).map(
+      ({ createdAt: _createdAt, ...deployment }) => deployment,
+    );
     return {
       apps,
       environments,
-      deployments: deployments.filter(
-        (item) => item.status === "ready" || item.status === "stopped",
-      ),
+      deployments,
+      nextCursor: hasMore && last ? { createdAt: last.createdAt, id: last.id } : null,
     };
   });

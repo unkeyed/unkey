@@ -86,7 +86,13 @@ export function describeTarget({
         };
   }
   const deployment = deployments.find((item) => item.id === connection.targetDeploymentId);
-  if (!deployment || deployment.status !== "ready") {
+  if (!deployment) {
+    return {
+      text: `The pinned ${targetName} deployment is unavailable. Choose another target.`,
+      unavailable: true,
+    };
+  }
+  if (deployment.status !== "ready") {
     return {
       text: `The pinned ${targetName} deployment is stopped. Choose another target.`,
       unavailable: true,
