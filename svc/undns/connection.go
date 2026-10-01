@@ -23,6 +23,15 @@ type connection struct {
 }
 
 func (c *catalog) resolve(identity caller, app string) ([]netip.Addr, bool, error) {
+	active, exists, err := c.lookupConnection(identity, app)
+	if err != nil || !exists {
+		return nil, exists, err
+	}
+	addresses, err := c.resolveConnection(identity, active)
+	return addresses, true, err
+}
+
+func (c *catalog) lookupConnection(identity caller, app string) (*corev1.ConfigMap, bool, error) {
 	if identity.deployment == "" {
 		return nil, false, nil
 	}
@@ -46,11 +55,7 @@ func (c *catalog) resolve(identity caller, app string) ([]netip.Addr, bool, erro
 
 	config := objects[0].(*corev1.ConfigMap)
 	active, err := c.activateConnection(key, config)
-	if err != nil {
-		return nil, true, err
-	}
-	addresses, err := c.resolveConnection(identity, active)
-	return addresses, true, err
+	return active, true, err
 }
 
 func (c *catalog) activate() {
