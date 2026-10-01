@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"strings"
 	"testing"
@@ -227,6 +228,50 @@ func TestCreateAndUpdateOciAppSource(t *testing.T) {
 	updatedSource, err := database.FindAppSourceOciByAppId(ctx, appID)
 	require.NoError(t, err)
 	require.Equal(t, "index.docker.io/library/nginx:1.28", updatedSource.ImageReference)
+}
+
+func TestUpdateOciImageSourceRejectsDeletingParents(t *testing.T) {
+	for _, parent := range []string{"app", "project"} {
+		t.Run(parent, func(t *testing.T) {
+			ctx := t.Context()
+			database, err := db.New(containers.MySQL(t).DSN, sqlcomment.Disabled())
+			require.NoError(t, err)
+			t.Cleanup(func() { require.NoError(t, database.Close()) })
+			seeder := seed.New(t, database, nil)
+			seeder.Seed(ctx)
+			workspaceID := seeder.Resources.UserWorkspace.ID
+			project := seeder.CreateProject(ctx, seed.CreateProjectRequest{
+				ID: uid.New(uid.ProjectPrefix), WorkspaceID: workspaceID, Name: "deleting", Slug: uid.DNS1035(),
+			})
+			auditService, err := auditlogs.New(auditlogs.Config{DB: database})
+			require.NoError(t, err)
+			svc := New(Config{Database: database, Auditlogs: auditService, Bearer: "test-token"})
+			actor := &ctrlv1.ActorInfo{Id: "user_test", Type: ctrlv1.ActorType_ACTOR_TYPE_USER}
+			create := connect.NewRequest(&ctrlv1.CreateAppRequest{
+				WorkspaceId: workspaceID, ProjectId: project.ID, Name: "deleting", Slug: uid.DNS1035(), Actor: actor,
+				Source: &ctrlv1.CreateAppRequest_Oci{Oci: &ctrlv1.OciSource{ImageReference: "nginx:1.27"}},
+			})
+			create.Header().Set("Authorization", "Bearer test-token")
+			created, err := svc.CreateApp(ctx, create)
+			require.NoError(t, err)
+			appID := created.Msg.GetId()
+			if parent == "app" {
+				require.NoError(t, database.MarkAppDeleting(ctx, db.MarkAppDeletingParams{ID: appID, DeletingAt: sql.NullInt64{Int64: 1, Valid: true}}))
+			} else {
+				require.NoError(t, database.MarkProjectDeleting(ctx, db.MarkProjectDeletingParams{ID: project.ID, DeletingAt: sql.NullInt64{Int64: 1, Valid: true}}))
+			}
+
+			update := connect.NewRequest(&ctrlv1.UpdateOciImageSourceRequest{
+				WorkspaceId: workspaceID, AppId: appID, ImageReference: "nginx:1.28", Actor: actor,
+			})
+			update.Header().Set("Authorization", "Bearer test-token")
+			_, err = svc.UpdateOciImageSource(ctx, update)
+			require.Equal(t, connect.CodeNotFound, connect.CodeOf(err))
+			source, err := database.FindAppSourceOciByAppId(ctx, appID)
+			require.NoError(t, err)
+			require.Equal(t, "index.docker.io/library/nginx:1.27", source.ImageReference)
+		})
+	}
 }
 
 func TestPickDefaultRegion(t *testing.T) {
