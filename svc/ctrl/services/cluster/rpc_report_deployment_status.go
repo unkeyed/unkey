@@ -77,17 +77,18 @@ func (s *Service) ReportDeploymentStatus(ctx context.Context, req *connect.Reque
 	var updatedDeployment *db.Deployment
 
 	err = db.TxRetry(ctx, s.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
+		q := db.NewQueries(tx)
 		switch msg := req.Msg.GetChange().(type) {
 		case *ctrlv1.ReportDeploymentStatusRequest_Update_:
 			{
-				deployment, err := db.NewQueries(tx).FindDeploymentByK8sName(txCtx, msg.Update.GetK8SName())
+				deployment, err := q.FindDeploymentByK8sName(txCtx, msg.Update.GetK8SName())
 				if db.IsNotFound(err) {
 					return nil
 				}
 				if err != nil {
 					return err
 				}
-				if _, err := db.NewQueries(tx).LockActiveEnvironment(txCtx, deployment.EnvironmentID); err != nil {
+				if _, err := q.LockActiveEnvironment(txCtx, deployment.EnvironmentID); err != nil {
 					if db.IsNotFound(err) {
 						return nil
 					}
@@ -95,7 +96,7 @@ func (s *Service) ReportDeploymentStatus(ctx context.Context, req *connect.Reque
 				}
 				updatedDeployment = &deployment
 
-				staleInstances, err := db.NewQueries(tx).FindInstancesByDeploymentIdAndRegionID(txCtx, db.FindInstancesByDeploymentIdAndRegionIDParams{
+				staleInstances, err := q.FindInstancesByDeploymentIdAndRegionID(txCtx, db.FindInstancesByDeploymentIdAndRegionIDParams{
 					DeploymentID: deployment.ID,
 					RegionID:     cluster.RegionID,
 				})
@@ -118,7 +119,7 @@ func (s *Service) ReportDeploymentStatus(ctx context.Context, req *connect.Reque
 
 				for _, staleInstance := range staleInstances {
 					if _, ok := wantInstanceNames[staleInstance.K8sName]; !ok {
-						err = db.NewQueries(tx).DeleteInstance(txCtx, db.DeleteInstanceParams{
+						err = q.DeleteInstance(txCtx, db.DeleteInstanceParams{
 							K8sName:  staleInstance.K8sName,
 							RegionID: cluster.RegionID,
 						})
@@ -133,7 +134,7 @@ func (s *Service) ReportDeploymentStatus(ctx context.Context, req *connect.Reque
 					if instanceID == "" {
 						instanceID = uid.New(uid.InstancePrefix)
 					}
-					err = db.NewQueries(tx).UpsertInstance(txCtx, db.UpsertInstanceParams{
+					err = q.UpsertInstance(txCtx, db.UpsertInstanceParams{
 						ID:            instanceID,
 						DeploymentID:  deployment.ID,
 						WorkspaceID:   deployment.WorkspaceID,
@@ -155,9 +156,9 @@ func (s *Service) ReportDeploymentStatus(ctx context.Context, req *connect.Reque
 		case *ctrlv1.ReportDeploymentStatusRequest_Delete_:
 			{
 				if msg.Delete.GetRemovalConfirmed() {
-					return confirmDeploymentRemoval(txCtx, db.NewQueries(tx), cluster.RegionID, msg.Delete)
+					return confirmDeploymentRemoval(txCtx, q, cluster.RegionID, msg.Delete)
 				}
-				deployment, err := db.NewQueries(tx).FindDeploymentByK8sName(txCtx, msg.Delete.GetK8SName())
+				deployment, err := q.FindDeploymentByK8sName(txCtx, msg.Delete.GetK8SName())
 				if db.IsNotFound(err) {
 					return nil
 				}
@@ -165,7 +166,7 @@ func (s *Service) ReportDeploymentStatus(ctx context.Context, req *connect.Reque
 					return err
 				}
 
-				if err := db.NewQueries(tx).DeleteDeploymentInstances(txCtx, db.DeleteDeploymentInstancesParams{
+				if err := q.DeleteDeploymentInstances(txCtx, db.DeleteDeploymentInstancesParams{
 					DeploymentID: deployment.ID,
 					RegionID:     cluster.RegionID,
 				}); err != nil {
@@ -173,7 +174,7 @@ func (s *Service) ReportDeploymentStatus(ctx context.Context, req *connect.Reque
 				}
 
 				if deployment.DesiredState == mysqltype.DeploymentsDesiredStateStopped {
-					if err := db.NewQueries(tx).StopDeploymentIfNoInstances(txCtx, db.StopDeploymentIfNoInstancesParams{
+					if err := q.StopDeploymentIfNoInstances(txCtx, db.StopDeploymentIfNoInstancesParams{
 						ID:        deployment.ID,
 						UpdatedAt: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 					}); err != nil {
