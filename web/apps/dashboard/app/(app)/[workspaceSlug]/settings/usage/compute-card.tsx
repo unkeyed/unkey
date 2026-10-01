@@ -155,6 +155,7 @@ export function ComputeCard({ tree }: { tree: ComputeTree }) {
   const [open, setOpen] = useState<ReadonlySet<string>>(new Set());
   const now = useMemo(() => new Date(), []);
   const periodStart = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1);
+  const periodEnd = Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1);
   const currentDayStart = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
   const hasComputeUsage = tree.projects.some((project) => project.apps.length > 0);
   const timeseries = trpc.billing.queryDeployUsageTimeseries.useQuery(
@@ -172,9 +173,9 @@ export function ComputeCard({ tree }: { tree: ComputeTree }) {
         tree,
         rows: timeseries.data ?? [],
         start: periodStart,
-        end: now.getTime(),
+        end: periodEnd,
       }),
-    [tree, timeseries.data, periodStart, now],
+    [tree, timeseries.data, periodStart, periodEnd],
   );
 
   const toggle = (projectId: string) =>
