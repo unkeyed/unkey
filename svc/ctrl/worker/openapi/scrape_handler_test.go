@@ -2,12 +2,72 @@ package openapi
 
 import (
 	"bytes"
+	"database/sql"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/mysql/sqlcomment"
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
+	"github.com/unkeyed/unkey/pkg/testutil/containers"
+	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/svc/ctrl/integration/seed"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
+
+func TestPersistOpenAPISpecSkipsDeletingEnvironment(t *testing.T) {
+	database, err := db.New(containers.MySQL(t).DSN, sqlcomment.Disabled())
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, database.Close()) })
+
+	ctx := t.Context()
+	seeder := seed.New(t, database, nil)
+	seeder.Seed(ctx)
+	workspaceID := seeder.Resources.UserWorkspace.ID
+	project := seeder.CreateProject(ctx, seed.CreateProjectRequest{
+		ID:          uid.New(uid.ProjectPrefix),
+		WorkspaceID: workspaceID,
+		Name:        "OpenAPI guard",
+		Slug:        strings.ToLower(strings.ReplaceAll(uid.New(uid.ProjectPrefix), "_", "-")),
+	})
+	app := seeder.CreateApp(ctx, seed.CreateAppRequest{
+		ID:          uid.New(uid.AppPrefix),
+		WorkspaceID: workspaceID,
+		ProjectID:   project.ID,
+		Name:        "OpenAPI guard",
+		Slug:        strings.ToLower(strings.ReplaceAll(uid.New(uid.AppPrefix), "_", "-")),
+	})
+	environment := seeder.CreateEnvironment(ctx, seed.CreateEnvironmentRequest{
+		ID:          uid.New(uid.EnvironmentPrefix),
+		WorkspaceID: workspaceID,
+		ProjectID:   project.ID,
+		AppID:       app.ID,
+		Slug:        "preview",
+		Kind:        mysqltype.EnvironmentKindPreview,
+	})
+	deployment := seeder.CreateDeployment(ctx, seed.CreateDeploymentRequest{
+		ID:            uid.New(uid.DeploymentPrefix),
+		WorkspaceID:   workspaceID,
+		ProjectID:     project.ID,
+		AppID:         app.ID,
+		EnvironmentID: environment.ID,
+		Status:        mysqltype.DeploymentsStatusReady,
+	})
+	require.NoError(t, database.MarkEnvironmentDeleting(ctx, db.MarkEnvironmentDeletingParams{
+		ID:         environment.ID,
+		DeletingAt: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+	}))
+
+	persisted, err := New(Config{DB: database}).persistOpenAPISpec(ctx, deployment, []byte(`{"openapi":"3.0.0"}`))
+	require.NoError(t, err)
+	require.False(t, persisted)
+
+	_, err = database.FindOpenApiSpecByDeploymentID(ctx, sql.NullString{Valid: true, String: deployment.ID})
+	require.True(t, db.IsNotFound(err))
+}
 
 func TestValidateSpecPath(t *testing.T) {
 	tests := []struct {

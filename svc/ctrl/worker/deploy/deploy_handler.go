@@ -534,6 +534,12 @@ type topologyReservation struct {
 func (w *Workflow) reserveTopologies(ctx context.Context, req reserveTopologiesRequest) (topologyReservation, error) {
 	return db.TxWithResultRetry(ctx, w.db.RW(), func(txCtx context.Context, tx db.DBTX) (topologyReservation, error) {
 		queries := db.NewQueries(tx)
+		if _, err := queries.LockActiveEnvironment(txCtx, req.Deployment.EnvironmentID); err != nil {
+			if db.IsNotFound(err) {
+				return topologyReservation{}, restate.ToTerminalError(fmt.Errorf("environment is not active: %w", err), restate.WithErrorCode(409))
+			}
+			return topologyReservation{}, err
+		}
 		limits, err := queries.LockLimitsByWorkspaceID(txCtx, req.Deployment.WorkspaceID)
 		if err != nil {
 			return topologyReservation{}, err
@@ -623,10 +629,16 @@ func (w *Workflow) configureRouting(
 	for _, domain := range allDomains {
 		frontlineRouteID, getFrontlineRouteErr := restate.Run(ctx, func(runCtx restate.RunContext) (string, error) {
 			return db.TxWithResultRetry(runCtx, w.db.RW(), func(txCtx context.Context, tx db.DBTX) (string, error) {
+				if _, err := db.NewQueries(tx).LockActiveEnvironment(txCtx, deployment.EnvironmentID); err != nil {
+					if db.IsNotFound(err) {
+						return "", restate.ToTerminalError(fmt.Errorf("environment is not active: %w", err), restate.WithErrorCode(409))
+					}
+					return "", err
+				}
 				found, err := db.NewQueries(tx).FindFrontlineRouteByFQDN(txCtx, domain.domain)
 				if err != nil {
 					if db.IsNotFound(err) {
-						err = db.NewQueries(tx).InsertFrontlineRoute(runCtx, db.InsertFrontlineRouteParams{
+						err = db.NewQueries(tx).InsertFrontlineRoute(txCtx, db.InsertFrontlineRouteParams{
 							ID:                       uid.New(uid.FrontlineRoutePrefix),
 							ProjectID:                deployment.ProjectID,
 							AppID:                    deployment.AppID,

@@ -77,6 +77,19 @@ func TestReserveTopologies(t *testing.T) {
 			require.Empty(t, res.Message)
 		}
 	})
+
+	t.Run("deletion prevents topology recreation", func(t *testing.T) {
+		workspaceID := workspaceWithMemoryQuota(t, ctx, seeder, 256)
+		req := reservationFor(ctx, seeder, workspaceID)
+		require.NoError(t, database.MarkEnvironmentDeleting(ctx, db.MarkEnvironmentDeletingParams{
+			ID: req.Deployment.EnvironmentID, DeletingAt: sql.NullInt64{Int64: 1, Valid: true},
+		}))
+		_, err := w.reserveTopologies(ctx, req)
+		require.Error(t, err)
+		rows, err := database.FindDeploymentTopologyMinReplicas(ctx, req.Deployment.ID)
+		require.NoError(t, err)
+		require.Empty(t, rows)
+	})
 }
 
 // The limits upsert writes every column, so the values other than memory
@@ -104,22 +117,30 @@ func workspaceWithMemoryQuota(t *testing.T, ctx context.Context, seeder *seed.Se
 	return ws.ID
 }
 
-// reservationFor mirrors what createTopologies builds: one region, one
-// replica. The deployments table has no foreign keys, so the project, app,
-// environment and region ids are fresh
 func reservationFor(ctx context.Context, seeder *seed.Seeder, workspaceID string) reserveTopologiesRequest {
+	project := seeder.CreateProject(ctx, seed.CreateProjectRequest{
+		ID: uid.New(uid.ProjectPrefix), WorkspaceID: workspaceID, Name: "Reservation", Slug: uid.DNS1035(),
+	})
+	app := seeder.CreateApp(ctx, seed.CreateAppRequest{
+		ID: uid.New(uid.AppPrefix), WorkspaceID: workspaceID, ProjectID: project.ID, Name: "Reservation", Slug: uid.DNS1035(),
+	})
+	environment := seeder.CreateEnvironment(ctx, seed.CreateEnvironmentRequest{
+		ID: uid.New(uid.EnvironmentPrefix), WorkspaceID: workspaceID, ProjectID: project.ID, AppID: app.ID,
+		Slug: "production", Kind: mysqltype.EnvironmentKindProduction,
+	})
 	created := seeder.CreateDeployment(ctx, seed.CreateDeploymentRequest{
 		ID:            uid.New(uid.DeploymentPrefix),
 		WorkspaceID:   workspaceID,
-		ProjectID:     uid.New(uid.ProjectPrefix),
-		AppID:         uid.New(uid.AppPrefix),
-		EnvironmentID: uid.New(uid.EnvironmentPrefix),
+		ProjectID:     project.ID,
+		AppID:         app.ID,
+		EnvironmentID: environment.ID,
 		Status:        mysqltype.DeploymentsStatusBuilding,
 	})
 	return reserveTopologiesRequest{
 		Deployment: db.FindDeploymentForDeployRow{
 			ID:            created.ID,
 			WorkspaceID:   created.WorkspaceID,
+			EnvironmentID: created.EnvironmentID,
 			CpuMillicores: created.CpuMillicores,
 			MemoryMib:     created.MemoryMib,
 			StorageMib:    created.StorageMib,

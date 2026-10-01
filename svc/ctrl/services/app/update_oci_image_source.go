@@ -64,6 +64,9 @@ func (s *Service) UpdateOciImageSource(
 	now := time.Now().UnixMilli()
 	err = db.TxRetry(ctx, s.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
 		queries := db.NewQueries(tx)
+		if _, txErr := queries.LockActiveApp(txCtx, app.ID); txErr != nil {
+			return txErr
+		}
 		if txErr := queries.UpdateAppSourceOciImageReference(txCtx, db.UpdateAppSourceOciImageReferenceParams{
 			ImageReference: imageReference,
 			UpdatedAt:      sql.NullInt64{Valid: true, Int64: now},
@@ -105,6 +108,9 @@ func (s *Service) UpdateOciImageSource(
 		return nil
 	})
 	if err != nil {
+		if db.IsNotFound(err) {
+			return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("app %q not found", app.ID))
+		}
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 

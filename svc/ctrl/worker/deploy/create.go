@@ -367,6 +367,12 @@ func (w *Workflow) insertDeployment(
 		}
 
 		insertErr := db.TxRetry(runCtx, w.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
+			if _, err := db.NewQueries(tx).LockActiveEnvironment(txCtx, target.EnvironmentID); err != nil {
+				if db.IsNotFound(err) {
+					return restate.ToTerminalError(fmt.Errorf("environment is not active: %w", err), restate.WithErrorCode(409))
+				}
+				return err
+			}
 			if err := db.NewQueries(tx).InsertDeployment(txCtx, db.InsertDeploymentParams{
 				ID:                            deploymentID,
 				K8sName:                       uid.DNS1035(12),
