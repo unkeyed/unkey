@@ -26,6 +26,46 @@ import (
 	kubetesting "k8s.io/client-go/testing"
 )
 
+func TestServerDrainsTCPRepliesAtQueryLimit(t *testing.T) {
+	featuretesting.SetFeatureDuringTest(t, features.WatchListClient, false)
+	c, err := newCatalog(fake.NewSimpleClientset(discoveryObjects(t)...), time.Minute)
+	require.NoError(t, err)
+	cfg, err := config.LoadBytes[Config]([]byte(`upstream = "10.96.0.10:53"`))
+	require.NoError(t, err)
+	cfg.ListenAddress, cfg.HealthAddress = unusedTCPAddress(t), unusedTCPAddress(t)
+	ctx, cancel := context.WithCancel(t.Context())
+	done := make(chan error, 1)
+	go func() { done <- serve(ctx, cfg, c) }()
+	t.Cleanup(func() {
+		cancel()
+		select {
+		case err := <-done:
+			require.NoError(t, err)
+		case <-time.After(5 * time.Second):
+			t.Error("DNS server did not shut down")
+		}
+	})
+	require.Eventually(t, c.ready, 5*time.Second, time.Millisecond)
+
+	conn, err := net.DialTimeout("tcp", cfg.ListenAddress, time.Second)
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, conn.Close()) })
+	client := testDNSClient(time.Second)
+	for i := range dnswire.MaxTCPQueries {
+		query := dnswire.NewMsg("payments.unkey.internal.", dnswire.TypeA)
+		query.ID = uint16(i)
+		response, _, err := client.ExchangeWithConn(t.Context(), query, conn)
+		require.NoError(t, err, "request %d/%d", i+1, dnswire.MaxTCPQueries)
+		require.Equal(t, query.ID, response.ID)
+		require.Equal(t, uint16(dnswire.RcodeSuccess), response.Rcode)
+		require.False(t, response.Truncated)
+		require.Len(t, response.Answer, 40)
+	}
+	require.NoError(t, conn.SetReadDeadline(time.Now().Add(time.Second)))
+	_, err = conn.Read(make([]byte, 1))
+	require.ErrorIs(t, err, io.EOF, "the query cap must still close the connection")
+}
+
 func TestPublicDNSAndReadinessSurviveDiscoveryFailure(t *testing.T) {
 	featuretesting.SetFeatureDuringTest(t, features.WatchListClient, false)
 	var apiUnavailable atomic.Bool

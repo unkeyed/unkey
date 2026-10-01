@@ -413,7 +413,7 @@ func TestTrackedInformerFailsClosedWhenStale(t *testing.T) {
 	require.False(t, informer.healthy())
 }
 
-func discoveryObjects(t *testing.T) []runtime.Object {
+func discoveryObjects(t testing.TB) []runtime.Object {
 	t.Helper()
 	pod := callerPod("127.0.0.1", "production")
 
@@ -478,7 +478,7 @@ func callerPod(address, kind string) *corev1.Pod {
 	}
 }
 
-func unusedTCPAddress(t *testing.T) string {
+func unusedTCPAddress(t testing.TB) string {
 	t.Helper()
 	listener, err := net.Listen("tcp", "127.0.0.1:0")
 	require.NoError(t, err)

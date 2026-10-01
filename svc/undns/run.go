@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"sync"
 	"time"
 
 	dnswire "codeberg.org/miekg/dns"
@@ -87,49 +88,59 @@ func serve(ctx context.Context, cfg Config, c *catalog) error {
 		return nil
 	})
 
-	tcpServer := new(dnswire.Server)
-	tcpServer.Listener = tcp
+	tcpDNS := &tcpServer{
+		listener: tcp, handler: h, done: make(chan struct{}),
+		mu: sync.Mutex{}, closing: false, peers: make(map[*tcpResponse]tcpCancellation),
+	}
+	r.Go(tcpDNS.serve)
+	r.DeferCtx(tcpDNS.shutdown)
+	r.AddReadinessCheck("dns_tcp", func(context.Context) error {
+		select {
+		case <-tcpDNS.done:
+			return fmt.Errorf("DNS listener stopped")
+		default:
+			return nil
+		}
+	})
+
 	udpServer := new(dnswire.Server)
 	udpServer.PacketConn = udp
-	for transport, server := range map[string]*dnswire.Server{"tcp": tcpServer, "udp": udpServer} {
-		server.Handler = h
-		server.UDPSize = 1232
-		server.ReadTimeout = 5 * time.Second
+	udpServer.Handler = h
+	udpServer.UDPSize = 1232
+	udpServer.ReadTimeout = 5 * time.Second
 
-		started := make(chan struct{})
-		finished := make(chan struct{})
-		server.NotifyStartedFunc = func(context.Context) { close(started) }
-		r.AddReadinessCheck("dns_"+transport, func(context.Context) error {
-			select {
-			case <-finished:
-				return fmt.Errorf("DNS listener stopped")
-			default:
-			}
-			select {
-			case <-started:
-				return nil
-			default:
-				return fmt.Errorf("DNS listener has not started")
-			}
-		})
+	started := make(chan struct{})
+	finished := make(chan struct{})
+	udpServer.NotifyStartedFunc = func(context.Context) { close(started) }
+	r.AddReadinessCheck("dns_udp", func(context.Context) error {
+		select {
+		case <-finished:
+			return fmt.Errorf("DNS listener stopped")
+		default:
+		}
+		select {
+		case <-started:
+			return nil
+		default:
+			return fmt.Errorf("DNS listener has not started")
+		}
+	})
 
-		r.Go(func(context.Context) error {
-			defer close(finished)
-			return server.ListenAndServe()
-		})
-
-		r.DeferCtx(func(shutdownCtx context.Context) error {
-			select {
-			case <-started:
-				server.Shutdown(shutdownCtx)
-				return nil
-			case <-finished:
-				return nil
-			case <-shutdownCtx.Done():
-				return shutdownCtx.Err()
-			}
-		})
-	}
+	r.Go(func(context.Context) error {
+		defer close(finished)
+		return udpServer.ListenAndServe()
+	})
+	r.DeferCtx(func(shutdownCtx context.Context) error {
+		select {
+		case <-started:
+			udpServer.Shutdown(shutdownCtx)
+			return nil
+		case <-finished:
+			return nil
+		case <-shutdownCtx.Done():
+			return shutdownCtx.Err()
+		}
+	})
 
 	return r.Wait(ctx)
 }
