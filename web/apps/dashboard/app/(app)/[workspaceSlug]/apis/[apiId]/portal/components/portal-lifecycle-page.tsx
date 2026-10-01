@@ -60,27 +60,26 @@ export function usePortalSurfaceState(
   const portalState = usePortal(keyAuthId);
   const queryClient = useQueryClient();
 
-  // Only a genuinely absent keyspace has nothing to retry.
-  const retry = keyAuthIdError
-    ? onRetryKeyAuthId
-    : keyAuthId
-      ? () => {
-          void queryClient.invalidateQueries({ queryKey: queryKeys.portal.detail(keyAuthId) });
-        }
-      : undefined;
-
   if (keyAuthIdLoading) {
-    return { state: { status: "loading" }, retry };
+    return { state: { status: "loading" }, retry: undefined };
   }
   // Must precede the undefined check: a failed lookup also leaves the id
   // undefined, and "no keyspace" offers no retry.
   if (keyAuthIdError) {
-    return { state: { status: "error", message: KEYSPACE_LOOKUP_FAILED_MESSAGE }, retry };
+    return {
+      state: { status: "error", message: KEYSPACE_LOOKUP_FAILED_MESSAGE },
+      retry: onRetryKeyAuthId,
+    };
   }
   if (keyAuthId === undefined) {
-    return { state: { status: "error", message: NO_KEYSPACE_MESSAGE }, retry };
+    return { state: { status: "error", message: NO_KEYSPACE_MESSAGE }, retry: undefined };
   }
-  return { state: portalState, retry };
+  return {
+    state: portalState,
+    retry: () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.portal.detail(keyAuthId) });
+    },
+  };
 }
 
 function PortalLoading() {

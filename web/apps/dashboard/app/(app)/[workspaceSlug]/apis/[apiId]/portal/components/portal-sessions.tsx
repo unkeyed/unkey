@@ -81,12 +81,10 @@ export function PortalSessions({ portalId, canRevoke }: { portalId: string; canR
   }, [searchInput]);
 
   const [revoking, setRevoking] = useState<SessionGroup | null>(null);
-  const [selected, setSelected] = useState<SessionGroup | null>(null);
-  const [panelOpen, setPanelOpen] = useState(false);
+  const [panel, setPanel] = useState<{ group: SessionGroup; open: boolean } | null>(null);
   const query = usePortalSessions(portalId, search);
-  // A group leaving the list, by revoke or expiry, closes its panel.
-  const liveSelected = selected
-    ? query.groups.find((group) => group.externalId === selected.externalId)
+  const openGroup = panel?.open
+    ? query.groups.find((group) => group.externalId === panel.group.externalId)
     : undefined;
 
   return (
@@ -131,24 +129,18 @@ export function PortalSessions({ portalId, canRevoke }: { portalId: string; canR
       <SessionsBody
         query={query}
         search={search}
-        selectedId={panelOpen ? liveSelected?.externalId : undefined}
+        selectedId={openGroup?.externalId}
         canRevoke={canRevoke}
-        onOpen={(group) => {
-          setSelected(group);
-          setPanelOpen(true);
-        }}
+        onOpen={(group) => setPanel({ group, open: true })}
         onRevoke={setRevoking}
       />
 
       <SessionGroupPanel
-        group={liveSelected ?? selected}
-        isOpen={panelOpen && liveSelected !== undefined}
+        group={openGroup ?? panel?.group ?? null}
+        isOpen={openGroup !== undefined}
         canRevoke={canRevoke}
-        onClose={() => setPanelOpen(false)}
-        onExitComplete={() => {
-          setSelected(null);
-          setPanelOpen(false);
-        }}
+        onClose={() => setPanel((current) => current && { ...current, open: false })}
+        onExitComplete={() => setPanel(null)}
         onRevoke={setRevoking}
       />
 
