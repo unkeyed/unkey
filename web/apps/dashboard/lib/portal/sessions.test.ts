@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import {
   type SessionPage,
   removeSessionGroup,
+  sessionGroupScopes,
   summarizeSessionGroup,
   toSessionPage,
 } from "./sessions";
@@ -18,6 +19,19 @@ function session(overrides: Partial<V2PortalListSessionsSession>): V2PortalListS
     ...overrides,
   };
 }
+
+describe("sessionGroupScopes", () => {
+  it("merges every session's scopes once, sorted", () => {
+    const group = {
+      externalId: "u1",
+      sessions: [
+        session({ id: "ps_1", scopes: ["keys:reroll", "keys:read"] }),
+        session({ id: "ps_2", scopes: ["keys:read", "analytics:read"] }),
+      ],
+    };
+    expect(sessionGroupScopes(group)).toEqual(["analytics:read", "keys:read", "keys:reroll"]);
+  });
+});
 
 describe("summarizeSessionGroup", () => {
   it("uses the only session's times", () => {

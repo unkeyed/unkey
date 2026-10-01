@@ -21,6 +21,7 @@ import {
   InputGroupAddon,
   InputGroupInput,
   SettingsDangerZone,
+  SettingsZoneRow,
   toast,
 } from "@unkey/ui";
 import { useEffect, useState } from "react";
@@ -29,7 +30,6 @@ import { z } from "zod";
 import { DeletePortalRow } from "./delete-portal-row";
 import { BrandColorField } from "./portal-branding";
 import { PortalPreview } from "./portal-preview";
-import { PortalSessions } from "./portal-sessions";
 
 // The preview renders the logo URL in an `<img>`, so a live value would issue
 // one request per keystroke against the dashboard's own origin.
@@ -212,24 +212,14 @@ export function PortalConfig({ portal, keyAuthId }: Props) {
         </div>
       </div>
 
-      {portal.enabled ? (
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-raised p-4">
-          <div className="space-y-1">
-            <p className="text-sm font-medium text-gray-12">Disable portal</p>
-            <p className="text-sm text-gray-11">
-              By disabling this users will lose access to the portal immediately. Their keys will
-              keep working.
-            </p>
-          </div>
-          <Button variant="outline" color="danger" onClick={() => setDisableOpen(true)}>
-            Disable portal
-          </Button>
-        </div>
-      ) : null}
-
-      {portal.enabled ? <PortalSessions portalId={portal.id} /> : null}
-
       <SettingsDangerZone>
+        {portal.enabled ? (
+          <SettingsZoneRow
+            title="Disable portal"
+            description="Your users lose access to the portal immediately. Their keys keep working."
+            action={{ label: "Disable portal", onClick: () => setDisableOpen(true) }}
+          />
+        ) : null}
         <DeletePortalRow portal={portal} keyAuthId={keyAuthId} />
       </SettingsDangerZone>
 
