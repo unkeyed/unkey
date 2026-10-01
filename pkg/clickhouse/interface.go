@@ -55,6 +55,12 @@ type Querier interface {
 	// ordered by (time, key_id). Used by the KeyLastUsedSync partition workers.
 	GetKeyLastUsedBatchPartitioned(ctx context.Context, req GetKeyLastUsedBatchRequest) ([]KeyLastUsed, error)
 
+	// GetBuildLogs returns a page of a deployment's build log entries in seq
+	// order, starting after AfterSeq. A page has at most Limit entries and can
+	// have fewer when the entries are large. HasMore is true when entries were
+	// left out of the page
+	GetBuildLogs(ctx context.Context, req GetBuildLogsRequest) (BuildLogsPage, error)
+
 	// InsertAuditLogs synchronously writes a batch of audit log rows to
 	// audit_logs_raw_v1. Used by the AuditLogExport outbox worker — returns
 	// only after ClickHouse confirms the insert so the caller can safely

@@ -7,6 +7,9 @@ sources:
   - web/internal/clickhouse/src/build-steps.ts
   - web/apps/dashboard/lib/trpc/routers/deploy/deployment/build-steps.ts
   - pkg/clickhouse/user.go
+  - pkg/clickhouse/build_logs.go
+  - svc/api/routes/v2_deployments_get_build_logs/handler.go
+  - svc/api/openapi/spec/paths/v2/deployments/getBuildLogs/index.yaml
 ---
 
 Build logs show each step of building a <Tooltip tip="One built and running version of an app in one environment.">deployment</Tooltip> and its output. Open the <Tooltip tip="A Compute app: a deployable service inside a project. Not 'your application' in general.">app</Tooltip>, click **Deployments**, and open the deployment. The steps appear as the build runs and stay afterwards. A deployment from a prebuilt image has no build, so it has no build logs. See [Deploy a container image](/compute/get-started/deploy-an-image).
@@ -23,6 +26,21 @@ Look for the step with the error. Its last lines of output usually name the caus
   <img src="/images/dashboard/compute--observe-build-logs--failed-build.png" alt="Build logs of a failed deployment with the failing step's output in red and the later steps skipped" />
 </Frame>
 
-## Retention and access
+## Read build logs through the API
 
-Build logs are kept for 3 months, and are only in the dashboard.
+`deployments.getBuildLogs` returns the output of a build as a list of log entries, in the order the build printed them. An entry is one chunk of output and can contain several lines or part of a line. Each entry has the step ID, the step name, and `output`, which is `stdout` or `stderr`. Many tools write progress and warnings to `stderr`, so `stderr` does not mean that the step failed.
+
+To follow a running build, poll the endpoint with a cursor:
+
+1. Send a request without `cursor` to get the first entries.
+2. Send the `pagination.cursor` of the last response as `cursor` in the next request. The response contains only the entries after it.
+3. When `hasMore` is true, request again now. When it is false, wait, then request again with the same cursor.
+4. Check the deployment status with `deployments.getDeployment`. After the status is no longer `building`, request until you get an empty response at least 5 seconds later.
+
+A response can contain fewer than `limit` entries and still have `hasMore: true` when the entries are large. To get the entries of one step, send its `stepId`. New entries become visible up to a few seconds after the build prints them. When a build attempt is retried, an entry from the earlier attempt can arrive after the cursor has moved past it. A request without a cursor returns it.
+
+The root key needs `read_deployment` on the deployment's environment.
+
+## Retention
+
+Build logs are kept for 3 months.
