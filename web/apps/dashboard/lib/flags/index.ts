@@ -85,8 +85,8 @@ export const portalManagement = flag<boolean, Entities>({
 });
 
 export const rootKeyBuilder = flag<boolean, Entities>({
-  key: "root-key-builder",
-  description: "Show the new root-key builder page. Enabled by default in preview deployments.",
+  key: "root-key-urn-permissions",
+  description: "Use URN permissions for root keys. Enabled by default in preview deployments.",
   defaultValue: process.env.VERCEL_ENV === "preview",
   options: [
     { value: false, label: "Off" },
