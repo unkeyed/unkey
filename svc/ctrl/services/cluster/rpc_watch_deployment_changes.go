@@ -10,7 +10,7 @@ import (
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/cdc"
-	"github.com/unkeyed/unkey/pkg/deploy/appbinding"
+	"github.com/unkeyed/unkey/pkg/deploy/appconnection"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auth"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
@@ -177,7 +177,7 @@ func deploymentRowToState[T deploymentStateRow](row T) (*ctrlv1.DeploymentState,
 		}
 
 		if deployment.Capabilities.PrivateNetworking {
-			if host, ok := appbinding.ReplicaHost(deployment.AppSlug); ok {
+			if host, ok := appconnection.ReplicaHost(deployment.AppSlug); ok {
 				apply.PrivateNetworkReplicaHost = host
 			}
 		}

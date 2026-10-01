@@ -12,5 +12,5 @@ LEFT JOIN projects p ON p.workspace_id = w.id
 LEFT JOIN apps a ON a.workspace_id = w.id
 LEFT JOIN environments e ON e.workspace_id = w.id
 LEFT JOIN deployments d ON d.workspace_id = w.id
-LEFT JOIN app_bindings b ON b.workspace_id = w.id
+LEFT JOIN app_connections b ON b.workspace_id = w.id
 WHERE w.id IN (sqlc.slice('ids'));

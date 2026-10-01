@@ -50,7 +50,7 @@ func (c *Controller) decryptSecrets(ctx context.Context, encrypted []byte, envir
 }
 
 // deploymentResourcePrefix returns the base name used for all K8s resources
-// (Secret, ServiceAccount, Role, RoleBinding) owned by a deployment.
+// (Secret, ServiceAccount, Role, RoleConnection) owned by a deployment.
 // Converts the deployment ID to a valid RFC 1123 subdomain name.
 func deploymentResourcePrefix(deploymentID string) string {
 	return "deploy-" + strings.ToLower(strings.ReplaceAll(deploymentID, "_", "-"))

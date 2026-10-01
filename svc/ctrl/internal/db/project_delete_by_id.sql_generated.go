@@ -12,7 +12,7 @@ import (
 const deleteProjectById = `-- name: DeleteProjectById :exec
 DELETE p, b
 FROM projects p
-LEFT JOIN app_bindings b ON b.project_id = p.id
+LEFT JOIN app_connections b ON b.project_id = p.id
 WHERE p.id = ?
 `
 
@@ -20,7 +20,7 @@ WHERE p.id = ?
 //
 //	DELETE p, b
 //	FROM projects p
-//	LEFT JOIN app_bindings b ON b.project_id = p.id
+//	LEFT JOIN app_connections b ON b.project_id = p.id
 //	WHERE p.id = ?
 func (q *Queries) DeleteProjectById(ctx context.Context, id string) error {
 	_, err := q.db.ExecContext(ctx, deleteProjectById, id)

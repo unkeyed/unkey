@@ -106,7 +106,7 @@ func (v *VirtualObject) ChangeDesiredState(ctx restate.ObjectContext, req *hydra
 	}
 	if deferred {
 		delay := pinnedRetryDelay(t.PinnedRetries)
-		logger.Info("deployment stop deferred because an app binding pins it",
+		logger.Info("deployment stop deferred because an app connection pins it",
 			"deployment_id", deploymentID, "deferrals", t.PinnedRetries+1, "retry_in", delay.String())
 		t.PinnedRetries++
 		restate.Set(ctx, transitionKey, t)
@@ -157,7 +157,7 @@ func (v *VirtualObject) setDesiredState(ctx restate.ObjectContext, deploymentID 
 				return false, err
 			}
 
-			pinned, err := queries.ExistsAppBindingPinningDeployment(txCtx, sql.NullString{String: deploymentID, Valid: true})
+			pinned, err := queries.ExistsAppConnectionPinningDeployment(txCtx, sql.NullString{String: deploymentID, Valid: true})
 			if err != nil {
 				return false, err
 			}

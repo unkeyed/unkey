@@ -11,7 +11,7 @@ import (
 )
 
 // DeleteDeployment removes a user workload's ReplicaSet from the cluster.
-// Owned resources (Secret, ServiceAccount, Role, RoleBinding) are garbage-collected
+// Owned resources (Secret, ServiceAccount, Role, RoleConnection) are garbage-collected
 // automatically by K8s via ownerReferences.
 //
 // Not-found errors are ignored since the desired end state (resource gone) is

@@ -1325,7 +1325,7 @@ func newCreateHarness(t *testing.T, ctx context.Context) *createHarness {
 			Auditlogs:     auditlogSvc,
 			DefaultDomain: "test.example.com",
 			DashboardURL:  "https://app.unkey.local",
-			Vault:         bindingVault{VaultServiceClient: nil},
+			Vault:         connectionVault{VaultServiceClient: nil},
 			GitHub:        githubclient.NewNoop(),
 			Build: deploy.BuildConfig{
 				Backend:    deploy.BuildBackendDepot,

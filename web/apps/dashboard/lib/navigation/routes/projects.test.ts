@@ -76,28 +76,28 @@ describe("routes.projects.apps.new", () => {
 describe("app-scoped paths", () => {
   const scope = { workspaceSlug: ws, projectId, appId };
 
-  it("shows Bindings only in app navigation and marks it active", () => {
-    const segments = ["projects", projectId, "apps", appId, "bindings"];
-    expect(buildAppLinks(ws, projectId, appId, segments, false).map((link) => link.key)).not.toContain(
-      "bindings",
-    );
+  it("shows Connections only in app navigation and marks it active", () => {
+    const segments = ["projects", projectId, "apps", appId, "connections"];
+    expect(
+      buildAppLinks(ws, projectId, appId, segments, false).map((link) => link.key),
+    ).not.toContain("connections");
     const links = buildAppLinks(ws, projectId, appId, segments, true);
-    expect(links.find((link) => link.key === "bindings")).toMatchObject({
-      label: "Bindings",
-      href: "/acme/projects/proj_123/apps/app_456/bindings",
+    expect(links.find((link) => link.key === "connections")).toMatchObject({
+      label: "Connections",
+      href: "/acme/projects/proj_123/apps/app_456/connections",
       isActive: true,
     });
     expect(
       buildProjectLinks(ws, projectId, ["projects", projectId]).map((link) => link.key),
-    ).not.toContain("bindings");
+    ).not.toContain("connections");
   });
 
   it("builds app leaf paths", () => {
     expect(routes.projects.apps.settings(scope)).toBe(
       "/acme/projects/proj_123/apps/app_456/settings",
     );
-    expect(routes.projects.apps.bindings(scope)).toBe(
-      "/acme/projects/proj_123/apps/app_456/bindings",
+    expect(routes.projects.apps.connections(scope)).toBe(
+      "/acme/projects/proj_123/apps/app_456/connections",
     );
     expect(routes.projects.apps.deployments(scope)).toBe(
       "/acme/projects/proj_123/apps/app_456/deployments",

@@ -79,40 +79,40 @@ func TestPrivateNetworkSnapshotStreamsEveryPageThenCompletes(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, map[string]float64{"success": 1}, outcomeDelta(before, snapshotOutcomes(t)))
 	require.Equal(t, reads+1, snapshotReads(t), "a successful snapshot observes one database read")
-	require.Len(t, chunks, 4, "two pages of bindings and replicas stream as three binding chunks and one complete chunk")
+	require.Len(t, chunks, 4, "two pages of connections and replicas stream as three connection chunks and one complete chunk")
 	last := chunks[len(chunks)-1]
 	require.True(t, last.GetComplete())
-	require.Empty(t, last.GetBindings())
+	require.Empty(t, last.GetConnections())
 
-	bindings, replicas := map[string]*ctrlv1.PrivateNetworkBinding{}, map[string]*ctrlv1.PrivateNetworkBinding{}
+	connections, replicas := map[string]*ctrlv1.PrivateNetworkConnection{}, map[string]*ctrlv1.PrivateNetworkConnection{}
 	for _, chunk := range chunks[:len(chunks)-1] {
 		require.False(t, chunk.GetComplete())
-		require.LessOrEqual(t, len(chunk.GetBindings()), privateNetworkPageSize)
-		for _, binding := range chunk.GetBindings() {
-			if strings.HasPrefix(binding.GetBindingId(), "self-") {
-				require.NotContains(t, replicas, binding.GetCallerDeploymentId())
-				replicas[binding.GetCallerDeploymentId()] = binding
+		require.LessOrEqual(t, len(chunk.GetConnections()), privateNetworkPageSize)
+		for _, connection := range chunk.GetConnections() {
+			if strings.HasPrefix(connection.GetConnectionId(), "self-") {
+				require.NotContains(t, replicas, connection.GetCallerDeploymentId())
+				replicas[connection.GetCallerDeploymentId()] = connection
 				continue
 			}
-			require.NotContains(t, bindings, binding.GetCallerDeploymentId())
-			bindings[binding.GetCallerDeploymentId()] = binding
+			require.NotContains(t, connections, connection.GetCallerDeploymentId())
+			connections[connection.GetCallerDeploymentId()] = connection
 		}
 	}
 
-	require.Equal(t, uint64(len(bindings)+len(replicas)), last.GetTotal())
-	require.Len(t, bindings, callers, "every caller deployment created with private networking, across both binding pages")
+	require.Equal(t, uint64(len(connections)+len(replicas)), last.GetTotal())
+	require.Len(t, connections, callers, "every caller deployment created with private networking, across both connection pages")
 	require.Len(t, replicas, callers+1, "every caller and the target publish replicas; the app with an invalid slug does not")
 
-	for caller, binding := range bindings {
-		require.Equal(t, "database", binding.GetBindingName(), "binding for %s", caller)
-		require.Equal(t, target, binding.GetTargetDeploymentId(), "binding for %s", caller)
-		require.Equal(t, int32(5432), binding.GetTargetPort(), "binding for %s", caller)
+	for caller, connection := range connections {
+		require.Equal(t, "database", connection.GetConnectionName(), "connection for %s", caller)
+		require.Equal(t, target, connection.GetTargetDeploymentId(), "connection for %s", caller)
+		require.Equal(t, int32(5432), connection.GetTargetPort(), "connection for %s", caller)
 	}
 
-	for deployment, binding := range replicas {
-		require.Equal(t, deployment, binding.GetTargetDeploymentId())
-		require.Equal(t, "self-"+deployment, binding.GetBindingId())
-		require.Contains(t, []string{"api", "db"}, binding.GetBindingName(), "replicas resolve under their app slug")
+	for deployment, connection := range replicas {
+		require.Equal(t, deployment, connection.GetTargetDeploymentId())
+		require.Equal(t, "self-"+deployment, connection.GetConnectionId())
+		require.Contains(t, []string{"api", "db"}, connection.GetConnectionName(), "replicas resolve under their app slug")
 	}
 
 	unavailable, err := db.New(server.DSN, sqlcomment.Static{})
@@ -144,7 +144,7 @@ func seedPrivateNetwork(t *testing.T, database db.Database, platform, cell strin
 	// already canceled when cleanup runs.
 	t.Cleanup(func() {
 		for _, statement := range []string{
-			`DELETE FROM app_bindings WHERE workspace_id = ?`,
+			`DELETE FROM app_connections WHERE workspace_id = ?`,
 			`DELETE FROM deployment_topology WHERE workspace_id = ?`,
 			`DELETE FROM deployments WHERE workspace_id = ?`,
 			`DELETE FROM environments WHERE workspace_id = ?`,
@@ -196,9 +196,9 @@ func seedPrivateNetwork(t *testing.T, database db.Database, platform, cell strin
 	exec(`INSERT INTO deployment_topology (workspace_id,deployment_id,region_id,desired_status,created_at)
 		SELECT workspace_id, id, ?, 'running', 1 FROM deployments WHERE app_id = ? AND JSON_CONTAINS(capabilities, 'true', '$.private_networking')`, region, workspace+"-api")
 
-	exec(`INSERT INTO app_bindings (id,workspace_id,project_id,app_id,environment_id,resource_type,resource_id,name,selection_mode,target_deployment_id,created_at)
+	exec(`INSERT INTO app_connections (id,workspace_id,project_id,app_id,environment_id,resource_type,resource_id,name,selection_mode,target_deployment_id,created_at)
 		VALUES (?,?,?,?,?,'app',?,'database','deployment',?,1)`,
-		uid.New("binding"), workspace, project, workspace+"-api", workspace+"-api-env", workspace+"-db", target)
+		uid.New("connection"), workspace, project, workspace+"-api", workspace+"-api-env", workspace+"-db", target)
 
 	return callers, target
 }

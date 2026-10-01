@@ -70,7 +70,7 @@ type Querier interface {
 	//
 	//  DELETE a, b
 	//  FROM apps a
-	//  LEFT JOIN app_bindings b ON b.app_id = a.id OR (b.resource_type = 'app' AND b.resource_id = a.id)
+	//  LEFT JOIN app_connections b ON b.app_id = a.id OR (b.resource_type = 'app' AND b.resource_id = a.id)
 	//  WHERE a.id = ?
 	DeleteAppById(ctx context.Context, id string) error
 	//DeleteAppEnvVarsByEnvironmentId
@@ -127,7 +127,7 @@ type Querier interface {
 	//
 	//  DELETE e, b
 	//  FROM environments e
-	//  LEFT JOIN app_bindings b ON b.environment_id = e.id
+	//  LEFT JOIN app_connections b ON b.environment_id = e.id
 	//  WHERE e.id = ?
 	DeleteEnvironmentById(ctx context.Context, id string) error
 	// DeleteExportedClickhouseOutbox hard-deletes a bounded batch of outbox rows
@@ -175,7 +175,7 @@ type Querier interface {
 	//
 	//  DELETE p, b
 	//  FROM projects p
-	//  LEFT JOIN app_bindings b ON b.project_id = p.id
+	//  LEFT JOIN app_connections b ON b.project_id = p.id
 	//  WHERE p.id = ?
 	DeleteProjectById(ctx context.Context, id string) error
 	// Removes the given workspaces along with everything scoped to them.
@@ -192,7 +192,7 @@ type Querier interface {
 	//  LEFT JOIN apps a ON a.workspace_id = w.id
 	//  LEFT JOIN environments e ON e.workspace_id = w.id
 	//  LEFT JOIN deployments d ON d.workspace_id = w.id
-	//  LEFT JOIN app_bindings b ON b.workspace_id = w.id
+	//  LEFT JOIN app_connections b ON b.workspace_id = w.id
 	//  WHERE w.id IN (/*SLICE:ids*/?)
 	DeleteWorkspacesWithChildren(ctx context.Context, ids []string) error
 	//EndActiveDeploymentStepsForDeployments
@@ -207,15 +207,15 @@ type Querier interface {
 	//  SET ended_at = ?, error = ?
 	//  WHERE deployment_id = ? AND step = ? AND ended_at IS NULL
 	EndDeploymentStep(ctx context.Context, arg EndDeploymentStepParams) error
-	//ExistsAppBindingPinningDeployment
+	//ExistsAppConnectionPinningDeployment
 	//
 	//  SELECT EXISTS(
-	//      SELECT 1 FROM app_bindings
+	//      SELECT 1 FROM app_connections
 	//      WHERE resource_type = 'app'
 	//          AND selection_mode = 'deployment'
 	//          AND target_deployment_id = ?
 	//  ) AS pinned
-	ExistsAppBindingPinningDeployment(ctx context.Context, deploymentID sql.NullString) (bool, error)
+	ExistsAppConnectionPinningDeployment(ctx context.Context, deploymentID sql.NullString) (bool, error)
 	// Returns the challenge row for a domain, if one exists. domain_id is unique on
 	// acme_challenges, so there is at most one. Used as the idempotency check for
 	// infra certificate provisioning: once a challenge exists the renewal cron owns
@@ -442,7 +442,7 @@ type Querier interface {
 	//      ) AS has_schedulable_region,
 	//      EXISTS (
 	//          SELECT 1
-	//          FROM app_bindings pb
+	//          FROM app_connections pb
 	//          WHERE pb.workspace_id = p.workspace_id
 	//            AND pb.resource_type = 'app'
 	//            AND pb.resource_id <> pb.app_id
@@ -955,9 +955,9 @@ type Querier interface {
 	//      ?
 	//  )
 	InsertApp(ctx context.Context, arg InsertAppParams) error
-	//InsertAppBinding
+	//InsertAppConnection
 	//
-	//  INSERT INTO app_bindings (
+	//  INSERT INTO app_connections (
 	//      id,
 	//      workspace_id,
 	//      project_id,
@@ -985,7 +985,7 @@ type Querier interface {
 	//      ?,
 	//      ?
 	//  )
-	InsertAppBinding(ctx context.Context, arg InsertAppBindingParams) error
+	InsertAppConnection(ctx context.Context, arg InsertAppConnectionParams) error
 	//InsertAppEnvironmentVariable
 	//
 	//  INSERT INTO app_environment_variables (id, workspace_id, app_id, environment_id, `key`, value, created_at)
@@ -1644,10 +1644,10 @@ type Querier interface {
 	//  ORDER BY dt.pk ASC
 	//  LIMIT ?
 	ListAllDeploymentTopologiesByRegion(ctx context.Context, arg ListAllDeploymentTopologiesByRegionParams) ([]ListAllDeploymentTopologiesByRegionRow, error)
-	//ListAppBindingsByApp
+	//ListAppConnectionsByApp
 	//
 	//  SELECT b.id, b.name
-	//  FROM app_bindings b
+	//  FROM app_connections b
 	//  INNER JOIN apps a ON a.id = b.app_id
 	//  WHERE b.workspace_id = ?
 	//      AND b.project_id = ?
@@ -1657,7 +1657,7 @@ type Querier interface {
 	//      AND b.resource_id <> b.app_id
 	//      AND b.name <> a.slug COLLATE utf8mb4_0900_as_cs
 	//  ORDER BY b.pk
-	ListAppBindingsByApp(ctx context.Context, arg ListAppBindingsByAppParams) ([]ListAppBindingsByAppRow, error)
+	ListAppConnectionsByApp(ctx context.Context, arg ListAppConnectionsByAppParams) ([]ListAppConnectionsByAppRow, error)
 	//ListAppIdsByProject
 	//
 	//  SELECT id FROM apps WHERE project_id = ?
@@ -1834,20 +1834,20 @@ type Querier interface {
 	//  ORDER BY pk ASC
 	//  LIMIT ?
 	ListPreviewEnvironments(ctx context.Context, arg ListPreviewEnvironmentsParams) ([]Environment, error)
-	// ListPrivateNetworkBindings returns one page of directed app bindings, one row
-	// per binding and active caller deployment created with private networking on
-	// the platform, ordered by (binding pk, caller deployment ID). Callers page
+	// ListPrivateNetworkConnections returns one page of directed app connections, one row
+	// per connection and active caller deployment created with private networking on
+	// the platform, ordered by (connection pk, caller deployment ID). Callers page
 	// with the last row's pair and must read every page in one transaction so the
 	// snapshot is consistent.
-	// Every filter sits inside binding_candidates, before its LIMIT, so a short
+	// Every filter sits inside connection_candidates, before its LIMIT, so a short
 	// page always means the last page.
 	// Names starting with unkey and the caller app's own slug are reserved.
 	//
-	//  WITH binding_candidates AS (
+	//  WITH connection_candidates AS (
 	//      SELECT
 	//          b.pk,
-	//          b.id AS binding_id,
-	//          b.name AS binding_name,
+	//          b.id AS connection_id,
+	//          b.name AS connection_name,
 	//          b.workspace_id,
 	//          b.project_id,
 	//          b.resource_id AS target_app_id,
@@ -1903,7 +1903,7 @@ type Querier interface {
 	//                  )
 	//              )
 	//          END AS selected_deployment_id
-	//      FROM app_bindings b
+	//      FROM app_connections b
 	//      INNER JOIN apps caller_app ON caller_app.id = b.app_id
 	//          AND caller_app.workspace_id = b.workspace_id AND caller_app.project_id = b.project_id
 	//      INNER JOIN apps target_app ON target_app.id = b.resource_id AND b.resource_type = 'app'
@@ -1941,9 +1941,9 @@ type Querier interface {
 	//      COALESCE(target.port, 0) AS port,
 	//      COALESCE(target.environment_id, '') AS environment_id,
 	//      c.caller_deployment_id,
-	//      c.binding_id,
-	//      c.binding_name
-	//  FROM binding_candidates c
+	//      c.connection_id,
+	//      c.connection_name
+	//  FROM connection_candidates c
 	//  LEFT JOIN deployments target ON target.id = c.selected_deployment_id
 	//      AND target.app_id = c.target_app_id
 	//      AND target.workspace_id = c.workspace_id AND target.project_id = c.project_id
@@ -1957,7 +1957,7 @@ type Querier interface {
 	//              AND target_region.platform = ?
 	//      )
 	//  ORDER BY c.pk, c.caller_deployment_id
-	ListPrivateNetworkBindings(ctx context.Context, arg ListPrivateNetworkBindingsParams) ([]ListPrivateNetworkBindingsRow, error)
+	ListPrivateNetworkConnections(ctx context.Context, arg ListPrivateNetworkConnectionsParams) ([]ListPrivateNetworkConnectionsRow, error)
 	// ListPrivateNetworkReplicas returns one page of active deployments created
 	// with private networking, ordered by deployment ID. Each deployment resolves
 	// its own replicas under its app's slug.
@@ -2034,7 +2034,7 @@ type Querier interface {
 	// deployment id and the app's current deployment. Used to find sibling running
 	// deployments without including the caller's own deployment, the live
 	// deployment, or deployments from another source fork. Pinned deployments are
-	// included so their scheduled transition can retry until the binding is removed.
+	// included so their scheduled transition can retry until the connection is removed.
 	//
 	//  SELECT d.id
 	//  FROM deployments d

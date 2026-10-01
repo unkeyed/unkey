@@ -22,7 +22,7 @@ import (
 func TestCreatePrivateNetworkingDecision(t *testing.T) {
 	ctx := context.Background()
 
-	t.Run("a workspace without bindings is not evaluated", func(t *testing.T) {
+	t.Run("a workspace without connections is not evaluated", func(t *testing.T) {
 		h := newCreateHarness(t, ctx)
 		h.flags.set(h.orgID, 0, true)
 
@@ -46,7 +46,7 @@ func TestCreatePrivateNetworkingDecision(t *testing.T) {
 		require.NotEqual(t, h.workspaceID, h.orgID, "team.id is the WorkOS organization, not the workspace")
 	})
 
-	t.Run("a disabled flag persists false and snapshots no binding variables", func(t *testing.T) {
+	t.Run("a disabled flag persists false and snapshots no connection variables", func(t *testing.T) {
 		h := newCreateHarness(t, ctx)
 		target := h.newApp(t, ctx)
 		h.bind(t, ctx, h.appID, h.environmentID, target.appID)
@@ -187,11 +187,11 @@ func (h *createHarness) approve(t *testing.T, ctx context.Context, deploymentID 
 	require.Equal(t, int64(1), rows)
 }
 
-type bindingVault struct {
+type connectionVault struct {
 	vault.VaultServiceClient
 }
 
-func (bindingVault) EncryptBulk(_ context.Context, req *vaultv1.EncryptBulkRequest) (*vaultv1.EncryptBulkResponse, error) {
+func (connectionVault) EncryptBulk(_ context.Context, req *vaultv1.EncryptBulkRequest) (*vaultv1.EncryptBulkResponse, error) {
 	items := make(map[string]*vaultv1.EncryptBulkResponseItem, len(req.GetItems()))
 	for key := range req.GetItems() {
 		items[key] = &vaultv1.EncryptBulkResponseItem{Encrypted: "ciphertext-for-" + key}
@@ -207,7 +207,7 @@ func (h *createHarness) bindOtherApps(t *testing.T, ctx context.Context) {
 
 func (h *createHarness) bind(t *testing.T, ctx context.Context, callerAppID, callerEnvironmentID, targetAppID string) {
 	t.Helper()
-	h.seeder.CreateAppBinding(ctx, seed.CreateAppBindingRequest{
+	h.seeder.CreateAppConnection(ctx, seed.CreateAppConnectionRequest{
 		WorkspaceID:         h.workspaceID,
 		ProjectID:           h.projectID,
 		CallerAppID:         callerAppID,

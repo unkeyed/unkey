@@ -8,17 +8,17 @@ import (
 )
 
 const (
-	kindBinding = "binding"
-	kindReplica = "replica"
+	kindConnection = "connection"
+	kindReplica    = "replica"
 )
 
-var bindingStates = []reason{
-	stateActive, statePendingRevision, reasonBindingUnresolved, reasonNoReadyEndpoints,
+var connectionStates = []reason{
+	stateActive, statePendingRevision, reasonConnectionUnresolved, reasonNoReadyEndpoints,
 	reasonServiceMissing, reasonServiceRejected, reasonServiceRetired,
-	reasonBindingInvalid, reasonBindingAmbiguous, reasonLookupError,
+	reasonConnectionInvalid, reasonConnectionAmbiguous, reasonLookupError,
 }
 
-type bindingStatus struct {
+type connectionStatus struct {
 	kind              string
 	state             reason
 	err               error
@@ -26,19 +26,19 @@ type bindingStatus struct {
 	name              string
 	workspace         string
 	callerDeployment  string
-	bindingID         string
+	connectionID      string
 	alias             string
 	revision          string
 	targetDeployment  string
 	servingDeployment string
 }
 
-func newBindingStatus(config *corev1.ConfigMap, state reason, err error) bindingStatus {
-	kind := kindBinding
+func newConnectionStatus(config *corev1.ConfigMap, state reason, err error) connectionStatus {
+	kind := kindConnection
 	if deployment := config.Data["deploymentId"]; deployment != "" && deployment == config.Labels[labels.LabelKeyCallerDeploymentID] {
 		kind = kindReplica
 	}
-	return bindingStatus{
+	return connectionStatus{
 		kind:              kind,
 		state:             state,
 		err:               err,
@@ -46,7 +46,7 @@ func newBindingStatus(config *corev1.ConfigMap, state reason, err error) binding
 		name:              config.Name,
 		workspace:         config.Labels[labels.LabelKeyWorkspaceID],
 		callerDeployment:  config.Labels[labels.LabelKeyCallerDeploymentID],
-		bindingID:         config.Labels[labels.LabelKeyBindingID],
+		connectionID:      config.Labels[labels.LabelKeyConnectionID],
 		alias:             config.Data["appSlug"],
 		revision:          config.Data["revision"],
 		targetDeployment:  config.Data["deploymentId"],
@@ -54,17 +54,17 @@ func newBindingStatus(config *corev1.ConfigMap, state reason, err error) binding
 	}
 }
 
-func (s bindingStatus) serving() bool {
+func (s connectionStatus) serving() bool {
 	return s.state == stateActive || s.state == statePendingRevision
 }
 
-type bindingChange struct {
+type connectionChange struct {
 	previous reason
-	current  bindingStatus
+	current  connectionStatus
 }
 
-func bindingChanges(previous, current map[string]bindingStatus) []bindingChange {
-	var changes []bindingChange
+func connectionChanges(previous, current map[string]connectionStatus) []connectionChange {
+	var changes []connectionChange
 	for key, status := range current {
 		before, seen := previous[key]
 		if seen && before.state == status.state {
@@ -73,61 +73,61 @@ func bindingChanges(previous, current map[string]bindingStatus) []bindingChange 
 		if !seen && status.state == stateActive {
 			continue
 		}
-		changes = append(changes, bindingChange{previous: before.state, current: status})
+		changes = append(changes, connectionChange{previous: before.state, current: status})
 	}
 	return changes
 }
 
-func (c bindingChange) log() {
+func (c connectionChange) log() {
 	s := c.current
 	attrs := []any{
 		"namespace", s.namespace, "configmap", s.name, "kind", s.kind,
 		"workspace_id", s.workspace, "caller_deployment_id", s.callerDeployment,
-		"binding_id", s.bindingID, "alias", s.alias, "revision", s.revision,
+		"connection_id", s.connectionID, "alias", s.alias, "revision", s.revision,
 		"target_deployment_id", s.targetDeployment, "serving_deployment_id", s.servingDeployment,
 		"state", string(s.state), "previous_state", string(c.previous),
 	}
 	switch {
 	case !s.serving():
-		logger.Warn("private DNS binding cannot be served", append(attrs, "error", s.err)...)
+		logger.Warn("private DNS connection cannot be served", append(attrs, "error", s.err)...)
 	case s.state == statePendingRevision:
-		logger.Info("private DNS binding serves its previous target until the new target has ready endpoints", attrs...)
+		logger.Info("private DNS connection serves its previous target until the new target has ready endpoints", attrs...)
 	default:
-		logger.Info("private DNS binding serves its target", attrs...)
+		logger.Info("private DNS connection serves its target", attrs...)
 	}
 }
 
-func (c *catalog) bindingCounts() map[string]map[reason]int {
+func (c *catalog) connectionCounts() map[string]map[reason]int {
 	c.statusMu.Lock()
 	defer c.statusMu.Unlock()
-	counts := map[string]map[reason]int{kindBinding: {}, kindReplica: {}}
+	counts := map[string]map[reason]int{kindConnection: {}, kindReplica: {}}
 	for _, status := range c.statuses {
 		counts[status.kind][status.state]++
 	}
 	return counts
 }
 
-type bindingCollector struct {
+type connectionCollector struct {
 	catalog *catalog
 	desc    *prometheus.Desc
 }
 
-func newBindingCollector(c *catalog) *bindingCollector {
-	return &bindingCollector{
+func newConnectionCollector(c *catalog) *connectionCollector {
+	return &connectionCollector{
 		catalog: c,
-		desc: prometheus.NewDesc("unkey_dns_bindings",
-			"Published binding ConfigMaps by kind and by the answer a query for them would get, from the last activation pass.",
+		desc: prometheus.NewDesc("unkey_dns_connections",
+			"Published connection ConfigMaps by kind and by the answer a query for them would get, from the last activation pass.",
 			[]string{"kind", "state"}, nil),
 	}
 }
 
-func (b *bindingCollector) Describe(ch chan<- *prometheus.Desc) {
+func (b *connectionCollector) Describe(ch chan<- *prometheus.Desc) {
 	ch <- b.desc
 }
 
-func (b *bindingCollector) Collect(ch chan<- prometheus.Metric) {
-	for kind, states := range b.catalog.bindingCounts() {
-		for _, state := range bindingStates {
+func (b *connectionCollector) Collect(ch chan<- prometheus.Metric) {
+	for kind, states := range b.catalog.connectionCounts() {
+		for _, state := range connectionStates {
 			ch <- prometheus.MustNewConstMetric(b.desc, prometheus.GaugeValue, float64(states[state]), kind, string(state))
 		}
 	}

@@ -1,4 +1,4 @@
-// Package undns is the regional DNS resolver for directed app bindings. It
+// Package undns is the regional DNS resolver for directed app connections. It
 // answers <alias>.unkey.internal from local Kubernetes objects and forwards
 // every other name to regional CoreDNS. Queries never call Ctrl or a database.
 //
@@ -12,18 +12,18 @@
 // makes private queries fail with SERVFAIL. Public forwarding does not require
 // synchronized discovery or a known caller.
 //
-// Directed bindings grant one caller deployment access to one alias. The
-// resolver doesn't infer reverse access and doesn't fall back to bindings for
+// Directed connections grant one caller deployment access to one alias. The
+// resolver doesn't infer reverse access and doesn't fall back to connections for
 // another deployment, app, project, or workspace.
 //
 // Ctrl also publishes <app-slug>.unkey.internal for every active deployment
-// created with private networking, without a stored app binding. Ctrl decides
-// that once when it creates the deployment: the workspace needs an app binding
+// created with private networking, without a stored app connection. Ctrl decides
+// that once when it creates the deployment: the workspace needs an app connection
 // to another app and the private-networking feature flag. The name resolves
 // that deployment's ready replicas across regions, excluding other versions of
 // the app. Krane injects it as UNKEY_DEPLOYMENT_HOST, points the deployment's
 // Pods at undns, and grants unicast TCP and UDP connectivity between those
-// replicas. Other deployments keep cluster DNS. Binding names can't reuse the
+// replicas. Other deployments keep cluster DNS. Connection names can't reuse the
 // caller app's slug or start with unkey.
 //
 // # Answers
@@ -32,7 +32,7 @@
 // deployment in random order, so clients that take the first address spread
 // across replicas. AAAA queries return NODATA, and unsupported types return
 // NOTIMP. Unknown aliases and multi-label names return NXDOMAIN. A known but
-// unresolved or unusable binding returns SERVFAIL. Private queries also return
+// unresolved or unusable connection returns SERVFAIL. Private queries also return
 // SERVFAIL until every discovery watch is healthy and activation has run.
 //
 // # Load shedding
@@ -51,32 +51,32 @@
 //
 // # Discovery objects
 //
-// Krane publishes each binding as a ConfigMap labeled managed-by=krane,
+// Krane publishes each connection as a ConfigMap labeled managed-by=krane,
 // component=private-dns, workspace ID, project ID, target app ID, caller
-// deployment ID, and binding ID. Data contains appSlug (the binding alias),
+// deployment ID, and connection ID. Data contains appSlug (the connection alias),
 // deploymentId, serviceName, and a positive monotonic revision. deploymentId
-// and serviceName are both empty while a known binding has no target. The
-// resolver keys bindings by workspace, project, caller deployment, and alias.
-// Duplicate bindings for a key return SERVFAIL.
+// and serviceName are both empty while a known connection has no target. The
+// resolver keys connections by workspace, project, caller deployment, and alias.
+// Duplicate connections for a key return SERVFAIL.
 //
-// A target discovery Service is shared by bindings. It must be headless, use
+// A target discovery Service is shared by connections. It must be headless, use
 // publishNotReadyAddresses=false, and have managed-by, component, workspace,
-// project, target app, and target deployment labels. Caller and binding labels
+// project, target app, and target deployment labels. Caller and connection labels
 // aren't accepted as Service identity. The Service and ConfigMap must share a
 // namespace. An EndpointSlice contributes addresses only when its controller
 // reference matches the Service name and UID.
 //
 // # Activation
 //
-// A higher binding revision switches only after its target has a ready
+// A higher connection revision switches only after its target has a ready
 // endpoint. Until then, a running resolver keeps the prior target for the same
-// binding identity. A higher revision can explicitly roll back to an older
+// connection identity. A higher revision can explicitly roll back to an older
 // deployment. Once a target activates, losing its endpoints returns SERVFAIL
 // instead of reviving an earlier target.
 //
-// Changing the binding ID, caller deployment, alias, target app, object name,
-// object UID, or namespace revokes prior activation. Deleting a binding makes
-// the alias unknown. Publishing an unresolved binding revokes prior activation
+// Changing the connection ID, caller deployment, alias, target app, object name,
+// object UID, or namespace revokes prior activation. Deleting a connection makes
+// the alias unknown. Publishing an unresolved connection revokes prior activation
 // and returns SERVFAIL, so a removed target can't be retained or resurrected.
 // A restart can activate the durable target in the ConfigMap independently of
 // discovery objects staged for a future revision.
@@ -96,9 +96,9 @@
 // unkey_dns_discovery_ready and unkey_dns_discovery_watch_healthy report
 // private discovery health separately. unkey_dns_queries_total labels every
 // response with its path and a bounded reason, such as no_ready_endpoints or
-// upstream_timeout, and unkey_dns_bindings reports the answer each published
-// binding would get. Logs carry the binding and caller IDs that metrics omit:
-// binding state changes are logged once per change, and query failures are
+// upstream_timeout, and unkey_dns_connections reports the answer each published
+// connection would get. Logs carry the connection and caller IDs that metrics omit:
+// connection state changes are logged once per change, and query failures are
 // sampled once per reason per minute.
 // Restrict resolver access to cluster workloads; unknown callers can forward
 // public queries and are not authenticated by DNS.

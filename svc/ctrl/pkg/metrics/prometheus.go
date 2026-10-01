@@ -106,7 +106,7 @@ var (
 	// Labels:
 	//   - "result": "success", "unauthenticated" (bearer token mismatch),
 	//     "unknown_cluster" (the cluster key is invalid or has no cluster
-	//     row), "database_error" (looking up the cluster or reading bindings
+	//     row), "database_error" (looking up the cluster or reading connections
 	//     and replicas failed), or "send_error" (Krane went away or timed out
 	//     while the snapshot streamed)
 	PrivateNetworkSnapshotsTotal = lazy.NewCounterVec(
@@ -138,7 +138,7 @@ var (
 	)
 
 	// PrivateNetworkSnapshotReadDurationSeconds measures the read-only
-	// transaction that selects binding targets and replicas for one snapshot.
+	// transaction that selects connection targets and replicas for one snapshot.
 	// It grows with the number of enrolled deployments on a platform. Krane
 	// abandons a pass after 30 seconds, including streaming and publication.
 	PrivateNetworkSnapshotReadDurationSeconds = lazy.NewHistogram(

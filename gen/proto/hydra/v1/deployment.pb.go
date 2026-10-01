@@ -159,7 +159,7 @@ type ScheduleDesiredStateChangeRequest struct {
 	// if true, existing schedules get overwritten
 	// if false and a statechange is scheduled, this is a noop
 	Overwrite bool `protobuf:"varint,3,opt,name=overwrite,proto3" json:"overwrite,omitempty"`
-	// Keep an automatic stop pending while a directed app binding targets this
+	// Keep an automatic stop pending while a directed app connection targets this
 	// deployment. Explicit user and teardown stops must leave this false.
 	DeferWhilePinned bool `protobuf:"varint,4,opt,name=defer_while_pinned,json=deferWhilePinned,proto3" json:"defer_while_pinned,omitempty"`
 	unknownFields    protoimpl.UnknownFields

@@ -119,13 +119,13 @@ func TestChangeDesiredState_PinnedDeploymentLifecycle(t *testing.T) {
 
 	bind := func(deploymentID, resourceType string) string {
 		t.Helper()
-		bindingID := uid.New("binding")
-		_, err := h.DB.RW().ExecContext(h.Ctx, `INSERT INTO app_bindings
+		connectionID := uid.New("connection")
+		_, err := h.DB.RW().ExecContext(h.Ctx, `INSERT INTO app_connections
 			(id, workspace_id, project_id, app_id, environment_id, resource_type, resource_id, name, selection_mode, target_deployment_id, created_at)
 			VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'deployment', ?, ?)`,
-			bindingID, ws.ID, project.ID, app.ID, env.ID, resourceType, app.ID, uid.New("name"), deploymentID, time.Now().UnixMilli())
+			connectionID, ws.ID, project.ID, app.ID, env.ID, resourceType, app.ID, uid.New("name"), deploymentID, time.Now().UnixMilli())
 		require.NoError(t, err)
-		return bindingID
+		return connectionID
 	}
 
 	waitForDesiredState := func(deploymentID string, state mysqltype.DeploymentsDesiredState) {
@@ -137,7 +137,7 @@ func TestChangeDesiredState_PinnedDeploymentLifecycle(t *testing.T) {
 	}
 
 	automatic := createDeployment()
-	bindingID := bind(automatic.ID, "app")
+	connectionID := bind(automatic.ID, "app")
 	automaticClient := hydrav1.NewDeploymentServiceIngressClient(h.Restate, automatic.ID)
 	_, err := automaticClient.ScheduleDesiredStateChange().Request(h.Ctx, &hydrav1.ScheduleDesiredStateChangeRequest{
 		DelayMillis:      0,
@@ -149,10 +149,10 @@ func TestChangeDesiredState_PinnedDeploymentLifecycle(t *testing.T) {
 	require.Never(t, func() bool {
 		deployment, err := h.DB.FindDeploymentById(h.Ctx, automatic.ID)
 		return err != nil || deployment.DesiredState != mysqltype.DeploymentsDesiredStateRunning
-	}, 500*time.Millisecond, 50*time.Millisecond, "a pinned deployment stopped while its binding existed")
+	}, 500*time.Millisecond, 50*time.Millisecond, "a pinned deployment stopped while its connection existed")
 	require.Eventually(t, func() bool {
 		for _, record := range capture.Records() {
-			if record.Message == "deployment stop deferred because an app binding pins it" &&
+			if record.Message == "deployment stop deferred because an app connection pins it" &&
 				loggertest.FlatAttrs(record)["deployment_id"] == automatic.ID {
 				return true
 			}
@@ -160,7 +160,7 @@ func TestChangeDesiredState_PinnedDeploymentLifecycle(t *testing.T) {
 		return false
 	}, 5*time.Second, 50*time.Millisecond, "a deferred stop must name the pinned deployment in the logs")
 
-	result, err := h.DB.RW().ExecContext(h.Ctx, "DELETE FROM app_bindings WHERE id = ?", bindingID)
+	result, err := h.DB.RW().ExecContext(h.Ctx, "DELETE FROM app_connections WHERE id = ?", connectionID)
 	require.NoError(t, err)
 	deleted, err := result.RowsAffected()
 	require.NoError(t, err)

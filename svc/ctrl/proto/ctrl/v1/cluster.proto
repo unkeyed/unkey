@@ -109,13 +109,13 @@ message StreamPrivateNetworkStateRequest {
 }
 
 message PrivateNetworkStateChunk {
-  repeated PrivateNetworkBinding bindings = 1;
+  repeated PrivateNetworkConnection connections = 1;
   bool complete = 2;
-  // total is the number of bindings in the whole snapshot, set on the complete chunk.
+  // total is the number of connections in the whole snapshot, set on the complete chunk.
   uint64 total = 3;
 }
 
-message PrivateNetworkBinding {
+message PrivateNetworkConnection {
   string workspace_id = 1;
   string project_id = 2;
   string target_app_id = 3;
@@ -126,8 +126,8 @@ message PrivateNetworkBinding {
   string target_environment_id = 8;
   reserved 9;
   string caller_deployment_id = 10;
-  string binding_id = 11;
-  string binding_name = 12;
+  string connection_id = 11;
+  string connection_name = 12;
 }
 
 // ReportDeploymentStatusRequest reports the actual state of a deployment from the agent.

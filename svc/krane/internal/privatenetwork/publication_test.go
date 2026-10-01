@@ -7,7 +7,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
-	"github.com/unkeyed/unkey/pkg/deploy/appbinding"
+	"github.com/unkeyed/unkey/pkg/deploy/appconnection"
 	"github.com/unkeyed/unkey/svc/krane/internal/testutil"
 	corev1 "k8s.io/api/core/v1"
 	discoveryv1 "k8s.io/api/discovery/v1"
@@ -15,42 +15,42 @@ import (
 	"k8s.io/client-go/kubernetes/fake"
 )
 
-func TestPublicationRetainsBindingUntilRemoteDiscoveryIsReady(t *testing.T) {
+func TestPublicationRetainsConnectionUntilRemoteDiscoveryIsReady(t *testing.T) {
 	ctx := t.Context()
-	selected := testBinding("dep_a")
+	selected := testConnection("dep_a")
 	client := fake.NewClientset(endpointPod(selected, "a", "10.72.0.11"))
-	other := testBinding("other_a")
+	other := testConnection("other_a")
 	other.TargetAppId, other.TargetAppSlug = "app_2", "metrics"
-	other.BindingId, other.BindingName, other.CallerDeploymentId = "binding_2", "metrics-api", "caller_2"
-	control := &testutil.MockClusterClient{StreamPrivateNetworkStateFunc: snapshotFunc(t, func(context.Context) ([]*ctrlv1.PrivateNetworkBinding, error) {
-		return []*ctrlv1.PrivateNetworkBinding{selected, other}, nil
+	other.ConnectionId, other.ConnectionName, other.CallerDeploymentId = "connection_2", "metrics-api", "caller_2"
+	control := &testutil.MockClusterClient{StreamPrivateNetworkStateFunc: snapshotFunc(t, func(context.Context) ([]*ctrlv1.PrivateNetworkConnection, error) {
+		return []*ctrlv1.PrivateNetworkConnection{selected, other}, nil
 	})}
 	dynamic := testDynamicClient()
 	r := &Reconciler{client: client, dynamic: dynamic, cluster: control}
 	require.NoError(t, r.reconcile(ctx))
-	bindingName := resourceName("unkey-pn-binding", "binding_1/caller_1")
-	original, err := client.CoreV1().ConfigMaps("customer-1").Get(ctx, bindingName, metav1.GetOptions{})
+	connectionName := resourceName("unkey-pn-connection", "connection_1/caller_1")
+	original, err := client.CoreV1().ConfigMaps("customer-1").Get(ctx, connectionName, metav1.GetOptions{})
 	require.NoError(t, err)
 
-	selected = testBinding("dep_b")
+	selected = testConnection("dep_b")
 	other.TargetDeploymentId = "other_b"
 	_, err = client.CoreV1().Pods("customer-1").Create(ctx, endpointPod(other, "other-b", "10.72.0.33"), metav1.CreateOptions{})
 	require.NoError(t, err)
 	require.NoError(t, r.reconcile(ctx))
-	staged, err := client.CoreV1().ConfigMaps("customer-1").Get(ctx, bindingName, metav1.GetOptions{})
+	staged, err := client.CoreV1().ConfigMaps("customer-1").Get(ctx, connectionName, metav1.GetOptions{})
 	require.NoError(t, err)
-	require.Equal(t, original, staged, "B's empty local slice must not replace the durable A binding")
-	otherBinding, err := client.CoreV1().ConfigMaps("customer-1").Get(ctx, resourceName("unkey-pn-binding", "binding_2/caller_2"), metav1.GetOptions{})
+	require.Equal(t, original, staged, "B's empty local slice must not replace the durable A connection")
+	otherConnection, err := client.CoreV1().ConfigMaps("customer-1").Get(ctx, resourceName("unkey-pn-connection", "connection_2/caller_2"), metav1.GetOptions{})
 	require.NoError(t, err)
-	require.Equal(t, "other_b", otherBinding.Data["deploymentId"])
-	require.Equal(t, "2", otherBinding.Data["revision"])
+	require.Equal(t, "other_b", otherConnection.Data["deploymentId"])
+	require.Equal(t, "2", otherConnection.Data["revision"])
 
 	r = &Reconciler{client: client, dynamic: dynamic, cluster: control, now: func() time.Time { return time.Now().Add(time.Hour) }}
 	require.NoError(t, r.reconcile(ctx))
 
 	a, err := client.CoreV1().Services("customer-1").Get(ctx, original.Data["serviceName"], metav1.GetOptions{})
 	require.NoError(t, err)
-	require.NotContains(t, a.Annotations, appbinding.RetireAfterAnnotation)
+	require.NotContains(t, a.Annotations, appconnection.RetireAfterAnnotation)
 	require.Equal(t, []string{"10.72.0.11"}, sourceAddresses(t, client, a))
 
 	b, err := client.CoreV1().Services("customer-1").Get(ctx, discoveryName("dep_b", selected.GetTargetPort()), metav1.GetOptions{})
@@ -68,7 +68,7 @@ func TestPublicationRetainsBindingUntilRemoteDiscoveryIsReady(t *testing.T) {
 	require.NoError(t, err)
 
 	require.NoError(t, r.reconcile(ctx))
-	staged, err = client.CoreV1().ConfigMaps("customer-1").Get(ctx, bindingName, metav1.GetOptions{})
+	staged, err = client.CoreV1().ConfigMaps("customer-1").Get(ctx, connectionName, metav1.GetOptions{})
 	require.NoError(t, err)
 	require.Equal(t, original, staged)
 
@@ -89,7 +89,7 @@ func TestPublicationRetainsBindingUntilRemoteDiscoveryIsReady(t *testing.T) {
 			_, err := client.DiscoveryV1().EndpointSlices(b.Namespace).Update(ctx, invalid, metav1.UpdateOptions{})
 			require.NoError(t, err)
 			require.NoError(t, r.reconcile(ctx))
-			staged, err := client.CoreV1().ConfigMaps("customer-1").Get(ctx, bindingName, metav1.GetOptions{})
+			staged, err := client.CoreV1().ConfigMaps("customer-1").Get(ctx, connectionName, metav1.GetOptions{})
 			require.NoError(t, err)
 			require.Equal(t, original.Data, staged.Data)
 		})
@@ -99,12 +99,12 @@ func TestPublicationRetainsBindingUntilRemoteDiscoveryIsReady(t *testing.T) {
 	require.NoError(t, err)
 	require.NoError(t, r.reconcile(ctx))
 
-	published, err := client.CoreV1().ConfigMaps("customer-1").Get(ctx, bindingName, metav1.GetOptions{})
+	published, err := client.CoreV1().ConfigMaps("customer-1").Get(ctx, connectionName, metav1.GetOptions{})
 	require.NoError(t, err)
 	require.Equal(t, "dep_b", published.Data["deploymentId"])
 	require.Equal(t, "2", published.Data["revision"])
 
 	a, err = client.CoreV1().Services("customer-1").Get(ctx, original.Data["serviceName"], metav1.GetOptions{})
 	require.NoError(t, err)
-	require.Contains(t, a.Annotations, appbinding.RetireAfterAnnotation)
+	require.Contains(t, a.Annotations, appconnection.RetireAfterAnnotation)
 }

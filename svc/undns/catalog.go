@@ -16,23 +16,23 @@ import (
 
 const (
 	environmentKindLabel = "unkey.com/environment.kind"
-	bindingComponent     = "private-dns"
+	connectionComponent  = "private-dns"
 	podIPIndex           = "podIP"
 	appIndex             = "app"
 	serviceIndex         = "service"
 )
 
 type catalog struct {
-	pods      *trackedInformer
-	bindings  *trackedInformer
-	services  *trackedInformer
-	slices    *trackedInformer
-	activeMu  sync.RWMutex
-	active    map[string]*corev1.ConfigMap
-	activated bool
-	statusMu  sync.Mutex
-	statuses  map[string]bindingStatus
-	now       func() time.Time
+	pods        *trackedInformer
+	connections *trackedInformer
+	services    *trackedInformer
+	slices      *trackedInformer
+	activeMu    sync.RWMutex
+	active      map[string]*corev1.ConfigMap
+	activated   bool
+	statusMu    sync.Mutex
+	statuses    map[string]connectionStatus
+	now         func() time.Time
 }
 
 func newCatalog(client kubernetes.Interface, timeout time.Duration) (*catalog, error) {
@@ -43,7 +43,7 @@ func newCatalog(client kubernetes.Interface, timeout time.Duration) (*catalog, e
 
 	callers := labels.New().ManagedByKrane().ComponentDeployment().ToString()
 	discovery := labels.New().ManagedByKrane()
-	discovery[labels.LabelKeyComponent] = bindingComponent
+	discovery[labels.LabelKeyComponent] = connectionComponent
 	published := discovery.ToString()
 
 	pods := client.CoreV1().Pods("")
@@ -56,7 +56,7 @@ func newCatalog(client kubernetes.Interface, timeout time.Duration) (*catalog, e
 	}
 
 	configs := client.CoreV1().ConfigMaps("")
-	c.bindings, err = newTrackedInformer("bindings", &corev1.ConfigMap{}, cache.Indexers{appIndex: indexBinding}, timeout, published,
+	c.connections, err = newTrackedInformer("connections", &corev1.ConfigMap{}, cache.Indexers{appIndex: indexConnection}, timeout, published,
 		func(ctx context.Context, options metav1.ListOptions) (runtime.Object, error) {
 			return configs.List(ctx, options)
 		}, configs.Watch)
@@ -93,12 +93,12 @@ func newCatalog(client kubernetes.Interface, timeout time.Duration) (*catalog, e
 
 func (c *catalog) run(ctx context.Context) error {
 	var group sync.WaitGroup
-	for _, informer := range []*trackedInformer{c.pods, c.bindings, c.services, c.slices} {
+	for _, informer := range []*trackedInformer{c.pods, c.connections, c.services, c.slices} {
 		group.Go(func() { informer.RunWithContext(ctx) })
 	}
 
 	group.Go(func() {
-		if !cache.WaitForCacheSync(ctx.Done(), c.pods.HasSynced, c.bindings.HasSynced, c.services.HasSynced, c.slices.HasSynced) {
+		if !cache.WaitForCacheSync(ctx.Done(), c.pods.HasSynced, c.connections.HasSynced, c.services.HasSynced, c.slices.HasSynced) {
 			return
 		}
 
@@ -126,5 +126,5 @@ func (c *catalog) ready() bool {
 }
 
 func (c *catalog) readyDiscovery() bool {
-	return c.pods.healthy() && c.bindings.healthy() && c.services.healthy() && c.slices.healthy()
+	return c.pods.healthy() && c.connections.healthy() && c.services.healthy() && c.slices.healthy()
 }

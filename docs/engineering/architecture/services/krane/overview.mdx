@@ -27,7 +27,7 @@ Krane is built around these core responsibilities.
 
 - Reconcile user workloads as Kubernetes ReplicaSets
 - Install a per-deployment Cilium network policy that admits Frontline ingress
-- Install directed Cilium grants for app bindings and automatic replica connections when private networking is enabled
+- Install directed Cilium grants for app connections and automatic replica connections when private networking is enabled
 - Publish private network discovery objects when private networking is enabled
 - Report actual state for workloads upstream
 - Decrypt workload secrets using Vault when enabled
@@ -49,7 +49,7 @@ flowchart TD
   K8SDeploy -->|ReportDeploymentStatus| Ctrl
 
   Ctrl -->|StreamPrivateNetworkState| PrivateNet[Private network reconciler]
-  PrivateNet -->|Publish| K8SDiscovery[Services, bindings, EndpointSlices]
+  PrivateNet -->|Publish| K8SDiscovery[Services, connections, EndpointSlices]
   K8SDiscovery -->|Watch| Undns[undns]
 ```
 
@@ -69,15 +69,42 @@ Applying a deployment also installs its [Cilium network policy](#cilium-network-
 
 ### Private network reconciler
 
-When `private_network.enabled` is set, one Krane instance per cluster holds a Lease and runs the private network reconciler. Every 5 seconds it reads a complete snapshot from `StreamPrivateNetworkState`. Ctrl reads every page inside one database transaction without a fixed row cap, then streams the snapshot in chunks ending with a complete chunk. Both Ctrl and Krane hold the full snapshot in memory. A stream without the complete chunk is partial and is not reconciled. The snapshot has one entry per app binding and running caller deployment on the cluster's platform, with the target deployment that Ctrl selected for it. Only caller deployments created with private networking appear. Ctrl decides that once when it creates a deployment and stores it on the deployment row: the workspace needs an app binding to another app, and the `private-networking` feature flag must be on for its WorkOS organization. Later flag or binding changes don't change the decision for running deployments. See [Feature flags](/contributing/tooling/feature-flags#ctrl).
+When `private_network.enabled` is set, one Krane instance per cluster holds a Lease and runs the private network reconciler. Every 5 seconds it reads a complete snapshot from `StreamPrivateNetworkState`. Ctrl reads every page inside one database transaction without a fixed row cap, then streams the snapshot in chunks ending with a complete chunk. Both Ctrl and Krane hold the full snapshot in memory. A stream without the complete chunk is partial and is not reconciled. The snapshot has one entry per app connection and running caller deployment on the cluster's platform, with the target deployment that Ctrl selected for it. Only caller deployments created with private networking appear. Ctrl decides that once when it creates a deployment and stores it on the deployment row: the workspace needs an app connection to another app, and the `private-networking` feature flag must be on for its WorkOS organization. Later flag or connection changes don't change the decision for running deployments. See [Feature flags](/contributing/tooling/feature-flags#ctrl).
 
-For each entry, the reconciler maintains a global headless Service per target deployment, one binding ConfigMap per binding and caller deployment, and one CiliumNetworkPolicy per binding and caller deployment. It also writes EndpointSlices for local ready Pods, and Cilium ClusterMesh imports the slices of other regions. A binding moves to a replacement deployment only after that deployment has a ready endpoint visible in this region. Each region switches on its own schedule.
+For each entry, the reconciler maintains a global headless Service per target deployment, one connection ConfigMap per connection and caller deployment, and one CiliumNetworkPolicy per connection and caller deployment. It also writes EndpointSlices for local ready Pods, and Cilium ClusterMesh imports the slices of other regions. A connection moves to a replacement deployment only after that deployment has a ready endpoint visible in this region. Each region switches on its own schedule.
 
-A binding policy lets the caller deployment reach the target deployment on every TCP and UDP port, in one direction, in any cluster. The reverse direction needs a separate binding from the target app. Ctrl also creates a discovery entry for the own replicas of each deployment created with private networking, named after its app slug, for example `api.unkey.internal`. Users don't add a binding for this: Krane injects the name as `UNKEY_DEPLOYMENT_HOST`. Binding names can't reuse the caller app's slug or start with `unkey`. ICMP, SCTP, broadcast, and multicast are not granted. The Service port is the target deployment's declared port and is metadata only; DNS answers carry Pod IPs, not ports.
+A connection policy lets the caller deployment reach the target deployment on every TCP and UDP port, in one direction, in any cluster. The reverse direction needs a separate connection from the target app. Ctrl also creates a discovery entry for the own replicas of each deployment created with private networking, named after its app slug, for example `api.unkey.internal`. Users don't add a connection for this: Krane injects the name as `UNKEY_DEPLOYMENT_HOST`. Connection names can't reuse the caller app's slug or start with `unkey`. ICMP, SCTP, broadcast, and multicast are not granted. The Service port is the target deployment's declared port and is metadata only; DNS answers carry Pod IPs, not ports.
 
-A binding missing from a complete snapshot loses its published objects during cleanup, and its Services retire 30 minutes after they become unreferenced. A failed or partial snapshot skips the pass. An invalid entry or a binding that fails to reconcile keeps its published objects, and every other binding reconciles and cleans up in the same pass. Cleanup itself is not atomic: a failed deletion does not undo earlier deletions. If the reconciler loses its Lease, Krane exits with an error.
+A connection missing from a complete snapshot loses its published objects during cleanup, and its Services retire 30 minutes after they become unreferenced. A failed or partial snapshot skips the pass. An invalid entry or a connection that fails to reconcile keeps its published objects, and every other connection reconciles and cleans up in the same pass. Cleanup itself is not atomic: a failed deletion does not undo earlier deletions. If the reconciler loses its Lease, Krane exits with an error.
 
 The `unkey_krane_private_network_*` metrics report leadership, loop completion, failures by step, and entry states. See <a href="https://github.com/unkeyed/infra/blob/main/docs/runbooks/eks/0020-private-networking.md" target="_blank">Troubleshoot private networking in the infra repository</a> for queries and fixes.
+
+#### Upgrade from app bindings to connections
+
+Existing pre-release installations need a coordinated maintenance window. This is not a rolling-compatible rename: the table, tRPC namespace, Kubernetes connection labels, and metric names change. Fresh installations use `app_connections` directly.
+
+1. Stop the dashboard, Ctrl API, Ctrl worker, and Krane writers before changing the schema. Pause deployment and connection changes for the window.
+2. Record the row count and IDs in `app_bindings`, then run this data-preserving rename:
+
+```sql
+ALTER TABLE app_bindings
+  RENAME TO app_connections,
+  RENAME INDEX app_bindings_id_unique TO app_connections_id_unique,
+  RENAME INDEX app_bindings_app_name_idx TO app_connections_app_name_idx,
+  RENAME INDEX app_bindings_app_resource_idx TO app_connections_app_resource_idx,
+  RENAME INDEX app_bindings_project_idx TO app_connections_project_idx,
+  RENAME INDEX app_bindings_resource_idx TO app_connections_resource_idx,
+  RENAME INDEX app_bindings_workspace_idx TO app_connections_workspace_idx,
+  RENAME INDEX app_bindings_target_deployment_idx TO app_connections_target_deployment_idx;
+```
+
+3. Verify the row count and IDs are unchanged. Start the updated dashboard, Ctrl API, and Ctrl worker.
+4. Replace Krane and `undns` in every region within the window. Krane publishes `unkey-pn-connection-*` ConfigMaps with `unkey.com/connection.id`, then removes obsolete owned objects through normal cleanup. Old and new resolvers must not serve together during this transition. Private DNS can fail until publication and watches converge.
+5. Verify hostname resolution, permitted traffic, and denied traffic in every region before resuming deployment and connection changes. Update monitoring from `unkey_dns_bindings` to `unkey_dns_connections`, and from the `binding` kind to `connection`.
+
+Policy annotations change from `bindings.unkey.com/targets` to `connections.unkey.com/targets`. Recreated policies use the current snapshot, not the old policy's overlap history. Finish target rollouts before this upgrade, or expect existing traffic to previous targets to stop during the window.
+
+The migration does not rewrite resource IDs, DNS aliases, host environment variables, deployment capabilities, or protobuf field numbers. Headless Service identities and retirement annotations stay unchanged. Existing dashboard and documentation URLs redirect to Connections. Rollback requires stopping writers, reversing the schema rename, and restoring all old binaries together; it is not a mixed-version rollback.
 
 ## Kubernetes resource model
 
@@ -101,9 +128,9 @@ User workloads are represented as ReplicaSets with the following characteristics
 
 ### Cilium network policies
 
-When the deployment controller applies a deployment, it installs a `<deployment>-frontline-ingress` CiliumNetworkPolicy in the deployment's namespace, once before and once after the ReplicaSet. The policy admits Frontline ingress on the container port. The ReplicaSet owns the policy, so Kubernetes garbage-collects it with the deployment. Traffic between deployments is denied unless an app binding policy from the [private network reconciler](#private-network-reconciler) allows it. Environment kind grants no network access.
+When the deployment controller applies a deployment, it installs a `<deployment>-frontline-ingress` CiliumNetworkPolicy in the deployment's namespace, once before and once after the ReplicaSet. The policy admits Frontline ingress on the container port. The ReplicaSet owns the policy, so Kubernetes garbage-collects it with the deployment. Traffic between deployments is denied unless an app connection policy from the [private network reconciler](#private-network-reconciler) allows it. Environment kind grants no network access.
 
-When a replacement canary is ready, Ctrl schedules older running deployments in the same app, environment, branch, and fork to stop after 30 minutes. The app's live deployment is excluded. For deployments pinned by an app binding, the scheduled stop retries until the pin is removed, waiting from 1 minute up to 15 minutes between checks. This timer is independent of Krane's discovery retirement timer.
+When a replacement canary is ready, Ctrl schedules older running deployments in the same app, environment, branch, and fork to stop after 30 minutes. The app's live deployment is excluded. For deployments pinned by an app connection, the scheduled stop retries until the pin is removed, waiting from 1 minute up to 15 minutes between checks. This timer is independent of Krane's discovery retirement timer.
 
 ## Consistency guarantees
 
