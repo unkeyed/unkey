@@ -57,7 +57,7 @@ func (s *Service) resolveCluster(ctx context.Context, cluster *ctrlv1.ClusterKey
 	)
 	if err != nil {
 		if db.IsNotFound(err) {
-			return db.FindClusterRow{}, connect.NewError(connect.CodeNotFound, fmt.Errorf("cluster %s/%s/%s not found", key.cellID, key.platform, key.region))
+			return db.FindClusterRow{}, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("cluster %s/%s/%s not registered", key.cellID, key.platform, key.region))
 		}
 		return db.FindClusterRow{}, connect.NewError(connect.CodeInternal, err)
 	}

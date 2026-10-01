@@ -42,7 +42,7 @@ func (s *Service) WatchDeploymentChanges(
 	}
 	err = s.deploymentStream.Watch(ctx, cluster.RegionID, token, func(event deploymentstream.Event) error {
 		if event.DeploymentID != "" {
-			return s.sendDeploymentChange(ctx, stream, cluster.RegionID, event.DeploymentID)
+			return s.sendDeploymentChange(ctx, stream, cluster.RegionID, event)
 		}
 		if err := assert.NotEmpty(event.ResumeToken, "deployment checkpoint requires a resume token"); err != nil {
 			return err
@@ -65,9 +65,9 @@ func (s *Service) WatchDeploymentChanges(
 
 // sendDeploymentChange looks up the latest state, not the state when the row changed.
 // If the row is gone, Krane's ReplicaSet checks remove the leftover resources.
-func (s *Service) sendDeploymentChange(ctx context.Context, stream *connect.ServerStream[ctrlv1.DeploymentChangeEvent], regionID, deploymentID string) error {
+func (s *Service) sendDeploymentChange(ctx context.Context, stream *connect.ServerStream[ctrlv1.DeploymentChangeEvent], regionID string, event deploymentstream.Event) error {
 	row, err := s.db.FindDeploymentTopologyByDeploymentAndRegion(ctx, db.FindDeploymentTopologyByDeploymentAndRegionParams{
-		DeploymentID: deploymentID,
+		DeploymentID: event.DeploymentID,
 		RegionID:     regionID,
 	})
 	if db.IsNotFound(err) {
@@ -77,6 +77,9 @@ func (s *Service) sendDeploymentChange(ctx context.Context, stream *connect.Serv
 	if err != nil {
 		metrics.DeploymentChangesProcessedTotal.WithLabelValues("deployment_topology", "error").Inc()
 		return err
+	}
+	if !event.HasBefore && row.DesiredStatus == db.DeploymentTopologyDesiredStatusStopped && row.RemovalRequired == 0 && row.StatusRepairRequired == 0 {
+		return nil
 	}
 	state, err := deploymentRowToState(row)
 	if err != nil {
@@ -103,6 +106,8 @@ func deploymentRowToState[T deploymentStateRow](row T) (*ctrlv1.DeploymentState,
 	case db.ListAllDeploymentTopologiesByRegionRow:
 		deployment = db.FindDeploymentTopologyByDeploymentAndRegionRow{
 			DesiredStatus:                 row.TopologyDesiredStatus,
+			RemovalRequired:               row.RemovalRequired,
+			StatusRepairRequired:          0,
 			AutoscalingReplicasMin:        row.TopologyAutoscalingReplicasMin,
 			AutoscalingReplicasMax:        row.TopologyAutoscalingReplicasMax,
 			AutoscalingThresholdCpu:       row.TopologyAutoscalingThresholdCpu,
@@ -135,11 +140,23 @@ func deploymentRowToState[T deploymentStateRow](row T) (*ctrlv1.DeploymentState,
 		return nil, fmt.Errorf("unsupported deployment row type %T", row)
 	}
 
+	if deployment.RemovalRequired != 0 {
+		return &ctrlv1.DeploymentState{
+			State: &ctrlv1.DeploymentState_Delete{Delete: &ctrlv1.DeleteDeployment{
+				DeploymentId: deployment.ID,
+				K8SNamespace: deployment.K8sNamespace,
+				K8SName:      deployment.K8sName,
+				Permanent:    true,
+			}},
+		}, nil
+	}
+
 	switch deployment.DesiredStatus {
 	case db.DeploymentTopologyDesiredStatusStopped:
 		return &ctrlv1.DeploymentState{
 			State: &ctrlv1.DeploymentState_Delete{
 				Delete: &ctrlv1.DeleteDeployment{
+					DeploymentId: deployment.ID,
 					K8SNamespace: deployment.K8sNamespace,
 					K8SName:      deployment.K8sName,
 				},
