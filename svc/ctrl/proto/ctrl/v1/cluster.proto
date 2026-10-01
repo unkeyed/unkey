@@ -121,6 +121,9 @@ message ReportDeploymentStatusRequest {
   }
   message Delete {
     string k8s_name = 1;
+    // Set only after permanent removal has observed no ReplicaSet or pods.
+    bool removal_confirmed = 2;
+    string deployment_id = 3;
   }
 
   ClusterKey cluster = 3;
@@ -353,6 +356,9 @@ message AutoscalingPolicy {
 message DeleteDeployment {
   string k8s_namespace = 1;
   string k8s_name = 2;
+  string deployment_id = 3;
+  // Permanent removal requires a removal_confirmed status report.
+  bool permanent = 4;
 }
 
 // HeartbeatRequest is sent periodically by krane agents to register their
