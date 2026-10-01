@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
+	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/svc/krane/pkg/labels"
 	"github.com/unkeyed/unkey/svc/krane/pkg/metrics"
@@ -26,11 +27,12 @@ func (c *Controller) DeleteDeployment(ctx context.Context, req *ctrlv1.DeleteDep
 		"name", req.GetK8SName(),
 	)
 
-	if req.GetPermanent() && req.GetDeploymentId() == "" {
-		return fmt.Errorf("deployment ID is required for permanent removal")
-	}
-	if !req.GetPermanent() && req.GetK8SName() == "" {
-		return fmt.Errorf("Kubernetes name is required")
+	if req.GetPermanent() {
+		if err := assert.NotEmpty(req.GetDeploymentId(), "deployment ID is required for permanent removal"); err != nil {
+			return err
+		}
+	} else if err := assert.NotEmpty(req.GetK8SName(), "Kubernetes name is required"); err != nil {
+		return err
 	}
 
 	deleteOptions := metav1.DeleteOptions{}
