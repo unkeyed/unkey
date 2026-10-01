@@ -2,6 +2,8 @@ package principal
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"slices"
 	"strings"
 
@@ -11,6 +13,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/urn"
+	apierrors "github.com/unkeyed/unkey/svc/api/internal/errors"
 )
 
 // ValidateDelegatedPermissions returns sorted, deduplicated permissions that the
@@ -21,7 +24,7 @@ import (
 // 403. Cancellation stops validation between permission checks.
 func ValidateDelegatedPermissions(ctx context.Context, p *authprincipal.Principal, requestedPermissions []string) ([]string, error) {
 	validatedPermissionSet := make(map[string]struct{}, len(requestedPermissions))
-	for _, requestedPermission := range requestedPermissions {
+	for i, requestedPermission := range requestedPermissions {
 		if err := ctx.Err(); err != nil {
 			return nil, err
 		}
@@ -30,7 +33,14 @@ func ValidateDelegatedPermissions(ctx context.Context, p *authprincipal.Principa
 		}
 		resource, action, err := parsePermission(requestedPermission, p.AuthorizedWorkspaceID)
 		if err != nil {
-			return nil, err
+			return nil, fault.Wrap(apierrors.WithValidationError(err, apierrors.ValidationError{
+				Location: fmt.Sprintf("body.permissions[%d]", i),
+				Message:  "The permission is not a supported URN permission in this workspace.",
+				Fix:      nil,
+			}),
+				fault.Code(codes.App.Validation.InvalidInput.URN()),
+				fault.Public("A requested permission is not a supported URN permission in this workspace."),
+			)
 		}
 		if err := p.Authorize(rbac.U(resource, action)); err != nil {
 			return nil, err
@@ -62,7 +72,5 @@ func parsePermission(permission, workspaceID string) (urn.V1, permissions.Action
 }
 
 func invalidPermission() error {
-	return fault.New("invalid permission",
-		fault.Code(codes.App.Validation.InvalidInput.URN()),
-		fault.Public("A requested permission is not a supported URN permission in this workspace."))
+	return errors.New("invalid permission")
 }
