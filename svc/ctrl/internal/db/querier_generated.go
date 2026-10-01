@@ -22,6 +22,13 @@ type Querier interface {
 	//  WHERE id = ?
 	//    AND current_deployment_id = ?
 	ClearAppCurrentDeployment(ctx context.Context, arg ClearAppCurrentDeploymentParams) error
+	//ClearAppCurrentDeploymentByEnvironment
+	//
+	//  UPDATE apps a
+	//  JOIN deployments d ON d.id = a.current_deployment_id
+	//  SET a.current_deployment_id = NULL, a.updated_at = ?
+	//  WHERE d.environment_id = ?
+	ClearAppCurrentDeploymentByEnvironment(ctx context.Context, arg ClearAppCurrentDeploymentByEnvironmentParams) error
 	// Clears the local Deploy entitlement mirror on cancel. Leaves the Stripe
 	// linkage (customer/subscription) intact: a mixed subscription keeps running for
 	// the API plan, and a Deploy-only subscription cancels at period end. After this
@@ -94,7 +101,14 @@ type Querier interface {
 	DeleteAppEnvVarsByEnvironmentId(ctx context.Context, environmentID string) error
 	//DeleteAppRegionalSettingsByEnvironmentId
 	//
-	//  DELETE FROM app_regional_settings WHERE environment_id = ?
+	//  DELETE s, p
+	//  FROM app_regional_settings s
+	//  LEFT JOIN app_regional_settings other
+	//      ON other.horizontal_autoscaling_policy_id = s.horizontal_autoscaling_policy_id
+	//      AND other.environment_id <> s.environment_id
+	//  LEFT JOIN horizontal_autoscaling_policies p
+	//      ON p.id = s.horizontal_autoscaling_policy_id AND other.pk IS NULL
+	//  WHERE s.environment_id = ?
 	DeleteAppRegionalSettingsByEnvironmentId(ctx context.Context, environmentID string) error
 	//DeleteAppRuntimeSettingsByEnvironmentId
 	//
@@ -111,11 +125,19 @@ type Querier interface {
 	DeleteCiliumNetworkPoliciesByEnvironmentId(ctx context.Context, environmentID string) error
 	//DeleteCustomDomainByID
 	//
-	//  DELETE FROM custom_domains WHERE id = ?
+	//  DELETE d, c, cert
+	//  FROM custom_domains d
+	//  LEFT JOIN acme_challenges c ON c.domain_id = d.id
+	//  LEFT JOIN certificates cert ON cert.hostname = d.domain AND cert.workspace_id = d.workspace_id
+	//  WHERE d.id = ?
 	DeleteCustomDomainByID(ctx context.Context, id string) error
 	//DeleteCustomDomainsByEnvironmentId
 	//
-	//  DELETE FROM custom_domains WHERE environment_id = ?
+	//  DELETE d, c, cert
+	//  FROM custom_domains d
+	//  LEFT JOIN acme_challenges c ON c.domain_id = d.id
+	//  LEFT JOIN certificates cert ON cert.hostname = d.domain AND cert.workspace_id = d.workspace_id
+	//  WHERE d.environment_id = ?
 	DeleteCustomDomainsByEnvironmentId(ctx context.Context, environmentID string) error
 	//DeleteDeploymentInstances
 	//
@@ -195,6 +217,22 @@ type Querier interface {
 	//  JOIN deployments d ON d.id = oas.deployment_id
 	//  WHERE d.environment_id = ?
 	DeleteOpenApiSpecsByEnvironmentId(ctx context.Context, environmentID string) error
+	//DeletePortalsByAppID
+	//
+	//  DELETE p, s, o
+	//  FROM portals p
+	//  LEFT JOIN portal_sessions s ON s.portal_id = p.id
+	//  LEFT JOIN openapi_specs o ON o.portal_id = p.id
+	//  WHERE p.app_id = ?
+	DeletePortalsByAppID(ctx context.Context, appID sql.NullString) error
+	//DeletePortalsByProjectID
+	//
+	//  DELETE p, s, o
+	//  FROM portals p
+	//  LEFT JOIN portal_sessions s ON s.portal_id = p.id
+	//  LEFT JOIN openapi_specs o ON o.portal_id = p.id
+	//  WHERE p.project_id = ?
+	DeletePortalsByProjectID(ctx context.Context, projectID string) error
 	//DeleteProjectById
 	//
 	//  DELETE FROM projects WHERE id = ?
@@ -1888,6 +1926,11 @@ type Querier interface {
 	//  WHERE id = ? AND deleting_at IS NULL
 	//  LOCK IN SHARE MODE
 	LockActiveProject(ctx context.Context, id string) (string, error)
+	//LockCustomDomain
+	//
+	//  SELECT id FROM custom_domains WHERE id = ?
+	//  LOCK IN SHARE MODE
+	LockCustomDomain(ctx context.Context, id string) (string, error)
 	// Must be the first statement of its transaction: the quota sum that follows
 	// relies on the read view opening after this lock is held
 	//
