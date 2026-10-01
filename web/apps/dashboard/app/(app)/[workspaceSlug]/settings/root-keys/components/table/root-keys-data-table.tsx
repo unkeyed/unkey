@@ -158,7 +158,7 @@ function RootKeyRow({
         displayType="relative"
         side="top"
         align="center"
-        className="relative z-10 truncate text-xs text-gray-9"
+        className="relative z-10 min-w-0 justify-self-start truncate text-xs text-gray-9"
       />
       <span className="relative z-10 flex justify-end">
         <RootKeysTableActions rootKey={rootKey} onEditKey={onEditKey} transport={transport} />
