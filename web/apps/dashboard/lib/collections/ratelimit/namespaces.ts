@@ -48,6 +48,7 @@ export const ratelimitNamespaces = createCollection<RatelimitNamespace, string>(
 
       return {
         id: result.id,
+        projectId: result.projectId,
         name: newNamespace.name,
       };
     },

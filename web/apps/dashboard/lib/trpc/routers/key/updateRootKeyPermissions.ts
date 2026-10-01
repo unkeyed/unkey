@@ -1,13 +1,12 @@
 import type { UnkeyAuditLog } from "@/lib/audit";
 import { and, db, eq, inArray, schema } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
-import { unkeyPermissionValidation } from "@unkey/rbac";
-import { z } from "zod";
 import { requireWorkspaceAdmin, workspaceProcedure } from "../../trpc";
 
 import { insertAuditLogs } from "@/lib/audit";
 import { env } from "@/lib/env";
-import { upsertPermissions } from "../rbac";
+import { assertPermissionsBelongToWorkspace, upsertPermissions } from "../rbac";
+import { updateRootKeyPermissionsInput } from "./root-key-permissions-input";
 
 /**
  * Replaces the full permission set for the root key — clients must submit the complete,
@@ -15,15 +14,10 @@ import { upsertPermissions } from "../rbac";
  */
 export const updateRootKeyPermissions = workspaceProcedure
   .use(requireWorkspaceAdmin)
-  .input(
-    z.object({
-      keyId: z.string(),
-      permissions: z.array(unkeyPermissionValidation).min(1, {
-        error: "You need to add at least one permission.",
-      }),
-    }),
-  )
+  .input(updateRootKeyPermissionsInput)
   .mutation(async ({ ctx, input }) => {
+    assertPermissionsBelongToWorkspace(input.permissions, ctx.workspace.id);
+
     // Verify the key exists and belongs to the workspace
     const key = await db.query.keys
       .findFirst({
@@ -39,14 +33,14 @@ export const updateRootKeyPermissions = workspaceProcedure
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "We were unable to update the root key permissions. Please try again or contact support@unkey.com.",
+            "We were unable to update the Root Key permissions. Please try again or contact support@unkey.com.",
         });
       });
 
     if (!key) {
       throw new TRPCError({
         code: "NOT_FOUND",
-        message: "Root key not found",
+        message: "Root Key not found",
       });
     }
 
@@ -74,7 +68,7 @@ export const updateRootKeyPermissions = workspaceProcedure
 
         // Upsert new permissions
         const { permissions: upsertedPermissions, auditLogs: createPermissionLogs } =
-          await upsertPermissions(ctx, env().UNKEY_WORKSPACE_ID, input.permissions);
+          await upsertPermissions(tx, ctx, env().UNKEY_WORKSPACE_ID, input.permissions);
 
         auditLogs.push(...createPermissionLogs);
 
@@ -188,7 +182,7 @@ export const updateRootKeyPermissions = workspaceProcedure
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
         message:
-          "We are unable to update the root key permissions. Please try again or contact support@unkey.com",
+          "We are unable to update the Root Key permissions. Please try again or contact support@unkey.com",
       });
     }
 

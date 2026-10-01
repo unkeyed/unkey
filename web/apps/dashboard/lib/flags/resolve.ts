@@ -12,6 +12,7 @@ export async function resolveAll() {
     showDarksoulsSuccessBanner,
     portalManagement,
     projectsNav,
+    rootKeyBuilder,
   ] = await Promise.all([
     flags.helloWorld(),
     flags.deployBilling(),
@@ -19,6 +20,7 @@ export async function resolveAll() {
     flags.showDarksoulsSuccessBanner(),
     flags.portalManagement(),
     flags.projectsNav(),
+    flags.rootKeyBuilder(),
   ]);
   return {
     helloWorld,
@@ -27,6 +29,7 @@ export async function resolveAll() {
     showDarksoulsSuccessBanner,
     portalManagement,
     projectsNav,
+    rootKeyBuilder,
   };
 }
 
