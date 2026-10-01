@@ -13,7 +13,7 @@ import (
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_portal_list_sessions"
 )
 
-// A portal read grant naming another project reaches nothing.
+// A session grant naming another project reaches nothing.
 func TestListSessionsGrantIsScopedToProject(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route := registerRoute(h)
@@ -23,7 +23,7 @@ func TestListSessionsGrantIsScopedToProject(t *testing.T) {
 
 	otherProject := uid.New(uid.ProjectPrefix)
 	rootKey := h.CreateRootKey(workspace.ID,
-		fmt.Sprintf("unkey:v1:%s:projects/%s/portals/*#read", workspace.ID, otherProject))
+		fmt.Sprintf("unkey:v1:%s:projects/%s/portals/*/sessions/*#read", workspace.ID, otherProject))
 
 	res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headersFor(rootKey), request(stored.ID))
 	require.Equal(t, http.StatusNotFound, res.Status, "expected 404, received: %s", res.RawBody)

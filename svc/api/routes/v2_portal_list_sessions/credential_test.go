@@ -58,9 +58,23 @@ func jwtHeaders() http.Header {
 	}
 }
 
-// Developers and viewers hold portal read but no session grant, so they can list
-// but not revoke.
-func TestListSessionsAcceptsDashboardReaders(t *testing.T) {
+// A dashboard admin's workspace grant covers the portal's sessions.
+func TestListSessionsAcceptsDashboardAdmin(t *testing.T) {
+	h := testutil.NewHarness(t)
+	workspace := h.Resources().UserWorkspace
+	route := registerAs(h, dashboardPrincipal(workspace.ID, "admin", fmt.Sprintf("unkey:v1:%s:**#*", workspace.ID)))
+
+	stored := seedPortal(t, h, workspace.ID, "list-dashboard-admin")
+	insertSession(t, h, stored.ID, workspace.ID, active(h, "user_1"))
+
+	res := testutil.CallRoute[handler.Request, handler.Response](h, route, jwtHeaders(), request(stored.ID))
+	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
+	require.Equal(t, []string{"user_1"}, externalIDs(res.Body))
+}
+
+// Developers and viewers can read portals but hold no session grant, so the
+// portal's sessions stay hidden from them.
+func TestListSessionsRejectsDashboardPortalReaders(t *testing.T) {
 	for _, role := range []string{"developer", "viewer"} {
 		t.Run(role, func(t *testing.T) {
 			h := testutil.NewHarness(t)
@@ -71,9 +85,8 @@ func TestListSessionsAcceptsDashboardReaders(t *testing.T) {
 			stored := seedPortal(t, h, workspace.ID, "list-dashboard-"+role)
 			insertSession(t, h, stored.ID, workspace.ID, active(h, "user_1"))
 
-			res := testutil.CallRoute[handler.Request, handler.Response](h, route, jwtHeaders(), request(stored.ID))
-			require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
-			require.Equal(t, []string{"user_1"}, externalIDs(res.Body))
+			res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, jwtHeaders(), request(stored.ID))
+			require.Equal(t, http.StatusNotFound, res.Status, "expected 404, received: %s", res.RawBody)
 		})
 	}
 }

@@ -13,9 +13,9 @@ import (
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_portal_list_sessions"
 )
 
-// Listing takes portal read. The session write grant that revokes does not
-// imply it.
-func TestListSessionsAuthorizesPortalRead(t *testing.T) {
+// Listing takes a grant on the portal's sessions. Reading the portal's
+// configuration is not enough.
+func TestListSessionsAuthorizesSessionGrants(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route := registerRoute(h)
 	workspace := h.Resources().UserWorkspace
@@ -26,26 +26,33 @@ func TestListSessionsAuthorizesPortalRead(t *testing.T) {
 		shouldPass bool
 	}{
 		{
-			name:       "legacy wildcard tuple",
-			permission: func(_, _ string) string { return "portal.*.read_portal" },
+			name:       "legacy wildcard session tuple",
+			permission: func(_, _ string) string { return "portal.*.create_portal_session" },
 			shouldPass: true,
 		},
 		{
-			name:       "legacy tuple for this portal",
-			permission: func(_, id string) string { return fmt.Sprintf("portal.%s.read_portal", id) },
+			name:       "legacy session tuple for this portal",
+			permission: func(_, id string) string { return fmt.Sprintf("portal.%s.create_portal_session", id) },
 			shouldPass: true,
 		},
 		{
-			name: "read on this portal",
+			name: "read on this portal's sessions",
 			permission: func(p, id string) string {
-				return fmt.Sprintf("unkey:v1:%s:projects/%s/portals/%s#read", workspace.ID, p, id)
+				return fmt.Sprintf("unkey:v1:%s:projects/%s/portals/%s/sessions/*#read", workspace.ID, p, id)
 			},
 			shouldPass: true,
 		},
 		{
-			name: "read on every portal",
+			name: "write on this portal's sessions",
+			permission: func(p, id string) string {
+				return fmt.Sprintf("unkey:v1:%s:projects/%s/portals/%s/sessions/*#write", workspace.ID, p, id)
+			},
+			shouldPass: true,
+		},
+		{
+			name: "read on every portal's sessions",
 			permission: func(_, _ string) string {
-				return fmt.Sprintf("unkey:v1:%s:projects/*/portals/*#read", workspace.ID)
+				return fmt.Sprintf("unkey:v1:%s:projects/*/portals/*/sessions/*#read", workspace.ID)
 			},
 			shouldPass: true,
 		},
@@ -55,16 +62,21 @@ func TestListSessionsAuthorizesPortalRead(t *testing.T) {
 			shouldPass: true,
 		},
 		{
-			name: "write on this portal's sessions",
+			name:       "legacy portal read",
+			permission: func(_, _ string) string { return "portal.*.read_portal" },
+			shouldPass: false,
+		},
+		{
+			name: "read on this portal itself",
 			permission: func(p, id string) string {
-				return fmt.Sprintf("unkey:v1:%s:projects/%s/portals/%s/sessions/*#write", workspace.ID, p, id)
+				return fmt.Sprintf("unkey:v1:%s:projects/%s/portals/%s#read", workspace.ID, p, id)
 			},
 			shouldPass: false,
 		},
 		{
-			name: "read on another portal",
+			name: "read on another portal's sessions",
 			permission: func(p, _ string) string {
-				return fmt.Sprintf("unkey:v1:%s:projects/%s/portals/%s#read", workspace.ID, p, uid.New(uid.PortalPrefix))
+				return fmt.Sprintf("unkey:v1:%s:projects/%s/portals/%s/sessions/*#read", workspace.ID, p, uid.New(uid.PortalPrefix))
 			},
 			shouldPass: false,
 		},

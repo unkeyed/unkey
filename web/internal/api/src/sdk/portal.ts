@@ -258,10 +258,11 @@ export class Portal extends ClientSDK {
    * **Required Permissions**
    *
    * Your root key must have one of:
-   * - `portal.*.read_portal` (for any portal in the workspace)
-   * - `portal.<portal_id>.read_portal` (for a specific portal)
+   * - `portal.*.create_portal_session` (for any portal in the workspace)
+   * - `portal.<portal_id>.create_portal_session` (for a specific portal)
    *
-   * It also accepts `unkey:v1:<workspace_id>:projects/<project_id>/portals/<portal_id>#read`.
+   * It also accepts `unkey:v1:<workspace_id>:projects/<project_id>/portals/<portal_id>/sessions/*`
+   * with `#read` or `#write`. Reading the portal itself is not enough.
    *
    * Without the permission this returns **404**, not 403.
    */

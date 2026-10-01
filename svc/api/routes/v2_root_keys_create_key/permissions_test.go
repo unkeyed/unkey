@@ -37,7 +37,7 @@ func TestCreateStoresEveryResourceAction(t *testing.T) {
 		"projects/*/ratelimits/namespaces/*/overrides/*":      {"read", "write", "delete"},
 		"projects/*/rbac/roles/*":                             {"read", "write", "delete"},
 		"projects/*/rbac/permissions/*":                       {"read", "write", "delete"},
-		"projects/*/portals/*/sessions/*":                     {"write"},
+		"projects/*/portals/*/sessions/*":                     {"read", "write"},
 	}
 	requested := []string{
 		base + "**#*",
@@ -78,7 +78,7 @@ func TestCreateRejectsInvalidResourceActionsAtomically(t *testing.T) {
 		base + "projects/keys/apps/app_one#decrypt",
 		base + "projects/proj_one/keyspaces/keys#decrypt",
 		base + "projects/proj_one/apps/keys/**#decrypt",
-		base + "projects/*/portals/*/sessions/*#read",
+		base + "projects/*/portals/*/sessions/*#delete",
 	} {
 		t.Run(permission, func(t *testing.T) {
 			before := snapshot(t, h)

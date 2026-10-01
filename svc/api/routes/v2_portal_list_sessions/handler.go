@@ -18,6 +18,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
+	apierrors "github.com/unkeyed/unkey/svc/api/internal/errors"
 	"github.com/unkeyed/unkey/svc/api/internal/pagination"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
@@ -74,30 +75,25 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
+	// Reading a portal's configuration is not enough to see who is signed in to
+	// it. Anyone who may mint or revoke its sessions may also list them.
+	sessions := urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(found.ProjectID).Portal(found.ID).Session("*")
 	err = principal.Authorize(rbac.Or(
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Portal,
 			ResourceID:   "*",
-			Action:       rbac.ReadPortal,
+			Action:       rbac.CreatePortalSession,
 		}),
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Portal,
 			ResourceID:   found.ID,
-			Action:       rbac.ReadPortal,
+			Action:       rbac.CreatePortalSession,
 		}),
-		rbac.U(
-			urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(found.ProjectID).Portal(found.ID),
-			permissions.Read,
-		),
+		rbac.U(sessions, permissions.Read),
+		rbac.U(sessions, permissions.Write),
 	))
 	if err != nil {
-		// A fresh chain, not a wrap, so the rendered RBAC query and its portal id
-		// stay out of the public message.
-		return fault.New("portal not found",
-			fault.Code(codes.Data.Portal.NotFound.URN()),
-			fault.Internal(fmt.Sprintf("read denied for portal %s: %s", found.ID, fault.InternalMessage(err))),
-			fault.Public(notFoundMessage),
-		)
+		return apierrors.MaskInsufficientPermissionsAsNotFound(err, codes.Data.Portal.NotFound.URN(), notFoundMessage)
 	}
 
 	now := h.Clock.Now().UnixMilli()

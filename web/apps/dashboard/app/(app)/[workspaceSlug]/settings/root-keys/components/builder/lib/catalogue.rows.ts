@@ -140,7 +140,7 @@ export function portalRows(projectPath: string): PermissionRow[] {
       id: "portal_session",
       label: "Portal sessions",
       path: `${portalPath}/sessions/*`,
-      actions: { read: [], delete: [] },
+      actions: { delete: [] },
     }),
   ];
 }

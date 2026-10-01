@@ -38,8 +38,8 @@ func TestListSessionsUnknownPortal(t *testing.T) {
 	}
 }
 
-// Without portal read the portal reads as absent, even to a caller who could
-// mint or revoke its sessions.
+// Without a session grant the portal reads as absent, even to a caller who
+// manages the portal itself.
 func TestListSessionsWithoutPermission(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route := registerRoute(h)
@@ -49,9 +49,8 @@ func TestListSessionsWithoutPermission(t *testing.T) {
 
 	testCases := map[string][]string{
 		"no permissions":      nil,
-		"session grant only":  {"portal.*.create_portal_session"},
-		"another portal only": {fmt.Sprintf("portal.%s.read_portal", uid.New(uid.PortalPrefix))},
-		"write without read":  {"portal.*.update_portal"},
+		"portal admin only":   {"portal.*.create_portal", "portal.*.read_portal", "portal.*.update_portal", "portal.*.delete_portal"},
+		"another portal only": {fmt.Sprintf("portal.%s.create_portal_session", uid.New(uid.PortalPrefix))},
 	}
 
 	for name, permissions := range testCases {
