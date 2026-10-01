@@ -45,6 +45,9 @@ export function ConnectionDetails({
   connection,
   environment,
   targets,
+  hasMoreDeployments,
+  loadingMoreDeployments,
+  onLoadMoreDeployments,
   onClose,
   onRemove,
   onSaved,
@@ -54,6 +57,9 @@ export function ConnectionDetails({
   connection: ListedConnection;
   environment: Environment;
   targets: ConnectionTargets;
+  hasMoreDeployments: boolean;
+  loadingMoreDeployments: boolean;
+  onLoadMoreDeployments: () => void;
   onClose: () => void;
   onRemove: () => void;
   onSaved: () => Promise<void>;
@@ -239,6 +245,16 @@ export function ConnectionDetails({
               </option>
             ))}
           </select>
+        )}
+        {pickingDeployment && hasMoreDeployments && (
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={loadingMoreDeployments}
+            onClick={onLoadMoreDeployments}
+          >
+            {loadingMoreDeployments ? "Loading deployments…" : "Load more deployments"}
+          </Button>
         )}
         <p
           className={cn(
