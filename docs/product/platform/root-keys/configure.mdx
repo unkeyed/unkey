@@ -26,30 +26,145 @@ This guide creates a key for a debugging agent. The agent can read deployment st
 
 You need the workspace [admin role](/platform/workspace/team) to manage root keys in the dashboard.
 
-1. Open **Root Keys** in your workspace and click **New Root Key**.
-2. Enter a name such as `billing-staging-debugger`.
-3. Under **Permissions**, select **Start new** to build a custom policy.
-4. Set **Scope** to **Environments**, then select the billing app's staging environment instead of all environments.
-5. Select `read` on **Deployments** and **Runtime logs**. Leave the other actions and resources unselected.
-6. Review every policy on the key, then click **Create key**.
-7. Copy the secret into your secret manager. Unkey shows it only once.
+<Steps>
+  <Step title="Open the root key form">
+    Open **Root Keys** in your workspace and click **New Root Key**.
 
-<Frame>
-  <DashboardScreenshot
-    target="root-key-create"
-    capture="target"
-    description="Open New Root Key in the disposable local workspace. Name it
-      billing-staging-debugger. Add a policy scoped to the billing app's staging
-      environment with only Deployments read and Runtime logs read. Collapse
-      the policy to show the final summary and Create key button. Do not submit
-      creation. Capture both themes at 1440 by 650 CSS pixels, scale 2, with
-      transparent padding of 24 CSS pixels and no outer shadow."
-    src="/platform/root-keys/root-key-create"
-    alt="New root key panel with a read-only staging policy ready to create"
-    width={816}
-    capturedAt="2026-10-02T14:03:58Z"
-  />
-</Frame>
+    <Frame>
+      <DashboardScreenshot
+        target="root-key-list"
+        capture="target"
+        description="Open Root Keys in a disposable local workspace with synthetic
+          billing-staging-ci, billing-staging-debugger, and customer-key-verifier
+          keys. Show the list with masked secrets and no open menus at 1440 by 450
+          CSS pixels, scale 2, in both themes. Crop to the page content, keeping
+          the header and all table columns. Never show a full secret."
+        src="/platform/root-keys/root-key-list"
+        alt="Root key list with the New Root Key button in the top right"
+        capturedAt="2026-10-02T14:11:28Z"
+      />
+    </Frame>
+  </Step>
+  <Step title="Name the key">
+    Enter a name such as `billing-staging-debugger` that describes the key's job.
+
+    <Frame>
+      <DashboardScreenshot
+        target="root-key-create"
+        capture="target"
+        description="Open New Root Key in the disposable local workspace. Enter
+          billing-staging-debugger in Name. Leave Permissions at the initial
+          template gallery with no policy added. Capture both themes at 1440 by
+          650 CSS pixels, scale 2, with transparent padding of 24 CSS pixels and
+          no outer shadow. Do not submit creation."
+        src="/platform/root-keys/root-key-create-name"
+        alt="New root key form with billing-staging-debugger entered as the name"
+        width={816}
+        capturedAt="2026-10-02T16:04:45Z"
+      />
+    </Frame>
+  </Step>
+  <Step title="Start a custom policy">
+    Under **Permissions**, select **Start new**. The policy editor opens with no actions selected.
+
+    <Frame>
+      <DashboardScreenshot
+        target="root-key-create"
+        capture="target"
+        description="Open New Root Key and name it billing-staging-debugger.
+          Select Start new. Keep the initial Workspace scope and every action
+          unselected. Collapse each resource group so all zero-selection counts
+          fit in the panel. Capture both themes at 1440 by 1000 CSS pixels,
+          scale 2, with transparent padding of 24 CSS pixels and no outer shadow.
+          Do not submit creation."
+        src="/platform/root-keys/root-key-create-policy"
+        alt="Custom policy editor with Workspace scope and no permissions selected"
+        width={816}
+        capturedAt="2026-10-02T16:04:48Z"
+      />
+    </Frame>
+  </Step>
+  <Step title="Choose the environment">
+    Set **Scope** to **Environments**, then select the billing app's staging environment instead of all environments.
+
+    <Frame>
+      <DashboardScreenshot
+        target="root-key-create"
+        capture="target"
+        description="In New Root Key, name the key billing-staging-debugger and
+          start a custom policy. Set Scope to Environments and select only
+          Billing staging. Close the selector, leave every action unchecked,
+          and keep all resource groups expanded. Capture both themes at 1440 by
+          1000 CSS pixels, scale 2, with transparent padding of 24 CSS pixels and
+          no outer shadow. Do not submit creation."
+        src="/platform/root-keys/root-key-create-scope"
+        alt="Policy scoped to the billing app's staging environment with no actions selected"
+        width={816}
+        capturedAt="2026-10-02T15:59:36Z"
+      />
+    </Frame>
+  </Step>
+  <Step title="Select the actions">
+    Select **Read** on **Deployments** and **Runtime logs**. Leave the other actions and resources unselected.
+
+    <Frame>
+      <DashboardScreenshot
+        target="root-key-create"
+        capture="target"
+        description="In New Root Key, name the key billing-staging-debugger and
+          scope a custom policy to Billing staging. Select only Deployments Read
+          and Runtime logs Read. Keep all groups expanded and the search empty.
+          Capture both themes at 1440 by 1000 CSS pixels, scale 2, with transparent
+          padding of 24 CSS pixels and no outer shadow. Do not submit creation."
+        src="/platform/root-keys/root-key-create-actions"
+        alt="Only deployment and runtime log read actions selected for staging"
+        width={816}
+        capturedAt="2026-10-02T15:59:39Z"
+      />
+    </Frame>
+  </Step>
+  <Step title="Review and create the key">
+    Close the policy editor with its × button to review the summary. Check every policy on the key, then click **Create key**.
+
+    <Frame>
+      <DashboardScreenshot
+        target="root-key-create"
+        capture="target"
+        description="Open New Root Key in the disposable local workspace. Name it
+          billing-staging-debugger. Add a policy scoped to the billing app's staging
+          environment with only Deployments read and Runtime logs read. Collapse
+          the policy to show the final summary and Create key button. Do not submit
+          creation. Capture both themes at 1440 by 650 CSS pixels, scale 2, with
+          transparent padding of 24 CSS pixels and no outer shadow."
+        src="/platform/root-keys/root-key-create"
+        alt="New root key panel with a read-only staging policy ready to create"
+        width={816}
+        capturedAt="2026-10-02T14:03:58Z"
+      />
+    </Frame>
+  </Step>
+  <Step title="Store the secret">
+    Use the copy button beside the key and save the secret in your secret manager. Unkey shows it only once. Click **Done** after saving it.
+
+    <Frame>
+      <DashboardScreenshot
+        target="root-key-list"
+        capture="viewport"
+        description="In the disposable local workspace only, create a temporary
+          billing-staging-debugger root key with just deployment and runtime log
+          read permissions in Billing staging. Capture the Root Key created dialog
+          over the root key list at 960 by 600 CSS pixels, scale 2, in both themes.
+          Keep the secret hidden and the copy button visible. Wait for fonts and
+          dialog animation to finish. Never reveal the secret. Delete only this
+          temporary key after both captures, preserving the original fixture keys."
+        src="/platform/root-keys/root-key-create-secret"
+        alt="Root Key created dialog with a hidden secret, copy button, and one-time storage warning"
+        width={960}
+        capturedAt="2026-10-02T16:03:31Z"
+      />
+    </Frame>
+  </Step>
+</Steps>
 
 A policy groups a scope and its selected actions. Selecting the environment sets the boundary for the deployment and log permissions; it doesn't automatically grant access to environment settings or variables.
 
