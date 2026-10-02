@@ -27,7 +27,7 @@ import { APICall, APIPromise } from "../types/async.js";
 import { Result } from "../types/fp.js";
 
 /**
- * Get build logs
+ * List build logs
  *
  * @remarks
  * Retrieve the build output of a deployment as a list of log entries, in the
@@ -64,13 +64,13 @@ import { Result } from "../types/fp.js";
  *
  * If set, this operation will use {@link Security.rootKey} from the global security.
  */
-export function deploymentsGetBuildLogs(
+export function deploymentsListBuildLogs(
   client: UnkeyCore,
-  request: components.V2DeploymentsGetBuildLogsRequestBody,
+  request: components.V2DeploymentsListBuildLogsRequestBody,
   options?: RequestOptions,
 ): APIPromise<
   Result<
-    components.V2DeploymentsGetBuildLogsResponseBody,
+    components.V2DeploymentsListBuildLogsResponseBody,
     | errors.BadRequestErrorResponse
     | errors.UnauthorizedErrorResponse
     | errors.NotFoundErrorResponse
@@ -95,12 +95,12 @@ export function deploymentsGetBuildLogs(
 
 async function $do(
   client: UnkeyCore,
-  request: components.V2DeploymentsGetBuildLogsRequestBody,
+  request: components.V2DeploymentsListBuildLogsRequestBody,
   options?: RequestOptions,
 ): Promise<
   [
     Result<
-      components.V2DeploymentsGetBuildLogsResponseBody,
+      components.V2DeploymentsListBuildLogsResponseBody,
       | errors.BadRequestErrorResponse
       | errors.UnauthorizedErrorResponse
       | errors.NotFoundErrorResponse
@@ -121,7 +121,7 @@ async function $do(
   const parsed = safeParse(
     request,
     (value) =>
-      components.V2DeploymentsGetBuildLogsRequestBody$outboundSchema.parse(
+      components.V2DeploymentsListBuildLogsRequestBody$outboundSchema.parse(
         value,
       ),
     "Input validation failed",
@@ -132,7 +132,7 @@ async function $do(
   const payload = parsed.value;
   const body = encodeJSON("body", payload, { explode: true });
 
-  const path = pathToFunc("/v2/deployments.getBuildLogs")();
+  const path = pathToFunc("/v2/deployments.listBuildLogs")();
 
   const headers = new Headers(compactMap({
     "Content-Type": "application/json",
@@ -146,7 +146,7 @@ async function $do(
   const context = {
     options: client._options,
     baseURL: options?.serverURL ?? client._baseURL ?? "",
-    operationID: "deployments.getBuildLogs",
+    operationID: "deployments.listBuildLogs",
     oAuth2Scopes: null,
 
     resolvedSecurity: requestSecurity,
@@ -200,7 +200,7 @@ async function $do(
   };
 
   const [result] = await M.match<
-    components.V2DeploymentsGetBuildLogsResponseBody,
+    components.V2DeploymentsListBuildLogsResponseBody,
     | errors.BadRequestErrorResponse
     | errors.UnauthorizedErrorResponse
     | errors.NotFoundErrorResponse
@@ -215,7 +215,10 @@ async function $do(
     | UnexpectedClientError
     | SDKValidationError
   >(
-    M.json(200, components.V2DeploymentsGetBuildLogsResponseBody$inboundSchema),
+    M.json(
+      200,
+      components.V2DeploymentsListBuildLogsResponseBody$inboundSchema,
+    ),
     M.jsonErr(400, errors.BadRequestErrorResponse$inboundSchema),
     M.jsonErr(401, errors.UnauthorizedErrorResponse$inboundSchema),
     M.jsonErr(404, errors.NotFoundErrorResponse$inboundSchema),

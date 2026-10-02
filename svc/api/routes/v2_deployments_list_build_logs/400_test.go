@@ -10,7 +10,7 @@ import (
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
-func TestGetBuildLogsBadRequest(t *testing.T) {
+func TestListBuildLogsBadRequest(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route := newRoute(h)
 	h.Register(route)

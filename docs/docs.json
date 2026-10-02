@@ -443,7 +443,7 @@
                     "pages": [
                       "POST /v3/deployments.createDeployment",
                       "POST /v2/deployments.getDeployment",
-                      "POST /v2/deployments.getBuildLogs",
+                      "POST /v2/deployments.listBuildLogs",
                       "POST /v2/deployments.listDeployments",
                       "POST /v2/deployments.promoteDeployment",
                       "POST /v2/deployments.rollbackDeployment",
@@ -782,7 +782,7 @@
                 "pages": [
                   "POST /v3/deployments.createDeployment",
                   "POST /v2/deployments.getDeployment",
-                  "POST /v2/deployments.getBuildLogs",
+                  "POST /v2/deployments.listBuildLogs",
                   "POST /v2/deployments.listDeployments",
                   "POST /v2/deployments.promoteDeployment",
                   "POST /v2/deployments.rollbackDeployment",

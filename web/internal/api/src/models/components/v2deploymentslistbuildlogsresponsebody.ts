@@ -10,7 +10,7 @@ import { BuildLogEntry, BuildLogEntry$inboundSchema } from "./buildlogentry.js";
 import { Meta, Meta$inboundSchema } from "./meta.js";
 import { Pagination, Pagination$inboundSchema } from "./pagination.js";
 
-export type V2DeploymentsGetBuildLogsResponseBody = {
+export type V2DeploymentsListBuildLogsResponseBody = {
   /**
    * Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
    */
@@ -26,8 +26,8 @@ export type V2DeploymentsGetBuildLogsResponseBody = {
 };
 
 /** @internal */
-export const V2DeploymentsGetBuildLogsResponseBody$inboundSchema: z.ZodType<
-  V2DeploymentsGetBuildLogsResponseBody,
+export const V2DeploymentsListBuildLogsResponseBody$inboundSchema: z.ZodType<
+  V2DeploymentsListBuildLogsResponseBody,
   z.ZodTypeDef,
   unknown
 > = z.object({
@@ -36,13 +36,13 @@ export const V2DeploymentsGetBuildLogsResponseBody$inboundSchema: z.ZodType<
   pagination: Pagination$inboundSchema,
 });
 
-export function v2DeploymentsGetBuildLogsResponseBodyFromJSON(
+export function v2DeploymentsListBuildLogsResponseBodyFromJSON(
   jsonString: string,
-): SafeParseResult<V2DeploymentsGetBuildLogsResponseBody, SDKValidationError> {
+): SafeParseResult<V2DeploymentsListBuildLogsResponseBody, SDKValidationError> {
   return safeParse(
     jsonString,
     (x) =>
-      V2DeploymentsGetBuildLogsResponseBody$inboundSchema.parse(JSON.parse(x)),
-    `Failed to parse 'V2DeploymentsGetBuildLogsResponseBody' from JSON`,
+      V2DeploymentsListBuildLogsResponseBody$inboundSchema.parse(JSON.parse(x)),
+    `Failed to parse 'V2DeploymentsListBuildLogsResponseBody' from JSON`,
   );
 }

@@ -9,7 +9,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
-	handler "github.com/unkeyed/unkey/svc/api/routes/v2_deployments_get_build_logs"
+	handler "github.com/unkeyed/unkey/svc/api/routes/v2_deployments_list_build_logs"
 )
 
 func newRoute(h *testutil.Harness) *handler.Handler {

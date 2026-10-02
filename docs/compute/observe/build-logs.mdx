@@ -8,8 +8,8 @@ sources:
   - web/apps/dashboard/lib/trpc/routers/deploy/deployment/build-steps.ts
   - pkg/clickhouse/user.go
   - pkg/clickhouse/build_logs.go
-  - svc/api/routes/v2_deployments_get_build_logs/handler.go
-  - svc/api/openapi/spec/paths/v2/deployments/getBuildLogs/index.yaml
+  - svc/api/routes/v2_deployments_list_build_logs/handler.go
+  - svc/api/openapi/spec/paths/v2/deployments/listBuildLogs/index.yaml
 ---
 
 Build logs show each step of building a <Tooltip tip="One built and running version of an app in one environment.">deployment</Tooltip> and its output. Open the <Tooltip tip="A Compute app: a deployable service inside a project. Not 'your application' in general.">app</Tooltip>, click **Deployments**, and open the deployment. The steps appear as the build runs and stay afterwards. A deployment from a prebuilt image has no build, so it has no build logs. See [Deploy a container image](/compute/get-started/deploy-an-image).
@@ -28,7 +28,7 @@ Look for the step with the error. Its last lines of output usually name the caus
 
 ## Read build logs through the API
 
-`deployments.getBuildLogs` returns the output of a build as a list of log entries, in the order the build printed them. An entry is one chunk of output and can contain several lines or part of a line. Each entry has the step ID, the step name, and `output`, which is `stdout` or `stderr`. Many tools write progress and warnings to `stderr`, so `stderr` does not mean that the step failed.
+`deployments.listBuildLogs` returns the output of a build as a list of log entries, in the order the build printed them. An entry is one chunk of output and can contain several lines or part of a line. Each entry has the step ID, the step name, and `output`, which is `stdout` or `stderr`. Many tools write progress and warnings to `stderr`, so `stderr` does not mean that the step failed.
 
 To follow a running build, poll the endpoint with a cursor:
 

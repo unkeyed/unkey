@@ -8,10 +8,10 @@ import (
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
-	handler "github.com/unkeyed/unkey/svc/api/routes/v2_deployments_get_build_logs"
+	handler "github.com/unkeyed/unkey/svc/api/routes/v2_deployments_list_build_logs"
 )
 
-func TestGetBuildLogsUnauthorized(t *testing.T) {
+func TestListBuildLogsUnauthorized(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route := newRoute(h)
 	h.Register(route)

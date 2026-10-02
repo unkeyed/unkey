@@ -3260,9 +3260,27 @@ type V2DeploymentsCreateDeploymentResponseData struct {
 	DeploymentId string `json:"deploymentId"`
 }
 
-// V2DeploymentsGetBuildLogsRequestBody Retrieve the build log entries of a deployment. Get the deployment id from
+// V2DeploymentsGetDeploymentRequestBody Retrieve a single deployment, including its status and runtime configuration.
+type V2DeploymentsGetDeploymentRequestBody struct {
+	// DeploymentId Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	//
+	//
+	// Example: proj_1234abcd
+	DeploymentId ResourceIdentifier `json:"deploymentId"`
+}
+
+// V2DeploymentsGetDeploymentResponseBody defines model for V2DeploymentsGetDeploymentResponseBody.
+type V2DeploymentsGetDeploymentResponseBody struct {
+	Data Deployment `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// V2DeploymentsListBuildLogsRequestBody Retrieve the build log entries of a deployment. Get the deployment id from
 // `createDeployment` or `listDeployments`.
-type V2DeploymentsGetBuildLogsRequestBody struct {
+type V2DeploymentsListBuildLogsRequestBody struct {
 	// Cursor Pagination cursor from a previous response to fetch the entries after
 	// it. Omit it to start at the first entry of the build.
 	//
@@ -3290,8 +3308,8 @@ type V2DeploymentsGetBuildLogsRequestBody struct {
 	StepId *string `json:"stepId,omitempty"`
 }
 
-// V2DeploymentsGetBuildLogsResponseBody defines model for V2DeploymentsGetBuildLogsResponseBody.
-type V2DeploymentsGetBuildLogsResponseBody struct {
+// V2DeploymentsListBuildLogsResponseBody defines model for V2DeploymentsListBuildLogsResponseBody.
+type V2DeploymentsListBuildLogsResponseBody struct {
 	// Data The log entries, in the order the build printed them.
 	Data []BuildLogEntry `json:"data"`
 
@@ -3300,24 +3318,6 @@ type V2DeploymentsGetBuildLogsResponseBody struct {
 
 	// Pagination Pagination metadata for list endpoints. Provides information necessary to traverse through large result sets efficiently using cursor-based pagination.
 	Pagination Pagination `json:"pagination"`
-}
-
-// V2DeploymentsGetDeploymentRequestBody Retrieve a single deployment, including its status and runtime configuration.
-type V2DeploymentsGetDeploymentRequestBody struct {
-	// DeploymentId Identifies a resource by either its unique ID or its slug.
-	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
-	//
-	//
-	// Example: proj_1234abcd
-	DeploymentId ResourceIdentifier `json:"deploymentId"`
-}
-
-// V2DeploymentsGetDeploymentResponseBody defines model for V2DeploymentsGetDeploymentResponseBody.
-type V2DeploymentsGetDeploymentResponseBody struct {
-	Data Deployment `json:"data"`
-
-	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
-	Meta Meta `json:"meta"`
 }
 
 // V2DeploymentsListDeploymentsRequestBody Filter deployments within a workspace. All filters are optional; with none
@@ -7006,11 +7006,11 @@ type DeployGetDeploymentJSONRequestBody = V2DeployGetDeploymentRequestBody
 // Deprecated: this type has been marked as deprecated upstream, but no `x-deprecated-reason` was set
 type DeploymentsCreateDeploymentJSONRequestBody = V2DeploymentsCreateDeploymentRequestBody
 
-// DeploymentsGetBuildLogsJSONRequestBody defines body for DeploymentsGetBuildLogs for application/json ContentType.
-type DeploymentsGetBuildLogsJSONRequestBody = V2DeploymentsGetBuildLogsRequestBody
-
 // DeploymentsGetDeploymentJSONRequestBody defines body for DeploymentsGetDeployment for application/json ContentType.
 type DeploymentsGetDeploymentJSONRequestBody = V2DeploymentsGetDeploymentRequestBody
+
+// DeploymentsListBuildLogsJSONRequestBody defines body for DeploymentsListBuildLogs for application/json ContentType.
+type DeploymentsListBuildLogsJSONRequestBody = V2DeploymentsListBuildLogsRequestBody
 
 // DeploymentsListDeploymentsJSONRequestBody defines body for DeploymentsListDeployments for application/json ContentType.
 type DeploymentsListDeploymentsJSONRequestBody = V2DeploymentsListDeploymentsRequestBody

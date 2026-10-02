@@ -10,7 +10,7 @@ import * as z from "zod/v3";
  * @remarks
  * `createDeployment` or `listDeployments`.
  */
-export type V2DeploymentsGetBuildLogsRequestBody = {
+export type V2DeploymentsListBuildLogsRequestBody = {
   /**
    * Identifies a resource by either its unique ID or its slug.
    *
@@ -43,7 +43,7 @@ export type V2DeploymentsGetBuildLogsRequestBody = {
 };
 
 /** @internal */
-export type V2DeploymentsGetBuildLogsRequestBody$Outbound = {
+export type V2DeploymentsListBuildLogsRequestBody$Outbound = {
   deploymentId: string;
   stepId?: string | undefined;
   cursor?: string | undefined;
@@ -51,10 +51,10 @@ export type V2DeploymentsGetBuildLogsRequestBody$Outbound = {
 };
 
 /** @internal */
-export const V2DeploymentsGetBuildLogsRequestBody$outboundSchema: z.ZodType<
-  V2DeploymentsGetBuildLogsRequestBody$Outbound,
+export const V2DeploymentsListBuildLogsRequestBody$outboundSchema: z.ZodType<
+  V2DeploymentsListBuildLogsRequestBody$Outbound,
   z.ZodTypeDef,
-  V2DeploymentsGetBuildLogsRequestBody
+  V2DeploymentsListBuildLogsRequestBody
 > = z.object({
   deploymentId: z.string(),
   stepId: z.string().optional(),
@@ -62,12 +62,12 @@ export const V2DeploymentsGetBuildLogsRequestBody$outboundSchema: z.ZodType<
   limit: z.number().int().default(100),
 });
 
-export function v2DeploymentsGetBuildLogsRequestBodyToJSON(
-  v2DeploymentsGetBuildLogsRequestBody: V2DeploymentsGetBuildLogsRequestBody,
+export function v2DeploymentsListBuildLogsRequestBodyToJSON(
+  v2DeploymentsListBuildLogsRequestBody: V2DeploymentsListBuildLogsRequestBody,
 ): string {
   return JSON.stringify(
-    V2DeploymentsGetBuildLogsRequestBody$outboundSchema.parse(
-      v2DeploymentsGetBuildLogsRequestBody,
+    V2DeploymentsListBuildLogsRequestBody$outboundSchema.parse(
+      v2DeploymentsListBuildLogsRequestBody,
     ),
   );
 }
