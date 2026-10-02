@@ -2,18 +2,17 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 
 export function getDeployUsageQueryPeriod({
   now,
-  monthsAgo,
+  period,
   dayStart,
 }: {
   now: Date;
-  monthsAgo: 0 | 1 | 2;
+  period: "current" | "previous";
   dayStart?: number;
 }): { start: number; end: number } | null {
-  const monthStart = Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - monthsAgo, 1);
+  const month = now.getUTCMonth() - (period === "previous" ? 1 : 0);
+  const monthStart = Date.UTC(now.getUTCFullYear(), month, 1);
   const monthEnd =
-    monthsAgo === 0
-      ? now.getTime()
-      : Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - monthsAgo + 1, 1);
+    period === "current" ? now.getTime() : Date.UTC(now.getUTCFullYear(), month + 1, 1);
 
   if (dayStart === undefined) {
     return { start: monthStart, end: monthEnd };

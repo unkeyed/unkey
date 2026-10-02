@@ -32,6 +32,7 @@ import {
   microCentsToDisplayCents,
   priceUsageQuantitiesCents,
 } from "./compute-tree";
+import type { UsagePeriod } from "./period";
 import { SPEND_BAR_CHART_HEIGHT, SpendBarChart } from "./spend-bar-chart";
 import { buildSpendSeries } from "./spend-series";
 
@@ -151,14 +152,20 @@ export function ComputeCardSkeleton() {
   );
 }
 
-export function ComputeCard({ tree }: { tree: ComputeTree }) {
+export function ComputeCard({ tree, period }: { tree: ComputeTree; period: UsagePeriod }) {
   const [open, setOpen] = useState<ReadonlySet<string>>(new Set());
-  const now = useMemo(() => new Date(), []);
-  const periodStart = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1);
-  const currentDayStart = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+  const now = new Date();
+  const month = now.getUTCMonth() - (period === "previous" ? 1 : 0);
+  const periodStart = Date.UTC(now.getUTCFullYear(), month, 1);
+  const periodEnd =
+    period === "current" ? now.getTime() : Date.UTC(now.getUTCFullYear(), month + 1, 1);
+  const incompleteFrom =
+    period === "current"
+      ? Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
+      : periodEnd;
   const hasComputeUsage = tree.projects.some((project) => project.apps.length > 0);
   const timeseries = trpc.billing.queryDeployUsageTimeseries.useQuery(
-    { interval: "day", groupBy: "project", scope: ALL_PROJECTS, monthsAgo: 0 },
+    { interval: "day", groupBy: "project", scope: ALL_PROJECTS, period },
     {
       enabled: hasComputeUsage,
       trpc: { context: { skipBatch: true } },
@@ -172,9 +179,9 @@ export function ComputeCard({ tree }: { tree: ComputeTree }) {
         tree,
         rows: timeseries.data ?? [],
         start: periodStart,
-        end: now.getTime(),
+        end: periodEnd,
       }),
-    [tree, timeseries.data, periodStart, now],
+    [tree, timeseries.data, periodStart, periodEnd],
   );
 
   const toggle = (projectId: string) =>
@@ -195,7 +202,7 @@ export function ComputeCard({ tree }: { tree: ComputeTree }) {
           <SpendBarChart
             data={spend.points}
             series={spend.series}
-            incompleteFrom={currentDayStart}
+            incompleteFrom={incompleteFrom}
             isLoading={timeseries.isLoading}
             isError={timeseries.isError}
           />
