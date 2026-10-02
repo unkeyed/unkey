@@ -1,0 +1,20 @@
+type: object
+description: Limits for the Unkey API.
+required:
+  - billableOperations
+properties:
+  billableOperations:
+    description: |
+      Billable key verifications and rate limit operations in the current
+      calendar month (UTC), against the monthly allowance.
+    allOf:
+      - "$ref": "../../../../common/LimitMeter.yaml"
+  requestsPerMinute:
+    type: integer
+    format: int64
+    description: |
+      The maximum API requests per minute for the workspace. Requests above it
+      get a 429 with the `RateLimit-*` headers. Omitted when the workspace has
+      no per-minute limit.
+    example: 1000
+additionalProperties: false
