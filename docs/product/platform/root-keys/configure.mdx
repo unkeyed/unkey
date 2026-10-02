@@ -86,9 +86,9 @@ For rotation and deletion, see [Root keys](/platform/root-keys/overview).
 
 ## Create a key through the API
 
-Authenticate with a root key that has `unkey:v1:ws_demo:rootKeys/*#write` and covers every permission you're assigning. If you don't have a management key yet, create one in the dashboard first. Keep that credential in trusted automation, not in the agent that receives the new key.
+Authenticate with a root key that has `unkey:v1:ws_xxx:rootKeys/*#write` and covers every permission you're assigning. If you don't have a management key yet, create one in the dashboard first. Keep that credential in trusted automation, not in the agent that receives the new key.
 
-This request creates a debugging key that expires in one hour. Replace the example IDs with your workspace's IDs. Set `UNKEY_ROOT_KEY` through your secret manager or environment, rather than putting the secret in the script.
+This request creates a debugging key that expires in one hour. IDs ending in `_xxx` are placeholders. Replace each one with the full resource ID, not a name or slug. Use the billing app's ID for `app_xxx` and its staging environment's ID for `env_xxx`. Set `UNKEY_ROOT_KEY` through your secret manager or environment, rather than putting the secret in the script.
 
 ```bash wrap
 EXPIRES_AT_MS=$(( ($(date +%s) + 3600) * 1000 ))
@@ -101,8 +101,8 @@ curl --fail-with-body https://api.unkey.com/v2/rootKeys.createKey \
   "name": "billing-staging-debugger",
   "expires": $EXPIRES_AT_MS,
   "permissions": [
-    "unkey:v1:ws_demo:projects/proj_shop/apps/app_billing/environments/env_staging/deployments/*#read",
-    "unkey:v1:ws_demo:projects/proj_shop/apps/app_billing/environments/env_staging/deployments/*/logs#read"
+    "unkey:v1:ws_xxx:projects/proj_xxx/apps/app_xxx/environments/env_xxx/deployments/*#read",
+    "unkey:v1:ws_xxx:projects/proj_xxx/apps/app_xxx/environments/env_xxx/deployments/*/logs#read"
   ]
 }
 JSON
@@ -125,20 +125,20 @@ curl --fail-with-body https://api.unkey.com/v2/rootKeys.updateKey \
   -H "Authorization: Bearer $UNKEY_ROOT_KEY" \
   -H "Content-Type: application/json" \
   --data '{
-    "keyId": "key_debugger",
+    "keyId": "key_xxx",
     "permissions": [
-      "unkey:v1:ws_demo:projects/proj_shop/apps/app_billing/environments/env_staging/deployments/dpl_release#read",
-      "unkey:v1:ws_demo:projects/proj_shop/apps/app_billing/environments/env_staging/deployments/dpl_release/logs#read"
+      "unkey:v1:ws_xxx:projects/proj_xxx/apps/app_xxx/environments/env_xxx/deployments/d_xxx#read",
+      "unkey:v1:ws_xxx:projects/proj_xxx/apps/app_xxx/environments/env_xxx/deployments/d_xxx/logs#read"
     ]
   }'
 ```
 
-Replace `key_debugger` with `data.keyId` from creation. This request removes the environment-wide deployment permissions and replaces them with permissions on `dpl_release`. It doesn't append to the existing list.
+Replace `key_xxx` with `data.keyId` from creation and `d_xxx` with the deployment's ID. This request removes the environment-wide deployment permissions and replaces them with permissions on that deployment. It doesn't append to the existing list.
 
 Omitting `permissions` leaves the existing permissions unchanged. Sending `"permissions": []` removes all permissions. An expiring root key can only update keys that expire no later than itself.
 
 ## Verify the resulting access
 
-Call an operation the key needs, then check a read outside its scope. For the single-deployment debugging key, `deployments.getDeployment` on `dpl_release` must succeed, while a lookup of a different deployment must fail.
+Call an operation the key needs, then check a read outside its scope. For the single-deployment debugging key, `deployments.getDeployment` on the deployment represented by `d_xxx` must succeed, while a lookup of a different deployment must fail.
 
 If a request fails unexpectedly, compare its required action and resource IDs with the full permission list. Check list filters too: a request for all deployments asks for more access than a request scoped to one environment. See [permission troubleshooting](/errors/unkey/authorization/insufficient_permissions).

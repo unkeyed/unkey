@@ -35,8 +35,10 @@ Paths and actions are case-sensitive. Keep path segments such as `rootKeys` exac
 For example, to read every app in one project:
 
 ```plaintext
-unkey:v1:ws_demo:projects/proj_shop/apps/*#read
+unkey:v1:ws_xxx:projects/proj_xxx/apps/*#read
 ```
+
+IDs ending in `_xxx` are placeholders. Replace `ws_xxx` and `proj_xxx` with the full workspace and project IDs.
 
 The resource tables list supported path/action combinations. They don't mean every combination has a corresponding API endpoint. Use the operation requirements below when an endpoint needs a collection permission or more than one permission.
 

@@ -76,12 +76,12 @@ unkey:v1:{workspace_id}:{resource_path}#{action}
 For example, a permission to read one deployment looks like this:
 
 ```plaintext wrap
-unkey:v1:ws_demo:projects/proj_shop/apps/app_billing/environments/env_staging/deployments/dpl_release#read
+unkey:v1:ws_xxx:projects/proj_xxx/apps/app_xxx/environments/env_xxx/deployments/d_xxx#read
 ```
 
-`ws_demo` identifies the workspace. The path identifies the project, app, environment, and deployment. `#read` permits reading that deployment's details. It doesn't permit changes or access to its logs.
+`ws_xxx` identifies the workspace. The path identifies the project, app, environment, and deployment. `#read` permits reading that deployment's details. It doesn't permit changes or access to its logs.
 
-Use resource IDs, not display names or slugs. The IDs in these examples are placeholders. Replace them with IDs from your workspace, even if an API request accepts a name or slug for the same resource.
+IDs ending in `_xxx` are placeholders. Replace each one with the full ID Unkey assigned to that resource. For example, replace `app_xxx` with the app's ID, not its name or slug. This applies even if an API request accepts a name or slug for the same resource.
 
 The dashboard builds these strings from your selections. You only need to write them yourself when using the API. See [Configure root keys](/platform/root-keys/configure) for both methods, or continue below for scope rules and examples. The [permission reference](/platform/root-keys/permission-reference) lists the supported resources, actions, and operation requirements.
 
@@ -90,24 +90,26 @@ The dashboard builds these strings from your selections. You only need to write 
 Use `*` in place of one resource ID when the task needs every resource at that position. This permission reads every deployment in one environment:
 
 ```plaintext wrap
-unkey:v1:ws_demo:projects/proj_shop/apps/app_billing/environments/env_staging/deployments/*#read
+unkey:v1:ws_xxx:projects/proj_xxx/apps/app_xxx/environments/env_xxx/deployments/*#read
 ```
 
-It covers existing and future deployments in `env_staging`. It doesn't cover another environment or deployment logs. To read logs too, add:
+It covers existing and future deployments in `env_xxx`. It doesn't cover another environment or deployment logs. To read logs too, add:
 
 ```plaintext wrap
-unkey:v1:ws_demo:projects/proj_shop/apps/app_billing/environments/env_staging/deployments/*/logs#read
+unkey:v1:ws_xxx:projects/proj_xxx/apps/app_xxx/environments/env_xxx/deployments/*/logs#read
 ```
 
 Keep IDs fixed as far down the path as the task permits. If a task needs two environments, use one permission for each instead of granting access to every environment.
 
-After a wildcard ID, all later IDs must also be wildcards. For example, `projects/proj_shop/apps/*/environments/env_staging` is invalid. To select an environment, name its app and project too. Partial wildcards such as `app_bill*` are also invalid, and the workspace ID must be exact.
+After a wildcard ID, all later IDs must also be wildcards. For example, `projects/proj_xxx/apps/*/environments/env_xxx` is invalid. To select an environment, specify its app and project IDs too. Partial wildcards such as `app_*` are also invalid, and the workspace ID must be exact.
 
-Creation needs a wildcard at the resource being created because its ID doesn't exist yet. A permission on `deployments/dpl_release` can't create the next deployment. A permission on `deployments/*` can create deployments and also covers updates to existing deployments in that scope.
+Creation needs a wildcard at the resource being created because its ID doesn't exist yet. A permission on `deployments/d_xxx` can't create the next deployment. A permission on `deployments/*` can create deployments and also covers updates to existing deployments in that scope.
 
 ## Examples
 
 These examples turn common deployment and API management tasks into scoped permissions. Each explains what the key needs to do and what remains outside its access.
+
+In the deployment examples, `app_xxx` stands for the billing app's ID and `env_xxx` stands for its staging environment's ID.
 
 ### Deploy one app from CI
 
@@ -117,8 +119,8 @@ Scope the key to deployments in that one environment. Add `write` for deployment
 
 ```json
 [
-  "unkey:v1:ws_demo:projects/proj_shop/apps/app_billing/environments/env_staging/deployments/*#write",
-  "unkey:v1:ws_demo:projects/proj_shop/apps/app_billing/environments/env_staging/deployments/*#read"
+  "unkey:v1:ws_xxx:projects/proj_xxx/apps/app_xxx/environments/env_xxx/deployments/*#write",
+  "unkey:v1:ws_xxx:projects/proj_xxx/apps/app_xxx/environments/env_xxx/deployments/*#read"
 ]
 ```
 
@@ -138,14 +140,14 @@ Keep the scope to that environment and assign `read` on two resource types: depl
 
 ```json
 [
-  "unkey:v1:ws_demo:projects/proj_shop/apps/app_billing/environments/env_staging/deployments/*#read",
-  "unkey:v1:ws_demo:projects/proj_shop/apps/app_billing/environments/env_staging/deployments/*/logs#read"
+  "unkey:v1:ws_xxx:projects/proj_xxx/apps/app_xxx/environments/env_xxx/deployments/*#read",
+  "unkey:v1:ws_xxx:projects/proj_xxx/apps/app_xxx/environments/env_xxx/deployments/*/logs#read"
 ]
 ```
 
 The agent can inspect deployments and query their runtime logs with `analytics.getRuntimeLogs`. It cannot create, start, stop, promote, or roll back deployments. It cannot read environment variables or another environment's logs.
 
-If the investigation concerns only `dpl_release`, replace the deployment `*` in both permissions with `dpl_release`. The agent can then fetch that deployment by ID and read its logs, but it cannot list every deployment in the environment.
+If the investigation concerns only one deployment, replace the deployment `*` in both permissions with that deployment's ID. The agent can then fetch that deployment by ID and read its logs, but it cannot list every deployment in the environment.
 
 Read-only doesn't mean the data is public. Logs can contain sensitive application data. Give the agent only the environment or deployment it needs, even when all its actions are `read`.
 
@@ -157,11 +159,11 @@ Scope the root key to keys in that keyspace and choose `verify`. Use a wildcard 
 
 ```json
 [
-  "unkey:v1:ws_demo:projects/proj_shop/keyspaces/ks_customers/keys/*#verify"
+  "unkey:v1:ws_xxx:projects/proj_xxx/keyspaces/ks_xxx/keys/*#verify"
 ]
 ```
 
-This permission authorizes `keys.verifyKey` for keys in `ks_customers`, including keys created later. The keyspace ID in the URN is not the `apiId` used by some API requests.
+`ks_xxx` stands for the ID of the keyspace that holds your customers' keys. This permission authorizes `keys.verifyKey` for keys in that keyspace, including keys created later. The keyspace ID in the URN is not the `apiId` used by some API requests.
 
 The backend cannot list, update, delete, or decrypt keys. Verification returns its own result data and can consume credits or rate limits. `verify` isn't a general-purpose read permission.
 
@@ -175,7 +177,7 @@ Give it `write` on keys in the customer keyspace. It doesn't need access to othe
 
 ```json
 [
-  "unkey:v1:ws_demo:projects/proj_shop/keyspaces/ks_customers/keys/*#write"
+  "unkey:v1:ws_xxx:projects/proj_xxx/keyspaces/ks_xxx/keys/*#write"
 ]
 ```
 
@@ -185,8 +187,8 @@ Add `read` on the same path only if the service needs to look up existing keys w
 
 ```json
 [
-  "unkey:v1:ws_demo:projects/proj_shop/keyspaces/ks_customers/keys/*#read",
-  "unkey:v1:ws_demo:projects/proj_shop/keyspaces/ks_customers#read"
+  "unkey:v1:ws_xxx:projects/proj_xxx/keyspaces/ks_xxx/keys/*#read",
+  "unkey:v1:ws_xxx:projects/proj_xxx/keyspaces/ks_xxx#read"
 ]
 ```
 
@@ -200,9 +202,9 @@ To create a key that reads staging deployment status and logs, the automation se
 
 ```json
 [
-  "unkey:v1:ws_demo:rootKeys/*#write",
-  "unkey:v1:ws_demo:projects/proj_shop/apps/app_billing/environments/env_staging/deployments/*#read",
-  "unkey:v1:ws_demo:projects/proj_shop/apps/app_billing/environments/env_staging/deployments/*/logs#read"
+  "unkey:v1:ws_xxx:rootKeys/*#write",
+  "unkey:v1:ws_xxx:projects/proj_xxx/apps/app_xxx/environments/env_xxx/deployments/*#read",
+  "unkey:v1:ws_xxx:projects/proj_xxx/apps/app_xxx/environments/env_xxx/deployments/*/logs#read"
 ]
 ```
 
