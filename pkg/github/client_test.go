@@ -4,9 +4,32 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/jwt"
 )
+
+func TestGenerateJWTAllowsClockSkew(t *testing.T) {
+	secret := []byte("test-secret-key-at-least-32-bytes-long")
+	signer, err := jwt.NewHS256Signer[jwt.RegisteredClaims](secret)
+	require.NoError(t, err)
+	verifier, err := jwt.NewHS256Verifier[jwt.RegisteredClaims](secret)
+	require.NoError(t, err)
+	client := &Client{config: ClientConfig{AppID: 1234}, signer: signer}
+
+	before := time.Now()
+	token, err := client.generateJWT()
+	require.NoError(t, err)
+	after := time.Now()
+	claims, err := verifier.Verify(token)
+	require.NoError(t, err)
+	require.Equal(t, "1234", claims.Issuer)
+	require.GreaterOrEqual(t, claims.IssuedAt, before.Add(-time.Minute).Unix())
+	require.LessOrEqual(t, claims.IssuedAt, after.Add(-time.Minute).Unix())
+	require.GreaterOrEqual(t, claims.ExpiresAt, before.Add(9*time.Minute).Unix())
+	require.LessOrEqual(t, claims.ExpiresAt, after.Add(9*time.Minute).Unix())
+}
 
 func TestResolveCommitAuthor(t *testing.T) {
 	tests := []struct {

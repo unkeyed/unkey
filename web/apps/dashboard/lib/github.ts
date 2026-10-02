@@ -84,8 +84,8 @@ function generateAppJWT(): string {
   const header = { alg: "RS256", typ: "JWT" };
   const now = Math.floor(Date.now() / 1000);
   const payload = {
-    iat: now - 60, // 60 seconds in the past for clock drift
-    exp: now + 600, // 10 minutes max
+    iat: now - 60,
+    exp: now + 540,
     iss: env.GITHUB_APP_ID,
   };
 
