@@ -110,7 +110,7 @@ export function BuildLogsHeader({
                 }
               }}
             />
-            <kbd className="pointer-events-none absolute right-1.5 rounded-sm border border-grayA-4 bg-grayA-2 px-1 font-sans text-[10px] leading-4 text-gray-10 max-md:hidden">
+            <kbd className="pointer-events-none absolute right-1.5 rounded-sm border border-grayA-4 bg-grayA-2 px-1 font-sans text-3xs leading-4 text-gray-10 max-md:hidden">
               {searchShortcutLabel}
             </kbd>
           </div>
