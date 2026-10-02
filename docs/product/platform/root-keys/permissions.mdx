@@ -105,13 +105,17 @@ After a wildcard ID, all later IDs must also be wildcards. For example, `project
 
 Creation needs a wildcard at the resource being created because its ID doesn't exist yet. A permission on `deployments/dpl_release` can't create the next deployment. A permission on `deployments/*` can create deployments and also covers updates to existing deployments in that scope.
 
-## Deploy one app from CI
+## Examples
+
+These examples turn common deployment and API management tasks into scoped permissions. Each explains what the key needs to do and what remains outside its access.
+
+### Deploy one app from CI
 
 A CI job needs to deploy the billing app to staging and check whether the deployment succeeded. Its project, app, and environment already exist, so the job doesn't need permission to create or configure them.
 
 Scope the key to deployments in that one environment. Add `write` for deployment creation and `read` for status checks. Use a deployment wildcard because each run creates a deployment with a different ID:
 
-```json wrap
+```json
 [
   "unkey:v1:ws_demo:projects/proj_shop/apps/app_billing/environments/env_staging/deployments/*#write",
   "unkey:v1:ws_demo:projects/proj_shop/apps/app_billing/environments/env_staging/deployments/*#read"
@@ -126,13 +130,13 @@ Deployment `write` isn't a create-only permission. It also authorizes start and 
 
 These permissions cover the deployment API calls above. If a tool also lists projects or apps, it needs read access for those calls. Prefer supplying known IDs over adding discovery permissions the job doesn't need.
 
-## Investigate deployments without changing them
+### Investigate deployments without changing them
 
 A debugging agent needs to investigate runtime problems in the billing app's staging environment. It needs to see deployment status and application logs, but it doesn't need to deploy a fix or change settings.
 
 Keep the scope to that environment and assign `read` on two resource types: deployments and runtime logs. The logs permission is separate because reading a deployment doesn't include reading its logs:
 
-```json wrap
+```json
 [
   "unkey:v1:ws_demo:projects/proj_shop/apps/app_billing/environments/env_staging/deployments/*#read",
   "unkey:v1:ws_demo:projects/proj_shop/apps/app_billing/environments/env_staging/deployments/*/logs#read"
@@ -145,13 +149,13 @@ If the investigation concerns only `dpl_release`, replace the deployment `*` in 
 
 Read-only doesn't mean the data is public. Logs can contain sensitive application data. Give the agent only the environment or deployment it needs, even when all its actions are `read`.
 
-## Verify customer API keys
+### Verify customer API keys
 
 A backend needs to authenticate incoming requests by checking its customers' API keys. Those keys belong to one keyspace. The backend doesn't need to issue keys or change their settings.
 
 Scope the root key to keys in that keyspace and choose `verify`. Use a wildcard so the backend can check every customer's key, including keys created later:
 
-```json wrap
+```json
 [
   "unkey:v1:ws_demo:projects/proj_shop/keyspaces/ks_customers/keys/*#verify"
 ]
@@ -163,13 +167,13 @@ The backend cannot list, update, delete, or decrypt keys. Verification returns i
 
 Root key permissions differ from the permissions on your customers' API keys. Customer permissions, such as `documents.read`, describe access to your API and are checked during verification. They don't grant access to Unkey resources. See [Authorization](/api-management/authorization/overview).
 
-## Issue and update customer keys
+### Issue and update customer keys
 
 A provisioning service needs to issue keys when customers sign up and update their settings when their plans change. Unlike the backend that verifies requests, this service needs to change keys.
 
 Give it `write` on keys in the customer keyspace. It doesn't need access to other keyspaces, permission to delete keys, or permission to retrieve stored plaintext:
 
-```json wrap
+```json
 [
   "unkey:v1:ws_demo:projects/proj_shop/keyspaces/ks_customers/keys/*#write"
 ]
@@ -179,7 +183,7 @@ The wildcard lets the service create keys and update existing keys in that keysp
 
 Add `read` on the same path only if the service needs to look up existing keys with `keys.getKey`. Listing keys with `apis.listKeys` needs both key and keyspace read access:
 
-```json wrap
+```json
 [
   "unkey:v1:ws_demo:projects/proj_shop/keyspaces/ks_customers/keys/*#read",
   "unkey:v1:ws_demo:projects/proj_shop/keyspaces/ks_customers#read"
@@ -188,13 +192,13 @@ Add `read` on the same path only if the service needs to look up existing keys w
 
 Without `delete`, the service can't delete a key. It can still disable keys or change their expiry through `write`, so withholding `delete` doesn't make a write-capable key harmless.
 
-## Give an agent a short-lived key
+### Give an agent a short-lived key
 
 A trusted automation service can create a separate root key for a debugging agent. Keep key creation in that service rather than giving its credential to the agent.
 
 To create a key that reads staging deployment status and logs, the automation service needs:
 
-```json wrap
+```json
 [
   "unkey:v1:ws_demo:rootKeys/*#write",
   "unkey:v1:ws_demo:projects/proj_shop/apps/app_billing/environments/env_staging/deployments/*#read",
