@@ -793,6 +793,16 @@ func (w *Workflow) processBuildStatus(
 	for status := range statusCh {
 		for _, log := range status.Logs {
 			verticesWithLogs[log.Vertex] = true
+			w.buildStepLogs.Buffer(schema.BuildStepLogV1{
+				WorkspaceID:  workspaceID,
+				ProjectID:    projectID,
+				DeploymentID: deploymentID,
+				StepID:       log.Vertex.String(),
+				Time:         log.Timestamp.UnixMilli(),
+				Message:      string(log.Data),
+				Seq:          seq.next(),
+				Stderr:       log.Stream == buildkitStderrStream,
+			})
 		}
 
 		for _, vertex := range status.Vertexes {
@@ -831,20 +841,28 @@ func (w *Workflow) processBuildStatus(
 					Cached:       vertex.Cached,
 					HasLogs:      verticesWithLogs[vertex.Digest],
 				})
-			}
-		}
 
-		for _, log := range status.Logs {
-			w.buildStepLogs.Buffer(schema.BuildStepLogV1{
-				WorkspaceID:  workspaceID,
-				ProjectID:    projectID,
-				DeploymentID: deploymentID,
-				StepID:       log.Vertex.String(),
-				Time:         log.Timestamp.UnixMilli(),
-				Message:      string(log.Data),
-				Seq:          seq.next(),
-				Stderr:       log.Stream == buildkitStderrStream,
-			})
+				duration := vertex.Completed.Sub(ptr.SafeDeref(vertex.Started)).Round(100 * time.Millisecond)
+				message := fmt.Sprintf("DONE %.1fs", duration.Seconds())
+				switch {
+				case vertex.Error != "":
+					message = "ERROR: " + vertex.Error
+				case vertex.Cached:
+					message = "CACHED"
+				case duration == 0:
+					continue
+				}
+				w.buildStepLogs.Buffer(schema.BuildStepLogV1{
+					WorkspaceID:  workspaceID,
+					ProjectID:    projectID,
+					DeploymentID: deploymentID,
+					StepID:       vertex.Digest.String(),
+					Time:         vertex.Completed.UnixMilli(),
+					Message:      message,
+					Seq:          seq.next(),
+					Stderr:       vertex.Error != "",
+				})
+			}
 		}
 	}
 }
