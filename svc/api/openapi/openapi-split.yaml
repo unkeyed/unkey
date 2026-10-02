@@ -128,6 +128,8 @@ tags:
     description: Rate limiting operations
   - name: github
     description: GitHub App installation operations
+  - name: workspace
+    description: Workspace limits and usage operations
 
 paths:
   # Health Endpoints
@@ -284,6 +286,10 @@ paths:
   # GitHub Endpoints
   /v2/github.installApp:
     $ref: "./spec/paths/v2/github/installApp/index.yaml"
+
+  # Workspace Endpoints
+  /v2/workspace.getLimits:
+    $ref: "./spec/paths/v2/workspace/getLimits/index.yaml"
 
   # App Endpoints
   /v2/apps.createApp:

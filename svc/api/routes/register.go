@@ -113,6 +113,7 @@ import (
 	v2ProjectsUpdateProject "github.com/unkeyed/unkey/svc/api/routes/v2_projects_update_project"
 
 	v2GithubInstallApp "github.com/unkeyed/unkey/svc/api/routes/v2_github_install_app"
+	v2WorkspaceGetLimits "github.com/unkeyed/unkey/svc/api/routes/v2_workspace_get_limits"
 
 	zen "github.com/unkeyed/unkey/pkg/zen"
 )
@@ -962,6 +963,16 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 			DB:                  svc.Database,
 			GitHubAppName:       svc.GitHubAppName,
 			GitHubPrivateKeyPEM: svc.GitHubPrivateKeyPEM,
+		},
+	)
+
+	// v2/workspace.getLimits
+	srv.RegisterRoute(
+		protectedMiddlewares,
+		&v2WorkspaceGetLimits.Handler{
+			DB:         svc.Database,
+			ClickHouse: svc.ClickHouse,
+			Clock:      svc.Clock,
 		},
 	)
 

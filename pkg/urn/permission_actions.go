@@ -50,6 +50,9 @@ type rootKey struct{}
 // portalSession represents the portal session path shape used by parsed resource names.
 type portalSession struct{}
 
+// limits represents the workspace limits path shape used by parsed resource names
+type limits struct{}
+
 // global represents the workspace-wide ** resource pattern.
 type global struct{}
 
@@ -100,6 +103,11 @@ func (GitHubApp) permissionActions(bool) permissionActionSet { return readWriteD
 
 // permissionActions returns the read, write, and delete actions for root keys.
 func (rootKey) permissionActions(bool) permissionActionSet { return readWriteDelete }
+
+// permissionActions returns read for workspace limits
+func (limits) permissionActions(bool) permissionActionSet {
+	return newPermissionActionSet(PermissionRead)
+}
 
 // permissionActions adds descendant-only actions to project patterns.
 func (Project) permissionActions(descendants bool) permissionActionSet {

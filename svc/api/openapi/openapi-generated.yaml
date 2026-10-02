@@ -4148,6 +4148,17 @@ components:
                     $ref: '#/components/schemas/Meta'
                 data:
                     $ref: '#/components/schemas/EmptyResponse'
+        V2WorkspaceGetLimitsResponseBody:
+            type: object
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    $ref: "#/components/schemas/Meta"
+                data:
+                    $ref: "#/components/schemas/V2WorkspaceGetLimitsResponseData"
+            additionalProperties: false
         V3DeploymentsCreateDeploymentRequestBody:
             type: object
             required:
@@ -7857,6 +7868,162 @@ components:
                     type: string
                     x-unkey-redact: true
                     description: New root key secret, returned only once. Store it securely.
+        V2WorkspaceGetLimitsResponseData:
+            type: object
+            required:
+                - api
+                - logs
+            properties:
+                api:
+                    "$ref": "#/components/schemas/V2WorkspaceGetLimitsApi"
+                logs:
+                    "$ref": "#/components/schemas/V2WorkspaceGetLimitsLogs"
+                compute:
+                    description: |
+                        Compute limits and reserved capacity. Omitted when the workspace has no
+                        Compute plan.
+                    allOf:
+                        - "$ref": "#/components/schemas/V2WorkspaceGetLimitsCompute"
+            additionalProperties: false
+        V2WorkspaceGetLimitsApi:
+            type: object
+            description: Limits for the Unkey API.
+            required:
+                - billableOperations
+            properties:
+                billableOperations:
+                    description: |
+                        Billable key verifications and rate limit operations in the current
+                        calendar month (UTC), against the monthly allowance.
+                    allOf:
+                        - "$ref": "#/components/schemas/LimitMeter"
+                requestsPerMinute:
+                    type: integer
+                    format: int64
+                    description: |
+                        The maximum API requests per minute for the workspace. Requests above it
+                        get a 429 with the `RateLimit-*` headers. Omitted when the workspace has
+                        no per-minute limit.
+                    example: 1000
+            additionalProperties: false
+        V2WorkspaceGetLimitsLogs:
+            type: object
+            description: Limits for logs and log drains.
+            required:
+                - retentionDays
+                - auditRetentionDays
+                - logDrains
+            properties:
+                retentionDays:
+                    type: integer
+                    description: How many days back request and runtime logs can be queried.
+                    example: 7
+                auditRetentionDays:
+                    type: integer
+                    description: The audit log retention of the workspace plan, in days.
+                    example: 30
+                logDrains:
+                    description: The log drains in the workspace, against the allowance.
+                    allOf:
+                        - "$ref": "#/components/schemas/LimitMeter"
+            additionalProperties: false
+        V2WorkspaceGetLimitsCompute:
+            type: object
+            description: |
+                Limits for Compute.
+
+                For `vCpus`, `memoryMib`, and `storageMib`, `used` is reserved capacity, not
+                live usage. Each running deployment reserves its instance size times its
+                maximum replicas, in each region it runs in. `used` is the sum over all
+                running deployments. A deploy that would bring this sum above `limit` is
+                rejected.
+            required:
+                - vCpus
+                - vCpusPerInstance
+                - memoryMib
+                - memoryMibPerInstance
+                - storageMib
+                - storageMibPerInstance
+                - concurrentBuilds
+                - replicasPerRegion
+                - customDomains
+            properties:
+                vCpus:
+                    description: Reserved CPU across the workspace, against the workspace limit.
+                    allOf:
+                        - "$ref": "#/components/schemas/V2WorkspaceGetLimitsVcpuMeter"
+                vCpusPerInstance:
+                    type: number
+                    format: double
+                    description: The maximum vCPUs for one instance.
+                    example: 2
+                memoryMib:
+                    description: Reserved memory across the workspace in MiB, against the workspace limit.
+                    allOf:
+                        - "$ref": "#/components/schemas/LimitMeter"
+                memoryMibPerInstance:
+                    type: integer
+                    description: The maximum memory for one instance, in MiB.
+                    example: 4096
+                storageMib:
+                    description: Reserved ephemeral disk across the workspace in MiB, against the workspace limit.
+                    allOf:
+                        - "$ref": "#/components/schemas/LimitMeter"
+                storageMibPerInstance:
+                    type: integer
+                    description: The maximum ephemeral disk for one instance, in MiB.
+                    example: 5120
+                concurrentBuilds:
+                    type: integer
+                    description: The maximum builds that run at the same time.
+                    example: 2
+                replicasPerRegion:
+                    type: integer
+                    description: The maximum instances that autoscaling runs for one app in one region.
+                    example: 10
+                customDomains:
+                    description: |
+                        The custom domains attached across all apps, against the allowance.
+                        Plans with unlimited custom domains return a `limit` of 1,000,000.
+                    allOf:
+                        - "$ref": "#/components/schemas/LimitMeter"
+            additionalProperties: false
+        LimitMeter:
+            type: object
+            description: A workspace limit and the current usage against it.
+            required:
+                - limit
+                - used
+            properties:
+                limit:
+                    type: integer
+                    format: int64
+                    description: The maximum the workspace can use.
+                    example: 5
+                used:
+                    type: integer
+                    format: int64
+                    description: The amount the workspace uses now.
+                    example: 1
+            additionalProperties: false
+        V2WorkspaceGetLimitsVcpuMeter:
+            type: object
+            description: The workspace CPU limit and the reserved CPU against it, in vCPUs.
+            required:
+                - limit
+                - used
+            properties:
+                limit:
+                    type: number
+                    format: double
+                    description: The maximum vCPUs the workspace can reserve.
+                    example: 4
+                used:
+                    type: number
+                    format: double
+                    description: The vCPUs the workspace reserves now.
+                    example: 2.5
+            additionalProperties: false
         DeploymentSourceOCI:
             type: object
             required:
@@ -17311,6 +17478,170 @@ paths:
             tags:
                 - rootKeys
             x-speakeasy-name-override: updateKey
+    /v2/workspace.getLimits:
+        post:
+            description: |
+                Get every limit of your workspace, with the current usage against each
+                limit that is metered.
+
+                Use this before an operation that a limit can reject, for example to see how
+                many custom domains or log drains remain, or how much CPU, memory, and disk
+                a new deployment can still reserve.
+
+                The request takes no parameters. Billable operations count the current
+                calendar month in UTC. The `compute` object is present only when the
+                workspace has a Compute plan.
+
+                **Required Permissions**
+
+                Your root key must have one of the following permissions:
+                - `workspace.*.read_limits`
+                - `unkey:v1:<workspace_id>:limits#read`
+            operationId: workspace.getLimits
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            examples:
+                                withCompute:
+                                    description: API, logs, and Compute limits with current usage
+                                    summary: Workspace with a Compute plan
+                                    value:
+                                        data:
+                                            api:
+                                                billableOperations:
+                                                    limit: 150000
+                                                    used: 42000
+                                                requestsPerMinute: 1000
+                                            compute:
+                                                concurrentBuilds: 2
+                                                customDomains:
+                                                    limit: 5
+                                                    used: 1
+                                                memoryMib:
+                                                    limit: 8192
+                                                    used: 4096
+                                                memoryMibPerInstance: 4096
+                                                replicasPerRegion: 10
+                                                storageMib:
+                                                    limit: 10240
+                                                    used: 2048
+                                                storageMibPerInstance: 5120
+                                                vCpus:
+                                                    limit: 4
+                                                    used: 2.5
+                                                vCpusPerInstance: 2
+                                            logs:
+                                                auditRetentionDays: 30
+                                                logDrains:
+                                                    limit: 1
+                                                    used: 0
+                                                retentionDays: 7
+                                        meta:
+                                            requestId: req_1234abcd
+                                withoutCompute:
+                                    description: No Compute plan and no per-minute limit, so `compute` and `requestsPerMinute` are omitted
+                                    summary: Workspace without a Compute plan
+                                    value:
+                                        data:
+                                            api:
+                                                billableOperations:
+                                                    limit: 150000
+                                                    used: 42000
+                                            logs:
+                                                auditRetentionDays: 30
+                                                logDrains:
+                                                    limit: 0
+                                                    used: 0
+                                                retentionDays: 7
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/V2WorkspaceGetLimitsResponseBody'
+                    description: |
+                        The workspace limits and the current usage against them.
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Bad request
+                "401":
+                    content:
+                        application/json:
+                            examples:
+                                invalidRootKey:
+                                    summary: Invalid root key
+                                    value:
+                                        error:
+                                            detail: The provided root key is invalid. We could not find the requested key.
+                                            status: 401
+                                            title: Unauthorized
+                                            type: https://unkey.com/docs/errors/unkey/authentication/key_not_found
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Unauthorized
+                "403":
+                    content:
+                        application/json:
+                            examples:
+                                missingPermission:
+                                    summary: Missing required permission
+                                    value:
+                                        error:
+                                            detail: 'Missing one of these permissions: unkey:v1:ws_1234abcd:limits#read or workspace.*.read_limits'
+                                            status: 403
+                                            title: Insufficient Permissions
+                                            type: https://unkey.com/docs/errors/unkey/authorization/insufficient_permissions
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: Forbidden - Insufficient permissions (requires `workspace.*.read_limits`)
+                "429":
+                    content:
+                        application/problem+json:
+                            examples:
+                                workspaceRateLimited:
+                                    summary: Workspace rate limit exceeded
+                                    value:
+                                        error:
+                                            detail: This workspace has exceeded its API rate limit of 1000/1m0s. Please try again later.
+                                            status: 429
+                                            title: Too Many Requests
+                                            type: https://unkey.com/docs/errors/user/too_many_requests/workspace_rate_limited
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/TooManyRequestsErrorResponse'
+                    description: Too Many Requests
+                "500":
+                    content:
+                        application/json:
+                            examples:
+                                limitsNotConfigured:
+                                    description: The workspace has no limits row, which support has to fix
+                                    summary: Limits not configured
+                                    value:
+                                        error:
+                                            detail: Resource limits are not configured for this workspace. Contact support@unkey.com.
+                                            status: 500
+                                            title: Internal Server Error
+                                            type: https://unkey.com/docs/errors/unkey/application/service_unavailable
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error
+            security:
+                - bearer: []
+            summary: Get workspace limits
+            tags:
+                - workspace
+            x-speakeasy-name-override: getLimits
+            x-unkey-idempotency: idempotent
     /v3/deployments.createDeployment:
         post:
             description: |
@@ -17423,6 +17754,8 @@ tags:
       name: ratelimit
     - description: GitHub App installation operations
       name: github
+    - description: Workspace limits and usage operations
+      name: workspace
 x-speakeasy-retries:
     backoff:
         exponent: 1.5
