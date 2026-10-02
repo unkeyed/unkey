@@ -33,7 +33,7 @@ Your root key is valid, but it doesn't have a permission this endpoint needs. Yo
 
 - The root key was never given this permission.
 - The permission names the wrong resource ID, for example an API ID where the URN needs a keyspace ID.
-- The request asks for a broader scope than the key's grant, such as listing deployments without environment filters.
+- The request asks for a broader scope than the key's permission, such as listing deployments without environment filters.
 - Someone saved the key in **Edit root key** and left the permission unchecked. Saving replaces the whole set.
 
 A missing permission doesn't always return 403. Most endpoints that read or change a resource you named return a 404 for it instead, so a 404 doesn't prove the resource is gone. Check the root key's permissions before you decide the ID is wrong.
@@ -42,7 +42,7 @@ A missing permission doesn't always return 403. Most endpoints that read or chan
 
 1. Identify the required resource and action. In `unkey:v1:{workspace_id}:{resource_path}#{action}`, the path selects the resource and the part after `#` selects the action.
 2. Check the workspace and resource IDs, including every parent in the path. Narrow the request's filters if it asks for more resources than the task needs.
-3. Assign the missing grant through the [dashboard or API](/platform/root-keys/configure). For example, `unkey:v1:ws_demo:projects/proj_shop/keyspaces/ks_customers/keys/*#write` permits creating and updating keys in one keyspace. Replace the example IDs with your own.
+3. Assign the missing permission through the [dashboard or API](/platform/root-keys/configure). For example, `unkey:v1:ws_demo:projects/proj_shop/keyspaces/ks_customers/keys/*#write` permits creating and updating keys in one keyspace. Replace the example IDs with your own.
 
 Give each service its own root key with only what it needs, so a leaked key can't do more. See [Root key permissions](/platform/root-keys/permissions).
 

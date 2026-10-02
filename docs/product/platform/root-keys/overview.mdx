@@ -14,11 +14,28 @@ sources:
   - internal/services/caches/caches.go
 ---
 
+import { DashboardScreenshot } from "/snippets/dashboard-screenshot.jsx";
+
 A root key is how you call the Unkey API and use the CLI. It belongs to one workspace and carries a list of permissions that decides what it can do.
 
 A root key isn't one of the API keys you issue to your own users. You create and verify those through the API, using a root key. See [API Management concepts](/api-management/get-started/concepts).
 
 Manage root keys on the workspace's **Root Keys** page. You need the [admin role](/platform/workspace/team) to manage them in the dashboard. Automation can manage root keys through the API with the required [root key permissions](/platform/root-keys/permission-reference#root-key-operations).
+
+<Frame>
+  <DashboardScreenshot
+    target="root-key-list"
+    capture="target"
+    description="Open Root Keys in a disposable local workspace with synthetic
+      billing-staging-ci, billing-staging-debugger, and customer-key-verifier
+      keys. Show the list with masked secrets and no open menus at 1440 by 450
+      CSS pixels, scale 2, in both themes. Crop to the page content, keeping
+      the header and all table columns. Never show a full secret."
+    src="/platform/root-keys/root-key-list"
+    alt="Root key list with separate keys for CI, debugging, and API key verification"
+    capturedAt="2026-10-02T14:11:28Z"
+  />
+</Frame>
 
 ## What a root key looks like
 
@@ -42,8 +59,24 @@ Rotating gives you a new root key with the same name and permissions, and stops 
 
 1. Choose **Rotate root key** from the row menu.
 2. Pick a grace period: revoke immediately, 15 minutes, 1 hour, 6 hours, or 24 hours.
-3. Copy the new key. It's shown once, like a new key.
-4. Update your services before the grace period ends.
+3. Check the confirmation, click **Rotate root key**, then confirm the rotation.
+4. Copy the new key. It's shown once, like a new key.
+5. Update your services before the grace period ends.
+
+<Frame>
+  <DashboardScreenshot
+    target="root-key-rotate"
+    capture="target"
+    description="Open Rotate root key for the synthetic billing-staging-ci
+      key. Select a 1 hour grace period and leave confirmation unchecked.
+      Do not submit rotation. Capture both themes with transparent padding
+      of 24 CSS pixels and no outer shadow at scale 2."
+    src="/platform/root-keys/root-key-rotate"
+    alt="Root key rotation dialog with a one-hour grace period"
+    width={648}
+    capturedAt="2026-10-02T14:02:40Z"
+  />
+</Frame>
 
 When the grace period ends, requests with the old key fail with `err:unkey:authorization:forbidden`. If the old key was already set to expire sooner, it stops at that earlier time.
 
@@ -52,6 +85,21 @@ Rotate on a schedule that fits your security policy, and right away if a key has
 ## Delete a root key
 
 Choose **Delete root key** from the row menu and confirm. You can't undo this. The key can no longer authenticate after the deletion propagates. The audit log records the deletion. Delete keys for services you've retired instead of leaving them active.
+
+<Frame>
+  <DashboardScreenshot
+    target="root-key-delete"
+    capture="target"
+    description="Open the delete dialog for the synthetic billing-staging-debugger
+      key. Leave the confirmation unchecked and Delete key disabled. Do not
+      delete the key. Capture both themes at scale 2 with transparent padding
+      of 24 CSS pixels and no outer shadow."
+    src="/platform/root-keys/root-key-delete"
+    alt="Root key deletion dialog with its confirmation unchecked"
+    width={608}
+    capturedAt="2026-10-02T14:01:41Z"
+  />
+</Frame>
 
 ## If a root key leaks
 
@@ -65,7 +113,7 @@ Unkey stores root keys hashed, so it can't recover the secret, only identify whi
 
 <Columns cols={2}>
   <Card title="Root key permissions" icon="shield-halved" href="/platform/root-keys/permissions">
-    Choose least-privilege grants for deployments, agents, and API management.
+    Choose least-privilege permissions for deployments, agents, and API management.
   </Card>
   <Card title="Permission reference" icon="list" href="/platform/root-keys/permission-reference">
     Resource paths, supported actions, and operation requirements.

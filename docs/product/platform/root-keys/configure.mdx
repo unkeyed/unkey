@@ -16,6 +16,8 @@ sources:
   - svc/api/openapi/spec/paths/v2/rootKeys/updateKey/V2RootKeysUpdateKeyRequestBody.yaml
 ---
 
+import { DashboardScreenshot } from "/snippets/dashboard-screenshot.jsx";
+
 Configure a root key after you've chosen the resources and actions its task needs. The dashboard builds permission URNs from your selections. The API accepts the same URNs as a list of strings.
 
 Read [Root key permissions](/platform/root-keys/permissions) for the scope rules and worked examples. This page configures the read-only debugging key from that guide.
@@ -32,17 +34,51 @@ You need the workspace [admin role](/platform/workspace/team) to manage root key
 6. Review every policy on the key, then click **Create key**.
 7. Copy the secret into your secret manager. Unkey shows it only once.
 
-A policy groups a scope and its selected actions. Selecting the environment sets the boundary for the deployment and log grants; it doesn't automatically grant access to environment settings or variables.
+<Frame>
+  <DashboardScreenshot
+    target="root-key-create"
+    capture="target"
+    description="Open New Root Key in the disposable local workspace. Name it
+      billing-staging-debugger. Add a policy scoped to the billing app's staging
+      environment with only Deployments read and Runtime logs read. Collapse
+      the policy to show the final summary and Create key button. Do not submit
+      creation. Capture both themes at 1440 by 650 CSS pixels, scale 2, with
+      transparent padding of 24 CSS pixels and no outer shadow."
+    src="/platform/root-keys/root-key-create"
+    alt="New root key panel with a read-only staging policy ready to create"
+    width={816}
+    capturedAt="2026-10-02T14:03:58Z"
+  />
+</Frame>
+
+A policy groups a scope and its selected actions. Selecting the environment sets the boundary for the deployment and log permissions; it doesn't automatically grant access to environment settings or variables.
 
 Use **Add policy** when the key needs another scope. Policies add access together, so a workspace-wide policy can make a narrower environment policy ineffective as a restriction.
 
 Templates are starting points, not least-privilege recommendations. For example, **All read permissions** includes more data than deployment status and logs, and **Verify keys** starts with every keyspace. Review both the resources and actions before saving. Changing **Scope** resets that policy's selections.
 
-Use the API below if you need an expiry or a grant on one exact deployment rather than all deployments in the selected environment.
+Use the API below if you need an expiry or a permission on one exact deployment rather than all deployments in the selected environment.
 
 ## Edit permissions in the dashboard
 
 Open the key's row menu and select **Edit root key**. Change its policies, review the complete selection, then click **Save changes**.
+
+<Frame>
+  <DashboardScreenshot
+    target="root-key-permission-editor"
+    capture="target"
+    description="Edit the synthetic billing-staging-debugger key in the local
+      dashboard. Expand its environment policy to show the billing app's
+      staging environment selected, Deployments read and Runtime logs read
+      checked, and write and delete unchecked. Keep the search empty. Do not
+      save. Capture both themes at 1440 by 1000 CSS pixels, scale 2, with
+      transparent padding of 24 CSS pixels and no outer shadow."
+    src="/platform/root-keys/root-key-permission-editor"
+    alt="Permission editor with only deployment and runtime log read access in staging"
+    width={816}
+    capturedAt="2026-10-02T14:01:00Z"
+  />
+</Frame>
 
 Saving replaces the key's permission set. To narrow access, remove broader policies as well as adding narrower ones. Clearing a search filter before reviewing helps you see selections that the filter hides.
 
@@ -74,7 +110,7 @@ JSON
 
 The response contains `data.key`, the secret shown only once, and `data.keyId`, the ID used to manage the key. Store the secret without sending it to CI logs or application logs. Give the agent the new secret, not `UNKEY_ROOT_KEY`.
 
-The `permissions` array is required. Every entry must be a supported resource/action combination in the authenticated workspace and fit within the caller's grants. The API accepts an empty array, but that key grants no resource access.
+The `permissions` array is required. Every entry must be a supported resource/action combination in the authenticated workspace and fit within the caller's permissions. The API accepts an empty array, but that key grants no resource access.
 
 `expires` is a future Unix timestamp in milliseconds. If the caller's root key expires sooner than one hour from now, use an earlier expiry. An expiring caller must set an expiry no later than its own. A nonexpiring caller can omit `expires` or use `null` for a key with no expiry, but use a short lifetime for temporary tasks.
 
@@ -97,9 +133,9 @@ curl --fail-with-body https://api.unkey.com/v2/rootKeys.updateKey \
   }'
 ```
 
-Replace `key_debugger` with `data.keyId` from creation. This request removes the environment-wide deployment grants and replaces them with grants on `dpl_release`. It doesn't append to the existing list.
+Replace `key_debugger` with `data.keyId` from creation. This request removes the environment-wide deployment permissions and replaces them with permissions on `dpl_release`. It doesn't append to the existing list.
 
-Omitting `permissions` leaves the existing grants unchanged. Sending `"permissions": []` removes all grants. An expiring root key can only update keys that expire no later than itself.
+Omitting `permissions` leaves the existing permissions unchanged. Sending `"permissions": []` removes all permissions. An expiring root key can only update keys that expire no later than itself.
 
 ## Verify the resulting access
 

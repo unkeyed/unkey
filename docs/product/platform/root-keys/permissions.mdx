@@ -59,11 +59,11 @@ Actions don't imply each other. `write` doesn't include `read`, and `read` doesn
 
 Permissions on a parent resource don't grant access to its children. Reading an environment doesn't grant access to its deployments. Reading a deployment doesn't grant access to its logs. Name each resource type the task needs.
 
-Grants add access together. Adding a narrow grant doesn't restrict a broader grant already on the key. To reduce access, remove or replace the broader grant. There's no deny entry that subtracts access from another grant.
+Permissions add access together. Adding a narrow permission doesn't restrict a broader permission already on the key. To reduce access, remove or replace the broader permission. There's no deny entry that subtracts access from another permission.
 
 ## Use wildcards deliberately
 
-Use `*` in place of one resource ID when the task needs every resource at that position. This grant reads every deployment in one environment:
+Use `*` in place of one resource ID when the task needs every resource at that position. This permission reads every deployment in one environment:
 
 ```plaintext wrap
 unkey:v1:ws_demo:projects/proj_shop/apps/app_billing/environments/env_staging/deployments/*#read
@@ -75,11 +75,11 @@ It covers existing and future deployments in `env_staging`. It doesn't cover ano
 unkey:v1:ws_demo:projects/proj_shop/apps/app_billing/environments/env_staging/deployments/*/logs#read
 ```
 
-Keep IDs fixed as far down the path as the task permits. If a task needs two environments, use one grant for each instead of granting access to every environment.
+Keep IDs fixed as far down the path as the task permits. If a task needs two environments, use one permission for each instead of granting access to every environment.
 
 After a wildcard ID, all later IDs must also be wildcards. For example, `projects/proj_shop/apps/*/environments/env_staging` is invalid. To select an environment, name its app and project too. Partial wildcards such as `app_bill*` are also invalid, and the workspace ID must be exact.
 
-Creation needs a wildcard at the resource being created because its ID doesn't exist yet. A grant on `deployments/dpl_release` can't create the next deployment. A grant on `deployments/*` can create deployments and also covers updates to existing deployments in that scope.
+Creation needs a wildcard at the resource being created because its ID doesn't exist yet. A permission on `deployments/dpl_release` can't create the next deployment. A permission on `deployments/*` can create deployments and also covers updates to existing deployments in that scope.
 
 ## Deploy one app from CI
 
@@ -94,15 +94,15 @@ A CI job deploys the billing app to staging and checks the deployment status. It
 
 `write` authorizes `deployments.createDeployment`. `read` lets the job inspect the result with `deployments.getDeployment`. When using `deployments.listDeployments`, supply the project, app, and environment filters to match the key's scope.
 
-This key cannot deploy to production, change environment settings, or read environment variables. It also cannot read runtime logs unless you add the separate logs grant.
+This key cannot deploy to production, change environment settings, or read environment variables. It also cannot read runtime logs unless you add the separate logs permission.
 
 Deployment `write` isn't a create-only permission. It also authorizes start and stop operations on deployments in this environment, subject to those operations' restrictions. Explicit promotion and rollback require `write` on the environment itself. Don't add that permission unless the job needs those operations. See [deployment operation requirements](/platform/root-keys/permission-reference#deployment-operations).
 
-These grants cover the deployment API calls above. If a tool also lists projects or apps, it needs read access for those calls. Prefer supplying known IDs over adding discovery permissions the job doesn't need.
+These permissions cover the deployment API calls above. If a tool also lists projects or apps, it needs read access for those calls. Prefer supplying known IDs over adding discovery permissions the job doesn't need.
 
 ## Investigate deployments without changing them
 
-A debugging agent needs deployment status and runtime logs for the billing app's staging environment. Give it two read grants:
+A debugging agent needs deployment status and runtime logs for the billing app's staging environment. Give it two read permissions:
 
 ```json wrap
 [
@@ -113,7 +113,7 @@ A debugging agent needs deployment status and runtime logs for the billing app's
 
 The agent can inspect deployments and query their runtime logs with `analytics.getRuntimeLogs`. It cannot create, start, stop, promote, or roll back deployments. It cannot read environment variables or another environment's logs.
 
-If the investigation concerns only `dpl_release`, replace the deployment `*` in both grants with `dpl_release`. The agent can then fetch that deployment by ID and read its logs, but it cannot list every deployment in the environment.
+If the investigation concerns only `dpl_release`, replace the deployment `*` in both permissions with `dpl_release`. The agent can then fetch that deployment by ID and read its logs, but it cannot list every deployment in the environment.
 
 Read-only doesn't mean the data is public. Logs can contain sensitive application data. Give the agent only the environment or deployment it needs, even when all its actions are `read`.
 
@@ -127,9 +127,9 @@ A backend checks customer keys in one keyspace. It doesn't manage them. Give it:
 ]
 ```
 
-This grant authorizes `keys.verifyKey` for keys in `ks_customers`, including keys created later. The keyspace ID in the URN is not the `apiId` used by some API requests.
+This permission authorizes `keys.verifyKey` for keys in `ks_customers`, including keys created later. The keyspace ID in the URN is not the `apiId` used by some API requests.
 
-The backend cannot list, update, delete, or decrypt keys. Verification returns its own result data and can consume credits or rate limits. `verify` isn't a general-purpose read grant.
+The backend cannot list, update, delete, or decrypt keys. Verification returns its own result data and can consume credits or rate limits. `verify` isn't a general-purpose read permission.
 
 Root key permissions differ from the permissions on your customers' API keys. Customer permissions, such as `documents.read`, describe access to your API and are checked during verification. They don't grant access to Unkey resources. See [Authorization](/api-management/authorization/overview).
 
@@ -143,7 +143,7 @@ A provisioning service creates customer keys and updates their settings. It does
 ]
 ```
 
-The wildcard lets the service create keys and update existing keys in that keyspace. It doesn't grant access to other keyspaces. The service receives the plaintext of keys it creates, but cannot decrypt stored keys without a separate grant.
+The wildcard lets the service create keys and update existing keys in that keyspace. It doesn't grant access to other keyspaces. The service receives the plaintext of keys it creates, but cannot decrypt stored keys without a separate permission.
 
 Add `read` on the same path only if the service needs to look up existing keys with `keys.getKey`. Listing keys with `apis.listKeys` needs both key and keyspace read access:
 
@@ -170,9 +170,9 @@ To create a key that reads staging deployment status and logs, the automation se
 ]
 ```
 
-Give the agent only the two read grants and set an expiry for its task. Omit `rootKeys/*#write` from the agent's key so it cannot create more root keys.
+Give the agent only the two read permissions and set an expiry for its task. Omit `rootKeys/*#write` from the agent's key so it cannot create more root keys.
 
-The API checks that each requested grant is covered by the caller's permissions in the same workspace. The service can narrow its deployment wildcard to one deployment, but it cannot grant production access it doesn't have. If the calling root key expires, the new key must expire no later than the caller.
+The API checks that each requested permission is covered by the caller's permissions in the same workspace. The service can narrow its deployment wildcard to one deployment, but it cannot grant production access it doesn't have. If the calling root key expires, the new key must expire no later than the caller.
 
 `rootKeys/*#write` also authorizes updates to existing root keys, subject to the API's permission and expiry checks. Treat the automation service's key as a management credential, not a credential for ordinary workload tasks.
 
@@ -180,8 +180,8 @@ See [Create a key through the API](/platform/root-keys/configure#create-a-key-th
 
 ## Check the boundary before using the key
 
-Test both what the key must do and what it must not do. For the read-only agent, fetch a staging deployment, then try a read outside its scope. Check the complete permission list for broader grants that would make the second request succeed.
+Test both what the key must do and what it must not do. For the read-only agent, fetch a staging deployment, then try a read outside its scope. Check the complete permission list for broader permissions that would make the second request succeed.
 
-A denied request may return `403` with `err:unkey:authorization:insufficient_permissions`, or `404` to hide whether the resource exists. A missing root-key verify grant returns `200` with `valid: false` and `code: NOT_FOUND` from `keys.verifyKey`. Don't respond to a denial by granting workspace-wide access. Check the resource IDs, action, and request filters first.
+A denied request may return `403` with `err:unkey:authorization:insufficient_permissions`, or `404` to hide whether the resource exists. A missing root-key verify permission returns `200` with `valid: false` and `code: NOT_FOUND` from `keys.verifyKey`. Don't respond to a denial by granting workspace-wide access. Check the resource IDs, action, and request filters first.
 
-Use [Configure root keys](/platform/root-keys/configure) to assign the grants in the dashboard or API. Use the [permission reference](/platform/root-keys/permission-reference) when you need another resource type or operation.
+Use [Configure root keys](/platform/root-keys/configure) to assign the permissions in the dashboard or API. Use the [permission reference](/platform/root-keys/permission-reference) when you need another resource type or operation.

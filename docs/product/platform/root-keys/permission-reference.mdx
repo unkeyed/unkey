@@ -38,7 +38,7 @@ For example, to read every app in one project:
 unkey:v1:ws_demo:projects/proj_shop/apps/*#read
 ```
 
-The resource tables list supported path/action combinations. They don't mean every combination has a corresponding API endpoint. Use the operation requirements below when an endpoint needs a collection grant or more than one permission.
+The resource tables list supported path/action combinations. They don't mean every combination has a corresponding API endpoint. Use the operation requirements below when an endpoint needs a collection permission or more than one permission.
 
 ## Workspace resources
 
@@ -89,7 +89,7 @@ These requirements use the environment prefix above. Here, `{id}` is the deploym
 | Read a deployment's runtime logs | `/deployments/{id}/logs#read` |
 | Explicitly promote or roll back a deployment | `#write` on the environment itself |
 
-When listing deployments with an environment-scoped key, include the `project`, `app`, and `environment` request filters. A broader list request needs a broader grant. For logs, the API restricts results to the deployments covered by the key's log permissions.
+When listing deployments with an environment-scoped key, include the `project`, `app`, and `environment` request filters. A broader list request needs a broader permission. For logs, the API restricts results to the deployments covered by the key's log permissions.
 
 Environment `write` also authorizes environment settings changes. Deployment `write` authorizes both creation and updates within its scope. Neither action is a create-only or promote-only permission. Permissions don't bypass operation restrictions, such as which deployments can be stopped.
 
@@ -124,7 +124,7 @@ All paths in this table follow `unkey:v1:{workspace_id}:projects/{project_id}/`.
 | Portals | `portals/{portal_id}` | `read`, `write`, `delete` |
 | Portal sessions | `portals/{portal_id}/sessions/{session_id}` | `write` |
 
-Use the keyspace ID in permission paths, not the `apiId` accepted by some key-management requests. Roles and permission definitions in this table are resources used to authorize your customers' keys. They aren't the root key grants themselves.
+Use the keyspace ID in permission paths, not the `apiId` accepted by some key-management requests. Roles and permission definitions in this table are resources used to authorize your customers' keys. They aren't the root key permissions themselves.
 
 ### Key operations
 
@@ -141,11 +141,11 @@ For these operations, append each suffix to `unkey:v1:{workspace_id}:projects/{p
 | List keys | Both `/keys/*#read` and `#read` on the keyspace itself |
 | List keys with plaintext | Both list permissions above, plus `/keys/*#decrypt` |
 
-When `keys.addPermissions` or `keys.setPermissions` must create a missing permission definition, also grant `write` on `projects/{project_id}/rbac/permissions/*`. Attaching an existing definition doesn't need that extra creation grant.
+When `keys.addPermissions` or `keys.setPermissions` must create a missing permission definition, also grant `write` on `projects/{project_id}/rbac/permissions/*`. Attaching an existing definition doesn't need that extra creation permission.
 
 ## Root key operations
 
-These suffixes follow `unkey:v1:{workspace_id}:`. A caller that assigns permissions must already cover each assigned grant in the same workspace.
+These suffixes follow `unkey:v1:{workspace_id}:`. A caller that assigns permissions must already cover each assigned permission in the same workspace.
 
 | Operation | Required path and action |
 | --- | --- |
@@ -155,6 +155,6 @@ These suffixes follow `unkey:v1:{workspace_id}:`. A caller that assigns permissi
 | Delete a root key | `rootKeys/{root_key_id}#delete` |
 | Rotate a root key | `rootKeys/{root_key_id}#write`; also `#delete` on that key when setting an expiry on the old key |
 
-Creating or updating a key cannot assign permissions beyond the caller's grants. Rotation checks that the caller covers the permissions being copied to the replacement key. The management permission alone doesn't grant permission to copy broader access.
+Creating or updating a key cannot assign permissions beyond the caller's permissions. Rotation checks that the caller covers the permissions being copied to the replacement key. The management permission alone doesn't grant permission to copy broader access.
 
 See [Configure root keys](/platform/root-keys/configure#create-a-key-through-the-api) for creation, permission replacement, and expiry rules.
