@@ -268,9 +268,7 @@ describe("registerInstallation", () => {
     expect(authorizationUrl.origin).toBe("https://github.com");
     expect(authorizationUrl.pathname).toBe("/login/oauth/authorize");
     expect(authorizationUrl.searchParams.get("client_id")).toBe("github-client-id");
-    expect(authorizationUrl.searchParams.get("redirect_uri")).toBe(
-      "https://dashboard.example.com/integrations/github/callback",
-    );
+    expect(authorizationUrl.searchParams.has("redirect_uri")).toBe(false);
 
     const refreshedState = authorizationUrl.searchParams.get("state");
     if (!refreshedState) {

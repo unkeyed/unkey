@@ -11,8 +11,6 @@ const fixture = vi.hoisted(() => ({
 vi.mock("@/lib/env", () => ({
   githubAppEnv: () =>
     fixture.configured ? { GITHUB_APP_ID: 1, UNKEY_GITHUB_PRIVATE_KEY_PEM: "test-key" } : null,
-  githubOAuthEnv: () =>
-    fixture.configured ? { GITHUB_CLIENT_ID: "client", GITHUB_CLIENT_SECRET: "secret" } : null,
 }));
 vi.mock("next/headers", () => ({
   cookies: async () => ({
@@ -23,7 +21,6 @@ vi.mock("next/headers", () => ({
 
 import {
   finishGithubInstall,
-  githubCallbackURL,
   githubInstallAvailable,
   githubRelayConfig,
   prepareGithubInstall,
@@ -67,15 +64,26 @@ describe("optional GitHub installation", () => {
     expect(fixture.setCookie).not.toHaveBeenCalled();
   });
 
-  it("uses direct installation and the canonical callback without any relay calls", async () => {
-    expect(githubInstallAvailable()).toBe(true);
-    const url = new URL(await prepareGithubInstall("signed state & value", "user", "workspace"));
-    expect(url.origin + url.pathname).toBe("https://github.com/apps/test-app/installations/new");
-    expect(url.searchParams.get("state")).toBe("signed state & value");
-    expect(githubCallbackURL()).toBe(`${sourceOrigin}/integrations/github/callback`);
-    expect(fetch).not.toHaveBeenCalled();
-    expect(fixture.setCookie).not.toHaveBeenCalled();
-  });
+  it.each([
+    { mode: "production", origin: "https://app.example.com" },
+    { mode: "development", origin: "http://localhost:3000" },
+    { mode: "development", origin: undefined },
+  ] as const)(
+    "preserves direct installation in $mode with origin $origin without relay or OAuth dependencies",
+    async ({ mode, origin }) => {
+      vi.stubEnv("NODE_ENV", mode);
+      vi.stubEnv("DASHBOARD_BASE_URL", origin);
+      vi.stubEnv("GITHUB_CLIENT_ID", undefined);
+      vi.stubEnv("GITHUB_CLIENT_SECRET", undefined);
+      expect(githubRelayConfig()).toBeNull();
+      expect(githubInstallAvailable()).toBe(true);
+      const url = new URL(await prepareGithubInstall("signed state & value", "user", "workspace"));
+      expect(url.origin + url.pathname).toBe("https://github.com/apps/test-app/installations/new");
+      expect([...url.searchParams]).toEqual([["state", "signed state & value"]]);
+      expect(fetch).not.toHaveBeenCalled();
+      expect(fixture.setCookie).not.toHaveBeenCalled();
+    },
+  );
 
   it("automatically enrolls the canonical origin and uses only its scoped token for transactions", async () => {
     vi.stubEnv("GITHUB_INSTALL_RELAY_URL", relayOrigin);

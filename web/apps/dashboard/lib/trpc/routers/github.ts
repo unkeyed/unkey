@@ -17,7 +17,6 @@ import {
 } from "@/lib/github";
 import {
   finishGithubInstall,
-  githubCallbackURL,
   githubInstallAvailable,
   githubRelayConfig,
   prepareGithubInstall,
@@ -477,7 +476,6 @@ export const githubRouter = t.router({
         if (!callback.code) {
           const authorizationUrl = new URL("https://github.com/login/oauth/authorize");
           authorizationUrl.searchParams.set("client_id", oauthEnv.GITHUB_CLIENT_ID);
-          authorizationUrl.searchParams.set("redirect_uri", githubCallbackURL());
           authorizationUrl.searchParams.set(
             "state",
             signState({
@@ -495,7 +493,7 @@ export const githubRouter = t.router({
 
         let userToken: string;
         try {
-          userToken = await exchangeInstallationOAuthCode(callback.code, githubCallbackURL());
+          userToken = await exchangeInstallationOAuthCode(callback.code);
         } catch (err) {
           console.error(err);
           throw new TRPCError({

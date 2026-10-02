@@ -1,5 +1,5 @@
 import crypto from "node:crypto";
-import { githubAppEnv, githubOAuthEnv } from "@/lib/env";
+import { githubAppEnv } from "@/lib/env";
 import { getBaseUrl } from "@/lib/utils";
 import { TRPCError } from "@trpc/server";
 import { cookies } from "next/headers";
@@ -44,18 +44,14 @@ export function githubRelayConfig() {
 
 export function githubInstallAvailable(): boolean {
   try {
+    githubRelayConfig();
     return Boolean(
       githubAppEnv() &&
-        /^[a-zA-Z0-9][a-zA-Z0-9-]{0,99}$/.test(process.env.NEXT_PUBLIC_GITHUB_APP_NAME ?? "") &&
-        (githubRelayConfig() || githubOAuthEnv()),
+        /^[a-zA-Z0-9][a-zA-Z0-9-]{0,99}$/.test(process.env.NEXT_PUBLIC_GITHUB_APP_NAME ?? ""),
     );
   } catch {
     return false;
   }
-}
-
-export function githubCallbackURL(): string {
-  return new URL("/integrations/github/callback", getBaseUrl()).toString();
 }
 
 async function postRelay(url: string, token: string, body: unknown): Promise<unknown> {
