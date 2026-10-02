@@ -65,6 +65,7 @@ export function EditKeyAside({ keyId, isOpen, onClose, onExitComplete }: EditKey
   return (
     <>
       <SlidePanel
+        data-docs-target="root-key-permission-editor"
         isOpen={isOpen && requestedAction === null}
         onClose={onClose}
         onExitComplete={() => {
