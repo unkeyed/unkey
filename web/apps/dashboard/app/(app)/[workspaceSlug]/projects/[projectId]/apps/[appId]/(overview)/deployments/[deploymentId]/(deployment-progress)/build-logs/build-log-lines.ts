@@ -1,7 +1,7 @@
 import type { BuildLogEntry } from "@unkey/api/models/components";
 import { match } from "@unkey/match";
 
-type Tone = "stdout" | "stderr" | "error" | "event";
+export type Tone = "stdout" | "stderr" | "warning" | "error" | "event";
 
 export type BuildLogLine =
   | { kind: "step"; step: string }
@@ -14,6 +14,9 @@ const STEP_ERROR_PREFIX = "ERROR: ";
 // The lines ctrl adds when a step ends, see processBuildStatus in build.go
 const STEP_DONE_LINE = /^DONE \d+\.\ds$/;
 
+const WARNING_LINE = /^\s*(?:WARN|WARNING|warning)\b/;
+const ERROR_LINE = /^\s*(?:ERROR|Error):/;
+
 // CSI (colors, cursor moves, erase), OSC (titles, links), and two-byte escapes
 // biome-ignore lint/suspicious/noControlCharactersInRegex: matching escape sequences is the point
 const ANSI_ESCAPE = /\x1b(?:\[[0-?]*[ -/]*[@-~]|\][^\x07\x1b]*(?:\x07|\x1b\\)|[@-Z\\-_])/g;
@@ -23,11 +26,14 @@ export const FOLD_EDGE_ENTRIES = 5;
 
 // A run is the entries one step printed between two other steps. A long run
 // folds its middle unless it holds an error, the viewer expanded it, or it is
-// the last run, which can still grow
+// the last run, which can still grow. A query shows only the matching entries
+// under their step names and folds nothing, so a match is never hidden
 export function toBuildLogLines(
   entries: BuildLogEntry[],
-  expandedRunKeys: ReadonlySet<string>,
+  expandedRunKeys: ReadonlySet<string> | "all",
+  query = "",
 ): BuildLogLine[] {
+  const needle = query.trim().toLowerCase();
   const runs: Run[] = [];
   for (const entry of entries) {
     const tone = match(entry)
@@ -68,19 +74,27 @@ export function toBuildLogLines(
   runs.forEach((run, runIndex) => {
     const { stepId, step, time } = run[0].entry;
     const runKey = `${stepId}:${time}`;
-    const entryLines = run.map(
-      ({ entry, printed, tone }): BuildLogLine => ({
-        kind: "entry",
-        entry,
-        tone,
-        text: terminalText(printed),
-      }),
-    );
+    const entryLines = run
+      .map(({ entry, printed, tone }): BuildLogLine & { kind: "entry" } => {
+        const text = terminalText(printed);
+        return {
+          kind: "entry",
+          entry,
+          tone: tone === "stdout" || tone === "stderr" ? streamTone(text, tone) : tone,
+          text,
+        };
+      })
+      .filter((line) => needle === "" || line.text.toLowerCase().includes(needle));
+    if (entryLines.length === 0) {
+      return;
+    }
     const folds =
+      needle === "" &&
       run.length > FOLD_ENTRIES_MIN &&
       runIndex < runs.length - 1 &&
+      expandedRunKeys !== "all" &&
       !expandedRunKeys.has(runKey) &&
-      !run.some((row) => row.tone === "error");
+      !entryLines.some((line) => line.tone === "error");
     lines.push({ kind: "step", step });
     if (folds) {
       lines.push(
@@ -93,6 +107,25 @@ export function toBuildLogLines(
     }
   });
   return lines;
+}
+
+export function toBuildLogText(lines: BuildLogLine[]): string {
+  return lines
+    .flatMap((line) =>
+      match(line)
+        .with({ kind: "entry" }, ({ text }) => [text.replace(/\n$/, "")])
+        .with({ kind: "step" }, ({ step }) => [step])
+        .with({ kind: "fold" }, () => [])
+        .exhaustive(),
+    )
+    .join("\n");
+}
+
+function streamTone(text: string, tone: "stdout" | "stderr"): Tone {
+  if (ERROR_LINE.test(text)) {
+    return "error";
+  }
+  return WARNING_LINE.test(text) ? "warning" : tone;
 }
 
 // printed is the output without ANSI codes, before carriage returns redraw it

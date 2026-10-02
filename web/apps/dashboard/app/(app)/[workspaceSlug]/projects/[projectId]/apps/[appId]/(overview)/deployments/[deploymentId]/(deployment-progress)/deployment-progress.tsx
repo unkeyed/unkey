@@ -185,7 +185,7 @@ export function DeploymentProgress({ stepsData }: { stepsData?: StepsData }) {
           expandable={
             isPrebuilt ? null : (
               <div className="bg-grayA-2">
-                <DeploymentBuildLogs focusErrorTick={buildErrorFocusTick} />
+                <DeploymentBuildLogs focusErrorTick={buildErrorFocusTick} isOpen={buildExpanded} />
               </div>
             )
           }

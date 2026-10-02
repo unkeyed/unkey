@@ -4,7 +4,7 @@ import { formatCompoundDuration } from "@/lib/utils/metric-formatters";
 import {
   IconCheckOutline18,
   IconCircleHalfDottedClockOutline18,
-  IconTriangleWarningOutline18,
+  IconCircleXmarkOutline18,
 } from "@unkey/icons";
 import { match } from "@unkey/match";
 import { Badge, Loading, SettingCard } from "@unkey/ui";
@@ -96,9 +96,7 @@ export function DeploymentStep({
             match(status)
               .with("completed", () => <IconCheckOutline18 className="size-3.5 text-success-11" />)
               .with("started", () => <Loading className="size-4" />)
-              .with("error", () => (
-                <IconTriangleWarningOutline18 className="size-3.5 text-error-11" />
-              ))
+              .with("error", () => <IconCircleXmarkOutline18 className="size-3.5 text-error-11" />)
               .with("pending", () => (
                 <IconCircleHalfDottedClockOutline18 className="size-3.5 text-gray-9" />
               ))
