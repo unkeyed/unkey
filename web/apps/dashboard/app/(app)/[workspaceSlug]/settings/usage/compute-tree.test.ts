@@ -1,5 +1,9 @@
+import {
+  priceActiveKeysMicroCents,
+  priceComputeMeterMicroCents,
+} from "@/lib/billing/deployPricing";
 import { describe, expect, it } from "vitest";
-import { buildComputeTree, priceUsageQuantitiesCents } from "./compute-tree";
+import { breakdownFromUsage, buildComputeTree, priceUsageQuantitiesCents } from "./compute-tree";
 import { buildSpendSeries } from "./spend-series";
 
 describe("billing resource labels", () => {
@@ -132,5 +136,80 @@ describe("priceUsageQuantitiesCents", () => {
       egress: 5,
       disk: 0.0216,
     });
+  });
+});
+
+describe("breakdownFromUsage", () => {
+  it("prices each row and fills what the API omits", () => {
+    const meters = { cpuSeconds: 7200, memoryGiBHours: 3, diskGiBHours: 5, egressGiB: 4 };
+    const breakdown = breakdownFromUsage({
+      environments: [
+        {
+          projectId: "proj_KEBAP",
+          projectName: "Payments",
+          appId: "app_KEBAP",
+          appName: "API",
+          environmentId: "env_KEBAP",
+          environmentSlug: "production",
+          ...meters,
+        },
+        { projectId: "proj_KEBAP", appId: "app_gone", environmentId: "env_gone", ...meters },
+      ],
+      apps: [
+        {
+          appId: "app_KEBAP",
+          appName: "API",
+          projectId: "proj_KEBAP",
+          projectName: "Payments",
+          activeKeys: 7,
+        },
+        { appId: "app_gone", activeKeys: 3 },
+      ],
+    });
+
+    expect(breakdown.usage).toEqual([
+      {
+        projectId: "proj_KEBAP",
+        projectName: "Payments",
+        appId: "app_KEBAP",
+        appName: "API",
+        environmentId: "env_KEBAP",
+        environmentSlug: "production",
+        ...meters,
+        grossMicroCents: priceComputeMeterMicroCents(meters),
+      },
+      {
+        projectId: "proj_KEBAP",
+        projectName: null,
+        appId: "app_gone",
+        appName: null,
+        environmentId: "env_gone",
+        environmentSlug: null,
+        ...meters,
+        grossMicroCents: priceComputeMeterMicroCents(meters),
+      },
+    ]);
+    expect(breakdown.gateway).toEqual([
+      {
+        projectId: "proj_KEBAP",
+        projectName: "Payments",
+        appId: "app_KEBAP",
+        activeKeys: 7,
+        grossMicroCents: priceActiveKeysMicroCents(7),
+      },
+      {
+        projectId: "",
+        projectName: null,
+        appId: "app_gone",
+        activeKeys: 3,
+        grossMicroCents: priceActiveKeysMicroCents(3),
+      },
+    ]);
+
+    // The keys of a deleted app have no project, so they show as Unattributed
+    const unattributed = buildComputeTree(breakdown).projects.find(
+      (project) => project.projectId === "",
+    );
+    expect(unattributed?.name).toBe("Unattributed");
   });
 });

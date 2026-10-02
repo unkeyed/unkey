@@ -18,7 +18,6 @@ export const CancelAlert: React.FC<{
       // Revalidate helper: invalidate AND explicitly refetch to ensure UI updates
       await Promise.all([
         invalidateWorkspace(),
-        trpcUtils.billing.queryUsage.invalidate(),
         trpcUtils.stripe.getBillingInfo.invalidate(),
         trpcUtils.workspace.getCurrent.refetch(),
         trpcUtils.stripe.getBillingInfo.refetch(),

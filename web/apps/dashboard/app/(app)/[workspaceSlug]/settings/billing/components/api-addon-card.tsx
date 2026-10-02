@@ -1,6 +1,7 @@
 "use client";
 
 import { useInvalidateWorkspaceQueries } from "@/hooks/use-invalidate-workspace-queries";
+import { useWorkspaceUsage } from "@/hooks/use-workspace-usage";
 import { formatNumber } from "@/lib/fmt";
 import { formatMs } from "@/lib/ms";
 import { trpc } from "@/lib/trpc/client";
@@ -60,16 +61,11 @@ export const ApiAddOnCard: React.FC<ApiAddOnCardProps> = ({
   const [showPlanModal, setShowPlanModal] = useState(false);
   const [isCancelOpen, setCancelOpen] = useState(false);
 
-  const { data: usage } = trpc.billing.queryUsage.useQuery(undefined, {
-    staleTime: 30_000,
-    trpc: { context: { skipBatch: true } },
-    retry: 1,
-  });
+  const { data: usage } = useWorkspaceUsage("current", { staleTime: 30_000 });
 
   const revalidate = async () => {
     await Promise.all([
       invalidateWorkspace(),
-      trpcUtils.billing.queryUsage.invalidate(),
       trpcUtils.stripe.getBillingInfo.invalidate(),
       trpcUtils.stripe.getUpcomingInvoice.invalidate(),
     ]);
@@ -115,7 +111,7 @@ export const ApiAddOnCard: React.FC<ApiAddOnCardProps> = ({
       : undefined;
 
   const quota = currentProduct?.quotas.requestsPerMonth ?? FREE_TIER_QUOTA;
-  const used = (usage?.billableVerifications ?? 0) + (usage?.billableRatelimits ?? 0);
+  const used = (usage?.api.verifications ?? 0) + (usage?.api.ratelimits ?? 0);
 
   return (
     <>

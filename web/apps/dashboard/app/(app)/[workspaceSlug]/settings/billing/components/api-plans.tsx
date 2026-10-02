@@ -76,7 +76,6 @@ export function ApiPlans({ isAdmin, manage, usedThisMonth, onChanged }: ApiPlans
       await Promise.all([
         trpcUtils.stripe.getBillingInfo.invalidate(),
         trpcUtils.stripe.getUpcomingInvoice.invalidate(),
-        trpcUtils.billing.queryUsage.invalidate(),
         invalidateWorkspace(),
       ]);
       router.refresh();

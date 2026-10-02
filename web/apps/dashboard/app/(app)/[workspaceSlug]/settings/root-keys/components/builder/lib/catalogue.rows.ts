@@ -170,3 +170,14 @@ export function limitsRows(): PermissionRow[] {
     }),
   ];
 }
+
+export function usageRows(): PermissionRow[] {
+  return [
+    permissionRow({
+      id: "usage",
+      label: "Usage",
+      path: "usage",
+      actions: { write: [], delete: [] },
+    }),
+  ];
+}
