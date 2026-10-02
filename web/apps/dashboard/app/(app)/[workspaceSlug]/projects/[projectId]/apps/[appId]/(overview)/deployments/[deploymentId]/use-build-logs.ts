@@ -74,7 +74,8 @@ export function useBuildLogs(deployment: Deployment, { readsToEnd }: { readsToEn
             : 0,
       };
     },
-    refetchInterval: (data) => (data?.hasMore ? false : pollInterval(deployment, data)),
+    refetchInterval: (data, query) =>
+      data?.hasMore && query.state.status !== "error" ? false : pollInterval(deployment, data),
   });
 }
 
