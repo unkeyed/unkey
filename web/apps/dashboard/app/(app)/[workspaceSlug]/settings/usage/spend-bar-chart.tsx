@@ -10,7 +10,7 @@ export type SpendBarSeries = { key: string; label: string; color: string };
 export type SpendBarPoint = { time: number } & Record<string, number>;
 
 export const SPEND_BAR_CHART_HEIGHT = 152;
-const CATEGORY_GAP = "44%";
+const CATEGORY_GAP = "12%";
 const PARTIAL_OPACITY = 0.35;
 const TICK_COUNT = 4;
 const TICK_MARGIN = 5;
