@@ -1,6 +1,5 @@
 import { getAuditLogs } from "./audit-logs";
 import { getBillableRatelimits, getBillableVerifications } from "./billing";
-import { getBuildSteps } from "./build-steps";
 import {
   getActiveKeysByApp,
   getActiveKeysUsage,
@@ -424,11 +423,6 @@ export class ClickHouse {
   public get instanceEvents() {
     return {
       list: getInstanceEvents(this.querier),
-    };
-  }
-  public get buildSteps() {
-    return {
-      getSteps: getBuildSteps(this.querier),
     };
   }
   public get auditLogs() {

@@ -34,7 +34,6 @@ import { queryDeployUsageTimeseries } from "./billing/query-deploy-usage-timeser
 import { queryUsage } from "./billing/query-usage";
 import { countCustomDomains } from "./deploy/custom-domains/count";
 import { authorizeDeployment } from "./deploy/deployment/authorize";
-import { getDeploymentBuildSteps } from "./deploy/deployment/build-steps";
 import { cancelDeployment } from "./deploy/deployment/cancel";
 import { getDeploymentSteps } from "./deploy/deployment/deployment-steps";
 import { getById as getDeploymentById } from "./deploy/deployment/getById";
@@ -351,7 +350,6 @@ export const router = t.router({
       listBranches: listDeploymentBranches,
       listActiveBranches,
       getById: getDeploymentById,
-      buildSteps: getDeploymentBuildSteps,
       runtimeLogs: getDeploymentRuntimeLogs,
       steps: getDeploymentSteps,
       getOpenApiDiff: getOpenApiDiff,
