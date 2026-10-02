@@ -12,6 +12,7 @@ import {
   getRepositoryBranches,
   getRepositoryById,
   getRepositoryTree,
+  getUserAccessibleRepositoryIds,
   searchBranchesByPrefix,
   userCanAccessInstallation,
 } from "@/lib/github";
@@ -471,6 +472,36 @@ export const githubRouter = t.router({
           throw new TRPCError({
             code: "FORBIDDEN",
             message: "You do not have access to this GitHub installation",
+          });
+        }
+
+        // Installation-level access is not sufficient. Reads run with the
+        // app-minted installation token, so binding the installation exposes
+        // every repository it covers. Require the caller to reach each of those
+        // repositories directly, so a collaborator on one repository cannot bind
+        // an installation that also covers private repositories they cannot
+        // otherwise reach.
+        let canAccessEveryRepository: boolean;
+        try {
+          const [installationRepositories, accessibleRepositoryIds] = await Promise.all([
+            getInstallationRepositories(installationId),
+            getUserAccessibleRepositoryIds(userToken, installationId),
+          ]);
+          canAccessEveryRepository = installationRepositories.every((repository) =>
+            accessibleRepositoryIds.has(repository.id),
+          );
+        } catch (err) {
+          console.error(err);
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: "Failed to verify GitHub repository access",
+          });
+        }
+
+        if (!canAccessEveryRepository) {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "You do not have access to every repository in this GitHub installation",
           });
         }
       }
