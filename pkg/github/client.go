@@ -184,8 +184,8 @@ func (c *Client) generateJWT() (string, error) {
 	now := time.Now()
 	// nolint:exhaustruct
 	claims := jwt.RegisteredClaims{
-		IssuedAt:  now.Unix(),
-		ExpiresAt: now.Add(10 * time.Minute).Unix(),
+		IssuedAt:  now.Add(-time.Minute).Unix(),
+		ExpiresAt: now.Add(9 * time.Minute).Unix(),
 		Issuer:    fmt.Sprintf("%d", c.config.AppID),
 	}
 	return c.signer.Sign(claims)
