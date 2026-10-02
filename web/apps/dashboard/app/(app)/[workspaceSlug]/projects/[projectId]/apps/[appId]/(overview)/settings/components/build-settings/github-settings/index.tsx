@@ -40,13 +40,13 @@ export const GitHub = ({ readOnly = false, onBeforeNavigate }: GitHubProps) => {
   const prepareInstallation = trpc.github.prepareInstallation.useMutation();
   const onInstall = useCallback(async () => {
     try {
-      const { state } = await prepareInstallation.mutateAsync({
+      const { url } = await prepareInstallation.mutateAsync({
         projectId,
         appId,
         returnTo: "settings",
       });
       onBeforeNavigate?.();
-      window.location.href = `https://github.com/apps/${process.env.NEXT_PUBLIC_GITHUB_APP_NAME}/installations/new?state=${encodeURIComponent(state)}`;
+      window.location.href = url;
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to start GitHub install");
     }
@@ -72,7 +72,13 @@ export const GitHub = ({ readOnly = false, onBeforeNavigate }: GitHubProps) => {
     const repoFullName = data?.repoConnection?.repositoryFullName;
     if (repoFullName) {
       const repositoryId = data?.repoConnection?.repositoryId ?? 0;
-      return { status: "connected", appId, repoFullName, repositoryId, onInstall };
+      return {
+        status: "connected",
+        appId,
+        repoFullName,
+        repositoryId,
+        onInstall,
+      };
     }
     return { status: "no-repo", appId, onInstall };
   })();

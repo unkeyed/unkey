@@ -14,12 +14,13 @@ type GithubConnectionState =
 
 export function GithubConnection() {
   const { data, isLoading } = trpc.github.hasInstallations.useQuery();
+  const configuration = trpc.github.configuration.useQuery();
   const prepareInstall = trpc.github.prepareWorkspaceInstall.useMutation();
 
   const onInstall = useCallback(async () => {
     try {
-      const { state } = await prepareInstall.mutateAsync();
-      window.location.href = `https://github.com/apps/${process.env.NEXT_PUBLIC_GITHUB_APP_NAME}/installations/new?state=${encodeURIComponent(state)}`;
+      const { url } = await prepareInstall.mutateAsync();
+      window.location.href = url;
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to start GitHub install");
     }
@@ -32,9 +33,11 @@ export function GithubConnection() {
       : { status: "disconnected" };
 
   const description =
-    state.status === "connected"
-      ? "The Unkey GitHub App is installed on this workspace. Manage it on GitHub."
-      : "Install the Unkey GitHub App on your workspace to deploy from your repositories.";
+    configuration.data?.available === false
+      ? "GitHub is not configured on this instance. You can deploy a container image instead."
+      : state.status === "connected"
+        ? "The Unkey GitHub App is installed on this workspace. Manage it on GitHub."
+        : "Install the Unkey GitHub App on your workspace to deploy from your repositories.";
 
   const statusBadge =
     state.status === "connected" ? (
