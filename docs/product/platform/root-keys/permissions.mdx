@@ -1,57 +1,225 @@
 ---
 title: Root key permissions
 sidebarTitle: "Permissions"
-description: "Grant a root key exactly the operations it needs, and read the error when one is missing."
+description: "Choose permissions for your root key based on the task it needs to perform."
 sources:
-  - pkg/rbac/rbac.go
-  - pkg/rbac/query.go
-  - pkg/rbac/check.go
-  - pkg/rbac/permissions.go
-  - web/internal/rbac/src/permissions.ts
-  - svc/api/routes/v2_apis_delete_api/handler.go
+  - pkg/urn/urn.go
+  - pkg/urn/permission_actions.go
+  - pkg/rbac/urn.go
+  - svc/api/internal/principal/permissions.go
+  - svc/api/routes/v2_deployments_create_deployment/handler.go
+  - svc/api/routes/v2_deployments_list_deployments/handler.go
+  - svc/api/routes/v2_deployments_start_deployment/handler.go
+  - svc/api/routes/v2_deployments_stop_deployment/handler.go
+  - svc/api/routes/v2_deployments_promote_deployment/handler.go
+  - svc/api/routes/v2_analytics_get_runtime_logs/handler.go
   - svc/api/routes/v2_keys_verify_key/handler.go
+  - svc/api/routes/v2_keys_create_key/handler.go
+  - svc/api/routes/v2_keys_update_key/handler.go
+  - svc/api/routes/v2_apis_list_keys/handler.go
+  - svc/api/routes/v2_root_keys_create_key/handler.go
 ---
 
-Every API endpoint needs a specific permission on your root key. Grant each key only the permissions its service needs, and use the error message to find a missing one.
+A root key authenticates your requests to Unkey, but it has no permissions by default. You assign permissions to tell Unkey what the key is allowed to do.
 
-## How a permission is written
+Permissions let you make that access specific. A key can deploy one app without being able to deploy every app in your workspace. Another key can read deployment status and logs without being able to change anything.
 
-A permission has three parts, `{resource}.{id}.{action}`. The id is either one resource's ID or `*` for every resource of that type.
+You don't need to give either key full access to make it useful. Start with its job, choose where it can work, and decide what it can do there. This is least privilege: enough access to complete the task, without access to unrelated resources or actions.
 
-```text
-api.api_1234abcd.read_key
-api.*.read_key
+## Start with the key's job
+
+Describe what the service or agent needs to accomplish before choosing permissions. "Investigate a failed deployment" might mean reading its status and runtime logs. It doesn't necessarily mean restarting it, deploying a fix, or reading environment variables.
+
+Break the job into the capabilities it needs. For example:
+
+- Deploy an app and check the result: create deployments and read their status
+- Investigate a runtime problem: read deployment status and runtime logs
+- Authenticate requests to your API: verify customer API keys
+
+Use a separate root key for each service, job, or agent. That lets you change or revoke one workload's access without affecting the others. It also keeps a debugging agent from inheriting a deployment job's ability to change your app.
+
+## Choose which resources it can access
+
+A resource is something you manage in Unkey, such as an app, deployment, or API key. The resource scope of a permission determines which of those resources the key can access.
+
+For deployments, the scope follows the structure of your workspace:
+
+- A [project](/compute/concepts/projects-apps-environments#projects) groups apps in your workspace.
+- An [app](/compute/concepts/projects-apps-environments#apps) is a service you deploy.
+- An [environment](/compute/concepts/projects-apps-environments#environments) separates an app's settings and deployments, for example production from preview.
+- A [deployment](/compute/concepts/deployments) is one built version of an app in one environment.
+
+For API management, a [keyspace](/api-management/keyspaces/overview) groups related customer API keys. You can restrict a root key to the keys in one keyspace instead of giving it access to every customer's keys in the workspace.
+
+Choose the smallest scope that covers the job. If an agent is investigating one deployment, it only needs that deployment and its logs. If it monitors an app's environment continuously, it may need all deployments in that environment, including future ones. Neither task needs access to another app.
+
+The hierarchy helps you identify a resource; it doesn't make access automatic. Permission to read an environment doesn't include its deployments. Permission to read a deployment doesn't include its logs. Include each resource type the task needs.
+
+## Choose what it can do with those resources
+
+An action determines what the key can do within its scope. Most resources support `read` to inspect them, `write` to create or update them, and `delete` to remove them. Some have task-specific actions, such as `verify` for checking customer API keys.
+
+Choose each action separately. A deployment job needs `write` to create a deployment and `read` to check its status. A debugging agent that only inspects deployments and logs needs `read`, not `write`. Having one action doesn't include the others.
+
+Read-only access still needs a limited scope. Logs can contain sensitive application data, so an agent that can't change anything may still be able to see more than its task requires.
+
+Check all permissions on the key before using it. Permissions add access together: a permission for one environment doesn't restrict another permission that covers every environment. To reduce access, remove or replace the broader permission. There are no deny permissions that cancel other permissions.
+
+## Read a permission
+
+Once you've chosen the resources and actions, you can express each permission as a string. Unkey uses a resource name called a URN to identify the resource, followed by `#` and the action:
+
+```plaintext
+unkey:v1:{workspace_id}:{resource_path}#{action}
 ```
 
-The first grants `read_key` on one keyspace. The second grants it on every keyspace. `*` is the only wildcard and always fills the whole id, so you can't match only some IDs, like those with a certain prefix. To cover some keyspaces but not all, grant one permission per keyspace.
+For example, a permission to read one deployment looks like this:
 
-[Permission reference](/platform/root-keys/permissions-legacy) lists every resource type and action, and whether the dashboard lets you limit it to one resource.
-
-## Choose permissions
-
-Grant the smallest set that lets the service do its job, and use one root key per service. That keeps the audit log clear and makes rotation easy. For example:
-
-- A service that only verifies keys for one keyspace needs a single permission, `api.<keyspace ID>.verify_key`.
-- A CI job that deploys needs `create_deployment` on its project or environment, and nothing about keys.
-
-Keep `delete_api`, `delete_project`, and `delete_app` away from anything automated. [Delete protection](/platform/security/delete-protection) still blocks a key that holds them, but a key without them can't even try.
-
-## When a permission is missing
-
-Most endpoints accept any one of a short list of permissions, and a few need several at once. Without them, the request fails with `err:unkey:authorization:insufficient_permissions`. The `detail` field lists every permission that would have worked:
-
-```text
-Missing one of these permissions: api.*.delete_api or api.api_1234abcd.delete_api
+```plaintext wrap
+unkey:v1:ws_xxx:projects/proj_xxx/apps/app_xxx/environments/env_xxx/deployments/d_xxx#read
 ```
 
-Grant any one of them and the call succeeds.
+`ws_xxx` identifies the workspace. The path identifies the project, app, environment, and deployment. `#read` permits reading that deployment's details. It doesn't permit changes or access to its logs.
 
-Some endpoints also list a longer string like `unkey:v1:ws_123:projects/proj_123/apps/*#write`. You can't grant that form, so ignore it and grant one of the three-part permissions.
+IDs ending in `_xxx` are placeholders. Replace each one with the full ID Unkey assigned to that resource. For example, replace `app_xxx` with the app's ID, not its name or slug. This applies even if an API request accepts a name or slug for the same resource.
 
-### A 404 can mean a missing permission
+The dashboard builds these strings from your selections. You only need to write them yourself when using the API. See [Configure root keys](/platform/root-keys/configure) for both methods, or continue below for scope rules and examples. The [permission reference](/platform/root-keys/permission-reference) lists the supported resources, actions, and operation requirements.
 
-Some endpoints return `404` instead of `403` when a permission is missing, the same as if the resource didn't exist. That way a denied request can't reveal what's in your workspace. These include `apis.getApi`, `apis.listKeys`, `keys.createKey`, `identities.updateIdentity`, `permissions.getRole`, and `ratelimit.getOverride`. If an endpoint you expect to work returns a 404, check the root key's permissions. See [Insufficient permissions](/errors/unkey/authorization/insufficient_permissions).
+## Use wildcards deliberately
 
-## Permissions on your own keys are different
+Use `*` in place of one resource ID when the task needs every resource at that position. This permission reads every deployment in one environment:
 
-The permissions you attach to the API keys you issue to your users, and check with `keys.verifyKey`, have nothing to do with root key permissions. They're compared as exact strings, so `*` is an ordinary character there. A key permission named `documents.*` matches a check for exactly `documents.*` and doesn't grant `documents.read`. See [Authorization](/api-management/authorization/overview).
+```plaintext wrap
+unkey:v1:ws_xxx:projects/proj_xxx/apps/app_xxx/environments/env_xxx/deployments/*#read
+```
+
+It covers existing and future deployments in `env_xxx`. It doesn't cover another environment or deployment logs. To read logs too, add:
+
+```plaintext wrap
+unkey:v1:ws_xxx:projects/proj_xxx/apps/app_xxx/environments/env_xxx/deployments/*/logs#read
+```
+
+Keep IDs fixed as far down the path as the task permits. If a task needs two environments, use one permission for each instead of granting access to every environment.
+
+After a wildcard ID, all later IDs must also be wildcards. For example, `projects/proj_xxx/apps/*/environments/env_xxx` is invalid. To select an environment, specify its app and project IDs too. Partial wildcards such as `app_*` are also invalid, and the workspace ID must be exact.
+
+Creation needs a wildcard at the resource being created because its ID doesn't exist yet. A permission on `deployments/d_xxx` can't create the next deployment. A permission on `deployments/*` can create deployments and also covers updates to existing deployments in that scope.
+
+## Examples
+
+These examples turn common deployment and API management tasks into scoped permissions. Each explains what the key needs to do and what remains outside its access.
+
+In the deployment examples, `app_xxx` stands for the billing app's ID and `env_xxx` stands for its staging environment's ID.
+
+### Deploy one app from CI
+
+A CI job needs to deploy the billing app to staging and check whether the deployment succeeded. Its project, app, and environment already exist, so the job doesn't need permission to create or configure them.
+
+Scope the key to deployments in that one environment. Add `write` for deployment creation and `read` for status checks. Use a deployment wildcard because each run creates a deployment with a different ID:
+
+```json
+[
+  "unkey:v1:ws_xxx:projects/proj_xxx/apps/app_xxx/environments/env_xxx/deployments/*#write",
+  "unkey:v1:ws_xxx:projects/proj_xxx/apps/app_xxx/environments/env_xxx/deployments/*#read"
+]
+```
+
+`write` authorizes `deployments.createDeployment`. `read` lets the job inspect the result with `deployments.getDeployment`. When using `deployments.listDeployments`, supply the project, app, and environment filters to match the key's scope.
+
+This key cannot deploy to production, change environment settings, or read environment variables. It also cannot read runtime logs unless you add the separate logs permission.
+
+Deployment `write` isn't a create-only permission. It also authorizes start and stop operations on deployments in this environment, subject to those operations' restrictions. Explicit promotion and rollback require `write` on the environment itself. Don't add that permission unless the job needs those operations. See [deployment operation requirements](/platform/root-keys/permission-reference#deployment-operations).
+
+These permissions cover the deployment API calls above. If a tool also lists projects or apps, it needs read access for those calls. Prefer supplying known IDs over adding discovery permissions the job doesn't need.
+
+### Investigate deployments without changing them
+
+A debugging agent needs to investigate runtime problems in the billing app's staging environment. It needs to see deployment status and application logs, but it doesn't need to deploy a fix or change settings.
+
+Keep the scope to that environment and assign `read` on two resource types: deployments and runtime logs. The logs permission is separate because reading a deployment doesn't include reading its logs:
+
+```json
+[
+  "unkey:v1:ws_xxx:projects/proj_xxx/apps/app_xxx/environments/env_xxx/deployments/*#read",
+  "unkey:v1:ws_xxx:projects/proj_xxx/apps/app_xxx/environments/env_xxx/deployments/*/logs#read"
+]
+```
+
+The agent can inspect deployments and query their runtime logs with `analytics.getRuntimeLogs`. It cannot create, start, stop, promote, or roll back deployments. It cannot read environment variables or another environment's logs.
+
+If the investigation concerns only one deployment, replace the deployment `*` in both permissions with that deployment's ID. The agent can then fetch that deployment by ID and read its logs, but it cannot list every deployment in the environment.
+
+Read-only doesn't mean the data is public. Logs can contain sensitive application data. Give the agent only the environment or deployment it needs, even when all its actions are `read`.
+
+### Verify customer API keys
+
+A backend needs to authenticate incoming requests by checking its customers' API keys. Those keys belong to one keyspace. The backend doesn't need to issue keys or change their settings.
+
+Scope the root key to keys in that keyspace and choose `verify`. Use a wildcard so the backend can check every customer's key, including keys created later:
+
+```json
+[
+  "unkey:v1:ws_xxx:projects/proj_xxx/keyspaces/ks_xxx/keys/*#verify"
+]
+```
+
+`ks_xxx` stands for the ID of the keyspace that holds your customers' keys. This permission authorizes `keys.verifyKey` for keys in that keyspace, including keys created later. The keyspace ID in the URN is not the `apiId` used by some API requests.
+
+The backend cannot list, update, delete, or decrypt keys. Verification returns its own result data and can consume credits or rate limits. `verify` isn't a general-purpose read permission.
+
+Root key permissions differ from the permissions on your customers' API keys. Customer permissions, such as `documents.read`, describe access to your API and are checked during verification. They don't grant access to Unkey resources. See [Authorization](/api-management/authorization/overview).
+
+### Issue and update customer keys
+
+A provisioning service needs to issue keys when customers sign up and update their settings when their plans change. Unlike the backend that verifies requests, this service needs to change keys.
+
+Give it `write` on keys in the customer keyspace. It doesn't need access to other keyspaces, permission to delete keys, or permission to retrieve stored plaintext:
+
+```json
+[
+  "unkey:v1:ws_xxx:projects/proj_xxx/keyspaces/ks_xxx/keys/*#write"
+]
+```
+
+The wildcard lets the service create keys and update existing keys in that keyspace. It doesn't grant access to other keyspaces. The service receives the plaintext of keys it creates, but cannot decrypt stored keys without a separate permission.
+
+Add `read` on the same path only if the service needs to look up existing keys with `keys.getKey`. Listing keys with `apis.listKeys` needs both key and keyspace read access:
+
+```json
+[
+  "unkey:v1:ws_xxx:projects/proj_xxx/keyspaces/ks_xxx/keys/*#read",
+  "unkey:v1:ws_xxx:projects/proj_xxx/keyspaces/ks_xxx#read"
+]
+```
+
+Without `delete`, the service can't delete a key. It can still disable keys or change their expiry through `write`, so withholding `delete` doesn't make a write-capable key harmless.
+
+### Give an agent a short-lived key
+
+A trusted automation service can create a separate root key for a debugging agent. Keep key creation in that service rather than giving its credential to the agent.
+
+To create a key that reads staging deployment status and logs, the automation service needs:
+
+```json
+[
+  "unkey:v1:ws_xxx:rootKeys/*#write",
+  "unkey:v1:ws_xxx:projects/proj_xxx/apps/app_xxx/environments/env_xxx/deployments/*#read",
+  "unkey:v1:ws_xxx:projects/proj_xxx/apps/app_xxx/environments/env_xxx/deployments/*/logs#read"
+]
+```
+
+Give the agent only the two read permissions and set an expiry for its task. Omit `rootKeys/*#write` from the agent's key so it cannot create more root keys.
+
+The API checks that each requested permission is covered by the caller's permissions in the same workspace. The service can narrow its deployment wildcard to one deployment, but it cannot grant production access it doesn't have. If the calling root key expires, the new key must expire no later than the caller.
+
+`rootKeys/*#write` also authorizes updates to existing root keys, subject to the API's permission and expiry checks. Treat the automation service's key as a management credential, not a credential for ordinary workload tasks.
+
+See [Create a key through the API](/platform/root-keys/configure#create-a-key-through-the-api) for the request.
+
+## Check the boundary before using the key
+
+Test both what the key must do and what it must not do. For the read-only agent, fetch a staging deployment, then try a read outside its scope. Check the complete permission list for broader permissions that would make the second request succeed.
+
+A denied request may return `403` with `err:unkey:authorization:insufficient_permissions`, or `404` to hide whether the resource exists. A missing root-key verify permission returns `200` with `valid: false` and `code: NOT_FOUND` from `keys.verifyKey`. Don't respond to a denial by granting workspace-wide access. Check the resource IDs, action, and request filters first.
+
+Use [Configure root keys](/platform/root-keys/configure) to assign the permissions in the dashboard or API. Use the [permission reference](/platform/root-keys/permission-reference) when you need another resource type or operation.

@@ -172,7 +172,8 @@
                 "pages": [
                   "platform/root-keys/overview",
                   "platform/root-keys/permissions",
-                  "platform/root-keys/permissions-legacy"
+                  "platform/root-keys/configure",
+                  "platform/root-keys/permission-reference"
                 ]
               },
               {
@@ -1147,6 +1148,10 @@
     ]
   },
   "redirects": [
+    {
+      "destination": "/platform/root-keys/permission-reference",
+      "source": "/platform/root-keys/permissions-legacy"
+    },
     {
       "destination": "/platform/api/overview",
       "source": "/api-reference"

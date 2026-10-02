@@ -170,6 +170,7 @@ export const RotateKeyDialog = ({
       <FormProvider {...methods}>
         <form id={formId}>
           <DialogContainer
+            data-docs-target={resourceLabel === "root key" ? "root-key-rotate" : undefined}
             isOpen={isOpen}
             subTitle={subTitle}
             onOpenChange={handleDialogOpenChange}
