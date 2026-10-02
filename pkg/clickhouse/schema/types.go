@@ -128,6 +128,10 @@ type ApiRequestAggregated struct {
 // This tracks individual build steps within a deployment process
 // including timing, caching, and error information.
 //
+// A step gets a row with CompletedAt 0 when it starts and another when it
+// completes. Readers keep the latest row per StepID, preferring the
+// completed one.
+//
 //unkey:table default.build_steps_v1
 type BuildStepV1 struct {
 	StartedAt    int64  `ch:"started_at" json:"started_at"`
