@@ -1,5 +1,6 @@
 "use client";
 
+import { useWorkspaceUsage } from "@/hooks/use-workspace-usage";
 import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
 import { useWorkspace } from "@/providers/workspace-provider";
@@ -38,10 +39,9 @@ export function useUsageSummary(): UsageSummary | null {
     refetchOnWindowFocus: false,
     trpc: { context: { skipBatch: true } },
   });
-  const apiUsage = trpc.billing.queryUsage.useQuery(undefined, {
+  const apiUsage = useWorkspaceUsage("current", {
     staleTime: STALE_MS,
     refetchOnWindowFocus: false,
-    trpc: { context: { skipBatch: true } },
   });
 
   if (!workspace) {
@@ -99,7 +99,7 @@ function measureCompute(
 }
 
 function measureApi(
-  usage: Query<{ billableTotal: number }>,
+  usage: Query<{ api: { verifications: number; ratelimits: number } }>,
   max: number | null,
 ): Measured<ApiUsage> | null {
   if (max === null || max <= 0) {
@@ -111,5 +111,8 @@ function measureApi(
   if (usage.data === undefined) {
     return { state: "loading" };
   }
-  return { state: "ready", value: { used: usage.data.billableTotal, max } };
+  return {
+    state: "ready",
+    value: { used: usage.data.api.verifications + usage.data.api.ratelimits, max },
+  };
 }

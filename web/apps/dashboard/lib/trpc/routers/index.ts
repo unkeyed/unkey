@@ -28,9 +28,7 @@ import { queryRoles } from "./authorization/roles/query";
 import { updateRole } from "./authorization/roles/update";
 import { getDeployBudget, setDeployBudget } from "./billing/deploy-budget";
 import { queryDeployUsage } from "./billing/query-deploy-usage";
-import { queryDeployUsageBreakdown } from "./billing/query-deploy-usage-breakdown";
 import { queryDeployUsageTimeseries } from "./billing/query-deploy-usage-timeseries";
-import { queryUsage } from "./billing/query-usage";
 import { authorizeDeployment } from "./deploy/deployment/authorize";
 import { getDeploymentBuildSteps } from "./deploy/deployment/build-steps";
 import { cancelDeployment } from "./deploy/deployment/cancel";
@@ -277,9 +275,7 @@ export const router = t.router({
     llmSearch,
   }),
   billing: t.router({
-    queryUsage,
     queryDeployUsage,
-    queryDeployUsageBreakdown,
     queryDeployUsageTimeseries,
     getDeployBudget,
     setDeployBudget,

@@ -1,6 +1,7 @@
 "use client";
 
 import { PageLoading } from "@/components/dashboard/page-loading";
+import { useWorkspaceUsage } from "@/hooks/use-workspace-usage";
 import { useBillingUIUpgrades } from "@/lib/flags/use-billing-ui-upgrades";
 import { trpc } from "@/lib/trpc/client";
 import { useWorkspace } from "@/providers/workspace-provider";
@@ -29,7 +30,7 @@ import { type ReactNode, useState } from "react";
 import { PlansScreen } from "../billing/components/plans-screen";
 import { ApiCard } from "./api-card";
 import { ComputeCard, ComputeCardShell, ComputeCardSkeleton } from "./compute-card";
-import { buildComputeTree } from "./compute-tree";
+import { breakdownFromUsage, buildComputeTree } from "./compute-tree";
 import {
   type UsagePeriod,
   type UsagePeriodOption,
@@ -47,22 +48,7 @@ export default function UsagePage() {
   const [periodValue, setPeriodValue] = useQueryState("period", parseAsString);
   const period = resolveUsagePeriod(periodValue);
 
-  const breakdown = trpc.billing.queryDeployUsageBreakdown.useQuery(
-    { period },
-    {
-      enabled: Boolean(workspace) && billingUpgrades && hasComputePlan,
-      trpc: { context: { skipBatch: true } },
-      retry: 1,
-    },
-  );
-  const apiUsage = trpc.billing.queryUsage.useQuery(
-    { period },
-    {
-      enabled: Boolean(workspace) && billingUpgrades,
-      trpc: { context: { skipBatch: true } },
-      retry: 1,
-    },
-  );
+  const usage = useWorkspaceUsage(period, { enabled: Boolean(workspace) && billingUpgrades });
   const billingInfo = trpc.stripe.getBillingInfo.useQuery(undefined, {
     enabled: Boolean(workspace) && billingUpgrades,
     staleTime: 30_000,
@@ -85,9 +71,10 @@ export default function UsagePage() {
     notFound();
   }
 
-  const computeTree = breakdown.data === undefined ? undefined : buildComputeTree(breakdown.data);
+  const computeTree =
+    usage.data === undefined ? undefined : buildComputeTree(breakdownFromUsage(usage.data.compute));
   const compute = hasComputePlan ? (
-    breakdown.isError ? (
+    usage.isError ? (
       <ComputeCardShell description="Usage per project this period">
         <div className="px-4 py-8">
           <EmptyState frame="none">
@@ -134,12 +121,12 @@ export default function UsagePage() {
   // number on two adjacent pages for any workspace with an overridden limit.
   const api = (
     <ApiCard
-      verifications={apiUsage.data?.billableVerifications ?? null}
-      ratelimits={apiUsage.data?.billableRatelimits ?? null}
+      verifications={usage.data?.api.verifications ?? null}
+      ratelimits={usage.data?.api.ratelimits ?? null}
       quota={limits?.apiBillableOperationsCountMaxPerMonth ?? null}
       feeCents={feeCents}
       isLoading={
-        (apiUsage.data === undefined && !apiUsage.isError) || (!planKnown && !billingInfo.isError)
+        (usage.data === undefined && !usage.isError) || (!planKnown && !billingInfo.isError)
       }
     />
   );

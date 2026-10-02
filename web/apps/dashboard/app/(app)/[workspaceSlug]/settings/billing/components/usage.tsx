@@ -1,6 +1,6 @@
 "use client";
+import { useWorkspaceUsage } from "@/hooks/use-workspace-usage";
 import { formatNumber } from "@/lib/fmt";
-import { trpc } from "@/lib/trpc/client";
 import { SettingCard, Skeleton } from "@unkey/ui";
 
 export const Usage: React.FC<{
@@ -11,18 +11,7 @@ export const Usage: React.FC<{
     isLoading,
     error,
     refetch,
-  } = trpc.billing.queryUsage.useQuery(undefined, {
-    // Cache for 30 seconds to reduce unnecessary refetches
-    // TRPC automatically scopes by workspace via requireWorkspace middleware
-    staleTime: 30_000, // 30 seconds
-    // Skip batching to prevent analytics slowdown from blocking core UI
-    trpc: {
-      context: {
-        skipBatch: true,
-      },
-    },
-    retry: 1,
-  });
+  } = useWorkspaceUsage("current", { staleTime: 5 * 60 * 1000 });
 
   if (isLoading) {
     return (
@@ -79,12 +68,12 @@ export const Usage: React.FC<{
 
   // Safely extract and validate numeric values with fallbacks
   const verifications =
-    typeof usage.billableVerifications === "number" && !Number.isNaN(usage.billableVerifications)
-      ? usage.billableVerifications
+    typeof usage.api.verifications === "number" && !Number.isNaN(usage.api.verifications)
+      ? usage.api.verifications
       : 0;
   const ratelimits =
-    typeof usage.billableRatelimits === "number" && !Number.isNaN(usage.billableRatelimits)
-      ? usage.billableRatelimits
+    typeof usage.api.ratelimits === "number" && !Number.isNaN(usage.api.ratelimits)
+      ? usage.api.ratelimits
       : 0;
   const current = verifications + ratelimits;
   const max = quota;

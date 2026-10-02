@@ -48,5 +48,6 @@ export const queryKeys = {
   workspace: {
     all: workspaceRoot,
     limits: [...workspaceRoot, "limits"] as const,
+    usage: (period: "current" | "previous") => [...workspaceRoot, "usage", period] as const,
   },
 };
