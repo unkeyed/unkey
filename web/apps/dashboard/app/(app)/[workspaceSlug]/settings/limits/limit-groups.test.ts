@@ -1,27 +1,45 @@
 import { type LimitsPlan, limitsByPlan } from "@/lib/limits";
-import type { Limits } from "@unkey/db";
+import type {
+  V2WorkspaceGetLimitsCompute,
+  V2WorkspaceGetLimitsResponseData,
+} from "@unkey/api/models/components";
 import { describe, expect, it } from "vitest";
-import { type LimitGroup, type Measured, breachedKeys, buildLimitGroups } from "./limit-groups";
+import { type LimitGroup, breachedKeys, buildLimitGroups } from "./limit-groups";
 
 const ROW = "Custom domains";
 
-function limitsFor(plan: LimitsPlan, overrides: Partial<Limits> = {}): Limits {
-  return { ...limitsByPlan[plan], pk: 1, workspaceId: "ws_KEBAP", ...overrides } as Limits;
+function computeFor(plan: LimitsPlan, attachedDomains: number): V2WorkspaceGetLimitsCompute {
+  const limits = limitsByPlan[plan];
+  return {
+    vCpus: { limit: limits.cpuCoresMax, used: 0 },
+    vCpusPerInstance: limits.cpuCoresMaxPerInstance,
+    memoryMib: { limit: limits.memoryMibMax, used: 0 },
+    memoryMibPerInstance: limits.memoryMibMaxPerInstance,
+    storageMib: { limit: limits.storageMibMax, used: 0 },
+    storageMibPerInstance: limits.storageMibMaxPerInstance,
+    concurrentBuilds: limits.buildsConcurrentMax,
+    replicasPerRegion: limits.autoscalingReplicasMax,
+    customDomains: { limit: limits.customDomainsMax, used: attachedDomains },
+  };
 }
 
-function groupsFor(plan: LimitsPlan, attached: number, overrides?: Partial<Limits>): LimitGroup[] {
-  const ready: Measured<number> = { state: "ready", value: attached };
-  return buildLimitGroups({
-    limits: limitsFor(plan, overrides),
-    hasComputePlan: true,
-    apiOperations: ready,
-    allocation: {
-      state: "ready",
-      value: { totalCpuMillicores: 0, totalMemoryMib: 0, totalStorageMib: 0 },
+function responseFor(plan: LimitsPlan, attachedDomains: number): V2WorkspaceGetLimitsResponseData {
+  const limits = limitsByPlan[plan];
+  return {
+    api: {
+      billableOperations: { limit: limits.apiBillableOperationsCountMaxPerMonth, used: 0 },
     },
-    customDomains: ready,
-    logdrains: { state: "loading" },
-  });
+    logs: {
+      retentionDays: limits.logsRetentionDaysMax,
+      auditRetentionDays: limits.logsAuditRetentionDaysMax,
+      logDrains: { limit: limits.logdrainsMax, used: 0 },
+    },
+    compute: computeFor(plan, attachedDomains),
+  };
+}
+
+function groupsFor(plan: LimitsPlan, attachedDomains: number): LimitGroup[] {
+  return buildLimitGroups(responseFor(plan, attachedDomains));
 }
 
 function domainsRow(groups: LimitGroup[]) {
@@ -30,20 +48,29 @@ function domainsRow(groups: LimitGroup[]) {
 
 describe("log drains row", () => {
   it("meters the current count against the workspace allowance", () => {
+    const response = responseFor("free", 0);
     const groups = buildLimitGroups({
-      limits: limitsFor("free", { logdrainsMax: 3 }),
-      hasComputePlan: false,
-      apiOperations: { state: "loading" },
-      allocation: { state: "loading" },
-      customDomains: { state: "loading" },
-      logdrains: { state: "ready", value: 1 },
+      ...response,
+      logs: { ...response.logs, logDrains: { limit: 3, used: 1 } },
     });
     expect(groups.find((group) => group.key === "logs")?.rows).toContainEqual({
       name: "Log drains",
       limit: "3",
-      usage: { state: "ready", value: 1, max: 3, label: "1" },
+      usage: { value: 1, max: 3, label: "1" },
       status: "ok",
     });
+  });
+});
+
+describe("workspace CPU row", () => {
+  it("shows fractional reserved vCPUs against the workspace limit", () => {
+    const groups = buildLimitGroups({
+      ...responseFor("starter", 0),
+      compute: { ...computeFor("starter", 0), vCpus: { limit: 30, used: 2.5 } },
+    });
+    const row = groups.flatMap((group) => group.rows).find((r) => r.name === "Workspace CPU");
+    expect(row?.limit).toBe("30 vCPU");
+    expect(row?.usage).toEqual({ value: 2.5, max: 30, label: "2.50 vCPU" });
   });
 });
 
@@ -52,14 +79,7 @@ describe("custom domains row", () => {
     const compute = groupsFor("starter", 0).find((group) => group.key === "compute");
     expect(compute?.rows.map((row) => row.name)).toContain(ROW);
 
-    const withoutPlan = buildLimitGroups({
-      limits: limitsFor("starter"),
-      hasComputePlan: false,
-      apiOperations: { state: "ready", value: 0 },
-      allocation: { state: "loading" },
-      customDomains: { state: "ready", value: 0 },
-      logdrains: { state: "loading" },
-    });
+    const withoutPlan = buildLimitGroups({ ...responseFor("starter", 0), compute: undefined });
     expect(domainsRow(withoutPlan)).toBeUndefined();
   });
 
@@ -81,7 +101,7 @@ describe("custom domains row", () => {
   it("meters the attached count against a real cap", () => {
     const row = domainsRow(groupsFor("starter", 0));
     expect(row?.limit).toBe("1");
-    expect(row?.usage).toEqual({ state: "ready", value: 0, max: 1, label: "0" });
+    expect(row?.usage).toEqual({ value: 0, max: 1, label: "0" });
     expect(row?.status).toBe("ok");
   });
 
@@ -101,17 +121,10 @@ describe("breachedKeys", () => {
   });
 
   it("reports the group key for rows that carry no breachKey", () => {
-    // storageMibMax 0 with disk allocated is a compute breach, not a domain one.
+    // A storage limit of 0 with disk reserved is a compute breach, not a domain one.
     const groups = buildLimitGroups({
-      limits: limitsFor("starter", { storageMibMax: 0 }),
-      hasComputePlan: true,
-      apiOperations: { state: "ready", value: 0 },
-      allocation: {
-        state: "ready",
-        value: { totalCpuMillicores: 0, totalMemoryMib: 0, totalStorageMib: 512 },
-      },
-      customDomains: { state: "ready", value: 0 },
-      logdrains: { state: "loading" },
+      ...responseFor("starter", 0),
+      compute: { ...computeFor("starter", 0), storageMib: { limit: 0, used: 512 } },
     });
     expect(breachedKeys(groups)).toEqual(["compute"]);
   });

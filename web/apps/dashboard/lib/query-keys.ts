@@ -3,6 +3,7 @@ const rbacRoot = ["rbac"] as const;
 const rolesRoot = [...rbacRoot, "roles"] as const;
 const permissionsRoot = [...rbacRoot, "permissions"] as const;
 const identitiesRoot = ["identities"] as const;
+const workspaceRoot = ["workspace"] as const;
 const portalSessionLists = (portalId: string) => ["portalSessions", portalId, "list"] as const;
 
 export const queryKeys = {
@@ -43,5 +44,9 @@ export const queryKeys = {
   },
   statusPage: {
     summary: ["status-page-summary"] as const,
+  },
+  workspace: {
+    all: workspaceRoot,
+    limits: [...workspaceRoot, "limits"] as const,
   },
 };

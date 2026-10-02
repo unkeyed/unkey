@@ -94,11 +94,11 @@ describe("rowOffers", () => {
   it("offers the actions supported by each general resource", () => {
     for (const scope of RESOURCE_SCOPES) {
       for (const row of catalogueRows(CATALOGUES[scope])) {
-        const logs = row.id.endsWith("_log");
+        const readOnly = row.id.endsWith("_log") || row.id === "limits";
         const session = row.id === "portal_session";
         expect(rowOffers(row, "read"), `${scope}:${row.id}:read`).toBe(true);
-        expect(rowOffers(row, "write"), `${scope}:${row.id}:write`).toBe(!logs);
-        expect(rowOffers(row, "delete"), `${scope}:${row.id}:delete`).toBe(!logs && !session);
+        expect(rowOffers(row, "write"), `${scope}:${row.id}:write`).toBe(!readOnly);
+        expect(rowOffers(row, "delete"), `${scope}:${row.id}:delete`).toBe(!readOnly && !session);
       }
     }
   });
@@ -206,6 +206,7 @@ describe("catalogue grammar", () => {
       "projects/*/portals/*/sessions/*",
       "rootKeys/*",
       "github/apps/*",
+      "limits",
     ]);
   });
 });
