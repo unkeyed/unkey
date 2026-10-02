@@ -43,8 +43,12 @@ export function dynamicTagsFromStore(): SqlCommentDynamicTags {
   return dynamicStore.getStore() ?? {};
 }
 
-export function createCommentedPool(options: PoolOptions, staticTags: SqlCommentStaticTags): Pool {
-  const pool = mysql.createPool(options);
+export function createCommentedPool(
+  connection: string | PoolOptions,
+  staticTags: SqlCommentStaticTags,
+): Pool {
+  const pool =
+    typeof connection === "string" ? mysql.createPool(connection) : mysql.createPool(connection);
   const wrapped = wrapQueryable(pool, staticTags);
 
   return new Proxy(wrapped, {
