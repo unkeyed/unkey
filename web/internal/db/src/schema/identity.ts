@@ -25,11 +25,9 @@ export const identities = mysqlTable(
     ...lifecycleDates,
   },
   (table) => ({
-    uniqueDeletedExternalIdPerWorkspace: uniqueIndex("workspace_id_external_id_deleted_idx").on(
-      table.workspaceId,
-      table.externalId,
-      table.deleted,
-    ),
+    uniqueDeletedExternalIdPerProject: uniqueIndex(
+      "workspace_id_project_id_external_id_deleted_idx",
+    ).on(table.workspaceId, table.projectId, table.externalId, table.deleted),
     projectIdIdx: index("identity_project_id_idx").on(table.projectId),
   }),
 );

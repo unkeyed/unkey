@@ -20,6 +20,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
 	apierrors "github.com/unkeyed/unkey/svc/api/internal/errors"
+	"github.com/unkeyed/unkey/svc/api/internal/projects"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
@@ -99,8 +100,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 	}
 
+	projectID, err := projects.EnsureDefaultProject(ctx, h.DB.RW(), principal.AuthorizedWorkspaceID)
+	if err != nil {
+		return err
+	}
+
 	identityRow, err := db.Query.FindIdentity(ctx, h.DB.RO(), db.FindIdentityParams{
 		WorkspaceID: principal.AuthorizedWorkspaceID,
+		ProjectID:   projectID,
 		Identity:    req.Identity,
 		Deleted:     false,
 	})

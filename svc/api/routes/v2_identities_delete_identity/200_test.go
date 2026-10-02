@@ -13,6 +13,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/array"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/svc/api/internal/projects"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_identities_delete_identity"
@@ -28,6 +29,9 @@ func TestDeleteIdentitySuccess(t *testing.T) {
 	}
 
 	h.Register(route)
+
+	defaultProjectID, err := projects.EnsureDefaultProject(t.Context(), h.DB.RW(), h.Resources().UserWorkspace.ID)
+	require.NoError(t, err)
 
 	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "identity.*.delete_identity")
 	headers := http.Header{
@@ -46,6 +50,7 @@ func TestDeleteIdentitySuccess(t *testing.T) {
 		// Verify identity exists before deletion
 		identity, err := db.Query.FindIdentityByExternalID(ctx, h.DB.RO(), db.FindIdentityByExternalIDParams{
 			WorkspaceID: h.Resources().UserWorkspace.ID,
+			ProjectID:   defaultProjectID,
 			ExternalID:  externalID,
 			Deleted:     false,
 		})
@@ -62,6 +67,7 @@ func TestDeleteIdentitySuccess(t *testing.T) {
 		// Verify identity is soft deleted
 		_, err = db.Query.FindIdentityByExternalID(ctx, h.DB.RO(), db.FindIdentityByExternalIDParams{
 			WorkspaceID: h.Resources().UserWorkspace.ID,
+			ProjectID:   defaultProjectID,
 			ExternalID:  externalID,
 			Deleted:     false,
 		})

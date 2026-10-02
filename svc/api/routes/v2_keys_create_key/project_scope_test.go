@@ -103,7 +103,10 @@ func TestCreateKeyRejectsPermissionFromAnotherProject(t *testing.T) {
 	require.Empty(t, permissionsInKeyProject)
 }
 
-func TestCreateKeyRejectsIdentityFromAnotherProject(t *testing.T) {
+// TestCreateKeyScopesIdentityToKeyProject guarantees that an external ID used in
+// another project of the same workspace resolves to a separate identity in the
+// key's project, never to the other project's identity.
+func TestCreateKeyScopesIdentityToKeyProject(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route := &handler.Handler{DB: h.DB, Keys: h.Keys, Auditlogs: h.Auditlogs, Vault: h.Vault}
 	h.Register(route)
@@ -117,9 +120,10 @@ func TestCreateKeyRejectsIdentityFromAnotherProject(t *testing.T) {
 		Slug:        uid.New("project"),
 	})
 	keyProjectAPI := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspace.ID, ProjectID: keyProject.ID})
-	externalID := "identity_create_wrong_project"
+	externalID := uid.New("identity_create_other_project")
+	otherProjectIdentityID := uid.New(uid.IdentityPrefix)
 	err := db.Query.InsertIdentity(t.Context(), h.DB.RW(), db.InsertIdentityParams{
-		ID:          uid.New(uid.IdentityPrefix),
+		ID:          otherProjectIdentityID,
 		ExternalID:  externalID,
 		WorkspaceID: workspace.ID,
 		ProjectID:   otherProjectAPI.ProjectID,
@@ -130,11 +134,23 @@ func TestCreateKeyRejectsIdentityFromAnotherProject(t *testing.T) {
 	require.NoError(t, err)
 
 	rootKey := h.CreateRootKey(workspace.ID, createKeyPermission(workspace.ID, keyProject.ID, keyProjectAPI.KeyAuthID.String))
-	res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, http.Header{
+	res := testutil.CallRoute[handler.Request, handler.Response](h, route, http.Header{
 		"Content-Type":  {"application/json"},
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 	}, handler.Request{ApiId: keyProjectAPI.ID, ExternalId: new(externalID)})
+	require.Equal(t, http.StatusOK, res.Status, "got: %s", res.RawBody)
 
-	require.Equal(t, http.StatusNotFound, res.Status, "got: %s", res.RawBody)
-	require.Contains(t, res.Body.Error.Detail, externalID)
+	key, err := db.Query.FindKeyByID(t.Context(), h.DB.RO(), res.Body.Data.KeyId)
+	require.NoError(t, err)
+	require.True(t, key.IdentityID.Valid)
+	require.NotEqual(t, otherProjectIdentityID, key.IdentityID.String)
+
+	identity, err := db.Query.FindIdentityByID(t.Context(), h.DB.RO(), db.FindIdentityByIDParams{
+		IdentityID:  key.IdentityID.String,
+		WorkspaceID: workspace.ID,
+		Deleted:     false,
+	})
+	require.NoError(t, err)
+	require.Equal(t, keyProject.ID, identity.ProjectID)
+	require.Equal(t, externalID, identity.ExternalID)
 }

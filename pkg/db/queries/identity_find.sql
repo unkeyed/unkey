@@ -1,4 +1,9 @@
 -- name: FindIdentity :one
+-- FindIdentity resolves an identity by its ID or by its external ID. An ID
+-- match wins over an external ID match, enforced by lookup_priority.
+--
+-- IDs are unique per workspace, but external IDs are unique per project, so
+-- only the external ID branch is scoped to project_id.
 SELECT
     i.pk, i.id, i.external_id, i.workspace_id, i.project_id, i.environment, i.meta,
     i.deleted, i.created_at, i.updated_at,
@@ -33,6 +38,7 @@ FROM (
         1 AS lookup_priority
     FROM identities id2
     WHERE id2.workspace_id = sqlc.arg(workspace_id)
+      AND id2.project_id = sqlc.arg(project_id)
       AND id2.external_id = sqlc.arg(identity)
       AND id2.deleted = sqlc.arg(deleted)
 ) AS i

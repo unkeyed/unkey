@@ -45,6 +45,7 @@ FROM (
         1 AS lookup_priority
     FROM identities id2
     WHERE id2.workspace_id = ?
+      AND id2.project_id = ?
       AND id2.external_id = ?
       AND id2.deleted = ?
 ) AS i
@@ -56,6 +57,7 @@ type FindIdentityParams struct {
 	Identity    string `db:"identity"`
 	WorkspaceID string `db:"workspace_id"`
 	Deleted     bool   `db:"deleted"`
+	ProjectID   string `db:"project_id"`
 }
 
 type FindIdentityRow struct {
@@ -72,7 +74,11 @@ type FindIdentityRow struct {
 	Ratelimits  interface{}   `db:"ratelimits"`
 }
 
-// FindIdentity
+// FindIdentity resolves an identity by its ID or by its external ID. An ID
+// match wins over an external ID match, enforced by lookup_priority.
+//
+// IDs are unique per workspace, but external IDs are unique per project, so
+// only the external ID branch is scoped to project_id.
 //
 //	SELECT
 //	    i.pk, i.id, i.external_id, i.workspace_id, i.project_id, i.environment, i.meta,
@@ -108,6 +114,7 @@ type FindIdentityRow struct {
 //	        1 AS lookup_priority
 //	    FROM identities id2
 //	    WHERE id2.workspace_id = ?
+//	      AND id2.project_id = ?
 //	      AND id2.external_id = ?
 //	      AND id2.deleted = ?
 //	) AS i
@@ -119,6 +126,7 @@ func (q *Queries) FindIdentity(ctx context.Context, db DBTX, arg FindIdentityPar
 		arg.WorkspaceID,
 		arg.Deleted,
 		arg.WorkspaceID,
+		arg.ProjectID,
 		arg.Identity,
 		arg.Deleted,
 	)
