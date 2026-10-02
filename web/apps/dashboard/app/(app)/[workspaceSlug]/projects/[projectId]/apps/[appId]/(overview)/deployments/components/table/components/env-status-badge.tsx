@@ -23,7 +23,7 @@ export const EnvStatusBadge = ({
   ...props
 }: EnvStatusBadgeProps) => {
   return (
-    <InfoTooltip content={tooltipContent[variant]} variant="inverted">
+    <InfoTooltip content={tooltipContent[variant]}>
       <TagBadge variant={variant} icon={icon} text={text} className={className} {...props} />
     </InfoTooltip>
   );

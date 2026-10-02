@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"net/netip"
 	"strings"
 	"testing"
 	"time"
@@ -126,11 +127,14 @@ func TestForwardToRegion_AppendsMetadataAtEachHop(t *testing.T) {
 		metadata:   metadata,
 	}
 	req := httptest.NewRequest(http.MethodGet, "https://api.example.com/v1/items?page=2", nil)
+	req.RemoteAddr = "198.51.100.42:12345"
+	req.Header.Set("X-Forwarded-For", "203.0.113.77")
 	firstSession := newProxySession(t, req)
 	ctx := WithRequestStartTime(context.Background(), now)
 	require.NoError(t, first.ForwardToRegion(ctx, firstSession, "us-west-2.aws", nil))
 	require.Len(t, recorder.seen, 1)
 	require.Equal(t, now.Add(frontlineMetadataTTL), recorder.seen[0].ExpiresAt)
+	require.Equal(t, "198.51.100.42", recorder.seen[0].ClientIP)
 	require.Equal(t, []meta.Hop{
 		{
 			Region:        "aws::us-east-1",
@@ -155,10 +159,13 @@ func TestForwardToRegion_AppendsMetadataAtEachHop(t *testing.T) {
 		metadata:   metadata,
 	}
 	secondReq := httptest.NewRequest(http.MethodGet, "https://api.example.com/v1/items?page=2", nil)
+	secondReq.RemoteAddr = "10.1.2.3:443"
 	secondSession := newProxySession(t, secondReq)
+	secondSession.SetClientIP(netip.MustParseAddr(recorder.seen[0].ClientIP))
 	ctx = WithRequestStartTime(context.Background(), secondNow)
 	require.NoError(t, second.ForwardToRegion(ctx, secondSession, "eu-west-1.aws", incomingHops))
 	require.Len(t, recorder.seen, 2)
+	require.Equal(t, "198.51.100.42", recorder.seen[1].ClientIP)
 	require.Equal(t, secondNow.Add(frontlineMetadataTTL), recorder.seen[1].ExpiresAt)
 	require.Equal(t, []meta.Hop{
 		{

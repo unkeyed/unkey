@@ -2,7 +2,14 @@
 import { LoadingState } from "@/components/loading-state";
 import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
-import { Empty } from "@unkey/ui";
+import {
+  EmptyState,
+  EmptyStateDescription,
+  EmptyStateHeader,
+  EmptyStateTitle,
+  PageBody,
+  PageContainer,
+} from "@unkey/ui";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef } from "react";
 
@@ -26,6 +33,11 @@ export default function Page() {
 
   const mutation = trpc.github.registerInstallation.useMutation({
     onSuccess: (data) => {
+      if (data.status === "authorization_required") {
+        window.location.replace(data.authorizationUrl);
+        return;
+      }
+
       if (data.flow === "app" && data.projectId && data.appId) {
         // Return to the app: its settings, or the repo picker when the wizard
         // hasn't chosen a repo yet.
@@ -55,51 +67,67 @@ export default function Page() {
   // strict-mode remount reads before the first mutate flips it), blocks a re-submit.
   const submittedRef = useRef(false);
   useEffect(() => {
-    if (!state || installationIdNumber === null || submittedRef.current) {
+    if (!state || (installationIdNumber === null && !code) || submittedRef.current) {
       return;
     }
     submittedRef.current = true;
 
-    // `code` is absent when an existing user returns from editing an
-    // already-authorized installation. The server only requires it when
-    // binding an installation the workspace does not already own.
+    // `code` is absent when GitHub returns from editing an existing
+    // installation. The server starts an authorization round-trip if this
+    // workspace has not linked the installation yet.
     mutation.mutate({
       state,
-      installationId: installationIdNumber,
+      installationId: installationIdNumber ?? undefined,
       code: code ?? undefined,
     });
   }, [mutation, state, installationIdNumber, code]);
 
   if (!state) {
     return (
-      <div className="w-full min-h-[60vh] flex justify-center items-center">
-        <Empty>
-          <Empty.Title>Invalid callback state</Empty.Title>
-          <Empty.Description>Missing or invalid GitHub installation state.</Empty.Description>
-        </Empty>
-      </div>
+      <PageContainer>
+        <PageBody>
+          <EmptyState>
+            <EmptyStateHeader>
+              <EmptyStateTitle>Invalid callback state</EmptyStateTitle>
+              <EmptyStateDescription>
+                Missing or invalid GitHub installation state.
+              </EmptyStateDescription>
+            </EmptyStateHeader>
+          </EmptyState>
+        </PageBody>
+      </PageContainer>
     );
   }
 
-  if (installationIdNumber === null) {
+  if (installationIdNumber === null && !code) {
     return (
-      <div className="w-full min-h-[60vh] flex justify-center items-center">
-        <Empty>
-          <Empty.Title>Missing installation</Empty.Title>
-          <Empty.Description>Missing or invalid GitHub installation id.</Empty.Description>
-        </Empty>
-      </div>
+      <PageContainer>
+        <PageBody>
+          <EmptyState>
+            <EmptyStateHeader>
+              <EmptyStateTitle>Missing installation</EmptyStateTitle>
+              <EmptyStateDescription>
+                Missing or invalid GitHub installation id.
+              </EmptyStateDescription>
+            </EmptyStateHeader>
+          </EmptyState>
+        </PageBody>
+      </PageContainer>
     );
   }
 
   if (mutation.isError) {
     return (
-      <div className="w-full min-h-[60vh] flex justify-center items-center">
-        <Empty>
-          <Empty.Title>Installation failed</Empty.Title>
-          <Empty.Description>{mutation.error.message}</Empty.Description>
-        </Empty>
-      </div>
+      <PageContainer>
+        <PageBody>
+          <EmptyState>
+            <EmptyStateHeader>
+              <EmptyStateTitle>Installation failed</EmptyStateTitle>
+              <EmptyStateDescription>{mutation.error.message}</EmptyStateDescription>
+            </EmptyStateHeader>
+          </EmptyState>
+        </PageBody>
+      </PageContainer>
     );
   }
 

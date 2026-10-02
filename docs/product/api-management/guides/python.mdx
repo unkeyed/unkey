@@ -1,0 +1,157 @@
+---
+title: Python guide
+sidebarTitle: "Python"
+description: "Verify API keys from Python with unkey.py."
+sources:
+  - svc/api/openapi/spec/paths/v2/apis/createApi/V2ApisCreateApiRequestBody.yaml
+  - svc/api/openapi/spec/paths/v2/apis/createApi/V2ApisCreateApiResponseData.yaml
+  - pkg/rbac/permissions.go
+  - svc/api/openapi/spec/paths/v2/keys/createKey/V2KeysCreateKeyRequestBody.yaml
+  - svc/api/openapi/spec/paths/v2/keys/createKey/V2KeysCreateKeyResponseData.yaml
+  - svc/api/openapi/spec/paths/v2/keys/verifyKey/V2KeysVerifyKeyRequestBody.yaml
+  - svc/api/openapi/spec/paths/v2/keys/verifyKey/V2KeysVerifyKeyResponseData.yaml
+  - https://github.com/unkeyed/sdks/blob/3bb124498270d8aff36e358dc2e0010e9991869a/api/py/README.md
+  - https://github.com/unkeyed/sdks/blob/3bb124498270d8aff36e358dc2e0010e9991869a/api/py/docs/sdks/keys/README.md
+---
+import RootKeyPrereq from "/snippets/root-key-prereq.mdx";
+import { versions } from "/snippets/versions.mdx";
+
+Protect a Python API with API keys, using the official SDK, `unkey.py` (version {versions.pySdk}). The examples use FastAPI, but the client calls are the same in Flask or Django. For a fuller FastAPI setup, see [FastAPI authentication](/api-management/cookbook/fastapi-auth).
+
+<RootKeyPrereq />
+
+<Steps titleSize="h3">
+  <Step title="Create a root key and a keyspace">
+    In the dashboard, go to **Settings > Root Keys** and create a root key with `api.*.create_api`, `api.*.create_key`, and `api.*.verify_key`. Put it in your server's `UNKEY_ROOT_KEY` environment variable. Never send it to a browser or mobile app.
+
+    Then create a keyspace, which holds your keys. Use **Keyspaces (APIs)** in the dashboard, or `apis.createApi`:
+
+    ```bash create a keyspace
+    curl -X POST https://api.unkey.com/v2/apis.createApi \
+      -H "Authorization: Bearer $UNKEY_ROOT_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{ "name": "my-api" }'
+    ```
+
+    Keep the `data.apiId` from the response. You need it to create keys. See [Root keys](/platform/root-keys/overview) for more on root keys.
+  </Step>
+  <Step title="Install the SDK">
+    <CodeGroup>
+    ```bash pip
+    pip install unkey.py fastapi uvicorn
+    ```
+    ```bash uv
+    uv add unkey.py fastapi uvicorn
+    ```
+    </CodeGroup>
+
+    Create the client with `Unkey(root_key=...)`. It works as a context manager, and every method has an `_async` version for `asyncio`.
+  </Step>
+  <Step title="Create a key for a user">
+    Create a key from your backend when a user signs up or asks for one. `externalId` links the key to the user, so verification tells you who's calling. `meta` comes back on every verification. You get `data.key` only once: show it to the user and store only `data.keyId`.
+
+    <CodeGroup>
+    ```bash curl
+    curl -X POST https://api.unkey.com/v2/keys.createKey \
+      -H "Authorization: Bearer $UNKEY_ROOT_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{ "apiId": "api_...", "prefix": "sk_live", "externalId": "user_123", "meta": { "plan": "free" } }'
+    ```
+    ```python Python
+    import os
+
+    from unkey.py import Unkey
+
+    with Unkey(root_key=os.environ["UNKEY_ROOT_KEY"]) as unkey:
+        created = unkey.keys.create_key(
+            api_id=os.environ["UNKEY_API_ID"],
+            prefix="sk_live",
+            external_id="user_123",
+            meta={"plan": "free"},
+        )
+        # created.data.key is the plaintext, created.data.key_id the handle you keep
+        print(created.data.key_id)
+    ```
+    </CodeGroup>
+
+    Every field is described in [Creating keys](/api-management/keys/creating-keys).
+  </Step>
+  <Step title="Verify the key in a dependency">
+    The dependency reads the bearer token, calls `keys.verify_key`, and raises `HTTPException` with the right status when `data.valid` is false. If the call itself fails, it raises `errors.UnkeyError`, or an `httpx` error for a timeout or connection failure. Catch both and return 503, so callers can tell an outage from a rejected key.
+
+    ```python main.py
+    import os
+
+    import httpx
+    from fastapi import Depends, FastAPI, HTTPException, Request
+    from unkey.py import Unkey, errors
+
+    app = FastAPI()
+    unkey = Unkey(root_key=os.environ["UNKEY_ROOT_KEY"])
+
+    STATUS = {
+        "RATE_LIMITED": 429,
+        "USAGE_EXCEEDED": 402,
+        "FORBIDDEN": 403,
+        "INSUFFICIENT_PERMISSIONS": 403,
+    }
+
+
+    def require_key(request: Request):
+        auth = request.headers.get("authorization", "")
+        if not auth.startswith("Bearer "):
+            raise HTTPException(status_code=401, detail="missing API key")
+        key = auth[len("Bearer "):]
+
+        try:
+            res = unkey.keys.verify_key(
+                key=key,
+                tags=[f"endpoint={request.url.path}", f"method={request.method}"],
+            )
+        except (errors.UnkeyError, httpx.HTTPError) as e:
+            # The call failed (bad root key, throttle, outage), not the user's key.
+            raise HTTPException(status_code=503, detail="authentication unavailable") from e
+
+        if not res.data.valid:
+            code = res.data.code
+            raise HTTPException(status_code=STATUS.get(code, 401), detail=code)
+        return res.data
+
+
+    @app.get("/items")
+    def list_items(verification=Depends(require_key)):
+        owner = verification.identity.external_id if verification.identity else None
+        return {"items": [], "owner": owner}
+    ```
+
+    For an async app, create the client with `async with Unkey(...)` and call `await unkey.keys.verify_key_async(key=key)`.
+
+    ```bash
+    uvicorn main:app --port 3000
+    curl http://localhost:3000/items -H "Authorization: Bearer sk_live_..."
+    ```
+  </Step>
+  <Step title="Handle the outcome codes">
+    `keys.verifyKey` returns HTTP 200 for every outcome. Check `data.valid`, then `data.code` for the reason, and return the matching status from your API:
+
+    | `data.code` | Meaning | Return |
+    | --- | --- | --- |
+    | `VALID` | Every check passed. | continue |
+    | `NOT_FOUND` | No such key, or your root key may not verify this keyspace. | 401 |
+    | `DISABLED` | The key was disabled. | 401 |
+    | `EXPIRED` | The key's expiry passed. | 401 |
+    | `FORBIDDEN` | Client IP not on the keyspace allow list, or the workspace is disabled. | 403 |
+    | `INSUFFICIENT_PERMISSIONS` | The `permissions` query was not satisfied. | 403 |
+    | `RATE_LIMITED` | A <Tooltip tip="Here: limits enforced by keys.verifyKey on a key or identity, or by the standalone ratelimit API. Not a Compute gateway policy.">rate limit</Tooltip> on the key or its identity was exceeded. | 429 |
+    | `USAGE_EXCEEDED` | The key has no credits left. | 402 or 429 |
+
+    Remaining credits are in `data.credits`, and each checked rate limit is in `data.ratelimits` with `remaining` and `reset`. The call only fails with an HTTP error (which the SDKs throw) when the call itself is wrong, such as a bad root key or a malformed body. See [Verifying keys](/api-management/keys/verifying-keys) for every field.
+  </Step>
+  <Step title="Next steps">
+    <Columns cols={2}>
+      <Card title="Verifying keys" href="/api-management/keys/verifying-keys" icon="key">Every request field, the order of checks, and every response field.</Card>
+      <Card title="Credits and refill" href="/api-management/keys/credits-and-refill" icon="coins">Meter usage per key and refill balances on a schedule.</Card>
+      <Card title="Cookbook" href="/api-management/cookbook/index" icon="book">Copy-ready recipes for rate limits, billing, and subscription tiers.</Card>
+    </Columns>
+  </Step>
+</Steps>

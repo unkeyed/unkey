@@ -1,14 +1,14 @@
 "use client";
+import { queryKeys } from "@/lib/query-keys";
 
-import {
-  type PortalState,
-  portalQueryKey,
-  usePortal,
-  useUpdatePortal,
-} from "@/lib/portal/use-portal";
+import { type PortalState, usePortal, useUpdatePortal } from "@/lib/portal/use-portal";
 import { useQueryClient } from "@tanstack/react-query";
 import type { Portal } from "@unkey/api/models/components";
-import { BookBookmark, CircleWarning, TriangleWarning2 } from "@unkey/icons";
+import {
+  IconBookBookmarkOutline18,
+  IconCircleWarningOutline18,
+  IconTriangleWarningOutline18,
+} from "@unkey/icons";
 import { match } from "@unkey/match";
 import {
   AlertBanner,
@@ -84,7 +84,7 @@ function PortalLoading() {
 function PortalErrorPanel({ message, onRetry }: { message: string; onRetry?: () => void }) {
   return (
     <AlertBanner variant="error">
-      <CircleWarning iconSize="md-regular" />
+      <IconCircleWarningOutline18 className="size-3.5" />
       <AlertBannerTitle>Couldn't load the customer portal</AlertBannerTitle>
       <AlertBannerDescription>{message}</AlertBannerDescription>
       {onRetry ? (
@@ -101,7 +101,7 @@ function PortalErrorPanel({ message, onRetry }: { message: string; onRetry?: () 
 function DisabledBanner({ onEnable, enabling }: { onEnable: () => void; enabling: boolean }) {
   return (
     <AlertBanner variant="warning">
-      <TriangleWarning2 iconSize="md-regular" />
+      <IconTriangleWarningOutline18 className="size-3.5" />
       <AlertBannerTitle>Portal disabled</AlertBannerTitle>
       <AlertBannerDescription>
         Your users can't sign in right now, but you can still change the settings below.
@@ -144,7 +144,7 @@ export function PortalLifecyclePage({
     ? onRetryKeyAuthId
     : keyAuthId
       ? () => {
-          void queryClient.invalidateQueries({ queryKey: portalQueryKey(keyAuthId) });
+          void queryClient.invalidateQueries({ queryKey: queryKeys.portal.detail(keyAuthId) });
         }
       : undefined;
 
@@ -189,7 +189,7 @@ export function PortalLifecyclePage({
           </PageHeaderContent>
           <PageHeaderActions>
             <Button variant="outline" onClick={() => setIntegrateOpen(true)}>
-              <BookBookmark />
+              <IconBookBookmarkOutline18 />
               Integration docs
             </Button>
           </PageHeaderActions>

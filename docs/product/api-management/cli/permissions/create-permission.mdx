@@ -1,0 +1,76 @@
+---
+title: unkey api permissions create-permission
+sidebarTitle: "create-permission"
+description: "Create a permission that keys and roles can be granted."
+sources:
+  - cmd/api/permissions/create_permission.go
+  - svc/api/routes/v2_permissions_create_permission/handler.go
+  - svc/api/openapi/spec/paths/v2/permissions/createPermission/V2PermissionsCreatePermissionRequestBody.yaml
+  - docs/product/scripts/manifest.json
+---
+
+import RootKeyPrereq from "/snippets/root-key-prereq.mdx";
+
+<RootKeyPrereq />
+
+Create a permission. You grant the slug to keys and roles, and check it with `keys verify-key --permissions`. Calls `POST /v2/permissions.createPermission`. See [Roles and permissions](/api-management/authorization/roles-and-permissions).
+
+## Usage
+
+```bash
+unkey api permissions create-permission --name=<name> --slug=<slug> [flags]
+```
+
+## Flags
+
+<ParamField body="--name" type="string" required>
+  Display name, 1 to 512 characters.
+</ParamField>
+
+<ParamField body="--slug" type="string" required>
+  Name used when granting and checking the permission. Unique per workspace. Reusing one returns 409 [`err:unkey:data:permission_already_exists`](/errors/unkey/data/permission_already_exists). 1 to 128 characters matching `^[a-zA-Z0-9_:\-\.\*]+$`: letters, digits, underscores, colons, hyphens, periods, and asterisks.
+</ParamField>
+
+<ParamField body="--description" type="string">
+  What the permission allows, for the dashboard. Up to 512 characters.
+</ParamField>
+
+### Shared flags
+
+Every `unkey api` command takes these. See [CLI output and shared flags](/platform/cli/output-and-flags).
+
+<ParamField body="--root-key" type="string">
+  Root key used for the request. Falls back to `UNKEY_ROOT_KEY`, then to the key stored by `unkey auth login`.
+</ParamField>
+
+<ParamField body="--api-url" type="string" default="https://api.unkey.com">
+  Base URL of the API. Falls back to `UNKEY_API_BASE_URL`. You don't normally need to set it.
+</ParamField>
+
+<ParamField body="--config" type="string" default="~/.unkey/config.toml">
+  Path of the config file written by `unkey auth login`. Falls back to `UNKEY_CONFIG`.
+</ParamField>
+
+<ParamField body="--output" type="string">
+  Output format. Falls back to `UNKEY_OUTPUT`. `json` prints the full response. Any other value prints the request ID and `data`.
+</ParamField>
+
+<ParamField body="--body" type="string">
+  Send this JSON as the whole request body instead of using the command's flags. You can't combine it with them.
+</ParamField>
+
+## Required permissions
+
+`rbac.*.create_permission`. See [Root key permissions](/platform/root-keys/permissions).
+
+## Examples
+
+```bash Create
+unkey api permissions create-permission --name='Read documents' --slug=documents.read
+```
+
+Or send the whole request as JSON:
+
+```bash Raw body
+unkey api permissions create-permission --body='{"name":"Read documents","slug":"documents.read","description":"List and read documents"}'
+```

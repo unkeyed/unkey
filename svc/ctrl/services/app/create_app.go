@@ -105,7 +105,6 @@ func (s *Service) CreateApp(
 			Name:             req.Msg.GetName(),
 			Slug:             req.Msg.GetSlug(),
 			SourceType:       source.sourceType,
-			DefaultBranch:    "main",
 			DeleteProtection: sql.NullBool{Valid: false},
 			CreatedAt:        now,
 			UpdatedAt:        sql.NullInt64{Valid: false},

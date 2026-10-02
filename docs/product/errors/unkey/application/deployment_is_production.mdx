@@ -1,11 +1,20 @@
 ---
 title: "deployment_is_production"
-description: "Production deployments cannot be started or stopped directly; use promote or rollback to change what production serves."
+sidebarTitle: "deployment_is_production"
+description: "Production deployments cannot be stopped or started directly."
+sources:
+  - pkg/codes/unkey_application.go
+  - svc/api/internal/middleware/errors.go
+  - pkg/deploy/deploygate/deploygate.go
+  - svc/api/routes/v2_deployments_stop_deployment/handler.go
+  - svc/api/routes/v2_deployments_start_deployment/handler.go
 ---
 
 <Danger>`err:unkey:application:deployment_is_production`</Danger>
 
-```json Example
+You tried to stop or start a production deployment, and you can't do that directly. You get HTTP 412.
+
+```json Example response
 {
   "meta": {
     "requestId": "req_2c9a0jf23l4k567"
@@ -14,44 +23,23 @@ description: "Production deployments cannot be started or stopped directly; use 
     "detail": "Production deployments cannot be stopped.",
     "status": 412,
     "title": "Precondition Failed",
-    "type": "https://unkey.com/docs/errors/unkey/application/deployment_is_production"
+    "type": "/errors/unkey/application/deployment_is_production"
   }
 }
 ```
 
-## What Happened?
+## Likely causes
 
-You called `startDeployment` or `stopDeployment` on a deployment in the `production` environment. Neither action applies to production:
+- You called `deployments.stopDeployment` or `deployments.startDeployment` on a production deployment. Stop and start are only for preview deployments.
 
-- Production deployments serve live traffic and are never stopped directly; doing so would take the app offline.
-- Because production is never stopped, there is no stopped state to start from.
+## How to fix
 
-Production traffic is controlled with `promoteDeployment` and `rollbackDeployment`, not `start` or `stop`.
+1. To take a production deployment out of service, promote or roll back to another production deployment with `deployments.promoteDeployment` or `deployments.rollbackDeployment`.
+2. Use stop and start only on preview deployments.
 
-`getDeployment` reports the deployment's `environmentId`, and `availableActions` omits both `start` and `stop` for production deployments.
+See [Production and preview](/compute/concepts/production-and-preview) for what each kind of environment allows.
 
-## How To Fix
+## Related errors
 
-1. Fetch the deployment with `getDeployment` and inspect `availableActions`; neither `start` nor `stop` is listed for production deployments.
-2. To change what production serves, use `promoteDeployment` or `rollbackDeployment`.
-3. The `start` and `stop` actions only apply to non-production deployments.
-
-```bash
-# Move production traffic instead of stopping or starting it
-curl -X POST https://api.unkey.com/v2/deployments.rollbackDeployment \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer unkey_YOUR_API_KEY" \
-  -d '{ "deploymentId": "d_5678wxyz" }'
-```
-
-## Common Mistakes
-
-- **Trying to take production offline**: Using `stop` on a production deployment instead of promoting or rolling back.
-- **Starting production**: Using `start` on a production deployment instead of promoting it.
-- **Wrong environment**: Passing a production deployment id when you meant a preview one.
-
-## Related Errors
-
-- [err:unkey:application:deployment_not_running](./deployment_not_running) - When stopping a deployment that is not running
-- [err:unkey:application:deployment_not_stopped](./deployment_not_stopped) - When starting a deployment that is not stopped
-- [err:unkey:application:deployment_is_stopping](./deployment_is_stopping) - When a stop is already in flight
+- [`err:unkey:application:deployment_not_production`](/errors/unkey/application/deployment_not_production): the opposite case: promote and rollback need a production deployment.
+- [`err:unkey:application:deployment_not_running`](/errors/unkey/application/deployment_not_running): stop was called on a deployment that isn't running.

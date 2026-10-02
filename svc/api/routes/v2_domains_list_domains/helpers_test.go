@@ -26,23 +26,22 @@ func seedEnvironment(t *testing.T, h *testutil.Harness) seededEnv {
 	workspace := h.Resources().UserWorkspace
 
 	project := h.CreateProject(seed.CreateProjectRequest{
-		ID:          uid.New(uid.ProjectPrefix),
+		ID:          randomSlug(),
 		WorkspaceID: workspace.ID,
 		Name:        "Payments Service",
 		Slug:        randomSlug(),
 	})
 
 	app := h.CreateApp(seed.CreateAppRequest{
-		ID:            uid.New(uid.AppPrefix),
-		WorkspaceID:   workspace.ID,
-		ProjectID:     project.ID,
-		Name:          "Payments API",
-		Slug:          randomSlug(),
-		DefaultBranch: "main",
+		ID:          randomSlug(),
+		WorkspaceID: workspace.ID,
+		ProjectID:   project.ID,
+		Name:        "Payments API",
+		Slug:        randomSlug(),
 	})
 
 	environment := h.CreateEnvironment(seed.CreateEnvironmentRequest{
-		ID:          uid.New(uid.EnvironmentPrefix),
+		ID:          randomSlug(),
 		WorkspaceID: workspace.ID,
 		ProjectID:   project.ID,
 		AppID:       app.ID,
@@ -90,9 +89,9 @@ func attachDomain(t *testing.T, h *testutil.Harness, env seededEnv, mutate func(
 
 func makeRequest(env seededEnv) handler.Request {
 	return handler.Request{
-		Project:     env.projectID,
-		App:         env.appID,
-		Environment: env.environmentID,
+		Project:     new(env.projectID),
+		App:         new(env.appID),
+		Environment: new(env.environmentID),
 		Search:      nil,
 	}
 }

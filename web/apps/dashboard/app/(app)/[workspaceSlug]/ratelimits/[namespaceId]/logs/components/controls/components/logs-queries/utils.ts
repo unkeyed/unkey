@@ -1,6 +1,6 @@
 import type { QuerySearchParams } from "@/app/(app)/[workspaceSlug]/audit/filters.schema";
 import { iconsPerField } from "@/components/logs/queries/utils";
-import { ChartActivity2 } from "@unkey/icons";
+import { IconChartActivity2Outline18 } from "@unkey/icons";
 import { format } from "date-fns";
 import React, { type JSX } from "react";
 
@@ -83,10 +83,9 @@ export function formatFilterValues(
 }
 
 export function getFilterFieldIcon(field: string): JSX.Element {
-  const Icon = iconsPerField[field] || ChartActivity2;
+  const Icon = iconsPerField[field] || IconChartActivity2Outline18;
   return React.createElement(Icon, {
-    iconSize: "md-regular",
-    className: "justify-center",
+    className: "size-4 justify-center",
   });
 }
 

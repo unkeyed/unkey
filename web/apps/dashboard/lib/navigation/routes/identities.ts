@@ -6,16 +6,27 @@
  * the generated ParamMap.
  */
 import type { Route } from "next";
-import { type WorkspaceScope, buildRoute } from "./shared";
+import { type ResourceScope, scopedRoute } from "./shared";
 
-type IdentityScope = WorkspaceScope & { identityId: string };
+type IdentityScope = ResourceScope & { identityId: string };
+
+const patterns = {
+  list: {
+    workspace: "/[workspaceSlug]/identities",
+    project: "/[workspaceSlug]/projects/[projectId]/identities",
+  },
+  detail: {
+    workspace: "/[workspaceSlug]/identities/[identityId]",
+    project: "/[workspaceSlug]/projects/[projectId]/identities/[identityId]",
+  },
+} as const;
 
 export const identityRoutes = {
-  list({ workspaceSlug }: WorkspaceScope): Route {
-    return buildRoute("/[workspaceSlug]/identities", { workspaceSlug });
+  list(scope: ResourceScope): Route {
+    return scopedRoute(patterns.list, scope);
   },
 
-  detail({ workspaceSlug, identityId }: IdentityScope): Route {
-    return buildRoute("/[workspaceSlug]/identities/[identityId]", { workspaceSlug, identityId });
+  detail(scope: IdentityScope): Route {
+    return scopedRoute(patterns.detail, scope);
   },
 };

@@ -1,7 +1,64 @@
 ---
-title: "insufficient_permissions"
-description: "InsufficientPermissions represents a 403 error - the credential lacks the permissions required by a permission_query."
+title: "frontline/client/insufficient_permissions"
+sidebarTitle: "insufficient_permissions"
+description: "The API key verified but does not satisfy the gateway policy's permission query."
+sources:
+  - pkg/codes/frontline.go
+  - svc/frontline/middleware/observability.go
+  - svc/frontline/internal/policies/keyauth/executor.go
+  - internal/services/keys/status.go
 ---
 
 <Danger>`err:frontline:client:insufficient_permissions`</Danger>
 
+import { ProductLink } from "/snippets/product-link.jsx";
+
+The API you called runs on Unkey, and it checks API keys. Your key is valid, but it doesn't have the permissions or roles this route needs. You get `403 Forbidden`.
+
+This isn't [`err:unkey:authorization:insufficient_permissions`](/errors/unkey/authorization/insufficient_permissions), which is about a root key calling `api.unkey.com`.
+
+```json Example response
+{
+  "meta": {
+    "requestId": "req_3k2j1h0g9f8e7d6c"
+  },
+  "error": {
+    "code": "err:frontline:client:insufficient_permissions",
+    "message": "Access denied. The API key does not have the required permissions."
+  }
+}
+```
+
+Browsers get the same error as an HTML page.
+
+## If you're calling an API hosted on Unkey
+
+Changing the request won't help. Ask the API owner to grant your key the permission or role this route needs, and give them the request ID.
+
+## If you own this API
+
+The key's permissions, whether granted directly or through its roles, don't satisfy your key-auth policy's `permissionQuery`. A key passes the gateway exactly when it would pass `keys.verifyKey` with the same query. A rejected request doesn't spend credits. Common causes:
+
+- The key is missing the permission or role.
+- The `permissionQuery` is stricter than you meant.
+
+### How to fix
+
+1. Grant the missing permission or role to the key, or to its identity's roles, in API Management. This applies on the next request.
+2. Or loosen the policy's `permissionQuery`, then create a new deployment. Policy changes only apply to new deployments.
+
+If the query doesn't parse at all, callers get [`invalid_configuration`](/errors/frontline/config/invalid_configuration) instead.
+
+<ProductLink product="compute" href="/compute/gateway/errors" title="Compute gateway">
+  Gateway policies, deployments, and domains are Compute features. The Compute docs explain how to configure them.
+</ProductLink>
+
+<ProductLink product="api-management" href="/api-management/authorization/permission-queries" title="API Management keys">
+  Permissions, roles, and the permission query grammar are documented in API Management.
+</ProductLink>
+
+## Related errors
+
+- [`err:frontline:client:invalid_key`](/errors/frontline/client/invalid_key): the key didn't verify at all.
+- [`err:frontline:config:invalid_configuration`](/errors/frontline/config/invalid_configuration): the permission query couldn't be parsed.
+- [`err:unkey:authorization:insufficient_permissions`](/errors/unkey/authorization/insufficient_permissions): a root key lacking permission on the Unkey API.

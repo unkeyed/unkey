@@ -5,23 +5,19 @@ import { match } from "@unkey/match";
 import { AlertBanner, AlertBannerDescription, AlertBannerTitle } from "@unkey/ui";
 import type { Route } from "next";
 import Link from "next/link";
-import type { ReactNode } from "react";
+import { type ReactNode, useState } from "react";
+import type { PaywallReason } from "../billing/components/paywall-copy";
+import { PlansScreen } from "../billing/components/plans-screen";
 import type { BreachKey } from "./limit-groups";
 
-export function BreachBanner({
-  breached,
-  billingHref,
-}: {
-  breached: BreachKey[];
-  billingHref: Route;
-}) {
+export function BreachBanner({ breached }: { breached: BreachKey[] }) {
   return match(breached)
     .when(
       (keys) => keys.includes("domains"),
       () => (
         <Banner>
           Your workspace is at its custom domain limit. Remove a domain that you do not need, or{" "}
-          <BannerLink href={billingHref}>upgrade your plan</BannerLink>.
+          <UpgradeLink reason="custom-domains" />.
         </Banner>
       ),
     )
@@ -30,7 +26,7 @@ export function BreachBanner({
       () => (
         <Banner>
           Scale down or remove a deployment to free compute capacity. To raise your API operations
-          limit, <BannerLink href={billingHref}>upgrade your plan</BannerLink>.
+          limit, <UpgradeLink reason="api-limit" />.
         </Banner>
       ),
     )
@@ -45,8 +41,7 @@ export function BreachBanner({
     )
     .otherwise(() => (
       <Banner>
-        You're over your plan's allowed usage. To continue,{" "}
-        <BannerLink href={billingHref}>upgrade your plan</BannerLink>.
+        You're over your plan's allowed usage. To continue, <UpgradeLink reason="api-limit" />.
       </Banner>
     ));
 }
@@ -65,5 +60,21 @@ function BannerLink({ href, children }: { href: Route; children: ReactNode }) {
     <Link href={href} className="underline underline-offset-2 hover:opacity-80">
       {children}
     </Link>
+  );
+}
+
+function UpgradeLink({ reason }: { reason: PaywallReason }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="underline underline-offset-2 hover:opacity-80"
+      >
+        upgrade your plan
+      </button>
+      <PlansScreen open={open} onOpenChange={setOpen} reason={reason} />
+    </>
   );
 }

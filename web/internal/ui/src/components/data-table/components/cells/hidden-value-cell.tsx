@@ -1,21 +1,33 @@
-import { CircleLock } from "@unkey/icons";
+import { IconCircleLockOutline18 } from "@unkey/icons";
+// biome-ignore lint/correctness/noUnusedImports: React is needed for JSX
+import React from "react";
+import type { MouseEvent } from "react";
 import { cn } from "../../../../lib/utils";
 import { toast } from "../../../toaster";
 
 export interface HiddenValueCellProps {
-  value: string;
+  prefix?: string;
+  start: string;
+  end?: string;
   title: string;
   selected: boolean;
 }
 
-export const HiddenValueCell = ({ value, title = "Value", selected }: HiddenValueCellProps) => {
-  // Show only first 4 characters, then dots
-  const displayValue = value.padEnd(16, "•");
+export const HiddenValueCell = ({
+  prefix = "",
+  start,
+  end = "",
+  title = "Value",
+  selected,
+}: HiddenValueCellProps) => {
+  const head = `${prefix ? `${prefix}_` : ""}${start}`;
+  const mask = "•".repeat(Math.max(4, 29 - head.length - end.length));
+  const displayValue = `${head}${mask}${end}`;
 
-  const handleClick = (e: React.MouseEvent) => {
+  const handleClick = (e: MouseEvent<HTMLDivElement>) => {
     e.stopPropagation();
     navigator.clipboard
-      .writeText(value)
+      .writeText(displayValue)
       .then(() => {
         toast.success(`${title} copied to clipboard`);
       })
@@ -26,20 +38,16 @@ export const HiddenValueCell = ({ value, title = "Value", selected }: HiddenValu
   };
 
   return (
-    <>
-      {/* biome-ignore lint/a11y/useKeyWithClickEvents: <explanation> */}
-      <div
-        className={cn(
-          "rounded-lg border bg-white dark:bg-base-12 border-accent-4 text-grayA-11 w-[150px] px-2 py-1 flex gap-2 items-center cursor-pointer h-[28px] group-hover:border-grayA-3 font-mono",
-          selected && "border-grayA-3",
-        )}
-        onClick={(e) => handleClick(e)}
-      >
-        <div>
-          <CircleLock iconSize="sm-regular" className="text-gray-9" />
-        </div>
-        <div>{displayValue}</div>
-      </div>
-    </>
+    // biome-ignore lint/a11y/useKeyWithClickEvents: copy is a pointer convenience; the row is the keyboard target
+    <div
+      className={cn(
+        "rounded-lg border bg-raised text-grayA-11 w-[264px] whitespace-nowrap px-2 py-1 flex gap-2 items-center cursor-pointer h-[28px] group-hover:border-grayA-3 font-mono",
+        selected && "border-grayA-3",
+      )}
+      onClick={handleClick}
+    >
+      <IconCircleLockOutline18 className="size-3 text-gray-9 shrink-0" />
+      <span>{displayValue}</span>
+    </div>
   );
 };

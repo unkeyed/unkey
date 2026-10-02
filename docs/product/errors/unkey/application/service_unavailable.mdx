@@ -1,103 +1,46 @@
 ---
-title: "service_unavailable"
-description: "An Unkey service is temporarily unavailable. Learn about automatic retries, backoff strategies, and how to check Unkey's system status page."
+title: "unkey/application/service_unavailable"
+sidebarTitle: "service_unavailable"
+description: "The API failed on our side and couldn't complete the request, so retry with backoff."
+sources:
+  - pkg/codes/unkey_application.go
+  - svc/api/internal/middleware/errors.go
+  - pkg/db/tx.go
+  - svc/api/internal/ctrlclient/errors.go
+  - pkg/domain/domaingate/domaingate.go
+  - pkg/auth/jwt/resolver.go
 ---
 
 <Danger>`err:unkey:application:service_unavailable`</Danger>
 
-```json Example
+The API failed on our side and couldn't finish your request. You get HTTP 500, and `detail` names what failed. Unless `detail` says otherwise, the request didn't take effect.
+
+```json Example response
 {
   "meta": {
     "requestId": "req_2c9a0jf23l4k567"
   },
   "error": {
-    "detail": "The service is temporarily unavailable. Please try again later.",
-    "status": 503,
-    "title": "Service Unavailable",
-    "type": "https://unkey.com/docs/errors/unkey/application/service_unavailable"
+    "detail": "Failed to create deployment.",
+    "status": 500,
+    "title": "Internal Server Error",
+    "type": "/errors/unkey/application/service_unavailable"
   }
 }
 ```
 
-## What Happened?
+## How to fix
 
-This error occurs when a component of the Unkey platform is temporarily unavailable or unable to process your request. Unlike an unexpected error, this is a known state where the system has detected that it cannot currently provide the requested service.
+1. Retry with exponential backoff, and check the Unkey status page for an incident.
+2. If it keeps failing, contact support with the `requestId`.
 
-Possible causes of this error:
+Two cases need something else:
 
-- Scheduled maintenance
-- High load or capacity issues
-- Dependent service outages
-- Regional infrastructure problems
-- Database overload or maintenance
+- **HTTP 503 on `domains.listDomains`.** Your filters match too many domains. The `detail` is `The domain scan limit was reached. Narrow the project, app, environment, or search filters and retry.` Narrow the filters.
+- **`Resource limits are not configured for this workspace.`** Your workspace is missing its plan limits. Retrying won't help, so contact support.
 
-Here's an example of a request that might receive this error during a service disruption:
+## Related errors
 
-```bash
-curl -X POST https://api.unkey.com/v2/keys.createKey \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer unkey_YOUR_API_KEY" \
-  -d '{
-    "apiId": "api_123abc",
-    "name": "My API Key"
-  }'
-```
-
-## How To Fix
-
-Since this is a temporary service issue, the best approach is to wait and retry. Here are some strategies:
-
-1. **Implement retry logic**: Add automatic retries with exponential backoff to your code
-2. **Check service status**: Visit the Unkey status page for updates on service availability
-3. **Try alternate regions**: If Unkey offers region-specific endpoints, try an alternate region
-4. **Wait and retry manually**: If it's a one-time operation, simply try again later
-
-Here's an example of a robust retry strategy:
-
-```bash
-# Bash script with retry logic
-max_attempts=5
-attempt=0
-backoff_time=1
-
-while [ $attempt -lt $max_attempts ]; do
-  response=$(curl -s -w "\n%{http_code}" \
-    -X POST https://api.unkey.com/v2/keys.createKey \
-    -H "Content-Type: application/json" \
-    -H "Authorization: Bearer unkey_YOUR_API_KEY" \
-    -d '{
-      "apiId": "api_123abc",
-      "name": "My API Key"
-    }')
-
-  http_code=$(echo "$response" | tail -n1)
-  body=$(echo "$response" | sed '$ d')
-
-  if [ $http_code -eq 503 ]; then
-    attempt=$((attempt+1))
-    if [ $attempt -eq $max_attempts ]; then
-      echo "Service still unavailable after $max_attempts attempts"
-      exit 1
-    fi
-
-    echo "Service unavailable, retrying in $backoff_time seconds... (Attempt $attempt/$max_attempts)"
-    sleep $backoff_time
-    backoff_time=$((backoff_time*2))
-  else
-    echo "$body"
-    exit 0
-  fi
-done
-```
-
-## Important Notes
-
-- This error is temporary, and the service will typically recover automatically
-- For critical applications, implement circuit breakers to prevent cascading failures
-- If the service remains unavailable for an extended period, check Unkey's status page or contact support
-- Include the `requestId` from the error response when contacting support
-
-## Related Errors
-
-- [err:unkey:application:unexpected_error](./unexpected_error) - When an unhandled error occurs
-- [err:unkey:authorization:workspace_disabled](../authorization/workspace_disabled) - When the workspace is disabled (a different type of unavailability)
+- [`err:unkey:application:unexpected_error`](/errors/unkey/application/unexpected_error): another failure on our side with no more specific code.
+- [`err:unkey:data:analytics_connection_failed`](/errors/unkey/data/analytics_connection_failed): analytics queries couldn't run because of a failure on our side, reported as 503.
+- [`err:user:bad_request:request_timeout`](/errors/user/bad_request/request_timeout): the request ran out of time instead.

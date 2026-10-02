@@ -1,16 +1,13 @@
 package handler_test
 
 import (
-	"database/sql"
 	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/svc/api/internal/portal"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
-	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_portal_get_portal"
 )
 
@@ -28,7 +25,7 @@ func TestGetPortalMasksEveryMiss(t *testing.T) {
 	visible := h.SeedPortal(t, workspace.ID, "visible", "visible", keyspaceMapping(t, h, workspace.ID),
 		nil, nil)
 	ok := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
-		Portal:     ptr.P(visible.ID),
+		Portal:     new(visible.ID),
 		KeyspaceId: nil,
 		AppId:      nil,
 	})
@@ -42,25 +39,16 @@ func TestGetPortalMasksEveryMiss(t *testing.T) {
 	// the keyspace it maps.
 	other := h.CreateWorkspace()
 	otherKeyspace := keyspaceMapping(t, h, other.ID)
-	otherPortal := h.CreatePortal(seed.CreatePortalRequest{
-		ID:           "",
-		WorkspaceID:  other.ID,
-		Slug:         "theirs",
-		AppID:        sql.NullString{String: "", Valid: false},
-		KeyAuthID:    sql.NullString{String: otherKeyspace.ID, Valid: true},
-		Enabled:      true,
-		LogoUrl:      sql.NullString{String: "", Valid: false},
-		PrimaryColor: sql.NullString{String: "", Valid: false},
-	})
+	otherPortal := h.SeedPortal(t, other.ID, "theirs", "theirs", otherKeyspace, nil, nil)
 
 	unknownKeyspace := portal.Mapping{Type: portal.MappingTypeKeyspace, ID: "ks_doesnotexist"}
 	unknownApp := portal.Mapping{Type: portal.MappingTypeApp, ID: "app_doesnotexist"}
 
 	testCases := map[string]handler.Request{
-		"unknown id":                    {Portal: ptr.P("pc_doesnotexist"), KeyspaceId: nil, AppId: nil},
-		"unknown slug":                  {Portal: ptr.P("no-such-portal"), KeyspaceId: nil, AppId: nil},
-		"portal in another workspace":   {Portal: ptr.P(otherPortal.ID), KeyspaceId: nil, AppId: nil},
-		"slug in another workspace":     {Portal: ptr.P(otherPortal.Slug), KeyspaceId: nil, AppId: nil},
+		"unknown id":                    {Portal: new("pc_doesnotexist"), KeyspaceId: nil, AppId: nil},
+		"unknown slug":                  {Portal: new("no-such-portal"), KeyspaceId: nil, AppId: nil},
+		"portal in another workspace":   {Portal: new(otherPortal.ID), KeyspaceId: nil, AppId: nil},
+		"slug in another workspace":     {Portal: new(otherPortal.Slug), KeyspaceId: nil, AppId: nil},
 		"keyspace with no portal":       {Portal: nil, KeyspaceId: ksOf(unmappedKeyspace), AppId: appOf(unmappedKeyspace)},
 		"app with no portal":            {Portal: nil, KeyspaceId: ksOf(unmappedApp), AppId: appOf(unmappedApp)},
 		"keyspace in another workspace": {Portal: nil, KeyspaceId: ksOf(otherKeyspace), AppId: appOf(otherKeyspace)},
@@ -100,7 +88,7 @@ func TestGetPortalDenialMatchesAbsence(t *testing.T) {
 
 	deniedKey := h.CreateRootKey(workspace.ID, "portal.*.create_portal")
 	denied := testutil.CallRoute[handler.Request, handler.Response](h, route, headersFor(deniedKey), handler.Request{
-		Portal:     ptr.P(stored.ID),
+		Portal:     new(stored.ID),
 		KeyspaceId: nil,
 		AppId:      nil,
 	})
@@ -109,7 +97,7 @@ func TestGetPortalDenialMatchesAbsence(t *testing.T) {
 
 	allowedKey := h.CreateRootKey(workspace.ID, "portal.*.read_portal")
 	absent := testutil.CallRoute[handler.Request, handler.Response](h, route, headersFor(allowedKey), handler.Request{
-		Portal:     ptr.P("pc_doesnotexist"),
+		Portal:     new("pc_doesnotexist"),
 		KeyspaceId: nil,
 		AppId:      nil,
 	})

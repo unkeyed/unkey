@@ -1,127 +1,44 @@
 ---
 title: "query_memory_limit_exceeded"
-description: "Your analytics query exceeded its memory quota or produced more than 4 MiB of encoded results. Reduce the data processed or returned by the query."
+sidebarTitle: "query_memory_limit_exceeded"
+description: "The analytics query used too much memory or its result exceeded 4 MiB."
+sources:
+  - pkg/codes/user_request.go
+  - svc/api/internal/middleware/errors.go
+  - pkg/clickhouse/errors.go
+  - pkg/clickhouse/user.go
+  - svc/api/routes/v2_analytics_get_verifications/handler.go
 ---
 
 <Danger>`err:user:unprocessable_entity:query_memory_limit_exceeded`</Danger>
 
-```json Example
+Your analytics query returned a result that's too large, or needed too much memory. You get HTTP 422, and `detail` says which.
+
+```json Example response
 {
   "meta": {
-    "requestId": "req_4dgzrNP3Je5mU1tD"
+    "requestId": "req_2c9a0jf23l4k567"
   },
   "error": {
     "detail": "Query result exceeds the maximum response size.",
     "status": 422,
     "title": "Unprocessable Entity",
-    "type": "https://unkey.com/docs/errors/user/unprocessable_entity/query_memory_limit_exceeded"
+    "type": "/errors/user/unprocessable_entity/query_memory_limit_exceeded"
   }
 }
 ```
 
-## What happened?
+## Likely causes
 
-Your query exceeded its workspace memory quota or produced an encoded response larger than 4 MiB. Unkey limits both values to prevent one analytics query from exhausting shared resources.
+- The result is over 4 MiB as JSON. This is the common one, and `detail` is `Query result exceeds the maximum response size.`
+- The query needed more than 1 GB of memory while running, unless we've raised that for you. `detail` is a memory message.
 
-The response limit applies to the encoded JSON size, not only the number of rows. A query can exceed it with one large aggregate value, many projected columns, or many rows.
+## How to fix
 
-## How to fix it
+1. For a result that's too large, return fewer rows or columns: add a `LIMIT`, drop wide columns you don't need, and page through long ranges by time. Aggregations that return a few rows never hit this.
+2. For memory, filter earlier, group on fewer or lower-cardinality columns, and avoid `groupArray` over large groups.
 
-### 1. Return fewer columns and values
+## Related errors
 
-Select only the columns you need. Avoid aggregates such as `groupArray` that can place an unbounded amount of data into one result value.
-
-### 2. Use aggregations instead of raw data
-
-Instead of fetching all rows, aggregate the data:
-
-<CodeGroup>
-
-```sql Memory Intensive - Fetches all rows
-SELECT *
-FROM key_verifications_v1
-WHERE time >= now() - INTERVAL 7 DAY
-```
-
-```sql Memory Efficient - Aggregates data
-SELECT
-  toStartOfHour(time) as hour,
-  key_space_id,
-  COUNT(*) as total
-FROM key_verifications_v1
-WHERE time >= now() - INTERVAL 7 DAY
-GROUP BY hour, key_space_id
-```
-
-</CodeGroup>
-
-### 3. Add more filters
-
-Reduce the amount of data the query needs to process:
-
-<CodeGroup>
-
-```sql Too Much Data
-SELECT key_space_id, key_id, outcome, time
-FROM key_verifications_v1
-WHERE time >= now() - INTERVAL 30 DAY
-```
-
-```sql Filtered Query
-SELECT key_space_id, key_id, outcome, time
-FROM key_verifications_v1
-WHERE time >= now() - INTERVAL 1 DAY
-  AND key_space_id = 'ks_1234'
-  AND outcome = 'VALID'
-```
-
-</CodeGroup>
-
-### 4. Limit result size
-
-Add a `LIMIT` to cap the number of returned rows. If the response still exceeds 4 MiB, lower the limit or select fewer columns.
-
-```sql
-SELECT key_space_id, key_id, outcome, time
-FROM key_verifications_v1
-WHERE time >= now() - INTERVAL 7 DAY
-ORDER BY time DESC
-LIMIT 10000
-```
-
-### 5. Avoid large GROUP BY cardinality
-
-GROUP BY on high-cardinality columns (like `key_id`) uses a lot of memory. Instead, group by lower-cardinality columns:
-
-<CodeGroup>
-
-```sql High Memory - Millions of unique keys
-SELECT key_id, COUNT(*) as total
-FROM key_verifications_v1
-WHERE time >= now() - INTERVAL 30 DAY
-GROUP BY key_id
-```
-
-```sql Lower Memory - Verification outcomes
-SELECT outcome, COUNT(*) as total
-FROM key_verifications_v1
-WHERE time >= now() - INTERVAL 30 DAY
-GROUP BY outcome
-```
-
-</CodeGroup>
-
-## Need a higher memory quota?
-
-<Note>
-Contact support if your query has a legitimate need for a higher workspace memory quota. The 4 MiB encoded-response limit is fixed, so larger result sets must be split into multiple queries.
-
-[Reach out to support](mailto:support@unkey.com) and tell us:
-
-- What you're trying to analyze
-- Why the query needs a higher memory quota
-- An example of the query you're running
-
-Unkey support can review your use case and determine whether a higher workspace memory quota is appropriate.
-
-</Note>
+- [`err:user:unprocessable_entity:query_rows_limit_exceeded`](/errors/user/unprocessable_entity/query_rows_limit_exceeded): the query read or returned too many rows.
+- [`err:user:unprocessable_entity:query_execution_timeout`](/errors/user/unprocessable_entity/query_execution_timeout): the query ran too long.

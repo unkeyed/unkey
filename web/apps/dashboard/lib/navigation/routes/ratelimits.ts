@@ -9,35 +9,51 @@
  * page, never threaded through a navigation call, so they are not builder args.
  */
 import type { Route } from "next";
-import { type WorkspaceScope, buildRoute } from "./shared";
+import { type ResourceScope, scopedRoute } from "./shared";
 
-type NamespaceScope = WorkspaceScope & { namespaceId: string };
+type NamespaceScope = ResourceScope & { namespaceId: string };
+
+const patterns = {
+  list: {
+    workspace: "/[workspaceSlug]/ratelimits",
+    project: "/[workspaceSlug]/projects/[projectId]/ratelimits",
+  },
+  detail: {
+    workspace: "/[workspaceSlug]/ratelimits/[namespaceId]",
+    project: "/[workspaceSlug]/projects/[projectId]/ratelimits/[namespaceId]",
+  },
+  logs: {
+    workspace: "/[workspaceSlug]/ratelimits/[namespaceId]/logs",
+    project: "/[workspaceSlug]/projects/[projectId]/ratelimits/[namespaceId]/logs",
+  },
+  settings: {
+    workspace: "/[workspaceSlug]/ratelimits/[namespaceId]/settings",
+    project: "/[workspaceSlug]/projects/[projectId]/ratelimits/[namespaceId]/settings",
+  },
+  overrides: {
+    workspace: "/[workspaceSlug]/ratelimits/[namespaceId]/overrides",
+    project: "/[workspaceSlug]/projects/[projectId]/ratelimits/[namespaceId]/overrides",
+  },
+} as const;
 
 export const ratelimitRoutes = {
-  list({ workspaceSlug }: WorkspaceScope): Route {
-    return buildRoute("/[workspaceSlug]/ratelimits", { workspaceSlug });
+  list(scope: ResourceScope): Route {
+    return scopedRoute(patterns.list, scope);
   },
 
   detail(scope: NamespaceScope): Route {
-    return buildRoute("/[workspaceSlug]/ratelimits/[namespaceId]", namespaceParams(scope));
+    return scopedRoute(patterns.detail, scope);
   },
 
   logs(scope: NamespaceScope): Route {
-    return buildRoute("/[workspaceSlug]/ratelimits/[namespaceId]/logs", namespaceParams(scope));
+    return scopedRoute(patterns.logs, scope);
   },
 
   settings(scope: NamespaceScope): Route {
-    return buildRoute("/[workspaceSlug]/ratelimits/[namespaceId]/settings", namespaceParams(scope));
+    return scopedRoute(patterns.settings, scope);
   },
 
   overrides(scope: NamespaceScope): Route {
-    return buildRoute(
-      "/[workspaceSlug]/ratelimits/[namespaceId]/overrides",
-      namespaceParams(scope),
-    );
+    return scopedRoute(patterns.overrides, scope);
   },
 };
-
-function namespaceParams({ workspaceSlug, namespaceId }: NamespaceScope) {
-  return { workspaceSlug, namespaceId };
-}

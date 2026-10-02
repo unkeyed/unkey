@@ -1,75 +1,46 @@
 ---
 title: "portal_token_missing"
-description: "A request to a portal-authenticated endpoint was made without a portal access token. Provide the session cookie or access token from the portal."
+sidebarTitle: "portal_token_missing"
+description: "A portal endpoint was called without a portal session token."
+sources:
+  - pkg/codes/unkey_portal.go
+  - svc/api/internal/middleware/errors.go
+  - internal/services/portal/get_session.go
 ---
 
 <Danger>`err:unkey:authentication:portal_token_missing`</Danger>
 
-```json Example
+You called a portal endpoint with an empty `portal_session` cookie. You get HTTP 400.
+
+```json Example response
 {
   "meta": {
     "requestId": "req_2c9a0jf23l4k567"
   },
   "error": {
-    "detail": "A portal session token is required for this request.",
-    "status": 401,
-    "title": "Unauthorized",
-    "type": "https://unkey.com/docs/errors/unkey/authentication/portal_token_missing"
+    "detail": "A valid portal session token is required.",
+    "status": 400,
+    "title": "Bad Request",
+    "type": "/errors/unkey/authentication/portal_token_missing",
+    "errors": []
   }
 }
 ```
 
-## What Happened?
+## Likely causes
 
-This error occurs when a request was made to an endpoint that requires a [Customer Portal](/quickstart/portal) session, but no access token was supplied. Portal-authenticated endpoints expect either:
+- The session flow didn't finish, so there's no token to send.
+- The cookie was lost, for example across a redirect.
 
-- An `httpOnly` session cookie set by the portal after a successful code exchange, or
-- An `Authorization: Bearer <portal-access-token>` header on direct API calls from a browser session.
+Portal endpoints such as `portal.listKeys`, `portal.rerollKey`, and `portal.getVerifications` use the access token from `portal.exchangeCode` in the `portal_session` cookie, not a root key. A request with no cookie at all returns [`err:unkey:application:invalid_input`](/errors/unkey/application/invalid_input). A token that's unknown, expired, or revoked returns [`err:unkey:authentication:portal_session_not_found`](/errors/unkey/authentication/portal_session_not_found).
 
-Common causes include:
+## How to fix
 
-- The user's browser has cookies disabled or blocked for the portal domain.
-- The session was never established: the user landed on the portal without going through `POST /v2/portal.exchangeCode`.
-- A backend integration is calling a portal-only endpoint with a root key instead of a portal access token.
-- The session cookie was cleared or the user opened the portal in a private/incognito window with stripped state.
+1. Finish the session flow: your backend calls `portal.createSession` with a root key to get an exchange code, and the user's browser calls `portal.exchangeCode` with it to get the access token.
+2. Send that token in the `portal_session` cookie on every portal request. If the browser calls the portal API directly, make sure the cookie is set after the exchange and survives redirects.
+3. Don't send the token as `Authorization: Bearer`. Portal endpoints ignore the cookie when an `Authorization` header is present, and you get [`err:unkey:authentication:missing`](/errors/unkey/authentication/missing).
 
-## How To Fix
+## Related errors
 
-Make sure the user has an active portal session before calling portal endpoints:
-
-1. From your backend, call `POST /v2/portal.createSession` with your root key.
-2. Redirect the user to the returned `url`. The portal will redeem the code it carries for a 24-hour access token.
-3. Subsequent requests from the browser must include the portal session cookie or access token.
-
-```bash
-curl -X POST https://api.unkey.com/v2/portal.createSession \
-  -H "Authorization: Bearer YOUR_ROOT_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "portal": "my-portal",
-    "externalId": "user_123",
-    "scopes": ["keys:read"]
-  }'
-```
-
-If you are calling the portal API directly from JavaScript, ensure your fetch includes credentials so the session cookie is sent:
-
-```typescript
-await fetch("https://api.unkey.com/v2/...", {
-  credentials: "include",
-});
-```
-
-## Common Mistakes
-
-- **Calling portal endpoints with a root key**: Root keys authenticate backend requests, not portal endpoints. Use a portal session.
-- **Sending the `id` instead of the access token**: `portal.createSession` returns a non-secret `id`. It identifies the session but does not authenticate it.
-- **Missing `credentials: "include"`**: Cross-origin browser requests omit cookies by default.
-- **Expired session not refreshed**: After 24 hours the access token expires, so your backend must create a new session.
-- **Direct navigation to the portal**: Users must arrive via your backend redirect, not by visiting the portal URL directly.
-
-## Related Errors
-
-- [err:unkey:authentication:portal_session_not_found](./portal_session_not_found) - When a portal credential is provided but invalid, expired, or already used
-- [err:unkey:authentication:missing](./missing) - When no authentication credentials are provided to a non-portal endpoint
-- [err:unkey:data:portal_not_found](../data/portal_not_found) - When the portal referenced by `portal` does not exist
+- [`err:unkey:authentication:portal_session_not_found`](/errors/unkey/authentication/portal_session_not_found): the token is present but not an active session.
+- [`err:unkey:authentication:missing`](/errors/unkey/authentication/missing): a portal endpoint was called with an `Authorization` header instead of the cookie.

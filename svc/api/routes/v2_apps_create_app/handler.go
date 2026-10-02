@@ -133,11 +133,17 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	var resolved *githubapp.Resolved
 	if req.Git != nil && req.Git.Repository != nil {
-		if err = principal.Authorize(rbac.T(rbac.Tuple{
-			ResourceType: rbac.App,
-			ResourceID:   "*",
-			Action:       rbac.ConnectRepository,
-		})); err != nil {
+		if err = principal.Authorize(rbac.Or(
+			rbac.T(rbac.Tuple{
+				ResourceType: rbac.App,
+				ResourceID:   "*",
+				Action:       rbac.ConnectRepository,
+			}),
+			rbac.U(
+				urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(project.ID).App("*"),
+				permissions.Write,
+			),
+		)); err != nil {
 			return err
 		}
 

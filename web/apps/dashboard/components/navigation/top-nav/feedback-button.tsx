@@ -1,20 +1,23 @@
 "use client";
 
 import { useFeedback } from "@/components/dashboard/feedback-component";
-import { Chats } from "@unkey/icons";
-import { Button } from "@unkey/ui";
+import { IconChatsOutline18 } from "@unkey/icons";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@unkey/ui";
+import { cn } from "cn";
+import { TOP_NAV_ICON_BUTTON_CLASS } from "./icon-button";
 
 export function TopNavFeedbackButton({ className }: { className?: string }) {
   const { openFeedback } = useFeedback();
   return (
-    <Button
-      variant="outline"
-      size="sm"
-      onClick={() => openFeedback(true, "feedback")}
-      className={className}
-    >
-      <Chats className="size-4" />
-      Feedback
-    </Button>
+    <Tooltip>
+      <TooltipTrigger
+        aria-label="Give feedback"
+        onClick={() => openFeedback(true, "feedback")}
+        className={cn(TOP_NAV_ICON_BUTTON_CLASS, className)}
+      >
+        <IconChatsOutline18 className="size-3.5" />
+      </TooltipTrigger>
+      <TooltipContent side="bottom">Give feedback</TooltipContent>
+    </Tooltip>
   );
 }

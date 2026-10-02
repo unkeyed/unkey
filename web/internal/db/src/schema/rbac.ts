@@ -1,10 +1,40 @@
 import { relations } from "drizzle-orm";
-import { bigint, index, mysqlTable, unique, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
+import {
+  bigint,
+  index,
+  mysqlEnum,
+  mysqlTable,
+  unique,
+  uniqueIndex,
+  varchar,
+} from "drizzle-orm/mysql-core";
 import { keys } from "./keys";
 import { caseInsensitiveVarchar } from "./util/case_insensitive_varchar";
+import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
 import { id } from "./util/id";
 import { primaryKey } from "./util/primary_key";
 import { workspaces } from "./workspaces";
+
+export const unkeyPrincipalPermissions = mysqlTable(
+  "unkey_principal_permissions",
+  {
+    pk: primaryKey(),
+    id: id("id").notNull().unique(),
+    workspaceId: id("workspace_id").notNull(),
+    principalType: mysqlEnum("principal_type", ["root_key", "oidc"]).notNull(),
+    principalId: id("principal_id").notNull(),
+    slug: caseSensitiveVarchar("slug", { length: 512 }).notNull(),
+    createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  },
+  (table) => [
+    unique("unkey_principal_permissions_principal_slug_idx").on(
+      table.workspaceId,
+      table.principalType,
+      table.principalId,
+      table.slug,
+    ),
+  ],
+);
 
 export const permissions = mysqlTable(
   "permissions",
@@ -24,6 +54,8 @@ export const permissions = mysqlTable(
   },
   (table) => [
     unique("unique_slug_per_workspace_idx").on(table.workspaceId, table.slug),
+    unique("unique_slug_per_project_idx").on(table.projectId, table.slug),
+    index("permissions_workspace_id_idx").on(table.workspaceId),
     index("permissions_project_id_idx").on(table.projectId),
   ],
 );
@@ -92,8 +124,8 @@ export const roles = mysqlTable(
     updatedAtM: bigint("updated_at_m", { mode: "number" }).$onUpdateFn(() => Date.now()),
   },
   (table) => [
-    index("workspace_id_idx").on(table.workspaceId),
-    unique("unique_name_per_workspace_idx").on(table.name, table.workspaceId),
+    unique("unique_name_per_workspace_idx").on(table.workspaceId, table.name),
+    unique("unique_name_per_project_idx").on(table.projectId, table.name),
     index("roles_project_id_idx").on(table.projectId),
   ],
 );

@@ -25,7 +25,6 @@ SELECT
     d.project_id,
     d.environment_id,
     d.app_id,
-    d.image,
     d.image_resolved,
     d.build_id,
     d.git_commit_sha,
@@ -70,7 +69,6 @@ type FindDeploymentTopologyByDeploymentAndRegionRow struct {
 	ProjectID                     string                          `db:"project_id"`
 	EnvironmentID                 string                          `db:"environment_id"`
 	AppID                         string                          `db:"app_id"`
-	Image                         sql.NullString                  `db:"image"`
 	ImageResolved                 sql.NullString                  `db:"image_resolved"`
 	BuildID                       sql.NullString                  `db:"build_id"`
 	GitCommitSha                  sql.NullString                  `db:"git_commit_sha"`
@@ -84,7 +82,7 @@ type FindDeploymentTopologyByDeploymentAndRegionRow struct {
 	Port                          int32                           `db:"port"`
 	ShutdownSignal                DeploymentsShutdownSignal       `db:"shutdown_signal"`
 	Healthcheck                   mysqltype.NullHealthcheck       `db:"healthcheck"`
-	K8sNamespace                  sql.NullString                  `db:"k8s_namespace"`
+	K8sNamespace                  string                          `db:"k8s_namespace"`
 	EnvironmentSlug               string                          `db:"environment_slug"`
 	RegionName                    string                          `db:"region_name"`
 	GitRepo                       sql.NullString                  `db:"git_repo"`
@@ -105,7 +103,6 @@ type FindDeploymentTopologyByDeploymentAndRegionRow struct {
 //	    d.project_id,
 //	    d.environment_id,
 //	    d.app_id,
-//	    d.image,
 //	    d.image_resolved,
 //	    d.build_id,
 //	    d.git_commit_sha,
@@ -146,7 +143,6 @@ func (q *Queries) FindDeploymentTopologyByDeploymentAndRegion(ctx context.Contex
 		&i.ProjectID,
 		&i.EnvironmentID,
 		&i.AppID,
-		&i.Image,
 		&i.ImageResolved,
 		&i.BuildID,
 		&i.GitCommitSha,

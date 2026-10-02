@@ -1,6 +1,5 @@
 "use client";
 import {
-  EmptyAuditLogs,
   createAuditLogColumns,
   getAuditRowClassName,
   getAuditSelectedClassName,
@@ -8,7 +7,19 @@ import {
   useAuditLogsQuery,
 } from "@/components/audit-logs-table";
 import type { AuditLog } from "@/lib/trpc/routers/audit/schema";
-import { DataTable, type DataTableRef, PaginationFooter } from "@unkey/ui";
+import { IconBookBookmarkOutline18, IconInputSearchOutline18 } from "@unkey/icons";
+import {
+  DataTable,
+  type DataTableRef,
+  EmptyState,
+  EmptyStateActions,
+  EmptyStateDescription,
+  EmptyStateHeader,
+  EmptyStateIcon,
+  EmptyStateTitle,
+  PaginationFooter,
+  buttonVariants,
+} from "@unkey/ui";
 import { useEffect, useMemo, useRef } from "react";
 
 type Props = {
@@ -56,7 +67,31 @@ export const AuditLogsTable = ({ selectedLog, setSelectedLog, onMount }: Props) 
         rowClassName={(log) => getAuditRowClassName(log, selectedLog)}
         selectedClassName={getAuditSelectedClassName}
         renderSkeletonRow={renderAuditLogSkeletonRow}
-        emptyState={<EmptyAuditLogs />}
+        emptyState={
+          <EmptyState frame="none">
+            <EmptyStateIcon>
+              <IconInputSearchOutline18 />
+            </EmptyStateIcon>
+            <EmptyStateHeader>
+              <EmptyStateTitle>No Audit Logs Found</EmptyStateTitle>
+              <EmptyStateDescription>
+                There are no audit logs matching your filters. Adjust your search criteria or check
+                back later.
+              </EmptyStateDescription>
+            </EmptyStateHeader>
+            <EmptyStateActions>
+              <a
+                href="https://www.unkey.com/docs/audit-log/introduction"
+                target="_blank"
+                rel="noopener noreferrer"
+                className={buttonVariants({ variant: "outline", size: "md" })}
+              >
+                <IconBookBookmarkOutline18 />
+                Learn about Audit Logs
+              </a>
+            </EmptyStateActions>
+          </EmptyState>
+        }
         config={{
           rowHeight: 26,
           layout: "classic",

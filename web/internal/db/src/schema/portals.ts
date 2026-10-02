@@ -1,6 +1,7 @@
 import { relations } from "drizzle-orm";
 import { boolean, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
 import { portalSessions } from "./portal_sessions";
+import { projects } from "./projects";
 import { id } from "./util/id";
 import { lifecycleDates } from "./util/lifecycle_dates";
 import { primaryKey } from "./util/primary_key";
@@ -19,6 +20,11 @@ export const portals = mysqlTable(
     pk: primaryKey(),
     id: id("id").notNull().unique(),
     workspaceId: id("workspace_id").notNull(),
+    // The project of whatever the portal maps to. A portal is authorized as
+    // projects/{project_id}/portals/{portal_id}, and an empty project id would
+    // produce a resource name nothing can parse, so the column is non-nullable
+    // with no default.
+    projectId: id("project_id").notNull(),
     slug: varchar("slug", { length: 64 }).notNull(),
     // What end users see in the portal header and page titles. Held on the row
     // rather than derived from the mapped app or keyspace, which has no name of
@@ -43,6 +49,10 @@ export const portalsRelations = relations(portals, ({ one, many }) => ({
   workspace: one(workspaces, {
     fields: [portals.workspaceId],
     references: [workspaces.id],
+  }),
+  project: one(projects, {
+    fields: [portals.projectId],
+    references: [projects.id],
   }),
   sessions: many(portalSessions),
 }));

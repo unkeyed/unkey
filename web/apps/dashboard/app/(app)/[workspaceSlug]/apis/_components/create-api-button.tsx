@@ -1,10 +1,13 @@
 "use client";
 
 import { revalidate } from "@/app/actions";
+import { useProjectScope } from "@/hooks/use-project-scope";
 import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
+import { getErrorToast, getUnkeyClient } from "@/lib/unkey-client";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Plus } from "@unkey/icons";
+import { useMutation } from "@tanstack/react-query";
+import { IconPlusOutline18 } from "@unkey/icons";
 import { Button, FormInput, toast } from "@unkey/ui";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
@@ -31,6 +34,7 @@ type Props = {
 
 export function CreateApiButton({ defaultOpen, workspaceSlug }: Props) {
   const [isOpen, setIsOpen] = useState(defaultOpen ?? false);
+  const scope = useProjectScope();
   const router = useRouter();
   const { api } = trpc.useUtils();
   const {
@@ -42,17 +46,21 @@ export function CreateApiButton({ defaultOpen, workspaceSlug }: Props) {
     mode: "onChange",
   });
 
-  const create = trpc.api.create.useMutation({
-    async onSuccess(res) {
+  const create = useMutation({
+    mutationFn: async (values: z.infer<typeof formSchema>) => {
+      const response = await getUnkeyClient().apis.createApi(values);
+      return response.data;
+    },
+    async onSuccess(data) {
       toast.success("Your keyspace has been created");
-      await revalidate(routes.apis.list({ workspaceSlug }));
+      await revalidate(routes.apis.list({ workspaceSlug, ...scope }));
       api.overview.query.invalidate();
-      router.push(routes.apis.detail({ workspaceSlug, apiId: res.id }));
+      router.push(routes.apis.detail({ workspaceSlug, ...scope, apiId: data.apiId }));
       setIsOpen(false);
     },
     onError(err) {
-      console.error(err);
-      toast.error(err.message);
+      const { message, description } = getErrorToast(err, "Failed to Create Keyspace");
+      toast.error(message, { description });
     },
   });
 
@@ -63,7 +71,7 @@ export function CreateApiButton({ defaultOpen, workspaceSlug }: Props) {
   return (
     <>
       <Button size="md" variant="primary" onClick={() => setIsOpen(true)}>
-        <Plus iconSize="sm-regular" />
+        <IconPlusOutline18 />
         Create keyspace
       </Button>
 

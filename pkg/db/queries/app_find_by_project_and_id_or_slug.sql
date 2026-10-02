@@ -1,5 +1,5 @@
 -- name: FindAppByProjectAndIdOrSlug :one
-SELECT a.pk, a.id, a.workspace_id, a.project_id, a.name, a.slug, a.source_type, a.default_branch, a.current_deployment_id, a.is_rolled_back, a.delete_protection, a.created_at, a.updated_at
+SELECT a.pk, a.id, a.workspace_id, a.project_id, a.name, a.slug, a.source_type, a.current_deployment_id, a.is_rolled_back, a.delete_protection, a.created_at, a.updated_at
 FROM apps a
 JOIN projects p ON a.project_id = p.id AND a.workspace_id = p.workspace_id
 WHERE a.workspace_id = sqlc.arg(workspace_id)

@@ -1,8 +1,7 @@
 "use client";
 
+import { useProjectData } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/data-provider";
 import { type Deployment, collection } from "@/lib/collections";
-import { shortenId } from "@/lib/shorten-id";
-import { trpc } from "@/lib/trpc/client";
 import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
 import { eq, inArray, useLiveQuery } from "@tanstack/react-db";
 import { useMutation } from "@tanstack/react-query";
@@ -23,7 +22,7 @@ export const PromotionDialog = ({
   targetDeployment,
   currentDeployment,
 }: PromotionDialogProps) => {
-  const utils = trpc.useUtils();
+  const { awaitLiveDeployment } = useProjectData();
   const domains = useLiveQuery(
     (q) =>
       q
@@ -37,20 +36,10 @@ export const PromotionDialog = ({
     mutationFn: (deploymentId: string) =>
       getUnkeyClient().deployments.promoteDeployment({ deploymentId }),
     onSuccess: () => {
-      utils.invalidate();
+      awaitLiveDeployment({ deploymentId: targetDeployment.id, rolledBack: false });
       toast.success("Promotion completed", {
         description: `Successfully promoted to deployment ${targetDeployment.id}`,
       });
-      // hack to revalidate
-      try {
-        collection.projects.utils.refetch();
-        collection.apps.utils.refetch();
-        collection.deployments.utils.refetch();
-        collection.domains.utils.refetch();
-      } catch (error) {
-        console.error("Refetch error:", error);
-      }
-
       onClose();
     },
     onError: (error) => {
@@ -81,7 +70,7 @@ export const PromotionDialog = ({
           loading={promote.isLoading}
           className="w-full rounded-lg"
         >
-          {`Promote to ${targetDeployment.gitCommitSha ? shortenId(targetDeployment.gitCommitSha) : targetDeployment.id}`}
+          Promote target deployment
         </Button>
       }
     >

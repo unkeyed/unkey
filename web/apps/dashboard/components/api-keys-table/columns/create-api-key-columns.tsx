@@ -2,21 +2,22 @@
 import { VerificationBarChart } from "@/components/api-keys-table/components/bar-chart";
 import { LastUsedCell } from "@/components/api-keys-table/components/last-used";
 import { StatusDisplay } from "@/components/api-keys-table/components/status-cell";
+import { useProjectScope } from "@/hooks/use-project-scope";
 import { routes } from "@/lib/navigation/routes";
 import { shortenId } from "@/lib/shorten-id";
 import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
-import { cn } from "@/lib/utils";
-import { Focus, Key } from "@unkey/icons";
+import { IconFocusOutline18, IconKeyOutline18 } from "@unkey/icons";
 import type { DataTableColumnDef } from "@unkey/ui";
 import {
   Checkbox,
   ExpiresCell,
   HiddenValueCell,
-  InfoTooltip,
+  InfoHoverCard,
   Loading,
   RowActionSkeleton,
   SortableHeader,
 } from "@unkey/ui";
+import { cn } from "cn";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useState } from "react";
@@ -74,6 +75,7 @@ const KeyIdCell = ({
   onToggleSelection,
   onNavigate,
 }: KeyIdCellProps) => {
+  const scope = useProjectScope();
   const [isHovered, setIsHovered] = useState(false);
   const identity = keyData.identity?.external_id;
   const isKeySelected = selectedKeys.has(keyData.id);
@@ -83,7 +85,7 @@ const KeyIdCell = ({
       className={cn(
         "size-5 rounded-sm flex items-center justify-center cursor-pointer relative",
         identity ? "bg-successA-3" : "bg-grayA-3",
-        isKeySelected && "bg-brand-5",
+        isKeySelected && "bg-featureA-5",
       )}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
@@ -100,9 +102,9 @@ const KeyIdCell = ({
             )}
           >
             {identity ? (
-              <Focus iconSize="md-medium" className="text-successA-11" />
+              <IconFocusOutline18 className="size-3.5 text-successA-11" />
             ) : (
-              <Key iconSize="md-medium" />
+              <IconKeyOutline18 className="size-3.5" />
             )}
           </div>
           <Checkbox
@@ -124,11 +126,9 @@ const KeyIdCell = ({
     <div className="flex flex-col items-start px-4.5 py-1.5">
       <div className="flex gap-4 items-center">
         {identity ? (
-          <InfoTooltip
+          <InfoHoverCard
             delayDuration={100}
-            variant="muted"
             position={{ side: "right" }}
-            className="bg-gray-1 px-4 py-2 border border-gray-4 shadow-md font-medium text-xs text-accent-12"
             content={
               <>
                 This key is associated with the identity:{" "}
@@ -138,6 +138,7 @@ const KeyIdCell = ({
                     className="font-mono group-hover:underline decoration-dotted"
                     href={routes.identities.detail({
                       workspaceSlug,
+                      ...scope,
                       identityId: keyData.identity_id,
                     })}
                     target="_blank"
@@ -153,7 +154,7 @@ const KeyIdCell = ({
             asChild
           >
             {iconContainer}
-          </InfoTooltip>
+          </InfoHoverCard>
         ) : (
           iconContainer
         )}
@@ -164,6 +165,7 @@ const KeyIdCell = ({
             className="font-mono group-hover:underline decoration-dotted"
             href={routes.apis.keys.detail({
               workspaceSlug,
+              ...scope,
               apiId,
               keyAuthId: keyspaceId,
               keyId: keyData.id,
@@ -172,12 +174,12 @@ const KeyIdCell = ({
               onNavigate(keyData.id);
             }}
           >
-            <div className="font-mono font-medium truncate text-brand-12">
+            <div className="font-mono font-medium truncate text-featureA-12">
               {shortenId(keyData.id)}
             </div>
           </Link>
           {keyData.name && (
-            <span className="font-sans text-accent-9 truncate max-w-30" title={keyData.name}>
+            <span className="font-sans text-gray-9 truncate max-w-30" title={keyData.name}>
               {keyData.name}
             </span>
           )}
@@ -239,14 +241,20 @@ export const createApiKeyColumns = ({
     ),
     meta: {
       width: {
-        min: 200,
+        min: 280,
         max: 400,
       },
     },
     cell: ({ row }) => {
       const key = row.original;
       return (
-        <HiddenValueCell value={key.start} title="Value" selected={key.id === selectedKeyId} />
+        <HiddenValueCell
+          prefix={key.prefix}
+          start={key.start}
+          end={key.end}
+          title="Value"
+          selected={key.id === selectedKeyId}
+        />
       );
     },
   },

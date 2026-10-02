@@ -21,12 +21,12 @@ func TestListEnvironmentVariablesBadRequest(t *testing.T) {
 	headers := authHeaders(rootKey)
 
 	t.Run("limit above maximum is rejected", func(t *testing.T) {
-		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, makeRequest(env, ptr(101), nil))
+		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, makeRequest(env, new(101), nil))
 		require.Equal(t, http.StatusBadRequest, res.Status, "expected 400, received: %s", res.RawBody)
 	})
 
 	t.Run("limit below minimum is rejected", func(t *testing.T) {
-		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, makeRequest(env, ptr(0), nil))
+		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, makeRequest(env, new(0), nil))
 		require.Equal(t, http.StatusBadRequest, res.Status, "expected 400, received: %s", res.RawBody)
 	})
 }

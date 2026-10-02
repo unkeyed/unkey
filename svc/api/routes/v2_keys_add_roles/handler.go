@@ -32,6 +32,11 @@ type Handler struct {
 	KeyCache  cache.Cache[string, keysdb.CachedKeyData]
 }
 
+type txResult struct {
+	currentRoles []db.ListRolesByKeyIDRow
+	rolesToAdd   []db.FindManyRolesByNamesWithPermsRow
+}
+
 // Method returns the HTTP method this route responds to
 func (h *Handler) Method() string {
 	return "POST"
@@ -109,140 +114,152 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	currentRoles, err := db.Query.ListRolesByKeyID(ctx, h.DB.RO(), req.KeyId)
-	if err != nil {
-		return fault.Wrap(err,
-			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Internal("database error"), fault.Public("Failed to retrieve current roles."),
-		)
-	}
-
-	foundRoles, err := db.Query.FindManyRolesByNamesWithPerms(ctx, h.DB.RO(), db.FindManyRolesByNamesWithPermsParams{
-		WorkspaceID: principal.AuthorizedWorkspaceID,
-		ProjectID:   key.KeyAuth.ProjectID,
-		Names:       req.Roles,
-	})
-	if err != nil {
-		return fault.Wrap(err,
-			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Internal("database error"), fault.Public("Failed to retrieve current roles."),
-		)
-	}
-
-	foundMap := make(map[string]db.FindManyRolesByNamesWithPermsRow)
-	for _, role := range foundRoles {
-		foundMap[role.ID] = role
-		foundMap[role.Name] = role
-	}
-
-	for _, role := range req.Roles {
-		_, ok := foundMap[role]
-		if ok {
-			continue
-		}
-
-		return fault.New("role not found",
-			fault.Code(codes.Data.Role.NotFound.URN()),
-			fault.Internal("role not found"), fault.Public(fmt.Sprintf("Role '%s' was not found.", role)),
-		)
-	}
-
-	// 7. Determine which roles to add (only add roles that aren't already assigned)
-	currentRoleIDs := make(map[string]bool)
-	for _, role := range currentRoles {
-		currentRoleIDs[role.ID] = true
-	}
-
-	rolesToAdd := make([]db.FindManyRolesByNamesWithPermsRow, 0)
-	for _, role := range foundRoles {
-		if !currentRoleIDs[role.ID] {
-			rolesToAdd = append(rolesToAdd, role)
-		}
-	}
-
-	if len(rolesToAdd) > 0 {
-		err = db.TxRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
-			// Lock the key row to prevent concurrent modifications and deadlocks
-			_, err := db.Query.LockKeyForUpdate(ctx, tx, req.KeyId)
-			if err != nil {
-				return fault.Wrap(err,
-					fault.Internal("unable to lock key"),
-					fault.Public("We're unable to update the key."),
+	result, err := db.TxWithResultRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) (txResult, error) {
+		// Every read below runs after this lock and on the primary. Concurrent
+		// requests for the same key see each other's inserts, and a role created
+		// moments ago is visible even when the replica lags
+		_, err := db.Query.LockKeyForUpdate(ctx, tx, req.KeyId)
+		if err != nil {
+			if db.IsNotFound(err) {
+				return txResult{}, fault.New("key not found",
+					fault.Code(codes.Data.Key.NotFound.URN()),
+					fault.Internal("key not found"), fault.Public("The specified key was not found."),
 				)
 			}
+			return txResult{}, fault.Wrap(err,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("unable to lock key"),
+				fault.Public("We're unable to update the key."),
+			)
+		}
 
-			var auditLogs []auditlog.AuditLog
-			rolesToInsert := make([]db.InsertKeyRoleParams, 0)
-
-			for _, role := range rolesToAdd {
-				rolesToInsert = append(rolesToInsert, db.InsertKeyRoleParams{
-					KeyID:       req.KeyId,
-					RoleID:      role.ID,
-					WorkspaceID: principal.AuthorizedWorkspaceID,
-					CreatedAtM:  time.Now().UnixMilli(),
-				})
-
-				auditLogs = append(auditLogs, auditlog.AuditLog{
-					WorkspaceID:   principal.AuthorizedWorkspaceID,
-					Event:         auditlog.AuthConnectRoleKeyEvent,
-					ActorType:     auditlog.AuditLogActor(principal.Subject.Type),
-					ActorID:       principal.Subject.ID,
-					ActorName:     principal.Subject.Name,
-					ActorMeta:     map[string]any{},
-					Display:       fmt.Sprintf("Added role %s to key %s", role.Name, req.KeyId),
-					RemoteIP:      s.Location(),
-					UserAgent:     s.UserAgent(),
-					CorrelationID: "",
-					Resources: []auditlog.AuditLogResource{
-						{
-							Type:        auditlog.KeyResourceType,
-							ID:          req.KeyId,
-							Name:        key.Key.Name.String,
-							DisplayName: key.Key.Name.String,
-							Meta:        map[string]any{},
-						},
-						{
-							Type:        auditlog.RoleResourceType,
-							ID:          role.ID,
-							Name:        role.Name,
-							DisplayName: role.Name,
-							Meta:        map[string]any{},
-						},
-					},
-				})
-			}
-
-			err = db.BulkQuery.InsertKeyRoles(ctx, tx, rolesToInsert)
-			if err != nil {
-				return fault.Wrap(err,
-					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-					fault.Internal("database error"),
-					fault.Public("Failed to assign roles."),
-				)
-			}
-
-			err = h.Auditlogs.Insert(ctx, tx, auditLogs)
-			if err != nil {
-				return err
-			}
-
-			return nil
+		foundRoles, err := db.Query.FindManyRolesByNamesWithPerms(ctx, tx, db.FindManyRolesByNamesWithPermsParams{
+			WorkspaceID: principal.AuthorizedWorkspaceID,
+			ProjectID:   key.KeyAuth.ProjectID,
+			Names:       req.Roles,
 		})
 		if err != nil {
-			return err
+			return txResult{}, fault.Wrap(err,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("database error"), fault.Public("Failed to retrieve current roles."),
+			)
 		}
 
+		foundMap := make(map[string]db.FindManyRolesByNamesWithPermsRow)
+		for _, role := range foundRoles {
+			foundMap[role.ID] = role
+			foundMap[role.Name] = role
+		}
+
+		for _, role := range req.Roles {
+			_, ok := foundMap[role]
+			if ok {
+				continue
+			}
+
+			return txResult{}, fault.New("role not found",
+				fault.Code(codes.Data.Role.NotFound.URN()),
+				fault.Internal("role not found"), fault.Public(fmt.Sprintf("Role '%s' was not found.", role)),
+			)
+		}
+
+		currentRoles, err := db.Query.ListRolesByKeyID(ctx, tx, req.KeyId)
+		if err != nil {
+			return txResult{}, fault.Wrap(err,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("database error"), fault.Public("Failed to retrieve current roles."),
+			)
+		}
+
+		currentRoleIDs := make(map[string]bool)
+		for _, role := range currentRoles {
+			currentRoleIDs[role.ID] = true
+		}
+
+		rolesToAdd := make([]db.FindManyRolesByNamesWithPermsRow, 0)
+		for _, role := range foundRoles {
+			if !currentRoleIDs[role.ID] {
+				rolesToAdd = append(rolesToAdd, role)
+			}
+		}
+
+		if len(rolesToAdd) == 0 {
+			return txResult{currentRoles: currentRoles, rolesToAdd: rolesToAdd}, nil
+		}
+
+		var auditLogs []auditlog.AuditLog
+		rolesToInsert := make([]db.InsertKeyRoleParams, 0)
+
+		for _, role := range rolesToAdd {
+			rolesToInsert = append(rolesToInsert, db.InsertKeyRoleParams{
+				KeyID:       req.KeyId,
+				RoleID:      role.ID,
+				WorkspaceID: principal.AuthorizedWorkspaceID,
+				CreatedAtM:  time.Now().UnixMilli(),
+			})
+
+			auditLogs = append(auditLogs, auditlog.AuditLog{
+				WorkspaceID:   principal.AuthorizedWorkspaceID,
+				Event:         auditlog.AuthConnectRoleKeyEvent,
+				ActorType:     auditlog.AuditLogActor(principal.Subject.Type),
+				ActorID:       principal.Subject.ID,
+				ActorName:     principal.Subject.Name,
+				ActorMeta:     map[string]any{},
+				Display:       fmt.Sprintf("Added role %s to key %s", role.Name, req.KeyId),
+				RemoteIP:      s.Location(),
+				UserAgent:     s.UserAgent(),
+				CorrelationID: "",
+				Resources: []auditlog.AuditLogResource{
+					{
+						Type:        auditlog.KeyResourceType,
+						ID:          req.KeyId,
+						Name:        key.Key.Name.String,
+						DisplayName: key.Key.Name.String,
+						Meta:        map[string]any{},
+					},
+					{
+						Type:        auditlog.RoleResourceType,
+						ID:          role.ID,
+						Name:        role.Name,
+						DisplayName: role.Name,
+						Meta:        map[string]any{},
+					},
+				},
+			})
+		}
+
+		err = db.BulkQuery.InsertKeyRoles(ctx, tx, rolesToInsert)
+		if err != nil {
+			return txResult{}, fault.Wrap(err,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("database error"),
+				fault.Public("Failed to assign roles."),
+			)
+		}
+
+		err = h.Auditlogs.Insert(ctx, tx, auditLogs)
+		if err != nil {
+			return txResult{}, err
+		}
+
+		return txResult{currentRoles: currentRoles, rolesToAdd: rolesToAdd}, nil
+	})
+	if err != nil {
+		return err
+	}
+
+	if len(result.rolesToAdd) > 0 {
 		h.KeyCache.Remove(ctx, key.Key.Hash)
 	}
 
 	responseData := make(openapi.V2KeysAddRolesResponseData, 0)
 	// Wrap row so we don't have to do the same logic twice.
-	for _, role := range rolesToAdd {
+	for _, role := range result.rolesToAdd {
 		row := db.ListRolesByKeyIDRow(role)
-		currentRoles = append(currentRoles, row)
+		result.currentRoles = append(result.currentRoles, row)
 	}
 
-	for _, role := range currentRoles {
+	for _, role := range result.currentRoles {
 		r := openapi.Role{
 			Id:          role.ID,
 			Name:        role.Name,

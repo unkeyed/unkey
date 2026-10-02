@@ -69,11 +69,12 @@ export const projectsNav = flag<boolean, Entities>({
   adapter: adapter(),
 });
 
-// logdrains gates the log drains settings pages and their nav item. Off until
-// the logdrain service ships so the UI can merge without being visible.
-export const logdrains = flag<boolean, Entities>({
-  key: "logdrains",
-  description: "Show the log drains settings pages. Off until the logdrain service ships.",
+// portalManagement gates the portal configuration page and its sidebar nav
+// item. Off until portal GA so it can be developed and merged without being
+// visible. Enable per-workspace to roll out to internal workspaces first.
+export const portalManagement = flag<boolean, Entities>({
+  key: "portal-management",
+  description: "Show the portal configuration page in the dashboard sidebar. Off until portal GA.",
   defaultValue: false,
   options: [
     { value: false, label: "Off" },
@@ -83,13 +84,10 @@ export const logdrains = flag<boolean, Entities>({
   adapter: adapter(),
 });
 
-// portalManagement gates the portal configuration page and its sidebar nav
-// item. Off until portal GA so it can be developed and merged without being
-// visible. Enable per-workspace to roll out to internal workspaces first.
-export const portalManagement = flag<boolean, Entities>({
-  key: "portal-management",
-  description: "Show the portal configuration page in the dashboard sidebar. Off until portal GA.",
-  defaultValue: false,
+export const rootKeyBuilder = flag<boolean, Entities>({
+  key: "root-key-urn-permissions",
+  description: "Use URN permissions for root keys. Enabled by default in preview deployments.",
+  defaultValue: process.env.VERCEL_ENV === "preview",
   options: [
     { value: false, label: "Off" },
     { value: true, label: "On" },

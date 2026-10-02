@@ -100,7 +100,7 @@ type OpenapiServiceServer interface {
 type UnimplementedOpenapiServiceServer struct{}
 
 func (UnimplementedOpenapiServiceServer) ScrapeSpec(ctx sdk_go.Context, req *ScrapeSpecRequest) (*ScrapeSpecResponse, error) {
-	return nil, sdk_go.TerminalError(fmt.Errorf("method ScrapeSpec not implemented"), 501)
+	return nil, sdk_go.ToTerminalError(fmt.Errorf("method ScrapeSpec not implemented"), sdk_go.WithErrorCode(501))
 }
 func (UnimplementedOpenapiServiceServer) testEmbeddedByValue() {}
 

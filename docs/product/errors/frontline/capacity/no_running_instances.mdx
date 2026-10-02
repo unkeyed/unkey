@@ -1,7 +1,61 @@
 ---
 title: "no_running_instances"
-description: "NoRunningInstances represents a 503 error - no deployments have running instances"
+sidebarTitle: "no_running_instances"
+description: "The deployment has no running instance in any region right now."
+sources:
+  - pkg/codes/frontline.go
+  - svc/frontline/middleware/observability.go
+  - svc/frontline/internal/router/routing.go
+  - svc/frontline/internal/router/service.go
+  - svc/frontline/routes/proxy/handler.go
 ---
 
 <Danger>`err:frontline:capacity:no_running_instances`</Danger>
 
+import { ProductLink } from "/snippets/product-link.jsx";
+
+The deployment should be running, but right now no instance of it is up in any region. It usually lasts a moment while a deployment starts, scales, or replaces failed instances. You get `503 Service Unavailable`.
+
+```json Example response
+{
+  "meta": {
+    "requestId": "req_3k2j1h0g9f8e7d6c"
+  },
+  "error": {
+    "code": "err:frontline:capacity:no_running_instances",
+    "message": "No running instances are available to handle this request."
+  }
+}
+```
+
+Browsers get the same error as an HTML page.
+
+## If you're calling an API hosted on Unkey
+
+Retry after a short delay, with backoff. If it lasts more than a few minutes, only the API owner can fix it. Give them the request ID.
+
+## If you own this API
+
+The gateway sends each request to a running instance in its region, or in the nearest region that has one. There was none. Common causes:
+
+- The deployment is still starting and has no ready instances yet.
+- Every instance failed, usually because the process exits at startup or never passes its health check.
+- The environment has no current deployment, or its regions and replica counts aren't what you expect.
+
+### How to fix
+
+1. Open the deployment in the dashboard. During a rollout, wait for instances to become ready.
+2. If instances are `failed`, read the runtime logs for a crash at startup or a failing health check.
+3. Check that the <Tooltip tip="A production or preview environment of a Compute app, not the dashboard label on a key.">environment</Tooltip> has a current deployment, and that its regions and replica counts are set as you expect.
+
+A deployment you stopped on purpose returns [`deployment_offline`](/errors/frontline/capacity/deployment_offline) instead.
+
+<ProductLink product="compute" href="/compute/gateway/errors" title="Compute gateway">
+  Deployments, instances, regions, and runtime logs are Compute features.
+</ProductLink>
+
+## Related errors
+
+- [`err:frontline:capacity:deployment_offline`](/errors/frontline/capacity/deployment_offline): the deployment was stopped intentionally.
+- [`err:frontline:upstream:service_unavailable`](/errors/frontline/upstream/service_unavailable): an instance existed but refused the connection.
+- [`err:frontline:capacity:spend_limit_reached`](/errors/frontline/capacity/spend_limit_reached): compute is paused by a spend budget.

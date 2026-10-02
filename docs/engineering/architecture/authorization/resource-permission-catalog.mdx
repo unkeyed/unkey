@@ -4,8 +4,8 @@ description: "Canonical resource hierarchy, paths, and actions"
 ---
 
 The resource permission catalog lists every canonical resource path and its
-supported actions. GitHub apps are workspace-scoped. Every other catalog
-resource is project-scoped. Portals remain outside the canonical catalog.
+supported actions. GitHub apps and root keys are workspace-scoped. Every other
+catalog resource is project-scoped.
 
 Read [Unkey Resource Names](/architecture/resources/unkey-resource-names) for
 URN format and pattern rules. Read
@@ -23,6 +23,9 @@ Workspace
 │
 ├── GitHub app [read, write, delete]
 │   github/apps/{github_app_id}
+│
+├── Root key [read, write, delete]
+│   rootKeys/{key_id}
 │
 └── Project [read, write, delete]
     projects/{project_id}
@@ -66,6 +69,12 @@ Workspace
     │   └── Key [read, write, delete, decrypt, verify]
     │       projects/{project_id}/keyspaces/{keyspace_id}/keys/{key_id}
     │
+    ├── Portal [read, write, delete]
+    │   projects/{project_id}/portals/{portal_id}
+    │   │
+    │   └── Session [write]
+    │       projects/{project_id}/portals/{portal_id}/sessions/{session_id}
+    │
     ├── Rate limit namespace [read, write, delete, limit]
     │   projects/{project_id}/ratelimits/namespaces/{namespace_id}
     │   │
@@ -92,6 +101,30 @@ not concrete resources and cannot be permission targets.
 
 These examples show how concrete IDs and wildcards use the same catalog.
 
+### Create a root key
+
+`POST /v2/rootKeys.createKey` requires this permission:
+
+```plaintext
+unkey:v1:ws_123:rootKeys/*#write
+```
+
+The created root key cannot have more permissions than the caller. Only
+URN permissions are accepted. Legacy permissions are not translated.
+
+### Update, reroll, or delete a root key
+
+Use `write` to update or reroll a root key and `delete` to delete it.
+
+```plaintext
+unkey:v1:ws_123:rootKeys/key_123#write
+unkey:v1:ws_123:rootKeys/key_123#delete
+```
+
+A permission replacement or reroll cannot give a root key more permissions than
+the caller. Rerolling with a non-null `expiration` also requires `delete`
+because it shortens or revokes the original key.
+
 ### Create a key
 
 Use `write` with a wildcard key ID because the key does not exist yet.
@@ -99,6 +132,39 @@ Use `write` with a wildcard key ID because the key does not exist yet.
 ```plaintext
 unkey:v1:ws_123:projects/proj_123/keyspaces/ks_123/keys/*#write
 ```
+
+### Create a portal
+
+Use `write` with a wildcard portal ID. The portal's ID is minted during the
+request, so no grant can name it when the check runs. The project ID is
+concrete, because it is resolved from the app or keyspace the portal maps to
+before the check.
+
+```plaintext
+unkey:v1:ws_123:projects/proj_123/portals/*#write
+```
+
+Pointing a portal at a keyspace, on creation or on a later update, additionally
+requires `read` on that keyspace. Choosing which resource a portal serves is not
+the same authority as granting access to it.
+
+### Mint a portal session
+
+Minting uses `write` on the portal's `sessions` child with a wildcard session
+ID, because the session does not exist yet.
+
+```plaintext
+unkey:v1:ws_123:projects/proj_123/portals/portal_123/sessions/*#write
+```
+
+A grant naming the portal does not reach its `sessions` child, so administering
+a portal does not imply minting sessions for it.
+
+<Warning>
+  Minting additionally requires a root key. A session URL authenticates as an
+  arbitrary end user, so no WorkOS role grants this permission and a dashboard
+  token is refused even when its role carries the global admin permission.
+</Warning>
 
 ### Promote or roll back a deployment
 

@@ -115,7 +115,7 @@ type DeployBillingPushServiceServer interface {
 type UnimplementedDeployBillingPushServiceServer struct{}
 
 func (UnimplementedDeployBillingPushServiceServer) PushWorkspaceUsage(ctx sdk_go.ObjectContext, req *PushWorkspaceUsageRequest) (*PushWorkspaceUsageResponse, error) {
-	return nil, sdk_go.TerminalError(fmt.Errorf("method PushWorkspaceUsage not implemented"), 501)
+	return nil, sdk_go.ToTerminalError(fmt.Errorf("method PushWorkspaceUsage not implemented"), sdk_go.WithErrorCode(501))
 }
 func (UnimplementedDeployBillingPushServiceServer) testEmbeddedByValue() {}
 

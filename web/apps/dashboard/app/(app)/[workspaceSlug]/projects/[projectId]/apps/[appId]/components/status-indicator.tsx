@@ -1,4 +1,4 @@
-import { Cloud } from "@unkey/icons";
+import { IconCloudOutline12 } from "@unkey/icons";
 import { InfoTooltip } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 
@@ -53,11 +53,11 @@ export function StatusIndicator({
       <div className="relative">
         <div
           className={cn(
-            "size-5 rounded-sm flex items-center justify-center cursor-pointer border border-grayA-3 transition-all duration-100 bg-grayA-3",
+            "size-5 rounded-sm flex items-center justify-center cursor-pointer border transition-all duration-100 bg-grayA-3",
             className,
           )}
         >
-          <Cloud iconSize="sm-regular" className="text-gray-12" />
+          <IconCloudOutline12 className="text-gray-12" />
         </div>
         {withSignal && !isLoading && (
           <div className="absolute -top-0.5 -right-0.5">

@@ -11,7 +11,7 @@ import (
 )
 
 const findPortalByKeyspace = `-- name: FindPortalByKeyspace :one
-SELECT pk, id, workspace_id, slug, display_name, app_id, key_auth_id, enabled, logo_url, primary_color, created_at, updated_at FROM portals
+SELECT pk, id, workspace_id, project_id, slug, display_name, app_id, key_auth_id, enabled, logo_url, primary_color, created_at, updated_at FROM portals
 WHERE key_auth_id = ?
   AND workspace_id = ?
 LIMIT 1
@@ -25,7 +25,7 @@ type FindPortalByKeyspaceParams struct {
 // Resolves the portal mapped to a keyspace within a workspace. See
 // portal_find_by_app.sql for why this is workspace-scoped.
 //
-//	SELECT pk, id, workspace_id, slug, display_name, app_id, key_auth_id, enabled, logo_url, primary_color, created_at, updated_at FROM portals
+//	SELECT pk, id, workspace_id, project_id, slug, display_name, app_id, key_auth_id, enabled, logo_url, primary_color, created_at, updated_at FROM portals
 //	WHERE key_auth_id = ?
 //	  AND workspace_id = ?
 //	LIMIT 1
@@ -36,6 +36,7 @@ func (q *Queries) FindPortalByKeyspace(ctx context.Context, db DBTX, arg FindPor
 		&i.Pk,
 		&i.ID,
 		&i.WorkspaceID,
+		&i.ProjectID,
 		&i.Slug,
 		&i.DisplayName,
 		&i.AppID,

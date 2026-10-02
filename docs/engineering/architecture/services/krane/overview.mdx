@@ -70,7 +70,7 @@ Krane uses server-side apply for all Kubernetes resources and labels everything 
 User workloads are represented as ReplicaSets with the following characteristics.
 
 - Namespaces are created on demand
-- Pods run with `RuntimeClassName: gvisor` for isolation
+- Pods run with `RuntimeClassName: gvisor` for isolation, unless krane is configured with `disable_gvisor`, as local development is
 - Pods select and tolerate `node-class=untrusted` nodes
 - Topology spread keeps replicas balanced across zones
 - Env vars include `PORT`, `UNKEY_DEPLOYMENT_ID`, `UNKEY_ENVIRONMENT_SLUG`, `UNKEY_REGION`, `UNKEY_INSTANCE_ID`, and the `UNKEY_GIT_*` set (commit SHA, branch, repo, commit message)

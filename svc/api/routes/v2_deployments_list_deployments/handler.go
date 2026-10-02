@@ -11,6 +11,8 @@ import (
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/internal/deployment"
 	"github.com/unkeyed/unkey/svc/api/internal/pagination"
@@ -47,18 +49,18 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	page := pagination.Parse(req.Limit, req.Cursor, 100)
 
-	err = principal.Authorize(rbac.T(rbac.Tuple{
+	legacyPermission := rbac.T(rbac.Tuple{
 		ResourceType: rbac.Environment,
 		ResourceID:   "*",
 		Action:       rbac.ReadDeployment,
-	}))
-	if err != nil {
-		return err
-	}
+	})
 
 	// Filters nest: an app lives in a project, an environment lives in an app.
 	// Requiring the parents keeps resolution unambiguous when a slug is passed.
 	if req.App != nil && req.Project == nil {
+		if err = principal.Authorize(legacyPermission); err != nil {
+			return err
+		}
 		return fault.New(
 			"app filter without project",
 			fault.Code(codes.App.Validation.InvalidInput.URN()),
@@ -67,6 +69,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 	if req.Environment != nil && (req.App == nil || req.Project == nil) {
+		if err = principal.Authorize(legacyPermission); err != nil {
+			return err
+		}
 		return fault.New(
 			"environment filter without parents",
 			fault.Code(codes.App.Validation.InvalidInput.URN()),
@@ -85,6 +90,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		})
 		if err != nil {
 			if db.IsNotFound(err) {
+				if err = principal.Authorize(legacyPermission); err != nil {
+					return err
+				}
 				return fault.New(
 					"project not found",
 					fault.Code(codes.Data.Project.NotFound.URN()),
@@ -103,6 +111,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 		if req.App != nil {
 			if !scope.AppID.Valid {
+				if err = principal.Authorize(legacyPermission); err != nil {
+					return err
+				}
 				return fault.New(
 					"app not found",
 					fault.Code(codes.Data.App.NotFound.URN()),
@@ -114,6 +125,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 		if req.Environment != nil {
 			if !scope.EnvironmentID.Valid {
+				if err = principal.Authorize(legacyPermission); err != nil {
+					return err
+				}
 				return fault.New(
 					"environment not found",
 					fault.Code(codes.Data.Environment.NotFound.URN()),
@@ -123,6 +137,21 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			}
 			environmentID = scope.EnvironmentID.String
 		}
+	}
+
+	err = principal.Authorize(rbac.Or(
+		legacyPermission,
+		rbac.U(
+			urn.New().Workspace(principal.AuthorizedWorkspaceID).
+				Project(fallbackIfEmpty(projectID, "*")).
+				App(fallbackIfEmpty(appID, "*")).
+				Environment(fallbackIfEmpty(environmentID, "*")).
+				Deployment("*"),
+			permissions.Read,
+		),
+	))
+	if err != nil {
+		return err
 	}
 
 	var statuses []mysqltype.DeploymentsStatus
@@ -246,4 +275,12 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		Data:       data,
 		Pagination: pg,
 	})
+}
+
+// fallbackIfEmpty returns fallback when value is empty.
+func fallbackIfEmpty(value, fallback string) string {
+	if value == "" {
+		return fallback
+	}
+	return value
 }

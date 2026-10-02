@@ -23,6 +23,12 @@ const (
 	KeyDeleteEvent AuditLogEvent = "key.delete"
 	KeyVerifyEvent AuditLogEvent = "key.verify"
 
+	// Root key events
+	RootKeyCreateEvent AuditLogEvent = "rootKey.create"
+	RootKeyRerollEvent AuditLogEvent = "rootKey.reroll"
+	RootKeyUpdateEvent AuditLogEvent = "rootKey.update"
+	RootKeyDeleteEvent AuditLogEvent = "rootKey.delete"
+
 	// Ratelimit namespace events
 	RatelimitNamespaceCreateEvent AuditLogEvent = "ratelimitNamespace.create"
 	RatelimitNamespaceUpdateEvent AuditLogEvent = "ratelimitNamespace.update"
@@ -69,6 +75,7 @@ const (
 	PortalDeleteEvent          AuditLogEvent = "portal.delete"
 	PortalSessionCreateEvent   AuditLogEvent = "portal.session.create"
 	PortalSessionExchangeEvent AuditLogEvent = "portal.session.exchange"
+	PortalSessionRevokeEvent   AuditLogEvent = "portal.session.revoke"
 
 	// Deployment events
 	DeploymentCreateEvent   AuditLogEvent = "deployment.create"
@@ -77,6 +84,7 @@ const (
 	DeploymentWakeEvent     AuditLogEvent = "deployment.wake"
 	DeploymentPromoteEvent  AuditLogEvent = "deployment.promote"
 	DeploymentRollbackEvent AuditLogEvent = "deployment.rollback"
+	DeploymentCancelEvent   AuditLogEvent = "deployment.cancel"
 
 	// Project events
 	ProjectCreateEvent AuditLogEvent = "project.create"

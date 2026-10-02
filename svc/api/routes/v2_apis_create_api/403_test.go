@@ -8,6 +8,11 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
+	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/pkg/urn"
+	"github.com/unkeyed/unkey/svc/api/internal/projects"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_apis_create_api"
 )
@@ -91,4 +96,35 @@ func TestCreateApi_Forbidden(t *testing.T) {
 			})
 		}
 	})
+}
+
+// TestCreateApi_ForbiddenForOtherProjectGrant verifies that a keyspace grant on
+// another project does not cover the default project, and that the rejected
+// request does not create the default project.
+func TestCreateApi_ForbiddenForOtherProjectGrant(t *testing.T) {
+	ctx := context.Background()
+	h := testutil.NewHarness(t)
+
+	route := &handler.Handler{
+		DB:        h.DB,
+		Auditlogs: h.Auditlogs,
+	}
+	h.Register(route)
+
+	workspaceID := h.Resources().UserWorkspace.ID
+	grant := rbac.U(
+		urn.New().Workspace(workspaceID).Project(uid.New(uid.ProjectPrefix)).Keyspace("*"),
+		permissions.Write,
+	).Value
+	headers := http.Header{
+		"Content-Type":  {"application/json"},
+		"Authorization": {fmt.Sprintf("Bearer %s", h.CreateRootKey(workspaceID, grant))},
+	}
+
+	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{Name: "KEBAP"})
+	require.Equal(t, http.StatusForbidden, res.Status, "%s", res.RawBody)
+
+	_, found, err := projects.FindDefaultProject(ctx, h.DB.RO(), workspaceID)
+	require.NoError(t, err)
+	require.False(t, found, "a rejected request must not create the default project")
 }

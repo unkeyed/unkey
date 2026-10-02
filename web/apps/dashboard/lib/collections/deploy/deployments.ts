@@ -4,15 +4,21 @@ import { parseLoadSubsetOptions, queryCollectionOptions } from "@tanstack/query-
 import { createCollection } from "@tanstack/react-db";
 import { z } from "zod";
 import { queryClient, trpcClient } from "../client";
-import { DEPLOYMENT_STATUSES } from "./deployment-status";
+import {
+  DEPLOYMENT_STATUSES,
+  DEPLOYMENT_STATUS_LABELS,
+  type DeploymentStatus,
+} from "./deployment-status";
 import { INSTANCE_STATUSES } from "./instance-status";
-import { type ParsedFilter, extractStringFilter, validateProjectIdInQuery } from "./utils";
+import { type ParsedFilter, extractStringFilter, extractStringValues } from "./utils";
 
 export const deploymentSchema = z.object({
   id: z.string(),
   projectId: z.string(),
   appId: z.string(),
   environmentId: z.string(),
+  source: z.enum(["unknown", "git", "oci"]),
+  requestedImage: z.string().nullable(),
   gitCommitSha: z.string().nullable(),
   gitBranch: z.string(),
   gitCommitMessage: z.string().nullable(),
@@ -21,7 +27,7 @@ export const deploymentSchema = z.object({
   gitCommitTimestamp: z.number().int().nullable(),
   prNumber: z.number().int().nullable(),
   forkRepositoryFullName: z.string().nullable(),
-  image: z.string().nullable(),
+  resolvedImage: z.string().nullable(),
   hasOpenApiSpec: z.boolean(),
   status: z.enum(DEPLOYMENT_STATUSES),
   desiredState: z.enum(["running", "stopped"]),
@@ -100,6 +106,26 @@ function extractNumberFilter(filters: ParsedFilter[], fieldName: string, operato
   return typeof value === "number" ? value : undefined;
 }
 
+// The same reading feeds queryKey and queryFn so the two can never disagree
+// about which server subset a live query maps to. A live query on a single id
+// (the app's current deployment, a request log's deployment) loads that row on
+// its own, however old it is; the paged /deployments list does not go through
+// the collection at all.
+function readDeploymentSubset(opts: Parameters<typeof parseLoadSubsetOptions>[0]) {
+  const { filters, limit } = parseLoadSubsetOptions(opts);
+  return {
+    limit,
+    projectId: extractStringFilter(filters, "projectId"),
+    statuses: extractStringValues(filters, "status").filter((s): s is DeploymentStatus =>
+      Object.hasOwn(DEPLOYMENT_STATUS_LABELS, s),
+    ),
+    appId: extractStringFilter(filters, "appId"),
+    deploymentId: extractStringFilter(filters, "id"),
+    startTime: extractNumberFilter(filters, "createdAt", "gte"),
+    endTime: extractNumberFilter(filters, "createdAt", "lte"),
+  };
+}
+
 /**
  * Global deployments collection.
  *
@@ -110,38 +136,46 @@ export const deployments = createCollection<Deployment, string>(
   queryCollectionOptions({
     queryClient,
     queryKey: (opts) => {
-      const { filters } = parseLoadSubsetOptions(opts);
-      const projectId = extractStringFilter(filters, "projectId");
-      const appId = extractStringFilter(filters, "appId");
-      const startTime = extractNumberFilter(filters, "createdAt", "gte");
-      const endTime = extractNumberFilter(filters, "createdAt", "lte");
-      return projectId
-        ? ["deployments", projectId, appId ?? null, startTime ?? null, endTime ?? null]
+      if (opts.cursor) {
+        return ["deployments", "next-page"];
+      }
+      const subset = readDeploymentSubset(opts);
+      return subset.projectId
+        ? [
+            "deployments",
+            subset.projectId,
+            subset.appId ?? null,
+            subset.startTime ?? null,
+            subset.endTime ?? null,
+            subset.statuses.join(",") || null,
+            subset.limit ?? null,
+            subset.deploymentId ?? null,
+          ]
         : ["deployments"];
     },
     retry: 3,
     syncMode: "on-demand",
     queryFn: async (ctx) => {
-      const options = ctx.meta?.loadSubsetOptions;
-
-      validateProjectIdInQuery(options?.where);
-      const { filters } = parseLoadSubsetOptions(options);
-      const projectId = extractStringFilter(filters, "projectId");
+      if (ctx.meta?.loadSubsetOptions?.cursor) {
+        return [];
+      }
+      const { projectId, appId, deploymentId, statuses, startTime, endTime, limit } =
+        readDeploymentSubset(ctx.meta?.loadSubsetOptions);
 
       if (!projectId) {
         throw new Error("Query must include eq(collection.projectId, projectId) constraint");
       }
 
-      const appId = extractStringFilter(filters, "appId");
-      const startTime = extractNumberFilter(filters, "createdAt", "gte");
-      const endTime = extractNumberFilter(filters, "createdAt", "lte");
-
-      return trpcClient.deploy.deployment.list.query({
+      const result = await trpcClient.deploy.deployment.list.query({
         projectId,
         ...(appId !== undefined && { appId }),
+        ...(deploymentId !== undefined && { deploymentIds: [deploymentId] }),
+        ...(statuses.length > 0 && { statuses }),
         ...(startTime !== undefined && { startTime }),
         ...(endTime !== undefined && { endTime }),
+        ...(limit !== undefined && { limit }),
       });
+      return result.deployments;
     },
     getKey: (item) => item.id,
     id: "deployments",

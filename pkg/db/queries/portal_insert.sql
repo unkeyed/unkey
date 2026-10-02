@@ -2,6 +2,7 @@
 INSERT INTO portals (
     id,
     workspace_id,
+    project_id,
     slug,
     display_name,
     app_id,
@@ -14,6 +15,7 @@ INSERT INTO portals (
 ) VALUES (
     sqlc.arg(id),
     sqlc.arg(workspace_id),
+    sqlc.arg(project_id),
     sqlc.arg(slug),
     sqlc.arg(display_name),
     sqlc.narg(app_id),

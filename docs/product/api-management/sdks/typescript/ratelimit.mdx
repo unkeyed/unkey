@@ -1,0 +1,137 @@
+---
+title: "@unkey/ratelimit"
+description: "Rate limit from serverless functions with a timeout fallback built in."
+sources:
+  - web/internal/api/src/models/components/v2ratelimitlimitrequestbody.ts
+  - web/internal/api/src/models/components/v2ratelimitlimitresponsedata.ts
+  - https://github.com/unkeyed/sdks/blob/3bb124498270d8aff36e358dc2e0010e9991869a/ratelimit/ts/README.md
+  - https://github.com/unkeyed/sdks/blob/3bb124498270d8aff36e358dc2e0010e9991869a/ratelimit/ts/src/ratelimit.ts
+  - https://github.com/unkeyed/sdks/blob/3bb124498270d8aff36e358dc2e0010e9991869a/ratelimit/ts/src/types.ts
+  - https://github.com/unkeyed/sdks/blob/3bb124498270d8aff36e358dc2e0010e9991869a/ratelimit/ts/src/duration.ts
+  - https://www.npmjs.com/package/@unkey/ratelimit
+---
+
+import { versions } from "/snippets/versions.mdx";
+import RootKeyPrereq from "/snippets/root-key-prereq.mdx";
+
+`@unkey/ratelimit` (version {versions.tsRatelimit}) is a small wrapper around the `ratelimit.limit` endpoint for code that <Tooltip tip="Here: the standalone rate limiting API in API Management, keyed by any identifier. Not key rate limits or gateway policies.">rate limits</Tooltip> user IDs, IP addresses, or anything else without issuing API keys. You set the namespace and limit once, so each check is one line. It also answers from memory for identifiers that are already blocked, and returns a fallback answer if the API takes too long.
+
+<RootKeyPrereq />
+
+## Install
+
+```bash
+npm install @unkey/ratelimit
+```
+
+## Configure
+
+```typescript
+import { Ratelimit } from "@unkey/ratelimit";
+
+const limiter = new Ratelimit({
+  rootKey: process.env.UNKEY_ROOT_KEY ?? "",
+  namespace: "email.send",
+  limit: 10,
+  duration: "30s",
+});
+```
+
+<ParamField body="rootKey" type="string" required>
+  Root key used to call the API.
+</ParamField>
+
+<ParamField body="namespace" type="string" required>
+  Rate limit namespace, created on first use. Identifiers are counted separately in each namespace.
+</ParamField>
+
+<ParamField body="limit" type="number" required>
+  Requests allowed per window.
+</ParamField>
+
+<ParamField body="duration" type="Duration | number" required>
+  Window length as milliseconds or a string such as `"30s"`, `"5 m"`, `"1h"`, or `"1d"` (units `ms`, `s`, `m`, `h`, `d`).
+</ParamField>
+
+<ParamField body="timeout" type="{ ms: Duration | number, fallback: RatelimitResponse | (identifier) => RatelimitResponse } | false">
+  How long to wait for the API before returning `fallback`. Defaults to 5 seconds with a fallback that denies the request. Set `false` to wait indefinitely.
+</ParamField>
+
+<ParamField body="onError" type="(err: Error, identifier: string) => RatelimitResponse | Promise<RatelimitResponse>">
+  Called when the request fails, and its return value becomes the result. Without it the error is thrown.
+</ParamField>
+
+<ParamField body="baseUrl" type="string">
+  Alternative API URL. You don't normally need to set it.
+</ParamField>
+
+<ParamField body="cache" type="Map<string, RatelimitResponse>">
+  Storage for the local memory of blocked identifiers. Defaults to a new `Map`. Pass your own to share it across instances.
+</ParamField>
+
+<ParamField body="disableTelemetry" type="boolean">
+  Opt out of the library's telemetry.
+</ParamField>
+
+## Use it
+
+```typescript
+export async function handler(request: Request) {
+  const identifier = getUserId(request); // or an IP address, an API key ID, anything stable
+
+  const result = await limiter.limit(identifier);
+  if (!result.success) {
+    return new Response("try again later", {
+      status: 429,
+      headers: { "Retry-After": String(Math.ceil((result.reset - Date.now()) / 1000)) },
+    });
+  }
+
+  // handle the request
+}
+```
+
+`limit(identifier, opts?)` returns `{ success, limit, remaining, reset, overrideId? }`. `reset` is Unix milliseconds, and `overrideId` is set when an override applied. The optional second argument takes `cost` (default 1) and `limit: { limit, duration }` to use a different limit for this call:
+
+```typescript
+await limiter.limit(identifier, { cost: 5 });
+await limiter.limit(identifier, { limit: { limit: 100, duration: "1h" } });
+```
+
+Once an identifier is blocked, the library answers further calls for it from memory until `reset`, so a client hammering a blocked identifier doesn't cause more API calls.
+
+## Make it fail safe
+
+If the API can't be reached and your rate limiter denies everything, your endpoint goes down too. Set a timeout and an error handler to decide what happens:
+
+```typescript
+const fallback = (identifier: string) => ({
+  success: true, // let the request through when Unkey is unreachable
+  limit: 0,
+  remaining: 0,
+  reset: 0,
+});
+
+const limiter = new Ratelimit({
+  rootKey: process.env.UNKEY_ROOT_KEY ?? "",
+  namespace: "email.send",
+  limit: 10,
+  duration: "30s",
+  timeout: { ms: 3000, fallback },
+  onError: (err, identifier) => {
+    console.error(`ratelimit failed for ${identifier}: ${err.message}`);
+    return fallback(identifier);
+  },
+});
+```
+
+Allowing keeps your service up during an outage. Denying protects an expensive downstream service.
+
+## Scope
+
+`Ratelimit` wraps [ratelimit.limit](/api-management/api-reference/ratelimit/apply-rate-limiting). The package also has:
+
+- **`Overrides`**, which takes the same `rootKey` and `baseUrl` and has `getOverride`, `setOverride`, `deleteOverride`, and `listOverrides`. See [ratelimit.setOverride](/api-management/api-reference/ratelimit/set-ratelimit-override).
+- **`NoopRatelimit`**, which works the same way without any network calls. Use it in tests.
+
+For [ratelimit.multiLimit](/api-management/api-reference/ratelimit/apply-multiple-rate-limit-checks) and analytics, use [@unkey/api](/api-management/sdks/typescript/api). For rate limits on keys, see [Key and identity limits](/api-management/ratelimiting/key-and-identity-limits).

@@ -1,0 +1,108 @@
+---
+title: Per-user rate limits
+description: "Rate limit a user across all of their keys."
+sources:
+  - svc/api/openapi/spec/paths/v2/identities/createIdentity/V2IdentitiesCreateIdentityRequestBody.yaml
+  - svc/api/openapi/spec/paths/v2/identities/updateIdentity/V2IdentitiesUpdateIdentityRequestBody.yaml
+  - svc/api/routes/v2_identities_create_identity/handler.go
+  - svc/api/routes/v2_identities_update_identity/handler.go
+  - svc/api/routes/v2_keys_create_key/handler.go
+  - pkg/rbac/permissions.go
+  - svc/api/openapi/spec/common/RatelimitRequest.yaml
+  - svc/api/openapi/spec/paths/v2/keys/createKey/V2KeysCreateKeyRequestBody.yaml
+  - svc/api/openapi/spec/paths/v2/keys/createKey/V2KeysCreateKeyResponseData.yaml
+  - svc/api/openapi/spec/paths/v2/keys/verifyKey/V2KeysVerifyKeyRequestBody.yaml
+  - svc/api/openapi/spec/paths/v2/keys/verifyKey/V2KeysVerifyKeyResponseData.yaml
+  - svc/api/openapi/spec/paths/v2/ratelimit/limit/V2RatelimitLimitRequestBody.yaml
+  - svc/api/openapi/spec/paths/v2/ratelimit/setOverride/V2RatelimitSetOverrideRequestBody.yaml
+  - web/internal/api/src/sdk/ratelimit.ts
+---
+import RootKeyPrereq from "/snippets/root-key-prereq.mdx";
+
+**Outcome:** a user who holds several keys gets one shared <Tooltip tip="Here: limits enforced by keys.verifyKey on a key or identity, or by the standalone ratelimit API. Not a Compute gateway policy.">rate limit</Tooltip>, enforced by `keys.verifyKey` with no extra call, and users on a higher plan get a higher limit without a code change.
+
+<RootKeyPrereq />
+
+## Put the limit on the identity
+
+A limit on a key applies to that key alone. A limit on an identity is shared by all the user's keys. Create the identity with the limit, then create keys with the same `externalId`, and they're linked automatically. `autoApply: true` checks the limit on every verification.
+
+The root key needs `identity.*.create_identity` for the first call, and `api.*.create_key` or `api.<apiId>.create_key` for the second.
+
+```bash create the identity
+curl -X POST https://api.unkey.com/v2/identities.createIdentity \
+  -H "Authorization: Bearer $UNKEY_ROOT_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "externalId": "user_123",
+    "meta": { "plan": "free" },
+    "ratelimits": [
+      { "name": "requests", "limit": 100, "duration": 60000, "autoApply": true }
+    ]
+  }'
+```
+
+```bash create a key for that user
+curl -X POST https://api.unkey.com/v2/keys.createKey \
+  -H "Authorization: Bearer $UNKEY_ROOT_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{ "apiId": "api_...", "externalId": "user_123" }'
+```
+
+Your handler doesn't change. `keys.verifyKey` returns `code: RATE_LIMITED` when the shared limit is used up, and `data.ratelimits` has `remaining` and `reset` so you can send `X-RateLimit-*` headers.
+
+```ts verify and forward limit headers
+const result = await unkey.keys.verifyKey({ key });
+const rl = result.data.ratelimits?.find((r) => r.name === "requests");
+const headers = rl
+  ? {
+      "X-RateLimit-Limit": String(rl.limit),
+      "X-RateLimit-Remaining": String(rl.remaining),
+      "X-RateLimit-Reset": String(rl.reset),
+    }
+  : {};
+if (!result.data.valid) {
+  return Response.json({ error: result.data.code }, { status: result.data.code === "RATE_LIMITED" ? 429 : 401, headers });
+}
+```
+
+When a user upgrades, call `identities.updateIdentity` with a new `ratelimits` array (needs `identity.*.update_identity`). It replaces the whole list, so send every limit the user should keep. All their keys pick up the change within about 10 seconds.
+
+## Alternative: the standalone ratelimit API
+
+If you're limiting something other than a key holder (a logged-in session, an IP address, a tenant), use `ratelimit.limit`. The `namespace` names what you're limiting, the `identifier` is the user, and you send the limit with each request. The response is always HTTP 200, so read `data.success`.
+
+<CodeGroup>
+```bash curl
+curl -X POST https://api.unkey.com/v2/ratelimit.limit \
+  -H "Authorization: Bearer $UNKEY_ROOT_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{ "namespace": "api.requests", "identifier": "user_123", "limit": 100, "duration": 60000 }'
+```
+```ts TypeScript
+const rl = await unkey.ratelimit.limit({
+  namespace: "api.requests",
+  identifier: userId,
+  limit: 100,
+  duration: 60_000,
+});
+if (!rl.data.success) {
+  return Response.json({ error: "rate limited" }, { status: 429, headers: { "Retry-After": String(Math.ceil((rl.data.reset - Date.now()) / 1000)) } });
+}
+```
+</CodeGroup>
+
+For plans, use overrides. An override gives one identifier a different limit from the one in the request. Set one when a user upgrades and delete it when they downgrade. `data.overrideId` in the response shows when an override applied. The root key needs `ratelimit.*.limit` to check limits and `ratelimit.*.set_override` to create overrides.
+
+```bash give one user a higher limit
+curl -X POST https://api.unkey.com/v2/ratelimit.setOverride \
+  -H "Authorization: Bearer $UNKEY_ROOT_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{ "namespace": "api.requests", "identifier": "user_123", "limit": 1000, "duration": 60000 }'
+```
+
+## Related
+
+- [Creating keys](/api-management/keys/creating-keys) for the `externalId` and `ratelimits` fields.
+- [Verifying keys](/api-management/keys/verifying-keys) for the `ratelimits` response entries.
+- [Identities](/api-management/identities/overview), [standalone rate limiting](/api-management/ratelimiting/overview), and [overrides](/api-management/ratelimiting/overrides) are documented under API Management.

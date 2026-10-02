@@ -1,0 +1,30 @@
+---
+title: Cookbook
+sidebarTitle: "Overview"
+description: "Recipes for rate limiting, billing, and framework middleware built on Unkey."
+sources:
+  - svc/api/openapi/spec/paths/v2/keys/verifyKey/V2KeysVerifyKeyRequestBody.yaml
+  - svc/api/openapi/spec/paths/v2/ratelimit/limit/V2RatelimitLimitRequestBody.yaml
+---
+Each recipe solves one common problem from start to finish. They assume you already have a keyspace, a root key, and a request handler that calls `keys.verifyKey`. If you don't yet, start with a [framework guide](/api-management/guides/nextjs).
+
+<Columns cols={2}>
+  <Card title="Per-user rate limits" href="/api-management/cookbook/per-user-rate-limit" icon="user-clock">
+    Share one limit across all of a user's keys with identities, and give tiers different limits with overrides.
+  </Card>
+  <Card title="Per-endpoint rate limits" href="/api-management/cookbook/endpoint-rate-limit" icon="route">
+    Separate budgets for reads and writes, with named key limits or a namespace per route.
+  </Card>
+  <Card title="Usage-based billing with credits" href="/api-management/cookbook/usage-billing" icon="coins">
+    Meter requests with credits, refill monthly, charge more for heavy operations, and sell top-ups.
+  </Card>
+  <Card title="Tiered subscriptions" href="/api-management/cookbook/tiered-subscriptions" icon="layer-group">
+    Encode free, pro, and enterprise plans in a key's limits, credits, permissions, and metadata, and change plans in place.
+  </Card>
+  <Card title="Go middleware for net/http, Gin, and Echo" href="/api-management/cookbook/go-middleware" icon="golang">
+    Drop-in authentication middleware for the three common Go HTTP stacks.
+  </Card>
+  <Card title="FastAPI authentication" href="/api-management/cookbook/fastapi-auth" icon="python">
+    A typed FastAPI dependency with permission checks and rate limit headers.
+  </Card>
+</Columns>

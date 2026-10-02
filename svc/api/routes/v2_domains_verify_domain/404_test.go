@@ -86,12 +86,11 @@ func TestVerifyDomainCrossWorkspace(t *testing.T) {
 		Slug:        randomSlug(),
 	})
 	otherApp := h.CreateApp(seed.CreateAppRequest{
-		ID:            uid.New(uid.AppPrefix),
-		WorkspaceID:   otherWorkspace.ID,
-		ProjectID:     otherProject.ID,
-		Name:          "Other Workspace App",
-		Slug:          randomSlug(),
-		DefaultBranch: "main",
+		ID:          uid.New(uid.AppPrefix),
+		WorkspaceID: otherWorkspace.ID,
+		ProjectID:   otherProject.ID,
+		Name:        "Other Workspace App",
+		Slug:        randomSlug(),
 	})
 	otherEnv := h.CreateEnvironment(seed.CreateEnvironmentRequest{
 		ID:          uid.New(uid.EnvironmentPrefix),

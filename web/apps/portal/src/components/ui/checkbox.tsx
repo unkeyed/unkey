@@ -8,7 +8,7 @@ export function Checkbox({ className, ...props }: CheckboxPrimitive.Root.Props) 
   return (
     <CheckboxPrimitive.Root
       className={cn(
-        "peer size-4 shrink-0 rounded-[4px] border border-primary/30 bg-background shadow-xs transition-colors",
+        "peer inline-flex size-4 shrink-0 items-center justify-center rounded-[4px] border border-primary/30 bg-background shadow-xs transition-colors",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-12 focus-visible:ring-offset-1",
         "data-disabled:cursor-not-allowed data-disabled:opacity-50",
         "data-checked:border-gray-12 data-checked:bg-gray-12 data-checked:text-background",

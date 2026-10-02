@@ -1,6 +1,6 @@
-import { cn } from "@/lib/utils";
-import { Bookmark, Layers2 } from "@unkey/icons";
-import { InfoTooltip, toast } from "@unkey/ui";
+import { IconBookmarkFill18, IconBookmarkOutline18, IconLayers2Outline18 } from "@unkey/icons";
+import { InfoTooltip, Separator, toast } from "@unkey/ui";
+import { cn } from "cn";
 import { useEffect, useState } from "react";
 import { useQueries } from "./queries-context";
 import { QueriesItemRow } from "./queries-item-row";
@@ -90,7 +90,7 @@ export function ListGroup({
     <div className="w-full">
       <div
         className={cn(
-          "flex flex-row hover:bg-gray-2 cursor-pointer whitespace-nowrap rounded-[8px] pb-[9px] w-full pl-1",
+          "flex flex-row hover:bg-gray-2 cursor-pointer whitespace-nowrap rounded-lg pb-[9px] w-full pl-1",
           index === selectedIndex ? "bg-gray-2" : "",
         )}
       >
@@ -105,7 +105,7 @@ export function ListGroup({
             <div className="flex flex-row items-center justify-start h-6">
               <div className="inline-flex w-full gap-2">
                 <span className="font-mono text-xs font-normal text-gray-9">from</span>
-                <Layers2 className="size-3 mt-px" />
+                <IconLayers2Outline18 className="size-3 mt-px" />
                 <span className="font-mono text-xs font-medium">Logs</span>
               </div>
             </div>
@@ -139,35 +139,31 @@ export function ListGroup({
           className="flex flex-col h-[24px] pr-2 mt-1.5 w-[24px]"
           onMouseEnter={handleMouseEnter}
         >
-          <InfoTooltip
-            variant="inverted"
-            position={{ side: "top" }}
-            content={tooltipMessage}
-            asChild
-          >
+          <InfoTooltip position={{ side: "top" }} content={tooltipMessage} asChild>
             <button
               type="button"
               className={cn(
-                "flex h-7 w-6 ml-px  justify-center items-center text-accent-9 rounded-md",
+                "flex h-7 w-6 ml-px  justify-center items-center text-gray-9 rounded-md",
                 filterList.bookmarked
                   ? "text-info-9 hover:bg-info-3"
-                  : "hover:bg-gray-3 hover:text-accent-12",
+                  : "hover:bg-gray-3 hover:text-gray-12",
                 `tabIndex-${0}`,
               )}
               onClick={() => handleBookmarkChanged()}
               onKeyUp={(e) => e.key === "Enter"}
               aria-label={filterList.bookmarked ? "Remove from bookmarks" : "Add to bookmarks"}
             >
-              <Bookmark iconSize="md-medium" filled={filterList.bookmarked} />
+              {filterList.bookmarked ? (
+                <IconBookmarkFill18 className="size-3.5" />
+              ) : (
+                <IconBookmarkOutline18 className="size-3.5" />
+              )}
             </button>
           </InfoTooltip>
         </div>
       </div>
-      <div
-        className={cn(
-          "flex flex-row bg-white dark:bg-black h-px mt-[7px] mb-[8px] w-full",
-          index < total - 1 && "border-b border-b-gray-3",
-        )}
+      <Separator
+        className={cn("mt-[7px] mb-[8px]", index < total - 1 && "border-b border-b-gray-3")}
       />
     </div>
   );

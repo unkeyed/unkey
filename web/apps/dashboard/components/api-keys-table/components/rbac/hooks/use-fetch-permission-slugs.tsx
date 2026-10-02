@@ -1,32 +1,45 @@
 "use client";
+import { queryKeys } from "@/lib/query-keys";
 
-import { trpc } from "@/lib/trpc/client";
+import { getUnkeyClient } from "@/lib/unkey-client";
+import { useQueries } from "@tanstack/react-query";
+
+export const keysRbacRoleQueryOptions = (roleName: string) => ({
+  queryKey: queryKeys.rbac.roles.detail(roleName),
+  queryFn: () => getUnkeyClient().permissions.getRole({ role: roleName }),
+  staleTime: 30_000,
+});
 
 export const useFetchPermissionSlugs = (
   roleNames: string[] = [],
   directPermissionSlugs: string[] = [],
   enabled = true,
 ) => {
-  const { data, isLoading, error, refetch } = trpc.key.queryPermissionSlugs.useQuery(
-    {
-      roleNames,
-      permissionSlugs: directPermissionSlugs,
-    },
-    {
+  const roleQueries = useQueries({
+    queries: Array.from(new Set(roleNames)).map((roleName) => ({
+      ...keysRbacRoleQueryOptions(roleName),
       enabled,
-      trpc: {
-        context: {
-          skipBatch: true,
-        },
-      },
-    },
-  );
+    })),
+  });
+
+  const isLoading = roleQueries.some((query) => query.isLoading);
+  const hasError = roleQueries.some((query) => query.isError);
+
+  if (isLoading || hasError) {
+    return { data: undefined, isLoading, hasError };
+  }
+
+  const slugs = new Set(directPermissionSlugs);
+  for (const query of roleQueries) {
+    for (const permission of query.data?.data.permissions ?? []) {
+      slugs.add(permission.slug);
+    }
+  }
+  const sortedSlugs = Array.from(slugs).sort();
 
   return {
-    data,
+    data: { slugs: sortedSlugs, totalCount: sortedSlugs.length },
     isLoading,
-    error,
-    refetch,
-    hasData: !isLoading && data !== undefined,
+    hasError,
   };
 };

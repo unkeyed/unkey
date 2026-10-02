@@ -1,0 +1,107 @@
+---
+title: unkey api keys update-key
+sidebarTitle: "update-key"
+description: "Change the settings of an existing key without reissuing it."
+sources:
+  - cmd/api/keys/update_key.go
+  - svc/api/routes/v2_keys_update_key/handler.go
+  - docs/product/scripts/manifest.json
+---
+
+import RootKeyPrereq from "/snippets/root-key-prereq.mdx";
+
+<RootKeyPrereq />
+
+Update a key in place. Only the fields you pass change. Changes can take up to about 10 seconds to apply. To clear a field, use `--body` and set the field to `null`. The flags can't do this. Calls `POST /v2/keys.updateKey`. See [Enabling, disabling, and deleting keys](/api-management/keys/enable-disable-delete).
+
+## Usage
+
+```bash
+unkey api keys update-key --key-id=<key id> [flags]
+```
+
+## Flags
+
+<ParamField body="--key-id" type="string" required>
+  Id of the key to update.
+</ParamField>
+
+<ParamField body="--credits" type="string">
+  JSON object with an optional `remaining` and an optional `refill` of `interval` (`daily` or `monthly`), `amount`, and `refillDay`. `refillDay` is a day of the month from 1 to 31. It's required for `monthly` and not allowed for `daily`. Either mistake fails with `400`. Setting `remaining` to `null` makes the key unlimited and drops its refill schedule.
+</ParamField>
+
+<ParamField body="--enabled" type="boolean">
+  Enable (`--enabled`) or disable (`--enabled=false`) the key. Leave it off to keep the current state.
+</ParamField>
+
+<ParamField body="--expires" type="integer">
+  New expiry as a Unix timestamp in milliseconds.
+</ParamField>
+
+<ParamField body="--external-id" type="string">
+  Link the key to the identity with this external id. The identity is created if it doesn't exist.
+</ParamField>
+
+<ParamField body="--meta" type="string">
+  JSON object that replaces the key's metadata.
+</ParamField>
+
+<ParamField body="--name" type="string">
+  New name.
+</ParamField>
+
+<ParamField body="--permissions" type="string[]">
+  Comma-separated permission slugs that replace the key's direct permissions. A slug that doesn't exist yet is created.
+</ParamField>
+
+<ParamField body="--ratelimits" type="string">
+  JSON array of rate limits, each with `name`, `limit`, `duration` in milliseconds, and `autoApply`. Replaces the key's rate limits.
+</ParamField>
+
+<ParamField body="--roles" type="string[]">
+  Comma-separated role names that replace the key's roles. Each role must already exist. An unknown name fails the call.
+</ParamField>
+
+### Shared flags
+
+Every `unkey api` command takes these. See [CLI output and shared flags](/platform/cli/output-and-flags).
+
+<ParamField body="--root-key" type="string">
+  Root key used for the request. Falls back to `UNKEY_ROOT_KEY`, then to the key stored by `unkey auth login`.
+</ParamField>
+
+<ParamField body="--api-url" type="string" default="https://api.unkey.com">
+  Base URL of the API. Falls back to `UNKEY_API_BASE_URL`. You don't normally need to set it.
+</ParamField>
+
+<ParamField body="--config" type="string" default="~/.unkey/config.toml">
+  Path of the config file written by `unkey auth login`. Falls back to `UNKEY_CONFIG`.
+</ParamField>
+
+<ParamField body="--output" type="string">
+  Output format. Falls back to `UNKEY_OUTPUT`. `json` prints the full response. Any other value prints the request ID and `data`.
+</ParamField>
+
+<ParamField body="--body" type="string">
+  Send this JSON as the whole request body instead of using the command's flags. You can't combine it with them.
+</ParamField>
+
+## Required permissions
+
+`api.*.update_key` or `api.<apiId>.update_key` for the API the key belongs to. See [Root key permissions](/platform/root-keys/permissions).
+
+## Examples
+
+```bash Rename
+unkey api keys update-key --key-id=key_1234abcd --name='Updated Key Name'
+```
+
+```bash Disable
+unkey api keys update-key --key-id=key_1234abcd --enabled=false
+```
+
+Or send the whole request as JSON:
+
+```bash Raw body
+unkey api keys update-key --body='{"keyId":"key_1234abcd","expires":null,"meta":{"plan":"enterprise"}}'
+```

@@ -1,5 +1,6 @@
 "use client";
 
+import { PlansScreen } from "@/app/(app)/[workspaceSlug]/settings/billing/components/plans-screen";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { collection } from "@/lib/collections";
 import {
@@ -10,7 +11,7 @@ import { useBillingUIUpgrades } from "@/lib/flags/use-billing-ui-upgrades";
 import { routes } from "@/lib/navigation/routes";
 import { getErrorMessage } from "@/lib/unkey-client";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ChevronDown, Link4 } from "@unkey/icons";
+import { IconChevronDownOutline12, IconLink4Outline18 } from "@unkey/icons";
 import {
   AlertBanner,
   AlertBannerActions,
@@ -144,7 +145,7 @@ const CustomDomainSettings: React.FC<CustomDomainSettingsProps> = ({
 
   return (
     <FormSettingCard
-      icon={<Link4 className="text-gray-12" iconSize="xl-medium" />}
+      icon={<IconLink4Outline18 className="text-gray-12" />}
       title="Custom Domains"
       description="Serve your deployment from your own domain name"
       displayValue={displayValue}
@@ -156,8 +157,8 @@ const CustomDomainSettings: React.FC<CustomDomainSettingsProps> = ({
     >
       <SettingField>
         <div className="flex items-center gap-3">
-          <span className="text-[13px] text-gray-11 w-35">Environment</span>
-          <span className="flex-1 text-[13px] text-gray-11">Domain</span>
+          <span className="text-sm text-gray-11 w-35">Environment</span>
+          <span className="flex-1 text-sm text-gray-11">Domain</span>
         </div>
         <div className="flex items-start gap-3">
           <Controller
@@ -168,7 +169,7 @@ const CustomDomainSettings: React.FC<CustomDomainSettingsProps> = ({
                 <SelectTrigger
                   wrapperClassName="w-[140px]"
                   variant={errors.environmentId ? "error" : "default"}
-                  rightIcon={<ChevronDown className="absolute right-3 size-3 opacity-70" />}
+                  rightIcon={<IconChevronDownOutline12 className="absolute right-3 opacity-70" />}
                 >
                   <SelectValue placeholder="Environment">
                     {environments.find((e) => e.id === field.value)?.slug ?? ""}
@@ -194,7 +195,7 @@ const CustomDomainSettings: React.FC<CustomDomainSettingsProps> = ({
       </SettingField>
       <WideContent>
         {customDomains.length > 0 && (
-          <div className="border border-gray-4 rounded-lg overflow-hidden mt-1 dark:bg-black bg-white">
+          <div className="border rounded-lg overflow-hidden mt-1 bg-raised">
             {customDomains.map((d) => (
               <CustomDomainRow
                 key={d.id}
@@ -212,6 +213,7 @@ const CustomDomainSettings: React.FC<CustomDomainSettingsProps> = ({
 const LimitBanner = ({ message }: { message: string }) => {
   const workspace = useWorkspaceNavigation();
   const billingUpgrades = useBillingUIUpgrades();
+  const [plansOpen, setPlansOpen] = useState(false);
 
   return (
     <AlertBanner variant="error" className="mb-2">
@@ -228,22 +230,11 @@ const LimitBanner = ({ message }: { message: string }) => {
             View limits
           </Button>
         )}
-        <Button
-          variant="primary"
-          size="sm"
-          className="px-3"
-          render={
-            <Link
-              href={routes.settings.billing({
-                workspaceSlug: workspace.slug,
-                intent: "compute",
-              })}
-            />
-          }
-        >
+        <Button variant="primary" size="sm" className="px-3" onClick={() => setPlansOpen(true)}>
           Upgrade plan
         </Button>
       </AlertBannerActions>
+      <PlansScreen open={plansOpen} onOpenChange={setPlansOpen} reason="custom-domains" />
     </AlertBanner>
   );
 };

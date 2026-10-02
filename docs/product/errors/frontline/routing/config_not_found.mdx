@@ -1,7 +1,60 @@
 ---
 title: "config_not_found"
-description: "ConfigNotFound represents a 404 error - no configuration found for the requested hostname"
+sidebarTitle: "config_not_found"
+description: "No Compute deployment is routed for the requested hostname."
+sources:
+  - pkg/codes/frontline.go
+  - svc/frontline/middleware/observability.go
+  - svc/frontline/internal/router/lookup.go
+  - svc/frontline/routes/acme/handler.go
+  - svc/ctrl/worker/deploy/deploy_handler.go
+  - svc/ctrl/worker/customdomain/verify_handler.go
 ---
 
 <Danger>`err:frontline:routing:config_not_found`</Danger>
 
+import { ProductLink } from "/snippets/product-link.jsx";
+
+The request reached Unkey, but the hostname doesn't point at any Compute deployment, so no <Tooltip tip="A Compute app: a deployable service inside a project. Not your application in general.">app</Tooltip> was contacted. You get `404 Not Found`.
+
+```json Example response
+{
+  "meta": {
+    "requestId": "req_3k2j1h0g9f8e7d6c"
+  },
+  "error": {
+    "code": "err:frontline:routing:config_not_found",
+    "message": "No deployment found for this hostname. Please check your domain configuration or contact support at support@unkey.com."
+  }
+}
+```
+
+Browsers get the same error as an HTML page.
+
+## If you're calling an API hosted on Unkey
+
+Check the hostname. Common causes are a typo, a preview domain for a branch that no longer exists, and a custom domain the owner hasn't finished setting up. If the owner gave you this hostname, send them the request ID.
+
+## If you own this API
+
+Unkey domains work as soon as a deployment is created. Custom domains only work once we've verified them. Common causes:
+
+- A custom domain is still waiting for verification, even if its DNS already points at Unkey.
+- The hostname isn't one of the deployment's domains, or has a typo.
+- The domain was removed, or the deployment it pointed at was deleted.
+- The certificate for a custom domain won't issue.
+
+### How to fix
+
+1. Check that the hostname is one of the domains listed on the deployment or <Tooltip tip="A production or preview environment of a Compute app, not the dashboard label on a key.">environment</Tooltip>.
+2. For a custom domain, check its verification status and the DNS records we asked for, then wait for verification to finish.
+3. If the hostname used to work, check whether the domain was removed or its deployment deleted.
+
+<ProductLink product="compute" href="/compute/gateway/errors" title="Compute gateway">
+  Automatic domains, custom domains, and verification are Compute features.
+</ProductLink>
+
+## Related errors
+
+- [`err:frontline:capacity:deployment_offline`](/errors/frontline/capacity/deployment_offline): the hostname is routed but the deployment is stopped.
+- [`err:frontline:platform:config_load_failed`](/errors/frontline/platform/config_load_failed): the route couldn't be loaded because of a failure on our side.

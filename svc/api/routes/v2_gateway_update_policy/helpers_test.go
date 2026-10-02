@@ -17,7 +17,6 @@ import (
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_gateway_update_policy"
 	"google.golang.org/protobuf/encoding/protojson"
-	"google.golang.org/protobuf/proto"
 )
 
 func makeRequest(env seededEnv, policyID string) handler.Request {
@@ -49,12 +48,11 @@ func seedEnvironment(t *testing.T, h *testutil.Harness) seededEnv {
 	})
 
 	app := h.CreateApp(seed.CreateAppRequest{
-		ID:            uid.New(uid.AppPrefix),
-		WorkspaceID:   workspace.ID,
-		ProjectID:     project.ID,
-		Name:          "Payments API",
-		Slug:          strings.ToLower(strings.ReplaceAll(uid.New("test"), "_", "-")),
-		DefaultBranch: "main",
+		ID:          uid.New(uid.AppPrefix),
+		WorkspaceID: workspace.ID,
+		ProjectID:   project.ID,
+		Name:        "Payments API",
+		Slug:        strings.ToLower(strings.ReplaceAll(uid.New("test"), "_", "-")),
 	})
 
 	environment := h.CreateEnvironment(seed.CreateEnvironmentRequest{
@@ -114,7 +112,7 @@ func seedFirewallPolicies(t *testing.T, h *testutil.Harness, env seededEnv, n in
 		policies = append(policies, &frontlinev1.Policy{
 			Id:      id,
 			Name:    fmt.Sprintf("KEBAP %d", i),
-			Enabled: proto.Bool(true),
+			Enabled: new(true),
 			Config: &frontlinev1.Policy_Firewall{Firewall: &frontlinev1.Firewall{
 				Action: frontlinev1.Action_ACTION_DENY,
 			}},

@@ -1,7 +1,72 @@
 ---
 title: "rate_limited"
-description: "RateLimited represents a 429 error - the credential or its auto-applied rate limit was exceeded."
+sidebarTitle: "rate_limited"
+description: "The request exceeded a per-key limit or a gateway rate limit policy."
+sources:
+  - pkg/codes/frontline.go
+  - svc/frontline/middleware/observability.go
+  - svc/frontline/internal/policies/keyauth/executor.go
+  - svc/frontline/internal/policies/keyauth/headers.go
+  - svc/frontline/internal/policies/ratelimit/executor.go
+  - svc/frontline/internal/policies/ratelimit/headers.go
+  - svc/frontline/internal/policies/ratelimit/keyextract.go
 ---
 
 <Danger>`err:frontline:client:rate_limited`</Danger>
 
+import { ProductLink } from "/snippets/product-link.jsx";
+
+The API you called runs on Unkey, and this request went over one of its <Tooltip tip="Here: a gateway rate limit policy or a per-key limit the gateway enforces. Not the standalone ratelimit API.">rate limits</Tooltip>. The limit is either on your API key or on a rule that counts requests by something like your IP address. You get `429 Too Many Requests`.
+
+```json Example response
+{
+  "meta": {
+    "requestId": "req_3k2j1h0g9f8e7d6c"
+  },
+  "error": {
+    "code": "err:frontline:client:rate_limited",
+    "message": "Rate limit exceeded. Please try again later."
+  }
+}
+```
+
+Browsers get the same error as an HTML page.
+
+## If you're calling an API hosted on Unkey
+
+Wait, then retry with backoff. Don't retry in a tight loop. The response headers tell you how long to wait:
+
+- `Retry-After`: seconds to wait before you retry, never lower than 1.
+- `X-RateLimit-Limit`: how many requests the window allows.
+- `X-RateLimit-Remaining`: how many you have left.
+- `X-RateLimit-Reset`: when the window resets, as a Unix timestamp in seconds.
+
+The `X-RateLimit-*` headers are on successful responses too, so you can slow down before you hit the limit. If several limits apply, they describe the most restrictive one.
+
+## If you own this API
+
+Two kinds of policy return this code. A key-auth policy with `ratelimits` entries limits each key the same way `keys.verifyKey` does. A rate limit policy has its own `limit` and `windowMs`, and counts requests by one or more identifiers: the client IP, a header, the path, the authenticated subject, or a field of the principal. Common causes:
+
+- The limit is too low for your real traffic.
+- The identifier is too broad, so unrelated callers share one counter.
+- The policy counts by a header that callers don't send. When none of a policy's identifiers are on a request, the request is rejected, so every request without that header gets this 429.
+
+### How to fix
+
+1. Raise `limit` or shorten `windowMs` on the policy, or count by a more specific identifier.
+2. For per-key limits, change the limit on the key or identity, or the `ratelimits` entry in the policy (`name`, and optionally `limit`, `duration`, and `cost`).
+3. Make sure the identifier you count by is on every request the policy matches.
+4. Create a new deployment. Policy changes only apply to deployments created after the change.
+
+<ProductLink product="compute" href="/compute/gateway/errors" title="Compute gateway">
+  Gateway policies, deployments, and domains are Compute features. The Compute docs explain how to configure them.
+</ProductLink>
+
+<ProductLink product="api-management" href="/api-management/ratelimiting/key-and-identity-limits" title="API Management keys">
+  Per-key and per-identity limits, and the standalone ratelimit API, are API Management features.
+</ProductLink>
+
+## Related errors
+
+- [`err:frontline:client:usage_exceeded`](/errors/frontline/client/usage_exceeded): the key ran out of credits rather than requests per window.
+- [`err:frontline:client:invalid_key`](/errors/frontline/client/invalid_key): the key failed verification before limits were checked.

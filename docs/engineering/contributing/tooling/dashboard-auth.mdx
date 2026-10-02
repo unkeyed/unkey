@@ -1,0 +1,39 @@
+---
+title: "Dashboard authentication"
+description: "Configure and operate the dashboard's WorkOS AuthKit integration"
+---
+
+The hosted WorkOS AuthKit experience owns production sign-in, sign-up, email
+verification, organization selection, Radar, MFA, and session management. The
+dashboard owns workspace authorization and organization administration. The
+embedded WorkOS User Management widget owns interactive member, role, and
+invitation management.
+
+Local mode does not load AuthKit. It keeps the built-in local account,
+`unkey-session` cookie, workspace, and invitation administration stubs.
+
+## Configure an environment
+
+Set these dashboard variables when `AUTH_PROVIDER="workos"`:
+
+| Variable | Requirement |
+| --- | --- |
+| `WORKOS_API_KEY` | API key for the matching WorkOS environment |
+| `WORKOS_CLIENT_ID` | AuthKit client ID for the matching environment |
+| `WORKOS_COOKIE_PASSWORD` | Unique secret with at least 32 characters |
+
+Configure each WorkOS environment independently:
+
+- Set the dashboard sign-in endpoint to `/auth/sign-in`.
+- Add the exact production, canary, preview, or staging callback URL.
+- Keep the application user invitation URL set to the default AuthKit URL.
+- Add exact dashboard origins to the User Profile, User Security, and User
+  Management widget CORS allowlist.
+- Grant `widgets:users-table:manage` to each WorkOS role that can administer
+  workspace members.
+- Configure approved Magic Auth, social OAuth, SSO, email verification, MFA,
+  Radar, session lifetime, and refresh lifetime policies.
+- Confirm User Security lets a user enroll in MFA when neither the global nor
+  organization policy requires MFA.
+- Route WorkOS-initiated sign-in and impersonation through the dashboard
+  sign-in endpoint so AuthKit creates the PKCE transaction.

@@ -1,0 +1,120 @@
+---
+title: Platform
+sidebarTitle: "Overview"
+description: "Manage what both Unkey products share: your workspace, billing, root keys, and the CLI."
+sources:
+  - docs/product/docs.json
+boost: 3
+---
+
+Set up what Compute and API Management share: your workspace and team, billing, security, root keys, the CLI, and the HTTP API.
+
+## Workspace
+
+<Columns cols={2}>
+  <Card title="Workspaces" icon="folder" href="/platform/workspace/overview">
+    What a workspace isolates, its slug and ID, creating one.
+  </Card>
+  <Card title="Workspace settings" icon="sliders" href="/platform/workspace/settings">
+    Name, workspace ID, and the GitHub App connection.
+  </Card>
+  <Card title="Team" icon="users" href="/platform/workspace/team">
+    Admin and developer roles, and how invitations work.
+  </Card>
+  <Card title="Two-factor authentication" icon="mobile-screen" href="/platform/workspace/two-factor-auth">
+    Enroll a second factor on your own account.
+  </Card>
+</Columns>
+
+## Billing
+
+<Columns cols={2}>
+  <Card title="Plans" icon="credit-card" href="/platform/billing/plans">
+    API tier and Compute plan, billed separately.
+  </Card>
+  <Card title="Limits" icon="gauge-high" href="/platform/billing/limits">
+    Every ceiling, per plan.
+  </Card>
+  <Card title="Usage" icon="chart-line" href="/platform/billing/usage">
+    What you consumed this month.
+  </Card>
+</Columns>
+
+## Security
+
+<Columns cols={2}>
+  <Card title="Security" icon="shield-halved" href="/platform/security/overview">
+    How we protect your keys and what you can turn on.
+  </Card>
+  <Card title="Key storage" icon="lock" href="/platform/security/key-storage">
+    Why a key is shown once, and recoverable keys.
+  </Card>
+  <Card title="GitHub secret scanning" icon="github" href="/platform/security/github-secret-scanning">
+    What happens when a key leaks to a public repository.
+  </Card>
+  <Card title="Delete protection" icon="trash-can-slash" href="/platform/security/delete-protection">
+    Block deletion of keyspaces, apps, and projects.
+  </Card>
+</Columns>
+
+## CLI
+
+<Columns cols={2}>
+  <Card title="The unkey CLI" icon="terminal" href="/platform/cli/overview">
+    What the command groups are and which product owns each.
+  </Card>
+  <Card title="Install the CLI" icon="download" href="/platform/cli/install">
+    npm package or GitHub release.
+  </Card>
+  <Card title="CLI authentication" icon="key" href="/platform/cli/authentication">
+    Flag, environment variable, or `unkey auth login`, in that order.
+  </Card>
+  <Card title="CLI output and shared flags" icon="sliders" href="/platform/cli/output-and-flags">
+    `--output json`, `--body`, `--api-url`, `--config`.
+  </Card>
+</Columns>
+
+## API
+
+<Columns cols={2}>
+  <Card title="HTTP API basics" icon="globe" href="/platform/api/overview">
+    Base URL, envelope, request IDs, pagination.
+  </Card>
+  <Card title="API authentication" icon="key" href="/platform/api/authentication">
+    Bearer root keys and the errors they can produce.
+  </Card>
+  <Card title="RPC naming convention" icon="code" href="/platform/api/rpc-convention">
+    POST /v2/{service}.{procedure}, services, verbs.
+  </Card>
+  <Card title="API error envelope" icon="triangle-exclamation" href="/platform/api/errors">
+    RFC 7807 fields, validation errors, status codes.
+  </Card>
+</Columns>
+
+## Root keys
+
+<Columns cols={2}>
+  <Card title="Root keys" icon="key-skeleton" href="/platform/root-keys/overview">
+    Create, edit, rotate, and delete the credential for the API.
+  </Card>
+  <Card title="Root key permissions" icon="shield-halved" href="/platform/root-keys/permissions">
+    Choose permissions and fix a permission error.
+  </Card>
+  <Card title="Permission reference" icon="list" href="/platform/root-keys/permissions-legacy">
+    Every resource.id.action string by product.
+  </Card>
+</Columns>
+
+## Reference
+
+<Columns cols={2}>
+  <Card title="Glossary" icon="book" href="/platform/glossary">
+    Every term, tagged with the product that owns it.
+  </Card>
+  <Card title="Compute" icon="server" href="/compute">
+    Build, deploy, and run your app.
+  </Card>
+  <Card title="API Management" icon="key" href="/api-management">
+    Keys, rate limits, identities, analytics.
+  </Card>
+</Columns>

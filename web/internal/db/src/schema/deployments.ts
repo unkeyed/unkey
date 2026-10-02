@@ -45,10 +45,6 @@ export const deployments = mysqlTable(
     // The mutable tag or immutable digest requested for an OCI deployment.
     imageRequested: varchar("image_requested", { length: 512 }),
 
-    // Legacy resolved-image column. Keep dual-writing this while older
-    // deployments and binaries can still read it.
-    image: varchar("image", { length: 512 }),
-
     // The resolved image deployed to Kubernetes. Git builds populate this after
     // the build completes; OCI sources populate it after digest resolution.
     imageResolved: varchar("image_resolved", { length: 512 }),

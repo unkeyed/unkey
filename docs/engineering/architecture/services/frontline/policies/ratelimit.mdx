@@ -165,7 +165,7 @@ A compound key: each subject gets a separate counter on each path. Parts join wi
 
 | Source               | Description                                                                                     |
 | -------------------- | ----------------------------------------------------------------------------------------------- |
-| `remote_ip`          | Client IP address. Effective for anonymous traffic, but can over-limit behind shared NATs.       |
+| `remote_ip`          | Remote IP address. Effective for anonymous traffic, but can over-limit behind shared NATs.       |
 | `header`             | Value of a named request header. Only use behind trusted proxies that set the header.            |
 | `authenticated_subject` | Principal subject from an upstream auth policy. Most accurate for authenticated APIs.         |
 | `path`               | Request URL path. Creates a separate bucket per endpoint.                                        |

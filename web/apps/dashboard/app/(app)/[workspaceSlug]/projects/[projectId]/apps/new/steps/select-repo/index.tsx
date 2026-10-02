@@ -1,9 +1,19 @@
+import { collection } from "@/lib/collections";
 import { trpc } from "@/lib/trpc/client";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { Check, Clock, Github, Magnifier, XMark } from "@unkey/icons";
+import {
+  Github,
+  IconCheckOutline12,
+  IconClockOutline18,
+  IconMagnifierOutline12,
+  IconXmarkOutline12,
+} from "@unkey/icons";
 import {
   Button,
   Combobox,
+  EmptyState,
+  EmptyStateHeader,
+  EmptyStateTitle,
   InputGroup,
   InputGroupAddon,
   InputGroupInput,
@@ -66,6 +76,7 @@ export const SelectRepo = ({
     onSuccess: async (_data, variables) => {
       trpcUtils.github.getInstallations.invalidate();
       trpcUtils.github.getRepoTree.invalidate();
+      collection.apps.utils.refetch();
       const name =
         variables.repositoryFullName.length > 40
           ? `${variables.repositoryFullName.slice(0, 37)}...`
@@ -87,9 +98,9 @@ export const SelectRepo = ({
     );
     return [...owners].map((owner) => ({
       value: owner,
-      label: <span className="text-[13px] text-gray-12 font-medium">{owner}</span>,
+      label: <span className="text-sm text-gray-12 font-medium">{owner}</span>,
       searchValue: owner,
-      selectedLabel: <span className="text-[13px] text-gray-12 font-medium">{owner}</span>,
+      selectedLabel: <span className="text-sm text-gray-12 font-medium">{owner}</span>,
     }));
   }, [reposData?.repositories]);
 
@@ -148,18 +159,18 @@ export const SelectRepo = ({
       className="[--repo-list-w:750px]"
     >
       {!isBannerDismissed && (
-        <div className="absolute top-2 left-2 right-2 z-50 rounded-[10px] p-3 gap-2.5 flex items-center shadow-[inset_0_0_0_0.75px_rgba(0,0,0,0.10)] bg-linear-to-r from-successA-4 via-successA-1 to-success-1">
-          <Check iconSize="sm-regular" className="text-successA-12" />
+        <div className="absolute top-2 left-2 right-2 z-50 rounded-xl p-3 gap-2.5 flex items-center shadow-[inset_0_0_0_0.75px_rgba(0,0,0,0.10)] bg-linear-to-r from-successA-4 via-successA-1 to-success-1">
+          <IconCheckOutline12 className="text-successA-12" />
           <div className="flex items-center gap-1">
-            <span className="font-medium text-[13px] text-success-12">
+            <span className="font-medium text-sm text-success-12">
               GitHub connected successfully.
             </span>
-            <span className="text-[13px] text-success-12">
+            <span className="text-sm text-success-12">
               You can now select a repository to deploy
             </span>
           </div>
           <button type="button" onClick={() => setIsBannerDismissed(true)} className="ml-auto">
-            <XMark iconSize="sm-regular" />
+            <IconXmarkOutline12 />
           </button>
         </div>
       )}
@@ -168,9 +179,9 @@ export const SelectRepo = ({
         {isLoadingRepos ? (
           <SelectRepoSkeleton />
         ) : reposError ? (
-          <div className="mt-3 flex flex-col items-center justify-center min-w-[var(--repo-list-w)] h-[462px] gap-3 border border-dashed rounded-lg border-grayA-5">
-            <p className="text-[15px] text-accent-12 font-semibold">Failed to load repositories</p>
-            <p className="text-[13px] text-accent-11 text-center whitespace-pre-line w-[350px]">
+          <div className="mt-3 flex flex-col items-center justify-center min-w-[var(--repo-list-w)] h-[462px] gap-3 border border-dashed rounded-lg">
+            <p className="text-base text-gray-12 font-semibold">Failed to load repositories</p>
+            <p className="text-sm text-gray-11 text-center whitespace-pre-line w-[350px]">
               {reposError.message}
             </p>
             <Button
@@ -186,7 +197,7 @@ export const SelectRepo = ({
           <div className="flex gap-2 min-w-[var(--repo-list-w)] pt-1">
             <Combobox
               wrapperClassName="w-[200px] shrink-0"
-              className="w-[200px] shrink-0 text-left h-9 border-grayA-4 bg-transparent [&_svg]:text-gray-12"
+              className="w-[200px] shrink-0 text-left h-9 bg-transparent [&_svg]:text-gray-12"
               options={ownerOptions}
               value={selectedOwner}
               onSelect={handleSelectOwner}
@@ -194,9 +205,9 @@ export const SelectRepo = ({
               searchPlaceholder="Filter accounts..."
               leftIcon={<Github />}
             />
-            <InputGroup className="flex-1 min-w-0 bg-transparent h-9 border-grayA-4">
+            <InputGroup className="flex-1 min-w-0 bg-transparent h-9">
               <InputGroupAddon>
-                <Magnifier iconSize="sm-regular" className="text-gray-12 shrink-0 size-3" />
+                <IconMagnifierOutline12 className="text-gray-12 shrink-0" />
               </InputGroupAddon>
               <InputGroupInput
                 value={searchQuery}
@@ -212,7 +223,7 @@ export const SelectRepo = ({
         (filteredRepos.length > 0 ? (
           <div
             ref={parentRef}
-            className="mt-3 border rounded-lg border-grayA-5 min-w-[var(--repo-list-w)] max-h-[462px] overflow-y-auto"
+            className="mt-3 border rounded-lg bg-raised min-w-[var(--repo-list-w)] max-h-[462px] overflow-y-auto"
           >
             <div style={{ height: `${virtualizer.getTotalSize()}px`, position: "relative" }}>
               {virtualizer.getVirtualItems().map((virtualRow) => {
@@ -222,9 +233,7 @@ export const SelectRepo = ({
                     key={repo.id}
                     ref={virtualizer.measureElement}
                     data-index={virtualRow.index}
-                    className={
-                      virtualRow.index < filteredRepos.length - 1 ? "border-b border-grayA-5" : ""
-                    }
+                    className={virtualRow.index < filteredRepos.length - 1 ? "border-b" : ""}
                     style={{
                       position: "absolute",
                       top: 0,
@@ -246,30 +255,30 @@ export const SelectRepo = ({
             </div>
           </div>
         ) : (
-          <div className="mt-3 flex flex-col items-center justify-center min-w-[var(--repo-list-w)] h-[462px] gap-3 border border-dashed rounded-lg border-grayA-5">
-            <p className="text-[15px] text-accent-12 font-semibold">No repositories found</p>
-          </div>
+          <EmptyState className="mt-3 min-w-[var(--repo-list-w)] h-[462px] py-0">
+            <EmptyStateHeader>
+              <EmptyStateTitle>No repositories found</EmptyStateTitle>
+            </EmptyStateHeader>
+          </EmptyState>
         ))}
 
       {onSkip && (
-        <div className="mt-3 border border-grayA-5 rounded-lg flex justify-start items-center gap-4 py-[18px] px-4 min-w-[var(--repo-list-w)]">
-          <div className="size-8 rounded-[10px] grid place-items-center ring-1 ring-grayA-4 shadow-sm shadow-grayA-8/20 dark:shadow-none">
-            <Clock className="size-[18px] text-gray-12" iconSize="md-medium" />
+        <div className="mt-3 border bg-raised rounded-lg flex justify-start items-center gap-4 py-[18px] px-4 min-w-[var(--repo-list-w)]">
+          <div className="size-8 rounded-xl grid place-items-center border shadow-sm shadow-grayA-8/20 dark:shadow-none">
+            <IconClockOutline18 className="text-gray-12" />
           </div>
           <div className="flex flex-col gap-3">
-            <span className="font-medium text-gray-12 text-[13px] leading-[9px]">
-              Skip GitHub setup
-            </span>
-            <span className="text-gray-10 text-[13px] leading-[9px]">
+            <span className="font-medium text-gray-12 text-sm leading-2.25">Skip GitHub setup</span>
+            <span className="text-gray-10 text-sm leading-2.25">
               Continue without a repository. You can connect GitHub later from app settings.
             </span>
           </div>
           <Button
             variant="outline"
             onClick={onSkip}
-            className="ml-auto rounded-lg border-grayA-4 hover:bg-grayA-2 shadow-sm hover:shadow-md transition-all"
+            className="ml-auto rounded-lg hover:bg-grayA-2 shadow-sm hover:shadow-md transition-all"
           >
-            <span className="text-[13px] text-gray-12 font-medium">Skip for now</span>
+            <span className="text-sm text-gray-12 font-medium">Skip for now</span>
           </Button>
         </div>
       )}

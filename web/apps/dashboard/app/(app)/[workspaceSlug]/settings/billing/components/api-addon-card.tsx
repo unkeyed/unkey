@@ -2,12 +2,18 @@
 
 import { formatNumber } from "@/lib/fmt";
 import { formatMs } from "@/lib/ms";
-import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
 import type { Router } from "@/lib/trpc/routers";
 import type { inferRouterOutputs } from "@trpc/server";
-import { Nodes, TriangleWarning2 } from "@unkey/icons";
 import {
+  IconNodesOutline18,
+  IconTriangleWarningOutline12,
+  IconTriangleWarningOutline18,
+} from "@unkey/icons";
+import {
+  AlertBanner,
+  AlertBannerActions,
+  AlertBannerDescription,
   Button,
   DialogContainer,
   InfoTooltip,
@@ -22,23 +28,18 @@ import {
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { ADMIN_ONLY_TOOLTIP } from "./constants";
-import { PlanChangeModal } from "./plan-change-modal";
+import { PlansScreen } from "./plans-screen";
 import { ProductCard } from "./product-card";
 
-const NEEDS_PAYMENT_TOOLTIP = "Add a payment method before upgrading the API plan";
 const FREE_TIER_QUOTA = 150_000;
 
 type BillingInfo = inferRouterOutputs<Router>["stripe"]["getBillingInfo"];
 
 type ApiAddOnCardProps = {
   isAdmin: boolean;
-  hasPaymentMethod: boolean;
-  workspaceSlug: string;
   products: BillingInfo["products"];
   subscription?: BillingInfo["subscription"];
   currentProductId?: BillingInfo["currentProductId"];
-  /** Open the plan picker on mount (post-checkout intent hand-off). */
-  autoOpenPlanModal?: boolean;
 };
 
 /**
@@ -48,16 +49,13 @@ type ApiAddOnCardProps = {
  */
 export const ApiAddOnCard: React.FC<ApiAddOnCardProps> = ({
   isAdmin,
-  hasPaymentMethod,
-  workspaceSlug,
   products,
   subscription,
   currentProductId,
-  autoOpenPlanModal = false,
 }) => {
   const router = useRouter();
   const trpcUtils = trpc.useUtils();
-  const [showPlanModal, setShowPlanModal] = useState(autoOpenPlanModal);
+  const [showPlanModal, setShowPlanModal] = useState(false);
   const [isCancelOpen, setCancelOpen] = useState(false);
 
   const { data: usage } = trpc.billing.queryUsage.useQuery(undefined, {
@@ -74,41 +72,6 @@ export const ApiAddOnCard: React.FC<ApiAddOnCardProps> = ({
       trpcUtils.stripe.getUpcomingInvoice.invalidate(),
     ]);
   };
-
-  const createSubscription = trpc.stripe.createSubscription.useMutation({
-    onSuccess: async (result) => {
-      if (result.status === "checkout") {
-        window.location.assign(result.checkoutUrl);
-        return;
-      }
-      if (result.status === "payment_required") {
-        window.location.assign(
-          result.paymentUrl ?? routes.settings.stripe.checkout({ workspaceSlug, intent: "api" }),
-        );
-        return;
-      }
-      setShowPlanModal(false);
-      toast.success("Plan activated");
-      await revalidate();
-    },
-    onError: (err) => toast.error(err.message),
-  });
-  const updateSubscription = trpc.stripe.updateSubscription.useMutation({
-    onSuccess: async (result) => {
-      if (result.kind === "payment_required") {
-        window.location.assign(result.paymentUrl);
-        return;
-      }
-      setShowPlanModal(false);
-      toast.success(
-        result.kind === "scheduled"
-          ? `API plan downgrade scheduled for ${new Date(result.effectiveAt).toLocaleDateString()}`
-          : "API plan changed",
-      );
-      await revalidate();
-    },
-    onError: (err) => toast.error(err.message),
-  });
 
   const uncancelSubscription = trpc.stripe.uncancelSubscription.useMutation({
     onSuccess: async () => {
@@ -152,13 +115,10 @@ export const ApiAddOnCard: React.FC<ApiAddOnCardProps> = ({
   const quota = currentProduct?.quotas.requestsPerMonth ?? FREE_TIER_QUOTA;
   const used = (usage?.billableVerifications ?? 0) + (usage?.billableRatelimits ?? 0);
 
-  const upgradeDisabled = !isAdmin || !hasPaymentMethod;
-  const upgradeTooltip = isAdmin ? NEEDS_PAYMENT_TOOLTIP : ADMIN_ONLY_TOOLTIP;
-
   return (
     <>
       <ProductCard
-        icon={<Nodes iconSize="md-regular" />}
+        icon={<IconNodesOutline18 className="size-3.5" />}
         iconClassName="bg-infoA-3 text-info-11"
         name="API Management"
         tag={currentProduct ? currentProduct.name : "Free"}
@@ -182,21 +142,13 @@ export const ApiAddOnCard: React.FC<ApiAddOnCardProps> = ({
               </span>
             </InfoTooltip>
           ) : (
-            <InfoTooltip content={upgradeTooltip} disabled={!upgradeDisabled} asChild>
+            <InfoTooltip content={ADMIN_ONLY_TOOLTIP} disabled={isAdmin} asChild>
               <span>
                 <Button
                   variant="outline"
                   size="md"
-                  disabled={upgradeDisabled}
-                  onClick={() => {
-                    if (hasPaymentMethod) {
-                      setShowPlanModal(true);
-                    } else {
-                      router.push(
-                        routes.settings.stripe.checkout({ workspaceSlug, intent: "api" }),
-                      );
-                    }
-                  }}
+                  disabled={!isAdmin}
+                  onClick={() => setShowPlanModal(true)}
                 >
                   Upgrade
                 </Button>
@@ -210,7 +162,7 @@ export const ApiAddOnCard: React.FC<ApiAddOnCardProps> = ({
               <span>
                 <button
                   type="button"
-                  className="text-[13px] text-gray-9 transition-colors hover:text-gray-11 disabled:cursor-not-allowed"
+                  className="text-sm text-gray-9 transition-colors hover:text-gray-11 disabled:cursor-not-allowed"
                   disabled={!isAdmin}
                   onClick={() => setCancelOpen(true)}
                 >
@@ -223,29 +175,29 @@ export const ApiAddOnCard: React.FC<ApiAddOnCardProps> = ({
       >
         <div className="flex flex-col gap-4">
           {cancelAt ? (
-            <div className="flex items-center justify-between gap-4 rounded-lg border border-warningA-6 bg-warningA-2 px-4 py-3">
-              <div className="flex min-w-0 items-center gap-3">
-                <TriangleWarning2 iconSize="md-regular" className="shrink-0 text-warning-11" />
-                <p className="truncate text-[13px] text-gray-11">
-                  Your API plan ends in {formatMs(cancelAt - Date.now(), { long: true })} on{" "}
-                  {new Date(cancelAt).toLocaleDateString()}; the workspace then downgrades to the
-                  free tier.
-                </p>
-              </div>
-              <InfoTooltip content={ADMIN_ONLY_TOOLTIP} disabled={isAdmin} asChild>
-                <span>
-                  <Button
-                    variant="outline"
-                    size="md"
-                    loading={uncancelSubscription.isLoading}
-                    disabled={!isAdmin || uncancelSubscription.isLoading}
-                    onClick={() => uncancelSubscription.mutate()}
-                  >
-                    Resubscribe
-                  </Button>
-                </span>
-              </InfoTooltip>
-            </div>
+            <AlertBanner variant="warning">
+              <IconTriangleWarningOutline18 className="size-3.5" aria-hidden="true" />
+              <AlertBannerDescription className="truncate">
+                Your API plan ends in {formatMs(cancelAt - Date.now(), { long: true })} on{" "}
+                {new Date(cancelAt).toLocaleDateString()}; the workspace then downgrades to the free
+                tier.
+              </AlertBannerDescription>
+              <AlertBannerActions>
+                <InfoTooltip content={ADMIN_ONLY_TOOLTIP} disabled={isAdmin} asChild>
+                  <span>
+                    <Button
+                      variant="outline"
+                      size="md"
+                      loading={uncancelSubscription.isLoading}
+                      disabled={!isAdmin || uncancelSubscription.isLoading}
+                      onClick={() => uncancelSubscription.mutate()}
+                    >
+                      Resubscribe
+                    </Button>
+                  </span>
+                </InfoTooltip>
+              </AlertBannerActions>
+            </AlertBanner>
           ) : null}
           <Meter value={usage ? used : 0} max={quota > 0 ? quota : 1}>
             <MeterHeader>
@@ -261,39 +213,7 @@ export const ApiAddOnCard: React.FC<ApiAddOnCardProps> = ({
         </div>
       </ProductCard>
 
-      {hasPaymentMethod ? (
-        <PlanChangeModal
-          isOpen={showPlanModal}
-          onOpenChange={setShowPlanModal}
-          title={currentProduct ? "Change API plan" : "Choose an API plan"}
-          subTitle="Tiered plans for key verifications and ratelimits."
-          options={products.map((product) => ({
-            id: product.id,
-            name: product.name,
-            // Catalog products are priced in whole dollars per month.
-            amount: product.dollar * 100,
-            interval: "month",
-            // Compact count for the inline row: "1M requests/month".
-            detail: `${formatNumber(product.quotas.requestsPerMonth)} requests/month`,
-          }))}
-          currentId={currentProduct?.id ?? null}
-          changeNote="Upgrades take effect immediately and are prorated. Downgrades start next billing period; your current plan stays active and no refund is issued."
-          submittingId={
-            createSubscription.isLoading
-              ? createSubscription.variables?.productId
-              : updateSubscription.isLoading
-                ? updateSubscription.variables?.newProductId
-                : undefined
-          }
-          onSelect={(id) => {
-            if (currentProduct) {
-              updateSubscription.mutate({ newProductId: id });
-            } else {
-              createSubscription.mutate({ productId: id });
-            }
-          }}
-        />
-      ) : null}
+      <PlansScreen open={showPlanModal} onOpenChange={setShowPlanModal} reason="api-plan" />
 
       <DialogContainer
         isOpen={isCancelOpen}
@@ -319,17 +239,15 @@ export const ApiAddOnCard: React.FC<ApiAddOnCardProps> = ({
           </div>
         }
       >
-        <div className="flex items-center gap-4 rounded-xl border border-errorA-3 bg-errorA-2 px-[22px] py-6 dark:bg-black">
-          <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-error-9">
-            <TriangleWarning2 iconSize="sm-regular" className="text-white" />
-          </div>
-          <div className="text-[13px] text-error-12 leading-6">
+        <AlertBanner variant="error">
+          <IconTriangleWarningOutline12 aria-hidden="true" />
+          <AlertBannerDescription>
             <span className="font-medium">Warning:</span> cancelling your API plan will downgrade
             your workspace to the free tier at the end of the current billing period. You will lose
             access to paid features, usage limits will be reduced, and all team members other than
             you will be deactivated.
-          </div>
-        </div>
+          </AlertBannerDescription>
+        </AlertBanner>
       </DialogContainer>
     </>
   );

@@ -1,7 +1,7 @@
 "use client";
 
 import { useDeployActionGate } from "@/app/(app)/[workspaceSlug]/projects/_components/hooks/use-deploy-action-gate";
-import { queryClient } from "@/lib/collections/client";
+import { collection } from "@/lib/collections";
 import { ENVIRONMENT_KIND } from "@/lib/collections/deploy/environments";
 import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
 import { useMutation } from "@tanstack/react-query";
@@ -23,24 +23,23 @@ export const DeployAction = ({
 }: DeployActionProps) => {
   const { goTo } = useStepWizard();
   const { gated, openPaywall, planGate } = useDeployActionGate();
-  const { environments } = useProjectData();
+  const { environments, refetchDeployments } = useProjectData();
   const productionEnvironment = environments.find(
     (environment) => environment.kind === ENVIRONMENT_KIND.production,
   );
 
   const deploy = useMutation({
     mutationFn: async (environment: string) => {
-      const res = await getUnkeyClient().deployments.createDeployment({
+      const res = await getUnkeyClient().deployments.createDeploymentV3({
         project: projectId,
         app: appId,
         environment,
-        // No branch or commitSha: the API builds the app's default branch.
-        git: {},
       });
       return { deploymentId: res.data.deploymentId };
     },
     onSuccess: async (data) => {
-      await queryClient.invalidateQueries({ queryKey: ["deployments", projectId] });
+      refetchDeployments();
+      await collection.apps.utils.refetch();
       toast.success("Deployment triggered", {
         description: "Your app is being built and deployed",
       });
@@ -67,7 +66,7 @@ export const DeployAction = ({
       >
         Deploy
       </Button>
-      <span className="text-gray-10 text-[13px] text-center">
+      <span className="text-gray-10 text-sm text-center">
         We'll build your image, provision infrastructure, and more.
       </span>
       {planGate}

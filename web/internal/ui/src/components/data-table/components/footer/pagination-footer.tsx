@@ -1,8 +1,14 @@
 "use client";
-import { ChevronLeft, ChevronRight, Maximize, Minimize } from "@unkey/icons";
+import {
+  IconChevronLeftOutline18,
+  IconChevronRightOutline18,
+  IconMaximizeWindowOutline18,
+  IconMinimizeWindowOutline18,
+} from "@unkey/icons";
 import { memo, useMemo, useState } from "react";
 import { cn } from "../../../../lib/utils";
 import { Button } from "../../../buttons/button";
+import { FOOTER_PANEL } from "../../constants/constants";
 import { getPageNumbers } from "../../utils/get-page-numbers";
 import { PaginationFooterSkeleton } from "../skeletons/pagination-footer-skeleton";
 
@@ -48,22 +54,22 @@ export const PaginationFooter = memo(function PaginationFooter({
         <button
           type="button"
           onClick={() => setIsOpen(true)}
-          className="cursor-pointer text-grayA-9 hover:text-grayA-11 bg-gray-1 dark:bg-black border border-gray-6 rounded-lg shadow-lg p-3 duration-200 hover:shadow-xl hover:scale-105 group"
+          className="cursor-pointer text-grayA-9 hover:text-grayA-11 bg-raised rounded-lg shadow-floating p-3 duration-200 hover:scale-105 group"
           title={`Page ${page} of ${totalPages} • ${start}-${end} of ${totalCount} ${itemLabel}`}
         >
           <div className="flex items-center gap-2">
-            <span className="text-[11px] font-medium">
+            <span className="text-2xs font-medium">
               {start}-{end} of {totalCount}
             </span>
             {totalPages === 1 ? null : (
               <>
                 <div className="w-px h-3 bg-gray-6" />
-                <span className="text-[12px] font-medium mr-2">
+                <span className="text-xs font-medium mr-2">
                   Page {page}/{totalPages}
                 </span>
               </>
             )}
-            <Maximize iconSize="lg-thin" />
+            <IconMaximizeWindowOutline18 className="size-4" />
           </div>
         </button>
       </div>
@@ -73,18 +79,18 @@ export const PaginationFooter = memo(function PaginationFooter({
   return (
     <div
       className={cn(
-        "fixed bottom-0 left-0 right-0 w-full items-center justify-center flex flex-col z-10 animation-ease-out pointer-events-none",
+        "fixed bottom-0 left-0 right-0 w-full items-center justify-center flex flex-col z-10 pointer-events-none",
         "opacity-100",
       )}
     >
       {loading ? (
         <PaginationFooterSkeleton />
       ) : (
-        <div className="w-[740px] border bg-gray-1 dark:bg-black border-gray-6 flex items-center justify-center rounded-[10px] drop-shadow-lg transform-gpu shadow-sm mb-5 transition-all duration-200 hover:shadow-lg pointer-events-auto">
+        <div className={cn(FOOTER_PANEL, "transition-all duration-200 pointer-events-auto")}>
           <div className="flex flex-col w-full">
             {/* Header content */}
             {headerContent && <div className="flex items-center w-full">{headerContent}</div>}
-            <div className="flex w-full justify-between items-center text-[13px] text-grayA-9 p-[18px] min-h-[60px]">
+            <div className="flex w-full justify-between items-center text-sm text-grayA-9 p-[18px] min-h-[60px]">
               {/* Item count */}
               <div className="flex gap-2">
                 <span>Viewing</span>
@@ -111,7 +117,7 @@ export const PaginationFooter = memo(function PaginationFooter({
                     aria-label="Go to previous page"
                     className="border-none text-grayA-9 hover:text-grayA-11 disabled:pointer-events-none disabled:opacity-80 focus:ring-0"
                   >
-                    <ChevronLeft iconSize="sm-regular" />
+                    <IconChevronLeftOutline18 />
                   </Button>
                 )}
                 {/* Page number segmented group */}
@@ -126,7 +132,7 @@ export const PaginationFooter = memo(function PaginationFooter({
                           <span
                             key={idx < pageNumbers.length / 2 ? "ellipsis-start" : "ellipsis-end"}
                             aria-hidden="true"
-                            className="w-7 h-7 flex items-center justify-center text-grayA-9 text-[10px] tracking-widest select-none"
+                            className="w-7 h-7 flex items-center justify-center text-grayA-9 text-3xs tracking-widest select-none"
                           >
                             ···
                           </span>
@@ -149,7 +155,7 @@ export const PaginationFooter = memo(function PaginationFooter({
                           className={cn(
                             "w-7 h-7 flex items-center justify-center rounded-md text-xs font-medium cursor-pointer",
                             isCurrentPage
-                              ? "text-gray-12 pointer-events-none ring-0 border border-grayA-4 bg-grayA-4 text-sm transition-all duration-300"
+                              ? "text-gray-12 pointer-events-none ring-0 border bg-grayA-4 text-sm transition-all duration-300"
                               : "text-grayA-9 hover:text-gray-12 hover:bg-grayA-3",
                             disabled && !isCurrentPage && "opacity-80 pointer-events-none",
                           )}
@@ -170,7 +176,7 @@ export const PaginationFooter = memo(function PaginationFooter({
                     aria-label="Go to next page"
                     className="border-none text-grayA-9 hover:text-grayA-11 disabled:pointer-events-none disabled:opacity-80 focus:ring-0 mr-2"
                   >
-                    <ChevronRight iconSize="sm-regular" />
+                    <IconChevronRightOutline18 />
                   </Button>
                 )}
               </nav>
@@ -187,7 +193,7 @@ export const PaginationFooter = memo(function PaginationFooter({
                   aria-label="Minimize"
                   title="Minimize"
                 >
-                  <Minimize />
+                  <IconMinimizeWindowOutline18 />
                 </Button>
               </div>
             </div>

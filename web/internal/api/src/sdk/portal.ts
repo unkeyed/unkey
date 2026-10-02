@@ -10,6 +10,7 @@ import { portalGetPortal } from "../funcs/portalGetPortal.js";
 import { portalGetVerifications } from "../funcs/portalGetVerifications.js";
 import { portalListKeys } from "../funcs/portalListKeys.js";
 import { portalRerollKey } from "../funcs/portalRerollKey.js";
+import { portalRevokeSession } from "../funcs/portalRevokeSession.js";
 import { portalUpdatePortal } from "../funcs/portalUpdatePortal.js";
 import { ClientSDK, RequestOptions } from "../lib/sdks.js";
 import * as components from "../models/components/index.js";
@@ -72,6 +73,7 @@ export class Portal extends ClientSDK {
    * - `keys:read` requires `api.<api_id>.read_key` **and** `api.<api_id>.read_api`
    * - `keys:reroll` requires `api.<api_id>.create_key`, plus
    *   `api.<api_id>.encrypt_key` when the keyspace stores encrypted keys
+   * - `analytics:read` requires `api.<api_id>.read_analytics`
    *
    * The `*` form of each is also accepted. Requesting a scope you do not hold
    * returns 403 for the whole request rather than minting a reduced session, so a
@@ -190,8 +192,13 @@ export class Portal extends ClientSDK {
    * Authenticates only with a portal session cookie and always restricts results
    * to verification events attributed to the session's external identity. Unlike
    * `analytics.getVerifications`, this endpoint takes a fixed time window (no
-   * query language) and returns a zero-filled, outcome-broken-out timeseries.
-   * Bucket granularity is chosen automatically from the window size.
+   * query language) and returns outcome-broken-out counts. Bucket granularity is
+   * chosen automatically from the window size.
+   *
+   * The response carries one zero-filled series per key the end user has
+   * verifications for, so a client can render both a per-key table and an
+   * account-wide chart from one call by summing them. Pass `keyId` to narrow the
+   * window to a single key.
    */
   async getVerifications(
     security: operations.PortalGetVerificationsSecurity,
@@ -259,6 +266,46 @@ export class Portal extends ClientSDK {
   }
 
   /**
+   * Revoke portal sessions
+   *
+   * @remarks
+   * Revoke every live session an end user holds on a portal.
+   *
+   * Unreleased and subject to change without notice.
+   *
+   * Sessions that were created but not yet opened are revoked too, so their
+   * portal URLs stop working. Revocation is not instantaneous: session lookups
+   * are cached briefly, so a request already in flight may still succeed.
+   *
+   * Revoking ends existing sessions only. To keep the end user out, also stop
+   * calling `portal.createSession` for them.
+   *
+   * Calling this again for the same end user is safe and revokes nothing.
+   *
+   * **Required Permissions**
+   *
+   * Your root key must have one of:
+   * - `portal.*.create_portal_session` (for any portal in the workspace)
+   * - `portal.<portal_id>.create_portal_session` (for a specific portal)
+   *
+   * It also accepts `unkey:v1:<workspace_id>:projects/<project_id>/portals/<portal_id>/sessions/*#write`,
+   * which dashboard roles carry. Unlike `portal.createSession`, a dashboard
+   * session can call this, not just a root key.
+   *
+   * Without the permission this returns **404**, not 403.
+   */
+  async revokeSession(
+    request: components.V2PortalRevokeSessionRequestBody,
+    options?: RequestOptions,
+  ): Promise<components.V2PortalRevokeSessionResponseBody> {
+    return unwrapAsync(portalRevokeSession(
+      this,
+      request,
+      options,
+    ));
+  }
+
+  /**
    * Update portal
    *
    * @remarks
@@ -273,7 +320,8 @@ export class Portal extends ClientSDK {
    * Two changes affect your end users immediately:
    * - Re-pointing at a different resource revokes the portal's live sessions,
    *   because a session carries the scope it was minted with.
-   * - Disabling stops new sessions but leaves live ones running until they expire.
+   * - Disabling stops new sessions and revokes the live ones. Re-enabling does
+   *   not restore them.
    *
    * **Required Permissions**
    *

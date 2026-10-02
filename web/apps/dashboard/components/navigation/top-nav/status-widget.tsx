@@ -1,7 +1,8 @@
 "use client";
+import { queryKeys } from "@/lib/query-keys";
 
-import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
+import { cn } from "cn";
 import { forwardRef } from "react";
 
 const STATUS_PAGE_URL = "https://status.unkey.com";
@@ -52,7 +53,7 @@ export const StatusWidget = forwardRef<HTMLAnchorElement, StatusWidgetProps>(fun
   ref,
 ) {
   const { data, isLoading, isError } = useQuery({
-    queryKey: ["status-page-summary"],
+    queryKey: queryKeys.statusPage.summary,
     queryFn: async (): Promise<StatusSummary> => {
       const res = await fetch(SUMMARY_URL, { headers: { Accept: "application/json" } });
       if (!res.ok) {
@@ -78,7 +79,7 @@ export const StatusWidget = forwardRef<HTMLAnchorElement, StatusWidgetProps>(fun
       rel="noreferrer"
       aria-label={`${meta.label}. View status page`}
       className={cn(
-        "group/status flex w-full items-center gap-3 text-sm font-medium text-accent-12",
+        "group/status flex w-full items-center gap-3 text-sm font-medium text-gray-12",
         className,
       )}
       {...props}

@@ -1,0 +1,57 @@
+---
+title: Use Unkey with Cursor
+sidebarTitle: "Cursor"
+description: "Add the Unkey MCP servers and docs to Cursor."
+sources:
+  - https://mcp.unkey.com/mcp/v2/install
+  - https://cursor.com/docs/context/mcp
+  - docs/product/docs.json
+---
+
+You need a root key for your assistant. See [Create a root key](/platform/ai-coding/mcp-servers#create-a-root-key).
+
+## Add the Unkey server
+
+<Steps titleSize="h3">
+  <Step title="Set your root key">
+    Set `UNKEY_ROOT_KEY` in your shell profile or system environment, then restart Cursor so it picks up the variable.
+  </Step>
+  <Step title="Edit mcp.json">
+    Open `~/.cursor/mcp.json` to use Unkey in every project, or `.cursor/mcp.json` in a project to use it there only. Add the server:
+
+    ```json
+    {
+      "mcpServers": {
+        "unkey": {
+          "url": "https://mcp.unkey.com/mcp/v2",
+          "headers": {
+            "Mcp-Unkey-V2-Bearer": "${env:UNKEY_ROOT_KEY}"
+          }
+        }
+      }
+    }
+    ```
+
+    For the Compute server, use `https://mcp.unkey.com/mcp/compute` as the URL.
+  </Step>
+  <Step title="Check the connection">
+    Open **Customize** in the sidebar and check that **unkey** is listed and turned on. Then ask Cursor's agent something like "List my Unkey keyspaces."
+  </Step>
+</Steps>
+
+If the server doesn't connect, open the Output panel, choose **MCP Logs**, and look for an authentication or connection error.
+
+## Add the docs
+
+On any docs page, open the menu next to **Copy page** and choose **Connect to Cursor**. Cursor opens and asks you to install the docs MCP server.
+
+## Next steps
+
+<Columns cols={2}>
+  <Card title="Try some prompts" icon="message" href="/platform/ai-coding/mcp-servers#try-it">
+    Example requests for keys, analytics, and deployments.
+  </Card>
+  <Card title="Fix connection problems" icon="wrench" href="/platform/ai-coding/mcp-servers#fix-connection-problems">
+    What to check when the server doesn't connect.
+  </Card>
+</Columns>

@@ -1,35 +1,17 @@
 "use client";
-import {
-  PageBody,
-  PageContainer,
-  PageHeader,
-  PageHeaderActions,
-  PageHeaderContent,
-  PageHeaderTitle,
-} from "@unkey/ui";
-import { RootKeysListControlCloud } from "./components/control-cloud";
-import { RootKeysListControls } from "./components/controls";
-import { CreateRootKeyButton } from "./components/dialog/create-rootkey-button";
-import { RootKeysList } from "./components/table/root-keys-list";
+import RootKeysPage from "@/app/(app)/[workspaceSlug]/root-keys/page";
+import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
+import { useFlag } from "@/lib/flags/provider";
+import { routes } from "@/lib/navigation/routes";
+import { redirect } from "next/navigation";
 
-export default function RootKeysPage() {
-  return (
-    <PageContainer width="full">
-      <PageHeader>
-        <PageHeaderContent>
-          <PageHeaderTitle>Root Keys</PageHeaderTitle>
-        </PageHeaderContent>
-        <PageHeaderActions>
-          <CreateRootKeyButton />
-        </PageHeaderActions>
-      </PageHeader>
-      <PageBody>
-        <div className="flex flex-col">
-          <RootKeysListControls />
-          <RootKeysListControlCloud />
-          <RootKeysList />
-        </div>
-      </PageBody>
-    </PageContainer>
-  );
+// Under projects-first navigation Root Keys lives at the top level; the old
+// settings URL keeps working by redirecting there.
+export default function SettingsRootKeysPage() {
+  const workspace = useWorkspaceNavigation();
+  const projectsNav = useFlag("projectsNav");
+  if (projectsNav) {
+    redirect(routes.rootKeys.list({ workspaceSlug: workspace.slug }));
+  }
+  return <RootKeysPage />;
 }

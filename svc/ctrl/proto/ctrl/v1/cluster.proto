@@ -36,23 +36,17 @@ message ClusterKey {
   string cell_id = 3;
 }
 
-// ClusterService coordinates deployment configurations across multiple clusters.
-//
-// Agents in each cluster establish watch streams to receive configuration events
-// from the control plane. The watch connections are designed to be long-lived
-// with automatic reconnection on failure. When an agent reconnects, it should
-// resume from its last seen version.
+// ClusterService sends desired state to Krane and receives status reports.
+// Krane reconnects with the last token it saved after applying changes.
 service ClusterService {
-  // WatchDeploymentChanges streams incremental resource changes from the
-  // deployment_changes outbox table. When version_last_seen is 0, the server
-  // jumps to the current max version and polls from there (no replay).
-  // The stream stays open indefinitely, polling for new changes.
+  // WatchDeploymentChanges follows topology changes in the cluster's region.
+  // An empty resume_token copies current rows before following changes.
+  // CodeOutOfRange means the saved position is gone. Start a new copy and
+  // remove local resources that no longer exist in desired state.
   rpc WatchDeploymentChanges(WatchDeploymentChangesRequest) returns (stream DeploymentChangeEvent);
 
-  // SyncDesiredState streams the full desired state for a region: all running
-  // deployments and Cilium policies. The server closes the stream after all
-  // state has been sent. Krane calls this on startup and periodically as a
-  // safety net to reconcile any drift.
+  // SyncDesiredState sends all running deployments in a region, then closes.
+  // Krane calls it on startup and periodically to repair missed changes.
   rpc SyncDesiredState(SyncDesiredStateRequest) returns (stream DeploymentChangeEvent);
 
   // GetDesiredDeploymentState returns the current desired state for a single deployment.
@@ -77,11 +71,13 @@ service ClusterService {
 
 message WatchDeploymentChangesRequest {
   ClusterKey cluster = 1;
-  uint64 version_last_seen = 2;
 
-  // When true and version_last_seen is 0, replay all changes from the
-  // beginning instead of jumping to the current max version. Default false.
-  bool replay = 3;
+  // Ignore the resume token and copy current desired state before watching.
+  bool replay = 2;
+
+  // The last token saved after applying all earlier events in this region.
+  // Send it unchanged. Leave it empty to copy current rows again.
+  bytes resume_token = 3;
 }
 
 message SyncDesiredStateRequest {
@@ -89,10 +85,12 @@ message SyncDesiredStateRequest {
 }
 
 message DeploymentChangeEvent {
-  uint64 version = 1;
   oneof event {
-    DeploymentState deployment = 2;
+    DeploymentState deployment = 1;
   }
+  // A checkpoint has a token but no deployment.
+  // Save the token only after all earlier deployment events have been applied.
+  bytes resume_token = 2;
 }
 
 message GetDesiredDeploymentStateRequest {
@@ -241,12 +239,6 @@ message ReportInstanceEventsResponse {}
 // that can be scaled horizontally. The event follows a declarative model where
 // the cluster agent ensures the cluster state matches the desired configuration.
 message DeploymentState {
-  // version is the deployment-specific resource version for this state update.
-  // Clients should track the max version seen and use it when reconnecting to
-  // the WatchDeploymentChanges stream to resume from the correct position.
-  // When returned from GetDesiredDeploymentState, this field is not set.
-  uint64 version = 3;
-
   // state contains the specific deployment operation to perform.
   // Only one state type is set per message, determining the action the agent should take.
   oneof state {
@@ -357,11 +349,7 @@ message AutoscalingPolicy {
   optional int32 memory_threshold = 4;
 }
 
-// DeleteDeployment identifies a deployment to remove from the cluster.
-//
-// The deployment and all its pods will be terminated gracefully according to
-// the configured termination grace period. All associated resources (services,
-// configmaps specific to this deployment) will also be cleaned up.
+// DeleteDeployment identifies a ReplicaSet to remove by namespace and name.
 message DeleteDeployment {
   string k8s_namespace = 1;
   string k8s_name = 2;

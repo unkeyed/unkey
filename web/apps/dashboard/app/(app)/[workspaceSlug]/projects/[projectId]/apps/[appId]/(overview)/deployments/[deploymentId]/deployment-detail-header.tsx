@@ -2,8 +2,14 @@
 
 import { TableActionPopover } from "@/components/logs/table-action.popover";
 import type { Deployment } from "@/lib/collections/deploy/deployments";
+import { imageRefDisplay } from "@/lib/docker-image-ref";
 import { shortenId } from "@/lib/shorten-id";
-import { ArrowDottedRotateAnticlockwise, Ban, Dots } from "@unkey/icons";
+import {
+  IconArrowDottedRotateAnticlockwiseOutline18,
+  IconBanOutline18,
+  IconDotsOutline18,
+} from "@unkey/icons";
+import { match } from "@unkey/match";
 import {
   Button,
   PageHeader,
@@ -50,7 +56,14 @@ function DeploymentDetailHeaderContent({ deployment }: { deployment: Deployment 
   const canCancel = isCancellableDeploymentStatus(derivedStatus) && !cancelled;
   const canRedeploy = isRedeployableDeploymentStatus(derivedStatus);
 
-  const title = deployment.gitCommitMessage || shortenId(deployment.id);
+  const title = match(deployment.source)
+    .with("git", () => deployment.gitCommitMessage || shortenId(deployment.id))
+    .with("oci", () => {
+      const image = deployment.requestedImage ?? deployment.resolvedImage;
+      return image ? imageRefDisplay(image) : shortenId(deployment.id);
+    })
+    .with("unknown", () => shortenId(deployment.id))
+    .exhaustive();
   const environment = environments.find((env) => env.id === deployment.environmentId);
 
   const { items, planGate, gated, openPaywall } = useDeploymentHeaderActions({
@@ -62,19 +75,21 @@ function DeploymentDetailHeaderContent({ deployment }: { deployment: Deployment 
   return (
     <PageHeader>
       <PageHeaderContent>
-        <PageHeaderTitle className="truncate" title={title}>
-          {title}
-        </PageHeaderTitle>
+        <div className="flex items-center gap-2 min-w-0">
+          <PageHeaderTitle className="truncate" title={title}>
+            {title}
+          </PageHeaderTitle>
+        </div>
       </PageHeaderContent>
       <PageHeaderActions>
         <TableActionPopover items={items}>
           <Button variant="outline" className="w-7 p-0" aria-label="Open actions">
-            <Dots iconSize="sm-regular" />
+            <IconDotsOutline18 />
           </Button>
         </TableActionPopover>
         {canCancel && (
           <Button variant="outline" onClick={() => setIsCancelOpen(true)}>
-            <Ban iconSize="sm-medium" />
+            <IconBanOutline18 />
             Cancel deployment
           </Button>
         )}
@@ -83,7 +98,7 @@ function DeploymentDetailHeaderContent({ deployment }: { deployment: Deployment 
             variant="outline"
             onClick={() => (gated ? openPaywall() : setIsRedeployOpen(true))}
           >
-            <ArrowDottedRotateAnticlockwise iconSize="sm-regular" />
+            <IconArrowDottedRotateAnticlockwiseOutline18 />
             Redeploy
           </Button>
         )}

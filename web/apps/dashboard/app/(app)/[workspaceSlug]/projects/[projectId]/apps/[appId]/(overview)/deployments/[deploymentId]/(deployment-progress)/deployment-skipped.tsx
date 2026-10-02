@@ -1,7 +1,14 @@
 "use client";
 
 import { routes } from "@/lib/navigation/routes";
-import { Ban, CloudUp, Earth, Hammer2, LayerFront, Pulse, Sparkle3 } from "@unkey/icons";
+import {
+  IconBanOutline18,
+  IconCloudUploadOutline18,
+  IconEarthOutline18,
+  IconHammer2Outline18,
+  IconLayerFrontOutline18,
+  IconSparkle3Outline18,
+} from "@unkey/icons";
 import { Button, SettingCardGroup } from "@unkey/ui";
 import Link from "next/link";
 import { useParams } from "next/navigation";
@@ -19,51 +26,45 @@ export function DeploymentSkipped() {
     <div className="flex flex-col gap-5">
       <SettingCardGroup>
         <DeploymentStep
-          icon={<Ban iconSize="sm-medium" className="size-[18px]" />}
+          icon={<IconBanOutline18 />}
           title="Deployment Skipped"
           description="This deployment was skipped based on your build settings"
           status="started"
-          statusIcon={<Ban className="text-gray-9" iconSize="md-regular" />}
+          statusIcon={<IconBanOutline18 className="size-3.5 text-gray-9" />}
         />
         <DeploymentStep
-          icon={<LayerFront iconSize="sm-medium" className="size-[18px]" />}
+          icon={<IconLayerFrontOutline18 />}
           title="Deployment Queued"
           description="Skipped"
           status="skipped"
         />
         <DeploymentStep
-          icon={<Pulse iconSize="sm-medium" className="size-[18px]" />}
-          title="Deployment Starting"
-          description="Skipped"
-          status="skipped"
-        />
-        <DeploymentStep
-          icon={<Hammer2 iconSize="sm-medium" className="size-[18px]" />}
+          icon={<IconHammer2Outline18 />}
           title="Building Image"
           description="Skipped"
           status="skipped"
         />
         <DeploymentStep
-          icon={<CloudUp iconSize="sm-medium" className="size-[18px]" />}
+          icon={<IconCloudUploadOutline18 />}
           title="Deploying Containers"
           description="Skipped"
           status="skipped"
         />
         <DeploymentStep
-          icon={<Earth iconSize="sm-medium" className="size-[18px]" />}
+          icon={<IconEarthOutline18 />}
           title="Assigning Domains"
           description="Skipped"
           status="skipped"
         />
         <DeploymentStep
-          icon={<Sparkle3 iconSize="sm-medium" className="size-[18px]" />}
+          icon={<IconSparkle3Outline18 />}
           title="Deployment Finalizing"
           description="Skipped"
           status="skipped"
         />
       </SettingCardGroup>
 
-      <div className="border border-grayA-4 bg-grayA-2 rounded-lg p-4 flex items-center justify-between">
+      <div className="border bg-grayA-2 rounded-lg p-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="flex flex-col gap-0.5">
             <span className="text-sm font-medium text-gray-12">Deployment skipped</span>

@@ -292,15 +292,19 @@ func TestRBAC_ProjectActionWildcardRejected(t *testing.T) {
 	require.ErrorIs(t, err, errInvalidURNPermission)
 }
 
-// TestRBAC_RecursiveGrantAppliesActionToResourceAndDescendants guarantees a
-// recursive grant uses the same simple action for its base and descendants.
-func TestRBAC_RecursiveGrantAppliesActionToResourceAndDescendants(t *testing.T) {
+// TestRBAC_RecursivePermissionAppliesActionToResourceAndDescendants guarantees a
+// recursive permission uses the same simple action for its base and descendants.
+func TestRBAC_RecursivePermissionAppliesActionToResourceAndDescendants(t *testing.T) {
 	t.Parallel()
 
 	app := urn.New().Workspace("ws_1").Project("proj_1").App("app_1")
 	environment := app.Environment("env_1")
-	grant := U(app.Any(), permissions.Write).Value
-	require.Equal(t, "unkey:v1:ws_1:projects/proj_1/apps/app_1/**#write", grant)
+	pattern := urn.V1{
+		WorkspaceID: "ws_1",
+		Resource:    "projects/proj_1/apps/app_1/**",
+	}
+	permission := U(pattern, permissions.Write).Value
+	require.Equal(t, "unkey:v1:ws_1:projects/proj_1/apps/app_1/**#write", permission)
 
 	evaluator := New()
 	for _, query := range []PermissionQuery{
@@ -309,9 +313,9 @@ func TestRBAC_RecursiveGrantAppliesActionToResourceAndDescendants(t *testing.T) 
 	} {
 		result, err := evaluator.EvaluatePermissions(
 			query,
-			[]string{grant},
+			[]string{permission},
 		)
 		require.NoError(t, err)
-		require.True(t, result.Valid, "recursive app grant must cover %s", query.Value)
+		require.True(t, result.Valid, "recursive app permission must cover %s", query.Value)
 	}
 }

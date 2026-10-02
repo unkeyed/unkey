@@ -4,3 +4,6 @@ package logdrainv1
 
 // IsConfig_Destination is the exported form of the protobuf oneof interface isConfig_Destination.
 type IsConfig_Destination = isConfig_Destination
+
+// IsConfig_Stream is the exported form of the protobuf oneof interface isConfig_Stream.
+type IsConfig_Stream = isConfig_Stream

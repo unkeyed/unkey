@@ -10,26 +10,26 @@ export async function resolveAll() {
     deployBilling,
     billingUIUpgrades,
     showDarksoulsSuccessBanner,
-    logdrains,
     portalManagement,
     projectsNav,
+    rootKeyBuilder,
   ] = await Promise.all([
     flags.helloWorld(),
     flags.deployBilling(),
     flags.billingUIUpgrades(),
     flags.showDarksoulsSuccessBanner(),
-    flags.logdrains(),
     flags.portalManagement(),
     flags.projectsNav(),
+    flags.rootKeyBuilder(),
   ]);
   return {
     helloWorld,
     deployBilling,
     billingUIUpgrades,
     showDarksoulsSuccessBanner,
-    logdrains,
     portalManagement,
     projectsNav,
+    rootKeyBuilder,
   };
 }
 

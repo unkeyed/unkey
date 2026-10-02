@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+#MISE description="Serve the product docs site locally with the Mintlify CLI (default dir: docs/product)"
+#MISE tools=["npm:mint"]
+set -euo pipefail
+
+DOCS_DIR="${1:-docs/product}"
+cd "$DOCS_DIR"
+exec mint dev "${@:2}"

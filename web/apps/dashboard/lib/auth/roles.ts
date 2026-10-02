@@ -1,4 +1,4 @@
-export const ORGANIZATION_ROLES = ["admin", "developer", "viewer"] as const;
+export const ORGANIZATION_ROLES = ["admin", "developer"] as const;
 
 export type OrganizationRole = (typeof ORGANIZATION_ROLES)[number];
 
@@ -13,7 +13,7 @@ export function canAccessWorkspace(role: string | null | undefined): boolean {
 }
 
 export function canMutateWorkspace(role: string | null | undefined): boolean {
-  return canAccessWorkspace(role) && role !== "viewer";
+  return canAccessWorkspace(role);
 }
 
 export function organizationRoleLabel(role: string | null | undefined): string {
@@ -23,8 +23,6 @@ export function organizationRoleLabel(role: string | null | undefined): string {
     case "developer":
     case LEGACY_MEMBER_ROLE:
       return "Developer";
-    case "viewer":
-      return "Viewer";
     default:
       return "Unknown role";
   }

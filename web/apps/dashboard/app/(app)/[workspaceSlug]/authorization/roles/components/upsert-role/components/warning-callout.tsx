@@ -1,6 +1,6 @@
 import { formatNumber } from "@/lib/fmt";
-import { TriangleWarning } from "@unkey/icons";
-import { InlineLink } from "@unkey/ui";
+import { IconTriangleWarningOutline18 } from "@unkey/icons";
+import { AlertBanner, AlertBannerDescription, InlineLink } from "@unkey/ui";
 
 interface RoleWarningCalloutProps {
   count: number;
@@ -12,11 +12,9 @@ export const RoleWarningCallout = ({ count, type }: RoleWarningCalloutProps) => 
   const settingsText = type === "keys" ? "key settings" : "permission settings";
 
   return (
-    <div className="rounded-xl bg-grayA-3 dark:bg-black border border-grayA-3 flex items-center gap-4 px-[22px] py-6">
-      <div className="bg-gray-4 size-8 rounded-full flex items-center justify-center shrink-0">
-        <TriangleWarning className="text-warning-9" iconSize="xl-medium" />
-      </div>
-      <div className="text-gray-12 text-[13px] leading-6">
+    <AlertBanner variant="default" className="[&>svg]:text-warning-9">
+      <IconTriangleWarningOutline18 aria-hidden="true" />
+      <AlertBannerDescription>
         <span className="font-medium">Warning:</span> This role has {formatNumber(count)} {itemText}{" "}
         assigned. Use the{" "}
         <InlineLink
@@ -27,7 +25,7 @@ export const RoleWarningCallout = ({ count, type }: RoleWarningCalloutProps) => 
           label="API"
         />{" "}
         or {settingsText} to manage these assignments.
-      </div>
-    </div>
+      </AlertBannerDescription>
+    </AlertBanner>
   );
 };

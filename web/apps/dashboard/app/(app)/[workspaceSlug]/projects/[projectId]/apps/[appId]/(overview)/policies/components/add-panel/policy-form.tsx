@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronDown, CircleInfo } from "@unkey/icons";
+import { IconChevronDownOutline12, IconCircleInfoOutline18 } from "@unkey/icons";
 import {
   InfoTooltip,
   SlidePanel,
@@ -160,7 +160,7 @@ function Accordion({
     }
   }, [defaultExpanded, expanded, toggle]);
 
-  return <div className="mt-6 border-b border-gray-4">{children}</div>;
+  return <div className="mt-6 border-b">{children}</div>;
 }
 
 type SectionProps = {
@@ -194,16 +194,15 @@ function Section({
   }, [id, fields, catchAll, registerSection]);
 
   return (
-    <div className="border-t border-grayA-4">
+    <div className="border-t">
       <div className="flex items-center hover:bg-grayA-2 transition-colors">
         <button
           type="button"
           onClick={() => toggle(id)}
           className="flex-1 min-w-0 px-6 py-3 flex items-center justify-between gap-4 cursor-pointer"
         >
-          <span className="flex items-center gap-2 text-[13px] text-gray-11 font-medium">
-            <ChevronDown
-              iconSize="sm-regular"
+          <span className="flex items-center gap-2 text-sm text-gray-11 font-medium">
+            <IconChevronDownOutline12
               className={cn("transition-transform duration-200", isActive ? "" : "-rotate-90")}
             />
             {label}
@@ -214,13 +213,13 @@ function Section({
                   onClick={(e) => e.stopPropagation()}
                   onKeyDown={(e) => e.stopPropagation()}
                 >
-                  <CircleInfo iconSize="md-medium" aria-hidden="true" />
+                  <IconCircleInfoOutline18 className="size-3.5" aria-hidden="true" />
                   <span className="sr-only">More info</span>
                 </span>
               </InfoTooltip>
             )}
           </span>
-          <span className="text-[12px] text-gray-11 truncate">{summary}</span>
+          <span className="text-xs text-gray-11 truncate">{summary}</span>
         </button>
         {!isActive && collapsedAction && (
           <div className="pr-6 shrink-0 flex items-center">{collapsedAction}</div>

@@ -83,6 +83,9 @@ type Config struct {
 	Storage StorageConfig `toml:"storage"`
 
 	// Observability configures tracing, logging, and metrics. See [config.Observability].
+	// Set observability.metrics.prometheus_port to a positive port to serve /metrics
+	// on a separate listener. Omit it or set it to 0 to disable the listener.
+	// S3 operation failure logs bypass sampling and don't require metrics to be enabled.
 	Observability config.Observability `toml:"observability"`
 }
 

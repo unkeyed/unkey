@@ -18,9 +18,11 @@ import { describe, expect, it } from "vitest";
  * deliberate exceptions.
  */
 const AREAS = [
+  "account",
   "apis",
   "projects",
   "ratelimits",
+  "root-keys",
   "settings",
   "authorization",
   "identities",
@@ -46,7 +48,7 @@ function sourceFiles(dir: string): string[] {
     if (entry.isDirectory()) {
       return sourceFiles(path);
     }
-    return /\.tsx?$/.test(entry.name) ? [path] : [];
+    return /\.tsx?$/.test(entry.name) && !/\.test\.tsx?$/.test(entry.name) ? [path] : [];
   });
 }
 

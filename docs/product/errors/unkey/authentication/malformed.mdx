@@ -1,89 +1,48 @@
 ---
 title: "malformed"
-description: "Authentication credentials were incorrectly formatted. Check that your Bearer token or API key header follows the expected format for Unkey."
+sidebarTitle: "malformed"
+description: "The Authorization header is not in the form Bearer <token>."
+sources:
+  - pkg/codes/unkey_auth.go
+  - svc/api/internal/middleware/errors.go
+  - pkg/zen/auth.go
+  - pkg/auth/jwt/resolver.go
 ---
 
 <Danger>`err:unkey:authentication:malformed`</Danger>
 
-```json Example
+The API found an `Authorization` header but couldn't read a credential from it. The header must be `Bearer`, one space, and the token. You get HTTP 400.
+
+```json Example response
 {
   "meta": {
     "requestId": "req_2c9a0jf23l4k567"
   },
   "error": {
-    "detail": "Authentication credentials were incorrectly formatted",
-    "status": 401,
-    "title": "Unauthorized",
-    "type": "https://unkey.com/docs/errors/unkey/authentication/malformed"
+    "detail": "You must provide a valid root key in the Authorization header in the format 'Bearer ROOT_KEY'. Your authorization header is missing the 'Bearer ' prefix.",
+    "status": 400,
+    "title": "Bad Request",
+    "type": "/errors/unkey/authentication/malformed",
+    "errors": []
   }
 }
 ```
 
-## What Happened?
+## Likely causes
 
-This error occurs when your request includes authentication credentials, but they are not formatted correctly. The Unkey API expects API keys to be provided in a specific format in the Authorization header.
+- The `Bearer ` prefix is missing, or you used a different scheme such as `Basic`.
+- The token after the prefix is empty.
+- Whitespace, a newline, or quotes got in when the key was copied, or a client library added its own scheme.
+- A dashboard session token has expired or doesn't validate. The message is `Invalid bearer token.`
 
-Common causes include:
+## How to fix
 
-- Missing the "Bearer" prefix before your API key
-- Including extra spaces or characters
-- Using incorrect casing (e.g., "bearer" instead of "Bearer")
-- Providing a malformed or truncated API key
+1. Send the header as `Authorization: Bearer unkey_xxx`, with one space and no quotes.
+2. Check for stray whitespace or a newline, and for a client library that adds its own scheme.
+3. If you're using a dashboard session token, sign in again.
 
-Here's an example of a request with incorrectly formatted credentials:
+## Related errors
 
-```bash
-# Missing the "Bearer" prefix
-curl -X POST https://api.unkey.com/v2/keys.listKeys \
-  -H "Content-Type: application/json" \
-  -H "Authorization: unkey_YOUR_API_KEY"
-```
-
-## How To Fix
-
-To fix this error, ensure your Authorization header follows the correct format:
-
-1. **Use the correct format**: Ensure your Authorization header follows the format `Bearer unkey_YOUR_API_KEY`
-2. **Check for extra spaces or characters**: Make sure there are no invisible characters or line breaks
-3. **Verify the API key format**: Your Unkey API key should start with `unkey_`
-
-Here's the correctly formatted request:
-
-```bash
-curl -X POST https://api.unkey.com/v2/keys.listKeys \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer unkey_YOUR_API_KEY"
-```
-
-When properly authenticated, you'll receive a successful response like this:
-
-```json
-{
-  "meta": {
-    "requestId": "req_8f7g6h5j4k3l2m1n"
-  },
-  "data": {
-    "keys": [
-      {
-        "keyId": "key_123abc456def",
-        "name": "Production API Key"
-      }
-    ]
-  }
-}
-```
-
-## Common Mistakes
-
-- **Authorization header format**: Must be exactly `Bearer unkey_YOUR_API_KEY` with a single space after "Bearer"
-- **Incorrect casing**: Using "bearer" instead of "Bearer"
-- **API key format**: Your Unkey API key should start with `unkey_` and contain no spaces
-- **Using wrong key type**: Ensure you're using a root key for management API calls
-- **Copying errors**: Check for invisible characters or line breaks that might have been copied
-- **Extra characters**: Including quotes or other characters around the API key
-- **Truncated keys**: Accidentally cutting off part of the API key when copying
-
-## Related Errors
-
-- [err:unkey:authentication:missing](./missing) - When no authentication credentials are provided
-- [err:unkey:authentication:key_not_found](./key_not_found) - When the provided API key doesn't exist
+- [`err:unkey:application:invalid_input`](/errors/unkey/application/invalid_input): the header is missing entirely.
+- [`err:unkey:authentication:missing`](/errors/unkey/authentication/missing): the endpoint doesn't accept the kind of credential you sent.
+- [`err:unkey:authentication:key_not_found`](/errors/unkey/authentication/key_not_found): the token is readable but isn't a valid root key.

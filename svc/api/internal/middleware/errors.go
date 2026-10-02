@@ -134,7 +134,8 @@ func WithErrorHandling() zen.Middleware {
 				codes.UserErrorsBadRequestInvalidAnalyticsTable,
 				codes.UserErrorsBadRequestInvalidAnalyticsFunction,
 				codes.UserErrorsBadRequestInvalidAnalyticsQueryType,
-				codes.UserErrorsBadRequestQueryRangeExceedsRetention:
+				codes.UserErrorsBadRequestQueryRangeExceedsRetention,
+				codes.UserErrorsBadRequestPerKeyBreakoutTooLarge:
 				return s.ProblemJSON(http.StatusBadRequest, openapi.BadRequestErrorResponse{
 					Meta: openapi.Meta{
 						RequestId: s.RequestID(),
@@ -304,7 +305,8 @@ func WithErrorHandling() zen.Middleware {
 				codes.UnkeyDataErrorsProjectDuplicate,
 				codes.UnkeyDataErrorsAppDuplicate,
 				codes.UnkeyDataErrorsDomainDuplicate,
-				codes.UnkeyDataErrorsPortalDuplicate:
+				codes.UnkeyDataErrorsPortalDuplicate,
+				codes.UnkeyDataErrorsPortalChanged:
 				return s.ProblemJSON(http.StatusConflict, openapi.ConflictErrorResponse{
 					Meta: openapi.Meta{
 						RequestId: s.RequestID(),

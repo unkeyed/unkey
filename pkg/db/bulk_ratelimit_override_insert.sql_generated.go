@@ -12,7 +12,8 @@ import (
 const bulkInsertRatelimitOverride = `INSERT INTO ratelimit_overrides ( id, workspace_id, namespace_id, identifier, ` + "`" + `limit` + "`" + `, duration, created_at_m ) VALUES %s ON DUPLICATE KEY UPDATE
     ` + "`" + `limit` + "`" + ` = VALUES(` + "`" + `limit` + "`" + `),
     duration = VALUES(duration),
-    updated_at_m = ?`
+    updated_at_m = ?,
+    deleted_at_m = NULL`
 
 // InsertRatelimitOverrides performs bulk insert in a single query
 func (q *BulkQueries) InsertRatelimitOverrides(ctx context.Context, db DBTX, args []InsertRatelimitOverrideParams) error {

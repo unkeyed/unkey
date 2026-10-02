@@ -12,6 +12,7 @@
 
 # Dev / docs
 /dev
+!/dev/install-mise
 /docs
 /benchmarks
 /.github

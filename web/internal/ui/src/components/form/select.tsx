@@ -1,9 +1,10 @@
 "use client";
 
 import { Select as SelectPrimitive } from "@base-ui/react/select";
-import { Check, ChevronDown } from "@unkey/icons";
+import { IconCheckOutline12, IconChevronDownOutline18 } from "@unkey/icons";
 import { type VariantProps, cva } from "class-variance-authority";
 import type * as React from "react";
+import { popupTransition } from "../../lib/popup";
 import { cn } from "../../lib/utils";
 import { fieldBaseClasses, fieldInvalidClasses, fieldSurfaceClasses } from "./input-group";
 
@@ -81,7 +82,7 @@ function SelectTrigger({
         <SelectPrimitive.Icon
           render={
             (rightIcon as React.ReactElement) || (
-              <ChevronDown className="absolute text-gray-11 right-3 w-4 h-4" iconSize="sm-medium" />
+              <IconChevronDownOutline18 className="absolute text-gray-11 right-3 w-4 h-4" />
             )
           }
         />
@@ -123,8 +124,8 @@ function SelectContent({
         <SelectPrimitive.Popup
           ref={ref}
           className={cn(
-            "isolate z-50 relative overflow-hidden rounded-lg border border-gray-5 bg-gray-2 text-gray-12 shadow-md min-w-(--anchor-width) origin-(--transform-origin)",
-            "transition-[opacity,scale,translate] data-starting-style:opacity-0 data-starting-style:scale-95 data-ending-style:opacity-0 data-ending-style:scale-95",
+            "isolate z-50 relative overflow-hidden rounded-lg bg-raised text-gray-12 shadow-floating min-w-(--anchor-width) origin-(--transform-origin)",
+            popupTransition,
             "data-[side=bottom]:data-starting-style:-translate-y-1 data-[side=top]:data-starting-style:translate-y-1 data-[side=left]:data-starting-style:translate-x-1 data-[side=right]:data-starting-style:-translate-x-1",
             className,
           )}
@@ -147,7 +148,7 @@ function SelectLabel({
   return (
     <SelectPrimitive.GroupLabel
       ref={ref}
-      className={cn("py-1.5 pl-2 pr-2 text-[13px] font-medium text-gray-11", className)}
+      className={cn("py-1.5 pl-2 pr-2 text-sm font-medium text-gray-11", className)}
       {...props}
     />
   );
@@ -165,7 +166,7 @@ function SelectItem({
     <SelectPrimitive.Item
       ref={ref}
       className={cn(
-        "relative flex w-full cursor-default select-none items-center rounded-md py-1.5 pl-2 pr-8 text-[13px] outline-hidden",
+        "relative flex w-full cursor-default select-none items-center rounded-md py-1.5 pl-2 pr-8 text-sm outline-hidden",
         "text-gray-12 hover:bg-gray-4 focus:bg-gray-5 data-highlighted:bg-gray-5 data-disabled:opacity-50",
         className,
       )}
@@ -173,7 +174,7 @@ function SelectItem({
     >
       <span className="absolute right-2 flex h-3.5 w-3.5 items-center justify-center">
         <SelectPrimitive.ItemIndicator>
-          <Check iconSize="sm-medium" className="text-gray-12" />
+          <IconCheckOutline12 className="text-gray-12" />
         </SelectPrimitive.ItemIndicator>
       </span>
 

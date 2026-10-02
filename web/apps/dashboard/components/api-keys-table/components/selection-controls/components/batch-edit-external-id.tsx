@@ -1,6 +1,13 @@
 import { ExternalIdField } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/_components/create-key/components/external-id-field";
-import { TriangleWarning2 } from "@unkey/icons";
-import { Button, ConfirmPopover, DialogContainer } from "@unkey/ui";
+import { IconTriangleWarningOutline12 } from "@unkey/icons";
+import {
+  AlertBanner,
+  AlertBannerDescription,
+  AlertBannerTitle,
+  Button,
+  ConfirmPopover,
+  DialogContainer,
+} from "@unkey/ui";
 import { type JSX, useRef, useState } from "react";
 import { useBatchEditExternalId } from "../../actions/components/hooks/use-edit-external-id";
 
@@ -112,12 +119,10 @@ export const BatchEditExternalId = ({
         }
       >
         {hasKeysWithExternalIds && (
-          <div className="rounded-xl bg-errorA-2 dark:bg-black border border-errorA-3 flex items-center gap-4 px-[22px] py-6 mb-4">
-            <div className="bg-error-9 size-8 rounded-full flex items-center justify-center shrink-0">
-              <TriangleWarning2 iconSize="sm-regular" className="text-white" />
-            </div>
-            <div className="text-error-12 text-[13px] leading-6">
-              <span className="font-medium">Warning:</span>{" "}
+          <AlertBanner variant="error" className="mb-4">
+            <IconTriangleWarningOutline12 className="size-3.5" aria-hidden="true" />
+            <AlertBannerTitle>Warning</AlertBannerTitle>
+            <AlertBannerDescription>
               {keysWithExternalIds === totalKeys ? (
                 <>
                   All selected keys already have External IDs. Setting a new ID will override the
@@ -129,8 +134,8 @@ export const BatchEditExternalId = ({
                   existing ones.
                 </>
               )}
-            </div>
-          </div>
+            </AlertBannerDescription>
+          </AlertBanner>
         )}
         <div className="my-2">
           <ExternalIdField

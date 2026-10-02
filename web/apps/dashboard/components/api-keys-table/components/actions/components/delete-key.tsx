@@ -1,8 +1,19 @@
 import type { ActionComponentProps } from "@/components/logs/table-action.popover";
+import { RecentlyUsedKeyWarning } from "@/components/recently-used-key-warning";
+import { RECENTLY_USED_WINDOW_LABEL, isRecentlyUsed } from "@/lib/recently-used-key";
 import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { TriangleWarning2 } from "@unkey/icons";
-import { Button, ConfirmPopover, DialogContainer, FormCheckbox } from "@unkey/ui";
+import { IconTriangleWarningOutline12 } from "@unkey/icons";
+import {
+  AlertBanner,
+  AlertBannerDescription,
+  AlertBannerTitle,
+  Button,
+  ConfirmPopover,
+  DialogContainer,
+  FormCheckbox,
+  Separator,
+} from "@unkey/ui";
 import { useRef, useState } from "react";
 import { Controller, FormProvider, useForm } from "react-hook-form";
 import { z } from "zod";
@@ -41,6 +52,7 @@ export const DeleteKey = ({ keyDetails, isOpen, onClose }: DeleteKeyProps) => {
   } = methods;
 
   const confirmDeletion = watch("confirmDeletion");
+  const recentlyUsed = isRecentlyUsed(keyDetails.last_used_at);
 
   const deleteKey = useDeleteKey(() => {
     onClose();
@@ -109,18 +121,16 @@ export const DeleteKey = ({ keyDetails, isOpen, onClose }: DeleteKeyProps) => {
             }
           >
             <KeyInfo keyDetails={keyDetails} />
-            <div className="py-1 my-2">
-              <div className="h-px bg-grayA-3 w-full" />
-            </div>
-            <div className="rounded-xl bg-errorA-2 dark:bg-black border border-errorA-3 flex items-center gap-4 px-[22px] py-6">
-              <div className="bg-error-9 size-8 rounded-full flex items-center justify-center shrink-0">
-                <TriangleWarning2 iconSize="sm-regular" className="text-white" />
-              </div>
-              <div className="text-error-12 text-[13px] leading-6">
-                <span className="font-medium">Warning:</span> deleting this key will remove all
-                associated data and metadata. This action cannot be undone.
-              </div>
-            </div>
+            <Separator className="my-3" />
+            <AlertBanner variant="error">
+              <IconTriangleWarningOutline12 className="size-3.5" aria-hidden="true" />
+              <AlertBannerTitle>Warning</AlertBannerTitle>
+              <AlertBannerDescription>
+                Deleting this key will remove all associated data and metadata. This action cannot
+                be undone.
+              </AlertBannerDescription>
+            </AlertBanner>
+            {recentlyUsed && <RecentlyUsedKeyWarning lastUsedAt={keyDetails.last_used_at} />}
             <Controller
               name="confirmDeletion"
               control={control}
@@ -146,7 +156,11 @@ export const DeleteKey = ({ keyDetails, isOpen, onClose }: DeleteKeyProps) => {
         onConfirm={performKeyDeletion}
         triggerRef={deleteButtonRef}
         title="Confirm key deletion"
-        description="This action is irreversible. Metadata and ratelimits associated with this key will be permanently deleted."
+        description={
+          recentlyUsed
+            ? `This key was used in the last ${RECENTLY_USED_WINDOW_LABEL} and may still be live. This action is irreversible. Metadata and ratelimits associated with this key will be permanently deleted.`
+            : "This action is irreversible. Metadata and ratelimits associated with this key will be permanently deleted."
+        }
         confirmButtonText="Delete key"
         cancelButtonText="Cancel"
         variant="danger"

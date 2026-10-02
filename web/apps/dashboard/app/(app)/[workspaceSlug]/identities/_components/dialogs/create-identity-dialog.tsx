@@ -1,5 +1,6 @@
 "use client";
 
+import { useProjectScope } from "@/hooks/use-project-scope";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { useCreateIdentityMutation } from "@/lib/identities-query";
 import { routes } from "@/lib/navigation/routes";
@@ -8,7 +9,7 @@ import type { DiscriminatedUnionResolver } from "@/lib/schemas/resolver-types";
 import { getErrorMessage } from "@/lib/unkey-client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ConflictErrorResponse } from "@unkey/api/models/errors";
-import { Plus } from "@unkey/icons";
+import { IconPlusOutline18 } from "@unkey/icons";
 import {
   Alert,
   AlertDescription,
@@ -32,6 +33,7 @@ export function CreateIdentityDialog() {
   const [isNavigating, startNavigation] = useTransition();
   const router = useRouter();
   const workspace = useWorkspaceNavigation();
+  const scope = useProjectScope();
 
   const methods = useForm<FormValues>({
     resolver: zodResolver(formSchema) as DiscriminatedUnionResolver<typeof formSchema>,
@@ -73,6 +75,7 @@ export function CreateIdentityDialog() {
         router.push(
           routes.identities.detail({
             workspaceSlug: workspace.slug,
+            ...scope,
             identityId: createdIdentity.identityId,
           }),
         );
@@ -110,7 +113,7 @@ export function CreateIdentityDialog() {
   return (
     <>
       <Button size="md" variant="primary" onClick={() => setOpen(true)}>
-        <Plus iconSize="sm-regular" />
+        <IconPlusOutline18 />
         Create identity
       </Button>
 

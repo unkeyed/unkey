@@ -1,7 +1,7 @@
 import { RegionFlag } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/region-flag";
 import { mapRegionToFlag } from "@/lib/trpc/routers/deploy/network/utils";
-import { cn } from "@/lib/utils";
 import { Badge, type DataTableColumnDef, TimestampInfo } from "@unkey/ui";
+import { cn } from "cn";
 import { type RuntimeLogRow, getLogKey, getSeverityStyle } from "../utils/get-row-class";
 
 type CreateRuntimeLogsColumnsOptions = {

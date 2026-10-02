@@ -1,7 +1,9 @@
 "use client";
 import { useEffect, useRef } from "react";
 
+import { GatewayRequestDetails } from "@/components/logs/details/gateway-request-details";
 import { LogDetails } from "@/components/logs/details/log-details";
+import { LogDetailsSkeleton } from "@/components/logs/details/log-details/components/log-details-skeleton";
 import type { KeyDetailsLog } from "@unkey/clickhouse/src/verifications";
 import { toast } from "@unkey/ui";
 import { useFetchRequestDetails } from "../hooks/use-fetch-request-details";
@@ -13,8 +15,10 @@ type Props = {
 };
 
 export const KeyDetailsDrawer = ({ distanceToTop, onLogSelect, selectedLog }: Props) => {
-  const { log, error, isLoading } = useFetchRequestDetails({
+  const { details, error, isLoading } = useFetchRequestDetails({
     requestId: selectedLog?.request_id,
+    time: selectedLog?.time,
+    source: selectedLog?.source,
   });
 
   // Track which request we have already toasted for so we surface at most one
@@ -45,14 +49,14 @@ export const KeyDetailsDrawer = ({ distanceToTop, onLogSelect, selectedLog }: Pr
         }`,
       });
       toastedRequestIdRef.current = requestId;
-    } else if (!log) {
+    } else if (!details) {
       toast.error("Log Data Unavailable", {
         description:
           "Could not retrieve log information for this key. The log may have been deleted or is still processing.",
       });
       toastedRequestIdRef.current = requestId;
     }
-  }, [error, log, selectedLog?.request_id, isLoading]);
+  }, [error, details, selectedLog?.request_id, isLoading]);
 
   const handleClose = () => {
     onLogSelect(null);
@@ -62,12 +66,29 @@ export const KeyDetailsDrawer = ({ distanceToTop, onLogSelect, selectedLog }: Pr
     return null;
   }
 
-  if (error || !log) {
+  // Hold the panel open while the lookup runs, including the retry window for a
+  // log that has not been ingested yet. Rendering nothing here read as a dead
+  // click and people clicked other rows to try again.
+  if (isLoading) {
+    return <LogDetailsSkeleton distanceToTop={distanceToTop} onClose={handleClose} />;
+  }
+
+  if (error || !details) {
     return null;
   }
 
+  if (details.source === "gateway") {
+    return (
+      <GatewayRequestDetails
+        distanceToTop={distanceToTop}
+        log={details.log}
+        onClose={handleClose}
+      />
+    );
+  }
+
   return (
-    <LogDetails distanceToTop={distanceToTop} log={log} onClose={handleClose}>
+    <LogDetails distanceToTop={distanceToTop} log={details.log} onClose={handleClose}>
       <LogDetails.Header onClose={handleClose} />
       <LogDetails.Sections />
       <LogDetails.Spacer />

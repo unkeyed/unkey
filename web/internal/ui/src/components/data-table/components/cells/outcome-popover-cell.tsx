@@ -1,5 +1,5 @@
 "use client";
-import { ChevronRight } from "@unkey/icons";
+import { IconChevronRightOutline18 } from "@unkey/icons";
 import type * as React from "react";
 import { cn } from "../../../../lib/utils";
 import { Badge } from "../../../badge";
@@ -28,18 +28,18 @@ export const OUTCOME_BACKGROUND_COLORS: Record<string, string> = {
   DISABLED: "bg-gray-9",
   EXPIRED: "bg-orange-9",
   USAGE_EXCEEDED: "bg-feature-9",
-  UNKNOWN: "bg-accent-9",
+  UNKNOWN: "bg-gray-9",
 };
 
 export const OUTCOME_BADGE_STYLES: Record<string, string> = {
-  VALID: "bg-gray-4 text-accent-11 hover:bg-gray-5 group-hover:text-accent-12",
+  VALID: "bg-gray-4 text-gray-11 hover:bg-gray-5 group-hover:text-gray-12",
   RATE_LIMITED: "bg-warning-4 text-warning-11 group-hover:bg-warning-5",
   INSUFFICIENT_PERMISSIONS: "bg-error-4 text-error-11 group-hover:bg-error-5",
   FORBIDDEN: "bg-error-4 text-error-11 group-hover:bg-error-5",
   DISABLED: "bg-gray-4 text-gray-11 group-hover:bg-gray-5",
   EXPIRED: "bg-orange-4 text-orange-11 group-hover:bg-orange-5",
   USAGE_EXCEEDED: "bg-feature-4 text-feature-11 group-hover:bg-feature-5",
-  UNKNOWN: "bg-gray-4 text-accent-11 hover:bg-gray-5 group-hover:text-accent-12",
+  UNKNOWN: "bg-gray-4 text-gray-11 hover:bg-gray-5 group-hover:text-gray-12",
 };
 
 export function getOutcomeColor(outcome: string): string {
@@ -100,7 +100,7 @@ export function OutcomePopoverCell({
               size="sm"
               className={cn(
                 containerStyle,
-                "text-accent-11 bg-gray-4 hover:bg-gray-5 [&_svg]:size-3",
+                "text-gray-11 bg-gray-4 hover:bg-gray-5 [&_svg]:size-3",
                 isSelected ? SELECTED_BADGE : DEFAULT_BADGE,
               )}
               title="View all outcomes"
@@ -109,16 +109,12 @@ export function OutcomePopoverCell({
                 <span className="overflow-hidden text-ellipsis whitespace-nowrap pr-1 max-w-[90px]">
                   +{nonValidOutcomes.length} Outcomes
                 </span>
-                <ChevronRight iconSize="sm-regular" className="shrink-0" />
+                <IconChevronRightOutline18 className="shrink-0" />
               </div>
             </Button>
           }
         />
-        <PopoverContent
-          className="min-w-64 bg-gray-1 dark:bg-black shadow-2xl p-0 border border-gray-6 rounded-lg overflow-hidden"
-          align="start"
-          sideOffset={5}
-        >
+        <PopoverContent className="min-w-64 p-0 overflow-hidden" align="start" sideOffset={5}>
           <div className="px-3 pt-3">
             <div className="flex items-center justify-between">
               <div className="text-xs font-medium text-gray-9">Outcomes</div>
@@ -136,16 +132,13 @@ export function OutcomePopoverCell({
                 >
                   <div className="flex items-center gap-2.5 pl-1.5 font-mono">
                     <div
-                      className={cn(
-                        "size-[10px] rounded-[2px] shadow-xs",
-                        getOutcomeColor(outcome),
-                      )}
+                      className={cn("size-[10px] rounded-xs shadow-xs", getOutcomeColor(outcome))}
                     />
-                    <span className="text-accent-12 text-xs font-medium">
+                    <span className="text-gray-12 text-xs font-medium">
                       {formatOutcomeName(outcome)}
                     </span>
                   </div>
-                  <span className="text-accent-11 text-xs font-mono px-1.5 py-0.5 rounded-sm tabular-nums">
+                  <span className="text-gray-11 text-xs font-mono px-1.5 py-0.5 rounded-sm tabular-nums">
                     {count.toLocaleString()}
                   </span>
                 </div>
