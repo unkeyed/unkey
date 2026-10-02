@@ -22,8 +22,8 @@ import (
 )
 
 type (
-	Request  = openapi.V2DeploymentsGetBuildLogsRequestBody
-	Response = openapi.V2DeploymentsGetBuildLogsResponseBody
+	Request  = openapi.V2DeploymentsListBuildLogsRequestBody
+	Response = openapi.V2DeploymentsListBuildLogsResponseBody
 )
 
 type Handler struct {
@@ -37,7 +37,7 @@ func (h *Handler) Method() string {
 }
 
 func (h *Handler) Path() string {
-	return "/v2/deployments.getBuildLogs"
+	return "/v2/deployments.listBuildLogs"
 }
 
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {

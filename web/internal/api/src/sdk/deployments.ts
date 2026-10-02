@@ -4,8 +4,8 @@
 
 import { deploymentsCreateDeployment } from "../funcs/deploymentsCreateDeployment.js";
 import { deploymentsCreateDeploymentV3 } from "../funcs/deploymentsCreateDeploymentV3.js";
-import { deploymentsGetBuildLogs } from "../funcs/deploymentsGetBuildLogs.js";
 import { deploymentsGetDeployment } from "../funcs/deploymentsGetDeployment.js";
+import { deploymentsListBuildLogs } from "../funcs/deploymentsListBuildLogs.js";
 import { deploymentsListDeployments } from "../funcs/deploymentsListDeployments.js";
 import { deploymentsPromoteDeployment } from "../funcs/deploymentsPromoteDeployment.js";
 import { deploymentsRollbackDeployment } from "../funcs/deploymentsRollbackDeployment.js";
@@ -47,7 +47,33 @@ export class Deployments extends ClientSDK {
   }
 
   /**
-   * Get build logs
+   * Get deployment
+   *
+   * @remarks
+   * Retrieve a single deployment by its id.
+   *
+   * Use this to check a deployment's status after creating it, or to inspect the
+   * runtime configuration of an existing deployment.
+   *
+   * **Required Permissions**
+   *
+   * Your root key must have one of the following permissions:
+   * - `environment.*.read_deployment` (to read deployments in any environment)
+   * - `environment.<environment_id>.read_deployment` (to read deployments in a specific environment)
+   */
+  async getDeployment(
+    request: components.V2DeploymentsGetDeploymentRequestBody,
+    options?: RequestOptions,
+  ): Promise<components.V2DeploymentsGetDeploymentResponseBody> {
+    return unwrapAsync(deploymentsGetDeployment(
+      this,
+      request,
+      options,
+    ));
+  }
+
+  /**
+   * List build logs
    *
    * @remarks
    * Retrieve the build output of a deployment as a list of log entries, in the
@@ -82,37 +108,11 @@ export class Deployments extends ClientSDK {
    * - `environment.*.read_deployment` (to read deployments in any environment)
    * - `environment.<environment_id>.read_deployment` (to read deployments in a specific environment)
    */
-  async getBuildLogs(
-    request: components.V2DeploymentsGetBuildLogsRequestBody,
+  async listBuildLogs(
+    request: components.V2DeploymentsListBuildLogsRequestBody,
     options?: RequestOptions,
-  ): Promise<components.V2DeploymentsGetBuildLogsResponseBody> {
-    return unwrapAsync(deploymentsGetBuildLogs(
-      this,
-      request,
-      options,
-    ));
-  }
-
-  /**
-   * Get deployment
-   *
-   * @remarks
-   * Retrieve a single deployment by its id.
-   *
-   * Use this to check a deployment's status after creating it, or to inspect the
-   * runtime configuration of an existing deployment.
-   *
-   * **Required Permissions**
-   *
-   * Your root key must have one of the following permissions:
-   * - `environment.*.read_deployment` (to read deployments in any environment)
-   * - `environment.<environment_id>.read_deployment` (to read deployments in a specific environment)
-   */
-  async getDeployment(
-    request: components.V2DeploymentsGetDeploymentRequestBody,
-    options?: RequestOptions,
-  ): Promise<components.V2DeploymentsGetDeploymentResponseBody> {
-    return unwrapAsync(deploymentsGetDeployment(
+  ): Promise<components.V2DeploymentsListBuildLogsResponseBody> {
+    return unwrapAsync(deploymentsListBuildLogs(
       this,
       request,
       options,

@@ -1,7 +1,7 @@
 post:
   tags:
     - deployments
-  summary: Get build logs
+  summary: List build logs
   description: |
     Retrieve the build output of a deployment as a list of log entries, in the
     order the build printed them. A log entry is one chunk of build output,
@@ -34,8 +34,8 @@ post:
     Your root key must have one of the following permissions:
     - `environment.*.read_deployment` (to read deployments in any environment)
     - `environment.<environment_id>.read_deployment` (to read deployments in a specific environment)
-  operationId: deployments.getBuildLogs
-  x-speakeasy-name-override: getBuildLogs
+  operationId: deployments.listBuildLogs
+  x-speakeasy-name-override: listBuildLogs
   x-unkey-idempotency: idempotent
   security:
     - bearer: []
@@ -44,7 +44,7 @@ post:
     content:
       application/json:
         schema:
-          "$ref": "./V2DeploymentsGetBuildLogsRequestBody.yaml"
+          "$ref": "./V2DeploymentsListBuildLogsRequestBody.yaml"
         examples:
           firstPage:
             summary: Start at the first entry
@@ -70,7 +70,7 @@ post:
       content:
         application/json:
           schema:
-            "$ref": "./V2DeploymentsGetBuildLogsResponseBody.yaml"
+            "$ref": "./V2DeploymentsListBuildLogsResponseBody.yaml"
           examples:
             entries:
               summary: Log entries of a running build

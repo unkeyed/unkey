@@ -12,10 +12,10 @@ import (
 	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
-	handler "github.com/unkeyed/unkey/svc/api/routes/v2_deployments_get_build_logs"
+	handler "github.com/unkeyed/unkey/svc/api/routes/v2_deployments_list_build_logs"
 )
 
-func TestGetBuildLogsNotFound(t *testing.T) {
+func TestListBuildLogsNotFound(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route := newRoute(h)
 	h.Register(route)
