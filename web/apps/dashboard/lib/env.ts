@@ -87,8 +87,8 @@ export const workosAuthEnv = () => {
 export const dbEnv = () =>
   z
     .object({
-      DATABASE_PRIMARY: z.string().url(),
-      DATABASE_REPLICA: z.union([z.string().url(), z.literal("")]).optional(),
+      DATABASE_PRIMARY: z.url(),
+      DATABASE_REPLICA: z.url().optional(),
     })
     .parse(process.env);
 
