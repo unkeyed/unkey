@@ -157,8 +157,7 @@ export function ComputeCard({ tree, period }: { tree: ComputeTree; period: Usage
   const now = new Date();
   const month = now.getUTCMonth() - (period === "previous" ? 1 : 0);
   const periodStart = Date.UTC(now.getUTCFullYear(), month, 1);
-  const periodEnd =
-    period === "current" ? now.getTime() : Date.UTC(now.getUTCFullYear(), month + 1, 1);
+  const periodEnd = Date.UTC(now.getUTCFullYear(), month + 1, 1);
   const incompleteFrom =
     period === "current"
       ? Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
