@@ -28,7 +28,7 @@ export function useBuildStepLogs(deployment: Deployment, stepId: string) {
     // appends it, so the entries render while the rest is still loading
     queryFn: async (): Promise<BuildStepLogs> => {
       const previous = queryClient.getQueryData<BuildStepLogs>(queryKey);
-      const page = await getUnkeyClient().deployments.getBuildLogs({
+      const page = await getUnkeyClient().deployments.listBuildLogs({
         deploymentId: deployment.id,
         stepId,
         cursor: previous?.cursor,
