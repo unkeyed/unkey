@@ -101,6 +101,7 @@ export const ChooseSourceStep = ({
   // We can't compute it client-side without a server round-trip, so we mint
   // it lazily when the user clicks Import.
   const prepare = trpc.github.prepareInstallation.useMutation();
+  const configuration = trpc.github.configuration.useQuery();
   const [isPreparing, setIsPreparing] = useState(false);
   const handleClick = async () => {
     setIsPreparing(true);
@@ -115,9 +116,9 @@ export const ChooseSourceStep = ({
         next();
         return;
       }
-      const { state } = await prepare.mutateAsync({ projectId, appId });
+      const { url } = await prepare.mutateAsync({ projectId, appId });
       onBeforeNavigate?.();
-      window.location.href = `https://github.com/apps/${process.env.NEXT_PUBLIC_GITHUB_APP_NAME}/installations/new?state=${encodeURIComponent(state)}`;
+      window.location.href = url;
     } catch (err) {
       setIsPreparing(false);
       toast.error(err instanceof Error ? err.message : "Failed to connect GitHub");
@@ -135,7 +136,9 @@ export const ChooseSourceStep = ({
             <div className="flex flex-col gap-3">
               <span className="font-medium text-gray-12 text-sm leading-2.25">Connect a repo</span>
               <span className="text-gray-10 text-sm leading-2.25">
-                Add a repo from your GitHub account
+                {configuration.data?.available === false
+                  ? "GitHub is not configured on this instance"
+                  : "Add a repo from your GitHub account"}
               </span>
             </div>
             <Button
@@ -143,7 +146,7 @@ export const ChooseSourceStep = ({
               className="ml-auto rounded-lg hover:bg-grayA-2 shadow-sm hover:shadow-md transition-all"
               onClick={handleClick}
               loading={isPreparing}
-              disabled={selectedSource === "oci"}
+              disabled={selectedSource === "oci" || !configuration.data?.available}
             >
               <Github className="size-[18px]! text-gray-12 shrink-0" />
               <span className="text-sm text-gray-12 font-medium">Import from GitHub</span>

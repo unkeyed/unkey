@@ -40,12 +40,13 @@ const INSTALL_CARD: Record<
 
 export function GithubConnection() {
   const { data, isLoading } = trpc.github.hasInstallations.useQuery();
+  const configuration = trpc.github.configuration.useQuery();
   const prepareInstall = trpc.github.prepareWorkspaceInstall.useMutation();
 
   const openInstall = async () => {
     try {
-      const { state } = await prepareInstall.mutateAsync();
-      window.location.href = `https://github.com/apps/${process.env.NEXT_PUBLIC_GITHUB_APP_NAME}/installations/new?state=${encodeURIComponent(state)}`;
+      const { url } = await prepareInstall.mutateAsync();
+      window.location.href = url;
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to start GitHub install");
     }
@@ -60,7 +61,11 @@ export function GithubConnection() {
     <SettingsRow>
       <SettingsRowHeader>
         <SettingsRowTitle>GitHub</SettingsRowTitle>
-        <SettingsRowDescription>Deploy apps from your GitHub repositories.</SettingsRowDescription>
+        <SettingsRowDescription>
+          {configuration.data?.available === false
+            ? "GitHub is not configured on this instance. You can deploy a container image instead."
+            : "Deploy apps from your GitHub repositories."}
+        </SettingsRowDescription>
       </SettingsRowHeader>
       <SettingsRowContent>
         {match(state)
@@ -69,16 +74,26 @@ export function GithubConnection() {
           ))
           .with({ status: "connected" }, ({ status }) => (
             <GithubAppCard status={status}>
-              <Button variant="outline" loading={prepareInstall.isLoading} onClick={openInstall}>
-                Manage
+              <Button
+                variant="outline"
+                loading={prepareInstall.isLoading}
+                disabled={!configuration.data?.available}
+                onClick={openInstall}
+              >
+                {configuration.data?.available === false ? "GitHub unavailable" : "Manage"}
                 <IconArrowUpRightOutline12 className="size-3! text-gray-11" />
               </Button>
             </GithubAppCard>
           ))
           .with({ status: "disconnected" }, ({ status }) => (
             <GithubAppCard status={status}>
-              <Button variant="primary" loading={prepareInstall.isLoading} onClick={openInstall}>
-                Install
+              <Button
+                variant="primary"
+                loading={prepareInstall.isLoading}
+                disabled={!configuration.data?.available}
+                onClick={openInstall}
+              >
+                {configuration.data?.available === false ? "GitHub unavailable" : "Install"}
               </Button>
             </GithubAppCard>
           ))

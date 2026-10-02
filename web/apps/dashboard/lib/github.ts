@@ -115,7 +115,10 @@ const userInstallationsSchema = z.object({
 // user-to-server access token. GitHub returns HTTP 200 with an `error` field
 // (not a non-2xx status) when the code is invalid or expired, so we treat any
 // response that doesn't parse as an access token as a failure.
-export async function exchangeInstallationOAuthCode(code: string): Promise<string> {
+export async function exchangeInstallationOAuthCode(
+  code: string,
+  redirectUri?: string,
+): Promise<string> {
   const oauthEnv = githubOAuthEnv();
   if (!oauthEnv) {
     throw new Error("GitHub OAuth environment not configured");
@@ -131,6 +134,7 @@ export async function exchangeInstallationOAuthCode(code: string): Promise<strin
       client_id: oauthEnv.GITHUB_CLIENT_ID,
       client_secret: oauthEnv.GITHUB_CLIENT_SECRET,
       code,
+      redirect_uri: redirectUri,
     }),
   });
 
@@ -231,7 +235,10 @@ export async function getRepositoryTree(
   owner: string,
   repo: string,
   branch: string,
-): Promise<{ tree: Array<{ path: string; type: string }>; truncated: boolean }> {
+): Promise<{
+  tree: Array<{ path: string; type: string }>;
+  truncated: boolean;
+}> {
   const { token } = await getInstallationAccessToken(installationId);
 
   const data = repositoryTreeSchema.parse(
