@@ -1,0 +1,13 @@
+type: object
+required:
+  - period
+  - api
+  - compute
+properties:
+  period:
+    "$ref": "./V2WorkspaceGetUsagePeriod.yaml"
+  api:
+    "$ref": "./V2WorkspaceGetUsageApi.yaml"
+  compute:
+    "$ref": "./V2WorkspaceGetUsageCompute.yaml"
+additionalProperties: false

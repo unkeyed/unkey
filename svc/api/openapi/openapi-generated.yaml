@@ -4213,6 +4213,34 @@ components:
                 data:
                     $ref: "#/components/schemas/V2WorkspaceGetLimitsResponseData"
             additionalProperties: false
+        V2WorkspaceGetUsageRequestBody:
+            type: object
+            properties:
+                period:
+                    type: string
+                    enum:
+                        - current
+                        - previous
+                    x-enum-varnames:
+                        - UsagePeriodCurrent
+                        - UsagePeriodPrevious
+                    default: current
+                    description: |
+                        The calendar month (UTC) to read. `current` is the month to date.
+                        `previous` is the full month before it.
+                    example: current
+            additionalProperties: false
+        V2WorkspaceGetUsageResponseBody:
+            type: object
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    $ref: "#/components/schemas/Meta"
+                data:
+                    $ref: "#/components/schemas/V2WorkspaceGetUsageResponseData"
+            additionalProperties: false
         V3DeploymentsCreateDeploymentRequestBody:
             type: object
             required:
@@ -8081,6 +8109,211 @@ components:
                         The current value against `limit`. Omitted when the limit has no current
                         value, such as a retention period or a per-instance size.
                     example: 1
+            additionalProperties: false
+        V2WorkspaceGetUsageResponseData:
+            type: object
+            required:
+                - period
+                - api
+                - compute
+            properties:
+                period:
+                    "$ref": "#/components/schemas/V2WorkspaceGetUsagePeriod"
+                api:
+                    "$ref": "#/components/schemas/V2WorkspaceGetUsageApi"
+                compute:
+                    "$ref": "#/components/schemas/V2WorkspaceGetUsageCompute"
+            additionalProperties: false
+        V2WorkspaceGetUsagePeriod:
+            type: object
+            description: The time window the usage covers.
+            required:
+                - start
+                - end
+            properties:
+                start:
+                    type: integer
+                    format: int64
+                    description: Unix timestamp in milliseconds of the first day of the month, 00:00 UTC.
+                    example: 1790812800000
+                end:
+                    type: integer
+                    format: int64
+                    description: |
+                        Unix timestamp in milliseconds of the end of the period, exclusive. For
+                        `current` it is the time of the request. For `previous` it is the start
+                        of the current month.
+                    example: 1790946000000
+            additionalProperties: false
+        V2WorkspaceGetUsageApi:
+            type: object
+            description: Billable Unkey API operations in the period.
+            required:
+                - verifications
+                - ratelimits
+            properties:
+                verifications:
+                    type: integer
+                    format: int64
+                    description: Billable key verifications.
+                    example: 40000
+                ratelimits:
+                    type: integer
+                    format: int64
+                    description: Billable rate limit operations.
+                    example: 2000
+            additionalProperties: false
+        V2WorkspaceGetUsageCompute:
+            type: object
+            description: |
+                Compute usage in the period. `cpuSeconds`, `memoryGiBHours`, `diskGiBHours`,
+                and `egressGiB` are the sums of the `environments` rows. `activeKeys` is the
+                sum of the `apps` rows.
+            required:
+                - cpuSeconds
+                - memoryGiBHours
+                - diskGiBHours
+                - egressGiB
+                - activeKeys
+                - environments
+                - apps
+            properties:
+                cpuSeconds:
+                    type: number
+                    format: double
+                    description: CPU time used across the workspace, in seconds.
+                    example: 5400.5
+                memoryGiBHours:
+                    type: number
+                    format: double
+                    description: Memory used over time across the workspace, in GiB-hours.
+                    example: 96.2
+                diskGiBHours:
+                    type: number
+                    format: double
+                    description: Ephemeral disk allocated over time across the workspace, in GiB-hours.
+                    example: 0
+                egressGiB:
+                    type: number
+                    format: double
+                    description: Public network egress across the workspace, in GiB.
+                    example: 1.4
+                activeKeys:
+                    type: integer
+                    format: int64
+                    description: Distinct keys verified through the Unkey gateway in the period.
+                    example: 12
+                environments:
+                    type: array
+                    description: |
+                        One row per environment with compute usage in the period, most
+                        `cpuSeconds` first, then by `projectId` and `environmentId`.
+                        Empty when nothing ran.
+                    items:
+                        "$ref": "#/components/schemas/V2WorkspaceGetUsageEnvironment"
+                apps:
+                    type: array
+                    description: |
+                        One row per app whose gateway verified keys in the period, and one row
+                        with an empty `appId` for keys that have no app id. Most `activeKeys`
+                        first, then by `appId`. Empty when no keys were verified.
+                    items:
+                        "$ref": "#/components/schemas/V2WorkspaceGetUsageApp"
+            additionalProperties: false
+        V2WorkspaceGetUsageEnvironment:
+            type: object
+            description: Compute one environment used in the period.
+            required:
+                - projectId
+                - appId
+                - environmentId
+                - cpuSeconds
+                - memoryGiBHours
+                - diskGiBHours
+                - egressGiB
+            properties:
+                projectId:
+                    type: string
+                    description: The project the environment belongs to.
+                    example: proj_1234abcd
+                projectName:
+                    type: string
+                    description: The project name. Omitted when the project was deleted.
+                    example: Payments
+                appId:
+                    type: string
+                    description: |
+                        The app the environment belongs to. Empty when the usage was recorded
+                        before Unkey stored app ids and the environment was deleted since.
+                    example: app_1234abcd
+                appName:
+                    type: string
+                    description: The app name. Omitted when the app was deleted.
+                    example: API
+                environmentId:
+                    type: string
+                    description: The environment that used the compute.
+                    example: env_1234abcd
+                environmentSlug:
+                    type: string
+                    description: The environment slug. Omitted when the environment was deleted.
+                    example: production
+                cpuSeconds:
+                    type: number
+                    format: double
+                    description: CPU time used, in seconds.
+                    example: 5400.5
+                memoryGiBHours:
+                    type: number
+                    format: double
+                    description: Memory used over time, in GiB-hours.
+                    example: 96.2
+                diskGiBHours:
+                    type: number
+                    format: double
+                    description: Ephemeral disk allocated over time, in GiB-hours.
+                    example: 0
+                egressGiB:
+                    type: number
+                    format: double
+                    description: Public network egress, in GiB.
+                    example: 1.4
+            additionalProperties: false
+        V2WorkspaceGetUsageApp:
+            type: object
+            description: Active gateway keys counted for one app in the period.
+            required:
+                - appId
+                - activeKeys
+            properties:
+                appId:
+                    type: string
+                    description: |
+                        The app whose gateway verified the keys. Empty for keys whose
+                        verifications were all recorded before Unkey stored app ids.
+                    example: app_1234abcd
+                appName:
+                    type: string
+                    description: The app name. Omitted when the app was deleted or `appId` is empty.
+                    example: API
+                projectId:
+                    type: string
+                    description: The project the app belongs to. Omitted when the app was deleted or `appId` is empty.
+                    example: proj_1234abcd
+                projectName:
+                    type: string
+                    description: |
+                        The project name. Omitted when the app or the project was deleted, or
+                        `appId` is empty.
+                    example: Payments
+                activeKeys:
+                    type: integer
+                    format: int64
+                    description: |
+                        Distinct keys this app's gateway verified in the period. A key verified
+                        through several apps counts once, for the app that verified it most, so
+                        the rows sum to `compute.activeKeys`.
+                    example: 12
             additionalProperties: false
         DeploymentSourceOCI:
             type: object
@@ -17887,6 +18120,268 @@ paths:
             tags:
                 - workspace
             x-speakeasy-name-override: getLimits
+            x-unkey-idempotency: idempotent
+    /v2/workspace.getUsage:
+        post:
+            description: |
+                Get the usage of your workspace for one calendar month (UTC): billable API
+                operations, compute usage per environment, and active keys per app.
+
+                Use this to track usage during the month or to look back at the previous
+                month. The response has no prices. Your invoice is the source of truth.
+                Compute usage can be up to 15 minutes late, and it can change for up to 7
+                days.
+
+                Send `{}` for the current month to date, or `{"period": "previous"}` for the
+                full previous month.
+
+                **Required Permissions**
+
+                Your root key must have one of the following permissions:
+                - `workspace.*.read_usage`
+                - `unkey:v1:<workspace_id>:usage#read`
+            operationId: workspace.getUsage
+            requestBody:
+                content:
+                    application/json:
+                        examples:
+                            currentMonth:
+                                summary: Current month to date
+                                value: {}
+                            previousMonth:
+                                summary: Previous month
+                                value:
+                                    period: previous
+                        schema:
+                            $ref: '#/components/schemas/V2WorkspaceGetUsageRequestBody'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            examples:
+                                currentMonth:
+                                    description: Usage so far this month, ending at the time of the request
+                                    summary: Current month to date
+                                    value:
+                                        data:
+                                            api:
+                                                ratelimits: 2000
+                                                verifications: 40000
+                                            compute:
+                                                activeKeys: 12
+                                                apps:
+                                                    - activeKeys: 12
+                                                      appId: app_1234abcd
+                                                      appName: API
+                                                      projectId: proj_1234abcd
+                                                      projectName: Payments
+                                                cpuSeconds: 5400.5
+                                                diskGiBHours: 0
+                                                egressGiB: 1.4
+                                                environments:
+                                                    - appId: app_1234abcd
+                                                      appName: API
+                                                      cpuSeconds: 5400.5
+                                                      diskGiBHours: 0
+                                                      egressGiB: 1.4
+                                                      environmentId: env_1234abcd
+                                                      environmentSlug: production
+                                                      memoryGiBHours: 96.2
+                                                      projectId: proj_1234abcd
+                                                      projectName: Payments
+                                                memoryGiBHours: 96.2
+                                            period:
+                                                end: 1790946000000
+                                                start: 1790812800000
+                                        meta:
+                                            requestId: req_1234abcd
+                                deletedApp:
+                                    description: The app and its environment were deleted after they ran, so their names are omitted
+                                    summary: Usage of a deleted app
+                                    value:
+                                        data:
+                                            api:
+                                                ratelimits: 0
+                                                verifications: 0
+                                            compute:
+                                                activeKeys: 3
+                                                apps:
+                                                    - activeKeys: 3
+                                                      appId: app_5678efgh
+                                                cpuSeconds: 900
+                                                diskGiBHours: 0
+                                                egressGiB: 0.2
+                                                environments:
+                                                    - appId: app_5678efgh
+                                                      cpuSeconds: 900
+                                                      diskGiBHours: 0
+                                                      egressGiB: 0.2
+                                                      environmentId: env_5678efgh
+                                                      memoryGiBHours: 12.5
+                                                      projectId: proj_1234abcd
+                                                      projectName: Payments
+                                                memoryGiBHours: 12.5
+                                            period:
+                                                end: 1790812800000
+                                                start: 1788220800000
+                                        meta:
+                                            requestId: req_1234abcd
+                                emptyMonth:
+                                    description: Nothing ran and no keys were verified, so totals are zero and the lists are empty
+                                    summary: No usage
+                                    value:
+                                        data:
+                                            api:
+                                                ratelimits: 0
+                                                verifications: 0
+                                            compute:
+                                                activeKeys: 0
+                                                apps: []
+                                                cpuSeconds: 0
+                                                diskGiBHours: 0
+                                                egressGiB: 0
+                                                environments: []
+                                                memoryGiBHours: 0
+                                            period:
+                                                end: 1790946000000
+                                                start: 1790812800000
+                                        meta:
+                                            requestId: req_1234abcd
+                                previousMonth:
+                                    description: The full previous month, ending at the start of the current month
+                                    summary: Previous month
+                                    value:
+                                        data:
+                                            api:
+                                                ratelimits: 8000
+                                                verifications: 120000
+                                            compute:
+                                                activeKeys: 30
+                                                apps:
+                                                    - activeKeys: 30
+                                                      appId: app_1234abcd
+                                                      appName: API
+                                                      projectId: proj_1234abcd
+                                                      projectName: Payments
+                                                cpuSeconds: 16200
+                                                diskGiBHours: 0
+                                                egressGiB: 4.2
+                                                environments:
+                                                    - appId: app_1234abcd
+                                                      appName: API
+                                                      cpuSeconds: 16200
+                                                      diskGiBHours: 0
+                                                      egressGiB: 4.2
+                                                      environmentId: env_1234abcd
+                                                      environmentSlug: production
+                                                      memoryGiBHours: 288.6
+                                                      projectId: proj_1234abcd
+                                                      projectName: Payments
+                                                memoryGiBHours: 288.6
+                                            period:
+                                                end: 1790812800000
+                                                start: 1788220800000
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/V2WorkspaceGetUsageResponseBody'
+                    description: |
+                        The workspace usage for the requested month.
+                "400":
+                    content:
+                        application/json:
+                            examples:
+                                invalidPeriod:
+                                    summary: Unknown period
+                                    value:
+                                        error:
+                                            detail: POST request body for '/v2/workspace.getUsage' failed to validate schema
+                                            errors:
+                                                - location: /properties/period/enum
+                                                  message: value must be one of 'current', 'previous'
+                                            status: 400
+                                            title: Bad Request
+                                            type: https://unkey.com/docs/errors/unkey/application/invalid_input
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Bad request
+                "401":
+                    content:
+                        application/json:
+                            examples:
+                                invalidRootKey:
+                                    summary: Invalid root key
+                                    value:
+                                        error:
+                                            detail: The provided root key is invalid. We could not find the requested key.
+                                            status: 401
+                                            title: Unauthorized
+                                            type: https://unkey.com/docs/errors/unkey/authentication/key_not_found
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Unauthorized
+                "403":
+                    content:
+                        application/json:
+                            examples:
+                                missingPermission:
+                                    summary: Missing required permission
+                                    value:
+                                        error:
+                                            detail: 'Missing one of these permissions: unkey:v1:ws_1234abcd:usage#read or workspace.*.read_usage'
+                                            status: 403
+                                            title: Insufficient Permissions
+                                            type: https://unkey.com/docs/errors/unkey/authorization/insufficient_permissions
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: Forbidden - Insufficient permissions (requires `workspace.*.read_usage`)
+                "429":
+                    content:
+                        application/problem+json:
+                            examples:
+                                workspaceRateLimited:
+                                    summary: Workspace rate limit exceeded
+                                    value:
+                                        error:
+                                            detail: This workspace has exceeded its API rate limit of 1000/1m0s. Please try again later.
+                                            status: 429
+                                            title: Too Many Requests
+                                            type: https://unkey.com/docs/errors/user/too_many_requests/workspace_rate_limited
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/TooManyRequestsErrorResponse'
+                    description: Too Many Requests
+                "500":
+                    content:
+                        application/json:
+                            examples:
+                                usageUnavailable:
+                                    summary: Usage could not be read
+                                    value:
+                                        error:
+                                            detail: Failed to read the workspace's compute usage.
+                                            status: 500
+                                            title: Internal Server Error
+                                            type: https://unkey.com/docs/errors/unkey/application/service_unavailable
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error
+            security:
+                - bearer: []
+            summary: Get workspace usage
+            tags:
+                - workspace
+            x-speakeasy-name-override: getUsage
             x-unkey-idempotency: idempotent
     /v3/deployments.createDeployment:
         post:

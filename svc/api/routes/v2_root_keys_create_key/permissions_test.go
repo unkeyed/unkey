@@ -21,6 +21,7 @@ func TestCreateStoresEveryResourceAction(t *testing.T) {
 		"github/apps/*":                    {"read", "write", "delete"},
 		"rootKeys/*":                       {"read", "write"},
 		"limits":                           {"read"},
+		"usage":                            {"read"},
 		"projects/*":                       {"read", "write", "delete"},
 		"projects/*/apps/*":                {"read", "write", "delete"},
 		"projects/*/apps/*/environments/*": {"read", "write", "delete"},
@@ -75,6 +76,7 @@ func TestCreateRejectsInvalidResourceActionsAtomically(t *testing.T) {
 	for _, permission := range []string{
 		base + "rootKeys/*#decrypt",
 		base + "limits#write",
+		base + "usage#write",
 		base + "projects/*/keyspaces/*/logs#decrypt",
 		base + "projects/*/ratelimits/namespaces/*/overrides/*#limit",
 		base + "projects/*/apps/*/environments/*/gateway#write",
