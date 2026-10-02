@@ -34,6 +34,8 @@ const (
 	UserErrorsBadRequestInvalidAnalyticsQueryType URN = "err:user:bad_request:invalid_analytics_query_type"
 	// QueryRangeExceedsRetention indicates the query attempts to access data older than the workspace's retention period.
 	UserErrorsBadRequestQueryRangeExceedsRetention URN = "err:user:bad_request:query_range_exceeds_retention"
+	// PerKeyBreakoutTooLarge indicates more keys had traffic in the requested window than the per-key breakout will return.
+	UserErrorsBadRequestPerKeyBreakoutTooLarge URN = "err:user:bad_request:per_key_breakout_too_large"
 
 	// UnprocessableEntity
 
@@ -192,6 +194,9 @@ const (
 	UnkeyDataErrorsPortalDuplicate URN = "err:unkey:data:portal_already_exists"
 	// NotFound indicates the requested portal was not found.
 	UnkeyDataErrorsPortalNotFound URN = "err:unkey:data:portal_not_found"
+	// Changed indicates the portal was re-pointed while a request was using it,
+	// so the request was refused rather than acting on the old mapping.
+	UnkeyDataErrorsPortalChanged URN = "err:unkey:data:portal_changed"
 
 	// Analytics
 

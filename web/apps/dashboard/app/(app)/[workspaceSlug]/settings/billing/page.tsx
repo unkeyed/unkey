@@ -5,7 +5,15 @@ import { useBillingUIUpgrades } from "@/lib/flags/use-billing-ui-upgrades";
 import { formatNumber } from "@/lib/fmt";
 import { trpc } from "@/lib/trpc/client";
 import { useWorkspace } from "@/providers/workspace-provider";
-import { Button, Empty, Input, SettingCard } from "@unkey/ui";
+import {
+  Button,
+  EmptyState,
+  EmptyStateDescription,
+  EmptyStateHeader,
+  EmptyStateTitle,
+  Input,
+  SettingCard,
+} from "@unkey/ui";
 import Link from "next/link";
 import { BillingContainer } from "./billing-container";
 import { Client } from "./client";
@@ -52,13 +60,15 @@ export default function BillingPage() {
   if (isError) {
     return (
       <BillingContainer>
-        <Empty>
-          <Empty.Title>Failed to load usage data</Empty.Title>
-          <Empty.Description>
-            {error?.message ||
-              "There was an error loading your usage information. Please try again later."}
-          </Empty.Description>
-        </Empty>
+        <EmptyState>
+          <EmptyStateHeader>
+            <EmptyStateTitle>Failed to load usage data</EmptyStateTitle>
+            <EmptyStateDescription>
+              {error?.message ||
+                "There was an error loading your usage information. Please try again later."}
+            </EmptyStateDescription>
+          </EmptyStateHeader>
+        </EmptyState>
       </BillingContainer>
     );
   }

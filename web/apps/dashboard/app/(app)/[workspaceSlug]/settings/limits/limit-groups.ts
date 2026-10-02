@@ -124,7 +124,7 @@ function apiGroup(limits: Limits, apiOperations: Measured<number>): LimitGroup {
   };
 }
 
-function logsGroup(limits: Limits): LimitGroup {
+function logsGroup(limits: Limits, logdrains: Measured<number>): LimitGroup {
   return {
     key: "logs",
     title: "Logs",
@@ -138,6 +138,11 @@ function logsGroup(limits: Limits): LimitGroup {
       ceiling({
         name: "Audit log retention",
         limit: days(limits.logsAuditRetentionDaysMax),
+      }),
+      metered({
+        name: "Log drains",
+        limit: count(limits.logdrainsMax),
+        usage: usageOf(logdrains, (value) => value, limits.logdrainsMax, count),
       }),
     ],
   };
@@ -232,14 +237,16 @@ export function buildLimitGroups({
   apiOperations,
   allocation,
   customDomains,
+  logdrains,
 }: {
   limits: Limits;
   hasComputePlan: boolean;
   apiOperations: Measured<number>;
   allocation: Measured<Allocation>;
   customDomains: Measured<number>;
+  logdrains: Measured<number>;
 }): LimitGroup[] {
-  const groups = [apiGroup(limits, apiOperations), logsGroup(limits)];
+  const groups = [apiGroup(limits, apiOperations), logsGroup(limits, logdrains)];
   if (hasComputePlan) {
     groups.push(computeGroup(limits, allocation, customDomains));
   }

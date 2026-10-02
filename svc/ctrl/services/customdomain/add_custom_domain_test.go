@@ -493,12 +493,11 @@ func (f fixture) seedChain(t *testing.T, workspaceID string, customDomainsMax ui
 		Slug:        uid.DNS1035(16),
 	})
 	app := f.seeder.CreateApp(ctx, seed.CreateAppRequest{
-		ID:            uid.New(uid.AppPrefix),
-		WorkspaceID:   workspaceID,
-		ProjectID:     project.ID,
-		Name:          "Atomic App",
-		Slug:          uid.DNS1035(16),
-		DefaultBranch: "main",
+		ID:          uid.New(uid.AppPrefix),
+		WorkspaceID: workspaceID,
+		ProjectID:   project.ID,
+		Name:        "Atomic App",
+		Slug:        uid.DNS1035(16),
 	})
 	environment := f.seeder.CreateEnvironment(ctx, seed.CreateEnvironmentRequest{
 		ID:          uid.New(uid.EnvironmentPrefix),

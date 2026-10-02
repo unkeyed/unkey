@@ -1,7 +1,7 @@
 "use client";
-import { cn } from "@/lib/utils";
-import { Bookmark, ClockRotateClockwise } from "@unkey/icons";
+import { IconBookmarkOutline18, IconClockRotateClockwiseOutline18 } from "@unkey/icons";
 import { Button } from "@unkey/ui";
+import { cn } from "cn";
 import { useEffect, useState } from "react";
 
 type QueriesTabsProps = {
@@ -22,12 +22,12 @@ export const QueriesTabs = ({ selectedTab, onChange }: QueriesTabsProps) => {
   };
 
   return (
-    <div className="flex mt-2 h-[40px] flex-row justify-center items-center w-full border-b border-gray-6 p-0 m-0 gap-2 shrink-0">
+    <div className="flex mt-2 h-[40px] flex-row justify-center items-center w-full border-b p-0 m-0 gap-2 shrink-0">
       <Button
         variant="ghost"
         className={cn(
-          "h-full bg-base-12 rounded-b-none w-full ml-0 pl-[10px] focus:bg-accent-3 focus:ring-0 cursor-pointer",
-          selected === 0 ? "bg-accent-3" : "",
+          "h-full bg-background rounded-b-none w-full ml-0 pl-[10px] focus:bg-gray-3 focus:ring-0 cursor-pointer",
+          selected === 0 ? "bg-gray-3" : "",
         )}
         type="button"
         aria-label="Log queries"
@@ -37,20 +37,20 @@ export const QueriesTabs = ({ selectedTab, onChange }: QueriesTabsProps) => {
         onFocus={() => handleSelection(0)}
         onBlur={() => handleSelection(0)}
       >
-        <ClockRotateClockwise iconSize="md-medium" className="text-gray-9 py-px" />
+        <IconClockRotateClockwiseOutline18 className="size-4 text-gray-9 py-px" />
         <div className="w-full">Recent</div>
         <div
           className={cn(
             "absolute bottom-0 w-full bg-transparent h-[2px] pb-0 mb-0 ml-[2px]",
-            selected === 0 ? "bg-accent-12" : "",
+            selected === 0 ? "bg-gray-12" : "",
           )}
         />
       </Button>
       <Button
         variant="ghost"
         className={cn(
-          "h-full bg-base-12 rounded-b-none w-full cursor-pointer focus:bg-accent-3 focus:ring-0",
-          selectedTab === 1 ? "bg-accent-3" : "",
+          "h-full bg-background rounded-b-none w-full cursor-pointer focus:bg-gray-3 focus:ring-0",
+          selectedTab === 1 ? "bg-gray-3" : "",
         )}
         type="button"
         aria-label="Log queries"
@@ -61,13 +61,13 @@ export const QueriesTabs = ({ selectedTab, onChange }: QueriesTabsProps) => {
         onBlur={() => handleSelection(1)}
       >
         <div className="w-4 h-4 text-gray-9">
-          <Bookmark iconSize="sm-regular" className="text-gray-9 py-[1.5px]" />
+          <IconBookmarkOutline18 className="text-gray-9 py-[1.5px]" />
         </div>
         <div className="w-full">Saved</div>
         <div
           className={cn(
             "absolute bottom-0 w-full bg-transparent h-[2px] pb-0 mb-0 ",
-            selected === 1 ? "bg-accent-12" : "",
+            selected === 1 ? "bg-gray-12" : "",
           )}
         />
       </Button>

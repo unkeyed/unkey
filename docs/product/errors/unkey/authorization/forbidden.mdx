@@ -1,76 +1,52 @@
 ---
 title: "forbidden"
-description: "The requested operation is not allowed for this entity in Unkey. Check your root key permissions or workspace access level and try again."
+sidebarTitle: "forbidden"
+description: "The request is authenticated but not allowed, for a reason other than a missing permission."
+sources:
+  - pkg/codes/unkey_auth.go
+  - svc/api/internal/middleware/errors.go
+  - internal/services/keys/status.go
+  - pkg/auth/jwt/resolver.go
+  - svc/api/routes/v2_portal_create_session/handler.go
+  - svc/api/internal/portalscope/portalscope.go
 ---
 
 <Danger>`err:unkey:authorization:forbidden`</Danger>
 
-```json Example
+The API knows who you are but won't do this, for a reason other than a missing permission. You get HTTP 403, and `detail` gives the reason.
+
+```json Example response
 {
   "meta": {
     "requestId": "req_2c9a0jf23l4k567"
   },
   "error": {
-    "detail": "This operation is not allowed",
+    "detail": "Portal is disabled.",
     "status": 403,
     "title": "Forbidden",
-    "type": "https://unkey.com/docs/errors/unkey/authorization/forbidden"
+    "type": "/errors/unkey/authorization/forbidden"
   }
 }
 ```
 
-## What Happened?
+## Likely causes
 
-This error occurs when you attempt an operation that is prohibited by Unkey's platform policies, even if your API key has high-level permissions. Unlike the "insufficient_permissions" error which relates to permission roles, this error indicates that the operation itself is not allowed regardless of permissions.
+- Your root key has expired. The message starts with `The provided root key is invalid.` and then gives the expiry.
+- On `portal.createSession`, the portal is disabled: `Portal is disabled.`
+- On `portal.createSession`, the portal can't serve sessions because the app has no active deployment, the app's gateway policies don't verify keys, or the portal's API was deleted. The message starts with `Portal is not available`.
+- You called `portal.createSession` with a dashboard session or a portal token: `Portal sessions can only be created with a root key.`
+- You called a portal-only endpoint without a portal session: `This endpoint is only accessible with a portal session.`
+- Your dashboard organization has no usable workspace: `Your organization does not have an active workspace.`
 
-Common scenarios that trigger this error:
+## How to fix
 
-- Trying to perform operations on protected or system resources
-- Attempting to modify resources that are in a state that doesn't allow modifications
-- Trying to exceed account limits or quotas
-- Performing operations that violate platform policies
+1. For an expired root key, create a new one. Use one without an expiry for server-to-server calls.
+2. For portal messages, turn the portal on, deploy the app, or add a key verification policy to the app's gateway, then retry.
+3. For a portal-only endpoint, send the portal session instead of a root key. For `portal.createSession`, use a root key.
+4. For a dashboard session without a workspace, finish setting up the workspace in the dashboard.
 
-Here's an example of a request that might trigger this error:
+## Related errors
 
-```bash
-# Attempting to delete a protected system resource
-curl -X POST https://api.unkey.com/v2/apis.deleteApi \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer unkey_ADMIN_KEY" \
-  -d '{
-    "apiId": "api_system_protected"
-  }'
-```
-
-## How To Fix
-
-This error indicates a fundamental restriction rather than a permission issue. The operation you're trying to perform may be:
-
-1. **Not supported by the Unkey platform**: Some operations are simply not available
-2. **Blocked due to your account's current state or limitations**: Your account may not have access to certain features
-3. **Prevented by safety mechanisms**: System protections may prevent certain destructive operations
-
-Possible solutions include:
-
-- **Check Unkey's documentation**: Understand which operations have fundamental restrictions
-- **Consider your account state**: Some operations may be blocked due to your account state or plan
-- **Use alternative approaches**: Find supported ways to accomplish similar goals
-- **If you're trying to modify a resource in a specific state**: check if it needs to be in a different state first
-- **If you're hitting account limits**: consider upgrading your plan
-- **Contact Unkey support** if you believe this restriction shouldn't apply to your use case
-
-## Common Mistakes
-
-- **Attempting to modify system resources**: Some Unkey resources are protected and cannot be modified
-- **Order-dependent operations**: Trying to perform operations out of their required sequence
-- **Plan limitations**: Attempting operations not available on your current plan
-- **Resource state issues**: Trying to modify resources that are in a state that doesn't allow changes
-- **Ignoring documentation warnings**: Not reading warnings about restricted operations
-- **Testing security boundaries**: Deliberately trying to access protected resources
-- **Outdated documentation**: Following outdated documentation that suggests now-forbidden operations
-
-## Related Errors
-
-- [err:unkey:authorization:insufficient_permissions](./insufficient_permissions) - When the authenticated entity lacks specific permissions
-- [err:unkey:authorization:key_disabled](./key_disabled) - When the authentication key is disabled
-- [err:unkey:authorization:workspace_disabled](./workspace_disabled) - When the associated workspace is disabled
+- [`err:unkey:authorization:insufficient_permissions`](/errors/unkey/authorization/insufficient_permissions): a specific permission is missing.
+- [`err:unkey:authorization:key_disabled`](/errors/unkey/authorization/key_disabled): the root key is disabled.
+- [`err:unkey:authorization:workspace_disabled`](/errors/unkey/authorization/workspace_disabled): the workspace is disabled.

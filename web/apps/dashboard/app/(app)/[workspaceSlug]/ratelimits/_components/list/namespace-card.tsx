@@ -1,10 +1,11 @@
 "use client";
 
 import { StatsListCard } from "@/components/stats-list-card";
+import { useProjectScope } from "@/hooks/use-project-scope";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { formatMs } from "@/lib/ms";
 import { routes } from "@/lib/navigation/routes";
-import { Clock } from "@unkey/icons";
+import { IconClockOutline18 } from "@unkey/icons";
 import type { NamespaceTimeseries } from "../hooks/use-batch-timeseries";
 
 type Props = {
@@ -19,6 +20,7 @@ type Props = {
 
 export function NamespaceCard({ namespace, timeseries, isLoading, isError }: Props) {
   const workspace = useWorkspaceNavigation();
+  const scope = useProjectScope();
 
   const lastRatelimit = timeseries
     ? timeseries
@@ -30,6 +32,7 @@ export function NamespaceCard({ namespace, timeseries, isLoading, isError }: Pro
     <StatsListCard
       href={routes.ratelimits.detail({
         workspaceSlug: workspace.slug,
+        ...scope,
         namespaceId: namespace.id,
       })}
       ariaLabel={`View ${namespace.name} ratelimit namespace`}
@@ -40,7 +43,7 @@ export function NamespaceCard({ namespace, timeseries, isLoading, isError }: Pro
       labels={{ success: "Passed", error: "Blocked" }}
       footerLeft={
         <span className="flex items-center gap-1.5 min-w-0">
-          <Clock className="shrink-0" />
+          <IconClockOutline18 className="size-3.5 shrink-0" />
           <span className="truncate">
             {lastRatelimit
               ? `${formatMs(Date.now() - lastRatelimit.originalTimestamp, { long: true })} ago`

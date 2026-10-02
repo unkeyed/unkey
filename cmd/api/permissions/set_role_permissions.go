@@ -26,7 +26,7 @@ When any requested permission slug does not exist, it must also have:
 
 For full documentation, see https://www.unkey.com/docs/platform/apis/features/authorization/roles-and-permissions` + util.Disclaimer,
 		Examples: []string{
-			"unkey api permissions set-role-permissions --role-id=role_1234abcd --permissions=documents.read,documents.write",
+			"unkey api permissions set-role-permissions --role=admin --permissions=documents.read,documents.write",
 			"unkey api permissions set-role-permissions --role-id=role_1234abcd --permissions=",
 		},
 		Flags: []cli.Flag{
@@ -35,9 +35,14 @@ For full documentation, see https://www.unkey.com/docs/platform/apis/features/au
 			util.APIURLFlag(),
 			util.ConfigFlag(),
 			util.OutputFlag(),
-			cli.String("role-id", "Role ID or slug whose directly assigned permissions will be replaced.", cli.Required(), cli.MutuallyExclusive("body")),
+			cli.String("role", "Role ID or unique name whose permissions will be replaced.", cli.MutuallyExclusive("body")),
+			cli.String("role-id", "Deprecated role ID or unique name.", cli.MutuallyExclusive("body")),
 			cli.StringSlice("permissions", "Complete set of permission slugs to assign directly to the role.", cli.MutuallyExclusive("body")),
 		},
+		RequireOneOf: [][]string{{
+			"role",
+			"role-id",
+		}},
 		Action: func(ctx context.Context, cmd *cli.Command) error {
 			client, err := util.CreateClient(cmd)
 			if err != nil {
@@ -56,9 +61,20 @@ For full documentation, see https://www.unkey.com/docs/platform/apis/features/au
 				return fmt.Errorf("required flag missing: permissions")
 			}
 
-			req := components.V2PermissionsSetRolePermissionsRequestBody{
-				RoleID:      cmd.String("role-id"),
-				Permissions: cmd.StringSlice("permissions"),
+			permissions := cmd.StringSlice("permissions")
+			var req components.V2PermissionsSetRolePermissionsRequestBodyUnion
+			if role := cmd.String("role"); role != "" {
+				req = components.CreateV2PermissionsSetRolePermissionsRequestBodyUnionV2PermissionsSetRolePermissionsRequestBody1(components.V2PermissionsSetRolePermissionsRequestBody1{
+					Role:        role,
+					RoleID:      nil,
+					Permissions: permissions,
+				})
+			} else {
+				req = components.CreateV2PermissionsSetRolePermissionsRequestBodyUnionV2PermissionsSetRolePermissionsRequestBody2(components.V2PermissionsSetRolePermissionsRequestBody2{
+					Role:        nil,
+					RoleID:      cmd.String("role-id"),
+					Permissions: permissions,
+				})
 			}
 			res, err := client.Permissions.SetRolePermissions(ctx, req)
 			if err != nil {

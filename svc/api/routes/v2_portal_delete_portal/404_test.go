@@ -1,7 +1,6 @@
 package handler_test
 
 import (
-	"database/sql"
 	"net/http"
 	"testing"
 
@@ -9,7 +8,6 @@ import (
 
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
-	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_portal_delete_portal"
 )
 
@@ -29,16 +27,7 @@ func TestDeletePortalMasksEveryMiss(t *testing.T) {
 
 	other := h.CreateWorkspace()
 	otherKeyspace := keyspaceMapping(t, h, other.ID)
-	otherPortal := h.CreatePortal(seed.CreatePortalRequest{
-		ID:           "",
-		WorkspaceID:  other.ID,
-		Slug:         "theirs",
-		AppID:        sql.NullString{String: "", Valid: false},
-		KeyAuthID:    sql.NullString{String: otherKeyspace.ID, Valid: true},
-		Enabled:      true,
-		LogoUrl:      sql.NullString{String: "", Valid: false},
-		PrimaryColor: sql.NullString{String: "", Valid: false},
-	})
+	otherPortal := h.SeedPortal(t, other.ID, "theirs", "theirs", otherKeyspace, nil, nil)
 
 	testCases := map[string]string{
 		"unknown id":                  uid.New(uid.PortalPrefix),

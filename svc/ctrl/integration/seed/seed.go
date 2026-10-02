@@ -81,7 +81,7 @@ func (s *Seeder) CreateWorkspace(ctx context.Context) db.Workspace {
 		Name:         uid.New("test_name"),
 		Slug:         uid.New("slug"),
 		CreatedAt:    time.Now().UnixMilli(),
-		K8sNamespace: sql.NullString{Valid: true, String: uid.DNS1035()},
+		K8sNamespace: uid.DNS1035(),
 	}
 
 	err := s.DB.InsertWorkspace(ctx, params)
@@ -318,12 +318,11 @@ func (s *Seeder) CreateEnvironment(ctx context.Context, req CreateEnvironmentReq
 }
 
 type CreateAppRequest struct {
-	ID            string
-	WorkspaceID   string
-	ProjectID     string
-	Name          string
-	Slug          string
-	DefaultBranch string
+	ID          string
+	WorkspaceID string
+	ProjectID   string
+	Name        string
+	Slug        string
 }
 
 func (s *Seeder) CreateApp(ctx context.Context, req CreateAppRequest) db.App {
@@ -336,7 +335,6 @@ func (s *Seeder) CreateApp(ctx context.Context, req CreateAppRequest) db.App {
 		Name:             req.Name,
 		Slug:             req.Slug,
 		SourceType:       db.AppsSourceTypeUnknown,
-		DefaultBranch:    req.DefaultBranch,
 		DeleteProtection: sql.NullBool{Valid: true, Bool: false},
 		CreatedAt:        now,
 		UpdatedAt:        sql.NullInt64{Valid: false},
@@ -401,6 +399,15 @@ type CreateDeploymentRequest struct {
 	Status        dbtype.DeploymentsStatus
 	CreatedAt     int64
 	UpdatedAt     sql.NullInt64
+
+	// Optional git metadata for tests that need the row to record a source.
+	GitCommitSha     sql.NullString
+	GitBranch        sql.NullString
+	GitCommitMessage sql.NullString
+
+	// Optional fork provenance, for tests that rebuild a fork PR's deployment.
+	PrNumber               sql.NullInt64
+	ForkRepositoryFullName sql.NullString
 }
 
 func (s *Seeder) CreateDeployment(ctx context.Context, req CreateDeploymentRequest) db.Deployment {
@@ -423,10 +430,10 @@ func (s *Seeder) CreateDeployment(ctx context.Context, req CreateDeploymentReque
 		EnvironmentID:                 req.EnvironmentID,
 		Source:                        db.DeploymentsSourceUnknown,
 		ImageRequested:                sql.NullString{Valid: false},
-		GitCommitSha:                  sql.NullString{String: "", Valid: false},
-		GitBranch:                     sql.NullString{String: "", Valid: false},
+		GitCommitSha:                  req.GitCommitSha,
+		GitBranch:                     req.GitBranch,
 		SentinelConfig:                []byte("{}"),
-		GitCommitMessage:              sql.NullString{String: "", Valid: false},
+		GitCommitMessage:              req.GitCommitMessage,
 		GitCommitAuthorHandle:         sql.NullString{String: "", Valid: false},
 		GitCommitAuthorAvatarUrl:      sql.NullString{String: "", Valid: false},
 		GitCommitTimestamp:            sql.NullInt64{Int64: 0, Valid: false},
@@ -442,8 +449,8 @@ func (s *Seeder) CreateDeployment(ctx context.Context, req CreateDeploymentReque
 		ShutdownSignal:                db.DeploymentsShutdownSignalSIGINT,
 		UpstreamProtocol:              db.DeploymentsUpstreamProtocolHttp1,
 		Healthcheck:                   dbtype.NullHealthcheck{Healthcheck: nil, Valid: false},
-		PrNumber:                      sql.NullInt64{Int64: 0, Valid: false},
-		ForkRepositoryFullName:        sql.NullString{String: "", Valid: false},
+		PrNumber:                      req.PrNumber,
+		ForkRepositoryFullName:        req.ForkRepositoryFullName,
 		DeploymentTrigger:             db.DeploymentsTriggerUnknown,
 		TriggeredBy:                   sql.NullString{Valid: false},
 		TriggerReason:                 sql.NullString{Valid: false},
@@ -498,8 +505,7 @@ func (s *Seeder) CreateRootKey(ctx context.Context, workspaceID string, permissi
 				CreatedAtM:   time.Now().UnixMilli(),
 			})
 
-			mysqlErr := &mysql.MySQLError{} // nolint:exhaustruct
-			if errors.As(err, &mysqlErr) {
+			if mysqlErr, ok := errors.AsType[*mysql.MySQLError](err); ok {
 				require.True(s.t, db.IsDuplicateKeyError(err), "Expected duplicate key error, got MySQL error number %d", mysqlErr.Number)
 				existing, findErr := s.DB.FindPermissionByNameAndWorkspaceID(ctx, db.FindPermissionByNameAndWorkspaceIDParams{
 					WorkspaceID: s.Resources.RootWorkspace.ID,
@@ -642,7 +648,7 @@ func (s *Seeder) CreateKey(ctx context.Context, req CreateKeyRequest) CreateKeyR
 	}
 
 	for _, ratelimit := range req.Ratelimits {
-		ratelimit.KeyID = ptr.P(keyID)
+		ratelimit.KeyID = new(keyID)
 		s.CreateRatelimit(ctx, ratelimit)
 	}
 
@@ -726,7 +732,7 @@ func (s *Seeder) CreateIdentity(ctx context.Context, req CreateIdentityRequest) 
 	require.NoError(s.t, err)
 
 	for _, ratelimit := range req.Ratelimits {
-		ratelimit.IdentityID = ptr.P(identityID)
+		ratelimit.IdentityID = new(identityID)
 		s.CreateRatelimit(ctx, ratelimit)
 	}
 

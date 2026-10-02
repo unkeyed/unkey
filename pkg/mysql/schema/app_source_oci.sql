@@ -8,3 +8,4 @@ CREATE TABLE `app_source_oci` (
 	CONSTRAINT `app_source_oci_pk` PRIMARY KEY(`pk`),
 	CONSTRAINT `app_source_oci_app_id_idx` UNIQUE(`app_id`)
 );
+

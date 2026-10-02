@@ -1,5 +1,5 @@
 "use client";
-import { TaskChecked, TaskUnchecked } from "@unkey/icons";
+import { IconClipboardCheckOutline18, IconClipboardOutline18 } from "@unkey/icons";
 import * as React from "react";
 import { cn } from "../lib/utils";
 import { InfoTooltip } from "./info-tooltip";
@@ -47,7 +47,7 @@ export const Id: React.FC<IdProps> = ({ className, value, truncate, ...props }) 
     <button
       type="button"
       className={cn(
-        "relative inline-flex ring-2 ring-transparent no-underline focus:ring-gray-6 group items-center transition duration-150 justify-center gap-3 whitespace-nowrap tracking-normal rounded-lg font-medium bg-gray-1 w-fit max-w-96 border border-accent-6 hover:border-accent-8 text-gray-12 font-mono h-8 px-3 py-1 text-xs overflow-hidden",
+        "relative inline-flex ring-2 ring-transparent no-underline focus:ring-gray-6 group items-center transition duration-150 justify-center gap-3 whitespace-nowrap tracking-normal rounded-lg font-medium bg-gray-1 w-fit max-w-96 border border-input hover:border-strong text-gray-12 font-mono h-8 px-3 py-1 text-xs overflow-hidden",
         className,
       )}
       onClick={() => copyTextToClipboard(value)}
@@ -56,11 +56,11 @@ export const Id: React.FC<IdProps> = ({ className, value, truncate, ...props }) 
     >
       {truncateValue}
       <InfoTooltip position={{ side: "bottom" }} content={value}>
-        <div className=" flex justify-end border w-full border-none h-full bg-accent-1">
+        <div className=" flex justify-end border w-full border-none h-full bg-gray-1">
           {isCopied ? (
-            <TaskChecked className="item-end my-auto mr-2 bg-gray-1" />
+            <IconClipboardCheckOutline18 className="my-auto mr-2 bg-gray-1" />
           ) : (
-            <TaskUnchecked className="item-end my-auto mr-2 bg-gray-1" />
+            <IconClipboardOutline18 className="my-auto mr-2 bg-gray-1" />
           )}
         </div>
       </InfoTooltip>

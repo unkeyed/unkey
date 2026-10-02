@@ -4,28 +4,35 @@
 
 import * as z from "zod/v3";
 
+/**
+ * Filter domains within a workspace. All filters are optional and combine with AND. Each resource
+ *
+ * @remarks
+ * filter matches its ID or slug directly, even when its parent filters are omitted. A missing
+ * resource or a resource that does not match the other filters produces an empty list.
+ */
 export type V2DomainsListDomainsRequestBody = {
   /**
-   * Identifies a resource by either its unique ID or its slug.
+   * Match domains whose project ID or slug equals this value. This filter does not require
    *
    * @remarks
-   * Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+   * an app or environment filter.
    */
-  project: string;
+  project?: string | undefined;
   /**
-   * Identifies a resource by either its unique ID or its slug.
+   * Match domains whose app ID or slug equals this value. This filter does not require a
    *
    * @remarks
-   * Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+   * project or environment filter.
    */
-  app: string;
+  app?: string | undefined;
   /**
-   * Identifies a resource by either its unique ID or its slug.
+   * Match domains whose environment ID or slug equals this value. This filter does not require
    *
    * @remarks
-   * Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+   * a project or app filter.
    */
-  environment: string;
+  environment?: string | undefined;
   /**
    * The maximum number of domains one response contains.
    *
@@ -48,9 +55,9 @@ export type V2DomainsListDomainsRequestBody = {
 
 /** @internal */
 export type V2DomainsListDomainsRequestBody$Outbound = {
-  project: string;
-  app: string;
-  environment: string;
+  project?: string | undefined;
+  app?: string | undefined;
+  environment?: string | undefined;
   limit: number;
   cursor?: string | undefined;
   search?: string | undefined;
@@ -62,9 +69,9 @@ export const V2DomainsListDomainsRequestBody$outboundSchema: z.ZodType<
   z.ZodTypeDef,
   V2DomainsListDomainsRequestBody
 > = z.object({
-  project: z.string(),
-  app: z.string(),
-  environment: z.string(),
+  project: z.string().optional(),
+  app: z.string().optional(),
+  environment: z.string().optional(),
   limit: z.number().int().default(100),
   cursor: z.string().optional(),
   search: z.string().optional(),

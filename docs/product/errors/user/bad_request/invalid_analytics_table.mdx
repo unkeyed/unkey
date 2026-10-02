@@ -1,74 +1,48 @@
 ---
 title: "invalid_analytics_table"
-description: "Your analytics query references a table that does not exist or is not accessible in Unkey. Check available tables in the schema reference."
+sidebarTitle: "invalid_analytics_table"
+description: "The analytics query reads a table the endpoint does not expose."
+sources:
+  - pkg/codes/user_request.go
+  - svc/api/internal/middleware/errors.go
+  - pkg/clickhouse/query-parser/tables.go
+  - pkg/clickhouse/query-parser/cte.go
+  - internal/services/analytics/executor.go
 ---
 
 <Danger>`err:user:bad_request:invalid_analytics_table`</Danger>
 
-```json Example
+Your analytics query reads from a table this endpoint doesn't expose. You get HTTP 400, and `detail` names the table.
+
+```json Example response
 {
   "meta": {
-    "requestId": "req_4dgzrNP3Je5mU1tD"
+    "requestId": "req_2c9a0jf23l4k567"
   },
   "error": {
     "detail": "Access to table 'system.tables' is not allowed",
     "status": 400,
     "title": "Bad Request",
-    "type": "https://unkey.com/docs/errors/user/bad_request/invalid_analytics_table"
+    "type": "/errors/user/bad_request/invalid_analytics_table",
+    "errors": []
   }
 }
 ```
 
-## What Happened?
+## Likely causes
 
-Your query tried to access a table that either doesn't exist or isn't allowed for security reasons.
+- The table belongs to another endpoint. Each endpoint reads only its own tables: verification tables on `analytics.getVerifications`, rate limit tables on `analytics.getRatelimits`, and so on.
+- You copied a query that uses an internal table name, such as `default.key_verifications_raw_v1`.
+- You queried a ClickHouse system table.
+- A CTE has the same name as one of the endpoint's tables.
 
-## How to Fix It
+## How to fix
 
-### 1. Use the Correct Table Name
+1. Use the table names documented for the endpoint you're calling. For another product area's data, call that endpoint.
+2. Replace internal table names with the documented name.
+3. Rename any CTE that shares a name with a documented table.
 
-<CodeGroup>
+## Related errors
 
-```sql Wrong - System table
-SELECT * FROM system.tables
-```
-
-```sql Correct - Analytics table
-SELECT * FROM key_verifications_v1
-WHERE time >= now() - INTERVAL 7 DAY
-```
-
-</CodeGroup>
-
-### 2. Fix Typos in Table Names
-
-<CodeGroup>
-
-```sql Wrong - Typo
-SELECT * FROM key_verification
-WHERE time >= now() - INTERVAL 1 DAY
-```
-
-```sql Correct
-SELECT * FROM key_verifications_v1
-WHERE time >= now() - INTERVAL 1 DAY
-```
-
-</CodeGroup>
-
-## Available Tables
-
-| Endpoint | Table Name | Description |
-| --- | --- | --- |
-| `analytics.getVerifications` | `key_verifications_v1` | Raw verification events |
-| `analytics.getVerifications` | `key_verifications_per_minute_v1` | Minute-level aggregates |
-| `analytics.getVerifications` | `key_verifications_per_hour_v1` | Hour-level aggregates |
-| `analytics.getVerifications` | `key_verifications_per_day_v1` | Day-level aggregates |
-| `analytics.getVerifications` | `key_verifications_per_month_v1` | Month-level aggregates |
-| `analytics.getRatelimits` | `ratelimits_v1` | Raw rate limit events |
-| `analytics.getRatelimits` | `ratelimits_per_minute_v1` | Minute-level aggregates |
-| `analytics.getRatelimits` | `ratelimits_per_hour_v1` | Hour-level aggregates |
-| `analytics.getRatelimits` | `ratelimits_per_day_v1` | Day-level aggregates |
-| `analytics.getRatelimits` | `ratelimits_per_month_v1` | Month-level aggregates |
-| `analytics.getRuntimeLogs` | `runtime_logs_v1` | Runtime logs of your deployments |
-| `analytics.getGatewayRequests` | `gateway_requests_v1` | Raw gateway requests |
+- [`err:user:bad_request:invalid_analytics_query`](/errors/user/bad_request/invalid_analytics_query): the query failed for another structural reason.
+- [`err:user:bad_request:invalid_analytics_function`](/errors/user/bad_request/invalid_analytics_function): the query calls a function outside the allowlist.

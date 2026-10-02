@@ -1,71 +1,49 @@
 ---
 title: "role_not_found"
-description: "The requested role was not found in Unkey. Verify the role ID is correct and the role has not been deleted from your workspace RBAC config."
+sidebarTitle: "role_not_found"
+description: "A role named in the request does not exist in the workspace."
+sources:
+  - pkg/codes/unkey_data.go
+  - svc/api/internal/middleware/errors.go
+  - svc/api/routes/v2_permissions_get_role/handler.go
+  - svc/api/routes/v2_keys_create_key/handler.go
+  - svc/api/routes/v2_keys_set_roles/handler.go
+  - svc/api/routes/v2_permissions_set_role_permissions/handler.go
+  - web/internal/db/src/schema/rbac.ts
 ---
 
-<Danger>err:unkey:data:role_not_found</Danger>
+<Danger>`err:unkey:data:role_not_found`</Danger>
 
-```json Example
+A role you referenced doesn't exist in your workspace. You get HTTP 404, and `detail` names the role.
+
+```json Example response
 {
   "meta": {
     "requestId": "req_2c9a0jf23l4k567"
   },
   "error": {
-    "detail": "The requested role could not be found",
+    "detail": "Role 'admin' was not found.",
     "status": 404,
     "title": "Not Found",
-    "type": "https://unkey.com/docs/errors/unkey/data/role_not_found"
+    "type": "/errors/unkey/data/role_not_found"
   }
 }
 ```
 
-## What Happened?
+## Likely causes
 
-This error occurs when you're trying to perform an operation on a role that doesn't exist in the Unkey system. Roles in Unkey are collections of permissions that can be assigned to users or API keys.
+- You attached a role to a key before creating it. The request stops at the first missing role.
+- The name has a typo. Names aren't case-sensitive, so `Admin` finds `admin`.
+- Your root key doesn't have permission. `permissions.getRole` and `permissions.deleteRole` return this 404 instead of a 403.
 
-Common scenarios that trigger this error:
+## How to fix
 
-- Using an incorrect role ID or name
-- Referencing a role that has been deleted
-- Trying to assign a role that doesn't exist in the current workspace
-- Typos in role names when using name-based lookups
+1. Create the role with `permissions.createRole` before you reference it.
+2. Check the name. `permissions.listRoles` shows what exists.
+3. On `permissions.getRole` or `permissions.deleteRole`, check the root key's permissions before you decide the role is missing.
 
-## How To Fix
+## Related errors
 
-Verify that you're using the correct role ID or name and that the role still exists in your workspace:
-
-1. List all roles in your workspace to find the correct ID
-2. Check if the role has been deleted and recreate it if necessary
-3. Verify you're working in the correct workspace
-
-Here's how to list all roles in your workspace:
-
-```bash
-curl -X POST https://api.unkey.com/v2/permissions.listRoles \
-  -H "Authorization: Bearer unkey_YOUR_API_KEY"
-```
-
-If you need to create a new role, use the appropriate API endpoint:
-
-```bash
-curl -X POST https://api.unkey.com/v2/permissions.createRole \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer unkey_YOUR_API_KEY" \
-  -d '{
-    "name": "API Reader",
-    "description": "Can read API information"
-  }'
-```
-
-## Common Mistakes
-
-- **Incorrect identifiers**: Using wrong role IDs or names
-- **Deleted roles**: Referencing roles that have been removed
-- **Case sensitivity**: Role names might be case-sensitive
-- **Workspace boundaries**: Trying to use roles from another workspace
-
-## Related Errors
-
-- [err:unkey:data:permission_not_found](./permission_not_found) - When the requested permission doesn't exist
-- [err:unkey:data:api_not_found](./api_not_found) - When the requested API doesn't exist
-- [err:unkey:authorization:insufficient_permissions](../authorization/insufficient_permissions) - When you don't have permission to perform operations on roles
+- [`err:unkey:data:role_already_exists`](/errors/unkey/data/role_already_exists): a name collides on create.
+- [`err:unkey:data:permission_not_found`](/errors/unkey/data/permission_not_found): a permission doesn't exist.
+- [`err:unkey:data:key_not_found`](/errors/unkey/data/key_not_found): the key doesn't exist.

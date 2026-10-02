@@ -1,0 +1,93 @@
+---
+title: Compute
+sidebarTitle: "Overview"
+description: "Build, deploy, and run your app on Unkey, with or without API Management."
+sources:
+  - docs/product/docs.json
+  - svc/ctrl/services/app/create_app.go
+  - svc/ctrl/worker/deploy/doc.go
+  - cmd/deploy/control_plane.go
+boost: 3
+---
+
+import { ProductLink } from "/snippets/product-link.jsx";
+
+Compute takes a GitHub repository or a container image and turns it into a running <Tooltip tip="A Compute app: a deployable service inside a project. Not 'your application' in general.">app</Tooltip>. You get a production and a preview <Tooltip tip="A production or preview environment of a Compute app, not the dashboard label on a key.">environment</Tooltip>, automatic domains, promote and rollback, and a gateway in front of every <Tooltip tip="One built and running version of an app in one environment.">deployment</Tooltip>.
+
+## Get started
+
+<Columns cols={2}>
+  <Card title="Deploy from GitHub" icon="github" href="/compute/get-started/deploy-from-github">
+    Connect a repository and let every push deploy.
+  </Card>
+  <Card title="Deploy a container image" icon="box" href="/compute/get-started/deploy-an-image">
+    Ship an image you built yourself, from the dashboard or the CLI.
+  </Card>
+  <Card title="Compute plans" icon="credit-card" href="/compute/get-started/plans">
+    What you need before you can deploy, and what each plan allows.
+  </Card>
+</Columns>
+
+## Concepts
+
+<Columns cols={2}>
+  <Card title="Projects, apps, and environments" icon="sitemap" href="/compute/concepts/projects-apps-environments">
+    How projects, apps, and environments nest.
+  </Card>
+  <Card title="Deployments" icon="rocket" href="/compute/concepts/deployments">
+    The thirteen lifecycle statuses, the build queue, and why a deployment fails.
+  </Card>
+  <Card title="Production and preview" icon="code-branch" href="/compute/concepts/production-and-preview">
+    Promote, roll back, stop, wake, and what happens on a timer.
+  </Card>
+  <Card title="Instances and autoscaling" icon="server" href="/compute/concepts/instances-and-autoscaling">
+    Replicas, resource limits, health probes, and the autoscaler.
+  </Card>
+  <Card title="Regions" icon="earth-americas" href="/compute/concepts/regions">
+    How regions are chosen, capped, and used for readiness and failover.
+  </Card>
+</Columns>
+
+## Build
+
+<Columns cols={2}>
+  <Card title="Builds" icon="hammer" href="/compute/build/overview">
+    Automatic builds or your Dockerfile, the build queue, caching, failures.
+  </Card>
+  <Card title="Dockerfile builds" icon="file-code" href="/compute/build/dockerfile">
+    Build context, the runtime contract, and the errors Unkey explains.
+  </Card>
+  <Card title="Build-time secrets" icon="key" href="/compute/build/build-secrets">
+    Use environment variables during the build without baking them in.
+  </Card>
+  <Card title="GitHub integration" icon="github" href="/compute/build/github">
+    Install, connect, branch mapping, fork approval, and what Unkey writes back.
+  </Card>
+</Columns>
+
+## Configure
+
+<Columns cols={2}>
+  <Card title="Build settings" icon="sliders" href="/compute/configure/build-settings">
+    Dockerfile, root directory, build command, watch paths, auto deploy.
+  </Card>
+  <Card title="Runtime settings" icon="microchip" href="/compute/configure/runtime-settings">
+    Port, CPU, memory, disk, command, protocol, regions, replicas.
+  </Card>
+  <Card title="Health checks" icon="heart-pulse" href="/compute/configure/health-checks">
+    The probe that gates traffic and restarts unhealthy instances.
+  </Card>
+  <Card title="Environment variables" icon="key" href="/compute/configure/environment-variables">
+    Kinds, limits, import, and the variables Unkey injects.
+  </Card>
+  <Card title="Compute limits" icon="gauge-high" href="/compute/configure/limits">
+    Per-instance and workspace ceilings, per plan.
+  </Card>
+  <Card title="Spend budget" icon="wallet" href="/compute/configure/spend-budget">
+    Alerts and an optional stop on monthly usage spend.
+  </Card>
+</Columns>
+
+<ProductLink product="api-management" href="/api-management/sdks/overview" title="Every SDK covers Compute too">
+  The official SDKs wrap the whole Unkey API, so projects, apps, environments, deployments, domains, gateway policies, and the GitHub install flow are reachable from the same client you use for keys.
+</ProductLink>

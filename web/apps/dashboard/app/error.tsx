@@ -1,7 +1,14 @@
 "use client";
 
 import * as Sentry from "@sentry/nextjs";
-import { Button, Empty } from "@unkey/ui";
+import {
+  Button,
+  EmptyState,
+  EmptyStateActions,
+  EmptyStateDescription,
+  EmptyStateHeader,
+  EmptyStateTitle,
+} from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
@@ -23,28 +30,30 @@ export default function ErrorPage({
 
   return (
     <div className="flex items-center justify-center w-full min-h-[60vh] px-4">
-      <Empty>
-        <Empty.Title>Something went wrong</Empty.Title>
-        <Empty.Description>
-          An unexpected error occurred while loading this page. Our team has been notified. Try
-          again, and if the problem persists, contact support
-          {error.digest ? (
-            <>
-              {" "}
-              with reference <span className="font-mono text-gray-12">{error.digest}</span>
-            </>
-          ) : null}
-          .
-        </Empty.Description>
-        <Empty.Actions>
+      <EmptyState>
+        <EmptyStateHeader>
+          <EmptyStateTitle>Something went wrong</EmptyStateTitle>
+          <EmptyStateDescription>
+            An unexpected error occurred while loading this page. Our team has been notified. Try
+            again, and if the problem persists, contact support
+            {error.digest ? (
+              <>
+                {" "}
+                with reference <span className="font-mono text-gray-12">{error.digest}</span>
+              </>
+            ) : null}
+            .
+          </EmptyStateDescription>
+        </EmptyStateHeader>
+        <EmptyStateActions>
           <Button variant="primary" onClick={() => reset()}>
             Try again
           </Button>
           <Button variant="outline" onClick={() => router.push("/")}>
             Go to dashboard
           </Button>
-        </Empty.Actions>
-      </Empty>
+        </EmptyStateActions>
+      </EmptyState>
     </div>
   );
 }

@@ -3,21 +3,16 @@ package githubwebhook
 import (
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	githubclient "github.com/unkeyed/unkey/pkg/github"
-	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
-	"github.com/unkeyed/unkey/svc/ctrl/dedup"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
 // Service implements the GitHubWebhookService virtual object for processing
-// GitHub push events durably via Restate. Keyed by "{installation_id}/{repo_id}"
+// GitHub push events durably via Restate. Keyed by "{installation_id}:{repo_id}"
 // to serialize webhook processing per repository.
 type Service struct {
 	hydrav1.UnimplementedGitHubWebhookServiceServer
 	db                              db.Database
 	github                          githubclient.GitHubClient
-	restateAdmin                    *restateadmin.Client
-	dedup                           *dedup.Service
-	dashboardURL                    string
 	allowUnauthenticatedDeployments bool
 }
 
@@ -27,10 +22,9 @@ var _ hydrav1.GitHubWebhookServiceServer = (*Service)(nil)
 type Config struct {
 	DB     db.Database
 	GitHub githubclient.GitHubClient
-	// RestateAdmin is used to cancel in-flight Deploy invocations when a
-	// new push supersedes an older one on the same branch.
-	RestateAdmin                    *restateadmin.Client
-	DashboardURL                    string
+	// AllowUnauthenticatedDeployments decides whether this service talks to
+	// GitHub at all. Local development deploys public repositories with no App
+	// installed, so the changed-files fetch is skipped there.
 	AllowUnauthenticatedDeployments bool
 }
 
@@ -40,9 +34,6 @@ func New(cfg Config) *Service {
 		UnimplementedGitHubWebhookServiceServer: hydrav1.UnimplementedGitHubWebhookServiceServer{},
 		db:                                      cfg.DB,
 		github:                                  cfg.GitHub,
-		restateAdmin:                            cfg.RestateAdmin,
-		dedup:                                   dedup.New(cfg.DB, cfg.RestateAdmin),
-		dashboardURL:                            cfg.DashboardURL,
 		allowUnauthenticatedDeployments:         cfg.AllowUnauthenticatedDeployments,
 	}
 }

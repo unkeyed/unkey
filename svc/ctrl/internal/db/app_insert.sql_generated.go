@@ -18,12 +18,10 @@ INSERT INTO apps (
     name,
     slug,
     source_type,
-    default_branch,
     delete_protection,
     created_at,
     updated_at
 ) VALUES (
-    ?,
     ?,
     ?,
     ?,
@@ -43,7 +41,6 @@ type InsertAppParams struct {
 	Name             string         `db:"name"`
 	Slug             string         `db:"slug"`
 	SourceType       AppsSourceType `db:"source_type"`
-	DefaultBranch    string         `db:"default_branch"`
 	DeleteProtection sql.NullBool   `db:"delete_protection"`
 	CreatedAt        int64          `db:"created_at"`
 	UpdatedAt        sql.NullInt64  `db:"updated_at"`
@@ -58,12 +55,10 @@ type InsertAppParams struct {
 //	    name,
 //	    slug,
 //	    source_type,
-//	    default_branch,
 //	    delete_protection,
 //	    created_at,
 //	    updated_at
 //	) VALUES (
-//	    ?,
 //	    ?,
 //	    ?,
 //	    ?,
@@ -82,7 +77,6 @@ func (q *Queries) InsertApp(ctx context.Context, arg InsertAppParams) error {
 		arg.Name,
 		arg.Slug,
 		arg.SourceType,
-		arg.DefaultBranch,
 		arg.DeleteProtection,
 		arg.CreatedAt,
 		arg.UpdatedAt,

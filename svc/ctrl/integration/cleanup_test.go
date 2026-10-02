@@ -75,12 +75,11 @@ func TestProjectDeletion_CleansUpAllData(t *testing.T) {
 	})
 
 	app := h.Seed.CreateApp(ctx, seed.CreateAppRequest{
-		ID:            uid.New("app"),
-		WorkspaceID:   workspaceID,
-		ProjectID:     project.ID,
-		Name:          "cleanup-test-app",
-		Slug:          "default",
-		DefaultBranch: "main",
+		ID:          uid.New("app"),
+		WorkspaceID: workspaceID,
+		ProjectID:   project.ID,
+		Name:        "cleanup-test-app",
+		Slug:        "default",
 	})
 
 	env := h.Seed.CreateEnvironment(ctx, seed.CreateEnvironmentRequest{

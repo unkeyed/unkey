@@ -13,7 +13,9 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/validation"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/internal/portal"
@@ -88,30 +90,37 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	// Only a wildcard grant can authorize a create because the portal ID is
-	// minted below. Portals are not in the canonical URN catalog, so scoped
-	// access uses the legacy tuple. The exact admin permission lets the dashboard
-	// use this route. The JWT admin role produces it.
-	err = principal.Authorize(rbac.Or(
-		rbac.T(rbac.Tuple{
-			ResourceType: rbac.Portal,
-			ResourceID:   "*",
-			Action:       rbac.CreatePortal,
-		}),
-		rbac.S(fmt.Sprintf("unkey:v1:%s:**#*", principal.AuthorizedWorkspaceID)),
-	))
-	if err != nil {
-		// Returned as-is rather than masked as a 404: there is no portal yet whose
-		// existence a denial could disclose.
-		return err
-	}
-
 	portalID := uid.New(uid.PortalPrefix)
 	now := h.Clock.Now().UnixMilli()
 	ctx = auditlog.WithCorrelation(ctx, auditlog.NewCorrelationID())
 
 	err = db.Tx(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
-		if err := portal.VerifyMappingOwned(ctx, tx, principal.AuthorizedWorkspaceID, mapping); err != nil {
+		projectID, err := portal.ResolveMappingProject(ctx, tx, principal.AuthorizedWorkspaceID, mapping)
+		if err != nil {
+			return err
+		}
+
+		// After the project behind the mapping is known and before
+		// checkSlugAndResourceFree, which is unscoped by workspace and reports
+		// that an app or keyspace is already claimed: a caller short of a portal
+		// grant must not reach it.
+		//
+		// Only a wildcard portal grant can carry a create, since the portal ID is
+		// minted above and no grant can name it yet.
+		err = principal.Authorize(rbac.Or(
+			rbac.T(rbac.Tuple{
+				ResourceType: rbac.Portal,
+				ResourceID:   "*",
+				Action:       rbac.CreatePortal,
+			}),
+			rbac.U(
+				urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(projectID).Portal("*"),
+				permissions.Write,
+			),
+		))
+		if err != nil {
+			// Returned as-is rather than masked as a 404: there is no portal yet
+			// whose existence a denial could disclose.
 			return err
 		}
 
@@ -123,9 +132,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			return err
 		}
 
-		err := db.Query.InsertPortal(ctx, tx, db.InsertPortalParams{
+		err = db.Query.InsertPortal(ctx, tx, db.InsertPortalParams{
 			ID:           portalID,
 			WorkspaceID:  principal.AuthorizedWorkspaceID,
+			ProjectID:    projectID,
 			Slug:         req.Slug,
 			DisplayName:  req.DisplayName,
 			AppID:        appID,

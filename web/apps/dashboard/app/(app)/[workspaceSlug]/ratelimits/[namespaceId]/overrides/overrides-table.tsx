@@ -2,10 +2,15 @@
 import { createOverridesColumns, renderOverridesSkeletonRow } from "@/components/overrides-table";
 import { type RatelimitOverride, collection } from "@/lib/collections";
 import { eq, useLiveQuery } from "@tanstack/react-db";
+import { IconArrowDottedRotateAnticlockwiseOutline18 } from "@unkey/icons";
 import {
   DataTable,
   type DataTableConfig,
-  Empty,
+  EmptyState,
+  EmptyStateDescription,
+  EmptyStateHeader,
+  EmptyStateIcon,
+  EmptyStateTitle,
   PaginationFooter,
   getSelectableRowClassName,
 } from "@unkey/ui";
@@ -26,20 +31,20 @@ const TABLE_CONFIG: Partial<DataTableConfig> = {
 
 const PAGE_SIZE = 50;
 
-// Overrides are backed by a TanStack DB live collection rather than a paginated
-// tRPC query: the backend returns every override for the workspace at once and
-// the collection stays reactive to local insert/update/delete. Since the full
-// set already lives in memory we paginate on the client — slicing into pages of
-// PAGE_SIZE and driving navigation with PaginationFooter — rather than
-// round-tripping per page. Sorting stays disabled.
+// The collection loads every override of the namespace and stays reactive to
+// local insert, update, and delete. The full set is in memory, so pages are
+// slices of PAGE_SIZE on the client instead of a request per page. Sorting
+// stays disabled.
 export const OverridesTable = ({ namespaceId }: Props) => {
   const [selectedOverride, setSelectedOverride] = useState<RatelimitOverride | null>(null);
   const [page, setPage] = useState(1);
 
-  const { data: overrides, isLoading } = useLiveQuery((q) =>
-    q
-      .from({ override: collection.ratelimitOverrides })
-      .where(({ override }) => eq(override.namespaceId, namespaceId)),
+  const { data: overrides, isLoading } = useLiveQuery(
+    (q) =>
+      q
+        .from({ override: collection.ratelimitOverrides })
+        .where(({ override }) => eq(override.namespaceId, namespaceId)),
+    [namespaceId],
   );
 
   const totalCount = overrides.length;
@@ -68,15 +73,17 @@ export const OverridesTable = ({ namespaceId }: Props) => {
         rowClassName={(override) => getSelectableRowClassName(override.id === selectedOverride?.id)}
         renderSkeletonRow={renderOverridesSkeletonRow}
         emptyState={
-          <div className="w-full flex justify-center items-center h-full">
-            <Empty className="w-[400px] flex items-start">
-              <Empty.Icon className="w-auto" />
-              <Empty.Title>No overrides found</Empty.Title>
-              <Empty.Description className="text-left">
+          <EmptyState frame="none">
+            <EmptyStateIcon>
+              <IconArrowDottedRotateAnticlockwiseOutline18 />
+            </EmptyStateIcon>
+            <EmptyStateHeader>
+              <EmptyStateTitle>No overrides found</EmptyStateTitle>
+              <EmptyStateDescription>
                 No custom ratelimits found. Create your first override to get started.
-              </Empty.Description>
-            </Empty>
-          </div>
+              </EmptyStateDescription>
+            </EmptyStateHeader>
+          </EmptyState>
         }
         config={TABLE_CONFIG}
       />

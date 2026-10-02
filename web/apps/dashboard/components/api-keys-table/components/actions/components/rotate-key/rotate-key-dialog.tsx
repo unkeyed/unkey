@@ -111,7 +111,7 @@ export const RotateKeyDialog = ({
 
   const performRotation = async () => {
     if (!isGracePeriodValue(gracePeriod)) {
-      // Defense-in-depth: the FormSelect is bound to GRACE_PERIOD_OPTIONS
+      // Defense-in-depth: the FormSelect is bound to the allowed options
       // and the schema rejects anything else, so this branch is
       // unreachable through the UI. Bail rather than coerce an unknown
       // value into a request the server would reject anyway.
@@ -154,7 +154,11 @@ export const RotateKeyDialog = ({
 
   const titleCase = resourceLabel === "root key" ? "Rotate root key" : "Rotate key";
   const confirmTitle = `Confirm ${resourceLabel} rotation`;
-  const confirmDescription = `A new ${resourceLabel} will be generated now. The current ${resourceLabel} will be revoked after the grace period you selected.`;
+  const keepsCurrentKey =
+    isGracePeriodValue(gracePeriod) && gracePeriodMsFromValue(gracePeriod) === null;
+  const confirmDescription = keepsCurrentKey
+    ? `A new ${resourceLabel} will be generated now. The current ${resourceLabel} will not be revoked.`
+    : `A new ${resourceLabel} will be generated now. The current ${resourceLabel} will be revoked after the grace period you selected.`;
   const subTitle =
     resourceLabel === "root key"
       ? "Generate a fresh root key while preserving this root key's permissions"
@@ -217,7 +221,11 @@ export const RotateKeyDialog = ({
                   checked={field.value}
                   onCheckedChange={field.onChange}
                   requirement="required"
-                  label={`I understand this will generate a new ${resourceLabel} and revoke the current one.`}
+                  label={
+                    keepsCurrentKey
+                      ? `I understand this will generate a new ${resourceLabel} and keep the current one valid.`
+                      : `I understand this will generate a new ${resourceLabel} and revoke the current one.`
+                  }
                   error={errors.confirmRotation?.message}
                 />
               )}

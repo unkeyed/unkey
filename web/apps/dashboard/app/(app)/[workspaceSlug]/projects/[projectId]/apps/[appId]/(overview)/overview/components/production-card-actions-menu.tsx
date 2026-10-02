@@ -4,15 +4,17 @@ import { useDeployActionGate } from "@/app/(app)/[workspaceSlug]/projects/_compo
 import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
 import type { Deployment } from "@/lib/collections";
 import {
-  ArrowOppositeDirectionY,
-  Ban,
-  Bolt,
-  Clone,
-  Dots,
   Github,
-  Hammer2,
-  Layers3,
+  IconArrowsOppositeDirectionYOutline18,
+  IconBanOutline18,
+  IconBoltOutline18,
+  IconCloneOutline18,
+  IconDotsOutline18,
+  IconHammer2Outline18,
+  IconLayers2Outline18,
+  IconLayers3Outline18,
 } from "@unkey/icons";
+import { match } from "@unkey/match";
 import { Button, toast } from "@unkey/ui";
 import type { Route } from "next";
 import dynamic from "next/dynamic";
@@ -33,6 +35,7 @@ type ProductionCardActionsMenuProps = {
   deployment: Deployment;
   status: DeploymentDisplayStatus;
   commitUrl?: string;
+  deploymentHref: Route;
   logsHref: Route;
   requestsHref: Route;
 };
@@ -41,6 +44,7 @@ export function ProductionCardActionsMenu({
   deployment,
   status,
   commitUrl,
+  deploymentHref,
   logsHref,
   requestsHref,
 }: ProductionCardActionsMenuProps) {
@@ -49,18 +53,38 @@ export function ProductionCardActionsMenu({
   const items = useMemo((): MenuItem[] => {
     const stopped = status === "stopped";
     const canRedeploy = isRedeployableDeploymentStatus(deployment.status);
+    const sourceItems = match(deployment.source)
+      .returnType<MenuItem[]>()
+      .with("git", () =>
+        commitUrl
+          ? [
+              {
+                id: "view-commit",
+                label: "View commit on GitHub",
+                icon: <Github className="size-3.5" />,
+                onClick: () => window.open(commitUrl, "_blank", "noopener,noreferrer"),
+              },
+            ]
+          : [],
+      )
+      .with("oci", "unknown", () => [])
+      .exhaustive();
     return [
       {
         id: "stop-wake",
         label: stopped ? "Wake" : "Stop",
-        icon: stopped ? <Bolt iconSize="md-regular" /> : <Ban iconSize="md-regular" />,
+        icon: stopped ? (
+          <IconBoltOutline18 className="size-3.5" />
+        ) : (
+          <IconBanOutline18 className="size-3.5" />
+        ),
         disabled: true,
         tooltip: "Available soon",
       },
       {
         id: "redeploy",
         label: "Redeploy",
-        icon: <Hammer2 iconSize="md-regular" />,
+        icon: <IconHammer2Outline18 className="size-3.5" />,
         disabled: !canRedeploy,
         // Without a Compute plan, redeploy opens the paywall instead of building.
         ...(gated && canRedeploy
@@ -73,22 +97,28 @@ export function ProductionCardActionsMenu({
         divider: true,
       },
       {
+        id: "view-deployment",
+        label: "Go to deployment",
+        icon: <IconLayers2Outline18 className="size-3.5" />,
+        href: deploymentHref,
+      },
+      {
         id: "view-logs",
         label: "Go to logs",
-        icon: <Layers3 iconSize="md-regular" />,
+        icon: <IconLayers3Outline18 className="size-3.5" />,
         onClick: () => router.push(logsHref),
       },
       {
         id: "view-requests",
         label: "Go to requests",
-        icon: <ArrowOppositeDirectionY iconSize="md-regular" />,
+        icon: <IconArrowsOppositeDirectionYOutline18 className="size-3.5" />,
         onClick: () => router.push(requestsHref),
         divider: true,
       },
       {
         id: "copy-deployment-id",
         label: "Copy deployment ID",
-        icon: <Clone iconSize="md-regular" />,
+        icon: <IconCloneOutline18 className="size-3.5" />,
         onClick: () => {
           navigator.clipboard
             .writeText(deployment.id)
@@ -96,19 +126,19 @@ export function ProductionCardActionsMenu({
             .catch(() => toast.error("Failed to copy to clipboard"));
         },
       },
-      {
-        id: "view-commit",
-        label: "View commit on GitHub",
-        icon: <Github iconSize="md-regular" />,
-        disabled: !commitUrl,
-        onClick: () => {
-          if (commitUrl) {
-            window.open(commitUrl, "_blank", "noopener,noreferrer");
-          }
-        },
-      },
+      ...sourceItems,
     ];
-  }, [deployment, status, commitUrl, gated, openPaywall, router, logsHref, requestsHref]);
+  }, [
+    deployment,
+    status,
+    commitUrl,
+    gated,
+    openPaywall,
+    router,
+    deploymentHref,
+    logsHref,
+    requestsHref,
+  ]);
 
   return (
     <>
@@ -120,7 +150,7 @@ export function ProductionCardActionsMenu({
           className="w-7 p-0"
           onClick={(e) => e.stopPropagation()}
         >
-          <Dots iconSize="sm-regular" />
+          <IconDotsOutline18 />
         </Button>
       </TableActionPopover>
       {planGate}

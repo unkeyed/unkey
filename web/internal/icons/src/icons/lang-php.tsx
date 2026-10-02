@@ -1,16 +1,8 @@
-import { type IconProps, sizeMap } from "../props";
+import type { IconProps } from "../props";
 
-export function LangPhp({ iconSize = "xl-thin", ...props }: IconProps) {
-  const { iconSize: pixelSize } = sizeMap[iconSize];
-
+export function LangPhp(props: IconProps) {
   return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width={pixelSize}
-      height={pixelSize}
-      viewBox="0 0 128 128"
-      {...props}
-    >
+    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 128 128" {...props}>
       <path
         fill="url(#a)"
         d="M0 64c0 18.593 28.654 33.667 64 33.667 35.346 0 64-15.074 64-33.667 0-18.593-28.655-33.667-64-33.667C28.654 30.333 0 45.407 0 64Z"

@@ -1,3 +1,4 @@
+import { collection } from "@/lib/collections";
 import { trpc } from "@/lib/trpc/client";
 import { Combobox, toast } from "@unkey/ui";
 import { useMemo } from "react";
@@ -42,6 +43,7 @@ export const GitHubConnected = ({
       toast.success("Repository connected");
       await utils.github.getInstallations.invalidate();
       await utils.github.getRepoTree.invalidate();
+      await collection.apps.utils.refetch();
     },
     onError: (error) => {
       toast.error(error.message);
@@ -64,7 +66,7 @@ export const GitHubConnected = ({
 
   const expandable = (
     <div className="px-6 py-4 flex flex-col gap-3 bg-grayA-2 rounded-b-lg">
-      <span className="text-gray-9 text-[13px]">
+      <span className="text-gray-9 text-sm">
         Pushes to this repository will trigger deployments.
       </span>
       <div className="flex items-center gap-5 pt-1">
@@ -84,7 +86,7 @@ export const GitHubConnected = ({
           <ComboboxSkeleton />
         ) : (
           <Combobox
-            className="w-[200px] text-left h-7 border-grayA-4"
+            className="w-[200px] text-left h-7"
             options={repoOptions}
             value={selectedValue}
             onSelect={handleSelectRepository}

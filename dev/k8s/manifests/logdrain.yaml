@@ -15,12 +15,6 @@ data:
 
     database = "unkey:password@tcp(mysql:3306)/unkey?parseTime=true&interpolateParams=true"
 
-    # Short intervals for local development. Production defaults are
-    # poll_interval = 60s and watermark_lag = 5m; those would delay every
-    # locally-created audit log by minutes before the drain sees it.
-    poll_interval = "10s"
-    watermark_lag = "10s"
-
     # Local drains usually target loopback or cluster-internal endpoints,
     # which the SSRF guard would reject. Development only.
     insecure_allow_private_endpoints = true

@@ -1,0 +1,82 @@
+---
+title: Managing key roles and permissions
+sidebarTitle: "Managing key permissions"
+description: "Change the roles and permissions a key holds after it exists."
+sources:
+  - svc/api/openapi/spec/paths/v2/keys/createKey/V2KeysCreateKeyRequestBody.yaml
+  - svc/api/openapi/spec/paths/v2/keys/updateKey/V2KeysUpdateKeyRequestBody.yaml
+  - svc/api/openapi/spec/paths/v2/keys/setPermissions/V2KeysSetPermissionsRequestBody.yaml
+  - svc/api/openapi/spec/paths/v2/keys/addPermissions/V2KeysAddPermissionsRequestBody.yaml
+  - svc/api/openapi/spec/paths/v2/keys/removePermissions/V2KeysRemovePermissionsRequestBody.yaml
+  - svc/api/openapi/spec/paths/v2/keys/addRoles/V2KeysAddRolesRequestBody.yaml
+  - svc/api/openapi/spec/paths/v2/keys/removeRoles/V2KeysRemoveRolesRequestBody.yaml
+  - svc/api/openapi/spec/paths/v2/keys/setRoles/V2KeysSetRolesRequestBody.yaml
+  - svc/api/routes/v2_keys_create_key/handler.go
+  - svc/api/routes/v2_keys_update_key/handler.go
+  - svc/api/routes/v2_keys_add_permissions/handler.go
+  - svc/api/routes/v2_keys_remove_permissions/handler.go
+  - svc/api/routes/v2_keys_set_permissions/handler.go
+  - svc/api/routes/v2_keys_add_roles/handler.go
+  - svc/api/routes/v2_keys_remove_roles/handler.go
+  - svc/api/routes/v2_keys_set_roles/handler.go
+  - web/apps/dashboard/components/api-keys-table/components/actions/keys-table-action.popover.constants.tsx
+---
+
+import RootKeyPrereq from "/snippets/root-key-prereq.mdx";
+
+Change the roles and permissions on a key at any time. Set them when you create the key, replace them with `keys.updateKey`, or add and remove them with six dedicated endpoints. Changes take about 10 seconds to reach verification. [Verifying keys](/api-management/keys/verifying-keys#how-quickly-changes-take-effect) describes that timing.
+
+<RootKeyPrereq />
+
+All of these need `api.*.update_key` or `api.<api_id>.update_key` (creation needs `create_key`). Four of the incremental endpoints also need the matching `rbac.*` action: `add_permission_to_key` for `keys.addPermissions`, `remove_permission_from_key` for `keys.removePermissions`, both for `keys.setPermissions`, and `add_role_to_key` for `keys.addRoles`. `keys.removeRoles` and `keys.setRoles` need nothing beyond `update_key`.
+
+`keys.addPermissions` and `keys.setPermissions` only create a new permission slug if the root key also has `rbac.*.create_permission`. Without it, an unknown slug fails with HTTP 403 `err:unkey:authorization:insufficient_permissions`. (`keys.createKey` and `keys.updateKey` create new slugs without that permission.) Roles are never created for you. An unknown role fails with HTTP 404 `err:unkey:data:role_not_found`.
+
+## At creation
+
+`keys.createKey` accepts `roles` (up to 100 names, each 1 to 128 characters) and `permissions` (up to 1000 slugs, each 1 to 128 characters matching `^[a-zA-Z0-9_:\-\.\*]+$`).
+
+```bash
+curl -X POST https://api.unkey.com/v2/keys.createKey \
+  -H "Authorization: Bearer $UNKEY_ROOT_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "apiId": "api_...",
+    "roles": ["editor"],
+    "permissions": ["reports.export"]
+  }'
+```
+
+## Replace everything
+
+`keys.updateKey` takes the same two fields. Sending a list replaces it in full. Leaving a field out keeps it as it is.
+
+## Adjust incrementally
+
+Each endpoint takes `keyId` and an array of permission slugs or role names (not IDs). The add and remove endpoints need at least one entry, so `[]` fails with HTTP 400. Send `[]` to `keys.setPermissions` or `keys.setRoles` to remove everything.
+
+| Endpoint | Effect |
+| --- | --- |
+| `keys.addPermissions` | Attaches the listed permissions; ones already attached are left alone. |
+| `keys.removePermissions` | Detaches the listed permissions; ones not attached are ignored. |
+| `keys.setPermissions` | Replaces the direct permissions with the list; `[]` removes all. |
+| `keys.addRoles` | Assigns the listed roles. |
+| `keys.removeRoles` | Unassigns the listed roles. |
+| `keys.setRoles` | Replaces the roles with the list; `[]` removes all. |
+
+```bash
+curl -X POST https://api.unkey.com/v2/keys.addPermissions \
+  -H "Authorization: Bearer $UNKEY_ROOT_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{ "keyId": "key_...", "permissions": ["documents.delete"] }'
+```
+
+Every change writes audit events, such as `authorization.connect_permission_and_key` and `authorization.disconnect_role_and_key`, so you can see the history of a key's access.
+
+## Direct permissions versus roles
+
+Removing a permission from a key doesn't help if one of its roles also grants it. To take a permission away completely, remove it from the key and from the key's roles, or remove the role. To change what a role contains, call `permissions.setRolePermissions`. That changes every key with the role. See [Roles and permissions](/api-management/authorization/roles-and-permissions).
+
+## From the dashboard
+
+Choose **Manage roles and permissions** from a key's actions menu, pick roles and permissions, and save. The **Create key** dialog has the same pickers in its permissions step.

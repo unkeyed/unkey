@@ -1,0 +1,38 @@
+---
+title: Private networking
+description: "What your instances can and cannot reach, and how to call one app from another today."
+sources:
+  - svc/krane/internal/deployment/cilium.go
+  - svc/krane/internal/deployment/consts.go
+  - svc/krane/internal/deployment/namespace.go
+  - svc/krane/internal/deployment/apply.go
+---
+
+We don't offer private networking yet. To call one app from another, call its public hostname. The request goes out over the internet and back in through the [gateway](/compute/gateway/overview), like a call from anywhere else. Your instances can't open connections to each other.
+
+## Call one app from another
+
+Use the other app's hostname, and treat the call as an external one:
+
+```ts
+const res = await fetch("https://billing-acme.unkey.app/invoices", {
+  headers: { Authorization: `Bearer ${process.env.BILLING_API_KEY}` },
+});
+```
+
+1. **Put the hostname and credential in [environment variables](/compute/configure/environment-variables)** of the calling app, not in code. Then a preview <Tooltip tip="One built and running version of an app in one environment.">deployment</Tooltip> can point at a preview of the other app. See [Automatic domains](/compute/networking/automatic-domains) for hostname patterns.
+2. **Protect the other app with an [API key policy](/compute/gateway/api-key-auth)**, because the call is public. Give the caller a key. Bad requests are rejected at the gateway, and the caller's identity shows up in the [request log](/compute/observe/requests).
+3. **Set a timeout.** Each call is a full HTTP round trip, so avoid chains of internal calls on a latency-sensitive path.
+
+## Share state between instances
+
+Instances can't talk to each other, so anything two of them need belongs in a store they can both reach, such as a managed Redis or Postgres. Don't rely on peer-to-peer cache invalidation, leader election, or gossip between replicas. For long-lived connections, see [WebSockets](/compute/networking/websockets).
+
+## What your instances can and can't reach
+
+- **Outbound: anything.** Your app can call any host it can resolve: a database, a third-party API, an object store, or another Unkey app.
+- **Inbound: only the gateway**, on your app's port. Nothing else can reach an instance: not other instances of the same deployment, not other apps in the project, not older deployments of the same app.
+
+A blocked connection isn't refused or reset. It's silently dropped, so the caller just times out. If you see that, this is the likely cause.
+
+Instances also run in a sandbox and get no credentials to our infrastructure.

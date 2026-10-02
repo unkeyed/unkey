@@ -3,6 +3,7 @@ package certificate
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"time"
 
@@ -119,7 +120,7 @@ func (s *Service) ProcessChallenge(
 		}
 
 		// Check if it's a rate limit error
-		if rle, ok := acme.AsRateLimitError(obtainErr); ok {
+		if rle, ok := errors.AsType[*acme.RateLimitError](obtainErr); ok {
 			if rateLimitRetry >= maxRateLimitRetries {
 				logger.Error("max rate limit retries exceeded",
 					"domain", req.GetDomain(),
@@ -278,7 +279,7 @@ func (s *Service) obtainCertificate(ctx context.Context, _ string, dom db.Custom
 
 		// Other non-retryable errors (bad credentials): terminal error, no retry
 		if !parsed.IsRetryable {
-			return EncryptedCertificate{}, restate.TerminalError(
+			return EncryptedCertificate{}, restate.ToTerminalError(
 				fmt.Errorf("[%s] %s", parsed.Type, parsed.Message),
 			)
 		}

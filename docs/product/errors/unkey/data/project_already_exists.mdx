@@ -1,7 +1,44 @@
 ---
 title: "project_already_exists"
-description: "Duplicate indicates the requested project already exists."
+sidebarTitle: "project_already_exists"
+description: "Another project in the workspace already uses that slug."
+sources:
+  - pkg/codes/unkey_data.go
+  - svc/api/internal/middleware/errors.go
+  - svc/api/routes/v2_projects_create_project/handler.go
+  - svc/api/routes/v2_projects_update_project/handler.go
 ---
 
 <Danger>`err:unkey:data:project_already_exists`</Danger>
 
+Another project in your workspace already uses that slug. Nothing was created or changed. You get HTTP 409.
+
+```json Example response
+{
+  "meta": {
+    "requestId": "req_2c9a0jf23l4k567"
+  },
+  "error": {
+    "detail": "A project with slug 'billing' already exists in this workspace.",
+    "status": 409,
+    "title": "Conflicting Resource",
+    "type": "/errors/unkey/data/project_already_exists"
+  }
+}
+```
+
+## Likely causes
+
+- You called `projects.createProject`, or changed a slug with `projects.updateProject`, and the slug is taken.
+- Two requests created the same slug at the same time, and this one lost.
+
+## How to fix
+
+1. Choose a different slug, or use the existing project.
+
+In automation, treat a 409 as "already there" and read the project with `projects.getProject`.
+
+## Related errors
+
+- [`err:unkey:data:project_not_found`](/errors/unkey/data/project_not_found): the project doesn't exist.
+- [`err:unkey:data:app_already_exists`](/errors/unkey/data/app_already_exists): an app slug collides within a project.

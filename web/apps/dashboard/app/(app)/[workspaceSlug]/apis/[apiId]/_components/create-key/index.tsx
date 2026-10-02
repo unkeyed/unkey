@@ -3,7 +3,7 @@ import { NavbarActionButton } from "@/components/navigation/action-button";
 import { CopyableIDButton } from "@/components/navigation/copyable-id-button";
 import { usePersistedForm } from "@/hooks/use-persisted-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Plus } from "@unkey/icons";
+import { IconPlusOutline18 } from "@unkey/icons";
 import {
   Button,
   Loading,
@@ -147,7 +147,7 @@ export const CreateKeyDialog = ({
   return (
     <>
       <NavbarActionButton title="Create key" onClick={() => setIsSettingsOpen(true)}>
-        <Plus />
+        <IconPlusOutline18 />
         Create key
       </NavbarActionButton>
       <CopyableIDButton value={copyIdValue ?? apiId} />

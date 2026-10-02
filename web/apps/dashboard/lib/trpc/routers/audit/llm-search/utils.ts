@@ -213,7 +213,6 @@ ${validEventTypes.map((event) => `   - ${event}`).join("\n")}
    - "delete key" → "key.delete"
    - "set override" → "ratelimit.set_override"
    - workspace.create, workspace.update, workspace.delete, workspace.opt_in
-   - sentinel.create, llmSentinel.create, llmSentinel.delete
    - api.create, api.update, api.delete
    - key.create, key.update, key.delete, key.reroll
    - ratelimitNamespace.create, ratelimitNamespace.update, ratelimitNamespace.delete
@@ -224,7 +223,6 @@ ${validEventTypes.map((event) => `   - ${event}`).join("\n")}
    - authorization.connect_permission_and_key, authorization.disconnect_permission_and_key
    - secret.create, secret.decrypt, secret.update
    - webhook.create, webhook.update, webhook.delete
-   - reporter.create
    - identity.create, identity.update, identity.delete
    - ratelimit.create, ratelimit.update, ratelimit.delete
    - ratelimit.set_override, ratelimit.read_override, ratelimit.delete_override

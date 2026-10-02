@@ -50,6 +50,7 @@ import { Result } from "../types/fp.js";
  * - `keys:read` requires `api.<api_id>.read_key` **and** `api.<api_id>.read_api`
  * - `keys:reroll` requires `api.<api_id>.create_key`, plus
  *   `api.<api_id>.encrypt_key` when the keyspace stores encrypted keys
+ * - `analytics:read` requires `api.<api_id>.read_analytics`
  *
  * The `*` form of each is also accepted. Requesting a scope you do not hold
  * returns 403 for the whole request rather than minting a reduced session, so a
@@ -73,6 +74,7 @@ export function portalCreateSession(
     | errors.UnauthorizedErrorResponse
     | errors.ForbiddenErrorResponse
     | errors.NotFoundErrorResponse
+    | errors.ConflictErrorResponse
     | errors.TooManyRequestsErrorResponse
     | errors.InternalServerErrorResponse
     | UnkeyError
@@ -104,6 +106,7 @@ async function $do(
       | errors.UnauthorizedErrorResponse
       | errors.ForbiddenErrorResponse
       | errors.NotFoundErrorResponse
+      | errors.ConflictErrorResponse
       | errors.TooManyRequestsErrorResponse
       | errors.InternalServerErrorResponse
       | UnkeyError
@@ -203,6 +206,7 @@ async function $do(
     | errors.UnauthorizedErrorResponse
     | errors.ForbiddenErrorResponse
     | errors.NotFoundErrorResponse
+    | errors.ConflictErrorResponse
     | errors.TooManyRequestsErrorResponse
     | errors.InternalServerErrorResponse
     | UnkeyError
@@ -222,6 +226,7 @@ async function $do(
     M.jsonErr(401, errors.UnauthorizedErrorResponse$inboundSchema),
     M.jsonErr(403, errors.ForbiddenErrorResponse$inboundSchema),
     M.jsonErr(404, errors.NotFoundErrorResponse$inboundSchema),
+    M.jsonErr(409, errors.ConflictErrorResponse$inboundSchema),
     M.jsonErr(429, errors.TooManyRequestsErrorResponse$inboundSchema, {
       ctype: "application/problem+json",
     }),

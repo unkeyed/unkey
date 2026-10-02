@@ -28,6 +28,7 @@ export const environments = mysqlTable(
   (table) => [
     uniqueIndex("environments_app_slug_idx").on(table.appId, table.slug),
     index("environments_project_idx").on(table.projectId),
+    index("environments_workspace_slug_idx").on(table.workspaceId, table.slug),
   ],
 );
 

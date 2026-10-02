@@ -1,6 +1,11 @@
-import { cn } from "@/lib/utils";
-import { CaretDown, CaretExpandY, CaretUp, CircleCaretRight } from "@unkey/icons";
-import { useIsMobile } from "@unkey/ui";
+import {
+  IconCaretDownOutline12,
+  IconCaretExpandYOutline18,
+  IconCaretUpOutline12,
+  IconCircleCaretRightOutline18,
+} from "@unkey/icons";
+import { Skeleton, useIsMobile } from "@unkey/ui";
+import { cn } from "cn";
 import {
   Fragment,
   type Ref,
@@ -10,7 +15,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { EmptyState } from "./components/empty-state";
+import { VirtualTableEmptyState } from "./components/empty-state";
 import { LoadMoreFooter } from "./components/loading-indicator";
 import { DEFAULT_CONFIG } from "./constants";
 import { useTableData } from "./hooks/useTableData";
@@ -190,28 +195,31 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
                     <th
                       key={column.key}
                       className={cn(
-                        "text-sm font-medium text-accent-12 py-1 text-left",
+                        "text-sm font-medium text-gray-12 py-1 text-left",
                         column.headerClassName,
                         column.cellClassName,
                       )}
                     >
-                      <div className="truncate text-accent-12">{column.header}</div>
+                      <div className="truncate text-gray-12">{column.header}</div>
                     </th>
                   ))}
                 </tr>
                 <tr>
                   <th colSpan={columns.length} className="p-0">
-                    <div className="w-full border-t border-gray-4" />
+                    <div
+                      className={cn(
+                        "absolute inset-y-0 -z-10 bg-table-header border-b",
+                        hasPadding ? "inset-x-[-8px]" : "inset-x-0",
+                      )}
+                    />
                   </th>
                 </tr>
               </thead>
             )}
           </table>
-          {emptyState ? (
-            <div className="flex-1 flex items-center justify-center">{emptyState}</div>
-          ) : (
-            <EmptyState />
-          )}
+          <div className="flex-1 flex items-center justify-center">
+            {emptyState ?? <VirtualTableEmptyState />}
+          </div>
         </div>
       );
     }
@@ -236,7 +244,7 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
                     <th
                       key={column.key}
                       className={cn(
-                        "text-sm font-medium text-accent-12 py-1 text-left relative",
+                        "text-sm font-medium text-gray-12 py-1 text-left relative",
                         column.headerClassName,
                         column.cellClassName,
                       )}
@@ -247,14 +255,12 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
                 </tr>
                 <tr>
                   <th colSpan={columns.length} className="p-0">
-                    <div className="relative w-full">
-                      <div
-                        className={cn(
-                          "absolute border-t border-gray-4",
-                          hasPadding ? "inset-x-[-8px]" : "inset-x-0",
-                        )}
-                      />
-                    </div>
+                    <div
+                      className={cn(
+                        "absolute inset-y-0 -z-10 bg-table-header border-b",
+                        hasPadding ? "inset-x-[-8px]" : "inset-x-0",
+                      )}
+                    />
                   </th>
                 </tr>
               </thead>
@@ -273,7 +279,7 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
                     return (
                       <tr
                         key={`skeleton-${virtualRow.key}`}
-                        className={cn(config.rowBorders && "border-b border-gray-4")}
+                        className={cn(config.rowBorders && "border-b")}
                         style={{ height: `${config.rowHeight}px` }}
                       >
                         {renderSkeletonRow({
@@ -286,12 +292,12 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
                   return (
                     <tr
                       key={`skeleton-${virtualRow.key}`}
-                      className={cn(config.rowBorders && "border-b border-gray-4")}
+                      className={cn(config.rowBorders && "border-b")}
                       style={{ height: `${config.rowHeight}px` }}
                     >
                       {columns.map((column) => (
                         <td key={column.key} className={cn("pr-4", column.cellClassName)}>
-                          <div className="h-4 bg-accent-3 rounded-sm animate-pulse" />
+                          <Skeleton className="h-4 bg-gray-3" />
                         </td>
                       ))}
                     </tr>
@@ -311,7 +317,7 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
                   // tables that only ever insert one separator at the top.
                   const defaultContent = (
                     <div className="h-[26px] bg-info-2 font-mono text-xs text-info-11 rounded-md flex items-center gap-3 px-2">
-                      <CircleCaretRight className="size-3" />
+                      <IconCircleCaretRightOutline18 className="size-3" />
                       Live
                     </div>
                   );
@@ -382,8 +388,8 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
                           }
                         }}
                         className={cn(
-                          "cursor-pointer transition-colors hover:bg-accent/50 focus:outline-hidden focus:ring-1 focus:ring-opacity-40",
-                          config.rowBorders && "border-b border-gray-4",
+                          "cursor-pointer transition-colors hover:bg-grayA-3 focus:outline-hidden focus:ring-1",
+                          config.rowBorders && "border-b",
                           rowClassName?.(typedItem),
                           selectedClassName?.(typedItem, isSelected),
                         )}
@@ -453,8 +459,8 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
                         }
                       }}
                       className={cn(
-                        "cursor-pointer transition-colors hover:bg-accent/50 focus:outline-hidden focus:ring-1 focus:ring-opacity-40",
-                        config.rowBorders && "border-b border-gray-4",
+                        "cursor-pointer transition-colors hover:bg-grayA-3 focus:outline-hidden focus:ring-1",
+                        config.rowBorders && "border-b",
                         rowClassName?.(typedItem),
                         selectedClassName?.(typedItem, isSelected),
                       )}
@@ -506,12 +512,12 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
 
 function SortIcon({ direction }: { direction?: SortDirection | null }) {
   if (!direction) {
-    return <CaretExpandY className="color-gray-9" />;
+    return <IconCaretExpandYOutline18 className="text-gray-9" />;
   }
   return direction === "asc" ? (
-    <CaretUp className="color-gray-9" iconSize="sm-thin" />
+    <IconCaretUpOutline12 className="text-gray-9" />
   ) : (
-    <CaretDown className="color-gray-9" iconSize="sm-thin" />
+    <IconCaretDownOutline12 className="text-gray-9" />
   );
 }
 
@@ -530,10 +536,7 @@ function HeaderCell<T>({ column }: { column: Column<T> }) {
   return (
     // biome-ignore lint/a11y/useKeyWithClickEvents: <explanation>
     <div
-      className={cn(
-        "flex items-center gap-1 truncate text-accent-12",
-        sortable && "cursor-pointer",
-      )}
+      className={cn("flex items-center gap-1 truncate text-gray-12", sortable && "cursor-pointer")}
       onClick={sortable ? handleSort : undefined}
     >
       <span>{column.header}</span>

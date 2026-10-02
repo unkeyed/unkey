@@ -62,7 +62,7 @@ rows, err := database.RO().QueryContext(ctx, query, args...)
 
 `zen.WithSQLComment()` reads `http.Request.Pattern` (for example `POST /v2/keys.verifyKey`) and is registered in `api` and `frontline` middleware stacks.
 
-`ctrl-worker` wraps the Restate ingress with `sqlcomment.WrapRestateInvokeHandler`, tagging routes like `hydra.v1.DeployService/Deploy` with `source=restate`.
+`ctrl-worker` wraps the Restate ingress with `sqlcomment.WrapRestateInvokeHandler`, tagging routes like `hydra.v1.DeployWorkflow/Deploy` with `source=restate`.
 
 `sqlcomment.Static{}` disables annotation (tests and dev seeds).
 

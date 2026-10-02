@@ -1,0 +1,151 @@
+---
+title: "@unkey/api"
+description: "The generated TypeScript client for the whole Unkey API."
+sources:
+  - web/internal/api/src/sdk/sdk.ts
+  - web/internal/api/src/sdk/keys.ts
+  - web/internal/api/src/models/components/v2keysverifykeyrequestbody.ts
+  - web/internal/api/src/models/components/v2keysverifykeyresponsedata.ts
+  - web/internal/api/src/models/components/v2keyscreatekeyrequestbody.ts
+  - web/internal/api/src/models/components/v2ratelimitlimitrequestbody.ts
+  - web/internal/api/src/models/errors/index.ts
+  - https://github.com/unkeyed/sdks/blob/3bb124498270d8aff36e358dc2e0010e9991869a/api/ts/README.md
+  - https://github.com/unkeyed/sdks/blob/3bb124498270d8aff36e358dc2e0010e9991869a/api/ts/package.json
+  - https://www.npmjs.com/package/@unkey/api
+---
+
+import { versions } from "/snippets/versions.mdx";
+import RootKeyPrereq from "/snippets/root-key-prereq.mdx";
+
+Use `@unkey/api` to call the whole Unkey API from TypeScript. The current version is {versions.tsApi}. Create one `Unkey` client. Its properties (`keys`, `apis`, `ratelimit`, `identities`, `permissions`, `deployments`, and so on) group the methods the same way as the [API reference](/api-management/api-reference/keys/verify-api-key).
+
+<RootKeyPrereq />
+
+## Install
+
+<CodeGroup>
+
+```bash npm
+npm add @unkey/api
+```
+
+```bash pnpm
+pnpm add @unkey/api
+```
+
+```bash bun
+bun add @unkey/api
+```
+
+```bash yarn
+yarn add @unkey/api
+```
+
+</CodeGroup>
+
+It works with CommonJS and ES modules. Supported runtimes are listed in [RUNTIMES.md](https://github.com/unkeyed/sdks/blob/main/api/ts/RUNTIMES.md).
+
+## Construct the client
+
+```typescript
+import { Unkey } from "@unkey/api";
+
+const unkey = new Unkey({
+  rootKey: process.env.UNKEY_ROOT_KEY ?? "",
+});
+```
+
+`rootKey` is your root key. Methods that use a different credential, such as the portal endpoints, take it as an argument on each call.
+
+## Verify a key
+
+```typescript
+const result = await unkey.keys.verifyKey({
+  key: "prod_abc123",
+  permissions: "documents.read", // optional permission query
+  tags: ["endpoint=/documents"],  // optional, for analytics filtering
+});
+
+if (result.data.valid) {
+  console.log(result.data.keyId, result.data.permissions);
+} else {
+  console.log(result.data.code); // NOT_FOUND | FORBIDDEN | INSUFFICIENT_PERMISSIONS | USAGE_EXCEEDED | RATE_LIMITED | DISABLED | EXPIRED
+}
+```
+
+An invalid key isn't an error: `data.valid` is `false` and `data.code` says why. You can also send `credits` for a custom cost and `ratelimits` to check named limits. See [Verifying keys](/api-management/keys/verifying-keys), and the endpoint is [keys.verifyKey](/api-management/api-reference/keys/verify-api-key).
+
+## Create a key
+
+```typescript
+const created = await unkey.keys.createKey({
+  apiId: "api_1234abcd",
+  prefix: "prod",
+  name: "Payment service",
+  externalId: "user_42",
+  permissions: ["documents.read"],
+  enabled: true,
+});
+
+console.log(created.data.keyId);
+console.log(created.data.key); // shown once; store or hand it to the user now
+```
+
+Optional fields include `byteLength`, `meta`, `roles`, `expires` (Unix milliseconds), `credits`, `ratelimits`, and `recoverable`. See [Creating keys](/api-management/keys/creating-keys) for what they do and [keys.createKey](/api-management/api-reference/keys/create-api-key) for the full schema.
+
+## Apply a rate limit
+
+```typescript
+const rl = await unkey.ratelimit.limit({
+  namespace: "email.send",
+  identifier: "user_42",
+  limit: 10,
+  duration: 60_000, // milliseconds
+  cost: 1,
+});
+
+if (!rl.data.success) {
+  // rl.data.remaining and rl.data.reset (Unix ms) tell the caller when to retry
+}
+```
+
+The endpoint is [ratelimit.limit](/api-management/api-reference/ratelimit/apply-rate-limiting). For rate limiting without a client instance and with a built-in timeout fallback, use [@unkey/ratelimit](/api-management/sdks/typescript/ratelimit), which wraps this call.
+
+## Handle errors
+
+HTTP errors throw an `UnkeyError`, with `message`, `statusCode`, `headers`, `body`, and `rawResponse`. Each status has its own subclass with a typed `data$` holding the API's `meta` and `error` fields.
+
+```typescript
+import * as errors from "@unkey/api/models/errors";
+
+try {
+  await unkey.keys.getKey({ keyId: "key_1234abcd" });
+} catch (err) {
+  if (err instanceof errors.NotFoundErrorResponse) {
+    console.log(err.data$.meta.requestId, err.data$.error.detail);
+  } else if (err instanceof errors.UnkeyError) {
+    console.log(err.statusCode, err.message);
+  } else {
+    throw err; // ConnectionError, RequestTimeoutError, and other client-side failures
+  }
+}
+```
+
+The subclasses are `BadRequestErrorResponse` (400), `UnauthorizedErrorResponse` (401), `ForbiddenErrorResponse` (403), `NotFoundErrorResponse` (404), `ConflictErrorResponse` (409), `GoneErrorResponse` (410), `PreconditionFailedErrorResponse` (412), `UnprocessableEntityErrorResponse` (422), `TooManyRequestsErrorResponse` (429), `InternalServerErrorResponse` (500), and `ServiceUnavailableErrorResponse` (503). Each method's page in the API reference, for example [keys.getKey](/api-management/api-reference/keys/get-api-key), lists which ones it can throw. See also [API errors](/platform/api/errors).
+
+## Retries and standalone functions
+
+Calls retry 5xx responses and connection errors by default, waiting 50 ms at first and growing 1.5 times each retry, up to 1 s per wait and 10 s in total. To change this, pass `{ retries: { strategy: "backoff", ... } }` as the second argument of a call, or `retryConfig` to the constructor. To turn it off, pass `{ retries: { strategy: "none" } }`.
+
+To keep your bundle small, every method is also a standalone function (`keysVerifyKey`, `keysCreateKey`, `ratelimitLimit`, and so on) that takes the client as its first argument. See [FUNCTIONS.md](https://github.com/unkeyed/sdks/blob/main/api/ts/FUNCTIONS.md).
+
+## Next steps
+
+<Columns cols={2}>
+  <Card title="@unkey/hono and @unkey/nextjs" icon="shield-halved" href="/api-management/sdks/typescript/hono">
+    Let middleware call `verifyKey` for you.
+  </Card>
+  <Card title="API reference" icon="code" href="/api-management/api-reference/keys/verify-api-key">
+    Every method, request field, and error per endpoint.
+  </Card>
+</Columns>

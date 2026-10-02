@@ -1,4 +1,4 @@
-import { getTimestampFromRelative } from "@/lib/utils";
+import { getTimestampFromRelative } from "@/lib/duration";
 import type { Parser } from "nuqs";
 import type { FilterOperator, FilterUrlValue } from "../filter.types";
 

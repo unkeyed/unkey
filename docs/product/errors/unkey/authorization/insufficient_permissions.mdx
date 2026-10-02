@@ -1,78 +1,54 @@
 ---
-title: "insufficient_permissions"
-description: "The authenticated entity lacks sufficient permissions for the requested Unkey API operation. Add the required root key permission and retry."
+title: "unkey/authorization/insufficient_permissions"
+sidebarTitle: "insufficient_permissions"
+description: "The root key is valid but lacks a permission this operation needs."
+sources:
+  - pkg/codes/unkey_auth.go
+  - svc/api/internal/middleware/errors.go
+  - pkg/rbac/check.go
+  - pkg/rbac/rbac.go
+  - internal/services/keys/status.go
+  - svc/api/internal/errors/errors.go
 ---
 
 <Danger>`err:unkey:authorization:insufficient_permissions`</Danger>
 
-```json Example
+Your root key is valid, but it doesn't have a permission this endpoint needs. You get HTTP 403. On most endpoints, `detail` shows the permission that was missing.
+
+```json Example response
 {
   "meta": {
     "requestId": "req_2c9a0jf23l4k567"
   },
   "error": {
-    "detail": "The authenticated API key does not have permission to perform this operation",
+    "detail": "Insufficient permissions to access this resource.",
     "status": 403,
-    "title": "Forbidden",
-    "type": "https://unkey.com/docs/errors/unkey/authorization/insufficient_permissions"
+    "title": "Insufficient Permissions",
+    "type": "/errors/unkey/authorization/insufficient_permissions"
   }
 }
 ```
 
-## What Happened?
+## Likely causes
 
-This error occurs when your API key is valid and properly authenticated, but it doesn't have the necessary permissions to perform the requested operation. In Unkey, different API keys can have different permission levels.
+- The root key was never given this permission.
+- The permission was granted on the wrong resource ID, for example the keyspace ID instead of the API ID.
+- Someone saved the key in **Edit root key** and left the permission unchecked. Saving replaces the whole set.
 
-Common scenarios that trigger this error:
+A missing permission doesn't always return 403. Most endpoints that read or change a resource you named return a 404 for it instead, so a 404 doesn't prove the resource is gone. Check the root key's permissions before you decide the ID is wrong.
 
-- Using a read-only key to perform write operations
-- Using a key limited to specific resources to access other resources
-- Attempting to access resources across workspaces with a workspace-scoped key
-- Using a key with limited permissions to perform administrative actions
+## How to fix
 
-Here's an example of a request using a key with insufficient permissions:
+1. Grant the missing permission to the root key in the dashboard, or create a new root key with the right permissions.
+2. Grant it as `resource.id.action`, such as `api.api_123.create_key` for one API or `api.*.create_key` for every API in the workspace.
+3. If `detail` shows the permission as `unkey:v1:{workspace}:{path}#{action}`, the part after `#` is the action and the path is the resource. Grant the matching `resource.id.action`.
 
-```bash
-# Using a read-only key to create a new API key
-curl -X POST https://api.unkey.com/v2/keys.createKey \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer unkey_READ_ONLY_KEY" \
-  -d '{
-    "apiId": "api_123",
-    "name": "New API Key"
-  }'
-```
+Give each service its own root key with only what it needs, so a leaked key can't do more. See [Root key permissions](/platform/root-keys/permissions).
 
-## How To Fix
+Keys you check with `keys.verifyKey` never return this error. A failed permission check there comes back as `valid: false` with code `INSUFFICIENT_PERMISSIONS`.
 
-You need to use an API key with the appropriate permissions for the operation you're trying to perform. Here are some steps to resolve this issue:
+## Related errors
 
-1. **Check permissions**: Verify the permissions of your current Unkey API key in the [Unkey dashboard](https://app.unkey.com)
-2. **Create a new key**: If needed, create a new Unkey API key with the required permissions
-3. **Use role-based keys**: Consider using separate keys for different operations based on their permission requirements
-
-Here's an example using a key with the appropriate permissions:
-
-```bash
-curl -X POST https://api.unkey.com/v2/keys.createKey \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer unkey_ADMIN_KEY" \
-  -d '{
-    "apiId": "api_123",
-    "name": "New API Key"
-  }'
-```
-
-## Common Mistakes
-
-- **Using development keys in production**: Keys may have different permissions across environments
-- **Mixing key scopes**: Using a key scoped to one resource to access another
-- **Role misunderstanding**: Not understanding the specific permissions granted to each role
-- **Workspace boundaries**: Attempting to cross workspace boundaries with a limited key
-- **Permission level confusion**: Not understanding what operations require elevated permissions
-- **Expired or downgraded privileges**: Using a key whose permissions have been reduced since it was issued
-
-## Related Errors
-
-- [err:unkey:authorization:forbidden](./forbidden) - When the operation is not allowed for policy reasons
-- [err:unkey:authorization:key_disabled](./key_disabled) - When the authentication key is disabled
+- [`err:unkey:authorization:forbidden`](/errors/unkey/authorization/forbidden): the operation isn't allowed for a reason other than a missing permission.
+- [`err:unkey:authentication:key_not_found`](/errors/unkey/authentication/key_not_found): the bearer token isn't a root key at all.
+- [`err:user:bad_request:permissions_query_syntax_error`](/errors/user/bad_request/permissions_query_syntax_error): a permissions query you wrote for `keys.verifyKey` couldn't be parsed.

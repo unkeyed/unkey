@@ -200,16 +200,6 @@ async function main() {
     sql`UPDATE environments e JOIN apps a ON a.project_id = e.project_id AND a.slug = 'default' SET e.app_id = a.id WHERE e.app_id = ''`,
   );
 
-  // 10. Copy default_branch from projects to apps
-  console.log("Copying default_branch from projects to apps...");
-  await db.execute(
-    sql`UPDATE apps a
-        INNER JOIN projects p ON p.id = a.project_id
-        SET a.default_branch = p.default_branch
-        WHERE p.default_branch IS NOT NULL
-          AND p.default_branch != ''`,
-  );
-
   console.log("Migration complete!");
   await conn.end();
 }

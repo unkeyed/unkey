@@ -1,6 +1,5 @@
 "use client";
 import {
-  EmptyPermissions,
   createPermissionsColumns,
   renderPermissionsSkeletonRow,
   usePermissionsListPaginated,
@@ -8,7 +7,19 @@ import {
 import { EditPermission } from "@/components/permissions-table/components/actions/components/edit-permission";
 import { SelectionControls } from "@/components/permissions-table/components/selection-controls";
 import type { Permission } from "@/lib/trpc/routers/authorization/permissions/query";
-import { DataTable, PaginationFooter, getSelectableRowClassName } from "@unkey/ui";
+import { IconBookBookmarkOutline18, IconShieldKeyOutline18 } from "@unkey/icons";
+import {
+  Button,
+  DataTable,
+  EmptyState,
+  EmptyStateActions,
+  EmptyStateDescription,
+  EmptyStateHeader,
+  EmptyStateIcon,
+  EmptyStateTitle,
+  PaginationFooter,
+  getSelectableRowClassName,
+} from "@unkey/ui";
 import { useCallback, useMemo, useState } from "react";
 
 export const PermissionsList = () => {
@@ -65,7 +76,32 @@ export const PermissionsList = () => {
           getSelectableRowClassName(permission.permissionId === selectedPermission?.permissionId)
         }
         renderSkeletonRow={renderPermissionsSkeletonRow}
-        emptyState={<EmptyPermissions />}
+        emptyState={
+          <EmptyState frame="none">
+            <EmptyStateIcon>
+              <IconShieldKeyOutline18 />
+            </EmptyStateIcon>
+            <EmptyStateHeader>
+              <EmptyStateTitle>No Permissions Found</EmptyStateTitle>
+              <EmptyStateDescription>
+                There are no permissions configured yet. Create your first permission to start
+                managing permissions and access control.
+              </EmptyStateDescription>
+            </EmptyStateHeader>
+            <EmptyStateActions>
+              <a
+                href="https://www.unkey.com/docs/platform/apis/features/authorization/introduction"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <Button variant="outline" size="md">
+                  <IconBookBookmarkOutline18 />
+                  Learn about Permissions
+                </Button>
+              </a>
+            </EmptyStateActions>
+          </EmptyState>
+        }
         enableSorting={true}
         manualSorting={true}
         sorting={sorting}

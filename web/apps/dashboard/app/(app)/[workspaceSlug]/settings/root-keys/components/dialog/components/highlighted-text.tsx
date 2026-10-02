@@ -24,7 +24,7 @@ export function HighlightedText({ text, searchValue }: HighlightedTextProps): Re
 
   return parts.map((part, index) =>
     index % 2 === 1 ? (
-      <mark key={index + part} className="bg-grayA-4 rounded-[4px] py-0.5 text-grayA-12">
+      <mark key={index + part} className="bg-grayA-4 rounded-sm py-0.5 text-grayA-12">
         {part}
       </mark>
     ) : (

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { canReadKeys, canRerollKeys, getDefaultTabHref } from "./scopes";
+import { canReadAnalytics, canReadKeys, canRerollKeys, getDefaultTabHref } from "./scopes";
 
 describe("canReadKeys", () => {
   it("is true when keys:read is present", () => {
@@ -38,18 +38,34 @@ describe("canRerollKeys", () => {
   });
 });
 
+describe("canReadAnalytics", () => {
+  it("is true when analytics:read is present", () => {
+    expect(canReadAnalytics(["keys:read", "analytics:read"])).toBe(true);
+  });
+
+  it("is false for a keys-only session", () => {
+    expect(canReadAnalytics(["keys:read", "keys:reroll"])).toBe(false);
+  });
+
+  it("is false for empty scopes", () => {
+    expect(canReadAnalytics([])).toBe(false);
+  });
+});
+
 describe("getDefaultTabHref", () => {
   it("lands on the keys page when the session can read keys", () => {
     expect(getDefaultTabHref(["keys:read"])).toBe("/keys");
   });
 
-  it("ignores deferred analytics scope when keys is absent", () => {
-    // Analytics is deferred to v2, so analytics:read no longer grants a landing
-    // destination even though the session carries it.
+  it("lands on the keys page for an analytics session too", () => {
+    expect(getDefaultTabHref(["analytics:read", "keys:read"])).toBe("/keys");
+  });
+
+  it("is null when the session can only read analytics", () => {
     expect(getDefaultTabHref(["analytics:read"])).toBeNull();
   });
 
-  it("is null when the session can't read keys", () => {
+  it("is null when the session can reach no page", () => {
     expect(getDefaultTabHref(["keys:reroll"])).toBeNull();
   });
 

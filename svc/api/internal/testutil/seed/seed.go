@@ -62,7 +62,7 @@ func (s *Seeder) CreateWorkspace(ctx context.Context) db.Workspace {
 		Name:         uid.New("test_name"),
 		Slug:         uid.New("slug"),
 		CreatedAt:    time.Now().UnixMilli(),
-		K8sNamespace: sql.NullString{Valid: true, String: uid.DNS1035()},
+		K8sNamespace: uid.DNS1035(),
 	}
 
 	err := db.Query.InsertWorkspace(ctx, s.DB.RW(), params)
@@ -224,7 +224,6 @@ type CreateAppRequest struct {
 	Slug             string
 	SourceType       db.AppsSourceType
 	ImageReference   string
-	DefaultBranch    string
 	DeleteProtection bool
 }
 
@@ -243,7 +242,6 @@ func (s *Seeder) CreateApp(ctx context.Context, req CreateAppRequest) db.App {
 		Name:             req.Name,
 		Slug:             req.Slug,
 		SourceType:       sourceType,
-		DefaultBranch:    req.DefaultBranch,
 		DeleteProtection: sql.NullBool{Valid: true, Bool: req.DeleteProtection},
 		CreatedAt:        now,
 		UpdatedAt:        sql.NullInt64{Valid: false},
@@ -466,8 +464,7 @@ func (s *Seeder) CreateRootKey(ctx context.Context, workspaceID string, permissi
 				CreatedAtM:   time.Now().UnixMilli(),
 			})
 
-			mysqlErr := &mysql.MySQLError{} // nolint:exhaustruct
-			if errors.As(err, &mysqlErr) {
+			if mysqlErr, ok := errors.AsType[*mysql.MySQLError](err); ok {
 				require.True(s.t, db.IsDuplicateKeyError(err), "Expected duplicate key error, got MySQL error number %d", mysqlErr.Number)
 				existing, findErr := db.Query.FindPermissionByNameAndWorkspaceID(ctx, s.DB.RO(), db.FindPermissionByNameAndWorkspaceIDParams{
 					WorkspaceID: s.Resources.RootWorkspace.ID,
@@ -492,6 +489,49 @@ func (s *Seeder) CreateRootKey(ctx context.Context, workspaceID string, permissi
 	}
 
 	return key
+}
+
+// CreateUnkeyRootKeyRequest configures a root key in the new root-key store.
+// WorkspaceID is the customer workspace that owns and is authorized by the key.
+type CreateUnkeyRootKeyRequest struct {
+	WorkspaceID string
+	Name        *string
+	Disabled    bool
+	Expires     *time.Time
+	Permissions []string
+}
+
+// CreateUnkeyRootKey creates a root key and its principal permissions in the new
+// root-key store. Returns the key ID and the raw key for Authorization headers.
+func (s *Seeder) CreateUnkeyRootKey(ctx context.Context, req CreateUnkeyRootKeyRequest) CreateKeyResponse {
+	keyID := uid.New(uid.KeyPrefix)
+	key := "unkey_" + uid.New("")
+	now := time.Now().UnixMilli()
+	err := db.Query.InsertUnkeyRootKey(ctx, s.DB.RW(), db.InsertUnkeyRootKeyParams{
+		ID:          keyID,
+		WorkspaceID: req.WorkspaceID,
+		Hash:        hash.Sha256(key),
+		Name:        sql.NullString{String: ptr.SafeDeref(req.Name, ""), Valid: req.Name != nil},
+		Prefix:      "unkey",
+		Start:       key[6:10],
+		End:         key[len(key)-4:],
+		Enabled:     !req.Disabled,
+		Expires:     sql.NullInt64{Int64: ptr.SafeDeref(req.Expires, time.Time{}).UnixMilli(), Valid: req.Expires != nil},
+		CreatedAt:   now,
+	})
+	require.NoError(s.t, err)
+	for _, permission := range req.Permissions {
+		err = db.Query.InsertUnkeyPermission(ctx, s.DB.RW(), db.InsertUnkeyPermissionParams{
+			ID:            uid.New(uid.PermissionPrefix),
+			WorkspaceID:   req.WorkspaceID,
+			PrincipalType: db.UnkeyPrincipalPermissionsPrincipalTypeRootKey,
+			PrincipalID:   keyID,
+			Slug:          permission,
+			CreatedAt:     now,
+		})
+		require.NoError(s.t, err)
+	}
+	return CreateKeyResponse{KeyID: keyID, Key: key, RolesIds: []string{}, PermissionIds: []string{}}
 }
 
 // CreateKeyRequest configures the key to create. WorkspaceID and KeySpaceID are
@@ -623,7 +663,7 @@ func (s *Seeder) CreateKey(ctx context.Context, req CreateKeyRequest) CreateKeyR
 	}
 
 	for _, ratelimit := range req.Ratelimits {
-		ratelimit.KeyID = ptr.P(keyID)
+		ratelimit.KeyID = new(keyID)
 		s.CreateRatelimit(ctx, ratelimit)
 	}
 
@@ -729,7 +769,7 @@ func (s *Seeder) CreateIdentity(ctx context.Context, req CreateIdentityRequest) 
 	require.NoError(s.t, err)
 
 	for _, ratelimit := range req.Ratelimits {
-		ratelimit.IdentityID = ptr.P(identityID)
+		ratelimit.IdentityID = new(identityID)
 		s.CreateRatelimit(ctx, ratelimit)
 	}
 
@@ -935,6 +975,7 @@ func (s *Seeder) CreatePermission(ctx context.Context, req CreatePermissionReque
 type CreatePortalRequest struct {
 	ID           string
 	WorkspaceID  string
+	ProjectID    string
 	Slug         string
 	DisplayName  string
 	AppID        sql.NullString
@@ -953,6 +994,10 @@ func (s *Seeder) CreatePortal(ctx context.Context, req CreatePortalRequest) db.P
 	}
 	now := time.Now().UnixMilli()
 
+	// A portal with no project cannot be authorized at all, and every seeding
+	// path funnels through this literal.
+	require.NotEmpty(s.t, req.ProjectID, "a seeded portal needs the project of the resource it maps to")
+
 	displayName := req.DisplayName
 	if displayName == "" {
 		displayName = req.Slug
@@ -961,6 +1006,7 @@ func (s *Seeder) CreatePortal(ctx context.Context, req CreatePortalRequest) db.P
 	err := db.Query.InsertPortal(ctx, s.DB.RW(), db.InsertPortalParams{
 		ID:           portalID,
 		WorkspaceID:  req.WorkspaceID,
+		ProjectID:    req.ProjectID,
 		Slug:         req.Slug,
 		DisplayName:  displayName,
 		AppID:        req.AppID,

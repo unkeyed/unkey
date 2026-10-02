@@ -84,10 +84,6 @@ type Services struct {
 	// Vault provides encrypted storage for sensitive key material.
 	Vault vault.VaultServiceClient
 
-	// CtrlDeploymentClient communicates with the control plane for deployment
-	// operations like creating and managing deployments.
-	CtrlDeploymentClient ctrl.DeployServiceClient
-
 	// CtrlProjectClient communicates with the control plane for project
 	// lifecycle operations (delete cascades resources via a Restate workflow).
 	CtrlProjectClient ctrl.ProjectServiceClient

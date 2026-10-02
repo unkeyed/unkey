@@ -663,6 +663,48 @@ func (ns NullKeyMigrationsAlgorithm) Value() (driver.Value, error) {
 	return string(ns.KeyMigrationsAlgorithm), nil
 }
 
+type UnkeyPrincipalPermissionsPrincipalType string
+
+const (
+	UnkeyPrincipalPermissionsPrincipalTypeRootKey UnkeyPrincipalPermissionsPrincipalType = "root_key"
+	UnkeyPrincipalPermissionsPrincipalTypeOidc    UnkeyPrincipalPermissionsPrincipalType = "oidc"
+)
+
+func (e *UnkeyPrincipalPermissionsPrincipalType) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = UnkeyPrincipalPermissionsPrincipalType(s)
+	case string:
+		*e = UnkeyPrincipalPermissionsPrincipalType(s)
+	default:
+		return fmt.Errorf("unsupported scan type for UnkeyPrincipalPermissionsPrincipalType: %T", src)
+	}
+	return nil
+}
+
+type NullUnkeyPrincipalPermissionsPrincipalType struct {
+	UnkeyPrincipalPermissionsPrincipalType UnkeyPrincipalPermissionsPrincipalType
+	Valid                                  bool // Valid is true if UnkeyPrincipalPermissionsPrincipalType is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullUnkeyPrincipalPermissionsPrincipalType) Scan(value interface{}) error {
+	if value == nil {
+		ns.UnkeyPrincipalPermissionsPrincipalType, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.UnkeyPrincipalPermissionsPrincipalType.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullUnkeyPrincipalPermissionsPrincipalType) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.UnkeyPrincipalPermissionsPrincipalType), nil
+}
+
 type Api struct {
 	Pk               uint64           `db:"pk"`
 	ID               string           `db:"id"`
@@ -686,7 +728,6 @@ type App struct {
 	Name                string         `db:"name"`
 	Slug                string         `db:"slug"`
 	SourceType          AppsSourceType `db:"source_type"`
-	DefaultBranch       string         `db:"default_branch"`
 	CurrentDeploymentID sql.NullString `db:"current_deployment_id"`
 	IsRolledBack        bool           `db:"is_rolled_back"`
 	DeleteProtection    sql.NullBool   `db:"delete_protection"`
@@ -746,7 +787,6 @@ type Deployment struct {
 	AppID                         string                            `db:"app_id"`
 	Source                        DeploymentsSource                 `db:"source"`
 	ImageRequested                sql.NullString                    `db:"image_requested"`
-	Image                         sql.NullString                    `db:"image"`
 	ImageResolved                 sql.NullString                    `db:"image_resolved"`
 	BuildID                       sql.NullString                    `db:"build_id"`
 	GitCommitSha                  sql.NullString                    `db:"git_commit_sha"`
@@ -921,6 +961,7 @@ type Portal struct {
 	Pk           uint64         `db:"pk"`
 	ID           string         `db:"id"`
 	WorkspaceID  string         `db:"workspace_id"`
+	ProjectID    string         `db:"project_id"`
 	Slug         string         `db:"slug"`
 	DisplayName  string         `db:"display_name"`
 	AppID        sql.NullString `db:"app_id"`
@@ -939,7 +980,6 @@ type PortalSession struct {
 	PortalID              string          `db:"portal_id"`
 	ExternalID            string          `db:"external_id"`
 	Scopes                json.RawMessage `db:"scopes"`
-	Preview               bool            `db:"preview"`
 	ExchangeCodeHash      string          `db:"exchange_code_hash"`
 	ExchangeCodeExpiresAt int64           `db:"exchange_code_expires_at"`
 	AccessTokenHash       sql.NullString  `db:"access_token_hash"`
@@ -1028,13 +1068,29 @@ type RolesPermission struct {
 	UpdatedAtM   sql.NullInt64 `db:"updated_at_m"`
 }
 
+type UnkeyRootKey struct {
+	Pk          uint64         `db:"pk"`
+	ID          string         `db:"id"`
+	WorkspaceID string         `db:"workspace_id"`
+	Hash        string         `db:"hash"`
+	Name        sql.NullString `db:"name"`
+	Prefix      string         `db:"prefix"`
+	Start       string         `db:"start"`
+	End         string         `db:"end"`
+	Enabled     bool           `db:"enabled"`
+	Expires     sql.NullInt64  `db:"expires"`
+	CreatedAt   int64          `db:"created_at"`
+	LastUsedAt  uint64         `db:"last_used_at"`
+	DeletedAt   sql.NullInt64  `db:"deleted_at"`
+}
+
 type Workspace struct {
 	Pk               uint64          `db:"pk"`
 	ID               string          `db:"id"`
 	OrgID            string          `db:"org_id"`
 	Name             string          `db:"name"`
 	Slug             string          `db:"slug"`
-	K8sNamespace     sql.NullString  `db:"k8s_namespace"`
+	K8sNamespace     string          `db:"k8s_namespace"`
 	BetaFeatures     json.RawMessage `db:"beta_features"`
 	Subscriptions    []byte          `db:"subscriptions"`
 	Enabled          bool            `db:"enabled"`

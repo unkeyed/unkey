@@ -1,0 +1,83 @@
+---
+title: Unkey MCP servers
+sidebarTitle: "MCP servers"
+description: "Let an AI assistant manage your keys, APIs, and deployments through Unkey's hosted MCP servers."
+sources:
+  - https://mcp.unkey.com/mcp/v2/install
+  - https://mcp.unkey.com/mcp/compute/install
+  - docs/product/platform/root-keys/overview.mdx
+---
+
+With an Unkey MCP server added, your assistant can create keys, check analytics, or roll back a deployment when you ask it to in chat. It calls the Unkey API for you, using a root key you provide.
+
+## Choose a server
+
+| Server | URL | What it can do |
+| --- | --- | --- |
+| Unkey | `https://mcp.unkey.com/mcp/v2` | Every v2 API endpoint: keys, keyspaces, identities, permissions, rate limits, analytics, portals, and Compute |
+| Compute | `https://mcp.unkey.com/mcp/compute` | Projects, apps, environments and their variables, deployments, domains, gateway policies, and the GitHub app |
+
+Add the Unkey server if you're not sure. If you only use Compute, the Compute server gives your assistant a shorter list of tools to choose from.
+
+## Create a root key
+
+The server acts with the permissions of the root key you give it, so create a key just for your assistant.
+
+1. Under **Settings > Root Keys**, click **New root key** and name it after the assistant, for example "Claude Code".
+2. Select only the permissions for what you want the assistant to do. See [Root key permissions](/platform/root-keys/permissions).
+3. Copy the key and store it as an environment variable, for example `UNKEY_ROOT_KEY`.
+
+See [Root keys](/platform/root-keys/overview) for how to rotate or delete the key later.
+
+## Connect your client
+
+Every client needs the server URL and one header with your root key:
+
+```text
+Mcp-Unkey-V2-Bearer: <your root key>
+```
+
+Both servers use the same header. Most clients take a JSON entry like this one:
+
+```json
+{
+  "mcpServers": {
+    "unkey": {
+      "url": "https://mcp.unkey.com/mcp/v2",
+      "headers": {
+        "Mcp-Unkey-V2-Bearer": "<your root key>"
+      }
+    }
+  }
+}
+```
+
+For steps in a specific client, see [Claude Code](/platform/ai-coding/claude-code), [Cursor](/platform/ai-coding/cursor), or [Other clients](/platform/ai-coding/other-clients). The [Unkey server's install page](https://mcp.unkey.com/mcp/v2/install) and the [Compute server's install page](https://mcp.unkey.com/mcp/compute/install) also list every tool and have snippets for each client.
+
+## Try it
+
+Ask in plain language. The assistant picks the tools and fills in the IDs.
+
+```text
+Create a key in my production keyspace for user_123 that allows 100 requests per minute.
+```
+
+```text
+How many verifications did my production keyspace get yesterday, broken down by outcome?
+```
+
+```text
+Show the latest deployment for my api app's production environment, then roll back to the one before it.
+```
+
+```text
+Add the domain api.example.com to production and tell me which DNS records to create.
+```
+
+Most clients ask you to approve each tool call. Read what the assistant is about to do before you approve a change like deleting a key or promoting a deployment.
+
+## Fix connection problems
+
+- **The provided root key is invalid**: the key in the header is wrong, deleted, or rotated. See [key_not_found](/errors/unkey/authentication/key_not_found).
+- **Missing permissions**: the root key can't do what the assistant tried. Add the permission to the key or ask for something else. See [insufficient_permissions](/errors/unkey/authorization/insufficient_permissions).
+- **The server doesn't connect**: check that the URL matches the table exactly, with no trailing slash, and that the header is named `Mcp-Unkey-V2-Bearer`. Restart your client after you edit its config.

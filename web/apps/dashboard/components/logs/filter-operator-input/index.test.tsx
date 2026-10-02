@@ -2,7 +2,7 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { FilterOperatorInput } from ".";
 
-vi.mock("@unkey/icons", () => ({ Check: () => null }));
+vi.mock("@unkey/icons", () => ({ IconCheckOutline18: () => null }));
 vi.mock("@unkey/ui", () => ({ Button: "button", Textarea: "textarea" }));
 
 describe("FilterOperatorInput", () => {

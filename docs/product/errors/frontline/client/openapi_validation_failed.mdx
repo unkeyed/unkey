@@ -1,7 +1,63 @@
 ---
 title: "openapi_validation_failed"
-description: "InvalidRequest represents a 400 error - request does not conform to the OpenAPI spec"
+sidebarTitle: "openapi_validation_failed"
+description: "The request does not match the OpenAPI spec the gateway validates against."
+sources:
+  - pkg/codes/frontline.go
+  - svc/frontline/middleware/observability.go
+  - svc/frontline/internal/policies/openapi/executor.go
+  - svc/frontline/internal/router/lookup.go
 ---
 
 <Danger>`err:frontline:client:openapi_validation_failed`</Danger>
 
+import { ProductLink } from "/snippets/product-link.jsx";
+
+The API you called runs on Unkey, and it checks every request against the owner's OpenAPI spec. Your request didn't match, so it wasn't forwarded. You get `400 Bad Request`, and the message names the first thing that failed.
+
+```json Example response
+{
+  "meta": {
+    "requestId": "req_3k2j1h0g9f8e7d6c"
+  },
+  "error": {
+    "code": "err:frontline:client:openapi_validation_failed",
+    "message": "..."
+  }
+}
+```
+
+Browsers get the same error as an HTML page.
+
+## If you're calling an API hosted on Unkey
+
+Read `error.message`. It names the first problem, such as an unknown path, a missing required field, or a value of the wrong type. Fix it and retry. If there are more problems, the next attempt reports the next one. Check these against the owner's published spec:
+
+- The path and method.
+- The `Content-Type` header.
+- Required query parameters.
+- The request body.
+
+## If you own this API
+
+The gateway checks requests against the OpenAPI spec from your deployment, or against a spec attached to the policy if the deployment has none. With no spec at all, every request goes through. If only malformed requests are rejected, the policy is doing its job. If real requests are rejected, the spec is stricter than your <Tooltip tip="A Compute app: a deployable service inside a project. Not your application in general.">app</Tooltip>. Common causes:
+
+- A field your app treats as optional is required in the spec.
+- A path or method is missing from the spec.
+- The spec doesn't allow a content type your app accepts.
+
+### How to fix
+
+1. Update the spec: mark optional fields as optional, add missing paths or methods, and allow the content types you accept.
+2. Create a new deployment so the gateway uses the updated spec.
+
+If the spec itself is broken, every matched request gets [`invalid_configuration`](/errors/frontline/config/invalid_configuration) instead.
+
+<ProductLink product="compute" href="/compute/gateway/errors" title="Compute gateway">
+  Gateway policies, deployments, and domains are Compute features. The Compute docs explain how to configure them.
+</ProductLink>
+
+## Related errors
+
+- [`err:frontline:config:invalid_configuration`](/errors/frontline/config/invalid_configuration): the spec couldn't be compiled.
+- [`err:frontline:client:firewall_denied`](/errors/frontline/client/firewall_denied): a request blocked by a firewall rule rather than by schema validation.

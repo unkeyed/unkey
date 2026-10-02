@@ -40,16 +40,15 @@ func TestUpdateAppSuccessfully(t *testing.T) {
 		Slug:        projectSlug,
 	})
 
-	createApp := func(t *testing.T, name, defaultBranch string) (string, string) {
+	createApp := func(t *testing.T, name string) (string, string) {
 		t.Helper()
 		slug := strings.ToLower(strings.ReplaceAll(uid.New("test"), "_", "-"))
 		app := h.CreateApp(seed.CreateAppRequest{
-			ID:            uid.New(uid.AppPrefix),
-			WorkspaceID:   workspace.ID,
-			ProjectID:     project.ID,
-			Name:          name,
-			Slug:          slug,
-			DefaultBranch: defaultBranch,
+			ID:          uid.New(uid.AppPrefix),
+			WorkspaceID: workspace.ID,
+			ProjectID:   project.ID,
+			Name:        name,
+			Slug:        slug,
 		})
 		return app.ID, slug
 	}
@@ -62,7 +61,7 @@ func TestUpdateAppSuccessfully(t *testing.T) {
 	}
 
 	t.Run("update name only", func(t *testing.T) {
-		id, slug := createApp(t, "Old Name", "main")
+		id, slug := createApp(t, "Old Name")
 		newName := "New Name"
 
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
@@ -82,7 +81,6 @@ func TestUpdateAppSuccessfully(t *testing.T) {
 		app := getApp(t, id)
 		require.Equal(t, newName, app.Name)
 		require.Equal(t, slug, app.Slug)
-		require.Equal(t, "main", app.DefaultBranch)
 		require.True(t, app.UpdatedAt.Valid)
 		require.Greater(t, app.UpdatedAt.Int64, int64(0))
 
@@ -99,7 +97,7 @@ func TestUpdateAppSuccessfully(t *testing.T) {
 	})
 
 	t.Run("update slug only", func(t *testing.T) {
-		id, _ := createApp(t, "Slug Change", "main")
+		id, _ := createApp(t, "Slug Change")
 		newSlug := strings.ToLower(strings.ReplaceAll(uid.New("test"), "_", "-"))
 
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
@@ -117,7 +115,7 @@ func TestUpdateAppSuccessfully(t *testing.T) {
 	})
 
 	t.Run("update delete protection only", func(t *testing.T) {
-		id, _ := createApp(t, "Keep Name", "main")
+		id, _ := createApp(t, "Keep Name")
 		protect := true
 
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
@@ -135,7 +133,7 @@ func TestUpdateAppSuccessfully(t *testing.T) {
 	})
 
 	t.Run("omitted fields keep non-default values", func(t *testing.T) {
-		id, _ := createApp(t, "Original", "main")
+		id, _ := createApp(t, "Original")
 
 		// Seeded apps start with delete protection off; turn it on so the
 		// subsequent name-only update has a non-default value to preserve.
@@ -164,7 +162,7 @@ func TestUpdateAppSuccessfully(t *testing.T) {
 	})
 
 	t.Run("update all fields together", func(t *testing.T) {
-		id, _ := createApp(t, "Before", "main")
+		id, _ := createApp(t, "Before")
 		newName := "After"
 		newSlug := strings.ToLower(strings.ReplaceAll(uid.New("test"), "_", "-"))
 		protect := true

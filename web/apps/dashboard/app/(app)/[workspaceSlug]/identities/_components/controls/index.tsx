@@ -1,10 +1,14 @@
+import { ResourceSearchInput } from "@/components/resource-search-input";
 import { ResourceListHeader } from "@unkey/ui";
-import { IdentitiesSearch } from "./identities-search";
 
 export function IdentitiesListControls() {
   return (
     <ResourceListHeader>
-      <IdentitiesSearch />
+      <ResourceSearchInput
+        queryKey="search"
+        label="Search identities"
+        placeholder="Search identities by ID or external ID..."
+      />
     </ResourceListHeader>
   );
 }

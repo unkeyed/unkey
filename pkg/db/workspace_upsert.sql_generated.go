@@ -18,9 +18,10 @@ INSERT INTO workspaces (
     slug,
     created_at_m,
     beta_features,
+    k8s_namespace,
     enabled,
     delete_protection
-) VALUES (?, ?, ?, ?, ?, ?, true, false)
+) VALUES (?, ?, ?, ?, ?, ?, ?, true, false)
 ON DUPLICATE KEY UPDATE
     beta_features = VALUES(beta_features),
     name = VALUES(name)
@@ -33,9 +34,11 @@ type UpsertWorkspaceParams struct {
 	Slug         string          `db:"slug"`
 	CreatedAtM   int64           `db:"created_at_m"`
 	BetaFeatures json.RawMessage `db:"beta_features"`
+	K8sNamespace string          `db:"k8s_namespace"`
 }
 
-// UpsertWorkspace
+// UpsertWorkspace seeds local workspaces while preserving fields that local tooling does not manage.
+// New rows receive a caller-generated Kubernetes namespace; existing rows retain their namespace.
 //
 //	INSERT INTO workspaces (
 //	    id,
@@ -44,9 +47,10 @@ type UpsertWorkspaceParams struct {
 //	    slug,
 //	    created_at_m,
 //	    beta_features,
+//	    k8s_namespace,
 //	    enabled,
 //	    delete_protection
-//	) VALUES (?, ?, ?, ?, ?, ?, true, false)
+//	) VALUES (?, ?, ?, ?, ?, ?, ?, true, false)
 //	ON DUPLICATE KEY UPDATE
 //	    beta_features = VALUES(beta_features),
 //	    name = VALUES(name)
@@ -58,6 +62,7 @@ func (q *Queries) UpsertWorkspace(ctx context.Context, db DBTX, arg UpsertWorksp
 		arg.Slug,
 		arg.CreatedAtM,
 		arg.BetaFeatures,
+		arg.K8sNamespace,
 	)
 	return err
 }

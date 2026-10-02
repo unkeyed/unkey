@@ -1,48 +1,43 @@
 "use client";
 
-import { Dots } from "@unkey/icons";
-import { ResourceListBody, ResourceListContent, ResourceListItem } from "@unkey/ui";
+import { IconDotsOutline12 } from "@unkey/icons";
+import { ResourceListBody, ResourceListContent, ResourceListItem, Skeleton } from "@unkey/ui";
 
-export function DeploymentsSkeleton() {
+export function DeploymentsSkeleton({ rows = 8 }: { rows?: number }) {
   return (
     <ResourceListContent aria-busy="true">
       <output className="sr-only">Loading deployments...</output>
       <ResourceListBody aria-hidden="true">
-        {Array.from({ length: 8 }).map((_, index) => (
+        {Array.from({ length: rows }).map((_, index) => (
           <ResourceListItem
             // biome-ignore lint/suspicious/noArrayIndexKey: skeleton rows are static and never reorder
             key={index}
-            className="flex flex-col gap-3 px-4 py-3 md:flex-row md:items-center md:gap-0"
+            className="flex items-center gap-3 px-4 py-2.5"
           >
-            {/* Identity + Status */}
-            <div className="flex items-center justify-between md:contents">
-              <div className="md:w-[20%] md:shrink-0 flex flex-col gap-1 min-w-0">
-                <div className="h-[14px] w-20 bg-grayA-3 rounded-sm animate-pulse" />
-                <div className="h-3 w-16 bg-grayA-3 rounded-sm animate-pulse" />
-              </div>
-              <div className="md:w-[20%] md:shrink-0">
-                <div className="h-5.5 w-20 bg-grayA-3 rounded-md animate-pulse" />
-              </div>
+            <div className="flex min-w-0 flex-1 items-center">
+              <Skeleton className="h-[14px] w-48" />
             </div>
-
-            {/* Source */}
-            <div className="md:w-[30%] md:shrink-0 flex flex-col gap-1 min-w-0">
-              <div className="flex items-center gap-2 min-w-0">
-                <div className="size-4 bg-grayA-3 rounded animate-pulse shrink-0" />
-                <div className="h-[14px] w-20 bg-grayA-3 rounded-sm animate-pulse" />
-                <div className="h-[14px] w-14 bg-grayA-3 rounded-sm animate-pulse" />
-              </div>
-              <div className="flex items-center gap-2 min-w-0">
-                <div className="size-4 bg-grayA-3 rounded animate-pulse shrink-0" />
-                <div className="h-3 w-32 bg-grayA-3 rounded-sm animate-pulse" />
-              </div>
+            <div className="flex w-44 shrink-0 items-center gap-2">
+              <Skeleton className="size-2 rounded-full" />
+              <Skeleton className="h-[14px] w-16" />
             </div>
-
-            {/* Meta */}
-            <div className="md:w-[30%] md:shrink-0 flex items-center md:justify-end gap-3">
-              <div className="h-[14px] w-12 bg-grayA-3 rounded-sm animate-pulse" />
-              <div className="size-5 bg-grayA-3 rounded-full animate-pulse" />
-              <Dots iconSize="sm-regular" className="text-gray-11 opacity-50" />
+            <div className="flex w-32 shrink-0 items-center">
+              <Skeleton className="h-5.5 w-24 rounded-md" />
+            </div>
+            <div className="hidden w-32 shrink-0 items-center gap-1.5 md:flex">
+              <Skeleton className="size-4 rounded" />
+              <Skeleton className="h-[14px] w-16" />
+            </div>
+            <div className="hidden w-40 shrink-0 items-center gap-2 lg:flex">
+              <Skeleton className="size-4 rounded" />
+              <Skeleton className="h-[14px] w-28" />
+            </div>
+            <div className="ml-auto flex shrink-0 items-center gap-3">
+              <div className="flex w-36 justify-end">
+                <Skeleton className="h-[14px] w-16" />
+              </div>
+              <Skeleton className="hidden size-5 rounded-full md:block" />
+              <IconDotsOutline12 className="text-gray-11 opacity-50" />
             </div>
           </ResourceListItem>
         ))}

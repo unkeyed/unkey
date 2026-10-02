@@ -14,9 +14,6 @@ export type Key = {
   createdAt: number;
   expires: number | null;
   enabled: boolean;
-  /** Daily verification buckets, oldest → newest. Empty until analytics wire-up. */
-  usage: number[];
-  errors?: number[];
 };
 
 /** A single page of keys plus the cursor to fetch the next one. */

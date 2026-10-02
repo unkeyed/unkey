@@ -13,25 +13,28 @@ import (
 	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 )
 
-const updateDeploymentStatusBatch = `-- name: UpdateDeploymentStatusBatch :exec
+const updateDeploymentStatusBatchIfActive = `-- name: UpdateDeploymentStatusBatchIfActive :exec
 UPDATE deployments
 SET status = ?, updated_at = ?
 WHERE id IN (/*SLICE:ids*/?)
+  AND status IN (/*SLICE:progressing_statuses*/?)
 `
 
-type UpdateDeploymentStatusBatchParams struct {
-	Status    mysqltype.DeploymentsStatus `db:"status"`
-	UpdatedAt sql.NullInt64               `db:"updated_at"`
-	Ids       []string                    `db:"ids"`
+type UpdateDeploymentStatusBatchIfActiveParams struct {
+	Status              mysqltype.DeploymentsStatus   `db:"status"`
+	UpdatedAt           sql.NullInt64                 `db:"updated_at"`
+	Ids                 []string                      `db:"ids"`
+	ProgressingStatuses []mysqltype.DeploymentsStatus `db:"progressing_statuses"`
 }
 
-// UpdateDeploymentStatusBatch
+// Batch form of UpdateDeploymentStatusIfActive.
 //
 //	UPDATE deployments
 //	SET status = ?, updated_at = ?
 //	WHERE id IN (/*SLICE:ids*/?)
-func (q *Queries) UpdateDeploymentStatusBatch(ctx context.Context, arg UpdateDeploymentStatusBatchParams) error {
-	query := updateDeploymentStatusBatch
+//	  AND status IN (/*SLICE:progressing_statuses*/?)
+func (q *Queries) UpdateDeploymentStatusBatchIfActive(ctx context.Context, arg UpdateDeploymentStatusBatchIfActiveParams) error {
+	query := updateDeploymentStatusBatchIfActive
 	var queryParams []interface{}
 	queryParams = append(queryParams, arg.Status)
 	queryParams = append(queryParams, arg.UpdatedAt)
@@ -42,6 +45,14 @@ func (q *Queries) UpdateDeploymentStatusBatch(ctx context.Context, arg UpdateDep
 		query = strings.Replace(query, "/*SLICE:ids*/?", strings.Repeat(",?", len(arg.Ids))[1:], 1)
 	} else {
 		query = strings.Replace(query, "/*SLICE:ids*/?", "NULL", 1)
+	}
+	if len(arg.ProgressingStatuses) > 0 {
+		for _, v := range arg.ProgressingStatuses {
+			queryParams = append(queryParams, v)
+		}
+		query = strings.Replace(query, "/*SLICE:progressing_statuses*/?", strings.Repeat(",?", len(arg.ProgressingStatuses))[1:], 1)
+	} else {
+		query = strings.Replace(query, "/*SLICE:progressing_statuses*/?", "NULL", 1)
 	}
 	_, err := q.db.ExecContext(ctx, query, queryParams...)
 	return err

@@ -1,10 +1,17 @@
 "use client";
 
+import { isDeploymentInFlight } from "@/lib/collections/deploy/deployment-status";
 import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
 import type { Router } from "@/lib/trpc/routers";
 import type { inferRouterOutputs } from "@trpc/server";
-import { CloudUp, Earth, Hammer2, LayerFront, Pulse, Sparkle3 } from "@unkey/icons";
+import {
+  IconCloudUploadOutline18,
+  IconEarthOutline18,
+  IconHammer2Outline18,
+  IconLayerFrontOutline18,
+  IconSparkle3Outline18,
+} from "@unkey/icons";
 import { P, match } from "@unkey/match";
 import { SettingCardGroup } from "@unkey/ui";
 import { useParams, usePathname, useRouter } from "next/navigation";
@@ -12,6 +19,7 @@ import { useEffect, useRef, useState } from "react";
 import { DeploymentDomainsCard } from "../../../../components/deployment-domains-card";
 import { useProjectData } from "../../../data-provider";
 import { useDeployment } from "../layout-provider";
+import { useBuildSteps } from "../use-build-steps";
 import { DeploymentBuildStepsTable } from "./build-steps-table/deployment-build-steps-table";
 import { DeploymentContainerLogsTable } from "./container-logs-table/deployment-container-logs-table";
 import { DeploymentStep } from "./deployment-step";
@@ -30,15 +38,7 @@ export function DeploymentProgress({ stepsData }: { stepsData?: StepsData }) {
   const workspaceSlug = params.workspaceSlug as string;
   const isFailed = deployment.status === "failed";
 
-  const buildSteps = trpc.deploy.deployment.buildSteps.useQuery(
-    {
-      deploymentId: deployment.id,
-      includeStepLogs: true,
-    },
-    {
-      refetchInterval: 1_000,
-    },
-  );
+  const buildSteps = useBuildSteps(deployment);
 
   const { getDomainsForDeployment, projectId } = useProjectData();
 
@@ -53,15 +53,18 @@ export function DeploymentProgress({ stepsData }: { stepsData?: StepsData }) {
     };
   }, [isFailed]);
 
-  const { building, deploying, network, queued, starting, finalizing } = stepsData ?? {};
+  const { building, deploying, network, queued, finalizing } = stepsData ?? {};
 
   const deploymentRuntimeLogs = trpc.deploy.deployment.runtimeLogs.useQuery(
     { deploymentId: deployment.id, limit: 50 },
-    { refetchInterval: deploying && !deploying.endedAt ? 2_000 : false },
+    {
+      refetchInterval:
+        isDeploymentInFlight(deployment.status) && deploying && !deploying.endedAt ? 2_000 : false,
+    },
   );
 
   const queuedImplicitlyComplete =
-    !queued && Boolean(starting ?? building ?? deploying ?? network ?? finalizing);
+    !queued && Boolean(building ?? deploying ?? network ?? finalizing);
 
   const domainsForDeployment = getDomainsForDeployment(deployment.id);
 
@@ -113,16 +116,6 @@ export function DeploymentProgress({ stepsData }: { stepsData?: StepsData }) {
     waitingMessage: "Waiting to queue",
   });
 
-  const startingStep = resolveDeploymentStep({
-    step: starting,
-    now,
-    isFailed,
-    skippable: false,
-    completedMessage: "Deployment has started",
-    inProgressMessage: "Deployment has started",
-    waitingMessage: "Preparing deployment for building",
-  });
-
   const deployingStep = resolveDeploymentStep({
     step: deploying,
     now,
@@ -170,18 +163,13 @@ export function DeploymentProgress({ stepsData }: { stepsData?: StepsData }) {
     <div className="flex flex-col gap-5">
       <SettingCardGroup>
         <DeploymentStep
-          icon={<LayerFront iconSize="sm-medium" className="size-[18px]" />}
+          icon={<IconLayerFrontOutline18 />}
           title="Deployment Queued"
           {...queuedStep}
         />
         <DeploymentStep
-          icon={<Pulse iconSize="sm-medium" className="size-[18px]" />}
-          title="Deployment Starting"
-          {...startingStep}
-        />
-        <DeploymentStep
           key={isPrebuilt ? "prebuilt" : "building"}
-          icon={<Hammer2 iconSize="sm-medium" className="size-[18px]" />}
+          icon={<IconHammer2Outline18 />}
           title="Building Image"
           truncateDescription={!building?.error}
           description={match(building)
@@ -231,7 +219,7 @@ export function DeploymentProgress({ stepsData }: { stepsData?: StepsData }) {
         />
         <DeploymentStep
           key={deploying ? "deploying-active" : "deploying-pending"}
-          icon={<CloudUp iconSize="sm-medium" className="size-[18px]" />}
+          icon={<IconCloudUploadOutline18 />}
           title="Deploying Containers"
           {...deployingStep}
           expandable={
@@ -245,13 +233,9 @@ export function DeploymentProgress({ stepsData }: { stepsData?: StepsData }) {
             ) : null
           }
         />
+        <DeploymentStep icon={<IconEarthOutline18 />} title="Assigning Domains" {...networkStep} />
         <DeploymentStep
-          icon={<Earth iconSize="sm-medium" className="size-[18px]" />}
-          title="Assigning Domains"
-          {...networkStep}
-        />
-        <DeploymentStep
-          icon={<Sparkle3 iconSize="sm-medium" className="size-[18px]" />}
+          icon={<IconSparkle3Outline18 />}
           title="Deployment finalizing"
           {...finalizingStep}
         />

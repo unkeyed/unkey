@@ -1,6 +1,6 @@
 "use client";
 
-import { useRequestLogsFilters } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/(project)/requests/hooks/use-request-logs-filters";
+import { useRequestLogsFilters } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/(project)/(deploy-data)/requests/hooks/use-request-logs-filters";
 import { useProjectData } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/data-provider";
 import {
   PAGINATED_LIST_PREFETCH_OPTIONS,
@@ -10,8 +10,9 @@ import {
   usePaginatedNavigation,
   usePaginatedPage,
 } from "@/hooks/use-paginated-list-query";
+import { getTimestampFromRelative } from "@/lib/duration";
 import { trpc } from "@/lib/trpc/client";
-import { DEFAULT_LOGS_SINCE, getTimestampFromRelative } from "@/lib/utils";
+import { DEFAULT_LOGS_SINCE } from "@/lib/utils";
 import type { RequestLogsResponse } from "@unkey/clickhouse/src/frontline";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 

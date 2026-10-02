@@ -20,7 +20,6 @@ const mocks = vi.hoisted(
 vi.mock("@/lib/portal/use-portal", () => ({
   usePortal: () => mocks.portalState,
   useUpdatePortal: () => mocks.updateMutation,
-  portalQueryKey: (keyAuthId: string) => ["portal", keyAuthId],
 }));
 
 vi.mock("@tanstack/react-query", () => ({
@@ -46,9 +45,10 @@ vi.mock("./setup-hero", () => ({
 }));
 
 vi.mock("@unkey/icons", () => ({
-  BookBookmark: () => null,
-  CircleWarning: () => null,
-  TriangleWarning2: () => null,
+  IconBookBookmarkOutline18: () => null,
+  IconCircleWarningOutline18: () => null,
+  IconTriangleWarningOutline18: () => null,
+  IconTriangleWarningOutline12: () => null,
 }));
 
 vi.mock("@unkey/ui", () => {

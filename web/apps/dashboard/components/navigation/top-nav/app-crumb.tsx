@@ -5,7 +5,7 @@ import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { collection } from "@/lib/collections";
 import { routes } from "@/lib/navigation/routes";
 import { eq, useLiveQuery } from "@tanstack/react-db";
-import { Github, Plus, Terminal } from "@unkey/icons";
+import { Github, IconPlusOutline18, IconTerminalOutline18 } from "@unkey/icons";
 import { Crumb } from "./crumb";
 import type { CrumbPopoverItem } from "./crumb-popover";
 
@@ -13,7 +13,12 @@ export function AppCrumb({ projectId, appId }: { projectId: string; appId: strin
   const workspace = useWorkspaceNavigation();
   const appHomeHref = useAppHomeHref();
   const appsQuery = useLiveQuery(
-    (q) => q.from({ app: collection.apps }).where(({ app }) => eq(app.projectId, projectId)),
+    (q) =>
+      q
+        .from({ app: collection.apps })
+        .where(({ app }) => eq(app.projectId, projectId))
+        .orderBy(({ app }) => app.updatedAt, { direction: "desc", nulls: "last" })
+        .orderBy(({ app }) => app.id, "desc"),
     [projectId],
   );
   const apps = appsQuery.data ?? [];
@@ -33,9 +38,9 @@ export function AppCrumb({ projectId, appId }: { projectId: string; appId: strin
     <Crumb
       icon={
         current?.repositoryFullName ? (
-          <Github className="size-3.5 text-accent-11" iconSize="sm-regular" />
+          <Github className="size-3.5 text-gray-11" />
         ) : (
-          <Terminal className="size-3.5 text-accent-11" iconSize="sm-regular" />
+          <IconTerminalOutline18 className="size-3.5 text-gray-11" />
         )
       }
       label={current?.name ?? appId}
@@ -46,7 +51,7 @@ export function AppCrumb({ projectId, appId }: { projectId: string; appId: strin
       searchPlaceholder="Find app..."
       emptyText="No apps found"
       footer={{
-        icon: Plus,
+        icon: IconPlusOutline18,
         label: "New app",
         href: routes.projects.apps.new({ workspaceSlug: workspace.slug, projectId }),
       }}

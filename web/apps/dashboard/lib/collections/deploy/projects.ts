@@ -9,31 +9,8 @@ const schema = z.object({
   id: z.string(),
   name: z.string(),
   slug: z.string(),
-  // Apps inside the project, newest first, for the card's app stack.
-  appCount: z.number().int(),
-  apps: z.array(
-    z.object({
-      id: z.string(),
-      name: z.string(),
-      source: z.enum(["github", "code"]),
-      repository: z.string().nullable(),
-    }),
-  ),
-  repositoryFullName: z.string().nullable(),
-  latestDeploymentId: z.string().nullable(),
-  currentDeploymentId: z.string().nullable(),
-  isRolledBack: z.boolean(),
-  // Flattened deployment fields for UI
-  commitTitle: z.string().nullable(),
-  commitSha: z.string().nullable(),
-  forkRepositoryFullName: z.string().nullable(),
-  prNumber: z.number().int().nullable(),
-  branch: z.string(),
-  author: z.string().nullable(),
-  authorAvatar: z.string().nullable(),
-  commitTimestamp: z.number().int().nullable(),
-  // Domain field
-  domain: z.string().nullable(),
+  isDefault: z.boolean(),
+  createdAt: z.number().int(),
 });
 
 export const createProjectRequestSchema = z.object({
@@ -52,20 +29,44 @@ export const createProjectRequestSchema = z.object({
 export type Project = z.infer<typeof schema>;
 export type CreateProjectRequestSchema = z.infer<typeof createProjectRequestSchema>;
 
+export function projectDisplayName(
+  project: Pick<Project, "name" | "isDefault">,
+  workspaceName: string,
+): string {
+  return project.isDefault ? workspaceName : project.name;
+}
+
 export const projects = createCollection<Project, string>(
   queryCollectionOptions({
     queryClient,
     queryKey: ["projects"],
     retry: 3,
     queryFn: async () => {
-      return await trpcClient.deploy.project.list.query();
+      const [pages, defaultProject] = await Promise.all([
+        getUnkeyClient().projects.listProjects({ limit: 100 }),
+        trpcClient.deploy.project.getDefault.query(),
+      ]);
+      const listed = (await Array.fromAsync(pages)).flatMap((page) =>
+        page.result.data.map(
+          (p): Project => ({
+            id: p.id,
+            name: p.name,
+            slug: p.slug,
+            isDefault: false,
+            createdAt: p.createdAt,
+          }),
+        ),
+      );
+      return defaultProject ? [{ ...defaultProject, isDefault: true }, ...listed] : listed;
     },
     getKey: (item) => item.id,
     onDelete: async ({ transaction }) => {
       const mutation = transaction.mutations[0];
       const projectId = mutation.original.id;
 
-      const deleteMutation = getUnkeyClient().projects.deleteProject({ project: projectId });
+      const deleteMutation = getUnkeyClient().projects.deleteProject({
+        project: projectId,
+      });
 
       toast.promise(deleteMutation, {
         loading: "Deleting project...",

@@ -1,0 +1,7482 @@
+[
+  {
+    "id": "api-management--analytics--overview--1",
+    "source": "api-management/analytics/overview.mdx",
+    "href": "/compute/observe/analytics-api",
+    "title": "Gateway request and runtime log analytics",
+    "evidence": "compute/observe/analytics-api.mdx",
+    "scene": {
+      "kind": "query",
+      "heading": "Compute analytics SQL",
+      "fields": [
+        [
+          "gateway_requests_v1",
+          "requests"
+        ],
+        [
+          "runtime_logs_v1",
+          "logs"
+        ],
+        [
+          "analytics API",
+          "SQL results"
+        ]
+      ],
+      "note": "Query the signals your app produces"
+    }
+  },
+  {
+    "id": "api-management--analytics--overview--2",
+    "source": "api-management/analytics/overview.mdx",
+    "href": "/api-management/analytics/query-language",
+    "title": "Analytics query language",
+    "evidence": "api-management/analytics/query-language.mdx",
+    "scene": {
+      "kind": "code",
+      "heading": "Aggregate verification outcomes",
+      "fields": [
+        [
+          "SELECT",
+          "outcome, count()"
+        ],
+        [
+          "FROM",
+          "key_verifications_v1"
+        ],
+        [
+          "GROUP BY",
+          "outcome"
+        ]
+      ],
+      "note": "Query public analytics tables"
+    }
+  },
+  {
+    "id": "api-management--analytics--overview--3",
+    "source": "api-management/analytics/overview.mdx",
+    "href": "/api-management/analytics/restrictions-and-quotas",
+    "title": "Analytics restrictions and quotas",
+    "evidence": "api-management/analytics/restrictions-and-quotas.mdx",
+    "scene": {
+      "kind": "bounds",
+      "heading": "Query guardrails",
+      "fields": [
+        [
+          "Statement",
+          "SELECT only"
+        ],
+        [
+          "Scope",
+          "workspace"
+        ],
+        [
+          "Execution",
+          "time budget"
+        ],
+        [
+          "Results",
+          "row limit"
+        ]
+      ],
+      "note": "Bounded queries, predictable load"
+    }
+  },
+  {
+    "id": "api-management--analytics--overview--4",
+    "source": "api-management/analytics/overview.mdx",
+    "href": "/api-management/analytics/examples",
+    "title": "Analytics query examples",
+    "evidence": "api-management/analytics/examples.mdx",
+    "scene": {
+      "kind": "bars",
+      "heading": "Inspect verification outcomes",
+      "fields": [
+        [
+          "Valid",
+          "accepted keys"
+        ],
+        [
+          "Expired",
+          "rejected keys"
+        ],
+        [
+          "Limited",
+          "rate limit reached"
+        ]
+      ],
+      "note": "Compare outcomes in your verification traffic"
+    }
+  },
+  {
+    "id": "api-management--analytics--overview--5",
+    "source": "api-management/analytics/overview.mdx",
+    "href": "/api-management/analytics/troubleshooting",
+    "title": "Analytics troubleshooting",
+    "evidence": "api-management/analytics/troubleshooting.mdx",
+    "scene": {
+      "kind": "decision",
+      "heading": "Diagnose a query",
+      "fields": [
+        [
+          "No rows",
+          "check time range"
+        ],
+        [
+          "400",
+          "check SQL shape"
+        ],
+        [
+          "429",
+          "check quota"
+        ],
+        [
+          "403",
+          "check root key"
+        ]
+      ],
+      "note": "Start with the response code"
+    }
+  },
+  {
+    "id": "api-management--authorization--overview--1",
+    "source": "api-management/authorization/overview.mdx",
+    "href": "/api-management/authorization/roles-and-permissions",
+    "title": "Roles and permissions",
+    "evidence": "api-management/authorization/roles-and-permissions.mdx",
+    "scene": {
+      "kind": "tree",
+      "heading": "Roles grant permissions",
+      "fields": [
+        [
+          "Role",
+          "editor"
+        ],
+        [
+          "Permission",
+          "documents.read"
+        ],
+        [
+          "Permission",
+          "documents.write"
+        ]
+      ],
+      "note": "Attach the role to a key"
+    }
+  },
+  {
+    "id": "api-management--authorization--overview--2",
+    "source": "api-management/authorization/overview.mdx",
+    "href": "/api-management/authorization/permission-queries",
+    "title": "Permission queries",
+    "evidence": "api-management/authorization/permission-queries.mdx",
+    "scene": {
+      "kind": "logic",
+      "heading": "Permission expressions",
+      "fields": [
+        [
+          "documents.read",
+          "required"
+        ],
+        [
+          "billing.read",
+          "OR"
+        ],
+        [
+          "billing.write",
+          "alternative"
+        ]
+      ],
+      "note": "AND binds tighter than OR"
+    }
+  },
+  {
+    "id": "api-management--authorization--overview--3",
+    "source": "api-management/authorization/overview.mdx",
+    "href": "/api-management/authorization/managing-key-permissions",
+    "title": "Managing key roles and permissions",
+    "evidence": "api-management/authorization/managing-key-permissions.mdx",
+    "scene": {
+      "kind": "table",
+      "heading": "Direct and inherited grants",
+      "fields": [
+        [
+          "Key",
+          "production"
+        ],
+        [
+          "Direct permission",
+          "documents.read"
+        ],
+        [
+          "Assigned role",
+          "editor"
+        ],
+        [
+          "Role permission",
+          "documents.write"
+        ]
+      ],
+      "note": "A key can receive permissions in both ways"
+    }
+  },
+  {
+    "id": "api-management--authorization--overview--4",
+    "source": "api-management/authorization/overview.mdx",
+    "href": "/api-management/keys/verifying-keys",
+    "title": "Verifying keys",
+    "evidence": "api-management/keys/verifying-keys.mdx",
+    "scene": {
+      "kind": "flow",
+      "heading": "Verification pipeline",
+      "fields": [
+        [
+          "Presented key",
+          "hash lookup"
+        ],
+        [
+          "Configured checks",
+          "evaluate"
+        ],
+        [
+          "Verdict",
+          "data.valid"
+        ]
+      ],
+      "note": "Read the verdict, not just HTTP 200"
+    }
+  },
+  {
+    "id": "api-management--cli--portal--create-portal--1",
+    "source": "api-management/cli/portal/create-portal.mdx",
+    "href": "/api-management/portal/overview",
+    "title": "Developer portal",
+    "evidence": "api-management/portal/overview.mdx"
+  },
+  {
+    "id": "api-management--cli--portal--create-portal--2",
+    "source": "api-management/cli/portal/create-portal.mdx",
+    "href": "/api-management/cli/portal/create-session",
+    "title": "create-session",
+    "evidence": "api-management/cli/portal/create-session.mdx"
+  },
+  {
+    "id": "api-management--cookbook--index--1",
+    "source": "api-management/cookbook/index.mdx",
+    "href": "/api-management/cookbook/per-user-rate-limit",
+    "title": "Per-user rate limits",
+    "evidence": "api-management/cookbook/per-user-rate-limit.mdx",
+    "scene": {
+      "kind": "tree",
+      "heading": "One user, multiple keys",
+      "fields": [
+        [
+          "Identity",
+          "user_123"
+        ],
+        [
+          "Key",
+          "mobile"
+        ],
+        [
+          "Key",
+          "server"
+        ]
+      ],
+      "note": "All keys share the identity limit"
+    }
+  },
+  {
+    "id": "api-management--cookbook--index--2",
+    "source": "api-management/cookbook/index.mdx",
+    "href": "/api-management/cookbook/endpoint-rate-limit",
+    "title": "Per-endpoint rate limits",
+    "evidence": "api-management/cookbook/endpoint-rate-limit.mdx",
+    "scene": {
+      "kind": "layers",
+      "heading": "Separate endpoint budgets",
+      "fields": [
+        [
+          "/search",
+          "search allowance"
+        ],
+        [
+          "/export",
+          "export allowance"
+        ],
+        [
+          "/reports",
+          "report allowance"
+        ]
+      ],
+      "note": "Give each operation its own named limit"
+    }
+  },
+  {
+    "id": "api-management--cookbook--index--3",
+    "source": "api-management/cookbook/index.mdx",
+    "href": "/api-management/cookbook/usage-billing",
+    "title": "Usage-based billing with credits",
+    "evidence": "api-management/cookbook/usage-billing.mdx",
+    "scene": {
+      "kind": "ledger",
+      "heading": "Charge for API usage",
+      "fields": [
+        [
+          "Starting balance",
+          "1000"
+        ],
+        [
+          "Request cost",
+          "10"
+        ],
+        [
+          "New balance",
+          "990"
+        ]
+      ],
+      "note": "Spend credits only on valid requests"
+    }
+  },
+  {
+    "id": "api-management--cookbook--index--4",
+    "source": "api-management/cookbook/index.mdx",
+    "href": "/api-management/cookbook/tiered-subscriptions",
+    "title": "Tiered subscriptions",
+    "evidence": "api-management/cookbook/tiered-subscriptions.mdx",
+    "scene": {
+      "kind": "tiers",
+      "heading": "Subscription entitlements",
+      "fields": [
+        [
+          "Free",
+          "starter allowance"
+        ],
+        [
+          "Pro",
+          "higher allowance"
+        ],
+        [
+          "Enterprise",
+          "custom allowance"
+        ]
+      ],
+      "note": "Store plan metadata on the key"
+    }
+  },
+  {
+    "id": "api-management--cookbook--index--5",
+    "source": "api-management/cookbook/index.mdx",
+    "href": "/api-management/cookbook/go-middleware",
+    "title": "Go middleware for net/http, Gin, and Echo",
+    "evidence": "api-management/cookbook/go-middleware.mdx",
+    "scene": {
+      "kind": "adapters",
+      "heading": "Go middleware adapters",
+      "fields": [
+        [
+          "Verifier",
+          "Unkey"
+        ],
+        [
+          "net/http",
+          "Handler"
+        ],
+        [
+          "Gin",
+          "HandlerFunc"
+        ],
+        [
+          "Echo",
+          "MiddlewareFunc"
+        ]
+      ],
+      "note": "One verifier, three HTTP adapters"
+    }
+  },
+  {
+    "id": "api-management--cookbook--index--6",
+    "source": "api-management/cookbook/index.mdx",
+    "href": "/api-management/cookbook/fastapi-auth",
+    "title": "FastAPI authentication",
+    "evidence": "api-management/cookbook/fastapi-auth.mdx",
+    "scene": {
+      "kind": "flow",
+      "heading": "FastAPI dependencies",
+      "fields": [
+        [
+          "Request",
+          "API key"
+        ],
+        [
+          "Depends",
+          "verify key"
+        ],
+        [
+          "Route",
+          "typed identity"
+        ]
+      ],
+      "note": "Reject before entering the route"
+    }
+  },
+  {
+    "id": "api-management--get-started--concepts--1",
+    "source": "api-management/get-started/concepts.mdx",
+    "href": "/api-management/get-started/quickstart",
+    "title": "Issue and verify your first key",
+    "evidence": "api-management/get-started/quickstart.mdx",
+    "scene": {
+      "kind": "steps",
+      "heading": "Create your first key",
+      "fields": [
+        [
+          "Keyspace",
+          "create"
+        ],
+        [
+          "API key",
+          "issue"
+        ],
+        [
+          "Verification",
+          "VALID"
+        ]
+      ],
+      "note": "From an empty workspace to a verdict"
+    }
+  },
+  {
+    "id": "api-management--get-started--concepts--2",
+    "source": "api-management/get-started/concepts.mdx",
+    "href": "/api-management/keyspaces/overview",
+    "title": "Keyspaces",
+    "evidence": "api-management/keyspaces/overview.mdx",
+    "scene": {
+      "kind": "tree",
+      "heading": "Keys belong to a keyspace",
+      "fields": [
+        [
+          "Keyspace",
+          "payments"
+        ],
+        [
+          "Key",
+          "server"
+        ],
+        [
+          "Key",
+          "mobile"
+        ],
+        [
+          "Key",
+          "integration"
+        ]
+      ],
+      "note": "Use separate keyspaces for separate APIs"
+    }
+  },
+  {
+    "id": "api-management--get-started--quickstart--1",
+    "source": "api-management/get-started/quickstart.mdx",
+    "href": "/api-management/keys/creating-keys",
+    "title": "Creating keys",
+    "evidence": "api-management/keys/creating-keys.mdx",
+    "scene": {
+      "kind": "form",
+      "heading": "Issue an API key",
+      "fields": [
+        [
+          "apiId",
+          "api_..."
+        ],
+        [
+          "prefix",
+          "sk_live"
+        ],
+        [
+          "name",
+          "production"
+        ],
+        [
+          "expires",
+          "optional"
+        ],
+        [
+          "meta",
+          "custom fields"
+        ],
+        [
+          "credits",
+          "optional balance"
+        ]
+      ],
+      "note": "Plaintext is returned when the key is created"
+    }
+  },
+  {
+    "id": "api-management--get-started--quickstart--2",
+    "source": "api-management/get-started/quickstart.mdx",
+    "href": "/api-management/keys/verifying-keys",
+    "title": "Verifying keys",
+    "evidence": "api-management/keys/verifying-keys.mdx",
+    "scene": {
+      "kind": "envelope",
+      "heading": "Verification response",
+      "fields": [
+        [
+          "HTTP",
+          "200"
+        ],
+        [
+          "valid",
+          "true"
+        ],
+        [
+          "code",
+          "VALID"
+        ],
+        [
+          "keyId",
+          "key_..."
+        ]
+      ],
+      "note": "The response carries one explicit outcome"
+    }
+  },
+  {
+    "id": "api-management--get-started--quickstart--3",
+    "source": "api-management/get-started/quickstart.mdx",
+    "href": "/api-management/keys/credits-and-refill",
+    "title": "Credits and refill",
+    "evidence": "api-management/keys/credits-and-refill.mdx",
+    "scene": {
+      "kind": "ledger",
+      "heading": "Spend a credit balance",
+      "fields": [
+        [
+          "Before",
+          "1000"
+        ],
+        [
+          "Cost",
+          "10"
+        ],
+        [
+          "After",
+          "990"
+        ]
+      ],
+      "note": "Deduction is atomic"
+    }
+  },
+  {
+    "id": "api-management--get-started--quickstart--4",
+    "source": "api-management/get-started/quickstart.mdx",
+    "href": "/api-management/get-started/concepts",
+    "title": "Keyspaces, keys, identities, and root keys",
+    "evidence": "api-management/get-started/concepts.mdx",
+    "scene": {
+      "kind": "form",
+      "heading": "Four objects, distinct jobs",
+      "fields": [
+        [
+          "Root key",
+          "manage Unkey"
+        ],
+        [
+          "Keyspace",
+          "group API keys"
+        ],
+        [
+          "API key",
+          "access your API"
+        ],
+        [
+          "Identity",
+          "group caller keys"
+        ]
+      ],
+      "note": "Root keys and user keys serve different APIs"
+    }
+  },
+  {
+    "id": "api-management--get-started--quickstart--5",
+    "source": "api-management/get-started/quickstart.mdx",
+    "href": "/compute/gateway/api-key-auth",
+    "title": "Verify at the gateway instead",
+    "evidence": "compute/gateway/api-key-auth.mdx",
+    "scene": {
+      "kind": "flow",
+      "heading": "Authenticate at the gateway",
+      "fields": [
+        [
+          "Caller",
+          "present API key"
+        ],
+        [
+          "Gateway",
+          "verify key"
+        ],
+        [
+          "App",
+          "verified principal"
+        ]
+      ],
+      "note": "Reject invalid keys before application code"
+    }
+  },
+  {
+    "id": "api-management--guides--bun--1",
+    "source": "api-management/guides/bun.mdx",
+    "href": "/api-management/keys/verifying-keys",
+    "title": "Verifying keys",
+    "evidence": "api-management/keys/verifying-keys.mdx",
+    "scene": {
+      "kind": "steps",
+      "heading": "Checks stop at first failure",
+      "fields": [
+        [
+          "Existence",
+          "first"
+        ],
+        [
+          "Enabled + expiry",
+          "then"
+        ],
+        [
+          "Permissions",
+          "before limits"
+        ],
+        [
+          "Credits",
+          "last"
+        ]
+      ],
+      "note": "Only fully valid requests spend credits"
+    }
+  },
+  {
+    "id": "api-management--guides--bun--2",
+    "source": "api-management/guides/bun.mdx",
+    "href": "/api-management/keys/credits-and-refill",
+    "title": "Credits and refill",
+    "evidence": "api-management/keys/credits-and-refill.mdx",
+    "scene": {
+      "kind": "cycle",
+      "heading": "Monthly refill",
+      "fields": [
+        [
+          "Remaining",
+          "50"
+        ],
+        [
+          "Refill amount",
+          "1000"
+        ],
+        [
+          "After refill",
+          "1000"
+        ]
+      ],
+      "note": "A refill replaces the balance"
+    }
+  },
+  {
+    "id": "api-management--guides--bun--3",
+    "source": "api-management/guides/bun.mdx",
+    "href": "/api-management/cookbook/index",
+    "title": "Cookbook",
+    "evidence": "api-management/cookbook/index.mdx",
+    "scene": {
+      "kind": "layers",
+      "heading": "Rate limit recipes",
+      "fields": [
+        [
+          "Per user",
+          "share across keys"
+        ],
+        [
+          "Per endpoint",
+          "name the limit"
+        ],
+        [
+          "Weighted cost",
+          "charge by operation"
+        ]
+      ],
+      "note": "Choose the allowance that fits your API"
+    }
+  },
+  {
+    "id": "api-management--guides--cloudflare-workers--1",
+    "source": "api-management/guides/cloudflare-workers.mdx",
+    "href": "/api-management/keys/verifying-keys",
+    "title": "Verifying keys",
+    "evidence": "api-management/keys/verifying-keys.mdx",
+    "scene": {
+      "kind": "compare",
+      "heading": "Hidden key existence",
+      "fields": [
+        [
+          "Missing key",
+          "NOT_FOUND"
+        ],
+        [
+          "Wrong keyspace",
+          "NOT_FOUND"
+        ]
+      ],
+      "note": "A caller cannot discover another keyspace"
+    }
+  },
+  {
+    "id": "api-management--guides--cloudflare-workers--2",
+    "source": "api-management/guides/cloudflare-workers.mdx",
+    "href": "/api-management/keys/credits-and-refill",
+    "title": "Credits and refill",
+    "evidence": "api-management/keys/credits-and-refill.mdx",
+    "scene": {
+      "kind": "timeline",
+      "heading": "Daily allowance",
+      "fields": [
+        [
+          "Morning",
+          "refill due"
+        ],
+        [
+          "Valid requests",
+          "spend balance"
+        ],
+        [
+          "Next day",
+          "restore allowance"
+        ]
+      ],
+      "note": "Daily refills follow the stored schedule"
+    }
+  },
+  {
+    "id": "api-management--guides--cloudflare-workers--3",
+    "source": "api-management/guides/cloudflare-workers.mdx",
+    "href": "/api-management/cookbook/index",
+    "title": "Cookbook",
+    "evidence": "api-management/cookbook/index.mdx",
+    "scene": {
+      "kind": "ledger",
+      "heading": "API billing recipes",
+      "fields": [
+        [
+          "Allowance",
+          "starting credits"
+        ],
+        [
+          "Operation",
+          "credit cost"
+        ],
+        [
+          "Refill",
+          "scheduled balance"
+        ]
+      ],
+      "note": "Turn usage into a spendable allowance"
+    }
+  },
+  {
+    "id": "api-management--guides--express--1",
+    "source": "api-management/guides/express.mdx",
+    "href": "/api-management/keys/verifying-keys",
+    "title": "Verifying keys",
+    "evidence": "api-management/keys/verifying-keys.mdx",
+    "scene": {
+      "kind": "timeline",
+      "heading": "Key expiration",
+      "fields": [
+        [
+          "Created",
+          "usable"
+        ],
+        [
+          "expires",
+          "Unix milliseconds"
+        ],
+        [
+          "After expiry",
+          "EXPIRED"
+        ]
+      ],
+      "note": "Expired keys fail verification"
+    }
+  },
+  {
+    "id": "api-management--guides--express--2",
+    "source": "api-management/guides/express.mdx",
+    "href": "/api-management/keys/credits-and-refill",
+    "title": "Credits and refill",
+    "evidence": "api-management/keys/credits-and-refill.mdx",
+    "scene": {
+      "kind": "compare",
+      "heading": "Credits and rate limits",
+      "fields": [
+        [
+          "Credits",
+          "total usage"
+        ],
+        [
+          "Rate limit",
+          "usage per window"
+        ]
+      ],
+      "note": "Use both for quota and burst control"
+    }
+  },
+  {
+    "id": "api-management--guides--express--3",
+    "source": "api-management/guides/express.mdx",
+    "href": "/api-management/cookbook/index",
+    "title": "Cookbook",
+    "evidence": "api-management/cookbook/index.mdx",
+    "scene": {
+      "kind": "tiers",
+      "heading": "Subscription recipes",
+      "fields": [
+        [
+          "Free",
+          "entry allowance"
+        ],
+        [
+          "Pro",
+          "expanded allowance"
+        ],
+        [
+          "Enterprise",
+          "custom plan"
+        ]
+      ],
+      "note": "Model product tiers with key metadata"
+    }
+  },
+  {
+    "id": "api-management--guides--go--1",
+    "source": "api-management/guides/go.mdx",
+    "href": "/api-management/keys/verifying-keys",
+    "title": "Verifying keys",
+    "evidence": "api-management/keys/verifying-keys.mdx",
+    "scene": {
+      "kind": "logic",
+      "heading": "Check required permissions",
+      "fields": [
+        [
+          "documents.read",
+          "AND"
+        ],
+        [
+          "billing.read",
+          "OR billing.write"
+        ]
+      ],
+      "note": "A permission query describes this request"
+    }
+  },
+  {
+    "id": "api-management--guides--go--2",
+    "source": "api-management/guides/go.mdx",
+    "href": "/api-management/keys/credits-and-refill",
+    "title": "Credits and refill",
+    "evidence": "api-management/keys/credits-and-refill.mdx",
+    "scene": {
+      "kind": "decision",
+      "heading": "Insufficient credits",
+      "fields": [
+        [
+          "Balance",
+          "5"
+        ],
+        [
+          "Cost",
+          "10"
+        ],
+        [
+          "Verdict",
+          "USAGE_EXCEEDED"
+        ]
+      ],
+      "note": "A rejected request leaves the balance unchanged"
+    }
+  },
+  {
+    "id": "api-management--guides--go--3",
+    "source": "api-management/guides/go.mdx",
+    "href": "/api-management/cookbook/index",
+    "title": "Cookbook",
+    "evidence": "api-management/cookbook/index.mdx",
+    "scene": {
+      "kind": "adapters",
+      "heading": "Choose a Go integration",
+      "fields": [
+        [
+          "Go API",
+          "shared verifier"
+        ],
+        [
+          "net/http",
+          "standard library"
+        ],
+        [
+          "Gin",
+          "router middleware"
+        ],
+        [
+          "Echo",
+          "router middleware"
+        ]
+      ],
+      "note": "Protect handlers with the framework you use"
+    }
+  },
+  {
+    "id": "api-management--guides--hono--1",
+    "source": "api-management/guides/hono.mdx",
+    "href": "/api-management/keys/verifying-keys",
+    "title": "Verifying keys",
+    "evidence": "api-management/keys/verifying-keys.mdx",
+    "scene": {
+      "kind": "matrix",
+      "heading": "Rate limits before credits",
+      "fields": [
+        [
+          "Limit passed",
+          "continue"
+        ],
+        [
+          "Limit failed",
+          "RATE_LIMITED"
+        ],
+        [
+          "Credits",
+          "unchanged on limit failure"
+        ]
+      ],
+      "note": "A failed limit does not spend the key balance"
+    }
+  },
+  {
+    "id": "api-management--guides--hono--2",
+    "source": "api-management/guides/hono.mdx",
+    "href": "/api-management/keys/credits-and-refill",
+    "title": "Credits and refill",
+    "evidence": "api-management/keys/credits-and-refill.mdx",
+    "scene": {
+      "kind": "code",
+      "heading": "Verify without spending",
+      "fields": [
+        [
+          "credits.cost",
+          "0"
+        ],
+        [
+          "Verification",
+          "run checks"
+        ],
+        [
+          "Balance",
+          "unchanged"
+        ]
+      ],
+      "note": "A zero-cost check still verifies the key"
+    }
+  },
+  {
+    "id": "api-management--guides--hono--3",
+    "source": "api-management/guides/hono.mdx",
+    "href": "/api-management/cookbook/index",
+    "title": "Cookbook",
+    "evidence": "api-management/cookbook/index.mdx",
+    "scene": {
+      "kind": "flow",
+      "heading": "FastAPI recipe",
+      "fields": [
+        [
+          "Dependency",
+          "extract key"
+        ],
+        [
+          "Verifier",
+          "check key"
+        ],
+        [
+          "Route",
+          "typed result"
+        ]
+      ],
+      "note": "Share authentication across Python routes"
+    }
+  },
+  {
+    "id": "api-management--guides--nextjs--1",
+    "source": "api-management/guides/nextjs.mdx",
+    "href": "/api-management/keys/verifying-keys",
+    "title": "Verifying keys",
+    "evidence": "api-management/keys/verifying-keys.mdx",
+    "scene": {
+      "kind": "token",
+      "heading": "Find the exact key",
+      "fields": [
+        [
+          "Prefix",
+          "part of plaintext"
+        ],
+        [
+          "Hash",
+          "identifies key"
+        ],
+        [
+          "Changed character",
+          "NOT_FOUND"
+        ]
+      ],
+      "note": "Pass the full presented key unchanged"
+    }
+  },
+  {
+    "id": "api-management--guides--nextjs--2",
+    "source": "api-management/guides/nextjs.mdx",
+    "href": "/api-management/keys/credits-and-refill",
+    "title": "Credits and refill",
+    "evidence": "api-management/keys/credits-and-refill.mdx",
+    "scene": {
+      "kind": "ledger",
+      "heading": "Add a purchased top-up",
+      "fields": [
+        [
+          "Before",
+          "1000"
+        ],
+        [
+          "Increment",
+          "5000"
+        ],
+        [
+          "After",
+          "6000"
+        ]
+      ],
+      "note": "A top-up does not change the refill schedule"
+    }
+  },
+  {
+    "id": "api-management--guides--nextjs--3",
+    "source": "api-management/guides/nextjs.mdx",
+    "href": "/api-management/cookbook/index",
+    "title": "Cookbook",
+    "evidence": "api-management/cookbook/index.mdx",
+    "scene": {
+      "kind": "compare",
+      "heading": "Choose a limiting recipe",
+      "fields": [
+        [
+          "Per user",
+          "across keys"
+        ],
+        [
+          "Per endpoint",
+          "separate budgets"
+        ]
+      ],
+      "note": "Pick the boundary your API needs"
+    }
+  },
+  {
+    "id": "api-management--guides--python--1",
+    "source": "api-management/guides/python.mdx",
+    "href": "/api-management/keys/verifying-keys",
+    "title": "Verifying keys",
+    "evidence": "api-management/keys/verifying-keys.mdx",
+    "scene": {
+      "kind": "request",
+      "heading": "Disabled key verdict",
+      "fields": [
+        [
+          "enabled",
+          "false"
+        ],
+        [
+          "valid",
+          "false"
+        ],
+        [
+          "code",
+          "DISABLED"
+        ]
+      ],
+      "note": "Disabled keys cannot pass verification"
+    }
+  },
+  {
+    "id": "api-management--guides--python--2",
+    "source": "api-management/guides/python.mdx",
+    "href": "/api-management/keys/credits-and-refill",
+    "title": "Credits and refill",
+    "evidence": "api-management/keys/credits-and-refill.mdx",
+    "scene": {
+      "kind": "form",
+      "heading": "Schedule a monthly refill",
+      "fields": [
+        [
+          "interval",
+          "monthly"
+        ],
+        [
+          "amount",
+          "10000"
+        ],
+        [
+          "refillDay",
+          "1"
+        ]
+      ],
+      "note": "Set the starting balance with the schedule"
+    }
+  },
+  {
+    "id": "api-management--guides--python--3",
+    "source": "api-management/guides/python.mdx",
+    "href": "/api-management/cookbook/index",
+    "title": "Cookbook",
+    "evidence": "api-management/cookbook/index.mdx",
+    "scene": {
+      "kind": "cycle",
+      "heading": "Credit refill recipe",
+      "fields": [
+        [
+          "Allocate",
+          "starting balance"
+        ],
+        [
+          "Spend",
+          "successful requests"
+        ],
+        [
+          "Refill",
+          "restore allowance"
+        ]
+      ],
+      "note": "Offer recurring usage allowances"
+    }
+  },
+  {
+    "id": "api-management--index--1",
+    "source": "api-management/index.mdx",
+    "href": "/api-management/get-started/quickstart",
+    "title": "Issue and verify your first key",
+    "evidence": "api-management/get-started/quickstart.mdx",
+    "scene": {
+      "kind": "flow",
+      "heading": "Issue and verify an API key",
+      "fields": [
+        [
+          "keys.createKey",
+          "sk_live_\u2026"
+        ],
+        [
+          "keys.verifyKey",
+          "VALID"
+        ]
+      ],
+      "note": "Authenticate the first request to your API"
+    }
+  },
+  {
+    "id": "api-management--index--2",
+    "source": "api-management/index.mdx",
+    "href": "/api-management/get-started/concepts",
+    "title": "Keyspaces, keys, identities, and root keys",
+    "evidence": "api-management/get-started/concepts.mdx",
+    "scene": {
+      "kind": "scope",
+      "heading": "Your API access model",
+      "fields": [
+        [
+          "Keyspace",
+          "groups customer keys"
+        ],
+        [
+          "Keys",
+          "Key A and Key B"
+        ],
+        [
+          "Identity",
+          "user_123"
+        ],
+        [
+          "Root key",
+          "authenticates calls to Unkey API"
+        ]
+      ],
+      "note": "Customer keys share an identity; the separate root credential authenticates calls to Unkey"
+    }
+  },
+  {
+    "id": "api-management--index--3",
+    "source": "api-management/index.mdx",
+    "href": "/api-management/keyspaces/overview",
+    "title": "Keyspaces",
+    "evidence": "api-management/keyspaces/overview.mdx",
+    "scene": {
+      "kind": "tree",
+      "heading": "Separate keys by API",
+      "fields": [
+        [
+          "Workspace",
+          "acme"
+        ],
+        [
+          "Keyspace",
+          "payments"
+        ],
+        [
+          "Keyspace",
+          "notifications"
+        ]
+      ],
+      "note": "Each keyspace holds one collection of keys"
+    }
+  },
+  {
+    "id": "api-management--index--4",
+    "source": "api-management/index.mdx",
+    "href": "/api-management/keys/creating-keys",
+    "title": "Creating keys",
+    "evidence": "api-management/keys/creating-keys.mdx",
+    "scene": {
+      "kind": "form",
+      "heading": "Choose what a key can do",
+      "fields": [
+        [
+          "Prefix",
+          "sk_live"
+        ],
+        [
+          "Permissions",
+          "orders.read"
+        ]
+      ],
+      "note": "Define the credential before issuing it"
+    }
+  },
+  {
+    "id": "api-management--index--5",
+    "source": "api-management/index.mdx",
+    "href": "/api-management/keys/verifying-keys",
+    "title": "Verifying keys",
+    "evidence": "api-management/keys/verifying-keys.mdx",
+    "scene": {
+      "kind": "request",
+      "heading": "Verify the presented key",
+      "fields": [
+        [
+          "Credential",
+          "presented API key"
+        ],
+        [
+          "Checks",
+          "configured verifier"
+        ],
+        [
+          "Verdict",
+          "VALID"
+        ]
+      ],
+      "note": "Verification returns a verdict for the presented credential"
+    }
+  },
+  {
+    "id": "api-management--index--6",
+    "source": "api-management/index.mdx",
+    "href": "/api-management/keys/credits-and-refill",
+    "title": "Credits and refill",
+    "evidence": "api-management/keys/credits-and-refill.mdx",
+    "scene": {
+      "kind": "request",
+      "heading": "Spend and refill credits",
+      "fields": [
+        [
+          "Allowance",
+          "finite balance"
+        ],
+        [
+          "Request",
+          "deduct cost"
+        ],
+        [
+          "Refill",
+          "scheduled reset"
+        ]
+      ],
+      "note": "Meter API usage against a credit balance"
+    }
+  },
+  {
+    "id": "api-management--index--7",
+    "source": "api-management/index.mdx",
+    "href": "/api-management/ratelimiting/overview",
+    "title": "Rate limiting, identities, and authorization",
+    "evidence": "api-management/ratelimiting/overview.mdx",
+    "scene": {
+      "kind": "compare",
+      "heading": "Bound requests in a time window",
+      "fields": [
+        [
+          "Limit",
+          "100 requests per minute"
+        ],
+        [
+          "Usage",
+          "requests over time"
+        ]
+      ],
+      "note": "Compare request volume with the configured rate limit"
+    }
+  },
+  {
+    "id": "api-management--index--8",
+    "source": "api-management/index.mdx",
+    "href": "/api-management/analytics/overview",
+    "title": "Analytics and audit logs",
+    "evidence": "api-management/analytics/overview.mdx",
+    "scene": {
+      "kind": "query",
+      "heading": "Query your API traffic",
+      "fields": [
+        [
+          "key_verifications_v1",
+          "key outcomes"
+        ],
+        [
+          "ratelimits_v1",
+          "limit decisions"
+        ],
+        [
+          "SQL",
+          "aggregate results"
+        ]
+      ],
+      "note": "Turn verification and limit events into analytics"
+    }
+  },
+  {
+    "id": "api-management--keyspaces--overview--1",
+    "source": "api-management/keyspaces/overview.mdx",
+    "href": "/api-management/keyspaces/settings",
+    "title": "Keyspace settings",
+    "evidence": "api-management/keyspaces/settings.mdx",
+    "scene": {
+      "kind": "form",
+      "heading": "Keyspace defaults",
+      "fields": [
+        [
+          "Prefix",
+          "sk_live"
+        ],
+        [
+          "Bytes",
+          "key length"
+        ],
+        [
+          "Recovery",
+          "opt in"
+        ],
+        [
+          "Protection",
+          "prevent deletion"
+        ]
+      ],
+      "note": "Defaults apply when issuing keys"
+    }
+  },
+  {
+    "id": "api-management--keyspaces--overview--2",
+    "source": "api-management/keyspaces/overview.mdx",
+    "href": "/api-management/keyspaces/listing-keys",
+    "title": "Listing keys",
+    "evidence": "api-management/keyspaces/listing-keys.mdx",
+    "scene": {
+      "kind": "pagination",
+      "heading": "List a keyspace",
+      "fields": [
+        [
+          "Page 1",
+          "key_01 \u00b7 key_02"
+        ],
+        [
+          "Cursor",
+          "next page"
+        ],
+        [
+          "Page 2",
+          "key_03 \u00b7 key_04"
+        ]
+      ],
+      "note": "Continue with the returned cursor"
+    }
+  },
+  {
+    "id": "api-management--portal--overview--1",
+    "source": "api-management/portal/overview.mdx",
+    "href": "/api-management/portal/sessions",
+    "title": "Portal sessions",
+    "evidence": "api-management/portal/sessions.mdx",
+    "scene": {
+      "kind": "sequence",
+      "heading": "Sign in to the portal",
+      "fields": [
+        [
+          "Your backend",
+          "create session"
+        ],
+        [
+          "Portal",
+          "exchange code"
+        ],
+        [
+          "Browser",
+          "session cookie"
+        ]
+      ],
+      "note": "Keep session creation on your backend"
+    }
+  },
+  {
+    "id": "api-management--portal--overview--2",
+    "source": "api-management/portal/overview.mdx",
+    "href": "/api-management/portal/end-user-experience",
+    "title": "What portal users can do",
+    "evidence": "api-management/portal/end-user-experience.mdx",
+    "scene": {
+      "kind": "tabs",
+      "heading": "Your customer portal",
+      "fields": [
+        [
+          "Keys",
+          "manage credentials"
+        ],
+        [
+          "Analytics",
+          "inspect usage"
+        ]
+      ],
+      "note": "A focused view for an end user"
+    }
+  },
+  {
+    "id": "api-management--ratelimiting--overview--1",
+    "source": "api-management/ratelimiting/overview.mdx",
+    "href": "/api-management/ratelimiting/how-it-works",
+    "title": "How rate limiting works",
+    "evidence": "api-management/ratelimiting/how-it-works.mdx",
+    "scene": {
+      "kind": "window",
+      "heading": "Sliding window",
+      "fields": [
+        [
+          "Previous",
+          "weighted count"
+        ],
+        [
+          "Current",
+          "full count"
+        ],
+        [
+          "Decision",
+          "effective count"
+        ]
+      ],
+      "note": "Capacity returns as the window slides"
+    }
+  },
+  {
+    "id": "api-management--ratelimiting--overview--2",
+    "source": "api-management/ratelimiting/overview.mdx",
+    "href": "/api-management/ratelimiting/limit-and-multi-limit",
+    "title": "ratelimit.limit and multiLimit",
+    "evidence": "api-management/ratelimiting/limit-and-multi-limit.mdx",
+    "scene": {
+      "kind": "batch",
+      "heading": "Check multiple limits",
+      "fields": [
+        [
+          "User",
+          "check"
+        ],
+        [
+          "Endpoint",
+          "check"
+        ],
+        [
+          "Workspace",
+          "check"
+        ]
+      ],
+      "note": "All checks count, or none do"
+    }
+  },
+  {
+    "id": "api-management--ratelimiting--overview--3",
+    "source": "api-management/ratelimiting/overview.mdx",
+    "href": "/api-management/ratelimiting/overrides",
+    "title": "Rate limit overrides",
+    "evidence": "api-management/ratelimiting/overrides.mdx",
+    "scene": {
+      "kind": "precedence",
+      "heading": "Override matching",
+      "fields": [
+        [
+          "Identifier",
+          "user_123"
+        ],
+        [
+          "Exact match",
+          "custom limit"
+        ],
+        [
+          "Pattern",
+          "shared override"
+        ],
+        [
+          "Default",
+          "request limit"
+        ]
+      ],
+      "note": "The matched override supplies the allowance"
+    }
+  },
+  {
+    "id": "api-management--ratelimiting--overview--4",
+    "source": "api-management/ratelimiting/overview.mdx",
+    "href": "/api-management/ratelimiting/key-and-identity-limits",
+    "title": "Key and identity rate limits",
+    "evidence": "api-management/ratelimiting/key-and-identity-limits.mdx",
+    "scene": {
+      "kind": "flow",
+      "heading": "Key and identity limits",
+      "fields": [
+        [
+          "Key limit",
+          "check allowance"
+        ],
+        [
+          "Identity limit",
+          "check shared budget"
+        ],
+        [
+          "Verification",
+          "both must pass"
+        ]
+      ],
+      "note": "A named limit can follow the key or its owner"
+    }
+  },
+  {
+    "id": "api-management--sdks--go--1",
+    "source": "api-management/sdks/go.mdx",
+    "href": "/platform/cli/overview",
+    "title": "The unkey CLI",
+    "evidence": "platform/cli/overview.mdx",
+    "scene": {
+      "kind": "terminal",
+      "heading": "Unkey from your terminal",
+      "fields": [
+        [
+          "unkey api",
+          "service commands"
+        ],
+        [
+          "unkey deploy",
+          "image deployment"
+        ],
+        [
+          "unkey auth",
+          "stored credentials"
+        ]
+      ],
+      "note": "Choose a command group, then an operation"
+    }
+  },
+  {
+    "id": "api-management--sdks--go--2",
+    "source": "api-management/sdks/go.mdx",
+    "href": "/api-management/api-reference/keys/verify-api-key",
+    "title": "API reference",
+    "evidence": "api-management/keys/verifying-keys.mdx",
+    "scene": {
+      "kind": "request",
+      "heading": "Verify through the HTTP API",
+      "fields": [
+        [
+          "POST",
+          "/v2/keys.verifyKey"
+        ],
+        [
+          "Authorization",
+          "Bearer root_key"
+        ],
+        [
+          "Body",
+          "API key"
+        ],
+        [
+          "Result",
+          "valid + code"
+        ]
+      ],
+      "note": "Call the same endpoint used by the Go SDK"
+    }
+  },
+  {
+    "id": "api-management--sdks--overview--1",
+    "source": "api-management/sdks/overview.mdx",
+    "href": "/api-management/sdks/typescript/api",
+    "title": "@unkey/api",
+    "evidence": "api-management/sdks/typescript/api.mdx",
+    "scene": {
+      "kind": "code",
+      "heading": "TypeScript client",
+      "fields": [
+        [
+          "import",
+          "{ Unkey }"
+        ],
+        [
+          "package",
+          "@unkey/api"
+        ],
+        [
+          "client",
+          "new Unkey(...)"
+        ],
+        [
+          "call",
+          "keys.verifyKey"
+        ]
+      ],
+      "note": "One typed client for the Unkey API"
+    }
+  },
+  {
+    "id": "api-management--sdks--overview--2",
+    "source": "api-management/sdks/overview.mdx",
+    "href": "/api-management/sdks/go",
+    "title": "Go SDK",
+    "evidence": "api-management/sdks/go.mdx",
+    "scene": {
+      "kind": "code",
+      "heading": "Go SDK v3",
+      "fields": [
+        [
+          "Module",
+          "github.com/unkeyed/unkey-go/v3"
+        ],
+        [
+          "Context",
+          "context.Context"
+        ],
+        [
+          "Operation",
+          "client.Keys.VerifyKey"
+        ]
+      ],
+      "note": "Use the generated Go client"
+    }
+  },
+  {
+    "id": "api-management--sdks--overview--3",
+    "source": "api-management/sdks/overview.mdx",
+    "href": "/api-management/sdks/python",
+    "title": "Python SDK",
+    "evidence": "api-management/sdks/python.mdx",
+    "scene": {
+      "kind": "code",
+      "heading": "Python SDK",
+      "fields": [
+        [
+          "package",
+          "unkey.py"
+        ],
+        [
+          "client",
+          "Unkey(...)"
+        ],
+        [
+          "sync",
+          "client calls"
+        ],
+        [
+          "async",
+          "async calls"
+        ]
+      ],
+      "note": "Use the generated Python client"
+    }
+  },
+  {
+    "id": "api-management--sdks--python--1",
+    "source": "api-management/sdks/python.mdx",
+    "href": "/api-management/keys/creating-keys",
+    "title": "Creating keys",
+    "evidence": "api-management/keys/creating-keys.mdx",
+    "scene": {
+      "kind": "form",
+      "heading": "Create a key from Python",
+      "fields": [
+        [
+          "Keyspace",
+          "api_..."
+        ],
+        [
+          "Key name",
+          "python service"
+        ],
+        [
+          "Metadata",
+          "custom fields"
+        ],
+        [
+          "Credits",
+          "optional limit"
+        ]
+      ],
+      "note": "Store the plaintext from the create response"
+    }
+  },
+  {
+    "id": "api-management--sdks--python--2",
+    "source": "api-management/sdks/python.mdx",
+    "href": "/api-management/api-reference/keys/verify-api-key",
+    "title": "API reference",
+    "evidence": "api-management/keys/verifying-keys.mdx",
+    "scene": {
+      "kind": "code",
+      "heading": "POST /v2/keys.verifyKey",
+      "fields": [
+        [
+          "Authorization",
+          "Bearer root_key"
+        ],
+        [
+          "Body",
+          "key"
+        ],
+        [
+          "Response",
+          "data.valid"
+        ],
+        [
+          "Outcome",
+          "data.code"
+        ]
+      ],
+      "note": "Read the full request and response schema"
+    }
+  },
+  {
+    "id": "api-management--sdks--typescript--api--1",
+    "source": "api-management/sdks/typescript/api.mdx",
+    "href": "/api-management/sdks/typescript/hono",
+    "title": "@unkey/hono and @unkey/nextjs",
+    "evidence": "api-management/sdks/typescript/hono.mdx",
+    "scene": {
+      "kind": "flow",
+      "heading": "Hono route protection",
+      "fields": [
+        [
+          "app.use",
+          "middleware"
+        ],
+        [
+          "verify",
+          "Unkey"
+        ],
+        [
+          "handler",
+          "validated request"
+        ]
+      ],
+      "note": "Verification runs before your handler"
+    }
+  },
+  {
+    "id": "api-management--sdks--typescript--api--2",
+    "source": "api-management/sdks/typescript/api.mdx",
+    "href": "/api-management/api-reference/keys/verify-api-key",
+    "title": "API reference",
+    "evidence": "api-management/keys/verifying-keys.mdx",
+    "scene": {
+      "kind": "envelope",
+      "heading": "POST /v2/keys.verifyKey",
+      "fields": [
+        [
+          "Authorization",
+          "Bearer root_key"
+        ],
+        [
+          "Response",
+          "data.valid"
+        ],
+        [
+          "Outcome",
+          "data.code"
+        ]
+      ],
+      "note": "Read the full request and response schema"
+    }
+  },
+  {
+    "id": "api-management--sdks--typescript--hono--1",
+    "source": "api-management/sdks/typescript/hono.mdx",
+    "href": "/api-management/keys/verifying-keys",
+    "title": "Verifying keys",
+    "evidence": "api-management/keys/verifying-keys.mdx",
+    "scene": {
+      "kind": "logs",
+      "heading": "Verification analytics",
+      "fields": [
+        [
+          "Outcome",
+          "recorded"
+        ],
+        [
+          "Tags",
+          "request context"
+        ],
+        [
+          "Latency",
+          "recorded"
+        ],
+        [
+          "Credits",
+          "spent amount"
+        ]
+      ],
+      "note": "Every verification produces an analytics record"
+    }
+  },
+  {
+    "id": "api-management--sdks--typescript--hono--2",
+    "source": "api-management/sdks/typescript/hono.mdx",
+    "href": "/api-management/sdks/typescript/api",
+    "title": "@unkey/api",
+    "evidence": "api-management/sdks/typescript/api.mdx",
+    "scene": {
+      "kind": "code",
+      "heading": "Share the TypeScript client",
+      "fields": [
+        [
+          "Package",
+          "@unkey/api"
+        ],
+        [
+          "Client",
+          "Unkey"
+        ],
+        [
+          "Server",
+          "Hono"
+        ],
+        [
+          "Credential",
+          "root key"
+        ]
+      ],
+      "note": "Use the SDK directly outside middleware too"
+    }
+  },
+  {
+    "id": "api-management--sdks--typescript--nextjs--1",
+    "source": "api-management/sdks/typescript/nextjs.mdx",
+    "href": "/api-management/keys/verifying-keys",
+    "title": "Verifying keys",
+    "evidence": "api-management/keys/verifying-keys.mdx",
+    "scene": {
+      "kind": "code",
+      "heading": "Handle an invalid result",
+      "fields": [
+        [
+          "data.valid",
+          "false"
+        ],
+        [
+          "data.code",
+          "EXPIRED"
+        ],
+        [
+          "Your handler",
+          "reject request"
+        ]
+      ],
+      "note": "HTTP 200 can contain a failed verification"
+    }
+  },
+  {
+    "id": "api-management--sdks--typescript--nextjs--2",
+    "source": "api-management/sdks/typescript/nextjs.mdx",
+    "href": "/api-management/sdks/typescript/api",
+    "title": "@unkey/api",
+    "evidence": "api-management/sdks/typescript/api.mdx",
+    "scene": {
+      "kind": "form",
+      "heading": "SDK calls from a route",
+      "fields": [
+        [
+          "Package",
+          "@unkey/api"
+        ],
+        [
+          "Root key",
+          "server environment"
+        ],
+        [
+          "Input",
+          "client API key"
+        ],
+        [
+          "Output",
+          "verification result"
+        ]
+      ],
+      "note": "Keep the root key in server-side code"
+    }
+  },
+  {
+    "id": "compute--build--build-secrets--1",
+    "source": "compute/build/build-secrets.mdx",
+    "href": "/compute/configure/environment-variables",
+    "title": "Environment variables",
+    "evidence": "compute/configure/environment-variables.mdx",
+    "scene": {
+      "kind": "form",
+      "heading": "Environment configuration",
+      "fields": [
+        [
+          "PORT",
+          "runtime port"
+        ],
+        [
+          "API_SECRET",
+          "encrypted"
+        ],
+        [
+          "Production",
+          "own values"
+        ],
+        [
+          "Preview",
+          "own values"
+        ],
+        [
+          "Change",
+          "next deployment"
+        ],
+        [
+          "Process",
+          "environment"
+        ]
+      ],
+      "note": "Configuration is scoped per environment"
+    }
+  },
+  {
+    "id": "compute--build--build-secrets--2",
+    "source": "compute/build/build-secrets.mdx",
+    "href": "/compute/build/dockerfile",
+    "title": "Dockerfile builds",
+    "evidence": "compute/build/dockerfile.mdx",
+    "scene": {
+      "kind": "code",
+      "heading": "Build from a Dockerfile",
+      "fields": [
+        [
+          "FROM",
+          "base image"
+        ],
+        [
+          "COPY",
+          "application"
+        ],
+        [
+          "RUN",
+          "build step"
+        ],
+        [
+          "CMD",
+          "start process"
+        ]
+      ],
+      "note": "The repository is the build context"
+    }
+  },
+  {
+    "id": "compute--build--dockerfile--1",
+    "source": "compute/build/dockerfile.mdx",
+    "href": "/compute/build/build-secrets",
+    "title": "Build-time secrets",
+    "evidence": "compute/build/build-secrets.mdx",
+    "scene": {
+      "kind": "vault",
+      "heading": "Secrets during a build",
+      "fields": [
+        [
+          "Stored value",
+          "encrypted"
+        ],
+        [
+          "Build mount",
+          "temporary"
+        ],
+        [
+          "Image layers",
+          "no secret"
+        ],
+        [
+          "Runtime",
+          "separate environment"
+        ]
+      ],
+      "note": "Keep credentials out of image layers"
+    }
+  },
+  {
+    "id": "compute--build--dockerfile--2",
+    "source": "compute/build/dockerfile.mdx",
+    "href": "/compute/configure/runtime-settings",
+    "title": "Runtime settings",
+    "evidence": "compute/configure/runtime-settings.mdx",
+    "scene": {
+      "kind": "form",
+      "heading": "Configure the container",
+      "fields": [
+        [
+          "Port",
+          "8080"
+        ],
+        [
+          "CPU",
+          "0.25 vCPU"
+        ],
+        [
+          "Memory",
+          "256 MiB"
+        ],
+        [
+          "Disk",
+          "ephemeral"
+        ],
+        [
+          "Command",
+          "image entrypoint"
+        ],
+        [
+          "Protocol",
+          "http1"
+        ]
+      ],
+      "note": "Settings apply to the next deployment"
+    }
+  },
+  {
+    "id": "compute--build--github--1",
+    "source": "compute/build/github.mdx",
+    "href": "/compute/configure/build-settings",
+    "title": "Build settings",
+    "evidence": "compute/configure/build-settings.mdx",
+    "scene": {
+      "kind": "form",
+      "heading": "Configure the build",
+      "fields": [
+        [
+          "Context",
+          "repository root"
+        ],
+        [
+          "Dockerfile",
+          "custom path"
+        ],
+        [
+          "Watch paths",
+          "changed files"
+        ],
+        [
+          "Auto deploy",
+          "enabled"
+        ]
+      ],
+      "note": "Control what builds and when"
+    }
+  },
+  {
+    "id": "compute--build--github--2",
+    "source": "compute/build/github.mdx",
+    "href": "/compute/concepts/production-and-preview",
+    "title": "Production and preview",
+    "evidence": "compute/concepts/production-and-preview.mdx",
+    "scene": {
+      "kind": "split",
+      "heading": "Production and preview",
+      "fields": [
+        [
+          "main",
+          "production"
+        ],
+        [
+          "Pull request",
+          "preview"
+        ],
+        [
+          "Promote",
+          "serve a deployment"
+        ],
+        [
+          "Rollback",
+          "restore a deployment"
+        ]
+      ],
+      "note": "Independent environments for each app"
+    }
+  },
+  {
+    "id": "compute--build--overview--1",
+    "source": "compute/build/overview.mdx",
+    "href": "/compute/build/dockerfile",
+    "title": "Dockerfile builds",
+    "evidence": "compute/build/dockerfile.mdx",
+    "scene": {
+      "kind": "layers",
+      "heading": "Dockerfile image layers",
+      "fields": [
+        [
+          "FROM",
+          "runtime base"
+        ],
+        [
+          "COPY",
+          "application files"
+        ],
+        [
+          "RUN",
+          "install dependencies"
+        ],
+        [
+          "CMD",
+          "launch application"
+        ]
+      ],
+      "note": "The build produces a runnable container image"
+    }
+  },
+  {
+    "id": "compute--build--overview--2",
+    "source": "compute/build/overview.mdx",
+    "href": "/compute/build/build-secrets",
+    "title": "Build-time secrets",
+    "evidence": "compute/build/build-secrets.mdx",
+    "scene": {
+      "kind": "flow",
+      "heading": "A secret stays out of the image",
+      "fields": [
+        [
+          "Secret",
+          "encrypted storage"
+        ],
+        [
+          "Build step",
+          "temporary mount"
+        ],
+        [
+          "Final image",
+          "no secret value"
+        ]
+      ],
+      "note": "Pass credentials to the build without baking them in"
+    }
+  },
+  {
+    "id": "compute--build--overview--3",
+    "source": "compute/build/overview.mdx",
+    "href": "/compute/configure/build-settings",
+    "title": "Build settings",
+    "evidence": "compute/configure/build-settings.mdx",
+    "scene": {
+      "kind": "form",
+      "heading": "Build inputs and triggers",
+      "fields": [
+        [
+          "Context",
+          "build directory"
+        ],
+        [
+          "Dockerfile",
+          "relative path"
+        ],
+        [
+          "Watch paths",
+          "trigger filter"
+        ],
+        [
+          "Auto deploy",
+          "on or off"
+        ]
+      ],
+      "note": "Save build configuration for the next deployment"
+    }
+  },
+  {
+    "id": "compute--build--overview--4",
+    "source": "compute/build/overview.mdx",
+    "href": "/compute/concepts/deployments",
+    "title": "Deployments",
+    "evidence": "compute/concepts/deployments.mdx",
+    "scene": {
+      "kind": "flow",
+      "heading": "A build becomes a deployment",
+      "fields": [
+        [
+          "Build",
+          "image ready"
+        ],
+        [
+          "Instances",
+          "starting"
+        ],
+        [
+          "Deployment",
+          "ready"
+        ]
+      ],
+      "note": "Follow the successful path from image to traffic"
+    }
+  },
+  {
+    "id": "compute--cli--analytics--get-gateway-requests--1",
+    "source": "compute/cli/analytics/get-gateway-requests.mdx",
+    "href": "/compute/observe/analytics-api",
+    "title": "Analytics tables",
+    "evidence": "compute/observe/analytics-api.mdx",
+    "scene": {
+      "kind": "query",
+      "heading": "Query gateway request logs",
+      "fields": [
+        [
+          "gateway_requests_v1",
+          "proxied requests"
+        ],
+        [
+          "runtime_logs_v1",
+          "application output"
+        ],
+        [
+          "SQL",
+          "filter and aggregate"
+        ]
+      ],
+      "note": "Inspect request traffic alongside runtime output"
+    }
+  },
+  {
+    "id": "compute--cli--analytics--get-runtime-logs--1",
+    "source": "compute/cli/analytics/get-runtime-logs.mdx",
+    "href": "/compute/observe/analytics-api",
+    "title": "Analytics tables",
+    "evidence": "compute/observe/analytics-api.mdx",
+    "scene": {
+      "kind": "code",
+      "heading": "Filter application output",
+      "fields": [
+        [
+          "FROM",
+          "runtime_logs_v1"
+        ],
+        [
+          "WHERE",
+          "deployment filter"
+        ],
+        [
+          "ORDER BY",
+          "time DESC"
+        ],
+        [
+          "LIMIT",
+          "100"
+        ]
+      ],
+      "note": "Use SQL to inspect recent runtime log rows"
+    }
+  },
+  {
+    "id": "compute--cli--apps--create-app--1",
+    "source": "compute/cli/apps/create-app.mdx",
+    "href": "/compute/concepts/projects-apps-environments",
+    "title": "Projects, apps, and environments",
+    "evidence": "compute/concepts/projects-apps-environments.mdx",
+    "scene": {
+      "kind": "tree",
+      "heading": "An app owns environments",
+      "fields": [
+        [
+          "Project / App",
+          "payments / api"
+        ],
+        [
+          "Environment",
+          "production"
+        ],
+        [
+          "Environment",
+          "preview"
+        ]
+      ],
+      "note": "Create the app inside a project"
+    }
+  },
+  {
+    "id": "compute--cli--apps--create-app--2",
+    "source": "compute/cli/apps/create-app.mdx",
+    "href": "/compute/get-started/deploy-from-github",
+    "title": "Deploy from GitHub",
+    "evidence": "compute/get-started/deploy-from-github.mdx",
+    "scene": {
+      "kind": "steps",
+      "heading": "Connect the new app to GitHub",
+      "fields": [
+        [
+          "Install",
+          "Unkey GitHub App"
+        ],
+        [
+          "Select",
+          "repository"
+        ],
+        [
+          "Connect",
+          "Compute app"
+        ],
+        [
+          "Push",
+          "start a build"
+        ]
+      ],
+      "note": "Turn a repository into a deployed application"
+    }
+  },
+  {
+    "id": "compute--cli--deploy--1",
+    "source": "compute/cli/deploy.mdx",
+    "href": "/compute/get-started/deploy-an-image",
+    "title": "Deploy an image",
+    "evidence": "compute/get-started/deploy-an-image.mdx",
+    "scene": {
+      "kind": "layers",
+      "heading": "Deploy a container image",
+      "fields": [
+        [
+          "Registry",
+          "prebuilt image"
+        ],
+        [
+          "Unkey",
+          "pull image"
+        ],
+        [
+          "Instances",
+          "start"
+        ],
+        [
+          "Domain",
+          "serve traffic"
+        ]
+      ],
+      "note": "Build the image in your own pipeline"
+    }
+  },
+  {
+    "id": "compute--cli--deploy--2",
+    "source": "compute/cli/deploy.mdx",
+    "href": "/compute/concepts/deployments",
+    "title": "Deployments",
+    "evidence": "compute/concepts/deployments.mdx",
+    "scene": {
+      "kind": "table",
+      "heading": "Read a deployment status",
+      "fields": [
+        [
+          "pending",
+          "queued"
+        ],
+        [
+          "building",
+          "image build"
+        ],
+        [
+          "starting",
+          "load configuration"
+        ],
+        [
+          "ready",
+          "serving traffic"
+        ],
+        [
+          "failed",
+          "inspect the reason"
+        ],
+        [
+          "stopped",
+          "not serving"
+        ]
+      ],
+      "note": "A status describes the current state, not a fixed sequence"
+    }
+  },
+  {
+    "id": "compute--cli--deploy--3",
+    "source": "compute/cli/deploy.mdx",
+    "href": "/platform/cli/authentication",
+    "title": "CLI authentication",
+    "evidence": "platform/cli/authentication.mdx",
+    "scene": {
+      "kind": "precedence",
+      "heading": "CLI root key sources",
+      "fields": [
+        [
+          "--root-key",
+          "explicit flag"
+        ],
+        [
+          "UNKEY_ROOT_KEY",
+          "environment"
+        ],
+        [
+          "Stored config",
+          "api commands"
+        ]
+      ],
+      "note": "unkey deploy does not read the config file"
+    }
+  },
+  {
+    "id": "compute--cli--deployments--create-deployment--1",
+    "source": "compute/cli/deployments/create-deployment.mdx",
+    "href": "/compute/concepts/deployments",
+    "title": "Deployments",
+    "evidence": "compute/concepts/deployments.mdx",
+    "scene": {
+      "kind": "flow",
+      "heading": "Start the container deployment",
+      "fields": [
+        [
+          "Image",
+          "registry reference"
+        ],
+        [
+          "Instances",
+          "pull and start"
+        ],
+        [
+          "Readiness",
+          "accept traffic"
+        ]
+      ],
+      "note": "Watch the new deployment become ready"
+    }
+  },
+  {
+    "id": "compute--cli--deployments--create-deployment--2",
+    "source": "compute/cli/deployments/create-deployment.mdx",
+    "href": "/compute/cli/deploy",
+    "title": "unkey deploy",
+    "evidence": "compute/cli/deploy.mdx",
+    "scene": {
+      "kind": "terminal",
+      "heading": "Deploy an image with the CLI",
+      "fields": [
+        [
+          "unkey deploy",
+          "ghcr.io/acme/api:v1"
+        ],
+        [
+          "--project",
+          "payments"
+        ],
+        [
+          "--app",
+          "api"
+        ],
+        [
+          "--environment",
+          "production"
+        ]
+      ],
+      "note": "Build elsewhere, then deploy the image"
+    }
+  },
+  {
+    "id": "compute--cli--deployments--promote-deployment--1",
+    "source": "compute/cli/deployments/promote-deployment.mdx",
+    "href": "/compute/concepts/production-and-preview#promote",
+    "title": "Production and preview",
+    "evidence": "compute/concepts/production-and-preview.mdx",
+    "scene": {
+      "kind": "swap",
+      "heading": "Promote a deployment",
+      "fields": [
+        [
+          "Ready deployment",
+          "candidate"
+        ],
+        [
+          "Production",
+          "target"
+        ],
+        [
+          "Traffic",
+          "new deployment"
+        ]
+      ],
+      "note": "Move production to the selected release"
+    }
+  },
+  {
+    "id": "compute--cli--deployments--rollback-deployment--1",
+    "source": "compute/cli/deployments/rollback-deployment.mdx",
+    "href": "/compute/concepts/production-and-preview#rollback",
+    "title": "Production and preview",
+    "evidence": "compute/concepts/production-and-preview.mdx",
+    "scene": {
+      "kind": "rewind",
+      "heading": "Roll back production",
+      "fields": [
+        [
+          "Current",
+          "release B"
+        ],
+        [
+          "Previous",
+          "release A"
+        ],
+        [
+          "Traffic",
+          "restored to A"
+        ]
+      ],
+      "note": "Return to a previously serving deployment"
+    }
+  },
+  {
+    "id": "compute--cli--deployments--start-deployment--1",
+    "source": "compute/cli/deployments/start-deployment.mdx",
+    "href": "/compute/concepts/production-and-preview#stop-and-start",
+    "title": "Production and preview",
+    "evidence": "compute/concepts/production-and-preview.mdx",
+    "scene": {
+      "kind": "switch",
+      "heading": "Stop and start",
+      "fields": [
+        [
+          "Running",
+          "serving"
+        ],
+        [
+          "Stopped",
+          "not serving"
+        ],
+        [
+          "Started",
+          "instances return"
+        ]
+      ],
+      "note": "Control the running state of a deployment"
+    }
+  },
+  {
+    "id": "compute--cli--deployments--stop-deployment--1",
+    "source": "compute/cli/deployments/stop-deployment.mdx",
+    "href": "/compute/concepts/production-and-preview#stop-and-start",
+    "title": "Production and preview",
+    "evidence": "compute/concepts/production-and-preview.mdx",
+    "scene": {
+      "kind": "flow",
+      "heading": "Stop serving a deployment",
+      "fields": [
+        [
+          "Running",
+          "receiving requests"
+        ],
+        [
+          "Stop",
+          "terminate instances"
+        ],
+        [
+          "Stopped",
+          "no traffic"
+        ]
+      ],
+      "note": "Restart the deployment when it is needed again"
+    }
+  },
+  {
+    "id": "compute--cli--domains--create-domain--1",
+    "source": "compute/cli/domains/create-domain.mdx",
+    "href": "/compute/networking/custom-domains",
+    "title": "Custom domains",
+    "evidence": "compute/networking/custom-domains.mdx",
+    "scene": {
+      "kind": "dns",
+      "heading": "Attach your domain",
+      "fields": [
+        [
+          "Hostname",
+          "api.acme.com"
+        ],
+        [
+          "CNAME",
+          "assigned target"
+        ],
+        [
+          "TXT",
+          "ownership proof"
+        ],
+        [
+          "Certificate",
+          "HTTPS"
+        ],
+        [
+          "Route",
+          "environment"
+        ]
+      ],
+      "note": "Verify DNS before serving your hostname"
+    }
+  },
+  {
+    "id": "compute--cli--domains--delete-domain--1",
+    "source": "compute/cli/domains/delete-domain.mdx",
+    "href": "/compute/networking/custom-domains",
+    "title": "Custom domains",
+    "evidence": "compute/networking/custom-domains.mdx",
+    "scene": {
+      "kind": "sequence",
+      "heading": "Reconnect a custom hostname",
+      "fields": [
+        [
+          "Add",
+          "api.acme.com"
+        ],
+        [
+          "Configure",
+          "DNS records"
+        ],
+        [
+          "Verify",
+          "domain ownership"
+        ],
+        [
+          "Route",
+          "target environment"
+        ]
+      ],
+      "note": "Manage the hostname and its routing together"
+    }
+  },
+  {
+    "id": "compute--cli--domains--get-domain--1",
+    "source": "compute/cli/domains/get-domain.mdx",
+    "href": "/compute/networking/custom-domains",
+    "title": "Custom domains",
+    "evidence": "compute/networking/custom-domains.mdx",
+    "scene": {
+      "kind": "certificate",
+      "heading": "Attach your domain",
+      "fields": [
+        [
+          "Hostname",
+          "api.acme.com"
+        ],
+        [
+          "TXT",
+          "ownership proof"
+        ],
+        [
+          "Certificate",
+          "HTTPS"
+        ],
+        [
+          "Route",
+          "environment"
+        ]
+      ],
+      "note": "Verify DNS before serving your hostname"
+    }
+  },
+  {
+    "id": "compute--cli--domains--list-domains--1",
+    "source": "compute/cli/domains/list-domains.mdx",
+    "href": "/compute/networking/custom-domains",
+    "title": "Custom domains",
+    "evidence": "compute/networking/custom-domains.mdx",
+    "scene": {
+      "kind": "form",
+      "heading": "Attach your domain",
+      "fields": [
+        [
+          "Hostname",
+          "api.acme.com"
+        ],
+        [
+          "Certificate",
+          "HTTPS"
+        ],
+        [
+          "Route",
+          "environment"
+        ]
+      ],
+      "note": "Verify DNS before serving your hostname"
+    }
+  },
+  {
+    "id": "compute--cli--domains--verify-domain--1",
+    "source": "compute/cli/domains/verify-domain.mdx",
+    "href": "/compute/networking/custom-domains",
+    "title": "Custom domains",
+    "evidence": "compute/networking/custom-domains.mdx",
+    "scene": {
+      "kind": "decision",
+      "heading": "Prove domain ownership",
+      "fields": [
+        [
+          "TXT record",
+          "ownership proof"
+        ],
+        [
+          "Verified",
+          "continue setup"
+        ],
+        [
+          "Missing",
+          "check DNS"
+        ]
+      ],
+      "note": "Publish the assigned record before verification"
+    }
+  },
+  {
+    "id": "compute--cli--environments--list-environment-variables--1",
+    "source": "compute/cli/environments/list-environment-variables.mdx",
+    "href": "/compute/configure/environment-variables",
+    "title": "Environment variables",
+    "evidence": "compute/configure/environment-variables.mdx",
+    "scene": {
+      "kind": "vault",
+      "heading": "Stored environment secrets",
+      "fields": [
+        [
+          "Environment",
+          "production"
+        ],
+        [
+          "Variable",
+          "API_SECRET"
+        ],
+        [
+          "At rest",
+          "encrypted"
+        ],
+        [
+          "Injection",
+          "container process"
+        ]
+      ],
+      "note": "Inspect the environment that owns the variables"
+    }
+  },
+  {
+    "id": "compute--cli--environments--list-environments--1",
+    "source": "compute/cli/environments/list-environments.mdx",
+    "href": "/compute/concepts/production-and-preview",
+    "title": "Production and preview",
+    "evidence": "compute/concepts/production-and-preview.mdx",
+    "scene": {
+      "kind": "tree",
+      "heading": "Choose an app environment",
+      "fields": [
+        [
+          "App",
+          "payments API"
+        ],
+        [
+          "Production",
+          "live traffic"
+        ],
+        [
+          "Preview",
+          "test changes"
+        ]
+      ],
+      "note": "Each environment has its own settings"
+    }
+  },
+  {
+    "id": "compute--cli--environments--remove-environment-variables--1",
+    "source": "compute/cli/environments/remove-environment-variables.mdx",
+    "href": "/compute/configure/environment-variables",
+    "title": "Environment variables",
+    "evidence": "compute/configure/environment-variables.mdx",
+    "scene": {
+      "kind": "compare",
+      "heading": "Remove an environment value",
+      "fields": [
+        [
+          "Before",
+          "OLD_TOKEN set"
+        ],
+        [
+          "After",
+          "OLD_TOKEN removed"
+        ],
+        [
+          "Running deploy",
+          "old snapshot"
+        ],
+        [
+          "Next deploy",
+          "new snapshot"
+        ]
+      ],
+      "note": "Deploy again to apply the changed variables"
+    }
+  },
+  {
+    "id": "compute--cli--environments--set-environment-variables--1",
+    "source": "compute/cli/environments/set-environment-variables.mdx",
+    "href": "/compute/configure/environment-variables",
+    "title": "Environment variables",
+    "evidence": "compute/configure/environment-variables.mdx",
+    "scene": {
+      "kind": "table",
+      "heading": "Environment configuration",
+      "fields": [
+        [
+          "PORT",
+          "runtime port"
+        ],
+        [
+          "Preview",
+          "own values"
+        ],
+        [
+          "Change",
+          "next deployment"
+        ],
+        [
+          "Process",
+          "environment"
+        ]
+      ],
+      "note": "Configuration is scoped per environment"
+    }
+  },
+  {
+    "id": "compute--cli--environments--update-settings--1",
+    "source": "compute/cli/environments/update-settings.mdx",
+    "href": "/compute/configure/runtime-settings",
+    "title": "Runtime settings",
+    "evidence": "compute/configure/runtime-settings.mdx",
+    "scene": {
+      "kind": "resources",
+      "heading": "Set container resources",
+      "fields": [
+        [
+          "CPU",
+          "vCPU allocation"
+        ],
+        [
+          "Memory",
+          "MiB allocation"
+        ],
+        [
+          "Disk",
+          "ephemeral storage"
+        ],
+        [
+          "Port",
+          "app listener"
+        ]
+      ],
+      "note": "Runtime settings apply to the next deployment"
+    }
+  },
+  {
+    "id": "compute--cli--environments--update-settings--2",
+    "source": "compute/cli/environments/update-settings.mdx",
+    "href": "/compute/configure/build-settings",
+    "title": "Build settings",
+    "evidence": "compute/configure/build-settings.mdx",
+    "scene": {
+      "kind": "form",
+      "heading": "Update build configuration",
+      "fields": [
+        [
+          "Dockerfile",
+          "path in repository"
+        ],
+        [
+          "Context",
+          "build root"
+        ],
+        [
+          "Watch paths",
+          "changed-file filter"
+        ],
+        [
+          "Auto deploy",
+          "enabled"
+        ]
+      ],
+      "note": "Control when and how the next build runs"
+    }
+  },
+  {
+    "id": "compute--cli--environments--update-settings--3",
+    "source": "compute/cli/environments/update-settings.mdx",
+    "href": "/compute/configure/health-checks",
+    "title": "Health checks",
+    "evidence": "compute/configure/health-checks.mdx",
+    "scene": {
+      "kind": "pulse",
+      "heading": "Readiness probe",
+      "fields": [
+        [
+          "GET",
+          "/healthz"
+        ],
+        [
+          "2xx",
+          "ready"
+        ],
+        [
+          "Failure",
+          "no traffic"
+        ],
+        [
+          "Threshold",
+          "restart instance"
+        ]
+      ],
+      "note": "Check the process before it receives traffic"
+    }
+  },
+  {
+    "id": "compute--cli--gateway--list-policies--1",
+    "source": "compute/cli/gateway/list-policies.mdx",
+    "href": "/compute/gateway/policies",
+    "title": "Gateway policies",
+    "evidence": "compute/gateway/policies.mdx",
+    "scene": {
+      "kind": "form",
+      "heading": "One gateway policy",
+      "fields": [
+        [
+          "name",
+          "Require a key"
+        ],
+        [
+          "enabled",
+          "true"
+        ],
+        [
+          "type",
+          "keyauth"
+        ],
+        [
+          "match",
+          "optional conditions"
+        ]
+      ],
+      "note": "Exactly one policy type is set"
+    }
+  },
+  {
+    "id": "compute--cli--gateway--set-policies--1",
+    "source": "compute/cli/gateway/set-policies.mdx",
+    "href": "/compute/gateway/policies",
+    "title": "Gateway policies",
+    "evidence": "compute/gateway/policies.mdx",
+    "scene": {
+      "kind": "logic",
+      "heading": "Match all conditions",
+      "fields": [
+        [
+          "Path",
+          "/internal/"
+        ],
+        [
+          "Method",
+          "POST"
+        ],
+        [
+          "Combination",
+          "AND"
+        ]
+      ],
+      "note": "Use separate policies to express OR"
+    }
+  },
+  {
+    "id": "compute--cli--gateway--update-policy--1",
+    "source": "compute/cli/gateway/update-policy.mdx",
+    "href": "/compute/gateway/policies",
+    "title": "Gateway policies",
+    "evidence": "compute/gateway/policies.mdx",
+    "scene": {
+      "kind": "steps",
+      "heading": "Order policies deliberately",
+      "fields": [
+        [
+          "Key auth",
+          "sets principal"
+        ],
+        [
+          "Rate limit",
+          "uses subject"
+        ],
+        [
+          "Logging",
+          "captures request"
+        ]
+      ],
+      "note": "A rejection stops evaluation"
+    }
+  },
+  {
+    "id": "compute--cli--github--install-app--1",
+    "source": "compute/cli/github/install-app.mdx",
+    "href": "/compute/get-started/deploy-from-github",
+    "title": "Deploy from GitHub",
+    "evidence": "compute/get-started/deploy-from-github.mdx",
+    "scene": {
+      "kind": "sequence",
+      "heading": "Authorize repository access",
+      "fields": [
+        [
+          "GitHub App",
+          "install"
+        ],
+        [
+          "Repositories",
+          "select access"
+        ],
+        [
+          "Unkey",
+          "connect repository"
+        ],
+        [
+          "Commit",
+          "trigger deployment"
+        ]
+      ],
+      "note": "Grant access only to the repositories you deploy"
+    }
+  },
+  {
+    "id": "compute--configure--build-settings--1",
+    "source": "compute/configure/build-settings.mdx",
+    "href": "/compute/build/overview",
+    "title": "Builds",
+    "evidence": "compute/build/overview.mdx",
+    "scene": {
+      "kind": "flow",
+      "heading": "From commit to image",
+      "fields": [
+        [
+          "Commit",
+          "source"
+        ],
+        [
+          "Builder",
+          "automatic or Dockerfile"
+        ],
+        [
+          "Image",
+          "build output"
+        ],
+        [
+          "Deployment",
+          "next stage"
+        ]
+      ],
+      "note": "Build slots control when work starts"
+    }
+  },
+  {
+    "id": "compute--configure--build-settings--2",
+    "source": "compute/configure/build-settings.mdx",
+    "href": "/compute/configure/runtime-settings",
+    "title": "Runtime settings",
+    "evidence": "compute/configure/runtime-settings.mdx",
+    "scene": {
+      "kind": "form",
+      "heading": "Configure the built container",
+      "fields": [
+        [
+          "Port",
+          "8080"
+        ],
+        [
+          "Protocol",
+          "http1"
+        ],
+        [
+          "Command",
+          "image entrypoint"
+        ],
+        [
+          "Storage",
+          "ephemeral"
+        ]
+      ],
+      "note": "Runtime settings control the container after the build"
+    }
+  },
+  {
+    "id": "compute--configure--environment-variables--1",
+    "source": "compute/configure/environment-variables.mdx",
+    "href": "/compute/build/build-secrets",
+    "title": "Build-time secrets",
+    "evidence": "compute/build/build-secrets.mdx",
+    "scene": {
+      "kind": "code",
+      "heading": "Secrets during a build",
+      "fields": [
+        [
+          "Stored value",
+          "encrypted"
+        ],
+        [
+          "Image layers",
+          "no secret"
+        ],
+        [
+          "Runtime",
+          "separate environment"
+        ]
+      ],
+      "note": "Keep credentials out of image layers"
+    }
+  },
+  {
+    "id": "compute--configure--environment-variables--2",
+    "source": "compute/configure/environment-variables.mdx",
+    "href": "/compute/configure/runtime-settings",
+    "title": "Runtime settings",
+    "evidence": "compute/configure/runtime-settings.mdx",
+    "scene": {
+      "kind": "form",
+      "heading": "Runtime configuration surfaces",
+      "fields": [
+        [
+          "Process",
+          "environment values"
+        ],
+        [
+          "Listener",
+          "port and protocol"
+        ],
+        [
+          "Resources",
+          "CPU and memory"
+        ],
+        [
+          "Probe",
+          "health check"
+        ]
+      ],
+      "note": "Configure the environment before its next deployment"
+    }
+  },
+  {
+    "id": "compute--configure--health-checks--1",
+    "source": "compute/configure/health-checks.mdx",
+    "href": "/compute/concepts/instances-and-autoscaling",
+    "title": "Instances and autoscaling",
+    "evidence": "compute/concepts/instances-and-autoscaling.mdx",
+    "scene": {
+      "kind": "readiness-instances",
+      "heading": "Scale running instances",
+      "fields": [
+        [
+          "Instance 1",
+          "ready"
+        ],
+        [
+          "Instance 2",
+          "ready"
+        ],
+        [
+          "Instance 3",
+          "starting"
+        ]
+      ],
+      "note": "Each region uses the same replica bounds"
+    }
+  },
+  {
+    "id": "compute--configure--health-checks--2",
+    "source": "compute/configure/health-checks.mdx",
+    "href": "/compute/concepts/deployments",
+    "title": "Deployments",
+    "evidence": "compute/concepts/deployments.mdx",
+    "scene": {
+      "kind": "decision",
+      "heading": "Wait for readiness",
+      "fields": [
+        [
+          "Probe",
+          "has the app started?"
+        ],
+        [
+          "Pass",
+          "route traffic"
+        ],
+        [
+          "Fail",
+          "keep waiting"
+        ]
+      ],
+      "note": "A running container must pass its configured probe"
+    }
+  },
+  {
+    "id": "compute--configure--limits--1",
+    "source": "compute/configure/limits.mdx",
+    "href": "/platform/billing/limits",
+    "title": "Limits",
+    "evidence": "platform/billing/limits.mdx",
+    "scene": {
+      "kind": "bounds",
+      "heading": "Workspace plan limits",
+      "fields": [
+        [
+          "API Management",
+          "keys and requests"
+        ],
+        [
+          "Compute",
+          "running resources"
+        ],
+        [
+          "Logs",
+          "retention"
+        ],
+        [
+          "Analytics",
+          "query quotas"
+        ]
+      ],
+      "note": "Inspect each limit alongside its usage"
+    }
+  },
+  {
+    "id": "compute--configure--limits--2",
+    "source": "compute/configure/limits.mdx",
+    "href": "/compute/configure/spend-budget",
+    "title": "Spend budget",
+    "evidence": "compute/configure/spend-budget.mdx",
+    "scene": {
+      "kind": "budget",
+      "heading": "Monthly spend budget",
+      "fields": [
+        [
+          "50%",
+          "email alert"
+        ],
+        [
+          "75%",
+          "email alert"
+        ],
+        [
+          "100%",
+          "optional suspension"
+        ]
+      ],
+      "note": "Stop compute at the budget if enabled"
+    }
+  },
+  {
+    "id": "compute--configure--runtime-settings--1",
+    "source": "compute/configure/runtime-settings.mdx",
+    "href": "/compute/configure/health-checks",
+    "title": "Health checks",
+    "evidence": "compute/configure/health-checks.mdx",
+    "scene": {
+      "kind": "pulse",
+      "heading": "Probe the configured listener",
+      "fields": [
+        [
+          "GET /healthz",
+          "200 OK"
+        ],
+        [
+          "Probe",
+          "passing"
+        ],
+        [
+          "Instance",
+          "ready"
+        ],
+        [
+          "Traffic",
+          "enabled"
+        ]
+      ],
+      "note": "Probe the process before sending requests"
+    }
+  },
+  {
+    "id": "compute--configure--runtime-settings--2",
+    "source": "compute/configure/runtime-settings.mdx",
+    "href": "/compute/concepts/instances-and-autoscaling",
+    "title": "Instances and autoscaling",
+    "evidence": "compute/concepts/instances-and-autoscaling.mdx",
+    "scene": {
+      "kind": "resources",
+      "heading": "Bounds for each region",
+      "fields": [
+        [
+          "Minimum",
+          "baseline instances"
+        ],
+        [
+          "Maximum",
+          "scaling ceiling"
+        ],
+        [
+          "CPU",
+          "scaling signal"
+        ],
+        [
+          "Memory",
+          "per-instance limit"
+        ]
+      ],
+      "note": "The same replica bounds apply in each selected region"
+    }
+  },
+  {
+    "id": "compute--configure--runtime-settings--3",
+    "source": "compute/configure/runtime-settings.mdx",
+    "href": "/compute/configure/limits",
+    "title": "Compute limits",
+    "evidence": "compute/configure/limits.mdx",
+    "scene": {
+      "kind": "bounds",
+      "heading": "Compute resource ceilings",
+      "fields": [
+        [
+          "Instance",
+          "CPU \u00b7 memory \u00b7 disk"
+        ],
+        [
+          "Workspace",
+          "total allocation"
+        ],
+        [
+          "Region",
+          "replica maximum"
+        ],
+        [
+          "Builds",
+          "concurrent slots"
+        ]
+      ],
+      "note": "Limits apply at different levels"
+    }
+  },
+  {
+    "id": "compute--configure--runtime-settings--4",
+    "source": "compute/configure/runtime-settings.mdx",
+    "href": "/compute/concepts/regions",
+    "title": "Regions",
+    "evidence": "compute/concepts/regions.mdx",
+    "scene": {
+      "kind": "regions",
+      "heading": "Run near your users",
+      "fields": [
+        [
+          "us-east-1",
+          "example region"
+        ],
+        [
+          "eu-central-1",
+          "example region"
+        ],
+        [
+          "Replicas",
+          "same min and max"
+        ],
+        [
+          "Failover",
+          "nearest running region"
+        ]
+      ],
+      "note": "Available regions are discovered from clusters"
+    }
+  },
+  {
+    "id": "compute--configure--spend-budget--1",
+    "source": "compute/configure/spend-budget.mdx",
+    "href": "/errors/frontline/capacity/spend_limit_reached",
+    "title": "err:frontline:capacity:spend_limit_reached",
+    "evidence": "errors/frontline/capacity/spend_limit_reached.mdx",
+    "scene": {
+      "kind": "error",
+      "heading": "spend limit reached",
+      "fields": [
+        [
+          "Gateway",
+          "Error response"
+        ],
+        [
+          "Code",
+          "spend_limit_reached"
+        ],
+        [
+          "Next step",
+          "Raise or remove budget"
+        ]
+      ],
+      "note": "Compute is paused because the workspace reached its monthly spend budget."
+    }
+  },
+  {
+    "id": "compute--configure--spend-budget--2",
+    "source": "compute/configure/spend-budget.mdx",
+    "href": "/compute/get-started/plans",
+    "title": "Compute plans",
+    "evidence": "compute/get-started/plans.mdx",
+    "scene": {
+      "kind": "tiers",
+      "heading": "Choose a Compute plan",
+      "fields": [
+        [
+          "Starter",
+          "2 vCPU / instance"
+        ],
+        [
+          "Pro",
+          "8 vCPU / instance"
+        ],
+        [
+          "Business",
+          "16 vCPU / instance"
+        ]
+      ],
+      "note": "A Compute plan enables deployment"
+    }
+  },
+  {
+    "id": "compute--configure--spend-budget--3",
+    "source": "compute/configure/spend-budget.mdx",
+    "href": "/platform/billing/usage",
+    "title": "Usage",
+    "evidence": "platform/billing/usage.mdx",
+    "scene": {
+      "kind": "bars",
+      "heading": "This month in your workspace",
+      "fields": [
+        [
+          "API Management",
+          "verifications"
+        ],
+        [
+          "Compute",
+          "resource usage"
+        ],
+        [
+          "Billing",
+          "month to date"
+        ]
+      ],
+      "note": "Usage is measured separately for each product"
+    }
+  },
+  {
+    "id": "compute--gateway--api-key-auth--1",
+    "source": "compute/gateway/api-key-auth.mdx",
+    "href": "/api-management/keys/creating-keys",
+    "title": "Keyspaces and keys",
+    "evidence": "api-management/keys/creating-keys.mdx",
+    "scene": {
+      "kind": "form",
+      "heading": "Issue the gateway credential",
+      "fields": [
+        [
+          "Keyspace",
+          "accepted by policy"
+        ],
+        [
+          "Name",
+          "service client"
+        ],
+        [
+          "Permissions",
+          "required access"
+        ],
+        [
+          "Credits",
+          "optional allowance"
+        ]
+      ],
+      "note": "Create a key your authentication policy will accept"
+    }
+  },
+  {
+    "id": "compute--gateway--api-key-auth--2",
+    "source": "compute/gateway/api-key-auth.mdx",
+    "href": "/compute/gateway/principal",
+    "title": "The principal header",
+    "evidence": "compute/gateway/principal.mdx",
+    "scene": {
+      "kind": "envelope",
+      "heading": "X-Unkey-Principal",
+      "fields": [
+        [
+          "Gateway",
+          "verify key"
+        ],
+        [
+          "Header",
+          "encoded principal"
+        ],
+        [
+          "App",
+          "read identity"
+        ]
+      ],
+      "note": "Trust the principal from the gateway"
+    }
+  },
+  {
+    "id": "compute--gateway--api-key-auth--3",
+    "source": "compute/gateway/api-key-auth.mdx",
+    "href": "/compute/gateway/errors",
+    "title": "Gateway errors",
+    "evidence": "compute/gateway/errors.mdx",
+    "scene": {
+      "kind": "matrix",
+      "heading": "Verification becomes a gateway error",
+      "fields": [
+        [
+          "Missing credential",
+          "401"
+        ],
+        [
+          "Rate limited",
+          "429"
+        ],
+        [
+          "Credits exhausted",
+          "429"
+        ]
+      ],
+      "note": "Read the gateway error after authentication fails"
+    }
+  },
+  {
+    "id": "compute--gateway--errors--1",
+    "source": "compute/gateway/errors.mdx",
+    "href": "/api-management/keys/verifying-keys",
+    "title": "Verifying keys",
+    "evidence": "api-management/keys/verifying-keys.mdx",
+    "scene": {
+      "kind": "decision",
+      "heading": "Permission failures",
+      "fields": [
+        [
+          "Malformed query",
+          "HTTP 400"
+        ],
+        [
+          "Missing grant",
+          "INSUFFICIENT_PERMISSIONS"
+        ],
+        [
+          "Satisfied query",
+          "continue"
+        ]
+      ],
+      "note": "Syntax errors differ from a rejected permission check"
+    }
+  },
+  {
+    "id": "compute--gateway--errors--2",
+    "source": "compute/gateway/errors.mdx",
+    "href": "/errors/overview",
+    "title": "Error catalog",
+    "evidence": "errors/overview.mdx",
+    "scene": {
+      "kind": "table",
+      "heading": "Find the error family",
+      "fields": [
+        [
+          "API errors",
+          "type and detail"
+        ],
+        [
+          "Gateway errors",
+          "code and message"
+        ],
+        [
+          "Request ID",
+          "meta.requestId"
+        ]
+      ],
+      "note": "Use the matching error page for recovery steps"
+    }
+  },
+  {
+    "id": "compute--gateway--errors--3",
+    "source": "compute/gateway/errors.mdx",
+    "href": "/compute/gateway/policies",
+    "title": "Gateway policies",
+    "evidence": "compute/gateway/policies.mdx",
+    "scene": {
+      "kind": "diff",
+      "heading": "Replace the policy list",
+      "fields": [
+        [
+          "setPolicies",
+          "complete array"
+        ],
+        [
+          "IDs",
+          "regenerated"
+        ],
+        [
+          "Write",
+          "atomic"
+        ]
+      ],
+      "note": "Send an empty array to remove all policies"
+    }
+  },
+  {
+    "id": "compute--gateway--firewall--1",
+    "source": "compute/gateway/firewall.mdx",
+    "href": "/compute/gateway/policies",
+    "title": "Gateway policies",
+    "evidence": "compute/gateway/policies.mdx",
+    "scene": {
+      "kind": "form",
+      "heading": "Patch one policy",
+      "fields": [
+        [
+          "policyId",
+          "selected rule"
+        ],
+        [
+          "Omitted fields",
+          "unchanged"
+        ],
+        [
+          "match: null",
+          "remove conditions"
+        ]
+      ],
+      "note": "updatePolicy changes a single stored rule"
+    }
+  },
+  {
+    "id": "compute--gateway--firewall--2",
+    "source": "compute/gateway/firewall.mdx",
+    "href": "/compute/gateway/rate-limiting",
+    "title": "Rate limit policy",
+    "evidence": "compute/gateway/rate-limiting.mdx",
+    "scene": {
+      "kind": "window",
+      "heading": "Gateway rate limit",
+      "fields": [
+        [
+          "IP",
+          "client bucket"
+        ],
+        [
+          "Header",
+          "custom bucket"
+        ],
+        [
+          "Subject",
+          "authenticated caller"
+        ],
+        [
+          "Window",
+          "request allowance"
+        ]
+      ],
+      "note": "Build bucket identifiers from the request"
+    }
+  },
+  {
+    "id": "compute--gateway--local-development--1",
+    "source": "compute/gateway/local-development.mdx",
+    "href": "/compute/gateway/principal",
+    "title": "The principal header",
+    "evidence": "compute/gateway/principal.mdx",
+    "scene": {
+      "kind": "code",
+      "heading": "A principal fixture",
+      "fields": [
+        [
+          "version",
+          "v1"
+        ],
+        [
+          "type",
+          "API_KEY"
+        ],
+        [
+          "subject",
+          "user_123"
+        ],
+        [
+          "source.key.keyId",
+          "key_123"
+        ]
+      ],
+      "note": "Use a test identity when exercising handlers locally"
+    }
+  },
+  {
+    "id": "compute--gateway--local-development--2",
+    "source": "compute/gateway/local-development.mdx",
+    "href": "/compute/gateway/policies",
+    "title": "Gateway policies",
+    "evidence": "compute/gateway/policies.mdx"
+  },
+  {
+    "id": "compute--gateway--logging--1",
+    "source": "compute/gateway/logging.mdx",
+    "href": "/compute/gateway/openapi-validation",
+    "title": "OpenAPI validation policy",
+    "evidence": "compute/gateway/openapi-validation.mdx",
+    "scene": {
+      "kind": "schema",
+      "heading": "Validate against OpenAPI",
+      "fields": [
+        [
+          "Path",
+          "known route"
+        ],
+        [
+          "Method",
+          "allowed operation"
+        ],
+        [
+          "Body",
+          "matching schema"
+        ],
+        [
+          "Invalid",
+          "reject before app"
+        ]
+      ],
+      "note": "The spec comes from the deployment"
+    }
+  },
+  {
+    "id": "compute--gateway--logging--2",
+    "source": "compute/gateway/logging.mdx",
+    "href": "/compute/gateway/policies",
+    "title": "Gateway policies",
+    "evidence": "compute/gateway/policies.mdx",
+    "scene": {
+      "kind": "timeline",
+      "heading": "Policy changes need a deploy",
+      "fields": [
+        [
+          "Stored environment",
+          "updated"
+        ],
+        [
+          "Existing deployment",
+          "old snapshot"
+        ],
+        [
+          "Next deployment",
+          "new policies"
+        ]
+      ],
+      "note": "Policies are copied at deployment creation"
+    }
+  },
+  {
+    "id": "compute--gateway--openapi-validation--1",
+    "source": "compute/gateway/openapi-validation.mdx",
+    "href": "/compute/gateway/logging",
+    "title": "Logging policy",
+    "evidence": "compute/gateway/logging.mdx",
+    "scene": {
+      "kind": "redaction",
+      "heading": "Capture selected request data",
+      "fields": [
+        [
+          "Headers",
+          "configured capture"
+        ],
+        [
+          "Authorization",
+          "redacted"
+        ],
+        [
+          "Body fields",
+          "x-unkey-redact annotation"
+        ]
+      ],
+      "note": "Sensitive body fields require schema annotations"
+    }
+  },
+  {
+    "id": "compute--gateway--openapi-validation--2",
+    "source": "compute/gateway/openapi-validation.mdx",
+    "href": "/compute/gateway/errors",
+    "title": "Gateway errors",
+    "evidence": "compute/gateway/errors.mdx",
+    "scene": {
+      "kind": "schema",
+      "heading": "Validation error responses",
+      "fields": [
+        [
+          "Request invalid",
+          "400"
+        ],
+        [
+          "Spec invalid",
+          "422"
+        ],
+        [
+          "Gateway body",
+          "code and message"
+        ]
+      ],
+      "note": "Match your request to the deployment spec"
+    }
+  },
+  {
+    "id": "compute--gateway--overview--1",
+    "source": "compute/gateway/overview.mdx",
+    "href": "/api-management/keys/creating-keys",
+    "title": "Keyspaces and keys",
+    "evidence": "api-management/keys/creating-keys.mdx",
+    "scene": {
+      "kind": "table",
+      "heading": "Issue an API key",
+      "fields": [
+        [
+          "apiId",
+          "api_..."
+        ],
+        [
+          "meta",
+          "custom fields"
+        ],
+        [
+          "credits",
+          "optional balance"
+        ]
+      ],
+      "note": "Plaintext is returned when the key is created"
+    }
+  },
+  {
+    "id": "compute--gateway--overview--2",
+    "source": "compute/gateway/overview.mdx",
+    "href": "/compute/gateway/policies",
+    "title": "Gateway policies",
+    "evidence": "compute/gateway/policies.mdx",
+    "scene": {
+      "kind": "table",
+      "heading": "Read policies in order",
+      "fields": [
+        [
+          "listPolicies",
+          "stored list"
+        ],
+        [
+          "id",
+          "returned identifier"
+        ],
+        [
+          "enabled",
+          "stored state"
+        ]
+      ],
+      "note": "Use returned IDs when updating a rule"
+    }
+  },
+  {
+    "id": "compute--gateway--overview--3",
+    "source": "compute/gateway/overview.mdx",
+    "href": "/compute/gateway/api-key-auth",
+    "title": "API key authentication policy",
+    "evidence": "compute/gateway/api-key-auth.mdx",
+    "scene": {
+      "kind": "scope",
+      "heading": "Accepted keyspaces",
+      "fields": [
+        [
+          "Policy",
+          "keyspace allowlist"
+        ],
+        [
+          "Presented key",
+          "belongs to keyspace"
+        ],
+        [
+          "Principal",
+          "verified identity"
+        ]
+      ],
+      "note": "Keyspaces must belong to the same project"
+    }
+  },
+  {
+    "id": "compute--gateway--overview--4",
+    "source": "compute/gateway/overview.mdx",
+    "href": "/compute/gateway/principal",
+    "title": "The principal header",
+    "evidence": "compute/gateway/principal.mdx",
+    "scene": {
+      "kind": "flow",
+      "heading": "X-Unkey-Principal",
+      "fields": [
+        [
+          "Gateway",
+          "verify key"
+        ],
+        [
+          "App",
+          "read identity"
+        ]
+      ],
+      "note": "Trust the principal from the gateway"
+    }
+  },
+  {
+    "id": "compute--gateway--overview--5",
+    "source": "compute/gateway/overview.mdx",
+    "href": "/compute/gateway/errors",
+    "title": "Gateway errors",
+    "evidence": "compute/gateway/errors.mdx",
+    "scene": {
+      "kind": "diagnostic",
+      "heading": "Find a gateway failure",
+      "fields": [
+        [
+          "Status",
+          "HTTP response"
+        ],
+        [
+          "Code",
+          "precise condition"
+        ],
+        [
+          "Cause",
+          "failed stage"
+        ]
+      ],
+      "note": "Look up the code before retrying"
+    }
+  },
+  {
+    "id": "compute--gateway--policies--1",
+    "source": "compute/gateway/policies.mdx",
+    "href": "/compute/gateway/api-key-auth",
+    "title": "API key authentication policy",
+    "evidence": "compute/gateway/api-key-auth.mdx",
+    "scene": {
+      "kind": "envelope",
+      "heading": "Forward the verified identity",
+      "fields": [
+        [
+          "API key",
+          "client credential"
+        ],
+        [
+          "Gateway",
+          "verification"
+        ],
+        [
+          "X-Unkey-Principal",
+          "application header"
+        ]
+      ],
+      "note": "The application receives the verified principal"
+    }
+  },
+  {
+    "id": "compute--gateway--policies--2",
+    "source": "compute/gateway/policies.mdx",
+    "href": "/compute/gateway/rate-limiting",
+    "title": "Rate limit policy",
+    "evidence": "compute/gateway/rate-limiting.mdx",
+    "scene": {
+      "kind": "layers",
+      "heading": "Choose a rate-limit bucket",
+      "fields": [
+        [
+          "Client IP",
+          "network identity"
+        ],
+        [
+          "Header",
+          "custom identifier"
+        ],
+        [
+          "Authenticated subject",
+          "verified caller"
+        ],
+        [
+          "Principal field",
+          "identity attribute"
+        ]
+      ],
+      "note": "Choose which requests share one allowance"
+    }
+  },
+  {
+    "id": "compute--gateway--policies--3",
+    "source": "compute/gateway/policies.mdx",
+    "href": "/compute/gateway/firewall",
+    "title": "Firewall policy",
+    "evidence": "compute/gateway/firewall.mdx",
+    "scene": {
+      "kind": "firewall",
+      "heading": "Block matching requests",
+      "fields": [
+        [
+          "Path",
+          "/internal/"
+        ],
+        [
+          "Method",
+          "POST or DELETE"
+        ],
+        [
+          "Action",
+          "ACTION_DENY"
+        ],
+        [
+          "Response",
+          "403"
+        ]
+      ],
+      "note": "Deny before the request reaches your app"
+    }
+  },
+  {
+    "id": "compute--gateway--policies--4",
+    "source": "compute/gateway/policies.mdx",
+    "href": "/compute/gateway/logging",
+    "title": "Logging policy",
+    "evidence": "compute/gateway/logging.mdx",
+    "scene": {
+      "kind": "form",
+      "heading": "Choose what logging captures",
+      "fields": [
+        [
+          "Headers",
+          "selected names"
+        ],
+        [
+          "Query",
+          "selected parameters"
+        ],
+        [
+          "Body",
+          "configured capture"
+        ],
+        [
+          "Secrets",
+          "redacted values"
+        ]
+      ],
+      "note": "Capture useful context without exposing credentials"
+    }
+  },
+  {
+    "id": "compute--gateway--principal--1",
+    "source": "compute/gateway/principal.mdx",
+    "href": "/compute/gateway/local-development",
+    "title": "Local development with the gateway",
+    "evidence": "compute/gateway/local-development.mdx",
+    "scene": {
+      "kind": "terminal",
+      "heading": "Test a principal locally",
+      "fields": [
+        [
+          "curl",
+          "localhost"
+        ],
+        [
+          "Header",
+          "X-Unkey-Principal"
+        ],
+        [
+          "Fixture",
+          "test identity"
+        ],
+        [
+          "Handler",
+          "read principal"
+        ]
+      ],
+      "note": "Use a test fixture while developing locally"
+    }
+  },
+  {
+    "id": "compute--gateway--principal--2",
+    "source": "compute/gateway/principal.mdx",
+    "href": "/compute/gateway/api-key-auth",
+    "title": "API key authentication policy",
+    "evidence": "compute/gateway/api-key-auth.mdx",
+    "scene": {
+      "kind": "steps",
+      "heading": "Enable authentication",
+      "fields": [
+        [
+          "Create",
+          "keyspace"
+        ],
+        [
+          "Issue",
+          "API keys"
+        ],
+        [
+          "Configure",
+          "key-auth policy"
+        ],
+        [
+          "Deploy",
+          "apply policy"
+        ]
+      ],
+      "note": "Keys are managed separately from gateway policies"
+    }
+  },
+  {
+    "id": "compute--gateway--rate-limiting--1",
+    "source": "compute/gateway/rate-limiting.mdx",
+    "href": "/compute/gateway/api-key-auth",
+    "title": "API key authentication policy",
+    "evidence": "compute/gateway/api-key-auth.mdx",
+    "scene": {
+      "kind": "decision",
+      "heading": "Gateway authentication verdict",
+      "fields": [
+        [
+          "Valid key",
+          "continue to app"
+        ],
+        [
+          "Invalid key",
+          "reject request"
+        ],
+        [
+          "Missing key",
+          "reject request"
+        ]
+      ],
+      "note": "Authentication runs before protected application code"
+    }
+  },
+  {
+    "id": "compute--gateway--rate-limiting--2",
+    "source": "compute/gateway/rate-limiting.mdx",
+    "href": "/compute/gateway/policies",
+    "title": "Gateway policies",
+    "evidence": "compute/gateway/policies.mdx",
+    "scene": {
+      "kind": "bounds",
+      "heading": "Policy configuration bounds",
+      "fields": [
+        [
+          "Policies",
+          "50 per environment"
+        ],
+        [
+          "Match expressions",
+          "10 per policy"
+        ],
+        [
+          "Keyspaces",
+          "5 per auth policy"
+        ]
+      ],
+      "note": "Validation happens before the write"
+    }
+  },
+  {
+    "id": "compute--get-started--deploy-an-image--1",
+    "source": "compute/get-started/deploy-an-image.mdx",
+    "href": "/compute/concepts/production-and-preview",
+    "title": "Production and preview",
+    "evidence": "compute/concepts/production-and-preview.mdx",
+    "scene": {
+      "kind": "compare",
+      "heading": "Preview before production",
+      "fields": [
+        [
+          "Preview",
+          "test image"
+        ],
+        [
+          "Production",
+          "serve customers"
+        ],
+        [
+          "Promote",
+          "choose candidate"
+        ],
+        [
+          "Rollback",
+          "restore release"
+        ]
+      ],
+      "note": "Move traffic only when the deployment is ready"
+    }
+  },
+  {
+    "id": "compute--get-started--deploy-an-image--2",
+    "source": "compute/get-started/deploy-an-image.mdx",
+    "href": "/compute/get-started/deploy-from-github",
+    "title": "Deploy from GitHub",
+    "evidence": "compute/get-started/deploy-from-github.mdx",
+    "scene": {
+      "kind": "flow",
+      "heading": "Deploy from GitHub",
+      "fields": [
+        [
+          "GitHub",
+          "install app"
+        ],
+        [
+          "Push",
+          "build"
+        ],
+        [
+          "Deployment",
+          "ready"
+        ],
+        [
+          "Domain",
+          "unkey.app"
+        ]
+      ],
+      "note": "A connected repository becomes a running app"
+    }
+  },
+  {
+    "id": "compute--get-started--deploy-an-image--3",
+    "source": "compute/get-started/deploy-an-image.mdx",
+    "href": "/compute/concepts/instances-and-autoscaling",
+    "title": "Instances and autoscaling",
+    "evidence": "compute/concepts/instances-and-autoscaling.mdx",
+    "scene": {
+      "kind": "image-instances",
+      "heading": "Scale the deployed image",
+      "fields": [
+        [
+          "Instance 1",
+          "api:v1"
+        ],
+        [
+          "Instance 2",
+          "api:v1"
+        ],
+        [
+          "Instance 3",
+          "api:v1"
+        ]
+      ],
+      "note": "Instances run the same image within your bounds"
+    }
+  },
+  {
+    "id": "compute--get-started--deploy-an-image--4",
+    "source": "compute/get-started/deploy-an-image.mdx",
+    "href": "/compute/configure/environment-variables",
+    "title": "Environment variables",
+    "evidence": "compute/configure/environment-variables.mdx",
+    "scene": {
+      "kind": "form",
+      "heading": "Pass configuration to the image",
+      "fields": [
+        [
+          "Environment",
+          "production"
+        ],
+        [
+          "Variable",
+          "API_URL"
+        ],
+        [
+          "Value",
+          "service endpoint"
+        ],
+        [
+          "Applied",
+          "next deployment"
+        ]
+      ],
+      "note": "Keep configuration separate from the container image"
+    }
+  },
+  {
+    "id": "compute--get-started--deploy-an-image--5",
+    "source": "compute/get-started/deploy-an-image.mdx",
+    "href": "/compute/gateway/api-key-auth",
+    "title": "Add API key authentication later",
+    "evidence": "compute/gateway/api-key-auth.mdx",
+    "scene": {
+      "kind": "form",
+      "heading": "Configure key authentication",
+      "fields": [
+        [
+          "keyspaces",
+          "accepted keyspaces"
+        ],
+        [
+          "permissions",
+          "required query"
+        ],
+        [
+          "ratelimits",
+          "named checks"
+        ]
+      ],
+      "note": "Choose the checks for this gateway policy"
+    }
+  },
+  {
+    "id": "compute--get-started--deploy-from-github--1",
+    "source": "compute/get-started/deploy-from-github.mdx",
+    "href": "/compute/concepts/production-and-preview",
+    "title": "Production and preview",
+    "evidence": "compute/concepts/production-and-preview.mdx",
+    "scene": {
+      "kind": "compare",
+      "heading": "A branch and a pull request",
+      "fields": [
+        [
+          "main",
+          "production deployment"
+        ],
+        [
+          "Pull request",
+          "preview deployment"
+        ],
+        [
+          "Production",
+          "customer traffic"
+        ],
+        [
+          "Preview",
+          "test traffic"
+        ]
+      ],
+      "note": "Test a change before moving it to production"
+    }
+  },
+  {
+    "id": "compute--get-started--deploy-from-github--2",
+    "source": "compute/get-started/deploy-from-github.mdx",
+    "href": "/compute/concepts/deployments",
+    "title": "Deployments",
+    "evidence": "compute/concepts/deployments.mdx",
+    "scene": {
+      "kind": "steps",
+      "heading": "Inspect the first deployment",
+      "fields": [
+        [
+          "Build",
+          "read build output"
+        ],
+        [
+          "Start",
+          "inspect instance logs"
+        ],
+        [
+          "Probe",
+          "check readiness"
+        ],
+        [
+          "Ready",
+          "visit the domain"
+        ]
+      ],
+      "note": "Follow each stage until the application serves requests"
+    }
+  },
+  {
+    "id": "compute--get-started--deploy-from-github--3",
+    "source": "compute/get-started/deploy-from-github.mdx",
+    "href": "/compute/concepts/instances-and-autoscaling",
+    "title": "Instances and autoscaling",
+    "evidence": "compute/concepts/instances-and-autoscaling.mdx",
+    "scene": {
+      "kind": "resources",
+      "heading": "Size your first app",
+      "fields": [
+        [
+          "Replicas",
+          "minimum and maximum"
+        ],
+        [
+          "CPU",
+          "autoscaling signal"
+        ],
+        [
+          "Memory",
+          "container limit"
+        ],
+        [
+          "Readiness",
+          "probe result"
+        ]
+      ],
+      "note": "Adjust instance settings as traffic grows"
+    }
+  },
+  {
+    "id": "compute--get-started--deploy-from-github--4",
+    "source": "compute/get-started/deploy-from-github.mdx",
+    "href": "/compute/build/github",
+    "title": "GitHub integration",
+    "evidence": "compute/build/github.mdx",
+    "scene": {
+      "kind": "branches",
+      "heading": "GitHub deployment events",
+      "fields": [
+        [
+          "Push",
+          "deploy"
+        ],
+        [
+          "Pull request",
+          "preview"
+        ],
+        [
+          "Fork",
+          "approval required"
+        ],
+        [
+          "Watch paths",
+          "skip unrelated changes"
+        ]
+      ],
+      "note": "Connect repositories through the GitHub App"
+    }
+  },
+  {
+    "id": "compute--get-started--deploy-from-github--5",
+    "source": "compute/get-started/deploy-from-github.mdx",
+    "href": "/compute/gateway/api-key-auth",
+    "title": "Add API key authentication later",
+    "evidence": "compute/gateway/api-key-auth.mdx",
+    "scene": {
+      "kind": "sequence",
+      "heading": "Verify before proxying",
+      "fields": [
+        [
+          "Incoming request",
+          "extract credential"
+        ],
+        [
+          "keys.verifyKey",
+          "check policy"
+        ],
+        [
+          "Principal",
+          "forward to app"
+        ]
+      ],
+      "note": "A failed verification never reaches the instance"
+    }
+  },
+  {
+    "id": "compute--get-started--plans--1",
+    "source": "compute/get-started/plans.mdx",
+    "href": "/compute/get-started/deploy-from-github",
+    "title": "Deploy from GitHub",
+    "evidence": "compute/get-started/deploy-from-github.mdx",
+    "scene": {
+      "kind": "queue",
+      "heading": "Deploy from GitHub",
+      "fields": [
+        [
+          "GitHub",
+          "install app"
+        ],
+        [
+          "Deployment",
+          "ready"
+        ],
+        [
+          "Domain",
+          "unkey.app"
+        ]
+      ],
+      "note": "A connected repository becomes a running app"
+    }
+  },
+  {
+    "id": "compute--get-started--plans--2",
+    "source": "compute/get-started/plans.mdx",
+    "href": "/platform/billing/limits",
+    "title": "Limits",
+    "evidence": "platform/billing/limits.mdx",
+    "scene": {
+      "kind": "table",
+      "heading": "Compare workspace allowances",
+      "fields": [
+        [
+          "Key usage",
+          "API tier"
+        ],
+        [
+          "Compute resources",
+          "Compute plan"
+        ],
+        [
+          "Team access",
+          "paid plan"
+        ],
+        [
+          "Retention",
+          "plan allowance"
+        ]
+      ],
+      "note": "Check the limits that apply to your workspace"
+    }
+  },
+  {
+    "id": "compute--index--1",
+    "source": "compute/index.mdx",
+    "href": "/compute/get-started/deploy-from-github",
+    "title": "Deploy from GitHub",
+    "evidence": "compute/get-started/deploy-from-github.mdx",
+    "scene": {
+      "kind": "flow",
+      "heading": "Repository to production",
+      "fields": [
+        [
+          "GitHub",
+          "push commit"
+        ],
+        [
+          "Build",
+          "container image"
+        ],
+        [
+          "Unkey",
+          "live deployment"
+        ]
+      ],
+      "note": "Connect a repository and ship your first app"
+    }
+  },
+  {
+    "id": "compute--index--10",
+    "source": "compute/index.mdx",
+    "href": "/compute/build/dockerfile",
+    "title": "Dockerfile builds",
+    "evidence": "compute/build/dockerfile.mdx",
+    "scene": {
+      "kind": "flow",
+      "heading": "Build from a Dockerfile",
+      "fields": [
+        [
+          "FROM",
+          "base image"
+        ],
+        [
+          "RUN",
+          "build step"
+        ],
+        [
+          "CMD",
+          "start process"
+        ]
+      ],
+      "note": "The repository is the build context"
+    }
+  },
+  {
+    "id": "compute--index--11",
+    "source": "compute/index.mdx",
+    "href": "/compute/build/build-secrets",
+    "title": "Build-time secrets",
+    "evidence": "compute/build/build-secrets.mdx",
+    "scene": {
+      "kind": "vault",
+      "heading": "Build with private credentials",
+      "fields": [
+        [
+          "Package token",
+          "secret storage"
+        ],
+        [
+          "Build step",
+          "temporary mount"
+        ],
+        [
+          "Image",
+          "credential excluded"
+        ]
+      ],
+      "note": "Keep build credentials out of image layers"
+    }
+  },
+  {
+    "id": "compute--index--12",
+    "source": "compute/index.mdx",
+    "href": "/compute/build/github",
+    "title": "GitHub integration",
+    "evidence": "compute/build/github.mdx",
+    "scene": {
+      "kind": "approval",
+      "heading": "Connect GitHub to Compute",
+      "fields": [
+        [
+          "Repository",
+          "connected source"
+        ],
+        [
+          "Main branch",
+          "production"
+        ],
+        [
+          "Pull request",
+          "preview"
+        ]
+      ],
+      "note": "Push a commit or open a pull request to deploy"
+    }
+  },
+  {
+    "id": "compute--index--13",
+    "source": "compute/index.mdx",
+    "href": "/compute/configure/build-settings",
+    "title": "Build settings",
+    "evidence": "compute/configure/build-settings.mdx",
+    "scene": {
+      "kind": "code",
+      "heading": "Select the build context",
+      "fields": [
+        [
+          "Root directory",
+          "/services/api"
+        ],
+        [
+          "Build file",
+          "Dockerfile"
+        ]
+      ],
+      "note": "A repository tree shows the Dockerfile inside the selected build directory"
+    }
+  },
+  {
+    "id": "compute--index--14",
+    "source": "compute/index.mdx",
+    "href": "/compute/configure/runtime-settings",
+    "title": "Runtime settings",
+    "evidence": "compute/configure/runtime-settings.mdx",
+    "scene": {
+      "kind": "layers",
+      "heading": "Configure the container",
+      "fields": [
+        [
+          "Port",
+          "8080"
+        ],
+        [
+          "Command",
+          "image entrypoint"
+        ],
+        [
+          "Protocol",
+          "http1"
+        ]
+      ],
+      "note": "Settings apply to the next deployment"
+    }
+  },
+  {
+    "id": "compute--index--15",
+    "source": "compute/index.mdx",
+    "href": "/compute/configure/health-checks",
+    "title": "Health checks",
+    "evidence": "compute/configure/health-checks.mdx",
+    "scene": {
+      "kind": "decision",
+      "heading": "Check before routing",
+      "fields": [
+        [
+          "GET /healthz",
+          "probe the process"
+        ],
+        [
+          "2xx",
+          "ready for traffic"
+        ],
+        [
+          "Failed probe",
+          "withhold traffic"
+        ]
+      ],
+      "note": "Repeated probe failures restart the instance"
+    }
+  },
+  {
+    "id": "compute--index--16",
+    "source": "compute/index.mdx",
+    "href": "/compute/configure/environment-variables",
+    "title": "Environment variables",
+    "evidence": "compute/configure/environment-variables.mdx",
+    "scene": {
+      "kind": "flow",
+      "heading": "Environment configuration",
+      "fields": [
+        [
+          "PORT",
+          "runtime port"
+        ],
+        [
+          "Process",
+          "environment"
+        ]
+      ],
+      "note": "Configuration is scoped per environment"
+    }
+  },
+  {
+    "id": "compute--index--17",
+    "source": "compute/index.mdx",
+    "href": "/compute/configure/limits",
+    "title": "Compute limits",
+    "evidence": "compute/configure/limits.mdx",
+    "scene": {
+      "kind": "resources",
+      "heading": "Resource limits at each level",
+      "fields": [
+        [
+          "Container",
+          "CPU and memory"
+        ],
+        [
+          "Region",
+          "replica bounds"
+        ],
+        [
+          "Workspace",
+          "total allocation"
+        ],
+        [
+          "Build queue",
+          "concurrency"
+        ]
+      ],
+      "note": "Plan capacity for both builds and running apps"
+    }
+  },
+  {
+    "id": "compute--index--18",
+    "source": "compute/index.mdx",
+    "href": "/compute/configure/spend-budget",
+    "title": "Spend budget",
+    "evidence": "compute/configure/spend-budget.mdx",
+    "scene": {
+      "kind": "budget",
+      "heading": "Budget alerts before the ceiling",
+      "fields": [
+        [
+          "50% used",
+          "first alert"
+        ],
+        [
+          "75% used",
+          "second alert"
+        ],
+        [
+          "100% used",
+          "optional suspension"
+        ]
+      ],
+      "note": "Choose whether the budget can pause Compute"
+    }
+  },
+  {
+    "id": "compute--index--19",
+    "source": "compute/index.mdx",
+    "href": "/api-management/sdks/overview",
+    "title": "Every SDK covers Compute too",
+    "evidence": "api-management/sdks/overview.mdx",
+    "scene": {
+      "kind": "adapters",
+      "heading": "One API, three clients",
+      "fields": [
+        [
+          "Unkey API",
+          "both products"
+        ],
+        [
+          "TypeScript",
+          "@unkey/api"
+        ],
+        [
+          "Go",
+          "unkey-go/v3"
+        ],
+        [
+          "Python",
+          "unkey.py"
+        ]
+      ],
+      "note": "Use your preferred language for Compute too"
+    }
+  },
+  {
+    "id": "compute--index--2",
+    "source": "compute/index.mdx",
+    "href": "/compute/get-started/deploy-an-image",
+    "title": "Deploy a container image",
+    "evidence": "compute/get-started/deploy-an-image.mdx",
+    "scene": {
+      "kind": "layers",
+      "heading": "Bring a prebuilt image",
+      "fields": [
+        [
+          "Registry",
+          "ghcr.io/acme/api:v1"
+        ],
+        [
+          "Deployment",
+          "use image reference"
+        ],
+        [
+          "Instances",
+          "run the container"
+        ],
+        [
+          "Gateway",
+          "route requests"
+        ]
+      ],
+      "note": "Deploy an image built in your own pipeline"
+    }
+  },
+  {
+    "id": "compute--index--3",
+    "source": "compute/index.mdx",
+    "href": "/compute/get-started/plans",
+    "title": "Compute plans",
+    "evidence": "compute/get-started/plans.mdx",
+    "scene": {
+      "kind": "tiers",
+      "heading": "Choose your Compute capacity",
+      "fields": [
+        [
+          "Starter",
+          "small workloads"
+        ],
+        [
+          "Pro",
+          "growing applications"
+        ],
+        [
+          "Business",
+          "larger workloads"
+        ]
+      ],
+      "note": "Compare the available resources and plan limits"
+    }
+  },
+  {
+    "id": "compute--index--4",
+    "source": "compute/index.mdx",
+    "href": "/compute/concepts/projects-apps-environments",
+    "title": "Projects, apps, and environments",
+    "evidence": "compute/concepts/projects-apps-environments.mdx",
+    "scene": {
+      "kind": "tree",
+      "heading": "From project to environment",
+      "fields": [
+        [
+          "Project / App",
+          "payments / backend"
+        ],
+        [
+          "Production",
+          "live environment"
+        ],
+        [
+          "Preview",
+          "test environment"
+        ]
+      ],
+      "note": "Projects group apps; apps own environments"
+    }
+  },
+  {
+    "id": "compute--index--5",
+    "source": "compute/index.mdx",
+    "href": "/compute/concepts/deployments",
+    "title": "Deployments",
+    "evidence": "compute/concepts/deployments.mdx",
+    "scene": {
+      "kind": "lifecycle",
+      "heading": "Deployment states",
+      "fields": [
+        [
+          "pending",
+          "queued"
+        ],
+        [
+          "starting",
+          "load configuration"
+        ],
+        [
+          "building",
+          "build image"
+        ],
+        [
+          "deploying",
+          "start instances"
+        ],
+        [
+          "ready",
+          "serve traffic"
+        ]
+      ],
+      "note": "Follow a successful deployment from source to serving"
+    }
+  },
+  {
+    "id": "compute--index--6",
+    "source": "compute/index.mdx",
+    "href": "/compute/concepts/production-and-preview",
+    "title": "Production and preview",
+    "evidence": "compute/concepts/production-and-preview.mdx",
+    "scene": {
+      "kind": "compare",
+      "heading": "Production and preview",
+      "fields": [
+        [
+          "Production",
+          "live customers"
+        ],
+        [
+          "Preview",
+          "changes under test"
+        ],
+        [
+          "Promote",
+          "ready candidate"
+        ],
+        [
+          "Rollback",
+          "previous release"
+        ]
+      ],
+      "note": "Keep live and test deployments separate"
+    }
+  },
+  {
+    "id": "compute--index--7",
+    "source": "compute/index.mdx",
+    "href": "/compute/concepts/instances-and-autoscaling",
+    "title": "Instances and autoscaling",
+    "evidence": "compute/concepts/instances-and-autoscaling.mdx",
+    "scene": {
+      "kind": "autoscaling",
+      "heading": "Grow with demand",
+      "fields": [
+        [
+          "Baseline",
+          "minimum replicas"
+        ],
+        [
+          "Scale out",
+          "CPU demand"
+        ],
+        [
+          "Ceiling",
+          "maximum replicas"
+        ]
+      ],
+      "note": "Autoscaling stays within the bounds you configure"
+    }
+  },
+  {
+    "id": "compute--index--8",
+    "source": "compute/index.mdx",
+    "href": "/compute/concepts/regions",
+    "title": "Regions",
+    "evidence": "compute/concepts/regions.mdx",
+    "scene": {
+      "kind": "failover",
+      "heading": "Route to a running region",
+      "fields": [
+        [
+          "Gateway region",
+          "local availability"
+        ],
+        [
+          "Other regions",
+          "nearest running instances"
+        ],
+        [
+          "Routing",
+          "available capacity"
+        ]
+      ],
+      "note": "Route to local capacity or the nearest running region"
+    }
+  },
+  {
+    "id": "compute--index--9",
+    "source": "compute/index.mdx",
+    "href": "/compute/build/overview",
+    "title": "Builds",
+    "evidence": "compute/build/overview.mdx",
+    "scene": {
+      "kind": "queue",
+      "heading": "Follow the build queue",
+      "fields": [
+        [
+          "Commit",
+          "source revision"
+        ],
+        [
+          "Queue",
+          "wait for build slot"
+        ],
+        [
+          "Build",
+          "produce image"
+        ],
+        [
+          "Deploy",
+          "start the application"
+        ]
+      ],
+      "note": "Build concurrency controls when queued work starts"
+    }
+  },
+  {
+    "id": "compute--observe--analytics-api--1",
+    "source": "compute/observe/analytics-api.mdx",
+    "href": "/api-management/analytics/query-language",
+    "title": "Analytics query language",
+    "evidence": "api-management/analytics/query-language.mdx",
+    "scene": {
+      "kind": "query",
+      "heading": "SQL for Compute events",
+      "fields": [
+        [
+          "gateway_requests_v1",
+          "request rows"
+        ],
+        [
+          "runtime_logs_v1",
+          "log rows"
+        ],
+        [
+          "SELECT",
+          "read-only query"
+        ]
+      ],
+      "note": "Use the shared query language on Compute tables"
+    }
+  },
+  {
+    "id": "compute--observe--overview--1",
+    "source": "compute/observe/overview.mdx",
+    "href": "/compute/observe/requests",
+    "title": "Request logs",
+    "evidence": "compute/observe/requests.mdx",
+    "scene": {
+      "kind": "table",
+      "heading": "Proxied request log",
+      "fields": [
+        [
+          "Method",
+          "GET"
+        ],
+        [
+          "Path",
+          "/orders"
+        ],
+        [
+          "Status",
+          "200"
+        ],
+        [
+          "Gateway",
+          "latency"
+        ],
+        [
+          "Instance",
+          "latency"
+        ]
+      ],
+      "note": "One row for every request handed to an instance"
+    }
+  },
+  {
+    "id": "compute--observe--overview--2",
+    "source": "compute/observe/overview.mdx",
+    "href": "/compute/observe/runtime-logs",
+    "title": "Runtime logs",
+    "evidence": "compute/observe/runtime-logs.mdx",
+    "scene": {
+      "kind": "logs",
+      "heading": "Instance output",
+      "fields": [
+        [
+          "stdout",
+          "application log"
+        ],
+        [
+          "stderr",
+          "error output"
+        ],
+        [
+          "Severity",
+          "parsed level"
+        ],
+        [
+          "Attributes",
+          "searchable fields"
+        ]
+      ],
+      "note": "Filter logs across your project"
+    }
+  },
+  {
+    "id": "compute--observe--overview--3",
+    "source": "compute/observe/overview.mdx",
+    "href": "/compute/observe/metrics",
+    "title": "Metrics",
+    "evidence": "compute/observe/metrics.mdx",
+    "scene": {
+      "kind": "chart",
+      "heading": "Deployment metrics",
+      "fields": [
+        [
+          "Traffic",
+          "requests / second"
+        ],
+        [
+          "Latency",
+          "percentiles"
+        ],
+        [
+          "CPU",
+          "usage"
+        ],
+        [
+          "Memory",
+          "usage"
+        ]
+      ],
+      "note": "Traffic and resource signals side by side"
+    }
+  },
+  {
+    "id": "compute--observe--overview--4",
+    "source": "compute/observe/overview.mdx",
+    "href": "/compute/observe/build-logs",
+    "title": "Build logs",
+    "evidence": "compute/observe/build-logs.mdx",
+    "scene": {
+      "kind": "steps",
+      "heading": "Build step output",
+      "fields": [
+        [
+          "Step",
+          "name"
+        ],
+        [
+          "Status",
+          "success or failure"
+        ],
+        [
+          "Cache",
+          "hit or miss"
+        ],
+        [
+          "Output",
+          "build logs"
+        ]
+      ],
+      "note": "Inspect each stage of a container build"
+    }
+  },
+  {
+    "id": "errors--frontline--capacity--deployment_offline--1",
+    "source": "errors/frontline/capacity/deployment_offline.mdx",
+    "href": "/compute/gateway/errors",
+    "title": "Compute gateway",
+    "evidence": "compute/gateway/errors.mdx",
+    "scene": {
+      "kind": "sequence",
+      "heading": "deployment offline",
+      "fields": [
+        [
+          "Gateway",
+          "Error response"
+        ],
+        [
+          "Code",
+          "deployment_offline"
+        ],
+        [
+          "Next step",
+          "Start the deployment"
+        ]
+      ],
+      "note": "The deployment behind this hostname was stopped or its project cancelled."
+    }
+  },
+  {
+    "id": "errors--frontline--capacity--no_running_instances--1",
+    "source": "errors/frontline/capacity/no_running_instances.mdx",
+    "href": "/compute/gateway/errors",
+    "title": "Compute gateway",
+    "evidence": "compute/gateway/errors.mdx",
+    "scene": {
+      "kind": "split",
+      "heading": "no running instances",
+      "fields": [
+        [
+          "Gateway",
+          "Error response"
+        ],
+        [
+          "Code",
+          "no_running_instances"
+        ],
+        [
+          "Next step",
+          "Check instances"
+        ]
+      ],
+      "note": "The deployment has no running instance in any region right now."
+    }
+  },
+  {
+    "id": "errors--frontline--capacity--spend_limit_reached--1",
+    "source": "errors/frontline/capacity/spend_limit_reached.mdx",
+    "href": "/compute/gateway/errors",
+    "title": "Compute gateway",
+    "evidence": "compute/gateway/errors.mdx",
+    "scene": {
+      "kind": "budget",
+      "heading": "A workspace at its spend ceiling",
+      "fields": [
+        [
+          "Budget",
+          "fully consumed"
+        ],
+        [
+          "Compute",
+          "paused"
+        ],
+        [
+          "Recovery",
+          "raise or remove budget"
+        ]
+      ],
+      "note": "The gateway cannot serve while spend suspension is active"
+    }
+  },
+  {
+    "id": "errors--frontline--client--firewall_denied--1",
+    "source": "errors/frontline/client/firewall_denied.mdx",
+    "href": "/compute/gateway/errors",
+    "title": "Compute gateway",
+    "evidence": "compute/gateway/errors.mdx",
+    "scene": {
+      "kind": "request",
+      "heading": "firewall denied",
+      "fields": [
+        [
+          "Gateway",
+          "Error response"
+        ],
+        [
+          "Code",
+          "firewall_denied"
+        ],
+        [
+          "Next step",
+          "Review firewall match"
+        ]
+      ],
+      "note": "A gateway firewall policy matched the request and denied it."
+    }
+  },
+  {
+    "id": "errors--frontline--client--insufficient_permissions--1",
+    "source": "errors/frontline/client/insufficient_permissions.mdx",
+    "href": "/compute/gateway/errors",
+    "title": "Compute gateway",
+    "evidence": "compute/gateway/errors.mdx",
+    "scene": {
+      "kind": "firewall",
+      "heading": "insufficient permissions",
+      "fields": [
+        [
+          "Gateway",
+          "Error response"
+        ],
+        [
+          "Code",
+          "insufficient_permissions"
+        ],
+        [
+          "Next step",
+          "Review permission query"
+        ]
+      ],
+      "note": "The API key verified but does not satisfy the gateway policy's permission query."
+    }
+  },
+  {
+    "id": "errors--frontline--client--insufficient_permissions--2",
+    "source": "errors/frontline/client/insufficient_permissions.mdx",
+    "href": "/api-management/authorization/permission-queries",
+    "title": "API Management keys",
+    "evidence": "api-management/authorization/permission-queries.mdx",
+    "scene": {
+      "kind": "logic",
+      "heading": "Resolve a missing grant",
+      "fields": [
+        [
+          "Required",
+          "documents.read"
+        ],
+        [
+          "Direct grant",
+          "attach to key"
+        ],
+        [
+          "Role grant",
+          "attach through role"
+        ]
+      ],
+      "note": "Change the key grants or the required permission query"
+    }
+  },
+  {
+    "id": "errors--frontline--client--invalid_key--1",
+    "source": "errors/frontline/client/invalid_key.mdx",
+    "href": "/compute/gateway/errors",
+    "title": "Compute gateway",
+    "evidence": "compute/gateway/errors.mdx",
+    "scene": {
+      "kind": "sequence",
+      "heading": "invalid key",
+      "fields": [
+        [
+          "Gateway",
+          "Error response"
+        ],
+        [
+          "Code",
+          "invalid_key"
+        ],
+        [
+          "Next step",
+          "Check key validity"
+        ]
+      ],
+      "note": "The API key in the request did not verify."
+    }
+  },
+  {
+    "id": "errors--frontline--client--invalid_key--2",
+    "source": "errors/frontline/client/invalid_key.mdx",
+    "href": "/api-management/keys/enable-disable-delete",
+    "title": "API Management keys",
+    "evidence": "api-management/keys/enable-disable-delete.mdx",
+    "scene": {
+      "kind": "switch",
+      "heading": "Key lifecycle controls",
+      "fields": [
+        [
+          "Enabled",
+          "accept verification"
+        ],
+        [
+          "Disabled",
+          "temporarily reject"
+        ],
+        [
+          "Deleted",
+          "permanent revocation"
+        ]
+      ],
+      "note": "Disable is reversible; deletion is final"
+    }
+  },
+  {
+    "id": "errors--frontline--client--missing_credentials--1",
+    "source": "errors/frontline/client/missing_credentials.mdx",
+    "href": "/compute/gateway/errors",
+    "title": "Compute gateway",
+    "evidence": "compute/gateway/errors.mdx",
+    "scene": {
+      "kind": "split",
+      "heading": "missing credentials",
+      "fields": [
+        [
+          "Gateway",
+          "Error response"
+        ],
+        [
+          "Code",
+          "missing_credentials"
+        ],
+        [
+          "Next step",
+          "Send the API key"
+        ]
+      ],
+      "note": "The gateway found no API key in the request."
+    }
+  },
+  {
+    "id": "errors--frontline--client--missing_credentials--2",
+    "source": "errors/frontline/client/missing_credentials.mdx",
+    "href": "/api-management/keys/creating-keys",
+    "title": "API Management keys",
+    "evidence": "api-management/keys/creating-keys.mdx",
+    "scene": {
+      "kind": "steps",
+      "heading": "Create a client credential",
+      "fields": [
+        [
+          "Choose",
+          "keyspace"
+        ],
+        [
+          "Create",
+          "API key"
+        ],
+        [
+          "Copy",
+          "plaintext once"
+        ],
+        [
+          "Send",
+          "credential with request"
+        ]
+      ],
+      "note": "Root keys manage Unkey; this key authenticates your caller"
+    }
+  },
+  {
+    "id": "errors--frontline--client--openapi_validation_failed--1",
+    "source": "errors/frontline/client/openapi_validation_failed.mdx",
+    "href": "/compute/gateway/errors",
+    "title": "Compute gateway",
+    "evidence": "compute/gateway/errors.mdx",
+    "scene": {
+      "kind": "decision",
+      "heading": "openapi validation failed",
+      "fields": [
+        [
+          "Gateway",
+          "Error response"
+        ],
+        [
+          "Code",
+          "openapi_validation_failed"
+        ],
+        [
+          "Next step",
+          "Match the API schema"
+        ]
+      ],
+      "note": "The request does not match the OpenAPI spec the gateway validates against."
+    }
+  },
+  {
+    "id": "errors--frontline--client--rate_limited--1",
+    "source": "errors/frontline/client/rate_limited.mdx",
+    "href": "/compute/gateway/errors",
+    "title": "Compute gateway",
+    "evidence": "compute/gateway/errors.mdx",
+    "scene": {
+      "kind": "request",
+      "heading": "rate limited",
+      "fields": [
+        [
+          "Gateway",
+          "Error response"
+        ],
+        [
+          "Code",
+          "rate_limited"
+        ],
+        [
+          "Next step",
+          "Wait for capacity"
+        ]
+      ],
+      "note": "The request exceeded a per-key limit or a gateway rate limit policy."
+    }
+  },
+  {
+    "id": "errors--frontline--client--rate_limited--2",
+    "source": "errors/frontline/client/rate_limited.mdx",
+    "href": "/api-management/ratelimiting/key-and-identity-limits",
+    "title": "API Management keys",
+    "evidence": "api-management/ratelimiting/key-and-identity-limits.mdx",
+    "scene": {
+      "kind": "table",
+      "heading": "Find the named limit that rejected",
+      "fields": [
+        [
+          "Key limit",
+          "one credential"
+        ],
+        [
+          "Identity limit",
+          "all caller keys"
+        ],
+        [
+          "Result",
+          "RATE_LIMITED"
+        ],
+        [
+          "Retry",
+          "after capacity returns"
+        ]
+      ],
+      "note": "Inspect the configured allowance and shared scope"
+    }
+  },
+  {
+    "id": "errors--frontline--client--usage_exceeded--1",
+    "source": "errors/frontline/client/usage_exceeded.mdx",
+    "href": "/compute/gateway/errors",
+    "title": "Compute gateway",
+    "evidence": "compute/gateway/errors.mdx",
+    "scene": {
+      "kind": "firewall",
+      "heading": "usage exceeded",
+      "fields": [
+        [
+          "Gateway",
+          "Error response"
+        ],
+        [
+          "Code",
+          "usage_exceeded"
+        ],
+        [
+          "Next step",
+          "Refill key credits"
+        ]
+      ],
+      "note": "The gateway rejected the request because the key has no credits left."
+    }
+  },
+  {
+    "id": "errors--frontline--client--usage_exceeded--2",
+    "source": "errors/frontline/client/usage_exceeded.mdx",
+    "href": "/api-management/keys/credits-and-refill",
+    "title": "API Management keys",
+    "evidence": "api-management/keys/credits-and-refill.mdx",
+    "scene": {
+      "kind": "bounds",
+      "heading": "Balance cannot go negative",
+      "fields": [
+        [
+          "operation",
+          "decrement"
+        ],
+        [
+          "value",
+          "500"
+        ],
+        [
+          "Lower bound",
+          "0"
+        ]
+      ],
+      "note": "Decrements clamp at zero"
+    }
+  },
+  {
+    "id": "errors--frontline--config--invalid_configuration--1",
+    "source": "errors/frontline/config/invalid_configuration.mdx",
+    "href": "/compute/gateway/errors",
+    "title": "Compute gateway",
+    "evidence": "compute/gateway/errors.mdx",
+    "scene": {
+      "kind": "sequence",
+      "heading": "invalid configuration",
+      "fields": [
+        [
+          "Gateway",
+          "Error response"
+        ],
+        [
+          "Code",
+          "invalid_configuration"
+        ],
+        [
+          "Next step",
+          "Fix policy configuration"
+        ]
+      ],
+      "note": "The deployment's gateway policy configuration could not be parsed or has an invalid value."
+    }
+  },
+  {
+    "id": "errors--frontline--platform--config_load_failed--1",
+    "source": "errors/frontline/platform/config_load_failed.mdx",
+    "href": "/compute/gateway/errors",
+    "title": "Compute gateway",
+    "evidence": "compute/gateway/errors.mdx",
+    "scene": {
+      "kind": "split",
+      "heading": "config load failed",
+      "fields": [
+        [
+          "Gateway",
+          "Error response"
+        ],
+        [
+          "Code",
+          "config_load_failed"
+        ],
+        [
+          "Next step",
+          "Retry the request"
+        ]
+      ],
+      "note": "The gateway could not load routing or policy data because of an Unkey-side error."
+    }
+  },
+  {
+    "id": "errors--frontline--platform--internal_server_error--1",
+    "source": "errors/frontline/platform/internal_server_error.mdx",
+    "href": "/compute/gateway/errors",
+    "title": "Compute gateway",
+    "evidence": "compute/gateway/errors.mdx",
+    "scene": {
+      "kind": "request",
+      "heading": "internal server error",
+      "fields": [
+        [
+          "Gateway",
+          "Error response"
+        ],
+        [
+          "Code",
+          "internal_server_error"
+        ],
+        [
+          "Next step",
+          "Record request ID"
+        ]
+      ],
+      "note": "An unexpected failure inside Unkey's gateway while handling the request."
+    }
+  },
+  {
+    "id": "errors--frontline--routing--config_not_found--1",
+    "source": "errors/frontline/routing/config_not_found.mdx",
+    "href": "/compute/gateway/errors",
+    "title": "Compute gateway",
+    "evidence": "compute/gateway/errors.mdx",
+    "scene": {
+      "kind": "firewall",
+      "heading": "config not found",
+      "fields": [
+        [
+          "Gateway",
+          "Error response"
+        ],
+        [
+          "Code",
+          "config_not_found"
+        ],
+        [
+          "Next step",
+          "Check the hostname"
+        ]
+      ],
+      "note": "No Compute deployment is routed for the requested hostname."
+    }
+  },
+  {
+    "id": "errors--frontline--upstream--bad_gateway--1",
+    "source": "errors/frontline/upstream/bad_gateway.mdx",
+    "href": "/compute/gateway/errors",
+    "title": "Compute gateway",
+    "evidence": "compute/gateway/errors.mdx",
+    "scene": {
+      "kind": "split",
+      "heading": "bad gateway",
+      "fields": [
+        [
+          "Gateway",
+          "Error response"
+        ],
+        [
+          "Code",
+          "bad_gateway"
+        ],
+        [
+          "Next step",
+          "Inspect app response"
+        ]
+      ],
+      "note": "The app behind the gateway reset the connection or returned an unusable response."
+    }
+  },
+  {
+    "id": "errors--frontline--upstream--gateway_timeout--1",
+    "source": "errors/frontline/upstream/gateway_timeout.mdx",
+    "href": "/compute/gateway/errors",
+    "title": "Compute gateway",
+    "evidence": "compute/gateway/errors.mdx",
+    "scene": {
+      "kind": "decision",
+      "heading": "gateway timeout",
+      "fields": [
+        [
+          "Gateway",
+          "Error response"
+        ],
+        [
+          "Code",
+          "gateway_timeout"
+        ],
+        [
+          "Next step",
+          "Inspect app latency"
+        ]
+      ],
+      "note": "The app behind the gateway did not respond before the deadline."
+    }
+  },
+  {
+    "id": "errors--frontline--upstream--service_unavailable--1",
+    "source": "errors/frontline/upstream/service_unavailable.mdx",
+    "href": "/compute/gateway/errors",
+    "title": "Compute gateway",
+    "evidence": "compute/gateway/errors.mdx",
+    "scene": {
+      "kind": "firewall",
+      "heading": "service unavailable",
+      "fields": [
+        [
+          "Gateway",
+          "Error response"
+        ],
+        [
+          "Code",
+          "service_unavailable"
+        ],
+        [
+          "Next step",
+          "Retry when available"
+        ]
+      ],
+      "note": "The app instance refused the connection or could not be reached."
+    }
+  },
+  {
+    "id": "errors--overview--1",
+    "source": "errors/overview.mdx",
+    "href": "/errors/unkey/authentication/missing",
+    "title": "Authentication",
+    "evidence": "errors/unkey/authentication/missing.mdx",
+    "scene": {
+      "kind": "request",
+      "heading": "Authorization is missing",
+      "fields": [
+        [
+          "Authorization",
+          "absent"
+        ],
+        [
+          "Credential",
+          "root key required"
+        ],
+        [
+          "Next request",
+          "Bearer root_key"
+        ]
+      ],
+      "note": "Add the root key to the authorization header"
+    }
+  },
+  {
+    "id": "errors--overview--10",
+    "source": "errors/overview.mdx",
+    "href": "/errors/frontline/capacity/no_running_instances",
+    "title": "Capacity",
+    "evidence": "errors/frontline/capacity/no_running_instances.mdx",
+    "scene": {
+      "kind": "decision",
+      "heading": "No instance can serve traffic",
+      "fields": [
+        [
+          "Running instances",
+          "none available"
+        ],
+        [
+          "Check",
+          "deployment state"
+        ],
+        [
+          "Recover",
+          "start healthy instances"
+        ]
+      ],
+      "note": "Inspect the deployment and its regional instances"
+    }
+  },
+  {
+    "id": "errors--overview--11",
+    "source": "errors/overview.mdx",
+    "href": "/errors/frontline/routing/config_not_found",
+    "title": "Routing",
+    "evidence": "errors/frontline/routing/config_not_found.mdx",
+    "scene": {
+      "kind": "request",
+      "heading": "Reserved deployment lookup error",
+      "fields": [
+        [
+          "Code",
+          "deployment_not_found"
+        ],
+        [
+          "Category",
+          "routing"
+        ],
+        [
+          "Status",
+          "reserved error code"
+        ]
+      ],
+      "note": "Consult the error reference for its current behavior"
+    }
+  },
+  {
+    "id": "errors--overview--12",
+    "source": "errors/overview.mdx",
+    "href": "/errors/frontline/upstream/bad_gateway",
+    "title": "Upstream",
+    "evidence": "errors/frontline/upstream/bad_gateway.mdx",
+    "scene": {
+      "kind": "compare",
+      "heading": "An upstream response cannot be used",
+      "fields": [
+        [
+          "Gateway",
+          "proxy request"
+        ],
+        [
+          "Application",
+          "invalid response"
+        ],
+        [
+          "Inspect",
+          "runtime logs"
+        ],
+        [
+          "Recover",
+          "fix app response"
+        ]
+      ],
+      "note": "Check the response produced by the application"
+    }
+  },
+  {
+    "id": "errors--overview--13",
+    "source": "errors/overview.mdx",
+    "href": "/errors/frontline/config/invalid_configuration",
+    "title": "Config",
+    "evidence": "errors/frontline/config/invalid_configuration.mdx",
+    "scene": {
+      "kind": "form",
+      "heading": "The gateway configuration is invalid",
+      "fields": [
+        [
+          "Policy",
+          "stored configuration"
+        ],
+        [
+          "Problem",
+          "invalid settings"
+        ],
+        [
+          "Change",
+          "correct the policy"
+        ],
+        [
+          "Apply",
+          "new deployment"
+        ]
+      ],
+      "note": "Fix the configuration before sending traffic again"
+    }
+  },
+  {
+    "id": "errors--overview--14",
+    "source": "errors/overview.mdx",
+    "href": "/errors/frontline/platform/internal_server_error",
+    "title": "Platform",
+    "evidence": "errors/frontline/platform/internal_server_error.mdx",
+    "scene": {
+      "kind": "envelope",
+      "heading": "Trace an internal gateway failure",
+      "fields": [
+        [
+          "Code",
+          "internal_server_error"
+        ],
+        [
+          "Context",
+          "request failure"
+        ],
+        [
+          "Request ID",
+          "save for support"
+        ]
+      ],
+      "note": "Include the request ID when reporting the failure"
+    }
+  },
+  {
+    "id": "errors--overview--2",
+    "source": "errors/overview.mdx",
+    "href": "/errors/unkey/authorization/insufficient_permissions",
+    "title": "Authorization",
+    "evidence": "errors/unkey/authorization/insufficient_permissions.mdx",
+    "scene": {
+      "kind": "logic",
+      "heading": "The root key lacks a grant",
+      "fields": [
+        [
+          "Operation",
+          "required permission"
+        ],
+        [
+          "Grant missing",
+          "request rejected"
+        ],
+        [
+          "Grant present",
+          "operation allowed"
+        ]
+      ],
+      "note": "Give the root key the permission this endpoint requires"
+    }
+  },
+  {
+    "id": "errors--overview--3",
+    "source": "errors/overview.mdx",
+    "href": "/errors/unkey/data/key_not_found",
+    "title": "Data",
+    "evidence": "errors/unkey/data/key_not_found.mdx",
+    "scene": {
+      "kind": "tree",
+      "heading": "Look in the correct workspace",
+      "fields": [
+        [
+          "Workspace",
+          "root key scope"
+        ],
+        [
+          "Requested key",
+          "keyId lookup"
+        ],
+        [
+          "Missing record",
+          "key not found"
+        ]
+      ],
+      "note": "Confirm both the workspace and the requested key ID"
+    }
+  },
+  {
+    "id": "errors--overview--4",
+    "source": "errors/overview.mdx",
+    "href": "/errors/unkey/application/precondition_failed",
+    "title": "Application",
+    "evidence": "errors/unkey/application/precondition_failed.mdx",
+    "scene": {
+      "kind": "decision",
+      "heading": "A resource is in the wrong state",
+      "fields": [
+        [
+          "Precondition",
+          "required state"
+        ],
+        [
+          "Satisfied",
+          "continue operation"
+        ],
+        [
+          "Not satisfied",
+          "change resource state"
+        ]
+      ],
+      "note": "Resolve the condition before retrying"
+    }
+  },
+  {
+    "id": "errors--overview--5",
+    "source": "errors/overview.mdx",
+    "href": "/errors/unkey/limits/custom_domain_limit_exceeded",
+    "title": "Limits",
+    "evidence": "errors/unkey/limits/custom_domain_limit_exceeded.mdx",
+    "scene": {
+      "kind": "resources",
+      "heading": "Custom domain capacity",
+      "fields": [
+        [
+          "Domains",
+          "current allocation"
+        ],
+        [
+          "Plan",
+          "domain allowance"
+        ],
+        [
+          "New hostname",
+          "over limit"
+        ],
+        [
+          "Recovery",
+          "review the allowance"
+        ]
+      ],
+      "note": "The workspace cannot attach another domain yet"
+    }
+  },
+  {
+    "id": "errors--overview--6",
+    "source": "errors/overview.mdx",
+    "href": "/errors/user/bad_request/request_body_too_large",
+    "title": "Bad request",
+    "evidence": "errors/user/bad_request/request_body_too_large.mdx",
+    "scene": {
+      "kind": "bounds",
+      "heading": "The request body is too large",
+      "fields": [
+        [
+          "Incoming body",
+          "over 10 MiB"
+        ],
+        [
+          "Maximum body",
+          "10 MiB"
+        ],
+        [
+          "Retry with",
+          "smaller payload"
+        ]
+      ],
+      "note": "Reduce the request body before sending it again"
+    }
+  },
+  {
+    "id": "errors--overview--7",
+    "source": "errors/overview.mdx",
+    "href": "/errors/user/unprocessable_entity/query_execution_timeout",
+    "title": "Unprocessable entity",
+    "evidence": "errors/user/unprocessable_entity/query_execution_timeout.mdx",
+    "scene": {
+      "kind": "timeline",
+      "heading": "A query exhausts its time budget",
+      "fields": [
+        [
+          "Start",
+          "execute SQL"
+        ],
+        [
+          "Time limit",
+          "budget reached"
+        ],
+        [
+          "Result",
+          "query stopped"
+        ]
+      ],
+      "note": "Filter the time range or reduce the query work"
+    }
+  },
+  {
+    "id": "errors--overview--9",
+    "source": "errors/overview.mdx",
+    "href": "/errors/frontline/client/invalid_key",
+    "title": "Client",
+    "evidence": "errors/frontline/client/invalid_key.mdx",
+    "scene": {
+      "kind": "flow",
+      "heading": "A key fails gateway verification",
+      "fields": [
+        [
+          "Credential",
+          "presented API key"
+        ],
+        [
+          "Verification",
+          "invalid result"
+        ],
+        [
+          "Gateway",
+          "reject request"
+        ]
+      ],
+      "note": "Check the credential and its verification state"
+    }
+  },
+  {
+    "id": "platform--cli--install--1",
+    "source": "platform/cli/install.mdx",
+    "href": "/platform/cli/authentication",
+    "title": "CLI authentication",
+    "evidence": "platform/cli/authentication.mdx",
+    "scene": {
+      "kind": "vault",
+      "heading": "Give the CLI a root key",
+      "fields": [
+        [
+          "Credential",
+          "workspace root key"
+        ],
+        [
+          "Flag",
+          "--root-key"
+        ],
+        [
+          "Environment",
+          "UNKEY_ROOT_KEY"
+        ],
+        [
+          "Storage",
+          "unkey auth"
+        ]
+      ],
+      "note": "Choose how the CLI obtains its credential"
+    }
+  },
+  {
+    "id": "platform--cli--install--2",
+    "source": "platform/cli/install.mdx",
+    "href": "/platform/cli/output-and-flags",
+    "title": "Output and shared flags",
+    "evidence": "platform/cli/output-and-flags.mdx",
+    "scene": {
+      "kind": "split",
+      "heading": "CLI output formats",
+      "fields": [
+        [
+          "--json",
+          "structured output"
+        ],
+        [
+          "--body",
+          "raw JSON request"
+        ],
+        [
+          "Exit code",
+          "success or failure"
+        ]
+      ],
+      "note": "Pipe output and script API calls"
+    }
+  },
+  {
+    "id": "platform--cli--overview--1",
+    "source": "platform/cli/overview.mdx",
+    "href": "/platform/cli/install",
+    "title": "Install the CLI",
+    "evidence": "platform/cli/install.mdx",
+    "scene": {
+      "kind": "terminal",
+      "heading": "Install the Unkey CLI",
+      "fields": [
+        [
+          "npm",
+          "install -g unkey"
+        ],
+        [
+          "unkey",
+          "--version"
+        ],
+        [
+          "unkey",
+          "--help"
+        ]
+      ],
+      "note": "Choose a package or release for your platform"
+    }
+  },
+  {
+    "id": "platform--cli--overview--2",
+    "source": "platform/cli/overview.mdx",
+    "href": "/platform/cli/authentication",
+    "title": "CLI authentication",
+    "evidence": "platform/cli/authentication.mdx",
+    "scene": {
+      "kind": "terminal",
+      "heading": "CLI root key sources",
+      "fields": [
+        [
+          "--root-key",
+          "explicit flag"
+        ],
+        [
+          "Stored config",
+          "api commands"
+        ]
+      ],
+      "note": "unkey deploy does not read the config file"
+    }
+  },
+  {
+    "id": "platform--cli--overview--3",
+    "source": "platform/cli/overview.mdx",
+    "href": "/platform/cli/output-and-flags",
+    "title": "Output and shared flags",
+    "evidence": "platform/cli/output-and-flags.mdx",
+    "scene": {
+      "kind": "code",
+      "heading": "Scriptable CLI output",
+      "fields": [
+        [
+          "--json",
+          "structured response"
+        ],
+        [
+          "--body",
+          "raw request payload"
+        ],
+        [
+          "Exit status",
+          "process result"
+        ]
+      ],
+      "note": "Use JSON and exit codes in automation"
+    }
+  },
+  {
+    "id": "platform--index--1",
+    "source": "platform/index.mdx",
+    "href": "/platform/workspace/overview",
+    "title": "Workspaces",
+    "evidence": "platform/workspace/overview.mdx",
+    "scene": {
+      "kind": "tree",
+      "heading": "Workspace boundary",
+      "fields": [
+        [
+          "Workspace",
+          "acme"
+        ],
+        [
+          "Projects",
+          "your products"
+        ],
+        [
+          "Members",
+          "your team"
+        ],
+        [
+          "Billing",
+          "shared account"
+        ]
+      ],
+      "note": "Switch workspaces without mixing resources"
+    }
+  },
+  {
+    "id": "platform--index--10",
+    "source": "platform/index.mdx",
+    "href": "/platform/security/github-secret-scanning",
+    "title": "GitHub secret scanning",
+    "evidence": "platform/security/github-secret-scanning.mdx",
+    "scene": {
+      "kind": "scan",
+      "heading": "A leaked root key",
+      "fields": [
+        [
+          "Public repository",
+          "secret detected"
+        ],
+        [
+          "GitHub",
+          "notify Unkey"
+        ],
+        [
+          "Root key",
+          "respond and rotate"
+        ]
+      ],
+      "note": "Treat a published credential as compromised"
+    }
+  },
+  {
+    "id": "platform--index--11",
+    "source": "platform/index.mdx",
+    "href": "/platform/security/delete-protection",
+    "title": "Delete protection",
+    "evidence": "platform/security/delete-protection.mdx",
+    "scene": {
+      "kind": "shield",
+      "heading": "Prevent accidental deletion",
+      "fields": [
+        [
+          "Keyspace",
+          "protected"
+        ],
+        [
+          "Project",
+          "protected"
+        ],
+        [
+          "App",
+          "protected"
+        ],
+        [
+          "Environment",
+          "protected"
+        ]
+      ],
+      "note": "Remove protection before deleting the resource"
+    }
+  },
+  {
+    "id": "platform--index--12",
+    "source": "platform/index.mdx",
+    "href": "/platform/cli/overview",
+    "title": "The unkey CLI",
+    "evidence": "platform/cli/overview.mdx",
+    "scene": {
+      "kind": "terminal",
+      "heading": "The Unkey command families",
+      "fields": [
+        [
+          "unkey api",
+          "call service commands"
+        ],
+        [
+          "unkey deploy",
+          "ship a container"
+        ],
+        [
+          "unkey auth",
+          "manage credentials"
+        ]
+      ],
+      "note": "Manage both products from the terminal"
+    }
+  },
+  {
+    "id": "platform--index--13",
+    "source": "platform/index.mdx",
+    "href": "/platform/cli/install",
+    "title": "Install the CLI",
+    "evidence": "platform/cli/install.mdx",
+    "scene": {
+      "kind": "steps",
+      "heading": "Install and verify the binary",
+      "fields": [
+        [
+          "Download",
+          "npm or release archive"
+        ],
+        [
+          "Install",
+          "unkey binary"
+        ],
+        [
+          "Verify",
+          "unkey --version"
+        ]
+      ],
+      "note": "Both install paths ship the same CLI build"
+    }
+  },
+  {
+    "id": "platform--index--14",
+    "source": "platform/index.mdx",
+    "href": "/platform/cli/authentication",
+    "title": "CLI authentication",
+    "evidence": "platform/cli/authentication.mdx",
+    "scene": {
+      "kind": "precedence",
+      "heading": "Choose the CLI credential source",
+      "fields": [
+        [
+          "Flag",
+          "--root-key"
+        ],
+        [
+          "Environment",
+          "UNKEY_ROOT_KEY"
+        ],
+        [
+          "Saved config",
+          "API commands only"
+        ]
+      ],
+      "note": "An explicit credential takes precedence over stored configuration"
+    }
+  },
+  {
+    "id": "platform--index--15",
+    "source": "platform/index.mdx",
+    "href": "/platform/cli/output-and-flags",
+    "title": "CLI output and shared flags",
+    "evidence": "platform/cli/output-and-flags.mdx",
+    "scene": {
+      "kind": "code",
+      "heading": "Machine-readable CLI output",
+      "fields": [
+        [
+          "Response",
+          "--json"
+        ],
+        [
+          "Input",
+          "--body"
+        ],
+        [
+          "Automation",
+          "check exit status"
+        ]
+      ],
+      "note": "Use shared flags to integrate the CLI into scripts"
+    }
+  },
+  {
+    "id": "platform--index--16",
+    "source": "platform/index.mdx",
+    "href": "/platform/api/overview",
+    "title": "HTTP API basics",
+    "evidence": "platform/api/overview.mdx",
+    "scene": {
+      "kind": "request",
+      "heading": "One HTTP API shape",
+      "fields": [
+        [
+          "Method",
+          "POST"
+        ],
+        [
+          "Host",
+          "api.unkey.com"
+        ],
+        [
+          "Path",
+          "/v2/service.procedure"
+        ],
+        [
+          "Response",
+          "meta + data"
+        ]
+      ],
+      "note": "The root key authenticates the request"
+    }
+  },
+  {
+    "id": "platform--index--17",
+    "source": "platform/index.mdx",
+    "href": "/platform/api/authentication",
+    "title": "API authentication",
+    "evidence": "platform/api/authentication.mdx",
+    "scene": {
+      "kind": "envelope",
+      "heading": "Bearer authentication",
+      "fields": [
+        [
+          "Authorization",
+          "Bearer root_key"
+        ],
+        [
+          "Scope",
+          "workspace"
+        ],
+        [
+          "Permission",
+          "required operation"
+        ]
+      ],
+      "note": "Keep root keys on your backend"
+    }
+  },
+  {
+    "id": "platform--index--18",
+    "source": "platform/index.mdx",
+    "href": "/platform/api/rpc-convention",
+    "title": "RPC naming convention",
+    "evidence": "platform/api/rpc-convention.mdx",
+    "scene": {
+      "kind": "anatomy",
+      "heading": "Read an endpoint name",
+      "fields": [
+        [
+          "POST",
+          "method"
+        ],
+        [
+          "/v2/",
+          "version"
+        ],
+        [
+          "keys",
+          "service"
+        ],
+        [
+          "verifyKey",
+          "procedure"
+        ]
+      ],
+      "note": "service.procedure names the operation"
+    }
+  },
+  {
+    "id": "platform--index--19",
+    "source": "platform/index.mdx",
+    "href": "/platform/api/errors",
+    "title": "API error envelope",
+    "evidence": "platform/api/errors.mdx",
+    "scene": {
+      "kind": "error",
+      "heading": "Read the error envelope",
+      "fields": [
+        [
+          "error.status",
+          "HTTP status"
+        ],
+        [
+          "error.type",
+          "problem URL"
+        ],
+        [
+          "error.detail",
+          "what went wrong"
+        ],
+        [
+          "meta.requestId",
+          "trace the request"
+        ]
+      ],
+      "note": "Use the code to find the matching error page"
+    }
+  },
+  {
+    "id": "platform--index--2",
+    "source": "platform/index.mdx",
+    "href": "/platform/workspace/settings",
+    "title": "Workspace settings",
+    "evidence": "platform/workspace/settings.mdx",
+    "scene": {
+      "kind": "form",
+      "heading": "Workspace settings",
+      "fields": [
+        [
+          "Name",
+          "Acme"
+        ],
+        [
+          "Slug",
+          "acme"
+        ],
+        [
+          "Workspace ID",
+          "ws_..."
+        ],
+        [
+          "GitHub",
+          "connect app"
+        ]
+      ],
+      "note": "Manage the identity of your workspace"
+    }
+  },
+  {
+    "id": "platform--index--21",
+    "source": "platform/index.mdx",
+    "href": "/platform/root-keys/overview",
+    "title": "Root keys",
+    "evidence": "platform/root-keys/overview.mdx",
+    "scene": {
+      "kind": "rotation",
+      "heading": "Rotate a root key",
+      "fields": [
+        [
+          "Create",
+          "replacement key"
+        ],
+        [
+          "Deploy",
+          "update credentials"
+        ],
+        [
+          "Delete",
+          "old root key"
+        ]
+      ],
+      "note": "Use separate root keys for separate services"
+    }
+  },
+  {
+    "id": "platform--index--22",
+    "source": "platform/index.mdx",
+    "href": "/platform/root-keys/permissions",
+    "title": "Root key permissions",
+    "evidence": "platform/root-keys/permissions.mdx",
+    "scene": {
+      "kind": "compare",
+      "heading": "Scope a root key grant",
+      "fields": [
+        [
+          "Legacy",
+          "resource.id.action"
+        ],
+        [
+          "Resource name",
+          "path + action"
+        ],
+        [
+          "Endpoint",
+          "accepts a grant"
+        ]
+      ],
+      "note": "Grant the narrowest required access"
+    }
+  },
+  {
+    "id": "platform--index--23",
+    "source": "platform/index.mdx",
+    "href": "/platform/root-keys/permissions-legacy",
+    "title": "Permission reference",
+    "evidence": "platform/root-keys/permissions-legacy.mdx",
+    "scene": {
+      "kind": "anatomy",
+      "heading": "Permission tuple",
+      "fields": [
+        [
+          "api",
+          "resource"
+        ],
+        [
+          "*",
+          "all keyspaces"
+        ],
+        [
+          "read_key",
+          "action"
+        ]
+      ],
+      "note": "api.*.read_key"
+    }
+  },
+  {
+    "id": "platform--index--25",
+    "source": "platform/index.mdx",
+    "href": "/platform/glossary",
+    "title": "Glossary",
+    "evidence": "platform/glossary.mdx",
+    "scene": {
+      "kind": "tabs",
+      "heading": "Find the right meaning",
+      "fields": [
+        [
+          "Platform",
+          "workspace \u00b7 root key"
+        ],
+        [
+          "API Management",
+          "keyspace \u00b7 identity"
+        ],
+        [
+          "Compute",
+          "app \u00b7 environment"
+        ]
+      ],
+      "note": "Terms are grouped by product"
+    }
+  },
+  {
+    "id": "platform--index--26",
+    "source": "platform/index.mdx",
+    "href": "/compute",
+    "title": "Compute",
+    "evidence": "compute/index.mdx",
+    "scene": {
+      "kind": "flow",
+      "heading": "Compute",
+      "fields": [
+        [
+          "Source",
+          "repository or image"
+        ],
+        [
+          "Build",
+          "container"
+        ],
+        [
+          "Run",
+          "instances"
+        ],
+        [
+          "Gateway",
+          "traffic"
+        ]
+      ],
+      "note": "Deploy and serve your application"
+    }
+  },
+  {
+    "id": "platform--index--27",
+    "source": "platform/index.mdx",
+    "href": "/api-management",
+    "title": "API Management",
+    "evidence": "api-management/index.mdx",
+    "scene": {
+      "kind": "tree",
+      "heading": "API Management",
+      "fields": [
+        [
+          "Your API",
+          "hosted anywhere"
+        ],
+        [
+          "Keys",
+          "authenticate"
+        ],
+        [
+          "Limits",
+          "protect"
+        ],
+        [
+          "Credits",
+          "meter"
+        ]
+      ],
+      "note": "Protect the API where it already runs"
+    }
+  },
+  {
+    "id": "platform--index--3",
+    "source": "platform/index.mdx",
+    "href": "/platform/workspace/team",
+    "title": "Team",
+    "evidence": "platform/workspace/team.mdx",
+    "scene": {
+      "kind": "members",
+      "heading": "People in your workspace",
+      "fields": [
+        [
+          "Admin",
+          "team and billing"
+        ],
+        [
+          "Developer",
+          "resource changes"
+        ],
+        [
+          "Viewer",
+          "read-only access"
+        ]
+      ],
+      "note": "Choose the role each teammate needs"
+    }
+  },
+  {
+    "id": "platform--index--4",
+    "source": "platform/index.mdx",
+    "href": "/platform/workspace/two-factor-auth",
+    "title": "Two-factor authentication",
+    "evidence": "platform/workspace/two-factor-auth.mdx",
+    "scene": {
+      "kind": "otp",
+      "heading": "Authenticator verification",
+      "fields": [
+        [
+          "Account",
+          "password"
+        ],
+        [
+          "Authenticator",
+          "one-time code"
+        ],
+        [
+          "Session",
+          "signed in"
+        ]
+      ],
+      "note": "Add a second factor to your account"
+    }
+  },
+  {
+    "id": "platform--index--5",
+    "source": "platform/index.mdx",
+    "href": "/platform/billing/plans",
+    "title": "Plans",
+    "evidence": "platform/billing/plans.mdx",
+    "scene": {
+      "kind": "split",
+      "heading": "Two product subscriptions",
+      "fields": [
+        [
+          "API Management",
+          "API tier"
+        ],
+        [
+          "Compute",
+          "Compute plan"
+        ],
+        [
+          "Billing",
+          "one workspace"
+        ]
+      ],
+      "note": "Choose each product plan independently"
+    }
+  },
+  {
+    "id": "platform--index--6",
+    "source": "platform/index.mdx",
+    "href": "/platform/billing/limits",
+    "title": "Limits",
+    "evidence": "platform/billing/limits.mdx",
+    "scene": {
+      "kind": "scope",
+      "heading": "Workspace plan limits",
+      "fields": [
+        [
+          "API Management",
+          "keys and requests"
+        ],
+        [
+          "Logs",
+          "retention"
+        ],
+        [
+          "Analytics",
+          "query quotas"
+        ]
+      ],
+      "note": "Inspect each limit alongside its usage"
+    }
+  },
+  {
+    "id": "platform--index--7",
+    "source": "platform/index.mdx",
+    "href": "/platform/billing/usage",
+    "title": "Usage",
+    "evidence": "platform/billing/usage.mdx",
+    "scene": {
+      "kind": "bars",
+      "heading": "Track the current billing month",
+      "fields": [
+        [
+          "API usage",
+          "verification volume"
+        ],
+        [
+          "Compute",
+          "running resources"
+        ],
+        [
+          "Total",
+          "month-to-date usage"
+        ]
+      ],
+      "note": "See how each product contributes to workspace usage"
+    }
+  },
+  {
+    "id": "platform--index--8",
+    "source": "platform/index.mdx",
+    "href": "/platform/security/overview",
+    "title": "Security",
+    "evidence": "platform/security/overview.mdx",
+    "scene": {
+      "kind": "shield",
+      "heading": "Workspace security controls",
+      "fields": [
+        [
+          "Root keys",
+          "least privilege"
+        ],
+        [
+          "Account",
+          "two-factor auth"
+        ],
+        [
+          "Resources",
+          "delete protection"
+        ]
+      ],
+      "note": "Layer controls around your workspace"
+    }
+  },
+  {
+    "id": "platform--index--9",
+    "source": "platform/index.mdx",
+    "href": "/platform/security/key-storage",
+    "title": "Key storage",
+    "evidence": "platform/security/key-storage.mdx",
+    "scene": {
+      "kind": "hash",
+      "heading": "Hash before storage",
+      "fields": [
+        [
+          "Plaintext",
+          "presented key"
+        ],
+        [
+          "SHA-256",
+          "one-way hash"
+        ],
+        [
+          "Stored record",
+          "verification lookup"
+        ]
+      ],
+      "note": "A hash cannot reveal the original key"
+    }
+  },
+  {
+    "id": "platform--root-keys--overview--1",
+    "source": "platform/root-keys/overview.mdx",
+    "href": "/platform/root-keys/permissions",
+    "title": "Root key permissions",
+    "evidence": "platform/root-keys/permissions.mdx",
+    "scene": {
+      "kind": "table",
+      "heading": "Root key authorization models",
+      "fields": [
+        [
+          "Legacy grant",
+          "resource.id.action"
+        ],
+        [
+          "Resource name grant",
+          "path plus action"
+        ],
+        [
+          "Endpoint",
+          "accepted grant format"
+        ]
+      ],
+      "note": "Choose the permission form supported by the endpoint"
+    }
+  },
+  {
+    "id": "platform--root-keys--overview--2",
+    "source": "platform/root-keys/overview.mdx",
+    "href": "/platform/root-keys/permissions-legacy",
+    "title": "Permission reference",
+    "evidence": "platform/root-keys/permissions-legacy.mdx",
+    "scene": {
+      "kind": "anatomy",
+      "heading": "Break down api.*.read_key",
+      "fields": [
+        [
+          "api",
+          "resource type"
+        ],
+        [
+          "*",
+          "any keyspace"
+        ],
+        [
+          "read_key",
+          "allowed operation"
+        ]
+      ],
+      "note": "The legacy grant is a three-part permission string"
+    }
+  },
+  {
+    "id": "platform--security--key-storage--1",
+    "source": "platform/security/key-storage.mdx",
+    "href": "/api-management/keys/recoverable-keys",
+    "title": "Keyspaces and recoverable keys",
+    "evidence": "api-management/keys/recoverable-keys.mdx",
+    "scene": {
+      "kind": "vault",
+      "heading": "Recover an encrypted key",
+      "fields": [
+        [
+          "Keyspace",
+          "opt in"
+        ],
+        [
+          "Create",
+          "encrypted copy"
+        ],
+        [
+          "Retrieve",
+          "plaintext"
+        ]
+      ],
+      "note": "Recovery is separate from verification"
+    }
+  },
+  {
+    "id": "platform--security--overview--1",
+    "source": "platform/security/overview.mdx",
+    "href": "/platform/security/key-storage",
+    "title": "Key storage",
+    "evidence": "platform/security/key-storage.mdx",
+    "scene": {
+      "kind": "hash",
+      "heading": "Plaintext is not the stored credential",
+      "fields": [
+        [
+          "Plaintext",
+          "one-time response"
+        ],
+        [
+          "SHA-256",
+          "base64 hash"
+        ],
+        [
+          "Database",
+          "hash only"
+        ]
+      ],
+      "note": "Verification uses a one-way hash lookup"
+    }
+  },
+  {
+    "id": "platform--security--overview--2",
+    "source": "platform/security/overview.mdx",
+    "href": "/platform/security/github-secret-scanning",
+    "title": "GitHub secret scanning",
+    "evidence": "platform/security/github-secret-scanning.mdx",
+    "scene": {
+      "kind": "sequence",
+      "heading": "Respond to a leaked root key",
+      "fields": [
+        [
+          "Detection",
+          "GitHub secret scan"
+        ],
+        [
+          "Notification",
+          "Unkey receives alert"
+        ],
+        [
+          "Response",
+          "rotate credential"
+        ]
+      ],
+      "note": "Treat a root key in a public repository as compromised"
+    }
+  },
+  {
+    "id": "platform--security--overview--3",
+    "source": "platform/security/overview.mdx",
+    "href": "/platform/security/delete-protection",
+    "title": "Delete protection",
+    "evidence": "platform/security/delete-protection.mdx",
+    "scene": {
+      "kind": "scope",
+      "heading": "Protected resources",
+      "fields": [
+        [
+          "Deletion guard",
+          "enabled"
+        ],
+        [
+          "Keyspace",
+          "protected keys"
+        ],
+        [
+          "Project",
+          "protected apps"
+        ],
+        [
+          "Environment",
+          "protected deployments"
+        ]
+      ],
+      "note": "Disable protection deliberately before deleting"
+    }
+  },
+  {
+    "id": "platform--security--overview--4",
+    "source": "platform/security/overview.mdx",
+    "href": "/platform/workspace/two-factor-auth",
+    "title": "Two-factor authentication",
+    "evidence": "platform/workspace/two-factor-auth.mdx",
+    "scene": {
+      "kind": "sequence",
+      "heading": "Add a second sign-in factor",
+      "fields": [
+        [
+          "Account",
+          "enable two-factor auth"
+        ],
+        [
+          "Authenticator",
+          "scan setup code"
+        ],
+        [
+          "Sign-in",
+          "enter one-time code"
+        ]
+      ],
+      "note": "Protect dashboard access with an authenticator"
+    }
+  },
+  {
+    "id": "platform--workspace--settings--1",
+    "source": "platform/workspace/settings.mdx",
+    "href": "/platform/workspace/team",
+    "title": "Team",
+    "evidence": "platform/workspace/team.mdx",
+    "scene": {
+      "kind": "roles",
+      "heading": "Invite with an explicit role",
+      "fields": [
+        [
+          "Email",
+          "teammate@acme.com"
+        ],
+        [
+          "Role",
+          "Developer"
+        ],
+        [
+          "Invitation",
+          "pending"
+        ]
+      ],
+      "note": "Choose access before sending the invitation"
+    }
+  },
+  {
+    "id": "platform--workspace--settings--2",
+    "source": "platform/workspace/settings.mdx",
+    "href": "/platform/root-keys/overview",
+    "title": "Root keys",
+    "evidence": "platform/root-keys/overview.mdx"
+  },
+  {
+    "id": "platform--workspace--settings--3",
+    "source": "platform/workspace/settings.mdx",
+    "href": "/platform/billing/plans",
+    "title": "Billing",
+    "evidence": "platform/billing/plans.mdx",
+    "scene": {
+      "kind": "layers",
+      "heading": "Manage the workspace subscriptions",
+      "fields": [
+        [
+          "API tier",
+          "keys and verification"
+        ],
+        [
+          "Compute plan",
+          "deployment resources"
+        ],
+        [
+          "Workspace",
+          "shared billing account"
+        ]
+      ],
+      "note": "Each product has its own plan selection"
+    }
+  },
+  {
+    "id": "platform--workspace--settings--4",
+    "source": "platform/workspace/settings.mdx",
+    "href": "/platform/billing/usage",
+    "title": "Usage and limits",
+    "evidence": "platform/billing/usage.mdx",
+    "scene": {
+      "kind": "table",
+      "heading": "Inspect workspace consumption",
+      "fields": [
+        [
+          "Period",
+          "current billing month"
+        ],
+        [
+          "API Management",
+          "verification usage"
+        ],
+        [
+          "Compute",
+          "resource usage"
+        ],
+        [
+          "Total",
+          "month to date"
+        ]
+      ],
+      "note": "Review usage before changing the workspace plan"
+    }
+  },
+  {
+    "id": "platform--ai-coding--overview--1",
+    "source": "platform/ai-coding/overview.mdx",
+    "href": "/platform/ai-coding/mcp-servers",
+    "title": "Unkey MCP servers",
+    "evidence": "platform/ai-coding/overview.mdx",
+    "scene": {
+      "kind": "query",
+      "heading": "Compute analytics SQL",
+      "fields": [
+        [
+          "gateway_requests_v1",
+          "requests"
+        ],
+        [
+          "runtime_logs_v1",
+          "logs"
+        ],
+        [
+          "analytics API",
+          "SQL results"
+        ]
+      ],
+      "note": "Query the signals your app produces"
+    }
+  },
+  {
+    "id": "platform--ai-coding--overview--2",
+    "source": "platform/ai-coding/overview.mdx",
+    "href": "/platform/ai-coding/claude-code",
+    "title": "Claude Code",
+    "evidence": "platform/ai-coding/overview.mdx",
+    "scene": {
+      "kind": "query",
+      "heading": "Compute analytics SQL",
+      "fields": [
+        [
+          "gateway_requests_v1",
+          "requests"
+        ],
+        [
+          "runtime_logs_v1",
+          "logs"
+        ],
+        [
+          "analytics API",
+          "SQL results"
+        ]
+      ],
+      "note": "Query the signals your app produces"
+    }
+  },
+  {
+    "id": "platform--ai-coding--overview--3",
+    "source": "platform/ai-coding/overview.mdx",
+    "href": "/platform/ai-coding/cursor",
+    "title": "Cursor",
+    "evidence": "platform/ai-coding/overview.mdx",
+    "scene": {
+      "kind": "query",
+      "heading": "Compute analytics SQL",
+      "fields": [
+        [
+          "gateway_requests_v1",
+          "requests"
+        ],
+        [
+          "runtime_logs_v1",
+          "logs"
+        ],
+        [
+          "analytics API",
+          "SQL results"
+        ]
+      ],
+      "note": "Query the signals your app produces"
+    }
+  },
+  {
+    "id": "platform--ai-coding--overview--4",
+    "source": "platform/ai-coding/overview.mdx",
+    "href": "/platform/ai-coding/other-clients",
+    "title": "Other clients",
+    "evidence": "platform/ai-coding/overview.mdx",
+    "scene": {
+      "kind": "query",
+      "heading": "Compute analytics SQL",
+      "fields": [
+        [
+          "gateway_requests_v1",
+          "requests"
+        ],
+        [
+          "runtime_logs_v1",
+          "logs"
+        ],
+        [
+          "analytics API",
+          "SQL results"
+        ]
+      ],
+      "note": "Query the signals your app produces"
+    }
+  },
+  {
+    "id": "platform--ai-coding--cursor--1",
+    "source": "platform/ai-coding/cursor.mdx",
+    "href": "/platform/ai-coding/mcp-servers#try-it",
+    "title": "Try some prompts",
+    "evidence": "platform/ai-coding/cursor.mdx",
+    "scene": {
+      "kind": "query",
+      "heading": "Compute analytics SQL",
+      "fields": [
+        [
+          "gateway_requests_v1",
+          "requests"
+        ],
+        [
+          "runtime_logs_v1",
+          "logs"
+        ],
+        [
+          "analytics API",
+          "SQL results"
+        ]
+      ],
+      "note": "Query the signals your app produces"
+    }
+  },
+  {
+    "id": "platform--ai-coding--cursor--2",
+    "source": "platform/ai-coding/cursor.mdx",
+    "href": "/platform/ai-coding/mcp-servers#fix-connection-problems",
+    "title": "Fix connection problems",
+    "evidence": "platform/ai-coding/cursor.mdx",
+    "scene": {
+      "kind": "query",
+      "heading": "Compute analytics SQL",
+      "fields": [
+        [
+          "gateway_requests_v1",
+          "requests"
+        ],
+        [
+          "runtime_logs_v1",
+          "logs"
+        ],
+        [
+          "analytics API",
+          "SQL results"
+        ]
+      ],
+      "note": "Query the signals your app produces"
+    }
+  },
+  {
+    "id": "platform--ai-coding--claude-code--1",
+    "source": "platform/ai-coding/claude-code.mdx",
+    "href": "/platform/ai-coding/mcp-servers#try-it",
+    "title": "Try some prompts",
+    "evidence": "platform/ai-coding/claude-code.mdx",
+    "scene": {
+      "kind": "query",
+      "heading": "Compute analytics SQL",
+      "fields": [
+        [
+          "gateway_requests_v1",
+          "requests"
+        ],
+        [
+          "runtime_logs_v1",
+          "logs"
+        ],
+        [
+          "analytics API",
+          "SQL results"
+        ]
+      ],
+      "note": "Query the signals your app produces"
+    }
+  },
+  {
+    "id": "platform--ai-coding--claude-code--2",
+    "source": "platform/ai-coding/claude-code.mdx",
+    "href": "/platform/ai-coding/mcp-servers#fix-connection-problems",
+    "title": "Fix connection problems",
+    "evidence": "platform/ai-coding/claude-code.mdx",
+    "scene": {
+      "kind": "query",
+      "heading": "Compute analytics SQL",
+      "fields": [
+        [
+          "gateway_requests_v1",
+          "requests"
+        ],
+        [
+          "runtime_logs_v1",
+          "logs"
+        ],
+        [
+          "analytics API",
+          "SQL results"
+        ]
+      ],
+      "note": "Query the signals your app produces"
+    }
+  },
+  {
+    "id": "errors--overview--8",
+    "source": "errors/overview.mdx",
+    "href": "/errors/user/too_many_requests/query_quota_exceeded",
+    "title": "Too many requests",
+    "evidence": "errors/overview.mdx",
+    "scene": {
+      "kind": "query",
+      "heading": "Compute analytics SQL",
+      "fields": [
+        [
+          "gateway_requests_v1",
+          "requests"
+        ],
+        [
+          "runtime_logs_v1",
+          "logs"
+        ],
+        [
+          "analytics API",
+          "SQL results"
+        ]
+      ],
+      "note": "Query the signals your app produces"
+    }
+  }
+]

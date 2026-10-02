@@ -149,6 +149,7 @@ func NewHarness(t *testing.T, configs ...HarnessConfig) *Harness {
 		TLS:               nil,
 		EnableH2C:         false,
 		StreamRequestBody: false,
+		TrustedProxyCIDRs: []string{"192.0.2.0/24"},
 		ReadTimeout:       0,
 		WriteTimeout:      0,
 	})
@@ -295,6 +296,7 @@ func NewHarness(t *testing.T, configs ...HarnessConfig) *Harness {
 	keyService, err := keys.New(keys.Config{
 		DB:           db.ToMySQL(database),
 		KeyCache:     caches.VerificationKeyByHash,
+		RootKeyCache: caches.RootKeyByHash,
 		RateLimiter:  ratelimitService,
 		RBAC:         rbac.New(),
 		Region:       "test",
@@ -461,7 +463,6 @@ func (h *Harness) CreatePortalSessionForPortal(portalID, workspaceID, externalID
 		PortalID:              portalID,
 		ExternalID:            externalID,
 		Scopes:                scopesJSON,
-		Preview:               false,
 		ExchangeCodeHash:      hash.Sha256(exchangeCode),
 		ExchangeCodeExpiresAt: now.Add(15 * time.Minute).UnixMilli(),
 		ReturnUrl:             sql.NullString{Valid: false, String: ""},
@@ -493,6 +494,12 @@ func (h *Harness) CreatePortalSessionForPortal(portalID, workspaceID, externalID
 // permissions (the key can authenticate but not authorize any operations).
 func (h *Harness) CreateRootKey(workspaceID string, permissions ...string) string {
 	return h.seeder.CreateRootKey(context.Background(), workspaceID, permissions...)
+}
+
+// CreateUnkeyRootKey creates a root key in the new root-key store. See
+// [seed.CreateUnkeyRootKeyRequest].
+func (h *Harness) CreateUnkeyRootKey(req seed.CreateUnkeyRootKeyRequest) seed.CreateKeyResponse {
+	return h.seeder.CreateUnkeyRootKey(context.Background(), req)
 }
 
 // CreateWorkspace creates a new workspace with auto-generated IDs and names.
@@ -652,7 +659,6 @@ func (h *Harness) CreateTestDeploymentSetup(opts ...CreateTestDeploymentSetupOpt
 		Slug:             "default",
 		SourceType:       db.AppsSourceTypeUnknown,
 		ImageReference:   "",
-		DefaultBranch:    "main",
 		DeleteProtection: false,
 	})
 

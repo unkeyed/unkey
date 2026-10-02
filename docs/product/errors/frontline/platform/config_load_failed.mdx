@@ -1,7 +1,52 @@
 ---
 title: "config_load_failed"
-description: "ConfigLoadFailed represents a 500 error - failed to load configuration"
+sidebarTitle: "config_load_failed"
+description: "Unkey's gateway failed on our side while loading the configuration it needs to route the request."
+sources:
+  - pkg/codes/frontline.go
+  - svc/frontline/middleware/observability.go
+  - svc/frontline/internal/router/lookup.go
+  - svc/frontline/routes/acme/handler.go
 ---
 
 <Danger>`err:frontline:platform:config_load_failed`</Danger>
 
+import { ProductLink } from "/snippets/product-link.jsx";
+
+The gateway failed on our side while loading what it needs to route the request. It isn't caused by the request or by the owner's configuration. You get `500 Internal Server Error`, usually with `Failed to load route configuration` or `Failed to load instance configuration`.
+
+```json Example response
+{
+  "meta": {
+    "requestId": "req_3k2j1h0g9f8e7d6c"
+  },
+  "error": {
+    "code": "err:frontline:platform:config_load_failed",
+    "message": "Failed to load route configuration"
+  }
+}
+```
+
+Browsers get the same error as an HTML page.
+
+## If you're calling an API hosted on Unkey
+
+Retry with backoff. It's usually brief. If it keeps failing, contact the API owner or Unkey support with the request ID.
+
+## If you own this API
+
+Nothing in your deployment causes this. A hostname with no route returns [`config_not_found`](/errors/frontline/routing/config_not_found) instead.
+
+### How to fix
+
+There's nothing to change on your side. If it lasts more than a few minutes, check the Unkey status page and contact support with the request ID and the hostname.
+
+<ProductLink product="compute" href="/compute/gateway/errors" title="Compute gateway">
+  Gateway policies, deployments, and domains are Compute features. The Compute docs explain how to configure them.
+</ProductLink>
+
+## Related errors
+
+- [`err:frontline:routing:config_not_found`](/errors/frontline/routing/config_not_found): the hostname has no route.
+- [`err:frontline:config:invalid_configuration`](/errors/frontline/config/invalid_configuration): the configuration loaded but couldn't be parsed.
+- [`err:frontline:platform:internal_server_error`](/errors/frontline/platform/internal_server_error): other failures inside the gateway.

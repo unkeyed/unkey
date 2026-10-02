@@ -5,9 +5,10 @@ import { useSidebar } from "@/components/ui/sidebar";
 import { type BreadcrumbDescriptor, useBreadcrumbs } from "@/hooks/use-breadcrumbs";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { routes } from "@/lib/navigation/routes";
-import { Menu } from "@unkey/icons";
+import { IconMenuOutline18 } from "@unkey/icons";
 import Link from "next/link";
 import { Fragment } from "react";
+import { AccountCrumb } from "./account-crumb";
 import { ApiCrumb } from "./api-crumb";
 import { AppCrumb } from "./app-crumb";
 import { CrumbSeparator } from "./crumb";
@@ -28,7 +29,7 @@ export function TopNav() {
 
   return (
     <header
-      className="flex w-full shrink-0 items-center gap-1 border-b border-grayA-4 bg-gray-1 px-4"
+      className="flex w-full shrink-0 items-center gap-1 border-b bg-background px-4"
       style={{ height: TOP_NAV_HEIGHT }}
     >
       <Link
@@ -47,17 +48,17 @@ export function TopNav() {
           </Fragment>
         ))}
       </div>
-      <div className="ml-auto flex shrink-0 items-center gap-1">
-        <TopNavFeedbackButton className="hidden md:inline-flex" />
+      <div className="ml-auto flex shrink-0 items-center gap-2">
+        <TopNavFeedbackButton className="hidden md:flex" />
         <HelpButton />
         <UserButton />
         <button
           type="button"
           onClick={() => setOpenMobile(true)}
           aria-label="Open navigation"
-          className="flex size-8 items-center justify-center rounded-md text-gray-11 hover:bg-grayA-3 hover:text-accent-12 md:hidden"
+          className="flex size-8 items-center justify-center rounded-md text-gray-11 hover:bg-grayA-3 hover:text-gray-12 md:hidden"
         >
-          <Menu className="size-4" iconSize="md-regular" />
+          <IconMenuOutline18 className="size-4" />
         </button>
       </div>
     </header>
@@ -68,16 +69,20 @@ function CrumbForDescriptor({ descriptor }: { descriptor: BreadcrumbDescriptor }
   switch (descriptor.type) {
     case "workspace":
       return <WorkspaceCrumb href={descriptor.href} />;
+    case "account":
+      return <AccountCrumb />;
     case "project":
-      return <ProjectCrumb projectId={descriptor.projectId} />;
+      return <ProjectCrumb owner={descriptor.owner} />;
     case "app":
       return <AppCrumb projectId={descriptor.projectId} appId={descriptor.appId} />;
     case "api":
-      return <ApiCrumb apiId={descriptor.apiId} />;
+      return <ApiCrumb apiId={descriptor.apiId} projectId={descriptor.projectId} />;
     case "namespace":
-      return <NamespaceCrumb namespaceId={descriptor.namespaceId} />;
+      return (
+        <NamespaceCrumb namespaceId={descriptor.namespaceId} projectId={descriptor.projectId} />
+      );
     case "identity":
-      return <IdentityCrumb identityId={descriptor.identityId} />;
+      return <IdentityCrumb identityId={descriptor.identityId} projectId={descriptor.projectId} />;
   }
 }
 
@@ -85,8 +90,12 @@ function crumbKey(descriptor: BreadcrumbDescriptor): string {
   switch (descriptor.type) {
     case "workspace":
       return "workspace";
+    case "account":
+      return "account";
+    // One project crumb at most, and a stable key keeps it mounted while the
+    // owning-project lookup resolves.
     case "project":
-      return `project:${descriptor.projectId}`;
+      return "project";
     case "app":
       return `app:${descriptor.appId}`;
     case "api":

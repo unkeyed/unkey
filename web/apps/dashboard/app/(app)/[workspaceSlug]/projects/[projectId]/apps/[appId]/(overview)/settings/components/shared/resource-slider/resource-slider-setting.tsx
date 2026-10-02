@@ -315,7 +315,7 @@ const SingleMode = ({ config }: { config: ResourceSliderConfig }) => {
             )}
           />
           {config.sliderAdornment?.(settings)}
-          <span className="text-[13px]">
+          <span className="text-sm">
             <span className="font-medium text-gray-12">
               {config.formatValue(currentValue).value}
             </span>{" "}
@@ -480,7 +480,7 @@ const DualSliderSection = ({ label, config, sp, settings, onSliderChange }: Slid
         rangeStyle={buildSliderRangeStyle(sp.rangeIndex, sp.rangeMax, sp.rangeMin, config.colorVar)}
       />
       {config.sliderAdornment?.(settings)}
-      <span className="text-[13px]">
+      <span className="text-sm">
         <span className="font-medium text-gray-12">
           {config.formatValue(sp.toFormValue(sp.sliderValue)).value}
         </span>{" "}

@@ -1,11 +1,20 @@
 ---
 title: "custom_domain_limit_exceeded"
-description: "The workspace already holds as many custom domains as its plan allows, so no further domain can be attached."
+sidebarTitle: "custom_domain_limit_exceeded"
+description: "The workspace already has as many custom domains as its plan allows."
+sources:
+  - pkg/codes/unkey_limits.go
+  - svc/api/internal/middleware/errors.go
+  - pkg/domain/domaingate/domaingate.go
+  - svc/api/routes/v2_domains_create_domain/handler.go
+  - svc/api/internal/customdomain/error.go
 ---
 
 <Danger>`err:unkey:limits:custom_domain_limit_exceeded`</Danger>
 
-```json Example
+Your workspace already has as many custom domains as your plan allows, so `domains.createDomain` didn't add another one. You get HTTP 403. Waiting won't change it.
+
+```json Example response
 {
   "meta": {
     "requestId": "req_2c9a0jf23l4k567"
@@ -14,44 +23,18 @@ description: "The workspace already holds as many custom domains as its plan all
     "detail": "Your plan does not allow another custom domain. Upgrade your plan, or remove a domain you no longer need, then retry.",
     "status": 403,
     "title": "Forbidden",
-    "type": "https://unkey.com/docs/errors/unkey/limits/custom_domain_limit_exceeded"
+    "type": "/errors/unkey/limits/custom_domain_limit_exceeded"
   }
 }
 ```
 
-## What Happened?
+## How to fix
 
-You called `createDomain` for a workspace that has already attached every custom domain its plan permits.
+1. Remove a domain you no longer use with `domains.deleteDomain`, or move to a plan with a higher limit. See [Limits](/platform/billing/limits) and [Plans](/platform/billing/plans).
+2. Create the domain again.
 
-The allowance is counted per workspace, across every project, app, and environment in it. Attaching domains to different environments does not raise it, so a workspace allowed one domain cannot hold one per environment.
+## Related errors
 
-## How To Fix
-
-1. Check how many domains the workspace already holds, and whether any are still in use.
-2. Remove one you no longer need, from the app's settings page in the dashboard.
-3. If they are all still in use, upgrade the plan to raise the allowance.
-4. Retry the request.
-
-```bash
-# Attach the domain once the allowance has room
-curl -X POST https://api.unkey.com/v2/domains.createDomain \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer unkey_YOUR_API_KEY" \
-  -d '{
-        "project": "payments",
-        "app": "payments-api",
-        "environment": "production",
-        "domain": "api.acme.com"
-      }'
-```
-
-## Common Mistakes
-
-- **Expecting the allowance to be per environment**: A domain in each environment still counts against one workspace-wide allowance.
-- **Counting only verified domains**: A domain still `pending` verification occupies the allowance, so an abandoned setup keeps taking a slot.
-- **Retrying on a schedule**: Nothing about the workspace changes between attempts, so a retry loop fails until the plan or the domain list changes.
-
-## Related Errors
-
-- [err:unkey:data:domain_already_exists](../data/domain_already_exists) - When the name is already attached to this workspace
-- [err:unkey:authorization:forbidden](../authorization/forbidden) - When the root key or its workspace is disabled
+- [`err:unkey:data:domain_already_exists`](/errors/unkey/data/domain_already_exists): the domain is already attached to this workspace.
+- [`err:unkey:application:invalid_input`](/errors/unkey/application/invalid_input): the domain name itself isn't valid.
+- [`err:unkey:application:service_unavailable`](/errors/unkey/application/service_unavailable): your workspace's plan limits aren't set up (`Resource limits are not configured for this workspace.`), which support has to fix.

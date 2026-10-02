@@ -10,47 +10,11 @@ export type PermissionItem = {
 export type PermissionCategory = Record<string, PermissionItem>;
 export type PermissionList = Record<string, PermissionCategory>;
 
-// State management
-export interface PermissionState {
-  selectedPermissions: UnkeyPermission[];
-  categoryChecked: Record<string, CheckedState>;
-  rootChecked: CheckedState;
-}
-
-export type PermissionAction =
-  | {
-      type: "TOGGLE_PERMISSION";
-      permission: UnkeyPermission;
-      permissionList: PermissionList;
-    }
-  | {
-      type: "TOGGLE_CATEGORY";
-      category: string;
-      permissionList: PermissionList;
-    }
-  | { type: "TOGGLE_ROOT"; permissionList: PermissionList }
-  | {
-      type: "UPDATE_CHECKED_STATES";
-      rootChecked: CheckedState;
-      categoryChecked: Record<string, CheckedState>;
-    }
-  | {
-      type: "UPDATE_SELECTED_PERMISSIONS";
-      selectedPermissions: UnkeyPermission[];
-    };
-
 // Utility functions
 export function getAllPermissionNames(permissionList: PermissionList): UnkeyPermission[] {
   return Object.values(permissionList).flatMap((category) =>
     Object.values(category).map(({ permission }) => permission),
   );
-}
-
-export function getCategoryPermissionNames(
-  permissionList: PermissionList,
-  category: string,
-): UnkeyPermission[] {
-  return Object.values(permissionList[category] || {}).map(({ permission }) => permission);
 }
 
 export function filterPermissionList(
@@ -116,69 +80,6 @@ export function computeCheckedStates(
   });
 
   return { rootChecked, categoryChecked };
-}
-
-export function permissionReducer(
-  state: PermissionState,
-  action: PermissionAction,
-): PermissionState {
-  switch (action.type) {
-    case "TOGGLE_PERMISSION": {
-      const { permission, permissionList } = action;
-      const isSelected = state.selectedPermissions.includes(permission);
-      const selectedPermissions = isSelected
-        ? state.selectedPermissions.filter((p) => p !== permission)
-        : [...state.selectedPermissions, permission];
-
-      const { rootChecked, categoryChecked } = computeCheckedStates(
-        selectedPermissions,
-        permissionList,
-      );
-      return { selectedPermissions, rootChecked, categoryChecked };
-    }
-
-    case "TOGGLE_CATEGORY": {
-      const { category, permissionList } = action;
-      const categoryPermissions = getCategoryPermissionNames(permissionList, category);
-      const allSelected = categoryPermissions.every((p) => state.selectedPermissions.includes(p));
-
-      const selectedPermissions = allSelected
-        ? state.selectedPermissions.filter((p) => !categoryPermissions.includes(p))
-        : Array.from(new Set([...state.selectedPermissions, ...categoryPermissions]));
-
-      const { rootChecked, categoryChecked } = computeCheckedStates(
-        selectedPermissions,
-        permissionList,
-      );
-      return { selectedPermissions, rootChecked, categoryChecked };
-    }
-
-    case "TOGGLE_ROOT": {
-      const { permissionList } = action;
-      const allPermissionNames = getAllPermissionNames(permissionList);
-      const allSelected = state.selectedPermissions.length === allPermissionNames.length;
-
-      const selectedPermissions = allSelected ? [] : allPermissionNames;
-      const { rootChecked, categoryChecked } = computeCheckedStates(
-        selectedPermissions,
-        permissionList,
-      );
-      return { selectedPermissions, rootChecked, categoryChecked };
-    }
-
-    case "UPDATE_CHECKED_STATES": {
-      const { rootChecked, categoryChecked } = action;
-      return { ...state, rootChecked, categoryChecked };
-    }
-
-    case "UPDATE_SELECTED_PERMISSIONS": {
-      const { selectedPermissions } = action;
-      return { ...state, selectedPermissions };
-    }
-
-    default:
-      return state;
-  }
 }
 
 export function hasPermissionResults(

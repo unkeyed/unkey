@@ -7,7 +7,8 @@ import "dev/restate/sdk/go.proto";
 
 option go_package = "github.com/unkeyed/unkey/gen/proto/hydra/v1;hydrav1";
 
-// EnvironmentService manages environment lifecycle.
+// EnvironmentService serializes everything that changes an environment's live
+// deployment, plus its deletion.
 // Key: environment_id
 service EnvironmentService {
   option (dev.restate.sdk.go.service_type) = VIRTUAL_OBJECT;
@@ -15,7 +16,37 @@ service EnvironmentService {
   // Delete removes an environment and cleans up associated resources.
   // Key: environment_id
   rpc Delete(DeleteEnvironmentRequest) returns (DeleteEnvironmentResponse) {}
+
+  // PromoteDeployment moves the sticky routes and live pointer to the
+  // deployment and clears is_rolled_back. If it is already live on a
+  // rolled-back app, only the flag changes.
+  // Key: the deployment's environment_id
+  rpc PromoteDeployment(PromoteDeploymentRequest) returns (PromoteDeploymentResponse) {}
+
+  // RollbackDeployment moves live traffic from one deployment back to another
+  // and sets is_rolled_back so later deploys do not reclaim the routes.
+  // Key: the environment_id both deployments share
+  rpc RollbackDeployment(RollbackDeploymentRequest) returns (RollbackDeploymentResponse) {}
 }
+
+message PromoteDeploymentRequest {
+  string deployment_id = 1;
+  ctrl.v1.ActorInfo actor = 2;
+  string correlation_id = 3;
+}
+
+message PromoteDeploymentResponse {}
+
+// from_deployment_id is the live deployment the caller saw. The handler
+// refuses the rollback if it is no longer live.
+message RollbackDeploymentRequest {
+  string from_deployment_id = 1;
+  string to_deployment_id = 2;
+  ctrl.v1.ActorInfo actor = 3;
+  string correlation_id = 4;
+}
+
+message RollbackDeploymentResponse {}
 
 // DeleteEnvironmentRequest carries the caller identity and correlation ID into
 // the durable workflow so the environment.delete audit log is written as part

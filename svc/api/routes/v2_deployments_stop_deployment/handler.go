@@ -94,7 +94,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	_, err = hydrav1.NewDeployServiceIngressClient(h.Restate, dep.ID).
+	_, err = hydrav1.NewDeploymentServiceIngressClient(h.Restate, dep.ID).
 		StopDeployment().
 		Send(ctx, &hydrav1.StopDeploymentRequest{
 			DeploymentId:  dep.ID,

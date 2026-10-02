@@ -1,0 +1,46 @@
+type: object
+additionalProperties: false
+required:
+  - keyId
+  - name
+  - start
+  - end
+  - enabled
+  - createdAt
+  - lastUsedAt
+  - expires
+  - permissions
+properties:
+  keyId:
+    type: string
+    description: Stable root key identifier.
+  name:
+    type: [string, "null"]
+    description: User-supplied name, or null when absent.
+  start:
+    type: string
+    description: Stored display fragment, including the prefix when present.
+  end:
+    type: string
+    description: Stored trailing display fragment. Empty for keys without a recorded suffix.
+  enabled:
+    type: boolean
+    description: Whether the key is administratively enabled. An enabled key can still be expired.
+  createdAt:
+    type: integer
+    format: int64
+    description: Creation time in Unix milliseconds.
+  lastUsedAt:
+    type: integer
+    format: int64
+    minimum: 0
+    description: Last verification time in Unix milliseconds. Zero means the root key has not been used.
+  expires:
+    type: [integer, "null"]
+    format: int64
+    description: Expiration time in Unix milliseconds, or null for no expiration.
+  permissions:
+    type: array
+    description: All permissions assigned to the root key.
+    items:
+      type: string

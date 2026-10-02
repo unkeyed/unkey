@@ -1,5 +1,5 @@
-import { cn } from "@/lib/utils";
 import { TimestampInfo } from "@unkey/ui";
+import { cn } from "cn";
 import { Fragment } from "react/jsx-runtime";
 import { TruncatedCell } from "../truncated-cell";
 import type { BuildStepRow } from "./columns";
@@ -16,7 +16,7 @@ export function BuildStepLogsExpanded({ step }: { step: BuildStepRow }) {
   }
 
   const isError = Boolean(step.error);
-  const borderClass = isError ? "border-error-7" : "border-accent-7";
+  const borderClass = isError ? "border-error-7" : "border-strong";
   const bgClass = isError ? "bg-error-2" : "";
 
   return (

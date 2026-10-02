@@ -157,7 +157,7 @@ func (h *CheckHandler) CheckWorkspaceSpend(
 	// old spend. Journaled Now() so replays agree.
 	reqPeriod, err := billingperiod.Parse(req.GetPeriod())
 	if err != nil {
-		return nil, restate.TerminalError(fmt.Errorf("invalid period %q: %w", req.GetPeriod(), err))
+		return nil, restate.ToTerminalError(fmt.Errorf("invalid period %q: %w", req.GetPeriod(), err))
 	}
 	if reqPeriod != billingperiod.From(now) {
 		logger.Info("deploy spend cap: skipping stale-period tick",

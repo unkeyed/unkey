@@ -429,12 +429,12 @@ func TestDeletePortalWithInvalidMapping(t *testing.T) {
 		ProjectID:        project.ID,
 		Name:             "both",
 		Slug:             "both",
-		DefaultBranch:    "main",
 		DeleteProtection: false,
 	})
 	stored := h.CreatePortal(seed.CreatePortalRequest{
 		ID:           "",
 		WorkspaceID:  workspace.ID,
+		ProjectID:    project.ID,
 		Slug:         "broken",
 		AppID:        sql.NullString{String: app.ID, Valid: true},
 		KeyAuthID:    sql.NullString{String: keyspace.ID, Valid: true},

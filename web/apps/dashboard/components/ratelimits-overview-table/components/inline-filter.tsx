@@ -3,7 +3,7 @@ import type {
   RatelimitOverviewFilterValue,
 } from "@/app/(app)/[workspaceSlug]/ratelimits/[namespaceId]/_overview/filters.schema";
 import { useFilters } from "@/app/(app)/[workspaceSlug]/ratelimits/[namespaceId]/_overview/hooks/use-filters";
-import { BarsFilter } from "@unkey/icons";
+import { IconBarsFilterOutline18 } from "@unkey/icons";
 import { InfoTooltip } from "@unkey/ui";
 
 type FilterPair = {
@@ -27,11 +27,7 @@ export const InlineFilter = ({
   const activeFilters = filters.filter((f) => TIME_FIELDS.includes(f.field));
 
   return (
-    <InfoTooltip
-      asChild
-      variant="inverted"
-      content={<span className="text-xs font-medium">{content}</span>}
-    >
+    <InfoTooltip asChild content={<span className="text-xs font-medium">{content}</span>}>
       <button
         onClick={() => {
           const pairFilters: RatelimitOverviewFilterValue[] = [];
@@ -55,10 +51,7 @@ export const InlineFilter = ({
         }}
         type="button"
       >
-        <BarsFilter
-          className="text-gray-12 invisible group-hover/identifier:visible"
-          iconSize="md-medium"
-        />
+        <IconBarsFilterOutline18 className="size-3.5 text-gray-12 invisible group-hover/identifier:visible" />
       </button>
     </InfoTooltip>
   );

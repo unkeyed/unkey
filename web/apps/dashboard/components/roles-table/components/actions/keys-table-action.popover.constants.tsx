@@ -1,14 +1,15 @@
 "use client";
 
 import { MAX_KEYS_FETCH_LIMIT } from "@/app/(app)/[workspaceSlug]/authorization/roles/components/upsert-role/components/assign-key/hooks/use-fetch-keys";
-import { MAX_PERMS_FETCH_LIMIT } from "@/app/(app)/[workspaceSlug]/authorization/roles/components/upsert-role/components/assign-permission/hooks/use-fetch-permissions";
 import {
   type MenuItem,
   TableActionPopoverDefaultTrigger,
 } from "@/components/logs/table-action.popover";
+import { permissionsQueryOptions } from "@/hooks/use-fetch-permissions";
 import { trpc } from "@/lib/trpc/client";
 import type { RoleBasic } from "@/lib/trpc/routers/authorization/roles/query";
-import { Clone, PenWriting3, Trash } from "@unkey/icons";
+import { type QueryClient, useQueryClient } from "@tanstack/react-query";
+import { IconCloneOutline18, IconPenWriting3Outline18, IconTrashOutline18 } from "@unkey/icons";
 import { toast } from "@unkey/ui";
 import dynamic from "next/dynamic";
 import { DeleteRole } from "./components/delete-role";
@@ -30,7 +31,8 @@ type RolesTableActionsProps = {
 
 export const RolesTableActions = ({ role }: RolesTableActionsProps) => {
   const trpcUtils = trpc.useUtils();
-  const menuItems = getRolesTableActionItems(role, trpcUtils);
+  const queryClient = useQueryClient();
+  const menuItems = getRolesTableActionItems(role, trpcUtils, queryClient);
 
   return <KeysTableActionPopover items={menuItems} />;
 };
@@ -38,21 +40,20 @@ export const RolesTableActions = ({ role }: RolesTableActionsProps) => {
 const getRolesTableActionItems = (
   role: RoleBasic,
   trpcUtils: ReturnType<typeof trpc.useUtils>,
+  queryClient: QueryClient,
 ): MenuItem[] => {
   return [
     {
       id: "edit-role",
       label: "Edit role...",
-      icon: <PenWriting3 iconSize="md-medium" />,
+      icon: <IconPenWriting3Outline18 className="size-3.5" />,
       ActionComponent: (props) => <EditRole role={role} {...props} />,
       prefetch: async () => {
         await Promise.all([
           trpcUtils.authorization.roles.keys.query.prefetchInfinite({
             limit: MAX_KEYS_FETCH_LIMIT,
           }),
-          trpcUtils.authorization.roles.permissions.query.prefetchInfinite({
-            limit: MAX_PERMS_FETCH_LIMIT,
-          }),
+          queryClient.prefetchInfiniteQuery(permissionsQueryOptions()),
           trpcUtils.authorization.roles.connectedKeysAndPerms.prefetch({
             roleId: role.roleId,
           }),
@@ -63,7 +64,7 @@ const getRolesTableActionItems = (
       id: "copy",
       label: "Copy role",
       className: "mt-1",
-      icon: <Clone iconSize="md-medium" />,
+      icon: <IconCloneOutline18 className="size-3.5" />,
       onClick: () => {
         navigator.clipboard
           .writeText(JSON.stringify(role))
@@ -80,7 +81,7 @@ const getRolesTableActionItems = (
     {
       id: "delete-role",
       label: "Delete role",
-      icon: <Trash iconSize="md-medium" />,
+      icon: <IconTrashOutline18 className="size-3.5" />,
       ActionComponent: (props) => <DeleteRole {...props} roleDetails={role} />,
     },
   ];
