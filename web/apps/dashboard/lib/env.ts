@@ -88,7 +88,7 @@ export const dbEnv = () =>
   z
     .object({
       DATABASE_PRIMARY: z.string().url(),
-      DATABASE_REPLICA: z.string().url().optional(),
+      DATABASE_REPLICA: z.union([z.string().url(), z.literal("")]).optional(),
     })
     .parse(process.env);
 
