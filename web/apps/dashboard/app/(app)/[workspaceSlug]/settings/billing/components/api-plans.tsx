@@ -1,6 +1,7 @@
 "use client";
 
 import { announceUpgrade } from "@/components/billing/upgrade-success/upgrade-success-dialog";
+import { useInvalidateWorkspaceQueries } from "@/hooks/use-invalidate-workspace-queries";
 import { currentApiProduct } from "@/lib/billing/api-plan";
 import { formatNumber } from "@/lib/fmt";
 import { trpc } from "@/lib/trpc/client";
@@ -28,6 +29,7 @@ export function ApiPlans({ isAdmin, manage, usedThisMonth, onChanged }: ApiPlans
   const router = useRouter();
   const pathname = usePathname();
   const trpcUtils = trpc.useUtils();
+  const invalidateWorkspace = useInvalidateWorkspaceQueries();
   const [isCancelOpen, setCancelOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [isRedirecting, setRedirecting] = useState(false);
@@ -75,7 +77,7 @@ export function ApiPlans({ isAdmin, manage, usedThisMonth, onChanged }: ApiPlans
         trpcUtils.stripe.getBillingInfo.invalidate(),
         trpcUtils.stripe.getUpcomingInvoice.invalidate(),
         trpcUtils.billing.queryUsage.invalidate(),
-        trpcUtils.workspace.getCurrent.invalidate(),
+        invalidateWorkspace(),
       ]);
       router.refresh();
       onChanged();
