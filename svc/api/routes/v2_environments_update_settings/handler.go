@@ -465,8 +465,12 @@ func (h *Handler) resolveRegions(ctx context.Context, regions []openapi.Environm
 		}
 		seen[key] = struct{}{}
 
-		if rmin < minReplicasPerRegion || rmax > maxReplicasPerRegion {
-			return nil, invalidRegion(fmt.Sprintf("Region '%s' replicas must be between %d and %d.", r.Name, minReplicasPerRegion, maxReplicasPerRegion))
+		if rmin < minReplicasPerRegion {
+			return nil, invalidRegion(fmt.Sprintf("Region '%s' must have at least one replica. Set the minimum replica count to 1 or higher.", r.Name))
+		}
+
+		if rmax > maxReplicasPerRegion {
+			return nil, invalidRegion(fmt.Sprintf("This workspace has a replica limit of %d per region, but '%s' is configured for up to %d. Reduce the replica range or contact support to check your workspace limit.", maxReplicasPerRegion, r.Name, rmax))
 		}
 
 		if rmin > rmax {
