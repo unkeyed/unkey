@@ -94,7 +94,7 @@ describe("rowOffers", () => {
   it("offers the actions supported by each general resource", () => {
     for (const scope of RESOURCE_SCOPES) {
       for (const row of catalogueRows(CATALOGUES[scope])) {
-        const readOnly = row.id.endsWith("_log") || row.id === "limits";
+        const readOnly = row.id.endsWith("_log") || row.id === "limits" || row.id === "usage";
         const session = row.id === "portal_session";
         expect(rowOffers(row, "read"), `${scope}:${row.id}:read`).toBe(true);
         expect(rowOffers(row, "write"), `${scope}:${row.id}:write`).toBe(!readOnly);
@@ -207,6 +207,7 @@ describe("catalogue grammar", () => {
       "rootKeys/*",
       "github/apps/*",
       "limits",
+      "usage",
     ]);
   });
 });

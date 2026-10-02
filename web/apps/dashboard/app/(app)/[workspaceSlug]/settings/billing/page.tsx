@@ -1,9 +1,9 @@
 "use client";
 import { PageLoading } from "@/components/dashboard/page-loading";
+import { useWorkspaceUsage } from "@/hooks/use-workspace-usage";
 import { useFlag } from "@/lib/flags/provider";
 import { useBillingUIUpgrades } from "@/lib/flags/use-billing-ui-upgrades";
 import { formatNumber } from "@/lib/fmt";
-import { trpc } from "@/lib/trpc/client";
 import { useWorkspace } from "@/providers/workspace-provider";
 import {
   Button,
@@ -33,16 +33,9 @@ export default function BillingPage() {
     isLoading: usageLoading,
     isError,
     error,
-  } = trpc.billing.queryUsage.useQuery(undefined, {
+  } = useWorkspaceUsage("current", {
     // Only enable query when workspace is loaded AND it's a legacy subscription
     enabled: Boolean(workspace && isLegacy),
-    // Skip batching to prevent analytics slowdown from blocking core UI
-    trpc: {
-      context: {
-        skipBatch: true,
-      },
-    },
-    retry: 1,
   });
 
   // Derive loading state: loading if workspace is loading OR (if legacy, usage is loading)
@@ -74,8 +67,8 @@ export default function BillingPage() {
   }
   if (isLegacy) {
     // Fetch usage data for legacy display
-    const verifications = usage?.billableVerifications || 0;
-    const ratelimits = usage?.billableRatelimits || 0;
+    const verifications = usage?.api.verifications || 0;
+    const ratelimits = usage?.api.ratelimits || 0;
 
     return (
       <BillingContainer>

@@ -188,6 +188,12 @@ If you're adding flags, testing remote targeting rules, or using Vercel Toolbar 
 mise run unkey -- dev seed local
 ```
 
+To fill the Limits and Usage settings pages, seed workspace usage after `seed local`. The command reserves compute, adds custom domains and log drains, and writes billable operations, active keys, and hourly compute usage for the current and previous month. `--fill` sets the used share of each limit. Use a value above 1 to see the over-limit state. A second run replaces the rows of the first run.
+
+```bash
+mise run unkey -- dev seed workspace-usage --fill 0.8
+```
+
 ## Test locally
 
 Run Go tests with Rask:

@@ -46,6 +46,7 @@ describe("TEMPLATES", () => {
       "unkey:v1:ws_123:rootKeys/*#read",
       "unkey:v1:ws_123:github/apps/*#read",
       "unkey:v1:ws_123:limits#read",
+      "unkey:v1:ws_123:usage#read",
     ]);
   });
 

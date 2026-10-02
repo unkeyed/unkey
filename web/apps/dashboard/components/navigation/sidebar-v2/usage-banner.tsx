@@ -9,8 +9,8 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
+import { useWorkspaceUsage } from "@/hooks/use-workspace-usage";
 import { routes } from "@/lib/navigation/routes";
-import { trpc } from "@/lib/trpc/client";
 import { useWorkspace } from "@/providers/workspace-provider";
 import Link from "next/link";
 
@@ -20,19 +20,9 @@ export function UsageBanner() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
 
-  const usage = trpc.billing.queryUsage.useQuery(undefined, {
-    refetchOnMount: true,
-    refetchInterval: 60 * 1000,
-    // Skip batching to prevent analytics slowdown from blocking core UI
-    trpc: {
-      context: {
-        skipBatch: true,
-      },
-    },
-    retry: 1,
-  });
+  const usage = useWorkspaceUsage("current", { staleTime: 5 * 60 * 1000 });
 
-  const current = usage.data?.billableTotal ?? 0;
+  const current = usage.data ? usage.data.api.verifications + usage.data.api.ratelimits : 0;
   const max = limits?.apiBillableOperationsCountMaxPerMonth;
 
   if (max === undefined || max === null) {
