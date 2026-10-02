@@ -54,10 +54,10 @@ func insertStep(t *testing.T, h *testutil.Harness, target buildTarget, stepID, n
 
 // insertLogs writes count entries with seq from fromSeq and messages
 // "KEBAP 0" to "KEBAP <count-1>"
-func insertLogs(t *testing.T, h *testutil.Harness, target buildTarget, stepID string, time int64, fromSeq uint64, count int, isError bool) {
+func insertLogs(t *testing.T, h *testutil.Harness, target buildTarget, stepID string, time int64, fromSeq uint64, count int, stderr bool) {
 	t.Helper()
 	require.NoError(t, h.ClickHouse.Exec(context.Background(),
-		"INSERT INTO default.build_step_logs_v1 (time, workspace_id, project_id, deployment_id, step_id, message, seq, error) SELECT toInt64(?), ?, ?, ?, ?, concat('KEBAP ', toString(number)), toUInt64(?) + number, ? FROM numbers(?)",
-		time, target.workspaceID, target.projectID, target.deploymentID, stepID, fromSeq, isError, count,
+		"INSERT INTO default.build_step_logs_v1 (time, workspace_id, project_id, deployment_id, step_id, message, seq, stderr) SELECT toInt64(?), ?, ?, ?, ?, concat('KEBAP ', toString(number)), toUInt64(?) + number, ? FROM numbers(?)",
+		time, target.workspaceID, target.projectID, target.deploymentID, stepID, fromSeq, stderr, count,
 	))
 }

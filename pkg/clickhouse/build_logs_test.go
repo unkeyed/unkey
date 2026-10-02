@@ -45,11 +45,11 @@ func TestGetBuildLogs(t *testing.T) {
 	}
 	// insertLogs writes count entries with seq from fromSeq and messages
 	// "KEBAP 0" to "KEBAP <count-1>"
-	insertLogs := func(t *testing.T, target GetBuildLogsRequest, stepID string, fromSeq uint64, count int, isError bool) {
+	insertLogs := func(t *testing.T, target GetBuildLogsRequest, stepID string, fromSeq uint64, count int, stderr bool) {
 		t.Helper()
 		require.NoError(t, client.Exec(ctx,
-			"INSERT INTO default.build_step_logs_v1 (time, workspace_id, project_id, deployment_id, step_id, message, seq, error) SELECT toInt64(?), ?, ?, ?, ?, concat('KEBAP ', toString(number)), toUInt64(?) + number, ? FROM numbers(?)",
-			now, target.WorkspaceID, target.ProjectID, target.DeploymentID, stepID, fromSeq, isError, count,
+			"INSERT INTO default.build_step_logs_v1 (time, workspace_id, project_id, deployment_id, step_id, message, seq, stderr) SELECT toInt64(?), ?, ?, ?, ?, concat('KEBAP ', toString(number)), toUInt64(?) + number, ? FROM numbers(?)",
+			now, target.WorkspaceID, target.ProjectID, target.DeploymentID, stepID, fromSeq, stderr, count,
 		))
 	}
 	messages := func(entries []BuildLogEntry) []string {
@@ -107,7 +107,7 @@ func TestGetBuildLogs(t *testing.T) {
 		require.Empty(t, res.Entries, "an unknown step has no entries")
 	})
 
-	t.Run("maps the error flag", func(t *testing.T) {
+	t.Run("maps the stderr flag", func(t *testing.T) {
 		target := newTarget()
 		stepID := newStepID()
 		insertLogs(t, target, stepID, firstSeq, 1, false)
@@ -116,8 +116,8 @@ func TestGetBuildLogs(t *testing.T) {
 		res, err := client.GetBuildLogs(ctx, target)
 		require.NoError(t, err)
 		require.Len(t, res.Entries, 2)
-		require.False(t, res.Entries[0].Error)
-		require.True(t, res.Entries[1].Error)
+		require.False(t, res.Entries[0].Stderr)
+		require.True(t, res.Entries[1].Stderr)
 	})
 
 	t.Run("a row from before the migration uses the default seq", func(t *testing.T) {
@@ -136,7 +136,7 @@ func TestGetBuildLogs(t *testing.T) {
 			Time:    now,
 			StepID:  stepID,
 			Step:    "[2/4] RUN apk add git",
-			Error:   false,
+			Stderr:  false,
 			Message: "KEBAP legacy",
 		}}, res.Entries)
 	})
@@ -172,7 +172,7 @@ func TestGetBuildLogs(t *testing.T) {
 		res, err := client.GetBuildLogs(ctx, target)
 		require.NoError(t, err)
 		require.Len(t, res.Entries, 4)
-		require.Equal(t, []bool{true, true, false, false}, []bool{res.Entries[0].Error, res.Entries[1].Error, res.Entries[2].Error, res.Entries[3].Error})
+		require.Equal(t, []bool{true, true, false, false}, []bool{res.Entries[0].Stderr, res.Entries[1].Stderr, res.Entries[2].Stderr, res.Entries[3].Stderr})
 	})
 
 	t.Run("a running step returns its name and its entries so far", func(t *testing.T) {

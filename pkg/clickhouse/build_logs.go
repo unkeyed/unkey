@@ -23,7 +23,7 @@ type buildLogRow struct {
 	Seq         uint64 `ch:"seq"`
 	Time        int64  `ch:"time"`
 	StepID      string `ch:"step_id"`
-	Error       bool   `ch:"error"`
+	Stderr      bool   `ch:"stderr"`
 	Message     string `ch:"message"`
 	FetchedRows uint64 `ch:"fetched_rows"`
 }
@@ -55,13 +55,13 @@ type BuildLogsPage struct {
 // BuildLogEntry is one BuildKit output chunk of a deployment's build. Time is
 // unix milliseconds. Step is the step name cut to BuildStepNameRunesMax runes,
 // or empty when no build_steps_v1 row matched StepID within
-// buildLogStepRowWait. Error is true for a stderr chunk
+// buildLogStepRowWait. Stderr is true for a stderr chunk
 type BuildLogEntry struct {
 	Seq     uint64
 	Time    int64
 	StepID  string
 	Step    string
-	Error   bool
+	Stderr  bool
 	Message string
 }
 
@@ -69,17 +69,17 @@ func (c *Client) GetBuildLogs(ctx context.Context, req GetBuildLogsRequest) (Bui
 	rows, err := Select[buildLogRow](ctx, c.conn, `
 		-- Keep a row while the messages before it total less than page_bytes_max,
 		-- so the first row always fits and a client never gets stuck at its cursor
-		SELECT seq, time, step_id, error, message, fetched_rows
+		SELECT seq, time, step_id, stderr, message, fetched_rows
 		FROM (
 			-- A window value cannot be filtered in the SELECT that computes it.
 			-- fetched_rows counts the rows before the byte cut, so a cut sets hasMore
-			SELECT seq, time, step_id, error, message,
+			SELECT seq, time, step_id, stderr, message,
 				sum(length(message)) OVER (ORDER BY seq ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING) AS bytes_before,
 				count() OVER () AS fetched_rows
 			FROM (
 				-- Limit before the window so it only sums this page. The extra row
 				-- shows whether more rows exist
-				SELECT seq, time, step_id, error, message
+				SELECT seq, time, step_id, stderr, message
 				FROM default.build_step_logs_v1
 				WHERE workspace_id = {workspace_id:String}
 				  AND project_id = {project_id:String}
@@ -159,7 +159,7 @@ func (c *Client) GetBuildLogs(ctx context.Context, req GetBuildLogsRequest) (Bui
 			Time:    row.Time,
 			StepID:  row.StepID,
 			Step:    stepNames[row.StepID],
-			Error:   row.Error,
+			Stderr:  row.Stderr,
 			Message: row.Message,
 		})
 	}

@@ -137,7 +137,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		},
 		Data: array.Map(page.Entries, func(entry clickhouse.BuildLogEntry) openapi.BuildLogEntry {
 			output := openapi.BuildLogOutputStdout
-			if entry.Error {
+			if entry.Stderr {
 				output = openapi.BuildLogOutputStderr
 			}
 			return openapi.BuildLogEntry{
