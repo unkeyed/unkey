@@ -67,6 +67,7 @@ export function BuilderAside({ isOpen, onClose }: BuilderAsideProps) {
   return (
     <>
       <SlidePanel
+        data-docs-target="root-key-create"
         isOpen={isOpen && secret === null}
         onClose={close}
         onExitComplete={() => {
