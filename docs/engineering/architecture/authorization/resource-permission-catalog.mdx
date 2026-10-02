@@ -4,7 +4,7 @@ description: "Canonical resource hierarchy, paths, and actions"
 ---
 
 The resource permission catalog lists every canonical resource path and its
-supported actions. GitHub apps, root keys, and limits are workspace-scoped.
+supported actions. GitHub apps, root keys, limits, and usage are workspace-scoped.
 Every other catalog resource is project-scoped.
 
 Read [Unkey Resource Names](/architecture/resources/unkey-resource-names) for
@@ -29,6 +29,9 @@ Workspace
 │
 ├── Limits [read]
 │   limits
+│
+├── Usage [read]
+│   usage
 │
 └── Project [read, write, delete]
     projects/{project_id}

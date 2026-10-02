@@ -1,0 +1,17 @@
+type: object
+description: Billable Unkey API operations in the period.
+required:
+  - verifications
+  - ratelimits
+properties:
+  verifications:
+    type: integer
+    format: int64
+    description: Billable key verifications.
+    example: 40000
+  ratelimits:
+    type: integer
+    format: int64
+    description: Billable rate limit operations.
+    example: 2000
+additionalProperties: false

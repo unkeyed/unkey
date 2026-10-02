@@ -114,6 +114,7 @@ import (
 
 	v2GithubInstallApp "github.com/unkeyed/unkey/svc/api/routes/v2_github_install_app"
 	v2WorkspaceGetLimits "github.com/unkeyed/unkey/svc/api/routes/v2_workspace_get_limits"
+	v2WorkspaceGetUsage "github.com/unkeyed/unkey/svc/api/routes/v2_workspace_get_usage"
 
 	zen "github.com/unkeyed/unkey/pkg/zen"
 )
@@ -970,6 +971,16 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 	srv.RegisterRoute(
 		protectedMiddlewares,
 		&v2WorkspaceGetLimits.Handler{
+			DB:         svc.Database,
+			ClickHouse: svc.ClickHouse,
+			Clock:      svc.Clock,
+		},
+	)
+
+	// v2/workspace.getUsage
+	srv.RegisterRoute(
+		protectedMiddlewares,
+		&v2WorkspaceGetUsage.Handler{
 			DB:         svc.Database,
 			ClickHouse: svc.ClickHouse,
 			Clock:      svc.Clock,

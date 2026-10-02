@@ -290,6 +290,8 @@ paths:
   # Workspace Endpoints
   /v2/workspace.getLimits:
     $ref: "./spec/paths/v2/workspace/getLimits/index.yaml"
+  /v2/workspace.getUsage:
+    $ref: "./spec/paths/v2/workspace/getUsage/index.yaml"
 
   # App Endpoints
   /v2/apps.createApp:

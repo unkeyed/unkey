@@ -527,6 +527,24 @@ func (e V2PortalListSessionsSessionStatus) Valid() bool {
 	}
 }
 
+// Defines values for V2WorkspaceGetUsageRequestBodyPeriod.
+const (
+	UsagePeriodCurrent  V2WorkspaceGetUsageRequestBodyPeriod = "current"
+	UsagePeriodPrevious V2WorkspaceGetUsageRequestBodyPeriod = "previous"
+)
+
+// Valid indicates whether the value is a known member of the V2WorkspaceGetUsageRequestBodyPeriod enum.
+func (e V2WorkspaceGetUsageRequestBodyPeriod) Valid() bool {
+	switch e {
+	case UsagePeriodCurrent:
+		return true
+	case UsagePeriodPrevious:
+		return true
+	default:
+		return false
+	}
+}
+
 // App defines model for App.
 type App struct {
 	// CreatedAt Unix timestamp in milliseconds when the app was created.
@@ -6860,6 +6878,203 @@ type V2WorkspaceGetLimitsVcpuMeter struct {
 	Used float64 `json:"used"`
 }
 
+// V2WorkspaceGetUsageApi Billable Unkey API operations in the period.
+type V2WorkspaceGetUsageApi struct {
+	// Ratelimits Billable rate limit operations.
+	//
+	// Example: 2000
+	Ratelimits int64 `json:"ratelimits"`
+
+	// Verifications Billable key verifications.
+	//
+	// Example: 40000
+	Verifications int64 `json:"verifications"`
+}
+
+// V2WorkspaceGetUsageApp Active gateway keys counted for one app in the period.
+type V2WorkspaceGetUsageApp struct {
+	// ActiveKeys Distinct keys this app's gateway verified in the period. A key verified
+	// through several apps counts once, for the app that verified it most, so
+	// the rows sum to `compute.activeKeys`.
+	//
+	//
+	// Example: 12
+	ActiveKeys int64 `json:"activeKeys"`
+
+	// AppId The app whose gateway verified the keys. Empty for keys whose
+	// verifications were all recorded before Unkey stored app ids.
+	//
+	//
+	// Example: app_1234abcd
+	AppId string `json:"appId"`
+
+	// AppName The app name. Omitted when the app was deleted or `appId` is empty.
+	//
+	// Example: API
+	AppName *string `json:"appName,omitempty"`
+
+	// ProjectId The project the app belongs to. Omitted when the app was deleted or `appId` is empty.
+	//
+	// Example: proj_1234abcd
+	ProjectId *string `json:"projectId,omitempty"`
+
+	// ProjectName The project name. Omitted when the app or the project was deleted, or
+	// `appId` is empty.
+	//
+	//
+	// Example: Payments
+	ProjectName *string `json:"projectName,omitempty"`
+}
+
+// V2WorkspaceGetUsageCompute Compute usage in the period. `cpuSeconds`, `memoryGiBHours`, `diskGiBHours`,
+// and `egressGiB` are the sums of the `environments` rows. `activeKeys` is the
+// sum of the `apps` rows.
+type V2WorkspaceGetUsageCompute struct {
+	// ActiveKeys Distinct keys verified through the Unkey gateway in the period.
+	//
+	// Example: 12
+	ActiveKeys int64 `json:"activeKeys"`
+
+	// Apps One row per app whose gateway verified keys in the period, and one row
+	// with an empty `appId` for keys that have no app id. Most `activeKeys`
+	// first, then by `appId`. Empty when no keys were verified.
+	Apps []V2WorkspaceGetUsageApp `json:"apps"`
+
+	// CpuSeconds CPU time used across the workspace, in seconds.
+	//
+	// Example: 5400.5
+	CpuSeconds float64 `json:"cpuSeconds"`
+
+	// DiskGiBHours Ephemeral disk allocated over time across the workspace, in GiB-hours.
+	//
+	// Example: 0
+	DiskGiBHours float64 `json:"diskGiBHours"`
+
+	// EgressGiB Public network egress across the workspace, in GiB.
+	//
+	// Example: 1.4
+	EgressGiB float64 `json:"egressGiB"`
+
+	// Environments One row per environment with compute usage in the period, most
+	// `cpuSeconds` first, then by `projectId` and `environmentId`.
+	// Empty when nothing ran.
+	Environments []V2WorkspaceGetUsageEnvironment `json:"environments"`
+
+	// MemoryGiBHours Memory used over time across the workspace, in GiB-hours.
+	//
+	// Example: 96.2
+	MemoryGiBHours float64 `json:"memoryGiBHours"`
+}
+
+// V2WorkspaceGetUsageEnvironment Compute one environment used in the period.
+type V2WorkspaceGetUsageEnvironment struct {
+	// AppId The app the environment belongs to. Empty when the usage was recorded
+	// before Unkey stored app ids and the environment was deleted since.
+	//
+	//
+	// Example: app_1234abcd
+	AppId string `json:"appId"`
+
+	// AppName The app name. Omitted when the app was deleted.
+	//
+	// Example: API
+	AppName *string `json:"appName,omitempty"`
+
+	// CpuSeconds CPU time used, in seconds.
+	//
+	// Example: 5400.5
+	CpuSeconds float64 `json:"cpuSeconds"`
+
+	// DiskGiBHours Ephemeral disk allocated over time, in GiB-hours.
+	//
+	// Example: 0
+	DiskGiBHours float64 `json:"diskGiBHours"`
+
+	// EgressGiB Public network egress, in GiB.
+	//
+	// Example: 1.4
+	EgressGiB float64 `json:"egressGiB"`
+
+	// EnvironmentId The environment that used the compute.
+	//
+	// Example: env_1234abcd
+	EnvironmentId string `json:"environmentId"`
+
+	// EnvironmentSlug The environment slug. Omitted when the environment was deleted.
+	//
+	// Example: production
+	EnvironmentSlug *string `json:"environmentSlug,omitempty"`
+
+	// MemoryGiBHours Memory used over time, in GiB-hours.
+	//
+	// Example: 96.2
+	MemoryGiBHours float64 `json:"memoryGiBHours"`
+
+	// ProjectId The project the environment belongs to.
+	//
+	// Example: proj_1234abcd
+	ProjectId string `json:"projectId"`
+
+	// ProjectName The project name. Omitted when the project was deleted.
+	//
+	// Example: Payments
+	ProjectName *string `json:"projectName,omitempty"`
+}
+
+// V2WorkspaceGetUsagePeriod The time window the usage covers.
+type V2WorkspaceGetUsagePeriod struct {
+	// End Unix timestamp in milliseconds of the end of the period, exclusive. For
+	// `current` it is the time of the request. For `previous` it is the start
+	// of the current month.
+	//
+	//
+	// Example: 1790946000000
+	End int64 `json:"end"`
+
+	// Start Unix timestamp in milliseconds of the first day of the month, 00:00 UTC.
+	//
+	// Example: 1790812800000
+	Start int64 `json:"start"`
+}
+
+// V2WorkspaceGetUsageRequestBody defines model for V2WorkspaceGetUsageRequestBody.
+type V2WorkspaceGetUsageRequestBody struct {
+	// Period The calendar month (UTC) to read. `current` is the month to date.
+	// `previous` is the full month before it.
+	//
+	//
+	// Example: current
+	Period *V2WorkspaceGetUsageRequestBodyPeriod `json:"period,omitempty"`
+}
+
+// V2WorkspaceGetUsageRequestBodyPeriod The calendar month (UTC) to read. `current` is the month to date.
+// `previous` is the full month before it.
+//
+// Example: current
+type V2WorkspaceGetUsageRequestBodyPeriod string
+
+// V2WorkspaceGetUsageResponseBody defines model for V2WorkspaceGetUsageResponseBody.
+type V2WorkspaceGetUsageResponseBody struct {
+	Data V2WorkspaceGetUsageResponseData `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// V2WorkspaceGetUsageResponseData defines model for V2WorkspaceGetUsageResponseData.
+type V2WorkspaceGetUsageResponseData struct {
+	// Api Billable Unkey API operations in the period.
+	Api V2WorkspaceGetUsageApi `json:"api"`
+
+	// Compute Compute usage in the period. `cpuSeconds`, `memoryGiBHours`, `diskGiBHours`,
+	// and `egressGiB` are the sums of the `environments` rows. `activeKeys` is the
+	// sum of the `apps` rows.
+	Compute V2WorkspaceGetUsageCompute `json:"compute"`
+
+	// Period The time window the usage covers.
+	Period V2WorkspaceGetUsagePeriod `json:"period"`
+}
+
 // V3DeploymentsCreateDeploymentRequestBody Create a deployment. Omit the source to use the app default, or provide one source override.
 type V3DeploymentsCreateDeploymentRequestBody struct {
 	// App Identifies a resource by either its unique ID or its slug.
@@ -7256,6 +7471,9 @@ type RootKeysRerollKeyJSONRequestBody = V2RootKeysRerollKeyRequestBody
 
 // RootKeysUpdateKeyJSONRequestBody defines body for RootKeysUpdateKey for application/json ContentType.
 type RootKeysUpdateKeyJSONRequestBody = V2RootKeysUpdateKeyRequestBody
+
+// WorkspaceGetUsageJSONRequestBody defines body for WorkspaceGetUsage for application/json ContentType.
+type WorkspaceGetUsageJSONRequestBody = V2WorkspaceGetUsageRequestBody
 
 // DeploymentsCreateDeploymentV3JSONRequestBody defines body for DeploymentsCreateDeploymentV3 for application/json ContentType.
 type DeploymentsCreateDeploymentV3JSONRequestBody = V3DeploymentsCreateDeploymentRequestBody

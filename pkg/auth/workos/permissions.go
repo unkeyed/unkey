@@ -21,6 +21,7 @@ var developerPermissions = []resourcePermission{
 	{resource: "github/apps/*", action: rbac.ActionType(rbacpermissions.Delete)},
 
 	{resource: "limits", action: rbac.ActionType(rbacpermissions.Read)},
+	{resource: "usage", action: rbac.ActionType(rbacpermissions.Read)},
 
 	{resource: "projects/*", action: rbac.ActionType(rbacpermissions.Read)},
 	{resource: "projects/*", action: rbac.ActionType(rbacpermissions.Write)},
@@ -93,6 +94,7 @@ var developerPermissions = []resourcePermission{
 var viewerPermissions = []resourcePermission{
 	{resource: "github/apps/*", action: rbac.ActionType(rbacpermissions.Read)},
 	{resource: "limits", action: rbac.ActionType(rbacpermissions.Read)},
+	{resource: "usage", action: rbac.ActionType(rbacpermissions.Read)},
 	{resource: "projects/*", action: rbac.ActionType(rbacpermissions.Read)},
 	{resource: "projects/*/portals/*", action: rbac.ActionType(rbacpermissions.Read)},
 	{resource: "projects/*/apps/*", action: rbac.ActionType(rbacpermissions.Read)},
