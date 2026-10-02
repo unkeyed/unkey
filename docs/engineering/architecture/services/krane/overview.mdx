@@ -95,6 +95,88 @@ A connection missing from a complete snapshot loses its published objects during
 
 The `unkey_krane_private_network_*` metrics report leadership, loop completion, failures by step, and entry states. See <a href="https://github.com/unkeyed/infra/blob/main/docs/runbooks/eks/0020-private-networking.md" target="_blank">Troubleshoot private networking in the infra repository</a> for queries and fixes.
 
+#### Failure guarantees
+
+Publication, DNS observation, and packet enforcement are separate events.
+Saving an app connection does not acknowledge enforcement in every region.
+The 5-second reconciliation interval is not a propagation deadline.
+
+| Failure or change | Contract |
+| --- | --- |
+| Ctrl stream fails, ends early, or reports an incorrect count | Krane preserves the last published DNS and policy objects. A later complete snapshot applies pending changes, including revocation. An outage can delay revocation without a fixed upper bound. |
+| Cilium policy creation or update fails | Krane does not publish a DNS revision that depends on that failed write. Other connections can still reconcile. |
+| Connection is deleted or becomes unresolved | Krane removes its policy grant without a replacement grace period. Policy deletion precedes DNS cleanup. Failed deletion is retried; it is not reported as successful enforcement. Other grants for the same endpoints remain effective. |
+| Target deployment is replaced | The old published target keeps policy coverage while the replacement lacks ready endpoints. After publication switches, the old grant receives a 30-minute overlap starting when reconciliation next observes it as inactive. Reconciliation removes it at or after expiry. This overlap does not apply to explicit revocation. |
+| A local Kubernetes discovery watch reports an error | Undns answers private queries with SERVFAIL rather than stale success. A silently stalled watch fails this check after twice `watch_timeout` since its last successful list/watch start, 60 seconds by default. Public DNS forwarding remains available if its upstream is reachable. |
+| Imported remote endpoints disappear | Undns removes them from answers. A region-specific name with no ready endpoint returns SERVFAIL, not another region's IP. Local endpoints remain usable; `local-first` falls back only when discovery has no ready local endpoint. |
+
+A cross-region packet partition does not necessarily remove EndpointSlices.
+Undns does not probe remote Pods or detect broken packet paths. If Kubernetes
+and ClusterMesh still publish an endpoint as ready, DNS can still return it.
+Clients must set connection deadlines and retry another address when suitable.
+Local Kubernetes watch health is not a measure of ClusterMesh connectivity.
+Regions keep their last published grants during a control-plane partition;
+there is no globally atomic revocation or partition-time revocation deadline.
+
+Krane writes Cilium policies before DNS ConfigMaps, but does not wait for
+Cilium endpoint policy realization. A newly published DNS answer can therefore
+precede usable connectivity. Cilium must realize the grant or removal on the
+affected endpoints before packet enforcement reflects it. Deleting one grant
+does not override a separate grant that still permits the same flow.
+
+On Cilium 1.20.2, established TCP and UDP request-direction packets are checked
+against the current policy map. Once the last applicable grant is removed and
+the endpoint policy is realized, a cached IP and an existing connection do not
+bypass default deny. Reply-direction packets and already delivered data are
+not recalled. Revocation need not send a TCP reset or close an application's
+socket; the application can observe a timeout. DNS changes never migrate an
+open connection. See the <a href="https://github.com/cilium/cilium/blob/v1.20.2/bpf/bpf_lxc.c#L1483-L1552" target="_blank">Cilium established-flow policy check</a>.
+
+Run the controller and resolver regressions without a live cluster:
+
+```bash
+mise exec -- rask ./svc/krane/internal/privatenetwork ./svc/undns
+```
+
+`TestReconcilePolicyWriteFailureDoesNotPublishNewDNSAndRetryConverges`,
+`TestReconcilePolicyDeleteFailureRetainsDNSUntilRetry`, and
+`TestReconcileIncompleteSnapshotPreservesPolicyAndDNSUntilCompleteRevocation`
+cover publication and retry behavior with Kubernetes test clients and real
+Connect streams. `TestConnectionPolicyRetainsOldTargetUntilReplacementCoverageExpires`
+checks both sides of the overlap deadline. These tests inspect policy objects,
+not Cilium packet enforcement.
+
+`TestTrackedInformerWatchFailureStallAndRecovery` exercises List/Watch failure
+paths without changing health timestamps. The UDP/TCP server checks in
+`TestPublicDNSAndReadinessSurviveDiscoveryFailure` cover SERVFAIL and public
+forwarding. `TestServerLocalityTracksImportedEndpointSliceRemovalAndRestore`
+checks DNS after remote discovery disappears and returns. It does not simulate
+a physical region partition.
+
+Run the packet test only against an explicitly selected disposable Cilium
+cluster with no running Krane controller. Krane would otherwise reconcile away
+the test's generated policies. The test creates a namespace, three unprivileged
+probe Pods, and namespace-scoped policies, then requests namespace deletion on
+exit. It does not modify existing policies, host routes, or node firewalls.
+Use a digest-pinned container image with `python3`, and a kubeconfig identity
+permitted to create those objects and execute commands in the test Pods.
+
+```bash
+export UNKEY_CILIUM_TEST_CONTEXT=disposable-cilium
+export UNKEY_CILIUM_TEST_IMAGE='your-registry/python-probe@sha256:YOUR_DIGEST'
+mise exec -- rask --no-cache ./svc/krane/internal/privatenetwork
+```
+
+`TestCiliumRevocationBlocksCachedIPsAndExistingFlows` installs the generated
+Unkey grants, opens TCP and UDP flows, revokes one caller, and checks both new
+direct-IP requests and the original sockets. A separate allowed caller must
+keep working, and regranting access must restore new requests. Its 30-second
+convergence budget is a test limit, not a production latency guarantee. The
+test skips without an explicit context. The orb's bridge CNI with Cilium CRDs
+alone cannot pass it. This single-cluster test does not certify ClusterMesh
+partitions, multi-node HA, or encryption; those need separate acceptance runs
+against the intended production topology and configuration.
+
 #### Upgrade from app bindings to connections
 
 Existing pre-release installations need a coordinated maintenance window. This is not a rolling-compatible rename: the table, tRPC namespace, Kubernetes connection labels, and metric names change. Fresh installations use `app_connections` directly.

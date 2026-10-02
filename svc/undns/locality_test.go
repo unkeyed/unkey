@@ -232,3 +232,64 @@ func TestServerLocalityUDPAndTCP(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, uint16(dnswire.RcodeServerFailure), response.Rcode)
 }
+
+func TestServerLocalityTracksImportedEndpointSliceRemovalAndRestore(t *testing.T) {
+	featuretesting.SetFeatureDuringTest(t, features.WatchListClient, false)
+	objects := discoveryObjects(t)
+	remote := objects[3].(*discoveryv1.EndpointSlice).DeepCopy()
+	local := remote.DeepCopy()
+	local.Name = "local"
+	delete(local.Labels, "multicluster.kubernetes.io/source-cluster")
+	local.Labels[discoveryv1.LabelManagedBy] = "private-dns.unkey.com"
+	local.Endpoints = []discoveryv1.Endpoint{{Addresses: []string{"10.9.0.1"}, Conditions: discoveryv1.EndpointConditions{Ready: new(true)}}}
+	client := fake.NewClientset(append(objects, local, topologyForTest())...)
+	c, err := newCatalog(client, time.Minute)
+	require.NoError(t, err)
+	cfg, err := config.LoadBytes[Config]([]byte(`upstream = "10.96.0.10:53"`))
+	require.NoError(t, err)
+	cfg.ListenAddress, cfg.HealthAddress = unusedTCPAddress(t), unusedTCPAddress(t)
+	ctx, cancel := context.WithCancel(t.Context())
+	done := make(chan error, 1)
+	go func() { done <- serve(ctx, cfg, c) }()
+	t.Cleanup(func() {
+		cancel()
+		select {
+		case err := <-done:
+			require.NoError(t, err)
+		case <-time.After(5 * time.Second):
+			t.Error("DNS server did not shut down")
+		}
+	})
+	require.Eventually(t, func() bool { return c.ready() && c.topology.HasSynced() }, 5*time.Second, time.Millisecond)
+
+	query := func(name string) *dnswire.Msg {
+		t.Helper()
+		response, _, queryErr := testDNSClient(time.Second).Exchange(t.Context(), dnswire.NewMsg(name+".unkey.internal.", dnswire.TypeA), "tcp", cfg.ListenAddress)
+		require.NoError(t, queryErr)
+		return response
+	}
+
+	require.NoError(t, client.DiscoveryV1().EndpointSlices("default").Delete(t.Context(), remote.Name, metav1.DeleteOptions{}))
+	require.Eventually(t, func() bool {
+		addresses, _, err := c.resolve(testCaller(), "payments")
+		return err == nil && len(addresses) == 1 && addresses[0].String() == "10.9.0.1"
+	}, time.Second, 5*time.Millisecond)
+	for _, name := range []string{"payments", "local-first.payments"} {
+		response := query(name)
+		require.Equal(t, uint16(dnswire.RcodeSuccess), response.Rcode)
+		require.Equal(t, []string{"10.9.0.1"}, answerAddresses(response))
+	}
+	require.Equal(t, uint16(dnswire.RcodeServerFailure), query("eu-west-1.payments").Rcode)
+
+	remote.ResourceVersion = ""
+	_, err = client.DiscoveryV1().EndpointSlices("default").Create(t.Context(), remote, metav1.CreateOptions{})
+	require.NoError(t, err)
+	require.Eventually(t, func() bool {
+		addresses, _, err := c.resolve(testCaller(), "eu-west-1.payments")
+		return err == nil && len(addresses) == 40
+	}, time.Second, 5*time.Millisecond)
+	response := query("eu-west-1.payments")
+	require.Equal(t, uint16(dnswire.RcodeSuccess), response.Rcode)
+	require.Len(t, response.Answer, 40)
+	require.NotContains(t, answerAddresses(response), "10.9.0.1")
+}

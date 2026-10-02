@@ -76,6 +76,23 @@ func chunkStream(t *testing.T, chunks ...*ctrlv1.PrivateNetworkStateChunk) func(
 	}
 }
 
+func failedChunkStream(t *testing.T, chunks ...*ctrlv1.PrivateNetworkStateChunk) func(context.Context, *ctrlv1.StreamPrivateNetworkStateRequest) (*connect.ServerStreamForClient[ctrlv1.PrivateNetworkStateChunk], error) {
+	t.Helper()
+	server := httptest.NewServer(connect.NewServerStreamHandler("/chunks", func(_ context.Context, _ *connect.Request[ctrlv1.StreamPrivateNetworkStateRequest], stream *connect.ServerStream[ctrlv1.PrivateNetworkStateChunk]) error {
+		for _, chunk := range chunks {
+			if err := stream.Send(chunk); err != nil {
+				return err
+			}
+		}
+		return connect.NewError(connect.CodeUnavailable, nil)
+	}))
+	t.Cleanup(server.Close)
+	client := connect.NewClient[ctrlv1.StreamPrivateNetworkStateRequest, ctrlv1.PrivateNetworkStateChunk](server.Client(), server.URL+"/chunks")
+	return func(ctx context.Context, req *ctrlv1.StreamPrivateNetworkStateRequest) (*connect.ServerStreamForClient[ctrlv1.PrivateNetworkStateChunk], error) {
+		return client.CallServerStream(ctx, connect.NewRequest(req))
+	}
+}
+
 func TestSnapshotRequiresCompleteStreamAndFinalTopology(t *testing.T) {
 	tests := []struct {
 		name   string
