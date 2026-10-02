@@ -49,7 +49,7 @@ export function useBuildLogs(deployment: Deployment, { readsToEnd }: { readsToEn
       const entriesTotalBefore = logs.entriesTotal;
       let publishedAt = Date.now();
       do {
-        const page = await getUnkeyClient().deployments.getBuildLogs({
+        const page = await getUnkeyClient().deployments.listBuildLogs({
           deploymentId: deployment.id,
           cursor: logs.cursor,
           limit: BUILD_LOGS_PAGE_ENTRIES_MAX,

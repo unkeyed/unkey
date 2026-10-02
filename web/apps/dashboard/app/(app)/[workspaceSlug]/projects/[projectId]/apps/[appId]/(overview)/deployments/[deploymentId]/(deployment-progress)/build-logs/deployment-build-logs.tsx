@@ -30,7 +30,7 @@ import {
 
 const LINE_HEIGHT_ESTIMATE_PX = 22;
 const TAIL_FOLLOW_SLACK_PX = 2 * LINE_HEIGHT_ESTIMATE_PX;
-// About three pages of getBuildLogs
+// About three pages of listBuildLogs
 const LINES_AHEAD_MIN = 300;
 const BUILD_NOT_DONE_STATUSES: ReadonlySet<DeploymentStatus> = new Set([
   "pending",
