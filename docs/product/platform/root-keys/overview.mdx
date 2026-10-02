@@ -16,7 +16,9 @@ sources:
 
 import { DashboardScreenshot } from "/snippets/dashboard-screenshot.jsx";
 
-A root key is how you call the Unkey API and use the CLI. It belongs to one workspace and carries a list of permissions that decides what it can do.
+A root key is the credential your services, CI jobs, and agents use to call Unkey through the API or CLI. It belongs to one workspace and has no permissions by default. You assign permissions to let it perform its task, such as deploying an app or verifying customer API keys.
+
+Start with [Root key permissions](/platform/root-keys/permissions) to decide what access the key needs. Then use [Configure root keys](/platform/root-keys/configure) to create it in the dashboard or API. This page explains how to store, rotate, and delete it.
 
 A root key isn't one of the API keys you issue to your own users. You create and verify those through the API, using a root key. See [API Management concepts](/api-management/get-started/concepts).
 

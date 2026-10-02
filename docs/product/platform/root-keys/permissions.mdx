@@ -1,7 +1,7 @@
 ---
 title: Root key permissions
 sidebarTitle: "Permissions"
-description: "Give each service or agent the actions and resource scope its task needs."
+description: "Choose permissions for your root key based on the task it needs to perform."
 sources:
   - pkg/urn/urn.go
   - pkg/urn/permission_actions.go
@@ -20,46 +20,70 @@ sources:
   - svc/api/routes/v2_root_keys_create_key/handler.go
 ---
 
-A root key permission grants an action on a resource in your workspace. A CI job can deploy to staging without access to production. A debugging agent can read deployment status and logs without permission to change either environment.
+A root key authenticates your requests to Unkey, but it has no permissions by default. You assign permissions to tell Unkey what the key is allowed to do.
 
-Start with the task, then choose its resource scope and actions. Use a separate root key for each service, job, or agent so you can change or revoke its access independently.
+Permissions let you make that access specific. A key can deploy one app without being able to deploy every app in your workspace. Another key can read deployment status and logs without being able to change anything.
+
+You don't need to give either key full access to make it useful. Start with its job, choose where it can work, and decide what it can do there. This is least privilege: enough access to complete the task, without access to unrelated resources or actions.
+
+## Start with the key's job
+
+Describe what the service or agent needs to accomplish before choosing permissions. "Investigate a failed deployment" might mean reading its status and runtime logs. It doesn't necessarily mean restarting it, deploying a fix, or reading environment variables.
+
+Break the job into the capabilities it needs. For example:
+
+- Deploy an app and check the result: create deployments and read their status
+- Investigate a runtime problem: read deployment status and runtime logs
+- Authenticate requests to your API: verify customer API keys
+
+Use a separate root key for each service, job, or agent. That lets you change or revoke one workload's access without affecting the others. It also keeps a debugging agent from inheriting a deployment job's ability to change your app.
+
+## Choose which resources it can access
+
+A resource is something you manage in Unkey, such as an app, deployment, or API key. The resource scope of a permission determines which of those resources the key can access.
+
+For deployments, the scope follows the structure of your workspace:
+
+- A [project](/compute/concepts/projects-apps-environments#projects) groups apps in your workspace.
+- An [app](/compute/concepts/projects-apps-environments#apps) is a service you deploy.
+- An [environment](/compute/concepts/projects-apps-environments#environments) separates an app's settings and deployments, for example production from preview.
+- A [deployment](/compute/concepts/deployments) is one built version of an app in one environment.
+
+For API management, a [keyspace](/api-management/keyspaces/overview) groups related customer API keys. You can restrict a root key to the keys in one keyspace instead of giving it access to every customer's keys in the workspace.
+
+Choose the smallest scope that covers the job. If an agent is investigating one deployment, it only needs that deployment and its logs. If it monitors an app's environment continuously, it may need all deployments in that environment, including future ones. Neither task needs access to another app.
+
+The hierarchy helps you identify a resource; it doesn't make access automatic. Permission to read an environment doesn't include its deployments. Permission to read a deployment doesn't include its logs. Include each resource type the task needs.
+
+## Choose what it can do with those resources
+
+An action determines what the key can do within its scope. Most resources support `read` to inspect them, `write` to create or update them, and `delete` to remove them. Some have task-specific actions, such as `verify` for checking customer API keys.
+
+Choose each action separately. A deployment job needs `write` to create a deployment and `read` to check its status. A debugging agent that only inspects deployments and logs needs `read`, not `write`. Having one action doesn't include the others.
+
+Read-only access still needs a limited scope. Logs can contain sensitive application data, so an agent that can't change anything may still be able to see more than its task requires.
+
+Check all permissions on the key before using it. Permissions add access together: a permission for one environment doesn't restrict another permission that covers every environment. To reduce access, remove or replace the broader permission. There are no deny permissions that cancel other permissions.
 
 ## Read a permission
 
-A permission combines a resource name, called a URN, with an action after `#`:
+Once you've chosen the resources and actions, you can express each permission as a string. Unkey uses a resource name called a URN to identify the resource, followed by `#` and the action:
 
 ```plaintext
 unkey:v1:{workspace_id}:{resource_path}#{action}
 ```
 
-For example, this permission reads one deployment:
+For example, a permission to read one deployment looks like this:
 
 ```plaintext wrap
 unkey:v1:ws_demo:projects/proj_shop/apps/app_billing/environments/env_staging/deployments/dpl_release#read
 ```
 
-The path identifies the project, app, environment, and deployment. `read` grants access to deployment details, not the ability to change the deployment.
+`ws_demo` identifies the workspace. The path identifies the project, app, environment, and deployment. `#read` permits reading that deployment's details. It doesn't permit changes or access to its logs.
 
 Use resource IDs, not display names or slugs. The IDs in these examples are placeholders. Replace them with IDs from your workspace, even if an API request accepts a name or slug for the same resource.
 
-## Separate scope from actions
-
-Scope answers "which resources?" Actions answer "what can this key do?" Choose both explicitly.
-
-| Action | Use it to |
-| --- | --- |
-| `read` | Inspect a resource or list resources. |
-| `write` | Create or update resources, including resource-specific operations such as starting a deployment. |
-| `delete` | Delete resources. |
-| `verify` | Verify API keys. |
-| `decrypt` | Retrieve plaintext for recoverable API keys, together with the required read permission. |
-| `limit` | Perform rate limit checks in a namespace. |
-
-Actions don't imply each other. `write` doesn't include `read`, and `read` doesn't include `verify` or `decrypt`. Not every resource supports every action. See the [permission reference](/platform/root-keys/permission-reference).
-
-Permissions on a parent resource don't grant access to its children. Reading an environment doesn't grant access to its deployments. Reading a deployment doesn't grant access to its logs. Name each resource type the task needs.
-
-Permissions add access together. Adding a narrow permission doesn't restrict a broader permission already on the key. To reduce access, remove or replace the broader permission. There's no deny entry that subtracts access from another permission.
+The dashboard builds these strings from your selections. You only need to write them yourself when using the API. See [Configure root keys](/platform/root-keys/configure) for both methods, or continue below for scope rules and examples. The [permission reference](/platform/root-keys/permission-reference) lists the supported resources, actions, and operation requirements.
 
 ## Use wildcards deliberately
 
@@ -83,7 +107,9 @@ Creation needs a wildcard at the resource being created because its ID doesn't e
 
 ## Deploy one app from CI
 
-A CI job deploys the billing app to staging and checks the deployment status. Its project, app, and environment already exist. Give it these permissions:
+A CI job needs to deploy the billing app to staging and check whether the deployment succeeded. Its project, app, and environment already exist, so the job doesn't need permission to create or configure them.
+
+Scope the key to deployments in that one environment. Add `write` for deployment creation and `read` for status checks. Use a deployment wildcard because each run creates a deployment with a different ID:
 
 ```json wrap
 [
@@ -102,7 +128,9 @@ These permissions cover the deployment API calls above. If a tool also lists pro
 
 ## Investigate deployments without changing them
 
-A debugging agent needs deployment status and runtime logs for the billing app's staging environment. Give it two read permissions:
+A debugging agent needs to investigate runtime problems in the billing app's staging environment. It needs to see deployment status and application logs, but it doesn't need to deploy a fix or change settings.
+
+Keep the scope to that environment and assign `read` on two resource types: deployments and runtime logs. The logs permission is separate because reading a deployment doesn't include reading its logs:
 
 ```json wrap
 [
@@ -119,7 +147,9 @@ Read-only doesn't mean the data is public. Logs can contain sensitive applicatio
 
 ## Verify customer API keys
 
-A backend checks customer keys in one keyspace. It doesn't manage them. Give it:
+A backend needs to authenticate incoming requests by checking its customers' API keys. Those keys belong to one keyspace. The backend doesn't need to issue keys or change their settings.
+
+Scope the root key to keys in that keyspace and choose `verify`. Use a wildcard so the backend can check every customer's key, including keys created later:
 
 ```json wrap
 [
@@ -135,7 +165,9 @@ Root key permissions differ from the permissions on your customers' API keys. Cu
 
 ## Issue and update customer keys
 
-A provisioning service creates customer keys and updates their settings. It doesn't need to delete keys or retrieve their stored plaintext:
+A provisioning service needs to issue keys when customers sign up and update their settings when their plans change. Unlike the backend that verifies requests, this service needs to change keys.
+
+Give it `write` on keys in the customer keyspace. It doesn't need access to other keyspaces, permission to delete keys, or permission to retrieve stored plaintext:
 
 ```json wrap
 [

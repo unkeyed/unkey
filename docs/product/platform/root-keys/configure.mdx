@@ -18,9 +18,9 @@ sources:
 
 import { DashboardScreenshot } from "/snippets/dashboard-screenshot.jsx";
 
-Configure a root key after you've chosen the resources and actions its task needs. The dashboard builds permission URNs from your selections. The API accepts the same URNs as a list of strings.
+You can create a root key and assign its permissions in the dashboard or through the API. Both methods control the same access. If you're still deciding what your service or agent needs, start with [Root key permissions](/platform/root-keys/permissions).
 
-Read [Root key permissions](/platform/root-keys/permissions) for the scope rules and worked examples. This page configures the read-only debugging key from that guide.
+This guide creates a key for a debugging agent. The agent can read deployment status and runtime logs in the billing app's staging environment. It cannot deploy changes or access other environments. The dashboard steps and API request below configure that same permission set.
 
 ## Create a key in the dashboard
 
