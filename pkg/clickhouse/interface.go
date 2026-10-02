@@ -2,6 +2,7 @@ package clickhouse
 
 import (
 	"context"
+	"time"
 
 	ch "github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
@@ -44,6 +45,14 @@ type Querier interface {
 	// WorkspaceID aggregates across all workspaces. See instance_meter.go for the
 	// counter-delta vs time-integration rules and the sample-gap handling.
 	GetInstanceMeterUsage(ctx context.Context, req GetInstanceMeterUsageRequest) ([]InstanceMeterUsage, error)
+
+	// GetComputeUsageByEnvironment returns one workspace's compute usage per
+	// environment for [start, end), from the hourly usage rollup
+	GetComputeUsageByEnvironment(ctx context.Context, workspaceID string, start, end time.Time) ([]ComputeUsageByEnvironment, error)
+
+	// GetActiveKeysByApp returns one workspace's active gateway keys per app for
+	// a calendar month, each key counted once
+	GetActiveKeysByApp(ctx context.Context, workspaceID string, year, month int) ([]ActiveKeysByApp, error)
 
 	// GetDeploymentRequestCount returns the number of gateway requests routed to a
 	// deployment within a recent time window, used to detect idle deployments for scale-down.

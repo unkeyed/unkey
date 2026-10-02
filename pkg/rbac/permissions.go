@@ -102,6 +102,10 @@ const (
 	// ReadLimits permits reading the workspace's limits and current usage
 	// against them, granted as workspace.*.read_limits
 	ReadLimits ActionType = "read_limits"
+
+	// ReadUsage permits reading the workspace's usage for a calendar month,
+	// granted as workspace.*.read_usage
+	ReadUsage ActionType = "read_usage"
 )
 
 // Predefined rate limiting actions. These constants define operations

@@ -1,0 +1,56 @@
+type: object
+description: |
+  Compute usage in the period. `cpuSeconds`, `memoryGiBHours`, `diskGiBHours`,
+  and `egressGiB` are the sums of the `environments` rows. `activeKeys` is the
+  sum of the `apps` rows.
+required:
+  - cpuSeconds
+  - memoryGiBHours
+  - diskGiBHours
+  - egressGiB
+  - activeKeys
+  - environments
+  - apps
+properties:
+  cpuSeconds:
+    type: number
+    format: double
+    description: CPU time used across the workspace, in seconds.
+    example: 5400.5
+  memoryGiBHours:
+    type: number
+    format: double
+    description: Memory used over time across the workspace, in GiB-hours.
+    example: 96.2
+  diskGiBHours:
+    type: number
+    format: double
+    description: Ephemeral disk allocated over time across the workspace, in GiB-hours.
+    example: 0
+  egressGiB:
+    type: number
+    format: double
+    description: Public network egress across the workspace, in GiB.
+    example: 1.4
+  activeKeys:
+    type: integer
+    format: int64
+    description: Distinct keys verified through the Unkey gateway in the period.
+    example: 12
+  environments:
+    type: array
+    description: |
+      One row per environment with compute usage in the period, most
+      `cpuSeconds` first, then by `projectId` and `environmentId`.
+      Empty when nothing ran.
+    items:
+      "$ref": "./V2WorkspaceGetUsageEnvironment.yaml"
+  apps:
+    type: array
+    description: |
+      One row per app whose gateway verified keys in the period, and one row
+      with an empty `appId` for keys that have no app id. Most `activeKeys`
+      first, then by `appId`. Empty when no keys were verified.
+    items:
+      "$ref": "./V2WorkspaceGetUsageApp.yaml"
+additionalProperties: false
