@@ -22,7 +22,7 @@
 - **Permissions & RBAC** — per-key permissions, roles, and fine-grained access control
 - **Analytics** — usage, latency, and per-key insights across every request
 - **Audit logs** — immutable history of every action across your workspace
-
+ 
 
 ## License
 
