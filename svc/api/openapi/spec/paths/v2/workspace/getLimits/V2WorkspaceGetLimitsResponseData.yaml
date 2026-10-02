@@ -1,0 +1,16 @@
+type: object
+required:
+  - api
+  - logs
+properties:
+  api:
+    "$ref": "./V2WorkspaceGetLimitsApi.yaml"
+  logs:
+    "$ref": "./V2WorkspaceGetLimitsLogs.yaml"
+  compute:
+    description: |
+      Compute limits and reserved capacity. Omitted when the workspace has no
+      Compute plan.
+    allOf:
+      - "$ref": "./V2WorkspaceGetLimitsCompute.yaml"
+additionalProperties: false

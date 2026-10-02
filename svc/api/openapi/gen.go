@@ -1799,6 +1799,19 @@ type KeysVerifyKeyRatelimit struct {
 	Name string `json:"name"`
 }
 
+// LimitMeter A workspace limit and the current usage against it.
+type LimitMeter struct {
+	// Limit The maximum the workspace can use.
+	//
+	// Example: 5
+	Limit int64 `json:"limit"`
+
+	// Used The amount the workspace uses now.
+	//
+	// Example: 1
+	Used int64 `json:"used"`
+}
+
 // LoggingPolicy Adds request data to the log entries of matching requests. The gateway
 // always records a basic log entry for every request: method, host, path,
 // status, and latency. Each capture setting is a separate opt-in: request
@@ -6835,6 +6848,118 @@ type V2RootKeysUpdateKeyResponseBody struct {
 
 	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
 	Meta Meta `json:"meta"`
+}
+
+// V2WorkspaceGetLimitsApi Limits for the Unkey API.
+type V2WorkspaceGetLimitsApi struct {
+	// BillableOperations Billable key verifications and rate limit operations in the current
+	// calendar month (UTC), against the monthly allowance.
+	BillableOperations LimitMeter `json:"billableOperations"`
+
+	// RequestsPerMinute The maximum API requests per minute for the workspace. Requests above it
+	// get a 429 with the `RateLimit-*` headers. Omitted when the workspace has
+	// no per-minute limit.
+	//
+	//
+	// Example: 1000
+	RequestsPerMinute *int64 `json:"requestsPerMinute,omitempty"`
+}
+
+// V2WorkspaceGetLimitsCompute Limits for Compute.
+//
+// For `vCpus`, `memoryMib`, and `storageMib`, `used` is reserved capacity, not
+// live usage. Each running deployment reserves its instance size times its
+// maximum replicas, in each region it runs in. `used` is the sum over all
+// running deployments. A deploy that would bring this sum above `limit` is
+// rejected.
+type V2WorkspaceGetLimitsCompute struct {
+	// ConcurrentBuilds The maximum builds that run at the same time.
+	//
+	// Example: 2
+	ConcurrentBuilds int `json:"concurrentBuilds"`
+
+	// CustomDomains The custom domains attached across all apps, against the allowance.
+	// Plans with unlimited custom domains return a `limit` of 1,000,000.
+	CustomDomains LimitMeter `json:"customDomains"`
+
+	// MemoryMib Reserved memory across the workspace in MiB, against the workspace limit.
+	MemoryMib LimitMeter `json:"memoryMib"`
+
+	// MemoryMibPerInstance The maximum memory for one instance, in MiB.
+	//
+	// Example: 4096
+	MemoryMibPerInstance int `json:"memoryMibPerInstance"`
+
+	// ReplicasPerRegion The maximum instances that autoscaling runs for one app in one region.
+	//
+	// Example: 10
+	ReplicasPerRegion int `json:"replicasPerRegion"`
+
+	// StorageMib Reserved ephemeral disk across the workspace in MiB, against the workspace limit.
+	StorageMib LimitMeter `json:"storageMib"`
+
+	// StorageMibPerInstance The maximum ephemeral disk for one instance, in MiB.
+	//
+	// Example: 5120
+	StorageMibPerInstance int `json:"storageMibPerInstance"`
+
+	// VCpus Reserved CPU across the workspace, against the workspace limit.
+	VCpus V2WorkspaceGetLimitsVcpuMeter `json:"vCpus"`
+
+	// VCpusPerInstance The maximum vCPUs for one instance.
+	//
+	// Example: 2
+	VCpusPerInstance float64 `json:"vCpusPerInstance"`
+}
+
+// V2WorkspaceGetLimitsLogs Limits for logs and log drains.
+type V2WorkspaceGetLimitsLogs struct {
+	// AuditRetentionDays The audit log retention of the workspace plan, in days.
+	//
+	// Example: 30
+	AuditRetentionDays int `json:"auditRetentionDays"`
+
+	// LogDrains The log drains in the workspace, against the allowance.
+	LogDrains LimitMeter `json:"logDrains"`
+
+	// RetentionDays How many days back request and runtime logs can be queried.
+	//
+	// Example: 7
+	RetentionDays int `json:"retentionDays"`
+}
+
+// V2WorkspaceGetLimitsResponseBody defines model for V2WorkspaceGetLimitsResponseBody.
+type V2WorkspaceGetLimitsResponseBody struct {
+	Data V2WorkspaceGetLimitsResponseData `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// V2WorkspaceGetLimitsResponseData defines model for V2WorkspaceGetLimitsResponseData.
+type V2WorkspaceGetLimitsResponseData struct {
+	// Api Limits for the Unkey API.
+	Api V2WorkspaceGetLimitsApi `json:"api"`
+
+	// Compute Compute limits and reserved capacity. Omitted when the workspace has no
+	// Compute plan.
+	Compute *V2WorkspaceGetLimitsCompute `json:"compute,omitempty"`
+
+	// Logs Limits for logs and log drains.
+	Logs V2WorkspaceGetLimitsLogs `json:"logs"`
+}
+
+// V2WorkspaceGetLimitsVcpuMeter The workspace CPU limit and the reserved CPU against it, in vCPUs.
+type V2WorkspaceGetLimitsVcpuMeter struct {
+	// Limit The maximum vCPUs the workspace can reserve.
+	//
+	// Example: 4
+	Limit float64 `json:"limit"`
+
+	// Used The vCPUs the workspace reserves now.
+	//
+	// Example: 2.5
+	Used float64 `json:"used"`
 }
 
 // V3DeploymentsCreateDeploymentRequestBody Create a deployment. Omit the source to use the app default, or provide one source override.

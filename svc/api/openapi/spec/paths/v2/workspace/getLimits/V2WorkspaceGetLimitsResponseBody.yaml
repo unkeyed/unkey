@@ -1,0 +1,47 @@
+type: object
+required:
+  - meta
+  - data
+properties:
+  meta:
+    $ref: "../../../../common/Meta.yaml"
+  data:
+    $ref: "./V2WorkspaceGetLimitsResponseData.yaml"
+additionalProperties: false
+examples:
+  withCompute:
+    summary: Workspace with a Compute plan
+    description: API, logs, and Compute limits with current usage
+    value:
+      meta:
+        requestId: req_1234abcd
+      data:
+        api:
+          billableOperations:
+            limit: 150000
+            used: 42000
+          requestsPerMinute: 1000
+        logs:
+          retentionDays: 7
+          auditRetentionDays: 30
+          logDrains:
+            limit: 1
+            used: 0
+        compute:
+          vCpus:
+            limit: 4
+            used: 2.5
+          vCpusPerInstance: 2
+          memoryMib:
+            limit: 8192
+            used: 4096
+          memoryMibPerInstance: 4096
+          storageMib:
+            limit: 10240
+            used: 2048
+          storageMibPerInstance: 5120
+          concurrentBuilds: 2
+          replicasPerRegion: 10
+          customDomains:
+            limit: 5
+            used: 1

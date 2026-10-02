@@ -98,6 +98,10 @@ const (
 	// (minting the install URL and binding the resulting installation). It is a
 	// workspace-wide action, so it is granted as workspace.*.install_github.
 	InstallGithub ActionType = "install_github"
+
+	// ReadLimits permits reading the workspace's limits and current usage
+	// against them, granted as workspace.*.read_limits
+	ReadLimits ActionType = "read_limits"
 )
 
 // Predefined rate limiting actions. These constants define operations

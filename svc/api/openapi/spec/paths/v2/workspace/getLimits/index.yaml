@@ -1,0 +1,163 @@
+post:
+  tags:
+    - workspace
+  summary: Get workspace limits
+  description: |
+    Get every limit of your workspace, with the current usage against each
+    limit that is metered.
+
+    Use this before an operation that a limit can reject, for example to see how
+    many custom domains or log drains remain, or how much CPU, memory, and disk
+    a new deployment can still reserve.
+
+    The request takes no parameters. Billable operations count the current
+    calendar month in UTC. The `compute` object is present only when the
+    workspace has a Compute plan.
+
+    **Required Permissions**
+
+    Your root key must have one of the following permissions:
+    - `workspace.*.read_limits`
+    - `unkey:v1:<workspace_id>:limits#read`
+  operationId: workspace.getLimits
+  x-speakeasy-name-override: getLimits
+  x-unkey-idempotency: idempotent
+  security:
+    - bearer: []
+  responses:
+    "200":
+      description: |
+        The workspace limits and the current usage against them.
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2WorkspaceGetLimitsResponseBody.yaml"
+          examples:
+            withCompute:
+              summary: Workspace with a Compute plan
+              description: API, logs, and Compute limits with current usage
+              value:
+                meta:
+                  requestId: req_1234abcd
+                data:
+                  api:
+                    billableOperations:
+                      limit: 150000
+                      used: 42000
+                    requestsPerMinute: 1000
+                  logs:
+                    retentionDays: 7
+                    auditRetentionDays: 30
+                    logDrains:
+                      limit: 1
+                      used: 0
+                  compute:
+                    vCpus:
+                      limit: 4
+                      used: 2.5
+                    vCpusPerInstance: 2
+                    memoryMib:
+                      limit: 8192
+                      used: 4096
+                    memoryMibPerInstance: 4096
+                    storageMib:
+                      limit: 10240
+                      used: 2048
+                    storageMibPerInstance: 5120
+                    concurrentBuilds: 2
+                    replicasPerRegion: 10
+                    customDomains:
+                      limit: 5
+                      used: 1
+            withoutCompute:
+              summary: Workspace without a Compute plan
+              description: No Compute plan and no per-minute limit, so `compute` and `requestsPerMinute` are omitted
+              value:
+                meta:
+                  requestId: req_1234abcd
+                data:
+                  api:
+                    billableOperations:
+                      limit: 150000
+                      used: 42000
+                  logs:
+                    retentionDays: 7
+                    auditRetentionDays: 30
+                    logDrains:
+                      limit: 0
+                      used: 0
+    "400":
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/BadRequestErrorResponse.yaml"
+    "401":
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
+          examples:
+            invalidRootKey:
+              summary: Invalid root key
+              value:
+                meta:
+                  requestId: req_1234abcd
+                error:
+                  title: Unauthorized
+                  detail: The provided root key is invalid. We could not find the requested key.
+                  status: 401
+                  type: https://unkey.com/docs/errors/unkey/authentication/key_not_found
+    "403":
+      description: Forbidden - Insufficient permissions (requires `workspace.*.read_limits`)
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/ForbiddenErrorResponse.yaml"
+          examples:
+            missingPermission:
+              summary: Missing required permission
+              value:
+                meta:
+                  requestId: req_1234abcd
+                error:
+                  title: Insufficient Permissions
+                  detail: "Missing one of these permissions: unkey:v1:ws_1234abcd:limits#read or workspace.*.read_limits"
+                  status: 403
+                  type: https://unkey.com/docs/errors/unkey/authorization/insufficient_permissions
+    "429":
+      description: Too Many Requests
+      content:
+        application/problem+json:
+          schema:
+            "$ref": "../../../../error/TooManyRequestsErrorResponse.yaml"
+          examples:
+            workspaceRateLimited:
+              summary: Workspace rate limit exceeded
+              value:
+                meta:
+                  requestId: req_1234abcd
+                error:
+                  title: Too Many Requests
+                  detail: This workspace has exceeded its API rate limit of 1000/1m0s. Please try again later.
+                  status: 429
+                  type: https://unkey.com/docs/errors/user/too_many_requests/workspace_rate_limited
+    "500":
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/InternalServerErrorResponse.yaml"
+          examples:
+            limitsNotConfigured:
+              summary: Limits not configured
+              description: The workspace has no limits row, which support has to fix
+              value:
+                meta:
+                  requestId: req_1234abcd
+                error:
+                  title: Internal Server Error
+                  detail: Resource limits are not configured for this workspace. Contact support@unkey.com.
+                  status: 500
+                  type: https://unkey.com/docs/errors/unkey/application/service_unavailable

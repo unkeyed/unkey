@@ -22,6 +22,7 @@ sources:
   - svc/api/routes/v2_root_keys_update_key/handler.go
   - svc/api/routes/v2_root_keys_list_keys/handler.go
   - svc/api/routes/v2_root_keys_reroll_key/handler.go
+  - svc/api/routes/v2_workspace_get_limits/handler.go
 ---
 
 A root key permission has the form `unkey:v1:{workspace_id}:{resource_path}#{action}`. Use this page to choose a path and action. See [Root key permissions](/platform/root-keys/permissions) for least-privilege examples and [Configure root keys](/platform/root-keys/configure) to assign them.
@@ -51,6 +52,7 @@ Append one of these paths to `unkey:v1:{workspace_id}:`, then add `#` and an act
 | Projects | `projects/{project_id}` | `read`, `write`, `delete` |
 | Root keys | `rootKeys/{root_key_id}` | `read`, `write`, `delete` |
 | GitHub apps | `github/apps/{github_app_id}` | `read`, `write`, `delete` |
+| Limits | `limits` | `read` |
 
 ## Deploy resources
 
