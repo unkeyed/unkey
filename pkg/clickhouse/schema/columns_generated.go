@@ -49,7 +49,7 @@ func (BuildStepLogV1) Table() string {
 
 // InsertColumns implements [Row]; derived from BuildStepLogV1's ch tags.
 func (BuildStepLogV1) InsertColumns() string {
-	return "`time`, `workspace_id`, `project_id`, `deployment_id`, `step_id`, `message`, `seq`, `error`"
+	return "`time`, `workspace_id`, `project_id`, `deployment_id`, `step_id`, `message`, `seq`, `stderr`"
 }
 
 // Table implements [Row].

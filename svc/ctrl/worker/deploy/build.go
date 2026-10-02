@@ -843,7 +843,7 @@ func (w *Workflow) processBuildStatus(
 				Time:         log.Timestamp.UnixMilli(),
 				Message:      string(log.Data),
 				Seq:          seq.next(),
-				Error:        log.Stream == buildkitStderrStream,
+				Stderr:       log.Stream == buildkitStderrStream,
 			})
 		}
 	}

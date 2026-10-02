@@ -90,19 +90,19 @@ func TestProcessBuildStatusWritesLogRows(t *testing.T) {
 
 	type logRow struct {
 		message string
-		error   bool
+		stderr  bool
 	}
 	got := make([]logRow, 0, len(rows))
 	for i, row := range rows {
-		got = append(got, logRow{message: row.Message, error: row.Error})
+		got = append(got, logRow{message: row.Message, stderr: row.Stderr})
 		if i > 0 {
 			require.Greater(t, row.Seq, rows[i-1].Seq, "seq must strictly increase within a solve and across solves that share a counter")
 		}
 	}
 	require.Equal(t, []logRow{
-		{message: "KEBAP stdout", error: false},
-		{message: "KEBAP stderr", error: true},
-		{message: "KEBAP second solve", error: false},
+		{message: "KEBAP stdout", stderr: false},
+		{message: "KEBAP stderr", stderr: true},
+		{message: "KEBAP second solve", stderr: false},
 	}, got)
 }
 
