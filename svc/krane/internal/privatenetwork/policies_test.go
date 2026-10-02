@@ -5,10 +5,13 @@ import (
 	"slices"
 	"strconv"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
+	"github.com/unkeyed/unkey/pkg/deploy/appconnection"
 	"github.com/unkeyed/unkey/svc/krane/pkg/labels"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	fakedynamic "k8s.io/client-go/dynamic/fake"
@@ -125,7 +128,7 @@ func TestSelfConnectionPeersOnlyReplicasOfCallerDeployment(t *testing.T) {
 	}
 }
 
-func TestConnectionPolicyIsolationAndImmediateRevocation(t *testing.T) {
+func TestConnectionPolicyObjectsAreIsolatedAndRemovedOnRevocation(t *testing.T) {
 	dynamic := testDynamicClient()
 	r := &Reconciler{dynamic: dynamic}
 	first := testConnection("target_1")
@@ -143,6 +146,36 @@ func TestConnectionPolicyIsolationAndImmediateRevocation(t *testing.T) {
 	_, err = dynamic.Resource(policyResource).Namespace(first.GetK8SNamespace()).Get(t.Context(), policyName(first), metav1.GetOptions{})
 	require.Error(t, err)
 	require.Equal(t, []flow{{"caller_2", "target_1"}}, effectiveFlows(t, dynamic, first.GetK8SNamespace()))
+}
+
+func TestConnectionPolicyRetainsOldTargetUntilReplacementCoverageExpires(t *testing.T) {
+	ctx := t.Context()
+	now := time.Date(2026, 9, 21, 12, 0, 0, 0, time.UTC)
+	dynamic := testDynamicClient()
+	r := &Reconciler{dynamic: dynamic, now: func() time.Time { return now }}
+	connectionSpec := testConnection("dep_a")
+	name := policyName(connectionSpec)
+	require.NoError(t, r.ensurePolicy(ctx, connectionSpec, name, nil))
+
+	connectionSpec.TargetDeploymentId = "dep_b"
+	published := &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Labels: connectionLabels(connectionSpec)}, Data: map[string]string{
+		"appSlug": connectionSpec.GetConnectionName(), "deploymentId": "dep_a",
+	}}
+	require.NoError(t, r.ensurePolicy(ctx, connectionSpec, name, published))
+	require.ElementsMatch(t, []flow{{"caller_1", "dep_a"}, {"caller_1", "dep_b"}}, effectiveFlows(t, dynamic, connectionSpec.GetK8SNamespace()))
+
+	now = now.Add(appconnection.ReplacementOverlap)
+	require.NoError(t, r.ensurePolicy(ctx, connectionSpec, name, published))
+	require.Contains(t, effectiveFlows(t, dynamic, connectionSpec.GetK8SNamespace()), flow{"caller_1", "dep_a"}, "the published old target still requires coverage")
+
+	published.Data["deploymentId"] = "dep_b"
+	require.NoError(t, r.ensurePolicy(ctx, connectionSpec, name, published))
+	now = now.Add(appconnection.ReplacementOverlap - time.Nanosecond)
+	require.NoError(t, r.ensurePolicy(ctx, connectionSpec, name, published))
+	require.Contains(t, effectiveFlows(t, dynamic, connectionSpec.GetK8SNamespace()), flow{"caller_1", "dep_a"})
+	now = now.Add(time.Nanosecond)
+	require.NoError(t, r.ensurePolicy(ctx, connectionSpec, name, published))
+	require.Equal(t, []flow{{"caller_1", "dep_b"}}, effectiveFlows(t, dynamic, connectionSpec.GetK8SNamespace()))
 }
 
 func TestConnectionPolicyIgnoresTargetPortChanges(t *testing.T) {

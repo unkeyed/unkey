@@ -60,6 +60,92 @@ func TestReconcileRPCErrorPreservesPublishedObjects(t *testing.T) {
 	require.Len(t, services.Items, 1)
 }
 
+func TestReconcilePolicyWriteFailureDoesNotPublishNewDNSAndRetryConverges(t *testing.T) {
+	for _, verb := range []string{"create", "update"} {
+		t.Run(verb, func(t *testing.T) {
+			ctx := t.Context()
+			initial := testConnection("dep_a")
+			desired := testConnection("dep_b")
+			client := fake.NewClientset(endpointPod(initial, "a", "10.72.0.11"), endpointPod(desired, "b", "10.72.0.22"))
+			dynamic := testDynamicClient()
+			control := &testutil.MockClusterClient{}
+			current := desired
+			if verb == "update" {
+				current = initial
+			}
+			control.StreamPrivateNetworkStateFunc = snapshotFunc(t, func(context.Context) ([]*ctrlv1.PrivateNetworkConnection, error) {
+				return []*ctrlv1.PrivateNetworkConnection{current}, nil
+			})
+			r := &Reconciler{client: client, dynamic: dynamic, cluster: control, clusterKey: &ctrlv1.ClusterKey{}}
+			if verb == "update" {
+				require.NoError(t, r.reconcile(ctx))
+				current = desired
+			}
+
+			failing := true
+			dynamic.PrependReactor(verb, policyResource.Resource, func(clienttesting.Action) (bool, runtime.Object, error) {
+				if !failing {
+					return false, nil, nil
+				}
+				return true, nil, apierrors.NewForbidden(schema.GroupResource{Resource: policyResource.Resource}, policyName(desired), fmt.Errorf("injected policy failure"))
+			})
+			require.True(t, apierrors.IsForbidden(r.reconcile(ctx)))
+			connection, err := client.CoreV1().ConfigMaps(desired.GetK8SNamespace()).Get(ctx, connectionResourceName(desired), metav1.GetOptions{})
+			if verb == "create" {
+				require.True(t, apierrors.IsNotFound(err), "DNS ConfigMap was published without its policy")
+				require.Empty(t, effectiveFlows(t, dynamic, desired.GetK8SNamespace()))
+			} else {
+				require.NoError(t, err)
+				require.Equal(t, "dep_a", connection.Data["deploymentId"])
+				require.Equal(t, []flow{{"caller_1", "dep_a"}}, effectiveFlows(t, dynamic, desired.GetK8SNamespace()))
+			}
+
+			failing = false
+			require.NoError(t, r.reconcile(ctx))
+			connection, err = client.CoreV1().ConfigMaps(desired.GetK8SNamespace()).Get(ctx, connectionResourceName(desired), metav1.GetOptions{})
+			require.NoError(t, err)
+			require.Equal(t, "dep_b", connection.Data["deploymentId"])
+			require.Contains(t, effectiveFlows(t, dynamic, desired.GetK8SNamespace()), flow{"caller_1", "dep_b"})
+		})
+	}
+}
+
+func TestReconcilePolicyDeleteFailureRetainsDNSUntilRetry(t *testing.T) {
+	ctx := t.Context()
+	connectionSpec := testConnection("dep_a")
+	client := fake.NewClientset(endpointPod(connectionSpec, "a", "10.72.0.11"))
+	dynamic := testDynamicClient()
+	control := &testutil.MockClusterClient{}
+	snapshot := []*ctrlv1.PrivateNetworkConnection{connectionSpec}
+	control.StreamPrivateNetworkStateFunc = snapshotFunc(t, func(context.Context) ([]*ctrlv1.PrivateNetworkConnection, error) { return snapshot, nil })
+	r := &Reconciler{client: client, dynamic: dynamic, cluster: control, clusterKey: &ctrlv1.ClusterKey{}}
+	require.NoError(t, r.reconcile(ctx))
+
+	failing := true
+	dynamic.PrependReactor("delete", policyResource.Resource, func(clienttesting.Action) (bool, runtime.Object, error) {
+		if !failing {
+			return false, nil, nil
+		}
+		return true, nil, apierrors.NewForbidden(schema.GroupResource{Resource: policyResource.Resource}, policyName(connectionSpec), fmt.Errorf("injected policy failure"))
+	})
+	snapshot = nil
+	require.True(t, apierrors.IsForbidden(r.reconcile(ctx)))
+	_, err := client.CoreV1().ConfigMaps(connectionSpec.GetK8SNamespace()).Get(ctx, connectionResourceName(connectionSpec), metav1.GetOptions{})
+	require.NoError(t, err, "DNS must remain while policy revocation fails")
+	require.Equal(t, []flow{{"caller_1", "dep_a"}}, effectiveFlows(t, dynamic, connectionSpec.GetK8SNamespace()))
+
+	failing = false
+	require.NoError(t, r.reconcile(ctx))
+	_, err = client.CoreV1().ConfigMaps(connectionSpec.GetK8SNamespace()).Get(ctx, connectionResourceName(connectionSpec), metav1.GetOptions{})
+	require.True(t, apierrors.IsNotFound(err))
+	_, err = dynamic.Resource(policyResource).Namespace(connectionSpec.GetK8SNamespace()).Get(ctx, policyName(connectionSpec), metav1.GetOptions{})
+	require.True(t, apierrors.IsNotFound(err))
+	require.Empty(t, effectiveFlows(t, dynamic, connectionSpec.GetK8SNamespace()), "revocation must not receive replacement overlap")
+	services, err := client.CoreV1().Services(connectionSpec.GetK8SNamespace()).List(ctx, metav1.ListOptions{})
+	require.NoError(t, err)
+	require.Len(t, services.Items, 1, "Service retention must not retain policy access")
+}
+
 func TestReconcileConnectionPromotionRollback(t *testing.T) {
 	ctx := t.Context()
 	client := fake.NewClientset(endpointPod(testConnection("dep_a"), "a", "10.72.0.11"), endpointPod(testConnection("dep_b"), "b", "10.72.0.22"))
@@ -560,41 +646,68 @@ func TestReconcileEnsuresSharedTargetOncePerPass(t *testing.T) {
 	}
 }
 
-func TestReconcileRejectsPartialSnapshotStream(t *testing.T) {
+func TestReconcileIncompleteSnapshotPreservesPolicyAndDNSUntilCompleteRevocation(t *testing.T) {
 	for _, tc := range []struct {
-		name   string
-		chunks []*ctrlv1.PrivateNetworkStateChunk
-		want   string
+		name      string
+		chunks    []*ctrlv1.PrivateNetworkStateChunk
+		streamErr bool
+		want      string
 	}{
 		{
-			name:   "missing_complete_chunk",
-			chunks: []*ctrlv1.PrivateNetworkStateChunk{{Connections: []*ctrlv1.PrivateNetworkConnection{testConnection("dep_a")}}},
-			want:   "ended before it was complete",
+			name: "truncated",
+			chunks: []*ctrlv1.PrivateNetworkStateChunk{{Connections: []*ctrlv1.PrivateNetworkConnection{
+				testConnection("dep_b"),
+			}}},
+			want: "ended before it was complete",
 		},
 		{
 			name: "count_mismatch",
 			chunks: []*ctrlv1.PrivateNetworkStateChunk{
-				{Connections: []*ctrlv1.PrivateNetworkConnection{testConnection("dep_a")}},
+				{Connections: []*ctrlv1.PrivateNetworkConnection{testConnection("dep_b")}},
 				{Complete: true, Total: 2},
 			},
 			want: "complete chunk reports 2",
 		},
+		{
+			name: "failed_mid_stream", streamErr: true,
+			chunks: []*ctrlv1.PrivateNetworkStateChunk{{Connections: []*ctrlv1.PrivateNetworkConnection{
+				testConnection("dep_b"),
+			}}},
+			want: "unavailable",
+		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			ctx := t.Context()
-			client := fake.NewClientset()
+			published := testConnection("dep_a")
+			client := fake.NewClientset(endpointPod(published, "a", "10.72.0.11"))
+			dynamic := testDynamicClient()
 			control := &testutil.MockClusterClient{}
 			control.StreamPrivateNetworkStateFunc = snapshotFunc(t, func(context.Context) ([]*ctrlv1.PrivateNetworkConnection, error) {
-				return []*ctrlv1.PrivateNetworkConnection{testConnection("dep_a")}, nil
+				return []*ctrlv1.PrivateNetworkConnection{published}, nil
 			})
-			r := &Reconciler{client: client, dynamic: testDynamicClient(), cluster: control, clusterKey: &ctrlv1.ClusterKey{}}
+			r := &Reconciler{client: client, dynamic: dynamic, cluster: control, clusterKey: &ctrlv1.ClusterKey{}}
 			require.NoError(t, r.reconcile(ctx))
 
-			control.StreamPrivateNetworkStateFunc = chunkStream(t, tc.chunks...)
+			if tc.streamErr {
+				control.StreamPrivateNetworkStateFunc = failedChunkStream(t, tc.chunks...)
+			} else {
+				control.StreamPrivateNetworkStateFunc = chunkStream(t, tc.chunks...)
+			}
 			require.ErrorContains(t, r.reconcile(ctx), tc.want)
 			connections, err := client.CoreV1().ConfigMaps("customer-1").List(ctx, metav1.ListOptions{})
 			require.NoError(t, err)
-			require.Len(t, connections.Items, 1, "a partial snapshot must not revoke published connections")
+			require.Len(t, connections.Items, 1, "an incomplete snapshot must not revoke published DNS")
+			require.Equal(t, "dep_a", connections.Items[0].Data["deploymentId"])
+			require.Equal(t, []flow{{"caller_1", "dep_a"}}, effectiveFlows(t, dynamic, "customer-1"), "an incomplete snapshot must not change policy")
+
+			control.StreamPrivateNetworkStateFunc = snapshotFunc(t, func(context.Context) ([]*ctrlv1.PrivateNetworkConnection, error) { return nil, nil })
+			require.NoError(t, r.reconcile(ctx))
+			connections, err = client.CoreV1().ConfigMaps("customer-1").List(ctx, metav1.ListOptions{})
+			require.NoError(t, err)
+			require.Empty(t, connections.Items, "a later complete snapshot applies revocation")
+			_, err = dynamic.Resource(policyResource).Namespace(published.GetK8SNamespace()).Get(ctx, policyName(published), metav1.GetOptions{})
+			require.True(t, apierrors.IsNotFound(err))
+			require.Empty(t, effectiveFlows(t, dynamic, "customer-1"))
 		})
 	}
 }
