@@ -6,7 +6,7 @@ import { EditKeyAside } from "../builder/edit-key-aside";
 import { useRootKeysV2List } from "./hooks/use-root-keys-v2-list";
 import { RootKeysDataTable } from "./root-keys-data-table";
 
-export function RootKeysListBuilder() {
+export function RootKeysList() {
   const list = useRootKeysV2List();
   const [editingKeyId, setEditingKeyId] = useState<string | null>(null);
   const [isOpen, setIsOpen] = useState(false);
@@ -20,7 +20,7 @@ export function RootKeysListBuilder() {
 
   return (
     <>
-      <RootKeysDataTable selectedKeyId={editingKeyId} onEditKey={edit} list={list} transport="v2" />
+      <RootKeysDataTable selectedKeyId={editingKeyId} onEditKey={edit} list={list} />
       {editingKeyId === null ? null : (
         <EditKeyAside
           key={editingKeyId}
