@@ -1,18 +1,23 @@
 import { TimestampInfo } from "@unkey/ui";
 import { cn } from "cn";
 import { Fragment } from "react/jsx-runtime";
+import { useDeployment } from "../../layout-provider";
+import { BUILD_STEP_LOG_ENTRIES_SHOWN_MAX, useBuildStepLogs } from "../../use-build-step-logs";
 import { TruncatedCell } from "../truncated-cell";
 import type { BuildStepRow } from "./columns";
 
 export function BuildStepLogsExpanded({ step }: { step: BuildStepRow }) {
-  if (!step.logs || step.logs.length === 0) {
-    return (
-      <tr>
-        <td colSpan={6} className="px-8 py-4 text-sm text-gray-11">
-          No logs available for this step
-        </td>
-      </tr>
-    );
+  const { deployment } = useDeployment();
+  const logs = useBuildStepLogs(deployment, step.step_id);
+
+  if (logs.isLoading) {
+    return <BuildStepLogsMessage text="Loading logs" />;
+  }
+  if (logs.isError) {
+    return <BuildStepLogsMessage text="Failed to load logs for this step" />;
+  }
+  if (logs.data.entries.length === 0) {
+    return <BuildStepLogsMessage text="No logs available for this step" />;
   }
 
   const isError = Boolean(step.error);
@@ -24,7 +29,16 @@ export function BuildStepLogsExpanded({ step }: { step: BuildStepRow }) {
       <tr>
         <td colSpan={6} className={cn("border-l-2 p-0", borderClass, bgClass)} />
       </tr>
-      {step.logs.map((log, idx) => (
+      {logs.data.entriesTotal > BUILD_STEP_LOG_ENTRIES_SHOWN_MAX && (
+        <tr>
+          <td className={cn("border-l-2 py-0", borderClass, bgClass)} />
+          <td colSpan={5} className={cn("py-1 text-xs text-gray-11", bgClass)}>
+            Showing the last {BUILD_STEP_LOG_ENTRIES_SHOWN_MAX} of{" "}
+            {logs.data.entriesTotal.toLocaleString()} entries
+          </td>
+        </tr>
+      )}
+      {logs.data.entries.map((log, idx) => (
         <Fragment key={`row-group-${log.time}-${idx}`}>
           <tr key={`spacer-${log.time}-${idx}`} style={{ height: "4px" }}>
             <td colSpan={6} className={cn("border-l-2 p-0", borderClass, bgClass)} />
@@ -46,5 +60,15 @@ export function BuildStepLogsExpanded({ step }: { step: BuildStepRow }) {
         </Fragment>
       ))}
     </>
+  );
+}
+
+function BuildStepLogsMessage({ text }: { text: string }) {
+  return (
+    <tr>
+      <td colSpan={6} className="px-8 py-4 text-sm text-gray-11">
+        {text}
+      </td>
+    </tr>
   );
 }

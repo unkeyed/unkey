@@ -2,12 +2,11 @@ import { clickhouse } from "@/lib/clickhouse";
 import { db } from "@/lib/db";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
-import { buildStepLogSchema, buildStepSchema } from "@unkey/clickhouse/src/build-steps";
+import { buildStepSchema } from "@unkey/clickhouse/src/build-steps";
 import { z } from "zod";
 
-const buildStepWithLogsSchema = buildStepSchema.omit({ error: true }).extend({
+const buildStepResponseSchema = buildStepSchema.omit({ error: true }).extend({
   error: z.string().nullable(),
-  logs: z.array(buildStepLogSchema.pick({ time: true, message: true })).optional(),
 });
 
 export const getDeploymentBuildSteps = workspaceProcedure
@@ -15,12 +14,11 @@ export const getDeploymentBuildSteps = workspaceProcedure
   .input(
     z.object({
       deploymentId: z.string(),
-      includeStepLogs: z.boolean().default(false),
     }),
   )
   .output(
     z.object({
-      steps: z.array(buildStepWithLogsSchema),
+      steps: z.array(buildStepResponseSchema),
     }),
   )
   .query(async ({ ctx, input }) => {
@@ -51,35 +49,5 @@ export const getDeploymentBuildSteps = workspaceProcedure
       });
     }
 
-    const steps = stepsResult.val;
-
-    // Optionally fetch logs for steps that have them
-    if (input.includeStepLogs && steps.length > 0) {
-      const stepIdsWithLogs = steps.filter((s) => s.has_logs).map((s) => s.step_id);
-
-      if (stepIdsWithLogs.length > 0) {
-        const logsResult = await clickhouse.buildSteps.getLogs({
-          workspaceId: deployment.workspaceId,
-          projectId: deployment.projectId,
-          deploymentId: input.deploymentId,
-          stepIds: stepIdsWithLogs,
-          limit: 20,
-        });
-
-        if (!logsResult.err) {
-          // Nest logs under each step
-          return {
-            steps: steps.map((step) => ({
-              ...step,
-              logs: logsResult.val
-                .filter((log) => log.step_id === step.step_id)
-                .map((log) => ({ time: log.time, message: log.message })),
-            })),
-          };
-        }
-      }
-    }
-
-    // Return steps without logs
-    return { steps };
+    return { steps: stepsResult.val };
   });
