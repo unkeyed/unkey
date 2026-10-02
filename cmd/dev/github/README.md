@@ -109,29 +109,24 @@ Omitting `--commit-sha` deploys the HEAD of the repo's default branch (resolved 
 
 ## Install through a shared development relay
 
-Use a separate development GitHub App and the standalone
-[`unkeyed/github-relay`](https://github.com/unkeyed/github-relay) service for
-dashboards with changing public origins. Do not change the production App.
+Use an existing development relay. Obtain its URL and the development App
+credentials from its operator; do not change the shared App's settings.
+Operating the relay is covered in the
+[relay README](https://github.com/unkeyed/github-relay#readme).
 
-The relay operator provides a running HTTPS relay backed by PostgreSQL,
-applies its migrations, and configures its App credentials. Follow the
-standalone repository's README for operator setup. Dashboard users do not
-need the relay database credentials or a local relay instance.
-
-Set both the development App's first **Callback URL** and **Setup URL** to
-`https://<relay-host>/api/integrations/github/relay/callback`. Enable
-**Request user authorization (OAuth) during installation** and
-**Redirect on update**. Disable wildcard callback matching. The Setup URL
-alone does not configure OAuth callbacks.
-
-Set the dashboard's `DASHBOARD_BASE_URL` to its exact public HTTPS origin and
+Set the dashboard's `DASHBOARD_BASE_URL` to its exact HTTPS origin and
 `GITHUB_INSTALL_RELAY_URL` to the relay origin, without trailing slashes.
+Local HTTPS works if your browser can reach the dashboard and trusts its
+certificate. Include any non-default port. The relay redirects your browser
+back; it does not need network access to the dashboard. The dashboard server
+must be able to reach the relay.
+
 Supply either a scoped `GITHUB_INSTALL_RELAY_TOKEN` or a
 `GITHUB_INSTALL_RELAY_ADMIN_TOKEN`, never both. Admin mode automatically enrolls
 the dashboard origin and is for trusted development only. The dashboard still
 needs `GITHUB_APP_ID`, `UNKEY_GITHUB_PRIVATE_KEY_PEM`, and
-`NEXT_PUBLIC_GITHUB_APP_NAME` for the same App. Keep OAuth client credentials
-on the relay.
+`NEXT_PUBLIC_GITHUB_APP_NAME` for the same App. Relay mode does not need
+`GITHUB_CLIENT_ID` or `GITHUB_CLIENT_SECRET` in the dashboard.
 
 Add the following to `web/apps/dashboard/.env.local`, replacing the example
 origins and obtaining credentials through your secret manager:
@@ -155,30 +150,24 @@ overwrite the shared App's webhook URL.
 
 ## Receive events through a shared development relay
 
-The standalone `unkeyed/github-relay` service receives GitHub webhooks at
-`/webhooks/github`. Each opted-in development environment pulls its own queued
-events and forwards them to its loopback control API. GitHub does not need access
-to an Amp portal, and orbs do not overwrite the shared App's webhook URL.
+If your relay supports webhook delivery, the local forwarder pulls your
+environment's queued events and sends them to its loopback control API.
+No public local webhook endpoint is required.
 
-1. Deploy the relay version with webhook support and its database migration.
-   Set the relay's `GITHUB_WEBHOOK_SECRET` to the GitHub App webhook secret.
-2. Set the development GitHub App's **Webhook URL** to
-   `https://<relay-host>/webhooks/github`, use JSON content, and subscribe to
-   push and pull request events. Changing this URL affects every user of the App.
-3. Set `UNKEY_GITHUB_APP_WEBHOOK_SECRET` in `dev/.env.github` to the same secret
+1. Obtain the development App's webhook secret from the relay operator.
+   Set `UNKEY_GITHUB_APP_WEBHOOK_SECRET` in `dev/.env.github` to that secret
    and restart the local control API after updating its Kubernetes secret.
-4. Set `GITHUB_INSTALL_RELAY_URL` and `DASHBOARD_BASE_URL` to the exact HTTPS
+2. Set `GITHUB_INSTALL_RELAY_URL` and `DASHBOARD_BASE_URL` to the exact HTTPS
    relay and dashboard origins, without trailing slashes. Supply exactly one
    credential through the environment: `GITHUB_INSTALL_RELAY_TOKEN`, or
    `GITHUB_INSTALL_RELAY_ADMIN_TOKEN` for trusted development only. Never give
    the admin token to an untrusted preview.
-5. Start the forwarder, then complete the GitHub installation or authorization
+3. Start the forwarder, then complete the GitHub installation or authorization
    flow from this dashboard. The relay records the repositories that the user
-   can access within the installation. A database seed or a caller-provided ID does not
-   authorize a subscription. Existing installations must complete this flow again
-   after the relay upgrade if no repository access proof exists. Reconnect every
-   24 hours to renew that proof, and after adding repositories. Enrollment renewal
-   alone does not extend repository access.
+   can access within the installation. A database seed or a caller-provided ID
+   does not authorize a subscription. Reconnect every 24 hours to renew that
+   proof, and after adding repositories. Enrollment renewal alone does not
+   extend repository access.
 
 ```bash
 mise run unkey -- dev github relay-events
@@ -202,11 +191,10 @@ can deliver the event again; the control API uses GitHub's delivery ID for
 Restate idempotency. Each environment has an independent queue. Do not attach
 multiple environments to the same control-plane database.
 
-The relay retains payloads for 24 hours, permits at most 20 claims per delivery,
-and retains deduplication IDs for seven days. It rejects bodies above 2 MiB with
-413. It forwards only `push` and `pull_request` events, and does not replay old
-events to newly linked environments. Stop the forwarder to pause consumption;
-revoke the environment registration to remove its subscriptions and queued data.
+Only `push` and `pull_request` events are forwarded. Old events are not replayed
+to newly linked environments. Stop the forwarder to pause consumption; ask the
+operator to revoke the environment registration when you no longer need it.
+See the relay README for delivery limits and retention.
 
 ---
 
