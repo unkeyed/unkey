@@ -9,6 +9,7 @@ import { portalExchangeCode } from "../funcs/portalExchangeCode.js";
 import { portalGetPortal } from "../funcs/portalGetPortal.js";
 import { portalGetVerifications } from "../funcs/portalGetVerifications.js";
 import { portalListKeys } from "../funcs/portalListKeys.js";
+import { portalListSessions } from "../funcs/portalListSessions.js";
 import { portalRerollKey } from "../funcs/portalRerollKey.js";
 import { portalRevokeSession } from "../funcs/portalRevokeSession.js";
 import { portalUpdatePortal } from "../funcs/portalUpdatePortal.js";
@@ -236,6 +237,41 @@ export class Portal extends ClientSDK {
     return unwrapResultIterator(portalListKeys(
       this,
       security,
+      request,
+      options,
+    ));
+  }
+
+  /**
+   * List portal sessions
+   *
+   * @remarks
+   * List the end users holding a revocable session on a portal, with each
+   * end user's sessions.
+   *
+   * Unreleased and subject to change without notice.
+   *
+   * A session is revocable until it expires or is revoked. That includes
+   * sessions whose portal URL was created but not opened yet. Pass an end
+   * user's `externalId` to `portal.revokeSession` to end their sessions.
+   *
+   * **Required Permissions**
+   *
+   * Your root key must have one of:
+   * - `portal.*.create_portal_session` (for any portal in the workspace)
+   * - `portal.<portal_id>.create_portal_session` (for a specific portal)
+   *
+   * It also accepts `unkey:v1:<workspace_id>:projects/<project_id>/portals/<portal_id>/sessions/*`
+   * with `#read` or `#write`. Reading the portal itself is not enough.
+   *
+   * Without the permission this returns **404**, not 403.
+   */
+  async listSessions(
+    request: components.V2PortalListSessionsRequestBody,
+    options?: RequestOptions,
+  ): Promise<components.V2PortalListSessionsResponseBody> {
+    return unwrapAsync(portalListSessions(
+      this,
       request,
       options,
     ));

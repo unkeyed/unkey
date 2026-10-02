@@ -162,9 +162,9 @@ func (Key) permissionActions(bool) permissionActionSet { return keyActions }
 // permissionActions returns the read, write, and delete actions for portals.
 func (Portal) permissionActions(bool) permissionActionSet { return readWriteDelete }
 
-// permissionActions returns write for portal sessions.
+// permissionActions returns read and write for portal sessions.
 func (portalSession) permissionActions(bool) permissionActionSet {
-	return newPermissionActionSet(PermissionWrite)
+	return newPermissionActionSet(PermissionRead, PermissionWrite)
 }
 
 // permissionActions returns every action supported by rate limit namespaces.

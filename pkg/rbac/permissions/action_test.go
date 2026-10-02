@@ -56,6 +56,7 @@ func TestActions_BuildPlatformPermissions(t *testing.T) {
 	requirePermission(t, portal, permissions.Read, "unkey:v1:ws_123:projects/proj_123/portals/portal_123#read")
 	requirePermission(t, portal, permissions.Write, "unkey:v1:ws_123:projects/proj_123/portals/portal_123#write")
 	requirePermission(t, portal, permissions.Delete, "unkey:v1:ws_123:projects/proj_123/portals/portal_123#delete")
+	requirePermission(t, portalSession, permissions.Read, "unkey:v1:ws_123:projects/proj_123/portals/portal_123/sessions/sess_123#read")
 	requirePermission(t, portalSession, permissions.Write, "unkey:v1:ws_123:projects/proj_123/portals/portal_123/sessions/sess_123#write")
 }
 
@@ -103,7 +104,7 @@ func TestActions_BuildDataPermissions(t *testing.T) {
 
 // TestSupportsPermissionAction_RejectsUnsupportedActions guarantees each special resource type
 // rejects actions from another type. For example, logs reject write, portal
-// sessions reject read, and only the global resource accepts the * action.
+// sessions reject delete, and only the global resource accepts the * action.
 func TestSupportsPermissionAction_RejectsUnsupportedActions(t *testing.T) {
 	t.Parallel()
 
@@ -116,7 +117,6 @@ func TestSupportsPermissionAction_RejectsUnsupportedActions(t *testing.T) {
 		{name: "key limit", resource: "projects/proj_123/keyspaces/ks_123/keys/key_123", action: permissions.Limit},
 		{name: "namespace decrypt", resource: "projects/proj_123/ratelimits/namespaces/ns_123", action: permissions.Decrypt},
 		{name: "override limit", resource: "projects/proj_123/ratelimits/namespaces/ns_123/overrides/ov_123", action: permissions.Limit},
-		{name: "portal session read", resource: "projects/proj_123/portals/portal_123/sessions/sess_123", action: permissions.Read},
 		{name: "portal session delete", resource: "projects/proj_123/portals/portal_123/sessions/sess_123", action: permissions.Delete},
 		{name: "resource action wildcard", resource: "projects/proj_123", action: permissions.Action(permissions.Wildcard)},
 		{name: "unknown global action", resource: "**", action: permissions.Action("rotate")},

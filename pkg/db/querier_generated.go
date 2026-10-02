@@ -2566,6 +2566,42 @@ type Querier interface {
 	//  ORDER BY k.id ASC
 	//  LIMIT ?
 	ListLiveKeysByKeySpaceIDs(ctx context.Context, db DBTX, arg ListLiveKeysByKeySpaceIDsParams) ([]ListLiveKeysByKeySpaceIDsRow, error)
+	// Returns one page of the end users holding a revocable session on a portal,
+	// using the same live predicate as LockLivePortalSessionsByExternalID. Ordered
+	// by external_id with external_id >= external_id_cursor, so an empty cursor
+	// starts at the first end user. search is a LIKE pattern from
+	// mysql.SearchPrefix; NULL disables the filter. The hint pins idx_portal_revoked:
+	// left to itself the planner can walk the workspace-wide idx_external_id and
+	// scan every other portal's sessions to fill a page.
+	//
+	//  SELECT DISTINCT external_id FROM portal_sessions FORCE INDEX (idx_portal_revoked)
+	//  WHERE workspace_id = ?
+	//    AND portal_id = ?
+	//    AND revoked_at IS NULL
+	//    AND (
+	//      (access_token_hash IS NOT NULL AND access_token_expires_at > ?)
+	//      OR (access_token_hash IS NULL AND exchange_code_expires_at > ?)
+	//    )
+	//    AND external_id >= ?
+	//    AND (? IS NULL OR external_id LIKE ?)
+	//  ORDER BY external_id ASC
+	//  LIMIT ?
+	ListLivePortalSessionExternalIDs(ctx context.Context, db DBTX, arg ListLivePortalSessionExternalIDsParams) ([]string, error)
+	// Loads the revocable sessions for the end users ListLivePortalSessionExternalIDs
+	// returned, with the same live predicate. Ordered by external_id, then newest
+	// first, so callers can group rows in one pass.
+	//
+	//  SELECT id, external_id, scopes, access_token_hash, access_token_expires_at, exchange_code_expires_at, created_at FROM portal_sessions
+	//  WHERE workspace_id = ?
+	//    AND portal_id = ?
+	//    AND external_id IN (/*SLICE:external_ids*/?)
+	//    AND revoked_at IS NULL
+	//    AND (
+	//      (access_token_hash IS NOT NULL AND access_token_expires_at > ?)
+	//      OR (access_token_hash IS NULL AND exchange_code_expires_at > ?)
+	//    )
+	//  ORDER BY external_id ASC, created_at DESC, id ASC
+	ListLivePortalSessionsByExternalIDs(ctx context.Context, db DBTX, arg ListLivePortalSessionsByExternalIDsParams) ([]ListLivePortalSessionsByExternalIDsRow, error)
 	// ListPermissions returns one page of permission definitions from one project.
 	//
 	//  SELECT p.pk, p.id, p.workspace_id, p.project_id, p.name, p.slug, p.description, p.created_at_m, p.updated_at_m
