@@ -159,3 +159,14 @@ export function githubRows(): PermissionRow[] {
     }),
   ];
 }
+
+export function limitsRows(): PermissionRow[] {
+  return [
+    permissionRow({
+      id: "limits",
+      label: "Limits",
+      path: "limits",
+      actions: { write: [], delete: [] },
+    }),
+  ];
+}
