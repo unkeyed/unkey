@@ -194,6 +194,9 @@ const (
 	UnkeyDataErrorsPortalDuplicate URN = "err:unkey:data:portal_already_exists"
 	// NotFound indicates the requested portal was not found.
 	UnkeyDataErrorsPortalNotFound URN = "err:unkey:data:portal_not_found"
+	// Changed indicates the portal was re-pointed while a request was using it,
+	// so the request was refused rather than acting on the old mapping.
+	UnkeyDataErrorsPortalChanged URN = "err:unkey:data:portal_changed"
 
 	// Analytics
 

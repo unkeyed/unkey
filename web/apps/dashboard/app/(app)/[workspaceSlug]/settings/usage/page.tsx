@@ -2,7 +2,6 @@
 
 import { PageLoading } from "@/components/dashboard/page-loading";
 import { useBillingUIUpgrades } from "@/lib/flags/use-billing-ui-upgrades";
-import { formatPeriod } from "@/lib/fmt";
 import { trpc } from "@/lib/trpc/client";
 import { useWorkspace } from "@/providers/workspace-provider";
 import {
@@ -18,37 +17,52 @@ import {
   PageHeaderActions,
   PageHeaderContent,
   PageHeaderTitle,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@unkey/ui";
 import { notFound } from "next/navigation";
+import { parseAsString, useQueryState } from "nuqs";
 import { type ReactNode, useState } from "react";
 import { PlansScreen } from "../billing/components/plans-screen";
 import { ApiCard } from "./api-card";
 import { ComputeCard, ComputeCardShell, ComputeCardSkeleton } from "./compute-card";
 import { buildComputeTree } from "./compute-tree";
+import {
+  type UsagePeriod,
+  type UsagePeriodOption,
+  getUsagePeriodOptions,
+  resolveUsagePeriod,
+} from "./period";
 
 const ACTIVE_SUBSCRIPTION_STATES = ["active", "trialing", "past_due"];
-
-function currentPeriod(): string {
-  const now = new Date();
-  const monthStartMillis = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1);
-  return formatPeriod(monthStartMillis, now.getTime());
-}
 
 export default function UsagePage() {
   const billingUpgrades = useBillingUIUpgrades();
   const { workspace, limits, isLoading } = useWorkspace();
   const hasComputePlan = Boolean(workspace?.deployPlan) || Boolean(workspace?.deployPlanOverride);
+  const periodOptions = getUsagePeriodOptions(new Date());
+  const [periodValue, setPeriodValue] = useQueryState("period", parseAsString);
+  const period = resolveUsagePeriod(periodValue);
 
-  const breakdown = trpc.billing.queryDeployUsageBreakdown.useQuery(undefined, {
-    enabled: Boolean(workspace) && billingUpgrades && hasComputePlan,
-    trpc: { context: { skipBatch: true } },
-    retry: 1,
-  });
-  const apiUsage = trpc.billing.queryUsage.useQuery(undefined, {
-    enabled: Boolean(workspace) && billingUpgrades,
-    trpc: { context: { skipBatch: true } },
-    retry: 1,
-  });
+  const breakdown = trpc.billing.queryDeployUsageBreakdown.useQuery(
+    { period },
+    {
+      enabled: Boolean(workspace) && billingUpgrades && hasComputePlan,
+      trpc: { context: { skipBatch: true } },
+      retry: 1,
+    },
+  );
+  const apiUsage = trpc.billing.queryUsage.useQuery(
+    { period },
+    {
+      enabled: Boolean(workspace) && billingUpgrades,
+      trpc: { context: { skipBatch: true } },
+      retry: 1,
+    },
+  );
   const billingInfo = trpc.stripe.getBillingInfo.useQuery(undefined, {
     enabled: Boolean(workspace) && billingUpgrades,
     staleTime: 30_000,
@@ -61,7 +75,7 @@ export default function UsagePage() {
 
   if (isLoading) {
     return (
-      <Shell>
+      <Shell options={periodOptions} period={period} onPeriodChange={setPeriodValue}>
         <PageLoading message="Loading usage..." />
       </Shell>
     );
@@ -89,7 +103,7 @@ export default function UsagePage() {
     ) : computeTree === undefined ? (
       <ComputeCardSkeleton />
     ) : (
-      <ComputeCard tree={computeTree} />
+      <ComputeCard tree={computeTree} period={period} />
     )
   ) : (
     <NoComputePlan />
@@ -131,7 +145,7 @@ export default function UsagePage() {
   );
 
   return (
-    <Shell>
+    <Shell options={periodOptions} period={period} onPeriodChange={setPeriodValue}>
       {hasComputePlan ? (
         <>
           {compute}
@@ -147,7 +161,17 @@ export default function UsagePage() {
   );
 }
 
-function Shell({ children }: { children: ReactNode }) {
+function Shell({
+  children,
+  options,
+  period,
+  onPeriodChange,
+}: {
+  children: ReactNode;
+  options: UsagePeriodOption[];
+  period: UsagePeriod;
+  onPeriodChange: (value: string) => Promise<URLSearchParams>;
+}) {
   return (
     <PageContainer>
       <PageHeader>
@@ -155,7 +179,26 @@ function Shell({ children }: { children: ReactNode }) {
           <PageHeaderTitle>Usage</PageHeaderTitle>
         </PageHeaderContent>
         <PageHeaderActions>
-          <span className="text-sm text-gray-10">{currentPeriod()}</span>
+          <Select
+            value={period}
+            items={options}
+            onValueChange={(value) => (value === null ? undefined : onPeriodChange(value))}
+          >
+            <SelectTrigger
+              aria-label="Usage period"
+              className="h-8 text-xs"
+              wrapperClassName="w-40"
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent align="end" className="bg-background">
+              {options.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </PageHeaderActions>
       </PageHeader>
       <PageBody>{children}</PageBody>

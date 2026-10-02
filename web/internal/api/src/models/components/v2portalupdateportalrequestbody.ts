@@ -59,7 +59,8 @@ export type V2PortalUpdatePortalRequestBody = {
    *
    * @remarks
    *
-   * Disabling does not end sessions that are already live.
+   * Disabling also revokes the portal's live sessions. Re-enabling does not
+   * restore them.
    */
   enabled?: boolean | undefined;
   /**

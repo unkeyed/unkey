@@ -1100,6 +1100,48 @@ func (ns NullLogdrainsStream) Value() (driver.Value, error) {
 	return string(ns.LogdrainsStream), nil
 }
 
+type UnkeyPrincipalPermissionsPrincipalType string
+
+const (
+	UnkeyPrincipalPermissionsPrincipalTypeRootKey UnkeyPrincipalPermissionsPrincipalType = "root_key"
+	UnkeyPrincipalPermissionsPrincipalTypeOidc    UnkeyPrincipalPermissionsPrincipalType = "oidc"
+)
+
+func (e *UnkeyPrincipalPermissionsPrincipalType) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = UnkeyPrincipalPermissionsPrincipalType(s)
+	case string:
+		*e = UnkeyPrincipalPermissionsPrincipalType(s)
+	default:
+		return fmt.Errorf("unsupported scan type for UnkeyPrincipalPermissionsPrincipalType: %T", src)
+	}
+	return nil
+}
+
+type NullUnkeyPrincipalPermissionsPrincipalType struct {
+	UnkeyPrincipalPermissionsPrincipalType UnkeyPrincipalPermissionsPrincipalType
+	Valid                                  bool // Valid is true if UnkeyPrincipalPermissionsPrincipalType is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullUnkeyPrincipalPermissionsPrincipalType) Scan(value interface{}) error {
+	if value == nil {
+		ns.UnkeyPrincipalPermissionsPrincipalType, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.UnkeyPrincipalPermissionsPrincipalType.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullUnkeyPrincipalPermissionsPrincipalType) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.UnkeyPrincipalPermissionsPrincipalType), nil
+}
+
 type AcmeChallenge struct {
 	Pk            uint64                      `db:"pk"`
 	DomainID      string                      `db:"domain_id"`
@@ -1753,6 +1795,32 @@ type SharedSecret struct {
 	CreatedAt       int64  `db:"created_at"`
 	Encrypted       string `db:"encrypted"`
 	EncryptionKeyID string `db:"encryption_key_id"`
+}
+
+type UnkeyPrincipalPermission struct {
+	Pk            uint64                                 `db:"pk"`
+	ID            string                                 `db:"id"`
+	WorkspaceID   string                                 `db:"workspace_id"`
+	PrincipalType UnkeyPrincipalPermissionsPrincipalType `db:"principal_type"`
+	PrincipalID   string                                 `db:"principal_id"`
+	Slug          string                                 `db:"slug"`
+	CreatedAt     int64                                  `db:"created_at"`
+}
+
+type UnkeyRootKey struct {
+	Pk          uint64         `db:"pk"`
+	ID          string         `db:"id"`
+	WorkspaceID string         `db:"workspace_id"`
+	Hash        string         `db:"hash"`
+	Name        sql.NullString `db:"name"`
+	Prefix      string         `db:"prefix"`
+	Start       string         `db:"start"`
+	End         string         `db:"end"`
+	Enabled     bool           `db:"enabled"`
+	Expires     sql.NullInt64  `db:"expires"`
+	CreatedAt   int64          `db:"created_at"`
+	LastUsedAt  uint64         `db:"last_used_at"`
+	DeletedAt   sql.NullInt64  `db:"deleted_at"`
 }
 
 type Workspace struct {

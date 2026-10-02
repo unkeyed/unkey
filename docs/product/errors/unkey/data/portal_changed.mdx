@@ -1,0 +1,35 @@
+---
+title: "portal_changed"
+sidebarTitle: "portal_changed"
+description: "The portal was pointed at a different app or keyspace while the session was being created."
+sources:
+  - pkg/codes/unkey_data.go
+  - svc/api/internal/middleware/errors.go
+  - svc/api/routes/v2_portal_create_session/handler.go
+---
+
+<Danger>`err:unkey:data:portal_changed`</Danger>
+
+`portal.createSession` was working out the session's access from the portal's app or keyspace when the portal was pointed somewhere else. The session was not created, because it would have carried access to the old app or keyspace. You get HTTP 409.
+
+```json Example response
+{
+  "meta": {
+    "requestId": "req_2c9a0jf23l4k567"
+  },
+  "error": {
+    "detail": "The portal changed while the session was being created. Try again.",
+    "status": 409,
+    "title": "Conflicting Resource",
+    "type": "/errors/unkey/data/portal_changed"
+  }
+}
+```
+
+## Likely causes
+
+- Someone called `portal.updatePortal` with a new `keyspaceId` or `appId` at the same moment you called `portal.createSession`.
+
+## How to fix
+
+1. Retry `portal.createSession`. The new session uses the portal's current app or keyspace.

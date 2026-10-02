@@ -345,31 +345,42 @@ func (h *Handler) mintSession(
 	exchangeCodeExpiresAt := now.Add(15 * time.Minute).UnixMilli()
 
 	err := db.Tx(ctx, h.DB.RW(), func(txCtx context.Context, tx db.DBTX) error {
-		// Re-read on the primary inside the write transaction. The resolve above
-		// runs on the read-only connection, so a portal deleted moments earlier can
-		// still appear live there.
-		//
-		// This matters because deleting a portal revokes its sessions: revocation
-		// only touches rows that exist when it runs, so a session minted in the
-		// replica-lag window would survive the delete, and once the portal row is
-		// gone nothing can revoke it afterwards. Losing the race here costs the
-		// caller a retry; losing it silently costs an end user access that was
-		// supposed to be cut.
-		if _, txErr := db.Query.FindPortalByIdOrSlug(txCtx, tx, db.FindPortalByIdOrSlugParams{
+		// The resolve above read a replica, which can lag a delete or disable.
+		// Revoking only touches sessions that exist when it runs, so a session
+		// inserted after it would never be revoked. Locking the row on the primary
+		// orders this mint against those writes.
+		current, txErr := db.Query.LockPortalForMint(txCtx, tx, db.LockPortalForMintParams{
+			ID:          req.Portal.ID,
 			WorkspaceID: principal.AuthorizedWorkspaceID,
-			Portal:      req.Portal.ID,
-		}); txErr != nil {
+		})
+		if txErr != nil {
 			if db.IsNotFound(txErr) {
 				return fault.New("portal not found",
 					fault.Code(codes.Data.Portal.NotFound.URN()),
-					fault.Internal(fmt.Sprintf("portal %s was deleted between the replica read and the session insert", req.Portal.ID)),
+					fault.Internal(fmt.Sprintf("portal %s was deleted after the replica read", req.Portal.ID)),
 					fault.Public("Portal not found."),
 				)
 			}
 			return fault.Wrap(txErr,
 				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.Internal("database error re-reading portal before minting a session"),
+				fault.Internal("database error locking portal before minting a session"),
 				fault.Public("Failed to create session."),
+			)
+		}
+		if !current.Enabled {
+			return fault.New("portal is disabled",
+				fault.Code(codes.Auth.Authorization.Forbidden.URN()),
+				fault.Internal(fmt.Sprintf("portal %s was disabled after the replica read", req.Portal.ID)),
+				fault.Public("Portal is disabled."),
+			)
+		}
+		// The grant was built from the replica's mapping. A re-point since then has
+		// already revoked, so a session scoped to the old mapping would never be.
+		if !portalrules.SameAssociation(current.KeyAuthID, req.Portal.KeyAuthID) || !portalrules.SameAssociation(current.AppID, req.Portal.AppID) {
+			return fault.New("portal was re-pointed",
+				fault.Code(codes.Data.Portal.Changed.URN()),
+				fault.Internal(fmt.Sprintf("portal %s was re-pointed after the replica read", req.Portal.ID)),
+				fault.Public("The portal changed while the session was being created. Try again."),
 			)
 		}
 

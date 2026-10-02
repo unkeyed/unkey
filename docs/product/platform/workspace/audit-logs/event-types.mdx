@@ -103,10 +103,11 @@ Root-key lifecycle actions use separate events from API key actions.
 | Event | Recorded when |
 | --- | --- |
 | `portal.create` | A portal is created. |
-| `portal.update` | A portal is renamed, re-pointed, enabled, disabled, or rebranded. |
+| `portal.update` | A portal is renamed, re-pointed, enabled, disabled, or rebranded. The metadata records how many sessions were revoked, which is only more than 0 for a re-point or a disable. |
 | `portal.delete` | A portal is deleted, with the number of sessions revoked in the metadata. |
 | `portal.session.create` | `portal.createSession` mints a session. |
 | `portal.session.exchange` | `portal.exchangeCode` turns a code into an access token. |
+| `portal.session.revoke` | `portal.revokeSession` revokes an end user's live sessions, with their `externalId`, the session ids, and the count in the metadata. Not written when nothing was revoked. |
 
 ## Compute
 

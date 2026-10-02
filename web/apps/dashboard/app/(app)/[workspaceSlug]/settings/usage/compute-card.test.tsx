@@ -43,7 +43,7 @@ describe("monthly spend chart", () => {
       gateway: [],
     });
 
-    render(<ComputeCard tree={tree} />);
+    render(<ComputeCard tree={tree} period="current" />);
 
     expect(screen.getByTestId("spend-chart").getAttribute("data-point-count")).toBe("31");
   });
@@ -78,7 +78,7 @@ describe("deleted billing IDs", () => {
         { projectId: "", projectName: null, appId: "", activeKeys: 0, grossMicroCents: 0 },
       ],
     });
-    render(<ComputeCard tree={tree} />);
+    render(<ComputeCard tree={tree} period="current" />);
 
     for (const id of ["proj_deleted", "app_deleted", "env_deleted"]) {
       expect(screen.getByText(`, ${id}`).classList.contains("sr-only")).toBe(true);
