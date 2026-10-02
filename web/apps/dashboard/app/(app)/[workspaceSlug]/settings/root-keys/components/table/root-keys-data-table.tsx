@@ -37,15 +37,9 @@ type RootKeysDataTableProps = {
     pageSize: number;
     totalPages: number;
   };
-  transport: "legacy" | "v2";
 };
 
-export function RootKeysDataTable({
-  selectedKeyId,
-  onEditKey,
-  list,
-  transport,
-}: RootKeysDataTableProps) {
+export function RootKeysDataTable({ selectedKeyId, onEditKey, list }: RootKeysDataTableProps) {
   const {
     rootKeys,
     isInitialLoading,
@@ -78,7 +72,6 @@ export function RootKeysDataTable({
                     key={rootKey.id}
                     rootKey={rootKey}
                     selected={rootKey.id === selectedKeyId}
-                    transport={transport}
                     onEditKey={onEditKey}
                   />
                 ))}
@@ -118,12 +111,10 @@ function RootKeysTableHeader() {
 function RootKeyRow({
   rootKey,
   selected,
-  transport,
   onEditKey,
 }: {
   rootKey: RootKey;
   selected: boolean;
-  transport: "legacy" | "v2";
   onEditKey: (rootKey: RootKey) => void;
 }) {
   const name = rootKey.name ?? "Unnamed Root Key";
@@ -177,7 +168,7 @@ function RootKeyRow({
         className="relative z-10 min-w-0 justify-self-start truncate text-xs text-gray-9"
       />
       <span className="relative z-10 flex justify-end">
-        <RootKeysTableActions rootKey={rootKey} onEditKey={onEditKey} transport={transport} />
+        <RootKeysTableActions rootKey={rootKey} onEditKey={onEditKey} />
       </span>
     </ResourceListItem>
   );

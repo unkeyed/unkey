@@ -6,7 +6,6 @@ import { deleteRootKey, rootKeysV2QueryKeys } from "@/lib/root-keys-api";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button, Dialog, DialogContent, DialogTitle, FormCheckbox, toast } from "@unkey/ui";
 import { useState } from "react";
-import { useDeleteRootKey } from "./hooks/use-delete-root-key";
 
 type DeleteRootKeyProps = {
   rootKeyDetails: { id: string; name: string | null };
@@ -14,27 +13,6 @@ type DeleteRootKeyProps = {
 } & ActionComponentProps;
 
 export function DeleteRootKey({ rootKeyDetails, isOpen, onClose, onDeleted }: DeleteRootKeyProps) {
-  const deleteRootKey = useDeleteRootKey(() => {
-    onDeleted?.();
-    onClose();
-  });
-
-  return (
-    <DeleteRootKeyDialog
-      rootKeyDetails={rootKeyDetails}
-      isOpen={isOpen}
-      onClose={onClose}
-      deleteRootKey={deleteRootKey}
-    />
-  );
-}
-
-export function DeleteRootKeyV2({
-  rootKeyDetails,
-  isOpen,
-  onClose,
-  onDeleted,
-}: DeleteRootKeyProps) {
   const workspace = useWorkspaceNavigation();
   const queryClient = useQueryClient();
   const mutation = useMutation({
