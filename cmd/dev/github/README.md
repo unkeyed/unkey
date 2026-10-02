@@ -2,21 +2,48 @@
 
 Local development tools for setting up and testing GitHub App-triggered deployments.
 
+## Choose a mode
+
+The relay is optional. Neither production nor local development requires it.
+
+| Mode | Installation return | Webhook delivery |
+|------|---------------------|------------------|
+| Existing production App | Existing dashboard callback | Existing production receiver |
+| Your own development App | Your local dashboard callback | Your ngrok tunnel to ctrl-api |
+| Shared development relay | Relay callback, then your registered dashboard | Optional relay pull forwarder |
+| No GitHub configuration | GitHub installation unavailable | None; container image deployment still works |
+
+For production and your own development App, leave `GITHUB_INSTALL_RELAY_URL`,
+`GITHUB_INSTALL_RELAY_TOKEN`, `GITHUB_INSTALL_RELAY_ADMIN_TOKEN`, and
+`GITHUB_INSTALL_RELAY_WEBHOOKS` unset in both the process environment and
+dashboard env files. Direct mode does not contact the relay, create relay
+cookies, or require relay credentials. Keep production App settings and
+webhook delivery unchanged. Never run the development tunnel against the
+production App.
+
+Relay installation and relay webhook delivery are separate choices. A relay
+URL enables installation through the relay; it does not start webhook polling.
+Partial relay settings fail closed instead of silently switching to direct mode.
+
 ## Commands
 
-- `go run ./build/cli dev github setup`: create a GitHub App via manifest flow and write all credentials automatically
-- `go run ./build/cli dev github tunnel`: start an ngrok tunnel and update the GitHub App webhook URL automatically
-- `go run ./build/cli dev github trigger-webhook`: simulate a GitHub push webhook to trigger a deployment
+- `mise run unkey -- dev github setup`: create a GitHub App via manifest flow and write all credentials automatically
+- `mise run unkey -- dev github tunnel`: start an ngrok tunnel and update the GitHub App webhook URL automatically
+- `mise run unkey -- dev github trigger-webhook`: simulate a GitHub push webhook to trigger a deployment
 - `mise run unkey -- dev github relay-events`: pull registered events from the installation relay into the local control API
 
 ---
 
-## Setup
+## Set up your own development App without a relay
+
+Run the setup command on your machine, where the browser can reach localhost.
+The manifest creates a separate App with the permissions and events needed
+for deployments. You do not need access to the shared relay or its credentials.
 
 ### Step 1: Create the GitHub App
 
 ```bash
-go run ./build/cli dev github setup --app-name my-unkey-dev
+mise run unkey -- dev github setup --app-name my-unkey-dev
 ```
 
 This opens a browser, walks you through GitHub's App creation UI, then writes:
@@ -26,24 +53,52 @@ This opens a browser, walks you through GitHub's App creation UI, then writes:
 - `web/apps/dashboard/.github-private-key.pem`: private key for the dashboard
 - `web/apps/dashboard/.env`: `GITHUB_APP_ID`, `NEXT_PUBLIC_GITHUB_APP_NAME`, `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`
 
+The manifest sets both the first **Callback URL** and **Setup URL** to
+`http://localhost:3000/integrations/github/callback`, enables user authorization
+during installation and Redirect on update, and subscribes to `push` and
+`pull_request`. It requests Contents and Metadata read access, and Deployments,
+Commit statuses, and Pull requests write access.
+
+For a dashboard on a different port or a public portal, change both App URLs
+to `<dashboard-origin>/integrations/github/callback` and set
+`DASHBOARD_BASE_URL` to that origin in `web/apps/dashboard/.env.local`.
+Use the browser-accessible public origin for an orb, not its localhost address.
+Do not add a trailing slash or enable wildcard callback matching.
+
+For an existing development App, supply the same credentials instead of
+running setup. Tilt reads `UNKEY_GITHUB_APP_ID`,
+`UNKEY_GITHUB_APP_WEBHOOK_SECRET`, and `NEXT_PUBLIC_GITHUB_APP_NAME` from
+`dev/.env.github`, and the App private key from `dev/.github-private-key.pem`.
+The dashboard needs `GITHUB_APP_ID`, `NEXT_PUBLIC_GITHUB_APP_NAME`,
+`GITHUB_CLIENT_ID`, and `GITHUB_CLIENT_SECRET` in its env file. Tilt injects
+the private key as `UNKEY_GITHUB_PRIVATE_KEY_PEM`; supply it yourself if you
+run the dashboard without Tilt. Keep these files and secrets out of Git.
+OAuth credentials remain required for a new workspace binding, as in the
+existing direct flow; the relay does not add that requirement.
+
 ### Step 2: Start the dev environment
 
 ```bash
 mise run dev
 ```
 
-Without `GITHUB_INSTALL_RELAY_URL`, Tilt starts a `github-tunnel` resource that runs ngrok against ctrl-api and patches the GitHub App's webhook URL to point at the public ngrok address. Relay users must not run this tunnel against the shared App.
+With the generated credential files present and relay settings unset, Tilt
+starts `github-tunnel`. Install and authenticate ngrok before starting Tilt.
+The tunnel targets ctrl-api and updates your development App's webhook URL.
+The webhook secret comes from `dev/.env.github`. Install the App from the
+dashboard's workspace settings and choose the repositories to use.
+Relay users must not run this tunnel against the shared App.
 
 ### Step 3: Seed the database
 
 ```bash
-go run ./build/cli dev seed local
+mise run unkey -- dev seed local
 ```
 
 ### Step 4: Trigger a deployment
 
 ```bash
-go run ./build/cli dev github trigger-webhook \
+mise run unkey -- dev github trigger-webhook \
   --project local-api \
   --repository owner/repo
 ```
@@ -57,6 +112,11 @@ Omitting `--commit-sha` deploys the HEAD of the repo's default branch (resolved 
 Use a separate development GitHub App and the standalone
 [`unkeyed/github-relay`](https://github.com/unkeyed/github-relay) service for
 dashboards with changing public origins. Do not change the production App.
+
+The relay operator provides a running HTTPS relay backed by PostgreSQL,
+applies its migrations, and configures its App credentials. Follow the
+standalone repository's README for operator setup. Dashboard users do not
+need the relay database credentials or a local relay instance.
 
 Set both the development App's first **Callback URL** and **Setup URL** to
 `https://<relay-host>/api/integrations/github/relay/callback`. Enable
@@ -73,10 +133,25 @@ needs `GITHUB_APP_ID`, `UNKEY_GITHUB_PRIVATE_KEY_PEM`, and
 `NEXT_PUBLIC_GITHUB_APP_NAME` for the same App. Keep OAuth client credentials
 on the relay.
 
-Without relay settings, direct installation uses the dashboard callback at
-`/integrations/github/callback` and requires its existing OAuth client settings.
-Without GitHub credentials, installation controls are unavailable; container
-image deployment remains available.
+Add the following to `web/apps/dashboard/.env.local`, replacing the example
+origins and obtaining credentials through your secret manager:
+
+```bash
+DASHBOARD_BASE_URL=https://your-dashboard.example.com
+GITHUB_INSTALL_RELAY_URL=https://your-relay.example.com
+```
+
+For scoped mode, ask the operator to enroll that exact dashboard origin and
+deliver `GITHUB_INSTALL_RELAY_TOKEN` privately. For trusted automatic enrollment,
+supply `GITHUB_INSTALL_RELAY_ADMIN_TOKEN` privately and leave the scoped token
+unset. An admin token can enroll any origin and revoke other registrations;
+never expose it to untrusted PRs or use production credentials for previews.
+Restart the dashboard, then click **Install GitHub App** in workspace settings.
+
+Also export `GITHUB_INSTALL_RELAY_URL` into the process that starts Tilt, even
+if you do not want webhook forwarding. Tilt cannot see settings stored only
+in dashboard env files; without the process setting it can start ngrok and
+overwrite the shared App's webhook URL.
 
 ## Receive events through a shared development relay
 
