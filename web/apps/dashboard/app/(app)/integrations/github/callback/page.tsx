@@ -11,13 +11,16 @@ import {
   PageContainer,
 } from "@unkey/ui";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 export default function Page() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const installationId = searchParams?.get("installation_id") ?? null;
   const state = searchParams?.get("state") ?? null;
+  const relayTransaction = searchParams?.get("relay_transaction") ?? null;
+  const handoff = searchParams?.get("handoff") ?? null;
+  const [error, setError] = useState<string | null>(null);
   // OAuth code GitHub returns when the App requests user authorization during
   // installation. The server uses it to verify the caller can access this
   // installation before binding it to their workspace.
@@ -27,11 +30,12 @@ export default function Page() {
       return null;
     }
 
-    const parsed = Number.parseInt(installationId, 10);
-    return Number.isNaN(parsed) ? null : parsed;
+    const parsed = Number(installationId);
+    return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null;
   }, [installationId]);
 
   const mutation = trpc.github.registerInstallation.useMutation({
+    onError: (error) => setError(error.message),
     onSuccess: (data) => {
       if (data.status === "authorization_required") {
         window.location.replace(data.authorizationUrl);
@@ -67,6 +71,11 @@ export default function Page() {
   // strict-mode remount reads before the first mutate flips it), blocks a re-submit.
   const submittedRef = useRef(false);
   useEffect(() => {
+    if (relayTransaction && handoff && !submittedRef.current) {
+      submittedRef.current = true;
+      mutation.mutate({ relayTransaction, handoff });
+      return;
+    }
     if (!state || (installationIdNumber === null && !code) || submittedRef.current) {
       return;
     }
@@ -80,9 +89,9 @@ export default function Page() {
       installationId: installationIdNumber ?? undefined,
       code: code ?? undefined,
     });
-  }, [mutation, state, installationIdNumber, code]);
+  }, [mutation, state, installationIdNumber, code, relayTransaction, handoff]);
 
-  if (!state) {
+  if (!state && !(relayTransaction && handoff)) {
     return (
       <PageContainer>
         <PageBody>
@@ -99,7 +108,7 @@ export default function Page() {
     );
   }
 
-  if (installationIdNumber === null && !code) {
+  if (installationIdNumber === null && !code && !(relayTransaction && handoff)) {
     return (
       <PageContainer>
         <PageBody>
@@ -116,14 +125,14 @@ export default function Page() {
     );
   }
 
-  if (mutation.isError) {
+  if (error) {
     return (
       <PageContainer>
         <PageBody>
           <EmptyState>
             <EmptyStateHeader>
               <EmptyStateTitle>Installation failed</EmptyStateTitle>
-              <EmptyStateDescription>{mutation.error.message}</EmptyStateDescription>
+              <EmptyStateDescription>{error}</EmptyStateDescription>
             </EmptyStateHeader>
           </EmptyState>
         </PageBody>

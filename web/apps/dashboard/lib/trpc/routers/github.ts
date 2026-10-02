@@ -15,6 +15,15 @@ import {
   searchBranchesByPrefix,
   userCanAccessInstallation,
 } from "@/lib/github";
+import {
+  finishGithubInstall,
+  githubCallbackURL,
+  githubInstallAvailable,
+  githubRelayConfig,
+  prepareGithubInstall,
+  redeemGithubInstall,
+  relayHandle,
+} from "@/lib/github-install";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { t, workspaceProcedure } from "../trpc";
@@ -132,7 +141,7 @@ const verifyState = (raw: string): SignedStatePayload | null => {
   if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) {
     return null;
   }
-  if (payload.exp < Date.now()) {
+  if (payload.exp <= Date.now()) {
     return null;
   }
   return payload;
@@ -255,6 +264,10 @@ const fetchProjectInstallation = async (
 };
 
 export const githubRouter = t.router({
+  configuration: workspaceProcedure.query(() => ({
+    available: githubInstallAvailable(),
+  })),
+
   hasInstallations: workspaceProcedure.query(async ({ ctx }) => {
     const installation = await db.query.githubAppInstallations.findFirst({
       where: (table, { eq }) => eq(table.workspaceId, ctx.workspace.id),
@@ -275,14 +288,16 @@ export const githubRouter = t.router({
       });
     }
 
+    const state = signState({
+      flow: "workspace",
+      workspaceId: ctx.workspace.id,
+      userId: ctx.user.id,
+      nonce: crypto.randomBytes(16).toString("base64url"),
+      exp: Date.now() + STATE_TTL_MS,
+    });
     return {
-      state: signState({
-        flow: "workspace",
-        workspaceId: ctx.workspace.id,
-        userId: ctx.user.id,
-        nonce: crypto.randomBytes(16).toString("base64url"),
-        exp: Date.now() + STATE_TTL_MS,
-      }),
+      state,
+      url: await prepareGithubInstall(state, ctx.user.id, ctx.workspace.id),
     };
   }),
 
@@ -317,33 +332,40 @@ export const githubRouter = t.router({
         });
       }
 
+      const state = signState({
+        flow: "app",
+        projectId: input.projectId,
+        appId: input.appId,
+        returnTo: input.returnTo,
+        workspaceId: ctx.workspace.id,
+        userId: ctx.user.id,
+        nonce: crypto.randomBytes(16).toString("base64url"),
+        exp: Date.now() + STATE_TTL_MS,
+      });
       return {
-        state: signState({
-          flow: "app",
-          projectId: input.projectId,
-          appId: input.appId,
-          returnTo: input.returnTo,
-          workspaceId: ctx.workspace.id,
-          userId: ctx.user.id,
-          nonce: crypto.randomBytes(16).toString("base64url"),
-          exp: Date.now() + STATE_TTL_MS,
-        }),
+        state,
+        url: await prepareGithubInstall(state, ctx.user.id, ctx.workspace.id),
       };
     }),
 
   registerInstallation: workspaceProcedure
     .input(
-      z.object({
-        state: z.string(),
-        installationId: z.number().int().positive().optional(),
-        // OAuth `code` returned alongside installation_id when the GitHub App
-        // requests user authorization during installation. Used to prove the
-        // caller can access the supplied installation before binding it to a
-        // workspace. It is optional because GitHub does not issue one when an
-        // existing installation is edited; the mutation starts an explicit
-        // authorization round-trip when a new workspace binding needs proof.
-        code: z.string().min(1).optional(),
-      }),
+      z.union([
+        z
+          .object({
+            state: z.string().max(8192),
+            installationId: z.number().int().positive().optional(),
+            // OAuth `code` returned alongside installation_id when the GitHub App
+            // requests user authorization during installation. Used to prove the
+            // caller can access the supplied installation before binding it to a
+            // workspace. It is optional because GitHub does not issue one when an
+            // existing installation is edited; the mutation starts an explicit
+            // authorization round-trip when a new workspace binding needs proof.
+            code: z.string().min(1).max(1024).optional(),
+          })
+          .strict(),
+        z.object({ relayTransaction: relayHandle, handoff: relayHandle }).strict(),
+      ]),
     )
     .mutation(async ({ ctx, input }) => {
       if (!githubAppEnv()) {
@@ -353,6 +375,30 @@ export const githubRouter = t.router({
         });
       }
 
+      const relayResult =
+        "handoff" in input
+          ? await redeemGithubInstall(
+              input.relayTransaction,
+              input.handoff,
+              ctx.user.id,
+              ctx.workspace.id,
+            )
+          : null;
+      if (!relayResult && githubRelayConfig()) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Restart GitHub installation from this dashboard",
+        });
+      }
+      const callback =
+        "handoff" in input
+          ? {
+              state: relayResult?.state ?? "",
+              installationId: relayResult?.installationId,
+              code: undefined,
+            }
+          : input;
+
       // The state must be a server-signed token bound to the calling user
       // and workspace. This prevents two attacks:
       //  1) An attacker claiming a victim's installation id (sequential
@@ -360,9 +406,10 @@ export const githubRouter = t.router({
       //  2) Phishing a logged-in victim into POSTing this mutation under
       //     the attacker's chosen state — the userId/workspaceId binding
       //     in the signature would not match the victim's session.
-      const parsedState = verifyState(input.state);
+      const parsedState = verifyState(callback.state);
       if (
         !parsedState ||
+        (relayResult && parsedState.flow === "api") ||
         parsedState.workspaceId !== ctx.workspace.id ||
         // The dashboard flows ("workspace", "app") are bound to the initiating
         // user, so the caller must match. The "api" flow carries no user and is
@@ -375,12 +422,12 @@ export const githubRouter = t.router({
         });
       }
 
-      const installationId = parsedState.installationId ?? input.installationId;
+      const installationId = parsedState.installationId ?? callback.installationId;
       if (
         !installationId ||
         (parsedState.installationId !== undefined &&
-          input.installationId !== undefined &&
-          parsedState.installationId !== input.installationId)
+          callback.installationId !== undefined &&
+          parsedState.installationId !== callback.installationId)
       ) {
         throw new TRPCError({
           code: "BAD_REQUEST",
@@ -419,7 +466,7 @@ export const githubRouter = t.router({
       // is edited. Start the normal web authorization flow in that case and
       // bind the installation id into the refreshed signed state. The next
       // callback can then prove both user access and callback integrity.
-      if (!existing) {
+      if (!existing && !relayResult) {
         const oauthEnv = githubOAuthEnv();
         if (!oauthEnv) {
           throw new TRPCError({
@@ -427,9 +474,10 @@ export const githubRouter = t.router({
             message: "GitHub App not configured",
           });
         }
-        if (!input.code) {
+        if (!callback.code) {
           const authorizationUrl = new URL("https://github.com/login/oauth/authorize");
           authorizationUrl.searchParams.set("client_id", oauthEnv.GITHUB_CLIENT_ID);
+          authorizationUrl.searchParams.set("redirect_uri", githubCallbackURL());
           authorizationUrl.searchParams.set(
             "state",
             signState({
@@ -447,7 +495,7 @@ export const githubRouter = t.router({
 
         let userToken: string;
         try {
-          userToken = await exchangeInstallationOAuthCode(input.code);
+          userToken = await exchangeInstallationOAuthCode(callback.code, githubCallbackURL());
         } catch (err) {
           console.error(err);
           throw new TRPCError({
@@ -495,6 +543,18 @@ export const githubRouter = t.router({
             code: "NOT_FOUND",
             message: "Project not found",
           });
+        }
+        const app = await db.query.apps.findFirst({
+          where: (table, { and, eq }) =>
+            and(
+              eq(table.id, target.appId),
+              eq(table.projectId, target.projectId),
+              eq(table.workspaceId, ctx.workspace.id),
+            ),
+          columns: { id: true },
+        });
+        if (!app) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "App not found" });
         }
       }
 
@@ -545,6 +605,9 @@ export const githubRouter = t.router({
           });
         });
 
+      if ("handoff" in input) {
+        await finishGithubInstall(input.relayTransaction);
+      }
       return {
         status: "registered" as const,
         workspaceSlug: ctx.workspace.slug,

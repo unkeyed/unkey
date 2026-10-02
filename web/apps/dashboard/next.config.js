@@ -120,7 +120,21 @@ const nextConfig = {
   output: "standalone",
   reactStrictMode: true,
   typedRoutes: true,
-  allowedDevOrigins: process.env.AMP_ORB ? ["*.onamp.dev", "*.e2b.app"] : undefined,
+  allowedDevOrigins: process.env.AMP_ORB
+    ? [
+        "*.onamp.dev",
+        "*.e2b.app",
+        ...(process.env.DASHBOARD_BASE_URL
+          ? [new URL(process.env.DASHBOARD_BASE_URL).hostname]
+          : []),
+      ]
+    : undefined,
+  experimental: {
+    serverActions:
+      process.env.AMP_ORB && process.env.DASHBOARD_BASE_URL
+        ? { allowedOrigins: [new URL(process.env.DASHBOARD_BASE_URL).host] }
+        : undefined,
+  },
   pageExtensions: ["tsx", "mdx", "ts", "js"],
   ...(uploadSentrySourceMaps ? {} : { productionBrowserSourceMaps: false }),
 
@@ -146,6 +160,13 @@ const nextConfig = {
       {
         source: "/(.*)",
         headers: securityHeaders,
+      },
+      {
+        source: "/integrations/github/callback",
+        headers: [
+          { key: "Referrer-Policy", value: "no-referrer" },
+          { key: "Cache-Control", value: "no-store" },
+        ],
       },
     ];
   },
