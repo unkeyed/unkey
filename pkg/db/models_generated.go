@@ -576,49 +576,6 @@ func (ns NullDeploymentsUpstreamProtocol) Value() (driver.Value, error) {
 	return string(ns.DeploymentsUpstreamProtocol), nil
 }
 
-type FlagsType string
-
-const (
-	FlagsTypeBoolean FlagsType = "boolean"
-	FlagsTypeString  FlagsType = "string"
-	FlagsTypeNumber  FlagsType = "number"
-)
-
-func (e *FlagsType) Scan(src interface{}) error {
-	switch s := src.(type) {
-	case []byte:
-		*e = FlagsType(s)
-	case string:
-		*e = FlagsType(s)
-	default:
-		return fmt.Errorf("unsupported scan type for FlagsType: %T", src)
-	}
-	return nil
-}
-
-type NullFlagsType struct {
-	FlagsType FlagsType
-	Valid     bool // Valid is true if FlagsType is not NULL
-}
-
-// Scan implements the Scanner interface.
-func (ns *NullFlagsType) Scan(value interface{}) error {
-	if value == nil {
-		ns.FlagsType, ns.Valid = "", false
-		return nil
-	}
-	ns.Valid = true
-	return ns.FlagsType.Scan(value)
-}
-
-// Value implements the driver Valuer interface.
-func (ns NullFlagsType) Value() (driver.Value, error) {
-	if !ns.Valid {
-		return nil, nil
-	}
-	return string(ns.FlagsType), nil
-}
-
 type FrontlineRoutesSticky string
 
 const (
@@ -899,14 +856,13 @@ type Environment struct {
 }
 
 type Flag struct {
-	Pk           uint64          `db:"pk"`
-	ID           string          `db:"id"`
-	Slug         string          `db:"slug"`
-	Description  string          `db:"description"`
-	Type         FlagsType       `db:"type"`
-	DefaultValue json.RawMessage `db:"default_value"`
-	AllowOptIn   bool            `db:"allow_opt_in"`
-	AllowOptOut  bool            `db:"allow_opt_out"`
+	Pk           uint64 `db:"pk"`
+	ID           string `db:"id"`
+	Slug         string `db:"slug"`
+	Description  string `db:"description"`
+	DefaultValue bool   `db:"default_value"`
+	AllowOptIn   bool   `db:"allow_opt_in"`
+	AllowOptOut  bool   `db:"allow_opt_out"`
 }
 
 type FrontlineRoute struct {
