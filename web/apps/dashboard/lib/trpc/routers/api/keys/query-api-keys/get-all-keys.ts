@@ -6,6 +6,20 @@ import { identities, keys as keysSchema } from "@unkey/db/src/schema";
 import { z } from "zod";
 import type { KeyDetails } from "./schema";
 
+const countCache = new Map<string, { count: number; timestamp: number }>();
+const COUNT_CACHE_TTL = 1000 * 60 * 5;
+
+function getCachedCount(key: string): number | null {
+  const cached = countCache.get(key);
+  if (cached && Date.now() - cached.timestamp < COUNT_CACHE_TTL) {
+    return cached.count;
+  }
+  if (cached) {
+    countCache.delete(key);
+  }
+  return null;
+}
+
 interface GetAllKeysInput {
   keyspaceId: string;
   workspaceId: string;
@@ -260,13 +274,23 @@ export async function getAllKeys({
       return helpers.and(...conditions);
     };
 
-    // Get the total count using a proper COUNT query instead of fetching all rows
-    const [countResult] = await db
-      .select({ count: count() })
-      .from(keysSchema)
-      .where(buildFilterConditions(keysSchema, { and, isNull, eq, sql, or, gt }));
+    // Get the total count using a proper COUNT query instead of fetching all rows.
+    // Cache it: on a large keyspace this scans the whole table (~830k rows, multi-second),
+    // and the keys page fires it on every navigation plus a 2-page prefetch.
+    const countCacheKey = JSON.stringify({ keyspaceId, filters });
+    const cachedCount = getCachedCount(countCacheKey);
+    const [countResult] =
+      cachedCount !== null
+        ? [{ count: cachedCount }]
+        : await db
+            .select({ count: count() })
+            .from(keysSchema)
+            .where(buildFilterConditions(keysSchema, { and, isNull, eq, sql, or, gt }));
 
     const totalCount = countResult?.count ?? 0;
+    if (cachedCount === null) {
+      countCache.set(countCacheKey, { count: totalCount, timestamp: Date.now() });
+    }
     const keysQuery = await db.query.keys.findMany({
       where: (key, helpers) => buildFilterConditions(key, helpers),
       columns: {

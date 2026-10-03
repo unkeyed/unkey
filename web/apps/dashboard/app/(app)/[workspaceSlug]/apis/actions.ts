@@ -12,6 +12,24 @@
 import { and, count, db, eq, inArray, isNull, schema, sql } from "@/lib/db";
 import type { ApisOverviewResponse } from "@/lib/trpc/routers/api/overview/query-overview/schemas";
 
+const keyCountCache = new Map<string, { count: number; timestamp: number }>();
+const KEY_COUNT_CACHE_TTL = 1000 * 60 * 5;
+
+function getKeyCount(workspaceId: string, keyAuthId: string): number | null {
+  const cached = keyCountCache.get(`${workspaceId}:${keyAuthId}`);
+  if (cached && Date.now() - cached.timestamp < KEY_COUNT_CACHE_TTL) {
+    return cached.count;
+  }
+  if (cached) {
+    keyCountCache.delete(`${workspaceId}:${keyAuthId}`);
+  }
+  return null;
+}
+
+function setKeyCount(workspaceId: string, keyAuthId: string, count: number) {
+  keyCountCache.set(`${workspaceId}:${keyAuthId}`, { count, timestamp: Date.now() });
+}
+
 export type ApiOverviewOptions = {
   workspaceId: string;
   limit: number;
@@ -93,23 +111,33 @@ export async function attachKeyCounts(
 
   const keyCountsByKeyAuthId = new Map<string, number>();
   if (keyAuthIds.length > 0) {
-    const rows = await db
-      .select({
-        keyAuthId: schema.keys.keyAuthId,
-        count: count(schema.keys.id),
-      })
-      .from(schema.keys)
-      .where(
-        and(
-          eq(schema.keys.workspaceId, workspaceId),
-          inArray(schema.keys.keyAuthId, keyAuthIds),
-          isNull(schema.keys.deletedAtM),
-        ),
-      )
-      .groupBy(schema.keys.keyAuthId);
+    const uncached = keyAuthIds.filter((id) => getKeyCount(workspaceId, id) === null);
+    if (uncached.length > 0) {
+      const rows = await db
+        .select({
+          keyAuthId: schema.keys.keyAuthId,
+          count: count(schema.keys.id),
+        })
+        .from(schema.keys)
+        .where(
+          and(
+            eq(schema.keys.workspaceId, workspaceId),
+            inArray(schema.keys.keyAuthId, uncached),
+            isNull(schema.keys.deletedAtM),
+          ),
+        )
+        .groupBy(schema.keys.keyAuthId);
 
-    for (const row of rows) {
-      keyCountsByKeyAuthId.set(row.keyAuthId, Number(row.count));
+      for (const row of rows) {
+        setKeyCount(workspaceId, row.keyAuthId, Number(row.count));
+      }
+    }
+
+    for (const id of keyAuthIds) {
+      const cached = getKeyCount(workspaceId, id);
+      if (cached !== null) {
+        keyCountsByKeyAuthId.set(id, cached);
+      }
     }
   }
 
