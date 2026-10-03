@@ -1,0 +1,105 @@
+---
+title: "Workspace flags"
+description: "MySQL-backed boolean flags for platform features and API-controlled workspace overrides."
+---
+
+Workspace flags store boolean feature settings in MySQL. Customers see them as
+platform features. Database tables and API paths retain the `flags` name.
+They are separate
+from [Vercel feature flags](/contributing/tooling/feature-flags), which remain
+the dashboard's frontend flag system.
+
+## Store definitions and overrides
+
+The schema lives in `web/internal/db/src/schema/flags.ts`.
+
+| Table | Fields | Constraint |
+| --- | --- | --- |
+| `flags` | `id`, `slug`, `description`, `default_value`, `allow_opt_in`, `allow_opt_out` | Unique, case-sensitive `slug` |
+| `workspace_flag_overrides` | `workspace_id`, `flag_id`, `value` | Unique workspace and flag pair |
+
+Both tables also have the repository's internal `pk` column. Defaults and
+overrides use non-null boolean columns. There is no type column. The API accepts
+only JSON `true` or `false`, not strings, numbers, objects, arrays, or `null`.
+
+An override row determines the effective value, even when it contains `false`.
+Without a row, the flag inherits `default_value`. Removing an
+override restores inheritance. There is no environment dimension or separate
+opt-in value.
+
+Definitions are operator-managed database records. This implementation has no
+definition-management endpoint, startup registration, or generated flag
+registry. Provision definitions through the approved database change process
+with a boolean default. Treat a published slug as stable.
+
+## Use the API for workspace changes
+
+The dashboard sends requests through `/proxy`. The proxy authenticates the
+dashboard session and forwards a bearer token to the API. The API derives the
+workspace from the authenticated principal, not from a request body.
+
+| POST endpoint | Request body | Access |
+| --- | --- | --- |
+| `/v2/flags.listFlags` | `{}` | Workspace user session |
+| `/v2/flags.setOverride` | `{"slug":"preview","value":true}` | Workspace admin session and `allow_opt_in` |
+| `/v2/flags.removeOverride` | `{"slug":"preview"}` | Workspace admin session and `allow_opt_out` |
+
+These endpoints require a workspace user JWT. Root keys and API keys are not
+accepted. Keep enrollment writes behind these endpoints rather than adding
+direct MySQL writes in server components or tRPC handlers.
+
+`allow_opt_in` gates both creating and replacing an override, regardless of its
+value. `allow_opt_out` gates deleting the override. Neither permission hides a
+flag from the list. For example, an admin can save `false` while removal is
+disabled if setting overrides is permitted. These permissions control override
+operations, not whether a feature is enabled.
+
+Both policy columns default to `false`. There is no operator bypass endpoint
+for workspace overrides in this implementation.
+
+The customer page exposes only an on/off switch. Each change calls
+`setOverride` with `true` or `false`; turning a feature off does not call
+`removeOverride`. The page has no reset-to-default control. The switch is
+disabled during a write and returns to the last saved value if the write fails.
+
+## Resolve and return boolean values
+
+`ListFlags` left-joins all definitions to the authenticated workspace's
+overrides and sorts by slug. A nullable boolean in the joined result distinguishes
+an absent override from an explicit `false` override.
+
+Each returned record contains `slug`, `description`, `defaultValue`,
+`value`, `hasOverride`, `allowOptIn`, and `allowOptOut`. The list response puts
+an array in `data`; mutations return one record in `data`. Both include
+`meta.requestId`.
+
+The dashboard validates boolean responses with Zod in
+`web/apps/dashboard/lib/workspace-flags-api.ts`. Generated Go models use `bool`.
+OpenAPI request validation rejects missing, null, and non-boolean values before
+the handler runs. No cross-language flag constructor or offline fallback SDK
+is included. A database default
+is not an offline fallback: consumers still need an explicit failure policy
+when they cannot retrieve a flag.
+
+## Account for replica lag
+
+List requests use the API's read-only database connection, which can use a
+regional replica. Mutations use a primary transaction and lock the definition
+with `FOR UPDATE` before checking policy and writing the override.
+
+Mutation responses contain the resulting effective value. The dashboard
+updates its workspace-scoped query cache from that response instead of
+immediately refetching a replica. Later reads can still return stale data
+until replication catches up. Concurrent changes to the same override use
+last-write-wins semantics.
+
+## Verify changes
+
+The focused integration tests cover boolean validation, workspace isolation, policy
+combinations, authentication, idempotent writes, and default restoration.
+
+```bash
+mise exec -- rask ./svc/api/routes/v2_flags
+mise exec -- pnpm --dir=web --filter @unkey/dashboard test \
+  lib/workspace-flags-api.test.ts lib/navigation/routes/settings.test.ts
+```

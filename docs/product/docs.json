@@ -147,6 +147,7 @@
                 "pages": [
                   "platform/workspace/overview",
                   "platform/workspace/settings",
+                  "platform/workspace/platform-features",
                   "platform/workspace/log-drains",
                   "platform/workspace/team",
                   "platform/workspace/two-factor-auth"
@@ -1147,6 +1148,10 @@
     ]
   },
   "redirects": [
+    {
+      "destination": "/platform/workspace/platform-features",
+      "source": "/platform/workspace/flags"
+    },
     {
       "destination": "/platform/api/overview",
       "source": "/api-reference"
