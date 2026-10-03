@@ -1,7 +1,7 @@
 post:
   tags: [flags]
   summary: List workspace flags
-  description: Returns typed defaults and effective values for the authenticated workspace. Requires a dashboard user session. Reads may lag recent writes due to replication.
+  description: Returns boolean defaults and effective values for the authenticated workspace. Requires a dashboard user session. Reads may lag recent writes due to replication.
   operationId: flags.listFlags
   x-speakeasy-name-override: listFlags
   security:

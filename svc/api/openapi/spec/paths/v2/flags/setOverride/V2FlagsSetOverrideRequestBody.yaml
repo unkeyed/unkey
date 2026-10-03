@@ -8,4 +8,4 @@ properties:
     maxLength: 128
     pattern: "^[a-z0-9]+(?:-[a-z0-9]+)*$"
   value:
-    $ref: ../FlagValue.yaml
+    type: boolean

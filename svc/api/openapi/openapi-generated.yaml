@@ -1496,7 +1496,7 @@ components:
                     maxLength: 128
                     pattern: "^[a-z0-9]+(?:-[a-z0-9]+)*$"
                 value:
-                    $ref: '#/components/schemas/FlagValue'
+                    type: boolean
         V2GatewayListPoliciesRequestBody:
             type: object
             required:
@@ -5820,7 +5820,6 @@ components:
             required:
                 - slug
                 - description
-                - type
                 - defaultValue
                 - value
                 - hasOverride
@@ -5831,30 +5830,16 @@ components:
                     type: string
                 description:
                     type: string
-                type:
-                    type: string
-                    enum:
-                        - boolean
-                        - string
-                        - number
                 defaultValue:
-                    $ref: '#/components/schemas/FlagValue'
+                    type: boolean
                 value:
-                    $ref: '#/components/schemas/FlagValue'
+                    type: boolean
                 hasOverride:
                     type: boolean
                 allowOptIn:
                     type: boolean
                 allowOptOut:
                     type: boolean
-        FlagValue:
-            description: A non-null scalar matching the flag's declared type.
-            oneOf:
-                - type: boolean
-                - type: string
-                  maxLength: 4096
-                - type: number
-                  format: double
         V2GatewayListPoliciesResponseData:
             type: array
             maxItems: 50
@@ -12033,7 +12018,7 @@ paths:
             x-speakeasy-name-override: updateSettings
     /v2/flags.listFlags:
         post:
-            description: Returns typed defaults and effective values for the authenticated workspace. Requires a dashboard user session. Reads may lag recent writes due to replication.
+            description: Returns boolean defaults and effective values for the authenticated workspace. Requires a dashboard user session. Reads may lag recent writes due to replication.
             operationId: flags.listFlags
             requestBody:
                 content:
@@ -12127,7 +12112,7 @@ paths:
             x-speakeasy-name-override: removeOverride
     /v2/flags.setOverride:
         post:
-            description: Creates or replaces a typed override. Requires a workspace-admin dashboard session and allowOptIn. The response reflects the primary write, without replica lag.
+            description: Creates or replaces a boolean override. Requires a workspace-admin dashboard session and allowOptIn. The response reflects the primary write, without replica lag.
             operationId: flags.setOverride
             requestBody:
                 content:

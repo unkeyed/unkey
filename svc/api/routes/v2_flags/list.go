@@ -30,13 +30,10 @@ func (h *ListHandler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 	data := make([]openapi.WorkspaceFlag, 0, len(rows))
 	for _, row := range rows {
-		flag, err := resolve(db.Flag{
-			Pk: row.Pk, ID: row.ID, Slug: row.Slug, Description: row.Description, Type: row.Type,
+		flag := resolve(db.Flag{
+			Pk: row.Pk, ID: row.ID, Slug: row.Slug, Description: row.Description,
 			DefaultValue: row.DefaultValue, AllowOptIn: row.AllowOptIn, AllowOptOut: row.AllowOptOut,
 		}, row.OverrideValue)
-		if err != nil {
-			return err
-		}
 		data = append(data, flag)
 	}
 	return s.JSON(http.StatusOK, openapi.V2FlagsListFlagsResponseBody{

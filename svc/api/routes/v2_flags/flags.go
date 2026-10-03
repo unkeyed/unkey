@@ -1,8 +1,7 @@
 package handler
 
 import (
-	"bytes"
-	"encoding/json"
+	"database/sql"
 	"slices"
 
 	"github.com/unkeyed/unkey/pkg/auth/principal"
@@ -23,60 +22,21 @@ func workspaceUser(s *zen.Session, admin bool) (*principal.Principal, error) {
 		return nil, forbidden("A workspace user session is required.")
 	}
 	if admin && !slices.Contains(source.Roles, "admin") {
-		return nil, forbidden("Only workspace admins can change flag overrides.")
+		return nil, forbidden("Only workspace admins can change platform features.")
 	}
 	return p, nil
 }
 
-func resolve(flag db.Flag, override json.RawMessage) (openapi.WorkspaceFlag, error) {
-	defaultValue, err := parseValue(flag.Type, flag.DefaultValue)
-	if err != nil {
-		return openapi.WorkspaceFlag{}, fault.Wrap(err, fault.Code(codes.App.Internal.UnexpectedError.URN()))
-	}
-	value := defaultValue
-	if override != nil {
-		value, err = parseValue(flag.Type, override)
-		if err != nil {
-			return openapi.WorkspaceFlag{}, fault.Wrap(err, fault.Code(codes.App.Internal.UnexpectedError.URN()))
-		}
+func resolve(flag db.Flag, override sql.NullBool) openapi.WorkspaceFlag {
+	value := flag.DefaultValue
+	if override.Valid {
+		value = override.Bool
 	}
 	return openapi.WorkspaceFlag{
-		Slug: flag.Slug, Description: flag.Description, Type: openapi.WorkspaceFlagType(flag.Type),
-		DefaultValue: defaultValue, Value: value, HasOverride: override != nil,
+		Slug: flag.Slug, Description: flag.Description,
+		DefaultValue: flag.DefaultValue, Value: value, HasOverride: override.Valid,
 		AllowOptIn: flag.AllowOptIn, AllowOptOut: flag.AllowOptOut,
-	}, nil
-}
-
-func parseValue(kind db.FlagsType, raw json.RawMessage) (openapi.FlagValue, error) {
-	var value openapi.FlagValue
-	if bytes.Equal(bytes.TrimSpace(raw), []byte("null")) {
-		return value, invalidValue()
 	}
-	var err error
-	switch kind {
-	case db.FlagsTypeBoolean:
-		var decoded bool
-		err = json.Unmarshal(raw, &decoded)
-	case db.FlagsTypeString:
-		var decoded string
-		err = json.Unmarshal(raw, &decoded)
-	case db.FlagsTypeNumber:
-		var decoded float64
-		err = json.Unmarshal(raw, &decoded)
-	default:
-		return value, invalidValue()
-	}
-	if err != nil {
-		return value, invalidValue()
-	}
-	if err := json.Unmarshal(raw, &value); err != nil {
-		return value, err
-	}
-	return value, nil
-}
-
-func invalidValue() error {
-	return fault.New("invalid flag value", fault.Code(codes.App.Validation.InvalidInput.URN()), fault.Public("Value must be a non-null scalar matching the flag type."))
 }
 
 func forbidden(message string) error {

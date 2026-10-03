@@ -1,18 +1,14 @@
 import { z } from "zod";
 
-const base = z.object({
+const flagSchema = z.object({
   slug: z.string(),
   description: z.string(),
+  value: z.boolean(),
+  defaultValue: z.boolean(),
   hasOverride: z.boolean(),
   allowOptIn: z.boolean(),
   allowOptOut: z.boolean(),
 });
-
-const flagSchema = z.discriminatedUnion("type", [
-  base.extend({ type: z.literal("boolean"), value: z.boolean(), defaultValue: z.boolean() }),
-  base.extend({ type: z.literal("string"), value: z.string(), defaultValue: z.string() }),
-  base.extend({ type: z.literal("number"), value: z.number(), defaultValue: z.number() }),
-]);
 
 export type WorkspaceFlag = z.infer<typeof flagSchema>;
 
@@ -22,7 +18,7 @@ export async function listWorkspaceFlags(signal?: AbortSignal): Promise<Workspac
 
 export async function setWorkspaceFlagOverride(
   slug: string,
-  value: boolean | string | number,
+  value: boolean,
 ): Promise<WorkspaceFlag> {
   return z.object({ data: flagSchema }).parse(await post("setOverride", { slug, value })).data;
 }
@@ -47,7 +43,7 @@ async function post(path: string, body: unknown, signal?: AbortSignal): Promise<
         ? typeof error.data.error === "string"
           ? error.data.error
           : error.data.error.detail
-        : "We couldn't complete the flag request. Try again.",
+        : "We couldn't complete the platform feature request. Try again.",
     );
   }
   return response.json();

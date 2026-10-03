@@ -7,7 +7,6 @@ package db
 
 import (
 	"context"
-	"encoding/json"
 )
 
 const upsertWorkspaceFlagOverride = `-- name: UpsertWorkspaceFlagOverride :exec
@@ -17,13 +16,13 @@ ON DUPLICATE KEY UPDATE value = VALUES(value)
 `
 
 type UpsertWorkspaceFlagOverrideParams struct {
-	WorkspaceID string          `db:"workspace_id"`
-	FlagID      string          `db:"flag_id"`
-	Value       json.RawMessage `db:"value"`
+	WorkspaceID string `db:"workspace_id"`
+	FlagID      string `db:"flag_id"`
+	Value       bool   `db:"value"`
 }
 
 // UpsertWorkspaceFlagOverride makes retries safe and keeps one override per
-// workspace and flag. The caller validates type and enrollment permission first.
+// workspace and flag. The caller validates enrollment permission first.
 //
 //	INSERT INTO workspace_flag_overrides (workspace_id, flag_id, value)
 //	VALUES (?, ?, ?)
