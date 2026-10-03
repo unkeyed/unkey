@@ -7,13 +7,12 @@ import {
 
 afterEach(() => vi.unstubAllGlobals());
 
-it("loads typed effective values through the authenticated proxy", async () => {
+it("loads boolean effective values through the authenticated proxy", async () => {
   const flag = {
-    slug: "routing-strategy",
-    description: "Select routing behavior",
-    type: "string",
-    defaultValue: "balanced",
-    value: "",
+    slug: "preview",
+    description: "Preview deployments",
+    defaultValue: true,
+    value: false,
     hasOverride: true,
     allowOptIn: true,
     allowOptOut: false,
@@ -32,13 +31,12 @@ it("loads typed effective values through the authenticated proxy", async () => {
   );
 });
 
-it("sets zero and removes an override through API endpoints without a workspace id", async () => {
+it("sets false and restores a true default through API endpoints without a workspace id", async () => {
   const flag = {
-    slug: "timeout",
-    description: "Timeout",
-    type: "number",
-    defaultValue: 37,
-    value: 0,
+    slug: "preview",
+    description: "Preview deployments",
+    defaultValue: true,
+    value: false,
     hasOverride: true,
     allowOptIn: true,
     allowOptOut: true,
@@ -47,23 +45,23 @@ it("sets zero and removes an override through API endpoints without a workspace 
     .fn<typeof globalThis.fetch>()
     .mockResolvedValueOnce(new Response(JSON.stringify({ data: flag })))
     .mockResolvedValueOnce(
-      new Response(JSON.stringify({ data: { ...flag, value: 37, hasOverride: false } })),
+      new Response(JSON.stringify({ data: { ...flag, value: true, hasOverride: false } })),
     );
   vi.stubGlobal("fetch", fetch);
-  await expect(setWorkspaceFlagOverride("timeout", 0)).resolves.toEqual(flag);
-  await expect(removeWorkspaceFlagOverride("timeout")).resolves.toMatchObject({
-    value: 37,
+  await expect(setWorkspaceFlagOverride("preview", false)).resolves.toEqual(flag);
+  await expect(removeWorkspaceFlagOverride("preview")).resolves.toMatchObject({
+    value: true,
     hasOverride: false,
   });
   expect(fetch).toHaveBeenNthCalledWith(
     1,
     "/proxy/v2/flags.setOverride",
-    expect.objectContaining({ body: '{"slug":"timeout","value":0}' }),
+    expect.objectContaining({ body: '{"slug":"preview","value":false}' }),
   );
   expect(fetch).toHaveBeenNthCalledWith(
     2,
     "/proxy/v2/flags.removeOverride",
-    expect.objectContaining({ body: '{"slug":"timeout"}' }),
+    expect.objectContaining({ body: '{"slug":"preview"}' }),
   );
 });
 
@@ -74,13 +72,15 @@ it("reports the API denial instead of claiming a value was saved", async () => {
       .fn<typeof globalThis.fetch>()
       .mockResolvedValue(
         new Response(
-          JSON.stringify({ error: { detail: "Only workspace admins can change flag overrides." } }),
+          JSON.stringify({
+            error: { detail: "Only workspace admins can change platform features." },
+          }),
           { status: 403 },
         ),
       ),
   );
-  await expect(setWorkspaceFlagOverride("timeout", 4)).rejects.toThrow(
-    "Only workspace admins can change flag overrides.",
+  await expect(setWorkspaceFlagOverride("preview", true)).rejects.toThrow(
+    "Only workspace admins can change platform features.",
   );
 });
 
@@ -94,7 +94,6 @@ it.each(["false", null, 0])("rejects a boolean flag with invalid value %j", asyn
             {
               slug: "preview",
               description: "Preview",
-              type: "boolean",
               defaultValue: false,
               value,
               hasOverride: true,
