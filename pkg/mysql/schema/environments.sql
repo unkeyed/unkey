@@ -10,6 +10,7 @@ CREATE TABLE `environments` (
 	`delete_protection` boolean DEFAULT false,
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
+	`deleting_at` bigint,
 	CONSTRAINT `environments_pk` PRIMARY KEY(`pk`),
 	CONSTRAINT `environments_id_unique` UNIQUE(`id`),
 	CONSTRAINT `environments_app_slug_idx` UNIQUE(`app_id`,`slug`)
