@@ -12,8 +12,10 @@ import (
 	restate "github.com/restatedev/sdk-go"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
+	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/auditlog"
+	"github.com/unkeyed/unkey/pkg/deploy/appbinding"
 	"github.com/unkeyed/unkey/pkg/deploy/deployfail"
 	"github.com/unkeyed/unkey/pkg/deploy/deploygate"
 	githubclient "github.com/unkeyed/unkey/pkg/github"
@@ -262,7 +264,7 @@ func (w *Workflow) validateAndBuildPayload(
 
 		if willBuild {
 			var err error
-			if secrets, err = w.loadSecrets(runCtx, target.AppID, target.EnvironmentID); err != nil {
+			if secrets, err = w.loadSecrets(runCtx, *target); err != nil {
 				return payload, err
 			}
 
@@ -634,33 +636,79 @@ func triggerFromProto(trigger ctrlv1.DeploymentTrigger) db.DeploymentsTrigger {
 	}
 }
 
-func (w *Workflow) loadSecrets(ctx context.Context, appID, environmentID string) ([]byte, error) {
+func (w *Workflow) loadSecrets(ctx context.Context, target db.FindDeployTargetRow) ([]byte, error) {
 	envVars, err := w.db.FindAppEnvVarsByAppAndEnv(ctx, db.FindAppEnvVarsByAppAndEnvParams{
-		AppID:         appID,
-		EnvironmentID: environmentID,
+		AppID:         target.AppID,
+		EnvironmentID: target.EnvironmentID,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch app environment variables: %w", err)
 	}
-	if len(envVars) == 0 {
+
+	bindings, err := w.db.ListAppBindingsByApp(ctx, db.ListAppBindingsByAppParams{
+		WorkspaceID:   target.WorkspaceID,
+		ProjectID:     target.ProjectID,
+		AppID:         target.AppID,
+		EnvironmentID: target.EnvironmentID,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch app bindings: %w", err)
+	}
+
+	return w.buildSecretsBlob(ctx, target.EnvironmentID, envVars, bindings)
+}
+
+func (w *Workflow) buildSecretsBlob(ctx context.Context, environmentID string, envVars []db.FindAppEnvVarsByAppAndEnvRow, bindings []db.ListAppBindingsByAppRow) ([]byte, error) {
+	if len(envVars) == 0 && len(bindings) == 0 {
 		return []byte{}, nil
 	}
 
-	config := &ctrlv1.SecretsConfig{Secrets: make(map[string]string, len(envVars))}
+	config := &ctrlv1.SecretsConfig{Secrets: make(map[string]string, len(envVars)+len(bindings))}
 	for _, ev := range envVars {
-		// An invalid key is corrupt stored data. No retry fixes it.
 		if !validation.IsValidEnvVarKey(ev.Key) {
 			return nil, restate.ToTerminalError(fmt.Errorf(
 				"environment variable key %q is invalid: %s", ev.Key, validation.ErrMsgInvalidEnvVarKey,
 			))
 		}
+
 		config.Secrets[ev.Key] = ev.Value
+	}
+
+	bindingValues := make(map[string]string, len(bindings))
+	for _, binding := range bindings {
+		key, host := appbinding.HostVariable(binding.Name)
+		if !validation.IsValidEnvVarKey(key) || strings.HasPrefix(key, "UNKEY_") {
+			return nil, restate.ToTerminalError(fmt.Errorf("binding %q produces invalid or reserved environment variable %q", binding.Name, key))
+		}
+
+		bindingValues[key] = host
+	}
+
+	if len(bindingValues) > 0 {
+		if w.vault == nil {
+			return nil, restate.ToTerminalError(errors.New("vault is required to snapshot app bindings"))
+		}
+
+		encrypted, encryptErr := w.vault.EncryptBulk(ctx, &vaultv1.EncryptBulkRequest{Keyring: environmentID, Items: bindingValues})
+		if encryptErr != nil {
+			return nil, fmt.Errorf("failed to encrypt app binding hostnames: %w", encryptErr)
+		}
+
+		for key := range bindingValues {
+			item, ok := encrypted.GetItems()[key]
+			if !ok || item.GetEncrypted() == "" {
+				return nil, restate.ToTerminalError(fmt.Errorf("vault omitted app binding environment variable %q", key))
+			}
+
+			config.Secrets[key] = item.GetEncrypted()
+		}
 	}
 
 	marshaled, err := protojson.Marshal(config)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal secrets config: %w", err)
 	}
+
 	return marshaled, nil
 }
 

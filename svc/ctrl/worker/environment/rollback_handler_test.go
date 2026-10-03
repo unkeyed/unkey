@@ -42,3 +42,12 @@ func TestRollbackDeploymentRejectsForeignEnvironment(t *testing.T) {
 	f.requireRoutes(t, f.live.ID, f.live.ID)
 	require.Equal(t, 0, countAudits(t, f.ctx, f.db, f.workspaceID, auditlog.DeploymentRollbackEvent, f.candidate.ID, f.actorID))
 }
+
+func TestRollbackPrivateOnlyDeployment(t *testing.T) {
+	f := newFixture(t)
+	_, err := f.db.RW().ExecContext(f.ctx, "DELETE FROM frontline_routes WHERE environment_id = ?", f.env.ID)
+	require.NoError(t, err)
+
+	require.NoError(t, f.rollback(f.env.ID, f.live.ID, f.candidate.ID))
+	f.requireLive(t, f.candidate.ID, true)
+}
