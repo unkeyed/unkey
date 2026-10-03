@@ -29,7 +29,7 @@ func (s *Service) ReEncrypt(ctx context.Context, req *connect.Request[vaultv1.Re
 		return nil, fmt.Errorf("failed to decrypt: %w", err)
 	}
 
-	s.keyCache.Clear(ctx)
+	s.keyCache.Remove(ctx, fmt.Sprintf("%s-%s", req.Msg.GetKeyring(), LATEST))
 
 	encrypted, err := s.encrypt(ctx, &vaultv1.EncryptRequest{
 		Keyring: req.Msg.GetKeyring(),
