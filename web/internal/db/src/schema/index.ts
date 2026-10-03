@@ -1,6 +1,7 @@
 export * from "./apis";
 export * from "./rbac";
 export * from "./keyAuth";
+export * from "./flags";
 export * from "./keys";
 export * from "./unkey_root_keys";
 export * from "./ratelimit";

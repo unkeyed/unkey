@@ -1,0 +1,45 @@
+post:
+  tags: [flags]
+  summary: Remove workspace flag override
+  description: Restores the flag's current default. Requires a workspace-admin dashboard session and allowOptOut. Removing an absent override is idempotent.
+  operationId: flags.removeOverride
+  x-speakeasy-name-override: removeOverride
+  security:
+    - bearer: []
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ./V2FlagsRemoveOverrideRequestBody.yaml
+  responses:
+    "200":
+      description: Default restored.
+      content:
+        application/json:
+          schema:
+            $ref: ../V2FlagsOverrideResponseBody.yaml
+    "400":
+      description: Invalid slug or unknown flag.
+      content:
+        application/json:
+          schema:
+            $ref: ../../../../error/BadRequestErrorResponse.yaml
+    "401":
+      description: Authentication required.
+      content:
+        application/json:
+          schema:
+            $ref: ../../../../error/UnauthorizedErrorResponse.yaml
+    "403":
+      description: Workspace admin required or opt-out is disabled.
+      content:
+        application/json:
+          schema:
+            $ref: ../../../../error/ForbiddenErrorResponse.yaml
+    "500":
+      description: Override could not be removed.
+      content:
+        application/json:
+          schema:
+            $ref: ../../../../error/InternalServerErrorResponse.yaml

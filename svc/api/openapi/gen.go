@@ -3858,6 +3858,36 @@ type V2EnvironmentsUpdateSettingsResponseBody struct {
 	Meta Meta `json:"meta"`
 }
 
+// V2FlagsListFlagsRequestBody defines model for V2FlagsListFlagsRequestBody.
+type V2FlagsListFlagsRequestBody = map[string]interface{}
+
+// V2FlagsListFlagsResponseBody defines model for V2FlagsListFlagsResponseBody.
+type V2FlagsListFlagsResponseBody struct {
+	Data []WorkspaceFlag `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// V2FlagsOverrideResponseBody defines model for V2FlagsOverrideResponseBody.
+type V2FlagsOverrideResponseBody struct {
+	Data WorkspaceFlag `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// V2FlagsRemoveOverrideRequestBody defines model for V2FlagsRemoveOverrideRequestBody.
+type V2FlagsRemoveOverrideRequestBody struct {
+	Slug string `json:"slug"`
+}
+
+// V2FlagsSetOverrideRequestBody defines model for V2FlagsSetOverrideRequestBody.
+type V2FlagsSetOverrideRequestBody struct {
+	Slug  string `json:"slug"`
+	Value bool   `json:"value"`
+}
+
 // V2GatewayListPoliciesRequestBody defines model for V2GatewayListPoliciesRequestBody.
 type V2GatewayListPoliciesRequestBody struct {
 	// App Identifies a resource by either its unique ID or its slug.
@@ -6850,6 +6880,17 @@ type VerifyKeyRatelimitData struct {
 	Reset int64 `json:"reset"`
 }
 
+// WorkspaceFlag defines model for WorkspaceFlag.
+type WorkspaceFlag struct {
+	AllowOptIn   bool   `json:"allowOptIn"`
+	AllowOptOut  bool   `json:"allowOptOut"`
+	DefaultValue bool   `json:"defaultValue"`
+	Description  string `json:"description"`
+	HasOverride  bool   `json:"hasOverride"`
+	Slug         string `json:"slug"`
+	Value        bool   `json:"value"`
+}
+
 // AnalyticsGetGatewayRequestsJSONRequestBody defines body for AnalyticsGetGatewayRequests for application/json ContentType.
 type AnalyticsGetGatewayRequestsJSONRequestBody = V2AnalyticsGetGatewayRequestsRequestBody
 
@@ -6954,6 +6995,15 @@ type EnvironmentsSetEnvironmentVariablesJSONRequestBody = V2EnvironmentsSetEnvir
 
 // EnvironmentsUpdateSettingsJSONRequestBody defines body for EnvironmentsUpdateSettings for application/json ContentType.
 type EnvironmentsUpdateSettingsJSONRequestBody = V2EnvironmentsUpdateSettingsRequestBody
+
+// FlagsListFlagsJSONRequestBody defines body for FlagsListFlags for application/json ContentType.
+type FlagsListFlagsJSONRequestBody = V2FlagsListFlagsRequestBody
+
+// FlagsRemoveOverrideJSONRequestBody defines body for FlagsRemoveOverride for application/json ContentType.
+type FlagsRemoveOverrideJSONRequestBody = V2FlagsRemoveOverrideRequestBody
+
+// FlagsSetOverrideJSONRequestBody defines body for FlagsSetOverride for application/json ContentType.
+type FlagsSetOverrideJSONRequestBody = V2FlagsSetOverrideRequestBody
 
 // GatewayListPoliciesJSONRequestBody defines body for GatewayListPolicies for application/json ContentType.
 type GatewayListPoliciesJSONRequestBody = V2GatewayListPoliciesRequestBody
