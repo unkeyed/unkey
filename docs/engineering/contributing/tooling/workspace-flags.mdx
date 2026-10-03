@@ -57,6 +57,11 @@ operations, not whether a feature is enabled.
 Both policy columns default to `false`. There is no operator bypass endpoint
 for workspace overrides in this implementation.
 
+The customer page exposes only an on/off switch. Each change calls
+`setOverride` with `true` or `false`; turning a feature off does not call
+`removeOverride`. The page has no reset-to-default control. The switch is
+disabled during a write and returns to the last saved value if the write fails.
+
 ## Resolve and return boolean values
 
 `ListFlags` left-joins all definitions to the authenticated workspace's
