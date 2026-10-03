@@ -20,7 +20,7 @@ func TestListPreservesFalseOverrideAndWorkspaceIsolation(t *testing.T) {
 	workspaceID := h.Resources().UserWorkspace.ID
 	flagID := uid.New(uid.TestPrefix)
 	slug := "test-" + flagID
-	_, err := h.DB.RW().ExecContext(t.Context(), "INSERT INTO flags (id, slug, description, type, default_value) VALUES (?, ?, 'test', 'boolean', 'true')", flagID, slug)
+	_, err := h.DB.RW().ExecContext(t.Context(), "INSERT INTO flags (id, slug, description, default_value) VALUES (?, ?, 'test', true)", flagID, slug)
 	require.NoError(t, err)
 	t.Cleanup(func() {
 		_, err := h.DB.RW().ExecContext(context.Background(), "DELETE FROM workspace_flag_overrides WHERE flag_id = ?", flagID)
@@ -28,7 +28,7 @@ func TestListPreservesFalseOverrideAndWorkspaceIsolation(t *testing.T) {
 		_, err = h.DB.RW().ExecContext(context.Background(), "DELETE FROM flags WHERE id = ?", flagID)
 		require.NoError(t, err)
 	})
-	_, err = h.DB.RW().ExecContext(t.Context(), "INSERT INTO workspace_flag_overrides (workspace_id, flag_id, value) VALUES (?, ?, 'false')", workspaceID, flagID)
+	_, err = h.DB.RW().ExecContext(t.Context(), "INSERT INTO workspace_flag_overrides (workspace_id, flag_id, value) VALUES (?, ?, false)", workspaceID, flagID)
 	require.NoError(t, err)
 	p := &principal.Principal{Type: principal.TypeJWT, Subject: principal.Subject{ID: "test-user", Type: principal.SubjectTypeUser}, Source: principal.JWTSource{Roles: []string{"admin"}}, AuthorizedWorkspaceID: workspaceID}
 	route := &handler.ListHandler{DB: h.DB}
@@ -64,14 +64,12 @@ func TestListPreservesFalseOverrideAndWorkspaceIsolation(t *testing.T) {
 	}
 }
 
-func TestSetOverridePreservesZero(t *testing.T) {
+func TestSetOverrideRejectsNumbers(t *testing.T) {
 	h, p, slug := mutationFixture(t)
 	route := &handler.SetHandler{DB: h.DB}
 	registerPrincipal(h, route, p)
 	res := testutil.CallRoute[map[string]any, overrideResponse](h, route, authHeaders(), map[string]any{"slug": slug, "value": 0})
-	require.Equal(t, http.StatusOK, res.Status, "%s", res.RawBody)
-	require.True(t, res.Body.Data.HasOverride)
-	require.JSONEq(t, "0", string(res.Body.Data.Value))
+	require.Equal(t, http.StatusBadRequest, res.Status, "%s", res.RawBody)
 }
 
 func TestRemoveOverrideRestoresDefaultAndIsIdempotent(t *testing.T) {
@@ -80,13 +78,15 @@ func TestRemoveOverrideRestoresDefaultAndIsIdempotent(t *testing.T) {
 	remove := &handler.RemoveHandler{DB: h.DB}
 	registerPrincipal(h, set, p)
 	registerPrincipal(h, remove, p)
-	res := testutil.CallRoute[map[string]any, overrideResponse](h, set, authHeaders(), map[string]any{"slug": slug, "value": 0})
+	res := testutil.CallRoute[map[string]any, overrideResponse](h, set, authHeaders(), map[string]any{"slug": slug, "value": false})
 	require.Equal(t, http.StatusOK, res.Status, "%s", res.RawBody)
+	require.True(t, res.Body.Data.HasOverride)
+	require.JSONEq(t, "false", string(res.Body.Data.Value))
 	for range 2 {
 		res := testutil.CallRoute[map[string]string, overrideResponse](h, remove, authHeaders(), map[string]string{"slug": slug})
 		require.Equal(t, http.StatusOK, res.Status, "%s", res.RawBody)
 		require.False(t, res.Body.Data.HasOverride)
-		require.JSONEq(t, "37", string(res.Body.Data.Value))
+		require.JSONEq(t, "true", string(res.Body.Data.Value))
 	}
 }
 
@@ -98,11 +98,12 @@ func TestSetRejectsInvalidValuesWithoutChangingOverride(t *testing.T) {
 	registerPrincipal(h, list, p)
 	for _, body := range []string{
 		`{"slug":"` + slug + `","value":null}`,
-		`{"slug":"` + slug + `","value":"500"}`,
-		`{"slug":"` + slug + `","value":false}`,
+		`{"slug":"` + slug + `","value":"false"}`,
+		`{"slug":"` + slug + `","value":1}`,
 		`{"slug":"` + slug + `","value":{}}`,
+		`{"slug":"` + slug + `","value":[]}`,
 		`{"slug":"` + slug + `"}`,
-		`{"slug":"` + slug + `","value":1,"workspaceId":"other"}`,
+		`{"slug":"` + slug + `","value":true,"workspaceId":"other"}`,
 	} {
 		t.Run(body, func(t *testing.T) {
 			res := testutil.CallRoute[json.RawMessage, overrideResponse](h, set, authHeaders(), json.RawMessage(body))
@@ -114,7 +115,7 @@ func TestSetRejectsInvalidValuesWithoutChangingOverride(t *testing.T) {
 	for _, flag := range res.Body.Data {
 		if flag.Slug == slug {
 			require.False(t, flag.HasOverride)
-			require.JSONEq(t, "37", string(flag.Value))
+			require.JSONEq(t, "true", string(flag.Value))
 			return
 		}
 	}
@@ -137,7 +138,7 @@ func TestEnrollmentPermissionsAreIndependent(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			_, err := h.DB.RW().ExecContext(t.Context(), "UPDATE flags SET allow_opt_in = ?, allow_opt_out = ? WHERE slug = ?", tc.optIn, tc.optOut, slug)
 			require.NoError(t, err)
-			setResult := testutil.CallRoute[map[string]any, overrideResponse](h, set, authHeaders(), map[string]any{"slug": slug, "value": 4})
+			setResult := testutil.CallRoute[map[string]any, overrideResponse](h, set, authHeaders(), map[string]any{"slug": slug, "value": false})
 			want := http.StatusForbidden
 			if tc.optIn {
 				want = http.StatusOK
@@ -167,7 +168,7 @@ func TestOnlyWorkspaceAdminsCanMutateFlags(t *testing.T) {
 	for _, route := range []zen.Route{set, remove} {
 		body := map[string]any{"slug": slug}
 		if route == set {
-			body["value"] = 5
+			body["value"] = true
 		}
 		res := testutil.CallRoute[map[string]any, overrideResponse](h, route, authHeaders(), body)
 		require.Equal(t, http.StatusForbidden, res.Status, "%s", res.RawBody)
@@ -180,7 +181,7 @@ func TestOnlyWorkspaceAdminsCanMutateFlags(t *testing.T) {
 			body["slug"] = slug
 		}
 		if route == set {
-			body["value"] = 5
+			body["value"] = true
 		}
 		res := testutil.CallRoute[map[string]any, json.RawMessage](h, route, authHeaders(), body)
 		require.Equal(t, http.StatusForbidden, res.Status, "%s", res.RawBody)
@@ -203,9 +204,9 @@ func TestFlagsRequireAuthentication(t *testing.T) {
 	}
 }
 
-func TestEmptyStringOverridePersistsAndRemovalIsWorkspaceScoped(t *testing.T) {
+func TestTrueOverridePersistsAndRemovalIsWorkspaceScoped(t *testing.T) {
 	h, p, slug := mutationFixture(t)
-	_, err := h.DB.RW().ExecContext(t.Context(), `UPDATE flags SET type = 'string', default_value = '"balanced"' WHERE slug = ?`, slug)
+	_, err := h.DB.RW().ExecContext(t.Context(), `UPDATE flags SET default_value = false WHERE slug = ?`, slug)
 	require.NoError(t, err)
 	set := &handler.SetHandler{DB: h.DB}
 	remove := &handler.RemoveHandler{DB: h.DB}
@@ -218,7 +219,7 @@ func TestEmptyStringOverridePersistsAndRemovalIsWorkspaceScoped(t *testing.T) {
 	for _, workspace := range []string{ownWorkspace, otherWorkspace} {
 		p.AuthorizedWorkspaceID = workspace
 		for range 2 {
-			res := testutil.CallRoute[map[string]any, overrideResponse](h, set, authHeaders(), map[string]any{"slug": slug, "value": ""})
+			res := testutil.CallRoute[map[string]any, overrideResponse](h, set, authHeaders(), map[string]any{"slug": slug, "value": true})
 			require.Equal(t, http.StatusOK, res.Status, "%s", res.RawBody)
 		}
 	}
@@ -236,9 +237,9 @@ func TestEmptyStringOverridePersistsAndRemovalIsWorkspaceScoped(t *testing.T) {
 			found = true
 			require.Equal(t, workspace == ownWorkspace, flag.HasOverride)
 			if workspace == ownWorkspace {
-				require.JSONEq(t, `""`, string(flag.Value))
+				require.JSONEq(t, "true", string(flag.Value))
 			} else {
-				require.JSONEq(t, `"balanced"`, string(flag.Value))
+				require.JSONEq(t, "false", string(flag.Value))
 			}
 		}
 		require.True(t, found)
@@ -265,7 +266,7 @@ func mutationFixture(t *testing.T) (*testutil.Harness, *principal.Principal, str
 	h := testutil.NewHarness(t)
 	id := uid.New(uid.TestPrefix)
 	slug := strings.ToLower(strings.ReplaceAll(id, "_", "-"))
-	_, err := h.DB.RW().ExecContext(t.Context(), "INSERT INTO flags (id, slug, description, type, default_value, allow_opt_in, allow_opt_out) VALUES (?, ?, 'test', 'number', '37', true, true)", id, slug)
+	_, err := h.DB.RW().ExecContext(t.Context(), "INSERT INTO flags (id, slug, description, default_value, allow_opt_in, allow_opt_out) VALUES (?, ?, 'test', true, true, true)", id, slug)
 	require.NoError(t, err)
 	t.Cleanup(func() {
 		_, err := h.DB.RW().ExecContext(context.Background(), "DELETE FROM workspace_flag_overrides WHERE flag_id = ?", id)

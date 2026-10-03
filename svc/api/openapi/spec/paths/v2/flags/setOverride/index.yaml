@@ -1,7 +1,7 @@
 post:
   tags: [flags]
   summary: Set workspace flag override
-  description: Creates or replaces a typed override. Requires a workspace-admin dashboard session and allowOptIn. The response reflects the primary write, without replica lag.
+  description: Creates or replaces a boolean override. Requires a workspace-admin dashboard session and allowOptIn. The response reflects the primary write, without replica lag.
   operationId: flags.setOverride
   x-speakeasy-name-override: setOverride
   security:

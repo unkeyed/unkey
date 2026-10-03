@@ -1,7 +1,7 @@
 -- name: ListFlags :many
 -- ListFlags includes definitions without overrides. Callers resolve NULL override
--- values to the default, preserving explicit false, zero, and empty strings.
-SELECT f.pk, f.id, f.slug, f.description, f.type, f.default_value,
+-- values to the default, preserving explicit false overrides.
+SELECT f.pk, f.id, f.slug, f.description, f.default_value,
     f.allow_opt_in, f.allow_opt_out, o.value AS override_value
 FROM flags f
 LEFT JOIN workspace_flag_overrides o

@@ -2,7 +2,7 @@ package handler
 
 import (
 	"context"
-	"encoding/json"
+	"database/sql"
 	"net/http"
 
 	"github.com/unkeyed/unkey/pkg/codes"
@@ -28,31 +28,21 @@ func (h *SetHandler) Handle(ctx context.Context, s *zen.Session) error {
 	if err != nil {
 		return err
 	}
-	raw, err := json.Marshal(req.Value)
-	if err != nil {
-		return err
-	}
 	var data openapi.WorkspaceFlag
 	err = db.TxRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
 		flag, err := db.Query.FindFlagBySlug(ctx, tx, req.Slug)
 		if db.IsNotFound(err) {
-			return fault.New("unknown flag", fault.Code(codes.App.Validation.InvalidInput.URN()), fault.Public("Unknown flag slug."))
+			return fault.New("unknown flag", fault.Code(codes.App.Validation.InvalidInput.URN()), fault.Public("Unknown platform feature."))
 		}
 		if err != nil {
 			return err
 		}
 		if !flag.AllowOptIn {
-			return forbidden("Self-service overrides are disabled for this flag.")
+			return forbidden("Changes to this platform feature are managed by Unkey.")
 		}
-		if _, err := parseValue(flag.Type, raw); err != nil {
-			return err
-		}
-		data, err = resolve(flag, raw)
-		if err != nil {
-			return err
-		}
+		data = resolve(flag, sql.NullBool{Bool: req.Value, Valid: true})
 		return db.Query.UpsertWorkspaceFlagOverride(ctx, tx, db.UpsertWorkspaceFlagOverrideParams{
-			WorkspaceID: p.AuthorizedWorkspaceID, FlagID: flag.ID, Value: raw,
+			WorkspaceID: p.AuthorizedWorkspaceID, FlagID: flag.ID, Value: req.Value,
 		})
 	})
 	if err != nil {

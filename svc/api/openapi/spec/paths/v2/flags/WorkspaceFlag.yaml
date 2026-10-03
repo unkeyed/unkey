@@ -3,7 +3,6 @@ additionalProperties: false
 required: [
   slug,
   description,
-  type,
   defaultValue,
   value,
   hasOverride,
@@ -15,13 +14,10 @@ properties:
     type: string
   description:
     type: string
-  type:
-    type: string
-    enum: [boolean, string, number]
   defaultValue:
-    $ref: ./FlagValue.yaml
+    type: boolean
   value:
-    $ref: ./FlagValue.yaml
+    type: boolean
   hasOverride:
     type: boolean
   allowOptIn:

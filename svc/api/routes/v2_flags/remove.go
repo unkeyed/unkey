@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"database/sql"
 	"net/http"
 
 	"github.com/unkeyed/unkey/pkg/codes"
@@ -31,18 +32,15 @@ func (h *RemoveHandler) Handle(ctx context.Context, s *zen.Session) error {
 	err = db.TxRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
 		flag, err := db.Query.FindFlagBySlug(ctx, tx, req.Slug)
 		if db.IsNotFound(err) {
-			return fault.New("unknown flag", fault.Code(codes.App.Validation.InvalidInput.URN()), fault.Public("Unknown flag slug."))
+			return fault.New("unknown flag", fault.Code(codes.App.Validation.InvalidInput.URN()), fault.Public("Unknown platform feature."))
 		}
 		if err != nil {
 			return err
 		}
 		if !flag.AllowOptOut {
-			return forbidden("Removing overrides is disabled for this flag.")
+			return forbidden("Only Unkey can restore the default for this platform feature.")
 		}
-		data, err = resolve(flag, nil)
-		if err != nil {
-			return err
-		}
+		data = resolve(flag, sql.NullBool{})
 		return db.Query.DeleteWorkspaceFlagOverride(ctx, tx, db.DeleteWorkspaceFlagOverrideParams{
 			WorkspaceID: p.AuthorizedWorkspaceID, FlagID: flag.ID,
 		})

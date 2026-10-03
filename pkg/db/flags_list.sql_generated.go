@@ -7,11 +7,11 @@ package db
 
 import (
 	"context"
-	"encoding/json"
+	"database/sql"
 )
 
 const listFlags = `-- name: ListFlags :many
-SELECT f.pk, f.id, f.slug, f.description, f.type, f.default_value,
+SELECT f.pk, f.id, f.slug, f.description, f.default_value,
     f.allow_opt_in, f.allow_opt_out, o.value AS override_value
 FROM flags f
 LEFT JOIN workspace_flag_overrides o
@@ -20,21 +20,20 @@ ORDER BY f.slug
 `
 
 type ListFlagsRow struct {
-	Pk            uint64          `db:"pk"`
-	ID            string          `db:"id"`
-	Slug          string          `db:"slug"`
-	Description   string          `db:"description"`
-	Type          FlagsType       `db:"type"`
-	DefaultValue  json.RawMessage `db:"default_value"`
-	AllowOptIn    bool            `db:"allow_opt_in"`
-	AllowOptOut   bool            `db:"allow_opt_out"`
-	OverrideValue []byte          `db:"override_value"`
+	Pk            uint64       `db:"pk"`
+	ID            string       `db:"id"`
+	Slug          string       `db:"slug"`
+	Description   string       `db:"description"`
+	DefaultValue  bool         `db:"default_value"`
+	AllowOptIn    bool         `db:"allow_opt_in"`
+	AllowOptOut   bool         `db:"allow_opt_out"`
+	OverrideValue sql.NullBool `db:"override_value"`
 }
 
 // ListFlags includes definitions without overrides. Callers resolve NULL override
-// values to the default, preserving explicit false, zero, and empty strings.
+// values to the default, preserving explicit false overrides.
 //
-//	SELECT f.pk, f.id, f.slug, f.description, f.type, f.default_value,
+//	SELECT f.pk, f.id, f.slug, f.description, f.default_value,
 //	    f.allow_opt_in, f.allow_opt_out, o.value AS override_value
 //	FROM flags f
 //	LEFT JOIN workspace_flag_overrides o
@@ -54,7 +53,6 @@ func (q *Queries) ListFlags(ctx context.Context, db DBTX, workspaceID string) ([
 			&i.ID,
 			&i.Slug,
 			&i.Description,
-			&i.Type,
 			&i.DefaultValue,
 			&i.AllowOptIn,
 			&i.AllowOptOut,
