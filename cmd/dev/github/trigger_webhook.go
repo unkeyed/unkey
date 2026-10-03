@@ -65,6 +65,7 @@ var Cmd = &cli.Command{
 		triggerWebhookCmd,
 		setupCmd,
 		tunnelCmd,
+		relayCmd,
 	},
 }
 
