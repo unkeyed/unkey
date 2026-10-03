@@ -4,7 +4,6 @@ import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import {
   type WorkspaceFlag,
   listWorkspaceFlags,
-  removeWorkspaceFlagOverride,
   setWorkspaceFlagOverride,
 } from "@/lib/workspace-flags-api";
 import { useWorkspace } from "@/providers/workspace-provider";
@@ -53,8 +52,8 @@ export default function FlagsPage() {
       </PageHeader>
       <PageBody>
         <p className="text-sm text-gray-11">
-          Enable or disable platform features for everyone in this workspace, or use Unkey's
-          defaults.
+          Enable or disable platform features for everyone in this workspace. Changes save
+          automatically.
         </p>
         {query.isLoading ? (
           <output aria-label="Loading platform features">
@@ -75,7 +74,6 @@ export default function FlagsPage() {
             flags={query.data ?? []}
             isAdmin={user?.role === "admin"}
             onSet={(slug, value) => update(() => setWorkspaceFlagOverride(slug, value))}
-            onRemove={(slug) => update(() => removeWorkspaceFlagOverride(slug))}
           />
         )}
       </PageBody>
