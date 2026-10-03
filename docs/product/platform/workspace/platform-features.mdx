@@ -1,0 +1,67 @@
+---
+title: "Platform features"
+sidebarTitle: "Platform features"
+description: "Enable or disable platform features for your workspace."
+sources:
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/settings/platform-features/page.tsx
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/settings/platform-features/flags-panel.tsx
+  - svc/api/routes/v2_flags/set.go
+  - svc/api/routes/v2_flags/remove.go
+---
+
+A platform feature is an Unkey capability that you can enable or disable for
+your workspace. Unkey sets the default for each feature. Workspace admins can
+choose a different setting when Unkey permits self-service changes.
+
+Platform features apply to everyone in the workspace, not to an individual
+member, project, or environment. Available features appear under
+**Settings > Platform features**.
+
+## Understand feature settings
+
+Each platform feature is either enabled or disabled. Its card shows the default
+and the workspace's saved setting.
+
+The **Default** badge means the workspace follows Unkey's default. The
+**Workspace setting** badge means an admin has saved a setting for this
+workspace. That setting can match the default, but it won't follow later
+changes to the default.
+
+## Enable or disable a feature
+
+You must be a workspace admin to change platform features. Other members can
+view the settings, but their controls are disabled.
+
+1. Navigate to **Settings > Platform features**.
+2. Find the feature and read its description and default setting.
+3. Check **Enabled** to enable it, or uncheck it to disable it.
+4. Click **Save changes**.
+
+If the feature is managed by Unkey, the checkbox and save button are disabled.
+Some features permit workspace changes but don't permit you to restore the
+default. These features show a notice before you save.
+
+## Restore the default
+
+If permitted, click **Use default** on a feature with a saved workspace setting.
+This removes that setting and restores Unkey's default. Later changes to the
+default also apply to your workspace.
+
+<Note>
+  **Use default** does not necessarily disable a feature. If its default is
+  enabled, restoring the default enables it.
+</Note>
+
+If the feature says only Unkey can restore the default, **Use default** stays
+disabled even for workspace admins.
+
+## Handle errors
+
+If platform features fail to load, click **Retry**. If a save fails, the page
+shows an error beside that feature. A failed request does not display a success
+confirmation.
+After reloading the page, a recent change can take time to appear while database
+replicas catch up.
+
+If the page shows **No platform features available**, Unkey has not made any
+features available to configure. You don't need to create a feature.

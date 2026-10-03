@@ -1,9 +1,11 @@
 ---
 title: "Workspace flags"
-description: "MySQL-backed typed flags and API-controlled workspace overrides."
+description: "MySQL-backed boolean flags for platform features and API-controlled workspace overrides."
 ---
 
-Workspace flags store shared feature configuration in MySQL. They are separate
+Workspace flags store boolean feature settings in MySQL. Customers see them as
+platform features. Database tables and API paths retain the `flags` name.
+They are separate
 from [Vercel feature flags](/contributing/tooling/feature-flags), which remain
 the dashboard's frontend flag system.
 
@@ -13,25 +15,22 @@ The schema lives in `web/internal/db/src/schema/flags.ts`.
 
 | Table | Fields | Constraint |
 | --- | --- | --- |
-| `flags` | `id`, `slug`, `description`, `type`, `default_value`, `allow_opt_in`, `allow_opt_out` | Unique, case-sensitive `slug` |
+| `flags` | `id`, `slug`, `description`, `default_value`, `allow_opt_in`, `allow_opt_out` | Unique, case-sensitive `slug` |
 | `workspace_flag_overrides` | `workspace_id`, `flag_id`, `value` | Unique workspace and flag pair |
 
 Both tables also have the repository's internal `pk` column. Defaults and
-overrides are non-null JSON scalars. The supported types are `boolean`,
-`string`, and `number`. For example, their JSON values can be `false`,
-`"balanced"`, and `500`. Objects, arrays, and JSON `null` are rejected by the
-API. The JSON columns alone do not enforce agreement with the declared type.
+overrides use non-null boolean columns. There is no type column. The API accepts
+only JSON `true` or `false`, not strings, numbers, objects, arrays, or `null`.
 
-An override row determines the effective value, even when it contains `false`,
-`0`, or `""`. Without a row, the flag inherits `default_value`. Removing an
+An override row determines the effective value, even when it contains `false`.
+Without a row, the flag inherits `default_value`. Removing an
 override restores inheritance. There is no environment dimension or separate
 opt-in value.
 
 Definitions are operator-managed database records. This implementation has no
 definition-management endpoint, startup registration, or generated flag
-registry. Provision definitions through the approved database change process,
-with a default matching the type. Treat a published slug and type as stable:
-changing a type can invalidate existing overrides and fail reads.
+registry. Provision definitions through the approved database change process
+with a boolean default. Treat a published slug as stable.
 
 ## Use the API for workspace changes
 
@@ -58,22 +57,22 @@ operations, not whether a feature is enabled.
 Both policy columns default to `false`. There is no operator bypass endpoint
 for workspace overrides in this implementation.
 
-## Resolve and return typed values
+## Resolve and return boolean values
 
 `ListFlags` left-joins all definitions to the authenticated workspace's
-overrides and sorts by slug. Handlers validate JSON against the declared type
-before responding. Invalid stored data produces an error rather than silently
-substituting a value.
+overrides and sorts by slug. A nullable boolean in the joined result distinguishes
+an absent override from an explicit `false` override.
 
-Each returned record contains `slug`, `description`, `type`, `defaultValue`,
+Each returned record contains `slug`, `description`, `defaultValue`,
 `value`, `hasOverride`, `allowOptIn`, and `allowOptOut`. The list response puts
 an array in `data`; mutations return one record in `data`. Both include
 `meta.requestId`.
 
-The dashboard validates responses with a Zod discriminated union in
-`web/apps/dashboard/lib/workspace-flags-api.ts`. Go handlers validate the
-declared type before constructing the OpenAPI scalar union. No cross-language
-typed flag constructor or offline fallback SDK is included. A database default
+The dashboard validates boolean responses with Zod in
+`web/apps/dashboard/lib/workspace-flags-api.ts`. Generated Go models use `bool`.
+OpenAPI request validation rejects missing, null, and non-boolean values before
+the handler runs. No cross-language flag constructor or offline fallback SDK
+is included. A database default
 is not an offline fallback: consumers still need an explicit failure policy
 when they cannot retrieve a flag.
 
@@ -91,7 +90,7 @@ last-write-wins semantics.
 
 ## Verify changes
 
-The focused integration tests cover types, workspace isolation, policy
+The focused integration tests cover boolean validation, workspace isolation, policy
 combinations, authentication, idempotent writes, and default restoration.
 
 ```bash
