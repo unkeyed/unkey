@@ -22,7 +22,7 @@ export const settingsRoutes = {
   },
 
   flags({ workspaceSlug }: WorkspaceScope): Route {
-    return buildRoute("/[workspaceSlug]/settings/flags", { workspaceSlug });
+    return buildRoute("/[workspaceSlug]/settings/platform-features", { workspaceSlug });
   },
 
   team({ workspaceSlug }: WorkspaceScope): Route {

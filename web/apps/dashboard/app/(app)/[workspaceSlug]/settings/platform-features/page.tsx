@@ -41,29 +41,29 @@ export default function FlagsPage() {
     queryClient.setQueryData<WorkspaceFlag[]>(queryKey, (current) =>
       current?.map((item) => (item.slug === flag.slug ? flag : item)),
     );
-    toast.success("Flag updated");
+    toast.success("Platform feature updated");
   }
 
   return (
     <PageContainer>
       <PageHeader>
         <PageHeaderContent>
-          <PageHeaderTitle>Flags</PageHeaderTitle>
+          <PageHeaderTitle>Platform features</PageHeaderTitle>
         </PageHeaderContent>
       </PageHeader>
       <PageBody>
         <p className="text-sm text-gray-11">
-          Configure features for this workspace. Overrides replace the default value for everyone in
-          the workspace.
+          Enable or disable platform features for everyone in this workspace, or use Unkey's
+          defaults.
         </p>
         {query.isLoading ? (
-          <output aria-label="Loading flags">
+          <output aria-label="Loading platform features">
             <Skeleton className="h-40 w-full rounded-lg" />
           </output>
         ) : query.isError ? (
           <div role="alert" className="rounded-lg border border-grayA-4 p-6">
             <p className="mb-3 text-sm text-gray-11">
-              We couldn't load workspace flags. Try again.
+              We couldn't load platform features. Try again.
             </p>
             <Button variant="outline" onClick={() => void query.refetch()}>
               Retry
