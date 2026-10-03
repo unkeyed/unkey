@@ -1,0 +1,45 @@
+post:
+  tags: [flags]
+  summary: List workspace flags
+  description: Returns typed defaults and effective values for the authenticated workspace. Requires a dashboard user session. Reads may lag recent writes due to replication.
+  operationId: flags.listFlags
+  x-speakeasy-name-override: listFlags
+  security:
+    - bearer: []
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ./V2FlagsListFlagsRequestBody.yaml
+  responses:
+    "200":
+      description: Effective workspace flags.
+      content:
+        application/json:
+          schema:
+            $ref: ./V2FlagsListFlagsResponseBody.yaml
+    "400":
+      description: Invalid request.
+      content:
+        application/json:
+          schema:
+            $ref: ../../../../error/BadRequestErrorResponse.yaml
+    "401":
+      description: Authentication required.
+      content:
+        application/json:
+          schema:
+            $ref: ../../../../error/UnauthorizedErrorResponse.yaml
+    "403":
+      description: A dashboard user session is required.
+      content:
+        application/json:
+          schema:
+            $ref: ../../../../error/ForbiddenErrorResponse.yaml
+    "500":
+      description: Flags could not be retrieved.
+      content:
+        application/json:
+          schema:
+            $ref: ../../../../error/InternalServerErrorResponse.yaml

@@ -1,0 +1,7 @@
+description: A non-null scalar matching the flag's declared type.
+oneOf:
+  - type: boolean
+  - type: string
+    maxLength: 4096
+  - type: number
+    format: double

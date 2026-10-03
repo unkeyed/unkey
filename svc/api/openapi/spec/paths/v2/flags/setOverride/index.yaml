@@ -1,0 +1,45 @@
+post:
+  tags: [flags]
+  summary: Set workspace flag override
+  description: Creates or replaces a typed override. Requires a workspace-admin dashboard session and allowOptIn. The response reflects the primary write, without replica lag.
+  operationId: flags.setOverride
+  x-speakeasy-name-override: setOverride
+  security:
+    - bearer: []
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ./V2FlagsSetOverrideRequestBody.yaml
+  responses:
+    "200":
+      description: Override saved.
+      content:
+        application/json:
+          schema:
+            $ref: ../V2FlagsOverrideResponseBody.yaml
+    "400":
+      description: Invalid slug or value, or unknown flag.
+      content:
+        application/json:
+          schema:
+            $ref: ../../../../error/BadRequestErrorResponse.yaml
+    "401":
+      description: Authentication required.
+      content:
+        application/json:
+          schema:
+            $ref: ../../../../error/UnauthorizedErrorResponse.yaml
+    "403":
+      description: Workspace admin required or opt-in is disabled.
+      content:
+        application/json:
+          schema:
+            $ref: ../../../../error/ForbiddenErrorResponse.yaml
+    "500":
+      description: Override could not be saved.
+      content:
+        application/json:
+          schema:
+            $ref: ../../../../error/InternalServerErrorResponse.yaml

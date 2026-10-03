@@ -6,6 +6,7 @@ import (
 	"github.com/unkeyed/unkey/svc/api/internal/middleware"
 	openapi "github.com/unkeyed/unkey/svc/api/routes/openapi"
 	"github.com/unkeyed/unkey/svc/api/routes/reference"
+	v2Flags "github.com/unkeyed/unkey/svc/api/routes/v2_flags"
 	v2Liveness "github.com/unkeyed/unkey/svc/api/routes/v2_liveness"
 
 	pprofRoute "github.com/unkeyed/unkey/pkg/pprof"
@@ -594,6 +595,9 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 		},
 	)
 	srv.RegisterRoute(protectedMiddlewares, &v2RootKeysListKeys.Handler{DB: svc.Database})
+	srv.RegisterRoute(protectedMiddlewares, &v2Flags.ListHandler{DB: svc.Database})
+	srv.RegisterRoute(protectedMiddlewares, &v2Flags.SetHandler{DB: svc.Database})
+	srv.RegisterRoute(protectedMiddlewares, &v2Flags.RemoveHandler{DB: svc.Database})
 	srv.RegisterRoute(protectedMiddlewares, &v2RootKeysUpdateKey.Handler{
 		DB:           svc.Database,
 		Auditlogs:    svc.Auditlogs,

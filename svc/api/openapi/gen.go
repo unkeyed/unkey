@@ -509,6 +509,27 @@ func (e V2PortalCreateSessionRequestBodyScopes) Valid() bool {
 	}
 }
 
+// Defines values for WorkspaceFlagType.
+const (
+	Boolean WorkspaceFlagType = "boolean"
+	Number  WorkspaceFlagType = "number"
+	String  WorkspaceFlagType = "string"
+)
+
+// Valid indicates whether the value is a known member of the WorkspaceFlagType enum.
+func (e WorkspaceFlagType) Valid() bool {
+	switch e {
+	case Boolean:
+		return true
+	case Number:
+		return true
+	case String:
+		return true
+	default:
+		return false
+	}
+}
+
 // App defines model for App.
 type App struct {
 	// CreatedAt Unix timestamp in milliseconds when the app was created.
@@ -1452,6 +1473,20 @@ type FirewallPolicy struct {
 
 // FirewallPolicyAction What to do with matching requests.
 type FirewallPolicyAction string
+
+// FlagValue A non-null scalar matching the flag's declared type.
+type FlagValue struct {
+	union json.RawMessage
+}
+
+// FlagValue0 defines model for FlagValue.0.
+type FlagValue0 = bool
+
+// FlagValue1 defines model for FlagValue.1.
+type FlagValue1 = string
+
+// FlagValue2 defines model for FlagValue.2.
+type FlagValue2 = float64
 
 // ForbiddenErrorResponse Error response when the provided credentials are valid but lack sufficient permissions for the requested operation. This occurs when:
 // - The root key doesn't have the required permissions for this endpoint
@@ -3838,6 +3873,38 @@ type V2EnvironmentsUpdateSettingsResponseBody struct {
 
 	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
 	Meta Meta `json:"meta"`
+}
+
+// V2FlagsListFlagsRequestBody defines model for V2FlagsListFlagsRequestBody.
+type V2FlagsListFlagsRequestBody = map[string]interface{}
+
+// V2FlagsListFlagsResponseBody defines model for V2FlagsListFlagsResponseBody.
+type V2FlagsListFlagsResponseBody struct {
+	Data []WorkspaceFlag `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// V2FlagsOverrideResponseBody defines model for V2FlagsOverrideResponseBody.
+type V2FlagsOverrideResponseBody struct {
+	Data WorkspaceFlag `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// V2FlagsRemoveOverrideRequestBody defines model for V2FlagsRemoveOverrideRequestBody.
+type V2FlagsRemoveOverrideRequestBody struct {
+	Slug string `json:"slug"`
+}
+
+// V2FlagsSetOverrideRequestBody defines model for V2FlagsSetOverrideRequestBody.
+type V2FlagsSetOverrideRequestBody struct {
+	Slug string `json:"slug"`
+
+	// Value A non-null scalar matching the flag's declared type.
+	Value FlagValue `json:"value"`
 }
 
 // V2GatewayListPoliciesRequestBody defines model for V2GatewayListPoliciesRequestBody.
@@ -6744,6 +6811,25 @@ type VerifyKeyRatelimitData struct {
 	Reset int64 `json:"reset"`
 }
 
+// WorkspaceFlag defines model for WorkspaceFlag.
+type WorkspaceFlag struct {
+	AllowOptIn  bool `json:"allowOptIn"`
+	AllowOptOut bool `json:"allowOptOut"`
+
+	// DefaultValue A non-null scalar matching the flag's declared type.
+	DefaultValue FlagValue         `json:"defaultValue"`
+	Description  string            `json:"description"`
+	HasOverride  bool              `json:"hasOverride"`
+	Slug         string            `json:"slug"`
+	Type         WorkspaceFlagType `json:"type"`
+
+	// Value A non-null scalar matching the flag's declared type.
+	Value FlagValue `json:"value"`
+}
+
+// WorkspaceFlagType defines model for WorkspaceFlag.Type.
+type WorkspaceFlagType string
+
 // AnalyticsGetGatewayRequestsJSONRequestBody defines body for AnalyticsGetGatewayRequests for application/json ContentType.
 type AnalyticsGetGatewayRequestsJSONRequestBody = V2AnalyticsGetGatewayRequestsRequestBody
 
@@ -6848,6 +6934,15 @@ type EnvironmentsSetEnvironmentVariablesJSONRequestBody = V2EnvironmentsSetEnvir
 
 // EnvironmentsUpdateSettingsJSONRequestBody defines body for EnvironmentsUpdateSettings for application/json ContentType.
 type EnvironmentsUpdateSettingsJSONRequestBody = V2EnvironmentsUpdateSettingsRequestBody
+
+// FlagsListFlagsJSONRequestBody defines body for FlagsListFlags for application/json ContentType.
+type FlagsListFlagsJSONRequestBody = V2FlagsListFlagsRequestBody
+
+// FlagsRemoveOverrideJSONRequestBody defines body for FlagsRemoveOverride for application/json ContentType.
+type FlagsRemoveOverrideJSONRequestBody = V2FlagsRemoveOverrideRequestBody
+
+// FlagsSetOverrideJSONRequestBody defines body for FlagsSetOverride for application/json ContentType.
+type FlagsSetOverrideJSONRequestBody = V2FlagsSetOverrideRequestBody
 
 // GatewayListPoliciesJSONRequestBody defines body for GatewayListPolicies for application/json ContentType.
 type GatewayListPoliciesJSONRequestBody = V2GatewayListPoliciesRequestBody
@@ -7025,6 +7120,94 @@ type RootKeysUpdateKeyJSONRequestBody = V2RootKeysUpdateKeyRequestBody
 
 // DeploymentsCreateDeploymentV3JSONRequestBody defines body for DeploymentsCreateDeploymentV3 for application/json ContentType.
 type DeploymentsCreateDeploymentV3JSONRequestBody = V3DeploymentsCreateDeploymentRequestBody
+
+// AsFlagValue0 returns the union data inside the FlagValue as a FlagValue0
+func (t FlagValue) AsFlagValue0() (FlagValue0, error) {
+	var body FlagValue0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromFlagValue0 overwrites any union data inside the FlagValue as the provided FlagValue0
+func (t *FlagValue) FromFlagValue0(v FlagValue0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeFlagValue0 performs a merge with any union data inside the FlagValue, using the provided FlagValue0
+func (t *FlagValue) MergeFlagValue0(v FlagValue0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsFlagValue1 returns the union data inside the FlagValue as a FlagValue1
+func (t FlagValue) AsFlagValue1() (FlagValue1, error) {
+	var body FlagValue1
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromFlagValue1 overwrites any union data inside the FlagValue as the provided FlagValue1
+func (t *FlagValue) FromFlagValue1(v FlagValue1) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeFlagValue1 performs a merge with any union data inside the FlagValue, using the provided FlagValue1
+func (t *FlagValue) MergeFlagValue1(v FlagValue1) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsFlagValue2 returns the union data inside the FlagValue as a FlagValue2
+func (t FlagValue) AsFlagValue2() (FlagValue2, error) {
+	var body FlagValue2
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromFlagValue2 overwrites any union data inside the FlagValue as the provided FlagValue2
+func (t *FlagValue) FromFlagValue2(v FlagValue2) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeFlagValue2 performs a merge with any union data inside the FlagValue, using the provided FlagValue2
+func (t *FlagValue) MergeFlagValue2(v FlagValue2) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t FlagValue) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *FlagValue) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
 
 // AsV2AppsCreateAppRequestBody0 returns the union data inside the V2AppsCreateAppRequestBody as a V2AppsCreateAppRequestBody0
 func (t V2AppsCreateAppRequestBody) AsV2AppsCreateAppRequestBody0() (V2AppsCreateAppRequestBody0, error) {

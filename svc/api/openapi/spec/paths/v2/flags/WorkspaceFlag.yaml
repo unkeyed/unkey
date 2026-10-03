@@ -1,0 +1,30 @@
+type: object
+additionalProperties: false
+required: [
+  slug,
+  description,
+  type,
+  defaultValue,
+  value,
+  hasOverride,
+  allowOptIn,
+  allowOptOut,
+]
+properties:
+  slug:
+    type: string
+  description:
+    type: string
+  type:
+    type: string
+    enum: [boolean, string, number]
+  defaultValue:
+    $ref: ./FlagValue.yaml
+  value:
+    $ref: ./FlagValue.yaml
+  hasOverride:
+    type: boolean
+  allowOptIn:
+    type: boolean
+  allowOptOut:
+    type: boolean
