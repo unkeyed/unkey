@@ -66,7 +66,13 @@ var producerFieldAssertions = map[string]func(t *testing.T, a *ctrlv1.ApplyDeplo
 		require.Equal(t, "app_sentinel", a.GetAppId())
 	},
 	"environment_slug": func(t *testing.T, a *ctrlv1.ApplyDeployment) {
-		require.Equal(t, "production", a.GetEnvironmentSlug())
+		require.Equal(t, "preview", a.GetEnvironmentSlug())
+	},
+	"environment_kind": func(t *testing.T, a *ctrlv1.ApplyDeployment) {
+		require.Equal(t, "preview", a.GetEnvironmentKind())
+	},
+	"private_network_replica_host": func(t *testing.T, a *ctrlv1.ApplyDeployment) {
+		require.Equal(t, "api.unkey.internal", a.GetPrivateNetworkReplicaHost())
 	},
 	"region": func(t *testing.T, a *ctrlv1.ApplyDeployment) {
 		require.Equal(t, "us-east-1", a.GetRegion())
@@ -125,10 +131,13 @@ func TestDeploymentRowToState_PopulatesProtoFields(t *testing.T) {
 			Valid:       true,
 			Healthcheck: &dbtype.Healthcheck{Method: "GET", Path: "/sentinel-healthz"},
 		},
-		K8sNamespace:    "ns-sentinel",
-		EnvironmentSlug: "production",
-		RegionName:      "us-east-1",
-		GitRepo:         sql.NullString{Valid: true, String: "github.com/test/sentinel"},
+		K8sNamespace:           "ns-sentinel",
+		EnvironmentSlug:        "preview",
+		EnvironmentKind:        dbtype.EnvironmentKindPreview,
+		AppSlug:                "api",
+		PrivateNetworkEnrolled: true,
+		RegionName:             "us-east-1",
+		GitRepo:                sql.NullString{Valid: true, String: "github.com/test/sentinel"},
 	}
 
 	state, err := deploymentRowToState(row)

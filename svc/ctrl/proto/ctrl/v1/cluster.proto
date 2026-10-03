@@ -53,6 +53,12 @@ service ClusterService {
   // Used by the resync loop to verify consistency for existing resources.
   rpc GetDesiredDeploymentState(GetDesiredDeploymentStateRequest) returns (DeploymentState);
 
+  // StreamPrivateNetworkState sends the complete private network catalog for
+  // the caller's platform in pages read from one database snapshot, then a
+  // final chunk with complete set. A stream that ends without that chunk is
+  // partial and must not be reconciled, because omission authorizes deletion.
+  rpc StreamPrivateNetworkState(StreamPrivateNetworkStateRequest) returns (stream PrivateNetworkStateChunk);
+
   // ReportDeploymentStatus reports actual deployment state from the agent to the control plane.
   // Called when K8s watch events indicate ReplicaSet changes.
   rpc ReportDeploymentStatus(ReportDeploymentStatusRequest) returns (ReportDeploymentStatusResponse);
@@ -96,6 +102,32 @@ message DeploymentChangeEvent {
 message GetDesiredDeploymentStateRequest {
   ClusterKey cluster = 1;
   string deployment_id = 2;
+}
+
+message StreamPrivateNetworkStateRequest {
+  ClusterKey cluster = 1;
+}
+
+message PrivateNetworkStateChunk {
+  repeated PrivateNetworkBinding bindings = 1;
+  bool complete = 2;
+  // total is the number of bindings in the whole snapshot, set on the complete chunk.
+  uint64 total = 3;
+}
+
+message PrivateNetworkBinding {
+  string workspace_id = 1;
+  string project_id = 2;
+  string target_app_id = 3;
+  string target_app_slug = 4;
+  string k8s_namespace = 5;
+  string target_deployment_id = 6;
+  int32 target_port = 7;
+  string target_environment_id = 8;
+  reserved 9;
+  string caller_deployment_id = 10;
+  string binding_id = 11;
+  string binding_name = 12;
 }
 
 // ReportDeploymentStatusRequest reports the actual state of a deployment from the agent.
@@ -332,6 +364,15 @@ message ApplyDeployment {
   // The volume is created when the pod starts and deleted when the pod terminates.
   // When absent, no ephemeral volume is attached.
   optional EphemeralStorage ephemeral_storage = 29;
+
+  string environment_kind = 30;
+  reserved 31;
+  reserved "preview_network_id";
+
+  // private_network_replica_host is the private DNS name of this deployment's
+  // own replicas. Empty means the workspace is not enrolled in private
+  // networking and the Pod keeps cluster DNS.
+  string private_network_replica_host = 32;
 }
 
 // AutoscalingPolicy configures horizontal pod autoscaling for a deployment.

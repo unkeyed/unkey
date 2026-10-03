@@ -10,6 +10,7 @@ import (
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/cdc"
+	"github.com/unkeyed/unkey/pkg/deploy/appbinding"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auth"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
@@ -128,6 +129,9 @@ func deploymentRowToState[T deploymentStateRow](row T) (*ctrlv1.DeploymentState,
 			Healthcheck:                   row.DeploymentHealthcheck,
 			K8sNamespace:                  row.K8sNamespace,
 			EnvironmentSlug:               row.EnvironmentSlug,
+			EnvironmentKind:               row.EnvironmentKind,
+			AppSlug:                       row.AppSlug,
+			PrivateNetworkEnrolled:        row.PrivateNetworkEnrolled,
 			RegionName:                    row.RegionName,
 			GitRepo:                       row.GitRepo,
 		}
@@ -168,7 +172,14 @@ func deploymentRowToState[T deploymentStateRow](row T) (*ctrlv1.DeploymentState,
 			Port:                          deployment.Port,
 			ShutdownSignal:                string(deployment.ShutdownSignal),
 			EnvironmentSlug:               &deployment.EnvironmentSlug,
+			EnvironmentKind:               string(deployment.EnvironmentKind),
 			Region:                        &deployment.RegionName,
+		}
+
+		if deployment.PrivateNetworkEnrolled {
+			if host, ok := appbinding.ReplicaHost(deployment.AppSlug); ok {
+				apply.PrivateNetworkReplicaHost = host
+			}
 		}
 
 		if deployment.GitCommitSha.Valid {

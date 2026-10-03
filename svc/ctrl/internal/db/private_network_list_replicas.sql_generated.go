@@ -25,7 +25,7 @@ INNER JOIN apps a ON a.id = d.app_id
 INNER JOIN environments e ON e.id = d.environment_id AND e.app_id = d.app_id
 INNER JOIN workspaces w ON w.id = d.workspace_id AND w.k8s_namespace <> ''
 WHERE d.id > ?
-    AND d.status IN ('deploying', 'ready') AND d.desired_state = 'running'
+    AND d.status IN ('deploying', 'network', 'finalizing', 'ready') AND d.desired_state = 'running'
     AND EXISTS (
         SELECT 1 FROM app_bindings b
         WHERE b.workspace_id = d.workspace_id
@@ -80,7 +80,7 @@ type ListPrivateNetworkReplicasRow struct {
 //	INNER JOIN environments e ON e.id = d.environment_id AND e.app_id = d.app_id
 //	INNER JOIN workspaces w ON w.id = d.workspace_id AND w.k8s_namespace <> ''
 //	WHERE d.id > ?
-//	    AND d.status IN ('deploying', 'ready') AND d.desired_state = 'running'
+//	    AND d.status IN ('deploying', 'network', 'finalizing', 'ready') AND d.desired_state = 'running'
 //	    AND EXISTS (
 //	        SELECT 1 FROM app_bindings b
 //	        WHERE b.workspace_id = d.workspace_id
