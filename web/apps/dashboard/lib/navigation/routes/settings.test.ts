@@ -7,7 +7,7 @@ describe("settings-scoped paths", () => {
   it("builds the settings leaf paths", () => {
     const scope = { workspaceSlug: ws };
     expect(routes.settings.general(scope)).toBe("/acme/settings/general");
-    expect(routes.settings.flags(scope)).toBe("/acme/settings/flags");
+    expect(routes.settings.flags(scope)).toBe("/acme/settings/platform-features");
     expect(routes.settings.team(scope)).toBe("/acme/settings/team");
     expect(routes.settings.rootKeys(scope)).toBe("/acme/settings/root-keys");
     expect(routes.settings.logdrains.list(scope)).toBe("/acme/settings/logdrains");
