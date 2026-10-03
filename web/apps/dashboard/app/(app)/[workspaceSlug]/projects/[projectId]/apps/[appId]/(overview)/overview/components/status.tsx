@@ -7,7 +7,9 @@ import type { Deployment } from "@/lib/collections/deploy/deployments";
 
 export type DeploymentDisplayStatus = "live" | "deploying" | "crashing" | "failed" | "stopped";
 
-export function deriveProductionStatus(deployment: Deployment): DeploymentDisplayStatus {
+export function deriveProductionStatus(
+  deployment: Pick<Deployment, "status" | "lastExit" | "instances">,
+): DeploymentDisplayStatus {
   if (deployment.status === "stopped") {
     return "stopped";
   }

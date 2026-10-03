@@ -29,17 +29,12 @@ func (c *Controller) runActualStateResyncLoop(ctx context.Context) {
 	c.runResyncLoop(ctx, 30*time.Second, func() {
 		logger.Info("running actual state resync")
 		c.forEachReplicaSet(ctx, func(ctx context.Context, rs *appsv1.ReplicaSet) {
-			status, err := c.buildDeploymentStatus(ctx, rs)
-			if err != nil {
-				logger.Error("actual state resync: unable to build deployment status", "error", err.Error(), "replicaSet", rs.Name)
-				return
-			}
-			reported, err := c.reportIfChanged(ctx, status)
+			changed, err := c.reportReplicaSet(ctx, rs, true)
 			if err != nil {
 				logger.Error("actual state resync: unable to report deployment status", "error", err.Error(), "replicaSet", rs.Name)
 				return
 			}
-			if reported {
+			if changed {
 				// Resync found drift the watch didn't deliver. This is the
 				// "pod watch missed an event" smoking-gun signal — a
 				// healthy cluster should see this counter stay flat.

@@ -22,7 +22,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ctrl/v1/cluster.proto.
  */
 export const file_ctrl_v1_cluster: GenFile = /*@__PURE__*/
-  fileDesc("ChVjdHJsL3YxL2NsdXN0ZXIucHJvdG8SB2N0cmwudjEiPwoKQ2x1c3RlcktleRIQCghwbGF0Zm9ybRgBIAEoCRIOCgZyZWdpb24YAiABKAkSDwoHY2VsbF9pZBgDIAEoCSJrCh1XYXRjaERlcGxveW1lbnRDaGFuZ2VzUmVxdWVzdBIkCgdjbHVzdGVyGAEgASgLMhMuY3RybC52MS5DbHVzdGVyS2V5Eg4KBnJlcGxheRgCIAEoCBIUCgxyZXN1bWVfdG9rZW4YAyABKAwiPwoXU3luY0Rlc2lyZWRTdGF0ZVJlcXVlc3QSJAoHY2x1c3RlchgBIAEoCzITLmN0cmwudjEuQ2x1c3RlcktleSJmChVEZXBsb3ltZW50Q2hhbmdlRXZlbnQSLgoKZGVwbG95bWVudBgBIAEoCzIYLmN0cmwudjEuRGVwbG95bWVudFN0YXRlSAASFAoMcmVzdW1lX3Rva2VuGAIgASgMQgcKBWV2ZW50Il8KIEdldERlc2lyZWREZXBsb3ltZW50U3RhdGVSZXF1ZXN0EiQKB2NsdXN0ZXIYASABKAsyEy5jdHJsLnYxLkNsdXN0ZXJLZXkSFQoNZGVwbG95bWVudF9pZBgCIAEoCSLdBAodUmVwb3J0RGVwbG95bWVudFN0YXR1c1JlcXVlc3QSJAoHY2x1c3RlchgDIAEoCzITLmN0cmwudjEuQ2x1c3RlcktleRI/CgZ1cGRhdGUYASABKAsyLS5jdHJsLnYxLlJlcG9ydERlcGxveW1lbnRTdGF0dXNSZXF1ZXN0LlVwZGF0ZUgAEj8KBmRlbGV0ZRgCIAEoCzItLmN0cmwudjEuUmVwb3J0RGVwbG95bWVudFN0YXR1c1JlcXVlc3QuRGVsZXRlSAAa7QIKBlVwZGF0ZRIQCghrOHNfbmFtZRgBIAEoCRJJCglpbnN0YW5jZXMYAiADKAsyNi5jdHJsLnYxLlJlcG9ydERlcGxveW1lbnRTdGF0dXNSZXF1ZXN0LlVwZGF0ZS5JbnN0YW5jZRqFAgoISW5zdGFuY2USEAoIazhzX25hbWUYASABKAkSDwoHYWRkcmVzcxgCIAEoCRIWCg5jcHVfbWlsbGljb3JlcxgDIAEoAxISCgptZW1vcnlfbWliGAQgASgDEk0KBnN0YXR1cxgFIAEoDjI9LmN0cmwudjEuUmVwb3J0RGVwbG95bWVudFN0YXR1c1JlcXVlc3QuVXBkYXRlLkluc3RhbmNlLlN0YXR1cyJbCgZTdGF0dXMSFgoSU1RBVFVTX1VOU1BFQ0lGSUVEEAASEgoOU1RBVFVTX1BFTkRJTkcQARISCg5TVEFUVVNfUlVOTklORxACEhEKDVNUQVRVU19GQUlMRUQQAxoaCgZEZWxldGUSEAoIazhzX25hbWUYASABKAlCCAoGY2hhbmdlIiAKHlJlcG9ydERlcGxveW1lbnRTdGF0dXNSZXNwb25zZSKJBAoNSW5zdGFuY2VFdmVudBIPCgdwb2RfdWlkGAEgASgJEhAKCHBvZF9uYW1lGAIgASgJEhEKCW5vZGVfbmFtZRgDIAEoCRIWCg5jb250YWluZXJfbmFtZRgEIAEoCRIUCgxjb250YWluZXJfaWQYBSABKAkSFQoNcmVzdGFydF9jb3VudBgGIAEoBRIUCgx3b3Jrc3BhY2VfaWQYByABKAkSEgoKcHJvamVjdF9pZBgIIAEoCRIOCgZhcHBfaWQYCSABKAkSFgoOZW52aXJvbm1lbnRfaWQYCiABKAkSFQoNZGVwbG95bWVudF9pZBgLIAEoCRIMCgR0aW1lGAwgASgDEhkKEWV2ZW50X2ZpbmdlcnByaW50GA0gASgJEiMKB3J1bm5pbmcYDiABKAsyEC5jdHJsLnYxLlJ1bm5pbmdIABIpCgp0ZXJtaW5hdGVkGA8gASgLMhMuY3RybC52MS5UZXJtaW5hdGVkSAASIwoHd2FpdGluZxgQIAEoCzIQLmN0cmwudjEuV2FpdGluZ0gAEjoKCmF0dHJpYnV0ZXMYESADKAsyJi5jdHJsLnYxLkluc3RhbmNlRXZlbnQuQXR0cmlidXRlc0VudHJ5GjEKD0F0dHJpYnV0ZXNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBQgcKBXN0YXRlIgkKB1J1bm5pbmciUAoKVGVybWluYXRlZBIRCglleGl0X2NvZGUYASABKAUSDgoGc2lnbmFsGAIgASgFEg4KBnJlYXNvbhgDIAEoCRIPCgdtZXNzYWdlGAQgASgJIioKB1dhaXRpbmcSDgoGcmVhc29uGAEgASgJEg8KB21lc3NhZ2UYAiABKAkiawobUmVwb3J0SW5zdGFuY2VFdmVudHNSZXF1ZXN0EiYKBmV2ZW50cxgBIAMoCzIWLmN0cmwudjEuSW5zdGFuY2VFdmVudBIkCgdjbHVzdGVyGAIgASgLMhMuY3RybC52MS5DbHVzdGVyS2V5Ih4KHFJlcG9ydEluc3RhbmNlRXZlbnRzUmVzcG9uc2UicgoPRGVwbG95bWVudFN0YXRlEikKBWFwcGx5GAEgASgLMhguY3RybC52MS5BcHBseURlcGxveW1lbnRIABIrCgZkZWxldGUYAiABKAsyGS5jdHJsLnYxLkRlbGV0ZURlcGxveW1lbnRIAEIHCgVzdGF0ZSKXBgoPQXBwbHlEZXBsb3ltZW50EhUKDWs4c19uYW1lc3BhY2UYASABKAkSEAoIazhzX25hbWUYAiABKAkSFAoMd29ya3NwYWNlX2lkGAMgASgJEhIKCnByb2plY3RfaWQYBCABKAkSFgoOZW52aXJvbm1lbnRfaWQYBSABKAkSFQoNZGVwbG95bWVudF9pZBgGIAEoCRINCgVpbWFnZRgHIAEoCRIWCg5jcHVfbWlsbGljb3JlcxgJIAEoAxISCgptZW1vcnlfbWliGAogASgDEhUKCGJ1aWxkX2lkGAsgASgJSACIAQESJwofZW5jcnlwdGVkX2Vudmlyb25tZW50X3ZhcmlhYmxlcxgMIAEoDBIPCgdjb21tYW5kGA0gAygJEgwKBHBvcnQYDiABKAUSFwoPc2h1dGRvd25fc2lnbmFsGA8gASgJEhgKC2hlYWx0aGNoZWNrGBEgASgMSAGIAQESDgoGYXBwX2lkGBIgASgJEh0KEGVudmlyb25tZW50X3NsdWcYFSABKAlIAogBARITCgZyZWdpb24YFiABKAlIA4gBARIbCg5naXRfY29tbWl0X3NoYRgXIAEoCUgEiAEBEhcKCmdpdF9icmFuY2gYGCABKAlIBYgBARIVCghnaXRfcmVwbxgZIAEoCUgGiAEBEh8KEmdpdF9jb21taXRfbWVzc2FnZRgaIAEoCUgHiAEBEi8KC2F1dG9zY2FsaW5nGBsgASgLMhouY3RybC52MS5BdXRvc2NhbGluZ1BvbGljeRI5ChFlcGhlbWVyYWxfc3RvcmFnZRgdIAEoCzIZLmN0cmwudjEuRXBoZW1lcmFsU3RvcmFnZUgIiAEBQgsKCV9idWlsZF9pZEIOCgxfaGVhbHRoY2hlY2tCEwoRX2Vudmlyb25tZW50X3NsdWdCCQoHX3JlZ2lvbkIRCg9fZ2l0X2NvbW1pdF9zaGFCDQoLX2dpdF9icmFuY2hCCwoJX2dpdF9yZXBvQhUKE19naXRfY29tbWl0X21lc3NhZ2VCFAoSX2VwaGVtZXJhbF9zdG9yYWdlIqEBChFBdXRvc2NhbGluZ1BvbGljeRIUCgxtaW5fcmVwbGljYXMYASABKA0SFAoMbWF4X3JlcGxpY2FzGAIgASgNEhoKDWNwdV90aHJlc2hvbGQYAyABKAVIAIgBARIdChBtZW1vcnlfdGhyZXNob2xkGAQgASgFSAGIAQFCEAoOX2NwdV90aHJlc2hvbGRCEwoRX21lbW9yeV90aHJlc2hvbGQiOwoQRGVsZXRlRGVwbG95bWVudBIVCg1rOHNfbmFtZXNwYWNlGAEgASgJEhAKCGs4c19uYW1lGAIgASgJIjgKEEhlYXJ0YmVhdFJlcXVlc3QSJAoHY2x1c3RlchgBIAEoCzITLmN0cmwudjEuQ2x1c3RlcktleSITChFIZWFydGJlYXRSZXNwb25zZSpdCgZIZWFsdGgSFgoSSEVBTFRIX1VOU1BFQ0lGSUVEEAASEgoOSEVBTFRIX0hFQUxUSFkQARIUChBIRUFMVEhfVU5IRUFMVEhZEAISEQoNSEVBTFRIX1BBVVNFRBADMsIECg5DbHVzdGVyU2VydmljZRJiChZXYXRjaERlcGxveW1lbnRDaGFuZ2VzEiYuY3RybC52MS5XYXRjaERlcGxveW1lbnRDaGFuZ2VzUmVxdWVzdBoeLmN0cmwudjEuRGVwbG95bWVudENoYW5nZUV2ZW50MAESVgoQU3luY0Rlc2lyZWRTdGF0ZRIgLmN0cmwudjEuU3luY0Rlc2lyZWRTdGF0ZVJlcXVlc3QaHi5jdHJsLnYxLkRlcGxveW1lbnRDaGFuZ2VFdmVudDABEmAKGUdldERlc2lyZWREZXBsb3ltZW50U3RhdGUSKS5jdHJsLnYxLkdldERlc2lyZWREZXBsb3ltZW50U3RhdGVSZXF1ZXN0GhguY3RybC52MS5EZXBsb3ltZW50U3RhdGUSaQoWUmVwb3J0RGVwbG95bWVudFN0YXR1cxImLmN0cmwudjEuUmVwb3J0RGVwbG95bWVudFN0YXR1c1JlcXVlc3QaJy5jdHJsLnYxLlJlcG9ydERlcGxveW1lbnRTdGF0dXNSZXNwb25zZRJjChRSZXBvcnRJbnN0YW5jZUV2ZW50cxIkLmN0cmwudjEuUmVwb3J0SW5zdGFuY2VFdmVudHNSZXF1ZXN0GiUuY3RybC52MS5SZXBvcnRJbnN0YW5jZUV2ZW50c1Jlc3BvbnNlEkIKCUhlYXJ0YmVhdBIZLmN0cmwudjEuSGVhcnRiZWF0UmVxdWVzdBoaLmN0cmwudjEuSGVhcnRiZWF0UmVzcG9uc2VCiwEKC2NvbS5jdHJsLnYxQgxDbHVzdGVyUHJvdG9QAVoxZ2l0aHViLmNvbS91bmtleWVkL3Vua2V5L2dlbi9wcm90by9jdHJsL3YxO2N0cmx2MaICA0NYWKoCB0N0cmwuVjHKAgdDdHJsXFYx4gITQ3RybFxWMVxHUEJNZXRhZGF0YeoCCEN0cmw6OlYxYgZwcm90bzM", [file_ctrl_v1_deployment]);
+  fileDesc("ChVjdHJsL3YxL2NsdXN0ZXIucHJvdG8SB2N0cmwudjEiPwoKQ2x1c3RlcktleRIQCghwbGF0Zm9ybRgBIAEoCRIOCgZyZWdpb24YAiABKAkSDwoHY2VsbF9pZBgDIAEoCSJrCh1XYXRjaERlcGxveW1lbnRDaGFuZ2VzUmVxdWVzdBIkCgdjbHVzdGVyGAEgASgLMhMuY3RybC52MS5DbHVzdGVyS2V5Eg4KBnJlcGxheRgCIAEoCBIUCgxyZXN1bWVfdG9rZW4YAyABKAwiPwoXU3luY0Rlc2lyZWRTdGF0ZVJlcXVlc3QSJAoHY2x1c3RlchgBIAEoCzITLmN0cmwudjEuQ2x1c3RlcktleSJmChVEZXBsb3ltZW50Q2hhbmdlRXZlbnQSLgoKZGVwbG95bWVudBgBIAEoCzIYLmN0cmwudjEuRGVwbG95bWVudFN0YXRlSAASFAoMcmVzdW1lX3Rva2VuGAIgASgMQgcKBWV2ZW50Il8KIEdldERlc2lyZWREZXBsb3ltZW50U3RhdGVSZXF1ZXN0EiQKB2NsdXN0ZXIYASABKAsyEy5jdHJsLnYxLkNsdXN0ZXJLZXkSFQoNZGVwbG95bWVudF9pZBgCIAEoCSKbBQodUmVwb3J0RGVwbG95bWVudFN0YXR1c1JlcXVlc3QSJAoHY2x1c3RlchgDIAEoCzITLmN0cmwudjEuQ2x1c3RlcktleRI/CgZ1cGRhdGUYASABKAsyLS5jdHJsLnYxLlJlcG9ydERlcGxveW1lbnRTdGF0dXNSZXF1ZXN0LlVwZGF0ZUgAEj8KBmRlbGV0ZRgCIAEoCzItLmN0cmwudjEuUmVwb3J0RGVwbG95bWVudFN0YXR1c1JlcXVlc3QuRGVsZXRlSAAaqwMKBlVwZGF0ZRIQCghrOHNfbmFtZRgBIAEoCRJJCglpbnN0YW5jZXMYAiADKAsyNi5jdHJsLnYxLlJlcG9ydERlcGxveW1lbnRTdGF0dXNSZXF1ZXN0LlVwZGF0ZS5JbnN0YW5jZRrDAgoISW5zdGFuY2USEAoIazhzX25hbWUYASABKAkSDwoHYWRkcmVzcxgCIAEoCRIWCg5jcHVfbWlsbGljb3JlcxgDIAEoAxISCgptZW1vcnlfbWliGAQgASgDEk0KBnN0YXR1cxgFIAEoDjI9LmN0cmwudjEuUmVwb3J0RGVwbG95bWVudFN0YXR1c1JlcXVlc3QuVXBkYXRlLkluc3RhbmNlLlN0YXR1cxI8ChVjb250YWluZXJfb2JzZXJ2YXRpb24YBiABKAsyHS5jdHJsLnYxLkNvbnRhaW5lck9ic2VydmF0aW9uIlsKBlN0YXR1cxIWChJTVEFUVVNfVU5TUEVDSUZJRUQQABISCg5TVEFUVVNfUEVORElORxABEhIKDlNUQVRVU19SVU5OSU5HEAISEQoNU1RBVFVTX0ZBSUxFRBADGhoKBkRlbGV0ZRIQCghrOHNfbmFtZRgBIAEoCUIICgZjaGFuZ2UiIAoeUmVwb3J0RGVwbG95bWVudFN0YXR1c1Jlc3BvbnNlIrwBChRDb250YWluZXJPYnNlcnZhdGlvbhIVCg1yZXN0YXJ0X2NvdW50GAEgASgFEh0KFW9ic2VydmVkX2F0X3VuaXhfbmFubxgCIAEoAxIhCgd3YWl0aW5nGAMgASgLMhAuY3RybC52MS5XYWl0aW5nEikKDGxhc3RfZmFpbHVyZRgEIAEoCzITLmN0cmwudjEuVGVybWluYXRlZBIgChhsYXN0X2ZhaWx1cmVfZmluaXNoZWRfYXQYBSABKAMiiQQKDUluc3RhbmNlRXZlbnQSDwoHcG9kX3VpZBgBIAEoCRIQCghwb2RfbmFtZRgCIAEoCRIRCglub2RlX25hbWUYAyABKAkSFgoOY29udGFpbmVyX25hbWUYBCABKAkSFAoMY29udGFpbmVyX2lkGAUgASgJEhUKDXJlc3RhcnRfY291bnQYBiABKAUSFAoMd29ya3NwYWNlX2lkGAcgASgJEhIKCnByb2plY3RfaWQYCCABKAkSDgoGYXBwX2lkGAkgASgJEhYKDmVudmlyb25tZW50X2lkGAogASgJEhUKDWRlcGxveW1lbnRfaWQYCyABKAkSDAoEdGltZRgMIAEoAxIZChFldmVudF9maW5nZXJwcmludBgNIAEoCRIjCgdydW5uaW5nGA4gASgLMhAuY3RybC52MS5SdW5uaW5nSAASKQoKdGVybWluYXRlZBgPIAEoCzITLmN0cmwudjEuVGVybWluYXRlZEgAEiMKB3dhaXRpbmcYECABKAsyEC5jdHJsLnYxLldhaXRpbmdIABI6CgphdHRyaWJ1dGVzGBEgAygLMiYuY3RybC52MS5JbnN0YW5jZUV2ZW50LkF0dHJpYnV0ZXNFbnRyeRoxCg9BdHRyaWJ1dGVzRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4AUIHCgVzdGF0ZSIJCgdSdW5uaW5nIlAKClRlcm1pbmF0ZWQSEQoJZXhpdF9jb2RlGAEgASgFEg4KBnNpZ25hbBgCIAEoBRIOCgZyZWFzb24YAyABKAkSDwoHbWVzc2FnZRgEIAEoCSIqCgdXYWl0aW5nEg4KBnJlYXNvbhgBIAEoCRIPCgdtZXNzYWdlGAIgASgJImsKG1JlcG9ydEluc3RhbmNlRXZlbnRzUmVxdWVzdBImCgZldmVudHMYASADKAsyFi5jdHJsLnYxLkluc3RhbmNlRXZlbnQSJAoHY2x1c3RlchgCIAEoCzITLmN0cmwudjEuQ2x1c3RlcktleSIeChxSZXBvcnRJbnN0YW5jZUV2ZW50c1Jlc3BvbnNlInIKD0RlcGxveW1lbnRTdGF0ZRIpCgVhcHBseRgBIAEoCzIYLmN0cmwudjEuQXBwbHlEZXBsb3ltZW50SAASKwoGZGVsZXRlGAIgASgLMhkuY3RybC52MS5EZWxldGVEZXBsb3ltZW50SABCBwoFc3RhdGUilwYKD0FwcGx5RGVwbG95bWVudBIVCg1rOHNfbmFtZXNwYWNlGAEgASgJEhAKCGs4c19uYW1lGAIgASgJEhQKDHdvcmtzcGFjZV9pZBgDIAEoCRISCgpwcm9qZWN0X2lkGAQgASgJEhYKDmVudmlyb25tZW50X2lkGAUgASgJEhUKDWRlcGxveW1lbnRfaWQYBiABKAkSDQoFaW1hZ2UYByABKAkSFgoOY3B1X21pbGxpY29yZXMYCSABKAMSEgoKbWVtb3J5X21pYhgKIAEoAxIVCghidWlsZF9pZBgLIAEoCUgAiAEBEicKH2VuY3J5cHRlZF9lbnZpcm9ubWVudF92YXJpYWJsZXMYDCABKAwSDwoHY29tbWFuZBgNIAMoCRIMCgRwb3J0GA4gASgFEhcKD3NodXRkb3duX3NpZ25hbBgPIAEoCRIYCgtoZWFsdGhjaGVjaxgRIAEoDEgBiAEBEg4KBmFwcF9pZBgSIAEoCRIdChBlbnZpcm9ubWVudF9zbHVnGBUgASgJSAKIAQESEwoGcmVnaW9uGBYgASgJSAOIAQESGwoOZ2l0X2NvbW1pdF9zaGEYFyABKAlIBIgBARIXCgpnaXRfYnJhbmNoGBggASgJSAWIAQESFQoIZ2l0X3JlcG8YGSABKAlIBogBARIfChJnaXRfY29tbWl0X21lc3NhZ2UYGiABKAlIB4gBARIvCgthdXRvc2NhbGluZxgbIAEoCzIaLmN0cmwudjEuQXV0b3NjYWxpbmdQb2xpY3kSOQoRZXBoZW1lcmFsX3N0b3JhZ2UYHSABKAsyGS5jdHJsLnYxLkVwaGVtZXJhbFN0b3JhZ2VICIgBAUILCglfYnVpbGRfaWRCDgoMX2hlYWx0aGNoZWNrQhMKEV9lbnZpcm9ubWVudF9zbHVnQgkKB19yZWdpb25CEQoPX2dpdF9jb21taXRfc2hhQg0KC19naXRfYnJhbmNoQgsKCV9naXRfcmVwb0IVChNfZ2l0X2NvbW1pdF9tZXNzYWdlQhQKEl9lcGhlbWVyYWxfc3RvcmFnZSKhAQoRQXV0b3NjYWxpbmdQb2xpY3kSFAoMbWluX3JlcGxpY2FzGAEgASgNEhQKDG1heF9yZXBsaWNhcxgCIAEoDRIaCg1jcHVfdGhyZXNob2xkGAMgASgFSACIAQESHQoQbWVtb3J5X3RocmVzaG9sZBgEIAEoBUgBiAEBQhAKDl9jcHVfdGhyZXNob2xkQhMKEV9tZW1vcnlfdGhyZXNob2xkIjsKEERlbGV0ZURlcGxveW1lbnQSFQoNazhzX25hbWVzcGFjZRgBIAEoCRIQCghrOHNfbmFtZRgCIAEoCSI4ChBIZWFydGJlYXRSZXF1ZXN0EiQKB2NsdXN0ZXIYASABKAsyEy5jdHJsLnYxLkNsdXN0ZXJLZXkiEwoRSGVhcnRiZWF0UmVzcG9uc2UqXQoGSGVhbHRoEhYKEkhFQUxUSF9VTlNQRUNJRklFRBAAEhIKDkhFQUxUSF9IRUFMVEhZEAESFAoQSEVBTFRIX1VOSEVBTFRIWRACEhEKDUhFQUxUSF9QQVVTRUQQAzLCBAoOQ2x1c3RlclNlcnZpY2USYgoWV2F0Y2hEZXBsb3ltZW50Q2hhbmdlcxImLmN0cmwudjEuV2F0Y2hEZXBsb3ltZW50Q2hhbmdlc1JlcXVlc3QaHi5jdHJsLnYxLkRlcGxveW1lbnRDaGFuZ2VFdmVudDABElYKEFN5bmNEZXNpcmVkU3RhdGUSIC5jdHJsLnYxLlN5bmNEZXNpcmVkU3RhdGVSZXF1ZXN0Gh4uY3RybC52MS5EZXBsb3ltZW50Q2hhbmdlRXZlbnQwARJgChlHZXREZXNpcmVkRGVwbG95bWVudFN0YXRlEikuY3RybC52MS5HZXREZXNpcmVkRGVwbG95bWVudFN0YXRlUmVxdWVzdBoYLmN0cmwudjEuRGVwbG95bWVudFN0YXRlEmkKFlJlcG9ydERlcGxveW1lbnRTdGF0dXMSJi5jdHJsLnYxLlJlcG9ydERlcGxveW1lbnRTdGF0dXNSZXF1ZXN0GicuY3RybC52MS5SZXBvcnREZXBsb3ltZW50U3RhdHVzUmVzcG9uc2USYwoUUmVwb3J0SW5zdGFuY2VFdmVudHMSJC5jdHJsLnYxLlJlcG9ydEluc3RhbmNlRXZlbnRzUmVxdWVzdBolLmN0cmwudjEuUmVwb3J0SW5zdGFuY2VFdmVudHNSZXNwb25zZRJCCglIZWFydGJlYXQSGS5jdHJsLnYxLkhlYXJ0YmVhdFJlcXVlc3QaGi5jdHJsLnYxLkhlYXJ0YmVhdFJlc3BvbnNlQosBCgtjb20uY3RybC52MUIMQ2x1c3RlclByb3RvUAFaMWdpdGh1Yi5jb20vdW5rZXllZC91bmtleS9nZW4vcHJvdG8vY3RybC92MTtjdHJsdjGiAgNDWFiqAgdDdHJsLlYxygIHQ3RybFxWMeICE0N0cmxcVjFcR1BCTWV0YWRhdGHqAghDdHJsOjpWMWIGcHJvdG8z", [file_ctrl_v1_deployment]);
 
 /**
  * ClusterKey identifies an infrastructure cell on the wire. Every
@@ -249,6 +249,11 @@ export type ReportDeploymentStatusRequest_Update_Instance = Message<"ctrl.v1.Rep
    * @generated from field: ctrl.v1.ReportDeploymentStatusRequest.Update.Instance.Status status = 5;
    */
   status: ReportDeploymentStatusRequest_Update_Instance_Status;
+
+  /**
+   * @generated from field: ctrl.v1.ContainerObservation container_observation = 6;
+   */
+  containerObservation?: ContainerObservation;
 };
 
 /**
@@ -324,6 +329,46 @@ export type ReportDeploymentStatusResponse = Message<"ctrl.v1.ReportDeploymentSt
  */
 export const ReportDeploymentStatusResponseSchema: GenMessage<ReportDeploymentStatusResponse> = /*@__PURE__*/
   messageDesc(file_ctrl_v1_cluster, 6);
+
+/**
+ * Absence means unknown or an older producer, not a healthy container.
+ * A present observation with no waiting explicitly clears the previous waiting state.
+ *
+ * @generated from message ctrl.v1.ContainerObservation
+ */
+export type ContainerObservation = Message<"ctrl.v1.ContainerObservation"> & {
+  /**
+   * @generated from field: int32 restart_count = 1;
+   */
+  restartCount: number;
+
+  /**
+   * @generated from field: int64 observed_at_unix_nano = 2;
+   */
+  observedAtUnixNano: bigint;
+
+  /**
+   * @generated from field: ctrl.v1.Waiting waiting = 3;
+   */
+  waiting?: Waiting;
+
+  /**
+   * @generated from field: ctrl.v1.Terminated last_failure = 4;
+   */
+  lastFailure?: Terminated;
+
+  /**
+   * @generated from field: int64 last_failure_finished_at = 5;
+   */
+  lastFailureFinishedAt: bigint;
+};
+
+/**
+ * Describes the message ctrl.v1.ContainerObservation.
+ * Use `create(ContainerObservationSchema)` to create a new message.
+ */
+export const ContainerObservationSchema: GenMessage<ContainerObservation> = /*@__PURE__*/
+  messageDesc(file_ctrl_v1_cluster, 7);
 
 /**
  * InstanceEvent describes a single container lifecycle transition observed
@@ -461,7 +506,7 @@ export type InstanceEvent = Message<"ctrl.v1.InstanceEvent"> & {
  * Use `create(InstanceEventSchema)` to create a new message.
  */
 export const InstanceEventSchema: GenMessage<InstanceEvent> = /*@__PURE__*/
-  messageDesc(file_ctrl_v1_cluster, 7);
+  messageDesc(file_ctrl_v1_cluster, 8);
 
 /**
  * Running means the container is healthy and serving. The event itself
@@ -480,7 +525,7 @@ export type Running = Message<"ctrl.v1.Running"> & {
  * Use `create(RunningSchema)` to create a new message.
  */
 export const RunningSchema: GenMessage<Running> = /*@__PURE__*/
-  messageDesc(file_ctrl_v1_cluster, 8);
+  messageDesc(file_ctrl_v1_cluster, 9);
 
 /**
  * Terminated captures kubelet's ContainerStateTerminated. The container
@@ -528,7 +573,7 @@ export type Terminated = Message<"ctrl.v1.Terminated"> & {
  * Use `create(TerminatedSchema)` to create a new message.
  */
 export const TerminatedSchema: GenMessage<Terminated> = /*@__PURE__*/
-  messageDesc(file_ctrl_v1_cluster, 9);
+  messageDesc(file_ctrl_v1_cluster, 10);
 
 /**
  * Waiting captures kubelet's ContainerStateWaiting. Krane currently only
@@ -557,7 +602,7 @@ export type Waiting = Message<"ctrl.v1.Waiting"> & {
  * Use `create(WaitingSchema)` to create a new message.
  */
 export const WaitingSchema: GenMessage<Waiting> = /*@__PURE__*/
-  messageDesc(file_ctrl_v1_cluster, 10);
+  messageDesc(file_ctrl_v1_cluster, 11);
 
 /**
  * ReportInstanceEventsRequest carries one or more events from a single krane
@@ -586,7 +631,7 @@ export type ReportInstanceEventsRequest = Message<"ctrl.v1.ReportInstanceEventsR
  * Use `create(ReportInstanceEventsRequestSchema)` to create a new message.
  */
 export const ReportInstanceEventsRequestSchema: GenMessage<ReportInstanceEventsRequest> = /*@__PURE__*/
-  messageDesc(file_ctrl_v1_cluster, 11);
+  messageDesc(file_ctrl_v1_cluster, 12);
 
 /**
  * @generated from message ctrl.v1.ReportInstanceEventsResponse
@@ -599,7 +644,7 @@ export type ReportInstanceEventsResponse = Message<"ctrl.v1.ReportInstanceEvents
  * Use `create(ReportInstanceEventsResponseSchema)` to create a new message.
  */
 export const ReportInstanceEventsResponseSchema: GenMessage<ReportInstanceEventsResponse> = /*@__PURE__*/
-  messageDesc(file_ctrl_v1_cluster, 12);
+  messageDesc(file_ctrl_v1_cluster, 13);
 
 /**
  * DeploymentState represents a lifecycle event for an application deployment.
@@ -644,7 +689,7 @@ export type DeploymentState = Message<"ctrl.v1.DeploymentState"> & {
  * Use `create(DeploymentStateSchema)` to create a new message.
  */
 export const DeploymentStateSchema: GenMessage<DeploymentState> = /*@__PURE__*/
-  messageDesc(file_ctrl_v1_cluster, 13);
+  messageDesc(file_ctrl_v1_cluster, 14);
 
 /**
  * ApplyDeployment contains the desired configuration for a deployment.
@@ -831,7 +876,7 @@ export type ApplyDeployment = Message<"ctrl.v1.ApplyDeployment"> & {
  * Use `create(ApplyDeploymentSchema)` to create a new message.
  */
 export const ApplyDeploymentSchema: GenMessage<ApplyDeployment> = /*@__PURE__*/
-  messageDesc(file_ctrl_v1_cluster, 14);
+  messageDesc(file_ctrl_v1_cluster, 15);
 
 /**
  * AutoscalingPolicy configures horizontal pod autoscaling for a deployment.
@@ -876,7 +921,7 @@ export type AutoscalingPolicy = Message<"ctrl.v1.AutoscalingPolicy"> & {
  * Use `create(AutoscalingPolicySchema)` to create a new message.
  */
 export const AutoscalingPolicySchema: GenMessage<AutoscalingPolicy> = /*@__PURE__*/
-  messageDesc(file_ctrl_v1_cluster, 15);
+  messageDesc(file_ctrl_v1_cluster, 16);
 
 /**
  * DeleteDeployment identifies a ReplicaSet to remove by namespace and name.
@@ -900,7 +945,7 @@ export type DeleteDeployment = Message<"ctrl.v1.DeleteDeployment"> & {
  * Use `create(DeleteDeploymentSchema)` to create a new message.
  */
 export const DeleteDeploymentSchema: GenMessage<DeleteDeployment> = /*@__PURE__*/
-  messageDesc(file_ctrl_v1_cluster, 16);
+  messageDesc(file_ctrl_v1_cluster, 17);
 
 /**
  * HeartbeatRequest is sent periodically by krane agents to register their
@@ -921,7 +966,7 @@ export type HeartbeatRequest = Message<"ctrl.v1.HeartbeatRequest"> & {
  * Use `create(HeartbeatRequestSchema)` to create a new message.
  */
 export const HeartbeatRequestSchema: GenMessage<HeartbeatRequest> = /*@__PURE__*/
-  messageDesc(file_ctrl_v1_cluster, 17);
+  messageDesc(file_ctrl_v1_cluster, 18);
 
 /**
  * @generated from message ctrl.v1.HeartbeatResponse
@@ -934,7 +979,7 @@ export type HeartbeatResponse = Message<"ctrl.v1.HeartbeatResponse"> & {
  * Use `create(HeartbeatResponseSchema)` to create a new message.
  */
 export const HeartbeatResponseSchema: GenMessage<HeartbeatResponse> = /*@__PURE__*/
-  messageDesc(file_ctrl_v1_cluster, 18);
+  messageDesc(file_ctrl_v1_cluster, 19);
 
 /**
  * Health represents the health state of a resource (deployment instance, etc.)
