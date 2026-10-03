@@ -147,6 +147,7 @@
                 "pages": [
                   "platform/workspace/overview",
                   "platform/workspace/settings",
+                  "platform/workspace/flags",
                   "platform/workspace/log-drains",
                   "platform/workspace/team",
                   "platform/workspace/two-factor-auth"
