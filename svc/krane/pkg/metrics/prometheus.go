@@ -260,6 +260,101 @@ var (
 			Help:      "ReportInstanceEvents RPC transport failures.",
 		},
 	)
+
+	// PrivateNetworkLeader is 1 while this Krane holds the private network
+	// Lease and publishes discovery objects, and 0 otherwise. Krane only
+	// exports it when private networking is enabled. A cluster whose Krane
+	// replicas all report 0 publishes nothing, so bindings stop following
+	// deployments.
+	PrivateNetworkLeader = lazy.NewGauge(
+		prometheus.GaugeOpts{
+			Namespace: "unkey",
+			Subsystem: "krane",
+			Name:      "private_network_leader",
+			Help:      "Whether this Krane holds the private network Lease.",
+		},
+	)
+
+	// PrivateNetworkLastCompletedPassUnixSeconds records when a private
+	// network loop last processed its whole input. A discovery pass completes
+	// when it read a complete snapshot and attempted every entry, even if some
+	// entries failed; an endpoint pass completes when it attempted every
+	// discovery Service. Both loops run every 5 seconds on the leader,
+	// including when there is nothing to publish, so a stale value means the
+	// loop aborts or no replica leads. Only the leader exports it, starting at
+	// 0 when it acquires the Lease, so a leader that never completes a pass
+	// reports a stale value instead of no series.
+	//
+	// Labels:
+	//   - "loop": "discovery" or "endpoints"
+	PrivateNetworkLastCompletedPassUnixSeconds = lazy.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Namespace: "unkey",
+			Subsystem: "krane",
+			Name:      "private_network_last_completed_pass_unix_seconds",
+			Help:      "Unix time when a private network loop last processed its whole input.",
+		},
+		[]string{"loop"},
+	)
+
+	// PrivateNetworkPassDurationSeconds measures private network passes,
+	// complete or not. Each pass has a 30 second deadline, so durations near
+	// it explain deadline errors.
+	//
+	// Labels:
+	//   - "loop": "discovery" or "endpoints"
+	PrivateNetworkPassDurationSeconds = lazy.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Namespace: "unkey",
+			Subsystem: "krane",
+			Name:      "private_network_pass_duration_seconds",
+			Help:      "Duration of private network reconciliation passes.",
+			Buckets:   []float64{0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10, 20, 30},
+		},
+		[]string{"loop"},
+	)
+
+	// PrivateNetworkErrorsTotal counts private network failures by the step
+	// that failed. "list" and "snapshot" abort the pass; the other stages fail
+	// one entry or Service, which keeps its previously published objects.
+	//
+	// Labels:
+	//   - "loop": "discovery" or "endpoints"
+	//   - "stage": "list" (Kubernetes reads), "snapshot" (Ctrl stream),
+	//     "invalid_entry" (Ctrl sent an entry Krane can't publish),
+	//     "namespace", "service", "endpoint_slice", "policy", "binding", or
+	//     "cleanup" (revoking objects missing from the snapshot)
+	PrivateNetworkErrorsTotal = lazy.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: "unkey",
+			Subsystem: "krane",
+			Name:      "private_network_errors_total",
+			Help:      "Private network reconciliation failures by loop and failed step.",
+		},
+		[]string{"loop", "stage"},
+	)
+
+	// PrivateNetworkEntries counts the entries of the last complete snapshot
+	// by kind and publication state. Unresolved bindings are normal for
+	// preview callers without a matching target, so their count alone is not
+	// a failure.
+	//
+	// Labels:
+	//   - "kind": "binding" (a directed app binding) or "replica" (a
+	//     deployment's own replicas)
+	//   - "state": "current" (published target matches Ctrl),
+	//     "waiting_for_endpoints" (the new target has no ready endpoints, so
+	//     the previous target stays published), "unresolved" (Ctrl selected
+	//     no target), or "failed" (publication failed; previous objects kept)
+	PrivateNetworkEntries = lazy.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Namespace: "unkey",
+			Subsystem: "krane",
+			Name:      "private_network_entries",
+			Help:      "Entries of the last complete private network snapshot by kind and publication state.",
+		},
+		[]string{"kind", "state"},
+	)
 )
 
 // RecordReconcile records a reconciliation operation result. Intended for use

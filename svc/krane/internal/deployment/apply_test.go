@@ -2,6 +2,7 @@ package deployment
 
 import (
 	"encoding/json"
+	"errors"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -9,6 +10,9 @@ import (
 	dbtype "github.com/unkeyed/unkey/pkg/db/types"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/kubernetes/fake"
+	ktesting "k8s.io/client-go/testing"
 )
 
 // Sentinel values for every ApplyDeployment field. Each is distinctive so the
@@ -27,7 +31,8 @@ const (
 	testPort             = int32(8080)
 	testShutdownSignal   = "SIGINT"
 	testAppID            = "app_sentinel"
-	testEnvironmentSlug  = "production"
+	testEnvironmentSlug  = "preview"
+	testEnvironmentKind  = "preview"
 	testRegion           = "us-east-1"
 	testGitCommitSha     = "abc123sha"
 	testGitBranch        = "main-sentinel"
@@ -73,6 +78,7 @@ func fullApplyRequest(t *testing.T) *ctrlv1.ApplyDeployment {
 		Healthcheck:                   hc,
 		AppId:                         testAppID,
 		EnvironmentSlug:               new(testEnvironmentSlug),
+		EnvironmentKind:               testEnvironmentKind,
 		Region:                        new(testRegion),
 		GitCommitSha:                  new(testGitCommitSha),
 		GitBranch:                     new(testGitBranch),
@@ -198,6 +204,9 @@ var fieldAssertions = map[string]func(t *testing.T, rs *appsv1.ReplicaSet){
 		require.True(t, ok)
 		require.Equal(t, testEnvironmentSlug, v)
 	},
+	"environment_kind": func(t *testing.T, rs *appsv1.ReplicaSet) {
+		require.Equal(t, testEnvironmentKind, rs.Labels["unkey.com/environment.kind"])
+	},
 	"region": func(t *testing.T, rs *appsv1.ReplicaSet) {
 		v, ok := envValue(mainContainer(t, rs), "UNKEY_REGION")
 		require.True(t, ok)
@@ -244,7 +253,8 @@ var fieldAssertions = map[string]func(t *testing.T, rs *appsv1.ReplicaSet){
 // fieldsRenderedElsewhere lists proto fields that intentionally do not surface
 // in the ReplicaSet, with the reason.
 var fieldsRenderedElsewhere = map[string]string{
-	"autoscaling": "rendered into a HorizontalPodAutoscaler by ensureHPAExists, not the ReplicaSet",
+	"autoscaling":                  "rendered into a HorizontalPodAutoscaler by ensureHPAExists, not the ReplicaSet",
+	"private_network_replica_host": "rendered only with a regional resolver; asserted by TestBuildReplicaSet_PrivateNetworkDNS",
 }
 
 // labelDeploymentIDKey returns the label key used for the deployment id by
@@ -328,4 +338,80 @@ func TestBuildReplicaSet_GvisorToggle(t *testing.T) {
 	c.disableGvisor = true
 	rs = c.buildReplicaSet(fullApplyRequest(t), true)
 	require.Nil(t, rs.Spec.Template.Spec.RuntimeClassName)
+}
+
+// TestBuildReplicaSet_PrivateNetworkDNS guarantees that a Pod resolves
+// through undns and receives its replica host only when the region runs a
+// resolver and Ctrl enrolled the workspace; every other Pod keeps cluster DNS.
+func TestBuildReplicaSet_PrivateNetworkDNS(t *testing.T) {
+	for _, tt := range []struct {
+		name       string
+		resolverIP string
+		host       string
+		wantDNS    bool
+	}{
+		{name: "enrolled_with_resolver", resolverIP: "10.0.0.53", host: "api.unkey.internal", wantDNS: true},
+		{name: "not_enrolled", resolverIP: "10.0.0.53", host: "", wantDNS: false},
+		{name: "no_resolver", resolverIP: "", host: "api.unkey.internal", wantDNS: false},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			controller := testController()
+			controller.privateNetworkResolverIP = tt.resolverIP
+			req := fullApplyRequest(t)
+			req.PrivateNetworkReplicaHost = tt.host
+
+			rs := controller.buildReplicaSet(req, false)
+			host, exists := envValue(mainContainer(t, rs), "UNKEY_DEPLOYMENT_HOST")
+			require.Equal(t, tt.wantDNS, exists)
+			if !tt.wantDNS {
+				require.NotEqual(t, corev1.DNSNone, rs.Spec.Template.Spec.DNSPolicy)
+				require.Nil(t, rs.Spec.Template.Spec.DNSConfig)
+				return
+			}
+			require.Equal(t, tt.host, host)
+			require.Equal(t, corev1.DNSNone, rs.Spec.Template.Spec.DNSPolicy)
+			require.Equal(t, []string{tt.resolverIP}, rs.Spec.Template.Spec.DNSConfig.Nameservers)
+			require.Equal(t, "ndots", rs.Spec.Template.Spec.DNSConfig.Options[0].Name)
+			require.Equal(t, new("1"), rs.Spec.Template.Spec.DNSConfig.Options[0].Value)
+		})
+	}
+}
+
+func TestApplyDeploymentValidatesEnvironmentKindBeforeKubernetes(t *testing.T) {
+	for _, test := range []struct {
+		name  string
+		kind  string
+		valid bool
+	}{
+		{name: "production", kind: "production", valid: true},
+		{name: "preview", kind: "preview", valid: true},
+		{name: "missing", kind: "", valid: false},
+		{name: "slug is not a kind", kind: "staging", valid: false},
+	} {
+		for _, resolver := range []string{"", "10.0.0.53"} {
+			t.Run(test.name+"/"+resolver, func(t *testing.T) {
+				unavailable := errors.New("namespace unavailable")
+				client := fake.NewClientset()
+				client.PrependReactor("create", "namespaces", func(ktesting.Action) (bool, runtime.Object, error) {
+					return true, nil, unavailable
+				})
+				controller := testController()
+				controller.clientSet = client
+				controller.privateNetworkResolverIP = resolver
+				req := fullApplyRequest(t)
+				req.EnvironmentKind = test.kind
+				req.PrivateNetworkReplicaHost = "api.unkey.internal"
+
+				err := controller.ApplyDeployment(t.Context(), req)
+				if test.valid {
+					require.ErrorIs(t, err, unavailable)
+					require.Len(t, client.Actions(), 1)
+					return
+				}
+
+				require.ErrorContains(t, err, "Environment kind must be production or preview")
+				require.Empty(t, client.Actions())
+			})
+		}
+	}
 }

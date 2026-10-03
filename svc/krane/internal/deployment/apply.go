@@ -36,6 +36,7 @@ import (
 // ApplyDeployment validates all required fields and returns an error if any are missing
 // or invalid: WorkspaceId, ProjectId, EnvironmentId, DeploymentId, K8sNamespace, K8sName,
 // and Image must be non-empty; CpuMillicores and MemoryMib must be > 0.
+// EnvironmentKind must be production or preview.
 //
 // The namespace is created automatically if it doesn't exist. After the
 // ReplicaSet is applied a CiliumNetworkPolicy is installed in the same
@@ -57,6 +58,7 @@ func (c *Controller) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeplo
 		assert.NotEmpty(req.GetWorkspaceId(), "Workspace ID is required"),
 		assert.NotEmpty(req.GetProjectId(), "Project ID is required"),
 		assert.NotEmpty(req.GetEnvironmentId(), "Environment ID is required"),
+		assert.True(req.GetEnvironmentKind() == "production" || req.GetEnvironmentKind() == "preview", "Environment kind must be production or preview"),
 		assert.NotEmpty(req.GetDeploymentId(), "Deployment ID is required"),
 		assert.NotEmpty(req.GetK8SNamespace(), "Namespace is required"),
 		assert.NotEmpty(req.GetK8SName(), "K8s CRD name is required"),
@@ -87,6 +89,10 @@ func (c *Controller) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeplo
 	hasSecrets := len(plaintext) > 0
 
 	desired := c.buildReplicaSet(req, hasSecrets)
+
+	if err := c.ensureCiliumNetworkPolicy(ctx, req, nil); err != nil {
+		return fmt.Errorf("failed to ensure cilium network policy before replicaset: %w", err)
+	}
 
 	// Create the Secret and ServiceAccount before the ReplicaSet so they
 	// exist by the time pods are scheduled. This prevents the
@@ -290,6 +296,20 @@ func (c *Controller) buildReplicaSet(req *ctrlv1.ApplyDeployment, hasSecrets boo
 		Tolerations:                  []corev1.Toleration{untrustedToleration},
 		TopologySpreadConstraints:    deploymentTopologySpread(req.GetDeploymentId()),
 		Containers:                   []corev1.Container{container},
+	}
+
+	if c.privateNetworkEnabled(req) {
+		podSpec.Containers[0].Env = append(podSpec.Containers[0].Env, corev1.EnvVar{
+			Name: "UNKEY_DEPLOYMENT_HOST", Value: req.GetPrivateNetworkReplicaHost(),
+		})
+		podSpec.DNSPolicy = corev1.DNSNone
+		podSpec.DNSConfig = &corev1.PodDNSConfig{
+			Nameservers: []string{c.privateNetworkResolverIP},
+			Options: []corev1.PodDNSConfigOption{{
+				Name:  "ndots",
+				Value: new("1"),
+			}},
+		}
 	}
 
 	if len(volumes) > 0 {
@@ -517,12 +537,17 @@ func buildPodDisruptionBudget(req *ctrlv1.ApplyDeployment, rs *appsv1.ReplicaSet
 	return pdb
 }
 
+func (c *Controller) privateNetworkEnabled(req *ctrlv1.ApplyDeployment) bool {
+	return c.privateNetworkResolverIP != "" && req.GetPrivateNetworkReplicaHost() != ""
+}
+
 func deploymentLabels(req *ctrlv1.ApplyDeployment) labels.Labels {
 	return labels.New().
 		WorkspaceID(req.GetWorkspaceId()).
 		ProjectID(req.GetProjectId()).
 		AppID(req.GetAppId()).
 		EnvironmentID(req.GetEnvironmentId()).
+		EnvironmentKind(req.GetEnvironmentKind()).
 		DeploymentID(req.GetDeploymentId()).
 		ManagedByKrane().
 		ComponentDeployment()
