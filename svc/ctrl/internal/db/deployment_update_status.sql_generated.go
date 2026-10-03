@@ -14,7 +14,12 @@ import (
 
 const updateDeploymentStatus = `-- name: UpdateDeploymentStatus :exec
 UPDATE deployments
-SET status = ?, updated_at = ?
+SET first_ready_at = COALESCE(first_ready_at, CASE
+        WHEN status IN ('ready', 'stopped') THEN COALESCE(updated_at, created_at)
+        WHEN ? = 'ready' THEN COALESCE(?, created_at)
+        ELSE NULL
+    END),
+    status = ?, updated_at = ?
 WHERE id = ?
 `
 
@@ -27,9 +32,20 @@ type UpdateDeploymentStatusParams struct {
 // UpdateDeploymentStatus
 //
 //	UPDATE deployments
-//	SET status = ?, updated_at = ?
+//	SET first_ready_at = COALESCE(first_ready_at, CASE
+//	        WHEN status IN ('ready', 'stopped') THEN COALESCE(updated_at, created_at)
+//	        WHEN ? = 'ready' THEN COALESCE(?, created_at)
+//	        ELSE NULL
+//	    END),
+//	    status = ?, updated_at = ?
 //	WHERE id = ?
 func (q *Queries) UpdateDeploymentStatus(ctx context.Context, arg UpdateDeploymentStatusParams) error {
-	_, err := q.db.ExecContext(ctx, updateDeploymentStatus, arg.Status, arg.UpdatedAt, arg.ID)
+	_, err := q.db.ExecContext(ctx, updateDeploymentStatus,
+		arg.Status,
+		arg.UpdatedAt,
+		arg.Status,
+		arg.UpdatedAt,
+		arg.ID,
+	)
 	return err
 }

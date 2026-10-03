@@ -208,6 +208,51 @@ production deploy request is rejected as a rename. Each pass must be present in
 Tightening to `NOT NULL` fails if the additive pass left NULLs behind, so
 backfill or clear the table before the drop pass.
 
+### Backfill additive columns before enabling readers
+
+When existing rows need a value in an additive column, use an idempotent,
+batched migration from `web/tools/migrate`. Run the migration against staging
+and production after the nullable column exists, but before you enable code that
+reads or validates the value. Confirm that the migration completes in each
+environment before continuing the rollout.
+
+Old application instances can keep writing rows without the new value during a
+rolling deployment. After every old writer has stopped, rerun the migration and
+confirm that no eligible rows remain. Only then enable readers, validation, or a
+follow-up `NOT NULL` constraint that depends on the backfill.
+
+For `deployments.first_ready_at`, run:
+
+```bash
+DRIZZLE_DATABASE_URL='<branch connection string>' \
+  mise exec -- pnpm --dir=web/tools/migrate deployment-first-ready-at
+```
+
+The migration preserves existing markers and fills only rows whose status is
+`ready`. It uses the deployment update time, with creation time as a fallback.
+These timestamps approximate a historical event that wasn't recorded.
+
+A successful finalizing step alone doesn't prove readiness: a concurrent stop
+can make the guarded ready update affect zero rows while finalizing completes
+without an error. The migration leaves non-ready rows unmarked and exits with
+an error if it finds successful finalizing history that needs review.
+
+Find those rows with:
+
+```sql
+SELECT d.id, d.status, d.updated_at, s.ended_at
+FROM deployments d
+JOIN deployment_steps s ON s.deployment_id = d.id
+WHERE d.first_ready_at IS NULL AND d.status <> 'ready'
+  AND s.step = 'finalizing' AND s.ended_at IS NOT NULL AND s.error IS NULL;
+```
+
+Resolve each ambiguous history before enabling readers. Backfill a non-ready
+row only with independent evidence of a ready transition. Leave never-ready
+rows NULL and record the review. Don't delete history or stamp an unproven row
+to clear this check: an incorrect marker can displace a valid preview target.
+If you can't establish readiness, keep the affected app's rollout blocked.
+
 <Warning>
   Route both passes through `staging`. Do not shortcut a branch straight into
   `main`, and do not skip `main` at the end of the additive pass.

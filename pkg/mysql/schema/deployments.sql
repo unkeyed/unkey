@@ -32,6 +32,7 @@ CREATE TABLE `deployments` (
 	`github_deployment_id` bigint,
 	`invocation_id` varchar(256),
 	`status` enum('pending','starting','building','deploying','network','finalizing','ready','failed','skipped','awaiting_approval','stopped','superseded','cancelled') NOT NULL DEFAULT 'pending',
+	`first_ready_at` bigint,
 	`trigger` enum('unknown','github','api','cli','dashboard','unkey') NOT NULL DEFAULT 'unknown',
 	`triggered_by` varchar(256),
 	`trigger_reason` varchar(512),

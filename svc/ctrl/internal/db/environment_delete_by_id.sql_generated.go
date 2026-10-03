@@ -10,12 +10,18 @@ import (
 )
 
 const deleteEnvironmentById = `-- name: DeleteEnvironmentById :exec
-DELETE FROM environments WHERE id = ?
+DELETE e, b
+FROM environments e
+LEFT JOIN app_bindings b ON b.environment_id = e.id
+WHERE e.id = ?
 `
 
 // DeleteEnvironmentById
 //
-//	DELETE FROM environments WHERE id = ?
+//	DELETE e, b
+//	FROM environments e
+//	LEFT JOIN app_bindings b ON b.environment_id = e.id
+//	WHERE e.id = ?
 func (q *Queries) DeleteEnvironmentById(ctx context.Context, id string) error {
 	_, err := q.db.ExecContext(ctx, deleteEnvironmentById, id)
 	return err

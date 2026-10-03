@@ -12,13 +12,13 @@ import (
 
 const hasNewerActiveDeployment = `-- name: HasNewerActiveDeployment :one
 SELECT EXISTS (
-    SELECT 1 FROM deployments
-    WHERE app_id = ?
-      AND environment_id = ?
-      AND git_branch <=> ?
-      AND status NOT IN ('failed', 'skipped', 'stopped', 'superseded', 'cancelled')
-      AND created_at > ?
-      AND id != ?
+    SELECT 1 FROM deployments d
+    WHERE d.app_id = ?
+      AND d.environment_id = ?
+      AND d.git_branch <=> ?
+      AND d.status NOT IN ('failed', 'skipped', 'stopped', 'superseded', 'cancelled')
+      AND d.created_at > ?
+      AND d.id != ?
 ) AS has_newer
 `
 
@@ -41,13 +41,13 @@ type HasNewerActiveDeploymentParams struct {
 // bypass the guardrail for non-git apps.
 //
 //	SELECT EXISTS (
-//	    SELECT 1 FROM deployments
-//	    WHERE app_id = ?
-//	      AND environment_id = ?
-//	      AND git_branch <=> ?
-//	      AND status NOT IN ('failed', 'skipped', 'stopped', 'superseded', 'cancelled')
-//	      AND created_at > ?
-//	      AND id != ?
+//	    SELECT 1 FROM deployments d
+//	    WHERE d.app_id = ?
+//	      AND d.environment_id = ?
+//	      AND d.git_branch <=> ?
+//	      AND d.status NOT IN ('failed', 'skipped', 'stopped', 'superseded', 'cancelled')
+//	      AND d.created_at > ?
+//	      AND d.id != ?
 //	) AS has_newer
 func (q *Queries) HasNewerActiveDeployment(ctx context.Context, arg HasNewerActiveDeploymentParams) (bool, error) {
 	row := q.db.QueryRowContext(ctx, hasNewerActiveDeployment,
