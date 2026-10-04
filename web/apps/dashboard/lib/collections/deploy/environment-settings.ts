@@ -10,6 +10,7 @@ import { toast } from "@unkey/ui";
 import { useSyncExternalStore } from "react";
 import { z } from "zod";
 import { queryClient } from "../client";
+import type { Deployment } from "./deployments";
 import { extractStringFilter } from "./utils";
 
 const healthcheckSchema = z
@@ -338,16 +339,11 @@ async function dispatchSettingsMutations(
   await trackSave(mutation);
 }
 
-/**
- * Store for tracking in-flight and completed collection saves.
- *
- * Shared by environment-settings and env-vars collections so the
- * pending-redeploy banner reacts to mutations from either source.
- */
 const saveStore = {
   pendingSaves: 0,
   savedCount: 0,
   dismissedAtCount: 0,
+  target: null as SettingsBannerTarget | null,
   listeners: new Set<() => void>(),
   notify() {
     for (const cb of this.listeners) {
@@ -371,9 +367,8 @@ export function trackSave<T>(promise: Promise<T>): Promise<T> {
   saveStore.notify();
   return promise.then(
     (result) => {
-      saveStore.savedCount++;
       saveStore.pendingSaves--;
-      saveStore.notify();
+      showSettingsBanner();
       return result;
     },
     (err) => {
@@ -381,6 +376,24 @@ export function trackSave<T>(promise: Promise<T>): Promise<T> {
       saveStore.notify();
       throw err;
     },
+  );
+}
+
+type SettingsBannerTarget = {
+  deployment: Pick<Deployment, "id" | "projectId" | "appId" | "environmentId">;
+  environmentSlug: string;
+};
+
+export function showSettingsBanner(target: SettingsBannerTarget | null = null): void {
+  saveStore.target = target;
+  saveStore.savedCount++;
+  saveStore.notify();
+}
+
+export function useSettingsBannerTarget(): SettingsBannerTarget | null {
+  return useSyncExternalStore(
+    (cb) => saveStore.subscribe(cb),
+    () => saveStore.target,
   );
 }
 
@@ -400,6 +413,8 @@ export function useSettingsBannerVisible(): boolean {
 }
 
 /** Dismisses the pending-redeploy banner until a new save occurs. */
-export function dismissSettingsBanner(): void {
-  saveStore.dismiss();
+export function dismissSettingsBanner(target = saveStore.target): void {
+  if (target === saveStore.target) {
+    saveStore.dismiss();
+  }
 }
