@@ -288,9 +288,6 @@ func TestForwardRetriesTruncatedUDPOverTCPAndStripsClientOptions(t *testing.T) {
 	}
 }
 
-// TestForwardStopsWhenServerShutsDown guarantees that shutdown cancels
-// in-flight upstream forwards instead of holding their forward slots until
-// forward_timeout expires.
 func TestForwardStopsWhenServerShutsDown(t *testing.T) {
 	upstream, err := net.ListenPacket("udp", "127.0.0.1:0")
 	require.NoError(t, err)
