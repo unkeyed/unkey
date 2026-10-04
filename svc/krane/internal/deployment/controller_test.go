@@ -9,10 +9,12 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/cache"
+	"github.com/unkeyed/unkey/svc/krane/internal/cilium"
 	"github.com/unkeyed/unkey/svc/krane/internal/testutil"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/watch"
 	fakedynamic "k8s.io/client-go/dynamic/fake"
 	"k8s.io/client-go/kubernetes/fake"
@@ -76,7 +78,10 @@ func TestRunStopsWatchAndResyncLoops(t *testing.T) {
 			return true, w, nil
 		})
 
-		ctrl := New(Config{ClientSet: client})
+		dynamicClient := fakedynamic.NewSimpleDynamicClientWithCustomListKinds(runtime.NewScheme(), map[schema.GroupVersionResource]string{
+			cilium.NetworkPolicyResource: "CiliumNetworkPolicyList",
+		})
+		ctrl := New(Config{ClientSet: client, DynamicClient: dynamicClient})
 		ctx, cancel := context.WithCancel(t.Context())
 		defer cancel()
 
