@@ -1,0 +1,115 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: undns
+  namespace: unkey
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: undns
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "services", "configmaps"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["discovery.k8s.io"]
+    resources: ["endpointslices"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: undns
+subjects:
+  - kind: ServiceAccount
+    name: undns
+    namespace: unkey
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: undns
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: undns-config
+  namespace: unkey
+data:
+  unkey.toml: |
+    listen_address = "0.0.0.0:5353"
+    health_address = "0.0.0.0:9090"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: undns
+  namespace: unkey
+spec:
+  selector:
+    app: undns
+  ports:
+    - name: dns-udp
+      port: 53
+      targetPort: dns-udp
+      protocol: UDP
+    - name: dns-tcp
+      port: 53
+      targetPort: dns-tcp
+      protocol: TCP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: undns
+  namespace: unkey
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: undns
+  template:
+    metadata:
+      labels:
+        app: undns
+    spec:
+      serviceAccountName: undns
+      containers:
+        - name: undns
+          image: unkey/undns:dev
+          imagePullPolicy: Never
+          args: ["--config", "/etc/unkey/unkey.toml"]
+          ports:
+            - name: dns-udp
+              containerPort: 5353
+              protocol: UDP
+            - name: dns-tcp
+              containerPort: 5353
+              protocol: TCP
+            - name: health
+              containerPort: 9090
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: health
+            initialDelaySeconds: 2
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /health/live
+              port: health
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              memory: "512Mi"
+          volumeMounts:
+            - name: config
+              mountPath: /etc/unkey
+              readOnly: true
+      volumes:
+        - name: config
+          configMap:
+            name: undns-config
