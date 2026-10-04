@@ -66,7 +66,7 @@ type RegistryConfig struct {
 	Username   string
 	Password   string
 
-	// Insecure allows plain-HTTP pushes. Only for local registries without
+	// Insecure allows plain-HTTP pulls and pushes. Only for local registries without
 	// TLS; never enable it against a production registry.
 	Insecure bool
 }
