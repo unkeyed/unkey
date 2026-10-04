@@ -26,9 +26,7 @@ export const appConnections = mysqlTable(
     // app id.
     resourceType: mysqlEnum("resource_type", ["app"]).notNull(),
     resourceId: id("resource_id").notNull(),
-    // How source deployments address the target: a connection named database
-    // resolves as database.unkey.internal, injected as DATABASE_HOST. Unique
-    // per source app environment.
+    // A connection named database injects DATABASE_HOST into source deployments.
     name: caseSensitiveVarchar("name", { length: 63 }).notNull(),
     ...lifecycleDates,
   },
