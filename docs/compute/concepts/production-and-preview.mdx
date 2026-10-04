@@ -71,6 +71,8 @@ We stop deployments for you in these cases. A stopped preview deployment can be 
 | Preview deployment gets no requests | That deployment | After 1 hour idle |
 | You stop it | A `ready` preview deployment | Right away |
 
+We don't stop a deployment automatically while an app connection pins it with a **Specific deployment** target. See [Pinned deployments keep running](/compute/networking/private-networking#pinned-deployments-keep-running).
+
 ## What callers see during a switch
 
 Promote and rollback don't restart anything. The domains move to the other deployment, and the old one keeps serving until they have. The switch reaches every region within a few seconds, so a few requests can still reach the old deployment right after. A request to a stopped deployment gets `503` with [`deployment_offline`](/errors/frontline/capacity/deployment_offline).
