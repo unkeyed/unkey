@@ -139,6 +139,49 @@ func (ns NullApisAuthType) Value() (driver.Value, error) {
 	return string(ns.ApisAuthType), nil
 }
 
+type AppConnectionsSelectionMode string
+
+const (
+	AppConnectionsSelectionModeAutomatic   AppConnectionsSelectionMode = "automatic"
+	AppConnectionsSelectionModeEnvironment AppConnectionsSelectionMode = "environment"
+	AppConnectionsSelectionModeDeployment  AppConnectionsSelectionMode = "deployment"
+)
+
+func (e *AppConnectionsSelectionMode) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = AppConnectionsSelectionMode(s)
+	case string:
+		*e = AppConnectionsSelectionMode(s)
+	default:
+		return fmt.Errorf("unsupported scan type for AppConnectionsSelectionMode: %T", src)
+	}
+	return nil
+}
+
+type NullAppConnectionsSelectionMode struct {
+	AppConnectionsSelectionMode AppConnectionsSelectionMode
+	Valid                       bool // Valid is true if AppConnectionsSelectionMode is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullAppConnectionsSelectionMode) Scan(value interface{}) error {
+	if value == nil {
+		ns.AppConnectionsSelectionMode, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.AppConnectionsSelectionMode.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullAppConnectionsSelectionMode) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.AppConnectionsSelectionMode), nil
+}
+
 type AppEnvironmentVariablesType string
 
 const (
@@ -1167,6 +1210,23 @@ type AppBuildSetting struct {
 	UpdatedAt     sql.NullInt64   `db:"updated_at"`
 }
 
+type AppConnection struct {
+	Pk                  uint64                          `db:"pk"`
+	ID                  string                          `db:"id"`
+	WorkspaceID         string                          `db:"workspace_id"`
+	ProjectID           string                          `db:"project_id"`
+	AppID               string                          `db:"app_id"`
+	EnvironmentID       string                          `db:"environment_id"`
+	ResourceType        string                          `db:"resource_type"`
+	ResourceID          string                          `db:"resource_id"`
+	Name                string                          `db:"name"`
+	SelectionMode       NullAppConnectionsSelectionMode `db:"selection_mode"`
+	TargetEnvironmentID sql.NullString                  `db:"target_environment_id"`
+	TargetDeploymentID  sql.NullString                  `db:"target_deployment_id"`
+	CreatedAt           int64                           `db:"created_at"`
+	UpdatedAt           sql.NullInt64                   `db:"updated_at"`
+}
+
 type AppEnvironmentVariable struct {
 	Pk               uint64                      `db:"pk"`
 	ID               string                      `db:"id"`
@@ -1343,12 +1403,14 @@ type Deployment struct {
 	Port                          int32                       `db:"port"`
 	ShutdownSignal                DeploymentsShutdownSignal   `db:"shutdown_signal"`
 	UpstreamProtocol              DeploymentsUpstreamProtocol `db:"upstream_protocol"`
+	Capabilities                  json.RawMessage             `db:"capabilities"`
 	Healthcheck                   json.RawMessage             `db:"healthcheck"`
 	PrNumber                      sql.NullInt64               `db:"pr_number"`
 	ForkRepositoryFullName        sql.NullString              `db:"fork_repository_full_name"`
 	GithubDeploymentID            sql.NullInt64               `db:"github_deployment_id"`
 	InvocationID                  sql.NullString              `db:"invocation_id"`
 	Status                        DeploymentsStatus           `db:"status"`
+	FirstReadyAt                  sql.NullInt64               `db:"first_ready_at"`
 	Trigger                       DeploymentsTrigger          `db:"trigger"`
 	TriggeredBy                   sql.NullString              `db:"triggered_by"`
 	TriggerReason                 sql.NullString              `db:"trigger_reason"`
