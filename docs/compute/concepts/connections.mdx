@@ -1,0 +1,28 @@
+---
+title: Connections
+description: "How a connection links your app to something it uses, and when changes to it take effect."
+---
+
+A connection links your <Tooltip tip="A Compute app: a deployable service inside a project. Not 'your application' in general.">app</Tooltip> to something it uses. You add connections on the app's **Connections** page.
+
+<Note>
+  Connections are in beta. Behavior on this page can change.
+</Note>
+
+These connection types are available:
+
+- [App](/compute/networking/private-networking#connect-to-another-app): call another app in the same project over private networking
+
+## What is a connection?
+
+A connection grants your app access to one target. It belongs to your app, not to the target, and it works in one direction. A connection from `web` to `payments` lets `web` use `payments`. It doesn't let `payments` use `web`.
+
+Each connection belongs to one <Tooltip tip="A production or preview environment of a Compute app, not the dashboard label on a key.">environment</Tooltip> of your app. The production and preview environments have separate connections. Each connection type describes what your app receives and how to use it.
+
+## Making changes to connections
+
+Unkey saves your app's connections into each <Tooltip tip="One built and running version of an app in one environment.">deployment</Tooltip> when it creates that deployment. The **Connections** page edits the defaults for future deployments, not the deployments that already run.
+
+- To apply an added, changed, or removed connection, redeploy your app in that environment.
+- A running deployment keeps its saved connections until it stops or is deleted. Removing a connection doesn't revoke that access.
+- Rolling back to a deployment, or waking a stopped one, uses that deployment's saved connections, not the current defaults.
