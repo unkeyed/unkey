@@ -2,16 +2,19 @@ package deployment
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	"connectrpc.com/connect"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/pkg/conc"
 	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/svc/krane/internal/cilium"
 	"github.com/unkeyed/unkey/svc/krane/pkg/labels"
 	"github.com/unkeyed/unkey/svc/krane/pkg/metrics"
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
 // runActualStateResyncLoop periodically reports actual instance state to the
@@ -62,9 +65,45 @@ func (c *Controller) runDesiredStateResyncLoop(ctx context.Context) {
 	c.runResyncLoop(ctx, time.Minute, func() {
 		logger.Info("running desired state resync")
 		c.forEachReplicaSet(ctx, func(ctx context.Context, rs *appsv1.ReplicaSet) {
-			c.reconcileDesiredState(ctx, rs)
+			deploymentID, ok := labels.GetDeploymentID(rs.Labels)
+			if !ok {
+				logger.Error("unable to get deployment ID", "replicaSet", rs.Name)
+				return
+			}
+			c.reconcileDesiredState(ctx, rs.Namespace, rs.Name, deploymentID)
 		})
+		c.reconcileUnownedPolicies(ctx)
 	})
+}
+
+func (c *Controller) reconcileUnownedPolicies(ctx context.Context) {
+	cursor := ""
+	for {
+		policies, err := c.dynamicClient.Resource(cilium.NetworkPolicyResource).List(ctx, metav1.ListOptions{
+			LabelSelector: labels.New().ManagedByKrane().ComponentCiliumNetworkPolicy().ToString(),
+			Continue:      cursor, Limit: 500,
+		})
+		if err != nil {
+			logger.Error("unable to list deployment policies", "error", err.Error())
+			return
+		}
+		conc.ForEach(ctx, policies.Items, func(ctx context.Context, policy *unstructured.Unstructured) {
+			if len(policy.GetOwnerReferences()) != 0 {
+				return
+			}
+			name, ok := strings.CutSuffix(policy.GetName(), frontlinePolicySuffix)
+			deploymentID, hasID := labels.GetDeploymentID(policy.GetLabels())
+			if !ok || name == "" || !hasID || deploymentID == "" {
+				logger.Error("invalid deployment policy identity", "policy", policy.GetName())
+				return
+			}
+			c.reconcileDesiredState(ctx, policy.GetNamespace(), name, deploymentID)
+		})
+		cursor = policies.GetContinue()
+		if cursor == "" {
+			return
+		}
+	}
 }
 
 func (c *Controller) runResyncLoop(ctx context.Context, interval time.Duration, resync func()) {
@@ -109,12 +148,10 @@ func (c *Controller) forEachReplicaSet(ctx context.Context, fn func(ctx context.
 	}
 }
 
-// reconcileDesiredState fetches the desired state for a single ReplicaSet from
-// the control plane and applies or deletes as needed.
-func (c *Controller) reconcileDesiredState(ctx context.Context, replicaSet *appsv1.ReplicaSet) {
-	deploymentID, ok := labels.GetDeploymentID(replicaSet.Labels)
-	if !ok {
-		logger.Error("unable to get deployment ID", "replicaSet", replicaSet.Name)
+func (c *Controller) reconcileDesiredState(ctx context.Context, namespace, name, deploymentID string) {
+	unlock := c.deploymentLocks.Lock(namespace + "/" + name)
+	defer unlock()
+	if ctx.Err() != nil {
 		return
 	}
 
@@ -124,9 +161,9 @@ func (c *Controller) reconcileDesiredState(ctx context.Context, replicaSet *apps
 	})
 	if err != nil {
 		if connect.CodeOf(err) == connect.CodeNotFound {
-			if err := c.DeleteDeployment(ctx, &ctrlv1.DeleteDeployment{
-				K8SNamespace: replicaSet.GetNamespace(),
-				K8SName:      replicaSet.GetName(),
+			if err := c.deleteDeploymentLocked(ctx, &ctrlv1.DeleteDeployment{
+				K8SNamespace: namespace,
+				K8SName:      name,
 			}); err != nil {
 				logger.Error("unable to delete deployment", "error", err.Error(), "deployment_id", deploymentID)
 			}
@@ -140,11 +177,11 @@ func (c *Controller) reconcileDesiredState(ctx context.Context, replicaSet *apps
 
 	switch res.GetState().(type) {
 	case *ctrlv1.DeploymentState_Apply:
-		if err := c.ApplyDeployment(ctx, res.GetApply()); err != nil {
+		if err := c.applyDeploymentLocked(ctx, res.GetApply()); err != nil {
 			logger.Error("unable to apply deployment", "error", err.Error(), "deployment_id", deploymentID)
 		}
 	case *ctrlv1.DeploymentState_Delete:
-		if err := c.DeleteDeployment(ctx, res.GetDelete()); err != nil {
+		if err := c.deleteDeploymentLocked(ctx, res.GetDelete()); err != nil {
 			logger.Error("unable to delete deployment", "error", err.Error(), "deployment_id", deploymentID)
 		}
 	}

@@ -17,6 +17,8 @@ import (
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/svc/krane/internal/deployment"
 	"github.com/unkeyed/unkey/svc/krane/internal/testutil"
+	"k8s.io/apimachinery/pkg/runtime"
+	fakedynamic "k8s.io/client-go/dynamic/fake"
 	"k8s.io/client-go/kubernetes/fake"
 )
 
@@ -185,9 +187,10 @@ func TestWatchJoinsInFlightDispatchAfterStreamCloses(t *testing.T) {
 	w := New(Config{
 		Cluster: client,
 		Deployments: deployment.New(deployment.Config{
-			ClientSet:    fake.NewClientset(),
-			Cluster:      client,
-			Fingerprints: cache.NewNoopCache[string, string](),
+			ClientSet:     fake.NewClientset(),
+			DynamicClient: fakedynamic.NewSimpleDynamicClient(runtime.NewScheme()),
+			Cluster:       client,
+			Fingerprints:  cache.NewNoopCache[string, string](),
 		}),
 	})
 	ctx, cancel := context.WithCancel(t.Context())

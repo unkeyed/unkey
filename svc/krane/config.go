@@ -1,6 +1,9 @@
 package krane
 
 import (
+	"net/netip"
+
+	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/config"
 )
@@ -30,6 +33,17 @@ type K8sConfig struct {
 
 	// Burst is the maximum burst size for the k8s client.
 	Burst int `toml:"burst" config:"default=200,min=1"`
+}
+
+// PrivateNetworkConfig controls private network discovery and customer Pod DNS.
+type PrivateNetworkConfig struct {
+	// Enabled starts the discovery reconciler and applies ResolverIP to Pods of
+	// deployments that Ctrl enrolls in private networking.
+	Enabled bool `toml:"enabled"`
+
+	// ResolverIP is the private IPv4 address of this region's undns Service,
+	// without a port.
+	ResolverIP string `toml:"resolver_ip"`
 }
 
 // ClusterConfig identifies the infrastructure cell where krane is running.
@@ -88,6 +102,8 @@ type Config struct {
 	// K8s tunes the client-go REST config. See [K8sConfig].
 	K8s K8sConfig `toml:"k8s"`
 
+	PrivateNetwork PrivateNetworkConfig `toml:"private_network"`
+
 	Observability config.Observability `toml:"observability"`
 
 	// Clock provides time operations and is injected for testability. Production
@@ -99,5 +115,13 @@ type Config struct {
 // struct tags alone. It implements [config.Validator] so that [config.Load]
 // calls it automatically after tag-level validation.
 func (c *Config) Validate() error {
-	return nil
+	if !c.PrivateNetwork.Enabled {
+		return nil
+	}
+
+	address, err := netip.ParseAddr(c.PrivateNetwork.ResolverIP)
+	return assert.All(
+		assert.True(err == nil, "private_network.resolver_ip must be an IP address, not IP:port"),
+		assert.True(address.Is4() && address.IsPrivate(), "private_network.resolver_ip must be a private IPv4 address"),
+	)
 }

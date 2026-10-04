@@ -16,6 +16,7 @@ import (
 	autoscalingv2 "k8s.io/api/autoscaling/v2"
 	corev1 "k8s.io/api/core/v1"
 	policyv1 "k8s.io/api/policy/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -36,16 +37,27 @@ import (
 // ApplyDeployment validates all required fields and returns an error if any are missing
 // or invalid: WorkspaceId, ProjectId, EnvironmentId, DeploymentId, K8sNamespace, K8sName,
 // and Image must be non-empty; CpuMillicores and MemoryMib must be > 0.
+// A request with PrivateNetworking must carry a production or preview
+// EnvironmentKind, which undns uses to identify callers, and a
+// PrivateNetworkReplicaHost.
 //
-// The namespace is created automatically if it doesn't exist. After the
-// ReplicaSet is applied a CiliumNetworkPolicy is installed in the same
-// namespace, owned by the ReplicaSet, that permits ingress only from
-// frontline pods on the deployment's container port. Pods run under the
+// The namespace is created automatically if it doesn't exist. The ingress
+// policy is installed before the ReplicaSet and owned by it as soon as its
+// UID is known. Private deployments also allow scoped replica traffic. Pods run under the
 // configured RuntimeClass, gVisor in production, since they execute untrusted
 // user code, and are scheduled on Karpenter-managed untrusted nodes with
 // node- and zone-spread constraints so replicas don't stack on a single node.
-func (c *Controller) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeployment) (retErr error) {
+func (c *Controller) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeployment) error {
+	unlock := c.deploymentLocks.Lock(req.GetK8SNamespace() + "/" + req.GetK8SName())
+	defer unlock()
+	return c.applyDeploymentLocked(ctx, req)
+}
+
+func (c *Controller) applyDeploymentLocked(ctx context.Context, req *ctrlv1.ApplyDeployment) (retErr error) {
 	defer func() { metrics.RecordReconcile("deployment", "apply", retErr) }()
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	logger.Info(
 		"applying deployment",
 		"namespace", req.GetK8SNamespace(),
@@ -57,6 +69,8 @@ func (c *Controller) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeplo
 		assert.NotEmpty(req.GetWorkspaceId(), "Workspace ID is required"),
 		assert.NotEmpty(req.GetProjectId(), "Project ID is required"),
 		assert.NotEmpty(req.GetEnvironmentId(), "Environment ID is required"),
+		assert.True(!req.GetPrivateNetworking() || req.GetEnvironmentKind() == "production" || req.GetEnvironmentKind() == "preview", "Private networking requires a production or preview environment kind"),
+		assert.True(!req.GetPrivateNetworking() || req.GetPrivateNetworkReplicaHost() != "", "Private networking requires a replica host"),
 		assert.NotEmpty(req.GetDeploymentId(), "Deployment ID is required"),
 		assert.NotEmpty(req.GetK8SNamespace(), "Namespace is required"),
 		assert.NotEmpty(req.GetK8SName(), "K8s CRD name is required"),
@@ -87,6 +101,19 @@ func (c *Controller) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeplo
 	hasSecrets := len(plaintext) > 0
 
 	desired := c.buildReplicaSet(req, hasSecrets)
+	client := c.clientSet.AppsV1().ReplicaSets(req.GetK8SNamespace())
+	existing, err := client.Get(ctx, req.GetK8SName(), metav1.GetOptions{})
+	if err != nil && !apierrors.IsNotFound(err) {
+		return fmt.Errorf("failed to read replicaset before policy: %w", err)
+	}
+	if apierrors.IsNotFound(err) {
+		existing = nil
+	} else if existing.DeletionTimestamp != nil {
+		return fmt.Errorf("replicaset %s is terminating", req.GetK8SName())
+	}
+	if err := c.ensureCiliumNetworkPolicy(ctx, req, existing); err != nil {
+		return fmt.Errorf("failed to ensure cilium network policy before replicaset: %w", err)
+	}
 
 	// Create the Secret and ServiceAccount before the ReplicaSet so they
 	// exist by the time pods are scheduled. This prevents the
@@ -102,8 +129,6 @@ func (c *Controller) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeplo
 		}
 	}
 
-	client := c.clientSet.AppsV1().ReplicaSets(req.GetK8SNamespace())
-
 	patch, err := json.Marshal(desired)
 	if err != nil {
 		return fmt.Errorf("failed to marshal replicaset: %w", err)
@@ -114,6 +139,10 @@ func (c *Controller) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeplo
 	})
 	if err != nil {
 		return fmt.Errorf("failed to apply replicaset: %w", err)
+	}
+
+	if err := c.ensureCiliumNetworkPolicy(ctx, req, applied); err != nil {
+		return fmt.Errorf("failed to ensure cilium network policy ownership: %w", err)
 	}
 
 	// Patch ownerReferences onto the Secret and SA so K8s garbage-collects
@@ -127,10 +156,6 @@ func (c *Controller) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeplo
 
 	if err := c.ensureHPAExists(ctx, req, applied); err != nil {
 		return fmt.Errorf("failed to ensure HPA: %w", err)
-	}
-
-	if err := c.ensureCiliumNetworkPolicy(ctx, req, applied); err != nil {
-		return fmt.Errorf("failed to ensure cilium network policy: %w", err)
 	}
 
 	status, err := c.buildDeploymentStatus(ctx, applied)
@@ -290,6 +315,21 @@ func (c *Controller) buildReplicaSet(req *ctrlv1.ApplyDeployment, hasSecrets boo
 		Tolerations:                  []corev1.Toleration{untrustedToleration},
 		TopologySpreadConstraints:    deploymentTopologySpread(req.GetDeploymentId(), req.GetAutoscaling().GetMaxReplicas()),
 		Containers:                   []corev1.Container{container},
+	}
+
+	if c.privateNetworkEnabled(req) {
+		podSpec.Containers[0].Env = append(podSpec.Containers[0].Env, corev1.EnvVar{
+			Name: "UNKEY_PRIVATE_DOMAIN", Value: req.GetPrivateNetworkReplicaHost(),
+		})
+		podSpec.DNSPolicy = corev1.DNSNone
+		podSpec.DNSConfig = &corev1.PodDNSConfig{
+			Nameservers: []string{c.privateNetworkResolverIP},
+			Options: []corev1.PodDNSConfigOption{
+				{Name: "ndots", Value: new("1")},
+				{Name: "timeout", Value: new("1")},
+				{Name: "attempts", Value: new("2")},
+			},
+		}
 	}
 
 	if len(volumes) > 0 {
@@ -517,12 +557,17 @@ func buildPodDisruptionBudget(req *ctrlv1.ApplyDeployment, rs *appsv1.ReplicaSet
 	return pdb
 }
 
+func (c *Controller) privateNetworkEnabled(req *ctrlv1.ApplyDeployment) bool {
+	return req.GetPrivateNetworking() && c.privateNetworkResolverIP != ""
+}
+
 func deploymentLabels(req *ctrlv1.ApplyDeployment) labels.Labels {
 	return labels.New().
 		WorkspaceID(req.GetWorkspaceId()).
 		ProjectID(req.GetProjectId()).
 		AppID(req.GetAppId()).
 		EnvironmentID(req.GetEnvironmentId()).
+		EnvironmentKind(req.GetEnvironmentKind()).
 		DeploymentID(req.GetDeploymentId()).
 		ManagedByKrane().
 		ComponentDeployment()

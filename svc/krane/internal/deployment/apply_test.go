@@ -2,6 +2,7 @@ package deployment
 
 import (
 	"encoding/json"
+	"errors"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -9,6 +10,9 @@ import (
 	dbtype "github.com/unkeyed/unkey/pkg/db/types"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/kubernetes/fake"
+	ktesting "k8s.io/client-go/testing"
 )
 
 // Sentinel values for every ApplyDeployment field. Each is distinctive so the
@@ -27,7 +31,8 @@ const (
 	testPort             = int32(8080)
 	testShutdownSignal   = "SIGINT"
 	testAppID            = "app_sentinel"
-	testEnvironmentSlug  = "production"
+	testEnvironmentSlug  = "preview"
+	testEnvironmentKind  = "preview"
 	testRegion           = "us-east-1"
 	testGitCommitSha     = "abc123sha"
 	testGitBranch        = "main-sentinel"
@@ -73,6 +78,7 @@ func fullApplyRequest(t *testing.T) *ctrlv1.ApplyDeployment {
 		Healthcheck:                   hc,
 		AppId:                         testAppID,
 		EnvironmentSlug:               new(testEnvironmentSlug),
+		EnvironmentKind:               testEnvironmentKind,
 		Region:                        new(testRegion),
 		GitCommitSha:                  new(testGitCommitSha),
 		GitBranch:                     new(testGitBranch),
@@ -194,6 +200,9 @@ var fieldAssertions = map[string]func(t *testing.T, rs *appsv1.ReplicaSet){
 		require.True(t, ok)
 		require.Equal(t, testEnvironmentSlug, v)
 	},
+	"environment_kind": func(t *testing.T, rs *appsv1.ReplicaSet) {
+		require.Equal(t, testEnvironmentKind, rs.Labels["unkey.com/environment.kind"])
+	},
 	"region": func(t *testing.T, rs *appsv1.ReplicaSet) {
 		v, ok := envValue(mainContainer(t, rs), "UNKEY_REGION")
 		require.True(t, ok)
@@ -244,6 +253,11 @@ var fieldAssertions = map[string]func(t *testing.T, rs *appsv1.ReplicaSet){
 	},
 }
 
+var fieldsRenderedElsewhere = map[string]string{
+	"private_networking":           "rendered only with a regional resolver; asserted by TestBuildReplicaSet_PrivateNetworkDNS",
+	"private_network_replica_host": "rendered only with a regional resolver; asserted by TestBuildReplicaSet_PrivateNetworkDNS",
+}
+
 // labelDeploymentIDKey returns the label key used for the deployment id by
 // rendering a known value and reading it back, so the test does not hardcode
 // the label package's internal key string.
@@ -276,6 +290,9 @@ func TestApplyDeploymentFieldCoverage(t *testing.T) {
 
 	for i := 0; i < fields.Len(); i++ {
 		name := string(fields.Get(i).Name())
+		if _, ok := fieldsRenderedElsewhere[name]; ok {
+			continue
+		}
 		require.Contains(t, fieldAssertions, name, "ApplyDeployment proto field must be covered by fieldAssertions")
 	}
 }
@@ -380,4 +397,86 @@ func TestBuildReplicaSet_GvisorToggle(t *testing.T) {
 	c.disableGvisor = true
 	rs = c.buildReplicaSet(fullApplyRequest(t), true)
 	require.Nil(t, rs.Spec.Template.Spec.RuntimeClassName)
+}
+
+func TestBuildReplicaSet_PrivateNetworkDNS(t *testing.T) {
+	for _, tt := range []struct {
+		name       string
+		private    bool
+		resolverIP string
+		kind       string
+		wantDNS    bool
+	}{
+		{name: "production", private: true, resolverIP: "10.0.0.53", kind: "production", wantDNS: true},
+		{name: "preview", private: true, resolverIP: "10.0.0.53", kind: "preview", wantDNS: true},
+		{name: "not_enrolled", resolverIP: "10.0.0.53", kind: "preview", wantDNS: false},
+		{name: "no_resolver", private: true, kind: "preview", wantDNS: false},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			controller := testController()
+			controller.privateNetworkResolverIP = tt.resolverIP
+			req := fullApplyRequest(t)
+			req.PrivateNetworking = tt.private
+			req.PrivateNetworkReplicaHost = "api.unkey.internal"
+			req.EnvironmentKind = tt.kind
+
+			rs := controller.buildReplicaSet(req, false)
+			host, exists := envValue(mainContainer(t, rs), "UNKEY_PRIVATE_DOMAIN")
+			require.Equal(t, tt.wantDNS, exists)
+			if !tt.wantDNS {
+				require.NotEqual(t, corev1.DNSNone, rs.Spec.Template.Spec.DNSPolicy)
+				require.Nil(t, rs.Spec.Template.Spec.DNSConfig)
+				return
+			}
+			require.Equal(t, "api.unkey.internal", host)
+			require.Equal(t, corev1.DNSNone, rs.Spec.Template.Spec.DNSPolicy)
+			require.Equal(t, []string{tt.resolverIP}, rs.Spec.Template.Spec.DNSConfig.Nameservers)
+			require.Equal(t, []corev1.PodDNSConfigOption{
+				{Name: "ndots", Value: new("1")},
+				{Name: "timeout", Value: new("1")},
+				{Name: "attempts", Value: new("2")},
+			}, rs.Spec.Template.Spec.DNSConfig.Options)
+		})
+	}
+}
+
+func TestApplyDeploymentValidatesPrivateNetworkingBeforeKubernetes(t *testing.T) {
+	for _, test := range []struct {
+		name, kind, host, wantErr string
+		private                   bool
+	}{
+		{name: "production private", private: true, kind: "production", host: "api.unkey.internal"},
+		{name: "preview private", private: true, kind: "preview", host: "api.unkey.internal"},
+		{name: "not enrolled", kind: "production"},
+		{name: "private missing kind", private: true, host: "api.unkey.internal", wantErr: "Private networking requires a production or preview environment kind"},
+		{name: "private invalid kind", private: true, kind: "staging", host: "api.unkey.internal", wantErr: "Private networking requires a production or preview environment kind"},
+		{name: "private missing host", private: true, kind: "preview", wantErr: "Private networking requires a replica host"},
+	} {
+		for _, resolver := range []string{"", "10.0.0.53"} {
+			t.Run(test.name+"/"+resolver, func(t *testing.T) {
+				unavailable := errors.New("namespace unavailable")
+				client := fake.NewClientset()
+				client.PrependReactor("create", "namespaces", func(ktesting.Action) (bool, runtime.Object, error) {
+					return true, nil, unavailable
+				})
+				controller := testController()
+				controller.clientSet = client
+				controller.privateNetworkResolverIP = resolver
+				req := fullApplyRequest(t)
+				req.EnvironmentKind = test.kind
+				req.PrivateNetworking = test.private
+				req.PrivateNetworkReplicaHost = test.host
+
+				err := controller.ApplyDeployment(t.Context(), req)
+				if test.wantErr == "" {
+					require.ErrorIs(t, err, unavailable)
+					require.Len(t, client.Actions(), 1)
+					return
+				}
+
+				require.ErrorContains(t, err, test.wantErr)
+				require.Empty(t, client.Actions())
+			})
+		}
+	}
 }
