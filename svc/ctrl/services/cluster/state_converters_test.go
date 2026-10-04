@@ -62,9 +62,6 @@ func TestDeploymentRowToState_Stopped(t *testing.T) {
 	require.Equal(t, "ws-namespace", del.GetK8SNamespace())
 }
 
-// TestDeploymentRowToState_PrivateNetworkReplicaHost guarantees that only
-// deployments of enrolled workspaces receive a replica host, which is what
-// makes Krane point their Pods at undns, and that the host is the app slug.
 func TestDeploymentRowToState_PrivateNetworkReplicaHost(t *testing.T) {
 	for _, tt := range []struct {
 		name     string

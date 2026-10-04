@@ -14,11 +14,10 @@ type snapshot struct {
 
 type compiledFlag struct {
 	variants []bool
-	// targets is indexed by variant: targets[i] selects variants[i].
-	targets []target
-	outcome int
-	paused  bool
-	err     error
+	targets  []target
+	outcome  int
+	paused   bool
+	err      error
 }
 
 type target map[attributePath]map[string]struct{}

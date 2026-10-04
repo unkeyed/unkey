@@ -37,9 +37,7 @@ const initTimeout = time.Minute
 type Config struct {
 	Provider Provider `toml:"provider"`
 
-	Static static.Values `toml:"static"`
-	// Vercel is a pointer so config loading validates it only when the table
-	// is present.
+	Static static.Values  `toml:"static"`
 	Vercel *vercel.Config `toml:"vercel"`
 }
 
