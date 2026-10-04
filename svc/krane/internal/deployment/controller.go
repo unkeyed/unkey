@@ -32,16 +32,23 @@ import (
 // Create a Controller with [New] and run it with [Controller.Run]. The controller
 // runs until the context is cancelled.
 type Controller struct {
-	clientSet        kubernetes.Interface
-	dynamicClient    dynamic.Interface
-	cluster          ctrl.ClusterServiceClient
-	vault            vault.VaultServiceClient
-	registry         *RegistryConfig
-	imagePullSecrets []corev1.LocalObjectReference
-	cb               circuitbreaker.CircuitBreaker[any]
-	cellID           string
-	region           string
-	platform         string
+	clientSet     kubernetes.Interface
+	dynamicClient dynamic.Interface
+	cluster       ctrl.ClusterServiceClient
+	vault         vault.VaultServiceClient
+
+	cellID   string
+	region   string
+	platform string
+
+	registry                 *RegistryConfig
+	imagePullSecrets         []corev1.LocalObjectReference
+	storageClassName         string
+	privateNetworkResolverIP string
+	disableGvisor            bool
+	maxConcurrentRollouts    int
+
+	cb circuitbreaker.CircuitBreaker[any]
 
 	// fingerprints tracks the most recently reported state per workload
 	// so we can skip redundant reports during resync. Entries auto-expire
@@ -60,25 +67,14 @@ type Controller struct {
 	// same workload and both report the same state.
 	reportLocks keymutex.KeyMutex
 
+	deploymentLocks keymutex.KeyMutex
+
 	// lagRecorder records pod watch delivery lag, deduplicated per
 	// (pod UID, transition time).
 	lagRecorder *podstatus.LagRecorder
-
-	// storageClassName is the Kubernetes StorageClass for ephemeral volumes.
-	storageClassName string
-
-	// disableGvisor drops the gVisor sandbox from user workloads.
-	disableGvisor bool
-
-	maxConcurrentRollouts    int
-	privateNetworkResolverIP string
 }
 
 // Config holds the configuration required to create a new [Controller].
-//
-// All fields are required. The ClientSet and DynamicClient are used for Kubernetes
-// operations, while Cluster provides the control plane RPC client for state
-// synchronization. Region determines which deployments this controller manages.
 type Config struct {
 	// ClientSet provides typed Kubernetes API access for Deployment, ReplicaSet
 	// and Pod operations.
@@ -140,10 +136,6 @@ type Config struct {
 }
 
 // New creates a [Controller] ready to be run with [Controller.Run].
-//
-// The controller initializes with versionLastSeen=0, meaning it will receive all
-// pending deployments on first connection. The circuit breaker starts in a closed
-// (healthy) state.
 func New(cfg Config) *Controller {
 	var pullSecrets []corev1.LocalObjectReference
 	if cfg.Registry != nil {
@@ -151,25 +143,28 @@ func New(cfg Config) *Controller {
 	}
 
 	return &Controller{
-		clientSet:        cfg.ClientSet,
-		dynamicClient:    cfg.DynamicClient,
-		cluster:          cfg.Cluster,
-		vault:            cfg.Vault,
-		registry:         cfg.Registry,
-		imagePullSecrets: pullSecrets,
-		cb:               circuitbreaker.New[any]("deployment_state_update"),
-		cellID:           cfg.CellID,
-		region:           cfg.Region,
-		platform:         cfg.Platform,
-		fingerprints:     cfg.Fingerprints,
-		eventDedup:       cfg.EventDedup,
-		reportLocks:      keymutex.KeyMutex{},
-		lagRecorder:      podstatus.NewLagRecorder("deployment", cfg.ObservedTransitions),
-		storageClassName: cfg.StorageClassName,
-		disableGvisor:    cfg.DisableGvisor,
+		clientSet:     cfg.ClientSet,
+		dynamicClient: cfg.DynamicClient,
+		cluster:       cfg.Cluster,
+		vault:         cfg.Vault,
 
-		maxConcurrentRollouts:    cfg.MaxConcurrentRollouts,
+		cellID:   cfg.CellID,
+		region:   cfg.Region,
+		platform: cfg.Platform,
+
+		registry:                 cfg.Registry,
+		imagePullSecrets:         pullSecrets,
+		storageClassName:         cfg.StorageClassName,
 		privateNetworkResolverIP: cfg.PrivateNetworkResolverIP,
+		disableGvisor:            cfg.DisableGvisor,
+		maxConcurrentRollouts:    cfg.MaxConcurrentRollouts,
+
+		cb:              circuitbreaker.New[any]("deployment_state_update"),
+		fingerprints:    cfg.Fingerprints,
+		eventDedup:      cfg.EventDedup,
+		reportLocks:     keymutex.KeyMutex{},
+		deploymentLocks: keymutex.KeyMutex{},
+		lagRecorder:     podstatus.NewLagRecorder("deployment", cfg.ObservedTransitions),
 	}
 }
 
