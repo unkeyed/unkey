@@ -27,10 +27,19 @@ import { queryRoles } from "./authorization/roles/query";
 import { getDeployBudget, setDeployBudget } from "./billing/deploy-budget";
 import { queryDeployUsage } from "./billing/query-deploy-usage";
 import { queryDeployUsageTimeseries } from "./billing/query-deploy-usage-timeseries";
+import {
+  createAppConnection,
+  deleteAppConnection,
+  listAppConnectionTargets,
+  listAppConnections,
+  listRetainedAppConnections,
+  updateAppConnection,
+} from "./deploy/app-connection";
 import { getDeploymentSteps } from "./deploy/deployment/deployment-steps";
 import { getOpenApiDiff } from "./deploy/deployment/getOpenApiDiff";
 import { listActiveBranches } from "./deploy/deployment/list-active-branches";
 import { listDeploymentBranches } from "./deploy/deployment/list-branches";
+import { listDeploymentConnectionPins } from "./deploy/deployment/list-connection-pins";
 import { listDeploymentDetails } from "./deploy/deployment/list-details";
 import { listDeploymentHeadlines } from "./deploy/deployment/list-headlines";
 import { getDeploymentRuntimeLogs } from "./deploy/deployment/runtime-logs";
@@ -124,6 +133,14 @@ import { listAvailable } from "./workspace/listAvailable";
 
 export const router = t.router({
   logdrain,
+  appConnection: t.router({
+    list: listAppConnections,
+    retained: listRetainedAppConnections,
+    targets: listAppConnectionTargets,
+    create: createAppConnection,
+    update: updateAppConnection,
+    delete: deleteAppConnection,
+  }),
   share: t.router({
     create: createSharedSecret,
     reveal: revealSharedSecret,
@@ -294,6 +311,7 @@ export const router = t.router({
       listBranches: listDeploymentBranches,
       listActiveBranches,
       listDetails: listDeploymentDetails,
+      listConnectionPins: listDeploymentConnectionPins,
       runtimeLogs: getDeploymentRuntimeLogs,
       steps: getDeploymentSteps,
       getOpenApiDiff: getOpenApiDiff,
