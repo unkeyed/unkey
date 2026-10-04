@@ -92,6 +92,7 @@ export const EnvVarRow = ({
           placeholder="value"
           error={fieldErrors?.value?.message}
           {...valueRegistration}
+          data-secret=""
           onKeyDown={handleValueKeyDown}
         />
         {!isOnly && (

@@ -117,6 +117,7 @@ export function ShareReveal() {
             value={state.key}
             aria-label="Shared key"
             onFocus={(e) => e.currentTarget.select()}
+            data-api-key=""
             className="flex-1 truncate bg-transparent font-mono text-sm text-gray-12 outline-none"
           />
         </div>

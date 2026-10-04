@@ -327,13 +327,16 @@ const formatDeploymentInfo = (
                 {deployment.gitCommitAuthorAvatarUrl ? (
                   <img
                     src={deployment.gitCommitAuthorAvatarUrl}
-                    alt={deployment.gitCommitAuthorHandle}
+                    alt=""
+                    data-sensitive-media=""
                     className="w-4 h-4 rounded-full shrink-0"
                   />
                 ) : (
                   <IconUserOutline12 className="text-grayA-10 shrink-0" />
                 )}
-                <span className="truncate max-w-[200px]">{deployment.gitCommitAuthorHandle}</span>
+                <span data-secret="" className="truncate max-w-[200px]">
+                  {deployment.gitCommitAuthorHandle}
+                </span>
               </div>
             </div>
           )}
@@ -444,7 +447,9 @@ const formatMetaInfo = (log: RequestLogsResponse): React.ReactNode => {
       <div className="flex items-center justify-between">
         <span className="text-gray-11">IP Address:</span>
         <div className="flex items-center gap-2">
-          <span className="font-mono">{log.ip_address}</span>
+          <span data-secret="" className="font-mono">
+            {log.ip_address}
+          </span>
           <CopyButton value={log.ip_address} variant="ghost" className="h-4 w-4" />
         </div>
       </div>
@@ -470,7 +475,7 @@ const formatMetaInfo = (log: RequestLogsResponse): React.ReactNode => {
       {log.query_string && (
         <div className="flex items-center justify-between">
           <span className="text-gray-11">Query String:</span>
-          <span className="font-mono truncate max-w-[250px]" title={log.query_string}>
+          <span data-secret="" className="font-mono truncate max-w-[250px]">
             {log.query_string}
           </span>
         </div>
@@ -481,10 +486,7 @@ const formatMetaInfo = (log: RequestLogsResponse): React.ReactNode => {
           {queryParamsEntries.map(([key, values]) => (
             <div key={key} className="flex items-center justify-between ml-2">
               <span className="text-gray-11 text-xs">{key}:</span>
-              <span
-                className="font-mono text-xs truncate max-w-[200px]"
-                title={(values as string[]).join(", ")}
-              >
+              <span data-secret="" className="font-mono text-xs truncate max-w-[200px]">
                 {(values as string[]).join(", ")}
               </span>
             </div>

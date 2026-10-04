@@ -89,7 +89,11 @@ export const KeysOverviewLogDetails = ({ distanceToTop, log, setSelectedLog, api
   };
 
   const identity = log.key_details.identity
-    ? { "External ID": log.key_details.identity.external_id || "N/A" }
+    ? {
+        "External ID": (
+          <span data-external-id="">{log.key_details.identity.external_id || "N/A"}</span>
+        ),
+      }
     : { "No identity connected": null };
 
   const tags =

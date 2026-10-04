@@ -11,11 +11,13 @@ export const IdentityInfo = ({ identity }: { identity: Identity }) => {
       <div className="flex flex-col gap-1">
         <div className="text-gray-12 text-xs font-mono">{identity.id}</div>
         <InfoTooltip
-          content={identity.externalId}
+          content={<span data-external-id="">{identity.externalId}</span>}
           position={{ side: "bottom", align: "center" }}
           asChild
         >
-          <div className="text-gray-9 text-xs max-w-[160px] truncate">{identity.externalId}</div>
+          <div data-external-id="" className="text-gray-9 text-xs max-w-[160px] truncate">
+            {identity.externalId}
+          </div>
         </InfoTooltip>
       </div>
     </div>

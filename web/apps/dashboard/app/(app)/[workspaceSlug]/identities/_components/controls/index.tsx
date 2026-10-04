@@ -8,6 +8,7 @@ export function IdentitiesListControls() {
         queryKey="search"
         label="Search identities"
         placeholder="Search identities by ID or external ID..."
+        maskExternalId
       />
     </ResourceListHeader>
   );

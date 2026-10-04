@@ -139,7 +139,7 @@ export function ActiveDeploymentCard({
                   <Avatar src={deployment.gitCommitAuthorAvatarUrl} alt="Author" />
                   {deployment.gitCommitAuthorHandle && (
                     <>
-                      <span className="font-medium text-gray-12 text-xs">
+                      <span data-secret="" className="font-medium text-gray-12 text-xs">
                         {deployment.gitCommitAuthorHandle}
                       </span>
                       <span className="text-gray-9 text-xs">·</span>

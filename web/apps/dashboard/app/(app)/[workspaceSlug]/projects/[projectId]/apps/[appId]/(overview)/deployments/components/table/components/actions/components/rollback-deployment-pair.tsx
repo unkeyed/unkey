@@ -41,7 +41,9 @@ function Meta({ deployment }: { deployment: Deployment }) {
             alt={deployment.gitCommitAuthorHandle}
             className="size-4"
           />
-          <span className="truncate">{deployment.gitCommitAuthorHandle}</span>
+          <span data-secret="" className="truncate">
+            {deployment.gitCommitAuthorHandle}
+          </span>
         </span>
       )}
       <span>

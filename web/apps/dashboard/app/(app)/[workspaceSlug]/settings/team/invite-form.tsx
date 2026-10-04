@@ -152,6 +152,8 @@ export const InviteForm = ({ organization }: InviteFormProps) => {
                 <FormInput
                   label="Email"
                   id={`invites.${index}.email`}
+                  type="email"
+                  autoComplete="email"
                   placeholder="jane@example.com"
                   className="flex-1"
                   error={errors.invites?.[index]?.email?.message}

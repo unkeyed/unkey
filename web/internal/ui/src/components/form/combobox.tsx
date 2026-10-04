@@ -277,6 +277,11 @@ type DocumentedComboboxProps = DocumentedComboboxTriggerProps & {
   creatable?: boolean;
   /** Class name applied to the popup container. */
   popoverClassName?: string;
+  searchInputProps?: React.ComponentProps<"input"> & {
+    "data-api-key"?: string;
+    "data-external-id"?: string;
+    "data-secret"?: string;
+  };
 };
 
 type ComboboxProps = DocumentedComboboxProps &
@@ -301,6 +306,7 @@ function Combobox({
   variant = "default",
   creatable = false,
   popoverClassName,
+  searchInputProps,
   ...triggerProps
 }: ComboboxProps) {
   const [open, setOpen] = React.useState(false);
@@ -404,7 +410,7 @@ function Combobox({
       </div>
       <ComboboxContent className={popoverClassName}>
         <div className="p-1">
-          <ComboboxInput placeholder={searchPlaceholder} onInput={onChange} />
+          <ComboboxInput {...searchInputProps} placeholder={searchPlaceholder} onInput={onChange} />
         </div>
         <ComboboxEmpty>{emptyMessage}</ComboboxEmpty>
         <ComboboxList>

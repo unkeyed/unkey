@@ -17,6 +17,7 @@ export const GeneralSetup = () => {
         description="A unique identifier for this identity (1-255 characters)"
         error={errors.externalId?.message}
         {...register("externalId")}
+        data-external-id=""
         placeholder="user_123"
         data-1p-ignore
         requirement="required"

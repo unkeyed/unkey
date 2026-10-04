@@ -55,13 +55,13 @@ function IdentityRow({
       <Link
         href={href}
         className="absolute inset-0 z-10 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-grayA-7"
-        aria-label={`Identity ${identity.externalId}`}
+        aria-label="Open identity"
       />
       <div className="flex size-8 shrink-0 items-center justify-center rounded-md bg-featureA-3">
         <IconFingerprintOutline18 className="size-3.5 text-featureA-11" />
       </div>
       <div className="flex min-w-0 flex-1 flex-col gap-1">
-        <span className="truncate font-medium text-gray-12 text-sm" title={identity.externalId}>
+        <span data-external-id="" className="truncate font-medium text-gray-12 text-sm">
           {identity.externalId}
         </span>
         <span className="truncate font-mono text-gray-9 text-xs" title={identity.id}>

@@ -81,7 +81,12 @@ export const Members = memo<MembersProps>(({ organization, user, userMembership 
           isOpen={isConfirmPopoverOpen}
           onOpenChange={setIsConfirmPopoverOpen}
           triggerRef={anchorRef}
-          description={`Are you sure you want to remove ${currentMembership.user.email}?`}
+          description={
+            <>
+              Are you sure you want to remove{" "}
+              <span className="secret">{currentMembership.user.email}</span>?
+            </>
+          }
           confirmButtonText="Delete Member"
           cancelButtonText="Cancel"
           variant="danger"

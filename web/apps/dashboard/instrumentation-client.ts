@@ -5,6 +5,7 @@ import {
   createClientErrorFilter,
   createTracesSampler,
   replayPrivacyOptions,
+  replaySampleRates,
   scrubLog,
   scrubReplayFrame,
   scrubSpanPii,
@@ -32,8 +33,8 @@ if (process.env.NODE_ENV !== "development" && !isSentryDisabled) {
     tracesSampler: createTracesSampler(),
     enableLogs: true,
     beforeSendLog: scrubLog,
-    replaysSessionSampleRate: 0.1,
-    replaysOnErrorSampleRate: 1.0,
+    replaysSessionSampleRate: replaySampleRates.replaysSessionSampleRate,
+    replaysOnErrorSampleRate: replaySampleRates.replaysOnErrorSampleRate,
     sendDefaultPii: false,
   });
 

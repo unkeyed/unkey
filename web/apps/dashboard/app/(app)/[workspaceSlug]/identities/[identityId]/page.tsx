@@ -25,7 +25,11 @@ export default function IdentityDetailsPage(props: {
     <PageContainer width="full">
       <PageHeader>
         <PageHeaderContent>
-          <PageHeaderTitle className="truncate" title={title}>
+          <PageHeaderTitle
+            className="truncate"
+            data-external-id={identity?.externalId ? "" : undefined}
+            title={identity?.externalId ? undefined : title}
+          >
             {title}
           </PageHeaderTitle>
         </PageHeaderContent>

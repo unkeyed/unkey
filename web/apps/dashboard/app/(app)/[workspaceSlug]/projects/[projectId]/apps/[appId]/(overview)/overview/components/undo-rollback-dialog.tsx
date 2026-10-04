@@ -187,7 +187,9 @@ function DeploymentSource({ deployment }: { deployment: Deployment }) {
             className="size-4"
           />
           {deployment.gitCommitAuthorHandle && (
-            <span className="truncate">{deployment.gitCommitAuthorHandle}</span>
+            <span data-secret="" className="truncate">
+              {deployment.gitCommitAuthorHandle}
+            </span>
           )}
         </span>
       </>

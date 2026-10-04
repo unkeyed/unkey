@@ -110,6 +110,13 @@ const StatusIcon = ({ status }: { status: number }) => {
   );
 };
 
+const REDACTED_LOG_COLUMNS = new Set([
+  "response_body",
+  "request_body",
+  "request_headers",
+  "response_headers",
+]);
+
 const additionalColumns: Column<Log>[] = [
   "response_body",
   "request_body",
@@ -127,6 +134,7 @@ const additionalColumns: Column<Log>[] = [
   width: key === "response_body" ? "50%" : "auto",
   render: (log: Log) => (
     <div
+      data-secret={REDACTED_LOG_COLUMNS.has(key) ? "" : undefined}
       className={cn(
         "font-mono overflow-hidden text-ellipsis",
         key === "response_body"

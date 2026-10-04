@@ -17,6 +17,9 @@ describe("HiddenValueCell", () => {
 
     expect(screen.getByText("unkey_abcd", { exact: false })).toBeDefined();
     expect(screen.getByText("9xY2", { exact: false })).toBeDefined();
+    expect(
+      screen.getByText("unkey_abcd", { exact: false }).closest("[data-api-key]"),
+    ).not.toBeNull();
   });
 
   it.each([undefined, ""])("omits the underscore when prefix is %s", (prefix) => {

@@ -97,6 +97,7 @@ export function PortalSessions({ portalId, canRevoke }: { portalId: string; canR
             </InputGroupAddon>
             <InputGroupInput
               aria-label="Search sessions by external ID"
+              data-external-id=""
               type="text"
               value={searchInput}
               maxLength={256}
@@ -199,9 +200,15 @@ function SessionsBody({
         <EmptyStateHeader>
           <EmptyStateTitle>{search ? "No matching users" : "No active sessions"}</EmptyStateTitle>
           <EmptyStateDescription>
-            {search
-              ? `No user with an active session has an external ID starting with "${search}".`
-              : "Users appear here once your app creates a portal session for them."}
+            {search ? (
+              <>
+                No user with an active session has an external ID starting with "
+                <span data-external-id="">{search}</span>
+                ".
+              </>
+            ) : (
+              "Users appear here once your app creates a portal session for them."
+            )}
           </EmptyStateDescription>
         </EmptyStateHeader>
       </EmptyState>
@@ -305,7 +312,7 @@ function SessionGroupRow({
     >
       <button
         type="button"
-        aria-label={`View sessions for ${group.externalId}`}
+        aria-label="View sessions"
         onClick={onOpen}
         className="absolute inset-0 z-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-grayA-7"
       />
@@ -313,7 +320,9 @@ function SessionGroupRow({
         <span className="flex size-6 shrink-0 items-center justify-center rounded-full border bg-gray-3">
           <IconUserOutline12 className="text-gray-11" />
         </span>
-        <span className="truncate text-sm font-medium">{group.externalId}</span>
+        <span data-external-id="" className="truncate text-sm font-medium">
+          {group.externalId}
+        </span>
       </span>
       <span className="text-gray-11">{summary.count}</span>
       <span className="min-w-0 truncate text-gray-11">
@@ -333,7 +342,7 @@ function SessionGroupRow({
             size="icon"
             className="shrink-0"
             title="Session actions"
-            aria-label={`Actions for ${group.externalId}`}
+            aria-label="Session actions"
           >
             <IconDotsOutline18 />
           </Button>
@@ -368,7 +377,9 @@ function SessionGroupPanel({
       {group ? (
         <>
           <SlidePanelHeader className="items-center">
-            <SlidePanelTitle className="min-w-0 truncate">{group.externalId}</SlidePanelTitle>
+            <SlidePanelTitle data-external-id="" className="min-w-0 truncate">
+              {group.externalId}
+            </SlidePanelTitle>
             <SlidePanelCloseButton />
           </SlidePanelHeader>
           <SlidePanelContent className="flex flex-col gap-6 overflow-y-auto px-6 py-4">

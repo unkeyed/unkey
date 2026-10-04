@@ -18,17 +18,23 @@ export const LogFooter = ({ log }: Props) => {
           {log.user?.imageUrl && <AvatarImage src={log.user.imageUrl} />}
           <AvatarFallback name={log.user?.username ?? log.auditLog.actor.id} />
         </Avatar>
-        <span className="text-sm">{log.user?.username ?? "Unknown Username"}</span>
+        <span data-secret="" className="text-sm">
+          {log.user?.username ?? "Unknown Username"}
+        </span>
       </div>
     ) : log.auditLog.actor.type === "key" ? (
       <div className="flex items-center gap-2">
         <IconKeyOutline18 className="size-3" />
-        <span className="font-mono text-xs">{log.auditLog.actor.id}</span>
+        <span data-secret="" className="font-mono text-xs">
+          {log.auditLog.actor.id}
+        </span>
       </div>
     ) : (
       <div className="flex items-center gap-2">
         <IconMathFunctionOutline18 className="size-3" />
-        <span className="font-mono text-xs">{log.auditLog.actor.id}</span>
+        <span data-secret="" className="font-mono text-xs">
+          {log.auditLog.actor.id}
+        </span>
       </div>
     );
 
@@ -44,7 +50,7 @@ export const LogFooter = ({ log }: Props) => {
   };
 
   const details = {
-    Location: log.auditLog.location || "N/A",
+    Location: log.auditLog.location ? <span data-secret="">{log.auditLog.location}</span> : "N/A",
     "User Agent": log.auditLog.userAgent || "N/A",
     "Workspace ID": log.auditLog.workspaceId,
   };

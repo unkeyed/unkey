@@ -133,6 +133,7 @@ export const MetadataSetup = ({ overrideEnabled = false, entityType }: MetadataS
                 disabled={!metadataEnabled}
                 readOnly={!metadataEnabled}
                 rows={15}
+                data-secret=""
                 {...register("metadata.data", {
                   validate: (value) => {
                     if (metadataEnabled && (!value || !validateJSON(value as string))) {

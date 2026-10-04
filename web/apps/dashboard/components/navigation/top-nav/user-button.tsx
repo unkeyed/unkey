@@ -51,10 +51,7 @@ export function UserButton() {
       <DropdownMenuContent side="bottom" align="end" className="w-56 p-0">
         {user?.email && (
           <DropdownMenuGroup className="border-b px-2 py-2">
-            <DropdownMenuLabel
-              title={user.email}
-              className="secret block truncate px-0 py-0 text-sm text-gray-12"
-            >
+            <DropdownMenuLabel className="secret block truncate px-0 py-0 text-sm text-gray-12">
               {user.email}
             </DropdownMenuLabel>
           </DropdownMenuGroup>

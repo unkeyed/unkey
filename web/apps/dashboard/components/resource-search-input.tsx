@@ -76,6 +76,7 @@ type ResourceSearchInputProps = {
   label: string;
   placeholder: string;
   debounceMs?: number;
+  maskExternalId?: boolean;
 };
 
 export function ResourceSearchInput({
@@ -83,6 +84,7 @@ export function ResourceSearchInput({
   label,
   placeholder,
   debounceMs = DEBOUNCE_MS,
+  maskExternalId = false,
 }: ResourceSearchInputProps) {
   const { text, type, clear } = useDebouncedQueryState(queryKey, debounceMs);
 
@@ -94,6 +96,7 @@ export function ResourceSearchInput({
         </InputGroupAddon>
         <InputGroupInput
           aria-label={label}
+          data-external-id={maskExternalId ? "" : undefined}
           type="text"
           value={text}
           maxLength={MAX_LENGTH}

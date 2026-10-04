@@ -16,7 +16,7 @@ type ConfirmPopoverProps = {
   onConfirm: () => void;
   triggerRef: React.RefObject<HTMLElement | null>;
   title?: string;
-  description?: string;
+  description?: React.ReactNode;
   confirmButtonText?: string;
   cancelButtonText?: string;
   variant?: ConfirmVariant;

@@ -177,7 +177,8 @@ export const ExternalIdField = ({
                 <IconTriangleWarningOutline12 />
               </div>
               <span className="text-sm text-gray-12 ">
-                <span className="text-gray-10 font-normal">Create</span> "{trimmedSearchValue}"
+                <span className="text-gray-10 font-normal">Create</span>{" "}
+                <span data-external-id="">"{trimmedSearchValue}"</span>
               </span>
             </div>
           ),
@@ -241,6 +242,7 @@ export const ExternalIdField = ({
         <div className="flex w-full text-grayA-8 text-xs items-center py-2">Select External ID</div>
       }
       searchPlaceholder="Search External ID..."
+      searchInputProps={{ "data-external-id": "" }}
       emptyMessage={
         initialQueryError ? (
           <div role="alert" className="flex flex-col gap-3 px-4 py-4 text-left">

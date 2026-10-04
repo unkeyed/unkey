@@ -13,9 +13,19 @@ import { KeyIdentifierColumn } from "../components/key-identifier-column";
 import { getErrorPercentage, getSuccessPercentage } from "../utils/calculate-blocked-percentage";
 import { SEVERITY_STYLES, getStatusStyle } from "../utils/get-row-class";
 
-const TruncatedTextCell = ({ value }: { value: string }) => (
+const TruncatedTextCell = ({
+  value,
+  sensitive,
+}: {
+  value: string;
+  sensitive?: boolean;
+}) => (
   <div className="flex items-center font-mono">
-    <div className="w-full max-w-37.5 truncate whitespace-nowrap" title={value}>
+    <div
+      className="w-full max-w-37.5 truncate whitespace-nowrap"
+      title={sensitive ? undefined : value}
+      data-external-id={sensitive ? "" : undefined}
+    >
       {value}
     </div>
   </div>
@@ -69,7 +79,7 @@ export const createApiRequestColumns = ({
       width: "15%",
     },
     cell: ({ row }) => (
-      <TruncatedTextCell value={row.original.key_details?.identity?.external_id || "—"} />
+      <TruncatedTextCell sensitive value={row.original.key_details?.identity?.external_id || "—"} />
     ),
   },
   {

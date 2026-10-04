@@ -13,7 +13,10 @@ export function Avatar({ src, alt, className }: AvatarProps) {
 
   if (!src || hasError) {
     return (
-      <div className="size-5  border rounded-full items-center flex justify-center">
+      <div
+        data-sensitive-media=""
+        className="size-5  border rounded-full items-center flex justify-center"
+      >
         <IconUserOutline18 className="size-3.5" />
       </div>
     );
@@ -23,6 +26,7 @@ export function Avatar({ src, alt, className }: AvatarProps) {
     <img
       src={src}
       alt={alt}
+      data-sensitive-media=""
       className={cn("size-5 rounded-full object-cover", className)}
       onError={() => setHasError(true)}
     />

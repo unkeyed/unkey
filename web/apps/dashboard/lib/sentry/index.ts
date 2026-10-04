@@ -48,5 +48,9 @@ export {
   scrubReplayFrame,
 } from "./pii-scrubber";
 
-export { replayPrivacyOptions } from "./replay-privacy";
+export {
+  replayPrivacyOptions,
+  replaySampleRates,
+  replayMaskedLogSectionTitles,
+} from "./replay-privacy";
 export { IGNORE_ERRORS, DENY_URLS } from "./noise-filters";
