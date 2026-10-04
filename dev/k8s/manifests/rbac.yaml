@@ -37,6 +37,10 @@ rules:
     resources: ["services"]
     verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
 
+  - apiGroups: ["discovery.k8s.io"]
+    resources: ["endpointslices"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+
   # Deployments management for user workloads
   - apiGroups: ["apps"]
     resources: ["deployments", "replicasets"]
