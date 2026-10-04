@@ -264,7 +264,9 @@
       "product": "compute",
       "capability": "private networking",
       "pages": [
-        "compute/networking/private-networking"
+        "compute/concepts/connections",
+        "compute/networking/private-networking",
+        "compute/networking/private-networking/troubleshooting"
       ]
     },
     {
