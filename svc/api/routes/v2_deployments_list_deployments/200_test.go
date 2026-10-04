@@ -22,7 +22,7 @@ func TestListWorkspaceWide(t *testing.T) {
 	h.Register(route)
 
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"environment.*.read_deployment"},
+		Permissions: []string{"unkey:v1:{workspaceID}:**#read"},
 	})
 
 	want := map[string]bool{}
@@ -78,7 +78,7 @@ func TestListFilterByEnvironment(t *testing.T) {
 	h.Register(route)
 
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"environment.*.read_deployment"},
+		Permissions: []string{"unkey:v1:{workspaceID}:**#read"},
 	})
 
 	// A second environment in the same app whose deployments must be excluded.
@@ -124,7 +124,7 @@ func TestListFilterByProject(t *testing.T) {
 	h.Register(route)
 
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"environment.*.read_deployment"},
+		Permissions: []string{"unkey:v1:{workspaceID}:**#read"},
 	})
 
 	target := h.CreateDeployment(seed.CreateDeploymentRequest{
@@ -181,7 +181,7 @@ func TestListFilterByApp(t *testing.T) {
 	h.Register(route)
 
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"environment.*.read_deployment"},
+		Permissions: []string{"unkey:v1:{workspaceID}:**#read"},
 	})
 
 	// A second app in the same project whose deployments must be excluded.
@@ -235,7 +235,7 @@ func TestListFilterByStatus(t *testing.T) {
 	h.Register(route)
 
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"environment.*.read_deployment"},
+		Permissions: []string{"unkey:v1:{workspaceID}:**#read"},
 	})
 
 	// Seeded deployments are all in status "pending".
@@ -268,7 +268,7 @@ func TestListEmptyStatusFilter(t *testing.T) {
 	h.Register(route)
 
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"environment.*.read_deployment"},
+		Permissions: []string{"unkey:v1:{workspaceID}:**#read"},
 	})
 
 	const total = 3
@@ -297,7 +297,7 @@ func TestListFilterByMultipleStatuses(t *testing.T) {
 	h.Register(route)
 
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"environment.*.read_deployment"},
+		Permissions: []string{"unkey:v1:{workspaceID}:**#read"},
 	})
 
 	pending := h.CreateDeployment(seed.CreateDeploymentRequest{
@@ -346,7 +346,7 @@ func TestListEmptyWorkspace(t *testing.T) {
 	h.Register(route)
 
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"environment.*.read_deployment"},
+		Permissions: []string{"unkey:v1:{workspaceID}:**#read"},
 	})
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(setup.RootKey), handler.Request{})
@@ -363,7 +363,7 @@ func TestListNewestFirst(t *testing.T) {
 	h.Register(route)
 
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"environment.*.read_deployment"},
+		Permissions: []string{"unkey:v1:{workspaceID}:**#read"},
 	})
 
 	const total = 5
@@ -402,7 +402,7 @@ func TestListWorkspaceIsolation(t *testing.T) {
 	h.Register(route)
 
 	caller := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"environment.*.read_deployment"},
+		Permissions: []string{"unkey:v1:{workspaceID}:**#read"},
 	})
 	other := h.CreateTestDeploymentSetup()
 
@@ -436,7 +436,7 @@ func TestListPagination(t *testing.T) {
 	h.Register(route)
 
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"environment.*.read_deployment"},
+		Permissions: []string{"unkey:v1:{workspaceID}:**#read"},
 	})
 
 	const total = 5

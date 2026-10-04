@@ -10,8 +10,8 @@ post:
     **Required Permissions**
 
     Your root key must have one of the following permissions:
-    - `environment.*.read_environment` (to read any environment)
-    - `environment.<environment_id>.read_environment` (to read a specific environment)
+    - `unkey:v1:{workspace_id}:projects/*/apps/*/environments/*#read` (to read any environment)
+    - `unkey:v1:{workspace_id}:projects/{project_id}/apps/{app_id}/environments/{environment_id}#read` (to read a specific environment)
   operationId: environments.getEnvironment
   x-speakeasy-name-override: getEnvironment
   security:
@@ -91,7 +91,7 @@ post:
           schema:
             "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
     "403":
-      description: Forbidden - Insufficient permissions (requires `environment.*.read_environment`)
+      description: Forbidden - Insufficient permissions (requires `unkey:v1:{workspace_id}:projects/*/apps/*/environments/*#read`)
       content:
         application/json:
           schema:
@@ -104,7 +104,7 @@ post:
                   requestId: req_1234abcd
                 error:
                   title: Forbidden
-                  detail: Your root key requires the 'environment.*.read_environment' permission to perform this operation
+                  detail: Your root key requires the 'unkey:v1:{workspace_id}:projects/*/apps/*/environments/*#read' permission to perform this operation
                   status: 403
                   type: forbidden
     "404":

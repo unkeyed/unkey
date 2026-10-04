@@ -19,8 +19,8 @@ import (
 )
 
 func TestCreateDomain(t *testing.T) {
-	want := components.V2DomainsCreateDomainRequestBody{Project: "payments", App: "api", Environment: "production", Domain: "api.acme.com"}
-	require.Equal(t, want, testutil.CaptureRequest[components.V2DomainsCreateDomainRequestBody](t, Cmd(), "domains create-domain --project=payments --app=api --environment=production --domain=api.acme.com"))
+	want := components.V2DomainsCreateDomainRequestBody{Project: "payments", App: "api", Environment: "production", Domain: "acme.com"}
+	require.Equal(t, want, testutil.CaptureRequest[components.V2DomainsCreateDomainRequestBody](t, Cmd(), "domains create-domain --project=payments --app=api --environment=production --domain=acme.com"))
 }
 
 func TestDeleteDomain(t *testing.T) {
@@ -29,8 +29,8 @@ func TestDeleteDomain(t *testing.T) {
 }
 
 func TestGetDomain(t *testing.T) {
-	want := components.V2DomainsGetDomainRequestBody{Domain: "api.acme.com"}
-	require.Equal(t, want, testutil.CaptureRequest[components.V2DomainsGetDomainRequestBody](t, Cmd(), "domains get-domain --domain=api.acme.com"))
+	want := components.V2DomainsGetDomainRequestBody{Domain: "acme.com"}
+	require.Equal(t, want, testutil.CaptureRequest[components.V2DomainsGetDomainRequestBody](t, Cmd(), "domains get-domain --domain=acme.com"))
 }
 
 func TestListDomains(t *testing.T) {
@@ -83,8 +83,8 @@ func TestListDomains(t *testing.T) {
 }
 
 func TestVerifyDomain(t *testing.T) {
-	want := components.V2DomainsVerifyDomainRequestBody{Domain: "api.acme.com"}
-	require.Equal(t, want, captureVerifyRequest(t, "domains verify-domain --domain=api.acme.com"))
+	want := components.V2DomainsVerifyDomainRequestBody{Domain: "acme.com"}
+	require.Equal(t, want, captureVerifyRequest(t, "domains verify-domain --domain=acme.com"))
 }
 
 func captureVerifyRequest(t *testing.T, args string) components.V2DomainsVerifyDomainRequestBody {

@@ -77,7 +77,7 @@ Every `unkey api` command takes these. See [CLI output and shared flags](/platfo
 
 ## Required permissions
 
-`portal.*.create_portal`, plus read on the resource the portal will serve: `api.*.read_api` or `api.<apiId>.read_api` for a keyspace, `app.*.read_app` or `app.<appId>.read_app` for an app. Without the read permission, the call fails with 403 and "You do not have permission to point a portal at that resource." Unlike the other portal commands, a missing `portal.*.create_portal` returns 403, not 404. See [Root key permissions](/platform/root-keys/permissions).
+`unkey:v1:{workspace_id}:portals/*#write`, plus read on the resource the portal will serve: `unkey:v1:{workspace_id}:projects/*/keyspaces/*#read` or `unkey:v1:{workspace_id}:projects/{project_id}/keyspaces/{keyspace_id}#read` for a keyspace, `unkey:v1:{workspace_id}:projects/*/apps/*#read` or `unkey:v1:{workspace_id}:projects/{project_id}/apps/{app_id}#read` for an app. Without the read permission, the call fails with 403 and "You do not have permission to point a portal at that resource." Unlike the other portal commands, a missing `unkey:v1:{workspace_id}:portals/*#write` returns 403, not 404. See [Root key permissions](/platform/root-keys/permissions).
 
 ## Examples
 

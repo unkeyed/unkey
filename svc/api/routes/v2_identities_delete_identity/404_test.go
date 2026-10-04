@@ -24,7 +24,7 @@ func TestDeleteIdentityNotFound(t *testing.T) {
 
 	h.Register(route)
 
-	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "identity.*.delete_identity")
+	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, fmt.Sprintf("unkey:v1:%s:projects//identities/*#delete", h.Resources().UserWorkspace.ID))
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
@@ -62,7 +62,7 @@ func TestDeleteIdentityNotFound(t *testing.T) {
 		differentWorkspace := h.CreateWorkspace()
 
 		// Try to delete it using external ID with a key from different workspace
-		differentWorkspaceKey := h.CreateRootKey(differentWorkspace.ID, "identity.*.delete_identity")
+		differentWorkspaceKey := h.CreateRootKey(differentWorkspace.ID, fmt.Sprintf("unkey:v1:%s:projects/*/identities/*#delete", differentWorkspace.ID))
 		differentHeaders := http.Header{
 			"Content-Type":  {"application/json"},
 			"Authorization": {fmt.Sprintf("Bearer %s", differentWorkspaceKey)},

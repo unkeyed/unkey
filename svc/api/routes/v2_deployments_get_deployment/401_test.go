@@ -17,7 +17,7 @@ func TestUnauthorized(t *testing.T) {
 	h.Register(route)
 
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"environment.*.read_deployment"},
+		Permissions: []string{"unkey:v1:{workspaceID}:**#read"},
 	})
 
 	dep := h.CreateDeployment(seed.CreateDeploymentRequest{

@@ -136,9 +136,8 @@ func TestWorkerRejections(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			h := testutil.NewHarness(t)
-			setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-				Permissions: []string{"environment.*.create_deployment"},
-			})
+			setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{})
+			setup.RootKey = deploymentRootKey(h, setup)
 			route := &handler.Handler{DB: h.DB, Restate: testutil.RejectingDeployRestate(t, tc.outcome, tc.detail)}
 			h.Register(route)
 

@@ -20,19 +20,3 @@ export function humaniseAction(action: string): string {
     })
     .join(" ");
 }
-
-// Legacy root key permissions are stored as `<resource>.<instance>.<action>`
-// (see `unkeyPermissionValidation` in @unkey/rbac). Only the action carries
-// meaning for a reader; the instance is always `*` or an id they cannot read.
-export function describePermission(name: string): string {
-  if (name === "*") {
-    return "All permissions";
-  }
-
-  const action = name.split(".").at(-1);
-  if (!action) {
-    return name;
-  }
-
-  return humaniseAction(action);
-}

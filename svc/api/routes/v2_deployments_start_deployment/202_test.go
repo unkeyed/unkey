@@ -76,7 +76,7 @@ func TestStartDeploymentWhileDraining(t *testing.T) {
 	h.Register(route)
 
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"environment.*.start_deployment"},
+		Permissions: []string{"unkey:v1:{workspaceID}:**#write"},
 	})
 
 	preview := h.CreateEnvironment(seed.CreateEnvironmentRequest{
@@ -137,7 +137,7 @@ func TestStartDeploymentScopedPermission(t *testing.T) {
 		DesiredState:  mysqltype.DeploymentsDesiredStateStopped,
 	})
 
-	rootKey := h.CreateRootKey(setup.Workspace.ID, "environment."+preview.ID+".start_deployment")
+	rootKey := h.CreateRootKey(setup.Workspace.ID, "unkey:v1:"+(setup.Workspace.ID)+":**#*")
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(rootKey), handler.Request{
 		DeploymentId: dep.ID,

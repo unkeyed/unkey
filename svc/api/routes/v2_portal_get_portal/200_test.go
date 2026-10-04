@@ -131,7 +131,7 @@ func normalizeRequestID(body string) string {
 
 func TestGetPortalByIdAndSlug(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route, headers := newRoute(t, h, "portal.*.read_portal")
+	route, headers := newRoute(t, h, fmt.Sprintf("unkey:v1:%s:**#*", h.Resources().UserWorkspace.ID))
 	workspace := h.Resources().UserWorkspace
 
 	mapping := keyspaceMapping(t, h, workspace.ID)
@@ -165,8 +165,8 @@ func TestGetPortalByIdAndSlug(t *testing.T) {
 // holds a portal id, so this arm is the one that unblocks it.
 func TestGetPortalByMapping(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route, headers := newRoute(t, h, "portal.*.read_portal")
 	workspace := h.Resources().UserWorkspace
+	route, headers := newRoute(t, h, fmt.Sprintf("unkey:v1:%s:projects/*/portals/*#read", workspace.ID))
 
 	keyspace := keyspaceMapping(t, h, workspace.ID)
 	keyspacePortal := h.SeedPortal(t, workspace.ID, "keyspace-portal", "keyspace-portal", keyspace,
@@ -220,8 +220,8 @@ func TestGetPortalByMapping(t *testing.T) {
 // tell "no branding set" from "branding set to empty".
 func TestGetPortalOmitsAbsentBranding(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route, headers := newRoute(t, h, "portal.*.read_portal")
 	workspace := h.Resources().UserWorkspace
+	route, headers := newRoute(t, h, fmt.Sprintf("unkey:v1:%s:projects/*/portals/*#read", workspace.ID))
 
 	stored := h.SeedPortal(t, workspace.ID, "plain", "plain", keyspaceMapping(t, h, workspace.ID),
 		nil, nil)
@@ -241,8 +241,8 @@ func TestGetPortalOmitsAbsentBranding(t *testing.T) {
 // session rather than to a portal.
 func TestGetPortalCarriesDisplayNameButNoReturnURL(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route, headers := newRoute(t, h, "portal.*.read_portal")
 	workspace := h.Resources().UserWorkspace
+	route, headers := newRoute(t, h, fmt.Sprintf("unkey:v1:%s:projects/*/portals/*#read", workspace.ID))
 
 	stored := h.SeedPortal(t, workspace.ID, "no-extras", "no-extras", keyspaceMapping(t, h, workspace.ID),
 		new("https://cdn.example.com/logo.svg"), nil)

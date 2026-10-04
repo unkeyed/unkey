@@ -24,8 +24,8 @@ The app or keyspace it served is untouched, and its slug becomes free for a new 
 Required Permissions
 
 Your root key must have one of:
-- portal.*.delete_portal (to delete any portal in the workspace)
-- portal.<portal_id>.delete_portal (to delete a specific portal)
+- unkey:v1:{workspace_id}:projects/*/portals/*#delete (to delete any portal in the workspace)
+- unkey:v1:{workspace_id}:projects/{project_id}/portals/{portal_id}#delete (to delete a specific portal)
 
 Without the permission this returns 404, not 403.
 

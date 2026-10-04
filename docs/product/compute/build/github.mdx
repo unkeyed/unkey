@@ -33,7 +33,7 @@ You install the Unkey GitHub App once per workspace, on a GitHub organization or
 1. Start from any of these places in the dashboard: the **Import from GitHub** step when you create an app, the **GitHub** card in an app's settings, or [workspace settings](/platform/workspace/settings).
 2. Approve the installation on GitHub. GitHub sends you back to Unkey.
 
-To do it with the API, call `github.installApp` with a root key that has `workspace.*.install_github`, and open the URL it returns.
+To do it with the API, call `github.installApp` with a root key that has `unkey:v1:{workspace_id}:github/apps/*#write`, and open the URL it returns.
 
 You can install the app on more than one GitHub account. An installation belongs to one workspace only, so a second workspace can't use it.
 

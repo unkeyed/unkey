@@ -75,16 +75,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	if err = principal.Authorize(rbac.Or(
-		rbac.T(rbac.Tuple{
-			ResourceType: rbac.Environment,
-			ResourceID:   "*",
-			Action:       rbac.VerifyDomain,
-		}),
-		rbac.T(rbac.Tuple{
-			ResourceType: rbac.Environment,
-			ResourceID:   domain.EnvironmentID,
-			Action:       rbac.VerifyDomain,
-		}),
 		rbac.U(
 			urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(domain.ProjectID).App(domain.AppID).Environment(domain.EnvironmentID).Domain(domain.ID),
 			permissions.Write,

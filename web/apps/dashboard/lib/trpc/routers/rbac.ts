@@ -37,8 +37,8 @@ export async function upsertPermissions(
     });
   }
 
-  // The unique index on (workspace_id, slug) is case insensitive, so "Api.x.read"
-  // and "api.x.read" in one request have to collapse to a single row.
+  // The unique index on (workspace_id, slug) is case insensitive, so "Documents.Read"
+  // and "documents.read" in one request have to collapse to a single row.
   const slugByLowercase = new Map<string, string>();
   for (const permissionString of permissionStrings) {
     const lowercase = permissionString.toLowerCase();

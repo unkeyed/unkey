@@ -8,7 +8,7 @@ post:
     **Required Permissions**
 
     Your root key must have the following permission:
-    - `rbac.*.read_role`
+    - `unkey:v1:{workspace_id}:projects/*/rbac/roles/*#read`
   operationId: permissions.getRole
   x-speakeasy-name-override: GetRole
   security:

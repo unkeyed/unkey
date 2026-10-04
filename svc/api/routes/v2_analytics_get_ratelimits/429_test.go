@@ -15,7 +15,7 @@ func Test429_WorkspaceQueryQuota(t *testing.T) {
 	workspace := h.CreateWorkspace()
 	h.SetupAnalytics(workspace.ID, testutil.WithMaxQueriesPerWindow(1))
 	id := createNamespace(t, h, workspace.ID)
-	rootKey := h.CreateRootKey(workspace.ID, "ratelimit.*.read_analytics")
+	rootKey := h.CreateRootKey(workspace.ID, "unkey:v1:"+(workspace.ID)+":**#*")
 	route := &Handler{AnalyticsConnectionManager: h.AnalyticsConnectionManager}
 	h.Register(route)
 	req := Request{Query: fmt.Sprintf("SELECT count(*) FROM ratelimits_v1 WHERE namespace_id = '%s'", id)}

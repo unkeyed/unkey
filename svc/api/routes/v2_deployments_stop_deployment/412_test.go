@@ -22,7 +22,7 @@ func TestStopDeploymentNotRunning(t *testing.T) {
 	h.Register(route)
 
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"environment.*.stop_deployment"},
+		Permissions: []string{"unkey:v1:{workspaceID}:**#write"},
 	})
 
 	dep := h.CreateDeployment(seed.CreateDeploymentRequest{
@@ -49,7 +49,7 @@ func TestStopDeploymentAlreadyStopping(t *testing.T) {
 	h.Register(route)
 
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"environment.*.stop_deployment"},
+		Permissions: []string{"unkey:v1:{workspaceID}:**#write"},
 	})
 
 	preview := h.CreateEnvironment(seed.CreateEnvironmentRequest{
@@ -89,7 +89,7 @@ func TestStopDeploymentProduction(t *testing.T) {
 	h.Register(route)
 
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"environment.*.stop_deployment"},
+		Permissions: []string{"unkey:v1:{workspaceID}:**#write"},
 	})
 
 	dep := h.CreateDeployment(seed.CreateDeploymentRequest{

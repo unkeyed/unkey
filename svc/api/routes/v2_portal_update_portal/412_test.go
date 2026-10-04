@@ -1,6 +1,7 @@
 package handler_test
 
 import (
+	"fmt"
 	"net/http"
 	"testing"
 
@@ -18,7 +19,7 @@ import (
 // project while apps take a caller-named one.
 func TestUpdatePortalRejectsMappingInAnotherProject(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route, headers := newRoute(t, h, "portal.*.update_portal")
+	route, headers := newRoute(t, h, fmt.Sprintf("unkey:v1:%s:**#*", h.Resources().UserWorkspace.ID))
 	workspace := h.Resources().UserWorkspace
 
 	homeProject, _, homeKeyspace := mappingsInOneProject(t, h, workspace.ID, "home")

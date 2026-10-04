@@ -20,8 +20,8 @@ The app name, slug, default branch, and delete protection setting can be changed
 Important: The slug cannot collide with an existing app in the same project. A duplicate slug returns a 409 conflict.
 
 Required Permissions
-- app.*.update_app (to update any app)
-- app.<app_id>.update_app (to update a specific app)
+- unkey:v1:{workspace_id}:projects/*/apps/*#write (to update any app)
+- unkey:v1:{workspace_id}:projects/{project_id}/apps/{app_id}#write (to update a specific app)
 
 For full documentation, see https://www.unkey.com/docs/api-reference/apps/update-app` + util.Disclaimer,
 		Examples: []string{"unkey api apps update-app --project=payments --app=app_1234abcd --name='Payments API'", `unkey api apps update-app --project=payments --app=payments-api --git='{"repository":"unkeyed/api","defaultBranch":"main"}'`, `unkey api apps update-app --project=payments --app=payments-api --oci='{"image":"ghcr.io/acme/payments:v2"}'`, "unkey api apps update-app --project=payments --app=payments-api --git=null"},

@@ -18,12 +18,6 @@ import (
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_portal_create_portal"
 )
 
-// targetReadGrants is what pointing a portal at a resource costs beyond the
-// portal action itself: the caller must be able to read what it is exposing.
-// Carried by every test whose request names a mapping, so the cases below
-// exercise their own subject rather than this check.
-var targetReadGrants = []string{"api.*.read_api", "app.*.read_app"}
-
 // newRoute registers the handler and returns it with the caller's headers.
 // ksOf and appOf render a mapping as the flat request pair. Each returns nil
 // unless the mapping names its kind, so a call site can set both fields
@@ -50,8 +44,7 @@ func newRoute(t *testing.T, h *testutil.Harness, permissions ...string) (*handle
 	route := &handler.Handler{DB: h.DB, Auditlogs: h.Auditlogs, Clock: h.Clock}
 	h.Register(route)
 
-	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID,
-		append(append([]string{}, permissions...), targetReadGrants...)...)
+	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, permissions...)
 	return route, http.Header{
 		"Content-Type":  {"application/json"},
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
@@ -104,7 +97,7 @@ func countAuditEntriesMentioning(t *testing.T, h *testutil.Harness, workspaceID,
 
 func TestCreatePortalWithKeyspaceMapping(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route, headers := newRoute(t, h, "portal.*.create_portal")
+	route, headers := newRoute(t, h, fmt.Sprintf("unkey:v1:%s:**#*", h.Resources().UserWorkspace.ID))
 	workspace := h.Resources().UserWorkspace
 
 	// A named project rather than the workspace default, so the stored project can
@@ -155,7 +148,7 @@ func TestCreatePortalWithKeyspaceMapping(t *testing.T) {
 
 func TestCreatePortalDefaultsToEnabled(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route, headers := newRoute(t, h, "portal.*.create_portal")
+	route, headers := newRoute(t, h, fmt.Sprintf("unkey:v1:%s:**#*", h.Resources().UserWorkspace.ID))
 	workspace := h.Resources().UserWorkspace
 	mapping := keyspaceMapping(t, h, workspace.ID)
 
@@ -175,7 +168,7 @@ func TestCreatePortalDefaultsToEnabled(t *testing.T) {
 
 func TestCreatePortalWithAppMappingAndBranding(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route, headers := newRoute(t, h, "portal.*.create_portal")
+	route, headers := newRoute(t, h, fmt.Sprintf("unkey:v1:%s:**#*", h.Resources().UserWorkspace.ID))
 	workspace := h.Resources().UserWorkspace
 
 	project := h.CreateProject(seed.CreateProjectRequest{
@@ -221,7 +214,7 @@ func TestCreatePortalWithAppMappingAndBranding(t *testing.T) {
 // unscoped and nothing would notice.
 func TestCreatePortalAllowsSameSlugInAnotherWorkspace(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route, headers := newRoute(t, h, "portal.*.create_portal")
+	route, headers := newRoute(t, h, fmt.Sprintf("unkey:v1:%s:**#*", h.Resources().UserWorkspace.ID))
 	workspace := h.Resources().UserWorkspace
 
 	other := h.CreateWorkspace()
@@ -250,7 +243,7 @@ func TestCreatePortalAllowsSameSlugInAnotherWorkspace(t *testing.T) {
 
 func TestCreatePortalWritesOneAuditEntry(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route, headers := newRoute(t, h, "portal.*.create_portal")
+	route, headers := newRoute(t, h, fmt.Sprintf("unkey:v1:%s:**#*", h.Resources().UserWorkspace.ID))
 	workspace := h.Resources().UserWorkspace
 	mapping := keyspaceMapping(t, h, workspace.ID)
 

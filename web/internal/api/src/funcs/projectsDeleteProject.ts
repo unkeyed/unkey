@@ -39,8 +39,8 @@ import { Result } from "../types/fp.js";
  * **Required Permissions**
  *
  * Your root key must have one of the following permissions:
- * - `project.*.delete_project` (to delete any project)
- * - `project.<project_id>.delete_project` (to delete a specific project)
+ * - `unkey:v1:{workspace_id}:projects/*#delete` (to delete any project)
+ * - `unkey:v1:{workspace_id}:projects/{project_id}#delete` (to delete a specific project)
  *
  * If set, this operation will use {@link Security.rootKey} from the global security.
  */

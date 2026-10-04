@@ -23,8 +23,8 @@ Response Codes: Rate limit checks return HTTP 200 regardless of whether limits a
 Required permissions:
 
 Your root key must have one of the following permissions:
-- ratelimit.*.limit (to check limits in any namespace)
-- ratelimit.<namespace_id>.limit (to check limits in all specific namespaces being checked)
+- unkey:v1:{workspace_id}:projects/*/ratelimits/namespaces/*#limit (to check limits in any namespace)
+- unkey:v1:{workspace_id}:projects/{project_id}/ratelimits/namespaces/{namespace_id}#limit (to check limits in all specific namespaces being checked)
 
 For full documentation, see https://www.unkey.com/docs/api-reference/v2/ratelimit/apply-multiple-rate-limit-checks` + util.Disclaimer,
 		Examples: []string{

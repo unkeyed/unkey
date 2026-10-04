@@ -24,7 +24,7 @@ Call `keys.verifyKey` on every request that carries a key. Send the key exactly 
 
 <RootKeyPrereq />
 
-The root key needs `api.*.verify_key` or `api.<api_id>.verify_key` for the key's keyspace. Without it you get a 200 with `code: NOT_FOUND`, not a permission error. A missing or invalid root key gets HTTP 401. See [Root key permissions](/platform/root-keys/permissions).
+The root key needs `unkey:v1:{workspace_id}:projects/*/keyspaces/*/keys/*#verify` or `unkey:v1:{workspace_id}:projects/{project_id}/keyspaces/{keyspace_id}/keys/*#verify` for the key's keyspace. Without it you get a 200 with `code: NOT_FOUND`, not a permission error. A missing or invalid root key gets HTTP 401. See [Root key permissions](/platform/root-keys/permissions).
 
 ## Request
 

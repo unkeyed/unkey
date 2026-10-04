@@ -61,7 +61,7 @@ Every `unkey api` command takes these. See [CLI output and shared flags](/platfo
 
 ## Required permissions
 
-`identity.*.read_identity`. A root key with only `identity.<identityId>.read_identity` fails as soon as the page includes any other identity. See [Root key permissions](/platform/root-keys/permissions).
+`unkey:v1:{workspace_id}:projects/*/identities/*#read`. A root key with only `unkey:v1:{workspace_id}:projects/{project_id}/identities/{identity_id}#read` fails as soon as the page includes any other identity. See [Root key permissions](/platform/root-keys/permissions).
 
 ## Examples
 

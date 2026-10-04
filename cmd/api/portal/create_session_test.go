@@ -15,7 +15,7 @@ func TestCreateSession(t *testing.T) {
 		name, args string
 		count      int
 		returnURL  *string
-	}{{"minimal", "portal create-session --portal=my-portal --external-id=u --scopes=keys:read", 1, nil}, {"all flags", "portal create-session --portal=my-portal --external-id=u --scopes=keys:read,keys:reroll --return-url=https://app.example.com/settings", 2, func() *string { v := "https://app.example.com/settings"; return &v }()}}
+	}{{"minimal", "portal create-session --portal=my-portal --external-id=u --scopes=keys:read", 1, nil}, {"all flags", "portal create-session --portal=my-portal --external-id=u --scopes=keys:read,keys:reroll --return-url=https://example.com/settings", 2, func() *string { v := "https://example.com/settings"; return &v }()}}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got := testutil.CaptureRequest[components.V2PortalCreateSessionRequestBody](t, Cmd(), tt.args)

@@ -43,7 +43,7 @@ import {
  *
  * **Important:** Results are paginated. Use the cursor parameter to retrieve additional pages when more results are available.
  *
- * **Permissions:** Requires `ratelimit.*.read_override` or `ratelimit.<namespace_id>.read_override`
+ * **Permissions:** Requires `unkey:v1:{workspace_id}:projects/&#42;/ratelimits/namespaces/&#42;/overrides/*#read` or `unkey:v1:{workspace_id}:projects/{project_id}/ratelimits/namespaces/{namespace_id}/overrides/*#read`
  *
  * If set, this operation will use {@link Security.rootKey} from the global security.
  */

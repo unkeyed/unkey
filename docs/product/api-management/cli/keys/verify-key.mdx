@@ -72,7 +72,7 @@ Every `unkey api` command takes these. See [CLI output and shared flags](/platfo
 
 ## Required permissions
 
-`api.*.verify_key` or `api.<apiId>.verify_key` for the API the key belongs to. A missing permission never returns `403`. Whether the root key has no verify permission or has one for a different API, you get `200` with `valid: false` and code `NOT_FOUND`. See [Root key permissions](/platform/root-keys/permissions).
+`unkey:v1:{workspace_id}:projects/*/keyspaces/*/keys/*#verify` or `unkey:v1:{workspace_id}:projects/{project_id}/keyspaces/{keyspace_id}/keys/*#verify` for the API the key belongs to. A missing permission never returns `403`. Whether the root key has no verify permission or has one for a different API, you get `200` with `valid: false` and code `NOT_FOUND`. See [Root key permissions](/platform/root-keys/permissions).
 
 ## Examples
 

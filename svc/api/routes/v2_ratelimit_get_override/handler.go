@@ -95,29 +95,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	// The URN leg is the canonical permission; the two tuple legs accept legacy
-	// namespace-scoped and global root-key grants until those are migrated to URNs.
-	err = principal.Authorize(
-		rbac.Or(
-			rbac.U(
-				urn.New().
-					Workspace(principal.AuthorizedWorkspaceID).
-					Project(ns.ProjectID).
-					RatelimitNamespace(ns.ID).
-					Override(override.ID),
-				permissions.Read,
-			),
-			rbac.T(rbac.Tuple{
-				ResourceType: rbac.Ratelimit,
-				ResourceID:   ns.ID,
-				Action:       rbac.ReadOverride,
-			}),
-			rbac.T(rbac.Tuple{
-				ResourceType: rbac.Ratelimit,
-				ResourceID:   "*",
-				Action:       rbac.ReadOverride,
-			}),
-		))
+	err = principal.Authorize(rbac.U(
+		urn.New().
+			Workspace(principal.AuthorizedWorkspaceID).
+			Project(ns.ProjectID).
+			RatelimitNamespace(ns.ID).
+			Override(override.ID),
+		permissions.Read,
+	))
 	if err != nil {
 		// Deliberately not fault.Wrap(err): the error middleware joins every
 		// public message in the chain into the response detail, and the rbac

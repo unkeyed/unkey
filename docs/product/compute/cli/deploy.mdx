@@ -67,7 +67,7 @@ The command doesn't accept `--output`, `--config`, or `--body`.
 
 ## Required permissions
 
-`project.*.create_deployment` or `project.<project_id>.create_deployment` to create the deployment, and `project.*.read_deployment` or `project.<project_id>.read_deployment` to follow it. These are project permissions. The `unkey api deployments` commands use environment permissions instead. See [Root key permissions](/platform/root-keys/permissions).
+`unkey:v1:{workspace_id}:projects/*/apps/*/environments/*/deployments/*#write` or `unkey:v1:{workspace_id}:projects/{project_id}/apps/*/environments/*/deployments/*#write` to create the deployment, and `unkey:v1:{workspace_id}:projects/*/apps/*/environments/*/deployments/*#read` or `unkey:v1:{workspace_id}:projects/{project_id}/apps/*/environments/*/deployments/*#read` to follow it. These are project permissions. The `unkey api deployments` commands use environment permissions instead. See [Root key permissions](/platform/root-keys/permissions).
 
 ## What you'll see
 

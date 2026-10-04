@@ -15,7 +15,7 @@ func listProjectsCmd() *cli.Command {
 Use this to build project management dashboards or to enumerate projects for administrative purposes. Results are ordered by project id and returned in pages. When hasMore is true, pass the returned cursor to fetch the next page.
 
 Required Permissions
-- project.*.read_project (to read projects in your workspace)
+- unkey:v1:{workspace_id}:projects/*#read (to read projects in your workspace)
 
 For full documentation, see https://www.unkey.com/docs/api-reference/v2/projects/list-projects` + util.Disclaimer, Examples: []string{"unkey api projects list-projects", "unkey api projects list-projects --limit=25 --search=billing"}, Flags: []cli.Flag{cli.String("body", "Decode this JSON as the endpoint request body. Request-building flags are mutually exclusive."), util.RootKeyFlag(), util.APIURLFlag(), util.ConfigFlag(), util.OutputFlag(), cli.Int64("limit", "Maximum number of projects to return per request.", cli.Default(int64(100)), cli.MutuallyExclusive("body")), cli.String("cursor", "Pagination cursor from a previous response.", cli.MutuallyExclusive("body")), cli.String("search", "Free-form text to filter projects.", cli.MutuallyExclusive("body"))}, Action: func(ctx context.Context, cmd *cli.Command) error {
 		client, err := util.CreateClient(cmd)

@@ -67,7 +67,7 @@ unkey api keys create-key --api-id=<api id> [flags]
 </ParamField>
 
 <ParamField body="--recoverable" type="boolean" default="false">
-  Store the plaintext encrypted so `get-key --decrypt` can return it later. Needs `encrypt_key`. Fails with `412` unless the keyspace has key encryption turned on, which only we can do, through a support request.
+  Store the plaintext encrypted so `get-key --decrypt` can return it later. Needs `#write` on the key path. Fails with `412` unless the keyspace has key encryption turned on, which only we can do, through a support request.
 </ParamField>
 
 <ParamField body="--roles" type="string[]">
@@ -100,7 +100,7 @@ Every `unkey api` command takes these. See [CLI output and shared flags](/platfo
 
 ## Required permissions
 
-`api.*.create_key` or `api.<apiId>.create_key`. `--recoverable` also needs `api.*.encrypt_key` or `api.<apiId>.encrypt_key`. Without the permission you get a 404, not a 403, so the response doesn't reveal whether the API exists. See [Root key permissions](/platform/root-keys/permissions).
+`unkey:v1:{workspace_id}:projects/*/keyspaces/*/keys/*#write` or `unkey:v1:{workspace_id}:projects/{project_id}/keyspaces/{keyspace_id}/keys/*#write`. Without the permission you get a 404, not a 403, so the response doesn't reveal whether the API exists. See [Root key permissions](/platform/root-keys/permissions).
 
 ## Examples
 

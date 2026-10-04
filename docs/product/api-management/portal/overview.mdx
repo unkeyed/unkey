@@ -65,7 +65,7 @@ When you read a portal, `logoUrl` and `primaryColor` come back under `branding`,
 
 <RootKeyPrereq />
 
-Creating a portal needs `portal.*.create_portal`. Reading, updating, and deleting need `read_portal`, `update_portal`, or `delete_portal`, either as `portal.*.<action>` or scoped to one portal as `portal.<portalId>.<action>`. Creating sessions needs a separate permission, covered on [Portal sessions](/api-management/portal/sessions).
+Creating a portal needs `unkey:v1:{workspace_id}:portals/*#write`. Reading, updating, and deleting need `#read`, `#write`, or `#delete` on `unkey:v1:{workspace_id}:portals/*` or `unkey:v1:{workspace_id}:portals/{portal_id}`. Creating sessions needs a separate permission, covered on [Portal sessions](/api-management/portal/sessions).
 
 ```bash
 curl -X POST https://api.unkey.com/v2/portal.createPortal \

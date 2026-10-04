@@ -25,7 +25,7 @@ export class Ratelimit extends ClientSDK {
    *
    * **Important:** Deletion is immediate and permanent. The override cannot be recovered and must be recreated if needed again.
    *
-   * **Permissions:** Requires `ratelimit.*.delete_override` or `ratelimit.<namespace_id>.delete_override`
+   * **Permissions:** Requires `unkey:v1:{workspace_id}:projects/&#42;/ratelimits/namespaces/&#42;/overrides/*#delete` or `unkey:v1:{workspace_id}:projects/{project_id}/ratelimits/namespaces/{namespace_id}/overrides/*#delete`
    */
   async deleteOverride(
     request: components.V2RatelimitDeleteOverrideRequestBody,
@@ -48,7 +48,7 @@ export class Ratelimit extends ClientSDK {
    *
    * **Important:** The identifier must match exactly as specified when creating the override, including wildcard patterns.
    *
-   * **Permissions:** Requires `ratelimit.*.read_override` or `ratelimit.<namespace_id>.read_override`
+   * **Permissions:** Requires `unkey:v1:{workspace_id}:projects/&#42;/ratelimits/namespaces/&#42;/overrides/*#read` or `unkey:v1:{workspace_id}:projects/{project_id}/ratelimits/namespaces/{namespace_id}/overrides/*#read`
    */
   async getOverride(
     request: components.V2RatelimitGetOverrideRequestBody,
@@ -74,8 +74,8 @@ export class Ratelimit extends ClientSDK {
    * **Required Permissions**
    *
    * Your root key must have one of the following permissions:
-   * - `ratelimit.*.limit` (to check limits in any namespace)
-   * - `ratelimit.<namespace_id>.limit` (to check limits in a specific namespace)
+   * - `unkey:v1:{workspace_id}:projects/&#42;/ratelimits/namespaces/*#limit` (to check limits in any namespace)
+   * - `unkey:v1:{workspace_id}:projects/{project_id}/ratelimits/namespaces/{namespace_id}#limit` (to check limits in a specific namespace)
    */
   async limit(
     request: components.V2RatelimitLimitRequestBody,
@@ -98,7 +98,7 @@ export class Ratelimit extends ClientSDK {
    *
    * **Important:** Results are paginated. Use the cursor parameter to retrieve additional pages when more results are available.
    *
-   * **Permissions:** Requires `ratelimit.*.read_override` or `ratelimit.<namespace_id>.read_override`
+   * **Permissions:** Requires `unkey:v1:{workspace_id}:projects/&#42;/ratelimits/namespaces/&#42;/overrides/*#read` or `unkey:v1:{workspace_id}:projects/{project_id}/ratelimits/namespaces/{namespace_id}/overrides/*#read`
    */
   async listOverrides(
     request: components.V2RatelimitListOverridesRequestBody,
@@ -126,8 +126,8 @@ export class Ratelimit extends ClientSDK {
    * **Required Permissions**
    *
    * Your root key must have one of the following permissions:
-   * - `ratelimit.*.limit` (to check limits in any namespace)
-   * - `ratelimit.<namespace_id>.limit` (to check limits in all specific namespaces being checked)
+   * - `unkey:v1:{workspace_id}:projects/&#42;/ratelimits/namespaces/*#limit` (to check limits in any namespace)
+   * - `unkey:v1:{workspace_id}:projects/{project_id}/ratelimits/namespaces/{namespace_id}#limit` (to check limits in all specific namespaces being checked)
    */
   async multiLimit(
     request: Array<components.V2RatelimitLimitRequestBody>,
@@ -150,7 +150,7 @@ export class Ratelimit extends ClientSDK {
    *
    * **Important:** Overrides take effect immediately and completely replace the default limit for matching identifiers. Use wildcard patterns (e.g., `premium_*`) to match multiple identifiers.
    *
-   * **Permissions:** Requires `ratelimit.*.set_override` or `ratelimit.<namespace_id>.set_override`
+   * **Permissions:** Requires `unkey:v1:{workspace_id}:projects/&#42;/ratelimits/namespaces/&#42;/overrides/*#write` or `unkey:v1:{workspace_id}:projects/{project_id}/ratelimits/namespaces/{namespace_id}/overrides/*#write`
    */
   async setOverride(
     request: components.V2RatelimitSetOverrideRequestBody,

@@ -18,7 +18,7 @@ func getIdentityCmd() *cli.Command {
 Use this to check if an identity exists, view configurations, or build management dashboards.
 
 Required permissions:
-- identity.*.read_identity
+- Requires unkey:v1:{workspace_id}:projects/*/identities/*#read permission
 
 For full documentation, see https://www.unkey.com/docs/api-reference/v2/identities/get-identity` + util.Disclaimer,
 		Examples: []string{

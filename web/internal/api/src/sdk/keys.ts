@@ -35,8 +35,8 @@ export class Keys extends ClientSDK {
    * **Required Permissions**
    *
    * Your root key must have one of the following permissions:
-   * - `api.*.update_key` (to update keys in any API)
-   * - `api.<api_id>.update_key` (to update keys in a specific API)
+   * - `unkey:v1:{workspace_id}:projects/&#42;/keyspaces/&#42;/keys/*#write` (to update keys in any API)
+   * - `unkey:v1:{workspace_id}:projects/{project_id}/keyspaces/{keyspace_id}/keys/*#write` (to update keys in a specific API)
    *
    * **Side Effects**
    *
@@ -66,8 +66,8 @@ export class Keys extends ClientSDK {
    * **Required Permissions**
    *
    * Your root key must have one of the following permissions:
-   * - `api.*.update_key` (to update keys in any API)
-   * - `api.<api_id>.update_key` (to update keys in a specific API)
+   * - `unkey:v1:{workspace_id}:projects/&#42;/keyspaces/&#42;/keys/*#write` (to update keys in any API)
+   * - `unkey:v1:{workspace_id}:projects/{project_id}/keyspaces/{keyspace_id}/keys/*#write` (to update keys in a specific API)
    *
    * **Side Effects**
    *
@@ -102,10 +102,8 @@ export class Keys extends ClientSDK {
    * **Required Permissions**
    *
    * Your credential needs one of:
-   * - `api.*.create_key` (create keys in any API)
-   * - `api.<api_id>.create_key` (create keys in specific API)
-   * - `unkey:v1:<workspace_id>:keyspaces/*#create_key` (create keys in any keyspace)
-   * - `unkey:v1:<workspace_id>:keyspaces/<keyspace_id>#create_key` (create keys in a specific keyspace)
+   * - `unkey:v1:{workspace_id}:projects/&#42;/keyspaces/&#42;/keys/*#write` (create keys in any API)
+   * - `unkey:v1:{workspace_id}:projects/{project_id}/keyspaces/{keyspace_id}/keys/*#write` (create keys in specific API)
    */
   async createKey(
     request: components.V2KeysCreateKeyRequestBody,
@@ -131,11 +129,8 @@ export class Keys extends ClientSDK {
    * **Required Permissions**
    *
    * Your credential must have one of the following permissions:
-   * - `api.*.delete_key` (to delete keys in any API)
-   * - `api.<api_id>.delete_key` (to delete keys in a specific API)
-   * - `unkey:v1:<workspace_id>:keyspaces/* /keys/*#delete_key` (to delete keys in any keyspace)
-   * - `unkey:v1:<workspace_id>:keyspaces/<keyspace_id>/keys/*#delete_key` (to delete keys in a specific keyspace)
-   * - `unkey:v1:<workspace_id>:keyspaces/<keyspace_id>/keys/<key_id>#delete_key` (to delete a specific key)
+   * - `unkey:v1:{workspace_id}:projects/&#42;/keyspaces/&#42;/keys/*#delete` (to delete keys in any API)
+   * - `unkey:v1:{workspace_id}:projects/{project_id}/keyspaces/{keyspace_id}/keys/*#delete` (to delete keys in a specific API)
    */
   async deleteKey(
     request: components.V2KeysDeleteKeyRequestBody,
@@ -161,17 +156,11 @@ export class Keys extends ClientSDK {
    * **Required Permissions**
    *
    * Your credential must have one of the following permissions for basic key information:
-   * - `api.*.read_key` (to read keys from any API)
-   * - `api.<api_id>.read_key` (to read keys from a specific API)
-   * - `unkey:v1:<workspace_id>:keyspaces/* /keys/*#read_key` (to read keys in any keyspace)
-   * - `unkey:v1:<workspace_id>:keyspaces/<keyspace_id>/keys/*#read_key` (to read keys in a specific keyspace)
-   * - `unkey:v1:<workspace_id>:keyspaces/<keyspace_id>/keys/<key_id>#read_key` (to read a specific key)
+   * - `unkey:v1:{workspace_id}:projects/&#42;/keyspaces/&#42;/keys/*#read` (to read keys from any API)
+   * - `unkey:v1:{workspace_id}:projects/{project_id}/keyspaces/{keyspace_id}/keys/*#read` (to read keys from a specific API)
    *
    * Additional permission required for decrypt functionality:
-   * - `api.*.decrypt_key` or `api.<api_id>.decrypt_key`
-   * - `unkey:v1:<workspace_id>:keyspaces/* /keys/*#decrypt_key`
-   * - `unkey:v1:<workspace_id>:keyspaces/<keyspace_id>/keys/*#decrypt_key`
-   * - `unkey:v1:<workspace_id>:keyspaces/<keyspace_id>/keys/<key_id>#decrypt_key`
+   * - `unkey:v1:{workspace_id}:projects/&#42;/keyspaces/&#42;/keys/*#decrypt` or `unkey:v1:{workspace_id}:projects/{project_id}/keyspaces/{keyspace_id}/keys/*#decrypt`
    */
   async getKey(
     request: components.V2KeysGetKeyRequestBody,
@@ -192,8 +181,8 @@ export class Keys extends ClientSDK {
    *
    * **Required Permissions**
    * Your root key must have one of the following permissions for basic key information:
-   * - `api.*.create_key` (to migrate keys to any API)
-   * - `api.<api_id>.create_key` (to migrate keys to a specific API)
+   * - `unkey:v1:{workspace_id}:projects/&#42;/keyspaces/&#42;/keys/*#write` (to migrate keys to any API)
+   * - `unkey:v1:{workspace_id}:projects/{project_id}/keyspaces/{keyspace_id}/keys/*#write` (to migrate keys to a specific API)
    */
   async migrateKeys(
     request: components.V2KeysMigrateKeysRequestBody,
@@ -219,8 +208,8 @@ export class Keys extends ClientSDK {
    * **Required Permissions**
    *
    * Your root key must have one of the following permissions:
-   * - `api.*.update_key` (to update keys in any API)
-   * - `api.<api_id>.update_key` (to update keys in a specific API)
+   * - `unkey:v1:{workspace_id}:projects/&#42;/keyspaces/&#42;/keys/*#write` (to update keys in any API)
+   * - `unkey:v1:{workspace_id}:projects/{project_id}/keyspaces/{keyspace_id}/keys/*#write` (to update keys in a specific API)
    *
    * **Side Effects**
    *
@@ -250,8 +239,8 @@ export class Keys extends ClientSDK {
    * **Required Permissions**
    *
    * Your root key must have one of the following permissions:
-   * - `api.*.update_key` (to update keys in any API)
-   * - `api.<api_id>.update_key` (to update keys in a specific API)
+   * - `unkey:v1:{workspace_id}:projects/&#42;/keyspaces/&#42;/keys/*#write` (to update keys in any API)
+   * - `unkey:v1:{workspace_id}:projects/{project_id}/keyspaces/{keyspace_id}/keys/*#write` (to update keys in a specific API)
    *
    * **Side Effects**
    *
@@ -302,10 +291,8 @@ export class Keys extends ClientSDK {
    * **Required Permissions**
    *
    *  Your credential must have:
-   *  - `api.*.create_key` or `api.<api_id>.create_key`
-   *  - `unkey:v1:<workspace_id>:keyspaces/*#create_key` or `unkey:v1:<workspace_id>:keyspaces/<keyspace_id>#create_key`
-   *  - `api.*.encrypt_key` or `api.<api_id>.encrypt_key` (only when the original key is recoverable)
-   *  - `unkey:v1:<workspace_id>:keyspaces/* /keys/*#encrypt_key` or `unkey:v1:<workspace_id>:keyspaces/<keyspace_id>/keys/*#encrypt_key` (only when the original key is recoverable)
+   *  - `unkey:v1:{workspace_id}:projects/&#42;/keyspaces/&#42;/keys/*#write` or `unkey:v1:{workspace_id}:projects/{project_id}/keyspaces/{keyspace_id}/keys/*#write`
+   *  - `unkey:v1:{workspace_id}:projects/&#42;/keyspaces/&#42;/keys/*#write` or `unkey:v1:{workspace_id}:projects/{project_id}/keyspaces/{keyspace_id}/keys/*#write` (only when the original key is recoverable)
    */
   async rerollKey(
     request: components.V2KeysRerollKeyRequestBody,
@@ -331,8 +318,8 @@ export class Keys extends ClientSDK {
    * **Required Permissions**
    *
    * Your root key must have one of the following permissions:
-   * - `api.*.update_key` (to update keys in any API)
-   * - `api.<api_id>.update_key` (to update keys in a specific API)
+   * - `unkey:v1:{workspace_id}:projects/&#42;/keyspaces/&#42;/keys/*#write` (to update keys in any API)
+   * - `unkey:v1:{workspace_id}:projects/{project_id}/keyspaces/{keyspace_id}/keys/*#write` (to update keys in a specific API)
    *
    * **Side Effects**
    *
@@ -362,8 +349,8 @@ export class Keys extends ClientSDK {
    * **Required Permissions**
    *
    * Your root key must have one of the following permissions:
-   * - `api.*.update_key` (to update keys in any API)
-   * - `api.<api_id>.update_key` (to update keys in a specific API)
+   * - `unkey:v1:{workspace_id}:projects/&#42;/keyspaces/&#42;/keys/*#write` (to update keys in any API)
+   * - `unkey:v1:{workspace_id}:projects/{project_id}/keyspaces/{keyspace_id}/keys/*#write` (to update keys in a specific API)
    *
    * **Side Effects**
    *
@@ -393,11 +380,8 @@ export class Keys extends ClientSDK {
    * **Required Permissions**
    *
    * Your credential must have one of the following permissions:
-   * - `api.*.update_key` (to update keys in any API)
-   * - `api.<api_id>.update_key` (to update keys in a specific API)
-   * - `unkey:v1:<workspace_id>:keyspaces/* /keys/*#update_key` (to update keys in any keyspace)
-   * - `unkey:v1:<workspace_id>:keyspaces/<keyspace_id>/keys/*#update_key` (to update keys in a specific keyspace)
-   * - `unkey:v1:<workspace_id>:keyspaces/<keyspace_id>/keys/<key_id>#update_key` (to update a specific key)
+   * - `unkey:v1:{workspace_id}:projects/&#42;/keyspaces/&#42;/keys/*#write` (to update keys in any API)
+   * - `unkey:v1:{workspace_id}:projects/{project_id}/keyspaces/{keyspace_id}/keys/*#write` (to update keys in a specific API)
    *
    * **Side Effects**
    *
@@ -427,11 +411,8 @@ export class Keys extends ClientSDK {
    * **Required Permissions**
    *
    * Your credential must have one of the following permissions:
-   * - `api.*.update_key` (to update keys in any API)
-   * - `api.<api_id>.update_key` (to update keys in a specific API)
-   * - `unkey:v1:<workspace_id>:keyspaces/* /keys/*#update_key` (to update keys in any keyspace)
-   * - `unkey:v1:<workspace_id>:keyspaces/<keyspace_id>/keys/*#update_key` (to update keys in a specific keyspace)
-   * - `unkey:v1:<workspace_id>:keyspaces/<keyspace_id>/keys/<key_id>#update_key` (to update a specific key)
+   * - `unkey:v1:{workspace_id}:projects/&#42;/keyspaces/&#42;/keys/*#write` (to update keys in any API)
+   * - `unkey:v1:{workspace_id}:projects/{project_id}/keyspaces/{keyspace_id}/keys/*#write` (to update keys in a specific API)
    *
    * **Side Effects**
    *
@@ -466,11 +447,8 @@ export class Keys extends ClientSDK {
    * **Required Permissions**
    *
    * Your credential needs one of:
-   * - `api.*.verify_key` (verify keys in any API)
-   * - `api.<api_id>.verify_key` (verify keys in specific API)
-   * - `unkey:v1:<workspace_id>:keyspaces/* /keys/*#verify_key` (verify keys in any keyspace)
-   * - `unkey:v1:<workspace_id>:keyspaces/<keyspace_id>/keys/*#verify_key` (verify keys in a specific keyspace)
-   * - `unkey:v1:<workspace_id>:keyspaces/<keyspace_id>/keys/<key_id>#verify_key` (verify a specific key)
+   * - `unkey:v1:{workspace_id}:projects/&#42;/keyspaces/&#42;/keys/*#verify` (verify keys in any API)
+   * - `unkey:v1:{workspace_id}:projects/{project_id}/keyspaces/{keyspace_id}/keys/*#verify` (verify keys in specific API)
    *
    * **Note**: If your credential has no verify permissions at all, you will receive a `403 Forbidden` error. If your credential has verify permissions for a different API or keyspace than the key you're verifying, you will receive a `200` response with `code: NOT_FOUND` to avoid leaking key existence.
    */
@@ -494,11 +472,8 @@ export class Keys extends ClientSDK {
    * **Required Permissions**
    *
    * Your credential must have one of the following permissions for basic key information:
-   * - `api.*.read_key` (to read keys from any API)
-   * - `api.<api_id>.read_key` (to read keys from a specific API)
-   * - `unkey:v1:<workspace_id>:keyspaces/* /keys/*#read_key` (to read keys in any keyspace)
-   * - `unkey:v1:<workspace_id>:keyspaces/<keyspace_id>/keys/*#read_key` (to read keys in a specific keyspace)
-   * - `unkey:v1:<workspace_id>:keyspaces/<keyspace_id>/keys/<key_id>#read_key` (to read a specific key)
+   * - `unkey:v1:{workspace_id}:projects/&#42;/keyspaces/&#42;/keys/*#read` (to read keys from any API)
+   * - `unkey:v1:{workspace_id}:projects/{project_id}/keyspaces/{keyspace_id}/keys/*#read` (to read keys from a specific API)
    *
    * If your credential lacks permissions but the key exists, we may return a 404 status here to prevent leaking the existence of a key to unauthorized clients. If you believe that a key should exist, but receive a 404, please double check your credential has the correct permissions.
    */

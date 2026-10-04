@@ -16,15 +16,15 @@ export type EditableRootKeyDraft = {
   policies: Policy[];
 };
 
-export type LegacyRootKeyDraft = {
-  kind: "legacy";
+export type UnmappedRootKeyDraft = {
+  kind: "unmapped";
   keyId: string;
   start: string;
   name: string;
   grants: string[];
 };
 
-export type RootKeyDraft = EditableRootKeyDraft | LegacyRootKeyDraft;
+export type RootKeyDraft = EditableRootKeyDraft | UnmappedRootKeyDraft;
 
 export function useRootKeyDraft(
   keyId: string,
@@ -66,7 +66,7 @@ export function useRootKeyDraft(
     const { policies, unmapped } = grantsToPolicies(workspace.id, data.permissions);
     if (unmapped.length > 0) {
       return {
-        kind: "legacy",
+        kind: "unmapped",
         keyId: data.keyId,
         start: data.start,
         name,

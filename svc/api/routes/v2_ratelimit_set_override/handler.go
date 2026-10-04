@@ -104,21 +104,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			ovrID = override.ID
 		}
 
-		txErr = principal.Authorize(rbac.Or(
-			rbac.U(
-				urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(nsRow.ProjectID).RatelimitNamespace(nsRow.ID).Override(ovrID),
-				permissions.Write,
-			),
-			rbac.T(rbac.Tuple{
-				ResourceType: rbac.Ratelimit,
-				ResourceID:   nsRow.ID,
-				Action:       rbac.SetOverride,
-			}),
-			rbac.T(rbac.Tuple{
-				ResourceType: rbac.Ratelimit,
-				ResourceID:   "*",
-				Action:       rbac.SetOverride,
-			}),
+		txErr = principal.Authorize(rbac.U(
+			urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(nsRow.ProjectID).RatelimitNamespace(nsRow.ID).Override(ovrID),
+			permissions.Write,
 		))
 		if txErr != nil {
 			return zero, txErr

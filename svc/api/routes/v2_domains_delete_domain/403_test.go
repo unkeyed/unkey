@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_domains_delete_domain"
@@ -26,17 +25,7 @@ func TestDeleteDomainPermissions(t *testing.T) {
 		permissions []string
 		shouldPass  bool
 	}{
-		{name: "wildcard permission", permissions: []string{"environment.*.delete_domain"}, shouldPass: true},
-		{name: "specific environment permission", permissions: []string{"environment.<env>.delete_domain"}, shouldPass: true},
 		{name: "canonical urn grant", permissions: []string{"<urn>.delete_domain"}, shouldPass: true},
-		{name: "permission alongside unrelated grants", permissions: []string{"api.*.read_api", "environment.*.delete_domain"}, shouldPass: true},
-		{name: "create action is not enough", permissions: []string{"environment.*.create_domain"}, shouldPass: false},
-		{name: "read action is not enough", permissions: []string{"environment.*.read_domain"}, shouldPass: false},
-		{name: "adjacent delete action is not enough", permissions: []string{"environment.*.remove_environment_variables"}, shouldPass: false},
-		{name: "action scoped to the wrong resource type", permissions: []string{"app.*.delete_domain"}, shouldPass: false},
-		{name: "app delete does not cascade", permissions: []string{"app.*.delete_app"}, shouldPass: false},
-		{name: "other environment id does not match", permissions: []string{fmt.Sprintf("environment.%s.delete_domain", uid.New(uid.EnvironmentPrefix))}, shouldPass: false},
-		{name: "unrelated permission", permissions: []string{"api.*.read_api"}, shouldPass: false},
 		{name: "no permissions", permissions: []string{}, shouldPass: false},
 	}
 
@@ -46,8 +35,6 @@ func TestDeleteDomainPermissions(t *testing.T) {
 			permissions := make([]string, len(tc.permissions))
 			for i, p := range tc.permissions {
 				switch p {
-				case "environment.<env>.delete_domain":
-					p = fmt.Sprintf("environment.%s.delete_domain", seeded.environmentID)
 				case "<urn>.delete_domain":
 					p = fmt.Sprintf("unkey:v1:%s:projects/%s/apps/%s/environments/%s/domains/*#delete", seeded.workspaceID, seeded.projectID, seeded.appID, seeded.environmentID)
 				}
@@ -116,7 +103,7 @@ func TestDeleteDomainExistenceNotLeakedWithPartialGrant(t *testing.T) {
 
 	granted := seedDomain(t, h, nil)
 	other := seedDomain(t, h, nil)
-	rootKey := h.CreateRootKey(granted.workspaceID, fmt.Sprintf("environment.%s.delete_domain", granted.environmentID))
+	rootKey := h.CreateRootKey(granted.workspaceID, fmt.Sprintf("unkey:v1:%s:projects/%s/apps/%s/environments/%s/domains/*#delete", granted.workspaceID, granted.projectID, granted.appID, granted.environmentID))
 	headers := authHeaders(rootKey)
 
 	otherRes := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, handler.Request{

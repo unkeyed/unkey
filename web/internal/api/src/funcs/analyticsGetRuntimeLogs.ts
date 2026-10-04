@@ -31,7 +31,7 @@ import { Result } from "../types/fp.js";
  *
  * @remarks
  * A query can use only the public alias `runtime_logs_v1`. CTEs, subqueries, UNION, and EXCEPT are permitted.
- * The root key must have the `project.*.read_runtime_logs` permission.
+ * The root key must have the `unkey:v1:{workspace_id}:projects/&#42;/apps/&#42;/environments/&#42;/deployments/&#42;/logs#read` permission.
  * Unkey limits each query to the workspace of the root key. To get the logs of one project, app, environment, or deployment, add a filter on `project_id`, `app_id`, `environment_id`, or `deployment_id`.
  * The workspace retention period and the workspace query limits apply.
  * For the table, the columns, and more query examples, see [Query runtime logs](/platform/analytics/get-runtime-logs).

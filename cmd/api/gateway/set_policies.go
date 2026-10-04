@@ -19,8 +19,8 @@ func setPoliciesCmd() *cli.Command {
 Policies are an ordered list: the gateway evaluates them top to bottom and the first rejection short-circuits the request. Every call is a full, atomic replace; an empty list removes all policies.
 
 Required Permissions
-- environment.*.set_policies (for any environment)
-- environment.<environment_id>.set_policies (for a specific environment)
+- unkey:v1:{workspace_id}:projects/*/apps/*/environments/*/gateway/policies/*#write (for any environment)
+- unkey:v1:{workspace_id}:projects/{project_id}/apps/{app_id}/environments/{environment_id}/gateway/policies/*#write (for a specific environment)
 
 For full documentation, see https://www.unkey.com/docs/api-reference/gateway/set-policies` + util.Disclaimer,
 		Examples: []string{`unkey api gateway set-policies --project=payments --app=payments-api --environment=production --policies='[{"name":"Require API key","enabled":true,"keyauth":{"keyspaces":["ks_1234abcd"]}}]'`, `unkey api gateway set-policies --project=payments --app=payments-api --environment=production --policies='[]'`},

@@ -7,7 +7,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
-	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_root_keys_create_key"
 )
 
@@ -86,24 +85,6 @@ func TestCreateRejectsInvalidResourceActionsAtomically(t *testing.T) {
 				"Authorization": {"Bearer test"}, "Content-Type": {"application/json"},
 			}, handler.Request{Permissions: []string{base + "projects/*#read", permission}})
 			require.Equal(t, http.StatusBadRequest, res.Status, "%s", res.RawBody)
-			require.Equal(t, before, snapshot(t, h))
-		})
-	}
-}
-
-func TestCreateIgnoresLegacyCallerPermissions(t *testing.T) {
-	h, route, p := newHarness(t)
-	api := h.CreateApi(seed.CreateApiRequest{WorkspaceID: p.AuthorizedWorkspaceID})
-	base := "unkey:v1:" + p.AuthorizedWorkspaceID + ":"
-	requested := base + "projects/" + api.ProjectID + "/keyspaces/" + api.KeyAuthID.String + "/keys/*#write"
-	for _, legacy := range []string{"*", "api.*.create_key", "api." + api.ID + ".create_key", "api." + api.ID + ".update_key"} {
-		t.Run(legacy, func(t *testing.T) {
-			p.Permissions = []string{base + "rootKeys/*#write", legacy}
-			before := snapshot(t, h)
-			res := testutil.CallRoute[handler.Request, handler.Response](h, route, http.Header{
-				"Authorization": {"Bearer test"}, "Content-Type": {"application/json"},
-			}, handler.Request{Permissions: []string{requested}})
-			require.Equal(t, http.StatusForbidden, res.Status, "%s", res.RawBody)
 			require.Equal(t, before, snapshot(t, h))
 		})
 	}

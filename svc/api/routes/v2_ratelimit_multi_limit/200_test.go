@@ -15,6 +15,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
+	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_ratelimit_multi_limit"
 )
 
@@ -38,7 +39,10 @@ func TestLimitSuccessfully(t *testing.T) {
 		namespaceName1 := uid.New("nonexistent")
 		namespaceName2 := uid.New("nonexistent")
 		namespaceName3 := uid.New("nonexistent")
-		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "ratelimit.*.create_namespace", "ratelimit.*.limit")
+		rootKey := h.CreateRootKey(
+			h.Resources().UserWorkspace.ID,
+			fmt.Sprintf("unkey:v1:%s:**#*", h.Resources().UserWorkspace.ID),
+		)
 
 		headers := http.Header{
 			"Content-Type":  {"application/json"},
@@ -111,11 +115,11 @@ func TestLimitSuccessfully(t *testing.T) {
 
 	// Test basic multi rate limiting
 	t.Run("basic multi rate limiting", func(t *testing.T) {
-		ns1ID, ns1Name := createNamespace(t, h)
-		ns2ID, ns2Name := createNamespace(t, h)
+		ns1ID, ns1Name, projectID := createNamespace(t, h)
+		ns2ID, ns2Name, _ := createNamespace(t, h)
 		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID,
-			fmt.Sprintf("ratelimit.%s.limit", ns1ID),
-			fmt.Sprintf("ratelimit.%s.limit", ns2ID))
+			fmt.Sprintf("unkey:v1:%s:projects/%s/ratelimits/namespaces/%s#limit", h.Resources().UserWorkspace.ID, projectID, ns1ID),
+			fmt.Sprintf("unkey:v1:%s:projects/%s/ratelimits/namespaces/%s#limit", h.Resources().UserWorkspace.ID, projectID, ns2ID))
 
 		headers := http.Header{
 			"Content-Type":  {"application/json"},
@@ -159,11 +163,11 @@ func TestLimitSuccessfully(t *testing.T) {
 
 	// Test multi events are flushed to clickhouse
 	t.Run("multiple events are flushed to clickhouse", func(t *testing.T) {
-		ns1ID, ns1Name := createNamespace(t, h)
-		ns2ID, ns2Name := createNamespace(t, h)
+		ns1ID, ns1Name, projectID := createNamespace(t, h)
+		ns2ID, ns2Name, _ := createNamespace(t, h)
 		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID,
-			fmt.Sprintf("ratelimit.%s.limit", ns1ID),
-			fmt.Sprintf("ratelimit.%s.limit", ns2ID))
+			fmt.Sprintf("unkey:v1:%s:projects/%s/ratelimits/namespaces/%s#limit", h.Resources().UserWorkspace.ID, projectID, ns1ID),
+			fmt.Sprintf("unkey:v1:%s:projects/%s/ratelimits/namespaces/%s#limit", h.Resources().UserWorkspace.ID, projectID, ns2ID))
 
 		headers := http.Header{
 			"Content-Type":  {"application/json"},
@@ -219,8 +223,8 @@ func TestLimitSuccessfully(t *testing.T) {
 
 	// Test with custom cost
 	t.Run("custom cost", func(t *testing.T) {
-		namespaceID, namespaceName := createNamespace(t, h)
-		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, fmt.Sprintf("ratelimit.%s.limit", namespaceID))
+		namespaceID, namespaceName, projectID := createNamespace(t, h)
+		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, fmt.Sprintf("unkey:v1:%s:projects/%s/ratelimits/namespaces/%s#limit", h.Resources().UserWorkspace.ID, projectID, namespaceID))
 
 		headers := http.Header{
 			"Content-Type":  {"application/json"},
@@ -250,8 +254,8 @@ func TestLimitSuccessfully(t *testing.T) {
 
 	// Test with rate limit override
 	t.Run("with override", func(t *testing.T) {
-		namespaceID, namespaceName := createNamespace(t, h)
-		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, fmt.Sprintf("ratelimit.%s.limit", namespaceID))
+		namespaceID, namespaceName, projectID := createNamespace(t, h)
+		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, fmt.Sprintf("unkey:v1:%s:projects/%s/ratelimits/namespaces/%s#limit", h.Resources().UserWorkspace.ID, projectID, namespaceID))
 
 		headers := http.Header{
 			"Content-Type":  {"application/json"},
@@ -298,8 +302,8 @@ func TestLimitSuccessfully(t *testing.T) {
 
 	// Test with rate limit override
 	t.Run("with wildcard override", func(t *testing.T) {
-		namespaceID, namespaceName := createNamespace(t, h)
-		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, fmt.Sprintf("ratelimit.%s.limit", namespaceID))
+		namespaceID, namespaceName, projectID := createNamespace(t, h)
+		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, fmt.Sprintf("unkey:v1:%s:projects/%s/ratelimits/namespaces/%s#limit", h.Resources().UserWorkspace.ID, projectID, namespaceID))
 
 		headers := http.Header{
 			"Content-Type":  {"application/json"},
@@ -350,15 +354,15 @@ func TestLimitSuccessfully(t *testing.T) {
 
 	// Test rate limit exceeded - multiple limits with some failing
 	t.Run("multiple limits - some fail but all results returned", func(t *testing.T) {
-		ns1ID, ns1Name := createNamespace(t, h)
-		ns2ID, ns2Name := createNamespace(t, h)
-		ns3ID, ns3Name := createNamespace(t, h)
+		ns1ID, ns1Name, projectID := createNamespace(t, h)
+		ns2ID, ns2Name, _ := createNamespace(t, h)
+		ns3ID, ns3Name, _ := createNamespace(t, h)
 
 		rootKey := h.CreateRootKey(
 			h.Resources().UserWorkspace.ID,
-			fmt.Sprintf("ratelimit.%s.limit", ns1ID),
-			fmt.Sprintf("ratelimit.%s.limit", ns2ID),
-			fmt.Sprintf("ratelimit.%s.limit", ns3ID),
+			fmt.Sprintf("unkey:v1:%s:projects/%s/ratelimits/namespaces/%s#limit", h.Resources().UserWorkspace.ID, projectID, ns1ID),
+			fmt.Sprintf("unkey:v1:%s:projects/%s/ratelimits/namespaces/%s#limit", h.Resources().UserWorkspace.ID, projectID, ns2ID),
+			fmt.Sprintf("unkey:v1:%s:projects/%s/ratelimits/namespaces/%s#limit", h.Resources().UserWorkspace.ID, projectID, ns3ID),
 		)
 
 		headers := http.Header{
@@ -406,8 +410,8 @@ func TestLimitSuccessfully(t *testing.T) {
 	})
 
 	t.Run("rate limiting with active override", func(t *testing.T) {
-		namespaceID, namespaceName := createNamespace(t, h)
-		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, fmt.Sprintf("ratelimit.%s.limit", namespaceID))
+		namespaceID, namespaceName, projectID := createNamespace(t, h)
+		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, fmt.Sprintf("unkey:v1:%s:projects/%s/ratelimits/namespaces/%s#limit", h.Resources().UserWorkspace.ID, projectID, namespaceID))
 
 		headers := http.Header{
 			"Content-Type":  {"application/json"},
@@ -480,14 +484,14 @@ func TestLimitSuccessfully(t *testing.T) {
 
 	// Test custom cost with multiple requests
 	t.Run("custom cost with multiple requests", func(t *testing.T) {
-		ns1ID, ns1Name := createNamespace(t, h)
-		ns2ID, ns2Name := createNamespace(t, h)
-		ns3ID, ns3Name := createNamespace(t, h)
+		ns1ID, ns1Name, projectID := createNamespace(t, h)
+		ns2ID, ns2Name, _ := createNamespace(t, h)
+		ns3ID, ns3Name, _ := createNamespace(t, h)
 
 		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID,
-			fmt.Sprintf("ratelimit.%s.limit", ns1ID),
-			fmt.Sprintf("ratelimit.%s.limit", ns2ID),
-			fmt.Sprintf("ratelimit.%s.limit", ns3ID))
+			fmt.Sprintf("unkey:v1:%s:projects/%s/ratelimits/namespaces/%s#limit", h.Resources().UserWorkspace.ID, projectID, ns1ID),
+			fmt.Sprintf("unkey:v1:%s:projects/%s/ratelimits/namespaces/%s#limit", h.Resources().UserWorkspace.ID, projectID, ns2ID),
+			fmt.Sprintf("unkey:v1:%s:projects/%s/ratelimits/namespaces/%s#limit", h.Resources().UserWorkspace.ID, projectID, ns3ID))
 
 		headers := http.Header{
 			"Content-Type":  {"application/json"},
@@ -548,12 +552,12 @@ func TestLimitSuccessfully(t *testing.T) {
 
 	// Test override with multiple requests
 	t.Run("override with multiple requests", func(t *testing.T) {
-		ns1ID, ns1Name := createNamespace(t, h)
-		ns2ID, ns2Name := createNamespace(t, h)
+		ns1ID, ns1Name, projectID := createNamespace(t, h)
+		ns2ID, ns2Name, _ := createNamespace(t, h)
 
 		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID,
-			fmt.Sprintf("ratelimit.%s.limit", ns1ID),
-			fmt.Sprintf("ratelimit.%s.limit", ns2ID))
+			fmt.Sprintf("unkey:v1:%s:projects/%s/ratelimits/namespaces/%s#limit", h.Resources().UserWorkspace.ID, projectID, ns1ID),
+			fmt.Sprintf("unkey:v1:%s:projects/%s/ratelimits/namespaces/%s#limit", h.Resources().UserWorkspace.ID, projectID, ns2ID))
 
 		headers := http.Header{
 			"Content-Type":  {"application/json"},
@@ -624,17 +628,21 @@ func TestLimitSuccessfully(t *testing.T) {
 	})
 }
 
-func createNamespace(t *testing.T, h *testutil.Harness) (id, name string) {
+func createNamespace(t *testing.T, h *testutil.Harness) (id, name, projectID string) {
+	t.Helper()
+
 	// Create a namespace
 	namespaceID := uid.New(uid.RatelimitNamespacePrefix)
 	namespaceName := uid.New("test")
+	projectID = h.CreateApi(seed.CreateApiRequest{WorkspaceID: h.Resources().UserWorkspace.ID}).ProjectID
 	err := db.Query.InsertRatelimitNamespace(context.Background(), h.DB.RW(), db.InsertRatelimitNamespaceParams{
 		ID:          namespaceID,
 		WorkspaceID: h.Resources().UserWorkspace.ID,
+		ProjectID:   projectID,
 		Name:        namespaceName,
 		CreatedAt:   time.Now().UnixMilli(),
 	})
 	require.NoError(t, err)
 
-	return namespaceID, namespaceName
+	return namespaceID, namespaceName, projectID
 }

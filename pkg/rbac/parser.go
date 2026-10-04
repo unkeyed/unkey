@@ -50,7 +50,7 @@ type parser struct {
 //
 // Example usage:
 //
-//	parser := newParser("api.key1.read_key AND (api.key2.read_key OR api.key3.read_key)")
+//	parser := newParser("documents.read AND (documents.write OR billing.admin)")
 //	query, err := parser.parse()
 //	if err != nil {
 //	    // Handle parsing error
@@ -146,7 +146,7 @@ func (p *parser) parseAndExpression() (PermissionQuery, error) {
 // parsePrimary parses primary expressions, which are the building blocks of the grammar.
 //
 // Primary expressions can be:
-//   - Permission identifiers (e.g., "api.key1.read_key")
+//   - Permission identifiers (e.g., "documents.read")
 //   - Parenthesized expressions (e.g., "(perm1 OR perm2)")
 //
 // For permission identifiers, the method creates a simple [PermissionQuery] with

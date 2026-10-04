@@ -12,6 +12,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
+	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_ratelimit_limit"
 )
 
@@ -48,7 +49,8 @@ func TestLimit_WritesRootKeyAuditLog(t *testing.T) {
 
 	workspace := h.Resources().UserWorkspace
 	namespaceID, namespaceName := createNamespace(t, h)
-	rootKey := h.CreateRootKey(workspace.ID, fmt.Sprintf("ratelimit.%s.limit", namespaceID))
+	projectID := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspace.ID}).ProjectID
+	rootKey := h.CreateRootKey(workspace.ID, fmt.Sprintf("unkey:v1:%s:projects/%s/ratelimits/namespaces/%s#limit", workspace.ID, projectID, namespaceID))
 	identifier := uid.New("sensitive")
 	overrideID := uid.New(uid.RatelimitOverridePrefix)
 	ctx := context.Background()

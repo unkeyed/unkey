@@ -63,7 +63,7 @@ func TestDeploymentNotFound(t *testing.T) {
 	h.Register(route)
 
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"environment.*.read_deployment"},
+		Permissions: []string{"unkey:v1:{workspaceID}:**#read"},
 	})
 
 	req := handler.Request{DeploymentId: uid.New(uid.DeploymentPrefix)}
@@ -80,7 +80,7 @@ func TestInsufficientPermissions(t *testing.T) {
 	h.Register(route)
 
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"environment.*.create_deployment"},
+		Permissions: []string{"unkey:v1:{workspaceID}:**#write"},
 	})
 
 	dep := h.CreateDeployment(seed.CreateDeploymentRequest{
@@ -105,7 +105,7 @@ func TestDeploymentInAnotherWorkspace(t *testing.T) {
 	h.Register(route)
 
 	caller := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"environment.*.read_deployment"},
+		Permissions: []string{"unkey:v1:{workspaceID}:**#read"},
 	})
 	other := h.CreateTestDeploymentSetup()
 

@@ -16,7 +16,7 @@ func getPermissionCmd() *cli.Command {
 		Description: `Retrieve details about a specific permission including its name, description, and metadata.
 
 Required permissions:
-- rbac.*.read_permission
+- unkey:v1:{workspace_id}:projects/*/rbac/permissions/*#read
 
 For full documentation, see https://www.unkey.com/docs/api-reference/v2/permissions/get-permission` + util.Disclaimer,
 		Examples: []string{

@@ -19,7 +19,7 @@ func updateIdentityCmd() *cli.Command {
 Perfect for subscription changes, plan upgrades, or updating user information. Changes take effect immediately.
 
 Important
-Requires identity.*.update_identity permission
+Requires unkey:v1:{workspace_id}:projects/*/identities/*#write permission
 Rate limit changes propagate within 30 seconds
 
 For full documentation, see https://www.unkey.com/docs/api-reference/v2/identities/update-identity` + util.Disclaimer,

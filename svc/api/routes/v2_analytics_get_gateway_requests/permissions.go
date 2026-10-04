@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"slices"
 	"strings"
 
 	chquery "github.com/unkeyed/unkey/pkg/clickhouse/query-parser"
@@ -14,9 +13,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/urn"
 )
-
-// legacyGatewayRequestsWildcard preserves the original workspace-wide permission.
-const legacyGatewayRequestsWildcard = "project.*.read_gateway_requests"
 
 // gatewayScope is one project, app, or environment branch of a permission union.
 type gatewayScope struct {
@@ -28,10 +24,6 @@ type gatewayScope struct {
 // gatewaySecurityScopes resolves URN permissions into OR scopes. A nil result
 // is unrestricted within the workspace, while a non-nil empty result denies all rows.
 func (h *Handler) gatewaySecurityScopes(ctx context.Context, workspaceID string, permissionsToCheck []string) ([]chquery.SecurityScope, bool, error) {
-	if slices.Contains(permissionsToCheck, legacyGatewayRequestsWildcard) {
-		return nil, true, nil
-	}
-
 	securityScopes := make([]chquery.SecurityScope, 0)
 	authorized := false
 	for _, permission := range permissionsToCheck {

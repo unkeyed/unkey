@@ -17,7 +17,7 @@ func listPermissionsCmd() *cli.Command {
 Results are paginated and sorted by their id.
 
 Required permissions:
-- rbac.*.read_permission
+- unkey:v1:{workspace_id}:projects/*/rbac/permissions/*#read
 
 For full documentation, see https://www.unkey.com/docs/api-reference/v2/permissions/list-permissions` + util.Disclaimer,
 		Examples: []string{

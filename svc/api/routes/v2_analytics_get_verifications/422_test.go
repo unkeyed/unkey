@@ -35,7 +35,7 @@ func Test422_ExceedsMaxMemory(t *testing.T) {
 	h := testutil.NewHarness(t)
 
 	workspace := h.CreateWorkspace()
-	rootKey := h.CreateRootKey(workspace.ID, "api.*.read_analytics")
+	rootKey := h.CreateRootKey(workspace.ID, "unkey:v1:"+(workspace.ID)+":**#*")
 
 	route := &Handler{
 		DB:                         h.DB,

@@ -14,7 +14,7 @@ import (
 
 func TestListSessionsReturnsOnlyRevocableSessions(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route, headers := newRoute(t, h, permission)
+	route, headers := newRoute(t, h, workspaceAdminPermission(h))
 	workspace := h.Resources().UserWorkspace
 	stored := seedPortal(t, h, workspace.ID, "list-revocable")
 
@@ -59,7 +59,7 @@ func TestListSessionsReturnsOnlyRevocableSessions(t *testing.T) {
 
 func TestListSessionsOrdersSessionsNewestFirst(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route, headers := newRoute(t, h, permission)
+	route, headers := newRoute(t, h, workspaceAdminPermission(h))
 	workspace := h.Resources().UserWorkspace
 	stored := seedPortal(t, h, workspace.ID, "list-order")
 
@@ -82,7 +82,7 @@ func TestListSessionsOrdersSessionsNewestFirst(t *testing.T) {
 
 func TestListSessionsIsScopedToPortalAndWorkspace(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route, headers := newRoute(t, h, permission)
+	route, headers := newRoute(t, h, workspaceAdminPermission(h))
 	workspace := h.Resources().UserWorkspace
 	stored := seedPortal(t, h, workspace.ID, "list-scoped")
 	sibling := seedPortal(t, h, workspace.ID, "list-sibling")
@@ -101,7 +101,7 @@ func TestListSessionsIsScopedToPortalAndWorkspace(t *testing.T) {
 
 func TestListSessionsPaginatesByEndUser(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route, headers := newRoute(t, h, permission)
+	route, headers := newRoute(t, h, workspaceAdminPermission(h))
 	workspace := h.Resources().UserWorkspace
 	stored := seedPortal(t, h, workspace.ID, "list-pages")
 
@@ -131,7 +131,7 @@ func TestListSessionsPaginatesByEndUser(t *testing.T) {
 
 func TestListSessionsSearchesByExternalIDPrefix(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route, headers := newRoute(t, h, permission)
+	route, headers := newRoute(t, h, workspaceAdminPermission(h))
 	workspace := h.Resources().UserWorkspace
 	stored := seedPortal(t, h, workspace.ID, "list-search")
 
@@ -163,7 +163,7 @@ func TestListSessionsSearchesByExternalIDPrefix(t *testing.T) {
 
 func TestListSessionsEmptyPortal(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route, headers := newRoute(t, h, permission)
+	route, headers := newRoute(t, h, workspaceAdminPermission(h))
 	workspace := h.Resources().UserWorkspace
 	stored := seedPortal(t, h, workspace.ID, "list-empty")
 
@@ -176,7 +176,7 @@ func TestListSessionsEmptyPortal(t *testing.T) {
 
 func TestListSessionsBySlug(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route, headers := newRoute(t, h, permission)
+	route, headers := newRoute(t, h, workspaceAdminPermission(h))
 	workspace := h.Resources().UserWorkspace
 	stored := seedPortal(t, h, workspace.ID, "list-by-slug")
 	insertSession(t, h, stored.ID, workspace.ID, active(h, "user_1"))
@@ -189,7 +189,7 @@ func TestListSessionsBySlug(t *testing.T) {
 // Hashes, the return URL, and the keyspaces a session reaches stay server-side.
 func TestListSessionsOmitsSecretsAndKeyspaces(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route, headers := newRoute(t, h, permission)
+	route, headers := newRoute(t, h, workspaceAdminPermission(h))
 	workspace := h.Resources().UserWorkspace
 	stored := seedPortal(t, h, workspace.ID, "list-redacted")
 	insertSession(t, h, stored.ID, workspace.ID, active(h, "user_1"))

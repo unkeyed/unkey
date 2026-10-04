@@ -52,7 +52,7 @@ Every `unkey api` command takes these. See [CLI output and shared flags](/platfo
 
 ## Required permissions
 
-`identity.*.delete_identity`. Without the permission you get a 404, not a 403, so the response doesn't reveal whether the identity exists. See [Root key permissions](/platform/root-keys/permissions).
+`unkey:v1:{workspace_id}:projects/*/identities/*#delete`. Without the permission you get a 404, not a 403, so the response doesn't reveal whether the identity exists. See [Root key permissions](/platform/root-keys/permissions).
 
 ## Examples
 

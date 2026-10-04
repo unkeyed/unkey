@@ -21,7 +21,7 @@ post:
 
     **Required Permissions**
 
-    Use a root key with the `environment.*.read_domain` permission.
+    Use a root key with the `unkey:v1:{workspace_id}:projects/*/apps/*/environments/*/domains/*#read` permission.
     A successful request returns an empty list if no matching domains are readable by your key.
   operationId: domains.listDomains
   x-speakeasy-name-override: listDomains

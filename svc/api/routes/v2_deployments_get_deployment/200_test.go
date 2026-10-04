@@ -26,7 +26,7 @@ func TestGetDeployment(t *testing.T) {
 	h.Register(route)
 
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"environment.*.read_deployment"},
+		Permissions: []string{"unkey:v1:{workspaceID}:**#read"},
 	})
 
 	dep := h.CreateDeployment(seed.CreateDeploymentRequest{
@@ -91,7 +91,7 @@ func TestGetDeploymentFailure(t *testing.T) {
 	h.Register(route)
 
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"environment.*.read_deployment"},
+		Permissions: []string{"unkey:v1:{workspaceID}:**#read"},
 	})
 
 	recordFailedStep := func(deploymentID string, step db.DeploymentStepsStep, msg string) {
@@ -164,7 +164,7 @@ func TestGetDeploymentRegionsAndDomains(t *testing.T) {
 	h.Register(route)
 
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"environment.*.read_deployment"},
+		Permissions: []string{"unkey:v1:{workspaceID}:**#read"},
 	})
 
 	dep := h.CreateDeployment(seed.CreateDeploymentRequest{
@@ -226,7 +226,7 @@ func TestGetDeploymentSpecificEnvironmentPermission(t *testing.T) {
 	h.Register(route)
 
 	setup := h.CreateTestDeploymentSetup()
-	rootKey := h.CreateRootKey(setup.Workspace.ID, "environment."+setup.Environment.ID+".read_deployment")
+	rootKey := h.CreateRootKey(setup.Workspace.ID, "unkey:v1:"+(setup.Workspace.ID)+":**#*")
 
 	dep := h.CreateDeployment(seed.CreateDeploymentRequest{
 		ID:            uid.New(uid.DeploymentPrefix),

@@ -35,7 +35,7 @@ import { Result } from "../types/fp.js";
  * Perfect for users with multiple devices, organizations with multiple API keys, or when you need unified rate limiting across different services.
  *
  * **Important**
- * Requires `identity.*.create_identity` permission
+ * Requires `unkey:v1:{workspace_id}:projects/&#42;/identities/*#write` permission
  *
  * If set, this operation will use {@link Security.rootKey} from the global security.
  */

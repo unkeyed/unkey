@@ -13,7 +13,7 @@ import (
 )
 
 // TestGetIdentity_AuthorizesCanonicalURNPermission guarantees a project-scoped
-// URN can read an identity without a legacy tuple grant.
+// URN can read an identity.
 func TestGetIdentity_AuthorizesCanonicalURNPermission(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route := &handler.Handler{DB: h.DB}

@@ -86,7 +86,7 @@ func TestAuthorizationErrors(t *testing.T) {
 
 	t.Run("root key with partial permissions", func(t *testing.T) {
 		// Create root key with insufficient permissions
-		rootKey := h.CreateRootKey(workspace.ID, "api.read.update_key") // Read instead of wildcard
+		rootKey := h.CreateRootKey(workspace.ID, fmt.Sprintf("unkey:v1:%s:projects/*/keyspaces/*/keys/*#read", workspace.ID))
 
 		// Create API and key using testutil helpers
 		defaultPrefix := "test"
@@ -139,7 +139,7 @@ func TestAuthorizationErrors(t *testing.T) {
 
 	t.Run("root key with unrelated permissions", func(t *testing.T) {
 		// Create root key with unrelated permissions
-		rootKey := h.CreateRootKey(workspace.ID, "different.permission.scope")
+		rootKey := h.CreateRootKey(workspace.ID, fmt.Sprintf("unkey:v1:%s:projects/*/keyspaces/*/keys/*#read", workspace.ID))
 
 		// Create API and key using testutil helpers
 		defaultPrefix := "test"
@@ -192,7 +192,7 @@ func TestAuthorizationErrors(t *testing.T) {
 
 	t.Run("root key with create permissions but not update", func(t *testing.T) {
 		// Create root key with create permission instead of update
-		rootKey := h.CreateRootKey(workspace.ID, "api.*.create_key")
+		rootKey := h.CreateRootKey(workspace.ID, fmt.Sprintf("unkey:v1:%s:projects/*/keyspaces/*/keys/*#read", workspace.ID))
 
 		// Create API and key using testutil helpers
 		defaultPrefix := "test"
@@ -245,7 +245,7 @@ func TestAuthorizationErrors(t *testing.T) {
 
 	t.Run("root key with delete permissions but not update", func(t *testing.T) {
 		// Create root key with delete permission instead of update
-		rootKey := h.CreateRootKey(workspace.ID, "api.*.delete_key")
+		rootKey := h.CreateRootKey(workspace.ID, fmt.Sprintf("unkey:v1:%s:projects/*/keyspaces/*/keys/*#delete", workspace.ID))
 
 		// Create API and key using testutil helpers
 		defaultPrefix := "test"
@@ -298,7 +298,7 @@ func TestAuthorizationErrors(t *testing.T) {
 
 	t.Run("root key with specific API permissions but not wildcard", func(t *testing.T) {
 		// Create root key with specific API permission (not wildcard)
-		rootKey := h.CreateRootKey(workspace.ID, "api.specific.update_key")
+		rootKey := h.CreateRootKey(workspace.ID, fmt.Sprintf("unkey:v1:%s:projects/*/keyspaces/other/keys/*#write", workspace.ID))
 
 		// Create API and key using testutil helpers
 		defaultPrefix := "test"
@@ -351,9 +351,10 @@ func TestAuthorizationErrors(t *testing.T) {
 
 	t.Run("root key with mixed permissions but missing required", func(t *testing.T) {
 		// Create root key with multiple permissions but missing the required one
-		rootKey := h.CreateRootKey(workspace.ID, "api.*.create_key", "api.*.delete_key", "api.*.read_key")
-		// Missing "api.*.update_key"
-
+		rootKey := h.CreateRootKey(workspace.ID,
+			fmt.Sprintf("unkey:v1:%s:projects/*/keyspaces/*/keys/*#read", workspace.ID),
+			fmt.Sprintf("unkey:v1:%s:projects/*/keyspaces/*/keys/*#delete", workspace.ID),
+		)
 		// Create API and key using testutil helpers
 		defaultPrefix := "test"
 		defaultBytes := int32(16)

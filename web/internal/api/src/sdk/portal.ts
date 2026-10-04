@@ -37,7 +37,7 @@ export class Portal extends ClientSDK {
    *
    * **Required Permissions**
    *
-   * Your root key must have `portal.*.create_portal`. A grant scoped to a specific
+   * Your root key must have `unkey:v1:{workspace_id}:projects/&#42;/portals/*#write`. A grant scoped to a specific
    * portal id does not authorize creation, because the id does not exist yet.
    */
   async createPortal(
@@ -65,16 +65,16 @@ export class Portal extends ClientSDK {
    * Authorization runs in two stages, and both must pass.
    *
    * First, your root key must have one of the following permissions:
-   * - `portal.*.create_portal_session` (to mint sessions for any portal in the workspace)
-   * - `portal.<portal_id>.create_portal_session` (to mint sessions for a specific portal)
+   * - `unkey:v1:{workspace_id}:projects/&#42;/portals/&#42;/sessions/*#write` (to mint sessions for any portal in the workspace)
+   * - `unkey:v1:{workspace_id}:projects/{project_id}/portals/{portal_id}/sessions/*#write` (to mint sessions for a specific portal)
    *
    * Second, a session can never carry a capability your root key does not itself
    * hold. Each requested scope additionally requires the equivalent permission on
    * every keyspace the portal resolves to:
-   * - `keys:read` requires `api.<api_id>.read_key` **and** `api.<api_id>.read_api`
-   * - `keys:reroll` requires `api.<api_id>.create_key`, plus
-   *   `api.<api_id>.encrypt_key` when the keyspace stores encrypted keys
-   * - `analytics:read` requires `api.<api_id>.read_analytics`
+   * - `keys:read` requires `unkey:v1:{workspace_id}:projects/{project_id}/keyspaces/{keyspace_id}/keys/*#read` **and** `unkey:v1:{workspace_id}:projects/{project_id}/keyspaces/{keyspace_id}#read`
+   * - `keys:reroll` requires `unkey:v1:{workspace_id}:projects/{project_id}/keyspaces/{keyspace_id}/keys/*#write`, plus
+   *   `unkey:v1:{workspace_id}:projects/{project_id}/keyspaces/{keyspace_id}/keys/*#write` when the keyspace stores encrypted keys
+   * - `analytics:read` requires `unkey:v1:{workspace_id}:projects/{project_id}/keyspaces/{keyspace_id}/logs#read`
    *
    * The `*` form of each is also accepted. Requesting a scope you do not hold
    * returns 403 for the whole request rather than minting a reduced session, so a
@@ -114,8 +114,8 @@ export class Portal extends ClientSDK {
    * **Required Permissions**
    *
    * Your root key must have one of:
-   * - `portal.*.delete_portal` (to delete any portal in the workspace)
-   * - `portal.<portal_id>.delete_portal` (to delete a specific portal)
+   * - `unkey:v1:{workspace_id}:projects/&#42;/portals/*#delete` (to delete any portal in the workspace)
+   * - `unkey:v1:{workspace_id}:projects/{project_id}/portals/{portal_id}#delete` (to delete a specific portal)
    *
    * Without the permission this returns **404**, not 403.
    */
@@ -167,8 +167,8 @@ export class Portal extends ClientSDK {
    * **Required Permissions**
    *
    * Your root key must have one of:
-   * - `portal.*.read_portal` (to read any portal in the workspace)
-   * - `portal.<portal_id>.read_portal` (to read a specific portal)
+   * - `unkey:v1:{workspace_id}:projects/&#42;/portals/*#read` (to read any portal in the workspace)
+   * - `unkey:v1:{workspace_id}:projects/{project_id}/portals/{portal_id}#read` (to read a specific portal)
    *
    * Without the permission this returns **404**, not 403.
    */
@@ -258,10 +258,10 @@ export class Portal extends ClientSDK {
    * **Required Permissions**
    *
    * Your root key must have one of:
-   * - `portal.*.create_portal_session` (for any portal in the workspace)
-   * - `portal.<portal_id>.create_portal_session` (for a specific portal)
+   * - `unkey:v1:{workspace_id}:projects/&#42;/portals/&#42;/sessions/*#write` (for any portal in the workspace)
+   * - `unkey:v1:{workspace_id}:projects/{project_id}/portals/{portal_id}/sessions/*#write` (for a specific portal)
    *
-   * It also accepts `unkey:v1:<workspace_id>:projects/<project_id>/portals/<portal_id>/sessions/*`
+   * It also accepts `unkey:v1:{workspace_id}:projects/{project_id}/portals/{portal_id}/sessions/*`
    * with `#read` or `#write`. Reading the portal itself is not enough.
    *
    * Without the permission this returns **404**, not 403.
@@ -321,10 +321,10 @@ export class Portal extends ClientSDK {
    * **Required Permissions**
    *
    * Your root key must have one of:
-   * - `portal.*.create_portal_session` (for any portal in the workspace)
-   * - `portal.<portal_id>.create_portal_session` (for a specific portal)
+   * - `unkey:v1:{workspace_id}:projects/&#42;/portals/&#42;/sessions/*#write` (for any portal in the workspace)
+   * - `unkey:v1:{workspace_id}:projects/{project_id}/portals/{portal_id}/sessions/*#write` (for a specific portal)
    *
-   * It also accepts `unkey:v1:<workspace_id>:projects/<project_id>/portals/<portal_id>/sessions/*#write`,
+   * It also accepts `unkey:v1:{workspace_id}:projects/{project_id}/portals/{portal_id}/sessions/*#write`,
    * which dashboard roles carry. Unlike `portal.createSession`, a dashboard
    * session can call this, not just a root key.
    *
@@ -362,8 +362,8 @@ export class Portal extends ClientSDK {
    * **Required Permissions**
    *
    * Your root key must have one of:
-   * - `portal.*.update_portal` (to update any portal in the workspace)
-   * - `portal.<portal_id>.update_portal` (to update a specific portal)
+   * - `unkey:v1:{workspace_id}:projects/&#42;/portals/*#write` (to update any portal in the workspace)
+   * - `unkey:v1:{workspace_id}:projects/{project_id}/portals/{portal_id}#write` (to update a specific portal)
    *
    * Without the permission this returns **404**, not 403.
    */

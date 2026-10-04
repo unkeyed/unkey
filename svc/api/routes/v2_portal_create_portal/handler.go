@@ -107,16 +107,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		//
 		// Only a wildcard portal grant can carry a create, since the portal ID is
 		// minted above and no grant can name it yet.
-		err = principal.Authorize(rbac.Or(
-			rbac.T(rbac.Tuple{
-				ResourceType: rbac.Portal,
-				ResourceID:   "*",
-				Action:       rbac.CreatePortal,
-			}),
-			rbac.U(
-				urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(projectID).Portal("*"),
-				permissions.Write,
-			),
+		err = principal.Authorize(rbac.U(
+			urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(projectID).Portal("*"),
+			permissions.Write,
 		))
 		if err != nil {
 			// Returned as-is rather than masked as a 404: there is no portal yet

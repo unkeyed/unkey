@@ -44,7 +44,7 @@ import {
  * **Required Permissions**
  *
  * Your root key must have the following permission:
- * - `app.*.read_app` (to read apps in any project)
+ * - `unkey:v1:{workspace_id}:projects/&#42;/apps/*#read` (to read apps in any project)
  *
  * If set, this operation will use {@link Security.rootKey} from the global security.
  */

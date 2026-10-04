@@ -28,8 +28,8 @@ Common use cases:
 Required permissions:
 
 Your root key needs one of:
-- api.*.verify_key (verify keys in any API)
-- api.<api_id>.verify_key (verify keys in specific API)
+- unkey:v1:{workspace_id}:projects/*/keyspaces/*/keys/*#verify (verify keys in any API)
+- unkey:v1:{workspace_id}:projects/{project_id}/keyspaces/{keyspace_id}/keys/*#verify (verify keys in specific API)
 
 Note: If your root key has no verify permissions at all, you will receive a 403 Forbidden error. If your root key has verify permissions for a different API than the key you're verifying, you will receive a 200 response with code: NOT_FOUND to avoid leaking key existence.
 

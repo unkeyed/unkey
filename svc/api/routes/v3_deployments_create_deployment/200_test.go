@@ -15,9 +15,8 @@ import (
 
 func TestCreateOCIDeployment(t *testing.T) {
 	h := testutil.NewHarness(t)
-	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"environment.*.create_deployment"},
-	})
+	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{})
+	setup.RootKey = deploymentRootKey(h, setup)
 	restateClient, creates := testutil.RecordingDeployRestate(t)
 	route := &handler.Handler{DB: h.DB, Restate: restateClient}
 	h.Register(route)
@@ -39,9 +38,8 @@ func TestCreateOCIDeployment(t *testing.T) {
 
 func TestCreateDeploymentWithAppDefault(t *testing.T) {
 	h := testutil.NewHarness(t)
-	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"environment.*.create_deployment"},
-	})
+	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{})
+	setup.RootKey = deploymentRootKey(h, setup)
 	restateClient, creates := testutil.RecordingDeployRestate(t)
 	route := &handler.Handler{DB: h.DB, Restate: restateClient}
 	h.Register(route)
@@ -59,9 +57,8 @@ func TestCreateDeploymentWithAppDefault(t *testing.T) {
 
 func TestCreateGitDeployment(t *testing.T) {
 	h := testutil.NewHarness(t)
-	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"environment.*.create_deployment"},
-	})
+	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{})
+	setup.RootKey = deploymentRootKey(h, setup)
 	restateClient, creates := testutil.RecordingDeployRestate(t)
 	route := &handler.Handler{DB: h.DB, Restate: restateClient}
 	h.Register(route)
@@ -81,9 +78,8 @@ func TestCreateGitDeployment(t *testing.T) {
 
 func TestRedeploySendsExistingDeployment(t *testing.T) {
 	h := testutil.NewHarness(t)
-	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"environment.*.create_deployment"},
-	})
+	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{})
+	setup.RootKey = deploymentRootKey(h, setup)
 
 	deployment := h.CreateDeployment(seed.CreateDeploymentRequest{
 		ID:            uid.New(uid.DeploymentPrefix),
@@ -114,4 +110,11 @@ func authHeaders(rootKey string) http.Header {
 		"Content-Type":  {"application/json"},
 		"Authorization": {"Bearer " + rootKey},
 	}
+}
+
+func deploymentRootKey(h *testutil.Harness, setup testutil.DeploymentTestSetup) string {
+	return h.CreateRootKey(setup.Workspace.ID,
+		"unkey:v1:"+setup.Workspace.ID+":projects/"+setup.Project.ID+
+			"/apps/"+setup.App.ID+"/environments/"+setup.Environment.ID+"/deployments/*#write",
+	)
 }

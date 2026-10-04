@@ -58,7 +58,7 @@ Every `unkey api` command takes these. See [CLI output and shared flags](/platfo
 
 ## Required permissions
 
-`api.*.create_key` or `api.<apiId>.create_key`, plus `api.*.encrypt_key` or `api.<apiId>.encrypt_key` when the original key is recoverable. See [Root key permissions](/platform/root-keys/permissions).
+`unkey:v1:{workspace_id}:projects/*/keyspaces/*/keys/*#write` or `unkey:v1:{workspace_id}:projects/{project_id}/keyspaces/{keyspace_id}/keys/*#write`. See [Root key permissions](/platform/root-keys/permissions).
 
 ## Examples
 

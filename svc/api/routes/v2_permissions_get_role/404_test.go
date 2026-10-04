@@ -24,7 +24,7 @@ func TestNotFoundErrors(t *testing.T) {
 	workspace := h.Resources().UserWorkspace
 
 	// Create a root key with appropriate permissions
-	rootKey := h.CreateRootKey(workspace.ID, "rbac.*.read_role")
+	rootKey := h.CreateRootKey(workspace.ID, fmt.Sprintf("unkey:v1:%s:projects/*/rbac/roles/*#read", workspace.ID))
 
 	// Set up request headers
 	headers := http.Header{

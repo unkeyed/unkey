@@ -2,6 +2,7 @@ package handler_test
 
 import (
 	"database/sql"
+	"fmt"
 	"net/http"
 	"testing"
 
@@ -22,7 +23,7 @@ import (
 // would be a permanent global claim the victim could never clear.
 func TestCreatePortalRejectsMappingsItDoesNotOwn(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route, headers := newRoute(t, h, "portal.*.create_portal")
+	route, headers := newRoute(t, h, fmt.Sprintf("unkey:v1:%s:**#*", h.Resources().UserWorkspace.ID))
 	workspace := h.Resources().UserWorkspace
 
 	other := h.CreateWorkspace()
@@ -93,8 +94,7 @@ func TestCreatePortalRejectsMappingsItDoesNotOwn(t *testing.T) {
 	// squat had been allowed.
 	// The same registered route, called with the other workspace's key: the
 	// principal comes from the key, so one registration serves both callers.
-	victimKey := h.CreateRootKey(other.ID,
-		append([]string{"portal.*.create_portal"}, targetReadGrants...)...)
+	victimKey := h.CreateRootKey(other.ID, fmt.Sprintf("unkey:v1:%s:**#*", other.ID))
 	victimHeaders := http.Header{
 		"Content-Type":  {"application/json"},
 		"Authorization": {"Bearer " + victimKey},

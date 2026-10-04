@@ -16,8 +16,8 @@ post:
     **Required Permissions**
 
     Your root key must have one of the following permissions:
-    - `environment.*.read_environment_variables` (for any environment)
-    - `environment.<environment_id>.read_environment_variables` (for a specific environment)
+    - `unkey:v1:{workspace_id}:projects/*/apps/*/environments/*/variables/*#read` (for any environment)
+    - `unkey:v1:{workspace_id}:projects/{project_id}/apps/{app_id}/environments/{environment_id}/variables/*#read` (for a specific environment)
   operationId: environments.listEnvironmentVariables
   x-speakeasy-name-override: listEnvironmentVariables
   security:
@@ -57,7 +57,7 @@ post:
           schema:
             "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
     "403":
-      description: Forbidden - Insufficient permissions (requires `environment.*.read_environment_variables`)
+      description: Forbidden - Insufficient permissions (requires `unkey:v1:{workspace_id}:projects/*/apps/*/environments/*/variables/*#read`)
       content:
         application/json:
           schema:

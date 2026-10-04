@@ -15,7 +15,7 @@ post:
     **Required Permissions**
 
     Your root key must have the following permission:
-    - `workspace.*.install_github`
+    - `unkey:v1:{workspace_id}:github/apps/*#write`
   operationId: github.installApp
   x-speakeasy-name-override: installApp
   x-unkey-idempotency: idempotent
@@ -53,7 +53,7 @@ post:
           schema:
             "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
     "403":
-      description: Forbidden - Insufficient permissions (requires `workspace.*.install_github`)
+      description: Forbidden - Insufficient permissions (requires `unkey:v1:{workspace_id}:github/apps/*#write`)
       content:
         application/json:
           schema:

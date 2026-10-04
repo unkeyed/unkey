@@ -1,5 +1,5 @@
 import { parseUrnPermissionParts } from "@unkey/rbac";
-import { describePermission, humaniseAction } from "./describe-permission";
+import { humaniseAction } from "./describe-permission";
 
 export type GrantLabel = {
   path: string | null;
@@ -9,7 +9,7 @@ export type GrantLabel = {
 export function grantLabel(grant: string): GrantLabel {
   const parsed = parseUrnPermissionParts(grant);
   if (parsed === null) {
-    return { path: null, action: describePermission(grant) };
+    return { path: null, action: grant };
   }
   return { path: parsed.resourcePath, action: humaniseAction(parsed.action) };
 }
@@ -49,7 +49,7 @@ function terseAction(action: string, collection: string): string {
 export function grantCellLabel(grant: string): string {
   const parsed = parseUrnPermissionParts(grant);
   if (parsed === null) {
-    return describePermission(grant);
+    return grant;
   }
   const collection = collectionSegment(parsed.resourcePath);
   if (collection === null) {

@@ -18,8 +18,8 @@ func getAPICmd() *cli.Command {
 Use this to verify an API exists before performing operations, get the human-readable name when you only have the API ID, or confirm access to a specific namespace. For detailed key information, use the listKeys endpoint instead.
 
 Required permissions:
-- api.*.read_api
-- api.<api_id>.read_api
+- unkey:v1:{workspace_id}:projects/*/keyspaces/*#read (to read any API)
+- unkey:v1:{workspace_id}:projects/{project_id}/keyspaces/{keyspace_id}#read (to read a specific API)
 
 For full documentation, see https://www.unkey.com/docs/api-reference/v2/apis/get-api-namespace` + util.Disclaimer,
 		Examples: []string{

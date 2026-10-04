@@ -21,10 +21,10 @@ func TestLexer_Basic(t *testing.T) {
 		},
 		{
 			name:  "Single permission",
-			input: "api.key1.read_key",
+			input: "documents.read",
 			expected: []token{
-				{typ: permission, value: "api.key1.read_key", pos: 0},
-				{typ: eof, value: "", pos: 17},
+				{typ: permission, value: "documents.read", pos: 0},
+				{typ: eof, value: "", pos: 14},
 			},
 		},
 		{
@@ -244,10 +244,10 @@ func TestLexer_PermissionFormats(t *testing.T) {
 	}{
 		{
 			name:  "Permission with dots",
-			input: "api.key1.read_key",
+			input: "documents.read",
 			expected: []token{
-				{typ: permission, value: "api.key1.read_key", pos: 0},
-				{typ: eof, value: "", pos: 17},
+				{typ: permission, value: "documents.read", pos: 0},
+				{typ: eof, value: "", pos: 14},
 			},
 		},
 		{
@@ -260,18 +260,18 @@ func TestLexer_PermissionFormats(t *testing.T) {
 		},
 		{
 			name:  "Permission with hyphens",
-			input: "api.key-123.read_key",
+			input: "documents-read",
 			expected: []token{
-				{typ: permission, value: "api.key-123.read_key", pos: 0},
-				{typ: eof, value: "", pos: 20},
+				{typ: permission, value: "documents-read", pos: 0},
+				{typ: eof, value: "", pos: 14},
 			},
 		},
 		{
 			name:  "Permission with numbers",
-			input: "api.key123.read_key",
+			input: "documents_read",
 			expected: []token{
-				{typ: permission, value: "api.key123.read_key", pos: 0},
-				{typ: eof, value: "", pos: 19},
+				{typ: permission, value: "documents_read", pos: 0},
+				{typ: eof, value: "", pos: 14},
 			},
 		},
 		{

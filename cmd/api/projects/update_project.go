@@ -15,8 +15,8 @@ func updateProjectCmd() *cli.Command {
 The project name, slug, and delete protection setting can be changed. Omitted fields are left unchanged. Changing the slug affects the deployment domains generated for this project.
 
 Required Permissions
-- project.*.update_project (to update any project)
-- project.<project_id>.update_project (to update a specific project)
+- unkey:v1:{workspace_id}:projects/*#write (to update any project)
+- unkey:v1:{workspace_id}:projects/{project_id}#write (to update a specific project)
 
 For full documentation, see https://www.unkey.com/docs/api-reference/v2/projects/update-project` + util.Disclaimer, Examples: []string{"unkey api projects update-project --project=proj_1234abcd --name='Payments API'", "unkey api projects update-project --project=payments --delete-protection=true"}, Flags: []cli.Flag{cli.String("body", "Decode this JSON as the endpoint request body. Request-building flags are mutually exclusive."), util.RootKeyFlag(), util.APIURLFlag(), util.ConfigFlag(), util.OutputFlag(), cli.String("project", "Project ID or slug.", cli.Required(), cli.MutuallyExclusive("body")), cli.String("slug", "New project slug.", cli.MutuallyExclusive("body")), cli.String("name", "New human-readable name for the project.", cli.MutuallyExclusive("body")), cli.Bool("delete-protection", "Enable or disable delete protection for the project.", cli.MutuallyExclusive("body"))}, Action: func(ctx context.Context, cmd *cli.Command) error {
 		client, err := util.CreateClient(cmd)

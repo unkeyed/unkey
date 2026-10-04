@@ -15,7 +15,7 @@ import (
 func TestBadRequests(t *testing.T) {
 	h := testutil.NewHarness(t)
 
-	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "identity.*.delete_identity")
+	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, fmt.Sprintf("unkey:v1:%s:projects//identities/*#delete", h.Resources().UserWorkspace.ID))
 	route := &handler.Handler{
 		DB:        h.DB,
 		Auditlogs: h.Auditlogs,

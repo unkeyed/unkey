@@ -31,7 +31,7 @@ func TestNotFoundErrors(t *testing.T) {
 
 	// Create a workspace and root key
 	workspace := h.Resources().UserWorkspace
-	rootKey := h.CreateRootKey(workspace.ID, "api.*.update_key", "rbac.*.add_role_to_key")
+	rootKey := h.CreateRootKey(workspace.ID, fmt.Sprintf("unkey:v1:%s:projects/*/keyspaces/*/keys/*#write", workspace.ID))
 
 	// Set up request headers
 	headers := http.Header{
@@ -180,10 +180,11 @@ func TestNotFoundErrors(t *testing.T) {
 		// Create a second workspace with a role
 		workspace2 := h.CreateWorkspace()
 		roleID := uid.New(uid.TestPrefix)
+		roleName := uid.New("admin_diff_workspace")
 		err := db.Query.InsertRole(ctx, h.DB.RW(), db.InsertRoleParams{
 			RoleID:      roleID,
 			WorkspaceID: workspace2.ID,
-			Name:        "admin_diff_workspace",
+			Name:        roleName,
 			Description: sql.NullString{Valid: true, String: "Admin role"},
 		})
 		require.NoError(t, err)
@@ -228,7 +229,7 @@ func TestNotFoundErrors(t *testing.T) {
 		// Create a second workspace with a role
 		workspace2 := h.CreateWorkspace()
 		roleID := uid.New(uid.TestPrefix)
-		roleName := "admin_by_name_diff_workspace"
+		roleName := uid.New("admin_by_name_diff_workspace")
 		err := db.Query.InsertRole(ctx, h.DB.RW(), db.InsertRoleParams{
 			RoleID:      roleID,
 			WorkspaceID: workspace2.ID,

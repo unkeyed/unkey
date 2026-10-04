@@ -21,7 +21,7 @@ const (
 // It can be a simple permission check or a complex boolean expression using
 // AND/OR operators with nested conditions.
 //
-// Queries can be constructed using the And(), Or(), and T() helper functions.
+// Queries can be constructed using [And], [Or], [S], and [U].
 type PermissionQuery struct {
 	// Operation specifies the logical operator for this node
 	Operation QueryOperator `json:"operation,omitempty"`
@@ -43,10 +43,10 @@ type PermissionQuery struct {
 //
 // Example:
 //
-//	// Require both read and update permissions
+//	// Require both customer-defined permissions.
 //	query := rbac.And(
-//	    rbac.T(rbac.Tuple{ResourceType: rbac.Api, ResourceID: "api1", Action: rbac.ReadAPI}),
-//	    rbac.T(rbac.Tuple{ResourceType: rbac.Api, ResourceID: "api1", Action: rbac.UpdateAPI}),
+//	    rbac.S("documents.read"),
+//	    rbac.S("documents.write"),
 //	)
 func And(queries ...PermissionQuery) PermissionQuery {
 	return PermissionQuery{
@@ -62,10 +62,10 @@ func And(queries ...PermissionQuery) PermissionQuery {
 //
 // Example:
 //
-//	// Allow either create or delete permissions
+//	// Allow either customer-defined permission.
 //	query := rbac.Or(
-//	    rbac.T(rbac.Tuple{ResourceType: rbac.Api, ResourceID: "api1", Action: rbac.CreateAPI}),
-//	    rbac.T(rbac.Tuple{ResourceType: rbac.Api, ResourceID: "api1", Action: rbac.DeleteAPI}),
+//	    rbac.S("documents.read"),
+//	    rbac.S("documents.write"),
 //	)
 func Or(queries ...PermissionQuery) PermissionQuery {
 	return PermissionQuery{
@@ -76,35 +76,14 @@ func Or(queries ...PermissionQuery) PermissionQuery {
 	}
 }
 
-// T creates a leaf permission query that checks for a specific permission tuple.
+// S creates a leaf query for an exact customer-defined permission string.
 // This function is typically used as a building block for more complex
 // permission queries using And() and Or().
 //
 // Example:
 //
 //	// Create a query for a single permission
-//	query := rbac.T(rbac.Tuple{
-//	    ResourceType: rbac.Api,
-//	    ResourceID:   "api1",
-//	    Action:       rbac.ReadAPI,
-//	})
-func T(tuple Tuple) PermissionQuery {
-	return PermissionQuery{
-		Operation:            OperatorNil,
-		Value:                tuple.String(),
-		Children:             []PermissionQuery{},
-		matchUnkeyPermission: false,
-	}
-}
-
-// S creates a leaf permission query that checks for a specific permission tuple.
-// This function is typically used as a building block for more complex
-// permission queries using And() and Or().
-//
-// Example:
-//
-//	// Create a query for a single permission
-//	query := rbac.S("resourceType.resourceID.action")
+//	query := rbac.S("documents.read")
 func S(s string) PermissionQuery {
 	return PermissionQuery{
 		Operation:            OperatorNil,

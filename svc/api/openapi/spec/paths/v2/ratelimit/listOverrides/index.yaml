@@ -9,7 +9,7 @@ post:
 
     **Important:** Results are paginated. Use the cursor parameter to retrieve additional pages when more results are available.
 
-    **Permissions:** Requires `ratelimit.*.read_override` or `ratelimit.<namespace_id>.read_override`
+    **Permissions:** Requires `unkey:v1:{workspace_id}:projects/*/ratelimits/namespaces/*/overrides/*#read` or `unkey:v1:{workspace_id}:projects/{project_id}/ratelimits/namespaces/{namespace_id}/overrides/*#read`
   operationId: ratelimit.listOverrides
   x-speakeasy-name-override: listOverrides
   security:
@@ -76,7 +76,7 @@ post:
           schema:
             "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
     "403":
-      description: Forbidden - Insufficient permissions (requires `ratelimit.*.read_override`)
+      description: Forbidden - Insufficient permissions (requires `unkey:v1:{workspace_id}:projects/*/ratelimits/namespaces/*/overrides/*#read`)
       content:
         application/json:
           schema:
@@ -90,7 +90,7 @@ post:
                 error:
                   title: Forbidden
                   detail:
-                    Your root key requires the 'ratelimit.*.read_override'
+                    Your root key requires the 'unkey:v1:{workspace_id}:projects/*/ratelimits/namespaces/*/overrides/*#read'
                     permission to perform this operation
                   status: 403
                   type: forbidden

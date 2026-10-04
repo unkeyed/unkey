@@ -113,7 +113,7 @@ func TestForbidden(t *testing.T) {
 	// Create a new key with specific permissions for certain environments
 	t.Run("with permission for only specific environment", func(t *testing.T) {
 		// Create a new key with production environment permissions
-		prodPermKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "identity.*.read_identity")
+		prodPermKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, fmt.Sprintf("unkey:v1:%s:projects/%s/identities/*#read", workspaceID, projectID))
 		prodHeaders := http.Header{
 			"Content-Type":  {"application/json"},
 			"Authorization": {fmt.Sprintf("Bearer %s", prodPermKey)},
@@ -140,7 +140,7 @@ func TestForbidden(t *testing.T) {
 
 	t.Run("with wildcard permission", func(t *testing.T) {
 		// Create a new key with wildcard permissions
-		wildcardKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "identity.*.read_identity")
+		wildcardKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, fmt.Sprintf("unkey:v1:%s:projects/%s/identities/*#read", workspaceID, projectID))
 		wildcardHeaders := http.Header{
 			"Content-Type":  {"application/json"},
 			"Authorization": {fmt.Sprintf("Bearer %s", wildcardKey)},
@@ -178,8 +178,8 @@ func TestForbidden(t *testing.T) {
 		require.True(t, foundStaging, "Should find staging environment identity")
 	})
 
-	t.Run("with exact legacy permission and targeted search", func(t *testing.T) {
-		rootKey := h.CreateRootKey(workspaceID, "identity."+prodIdentityID+".read_identity")
+	t.Run("with exact identity permission and targeted search", func(t *testing.T) {
+		rootKey := h.CreateRootKey(workspaceID, fmt.Sprintf("unkey:v1:%s:projects/%s/identities/%s#read", workspaceID, projectID, prodIdentityID))
 		headers := http.Header{
 			"Content-Type":  {"application/json"},
 			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},

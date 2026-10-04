@@ -37,7 +37,7 @@ import { Result } from "../types/fp.js";
  * **Required Permissions**
  *
  * Your root key must have the following permission:
- * - `environment.*.read_environment` (to read environments in any app)
+ * - `unkey:v1:{workspace_id}:projects/&#42;/apps/&#42;/environments/*#read` (to read environments in any app)
  *
  * If set, this operation will use {@link Security.rootKey} from the global security.
  */

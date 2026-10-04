@@ -37,8 +37,8 @@ import { Result } from "../types/fp.js";
  * **Required Permissions**
  *
  * Your root key must have one of the following permissions:
- * - `project.*.update_project` (to update any project)
- * - `project.<project_id>.update_project` (to update a specific project)
+ * - `unkey:v1:{workspace_id}:projects/*#write` (to update any project)
+ * - `unkey:v1:{workspace_id}:projects/{project_id}#write` (to update a specific project)
  *
  * If set, this operation will use {@link Security.rootKey} from the global security.
  */

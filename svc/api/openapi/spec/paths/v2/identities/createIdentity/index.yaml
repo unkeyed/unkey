@@ -8,7 +8,7 @@ post:
     Perfect for users with multiple devices, organizations with multiple API keys, or when you need unified rate limiting across different services.
 
     **Important**
-    Requires `identity.*.create_identity` permission
+    Requires `unkey:v1:{workspace_id}:projects/*/identities/*#write` permission
   operationId: identities.createIdentity
   x-speakeasy-name-override: createIdentity
   security:
@@ -66,7 +66,7 @@ post:
           schema:
             $ref: "../../../../error/UnauthorizedErrorResponse.yaml"
     "403":
-      description: Forbidden - Insufficient permissions (requires `identity.*.create_identity`)
+      description: Forbidden - Insufficient permissions (requires `unkey:v1:{workspace_id}:projects/*/identities/*#write`)
       content:
         application/json:
           schema:
@@ -79,7 +79,7 @@ post:
                   requestId: req_0uVwX4yZaAbCdEfGhIjKl
                 error:
                   title: Forbidden
-                  detail: Your root key requires the 'identity.*.create_identity' permission to perform this operation
+                  detail: Your root key requires the 'unkey:v1:{workspace_id}:projects/*/identities/*#write' permission to perform this operation
                   status: 403
                   type: forbidden
     "409":

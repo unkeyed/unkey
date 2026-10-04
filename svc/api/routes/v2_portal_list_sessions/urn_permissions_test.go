@@ -26,16 +26,6 @@ func TestListSessionsAuthorizesSessionGrants(t *testing.T) {
 		shouldPass bool
 	}{
 		{
-			name:       "legacy wildcard session tuple",
-			permission: func(_, _ string) string { return "portal.*.create_portal_session" },
-			shouldPass: true,
-		},
-		{
-			name:       "legacy session tuple for this portal",
-			permission: func(_, id string) string { return fmt.Sprintf("portal.%s.create_portal_session", id) },
-			shouldPass: true,
-		},
-		{
 			name: "read on this portal's sessions",
 			permission: func(p, id string) string {
 				return fmt.Sprintf("unkey:v1:%s:projects/%s/portals/%s/sessions/*#read", workspace.ID, p, id)
@@ -58,13 +48,8 @@ func TestListSessionsAuthorizesSessionGrants(t *testing.T) {
 		},
 		{
 			name:       "workspace admin",
-			permission: func(_, _ string) string { return fmt.Sprintf("unkey:v1:%s:**#*", workspace.ID) },
+			permission: func(_, _ string) string { return fmt.Sprintf("unkey:v1:%s:**#*", h.Resources().UserWorkspace.ID) },
 			shouldPass: true,
-		},
-		{
-			name:       "legacy portal read",
-			permission: func(_, _ string) string { return "portal.*.read_portal" },
-			shouldPass: false,
 		},
 		{
 			name: "read on this portal itself",

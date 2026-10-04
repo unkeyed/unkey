@@ -30,7 +30,7 @@ func TestPreconditionError(t *testing.T) {
 	})
 
 	// Create a root key with appropriate permissions
-	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "api.*.read_key", "api.*.decrypt_key")
+	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, rootKeyGrant(h.Resources().UserWorkspace.ID, api.ProjectID, api.KeyAuthID.String, "*", "read"), rootKeyGrant(h.Resources().UserWorkspace.ID, api.ProjectID, api.KeyAuthID.String, "*", "decrypt"))
 
 	// Set up request headers
 	headers := http.Header{
@@ -71,7 +71,7 @@ func TestPreconditionError(t *testing.T) {
 			Name:        &apiName,
 		})
 
-		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "api.*.read_key", "api.*.decrypt_key")
+		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, rootKeyGrant(h.Resources().UserWorkspace.ID, api.ProjectID, api.KeyAuthID.String, "*", "read"), rootKeyGrant(h.Resources().UserWorkspace.ID, api.ProjectID, api.KeyAuthID.String, "*", "decrypt"))
 
 		headers := http.Header{
 			"Content-Type":  {"application/json"},
@@ -118,7 +118,7 @@ func TestPreconditionError(t *testing.T) {
 		})
 
 		// Create a root key with appropriate permissions
-		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "api.*.read_key", "api.*.decrypt_key")
+		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, rootKeyGrant(h.Resources().UserWorkspace.ID, api.ProjectID, api.KeyAuthID.String, "*", "read"), rootKeyGrant(h.Resources().UserWorkspace.ID, api.ProjectID, api.KeyAuthID.String, "*", "decrypt"))
 
 		// Set up request headers
 		headers := http.Header{

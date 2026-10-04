@@ -40,7 +40,7 @@ func TestUpdateSettingsSuccessfully(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	rootKey := h.CreateRootKey(workspace.ID, "environment.*.update_environment")
+	rootKey := h.CreateRootKey(workspace.ID, "unkey:v1:"+(workspace.ID)+":**#*")
 	headers := authHeaders(rootKey)
 
 	// Seed regions used by the region reconciliation subtests.

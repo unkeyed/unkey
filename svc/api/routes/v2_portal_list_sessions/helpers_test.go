@@ -19,7 +19,9 @@ import (
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_portal_list_sessions"
 )
 
-const permission = "portal.*.create_portal_session"
+func workspaceAdminPermission(h *testutil.Harness) string {
+	return fmt.Sprintf("unkey:v1:%s:**#*", h.Resources().UserWorkspace.ID)
+}
 
 func registerRoute(h *testutil.Harness) *handler.Handler {
 	route := &handler.Handler{

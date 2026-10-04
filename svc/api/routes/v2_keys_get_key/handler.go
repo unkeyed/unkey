@@ -85,16 +85,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	// Permission check
 	err = principal.Authorize(rbac.Or(
-		rbac.T(rbac.Tuple{
-			ResourceType: rbac.Api,
-			ResourceID:   "*",
-			Action:       rbac.ReadKey,
-		}),
-		rbac.T(rbac.Tuple{
-			ResourceType: rbac.Api,
-			ResourceID:   keyData.Api.ID,
-			Action:       rbac.ReadKey,
-		}),
+
 		rbac.U(
 			urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(keyData.KeyAuth.ProjectID).Keyspace(keyData.Key.KeyAuthID).Key(keyData.Key.ID),
 			permissions.Read,
@@ -263,16 +254,7 @@ func (h *Handler) decryptKey(ctx context.Context, principal *principal.Principal
 
 	// Permission check for decryption
 	err := principal.Authorize(rbac.Or(
-		rbac.T(rbac.Tuple{
-			ResourceType: rbac.Api,
-			ResourceID:   "*",
-			Action:       rbac.DecryptKey,
-		}),
-		rbac.T(rbac.Tuple{
-			ResourceType: rbac.Api,
-			ResourceID:   keyData.Api.ID,
-			Action:       rbac.DecryptKey,
-		}),
+
 		rbac.U(
 			urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(keyData.KeyAuth.ProjectID).Keyspace(keyData.Key.KeyAuthID).Key(keyData.Key.ID),
 			permissions.Decrypt,

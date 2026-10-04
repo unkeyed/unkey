@@ -21,7 +21,7 @@ A rate limit on a key counts that key alone. If a user has three keys at 100 req
 
 <RootKeyPrereq />
 
-The root key needs `identity.*.create_identity` (or `identity.*.update_identity` for an existing identity), `api.*.create_key`, and `api.*.verify_key`.
+The root key needs `unkey:v1:{workspace_id}:projects/*/identities/*#write`, `unkey:v1:{workspace_id}:projects/*/keyspaces/*/keys/*#write`, and `unkey:v1:{workspace_id}:projects/*/keyspaces/*/keys/*#verify`.
 
 <Steps titleSize="h3">
   <Step title="Create the identity with a limit">

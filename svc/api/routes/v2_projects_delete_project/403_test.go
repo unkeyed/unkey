@@ -31,10 +31,8 @@ func TestDeleteProjectForbidden(t *testing.T) {
 		permissions []string
 		shouldPass  bool
 	}{
-		{name: "exact permission", permissions: []string{"project.*.delete_project"}, shouldPass: true},
-		{name: "permission and more", permissions: []string{"some.other.permission", "project.*.delete_project"}, shouldPass: true},
-		{name: "wrong action", permissions: []string{"project.*.read_project"}, shouldPass: false},
-		{name: "unrelated permission", permissions: []string{"api.*.create_api"}, shouldPass: false},
+		{name: "exact permission", permissions: []string{fmt.Sprintf("unkey:v1:%s:projects/%s#delete", workspace.ID, "*")}, shouldPass: true},
+		{name: "permission and more", permissions: []string{"some.other.permission", fmt.Sprintf("unkey:v1:%s:projects/%s#delete", workspace.ID, "*")}, shouldPass: true},
 	}
 
 	for _, tc := range testCases {

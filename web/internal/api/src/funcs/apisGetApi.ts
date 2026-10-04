@@ -37,8 +37,8 @@ import { Result } from "../types/fp.js";
  * **Required Permissions**
  *
  * Your root key must have one of the following permissions:
- * - `api.*.read_api` (to read any API)
- * - `api.<api_id>.read_api` (to read a specific API)
+ * - `unkey:v1:{workspace_id}:projects/&#42;/keyspaces/*#read` (to read any API)
+ * - `unkey:v1:{workspace_id}:projects/{project_id}/keyspaces/{keyspace_id}#read` (to read a specific API)
  *
  * If set, this operation will use {@link Security.rootKey} from the global security.
  */

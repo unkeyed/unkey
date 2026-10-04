@@ -24,7 +24,7 @@ func TestStartDeploymentNotStopped(t *testing.T) {
 	h.Register(route)
 
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"environment.*.start_deployment"},
+		Permissions: []string{"unkey:v1:{workspaceID}:**#write"},
 	})
 
 	dep := h.CreateDeployment(seed.CreateDeploymentRequest{
@@ -50,7 +50,7 @@ func TestStartDeploymentProduction(t *testing.T) {
 	h.Register(route)
 
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"environment.*.start_deployment"},
+		Permissions: []string{"unkey:v1:{workspaceID}:**#write"},
 	})
 
 	dep := h.CreateDeployment(seed.CreateDeploymentRequest{
@@ -78,7 +78,7 @@ func TestStartDeploymentSpendSuspended(t *testing.T) {
 	h.Register(route)
 
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"environment.*.start_deployment"},
+		Permissions: []string{"unkey:v1:{workspaceID}:**#write"},
 	})
 
 	preview := h.CreateEnvironment(seed.CreateEnvironmentRequest{
@@ -119,7 +119,7 @@ func TestStartDeploymentRequiresComputePlan(t *testing.T) {
 	h.Register(route)
 
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"environment.*.start_deployment"},
+		Permissions: []string{"unkey:v1:{workspaceID}:**#write"},
 	})
 	h.ClearComputePlanOverride(setup.Workspace.ID)
 	preview := h.CreateEnvironment(seed.CreateEnvironmentRequest{

@@ -31,7 +31,7 @@ unkey api apis list-keys --api-id=<api id> [flags]
 </ParamField>
 
 <ParamField body="--decrypt" type="boolean" default="false">
-  Include the plaintext key in each result. Only keys created with `--recoverable` have one, and the root key needs `decrypt_key`. The call fails with `412` unless the keyspace has key encryption turned on, which only we can do, through a support request.
+  Include the plaintext key in each result. Only keys created with `--recoverable` have one, and the root key needs `#decrypt` on the key path. The call fails with `412` unless the keyspace has key encryption turned on, which only we can do, through a support request.
 </ParamField>
 
 <ParamField body="--external-id" type="string">
@@ -72,7 +72,7 @@ Every `unkey api` command takes these. See [CLI output and shared flags](/platfo
 
 ## Required permissions
 
-`api.*.read_key` or `api.<apiId>.read_key`, together with `api.*.read_api` or `api.<apiId>.read_api`. `--decrypt` also needs `api.*.decrypt_key` or `api.<apiId>.decrypt_key`. Without the permission you get a 404, not a 403, so the response doesn't reveal whether the API exists. See [Root key permissions](/platform/root-keys/permissions).
+`unkey:v1:{workspace_id}:projects/*/keyspaces/*/keys/*#read` or `unkey:v1:{workspace_id}:projects/{project_id}/keyspaces/{keyspace_id}/keys/*#read`, together with `unkey:v1:{workspace_id}:projects/*/keyspaces/*#read` or `unkey:v1:{workspace_id}:projects/{project_id}/keyspaces/{keyspace_id}#read`. `--decrypt` also needs `unkey:v1:{workspace_id}:projects/*/keyspaces/*/keys/*#decrypt` or `unkey:v1:{workspace_id}:projects/{project_id}/keyspaces/{keyspace_id}/keys/*#decrypt`. Without the permission you get a 404, not a 403, so the response doesn't reveal whether the API exists. See [Root key permissions](/platform/root-keys/permissions).
 
 ## Examples
 

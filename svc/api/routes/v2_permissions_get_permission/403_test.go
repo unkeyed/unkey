@@ -52,7 +52,7 @@ func TestGetPermissionMasksInsufficientPermissions(t *testing.T) {
 	// Test case for insufficient permissions - missing read_permission
 	t.Run("missing required permission", func(t *testing.T) {
 		// Create a root key with some permissions but not read_permission
-		rootKey := h.CreateRootKey(workspace.ID, "rbac.*.create_permission")
+		rootKey := h.CreateRootKey(workspace.ID, fmt.Sprintf("unkey:v1:%s:projects/*/rbac/permissions/*#write", workspace.ID))
 
 		headers := http.Header{
 			"Content-Type":  {"application/json"},

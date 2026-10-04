@@ -88,7 +88,7 @@ Every `unkey api` command takes these. See [CLI output and shared flags](/platfo
 
 ## Required permissions
 
-`api.*.update_key` or `api.<apiId>.update_key` for the API the key belongs to. See [Root key permissions](/platform/root-keys/permissions).
+`unkey:v1:{workspace_id}:projects/*/keyspaces/*/keys/*#write` or `unkey:v1:{workspace_id}:projects/{project_id}/keyspaces/{keyspace_id}/keys/*#write` for the API the key belongs to. See [Root key permissions](/platform/root-keys/permissions).
 
 ## Examples
 

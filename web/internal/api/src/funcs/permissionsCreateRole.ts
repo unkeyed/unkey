@@ -37,13 +37,13 @@ import { Result } from "../types/fp.js";
  * **Required Permissions**
  *
  * Your root key must always have:
- * - `rbac.*.create_role`
+ * - `unkey:v1:{workspace_id}:projects/&#42;/rbac/roles/*#write`
  *
  * When `permissions` is not empty, it must also have:
- * - `rbac.*.add_permission_to_role`
+ * - `unkey:v1:{workspace_id}:projects/&#42;/rbac/roles/*#write`
  *
  * When any requested permission slug does not exist, it must also have:
- * - `rbac.*.create_permission`
+ * - `unkey:v1:{workspace_id}:projects/&#42;/rbac/permissions/*#write`
  *
  * If set, this operation will use {@link Security.rootKey} from the global security.
  */

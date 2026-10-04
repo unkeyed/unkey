@@ -60,15 +60,15 @@ You only call `portal.exchangeCode` yourself if you build your own portal front 
 
 ## Permissions your root key needs
 
-Your root key needs `portal.*.create_portal_session` or `portal.<portalId>.create_portal_session`. Without it, the request fails with **404**, not 403.
+Your root key needs `unkey:v1:{workspace_id}:portals/*/sessions/*#write` or `unkey:v1:{workspace_id}:portals/{portal_id}/sessions/*#write`. Without it, the request fails with **404**, not 403.
 
 It also needs a matching permission for each scope, on every keyspace the portal shows, either as `*` or for each `api_` ID:
 
 | Scope | Required on the root key |
 | --- | --- |
-| `keys:read` | `read_key` and `read_api` |
-| `keys:reroll` | `create_key`, plus `encrypt_key` if the keyspace stores encrypted keys |
-| `analytics:read` | `read_analytics` |
+| `keys:read` | `unkey:v1:{workspace_id}:projects/{project_id}/keyspaces/{keyspace_id}#read` and `unkey:v1:{workspace_id}:projects/{project_id}/keyspaces/{keyspace_id}/keys/*#read` |
+| `keys:reroll` | `unkey:v1:{workspace_id}:projects/{project_id}/keyspaces/{keyspace_id}/keys/*#write` |
+| `analytics:read` | `unkey:v1:{workspace_id}:projects/{project_id}/keyspaces/{keyspace_id}/logs#read` |
 
 If the root key is missing one, the whole request fails with **403**. A disabled portal can't create sessions at all.
 
@@ -76,7 +76,7 @@ If the root key is missing one, the whole request fails with **403**. A disabled
 
 A session ends when its 24 hour token expires, or when the portal is disabled, deleted, or pointed at a different keyspace or app. That usually takes effect within about 10 seconds, but can take up to 5 minutes. Re-enabling a disabled portal doesn't bring its sessions back. To log one end user out early, call `portal.revokeSession` with the portal and their `externalId`. It ends every live session they have on that portal.
 
-To see who is signed in, call `portal.listSessions` with the portal. It returns one entry per end user with a session that has not expired or been revoked, including sessions whose portal URL was not opened yet, and each end user's sessions and scopes. Results are ordered by `externalId`, paginated with `cursor`, and can be filtered with a case-sensitive `search` prefix. It needs a grant on the portal's sessions: `portal.*.create_portal_session`, `portal.<portalId>.create_portal_session`, or the portal's `sessions/*` with `read` or `write`. Reading the portal itself is not enough. Without it the request fails with **404**.
+To see who is signed in, call `portal.listSessions` with the portal. It returns one entry per end user with a session that has not expired or been revoked, including sessions whose portal URL was not opened yet, and each end user's sessions and scopes. Results are ordered by `externalId`, paginated with `cursor`, and can be filtered with a case-sensitive `search` prefix. It needs a grant on the portal's sessions: `unkey:v1:{workspace_id}:portals/*/sessions/*#write`, `unkey:v1:{workspace_id}:portals/{portal_id}/sessions/*#write`, or the portal's `sessions/*` with `read` or `write`. Reading the portal itself is not enough. Without it the request fails with **404**.
 
 Creating, exchanging, and revoking sessions write `portal.session.create`, `portal.session.exchange`, and `portal.session.revoke` [audit log](/platform/workspace/audit-logs/event-types) entries. What the user does in the portal is logged under a `portalEndUser` actor.
 
@@ -84,7 +84,7 @@ Creating, exchanging, and revoking sessions write `portal.session.create`, `port
 
 | Status | Code | Meaning |
 | --- | --- | --- |
-| 404 | `err:unkey:data:portal_not_found` | The portal does not exist, is not in your workspace, or your root key lacks `create_portal_session` for it. |
+| 404 | `err:unkey:data:portal_not_found` | The portal does not exist, is not in your workspace, or your root key lacks `#write` on its session path. |
 | 403 | `err:unkey:authorization:insufficient_permissions` | A requested scope needs a keyspace permission the root key lacks. |
 | 401 | `err:unkey:authentication:portal_session_not_found` | On exchange: the code is expired, used, or unknown. On end-user endpoints: the token is expired or revoked. |
 | 400 | `err:unkey:application:invalid_input` | `keys:reroll` or `analytics:read` was requested without `keys:read`. |

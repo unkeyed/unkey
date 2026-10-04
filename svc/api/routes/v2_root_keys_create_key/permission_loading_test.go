@@ -26,8 +26,8 @@ func TestLegacyRootKeyIgnoresNewPermissions(t *testing.T) {
 		ForWorkspaceID: &r.UserWorkspace.ID,
 		Permissions: []seed.CreatePermissionRequest{{
 			WorkspaceID: r.RootWorkspace.ID,
-			Name:        "api.*.read_key",
-			Slug:        "api.*.read_key",
+			Name:        "unkey:v1:" + r.UserWorkspace.ID + ":rootKeys/*#read",
+			Slug:        "unkey:v1:" + r.UserWorkspace.ID + ":rootKeys/*#read",
 		}},
 	})
 	require.NoError(t, db.Query.InsertUnkeyPermission(t.Context(), h.DB.RW(), db.InsertUnkeyPermissionParams{
@@ -45,7 +45,7 @@ func TestLegacyRootKeyIgnoresNewPermissions(t *testing.T) {
 	for range 2 {
 		root, err := h.Keys.GetRootKey(t.Context(), session)
 		require.NoError(t, err)
-		require.Equal(t, []string{"api.*.read_key"}, root.Permissions)
+		require.Equal(t, []string{"unkey:v1:" + r.UserWorkspace.ID + ":rootKeys/*#read"}, root.Permissions)
 	}
 }
 
@@ -58,8 +58,8 @@ func TestNewRootKeyPermissionLoadingIsScoped(t *testing.T) {
 	newPermission := "unkey:v1:" + workspace.ID + ":rootKeys/*#read"
 	legacyPermission := h.CreatePermission(seed.CreatePermissionRequest{
 		WorkspaceID: workspace.ID,
-		Name:        "legacy",
-		Slug:        "legacy.permission",
+		Name:        "unkey:v1:" + workspace.ID + ":rootKeys/*#write",
+		Slug:        "unkey:v1:" + workspace.ID + ":rootKeys/*#write",
 	})
 	key := h.CreateUnkeyRootKey(seed.CreateUnkeyRootKeyRequest{
 		WorkspaceID: workspace.ID,

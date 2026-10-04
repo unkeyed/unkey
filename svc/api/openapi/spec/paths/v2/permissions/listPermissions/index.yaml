@@ -9,7 +9,7 @@ post:
     **Required Permissions**
 
     Your root key must have the following permission:
-    - `rbac.*.read_permission`
+    - `unkey:v1:{workspace_id}:projects/*/rbac/permissions/*#read`
   operationId: permissions.listPermissions
   x-speakeasy-name-override: ListPermissions
   security:

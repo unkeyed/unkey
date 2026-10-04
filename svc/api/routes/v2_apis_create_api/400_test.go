@@ -28,7 +28,7 @@ func TestCreateApi_BadRequest(t *testing.T) {
 
 	h.Register(route)
 
-	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "api.*.create_api")
+	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "unkey:v1:"+(h.Resources().UserWorkspace.ID)+":**#*")
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},

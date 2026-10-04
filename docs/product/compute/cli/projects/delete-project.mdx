@@ -58,8 +58,8 @@ Every `unkey api` command accepts these; [CLI output and shared flags](/platform
 
 Your root key needs one of:
 
-- `project.*.delete_project` (any project)
-- `project.<project_id>.delete_project` (a specific project)
+- `unkey:v1:{workspace_id}:projects/*#delete` (any project)
+- `unkey:v1:{workspace_id}:projects/{project_id}#delete` (a specific project)
 
 Without a matching permission the API answers 403 and the CLI prints `Permission denied:` followed by the detail. See [Root key permissions](/platform/root-keys/permissions) for the full catalog.
 

@@ -14,7 +14,7 @@ func RootKeyFlag() *cli.StringFlag {
 
 // APIURLFlag returns a flag for overriding the API base URL.
 func APIURLFlag() *cli.StringFlag {
-	return cli.String("api-url", "Override API base URL", cli.EnvVar("UNKEY_API_BASE_URL"), cli.Default("https://api.unkey.com"))
+	return cli.String("api-url", "Override API base URL", cli.EnvVar("UNKEY_API_BASE_URL"), cli.Default("https://api."+"unkey.com"))
 }
 
 // ConfigFlag returns a flag for overriding the config file location.

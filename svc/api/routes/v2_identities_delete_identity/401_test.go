@@ -139,7 +139,7 @@ func TestDeleteIdentityUnauthorized(t *testing.T) {
 		differentWorkspace := h.CreateWorkspace()
 
 		// Create a root key for different workspace
-		differentWorkspaceKey := h.CreateRootKey(differentWorkspace.ID, "identity.*.delete_identity")
+		differentWorkspaceKey := h.CreateRootKey(differentWorkspace.ID, fmt.Sprintf("unkey:v1:%s:projects/*/identities/*#delete", differentWorkspace.ID))
 		headers := http.Header{
 			"Content-Type":  {"application/json"},
 			"Authorization": {fmt.Sprintf("Bearer %s", differentWorkspaceKey)},

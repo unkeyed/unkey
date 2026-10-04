@@ -19,7 +19,7 @@ export class RootKeys extends ClientSDK {
    *
    * @remarks
    * Creates a root key for the authenticated workspace.
-   * Requires `unkey:v1:<workspace_id>:rootKeys/*#write`.
+   * Requires `unkey:v1:{workspace_id}:rootKeys/*#write`.
    * The created root key cannot have more permissions than the caller.
    */
   async createKey(
@@ -38,7 +38,7 @@ export class RootKeys extends ClientSDK {
    *
    * @remarks
    * Deletes a root key in the authenticated workspace.
-   * Requires `unkey:v1:<workspace_id>:rootKeys/<key_id>#delete`.
+   * Requires `unkey:v1:{workspace_id}:rootKeys/{root_key_id}#delete`.
    * Use `rootKeys/*#delete` to delete any root key in the workspace.
    * Deleted keys cannot authenticate.
    */
@@ -58,7 +58,7 @@ export class RootKeys extends ClientSDK {
    *
    * @remarks
    * Lists readable root keys in the authenticated workspace, ordered by key ID.
-   * Requires `unkey:v1:<workspace_id>:rootKeys/<key_id>#read` for each returned key.
+   * Requires `unkey:v1:{workspace_id}:rootKeys/{root_key_id}#read` for each returned key.
    * Use `rootKeys/*#read` to read all root keys. Write permission does not imply read.
    * A caller with no readable keys receives an empty page.
    *
@@ -85,9 +85,9 @@ export class RootKeys extends ClientSDK {
    * @remarks
    * Creates a new root key secret with the same name, enabled state, expiration, and
    * effective permissions as an existing root key in the authenticated workspace.
-   * Requires `unkey:v1:<workspace_id>:rootKeys/<key_id>#write`, and the caller must
+   * Requires `unkey:v1:{workspace_id}:rootKeys/{root_key_id}#write`, and the caller must
    * already hold every permission of the original key. When `expiration` is not null,
-   * it also requires `unkey:v1:<workspace_id>:rootKeys/<key_id>#delete`.
+   * it also requires `unkey:v1:{workspace_id}:rootKeys/{root_key_id}#delete`.
    *
    * `expiration` controls the original key: 0 revokes it immediately, a positive value
    * keeps it valid for that many milliseconds, and null keeps its current expiration.
@@ -108,7 +108,7 @@ export class RootKeys extends ClientSDK {
    *
    * @remarks
    * Updates a root key in the authenticated workspace.
-   * Requires `unkey:v1:<workspace_id>:rootKeys/<key_id>#write`.
+   * Requires `unkey:v1:{workspace_id}:rootKeys/{root_key_id}#write`.
    * Use `rootKeys/*#write` to update any root key in the workspace.
    *
    * `permissions` replaces the complete permission set. Each permission must be a supported URN

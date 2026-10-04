@@ -20,14 +20,12 @@ Use this to build key management dashboards, filter keys by user with externalId
 Important: Set decrypt: true only in secure contexts to retrieve plaintext key values from recoverable keys.
 
 Required permissions:
-- api.*.read_key
-- api.<api_id>.read_key
-- api.*.read_api
-- api.<api_id>.read_api
+- unkey:v1:{workspace_id}:projects/*/keyspaces/*/keys/*#read (to read keys from any API)
+- unkey:v1:{workspace_id}:projects/{project_id}/keyspaces/{keyspace_id}/keys/*#read (to read keys from a specific API)
+- unkey:v1:{workspace_id}:projects/*/keyspaces/*#read or unkey:v1:{workspace_id}:projects/{project_id}/keyspaces/{keyspace_id}#read
 
 Additional permission required for decrypt functionality:
-- api.*.decrypt_key
-- api.<api_id>.decrypt_key
+- unkey:v1:{workspace_id}:projects/*/keyspaces/*/keys/*#decrypt or unkey:v1:{workspace_id}:projects/{project_id}/keyspaces/{keyspace_id}/keys/*#decrypt
 
 For full documentation, see https://www.unkey.com/docs/api-reference/v2/apis/list-api-keys` + util.Disclaimer,
 		Examples: []string{

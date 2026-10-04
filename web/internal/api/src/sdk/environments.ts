@@ -24,8 +24,8 @@ export class Environments extends ClientSDK {
    * **Required Permissions**
    *
    * Your root key must have one of the following permissions:
-   * - `environment.*.read_environment` (to read any environment)
-   * - `environment.<environment_id>.read_environment` (to read a specific environment)
+   * - `unkey:v1:{workspace_id}:projects/&#42;/apps/&#42;/environments/*#read` (to read any environment)
+   * - `unkey:v1:{workspace_id}:projects/{project_id}/apps/{app_id}/environments/{environment_id}#read` (to read a specific environment)
    */
   async getEnvironment(
     request: components.V2EnvironmentsGetEnvironmentRequestBody,
@@ -55,8 +55,8 @@ export class Environments extends ClientSDK {
    * **Required Permissions**
    *
    * Your root key must have one of the following permissions:
-   * - `environment.*.read_environment_variables` (for any environment)
-   * - `environment.<environment_id>.read_environment_variables` (for a specific environment)
+   * - `unkey:v1:{workspace_id}:projects/&#42;/apps/&#42;/environments/&#42;/variables/*#read` (for any environment)
+   * - `unkey:v1:{workspace_id}:projects/{project_id}/apps/{app_id}/environments/{environment_id}/variables/*#read` (for a specific environment)
    */
   async listEnvironmentVariables(
     request: components.V2EnvironmentsListEnvironmentVariablesRequestBody,
@@ -80,7 +80,7 @@ export class Environments extends ClientSDK {
    * **Required Permissions**
    *
    * Your root key must have the following permission:
-   * - `environment.*.read_environment` (to read environments in any app)
+   * - `unkey:v1:{workspace_id}:projects/&#42;/apps/&#42;/environments/*#read` (to read environments in any app)
    */
   async listEnvironments(
     request: components.V2EnvironmentsListEnvironmentsRequestBody,
@@ -111,8 +111,8 @@ export class Environments extends ClientSDK {
    * **Required Permissions**
    *
    * Your root key must have one of the following permissions:
-   * - `environment.*.remove_environment_variables` (for any environment)
-   * - `environment.<environment_id>.remove_environment_variables` (for a specific environment)
+   * - `unkey:v1:{workspace_id}:projects/&#42;/apps/&#42;/environments/&#42;/variables/*#delete` (for any environment)
+   * - `unkey:v1:{workspace_id}:projects/{project_id}/apps/{app_id}/environments/{environment_id}/variables/*#delete` (for a specific environment)
    */
   async removeEnvironmentVariables(
     request: components.V2EnvironmentsRemoveEnvironmentVariablesRequestBody,
@@ -150,8 +150,8 @@ export class Environments extends ClientSDK {
    * **Required Permissions**
    *
    * Your root key must have one of the following permissions:
-   * - `environment.*.set_environment_variables` (for any environment)
-   * - `environment.<environment_id>.set_environment_variables` (for a specific environment)
+   * - `unkey:v1:{workspace_id}:projects/&#42;/apps/&#42;/environments/&#42;/variables/*#write` (for any environment)
+   * - `unkey:v1:{workspace_id}:projects/{project_id}/apps/{app_id}/environments/{environment_id}/variables/*#write` (for a specific environment)
    */
   async setEnvironmentVariables(
     request: components.V2EnvironmentsSetEnvironmentVariablesRequestBody,
@@ -178,8 +178,8 @@ export class Environments extends ClientSDK {
    * **Required Permissions**
    *
    * Your root key must have one of the following permissions:
-   * - `environment.*.update_environment` (to update any environment)
-   * - `environment.<environment_id>.update_environment` (to update a specific environment)
+   * - `unkey:v1:{workspace_id}:projects/&#42;/apps/&#42;/environments/*#write` (to update any environment)
+   * - `unkey:v1:{workspace_id}:projects/{project_id}/apps/{app_id}/environments/{environment_id}#write` (to update a specific environment)
    */
   async updateSettings(
     request: components.V2EnvironmentsUpdateSettingsRequestBody,

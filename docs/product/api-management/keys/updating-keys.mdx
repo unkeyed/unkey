@@ -27,7 +27,7 @@ For every other field:
 
 <RootKeyPrereq />
 
-The root key needs `api.*.update_key` or `api.<api_id>.update_key`. Without it you get HTTP 403 [`err:unkey:authorization:insufficient_permissions`](/errors/unkey/authorization/insufficient_permissions). A `keyId` that doesn't exist or belongs to another workspace returns HTTP 404 [`err:unkey:data:key_not_found`](/errors/unkey/data/key_not_found). See [Root key permissions](/platform/root-keys/permissions).
+The root key needs `unkey:v1:{workspace_id}:projects/*/keyspaces/*/keys/*#write` or `unkey:v1:{workspace_id}:projects/{project_id}/keyspaces/{keyspace_id}/keys/*#write`. Without it you get HTTP 403 [`err:unkey:authorization:insufficient_permissions`](/errors/unkey/authorization/insufficient_permissions). A `keyId` that doesn't exist or belongs to another workspace returns HTTP 404 [`err:unkey:data:key_not_found`](/errors/unkey/data/key_not_found). See [Root key permissions](/platform/root-keys/permissions).
 
 ## Request fields
 

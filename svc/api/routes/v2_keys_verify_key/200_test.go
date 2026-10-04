@@ -32,7 +32,7 @@ func TestSuccess(t *testing.T) {
 	// Create a workspace
 	workspace := h.Resources().UserWorkspace
 	// Create a root key with appropriate permissions
-	rootKey := h.CreateRootKey(workspace.ID, "api.*.verify_key")
+	rootKey := h.CreateRootKey(workspace.ID, rootKeyGrant(workspace.ID, "*", "*", "*", "verify"))
 
 	api := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspace.ID})
 
@@ -692,7 +692,7 @@ func TestSuccess(t *testing.T) {
 			WorkspaceID: workspace.ID,
 			KeySpaceID:  api2.KeyAuthID.String,
 		})
-		rootKey := h.CreateRootKey(workspace.ID, fmt.Sprintf("api.%s.verify_key", api.ID))
+		rootKey := h.CreateRootKey(workspace.ID, rootKeyGrant(workspace.ID, api.ProjectID, api.KeyAuthID.String, "*", "verify"))
 
 		req := handler.Request{
 			Key: key.Key,
@@ -762,7 +762,7 @@ func TestNoVerifyPermissionReturnsNotFound(t *testing.T) {
 		WorkspaceID: workspace.ID,
 		KeySpaceID:  api.KeyAuthID.String,
 	})
-	rootKeyWithoutVerify := h.CreateRootKey(workspace.ID, "api.*.read_key")
+	rootKeyWithoutVerify := h.CreateRootKey(workspace.ID, rootKeyGrant(workspace.ID, api.ProjectID, api.KeyAuthID.String, "*", "read"))
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKeyWithoutVerify)},

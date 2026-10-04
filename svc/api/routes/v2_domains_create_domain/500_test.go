@@ -41,7 +41,7 @@ func TestCreateDomainCtrlFailureIsRetryable(t *testing.T) {
 	h.Register(route)
 
 	env := seedEnvironment(t, h)
-	rootKey := h.CreateRootKey(env.workspaceID, "environment.*.create_domain")
+	rootKey := h.CreateRootKey(env.workspaceID, "unkey:v1:"+(env.workspaceID)+":**#*")
 	req := makeRequest(env, randomDomain())
 
 	res := testutil.CallRoute[handler.Request, openapi.InternalServerErrorResponse](h, route, authHeaders(rootKey), req)
@@ -69,7 +69,7 @@ func TestCreateDomainCtrlUnreachable(t *testing.T) {
 	h.Register(route)
 
 	env := seedEnvironment(t, h)
-	rootKey := h.CreateRootKey(env.workspaceID, "environment.*.create_domain")
+	rootKey := h.CreateRootKey(env.workspaceID, "unkey:v1:"+(env.workspaceID)+":**#*")
 
 	res := testutil.CallRoute[handler.Request, openapi.InternalServerErrorResponse](h, route, authHeaders(rootKey), makeRequest(env, randomDomain()))
 	require.Equal(t, http.StatusInternalServerError, res.Status, "expected 500, received: %s", res.RawBody)

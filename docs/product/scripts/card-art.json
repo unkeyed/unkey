@@ -6684,22 +6684,22 @@
     "evidence": "platform/root-keys/permission-reference.mdx",
     "scene": {
       "kind": "anatomy",
-      "heading": "Permission tuple",
+      "heading": "Break down a permission URN",
       "fields": [
         [
-          "api",
-          "resource"
+          "unkey:v1:{workspace_id}",
+          "workspace"
         ],
         [
-          "*",
-          "all keyspaces"
+          "projects/*/keyspaces/*/keys/*",
+          "resource path"
         ],
         [
-          "read_key",
-          "action"
+          "#read",
+          "allowed operation"
         ]
       ],
-      "note": "api.*.read_key"
+      "note": "A permission combines one resource path with one action"
     }
   },
   {
@@ -6978,22 +6978,22 @@
     "evidence": "platform/root-keys/permissions.mdx",
     "scene": {
       "kind": "table",
-      "heading": "Root key authorization models",
+      "heading": "Root key permission scopes",
       "fields": [
         [
-          "Legacy grant",
-          "resource.id.action"
+          "Resource",
+          "canonical URN path"
         ],
         [
-          "Resource name grant",
-          "path plus action"
+          "Action",
+          "read, write, or delete"
         ],
         [
           "Endpoint",
-          "accepted grant format"
+          "required resource and action"
         ]
       ],
-      "note": "Choose the permission form supported by the endpoint"
+      "note": "Grant only the resource scope and action the caller needs"
     }
   },
   {
@@ -7004,22 +7004,22 @@
     "evidence": "platform/root-keys/permission-reference.mdx",
     "scene": {
       "kind": "anatomy",
-      "heading": "Break down api.*.read_key",
+      "heading": "Break down a permission URN",
       "fields": [
         [
-          "api",
-          "resource type"
+          "unkey:v1:{workspace_id}",
+          "workspace"
         ],
         [
-          "*",
-          "any keyspace"
+          "projects/*/keyspaces/*/keys/*",
+          "resource path"
         ],
         [
-          "read_key",
+          "#read",
           "allowed operation"
         ]
       ],
-      "note": "The legacy grant is a three-part permission string"
+      "note": "A permission combines one resource path with one action"
     }
   },
   {

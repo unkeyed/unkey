@@ -32,8 +32,8 @@ func updatePolicyCmd() *cli.Command {
 Pass the policy fields to update as one JSON object. Omitted fields keep their stored values. Setting match to null or an empty array removes all match expressions. At least one update field is required, and at most one rule field may be set.
 
 Required Permissions
-- environment.*.update_policy (for any environment)
-- environment.<environment_id>.update_policy (for a specific environment)
+- unkey:v1:{workspace_id}:projects/*/apps/*/environments/*/gateway/policies/*#write (for any environment)
+- unkey:v1:{workspace_id}:projects/{project_id}/apps/{app_id}/environments/{environment_id}/gateway/policies/{policy_id}#write (for a specific environment)
 
 For full documentation, see https://www.unkey.com/docs/api-reference/gateway/update-policy` + util.Disclaimer,
 		Examples: []string{`unkey api gateway update-policy --project=payments --app=payments-api --environment=production --policy-id=pol_123 --policy='{"enabled":false}'`, `unkey api gateway update-policy --project=payments --app=payments-api --environment=production --policy-id=pol_123 --policy='{"match":null}'`, `unkey api gateway update-policy --project=payments --app=payments-api --environment=production --policy-id=pol_123 --policy='{"firewall":{"action":"ACTION_DENY"}}'`},

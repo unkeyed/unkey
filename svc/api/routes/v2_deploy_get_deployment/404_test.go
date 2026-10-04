@@ -22,7 +22,7 @@ func TestNotFound(t *testing.T) {
 	h.Register(route)
 
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"project.*.read_deployment"},
+		Permissions: []string{"unkey:v1:{workspaceID}:**#read"},
 	})
 
 	t.Run("deployment not found", func(t *testing.T) {
@@ -43,7 +43,7 @@ func TestNotFound(t *testing.T) {
 
 	t.Run("deployment belongs to different workspace", func(t *testing.T) {
 		otherSetup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-			Permissions: []string{"project.*.create_deployment"},
+			Permissions: []string{"unkey:v1:{workspaceID}:**#write"},
 		})
 
 		deploymentID := uid.New(uid.DeploymentPrefix)

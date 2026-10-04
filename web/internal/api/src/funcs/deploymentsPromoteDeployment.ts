@@ -48,8 +48,8 @@ import { Result } from "../types/fp.js";
  * **Required Permissions**
  *
  * Your root key must have one of the following permissions:
- * - `environment.*.promote_deployment` (to promote deployments in any environment)
- * - `environment.<environment_id>.promote_deployment` (to promote deployments in a specific environment)
+ * - `unkey:v1:{workspace_id}:projects/&#42;/apps/&#42;/environments/*#write` (to promote deployments in any environment)
+ * - `unkey:v1:{workspace_id}:projects/{project_id}/apps/{app_id}/environments/{environment_id}#write` (to promote deployments in a specific environment)
  *
  * If set, this operation will use {@link Security.rootKey} from the global security.
  */

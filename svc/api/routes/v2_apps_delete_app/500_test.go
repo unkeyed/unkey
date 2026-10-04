@@ -46,7 +46,7 @@ func assertRestateFailure(t *testing.T, restate *restateingress.Client) {
 		Name:        "Restate Failure",
 		Slug:        strings.ToLower(strings.ReplaceAll(uid.New("app"), "_", "-")),
 	})
-	rootKey := h.CreateRootKey(workspace.ID, "app.*.delete_app")
+	rootKey := h.CreateRootKey(workspace.ID, "unkey:v1:"+(workspace.ID)+":**#*")
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},

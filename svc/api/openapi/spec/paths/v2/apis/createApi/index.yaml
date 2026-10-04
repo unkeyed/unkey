@@ -12,7 +12,7 @@ post:
     **Required Permissions**
 
     Your root key must have one of the following permissions:
-    - `api.*.create_api` (to create APIs in any workspace)
+    - `unkey:v1:{workspace_id}:projects/*/keyspaces/*#write` (to create APIs in any workspace)
   operationId: apis.createApi
   x-speakeasy-name-override: createApi
   security:

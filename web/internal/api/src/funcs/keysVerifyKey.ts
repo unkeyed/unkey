@@ -44,11 +44,8 @@ import { Result } from "../types/fp.js";
  * **Required Permissions**
  *
  * Your credential needs one of:
- * - `api.*.verify_key` (verify keys in any API)
- * - `api.<api_id>.verify_key` (verify keys in specific API)
- * - `unkey:v1:<workspace_id>:keyspaces/* /keys/*#verify_key` (verify keys in any keyspace)
- * - `unkey:v1:<workspace_id>:keyspaces/<keyspace_id>/keys/*#verify_key` (verify keys in a specific keyspace)
- * - `unkey:v1:<workspace_id>:keyspaces/<keyspace_id>/keys/<key_id>#verify_key` (verify a specific key)
+ * - `unkey:v1:{workspace_id}:projects/&#42;/keyspaces/&#42;/keys/*#verify` (verify keys in any API)
+ * - `unkey:v1:{workspace_id}:projects/{project_id}/keyspaces/{keyspace_id}/keys/*#verify` (verify keys in specific API)
  *
  * **Note**: If your credential has no verify permissions at all, you will receive a `403 Forbidden` error. If your credential has verify permissions for a different API or keyspace than the key you're verifying, you will receive a `200` response with `code: NOT_FOUND` to avoid leaking key existence.
  */

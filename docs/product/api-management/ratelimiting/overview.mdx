@@ -34,7 +34,7 @@ Both count requests the same way. See [How rate limiting works](/api-management/
 
 <RootKeyPrereq />
 
-The root key needs `ratelimit.*.limit`, plus `ratelimit.*.create_namespace` the first time a namespace name is used.
+The root key needs `unkey:v1:{workspace_id}:projects/*/ratelimits/namespaces/*#limit`, including when a namespace is created on first use.
 
 ```bash
 curl -X POST https://api.unkey.com/v2/ratelimit.limit \

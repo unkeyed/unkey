@@ -119,11 +119,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	err = principal.Authorize(rbac.Or(
-		rbac.T(rbac.Tuple{
-			ResourceType: rbac.Identity,
-			ResourceID:   "*",
-			Action:       rbac.UpdateIdentity,
-		}),
+
 		rbac.U(
 			urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(identityRow.ProjectID).Identity(identityRow.ID),
 			permissions.Write,

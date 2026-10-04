@@ -8,7 +8,7 @@ post:
     Perfect for subscription changes, plan upgrades, or updating user information. Changes take effect immediately.
 
     > **Important**
-    > Requires `identity.*.update_identity` permission
+    > Requires `unkey:v1:{workspace_id}:projects/*/identities/*#write` permission
     > Rate limit changes propagate within 30 seconds
   operationId: identities.updateIdentity
   x-speakeasy-name-override: updateIdentity
@@ -55,7 +55,7 @@ post:
           schema:
             $ref: "../../../../error/UnauthorizedErrorResponse.yaml"
     "403":
-      description: Forbidden - Insufficient permissions (requires `identity.*.update_identity`)
+      description: Forbidden - Insufficient permissions (requires `unkey:v1:{workspace_id}:projects/*/identities/*#write`)
       content:
         application/json:
           schema:
@@ -68,7 +68,7 @@ post:
                   requestId: req_0uVwX4yZaAbCdEfGhIjKl
                 error:
                   title: Forbidden
-                  detail: Your root key requires the 'identity.*.update_identity' permission to perform this operation
+                  detail: Your root key requires the 'unkey:v1:{workspace_id}:projects/*/identities/*#write' permission to perform this operation
                   status: 403
                   type: forbidden
     "404":

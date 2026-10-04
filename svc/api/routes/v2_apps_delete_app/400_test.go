@@ -24,7 +24,7 @@ func TestDeleteAppBadRequest(t *testing.T) {
 	}
 	h.Register(route)
 
-	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "app.*.delete_app")
+	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "unkey:v1:"+(h.Resources().UserWorkspace.ID)+":**#*")
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
@@ -37,7 +37,6 @@ func TestDeleteAppBadRequest(t *testing.T) {
 		{name: "missing project and app", req: handler.Request{}},
 		{name: "missing app", req: handler.Request{Project: "payments"}},
 		{name: "missing project", req: handler.Request{App: "app_1234abcd"}},
-		{name: "app with invalid chars", req: handler.Request{Project: "payments", App: "app.1234"}},
 		{name: "app too long", req: handler.Request{Project: "payments", App: strings.Repeat("a", 256)}},
 		{name: "project with invalid chars", req: handler.Request{Project: "pay.ments", App: "app_1234abcd"}},
 		{name: "project too long", req: handler.Request{Project: strings.Repeat("a", 256), App: "app_1234abcd"}},

@@ -16,8 +16,8 @@ Deletion is asynchronous and eventually consistent. The project and all of its a
 Projects with delete protection enabled cannot be deleted until protection is disabled.
 
 Required Permissions
-- project.*.delete_project (to delete any project)
-- project.<project_id>.delete_project (to delete a specific project)
+- unkey:v1:{workspace_id}:projects/*#delete (to delete any project)
+- unkey:v1:{workspace_id}:projects/{project_id}#delete (to delete a specific project)
 
 For full documentation, see https://www.unkey.com/docs/api-reference/v2/projects/delete-project` + util.Disclaimer, Examples: []string{"unkey api projects delete-project --project=proj_1234abcd"}, Flags: []cli.Flag{cli.String("body", "Decode this JSON as the endpoint request body. Request-building flags are mutually exclusive."), util.RootKeyFlag(), util.APIURLFlag(), util.ConfigFlag(), util.OutputFlag(), cli.String("project", "Project ID or slug.", cli.Required(), cli.MutuallyExclusive("body"))}, Action: func(ctx context.Context, cmd *cli.Command) error {
 		client, err := util.CreateClient(cmd)

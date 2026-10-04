@@ -70,8 +70,8 @@ Every `unkey api` command accepts these; [CLI output and shared flags](/platform
 
 Your root key needs one of:
 
-- `project.*.update_project` (any project)
-- `project.<project_id>.update_project` (a specific project)
+- `unkey:v1:{workspace_id}:projects/*#write` (any project)
+- `unkey:v1:{workspace_id}:projects/{project_id}#write` (a specific project)
 
 Without a matching permission the API answers 403 and the CLI prints `Permission denied:` followed by the detail. See [Root key permissions](/platform/root-keys/permissions) for the full catalog.
 

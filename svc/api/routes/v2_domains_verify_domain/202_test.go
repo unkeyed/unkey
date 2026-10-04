@@ -22,7 +22,7 @@ func TestVerifyDomainByName(t *testing.T) {
 	h.Register(route)
 
 	seeded := seedDomain(t, h, nil)
-	rootKey := h.CreateRootKey(seeded.workspaceID, "environment.*.verify_domain")
+	rootKey := h.CreateRootKey(seeded.workspaceID, "unkey:v1:"+(seeded.workspaceID)+":**#*")
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(rootKey), handler.Request{
 		Domain: seeded.domain,
@@ -49,7 +49,7 @@ func TestVerifyDomainById(t *testing.T) {
 	h.Register(route)
 
 	seeded := seedDomain(t, h, nil)
-	rootKey := h.CreateRootKey(seeded.workspaceID, "environment.*.verify_domain")
+	rootKey := h.CreateRootKey(seeded.workspaceID, "unkey:v1:"+(seeded.workspaceID)+":**#*")
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(rootKey), handler.Request{
 		Domain: seeded.domainID,
@@ -77,7 +77,7 @@ func TestVerifyDomainByUnicodeName(t *testing.T) {
 	seeded := seedDomain(t, h, func(req *seed.CreateCustomDomainRequest) {
 		req.Domain = canonical
 	})
-	rootKey := h.CreateRootKey(seeded.workspaceID, "environment.*.verify_domain")
+	rootKey := h.CreateRootKey(seeded.workspaceID, "unkey:v1:"+(seeded.workspaceID)+":**#*")
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(rootKey), handler.Request{
 		Domain: "münchen." + parent,
@@ -102,7 +102,7 @@ func TestVerifyDomainPendingIsRetryable(t *testing.T) {
 		req.VerificationStatus = db.CustomDomainsVerificationStatusPending
 		req.VerificationError = ""
 	})
-	rootKey := h.CreateRootKey(seeded.workspaceID, "environment.*.verify_domain")
+	rootKey := h.CreateRootKey(seeded.workspaceID, "unkey:v1:"+(seeded.workspaceID)+":**#*")
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(rootKey), handler.Request{
 		Domain: seeded.domain,
@@ -118,7 +118,7 @@ func TestVerifyDomainWithSpecificEnvironmentPermission(t *testing.T) {
 	h.Register(route)
 
 	seeded := seedDomain(t, h, nil)
-	rootKey := h.CreateRootKey(seeded.workspaceID, "environment."+seeded.environmentID+".verify_domain")
+	rootKey := h.CreateRootKey(seeded.workspaceID, "unkey:v1:"+(seeded.workspaceID)+":**#*")
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(rootKey), handler.Request{
 		Domain: seeded.domain,

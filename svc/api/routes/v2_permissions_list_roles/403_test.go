@@ -44,7 +44,7 @@ func TestAuthorizationErrors(t *testing.T) {
 	// Test case for insufficient permissions - missing read_role
 	t.Run("missing read_role permission", func(t *testing.T) {
 		// Create a root key with some permissions but not read_role
-		rootKey := h.CreateRootKey(workspace.ID, "rbac.*.create_role") // Only has create, not read
+		rootKey := h.CreateRootKey(workspace.ID, fmt.Sprintf("unkey:v1:%s:projects/*/rbac/roles/*#write", workspace.ID))
 
 		headers := http.Header{
 			"Content-Type":  {"application/json"},
@@ -84,7 +84,7 @@ func TestAuthorizationErrors(t *testing.T) {
 		require.NoError(t, err)
 
 		// Create a root key for the original workspace with read_role
-		rootKey := h.CreateRootKey(workspace.ID, "rbac.*.read_role")
+		rootKey := h.CreateRootKey(workspace.ID, fmt.Sprintf("unkey:v1:%s:projects/*/rbac/roles/*#read", workspace.ID))
 
 		headers := http.Header{
 			"Content-Type":  {"application/json"},
@@ -121,7 +121,7 @@ func TestAuthorizationFailureDoesNotCreateDefaultProject(t *testing.T) {
 	h.Register(route)
 
 	workspace := h.CreateWorkspace()
-	rootKey := h.CreateRootKey(workspace.ID, "rbac.*.create_role")
+	rootKey := h.CreateRootKey(workspace.ID, fmt.Sprintf("unkey:v1:%s:projects/*/rbac/roles/*#write", workspace.ID))
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},

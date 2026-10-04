@@ -1,6 +1,7 @@
 package handler_test
 
 import (
+	"fmt"
 	"net/http"
 	"testing"
 
@@ -16,7 +17,7 @@ import (
 // names nothing at all, so both are rejected before anything is resolved.
 func TestGetPortalRejectsInvalidInput(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route, headers := newRoute(t, h, "portal.*.read_portal")
+	route, headers := newRoute(t, h, fmt.Sprintf("unkey:v1:%s:**#*", h.Resources().UserWorkspace.ID))
 	workspace := h.Resources().UserWorkspace
 
 	mapping := keyspaceMapping(t, h, workspace.ID)

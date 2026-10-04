@@ -62,7 +62,7 @@ func jwtHeaders() http.Header {
 func TestListSessionsAcceptsDashboardAdmin(t *testing.T) {
 	h := testutil.NewHarness(t)
 	workspace := h.Resources().UserWorkspace
-	route := registerAs(h, dashboardPrincipal(workspace.ID, "admin", fmt.Sprintf("unkey:v1:%s:**#*", workspace.ID)))
+	route := registerAs(h, dashboardPrincipal(workspace.ID, "admin", fmt.Sprintf("unkey:v1:%s:**#*", h.Resources().UserWorkspace.ID)))
 
 	stored := seedPortal(t, h, workspace.ID, "list-dashboard-admin")
 	insertSession(t, h, stored.ID, workspace.ID, active(h, "user_1"))

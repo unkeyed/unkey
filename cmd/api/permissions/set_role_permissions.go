@@ -18,11 +18,11 @@ func setRolePermissionsCmd() *cli.Command {
 Required Permissions
 
 Your root key must have:
-- rbac.*.add_permission_to_role
-- rbac.*.remove_permission_from_role
+- unkey:v1:{workspace_id}:projects/*/rbac/roles/*#write
+- unkey:v1:{workspace_id}:projects/*/rbac/roles/*#write
 
 When any requested permission slug does not exist, it must also have:
-- rbac.*.create_permission
+- unkey:v1:{workspace_id}:projects/*/rbac/permissions/*#write
 
 For full documentation, see https://www.unkey.com/docs/platform/apis/features/authorization/roles-and-permissions` + util.Disclaimer,
 		Examples: []string{

@@ -155,17 +155,17 @@ describe("evaluating a query", () => {
 describe("permission denial messages", () => {
   test("do not reveal granted permissions in or failures", () => {
     const res = new RBAC().evaluatePermissions(
-      buildQuery(({ or }) => or("api.*.verify_key", "api.api_requested.verify_key")),
-      ["api.api_secret.read_api"],
+      buildQuery(({ or }) => or("documents.read", "documents.write")),
+      ["billing.admin"],
     );
 
     expect(res.err).toBeUndefined();
     expect(res.val).toEqual({
       valid: false,
-      message: "Missing one of these permissions: api.*.verify_key or api.api_requested.verify_key",
+      message: "Missing one of these permissions: documents.read or documents.write",
     });
     expect(res.val?.message).not.toContain("have:");
-    expect(res.val?.message).not.toContain("api.api_secret.read_api");
+    expect(res.val?.message).not.toContain("billing.admin");
     expect(res.val?.message).not.toContain("{");
     expect(res.val?.message).not.toContain("}");
   });
@@ -176,7 +176,7 @@ describe("bad queries", () => {
     const res = new RBAC().validateQuery({
       or: [
         "*",
-        "api.*.read_key",
+        "documents.*.read",
         // @ts-expect-error
         {},
       ],

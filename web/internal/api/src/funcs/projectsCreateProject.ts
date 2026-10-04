@@ -39,7 +39,7 @@ import { Result } from "../types/fp.js";
  * **Required Permissions**
  *
  * Your root key must have the following permission:
- * - `project.*.create_project` (to create projects in your workspace)
+ * - `unkey:v1:{workspace_id}:projects/*#write` (to create projects in your workspace)
  *
  * If set, this operation will use {@link Security.rootKey} from the global security.
  */

@@ -31,7 +31,7 @@ import { RotateRootKey } from "../table/rotate-root-key";
 import { GrantList } from "./grant-list";
 import {
   type EditableRootKeyDraft,
-  type LegacyRootKeyDraft,
+  type UnmappedRootKeyDraft,
   useRootKeyDraft,
 } from "./hooks/use-root-key-draft";
 import { useRootKeyPolicyForm } from "./hooks/use-root-key-policy-form";
@@ -94,8 +94,8 @@ export function EditKeyAside({ keyId, isOpen, onClose, onExitComplete }: EditKey
                   onSaved={onClose}
                 />
               ))
-              .with({ kind: "legacy" }, (legacy) => (
-                <LegacyKeyView draft={legacy} onAction={setRequestedAction} />
+              .with({ kind: "unmapped" }, (unmapped) => (
+                <UnmappedKeyView draft={unmapped} onAction={setRequestedAction} />
               ))
               .exhaustive()
           )}
@@ -183,11 +183,11 @@ function EditablePolicyForm({
   );
 }
 
-function LegacyKeyView({ draft, onAction }: { draft: LegacyRootKeyDraft } & ActionProps) {
+function UnmappedKeyView({ draft, onAction }: { draft: UnmappedRootKeyDraft } & ActionProps) {
   return (
     <div className="flex h-full flex-col">
       <div className="flex flex-1 flex-col gap-6 overflow-y-auto px-6 py-3">
-        <MigrationNotice />
+        <UnmappedPermissionsNotice />
         <FormInput label="Name" value={draft.name} readOnly />
         <div className="flex flex-col gap-2">
           <span className="flex h-5 items-center text-sm text-gray-11">Permissions</span>
@@ -225,14 +225,14 @@ function ActionButtons({ onAction }: ActionProps) {
   );
 }
 
-function MigrationNotice() {
+function UnmappedPermissionsNotice() {
   return (
     <AlertBanner variant="error">
       <IconTriangleWarningOutline18 />
-      <AlertBannerTitle>Legacy key</AlertBannerTitle>
+      <AlertBannerTitle>Unknown permissions</AlertBannerTitle>
       <AlertBannerDescription>
-        This key was created before the permissions migration. Once the migration takes place, this
-        key will become editable and this notice will disappear. For now, this key is view only.
+        This key contains permissions that the editor cannot safely map. The key is view only so
+        those permissions aren't changed or removed.
       </AlertBannerDescription>
     </AlertBanner>
   );

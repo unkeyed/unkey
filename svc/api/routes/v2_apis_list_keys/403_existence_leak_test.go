@@ -59,7 +59,7 @@ func TestUnauthorizedDoesNotLeakExistence(t *testing.T) {
 	require.NoError(t, err)
 
 	// A root key in the same workspace that has no read permission on this API.
-	rootKey := h.CreateRootKey(workspace.ID, "workspace.read")
+	rootKey := h.CreateRootKey(workspace.ID, keyGrant(workspace.ID, "*", keySpaceID, "write"))
 
 	headers := http.Header{
 		"Content-Type":  {"application/json"},

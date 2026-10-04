@@ -35,7 +35,7 @@ curl -X POST https://api.unkey.com/v2/keys.verifyKey \
 
 ## Key permissions vs root key permissions
 
-The permissions on this page belong to your users' keys, and your API decides what they allow. Root key permissions, such as `api.*.create_key`, control what your root keys can do on `api.unkey.com`. The two never mix. See [Root key permissions](/platform/root-keys/permissions).
+The permissions on this page belong to your users' keys, and your API decides what they allow. Root key permissions, such as `unkey:v1:{workspace_id}:projects/*/keyspaces/*/keys/*#write`, control what your root keys can do on `api.unkey.com`. The two never mix. See [Root key permissions](/platform/root-keys/permissions).
 
 ## When to check where
 

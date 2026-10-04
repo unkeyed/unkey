@@ -18,7 +18,7 @@ func createRoleCmd() *cli.Command {
 Important: Role names must be unique within the workspace. Once created, roles are immediately available for assignment.
 
 Required permissions:
-- rbac.*.create_role
+- unkey:v1:{workspace_id}:projects/*/rbac/roles/*#write
 
 For full documentation, see https://www.unkey.com/docs/api-reference/v2/permissions/create-role` + util.Disclaimer,
 		Examples: []string{

@@ -15,7 +15,7 @@ import (
 // session with no scopes.
 func TestListSessionsFailsOnMalformedScopes(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route, headers := newRoute(t, h, permission)
+	route, headers := newRoute(t, h, workspaceAdminPermission(h))
 	workspace := h.Resources().UserWorkspace
 	stored := seedPortal(t, h, workspace.ID, "list-malformed-scopes")
 

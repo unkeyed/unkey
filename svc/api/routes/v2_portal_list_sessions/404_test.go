@@ -16,7 +16,7 @@ import (
 // An unknown portal and another workspace's portal get the same 404.
 func TestListSessionsUnknownPortal(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route, headers := newRoute(t, h, permission)
+	route, headers := newRoute(t, h, workspaceAdminPermission(h))
 
 	other := h.CreateWorkspace()
 	theirs := seedPortal(t, h, other.ID, "list-theirs-404")
@@ -48,9 +48,11 @@ func TestListSessionsWithoutPermission(t *testing.T) {
 	insertSession(t, h, stored.ID, workspace.ID, active(h, "user_1"))
 
 	testCases := map[string][]string{
-		"no permissions":      nil,
-		"portal admin only":   {"portal.*.create_portal", "portal.*.read_portal", "portal.*.update_portal", "portal.*.delete_portal"},
-		"another portal only": {fmt.Sprintf("portal.%s.create_portal_session", uid.New(uid.PortalPrefix))},
+		"no permissions": nil,
+		"portal resource only": {fmt.Sprintf("unkey:v1:%s:projects/%s/portals/%s#write",
+			workspace.ID, stored.ProjectID, stored.ID)},
+		"another portal only": {fmt.Sprintf("unkey:v1:%s:projects/%s/portals/%s/sessions/*#read",
+			workspace.ID, stored.ProjectID, uid.New(uid.PortalPrefix))},
 	}
 
 	for name, permissions := range testCases {

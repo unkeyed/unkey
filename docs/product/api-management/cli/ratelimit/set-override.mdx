@@ -66,7 +66,7 @@ Every `unkey api` command takes these. See [CLI output and shared flags](/platfo
 
 ## Required permissions
 
-`ratelimit.*.set_override` or `ratelimit.<namespace_id>.set_override`. See [Root key permissions](/platform/root-keys/permissions).
+`unkey:v1:{workspace_id}:projects/*/ratelimits/namespaces/*/overrides/*#write` or `unkey:v1:{workspace_id}:projects/{project_id}/ratelimits/namespaces/{namespace_id}/overrides/*#write`. See [Root key permissions](/platform/root-keys/permissions).
 
 ## Examples
 

@@ -52,7 +52,7 @@ Every `unkey api` command takes these. See [CLI output and shared flags](/platfo
 
 ## Required permissions
 
-`identity.*.read_identity` or `identity.<identityId>.read_identity`. The second form takes the `id_...` ID, not the external id. See [Root key permissions](/platform/root-keys/permissions).
+`unkey:v1:{workspace_id}:projects/*/identities/*#read` or `unkey:v1:{workspace_id}:projects/{project_id}/identities/{identity_id}#read`. The second form takes the `id_...` ID, not the external id. See [Root key permissions](/platform/root-keys/permissions).
 
 ## Examples
 

@@ -77,16 +77,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	// Check permissions using either wildcard or the specific identity ID
 	err = principal.Authorize(rbac.Or(
-		rbac.T(rbac.Tuple{
-			ResourceType: rbac.Identity,
-			ResourceID:   "*",
-			Action:       rbac.ReadIdentity,
-		}),
-		rbac.T(rbac.Tuple{
-			ResourceType: rbac.Identity,
-			ResourceID:   identity.ID,
-			Action:       rbac.ReadIdentity,
-		}),
+
 		rbac.U(
 			urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(identity.ProjectID).Identity(identity.ID),
 			permissions.Read,

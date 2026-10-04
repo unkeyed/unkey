@@ -19,9 +19,7 @@ Use this to remove temporary overrides, reset identifiers to standard limits, or
 
 Important: Deletion is immediate and permanent. The override cannot be recovered and must be recreated if needed again.
 
-Required permissions:
-- ratelimit.*.delete_override
-- ratelimit.<namespace_id>.delete_override
+Permissions: Requires unkey:v1:{workspace_id}:projects/*/ratelimits/namespaces/*/overrides/*#delete or unkey:v1:{workspace_id}:projects/{project_id}/ratelimits/namespaces/{namespace_id}/overrides/*#delete
 
 For full documentation, see https://www.unkey.com/docs/api-reference/v2/ratelimit/delete-ratelimit-override` + util.Disclaimer,
 		Examples: []string{

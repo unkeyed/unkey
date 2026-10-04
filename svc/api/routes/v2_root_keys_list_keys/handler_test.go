@@ -129,7 +129,6 @@ func TestListRootKeysValidatesRequestsAndReadAccess(t *testing.T) {
 		{"workspace input", read, map[string]any{"workspaceId": workspace.ID}, 400},
 		{"invalid cursor", read, map[string]any{"cursor": 42}, 400},
 		{"write only", "unkey:v1:" + workspace.ID + ":rootKeys/*#write", map[string]any{}, 200},
-		{"legacy only", "api.*.read_key", map[string]any{}, 200},
 		{"foreign workspace", "unkey:v1:ws_other:rootKeys/*#read", map[string]any{}, 200},
 	} {
 		t.Run(tt.name, func(t *testing.T) {

@@ -55,7 +55,7 @@ func TestAuthorizationErrors(t *testing.T) {
 	// Test case for insufficient permissions - missing update_key
 	t.Run("missing update_key permission", func(t *testing.T) {
 		// Create a root key with some permissions but not update_key
-		rootKey := h.CreateRootKey(workspace.ID, "api.*.create_key") // Only has create, not update
+		rootKey := h.CreateRootKey(workspace.ID, fmt.Sprintf("unkey:v1:%s:projects/*/keyspaces/*/keys/*#read", workspace.ID))
 
 		headers := http.Header{
 			"Content-Type":  {"application/json"},

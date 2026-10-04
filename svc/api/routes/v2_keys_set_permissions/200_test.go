@@ -35,7 +35,7 @@ func TestSuccess(t *testing.T) {
 
 	// Create a workspace and root key
 	workspace := h.Resources().UserWorkspace
-	rootKey := h.CreateRootKey(workspace.ID, "api.*.update_key", "rbac.*.remove_permission_from_key", "rbac.*.add_permission_to_key", "rbac.*.create_permission")
+	rootKey := h.CreateRootKey(workspace.ID, fmt.Sprintf("unkey:v1:%s:projects/*/keyspaces/*/keys/*#write", workspace.ID))
 
 	// Set up request headers
 	headers := http.Header{
@@ -435,6 +435,13 @@ func TestSuccess(t *testing.T) {
 			Name:        &keyName,
 		})
 		keyID := keyResponse.KeyID
+		writeKey := fmt.Sprintf("unkey:v1:%s:projects/%s/keyspaces/%s/keys/%s#write", workspace.ID, api.ProjectID, api.KeyAuthID.String, keyID)
+		writePermission := fmt.Sprintf("unkey:v1:%s:projects/%s/rbac/permissions/*#write", workspace.ID, api.ProjectID)
+		rootKey := h.CreateRootKey(workspace.ID, writeKey, writePermission)
+		headers := http.Header{
+			"Content-Type":  {"application/json"},
+			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+		}
 
 		// Use a slug that doesn't exist yet
 		newPermissionSlug := "documents.create.onthefly"
@@ -494,7 +501,7 @@ func TestSetPermissionsConcurrent(t *testing.T) {
 	h.Register(route)
 
 	workspace := h.Resources().UserWorkspace
-	rootKey := h.CreateRootKey(workspace.ID, "api.*.update_key", "rbac.*.remove_permission_from_key", "rbac.*.add_permission_to_key", "rbac.*.create_permission")
+	rootKey := h.CreateRootKey(workspace.ID, fmt.Sprintf("unkey:v1:%s:projects/*/keyspaces/*/keys/*#write", workspace.ID))
 
 	headers := http.Header{
 		"Content-Type":  {"application/json"},

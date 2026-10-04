@@ -19,9 +19,7 @@ Use this to create premium tiers with higher limits, apply stricter limits to sp
 
 Important: Overrides take effect immediately and completely replace the default limit for matching identifiers. Use wildcard patterns (e.g., premium_*) to match multiple identifiers.
 
-Required permissions:
-- ratelimit.*.set_override
-- ratelimit.<namespace_id>.set_override
+Permissions: Requires unkey:v1:{workspace_id}:projects/*/ratelimits/namespaces/*/overrides/*#write or unkey:v1:{workspace_id}:projects/{project_id}/ratelimits/namespaces/{namespace_id}/overrides/*#write
 
 For full documentation, see https://www.unkey.com/docs/api-reference/v2/ratelimit/set-ratelimit-override` + util.Disclaimer,
 		Examples: []string{

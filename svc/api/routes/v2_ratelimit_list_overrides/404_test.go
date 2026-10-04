@@ -35,7 +35,7 @@ func TestOverrideNotFound(t *testing.T) {
 	}
 
 	h.Register(route)
-	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "ratelimit.*.read_override")
+	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, fmt.Sprintf("unkey:v1:%s:projects/*/ratelimits/namespaces/*/overrides/*#read", h.Resources().UserWorkspace.ID))
 
 	headers := http.Header{
 		"Content-Type":  {"application/json"},

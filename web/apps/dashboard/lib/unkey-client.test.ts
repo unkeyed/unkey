@@ -64,7 +64,7 @@ describe("getErrorMessage", () => {
     const error = new ForbiddenErrorResponse(
       {
         error: {
-          detail: "Missing one of these permissions: api.*.update_key",
+          detail: "Missing permission: documents.read",
           status: 403,
           title: "Insufficient Permissions",
           type: "https://unkey.com/docs/errors/unkey/authorization/insufficient_permissions",
@@ -80,7 +80,7 @@ describe("getErrorMessage", () => {
       },
     );
 
-    expect(getErrorMessage(error)).toBe("Missing one of these permissions: api.*.update_key");
+    expect(getErrorMessage(error)).toBe("Missing permission: documents.read");
   });
 
   it("returns the fallback for non-SDK errors", () => {
@@ -106,7 +106,7 @@ describe("getErrorToast", () => {
 
   it("titles by error class and keeps the API detail", () => {
     const error = makeErrorResponse(ForbiddenErrorResponse, {
-      detail: "Missing one of these permissions: app.*.delete_app",
+      detail: "Missing permission: documents.read",
       status: 403,
       title: "Insufficient Permissions",
       type: "https://unkey.com/docs/errors/unkey/authorization/insufficient_permissions",
@@ -114,7 +114,7 @@ describe("getErrorToast", () => {
 
     expect(getErrorToast(error, "Failed to Delete App")).toEqual({
       message: "Permission Denied",
-      description: "Missing one of these permissions: app.*.delete_app",
+      description: "Missing permission: documents.read",
     });
   });
 

@@ -27,7 +27,10 @@ func TestSetRolePermissions(t *testing.T) {
 	route := &handler.Handler{DB: h.DB, Auditlogs: h.Auditlogs}
 	h.Register(route)
 	workspace := h.Resources().UserWorkspace
-	authorized := h.CreateRootKey(workspace.ID, "rbac.*.add_permission_to_role", "rbac.*.remove_permission_from_role", "rbac.*.create_permission")
+	authorized := h.CreateRootKey(workspace.ID,
+		fmt.Sprintf("unkey:v1:%s:projects/*/rbac/roles/*#write", workspace.ID),
+		fmt.Sprintf("unkey:v1:%s:projects/*/rbac/permissions/*#write", workspace.ID),
+	)
 	headers := http.Header{"Content-Type": {"application/json"}, "Authorization": {fmt.Sprintf("Bearer %s", authorized)}}
 
 	t.Run("replace, deduplicate, create, repeat, and clear", func(t *testing.T) {
@@ -125,7 +128,11 @@ func TestSetRolePermissions(t *testing.T) {
 
 	t.Run("requires add, remove, and create authorization", func(t *testing.T) {
 		role := h.CreateRole(seed.CreateRoleRequest{WorkspaceID: workspace.ID, Name: "auth-role"})
-		cases := [][]string{{"rbac.*.remove_permission_from_role"}, {"rbac.*.add_permission_to_role"}, {"rbac.*.add_permission_to_role", "rbac.*.remove_permission_from_role"}}
+		cases := [][]string{
+			{fmt.Sprintf("unkey:v1:%s:projects/*/rbac/roles/*#read", workspace.ID)},
+			{fmt.Sprintf("unkey:v1:%s:projects/*/rbac/permissions/*#write", workspace.ID)},
+			{fmt.Sprintf("unkey:v1:%s:projects/*/rbac/roles/*#write", workspace.ID)},
+		}
 		for i, grants := range cases {
 			rootKey := h.CreateRootKey(workspace.ID, grants...)
 			authHeaders := http.Header{"Content-Type": {"application/json"}, "Authorization": {fmt.Sprintf("Bearer %s", rootKey)}}
@@ -163,7 +170,10 @@ func TestConcurrentMissingPermission(t *testing.T) {
 	route := &handler.Handler{DB: h.DB, Auditlogs: h.Auditlogs}
 	h.Register(route)
 	workspace := h.Resources().UserWorkspace
-	rootKey := h.CreateRootKey(workspace.ID, "rbac.*.add_permission_to_role", "rbac.*.remove_permission_from_role", "rbac.*.create_permission")
+	rootKey := h.CreateRootKey(workspace.ID,
+		fmt.Sprintf("unkey:v1:%s:projects/*/rbac/roles/*#write", workspace.ID),
+		fmt.Sprintf("unkey:v1:%s:projects/*/rbac/permissions/*#write", workspace.ID),
+	)
 	headers := http.Header{"Content-Type": {"application/json"}, "Authorization": {fmt.Sprintf("Bearer %s", rootKey)}}
 
 	roles := []db.Role{

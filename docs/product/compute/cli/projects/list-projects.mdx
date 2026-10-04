@@ -62,7 +62,7 @@ Every `unkey api` command accepts these; [CLI output and shared flags](/platform
 
 ## Required permissions
 
-Your root key needs `project.*.read_project`.
+Your root key needs `unkey:v1:{workspace_id}:projects/*#read`.
 
 Without a matching permission the API answers 403 and the CLI prints `Permission denied:` followed by the detail. See [Root key permissions](/platform/root-keys/permissions) for the full catalog.
 

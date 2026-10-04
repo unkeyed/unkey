@@ -1149,10 +1149,6 @@
   },
   "redirects": [
     {
-      "destination": "/platform/root-keys/permission-reference",
-      "source": "/platform/root-keys/permissions-legacy"
-    },
-    {
       "destination": "/platform/api/overview",
       "source": "/api-reference"
     },

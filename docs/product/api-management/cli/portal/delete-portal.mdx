@@ -55,7 +55,7 @@ Every `unkey api` command takes these. See [CLI output and shared flags](/platfo
 
 ## Required permissions
 
-`portal.*.delete_portal` or `portal.<portalId>.delete_portal`. Without it you get a 404, as if the portal didn't exist. See [Root key permissions](/platform/root-keys/permissions).
+`unkey:v1:{workspace_id}:portals/*#delete` or `unkey:v1:{workspace_id}:portals/{portal_id}#delete`. Without it you get a 404, as if the portal didn't exist. See [Root key permissions](/platform/root-keys/permissions).
 
 ## Examples
 

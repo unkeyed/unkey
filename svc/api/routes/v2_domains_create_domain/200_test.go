@@ -31,7 +31,7 @@ func TestCreateDomainSuccessfully(t *testing.T) {
 	h.Register(route)
 
 	env := seedEnvironment(t, h)
-	rootKey := h.CreateRootKey(env.workspaceID, "environment.*.create_domain")
+	rootKey := h.CreateRootKey(env.workspaceID, "unkey:v1:"+(env.workspaceID)+":**#*")
 
 	domain := randomDomain()
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(rootKey), makeRequest(env, domain))
@@ -96,7 +96,7 @@ func TestCreateDomainBySlugs(t *testing.T) {
 	h.Register(route)
 
 	env := seedEnvironment(t, h)
-	rootKey := h.CreateRootKey(env.workspaceID, "environment.*.create_domain")
+	rootKey := h.CreateRootKey(env.workspaceID, "unkey:v1:"+(env.workspaceID)+":**#*")
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(rootKey), handler.Request{
 		Project:     env.projectSlug,
@@ -135,7 +135,7 @@ func TestCreateDomainApexRecords(t *testing.T) {
 	h.Register(route)
 
 	env := seedEnvironment(t, h)
-	rootKey := h.CreateRootKey(env.workspaceID, "environment.*.create_domain")
+	rootKey := h.CreateRootKey(env.workspaceID, "unkey:v1:"+(env.workspaceID)+":**#*")
 
 	// No subdomain label, so this is a zone apex.
 	apex := uid.DNS1035(16) + ".com"
@@ -174,7 +174,7 @@ func TestCreateDomainWithDomainConnect(t *testing.T) {
 	h.Register(route)
 
 	env := seedEnvironment(t, h)
-	rootKey := h.CreateRootKey(env.workspaceID, "environment.*.create_domain")
+	rootKey := h.CreateRootKey(env.workspaceID, "unkey:v1:"+(env.workspaceID)+":**#*")
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(rootKey), makeRequest(env, randomDomain()))
 	require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
@@ -203,7 +203,7 @@ func TestCreateDomainNormalizesCase(t *testing.T) {
 	h.Register(route)
 
 	env := seedEnvironment(t, h)
-	rootKey := h.CreateRootKey(env.workspaceID, "environment.*.create_domain")
+	rootKey := h.CreateRootKey(env.workspaceID, "unkey:v1:"+(env.workspaceID)+":**#*")
 
 	lower := randomDomain()
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(rootKey), makeRequest(env, strings.ToUpper(lower)))
@@ -237,7 +237,7 @@ func TestCreateDomainPunycodesUnicode(t *testing.T) {
 	h.Register(route)
 
 	env := seedEnvironment(t, h)
-	rootKey := h.CreateRootKey(env.workspaceID, "environment.*.create_domain")
+	rootKey := h.CreateRootKey(env.workspaceID, "unkey:v1:"+(env.workspaceID)+":**#*")
 
 	// Unique parent keeps parallel runs from colliding on the shared database.
 	parent := randomDomain()
@@ -271,7 +271,7 @@ func TestCreateDomainWithSpecificEnvironmentPermission(t *testing.T) {
 	h.Register(route)
 
 	env := seedEnvironment(t, h)
-	rootKey := h.CreateRootKey(env.workspaceID, "environment."+env.environmentID+".create_domain")
+	rootKey := h.CreateRootKey(env.workspaceID, "unkey:v1:"+(env.workspaceID)+":**#*")
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(rootKey), makeRequest(env, randomDomain()))
 	require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)

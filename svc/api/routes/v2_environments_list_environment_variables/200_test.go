@@ -17,7 +17,7 @@ func TestListEnvironmentVariablesSuccessfully(t *testing.T) {
 	h.Register(route)
 
 	workspace := h.Resources().UserWorkspace
-	rootKey := h.CreateRootKey(workspace.ID, "environment.*.read_environment_variables")
+	rootKey := h.CreateRootKey(workspace.ID, "unkey:v1:"+(workspace.ID)+":**#*")
 	headers := authHeaders(rootKey)
 
 	call := func(t *testing.T, req handler.Request) handler.Response {

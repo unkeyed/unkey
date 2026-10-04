@@ -14,8 +14,8 @@ func getProjectCmd() *cli.Command {
 Use this to fetch project details after creation, verify a project exists before performing operations, or resolve a project's metadata from its id.
 
 Required Permissions
-- project.*.read_project (to read any project)
-- project.<project_id>.read_project (to read a specific project)
+- unkey:v1:{workspace_id}:projects/*#read (to read any project)
+- unkey:v1:{workspace_id}:projects/{project_id}#read (to read a specific project)
 
 For full documentation, see https://www.unkey.com/docs/api-reference/v2/projects/get-project` + util.Disclaimer, Examples: []string{"unkey api projects get-project --project=proj_1234abcd"}, Flags: []cli.Flag{cli.String("body", "Decode this JSON as the endpoint request body. Request-building flags are mutually exclusive."), util.RootKeyFlag(), util.APIURLFlag(), util.ConfigFlag(), util.OutputFlag(), cli.String("project", "Project ID or slug.", cli.Required(), cli.MutuallyExclusive("body"))}, Action: func(ctx context.Context, cmd *cli.Command) error {
 		client, err := util.CreateClient(cmd)

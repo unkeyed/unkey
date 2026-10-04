@@ -16,7 +16,7 @@ Use `apis.listKeys` to list the keys in a keyspace, up to 100 per page. It's han
 
 <RootKeyPrereq />
 
-The root key needs two permissions: `api.*.read_key` or `api.<api_id>.read_key`, **and** `api.*.read_api` or `api.<api_id>.read_api`. Adding `decrypt: true` additionally needs `api.*.decrypt_key` or `api.<api_id>.decrypt_key`. See [Root key permissions](/platform/root-keys/permissions).
+The root key needs two permissions: `unkey:v1:{workspace_id}:projects/*/keyspaces/*/keys/*#read` or `unkey:v1:{workspace_id}:projects/{project_id}/keyspaces/{keyspace_id}/keys/*#read`, **and** `unkey:v1:{workspace_id}:projects/*/keyspaces/*#read` or `unkey:v1:{workspace_id}:projects/{project_id}/keyspaces/{keyspace_id}#read`. Adding `decrypt: true` additionally needs `unkey:v1:{workspace_id}:projects/*/keyspaces/*/keys/*#decrypt` or `unkey:v1:{workspace_id}:projects/{project_id}/keyspaces/{keyspace_id}/keys/*#decrypt`. See [Root key permissions](/platform/root-keys/permissions).
 
 A missing permission isn't a 403. You get HTTP 404 [`err:unkey:data:api_not_found`](/errors/unkey/data/api_not_found), "The requested API does not exist or has been deleted." If you see this for an ID you know is correct, check both permissions on the root key.
 

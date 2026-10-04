@@ -22,8 +22,8 @@ The slug you provide is the stable, caller-defined handle used to reference this
 Important: The slug cannot collide with an existing app in the same project. A duplicate slug returns a 409 conflict.
 
 Required Permissions
-- project.*.create_app (to create apps in any project)
-- project.<project_id>.create_app (to create apps in a specific project)
+- unkey:v1:{workspace_id}:projects/*/apps/*#write (to create apps in any project)
+- unkey:v1:{workspace_id}:projects/{project_id}/apps/*#write (to create apps in a specific project)
 
 For full documentation, see https://www.unkey.com/docs/api-reference/apps/create-app` + util.Disclaimer,
 		Examples: []string{`unkey api apps create-app --project=payments --name='Payments API' --slug=payments-api --git='{"repository":"unkeyed/api","defaultBranch":"main"}'`, `unkey api apps create-app --project=payments --name='Payments API' --slug=payments-api --oci='{"image":"ghcr.io/acme/payments:v1.2.3"}'`},

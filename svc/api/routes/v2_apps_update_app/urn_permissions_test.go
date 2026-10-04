@@ -18,8 +18,8 @@ import (
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_apps_update_app"
 )
 
-// TestUpdateAppAuthorizesURNWriteForSettings guarantees the URN
-// app write permission can update app settings without legacy permissions.
+// TestUpdateAppAuthorizesURNWriteForSettings guarantees the URN app write
+// permission can update app settings.
 func TestUpdateAppAuthorizesURNWriteForSettings(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route := &handler.Handler{DB: h.DB, Auditlogs: h.Auditlogs}
@@ -59,8 +59,8 @@ func TestUpdateAppAuthorizesURNWriteForSettings(t *testing.T) {
 	require.Equal(t, name, updated.Name)
 }
 
-// TestUpdateAppAuthorizesURNWriteForGitDisconnect guarantees the
-// URN app write permission can disconnect Git without legacy permissions.
+// TestUpdateAppAuthorizesURNWriteForGitDisconnect guarantees the URN app write
+// permission can disconnect Git.
 func TestUpdateAppAuthorizesURNWriteForGitDisconnect(t *testing.T) {
 	ctx := context.Background()
 	h := testutil.NewHarness(t)

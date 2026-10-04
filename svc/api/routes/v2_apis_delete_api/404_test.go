@@ -31,7 +31,7 @@ func TestNotFoundErrors(t *testing.T) {
 	workspace := h.Resources().UserWorkspace
 
 	// Create a root key with appropriate permissions
-	rootKey := h.CreateRootKey(workspace.ID, "api.*.delete_api")
+	rootKey := h.CreateRootKey(workspace.ID, "unkey:v1:"+(workspace.ID)+":**#*")
 
 	// Set up request headers
 	headers := http.Header{

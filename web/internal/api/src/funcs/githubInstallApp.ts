@@ -40,7 +40,7 @@ import { Result } from "../types/fp.js";
  * **Required Permissions**
  *
  * Your root key must have the following permission:
- * - `workspace.*.install_github`
+ * - `unkey:v1:{workspace_id}:github/apps/*#write`
  *
  * If set, this operation will use {@link Security.rootKey} from the global security.
  */

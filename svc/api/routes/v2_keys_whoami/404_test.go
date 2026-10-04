@@ -28,7 +28,7 @@ func TestGetKeyNotFound(t *testing.T) {
 
 	h.Register(route)
 
-	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "api.*.read_key")
+	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, rootKeyGrant(h.Resources().UserWorkspace.ID, "*", "*", "*", "read"))
 
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
@@ -171,7 +171,7 @@ func TestGetKeyForbidden(t *testing.T) {
 
 	t.Run("wrong permission - has create but not read", func(t *testing.T) {
 		// Create root key with read permission instead of create
-		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "api.*.create_key")
+		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, rootKeyGrant(h.Resources().UserWorkspace.ID, "*", "*", "*", "write"))
 
 		headers := http.Header{
 			"Content-Type":  {"application/json"},
@@ -190,7 +190,7 @@ func TestGetKeyForbidden(t *testing.T) {
 		differentWorkspace := h.CreateWorkspace()
 
 		// Create a root key for the different workspace with full permissions
-		rootKey := h.CreateRootKey(differentWorkspace.ID, "api.*.read_key", "api.*.read_api")
+		rootKey := h.CreateRootKey(differentWorkspace.ID, rootKeyGrant(differentWorkspace.ID, "*", keySpaceID, "*", "read"))
 
 		headers := http.Header{
 			"Content-Type":  {"application/json"},
@@ -204,7 +204,7 @@ func TestGetKeyForbidden(t *testing.T) {
 
 	t.Run("cross api access", func(t *testing.T) {
 		// Create root key with read permission for a single api
-		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, fmt.Sprintf("api.%s.read_key", otherApiID))
+		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, rootKeyGrant(h.Resources().UserWorkspace.ID, "*", otherKeySpaceID, "*", "read"))
 
 		headers := http.Header{
 			"Content-Type":  {"application/json"},

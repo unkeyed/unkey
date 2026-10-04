@@ -72,7 +72,7 @@ To move a key to another identity, set `externalId` on `keys.updateKey`. Send `n
 
 <RootKeyPrereq />
 
-You need `identity.*.create_identity`, `identity.*.read_identity`, `identity.*.update_identity`, or `identity.*.delete_identity` for those calls.
+You need `unkey:v1:{workspace_id}:projects/*/identities/*#read`, `#write`, or `#delete` on the same resource path for those calls.
 
 ## Create an identity
 

@@ -71,7 +71,7 @@ export type V2EnvironmentsUpdateSettingsRequestBody = {
    *
    * @remarks
    * Do not start a pattern with "/" or "./".
-   * Use "src/**" for everything under a directory and "** /*.go" for a file type.
+   * Use "src/**" for everything under a directory and "*&#42;/*.go" for a file type.
    * A pattern with no wildcard matches only that exact file, so "src" is not "src/**".
    * Omit to leave unchanged. Invalid patterns are rejected with a 400.
    */

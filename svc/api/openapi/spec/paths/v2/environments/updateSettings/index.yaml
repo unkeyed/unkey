@@ -13,8 +13,8 @@ post:
     **Required Permissions**
 
     Your root key must have one of the following permissions:
-    - `environment.*.update_environment` (to update any environment)
-    - `environment.<environment_id>.update_environment` (to update a specific environment)
+    - `unkey:v1:{workspace_id}:projects/*/apps/*/environments/*#write` (to update any environment)
+    - `unkey:v1:{workspace_id}:projects/{project_id}/apps/{app_id}/environments/{environment_id}#write` (to update a specific environment)
   operationId: environments.updateSettings
   x-speakeasy-name-override: updateSettings
   security:
@@ -76,7 +76,7 @@ post:
           schema:
             "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
     "403":
-      description: Forbidden - Insufficient permissions (requires `environment.*.update_environment`)
+      description: Forbidden - Insufficient permissions (requires `unkey:v1:{workspace_id}:projects/*/apps/*/environments/*#write`)
       content:
         application/json:
           schema:
@@ -89,7 +89,7 @@ post:
                   requestId: req_1234abcd
                 error:
                   title: Forbidden
-                  detail: Your root key requires the 'environment.*.update_environment' permission to perform this operation
+                  detail: Your root key requires the 'unkey:v1:{workspace_id}:projects/*/apps/*/environments/*#write' permission to perform this operation
                   status: 403
                   type: forbidden
     "404":

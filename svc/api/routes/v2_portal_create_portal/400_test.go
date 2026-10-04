@@ -1,6 +1,7 @@
 package handler_test
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 	"testing"
@@ -18,7 +19,7 @@ import (
 // reachable is a kind outside the enum and an empty id.
 func TestCreatePortalRejectsInvalidInput(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route, headers := newRoute(t, h, "portal.*.create_portal")
+	route, headers := newRoute(t, h, fmt.Sprintf("unkey:v1:%s:**#*", h.Resources().UserWorkspace.ID))
 	workspace := h.Resources().UserWorkspace
 	mapping := keyspaceMapping(t, h, workspace.ID)
 

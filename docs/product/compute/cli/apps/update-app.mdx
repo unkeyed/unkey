@@ -85,10 +85,10 @@ Every `unkey api` command accepts these; [CLI output and shared flags](/platform
 
 Your root key needs one of:
 
-- `app.*.update_app` (any app)
-- `app.<app_id>.update_app` (a specific app)
+- `unkey:v1:{workspace_id}:projects/*/apps/*#write` (any app)
+- `unkey:v1:{workspace_id}:projects/{project_id}/apps/{app_id}#write` (a specific app)
 
-When you pass `--git`, your key also needs `app.*.connect_repository` or `app.<app_id>.connect_repository`.
+When you pass `--git`, your key also needs `unkey:v1:{workspace_id}:projects/*/apps/*#write` or `unkey:v1:{workspace_id}:projects/{project_id}/apps/{app_id}#write`.
 
 Without a matching permission the API answers 403 and the CLI prints `Permission denied:` followed by the detail. See [Root key permissions](/platform/root-keys/permissions) for the full catalog.
 

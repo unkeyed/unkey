@@ -31,7 +31,7 @@ import { Result } from "../types/fp.js";
  *
  * @remarks
  * Deletes a root key in the authenticated workspace.
- * Requires `unkey:v1:<workspace_id>:rootKeys/<key_id>#delete`.
+ * Requires `unkey:v1:{workspace_id}:rootKeys/{root_key_id}#delete`.
  * Use `rootKeys/*#delete` to delete any root key in the workspace.
  * Deleted keys cannot authenticate.
  *

@@ -41,8 +41,8 @@ import { Result } from "../types/fp.js";
  * **Required Permissions**
  *
  * Your root key must have one of the following permissions:
- * - `api.*.delete_api` (to delete any API)
- * - `api.<api_id>.delete_api` (to delete a specific API)
+ * - `unkey:v1:{workspace_id}:projects/&#42;/keyspaces/*#delete` (to delete any API)
+ * - `unkey:v1:{workspace_id}:projects/{project_id}/keyspaces/{keyspace_id}#delete` (to delete a specific API)
  *
  * If set, this operation will use {@link Security.rootKey} from the global security.
  */

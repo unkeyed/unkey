@@ -79,21 +79,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	err = principal.Authorize(rbac.Or(
-		rbac.T(rbac.Tuple{
-			ResourceType: rbac.Project,
-			ResourceID:   "*",
-			Action:       rbac.DeleteProject,
-		}),
-		rbac.T(rbac.Tuple{
-			ResourceType: rbac.Project,
-			ResourceID:   project.ID,
-			Action:       rbac.DeleteProject,
-		}),
-		rbac.U(
-			urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(project.ID),
-			permissions.Delete,
-		),
+	err = principal.Authorize(rbac.U(
+		urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(project.ID),
+		permissions.Delete,
 	))
 	if err != nil {
 		return err

@@ -35,11 +35,11 @@ import { Result } from "../types/fp.js";
  * **Required Permissions**
  *
  * Your root key must have:
- * - `rbac.*.add_permission_to_role`
- * - `rbac.*.remove_permission_from_role`
+ * - `unkey:v1:{workspace_id}:projects/&#42;/rbac/roles/*#write`
+ * - `unkey:v1:{workspace_id}:projects/&#42;/rbac/roles/*#write`
  *
  * When any requested permission slug does not exist, it must also have:
- * - `rbac.*.create_permission`
+ * - `unkey:v1:{workspace_id}:projects/&#42;/rbac/permissions/*#write`
  */
 export function permissionsSetRolePermissions(
   client: UnkeyCore,

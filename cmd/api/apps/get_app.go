@@ -14,8 +14,8 @@ func getAppCmd() *cli.Command {
 Use this to fetch app details after creation or to verify an app exists before performing operations.
 
 Required Permissions
-- app.*.read_app (to read any app)
-- app.<app_id>.read_app (to read a specific app)
+- unkey:v1:{workspace_id}:projects/*/apps/*#read (to read any app)
+- unkey:v1:{workspace_id}:projects/{project_id}/apps/{app_id}#read (to read a specific app)
 
 For full documentation, see https://www.unkey.com/docs/api-reference/v2/apps/get-app` + util.Disclaimer, Examples: []string{"unkey api apps get-app --project=payments --app=app_1234abcd"}, Flags: []cli.Flag{cli.String("body", "Decode this JSON as the endpoint request body. Request-building flags are mutually exclusive."), util.RootKeyFlag(), util.APIURLFlag(), util.ConfigFlag(), util.OutputFlag(), cli.String("project", "Project ID or slug.", cli.Required(), cli.MutuallyExclusive("body")), cli.String("app", "App ID or slug.", cli.Required(), cli.MutuallyExclusive("body"))}, Action: func(ctx context.Context, cmd *cli.Command) error {
 		client, err := util.CreateClient(cmd)

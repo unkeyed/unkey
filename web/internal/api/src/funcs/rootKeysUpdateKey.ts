@@ -31,7 +31,7 @@ import { Result } from "../types/fp.js";
  *
  * @remarks
  * Updates a root key in the authenticated workspace.
- * Requires `unkey:v1:<workspace_id>:rootKeys/<key_id>#write`.
+ * Requires `unkey:v1:{workspace_id}:rootKeys/{root_key_id}#write`.
  * Use `rootKeys/*#write` to update any root key in the workspace.
  *
  * `permissions` replaces the complete permission set. Each permission must be a supported URN

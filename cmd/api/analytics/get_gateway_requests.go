@@ -14,7 +14,7 @@ func getGatewayRequestsCmd() *cli.Command {
 		Name:  "get-gateway-requests",
 		Usage: "Query gateway request data",
 		Description: `A query can use only the public alias gateway_requests_v1. CTEs, subqueries, UNION, and EXCEPT are permitted.
-The root key must have the project.*.read_gateway_requests permission.
+The root key must have the unkey:v1:{workspace_id}:projects/*/apps/*/environments/*/gateway/logs#read permission.
 Unkey limits each query to the workspace of the root key. To get the data for one project, app, or environment, add a filter on project_id, app_id, or environment_id.
 The workspace retention period and the workspace query limits apply.
 

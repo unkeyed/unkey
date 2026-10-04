@@ -19,7 +19,7 @@ func createIdentityCmd() *cli.Command {
 Perfect for users with multiple devices, organizations with multiple API keys, or when you need unified rate limiting across different services.
 
 Important
-Requires identity.*.create_identity permission
+Requires unkey:v1:{workspace_id}:projects/*/identities/*#write permission
 
 For full documentation, see https://www.unkey.com/docs/api-reference/v2/identities/create-identity` + util.Disclaimer,
 		Examples: []string{

@@ -42,7 +42,7 @@ import {
  * Perfect for building management dashboards, auditing configurations, or browsing your identities.
  *
  * > **Important**
- * > Requires `identity.*.read_identity` permission
+ * > Requires `unkey:v1:{workspace_id}:projects/&#42;/identities/*#read` permission
  *
  * If set, this operation will use {@link Security.rootKey} from the global security.
  */

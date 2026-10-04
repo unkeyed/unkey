@@ -55,9 +55,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	legacy := rbac.T(rbac.Tuple{ResourceType: rbac.Environment, ResourceID: "*", Action: rbac.ReadDomain})
-	legacyAllowed := rbac.Check(legacy, principal.Permissions) == nil
-
 	p := pagination.Parse(req.Limit, req.Cursor, 100)
 	params, err := h.resolveDomainFilter(ctx, principal.AuthorizedWorkspaceID, req)
 	if err != nil {
@@ -66,7 +63,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	params.IDCursor = p.Cursor
 	params.Search = mysql.SearchContains(strings.TrimSpace(ptr.SafeDeref(req.Search)))
 	params.Limit = p.FetchLimit()
-	rows, err := h.listAuthorized(ctx, principal, legacyAllowed, params)
+	rows, err := h.listAuthorized(ctx, principal, params)
 	if errors.Is(err, errScanLimit) {
 		s.SetInternalError(err.Error())
 		return s.ProblemJSON(http.StatusServiceUnavailable, openapi.ServiceUnavailableErrorResponse{
@@ -171,7 +168,7 @@ func (h *Handler) resolveDomainFilter(ctx context.Context, workspaceID string, r
 
 // listAuthorized fills the page and its authorized lookahead without exposing denied row IDs.
 // The raw lookahead remains inclusive so refills neither repeat nor skip candidates.
-func (h *Handler) listAuthorized(ctx context.Context, subject *principal.Principal, legacyAllowed bool, params db.ListCustomDomainsParams) ([]db.ListCustomDomainsRow, error) {
+func (h *Handler) listAuthorized(ctx context.Context, subject *principal.Principal, params db.ListCustomDomainsParams) ([]db.ListCustomDomainsRow, error) {
 	if params.Scope != "" && len(params.ProjectIds)+len(params.AppIds)+len(params.EnvironmentIds) == 0 {
 		return nil, nil
 	}
@@ -200,14 +197,12 @@ func (h *Handler) listAuthorized(ctx context.Context, subject *principal.Princip
 
 		for _, row := range batch {
 			scanned++
-			if !legacyAllowed {
-				query := rbac.U(
-					urn.New().Workspace(subject.AuthorizedWorkspaceID).Project(row.ProjectID).App(row.AppID).Environment(row.EnvironmentID).Domain(row.ID),
-					permissions.Read,
-				)
-				if rbac.Check(query, subject.Permissions) != nil {
-					continue
-				}
+			query := rbac.U(
+				urn.New().Workspace(subject.AuthorizedWorkspaceID).Project(row.ProjectID).App(row.AppID).Environment(row.EnvironmentID).Domain(row.ID),
+				permissions.Read,
+			)
+			if rbac.Check(query, subject.Permissions) != nil {
+				continue
 			}
 			rows = append(rows, row)
 			if len(rows) == wanted {

@@ -94,10 +94,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(role.ProjectID).RBAC().Role(role.ID),
 				permissions.Write,
 			),
-			rbac.And(
-				rbac.T(rbac.Tuple{ResourceType: rbac.Rbac, ResourceID: "*", Action: rbac.AddPermissionToRole}),
-				rbac.T(rbac.Tuple{ResourceType: rbac.Rbac, ResourceID: "*", Action: rbac.RemovePermissionFromRole}),
-			),
 		))
 		if authorizeErr != nil {
 			return authorizeErr
@@ -132,7 +128,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(role.ProjectID).RBAC().Permission("*"),
 					permissions.Write,
 				),
-				rbac.T(rbac.Tuple{ResourceType: rbac.Rbac, ResourceID: "*", Action: rbac.CreatePermission}),
 			)); authErr != nil {
 				return authErr
 			}

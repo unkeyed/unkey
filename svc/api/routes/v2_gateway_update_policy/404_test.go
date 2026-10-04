@@ -2,6 +2,7 @@ package handler_test
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"testing"
 
@@ -22,7 +23,7 @@ func TestUpdatePolicyNotFound(t *testing.T) {
 
 	env := seedEnvironment(t, h)
 	ids := seedFirewallPolicies(t, h, env, 1)
-	rootKey := h.CreateRootKey(env.workspaceID, "environment.*.update_policy")
+	rootKey := h.CreateRootKey(env.workspaceID, fmt.Sprintf("unkey:v1:%s:projects/*/apps/*/environments/*/gateway/policies/*#write", env.workspaceID))
 	headers := authHeaders(rootKey)
 
 	call := func(t *testing.T, req handler.Request) testutil.TestResponse[openapi.NotFoundErrorResponse] {
@@ -90,7 +91,7 @@ func TestUpdatePolicyNotFound(t *testing.T) {
 
 	t.Run("another workspace's environment", func(t *testing.T) {
 		other := h.CreateWorkspace()
-		foreignKey := h.CreateRootKey(other.ID, "environment.*.update_policy")
+		foreignKey := h.CreateRootKey(other.ID, fmt.Sprintf("unkey:v1:%s:projects/*/apps/*/environments/*/gateway/policies/*#write", other.ID))
 		req := makeRequest(env, ids[0])
 		req.Name = new("KEBAP")
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, authHeaders(foreignKey), req)

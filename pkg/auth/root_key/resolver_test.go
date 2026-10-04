@@ -74,7 +74,7 @@ func TestResolver_ResolveRootKeyPrincipal(t *testing.T) {
 				Expires:        sql.NullTime{Time: expiresAt, Valid: true},
 			},
 			Roles:                 []string{"admin"},
-			Permissions:           []string{"api.*.read_key"},
+			Permissions:           []string{"unkey:v1:ws_authorized:projects/*#read"},
 			Status:                keys.StatusValid,
 			AuthorizedWorkspaceID: "ws_authorized",
 		},
@@ -96,11 +96,11 @@ func TestResolver_ResolveRootKeyPrincipal(t *testing.T) {
 			KeyID:       "key_123",
 			KeySpaceID:  "ks_123",
 			WorkspaceID: "ws_owner",
-			Permissions: []string{"api.*.read_key"},
+			Permissions: []string{"unkey:v1:ws_authorized:projects/*#read"},
 			ExpiresAt:   &expiresAt,
 		},
 		AuthorizedWorkspaceID: "ws_authorized",
-		Permissions:           []string{"api.*.read_key"},
+		Permissions:           []string{"unkey:v1:ws_authorized:projects/*#read"},
 	}, p)
 }
 

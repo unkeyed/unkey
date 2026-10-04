@@ -27,7 +27,7 @@ func TestAuthorizationErrors(t *testing.T) {
 	// Test case for insufficient permissions - missing create_permission
 	t.Run("missing create_permission permission", func(t *testing.T) {
 		// Create a root key with only read permissions but no create_permission permission
-		rootKey := h.CreateRootKey(workspace.ID, "rbac.*.read_permission")
+		rootKey := h.CreateRootKey(workspace.ID, fmt.Sprintf("unkey:v1:%s:projects/*/rbac/permissions/*#read", workspace.ID))
 
 		headers := http.Header{
 			"Content-Type":  {"application/json"},
@@ -59,7 +59,7 @@ func TestAuthorizationErrors(t *testing.T) {
 		otherWorkspaceID := "ws_nonexistent"
 
 		// Create a root key for the other workspace with all permissions
-		rootKey := h.CreateRootKey(otherWorkspaceID, "rbac.*.create_permission")
+		rootKey := h.CreateRootKey(otherWorkspaceID, fmt.Sprintf("unkey:v1:%s:projects/*/rbac/permissions/*#write", otherWorkspaceID))
 
 		headers := http.Header{
 			"Content-Type":  {"application/json"},

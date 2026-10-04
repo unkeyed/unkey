@@ -7,6 +7,7 @@ import {
   workspaceProcedure,
 } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
+import { parseUrnPermissionParts } from "@unkey/rbac";
 import { z } from "zod";
 import { rootKeyBaseConditions, rootKeyPermissions } from "./shared";
 
@@ -179,7 +180,7 @@ export const queryRootKeys = workspaceProcedure
     }
   });
 
-const CRITICAL_PERMISSION_PATTERNS = ["delete", "decrypt", "remove"] as const;
+const CRITICAL_PERMISSION_ACTIONS = new Set(["delete", "decrypt"]);
 
 function categorizePermissions(permissions: PermissionResponse[]) {
   if (!Array.isArray(permissions)) {
@@ -195,47 +196,34 @@ function categorizePermissions(permissions: PermissionResponse[]) {
       continue;
     }
 
-    // Extract category from permission name (e.g., "api.*.create_key" -> "api")
-    const parts = permission.name.split(".");
-    if (parts.length < 3) {
+    const parsed = parseUrnPermissionParts(permission.name);
+    if (parsed === null) {
       console.warn(`Invalid permission format: ${permission.name}`);
       continue;
     }
-    // Skip the second element
-    const [identifier, _, action] = parts;
+
+    const segments = parsed.resourcePath.split("/");
     let category: string;
 
-    switch (identifier) {
-      case "api":
-        // Separate API permissions from key permissions
-        if (action.includes("key")) {
-          category = "Keys";
-        } else {
-          category = "API";
-        }
-        break;
-      case "ratelimit":
-        category = "Ratelimit";
-        break;
-      case "rbac":
-        category = "Permissions";
-        break;
-      case "identity":
-        category = "Identities";
-        break;
-      case "project":
-        category = "Projects";
-        break;
-      default:
-        category = "Other";
-        console.warn(`Unknown permission identifier: ${identifier}`);
+    if (segments.includes("keys")) {
+      category = "Keys";
+    } else if (segments.includes("keyspaces")) {
+      category = "API";
+    } else if (segments.includes("ratelimits")) {
+      category = "Ratelimit";
+    } else if (segments.includes("rbac")) {
+      category = "Permissions";
+    } else if (segments.includes("identities")) {
+      category = "Identities";
+    } else if (segments.includes("projects")) {
+      category = "Projects";
+    } else {
+      category = "Other";
     }
 
     categories[category] = (categories[category] || 0) + 1;
 
-    // Check for critical permissions
-    const permissionName = permission.name.toLowerCase();
-    if (CRITICAL_PERMISSION_PATTERNS.some((pattern) => permissionName.includes(pattern))) {
+    if (CRITICAL_PERMISSION_ACTIONS.has(parsed.action)) {
       hasCriticalPerm = true;
     }
   }

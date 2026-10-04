@@ -12,6 +12,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -56,7 +57,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	securityScopes, authorized := runtimeLogSecurityScopes(p.AuthorizedWorkspaceID, p.Permissions)
 	if !authorized {
-		return p.Authorize(rbac.T(rbac.Tuple{ResourceType: rbac.Project, ResourceID: "*", Action: rbac.ReadRuntimeLogs}))
+		return p.Authorize(rbac.U(urn.New().Workspace(p.AuthorizedWorkspaceID).Project("*").App("*").Environment("*").Deployment("*").Logs(), permissions.Read))
 	}
 
 	rows, err := analytics.Execute(ctx, h.AnalyticsConnectionManager, analytics.ExecuteRequest{
@@ -93,10 +94,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 func runtimeLogSecurityScopes(workspaceID string, permissionsToCheck []string) ([]queryparser.SecurityScope, bool) {
 	securityScopes := make([]queryparser.SecurityScope, 0)
 	for _, permission := range permissionsToCheck {
-		if permission == "*" || permission == "project.*.read_runtime_logs" {
-			return nil, true
-		}
-
 		resourceName, action, ok := strings.Cut(permission, "#")
 		if !ok {
 			continue

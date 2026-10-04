@@ -89,7 +89,7 @@ func TestGetKeyByKeyID(t *testing.T) {
 	require.NoError(t, err)
 
 	// Create a root key with appropriate permissions
-	rootKey := h.CreateRootKey(workspace.ID, "api.*.read_key", "api.*.decrypt_key")
+	rootKey := h.CreateRootKey(workspace.ID, rootKeyGrant(workspace.ID, api.ProjectID, api.KeyAuthID.String, "*", "read"), rootKeyGrant(workspace.ID, api.ProjectID, api.KeyAuthID.String, "*", "decrypt"))
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
@@ -180,7 +180,7 @@ func TestGetKey_AdditionalScenarios(t *testing.T) {
 	})
 
 	// Create root key with appropriate permissions
-	rootKey := h.CreateRootKey(workspace.ID, "api.*.read_key")
+	rootKey := h.CreateRootKey(workspace.ID, rootKeyGrant(workspace.ID, api.ProjectID, api.KeyAuthID.String, "*", "read"))
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
