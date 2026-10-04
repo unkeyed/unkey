@@ -1,38 +1,221 @@
 ---
 title: Private networking
-description: "What your instances can and cannot reach, and how to call one app from another today."
-sources:
-  - svc/krane/internal/deployment/cilium.go
-  - svc/krane/internal/deployment/consts.go
-  - svc/krane/internal/deployment/namespace.go
-  - svc/krane/internal/deployment/apply.go
+description: "Reach your own instances and other apps in the same project over private DNS instead of public domains."
 ---
 
-We don't offer private networking yet. To call one app from another, call its public hostname. The request goes out over the internet and back in through the [gateway](/compute/gateway/overview), like a call from anywhere else. Your instances can't open connections to each other.
+Private networking lets instances talk to each other directly, with hostnames in the `unkey.internal` zone. Private traffic doesn't use public domains and doesn't pass through the [gateway](/compute/gateway/overview).
 
-## Call one app from another
+A <Tooltip tip="One built and running version of an app in one environment.">deployment</Tooltip> can reach two kinds of private hostname:
 
-Use the other app's hostname, and treat the call as an external one:
+- Its own instances, through `UNKEY_PRIVATE_DOMAIN`. This needs no setup.
+- Another app in the same project, through an app [connection](/compute/concepts/connections).
 
-```ts
-const res = await fetch("https://billing-acme.unkey.app/invoices", {
-  headers: { Authorization: `Bearer ${process.env.BILLING_API_KEY}` },
-});
+<Note>
+  Private networking is in beta. Behavior on this page can change.
+</Note>
+
+## Private DNS
+
+Every deployment created with private networking uses Unkey's regional private DNS. It answers names in `unkey.internal` for that deployment and forwards every other name to the regional upstream resolver, so public hostnames resolve as before. A deployment gets private DNS even when its app has no connections.
+
+Private DNS answers depend on which deployment asks. A deployment can resolve only its own `UNKEY_PRIVATE_DOMAIN` and the app connection hostnames saved in it. Other `unkey.internal` names don't exist for it.
+
+## Reach instances of the same deployment
+
+Unkey sets `UNKEY_PRIVATE_DOMAIN` to `<app-slug>.unkey.internal`. The value is a hostname, without a scheme or port. It resolves to the ready instances of the same deployment, including instances in other regions. It doesn't include older or newer deployments of the app.
+
+Instances of a deployment can reach each other through this hostname on every TCP and UDP port. Use it for peer discovery, clustering, or messages to every instance. You don't need a connection.
+
+Unkey sets `UNKEY_PRIVATE_DOMAIN` when all of these are true:
+
+- The deployment was created with private networking. Redeploy deployments that were created before it.
+- The app slug is a valid DNS label: up to 63 lowercase letters, numbers, and hyphens, starting and ending with a letter or number.
+- The instance's region has private DNS.
+
+When the variable is missing, the deployment has no private DNS, so its app connection hostnames don't resolve either.
+
+## Connect to another app
+
+To call another app in the same project, add an app connection to your app. The examples on this page use a `web` app that calls a `payments` app on port 8080.
+
+1. Open `web` and navigate to **Connections**.
+2. Select the environment in the environment selector. The page opens on production.
+3. Click **Add connection**, then click **App**.
+4. Select `payments`.
+5. Click **Add connection**.
+6. Redeploy `web` in that environment.
+
+The new deployment of `web` gets this variable:
+
+```bash
+PAYMENTS_HOST=payments.unkey.internal
 ```
 
-1. **Put the hostname and credential in [environment variables](/compute/configure/environment-variables)** of the calling app, not in code. Then a preview <Tooltip tip="One built and running version of an app in one environment.">deployment</Tooltip> can point at a preview of the other app. See [Automatic domains](/compute/networking/automatic-domains) for hostname patterns.
-2. **Protect the other app with an [API key policy](/compute/gateway/api-key-auth)**, because the call is public. Give the caller a key. Bad requests are rejected at the gateway, and the caller's identity shows up in the [request log](/compute/observe/requests).
-3. **Set a timeout.** Each call is a full HTTP round trip, so avoid chains of internal calls on a latency-sensitive path.
+Like every connection, an app connection applies only to deployments created after you add or change it. See [Making changes to connections](/compute/concepts/connections#making-changes-to-connections).
 
-## Share state between instances
+<Note>
+  If your app deploys from a container image, a preview app connection needs a **Target environment** when you add it. Image deployments have no Git branch to match.
+</Note>
 
-Instances can't talk to each other, so anything two of them need belongs in a store they can both reach, such as a managed Redis or Postgres. Don't rely on peer-to-peer cache invalidation, leader election, or gossip between replicas. For long-lived connections, see [WebSockets](/compute/networking/websockets).
+### Use the hostname
 
-## What your instances can and can't reach
+The variable holds a hostname only, without a scheme or port. Combine it with the port that the target listens on. Unkey doesn't inject the target's port, so store it in a [variable](/compute/configure/environment-variables) or in your code.
 
-- **Outbound: anything.** Your app can call any host it can resolve: a database, a third-party API, an object store, or another Unkey app.
-- **Inbound: only the gateway**, on your app's port. Nothing else can reach an instance: not other instances of the same deployment, not other apps in the project, not older deployments of the same app.
+<CodeGroup>
 
-A blocked connection isn't refused or reset. It's silently dropped, so the caller just times out. If you see that, this is the likely cause.
+```javascript Node.js
+const host = process.env.PAYMENTS_HOST;
+const port = process.env.PAYMENTS_PORT ?? "8080";
 
-Instances also run in a sandbox and get no credentials to our infrastructure.
+const response = await fetch(`http://${host}:${port}/charges`);
+```
+
+```python Python
+import os
+import urllib.request
+
+host = os.environ["PAYMENTS_HOST"]
+port = os.environ.get("PAYMENTS_PORT", "8080")
+
+url = f"http://{host}:{port}/charges"
+with urllib.request.urlopen(url, timeout=5) as response:
+    body = response.read()
+```
+
+</CodeGroup>
+
+The same pattern works for any TCP or UDP protocol. Pass the hostname and port to your gRPC client, queue client, or other driver.
+
+### Hostnames and variables
+
+Unkey names an app connection after the target app's slug. If that name is taken, it adds a number, such as `payments-2`. If the slug doesn't start with a letter, or starts with `unkey`, Unkey adds an `app-` prefix. You can rename an app connection.
+
+The name sets the hostname and the variable. To build the variable, Unkey converts the name to uppercase, replaces hyphens with underscores, and adds `_HOST`.
+
+| Name | Variable | Value |
+| --- | --- | --- |
+| `payments` | `PAYMENTS_HOST` | `payments.unkey.internal` |
+| `event-store` | `EVENT_STORE_HOST` | `event-store.unkey.internal` |
+
+A name must follow these rules:
+
+- Starts with a lowercase letter
+- Contains only lowercase letters, numbers, and hyphens
+- Ends with a letter or number
+- Has at most 63 characters
+- Doesn't start with `unkey`
+- Isn't your app's own slug, which belongs to [its own instances](#reach-instances-of-the-same-deployment)
+- Is unique among your app's connections in that environment
+
+Your app can have one app connection per target app in each environment. If one of your [environment variables](/compute/configure/environment-variables) has the same name as an app connection variable, the app connection variable wins.
+
+### Choose which deployment you reach
+
+The target app has many deployments. The app connection's target decides which one the hostname reaches. To change it, select the app connection on the **Connections** page and choose an option from **Target**.
+
+| Target | Reaches |
+| --- | --- |
+| **production** | The target app's live production deployment. It follows promotions and rollbacks. This is the default in your app's production environment. |
+| **Same Git branch** | Preview only. The target app's newest preview deployment from your deployment's Git branch and repository fork. This is the default in your app's preview environment. |
+| **preview** | The target app's newest preview deployment from any branch. |
+| **Specific deployment…** | One deployment that you pick. It must be ready and running when you pick it. |
+
+"Newest" means the most recently created deployment that has reached ready at least once. A deployment that is still building doesn't take over the hostname.
+
+Your deployment saves the target, not an address. **production**, **Same Git branch**, and **preview** keep following the target app. When `payments` deploys, promotes, or rolls back, the hostname in a running `web` deployment moves to the deployment that the target selects now. Only **Specific deployment…** stays on one deployment.
+
+The selected deployment must be running and have ready instances. If it has stopped, for example after a preview went idle, the hostname fails to resolve. Unkey doesn't fall back to an older running deployment, and private traffic can't wake a stopped preview. Wake or redeploy the target app, or choose another target and redeploy your app.
+
+**Same Git branch** needs a deployment of your app built from a Git branch. If the target app has no preview for that branch, the hostname doesn't resolve until you deploy one or choose another target. If your app deploys from a container image, choose **production**, **preview**, or a specific deployment.
+
+### Pinned deployments keep running
+
+**Specific deployment…** pins one deployment of the target app. Use a pin to hold a known version while you test or migrate.
+
+Unkey doesn't stop a pinned deployment automatically while a pin holds it. It skips replacement stops and idle stops, so the deployment keeps using resources. A pin holds while either of these is true:
+
+- An app connection on the **Connections** page pins it.
+- A deployment of your app that saved the pin is running or still deploying. A deployment that waits for approval doesn't hold a pin.
+
+To release a pin, change the target and redeploy your app. The pin releases when no running deployment of your app has it saved. The pinned deployment's page lists the app connections that keep it running.
+
+You can still stop a pinned preview deployment yourself. The hostname then stops resolving. New deployments of your app fail while an app connection pins a deployment that isn't running, so change the target or wake the deployment first.
+
+### Access rules
+
+Traffic between deployments is denied unless an app connection allows it. An app connection allows traffic with these rules:
+
+- From your deployment to the target deployment, in one direction only
+- On every TCP and UDP port of the target
+- Only between apps in the same project
+- Only for deployments of your app that saved the app connection
+
+For `payments` to call `web`, add an app connection on `payments`. Sharing a project or an environment type doesn't grant access by itself.
+
+Private traffic skips the gateway, so gateway policies such as [API key authentication](/compute/gateway/api-key-auth) and [rate limiting](/compute/gateway/rate-limiting) don't apply to it. Unkey doesn't issue TLS certificates for `unkey.internal` hostnames. If private traffic needs encryption or authentication, configure it in your apps.
+
+### Listen for private traffic
+
+The target app must listen on all IPv4 interfaces (`0.0.0.0`), not only on `localhost`. Most apps that already serve public traffic on `PORT` need no change.
+
+The target can also serve extra ports for private callers only. Public traffic reaches only the configured [port](/compute/configure/runtime-settings). For example, `payments` can serve HTTP on port 8080 and gRPC on port 9090 for connected apps.
+
+### Rename or remove an app connection
+
+Select an app connection on the **Connections** page to see its variable and hostname, rename it, change its target, or remove it. Every change applies to the next deployment of your app.
+
+- Rename: update your code to read the new variable before you redeploy. Running deployments keep the old name.
+- Remove: future deployments don't get the app connection. Running deployments keep it until they stop.
+- Delete the target app: Unkey deletes app connections that target it. Saved app connections to it stop resolving.
+
+## How private DNS answers
+
+Private DNS answers follow these rules:
+
+- Answers contain IPv4 (`A`) records only. Lookups for IPv6 (`AAAA`) records return no addresses.
+- Addresses come back in random order. Clients that use the first address spread connections across instances. Unkey doesn't add a load balancer in front of private traffic.
+- Answers have a short TTL. Resolve the hostname again when you open new connections.
+- A name that the deployment doesn't have returns `NXDOMAIN`.
+- A known app connection whose target has no ready instances returns `SERVFAIL`.
+
+### Choose a region
+
+Add a prefix to an app connection hostname to choose where the answered instances run:
+
+| Hostname | Answers |
+| --- | --- |
+| `payments.unkey.internal` | All ready instances of the target deployment |
+| `local-first.payments.unkey.internal` | Ready instances in your instance's region, or all ready instances if none are local |
+| `eu-west-1.payments.unkey.internal` | Ready instances in `eu-west-1` only, with no fallback |
+
+Use the region name from `UNKEY_REGION`. Every form uses the same app connection and target deployment. The injected `PAYMENTS_HOST` stays `payments.unkey.internal`, so build the prefixed name in your code, for example `local-first.${PAYMENTS_HOST}`.
+
+`local-first` selects by region, not by measured latency or load. It doesn't mix remote addresses into a local answer. A region prefix with no ready instances in that region returns `SERVFAIL`, even if other regions have ready instances.
+
+## When the target changes
+
+The hostname moves when the target selects another deployment, for example after the target app deploys, promotes, or rolls back. Each region switches on its own after the new deployment has ready instances. Until then, the hostname keeps its previous answer.
+
+Unkey doesn't move open connections. For 30 minutes after a switch, your app can still reach the previous deployment while it runs. A replaced preview that a running deployment's app connection follows also keeps running for 30 minutes instead of 1 minute. See [Automatic stops](/compute/concepts/production-and-preview#automatic-stops). Resolve the hostname again and reconnect to reach the new deployment.
+
+If the target selects no running deployment, for example because the selected preview stopped, the hostname returns `SERVFAIL`. It doesn't fall back to an earlier deployment.
+
+## Limitations
+
+Private networking has these limits:
+
+- Only TCP and UDP over IPv4. ICMP (`ping`), SCTP, broadcast, and multicast traffic is denied.
+- Only apps in the same project.
+- No TLS certificates for `unkey.internal` hostnames.
+- Private traffic can't wake a stopped deployment.
+
+## Next steps
+
+<Columns cols={2}>
+  <Card title="Connections" icon="link" href="/compute/concepts/connections">
+    Learn what a connection is and when changes apply.
+  </Card>
+  <Card title="Troubleshooting" icon="wrench" href="/compute/networking/private-networking/troubleshooting">
+    Fix missing variables, DNS failures, and refused connections.
+  </Card>
+</Columns>

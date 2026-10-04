@@ -1,0 +1,111 @@
+---
+title: Private networking troubleshooting
+sidebarTitle: Troubleshooting
+description: "Fix missing connection variables, private DNS failures, and refused connections between apps."
+---
+
+Use this page when an [app connection](/compute/networking/private-networking#connect-to-another-app) or private DNS doesn't work as expected. The examples use a `web` app with an app connection named `payments`.
+
+Start with your running deployment, not the **Connections** page. The page shows defaults for future deployments. A running deployment uses the connections saved when Unkey created it. Read the hostname from the running app's variable, and check whether the deployment is older than your last connection change.
+
+## The host variable is missing
+
+Symptom: `PAYMENTS_HOST` is empty in your app.
+
+Cause: Unkey adds connection variables when it creates a deployment. The running deployment is older than the connection, or the connection belongs to the other environment.
+
+Solution:
+
+1. On the **Connections** page, check that the environment selector shows the environment of your deployment.
+2. Select the connection and confirm its variable name.
+3. Redeploy your app in that environment.
+
+## The hostname doesn't exist
+
+Symptom: DNS lookups fail with a "not found" error, such as `NXDOMAIN` or `ENOTFOUND`.
+
+Cause: The calling deployment has no connection with that name, or no private DNS. Common reasons:
+
+- The connection was added or renamed after the deployment was created.
+- The target app was deleted.
+- The code uses a short name such as `payments` instead of `payments.unkey.internal`.
+- The deployment belongs to another app or environment than the connection.
+- The deployment has no private DNS. In that case `UNKEY_PRIVATE_DOMAIN` is also missing. See [UNKEY_PRIVATE_DOMAIN is missing](#unkey_private_domain-is-missing).
+
+Solution: Read the hostname from the connection variable instead of hard-coding it. Redeploy your app after you add or rename a connection.
+
+## The hostname fails to resolve
+
+Symptom: DNS lookups fail with a server error, such as `SERVFAIL` or `EAI_AGAIN`.
+
+Cause: The connection exists, but its target rule selects no running deployment with ready instances. Common reasons:
+
+- The target app has no live production deployment.
+- A **Same Git branch** target has no preview from your deployment's branch.
+- The selected preview stopped after it went idle, or someone stopped it.
+- Your app deploys from a container image and uses **Same Git branch**.
+- A region prefix such as `eu-west-1.` names a region without ready instances.
+
+Solution: Check the target rule that your deployment saved. Deploy or wake the target, or [choose another target](/compute/networking/private-networking#choose-which-deployment-you-reach) and redeploy your app. Private traffic can't wake a stopped preview.
+
+## The connection is refused or times out
+
+Symptom: The hostname resolves, but connections fail.
+
+Cause: DNS works, but the target doesn't accept the traffic. Common reasons:
+
+- The target app listens on `localhost` instead of `0.0.0.0`.
+- Your app connects to the wrong port.
+- The client uses IPv6. Private hostnames resolve to IPv4 addresses only.
+- The test uses `ping`. ICMP traffic is denied.
+- The target calls back without its own connection. Connections are one-way.
+- A long-lived connection still points at a deployment that was replaced more than 30 minutes ago.
+
+Solution: Make the target listen on `0.0.0.0` and the port your client uses. Test with a TCP or HTTP request instead of `ping`. For traffic in the other direction, add a connection on the target app. Reconnect clients after the target changes.
+
+## The hostname reaches the wrong deployment
+
+Symptom: Requests reach an older or unexpected version of the target app.
+
+Cause: The target rule selects a different deployment than you expect, or the client reuses an old connection. Common reasons:
+
+- The connection is pinned to a specific deployment.
+- The default changed after the calling deployment was created.
+- The target app is rolled back, so **production** follows the rolled-back deployment.
+- The newest preview hasn't reached ready yet, so the previous one still answers.
+- The client reuses a connection that it opened before the switch.
+
+Solution: Redeploy your app to use changed defaults. Promote a target deployment to end its rollback. Resolve the hostname again and open a new connection.
+
+## New deployments of your app fail
+
+Symptom: Creating a deployment of your app fails after you stopped a target deployment.
+
+Cause: A connection default pins a deployment that isn't running anymore. Unkey can't save a pin to a stopped deployment.
+
+Solution: [Choose another target](/compute/networking/private-networking#choose-which-deployment-you-reach) for the connection, or wake the pinned deployment. Then deploy your app again.
+
+## UNKEY_PRIVATE_DOMAIN is missing
+
+Symptom: `UNKEY_PRIVATE_DOMAIN` is empty.
+
+Cause: The deployment has no private DNS. Common reasons:
+
+- The deployment was created before private networking was available for it.
+- The app slug isn't a valid DNS label, for example because it's longer than 63 characters.
+- The region doesn't have private DNS.
+
+Solution: Redeploy the app. You don't need a connection. If the variable is still missing, contact support. See [Reach instances of the same deployment](/compute/networking/private-networking#reach-instances-of-the-same-deployment).
+
+## A connection can't be added or saved
+
+Symptom: The dashboard shows an error when you add, rename, or retarget a connection.
+
+Cause: The change breaks a connection rule:
+
+- Your app already has a connection to that app in this environment.
+- The name is already used in this environment, or it matches your app's slug.
+- The name starts with `unkey` or has invalid characters.
+- The selected deployment isn't ready and running.
+
+Solution: Edit the existing connection instead of adding a second one, or choose another name or target. See [Hostnames and variables](/compute/networking/private-networking#hostnames-and-variables).
