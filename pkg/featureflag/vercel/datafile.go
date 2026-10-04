@@ -13,14 +13,16 @@ type snapshot struct {
 }
 
 type compiledFlag struct {
-	variants []bool
-	targets  []target
-	outcome  int
-	paused   bool
-	err      error
+	targets []target
+	outcome bool
+	paused  bool
+	err     error
 }
 
-type target map[attributePath]map[string]struct{}
+type target struct {
+	value      bool
+	attributes map[attributePath]map[string]struct{}
+}
 
 type attributePath struct {
 	entity    string
@@ -118,7 +120,7 @@ func parseEnvironment(variants []bool, raw json.RawMessage) (compiledFlag, error
 		if !validVariant(paused, variants) {
 			return compiledFlag{}, errors.New("paused variant index is invalid")
 		}
-		return compiledFlag{variants: variants, targets: nil, outcome: paused, paused: true, err: nil}, nil
+		return compiledFlag{targets: nil, outcome: variants[paused], paused: true, err: nil}, nil
 	}
 
 	var fields map[string]json.RawMessage
@@ -149,15 +151,15 @@ func parseEnvironment(variants []bool, raw json.RawMessage) (compiledFlag, error
 		return compiledFlag{}, errors.New("fallthrough variant index is invalid")
 	}
 
-	targets, err := parseTargets(active.Targets, len(variants))
+	targets, err := parseTargets(active.Targets, variants)
 	if err != nil {
 		return compiledFlag{}, err
 	}
-	return compiledFlag{variants: variants, targets: targets, outcome: outcome, paused: false, err: nil}, nil
+	return compiledFlag{targets: targets, outcome: variants[outcome], paused: false, err: nil}, nil
 }
 
-func parseTargets(raw []map[string]map[string][]*string, variantCount int) ([]target, error) {
-	if len(raw) > variantCount {
+func parseTargets(raw []map[string]map[string][]*string, variants []bool) ([]target, error) {
+	if len(raw) > len(variants) {
 		return nil, errors.New("target variant index is invalid")
 	}
 
@@ -166,7 +168,7 @@ func parseTargets(raw []map[string]map[string][]*string, variantCount int) ([]ta
 		if entities == nil {
 			return nil, errors.New("target is null")
 		}
-		targets[i] = target{}
+		targets[i] = target{value: variants[i], attributes: map[attributePath]map[string]struct{}{}}
 		for entity, attributes := range entities {
 			if attributes == nil {
 				return nil, errors.New("target attributes are null")
@@ -182,7 +184,7 @@ func parseTargets(raw []map[string]map[string][]*string, variantCount int) ([]ta
 					}
 					accepted[*value] = struct{}{}
 				}
-				targets[i][attributePath{entity: entity, attribute: attribute}] = accepted
+				targets[i].attributes[attributePath{entity: entity, attribute: attribute}] = accepted
 			}
 		}
 	}

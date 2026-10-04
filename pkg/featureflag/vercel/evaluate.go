@@ -30,36 +30,36 @@ func (p *Provider) BooleanEvaluation(_ context.Context, flag string, defaultValu
 		return boolError(defaultValue, openfeature.NewParseErrorResolutionError(definition.err.Error()))
 	}
 	if definition.paused {
-		return boolValue(definition.variants[definition.outcome], openfeature.StaticReason)
+		return boolValue(definition.outcome, openfeature.StaticReason)
 	}
 
-	index, matched, err := definition.match(flatCtx)
+	value, matched, err := definition.match(flatCtx)
 	if err != nil {
 		return boolError(defaultValue, openfeature.NewInvalidContextResolutionError(err.Error()))
 	}
 	if !matched {
-		return boolValue(definition.variants[definition.outcome], openfeature.DefaultReason)
+		return boolValue(definition.outcome, openfeature.DefaultReason)
 	}
-	return boolValue(definition.variants[index], openfeature.TargetingMatchReason)
+	return boolValue(value, openfeature.TargetingMatchReason)
 }
 
-func (f compiledFlag) match(ctx openfeature.FlattenedContext) (int, bool, error) {
+func (f compiledFlag) match(ctx openfeature.FlattenedContext) (bool, bool, error) {
 	attributes, err := f.attributes(ctx)
 	if err != nil {
-		return 0, false, err
+		return false, false, err
 	}
-	for i, t := range f.targets {
+	for _, t := range f.targets {
 		if t.matches(attributes) {
-			return i, true, nil
+			return t.value, true, nil
 		}
 	}
-	return 0, false, nil
+	return false, false, nil
 }
 
 func (f compiledFlag) attributes(ctx openfeature.FlattenedContext) (map[attributePath]string, error) {
 	attributes := map[attributePath]string{}
 	for _, t := range f.targets {
-		for path := range t {
+		for path := range t.attributes {
 			rawEntity, ok := ctx[path.entity]
 			if !ok {
 				continue
@@ -83,7 +83,7 @@ func (f compiledFlag) attributes(ctx openfeature.FlattenedContext) (map[attribut
 }
 
 func (t target) matches(attributes map[attributePath]string) bool {
-	for path, accepted := range t {
+	for path, accepted := range t.attributes {
 		value, ok := attributes[path]
 		if !ok {
 			continue

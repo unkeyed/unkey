@@ -47,6 +47,70 @@ func TestReferenceFixture(t *testing.T) {
 	}
 }
 
+func TestTargetValuesAndPriority(t *testing.T) {
+	for _, test := range []struct {
+		name        string
+		environment string
+		want        bool
+		reason      openfeature.Reason
+	}{
+		{
+			name:        "first variant is true",
+			environment: `{"targets":[{"team":{"id":["match"]}}],"fallthrough":1}`,
+			want:        true,
+			reason:      openfeature.TargetingMatchReason,
+		},
+		{
+			name:        "second variant is false",
+			environment: `{"targets":[{"team":{"id":["other"]}},{"team":{"id":["match"]}}],"fallthrough":0}`,
+			want:        false,
+			reason:      openfeature.TargetingMatchReason,
+		},
+		{
+			name:        "first matching target wins",
+			environment: `{"targets":[{"team":{"id":["match"]}},{"team":{"id":["match"]}}],"fallthrough":1}`,
+			want:        true,
+			reason:      openfeature.TargetingMatchReason,
+		},
+		{
+			name:        "empty target preserves the next variants position",
+			environment: `{"targets":[{},{"team":{"id":["match"]}}],"fallthrough":0}`,
+			want:        false,
+			reason:      openfeature.TargetingMatchReason,
+		},
+		{
+			name:        "fallthrough can select a variant without a target",
+			environment: `{"targets":[{"team":{"id":["other"]}}],"fallthrough":1}`,
+			want:        false,
+			reason:      openfeature.DefaultReason,
+		},
+		{
+			name:        "no targets uses the fallthrough value",
+			environment: `{"fallthrough":0}`,
+			want:        true,
+			reason:      openfeature.DefaultReason,
+		},
+		{
+			name:        "paused uses the selected value",
+			environment: `1`,
+			want:        false,
+			reason:      openfeature.StaticReason,
+		},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			definition, err := parseFlag([]byte(fmt.Sprintf(`{"variants":[true,false],"environments":{"production":%s}}`, test.environment)), "production")
+			require.NoError(t, err)
+			p := &Provider{config: Config{MaxStaleness: time.Minute}}
+			p.snapshot.Store(&snapshot{fetchedAt: time.Now(), flags: map[string]compiledFlag{"flag": definition}})
+
+			detail := p.BooleanEvaluation(t.Context(), "flag", !test.want, openfeature.FlattenedContext{"team": map[string]any{"id": "match"}})
+			require.NoError(t, detail.Error())
+			require.Equal(t, test.want, detail.Value)
+			require.Equal(t, test.reason, detail.Reason)
+		})
+	}
+}
+
 func TestErrorsReturnAsymmetricDefaults(t *testing.T) {
 	p := &Provider{config: Config{MaxStaleness: time.Minute}}
 	p.snapshot.Store(&snapshot{fetchedAt: time.Now(), flags: map[string]compiledFlag{
