@@ -10,8 +10,8 @@ post:
     **Required Permissions**
 
     Your root key must have one of the following permissions:
-    - `unkey:v1:{workspace_id}:projects/*#read` (to read any project)
-    - `unkey:v1:{workspace_id}:projects/{project_id}#read` (to read a specific project)
+    - `project.*.read_project` (to read any project)
+    - `project.<project_id>.read_project` (to read a specific project)
   operationId: projects.getProject
   x-speakeasy-name-override: getProject
   security:
@@ -68,7 +68,7 @@ post:
           schema:
             "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
     "403":
-      description: Forbidden - Insufficient permissions (requires `unkey:v1:{workspace_id}:projects/*#read`)
+      description: Forbidden - Insufficient permissions (requires `project.*.read_project`)
       content:
         application/json:
           schema:
@@ -81,7 +81,7 @@ post:
                   requestId: req_1234abcd
                 error:
                   title: Forbidden
-                  detail: Your root key requires the 'unkey:v1:{workspace_id}:projects/*#read' permission to perform this operation
+                  detail: Your root key requires the 'project.*.read_project' permission to perform this operation
                   status: 403
                   type: forbidden
     "404":

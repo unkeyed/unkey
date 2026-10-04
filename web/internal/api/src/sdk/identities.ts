@@ -23,7 +23,7 @@ export class Identities extends ClientSDK {
    * Perfect for users with multiple devices, organizations with multiple API keys, or when you need unified rate limiting across different services.
    *
    * **Important**
-   * Requires `unkey:v1:{workspace_id}:projects/&#42;/identities/*#write` permission
+   * Requires `identity.*.create_identity` permission
    */
   async createIdentity(
     request: components.V2IdentitiesCreateIdentityRequestBody,
@@ -45,7 +45,7 @@ export class Identities extends ClientSDK {
    * Use this for data cleanup, compliance requirements, or when removing entities from your system.
    *
    * > **Important**
-   * > Requires `unkey:v1:{workspace_id}:projects/&#42;/identities/*#delete` permission
+   * > Requires `identity.*.delete_identity` permission
    * > Associated API keys remain functional but lose shared resources
    * > External ID becomes available for reuse immediately
    */
@@ -69,7 +69,7 @@ export class Identities extends ClientSDK {
    * Use this to check if an identity exists, view configurations, or build management dashboards.
    *
    * > **Important**
-   * > Requires `unkey:v1:{workspace_id}:projects/&#42;/identities/*#read` permission
+   * > Requires `identity.*.read_identity` permission
    */
   async getIdentity(
     request: components.V2IdentitiesGetIdentityRequestBody,
@@ -91,7 +91,7 @@ export class Identities extends ClientSDK {
    * Perfect for building management dashboards, auditing configurations, or browsing your identities.
    *
    * > **Important**
-   * > Requires `unkey:v1:{workspace_id}:projects/&#42;/identities/*#read` permission
+   * > Requires `identity.*.read_identity` permission
    */
   async listIdentities(
     request: components.V2IdentitiesListIdentitiesRequestBody,
@@ -118,7 +118,7 @@ export class Identities extends ClientSDK {
    * Perfect for subscription changes, plan upgrades, or updating user information. Changes take effect immediately.
    *
    * > **Important**
-   * > Requires `unkey:v1:{workspace_id}:projects/&#42;/identities/*#write` permission
+   * > Requires `identity.*.update_identity` permission
    * > Rate limit changes propagate within 30 seconds
    */
   async updateIdentity(

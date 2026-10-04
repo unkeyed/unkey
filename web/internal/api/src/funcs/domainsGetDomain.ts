@@ -54,8 +54,8 @@ import { Result } from "../types/fp.js";
  * **Required Permissions**
  *
  * Your root key must have one of the following permissions:
- * - `unkey:v1:{workspace_id}:projects/&#42;/apps/&#42;/environments/&#42;/domains/*#read` (to read domains in any environment)
- * - `unkey:v1:{workspace_id}:projects/{project_id}/apps/{app_id}/environments/{environment_id}/domains/{domain_id}#read` (to read domains in a specific environment)
+ * - `environment.*.read_domain` (to read domains in any environment)
+ * - `environment.<environment_id>.read_domain` (to read domains in a specific environment)
  *
  * If set, this operation will use {@link Security.rootKey} from the global security.
  */

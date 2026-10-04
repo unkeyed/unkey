@@ -22,8 +22,8 @@ Important: This operation is immediate and permanent. Verify you have the correc
 If delete protection is enabled, disable it first through the dashboard or API configuration.
 
 Required permissions:
-- unkey:v1:{workspace_id}:projects/*/keyspaces/*#delete (to delete any API)
-- unkey:v1:{workspace_id}:projects/{project_id}/keyspaces/{keyspace_id}#delete (to delete a specific API)
+- api.*.delete_api
+- api.<api_id>.delete_api
 
 For full documentation, see https://www.unkey.com/docs/api-reference/v2/apis/delete-api-namespace` + util.Disclaimer,
 		Examples: []string{

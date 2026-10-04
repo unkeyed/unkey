@@ -56,7 +56,7 @@ Every `unkey api` command takes these. See [CLI output and shared flags](/platfo
 
 ## Required permissions
 
-`unkey:v1:{workspace_id}:projects/*/ratelimits/namespaces/*/overrides/*#delete` or `unkey:v1:{workspace_id}:projects/{project_id}/ratelimits/namespaces/{namespace_id}/overrides/*#delete`. Without the permission you get a 404, not a 403, so the response doesn't reveal whether the resource exists. See [Root key permissions](/platform/root-keys/permissions).
+`ratelimit.*.delete_override` or `ratelimit.<namespace_id>.delete_override`. Without the permission you get a 404, not a 403, so the response doesn't reveal whether the resource exists. See [Root key permissions](/platform/root-keys/permissions).
 
 ## Examples
 

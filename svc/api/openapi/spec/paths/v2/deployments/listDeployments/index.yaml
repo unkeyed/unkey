@@ -13,7 +13,7 @@ post:
 
     **Required Permissions**
 
-    Your root key must have the `unkey:v1:{workspace_id}:projects/*/apps/*/environments/*/deployments/*#read` permission.
+    Your root key must have the `environment.*.read_deployment` permission.
     Listing spans environments, so a grant on a single environment is not
     sufficient.
   operationId: deployments.listDeployments
@@ -102,7 +102,7 @@ post:
           schema:
             "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
     "403":
-      description: Forbidden - Insufficient permissions (requires `unkey:v1:{workspace_id}:projects/*/apps/*/environments/*/deployments/*#read`)
+      description: Forbidden - Insufficient permissions (requires `environment.*.read_deployment`)
       content:
         application/json:
           schema:
@@ -115,7 +115,7 @@ post:
                   requestId: req_1234abcd
                 error:
                   title: Forbidden
-                  detail: Your root key requires the 'unkey:v1:{workspace_id}:projects/*/apps/*/environments/*/deployments/*#read' permission to perform this operation
+                  detail: Your root key requires the 'environment.*.read_deployment' permission to perform this operation
                   status: 403
                   type: forbidden
     "404":

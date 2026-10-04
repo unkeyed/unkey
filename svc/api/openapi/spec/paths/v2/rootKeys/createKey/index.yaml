@@ -4,7 +4,7 @@ post:
   summary: Create root key
   description: |
     Creates a root key for the authenticated workspace.
-    Requires `unkey:v1:{workspace_id}:rootKeys/*#write`.
+    Requires `unkey:v1:<workspace_id>:rootKeys/*#write`.
     The created root key cannot have more permissions than the caller.
   operationId: rootKeys.createKey
   x-speakeasy-name-override: createKey

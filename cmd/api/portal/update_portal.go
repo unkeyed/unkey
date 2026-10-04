@@ -27,8 +27,8 @@ Two changes affect your end users immediately:
 Required Permissions
 
 Your root key must have one of:
-- unkey:v1:{workspace_id}:projects/*/portals/*#write (to update any portal in the workspace)
-- unkey:v1:{workspace_id}:projects/{project_id}/portals/{portal_id}#write (to update a specific portal)
+- portal.*.update_portal (to update any portal in the workspace)
+- portal.<portal_id>.update_portal (to update a specific portal)
 
 Without the permission this returns 404, not 403.
 

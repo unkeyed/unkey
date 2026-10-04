@@ -23,7 +23,7 @@ displayName is what your end users see. It is yours to set and change independen
 
 Required Permissions
 
-Your root key must have unkey:v1:{workspace_id}:projects/*/portals/*#write. A grant scoped to a specific portal id does not authorize creation, because the id does not exist yet.
+Your root key must have portal.*.create_portal. A grant scoped to a specific portal id does not authorize creation, because the id does not exist yet.
 
 For full documentation, see https://www.unkey.com/docs/api-reference/portal/create-portal` + util.Disclaimer,
 		Examples: []string{"unkey api portal create-portal --slug=acme-portal --display-name=Acme --keyspace-id=ks_1234abcd", "unkey api portal create-portal --slug=developer-portal --display-name='Developer Portal' --app-id=app_1234abcd --logo-url=https://cdn.example.com/logo.svg --primary-color=#6366f1"},

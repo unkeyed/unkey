@@ -22,8 +22,8 @@ Important: Changes take effect immediately with up to 30-second edge propagation
 Required permissions:
 
 Your root key must have one of the following permissions:
-- unkey:v1:{workspace_id}:projects/*/keyspaces/*/keys/*#write (to update keys in any API)
-- unkey:v1:{workspace_id}:projects/{project_id}/keyspaces/{keyspace_id}/keys/*#write (to update keys in a specific API)
+- api.*.update_key (to update keys in any API)
+- api.<api_id>.update_key (to update keys in a specific API)
 
 Side Effects:
 

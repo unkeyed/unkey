@@ -33,8 +33,8 @@ export class Domains extends ClientSDK {
    * **Required Permissions**
    *
    * Your root key must have one of the following permissions:
-   * - `unkey:v1:{workspace_id}:projects/&#42;/apps/&#42;/environments/&#42;/domains/*#write` (to attach domains to any environment)
-   * - `unkey:v1:{workspace_id}:projects/{project_id}/apps/{app_id}/environments/{environment_id}/domains/*#write` (to attach domains to a specific environment)
+   * - `environment.*.create_domain` (to attach domains to any environment)
+   * - `environment.<environment_id>.create_domain` (to attach domains to a specific environment)
    */
   async createDomain(
     request: components.V2DomainsCreateDomainRequestBody,
@@ -62,8 +62,8 @@ export class Domains extends ClientSDK {
    * **Required Permissions**
    *
    * Your root key must have one of the following permissions:
-   * - `unkey:v1:{workspace_id}:projects/&#42;/apps/&#42;/environments/&#42;/domains/*#delete` (to delete domains in any environment)
-   * - `unkey:v1:{workspace_id}:projects/{project_id}/apps/{app_id}/environments/{environment_id}/domains/{domain_id}#delete` (to delete domains in a specific environment)
+   * - `environment.*.delete_domain` (to delete domains in any environment)
+   * - `environment.<environment_id>.delete_domain` (to delete domains in a specific environment)
    */
   async deleteDomain(
     request: components.V2DomainsDeleteDomainRequestBody,
@@ -104,8 +104,8 @@ export class Domains extends ClientSDK {
    * **Required Permissions**
    *
    * Your root key must have one of the following permissions:
-   * - `unkey:v1:{workspace_id}:projects/&#42;/apps/&#42;/environments/&#42;/domains/*#read` (to read domains in any environment)
-   * - `unkey:v1:{workspace_id}:projects/{project_id}/apps/{app_id}/environments/{environment_id}/domains/{domain_id}#read` (to read domains in a specific environment)
+   * - `environment.*.read_domain` (to read domains in any environment)
+   * - `environment.<environment_id>.read_domain` (to read domains in a specific environment)
    */
   async getDomain(
     request: components.V2DomainsGetDomainRequestBody,
@@ -140,7 +140,7 @@ export class Domains extends ClientSDK {
    *
    * **Required Permissions**
    *
-   * Use a root key with the `unkey:v1:{workspace_id}:projects/&#42;/apps/&#42;/environments/&#42;/domains/*#read` permission.
+   * Use a root key with the `environment.*.read_domain` permission.
    * A successful request returns an empty list if no matching domains are readable by your key.
    */
   async listDomains(
@@ -174,8 +174,8 @@ export class Domains extends ClientSDK {
    * **Required Permissions**
    *
    * Your root key must have one of the following permissions:
-   * - `unkey:v1:{workspace_id}:projects/&#42;/apps/&#42;/environments/&#42;/domains/*#write` (to verify domains in any environment)
-   * - `unkey:v1:{workspace_id}:projects/{project_id}/apps/{app_id}/environments/{environment_id}/domains/{domain_id}#write` (to verify domains in a specific environment)
+   * - `environment.*.verify_domain` (to verify domains in any environment)
+   * - `environment.<environment_id>.verify_domain` (to verify domains in a specific environment)
    */
   async verifyDomain(
     request: components.V2DomainsVerifyDomainRequestBody,

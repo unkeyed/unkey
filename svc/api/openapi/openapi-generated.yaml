@@ -11,7 +11,7 @@ components:
                 ```
                 Authorization: Bearer unkey_123
                 ```
-                Root keys have specific permissions attached to them, controlling what operations they can perform. Permissions use Unkey Resource Names plus actions, like `unkey:v1:ws_123:projects/*/keyspaces/*/keys/*#write_key`.
+                Root keys have specific permissions attached to them, controlling what operations they can perform. Legacy permissions use tuple strings like `api.*.create_key`; resource permissions use Unkey Resource Names plus actions, like `unkey:v1:ws_123:keyspaces/*#create_key`.
                 Security best practices:
                 - Keep root keys secure and never expose them in client-side code
                 - Use different root keys for different environments
@@ -2782,7 +2782,7 @@ components:
                 permissions:
                     type: array
                     description: |
-                        Permission slugs to attach to the role. Existing permissions are reused. Missing permissions are created automatically when the root key has `unkey:v1:{workspace_id}:projects/*/rbac/permissions/*#write`.
+                        Permission slugs to attach to the role. Existing permissions are reused. Missing permissions are created automatically when the root key has `rbac.*.create_permission`.
 
                         Omit this field or provide an empty array to create the role without permissions.
                     items:
@@ -7967,7 +7967,7 @@ paths:
         post:
             description: |
                 A query can use only the public alias `gateway_requests_v1`. CTEs, subqueries, UNION, and EXCEPT are permitted.
-                The root key must have the `unkey:v1:{workspace_id}:projects/*/apps/*/environments/*/gateway/logs#read` permission.
+                The root key must have the `project.*.read_gateway_requests` permission.
                 Unkey limits each query to the workspace of the root key. To get the data for one project, app, or environment, add a filter on `project_id`, `app_id`, or `environment_id`.
                 The workspace retention period and the workspace query limits apply.
                 For the columns and more query examples, see the gateway request analytics documentation.
@@ -8117,7 +8117,7 @@ paths:
         post:
             description: |
                 A query can use only the public alias `runtime_logs_v1`. CTEs, subqueries, UNION, and EXCEPT are permitted.
-                The root key must have the `unkey:v1:{workspace_id}:projects/*/apps/*/environments/*/deployments/*/logs#read` permission.
+                The root key must have the `project.*.read_runtime_logs` permission.
                 Unkey limits each query to the workspace of the root key. To get the logs of one project, app, environment, or deployment, add a filter on `project_id`, `app_id`, `environment_id`, or `deployment_id`.
                 The workspace retention period and the workspace query limits apply.
                 For the table, the columns, and more query examples, see [Query runtime logs](/platform/analytics/get-runtime-logs).
@@ -8270,7 +8270,7 @@ paths:
                 **Required Permissions**
 
                 Your root key must have one of the following permissions:
-                - `unkey:v1:{workspace_id}:projects/*/keyspaces/*#write` (to create APIs in any workspace)
+                - `api.*.create_api` (to create APIs in any workspace)
             operationId: apis.createApi
             requestBody:
                 content:
@@ -8336,8 +8336,8 @@ paths:
                 **Required Permissions**
 
                 Your root key must have one of the following permissions:
-                - `unkey:v1:{workspace_id}:projects/*/keyspaces/*#delete` (to delete any API)
-                - `unkey:v1:{workspace_id}:projects/{project_id}/keyspaces/{keyspace_id}#delete` (to delete a specific API)
+                - `api.*.delete_api` (to delete any API)
+                - `api.<api_id>.delete_api` (to delete a specific API)
             operationId: apis.deleteApi
             requestBody:
                 content:
@@ -8410,8 +8410,8 @@ paths:
                 **Required Permissions**
 
                 Your root key must have one of the following permissions:
-                - `unkey:v1:{workspace_id}:projects/*/keyspaces/*#read` (to read any API)
-                - `unkey:v1:{workspace_id}:projects/{project_id}/keyspaces/{keyspace_id}#read` (to read a specific API)
+                - `api.*.read_api` (to read any API)
+                - `api.<api_id>.read_api` (to read a specific API)
             operationId: apis.getApi
             requestBody:
                 content:
@@ -8480,14 +8480,14 @@ paths:
                 **Required Permissions**
 
                 Your root key must have one of the following permissions for basic key listing:
-                - `unkey:v1:{workspace_id}:projects/*/keyspaces/*/keys/*#read` (to read keys from any API)
-                - `unkey:v1:{workspace_id}:projects/{project_id}/keyspaces/{keyspace_id}/keys/*#read` (to read keys from a specific API)
+                - `api.*.read_key` (to read keys from any API)
+                - `api.<api_id>.read_key` (to read keys from a specific API)
 
                 Additionally, you need read access to the API itself:
-                - `unkey:v1:{workspace_id}:projects/*/keyspaces/*#read` or `unkey:v1:{workspace_id}:projects/{project_id}/keyspaces/{keyspace_id}#read`
+                - `api.*.read_api` or `api.<api_id>.read_api`
 
                 Additional permission required for decrypt functionality:
-                - `unkey:v1:{workspace_id}:projects/*/keyspaces/*/keys/*#decrypt` or `unkey:v1:{workspace_id}:projects/{project_id}/keyspaces/{keyspace_id}/keys/*#decrypt`
+                - `api.*.decrypt_key` or `api.<api_id>.decrypt_key`
             operationId: apis.listKeys
             requestBody:
                 content:
@@ -8565,8 +8565,8 @@ paths:
                 **Required Permissions**
 
                 Your root key must have one of the following permissions:
-                - `unkey:v1:{workspace_id}:projects/*/apps/*#write` (to create apps in any project)
-                - `unkey:v1:{workspace_id}:projects/{project_id}/apps/*#write` (to create apps in a specific project)
+                - `project.*.create_app` (to create apps in any project)
+                - `project.<project_id>.create_app` (to create apps in a specific project)
             operationId: apps.createApp
             requestBody:
                 content:
@@ -8645,7 +8645,7 @@ paths:
                                     summary: Missing required permission
                                     value:
                                         error:
-                                            detail: Your root key requires the 'unkey:v1:{workspace_id}:projects/*/apps/*#write' permission to perform this operation
+                                            detail: Your root key requires the 'project.*.create_app' permission to perform this operation
                                             status: 403
                                             title: Forbidden
                                             type: forbidden
@@ -8653,7 +8653,7 @@ paths:
                                             requestId: req_1234abcd
                             schema:
                                 $ref: '#/components/schemas/ForbiddenErrorResponse'
-                    description: Forbidden - Insufficient permissions (requires `unkey:v1:{workspace_id}:projects/*/apps/*#write`)
+                    description: Forbidden - Insufficient permissions (requires `project.*.create_app`)
                 "404":
                     content:
                         application/json:
@@ -8719,8 +8719,8 @@ paths:
                 **Required Permissions**
 
                 Your root key must have one of the following permissions:
-                - `unkey:v1:{workspace_id}:projects/*/apps/*#delete` (to delete any app)
-                - `unkey:v1:{workspace_id}:projects/{project_id}/apps/{app_id}#delete` (to delete a specific app)
+                - `app.*.delete_app` (to delete any app)
+                - `app.<app_id>.delete_app` (to delete a specific app)
             operationId: apps.deleteApp
             requestBody:
                 content:
@@ -8785,7 +8785,7 @@ paths:
                                             requestId: req_1234abcd
                             schema:
                                 $ref: '#/components/schemas/ForbiddenErrorResponse'
-                    description: Forbidden - Insufficient permissions (requires `unkey:v1:{workspace_id}:projects/*/apps/*#delete`)
+                    description: Forbidden - Insufficient permissions (requires `app.*.delete_app`)
                 "404":
                     content:
                         application/json:
@@ -8837,8 +8837,8 @@ paths:
                 **Required Permissions**
 
                 Your root key must have one of the following permissions:
-                - `unkey:v1:{workspace_id}:projects/*/apps/*#read` (to read any app)
-                - `unkey:v1:{workspace_id}:projects/{project_id}/apps/{app_id}#read` (to read a specific app)
+                - `app.*.read_app` (to read any app)
+                - `app.<app_id>.read_app` (to read a specific app)
             operationId: apps.getApp
             requestBody:
                 content:
@@ -8904,7 +8904,7 @@ paths:
                                     summary: Missing required permission
                                     value:
                                         error:
-                                            detail: Your root key requires the 'unkey:v1:{workspace_id}:projects/*/apps/*#read' permission to perform this operation
+                                            detail: Your root key requires the 'app.*.read_app' permission to perform this operation
                                             status: 403
                                             title: Forbidden
                                             type: forbidden
@@ -8912,7 +8912,7 @@ paths:
                                             requestId: req_1234abcd
                             schema:
                                 $ref: '#/components/schemas/ForbiddenErrorResponse'
-                    description: Forbidden - Insufficient permissions (requires `unkey:v1:{workspace_id}:projects/*/apps/*#read`)
+                    description: Forbidden - Insufficient permissions (requires `app.*.read_app`)
                 "404":
                     content:
                         application/json:
@@ -8958,7 +8958,7 @@ paths:
                 **Required Permissions**
 
                 Your root key must have the following permission:
-                - `unkey:v1:{workspace_id}:projects/*/apps/*#read` (to read apps in any project)
+                - `app.*.read_app` (to read apps in any project)
             operationId: apps.listApps
             requestBody:
                 content:
@@ -9041,7 +9041,7 @@ paths:
                                     summary: Missing required permission
                                     value:
                                         error:
-                                            detail: Your root key requires the 'unkey:v1:{workspace_id}:projects/*/apps/*#read' permission to perform this operation
+                                            detail: Your root key requires the 'app.*.read_app' permission to perform this operation
                                             status: 403
                                             title: Forbidden
                                             type: forbidden
@@ -9049,7 +9049,7 @@ paths:
                                             requestId: req_1234abcd
                             schema:
                                 $ref: '#/components/schemas/ForbiddenErrorResponse'
-                    description: Forbidden - Insufficient permissions (requires `unkey:v1:{workspace_id}:projects/*/apps/*#read`)
+                    description: Forbidden - Insufficient permissions (requires `app.*.read_app`)
                 "404":
                     content:
                         application/json:
@@ -9105,8 +9105,8 @@ paths:
                 **Required Permissions**
 
                 Your root key must have one of the following permissions:
-                - `unkey:v1:{workspace_id}:projects/*/apps/*#write` (to update any app)
-                - `unkey:v1:{workspace_id}:projects/{project_id}/apps/{app_id}#write` (to update a specific app)
+                - `app.*.update_app` (to update any app)
+                - `app.<app_id>.update_app` (to update a specific app)
             operationId: apps.updateApp
             requestBody:
                 content:
@@ -9181,7 +9181,7 @@ paths:
                                             requestId: req_1234abcd
                             schema:
                                 $ref: '#/components/schemas/ForbiddenErrorResponse'
-                    description: Forbidden - Insufficient permissions (requires `unkey:v1:{workspace_id}:projects/*/apps/*#write`)
+                    description: Forbidden - Insufficient permissions (requires `app.*.update_app`)
                 "404":
                     content:
                         application/json:
@@ -9455,8 +9455,8 @@ paths:
                 **Required Permissions**
 
                 Your root key must have one of the following permissions:
-                - `unkey:v1:{workspace_id}:projects/*/apps/*/environments/*/deployments/*#read` (to read deployments in any environment)
-                - `unkey:v1:{workspace_id}:projects/{project_id}/apps/{app_id}/environments/{environment_id}/deployments/*#read` (to read deployments in a specific environment)
+                - `environment.*.read_deployment` (to read deployments in any environment)
+                - `environment.<environment_id>.read_deployment` (to read deployments in a specific environment)
             operationId: deployments.getDeployment
             requestBody:
                 content:
@@ -9560,7 +9560,7 @@ paths:
 
                 **Required Permissions**
 
-                Your root key must have the `unkey:v1:{workspace_id}:projects/*/apps/*/environments/*/deployments/*#read` permission.
+                Your root key must have the `environment.*.read_deployment` permission.
                 Listing spans environments, so a grant on a single environment is not
                 sufficient.
             operationId: deployments.listDeployments
@@ -9655,7 +9655,7 @@ paths:
                                     summary: Missing required permission
                                     value:
                                         error:
-                                            detail: Your root key requires the 'unkey:v1:{workspace_id}:projects/*/apps/*/environments/*/deployments/*#read' permission to perform this operation
+                                            detail: Your root key requires the 'environment.*.read_deployment' permission to perform this operation
                                             status: 403
                                             title: Forbidden
                                             type: forbidden
@@ -9663,7 +9663,7 @@ paths:
                                             requestId: req_1234abcd
                             schema:
                                 $ref: '#/components/schemas/ForbiddenErrorResponse'
-                    description: Forbidden - Insufficient permissions (requires `unkey:v1:{workspace_id}:projects/*/apps/*/environments/*/deployments/*#read`)
+                    description: Forbidden - Insufficient permissions (requires `environment.*.read_deployment`)
                 "404":
                     content:
                         application/json:
@@ -9728,8 +9728,8 @@ paths:
                 **Required Permissions**
 
                 Your root key must have one of the following permissions:
-                - `unkey:v1:{workspace_id}:projects/*/apps/*/environments/*#write` (to promote deployments in any environment)
-                - `unkey:v1:{workspace_id}:projects/{project_id}/apps/{app_id}/environments/{environment_id}#write` (to promote deployments in a specific environment)
+                - `environment.*.promote_deployment` (to promote deployments in any environment)
+                - `environment.<environment_id>.promote_deployment` (to promote deployments in a specific environment)
             operationId: deployments.promoteDeployment
             requestBody:
                 content:
@@ -9828,8 +9828,8 @@ paths:
                 **Required Permissions**
 
                 Your root key must have one of the following permissions:
-                - `unkey:v1:{workspace_id}:projects/*/apps/*/environments/*#write` (to roll back deployments in any environment)
-                - `unkey:v1:{workspace_id}:projects/{project_id}/apps/{app_id}/environments/{environment_id}#write` (to roll back deployments in a specific environment)
+                - `environment.*.rollback_deployment` (to roll back deployments in any environment)
+                - `environment.<environment_id>.rollback_deployment` (to roll back deployments in a specific environment)
             operationId: deployments.rollbackDeployment
             requestBody:
                 content:
@@ -9923,8 +9923,8 @@ paths:
                 **Required Permissions**
 
                 Your root key must have one of the following permissions:
-                - `unkey:v1:{workspace_id}:projects/*/apps/*/environments/*/deployments/*#write` (to start deployments in any environment)
-                - `unkey:v1:{workspace_id}:projects/{project_id}/apps/{app_id}/environments/{environment_id}/deployments/*#write` (to start deployments in a specific environment)
+                - `environment.*.start_deployment` (to start deployments in any environment)
+                - `environment.<environment_id>.start_deployment` (to start deployments in a specific environment)
             operationId: deployments.startDeployment
             requestBody:
                 content:
@@ -10019,8 +10019,8 @@ paths:
                 **Required Permissions**
 
                 Your root key must have one of the following permissions:
-                - `unkey:v1:{workspace_id}:projects/*/apps/*/environments/*/deployments/*#write` (to stop deployments in any environment)
-                - `unkey:v1:{workspace_id}:projects/{project_id}/apps/{app_id}/environments/{environment_id}/deployments/*#write` (to stop deployments in a specific environment)
+                - `environment.*.stop_deployment` (to stop deployments in any environment)
+                - `environment.<environment_id>.stop_deployment` (to stop deployments in a specific environment)
             operationId: deployments.stopDeployment
             requestBody:
                 content:
@@ -10117,8 +10117,8 @@ paths:
                 **Required Permissions**
 
                 Your root key must have one of the following permissions:
-                - `unkey:v1:{workspace_id}:projects/*/apps/*/environments/*/domains/*#write` (to attach domains to any environment)
-                - `unkey:v1:{workspace_id}:projects/{project_id}/apps/{app_id}/environments/{environment_id}/domains/*#write` (to attach domains to a specific environment)
+                - `environment.*.create_domain` (to attach domains to any environment)
+                - `environment.<environment_id>.create_domain` (to attach domains to a specific environment)
             operationId: domains.createDomain
             requestBody:
                 content:
@@ -10294,7 +10294,7 @@ paths:
                     description: |
                         Forbidden - The root key or its workspace is disabled, or the workspace has already attached as
                         many custom domains as its plan allows. A root key that simply lacks
-                        `unkey:v1:{workspace_id}:projects/*/apps/*/environments/*/domains/*#write` receives a 404 instead, so permissions cannot be used to discover
+                        `environment.*.create_domain` receives a 404 instead, so permissions cannot be used to discover
                         which environments exist.
                 "404":
                     content:
@@ -10386,8 +10386,8 @@ paths:
                 **Required Permissions**
 
                 Your root key must have one of the following permissions:
-                - `unkey:v1:{workspace_id}:projects/*/apps/*/environments/*/domains/*#delete` (to delete domains in any environment)
-                - `unkey:v1:{workspace_id}:projects/{project_id}/apps/{app_id}/environments/{environment_id}/domains/{domain_id}#delete` (to delete domains in a specific environment)
+                - `environment.*.delete_domain` (to delete domains in any environment)
+                - `environment.<environment_id>.delete_domain` (to delete domains in a specific environment)
             operationId: domains.deleteDomain
             requestBody:
                 content:
@@ -10479,7 +10479,7 @@ paths:
                                 $ref: '#/components/schemas/ForbiddenErrorResponse'
                     description: |
                         Forbidden - The root key or its workspace is disabled. A root key that simply lacks
-                        `unkey:v1:{workspace_id}:projects/*/apps/*/environments/*/domains/*#delete` receives a 404 instead, so permissions cannot be used to
+                        `environment.*.delete_domain` receives a 404 instead, so permissions cannot be used to
                         discover which domains exist.
                 "404":
                     content:
@@ -10568,8 +10568,8 @@ paths:
                 **Required Permissions**
 
                 Your root key must have one of the following permissions:
-                - `unkey:v1:{workspace_id}:projects/*/apps/*/environments/*/domains/*#read` (to read domains in any environment)
-                - `unkey:v1:{workspace_id}:projects/{project_id}/apps/{app_id}/environments/{environment_id}/domains/{domain_id}#read` (to read domains in a specific environment)
+                - `environment.*.read_domain` (to read domains in any environment)
+                - `environment.<environment_id>.read_domain` (to read domains in a specific environment)
             operationId: domains.getDomain
             requestBody:
                 content:
@@ -10766,7 +10766,7 @@ paths:
                                 $ref: '#/components/schemas/ForbiddenErrorResponse'
                     description: |
                         Forbidden - The root key or its workspace is disabled. A root key that simply lacks
-                        `unkey:v1:{workspace_id}:projects/*/apps/*/environments/*/domains/*#read` receives a 404 instead, so permissions cannot be used to discover
+                        `environment.*.read_domain` receives a 404 instead, so permissions cannot be used to discover
                         which domains exist.
                 "404":
                     content:
@@ -10848,7 +10848,7 @@ paths:
 
                 **Required Permissions**
 
-                Use a root key with the `unkey:v1:{workspace_id}:projects/*/apps/*/environments/*/domains/*#read` permission.
+                Use a root key with the `environment.*.read_domain` permission.
                 A successful request returns an empty list if no matching domains are readable by your key.
             operationId: domains.listDomains
             requestBody:
@@ -11137,8 +11137,8 @@ paths:
                 **Required Permissions**
 
                 Your root key must have one of the following permissions:
-                - `unkey:v1:{workspace_id}:projects/*/apps/*/environments/*/domains/*#write` (to verify domains in any environment)
-                - `unkey:v1:{workspace_id}:projects/{project_id}/apps/{app_id}/environments/{environment_id}/domains/{domain_id}#write` (to verify domains in a specific environment)
+                - `environment.*.verify_domain` (to verify domains in any environment)
+                - `environment.<environment_id>.verify_domain` (to verify domains in a specific environment)
             operationId: domains.verifyDomain
             requestBody:
                 content:
@@ -11230,7 +11230,7 @@ paths:
                                 $ref: '#/components/schemas/ForbiddenErrorResponse'
                     description: |
                         Forbidden - The root key or its workspace is disabled. A root key that only lacks
-                        `unkey:v1:{workspace_id}:projects/*/apps/*/environments/*/domains/*#write` receives a 404 instead.
+                        `environment.*.verify_domain` receives a 404 instead.
                 "404":
                     content:
                         application/json:
@@ -11319,8 +11319,8 @@ paths:
                 **Required Permissions**
 
                 Your root key must have one of the following permissions:
-                - `unkey:v1:{workspace_id}:projects/*/apps/*/environments/*#read` (to read any environment)
-                - `unkey:v1:{workspace_id}:projects/{project_id}/apps/{app_id}/environments/{environment_id}#read` (to read a specific environment)
+                - `environment.*.read_environment` (to read any environment)
+                - `environment.<environment_id>.read_environment` (to read a specific environment)
             operationId: environments.getEnvironment
             requestBody:
                 content:
@@ -11407,7 +11407,7 @@ paths:
                                     summary: Missing required permission
                                     value:
                                         error:
-                                            detail: Your root key requires the 'unkey:v1:{workspace_id}:projects/*/apps/*/environments/*#read' permission to perform this operation
+                                            detail: Your root key requires the 'environment.*.read_environment' permission to perform this operation
                                             status: 403
                                             title: Forbidden
                                             type: forbidden
@@ -11415,7 +11415,7 @@ paths:
                                             requestId: req_1234abcd
                             schema:
                                 $ref: '#/components/schemas/ForbiddenErrorResponse'
-                    description: Forbidden - Insufficient permissions (requires `unkey:v1:{workspace_id}:projects/*/apps/*/environments/*#read`)
+                    description: Forbidden - Insufficient permissions (requires `environment.*.read_environment`)
                 "404":
                     content:
                         application/json:
@@ -11467,8 +11467,8 @@ paths:
                 **Required Permissions**
 
                 Your root key must have one of the following permissions:
-                - `unkey:v1:{workspace_id}:projects/*/apps/*/environments/*/variables/*#read` (for any environment)
-                - `unkey:v1:{workspace_id}:projects/{project_id}/apps/{app_id}/environments/{environment_id}/variables/*#read` (for a specific environment)
+                - `environment.*.read_environment_variables` (for any environment)
+                - `environment.<environment_id>.read_environment_variables` (for a specific environment)
             operationId: environments.listEnvironmentVariables
             requestBody:
                 content:
@@ -11509,7 +11509,7 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/ForbiddenErrorResponse'
-                    description: Forbidden - Insufficient permissions (requires `unkey:v1:{workspace_id}:projects/*/apps/*/environments/*/variables/*#read`)
+                    description: Forbidden - Insufficient permissions (requires `environment.*.read_environment_variables`)
                 "404":
                     content:
                         application/json:
@@ -11544,7 +11544,7 @@ paths:
                 **Required Permissions**
 
                 Your root key must have the following permission:
-                - `unkey:v1:{workspace_id}:projects/*/apps/*/environments/*#read` (to read environments in any app)
+                - `environment.*.read_environment` (to read environments in any app)
             operationId: environments.listEnvironments
             requestBody:
                 content:
@@ -11658,7 +11658,7 @@ paths:
                                     summary: Missing required permission
                                     value:
                                         error:
-                                            detail: Your root key requires the 'unkey:v1:{workspace_id}:projects/*/apps/*/environments/*#read' permission to perform this operation
+                                            detail: Your root key requires the 'environment.*.read_environment' permission to perform this operation
                                             status: 403
                                             title: Forbidden
                                             type: forbidden
@@ -11666,7 +11666,7 @@ paths:
                                             requestId: req_1234abcd
                             schema:
                                 $ref: '#/components/schemas/ForbiddenErrorResponse'
-                    description: Forbidden - Insufficient permissions (requires `unkey:v1:{workspace_id}:projects/*/apps/*/environments/*#read`)
+                    description: Forbidden - Insufficient permissions (requires `environment.*.read_environment`)
                 "404":
                     content:
                         application/json:
@@ -11719,8 +11719,8 @@ paths:
                 **Required Permissions**
 
                 Your root key must have one of the following permissions:
-                - `unkey:v1:{workspace_id}:projects/*/apps/*/environments/*/variables/*#delete` (for any environment)
-                - `unkey:v1:{workspace_id}:projects/{project_id}/apps/{app_id}/environments/{environment_id}/variables/*#delete` (for a specific environment)
+                - `environment.*.remove_environment_variables` (for any environment)
+                - `environment.<environment_id>.remove_environment_variables` (for a specific environment)
             operationId: environments.removeEnvironmentVariables
             requestBody:
                 content:
@@ -11764,7 +11764,7 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/ForbiddenErrorResponse'
-                    description: Forbidden - Insufficient permissions (requires `unkey:v1:{workspace_id}:projects/*/apps/*/environments/*/variables/*#delete`)
+                    description: Forbidden - Insufficient permissions (requires `environment.*.remove_environment_variables`)
                 "404":
                     content:
                         application/json:
@@ -11813,8 +11813,8 @@ paths:
                 **Required Permissions**
 
                 Your root key must have one of the following permissions:
-                - `unkey:v1:{workspace_id}:projects/*/apps/*/environments/*/variables/*#write` (for any environment)
-                - `unkey:v1:{workspace_id}:projects/{project_id}/apps/{app_id}/environments/{environment_id}/variables/*#write` (for a specific environment)
+                - `environment.*.set_environment_variables` (for any environment)
+                - `environment.<environment_id>.set_environment_variables` (for a specific environment)
             operationId: environments.setEnvironmentVariables
             requestBody:
                 content:
@@ -11892,7 +11892,7 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/ForbiddenErrorResponse'
-                    description: Forbidden - Insufficient permissions (requires `unkey:v1:{workspace_id}:projects/*/apps/*/environments/*/variables/*#write`)
+                    description: Forbidden - Insufficient permissions (requires `environment.*.set_environment_variables`)
                 "404":
                     content:
                         application/json:
@@ -11930,8 +11930,8 @@ paths:
                 **Required Permissions**
 
                 Your root key must have one of the following permissions:
-                - `unkey:v1:{workspace_id}:projects/*/apps/*/environments/*#write` (to update any environment)
-                - `unkey:v1:{workspace_id}:projects/{project_id}/apps/{app_id}/environments/{environment_id}#write` (to update a specific environment)
+                - `environment.*.update_environment` (to update any environment)
+                - `environment.<environment_id>.update_environment` (to update a specific environment)
             operationId: environments.updateSettings
             requestBody:
                 content:
@@ -11997,7 +11997,7 @@ paths:
                                     summary: Missing required permission
                                     value:
                                         error:
-                                            detail: Your root key requires the 'unkey:v1:{workspace_id}:projects/*/apps/*/environments/*#write' permission to perform this operation
+                                            detail: Your root key requires the 'environment.*.update_environment' permission to perform this operation
                                             status: 403
                                             title: Forbidden
                                             type: forbidden
@@ -12005,7 +12005,7 @@ paths:
                                             requestId: req_1234abcd
                             schema:
                                 $ref: '#/components/schemas/ForbiddenErrorResponse'
-                    description: Forbidden - Insufficient permissions (requires `unkey:v1:{workspace_id}:projects/*/apps/*/environments/*#write`)
+                    description: Forbidden - Insufficient permissions (requires `environment.*.update_environment`)
                 "404":
                     content:
                         application/json:
@@ -12053,8 +12053,8 @@ paths:
                 **Required Permissions**
 
                 Your root key must have one of the following permissions:
-                - `unkey:v1:{workspace_id}:projects/*/apps/*/environments/*/gateway/policies/*#read` (for any environment)
-                - `unkey:v1:{workspace_id}:projects/{project_id}/apps/{app_id}/environments/{environment_id}/gateway/policies/*#read` (for a specific environment)
+                - `environment.*.read_policies` (for any environment)
+                - `environment.<environment_id>.read_policies` (for a specific environment)
             operationId: gateway.listPolicies
             requestBody:
                 content:
@@ -12093,7 +12093,7 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/ForbiddenErrorResponse'
-                    description: Forbidden - Insufficient permissions (requires `unkey:v1:{workspace_id}:projects/*/apps/*/environments/*/gateway/policies/*#read`)
+                    description: Forbidden - Insufficient permissions (requires `environment.*.read_policies`)
                 "404":
                     content:
                         application/json:
@@ -12141,8 +12141,8 @@ paths:
                 **Required Permissions**
 
                 Your root key must have one of the following permissions:
-                - `unkey:v1:{workspace_id}:projects/*/apps/*/environments/*/gateway/policies/*#write` (for any environment)
-                - `unkey:v1:{workspace_id}:projects/{project_id}/apps/{app_id}/environments/{environment_id}/gateway/policies/*#write` (for a specific environment)
+                - `environment.*.set_policies` (for any environment)
+                - `environment.<environment_id>.set_policies` (for a specific environment)
             operationId: gateway.setPolicies
             requestBody:
                 content:
@@ -12217,7 +12217,7 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/ForbiddenErrorResponse'
-                    description: Forbidden - Insufficient permissions (requires `unkey:v1:{workspace_id}:projects/*/apps/*/environments/*/gateway/policies/*#write`)
+                    description: Forbidden - Insufficient permissions (requires `environment.*.set_policies`)
                 "404":
                     content:
                         application/json:
@@ -12261,8 +12261,8 @@ paths:
                 **Required Permissions**
 
                 Your root key must have one of the following permissions:
-                - `unkey:v1:{workspace_id}:projects/*/apps/*/environments/*/gateway/policies/*#write` (for any environment)
-                - `unkey:v1:{workspace_id}:projects/{project_id}/apps/{app_id}/environments/{environment_id}/gateway/policies/{policy_id}#write` (for a specific environment)
+                - `environment.*.update_policy` (for any environment)
+                - `environment.<environment_id>.update_policy` (for a specific environment)
             operationId: gateway.updatePolicy
             requestBody:
                 content:
@@ -12329,7 +12329,7 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/ForbiddenErrorResponse'
-                    description: Forbidden - Insufficient permissions (requires `unkey:v1:{workspace_id}:projects/*/apps/*/environments/*/gateway/policies/*#write`)
+                    description: Forbidden - Insufficient permissions (requires `environment.*.update_policy`)
                 "404":
                     content:
                         application/json:
@@ -12369,7 +12369,7 @@ paths:
                 **Required Permissions**
 
                 Your root key must have the following permission:
-                - `unkey:v1:{workspace_id}:github/apps/*#write`
+                - `workspace.*.install_github`
             operationId: github.installApp
             responses:
                 "200":
@@ -12407,7 +12407,7 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/ForbiddenErrorResponse'
-                    description: Forbidden - Insufficient permissions (requires `unkey:v1:{workspace_id}:github/apps/*#write`)
+                    description: Forbidden - Insufficient permissions (requires `workspace.*.install_github`)
                 "429":
                     content:
                         application/problem+json:
@@ -12435,7 +12435,7 @@ paths:
                 Perfect for users with multiple devices, organizations with multiple API keys, or when you need unified rate limiting across different services.
 
                 **Important**
-                Requires `unkey:v1:{workspace_id}:projects/*/identities/*#write` permission
+                Requires `identity.*.create_identity` permission
             operationId: identities.createIdentity
             requestBody:
                 content:
@@ -12497,7 +12497,7 @@ paths:
                                     summary: Missing required permission
                                     value:
                                         error:
-                                            detail: Your root key requires the 'unkey:v1:{workspace_id}:projects/*/identities/*#write' permission to perform this operation
+                                            detail: Your root key requires the 'identity.*.create_identity' permission to perform this operation
                                             status: 403
                                             title: Forbidden
                                             type: forbidden
@@ -12505,7 +12505,7 @@ paths:
                                             requestId: req_0uVwX4yZaAbCdEfGhIjKl
                             schema:
                                 $ref: '#/components/schemas/ForbiddenErrorResponse'
-                    description: Forbidden - Insufficient permissions (requires `unkey:v1:{workspace_id}:projects/*/identities/*#write`)
+                    description: Forbidden - Insufficient permissions (requires `identity.*.create_identity`)
                 "409":
                     content:
                         application/json:
@@ -12549,7 +12549,7 @@ paths:
                 Use this for data cleanup, compliance requirements, or when removing entities from your system.
 
                 > **Important**
-                > Requires `unkey:v1:{workspace_id}:projects/*/identities/*#delete` permission
+                > Requires `identity.*.delete_identity` permission
                 > Associated API keys remain functional but lose shared resources
                 > External ID becomes available for reuse immediately
             operationId: identities.deleteIdentity
@@ -12597,7 +12597,7 @@ paths:
                                     summary: Missing required permission
                                     value:
                                         error:
-                                            detail: Your root key requires the 'unkey:v1:{workspace_id}:projects/*/identities/*#delete' permission to perform this operation
+                                            detail: Your root key requires the 'identity.*.delete_identity' permission to perform this operation
                                             status: 403
                                             title: Forbidden
                                             type: forbidden
@@ -12605,7 +12605,7 @@ paths:
                                             requestId: req_0uVwX4yZaAbCdEfGhIjKl
                             schema:
                                 $ref: '#/components/schemas/ForbiddenErrorResponse'
-                    description: Forbidden - Insufficient permissions (requires `unkey:v1:{workspace_id}:projects/*/identities/*#delete`)
+                    description: Forbidden - Insufficient permissions (requires `identity.*.delete_identity`)
                 "404":
                     content:
                         application/problem+json:
@@ -12649,7 +12649,7 @@ paths:
                 Use this to check if an identity exists, view configurations, or build management dashboards.
 
                 > **Important**
-                > Requires `unkey:v1:{workspace_id}:projects/*/identities/*#read` permission
+                > Requires `identity.*.read_identity` permission
             operationId: identities.getIdentity
             requestBody:
                 content:
@@ -12706,7 +12706,7 @@ paths:
                                     summary: Missing required permission
                                     value:
                                         error:
-                                            detail: Your root key requires the 'unkey:v1:{workspace_id}:projects/*/identities/*#read' permission to perform this operation
+                                            detail: Your root key requires the 'identity.*.read_identity' permission to perform this operation
                                             status: 403
                                             title: Forbidden
                                             type: forbidden
@@ -12714,7 +12714,7 @@ paths:
                                             requestId: req_0uVwX4yZaAbCdEfGhIjKl
                             schema:
                                 $ref: '#/components/schemas/ForbiddenErrorResponse'
-                    description: Forbidden - Insufficient permissions (requires `unkey:v1:{workspace_id}:projects/*/identities/*#read`)
+                    description: Forbidden - Insufficient permissions (requires `identity.*.read_identity`)
                 "404":
                     content:
                         application/json:
@@ -12758,7 +12758,7 @@ paths:
                 Perfect for building management dashboards, auditing configurations, or browsing your identities.
 
                 > **Important**
-                > Requires `unkey:v1:{workspace_id}:projects/*/identities/*#read` permission
+                > Requires `identity.*.read_identity` permission
             operationId: identities.listIdentities
             requestBody:
                 content:
@@ -12836,7 +12836,7 @@ paths:
                                     summary: Missing required permission
                                     value:
                                         error:
-                                            detail: Your root key requires the 'unkey:v1:{workspace_id}:projects/*/identities/*#read' permission to perform this operation
+                                            detail: Your root key requires the 'identity.*.read_identity' permission to perform this operation
                                             status: 403
                                             title: Forbidden
                                             type: forbidden
@@ -12844,7 +12844,7 @@ paths:
                                             requestId: req_0uVwX4yZaAbCdEfGhIjKl
                             schema:
                                 $ref: '#/components/schemas/ForbiddenErrorResponse'
-                    description: Forbidden - Insufficient permissions (requires `unkey:v1:{workspace_id}:projects/*/identities/*#read`)
+                    description: Forbidden - Insufficient permissions (requires `identity.*.read_identity`)
                 "429":
                     content:
                         application/problem+json:
@@ -12879,7 +12879,7 @@ paths:
                 Perfect for subscription changes, plan upgrades, or updating user information. Changes take effect immediately.
 
                 > **Important**
-                > Requires `unkey:v1:{workspace_id}:projects/*/identities/*#write` permission
+                > Requires `identity.*.update_identity` permission
                 > Rate limit changes propagate within 30 seconds
             operationId: identities.updateIdentity
             requestBody:
@@ -12924,7 +12924,7 @@ paths:
                                     summary: Missing required permission
                                     value:
                                         error:
-                                            detail: Your root key requires the 'unkey:v1:{workspace_id}:projects/*/identities/*#write' permission to perform this operation
+                                            detail: Your root key requires the 'identity.*.update_identity' permission to perform this operation
                                             status: 403
                                             title: Forbidden
                                             type: forbidden
@@ -12932,7 +12932,7 @@ paths:
                                             requestId: req_0uVwX4yZaAbCdEfGhIjKl
                             schema:
                                 $ref: '#/components/schemas/ForbiddenErrorResponse'
-                    description: Forbidden - Insufficient permissions (requires `unkey:v1:{workspace_id}:projects/*/identities/*#write`)
+                    description: Forbidden - Insufficient permissions (requires `identity.*.update_identity`)
                 "404":
                     content:
                         application/json:
@@ -12980,8 +12980,8 @@ paths:
                 **Required Permissions**
 
                 Your root key must have one of the following permissions:
-                - `unkey:v1:{workspace_id}:projects/*/keyspaces/*/keys/*#write` (to update keys in any API)
-                - `unkey:v1:{workspace_id}:projects/{project_id}/keyspaces/{keyspace_id}/keys/*#write` (to update keys in a specific API)
+                - `api.*.update_key` (to update keys in any API)
+                - `api.<api_id>.update_key` (to update keys in a specific API)
 
                 **Side Effects**
 
@@ -13052,8 +13052,8 @@ paths:
                 **Required Permissions**
 
                 Your root key must have one of the following permissions:
-                - `unkey:v1:{workspace_id}:projects/*/keyspaces/*/keys/*#write` (to update keys in any API)
-                - `unkey:v1:{workspace_id}:projects/{project_id}/keyspaces/{keyspace_id}/keys/*#write` (to update keys in a specific API)
+                - `api.*.update_key` (to update keys in any API)
+                - `api.<api_id>.update_key` (to update keys in a specific API)
 
                 **Side Effects**
 
@@ -13129,8 +13129,10 @@ paths:
                 **Required Permissions**
 
                 Your credential needs one of:
-                - `unkey:v1:{workspace_id}:projects/*/keyspaces/*/keys/*#write` (create keys in any API)
-                - `unkey:v1:{workspace_id}:projects/{project_id}/keyspaces/{keyspace_id}/keys/*#write` (create keys in specific API)
+                - `api.*.create_key` (create keys in any API)
+                - `api.<api_id>.create_key` (create keys in specific API)
+                - `unkey:v1:<workspace_id>:keyspaces/*#create_key` (create keys in any keyspace)
+                - `unkey:v1:<workspace_id>:keyspaces/<keyspace_id>#create_key` (create keys in a specific keyspace)
             operationId: keys.createKey
             requestBody:
                 content:
@@ -13197,8 +13199,11 @@ paths:
                 **Required Permissions**
 
                 Your credential must have one of the following permissions:
-                - `unkey:v1:{workspace_id}:projects/*/keyspaces/*/keys/*#delete` (to delete keys in any API)
-                - `unkey:v1:{workspace_id}:projects/{project_id}/keyspaces/{keyspace_id}/keys/*#delete` (to delete keys in a specific API)
+                - `api.*.delete_key` (to delete keys in any API)
+                - `api.<api_id>.delete_key` (to delete keys in a specific API)
+                - `unkey:v1:<workspace_id>:keyspaces/*/keys/*#delete_key` (to delete keys in any keyspace)
+                - `unkey:v1:<workspace_id>:keyspaces/<keyspace_id>/keys/*#delete_key` (to delete keys in a specific keyspace)
+                - `unkey:v1:<workspace_id>:keyspaces/<keyspace_id>/keys/<key_id>#delete_key` (to delete a specific key)
             operationId: keys.deleteKey
             requestBody:
                 content:
@@ -13266,11 +13271,17 @@ paths:
                 **Required Permissions**
 
                 Your credential must have one of the following permissions for basic key information:
-                - `unkey:v1:{workspace_id}:projects/*/keyspaces/*/keys/*#read` (to read keys from any API)
-                - `unkey:v1:{workspace_id}:projects/{project_id}/keyspaces/{keyspace_id}/keys/*#read` (to read keys from a specific API)
+                - `api.*.read_key` (to read keys from any API)
+                - `api.<api_id>.read_key` (to read keys from a specific API)
+                - `unkey:v1:<workspace_id>:keyspaces/*/keys/*#read_key` (to read keys in any keyspace)
+                - `unkey:v1:<workspace_id>:keyspaces/<keyspace_id>/keys/*#read_key` (to read keys in a specific keyspace)
+                - `unkey:v1:<workspace_id>:keyspaces/<keyspace_id>/keys/<key_id>#read_key` (to read a specific key)
 
                 Additional permission required for decrypt functionality:
-                - `unkey:v1:{workspace_id}:projects/*/keyspaces/*/keys/*#decrypt` or `unkey:v1:{workspace_id}:projects/{project_id}/keyspaces/{keyspace_id}/keys/*#decrypt`
+                - `api.*.decrypt_key` or `api.<api_id>.decrypt_key`
+                - `unkey:v1:<workspace_id>:keyspaces/*/keys/*#decrypt_key`
+                - `unkey:v1:<workspace_id>:keyspaces/<keyspace_id>/keys/*#decrypt_key`
+                - `unkey:v1:<workspace_id>:keyspaces/<keyspace_id>/keys/<key_id>#decrypt_key`
             operationId: keys.getKey
             requestBody:
                 content:
@@ -13333,8 +13344,8 @@ paths:
 
                 **Required Permissions**
                 Your root key must have one of the following permissions for basic key information:
-                - `unkey:v1:{workspace_id}:projects/*/keyspaces/*/keys/*#write` (to migrate keys to any API)
-                - `unkey:v1:{workspace_id}:projects/{project_id}/keyspaces/{keyspace_id}/keys/*#write` (to migrate keys to a specific API)
+                - `api.*.create_key` (to migrate keys to any API)
+                - `api.<api_id>.create_key` (to migrate keys to a specific API)
             operationId: keys.migrateKeys
             requestBody:
                 content:
@@ -13403,8 +13414,8 @@ paths:
                 **Required Permissions**
 
                 Your root key must have one of the following permissions:
-                - `unkey:v1:{workspace_id}:projects/*/keyspaces/*/keys/*#write` (to update keys in any API)
-                - `unkey:v1:{workspace_id}:projects/{project_id}/keyspaces/{keyspace_id}/keys/*#write` (to update keys in a specific API)
+                - `api.*.update_key` (to update keys in any API)
+                - `api.<api_id>.update_key` (to update keys in a specific API)
 
                 **Side Effects**
 
@@ -13475,8 +13486,8 @@ paths:
                 **Required Permissions**
 
                 Your root key must have one of the following permissions:
-                - `unkey:v1:{workspace_id}:projects/*/keyspaces/*/keys/*#write` (to update keys in any API)
-                - `unkey:v1:{workspace_id}:projects/{project_id}/keyspaces/{keyspace_id}/keys/*#write` (to update keys in a specific API)
+                - `api.*.update_key` (to update keys in any API)
+                - `api.<api_id>.update_key` (to update keys in a specific API)
 
                 **Side Effects**
 
@@ -13568,8 +13579,10 @@ paths:
                 **Required Permissions**
 
                  Your credential must have:
-                 - `unkey:v1:{workspace_id}:projects/*/keyspaces/*/keys/*#write` or `unkey:v1:{workspace_id}:projects/{project_id}/keyspaces/{keyspace_id}/keys/*#write`
-                 - `unkey:v1:{workspace_id}:projects/*/keyspaces/*/keys/*#write` or `unkey:v1:{workspace_id}:projects/{project_id}/keyspaces/{keyspace_id}/keys/*#write` (only when the original key is recoverable)
+                 - `api.*.create_key` or `api.<api_id>.create_key`
+                 - `unkey:v1:<workspace_id>:keyspaces/*#create_key` or `unkey:v1:<workspace_id>:keyspaces/<keyspace_id>#create_key`
+                 - `api.*.encrypt_key` or `api.<api_id>.encrypt_key` (only when the original key is recoverable)
+                 - `unkey:v1:<workspace_id>:keyspaces/*/keys/*#encrypt_key` or `unkey:v1:<workspace_id>:keyspaces/<keyspace_id>/keys/*#encrypt_key` (only when the original key is recoverable)
             operationId: keys.rerollKey
             requestBody:
                 content:
@@ -13636,8 +13649,8 @@ paths:
                 **Required Permissions**
 
                 Your root key must have one of the following permissions:
-                - `unkey:v1:{workspace_id}:projects/*/keyspaces/*/keys/*#write` (to update keys in any API)
-                - `unkey:v1:{workspace_id}:projects/{project_id}/keyspaces/{keyspace_id}/keys/*#write` (to update keys in a specific API)
+                - `api.*.update_key` (to update keys in any API)
+                - `api.<api_id>.update_key` (to update keys in a specific API)
 
                 **Side Effects**
 
@@ -13708,8 +13721,8 @@ paths:
                 **Required Permissions**
 
                 Your root key must have one of the following permissions:
-                - `unkey:v1:{workspace_id}:projects/*/keyspaces/*/keys/*#write` (to update keys in any API)
-                - `unkey:v1:{workspace_id}:projects/{project_id}/keyspaces/{keyspace_id}/keys/*#write` (to update keys in a specific API)
+                - `api.*.update_key` (to update keys in any API)
+                - `api.<api_id>.update_key` (to update keys in a specific API)
 
                 **Side Effects**
 
@@ -13780,8 +13793,11 @@ paths:
                 **Required Permissions**
 
                 Your credential must have one of the following permissions:
-                - `unkey:v1:{workspace_id}:projects/*/keyspaces/*/keys/*#write` (to update keys in any API)
-                - `unkey:v1:{workspace_id}:projects/{project_id}/keyspaces/{keyspace_id}/keys/*#write` (to update keys in a specific API)
+                - `api.*.update_key` (to update keys in any API)
+                - `api.<api_id>.update_key` (to update keys in a specific API)
+                - `unkey:v1:<workspace_id>:keyspaces/*/keys/*#update_key` (to update keys in any keyspace)
+                - `unkey:v1:<workspace_id>:keyspaces/<keyspace_id>/keys/*#update_key` (to update keys in a specific keyspace)
+                - `unkey:v1:<workspace_id>:keyspaces/<keyspace_id>/keys/<key_id>#update_key` (to update a specific key)
 
                 **Side Effects**
 
@@ -13853,8 +13869,11 @@ paths:
                 **Required Permissions**
 
                 Your credential must have one of the following permissions:
-                - `unkey:v1:{workspace_id}:projects/*/keyspaces/*/keys/*#write` (to update keys in any API)
-                - `unkey:v1:{workspace_id}:projects/{project_id}/keyspaces/{keyspace_id}/keys/*#write` (to update keys in a specific API)
+                - `api.*.update_key` (to update keys in any API)
+                - `api.<api_id>.update_key` (to update keys in a specific API)
+                - `unkey:v1:<workspace_id>:keyspaces/*/keys/*#update_key` (to update keys in any keyspace)
+                - `unkey:v1:<workspace_id>:keyspaces/<keyspace_id>/keys/*#update_key` (to update keys in a specific keyspace)
+                - `unkey:v1:<workspace_id>:keyspaces/<keyspace_id>/keys/<key_id>#update_key` (to update a specific key)
 
                 **Side Effects**
 
@@ -13938,8 +13957,11 @@ paths:
                 **Required Permissions**
 
                 Your credential needs one of:
-                - `unkey:v1:{workspace_id}:projects/*/keyspaces/*/keys/*#verify` (verify keys in any API)
-                - `unkey:v1:{workspace_id}:projects/{project_id}/keyspaces/{keyspace_id}/keys/*#verify` (verify keys in specific API)
+                - `api.*.verify_key` (verify keys in any API)
+                - `api.<api_id>.verify_key` (verify keys in specific API)
+                - `unkey:v1:<workspace_id>:keyspaces/*/keys/*#verify_key` (verify keys in any keyspace)
+                - `unkey:v1:<workspace_id>:keyspaces/<keyspace_id>/keys/*#verify_key` (verify keys in a specific keyspace)
+                - `unkey:v1:<workspace_id>:keyspaces/<keyspace_id>/keys/<key_id>#verify_key` (verify a specific key)
 
                 **Note**: If your credential has no verify permissions at all, you will receive a `403 Forbidden` error. If your credential has verify permissions for a different API or keyspace than the key you're verifying, you will receive a `200` response with `code: NOT_FOUND` to avoid leaking key existence.
             operationId: keys.verifyKey
@@ -14027,8 +14049,11 @@ paths:
                 **Required Permissions**
 
                 Your credential must have one of the following permissions for basic key information:
-                - `unkey:v1:{workspace_id}:projects/*/keyspaces/*/keys/*#read` (to read keys from any API)
-                - `unkey:v1:{workspace_id}:projects/{project_id}/keyspaces/{keyspace_id}/keys/*#read` (to read keys from a specific API)
+                - `api.*.read_key` (to read keys from any API)
+                - `api.<api_id>.read_key` (to read keys from a specific API)
+                - `unkey:v1:<workspace_id>:keyspaces/*/keys/*#read_key` (to read keys in any keyspace)
+                - `unkey:v1:<workspace_id>:keyspaces/<keyspace_id>/keys/*#read_key` (to read keys in a specific keyspace)
+                - `unkey:v1:<workspace_id>:keyspaces/<keyspace_id>/keys/<key_id>#read_key` (to read a specific key)
 
                 If your credential lacks permissions but the key exists, we may return a 404 status here to prevent leaking the existence of a key to unauthorized clients. If you believe that a key should exist, but receive a 404, please double check your credential has the correct permissions.
             operationId: keys.whoami
@@ -14170,7 +14195,7 @@ paths:
                 **Required Permissions**
 
                 Your root key must have the following permission:
-                - `unkey:v1:{workspace_id}:projects/*/rbac/permissions/*#write`
+                - `rbac.*.create_permission`
             operationId: permissions.createPermission
             requestBody:
                 content:
@@ -14237,13 +14262,13 @@ paths:
                 **Required Permissions**
 
                 Your root key must always have:
-                - `unkey:v1:{workspace_id}:projects/*/rbac/roles/*#write`
+                - `rbac.*.create_role`
 
                 When `permissions` is not empty, it must also have:
-                - `unkey:v1:{workspace_id}:projects/*/rbac/roles/*#write`
+                - `rbac.*.add_permission_to_role`
 
                 When any requested permission slug does not exist, it must also have:
-                - `unkey:v1:{workspace_id}:projects/*/rbac/permissions/*#write`
+                - `rbac.*.create_permission`
             operationId: permissions.createRole
             requestBody:
                 content:
@@ -14323,7 +14348,7 @@ paths:
                 **Required Permissions**
 
                 Your root key must have the following permission:
-                - `unkey:v1:{workspace_id}:projects/*/rbac/permissions/*#delete`
+                - `rbac.*.delete_permission`
             operationId: permissions.deletePermission
             requestBody:
                 content:
@@ -14395,7 +14420,7 @@ paths:
                 **Required Permissions**
 
                 Your root key must have the following permission:
-                - `unkey:v1:{workspace_id}:projects/*/rbac/roles/*#delete`
+                - `rbac.*.delete_role`
             operationId: permissions.deleteRole
             requestBody:
                 content:
@@ -14454,7 +14479,7 @@ paths:
                 **Required Permissions**
 
                 Your root key must have the following permission:
-                - `unkey:v1:{workspace_id}:projects/*/rbac/permissions/*#read`
+                - `rbac.*.read_permission`
             operationId: permissions.getPermission
             requestBody:
                 content:
@@ -14519,7 +14544,7 @@ paths:
                 **Required Permissions**
 
                 Your root key must have the following permission:
-                - `unkey:v1:{workspace_id}:projects/*/rbac/roles/*#read`
+                - `rbac.*.read_role`
             operationId: permissions.getRole
             requestBody:
                 content:
@@ -14585,7 +14610,7 @@ paths:
                 **Required Permissions**
 
                 Your root key must have the following permission:
-                - `unkey:v1:{workspace_id}:projects/*/rbac/permissions/*#read`
+                - `rbac.*.read_permission`
             operationId: permissions.listPermissions
             requestBody:
                 content:
@@ -14653,7 +14678,7 @@ paths:
                 **Required Permissions**
 
                 Your root key must have the following permission:
-                - `unkey:v1:{workspace_id}:projects/*/rbac/roles/*#read`
+                - `rbac.*.read_role`
             operationId: permissions.listRoles
             requestBody:
                 content:
@@ -14726,11 +14751,11 @@ paths:
                 **Required Permissions**
 
                 Your root key must have:
-                - `unkey:v1:{workspace_id}:projects/*/rbac/roles/*#write`
-                - `unkey:v1:{workspace_id}:projects/*/rbac/roles/*#write`
+                - `rbac.*.add_permission_to_role`
+                - `rbac.*.remove_permission_from_role`
 
                 When any requested permission slug does not exist, it must also have:
-                - `unkey:v1:{workspace_id}:projects/*/rbac/permissions/*#write`
+                - `rbac.*.create_permission`
             operationId: permissions.setRolePermissions
             requestBody:
                 content:
@@ -14801,7 +14826,7 @@ paths:
 
                 **Required Permissions**
 
-                Your root key must have `unkey:v1:{workspace_id}:projects/*/portals/*#write`. A grant scoped to a specific
+                Your root key must have `portal.*.create_portal`. A grant scoped to a specific
                 portal id does not authorize creation, because the id does not exist yet.
             operationId: portal.createPortal
             requestBody:
@@ -14883,16 +14908,16 @@ paths:
                 Authorization runs in two stages, and both must pass.
 
                 First, your root key must have one of the following permissions:
-                - `unkey:v1:{workspace_id}:projects/*/portals/*/sessions/*#write` (to mint sessions for any portal in the workspace)
-                - `unkey:v1:{workspace_id}:projects/{project_id}/portals/{portal_id}/sessions/*#write` (to mint sessions for a specific portal)
+                - `portal.*.create_portal_session` (to mint sessions for any portal in the workspace)
+                - `portal.<portal_id>.create_portal_session` (to mint sessions for a specific portal)
 
                 Second, a session can never carry a capability your root key does not itself
                 hold. Each requested scope additionally requires the equivalent permission on
                 every keyspace the portal resolves to:
-                - `keys:read` requires `unkey:v1:{workspace_id}:projects/{project_id}/keyspaces/{keyspace_id}/keys/*#read` **and** `unkey:v1:{workspace_id}:projects/{project_id}/keyspaces/{keyspace_id}#read`
-                - `keys:reroll` requires `unkey:v1:{workspace_id}:projects/{project_id}/keyspaces/{keyspace_id}/keys/*#write`, plus
-                  `unkey:v1:{workspace_id}:projects/{project_id}/keyspaces/{keyspace_id}/keys/*#write` when the keyspace stores encrypted keys
-                - `analytics:read` requires `unkey:v1:{workspace_id}:projects/{project_id}/keyspaces/{keyspace_id}/logs#read`
+                - `keys:read` requires `api.<api_id>.read_key` **and** `api.<api_id>.read_api`
+                - `keys:reroll` requires `api.<api_id>.create_key`, plus
+                  `api.<api_id>.encrypt_key` when the keyspace stores encrypted keys
+                - `analytics:read` requires `api.<api_id>.read_analytics`
 
                 The `*` form of each is also accepted. Requesting a scope you do not hold
                 returns 403 for the whole request rather than minting a reduced session, so a
@@ -14998,8 +15023,8 @@ paths:
                 **Required Permissions**
 
                 Your root key must have one of:
-                - `unkey:v1:{workspace_id}:projects/*/portals/*#delete` (to delete any portal in the workspace)
-                - `unkey:v1:{workspace_id}:projects/{project_id}/portals/{portal_id}#delete` (to delete a specific portal)
+                - `portal.*.delete_portal` (to delete any portal in the workspace)
+                - `portal.<portal_id>.delete_portal` (to delete a specific portal)
 
                 Without the permission this returns **404**, not 403.
             operationId: portal.deletePortal
@@ -15136,8 +15161,8 @@ paths:
                 **Required Permissions**
 
                 Your root key must have one of:
-                - `unkey:v1:{workspace_id}:projects/*/portals/*#read` (to read any portal in the workspace)
-                - `unkey:v1:{workspace_id}:projects/{project_id}/portals/{portal_id}#read` (to read a specific portal)
+                - `portal.*.read_portal` (to read any portal in the workspace)
+                - `portal.<portal_id>.read_portal` (to read a specific portal)
 
                 Without the permission this returns **404**, not 403.
             operationId: portal.getPortal
@@ -15366,10 +15391,10 @@ paths:
                 **Required Permissions**
 
                 Your root key must have one of:
-                - `unkey:v1:{workspace_id}:projects/*/portals/*/sessions/*#write` (for any portal in the workspace)
-                - `unkey:v1:{workspace_id}:projects/{project_id}/portals/{portal_id}/sessions/*#write` (for a specific portal)
+                - `portal.*.create_portal_session` (for any portal in the workspace)
+                - `portal.<portal_id>.create_portal_session` (for a specific portal)
 
-                It also accepts `unkey:v1:{workspace_id}:projects/{project_id}/portals/{portal_id}/sessions/*`
+                It also accepts `unkey:v1:<workspace_id>:projects/<project_id>/portals/<portal_id>/sessions/*`
                 with `#read` or `#write`. Reading the portal itself is not enough.
 
                 Without the permission this returns **404**, not 403.
@@ -15512,10 +15537,10 @@ paths:
                 **Required Permissions**
 
                 Your root key must have one of:
-                - `unkey:v1:{workspace_id}:projects/*/portals/*/sessions/*#write` (for any portal in the workspace)
-                - `unkey:v1:{workspace_id}:projects/{project_id}/portals/{portal_id}/sessions/*#write` (for a specific portal)
+                - `portal.*.create_portal_session` (for any portal in the workspace)
+                - `portal.<portal_id>.create_portal_session` (for a specific portal)
 
-                It also accepts `unkey:v1:{workspace_id}:projects/{project_id}/portals/{portal_id}/sessions/*#write`,
+                It also accepts `unkey:v1:<workspace_id>:projects/<project_id>/portals/<portal_id>/sessions/*#write`,
                 which dashboard roles carry. Unlike `portal.createSession`, a dashboard
                 session can call this, not just a root key.
 
@@ -15593,8 +15618,8 @@ paths:
                 **Required Permissions**
 
                 Your root key must have one of:
-                - `unkey:v1:{workspace_id}:projects/*/portals/*#write` (to update any portal in the workspace)
-                - `unkey:v1:{workspace_id}:projects/{project_id}/portals/{portal_id}#write` (to update a specific portal)
+                - `portal.*.update_portal` (to update any portal in the workspace)
+                - `portal.<portal_id>.update_portal` (to update a specific portal)
 
                 Without the permission this returns **404**, not 403.
             operationId: portal.updatePortal
@@ -15671,7 +15696,7 @@ paths:
                 **Required Permissions**
 
                 Your root key must have the following permission:
-                - `unkey:v1:{workspace_id}:projects/*#write` (to create projects in your workspace)
+                - `project.*.create_project` (to create projects in your workspace)
             operationId: projects.createProject
             requestBody:
                 content:
@@ -15738,7 +15763,7 @@ paths:
                                     summary: Missing required permission
                                     value:
                                         error:
-                                            detail: Your root key requires the 'unkey:v1:{workspace_id}:projects/*#write' permission to perform this operation
+                                            detail: Your root key requires the 'project.*.create_project' permission to perform this operation
                                             status: 403
                                             title: Forbidden
                                             type: forbidden
@@ -15746,7 +15771,7 @@ paths:
                                             requestId: req_1234abcd
                             schema:
                                 $ref: '#/components/schemas/ForbiddenErrorResponse'
-                    description: Forbidden - Insufficient permissions (requires `unkey:v1:{workspace_id}:projects/*#write`)
+                    description: Forbidden - Insufficient permissions (requires `project.*.create_project`)
                 "409":
                     content:
                         application/json:
@@ -15795,8 +15820,8 @@ paths:
                 **Required Permissions**
 
                 Your root key must have one of the following permissions:
-                - `unkey:v1:{workspace_id}:projects/*#delete` (to delete any project)
-                - `unkey:v1:{workspace_id}:projects/{project_id}#delete` (to delete a specific project)
+                - `project.*.delete_project` (to delete any project)
+                - `project.<project_id>.delete_project` (to delete a specific project)
             operationId: projects.deleteProject
             requestBody:
                 content:
@@ -15851,7 +15876,7 @@ paths:
                                     summary: Missing required permission
                                     value:
                                         error:
-                                            detail: Your root key requires the 'unkey:v1:{workspace_id}:projects/*#delete' permission to perform this operation
+                                            detail: Your root key requires the 'project.*.delete_project' permission to perform this operation
                                             status: 403
                                             title: Forbidden
                                             type: forbidden
@@ -15859,7 +15884,7 @@ paths:
                                             requestId: req_1234abcd
                             schema:
                                 $ref: '#/components/schemas/ForbiddenErrorResponse'
-                    description: Forbidden - Insufficient permissions (requires `unkey:v1:{workspace_id}:projects/*#delete`)
+                    description: Forbidden - Insufficient permissions (requires `project.*.delete_project`)
                 "404":
                     content:
                         application/json:
@@ -15911,8 +15936,8 @@ paths:
                 **Required Permissions**
 
                 Your root key must have one of the following permissions:
-                - `unkey:v1:{workspace_id}:projects/*#read` (to read any project)
-                - `unkey:v1:{workspace_id}:projects/{project_id}#read` (to read a specific project)
+                - `project.*.read_project` (to read any project)
+                - `project.<project_id>.read_project` (to read a specific project)
             operationId: projects.getProject
             requestBody:
                 content:
@@ -15973,7 +15998,7 @@ paths:
                                     summary: Missing required permission
                                     value:
                                         error:
-                                            detail: Your root key requires the 'unkey:v1:{workspace_id}:projects/*#read' permission to perform this operation
+                                            detail: Your root key requires the 'project.*.read_project' permission to perform this operation
                                             status: 403
                                             title: Forbidden
                                             type: forbidden
@@ -15981,7 +16006,7 @@ paths:
                                             requestId: req_1234abcd
                             schema:
                                 $ref: '#/components/schemas/ForbiddenErrorResponse'
-                    description: Forbidden - Insufficient permissions (requires `unkey:v1:{workspace_id}:projects/*#read`)
+                    description: Forbidden - Insufficient permissions (requires `project.*.read_project`)
                 "404":
                     content:
                         application/json:
@@ -16027,7 +16052,7 @@ paths:
                 **Required Permissions**
 
                 Your root key must have the following permission:
-                - `unkey:v1:{workspace_id}:projects/*#read` (to read projects in your workspace)
+                - `project.*.read_project` (to read projects in your workspace)
             operationId: projects.listProjects
             requestBody:
                 content:
@@ -16105,7 +16130,7 @@ paths:
                                     summary: Missing required permission
                                     value:
                                         error:
-                                            detail: Your root key requires the 'unkey:v1:{workspace_id}:projects/*#read' permission to perform this operation
+                                            detail: Your root key requires the 'project.*.read_project' permission to perform this operation
                                             status: 403
                                             title: Forbidden
                                             type: forbidden
@@ -16113,7 +16138,7 @@ paths:
                                             requestId: req_1234abcd
                             schema:
                                 $ref: '#/components/schemas/ForbiddenErrorResponse'
-                    description: Forbidden - Insufficient permissions (requires `unkey:v1:{workspace_id}:projects/*#read`)
+                    description: Forbidden - Insufficient permissions (requires `project.*.read_project`)
                 "429":
                     content:
                         application/problem+json:
@@ -16150,8 +16175,8 @@ paths:
                 **Required Permissions**
 
                 Your root key must have one of the following permissions:
-                - `unkey:v1:{workspace_id}:projects/*#write` (to update any project)
-                - `unkey:v1:{workspace_id}:projects/{project_id}#write` (to update a specific project)
+                - `project.*.update_project` (to update any project)
+                - `project.<project_id>.update_project` (to update a specific project)
             operationId: projects.updateProject
             requestBody:
                 content:
@@ -16214,7 +16239,7 @@ paths:
                                     summary: Missing required permission
                                     value:
                                         error:
-                                            detail: Your root key requires the 'unkey:v1:{workspace_id}:projects/*#write' permission to perform this operation
+                                            detail: Your root key requires the 'project.*.update_project' permission to perform this operation
                                             status: 403
                                             title: Forbidden
                                             type: forbidden
@@ -16222,7 +16247,7 @@ paths:
                                             requestId: req_1234abcd
                             schema:
                                 $ref: '#/components/schemas/ForbiddenErrorResponse'
-                    description: Forbidden - Insufficient permissions (requires `unkey:v1:{workspace_id}:projects/*#write`)
+                    description: Forbidden - Insufficient permissions (requires `project.*.update_project`)
                 "404":
                     content:
                         application/json:
@@ -16284,7 +16309,7 @@ paths:
 
                 **Important:** Deletion is immediate and permanent. The override cannot be recovered and must be recreated if needed again.
 
-                **Permissions:** Requires `unkey:v1:{workspace_id}:projects/*/ratelimits/namespaces/*/overrides/*#delete` or `unkey:v1:{workspace_id}:projects/{project_id}/ratelimits/namespaces/{namespace_id}/overrides/*#delete`
+                **Permissions:** Requires `ratelimit.*.delete_override` or `ratelimit.<namespace_id>.delete_override`
             operationId: ratelimit.deleteOverride
             requestBody:
                 content:
@@ -16330,7 +16355,7 @@ paths:
                                     summary: Missing required permission
                                     value:
                                         error:
-                                            detail: Your root key requires the 'unkey:v1:{workspace_id}:projects/*/ratelimits/namespaces/*/overrides/*#delete' permission to perform this operation
+                                            detail: Your root key requires the 'ratelimit.*.delete_override' permission to perform this operation
                                             status: 403
                                             title: Forbidden
                                             type: forbidden
@@ -16338,7 +16363,7 @@ paths:
                                             requestId: req_0uVwX4yZaAbCdEfGhIjKl
                             schema:
                                 $ref: '#/components/schemas/ForbiddenErrorResponse'
-                    description: Forbidden - Insufficient permissions (requires `unkey:v1:{workspace_id}:projects/*/ratelimits/namespaces/*/overrides/*#delete`)
+                    description: Forbidden - Insufficient permissions (requires `ratelimit.*.delete_override`)
                 "404":
                     content:
                         application/json:
@@ -16383,7 +16408,7 @@ paths:
 
                 **Important:** The identifier must match exactly as specified when creating the override, including wildcard patterns.
 
-                **Permissions:** Requires `unkey:v1:{workspace_id}:projects/*/ratelimits/namespaces/*/overrides/*#read` or `unkey:v1:{workspace_id}:projects/{project_id}/ratelimits/namespaces/{namespace_id}/overrides/*#read`
+                **Permissions:** Requires `ratelimit.*.read_override` or `ratelimit.<namespace_id>.read_override`
             operationId: ratelimit.getOverride
             requestBody:
                 content:
@@ -16429,7 +16454,7 @@ paths:
                                     summary: Missing required permission
                                     value:
                                         error:
-                                            detail: Your root key requires the 'unkey:v1:{workspace_id}:projects/*/ratelimits/namespaces/*/overrides/*#read' permission to perform this operation
+                                            detail: Your root key requires the 'ratelimit.*.read_override' permission to perform this operation
                                             status: 403
                                             title: Forbidden
                                             type: forbidden
@@ -16437,7 +16462,7 @@ paths:
                                             requestId: req_0uVwX4yZaAbCdEfGhIjKl
                             schema:
                                 $ref: '#/components/schemas/ForbiddenErrorResponse'
-                    description: Forbidden - Insufficient permissions (requires `unkey:v1:{workspace_id}:projects/*/ratelimits/namespaces/*/overrides/*#read`)
+                    description: Forbidden - Insufficient permissions (requires `ratelimit.*.read_override`)
                 "404":
                     content:
                         application/json:
@@ -16485,8 +16510,8 @@ paths:
                 **Required Permissions**
 
                 Your root key must have one of the following permissions:
-                - `unkey:v1:{workspace_id}:projects/*/ratelimits/namespaces/*#limit` (to check limits in any namespace)
-                - `unkey:v1:{workspace_id}:projects/{project_id}/ratelimits/namespaces/{namespace_id}#limit` (to check limits in a specific namespace)
+                - `ratelimit.*.limit` (to check limits in any namespace)
+                - `ratelimit.<namespace_id>.limit` (to check limits in a specific namespace)
             operationId: ratelimit.limit
             requestBody:
                 content:
@@ -16614,7 +16639,7 @@ paths:
 
                 **Important:** Results are paginated. Use the cursor parameter to retrieve additional pages when more results are available.
 
-                **Permissions:** Requires `unkey:v1:{workspace_id}:projects/*/ratelimits/namespaces/*/overrides/*#read` or `unkey:v1:{workspace_id}:projects/{project_id}/ratelimits/namespaces/{namespace_id}/overrides/*#read`
+                **Permissions:** Requires `ratelimit.*.read_override` or `ratelimit.<namespace_id>.read_override`
             operationId: ratelimit.listOverrides
             requestBody:
                 content:
@@ -16660,7 +16685,7 @@ paths:
                                     summary: Missing required permission
                                     value:
                                         error:
-                                            detail: Your root key requires the 'unkey:v1:{workspace_id}:projects/*/ratelimits/namespaces/*/overrides/*#read' permission to perform this operation
+                                            detail: Your root key requires the 'ratelimit.*.read_override' permission to perform this operation
                                             status: 403
                                             title: Forbidden
                                             type: forbidden
@@ -16668,7 +16693,7 @@ paths:
                                             requestId: req_0uVwX4yZaAbCdEfGhIjKl
                             schema:
                                 $ref: '#/components/schemas/ForbiddenErrorResponse'
-                    description: Forbidden - Insufficient permissions (requires `unkey:v1:{workspace_id}:projects/*/ratelimits/namespaces/*/overrides/*#read`)
+                    description: Forbidden - Insufficient permissions (requires `ratelimit.*.read_override`)
                 "404":
                     content:
                         application/json:
@@ -16713,8 +16738,8 @@ paths:
                 **Required Permissions**
 
                 Your root key must have one of the following permissions:
-                - `unkey:v1:{workspace_id}:projects/*/ratelimits/namespaces/*#limit` (to check limits in any namespace)
-                - `unkey:v1:{workspace_id}:projects/{project_id}/ratelimits/namespaces/{namespace_id}#limit` (to check limits in all specific namespaces being checked)
+                - `ratelimit.*.limit` (to check limits in any namespace)
+                - `ratelimit.<namespace_id>.limit` (to check limits in all specific namespaces being checked)
             operationId: ratelimit.multiLimit
             requestBody:
                 content:
@@ -16885,7 +16910,7 @@ paths:
 
                 **Important:** Overrides take effect immediately and completely replace the default limit for matching identifiers. Use wildcard patterns (e.g., `premium_*`) to match multiple identifiers.
 
-                **Permissions:** Requires `unkey:v1:{workspace_id}:projects/*/ratelimits/namespaces/*/overrides/*#write` or `unkey:v1:{workspace_id}:projects/{project_id}/ratelimits/namespaces/{namespace_id}/overrides/*#write`
+                **Permissions:** Requires `ratelimit.*.set_override` or `ratelimit.<namespace_id>.set_override`
             operationId: ratelimit.setOverride
             requestBody:
                 content:
@@ -16935,7 +16960,7 @@ paths:
                                     summary: Missing required permission
                                     value:
                                         error:
-                                            detail: Your root key requires the 'unkey:v1:{workspace_id}:projects/*/ratelimits/namespaces/*/overrides/*#write' permission to perform this operation
+                                            detail: Your root key requires the 'ratelimit.*.set_override' permission to perform this operation
                                             status: 403
                                             title: Forbidden
                                             type: forbidden
@@ -16943,7 +16968,7 @@ paths:
                                             requestId: req_0uVwX4yZaAbCdEfGhIjKl
                             schema:
                                 $ref: '#/components/schemas/ForbiddenErrorResponse'
-                    description: Forbidden - Insufficient permissions (requires `unkey:v1:{workspace_id}:projects/*/ratelimits/namespaces/*/overrides/*#write`)
+                    description: Forbidden - Insufficient permissions (requires `ratelimit.*.set_override`)
                 "404":
                     content:
                         application/json:
@@ -16983,7 +17008,7 @@ paths:
         post:
             description: |
                 Creates a root key for the authenticated workspace.
-                Requires `unkey:v1:{workspace_id}:rootKeys/*#write`.
+                Requires `unkey:v1:<workspace_id>:rootKeys/*#write`.
                 The created root key cannot have more permissions than the caller.
             operationId: rootKeys.createKey
             requestBody:
@@ -17031,7 +17056,7 @@ paths:
         post:
             description: |
                 Deletes a root key in the authenticated workspace.
-                Requires `unkey:v1:{workspace_id}:rootKeys/{root_key_id}#delete`.
+                Requires `unkey:v1:<workspace_id>:rootKeys/<key_id>#delete`.
                 Use `rootKeys/*#delete` to delete any root key in the workspace.
                 Deleted keys cannot authenticate.
             operationId: rootKeys.deleteKey
@@ -17094,7 +17119,7 @@ paths:
         post:
             description: |
                 Lists readable root keys in the authenticated workspace, ordered by key ID.
-                Requires `unkey:v1:{workspace_id}:rootKeys/{root_key_id}#read` for each returned key.
+                Requires `unkey:v1:<workspace_id>:rootKeys/<key_id>#read` for each returned key.
                 Use `rootKeys/*#read` to read all root keys. Write permission does not imply read.
                 A caller with no readable keys receives an empty page.
 
@@ -17158,9 +17183,9 @@ paths:
             description: |
                 Creates a new root key secret with the same name, enabled state, expiration, and
                 effective permissions as an existing root key in the authenticated workspace.
-                Requires `unkey:v1:{workspace_id}:rootKeys/{root_key_id}#write`, and the caller must
+                Requires `unkey:v1:<workspace_id>:rootKeys/<key_id>#write`, and the caller must
                 already hold every permission of the original key. When `expiration` is not null,
-                it also requires `unkey:v1:{workspace_id}:rootKeys/{root_key_id}#delete`.
+                it also requires `unkey:v1:<workspace_id>:rootKeys/<key_id>#delete`.
 
                 `expiration` controls the original key: 0 revokes it immediately, a positive value
                 keeps it valid for that many milliseconds, and null keeps its current expiration.
@@ -17224,7 +17249,7 @@ paths:
         post:
             description: |
                 Updates a root key in the authenticated workspace.
-                Requires `unkey:v1:{workspace_id}:rootKeys/{root_key_id}#write`.
+                Requires `unkey:v1:<workspace_id>:rootKeys/<key_id>#write`.
                 Use `rootKeys/*#write` to update any root key in the workspace.
 
                 `permissions` replaces the complete permission set. Each permission must be a supported URN

@@ -18,7 +18,7 @@ func deletePermissionCmd() *cli.Command {
 Important: This operation cannot be undone and immediately affects all API keys and roles that had this permission assigned.
 
 Required permissions:
-- unkey:v1:{workspace_id}:projects/*/rbac/permissions/*#delete
+- rbac.*.delete_permission
 
 For full documentation, see https://www.unkey.com/docs/api-reference/v2/permissions/delete-permission` + util.Disclaimer,
 		Examples: []string{

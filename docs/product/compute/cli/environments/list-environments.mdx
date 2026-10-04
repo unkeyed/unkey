@@ -58,7 +58,7 @@ Every `unkey api` command accepts these; [CLI output and shared flags](/platform
 
 ## Required permissions
 
-Your root key needs `unkey:v1:{workspace_id}:projects/*/apps/*/environments/*#read`.
+Your root key needs `environment.*.read_environment`.
 
 If the app doesn't exist or your key doesn't have the permission, you get the same 404: `The requested app does not exist.` See [Root key permissions](/platform/root-keys/permissions) for the full catalog.
 

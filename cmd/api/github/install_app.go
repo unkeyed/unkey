@@ -22,7 +22,7 @@ Installation is workspace-wide and takes no parameters. Once installed, link rep
 Required Permissions
 
 Your root key must have the following permission:
-- unkey:v1:{workspace_id}:github/apps/*#write
+- workspace.*.install_github
 
 ` + util.Disclaimer,
 		Examples: []string{

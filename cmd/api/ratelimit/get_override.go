@@ -19,7 +19,9 @@ Use this to inspect override configurations, audit rate limiting policies, or de
 
 Important: The identifier must match exactly as specified when creating the override, including wildcard patterns.
 
-Permissions: Requires unkey:v1:{workspace_id}:projects/*/ratelimits/namespaces/*/overrides/*#read or unkey:v1:{workspace_id}:projects/{project_id}/ratelimits/namespaces/{namespace_id}/overrides/*#read
+Required permissions:
+- ratelimit.*.read_override
+- ratelimit.<namespace_id>.read_override
 
 For full documentation, see https://www.unkey.com/docs/api-reference/v2/ratelimit/get-ratelimit-override` + util.Disclaimer,
 		Examples: []string{

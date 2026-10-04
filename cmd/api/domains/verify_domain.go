@@ -12,15 +12,15 @@ import (
 func verifyDomainCmd() *cli.Command {
 	return &cli.Command{Name: "verify-domain", Usage: "Restart verification for a custom domain.", Description: `Restart verification for a custom domain.
 
-Address the domain by its ID or by its name. Names are unique per workspace, so acme.com is enough.
+Address the domain by its ID or by its name. Names are unique per workspace, so api.acme.com is enough.
 
 Call this after correcting DNS records for a failed domain, or to give a pending domain a new 24-hour verification period. Poll domains.getDomain for the result. A domain that is already verified returns a 412.
 
 Required Permissions
-- unkey:v1:{workspace_id}:projects/*/apps/*/environments/*/domains/*#write (to verify domains in any environment)
-- unkey:v1:{workspace_id}:projects/{project_id}/apps/{app_id}/environments/{environment_id}/domains/{domain_id}#write (to verify domains in a specific environment)
+- environment.*.verify_domain (to verify domains in any environment)
+- environment.<environment_id>.verify_domain (to verify domains in a specific environment)
 
-For full documentation, see https://www.unkey.com/docs/networking/domains` + util.Disclaimer, Examples: []string{"unkey api domains verify-domain --domain=acme.com"}, Flags: []cli.Flag{cli.String("body", "Decode this JSON as the endpoint request body. Request-building flags are mutually exclusive."), util.RootKeyFlag(), util.APIURLFlag(), util.ConfigFlag(), util.OutputFlag(), cli.String("domain", "Domain ID or name.", cli.Required(), cli.MutuallyExclusive("body"))}, Action: func(ctx context.Context, cmd *cli.Command) error {
+For full documentation, see https://www.unkey.com/docs/networking/domains` + util.Disclaimer, Examples: []string{"unkey api domains verify-domain --domain=api.acme.com"}, Flags: []cli.Flag{cli.String("body", "Decode this JSON as the endpoint request body. Request-building flags are mutually exclusive."), util.RootKeyFlag(), util.APIURLFlag(), util.ConfigFlag(), util.OutputFlag(), cli.String("domain", "Domain ID or name.", cli.Required(), cli.MutuallyExclusive("body"))}, Action: func(ctx context.Context, cmd *cli.Command) error {
 		client, err := util.CreateClient(cmd)
 		if err != nil {
 			return err

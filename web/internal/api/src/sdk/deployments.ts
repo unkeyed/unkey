@@ -57,8 +57,8 @@ export class Deployments extends ClientSDK {
    * **Required Permissions**
    *
    * Your root key must have one of the following permissions:
-   * - `unkey:v1:{workspace_id}:projects/&#42;/apps/&#42;/environments/&#42;/deployments/*#read` (to read deployments in any environment)
-   * - `unkey:v1:{workspace_id}:projects/{project_id}/apps/{app_id}/environments/{environment_id}/deployments/*#read` (to read deployments in a specific environment)
+   * - `environment.*.read_deployment` (to read deployments in any environment)
+   * - `environment.<environment_id>.read_deployment` (to read deployments in a specific environment)
    */
   async getDeployment(
     request: components.V2DeploymentsGetDeploymentRequestBody,
@@ -85,7 +85,7 @@ export class Deployments extends ClientSDK {
    *
    * **Required Permissions**
    *
-   * Your root key must have the `unkey:v1:{workspace_id}:projects/&#42;/apps/&#42;/environments/&#42;/deployments/*#read` permission.
+   * Your root key must have the `environment.*.read_deployment` permission.
    * Listing spans environments, so a grant on a single environment is not
    * sufficient.
    */
@@ -127,8 +127,8 @@ export class Deployments extends ClientSDK {
    * **Required Permissions**
    *
    * Your root key must have one of the following permissions:
-   * - `unkey:v1:{workspace_id}:projects/&#42;/apps/&#42;/environments/*#write` (to promote deployments in any environment)
-   * - `unkey:v1:{workspace_id}:projects/{project_id}/apps/{app_id}/environments/{environment_id}#write` (to promote deployments in a specific environment)
+   * - `environment.*.promote_deployment` (to promote deployments in any environment)
+   * - `environment.<environment_id>.promote_deployment` (to promote deployments in a specific environment)
    */
   async promoteDeployment(
     request: components.V2DeploymentsPromoteDeploymentRequestBody,
@@ -163,8 +163,8 @@ export class Deployments extends ClientSDK {
    * **Required Permissions**
    *
    * Your root key must have one of the following permissions:
-   * - `unkey:v1:{workspace_id}:projects/&#42;/apps/&#42;/environments/*#write` (to roll back deployments in any environment)
-   * - `unkey:v1:{workspace_id}:projects/{project_id}/apps/{app_id}/environments/{environment_id}#write` (to roll back deployments in a specific environment)
+   * - `environment.*.rollback_deployment` (to roll back deployments in any environment)
+   * - `environment.<environment_id>.rollback_deployment` (to roll back deployments in a specific environment)
    */
   async rollbackDeployment(
     request: components.V2DeploymentsRollbackDeploymentRequestBody,
@@ -195,8 +195,8 @@ export class Deployments extends ClientSDK {
    * **Required Permissions**
    *
    * Your root key must have one of the following permissions:
-   * - `unkey:v1:{workspace_id}:projects/&#42;/apps/&#42;/environments/&#42;/deployments/*#write` (to start deployments in any environment)
-   * - `unkey:v1:{workspace_id}:projects/{project_id}/apps/{app_id}/environments/{environment_id}/deployments/*#write` (to start deployments in a specific environment)
+   * - `environment.*.start_deployment` (to start deployments in any environment)
+   * - `environment.<environment_id>.start_deployment` (to start deployments in a specific environment)
    */
   async startDeployment(
     request: components.V2DeploymentsStartDeploymentRequestBody,
@@ -227,8 +227,8 @@ export class Deployments extends ClientSDK {
    * **Required Permissions**
    *
    * Your root key must have one of the following permissions:
-   * - `unkey:v1:{workspace_id}:projects/&#42;/apps/&#42;/environments/&#42;/deployments/*#write` (to stop deployments in any environment)
-   * - `unkey:v1:{workspace_id}:projects/{project_id}/apps/{app_id}/environments/{environment_id}/deployments/*#write` (to stop deployments in a specific environment)
+   * - `environment.*.stop_deployment` (to stop deployments in any environment)
+   * - `environment.<environment_id>.stop_deployment` (to stop deployments in a specific environment)
    */
   async stopDeployment(
     request: components.V2DeploymentsStopDeploymentRequestBody,

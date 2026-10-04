@@ -44,8 +44,8 @@ import { Result } from "../types/fp.js";
  * **Required Permissions**
  *
  * Your root key must have one of:
- * - `unkey:v1:{workspace_id}:projects/&#42;/portals/*#delete` (to delete any portal in the workspace)
- * - `unkey:v1:{workspace_id}:projects/{project_id}/portals/{portal_id}#delete` (to delete a specific portal)
+ * - `portal.*.delete_portal` (to delete any portal in the workspace)
+ * - `portal.<portal_id>.delete_portal` (to delete a specific portal)
  *
  * Without the permission this returns **404**, not 403.
  *

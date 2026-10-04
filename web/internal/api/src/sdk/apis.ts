@@ -26,7 +26,7 @@ export class Apis extends ClientSDK {
    * **Required Permissions**
    *
    * Your root key must have one of the following permissions:
-   * - `unkey:v1:{workspace_id}:projects/&#42;/keyspaces/*#write` (to create APIs in any workspace)
+   * - `api.*.create_api` (to create APIs in any workspace)
    */
   async createApi(
     request: components.V2ApisCreateApiRequestBody,
@@ -54,8 +54,8 @@ export class Apis extends ClientSDK {
    * **Required Permissions**
    *
    * Your root key must have one of the following permissions:
-   * - `unkey:v1:{workspace_id}:projects/&#42;/keyspaces/*#delete` (to delete any API)
-   * - `unkey:v1:{workspace_id}:projects/{project_id}/keyspaces/{keyspace_id}#delete` (to delete a specific API)
+   * - `api.*.delete_api` (to delete any API)
+   * - `api.<api_id>.delete_api` (to delete a specific API)
    */
   async deleteApi(
     request: components.V2ApisDeleteApiRequestBody,
@@ -79,8 +79,8 @@ export class Apis extends ClientSDK {
    * **Required Permissions**
    *
    * Your root key must have one of the following permissions:
-   * - `unkey:v1:{workspace_id}:projects/&#42;/keyspaces/*#read` (to read any API)
-   * - `unkey:v1:{workspace_id}:projects/{project_id}/keyspaces/{keyspace_id}#read` (to read a specific API)
+   * - `api.*.read_api` (to read any API)
+   * - `api.<api_id>.read_api` (to read a specific API)
    */
   async getApi(
     request: components.V2ApisGetApiRequestBody,
@@ -106,14 +106,14 @@ export class Apis extends ClientSDK {
    * **Required Permissions**
    *
    * Your root key must have one of the following permissions for basic key listing:
-   * - `unkey:v1:{workspace_id}:projects/&#42;/keyspaces/&#42;/keys/*#read` (to read keys from any API)
-   * - `unkey:v1:{workspace_id}:projects/{project_id}/keyspaces/{keyspace_id}/keys/*#read` (to read keys from a specific API)
+   * - `api.*.read_key` (to read keys from any API)
+   * - `api.<api_id>.read_key` (to read keys from a specific API)
    *
    * Additionally, you need read access to the API itself:
-   * - `unkey:v1:{workspace_id}:projects/&#42;/keyspaces/*#read` or `unkey:v1:{workspace_id}:projects/{project_id}/keyspaces/{keyspace_id}#read`
+   * - `api.*.read_api` or `api.<api_id>.read_api`
    *
    * Additional permission required for decrypt functionality:
-   * - `unkey:v1:{workspace_id}:projects/&#42;/keyspaces/&#42;/keys/*#decrypt` or `unkey:v1:{workspace_id}:projects/{project_id}/keyspaces/{keyspace_id}/keys/*#decrypt`
+   * - `api.*.decrypt_key` or `api.<api_id>.decrypt_key`
    */
   async listKeys(
     request: components.V2ApisListKeysRequestBody,

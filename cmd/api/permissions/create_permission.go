@@ -20,7 +20,7 @@ Use hierarchical naming patterns like documents.read, admin.users.delete, or bil
 Important: Permission names must be unique within the workspace. Once created, permissions are immediately available for assignment.
 
 Required permissions:
-- unkey:v1:{workspace_id}:projects/*/rbac/permissions/*#write
+- rbac.*.create_permission
 
 For full documentation, see https://www.unkey.com/docs/api-reference/v2/permissions/create-permission` + util.Disclaimer,
 		Examples: []string{

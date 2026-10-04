@@ -10,8 +10,8 @@ post:
     **Required Permissions**
 
     Your root key must have one of the following permissions:
-    - `unkey:v1:{workspace_id}:projects/*#write` (to update any project)
-    - `unkey:v1:{workspace_id}:projects/{project_id}#write` (to update a specific project)
+    - `project.*.update_project` (to update any project)
+    - `project.<project_id>.update_project` (to update a specific project)
   operationId: projects.updateProject
   x-speakeasy-name-override: updateProject
   security:
@@ -70,7 +70,7 @@ post:
           schema:
             "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
     "403":
-      description: Forbidden - Insufficient permissions (requires `unkey:v1:{workspace_id}:projects/*#write`)
+      description: Forbidden - Insufficient permissions (requires `project.*.update_project`)
       content:
         application/json:
           schema:
@@ -83,7 +83,7 @@ post:
                   requestId: req_1234abcd
                 error:
                   title: Forbidden
-                  detail: Your root key requires the 'unkey:v1:{workspace_id}:projects/*#write' permission to perform this operation
+                  detail: Your root key requires the 'project.*.update_project' permission to perform this operation
                   status: 403
                   type: forbidden
     "404":

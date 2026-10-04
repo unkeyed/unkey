@@ -30,7 +30,7 @@ export type V2PermissionsCreateRoleRequestBody = {
    */
   description?: string | undefined;
   /**
-   * Permission slugs to attach to the role. Existing permissions are reused. Missing permissions are created automatically when the root key has `unkey:v1:{workspace_id}:projects/&#42;/rbac/permissions/*#write`.
+   * Permission slugs to attach to the role. Existing permissions are reused. Missing permissions are created automatically when the root key has `rbac.*.create_permission`.
    *
    * @remarks
    *

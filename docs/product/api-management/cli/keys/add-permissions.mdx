@@ -56,7 +56,7 @@ Every `unkey api` command takes these. See [CLI output and shared flags](/platfo
 
 ## Required permissions
 
-`unkey:v1:{workspace_id}:projects/*/keyspaces/*/keys/*#write` or `unkey:v1:{workspace_id}:projects/{project_id}/keyspaces/{keyspace_id}/keys/*#write`. Creating a new slug also needs `unkey:v1:{workspace_id}:projects/*/rbac/permissions/*#write`. See [Root key permissions](/platform/root-keys/permissions).
+`api.*.update_key` or `api.<apiId>.update_key` together with `rbac.*.add_permission_to_key`. Creating a new slug also needs `rbac.*.create_permission`. See [Root key permissions](/platform/root-keys/permissions).
 
 ## Examples
 

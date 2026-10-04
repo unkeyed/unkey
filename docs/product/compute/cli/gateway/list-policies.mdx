@@ -64,8 +64,8 @@ Every `unkey api` command accepts these; [CLI output and shared flags](/platform
 
 Your root key needs one of:
 
-- `unkey:v1:{workspace_id}:projects/*/apps/*/environments/*/gateway/policies/*#read` (any environment)
-- `unkey:v1:{workspace_id}:projects/{project_id}/apps/{app_id}/environments/{environment_id}/gateway/policies/*#read` (a specific environment)
+- `environment.*.read_policies` (any environment)
+- `environment.<environment_id>.read_policies` (a specific environment)
 
 Without a matching permission the API answers 403 and the CLI prints `Permission denied:` followed by the detail. See [Root key permissions](/platform/root-keys/permissions) for the full catalog.
 

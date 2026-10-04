@@ -31,7 +31,7 @@ import { Result } from "../types/fp.js";
  *
  * @remarks
  * Creates a root key for the authenticated workspace.
- * Requires `unkey:v1:{workspace_id}:rootKeys/*#write`.
+ * Requires `unkey:v1:<workspace_id>:rootKeys/*#write`.
  * The created root key cannot have more permissions than the caller.
  */
 export function rootKeysCreateKey(

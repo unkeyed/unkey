@@ -20,8 +20,8 @@ post:
     **Required Permissions**
 
     Your root key must have one of the following permissions:
-    - `unkey:v1:{workspace_id}:projects/*/apps/*/environments/*/domains/*#write` (to attach domains to any environment)
-    - `unkey:v1:{workspace_id}:projects/{project_id}/apps/{app_id}/environments/{environment_id}/domains/*#write` (to attach domains to a specific environment)
+    - `environment.*.create_domain` (to attach domains to any environment)
+    - `environment.<environment_id>.create_domain` (to attach domains to a specific environment)
   operationId: domains.createDomain
   x-speakeasy-name-override: createDomain
   x-unkey-idempotency: conditionally-idempotent
@@ -175,7 +175,7 @@ post:
       description: |
         Forbidden - The root key or its workspace is disabled, or the workspace has already attached as
         many custom domains as its plan allows. A root key that simply lacks
-        `unkey:v1:{workspace_id}:projects/*/apps/*/environments/*/domains/*#write` receives a 404 instead, so permissions cannot be used to discover
+        `environment.*.create_domain` receives a 404 instead, so permissions cannot be used to discover
         which environments exist.
       content:
         application/json:

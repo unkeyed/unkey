@@ -12,8 +12,8 @@ post:
     **Required Permissions**
 
     Your root key must have one of the following permissions:
-    - `unkey:v1:{workspace_id}:projects/*/apps/*#write` (to update any app)
-    - `unkey:v1:{workspace_id}:projects/{project_id}/apps/{app_id}#write` (to update a specific app)
+    - `app.*.update_app` (to update any app)
+    - `app.<app_id>.update_app` (to update a specific app)
   operationId: apps.updateApp
   x-speakeasy-name-override: updateApp
   security:
@@ -76,7 +76,7 @@ post:
           schema:
             "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
     "403":
-      description: Forbidden - Insufficient permissions (requires `unkey:v1:{workspace_id}:projects/*/apps/*#write`)
+      description: Forbidden - Insufficient permissions (requires `app.*.update_app`)
       content:
         application/json:
           schema:

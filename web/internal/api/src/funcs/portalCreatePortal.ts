@@ -43,7 +43,7 @@ import { Result } from "../types/fp.js";
  *
  * **Required Permissions**
  *
- * Your root key must have `unkey:v1:{workspace_id}:projects/&#42;/portals/*#write`. A grant scoped to a specific
+ * Your root key must have `portal.*.create_portal`. A grant scoped to a specific
  * portal id does not authorize creation, because the id does not exist yet.
  *
  * If set, this operation will use {@link Security.rootKey} from the global security.

@@ -32,9 +32,9 @@ import { Result } from "../types/fp.js";
  * @remarks
  * Creates a new root key secret with the same name, enabled state, expiration, and
  * effective permissions as an existing root key in the authenticated workspace.
- * Requires `unkey:v1:{workspace_id}:rootKeys/{root_key_id}#write`, and the caller must
+ * Requires `unkey:v1:<workspace_id>:rootKeys/<key_id>#write`, and the caller must
  * already hold every permission of the original key. When `expiration` is not null,
- * it also requires `unkey:v1:{workspace_id}:rootKeys/{root_key_id}#delete`.
+ * it also requires `unkey:v1:<workspace_id>:rootKeys/<key_id>#delete`.
  *
  * `expiration` controls the original key: 0 revokes it immediately, a positive value
  * keeps it valid for that many milliseconds, and null keeps its current expiration.

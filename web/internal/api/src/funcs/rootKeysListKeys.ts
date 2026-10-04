@@ -38,7 +38,7 @@ import {
  *
  * @remarks
  * Lists readable root keys in the authenticated workspace, ordered by key ID.
- * Requires `unkey:v1:{workspace_id}:rootKeys/{root_key_id}#read` for each returned key.
+ * Requires `unkey:v1:<workspace_id>:rootKeys/<key_id>#read` for each returned key.
  * Use `rootKeys/*#read` to read all root keys. Write permission does not imply read.
  * A caller with no readable keys receives an empty page.
  *

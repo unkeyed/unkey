@@ -16,7 +16,7 @@ func getRoleCmd() *cli.Command {
 		Description: `Retrieve details about a specific role including its assigned permissions.
 
 Required permissions:
-- unkey:v1:{workspace_id}:projects/*/rbac/roles/*#read
+- rbac.*.read_role
 
 For full documentation, see https://www.unkey.com/docs/api-reference/v2/permissions/get-role` + util.Disclaimer,
 		Examples: []string{

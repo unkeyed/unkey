@@ -22,11 +22,11 @@ Important: Set decrypt: true only in secure contexts to retrieve plaintext key v
 Required permissions:
 
 Your root key must have one of the following permissions for basic key information:
-- unkey:v1:{workspace_id}:projects/*/keyspaces/*/keys/*#read (to read keys from any API)
-- unkey:v1:{workspace_id}:projects/{project_id}/keyspaces/{keyspace_id}/keys/*#read (to read keys from a specific API)
+- api.*.read_key (to read keys from any API)
+- api.<api_id>.read_key (to read keys from a specific API)
 
 Additional permission required for decrypt functionality:
-- unkey:v1:{workspace_id}:projects/*/keyspaces/*/keys/*#decrypt or unkey:v1:{workspace_id}:projects/{project_id}/keyspaces/{keyspace_id}/keys/*#decrypt
+- api.*.decrypt_key or api.<api_id>.decrypt_key
 
 For full documentation, see https://www.unkey.com/docs/api-reference/v2/keys/get-api-key` + util.Disclaimer,
 		Examples: []string{

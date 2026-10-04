@@ -79,10 +79,10 @@ Every `unkey api` command accepts these; [CLI output and shared flags](/platform
 
 Your root key needs one of:
 
-- `unkey:v1:{workspace_id}:projects/*/apps/*#write` (apps in any project)
-- `unkey:v1:{workspace_id}:projects/{project_id}/apps/*#write` (apps in a specific project)
+- `project.*.create_app` (apps in any project)
+- `project.<project_id>.create_app` (apps in a specific project)
 
-If `--git` includes a `repository`, your key also needs `unkey:v1:{workspace_id}:projects/*/apps/*#write`. `--git='{}'` doesn't.
+If `--git` includes a `repository`, your key also needs `app.*.connect_repository`. `--git='{}'` doesn't.
 
 Without a matching permission the API answers 403 and the CLI prints `Permission denied:` followed by the detail. See [Root key permissions](/platform/root-keys/permissions) for the full catalog.
 

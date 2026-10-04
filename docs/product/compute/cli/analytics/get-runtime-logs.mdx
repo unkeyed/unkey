@@ -56,7 +56,7 @@ Every `unkey api` command accepts these; [CLI output and shared flags](/platform
 
 ## Required permissions
 
-Your root key needs `unkey:v1:{workspace_id}:projects/*/apps/*/environments/*/deployments/*/logs#read`. A grant for one project, such as `unkey:v1:{workspace_id}:projects/{project_id}/apps/*/environments/*/deployments/*/logs#read`, doesn't work here.
+Your root key needs `project.*.read_runtime_logs`. A grant for one project, such as `project.<project_id>.read_runtime_logs`, doesn't work here.
 
 Without a matching permission the API answers 403 and the CLI prints `Permission denied:` followed by the detail. See [Root key permissions](/platform/root-keys/permissions) for the full catalog.
 

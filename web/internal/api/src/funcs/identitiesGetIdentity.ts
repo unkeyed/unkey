@@ -35,7 +35,7 @@ import { Result } from "../types/fp.js";
  * Use this to check if an identity exists, view configurations, or build management dashboards.
  *
  * > **Important**
- * > Requires `unkey:v1:{workspace_id}:projects/&#42;/identities/*#read` permission
+ * > Requires `identity.*.read_identity` permission
  *
  * If set, this operation will use {@link Security.rootKey} from the global security.
  */

@@ -28,8 +28,8 @@ Common use cases:
 Required permissions:
 
 Your root key needs one of:
-- unkey:v1:{workspace_id}:projects/*/keyspaces/*/keys/*#write (create keys in any API)
-- unkey:v1:{workspace_id}:projects/{project_id}/keyspaces/{keyspace_id}/keys/*#write (create keys in specific API)
+- api.*.create_key (create keys in any API)
+- api.<api_id>.create_key (create keys in specific API)
 
 For full documentation, see https://www.unkey.com/docs/api-reference/v2/keys/create-api-key` + util.Disclaimer,
 		Examples: []string{

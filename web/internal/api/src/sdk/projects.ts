@@ -27,7 +27,7 @@ export class Projects extends ClientSDK {
    * **Required Permissions**
    *
    * Your root key must have the following permission:
-   * - `unkey:v1:{workspace_id}:projects/*#write` (to create projects in your workspace)
+   * - `project.*.create_project` (to create projects in your workspace)
    */
   async createProject(
     request: components.V2ProjectsCreateProjectRequestBody,
@@ -53,8 +53,8 @@ export class Projects extends ClientSDK {
    * **Required Permissions**
    *
    * Your root key must have one of the following permissions:
-   * - `unkey:v1:{workspace_id}:projects/*#delete` (to delete any project)
-   * - `unkey:v1:{workspace_id}:projects/{project_id}#delete` (to delete a specific project)
+   * - `project.*.delete_project` (to delete any project)
+   * - `project.<project_id>.delete_project` (to delete a specific project)
    */
   async deleteProject(
     request: components.V2ProjectsDeleteProjectRequestBody,
@@ -78,8 +78,8 @@ export class Projects extends ClientSDK {
    * **Required Permissions**
    *
    * Your root key must have one of the following permissions:
-   * - `unkey:v1:{workspace_id}:projects/*#read` (to read any project)
-   * - `unkey:v1:{workspace_id}:projects/{project_id}#read` (to read a specific project)
+   * - `project.*.read_project` (to read any project)
+   * - `project.<project_id>.read_project` (to read a specific project)
    */
   async getProject(
     request: components.V2ProjectsGetProjectRequestBody,
@@ -103,7 +103,7 @@ export class Projects extends ClientSDK {
    * **Required Permissions**
    *
    * Your root key must have the following permission:
-   * - `unkey:v1:{workspace_id}:projects/*#read` (to read projects in your workspace)
+   * - `project.*.read_project` (to read projects in your workspace)
    */
   async listProjects(
     request: components.V2ProjectsListProjectsRequestBody,
@@ -129,8 +129,8 @@ export class Projects extends ClientSDK {
    * **Required Permissions**
    *
    * Your root key must have one of the following permissions:
-   * - `unkey:v1:{workspace_id}:projects/*#write` (to update any project)
-   * - `unkey:v1:{workspace_id}:projects/{project_id}#write` (to update a specific project)
+   * - `project.*.update_project` (to update any project)
+   * - `project.<project_id>.update_project` (to update a specific project)
    */
   async updateProject(
     request: components.V2ProjectsUpdateProjectRequestBody,

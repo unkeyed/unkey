@@ -24,7 +24,7 @@ export class Github extends ClientSDK {
    * **Required Permissions**
    *
    * Your root key must have the following permission:
-   * - `unkey:v1:{workspace_id}:github/apps/*#write`
+   * - `workspace.*.install_github`
    */
   async installApp(
     options?: RequestOptions,

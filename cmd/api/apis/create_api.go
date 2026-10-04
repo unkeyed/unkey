@@ -20,7 +20,7 @@ Use this to separate production from development keys, isolate different service
 Important: API names must be unique within your workspace and cannot be changed after creation.
 
 Required permissions:
-- unkey:v1:{workspace_id}:projects/*/keyspaces/*#write (to create APIs in any workspace)
+- api.*.create_api
 
 For full documentation, see https://www.unkey.com/docs/api-reference/v2/apis/create-api-namespace` + util.Disclaimer,
 		Examples: []string{

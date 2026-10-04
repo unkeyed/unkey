@@ -56,8 +56,8 @@ Every `unkey api` command accepts these; [CLI output and shared flags](/platform
 
 Your root key needs one of:
 
-- `unkey:v1:{workspace_id}:projects/*#read` (any project)
-- `unkey:v1:{workspace_id}:projects/{project_id}#read` (a specific project)
+- `project.*.read_project` (any project)
+- `project.<project_id>.read_project` (a specific project)
 
 If the project doesn't exist or your key doesn't have the permission, you get the same 404: `The requested project does not exist.` See [Root key permissions](/platform/root-keys/permissions) for the full catalog.
 

@@ -48,7 +48,7 @@ import { Result } from "../types/fp.js";
  *
  * **Required Permissions**
  *
- * Use a root key with the `unkey:v1:{workspace_id}:projects/&#42;/apps/&#42;/environments/&#42;/domains/*#read` permission.
+ * Use a root key with the `environment.*.read_domain` permission.
  * A successful request returns an empty list if no matching domains are readable by your key.
  *
  * If set, this operation will use {@link Security.rootKey} from the global security.

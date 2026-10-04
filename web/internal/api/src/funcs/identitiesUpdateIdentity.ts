@@ -35,7 +35,7 @@ import { Result } from "../types/fp.js";
  * Perfect for subscription changes, plan upgrades, or updating user information. Changes take effect immediately.
  *
  * > **Important**
- * > Requires `unkey:v1:{workspace_id}:projects/&#42;/identities/*#write` permission
+ * > Requires `identity.*.update_identity` permission
  * > Rate limit changes propagate within 30 seconds
  *
  * If set, this operation will use {@link Security.rootKey} from the global security.

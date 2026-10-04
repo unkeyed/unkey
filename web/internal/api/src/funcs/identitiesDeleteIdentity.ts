@@ -35,7 +35,7 @@ import { Result } from "../types/fp.js";
  * Use this for data cleanup, compliance requirements, or when removing entities from your system.
  *
  * > **Important**
- * > Requires `unkey:v1:{workspace_id}:projects/&#42;/identities/*#delete` permission
+ * > Requires `identity.*.delete_identity` permission
  * > Associated API keys remain functional but lose shared resources
  * > External ID becomes available for reuse immediately
  *

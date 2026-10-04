@@ -11,8 +11,8 @@ post:
     **Required Permissions**
 
     Your root key must have one of the following permissions:
-    - `unkey:v1:{workspace_id}:projects/*/apps/*/environments/*/deployments/*#read` (to read deployments in any environment)
-    - `unkey:v1:{workspace_id}:projects/{project_id}/apps/{app_id}/environments/{environment_id}/deployments/*#read` (to read deployments in a specific environment)
+    - `environment.*.read_deployment` (to read deployments in any environment)
+    - `environment.<environment_id>.read_deployment` (to read deployments in a specific environment)
   operationId: deployments.getDeployment
   x-speakeasy-name-override: getDeployment
   security:

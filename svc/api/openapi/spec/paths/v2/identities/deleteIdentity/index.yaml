@@ -8,7 +8,7 @@ post:
     Use this for data cleanup, compliance requirements, or when removing entities from your system.
 
     > **Important**
-    > Requires `unkey:v1:{workspace_id}:projects/*/identities/*#delete` permission
+    > Requires `identity.*.delete_identity` permission
     > Associated API keys remain functional but lose shared resources
     > External ID becomes available for reuse immediately
   operationId: identities.deleteIdentity
@@ -52,7 +52,7 @@ post:
           schema:
             "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
     "403":
-      description: Forbidden - Insufficient permissions (requires `unkey:v1:{workspace_id}:projects/*/identities/*#delete`)
+      description: Forbidden - Insufficient permissions (requires `identity.*.delete_identity`)
       content:
         application/problem+json:
           schema:
@@ -65,7 +65,7 @@ post:
                   requestId: req_0uVwX4yZaAbCdEfGhIjKl
                 error:
                   title: Forbidden
-                  detail: Your root key requires the 'unkey:v1:{workspace_id}:projects/*/identities/*#delete' permission to perform this operation
+                  detail: Your root key requires the 'identity.*.delete_identity' permission to perform this operation
                   status: 403
                   type: forbidden
     "404":

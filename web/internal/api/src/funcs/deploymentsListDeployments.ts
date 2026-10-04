@@ -47,7 +47,7 @@ import {
  *
  * **Required Permissions**
  *
- * Your root key must have the `unkey:v1:{workspace_id}:projects/&#42;/apps/&#42;/environments/&#42;/deployments/*#read` permission.
+ * Your root key must have the `environment.*.read_deployment` permission.
  * Listing spans environments, so a grant on a single environment is not
  * sufficient.
  *

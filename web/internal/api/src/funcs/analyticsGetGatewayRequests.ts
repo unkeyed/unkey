@@ -31,7 +31,7 @@ import { Result } from "../types/fp.js";
  *
  * @remarks
  * A query can use only the public alias `gateway_requests_v1`. CTEs, subqueries, UNION, and EXCEPT are permitted.
- * The root key must have the `unkey:v1:{workspace_id}:projects/&#42;/apps/&#42;/environments/&#42;/gateway/logs#read` permission.
+ * The root key must have the `project.*.read_gateway_requests` permission.
  * Unkey limits each query to the workspace of the root key. To get the data for one project, app, or environment, add a filter on `project_id`, `app_id`, or `environment_id`.
  * The workspace retention period and the workspace query limits apply.
  * For the columns and more query examples, see the gateway request analytics documentation.

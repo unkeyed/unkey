@@ -18,8 +18,8 @@ func whoamiCmd() *cli.Command {
 Required permissions:
 
 Your root key must have one of the following permissions for basic key information:
-- unkey:v1:{workspace_id}:projects/*/keyspaces/*/keys/*#read (to read keys from any API)
-- unkey:v1:{workspace_id}:projects/{project_id}/keyspaces/{keyspace_id}/keys/*#read (to read keys from a specific API)
+- api.*.read_key (to read keys from any API)
+- api.<api_id>.read_key (to read keys from a specific API)
 
 If your rootkey lacks permissions but the key exists, we may return a 404 status here to prevent leaking the existance of a key to unauthorized clients. If you believe that a key should exist, but receive a 404, please double check your root key has the correct permissions.
 

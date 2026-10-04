@@ -12,7 +12,7 @@ post:
     **Required Permissions**
 
     Your root key must have the following permission:
-    - `unkey:v1:{workspace_id}:projects/*/rbac/permissions/*#write`
+    - `rbac.*.create_permission`
   operationId: permissions.createPermission
   x-speakeasy-name-override: CreatePermission
   security:

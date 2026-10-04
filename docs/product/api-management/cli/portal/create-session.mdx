@@ -69,11 +69,11 @@ Every `unkey api` command takes these. See [CLI output and shared flags](/platfo
 
 ## Required permissions
 
-`unkey:v1:{workspace_id}:portals/*/sessions/*#write` or `unkey:v1:{workspace_id}:portals/{portal_id}/sessions/*#write`. Permissions to manage a portal don't include this one. You also need the matching permission on the APIs behind the portal for each scope:
+`portal.*.create_portal_session` or `portal.<portalId>.create_portal_session`. Permissions to manage a portal don't include this one. You also need the matching permission on the APIs behind the portal for each scope:
 
-- `keys:read` needs `unkey:v1:{workspace_id}:projects/{project_id}/keyspaces/{keyspace_id}#read` and `unkey:v1:{workspace_id}:projects/{project_id}/keyspaces/{keyspace_id}/keys/*#read`.
-- `keys:reroll` needs `unkey:v1:{workspace_id}:projects/{project_id}/keyspaces/{keyspace_id}/keys/*#write`.
-- `analytics:read` needs `unkey:v1:{workspace_id}:projects/{project_id}/keyspaces/{keyspace_id}/logs#read`.
+- `keys:read` needs `read_key` and `read_api`.
+- `keys:reroll` needs `create_key`, plus `encrypt_key` when the keyspace stores recoverable keys.
+- `analytics:read` needs `read_analytics`.
 
 Without the session permission, you get a 404 as if the portal didn't exist. With it but missing a scope's permission, the whole request fails with 403. We never create a session with fewer scopes than you asked for. See [Root key permissions](/platform/root-keys/permissions).
 

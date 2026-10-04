@@ -22,8 +22,8 @@ Important: For temporary access control, use updateKey with enabled: false inste
 Required permissions:
 
 Your root key must have one of the following permissions:
-- unkey:v1:{workspace_id}:projects/*/keyspaces/*/keys/*#delete (to delete keys in any API)
-- unkey:v1:{workspace_id}:projects/{project_id}/keyspaces/{keyspace_id}/keys/*#delete (to delete keys in a specific API)
+- api.*.delete_key (to delete keys in any API)
+- api.<api_id>.delete_key (to delete keys in a specific API)
 
 For full documentation, see https://www.unkey.com/docs/api-reference/v2/keys/delete-api-keys` + util.Disclaimer,
 		Examples: []string{

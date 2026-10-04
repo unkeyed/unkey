@@ -34,8 +34,8 @@ import { Result } from "../types/fp.js";
  *
  * **Required Permissions**
  * Your root key must have one of the following permissions for basic key information:
- * - `unkey:v1:{workspace_id}:projects/&#42;/keyspaces/&#42;/keys/*#write` (to migrate keys to any API)
- * - `unkey:v1:{workspace_id}:projects/{project_id}/keyspaces/{keyspace_id}/keys/*#write` (to migrate keys to a specific API)
+ * - `api.*.create_key` (to migrate keys to any API)
+ * - `api.<api_id>.create_key` (to migrate keys to a specific API)
  *
  * If set, this operation will use {@link Security.rootKey} from the global security.
  */

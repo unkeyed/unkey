@@ -18,7 +18,7 @@ func deleteRoleCmd() *cli.Command {
 Important: This operation cannot be undone and immediately affects all API keys that had this role assigned.
 
 Required permissions:
-- unkey:v1:{workspace_id}:projects/*/rbac/roles/*#delete
+- rbac.*.delete_role
 
 For full documentation, see https://www.unkey.com/docs/api-reference/v2/permissions/delete-role` + util.Disclaimer,
 		Examples: []string{

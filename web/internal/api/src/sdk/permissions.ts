@@ -31,7 +31,7 @@ export class Permissions extends ClientSDK {
    * **Required Permissions**
    *
    * Your root key must have the following permission:
-   * - `unkey:v1:{workspace_id}:projects/&#42;/rbac/permissions/*#write`
+   * - `rbac.*.create_permission`
    */
   async createPermission(
     request: components.V2PermissionsCreatePermissionRequestBody,
@@ -55,13 +55,13 @@ export class Permissions extends ClientSDK {
    * **Required Permissions**
    *
    * Your root key must always have:
-   * - `unkey:v1:{workspace_id}:projects/&#42;/rbac/roles/*#write`
+   * - `rbac.*.create_role`
    *
    * When `permissions` is not empty, it must also have:
-   * - `unkey:v1:{workspace_id}:projects/&#42;/rbac/roles/*#write`
+   * - `rbac.*.add_permission_to_role`
    *
    * When any requested permission slug does not exist, it must also have:
-   * - `unkey:v1:{workspace_id}:projects/&#42;/rbac/permissions/*#write`
+   * - `rbac.*.create_permission`
    */
   async createRole(
     request: components.V2PermissionsCreateRoleRequestBody,
@@ -85,7 +85,7 @@ export class Permissions extends ClientSDK {
    * **Required Permissions**
    *
    * Your root key must have the following permission:
-   * - `unkey:v1:{workspace_id}:projects/&#42;/rbac/permissions/*#delete`
+   * - `rbac.*.delete_permission`
    */
   async deletePermission(
     request: components.V2PermissionsDeletePermissionRequestBody,
@@ -109,7 +109,7 @@ export class Permissions extends ClientSDK {
    * **Required Permissions**
    *
    * Your root key must have the following permission:
-   * - `unkey:v1:{workspace_id}:projects/&#42;/rbac/roles/*#delete`
+   * - `rbac.*.delete_role`
    */
   async deleteRole(
     request: components.V2PermissionsDeleteRoleRequestBody,
@@ -131,7 +131,7 @@ export class Permissions extends ClientSDK {
    * **Required Permissions**
    *
    * Your root key must have the following permission:
-   * - `unkey:v1:{workspace_id}:projects/&#42;/rbac/permissions/*#read`
+   * - `rbac.*.read_permission`
    */
   async getPermission(
     request: components.V2PermissionsGetPermissionRequestBody,
@@ -153,7 +153,7 @@ export class Permissions extends ClientSDK {
    * **Required Permissions**
    *
    * Your root key must have the following permission:
-   * - `unkey:v1:{workspace_id}:projects/&#42;/rbac/roles/*#read`
+   * - `rbac.*.read_role`
    */
   async getRole(
     request: components.V2PermissionsGetRoleRequestBody,
@@ -176,7 +176,7 @@ export class Permissions extends ClientSDK {
    * **Required Permissions**
    *
    * Your root key must have the following permission:
-   * - `unkey:v1:{workspace_id}:projects/&#42;/rbac/permissions/*#read`
+   * - `rbac.*.read_permission`
    */
   async listPermissions(
     request: components.V2PermissionsListPermissionsRequestBody,
@@ -204,7 +204,7 @@ export class Permissions extends ClientSDK {
    * **Required Permissions**
    *
    * Your root key must have the following permission:
-   * - `unkey:v1:{workspace_id}:projects/&#42;/rbac/roles/*#read`
+   * - `rbac.*.read_role`
    */
   async listRoles(
     request: components.V2PermissionsListRolesRequestBody,
@@ -228,11 +228,11 @@ export class Permissions extends ClientSDK {
    * **Required Permissions**
    *
    * Your root key must have:
-   * - `unkey:v1:{workspace_id}:projects/&#42;/rbac/roles/*#write`
-   * - `unkey:v1:{workspace_id}:projects/&#42;/rbac/roles/*#write`
+   * - `rbac.*.add_permission_to_role`
+   * - `rbac.*.remove_permission_from_role`
    *
    * When any requested permission slug does not exist, it must also have:
-   * - `unkey:v1:{workspace_id}:projects/&#42;/rbac/permissions/*#write`
+   * - `rbac.*.create_permission`
    */
   async setRolePermissions(
     request: components.V2PermissionsSetRolePermissionsRequestBodyUnion,

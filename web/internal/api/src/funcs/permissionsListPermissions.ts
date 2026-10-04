@@ -43,7 +43,7 @@ import {
  * **Required Permissions**
  *
  * Your root key must have the following permission:
- * - `unkey:v1:{workspace_id}:projects/&#42;/rbac/permissions/*#read`
+ * - `rbac.*.read_permission`
  *
  * If set, this operation will use {@link Security.rootKey} from the global security.
  */

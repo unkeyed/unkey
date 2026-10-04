@@ -12,8 +12,8 @@ post:
     **Required Permissions**
 
     Your root key must have one of the following permissions:
-    - `unkey:v1:{workspace_id}:projects/*/ratelimits/namespaces/*#limit` (to check limits in any namespace)
-    - `unkey:v1:{workspace_id}:projects/{project_id}/ratelimits/namespaces/{namespace_id}#limit` (to check limits in a specific namespace)
+    - `ratelimit.*.limit` (to check limits in any namespace)
+    - `ratelimit.<namespace_id>.limit` (to check limits in a specific namespace)
   operationId: ratelimit.limit
   x-speakeasy-name-override: limit
   security:

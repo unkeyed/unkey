@@ -39,8 +39,8 @@ import { Result } from "../types/fp.js";
  * **Required Permissions**
  *
  * Your root key must have one of the following permissions:
- * - `unkey:v1:{workspace_id}:projects/&#42;/apps/*#delete` (to delete any app)
- * - `unkey:v1:{workspace_id}:projects/{project_id}/apps/{app_id}#delete` (to delete a specific app)
+ * - `app.*.delete_app` (to delete any app)
+ * - `app.<app_id>.delete_app` (to delete a specific app)
  *
  * If set, this operation will use {@link Security.rootKey} from the global security.
  */

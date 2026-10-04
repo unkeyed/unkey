@@ -36,7 +36,7 @@ import { Result } from "../types/fp.js";
  *
  * **Important:** Overrides take effect immediately and completely replace the default limit for matching identifiers. Use wildcard patterns (e.g., `premium_*`) to match multiple identifiers.
  *
- * **Permissions:** Requires `unkey:v1:{workspace_id}:projects/&#42;/ratelimits/namespaces/&#42;/overrides/*#write` or `unkey:v1:{workspace_id}:projects/{project_id}/ratelimits/namespaces/{namespace_id}/overrides/*#write`
+ * **Permissions:** Requires `ratelimit.*.set_override` or `ratelimit.<namespace_id>.set_override`
  *
  * If set, this operation will use {@link Security.rootKey} from the global security.
  */

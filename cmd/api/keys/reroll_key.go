@@ -43,8 +43,8 @@ Important: Analytics and usage metrics are tracked at both the key level AND ide
 Required permissions:
 
 Your root key must have:
-- unkey:v1:{workspace_id}:projects/*/keyspaces/*/keys/*#write or unkey:v1:{workspace_id}:projects/{project_id}/keyspaces/{keyspace_id}/keys/*#write
-- unkey:v1:{workspace_id}:projects/*/keyspaces/*/keys/*#write or unkey:v1:{workspace_id}:projects/{project_id}/keyspaces/{keyspace_id}/keys/*#write (only when the original key is recoverable)
+- api.*.create_key or api.<api_id>.create_key
+- api.*.encrypt_key or api.<api_id>.encrypt_key (only when the original key is recoverable)
 
 For full documentation, see https://www.unkey.com/docs/api-reference/v2/keys/reroll-key` + util.Disclaimer,
 		Examples: []string{

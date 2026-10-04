@@ -9,7 +9,7 @@ post:
 
     **Important:** The identifier must match exactly as specified when creating the override, including wildcard patterns.
 
-    **Permissions:** Requires `unkey:v1:{workspace_id}:projects/*/ratelimits/namespaces/*/overrides/*#read` or `unkey:v1:{workspace_id}:projects/{project_id}/ratelimits/namespaces/{namespace_id}/overrides/*#read`
+    **Permissions:** Requires `ratelimit.*.read_override` or `ratelimit.<namespace_id>.read_override`
   operationId: ratelimit.getOverride
   x-speakeasy-name-override: getOverride
   security:
@@ -63,7 +63,7 @@ post:
           schema:
             "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
     "403":
-      description: Forbidden - Insufficient permissions (requires `unkey:v1:{workspace_id}:projects/*/ratelimits/namespaces/*/overrides/*#read`)
+      description: Forbidden - Insufficient permissions (requires `ratelimit.*.read_override`)
       content:
         application/json:
           schema:
@@ -77,7 +77,7 @@ post:
                 error:
                   title: Forbidden
                   detail:
-                    Your root key requires the 'unkey:v1:{workspace_id}:projects/*/ratelimits/namespaces/*/overrides/*#read'
+                    Your root key requires the 'ratelimit.*.read_override'
                     permission to perform this operation
                   status: 403
                   type: forbidden

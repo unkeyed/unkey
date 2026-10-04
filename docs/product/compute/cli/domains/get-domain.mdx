@@ -63,8 +63,8 @@ Every `unkey api` command accepts these; [CLI output and shared flags](/platform
 
 Your root key needs one of:
 
-- `unkey:v1:{workspace_id}:projects/*/apps/*/environments/*/domains/*#read` (any environment)
-- `unkey:v1:{workspace_id}:projects/{project_id}/apps/{app_id}/environments/{environment_id}/domains/{domain_id}#read` (a specific environment)
+- `environment.*.read_domain` (any environment)
+- `environment.<environment_id>.read_domain` (a specific environment)
 
 If the domain doesn't exist or your key doesn't have the permission, you get the same 404: `The requested domain does not exist.` See [Root key permissions](/platform/root-keys/permissions) for the full catalog.
 

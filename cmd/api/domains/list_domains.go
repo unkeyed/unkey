@@ -25,7 +25,7 @@ status: verified means the domain is verified. Unkey has configured routing and 
 
 Required Permissions
 
-Use a root key with the unkey:v1:{workspace_id}:projects/*/apps/*/environments/*/domains/*#read permission. A successful request returns an empty list if no matching domains are readable by your key.
+Use a root key with the environment.*.read_domain permission. A successful request returns an empty list if no matching domains are readable by your key.
 
 For full documentation, see https://www.unkey.com/docs/networking/domains` + util.Disclaimer,
 		Examples: []string{"unkey api domains list-domains", "unkey api domains list-domains --app=api", "unkey api domains list-domains --project=payments --app=api --environment=production --limit=25 --search=acme.com"},

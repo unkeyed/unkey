@@ -40,8 +40,8 @@ import { Result } from "../types/fp.js";
  * **Required Permissions**
  *
  * Your root key must have one of the following permissions:
- * - `unkey:v1:{workspace_id}:projects/&#42;/ratelimits/namespaces/*#limit` (to check limits in any namespace)
- * - `unkey:v1:{workspace_id}:projects/{project_id}/ratelimits/namespaces/{namespace_id}#limit` (to check limits in all specific namespaces being checked)
+ * - `ratelimit.*.limit` (to check limits in any namespace)
+ * - `ratelimit.<namespace_id>.limit` (to check limits in all specific namespaces being checked)
  *
  * If set, this operation will use {@link Security.rootKey} from the global security.
  */

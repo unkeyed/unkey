@@ -38,36 +38,8 @@ node -e '
 )
 
 test -d "${stage}/src"
-node -e '
-  const fs = require("node:fs");
-  const path = require("node:path");
-  const source = process.argv[1];
-  const destination = process.argv[2];
-  const registrationPath = path.join(destination, "hooks", "registration.ts");
-  const registration = fs.readFileSync(registrationPath);
-
-  fs.rmSync(destination, { recursive: true, force: true });
-  fs.cpSync(source, destination, { recursive: true });
-  fs.mkdirSync(path.dirname(registrationPath), { recursive: true });
-  fs.writeFileSync(registrationPath, registration);
-
-  const escapeJSDocWildcards = (directory) => {
-    for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
-      const entryPath = path.join(directory, entry.name);
-      if (entry.isDirectory()) {
-        escapeJSDocWildcards(entryPath);
-      } else if (entry.name.endsWith(".ts")) {
-        const sourceText = fs.readFileSync(entryPath, "utf8");
-        const escapedText = sourceText
-          .split("\n")
-          .map((line) => /^\s*\*/.test(line) ? line.replaceAll("* /", "&#42;/") : line)
-          .join("\n");
-        fs.writeFileSync(entryPath, escapedText);
-      }
-    }
-  };
-  escapeJSDocWildcards(destination);
-' "${stage}/src" "${target}/src"
+mkdir -p "${target}/src"
+rsync -a --delete --exclude hooks/registration.ts "${stage}/src/" "${target}/src/"
 rm -rf "${target}/esm"
 rm -rf "${stage}"
 pnpm --dir="${root}/web" --filter @unkey/api build

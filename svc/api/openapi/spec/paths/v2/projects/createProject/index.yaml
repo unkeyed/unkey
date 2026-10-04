@@ -12,7 +12,7 @@ post:
     **Required Permissions**
 
     Your root key must have the following permission:
-    - `unkey:v1:{workspace_id}:projects/*#write` (to create projects in your workspace)
+    - `project.*.create_project` (to create projects in your workspace)
   operationId: projects.createProject
   x-speakeasy-name-override: createProject
   x-unkey-idempotency: conditionally-idempotent
@@ -76,7 +76,7 @@ post:
           schema:
             "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
     "403":
-      description: Forbidden - Insufficient permissions (requires `unkey:v1:{workspace_id}:projects/*#write`)
+      description: Forbidden - Insufficient permissions (requires `project.*.create_project`)
       content:
         application/json:
           schema:
@@ -89,7 +89,7 @@ post:
                   requestId: req_1234abcd
                 error:
                   title: Forbidden
-                  detail: Your root key requires the 'unkey:v1:{workspace_id}:projects/*#write' permission to perform this operation
+                  detail: Your root key requires the 'project.*.create_project' permission to perform this operation
                   status: 403
                   type: forbidden
     "409":

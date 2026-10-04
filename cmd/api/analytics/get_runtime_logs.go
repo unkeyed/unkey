@@ -14,7 +14,7 @@ func getRuntimeLogsCmd() *cli.Command {
 		Name:  "get-runtime-logs",
 		Usage: "Query runtime log data",
 		Description: `A query can use only the public alias runtime_logs_v1. CTEs, subqueries, UNION, and EXCEPT are permitted.
-The root key must have the unkey:v1:{workspace_id}:projects/*/apps/*/environments/*/deployments/*/logs#read permission.
+The root key must have the project.*.read_runtime_logs permission.
 Unkey limits each query to the workspace of the root key. To get the logs of one project, app, environment, or deployment, add a filter on project_id, app_id, environment_id, or deployment_id.
 The workspace retention period and the workspace query limits apply.
 

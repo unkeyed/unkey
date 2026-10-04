@@ -10,7 +10,7 @@ post:
     **Required Permissions**
 
     Your root key must have the following permission:
-    - `unkey:v1:{workspace_id}:projects/*/rbac/roles/*#delete`
+    - `rbac.*.delete_role`
   operationId: permissions.deleteRole
   x-speakeasy-name-override: DeleteRole
   security:

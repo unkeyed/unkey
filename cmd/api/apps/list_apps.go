@@ -15,7 +15,7 @@ func listAppsCmd() *cli.Command {
 Use this to enumerate every app in a project. Results are ordered by app id and paginated; when hasMore is true, pass the returned cursor to fetch the next page.
 
 Required Permissions
-- unkey:v1:{workspace_id}:projects/*/apps/*#read (to read apps in any project)
+- app.*.read_app (to read apps in any project)
 
 For full documentation, see https://www.unkey.com/docs/api-reference/v2/apps/list-apps` + util.Disclaimer, Examples: []string{"unkey api apps list-apps --project=payments", "unkey api apps list-apps --project=payments --limit=25 --search=checkout"}, Flags: []cli.Flag{cli.String("body", "Decode this JSON as the endpoint request body. Request-building flags are mutually exclusive."), util.RootKeyFlag(), util.APIURLFlag(), util.ConfigFlag(), util.OutputFlag(), cli.String("project", "Project ID or slug.", cli.Required(), cli.MutuallyExclusive("body")), cli.Int64("limit", "Maximum number of apps to return per request.", cli.Default(int64(100)), cli.MutuallyExclusive("body")), cli.String("cursor", "Pagination cursor from a previous response.", cli.MutuallyExclusive("body")), cli.String("search", "Free-form text to filter apps.", cli.MutuallyExclusive("body"))}, Action: func(ctx context.Context, cmd *cli.Command) error {
 		client, err := util.CreateClient(cmd)

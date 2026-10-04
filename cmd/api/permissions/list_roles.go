@@ -17,7 +17,7 @@ func listRolesCmd() *cli.Command {
 Results are paginated and sorted by their id.
 
 Required permissions:
-- unkey:v1:{workspace_id}:projects/*/rbac/roles/*#read
+- rbac.*.read_role
 
 For full documentation, see https://www.unkey.com/docs/api-reference/v2/permissions/list-roles` + util.Disclaimer,
 		Examples: []string{

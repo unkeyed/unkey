@@ -19,8 +19,8 @@ The full policy list is returned in a single response.
 Required Permissions
 
 Your root key must have one of the following permissions:
-- unkey:v1:{workspace_id}:projects/*/apps/*/environments/*/gateway/policies/*#read (for any environment)
-- unkey:v1:{workspace_id}:projects/{project_id}/apps/{app_id}/environments/{environment_id}/gateway/policies/*#read (for a specific environment)
+- environment.*.read_policies (for any environment)
+- environment.<environment_id>.read_policies (for a specific environment)
 
 For full documentation, see https://www.unkey.com/docs/api-reference/gateway/list-policies` + util.Disclaimer,
 		Examples: []string{"unkey api gateway list-policies --project=payments --app=payments-api --environment=production"},

@@ -19,8 +19,8 @@ func migrateKeysCmd() *cli.Command {
 Required permissions:
 
 Your root key must have one of the following permissions for basic key information:
-- unkey:v1:{workspace_id}:projects/*/keyspaces/*/keys/*#write (to migrate keys to any API)
-- unkey:v1:{workspace_id}:projects/{project_id}/keyspaces/{keyspace_id}/keys/*#write (to migrate keys to a specific API)
+- api.*.create_key (to migrate keys to any API)
+- api.<api_id>.create_key (to migrate keys to a specific API)
 
 For full documentation, see https://www.unkey.com/docs/api-reference/v2/keys/migrate-api-keys` + util.Disclaimer,
 		Examples: []string{

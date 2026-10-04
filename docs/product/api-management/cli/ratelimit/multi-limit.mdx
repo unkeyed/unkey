@@ -54,7 +54,7 @@ Every `unkey api` command takes these. See [CLI output and shared flags](/platfo
 
 ## Required permissions
 
-`unkey:v1:{workspace_id}:projects/*/ratelimits/namespaces/*#limit`, or `unkey:v1:{workspace_id}:projects/{project_id}/ratelimits/namespaces/{namespace_id}#limit` for every namespace in the request. See [Root key permissions](/platform/root-keys/permissions).
+`ratelimit.*.limit`, or `ratelimit.<namespace_id>.limit` for every namespace in the request. Namespaces created on first use also need `ratelimit.*.create_namespace`. See [Root key permissions](/platform/root-keys/permissions).
 
 ## Examples
 

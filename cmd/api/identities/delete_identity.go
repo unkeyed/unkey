@@ -18,7 +18,7 @@ func deleteIdentityCmd() *cli.Command {
 Use this for data cleanup, compliance requirements, or when removing entities from your system.
 
 Important:
-- Requires unkey:v1:{workspace_id}:projects/*/identities/*#delete permission
+- Requires identity.*.delete_identity permission
 - Associated API keys remain functional but lose shared resources
 - External ID becomes available for reuse immediately
 

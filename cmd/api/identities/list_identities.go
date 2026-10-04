@@ -17,7 +17,7 @@ func listIdentitiesCmd() *cli.Command {
 
 Perfect for building management dashboards, auditing configurations, or browsing your identities.
 
-Important: Requires unkey:v1:{workspace_id}:projects/*/identities/*#read permission
+Important: Requires identity.*.read_identity permission
 
 For full documentation, see https://www.unkey.com/docs/api-reference/v2/identities/list-identities` + util.Disclaimer,
 		Examples: []string{

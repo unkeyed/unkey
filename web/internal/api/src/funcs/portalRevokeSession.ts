@@ -46,10 +46,10 @@ import { Result } from "../types/fp.js";
  * **Required Permissions**
  *
  * Your root key must have one of:
- * - `unkey:v1:{workspace_id}:projects/&#42;/portals/&#42;/sessions/*#write` (for any portal in the workspace)
- * - `unkey:v1:{workspace_id}:projects/{project_id}/portals/{portal_id}/sessions/*#write` (for a specific portal)
+ * - `portal.*.create_portal_session` (for any portal in the workspace)
+ * - `portal.<portal_id>.create_portal_session` (for a specific portal)
  *
- * It also accepts `unkey:v1:{workspace_id}:projects/{project_id}/portals/{portal_id}/sessions/*#write`,
+ * It also accepts `unkey:v1:<workspace_id>:projects/<project_id>/portals/<portal_id>/sessions/*#write`,
  * which dashboard roles carry. Unlike `portal.createSession`, a dashboard
  * session can call this, not just a root key.
  *

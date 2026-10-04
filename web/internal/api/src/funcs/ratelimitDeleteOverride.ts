@@ -36,7 +36,7 @@ import { Result } from "../types/fp.js";
  *
  * **Important:** Deletion is immediate and permanent. The override cannot be recovered and must be recreated if needed again.
  *
- * **Permissions:** Requires `unkey:v1:{workspace_id}:projects/&#42;/ratelimits/namespaces/&#42;/overrides/*#delete` or `unkey:v1:{workspace_id}:projects/{project_id}/ratelimits/namespaces/{namespace_id}/overrides/*#delete`
+ * **Permissions:** Requires `ratelimit.*.delete_override` or `ratelimit.<namespace_id>.delete_override`
  *
  * If set, this operation will use {@link Security.rootKey} from the global security.
  */

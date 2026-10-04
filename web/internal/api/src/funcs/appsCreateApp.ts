@@ -41,8 +41,8 @@ import { Result } from "../types/fp.js";
  * **Required Permissions**
  *
  * Your root key must have one of the following permissions:
- * - `unkey:v1:{workspace_id}:projects/&#42;/apps/*#write` (to create apps in any project)
- * - `unkey:v1:{workspace_id}:projects/{project_id}/apps/*#write` (to create apps in a specific project)
+ * - `project.*.create_app` (to create apps in any project)
+ * - `project.<project_id>.create_app` (to create apps in a specific project)
  *
  * If set, this operation will use {@link Security.rootKey} from the global security.
  */

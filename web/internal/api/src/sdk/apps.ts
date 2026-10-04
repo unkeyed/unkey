@@ -29,8 +29,8 @@ export class Apps extends ClientSDK {
    * **Required Permissions**
    *
    * Your root key must have one of the following permissions:
-   * - `unkey:v1:{workspace_id}:projects/&#42;/apps/*#write` (to create apps in any project)
-   * - `unkey:v1:{workspace_id}:projects/{project_id}/apps/*#write` (to create apps in a specific project)
+   * - `project.*.create_app` (to create apps in any project)
+   * - `project.<project_id>.create_app` (to create apps in a specific project)
    */
   async createApp(
     request: components.V2AppsCreateAppRequestBodyUnion,
@@ -56,8 +56,8 @@ export class Apps extends ClientSDK {
    * **Required Permissions**
    *
    * Your root key must have one of the following permissions:
-   * - `unkey:v1:{workspace_id}:projects/&#42;/apps/*#delete` (to delete any app)
-   * - `unkey:v1:{workspace_id}:projects/{project_id}/apps/{app_id}#delete` (to delete a specific app)
+   * - `app.*.delete_app` (to delete any app)
+   * - `app.<app_id>.delete_app` (to delete a specific app)
    */
   async deleteApp(
     request: components.V2AppsDeleteAppRequestBody,
@@ -81,8 +81,8 @@ export class Apps extends ClientSDK {
    * **Required Permissions**
    *
    * Your root key must have one of the following permissions:
-   * - `unkey:v1:{workspace_id}:projects/&#42;/apps/*#read` (to read any app)
-   * - `unkey:v1:{workspace_id}:projects/{project_id}/apps/{app_id}#read` (to read a specific app)
+   * - `app.*.read_app` (to read any app)
+   * - `app.<app_id>.read_app` (to read a specific app)
    */
   async getApp(
     request: components.V2AppsGetAppRequestBody,
@@ -106,7 +106,7 @@ export class Apps extends ClientSDK {
    * **Required Permissions**
    *
    * Your root key must have the following permission:
-   * - `unkey:v1:{workspace_id}:projects/&#42;/apps/*#read` (to read apps in any project)
+   * - `app.*.read_app` (to read apps in any project)
    */
   async listApps(
     request: components.V2AppsListAppsRequestBody,
@@ -134,8 +134,8 @@ export class Apps extends ClientSDK {
    * **Required Permissions**
    *
    * Your root key must have one of the following permissions:
-   * - `unkey:v1:{workspace_id}:projects/&#42;/apps/*#write` (to update any app)
-   * - `unkey:v1:{workspace_id}:projects/{project_id}/apps/{app_id}#write` (to update a specific app)
+   * - `app.*.update_app` (to update any app)
+   * - `app.<app_id>.update_app` (to update a specific app)
    */
   async updateApp(
     request: components.V2AppsUpdateAppRequestBody,

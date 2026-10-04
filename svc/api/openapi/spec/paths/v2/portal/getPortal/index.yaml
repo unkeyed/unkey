@@ -14,8 +14,8 @@ post:
     **Required Permissions**
 
     Your root key must have one of:
-    - `unkey:v1:{workspace_id}:projects/*/portals/*#read` (to read any portal in the workspace)
-    - `unkey:v1:{workspace_id}:projects/{project_id}/portals/{portal_id}#read` (to read a specific portal)
+    - `portal.*.read_portal` (to read any portal in the workspace)
+    - `portal.<portal_id>.read_portal` (to read a specific portal)
 
     Without the permission this returns **404**, not 403.
   operationId: portal.getPortal
