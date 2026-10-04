@@ -20,7 +20,6 @@ import (
 	"fmt"
 
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/unkeyed/unkey/pkg/zen"
 )
 
@@ -45,7 +44,7 @@ func NewWithRegistry(reg *prometheus.Registry) (*zen.Server, error) {
 		return nil, err
 	}
 
-	h := promhttp.HandlerFor(reg, promhttp.HandlerOpts{})
+	h := Handler(reg)
 
 	z.RegisterRoute([]zen.Middleware{}, zen.NewRoute("GET", "/metrics", func(ctx context.Context, s *zen.Session) error {
 		h.ServeHTTP(s.ResponseWriter(), s.Request())
