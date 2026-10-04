@@ -22,7 +22,8 @@
 // # Recovery
 //
 // An empty token starts a copy of matching rows followed by live changes.
-// Watch sends FIELD and ROW changes and checkpoint tokens in order. It does not
+// Watch sends FIELD and ROW changes and checkpoint tokens in order, reports when
+// the copy has finished, and reports heartbeats from an idle stream. It does not
 // save progress or retry automatically. The consumer must save a checkpoint
 // only after applying all earlier changes, then supply that token on reconnect.
 // A successful relay send does not mean the consumer has applied the change.

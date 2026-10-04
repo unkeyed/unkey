@@ -5,6 +5,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
+	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
@@ -13,12 +15,12 @@ func TestDeploymentRowToState_Running(t *testing.T) {
 		DesiredStatus:          db.DeploymentTopologyDesiredStatusRunning,
 		AutoscalingReplicasMin: 1,
 		AutoscalingReplicasMax: 3,
-		ID:                     "deploy_123",
+		ID:                     uid.New(uid.DeploymentPrefix),
 		K8sName:                "my-app",
-		WorkspaceID:            "ws_1",
-		ProjectID:              "prj_1",
-		EnvironmentID:          "env_1",
-		AppID:                  "app_1",
+		WorkspaceID:            uid.New(uid.WorkspacePrefix),
+		ProjectID:              uid.New(uid.ProjectPrefix),
+		EnvironmentID:          uid.New(uid.EnvironmentPrefix),
+		AppID:                  uid.New(uid.AppPrefix),
 		ImageResolved:          sql.NullString{Valid: true, String: "registry.io/app:v1"},
 		CpuMillicores:          250,
 		MemoryMib:              256,
@@ -35,7 +37,7 @@ func TestDeploymentRowToState_Running(t *testing.T) {
 
 	apply := state.GetApply()
 	require.NotNil(t, apply, "running status should produce an ApplyDeployment")
-	require.Equal(t, "deploy_123", apply.GetDeploymentId())
+	require.Equal(t, row.ID, apply.GetDeploymentId())
 	require.Equal(t, "my-app", apply.GetK8SName())
 	require.Equal(t, "ws-namespace", apply.GetK8SNamespace())
 	require.Equal(t, "registry.io/app:v1", apply.GetImage())
@@ -59,4 +61,29 @@ func TestDeploymentRowToState_Stopped(t *testing.T) {
 	require.NotNil(t, del, "stopped status should produce a DeleteDeployment")
 	require.Equal(t, "my-app", del.GetK8SName())
 	require.Equal(t, "ws-namespace", del.GetK8SNamespace())
+}
+
+func TestDeploymentRowToState_PrivateNetworking(t *testing.T) {
+	for _, tt := range []struct {
+		name     string
+		enrolled bool
+		slug     string
+		want     string
+	}{
+		{name: "enrolled", enrolled: true, slug: "api", want: "api.unkey.internal"},
+		{name: "not_enrolled", enrolled: false, slug: "api", want: ""},
+		{name: "enrolled_invalid_slug", enrolled: true, slug: "Bad_Slug", want: ""},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			state, err := deploymentRowToState(db.ListAllDeploymentTopologiesByRegionRow{
+				TopologyDesiredStatus:  db.DeploymentTopologyDesiredStatusRunning,
+				DeploymentID:           uid.New(uid.DeploymentPrefix),
+				AppSlug:                tt.slug,
+				DeploymentCapabilities: mysqltype.DeploymentCapabilities{PrivateNetworking: tt.enrolled},
+			})
+			require.NoError(t, err)
+			require.Equal(t, tt.want, state.GetApply().GetPrivateNetworkReplicaHost())
+			require.Equal(t, tt.want != "", state.GetApply().GetPrivateNetworking(), "private networking is enabled exactly when the replica host is set")
+		})
+	}
 }

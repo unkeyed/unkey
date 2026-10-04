@@ -389,6 +389,14 @@ type Querier interface {
 	//  LEFT JOIN connection_app_targets t ON t.connection_id = b.id
 	//  WHERE p.id = ?
 	DeleteProjectById(ctx context.Context, id string) error
+	// Removes the given regions and their clusters. Integration tests that commit
+	// regions to the shared database call this; production never deletes a region.
+	//
+	//  DELETE r, c
+	//  FROM regions r
+	//  LEFT JOIN clusters c ON c.region_id = r.id
+	//  WHERE r.id IN (/*SLICE:ids*/?)
+	DeleteRegionsWithClusters(ctx context.Context, ids []string) error
 	// Removes the given workspaces along with everything scoped to them.
 	//
 	// Integration tests share one MySQL container across test processes and across
@@ -806,6 +814,9 @@ type Querier interface {
 	//      d.healthcheck,
 	//      w.k8s_namespace,
 	//      e.slug AS environment_slug,
+	//      e.kind AS environment_kind,
+	//      COALESCE(a.slug, '') AS app_slug,
+	//      d.capabilities,
 	//      r.name AS region_name,
 	//      grc.repository_full_name AS git_repo
 	//  FROM `deployment_topology` dt
@@ -813,6 +824,7 @@ type Querier interface {
 	//  INNER JOIN `workspaces` w ON w.id = d.workspace_id
 	//  INNER JOIN `regions` r ON r.id = dt.region_id
 	//  INNER JOIN `environments` e ON e.id = d.environment_id
+	//  LEFT JOIN `apps` a ON a.id = d.app_id
 	//  LEFT JOIN `github_repo_connections` grc ON grc.app_id = d.app_id
 	//  WHERE dt.deployment_id = ? AND dt.region_id = ?
 	//  LIMIT 1
@@ -1860,6 +1872,9 @@ type Querier interface {
 	//      d.healthcheck AS deployment_healthcheck,
 	//      w.k8s_namespace,
 	//      e.slug AS environment_slug,
+	//      e.kind AS environment_kind,
+	//      COALESCE(a.slug, '') AS app_slug,
+	//      d.capabilities AS deployment_capabilities,
 	//      r.name AS region_name,
 	//      grc.repository_full_name AS git_repo
 	//  FROM `deployment_topology` dt
@@ -1867,6 +1882,7 @@ type Querier interface {
 	//  INNER JOIN `workspaces` w ON w.id = d.workspace_id
 	//  INNER JOIN `regions` r ON r.id = dt.region_id
 	//  INNER JOIN `environments` e ON e.id = d.environment_id
+	//  LEFT JOIN `apps` a ON a.id = d.app_id
 	//  LEFT JOIN `github_repo_connections` grc ON grc.app_id = d.app_id
 	//  WHERE r.id = ? AND dt.pk > ? AND dt.desired_status = 'running'
 	//  ORDER BY dt.pk ASC
@@ -1952,6 +1968,10 @@ type Querier interface {
 	//  WHERE b.stripe_customer_id IS NOT NULL
 	//    AND b.stripe_customer_id <> ''
 	ListDeployBillingCustomers(ctx context.Context) ([]ListDeployBillingCustomersRow, error)
+	//ListDeploymentAppIds
+	//
+	//  SELECT id, app_id FROM deployments WHERE id IN (/*SLICE:ids*/?)
+	ListDeploymentAppIds(ctx context.Context, ids []string) ([]ListDeploymentAppIdsRow, error)
 	// ListDeploymentConnectionsByDeploymentId returns the connections a deployment
 	// saved with their app targets. Only tests use it.
 	//
@@ -2115,6 +2135,175 @@ type Querier interface {
 	//  ORDER BY pk ASC
 	//  LIMIT ?
 	ListPreviewEnvironments(ctx context.Context, arg ListPreviewEnvironmentsParams) ([]Environment, error)
+	// ListPrivateNetworkClusters supplies cell identities for DNS locality.
+	// Clusters without a cell ID cannot identify imported EndpointSlices.
+	//
+	//  SELECT c.cell_id, r.platform, r.name AS region
+	//  FROM clusters c
+	//  INNER JOIN regions r ON r.id = c.region_id
+	//  WHERE r.platform = ?
+	//      AND c.cell_id IS NOT NULL
+	//  ORDER BY c.cell_id
+	ListPrivateNetworkClusters(ctx context.Context, platform string) ([]ListPrivateNetworkClustersRow, error)
+	// ListPrivateNetworkConnections returns the directed app connections saved by
+	// the given caller deployments, with the target deployment each connection
+	// selects now. The target is empty unless that deployment is ready on the
+	// platform. Names starting with unkey and the caller app's own slug are
+	// reserved. Callers must come from ListPrivateNetworkReplicas in the same
+	// transaction, which decides which deployments are active callers.
+	// Rows are paged by (caller deployment, connection) in the order of
+	// deployment_connections' unique (deployment_id, connection_id) index, so the
+	// LIMIT bounds both the rows read and the rows returned.
+	//
+	//  WITH connection_candidates AS (
+	//      SELECT
+	//          b.connection_id,
+	//          b.name AS connection_name,
+	//          b.workspace_id,
+	//          b.project_id,
+	//          b.resource_id AS target_app_id,
+	//          target_app.slug AS target_app_slug,
+	//          w.k8s_namespace,
+	//          caller.id AS caller_deployment_id,
+	//          CASE
+	//              WHEN t.selection_mode = 'deployment' THEN t.target_deployment_id
+	//              WHEN t.selection_mode = 'automatic'
+	//                  AND caller_env.kind = 'production'
+	//                  THEN target_app.current_deployment_id
+	//              WHEN t.selection_mode = 'automatic'
+	//                  AND caller.source = 'git'
+	//                  AND COALESCE(caller.git_branch, '') <> ''
+	//                  THEN (
+	//                  SELECT candidate.id
+	//                  FROM deployments candidate
+	//                  INNER JOIN environments candidate_env ON candidate_env.id = candidate.environment_id
+	//                      AND candidate_env.app_id = candidate.app_id
+	//                  WHERE candidate.app_id = b.resource_id
+	//                      AND candidate.workspace_id = b.workspace_id
+	//                      AND candidate.project_id = b.project_id
+	//                      AND candidate_env.kind = 'preview'
+	//                      AND candidate.source = 'git'
+	//                      AND candidate.git_branch = caller.git_branch
+	//                      AND COALESCE(candidate.fork_repository_full_name, '') = COALESCE(caller.fork_repository_full_name, '')
+	//                      AND candidate.first_ready_at IS NOT NULL
+	//                  ORDER BY candidate.created_at DESC, candidate.id DESC
+	//                  LIMIT 1
+	//              )
+	//              WHEN t.selection_mode = 'environment' THEN COALESCE(
+	//                  (
+	//                      SELECT live.id
+	//                      FROM deployments live
+	//                      INNER JOIN environments live_env ON live_env.id = live.environment_id
+	//                          AND live_env.app_id = live.app_id
+	//                      WHERE live.id = target_app.current_deployment_id
+	//                          AND live.environment_id = t.target_environment_id
+	//                  ),
+	//                  (
+	//                      SELECT candidate.id
+	//                      FROM deployments candidate
+	//                      WHERE candidate.app_id = b.resource_id
+	//                          AND candidate.environment_id = t.target_environment_id
+	//                          AND candidate.workspace_id = b.workspace_id
+	//                          AND candidate.project_id = b.project_id
+	//                          AND candidate.first_ready_at IS NOT NULL
+	//                          AND EXISTS (
+	//                              SELECT 1 FROM environments target_env
+	//                              WHERE target_env.id = t.target_environment_id
+	//                                  AND target_env.app_id = b.resource_id
+	//                                  AND target_env.kind = 'preview'
+	//                          )
+	//                      ORDER BY candidate.created_at DESC, candidate.id DESC
+	//                      LIMIT 1
+	//                  )
+	//              )
+	//          END AS selected_deployment_id
+	//      FROM deployment_connections b
+	//      STRAIGHT_JOIN deployments caller ON caller.id = b.deployment_id
+	//          AND caller.app_id = b.app_id
+	//          AND caller.workspace_id = b.workspace_id AND caller.project_id = b.project_id
+	//          AND caller.environment_id = b.environment_id
+	//      STRAIGHT_JOIN environments caller_env ON caller_env.id = caller.environment_id
+	//          AND caller_env.app_id = caller.app_id
+	//      STRAIGHT_JOIN deployment_connection_app_targets t
+	//          ON t.deployment_id = b.deployment_id AND t.connection_id = b.connection_id
+	//      STRAIGHT_JOIN apps caller_app ON caller_app.id = b.app_id
+	//          AND caller_app.workspace_id = b.workspace_id AND caller_app.project_id = b.project_id
+	//      STRAIGHT_JOIN apps target_app ON target_app.id = b.resource_id
+	//          AND target_app.workspace_id = b.workspace_id AND target_app.project_id = b.project_id
+	//      STRAIGHT_JOIN workspaces w ON w.id = b.workspace_id
+	//      WHERE b.deployment_id IN (/*SLICE:caller_deployment_ids*/?)
+	//          AND (
+	//              b.deployment_id > ?
+	//              OR (b.deployment_id = ? AND b.connection_id > ?)
+	//          )
+	//          AND b.resource_type = 'app'
+	//          AND b.resource_id <> b.app_id
+	//          AND b.name NOT LIKE 'unkey%'
+	//          AND b.name <> caller_app.slug COLLATE utf8mb4_0900_as_cs
+	//      ORDER BY b.deployment_id, b.connection_id
+	//      LIMIT ?
+	//  )
+	//  SELECT
+	//      c.workspace_id,
+	//      c.project_id,
+	//      c.target_app_id AS app_id,
+	//      c.target_app_slug AS app_slug,
+	//      c.k8s_namespace,
+	//      COALESCE(target.id, '') AS deployment_id,
+	//      COALESCE(target.port, 0) AS port,
+	//      COALESCE(target.environment_id, '') AS environment_id,
+	//      c.caller_deployment_id,
+	//      c.connection_id,
+	//      c.connection_name
+	//  FROM connection_candidates c
+	//  LEFT JOIN deployments target ON target.id = c.selected_deployment_id
+	//      AND target.app_id = c.target_app_id
+	//      AND target.workspace_id = c.workspace_id AND target.project_id = c.project_id
+	//      AND target.status = 'ready'
+	//      AND target.desired_state = 'running'
+	//      AND EXISTS (
+	//          SELECT 1 FROM deployment_topology target_dt
+	//          INNER JOIN regions target_region ON target_region.id = target_dt.region_id
+	//          WHERE target_dt.deployment_id = target.id
+	//              AND target_dt.desired_status = 'running'
+	//              AND target_region.platform = ?
+	//      )
+	//  ORDER BY c.caller_deployment_id, c.connection_id
+	ListPrivateNetworkConnections(ctx context.Context, arg ListPrivateNetworkConnectionsParams) ([]ListPrivateNetworkConnectionsRow, error)
+	// ListPrivateNetworkReplicas returns the given deployments that are active,
+	// were created with private networking, and run on the platform. Each one
+	// resolves its own replicas under its app's slug and is a caller for
+	// ListPrivateNetworkConnections.
+	// NO_SEMIJOIN keeps the topology check per deployment; as a semijoin MySQL may
+	// read every running topology row first.
+	//
+	//  SELECT
+	//      d.workspace_id,
+	//      d.project_id,
+	//      d.app_id,
+	//      a.slug AS app_slug,
+	//      w.k8s_namespace,
+	//      d.id AS deployment_id,
+	//      d.port,
+	//      d.environment_id
+	//  FROM deployments d
+	//  STRAIGHT_JOIN apps a ON a.id = d.app_id
+	//      AND a.workspace_id = d.workspace_id AND a.project_id = d.project_id
+	//  STRAIGHT_JOIN environments e ON e.id = d.environment_id AND e.app_id = d.app_id
+	//  STRAIGHT_JOIN workspaces w ON w.id = d.workspace_id
+	//  WHERE d.id IN (/*SLICE:deployment_ids*/?)
+	//      AND d.desired_state = 'running'
+	//      AND d.status IN ('deploying', 'network', 'finalizing', 'ready')
+	//      AND JSON_CONTAINS(d.capabilities, 'true', '$.private_networking')
+	//      AND w.k8s_namespace <> ''
+	//      AND EXISTS (
+	//          SELECT /*+ NO_SEMIJOIN() */ 1 FROM deployment_topology dt
+	//          INNER JOIN regions r ON r.id = dt.region_id
+	//          WHERE dt.deployment_id = d.id
+	//              AND dt.desired_status = 'running'
+	//              AND r.platform = ?
+	//      )
+	ListPrivateNetworkReplicas(ctx context.Context, arg ListPrivateNetworkReplicasParams) ([]ListPrivateNetworkReplicasRow, error)
 	// Returns deployments in a non-terminal (progressing) status for an
 	// environment. The environment delete workflow uses this to cancel
 	// in-flight Restate invocations before the cascade drops deployment
@@ -2630,7 +2819,12 @@ type Querier interface {
 	//UpdateDeploymentStatus
 	//
 	//  UPDATE deployments
-	//  SET status = ?, updated_at = ?
+	//  SET first_ready_at = COALESCE(first_ready_at, CASE
+	//          WHEN status = 'ready' THEN COALESCE(updated_at, created_at)
+	//          WHEN ? = 'ready' THEN COALESCE(?, created_at)
+	//          ELSE NULL
+	//      END),
+	//      status = ?, updated_at = ?
 	//  WHERE id = ?
 	UpdateDeploymentStatus(ctx context.Context, arg UpdateDeploymentStatusParams) error
 	// Batch form of UpdateDeploymentStatusIfActive.
@@ -2645,7 +2839,11 @@ type Querier interface {
 	// mysqltype.ProgressingDeploymentStatuses.
 	//
 	//  UPDATE deployments
-	//  SET status = ?, updated_at = ?
+	//  SET first_ready_at = COALESCE(first_ready_at, CASE
+	//          WHEN ? = 'ready' THEN COALESCE(?, created_at)
+	//          ELSE NULL
+	//      END),
+	//      status = ?, updated_at = ?
 	//  WHERE id = ?
 	//    AND status IN (/*SLICE:progressing_statuses*/?)
 	UpdateDeploymentStatusIfActive(ctx context.Context, arg UpdateDeploymentStatusIfActiveParams) error

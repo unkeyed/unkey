@@ -53,6 +53,12 @@ service ClusterService {
   // Used by the resync loop to verify consistency for existing resources.
   rpc GetDesiredDeploymentState(GetDesiredDeploymentStateRequest) returns (DeploymentState);
 
+  // StreamPrivateNetworkState sends the complete private network catalog for
+  // the caller's platform in pages read from one database snapshot, then a
+  // final chunk with complete set. A stream that ends without that chunk is
+  // partial and must not be reconciled, because omission authorizes deletion.
+  rpc StreamPrivateNetworkState(StreamPrivateNetworkStateRequest) returns (stream PrivateNetworkStateChunk);
+
   // ReportDeploymentStatus reports actual deployment state from the agent to the control plane.
   // Called when K8s watch events indicate ReplicaSet changes.
   rpc ReportDeploymentStatus(ReportDeploymentStatusRequest) returns (ReportDeploymentStatusResponse);
@@ -96,6 +102,52 @@ message DeploymentChangeEvent {
 message GetDesiredDeploymentStateRequest {
   ClusterKey cluster = 1;
   string deployment_id = 2;
+}
+
+message StreamPrivateNetworkStateRequest {
+  ClusterKey cluster = 1;
+  string known_version = 2;
+}
+
+message PrivateNetworkStateChunk {
+  repeated PrivateNetworkConnection connections = 1;
+  bool complete = 2;
+  // total is the number of connections in the whole snapshot, set on the complete chunk.
+  uint64 total = 3;
+  PrivateNetworkTopology topology = 4;
+  string version = 5;
+  // snapshot_id names the five-second window in which the last database change
+  // Ctrl applied committed. Ctrl instances at the same position send the same
+  // snapshot_id, and different values reflect different positions. Until Ctrl
+  // applies a change with a known commit time, it is a random value.
+  string snapshot_id = 6;
+  // unchanged is sent only in response to a matching known_version. Reuse the
+  // last complete snapshot; an empty response without it is not an empty catalog.
+  bool unchanged = 7;
+  // certified is set on the complete chunk when the snapshot's position
+  // committed at most ten seconds ago. Krane deletes a grant only after it is
+  // absent from certified snapshots with two snapshot_id values. Ctrl never
+  // certifies snapshots of a keyspace with more than one shard.
+  bool certified = 8;
+}
+
+message PrivateNetworkTopology {
+  uint32 version = 1;
+  repeated ClusterKey clusters = 2;
+}
+
+message PrivateNetworkConnection {
+  string workspace_id = 1;
+  string project_id = 2;
+  string target_app_id = 3;
+  string target_app_slug = 4;
+  string k8s_namespace = 5;
+  string target_deployment_id = 6;
+  int32 target_port = 7;
+  string target_environment_id = 8;
+  string caller_deployment_id = 9;
+  string connection_id = 10;
+  string connection_name = 11;
 }
 
 // ReportDeploymentStatusRequest reports the actual state of a deployment from the agent.
@@ -332,6 +384,20 @@ message ApplyDeployment {
   // The volume is created when the pod starts and deleted when the pod terminates.
   // When absent, no ephemeral volume is attached.
   optional EphemeralStorage ephemeral_storage = 29;
+
+  // environment_kind is "production" or "preview". Krane labels Pods with it so
+  // the private resolver can identify callers.
+  string environment_kind = 30;
+
+  // private_networking enrolls the deployment's Pods in private networking:
+  // private DNS through the region's resolver and connectivity between its own
+  // replicas. Ctrl sets it only for deployments created with private networking
+  // whose app slug yields a replica host.
+  bool private_networking = 31;
+
+  // private_network_replica_host is the private DNS name of this deployment's
+  // own replicas. It is set exactly when private_networking is true.
+  string private_network_replica_host = 32;
 }
 
 // AutoscalingPolicy configures horizontal pod autoscaling for a deployment.
