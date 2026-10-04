@@ -217,9 +217,6 @@ func addSlice(t *testing.T, c *catalog, service *corev1.Service, name, address s
 	}))
 }
 
-// TestCatalogWatchesOnlyKraneObjects guarantees that undns caches only the
-// Pods and discovery objects Krane publishes, so its memory tracks private
-// networking instead of every object in the cluster.
 func TestCatalogWatchesOnlyKraneObjects(t *testing.T) {
 	featuretesting.SetFeatureDuringTest(t, features.WatchListClient, false)
 	unrelated := metav1.ObjectMeta{Name: "unrelated", Namespace: "default", Labels: map[string]string{"app": "other"}}

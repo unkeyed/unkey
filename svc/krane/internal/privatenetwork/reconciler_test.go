@@ -610,10 +610,6 @@ func TestReconcileReplicaDiscoveryPublishesCallerDeploymentForPeers(t *testing.T
 	require.Equal(t, []flow{{"caller_1", "caller_1"}}, effectiveFlows(t, dynamic, "customer-1"))
 }
 
-// TestReconcileEnsuresSharedTargetOncePerPass guarantees that a steady-state
-// reconcile pass lists EndpointSlices and namespaces once, however many caller
-// deployments and targets it covers, and writes no namespaces. The pass runs
-// every poll interval against the Kubernetes API server.
 func TestReconcileEnsuresSharedTargetOncePerPass(t *testing.T) {
 	ctx := t.Context()
 	first := testConnection("dep_a")

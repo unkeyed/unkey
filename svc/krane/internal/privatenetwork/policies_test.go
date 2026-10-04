@@ -239,9 +239,6 @@ func allowsPort(ports []interface{}, want portProto) bool {
 	return false
 }
 
-// effectiveFlows returns caller-to-target deployment pairs that both an egress
-// rule on the source and an ingress rule on the destination admit, as Cilium
-// default deny requires.
 func effectiveFlows(t *testing.T, dynamic *fakedynamic.FakeDynamicClient, namespace string) []flow {
 	t.Helper()
 	policies, err := dynamic.Resource(policyResource).Namespace(namespace).List(t.Context(), metav1.ListOptions{})
