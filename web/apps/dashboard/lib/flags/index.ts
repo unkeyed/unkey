@@ -84,10 +84,6 @@ export const portalManagement = flag<boolean, Entities>({
   adapter: adapter(),
 });
 
-// privateNetworking gates app connections: the Connections page, its sidebar link,
-// and creating or editing a connection. The backend enrolls a workspace while it
-// has an app connection, so this flag decides which teams get private networking.
-// Removing a connection stays allowed so access can always be revoked.
 export const privateNetworking = flag<boolean, Entities>({
   key: "private-networking",
   description: "Show app connections and allow creating them. Off until private networking GA.",

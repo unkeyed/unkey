@@ -26,9 +26,6 @@ func TestHostVariable(t *testing.T) {
 	}
 }
 
-// TestReplicaHost guarantees that a deployment's own replicas resolve under
-// its app slug only when that slug is a valid DNS label, so an app with an
-// unusable slug gets no replica hostname instead of an unresolvable one.
 func TestReplicaHost(t *testing.T) {
 	for _, tt := range []struct {
 		slug     string
