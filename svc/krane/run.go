@@ -27,6 +27,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/runner"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/krane/internal/deployment"
+	"github.com/unkeyed/unkey/svc/krane/internal/privatenetwork"
 	"github.com/unkeyed/unkey/svc/krane/internal/watcher"
 	"github.com/unkeyed/unkey/svc/krane/pkg/controlplane"
 	"github.com/unkeyed/unkey/svc/krane/pkg/metrics"
@@ -42,11 +43,6 @@ import (
 // Prometheus metrics. It blocks until the context is cancelled or a fatal error
 // occurs.
 func Run(ctx context.Context, cfg Config) error {
-	err := cfg.Validate()
-	if err != nil {
-		return fmt.Errorf("bad config: %w", err)
-	}
-
 	if cfg.InstanceID == "" {
 		cfg.InstanceID = uid.New(uid.InstancePrefix)
 	}
@@ -63,6 +59,7 @@ func Run(ctx context.Context, cfg Config) error {
 
 	var shutdownGrafana func(context.Context) error
 	if cfg.Observability.Tracing != nil {
+		var err error
 		shutdownGrafana, err = otel.InitGrafana(ctx, otel.Config{
 			Application:        "krane",
 			InstanceID:         cfg.InstanceID,
@@ -224,7 +221,7 @@ func Run(ctx context.Context, cfg Config) error {
 		EventDedup:            instanceEventDedupCache,
 		ObservedTransitions:   deploymentTransitionsCache,
 		StorageClassName:      cfg.StorageClassName,
-		PrivateNetworkEnabled: false,
+		PrivateNetworkEnabled: cfg.PrivateNetwork.Enabled,
 		DisableGvisor:         cfg.DisableGvisor,
 
 		MaxConcurrentRollouts: cfg.MaxConcurrentRollouts,
@@ -239,6 +236,24 @@ func Run(ctx context.Context, cfg Config) error {
 		Region:      cfg.Cluster.Region,
 		Platform:    cfg.Cluster.Platform,
 	})
+
+	var privateNetwork *privatenetwork.Reconciler
+	if cfg.PrivateNetwork.Enabled {
+		privateNetwork, err = privatenetwork.New(privatenetwork.Config{
+			Client:  clientset,
+			Dynamic: dynamicClient,
+			Cluster: cluster,
+			ClusterKey: &ctrlv1.ClusterKey{
+				CellId:   cfg.Cluster.CellID,
+				Platform: cfg.Cluster.Platform,
+				Region:   cfg.Cluster.Region,
+			},
+			Clock: cfg.Clock,
+		})
+		if err != nil {
+			return fmt.Errorf("configure private network reconciler: %w", err)
+		}
+	}
 
 	leadershipDone := make(chan struct{})
 	r.Go(func(ctx context.Context) error {
@@ -280,6 +295,10 @@ func Run(ctx context.Context, cfg Config) error {
 					}
 				}
 			})
+
+			if privateNetwork != nil {
+				workers.Go(func() { privateNetwork.Run(ctx) })
+			}
 
 			workers.Wait()
 		})
