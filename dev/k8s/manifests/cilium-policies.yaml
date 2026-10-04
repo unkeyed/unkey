@@ -2,10 +2,20 @@
 # These policies enforce network isolation for customer workloads
 # Customer pods are identified by labels (managed-by: krane, component: deployment)
 # and spawn in custom namespaces on nodes with node-class: untrusted
-#
-# NOTE: Default deny for customer pods is handled implicitly - when krane creates
-# a CiliumNetworkPolicy in the customer namespace, Cilium automatically enables
-# default deny for the selected endpoints. We don't need an explicit deny-all policy.
+---
+apiVersion: cilium.io/v2
+kind: CiliumClusterwideNetworkPolicy
+metadata:
+  name: customer-default-deny-ingress
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/managed-by: krane
+      app.kubernetes.io/component: deployment
+  enableDefaultDeny:
+    ingress: true
+  ingress:
+    - {}
 ---
 # 1. Block K8s API server access from customer pods
 # Prevents customer workloads from accessing the Kubernetes API
@@ -22,6 +32,19 @@ spec:
   egressDeny:
     - toEntities:
         - kube-apiserver
+---
+apiVersion: cilium.io/v2
+kind: CiliumClusterwideNetworkPolicy
+metadata:
+  name: customer-deny-imds
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/managed-by: krane
+      app.kubernetes.io/component: deployment
+  egressDeny:
+    - toCIDRSet:
+        - cidr: "169.254.0.0/16"
 ---
 # 2. Allow DNS and internet egress from customer pods
 # Customer pods can resolve DNS and reach external internet
@@ -45,6 +68,16 @@ spec:
         - ports:
             - port: "53"
               protocol: ANY
+    - toEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: unkey
+            app: undns
+      toPorts:
+        - ports:
+            - port: "5353"
+              protocol: UDP
+            - port: "5353"
+              protocol: TCP
     # Krane for secret decryption (DecryptSecretsBlob RPC)
     - toEndpoints:
         - matchLabels:
