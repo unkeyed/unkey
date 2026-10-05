@@ -497,6 +497,24 @@ func (h *Harness) CreateRootKey(workspaceID string, permissions ...string) strin
 	return h.seeder.CreateRootKey(context.Background(), workspaceID, permissions...)
 }
 
+// RootKeyID returns the ID of a root key created in the new root-key store.
+func (h *Harness) RootKeyID(key string) string {
+	var keyID string
+	err := h.DB.RO().QueryRowContext(context.Background(), "SELECT id FROM unkey_root_keys WHERE hash = ?", hash.Sha256(key)).Scan(&keyID)
+	require.NoError(h.t, err)
+	return keyID
+}
+
+// CreateLegacyRootKey creates a root key in the legacy key store.
+func (h *Harness) CreateLegacyRootKey(workspaceID string, permissions ...string) string {
+	return h.seeder.CreateLegacyRootKey(context.Background(), workspaceID, permissions...)
+}
+
+// LegacyRootResources returns the entities required by legacy root-key tests.
+func (h *Harness) LegacyRootResources() seed.LegacyRootResources {
+	return h.seeder.LegacyRootResources(context.Background())
+}
+
 // CreateUnkeyRootKey creates a root key in the new root-key store. See
 // [seed.CreateUnkeyRootKeyRequest].
 func (h *Harness) CreateUnkeyRootKey(req seed.CreateUnkeyRootKeyRequest) seed.CreateKeyResponse {

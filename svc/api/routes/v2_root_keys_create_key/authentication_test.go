@@ -23,9 +23,10 @@ import (
 func TestRootKeyAuthenticationPrefersNewStore(t *testing.T) {
 	h := testutil.NewHarness(t)
 	r := h.Resources()
+	legacyResources := h.LegacyRootResources()
 	legacy := h.CreateKey(seed.CreateKeyRequest{
-		WorkspaceID:    r.RootWorkspace.ID,
-		KeySpaceID:     r.RootKeySpace.ID,
+		WorkspaceID:    legacyResources.Workspace.ID,
+		KeySpaceID:     legacyResources.KeySpace.ID,
 		ForWorkspaceID: &r.UserWorkspace.ID,
 	})
 	newID := uid.New(uid.KeyPrefix)
@@ -69,12 +70,12 @@ func TestNewRootKeyAuthenticationIgnoresLegacyOwnership(t *testing.T) {
 	}, handler.Request{Permissions: []string{}})
 	require.Equal(t, http.StatusOK, res.Status, "%s", res.RawBody)
 
-	r := h.Resources()
-	_, err := h.DB.RW().ExecContext(t.Context(), "UPDATE workspaces SET enabled = FALSE WHERE id = ?", r.RootWorkspace.ID)
+	legacyResources := h.LegacyRootResources()
+	_, err := h.DB.RW().ExecContext(t.Context(), "UPDATE workspaces SET enabled = FALSE WHERE id = ?", legacyResources.Workspace.ID)
 	require.NoError(t, err)
-	_, err = h.DB.RW().ExecContext(t.Context(), "UPDATE apis SET deleted_at_m = 1 WHERE key_auth_id = ?", r.RootKeySpace.ID)
+	_, err = h.DB.RW().ExecContext(t.Context(), "UPDATE apis SET deleted_at_m = 1 WHERE key_auth_id = ?", legacyResources.KeySpace.ID)
 	require.NoError(t, err)
-	_, err = h.DB.RW().ExecContext(t.Context(), "DELETE FROM key_auth WHERE id = ?", r.RootKeySpace.ID)
+	_, err = h.DB.RW().ExecContext(t.Context(), "DELETE FROM key_auth WHERE id = ?", legacyResources.KeySpace.ID)
 	require.NoError(t, err)
 
 	request := httptest.NewRequest(http.MethodPost, "/", nil)

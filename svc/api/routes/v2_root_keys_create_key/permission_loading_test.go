@@ -20,12 +20,13 @@ import (
 func TestLegacyRootKeyIgnoresNewPermissions(t *testing.T) {
 	h := testutil.NewHarness(t)
 	r := h.Resources()
+	legacyResources := h.LegacyRootResources()
 	key := h.CreateKey(seed.CreateKeyRequest{
-		WorkspaceID:    r.RootWorkspace.ID,
-		KeySpaceID:     r.RootKeySpace.ID,
+		WorkspaceID:    legacyResources.Workspace.ID,
+		KeySpaceID:     legacyResources.KeySpace.ID,
 		ForWorkspaceID: &r.UserWorkspace.ID,
 		Permissions: []seed.CreatePermissionRequest{{
-			WorkspaceID: r.RootWorkspace.ID,
+			WorkspaceID: legacyResources.Workspace.ID,
 			Name:        "unkey:v1:" + r.UserWorkspace.ID + ":rootKeys/*#read",
 			Slug:        "unkey:v1:" + r.UserWorkspace.ID + ":rootKeys/*#read",
 		}},

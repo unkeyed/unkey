@@ -1,7 +1,6 @@
 package handler_test
 
 import (
-	"context"
 	"net/http"
 	"testing"
 	"time"
@@ -10,8 +9,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
-	"github.com/unkeyed/unkey/pkg/db"
-	"github.com/unkeyed/unkey/pkg/hash"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
@@ -52,8 +49,7 @@ func TestPromoteDeployment(t *testing.T) {
 	})
 	require.Equal(t, http.StatusAccepted, res.Status, "expected 202, received: %s", res.RawBody)
 
-	rootKeyID, err := db.Query.FindKeyIDByHash(context.Background(), h.DB.RO(), hash.Sha256(setup.RootKey))
-	require.NoError(t, err)
+	rootKeyID := h.RootKeyID(setup.RootKey)
 
 	observed := testutil.Receive(t, promotions, 10*time.Second)
 	require.Equal(t, setup.Environment.ID, observed.virtualObjectKey)

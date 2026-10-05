@@ -4,7 +4,6 @@ package root_keys
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"net/http"
 	"testing"
@@ -94,15 +93,7 @@ func TestGetRootKey_Disabled(t *testing.T) {
 
 	// Disable the root key
 	keyHash := hash.Sha256(rootKey)
-	keyID, err := db.Query.FindKeyIDByHash(ctx, h.DB.RO(), keyHash)
-	require.NoError(t, err)
-
-	err = db.Query.UpdateKey(ctx, h.DB.RW(), db.UpdateKeyParams{
-		ID:               keyID,
-		EnabledSpecified: 1,
-		Enabled:          sql.NullBool{Bool: false, Valid: true},
-		Now:              sql.NullInt64{Int64: time.Now().UnixMilli(), Valid: true},
-	})
+	_, err := h.DB.RW().ExecContext(ctx, "UPDATE unkey_root_keys SET enabled = FALSE WHERE hash = ?", keyHash)
 	require.NoError(t, err)
 
 	api := h.Seed.CreateAPI(ctx, seed.CreateApiRequest{
@@ -135,16 +126,12 @@ func TestGetRootKey_Expired(t *testing.T) {
 	h := integration.New(t, integration.Config{NumNodes: 1})
 
 	workspace := h.Resources().UserWorkspace
-	rootWorkspace := h.Resources().RootWorkspace
-	rootKeySpace := h.Resources().RootKeySpace
 
 	// Create an expired root key
 	expiredTime := time.Now().Add(-1 * time.Hour)
-	rootKeyResponse := h.Seed.CreateKey(ctx, seed.CreateKeyRequest{
-		WorkspaceID:    rootWorkspace.ID,
-		KeySpaceID:     rootKeySpace.ID,
-		ForWorkspaceID: &workspace.ID,
-		Expires:        &expiredTime,
+	rootKeyResponse := h.Seed.CreateUnkeyRootKey(ctx, seed.CreateUnkeyRootKeyRequest{
+		WorkspaceID: workspace.ID,
+		Expires:     &expiredTime,
 	})
 	rootKey := rootKeyResponse.Key
 
@@ -216,12 +203,12 @@ func TestGetRootKey_RootWorkspaceDisabled(t *testing.T) {
 	h := integration.New(t, integration.Config{NumNodes: 1})
 
 	workspace := h.Resources().UserWorkspace
-	rootWorkspace := h.Resources().RootWorkspace
-	rootKey := h.Seed.CreateRootKey(ctx, workspace.ID, "unkey:v1:"+workspace.ID+":projects/*/keyspaces/*/keys/*#verify")
+	legacyResources := h.Seed.LegacyRootResources(ctx)
+	rootKey := h.Seed.CreateLegacyRootKey(ctx, workspace.ID, "unkey:v1:"+workspace.ID+":projects/*/keyspaces/*/keys/*#verify")
 
 	// Disable the root workspace (the one that owns the root key)
 	_, err := db.Query.UpdateWorkspaceEnabled(ctx, h.DB.RW(), db.UpdateWorkspaceEnabledParams{
-		ID:      rootWorkspace.ID,
+		ID:      legacyResources.Workspace.ID,
 		Enabled: false,
 	})
 	require.NoError(t, err)
@@ -255,14 +242,13 @@ func TestGetRootKey_WorkspaceNotFound(t *testing.T) {
 	ctx := context.Background()
 	h := integration.New(t, integration.Config{NumNodes: 1})
 
-	rootWorkspace := h.Resources().RootWorkspace
-	rootKeySpace := h.Resources().RootKeySpace
+	legacyResources := h.Seed.LegacyRootResources(ctx)
 	nonExistentWorkspaceID := uid.New("ws_nonexistent")
 
 	// Create a root key pointing to a non-existent workspace
 	rootKeyResponse := h.Seed.CreateKey(ctx, seed.CreateKeyRequest{
-		WorkspaceID:    rootWorkspace.ID,
-		KeySpaceID:     rootKeySpace.ID,
+		WorkspaceID:    legacyResources.Workspace.ID,
+		KeySpaceID:     legacyResources.KeySpace.ID,
 		ForWorkspaceID: &nonExistentWorkspaceID,
 	})
 	rootKey := rootKeyResponse.Key
@@ -332,13 +318,7 @@ func TestGetRootKey_Deleted(t *testing.T) {
 
 	// Soft delete the root key
 	keyHash := hash.Sha256(rootKey)
-	keyID, err := db.Query.FindKeyIDByHash(ctx, h.DB.RO(), keyHash)
-	require.NoError(t, err)
-
-	err = db.Query.SoftDeleteKeyByID(ctx, h.DB.RW(), db.SoftDeleteKeyByIDParams{
-		ID:  keyID,
-		Now: sql.NullInt64{Int64: time.Now().UnixMilli(), Valid: true},
-	})
+	_, err := h.DB.RW().ExecContext(ctx, "UPDATE unkey_root_keys SET deleted_at = ? WHERE hash = ?", time.Now().UnixMilli(), keyHash)
 	require.NoError(t, err)
 
 	api := h.Seed.CreateAPI(ctx, seed.CreateApiRequest{

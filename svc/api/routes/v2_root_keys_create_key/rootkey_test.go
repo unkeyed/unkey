@@ -25,10 +25,11 @@ func TestExpiringRootKeyBoundsChildLifetime(t *testing.T) {
 	h.Register(route)
 	permission := "unkey:v1:" + r.UserWorkspace.ID + ":rootKeys/*#write"
 	expires := h.Clock.Now().Add(time.Hour).Truncate(time.Second)
+	legacyResources := h.LegacyRootResources()
 	parent := h.CreateKey(seed.CreateKeyRequest{
-		WorkspaceID: r.RootWorkspace.ID, KeySpaceID: r.RootKeySpace.ID,
+		WorkspaceID: legacyResources.Workspace.ID, KeySpaceID: legacyResources.KeySpace.ID,
 		ForWorkspaceID: new(r.UserWorkspace.ID), Expires: &expires,
-		Permissions: []seed.CreatePermissionRequest{{WorkspaceID: r.RootWorkspace.ID, Name: permission, Slug: permission}},
+		Permissions: []seed.CreatePermissionRequest{{WorkspaceID: legacyResources.Workspace.ID, Name: permission, Slug: permission}},
 	})
 	for _, tt := range []struct {
 		name    string

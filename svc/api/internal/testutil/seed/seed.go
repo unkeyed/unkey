@@ -23,33 +23,37 @@ import (
 	"github.com/unkeyed/unkey/svc/api/internal/projects"
 )
 
-// Resources contains the baseline entities created during [Seeder.Seed]. These
-// represent the "system" workspace used for root keys and a user workspace for
-// test-specific data.
+// Resources contains the baseline entities created during [Seeder.Seed].
 type Resources struct {
-	RootWorkspace db.Workspace
-	RootKeySpace  db.KeyAuth
-	RootApi       db.Api
 	UserWorkspace db.Workspace
+}
+
+// LegacyRootResources contains the entities required by legacy root keys.
+type LegacyRootResources struct {
+	Workspace db.Workspace
+	KeySpace  db.KeyAuth
+	API       db.Api
 }
 
 // Seeder provides methods to create test entities in the database. It ensures proper
 // foreign key relationships and generates unique IDs for all entities.
 type Seeder struct {
-	t         *testing.T
-	DB        db.Database
-	Vault     vault.VaultServiceClient
-	Resources Resources
+	t                   *testing.T
+	DB                  db.Database
+	Vault               vault.VaultServiceClient
+	Resources           Resources
+	legacyRootResources *LegacyRootResources
 }
 
 // New creates a Seeder with the given database and vault service. Call [Seeder.Seed]
 // after creation to populate baseline data.
 func New(t *testing.T, database db.Database, vault vault.VaultServiceClient) *Seeder {
 	return &Seeder{
-		t:         t,
-		DB:        database,
-		Vault:     vault,
-		Resources: Resources{}, //nolint:exhaustruct
+		t:                   t,
+		DB:                  database,
+		Vault:               vault,
+		Resources:           Resources{}, //nolint:exhaustruct
+		legacyRootResources: nil,
 	}
 }
 
@@ -96,14 +100,22 @@ func (s *Seeder) CreateWorkspace(ctx context.Context) db.Workspace {
 	return ws
 }
 
-// Seed initializes the database with baseline test data. This creates a root workspace
-// (for issuing root keys), a root API with its key space, and a user workspace for
-// test-specific entities. The created resources are stored in [Seeder.Resources].
+// Seed initializes the database with a user workspace for test-specific entities.
 func (s *Seeder) Seed(ctx context.Context) {
 	s.Resources.UserWorkspace = s.CreateWorkspace(ctx)
-	s.Resources.RootWorkspace = s.CreateWorkspace(ctx)
-	s.Resources.RootApi = s.CreateAPI(ctx, CreateApiRequest{
-		WorkspaceID:   s.Resources.RootWorkspace.ID,
+
+}
+
+// LegacyRootResources creates and returns the entities required by tests that
+// explicitly exercise legacy root-key storage.
+func (s *Seeder) LegacyRootResources(ctx context.Context) LegacyRootResources {
+	if s.legacyRootResources != nil {
+		return *s.legacyRootResources
+	}
+
+	workspace := s.CreateWorkspace(ctx)
+	api := s.CreateAPI(ctx, CreateApiRequest{
+		WorkspaceID:   workspace.ID,
 		ProjectID:     "",
 		IpWhitelist:   "",
 		EncryptedKeys: false,
@@ -112,9 +124,15 @@ func (s *Seeder) Seed(ctx context.Context) {
 		DefaultPrefix: nil,
 		DefaultBytes:  nil,
 	})
-	keySpace, err := db.Query.FindKeySpaceByID(ctx, s.DB.RW(), s.Resources.RootApi.KeyAuthID.String)
+	keySpace, err := db.Query.FindKeySpaceByID(ctx, s.DB.RW(), api.KeyAuthID.String)
 	require.NoError(s.t, err)
-	s.Resources.RootKeySpace = keySpace
+
+	s.legacyRootResources = &LegacyRootResources{
+		Workspace: workspace,
+		KeySpace:  keySpace,
+		API:       api,
+	}
+	return *s.legacyRootResources
 }
 
 // CreateApiRequest configures the API to create.
@@ -420,20 +438,29 @@ func (s *Seeder) CreateCustomDomain(ctx context.Context, req CreateCustomDomainR
 	return row
 }
 
-// CreateRootKey creates a root key that authorizes operations on the specified
-// workspace. The key is created in the root key space (from baseline seed data).
-// Pass permission names to grant; if a permission already exists, it reuses the
-// existing one. Returns the raw key value for use in Authorization headers.
+// CreateRootKey creates a root key in the new root-key store.
 func (s *Seeder) CreateRootKey(ctx context.Context, workspaceID string, permissions ...string) string {
+	return s.CreateUnkeyRootKey(ctx, CreateUnkeyRootKeyRequest{
+		WorkspaceID: workspaceID,
+		Name:        nil,
+		Disabled:    false,
+		Expires:     nil,
+		Permissions: permissions,
+	}).Key
+}
+
+// CreateLegacyRootKey creates a root key in the legacy key store.
+func (s *Seeder) CreateLegacyRootKey(ctx context.Context, workspaceID string, permissions ...string) string {
+	legacy := s.LegacyRootResources(ctx)
 	key := uid.New("test_root_key")
 
 	insertKeyParams := db.InsertKeyParams{
 		ID:                 uid.New("test_root_key"),
 		Hash:               hash.Sha256(key),
 		Prefix:             "",
-		WorkspaceID:        s.Resources.RootWorkspace.ID,
+		WorkspaceID:        legacy.Workspace.ID,
 		ForWorkspaceID:     sql.NullString{String: workspaceID, Valid: true},
-		KeySpaceID:         s.Resources.RootKeySpace.ID,
+		KeySpaceID:         legacy.KeySpace.ID,
 		Start:              key[:4],
 		End:                key[len(key)-4:],
 		CreatedAtM:         time.Now().UnixMilli(),
@@ -456,8 +483,8 @@ func (s *Seeder) CreateRootKey(ctx context.Context, workspaceID string, permissi
 			permissionID := uid.New(uid.TestPrefix)
 			err := db.Query.InsertPermission(ctx, s.DB.RW(), db.InsertPermissionParams{
 				PermissionID: permissionID,
-				WorkspaceID:  s.Resources.RootWorkspace.ID,
-				ProjectID:    s.defaultProjectID(ctx, s.Resources.RootWorkspace.ID),
+				WorkspaceID:  legacy.Workspace.ID,
+				ProjectID:    legacy.KeySpace.ProjectID,
 				Name:         permission,
 				Slug:         permission,
 				Description:  dbtype.NullString{String: "", Valid: false},
@@ -467,7 +494,7 @@ func (s *Seeder) CreateRootKey(ctx context.Context, workspaceID string, permissi
 			if mysqlErr, ok := errors.AsType[*mysql.MySQLError](err); ok {
 				require.True(s.t, db.IsDuplicateKeyError(err), "Expected duplicate key error, got MySQL error number %d", mysqlErr.Number)
 				existing, findErr := db.Query.FindPermissionByNameAndWorkspaceID(ctx, s.DB.RO(), db.FindPermissionByNameAndWorkspaceIDParams{
-					WorkspaceID: s.Resources.RootWorkspace.ID,
+					WorkspaceID: legacy.Workspace.ID,
 					Name:        permission,
 				})
 				require.NoError(s.t, findErr)
@@ -480,7 +507,7 @@ func (s *Seeder) CreateRootKey(ctx context.Context, workspaceID string, permissi
 			err = db.Query.InsertKeyPermission(ctx, s.DB.RW(), db.InsertKeyPermissionParams{
 				PermissionID: permissionID,
 				KeyID:        insertKeyParams.ID,
-				WorkspaceID:  s.Resources.RootWorkspace.ID,
+				WorkspaceID:  legacy.Workspace.ID,
 				CreatedAt:    time.Now().UnixMilli(),
 				UpdatedAt:    sql.NullInt64{Int64: 0, Valid: false},
 			})
@@ -520,7 +547,12 @@ func (s *Seeder) CreateUnkeyRootKey(ctx context.Context, req CreateUnkeyRootKeyR
 		CreatedAt:   now,
 	})
 	require.NoError(s.t, err)
+	seenPermissions := make(map[string]struct{}, len(req.Permissions))
 	for _, permission := range req.Permissions {
+		if _, seen := seenPermissions[permission]; seen {
+			continue
+		}
+		seenPermissions[permission] = struct{}{}
 		err = db.Query.InsertUnkeyPermission(ctx, s.DB.RW(), db.InsertUnkeyPermissionParams{
 			ID:            uid.New(uid.PermissionPrefix),
 			WorkspaceID:   req.WorkspaceID,

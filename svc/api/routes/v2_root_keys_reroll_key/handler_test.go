@@ -134,7 +134,8 @@ func TestRerollRootKeyIgnoresLegacyKeys(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route := newRoute(h)
 	workspace := h.Resources().UserWorkspace
-	legacy := h.CreateKey(seed.CreateKeyRequest{WorkspaceID: h.Resources().RootWorkspace.ID, KeySpaceID: h.Resources().RootKeySpace.ID, ForWorkspaceID: &workspace.ID})
+	legacyResources := h.LegacyRootResources()
+	legacy := h.CreateKey(seed.CreateKeyRequest{WorkspaceID: legacyResources.Workspace.ID, KeySpaceID: legacyResources.KeySpace.ID, ForWorkspaceID: &workspace.ID})
 	caller := h.CreateRootKey(workspace.ID, "unkey:v1:"+workspace.ID+":rootKeys/*#write")
 	res := call(h, route, caller, handler.Request{KeyId: legacy.KeyID, Expiration: nullable.NewNullNullable[int64]()})
 	require.Equal(t, http.StatusNotFound, res.Status, "%s", res.RawBody)
