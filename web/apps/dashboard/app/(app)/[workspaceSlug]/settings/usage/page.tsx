@@ -76,7 +76,7 @@ export default function UsagePage() {
       ? undefined
       : buildComputeTree(breakdownFromUsage(usage.data.breakdowns));
   const compute = hasComputePlan ? (
-    usage.isError ? (
+    usage.isError && usage.data === undefined ? (
       <ComputeCardShell description="Usage per project this period">
         <div className="px-4 py-8">
           <EmptyState frame="none">
@@ -130,7 +130,7 @@ export default function UsagePage() {
       isLoading={
         (usage.data === undefined && !usage.isError) || (!planKnown && !billingInfo.isError)
       }
-      isError={usage.isError}
+      isError={usage.isError && usage.data === undefined}
     />
   );
 
