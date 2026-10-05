@@ -34,7 +34,7 @@ func TestAuthorizationErrors(t *testing.T) {
 	t.Run("insufficient permissions - no update_key", func(t *testing.T) {
 		// Create a workspace and root key without UpdateKey permission
 		workspace := h.Resources().UserWorkspace
-		rootKey := h.CreateRootKey(workspace.ID, "api.*.read_key") // Only read permission
+		rootKey := h.CreateRootKey(workspace.ID, fmt.Sprintf("unkey:v1:%s:projects/*/keyspaces/*/keys/*#read", workspace.ID))
 
 		// Create API and key using testutil helpers
 		defaultPrefix := "test"
@@ -83,7 +83,7 @@ func TestAuthorizationErrors(t *testing.T) {
 		workspace2 := h.CreateWorkspace()
 
 		// Root key from workspace1
-		rootKey := h.CreateRootKey(workspace1.ID, "api.*.update_key")
+		rootKey := h.CreateRootKey(workspace1.ID, fmt.Sprintf("unkey:v1:%s:projects/*/keyspaces/*/keys/*#write", workspace1.ID))
 
 		// Create a test keyring in workspace2
 		keySpaceID := uid.New(uid.KeySpacePrefix)
@@ -144,7 +144,7 @@ func TestAuthorizationErrors(t *testing.T) {
 	t.Run("root key with read only permissions", func(t *testing.T) {
 		workspace := h.Resources().UserWorkspace
 		// Create root key with only read permissions
-		rootKey := h.CreateRootKey(workspace.ID, "api.*.read_key", "rbac.*.read_role")
+		rootKey := h.CreateRootKey(workspace.ID, fmt.Sprintf("unkey:v1:%s:projects/*/keyspaces/*/keys/*#read", workspace.ID))
 
 		// Create API and key using testutil helpers
 		defaultPrefix := "test"

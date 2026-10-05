@@ -104,29 +104,6 @@ func TestCreatePermissionCountLimits(t *testing.T) {
 	}
 }
 
-func TestCreateRejectsLegacyPermissionsAtomically(t *testing.T) {
-	h, route, p := newHarness(t)
-	permission := "unkey:v1:" + p.AuthorizedWorkspaceID + ":rootKeys/*#write"
-	legacy := "workspace.*.create_root_key"
-	p.Permissions = append(p.Permissions, "*", legacy)
-	for _, tt := range []struct {
-		name      string
-		requested []string
-	}{
-		{"legacy only", []string{legacy}},
-		{"URN then legacy", []string{permission, legacy}},
-		{"legacy then URN", []string{legacy, permission}},
-		{"literal star", []string{"*"}},
-	} {
-		t.Run(tt.name, func(t *testing.T) {
-			before := snapshot(t, h)
-			res := testutil.CallRoute[handler.Request, handler.Response](h, route, http.Header{"Authorization": {"Bearer test"}, "Content-Type": {"application/json"}}, handler.Request{Permissions: tt.requested})
-			require.Equal(t, http.StatusBadRequest, res.Status, "%s", res.RawBody)
-			require.Equal(t, before, snapshot(t, h))
-		})
-	}
-}
-
 // TestCreateStoresMaximumDistinctPermissions guarantees the full 1,000-grant
 // limit is stored and audited. For example, a creation grant plus 999 separate
 // project keyspace grants produces exactly those grants and 1,001 audit events.
@@ -150,7 +127,7 @@ func TestCreateStoresMaximumDistinctPermissions(t *testing.T) {
 	require.Len(t, h.FindAuditLogsByTargetID(t.Context(), t, res.Body.Data.KeyId), 1001)
 }
 
-func TestCreateStoresPermissionWithoutLegacyEquivalent(t *testing.T) {
+func TestCreateStoresPermission(t *testing.T) {
 	h, route, p := newHarness(t)
 	grant := "unkey:v1:" + p.AuthorizedWorkspaceID + ":projects/*/apps/*/environments/*/deployments/*#delete"
 
@@ -180,9 +157,6 @@ func TestCreateStoresV1SystemKeyAndPermissions(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, resources.UserWorkspace.ID, key.WorkspaceID)
 	require.False(t, key.Expires.Valid)
-	grants, err := db.Query.ListPermissionsByKeyID(t.Context(), h.DB.RO(), db.ListPermissionsByKeyIDParams{KeyID: key.ID})
-	require.NoError(t, err)
-	require.Empty(t, grants, "new root keys must not write legacy permission assignments")
 	logs := h.FindAuditLogsByTargetID(t.Context(), t, key.ID)
 	require.Len(t, logs, 2)
 	for _, log := range logs {
@@ -208,7 +182,7 @@ func TestCreateStoresV1SystemKeyAndPermissions(t *testing.T) {
 		Permissions: []string{urn, urn},
 	})
 	require.Equal(t, http.StatusOK, res.Status, "%s", res.RawBody)
-	grants, err = db.Query.ListUnkeyPermissionsByPrincipal(t.Context(), h.DB.RO(), db.ListUnkeyPermissionsByPrincipalParams{WorkspaceID: p.AuthorizedWorkspaceID, PrincipalType: db.UnkeyPrincipalPermissionsPrincipalTypeRootKey, PrincipalID: res.Body.Data.KeyId})
+	grants, err := db.Query.ListUnkeyPermissionsByPrincipal(t.Context(), h.DB.RO(), db.ListUnkeyPermissionsByPrincipalParams{WorkspaceID: p.AuthorizedWorkspaceID, PrincipalType: db.UnkeyPrincipalPermissionsPrincipalTypeRootKey, PrincipalID: res.Body.Data.KeyId})
 	require.NoError(t, err)
 	require.Equal(t, []string{urn}, grants)
 

@@ -42,7 +42,7 @@ func TestKeyVerificationWithMigration(t *testing.T) {
 	workspace := h.Resources().UserWorkspace
 
 	// Create a root key with appropriate permissions
-	rootKey := h.CreateRootKey(workspace.ID, "api.*.verify_key", "api.*.create_key")
+	rootKey := h.CreateRootKey(workspace.ID, rootKeyGrant(workspace.ID, "*", "*", "*", "verify"), rootKeyGrant(workspace.ID, "*", "*", "*", "write"))
 
 	api := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspace.ID})
 
