@@ -31,6 +31,7 @@ import (
 // is handled.
 type Session struct {
 	requestID string
+	initErr   error
 
 	w http.ResponseWriter // Wrapped with statusRecorder to capture status code
 	r *http.Request
@@ -558,6 +559,7 @@ const MaxBodyCapture = 1 << 20 // 1 MiB
 // reset clears request-specific state before the session returns to the pool.
 func (s *Session) reset() {
 	s.requestID = ""
+	s.initErr = nil
 
 	s.w = nil
 	s.r = nil

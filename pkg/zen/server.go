@@ -33,9 +33,9 @@ type Server struct {
 	flags       Flags
 	config      Config
 
-	trustedProxyCIDRs       []netip.Prefix
-	sessions                sync.Pool
-	routingErrorMiddlewares []Middleware
+	trustedProxyCIDRs []netip.Prefix
+	sessions          sync.Pool
+	routingErrors     http.Handler
 }
 
 // Flags configures the behavior of a Server instance.
@@ -153,19 +153,20 @@ func New(config Config) (*Server, error) {
 		flags = *config.Flags
 	}
 	s := &Server{
-		mu:                      sync.Mutex{},
-		isListening:             false,
-		mux:                     mux,
-		srv:                     srv,
-		flags:                   flags,
-		config:                  config,
-		trustedProxyCIDRs:       trustedProxyCIDRs,
-		routingErrorMiddlewares: nil,
+		mu:                sync.Mutex{},
+		isListening:       false,
+		mux:               mux,
+		srv:               srv,
+		flags:             flags,
+		config:            config,
+		trustedProxyCIDRs: trustedProxyCIDRs,
+		routingErrors:     nil,
 		sessions: sync.Pool{
 			New: func() any {
 				return &Session{
 					logRequestToClickHouse: true,
 					streamRequestBody:      config.StreamRequestBody,
+					initErr:                nil,
 					clientIP:               netip.Addr{},
 					principal:              nil,
 					requestID:              "",
@@ -318,6 +319,16 @@ func (s *Server) RegisterRoute(middlewares []Middleware, route Route) {
 }
 
 func (s *Server) handler(middlewares []Middleware, handle HandleFunc, streamRequestBody bool) http.HandlerFunc {
+	handleFn := func(ctx context.Context, sess *Session) error {
+		if sess.initErr != nil {
+			return sess.initErr
+		}
+		return handle(ctx, sess)
+	}
+	for i := len(middlewares) - 1; i >= 0; i-- {
+		handleFn = middlewares[i](handleFn)
+	}
+
 	return func(w http.ResponseWriter, r *http.Request) {
 		sess, ok := s.getSession().(*Session)
 		if !ok {
@@ -329,24 +340,14 @@ func (s *Server) handler(middlewares []Middleware, handle HandleFunc, streamRequ
 			s.returnSession(sess)
 		}()
 
-		handleFn := handle
 		sess.streamRequestBody = streamRequestBody
-
-		err := sess.Init(w, r, s.config.MaxRequestBodySize)
+		sess.initErr = sess.Init(w, r, s.config.MaxRequestBodySize)
 		s.setForwardedClientIP(sess)
-		if err != nil {
-			logger.Error("failed to init session", "error", err)
-			handleFn = func(_ context.Context, _ *Session) error {
-				return err
-			}
+		if sess.initErr != nil {
+			logger.Error("failed to init session", "error", sess.initErr)
 		}
 
-		for i := len(middlewares) - 1; i >= 0; i-- {
-			handleFn = middlewares[i](handleFn)
-		}
-
-		err = handleFn(WithSession(r.Context(), sess), sess)
-
+		err := handleFn(WithSession(r.Context(), sess), sess)
 		if err != nil {
 			panic(err)
 		}

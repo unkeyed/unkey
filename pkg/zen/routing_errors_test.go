@@ -15,7 +15,12 @@ import (
 func TestRoutingErrorsPreserveRouting(t *testing.T) {
 	srv, err := New(Config{})
 	require.NoError(t, err)
-	srv.RegisterRoutingErrors([]Middleware{routingErrorResponse})
+	compositions := 0
+	srv.RegisterRoutingErrors([]Middleware{func(next HandleFunc) HandleFunc {
+		compositions++
+		return routingErrorResponse(next)
+	}})
+	require.Equal(t, 1, compositions)
 	srv.RegisterRoute(nil, NewRoute(http.MethodGet, "/items/{id}", func(_ context.Context, s *Session) error {
 		return s.Send(http.StatusNotFound, []byte(s.Request().PathValue("id")))
 	}))
@@ -60,6 +65,7 @@ func TestRoutingErrorsPreserveRouting(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			w := httptest.NewRecorder()
 			srv.ServeHTTP(w, httptest.NewRequest(tt.method, tt.path, nil))
+			require.Equal(t, 1, compositions)
 			require.Equal(t, tt.allow, w.Header().Get("Allow"))
 			require.Equal(t, tt.location, w.Header().Get("Location"))
 			if tt.location != "" {

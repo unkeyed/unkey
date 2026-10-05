@@ -19,40 +19,47 @@ func (e *RoutingError) Error() string {
 // Call before serving requests. A nil chain keeps Go's default responses.
 // Request bodies are not read, and the mux's Allow header is preserved.
 func (s *Server) RegisterRoutingErrors(middlewares []Middleware) {
-	s.routingErrorMiddlewares = middlewares
+	if len(middlewares) == 0 {
+		s.routingErrors = nil
+		return
+	}
+	s.routingErrors = s.handler(middlewares, s.routingError, true)
 }
 
 // ServeHTTP dispatches requests through the mux and optional routing error middleware.
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if len(s.routingErrorMiddlewares) == 0 || r.RequestURI == "*" {
+	if s.routingErrors == nil || r.RequestURI == "*" {
 		s.mux.ServeHTTP(w, r)
 		return
 	}
 
-	handler, pattern := s.mux.Handler(r)
+	_, pattern := s.mux.Handler(r)
 	if pattern != "" {
 		s.mux.ServeHTTP(w, r)
 		return
 	}
+	s.routingErrors.ServeHTTP(w, r)
+}
 
+func (s *Server) routingError(_ context.Context, sess *Session) error {
+	handler, _ := s.mux.Handler(sess.Request())
+	header := sess.ResponseWriter().Header()
 	response := routingResponse{
 		Buffer: bytes.Buffer{},
-		header: w.Header().Clone(),
+		header: header.Clone(),
 		status: http.StatusOK,
 	}
-	handler.ServeHTTP(&response, r)
+	handler.ServeHTTP(&response, sess.Request())
 	for name, values := range response.header {
-		w.Header()[name] = values
+		header[name] = values
 	}
 
-	s.handler(s.routingErrorMiddlewares, func(_ context.Context, sess *Session) error {
-		if response.status == http.StatusNotFound || response.status == http.StatusMethodNotAllowed {
-			w.Header().Del("Content-Type")
-			w.Header().Del("Content-Length")
-			return &RoutingError{Status: response.status}
-		}
-		return sess.Send(response.status, response.Bytes())
-	}, true).ServeHTTP(w, r)
+	if response.status == http.StatusNotFound || response.status == http.StatusMethodNotAllowed {
+		header.Del("Content-Type")
+		header.Del("Content-Length")
+		return &RoutingError{Status: response.status}
+	}
+	return sess.Send(response.status, response.Bytes())
 }
 
 type routingResponse struct {
