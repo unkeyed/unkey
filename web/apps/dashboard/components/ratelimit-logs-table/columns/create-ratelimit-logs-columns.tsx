@@ -65,7 +65,7 @@ export const createRatelimitLogsColumns = ({
       width: "15%",
     },
     cell: ({ row }) => (
-      <div className="font-mono truncate mr-1 max-w-40">{row.original.identifier}</div>
+      <div data-sentry-mask className="font-mono truncate mr-1 max-w-40">{row.original.identifier}</div>
     ),
   },
   {

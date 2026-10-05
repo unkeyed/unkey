@@ -15,7 +15,7 @@ export const IdentityInfo = ({ identity }: { identity: Identity }) => {
           position={{ side: "bottom", align: "center" }}
           asChild
         >
-          <div className="text-gray-9 text-xs max-w-[160px] truncate">{identity.externalId}</div>
+          <div data-sentry-mask className="text-gray-9 text-xs max-w-[160px] truncate">{identity.externalId}</div>
         </InfoTooltip>
       </div>
     </div>

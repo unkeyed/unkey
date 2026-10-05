@@ -168,7 +168,7 @@ function ResponseCell({ delivery }: { delivery: Delivery }) {
       {isFailure(delivery) ? (
         <IconCircleXmarkOutline18 className="size-3.5 shrink-0 text-error-11" />
       ) : null}
-      <span className="min-w-0 flex-1 truncate font-mono text-xs text-gray-12">{text}</span>
+      <span data-sentry-mask className="min-w-0 flex-1 truncate font-mono text-xs text-gray-12">{text}</span>
       <CopyButton value={text} variant="ghost" size="sm" className="shrink-0" />
     </div>
   );

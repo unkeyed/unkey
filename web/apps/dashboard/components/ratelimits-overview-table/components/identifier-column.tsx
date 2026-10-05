@@ -60,9 +60,10 @@ export const IdentifierColumn = ({ log }: IdentifierColumnProps) => {
         </div>
         <InfoTooltip
           asChild
-          content={<span className="font-mono text-xs break-all">{log.identifier}</span>}
+          content={<span data-sentry-mask className="font-mono text-xs break-all">{log.identifier}</span>}
         >
           <div
+            data-sentry-mask
             className={cn(
               "font-mono font-medium truncate min-w-0",
               hasMoreBlocked ? style.base : "text-gray-12",

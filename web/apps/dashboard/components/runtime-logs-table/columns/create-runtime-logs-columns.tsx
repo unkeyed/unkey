@@ -95,7 +95,7 @@ export const createRuntimeLogsColumns = ({
       width: "20%",
     },
     cell: ({ row }) => (
-      <div className="font-mono truncate pr-4 max-w-75" title={row.original.message}>
+      <div data-sentry-mask className="font-mono truncate pr-4 max-w-75" title={row.original.message}>
         {row.original.message}
       </div>
     ),

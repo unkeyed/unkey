@@ -85,7 +85,11 @@ export const createAuditLogColumns = ({
       width: "38%",
     },
     cell: ({ row }) => {
-      return <MonoTextCell value={row.original.auditLog.description} />;
+      return (
+        <div data-sentry-mask>
+          <MonoTextCell value={row.original.auditLog.description} />
+        </div>
+      );
     },
   },
 ];

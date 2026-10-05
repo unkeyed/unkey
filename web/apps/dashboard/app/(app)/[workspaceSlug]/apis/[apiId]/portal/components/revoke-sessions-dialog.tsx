@@ -61,7 +61,7 @@ export function RevokeSessionsDialog({
           <AlertDialogTitle>Revoke sessions</AlertDialogTitle>
           <AlertDialogDescription>
             This ends {count === 1 ? "the 1 session" : `all ${count} sessions`}{" "}
-            <span className="font-medium text-gray-12">{group?.externalId}</span> holds on this
+            <span data-sentry-mask className="font-medium text-gray-12">{group?.externalId}</span> holds on this
             portal, including links that were not opened yet. They need a new link from your app to
             get back in. Their API keys keep working.
           </AlertDialogDescription>
