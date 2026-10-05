@@ -53,7 +53,7 @@ func TestDeletePermissionMasksInsufficientPermissions(t *testing.T) {
 	// Test case for insufficient permissions - missing delete_permission
 	t.Run("missing delete_permission permission", func(t *testing.T) {
 		// Create a root key with some permissions but not delete_permission
-		rootKey := h.CreateRootKey(workspace.ID, "rbac.*.read_permission")
+		rootKey := h.CreateRootKey(workspace.ID, fmt.Sprintf("unkey:v1:%s:projects/*/rbac/permissions/*#read", workspace.ID))
 
 		headers := http.Header{
 			"Content-Type":  {"application/json"},
@@ -89,7 +89,7 @@ func TestDeletePermissionMasksInsufficientPermissions(t *testing.T) {
 		otherWorkspace := h.CreateWorkspace()
 
 		// Create a root key for the other workspace with all permissions
-		rootKey := h.CreateRootKey(otherWorkspace.ID, "rbac.*.delete_permission")
+		rootKey := h.CreateRootKey(otherWorkspace.ID, fmt.Sprintf("unkey:v1:%s:projects/*/rbac/permissions/*#delete", otherWorkspace.ID))
 
 		headers := http.Header{
 			"Content-Type":  {"application/json"},

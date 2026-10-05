@@ -37,7 +37,7 @@ func TestAuthorizationErrors(t *testing.T) {
 	// Test case for insufficient permissions - missing delete_api
 	t.Run("missing delete_api permission", func(t *testing.T) {
 		// Create a root key with only read_api but no delete_api permission
-		rootKey := h.CreateRootKey(workspace.ID, "api.*.read_api")
+		rootKey := h.CreateRootKey(workspace.ID, fmt.Sprintf("unkey:v1:%s:projects/*/keyspaces/*#read", workspace.ID))
 
 		headers := http.Header{
 			"Content-Type":  {"application/json"},
@@ -64,10 +64,9 @@ func TestAuthorizationErrors(t *testing.T) {
 	// Test case for permission for different API
 	t.Run("permission for different API", func(t *testing.T) {
 		// Create a root key with permissions for a specific different API
-		differentApiId := "api_different"
 		rootKey := h.CreateRootKey(
 			workspace.ID,
-			fmt.Sprintf("api.%s.delete_api", differentApiId),
+			fmt.Sprintf("unkey:v1:%s:projects/%s/keyspaces/ks_different#delete", workspace.ID, api.ProjectID),
 		)
 
 		headers := http.Header{
@@ -94,7 +93,8 @@ func TestAuthorizationErrors(t *testing.T) {
 
 	// Test case for wrong workspace
 	t.Run("wrong workspace", func(t *testing.T) {
-		rootKey := h.CreateRootKey(uid.New(uid.WorkspacePrefix), "api.*.delete_api")
+		otherWorkspaceID := uid.New(uid.WorkspacePrefix)
+		rootKey := h.CreateRootKey(otherWorkspaceID, fmt.Sprintf("unkey:v1:%s:projects/*/keyspaces/*#delete", otherWorkspaceID))
 
 		headers := http.Header{
 			"Content-Type":  {"application/json"},

@@ -31,7 +31,7 @@ func assertRestateFailure(t *testing.T, restate *restateingress.Client) {
 	route := newRoute(h, restate)
 	h.Register(route)
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"environment.*.stop_deployment"},
+		Permissions: []string{"unkey:v1:{workspaceID}:**#write"},
 	})
 	preview := h.CreateEnvironment(seed.CreateEnvironmentRequest{
 		ID:          uid.New(uid.EnvironmentPrefix),

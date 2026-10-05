@@ -37,7 +37,7 @@ func TestNotFound(t *testing.T) {
 
 	h.Register(route)
 
-	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, fmt.Sprintf("ratelimit.%s.delete_override", namespaceID))
+	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, fmt.Sprintf("unkey:v1:%s:projects/*/ratelimits/namespaces/%s/overrides/*#delete", h.Resources().UserWorkspace.ID, namespaceID))
 
 	headers := http.Header{
 		"Content-Type":  {"application/json"},

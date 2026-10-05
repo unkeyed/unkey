@@ -33,7 +33,7 @@ func TestSuccess(t *testing.T) {
 	workspace := h.Resources().UserWorkspace
 
 	// Create a root key with appropriate permissions
-	rootKey := h.CreateRootKey(workspace.ID, "api.*.delete_api")
+	rootKey := h.CreateRootKey(workspace.ID, "unkey:v1:"+(workspace.ID)+":**#*")
 
 	// Set up request headers
 	headers := http.Header{
@@ -151,9 +151,7 @@ func TestSuccess(t *testing.T) {
 }
 
 // TestDeleteApiWithKeyspaceUrnGrant verifies that a caller holding only the
-// canonical keyspace URN delete grant can delete an API. The dashboard proxy
-// mints URN grants exclusively, so without this arm every dashboard role is
-// rejected by the legacy api.*.delete_api tuple.
+// canonical keyspace URN delete grant can delete an API.
 func TestDeleteApiWithKeyspaceUrnGrant(t *testing.T) {
 	ctx := context.Background()
 	h := testutil.NewHarness(t)
@@ -201,7 +199,7 @@ func TestDeleteApiCascadesToKeyspaceAndKeys(t *testing.T) {
 	workspaceID := h.Resources().UserWorkspace.ID
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
-		"Authorization": {fmt.Sprintf("Bearer %s", h.CreateRootKey(workspaceID, "api.*.delete_api"))},
+		"Authorization": {fmt.Sprintf("Bearer %s", h.CreateRootKey(workspaceID, "unkey:v1:"+workspaceID+":**#*"))},
 	}
 
 	api := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspaceID})
@@ -278,7 +276,7 @@ func TestDeleteApiCountsOnlyLiveKeys(t *testing.T) {
 	workspaceID := h.Resources().UserWorkspace.ID
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
-		"Authorization": {fmt.Sprintf("Bearer %s", h.CreateRootKey(workspaceID, "api.*.delete_api"))},
+		"Authorization": {fmt.Sprintf("Bearer %s", h.CreateRootKey(workspaceID, "unkey:v1:"+workspaceID+":**#*"))},
 	}
 
 	api := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspaceID})

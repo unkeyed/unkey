@@ -138,7 +138,7 @@ func TestKeyDeleteForbidden(t *testing.T) {
 
 	t.Run("wrong permission - has create but not delete", func(t *testing.T) {
 		// Create root key with read permission instead of create
-		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "api.*.create_key")
+		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, rootKeyGrant(h.Resources().UserWorkspace.ID, "*", "*", "*", "write"))
 
 		headers := http.Header{
 			"Content-Type":  {"application/json"},
@@ -155,7 +155,7 @@ func TestKeyDeleteForbidden(t *testing.T) {
 		differentWorkspace := h.CreateWorkspace()
 
 		// Create a root key for the different workspace with full permissions
-		rootKey := h.CreateRootKey(differentWorkspace.ID, "api.*.delete_key")
+		rootKey := h.CreateRootKey(differentWorkspace.ID, rootKeyGrant(differentWorkspace.ID, "*", "*", "*", "delete"))
 
 		headers := http.Header{
 			"Content-Type":  {"application/json"},
@@ -169,7 +169,7 @@ func TestKeyDeleteForbidden(t *testing.T) {
 
 	t.Run("cross api access", func(t *testing.T) {
 		// Create root key with read permission for a single api
-		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, fmt.Sprintf("api.%s.delete_key", otherApiID))
+		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, rootKeyGrant(h.Resources().UserWorkspace.ID, "*", otherWsKeySpaceID, "*", "delete"))
 
 		headers := http.Header{
 			"Content-Type":  {"application/json"},

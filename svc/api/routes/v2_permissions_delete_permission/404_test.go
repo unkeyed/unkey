@@ -34,7 +34,7 @@ func TestNotFoundErrors(t *testing.T) {
 	require.NoError(t, err)
 
 	// Create a root key with appropriate permissions
-	rootKey := h.CreateRootKey(workspace.ID, "rbac.*.delete_permission")
+	rootKey := h.CreateRootKey(workspace.ID, fmt.Sprintf("unkey:v1:%s:projects/*/rbac/permissions/*#delete", workspace.ID))
 
 	// Set up request headers
 	headers := http.Header{

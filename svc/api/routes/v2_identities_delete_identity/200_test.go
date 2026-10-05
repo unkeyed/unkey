@@ -29,7 +29,10 @@ func TestDeleteIdentitySuccess(t *testing.T) {
 
 	h.Register(route)
 
-	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "identity.*.delete_identity")
+	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID,
+		fmt.Sprintf("unkey:v1:%s:projects/*/identities/*#delete", h.Resources().UserWorkspace.ID),
+		fmt.Sprintf("unkey:v1:%s:projects//identities/*#delete", h.Resources().UserWorkspace.ID),
+	)
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
@@ -136,7 +139,7 @@ func TestDeleteIdentitySuccess(t *testing.T) {
 		})
 
 		// Create root key with wildcard permission
-		wildcardKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "identity.*.delete_identity")
+		wildcardKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, fmt.Sprintf("unkey:v1:%s:projects/%s/identities/%s#delete", h.Resources().UserWorkspace.ID, identity.ProjectID, identity.ID))
 		wildcardHeaders := http.Header{
 			"Content-Type":  {"application/json"},
 			"Authorization": {fmt.Sprintf("Bearer %s", wildcardKey)},

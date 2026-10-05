@@ -65,7 +65,7 @@ func jwtHeaders() http.Header {
 func TestRevokeSessionAcceptsDashboardAdmin(t *testing.T) {
 	h := testutil.NewHarness(t)
 	workspace := h.Resources().UserWorkspace
-	route := registerAs(h, dashboardPrincipal(workspace.ID, fmt.Sprintf("unkey:v1:%s:**#*", workspace.ID)))
+	route := registerAs(h, dashboardPrincipal(workspace.ID, fmt.Sprintf("unkey:v1:%s:**#*", h.Resources().UserWorkspace.ID)))
 
 	stored, mapping := seedPortal(t, h, workspace.ID, "revoke-dashboard")
 	h.CreatePortalSessionForPortal(stored.ID, workspace.ID, "user_1", []string{mapping.ID}, []string{"keys:read"})

@@ -25,16 +25,6 @@ func TestRevokeSessionAuthorizesMintingGrants(t *testing.T) {
 		shouldPass bool
 	}{
 		{
-			name:       "legacy wildcard tuple",
-			permission: func(_, _ string) string { return "portal.*.create_portal_session" },
-			shouldPass: true,
-		},
-		{
-			name:       "legacy tuple for this portal",
-			permission: func(_, id string) string { return fmt.Sprintf("portal.%s.create_portal_session", id) },
-			shouldPass: true,
-		},
-		{
 			name: "sessions of this portal",
 			permission: func(p, id string) string {
 				return fmt.Sprintf("unkey:v1:%s:projects/%s/portals/%s/sessions/*#write", workspace.ID, p, id)
@@ -43,7 +33,7 @@ func TestRevokeSessionAuthorizesMintingGrants(t *testing.T) {
 		},
 		{
 			name:       "workspace admin",
-			permission: func(_, _ string) string { return fmt.Sprintf("unkey:v1:%s:**#*", workspace.ID) },
+			permission: func(_, _ string) string { return fmt.Sprintf("unkey:v1:%s:**#*", h.Resources().UserWorkspace.ID) },
 			shouldPass: true,
 		},
 		{

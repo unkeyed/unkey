@@ -1,6 +1,7 @@
 package handler_test
 
 import (
+	"fmt"
 	"net/http"
 	"testing"
 
@@ -16,8 +17,8 @@ import (
 // workspace the caller cannot see.
 func TestDeletePortalMasksEveryMiss(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route, headers := newRoute(t, h, "portal.*.delete_portal")
 	workspace := h.Resources().UserWorkspace
+	route, headers := newRoute(t, h, fmt.Sprintf("unkey:v1:%s:projects/*/portals/*#delete", workspace.ID))
 
 	// A control case, so the misses below cannot be masking a broken handler. Its
 	// id is reused afterwards as the already-deleted case.
@@ -71,7 +72,8 @@ func TestDeletePortalDenialMatchesAbsence(t *testing.T) {
 	h.CreatePortalSessionForPortal(stored.ID, workspace.ID, "user_1", []string{mapping.ID}, []string{"keys:read"})
 	require.Equal(t, 1, liveSessions(t, h, stored.ID))
 
-	deniedKey := h.CreateRootKey(workspace.ID, "portal.*.read_portal")
+	deniedKey := h.CreateRootKey(workspace.ID, fmt.Sprintf(
+		"unkey:v1:%s:projects/%s/portals/%s#read", workspace.ID, stored.ProjectID, stored.ID))
 	denied := testutil.CallRoute[handler.Request, handler.Response](h, route, headersFor(deniedKey), request(stored.ID))
 	require.Equal(t, http.StatusNotFound, denied.Status,
 		"a denial must be masked, received: %s", denied.RawBody)
@@ -80,7 +82,7 @@ func TestDeletePortalDenialMatchesAbsence(t *testing.T) {
 	require.Equal(t, 0, countAuditEntriesMentioning(t, h, workspace.ID, "portal.delete"),
 		"a denied delete must not write an audit entry")
 
-	allowedKey := h.CreateRootKey(workspace.ID, "portal.*.delete_portal")
+	allowedKey := h.CreateRootKey(workspace.ID, fmt.Sprintf("unkey:v1:%s:**#*", h.Resources().UserWorkspace.ID))
 	absent := testutil.CallRoute[handler.Request, handler.Response](h, route, headersFor(allowedKey),
 		request(uid.New(uid.PortalPrefix)))
 	require.Equal(t, http.StatusNotFound, absent.Status,

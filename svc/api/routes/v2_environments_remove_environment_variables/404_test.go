@@ -17,7 +17,7 @@ func TestRemoveEnvironmentVariablesEnvironmentNotFound(t *testing.T) {
 	h.Register(route)
 
 	env := seedEnvironment(t, h)
-	rootKey := h.CreateRootKey(env.workspaceID, "environment.*.remove_environment_variables")
+	rootKey := h.CreateRootKey(env.workspaceID, "unkey:v1:"+(env.workspaceID)+":**#*")
 	headers := authHeaders(rootKey)
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
