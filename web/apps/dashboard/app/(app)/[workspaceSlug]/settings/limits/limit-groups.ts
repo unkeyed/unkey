@@ -3,7 +3,8 @@ import type {
   V2WorkspaceGetLimitsApi,
   V2WorkspaceGetLimitsCompute,
   V2WorkspaceGetLimitsCustomDomains,
-  V2WorkspaceGetLimitsLogs,
+  V2WorkspaceGetLimitsLog,
+  V2WorkspaceGetLimitsReservedMeter,
   V2WorkspaceGetLimitsResponseData,
   V2WorkspaceGetLimitsVcpuMeter,
 } from "@unkey/api/models/components";
@@ -73,13 +74,14 @@ function statusOf(usage: RowUsage): LimitStatus {
 
 function metered(
   text: RowText,
-  meter: LimitMeter | V2WorkspaceGetLimitsVcpuMeter | undefined,
+  meter: LimitMeter | V2WorkspaceGetLimitsReservedMeter | V2WorkspaceGetLimitsVcpuMeter | undefined,
   format: (value: number) => string,
 ): LimitRow {
   if (meter === undefined) {
     return { ...text, value: { state: "loading", metered: true }, status: "ok" };
   }
-  const usage = { value: meter.used, max: meter.limit, label: format(meter.used) };
+  const value = "reserved" in meter ? meter.reserved : meter.used;
+  const usage = { value, max: meter.limit, label: format(value) };
   return {
     ...text,
     value: { state: "ready", limit: format(meter.limit), usage },
@@ -120,7 +122,7 @@ function apiGroup(api: V2WorkspaceGetLimitsApi | undefined): LimitGroup {
   };
 }
 
-function logsGroup(logs: V2WorkspaceGetLimitsLogs | undefined): LimitGroup {
+function logGroup(log: V2WorkspaceGetLimitsLog | undefined): LimitGroup {
   return {
     key: "logs",
     title: "Logs",
@@ -131,10 +133,10 @@ function logsGroup(logs: V2WorkspaceGetLimitsLogs | undefined): LimitGroup {
           name: "Log retention",
           description: "How long request and runtime logs remain available.",
         },
-        logs && days(logs.retentionDays),
+        log && days(log.retentionDays),
       ),
-      ceiling({ name: "Audit log retention" }, logs && days(logs.auditRetentionDays)),
-      metered({ name: "Log drains" }, logs?.logDrains, count),
+      ceiling({ name: "Audit log retention" }, log && days(log.auditRetentionDays)),
+      metered({ name: "Log drains" }, log?.drains, count),
     ],
   };
 }
@@ -214,7 +216,7 @@ export function buildLimitGroups(
   limits: V2WorkspaceGetLimitsResponseData | undefined,
   hasComputePlan: boolean,
 ): LimitGroup[] {
-  const groups = [apiGroup(limits?.api), logsGroup(limits?.logs)];
+  const groups = [apiGroup(limits?.api), logGroup(limits?.log)];
   const showCompute = limits === undefined ? hasComputePlan : limits.compute !== undefined;
   if (showCompute) {
     groups.push(computeGroup(limits?.compute));

@@ -12,9 +12,9 @@ function computeFor(plan: LimitsPlan, attachedDomains: number): V2WorkspaceGetLi
   const limits = limitsByPlan[plan];
   return {
     workspace: {
-      vCpus: { limit: limits.cpuCoresMax, used: 0 },
-      memoryMib: { limit: limits.memoryMibMax, used: 0 },
-      storageMib: { limit: limits.storageMibMax, used: 0 },
+      vCpus: { limit: limits.cpuCoresMax, reserved: 0 },
+      memoryMib: { limit: limits.memoryMibMax, reserved: 0 },
+      storageMib: { limit: limits.storageMibMax, reserved: 0 },
     },
     perInstance: {
       vCpus: limits.cpuCoresMaxPerInstance,
@@ -37,10 +37,10 @@ function responseFor(plan: LimitsPlan, attachedDomains: number): V2WorkspaceGetL
     api: {
       billableOperations: { limit: limits.apiBillableOperationsCountMaxPerMonth, used: 0 },
     },
-    logs: {
+    log: {
       retentionDays: limits.logsRetentionDaysMax,
       auditRetentionDays: limits.logsAuditRetentionDaysMax,
-      logDrains: { limit: limits.logdrainsMax, used: 0 },
+      drains: { limit: limits.logdrainsMax, used: 0 },
     },
     compute: computeFor(plan, attachedDomains),
   };
@@ -79,7 +79,7 @@ describe("log drains row", () => {
   it("meters the current count against the workspace allowance", () => {
     const response = responseFor("free", 0);
     const groups = buildLimitGroups(
-      { ...response, logs: { ...response.logs, logDrains: { limit: 3, used: 1 } } },
+      { ...response, log: { ...response.log, drains: { limit: 3, used: 1 } } },
       true,
     );
     expect(groups.find((group) => group.key === "logs")?.rows).toContainEqual({
@@ -97,7 +97,7 @@ describe("workspace CPU row", () => {
         ...responseFor("starter", 0),
         compute: {
           ...computeFor("starter", 0),
-          workspace: { ...computeFor("starter", 0).workspace, vCpus: { limit: 30, used: 2.5 } },
+          workspace: { ...computeFor("starter", 0).workspace, vCpus: { limit: 30, reserved: 2.5 } },
         },
       },
       true,
@@ -168,7 +168,10 @@ describe("breachedKeys", () => {
         ...responseFor("starter", 0),
         compute: {
           ...computeFor("starter", 0),
-          workspace: { ...computeFor("starter", 0).workspace, storageMib: { limit: 0, used: 512 } },
+          workspace: {
+            ...computeFor("starter", 0).workspace,
+            storageMib: { limit: 0, reserved: 512 },
+          },
         },
       },
       true,
