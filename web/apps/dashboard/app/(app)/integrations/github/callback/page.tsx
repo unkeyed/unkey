@@ -1,4 +1,8 @@
 "use client";
+import {
+  GithubConnectingCard,
+  newAppReturnProject,
+} from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/new/github-connecting";
 import { LoadingState } from "@/components/loading-state";
 import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
@@ -31,6 +35,7 @@ export default function Page() {
     return Number.isNaN(parsed) ? null : parsed;
   }, [installationId]);
 
+  const utils = trpc.useUtils();
   const mutation = trpc.github.registerInstallation.useMutation({
     onSuccess: (data) => {
       if (data.status === "authorization_required") {
@@ -39,6 +44,10 @@ export default function Page() {
       }
 
       if (data.flow === "app" && data.projectId && data.appId) {
+        if (data.returnTo !== "settings") {
+          // The repository list is the slowest part of landing in the flow.
+          void utils.github.listRepositories.prefetch({ projectId: data.projectId });
+        }
         // Return to the app: its settings, or the repo picker when the wizard
         // hasn't chosen a repo yet.
         router.replace(
@@ -131,5 +140,8 @@ export default function Page() {
     );
   }
 
+  if (newAppReturnProject(state) !== null) {
+    return <GithubConnectingCard />;
+  }
   return <LoadingState message="Finalizing GitHub installation..." />;
 }

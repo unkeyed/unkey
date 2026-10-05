@@ -17,6 +17,11 @@ import { usePathname, useRouter } from "next/navigation";
 import { Suspense, useEffect } from "react";
 import { QueryTimeProvider } from "../../providers/query-time-provider";
 
+// The GitHub callback is a full page load on return from GitHub. Its own layout
+// draws the chrome so the page never waits on the workspace or remounts, which
+// would submit its single-use OAuth code twice.
+const GITHUB_CALLBACK_PATH = "/integrations/github/callback";
+
 interface LayoutProps {
   children: React.ReactNode;
 }
@@ -86,6 +91,14 @@ export default function Layout({ children }: LayoutProps) {
       return;
     }
   }, [user, isLoading, error, workspaceMissing, router]);
+
+  if (pathname === GITHUB_CALLBACK_PATH) {
+    return (
+      <SidebarProvider style={SIDEBAR_WIDTH_VARS} className="h-dvh flex flex-col bg-background">
+        {children}
+      </SidebarProvider>
+    );
+  }
 
   // Show loading state while checking authentication and workspace
   if (isLoading || !user || !workspace) {
