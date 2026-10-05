@@ -37,21 +37,35 @@ The existing `workspace.getCurrent` tRPC procedure loads effective flag values
 from MySQL and includes them in `workspace.flags`, keyed by slug. Both the
 preloaded-context path and the fallback workspace lookup include flags.
 
-The flag query left-joins all definitions to overrides for the resolved
-workspace ID. An explicit `false` overrides a `true` default. Missing overrides
-inherit the default, and an empty definition table produces an empty map.
+The workspace query includes a correlated subquery that left-joins all flag
+definitions to overrides for that workspace. It aggregates the effective values
+into a map in the same SQL statement. An explicit `false` overrides a `true`
+default. Missing overrides inherit the default, and an empty definition table
+produces an empty map.
 
 Consumers access the values through the existing workspace provider:
 
 ```tsx
+import { useFlag } from "@/lib/workspace-flags";
+import { useWorkspace } from "@/providers/workspace-provider";
+
 const { workspace } = useWorkspace();
-const previewEnabled = workspace?.flags["deployment-preview"] ?? false;
+const previewEnabled = useFlag({
+  workspace,
+  name: "deployment-preview",
+  default: false,
+});
 ```
 
-This adds one database query to `workspace.getCurrent`, not to every tRPC context
-creation. It adds no separate browser request. Flag lookup failures fail the
-workspace request rather than silently returning an empty map. Apply the flag
-schema before deploying the updated workspace loader.
+The `name` argument is the flag's slug. `useFlag` reads the loaded map without
+fetching data. It returns the caller's `default` when the workspace is unavailable
+or the slug is absent. A stored boolean, including `false`, takes precedence.
+
+Both tRPC context creation and the fallback workspace lookup include flags in
+their workspace query. There is no separate flag database query or browser
+request. Flag lookup failures follow the workspace query's error handling rather
+than silently returning an empty map. Apply the flag schema before deploying the
+updated workspace loader.
 
 ## Use the database queries
 
