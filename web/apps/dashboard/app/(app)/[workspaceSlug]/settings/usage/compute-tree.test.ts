@@ -142,28 +142,31 @@ describe("priceUsageQuantitiesCents", () => {
 describe("breakdownFromUsage", () => {
   it("prices each row and fills what the API omits", () => {
     const meters = { cpuSeconds: 7200, memoryGiBHours: 3, diskGiBHours: 5, egressGiB: 4 };
+    const compute = { cpuSeconds: 7200, memoryGiBHours: 3, storageGiBHours: 5, egressGiB: 4 };
     const breakdown = breakdownFromUsage({
-      environments: [
+      byEnvironment: [
         {
-          projectId: "proj_KEBAP",
-          projectName: "Payments",
-          appId: "app_KEBAP",
-          appName: "API",
-          environmentId: "env_KEBAP",
-          environmentSlug: "production",
-          ...meters,
+          project: { id: "proj_KEBAP", name: "Payments" },
+          app: { id: "app_KEBAP", name: "API" },
+          environment: { id: "env_KEBAP", slug: "production" },
+          compute,
         },
-        { projectId: "proj_KEBAP", appId: "app_gone", environmentId: "env_gone", ...meters },
+        {
+          project: { id: "proj_KEBAP" },
+          app: { id: "app_gone" },
+          environment: { id: "env_gone" },
+          compute,
+        },
+        { project: { id: "proj_KEBAP" }, environment: { id: "env_old" }, compute },
       ],
-      apps: [
+      byApp: [
         {
-          appId: "app_KEBAP",
-          appName: "API",
-          projectId: "proj_KEBAP",
-          projectName: "Payments",
-          activeKeys: 7,
+          project: { id: "proj_KEBAP", name: "Payments" },
+          app: { id: "app_KEBAP", name: "API" },
+          gateway: { activeKeys: 7 },
         },
-        { appId: "app_gone", activeKeys: 3 },
+        { app: { id: "app_gone" }, gateway: { activeKeys: 3 } },
+        { gateway: { activeKeys: 1 } },
       ],
     });
 
@@ -188,6 +191,16 @@ describe("breakdownFromUsage", () => {
         ...meters,
         grossMicroCents: priceComputeMeterMicroCents(meters),
       },
+      {
+        projectId: "proj_KEBAP",
+        projectName: null,
+        appId: "",
+        appName: null,
+        environmentId: "env_old",
+        environmentSlug: null,
+        ...meters,
+        grossMicroCents: priceComputeMeterMicroCents(meters),
+      },
     ]);
     expect(breakdown.gateway).toEqual([
       {
@@ -203,6 +216,13 @@ describe("breakdownFromUsage", () => {
         appId: "app_gone",
         activeKeys: 3,
         grossMicroCents: priceActiveKeysMicroCents(3),
+      },
+      {
+        projectId: "",
+        projectName: null,
+        appId: "",
+        activeKeys: 1,
+        grossMicroCents: priceActiveKeysMicroCents(1),
       },
     ]);
 

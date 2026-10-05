@@ -56,7 +56,7 @@ export default function BillingPage() {
               border="top"
             >
               <div className="w-full">
-                <Input value={usageValue(usage?.api.verifications)} />
+                <Input value={usageValue(usage?.totals.api.verifications)} />
               </div>
             </SettingCard>
             <SettingCard
@@ -66,7 +66,7 @@ export default function BillingPage() {
             >
               <div className="w-full">
                 <span className="text-xs text-gray-11">
-                  <Input value={usageValue(usage?.api.ratelimits)} />
+                  <Input value={usageValue(usage?.totals.api.ratelimits)} />
                 </span>
               </div>
             </SettingCard>

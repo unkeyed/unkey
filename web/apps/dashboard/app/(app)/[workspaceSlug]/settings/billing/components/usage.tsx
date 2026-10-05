@@ -68,12 +68,13 @@ export const Usage: React.FC<{
 
   // Safely extract and validate numeric values with fallbacks
   const verifications =
-    typeof usage.api.verifications === "number" && !Number.isNaN(usage.api.verifications)
-      ? usage.api.verifications
+    typeof usage.totals.api.verifications === "number" &&
+    !Number.isNaN(usage.totals.api.verifications)
+      ? usage.totals.api.verifications
       : 0;
   const ratelimits =
-    typeof usage.api.ratelimits === "number" && !Number.isNaN(usage.api.ratelimits)
-      ? usage.api.ratelimits
+    typeof usage.totals.api.ratelimits === "number" && !Number.isNaN(usage.totals.api.ratelimits)
+      ? usage.totals.api.ratelimits
       : 0;
   const current = verifications + ratelimits;
   const max = quota;

@@ -8,7 +8,11 @@ import { Result as SafeParseResult } from "../../types/fp.js";
 import { SDKValidationError } from "../errors/sdkvalidationerror.js";
 
 /**
- * Billable Unkey API operations in the period.
+ * Billable operations through the Unkey API in the period. Key verifications
+ *
+ * @remarks
+ * through the Unkey gateway are not counted here. The gateway bills by active
+ * keys, see `gateway`.
  */
 export type V2WorkspaceGetUsageApi = {
   /**

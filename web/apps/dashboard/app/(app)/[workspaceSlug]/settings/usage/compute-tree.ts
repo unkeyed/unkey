@@ -5,7 +5,7 @@ import {
   priceComputeMeterMicroCents,
   priceDeployMetersCents,
 } from "@/lib/billing/deployPricing";
-import type { V2WorkspaceGetUsageCompute } from "@unkey/api/models/components";
+import type { V2WorkspaceGetUsageBreakdowns } from "@unkey/api/models/components";
 
 const SECONDS_PER_HOUR = 3600;
 
@@ -113,37 +113,37 @@ function byCostDescending(a: Priced, b: Priced): number {
 
 /**
  * Prices each workspace.getUsage row with the Deploy meter rates. A missing name
- * becomes null and a missing project id becomes "".
+ * becomes null, and a missing app or project becomes "".
  */
 export function breakdownFromUsage({
-  environments,
-  apps,
-}: Pick<V2WorkspaceGetUsageCompute, "environments" | "apps">): UsageBreakdown {
+  byEnvironment,
+  byApp,
+}: V2WorkspaceGetUsageBreakdowns): UsageBreakdown {
   return {
-    usage: environments.map((row) => ({
-      projectId: row.projectId,
-      projectName: row.projectName ?? null,
-      appId: row.appId,
-      appName: row.appName ?? null,
-      environmentId: row.environmentId,
-      environmentSlug: row.environmentSlug ?? null,
-      cpuSeconds: row.cpuSeconds,
-      memoryGiBHours: row.memoryGiBHours,
-      diskGiBHours: row.diskGiBHours,
-      egressGiB: row.egressGiB,
-      grossMicroCents: priceComputeMeterMicroCents({
-        cpuSeconds: row.cpuSeconds,
-        memoryGiBHours: row.memoryGiBHours,
-        diskGiBHours: row.diskGiBHours,
-        egressGiB: row.egressGiB,
-      }),
-    })),
-    gateway: apps.map((row) => ({
-      projectId: row.projectId ?? "",
-      projectName: row.projectName ?? null,
-      appId: row.appId,
-      activeKeys: row.activeKeys,
-      grossMicroCents: priceActiveKeysMicroCents(row.activeKeys),
+    usage: byEnvironment.map((row) => {
+      const meters = {
+        cpuSeconds: row.compute.cpuSeconds,
+        memoryGiBHours: row.compute.memoryGiBHours,
+        diskGiBHours: row.compute.storageGiBHours,
+        egressGiB: row.compute.egressGiB,
+      };
+      return {
+        projectId: row.project.id,
+        projectName: row.project.name ?? null,
+        appId: row.app?.id ?? "",
+        appName: row.app?.name ?? null,
+        environmentId: row.environment.id,
+        environmentSlug: row.environment.slug ?? null,
+        ...meters,
+        grossMicroCents: priceComputeMeterMicroCents(meters),
+      };
+    }),
+    gateway: byApp.map((row) => ({
+      projectId: row.project?.id ?? "",
+      projectName: row.project?.name ?? null,
+      appId: row.app?.id ?? "",
+      activeKeys: row.gateway.activeKeys,
+      grossMicroCents: priceActiveKeysMicroCents(row.gateway.activeKeys),
     })),
   };
 }

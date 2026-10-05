@@ -7,17 +7,17 @@ import { safeParse } from "../../lib/schemas.js";
 import { Result as SafeParseResult } from "../../types/fp.js";
 import { SDKValidationError } from "../errors/sdkvalidationerror.js";
 import {
-  V2WorkspaceGetUsageApi,
-  V2WorkspaceGetUsageApi$inboundSchema,
-} from "./v2workspacegetusageapi.js";
-import {
-  V2WorkspaceGetUsageCompute,
-  V2WorkspaceGetUsageCompute$inboundSchema,
-} from "./v2workspacegetusagecompute.js";
+  V2WorkspaceGetUsageBreakdowns,
+  V2WorkspaceGetUsageBreakdowns$inboundSchema,
+} from "./v2workspacegetusagebreakdowns.js";
 import {
   V2WorkspaceGetUsagePeriod,
   V2WorkspaceGetUsagePeriod$inboundSchema,
 } from "./v2workspacegetusageperiod.js";
+import {
+  V2WorkspaceGetUsageTotals,
+  V2WorkspaceGetUsageTotals$inboundSchema,
+} from "./v2workspacegetusagetotals.js";
 
 export type V2WorkspaceGetUsageResponseData = {
   /**
@@ -25,17 +25,17 @@ export type V2WorkspaceGetUsageResponseData = {
    */
   period: V2WorkspaceGetUsagePeriod;
   /**
-   * Billable Unkey API operations in the period.
-   */
-  api: V2WorkspaceGetUsageApi;
-  /**
-   * Compute usage in the period. `cpuSeconds`, `memoryGiBHours`, `diskGiBHours`,
+   * Workspace totals in the period. `compute` is the sum of
    *
    * @remarks
-   * and `egressGiB` are the sums of the `environments` rows. `activeKeys` is the
-   * sum of the `apps` rows.
+   * `breakdowns.byEnvironment[].compute`. `gateway.activeKeys` is the sum of
+   * `breakdowns.byApp[].gateway.activeKeys`.
    */
-  compute: V2WorkspaceGetUsageCompute;
+  totals: V2WorkspaceGetUsageTotals;
+  /**
+   * The totals split by environment and by app.
+   */
+  breakdowns: V2WorkspaceGetUsageBreakdowns;
 };
 
 /** @internal */
@@ -45,8 +45,8 @@ export const V2WorkspaceGetUsageResponseData$inboundSchema: z.ZodType<
   unknown
 > = z.object({
   period: V2WorkspaceGetUsagePeriod$inboundSchema,
-  api: V2WorkspaceGetUsageApi$inboundSchema,
-  compute: V2WorkspaceGetUsageCompute$inboundSchema,
+  totals: V2WorkspaceGetUsageTotals$inboundSchema,
+  breakdowns: V2WorkspaceGetUsageBreakdowns$inboundSchema,
 });
 
 export function v2WorkspaceGetUsageResponseDataFromJSON(

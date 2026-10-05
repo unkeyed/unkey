@@ -6,59 +6,27 @@ import * as z from "zod/v3";
 import { safeParse } from "../../lib/schemas.js";
 import { Result as SafeParseResult } from "../../types/fp.js";
 import { SDKValidationError } from "../errors/sdkvalidationerror.js";
-import {
-  V2WorkspaceGetUsageApp,
-  V2WorkspaceGetUsageApp$inboundSchema,
-} from "./v2workspacegetusageapp.js";
-import {
-  V2WorkspaceGetUsageEnvironment,
-  V2WorkspaceGetUsageEnvironment$inboundSchema,
-} from "./v2workspacegetusageenvironment.js";
 
 /**
- * Compute usage in the period. `cpuSeconds`, `memoryGiBHours`, `diskGiBHours`,
- *
- * @remarks
- * and `egressGiB` are the sums of the `environments` rows. `activeKeys` is the
- * sum of the `apps` rows.
+ * Compute usage in the period.
  */
 export type V2WorkspaceGetUsageCompute = {
   /**
-   * CPU time used across the workspace, in seconds.
+   * CPU time used, in seconds.
    */
   cpuSeconds: number;
   /**
-   * Memory used over time across the workspace, in GiB-hours.
+   * Memory used over time, in GiB-hours.
    */
   memoryGiBHours: number;
   /**
-   * Ephemeral disk allocated over time across the workspace, in GiB-hours.
+   * Ephemeral disk reserved over time, in GiB-hours.
    */
-  diskGiBHours: number;
+  storageGiBHours: number;
   /**
-   * Public network egress across the workspace, in GiB.
+   * Public network egress, in GiB.
    */
   egressGiB: number;
-  /**
-   * Distinct keys verified through the Unkey gateway in the period.
-   */
-  activeKeys: number;
-  /**
-   * One row per environment with compute usage in the period, most
-   *
-   * @remarks
-   * `cpuSeconds` first, then by `projectId` and `environmentId`.
-   * Empty when nothing ran.
-   */
-  environments: Array<V2WorkspaceGetUsageEnvironment>;
-  /**
-   * One row per app whose gateway verified keys in the period, and one row
-   *
-   * @remarks
-   * with an empty `appId` for keys that have no app id. Most `activeKeys`
-   * first, then by `appId`. Empty when no keys were verified.
-   */
-  apps: Array<V2WorkspaceGetUsageApp>;
 };
 
 /** @internal */
@@ -69,11 +37,8 @@ export const V2WorkspaceGetUsageCompute$inboundSchema: z.ZodType<
 > = z.object({
   cpuSeconds: z.number(),
   memoryGiBHours: z.number(),
-  diskGiBHours: z.number(),
+  storageGiBHours: z.number(),
   egressGiB: z.number(),
-  activeKeys: z.number().int(),
-  environments: z.array(V2WorkspaceGetUsageEnvironment$inboundSchema),
-  apps: z.array(V2WorkspaceGetUsageApp$inboundSchema),
 });
 
 export function v2WorkspaceGetUsageComputeFromJSON(

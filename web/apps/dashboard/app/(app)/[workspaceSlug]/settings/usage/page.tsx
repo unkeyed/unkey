@@ -72,7 +72,9 @@ export default function UsagePage() {
   }
 
   const computeTree =
-    usage.data === undefined ? undefined : buildComputeTree(breakdownFromUsage(usage.data.compute));
+    usage.data === undefined
+      ? undefined
+      : buildComputeTree(breakdownFromUsage(usage.data.breakdowns));
   const compute = hasComputePlan ? (
     usage.isError ? (
       <ComputeCardShell description="Usage per project this period">
@@ -121,8 +123,8 @@ export default function UsagePage() {
   // number on two adjacent pages for any workspace with an overridden limit.
   const api = (
     <ApiCard
-      verifications={usage.data?.api.verifications ?? null}
-      ratelimits={usage.data?.api.ratelimits ?? null}
+      verifications={usage.data?.totals.api.verifications ?? null}
+      ratelimits={usage.data?.totals.api.ratelimits ?? null}
       quota={limits?.apiBillableOperationsCountMaxPerMonth ?? null}
       feeCents={feeCents}
       isLoading={
