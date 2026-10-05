@@ -43,14 +43,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	workspaceID := principal.AuthorizedWorkspaceID
-	err = principal.Authorize(rbac.Or(
-		rbac.U(urn.New().Workspace(workspaceID).Limits(), permissions.Read),
-		rbac.T(rbac.Tuple{
-			ResourceType: rbac.Workspace,
-			ResourceID:   "*",
-			Action:       rbac.ReadLimits,
-		}),
-	))
+	err = principal.Authorize(rbac.U(urn.New().Workspace(workspaceID).Limits(), permissions.Read))
 	if err != nil {
 		return err
 	}

@@ -1,6 +1,7 @@
 package handler_test
 
 import (
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -16,7 +17,7 @@ func TestGetLimitsWithoutLimitsRow(t *testing.T) {
 	h.Register(route)
 
 	workspace := h.CreateWorkspace()
-	rootKey := h.CreateRootKey(workspace.ID, "workspace.*.read_limits")
+	rootKey := h.CreateRootKey(workspace.ID, fmt.Sprintf("unkey:v1:%s:limits#read", workspace.ID))
 	_, err := h.DB.RW().ExecContext(t.Context(), "DELETE FROM limits WHERE workspace_id = ?", workspace.ID)
 	require.NoError(t, err)
 

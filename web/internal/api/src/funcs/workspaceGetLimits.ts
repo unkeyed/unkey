@@ -41,8 +41,7 @@ import { Result } from "../types/fp.js";
  *
  * **Required Permissions**
  *
- * Your root key must have one of the following permissions:
- * - `workspace.*.read_limits`
+ * Your root key must have this permission:
  * - `unkey:v1:<workspace_id>:limits#read`
  *
  * If set, this operation will use {@link Security.rootKey} from the global security.

@@ -25,8 +25,7 @@ export class Workspace extends ClientSDK {
    *
    * **Required Permissions**
    *
-   * Your root key must have one of the following permissions:
-   * - `workspace.*.read_limits`
+   * Your root key must have this permission:
    * - `unkey:v1:<workspace_id>:limits#read`
    */
   async getLimits(

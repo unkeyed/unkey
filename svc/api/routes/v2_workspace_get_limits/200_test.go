@@ -3,6 +3,7 @@ package handler_test
 import (
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -47,10 +48,9 @@ func TestGetLimitsWithComputePlan(t *testing.T) {
 	h.Register(route)
 	ctx := t.Context()
 
-	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"workspace.*.read_limits"},
-	})
+	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{})
 	workspaceID := setup.Workspace.ID
+	rootKey := h.CreateRootKey(workspaceID, fmt.Sprintf("unkey:v1:%s:limits#read", workspaceID))
 
 	err := db.Query.UpsertLimit(ctx, h.DB.RW(), db.UpsertLimitParams{
 		WorkspaceID:                           workspaceID,
@@ -95,7 +95,7 @@ func TestGetLimitsWithComputePlan(t *testing.T) {
 	insertBillable(t, h, "billable_ratelimits_per_month_v2", workspaceID, now, 2_000)
 	insertBillable(t, h, "billable_verifications_per_month_v2", workspaceID, lastMonth, 999)
 
-	res := callGetLimits(h, route, bearer(setup.RootKey))
+	res := callGetLimits(h, route, bearer(rootKey))
 	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
 
 	requestsPerMinute := int64(1000)
@@ -129,7 +129,7 @@ func TestGetLimitsOmitsComputeAndRequestsPerMinute(t *testing.T) {
 	h.Register(route)
 
 	workspace := h.CreateWorkspace()
-	rootKey := h.CreateRootKey(workspace.ID, "workspace.*.read_limits")
+	rootKey := h.CreateRootKey(workspace.ID, fmt.Sprintf("unkey:v1:%s:limits#read", workspace.ID))
 
 	res := callGetLimits(h, route, bearer(rootKey))
 	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)

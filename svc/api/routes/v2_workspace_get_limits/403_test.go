@@ -26,7 +26,7 @@ func TestGetLimitsAuthorization(t *testing.T) {
 		permissions []string
 		shouldPass  bool
 	}{
-		{name: "legacy permission", permissions: []string{"workspace.*.read_limits"}, shouldPass: true},
+		{name: "legacy permission", permissions: []string{"workspace.*.read_limits"}, shouldPass: false},
 		{name: "URN permission", permissions: []string{fmt.Sprintf("unkey:v1:%s:limits#read", workspace.ID)}, shouldPass: true},
 		{name: "URN global permission", permissions: []string{fmt.Sprintf("unkey:v1:%s:**#read", workspace.ID)}, shouldPass: true},
 		{name: "URN permission for another workspace", permissions: []string{fmt.Sprintf("unkey:v1:%s:limits#read", otherWorkspace.ID)}, shouldPass: false},
