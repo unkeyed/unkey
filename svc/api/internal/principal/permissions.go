@@ -3,6 +3,7 @@ package principal
 import (
 	"context"
 	"slices"
+	"strconv"
 	"strings"
 
 	authprincipal "github.com/unkeyed/unkey/pkg/auth/principal"
@@ -52,17 +53,17 @@ func ValidateDelegatedPermissions(ctx context.Context, p *authprincipal.Principa
 func parsePermission(permission, workspaceID string) (urn.V1, permissions.Action, error) {
 	resourceName, actionName, ok := strings.Cut(permission, "#")
 	if !ok || strings.Contains(actionName, "#") {
-		return urn.V1{}, "", invalidPermission()
+		return urn.V1{}, "", invalidPermission(permission)
 	}
 	resource, err := urn.ParseV1(resourceName)
 	if err != nil || resource.WorkspaceID != workspaceID || !resource.SupportsPermissionAction(permissions.Action(actionName)) {
-		return urn.V1{}, "", invalidPermission()
+		return urn.V1{}, "", invalidPermission(permission)
 	}
 	return resource, permissions.Action(actionName), nil
 }
 
-func invalidPermission() error {
+func invalidPermission(permission string) error {
 	return fault.New("invalid permission",
 		fault.Code(codes.App.Validation.InvalidInput.URN()),
-		fault.Public("A requested permission is not a supported URN permission in this workspace."))
+		fault.Public("Permission "+strconv.Quote(permission)+" is not a supported URN permission in this workspace."))
 }

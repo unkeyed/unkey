@@ -8,6 +8,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
+	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_root_keys_create_key"
 )
 
@@ -89,6 +90,24 @@ func TestCreateRejectsInvalidResourceActionsAtomically(t *testing.T) {
 			require.Equal(t, before, snapshot(t, h))
 		})
 	}
+}
+
+// TestCreateReturnsInvalidPermission guarantees clients can identify the
+// unsupported permission that caused root-key creation to fail.
+func TestCreateReturnsInvalidPermission(t *testing.T) {
+	h, route, p := newHarness(t)
+	base := "unkey:v1:" + p.AuthorizedWorkspaceID + ":"
+	invalidAction := base + "rootKeys/*#decrypt"
+
+	res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, http.Header{
+		"Authorization": {"Bearer test"}, "Content-Type": {"application/json"},
+	}, handler.Request{Permissions: []string{
+		base + "projects/*#read",
+		invalidAction,
+	}})
+
+	require.Equal(t, http.StatusBadRequest, res.Status, "%s", res.RawBody)
+	require.Equal(t, "Permission \""+invalidAction+"\" is not a supported URN permission in this workspace.", res.Body.Error.Detail)
 }
 
 func TestCreateIgnoresLegacyCallerPermissions(t *testing.T) {
