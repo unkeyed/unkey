@@ -121,16 +121,16 @@ func TestGetLimitsWithComputePlan(t *testing.T) {
 			BillableOperations: openapi.LimitMeter{Limit: 150_000, Used: 42_000},
 			RequestsPerMinute:  &requestsPerMinute,
 		},
-		Logs: openapi.V2WorkspaceGetLimitsLogs{
+		Log: openapi.V2WorkspaceGetLimitsLog{
 			RetentionDays:      7,
 			AuditRetentionDays: 30,
-			LogDrains:          openapi.LimitMeter{Limit: 3, Used: 1},
+			Drains:             openapi.LimitMeter{Limit: 3, Used: 1},
 		},
 		Compute: &openapi.V2WorkspaceGetLimitsCompute{
 			Workspace: openapi.V2WorkspaceGetLimitsComputeWorkspace{
-				VCpus:      openapi.V2WorkspaceGetLimitsVcpuMeter{Limit: 4, Used: 1.5},
-				MemoryMib:  openapi.LimitMeter{Limit: 8192, Used: 1536},
-				StorageMib: openapi.LimitMeter{Limit: 10_240, Used: 3072},
+				VCpus:      openapi.V2WorkspaceGetLimitsVcpuMeter{Limit: 4, Reserved: 1.5},
+				MemoryMib:  openapi.V2WorkspaceGetLimitsReservedMeter{Limit: 8192, Reserved: 1536},
+				StorageMib: openapi.V2WorkspaceGetLimitsReservedMeter{Limit: 10_240, Reserved: 3072},
 			},
 			PerInstance:       openapi.V2WorkspaceGetLimitsComputePerInstance{VCpus: 2, MemoryMib: 4096, StorageMib: 5120},
 			ConcurrentBuilds:  2,

@@ -3,7 +3,7 @@ description: Limits for logs and log drains.
 required:
   - retentionDays
   - auditRetentionDays
-  - logDrains
+  - drains
 properties:
   retentionDays:
     type: integer
@@ -13,7 +13,7 @@ properties:
     type: integer
     description: The audit log retention of the workspace plan, in days.
     example: 30
-  logDrains:
+  drains:
     description: The log drains in the workspace, against the allowance.
     allOf:
       - "$ref": "../../../../common/LimitMeter.yaml"

@@ -95,10 +95,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			},
 			RequestsPerMinute: nil,
 		},
-		Logs: openapi.V2WorkspaceGetLimitsLogs{
+		Log: openapi.V2WorkspaceGetLimitsLog{
 			RetentionDays:      int(limits.LogsRetentionDaysMax),
 			AuditRetentionDays: int(limits.LogsAuditRetentionDaysMax),
-			LogDrains: openapi.LimitMeter{
+			Drains: openapi.LimitMeter{
 				Limit: int64(limits.LogdrainsMax),
 				Used:  limits.LogdrainsCount,
 			},
@@ -114,16 +114,16 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		data.Compute = &openapi.V2WorkspaceGetLimitsCompute{
 			Workspace: openapi.V2WorkspaceGetLimitsComputeWorkspace{
 				VCpus: openapi.V2WorkspaceGetLimitsVcpuMeter{
-					Limit: float64(limits.CpuCoresMax),
-					Used:  float64(limits.TotalCpuMillicores) / millicoresPerVCpu,
+					Limit:    float64(limits.CpuCoresMax),
+					Reserved: float64(limits.TotalCpuMillicores) / millicoresPerVCpu,
 				},
-				MemoryMib: openapi.LimitMeter{
-					Limit: int64(limits.MemoryMibMax),
-					Used:  limits.TotalMemoryMib,
+				MemoryMib: openapi.V2WorkspaceGetLimitsReservedMeter{
+					Limit:    int64(limits.MemoryMibMax),
+					Reserved: limits.TotalMemoryMib,
 				},
-				StorageMib: openapi.LimitMeter{
-					Limit: int64(limits.StorageMibMax),
-					Used:  limits.TotalStorageMib,
+				StorageMib: openapi.V2WorkspaceGetLimitsReservedMeter{
+					Limit:    int64(limits.StorageMibMax),
+					Reserved: limits.TotalStorageMib,
 				},
 			},
 			PerInstance: openapi.V2WorkspaceGetLimitsComputePerInstance{

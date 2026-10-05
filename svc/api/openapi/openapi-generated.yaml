@@ -7976,12 +7976,12 @@ components:
             type: object
             required:
                 - api
-                - logs
+                - log
             properties:
                 api:
                     "$ref": "#/components/schemas/V2WorkspaceGetLimitsApi"
-                logs:
-                    "$ref": "#/components/schemas/V2WorkspaceGetLimitsLogs"
+                log:
+                    "$ref": "#/components/schemas/V2WorkspaceGetLimitsLog"
                 compute:
                     description: |
                         Compute limits and reserved capacity. Omitted when the workspace has no
@@ -8010,13 +8010,13 @@ components:
                         per-minute limit.
                     example: 1000
             additionalProperties: false
-        V2WorkspaceGetLimitsLogs:
+        V2WorkspaceGetLimitsLog:
             type: object
             description: Limits for logs and log drains.
             required:
                 - retentionDays
                 - auditRetentionDays
-                - logDrains
+                - drains
             properties:
                 retentionDays:
                     type: integer
@@ -8026,7 +8026,7 @@ components:
                     type: integer
                     description: The audit log retention of the workspace plan, in days.
                     example: 30
-                logDrains:
+                drains:
                     description: The log drains in the workspace, against the allowance.
                     allOf:
                         - "$ref": "#/components/schemas/LimitMeter"
@@ -8077,11 +8077,11 @@ components:
         V2WorkspaceGetLimitsComputeWorkspace:
             type: object
             description: |
-                Reserved capacity across the workspace, against the workspace limits. `used`
-                is reserved capacity, not live usage. Each running deployment reserves its
-                instance size times its maximum replicas, in each region it runs in. `used`
-                is the sum over all running deployments. A deploy that would bring this sum
-                above `limit` is rejected.
+                Reserved capacity across the workspace, against the workspace limits. This is
+                not live usage. Each running deployment reserves its instance size times its
+                maximum replicas, in each region it runs in. `reserved` is the sum over all
+                running deployments. A deploy that would bring this sum above `limit` is
+                rejected.
             required:
                 - vCpus
                 - memoryMib
@@ -8092,11 +8092,11 @@ components:
                 memoryMib:
                     description: Reserved memory in MiB.
                     allOf:
-                        - "$ref": "#/components/schemas/LimitMeter"
+                        - "$ref": "#/components/schemas/V2WorkspaceGetLimitsReservedMeter"
                 storageMib:
                     description: Reserved ephemeral disk in MiB.
                     allOf:
-                        - "$ref": "#/components/schemas/LimitMeter"
+                        - "$ref": "#/components/schemas/V2WorkspaceGetLimitsReservedMeter"
             additionalProperties: false
         V2WorkspaceGetLimitsComputePerInstance:
             type: object
@@ -8142,18 +8142,36 @@ components:
             description: The workspace CPU limit and the reserved CPU against it, in vCPUs.
             required:
                 - limit
-                - used
+                - reserved
             properties:
                 limit:
                     type: number
                     format: double
                     description: The maximum vCPUs the workspace can reserve.
                     example: 4
-                used:
+                reserved:
                     type: number
                     format: double
                     description: The vCPUs the workspace reserves now.
                     example: 2.5
+            additionalProperties: false
+        V2WorkspaceGetLimitsReservedMeter:
+            type: object
+            description: A workspace compute limit and the capacity reserved against it.
+            required:
+                - limit
+                - reserved
+            properties:
+                limit:
+                    type: integer
+                    format: int64
+                    description: The maximum the workspace can reserve.
+                    example: 8192
+                reserved:
+                    type: integer
+                    format: int64
+                    description: The amount running deployments reserve now.
+                    example: 4096
             additionalProperties: false
         DeploymentSourceOCI:
             type: object
@@ -17837,16 +17855,16 @@ paths:
                                                 workspace:
                                                     memoryMib:
                                                         limit: 8192
-                                                        used: 4096
+                                                        reserved: 4096
                                                     storageMib:
                                                         limit: 10240
-                                                        used: 2048
+                                                        reserved: 2048
                                                     vCpus:
                                                         limit: 4
-                                                        used: 2.5
-                                            logs:
+                                                        reserved: 2.5
+                                            log:
                                                 auditRetentionDays: 30
-                                                logDrains:
+                                                drains:
                                                     limit: 1
                                                     used: 0
                                                 retentionDays: 7
@@ -17861,9 +17879,9 @@ paths:
                                                 billableOperations:
                                                     limit: 150000
                                                     used: 42000
-                                            logs:
+                                            log:
                                                 auditRetentionDays: 30
-                                                logDrains:
+                                                drains:
                                                     limit: 0
                                                     used: 0
                                                 retentionDays: 7

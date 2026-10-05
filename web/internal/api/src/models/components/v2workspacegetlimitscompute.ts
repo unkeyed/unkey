@@ -24,13 +24,13 @@ import {
  */
 export type V2WorkspaceGetLimitsCompute = {
   /**
-   * Reserved capacity across the workspace, against the workspace limits. `used`
+   * Reserved capacity across the workspace, against the workspace limits. This is
    *
    * @remarks
-   * is reserved capacity, not live usage. Each running deployment reserves its
-   * instance size times its maximum replicas, in each region it runs in. `used`
-   * is the sum over all running deployments. A deploy that would bring this sum
-   * above `limit` is rejected.
+   * not live usage. Each running deployment reserves its instance size times its
+   * maximum replicas, in each region it runs in. `reserved` is the sum over all
+   * running deployments. A deploy that would bring this sum above `limit` is
+   * rejected.
    */
   workspace: V2WorkspaceGetLimitsComputeWorkspace;
   /**

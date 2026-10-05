@@ -6,20 +6,23 @@ import * as z from "zod/v3";
 import { safeParse } from "../../lib/schemas.js";
 import { Result as SafeParseResult } from "../../types/fp.js";
 import { SDKValidationError } from "../errors/sdkvalidationerror.js";
-import { LimitMeter, LimitMeter$inboundSchema } from "./limitmeter.js";
+import {
+  V2WorkspaceGetLimitsReservedMeter,
+  V2WorkspaceGetLimitsReservedMeter$inboundSchema,
+} from "./v2workspacegetlimitsreservedmeter.js";
 import {
   V2WorkspaceGetLimitsVcpuMeter,
   V2WorkspaceGetLimitsVcpuMeter$inboundSchema,
 } from "./v2workspacegetlimitsvcpumeter.js";
 
 /**
- * Reserved capacity across the workspace, against the workspace limits. `used`
+ * Reserved capacity across the workspace, against the workspace limits. This is
  *
  * @remarks
- * is reserved capacity, not live usage. Each running deployment reserves its
- * instance size times its maximum replicas, in each region it runs in. `used`
- * is the sum over all running deployments. A deploy that would bring this sum
- * above `limit` is rejected.
+ * not live usage. Each running deployment reserves its instance size times its
+ * maximum replicas, in each region it runs in. `reserved` is the sum over all
+ * running deployments. A deploy that would bring this sum above `limit` is
+ * rejected.
  */
 export type V2WorkspaceGetLimitsComputeWorkspace = {
   /**
@@ -29,11 +32,11 @@ export type V2WorkspaceGetLimitsComputeWorkspace = {
   /**
    * Reserved memory in MiB.
    */
-  memoryMib: LimitMeter;
+  memoryMib: V2WorkspaceGetLimitsReservedMeter;
   /**
    * Reserved ephemeral disk in MiB.
    */
-  storageMib: LimitMeter;
+  storageMib: V2WorkspaceGetLimitsReservedMeter;
 };
 
 /** @internal */
@@ -43,8 +46,8 @@ export const V2WorkspaceGetLimitsComputeWorkspace$inboundSchema: z.ZodType<
   unknown
 > = z.object({
   vCpus: V2WorkspaceGetLimitsVcpuMeter$inboundSchema,
-  memoryMib: LimitMeter$inboundSchema,
-  storageMib: LimitMeter$inboundSchema,
+  memoryMib: V2WorkspaceGetLimitsReservedMeter$inboundSchema,
+  storageMib: V2WorkspaceGetLimitsReservedMeter$inboundSchema,
 });
 
 export function v2WorkspaceGetLimitsComputeWorkspaceFromJSON(

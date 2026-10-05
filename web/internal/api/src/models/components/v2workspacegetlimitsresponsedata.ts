@@ -15,9 +15,9 @@ import {
   V2WorkspaceGetLimitsCompute$inboundSchema,
 } from "./v2workspacegetlimitscompute.js";
 import {
-  V2WorkspaceGetLimitsLogs,
-  V2WorkspaceGetLimitsLogs$inboundSchema,
-} from "./v2workspacegetlimitslogs.js";
+  V2WorkspaceGetLimitsLog,
+  V2WorkspaceGetLimitsLog$inboundSchema,
+} from "./v2workspacegetlimitslog.js";
 
 export type V2WorkspaceGetLimitsResponseData = {
   /**
@@ -27,7 +27,7 @@ export type V2WorkspaceGetLimitsResponseData = {
   /**
    * Limits for logs and log drains.
    */
-  logs: V2WorkspaceGetLimitsLogs;
+  log: V2WorkspaceGetLimitsLog;
   /**
    * Compute limits and reserved capacity. Omitted when the workspace has no
    *
@@ -44,7 +44,7 @@ export const V2WorkspaceGetLimitsResponseData$inboundSchema: z.ZodType<
   unknown
 > = z.object({
   api: V2WorkspaceGetLimitsApi$inboundSchema,
-  logs: V2WorkspaceGetLimitsLogs$inboundSchema,
+  log: V2WorkspaceGetLimitsLog$inboundSchema,
   compute: V2WorkspaceGetLimitsCompute$inboundSchema.optional(),
 });
 

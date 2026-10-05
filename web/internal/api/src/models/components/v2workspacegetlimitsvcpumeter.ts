@@ -18,7 +18,7 @@ export type V2WorkspaceGetLimitsVcpuMeter = {
   /**
    * The vCPUs the workspace reserves now.
    */
-  used: number;
+  reserved: number;
 };
 
 /** @internal */
@@ -28,7 +28,7 @@ export const V2WorkspaceGetLimitsVcpuMeter$inboundSchema: z.ZodType<
   unknown
 > = z.object({
   limit: z.number(),
-  used: z.number(),
+  reserved: z.number(),
 });
 
 export function v2WorkspaceGetLimitsVcpuMeterFromJSON(

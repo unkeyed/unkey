@@ -11,7 +11,7 @@ import { LimitMeter, LimitMeter$inboundSchema } from "./limitmeter.js";
 /**
  * Limits for logs and log drains.
  */
-export type V2WorkspaceGetLimitsLogs = {
+export type V2WorkspaceGetLimitsLog = {
   /**
    * How many days back request and runtime logs can be queried.
    */
@@ -23,26 +23,26 @@ export type V2WorkspaceGetLimitsLogs = {
   /**
    * The log drains in the workspace, against the allowance.
    */
-  logDrains: LimitMeter;
+  drains: LimitMeter;
 };
 
 /** @internal */
-export const V2WorkspaceGetLimitsLogs$inboundSchema: z.ZodType<
-  V2WorkspaceGetLimitsLogs,
+export const V2WorkspaceGetLimitsLog$inboundSchema: z.ZodType<
+  V2WorkspaceGetLimitsLog,
   z.ZodTypeDef,
   unknown
 > = z.object({
   retentionDays: z.number().int(),
   auditRetentionDays: z.number().int(),
-  logDrains: LimitMeter$inboundSchema,
+  drains: LimitMeter$inboundSchema,
 });
 
-export function v2WorkspaceGetLimitsLogsFromJSON(
+export function v2WorkspaceGetLimitsLogFromJSON(
   jsonString: string,
-): SafeParseResult<V2WorkspaceGetLimitsLogs, SDKValidationError> {
+): SafeParseResult<V2WorkspaceGetLimitsLog, SDKValidationError> {
   return safeParse(
     jsonString,
-    (x) => V2WorkspaceGetLimitsLogs$inboundSchema.parse(JSON.parse(x)),
-    `Failed to parse 'V2WorkspaceGetLimitsLogs' from JSON`,
+    (x) => V2WorkspaceGetLimitsLog$inboundSchema.parse(JSON.parse(x)),
+    `Failed to parse 'V2WorkspaceGetLimitsLog' from JSON`,
   );
 }

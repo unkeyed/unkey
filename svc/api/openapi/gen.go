@@ -6883,11 +6883,11 @@ type V2WorkspaceGetLimitsCompute struct {
 	// Example: 10
 	ReplicasPerRegion int `json:"replicasPerRegion"`
 
-	// Workspace Reserved capacity across the workspace, against the workspace limits. `used`
-	// is reserved capacity, not live usage. Each running deployment reserves its
-	// instance size times its maximum replicas, in each region it runs in. `used`
-	// is the sum over all running deployments. A deploy that would bring this sum
-	// above `limit` is rejected.
+	// Workspace Reserved capacity across the workspace, against the workspace limits. This is
+	// not live usage. Each running deployment reserves its instance size times its
+	// maximum replicas, in each region it runs in. `reserved` is the sum over all
+	// running deployments. A deploy that would bring this sum above `limit` is
+	// rejected.
 	Workspace V2WorkspaceGetLimitsComputeWorkspace `json:"workspace"`
 }
 
@@ -6909,17 +6909,17 @@ type V2WorkspaceGetLimitsComputePerInstance struct {
 	VCpus float64 `json:"vCpus"`
 }
 
-// V2WorkspaceGetLimitsComputeWorkspace Reserved capacity across the workspace, against the workspace limits. `used`
-// is reserved capacity, not live usage. Each running deployment reserves its
-// instance size times its maximum replicas, in each region it runs in. `used`
-// is the sum over all running deployments. A deploy that would bring this sum
-// above `limit` is rejected.
+// V2WorkspaceGetLimitsComputeWorkspace Reserved capacity across the workspace, against the workspace limits. This is
+// not live usage. Each running deployment reserves its instance size times its
+// maximum replicas, in each region it runs in. `reserved` is the sum over all
+// running deployments. A deploy that would bring this sum above `limit` is
+// rejected.
 type V2WorkspaceGetLimitsComputeWorkspace struct {
 	// MemoryMib Reserved memory in MiB.
-	MemoryMib LimitMeter `json:"memoryMib"`
+	MemoryMib V2WorkspaceGetLimitsReservedMeter `json:"memoryMib"`
 
 	// StorageMib Reserved ephemeral disk in MiB.
-	StorageMib LimitMeter `json:"storageMib"`
+	StorageMib V2WorkspaceGetLimitsReservedMeter `json:"storageMib"`
 
 	// VCpus The workspace CPU limit and the reserved CPU against it, in vCPUs.
 	VCpus V2WorkspaceGetLimitsVcpuMeter `json:"vCpus"`
@@ -6938,20 +6938,33 @@ type V2WorkspaceGetLimitsCustomDomains struct {
 	Used int64 `json:"used"`
 }
 
-// V2WorkspaceGetLimitsLogs Limits for logs and log drains.
-type V2WorkspaceGetLimitsLogs struct {
+// V2WorkspaceGetLimitsLog Limits for logs and log drains.
+type V2WorkspaceGetLimitsLog struct {
 	// AuditRetentionDays The audit log retention of the workspace plan, in days.
 	//
 	// Example: 30
 	AuditRetentionDays int `json:"auditRetentionDays"`
 
-	// LogDrains The log drains in the workspace, against the allowance.
-	LogDrains LimitMeter `json:"logDrains"`
+	// Drains The log drains in the workspace, against the allowance.
+	Drains LimitMeter `json:"drains"`
 
 	// RetentionDays How many days back request and runtime logs can be queried.
 	//
 	// Example: 7
 	RetentionDays int `json:"retentionDays"`
+}
+
+// V2WorkspaceGetLimitsReservedMeter A workspace compute limit and the capacity reserved against it.
+type V2WorkspaceGetLimitsReservedMeter struct {
+	// Limit The maximum the workspace can reserve.
+	//
+	// Example: 8192
+	Limit int64 `json:"limit"`
+
+	// Reserved The amount running deployments reserve now.
+	//
+	// Example: 4096
+	Reserved int64 `json:"reserved"`
 }
 
 // V2WorkspaceGetLimitsResponseBody defines model for V2WorkspaceGetLimitsResponseBody.
@@ -6971,8 +6984,8 @@ type V2WorkspaceGetLimitsResponseData struct {
 	// Compute plan.
 	Compute *V2WorkspaceGetLimitsCompute `json:"compute,omitempty"`
 
-	// Logs Limits for logs and log drains.
-	Logs V2WorkspaceGetLimitsLogs `json:"logs"`
+	// Log Limits for logs and log drains.
+	Log V2WorkspaceGetLimitsLog `json:"log"`
 }
 
 // V2WorkspaceGetLimitsVcpuMeter The workspace CPU limit and the reserved CPU against it, in vCPUs.
@@ -6982,10 +6995,10 @@ type V2WorkspaceGetLimitsVcpuMeter struct {
 	// Example: 4
 	Limit float64 `json:"limit"`
 
-	// Used The vCPUs the workspace reserves now.
+	// Reserved The vCPUs the workspace reserves now.
 	//
 	// Example: 2.5
-	Used float64 `json:"used"`
+	Reserved float64 `json:"reserved"`
 }
 
 // V3DeploymentsCreateDeploymentRequestBody Create a deployment. Omit the source to use the app default, or provide one source override.

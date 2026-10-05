@@ -1,12 +1,12 @@
 type: object
 required:
   - api
-  - logs
+  - log
 properties:
   api:
     "$ref": "./V2WorkspaceGetLimitsApi.yaml"
-  logs:
-    "$ref": "./V2WorkspaceGetLimitsLogs.yaml"
+  log:
+    "$ref": "./V2WorkspaceGetLimitsLog.yaml"
   compute:
     description: |
       Compute limits and reserved capacity. Omitted when the workspace has no

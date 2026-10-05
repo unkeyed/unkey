@@ -21,23 +21,23 @@ examples:
             limit: 150000
             used: 42000
           requestsPerMinute: 1000
-        logs:
+        log:
           retentionDays: 7
           auditRetentionDays: 30
-          logDrains:
+          drains:
             limit: 1
             used: 0
         compute:
           workspace:
             vCpus:
               limit: 4
-              used: 2.5
+              reserved: 2.5
             memoryMib:
               limit: 8192
-              used: 4096
+              reserved: 4096
             storageMib:
               limit: 10240
-              used: 2048
+              reserved: 2048
           perInstance:
             vCpus: 2
             memoryMib: 4096
