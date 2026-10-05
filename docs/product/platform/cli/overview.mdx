@@ -8,6 +8,7 @@ sources:
   - cmd/api/util/flags.go
   - cmd/api/analytics/root.go
   - cmd/auth/main.go
+  - cmd/login/login.go
   - cmd/deploy/main.go
   - cmd/healthcheck/main.go
   - pkg/cli/parser.go
@@ -16,7 +17,7 @@ sources:
 
 The `unkey` CLI lets you do from your terminal what you'd do with the API. It covers both products. Nearly every API endpoint has a matching `unkey api <group> <command>`. The exception is the customer portal's end-user endpoints, which use a portal session instead of a root key.
 
-There are also three top-level commands: `unkey deploy` deploys a prebuilt container image to Compute, `unkey auth login` stores a root key so you don't pass it on every call, and `unkey healthcheck` checks a URL from a script.
+There are also four top-level commands: `unkey deploy` deploys a prebuilt container image to Compute, `unkey login` signs you in and stores a root key so you don't pass it on every call, `unkey auth login` does the same thing, and `unkey healthcheck` checks a URL from a script.
 
 <Warning>
   The CLI is early and best effort. Commands, flags, and output can change without notice. The HTTP API is versioned and stable, so use the API for scripts that must not break.
@@ -68,7 +69,8 @@ Keyspaces, keys, identities, permissions and roles, <Tooltip tip="Here: the stan
 | Command | Product | What it does |
 | --- | --- | --- |
 | `unkey deploy <image>` | Compute | Deploys a prebuilt container image to a project and waits until the deployment is active. Needs `--project` (or `UNKEY_PROJECT`), and a root key from `--root-key` or `UNKEY_ROOT_KEY`. It doesn't read the stored key. Reference: [unkey deploy](/compute/cli/deploy). |
-| `unkey auth login` | Platform | Prompts for a root key and stores it in `~/.unkey/config.toml`. Reference: [unkey auth login](/platform/cli/auth/login). |
+| `unkey login` | Platform | Signs you in with a device code and stores a root key in the system keychain. `--root-key` stores an existing key instead. Reference: [unkey login](/platform/cli/login). |
+| `unkey auth login` | Platform | Same command as `unkey login`. Reference: [unkey auth login](/platform/cli/auth/login). |
 | `unkey healthcheck <url>` | Compute | Sends one HTTP GET and exits 0 on a 200 response, or 1 otherwise. Useful in CI and monitoring scripts. Reference: [unkey healthcheck](/compute/cli/healthcheck). |
 
 ## Next steps

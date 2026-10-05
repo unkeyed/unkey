@@ -10,6 +10,32 @@ import (
 )
 
 type Querier interface {
+	//ApproveCLIDeviceLogin
+	//
+	//  UPDATE cli_device_logins
+	//  SET
+	//      status = 'approved',
+	//      workspace_id = ?,
+	//      approver_user_id = ?,
+	//      approver_name = ?,
+	//      approver_roles = CAST(? AS JSON),
+	//      permissions = CAST(? AS JSON),
+	//      key_name = ?,
+	//      approved_at = ?
+	//  WHERE id = ?
+	//    AND status IN ('pending', 'approved')
+	//    AND (
+	//      approver_user_id IS NULL
+	//      OR approver_user_id = ?
+	//    )
+	ApproveCLIDeviceLogin(ctx context.Context, db DBTX, arg ApproveCLIDeviceLoginParams) (int64, error)
+	//ConsumeCLIDeviceLogin
+	//
+	//  UPDATE cli_device_logins
+	//  SET status = 'consumed'
+	//  WHERE id = ?
+	//    AND status = 'approved'
+	ConsumeCLIDeviceLogin(ctx context.Context, db DBTX, id string) (int64, error)
 	// Covered by unique_domain_workspace_idx, which leads on workspace_id.
 	//
 	//  SELECT COUNT(*)
@@ -331,6 +357,100 @@ type Querier interface {
 	//  FROM app_source_oci
 	//  WHERE app_id = ?
 	FindAppSourceOciByAppId(ctx context.Context, db DBTX, appID string) (AppSourceOci, error)
+	//FindCLIDeviceLoginByID
+	//
+	//  SELECT
+	//      pk,
+	//      id,
+	//      user_code,
+	//      device_code,
+	//      workos_verification_uri,
+	//      poll_interval_seconds,
+	//      expires_at,
+	//      status,
+	//      device_name,
+	//      workspace_id,
+	//      approver_user_id,
+	//      approver_name,
+	//      approver_roles,
+	//      permissions,
+	//      key_name,
+	//      created_at,
+	//      approved_at
+	//  FROM cli_device_logins
+	//  WHERE id = ?
+	FindCLIDeviceLoginByID(ctx context.Context, db DBTX, id string) (CliDeviceLogin, error)
+	//FindCLIDeviceLoginByIDForUpdate
+	//
+	//  SELECT
+	//      pk,
+	//      id,
+	//      user_code,
+	//      device_code,
+	//      workos_verification_uri,
+	//      poll_interval_seconds,
+	//      expires_at,
+	//      status,
+	//      device_name,
+	//      workspace_id,
+	//      approver_user_id,
+	//      approver_name,
+	//      approver_roles,
+	//      permissions,
+	//      key_name,
+	//      created_at,
+	//      approved_at
+	//  FROM cli_device_logins
+	//  WHERE id = ?
+	//  FOR UPDATE
+	FindCLIDeviceLoginByIDForUpdate(ctx context.Context, db DBTX, id string) (CliDeviceLogin, error)
+	//FindCLIDeviceLoginByUserCode
+	//
+	//  SELECT
+	//      pk,
+	//      id,
+	//      user_code,
+	//      device_code,
+	//      workos_verification_uri,
+	//      poll_interval_seconds,
+	//      expires_at,
+	//      status,
+	//      device_name,
+	//      workspace_id,
+	//      approver_user_id,
+	//      approver_name,
+	//      approver_roles,
+	//      permissions,
+	//      key_name,
+	//      created_at,
+	//      approved_at
+	//  FROM cli_device_logins
+	//  WHERE user_code = ?
+	FindCLIDeviceLoginByUserCode(ctx context.Context, db DBTX, userCode string) (CliDeviceLogin, error)
+	//FindCLIDeviceLoginByUserCodeForUpdate
+	//
+	//  SELECT
+	//      pk,
+	//      id,
+	//      user_code,
+	//      device_code,
+	//      workos_verification_uri,
+	//      poll_interval_seconds,
+	//      expires_at,
+	//      status,
+	//      device_name,
+	//      workspace_id,
+	//      approver_user_id,
+	//      approver_name,
+	//      approver_roles,
+	//      permissions,
+	//      key_name,
+	//      created_at,
+	//      approved_at
+	//  FROM cli_device_logins
+	//  WHERE user_code = ?
+	//  FOR UPDATE
+	FindCLIDeviceLoginByUserCodeForUpdate(ctx context.Context, db DBTX, userCode string) (CliDeviceLogin, error)
 	//FindClickhouseWorkspaceSettingsByWorkspaceID
 	//
 	//  SELECT
@@ -1362,6 +1482,30 @@ type Querier interface {
 	//      ?
 	//  )
 	InsertAppSourceOci(ctx context.Context, db DBTX, arg InsertAppSourceOciParams) error
+	//InsertCLIDeviceLogin
+	//
+	//  INSERT INTO cli_device_logins (
+	//      id,
+	//      user_code,
+	//      device_code,
+	//      workos_verification_uri,
+	//      poll_interval_seconds,
+	//      expires_at,
+	//      status,
+	//      device_name,
+	//      created_at
+	//  ) VALUES (
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?
+	//  )
+	InsertCLIDeviceLogin(ctx context.Context, db DBTX, arg InsertCLIDeviceLoginParams) error
 	// InsertClickhouseOutbox enqueues one event for ClickHouse export. Called
 	// from the same MySQL transaction as the underlying mutation, so durability
 	// is exactly the durability of the mutation: if the mutation commits, the
@@ -3216,6 +3360,18 @@ type Querier interface {
 	//  WHERE app_id = ?
 	//    AND workspace_id = ?
 	UpdateAppSourceOciImageReference(ctx context.Context, db DBTX, arg UpdateAppSourceOciImageReferenceParams) error
+	//UpdateCLIDeviceLoginInterval
+	//
+	//  UPDATE cli_device_logins
+	//  SET poll_interval_seconds = ?
+	//  WHERE id = ?
+	UpdateCLIDeviceLoginInterval(ctx context.Context, db DBTX, arg UpdateCLIDeviceLoginIntervalParams) error
+	//UpdateCLIDeviceLoginStatus
+	//
+	//  UPDATE cli_device_logins
+	//  SET status = ?
+	//  WHERE id = ?
+	UpdateCLIDeviceLoginStatus(ctx context.Context, db DBTX, arg UpdateCLIDeviceLoginStatusParams) error
 	//UpdateCustomDomainsMax
 	//
 	//  UPDATE `limits`

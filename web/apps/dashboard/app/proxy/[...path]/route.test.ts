@@ -96,6 +96,74 @@ describe("dashboard proxy POST", () => {
     expect(headers.get("authorization")).toBe("Bearer workos_access_token");
   });
 
+  it("mints a proxy JWT for a local API even when a WorkOS access token exists", async () => {
+    mockedEnv.mockReturnValue({
+      UNKEY_API_URL: "http://localhost:7070",
+      UNKEY_JWT_SECRET: "test-secret-with-at-least-32-bytes-of-entropy",
+    } as ReturnType<typeof env>);
+    mockedGetAuth.mockResolvedValue({
+      userId: "user_1",
+      orgId: "org_1",
+      accessToken: "workos_access_token",
+      role: "admin",
+      user: {
+        id: "user_1",
+        email: "test@example.test",
+        firstName: "Test",
+        lastName: "User",
+        avatarUrl: null,
+        fullName: "Test User",
+      },
+    });
+
+    const res = await POST(makeRequest({ accept: "application/json" }), { params });
+
+    expect(res.status).toBe(200);
+    expect(fetch).toHaveBeenCalledOnce();
+    const [target, init] = vi.mocked(fetch).mock.calls[0];
+    const url = new URL(target instanceof Request ? target.url : String(target));
+    expect(url.origin).toBe("http://localhost:7070");
+    const headers = new Headers(init?.headers);
+    const authorization = headers.get("authorization");
+    expect(authorization).not.toBe("Bearer workos_access_token");
+    const token = authorization?.replace("Bearer ", "") ?? "";
+    const { payload } = await jwtVerify(
+      token,
+      encoder.encode("test-secret-with-at-least-32-bytes-of-entropy"),
+      {
+        issuer: "app.unkey.com",
+        audience: "api.unkey.com",
+        subject: "user_1",
+      },
+    );
+    expect(payload.org).toEqual({ id: "org_1" });
+    expect(payload.roles).toEqual(["admin"]);
+  });
+
+  it.each(["http://127.0.0.1:7070", "http://[::1]:7070", "http://api.unkey.local"])(
+    "mints a proxy JWT instead of forwarding WorkOS for %s",
+    async (apiURL) => {
+      mockedEnv.mockReturnValue({
+        UNKEY_API_URL: apiURL,
+        UNKEY_JWT_SECRET: "test-secret-with-at-least-32-bytes-of-entropy",
+      } as ReturnType<typeof env>);
+      mockedGetAuth.mockResolvedValue({
+        userId: "user_1",
+        orgId: "org_1",
+        accessToken: "workos_access_token",
+        role: "admin",
+      });
+
+      const res = await POST(makeRequest(), { params });
+
+      expect(res.status).toBe(200);
+      const [, init] = vi.mocked(fetch).mock.calls[0];
+      const headers = new Headers(init?.headers);
+      expect(headers.get("authorization")).toMatch(/^Bearer /);
+      expect(headers.get("authorization")).not.toBe("Bearer workos_access_token");
+    },
+  );
+
   it("mints a fallback proxy JWT with roles", async () => {
     mockedGetAuth.mockResolvedValue({
       userId: "user_1",

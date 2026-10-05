@@ -135,6 +135,14 @@ uses WorkOS User Profile and User Security for managed account settings. See
 [Dashboard authentication](/contributing/tooling/dashboard-auth) for provider
 configuration and release checks.
 
+`unkey login` also needs those WorkOS values on the API. Copy
+`dev/.env.workos.example` to `dev/.env.workos` and set `WORKOS_API_KEY` and
+`WORKOS_CLIENT_ID` to the same values as the dashboard. The local API config
+sends the browser to `http://localhost:3000/cli/device`. Sign in, check the
+code, choose permissions, and click Allow. That approval finishes the login.
+Use `AUTH_PROVIDER=workos` so the signed-in user id is the WorkOS user stored
+on the workspace.
+
 Stripe billing:
 
 The dashboard subscription flow needs all four variables in

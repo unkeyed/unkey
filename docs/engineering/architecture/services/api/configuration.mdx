@@ -308,11 +308,19 @@ claim fails verification with "Invalid bearer token". Without the template, or
 with a missing `aud` claim, every forwarded WorkOS access token fails the
 audience check the same way.
 
-Local development still uses a dashboard-minted fallback JWT when no WorkOS
-access token exists. For that path, the dashboard needs a signing secret and the
-API must include the same secret in a `type = "jwt"` auth entry. The local
-fallback JWT includes `roles: ["admin"]`. Set `provider = "workos"` on the local
-entry to use the same role mapping.
+Local development mints a dashboard JWT instead of forwarding the WorkOS
+access token when `UNKEY_API_URL` points at `localhost`, `127.0.0.1`, `::1`,
+or `*.unkey.local`. The local API verifies that JWT with the shared secret and
+issuer `app.unkey.com`. A forwarded WorkOS access token fails there with
+"Invalid bearer token." because the local API does not use WorkOS JWKS. The
+minted token carries the signed-in user's org and role. The dashboard needs
+`UNKEY_JWT_SECRET`, and the API must include the same secret in a
+`type = "jwt"` auth entry. Set `provider = "workos"` on that entry to use the
+same role mapping.
+
+When the dashboard has no signing secret, or it points at an API that verifies
+WorkOS tokens, the proxy still forwards the WorkOS access token. It mints the
+fallback JWT only when that token is absent.
 
 <ResponseField name="UNKEY_API_URL" type="env" default="https://api.unkey.com">
   API base URL that dashboard proxy requests are forwarded to.

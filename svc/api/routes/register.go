@@ -49,6 +49,7 @@ import (
 	v2PermissionsListRoles "github.com/unkeyed/unkey/svc/api/routes/v2_permissions_list_roles"
 	v2PermissionsSetRolePermissions "github.com/unkeyed/unkey/svc/api/routes/v2_permissions_set_role_permissions"
 
+	v2CLIDeviceLogin "github.com/unkeyed/unkey/svc/api/routes/v2_cli_device_login"
 	v2KeysAddPermissions "github.com/unkeyed/unkey/svc/api/routes/v2_keys_add_permissions"
 	v2KeysAddRoles "github.com/unkeyed/unkey/svc/api/routes/v2_keys_add_roles"
 	v2KeysCreateKey "github.com/unkeyed/unkey/svc/api/routes/v2_keys_create_key"
@@ -620,6 +621,13 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 		RootKeyCache: svc.Caches.RootKeyByHash,
 		Clock:        svc.Clock,
 	})
+
+	cliDevice := v2CLIDeviceLogin.Handler{Devices: svc.CLIDevice}
+	srv.RegisterRoute(publicMiddlewares, &v2CLIDeviceLogin.StartHandler{Handler: cliDevice})
+	srv.RegisterRoute(publicMiddlewares, &v2CLIDeviceLogin.PollHandler{Handler: cliDevice})
+	srv.RegisterRoute(protectedMiddlewares, &v2CLIDeviceLogin.GetHandler{Handler: cliDevice})
+	srv.RegisterRoute(protectedMiddlewares, &v2CLIDeviceLogin.ApproveHandler{Handler: cliDevice})
+	srv.RegisterRoute(protectedMiddlewares, &v2CLIDeviceLogin.DenyHandler{Handler: cliDevice})
 
 	// v2/keys.rerollKey
 	srv.RegisterRoute(

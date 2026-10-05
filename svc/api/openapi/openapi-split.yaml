@@ -128,11 +128,24 @@ tags:
     description: Rate limiting operations
   - name: github
     description: GitHub App installation operations
+  - name: cli
+    description: CLI device login
 
 paths:
   # Health Endpoints
   /v2/liveness:
     $ref: "./spec/paths/v2/liveness/index.yaml"
+
+  /v2/cli.startDeviceLogin:
+    $ref: "./spec/paths/v2/cli/startDeviceLogin/index.yaml"
+  /v2/cli.getDeviceLogin:
+    $ref: "./spec/paths/v2/cli/getDeviceLogin/index.yaml"
+  /v2/cli.approveDeviceLogin:
+    $ref: "./spec/paths/v2/cli/approveDeviceLogin/index.yaml"
+  /v2/cli.denyDeviceLogin:
+    $ref: "./spec/paths/v2/cli/denyDeviceLogin/index.yaml"
+  /v2/cli.pollDeviceLogin:
+    $ref: "./spec/paths/v2/cli/pollDeviceLogin/index.yaml"
 
   # Analytics Endpoints
   /v2/analytics.getGatewayRequests:
