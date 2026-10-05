@@ -24,14 +24,11 @@ export function AppCrumb({ projectId, appId }: { projectId: string; appId: strin
   const apps = appsQuery.data ?? [];
   const current = apps.find((a) => a.id === appId);
 
+  const scope = { workspaceSlug: workspace.slug, projectId };
   const items: CrumbPopoverItem[] = apps.map((a) => ({
     id: a.id,
     label: a.name,
-    href: appHomeHref({
-      workspaceSlug: workspace.slug,
-      projectId,
-      appId: a.id,
-    }),
+    href: appHomeHref(scope, a),
   }));
 
   return (
@@ -45,7 +42,9 @@ export function AppCrumb({ projectId, appId }: { projectId: string; appId: strin
       }
       label={current?.name ?? appId}
       loading={appsQuery.isLoading}
-      href={appHomeHref({ workspaceSlug: workspace.slug, projectId, appId })}
+      href={
+        current ? appHomeHref(scope, current) : routes.projects.apps.overview({ ...scope, appId })
+      }
       items={items}
       currentId={appId}
       searchPlaceholder="Find app..."

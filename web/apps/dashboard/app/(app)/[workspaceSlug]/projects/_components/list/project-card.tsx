@@ -31,7 +31,7 @@ export function ProjectCard({ name, projectId, apps, isLoading, actions }: Proje
   const appHomeHref = useAppHomeHref();
   const projectPath = routes.projects.detail({ workspaceSlug: workspace.slug, projectId });
   const hrefFor = (app: ProjectApp) =>
-    appHomeHref({ workspaceSlug: workspace.slug, projectId, appId: app.id });
+    appHomeHref({ workspaceSlug: workspace.slug, projectId }, app);
 
   const ordered = byRecency(apps);
   const visible = ordered.slice(0, MAX_VISIBLE_APPS);
