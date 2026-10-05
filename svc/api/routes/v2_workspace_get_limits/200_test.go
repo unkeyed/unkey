@@ -95,6 +95,22 @@ func TestGetLimitsWithComputePlan(t *testing.T) {
 	insertBillable(t, h, "billable_ratelimits_per_month_v2", workspaceID, now, 2_000)
 	insertBillable(t, h, "billable_verifications_per_month_v2", workspaceID, lastMonth, 999)
 
+	// Usage of another workspace must not count toward this one
+	other := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{})
+	otherDeployment := createDeployment(t, h, other, 2000, 4096, 4096)
+	insertTopology(t, h, other.Workspace.ID, otherDeployment.ID, 5, db.DeploymentTopologyDesiredStatusRunning)
+	h.CreateCustomDomain(seed.CreateCustomDomainRequest{
+		ID:            uid.New(uid.DomainPrefix),
+		WorkspaceID:   other.Workspace.ID,
+		ProjectID:     other.Project.ID,
+		AppID:         other.App.ID,
+		EnvironmentID: other.Environment.ID,
+		Domain:        uid.DNS1035() + ".example.com",
+	})
+	insertLogdrain(t, h, other.Workspace.ID)
+	insertBillable(t, h, "billable_verifications_per_month_v2", other.Workspace.ID, now, 7_000)
+	insertBillable(t, h, "billable_ratelimits_per_month_v2", other.Workspace.ID, now, 7_000)
+
 	res := callGetLimits(h, route, bearer(rootKey))
 	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
 

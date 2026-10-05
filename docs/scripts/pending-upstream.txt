@@ -17,4 +17,5 @@
 /v2/portal.rerollKey
 # GET /v2/liveness is published without x-codeSamples and `mint validate` fails to generate its page.
 /v2/liveness
+# New endpoint, not in the published spec yet.
 /v2/workspace.getLimits
