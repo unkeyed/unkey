@@ -1,5 +1,6 @@
 import crypto from "node:crypto";
 import { githubAppEnv, githubOAuthEnv } from "@/lib/env";
+import { createInstallationTokenCache } from "@/lib/github-token-cache";
 import { z } from "zod";
 
 const gitHubRepositorySchema = z.object({
@@ -175,7 +176,7 @@ export async function userCanAccessInstallation(
   }
 }
 
-export async function getInstallationAccessToken(
+async function mintInstallationAccessToken(
   installationId: number,
 ): Promise<{ token: string; expires_at: string }> {
   const jwt = generateAppJWT();
@@ -198,6 +199,9 @@ export async function getInstallationAccessToken(
 
   return installationAccessTokenSchema.parse(await response.json());
 }
+
+// Installation tokens live for an hour; minting one per call doubles every GitHub round trip.
+const getInstallationAccessToken = createInstallationTokenCache(mintInstallationAccessToken);
 
 export async function getInstallationRepositories(
   installationId: number,
