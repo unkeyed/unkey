@@ -5,6 +5,7 @@ import {
   formatStageDuration,
   logGroups,
   nextRevealedSteps,
+  pollIntervals,
   runView,
 } from "./run-model";
 
@@ -284,6 +285,42 @@ describe("emptyLogCopy", () => {
     expect(emptyLogCopy("oci", "live")).toEqual({
       title: "No logs",
       reason: "Images skip the build step. Runtime logs show here once an instance starts.",
+    });
+  });
+});
+
+describe("pollIntervals", () => {
+  const createdAt = 1_000_000;
+
+  it("polls a deployment that is still in flight", () => {
+    expect(pollIntervals({ settled: false, createdAt, now: createdAt + 60_000 })).toEqual({
+      steps: 1_000,
+      logs: 2_000,
+    });
+  });
+
+  it("polls before the deployment row has loaded", () => {
+    expect(pollIntervals({ settled: false, createdAt: null, now: createdAt })).toEqual({
+      steps: 1_000,
+      logs: 2_000,
+    });
+  });
+
+  it("stops once the deployment settles", () => {
+    expect(pollIntervals({ settled: true, createdAt, now: createdAt + 60_000 })).toEqual({
+      steps: false,
+      logs: false,
+    });
+  });
+
+  it("gives up on a deployment stuck for 45 minutes", () => {
+    expect(pollIntervals({ settled: false, createdAt, now: createdAt + 44 * 60_000 })).toEqual({
+      steps: 1_000,
+      logs: 2_000,
+    });
+    expect(pollIntervals({ settled: false, createdAt, now: createdAt + 45 * 60_000 })).toEqual({
+      steps: false,
+      logs: false,
     });
   });
 });

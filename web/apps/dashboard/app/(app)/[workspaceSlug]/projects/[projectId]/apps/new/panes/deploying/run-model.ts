@@ -233,6 +233,25 @@ export function runView({ status, health, source, steps, buildError, now }: RunI
   };
 }
 
+// The ctrl worker gives a build 30 minutes and each region 15 more to become
+// ready, so a deployment still unsettled after that is stuck, not slow.
+export const DEPLOY_POLL_CAP_MS = 45 * 60 * 1000;
+const STEP_POLL_MS = 1_000;
+const LOG_POLL_MS = 2_000;
+
+export type PollIntervals = { steps: number | false; logs: number | false };
+
+export function pollIntervals({
+  settled,
+  createdAt,
+  now,
+}: { settled: boolean; createdAt: number | null; now: number }): PollIntervals {
+  const stuck = createdAt !== null && now - createdAt >= DEPLOY_POLL_CAP_MS;
+  return settled || stuck
+    ? { steps: false, logs: false }
+    : { steps: STEP_POLL_MS, logs: LOG_POLL_MS };
+}
+
 export type LogTone = "plain" | "error" | "warn";
 
 export type LogGroup = {

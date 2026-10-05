@@ -23,12 +23,11 @@ import {
   type StepRecords,
   logGroups,
   nextRevealedSteps,
+  pollIntervals,
   runView,
 } from "./run-model";
 
 export const BUILD_LOG_LIMIT = 20;
-const STEP_POLL_MS = 1_000;
-const LOG_POLL_MS = 2_000;
 const STEP_REVEAL_MS = 120;
 
 function useRevealedSteps(target: StepRecords, instant: boolean): StepRecords {
@@ -122,7 +121,11 @@ function DeployRunReader({
     {
       refetchInterval: (data) => {
         const row = data?.deployments.at(0);
-        return row && isSettledRow(row) ? false : STEP_POLL_MS;
+        return pollIntervals({
+          settled: row ? isSettledRow(row) : false,
+          createdAt: row?.createdAt ?? null,
+          now: Date.now(),
+        }).steps;
       },
       refetchIntervalInBackground: true,
       refetchOnWindowFocus: false,
@@ -131,23 +134,27 @@ function DeployRunReader({
   const deployment = freshRow.data?.deployments.at(0) ?? getDeploymentById(deploymentId);
   const status = deployment?.status ?? "pending";
   const inFlight = deployment ? !isSettledRow(deployment) : true;
-  const pollMs = inFlight ? STEP_POLL_MS : false;
+  const now = useNow(inFlight);
+  const poll = pollIntervals({
+    settled: !inFlight,
+    createdAt: deployment?.createdAt ?? null,
+    now,
+  });
 
   const steps = trpc.deploy.deployment.steps.useQuery(
     { deploymentId },
-    { refetchInterval: pollMs, refetchIntervalInBackground: true, refetchOnWindowFocus: false },
+    { refetchInterval: poll.steps, refetchIntervalInBackground: true, refetchOnWindowFocus: false },
   );
   const buildSteps = trpc.deploy.deployment.buildSteps.useQuery(
     { deploymentId, includeStepLogs: true },
-    { refetchInterval: inFlight ? LOG_POLL_MS : false, refetchIntervalInBackground: true },
+    { refetchInterval: poll.logs },
   );
   const runtimeLogs = trpc.deploy.deployment.runtimeLogs.useQuery(
     { deploymentId, limit: RUNTIME_LOG_LIMIT },
-    { refetchInterval: inFlight ? LOG_POLL_MS : false, refetchIntervalInBackground: true },
+    { refetchInterval: poll.logs },
   );
   const retry = useFirstDeploy(projectId, appId, source, onDeploymentCreated);
 
-  const now = useNow(inFlight);
   const revealedSteps = useRevealedSteps(steps.data ?? emptySteps, !inFlight);
   const builds = buildSteps.data?.steps ?? [];
   const instances = deployment ? summarizeInstances(deployment) : null;
