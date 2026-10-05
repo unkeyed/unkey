@@ -79,13 +79,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		start, end = monthStart.AddDate(0, -1, 0), monthStart
 	}
 
-	var (
-		verifications    int64
-		ratelimits       int64
-		environmentUsage []clickhouse.ComputeUsageByEnvironment
-		appKeys          []clickhouse.ActiveKeysByApp
-	)
 	year, month := start.Year(), int(start.Month())
+
+	var (
+		verifications        int64
+		ratelimits           int64
+		computeByEnvironment []clickhouse.ComputeUsageByEnvironment
+		keysByApp            []clickhouse.ActiveKeysByApp
+	)
 	err = conc.All(ctx,
 		func(ctx context.Context) (err error) {
 			verifications, err = h.ClickHouse.GetBillableVerifications(ctx, workspaceID, year, month)
@@ -96,11 +97,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			return err
 		},
 		func(ctx context.Context) (err error) {
-			environmentUsage, err = h.ClickHouse.GetComputeUsageByEnvironment(ctx, workspaceID, start, end)
+			computeByEnvironment, err = h.ClickHouse.GetComputeUsageByEnvironment(ctx, workspaceID, start, end)
 			return err
 		},
 		func(ctx context.Context) (err error) {
-			appKeys, err = h.ClickHouse.GetActiveKeysByApp(ctx, workspaceID, year, month)
+			keysByApp, err = h.ClickHouse.GetActiveKeysByApp(ctx, workspaceID, year, month)
 			return err
 		},
 	)
@@ -112,7 +113,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	names, err := h.findResourceNames(ctx, workspaceID, environmentUsage, appKeys)
+	names, err := h.findResourceNames(ctx, workspaceID, computeByEnvironment, keysByApp)
 	if err != nil {
 		return err
 	}
@@ -123,10 +124,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		DiskGiBHours:   0,
 		EgressGiB:      0,
 		ActiveKeys:     0,
-		Environments:   make([]openapi.V2WorkspaceGetUsageEnvironment, 0, len(environmentUsage)),
-		Apps:           make([]openapi.V2WorkspaceGetUsageApp, 0, len(appKeys)),
+		Environments:   make([]openapi.V2WorkspaceGetUsageEnvironment, 0, len(computeByEnvironment)),
+		Apps:           make([]openapi.V2WorkspaceGetUsageApp, 0, len(keysByApp)),
 	}
-	for _, row := range environmentUsage {
+	for _, row := range computeByEnvironment {
 		// A container that started before the collector recorded app ids keeps an
 		// empty app id. Its environment still has the app id
 		appID := row.AppID
@@ -150,7 +151,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			EgressGiB:       row.EgressGiB,
 		})
 	}
-	for _, row := range appKeys {
+	for _, row := range keysByApp {
 		compute.ActiveKeys += row.ActiveKeys
 		appRow := openapi.V2WorkspaceGetUsageApp{
 			AppId:       row.AppID,
@@ -186,31 +187,31 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 }
 
 // findResourceNames reads the names of the projects, apps, and environments in
-// the usage rows in one query. It does not query when there are no rows
+// the usage rows in one query
 func (h *Handler) findResourceNames(
 	ctx context.Context,
 	workspaceID string,
-	environmentUsage []clickhouse.ComputeUsageByEnvironment,
-	appKeys []clickhouse.ActiveKeysByApp,
+	computeByEnvironment []clickhouse.ComputeUsageByEnvironment,
+	keysByApp []clickhouse.ActiveKeysByApp,
 ) (resourceNames, error) {
 	names := resourceNames{
 		projects:     map[string]db.ListResourceNamesByIDsRow{},
 		apps:         map[string]db.ListResourceNamesByIDsRow{},
 		environments: map[string]db.ListResourceNamesByIDsRow{},
 	}
-	if len(environmentUsage) == 0 && len(appKeys) == 0 {
+	if len(computeByEnvironment) == 0 && len(keysByApp) == 0 {
 		return names, nil
 	}
 
 	params := db.ListResourceNamesByIDsParams{
 		WorkspaceID:         workspaceID,
-		ProjectIds:          make([]string, 0, len(environmentUsage)),
-		ProjectOfAppIds:     make([]string, 0, len(appKeys)),
-		AppIds:              make([]string, 0, len(environmentUsage)+len(appKeys)),
+		ProjectIds:          make([]string, 0, len(computeByEnvironment)),
+		ProjectOfAppIds:     make([]string, 0, len(keysByApp)),
+		AppIds:              make([]string, 0, len(computeByEnvironment)+len(keysByApp)),
 		AppOfEnvironmentIds: nil,
-		EnvironmentIds:      make([]string, 0, len(environmentUsage)),
+		EnvironmentIds:      make([]string, 0, len(computeByEnvironment)),
 	}
-	for _, row := range environmentUsage {
+	for _, row := range computeByEnvironment {
 		params.ProjectIds = append(params.ProjectIds, row.ProjectID)
 		params.EnvironmentIds = append(params.EnvironmentIds, row.EnvironmentID)
 		if row.AppID == "" {
@@ -219,14 +220,14 @@ func (h *Handler) findResourceNames(
 		}
 		params.AppIds = append(params.AppIds, row.AppID)
 	}
-	for _, row := range appKeys {
+	for _, row := range keysByApp {
 		params.ProjectOfAppIds = append(params.ProjectOfAppIds, row.AppID)
 		params.AppIds = append(params.AppIds, row.AppID)
 	}
 
 	rows, err := db.Query.ListResourceNamesByIDs(ctx, h.DB.RO(), params)
 	if err != nil {
-		return names, fault.Wrap(err,
+		return resourceNames{}, fault.Wrap(err,
 			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 			fault.Internal("database error"),
 			fault.Public("Failed to read the names of the workspace's projects, apps, and environments."),
@@ -241,7 +242,7 @@ func (h *Handler) findResourceNames(
 		case "environment":
 			names.environments[row.ID] = row
 		default:
-			return names, fault.New("unknown resource kind",
+			return resourceNames{}, fault.New("unknown resource kind",
 				fault.Code(codes.App.Internal.UnexpectedError.URN()),
 				fault.Internal(fmt.Sprintf("ListResourceNamesByIDs returned kind %q", row.Kind)),
 				fault.Public("An unexpected error occurred while processing your request."),

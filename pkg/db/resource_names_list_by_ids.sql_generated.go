@@ -57,9 +57,8 @@ type ListResourceNamesByIDsRow struct {
 	ParentID string `db:"parent_id"`
 }
 
-// A deleted app or environment does not hide the name of its parent. parent_id
-// is the project id of an app and the app id of an environment. The query also
-// finds an app through its environment and a project through its app. Each
+// A deleted app or environment does not hide the name of its parent. The query
+// also finds an app through its environment and a project through its app. Each
 // branch finds its rows through the id_unique index of its table
 //
 //	SELECT 'project' AS kind, p.id, p.name, '' AS parent_id
