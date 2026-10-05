@@ -8,12 +8,12 @@ import { collection } from "@/lib/collections";
 import { trpc } from "@/lib/trpc/client";
 import { and, eq, useLiveQuery } from "@tanstack/react-db";
 import { match } from "@unkey/match";
-import { Button, Skeleton } from "@unkey/ui";
+import { Skeleton } from "@unkey/ui";
 import { useNewAppFlow } from "../flow";
 import type { SourceKind } from "../wizard-model";
 import { type ReviewRow, type ReviewValue, reviewRows } from "./deploy/review-rows";
 import { useFirstDeploy } from "./deploy/use-first-deploy";
-import { PaneActions } from "./pane-actions";
+import { PaneSubmit } from "./pane-actions";
 import { useAppSettings } from "./settings";
 import { SizeBadge, Spec } from "./settings/size-field";
 
@@ -135,19 +135,13 @@ function Review({ appId, source }: DeployPaneProps) {
           <ReviewRowView key={row.label} row={row} />
         ))}
       </div>
-      <PaneActions>
-        <Button
-          type="button"
-          variant="primary"
-          size="sm"
-          className="px-3"
-          loading={deploy.isDeploying}
-          disabled={!deploy.canDeploy}
-          onClick={() => (gated ? openPaywall() : deploy.start())}
-        >
-          Deploy
-        </Button>
-      </PaneActions>
+      <PaneSubmit
+        loading={deploy.isDeploying}
+        disabled={!deploy.canDeploy}
+        onClick={() => (gated ? openPaywall() : deploy.start())}
+      >
+        Deploy
+      </PaneSubmit>
       {planGate}
     </div>
   );

@@ -75,6 +75,10 @@ export const settingTitle: Record<SettingField, string> = {
   size: "Size",
 };
 
+export function directoryLabel(path: string): string {
+  return path === "." || path === "" ? "./" : path;
+}
+
 export type BuildMethod = "automatic" | "dockerfile";
 
 export function resolveBuildMethod(dockerfile: string): BuildMethod {

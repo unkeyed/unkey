@@ -12,7 +12,7 @@ import { scrollFadeClass, useScrollFade } from "../use-scroll-fade";
 import type { SetupFieldFocus } from "../wizard-model";
 import { CongratsBody } from "./deploying/congrats";
 import { useCrashHelp } from "./deploying/crash-help";
-import { type CrashHelp, directoryLabel, directoryName } from "./deploying/crash-help-state";
+import { type CrashHelp, directoryName } from "./deploying/crash-help-state";
 import {
   type ResultValue,
   type StageDetail,
@@ -28,6 +28,7 @@ import { LogTicker } from "./deploying/log-ticker";
 import type { StageKey } from "./deploying/run-model";
 import { LiveUrl, LogBox, stageGlyph } from "./deploying/run-ui";
 import { type DeployRun, useDeployRun } from "./deploying/use-deploy-run";
+import { directoryLabel } from "./settings/deployment-config";
 
 type EditSettings = (focus: SetupFieldFocus | null) => void;
 

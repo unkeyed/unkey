@@ -10,10 +10,6 @@ type CrashHelpInput = {
   tree: RepoTreeEntry[] | null;
 };
 
-export function directoryLabel(path: string): string {
-  return path === "." || path === "" ? "./" : path;
-}
-
 export function directoryName(path: string): string {
   return path === "." || path === "" ? "the repository root" : path;
 }

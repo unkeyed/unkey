@@ -15,7 +15,7 @@ import { z } from "zod";
 import { appNameFromImage } from "../app-name";
 import { useNewAppFlow } from "../flow";
 import { useAppLifecycle } from "../use-app-lifecycle";
-import { PaneActions } from "./pane-actions";
+import { PaneSubmit } from "./pane-actions";
 import { AppSettingsForm } from "./settings";
 import { deploymentConfigSchema, settingTitle } from "./settings/deployment-config";
 import { RegionSelect } from "./settings/region-select";
@@ -175,19 +175,7 @@ function NewImage() {
           <SizeField size={size} onChange={(next) => setValue("size", next)} />
         </Field>
       </FieldStack>
-      <PaneActions>
-        <Button
-          type="submit"
-          form={formId}
-          variant="primary"
-          size="sm"
-          className="px-3"
-          loading={isSubmitting}
-          disabled={isSubmitting}
-        >
-          Continue
-        </Button>
-      </PaneActions>
+      <PaneSubmit form={formId} loading={isSubmitting} />
     </form>
   );
 }

@@ -11,18 +11,19 @@ import { trpc } from "@/lib/trpc/client";
 import { getErrorMessage } from "@/lib/unkey-client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { IconChevronRightOutline18 } from "@unkey/icons";
-import { Button, FormInput, toast } from "@unkey/ui";
+import { FormInput, toast } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import { type ReactNode, useEffect, useId, useMemo, useRef, useState } from "react";
 import { type FieldErrors, useForm, useWatch } from "react-hook-form";
 import type { SourceKind } from "../../wizard-model";
-import { PaneActions } from "../pane-actions";
+import { PaneSubmit } from "../pane-actions";
 import {
   type BuildMethod,
   type DeploymentConfig,
   type SettingField,
   applyDeploymentConfig,
   deploymentConfigSchema,
+  directoryLabel,
   findDockerfiles,
   readDeploymentConfig,
   resolveBuildMethod,
@@ -51,10 +52,6 @@ const buildCommandField: Record<BuildMethod, { description: string; disabled: bo
   dockerfile: { description: "Not used when a Dockerfile is set.", disabled: true },
 };
 
-function directoryDisplay(path: string): string {
-  return path === "." || path === "" ? "./" : path;
-}
-
 function FolderIcon() {
   return (
     <svg viewBox="0 0 18 18" aria-hidden="true" className="size-3.5 shrink-0 text-gray-11">
@@ -73,7 +70,7 @@ function DirectoryLabel({ path }: { path: string }) {
   return (
     <span className="flex min-w-0 items-center gap-2">
       <FolderIcon />
-      <span className="truncate">{directoryDisplay(path)}</span>
+      <span className="truncate">{directoryLabel(path)}</span>
     </span>
   );
 }
@@ -143,13 +140,19 @@ function useRevealOnOpen(open: boolean) {
 function Disclosure({
   title,
   hint,
+  open: controlledOpen,
+  onOpenChange,
   children,
 }: {
   title: string;
   hint?: string;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
   children: ReactNode;
 }) {
-  const [open, setOpen] = useState(false);
+  const [ownOpen, setOwnOpen] = useState(false);
+  const open = controlledOpen ?? ownOpen;
+  const setOpen = onOpenChange ?? setOwnOpen;
   const revealRef = useRevealOnOpen(open);
   return (
     <Collapsible ref={revealRef} className="scroll-my-5" open={open} onOpenChange={setOpen}>
@@ -192,7 +195,6 @@ export function SettingsForm({
   const [advancedOpen, setAdvancedOpen] = useState(
     focusField !== null && layout.advanced.includes(focusField),
   );
-  const advancedRef = useRevealOnOpen(advancedOpen);
   const { data: repoTree } = trpc.github.getRepoTree.useQuery(
     { projectId, appId },
     { staleTime: 5 * 60 * 1000, enabled: layout.usesRepoTree },
@@ -376,48 +378,24 @@ export function SettingsForm({
         )}
       </FieldStack>
       {layout.advanced.length > 0 || advancedLeadingRows ? (
-        <Collapsible
-          ref={advancedRef}
-          className="scroll-my-5"
+        <Disclosure
+          title="Advanced"
+          hint="Defaults"
           open={advancedOpen}
           onOpenChange={setAdvancedOpen}
         >
-          <CollapsibleTrigger className="flex w-full items-center gap-2 rounded-md px-1 py-1.5 text-sm font-medium text-gray-12">
-            <IconChevronRightOutline18
-              className={cn(
-                "size-3 text-gray-9 transition-transform duration-200",
-                advancedOpen && "rotate-90",
-              )}
-            />
-            Advanced
-            <span className="ml-auto text-xs font-normal text-gray-9">Defaults</span>
-          </CollapsibleTrigger>
-          <CollapsibleContent className="pt-2">
-            <FieldStack>
-              {advancedLeadingRows}
-              {rows(layout.advanced)}
-            </FieldStack>
-          </CollapsibleContent>
-        </Collapsible>
+          <FieldStack>
+            {advancedLeadingRows}
+            {rows(layout.advanced)}
+          </FieldStack>
+        </Disclosure>
       ) : null}
       {sections.map((section) => (
         <Disclosure key={section.title} title={section.title} hint={section.hint}>
           {section.content}
         </Disclosure>
       ))}
-      <PaneActions>
-        <Button
-          type="submit"
-          form={formId}
-          variant="primary"
-          size="sm"
-          className="px-3"
-          loading={isSubmitting}
-          disabled={isSubmitting}
-        >
-          Continue
-        </Button>
-      </PaneActions>
+      <PaneSubmit form={formId} loading={isSubmitting} />
     </form>
   );
 }
