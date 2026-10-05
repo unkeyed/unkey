@@ -13,13 +13,10 @@ import { CongratsBody } from "./deploying/congrats";
 import { useCrashHelp } from "./deploying/crash-help";
 import { type CrashHelp, directoryName } from "./deploying/crash-help-state";
 import {
-  type ResultValue,
   type StageDetail,
   type StageRow,
   isInstanceCrash,
-  resultRows,
   stageRows,
-  watchFooter,
   watchStatus,
 } from "./deploying/deploy-card-state";
 import { crashExplanation } from "./deploying/instance-state";
@@ -31,21 +28,12 @@ import { directoryLabel } from "./settings/deployment-config";
 
 type EditSettings = (focus: SetupFieldFocus | null) => void;
 
-function ResultValueView({ run, value }: { run: DeployRun; value: ResultValue }) {
-  return match(value)
-    .with({ type: "domain" }, () => <LiveUrl run={run} />)
-    .with({ type: "pending" }, ({ text }) => (
-      <span className="animate-pulse text-gray-10 motion-reduce:animate-none">{text}</span>
-    ))
-    .with({ type: "mono" }, ({ text, tone }) => (
-      <span
-        title={text}
-        className={cn("truncate font-mono text-xs", tone === "error" && "text-error-11")}
-      >
-        {text}
-      </span>
-    ))
-    .exhaustive();
+function MonoValue({ text, error = false }: { text: string; error?: boolean }) {
+  return (
+    <span title={text} className={cn("truncate font-mono text-xs", error && "text-error-11")}>
+      {text}
+    </span>
+  );
 }
 
 function liveRegions(run: DeployRun): string[] {
@@ -62,21 +50,43 @@ function liveRegions(run: DeployRun): string[] {
 
 export function Result() {
   const run = useDeployRun();
-  const rows = resultRows({
-    hasDomain: run.primaryDomain !== null,
-    instances: run.instances,
-    gitBranch: run.deployment?.gitBranch ?? null,
-    gitCommitSha: run.deployment?.gitCommitSha ?? null,
-  });
+  const { instances, deployment } = run;
+  const commitSha = deployment?.gitCommitSha;
   return (
     <div className={cardSurface}>
       <CongratsBody
         elapsedMs={run.view.elapsedMs}
         regions={liveRegions(run)}
-        rows={rows.map((row) => ({
-          label: row.label,
-          value: <ResultValueView run={run} value={row.value} />,
-        }))}
+        rows={[
+          {
+            label: "Domain",
+            value: run.primaryDomain ? (
+              <LiveUrl run={run} />
+            ) : (
+              <span className="animate-pulse text-gray-10 motion-reduce:animate-none">
+                Assigning domain…
+              </span>
+            ),
+          },
+          ...(instances
+            ? [
+                {
+                  label: "Instances",
+                  value: <MonoValue text={instances.text} error={instances.tone === "error"} />,
+                },
+              ]
+            : []),
+          ...(commitSha
+            ? [
+                {
+                  label: "Commit",
+                  value: (
+                    <MonoValue text={`${deployment?.gitBranch ?? ""} · ${commitSha.slice(0, 7)}`} />
+                  ),
+                },
+              ]
+            : []),
+        ]}
       />
       <div className={cardFooter}>
         <span className="ml-auto flex shrink-0 items-center gap-2">
@@ -135,9 +145,9 @@ function WatchActions({
   onEditSettings,
   onNext,
 }: { run: DeployRun; onEditSettings: EditSettings; onNext: () => void }) {
-  return match(watchFooter[run.view.outcome])
-    .with("none", () => null)
-    .with("continue", () => (
+  return match(run.view.outcome)
+    .with("running", () => null)
+    .with("live", () => (
       <div className={cn(cardFooter, "justify-end")}>
         <Button variant="primary" size="sm" onClick={onNext}>
           Continue

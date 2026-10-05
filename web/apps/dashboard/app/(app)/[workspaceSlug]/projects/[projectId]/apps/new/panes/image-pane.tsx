@@ -1,19 +1,17 @@
 "use client";
 
-import { collection } from "@/lib/collections";
 import { ENVIRONMENT_SETTINGS_DEFAULTS } from "@/lib/collections/deploy/environment-settings";
 import { sanitizeImageRef, validateImageRef } from "@/lib/docker-image-ref";
 import { trpc } from "@/lib/trpc/client";
 import { getErrorMessage } from "@/lib/unkey-client";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { and, eq, useLiveQuery } from "@tanstack/react-db";
 import { IconCubeOutline18 } from "@unkey/icons";
 import { Button, FormInput, toast } from "@unkey/ui";
 import { useEffect, useId, useState } from "react";
 import { type UseFormRegisterReturn, useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { appNameFromImage } from "../app-name";
-import { useNewAppFlow } from "../flow";
+import { useApp, useNewAppFlow } from "../flow";
 import { useAppLifecycle } from "../use-app-lifecycle";
 import { PaneSubmit } from "./pane-actions";
 import { AppSettingsForm } from "./settings";
@@ -243,14 +241,7 @@ function SavedImage({
   onContinue,
 }: { projectId: string; appId: string; onContinue: () => void }) {
   const [editing, setEditing] = useState(false);
-  const { data } = useLiveQuery(
-    (q) =>
-      q
-        .from({ app: collection.apps })
-        .where(({ app }) => and(eq(app.projectId, projectId), eq(app.id, appId))),
-    [projectId, appId],
-  );
-  const imageReference = data.at(0)?.imageReference ?? null;
+  const imageReference = useApp(projectId, appId)?.imageReference ?? null;
 
   return (
     <div className="flex flex-1 flex-col gap-4">

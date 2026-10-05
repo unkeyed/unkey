@@ -1,13 +1,12 @@
 "use client";
 
-import { collection } from "@/lib/collections";
 import { githubUrl } from "@/lib/github-url";
 import { slugify } from "@/lib/slugify";
 import { getErrorMessage } from "@/lib/unkey-client";
-import { and, eq, useLiveQuery } from "@tanstack/react-db";
 import { Github, IconArrowUpRightOutline12 } from "@unkey/icons";
 import { FormInput, toast } from "@unkey/ui";
 import { useState } from "react";
+import { useApp } from "../../flow";
 import type { SetupFieldFocus } from "../../wizard-model";
 import { useAppSettings } from "../settings";
 import { Field, SettingsForm } from "../settings/settings-form";
@@ -39,14 +38,7 @@ export function ConnectedSetup({
 }: ConnectedSetupProps) {
   const variables = useVariableDraft(projectId, appId);
   const settings = useAppSettings(projectId, appId);
-  const { data: apps } = useLiveQuery(
-    (q) =>
-      q
-        .from({ app: collection.apps })
-        .where(({ app }) => and(eq(app.projectId, projectId), eq(app.id, appId))),
-    [projectId, appId],
-  );
-  const savedName = apps.at(0)?.name ?? "";
+  const savedName = useApp(projectId, appId)?.name ?? "";
   const [draftName, setDraftName] = useState<string | null>(null);
   const name = draftName ?? savedName;
   const repoHref = githubUrl.repo(connection.repositoryFullName);

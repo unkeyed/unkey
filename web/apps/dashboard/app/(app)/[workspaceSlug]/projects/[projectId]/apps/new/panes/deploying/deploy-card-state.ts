@@ -23,28 +23,11 @@ export type StageRow = {
   detail: StageDetail;
 };
 
-type WatchFooter = "none" | "continue" | "failed" | "blocked";
-
 export const watchStatus: Record<RunOutcome, string> = {
   running: "Your app is building and deploying.",
   live: "Your app is live.",
   failed: "Deployment failed. Open the failed step to see why.",
   blocked: "This deployment needs approval. View the deployment to approve it.",
-};
-
-export const watchFooter: Record<RunOutcome, WatchFooter> = {
-  running: "none",
-  live: "continue",
-  failed: "failed",
-  blocked: "blocked",
-};
-
-const stageTitle: Record<StageKey, string | null> = {
-  queued: null,
-  building: "Build logs",
-  deploying: null,
-  network: null,
-  finalizing: null,
 };
 
 function stageDetail(stage: Stage, view: RunView, crashed: boolean): StageDetail {
@@ -84,60 +67,11 @@ export function stageRows(view: RunView, crashed: boolean): StageRow[] {
     return {
       key: stage.key,
       stage,
-      title: stageTitle[stage.key] ?? stage.label,
+      title: stage.key === "building" ? "Build logs" : stage.label,
       meta: stage.durationMs === null ? (stage.note ?? "") : formatStageDuration(stage.durationMs),
       expandable: detail.type !== "none",
       fillsCard: detail.type === "logs",
       detail,
     };
   });
-}
-
-export type ResultValue =
-  | { type: "domain" }
-  | { type: "pending"; text: string }
-  | { type: "mono"; text: string; tone: "plain" | "error" };
-
-type ResultRowState = { label: string; value: ResultValue };
-
-type ResultInput = {
-  hasDomain: boolean;
-  instances: { text: string; tone: "plain" | "error" | "warn" } | null;
-  gitBranch: string | null;
-  gitCommitSha: string | null;
-};
-
-export function resultRows({
-  hasDomain,
-  instances,
-  gitBranch,
-  gitCommitSha,
-}: ResultInput): ResultRowState[] {
-  const rows: ResultRowState[] = [
-    {
-      label: "Domain",
-      value: hasDomain ? { type: "domain" } : { type: "pending", text: "Assigning domain…" },
-    },
-  ];
-  if (instances) {
-    rows.push({
-      label: "Instances",
-      value: {
-        type: "mono",
-        text: instances.text,
-        tone: instances.tone === "error" ? "error" : "plain",
-      },
-    });
-  }
-  if (gitCommitSha) {
-    rows.push({
-      label: "Commit",
-      value: {
-        type: "mono",
-        text: `${gitBranch ?? ""} · ${gitCommitSha.slice(0, 7)}`,
-        tone: "plain",
-      },
-    });
-  }
-  return rows;
 }

@@ -4,7 +4,7 @@ import { TOP_NAV_HEIGHT } from "@/components/navigation/top-nav";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { collection } from "@/lib/collections";
 import { routes } from "@/lib/navigation/routes";
-import { eq, useLiveQuery } from "@tanstack/react-db";
+import { and, eq, useLiveQuery } from "@tanstack/react-db";
 import { Skeleton } from "@unkey/ui";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
@@ -59,6 +59,17 @@ export function useNewAppFlow(): NewAppFlow {
     throw new Error("useNewAppFlow must be used inside FlowLoader");
   }
   return flow;
+}
+
+export function useApp(projectId: string, appId: string) {
+  const { data } = useLiveQuery(
+    (q) =>
+      q
+        .from({ app: collection.apps })
+        .where(({ app }) => and(eq(app.projectId, projectId), eq(app.id, appId))),
+    [projectId, appId],
+  );
+  return data.at(0);
 }
 
 export function FlowLoader({ projectId, children }: { projectId: string; children: ReactNode }) {

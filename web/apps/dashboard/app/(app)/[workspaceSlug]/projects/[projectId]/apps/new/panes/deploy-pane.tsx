@@ -7,11 +7,10 @@ import { regionInfo } from "@/app/(app)/[workspaceSlug]/projects/_components/reg
 import { collection } from "@/lib/collections";
 import { trpc } from "@/lib/trpc/client";
 import { and, eq, useLiveQuery } from "@tanstack/react-db";
-import { match } from "@unkey/match";
 import { Skeleton } from "@unkey/ui";
-import { useNewAppFlow } from "../flow";
-import type { SourceKind } from "../wizard-model";
-import { type ReviewRow, type ReviewValue, reviewRows } from "./deploy/review-rows";
+import type { ReactNode } from "react";
+import { useApp, useNewAppFlow } from "../flow";
+import { type SourceKind, sourceCopy } from "../wizard-model";
 import { useFirstDeploy } from "./deploy/use-first-deploy";
 import { PaneSubmit } from "./pane-actions";
 import { useAppSettings } from "./settings";
@@ -28,37 +27,29 @@ export function DeployPane(props: DeployPaneProps) {
   );
 }
 
-function ReviewRowView({ row }: { row: ReviewRow }) {
+function ReviewRow({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="flex items-start gap-3 border-t border-grayA-3 py-2.5 first:border-t-0">
-      <span className="shrink-0 text-sm font-medium text-gray-11">{row.label}</span>
-      <span className="ml-auto flex min-w-0 flex-col items-end text-right">
-        <ReviewValueView value={row.value} />
-      </span>
+      <span className="shrink-0 text-sm font-medium text-gray-11">{label}</span>
+      <span className="ml-auto flex min-w-0 flex-col items-end text-right">{children}</span>
     </div>
   );
 }
 
-function ReviewValueView({ value }: { value: ReviewValue }) {
-  return match(value)
-    .with({ type: "loading" }, () => <Skeleton className="h-4 w-24 rounded" />)
-    .with({ type: "text" }, ({ text }) => (
-      <span className="max-w-full truncate text-sm text-gray-12">{text}</span>
-    ))
-    .with({ type: "mono" }, ({ text }) => (
-      <span className="max-w-full truncate font-mono text-xs text-gray-12">{text}</span>
-    ))
-    .with({ type: "size" }, ({ size }) => (
-      <span className="flex items-center gap-2.5">
-        <SizeBadge size={size} />
-        <Spec size={size} />
-      </span>
-    ))
-    .with({ type: "regions" }, ({ names }) => <RegionList names={names} />)
-    .exhaustive();
+function Plain({ children }: { children: ReactNode }) {
+  return <span className="max-w-full truncate text-sm text-gray-12">{children}</span>;
 }
 
+function Mono({ children }: { children: ReactNode }) {
+  return <span className="max-w-full truncate font-mono text-xs text-gray-12">{children}</span>;
+}
+
+const loading = <Skeleton className="h-4 w-24 rounded" />;
+
 function RegionList({ names }: { names: string[] }) {
+  if (names.length === 0) {
+    return <Plain>None</Plain>;
+  }
   return (
     <span className="flex flex-col items-end gap-1">
       {names.map((name) => {
@@ -81,13 +72,7 @@ function Review({ appId, source }: DeployPaneProps) {
   const deploy = useFirstDeploy(projectId, appId, source, (deploymentId) =>
     dispatch({ type: "deployment-created", deploymentId }),
   );
-  const { data: apps } = useLiveQuery(
-    (q) =>
-      q
-        .from({ app: collection.apps })
-        .where(({ app }) => and(eq(app.projectId, projectId), eq(app.id, appId))),
-    [projectId, appId],
-  );
+  const app = useApp(projectId, appId);
   const { data: variables } = useLiveQuery(
     (q) =>
       q
@@ -100,40 +85,54 @@ function Review({ appId, source }: DeployPaneProps) {
     { enabled: source === "git" },
   );
 
-  const app = apps.at(0);
   const connection = github?.repoConnection;
-  const rows = reviewRows({
-    source,
-    app,
-    repository:
-      github === undefined
-        ? undefined
-        : connection
-          ? {
-              fullName: connection.repositoryFullName,
-              branch: connection.defaultBranch ?? github.defaultBranch,
-            }
-          : null,
-    runtime:
-      settings.status === "ready"
-        ? {
-            port: settings.production.port,
-            regions: settings.production.regions.map((r) => r.name),
-            size: {
-              cpuMillicores: settings.production.cpuMillicores,
-              memoryMib: settings.production.memoryMib,
-            },
-          }
-        : undefined,
-    variableCount: new Set(variables.map((v) => v.key)).size,
-  });
+  const production = settings.status === "ready" ? settings.production : null;
+  const variableCount = new Set(variables.map((v) => v.key)).size;
+  const origin = (): ReactNode => {
+    if (source === "oci") {
+      if (!app) {
+        return loading;
+      }
+      return app.imageReference ? <Mono>{app.imageReference}</Mono> : <Plain>None</Plain>;
+    }
+    if (github === undefined) {
+      return loading;
+    }
+    if (!connection) {
+      return <Plain>None</Plain>;
+    }
+    return (
+      <Mono>
+        {connection.repositoryFullName} · {connection.defaultBranch ?? github.defaultBranch}
+      </Mono>
+    );
+  };
 
   return (
     <div className="flex flex-1 flex-col gap-4">
       <div className="flex flex-col">
-        {rows.map((row) => (
-          <ReviewRowView key={row.label} row={row} />
-        ))}
+        <ReviewRow label="Source">
+          <Plain>{sourceCopy[source].sourceLabel}</Plain>
+        </ReviewRow>
+        <ReviewRow label={sourceCopy[source].originLabel}>{origin()}</ReviewRow>
+        <ReviewRow label="App name">{app ? <Plain>{app.name}</Plain> : loading}</ReviewRow>
+        <ReviewRow label="Port">{production ? <Mono>{production.port}</Mono> : loading}</ReviewRow>
+        <ReviewRow label="Regions">
+          {production ? <RegionList names={production.regions.map((r) => r.name)} /> : loading}
+        </ReviewRow>
+        <ReviewRow label="Size">
+          {production ? (
+            <span className="flex items-center gap-2.5">
+              <SizeBadge size={production} />
+              <Spec size={production} />
+            </span>
+          ) : (
+            loading
+          )}
+        </ReviewRow>
+        <ReviewRow label="Environment variables">
+          <Plain>{variableCount === 0 ? "None" : `${variableCount} set`}</Plain>
+        </ReviewRow>
       </div>
       <PaneSubmit
         loading={deploy.isDeploying}

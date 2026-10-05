@@ -160,13 +160,7 @@ function DeployRunReader({
   const instances = deployment ? summarizeInstances(deployment) : null;
   const view = runView({
     status,
-    health: instances
-      ? {
-          running: instances.running,
-          unhealthy: instances.state === "unhealthy",
-          error: instances.text,
-        }
-      : null,
+    instances,
     source,
     steps: revealedSteps,
     buildError: builds.findLast((step) => Boolean(step.error))?.error ?? null,

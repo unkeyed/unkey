@@ -1,6 +1,7 @@
 import type { DeploymentStatus } from "@/lib/collections/deploy/deployment-status";
 import { formatCompoundDuration } from "@/lib/utils/metric-formatters";
 import type { SourceKind } from "../../wizard-model";
+import type { InstanceSummary } from "./instance-state";
 
 const STAGES = [
   { key: "queued", label: "Queued" },
@@ -13,8 +14,6 @@ const STAGES = [
 export type StageKey = (typeof STAGES)[number]["key"];
 export type StageState = "done" | "active" | "failed" | "waiting" | "skipped";
 export type RunOutcome = "running" | "live" | "failed" | "blocked";
-
-type InstanceHealth = { running: number; unhealthy: boolean; error: string };
 
 type StepRecord = {
   startedAt: number;
@@ -78,7 +77,7 @@ function failEarly(stages: Stage[], status: DeploymentStatus, steps: StepRecords
 
 type RunInput = {
   status: DeploymentStatus;
-  health: InstanceHealth | null;
+  instances: InstanceSummary | null;
   source: SourceKind;
   steps: StepRecords;
   buildError: string | null;
@@ -87,39 +86,39 @@ type RunInput = {
 
 const DEPLOY_STAGE = STAGES.findIndex((stage) => stage.key === "deploying");
 
-function resolveOutcome(status: DeploymentStatus, health: InstanceHealth | null): RunOutcome {
+function resolveOutcome(status: DeploymentStatus, instances: InstanceSummary | null): RunOutcome {
   const outcome = outcomeByStatus[status];
-  if (outcome !== "live" || health === null) {
+  if (outcome !== "live" || instances === null) {
     return outcome;
   }
-  if (health.unhealthy) {
+  if (instances.state === "unhealthy") {
     return "failed";
   }
-  return health.running > 0 ? "live" : "running";
+  return instances.running > 0 ? "live" : "running";
 }
 
 type SettleInput = {
   status: DeploymentStatus;
-  health: InstanceHealth | null;
+  instances: InstanceSummary | null;
   outcome: RunOutcome;
   steps: StepRecords;
   now: number;
 };
 
 function settleInstances(stages: Stage[], input: SettleInput): Stage[] {
-  const { status, health, outcome, steps, now } = input;
-  if (health === null) {
+  const { status, instances, outcome, steps, now } = input;
+  if (instances === null) {
     return stages;
   }
-  if (outcomeByStatus[status] === "live" && health.unhealthy) {
+  if (outcomeByStatus[status] === "live" && instances.state === "unhealthy") {
     return stages.map((stage, index) =>
       index === DEPLOY_STAGE
-        ? { ...stage, state: "failed", note: null, error: health.error }
+        ? { ...stage, state: "failed", note: null, error: instances.text }
         : stage,
     );
   }
   const waitingForInstance =
-    outcome === "running" && health.running === 0 && stages[DEPLOY_STAGE].state === "done";
+    outcome === "running" && instances.running === 0 && stages[DEPLOY_STAGE].state === "done";
   if (!waitingForInstance) {
     return stages;
   }
@@ -168,8 +167,8 @@ function missingStage(
   return { state: "waiting", note: null };
 }
 
-export function runView({ status, health, source, steps, buildError, now }: RunInput): RunView {
-  const outcome = resolveOutcome(status, health);
+export function runView({ status, instances, source, steps, buildError, now }: RunInput): RunView {
+  const outcome = resolveOutcome(status, instances);
   const lastFinished = STAGES.findLastIndex(({ key }) => {
     const step = steps[key];
     return Boolean(step && step.endedAt !== null && !step.error);
@@ -203,7 +202,7 @@ export function runView({ status, health, source, steps, buildError, now }: RunI
     };
   });
 
-  const settled = settleInstances(derived, { status, health, outcome, steps, now });
+  const settled = settleInstances(derived, { status, instances, outcome, steps, now });
   const started = failEarly(settled, status, steps);
   const failedAt = started.findIndex((stage) => stage.state === "failed");
   const stages =

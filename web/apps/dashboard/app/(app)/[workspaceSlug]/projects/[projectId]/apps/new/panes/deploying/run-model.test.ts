@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { summarizeInstances } from "./instance-state";
 import {
   formatOffset,
   formatStageDuration,
@@ -13,7 +14,7 @@ const states = (view: ReturnType<typeof runView>) => view.stages.map((s) => s.st
 describe("runView", () => {
   it("marks the running stage active with a live duration", () => {
     const view = runView({
-      health: null,
+      instances: null,
       status: "building",
       source: "git",
       buildError: null,
@@ -31,7 +32,7 @@ describe("runView", () => {
 
   it("skips the build for a prebuilt image and fails the stage that errored", () => {
     const view = runView({
-      health: null,
+      instances: null,
       status: "failed",
       source: "oci",
       buildError: null,
@@ -54,7 +55,7 @@ describe("runView", () => {
 
   it("prefers the failing build step error", () => {
     const view = runView({
-      health: null,
+      instances: null,
       status: "failed",
       source: "git",
       buildError: "npm ERR! missing script: build",
@@ -66,7 +67,7 @@ describe("runView", () => {
 
   it("completes every stage once live even without step rows", () => {
     const view = runView({
-      health: null,
+      instances: null,
       status: "ready",
       source: "git",
       buildError: null,
@@ -124,7 +125,7 @@ describe("formatStageDuration", () => {
 describe("runView stage order", () => {
   it("marks earlier stages done when a later stage finished first", () => {
     const view = runView({
-      health: null,
+      instances: null,
       status: "network",
       source: "git",
       buildError: null,
@@ -141,7 +142,7 @@ describe("runView stage order", () => {
 
   it("marks stages after a failed step as not reached", () => {
     const view = runView({
-      health: null,
+      instances: null,
       status: "failed",
       source: "git",
       buildError: null,
@@ -182,7 +183,7 @@ describe("nextRevealedSteps", () => {
   });
 });
 
-describe("runView with instance health", () => {
+describe("runView with instances", () => {
   const allEnded = {
     queued: { startedAt: 0, endedAt: 55, error: null },
     building: { startedAt: 55, endedAt: 12_855, error: null },
@@ -190,16 +191,13 @@ describe("runView with instance health", () => {
     network: { startedAt: 15_255, endedAt: 15_323, error: null },
     finalizing: { startedAt: 15_323, endedAt: 15_352, error: null },
   };
-  const unhealthy = {
-    running: 0,
-    unhealthy: true,
-    error: "Unhealthy · Instance stopped unexpectedly.",
-  };
+  const instances = (status: "pending" | "running" | "failed") =>
+    summarizeInstances({ instances: [{ status }], desiredInstanceCount: 1, lastExit: null });
 
   it("is live only when the deployment is ready and an instance is running", () => {
     const view = runView({
       status: "ready",
-      health: { running: 1, unhealthy: false, error: "" },
+      instances: instances("running"),
       source: "git",
       buildError: null,
       now: 20_000,
@@ -212,7 +210,7 @@ describe("runView with instance health", () => {
   it("fails at Starting Instances when a ready deployment's instance is unhealthy", () => {
     const view = runView({
       status: "ready",
-      health: unhealthy,
+      instances: instances("failed"),
       source: "git",
       buildError: null,
       now: 20_000,
@@ -227,7 +225,7 @@ describe("runView with instance health", () => {
   it("keeps Starting Instances active until an instance is running", () => {
     const view = runView({
       status: "ready",
-      health: { running: 0, unhealthy: false, error: "" },
+      instances: instances("pending"),
       source: "git",
       buildError: null,
       now: 20_000,
@@ -247,7 +245,7 @@ describe("runView before any step starts", () => {
   it("fails at Queued with the status reason when no step ever ran", () => {
     const view = runView({
       status: "failed",
-      health: null,
+      instances: null,
       source: "git",
       buildError: null,
       now: 0,
@@ -260,7 +258,7 @@ describe("runView before any step starts", () => {
   it("names a superseded deployment", () => {
     const view = runView({
       status: "superseded",
-      health: null,
+      instances: null,
       source: "git",
       buildError: null,
       now: 0,
