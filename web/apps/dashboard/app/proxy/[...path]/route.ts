@@ -1,4 +1,4 @@
-import { getAuth, type GetAuthResult } from "@/lib/auth/get-auth";
+import { type GetAuthResult, getAuth } from "@/lib/auth/get-auth";
 import { env } from "@/lib/env";
 import { SignJWT } from "jose";
 import type { NextRequest } from "next/server";

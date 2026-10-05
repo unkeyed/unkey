@@ -136,14 +136,17 @@ function DeviceLoginView({
 }
 
 function LoginContext({ login, workspaceName }: { login: DeviceLogin; workspaceName: string }) {
-  const characters = formatUserCode(login.userCode).split(" ").filter((char) => char.length > 0);
+  const characters = formatUserCode(login.userCode)
+    .split(" ")
+    .filter((char) => char.length > 0)
+    .map((char, position) => ({ char, id: `${position}-${char}` }));
 
   return (
     <div className="flex w-full flex-col items-center gap-6 text-center">
       <div className="flex flex-wrap justify-center gap-2">
-        {characters.map((char, index) => (
+        {characters.map(({ char, id }) => (
           <span
-            key={`${char}-${index}`}
+            key={id}
             className="flex size-9 items-center justify-center rounded-md border bg-gray-2 font-mono text-sm text-gray-12"
           >
             {char}
@@ -247,10 +250,7 @@ function PendingLogin({
   if (step === "code") {
     return (
       <div className="flex w-full flex-col items-center gap-6 text-center">
-        <StepIntro
-          title="Authorize CLI"
-          description="Confirm this code matches the terminal."
-        />
+        <StepIntro title="Authorize CLI" description="Confirm this code matches the terminal." />
         <LoginContext login={login} workspaceName={workspaceName} />
         <div className="flex items-center justify-center gap-2">
           <Button
@@ -292,11 +292,11 @@ function PendingLogin({
             <PolicyList />
           </KeyFields>
         </div>
-        {!isAdmin ? (
+        {isAdmin ? null : (
           <p className="max-w-md text-balance text-center text-sm leading-5 text-gray-11">
             Your role cannot create root keys in this workspace.
           </p>
-        ) : null}
+        )}
         <div className="flex items-center justify-center gap-2">
           <Button
             type="button"
