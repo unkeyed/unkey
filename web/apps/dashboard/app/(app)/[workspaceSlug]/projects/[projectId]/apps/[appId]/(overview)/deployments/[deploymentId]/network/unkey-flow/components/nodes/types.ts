@@ -1,3 +1,4 @@
+import type { FlagCode } from "@/lib/trpc/routers/deploy/network/utils";
 import type { LastExit } from "@/lib/types/deploy";
 
 type HealthStatus = "normal" | "unhealthy" | "health_syncing" | "unknown" | "disabled";
@@ -27,7 +28,7 @@ type OriginNode = BaseNode & {
 type RegionNode = BaseNode & {
   metadata: {
     type: "region";
-    flagCode: "us" | "de" | "au" | "jp" | "in" | "br" | "local";
+    flagCode: FlagCode;
     instances: number;
     health: HealthStatus;
   };
@@ -80,6 +81,7 @@ type RegionInfo = {
 const REGION_INFO: Record<RegionNode["metadata"]["flagCode"], RegionInfo> = {
   us: { name: "US East", location: "N. Virginia" },
   de: { name: "EU Central", location: "Frankfurt" },
+  sg: { name: "AP Southeast", location: "Singapore" },
   au: { name: "AP Southeast", location: "Sydney" },
   jp: { name: "AP Northeast", location: "Tokyo" },
   in: { name: "AP South", location: "Mumbai" },
