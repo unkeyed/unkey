@@ -9,9 +9,12 @@ import (
 	"testing"
 	"time"
 
+	dto "github.com/prometheus/client_model/go"
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/internal/services/ratelimit/metrics"
 	"github.com/unkeyed/unkey/pkg/circuitbreaker"
 	"github.com/unkeyed/unkey/pkg/clock"
+	"github.com/unkeyed/unkey/pkg/counter"
 	"github.com/unkeyed/unkey/pkg/uid"
 )
 
@@ -50,6 +53,83 @@ func TestErrorReason(t *testing.T) {
 			require.Equal(t, tt.want, errorReason(tt.err))
 		})
 	}
+}
+
+func TestFetchFromOrigin_CallerCancellationDoesNotDisableOrigin(t *testing.T) {
+	for _, canceledBeforeFetch := range []bool{true, false} {
+		t.Run(fmt.Sprintf("canceled_before_fetch=%t", canceledBeforeFetch), func(t *testing.T) {
+			var cancel context.CancelFunc
+			var calls int
+			origin := &originGetCounter{
+				Counter: counter.NewMemory(),
+				get: func(ctx context.Context, _ string) (int64, error) {
+					calls++
+					cancel()
+					return 0, fmt.Errorf("get: %w", ctx.Err())
+				},
+			}
+			svc, err := New(Config{Clock: clock.NewTestClock(), Counter: origin, DB: newTestDB(t), Region: "test-region"})
+			require.NoError(t, err)
+			t.Cleanup(func() { require.NoError(t, svc.Close()) })
+			key := counterKey{workspaceID: "test", namespace: "ns", identifier: "id", durationMs: 60000, sequence: 1}
+			op := t.Name()
+
+			for range 100 {
+				var ctx context.Context
+				ctx, cancel = context.WithCancel(t.Context())
+				if canceledBeforeFetch {
+					cancel()
+				}
+				_, ok := svc.fetchFromOrigin(ctx, key, op)
+				cancel()
+				require.False(t, ok)
+			}
+			if canceledBeforeFetch {
+				require.Zero(t, calls, "already-canceled callers must not reach Redis")
+			} else {
+				require.Equal(t, 100, calls, "cancellation must not trip the origin breaker")
+			}
+			for _, reason := range []string{"other", "timeout", "circuit_open"} {
+				var metric dto.Metric
+				require.NoError(t, metrics.RatelimitOriginErrors.WithLabelValues(op, reason).Write(&metric))
+				require.Zero(t, metric.GetCounter().GetValue(), "caller cancellation must not page as an origin failure")
+			}
+
+			origin.get = origin.Counter.Get
+			_, err = origin.Increment(t.Context(), key.redisKey(), 17)
+			require.NoError(t, err)
+			count, ok := svc.fetchFromOrigin(t.Context(), key, op)
+			require.True(t, ok, "a live caller must still reach the shared origin")
+			require.Equal(t, int64(17), count)
+		})
+	}
+}
+
+func TestFetchFromOrigin_RealFailuresStillTripBreaker(t *testing.T) {
+	for _, originErr := range []error{context.DeadlineExceeded, timeoutError{}, errors.New("connection reset")} {
+		t.Run(originErr.Error(), func(t *testing.T) {
+			origin := newFailingCounter(originErr)
+			svc, err := New(Config{Clock: clock.NewTestClock(), Counter: origin, DB: newTestDB(t), Region: "test-region"})
+			require.NoError(t, err)
+			t.Cleanup(func() { require.NoError(t, svc.Close()) })
+			key := counterKey{workspaceID: "test", namespace: "ns", identifier: "id", durationMs: 60000, sequence: 1}
+			for range 100 {
+				_, ok := svc.fetchFromOrigin(t.Context(), key, t.Name())
+				require.False(t, ok)
+			}
+			require.Positive(t, origin.getCalls.Load())
+			require.Less(t, origin.getCalls.Load(), int64(100), "real Redis failures must still open the breaker")
+		})
+	}
+}
+
+type originGetCounter struct {
+	counter.Counter
+	get func(context.Context, string) (int64, error)
+}
+
+func (c *originGetCounter) Get(ctx context.Context, key string) (int64, error) {
+	return c.get(ctx, key)
 }
 
 // TestRatelimit_FailsOverToLocalWhenOriginErrors asserts that when the origin

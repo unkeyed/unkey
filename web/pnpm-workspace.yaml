@@ -52,3 +52,16 @@ overrides:
   "@types/react-dom": "19.2.3"
   "blume>react": "19.2.3"
   "blume>react-dom": "19.2.3"
+
+# @hookform/resolvers@5.2.2 imports zod/v4/core from its Zod resolver, but its
+# package manifest declares only react-hook-form as a peer dependency. A local
+# install can work accidentally when pnpm hoists Zod into a shared location,
+# while an isolated production install cannot resolve Zod from the resolver.
+# This extension adds the missing peer edge, so pnpm installs the dashboard's
+# pinned Zod version alongside @hookform/resolvers and records that relationship
+# in the lockfile. Remove it when @hookform/resolvers declares Zod itself or no
+# longer imports Zod directly.
+packageExtensions:
+  "@hookform/resolvers":
+    peerDependencies:
+      zod: "*"

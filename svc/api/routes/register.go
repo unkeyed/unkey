@@ -82,7 +82,9 @@ import (
 	v2PortalGetPortal "github.com/unkeyed/unkey/svc/api/routes/v2_portal_get_portal"
 	v2PortalGetVerifications "github.com/unkeyed/unkey/svc/api/routes/v2_portal_get_verifications"
 	v2PortalListKeys "github.com/unkeyed/unkey/svc/api/routes/v2_portal_list_keys"
+	v2PortalListSessions "github.com/unkeyed/unkey/svc/api/routes/v2_portal_list_sessions"
 	v2PortalRerollKey "github.com/unkeyed/unkey/svc/api/routes/v2_portal_reroll_key"
+	v2PortalRevokeSession "github.com/unkeyed/unkey/svc/api/routes/v2_portal_revoke_session"
 	v2PortalUpdatePortal "github.com/unkeyed/unkey/svc/api/routes/v2_portal_update_portal"
 
 	v2AppsCreateApp "github.com/unkeyed/unkey/svc/api/routes/v2_apps_create_app"
@@ -834,6 +836,26 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 			Auditlogs:     svc.Auditlogs,
 			PortalBaseURL: svc.PortalBaseURL,
 			Clock:         svc.Clock,
+		},
+	)
+
+	// v2/portal.revokeSession
+	srv.RegisterRoute(
+		protectedMiddlewares,
+		&v2PortalRevokeSession.Handler{
+			DB:           svc.Database,
+			Auditlogs:    svc.Auditlogs,
+			Clock:        svc.Clock,
+			SessionCache: svc.Caches.PortalSession,
+		},
+	)
+
+	// v2/portal.listSessions
+	srv.RegisterRoute(
+		protectedMiddlewares,
+		&v2PortalListSessions.Handler{
+			DB:    svc.Database,
+			Clock: svc.Clock,
 		},
 	)
 

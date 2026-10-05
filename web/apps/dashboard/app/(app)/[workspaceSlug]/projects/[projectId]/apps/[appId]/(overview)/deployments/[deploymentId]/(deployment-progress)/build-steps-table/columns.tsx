@@ -93,13 +93,14 @@ export const buildStepsColumns: Column<BuildStepRow>[] = [
     key: "duration",
     width: "115px",
     cellClassName: "align-top",
-    render: (step) => {
-      const duration = step.completed_at - step.started_at;
-      return (
-        <div className="my-2 flex justify-end font-mono whitespace-nowrap tabular-nums">
-          {formatLatency(duration)}
-        </div>
-      );
-    },
+    render: (step) => (
+      <div className="my-2 flex justify-end font-mono whitespace-nowrap tabular-nums">
+        {step.completed_at === 0 ? (
+          <span className="text-gray-11">running</span>
+        ) : (
+          formatLatency(step.completed_at - step.started_at)
+        )}
+      </div>
+    ),
   },
 ];

@@ -9,7 +9,9 @@ import { portalExchangeCode } from "../funcs/portalExchangeCode.js";
 import { portalGetPortal } from "../funcs/portalGetPortal.js";
 import { portalGetVerifications } from "../funcs/portalGetVerifications.js";
 import { portalListKeys } from "../funcs/portalListKeys.js";
+import { portalListSessions } from "../funcs/portalListSessions.js";
 import { portalRerollKey } from "../funcs/portalRerollKey.js";
+import { portalRevokeSession } from "../funcs/portalRevokeSession.js";
 import { portalUpdatePortal } from "../funcs/portalUpdatePortal.js";
 import { ClientSDK, RequestOptions } from "../lib/sdks.js";
 import * as components from "../models/components/index.js";
@@ -241,6 +243,41 @@ export class Portal extends ClientSDK {
   }
 
   /**
+   * List portal sessions
+   *
+   * @remarks
+   * List the end users holding a revocable session on a portal, with each
+   * end user's sessions.
+   *
+   * Unreleased and subject to change without notice.
+   *
+   * A session is revocable until it expires or is revoked. That includes
+   * sessions whose portal URL was created but not opened yet. Pass an end
+   * user's `externalId` to `portal.revokeSession` to end their sessions.
+   *
+   * **Required Permissions**
+   *
+   * Your root key must have one of:
+   * - `portal.*.create_portal_session` (for any portal in the workspace)
+   * - `portal.<portal_id>.create_portal_session` (for a specific portal)
+   *
+   * It also accepts `unkey:v1:<workspace_id>:projects/<project_id>/portals/<portal_id>/sessions/*`
+   * with `#read` or `#write`. Reading the portal itself is not enough.
+   *
+   * Without the permission this returns **404**, not 403.
+   */
+  async listSessions(
+    request: components.V2PortalListSessionsRequestBody,
+    options?: RequestOptions,
+  ): Promise<components.V2PortalListSessionsResponseBody> {
+    return unwrapAsync(portalListSessions(
+      this,
+      request,
+      options,
+    ));
+  }
+
+  /**
    * Reroll portal key
    *
    * @remarks
@@ -265,6 +302,46 @@ export class Portal extends ClientSDK {
   }
 
   /**
+   * Revoke portal sessions
+   *
+   * @remarks
+   * Revoke every live session an end user holds on a portal.
+   *
+   * Unreleased and subject to change without notice.
+   *
+   * Sessions that were created but not yet opened are revoked too, so their
+   * portal URLs stop working. Revocation is not instantaneous: session lookups
+   * are cached briefly, so a request already in flight may still succeed.
+   *
+   * Revoking ends existing sessions only. To keep the end user out, also stop
+   * calling `portal.createSession` for them.
+   *
+   * Calling this again for the same end user is safe and revokes nothing.
+   *
+   * **Required Permissions**
+   *
+   * Your root key must have one of:
+   * - `portal.*.create_portal_session` (for any portal in the workspace)
+   * - `portal.<portal_id>.create_portal_session` (for a specific portal)
+   *
+   * It also accepts `unkey:v1:<workspace_id>:projects/<project_id>/portals/<portal_id>/sessions/*#write`,
+   * which dashboard roles carry. Unlike `portal.createSession`, a dashboard
+   * session can call this, not just a root key.
+   *
+   * Without the permission this returns **404**, not 403.
+   */
+  async revokeSession(
+    request: components.V2PortalRevokeSessionRequestBody,
+    options?: RequestOptions,
+  ): Promise<components.V2PortalRevokeSessionResponseBody> {
+    return unwrapAsync(portalRevokeSession(
+      this,
+      request,
+      options,
+    ));
+  }
+
+  /**
    * Update portal
    *
    * @remarks
@@ -279,7 +356,8 @@ export class Portal extends ClientSDK {
    * Two changes affect your end users immediately:
    * - Re-pointing at a different resource revokes the portal's live sessions,
    *   because a session carries the scope it was minted with.
-   * - Disabling stops new sessions but leaves live ones running until they expire.
+   * - Disabling stops new sessions and revokes the live ones. Re-enabling does
+   *   not restore them.
    *
    * **Required Permissions**
    *

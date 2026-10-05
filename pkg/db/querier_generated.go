@@ -2566,6 +2566,42 @@ type Querier interface {
 	//  ORDER BY k.id ASC
 	//  LIMIT ?
 	ListLiveKeysByKeySpaceIDs(ctx context.Context, db DBTX, arg ListLiveKeysByKeySpaceIDsParams) ([]ListLiveKeysByKeySpaceIDsRow, error)
+	// Returns one page of the end users holding a revocable session on a portal,
+	// using the same live predicate as LockLivePortalSessionsByExternalID. Ordered
+	// by external_id with external_id >= external_id_cursor, so an empty cursor
+	// starts at the first end user. search is a LIKE pattern from
+	// mysql.SearchPrefix; NULL disables the filter. The hint pins idx_portal_revoked:
+	// left to itself the planner can walk the workspace-wide idx_external_id and
+	// scan every other portal's sessions to fill a page.
+	//
+	//  SELECT DISTINCT external_id FROM portal_sessions FORCE INDEX (idx_portal_revoked)
+	//  WHERE workspace_id = ?
+	//    AND portal_id = ?
+	//    AND revoked_at IS NULL
+	//    AND (
+	//      (access_token_hash IS NOT NULL AND access_token_expires_at > ?)
+	//      OR (access_token_hash IS NULL AND exchange_code_expires_at > ?)
+	//    )
+	//    AND external_id >= ?
+	//    AND (? IS NULL OR external_id LIKE ?)
+	//  ORDER BY external_id ASC
+	//  LIMIT ?
+	ListLivePortalSessionExternalIDs(ctx context.Context, db DBTX, arg ListLivePortalSessionExternalIDsParams) ([]string, error)
+	// Loads the revocable sessions for the end users ListLivePortalSessionExternalIDs
+	// returned, with the same live predicate. Ordered by external_id, then newest
+	// first, so callers can group rows in one pass.
+	//
+	//  SELECT id, external_id, scopes, access_token_hash, access_token_expires_at, exchange_code_expires_at, created_at FROM portal_sessions
+	//  WHERE workspace_id = ?
+	//    AND portal_id = ?
+	//    AND external_id IN (/*SLICE:external_ids*/?)
+	//    AND revoked_at IS NULL
+	//    AND (
+	//      (access_token_hash IS NOT NULL AND access_token_expires_at > ?)
+	//      OR (access_token_hash IS NULL AND exchange_code_expires_at > ?)
+	//    )
+	//  ORDER BY external_id ASC, created_at DESC, id ASC
+	ListLivePortalSessionsByExternalIDs(ctx context.Context, db DBTX, arg ListLivePortalSessionsByExternalIDsParams) ([]ListLivePortalSessionsByExternalIDsRow, error)
 	// ListPermissions returns one page of permission definitions from one project.
 	//
 	//  SELECT p.pk, p.id, p.workspace_id, p.project_id, p.name, p.slug, p.description, p.created_at_m, p.updated_at_m
@@ -2795,6 +2831,38 @@ type Querier interface {
 	//  WHERE id = ?
 	//  FOR UPDATE
 	LockKeyForUpdate(ctx context.Context, db DBTX, id string) (string, error)
+	// Locks up to `limit` of one end user's live sessions on a portal: an unexpired
+	// access token, or an unexpired code that was never exchanged. Expired rows are
+	// left alone so the revoke reports only access it actually cut. Only rows at or
+	// below `max_pk` are taken, so a caller revoking in batches stops even while new
+	// sessions are being minted. The lock pins exactly the rows
+	// RevokePortalSessionsByIDs then revokes.
+	//
+	//  SELECT pk, id, workspace_id, portal_id, external_id, scopes, exchange_code_hash, exchange_code_expires_at, access_token_hash, access_token_created_at, access_token_expires_at, revoked_at, return_url, created_at FROM portal_sessions
+	//  WHERE workspace_id = ?
+	//    AND portal_id = ?
+	//    AND external_id = ?
+	//    AND revoked_at IS NULL
+	//    AND pk <= ?
+	//    AND (
+	//      (access_token_hash IS NOT NULL AND access_token_expires_at > ?)
+	//      OR (access_token_hash IS NULL AND exchange_code_expires_at > ?)
+	//    )
+	//  ORDER BY pk
+	//  LIMIT ?
+	//  FOR UPDATE
+	LockLivePortalSessionsByExternalID(ctx context.Context, db DBTX, arg LockLivePortalSessionsByExternalIDParams) ([]PortalSession, error)
+	// Locks the portal row while a session is minted. Disabling, re-pointing, and
+	// deleting a portal all write this row before revoking its sessions, so the
+	// lock orders a mint before or after them: either the revoke sees the new
+	// session, or the mint sees the change and refuses. The mapping columns let the
+	// caller check the row still points where its grant was built from.
+	//
+	//  SELECT id, enabled, key_auth_id, app_id FROM portals
+	//  WHERE id = ?
+	//    AND workspace_id = ?
+	//  FOR UPDATE
+	LockPortalForMint(ctx context.Context, db DBTX, arg LockPortalForMintParams) (LockPortalForMintRow, error)
 	//LockRoleByIDOrNameAndWorkspaceID
 	//
 	//  SELECT id, project_id, name
@@ -2803,6 +2871,16 @@ type Querier interface {
 	//    AND (id = ? OR name = ?)
 	//  FOR UPDATE
 	LockRoleByIDOrNameAndWorkspaceID(ctx context.Context, db DBTX, arg LockRoleByIDOrNameAndWorkspaceIDParams) (LockRoleByIDOrNameAndWorkspaceIDRow, error)
+	// Returns the highest pk among one end user's sessions on a portal, or 0 when
+	// there are none. Read on the primary before revoking in batches, it bounds the
+	// revoke to sessions that already exist: pk is assigned at insert, so a session
+	// minted while the batches run lands above it.
+	//
+	//  SELECT CAST(COALESCE(MAX(pk), 0) AS UNSIGNED) AS max_pk FROM portal_sessions
+	//  WHERE workspace_id = ?
+	//    AND portal_id = ?
+	//    AND external_id = ?
+	MaxPortalSessionPkByExternalID(ctx context.Context, db DBTX, arg MaxPortalSessionPkByExternalIDParams) (int64, error)
 	// Clears the workspace_billing linkage on a workspace, returning it to the
 	// Free tier. Mirrors what the customer.subscription.deleted webhook writes,
 	// plus stripe_customer_id, which no webhook ever clears. Stripe subscription
@@ -2925,6 +3003,15 @@ type Querier interface {
 	//      AND (e.id = ? OR e.slug = ?)
 	//  LIMIT 1
 	ResolveDeploymentScope(ctx context.Context, db DBTX, arg ResolveDeploymentScopeParams) (ResolveDeploymentScopeRow, error)
+	// Revokes the sessions LockLivePortalSessionsByExternalID locked. Run it in the
+	// same transaction, so the ids are exactly the rows this call revokes.
+	//
+	//  UPDATE portal_sessions
+	//  SET revoked_at = ?
+	//  WHERE workspace_id = ?
+	//    AND id IN (/*SLICE:ids*/?)
+	//    AND revoked_at IS NULL
+	RevokePortalSessionsByIDs(ctx context.Context, db DBTX, arg RevokePortalSessionsByIDsParams) (int64, error)
 	// Revokes every live session belonging to a portal, scoped to the workspace.
 	//
 	// A session's keyspace scope is frozen in `scopes` at mint time and the session

@@ -320,6 +320,7 @@ type UnkeyRootKey struct {
 	Enabled     bool           `db:"enabled"`
 	Expires     sql.NullInt64  `db:"expires"`
 	CreatedAt   int64          `db:"created_at"`
+	LastUsedAt  uint64         `db:"last_used_at"`
 	DeletedAt   sql.NullInt64  `db:"deleted_at"`
 }
 

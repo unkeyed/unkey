@@ -14,7 +14,7 @@ const usageScope = z.object({
 const usageQuery = z.object({
   groupBy: deployUsageTimeseriesGroup,
   scope: usageScope,
-  monthsAgo: z.union([z.literal(0), z.literal(1), z.literal(2)]),
+  period: z.enum(["current", "previous"]),
 });
 
 export const queryDeployUsageTimeseries = workspaceProcedure
@@ -33,7 +33,7 @@ export const queryDeployUsageTimeseries = workspaceProcedure
     const now = new Date();
     const period = getDeployUsageQueryPeriod({
       now,
-      monthsAgo: input.monthsAgo,
+      period: input.period,
       dayStart: input.interval === "hour" ? input.day : undefined,
     });
     if (!period) {

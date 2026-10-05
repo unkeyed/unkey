@@ -172,7 +172,8 @@
                 "pages": [
                   "platform/root-keys/overview",
                   "platform/root-keys/permissions",
-                  "platform/root-keys/permissions-legacy"
+                  "platform/root-keys/configure",
+                  "platform/root-keys/permission-reference"
                 ]
               },
               {
@@ -283,6 +284,7 @@
                           "errors/unkey/data/permission_not_found",
                           "errors/unkey/data/policy_not_found",
                           "errors/unkey/data/portal_already_exists",
+                          "errors/unkey/data/portal_changed",
                           "errors/unkey/data/portal_not_found",
                           "errors/unkey/data/project_already_exists",
                           "errors/unkey/data/project_not_found",
@@ -1146,6 +1148,10 @@
     ]
   },
   "redirects": [
+    {
+      "destination": "/platform/root-keys/permission-reference",
+      "source": "/platform/root-keys/permissions-legacy"
+    },
     {
       "destination": "/platform/api/overview",
       "source": "/api-reference"

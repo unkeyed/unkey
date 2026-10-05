@@ -86,6 +86,14 @@ post:
         application/json:
           schema:
             "$ref": "../../../../error/NotFoundErrorResponse.yaml"
+    "409":
+      description: |
+        The portal was pointed at a different app or keyspace while the session
+        was being created. Retry the request.
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/ConflictErrorResponse.yaml"
     "429":
       description: Too Many Requests
       content:
