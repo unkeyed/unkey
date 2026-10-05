@@ -115,6 +115,7 @@ func TestGetLimitsWithComputePlan(t *testing.T) {
 	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
 
 	requestsPerMinute := int64(1000)
+	customDomainsLimit := int64(5)
 	require.Equal(t, openapi.V2WorkspaceGetLimitsResponseData{
 		Api: openapi.V2WorkspaceGetLimitsApi{
 			BillableOperations: openapi.LimitMeter{Limit: 150_000, Used: 42_000},
@@ -126,15 +127,15 @@ func TestGetLimitsWithComputePlan(t *testing.T) {
 			LogDrains:          openapi.LimitMeter{Limit: 3, Used: 1},
 		},
 		Compute: &openapi.V2WorkspaceGetLimitsCompute{
-			VCpus:                 openapi.V2WorkspaceGetLimitsVcpuMeter{Limit: 4, Used: 1.5},
-			VCpusPerInstance:      2,
-			MemoryMib:             openapi.LimitMeter{Limit: 8192, Used: 1536},
-			MemoryMibPerInstance:  4096,
-			StorageMib:            openapi.LimitMeter{Limit: 10_240, Used: 3072},
-			StorageMibPerInstance: 5120,
-			ConcurrentBuilds:      2,
-			ReplicasPerRegion:     10,
-			CustomDomains:         openapi.LimitMeter{Limit: 5, Used: 1},
+			Workspace: openapi.V2WorkspaceGetLimitsComputeWorkspace{
+				VCpus:      openapi.V2WorkspaceGetLimitsVcpuMeter{Limit: 4, Used: 1.5},
+				MemoryMib:  openapi.LimitMeter{Limit: 8192, Used: 1536},
+				StorageMib: openapi.LimitMeter{Limit: 10_240, Used: 3072},
+			},
+			PerInstance:       openapi.V2WorkspaceGetLimitsComputePerInstance{VCpus: 2, MemoryMib: 4096, StorageMib: 5120},
+			ConcurrentBuilds:  2,
+			ReplicasPerRegion: 10,
+			CustomDomains:     openapi.V2WorkspaceGetLimitsCustomDomains{Limit: &customDomainsLimit, Used: 1},
 		},
 	}, res.Body.Data)
 }
@@ -208,4 +209,20 @@ func insertBillable(t *testing.T, h *testutil.Harness, table, workspaceID string
 		month.Year(), int(month.Month()), workspaceID, count,
 	)
 	require.NoError(t, err)
+}
+
+func TestGetLimitsOmitsUnlimitedCustomDomainsLimit(t *testing.T) {
+	h := testutil.NewHarness(t)
+	route := newRoute(h)
+	h.Register(route)
+
+	// The seeded limits row allows 1,000,000 custom domains, which plans use for unlimited
+	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{})
+	rootKey := h.CreateRootKey(setup.Workspace.ID, fmt.Sprintf("unkey:v1:%s:limits#read", setup.Workspace.ID))
+
+	res := callGetLimits(h, route, bearer(rootKey))
+	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
+	require.NotNil(t, res.Body.Data.Compute)
+	require.Equal(t, openapi.V2WorkspaceGetLimitsCustomDomains{Limit: nil, Used: 0}, res.Body.Data.Compute.CustomDomains)
+	require.Contains(t, res.RawBody, `"customDomains":{"used":0}`)
 }

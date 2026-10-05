@@ -1,0 +1,16 @@
+type: object
+description: The custom domains attached across all apps, against the allowance.
+required:
+  - used
+properties:
+  limit:
+    type: integer
+    format: int64
+    description: The maximum custom domains. Omitted when the plan has no limit.
+    example: 5
+  used:
+    type: integer
+    format: int64
+    description: The custom domains attached now.
+    example: 1
+additionalProperties: false

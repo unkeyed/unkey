@@ -1,0 +1,23 @@
+type: object
+description: |
+  Reserved capacity across the workspace, against the workspace limits. `used`
+  is reserved capacity, not live usage. Each running deployment reserves its
+  instance size times its maximum replicas, in each region it runs in. `used`
+  is the sum over all running deployments. A deploy that would bring this sum
+  above `limit` is rejected.
+required:
+  - vCpus
+  - memoryMib
+  - storageMib
+properties:
+  vCpus:
+    "$ref": "./V2WorkspaceGetLimitsVcpuMeter.yaml"
+  memoryMib:
+    description: Reserved memory in MiB.
+    allOf:
+      - "$ref": "../../../../common/LimitMeter.yaml"
+  storageMib:
+    description: Reserved ephemeral disk in MiB.
+    allOf:
+      - "$ref": "../../../../common/LimitMeter.yaml"
+additionalProperties: false

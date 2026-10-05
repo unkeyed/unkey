@@ -6866,12 +6866,6 @@ type V2WorkspaceGetLimitsApi struct {
 }
 
 // V2WorkspaceGetLimitsCompute Limits for Compute.
-//
-// For `vCpus`, `memoryMib`, and `storageMib`, `used` is reserved capacity, not
-// live usage. Each running deployment reserves its instance size times its
-// maximum replicas, in each region it runs in. `used` is the sum over all
-// running deployments. A deploy that would bring this sum above `limit` is
-// rejected.
 type V2WorkspaceGetLimitsCompute struct {
 	// ConcurrentBuilds The maximum builds that run at the same time.
 	//
@@ -6879,37 +6873,69 @@ type V2WorkspaceGetLimitsCompute struct {
 	ConcurrentBuilds int `json:"concurrentBuilds"`
 
 	// CustomDomains The custom domains attached across all apps, against the allowance.
-	// Plans with unlimited custom domains return a `limit` of 1,000,000.
-	CustomDomains LimitMeter `json:"customDomains"`
+	CustomDomains V2WorkspaceGetLimitsCustomDomains `json:"customDomains"`
 
-	// MemoryMib Reserved memory across the workspace in MiB, against the workspace limit.
-	MemoryMib LimitMeter `json:"memoryMib"`
-
-	// MemoryMibPerInstance The maximum memory for one instance, in MiB.
-	//
-	// Example: 4096
-	MemoryMibPerInstance int `json:"memoryMibPerInstance"`
+	// PerInstance The maximum size of one instance.
+	PerInstance V2WorkspaceGetLimitsComputePerInstance `json:"perInstance"`
 
 	// ReplicasPerRegion The maximum instances that autoscaling runs for one app in one region.
 	//
 	// Example: 10
 	ReplicasPerRegion int `json:"replicasPerRegion"`
 
-	// StorageMib Reserved ephemeral disk across the workspace in MiB, against the workspace limit.
-	StorageMib LimitMeter `json:"storageMib"`
+	// Workspace Reserved capacity across the workspace, against the workspace limits. `used`
+	// is reserved capacity, not live usage. Each running deployment reserves its
+	// instance size times its maximum replicas, in each region it runs in. `used`
+	// is the sum over all running deployments. A deploy that would bring this sum
+	// above `limit` is rejected.
+	Workspace V2WorkspaceGetLimitsComputeWorkspace `json:"workspace"`
+}
 
-	// StorageMibPerInstance The maximum ephemeral disk for one instance, in MiB.
+// V2WorkspaceGetLimitsComputePerInstance The maximum size of one instance.
+type V2WorkspaceGetLimitsComputePerInstance struct {
+	// MemoryMib The maximum memory for one instance, in MiB.
+	//
+	// Example: 4096
+	MemoryMib int `json:"memoryMib"`
+
+	// StorageMib The maximum ephemeral disk for one instance, in MiB.
 	//
 	// Example: 5120
-	StorageMibPerInstance int `json:"storageMibPerInstance"`
+	StorageMib int `json:"storageMib"`
 
-	// VCpus Reserved CPU across the workspace, against the workspace limit.
-	VCpus V2WorkspaceGetLimitsVcpuMeter `json:"vCpus"`
-
-	// VCpusPerInstance The maximum vCPUs for one instance.
+	// VCpus The maximum vCPUs for one instance.
 	//
 	// Example: 2
-	VCpusPerInstance float64 `json:"vCpusPerInstance"`
+	VCpus float64 `json:"vCpus"`
+}
+
+// V2WorkspaceGetLimitsComputeWorkspace Reserved capacity across the workspace, against the workspace limits. `used`
+// is reserved capacity, not live usage. Each running deployment reserves its
+// instance size times its maximum replicas, in each region it runs in. `used`
+// is the sum over all running deployments. A deploy that would bring this sum
+// above `limit` is rejected.
+type V2WorkspaceGetLimitsComputeWorkspace struct {
+	// MemoryMib Reserved memory in MiB.
+	MemoryMib LimitMeter `json:"memoryMib"`
+
+	// StorageMib Reserved ephemeral disk in MiB.
+	StorageMib LimitMeter `json:"storageMib"`
+
+	// VCpus The workspace CPU limit and the reserved CPU against it, in vCPUs.
+	VCpus V2WorkspaceGetLimitsVcpuMeter `json:"vCpus"`
+}
+
+// V2WorkspaceGetLimitsCustomDomains The custom domains attached across all apps, against the allowance.
+type V2WorkspaceGetLimitsCustomDomains struct {
+	// Limit The maximum custom domains. Omitted when the plan has no limit.
+	//
+	// Example: 5
+	Limit *int64 `json:"limit,omitempty"`
+
+	// Used The custom domains attached now.
+	//
+	// Example: 1
+	Used int64 `json:"used"`
 }
 
 // V2WorkspaceGetLimitsLogs Limits for logs and log drains.

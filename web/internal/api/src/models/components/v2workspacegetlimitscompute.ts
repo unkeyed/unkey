@@ -6,48 +6,37 @@ import * as z from "zod/v3";
 import { safeParse } from "../../lib/schemas.js";
 import { Result as SafeParseResult } from "../../types/fp.js";
 import { SDKValidationError } from "../errors/sdkvalidationerror.js";
-import { LimitMeter, LimitMeter$inboundSchema } from "./limitmeter.js";
 import {
-  V2WorkspaceGetLimitsVcpuMeter,
-  V2WorkspaceGetLimitsVcpuMeter$inboundSchema,
-} from "./v2workspacegetlimitsvcpumeter.js";
+  V2WorkspaceGetLimitsComputePerInstance,
+  V2WorkspaceGetLimitsComputePerInstance$inboundSchema,
+} from "./v2workspacegetlimitscomputeperinstance.js";
+import {
+  V2WorkspaceGetLimitsComputeWorkspace,
+  V2WorkspaceGetLimitsComputeWorkspace$inboundSchema,
+} from "./v2workspacegetlimitscomputeworkspace.js";
+import {
+  V2WorkspaceGetLimitsCustomDomains,
+  V2WorkspaceGetLimitsCustomDomains$inboundSchema,
+} from "./v2workspacegetlimitscustomdomains.js";
 
 /**
  * Limits for Compute.
- *
- * @remarks
- *
- * For `vCpus`, `memoryMib`, and `storageMib`, `used` is reserved capacity, not
- * live usage. Each running deployment reserves its instance size times its
- * maximum replicas, in each region it runs in. `used` is the sum over all
- * running deployments. A deploy that would bring this sum above `limit` is
- * rejected.
  */
 export type V2WorkspaceGetLimitsCompute = {
   /**
-   * Reserved CPU across the workspace, against the workspace limit.
+   * Reserved capacity across the workspace, against the workspace limits. `used`
+   *
+   * @remarks
+   * is reserved capacity, not live usage. Each running deployment reserves its
+   * instance size times its maximum replicas, in each region it runs in. `used`
+   * is the sum over all running deployments. A deploy that would bring this sum
+   * above `limit` is rejected.
    */
-  vCpus: V2WorkspaceGetLimitsVcpuMeter;
+  workspace: V2WorkspaceGetLimitsComputeWorkspace;
   /**
-   * The maximum vCPUs for one instance.
+   * The maximum size of one instance.
    */
-  vCpusPerInstance: number;
-  /**
-   * Reserved memory across the workspace in MiB, against the workspace limit.
-   */
-  memoryMib: LimitMeter;
-  /**
-   * The maximum memory for one instance, in MiB.
-   */
-  memoryMibPerInstance: number;
-  /**
-   * Reserved ephemeral disk across the workspace in MiB, against the workspace limit.
-   */
-  storageMib: LimitMeter;
-  /**
-   * The maximum ephemeral disk for one instance, in MiB.
-   */
-  storageMibPerInstance: number;
+  perInstance: V2WorkspaceGetLimitsComputePerInstance;
   /**
    * The maximum builds that run at the same time.
    */
@@ -58,11 +47,8 @@ export type V2WorkspaceGetLimitsCompute = {
   replicasPerRegion: number;
   /**
    * The custom domains attached across all apps, against the allowance.
-   *
-   * @remarks
-   * Plans with unlimited custom domains return a `limit` of 1,000,000.
    */
-  customDomains: LimitMeter;
+  customDomains: V2WorkspaceGetLimitsCustomDomains;
 };
 
 /** @internal */
@@ -71,15 +57,11 @@ export const V2WorkspaceGetLimitsCompute$inboundSchema: z.ZodType<
   z.ZodTypeDef,
   unknown
 > = z.object({
-  vCpus: V2WorkspaceGetLimitsVcpuMeter$inboundSchema,
-  vCpusPerInstance: z.number(),
-  memoryMib: LimitMeter$inboundSchema,
-  memoryMibPerInstance: z.number().int(),
-  storageMib: LimitMeter$inboundSchema,
-  storageMibPerInstance: z.number().int(),
+  workspace: V2WorkspaceGetLimitsComputeWorkspace$inboundSchema,
+  perInstance: V2WorkspaceGetLimitsComputePerInstance$inboundSchema,
   concurrentBuilds: z.number().int(),
   replicasPerRegion: z.number().int(),
-  customDomains: LimitMeter$inboundSchema,
+  customDomains: V2WorkspaceGetLimitsCustomDomains$inboundSchema,
 });
 
 export function v2WorkspaceGetLimitsComputeFromJSON(

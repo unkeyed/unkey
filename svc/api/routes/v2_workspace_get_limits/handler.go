@@ -22,6 +22,10 @@ type Response = openapi.V2WorkspaceGetLimitsResponseBody
 
 const millicoresPerVCpu = 1000
 
+// Plans store this custom domain limit to mean unlimited, the same value as
+// CUSTOM_DOMAINS_UNLIMITED in the dashboard
+const unlimitedCustomDomains = 1_000_000
+
 type Handler struct {
 	DB         db.Database
 	ClickHouse clickhouse.ClickHouse
@@ -108,27 +112,35 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	if deploygate.Entitled(limits.Plan, limits.PlanOverride) {
 		data.Compute = &openapi.V2WorkspaceGetLimitsCompute{
-			VCpus: openapi.V2WorkspaceGetLimitsVcpuMeter{
-				Limit: float64(limits.CpuCoresMax),
-				Used:  float64(limits.TotalCpuMillicores) / millicoresPerVCpu,
+			Workspace: openapi.V2WorkspaceGetLimitsComputeWorkspace{
+				VCpus: openapi.V2WorkspaceGetLimitsVcpuMeter{
+					Limit: float64(limits.CpuCoresMax),
+					Used:  float64(limits.TotalCpuMillicores) / millicoresPerVCpu,
+				},
+				MemoryMib: openapi.LimitMeter{
+					Limit: int64(limits.MemoryMibMax),
+					Used:  limits.TotalMemoryMib,
+				},
+				StorageMib: openapi.LimitMeter{
+					Limit: int64(limits.StorageMibMax),
+					Used:  limits.TotalStorageMib,
+				},
 			},
-			VCpusPerInstance: float64(limits.CpuCoresMaxPerInstance),
-			MemoryMib: openapi.LimitMeter{
-				Limit: int64(limits.MemoryMibMax),
-				Used:  limits.TotalMemoryMib,
+			PerInstance: openapi.V2WorkspaceGetLimitsComputePerInstance{
+				VCpus:      float64(limits.CpuCoresMaxPerInstance),
+				MemoryMib:  int(limits.MemoryMibMaxPerInstance),
+				StorageMib: int(limits.StorageMibMaxPerInstance),
 			},
-			MemoryMibPerInstance: int(limits.MemoryMibMaxPerInstance),
-			StorageMib: openapi.LimitMeter{
-				Limit: int64(limits.StorageMibMax),
-				Used:  limits.TotalStorageMib,
-			},
-			StorageMibPerInstance: int(limits.StorageMibMaxPerInstance),
-			ConcurrentBuilds:      int(limits.BuildsConcurrentMax),
-			ReplicasPerRegion:     int(limits.AutoscalingReplicasMax),
-			CustomDomains: openapi.LimitMeter{
-				Limit: int64(limits.CustomDomainsMax),
+			ConcurrentBuilds:  int(limits.BuildsConcurrentMax),
+			ReplicasPerRegion: int(limits.AutoscalingReplicasMax),
+			CustomDomains: openapi.V2WorkspaceGetLimitsCustomDomains{
+				Limit: nil,
 				Used:  limits.CustomDomainsCount,
 			},
+		}
+		if limits.CustomDomainsMax < unlimitedCustomDomains {
+			customDomainsLimit := int64(limits.CustomDomainsMax)
+			data.Compute.CustomDomains.Limit = &customDomainsLimit
 		}
 	}
 

@@ -28,18 +28,20 @@ examples:
             limit: 1
             used: 0
         compute:
-          vCpus:
-            limit: 4
-            used: 2.5
-          vCpusPerInstance: 2
-          memoryMib:
-            limit: 8192
-            used: 4096
-          memoryMibPerInstance: 4096
-          storageMib:
-            limit: 10240
-            used: 2048
-          storageMibPerInstance: 5120
+          workspace:
+            vCpus:
+              limit: 4
+              used: 2.5
+            memoryMib:
+              limit: 8192
+              used: 4096
+            storageMib:
+              limit: 10240
+              used: 2048
+          perInstance:
+            vCpus: 2
+            memoryMib: 4096
+            storageMib: 5120
           concurrentBuilds: 2
           replicasPerRegion: 10
           customDomains:

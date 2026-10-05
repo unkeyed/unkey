@@ -1,48 +1,16 @@
 type: object
-description: |
-  Limits for Compute.
-
-  For `vCpus`, `memoryMib`, and `storageMib`, `used` is reserved capacity, not
-  live usage. Each running deployment reserves its instance size times its
-  maximum replicas, in each region it runs in. `used` is the sum over all
-  running deployments. A deploy that would bring this sum above `limit` is
-  rejected.
+description: Limits for Compute.
 required:
-  - vCpus
-  - vCpusPerInstance
-  - memoryMib
-  - memoryMibPerInstance
-  - storageMib
-  - storageMibPerInstance
+  - workspace
+  - perInstance
   - concurrentBuilds
   - replicasPerRegion
   - customDomains
 properties:
-  vCpus:
-    description: Reserved CPU across the workspace, against the workspace limit.
-    allOf:
-      - "$ref": "./V2WorkspaceGetLimitsVcpuMeter.yaml"
-  vCpusPerInstance:
-    type: number
-    format: double
-    description: The maximum vCPUs for one instance.
-    example: 2
-  memoryMib:
-    description: Reserved memory across the workspace in MiB, against the workspace limit.
-    allOf:
-      - "$ref": "../../../../common/LimitMeter.yaml"
-  memoryMibPerInstance:
-    type: integer
-    description: The maximum memory for one instance, in MiB.
-    example: 4096
-  storageMib:
-    description: Reserved ephemeral disk across the workspace in MiB, against the workspace limit.
-    allOf:
-      - "$ref": "../../../../common/LimitMeter.yaml"
-  storageMibPerInstance:
-    type: integer
-    description: The maximum ephemeral disk for one instance, in MiB.
-    example: 5120
+  workspace:
+    "$ref": "./V2WorkspaceGetLimitsComputeWorkspace.yaml"
+  perInstance:
+    "$ref": "./V2WorkspaceGetLimitsComputePerInstance.yaml"
   concurrentBuilds:
     type: integer
     description: The maximum builds that run at the same time.
@@ -52,9 +20,5 @@ properties:
     description: The maximum instances that autoscaling runs for one app in one region.
     example: 10
   customDomains:
-    description: |
-      The custom domains attached across all apps, against the allowance.
-      Plans with unlimited custom domains return a `limit` of 1,000,000.
-    allOf:
-      - "$ref": "../../../../common/LimitMeter.yaml"
+    "$ref": "./V2WorkspaceGetLimitsCustomDomains.yaml"
 additionalProperties: false
