@@ -3,6 +3,7 @@
 import { collection } from "@/lib/collections";
 import { applyDefaultSettings } from "@/lib/collections/deploy/environment-settings";
 import { SERVER_PLACEHOLDER } from "@/lib/collections/deploy/utils";
+import { trpc } from "@/lib/trpc/client";
 import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
 import { ConflictErrorResponse } from "@unkey/api/models/errors";
 import { toast } from "@unkey/ui";
@@ -29,6 +30,8 @@ function isConflict(error: unknown): boolean {
 }
 
 export function useAppLifecycle(projectId: string) {
+  const utils = trpc.useUtils();
+
   const projectApps = async () => {
     await collection.apps.utils.refetch();
     return collection.apps.toArray.filter((app) => app.projectId === projectId);
@@ -46,6 +49,18 @@ export function useAppLifecycle(projectId: string) {
         applyDefaultSettings(projectId, appId, environment.id, settings),
       ),
     );
+  };
+
+  // The app already exists, so a settings failure must not orphan it; the
+  // settings card shows what is missing.
+  const applyOrWarn = async (appId: string, settings: () => Promise<InitialSettings>) => {
+    try {
+      await applyToEnvironments(appId, await settings());
+    } catch (error) {
+      toast.error("Could not load the app settings. Refresh the page to try again.", {
+        description: getErrorMessage(error),
+      });
+    }
   };
 
   const insertImageApp = async (name: string, imageReference: string): Promise<string> => {
@@ -80,13 +95,7 @@ export function useAppLifecycle(projectId: string) {
       const name = uniqueAppName(baseName, await takenSlugs());
       try {
         const appId = await insertImageApp(name, imageReference);
-        try {
-          await applyToEnvironments(appId, settings);
-        } catch (error) {
-          toast.error("Could not load the app settings. Refresh the page to try again.", {
-            description: getErrorMessage(error),
-          });
-        }
+        await applyOrWarn(appId, async () => settings);
         return { ok: true, appId };
       } catch (error) {
         if (!isConflict(error)) {
@@ -108,7 +117,10 @@ export function useAppLifecycle(projectId: string) {
           slug: name,
           git: {},
         });
-        await applyToEnvironments(data.appId, { regionNames: [] });
+        await applyOrWarn(data.appId, async () => {
+          const regions = await utils.deploy.environmentSettings.getAvailableRegions.fetch();
+          return { regionNames: regions.filter((r) => r.canSchedule).map((r) => r.name) };
+        });
         await collection.apps.utils.refetch();
         return { ok: true, appId: data.appId };
       } catch (error) {
