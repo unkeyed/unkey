@@ -21,10 +21,6 @@ export const settingsRoutes = {
     return buildRoute("/[workspaceSlug]/settings/general", { workspaceSlug });
   },
 
-  flags({ workspaceSlug }: WorkspaceScope): Route {
-    return buildRoute("/[workspaceSlug]/settings/platform-features", { workspaceSlug });
-  },
-
   team({ workspaceSlug }: WorkspaceScope): Route {
     return buildRoute("/[workspaceSlug]/settings/team", { workspaceSlug });
   },
