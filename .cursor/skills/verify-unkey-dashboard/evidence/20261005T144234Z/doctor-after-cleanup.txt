@@ -1,0 +1,3 @@
+verdict: not-running
+No dashboard process from this skill is alive.
+ready_exit=3

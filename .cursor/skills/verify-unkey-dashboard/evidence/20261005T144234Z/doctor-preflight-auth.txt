@@ -1,0 +1,5 @@
+verdict: safe-to-launch-auth
+AUTH_PROVIDER=local
+port 3000 is free
+This check does not start MySQL. Only features/auth-gate.md may be driven, and only the sign-in document.
+preflight_auth_exit=0

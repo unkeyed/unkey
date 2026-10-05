@@ -1,0 +1,10 @@
+verdict: safe-to-launch-auth
+AUTH_PROVIDER=local
+port 3000 is free
+This check does not start MySQL. Only features/auth-gate.md may be driven, and only the sign-in document.
+verdict: auth-landing-only
+pid: 2741
+mode: auth-landing
+ready: http://127.0.0.1:3000/auth/sign-in contains Local dashboard
+MySQL or the API is not part of this instance. Drive features/auth-gate.md only. Do not activate Continue to dashboard.
+launch_exit=0

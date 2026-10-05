@@ -1,0 +1,3 @@
+verdict: blocked
+docker is not on PATH. mise run dashboard starts web/apps/dashboard/dev/docker-compose.yaml and cannot boot without it.
+preflight_exit=4

@@ -1,0 +1,3 @@
+stopped pid 2741 mode auth-landing
+evidence left in place under /workspace/.cursor/skills/verify-unkey-dashboard/evidence
+cleanup_exit=0

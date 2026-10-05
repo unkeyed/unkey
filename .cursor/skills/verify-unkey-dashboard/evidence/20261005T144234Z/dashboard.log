@@ -1,0 +1,78 @@
+$ next dev
+▲ Next.js 16.3.5 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://172.30.0.2:3000
+- Environments: .env
+✓ Ready in 396ms
+[vercel-toolbar] No project info found. Make sure you run `vc link` in your project directory.
+✓ Running next.config.js took 384ms
+Attention: Next.js now collects completely anonymous telemetry regarding usage.
+This information is used to shape Next.js' roadmap and prioritize features.
+You can learn more, including how to opt-out if you'd not like to participate in this anonymous program, by visiting the following URL:
+https://nextjs.org/telemetry
+
+- Experiments (use with caution):
+  · clientTraceMetadata
+
+✓ Generated AGENTS.md and CLAUDE.md for AI agents. Set `agentRules: false` in next.config to disable.
+○ Compiling /auth/sign-in/[[...sign-in]] ...
+[flags] failed to create vercel adapter, falling back to noop
+[flags] failed to create vercel adapter, falling back to noop
+[flags] failed to create vercel adapter, falling back to noop
+[flags] failed to create vercel adapter, falling back to noop
+[flags] failed to create vercel adapter, falling back to noop
+[flags] failed to create vercel adapter, falling back to noop
+You are rendering the Vercel Toolbar in development, but the configuration is missing.
+Make sure the plugin is added to the Next.js config and the project has been linked using `vercel link`.
+For more details, visit https://vercel.com/docs/workflow-collaboration/vercel-toolbar/in-production-and-localhost/add-to-localhost
+[flags] failed to create vercel adapter, falling back to noop
+[flags] failed to create vercel adapter, falling back to noop
+[flags] failed to create vercel adapter, falling back to noop
+[flags] failed to create vercel adapter, falling back to noop
+[flags] failed to create vercel adapter, falling back to noop
+[flags] failed to create vercel adapter, falling back to noop
+You are rendering the Vercel Toolbar in development, but the configuration is missing.
+Make sure the plugin is added to the Next.js config and the project has been linked using `vercel link`.
+For more details, visit https://vercel.com/docs/workflow-collaboration/vercel-toolbar/in-production-and-localhost/add-to-localhost
+ GET /auth/sign-in 200 in 4.5s (next.js: 3.5s, proxy.ts: 15ms, application-code: 1018ms)
+ GET /auth/sign-in 200 in 117ms (next.js: 39ms, proxy.ts: 7ms, application-code: 72ms)
+[flags] failed to create vercel adapter, falling back to noop
+[flags] failed to create vercel adapter, falling back to noop
+[flags] failed to create vercel adapter, falling back to noop
+[flags] failed to create vercel adapter, falling back to noop
+[flags] failed to create vercel adapter, falling back to noop
+[flags] failed to create vercel adapter, falling back to noop
+You are rendering the Vercel Toolbar in development, but the configuration is missing.
+Make sure the plugin is added to the Next.js config and the project has been linked using `vercel link`.
+For more details, visit https://vercel.com/docs/workflow-collaboration/vercel-toolbar/in-production-and-localhost/add-to-localhost
+ GET /auth/sign-in 200 in 157ms (next.js: 45ms, proxy.ts: 9ms, application-code: 103ms)
+[flags] failed to create vercel adapter, falling back to noop
+[flags] failed to create vercel adapter, falling back to noop
+[flags] failed to create vercel adapter, falling back to noop
+[flags] failed to create vercel adapter, falling back to noop
+[flags] failed to create vercel adapter, falling back to noop
+[flags] failed to create vercel adapter, falling back to noop
+You are rendering the Vercel Toolbar in development, but the configuration is missing.
+Make sure the plugin is added to the Next.js config and the project has been linked using `vercel link`.
+For more details, visit https://vercel.com/docs/workflow-collaboration/vercel-toolbar/in-production-and-localhost/add-to-localhost
+ GET /auth/sign-in 200 in 173ms (next.js: 29ms, proxy.ts: 15ms, application-code: 130ms)
+⚠ Blocked cross-origin request to Next.js dev resource /_next/hmr from "127.0.0.1".
+Cross-origin access to Next.js dev resources is blocked by default for safety.
+
+To allow this host in development, add it to "allowedDevOrigins" in next.config.js and restart the dev server:
+
+// next.config.js
+module.exports = {
+  allowedDevOrigins: ['127.0.0.1'],
+}
+
+Read more: https://nextjs.org/docs/app/api-reference/config/next-config-js/allowedDevOrigins
+[flags] failed to create vercel adapter, falling back to noop
+[flags] failed to create vercel adapter, falling back to noop
+[flags] failed to create vercel adapter, falling back to noop
+[flags] failed to create vercel adapter, falling back to noop
+[flags] failed to create vercel adapter, falling back to noop
+[flags] failed to create vercel adapter, falling back to noop
+You are rendering the Vercel Toolbar in development, but the configuration is missing.
+Make sure the plugin is added to the Next.js config and the project has been linked using `vercel link`.
+For more details, visit https://vercel.com/docs/workflow-collaboration/vercel-toolbar/in-production-and-localhost/add-to-localhost

@@ -1,0 +1,11 @@
+{
+  "url": "http://127.0.0.1:3000/auth/sign-in",
+  "heading_role": "heading",
+  "heading_name": "Local dashboard",
+  "link_role": "link",
+  "link_name": "Continue to dashboard",
+  "href": "/apis",
+  "description": "Authentication is disabled in local mode. Continue with the built-in local account.",
+  "clicked_continue": false,
+  "screenshot": ".cursor/skills/verify-unkey-dashboard/evidence/20261005T144234Z/sign-in.png"
+}
