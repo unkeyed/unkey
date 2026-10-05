@@ -185,12 +185,12 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 		if row.AppID != "" {
 			appRow.App = &openapi.V2WorkspaceGetUsageResource{Id: row.AppID, Name: nil}
-		}
-		if app, ok := names.apps[row.AppID]; ok {
-			appRow.App.Name = &app.Name
-			appRow.Project = &openapi.V2WorkspaceGetUsageResource{
-				Id:   app.ParentID,
-				Name: nameOf(names.projects, app.ParentID),
+			if app, ok := names.apps[row.AppID]; ok {
+				appRow.App.Name = &app.Name
+				appRow.Project = &openapi.V2WorkspaceGetUsageResource{
+					Id:   app.ParentID,
+					Name: nameOf(names.projects, app.ParentID),
+				}
 			}
 		}
 		breakdowns.ByApp = append(breakdowns.ByApp, appRow)

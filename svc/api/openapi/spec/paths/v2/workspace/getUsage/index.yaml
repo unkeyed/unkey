@@ -290,6 +290,6 @@ post:
                   requestId: req_1234abcd
                 error:
                   title: Internal Server Error
-                  detail: Failed to read the workspace's compute usage.
+                  detail: Failed to read the workspace's usage.
                   status: 500
                   type: https://unkey.com/docs/errors/unkey/application/service_unavailable

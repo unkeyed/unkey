@@ -18410,7 +18410,7 @@ paths:
                                     summary: Usage could not be read
                                     value:
                                         error:
-                                            detail: Failed to read the workspace's compute usage.
+                                            detail: Failed to read the workspace's usage.
                                             status: 500
                                             title: Internal Server Error
                                             type: https://unkey.com/docs/errors/unkey/application/service_unavailable
