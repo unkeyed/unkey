@@ -15,11 +15,9 @@ import {
   IconDotsOutline18,
   IconEyeOutline18,
   IconKey2Outline18,
-  IconMagnifierOutline18,
   IconRefresh3Outline18,
   IconShieldKeyOutline18,
   IconUserOutline12,
-  IconXmarkOutline18,
 } from "@unkey/icons";
 import {
   Button,
@@ -27,15 +25,13 @@ import {
   EmptyStateDescription,
   EmptyStateHeader,
   EmptyStateTitle,
-  InputGroup,
-  InputGroupAddon,
-  InputGroupInput,
   ResourceList,
   ResourceListBody,
   ResourceListContent,
   ResourceListFooter,
   ResourceListHeader,
   ResourceListItem,
+  SearchInput,
   Skeleton,
   SlidePanel,
   SlidePanelCloseButton,
@@ -91,38 +87,12 @@ export function PortalSessions({ portalId, canRevoke }: { portalId: string; canR
     <ResourceList>
       <ResourceListHeader className="md:items-center">
         <div className="flex h-8 w-full items-center md:w-80">
-          <InputGroup className="h-8">
-            <InputGroupAddon className="pointer-events-none">
-              <IconMagnifierOutline18 className="size-4 text-gray-9" />
-            </InputGroupAddon>
-            <InputGroupInput
-              aria-label="Search sessions by external ID"
-              type="text"
-              value={searchInput}
-              maxLength={256}
-              placeholder="Search by external ID"
-              className="h-8 text-sm font-medium"
-              onChange={(event) => setSearchInput(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === "Escape") {
-                  setSearchInput("");
-                }
-              }}
-            />
-            {searchInput ? (
-              <InputGroupAddon align="inline-end">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  aria-label="Clear search"
-                  onClick={() => setSearchInput("")}
-                >
-                  <IconXmarkOutline18 className="size-4" />
-                </Button>
-              </InputGroupAddon>
-            ) : null}
-          </InputGroup>
+          <SearchInput
+            value={searchInput}
+            onValueChange={setSearchInput}
+            label="Search sessions by external ID"
+            placeholder="Search by external ID"
+          />
         </div>
       </ResourceListHeader>
 
