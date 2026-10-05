@@ -7034,20 +7034,10 @@ type V2WorkspaceGetUsagePeriod struct {
 	// Example: 1790946000000
 	End int64 `json:"end"`
 
-	// Month The month the usage covers, from 1 (January) to 12 (December).
-	//
-	// Example: 9
-	Month int `json:"month"`
-
 	// Start Unix timestamp in milliseconds of the first day of the month, 00:00 UTC.
 	//
 	// Example: 1790812800000
 	Start int64 `json:"start"`
-
-	// Year The year of the month the usage covers.
-	//
-	// Example: 2026
-	Year int `json:"year"`
 }
 
 // V2WorkspaceGetUsageRequestBody defines model for V2WorkspaceGetUsageRequestBody.

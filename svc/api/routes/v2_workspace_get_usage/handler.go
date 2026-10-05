@@ -222,8 +222,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		},
 		Data: openapi.V2WorkspaceGetUsageResponseData{
 			Period: openapi.V2WorkspaceGetUsagePeriod{
-				Year:  start.Year(),
-				Month: int(start.Month()),
 				Start: start.UnixMilli(),
 				End:   end.UnixMilli(),
 			},

@@ -52,15 +52,16 @@ func TestGetUsageBadRequest(t *testing.T) {
 		require.Equal(t, "'period' 2026-11 is in the future. The latest month is 2026-10.", res.Body.Error.Detail)
 	})
 
-	t.Run("earliest month is allowed", func(t *testing.T) {
-		req := httptest.NewRequest(route.Method(), route.Path(), bytes.NewBufferString(`{"period":{"year":2026,"month":8}}`))
-		req.Header = headers(rootKey)
-		res := testutil.CallRaw[openapi.V2WorkspaceGetUsageResponseBody](h, req)
-		require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
-	})
-
 	t.Run("month before compute usage retention", func(t *testing.T) {
 		res := call(t, `{"period":{"year":2026,"month":7}}`)
 		require.Equal(t, "'period' 2026-07 starts more than 90 days ago. Compute usage is kept for 90 days, so the earliest month is 2026-08.", res.Body.Error.Detail)
+	})
+
+	// August starts exactly 90 days before 2026-10-30T00:00Z, so one millisecond
+	// later August is outside the retention
+	t.Run("month one millisecond past the retention", func(t *testing.T) {
+		h.Clock.Set(time.Date(2026, 10, 30, 0, 0, 0, int(time.Millisecond), time.UTC))
+		res := call(t, `{"period":{"year":2026,"month":8}}`)
+		require.Equal(t, "'period' 2026-08 starts more than 90 days ago. Compute usage is kept for 90 days, so the earliest month is 2026-09.", res.Body.Error.Detail)
 	})
 }

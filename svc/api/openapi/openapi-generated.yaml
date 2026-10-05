@@ -8138,19 +8138,9 @@ components:
             type: object
             description: The time window the usage covers.
             required:
-                - year
-                - month
                 - start
                 - end
             properties:
-                year:
-                    type: integer
-                    description: The year of the month the usage covers.
-                    example: 2026
-                month:
-                    type: integer
-                    description: The month the usage covers, from 1 (January) to 12 (December).
-                    example: 9
                 start:
                     type: integer
                     format: int64
@@ -18223,9 +18213,7 @@ paths:
                                                         name: Payments
                                             period:
                                                 end: 1790946000000
-                                                month: 10
                                                 start: 1790812800000
-                                                year: 2026
                                             totals:
                                                 api:
                                                     ratelimits: 2000
@@ -18267,9 +18255,7 @@ paths:
                                                         name: Payments
                                             period:
                                                 end: 1790812800000
-                                                month: 9
                                                 start: 1788220800000
-                                                year: 2026
                                             totals:
                                                 api:
                                                     ratelimits: 0
@@ -18293,9 +18279,7 @@ paths:
                                                 byEnvironment: []
                                             period:
                                                 end: 1790946000000
-                                                month: 10
                                                 start: 1790812800000
-                                                year: 2026
                                             totals:
                                                 api:
                                                     ratelimits: 0
@@ -18341,9 +18325,7 @@ paths:
                                                         name: Payments
                                             period:
                                                 end: 1790812800000
-                                                month: 9
                                                 start: 1788220800000
-                                                year: 2026
                                             totals:
                                                 api:
                                                     ratelimits: 8000

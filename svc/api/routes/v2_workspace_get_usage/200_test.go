@@ -226,7 +226,7 @@ func TestGetUsage(t *testing.T) {
 		})
 
 		require.Equal(t, openapi.V2WorkspaceGetUsageResponseData{
-			Period: openapi.V2WorkspaceGetUsagePeriod{Year: monthStart.Year(), Month: int(monthStart.Month()), Start: monthStart.UnixMilli(), End: now.UnixMilli()},
+			Period: openapi.V2WorkspaceGetUsagePeriod{Start: monthStart.UnixMilli(), End: now.UnixMilli()},
 			Totals: openapi.V2WorkspaceGetUsageTotals{
 				// billable_verifications_per_month_mv_v2 also counts the 9 API verifications of apiKey
 				Api:     openapi.V2WorkspaceGetUsageApi{Verifications: 40 + 9, Ratelimits: 2},
@@ -245,13 +245,53 @@ func TestGetUsage(t *testing.T) {
 		require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
 
 		data := res.Body.Data
-		require.Equal(t, openapi.V2WorkspaceGetUsagePeriod{Year: lastMonth.Year(), Month: int(lastMonth.Month()), Start: lastMonth.UnixMilli(), End: monthStart.UnixMilli()}, data.Period)
+		require.Equal(t, openapi.V2WorkspaceGetUsagePeriod{Start: lastMonth.UnixMilli(), End: monthStart.UnixMilli()}, data.Period)
 		require.Equal(t, openapi.V2WorkspaceGetUsageApi{Verifications: 7, Ratelimits: 1}, data.Totals.Api)
 		require.Len(t, data.Breakdowns.ByEnvironment, 1)
 		require.Equal(t, production.ID, data.Breakdowns.ByEnvironment[0].Environment.Id)
 		require.Equal(t, 1000.0, data.Totals.Compute.CpuSeconds)
 		require.Empty(t, data.Breakdowns.ByApp)
 	})
+}
+
+func TestGetUsagePeriod(t *testing.T) {
+	h := testutil.NewHarness(t)
+	route := newRoute(h)
+	h.Register(route)
+
+	workspace := h.CreateWorkspace()
+	rootKey := h.CreateRootKey(workspace.ID, fmt.Sprintf("unkey:v1:%s:usage#read", workspace.ID))
+
+	for name, tc := range map[string]struct {
+		now    time.Time
+		period openapi.V2WorkspaceGetUsageRequestPeriod
+		want   openapi.V2WorkspaceGetUsagePeriod
+	}{
+		"current month ends now": {
+			now:    time.Date(2026, 10, 5, 12, 0, 0, 0, time.UTC),
+			period: openapi.V2WorkspaceGetUsageRequestPeriod{Year: 2026, Month: 10},
+			want: openapi.V2WorkspaceGetUsagePeriod{
+				Start: time.Date(2026, 10, 1, 0, 0, 0, 0, time.UTC).UnixMilli(),
+				End:   time.Date(2026, 10, 5, 12, 0, 0, 0, time.UTC).UnixMilli(),
+			},
+		},
+		// August starts exactly 90 days before 2026-10-30T00:00Z
+		"earliest month at the retention edge": {
+			now:    time.Date(2026, 10, 30, 0, 0, 0, 0, time.UTC),
+			period: openapi.V2WorkspaceGetUsageRequestPeriod{Year: 2026, Month: 8},
+			want: openapi.V2WorkspaceGetUsagePeriod{
+				Start: time.Date(2026, 8, 1, 0, 0, 0, 0, time.UTC).UnixMilli(),
+				End:   time.Date(2026, 9, 1, 0, 0, 0, 0, time.UTC).UnixMilli(),
+			},
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			h.Clock.Set(tc.now)
+			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers(rootKey), handler.Request{Period: &tc.period})
+			require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
+			require.Equal(t, tc.want, res.Body.Data.Period)
+		})
+	}
 }
 
 func TestGetUsageEmptyMonth(t *testing.T) {

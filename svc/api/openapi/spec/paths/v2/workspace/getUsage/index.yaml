@@ -57,8 +57,6 @@ post:
                   requestId: req_1234abcd
                 data:
                   period:
-                    year: 2026
-                    month: 10
                     start: 1790812800000
                     end: 1790946000000
                   totals:
@@ -105,8 +103,6 @@ post:
                   requestId: req_1234abcd
                 data:
                   period:
-                    year: 2026
-                    month: 9
                     start: 1788220800000
                     end: 1790812800000
                   totals:
@@ -153,8 +149,6 @@ post:
                   requestId: req_1234abcd
                 data:
                   period:
-                    year: 2026
-                    month: 10
                     start: 1790812800000
                     end: 1790946000000
                   totals:
@@ -179,8 +173,6 @@ post:
                   requestId: req_1234abcd
                 data:
                   period:
-                    year: 2026
-                    month: 9
                     start: 1788220800000
                     end: 1790812800000
                   totals:
