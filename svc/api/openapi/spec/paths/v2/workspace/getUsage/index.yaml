@@ -6,13 +6,13 @@ post:
     Get the usage of your workspace for one calendar month (UTC): billable API
     operations, compute usage per environment, and active keys per app.
 
-    Use this to track usage during the month or to look back at the previous
+    Use this to track usage during the month or to look back at a past
     month. The response has no prices. Your invoice is the source of truth.
     Compute usage can be up to 15 minutes late, and it can change for up to 7
     days.
 
-    Send `{}` for the current month to date, or `{"period": "previous"}` for the
-    full previous month.
+    Send `{}` for the current month to date, or `{"month": "2026-09"}` for a full
+    past month. The month must start within the last 90 days.
 
     **Required Permissions**
 
@@ -33,10 +33,10 @@ post:
           currentMonth:
             summary: Current month to date
             value: {}
-          previousMonth:
-            summary: Previous month
+          pastMonth:
+            summary: A past month
             value:
-              period: previous
+              month: "2026-09"
     required: true
   responses:
     "200":
@@ -93,9 +93,9 @@ post:
                           name: API
                         gateway:
                           activeKeys: 12
-            previousMonth:
-              summary: Previous month
-              description: The full previous month, ending at the start of the current month
+            pastMonth:
+              summary: A past month
+              description: The full month of September 2026
               value:
                 meta:
                   requestId: req_1234abcd
@@ -212,8 +212,8 @@ post:
           schema:
             "$ref": "../../../../error/BadRequestErrorResponse.yaml"
           examples:
-            invalidPeriod:
-              summary: Unknown period
+            invalidMonth:
+              summary: Month not in YYYY-MM format
               value:
                 meta:
                   requestId: req_1234abcd
@@ -223,8 +223,28 @@ post:
                   status: 400
                   type: https://unkey.com/docs/errors/unkey/application/invalid_input
                   errors:
-                    - location: /properties/period/enum
-                      message: value must be one of 'current', 'previous'
+                    - location: /properties/month/pattern
+                      message: "'2026-9' does not match pattern '^[0-9]{4}-(0[1-9]|1[0-2])$'"
+            futureMonth:
+              summary: Month in the future
+              value:
+                meta:
+                  requestId: req_1234abcd
+                error:
+                  title: Bad Request
+                  detail: "'month' 2026-11 is in the future. The latest month is 2026-10."
+                  status: 400
+                  type: https://unkey.com/docs/errors/unkey/application/invalid_input
+            monthTooOld:
+              summary: Month older than the compute usage retention
+              value:
+                meta:
+                  requestId: req_1234abcd
+                error:
+                  title: Bad Request
+                  detail: "'month' 2026-07 starts more than 90 days ago. Compute usage is kept for 90 days, so the earliest month is 2026-08."
+                  status: 400
+                  type: https://unkey.com/docs/errors/unkey/application/invalid_input
     "401":
       description: Unauthorized
       content:

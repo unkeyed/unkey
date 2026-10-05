@@ -239,8 +239,8 @@ func TestGetUsage(t *testing.T) {
 		}, res.Body.Data)
 	})
 
-	t.Run("previous month", func(t *testing.T) {
-		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers(setup.RootKey), handler.Request{Period: new(openapi.UsagePeriodPrevious)})
+	t.Run("past month", func(t *testing.T) {
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers(setup.RootKey), handler.Request{Month: new(lastMonth.Format("2006-01"))})
 		require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
 
 		data := res.Body.Data

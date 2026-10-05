@@ -12,7 +12,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/conc"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/urn"
@@ -24,6 +23,10 @@ type (
 	Request  = openapi.V2WorkspaceGetUsageRequestBody
 	Response = openapi.V2WorkspaceGetUsageResponseBody
 )
+
+// computeUsageRetention matches the TTL of instance_usage_per_hour_v1. An older
+// month would return full API totals next to partial compute
+const computeUsageRetention = 90 * 24 * time.Hour
 
 type Handler struct {
 	DB         db.Database
@@ -73,10 +76,40 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	now := h.Clock.Now().UTC()
-	monthStart := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.UTC)
-	start, end := monthStart, now
-	if ptr.SafeDeref(req.Period, openapi.UsagePeriodCurrent) == openapi.UsagePeriodPrevious {
-		start, end = monthStart.AddDate(0, -1, 0), monthStart
+	currentMonth := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.UTC)
+	start, end := currentMonth, now
+	if req.Month != nil {
+		start, err = time.Parse("2006-01", *req.Month)
+		if err != nil {
+			return fault.Wrap(err,
+				fault.Code(codes.App.Validation.InvalidInput.URN()),
+				fault.Internal("invalid month"),
+				fault.Public("'month' must be YYYY-MM, for example 2026-09."),
+			)
+		}
+
+		retentionStart := now.Add(-computeUsageRetention)
+		earliestMonth := time.Date(retentionStart.Year(), retentionStart.Month(), 1, 0, 0, 0, 0, time.UTC)
+		if earliestMonth.Before(retentionStart) {
+			earliestMonth = earliestMonth.AddDate(0, 1, 0)
+		}
+		switch {
+		case start.After(currentMonth):
+			return fault.New("month in the future",
+				fault.Code(codes.App.Validation.InvalidInput.URN()),
+				fault.Internal(fmt.Sprintf("month %s is after %s", *req.Month, currentMonth.Format("2006-01"))),
+				fault.Public(fmt.Sprintf("'month' %s is in the future. The latest month is %s.", *req.Month, currentMonth.Format("2006-01"))),
+			)
+		case start.Before(earliestMonth):
+			return fault.New("month beyond compute usage retention",
+				fault.Code(codes.App.Validation.InvalidInput.URN()),
+				fault.Internal(fmt.Sprintf("month %s starts before %s", *req.Month, retentionStart.Format(time.RFC3339))),
+				fault.Public(fmt.Sprintf("'month' %s starts more than 90 days ago. Compute usage is kept for 90 days, so the earliest month is %s.", *req.Month, earliestMonth.Format("2006-01"))),
+			)
+		}
+		if start.Before(currentMonth) {
+			end = start.AddDate(0, 1, 0)
+		}
 	}
 
 	year, month := start.Year(), int(start.Month())

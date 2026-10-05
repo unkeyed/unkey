@@ -4216,19 +4216,16 @@ components:
         V2WorkspaceGetUsageRequestBody:
             type: object
             properties:
-                period:
+                month:
                     type: string
-                    enum:
-                        - current
-                        - previous
-                    x-enum-varnames:
-                        - UsagePeriodCurrent
-                        - UsagePeriodPrevious
-                    default: current
+                    pattern: "^[0-9]{4}-(0[1-9]|1[0-2])$"
                     description: |
-                        The calendar month (UTC) to read. `current` is the month to date.
-                        `previous` is the full month before it.
-                    example: current
+                        The calendar month (UTC) to read, as `YYYY-MM`. Omit it for the current
+                        month to date. A past month returns the full month.
+
+                        The month cannot be in the future, and it must start within the last 90
+                        days, because compute usage is kept for 90 days.
+                    example: "2026-09"
             additionalProperties: false
         V2WorkspaceGetUsageResponseBody:
             type: object
@@ -8141,8 +8138,8 @@ components:
                     format: int64
                     description: |
                         Unix timestamp in milliseconds of the end of the period, exclusive. For
-                        `current` it is the time of the request. For `previous` it is the start
-                        of the current month.
+                        the current month it is the time of the request. For a past month it is
+                        the start of the next month.
                     example: 1790946000000
             additionalProperties: false
         V2WorkspaceGetUsageTotals:
@@ -18136,13 +18133,13 @@ paths:
                 Get the usage of your workspace for one calendar month (UTC): billable API
                 operations, compute usage per environment, and active keys per app.
 
-                Use this to track usage during the month or to look back at the previous
+                Use this to track usage during the month or to look back at a past
                 month. The response has no prices. Your invoice is the source of truth.
                 Compute usage can be up to 15 minutes late, and it can change for up to 7
                 days.
 
-                Send `{}` for the current month to date, or `{"period": "previous"}` for the
-                full previous month.
+                Send `{}` for the current month to date, or `{"month": "2026-09"}` for a full
+                past month. The month must start within the last 90 days.
 
                 **Required Permissions**
 
@@ -18157,10 +18154,10 @@ paths:
                             currentMonth:
                                 summary: Current month to date
                                 value: {}
-                            previousMonth:
-                                summary: Previous month
+                            pastMonth:
+                                summary: A past month
                                 value:
-                                    period: previous
+                                    month: 2026-09
                         schema:
                             $ref: '#/components/schemas/V2WorkspaceGetUsageRequestBody'
                 required: true
@@ -18281,9 +18278,9 @@ paths:
                                                     activeKeys: 0
                                         meta:
                                             requestId: req_1234abcd
-                                previousMonth:
-                                    description: The full previous month, ending at the start of the current month
-                                    summary: Previous month
+                                pastMonth:
+                                    description: The full month of September 2026
+                                    summary: A past month
                                     value:
                                         data:
                                             breakdowns:
@@ -18335,14 +18332,34 @@ paths:
                     content:
                         application/json:
                             examples:
-                                invalidPeriod:
-                                    summary: Unknown period
+                                futureMonth:
+                                    summary: Month in the future
+                                    value:
+                                        error:
+                                            detail: '''month'' 2026-11 is in the future. The latest month is 2026-10.'
+                                            status: 400
+                                            title: Bad Request
+                                            type: https://unkey.com/docs/errors/unkey/application/invalid_input
+                                        meta:
+                                            requestId: req_1234abcd
+                                invalidMonth:
+                                    summary: Month not in YYYY-MM format
                                     value:
                                         error:
                                             detail: POST request body for '/v2/workspace.getUsage' failed to validate schema
                                             errors:
-                                                - location: /properties/period/enum
-                                                  message: value must be one of 'current', 'previous'
+                                                - location: /properties/month/pattern
+                                                  message: '''2026-9'' does not match pattern ''^[0-9]{4}-(0[1-9]|1[0-2])$'''
+                                            status: 400
+                                            title: Bad Request
+                                            type: https://unkey.com/docs/errors/unkey/application/invalid_input
+                                        meta:
+                                            requestId: req_1234abcd
+                                monthTooOld:
+                                    summary: Month older than the compute usage retention
+                                    value:
+                                        error:
+                                            detail: '''month'' 2026-07 starts more than 90 days ago. Compute usage is kept for 90 days, so the earliest month is 2026-08.'
                                             status: 400
                                             title: Bad Request
                                             type: https://unkey.com/docs/errors/unkey/application/invalid_input

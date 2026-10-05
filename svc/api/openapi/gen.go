@@ -545,24 +545,6 @@ func (e V2PortalListSessionsSessionStatus) Valid() bool {
 	}
 }
 
-// Defines values for V2WorkspaceGetUsageRequestBodyPeriod.
-const (
-	UsagePeriodCurrent  V2WorkspaceGetUsageRequestBodyPeriod = "current"
-	UsagePeriodPrevious V2WorkspaceGetUsageRequestBodyPeriod = "previous"
-)
-
-// Valid indicates whether the value is a known member of the V2WorkspaceGetUsageRequestBodyPeriod enum.
-func (e V2WorkspaceGetUsageRequestBodyPeriod) Valid() bool {
-	switch e {
-	case UsagePeriodCurrent:
-		return true
-	case UsagePeriodPrevious:
-		return true
-	default:
-		return false
-	}
-}
-
 // App defines model for App.
 type App struct {
 	// CreatedAt Unix timestamp in milliseconds when the app was created.
@@ -7045,8 +7027,8 @@ type V2WorkspaceGetUsageGateway struct {
 // V2WorkspaceGetUsagePeriod The time window the usage covers.
 type V2WorkspaceGetUsagePeriod struct {
 	// End Unix timestamp in milliseconds of the end of the period, exclusive. For
-	// `current` it is the time of the request. For `previous` it is the start
-	// of the current month.
+	// the current month it is the time of the request. For a past month it is
+	// the start of the next month.
 	//
 	//
 	// Example: 1790946000000
@@ -7060,19 +7042,16 @@ type V2WorkspaceGetUsagePeriod struct {
 
 // V2WorkspaceGetUsageRequestBody defines model for V2WorkspaceGetUsageRequestBody.
 type V2WorkspaceGetUsageRequestBody struct {
-	// Period The calendar month (UTC) to read. `current` is the month to date.
-	// `previous` is the full month before it.
+	// Month The calendar month (UTC) to read, as `YYYY-MM`. Omit it for the current
+	// month to date. A past month returns the full month.
+	//
+	// The month cannot be in the future, and it must start within the last 90
+	// days, because compute usage is kept for 90 days.
 	//
 	//
-	// Example: current
-	Period *V2WorkspaceGetUsageRequestBodyPeriod `json:"period,omitempty"`
+	// Example: 2026-09
+	Month *string `json:"month,omitempty"`
 }
-
-// V2WorkspaceGetUsageRequestBodyPeriod The calendar month (UTC) to read. `current` is the month to date.
-// `previous` is the full month before it.
-//
-// Example: current
-type V2WorkspaceGetUsageRequestBodyPeriod string
 
 // V2WorkspaceGetUsageResource A project or app. `name` is omitted when the resource was deleted.
 type V2WorkspaceGetUsageResource struct {

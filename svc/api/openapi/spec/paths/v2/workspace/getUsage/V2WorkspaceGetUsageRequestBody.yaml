@@ -1,25 +1,21 @@
 type: object
 properties:
-  period:
+  month:
     type: string
-    enum:
-      - current
-      - previous
-    # Codegen otherwise emits bare Current/Previous into the shared openapi package
-    x-enum-varnames:
-      - UsagePeriodCurrent
-      - UsagePeriodPrevious
-    default: current
+    pattern: "^[0-9]{4}-(0[1-9]|1[0-2])$"
     description: |
-      The calendar month (UTC) to read. `current` is the month to date.
-      `previous` is the full month before it.
-    example: current
+      The calendar month (UTC) to read, as `YYYY-MM`. Omit it for the current
+      month to date. A past month returns the full month.
+
+      The month cannot be in the future, and it must start within the last 90
+      days, because compute usage is kept for 90 days.
+    example: "2026-09"
 additionalProperties: false
 examples:
   currentMonth:
     summary: Current month to date
     value: {}
-  previousMonth:
-    summary: Previous month
+  pastMonth:
+    summary: A past month
     value:
-      period: previous
+      month: "2026-09"
