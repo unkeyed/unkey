@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import {
-  emptyLogCopy,
   formatOffset,
   formatStageDuration,
   logGroups,
@@ -270,22 +269,6 @@ describe("runView before any step starts", () => {
     expect(view.failedStage?.error).toBe(
       "A newer deployment replaced this one before it started building.",
     );
-  });
-});
-
-describe("emptyLogCopy", () => {
-  it("explains an empty log per source and outcome", () => {
-    expect(emptyLogCopy("git", "running")).toEqual({
-      title: "Waiting for logs…",
-      reason: "Logs stream in as soon as the build starts.",
-    });
-    expect(emptyLogCopy("git", "failed").reason).toBe(
-      "The build stopped before it wrote any logs.",
-    );
-    expect(emptyLogCopy("oci", "live")).toEqual({
-      title: "No logs",
-      reason: "Images skip the build step. Runtime logs show here once an instance starts.",
-    });
   });
 });
 

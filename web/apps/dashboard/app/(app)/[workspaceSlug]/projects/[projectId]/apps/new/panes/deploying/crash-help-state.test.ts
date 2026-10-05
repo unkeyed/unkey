@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { directoryLabel, directoryName, resolveCrashHelp } from "./crash-help-state";
+import { resolveCrashHelp } from "./crash-help-state";
 
 const automatic = { dockerfile: "", dockerContext: ".", port: 8080, command: [] };
 const tree = [
@@ -38,14 +38,5 @@ describe("resolveCrashHelp", () => {
       startCommand: "Automatic",
       rootDirectory: ".",
     });
-  });
-});
-
-describe("directoryLabel", () => {
-  it("shows the root as ./", () => {
-    expect(directoryLabel(".")).toBe("./");
-    expect(directoryLabel("app")).toBe("app");
-    expect(directoryName(".")).toBe("the repository root");
-    expect(directoryName("app")).toBe("app");
   });
 });

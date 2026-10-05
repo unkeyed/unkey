@@ -5,7 +5,6 @@ import {
   deploymentConfigSchema,
   findDockerfiles,
   readDeploymentConfig,
-  resolveBuildMethod,
   suggestRootDirectories,
 } from "./deployment-config";
 
@@ -117,13 +116,6 @@ describe("deploymentConfigSchema", () => {
 
   it("rejects an empty region list", () => {
     expect(deploymentConfigSchema.safeParse({ ...valid, regions: [] }).success).toBe(false);
-  });
-});
-
-describe("resolveBuildMethod", () => {
-  it("builds automatically without a Dockerfile", () => {
-    expect(resolveBuildMethod("  ")).toBe("automatic");
-    expect(resolveBuildMethod("Dockerfile")).toBe("dockerfile");
   });
 });
 

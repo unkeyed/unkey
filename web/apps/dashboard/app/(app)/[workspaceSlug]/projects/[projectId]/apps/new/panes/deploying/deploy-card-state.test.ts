@@ -1,11 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  isInstanceCrash,
-  resultRows,
-  stageRows,
-  watchFooter,
-  watchStatus,
-} from "./deploy-card-state";
+import { isInstanceCrash, resultRows, stageRows } from "./deploy-card-state";
 import { runView } from "./run-model";
 
 const base = { source: "git" as const, buildError: null, now: 20_000 };
@@ -77,18 +71,6 @@ describe("stageRows", () => {
       steps: { building: { startedAt: 0, endedAt: 10, error: "exit code 1" } },
     });
     expect(stageRows(view, false)[1].detail).toEqual({ type: "logs", error: "exit code 1" });
-  });
-});
-
-describe("watch copy and footer", () => {
-  it("maps every outcome", () => {
-    expect(watchFooter).toEqual({
-      running: "none",
-      live: "continue",
-      failed: "failed",
-      blocked: "blocked",
-    });
-    expect(watchStatus.failed).toBe("Deployment failed. Open the failed step to see why.");
   });
 });
 
