@@ -3,23 +3,26 @@
  */
 
 import * as z from "zod/v3";
+import {
+  V2WorkspaceGetUsageRequestPeriod,
+  V2WorkspaceGetUsageRequestPeriod$Outbound,
+  V2WorkspaceGetUsageRequestPeriod$outboundSchema,
+} from "./v2workspacegetusagerequestperiod.js";
 
 export type V2WorkspaceGetUsageRequestBody = {
   /**
-   * The calendar month (UTC) to read, as `YYYY-MM`. Omit it for the current
+   * The calendar month (UTC) to read. Omit it for the current month to date. A
    *
    * @remarks
-   * month to date. A past month returns the full month.
-   *
-   * The month cannot be in the future, and it must start within the last 90
-   * days, because compute usage is kept for 90 days.
+   * past month returns the full month. It cannot be in the future, and it must
+   * start within the last 90 days, because compute usage is kept for 90 days.
    */
-  month?: string | undefined;
+  period?: V2WorkspaceGetUsageRequestPeriod | undefined;
 };
 
 /** @internal */
 export type V2WorkspaceGetUsageRequestBody$Outbound = {
-  month?: string | undefined;
+  period?: V2WorkspaceGetUsageRequestPeriod$Outbound | undefined;
 };
 
 /** @internal */
@@ -28,7 +31,7 @@ export const V2WorkspaceGetUsageRequestBody$outboundSchema: z.ZodType<
   z.ZodTypeDef,
   V2WorkspaceGetUsageRequestBody
 > = z.object({
-  month: z.string().optional(),
+  period: V2WorkspaceGetUsageRequestPeriod$outboundSchema.optional(),
 });
 
 export function v2WorkspaceGetUsageRequestBodyToJSON(

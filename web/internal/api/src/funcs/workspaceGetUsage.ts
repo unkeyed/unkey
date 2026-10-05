@@ -38,13 +38,13 @@ import { Result } from "../types/fp.js";
  * Compute usage can be up to 15 minutes late, and it can change for up to 7
  * days.
  *
- * Send `{}` for the current month to date, or `{"month": "2026-09"}` for a full
- * past month. The month must start within the last 90 days.
+ * Send `{}` for the current month to date, or
+ * `{"period": {"year": 2026, "month": 9}}` for a full past month. The month
+ * must start within the last 90 days.
  *
  * **Required Permissions**
  *
- * Your root key must have one of the following permissions:
- * - `workspace.*.read_usage`
+ * Your root key must have this permission:
  * - `unkey:v1:<workspace_id>:usage#read`
  *
  * If set, this operation will use {@link Security.rootKey} from the global security.

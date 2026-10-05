@@ -18,7 +18,7 @@ export function useWorkspaceUsage(
     queryFn: async () =>
       (
         await getUnkeyClient().workspace.getUsage(
-          period === "previous" ? { month: previousUsageMonth(new Date()) } : {},
+          period === "previous" ? { period: previousUsagePeriod(new Date()) } : {},
         )
       ).data,
     retry: 1,
@@ -26,8 +26,8 @@ export function useWorkspaceUsage(
   });
 }
 
-/** The UTC month before `now`, as the `YYYY-MM` that workspace.getUsage takes */
-export function previousUsageMonth(now: Date): string {
+/** The UTC month before `now`, as the period workspace.getUsage takes */
+export function previousUsagePeriod(now: Date): { year: number; month: number } {
   const month = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1));
-  return `${month.getUTCFullYear()}-${String(month.getUTCMonth() + 1).padStart(2, "0")}`;
+  return { year: month.getUTCFullYear(), month: month.getUTCMonth() + 1 };
 }

@@ -314,6 +314,7 @@ export * from "./v2workspacegetusageenvironmentresource.js";
 export * from "./v2workspacegetusagegateway.js";
 export * from "./v2workspacegetusageperiod.js";
 export * from "./v2workspacegetusagerequestbody.js";
+export * from "./v2workspacegetusagerequestperiod.js";
 export * from "./v2workspacegetusageresource.js";
 export * from "./v2workspacegetusageresponsebody.js";
 export * from "./v2workspacegetusageresponsedata.js";
