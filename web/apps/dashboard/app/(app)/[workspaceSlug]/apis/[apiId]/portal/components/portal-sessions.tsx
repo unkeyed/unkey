@@ -283,7 +283,9 @@ function SessionGroupRow({
         <span className="flex size-6 shrink-0 items-center justify-center rounded-full border bg-gray-3">
           <IconUserOutline12 className="text-gray-11" />
         </span>
-        <span className="truncate text-sm font-medium">{group.externalId}</span>
+        <span data-sentry-mask className="truncate text-sm font-medium">
+          {group.externalId}
+        </span>
       </span>
       <span className="text-gray-11">{summary.count}</span>
       <span className="min-w-0 truncate text-gray-11">
@@ -338,7 +340,9 @@ function SessionGroupPanel({
       {group ? (
         <>
           <SlidePanelHeader className="items-center">
-            <SlidePanelTitle className="min-w-0 truncate">{group.externalId}</SlidePanelTitle>
+            <SlidePanelTitle data-sentry-mask className="min-w-0 truncate">
+              {group.externalId}
+            </SlidePanelTitle>
             <SlidePanelCloseButton />
           </SlidePanelHeader>
           <SlidePanelContent className="flex flex-col gap-6 overflow-y-auto px-6 py-4">

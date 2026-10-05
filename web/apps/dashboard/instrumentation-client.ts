@@ -32,7 +32,7 @@ if (process.env.NODE_ENV !== "development" && dsn) {
     tracesSampler: createTracesSampler(),
     enableLogs: true,
     beforeSendLog: scrubLog,
-    replaysSessionSampleRate: 0.1,
+    replaysSessionSampleRate: 0,
     replaysOnErrorSampleRate: 1.0,
     sendDefaultPii: false,
   });

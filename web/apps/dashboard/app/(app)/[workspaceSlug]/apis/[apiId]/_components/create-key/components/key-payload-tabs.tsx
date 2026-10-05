@@ -82,7 +82,12 @@ export function KeyPayloadTabs({ keyValue }: KeyPayloadTabsProps) {
               <div className="w-full px-4 py-2 bg-raised border rounded-xl">
                 <div className="flex items-center justify-between w-full gap-3">
                   <IconLink4Outline12 className="text-gray-12 shrink-0" />
-                  <p className="flex-1 min-w-0 truncate font-mono text-sm text-grayA-12">{link}</p>
+                  <p
+                    data-sentry-mask
+                    className="flex-1 min-w-0 truncate font-mono text-sm text-grayA-12"
+                  >
+                    {link}
+                  </p>
                   <div className="flex items-center shrink-0">
                     <CopyButton value={link} title="Copy secure link" />
                   </div>
