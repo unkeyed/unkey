@@ -43,7 +43,6 @@ type Session struct {
 	responseStatus int
 	responseBody   []byte
 
-	// Fixed server configuration that persists when this session is reused.
 	streamRequestBody bool
 
 	// ClickHouse request logging control - defaults to true (log by default)
@@ -557,7 +556,6 @@ func (s *Session) SetResponseBody(body []byte) {
 const MaxBodyCapture = 1 << 20 // 1 MiB
 
 // reset clears request-specific state before the session returns to the pool.
-// Server configuration such as streamRequestBody persists across requests.
 func (s *Session) reset() {
 	s.requestID = ""
 
