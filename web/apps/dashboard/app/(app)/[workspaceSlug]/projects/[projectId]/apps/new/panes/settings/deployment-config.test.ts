@@ -3,9 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   applyDeploymentConfig,
   deploymentConfigSchema,
-  findDockerfiles,
   readDeploymentConfig,
-  suggestRootDirectories,
 } from "./deployment-config";
 
 const settings: EnvironmentSettings = {
@@ -99,50 +97,11 @@ describe("startCommand", () => {
 describe("deploymentConfigSchema", () => {
   const valid = readDeploymentConfig(settings);
 
-  it.each([".", "api", "services/api"])("accepts root directory %s", (dockerContext) => {
-    expect(deploymentConfigSchema.safeParse({ ...valid, dockerContext }).success).toBe(true);
-  });
-
-  it.each(["", "/api", "./api", "api/../web", "api\\web"])(
-    "rejects root directory %s",
-    (dockerContext) => {
-      expect(deploymentConfigSchema.safeParse({ ...valid, dockerContext }).success).toBe(false);
-    },
-  );
-
   it.each([0, 65536, 80.5, Number.NaN])("rejects port %s", (port) => {
     expect(deploymentConfigSchema.safeParse({ ...valid, port }).success).toBe(false);
   });
 
   it("rejects an empty region list", () => {
     expect(deploymentConfigSchema.safeParse({ ...valid, regions: [] }).success).toBe(false);
-  });
-});
-
-const tree = [
-  { path: "package.json", type: "blob" },
-  { path: "apps", type: "tree" },
-  { path: "apps/web/package.json", type: "blob" },
-  { path: "apps/web/Dockerfile", type: "blob" },
-  { path: "services/api/go.mod", type: "blob" },
-  { path: "services/api/main.go", type: "blob" },
-  { path: "Dockerfile.dev", type: "blob" },
-];
-
-describe("suggestRootDirectories", () => {
-  it("lists the root first, then directories that hold a project marker", () => {
-    expect(suggestRootDirectories(tree)).toEqual([
-      { path: ".", marker: "Repository root" },
-      { path: "apps/web", marker: "package.json" },
-      { path: "services/api", marker: "go.mod" },
-    ]);
-  });
-});
-
-describe("findDockerfiles", () => {
-  it("lists Dockerfiles relative to the root directory", () => {
-    expect(findDockerfiles(tree, ".")).toEqual(["apps/web/Dockerfile", "Dockerfile.dev"]);
-    expect(findDockerfiles(tree, "apps/web")).toEqual(["Dockerfile"]);
-    expect(findDockerfiles(tree, "services/api")).toEqual([]);
   });
 });

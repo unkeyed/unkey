@@ -1,3 +1,4 @@
+import { dockerContextSchema } from "@/app/(app)/[workspaceSlug]/projects/_components/repo-tree";
 import { FormCombobox } from "@/components/ui/form-combobox";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { IconFolderLinkOutline18 } from "@unkey/icons";
@@ -10,27 +11,7 @@ import { SettingField } from "../shared/form-blocks";
 import { FormSettingCard, resolveSaveState } from "../shared/form-setting-card";
 import { useRepoTree } from "./use-repo-tree";
 
-const dockerContextSegment = /^[A-Za-z0-9._-]+$/;
-
-const rootDirectorySchema = z.object({
-  dockerContext: z
-    .string()
-    .min(1, "Enter a root directory or use '.' for the repository root.")
-    .refine(
-      (path) =>
-        path === "." ||
-        (path === path.trim() &&
-          !path.startsWith("/") &&
-          !path.includes("\\") &&
-          path
-            .split("/")
-            .every(
-              (segment) =>
-                segment !== "." && segment !== ".." && dockerContextSegment.test(segment),
-            )),
-      "Enter a relative path like 'api' or 'services/api'. Do not start with '/' or './'.",
-    ),
-});
+const rootDirectorySchema = z.object({ dockerContext: dockerContextSchema });
 
 export const RootDirectory = () => {
   const { settings } = useEnvironmentSettings();

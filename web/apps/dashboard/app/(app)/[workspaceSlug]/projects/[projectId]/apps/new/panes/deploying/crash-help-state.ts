@@ -1,4 +1,7 @@
-import { type RepoTreeEntry, findDockerfiles } from "../settings/deployment-config";
+import {
+  type RepoTreeEntry,
+  findDockerfiles,
+} from "@/app/(app)/[workspaceSlug]/projects/_components/repo-tree";
 
 export type CrashHelp =
   | { type: "loading" }

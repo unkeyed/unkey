@@ -1,5 +1,9 @@
 "use client";
 
+import {
+  findDockerfiles,
+  suggestRootDirectories,
+} from "@/app/(app)/[workspaceSlug]/projects/_components/repo-tree";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { FormCombobox } from "@/components/ui/form-combobox";
 import { collection } from "@/lib/collections";
@@ -24,12 +28,10 @@ import {
   applyDeploymentConfig,
   deploymentConfigSchema,
   directoryLabel,
-  findDockerfiles,
   readDeploymentConfig,
   resolveBuildMethod,
   settingTitle,
   settingsLayout,
-  suggestRootDirectories,
 } from "./deployment-config";
 import { RegionSelect } from "./region-select";
 import { SizeField } from "./size-field";

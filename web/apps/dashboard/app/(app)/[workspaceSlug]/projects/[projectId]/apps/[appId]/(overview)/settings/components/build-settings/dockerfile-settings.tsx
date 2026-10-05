@@ -1,3 +1,4 @@
+import { findDockerfiles } from "@/app/(app)/[workspaceSlug]/projects/_components/repo-tree";
 import { FormCombobox } from "@/components/ui/form-combobox";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { IconFileSettingsOutline18 } from "@unkey/icons";
@@ -19,8 +20,7 @@ export const Dockerfile = () => {
   const { settings } = useEnvironmentSettings();
   const { dockerfile: defaultValue, dockerContext } = settings;
   const updateAllEnvironments = useUpdateAllEnvironments();
-  const { branch, validateDockerfilePath, findDockerfileCaseMatch, getDockerfilesForContext } =
-    useRepoTree();
+  const { tree, branch, validateDockerfilePath, findDockerfileCaseMatch } = useRepoTree();
 
   const {
     handleSubmit,
@@ -41,7 +41,7 @@ export const Dockerfile = () => {
     : "valid";
   const caseMatch =
     validation === "invalid" ? findDockerfileCaseMatch(currentDockerfile, dockerContext) : null;
-  const detectedDockerfiles = getDockerfilesForContext(dockerContext);
+  const detectedDockerfiles = tree ? findDockerfiles(tree, dockerContext) : [];
 
   const options = useMemo(
     () => [
