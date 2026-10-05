@@ -92,22 +92,49 @@ func TestCreateRejectsInvalidResourceActionsAtomically(t *testing.T) {
 	}
 }
 
-// TestCreateReturnsInvalidPermission guarantees clients can identify the
-// unsupported permission that caused root-key creation to fail.
+// TestCreateReturnsInvalidPermission guarantees clients can identify why a
+// permission caused root-key creation to fail.
 func TestCreateReturnsInvalidPermission(t *testing.T) {
 	h, route, p := newHarness(t)
 	base := "unkey:v1:" + p.AuthorizedWorkspaceID + ":"
-	invalidAction := base + "rootKeys/*#decrypt"
+	for _, testCase := range []struct {
+		name       string
+		permission string
+		detail     string
+	}{
+		{
+			name:       "invalid format",
+			permission: base + "projects/*",
+			detail:     "The permission must contain exactly one # separator.",
+		},
+		{
+			name:       "malformed resource",
+			permission: "not-a-urn#read",
+			detail:     "The resource URN is malformed.",
+		},
+		{
+			name:       "different workspace",
+			permission: "unkey:v1:ws_other:projects/*#read",
+			detail:     "The resource belongs to another workspace.",
+		},
+		{
+			name:       "unsupported action",
+			permission: base + "rootKeys/*#decrypt",
+			detail:     "The action is not supported for this resource.",
+		},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, http.Header{
+				"Authorization": {"Bearer test"}, "Content-Type": {"application/json"},
+			}, handler.Request{Permissions: []string{
+				base + "projects/*#read",
+				testCase.permission,
+			}})
 
-	res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, http.Header{
-		"Authorization": {"Bearer test"}, "Content-Type": {"application/json"},
-	}, handler.Request{Permissions: []string{
-		base + "projects/*#read",
-		invalidAction,
-	}})
-
-	require.Equal(t, http.StatusBadRequest, res.Status, "%s", res.RawBody)
-	require.Equal(t, "Permission \""+invalidAction+"\" is not a supported URN permission in this workspace.", res.Body.Error.Detail)
+			require.Equal(t, http.StatusBadRequest, res.Status, "%s", res.RawBody)
+			require.Equal(t, "Invalid permission: "+testCase.permission+". "+testCase.detail, res.Body.Error.Detail)
+		})
+	}
 }
 
 func TestCreateIgnoresLegacyCallerPermissions(t *testing.T) {
