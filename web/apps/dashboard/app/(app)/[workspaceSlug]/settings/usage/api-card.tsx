@@ -92,7 +92,10 @@ function Quota({ used, quota }: { used: number | null; quota: number | null }) {
   if (used === null || quota === null) {
     return (
       <div className="flex flex-col gap-2">
-        <Skeleton className="h-4 w-44" />
+        <div className="flex h-5 items-center justify-between gap-4">
+          <Skeleton className="h-4 w-44" />
+          <Skeleton className="h-3 w-8" />
+        </div>
         <Skeleton className="h-1.5 w-full rounded-full" />
       </div>
     );
