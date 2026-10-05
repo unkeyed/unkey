@@ -37,6 +37,7 @@ func TestCreateStoresEveryResourceAction(t *testing.T) {
 		"projects/*/ratelimits/namespaces/*/overrides/*":      {"read", "write", "delete"},
 		"projects/*/rbac/roles/*":                             {"read", "write", "delete"},
 		"projects/*/rbac/permissions/*":                       {"read", "write", "delete"},
+		"projects/*/portals/*":                                {"read", "write", "delete"},
 		"projects/*/portals/*/sessions/*":                     {"read", "write"},
 	}
 	requested := []string{

@@ -132,6 +132,19 @@ export function rbacRows(projectPath: string): PermissionRow[] {
   ];
 }
 
+export function portalRows(projectPath: string): PermissionRow[] {
+  const portalPath = `${projectPath}/portals/*`;
+  return [
+    permissionRow({ id: "portal", label: "Portals", path: portalPath }),
+    permissionRow({
+      id: "portal_session",
+      label: "Portal sessions",
+      path: `${portalPath}/sessions/*`,
+      actions: { delete: [] },
+    }),
+  ];
+}
+
 export function rootKeyRows(): PermissionRow[] {
   return [permissionRow({ id: "root_key", label: "Root keys", path: "rootKeys/*" })];
 }
