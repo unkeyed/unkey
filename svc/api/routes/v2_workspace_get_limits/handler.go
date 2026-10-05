@@ -4,7 +4,6 @@ import (
 	"context"
 	"net/http"
 
-	keysdb "github.com/unkeyed/unkey/internal/services/keys/db"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/codes"
@@ -56,7 +55,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	limits, err := keysdb.Query.FindLimitsByWorkspaceID(ctx, h.DB.RO(), workspaceID)
+	limits, err := db.Query.FindLimitsWithUsageByWorkspaceID(ctx, h.DB.RO(), db.FindLimitsWithUsageByWorkspaceIDParams{
+		WorkspaceID: workspaceID,
+	})
 	if db.IsNotFound(err) {
 		return domaingate.LimitsNotConfigured(workspaceID)
 	}
@@ -89,16 +90,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	logdrains, err := db.Query.CountLogdrainsByWorkspace(ctx, h.DB.RO(), workspaceID)
-	if err != nil {
-		return fault.Wrap(
-			err,
-			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Internal("database error"),
-			fault.Public("Failed to count the workspace's log drains."),
-		)
-	}
-
 	data := openapi.V2WorkspaceGetLimitsResponseData{
 		Api: openapi.V2WorkspaceGetLimitsApi{
 			BillableOperations: openapi.LimitMeter{
@@ -112,7 +103,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			AuditRetentionDays: int(limits.LogsAuditRetentionDaysMax),
 			LogDrains: openapi.LimitMeter{
 				Limit: int64(limits.LogdrainsMax),
-				Used:  logdrains,
+				Used:  limits.LogdrainsCount,
 			},
 		},
 		Compute: nil,
@@ -122,58 +113,28 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		data.Api.RequestsPerMinute = &requestsPerMinute
 	}
 
-	billing, err := db.Query.FindWorkspaceBillingByWorkspaceID(ctx, h.DB.RO(), workspaceID)
-	if err != nil && !db.IsNotFound(err) {
-		return fault.Wrap(
-			err,
-			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Internal("database error"),
-			fault.Public("Failed to read the workspace's billing plan."),
-		)
-	}
-
-	if err == nil && deploygate.Entitled(billing.Plan, billing.PlanOverride) {
-		allocated, err := db.Query.SumAllocatedResourcesByWorkspaceID(ctx, h.DB.RO(), workspaceID)
-		if err != nil {
-			return fault.Wrap(
-				err,
-				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.Internal("database error"),
-				fault.Public("Failed to read the workspace's reserved compute."),
-			)
-		}
-
-		customDomains, err := db.Query.CountCustomDomainsByWorkspace(ctx, h.DB.RO(), workspaceID)
-		if err != nil {
-			return fault.Wrap(
-				err,
-				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.Internal("database error"),
-				fault.Public("Failed to count the workspace's custom domains."),
-			)
-		}
-
+	if deploygate.Entitled(limits.Plan, limits.PlanOverride) {
 		data.Compute = &openapi.V2WorkspaceGetLimitsCompute{
 			VCpus: openapi.V2WorkspaceGetLimitsVcpuMeter{
 				Limit: float64(limits.CpuCoresMax),
-				Used:  float64(allocated.TotalCpuMillicores) / millicoresPerVCpu,
+				Used:  float64(limits.TotalCpuMillicores) / millicoresPerVCpu,
 			},
 			VCpusPerInstance: float64(limits.CpuCoresMaxPerInstance),
 			MemoryMib: openapi.LimitMeter{
 				Limit: int64(limits.MemoryMibMax),
-				Used:  allocated.TotalMemoryMib,
+				Used:  limits.TotalMemoryMib,
 			},
 			MemoryMibPerInstance: int(limits.MemoryMibMaxPerInstance),
 			StorageMib: openapi.LimitMeter{
 				Limit: int64(limits.StorageMibMax),
-				Used:  allocated.TotalStorageMib,
+				Used:  limits.TotalStorageMib,
 			},
 			StorageMibPerInstance: int(limits.StorageMibMaxPerInstance),
 			ConcurrentBuilds:      int(limits.BuildsConcurrentMax),
 			ReplicasPerRegion:     int(limits.AutoscalingReplicasMax),
 			CustomDomains: openapi.LimitMeter{
 				Limit: int64(limits.CustomDomainsMax),
-				Used:  customDomains,
+				Used:  limits.CustomDomainsCount,
 			},
 		}
 	}
