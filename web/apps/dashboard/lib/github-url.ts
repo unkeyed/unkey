@@ -49,3 +49,7 @@ export const githubUrl = {
     );
   },
 };
+
+export function githubInstallUrl(state: string): string {
+  return `${GITHUB_BASE}/apps/${process.env.NEXT_PUBLIC_GITHUB_APP_NAME}/installations/new?state=${encodeURIComponent(state)}`;
+}

@@ -4,6 +4,7 @@ import {
   useAppId,
   useProjectData,
 } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/data-provider";
+import { githubInstallUrl } from "@/lib/github-url";
 import { trpc } from "@/lib/trpc/client";
 import { match } from "@unkey/match";
 import { toast } from "@unkey/ui";
@@ -44,7 +45,7 @@ export const GitHub = ({ onBeforeNavigate }: GitHubProps) => {
         returnTo: "settings",
       });
       onBeforeNavigate?.();
-      window.location.href = `https://github.com/apps/${process.env.NEXT_PUBLIC_GITHUB_APP_NAME}/installations/new?state=${encodeURIComponent(state)}`;
+      window.location.href = githubInstallUrl(state);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to start GitHub install");
     }

@@ -1,5 +1,6 @@
 "use client";
 
+import { githubInstallUrl } from "@/lib/github-url";
 import { trpc } from "@/lib/trpc/client";
 import { getErrorMessage } from "@/lib/unkey-client";
 import { useState } from "react";
@@ -24,7 +25,7 @@ export function useConnectGithub() {
         return;
       }
       const { state } = await prepareInstallation.mutateAsync({ projectId, appId: app.appId });
-      window.location.href = `https://github.com/apps/${process.env.NEXT_PUBLIC_GITHUB_APP_NAME}/installations/new?state=${encodeURIComponent(state)}`;
+      window.location.href = githubInstallUrl(state);
     } catch (error) {
       setConnecting(false);
       setError(`Could not start the GitHub install. ${getErrorMessage(error)}`);
