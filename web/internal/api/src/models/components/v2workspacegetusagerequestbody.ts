@@ -3,43 +3,23 @@
  */
 
 import * as z from "zod/v3";
-import { ClosedEnum } from "../../types/enums.js";
-
-/**
- * The calendar month (UTC) to read. `current` is the month to date.
- *
- * @remarks
- * `previous` is the full month before it.
- */
-export const Period = {
-  Current: "current",
-  Previous: "previous",
-} as const;
-/**
- * The calendar month (UTC) to read. `current` is the month to date.
- *
- * @remarks
- * `previous` is the full month before it.
- */
-export type Period = ClosedEnum<typeof Period>;
 
 export type V2WorkspaceGetUsageRequestBody = {
   /**
-   * The calendar month (UTC) to read. `current` is the month to date.
+   * The calendar month (UTC) to read, as `YYYY-MM`. Omit it for the current
    *
    * @remarks
-   * `previous` is the full month before it.
+   * month to date. A past month returns the full month.
+   *
+   * The month cannot be in the future, and it must start within the last 90
+   * days, because compute usage is kept for 90 days.
    */
-  period?: Period | undefined;
+  month?: string | undefined;
 };
 
 /** @internal */
-export const Period$outboundSchema: z.ZodNativeEnum<typeof Period> = z
-  .nativeEnum(Period);
-
-/** @internal */
 export type V2WorkspaceGetUsageRequestBody$Outbound = {
-  period: string;
+  month?: string | undefined;
 };
 
 /** @internal */
@@ -48,7 +28,7 @@ export const V2WorkspaceGetUsageRequestBody$outboundSchema: z.ZodType<
   z.ZodTypeDef,
   V2WorkspaceGetUsageRequestBody
 > = z.object({
-  period: Period$outboundSchema.default("current"),
+  month: z.string().optional(),
 });
 
 export function v2WorkspaceGetUsageRequestBodyToJSON(

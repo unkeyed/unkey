@@ -46,13 +46,13 @@ export class Workspace extends ClientSDK {
    * Get the usage of your workspace for one calendar month (UTC): billable API
    * operations, compute usage per environment, and active keys per app.
    *
-   * Use this to track usage during the month or to look back at the previous
+   * Use this to track usage during the month or to look back at a past
    * month. The response has no prices. Your invoice is the source of truth.
    * Compute usage can be up to 15 minutes late, and it can change for up to 7
    * days.
    *
-   * Send `{}` for the current month to date, or `{"period": "previous"}` for the
-   * full previous month.
+   * Send `{}` for the current month to date, or `{"month": "2026-09"}` for a full
+   * past month. The month must start within the last 90 days.
    *
    * **Required Permissions**
    *

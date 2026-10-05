@@ -19,8 +19,8 @@ export type V2WorkspaceGetUsagePeriod = {
    * Unix timestamp in milliseconds of the end of the period, exclusive. For
    *
    * @remarks
-   * `current` it is the time of the request. For `previous` it is the start
-   * of the current month.
+   * the current month it is the time of the request. For a past month it is
+   * the start of the next month.
    */
   end: number;
 };
