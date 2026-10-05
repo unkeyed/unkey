@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
 import { subscriptionIdsByProduct } from "@/lib/stripe/billingSubscriptions";
 import { TRPCError } from "@trpc/server";
+import { and, eq, schema } from "@unkey/db";
 import { protectedProcedure } from "../../trpc";
 
 const workspaceProjection = {
@@ -71,10 +72,8 @@ const workspaceProjection = {
 } satisfies NonNullable<Parameters<typeof db.query.workspaces.findFirst>[0]>;
 
 export const getCurrentWorkspace = protectedProcedure.query(async ({ ctx }) => {
-  // createContext already resolved the workspace (with limits) for this
-  // request, so the common case costs no extra query.
   if (ctx.workspace) {
-    return ctx.workspace;
+    return { ...ctx.workspace, flags: await loadFlags(ctx.workspace.id) };
   }
 
   if (!ctx.tenant?.id) {
@@ -181,6 +180,7 @@ export const getCurrentWorkspace = protectedProcedure.query(async ({ ctx }) => {
   // billing pages) read the fresh values from the billing row.
   return {
     ...workspace,
+    flags: await loadFlags(workspace.id),
     tier: workspace.billing?.tier ?? "Free",
     stripeCustomerId: workspace.billing?.stripeCustomerId ?? null,
     ...subscriptionIdsByProduct(workspace.billingSubscriptions ?? []),
@@ -191,3 +191,23 @@ export const getCurrentWorkspace = protectedProcedure.query(async ({ ctx }) => {
     deploySpendSuspended: workspace.billing?.spendSuspended ?? false,
   };
 });
+
+async function loadFlags(workspaceId: string): Promise<Record<string, boolean>> {
+  const rows = await db
+    .select({
+      slug: schema.flags.slug,
+      defaultValue: schema.flags.defaultValue,
+      overrideValue: schema.workspaceFlagOverrides.value,
+    })
+    .from(schema.flags)
+    .leftJoin(
+      schema.workspaceFlagOverrides,
+      and(
+        eq(schema.workspaceFlagOverrides.flagId, schema.flags.id),
+        eq(schema.workspaceFlagOverrides.workspaceId, workspaceId),
+      ),
+    );
+  return Object.fromEntries(
+    rows.map((flag) => [flag.slug, flag.overrideValue ?? flag.defaultValue]),
+  );
+}
