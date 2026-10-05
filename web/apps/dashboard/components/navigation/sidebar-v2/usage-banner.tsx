@@ -8,36 +8,34 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
+import { useWorkspaceLimits } from "@/hooks/use-workspace-limits";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import { useWorkspaceUsage } from "@/hooks/use-workspace-usage";
 import { routes } from "@/lib/navigation/routes";
-import { useWorkspace } from "@/providers/workspace-provider";
+import { Skeleton } from "@unkey/ui";
 import Link from "next/link";
 
 export function UsageBanner() {
   const workspace = useWorkspaceNavigation();
-  const { limits } = useWorkspace();
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
 
-  const usage = useWorkspaceUsage("current", { staleTime: 5 * 60 * 1000 });
+  const workspaceLimits = useWorkspaceLimits({ staleTime: 5 * 60 * 1000 });
 
-  const current = usage.data ? usage.data.api.verifications + usage.data.api.ratelimits : 0;
-  const max = limits?.apiBillableOperationsCountMaxPerMonth;
-
-  if (max === undefined || max === null) {
-    console.error("UsageBanner: limits.apiBillableOperationsCountMaxPerMonth is undefined or null");
+  if (workspaceLimits.isError) {
     return null;
   }
 
-  if (max <= 0) {
+  const billable = workspaceLimits.data?.api.billableOperations;
+  if (billable !== undefined && billable.limit <= 0) {
     console.error(
-      "UsageBanner: limits.apiBillableOperationsCountMaxPerMonth must be greater than 0, got:",
-      max,
+      "UsageBanner: billableOperations.limit must be greater than 0, got:",
+      billable.limit,
     );
     return null;
   }
 
+  const current = billable?.used ?? 0;
+  const max = billable?.limit ?? 1;
   const percentage = (current / max) * 100;
   const shouldUpgrade = percentage > 90;
   const href = routes.settings.billing({ workspaceSlug: workspace.slug });
@@ -55,7 +53,14 @@ export function UsageBanner() {
                 max={max}
                 color={shouldUpgrade ? "#DD4527" : "#0A9B8B"}
               />
-              <span>Usage {Math.round(percentage).toLocaleString()}%</span>
+              <span>
+                Usage{" "}
+                {billable === undefined ? (
+                  <Skeleton className="inline-block h-3 w-7 align-middle" />
+                ) : (
+                  `${Math.round(percentage).toLocaleString()}%`
+                )}
+              </span>
               {shouldUpgrade && !collapsed ? (
                 <div className="ml-auto inline-flex h-7 items-center justify-center rounded-md border bg-gray-12 px-2 text-sm font-medium text-white dark:text-black">
                   Upgrade

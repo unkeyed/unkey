@@ -1,7 +1,7 @@
 "use client";
 
+import { useWorkspaceLimits } from "@/hooks/use-workspace-limits";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import { useWorkspaceUsage } from "@/hooks/use-workspace-usage";
 import { currentPlanState } from "@/lib/billing/plan-card-state";
 import { useFlag } from "@/lib/flags/provider";
 import { type DeployCheckoutOrigin, routes } from "@/lib/navigation/routes";
@@ -70,11 +70,8 @@ export function PlansScreen({ open, onOpenChange, reason, from = "billing" }: Pl
     retry: 1,
     trpc: { context: { skipBatch: true } },
   });
-  const apiUsageQuery = useWorkspaceUsage("current", { enabled: wantsApi, staleTime: 60_000 });
-  const apiOperations =
-    apiUsageQuery.data === undefined
-      ? undefined
-      : apiUsageQuery.data.api.verifications + apiUsageQuery.data.api.ratelimits;
+  const apiUsageQuery = useWorkspaceLimits({ enabled: wantsApi, staleTime: 60_000 });
+  const apiOperations = apiUsageQuery.data?.api.billableOperations.used;
 
   const products = availableProducts(copy.products, {
     computeEnabled: deployBilling && !plansQuery.isError && plansQuery.data?.configured !== false,

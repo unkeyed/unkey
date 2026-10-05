@@ -1,11 +1,9 @@
 "use client";
 
+import { useWorkspaceLimits } from "@/hooks/use-workspace-limits";
 import { useBillingUIUpgrades } from "@/lib/flags/use-billing-ui-upgrades";
-import { queryKeys } from "@/lib/query-keys";
 import { SUPPORT_MAILTO } from "@/lib/support";
-import { getUnkeyClient } from "@/lib/unkey-client";
 import { useWorkspace } from "@/providers/workspace-provider";
-import { useQuery } from "@tanstack/react-query";
 import { IconCubeOutline18, IconLayers3Outline18, IconNodesOutline18 } from "@unkey/icons";
 import {
   Button,
@@ -44,12 +42,7 @@ export default function LimitsPage() {
   const billingUpgrades = useBillingUIUpgrades();
   const { workspace } = useWorkspace();
   const hasComputePlan = Boolean(workspace?.deployPlan) || Boolean(workspace?.deployPlanOverride);
-  const limits = useQuery({
-    queryKey: queryKeys.workspace.limits,
-    queryFn: async () => (await getUnkeyClient().workspace.getLimits()).data,
-    enabled: billingUpgrades,
-    retry: 1,
-  });
+  const limits = useWorkspaceLimits({ enabled: billingUpgrades });
 
   if (!billingUpgrades) {
     notFound();

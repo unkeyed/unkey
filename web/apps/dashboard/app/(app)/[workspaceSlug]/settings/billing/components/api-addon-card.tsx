@@ -1,7 +1,7 @@
 "use client";
 
 import { useInvalidateWorkspaceQueries } from "@/hooks/use-invalidate-workspace-queries";
-import { useWorkspaceUsage } from "@/hooks/use-workspace-usage";
+import { useWorkspaceLimits } from "@/hooks/use-workspace-limits";
 import { formatNumber } from "@/lib/fmt";
 import { formatMs } from "@/lib/ms";
 import { trpc } from "@/lib/trpc/client";
@@ -61,7 +61,7 @@ export const ApiAddOnCard: React.FC<ApiAddOnCardProps> = ({
   const [showPlanModal, setShowPlanModal] = useState(false);
   const [isCancelOpen, setCancelOpen] = useState(false);
 
-  const { data: usage } = useWorkspaceUsage("current", { staleTime: 30_000 });
+  const { data: workspaceLimits } = useWorkspaceLimits({ staleTime: 30_000 });
 
   const revalidate = async () => {
     await Promise.all([
@@ -111,7 +111,7 @@ export const ApiAddOnCard: React.FC<ApiAddOnCardProps> = ({
       : undefined;
 
   const quota = currentProduct?.quotas.requestsPerMonth ?? FREE_TIER_QUOTA;
-  const used = (usage?.api.verifications ?? 0) + (usage?.api.ratelimits ?? 0);
+  const used = workspaceLimits?.api.billableOperations.used ?? 0;
 
   return (
     <>
@@ -197,11 +197,11 @@ export const ApiAddOnCard: React.FC<ApiAddOnCardProps> = ({
               </AlertBannerActions>
             </AlertBanner>
           ) : null}
-          <Meter value={usage ? used : 0} max={quota > 0 ? quota : 1}>
+          <Meter value={workspaceLimits ? used : 0} max={quota > 0 ? quota : 1}>
             <MeterHeader>
               <MeterLabel>Verifications & ratelimits this month</MeterLabel>
               <MeterValue>
-                {() => (usage ? `${formatNumber(used)} / ${formatNumber(quota)}` : "—")}
+                {() => (workspaceLimits ? `${formatNumber(used)} / ${formatNumber(quota)}` : "—")}
               </MeterValue>
             </MeterHeader>
             <MeterTrack>
