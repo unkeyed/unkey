@@ -14,7 +14,6 @@ export type GroupKey = "api" | "logs" | "compute";
 
 export type RowUsage = { value: number; max: number; label: string };
 
-/** A loading row keeps the shape of its loaded row: a meter, or only a limit */
 export type RowValue =
   | { state: "loading"; metered: boolean }
   | { state: "ready"; limit: string; usage?: RowUsage };
@@ -72,7 +71,6 @@ function statusOf(usage: RowUsage): LimitStatus {
   return "ok";
 }
 
-/** A row that meters usage against its limit. An undefined meter is still loading */
 function metered(
   text: RowText,
   meter: LimitMeter | V2WorkspaceGetLimitsVcpuMeter | undefined,
@@ -89,7 +87,6 @@ function metered(
   };
 }
 
-/** A row that shows only its limit. An undefined limit is still loading */
 function ceiling(text: RowText, limit: string | undefined): LimitRow {
   return {
     ...text,

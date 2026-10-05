@@ -46,6 +46,27 @@ function domainsRow(groups: LimitGroup[]) {
   return groups.flatMap((group) => group.rows).find((row) => row.name === ROW);
 }
 
+describe("API requests per minute row", () => {
+  function requestsRow(requestsPerMinute: number | undefined) {
+    const response = responseFor("free", 0);
+    const groups = buildLimitGroups(
+      { ...response, api: { ...response.api, requestsPerMinute } },
+      true,
+    );
+    return groups
+      .flatMap((group) => group.rows)
+      .find((row) => row.name === "API requests per minute");
+  }
+
+  it("reads 'Unlimited' when the workspace has no per-minute limit", () => {
+    expect(requestsRow(undefined)?.value).toEqual({ state: "ready", limit: "Unlimited" });
+  });
+
+  it("shows the per-minute limit", () => {
+    expect(requestsRow(1000)?.value).toEqual({ state: "ready", limit: "1,000 / min" });
+  });
+});
+
 describe("log drains row", () => {
   it("meters the current count against the workspace allowance", () => {
     const response = responseFor("free", 0);
