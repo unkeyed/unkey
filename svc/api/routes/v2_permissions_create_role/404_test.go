@@ -43,9 +43,8 @@ func TestPermissionFromAnotherProjectIsNotAttached(t *testing.T) {
 	}))
 	rootKey := h.CreateRootKey(
 		workspace.ID,
-		"rbac.*.create_role",
-		"rbac.*.add_permission_to_role",
-		"rbac.*.create_permission",
+		fmt.Sprintf("unkey:v1:%s:projects/*/rbac/roles/*#write", workspace.ID),
+		fmt.Sprintf("unkey:v1:%s:projects/*/rbac/permissions/*#write", workspace.ID),
 	)
 	headers := http.Header{
 		"Content-Type":  {"application/json"},

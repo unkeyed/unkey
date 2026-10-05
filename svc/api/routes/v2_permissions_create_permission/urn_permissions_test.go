@@ -12,7 +12,7 @@ import (
 )
 
 // TestCreatePermissionAuthorizesCanonicalWritePermission guarantees the
-// project-scoped write action can create permissions without a legacy grant.
+// project-scoped write action can create permissions.
 func TestCreatePermissionAuthorizesCanonicalWritePermission(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route := &handler.Handler{DB: h.DB, Auditlogs: h.Auditlogs}

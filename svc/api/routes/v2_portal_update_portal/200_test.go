@@ -19,12 +19,6 @@ import (
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_portal_update_portal"
 )
 
-// targetReadGrants is what re-pointing a portal costs beyond update_portal: the
-// caller must be able to read the resource it is exposing. Carried by default so
-// each test exercises its own subject; TestUpdatePortalRequiresPermissionOnTheRemapTarget
-// withholds them deliberately.
-var targetReadGrants = []string{"api.*.read_api", "app.*.read_app"}
-
 // newRoute registers the handler and returns it with the caller's headers.
 // ksOf and appOf render a mapping as the flat request pair. Each returns nil
 // unless the mapping names its kind, so a call site can set both fields
@@ -51,8 +45,7 @@ func newRoute(t *testing.T, h *testutil.Harness, permissions ...string) (*handle
 	route := &handler.Handler{DB: h.DB, Auditlogs: h.Auditlogs, Clock: h.Clock}
 	h.Register(route)
 
-	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID,
-		append(append([]string{}, permissions...), targetReadGrants...)...)
+	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, permissions...)
 	return route, headersFor(rootKey)
 }
 
@@ -257,7 +250,7 @@ func baseRequest(target string) handler.Request {
 // branding on every toggle.
 func TestUpdatePortalOnlyEnabled(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route, headers := newRoute(t, h, "portal.*.update_portal")
+	route, headers := newRoute(t, h, fmt.Sprintf("unkey:v1:%s:**#*", h.Resources().UserWorkspace.ID))
 	workspace := h.Resources().UserWorkspace
 
 	mapping := keyspaceMapping(t, h, workspace.ID)
@@ -287,7 +280,7 @@ func TestUpdatePortalOnlyEnabled(t *testing.T) {
 
 func TestUpdatePortalOnlySlug(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route, headers := newRoute(t, h, "portal.*.update_portal")
+	route, headers := newRoute(t, h, fmt.Sprintf("unkey:v1:%s:**#*", h.Resources().UserWorkspace.ID))
 	workspace := h.Resources().UserWorkspace
 
 	mapping := keyspaceMapping(t, h, workspace.ID)
@@ -315,7 +308,7 @@ func TestUpdatePortalOnlySlug(t *testing.T) {
 // the slug: renaming the portal must not move its URL, and vice versa.
 func TestUpdatePortalOnlyDisplayName(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route, headers := newRoute(t, h, "portal.*.update_portal")
+	route, headers := newRoute(t, h, fmt.Sprintf("unkey:v1:%s:**#*", h.Resources().UserWorkspace.ID))
 	workspace := h.Resources().UserWorkspace
 
 	mapping := keyspaceMapping(t, h, workspace.ID)
@@ -337,7 +330,7 @@ func TestUpdatePortalOnlyDisplayName(t *testing.T) {
 
 func TestUpdatePortalOneBrandingFieldLeavesTheOther(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route, headers := newRoute(t, h, "portal.*.update_portal")
+	route, headers := newRoute(t, h, fmt.Sprintf("unkey:v1:%s:**#*", h.Resources().UserWorkspace.ID))
 	workspace := h.Resources().UserWorkspace
 
 	stored := h.SeedPortal(t, workspace.ID, "branded", "branded", keyspaceMapping(t, h, workspace.ID),
@@ -361,7 +354,7 @@ func TestUpdatePortalOneBrandingFieldLeavesTheOther(t *testing.T) {
 // would wipe it.
 func TestUpdatePortalDistinguishesNullFromOmitted(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route, headers := newRoute(t, h, "portal.*.update_portal")
+	route, headers := newRoute(t, h, fmt.Sprintf("unkey:v1:%s:**#*", h.Resources().UserWorkspace.ID))
 	workspace := h.Resources().UserWorkspace
 
 	cleared := h.SeedPortal(t, workspace.ID, "cleared", "cleared", keyspaceMapping(t, h, workspace.ID),
@@ -394,7 +387,7 @@ func TestUpdatePortalDistinguishesNullFromOmitted(t *testing.T) {
 // returning two empty strings.
 func TestUpdatePortalClearingAllBrandingOmitsTheObject(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route, headers := newRoute(t, h, "portal.*.update_portal")
+	route, headers := newRoute(t, h, fmt.Sprintf("unkey:v1:%s:**#*", h.Resources().UserWorkspace.ID))
 	workspace := h.Resources().UserWorkspace
 
 	stored := h.SeedPortal(t, workspace.ID, "unbranded", "unbranded", keyspaceMapping(t, h, workspace.ID),
@@ -418,7 +411,7 @@ func TestUpdatePortalClearingAllBrandingOmitsTheObject(t *testing.T) {
 // portal's live sessions, and only that portal's.
 func TestUpdatePortalRepointsMappingAndRevokesSessions(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route, headers := newRoute(t, h, "portal.*.update_portal")
+	route, headers := newRoute(t, h, fmt.Sprintf("unkey:v1:%s:**#*", h.Resources().UserWorkspace.ID))
 	workspace := h.Resources().UserWorkspace
 
 	project, app, keyspace := mappingsInOneProject(t, h, workspace.ID, "payments")
@@ -457,7 +450,7 @@ func TestUpdatePortalRepointsMappingAndRevokesSessions(t *testing.T) {
 // off, not to the request touching the row.
 func TestUpdatePortalWithoutMappingChangeKeepsSessions(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route, headers := newRoute(t, h, "portal.*.update_portal")
+	route, headers := newRoute(t, h, fmt.Sprintf("unkey:v1:%s:**#*", h.Resources().UserWorkspace.ID))
 	workspace := h.Resources().UserWorkspace
 
 	mapping := keyspaceMapping(t, h, workspace.ID)
@@ -494,8 +487,8 @@ func TestUpdatePortalWithoutMappingChangeKeepsSessions(t *testing.T) {
 // Disabling revokes the portal's sessions, and re-enabling doesn't restore them.
 func TestUpdatePortalDisableRevokesSessions(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route, headers := newRoute(t, h, "portal.*.update_portal")
 	workspace := h.Resources().UserWorkspace
+	route, headers := newRoute(t, h, fmt.Sprintf("unkey:v1:%s:projects/*/portals/*#write", workspace.ID))
 
 	mapping := keyspaceMapping(t, h, workspace.ID)
 	stored := h.SeedPortal(t, workspace.ID, "switched-off", "switched-off", mapping, nil, nil)
@@ -521,7 +514,7 @@ func TestUpdatePortalDisableRevokesSessions(t *testing.T) {
 // Disabling a portal that's already off revokes nothing.
 func TestUpdatePortalAlreadyDisabledKeepsSessions(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route, headers := newRoute(t, h, "portal.*.update_portal")
+	route, headers := newRoute(t, h, fmt.Sprintf("unkey:v1:%s:**#*", h.Resources().UserWorkspace.ID))
 	workspace := h.Resources().UserWorkspace
 
 	mapping := keyspaceMapping(t, h, workspace.ID)
@@ -540,7 +533,7 @@ func TestUpdatePortalAlreadyDisabledKeepsSessions(t *testing.T) {
 // The target is an id or a slug, and both must reach the same row.
 func TestUpdatePortalAddressedBySlug(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route, headers := newRoute(t, h, "portal.*.update_portal")
+	route, headers := newRoute(t, h, fmt.Sprintf("unkey:v1:%s:**#*", h.Resources().UserWorkspace.ID))
 	workspace := h.Resources().UserWorkspace
 
 	stored := h.SeedPortal(t, workspace.ID, "by-slug", "by-slug", keyspaceMapping(t, h, workspace.ID),
@@ -567,7 +560,7 @@ func TestUpdatePortalAddressedBySlug(t *testing.T) {
 // holds it.
 func TestUpdatePortalWritesOneAuditEntry(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route, headers := newRoute(t, h, "portal.*.update_portal")
+	route, headers := newRoute(t, h, fmt.Sprintf("unkey:v1:%s:**#*", h.Resources().UserWorkspace.ID))
 	workspace := h.Resources().UserWorkspace
 
 	_, app, keyspace := mappingsInOneProject(t, h, workspace.ID, "audited")

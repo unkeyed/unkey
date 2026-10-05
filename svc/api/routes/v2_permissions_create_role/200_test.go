@@ -29,7 +29,7 @@ func TestSuccess(t *testing.T) {
 	workspace := h.Resources().UserWorkspace
 
 	// Create a root key with appropriate permissions
-	rootKey := h.CreateRootKey(workspace.ID, "rbac.*.create_role")
+	rootKey := h.CreateRootKey(workspace.ID, fmt.Sprintf("unkey:v1:%s:projects/*/rbac/roles/*#write", workspace.ID))
 
 	// Set up request headers
 	headers := http.Header{
@@ -168,9 +168,8 @@ func TestSuccess(t *testing.T) {
 		}
 		rootKeyWithPermissions := h.CreateRootKey(
 			workspace.ID,
-			"rbac.*.create_role",
-			"rbac.*.add_permission_to_role",
-			"rbac.*.create_permission",
+			fmt.Sprintf("unkey:v1:%s:projects/*/rbac/roles/*#write", workspace.ID),
+			fmt.Sprintf("unkey:v1:%s:projects/*/rbac/permissions/*#write", workspace.ID),
 		)
 		permissionHeaders := http.Header{
 			"Content-Type":  {"application/json"},
@@ -222,8 +221,7 @@ func TestSuccess(t *testing.T) {
 		permissionSlugs := []string{"documents.read.existing.only"}
 		rootKeyWithoutCreatePermission := h.CreateRootKey(
 			workspace.ID,
-			"rbac.*.create_role",
-			"rbac.*.add_permission_to_role",
+			fmt.Sprintf("unkey:v1:%s:projects/*/rbac/roles/*#write", workspace.ID),
 		)
 		permissionHeaders := http.Header{
 			"Content-Type":  {"application/json"},
@@ -247,9 +245,8 @@ func TestSuccess(t *testing.T) {
 	t.Run("concurrent roles reuse a missing permission", func(t *testing.T) {
 		rootKeyWithPermissions := h.CreateRootKey(
 			workspace.ID,
-			"rbac.*.create_role",
-			"rbac.*.add_permission_to_role",
-			"rbac.*.create_permission",
+			fmt.Sprintf("unkey:v1:%s:projects/*/rbac/roles/*#write", workspace.ID),
+			fmt.Sprintf("unkey:v1:%s:projects/*/rbac/permissions/*#write", workspace.ID),
 		)
 		permissionHeaders := http.Header{
 			"Content-Type":  {"application/json"},

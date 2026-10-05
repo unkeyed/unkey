@@ -105,7 +105,7 @@ func TestUnauthorized(t *testing.T) {
 		differentWorkspace := h.CreateWorkspace()
 
 		// Create a root key for different workspace
-		differentWorkspaceKey := h.CreateRootKey(differentWorkspace.ID, "identity.*.update_identity")
+		differentWorkspaceKey := h.CreateRootKey(differentWorkspace.ID, fmt.Sprintf("unkey:v1:%s:projects/*/identities/*#write", differentWorkspace.ID))
 
 		externalID := uid.New(uid.TestPrefix)
 		meta := map[string]interface{}{

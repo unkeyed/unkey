@@ -59,7 +59,7 @@ func TestUpdateIdentityAuthorization(t *testing.T) {
 		})
 
 		// Create root key with wrong permission
-		rootKeyID := h.CreateRootKey(h.Resources().UserWorkspace.ID, "identity.*.create_identity")
+		rootKeyID := h.CreateRootKey(h.Resources().UserWorkspace.ID, fmt.Sprintf("unkey:v1:%s:projects/*/identities/*#read", h.Resources().UserWorkspace.ID))
 		headers := http.Header{
 			"Content-Type":  {"application/json"},
 			"Authorization": {fmt.Sprintf("Bearer %s", rootKeyID)},
@@ -81,13 +81,13 @@ func TestUpdateIdentityAuthorization(t *testing.T) {
 	t.Run("with permission to update identity", func(t *testing.T) {
 		workspaceID := h.Resources().UserWorkspace.ID
 		externalID := "test_user_403"
-		h.CreateIdentity(seed.CreateIdentityRequest{
+		identity := h.CreateIdentity(seed.CreateIdentityRequest{
 			WorkspaceID: workspaceID,
 			ExternalID:  externalID,
 		})
 
 		// Create root key with correct permission
-		rootKeyID := h.CreateRootKey(workspaceID, "identity.*.update_identity")
+		rootKeyID := h.CreateRootKey(workspaceID, fmt.Sprintf("unkey:v1:%s:projects/%s/identities/%s#write", workspaceID, identity.ProjectID, identity.ID))
 		headers := http.Header{
 			"Content-Type":  {"application/json"},
 			"Authorization": {fmt.Sprintf("Bearer %s", rootKeyID)},

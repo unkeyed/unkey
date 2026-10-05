@@ -33,7 +33,7 @@ func TestCreateApiSuccessfully(t *testing.T) {
 
 	h.Register(route)
 
-	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "api.*.create_api")
+	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "unkey:v1:"+(h.Resources().UserWorkspace.ID)+":**#*")
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
@@ -178,8 +178,8 @@ func TestCreateApiSuccessfully(t *testing.T) {
 
 // TestCreateApiWithKeyspaceUrnGrant verifies that a caller holding only the
 // canonical keyspace URN write grant can create an API. The dashboard proxy mints
-// URN grants exclusively, so without this arm every dashboard role, admin
-// included, is rejected by the legacy api.*.create_api tuple.
+// URN grants exclusively, so this covers the permission format used by every
+// dashboard role, including admin.
 func TestCreateApiWithKeyspaceUrnGrant(t *testing.T) {
 	ctx := context.Background()
 	h := testutil.NewHarness(t)

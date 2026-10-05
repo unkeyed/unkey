@@ -29,9 +29,9 @@ func TestCreateSessionNotFoundNonExistentPortalId(t *testing.T) {
 	// missing permission. A caller who could mint sessions still cannot learn
 	// whether an unknown portal exists.
 	rootKey := h.CreateRootKey(workspaceID,
-		"portal.*.create_portal_session",
-		"api.*.read_key",
-		"api.*.read_api",
+		fmt.Sprintf("unkey:v1:%s:**#*", workspaceID),
+		fmt.Sprintf("unkey:v1:%s:**#*", workspaceID),
+		fmt.Sprintf("unkey:v1:%s:**#*", workspaceID),
 	)
 
 	headers := http.Header{
@@ -74,9 +74,9 @@ func TestCreateSessionNotFoundWrongWorkspace(t *testing.T) {
 	// from one that does not exist.
 	workspaceB := h.CreateWorkspace()
 	rootKeyB := h.CreateRootKey(workspaceB.ID,
-		"portal.*.create_portal_session",
-		"api.*.read_key",
-		"api.*.read_api",
+		fmt.Sprintf("unkey:v1:%s:**#*", workspaceB.ID),
+		fmt.Sprintf("unkey:v1:%s:**#*", workspaceB.ID),
+		fmt.Sprintf("unkey:v1:%s:**#*", workspaceB.ID),
 	)
 
 	headers := http.Header{
