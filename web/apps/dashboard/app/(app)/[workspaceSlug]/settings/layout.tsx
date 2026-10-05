@@ -13,7 +13,6 @@ import type { ReactNode } from "react";
 const ITEMS = [
   { segment: "general", label: "General", getHref: routes.settings.general },
   { segment: "team", label: "Team", getHref: routes.settings.team },
-  { segment: "platform-features", label: "Platform features", getHref: routes.settings.flags },
   { segment: "root-keys", label: "Root Keys", getHref: routes.settings.rootKeys },
   { segment: "logdrains", label: "Log Drains", getHref: routes.settings.logdrains.list },
   { segment: "billing", label: "Billing", getHref: routes.settings.billing },
