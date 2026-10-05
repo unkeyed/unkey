@@ -60,7 +60,11 @@ export const IdentifierColumn = ({ log }: IdentifierColumnProps) => {
         </div>
         <InfoTooltip
           asChild
-          content={<span data-sentry-mask className="font-mono text-xs break-all">{log.identifier}</span>}
+          content={
+            <span data-sentry-mask className="font-mono text-xs break-all">
+              {log.identifier}
+            </span>
+          }
         >
           <div
             data-sentry-mask

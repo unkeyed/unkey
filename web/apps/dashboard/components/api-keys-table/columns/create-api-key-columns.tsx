@@ -144,10 +144,14 @@ const KeyIdCell = ({
                     target="_blank"
                     rel="noopener noreferrer"
                   >
-                    <span data-sentry-mask className="font-mono bg-gray-4 p-1 rounded-sm">{identity}</span>
+                    <span data-sentry-mask className="font-mono bg-gray-4 p-1 rounded-sm">
+                      {identity}
+                    </span>
                   </Link>
                 ) : (
-                  <span data-sentry-mask className="font-mono bg-gray-4 p-1 rounded-sm">{identity}</span>
+                  <span data-sentry-mask className="font-mono bg-gray-4 p-1 rounded-sm">
+                    {identity}
+                  </span>
                 )}
               </>
             }
