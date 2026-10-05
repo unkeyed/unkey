@@ -37,11 +37,15 @@ The existing `workspace.getCurrent` tRPC procedure loads effective flag values
 from MySQL and includes them in `workspace.flags`, keyed by slug. Both the
 preloaded-context path and the fallback workspace lookup include flags.
 
-The workspace query includes a correlated subquery that left-joins all flag
-definitions to overrides for that workspace. It aggregates the effective values
-into a map in the same SQL statement. An explicit `false` overrides a `true`
-default. Missing overrides inherit the default, and an empty definition table
-produces an empty map.
+The shared `loadWorkspace` function uses a regular Drizzle `select` with left
+joins for limits, billing, subscriptions, all flag definitions, and workspace
+overrides. It combines the returned rows into one workspace object and removes
+duplicate subscription entries. There are no correlated subqueries or JSON
+aggregates.
+
+An explicit `false` overrides a `true` default. Missing overrides inherit the
+default, and an empty definition table produces an empty map without removing
+the workspace from the result.
 
 Consumers access the values through the existing workspace provider:
 
