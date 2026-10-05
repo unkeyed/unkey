@@ -3,6 +3,7 @@ const rbacRoot = ["rbac"] as const;
 const rolesRoot = [...rbacRoot, "roles"] as const;
 const permissionsRoot = [...rbacRoot, "permissions"] as const;
 const identitiesRoot = ["identities"] as const;
+const portalSessionLists = (portalId: string) => ["portalSessions", portalId, "list"] as const;
 
 export const queryKeys = {
   apis: {
@@ -24,6 +25,9 @@ export const queryKeys = {
   },
   portal: {
     detail: (keyAuthId: string) => ["portal", keyAuthId] as const,
+    sessionLists: portalSessionLists,
+    sessions: (portalId: string, search: string) =>
+      [...portalSessionLists(portalId), search] as const,
   },
   rbac: {
     all: rbacRoot,

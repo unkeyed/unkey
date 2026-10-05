@@ -26,8 +26,8 @@ import {
 } from "@unkey/ui";
 import { useRef, useState } from "react";
 import { FormProvider } from "react-hook-form";
-import { DeleteRootKeyV2 } from "../table/delete-root-key";
-import { RotateRootKeyV2 } from "../table/rotate-root-key";
+import { DeleteRootKey } from "../table/delete-root-key";
+import { RotateRootKey } from "../table/rotate-root-key";
 import { GrantList } from "./grant-list";
 import {
   type EditableRootKeyDraft,
@@ -65,6 +65,7 @@ export function EditKeyAside({ keyId, isOpen, onClose, onExitComplete }: EditKey
   return (
     <>
       <SlidePanel
+        data-docs-target="root-key-permission-editor"
         isOpen={isOpen && requestedAction === null}
         onClose={onClose}
         onExitComplete={() => {
@@ -102,7 +103,7 @@ export function EditKeyAside({ keyId, isOpen, onClose, onExitComplete }: EditKey
       </SlidePanel>
 
       {draft !== null && openAction === "rotate" ? (
-        <RotateRootKeyV2
+        <RotateRootKey
           rootKeyDetails={{ id: draft.keyId, name: draft.name === "" ? null : draft.name }}
           isOpen
           onRotated={() => {
@@ -113,7 +114,7 @@ export function EditKeyAside({ keyId, isOpen, onClose, onExitComplete }: EditKey
       ) : null}
 
       {draft !== null && openAction === "delete" ? (
-        <DeleteRootKeyV2
+        <DeleteRootKey
           rootKeyDetails={{ id: draft.keyId, name: draft.name === "" ? null : draft.name }}
           isOpen
           onDeleted={() => {

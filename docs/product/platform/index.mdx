@@ -4,6 +4,9 @@ sidebarTitle: "Overview"
 description: "Manage what both Unkey products share: your workspace, billing, root keys, and the CLI."
 sources:
   - docs/product/docs.json
+  - README.md
+  - LICENSE
+  - SECURITY.md
 boost: 3
 ---
 
@@ -98,12 +101,18 @@ Set up what Compute and API Management share: your workspace and team, billing, 
     Create, edit, rotate, and delete the credential for the API.
   </Card>
   <Card title="Root key permissions" icon="shield-halved" href="/platform/root-keys/permissions">
-    Choose permissions and fix a permission error.
+    Choose least-privilege permissions for deployments, agents, and API management.
   </Card>
-  <Card title="Permission reference" icon="list" href="/platform/root-keys/permissions-legacy">
-    Every resource.id.action string by product.
+  <Card title="Permission reference" icon="list" href="/platform/root-keys/permission-reference">
+    Resource paths, supported actions, and operation requirements.
   </Card>
 </Columns>
+
+## Self-hosting
+
+These docs cover hosted Unkey: the dashboard at `app.unkey.com` and the API at `api.unkey.com`. Compute and API Management both run on Unkey's infrastructure, and there's no self-hosting guide in these docs.
+
+The [Unkey source code](https://github.com/unkeyed/unkey) is public. Code outside the `packages` and `internal/icons` directories is licensed under AGPLv3, so you can fork it and run it yourself under those terms. If you self-host, run a current build of `main` or the latest release. Unkey applies security fixes there and doesn't backport them to older tags.
 
 ## Reference
 

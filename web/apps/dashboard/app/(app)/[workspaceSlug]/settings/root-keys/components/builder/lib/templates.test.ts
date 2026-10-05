@@ -41,7 +41,6 @@ describe("TEMPLATES", () => {
       "unkey:v1:ws_123:projects/*/identities/*#read",
       "unkey:v1:ws_123:projects/*/rbac/roles/*#read",
       "unkey:v1:ws_123:projects/*/rbac/permissions/*#read",
-      "unkey:v1:ws_123:projects/*/portals/*#read",
       "unkey:v1:ws_123:rootKeys/*#read",
       "unkey:v1:ws_123:github/apps/*#read",
     ]);

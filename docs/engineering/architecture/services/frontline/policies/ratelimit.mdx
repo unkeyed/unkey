@@ -1,6 +1,14 @@
 ---
 title: "RateLimit"
 description: "Gateway rate limiting policy"
+notion:
+  rootPageID: 3ee512d643f38063b525d6c3619c1f69
+  owners:
+    - andreas
+  tags:
+    - Architecture
+    - Services
+    - Frontline
 ---
 
 RateLimit defines gateway-level rate limiting with configurable identifiers. Frontline executes RateLimit policies and delegates counter state to [rate limiting](/architecture/ratelimiting/overview), so policy execution uses the same distributed counters as API and Frontline rate-limit checks.

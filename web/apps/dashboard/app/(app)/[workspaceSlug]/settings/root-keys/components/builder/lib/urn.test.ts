@@ -96,7 +96,7 @@ describe("rowOffers", () => {
       for (const row of catalogueRows(CATALOGUES[scope])) {
         const logs = row.id.endsWith("_log");
         const session = row.id === "portal_session";
-        expect(rowOffers(row, "read"), `${scope}:${row.id}:read`).toBe(!session);
+        expect(rowOffers(row, "read"), `${scope}:${row.id}:read`).toBe(true);
         expect(rowOffers(row, "write"), `${scope}:${row.id}:write`).toBe(!logs);
         expect(rowOffers(row, "delete"), `${scope}:${row.id}:delete`).toBe(!logs && !session);
       }
@@ -202,8 +202,6 @@ describe("catalogue grammar", () => {
       "projects/*/identities/*",
       "projects/*/rbac/roles/*",
       "projects/*/rbac/permissions/*",
-      "projects/*/portals/*",
-      "projects/*/portals/*/sessions/*",
       "rootKeys/*",
       "github/apps/*",
     ]);
@@ -435,7 +433,6 @@ describe("buildUrns on the projects scope", () => {
       "unkey:v1:ws_123:projects/proj_1/identities/*#read",
       "unkey:v1:ws_123:projects/proj_1/rbac/roles/*#read",
       "unkey:v1:ws_123:projects/proj_1/rbac/permissions/*#read",
-      "unkey:v1:ws_123:projects/proj_1/portals/*#read",
     ]);
   });
 

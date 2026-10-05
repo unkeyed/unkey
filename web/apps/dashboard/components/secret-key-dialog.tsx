@@ -40,7 +40,7 @@ export function SecretKeyDialog({
           This is the only time the full key is shown. Store it somewhere safe — you can roll it
           later, but not read it again.
         </p>
-        <SecretKey value={secret} title={resourceLabel} />
+        <SecretKey value={secret} title={resourceLabel} className="min-w-0" />
         <div className="flex items-center justify-end pt-1">
           <Button type="button" variant="primary" size="md" onClick={onDone}>
             Done
