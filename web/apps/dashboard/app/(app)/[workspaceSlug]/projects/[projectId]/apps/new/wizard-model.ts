@@ -156,7 +156,8 @@ export type WizardAction =
   | { type: "create-failed" }
   | { type: "app-ready"; appId: string; source: SourceKind }
   | { type: "deployment-created"; deploymentId: string }
-  | { type: "edit-settings"; focus: SetupFieldFocus | null };
+  | { type: "edit-settings"; focus: SetupFieldFocus | null }
+  | { type: "history"; step: string | null };
 
 function goTo(state: WizardState, card: CardId): WizardState {
   if (state.card === card && state.focus === null) {
@@ -206,6 +207,10 @@ export function wizardReducer(state: WizardState, action: WizardAction): WizardS
         focus: action.focus,
       };
     }
+    case "history": {
+      const card = historyCard(action.step);
+      return flowLocked(state) || card === null ? state : goTo(state, card);
+    }
   }
 }
 
@@ -232,6 +237,24 @@ function isCardId(step: string): step is CardId {
   return cardIds.includes(step);
 }
 
+function historyCard(step: string | null): CardId | null {
+  if (step === null) {
+    return "source";
+  }
+  if (step === GITHUB_RETURN_STEP) {
+    return "pick-repo";
+  }
+  return isCardId(step) ? step : null;
+}
+
+const entrySource: Partial<Record<string, SourceKind>> = { "pick-repo": "git", image: "oci" };
+
+export function latestDeploymentId(
+  app: Pick<ProjectApp, "headlineDeployment" | "currentDeploymentId">,
+): string | null {
+  return app.headlineDeployment?.id ?? app.currentDeploymentId;
+}
+
 function resumeCard(step: string | null, app: ProjectApp, source: SourceKind): CardId {
   if (step === GITHUB_RETURN_STEP) {
     return "pick-repo";
@@ -254,39 +277,39 @@ const startFresh: Resume = { kind: "wizard", state: initialWizardState };
 export function resumeWizard(params: ResumeParams, apps: readonly ProjectApp[]): Resume {
   const app = params.appId ? apps.find((a) => a.id === params.appId) : undefined;
   if (!app) {
-    return startFresh;
+    const chosen = params.appId ? undefined : entrySource[params.step ?? ""];
+    return chosen
+      ? {
+          kind: "wizard",
+          state: wizardReducer(initialWizardState, { type: "pick-source", source: chosen }),
+        }
+      : startFresh;
   }
   const source = app.sourceType === "oci" ? "oci" : "git";
   const card = resumeCard(params.step, app, source);
   const resumed: WizardState = { ...initialWizardState, app: { id: app.id, source }, card };
-  const latestDeploymentId = app.headlineDeployment?.id ?? app.currentDeploymentId;
-  if (latestDeploymentId === null) {
+  const latest = latestDeploymentId(app);
+  if (latest === null) {
     return {
       kind: "wizard",
       state: card === "watch" || card === "result" ? { ...resumed, card: "review" } : resumed,
     };
   }
-  if (params.deploymentId === latestDeploymentId) {
+  if (params.deploymentId === latest) {
     return {
       kind: "wizard",
-      state: {
-        ...resumed,
-        card: card === "result" ? "result" : "watch",
-        deploymentId: latestDeploymentId,
-      },
+      state: { ...resumed, card: card === "result" ? "result" : "watch", deploymentId: latest },
     };
   }
   return { kind: "app", appId: app.id };
 }
 
 export function wizardSearchParams(state: WizardState): Record<string, string> {
+  const step = resolveCard(state).id;
   if (!state.app) {
-    return {};
+    return step === "source" ? {} : { step };
   }
-  const params: Record<string, string> = {
-    appId: state.app.id,
-    step: resolveCard(state).id,
-  };
+  const params: Record<string, string> = { appId: state.app.id, step };
   if (state.deploymentId) {
     params.deploymentId = state.deploymentId;
   }

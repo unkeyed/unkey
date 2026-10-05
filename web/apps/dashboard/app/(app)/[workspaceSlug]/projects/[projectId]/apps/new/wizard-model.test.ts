@@ -90,6 +90,29 @@ describe("wizardReducer", () => {
       withApp(),
     );
   });
+
+  describe("history", () => {
+    it("moves to the card a history entry names", () => {
+      const state = withApp({ card: "review" });
+      expect(wizardReducer(state, { type: "history", step: "configure-repo" })).toEqual(
+        withApp({ card: "configure-repo" }),
+      );
+      expect(wizardReducer(state, { type: "history", step: null }).card).toBe("source");
+      expect(wizardReducer(state, { type: "history", step: "select-repo" }).card).toBe("pick-repo");
+    });
+
+    it("ignores an entry with an unknown step", () => {
+      const state = withApp({ card: "review" });
+      expect(wizardReducer(state, { type: "history", step: "configure" })).toBe(state);
+    });
+
+    it("stays put while the flow is locked", () => {
+      const creating = { ...initialWizardState, source: "git" as const, pending: true };
+      expect(wizardReducer(creating, { type: "history", step: null })).toBe(creating);
+      const deploying = withApp({ card: "watch", deploymentId: "d_1" });
+      expect(wizardReducer(deploying, { type: "history", step: "review" })).toBe(deploying);
+    });
+  });
 });
 
 describe("flowLocked", () => {
@@ -189,6 +212,21 @@ describe("resumeWizard", () => {
     expect(resumeWizard({ step: "variables", appId: "app_9", deploymentId: null }, [app])).toEqual(
       fresh,
     );
+    expect(resumeWizard({ step: "pick-repo", appId: "app_9", deploymentId: null }, [app])).toEqual(
+      fresh,
+    );
+  });
+
+  it("resumes a chosen source on its entry card before the app exists", () => {
+    expect(resumeWizard({ step: "pick-repo", appId: null, deploymentId: null }, [])).toEqual({
+      kind: "wizard",
+      state: { ...initialWizardState, source: "git", card: "pick-repo" },
+    });
+    expect(resumeWizard({ step: "image", appId: null, deploymentId: null }, [])).toEqual({
+      kind: "wizard",
+      state: { ...initialWizardState, source: "oci", card: "image" },
+    });
+    expect(resumeWizard({ step: "review", appId: null, deploymentId: null }, [])).toEqual(fresh);
   });
 
   it("resumes the GitHub install return on the repository picker", () => {
@@ -253,8 +291,14 @@ describe("resumeWizard", () => {
 });
 
 describe("wizardSearchParams", () => {
-  it("writes nothing before the app exists", () => {
+  it("writes only the entry card before the app exists", () => {
     expect(wizardSearchParams({ ...initialWizardState, source: "git" })).toEqual({});
+    expect(wizardSearchParams({ ...initialWizardState, source: "git", card: "pick-repo" })).toEqual(
+      { step: "pick-repo" },
+    );
+    expect(wizardSearchParams({ ...initialWizardState, source: "oci", card: "review" })).toEqual({
+      step: "image",
+    });
   });
 
   it("writes the app, the resolved card and the deployment", () => {

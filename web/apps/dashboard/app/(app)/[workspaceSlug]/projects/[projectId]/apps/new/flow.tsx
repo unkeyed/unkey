@@ -15,6 +15,7 @@ import {
   useContext,
   useEffect,
   useReducer,
+  useRef,
   useState,
 } from "react";
 import { GithubConnectingCard } from "./github-connecting";
@@ -142,15 +143,46 @@ function AppRedirect({ projectId, appId }: { projectId: string; appId: string })
   return flowSkeleton;
 }
 
-function useSyncSearchParams(state: WizardState) {
-  const pathname = usePathname();
+function wizardUrl(pathname: string, state: WizardState): string {
   const search = new URLSearchParams(wizardSearchParams(state)).toString();
+  return search ? `${pathname}?${search}` : pathname;
+}
+
+function locationUrl(): string {
+  return `${window.location.pathname}${window.location.search}`;
+}
+
+// An entry written before the app existed lacks its id, so a pop rewrites the
+// URL from the state it lands on.
+function useHistorySync(state: WizardState, dispatch: Dispatch<WizardAction>) {
+  const pathname = usePathname();
+  const card = resolveCard(state).id;
+  const shown = useRef(card);
   useEffect(() => {
-    const url = search ? `${pathname}?${search}` : pathname;
-    if (`${window.location.pathname}${window.location.search}` !== url) {
-      window.history.replaceState(null, "", url);
+    const url = wizardUrl(pathname, state);
+    const moved = shown.current !== card;
+    shown.current = card;
+    if (locationUrl() !== url) {
+      window.history[moved ? "pushState" : "replaceState"](null, "", url);
     }
-  }, [pathname, search]);
+  }, [pathname, state, card]);
+
+  useEffect(() => {
+    const onPopState = () => {
+      if (flowLocked(state)) {
+        window.history.pushState(null, "", wizardUrl(pathname, state));
+        return;
+      }
+      const action: WizardAction = {
+        type: "history",
+        step: new URLSearchParams(window.location.search).get("step"),
+      };
+      window.history.replaceState(null, "", wizardUrl(pathname, wizardReducer(state, action)));
+      dispatch(action);
+    };
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, [pathname, state, dispatch]);
 }
 
 function NewAppFlowProvider({
@@ -165,7 +197,7 @@ function NewAppFlowProvider({
   children: ReactNode;
 }) {
   const [state, dispatch] = useReducer(wizardReducer, initial);
-  useSyncSearchParams(state);
+  useHistorySync(state, dispatch);
 
   const ensureApp: NewAppFlow["ensureApp"] = async (source, create) => {
     if (state.app) {
