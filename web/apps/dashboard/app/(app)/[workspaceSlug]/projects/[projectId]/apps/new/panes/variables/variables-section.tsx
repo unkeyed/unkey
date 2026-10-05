@@ -20,10 +20,10 @@ const emptyRow = (): VariableRow => ({ key: "", value: "", sensitive: false });
 export function useVariableDraft(projectId: string, appId: string) {
   const [rows, setRows] = useState<VariableRow[]>([emptyRow()]);
   const [errors, setErrors] = useState<Map<number, RowErrors>>(new Map());
-  const { data: environments } = useLiveQuery(environmentsQueryFor(projectId, [appId]), [
-    projectId,
-    appId,
-  ]);
+  const { data: environments, isLoading: environmentsLoading } = useLiveQuery(
+    environmentsQueryFor(projectId, [appId]),
+    [projectId, appId],
+  );
   const { data: existing } = useLiveQuery(
     (q) =>
       q
@@ -88,7 +88,7 @@ export function useVariableDraft(projectId: string, appId: string) {
     rows,
     errors,
     existingKeys: [...new Set(existing.map((v) => v.key))].sort(),
-    hasErrors: errors.size > 0,
+    environmentsLoading,
     update,
     remove,
     add: () => setRows((current) => [...current, emptyRow()]),
@@ -98,10 +98,10 @@ export function useVariableDraft(projectId: string, appId: string) {
 
 type VariableDraft = ReturnType<typeof useVariableDraft>;
 
-export function VariablesSection({ draft }: { draft: VariableDraft }) {
+export function VariableFields({ draft }: { draft: VariableDraft }) {
   const rowId = useId();
   return (
-    <section className="flex flex-col gap-3 rounded-lg border border-grayA-4 bg-raised p-5">
+    <>
       {draft.existingKeys.length > 0 ? (
         <p className="text-xs text-gray-10">
           Already set:{" "}
@@ -170,6 +170,6 @@ export function VariablesSection({ draft }: { draft: VariableDraft }) {
         <IconPlusOutline18 className="size-3" />
         Add variable
       </Button>
-    </section>
+    </>
   );
 }

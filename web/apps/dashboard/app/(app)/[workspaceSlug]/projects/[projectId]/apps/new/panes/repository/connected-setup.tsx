@@ -12,7 +12,7 @@ import type { SetupFieldFocus } from "../../wizard-model";
 import { useAppSettings } from "../settings";
 import { Field, SettingsForm } from "../settings/settings-form";
 import { SettingsFormSkeleton } from "../settings/skeleton";
-import { VariablesSection, useVariableDraft } from "../variables/variables-section";
+import { VariableFields, useVariableDraft } from "../variables/variables-section";
 import { BranchField } from "./branch-field";
 import type { Connection } from "./repository-view";
 
@@ -109,7 +109,11 @@ export function ConnectedSetup({
                 variables.existingKeys.length > 0
                   ? `${variables.existingKeys.length} set`
                   : "Optional",
-              content: <VariablesSection draft={variables} />,
+              content: (
+                <section className="flex flex-col gap-3 rounded-lg border border-grayA-4 bg-raised p-5">
+                  <VariableFields draft={variables} />
+                </section>
+              ),
             },
           ]}
           advancedLeadingRows={
