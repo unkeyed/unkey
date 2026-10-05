@@ -1,6 +1,13 @@
 ---
 title: "Request path"
 description: "How one rate limit request is evaluated"
+notion:
+  rootPageID: 3ee512d643f38063b525d6c3619c1f69
+  owners:
+    - andreas
+  tags:
+    - Architecture
+    - Rate Limiting
 ---
 
 The rate limit request path turns a `(workspace, namespace, identifier, duration)` tuple into a sliding-window decision. The normal path is local-memory first and reaches regional state when a counter is cold, stale, or in strict mode.

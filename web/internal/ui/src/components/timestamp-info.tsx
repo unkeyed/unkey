@@ -2,7 +2,7 @@
 import { format } from "date-fns";
 import * as React from "react";
 import { useEffect, useRef, useState } from "react";
-import { useRelativeTime } from "../hooks/use-relative-time";
+import { type RelativePrecision, useRelativeTime } from "../hooks/use-relative-time";
 import { parseTimestamp } from "../lib/time";
 import { cn } from "../lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "./dialog/popover";
@@ -49,12 +49,15 @@ const TooltipRow = ({ label, value }: { label: string; value: string }) => {
   );
 };
 
-const RelativeTime = ({ value }: { value: string | number }) => {
-  return <>{useRelativeTime(value)}</>;
+const RelativeTime = ({
+  value,
+  precision,
+}: { value: string | number; precision?: RelativePrecision }) => {
+  return <>{useRelativeTime(value, "long", precision)}</>;
 };
 
 const RelativeRow = ({ value }: { value: string | number }) => {
-  return <TooltipRow label="Relative" value={useRelativeTime(value)} />;
+  return <TooltipRow label="Relative" value={useRelativeTime(value, "long", "second")} />;
 };
 
 type DisplayType = "local" | "local_hours_with_millis" | "utc" | "relative";
@@ -63,6 +66,7 @@ const TimestampInfo: React.FC<{
   value: string | number;
   className?: string;
   displayType?: DisplayType;
+  precision?: RelativePrecision;
   side?: "left" | "right" | "top" | "bottom";
   align?: "start" | "center" | "end";
   triggerRef?: React.RefObject<HTMLElement | null>;
@@ -72,6 +76,7 @@ const TimestampInfo: React.FC<{
   value,
   className,
   displayType = "local",
+  precision,
   side: sideProp,
   align: alignProp,
   triggerRef: externalTriggerRef,
@@ -81,6 +86,7 @@ const TimestampInfo: React.FC<{
   className?: string;
   value: string | number;
   displayType?: DisplayType;
+  precision?: RelativePrecision;
   side?: "left" | "right" | "top" | "bottom";
   align?: "start" | "center" | "end";
   triggerRef?: React.RefObject<HTMLElement | null>;
@@ -137,7 +143,7 @@ const TimestampInfo: React.FC<{
       case "utc":
         return utc;
       case "relative":
-        return <RelativeTime value={value} />;
+        return <RelativeTime value={value} precision={precision} />;
       case "local_hours_with_millis":
         return timestampLocalHoursWithMillisFormatter(value);
       default:

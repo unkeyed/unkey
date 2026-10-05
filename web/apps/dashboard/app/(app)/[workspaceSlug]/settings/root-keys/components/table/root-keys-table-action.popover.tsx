@@ -1,12 +1,12 @@
 "use client";
 import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
-import type { RootKey } from "@/lib/trpc/routers/settings/root-keys/query";
 import {
   IconArrowDottedRotateAnticlockwiseOutline18,
   IconPenWriting3Outline18,
   IconTrashOutline18,
 } from "@unkey/icons";
 import { DeleteRootKey } from "./delete-root-key";
+import type { RootKey } from "./root-keys-v2";
 import { RotateRootKey } from "./rotate-root-key";
 
 type RootKeysTableActionsProps = {
