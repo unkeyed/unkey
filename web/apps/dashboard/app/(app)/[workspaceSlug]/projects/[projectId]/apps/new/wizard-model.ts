@@ -260,26 +260,37 @@ function resumeCard(step: string | null, app: ResumableApp, source: SourceKind):
   return card;
 }
 
+export type Resume = { kind: "wizard"; state: WizardState } | { kind: "app"; appId: string };
+
+const startFresh: Resume = { kind: "wizard", state: initialWizardState };
+
 // Only an app this flow could have made resumes: one that has not deployed
-// yet, or whose latest deployment is the one the URL names.
-export function resumeWizard(params: ResumeParams, app: ResumableApp | null): WizardState {
+// yet, or whose latest deployment is the one the URL names. Any other app has
+// moved on, so its own page is the place to continue.
+export function resumeWizard(params: ResumeParams, app: ResumableApp | null): Resume {
   if (!params.appId || !app || app.id !== params.appId) {
-    return initialWizardState;
+    return startFresh;
   }
   const source = app.sourceType === "oci" ? "oci" : "git";
   const card = resumeCard(params.step, app, source);
   const resumed: WizardState = { ...initialWizardState, app: { id: app.id, source }, card };
   if (app.latestDeploymentId === null) {
-    return card === "watch" || card === "result" ? { ...resumed, card: "review" } : resumed;
+    return {
+      kind: "wizard",
+      state: card === "watch" || card === "result" ? { ...resumed, card: "review" } : resumed,
+    };
   }
   if (params.deploymentId === app.latestDeploymentId) {
     return {
-      ...resumed,
-      card: card === "result" ? "result" : "watch",
-      deploymentId: app.latestDeploymentId,
+      kind: "wizard",
+      state: {
+        ...resumed,
+        card: card === "result" ? "result" : "watch",
+        deploymentId: app.latestDeploymentId,
+      },
     };
   }
-  return initialWizardState;
+  return { kind: "app", appId: app.id };
 }
 
 type ProjectApp = {
@@ -290,7 +301,7 @@ type ProjectApp = {
   currentDeploymentId: string | null;
 };
 
-export function resumeFromApps(params: ResumeParams, apps: readonly ProjectApp[]): WizardState {
+export function resumeFromApps(params: ResumeParams, apps: readonly ProjectApp[]): Resume {
   const app = apps.find((a) => a.id === params.appId);
   return resumeWizard(
     params,

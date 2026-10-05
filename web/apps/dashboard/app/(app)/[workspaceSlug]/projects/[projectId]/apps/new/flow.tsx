@@ -1,10 +1,12 @@
 "use client";
 
 import { TOP_NAV_HEIGHT } from "@/components/navigation/top-nav";
+import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { collection } from "@/lib/collections";
+import { routes } from "@/lib/navigation/routes";
 import { eq, useLiveQuery } from "@tanstack/react-db";
 import { Skeleton } from "@unkey/ui";
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   type CSSProperties,
   type Dispatch,
@@ -13,6 +15,7 @@ import {
   useContext,
   useEffect,
   useReducer,
+  useState,
 } from "react";
 import { GithubConnectingCard } from "./github-connecting";
 import type { CreateAppResult } from "./use-app-lifecycle";
@@ -20,6 +23,7 @@ import {
   type Card,
   type CardId,
   GITHUB_RETURN_STEP,
+  type Resume,
   type SourceKind,
   type WizardAction,
   type WizardState,
@@ -70,24 +74,61 @@ export function FlowLoader({ projectId, children }: { projectId: string; childre
     [projectId],
   );
   if (params.appId && isLoading) {
-    if (returningFromGithub) {
-      return <GithubConnectingCard />;
-    }
-    return (
-      <div className="flex items-center justify-center p-10" style={viewportHeight}>
-        <Skeleton className="h-full w-full max-w-[960px] rounded-xl" />
-      </div>
-    );
+    return returningFromGithub ? <GithubConnectingCard /> : flowSkeleton;
+  }
+  return (
+    <ResumedFlow
+      projectId={projectId}
+      resume={() => resumeFromApps(params, apps)}
+      returningFromGithub={returningFromGithub}
+    >
+      {children}
+    </ResumedFlow>
+  );
+}
+
+const flowSkeleton = (
+  <div className="flex items-center justify-center p-10" style={viewportHeight}>
+    <Skeleton className="h-full w-full max-w-[960px] rounded-xl" />
+  </div>
+);
+
+// The decision is taken once: the URL and the app list both change as the flow
+// deploys, and a later mismatch must not send the user away mid-flow.
+function ResumedFlow({
+  projectId,
+  resume,
+  returningFromGithub,
+  children,
+}: {
+  projectId: string;
+  resume: () => Resume;
+  returningFromGithub: boolean;
+  children: ReactNode;
+}) {
+  const [resumed] = useState(resume);
+  if (resumed.kind === "app") {
+    return <AppRedirect projectId={projectId} appId={resumed.appId} />;
   }
   return (
     <NewAppFlowProvider
       projectId={projectId}
-      initial={() => resumeFromApps(params, apps)}
+      initial={resumed.state}
       returningFromGithub={returningFromGithub}
     >
       {children}
     </NewAppFlowProvider>
   );
+}
+
+function AppRedirect({ projectId, appId }: { projectId: string; appId: string }) {
+  const router = useRouter();
+  const workspace = useWorkspaceNavigation();
+  const href = routes.projects.apps.overview({ workspaceSlug: workspace.slug, projectId, appId });
+  useEffect(() => {
+    router.replace(href);
+  }, [router, href]);
+  return flowSkeleton;
 }
 
 function useSyncSearchParams(state: WizardState) {
@@ -108,11 +149,11 @@ function NewAppFlowProvider({
   children,
 }: {
   projectId: string;
-  initial: () => WizardState;
+  initial: WizardState;
   returningFromGithub: boolean;
   children: ReactNode;
 }) {
-  const [state, dispatch] = useReducer(wizardReducer, undefined, initial);
+  const [state, dispatch] = useReducer(wizardReducer, initial);
   useSyncSearchParams(state);
 
   const ensureApp: NewAppFlow["ensureApp"] = async (source, create) => {

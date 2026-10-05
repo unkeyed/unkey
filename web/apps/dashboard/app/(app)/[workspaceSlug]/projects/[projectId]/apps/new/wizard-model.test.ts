@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  type Resume,
   type WizardState,
   flowLocked,
   initialWizardState,
@@ -10,6 +11,10 @@ import {
   wizardReducer,
   wizardSearchParams,
 } from "./wizard-model";
+
+const fresh: Resume = { kind: "wizard", state: initialWizardState };
+
+const resumedCard = (resume: Resume) => (resume.kind === "wizard" ? resume.state.card : null);
 
 const withApp = (patch: Partial<WizardState> = {}): WizardState => ({
   ...initialWizardState,
@@ -172,67 +177,67 @@ describe("resumeWizard", () => {
   });
 
   it("starts fresh without an app", () => {
-    expect(resumeWizard({ step: null, appId: null, deploymentId: null }, null)).toBe(
-      initialWizardState,
-    );
+    expect(resumeWizard({ step: null, appId: null, deploymentId: null }, null)).toEqual(fresh);
   });
 
   it("starts fresh when the app is not in this project", () => {
-    expect(resumeWizard({ step: "variables", appId: "app_9", deploymentId: null }, null)).toBe(
-      initialWizardState,
+    expect(resumeWizard({ step: "variables", appId: "app_9", deploymentId: null }, null)).toEqual(
+      fresh,
     );
   });
 
   it("resumes the GitHub install return on the repository picker", () => {
-    expect(resumeWizard(at("select-repo"), app)).toEqual(
-      withApp({ source: null, card: "pick-repo" }),
-    );
+    expect(resumeWizard(at("select-repo"), app)).toEqual({
+      kind: "wizard",
+      state: withApp({ source: null, card: "pick-repo" }),
+    });
   });
 
   it("resumes the exact card in the URL", () => {
-    expect(resumeWizard(at("configure-repo"), app).card).toBe("configure-repo");
-    expect(resumeWizard(at("pick-repo"), app).card).toBe("pick-repo");
-    expect(resumeWizard(at("source"), app).card).toBe("source");
+    expect(resumedCard(resumeWizard(at("configure-repo"), app))).toBe("configure-repo");
+    expect(resumedCard(resumeWizard(at("pick-repo"), app))).toBe("pick-repo");
+    expect(resumedCard(resumeWizard(at("source"), app))).toBe("source");
   });
 
   it("sends a repository app without a connection to the picker", () => {
     const unlinked = { ...app, repositoryConnected: false };
-    expect(resumeWizard(at("configure-repo"), unlinked).card).toBe("pick-repo");
-    expect(resumeWizard(at("configure"), unlinked).card).toBe("pick-repo");
+    expect(resumedCard(resumeWizard(at("configure-repo"), unlinked))).toBe("pick-repo");
+    expect(resumedCard(resumeWizard(at("configure"), unlinked))).toBe("pick-repo");
   });
 
   it("maps the old step names", () => {
-    expect(resumeWizard(at("configure"), app).card).toBe("configure-repo");
-    expect(resumeWizard(at("deploy"), app).card).toBe("review");
-    expect(resumeWizard(at(null), app).card).toBe("configure-repo");
+    expect(resumedCard(resumeWizard(at("configure"), app))).toBe("configure-repo");
+    expect(resumedCard(resumeWizard(at("deploy"), app))).toBe("review");
+    expect(resumedCard(resumeWizard(at(null), app))).toBe("configure-repo");
   });
 
   it("resumes an image app on its own cards", () => {
     const oci = { ...app, sourceType: "oci" as const, repositoryConnected: false };
     expect(resumeWizard(at("variables"), oci)).toEqual({
-      ...initialWizardState,
-      card: "variables",
-      app: { id: "app_1", source: "oci" },
+      kind: "wizard",
+      state: { ...initialWizardState, card: "variables", app: { id: "app_1", source: "oci" } },
     });
-    expect(resumeWizard(at("configure-repo"), oci).card).toBe("image");
-    expect(resumeWizard(at("configure"), oci).card).toBe("image");
+    expect(resumedCard(resumeWizard(at("configure-repo"), oci))).toBe("image");
+    expect(resumedCard(resumeWizard(at("configure"), oci))).toBe("image");
   });
 
   it("keeps an undeployed app off the deployment cards", () => {
-    expect(resumeWizard(at("watch"), app).card).toBe("review");
+    expect(resumedCard(resumeWizard(at("watch"), app))).toBe("review");
   });
 
   it("resumes its own deployment on watch or result", () => {
     const deployed = { ...app, latestDeploymentId: "d_1" };
-    expect(resumeWizard(at("deploy", "d_1"), deployed)).toEqual(
-      withApp({ source: null, card: "watch", deploymentId: "d_1" }),
-    );
-    expect(resumeWizard(at("result", "d_1"), deployed).card).toBe("result");
+    expect(resumeWizard(at("deploy", "d_1"), deployed)).toEqual({
+      kind: "wizard",
+      state: withApp({ source: null, card: "watch", deploymentId: "d_1" }),
+    });
+    expect(resumedCard(resumeWizard(at("result", "d_1"), deployed))).toBe("result");
   });
 
-  it("refuses an app that already deployed outside this flow", () => {
+  it("sends an app that already deployed outside this flow to its overview", () => {
     const deployed = { ...app, latestDeploymentId: "d_1" };
-    expect(resumeWizard(at("review"), deployed)).toBe(initialWizardState);
+    expect(resumeWizard(at("review"), deployed)).toEqual({ kind: "app", appId: "app_1" });
+    expect(resumeWizard(at("watch", "d_0"), deployed)).toEqual({ kind: "app", appId: "app_1" });
   });
 });
 
@@ -249,13 +254,14 @@ describe("resumeFromApps", () => {
   ];
 
   it("resumes the deployment only when it is the app's latest", () => {
-    expect(resumeFromApps({ ...params, deploymentId: "d_new" }, project("d_new"))).toEqual(
-      withApp({ source: null, card: "watch", deploymentId: "d_new" }),
-    );
+    expect(resumeFromApps({ ...params, deploymentId: "d_new" }, project("d_new"))).toEqual({
+      kind: "wizard",
+      state: withApp({ source: null, card: "watch", deploymentId: "d_new" }),
+    });
   });
 
-  it("refuses a stale deployment id from the URL", () => {
-    expect(resumeFromApps(params, project("d_new"))).toBe(initialWizardState);
+  it("sends a stale deployment id from the URL to the app overview", () => {
+    expect(resumeFromApps(params, project("d_new"))).toEqual({ kind: "app", appId: "app_1" });
   });
 });
 
