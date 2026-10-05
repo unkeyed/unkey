@@ -1,0 +1,42 @@
+post:
+  tags:
+    - cli
+  summary: Start CLI device login
+  description: |
+    Starts a WorkOS device authorization for `unkey login`.
+    The response includes the user code and the dashboard URL where the user confirms it and chooses root-key permissions.
+    The device code stays on the server. No authentication is required.
+  operationId: cli.startDeviceLogin
+  x-speakeasy-name-override: startDeviceLogin
+  security: []
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ./V2CliStartDeviceLoginRequestBody.yaml
+  responses:
+    "200":
+      description: Device login started.
+      content:
+        application/json:
+          schema:
+            $ref: ./V2CliStartDeviceLoginResponseBody.yaml
+    "400":
+      description: Invalid input.
+      content:
+        application/json:
+          schema:
+            $ref: ../../../../error/BadRequestErrorResponse.yaml
+    "503":
+      description: CLI login is not configured.
+      content:
+        application/json:
+          schema:
+            $ref: ../../../../error/ServiceUnavailableErrorResponse.yaml
+    "500":
+      description: Internal server error.
+      content:
+        application/json:
+          schema:
+            $ref: ../../../../error/InternalServerErrorResponse.yaml

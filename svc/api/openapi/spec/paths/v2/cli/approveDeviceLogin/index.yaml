@@ -1,0 +1,47 @@
+post:
+  tags:
+    - cli
+  summary: Approve CLI device login
+  description: |
+    Stores the root-key permissions selected by the signed-in user.
+    The caller must be allowed to create root keys, and every permission must fit inside the caller's own permissions.
+    The root key is created later, when the CLI polls, and only with this exact set.
+  operationId: cli.approveDeviceLogin
+  x-speakeasy-name-override: approveDeviceLogin
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ./V2CliApproveDeviceLoginRequestBody.yaml
+  responses:
+    "200":
+      description: Permissions stored.
+      content:
+        application/json:
+          schema:
+            $ref: ./V2CliApproveDeviceLoginResponseBody.yaml
+    "400":
+      description: Invalid code or permission.
+      content:
+        application/json:
+          schema:
+            $ref: ../../../../error/BadRequestErrorResponse.yaml
+    "401":
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            $ref: ../../../../error/UnauthorizedErrorResponse.yaml
+    "403":
+      description: The caller cannot grant these permissions.
+      content:
+        application/json:
+          schema:
+            $ref: ../../../../error/ForbiddenErrorResponse.yaml
+    "500":
+      description: Internal server error.
+      content:
+        application/json:
+          schema:
+            $ref: ../../../../error/InternalServerErrorResponse.yaml

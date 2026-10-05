@@ -1,0 +1,45 @@
+post:
+  tags:
+    - cli
+  summary: Deny CLI device login
+  description: |
+    Denies a device login so the CLI does not receive a root key.
+  operationId: cli.denyDeviceLogin
+  x-speakeasy-name-override: denyDeviceLogin
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ./V2CliDenyDeviceLoginRequestBody.yaml
+  responses:
+    "200":
+      description: Login denied.
+      content:
+        application/json:
+          schema:
+            $ref: ./V2CliDenyDeviceLoginResponseBody.yaml
+    "400":
+      description: Unknown or closed login.
+      content:
+        application/json:
+          schema:
+            $ref: ../../../../error/BadRequestErrorResponse.yaml
+    "401":
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            $ref: ../../../../error/UnauthorizedErrorResponse.yaml
+    "403":
+      description: Another account already approved this login.
+      content:
+        application/json:
+          schema:
+            $ref: ../../../../error/ForbiddenErrorResponse.yaml
+    "500":
+      description: Internal server error.
+      content:
+        application/json:
+          schema:
+            $ref: ../../../../error/InternalServerErrorResponse.yaml

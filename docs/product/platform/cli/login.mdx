@@ -1,0 +1,93 @@
+---
+title: unkey login
+description: "Sign in from the terminal and store a root key with the permissions you select."
+sources:
+  - cmd/login/login.go
+  - cmd/login/device.go
+  - cmd/auth/main.go
+  - pkg/cli/config.go
+  - pkg/cli/rootkey.go
+  - pkg/cli/keystore/doc.go
+  - svc/api/internal/clidevice/service.go
+---
+
+`unkey login` starts a device login. You confirm the code in the dashboard, choose root-key permissions, and the CLI stores the key it receives.
+
+`unkey auth login` runs the same command.
+
+## Usage
+
+```bash
+unkey login
+```
+
+The command prints a confirmation code and a URL, then opens that URL in your browser. Sign in as a workspace admin, check that the code matches the terminal, and select the permissions this key should have. Click **Allow**. The CLI finishes from that approval.
+
+The CLI keeps polling until the login finishes. On success it stores the root key and prints `Authentication successful. Key stored in the system keychain.` It does not print the root key.
+
+A denied or expired login stops with the reason. Run `unkey login` again to start over.
+
+## Flags
+
+<ParamField body="--api-url" type="string">
+  API origin to call. Falls back to `UNKEY_API_BASE_URL`. Defaults to `https://api.unkey.com`.
+</ParamField>
+
+<ParamField body="--no-browser" type="boolean">
+  Print the verification URL and do not open a browser.
+</ParamField>
+
+<ParamField body="--root-key" type="string">
+  Store this root key and skip the browser. The command does not check the key with the API, and it does not read `UNKEY_ROOT_KEY`.
+</ParamField>
+
+## Where the key is stored
+
+The root key goes in the operating system secret store:
+
+- macOS Keychain, as a generic password with service `unkey` and account `root_key`
+- Windows Credential Manager, as a generic credential named `unkey/root_key`
+- Linux Secret Service, through `secret-tool`, with attributes `service=unkey` and `account=root_key`
+
+On macOS, the `security` tool receives the key as an argument for the duration of the save.
+
+If that store is unavailable (no `secret-tool` binary, or no Secret Service session on Linux), the CLI writes `~/.unkey/config.toml` instead and prints that path. Only your user can read the file (mode `0600`, in a `0700` directory):
+
+```toml ~/.unkey/config.toml
+root_key = "unkey_xxx"
+```
+
+A key that is already in `~/.unkey/config.toml` is copied into the secret store the next time the CLI reads or writes the default config, and the file is removed. `--config` or `UNKEY_CONFIG` pointing at a different file is read as a file and is not copied into the keychain.
+
+`unkey login --root-key` uses this same storage. Running the command again replaces the stored key.
+
+The key has exactly the permissions you selected. It does not inherit every permission your user has. You must be a workspace admin to approve the login.
+
+`unkey api` commands read the keychain when neither `--root-key` nor `UNKEY_ROOT_KEY` is set and the config path is the default. `unkey deploy` reads neither the keychain nor the file. See [CLI authentication](/platform/cli/authentication).
+
+## Examples
+
+Sign in, then call the API without a key flag:
+
+```bash
+unkey login
+unkey api apis list-keys --api-id=api_1234abcd
+```
+
+Sign in on a machine without a browser:
+
+```bash
+unkey login --no-browser
+```
+
+Store a key you already created:
+
+```bash
+unkey login --root-key=unkey_xxx
+```
+
+Point the command at a local API:
+
+```bash
+unkey login --api-url=http://localhost:7070
+```

@@ -1,0 +1,22 @@
+type: object
+required:
+  - userCode
+  - status
+  - expiresAt
+  - workosVerificationUri
+properties:
+  userCode:
+    type: string
+  deviceName:
+    type: string
+    description: Label sent by the CLI. Empty when the CLI did not send one.
+  status:
+    type: string
+    description: pending, approved, consumed, denied, or expired.
+  expiresAt:
+    type: integer
+    format: int64
+    description: Unix millisecond expiry.
+  workosVerificationUri:
+    type: string
+    description: WorkOS page that confirms the device after the user clicks Allow.
