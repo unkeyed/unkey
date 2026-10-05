@@ -202,8 +202,6 @@ describe("catalogue grammar", () => {
       "projects/*/identities/*",
       "projects/*/rbac/roles/*",
       "projects/*/rbac/permissions/*",
-      "projects/*/portals/*",
-      "projects/*/portals/*/sessions/*",
       "rootKeys/*",
       "github/apps/*",
     ]);
@@ -435,8 +433,6 @@ describe("buildUrns on the projects scope", () => {
       "unkey:v1:ws_123:projects/proj_1/identities/*#read",
       "unkey:v1:ws_123:projects/proj_1/rbac/roles/*#read",
       "unkey:v1:ws_123:projects/proj_1/rbac/permissions/*#read",
-      "unkey:v1:ws_123:projects/proj_1/portals/*#read",
-      "unkey:v1:ws_123:projects/proj_1/portals/*/sessions/*#read",
     ]);
   });
 
