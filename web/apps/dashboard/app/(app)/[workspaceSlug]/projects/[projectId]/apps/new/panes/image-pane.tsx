@@ -17,7 +17,7 @@ import { useNewAppFlow } from "../flow";
 import { useAppLifecycle } from "../use-app-lifecycle";
 import { PaneActions } from "./pane-actions";
 import { AppSettingsForm } from "./settings";
-import { deploymentConfigSchema, settingRowCopy } from "./settings/deployment-config";
+import { deploymentConfigSchema, settingTitle } from "./settings/deployment-config";
 import { RegionSelect } from "./settings/region-select";
 import { Field, FieldStack } from "./settings/settings-form";
 import { SizeField } from "./settings/size-field";
@@ -152,7 +152,7 @@ function NewImage() {
           />
         </Field>
         <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,2fr)] gap-4">
-          <Field title={settingRowCopy("oci", "port").title}>
+          <Field title={settingTitle.port}>
             <FormInput
               aria-label="Port"
               data-1p-ignore
@@ -163,7 +163,7 @@ function NewImage() {
               {...register("port", { valueAsNumber: true })}
             />
           </Field>
-          <Field title={settingRowCopy("oci", "regions").title}>
+          <Field title={settingTitle.regions}>
             <RegionSelect
               regions={regions}
               error={errors.regions?.message}
@@ -171,7 +171,7 @@ function NewImage() {
             />
           </Field>
         </div>
-        <Field title={settingRowCopy("oci", "size").title}>
+        <Field title={settingTitle.size}>
           <SizeField size={size} onChange={(next) => setValue("size", next)} />
         </Field>
       </FieldStack>

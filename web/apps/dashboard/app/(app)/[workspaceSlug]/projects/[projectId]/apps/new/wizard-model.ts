@@ -232,11 +232,12 @@ type ResumeParams = {
   deploymentId: string | null;
 };
 
-type ResumableApp = {
+type ProjectApp = {
   id: string;
   sourceType: "git" | "oci" | "unknown";
-  repositoryConnected: boolean;
-  latestDeploymentId: string | null;
+  repositoryFullName: string | null;
+  headlineDeployment: { id: string } | null;
+  currentDeploymentId: string | null;
 };
 
 const cardIds: readonly string[] = [...new Set(Object.values(sourceCards).flat())];
@@ -245,16 +246,13 @@ function isCardId(step: string): step is CardId {
   return cardIds.includes(step);
 }
 
-function resumeCard(step: string | null, app: ResumableApp, source: SourceKind): CardId {
+function resumeCard(step: string | null, app: ProjectApp, source: SourceKind): CardId {
   if (step === GITHUB_RETURN_STEP) {
     return "pick-repo";
   }
-  if (step === "deploy") {
-    return "review";
-  }
   const known = step !== null && isCardId(step) && sourceCards[source].includes(step);
   const card = known ? step : configureCards[source];
-  if (card === "configure-repo" && !app.repositoryConnected) {
+  if (card === "configure-repo" && app.repositoryFullName === null) {
     return "pick-repo";
   }
   return card;
@@ -267,53 +265,32 @@ const startFresh: Resume = { kind: "wizard", state: initialWizardState };
 // Only an app this flow could have made resumes: one that has not deployed
 // yet, or whose latest deployment is the one the URL names. Any other app has
 // moved on, so its own page is the place to continue.
-export function resumeWizard(params: ResumeParams, app: ResumableApp | null): Resume {
-  if (!params.appId || !app || app.id !== params.appId) {
+export function resumeWizard(params: ResumeParams, apps: readonly ProjectApp[]): Resume {
+  const app = params.appId ? apps.find((a) => a.id === params.appId) : undefined;
+  if (!app) {
     return startFresh;
   }
   const source = app.sourceType === "oci" ? "oci" : "git";
   const card = resumeCard(params.step, app, source);
   const resumed: WizardState = { ...initialWizardState, app: { id: app.id, source }, card };
-  if (app.latestDeploymentId === null) {
+  const latestDeploymentId = app.headlineDeployment?.id ?? app.currentDeploymentId;
+  if (latestDeploymentId === null) {
     return {
       kind: "wizard",
       state: card === "watch" || card === "result" ? { ...resumed, card: "review" } : resumed,
     };
   }
-  if (params.deploymentId === app.latestDeploymentId) {
+  if (params.deploymentId === latestDeploymentId) {
     return {
       kind: "wizard",
       state: {
         ...resumed,
         card: card === "result" ? "result" : "watch",
-        deploymentId: app.latestDeploymentId,
+        deploymentId: latestDeploymentId,
       },
     };
   }
   return { kind: "app", appId: app.id };
-}
-
-type ProjectApp = {
-  id: string;
-  sourceType: ResumableApp["sourceType"];
-  repositoryFullName: string | null;
-  headlineDeployment: { id: string } | null;
-  currentDeploymentId: string | null;
-};
-
-export function resumeFromApps(params: ResumeParams, apps: readonly ProjectApp[]): Resume {
-  const app = apps.find((a) => a.id === params.appId);
-  return resumeWizard(
-    params,
-    app
-      ? {
-          id: app.id,
-          sourceType: app.sourceType,
-          repositoryConnected: app.repositoryFullName !== null,
-          latestDeploymentId: app.headlineDeployment?.id ?? app.currentDeploymentId,
-        }
-      : null,
-  );
 }
 
 export function wizardSearchParams(state: WizardState): Record<string, string> {

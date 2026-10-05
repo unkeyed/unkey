@@ -63,14 +63,7 @@ function useAutoTail(lineCount: number) {
   return { ref, following, onScroll, resume: () => setFollowing(true) };
 }
 
-type LogBoxProps = {
-  run: DeployRun;
-  className?: string;
-  tone?: "light" | "dark";
-  showTitle?: boolean;
-};
-
-export function LogBox({ run, className, tone = "light", showTitle = true }: LogBoxProps) {
+export function LogBox({ run, className }: { run: DeployRun; className?: string }) {
   const lines = run.groups.flatMap((group) => group.lines);
   const tail = useAutoTail(lines.length + run.groups.length);
   const errors = lines.filter((line) => line.tone === "error").length;
@@ -84,13 +77,11 @@ export function LogBox({ run, className, tone = "light", showTitle = true }: Log
   return (
     <div
       className={cn(
-        "flex min-h-0 flex-col overflow-hidden rounded-lg border border-grayA-4",
-        tone === "dark" ? "bg-gray-1" : "bg-gray-2",
+        "flex min-h-0 flex-col overflow-hidden rounded-lg border border-grayA-4 bg-gray-2",
         className,
       )}
     >
       <div className="flex h-9 shrink-0 items-center gap-3 border-b border-grayA-4 px-3 text-xs text-gray-10">
-        {showTitle ? <span className="font-medium text-gray-12">Build Logs</span> : null}
         <span className="tabular-nums">
           {lines.length} {lines.length === 1 ? "line" : "lines"}
         </span>
@@ -176,7 +167,7 @@ function EmptyLog({ run }: { run: DeployRun }) {
   );
 }
 
-export function LiveUrl({ run, size = "md" }: { run: DeployRun; size?: "md" | "lg" }) {
+export function LiveUrl({ run }: { run: DeployRun }) {
   const domain = run.primaryDomain;
   if (!domain) {
     return <span className="text-sm text-gray-10">No domain is assigned yet.</span>;
@@ -188,10 +179,7 @@ export function LiveUrl({ run, size = "md" }: { run: DeployRun; size?: "md" | "l
         title={domain.url}
         target="_blank"
         rel="noopener noreferrer"
-        className={cn(
-          "flex min-w-0 items-center gap-1 font-mono text-gray-12 underline decoration-grayA-6 underline-offset-4 hover:decoration-gray-12",
-          size === "lg" ? "text-base" : "text-sm",
-        )}
+        className="flex min-w-0 items-center gap-1 font-mono text-sm text-gray-12 underline decoration-grayA-6 underline-offset-4 hover:decoration-gray-12"
       >
         <span className="truncate">{domain.hostname}</span>
         <IconArrowUpRightOutline12 className="size-3 shrink-0 text-gray-10" />

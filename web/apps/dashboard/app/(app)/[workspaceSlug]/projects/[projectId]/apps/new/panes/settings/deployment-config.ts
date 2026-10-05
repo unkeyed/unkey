@@ -65,32 +65,15 @@ export const settingsLayout: Record<
   oci: { main: ["port", "regions", "size"], advanced: [], usesRepoTree: false },
 };
 
-type RowCopy = { title: string; description: string };
-
-const rowCopy: Record<SettingField, RowCopy> = {
-  dockerContext: {
-    title: "Root directory",
-    description: "Where your app lives in the repository.",
-  },
-  regions: { title: "Regions", description: "Where your app runs." },
-  port: { title: "Port", description: "The port your app listens on." },
-  dockerfile: { title: "Dockerfile", description: "Build with a Dockerfile instead." },
-  buildCommand: { title: "Build command", description: "Override the detected build command." },
-  startCommand: {
-    title: "Start command",
-    description: "Override the command that starts your app.",
-  },
-  size: { title: "Size", description: "CPU and memory for each instance." },
+export const settingTitle: Record<SettingField, string> = {
+  dockerContext: "Root directory",
+  regions: "Regions",
+  port: "Port",
+  dockerfile: "Dockerfile",
+  buildCommand: "Build command",
+  startCommand: "Start command",
+  size: "Size",
 };
-
-const rowCopyOverrides: Record<SourceKind, Partial<Record<SettingField, RowCopy>>> = {
-  git: {},
-  oci: { port: { title: "Port", description: "Enter the port your app listens on." } },
-};
-
-export function settingRowCopy(source: SourceKind, field: SettingField): RowCopy {
-  return rowCopyOverrides[source][field] ?? rowCopy[field];
-}
 
 export type BuildMethod = "automatic" | "dockerfile";
 

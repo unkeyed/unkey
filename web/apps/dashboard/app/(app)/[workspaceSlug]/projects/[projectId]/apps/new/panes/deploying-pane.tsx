@@ -276,7 +276,7 @@ function StageDetailView({
             {error}
           </div>
         ) : null}
-        <LogBox run={run} showTitle={false} className="min-h-0 flex-1 rounded-none border-0" />
+        <LogBox run={run} className="min-h-0 flex-1 rounded-none border-0" />
       </div>
     ))
     .with({ type: "crash" }, () => (

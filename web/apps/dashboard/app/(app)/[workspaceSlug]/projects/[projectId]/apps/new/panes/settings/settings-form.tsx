@@ -26,7 +26,7 @@ import {
   findDockerfiles,
   readDeploymentConfig,
   resolveBuildMethod,
-  settingRowCopy,
+  settingTitle,
   settingsLayout,
   suggestRootDirectories,
 } from "./deployment-config";
@@ -326,11 +326,7 @@ export function SettingsForm({
 
   const rows = (fields: readonly SettingField[]) =>
     fields.map((field) => (
-      <Field
-        key={field}
-        title={settingRowCopy(source, field).title}
-        highlight={field === focusField}
-      >
+      <Field key={field} title={settingTitle[field]} highlight={field === focusField}>
         {controls[field]}
       </Field>
     ));
@@ -371,9 +367,7 @@ export function SettingsForm({
           <>
             <div className="grid grid-cols-2 gap-4">
               <Field title={pairedField.title}>{pairedField.control}</Field>
-              <Field title={settingRowCopy(source, "dockerContext").title}>
-                {controls.dockerContext}
-              </Field>
+              <Field title={settingTitle.dockerContext}>{controls.dockerContext}</Field>
             </div>
             {rows(layout.main.slice(1))}
           </>

@@ -30,7 +30,7 @@ import {
   cardList,
   flowLocked,
   resolveCard,
-  resumeFromApps,
+  resumeWizard,
   wizardReducer,
   wizardSearchParams,
 } from "./wizard-model";
@@ -79,7 +79,7 @@ export function FlowLoader({ projectId, children }: { projectId: string; childre
   return (
     <ResumedFlow
       projectId={projectId}
-      resume={() => resumeFromApps(params, apps)}
+      resume={() => resumeWizard(params, apps)}
       returningFromGithub={returningFromGithub}
     >
       {children}
