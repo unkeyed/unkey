@@ -33,7 +33,7 @@ import (
 // (clear deleted_at / drained_at) or audit recently-exported events. One
 // window for both tables: the back office rows are few and follow the same
 // contract.
-const retention = 30 * 24 * time.Hour
+const retention = 7 * 24 * time.Hour
 
 // batchLimit bounds each DELETE so row locks stay short and replication lag
 // stays bounded; the handler loops until a batch deletes fewer than this.

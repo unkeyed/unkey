@@ -17,26 +17,21 @@ import { updateApiName } from "./api/updateName";
 import { fetchAuditLog } from "./audit/fetch";
 import { auditLogsSearch } from "./audit/llm-search";
 import { listAuditMembers } from "./audit/members";
-import { deletePermissionWithRelations } from "./authorization/permissions/delete";
 import { permissionsLlmSearch } from "./authorization/permissions/llm-search";
 import { queryPermissions } from "./authorization/permissions/query";
-import { upsertPermission } from "./authorization/permissions/upsert";
+import { updatePermission } from "./authorization/permissions/update";
 import { getConnectedKeysAndPerms } from "./authorization/roles/connected-keys-and-perms";
-import { deleteRoleWithRelations } from "./authorization/roles/delete";
 import { queryKeys } from "./authorization/roles/keys/query-keys";
 import { searchKeys } from "./authorization/roles/keys/search-key";
 import { rolesLlmSearch } from "./authorization/roles/llm-search";
-import { queryRolesPermissions } from "./authorization/roles/permissions/query-permissions";
-import { searchRolesPermissions } from "./authorization/roles/permissions/search-permissions";
 import { queryRoles } from "./authorization/roles/query";
-import { upsertRole } from "./authorization/roles/upsert";
+import { updateRole } from "./authorization/roles/update";
 import { getDeployBudget, setDeployBudget } from "./billing/deploy-budget";
 import { queryComputeAllocation } from "./billing/query-compute-allocation";
 import { queryDeployUsage } from "./billing/query-deploy-usage";
 import { queryDeployUsageBreakdown } from "./billing/query-deploy-usage-breakdown";
 import { queryDeployUsageTimeseries } from "./billing/query-deploy-usage-timeseries";
 import { queryUsage } from "./billing/query-usage";
-import { listApps } from "./deploy/app/list";
 import { countCustomDomains } from "./deploy/custom-domains/count";
 import { authorizeDeployment } from "./deploy/deployment/authorize";
 import { getDeploymentBuildSteps } from "./deploy/deployment/build-steps";
@@ -47,8 +42,10 @@ import { getOpenApiDiff } from "./deploy/deployment/getOpenApiDiff";
 import { listDeployments } from "./deploy/deployment/list";
 import { listActiveBranches } from "./deploy/deployment/list-active-branches";
 import { listDeploymentBranches } from "./deploy/deployment/list-branches";
+import { listDeploymentHeadlines } from "./deploy/deployment/list-headlines";
 import { getDeploymentRuntimeLogs } from "./deploy/deployment/runtime-logs";
 import { listDomains } from "./deploy/domains/list";
+import { listDisplayDomains } from "./deploy/domains/list-display-domains";
 import { makeSensitive } from "./deploy/env-vars/make-sensitive";
 import { renameEnvVars } from "./deploy/env-vars/rename";
 import { getAvailableKeyspaces } from "./deploy/environment-settings/get-available-keyspaces";
@@ -69,7 +66,7 @@ import { getDeploymentTree } from "./deploy/network/get";
 import { getInstanceRps } from "./deploy/network/get-instance-rps";
 import { getRegionRps } from "./deploy/network/get-region-rps";
 import { creationContext } from "./deploy/project/creation-context";
-import { listProjects } from "./deploy/project/list";
+import { getDefaultProject } from "./deploy/project/get-default";
 import { createSharedSecret } from "./share/create";
 import { revealSharedSecret } from "./share/reveal";
 
@@ -79,20 +76,13 @@ import { queryRequestLogs } from "./deploy/request-logs/query";
 import { listInstances } from "./deploy/runtime-logs/list-instances";
 import { llmSearch as runtimeLogsLlmSearch } from "./deploy/runtime-logs/llm-search";
 import { queryRuntimeLogs } from "./deploy/runtime-logs/query";
-import { listAllEnvironments } from "./environment/list-all";
 import { githubRouter } from "./github";
 import { queryIdentityDetails } from "./identity/query-identity-details";
 import { queryIdentityLogs } from "./identity/query-logs";
 import { queryIdentityTimeseries } from "./identity/query-timeseries";
-import { createRootKey } from "./key/createRootKey";
-import { fetchKeyPermissions } from "./key/fetch-key-permissions";
 import { queryKeyDetailsLogs } from "./key/query-logs";
 import { keyDetailsVerificationsTimeseries } from "./key/query-timeseries";
 import { getConnectedRolesAndPerms } from "./key/rbac/connected-roles-and-perms";
-import { getPermissionSlugs } from "./key/rbac/get-permission-slugs";
-import { rerollRootKey } from "./key/reroll";
-import { updateRootKeyName } from "./key/updateRootKeyName";
-import { updateRootKeyPermissions } from "./key/updateRootKeyPermissions";
 import { logdrain } from "./logdrain";
 import { llmSearch } from "./logs/llm-search";
 import { queryLogs } from "./logs/query-logs";
@@ -111,7 +101,6 @@ import { createNamespace } from "./ratelimit/createNamespace";
 import { deleteNamespace } from "./ratelimit/deleteNamespace";
 import { ratelimitLlmSearch } from "./ratelimit/llm-search";
 import { listRatelimitNamespaces } from "./ratelimit/namespaces_list";
-import { listRatelimitOverrides } from "./ratelimit/overrides_list";
 import { queryRatelimitLastUsed } from "./ratelimit/query-last-used-times";
 import { queryRatelimitLatencyTimeseries } from "./ratelimit/query-latency-timeseries";
 import { queryRatelimitLogs } from "./ratelimit/query-logs";
@@ -120,9 +109,6 @@ import { queryRatelimitOverviewLogs } from "./ratelimit/query-overview-logs";
 import { queryRatelimitTimeseries } from "./ratelimit/query-timeseries";
 import { queryRatelimitTimeseriesBatch } from "./ratelimit/query-timeseries-batch";
 import { updateNamespaceName } from "./ratelimit/updateNamespaceName";
-import { deleteRootKeys } from "./settings/root-keys/delete";
-import { rootKeysLlmSearch } from "./settings/root-keys/llm-search";
-import { queryRootKeys } from "./settings/root-keys/query";
 import { cancelDeploy } from "./stripe/cancelDeploy";
 import { cancelSubscription } from "./stripe/cancelSubscription";
 import { changeDeployPlan } from "./stripe/changeDeployPlan";
@@ -133,7 +119,6 @@ import { getDeployCredit } from "./stripe/getDeployCredit";
 import { getDeployEntitlement } from "./stripe/getDeployEntitlement";
 import { getDeployPlans } from "./stripe/getDeployPlans";
 import { getDeploySubscription } from "./stripe/getDeploySubscription";
-import { getProducts } from "./stripe/getProducts";
 import { getSetupIntent } from "./stripe/getSetupIntent";
 import { getSubscriptionPaymentUrl } from "./stripe/getSubscriptionPaymentUrl";
 import { getUpcomingInvoice } from "./stripe/getUpcomingInvoice";
@@ -150,7 +135,6 @@ import { createWorkspace } from "./workspace/create";
 import { getWorkspaceById } from "./workspace/getById";
 import { getCurrentWorkspace } from "./workspace/getCurrent";
 import { listAvailable } from "./workspace/listAvailable";
-import { onboardingKeyCreation } from "./workspace/onboarding";
 
 export const router = t.router({
   logdrain,
@@ -159,30 +143,11 @@ export const router = t.router({
     reveal: revealSharedSecret,
   }),
   key: t.router({
-    fetchPermissions: fetchKeyPermissions,
     logs: t.router({
       query: queryKeyDetailsLogs,
       timeseries: keyDetailsVerificationsTimeseries,
     }),
-    queryPermissionSlugs: getPermissionSlugs,
     connectedRolesAndPerms: getConnectedRolesAndPerms,
-  }),
-  rootKey: t.router({
-    create: createRootKey,
-    reroll: rerollRootKey,
-    update: t.router({
-      name: updateRootKeyName,
-      // NOTE: permissions replaces the full permission set for a root key.
-      // Clients must send the authoritative list to avoid lost updates.
-      permissions: updateRootKeyPermissions,
-    }),
-  }),
-  settings: t.router({
-    rootKeys: t.router({
-      query: queryRootKeys,
-      llmSearch: rootKeysLlmSearch,
-      delete: deleteRootKeys,
-    }),
   }),
   api: t.router({
     updateName: updateApiName,
@@ -211,7 +176,6 @@ export const router = t.router({
     listAvailable,
     getById: getWorkspaceById,
     updateName: changeWorkspaceName,
-    onboarding: onboardingKeyCreation,
   }),
   stripe: t.router({
     createSubscription,
@@ -221,7 +185,6 @@ export const router = t.router({
     getBillingInfo,
     updateCustomer,
     getCheckoutSession,
-    getProducts,
     getSetupIntent,
     getSubscriptionPaymentUrl,
     updateWorkspaceStripeCustomer,
@@ -244,8 +207,7 @@ export const router = t.router({
   authorization: t.router({
     permissions: t.router({
       query: queryPermissions,
-      upsert: upsertPermission,
-      delete: deletePermissionWithRelations,
+      update: updatePermission,
       llmSearch: permissionsLlmSearch,
     }),
     roles: t.router({
@@ -254,12 +216,7 @@ export const router = t.router({
         search: searchKeys,
         query: queryKeys,
       }),
-      permissions: t.router({
-        search: searchRolesPermissions,
-        query: queryRolesPermissions,
-      }),
-      upsert: upsertRole,
-      delete: deleteRoleWithRelations,
+      update: updateRole,
       llmSearch: rolesLlmSearch,
       connectedKeysAndPerms: getConnectedKeysAndPerms,
     }),
@@ -286,9 +243,6 @@ export const router = t.router({
         name: updateNamespaceName,
       }),
       delete: deleteNamespace,
-    }),
-    override: t.router({
-      list: listRatelimitOverrides,
     }),
   }),
   logs: t.router({
@@ -342,11 +296,8 @@ export const router = t.router({
       getRegionRps,
     }),
     project: t.router({
-      list: listProjects,
       creationContext,
-    }),
-    app: t.router({
-      list: listApps,
+      getDefault: getDefaultProject,
     }),
     environmentSettings: t.router({
       getAvailableRegions,
@@ -355,21 +306,20 @@ export const router = t.router({
         generateRegex,
       }),
     }),
-    environment: t.router({
-      listAll: listAllEnvironments,
-    }),
     envVar: t.router({
       rename: renameEnvVars,
       makeSensitive,
     }),
     domain: t.router({
       list: listDomains,
+      listDisplayDomains,
     }),
     customDomain: t.router({
       count: countCustomDomains,
     }),
     deployment: t.router({
       list: listDeployments,
+      listHeadlines: listDeploymentHeadlines,
       listBranches: listDeploymentBranches,
       listActiveBranches,
       getById: getDeploymentById,

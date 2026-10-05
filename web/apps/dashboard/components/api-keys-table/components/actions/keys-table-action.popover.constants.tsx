@@ -1,5 +1,5 @@
-import { MAX_KEYS_FETCH_LIMIT } from "@/app/(app)/[workspaceSlug]/authorization/roles/components/upsert-role/components/assign-key/hooks/use-fetch-keys";
 import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
+import { permissionsQueryOptions } from "@/hooks/use-fetch-permissions";
 import { trpc } from "@/lib/trpc/client";
 import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
 import { type QueryClient, useQueryClient } from "@tanstack/react-query";
@@ -18,6 +18,7 @@ import {
   IconTrashOutline18,
 } from "@unkey/icons";
 import { toast } from "@unkey/ui";
+import { keysRbacRoleQueryOptions } from "../rbac/hooks/use-fetch-permission-slugs";
 import { DeleteKey } from "./components/delete-key";
 import { UpdateKeyStatus } from "./components/disable-key";
 import { EditCredits } from "./components/edit-credits";
@@ -27,10 +28,6 @@ import { EditKeyName } from "./components/edit-key-name";
 import { EditMetadata } from "./components/edit-metadata";
 import { EditRatelimits } from "./components/edit-ratelimits";
 import { KeyRbacDialog } from "./components/edit-rbac";
-import {
-  MAX_PERMS_FETCH_LIMIT,
-  keysRbacPermissionsQueryOptions,
-} from "./components/edit-rbac/components/assign-permission/hooks/use-fetch-keys-permissions";
 import { keysRbacRolesQueryOptions } from "./components/edit-rbac/components/assign-role/hooks/use-fetch-keys-roles";
 import { RotateKey } from "./components/rotate-key/rotate-key";
 
@@ -145,32 +142,16 @@ export const getKeysTableActionItems = (
           });
 
           const currentRoleNames = connectedData?.roles?.map((r) => r.name) ?? [];
-          const directPermissionSlugs =
-            connectedData?.permissions?.filter((p) => p.source === "direct")?.map((p) => p.slug) ??
-            [];
 
           // Prefetch dependent data that requires connectedData
-          const dependentPrefetches = [];
-
-          if (directPermissionSlugs.length > 0 || currentRoleNames.length > 0) {
-            dependentPrefetches.push(
-              trpcUtils.key.queryPermissionSlugs.prefetch({
-                roleNames: currentRoleNames,
-                permissionSlugs: directPermissionSlugs,
-              }),
-            );
-          }
+          const dependentPrefetches = currentRoleNames.map((roleName) =>
+            queryClient.prefetchQuery(keysRbacRoleQueryOptions(roleName)),
+          );
 
           // Always prefetch combobox data - independent of connectedData
           const comboboxDataPromise = Promise.all([
-            queryClient.prefetchInfiniteQuery(keysRbacPermissionsQueryOptions()),
+            queryClient.prefetchInfiniteQuery(permissionsQueryOptions()),
             queryClient.prefetchInfiniteQuery(keysRbacRolesQueryOptions()),
-            trpcUtils.authorization.roles.keys.query.prefetchInfinite({
-              limit: MAX_KEYS_FETCH_LIMIT,
-            }),
-            trpcUtils.authorization.roles.permissions.query.prefetchInfinite({
-              limit: MAX_PERMS_FETCH_LIMIT,
-            }),
           ]);
 
           await Promise.all([comboboxDataPromise, ...dependentPrefetches]);
@@ -178,14 +159,8 @@ export const getKeysTableActionItems = (
           // Fallback: prefetch only the combobox data which doesn't depend on connectedData
           try {
             await Promise.all([
-              queryClient.prefetchInfiniteQuery(keysRbacPermissionsQueryOptions()),
+              queryClient.prefetchInfiniteQuery(permissionsQueryOptions()),
               queryClient.prefetchInfiniteQuery(keysRbacRolesQueryOptions()),
-              trpcUtils.authorization.roles.keys.query.prefetchInfinite({
-                limit: MAX_KEYS_FETCH_LIMIT,
-              }),
-              trpcUtils.authorization.roles.permissions.query.prefetchInfinite({
-                limit: MAX_PERMS_FETCH_LIMIT,
-              }),
             ]);
           } catch (fallbackError) {
             console.warn("Failed to prefetch combobox data:", fallbackError);

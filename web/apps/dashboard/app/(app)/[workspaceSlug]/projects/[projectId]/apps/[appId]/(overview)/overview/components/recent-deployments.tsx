@@ -30,7 +30,7 @@ export function RecentDeployments() {
             projectId,
             appId,
           })}
-          className="text-[13px] text-gray-11 transition-colors hover:text-gray-12"
+          className="text-sm text-gray-11 transition-colors hover:text-gray-12"
         >
           View all deployments
         </Link>

@@ -72,13 +72,11 @@ export function StatsListCard({
     >
       <div className="flex flex-col w-full gap-2 min-w-0">
         <InfoTooltip content={title} asChild position={{ align: "start", side: "top" }}>
-          <span className="font-medium text-sm leading-[14px] text-gray-12 truncate">{title}</span>
+          <span className="font-medium text-sm leading-3.5 text-gray-12 truncate">{title}</span>
         </InfoTooltip>
         {subtitle ? (
           <InfoTooltip content={subtitle} asChild position={{ align: "start", side: "top" }}>
-            <span className="font-mono text-xs leading-[12px] text-gray-11 truncate">
-              {subtitle}
-            </span>
+            <span className="font-mono text-xs leading-3 text-gray-11 truncate">{subtitle}</span>
           </InfoTooltip>
         ) : null}
       </div>
@@ -115,17 +113,17 @@ function ChartWell({ chart, labels }: { chart: ChartState; labels: StatsListCard
   return (
     <div className="relative h-12 w-full">
       {chart.type === "loading" ? (
-        <div className="absolute inset-0 flex items-center justify-center text-[11px] text-gray-9 pointer-events-none">
+        <div className="absolute inset-0 flex items-center justify-center text-2xs text-gray-9 pointer-events-none">
           Loading...
         </div>
       ) : chart.type === "error" ? (
-        <div className="absolute inset-0 flex items-center justify-center text-[11px] text-gray-9 pointer-events-none">
+        <div className="absolute inset-0 flex items-center justify-center text-2xs text-gray-9 pointer-events-none">
           Activity unavailable
         </div>
       ) : chart.type === "empty" ? (
         <>
           <BaselineTicks buckets={chart.buckets} />
-          <div className="absolute inset-0 flex items-center justify-center text-[11px] text-gray-9 pointer-events-none">
+          <div className="absolute inset-0 flex items-center justify-center text-2xs text-gray-9 pointer-events-none">
             No activity
           </div>
         </>
@@ -254,7 +252,7 @@ function StatsSparkline({
                 return null;
               }
               return (
-                <div className="px-2.5 py-2 bg-gray-12 text-gray-1 text-[11px] rounded shadow-floating whitespace-nowrap">
+                <div className="px-2.5 py-2 bg-gray-12 text-gray-1 text-2xs rounded shadow-floating whitespace-nowrap">
                   <div className="font-medium opacity-80 mb-1.5">{point.displayX}</div>
                   <div className="flex flex-col gap-1">
                     <div className="flex items-center justify-between gap-4">

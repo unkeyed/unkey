@@ -1,281 +1,225 @@
 ---
-title: Permissions
-description: "Complete reference of all root key permissions in Unkey. Control which API operations each root key can perform across your workspace."
+title: Root key permissions
+sidebarTitle: "Permissions"
+description: "Choose permissions for your root key based on the task it needs to perform."
+sources:
+  - pkg/urn/urn.go
+  - pkg/urn/permission_actions.go
+  - pkg/rbac/urn.go
+  - svc/api/internal/principal/permissions.go
+  - svc/api/routes/v2_deployments_create_deployment/handler.go
+  - svc/api/routes/v2_deployments_list_deployments/handler.go
+  - svc/api/routes/v2_deployments_start_deployment/handler.go
+  - svc/api/routes/v2_deployments_stop_deployment/handler.go
+  - svc/api/routes/v2_deployments_promote_deployment/handler.go
+  - svc/api/routes/v2_analytics_get_runtime_logs/handler.go
+  - svc/api/routes/v2_keys_verify_key/handler.go
+  - svc/api/routes/v2_keys_create_key/handler.go
+  - svc/api/routes/v2_keys_update_key/handler.go
+  - svc/api/routes/v2_apis_list_keys/handler.go
+  - svc/api/routes/v2_root_keys_create_key/handler.go
 ---
 
-import { DashboardScreenshot } from "/snippets/dashboard-screenshot.jsx";
+A root key authenticates your requests to Unkey, but it has no permissions by default. You assign permissions to tell Unkey what the key is allowed to do.
 
-Each root key has a set of permissions that control which API operations it can perform.
+Permissions let you make that access specific. A key can deploy one app without being able to deploy every app in your workspace. Another key can read deployment status and logs without being able to change anything.
 
-## Permission format
+You don't need to give either key full access to make it useful. Start with its job, choose where it can work, and decide what it can do there. This is least privilege: enough access to complete the task, without access to unrelated resources or actions.
 
-Permissions follow the pattern `{resource}.{scope}.{action}`. The scope determines which specific resource the permission applies to.
+## Start with the key's job
 
-### Wildcards vs specific IDs
+Describe what the service or agent needs to accomplish before choosing permissions. "Investigate a failed deployment" might mean reading its status and runtime logs. It doesn't necessarily mean restarting it, deploying a fix, or reading environment variables.
 
-The scope can be either a wildcard (`*`) or a specific resource ID:
+Break the job into the capabilities it needs. For example:
 
-- `api.*.create_key` grants `create_key` on **all** keyspaces in the workspace.
-- `api.api_abc123.create_key` grants `create_key` on **only** that specific keyspace.
+- Deploy an app and check the result: create deployments and read their status
+- Investigate a runtime problem: read deployment status and runtime logs
+- Authenticate requests to your API: verify customer API keys
 
-The wildcard `*` means "all current and future resources of this type." A root key with `api.*.read_key` automatically gains read access to any keyspace created after the key was issued. A key with `api.api_abc123.read_key` can only read keys belonging to that one keyspace, even if new keyspaces are created later.
+Use a separate root key for each service, job, or agent. That lets you change or revoke one workload's access without affecting the others. It also keeps a debugging agent from inheriting a deployment job's ability to change your app.
 
-You can mix wildcards and specific IDs on the same root key. For example, a key for your billing service might have:
+## Choose which resources it can access
 
-- `api.*.verify_key` to verify keys across all keyspaces
-- `api.api_billing.create_key` to create keys in only the billing keyspace
-- `ratelimit.*.limit` to enforce rate limits in any namespace
+A resource is something you manage in Unkey, such as an app, deployment, or API key. The resource scope of a permission determines which of those resources the key can access.
 
-When configuring a root key in the dashboard, workspace-wide permissions (using `*`) are listed at the top under "Workspace." Below them, under "From APIs," each keyspace in your workspace is listed so you can grant keyspace-scoped permissions selectively.
+For deployments, the scope follows the structure of your workspace:
 
-<Frame>
-  <DashboardScreenshot
-    target="root-key-permissions"
-    capture="target"
-    capturedAt="2026-09-11T04:48:23Z"
-    description="In a local workspace with a Billing keyspace, open Settings, Root Keys, New root key, then Select Permissions. Leave the search empty. Expand Workspace to show its permission groups. Keep Billing visible under From APIs. Do not select any permissions or create a root key. Use a 1440 by 1000 viewport. Capture only the permission sheet in light and dark themes."
-    src="/platform/root-keys/root-key-permissions"
-    width={384}
-    alt="Root key permission sheet showing workspace-wide permission groups and the Billing keyspace under From APIs"
-  />
-</Frame>
+- A [project](/compute/concepts/projects-apps-environments#projects) groups apps in your workspace.
+- An [app](/compute/concepts/projects-apps-environments#apps) is a service you deploy.
+- An [environment](/compute/concepts/projects-apps-environments#environments) separates an app's settings and deployments, for example production from preview.
+- A [deployment](/compute/concepts/deployments) is one built version of an app in one environment.
 
-### Insufficient permissions
+For API management, a [keyspace](/api-management/keyspaces/overview) groups related customer API keys. You can restrict a root key to the keys in one keyspace instead of giving it access to every customer's keys in the workspace.
 
-If a root key attempts an operation it does not have permission for, the Unkey API returns a `403 Forbidden` response with an error indicating which permission is missing. Check the error message to determine which permission to add to the key.
+Choose the smallest scope that covers the job. If an agent is investigating one deployment, it only needs that deployment and its logs. If it monitors an app's environment continuously, it may need all deployments in that environment, including future ones. Neither task needs access to another app.
 
-## Keyspace permissions
+The hierarchy helps you identify a resource; it doesn't make access automatic. Permission to read an environment doesn't include its deployments. Permission to read a deployment doesn't include its logs. Include each resource type the task needs.
 
-These permissions control management of keyspaces in your workspace.
+## Choose what it can do with those resources
 
-<ResponseField name="api.*.create_api">
-  Create new keyspaces in the workspace. There is no keyspace-scoped variant of this permission, since the keyspace does not exist yet at creation time.
-</ResponseField>
+An action determines what the key can do within its scope. Most resources support `read` to inspect them, `write` to create or update them, and `delete` to remove them. Some have task-specific actions, such as `verify` for checking customer API keys.
 
-<ResponseField name="api.{apiId}.read_api">
-  Read information about a keyspace, including its name, configuration, and settings. Use `api.*.read_api` to read all keyspaces.
-</ResponseField>
+Choose each action separately. A deployment job needs `write` to create a deployment and `read` to check its status. A debugging agent that only inspects deployments and logs needs `read`, not `write`. Having one action doesn't include the others.
 
-<ResponseField name="api.{apiId}.update_api">
-  Update a keyspace's configuration. Use `api.*.update_api` to update any keyspace.
-</ResponseField>
+Read-only access still needs a limited scope. Logs can contain sensitive application data, so an agent that can't change anything may still be able to see more than its task requires.
 
-<ResponseField name="api.{apiId}.delete_api">
-  Delete a keyspace and all its associated keys. Granting this on a specific keyspace does not grant delete access to other keyspaces. Use `api.*.delete_api` to delete any keyspace.
-</ResponseField>
+Check all permissions on the key before using it. Permissions add access together: a permission for one environment doesn't restrict another permission that covers every environment. To reduce access, remove or replace the broader permission. There are no deny permissions that cancel other permissions.
 
-<ResponseField name="api.{apiId}.read_analytics">
-  Query analytics data for a keyspace using SQL. Use `api.*.read_analytics` to query across all keyspaces.
-</ResponseField>
+## Read a permission
 
-## Key permissions
+Once you've chosen the resources and actions, you can express each permission as a string. Unkey uses a resource name called a URN to identify the resource, followed by `#` and the action:
 
-These permissions control creation, verification, and management of API keys.
+```plaintext
+unkey:v1:{workspace_id}:{resource_path}#{action}
+```
 
-<ResponseField name="api.{apiId}.create_key">
-  Create new keys in a keyspace. Use `api.*.create_key` to create keys in any keyspace.
-</ResponseField>
+For example, a permission to read one deployment looks like this:
 
-<ResponseField name="api.{apiId}.read_key">
-  Read information and analytics about keys, including metadata, expiration, remaining uses, and rate limit configuration. Use `api.*.read_key` to read keys across all keyspaces.
-</ResponseField>
+```plaintext wrap
+unkey:v1:ws_xxx:projects/proj_xxx/apps/app_xxx/environments/env_xxx/deployments/d_xxx#read
+```
 
-<ResponseField name="api.{apiId}.update_key">
-  Update a key's metadata, rate limits, expiration, remaining uses, or other properties. Use `api.*.update_key` to update keys in any keyspace.
-</ResponseField>
+`ws_xxx` identifies the workspace. The path identifies the project, app, environment, and deployment. `#read` permits reading that deployment's details. It doesn't permit changes or access to its logs.
 
-<ResponseField name="api.{apiId}.delete_key">
-  Delete keys belonging to a keyspace. Use `api.*.delete_key` to delete keys in any keyspace.
-</ResponseField>
+IDs ending in `_xxx` are placeholders. Replace each one with the full ID Unkey assigned to that resource. For example, replace `app_xxx` with the app's ID, not its name or slug. This applies even if an API request accepts a name or slug for the same resource.
 
-<ResponseField name="api.{apiId}.verify_key">
-  Verify API keys and enforce their rate limits and permissions. This is the permission your backend server needs to validate incoming requests from your users. Use `api.*.verify_key` to verify keys across all keyspaces.
-</ResponseField>
+The dashboard builds these strings from your selections. You only need to write them yourself when using the API. See [Configure root keys](/platform/root-keys/configure) for both methods, or continue below for scope rules and examples. The [permission reference](/platform/root-keys/permission-reference) lists the supported resources, actions, and operation requirements.
 
-<ResponseField name="api.{apiId}.encrypt_key">
-  Encrypt keys belonging to a keyspace. Unkey stores API keys as hashes by default. With this permission, you can store an encrypted copy of the plaintext key that can be retrieved later. Use `api.*.encrypt_key` for all keyspaces.
-</ResponseField>
+## Use wildcards deliberately
 
-<ResponseField name="api.{apiId}.decrypt_key">
-  Decrypt keys belonging to a keyspace. Required to retrieve the original plaintext value of a key that was stored with encryption. Without this permission, you can verify a key but cannot recover its value. Use `api.*.decrypt_key` for all keyspaces.
-</ResponseField>
+Use `*` in place of one resource ID when the task needs every resource at that position. This permission reads every deployment in one environment:
 
-## Rate limit permissions
+```plaintext wrap
+unkey:v1:ws_xxx:projects/proj_xxx/apps/app_xxx/environments/env_xxx/deployments/*#read
+```
 
-These permissions control rate limit namespaces and overrides. All rate limit permissions use the `ratelimit.*` scope.
+It covers existing and future deployments in `env_xxx`. It doesn't cover another environment or deployment logs. To read logs too, add:
 
-<ResponseField name="ratelimit.*.create_namespace">
-  Create new rate limit namespaces in the workspace. Namespaces group related rate limit configurations together.
-</ResponseField>
+```plaintext wrap
+unkey:v1:ws_xxx:projects/proj_xxx/apps/app_xxx/environments/env_xxx/deployments/*/logs#read
+```
 
-<ResponseField name="ratelimit.*.read_namespace">
-  Read information about rate limit namespaces, including their configuration and current state.
-</ResponseField>
+Keep IDs fixed as far down the path as the task permits. If a task needs two environments, use one permission for each instead of granting access to every environment.
 
-<ResponseField name="ratelimit.*.update_namespace">
-  Update rate limit namespace configuration, such as changing the default limit or window duration.
-</ResponseField>
+After a wildcard ID, all later IDs must also be wildcards. For example, `projects/proj_xxx/apps/*/environments/env_xxx` is invalid. To select an environment, specify its app and project IDs too. Partial wildcards such as `app_*` are also invalid, and the workspace ID must be exact.
 
-<ResponseField name="ratelimit.*.delete_namespace">
-  Delete rate limit namespaces from the workspace.
-</ResponseField>
+Creation needs a wildcard at the resource being created because its ID doesn't exist yet. A permission on `deployments/d_xxx` can't create the next deployment. A permission on `deployments/*` can create deployments and also covers updates to existing deployments in that scope.
 
-<ResponseField name="ratelimit.*.limit">
-  Execute a rate limit check against an identifier. This is the permission your backend needs to enforce rate limits at runtime.
-</ResponseField>
+## Examples
 
-<ResponseField name="ratelimit.*.set_override">
-  Set a rate limit override for a specific identifier. Overrides let you grant higher or lower limits to individual users or entities without changing the namespace defaults.
-</ResponseField>
+These examples turn common deployment and API management tasks into scoped permissions. Each explains what the key needs to do and what remains outside its access.
 
-<ResponseField name="ratelimit.*.read_override">
-  Read rate limit overrides for an identifier.
-</ResponseField>
+In the deployment examples, `app_xxx` stands for the billing app's ID and `env_xxx` stands for its staging environment's ID.
 
-<ResponseField name="ratelimit.*.delete_override">
-  Delete a rate limit override, reverting the identifier to the namespace default.
-</ResponseField>
+### Deploy one app from CI
 
-## RBAC permissions
+A CI job needs to deploy the billing app to staging and check whether the deployment succeeded. Its project, app, and environment already exist, so the job doesn't need permission to create or configure them.
 
-These permissions control your ability to manage the [RBAC system](/platform/apis/features/authorization/introduction) through the Unkey API. They govern who can create roles, define permissions, and assign them to API keys.
+Scope the key to deployments in that one environment. Add `write` for deployment creation and `read` for status checks. Use a deployment wildcard because each run creates a deployment with a different ID:
 
-This is a separate layer from the roles and permissions you define within RBAC itself. For example, `rbac.*.create_role` on a root key lets you call the API to create a new role, while the roles you create (like "editor" or "viewer") are assigned to your end-user API keys and checked at verification time.
+```json
+[
+  "unkey:v1:ws_xxx:projects/proj_xxx/apps/app_xxx/environments/env_xxx/deployments/*#write",
+  "unkey:v1:ws_xxx:projects/proj_xxx/apps/app_xxx/environments/env_xxx/deployments/*#read"
+]
+```
 
-All RBAC permissions use the `rbac.*` scope.
+`write` authorizes `deployments.createDeployment`. `read` lets the job inspect the result with `deployments.getDeployment`. When using `deployments.listDeployments`, supply the project, app, and environment filters to match the key's scope.
 
-### Roles
+This key cannot deploy to production, change environment settings, or read environment variables. It also cannot read runtime logs unless you add the separate logs permission.
 
-<ResponseField name="rbac.*.create_role">
-  Create a new role in the workspace. Roles are named collections of permissions that you can assign to API keys.
-</ResponseField>
+Deployment `write` isn't a create-only permission. It also authorizes start and stop operations on deployments in this environment, subject to those operations' restrictions. Explicit promotion and rollback require `write` on the environment itself. Don't add that permission unless the job needs those operations. See [deployment operation requirements](/platform/root-keys/permission-reference#deployment-operations).
 
-<ResponseField name="rbac.*.read_role">
-  Read roles and their associated permissions in the workspace.
-</ResponseField>
+These permissions cover the deployment API calls above. If a tool also lists projects or apps, it needs read access for those calls. Prefer supplying known IDs over adding discovery permissions the job doesn't need.
 
-<ResponseField name="rbac.*.delete_role">
-  Delete a role from the workspace. Keys that had this role lose the permissions it granted.
-</ResponseField>
+### Investigate deployments without changing them
 
-### Permissions
+A debugging agent needs to investigate runtime problems in the billing app's staging environment. It needs to see deployment status and application logs, but it doesn't need to deploy a fix or change settings.
 
-<ResponseField name="rbac.*.create_permission">
-  Create a new permission definition in the workspace. Permissions are the building blocks you assign to roles or directly to keys.
-</ResponseField>
+Keep the scope to that environment and assign `read` on two resource types: deployments and runtime logs. The logs permission is separate because reading a deployment doesn't include reading its logs:
 
-<ResponseField name="rbac.*.read_permission">
-  Read permission definitions in the workspace.
-</ResponseField>
+```json
+[
+  "unkey:v1:ws_xxx:projects/proj_xxx/apps/app_xxx/environments/env_xxx/deployments/*#read",
+  "unkey:v1:ws_xxx:projects/proj_xxx/apps/app_xxx/environments/env_xxx/deployments/*/logs#read"
+]
+```
 
-<ResponseField name="rbac.*.delete_permission">
-  Delete a permission definition from the workspace.
-</ResponseField>
+The agent can inspect deployments and query their runtime logs with `analytics.getRuntimeLogs`. It cannot create, start, stop, promote, or roll back deployments. It cannot read environment variables or another environment's logs.
 
-### Key assignments
+If the investigation concerns only one deployment, replace the deployment `*` in both permissions with that deployment's ID. The agent can then fetch that deployment by ID and read its logs, but it cannot list every deployment in the environment.
 
-<ResponseField name="rbac.*.add_role_to_key">
-  Assign a role to an API key. The key inherits all permissions associated with that role.
-</ResponseField>
+Read-only doesn't mean the data is public. Logs can contain sensitive application data. Give the agent only the environment or deployment it needs, even when all its actions are `read`.
 
-<ResponseField name="rbac.*.remove_role_from_key">
-  Remove a role from an API key. The key loses the permissions that role granted, unless another assigned role also grants them.
-</ResponseField>
+### Verify customer API keys
 
-<ResponseField name="rbac.*.add_permission_to_key">
-  Assign a permission directly to an API key, bypassing roles.
-</ResponseField>
+A backend needs to authenticate incoming requests by checking its customers' API keys. Those keys belong to one keyspace. The backend doesn't need to issue keys or change their settings.
 
-<ResponseField name="rbac.*.remove_permission_from_key">
-  Remove a directly assigned permission from an API key.
-</ResponseField>
+Scope the root key to keys in that keyspace and choose `verify`. Use a wildcard so the backend can check every customer's key, including keys created later:
 
-## Identity permissions
+```json
+[
+  "unkey:v1:ws_xxx:projects/proj_xxx/keyspaces/ks_xxx/keys/*#verify"
+]
+```
 
-These permissions control [identities](/platform/identities/overview), which let you associate multiple API keys with a single user or entity. All identity permissions use the `identity.*` scope.
+`ks_xxx` stands for the ID of the keyspace that holds your customers' keys. This permission authorizes `keys.verifyKey` for keys in that keyspace, including keys created later. The keyspace ID in the URN is not the `apiId` used by some API requests.
 
-<ResponseField name="identity.*.create_identity">
-  Create a new identity in the workspace.
-</ResponseField>
+The backend cannot list, update, delete, or decrypt keys. Verification returns its own result data and can consume credits or rate limits. `verify` isn't a general-purpose read permission.
 
-<ResponseField name="identity.*.read_identity">
-  Read identity information, including external ID and metadata.
-</ResponseField>
+Root key permissions differ from the permissions on your customers' API keys. Customer permissions, such as `documents.read`, describe access to your API and are checked during verification. They don't grant access to Unkey resources. See [Authorization](/api-management/authorization/overview).
 
-<ResponseField name="identity.*.update_identity">
-  Update an identity's metadata or other properties.
-</ResponseField>
+### Issue and update customer keys
 
-<ResponseField name="identity.*.delete_identity">
-  Delete an identity from the workspace.
-</ResponseField>
+A provisioning service needs to issue keys when customers sign up and update their settings when their plans change. Unlike the backend that verifies requests, this service needs to change keys.
 
-## Portal permissions
+Give it `write` on keys in the customer keyspace. It doesn't need access to other keyspaces, permission to delete keys, or permission to retrieve stored plaintext:
 
-These permissions control the customer portal. All portal permissions use the `portal.*` scope, and portal ids carry the `pc_` prefix.
+```json
+[
+  "unkey:v1:ws_xxx:projects/proj_xxx/keyspaces/ks_xxx/keys/*#write"
+]
+```
 
-Only `create_portal_session` is enforced today. The four management actions below are reserved for the portal management API, which has not shipped yet, so granting them currently has no effect.
+The wildcard lets the service create keys and update existing keys in that keyspace. It doesn't grant access to other keyspaces. The service receives the plaintext of keys it creates, but cannot decrypt stored keys without a separate permission.
 
-Session minting is a separate action from the four management actions, so a backend that mints sessions in production does not need the right to change portals.
+Add `read` on the same path only if the service needs to look up existing keys with `keys.getKey`. Listing keys with `apis.listKeys` needs both key and keyspace read access:
 
-<ResponseField name="portal.*.create_portal_session">
-  Mint a portal session for an end user. This is the permission a production backend needs.
+```json
+[
+  "unkey:v1:ws_xxx:projects/proj_xxx/keyspaces/ks_xxx/keys/*#read",
+  "unkey:v1:ws_xxx:projects/proj_xxx/keyspaces/ks_xxx#read"
+]
+```
 
-  Minting is additionally bounded by your own permissions: a session can never carry a capability the calling root key does not itself hold. Each requested scope requires the equivalent permission on every keyspace the portal resolves to, so `keys:read` requires `read_key` and `read_api`, and `keys:reroll` requires `create_key` (plus `encrypt_key` when the keyspace stores encrypted keys). `analytics:read` accepts either form: the `api.{apiId}.read_analytics` tuple or the keyspace-logs URN `unkey:v1:{workspaceId}:projects/{projectId}/keyspaces/{keyspaceId}/logs#read`. Requesting a scope you do not hold returns 403 for the whole request.
+Without `delete`, the service can't delete a key. It can still disable keys or change their expiry through `write`, so withholding `delete` doesn't make a write-capable key harmless.
 
-  Note the breadth of a wildcard grant: holding `api.*.read_key` and `api.*.read_api` lets this key mint a `keys:read` session for **any** portal in the workspace, because a wildcard satisfies every resolved keyspace. That is consistent with what the key can already read directly, but it is not visible when ticking the box. `api.*.read_analytics` grants `analytics:read` the same way.
-</ResponseField>
+### Give an agent a short-lived key
 
-<ResponseField name="portal.*.create_portal">
-  Create a new portal in the workspace.
-</ResponseField>
+A trusted automation service can create a separate root key for a debugging agent. Keep key creation in that service rather than giving its credential to the agent.
 
-<ResponseField name="portal.*.read_portal">
-  Read portal configuration.
-</ResponseField>
+To create a key that reads staging deployment status and logs, the automation service needs:
 
-<ResponseField name="portal.*.update_portal">
-  Update a portal's configuration, including branding.
-</ResponseField>
+```json
+[
+  "unkey:v1:ws_xxx:rootKeys/*#write",
+  "unkey:v1:ws_xxx:projects/proj_xxx/apps/app_xxx/environments/env_xxx/deployments/*#read",
+  "unkey:v1:ws_xxx:projects/proj_xxx/apps/app_xxx/environments/env_xxx/deployments/*/logs#read"
+]
+```
 
-<ResponseField name="portal.*.delete_portal">
-  Delete a portal from the workspace.
-</ResponseField>
+Give the agent only the two read permissions and set an expiry for its task. Omit `rootKeys/*#write` from the agent's key so it cannot create more root keys.
 
-Revoking an individual portal session is not covered by these actions. When that route lands it gets its own `delete_portal_session` action rather than folding into `delete_portal`, so the ability to end one end user's session stays separable from the ability to remove a portal.
+The API checks that each requested permission is covered by the caller's permissions in the same workspace. The service can narrow its deployment wildcard to one deployment, but it cannot grant production access it doesn't have. If the calling root key expires, the new key must expire no later than the caller.
 
-## Deployment permissions
+`rootKeys/*#write` also authorizes updates to existing root keys, subject to the API's permission and expiry checks. Treat the automation service's key as a management credential, not a credential for ordinary workload tasks.
 
-These permissions control deployment operations. All deployment permissions use the `project.*` scope.
+See [Create a key through the API](/platform/root-keys/configure#create-a-key-through-the-api) for the request.
 
-<ResponseField name="project.*.create_deployment">
-  Create new deployments in the workspace. Required for CI/CD pipelines that deploy through the Unkey API.
-</ResponseField>
+## Check the boundary before using the key
 
-<ResponseField name="project.*.read_deployment">
-  Read deployment details and status, including build logs and instance health.
-</ResponseField>
+Test both what the key must do and what it must not do. For the read-only agent, fetch a staging deployment, then try a read outside its scope. Check the complete permission list for broader permissions that would make the second request succeed.
 
-<ResponseField name="project.*.generate_upload_url">
-  Generate upload URLs for build contexts. Required during the deployment process to upload your application code.
-</ResponseField>
+A denied request may return `403` with `err:unkey:authorization:insufficient_permissions`, or `404` to hide whether the resource exists. A missing root-key verify permission returns `200` with `valid: false` and `code: NOT_FOUND` from `keys.verifyKey`. Don't respond to a denial by granting workspace-wide access. Check the resource IDs, action, and request filters first.
 
-<ResponseField name="project.*.read_gateway_requests">
-  Query the gateway request data of all projects in the workspace with SQL.
-</ResponseField>
-
-<ResponseField name="project.*.read_runtime_logs">
-  Query the runtime logs of all deployments in the workspace with SQL.
-</ResponseField>
-
-## Common permission sets
-
-| Use case              | Permissions                                                                  |
-| --------------------- | ---------------------------------------------------------------------------- |
-| Verify keys only      | `api.*.verify_key`                                                           |
-| Create keys for users | `api.*.create_key`, `api.*.read_key`                                         |
-| Full key management   | `api.*.create_key`, `api.*.read_key`, `api.*.update_key`, `api.*.delete_key` |
-| Rate limiting         | `ratelimit.*.limit`                                                          |
-| Rate limit overrides  | `ratelimit.*.set_override`, `ratelimit.*.read_override`                      |
-| CI/CD deployments     | `project.*.create_deployment`, `project.*.generate_upload_url`               |
-| RBAC management       | `rbac.*.create_role`, `rbac.*.create_permission`, `rbac.*.add_role_to_key`   |
+Use [Configure root keys](/platform/root-keys/configure) to assign the permissions in the dashboard or API. Use the [permission reference](/platform/root-keys/permission-reference) when you need another resource type or operation.

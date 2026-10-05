@@ -10,6 +10,8 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/internal/deployment"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -75,6 +77,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			ResourceID:   dep.EnvironmentID,
 			Action:       rbac.ReadDeployment,
 		}),
+		rbac.U(
+			urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(dep.ProjectID).App(dep.AppID).Environment(dep.EnvironmentID).Deployment(dep.ID),
+			permissions.Read,
+		),
 	))
 	if err != nil {
 		return fault.New(

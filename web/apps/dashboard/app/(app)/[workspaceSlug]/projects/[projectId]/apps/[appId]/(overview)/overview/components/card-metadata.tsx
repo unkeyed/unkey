@@ -68,7 +68,7 @@ function SourceCell() {
         <GitHubLink href={githubUrl.branch(sourceRepo, deployment.gitBranch)}>
           <span className="flex items-center gap-1.5">
             <IconCodeBranchOutline18 className="size-3 text-gray-12 shrink-0" />
-            <span className="font-mono text-[13px] text-gray-12 truncate max-w-40">
+            <span className="font-mono text-sm text-gray-12 truncate max-w-40">
               {deployment.gitBranch}
             </span>
           </span>
@@ -79,13 +79,13 @@ function SourceCell() {
           <GitHubLink href={githubUrl.commit(sourceRepo, deployment.gitCommitSha)}>
             <span className="flex items-center gap-1.5">
               <IconCodeCommitOutline18 className="size-3 text-gray-12 shrink-0" />
-              <span className="font-mono text-[13px] text-gray-12">
+              <span className="font-mono text-sm text-gray-12">
                 {deployment.gitCommitSha.slice(0, 7)}
               </span>
             </span>
           </GitHubLink>
           {deployment.gitCommitMessage && (
-            <span className="text-[13px] text-gray-12 truncate min-w-0">
+            <span className="text-sm text-gray-12 truncate min-w-0">
               {deployment.gitCommitMessage}
             </span>
           )}
@@ -94,11 +94,11 @@ function SourceCell() {
       {isRolledBack && rolledBackFrom && (
         <div className="flex items-center gap-1.5 min-w-0 text-gray-9">
           <IconCircleXmarkOutline12 className="text-error-11 shrink-0" />
-          <span className="font-mono text-[13px] line-through shrink-0">
+          <span className="font-mono text-sm line-through shrink-0">
             {rolledBackFromLabel(rolledBackFrom)}
           </span>
           {rolledBackFrom.commitMessage && (
-            <span className="text-[13px] line-through truncate min-w-0">
+            <span className="text-sm line-through truncate min-w-0">
               {rolledBackFrom.commitMessage}
             </span>
           )}
@@ -107,7 +107,7 @@ function SourceCell() {
       {deployment.source !== "git" && (
         <span className="flex items-center gap-1.5 min-w-0">
           <IconLayers2Outline18 className="size-3 shrink-0 text-gray-9" />
-          <span className="font-mono text-[13px] text-gray-12 truncate" title={image ?? undefined}>
+          <span className="font-mono text-sm text-gray-12 truncate" title={image ?? undefined}>
             {deployment.source === "oci" ? (image ?? "No image available") : "Unknown source"}
           </span>
           {deployment.source === "oci" && deployment.resolvedImage && (
@@ -147,22 +147,19 @@ export function ProductionCardMetadata() {
         {regions.length > 0 ? (
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
             {regions.map((r) => (
-              <span
-                key={r.region.id}
-                className="flex items-center gap-1.5 text-[13px] text-gray-12"
-              >
+              <span key={r.region.id} className="flex items-center gap-1.5 text-sm text-gray-12">
                 <RegionFlag flagCode={r.flagCode} size="xs" shape="circle" />
                 {r.region.name}
               </span>
             ))}
           </div>
         ) : (
-          <span className="text-gray-9 text-[13px]">—</span>
+          <span className="text-gray-9 text-sm">—</span>
         )}
       </MetadataCell>
 
       <MetadataCell label="Resources">
-        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] text-gray-9">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-gray-9">
           <span>
             <span className="text-gray-12 tabular-nums">{deployment.cpuMillicores / 1000}</span>{" "}
             vCPU
@@ -175,7 +172,7 @@ export function ProductionCardMetadata() {
       </MetadataCell>
 
       <MetadataCell label="Instances">
-        <span className="text-[13px] text-gray-9">
+        <span className="text-sm text-gray-9">
           <span className="text-gray-12 tabular-nums">{runningCount}</span> running
         </span>
       </MetadataCell>
@@ -190,14 +187,14 @@ export function ProductionCardMetadata() {
             <Avatar src={deployment.gitCommitAuthorAvatarUrl} alt="Author" />
           )}
           {deployment.source === "git" && deployment.gitCommitAuthorHandle && (
-            <span className="font-medium text-gray-12 text-[13px] truncate">
+            <span className="font-medium text-gray-12 text-sm truncate">
               {deployment.gitCommitAuthorHandle}
             </span>
           )}
           <TimestampInfo
             value={deployment.createdAt}
             displayType="relative"
-            className="text-gray-9 text-[13px] shrink-0"
+            className="text-gray-9 text-sm shrink-0"
           />
         </div>
       </MetadataCell>

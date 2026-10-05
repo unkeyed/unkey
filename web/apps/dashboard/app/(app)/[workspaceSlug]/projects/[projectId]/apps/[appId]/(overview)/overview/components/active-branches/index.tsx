@@ -51,7 +51,7 @@ export function ActiveBranches() {
             projectId,
             appId,
           })}
-          className="text-[13px] text-gray-11 transition-colors hover:text-gray-12"
+          className="text-sm text-gray-11 transition-colors hover:text-gray-12"
         >
           View all deployments
         </Link>
@@ -70,7 +70,7 @@ export function ActiveBranches() {
               </Button>
             </div>
           ) : branches.length === 0 ? (
-            <div className="px-4 py-10 text-center text-[13px] text-gray-9">
+            <div className="px-4 py-10 text-center text-sm text-gray-9">
               No branch deployments yet.
             </div>
           ) : (

@@ -1,9 +1,17 @@
 ---
 title: "Firewall"
 description: "Policy that denies matched requests"
+notion:
+  rootPageID: 3ee512d643f38063b525d6c3619c1f69
+  owners:
+    - andreas
+  tags:
+    - Architecture
+    - Services
+    - Frontline
 ---
 
-Firewall denies any request that matches the policy's [match expressions](/architecture/services/frontline/policies/match-expressions) (path, method, header, or query parameter). The MVP has a single action and no other configuration — when a match hits, Frontline rejects the request with HTTP 403 and a fixed `Forbidden` body. The action enum exists so additional outcomes (allow, log, challenge) can be added later without restructuring the message.
+Firewall denies any request that matches the policy's [match expressions](/architecture/services/frontline/policies/match-expressions) (path, method, header, query parameter, or remote IP). Firewall has a single action and no other configuration. When a match hits, Frontline rejects the request with HTTP 403 and a fixed `Forbidden` body. The action enum exists so additional outcomes (allow, log, challenge) can be added later without restructuring the message.
 
 ## Fields
 

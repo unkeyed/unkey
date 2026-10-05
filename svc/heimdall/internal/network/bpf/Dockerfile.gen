@@ -25,12 +25,14 @@ RUN apt-get update -qq \
  && update-alternatives --install /usr/bin/llvm-strip llvm-strip /usr/bin/llvm-strip-18 100 \
  && rm -rf /var/lib/apt/lists/*
 
-# Match go.mod's Go version exactly. Go's reproducible-build
-# story plus a fixed bpf2go version (resolved from go.mod) makes the
-# generated bindings + .o stable across hosts.
-ARG GO_VERSION=1.26.7
-RUN curl -fsSL "https://go.dev/dl/go${GO_VERSION}.linux-amd64.tar.gz" \
-    | tar -C /usr/local -xz
-
-ENV PATH=/usr/local/go/bin:$PATH \
+ENV MISE_DATA_DIR=/opt/mise \
+    MISE_INSTALL_PATH=/usr/local/bin/mise \
     GOTOOLCHAIN=local
+
+WORKDIR /work
+COPY dev/install-mise ./dev/install-mise
+RUN ./dev/install-mise
+COPY .mise/config.toml .mise/mise.lock ./.mise/
+RUN mise trust .mise/config.toml && mise install --locked --yes go
+
+ENTRYPOINT ["mise", "exec", "--"]

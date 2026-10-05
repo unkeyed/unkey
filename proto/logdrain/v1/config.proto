@@ -91,6 +91,7 @@ enum HttpBodyFormat {
   HTTP_BODY_FORMAT_UNSPECIFIED = 0;
   HTTP_BODY_FORMAT_JSON = 1;
   HTTP_BODY_FORMAT_NDJSON = 2;
+  HTTP_BODY_FORMAT_HEC = 3;
 }
 
 // AxiomConfig configures an Axiom dataset destination.

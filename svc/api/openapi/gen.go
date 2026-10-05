@@ -509,6 +509,24 @@ func (e V2PortalCreateSessionRequestBodyScopes) Valid() bool {
 	}
 }
 
+// Defines values for V2PortalListSessionsSessionStatus.
+const (
+	Active  V2PortalListSessionsSessionStatus = "active"
+	Pending V2PortalListSessionsSessionStatus = "pending"
+)
+
+// Valid indicates whether the value is a known member of the V2PortalListSessionsSessionStatus enum.
+func (e V2PortalListSessionsSessionStatus) Valid() bool {
+	switch e {
+	case Active:
+		return true
+	case Pending:
+		return true
+	default:
+		return false
+	}
+}
+
 // App defines model for App.
 type App struct {
 	// CreatedAt Unix timestamp in milliseconds when the app was created.
@@ -1753,7 +1771,7 @@ type LoggingPolicy struct {
 }
 
 // MatchExpr A single request match expression. Exactly one of `path`, `method`,
-// `header` or `queryParam` must be set.
+// `header`, `queryParam` or `remoteIp` must be set.
 //
 // Example: {"path":{"path":{"prefix":"/api/"}}}
 type MatchExpr struct {
@@ -1770,6 +1788,14 @@ type MatchExpr struct {
 	// QueryParam Matches a named request field (header or query parameter). Exactly one of
 	// `present` or `value` must be set.
 	QueryParam *FieldMatch `json:"queryParam,omitempty"`
+
+	// RemoteIp Matches the remote IP against IPv4 or IPv6 CIDR ranges. Exactly one of `in`
+	// or `notIn` must be set. Entries are rejected if they have host bits set (such
+	// as `10.1.2.3/8`), are IPv4-mapped IPv6 addresses, or carry a zone. Single
+	// addresses are returned as full-length prefixes, such as `203.0.113.7/32`.
+	//
+	// Example: {"notIn":["198.51.100.0/24"]}
+	RemoteIp *RemoteIpMatch `json:"remoteIp,omitempty"`
 }
 
 // Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
@@ -2175,7 +2201,7 @@ type RatelimitIdentifier struct {
 	// PrincipalField Rate limit by a field extracted from the authenticated principal.
 	PrincipalField *PrincipalFieldKey `json:"principalField,omitempty"`
 
-	// RemoteIp Rate limit by the client's IP address.
+	// RemoteIp Rate limit by the remote IP.
 	RemoteIp *RemoteIpKey `json:"remoteIp,omitempty"`
 }
 
@@ -2305,8 +2331,25 @@ type RatelimitResponse struct {
 	Name string `json:"name"`
 }
 
-// RemoteIpKey Rate limit by the client's IP address.
+// RemoteIpKey Rate limit by the remote IP.
 type RemoteIpKey = map[string]interface{}
+
+// RemoteIpMatch Matches the remote IP against IPv4 or IPv6 CIDR ranges. Exactly one of `in`
+// or `notIn` must be set. Entries are rejected if they have host bits set (such
+// as `10.1.2.3/8`), are IPv4-mapped IPv6 addresses, or carry a zone. Single
+// addresses are returned as full-length prefixes, such as `203.0.113.7/32`.
+//
+// Example: {"notIn":["198.51.100.0/24"]}
+type RemoteIpMatch struct {
+	// In Matches when the remote IP is in at least one of these ranges. Entries
+	// are CIDRs such as `203.0.113.0/24` or single addresses such as
+	// `203.0.113.7`.
+	In *[]string `json:"in,omitempty"`
+
+	// NotIn Matches when the remote IP is in none of these ranges. Entries are CIDRs
+	// such as `198.51.100.0/24` or single addresses such as `198.51.100.7`.
+	NotIn *[]string `json:"notIn,omitempty"`
+}
 
 // Replicas Min and max replica bounds for autoscaling in a region.
 type Replicas struct {
@@ -4682,6 +4725,7 @@ type V2KeysRerollKeyRequestBody struct {
 	// This parameter controls the overlap period for key rotation:
 	// - Set to `0` to revoke the original key immediately
 	// - Positive values keep the original key active for the specified duration
+	// - Set to `null` to keep the original key active; it keeps its current expiration, if any
 	// - Allows graceful migration by giving users time to update their credentials
 	//
 	// Common overlap periods:
@@ -4693,7 +4737,7 @@ type V2KeysRerollKeyRequestBody struct {
 	//
 	//
 	// Example: 86400000
-	Expiration int64 `json:"expiration"`
+	Expiration nullable.Nullable[int64] `json:"expiration"`
 
 	// KeyId The database identifier of the key to reroll.
 	//
@@ -5862,6 +5906,130 @@ type V2PortalListKeysResponseBody struct {
 // V2PortalListKeysResponseData Array of the portal end user's API keys.
 type V2PortalListKeysResponseData = []KeyResponseData
 
+// V2PortalListSessionsRequestBody defines model for V2PortalListSessionsRequestBody.
+type V2PortalListSessionsRequestBody struct {
+	// Cursor Pagination cursor from a previous response to fetch the next page.
+	// Use when `hasMore: true` in the previous response.
+	//
+	//
+	// Example: user_123
+	Cursor *string `json:"cursor,omitempty"`
+
+	// Limit Maximum number of end users to return per request.
+	Limit *int `json:"limit,omitempty"`
+
+	// Portal Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	//
+	//
+	// Example: proj_1234abcd
+	Portal ResourceIdentifier `json:"portal"`
+
+	// Search Returns only end users whose `externalId` starts with this string.
+	// Matching is case-sensitive, and `%` and `_` match literally.
+	//
+	//
+	// Example: user_
+	Search *string `json:"search,omitempty"`
+}
+
+// V2PortalListSessionsResponseBody defines model for V2PortalListSessionsResponseBody.
+type V2PortalListSessionsResponseBody struct {
+	// Data End users with revocable sessions, ordered by `externalId`.
+	Data []V2PortalListSessionsResponseData `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+
+	// Pagination Pagination metadata for list endpoints. Provides information necessary to traverse through large result sets efficiently using cursor-based pagination.
+	Pagination Pagination `json:"pagination"`
+}
+
+// V2PortalListSessionsResponseData defines model for V2PortalListSessionsResponseData.
+type V2PortalListSessionsResponseData struct {
+	// ExternalId The end user's identifier, as passed to `portal.createSession`.
+	//
+	// Example: user_123
+	ExternalId string `json:"externalId"`
+
+	// Sessions The end user's revocable sessions, newest first.
+	Sessions []V2PortalListSessionsSession `json:"sessions"`
+}
+
+// V2PortalListSessionsSession defines model for V2PortalListSessionsSession.
+type V2PortalListSessionsSession struct {
+	// CreatedAt When the session was created, in Unix milliseconds.
+	//
+	// Example: 1704067200000
+	CreatedAt int64 `json:"createdAt"`
+
+	// ExpiresAt When the session stops working, in Unix milliseconds. For a `pending`
+	// session this is when its portal URL expires.
+	//
+	//
+	// Example: 1704153600000
+	ExpiresAt int64 `json:"expiresAt"`
+
+	// Id The session id.
+	//
+	// Example: ps_1234abcd
+	Id string `json:"id"`
+
+	// Scopes The capabilities the session was created with.
+	//
+	// Example: ["keys:read"]
+	Scopes []string `json:"scopes"`
+
+	// Status `pending` when the portal URL was created but not opened yet. `active`
+	// when the end user opened it.
+	//
+	//
+	// Example: active
+	Status V2PortalListSessionsSessionStatus `json:"status"`
+}
+
+// V2PortalListSessionsSessionStatus `pending` when the portal URL was created but not opened yet. `active`
+// when the end user opened it.
+//
+// Example: active
+type V2PortalListSessionsSessionStatus string
+
+// V2PortalRevokeSessionRequestBody defines model for V2PortalRevokeSessionRequestBody.
+type V2PortalRevokeSessionRequestBody struct {
+	// ExternalId The end user's identifier in your system, as passed to
+	// `portal.createSession`. Every live session this end user holds on the
+	// portal is revoked.
+	//
+	//
+	// Example: user_123
+	ExternalId string `json:"externalId"`
+
+	// Portal Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	//
+	//
+	// Example: proj_1234abcd
+	Portal ResourceIdentifier `json:"portal"`
+}
+
+// V2PortalRevokeSessionResponseBody defines model for V2PortalRevokeSessionResponseBody.
+type V2PortalRevokeSessionResponseBody struct {
+	Data V2PortalRevokeSessionResponseData `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// V2PortalRevokeSessionResponseData defines model for V2PortalRevokeSessionResponseData.
+type V2PortalRevokeSessionResponseData struct {
+	// SessionsRevoked How many live sessions were revoked. Zero when the end user had none,
+	// including when an earlier call already revoked them.
+	//
+	//
+	// Example: 2
+	SessionsRevoked int64 `json:"sessionsRevoked"`
+}
+
 // V2PortalUpdatePortalRequestBody defines model for V2PortalUpdatePortalRequestBody.
 type V2PortalUpdatePortalRequestBody struct {
 	// AppId Re-point the portal at a different app. Omit to leave the resource it
@@ -5883,7 +6051,8 @@ type V2PortalUpdatePortalRequestBody struct {
 
 	// Enabled Whether new sessions can be minted. Omit to leave unchanged.
 	//
-	// Disabling does not end sessions that are already live.
+	// Disabling also revokes the portal's live sessions. Re-enabling does not
+	// restore them.
 	//
 	//
 	// Example: false
@@ -6419,6 +6588,153 @@ type V2RatelimitSetOverrideResponseData struct {
 	OverrideId string `json:"overrideId"`
 }
 
+// V2RootKeysCreateKeyRequestBody defines model for V2RootKeysCreateKeyRequestBody.
+type V2RootKeysCreateKeyRequestBody struct {
+	// Expires Expiration as Unix milliseconds, strictly in the future. Expiring root-key callers must provide a child expiry no later than their own. JWT admins and nonexpiring root-key callers may omit it or set null for no expiration.
+	Expires nullable.Nullable[int64] `json:"expires,omitempty"`
+
+	// Name Optional name for the root key.
+	Name *string `json:"name,omitempty"`
+
+	// Permissions Permissions to grant to the root key. Each permission must be within the caller's existing permissions.
+	Permissions []string `json:"permissions"`
+}
+
+// V2RootKeysCreateKeyResponseBody defines model for V2RootKeysCreateKeyResponseBody.
+type V2RootKeysCreateKeyResponseBody struct {
+	Data V2RootKeysCreateKeyResponseData `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// V2RootKeysCreateKeyResponseData defines model for V2RootKeysCreateKeyResponseData.
+type V2RootKeysCreateKeyResponseData struct {
+	// Key Root key secret, returned only once. Store it securely.
+	Key string `json:"key"`
+
+	// KeyId Identifier used to manage the root key.
+	KeyId string `json:"keyId"`
+}
+
+// V2RootKeysDeleteKeyRequestBody defines model for V2RootKeysDeleteKeyRequestBody.
+type V2RootKeysDeleteKeyRequestBody struct {
+	// KeyId Root key identifier returned by rootKeys.createKey or rootKeys.listKeys.
+	KeyId string `json:"keyId"`
+}
+
+// V2RootKeysDeleteKeyResponseBody defines model for V2RootKeysDeleteKeyResponseBody.
+type V2RootKeysDeleteKeyResponseBody struct {
+	// Data Empty response object by design. A successful response indicates this operation was successfully executed.
+	Data EmptyResponse `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// V2RootKeysListKeysRequestBody defines model for V2RootKeysListKeysRequestBody.
+type V2RootKeysListKeysRequestBody struct {
+	// Cursor Opaque cursor from a previous response. Omit for the first page.
+	Cursor *string `json:"cursor,omitempty"`
+
+	// Limit Maximum number of readable root keys per page.
+	Limit *int `json:"limit,omitempty"`
+}
+
+// V2RootKeysListKeysResponseBody defines model for V2RootKeysListKeysResponseBody.
+type V2RootKeysListKeysResponseBody struct {
+	Data []V2RootKeysListKeysResponseData `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+
+	// Pagination Pagination metadata for list endpoints. Provides information necessary to traverse through large result sets efficiently using cursor-based pagination.
+	Pagination Pagination `json:"pagination"`
+}
+
+// V2RootKeysListKeysResponseData defines model for V2RootKeysListKeysResponseData.
+type V2RootKeysListKeysResponseData struct {
+	// CreatedAt Creation time in Unix milliseconds.
+	CreatedAt int64 `json:"createdAt"`
+
+	// Enabled Whether the key is administratively enabled. An enabled key can still be expired.
+	Enabled bool `json:"enabled"`
+
+	// End Stored trailing display fragment. Empty for keys without a recorded suffix.
+	End string `json:"end"`
+
+	// Expires Expiration time in Unix milliseconds, or null for no expiration.
+	Expires nullable.Nullable[int64] `json:"expires"`
+
+	// KeyId Stable root key identifier.
+	KeyId string `json:"keyId"`
+
+	// LastUsedAt Last verification time in Unix milliseconds. Zero means the root key has not been used.
+	LastUsedAt int64 `json:"lastUsedAt"`
+
+	// Name User-supplied name, or null when absent.
+	Name nullable.Nullable[string] `json:"name"`
+
+	// Permissions All permissions assigned to the root key.
+	Permissions []string `json:"permissions"`
+
+	// Start Stored display fragment, including the prefix when present.
+	Start string `json:"start"`
+}
+
+// V2RootKeysRerollKeyRequestBody defines model for V2RootKeysRerollKeyRequestBody.
+type V2RootKeysRerollKeyRequestBody struct {
+	// Expiration Milliseconds until the original root key expires. Use 0 to revoke it immediately.
+	// Use null to keep the original key's current expiration. This value never extends
+	// an existing expiration.
+	Expiration nullable.Nullable[int64] `json:"expiration"`
+
+	// KeyId Root key identifier returned by rootKeys.createKey or rootKeys.listKeys.
+	KeyId string `json:"keyId"`
+}
+
+// V2RootKeysRerollKeyResponseBody defines model for V2RootKeysRerollKeyResponseBody.
+type V2RootKeysRerollKeyResponseBody struct {
+	Data V2RootKeysRerollKeyResponseData `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// V2RootKeysRerollKeyResponseData defines model for V2RootKeysRerollKeyResponseData.
+type V2RootKeysRerollKeyResponseData struct {
+	// Key New root key secret, returned only once. Store it securely.
+	Key string `json:"key"`
+
+	// KeyId Identifier of the new root key.
+	KeyId string `json:"keyId"`
+}
+
+// V2RootKeysUpdateKeyRequestBody defines model for V2RootKeysUpdateKeyRequestBody.
+type V2RootKeysUpdateKeyRequestBody struct {
+	// Enabled Whether the root key can authenticate. Omit to keep the current state.
+	Enabled *bool `json:"enabled,omitempty"`
+
+	// KeyId Root key identifier returned by rootKeys.createKey or rootKeys.listKeys.
+	KeyId string `json:"keyId"`
+
+	// Name New root key name. Set null to remove the name. Omit to keep the current name.
+	Name nullable.Nullable[string] `json:"name,omitempty"`
+
+	// Permissions Complete replacement permission set. Every permission must be a supported URN in the authenticated workspace
+	// and within the caller's permissions. Omit to keep the current permissions.
+	Permissions *[]string `json:"permissions,omitempty"`
+}
+
+// V2RootKeysUpdateKeyResponseBody defines model for V2RootKeysUpdateKeyResponseBody.
+type V2RootKeysUpdateKeyResponseBody struct {
+	// Data Empty response object by design. A successful response indicates this operation was successfully executed.
+	Data EmptyResponse `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
 // V3DeploymentsCreateDeploymentRequestBody Create a deployment. Omit the source to use the app default, or provide one source override.
 type V3DeploymentsCreateDeploymentRequestBody struct {
 	// App Identifies a resource by either its unique ID or its slug.
@@ -6756,8 +7072,14 @@ type PortalGetVerificationsJSONRequestBody = V2PortalGetVerificationsRequestBody
 // PortalListKeysJSONRequestBody defines body for PortalListKeys for application/json ContentType.
 type PortalListKeysJSONRequestBody = V2PortalListKeysRequestBody
 
+// PortalListSessionsJSONRequestBody defines body for PortalListSessions for application/json ContentType.
+type PortalListSessionsJSONRequestBody = V2PortalListSessionsRequestBody
+
 // PortalRerollKeyJSONRequestBody defines body for PortalRerollKey for application/json ContentType.
 type PortalRerollKeyJSONRequestBody = V2KeysRerollKeyRequestBody
+
+// PortalRevokeSessionJSONRequestBody defines body for PortalRevokeSession for application/json ContentType.
+type PortalRevokeSessionJSONRequestBody = V2PortalRevokeSessionRequestBody
 
 // PortalUpdatePortalJSONRequestBody defines body for PortalUpdatePortal for application/json ContentType.
 type PortalUpdatePortalJSONRequestBody = V2PortalUpdatePortalRequestBody
@@ -6794,6 +7116,21 @@ type RatelimitMultiLimitJSONRequestBody = V2RatelimitMultiLimitRequestBody
 
 // RatelimitSetOverrideJSONRequestBody defines body for RatelimitSetOverride for application/json ContentType.
 type RatelimitSetOverrideJSONRequestBody = V2RatelimitSetOverrideRequestBody
+
+// RootKeysCreateKeyJSONRequestBody defines body for RootKeysCreateKey for application/json ContentType.
+type RootKeysCreateKeyJSONRequestBody = V2RootKeysCreateKeyRequestBody
+
+// RootKeysDeleteKeyJSONRequestBody defines body for RootKeysDeleteKey for application/json ContentType.
+type RootKeysDeleteKeyJSONRequestBody = V2RootKeysDeleteKeyRequestBody
+
+// RootKeysListKeysJSONRequestBody defines body for RootKeysListKeys for application/json ContentType.
+type RootKeysListKeysJSONRequestBody = V2RootKeysListKeysRequestBody
+
+// RootKeysRerollKeyJSONRequestBody defines body for RootKeysRerollKey for application/json ContentType.
+type RootKeysRerollKeyJSONRequestBody = V2RootKeysRerollKeyRequestBody
+
+// RootKeysUpdateKeyJSONRequestBody defines body for RootKeysUpdateKey for application/json ContentType.
+type RootKeysUpdateKeyJSONRequestBody = V2RootKeysUpdateKeyRequestBody
 
 // DeploymentsCreateDeploymentV3JSONRequestBody defines body for DeploymentsCreateDeploymentV3 for application/json ContentType.
 type DeploymentsCreateDeploymentV3JSONRequestBody = V3DeploymentsCreateDeploymentRequestBody

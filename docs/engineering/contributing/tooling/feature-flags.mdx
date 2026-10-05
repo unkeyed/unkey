@@ -1,6 +1,13 @@
 ---
 title: "Feature flags"
 description: "How feature flags work in the dashboard"
+notion:
+  rootPageID: 3ee512d643f38063b525d6c3619c1f69
+  owners:
+    - james
+  tags:
+    - Development
+    - Tooling
 ---
 
 Flags are declared in `web/apps/dashboard/lib/flags/index.ts`. The `identify` helper reads the current session and passes stable `user.id` and `org.id` entities to each flag, so targeting by user or org doesn't need extra wiring per flag.

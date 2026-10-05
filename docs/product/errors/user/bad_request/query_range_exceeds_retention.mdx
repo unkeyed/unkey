@@ -1,46 +1,46 @@
 ---
 title: "query_range_exceeds_retention"
-description: "Your query requests data older than your workspace's retention period in Unkey. Narrow the time range to stay within your plan's limits."
+sidebarTitle: "query_range_exceeds_retention"
+description: "The analytics query asks for data older than the workspace's retention window."
+sources:
+  - pkg/codes/user_request.go
+  - svc/api/internal/middleware/errors.go
+  - pkg/clickhouse/query-parser/time_range.go
+  - internal/services/analytics/executor.go
 ---
 
 <Danger>`err:user:bad_request:query_range_exceeds_retention`</Danger>
 
-## What does this error mean?
+The time filter in your analytics query asks for data older than your workspace keeps. You get HTTP 400, and `detail` gives the earliest date you can query and the date you asked for.
 
-This error occurs when your analytics query attempts to access data older than your workspace's configured data retention period. By default, Unkey retains analytics data for **30 days**.
+```json Example response
+{
+  "meta": {
+    "requestId": "req_2c9a0jf23l4k567"
+  },
+  "error": {
+    "detail": "Cannot query data older than 30 days. Your query attempts to access data from 2026-07-01, but only data from 2026-08-23 onwards is available.",
+    "status": 400,
+    "title": "Bad Request",
+    "type": "/errors/user/bad_request/query_range_exceeds_retention",
+    "errors": []
+  }
+}
+```
 
-**Note**: If you don't provide a time filter in your query, Unkey automatically constrains results to your workspace retention period. This error only occurs when you explicitly specify a time range that goes beyond the retention period.
+## Likely causes
 
-## Common causes
+- The lower bound on `time` (with `>`, `>=`, `=`, or `BETWEEN`) goes back further than your plan's retention.
 
-1. **Querying historical data beyond retention**: Your query's time filter includes dates older than your retention period
-   ```sql
-   -- If your retention is 30 days, this will fail if querying > 30 days ago
-   SELECT COUNT(*) FROM key_verifications_v1 WHERE time >= 1234567890000
-   ```
+We check bounds written as a literal timestamp or date, `today()`, or `now()` with `INTERVAL N UNIT`, such as `now() - INTERVAL 90 DAY`. A bound written another way, such as `toIntervalDay(90)`, or no lower bound at all, isn't rejected. The query runs, and rows older than your retention are left out without an error.
 
 ## How to fix
 
-1. **Add a time filter within retention**: Ensure your query only accesses data within your retention period
+1. Move the lower bound to the date in `detail` or later.
+2. If you need older data, move to a plan with longer retention. See [Limits](/platform/billing/limits).
+3. To keep data long-term, schedule exports that run inside the retention window.
 
-   ```sql
-   -- Query last 7 days (within 30-day retention)
-   SELECT COUNT(*) FROM key_verifications_v1
-   WHERE time >= now() - INTERVAL 7 DAY
-   ```
+## Related errors
 
-2. **Adjust your query range**: If you need to analyze trends, query within your available retention window
-   ```sql
-   -- Query the full 30-day retention period
-   SELECT COUNT(*) FROM key_verifications_v1
-   WHERE time >= now() - INTERVAL 30 DAY
-   ```
-
-## Need longer retention?
-
-If your use case requires data retention beyond 30 days, please [contact our support team](https://unkey.com/support) to discuss upgrading your retention period. We can configure custom retention periods based on your needs.
-
-## Related
-
-- [Analytics documentation](/platform/analytics/overview)
-- [Analytics query examples](/platform/analytics/query-examples)
+- [`err:user:bad_request:invalid_analytics_query`](/errors/user/bad_request/invalid_analytics_query): the query failed for another structural reason.
+- [`err:user:too_many_requests:query_quota_exceeded`](/errors/user/too_many_requests/query_quota_exceeded): the workspace used up its analytics query quota.

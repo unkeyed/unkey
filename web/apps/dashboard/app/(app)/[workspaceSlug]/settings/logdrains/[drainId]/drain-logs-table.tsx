@@ -11,7 +11,7 @@ export function DrainLogsTable({ drainId }: { drainId: string }) {
   return (
     <Card className="overflow-hidden">
       <div className="border-b px-4 py-3">
-        <span className="text-[13px] font-medium text-gray-12">Deliveries</span>
+        <span className="text-sm font-medium text-gray-12">Deliveries</span>
       </div>
       <div className="overflow-x-auto">
         <LogRows deliveries={deliveries} isError={isError} retry={retry} />

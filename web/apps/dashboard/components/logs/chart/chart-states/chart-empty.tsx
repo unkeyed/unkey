@@ -91,7 +91,7 @@ export const ChartEmpty = ({
   if (variant === "compact") {
     return (
       <div className={cn("w-full relative bg-grayA-2", className)}>
-        <div className="px-2 text-gray-11 font-mono absolute top-0 text-xxs w-full flex justify-between opacity-50">
+        <div className="px-2 text-gray-11 font-mono absolute top-0 text-3xs w-full flex justify-between opacity-50">
           {Array(5)
             .fill(0)
             .map((_, i) => (
@@ -140,11 +140,9 @@ export const ChartEmpty = ({
                     style={{ backgroundColor: metric.color }}
                   />
                 ))}
-              <div className="text-gray-10 text-[11px] leading-4">
-                {labelsWithDefaults.rangeLabel}
-              </div>
+              <div className="text-gray-10 text-2xs leading-4">{labelsWithDefaults.rangeLabel}</div>
             </div>
-            <div className="text-gray-12 text-[18px] font-semibold leading-7">--</div>
+            <div className="text-gray-12 text-lg font-semibold leading-7">--</div>
           </div>
 
           {/* Right side section shown conditionally */}
@@ -157,9 +155,9 @@ export const ChartEmpty = ({
                       className="rounded h-[10px] w-1"
                       style={{ backgroundColor: metric.color }}
                     />
-                    <div className="text-gray-10 text-[11px] leading-4">{metric.label}</div>
+                    <div className="text-gray-10 text-2xs leading-4">{metric.label}</div>
                   </div>
-                  <div className="text-gray-12 text-[18px] font-semibold leading-7">--</div>
+                  <div className="text-gray-12 text-lg font-semibold leading-7">--</div>
                 </div>
               ))}
             </div>
@@ -174,7 +172,7 @@ export const ChartEmpty = ({
         </div>
 
         {/* Time labels footer */}
-        <div className="h-8 border-t border-b px-1 py-2 text-gray-9 font-mono text-xxs w-full flex justify-between">
+        <div className="h-8 border-t border-b px-1 py-2 text-gray-9 font-mono text-3xs w-full flex justify-between">
           {Array(5)
             .fill(0)
             .map((_, i) => (

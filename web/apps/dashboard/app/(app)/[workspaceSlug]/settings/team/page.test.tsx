@@ -36,6 +36,7 @@ vi.mock("@unkey/ui", () => {
     PageContainer: Wrapper,
     PageHeader: Wrapper,
     PageHeaderContent: Wrapper,
+    PageHeaderDescription: Wrapper,
     PageHeaderTitle: ({ children }: { children?: React.ReactNode }) => <h1>{children}</h1>,
   };
 });

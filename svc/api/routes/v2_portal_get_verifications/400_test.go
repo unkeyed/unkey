@@ -8,7 +8,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/codes"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
@@ -129,7 +128,7 @@ func TestPortalSessionAnalyticsRejectsOversizedPerKeyBreakout(t *testing.T) {
 		key := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID: workspace.ID,
 			KeySpaceID:  api.KeyAuthID.String,
-			IdentityID:  ptr.P(identityA.ID),
+			IdentityID:  new(identityA.ID),
 		})
 		h.KeyVerifications.Buffer(schema.KeyVerification{
 			RequestID:   uid.New(uid.RequestPrefix),
@@ -166,7 +165,7 @@ func TestPortalSessionAnalyticsRejectsOversizedPerKeyBreakout(t *testing.T) {
 	}, 30*time.Second, time.Second)
 
 	narrowed := req
-	narrowed.KeyId = ptr.P(lastKey.KeyID)
+	narrowed.KeyId = new(lastKey.KeyID)
 
 	res := testutil.CallRoute[Request, Response](h, route, headers, narrowed)
 	require.Equal(t, 200, res.Status, "a single named key stays within the cap")
@@ -205,7 +204,7 @@ func TestPortalSessionAnalyticsRejectsOversizedResponse(t *testing.T) {
 		key := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID: workspace.ID,
 			KeySpaceID:  api.KeyAuthID.String,
-			IdentityID:  ptr.P(identityA.ID),
+			IdentityID:  new(identityA.ID),
 		})
 		for i := range 10 {
 			h.KeyVerifications.Buffer(schema.KeyVerification{
@@ -239,7 +238,7 @@ func TestPortalSessionAnalyticsRejectsOversizedResponse(t *testing.T) {
 	}, 60*time.Second, time.Second)
 
 	narrowed := req
-	narrowed.KeyId = ptr.P(lastKey.KeyID)
+	narrowed.KeyId = new(lastKey.KeyID)
 	ok := testutil.CallRoute[Request, Response](h, route, headers, narrowed)
 	require.Equal(t, 200, ok.Status, "a single key stays under the size ceiling")
 }

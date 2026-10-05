@@ -1,155 +1,123 @@
 ---
-title: Overview
-description: "Create and manage root keys for programmatic access to the Unkey API. Root keys authenticate CLI tools, SDKs, and server-side requests."
+title: Root keys
+sidebarTitle: "Overview"
+description: "Create and rotate the root keys that authenticate you to the Unkey API."
+sources:
+  - svc/api/routes/v2_root_keys_create_key/handler.go
+  - svc/api/routes/v2_root_keys_update_key/handler.go
+  - svc/api/routes/v2_root_keys_delete_key/handler.go
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/root-keys/page.tsx
+  - web/apps/dashboard/lib/trpc/routers/key/reroll/index.ts
+  - web/apps/dashboard/lib/trpc/routers/settings/root-keys/delete.ts
+  - web/apps/dashboard/components/api-keys-table/components/actions/components/rotate-key/rotate-key.constants.ts
+  - web/internal/keys/src/util.ts
+  - internal/services/caches/caches.go
 ---
 
 import { DashboardScreenshot } from "/snippets/dashboard-screenshot.jsx";
 
-Root keys authenticate your requests to the Unkey API. Each root key belongs to a single workspace and can only access resources within that workspace. Use them to create API keys, manage identities, configure rate limits, and perform other administrative operations from your server.
+A root key is the credential your services, CI jobs, and agents use to call Unkey through the API or CLI. It belongs to one workspace and has no permissions by default. You assign permissions to let it perform its task, such as deploying an app or verifying customer API keys.
 
-<Warning>
-  Root keys have powerful permissions. Never expose them in client-side code, commit them to git, or share them publicly.
-</Warning>
+Start with [Root key permissions](/platform/root-keys/permissions) to decide what access the key needs. Then use [Configure root keys](/platform/root-keys/configure) to create it in the dashboard or API. This page explains how to store, rotate, and delete it.
+
+A root key isn't one of the API keys you issue to your own users. You create and verify those through the API, using a root key. See [API Management concepts](/api-management/get-started/concepts).
+
+Manage root keys on the workspace's **Root Keys** page. You need the [admin role](/platform/workspace/team) to manage them in the dashboard. Automation can manage root keys through the API with the required [root key permissions](/platform/root-keys/permission-reference#root-key-operations).
 
 <Frame>
   <DashboardScreenshot
     target="root-key-list"
-    capture="viewport"
-    capturedAt="2026-09-11T07:11:42Z"
-    description="In a disposable local workspace, open Settings, Root Keys. Show several synthetic root keys with distinct service names, permission counts, and expiration states. Keep all key values masked. Leave filters empty and close dialogs and menus. Use a 1440 by 1000 viewport. Capture the dashboard in light and dark themes, including navigation and the table headers."
+    capture="target"
+    description="Open Root Keys in a disposable local workspace with synthetic
+      billing-staging-ci, billing-staging-debugger, and customer-key-verifier
+      keys. Show the list with masked secrets and no open menus at 1440 by 450
+      CSS pixels, scale 2, in both themes. Crop to the page content, keeping
+      the header and all table columns. Never show a full secret."
     src="/platform/root-keys/root-key-list"
-    alt="Root key list"
+    alt="Root key list with separate keys for CI, debugging, and API key verification"
+    capturedAt="2026-10-02T14:11:28Z"
   />
 </Frame>
 
-## Root keys vs API keys
+## What a root key looks like
 
-| | Root keys | API keys |
-| ---------------- | -------------------------------------- | ------------------------- |
-| **Purpose** | Manage Unkey resources | Authenticate your users |
-| **Who uses it** | You (the developer) | Your customers |
-| **Permissions** | Create/update/delete keys, manage keyspaces | Access your API endpoints |
-| **Where stored** | Your server's environment variables | Given to customers |
+A root key starts with `unkey_`, followed by random characters. It's shown to you only once (see [Key storage](/platform/security/key-storage)). The bearer key identifies the workspace for API requests. Permission URNs also include that workspace's ID.
+
+A root key has no credit limit or rate limit of its own. You can set an expiry when creating it through the API. Use short-lived keys for temporary jobs and agents.
 
 ## Create a root key
 
-<Frame>
-  <img className="block dark:hidden" src="/platform/root-keys/root-key-create-light.png" alt="Create root key dialog" />
-  <img className="hidden dark:block" src="/platform/root-keys/root-key-create-dark.png" alt="Create root key dialog" />
-</Frame>
+Give each service, job, or agent its own root key. Choose the resource scope and actions in [Root key permissions](/platform/root-keys/permissions), then follow [Configure root keys](/platform/root-keys/configure) to create it in the dashboard or API.
 
-1. Navigate to **Settings > Root Keys**.
-2. Click **Create New Key**.
-3. Enter a descriptive name (for example, "Vercel Production" or "CI Pipeline").
-4. Select the permissions the key needs. Grant only what the key requires.
-5. Click **Create root key**.
-
-The key secret is displayed once after creation. Copy it immediately, as you cannot retrieve it later. Unkey only stores a hash of the key.
-
-<Frame>
-  <img className="block dark:hidden" src="/platform/root-keys/root-key-created-light.png" alt="Copy root key secret" />
-  <img className="hidden dark:block" src="/platform/root-keys/root-key-created-dark.png" alt="Copy root key secret" />
-</Frame>
-
-Store it in your environment variables:
-
-```bash .env
-UNKEY_ROOT_KEY=unkey_...
-```
+Store the secret in your secret manager. You can't retrieve it again. The audit log records who created the key and which permissions it received.
 
 ## Edit a root key
 
-1. Navigate to **Settings > Root Keys**.
-2. Click the actions menu (**...**) on the key row.
-3. Select **Edit root key...**.
-4. Update the name or permissions.
-5. Click **Update root key**.
+From the key's row menu, choose **Edit root key** to change its name or permissions. Saving replaces the complete permission set, so review all policies before saving. See [Edit permissions](/platform/root-keys/configure#edit-permissions-in-the-dashboard) for dashboard and API instructions.
+
+## Rotate a root key
+
+Rotating gives you a new root key with the same name and permissions, and stops the old one after a grace period.
+
+1. Choose **Rotate root key** from the row menu.
+2. Pick a grace period: revoke immediately, 15 minutes, 1 hour, 6 hours, or 24 hours.
+3. Check the confirmation, click **Rotate root key**, then confirm the rotation.
+4. Copy the new key. It's shown once, like a new key.
+5. Update your services before the grace period ends.
 
 <Frame>
   <DashboardScreenshot
-    target="root-key-edit"
+    target="root-key-rotate"
     capture="target"
-    capturedAt="2026-09-11T10:01:18Z"
-    description="In a disposable local workspace, open Settings, Root Keys and edit a synthetic root key with existing keyspace-scoped permissions. Show its name and selected permissions, including create_key and verify_key for a Billing keyspace. Keep the permission sheet closed. Use a 1440 by 1000 viewport. Capture only the Edit root key dialog in both themes at 2x with a transparent background, no outer dialog shadow, and 24 CSS px transparent padding on every side. Preserve the actual dialog radius, borders, layout, and child controls. Do not submit changes."
-    src="/platform/root-keys/root-key-edit"
-    width={508}
-    alt="Edit root key dialog"
+    description="Open Rotate root key for the synthetic billing-staging-ci
+      key. Select a 1 hour grace period and leave confirmation unchecked.
+      Do not submit rotation. Capture both themes with transparent padding
+      of 24 CSS pixels and no outer shadow at scale 2."
+    src="/platform/root-keys/root-key-rotate"
+    alt="Root key rotation dialog with a one-hour grace period"
+    width={648}
+    capturedAt="2026-10-02T14:02:40Z"
   />
 </Frame>
 
+When the grace period ends, requests with the old key fail with `err:unkey:authorization:forbidden`. If the old key was already set to expire sooner, it stops at that earlier time.
+
+Rotate on a schedule that fits your security policy, and right away if a key has been exposed. With "revoke immediately", the old key stops working as soon as the new one exists.
+
 ## Delete a root key
+
+Choose **Delete root key** from the row menu and confirm. You can't undo this. The key can no longer authenticate after the deletion propagates. The audit log records the deletion. Delete keys for services you've retired instead of leaving them active.
 
 <Frame>
   <DashboardScreenshot
     target="root-key-delete"
     capture="target"
-    capturedAt="2026-09-11T10:00:32Z"
-    description="In a disposable local workspace, open Settings, Root Keys and choose Delete root key for a synthetic key named demo. Show the Revoke Root Key dialog with its warning, an unchecked acknowledgment checkbox, and the disabled Delete permanently button. Keep the key value masked. Use a 1440 by 1000 viewport. Capture only this dialog in both themes at 2x with a transparent background, no outer dialog shadow, and 24 CSS px transparent padding on every side. Preserve the actual dialog radius, borders, layout, and child controls. Do not confirm or delete the key."
+    description="Open the delete dialog for the synthetic billing-staging-debugger
+      key. Leave the confirmation unchecked and Delete key disabled. Do not
+      delete the key. Capture both themes at scale 2 with transparent padding
+      of 24 CSS pixels and no outer shadow."
     src="/platform/root-keys/root-key-delete"
-    width={648}
-    alt="Delete root key confirmation"
+    alt="Root key deletion dialog with its confirmation unchecked"
+    width={608}
+    capturedAt="2026-10-02T14:01:41Z"
   />
 </Frame>
 
-1. Navigate to **Settings > Root Keys**.
-2. Click the actions menu (**...**) on the key row.
-3. Select **Delete root key**.
-4. Check the confirmation box and click **Delete permanently**.
+## If a root key leaks
 
-<Warning>
-  Deleting a root key is immediate and permanent. Any application using the key loses access.
-</Warning>
+Rotate it with "revoke immediately" or delete it, then remove the secret from wherever it was exposed. The key keeps working until you do.
 
-## Rotate a root key
+If a root key is pushed to a public GitHub repository, [GitHub secret scanning](/platform/security/github-secret-scanning) reports it and every member of the workspace gets an email saying where it was found.
 
-Rotation issues a new root key with the same permissions as the original and schedules the old key to expire after a grace period you choose. Use it for routine credential rotation or to replace a leaked key without downtime.
+Unkey stores root keys hashed, so it can't recover the secret, only identify which key ID a request used. That's another reason to create one key per service.
 
-1. Navigate to **Settings > Root Keys**.
-2. Click the actions menu (**...**) on the key row.
-3. Select **Rotate root key**.
-4. Choose a grace period for the old key:
-   - **Revoke immediately** – revoke the old key as soon as the new one is created.
-   - **1 minute**, **15 minutes**, **1 hour**, **6 hours**, or **24 hours** – keep the old key valid for that long so deployed services keep working while you roll out the new key.
-5. Click **Rotate key**.
-6. Copy the new key secret from the success dialog and store it. The plaintext is shown only once.
-7. Update your application's environment variables with the new key and deploy.
+## Permissions reference
 
-The new key inherits the original permissions and any expiration that was already set. The old key continues to verify until the grace period elapses, then it is revoked automatically. Expired keys cannot be rotated; create a new key instead.
-
-<Tip>
-  Choose a grace period that covers your slowest deploy. If a service still uses the old key after the grace period ends, it will receive an `EXPIRED` response.
-</Tip>
-
-## Best practices
-
-<AccordionGroup>
-<Accordion title="Use minimal permissions">
-Only grant the permissions each root key actually needs. A key that only verifies API keys does not need `delete_key` permission.
-</Accordion>
-
-<Accordion title="Use separate keys for different services">
-Create dedicated root keys for each service or environment. For example, `production-api-server` for verifying and creating keys, `admin-dashboard` for full management access, and `billing-service` for updating key credits only.
-</Accordion>
-
-<Accordion title="Rotate keys periodically">
-Even without a breach, rotate root keys every few months as a security practice. Create a new key, update your services, then delete the old one.
-</Accordion>
-
-<Accordion title="Never log root keys">
-Ensure your logging does not capture root keys in request bodies or headers.
-</Accordion>
-</AccordionGroup>
-
-## If a root key is leaked
-
-Act immediately:
-
-1. Go to **Settings > Root Keys** and delete the compromised key.
-2. Create a replacement key with the same permissions.
-3. Deploy the new key to your environment.
-4. Review [audit logs](https://app.unkey.com/audit) for any unauthorized activity.
-5. If you suspect API keys were created or modified, consider [rerolling](/platform/apis/features/rerolling-key) them.
-
-<Tip>
-  Enable [GitHub secret scanning](/security/github-scanning) to get automatic alerts if your root key is accidentally committed.
-</Tip>
+<Columns cols={2}>
+  <Card title="Root key permissions" icon="shield-halved" href="/platform/root-keys/permissions">
+    Choose least-privilege permissions for deployments, agents, and API management.
+  </Card>
+  <Card title="Permission reference" icon="list" href="/platform/root-keys/permission-reference">
+    Resource paths, supported actions, and operation requirements.
+  </Card>
+</Columns>

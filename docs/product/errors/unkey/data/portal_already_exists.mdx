@@ -1,7 +1,45 @@
 ---
 title: "portal_already_exists"
-description: "Duplicate indicates a portal already claims the requested slug or association."
+sidebarTitle: "portal_already_exists"
+description: "The portal slug is taken, or the app or keyspace already has a portal."
+sources:
+  - pkg/codes/unkey_data.go
+  - svc/api/internal/middleware/errors.go
+  - svc/api/routes/v2_portal_create_portal/handler.go
+  - svc/api/routes/v2_portal_update_portal/handler.go
+  - svc/api/internal/portal/portal.go
 ---
 
 <Danger>`err:unkey:data:portal_already_exists`</Danger>
 
+`portal.createPortal` or `portal.updatePortal` clashed with an existing portal. Nothing was created or changed. You get HTTP 409.
+
+```json Example response
+{
+  "meta": {
+    "requestId": "req_2c9a0jf23l4k567"
+  },
+  "error": {
+    "detail": "A portal already exists for that slug, app, or keyspace.",
+    "status": 409,
+    "title": "Conflicting Resource",
+    "type": "/errors/unkey/data/portal_already_exists"
+  }
+}
+```
+
+## Likely causes
+
+- The slug is already used in your workspace: `That slug is already in use.`
+- The app or keyspace already has a portal: `That app or keyspace already has a portal.` Each one can back only one portal across all workspaces, so the existing portal may be one you can't see.
+- Two requests clashed at the same moment. You get the generic message shown above.
+
+## How to fix
+
+1. For a slug clash, pick another slug or update the existing portal.
+2. For an app or keyspace clash, find the existing portal with `portal.getPortal` by app or keyspace. If you can't see one in this workspace, it's in another workspace.
+
+## Related errors
+
+- [`err:unkey:data:portal_not_found`](/errors/unkey/data/portal_not_found): the portal or the mapped resource isn't visible to you.
+- [`err:unkey:authorization:insufficient_permissions`](/errors/unkey/authorization/insufficient_permissions): your root key may not point a portal at that app or keyspace.

@@ -1,5 +1,6 @@
 "use client";
 
+import { PlansScreen } from "@/app/(app)/[workspaceSlug]/settings/billing/components/plans-screen";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { collection } from "@/lib/collections";
 import {
@@ -8,7 +9,7 @@ import {
 } from "@/lib/collections/deploy/custom-domains";
 import { useBillingUIUpgrades } from "@/lib/flags/use-billing-ui-upgrades";
 import { routes } from "@/lib/navigation/routes";
-import { getErrorMessage } from "@/lib/unkey-client";
+import { useWorkspace } from "@/providers/workspace-provider";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { IconChevronDownOutline12, IconLink4Outline18 } from "@unkey/icons";
 import {
@@ -65,7 +66,7 @@ const CustomDomainSettings: React.FC<CustomDomainSettingsProps> = ({
 }) => {
   const workspace = useWorkspaceNavigation();
   const [expanded, setExpanded] = useState(false);
-  const [limitMessage, setLimitMessage] = useState<string | null>(null);
+  const [limitReached, setLimitReached] = useState(false);
   useEffect(() => {
     if (window.location.hash.slice(1) === "custom-domains") {
       setExpanded(true);
@@ -96,7 +97,7 @@ const CustomDomainSettings: React.FC<CustomDomainSettingsProps> = ({
     }
     const appId = environments.find((e) => e.id === values.environmentId)?.appId ?? "";
 
-    setLimitMessage(null);
+    setLimitReached(false);
     const tx = collection.customDomains.insert(
       {
         id: crypto.randomUUID(),
@@ -120,7 +121,7 @@ const CustomDomainSettings: React.FC<CustomDomainSettingsProps> = ({
       reset({ environmentId: values.environmentId, domain: "" });
     } catch (err) {
       if (isCustomDomainLimitError(err)) {
-        setLimitMessage(getErrorMessage(err));
+        setLimitReached(true);
         return;
       }
       console.error("Failed to add custom domain", err);
@@ -152,12 +153,12 @@ const CustomDomainSettings: React.FC<CustomDomainSettingsProps> = ({
       saveState={saveState}
       expanded={expanded}
       onExpandedChange={setExpanded}
-      stickyHeader={limitMessage ? <LimitBanner message={limitMessage} /> : undefined}
+      stickyHeader={limitReached ? <LimitBanner /> : undefined}
     >
       <SettingField>
         <div className="flex items-center gap-3">
-          <span className="text-[13px] text-gray-11 w-35">Environment</span>
-          <span className="flex-1 text-[13px] text-gray-11">Domain</span>
+          <span className="text-sm text-gray-11 w-35">Environment</span>
+          <span className="flex-1 text-sm text-gray-11">Domain</span>
         </div>
         <div className="flex items-start gap-3">
           <Controller
@@ -209,14 +210,21 @@ const CustomDomainSettings: React.FC<CustomDomainSettingsProps> = ({
   );
 };
 
-const LimitBanner = ({ message }: { message: string }) => {
+const LimitBanner = () => {
   const workspace = useWorkspaceNavigation();
   const billingUpgrades = useBillingUIUpgrades();
+  const { limits } = useWorkspace();
+  const [plansOpen, setPlansOpen] = useState(false);
 
   return (
     <AlertBanner variant="error" className="mb-2">
       <AlertBannerTitle>Custom domain limit reached</AlertBannerTitle>
-      <AlertBannerDescription>{message}</AlertBannerDescription>
+      {limits && (
+        <AlertBannerDescription>
+          You can not have more than {limits.customDomainsMax.toLocaleString()} custom domains.
+          Upgrade your plan, or remove a domain you no longer need, then retry.
+        </AlertBannerDescription>
+      )}
       <AlertBannerActions>
         {billingUpgrades && (
           <Button
@@ -228,22 +236,11 @@ const LimitBanner = ({ message }: { message: string }) => {
             View limits
           </Button>
         )}
-        <Button
-          variant="primary"
-          size="sm"
-          className="px-3"
-          render={
-            <Link
-              href={routes.settings.billing({
-                workspaceSlug: workspace.slug,
-                intent: "compute",
-              })}
-            />
-          }
-        >
+        <Button variant="primary" size="sm" className="px-3" onClick={() => setPlansOpen(true)}>
           Upgrade plan
         </Button>
       </AlertBannerActions>
+      <PlansScreen open={plansOpen} onOpenChange={setPlansOpen} reason="custom-domains" />
     </AlertBanner>
   );
 };

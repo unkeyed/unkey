@@ -176,7 +176,7 @@ export const ExternalIdField = ({
               >
                 <IconTriangleWarningOutline12 />
               </div>
-              <span className="text-[13px] text-gray-12 ">
+              <span className="text-sm text-gray-12 ">
                 <span className="text-gray-10 font-normal">Create</span> "{trimmedSearchValue}"
               </span>
             </div>
@@ -244,7 +244,7 @@ export const ExternalIdField = ({
       emptyMessage={
         initialQueryError ? (
           <div role="alert" className="flex flex-col gap-3 px-4 py-4 text-left">
-            <div className="text-error-11 text-[13px] leading-5">
+            <div className="text-error-11 text-sm leading-5">
               {getErrorMessage(
                 identitiesError,
                 trimmedSearchValue
@@ -275,7 +275,7 @@ export const ExternalIdField = ({
                 >
                   <IconTriangleWarningOutline12 />
                 </div>
-                <div className="font-medium text-[13px] leading-7 text-gray-12">
+                <div className="font-medium text-sm leading-7 text-gray-12">
                   {externalIdValidation.success ? "External ID not found" : "Invalid external ID"}
                 </div>
               </div>
@@ -283,7 +283,7 @@ export const ExternalIdField = ({
             <Separator />
             {externalIdValidation.success ? (
               <>
-                <div className="px-4 w-full text-gray-11 text-[13px] leading-6 my-4 text-left">
+                <div className="px-4 w-full text-gray-11 text-sm leading-6 my-4 text-left">
                   You can create a new identity with this{" "}
                   <span className="font-medium">External ID</span> and connect it{" "}
                   <span className="font-medium">immediately</span>.
@@ -309,21 +309,21 @@ export const ExternalIdField = ({
             ) : (
               <div
                 role="alert"
-                className="px-4 w-full text-error-11 text-[13px] leading-6 my-4 text-left"
+                className="px-4 w-full text-error-11 text-sm leading-6 my-4 text-left"
               >
                 {externalIdError}
               </div>
             )}
           </div>
         ) : isComboboxLoading ? (
-          <div className="px-3 py-3 text-gray-10 text-[13px] flex items-center gap-2">
+          <div className="px-3 py-3 text-gray-10 text-sm flex items-center gap-2">
             <div className="animate-spin h-3 w-3 border border-t-gray-11 rounded-full" />
             {isSearching ? "Searching..." : "Loading identities..."}
           </div>
         ) : (
           <div
             className={cn(
-              "px-3 mt-2 text-gray-10 text-[13px]",
+              "px-3 mt-2 text-gray-10 text-sm",
               "transition-all duration-200 ease-in-out",
               "animate-in fade-in-0",
             )}

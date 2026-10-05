@@ -55,7 +55,7 @@ export function DeploymentBuild() {
             Continue to deployment
           </Button>
         </Link>
-        <span className="text-gray-10 text-[13px] text-center">
+        <span className="text-gray-10 text-sm text-center">
           Continue to view live status, domains, and metrics.
         </span>
       </div>

@@ -1,0 +1,172 @@
+---
+title: unkey api environments update-settings
+sidebarTitle: "update-settings"
+description: "Change how an environment builds and runs its next deployment."
+sources:
+  - cmd/api/environments/update_settings.go
+  - svc/api/routes/v2_environments_update_settings/handler.go
+  - svc/api/openapi/openapi-generated.yaml
+  - docs/product/scripts/manifest.json
+  - cmd/api/util/flags.go
+---
+
+import RootKeyPrereq from "/snippets/root-key-prereq.mdx";
+
+<RootKeyPrereq />
+
+Update selected build, runtime, health check, and region settings of an <Tooltip tip="A production or preview environment of a Compute app, not the dashboard label on a key.">environment</Tooltip>. Every setting flag is optional, and settings you leave out don't change. Changes apply from the next deployment.
+
+To clear `dockerfile`, `buildCommand`, `healthcheck`, or `openapiSpecPath`, send `null` with `--body`, because the flags can't send `null`. `--regions` replaces the whole region list and can't be empty.
+
+A value outside the limits below returns 400. `--v-cpus`, `--memory-mib`, and `--storage-mib` are capped by your workspace's per-instance quota. If your workspace has no resource limits set, you get `Resource limits are not configured for this workspace. Contact support@unkey.com.`
+
+## Usage
+
+```bash
+unkey api environments update-settings --project=<project> --app=<app> --environment=<environment> [setting flags]
+```
+
+## Flags
+
+<ParamField body="--app" type="string" required>
+  App ID or slug.
+</ParamField>
+
+<ParamField body="--auto-deploy" type="boolean">
+  Whether pushes to the connected repository deploy automatically (`--auto-deploy` or `--auto-deploy=false`). Omit the flag to leave the current setting unchanged.
+</ParamField>
+
+<ParamField body="--build-command" type="string">
+  Build command.
+</ParamField>
+
+<ParamField body="--command" type="string[]">
+  Comma-separated container command that overrides the image's command. At most 10 entries, each at most 4096 characters.
+</ParamField>
+
+<ParamField body="--dockerfile" type="string">
+  Path of the Dockerfile inside the root directory.
+</ParamField>
+
+<ParamField body="--environment" type="string" required>
+  Environment ID or slug.
+</ParamField>
+
+<ParamField body="--healthcheck" type="string">
+  Health check configuration as a JSON object, for example `{"method":"GET","path":"/health"}`. `method` is `GET` or `POST`, and `path` must start with a slash. The optional fields are `intervalSeconds` (default 10), `timeoutSeconds` (default 5), `failureThreshold` (default 3), and `initialDelaySeconds` (default 0).
+</ParamField>
+
+<ParamField body="--memory-mib" type="integer">
+  Memory allocation in MiB. At least 256, in steps of 256, up to your workspace's per-instance quota.
+</ParamField>
+
+<ParamField body="--openapi-spec-path" type="string">
+  Path of the OpenAPI specification served by the app, used by the gateway's OpenAPI validation policy. It must start with a slash and match `^(/[\w\-]+)+(\.[\w]+)?$`, for example `/openapi.yaml`.
+</ParamField>
+
+<ParamField body="--port" type="integer">
+  Container port the app listens on, from 1 to 65535.
+</ParamField>
+
+<ParamField body="--project" type="string" required>
+  Project ID or slug. Both forms resolve to the same project.
+</ParamField>
+
+<ParamField body="--regions" type="string">
+  Region configuration as a JSON array, for example `[{"name":"us-east-1","replicas":{"min":1,"max":2}}]`. Replaces the full region list, which must hold 1 to 5 regions.
+</ParamField>
+
+<ParamField body="--root-directory" type="string">
+  Directory of the repository the build runs in, as a relative path. Use `.` for the repository root. An absolute path is rejected with `Root directory must be a relative path like 'api' or 'services/api'.`
+</ParamField>
+
+<ParamField body="--shutdown-signal" type="enum">
+  Signal sent to the container on shutdown. One of `SIGTERM`, `SIGINT`, `SIGQUIT`, or `SIGKILL`.
+</ParamField>
+
+<ParamField body="--storage-mib" type="integer">
+  Ephemeral storage allocation in MiB, in steps of 512, up to your workspace's per-instance quota. `0` allocates none.
+</ParamField>
+
+<ParamField body="--upstream-protocol" type="enum">
+  Protocol the gateway uses to reach the container. Either `http1` or `h2c`.
+</ParamField>
+
+<ParamField body="--v-cpus" type="float">
+  CPU allocation in vCPUs. At least 0.25, in steps of 0.25, up to your workspace's per-instance quota.
+</ParamField>
+
+<ParamField body="--watch-paths" type="string[]">
+  Comma-separated glob patterns, at most 10. A push deploys only if a changed file matches one. Use `src/**` for everything under a directory and `**/*.go` for a file type. Don't start a pattern with `/` or `./`: it's accepted but never matches.
+</ParamField>
+
+### Shared flags
+
+Every `unkey api` command accepts these; [CLI output and shared flags](/platform/cli/output-and-flags) describes them in full.
+
+<ParamField body="--body" type="string">
+  A JSON document sent as the request body instead of building it from the flags above. It is mutually exclusive with the request-building flags, and unknown fields are rejected locally. See [Send a raw body](/platform/cli/output-and-flags#send-a-raw-body).
+</ParamField>
+
+<ParamField body="--root-key" type="string">
+  Root key for the request. Falls back to `UNKEY_ROOT_KEY`, then to the config file written by `unkey auth login`. See [CLI authentication](/platform/cli/authentication).
+</ParamField>
+
+<ParamField body="--api-url" type="string" default="https://api.unkey.com">
+  Base URL of the API. Falls back to `UNKEY_API_BASE_URL`. You don't normally need to set it.
+</ParamField>
+
+<ParamField body="--config" type="string" default="~/.unkey/config.toml">
+  Path of the TOML file that `unkey auth login` writes. Falls back to `UNKEY_CONFIG`.
+</ParamField>
+
+<ParamField body="--output" type="string">
+  Output format. Falls back to `UNKEY_OUTPUT`. Set `json` to print the full response envelope (`meta` and `data`) for piping; any other value prints the request ID followed by `data`.
+</ParamField>
+
+## Required permissions
+
+Your root key needs one of:
+
+- `environment.*.update_environment` (any environment)
+- `environment.<environment_id>.update_environment` (a specific environment)
+
+Without a matching permission the API answers 403 and the CLI prints `Permission denied:` followed by the detail. See [Root key permissions](/platform/root-keys/permissions) for the full catalog.
+
+## Examples
+
+Set a health check and scale a region:
+
+```bash
+unkey api environments update-settings --project=payments --app=payments-api --environment=production --healthcheck='{"method":"GET","path":"/health"}' --regions='[{"name":"us-east-1","replicas":{"min":1,"max":2}}]'
+```
+
+Change the container size:
+
+```bash
+unkey api environments update-settings --project=payments --app=payments-api --environment=production --v-cpus=1 --memory-mib=1024
+```
+
+Clear the Dockerfile path with a raw body:
+
+```bash
+unkey api environments update-settings --body='{"project":"payments","app":"payments-api","environment":"production","dockerfile":null}'
+```
+
+## API endpoint
+
+The command calls [`POST /v2/environments.updateSettings`](/compute/api-reference/environments/update-environment-settings) and prints its response. The request fields carry the same names as the flags in camelCase, which is the shape `--body` expects.
+
+## Related
+
+<Columns cols={2}>
+  <Card title="Runtime settings" href="/compute/configure/runtime-settings">
+    Port, command, resources, shutdown signal, and regions.
+  </Card>
+  <Card title="Build settings" href="/compute/configure/build-settings">
+    Dockerfile, root directory, build command, and watch paths.
+  </Card>
+  <Card title="Health checks" href="/compute/configure/health-checks">
+    What the health check probes and how failures are handled.
+  </Card>
+</Columns>

@@ -289,7 +289,7 @@ export function AreaTimeseriesChart({
                 role="tooltip"
                 className="grid w-max max-w-[300px] animate-in items-start gap-1.5 rounded-xl bg-raised/80 px-3 py-2.5 text-xs shadow-floating backdrop-blur-md duration-150 fade-in-0 zoom-in-95 select-none"
               >
-                <div className="font-medium text-[11px] text-gray-11">{labelText}</div>
+                <div className="font-medium text-2xs text-gray-11">{labelText}</div>
                 <div className="grid gap-1">
                   {rows.map(({ key, value }) => {
                     const itemConfig = config[key];

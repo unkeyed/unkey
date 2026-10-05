@@ -1,8 +1,6 @@
 package source_test
 
 import (
-	"encoding/json"
-	"strconv"
 	"testing"
 	"time"
 
@@ -12,6 +10,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/logdrain/internal/source"
+	"github.com/unkeyed/unkey/svc/logdrain/sink"
 )
 
 func TestRatelimitsRead_PayloadAndRepeatedChecks(t *testing.T) {
@@ -34,9 +33,18 @@ func TestRatelimitsRead_PayloadAndRepeatedChecks(t *testing.T) {
 	require.Equal(t, now-3600000, events[0].Time)
 	require.GreaterOrEqual(t, cursor.Time, now)
 	require.Equal(t, "req_1", cursor.EventID)
-	encoded, err := json.Marshal(events[0].Payload)
-	require.NoError(t, err)
-	require.JSONEq(t, `{"request_id":"req_1","namespace_id":"ns_1","identifier":"customer@example.com","passed":false,"limit":100,"remaining":0,"tokens":3,"reset_at":`+strconv.FormatInt(now+60000, 10)+`,"source":"api"}`, string(encoded))
+	require.Equal(t, sink.RatelimitPayload{
+		RequestID:   "req_1",
+		NamespaceID: "ns_1",
+		Identifier:  "customer@example.com",
+		Passed:      false,
+		OverrideID:  "",
+		Limit:       100,
+		Remaining:   0,
+		ResetAt:     now + 60000,
+		Tokens:      3,
+		Source:      "api",
+	}, events[0].Payload)
 	events, cursor, err = reader.Read(t.Context(), workspace, cursor, time.Now().UnixMilli()+1000, 1, nil)
 	require.NoError(t, err)
 	require.Empty(t, events)
@@ -75,9 +83,18 @@ func TestRatelimitsRead_CombinedFiltersBeforeLimit(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, page, 1)
 	require.Equal(t, "e", page[0].EventID)
-	encoded, err := json.Marshal(page[0].Payload)
-	require.NoError(t, err)
-	require.Contains(t, string(encoded), `"override_id":"override_1"`)
+	require.Equal(t, sink.RatelimitPayload{
+		RequestID:   "e",
+		NamespaceID: "ns",
+		Identifier:  "other",
+		Passed:      false,
+		OverrideID:  "override_1",
+		Limit:       0,
+		Remaining:   0,
+		ResetAt:     0,
+		Tokens:      0,
+		Source:      "api",
+	}, page[0].Payload)
 	page, next, err = reader.Read(t.Context(), workspace, next, now+1, 1, filter)
 	require.NoError(t, err)
 	require.Len(t, page, 1)

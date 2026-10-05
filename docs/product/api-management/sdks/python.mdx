@@ -1,0 +1,136 @@
+---
+title: Python SDK
+sidebarTitle: "Python"
+description: "Manage keys and rate limits from Python with unkey.py."
+sources:
+  - https://github.com/unkeyed/sdks/blob/3bb124498270d8aff36e358dc2e0010e9991869a/api/py/README.md
+  - https://github.com/unkeyed/sdks/blob/3bb124498270d8aff36e358dc2e0010e9991869a/api/py/pyproject.toml
+  - https://pypi.org/project/unkey.py/
+---
+
+import { versions } from "/snippets/versions.mdx";
+import RootKeyPrereq from "/snippets/root-key-prereq.mdx";
+
+Use `unkey.py` to call the Unkey API from Python. The current release is {versions.pySdk}, and it needs Python 3.10 or newer. Every method has a regular and an `_async` version. Methods are grouped as `unkey.keys`, `unkey.apis`, `unkey.identities`, `unkey.permissions`, `unkey.ratelimit`, `unkey.analytics`, and `unkey.portal`.
+
+<RootKeyPrereq />
+
+## Install
+
+<CodeGroup>
+
+```bash uv
+uv add unkey.py
+```
+
+```bash pip
+pip install unkey.py
+```
+
+```bash poetry
+poetry add unkey.py
+```
+
+</CodeGroup>
+
+## Construct the client
+
+```python
+import os
+from unkey.py import Unkey
+
+with Unkey(root_key=os.environ["UNKEY_ROOT_KEY"]) as unkey:
+    ...
+```
+
+`root_key` is your root key. The client is a context manager that closes its connections on exit. In a long-running service, create one client and reuse it. To change retries, pass `retry_config=RetryConfig(...)` from `unkey.py.utils` to the client or to one call.
+
+## Verify a key
+
+<CodeGroup>
+
+```python Sync
+res = unkey.keys.verify_key(key="prod_abc123", permissions="documents.read")
+
+if not res.data.valid:
+    print(res.data.code)  # NOT_FOUND, FORBIDDEN, INSUFFICIENT_PERMISSIONS, USAGE_EXCEEDED, RATE_LIMITED, DISABLED, EXPIRED
+```
+
+```python Async
+import asyncio
+import os
+from unkey.py import Unkey
+
+async def main():
+    async with Unkey(root_key=os.environ["UNKEY_ROOT_KEY"]) as unkey:
+        res = await unkey.keys.verify_key_async(key="prod_abc123")
+        print(res.data.valid)
+
+asyncio.run(main())
+```
+
+</CodeGroup>
+
+Request fields are `snake_case` keyword arguments (`tags`, `permissions`, `credits`, `ratelimits`). An invalid key isn't an exception: `data.valid` is false and `data.code` says why. See [Verifying keys](/api-management/keys/verifying-keys) for what each check means and [keys.verifyKey](/api-management/api-reference/keys/verify-api-key) for the schema.
+
+## Create a key
+
+```python
+res = unkey.keys.create_key(
+    api_id="api_1234abcd",
+    prefix="prod",
+    name="Payment service",
+    external_id="user_42",
+    permissions=["documents.read"],
+    enabled=True,
+)
+
+print(res.data.key_id)
+print(res.data.key)  # returned once; store it or hand it to the user now
+```
+
+The remaining fields (`byte_length`, `meta`, `roles`, `expires`, `credits`, `ratelimits`, `recoverable`) are described in [Creating keys](/api-management/keys/creating-keys), and the endpoint is [keys.createKey](/api-management/api-reference/keys/create-api-key).
+
+## Apply a rate limit
+
+```python
+res = unkey.ratelimit.limit(
+    namespace="email.send",
+    identifier="user_42",
+    limit=10,
+    duration=60_000,  # milliseconds
+)
+
+if not res.data.success:
+    ...  # res.data.remaining and res.data.reset (Unix ms) tell the caller when to retry
+```
+
+The endpoint is [ratelimit.limit](/api-management/api-reference/ratelimit/apply-rate-limiting).
+
+## Handle errors
+
+HTTP errors raise an `errors.UnkeyError`, with `message`, `status_code`, `headers`, `body`, and `raw_response`. Each status has its own subclass with a typed `data` attribute holding the API's `meta` and `error` fields.
+
+```python
+from unkey.py import Unkey, errors
+
+try:
+    res = unkey.keys.get_key(key_id="key_1234abcd")
+except errors.NotFoundErrorResponse as e:
+    print(e.data.meta.request_id, e.data.error.detail)
+except errors.UnkeyError as e:
+    print(e.status_code, e.message)
+```
+
+The subclasses are `BadRequestErrorResponse` (400), `UnauthorizedErrorResponse` (401), `ForbiddenErrorResponse` (403), `NotFoundErrorResponse` (404), `ConflictErrorResponse` (409), `GoneErrorResponse` (410), `PreconditionFailedErrorResponse` (412), `UnprocessableEntityErrorResponse` (422), `TooManyRequestsErrorResponse` (429), `InternalServerErrorResponse` (500), and `ServiceUnavailableErrorResponse` (503). Network failures raise `httpx.RequestError` subclasses such as `httpx.ConnectError` and `httpx.TimeoutException`. Each endpoint page in the API reference, for example [keys.getKey](/api-management/api-reference/keys/get-api-key), lists which errors it can return.
+
+## Next steps
+
+<Columns cols={2}>
+  <Card title="Creating keys" icon="key" href="/api-management/keys/creating-keys">
+    Every field a key can carry.
+  </Card>
+  <Card title="API reference" icon="code" href="/api-management/api-reference/keys/verify-api-key">
+    Request and response fields for every method.
+  </Card>
+</Columns>

@@ -223,7 +223,7 @@ const SingleMode = () => {
             )}
           />
           <RegionFlags settings={settings} />
-          <span className="text-[13px] font-medium text-gray-12">
+          <span className="text-sm font-medium text-gray-12">
             {formatRangeParts(currentReplicasMin, currentReplicasMax).value}
           </span>
         </div>
@@ -450,7 +450,7 @@ const DualSliderSection = ({
         rangeStyle={buildSliderRangeStyle(replicasMin, replicasMax, replicasMaxLimit)}
       />
       <RegionFlags settings={settings} />
-      <span className="text-[13px] font-medium text-gray-12">
+      <span className="text-sm font-medium text-gray-12">
         {formatRangeParts(replicasMin, replicasMax).value}
       </span>
     </div>

@@ -27,7 +27,7 @@ const UNKEY_WORKOS_ELEMENTS = {
     color: "gray",
     highContrast: true,
     radius: "full",
-    size: "2",
+    size: "1",
     variant: "soft",
   },
   badge: {

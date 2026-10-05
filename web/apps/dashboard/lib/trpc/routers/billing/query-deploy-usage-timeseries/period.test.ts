@@ -8,27 +8,27 @@ const now = new Date(Date.UTC(2026, 8, 3, 15, 42));
 
 describe("getDeployUsageQueryPeriod", () => {
   it("returns the complete selected month for daily usage", () => {
-    expect(getDeployUsageQueryPeriod({ now, monthsAgo: 1 })).toEqual({
+    expect(getDeployUsageQueryPeriod({ now, period: "previous" })).toEqual({
       start: Date.UTC(2026, 7, 1),
       end: Date.UTC(2026, 8, 1),
     });
   });
 
   it("returns one complete historical day for hourly usage", () => {
-    expect(getDeployUsageQueryPeriod({ now, monthsAgo: 0, dayStart: SEPTEMBER_2 })).toEqual({
+    expect(getDeployUsageQueryPeriod({ now, period: "current", dayStart: SEPTEMBER_2 })).toEqual({
       start: SEPTEMBER_2,
       end: SEPTEMBER_3,
     });
   });
 
   it("ends the current day at the current time", () => {
-    expect(getDeployUsageQueryPeriod({ now, monthsAgo: 0, dayStart: SEPTEMBER_3 })).toEqual({
+    expect(getDeployUsageQueryPeriod({ now, period: "current", dayStart: SEPTEMBER_3 })).toEqual({
       start: SEPTEMBER_3,
       end: now.getTime(),
     });
   });
 
   it("rejects days outside the selected month", () => {
-    expect(getDeployUsageQueryPeriod({ now, monthsAgo: 0, dayStart: AUGUST_31 })).toBeNull();
+    expect(getDeployUsageQueryPeriod({ now, period: "current", dayStart: AUGUST_31 })).toBeNull();
   });
 });

@@ -8,6 +8,21 @@ saveExact: true
 minimumReleaseAge: 10080
 minimumReleaseAgeStrict: true
 minimumReleaseAgeIgnoreMissingTime: false
+minimumReleaseAgeExclude:
+  - "@tanstack/react-router@1.170.41"
+  - "@tanstack/react-start-client@1.168.39"
+  - "@tanstack/react-start-rsc@0.1.59"
+  - "@tanstack/react-start-server@1.167.46"
+  - "@tanstack/react-start@1.168.60"
+  - "@tanstack/react-store@0.11.2"
+  - "@tanstack/router-core@1.171.34"
+  - "@tanstack/router-generator@1.167.40"
+  - "@tanstack/router-plugin@1.168.42"
+  - "@tanstack/start-client-core@1.170.34"
+  - "@tanstack/start-plugin-core@1.171.49"
+  - "@tanstack/start-server-core@1.169.39"
+  - "@tanstack/start-storage-context@1.167.36"
+  - "@tanstack/store@0.11.2"
 trustLockfile: false
 
 allowBuilds:
@@ -27,9 +42,9 @@ catalog:
 
 overrides:
   "zod": "4.3.5"
-  "@tanstack/router-generator>zod": "3.24.4"
-  "@tanstack/start-plugin-core>zod": "3.24.4"
-  "@tanstack/router-plugin>zod": "3.24.4"
+  "@tanstack/router-generator>zod": "4.5.4"
+  "@tanstack/start-plugin-core>zod": "4.5.4"
+  "@tanstack/router-plugin>zod": "4.5.4"
   "@tanstack/react-router>zod": "3.24.4"
   "@tanstack/react-start-plugin>zod": "3.24.4"
   "@tanstack/react-start-config>zod": "3.24.4"
@@ -37,3 +52,16 @@ overrides:
   "@types/react-dom": "19.2.3"
   "blume>react": "19.2.3"
   "blume>react-dom": "19.2.3"
+
+# @hookform/resolvers@5.2.2 imports zod/v4/core from its Zod resolver, but its
+# package manifest declares only react-hook-form as a peer dependency. A local
+# install can work accidentally when pnpm hoists Zod into a shared location,
+# while an isolated production install cannot resolve Zod from the resolver.
+# This extension adds the missing peer edge, so pnpm installs the dashboard's
+# pinned Zod version alongside @hookform/resolvers and records that relationship
+# in the lockfile. Remove it when @hookform/resolvers declares Zod itself or no
+# longer imports Zod directly.
+packageExtensions:
+  "@hookform/resolvers":
+    peerDependencies:
+      zod: "*"

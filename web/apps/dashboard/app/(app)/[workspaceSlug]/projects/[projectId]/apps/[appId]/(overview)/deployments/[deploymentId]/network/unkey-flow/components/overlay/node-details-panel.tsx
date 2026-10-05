@@ -62,7 +62,7 @@ function LastExitSection({
           <LastExitBadge lastExit={lastExit} />
         </div>
       </div>
-      <div className="flex items-baseline gap-1.5 text-[12px] tabular-nums text-grayA-9 ml-[34px]">
+      <div className="flex items-baseline gap-1.5 text-xs tabular-nums text-grayA-9 ml-[34px]">
         <span>
           <span className="text-grayA-11">Restarts</span>{" "}
           <span className="text-gray-12 font-medium">{lastExit.restartCount}</span>

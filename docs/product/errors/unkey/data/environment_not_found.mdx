@@ -1,7 +1,48 @@
 ---
 title: "environment_not_found"
-description: "NotFound indicates the requested environment does not exist."
+sidebarTitle: "environment_not_found"
+description: "The project, app, or environment in the request did not resolve."
+sources:
+  - pkg/codes/unkey_data.go
+  - svc/api/internal/middleware/errors.go
+  - svc/api/routes/v2_environments_get_environment/handler.go
+  - svc/api/routes/v2_deployments_create_deployment/handler.go
+  - svc/api/routes/v2_domains_create_domain/handler.go
+  - svc/api/routes/v2_gateway_set_policies/handler.go
 ---
 
 <Danger>`err:unkey:data:environment_not_found`</Danger>
 
+The <Tooltip tip="A production or preview environment of a Compute app, not the dashboard label on a key.">environment</Tooltip> you referenced couldn't be found. An environment is addressed by project, app, and environment together, and one of them didn't match. You get HTTP 404.
+
+```json Example response
+{
+  "meta": {
+    "requestId": "req_2c9a0jf23l4k567"
+  },
+  "error": {
+    "detail": "The requested environment does not exist.",
+    "status": 404,
+    "title": "Not Found",
+    "type": "/errors/unkey/data/environment_not_found"
+  }
+}
+```
+
+## Likely causes
+
+- The environment slug is wrong.
+- The project or app slug is wrong. That's also reported as a missing environment. On `deployments.createDeployment` the message says so: `The requested project, app, or environment does not exist.`
+- Your root key doesn't have permission on the environment. `environments.getEnvironment` and `domains.createDomain` return this 404 instead of a 403.
+
+## How to fix
+
+1. List the app's environments with `environments.listEnvironments` and use the returned slug.
+2. Check all three parts: project, app, and environment.
+3. Check that the root key has the permission the endpoint needs on the environment.
+
+## Related errors
+
+- [`err:unkey:data:app_not_found`](/errors/unkey/data/app_not_found): the app doesn't exist.
+- [`err:unkey:application:invalid_environment_settings`](/errors/unkey/application/invalid_environment_settings): the environment exists but its settings block deployments.
+- [`err:unkey:data:policy_not_found`](/errors/unkey/data/policy_not_found): a gateway policy within the environment doesn't exist.

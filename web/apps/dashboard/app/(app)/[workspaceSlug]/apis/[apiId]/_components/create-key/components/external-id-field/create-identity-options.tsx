@@ -61,7 +61,7 @@ export function createIdentityOptions({
                 <div className="w-full bg-grayA-1 dark:bg-grayA-2 border rounded-lg overflow-hidden">
                   <div className="flex items-start justify-between w-full gap-2">
                     <div className="overflow-x-auto w-full min-w-0 p-3">
-                      <pre className="whitespace-pre-wrap break-all text-[11px] leading-5 text-gray-8 font-mono">
+                      <pre className="whitespace-pre-wrap break-all text-2xs leading-5 text-gray-8 font-mono">
                         No metadata available
                       </pre>
                     </div>
@@ -74,7 +74,7 @@ export function createIdentityOptions({
                   <div className="flex items-start justify-between w-full gap-2 h-full">
                     {/* JSON Content */}
                     <div className="overflow-x-auto w-full min-w-0 p-3 h-full">
-                      <pre className="whitespace-pre-wrap break-all text-[11px] leading-5 text-gray-12 font-mono h-full overflow-y-auto">
+                      <pre className="whitespace-pre-wrap break-all text-2xs leading-5 text-gray-12 font-mono h-full overflow-y-auto">
                         {JSON.stringify(identity.meta, null, 4)}
                       </pre>
                     </div>

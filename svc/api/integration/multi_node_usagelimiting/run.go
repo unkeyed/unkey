@@ -10,7 +10,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/svc/api/integration"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -46,7 +45,7 @@ func RunUsageLimitTest(
 	keyResponse := h.Seed.CreateKey(ctx, seed.CreateKeyRequest{
 		WorkspaceID: workspace.ID,
 		KeySpaceID:  api.KeyAuthID.String,
-		Remaining:   ptr.P(totalCredits),
+		Remaining:   new(totalCredits),
 	})
 
 	keyStart := keyResponse.Key

@@ -395,6 +395,9 @@ func New(config Config) (*service, error) {
 			"ratelimitOrigin",
 			circuitbreaker.WithTimeout(originBreakerOpenTimeout),
 			circuitbreaker.WithFailureRatio(originBreakerFailureRatio, originBreakerMinRequests),
+			circuitbreaker.WithIsDownstreamError(func(err error) bool {
+				return err != nil && !errors.Is(err, context.Canceled)
+			}),
 		),
 		globalCircuitBreaker: circuitbreaker.New[any]("ratelimit_global_push"),
 		db:                   db.New(config.DB.RW(), config.DB.RO()),

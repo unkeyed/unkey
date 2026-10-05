@@ -21,6 +21,9 @@ type Caches struct {
 	// Keys are string (hash) and values are keysdb.CachedKeyData (includes pre-parsed IP whitelist).
 	VerificationKeyByHash cache.Cache[string, keysdb.CachedKeyData]
 
+	// RootKeyByHash caches root-key authentication lookups by hash.
+	RootKeyByHash cache.Cache[string, keysdb.CachedRootKeyData]
+
 	// LiveApiByID caches live API lookups by ID.
 	// Keys are string (ID) and values are db.FindLiveApiByIDRow.
 	LiveApiByID cache.Cache[cache.ScopedKey, db.FindLiveApiByIDRow]
@@ -56,6 +59,7 @@ type Caches struct {
 func (c *Caches) Close() error {
 	c.RatelimitNamespace.Close()
 	c.VerificationKeyByHash.Close()
+	c.RootKeyByHash.Close()
 	c.LiveApiByID.Close()
 	c.ClickhouseSetting.Close()
 	c.ApiToKeyAuthRow.Close()
@@ -92,6 +96,17 @@ func New(config Config) (Caches, error) {
 		Stale:    10 * time.Minute,
 		MaxSize:  1_000_000,
 		Resource: "verification_key_by_hash",
+		Clock:    config.Clock,
+	})
+	if err != nil {
+		return Caches{}, err
+	}
+
+	rootKeyByHash, err := cache.New(cache.Config[string, keysdb.CachedRootKeyData]{
+		Fresh:    10 * time.Second,
+		Stale:    10 * time.Minute,
+		MaxSize:  1_000_000,
+		Resource: "root_key_by_hash",
 		Clock:    config.Clock,
 	})
 	if err != nil {
@@ -168,6 +183,7 @@ func New(config Config) (Caches, error) {
 		RatelimitNamespace:    middleware.WithTracing(ratelimitNamespace),
 		LiveApiByID:           middleware.WithTracing(liveApiByID),
 		VerificationKeyByHash: middleware.WithTracing(verificationKeyByHash),
+		RootKeyByHash:         middleware.WithTracing(rootKeyByHash),
 		ClickhouseSetting:     middleware.WithTracing(clickhouseSetting),
 		ApiToKeyAuthRow:       middleware.WithTracing(apiToKeyAuthRow),
 		WorkspaceLimits:       middleware.WithTracing(workspaceLimits),

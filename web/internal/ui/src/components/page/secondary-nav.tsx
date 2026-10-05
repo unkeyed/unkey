@@ -25,7 +25,7 @@ function SecondaryNavTitle({ className, ...props }: React.ComponentProps<"h2">) 
   return (
     <h2
       className={cn(
-        "hidden md:block px-2 text-[15px] font-semibold tracking-tight leading-tight text-gray-12 m-0",
+        "hidden md:block px-2 text-base font-semibold tracking-tight leading-tight text-gray-12 m-0",
         className,
       )}
       {...props}
@@ -38,7 +38,7 @@ function SecondaryNavGroup({ className, ...props }: React.ComponentProps<"div">)
 }
 
 const secondaryNavItemVariants = cva(
-  "flex items-center shrink-0 whitespace-nowrap rounded-md px-2 py-1.5 text-[13px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-grayA-7",
+  "flex items-center shrink-0 whitespace-nowrap rounded-md px-2 py-1.5 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-grayA-7",
   {
     variants: {
       active: {

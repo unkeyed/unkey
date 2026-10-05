@@ -27,7 +27,8 @@ func TestService_LeaseOwnership(t *testing.T) {
 	nodeTime := time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC)
 	nodeTimeMillis := nodeTime.UnixMilli()
 	testClock := clock.NewTestClock(nodeTime)
-	mysqlConfig := containers.MySQL(t)
+	// Acquisition scans all workspaces, so unique drain IDs cannot isolate this test.
+	mysqlConfig := containers.MySQLIsolated(t)
 	database, err := db.New(mysqlConfig.DSN, sqlcomment.ForService("logdrain-lease-integration-test", "test"))
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, database.Close()) })
@@ -56,7 +57,11 @@ func TestService_LeaseOwnership(t *testing.T) {
 
 	services := make([]*Service, 2)
 	for i, leaseID := range []string{uid.New(""), uid.New("")} {
-		services[i], err = New(Config{DB: database, LeaseID: leaseID, Clock: testClock})
+		services[i], err = New(Config{
+			DB:      database,
+			LeaseID: leaseID,
+			Clock:   testClock,
+		})
 		require.NoError(t, err)
 	}
 	_, err = database.Conn().ExecContext(ctx, "UPDATE logdrains SET status = ? WHERE id = ?", db.LogdrainsStatusPausedByUser, drainID)
@@ -106,7 +111,10 @@ func TestService_LeaseOwnership(t *testing.T) {
 	}
 	dueDrains, err := database.ListDueLogdrains(ctx, leaseID)
 	require.NoError(t, err)
-	require.Equal(t, []db.ListDueLogdrainsRow{{LogdrainID: drainID, FencingToken: fencingToken}}, dueDrains)
+	require.Equal(t, []db.ListDueLogdrainsRow{{
+		LogdrainID:   drainID,
+		FencingToken: fencingToken,
+	}}, dueDrains)
 	otherLeaseDrains, err := database.ListDueLogdrains(ctx, uid.New(""))
 	require.NoError(t, err)
 	require.Empty(t, otherLeaseDrains)
@@ -229,7 +237,11 @@ func TestService_LeaseOwnership(t *testing.T) {
 	expiredAt = readDatabaseNowMillis(t, ctx, database) - 1
 	_, err = database.Conn().ExecContext(ctx, "UPDATE logdrains SET lease_expires_at = ? WHERE id = ?", expiredAt, drainID)
 	require.NoError(t, err)
-	reacquirer, err := New(Config{DB: database, LeaseID: uid.New(""), Clock: testClock})
+	reacquirer, err := New(Config{
+		DB:      database,
+		LeaseID: uid.New(""),
+		Clock:   testClock,
+	})
 	require.NoError(t, err)
 	reacquired, err = reacquirer.acquire(ctx)
 	require.NoError(t, err)

@@ -1,62 +1,43 @@
 ---
 title: "per_key_breakout_too_large"
-description: "More keys were used in the requested window than one verifications response will break out. Request a shorter window or a single key."
+sidebarTitle: "per_key_breakout_too_large"
+description: "A portal analytics window covers more keys than the per-key breakout returns."
+sources:
+  - pkg/codes/user_request.go
+  - svc/api/routes/v2_portal_get_verifications/handler.go
+  - pkg/clickhouse/key_verifications_timeseries.go
 ---
 
 <Danger>`err:user:bad_request:per_key_breakout_too_large`</Danger>
 
-```json Example
+`portal.getVerifications` returns one series per key that had traffic in the window, up to 150 keys. More than 150 of the user's keys had traffic in this window, so you get HTTP 400 instead of a partial result that leaves keys out.
+
+```json Example response
 {
   "meta": {
-    "requestId": "req_4dgzrNP3Je5mU1tD"
+    "requestId": "req_2c9a0jf23l4k567"
   },
   "error": {
     "detail": "This window covers more than 150 keys. Request a narrower window or a single `keyId`.",
     "status": 400,
     "title": "Bad Request",
-    "type": "https://unkey.com/docs/errors/user/bad_request/per_key_breakout_too_large"
+    "type": "/errors/user/bad_request/per_key_breakout_too_large",
+    "errors": []
   }
 }
 ```
 
-## What happened?
+## Likely causes
 
-`portal.getVerifications` returns one timeseries per key the end user has verifications for, so a client can render a per-key table and an account-wide chart from a single call. At most 150 keys come back in one response. That bound keeps a single portal session from pulling an unbounded result over the ClickHouse connection every workspace shares.
+- The window is too wide. The count is of keys with at least one verification in the window, not keys the user owns, so a wider window makes this more likely.
+- The window covers a bulk migration or a lot of short-lived keys.
 
-More than 150 of the end user's keys had verifications in the window you asked for, so the request was rejected rather than answered with a partial list. A truncated breakout is indistinguishable from the omitted keys having had no traffic at all, which would quietly understate the account's usage.
+## How to fix
 
-The limit counts keys with traffic **inside the requested window**, not keys on the account. An identity with thousands of keys stays well under it over a short window if only a few were used.
+1. Narrow the window. Halving it roughly halves the number of keys with traffic, and gives you finer buckets.
+2. Or pass `keyId` to get just that key's series. That isn't subject to the cap, and is the right call when the user is looking at one key.
+3. For usage over a wider window, query from your own backend with [analytics](/api-management/analytics/overview). The portal response has no combined total, so the cap applies even if you only want account-wide numbers.
 
-The `detail` field carries the exact limit that was applied.
+## Related errors
 
-## How to fix it
-
-### 1. Request a shorter window
-
-Because the count is scoped to the window, narrowing it is usually enough:
-
-```json
-{
-  "startTime": 1739577600000,
-  "endTime": 1739664000000
-}
-```
-
-### 2. Request a single key
-
-When you need a long window for one key, pass `keyId` and the response carries just that series:
-
-```json
-{
-  "startTime": 1708041600000,
-  "endTime": 1739664000000,
-  "keyId": "key_2cGKbMxRyIzhCxo1Idjz8q"
-}
-```
-
-Page through the keys you care about with one call each rather than asking for every key at once.
-
-## Related
-
-- [Analytics documentation](/platform/analytics/overview)
-- [query_range_exceeds_retention](/errors/user/bad_request/query_range_exceeds_retention)
+- [`err:user:bad_request:query_range_exceeds_retention`](/errors/user/bad_request/query_range_exceeds_retention): the window reaches back past what your workspace keeps.

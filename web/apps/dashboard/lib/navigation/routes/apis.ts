@@ -29,6 +29,10 @@ const patterns = {
     workspace: "/[workspaceSlug]/apis/[apiId]/portal",
     project: "/[workspaceSlug]/projects/[projectId]/keyspaces/[apiId]/portal",
   },
+  portalSessions: {
+    workspace: "/[workspaceSlug]/apis/[apiId]/portal/sessions",
+    project: "/[workspaceSlug]/projects/[projectId]/keyspaces/[apiId]/portal/sessions",
+  },
   settings: {
     workspace: "/[workspaceSlug]/apis/[apiId]/settings",
     project: "/[workspaceSlug]/projects/[projectId]/keyspaces/[apiId]/settings",
@@ -54,6 +58,10 @@ export const apiRoutes = {
 
   portal(scope: ApiScope): Route {
     return scopedRoute(patterns.portal, scope);
+  },
+
+  portalSessions(scope: ApiScope): Route {
+    return scopedRoute(patterns.portalSessions, scope);
   },
 
   settings(scope: ApiScope): Route {

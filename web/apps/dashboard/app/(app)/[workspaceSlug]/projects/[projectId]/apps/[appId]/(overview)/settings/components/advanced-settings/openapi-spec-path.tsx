@@ -75,7 +75,7 @@ export const OpenapiSpecPath = () => {
       autoSave={variant === "onboarding"}
     >
       <SettingField>
-        <span className="text-gray-11 text-[13px] flex items-center">OpenAPI Spec Path</span>
+        <span className="text-gray-11 text-sm flex items-center">OpenAPI Spec Path</span>
         <div className="flex items-start gap-2">
           <FormInput
             description="Path your deployment serves the OpenAPI spec (e.g. /openapi.yaml). Changes apply on next deploy."

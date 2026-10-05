@@ -1,0 +1,25 @@
+---
+title: Nuxt module (community)
+sidebarTitle: "Nuxt (community)"
+description: "A community-maintained Nuxt module for Unkey, and what to use for a supported setup."
+sources:
+  - https://www.npmjs.com/package/@unkey/nuxt
+---
+
+import { versions } from "/snippets/versions.mdx";
+
+`@unkey/nuxt` (version {versions.tsNuxt} on npm) is a community-maintained Nuxt integration for Unkey. We don't maintain or test it.
+
+## What the registry says
+
+It's built on an old version of `@unkey/api` (`0.20`), so it uses older response shapes, not the `Unkey` client documented in [@unkey/api](/api-management/sdks/typescript/api). Check the [npm page](https://www.npmjs.com/package/@unkey/nuxt) for its options.
+
+## Install
+
+```bash
+npm install @unkey/nuxt
+```
+
+## Supported alternative
+
+For a setup we support, use [@unkey/api](/api-management/sdks/typescript/api) in a Nuxt server route or middleware. Create the client with a root key from runtime config, and call `keys.verifyKey` with the bearer token from the request. It's the same few lines the [Hono](/api-management/sdks/typescript/hono) and [Next.js](/api-management/sdks/typescript/nextjs) packages run for you.

@@ -1,0 +1,55 @@
+---
+title: Team
+description: "Invite people to your workspace and choose whether each one is an admin or a developer."
+sources:
+  - web/apps/dashboard/lib/auth/roles.ts
+  - web/apps/dashboard/lib/auth/roles.test.ts
+  - web/apps/dashboard/lib/trpc/trpc.ts
+  - web/apps/dashboard/lib/trpc/routers/org/inviteMember.ts
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/settings/team/page.tsx
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/settings/team/managed-team.tsx
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/settings/team/client.tsx
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/settings/team/role-switcher.tsx
+  - web/internal/workos-widgets/src/index.tsx
+  - web/apps/dashboard/lib/limits.ts
+  - web/apps/dashboard/lib/stripe/linkApiSubscription.ts
+---
+
+A workspace has its own members and roles. A role covers the whole workspace: there are no per-project or per-keyspace permissions for dashboard users. Manage members under **Settings > Team**.
+
+## Roles
+
+There are two roles.
+
+| Role | What it can do |
+| --- | --- |
+| Admin | Everything a developer can, plus manage members and invitations, rename the workspace, create and edit root keys, and change billing. |
+| Developer | Read and change every resource in the workspace: keyspaces, keys, identities, projects, apps, deployments, domains, and gateway policies. Cannot manage members, root keys, billing, or the workspace name. |
+
+A developer who tries an admin-only action gets `This action requires admin privileges.`, and the **Root Keys** tab doesn't appear in their settings sidebar.
+
+Accounts created before these two roles existed carry a legacy `basic_member` role. It keeps full developer access and the dashboard labels it Developer.
+
+## Which plans include team members
+
+Free and Compute Starter don't include team members, and the Team page shows **Upgrade Your Plan to Add Team Members** with a link to Billing instead of the member list. Compute Pro and Business include them, and so does any paid API tier. See [Plans](/platform/billing/plans) and [Limits](/platform/billing/limits).
+
+If the workspace loses team access, we deactivate every member except the one who created the workspace. That happens when a paid API tier ends and you don't have Compute Pro or Business, or when you're on the free API tier and downgrade Compute to Starter or cancel it.
+
+## Invite, change a role, remove someone
+
+Use the **Members** section of **Settings > Team**. From that one table you invite someone by email address, pick Admin or Developer, change someone's role, and remove a member.
+
+<Frame>
+  <img src="/images/dashboard/platform--workspace-team--members.png" alt="Team settings page listing workspace members with their roles and last active times, and an Invite user button" />
+</Frame>
+
+<Frame>
+  <img src="/images/dashboard/platform--workspace-team--edit-role.png" alt="Edit role dialog for a member with the role dropdown open" />
+</Frame>
+
+Invitations expire after a while. If one shows as expired, send a new one.
+
+Only an admin can manage members. Anyone else sees **Admin access required** with a note that their role doesn't allow them to manage workspace members, and the table isn't shown.
+
+Removing a member ends their dashboard access immediately. It doesn't delete anything they created, and it doesn't touch root keys, which are workspace credentials rather than personal ones. To leave a workspace yourself, ask another admin to remove you.

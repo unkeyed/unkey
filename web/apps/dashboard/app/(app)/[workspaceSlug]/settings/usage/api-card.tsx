@@ -63,7 +63,7 @@ export function ApiCard({ verifications, ratelimits, quota, feeCents, isLoading 
         <Quota used={used} quota={quota} />
       </div>
 
-      <div className="flex items-center gap-3 border-b bg-gray-2 px-4 py-2 font-semibold text-[10px] text-gray-9 uppercase tracking-wider">
+      <div className="flex items-center gap-3 border-b bg-gray-2 px-4 py-2 font-semibold text-3xs text-gray-9 uppercase tracking-wider">
         <div className="min-w-0 flex-1">Operation</div>
         <div className="w-28 text-right">Requests</div>
       </div>
@@ -130,5 +130,5 @@ function Figure({
   if (isLoading) {
     return <Skeleton className={skeletonClassName} />;
   }
-  return <span className="font-normal text-[13px] text-gray-9">Unavailable</span>;
+  return <span className="font-normal text-sm text-gray-9">Unavailable</span>;
 }

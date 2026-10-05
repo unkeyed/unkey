@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_keys_get_key"
@@ -33,7 +32,7 @@ func TestGetKeyBadRequest(t *testing.T) {
 
 	req := handler.Request{
 		KeyId:   "",
-		Decrypt: ptr.P(false),
+		Decrypt: new(false),
 	}
 
 	t.Run("empty keyId string", func(t *testing.T) {

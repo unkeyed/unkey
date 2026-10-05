@@ -253,8 +253,8 @@ export function OverviewBarChart({
     <div className="flex flex-col h-full" ref={chartRef}>
       <div className="pl-5 pt-4 py-3 pr-10 w-full flex justify-between font-sans items-start gap-10 ">
         <div className="flex flex-col gap-1">
-          <div className="text-gray-10 text-[11px] leading-4">{labels.title}</div>
-          <div className="text-gray-12 text-[18px] font-semibold leading-7">
+          <div className="text-gray-10 text-2xs leading-4">{labels.title}</div>
+          <div className="text-gray-12 text-lg font-semibold leading-7">
             {formatNumber(totalCount)}
           </div>
         </div>
@@ -263,18 +263,18 @@ export function OverviewBarChart({
           <div className="flex flex-col gap-1">
             <div className="flex gap-2 items-center">
               <div className="bg-gray-8 rounded-sm h-[10px] w-1" />
-              <div className="text-gray-10 text-[11px] leading-4">{labels.primaryLabel}</div>
+              <div className="text-gray-10 text-2xs leading-4">{labels.primaryLabel}</div>
             </div>
-            <div className="text-gray-12 text-[18px] font-semibold leading-7">
+            <div className="text-gray-12 text-lg font-semibold leading-7">
               {formatNumber(primaryCount)}
             </div>
           </div>
           <div className="flex flex-col gap-1">
             <div className="flex gap-2 items-center">
               <div className="bg-orange-9 rounded-sm h-[10px] w-1" />
-              <div className="text-gray-10 text-[11px] leading-4">{labels.secondaryLabel}</div>
+              <div className="text-gray-10 text-2xs leading-4">{labels.secondaryLabel}</div>
             </div>
-            <div className="text-gray-12 text-[18px] font-semibold leading-7">
+            <div className="text-gray-12 text-lg font-semibold leading-7">
               {formatNumber(secondaryCount)}
             </div>
           </div>
@@ -408,7 +408,7 @@ export function OverviewBarChart({
         </ChartContainer>
       </div>
 
-      <div className="h-max border-t border-b px-1 py-2 text-gray-9 font-mono text-xxs w-full flex justify-between ">
+      <div className="h-max border-t border-b px-1 py-2 text-gray-9 font-mono text-3xs w-full flex justify-between ">
         {data
           ? calculateTimePoints(
               data[0]?.originalTimestamp ?? Date.now(),

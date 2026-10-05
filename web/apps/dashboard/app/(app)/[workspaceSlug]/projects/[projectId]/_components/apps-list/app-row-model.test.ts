@@ -15,8 +15,8 @@ function app(overrides: Partial<App>): App {
     isRolledBack: false,
     updatedAt: null,
     repositoryFullName: null,
-    latestDeploymentId: null,
     domain: null,
+    customDomain: null,
     headlineDeployment: null,
     ...overrides,
   };

@@ -1,0 +1,108 @@
+---
+title: unkey api domains create-domain
+sidebarTitle: "create-domain"
+description: "Attach a custom domain to an environment and get its DNS records."
+sources:
+  - cmd/api/domains/create_domain.go
+  - svc/api/routes/v2_domains_create_domain/handler.go
+  - pkg/domain/domaingate/domaingate.go
+  - web/apps/dashboard/lib/limits.ts
+  - svc/api/openapi/openapi-generated.yaml
+  - docs/product/scripts/manifest.json
+  - cmd/api/util/flags.go
+---
+
+import RootKeyPrereq from "/snippets/root-key-prereq.mdx";
+
+<RootKeyPrereq />
+
+Attach a custom domain to an <Tooltip tip="A production or preview environment of a Compute app, not the dashboard label on a key.">environment</Tooltip> and start <Tooltip tip="Here: proving DNS ownership of a custom domain. Not key verification.">verifying</Tooltip> it. The domain starts as `pending` and serves no traffic until verification succeeds. We check DNS about once a minute, so expect a short delay after you add your records.
+
+The response's `dnsRecords` lists every record you need. Create each one exactly as given: one routes traffic and one proves you own the domain, and you need both. If your DNS provider supports Domain Connect, the response also has a `domainConnect.url` that adds the records for you in one step.
+
+- A name that already exists in your workspace returns a 409.
+- Going over your plan's domain limit returns a 403. See [Limits](/platform/billing/limits).
+- If the records aren't found within 24 hours, the domain moves to `failed`. Use [verify-domain](/compute/cli/domains/verify-domain) to try again.
+
+## Usage
+
+```bash
+unkey api domains create-domain --project=<project> --app=<app> --environment=<environment> --domain=<fqdn>
+```
+
+## Flags
+
+<ParamField body="--app" type="string" required>
+  App ID or slug.
+</ParamField>
+
+<ParamField body="--domain" type="string" required>
+  Fully qualified domain name, for example `api.acme.com`. Wildcards (`*.acme.com`), public suffixes (`co.uk`, `github.io`), IP addresses, and anything with a scheme, port, or path return a 400. Names are stored lowercase, with Unicode converted to Punycode, so `MÜNCHEN.DE` and `xn--mnchen-3ya.de` are the same domain.
+</ParamField>
+
+<ParamField body="--environment" type="string" required>
+  Environment ID or slug the domain routes to.
+</ParamField>
+
+<ParamField body="--project" type="string" required>
+  Project ID or slug. Both forms resolve to the same project.
+</ParamField>
+
+### Shared flags
+
+Every `unkey api` command accepts these; [CLI output and shared flags](/platform/cli/output-and-flags) describes them in full.
+
+<ParamField body="--body" type="string">
+  A JSON document sent as the request body instead of building it from the flags above. It is mutually exclusive with the request-building flags, and unknown fields are rejected locally. See [Send a raw body](/platform/cli/output-and-flags#send-a-raw-body).
+</ParamField>
+
+<ParamField body="--root-key" type="string">
+  Root key for the request. Falls back to `UNKEY_ROOT_KEY`, then to the config file written by `unkey auth login`. See [CLI authentication](/platform/cli/authentication).
+</ParamField>
+
+<ParamField body="--api-url" type="string" default="https://api.unkey.com">
+  Base URL of the API. Falls back to `UNKEY_API_BASE_URL`. You don't normally need to set it.
+</ParamField>
+
+<ParamField body="--config" type="string" default="~/.unkey/config.toml">
+  Path of the TOML file that `unkey auth login` writes. Falls back to `UNKEY_CONFIG`.
+</ParamField>
+
+<ParamField body="--output" type="string">
+  Output format. Falls back to `UNKEY_OUTPUT`. Set `json` to print the full response envelope (`meta` and `data`) for piping; any other value prints the request ID followed by `data`.
+</ParamField>
+
+## Required permissions
+
+Your root key needs one of:
+
+- `environment.*.create_domain` (any environment)
+- `environment.<environment_id>.create_domain` (a specific environment)
+
+If the environment doesn't exist or your key doesn't have the permission, you get the same 404: `The requested environment does not exist.` See [Root key permissions](/platform/root-keys/permissions) for the full catalog.
+
+## Examples
+
+Attach a domain and print the DNS records:
+
+```bash
+unkey api domains create-domain --project=payments --app=api --environment=production --domain=api.acme.com --output=json | jq '.data.dnsRecords'
+```
+
+Send the request body as JSON:
+
+```bash
+unkey api domains create-domain --body='{"project":"payments","app":"api","environment":"production","domain":"api.acme.com"}'
+```
+
+## API endpoint
+
+The command calls [`POST /v2/domains.createDomain`](/compute/api-reference/domains/create-domain) and prints its response. The request fields carry the same names as the flags in camelCase, which is the shape `--body` expects.
+
+## Related
+
+<Columns cols={1}>
+  <Card title="Custom domains" href="/compute/networking/custom-domains">
+    DNS records, verification, and certificates for your own hostnames.
+  </Card>
+</Columns>

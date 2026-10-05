@@ -202,8 +202,8 @@ func TestEngine_Integration(t *testing.T) {
 			event := eventPayloads[events[0].id]
 			require.Equal(c, events[0].id, event["id"])
 			require.NotEmpty(c, event["action"])
-			require.NotNil(c, event["occurred_at"])
-			require.Equal(c, event["occurred_at"], event["time"])
+			require.NotNil(c, event["time"])
+			require.NotContains(c, event, "occurred_at")
 			require.Equal(c, "audit_logs", event["stream"])
 			require.NotContains(c, event, "event")
 			require.NotContains(c, event, "timestamp")
@@ -449,9 +449,14 @@ func TestEngine_Integration(t *testing.T) {
 		seedDrain(t, mysqlDB, workspaceID, drainID, httpSink.server.URL, start)
 		cleanupDrain(t, mysqlDB, drainID)
 		encoded, err := proto.Marshal(&logdrainv1.Config{
-			BatchSize:   10_000,
-			Destination: &logdrainv1.Config_Http{Http: &logdrainv1.HttpConfig{Url: httpSink.server.URL}},
-			Stream:      &logdrainv1.Config_GatewayRequests{GatewayRequests: &logdrainv1.GatewayRequestStreamConfig{}},
+			BatchSize: 10_000,
+			Destination: &logdrainv1.Config_Http{
+				Http: &logdrainv1.HttpConfig{
+					Url:    httpSink.server.URL,
+					Format: logdrainv1.HttpBodyFormat_HTTP_BODY_FORMAT_JSON,
+				},
+			},
+			Stream: &logdrainv1.Config_GatewayRequests{GatewayRequests: &logdrainv1.GatewayRequestStreamConfig{}},
 		})
 		require.NoError(t, err)
 		_, err = mysqlDB.Exec("UPDATE logdrains SET config = ? WHERE id = ?", encoded, drainID)

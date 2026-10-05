@@ -1,132 +1,56 @@
 ---
 title: "invalid_analytics_function"
-description: "Your analytics query uses a SQL function not allowed for security reasons in Unkey. Review the list of supported aggregate and scalar functions."
+sidebarTitle: "invalid_analytics_function"
+description: "The analytics query calls a ClickHouse function that is not on the allowlist."
+sources:
+  - pkg/codes/user_request.go
+  - svc/api/internal/middleware/errors.go
+  - pkg/clickhouse/query-parser/validation.go
 ---
 
 <Danger>`err:user:bad_request:invalid_analytics_function`</Danger>
 
-```json Example
+Your analytics query uses a function we don't allow. You get HTTP 400, and `detail` names the function.
+
+```json Example response
 {
   "meta": {
-    "requestId": "req_4dgzrNP3Je5mU1tD"
+    "requestId": "req_2c9a0jf23l4k567"
   },
   "error": {
-    "detail": "Function 'file' is not allowed",
+    "detail": "Function 'toUnixTimestamp' is not allowed",
     "status": 400,
     "title": "Bad Request",
-    "type": "https://unkey.com/docs/errors/user/bad_request/invalid_analytics_function"
+    "type": "/errors/user/bad_request/invalid_analytics_function",
+    "errors": []
   }
 }
 ```
 
-## What Happened?
+## Likely causes
 
-Your query tried to use a function that's blocked for security reasons!
+- You used `toUnixTimestamp`. The tables store milliseconds, so use `toUnixTimestamp64Milli`.
+- You used a `JSONExtract*` variant other than `JSONExtractString`.
+- You used a window function. They aren't allowed.
+- You used a table function such as `url`, `file`, or `remote`. These get their own message.
 
-For security, only safe functions are allowed in analytics queries. Functions that could:
+These functions are allowed (names aren't case-sensitive):
 
-- Read files from the server (`file`, `executable`)
-- Make network requests (`url`, `remote`)
-- Access external systems (`mysql`, `postgresql`, `s3`, `hdfs`)
-- Modify data or system state
+- **Aggregates:** `count`, `sum`, `avg`, `min`, `max`, `any`, `groupArray`, `groupUniqArray`, `uniq`, `uniqExact`, `quantile`.
+- **Date and time:** `now`, `now64`, `today`, `toDate`, `toDateTime`, `toDateTime64`, the `toStartOf*` family from minute to year, `date_trunc`, `formatDateTime`, `fromUnixTimestamp64Milli`, `toUnixTimestamp64Milli`, and the `toInterval*` family.
+- **Strings:** `lower`, `upper`, `substring`, `concat`, `length`, `trim`, `startsWith`, `endsWith`.
+- **JSON:** `JSONExtractString`.
+- **Math:** `round`, `floor`, `ceil`, `abs`.
+- **Conditionals:** `if`, `sumIf`, `countIf`, `case`, `coalesce`.
+- **Conversions:** `toString`, `toInt32`, `toInt64`, `toFloat64`.
+- **Arrays:** `has`, `hasAny`, `hasAll`, `arrayJoin`, `arrayFilter`.
 
-...are all blocked.
+## How to fix
 
-## How to Fix It
+1. Rewrite the expression with an allowed function: `toUnixTimestamp64Milli` for `toUnixTimestamp`, `JSONExtractString` for other `JSONExtract*` variants, and a `GROUP BY` with an aggregate instead of a window function.
+2. If you need a function that's missing, ask in Discord or open an issue.
 
-### 1. Use Allowed Functions
+## Related errors
 
-Stick to standard analytics functions:
-
-<CodeGroup>
-
-```sql Wrong - Blocked function
-SELECT file('/etc/passwd') FROM key_verifications_v1
-```
-
-```sql Correct - Safe analytics functions
-SELECT
-  toStartOfHour(time) as hour,
-  COUNT(*) as total,
-  AVG(response_time) as avg_response
-FROM key_verifications_v1
-WHERE time >= now() - INTERVAL 7 DAY
-GROUP BY hour
-```
-
-</CodeGroup>
-
-### 2. Common Safe Functions
-
-These are examples of allowed functions:
-
-**Aggregate functions:**
-
-- `COUNT()`, `SUM()`, `AVG()`, `MIN()`, `MAX()`
-- `uniq()`, `groupArray()`
-
-**Date/time functions:**
-
-- `now()`, `today()`, `yesterday()`
-- `toStartOfHour()`, `toStartOfDay()`, `toStartOfWeek()`
-- `toDate()`, `toDateTime()`
-
-**String functions:**
-
-- `concat()`, `substring()`, `lower()`, `upper()`
-- `length()`, `position()`
-
-**Mathematical functions:**
-
-- `round()`, `floor()`, `ceil()`
-- `abs()`, `sqrt()`, `pow()`
-
-**Conditional functions:**
-
-- `if()`, `multiIf()`
-- `CASE WHEN ... THEN ... END`
-
-### 3. Remove Dangerous Functions
-
-<CodeGroup>
-
-```sql Blocked - File access
-SELECT file('/path/to/file') FROM key_verifications_v1
-```
-
-```sql Blocked - Network access
-SELECT * FROM url('http://acme.com/data')
-```
-
-```sql Blocked - External DB
-SELECT * FROM mysql('host:port', 'db', 'table', 'user', 'pass')
-```
-
-```sql Safe Alternative - Use only your analytics data
-SELECT
-  api_id,
-  COUNT(*) as verifications
-FROM key_verifications_v1
-WHERE time >= now() - INTERVAL 1 DAY
-GROUP BY api_id
-```
-
-</CodeGroup>
-
-## Commonly Blocked Functions
-
-These functions are blocked for security:
-
-| Function                               | Why Blocked              |
-| -------------------------------------- | ------------------------ |
-| `file()`, `executable()`               | File system access       |
-| `url()`, `remote()`                    | Network requests         |
-| `mysql()`, `postgresql()`, `mongodb()` | External database access |
-| `s3()`, `hdfs()`, `azureBlobStorage()` | External storage access  |
-| `dictGet()`, `dictGetOrDefault()`      | Dictionary access        |
-
-<Note>
-  Need a specific function that's blocked? [Contact
-  support](mailto:support@unkey.com) to discuss your use case - we may be able
-  to safely enable it!
-</Note>
+- [`err:user:bad_request:invalid_analytics_query`](/errors/user/bad_request/invalid_analytics_query): the query failed for another structural reason.
+- [`err:user:bad_request:invalid_analytics_table`](/errors/user/bad_request/invalid_analytics_table): the query names a table that isn't exposed.

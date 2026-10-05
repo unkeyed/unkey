@@ -20,7 +20,7 @@ export const OverrideIdentifierCell = ({ identifier }: OverrideIdentifierCellPro
         }
         position={{ side: "bottom", align: "start" }}
       >
-        <pre className="text-[11px] text-gray-11 sm:max-w-[100px] md:max-w-[100px] lg:max-w-[320px] xl:max-w-[600px] truncate secret">
+        <pre className="text-2xs text-gray-11 sm:max-w-[100px] md:max-w-[100px] lg:max-w-[320px] xl:max-w-[600px] truncate secret">
           {identifier}
         </pre>
       </InfoHoverCard>

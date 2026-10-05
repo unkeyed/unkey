@@ -18,6 +18,7 @@ import { workspaceRoutes } from "./workspaces";
 
 export { buildRoute } from "./shared";
 export type { CheckoutIntent, DeployCheckoutOrigin, DeployCheckoutPlan } from "./settings";
+export { DEPLOY_CHECKOUT_ORIGINS } from "./settings";
 
 export const routes = {
   account: accountRoutes,

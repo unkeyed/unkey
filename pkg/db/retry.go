@@ -34,15 +34,11 @@ const (
 //		return db.Query.SomeOperation(ctx, db.RO(), params)
 //	})
 func WithRetryContext[T any](ctx context.Context, fn func() (T, error)) (T, error) {
-	return retry.DoWithResultContext(
-		retry.New(
-			retry.Attempts(DefaultAttempts),
-			retry.Backoff(backoffStrategy),
-			retry.ShouldRetry(shouldRetryError),
-		),
-		ctx,
-		fn,
-	)
+	return retry.New(
+		retry.Attempts(DefaultAttempts),
+		retry.Backoff(backoffStrategy),
+		retry.ShouldRetry(shouldRetryError),
+	).DoWithResultContext(ctx, fn)
 }
 
 // backoffStrategy defines exponential backoff delays: 50ms, 100ms, 200ms
@@ -111,17 +107,13 @@ func shouldRetryError(err error) bool {
 //		return &Result{}, nil
 //	})
 func TxWithResultRetry[T any](ctx context.Context, db *Replica, fn func(context.Context, DBTX) (T, error)) (T, error) {
-	return retry.DoWithResultContext(
-		retry.New(
-			retry.Attempts(DefaultAttempts),
-			retry.Backoff(backoffStrategy),
-			retry.ShouldRetry(shouldRetryError),
-		),
-		ctx,
-		func() (T, error) {
-			return TxWithResult(ctx, db, fn)
-		},
-	)
+	return retry.New(
+		retry.Attempts(DefaultAttempts),
+		retry.Backoff(backoffStrategy),
+		retry.ShouldRetry(shouldRetryError),
+	).DoWithResultContext(ctx, func() (T, error) {
+		return TxWithResult(ctx, db, fn)
+	})
 }
 
 // TxRetry executes a transaction with automatic retry on transient errors like deadlocks.

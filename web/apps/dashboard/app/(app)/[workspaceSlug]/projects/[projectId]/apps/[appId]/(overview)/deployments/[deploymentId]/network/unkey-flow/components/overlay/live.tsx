@@ -11,7 +11,7 @@ export const LiveIndicator = () => {
       >
         <div className="bg-raised flex items-center justify-between gap-2 cursor-pointer">
           <StatusDot healthStatus="health_syncing" />
-          <span className="text-gray-12 font-medium text-[13px]">Live</span>
+          <span className="text-gray-12 font-medium text-sm">Live</span>
         </div>
       </InfoTooltip>
     </div>

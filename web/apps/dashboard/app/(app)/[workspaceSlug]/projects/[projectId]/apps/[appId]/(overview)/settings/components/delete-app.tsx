@@ -111,7 +111,7 @@ export function DeleteApp() {
         </AlertBanner>
         <form id="delete-app-form" onSubmit={handleSubmit(onSubmit)}>
           <div className="flex flex-col gap-1 mt-4">
-            <p className="text-gray-11 text-[13px]">
+            <p className="text-gray-11 text-sm">
               Type <span className="text-gray-12 font-medium">{appName}</span> to confirm
             </p>
             <Input {...register("name")} placeholder={`Enter "${appName}" to confirm`} />

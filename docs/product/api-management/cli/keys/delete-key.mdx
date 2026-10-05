@@ -1,0 +1,75 @@
+---
+title: unkey api keys delete-key
+sidebarTitle: "delete-key"
+description: "Delete a key, softly by default or permanently."
+sources:
+  - cmd/api/keys/delete_key.go
+  - svc/api/routes/v2_keys_delete_key/handler.go
+  - docs/product/scripts/manifest.json
+---
+
+import RootKeyPrereq from "/snippets/root-key-prereq.mdx";
+
+<RootKeyPrereq />
+
+Delete a key. By default we keep a record of the deleted key for audit logs and analytics, but you can't restore it. `--permanent` erases the key completely, including its metadata. The key can keep verifying for up to about 10 seconds. Calls `POST /v2/keys.deleteKey`. See [Enabling, disabling, and deleting keys](/api-management/keys/enable-disable-delete).
+
+## Usage
+
+```bash
+unkey api keys delete-key --key-id=<key id> [flags]
+```
+
+## Flags
+
+<ParamField body="--key-id" type="string" required>
+  Id of the key to delete.
+</ParamField>
+
+<ParamField body="--permanent" type="boolean" default="false">
+  Erase the key completely instead of keeping a record. Use it for compliance deletions or to reuse a key string. Analytics rows for the key lose their link to it.
+</ParamField>
+
+### Shared flags
+
+Every `unkey api` command takes these. See [CLI output and shared flags](/platform/cli/output-and-flags).
+
+<ParamField body="--root-key" type="string">
+  Root key used for the request. Falls back to `UNKEY_ROOT_KEY`, then to the key stored by `unkey auth login`.
+</ParamField>
+
+<ParamField body="--api-url" type="string" default="https://api.unkey.com">
+  Base URL of the API. Falls back to `UNKEY_API_BASE_URL`. You don't normally need to set it.
+</ParamField>
+
+<ParamField body="--config" type="string" default="~/.unkey/config.toml">
+  Path of the config file written by `unkey auth login`. Falls back to `UNKEY_CONFIG`.
+</ParamField>
+
+<ParamField body="--output" type="string">
+  Output format. Falls back to `UNKEY_OUTPUT`. `json` prints the full response. Any other value prints the request ID and `data`.
+</ParamField>
+
+<ParamField body="--body" type="string">
+  Send this JSON as the whole request body instead of using the command's flags. You can't combine it with them.
+</ParamField>
+
+## Required permissions
+
+`api.*.delete_key` or `api.<apiId>.delete_key`. See [Root key permissions](/platform/root-keys/permissions).
+
+## Examples
+
+```bash Soft delete
+unkey api keys delete-key --key-id=key_1234abcd
+```
+
+```bash Permanent delete
+unkey api keys delete-key --key-id=key_1234abcd --permanent
+```
+
+Or send the whole request as JSON:
+
+```bash Raw body
+unkey api keys delete-key --body='{"keyId":"key_1234abcd","permanent":true}'
+```

@@ -106,7 +106,7 @@ export function CustomDomainRow({ domain, environmentSlug }: CustomDomainRowProp
             href={`https://${domain.domain}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-[13px] text-gray-12 font-medium hover:underline truncate"
+            className="text-sm text-gray-12 font-medium hover:underline truncate"
           >
             {domain.domain}
           </a>
@@ -180,7 +180,7 @@ export function CustomDomainRow({ domain, environmentSlug }: CustomDomainRowProp
           <div className="mx-4 mb-3 flex items-center gap-3 px-4 py-3 rounded-lg border bg-raised">
             <ProviderIcon provider={domain.domainConnectProvider} className="size-6!" />
             <div className="flex-1">
-              <p className="text-[13px] font-medium text-gray-12">Automatic setup available</p>
+              <p className="text-sm font-medium text-gray-12">Automatic setup available</p>
               <p className="text-xs text-gray-9">
                 We detected your domain uses {domain.domainConnectProvider}. We can configure your
                 DNS records automatically.

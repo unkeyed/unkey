@@ -63,7 +63,7 @@ export function BuildInProgressChart() {
         <Skeleton className="h-3 w-28" />
       </div>
       <Skeleton className="h-[120px] w-full rounded-md" />
-      <div className="flex items-center gap-2 text-[13px] text-gray-9">
+      <div className="flex items-center gap-2 text-sm text-gray-9">
         <Loading size={16} className="text-gray-12" />
         Waiting for build to finish…
       </div>
@@ -96,9 +96,9 @@ export function ProductionCardChart() {
           <span className="text-2xl font-semibold text-gray-12 tabular-nums leading-tight">
             {formatNumber(pulse.cumulative)}
           </span>
-          <span className="text-[13px] text-gray-9">requests {pulse.windowLabel}</span>
+          <span className="text-sm text-gray-9">requests {pulse.windowLabel}</span>
         </div>
-        <span className="text-[13px] tabular-nums text-gray-9">
+        <span className="text-sm tabular-nums text-gray-9">
           {formatStamp(stampTs, pulse.windowKey, active !== null)}
         </span>
       </div>
@@ -118,7 +118,7 @@ export function ProductionCardChart() {
         hideTooltip
         onActiveChange={setActive}
       />
-      <div className="flex items-center gap-4 text-[13px]">
+      <div className="flex items-center gap-4 text-sm">
         <LegendStat color={BLUE} label="Requests/s" value={formatNumber(reqValue)} />
         <LegendStat
           color={ERROR}

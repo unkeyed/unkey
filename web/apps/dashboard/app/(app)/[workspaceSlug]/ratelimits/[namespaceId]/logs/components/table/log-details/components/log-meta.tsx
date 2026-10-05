@@ -3,7 +3,7 @@ import { Card, CardContent, CopyButton } from "@unkey/ui";
 export const LogMetaSection = ({ content }: { content: string }) => {
   return (
     <div className="flex justify-between pt-2.5 flex-col gap-1">
-      <div className="text-[13px] text-gray-11 font-sans">Meta</div>
+      <div className="text-sm text-gray-11 font-sans">Meta</div>
       <Card className="bg-raised rounded-lg">
         <CardContent className="py-2 px-3 text-xs relative group min-w-[300px]">
           <pre className="text-gray-12">{content ?? "<EMPTY>"} </pre>

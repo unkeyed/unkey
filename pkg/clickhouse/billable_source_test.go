@@ -33,8 +33,8 @@ func TestBillableExcludesGatewaySource(t *testing.T) {
 	ctx := context.Background()
 	require.NoError(t, conn.Ping(ctx))
 
-	now := time.Now()
 	workspaceID := uid.New(uid.WorkspacePrefix)
+	now := findUnusedRootKeyBillingMonth(t, ctx, conn)
 
 	// API: 100 VALID (billable) + 20 INVALID (never billable).
 	verifications := createVerifications(workspaceID, 100, now, "VALID")
@@ -49,22 +49,73 @@ func TestBillableExcludesGatewaySource(t *testing.T) {
 			gatewayVerifications[i].AppID = "app_b"
 		}
 	}
-	insertVerifications(t, ctx, conn, append(verifications, gatewayVerifications...))
+	// Legacy root keys: 30 VALID, marked by an empty workspace ID but retaining
+	// their keyspace so last-used synchronization continues to process them.
+	legacyRootKeyVerifications := createVerifications(workspaceID, 30, now, "VALID")
+	legacyRootKeyID := uid.New(uid.KeyPrefix)
+	legacyRootKeySpaceID := uid.New(uid.KeySpacePrefix)
+	for i := range legacyRootKeyVerifications {
+		legacyRootKeyVerifications[i].WorkspaceID = ""
+		legacyRootKeyVerifications[i].KeySpaceID = legacyRootKeySpaceID
+		legacyRootKeyVerifications[i].KeyID = legacyRootKeyID
+	}
+	// New root keys: 10 VALID, marked by empty workspace and keyspace IDs.
+	newRootKeyVerifications := createVerifications(workspaceID, 10, now, "VALID")
+	newRootKeyID := uid.New(uid.KeyPrefix)
+	for i := range newRootKeyVerifications {
+		newRootKeyVerifications[i].WorkspaceID = ""
+		newRootKeyVerifications[i].KeySpaceID = ""
+		newRootKeyVerifications[i].KeyID = newRootKeyID
+	}
+	allVerifications := append(verifications, gatewayVerifications...)
+	allVerifications = append(allVerifications, legacyRootKeyVerifications...)
+	allVerifications = append(allVerifications, newRootKeyVerifications...)
+	insertVerifications(t, ctx, conn, allVerifications)
 
 	year, month := now.Year(), int(now.Month())
 
 	require.EventuallyWithT(t, func(c *assert.CollectT) {
 		billableVerifications, err := client.GetBillableVerifications(ctx, workspaceID, year, month)
 		require.NoError(c, err)
-		assert.Equal(c, int64(100), billableVerifications, "gateway and INVALID verifications must not bill")
+		assert.Equal(c, int64(100), billableVerifications, "gateway, root-key, and INVALID verifications must not bill the customer workspace")
+		var rootKeyBillable int64
+		require.NoError(c, conn.QueryRow(ctx,
+			"SELECT sum(count) FROM default.billable_verifications_per_month_v2 WHERE workspace_id = '' AND year = ? AND month = ?",
+			year, month,
+		).Scan(&rootKeyBillable))
+		assert.Equal(c, int64(40), rootKeyBillable, "root-key verifications must remain attributed to the empty workspace")
 
-		// Analytics rollups keep every source: total includes API + gateway.
-		var totalCount, gatewayCount, appCount, unattributedCount int64
+		// Customer analytics include API and gateway traffic. Root-key traffic
+		// remains in the global rollup under the empty workspace marker.
+		var totalCount, legacyRootKeyCount, newRootKeyCount, gatewayCount, appCount, unattributedCount int64
 		require.NoError(c, conn.QueryRow(ctx,
 			"SELECT sum(count) FROM default.key_verifications_per_month_v3 WHERE workspace_id = ?",
 			workspaceID,
 		).Scan(&totalCount))
-		assert.Equal(c, int64(160), totalCount, "analytics rollups must include gateway traffic")
+		assert.Equal(c, int64(160), totalCount, "customer analytics must include API and gateway traffic")
+
+		require.NoError(c, conn.QueryRow(ctx,
+			"SELECT sum(count) FROM default.key_verifications_per_month_v3 WHERE workspace_id = '' AND key_id = ?",
+			legacyRootKeyID,
+		).Scan(&legacyRootKeyCount))
+		assert.Equal(c, int64(30), legacyRootKeyCount, "analytics rollups must retain legacy root-key traffic")
+		require.NoError(c, conn.QueryRow(ctx,
+			"SELECT sum(count) FROM default.key_verifications_per_month_v3 WHERE workspace_id = '' AND key_id = ?",
+			newRootKeyID,
+		).Scan(&newRootKeyCount))
+		assert.Equal(c, int64(10), newRootKeyCount, "analytics rollups must retain new root-key traffic")
+
+		var legacyRootKeyLastUsedCount, newRootKeyLastUsedCount uint64
+		require.NoError(c, conn.QueryRow(ctx,
+			"SELECT count() FROM default.key_last_used_v1 WHERE key_id = ?",
+			legacyRootKeyID,
+		).Scan(&legacyRootKeyLastUsedCount))
+		assert.Equal(c, uint64(1), legacyRootKeyLastUsedCount, "legacy root keys must retain last-used synchronization")
+		require.NoError(c, conn.QueryRow(ctx,
+			"SELECT count() FROM default.key_last_used_v1 WHERE key_id = ?",
+			newRootKeyID,
+		).Scan(&newRootKeyLastUsedCount))
+		assert.Equal(c, uint64(1), newRootKeyLastUsedCount, "new root keys must enter last-used synchronization")
 
 		require.NoError(c, conn.QueryRow(ctx,
 			"SELECT sum(count) FROM default.key_verifications_per_month_v3 WHERE workspace_id = ? AND source = ?",
@@ -84,4 +135,28 @@ func TestBillableExcludesGatewaySource(t *testing.T) {
 		).Scan(&unattributedCount))
 		assert.Equal(c, int64(120), unattributedCount, "API verifications must remain unattributed")
 	}, time.Minute, time.Second)
+}
+
+// findUnusedRootKeyBillingMonth isolates empty-workspace aggregates from other
+// tests that share the ClickHouse container.
+func findUnusedRootKeyBillingMonth(t *testing.T, ctx context.Context, conn ch.Conn) time.Time {
+	t.Helper()
+
+	month := time.Date(2030, time.January, 1, 0, 0, 0, 0, time.UTC)
+	for range 1_200 {
+		var rows uint64
+		err := conn.QueryRow(ctx, `
+			SELECT count()
+			FROM default.billable_verifications_per_month_v2
+			WHERE workspace_id = '' AND year = ? AND month = ?
+		`, month.Year(), int(month.Month())).Scan(&rows)
+		require.NoError(t, err)
+		if rows == 0 {
+			return month
+		}
+		month = month.AddDate(0, 1, 0)
+	}
+
+	require.FailNow(t, "failed to find an unused root-key billing month")
+	return time.Time{}
 }

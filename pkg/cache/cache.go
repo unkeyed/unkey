@@ -124,13 +124,53 @@ func (c *cache[K, V]) Close() {
 	})
 }
 
-// enqueueRevalidation hands fn to a background revalidation worker.
-// After Close it drops fn instead of blocking forever on a channel
-// no worker reads anymore.
-func (c *cache[K, V]) enqueueRevalidation(fn func()) {
+func (c *cache[K, V]) enqueueRevalidation(keys []K, fn func([]K)) {
 	select {
-	case c.revalidateC <- fn:
 	case <-c.done:
+		metrics.CacheRevalidationEnqueues.WithLabelValues(c.resource, "closed").Inc()
+		return
+	default:
+	}
+
+	c.inflightMu.Lock()
+	defer c.inflightMu.Unlock()
+	keysToRefresh := make([]K, 0, len(keys))
+	for _, key := range keys {
+		if !c.inflightRefreshes[key] {
+			c.inflightRefreshes[key] = true
+			keysToRefresh = append(keysToRefresh, key)
+		}
+	}
+	if len(keysToRefresh) == 0 {
+		metrics.CacheRevalidationEnqueues.WithLabelValues(c.resource, "deduplicated").Inc()
+		return
+	}
+
+	metrics.CacheRevalidationQueueDepth.WithLabelValues(c.resource).Observe(float64(len(c.revalidateC)))
+	enqueuedAt := c.clock.Now()
+	select {
+	case c.revalidateC <- func() {
+		startedAt := c.clock.Now()
+		metrics.CacheRevalidationQueueWait.WithLabelValues(c.resource).Observe(startedAt.Sub(enqueuedAt).Seconds())
+		defer func() {
+			metrics.CacheRevalidationDuration.WithLabelValues(c.resource).Observe(c.clock.Now().Sub(startedAt).Seconds())
+			c.inflightMu.Lock()
+			for _, key := range keysToRefresh {
+				delete(c.inflightRefreshes, key)
+			}
+			c.inflightMu.Unlock()
+		}()
+		fn(keysToRefresh)
+	}:
+		metrics.CacheRevalidationEnqueues.WithLabelValues(c.resource, "enqueued").Inc()
+		return
+	case <-c.done:
+		metrics.CacheRevalidationEnqueues.WithLabelValues(c.resource, "closed").Inc()
+	default:
+		metrics.CacheRevalidationEnqueues.WithLabelValues(c.resource, "queue_full").Inc()
+	}
+	for _, key := range keysToRefresh {
+		delete(c.inflightRefreshes, key)
 	}
 }
 
@@ -306,22 +346,6 @@ func (c *cache[K, V]) revalidate(
 	key K, refreshFromOrigin func(context.Context) (V, error),
 	op func(error) Op,
 ) {
-	c.inflightMu.Lock()
-	_, ok := c.inflightRefreshes[key]
-	if ok {
-		c.inflightMu.Unlock()
-		return
-	}
-
-	c.inflightRefreshes[key] = true
-	c.inflightMu.Unlock()
-
-	defer func() {
-		c.inflightMu.Lock()
-		delete(c.inflightRefreshes, key)
-		c.inflightMu.Unlock()
-	}()
-
 	metrics.CacheRevalidations.WithLabelValues(c.resource).Inc()
 	v, err := refreshFromOrigin(ctx)
 
@@ -357,7 +381,7 @@ func (c *cache[K, V]) SWR(
 		}
 
 		if now.Before(e.Stale) {
-			c.enqueueRevalidation(func() {
+			c.enqueueRevalidation([]K{key}, func([]K) {
 				// If we don't uncancel the context, the revalidation will get canceled when
 				// the api response is returned
 				c.revalidate(context.WithoutCancel(ctx), key, refreshFromOrigin, op)
@@ -447,8 +471,8 @@ func (c *cache[K, V]) SWRMany(
 
 	// Queue stale keys for background refresh
 	if len(staleKeys) > 0 {
-		c.enqueueRevalidation(func() {
-			c.revalidateMany(context.WithoutCancel(ctx), staleKeys, refreshFromOrigin, op)
+		c.enqueueRevalidation(staleKeys, func(keys []K) {
+			c.revalidateMany(context.WithoutCancel(ctx), keys, refreshFromOrigin, op)
 		})
 	}
 
@@ -522,16 +546,9 @@ func (c *cache[K, V]) SWRWithFallback(
 		}
 
 		if now.Before(e.Stale) {
-			// Stale - return but queue background revalidation with deduplication
-			c.inflightMu.Lock()
-			if !c.inflightRefreshes[key] {
-				c.inflightRefreshes[key] = true
-				dedupeKey := key // capture for closure
-				c.enqueueRevalidation(func() {
-					c.revalidateWithCanonicalKey(context.WithoutCancel(ctx), dedupeKey, refreshFromOrigin, op)
-				})
-			}
-			c.inflightMu.Unlock()
+			c.enqueueRevalidation([]K{key}, func([]K) {
+				c.revalidateWithCanonicalKey(context.WithoutCancel(ctx), refreshFromOrigin, op)
+			})
 			c.recordTiming(ctx, "cache_swr_fallback", "stale", start)
 			return e.Value, e.Hit, nil
 		}
@@ -568,16 +585,9 @@ func (c *cache[K, V]) SWRWithFallback(
 
 func (c *cache[K, V]) revalidateWithCanonicalKey(
 	ctx context.Context,
-	dedupeKey K,
 	refreshFromOrigin func(context.Context) (V, K, error),
 	op func(error) Op,
 ) {
-	defer func() {
-		c.inflightMu.Lock()
-		delete(c.inflightRefreshes, dedupeKey)
-		c.inflightMu.Unlock()
-	}()
-
 	metrics.CacheRevalidations.WithLabelValues(c.resource).Inc()
 	v, canonicalKey, err := refreshFromOrigin(ctx)
 
@@ -602,34 +612,11 @@ func (c *cache[K, V]) revalidateMany(
 	refreshFromOrigin func(context.Context, []K) (map[K]V, error),
 	op func(error) Op,
 ) {
-	// Lock to prevent duplicate revalidations
-	c.inflightMu.Lock()
-	var keysToRefresh []K
-	for _, key := range keys {
-		if !c.inflightRefreshes[key] {
-			c.inflightRefreshes[key] = true
-			keysToRefresh = append(keysToRefresh, key)
-		}
-	}
-	c.inflightMu.Unlock()
-
-	if len(keysToRefresh) == 0 {
-		return
-	}
-
-	defer func() {
-		c.inflightMu.Lock()
-		for _, key := range keysToRefresh {
-			delete(c.inflightRefreshes, key)
-		}
-		c.inflightMu.Unlock()
-	}()
-
-	metrics.CacheRevalidations.WithLabelValues(c.resource).Add(float64(len(keysToRefresh)))
-	values, err := refreshFromOrigin(ctx, keysToRefresh)
+	metrics.CacheRevalidations.WithLabelValues(c.resource).Add(float64(len(keys)))
+	values, err := refreshFromOrigin(ctx, keys)
 
 	if err != nil && !db.IsNotFound(err) {
-		logger.Warn("failed to revalidate many", "error", err.Error(), "keys", keysToRefresh)
+		logger.Warn("failed to revalidate many", "resource", c.resource, "error", err.Error(), "keys", keys)
 	}
 
 	switch op(err) {
@@ -640,7 +627,7 @@ func (c *cache[K, V]) revalidateMany(
 
 			// Automatically write NULL for keys that weren't returned
 			var notFoundKeys []K
-			for _, key := range keysToRefresh {
+			for _, key := range keys {
 				if _, found := values[key]; !found {
 					notFoundKeys = append(notFoundKeys, key)
 				}
@@ -650,7 +637,7 @@ func (c *cache[K, V]) revalidateMany(
 			}
 		}
 	case WriteNull:
-		c.SetNullMany(ctx, keysToRefresh)
+		c.SetNullMany(ctx, keys)
 	case Noop:
 		// Don't cache anything
 	}

@@ -74,6 +74,7 @@ export function portalCreateSession(
     | errors.UnauthorizedErrorResponse
     | errors.ForbiddenErrorResponse
     | errors.NotFoundErrorResponse
+    | errors.ConflictErrorResponse
     | errors.TooManyRequestsErrorResponse
     | errors.InternalServerErrorResponse
     | UnkeyError
@@ -105,6 +106,7 @@ async function $do(
       | errors.UnauthorizedErrorResponse
       | errors.ForbiddenErrorResponse
       | errors.NotFoundErrorResponse
+      | errors.ConflictErrorResponse
       | errors.TooManyRequestsErrorResponse
       | errors.InternalServerErrorResponse
       | UnkeyError
@@ -204,6 +206,7 @@ async function $do(
     | errors.UnauthorizedErrorResponse
     | errors.ForbiddenErrorResponse
     | errors.NotFoundErrorResponse
+    | errors.ConflictErrorResponse
     | errors.TooManyRequestsErrorResponse
     | errors.InternalServerErrorResponse
     | UnkeyError
@@ -223,6 +226,7 @@ async function $do(
     M.jsonErr(401, errors.UnauthorizedErrorResponse$inboundSchema),
     M.jsonErr(403, errors.ForbiddenErrorResponse$inboundSchema),
     M.jsonErr(404, errors.NotFoundErrorResponse$inboundSchema),
+    M.jsonErr(409, errors.ConflictErrorResponse$inboundSchema),
     M.jsonErr(429, errors.TooManyRequestsErrorResponse$inboundSchema, {
       ctype: "application/problem+json",
     }),

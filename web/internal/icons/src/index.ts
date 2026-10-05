@@ -185,6 +185,7 @@ export * from "./icons/ufo-outline-18";
 export * from "./icons/unkey";
 export * from "./icons/user-outline-12";
 export * from "./icons/user-outline-18";
+export * from "./icons/user-plus-outline-18";
 export * from "./icons/user-search-outline-18";
 export * from "./icons/window-layout-outline-18";
 export * from "./icons/xmark-outline-12";

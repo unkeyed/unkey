@@ -116,9 +116,7 @@ export function ItemContent({ className, ...props }: React.HTMLAttributes<HTMLDi
 }
 
 export function ItemTitle({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
-  return (
-    <div className={cn("text-[13px] font-medium leading-4 text-gray-12", className)} {...props} />
-  );
+  return <div className={cn("text-sm font-medium leading-4 text-gray-12", className)} {...props} />;
 }
 
 export function ItemDescription({
@@ -133,7 +131,7 @@ export function ItemActions({ className, ...props }: React.HTMLAttributes<HTMLDi
     <div
       data-slot="item-actions"
       className={cn(
-        "flex shrink-0 items-center gap-2 text-[13px] leading-4 text-gray-12 [&_svg]:text-gray-9 [&_svg]:transition-colors group-hover/item:[&_svg]:text-gray-11 [&_svg:not([class*='size-'])]:size-3.5",
+        "flex shrink-0 items-center gap-2 text-sm leading-4 text-gray-12 [&_svg]:text-gray-9 [&_svg]:transition-colors group-hover/item:[&_svg]:text-gray-11 [&_svg:not([class*='size-'])]:size-3.5",
         className,
       )}
       {...props}

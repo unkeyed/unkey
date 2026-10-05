@@ -53,8 +53,10 @@ export const DeletePermission = ({ permissionDetails, isOpen, onClose }: DeleteP
 
   const confirmDeletion = watch("confirmDeletion");
 
-  const deletePermission = useDeletePermission(() => {
-    onClose();
+  const deletePermission = useDeletePermission((remainingPermissionIds) => {
+    if (remainingPermissionIds.length === 0) {
+      onClose();
+    }
   });
 
   const handleDialogOpenChange = (open: boolean) => {
@@ -70,12 +72,7 @@ export const DeletePermission = ({ permissionDetails, isOpen, onClose }: DeleteP
   const performPermissionDeletion = async () => {
     try {
       setIsLoading(true);
-      await deletePermission.mutateAsync({
-        permissionIds: permissionDetails.permissionId,
-      });
-    } catch {
-      // `useDeletePermission` already shows a toast, but we still need to
-      // prevent unhandled‐rejection noise in the console.
+      await deletePermission.mutateAsync([permissionDetails.permissionId]);
     } finally {
       setIsLoading(false);
     }

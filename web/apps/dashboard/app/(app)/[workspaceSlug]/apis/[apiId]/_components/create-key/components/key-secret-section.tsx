@@ -12,7 +12,7 @@ export const KeySecret = ({ keyValue, title = "API Key" }: KeySecretProps) => {
   return (
     <div className="flex flex-col gap-2 items-start w-full">
       <SecretKey value={keyValue} title={title} />
-      <div className="text-gray-9 text-[13px] flex items-center gap-1.5 self-center">
+      <div className="text-gray-9 text-sm flex items-center gap-1.5 self-center">
         <IconCircleInfoOutline12 className="text-gray-9" />
         <span>
           Copy and save this key secret as it won't be shown again.{" "}

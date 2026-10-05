@@ -8,8 +8,9 @@ import (
 
 // KeyLastUsed represents a single key's last usage timestamp from ClickHouse.
 type KeyLastUsed struct {
-	KeyID string
-	Time  int64
+	KeySpaceID string
+	KeyID      string
+	Time       int64
 }
 
 // KeyLastUsedCursor is the composite cursor for paginating through key_last_used_v1.
@@ -32,6 +33,7 @@ type GetKeyLastUsedBatchRequest struct {
 // multiple workers to process disjoint slices of the keyspace concurrently.
 func (c *Client) GetKeyLastUsedBatchPartitioned(ctx context.Context, req GetKeyLastUsedBatchRequest) ([]KeyLastUsed, error) {
 	query := `SELECT
+		key_space_id,
 		key_id,
 		max(time) as last_used
 	FROM default.key_last_used_v1
@@ -61,7 +63,7 @@ func (c *Client) GetKeyLastUsedBatchPartitioned(ctx context.Context, req GetKeyL
 	var results []KeyLastUsed
 	for rows.Next() {
 		var r KeyLastUsed
-		if err := rows.Scan(&r.KeyID, &r.Time); err != nil {
+		if err := rows.Scan(&r.KeySpaceID, &r.KeyID, &r.Time); err != nil {
 			return nil, fault.Wrap(err, fault.Internal("failed to scan key last used row"))
 		}
 

@@ -1,7 +1,7 @@
 "use client";
 import { routes } from "@/lib/navigation/routes";
 import { getErrorMessage, getErrorToast, getUnkeyClient } from "@/lib/unkey-client";
-import { queryCollectionOptions } from "@tanstack/query-db-collection";
+import { parseLoadSubsetOptions, queryCollectionOptions } from "@tanstack/query-db-collection";
 import { createCollection } from "@tanstack/react-db";
 import type { Domain as ApiDomain, DnsRecord } from "@unkey/api/models/components";
 import { ConflictErrorResponse, ForbiddenErrorResponse } from "@unkey/api/models/errors";
@@ -9,7 +9,7 @@ import { toast } from "@unkey/ui";
 import { z } from "zod";
 import { queryClient } from "../client";
 import { domains } from "./domains";
-import { parseProjectIdFromWhere, validateProjectIdInQuery } from "./utils";
+import { extractStringFilter } from "./utils";
 
 const verificationStatusSchema = z.enum(["pending", "verifying", "verified", "failed"]);
 
@@ -54,15 +54,14 @@ export const customDomains = createCollection<CustomDomain, string>(
     queryClient,
     syncMode: "on-demand",
     queryKey: (opts) => {
-      const projectId = parseProjectIdFromWhere(opts.where);
+      const { filters } = parseLoadSubsetOptions(opts);
+      const projectId = extractStringFilter(filters, "projectId");
       return projectId ? ["customDomains", projectId] : ["customDomains"];
     },
     retry: 3,
     queryFn: async (ctx) => {
-      const options = ctx.meta?.loadSubsetOptions;
-
-      validateProjectIdInQuery(options?.where);
-      const projectId = parseProjectIdFromWhere(options?.where);
+      const { filters } = parseLoadSubsetOptions(ctx.meta?.loadSubsetOptions);
+      const projectId = extractStringFilter(filters, "projectId");
 
       if (!projectId) {
         throw new Error("Query must include eq(collection.projectId, projectId) constraint");

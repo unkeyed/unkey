@@ -62,7 +62,7 @@ http.Redirect(w, r, url, http.StatusFound)`;
   return (
     <DialogContainer isOpen={isOpen} onOpenChange={onOpenChange} title="How to integrate">
       <div className="flex flex-col gap-5">
-        <p className="text-gray-11 text-[13px]">
+        <p className="text-gray-11 text-sm">
           Sign the user in yourself, create a session for them, then send them to the portal. Scopes
           decide what the user can do there. <code>keys:read</code> shows them their own keys,{" "}
           <code>keys:reroll</code> lets them roll one, and <code>analytics:read</code> shows them
@@ -71,7 +71,7 @@ http.Redirect(w, r, url, http.StatusFound)`;
           <code>keys:read</code> in the same session.
         </p>
 
-        <p className="text-gray-11 text-[13px]">
+        <p className="text-gray-11 text-sm">
           Every scope also needs the matching permission on the root key you sign with:{" "}
           <code>keys:read</code> needs <code>read_key</code> and <code>read_api</code>,{" "}
           <code>keys:reroll</code> needs <code>create_key</code>, and <code>analytics:read</code>{" "}
@@ -80,9 +80,7 @@ http.Redirect(w, r, url, http.StatusFound)`;
         </p>
 
         <div className="flex flex-col gap-2">
-          <p className="text-gray-9 text-[11px] uppercase tracking-wide">
-            Step 1 · Create a session
-          </p>
+          <p className="text-gray-9 text-2xs uppercase tracking-wide">Step 1 · Create a session</p>
           <Tabs defaultValue="curl">
             <TabsList>
               <TabsTrigger value="curl">cURL</TabsTrigger>
@@ -108,7 +106,7 @@ http.Redirect(w, r, url, http.StatusFound)`;
         </div>
 
         <div className="flex flex-col gap-2">
-          <p className="text-gray-9 text-[11px] uppercase tracking-wide">
+          <p className="text-gray-9 text-2xs uppercase tracking-wide">
             Step 2 · Send them to the portal
           </p>
           <Code
@@ -117,14 +115,14 @@ http.Redirect(w, r, url, http.StatusFound)`;
           >
             redirect(result.data.url)
           </Code>
-          <p className="text-gray-11 text-[13px]">
+          <p className="text-gray-11 text-sm">
             That URL carries a one-time exchange code. It expires after 15 minutes.
           </p>
         </div>
 
         <div className="flex flex-col gap-2">
-          <p className="text-gray-9 text-[11px] uppercase tracking-wide">Optional return URL</p>
-          <p className="text-gray-11 text-[13px]">
+          <p className="text-gray-9 text-2xs uppercase tracking-wide">Optional return URL</p>
+          <p className="text-gray-11 text-sm">
             Pass <code>returnUrl</code> per session rather than setting it on the portal, so each
             user lands back where they started. It has to be an absolute <code>https://</code> URL
             you control, 500 characters or fewer. Never take it from the incoming request. A{" "}
@@ -137,7 +135,7 @@ http.Redirect(w, r, url, http.StatusFound)`;
           href="https://www.unkey.com/docs"
           target="_blank"
           rel="noopener noreferrer"
-          className="text-gray-11 text-[13px] underline"
+          className="text-gray-11 text-sm underline"
         >
           Full documentation →
         </a>

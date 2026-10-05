@@ -53,7 +53,7 @@ export function UserButton() {
           <DropdownMenuGroup className="border-b px-2 py-2">
             <DropdownMenuLabel
               title={user.email}
-              className="secret block truncate px-0 py-0 text-[13px] text-gray-12"
+              className="secret block truncate px-0 py-0 text-sm text-gray-12"
             >
               {user.email}
             </DropdownMenuLabel>
@@ -61,7 +61,7 @@ export function UserButton() {
         )}
         <DropdownMenuGroup className="p-1">
           <DropdownMenuItem
-            className="h-8 cursor-pointer gap-2 px-2 text-[13px] font-medium text-gray-12"
+            className="h-8 cursor-pointer gap-2 px-2 text-sm font-medium text-gray-12"
             render={
               <Link href={routes.account.overview({ workspaceSlug: workspace.slug })}>
                 <IconUserOutline18 className="size-4 shrink-0 text-gray-11" />
@@ -82,7 +82,7 @@ export function UserButton() {
               <DropdownMenuRadioItem
                 key={value}
                 value={value}
-                className="h-8 cursor-pointer px-2 text-[13px] font-medium text-gray-12"
+                className="h-8 cursor-pointer px-2 text-sm font-medium text-gray-12"
               >
                 <Icon className="size-4 shrink-0 text-gray-11" />
                 {label}
@@ -93,7 +93,7 @@ export function UserButton() {
         <DropdownMenuSeparator className="mx-0" />
         <DropdownMenuGroup className="p-1">
           <DropdownMenuItem
-            className="h-8 cursor-pointer gap-2 px-2 text-[13px] font-medium text-gray-12"
+            className="h-8 cursor-pointer gap-2 px-2 text-sm font-medium text-gray-12"
             onClick={async () => {
               queryClient.clear();
               await signOut();

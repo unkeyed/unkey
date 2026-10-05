@@ -86,9 +86,7 @@ generate: generate-sql ## Generate code from protobuf and other sources (NOT eBP
 
 .PHONY: generate-bpf
 generate-bpf: ## Compile the heimdall eBPF program and regenerate Go bindings (uses pinned clang/Go in docker for bytewise reproducibility across hosts)
-	@docker build --platform=linux/amd64 -q -t unkey-bpf-gen -f svc/heimdall/internal/network/bpf/Dockerfile.gen svc/heimdall/internal/network/bpf >/dev/null
-	@docker run --rm --platform=linux/amd64 -v "$$PWD:/work" -w /work unkey-bpf-gen \
-		go generate -tags bpf_generate ./svc/heimdall/internal/network/...
+	mise run generate-bpf
 
 .PHONY: test
 test: ## Run tests

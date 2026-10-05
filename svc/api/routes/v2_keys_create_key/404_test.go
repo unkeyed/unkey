@@ -10,7 +10,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
@@ -246,7 +245,7 @@ func TestCreateKeyOnDeletedApi(t *testing.T) {
 		}))
 
 		res := testutil.CallRoute[handler.Request, openapi.V2KeysCreateKeyResponseBody](
-			h, route, headers, handler.Request{ApiId: api.ID, Name: ptr.P("KEBAP")},
+			h, route, headers, handler.Request{ApiId: api.ID, Name: new("KEBAP")},
 		)
 		require.Equal(t, http.StatusNotFound, res.Status, "%s", res.RawBody)
 	})
@@ -259,7 +258,7 @@ func TestCreateKeyOnDeletedApi(t *testing.T) {
 		}))
 
 		res := testutil.CallRoute[handler.Request, openapi.V2KeysCreateKeyResponseBody](
-			h, route, headers, handler.Request{ApiId: api.ID, Name: ptr.P("KEBAP")},
+			h, route, headers, handler.Request{ApiId: api.ID, Name: new("KEBAP")},
 		)
 		require.Equal(t, http.StatusNotFound, res.Status, "%s", res.RawBody)
 	})

@@ -24,7 +24,7 @@ import (
 
 	"github.com/unkeyed/unkey/pkg/batch"
 	"github.com/unkeyed/unkey/pkg/buildinfo"
-	"github.com/unkeyed/unkey/pkg/buildinfo/metrics"
+	buildinfometrics "github.com/unkeyed/unkey/pkg/buildinfo/metrics"
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
@@ -37,7 +37,6 @@ import (
 	pprofRoute "github.com/unkeyed/unkey/pkg/pprof"
 	"github.com/unkeyed/unkey/pkg/prometheus"
 	"github.com/unkeyed/unkey/pkg/prometheus/lazy"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/rpc/interceptor"
 	"github.com/unkeyed/unkey/pkg/runner"
@@ -319,7 +318,7 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	acmeClient := ctrl.NewConnectAcmeServiceClient(ctrlv1connect.NewAcmeServiceClient(
-		ptr.P(http.Client{}),
+		new(http.Client{}),
 		cfg.Control.URL,
 		connect.WithInterceptors(interceptor.NewHeaderInjector(map[string]string{
 			"Authorization": "Bearer " + cfg.Control.Token,
@@ -504,6 +503,17 @@ func buildEngine(
 		return nil, fmt.Errorf("failed to create key cache: %w", err)
 	}
 	r.Defer(func() error { keyCache.Close(); return nil })
+	rootKeyCache, err := cache.New(cache.Config[string, keysdb.CachedRootKeyData]{
+		Fresh:    10 * time.Second,
+		Stale:    10 * time.Minute,
+		MaxSize:  100_000,
+		Resource: "frontline_root_key_cache",
+		Clock:    clk,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create root key cache: %w", err)
+	}
+	r.Defer(func() error { rootKeyCache.Close(); return nil })
 
 	keyService, err := keys.New(keys.Config{
 		DB:           pkgdb.ToMySQL(database),
@@ -513,6 +523,7 @@ func buildEngine(
 		UsageLimiter: usageLimiter,
 		Source:       schema.SourceGateway,
 		KeyCache:     keyCache,
+		RootKeyCache: rootKeyCache,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create key service: %w", err)

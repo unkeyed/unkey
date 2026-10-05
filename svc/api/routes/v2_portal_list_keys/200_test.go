@@ -11,7 +11,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/hash"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
@@ -78,28 +77,28 @@ func setupPortalSessionTest(t *testing.T, h *testutil.Harness) portalSessionSetu
 	key1 := h.CreateKey(seed.CreateKeyRequest{
 		WorkspaceID: workspace.ID,
 		KeySpaceID:  keySpaceID,
-		Name:        ptr.P("Key 1 - User A"),
-		IdentityID:  ptr.P(identity1.ID),
+		Name:        new("Key 1 - User A"),
+		IdentityID:  new(identity1.ID),
 	})
 
 	key2 := h.CreateKey(seed.CreateKeyRequest{
 		WorkspaceID: workspace.ID,
 		KeySpaceID:  keySpaceID,
-		Name:        ptr.P("Key 2 - User A"),
-		IdentityID:  ptr.P(identity1.ID),
+		Name:        new("Key 2 - User A"),
+		IdentityID:  new(identity1.ID),
 	})
 
 	key3 := h.CreateKey(seed.CreateKeyRequest{
 		WorkspaceID: workspace.ID,
 		KeySpaceID:  keySpaceID,
-		Name:        ptr.P("Key 3 - User B"),
-		IdentityID:  ptr.P(identity2.ID),
+		Name:        new("Key 3 - User B"),
+		IdentityID:  new(identity2.ID),
 	})
 
 	key4 := h.CreateKey(seed.CreateKeyRequest{
 		WorkspaceID: workspace.ID,
 		KeySpaceID:  keySpaceID,
-		Name:        ptr.P("Key 4 - No identity"),
+		Name:        new("Key 4 - No identity"),
 	})
 
 	return portalSessionSetup{
@@ -190,8 +189,8 @@ func TestPortalSessionUnionsConfiguredKeyspaces(t *testing.T) {
 	key5 := h.CreateKey(seed.CreateKeyRequest{
 		WorkspaceID: setup.workspace.ID,
 		KeySpaceID:  keySpaceID2,
-		Name:        ptr.P("Key 5 - User A, keyspace 2"),
-		IdentityID:  ptr.P(setup.identity1ID),
+		Name:        new("Key 5 - User A, keyspace 2"),
+		IdentityID:  new(setup.identity1ID),
 	})
 
 	headers := h.CreatePortalSession(

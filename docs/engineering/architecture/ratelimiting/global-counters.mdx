@@ -1,6 +1,13 @@
 ---
 title: "Global counters"
 description: "How G-Counters power cross-region rate limit convergence"
+notion:
+  rootPageID: 3ee512d643f38063b525d6c3619c1f69
+  owners:
+    - andreas
+  tags:
+    - Architecture
+    - Rate Limiting
 ---
 
 Global counters let regions share rate limit usage without turning every request into a synchronous global write. The model is a grow-only counter, or G-Counter, with one component per region and window cell.

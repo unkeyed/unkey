@@ -100,6 +100,49 @@ var (
 		[]string{"resource"},
 	)
 
+	CacheRevalidationEnqueues = lazy.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: "unkey",
+			Subsystem: "cache",
+			Name:      "revalidation_enqueues_total",
+			Help:      "Refresh enqueue attempts by outcome: enqueued, deduplicated (all keys already pending), queue_full, or closed. Each batch is one attempt.",
+		},
+		[]string{"resource", "outcome"},
+	)
+
+	CacheRevalidationQueueDepth = lazy.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Namespace: "unkey",
+			Subsystem: "cache",
+			Name:      "revalidation_queue_depth",
+			Help:      "Queued jobs observed before enqueue attempts with new keys, excluding running jobs. Each batch occupies one slot.",
+			Buckets:   []float64{0, 1, 5, 10, 50, 100, 250, 500, 750, 1000},
+		},
+		[]string{"resource"},
+	)
+
+	CacheRevalidationQueueWait = lazy.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Namespace: "unkey",
+			Subsystem: "cache",
+			Name:      "revalidation_queue_wait_seconds",
+			Help:      "Time from enqueue to execution for background refresh jobs. Each batch is one observation.",
+			Buckets:   []float64{0.001, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10, 30, 60},
+		},
+		[]string{"resource"},
+	)
+
+	CacheRevalidationDuration = lazy.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Namespace: "unkey",
+			Subsystem: "cache",
+			Name:      "revalidation_duration_seconds",
+			Help:      "Execution time of background refresh jobs, including failed refreshes and excluding queue wait. Each batch is one observation.",
+			Buckets:   []float64{0.001, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10, 30, 60},
+		},
+		[]string{"resource"},
+	)
+
 	// CacheReadsErrorsTotal tracks the total number of cache read errors,
 	// labeled by resource type. Use this counter to monitor cache read error rates.
 	//

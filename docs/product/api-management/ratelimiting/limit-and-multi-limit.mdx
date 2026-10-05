@@ -1,0 +1,145 @@
+---
+title: ratelimit.limit and multiLimit
+description: "Rate limit any identifier with one call, or several limits at once."
+sources:
+  - svc/api/openapi/spec/paths/v2/ratelimit/limit/V2RatelimitLimitRequestBody.yaml
+  - svc/api/openapi/spec/paths/v2/ratelimit/limit/V2RatelimitLimitResponseData.yaml
+  - svc/api/openapi/spec/paths/v2/ratelimit/limit/index.yaml
+  - svc/api/openapi/spec/paths/v2/ratelimit/multiLimit/V2RatelimitMultiLimitRequestBody.yaml
+  - svc/api/openapi/spec/paths/v2/ratelimit/multiLimit/V2RatelimitMultiLimitCheck.yaml
+  - svc/api/openapi/spec/paths/v2/ratelimit/multiLimit/V2RatelimitMultiLimitResponseData.yaml
+  - svc/api/routes/v2_ratelimit_limit/handler.go
+  - svc/api/routes/v2_ratelimit_multi_limit/handler.go
+  - internal/services/ratelimit/ratelimit.go
+  - internal/services/ratelimit/doc.go
+  - pkg/zen/middleware_metrics.go
+  - web/internal/db/src/schema/ratelimit.ts
+---
+
+import RootKeyPrereq from "/snippets/root-key-prereq.mdx";
+
+Use `ratelimit.limit` to check one identifier against one limit. Use `ratelimit.multiLimit` to run up to 100 checks in one call, counted only if they all pass. You send the limit and duration with each call, so the rules live in your code. To change the rule for particular identifiers without a deploy, use [overrides](/api-management/ratelimiting/overrides).
+
+<RootKeyPrereq />
+
+The root key needs `ratelimit.*.limit` or `ratelimit.<namespace_id>.limit` for every namespace checked. The first call with a new namespace name creates it, which also needs `ratelimit.*.create_namespace`.
+
+## Namespaces
+
+A namespace names what you're limiting, such as `email.send` or `api.requests`. Identifiers are counted separately in each namespace. Refer to a namespace by name (1 to 512 characters, case-sensitive) or ID (`rlns_...`). A new name is created on first use. Rename or delete namespaces in the dashboard under **Ratelimit**. A check against a deleted namespace fails with HTTP 410 `err:unkey:data:ratelimit_namespace_gone`.
+
+## ratelimit.limit
+
+<ParamField body="namespace" type="string" required>
+  Namespace name or ID, 1 to 512 characters.
+</ParamField>
+
+<ParamField body="identifier" type="string" required>
+  Who or what you're counting, 1 to 512 characters: a user ID, IP address, tenant, or any stable string.
+</ParamField>
+
+<ParamField body="limit" type="integer" required>
+  Maximum tokens per window, 1 or more. A matching override replaces it.
+</ParamField>
+
+<ParamField body="duration" type="integer" required>
+  Window length in milliseconds, 1000 (one second) to 2592000000 (30 days). A matching override replaces it.
+</ParamField>
+
+<ParamField body="cost" type="integer" default="1">
+  Tokens this request spends, 0 or more. 0 checks without counting.
+</ParamField>
+
+```bash
+curl -X POST https://api.unkey.com/v2/ratelimit.limit \
+  -H "Authorization: Bearer $UNKEY_ROOT_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "namespace": "api.requests",
+    "identifier": "user_123",
+    "limit": 100,
+    "duration": 60000,
+    "cost": 5
+  }'
+```
+
+### Response
+
+<ResponseField name="success" type="boolean" required>
+  Whether the request fit within the limit. The endpoint returns HTTP 200 either way, so read this field.
+</ResponseField>
+
+<ResponseField name="limit" type="integer" required>
+  The limit that applied, from the request or from a matching override.
+</ResponseField>
+
+<ResponseField name="remaining" type="integer" required>
+  Tokens left in the current window, as a close estimate. 0 on denial.
+</ResponseField>
+
+<ResponseField name="reset" type="integer" required>
+  Unix milliseconds when the current window ends.
+</ResponseField>
+
+<ResponseField name="overrideId" type="string">
+  The override that was applied, when one matched.
+</ResponseField>
+
+```json
+{
+  "meta": { "requestId": "req_..." },
+  "data": { "success": true, "limit": 100, "remaining": 95, "reset": 1704067260000 }
+}
+```
+
+Every check is recorded in rate limit analytics and writes a `ratelimit.limit` audit event. To keep a `ratelimit.limit` call out of analytics and your API request logs, send the header `X-Unkey-Metrics: disabled`. `ratelimit.multiLimit` ignores this header.
+
+## ratelimit.multiLimit
+
+Send an array of 1 to 100 objects with the same fields as `ratelimit.limit`. Use it when one action must pass several limits, for example a per-user and a per-organization limit, or a request count and a token budget.
+
+```bash
+curl -X POST https://api.unkey.com/v2/ratelimit.multiLimit \
+  -H "Authorization: Bearer $UNKEY_ROOT_KEY" \
+  -H "Content-Type: application/json" \
+  -d '[
+    { "namespace": "api.requests", "identifier": "user_123", "limit": 100, "duration": 60000 },
+    { "namespace": "api.requests", "identifier": "org_acme", "limit": 1000, "duration": 60000 },
+    { "namespace": "llm.tokens", "identifier": "user_123", "limit": 50000, "duration": 3600000, "cost": 1200 }
+  ]'
+```
+
+If any check fails, none of them count. A request that passes counts against every limit. Overrides apply per check. A deleted namespace in any check fails the whole call with `err:unkey:data:ratelimit_namespace_gone`.
+
+### Response
+
+<ResponseField name="passed" type="boolean" required>
+  `true` only when every check passed.
+</ResponseField>
+
+<ResponseField name="limits" type="object[]" required>
+  One result per check, in request order, each with `namespace`, `identifier`, `passed`, `limit`, `remaining`, `reset`, and `overrideId`.
+</ResponseField>
+
+```json
+{
+  "meta": { "requestId": "req_..." },
+  "data": {
+    "passed": false,
+    "limits": [
+      { "namespace": "api.requests", "identifier": "user_123", "passed": true, "limit": 100, "remaining": 99, "reset": 1704067260000 },
+      { "namespace": "api.requests", "identifier": "org_acme", "passed": true, "limit": 1000, "remaining": 999, "reset": 1704067260000 },
+      { "namespace": "llm.tokens", "identifier": "user_123", "passed": false, "limit": 50000, "remaining": 0, "reset": 1704070800000 }
+    ]
+  }
+}
+```
+
+Nothing was counted, so `remaining` on the passing checks doesn't include this request.
+
+## Choosing limits
+
+- **Pick the window for the job.** Short windows, such as 20 per 10 seconds, stop bursts. Longer windows, such as 1,000 per hour, work as quotas. Windows of a minute or more are more accurate across regions.
+- **Use `cost` for expensive operations** instead of a second namespace.
+- **Keep identifiers stable.** An identifier with a timestamp or request ID in it is never seen twice, so it limits nothing.
+- **Use an [override](/api-management/ratelimiting/overrides)** when one customer needs a different number, instead of a code path.

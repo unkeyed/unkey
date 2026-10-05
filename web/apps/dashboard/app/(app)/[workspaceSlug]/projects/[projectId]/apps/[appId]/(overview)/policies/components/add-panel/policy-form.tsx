@@ -201,7 +201,7 @@ function Section({
           onClick={() => toggle(id)}
           className="flex-1 min-w-0 px-6 py-3 flex items-center justify-between gap-4 cursor-pointer"
         >
-          <span className="flex items-center gap-2 text-[13px] text-gray-11 font-medium">
+          <span className="flex items-center gap-2 text-sm text-gray-11 font-medium">
             <IconChevronDownOutline12
               className={cn("transition-transform duration-200", isActive ? "" : "-rotate-90")}
             />
@@ -219,7 +219,7 @@ function Section({
               </InfoTooltip>
             )}
           </span>
-          <span className="text-[12px] text-gray-11 truncate">{summary}</span>
+          <span className="text-xs text-gray-11 truncate">{summary}</span>
         </button>
         {!isActive && collapsedAction && (
           <div className="pr-6 shrink-0 flex items-center">{collapsedAction}</div>

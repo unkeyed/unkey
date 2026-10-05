@@ -50,25 +50,25 @@ export function GroupRow({
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1.5">
               <InfoTooltip content={row.key} position={{ side: "top" }} asChild>
-                <span className="font-mono font-medium text-[13px] text-gray-12 truncate leading-4 max-w-[250px]">
+                <span className="font-mono font-medium text-sm text-gray-12 truncate leading-4 max-w-[250px]">
                   <HighlightMatch text={row.key} query={deferredQuery} />
                 </span>
               </InfoTooltip>
               {row.hasWriteonly && (
                 <Badge
-                  className="px-1.5 py-0 rounded-md h-5 text-[11px] font-medium pointer-events-none"
+                  className="px-1.5 py-0 rounded-md h-5 text-2xs font-medium pointer-events-none"
                   variant="warning"
                 >
                   Sensitive
                 </Badge>
               )}
             </div>
-            <div className="text-[13px] mt-1 text-gray-11 capitalize">All Environments</div>
+            <div className="text-sm mt-1 text-gray-11 capitalize">All Environments</div>
           </div>
         </div>
       }
       valueCell={
-        <span className="flex items-center gap-1.5 text-[13px] text-gray-11 transition-colors pl-2">
+        <span className="flex items-center gap-1.5 text-sm text-gray-11 transition-colors pl-2">
           {row.items.length} values
           <IconChevronRightOutline12
             className={cn(

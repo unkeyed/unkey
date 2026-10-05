@@ -93,9 +93,10 @@ func (s *s3) GetObject(ctx context.Context, key string) (data []byte, found bool
 	if err != nil {
 		// A missing key is an expected miss, not an error. S3 reports it as
 		// NoSuchKey; some S3-compatible stores only surface the 404 status.
-		var noSuchKey *s3types.NoSuchKey
-		var respErr *awshttp.ResponseError
-		if errors.As(err, &noSuchKey) || (errors.As(err, &respErr) && respErr.HTTPStatusCode() == http.StatusNotFound) {
+		if _, ok := errors.AsType[*s3types.NoSuchKey](err); ok {
+			return nil, false, nil
+		}
+		if respErr, ok := errors.AsType[*awshttp.ResponseError](err); ok && respErr.HTTPStatusCode() == http.StatusNotFound {
 			return nil, false, nil
 		}
 		return nil, false, fmt.Errorf("failed to get object: %w", err)
@@ -137,8 +138,7 @@ func observeS3(operation string, err error) {
 		if errors.Is(err, context.DeadlineExceeded) {
 			code = "timeout"
 		}
-		var apiErr smithy.APIError
-		if errors.As(err, &apiErr) {
+		if apiErr, ok := errors.AsType[smithy.APIError](err); ok {
 			// Provider messages and unknown codes can contain secrets or object keys.
 			switch apiErr.ErrorCode() {
 			case "InvalidAccessKeyId", "SignatureDoesNotMatch", "AccessDenied", "ExpiredToken", "NoSuchBucket":
@@ -146,8 +146,7 @@ func observeS3(operation string, err error) {
 			}
 		}
 		status := 0
-		var respErr *awshttp.ResponseError
-		if errors.As(err, &respErr) {
+		if respErr, ok := errors.AsType[*awshttp.ResponseError](err); ok {
 			status = respErr.HTTPStatusCode()
 		}
 		logger.Error("vault s3 operation failed", "operation", operation, "error_code", code, "http_status", status)

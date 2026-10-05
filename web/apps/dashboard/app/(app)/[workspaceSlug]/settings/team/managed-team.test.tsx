@@ -51,6 +51,10 @@ vi.mock("@/lib/navigation/routes", () => ({
   },
 }));
 
+vi.mock("./team-upgrade", () => ({
+  TeamUpgrade: () => <div data-testid="team-upgrade" />,
+}));
+
 vi.mock("@unkey/workos-widgets", () => ({
   ManagedUsersWidget: ({ getAccessToken }: { getAccessToken: () => Promise<string> }) => {
     mocks.widgetTokenGetter = getAccessToken;
@@ -105,7 +109,7 @@ describe("ManagedTeam", () => {
   it("renders WorkOS user management with the AuthKit token getter", async () => {
     render(<ManagedTeam team />);
 
-    expect(screen.getByRole("heading", { name: "Members" })).toBeTruthy();
+    expect(screen.getByRole("region", { name: "Members" })).toBeTruthy();
     expect(screen.getByTestId("managed-users-widget")).toBeTruthy();
     expect(await mocks.widgetTokenGetter?.()).toBe("access_token");
     expect(mocks.logManagedAuthOutcome).toHaveBeenCalledWith("widget_token", "success");
@@ -130,12 +134,7 @@ describe("ManagedTeam", () => {
   it("preserves the team-plan entitlement gate", () => {
     render(<ManagedTeam team={false} />);
 
-    expect(
-      screen.getByRole("heading", { name: "Upgrade Your Plan to Add Team Members" }),
-    ).toBeTruthy();
-    expect(screen.getByRole("link", { name: "Upgrade" }).getAttribute("href")).toBe(
-      "/acme/settings/billing",
-    );
+    expect(screen.getByTestId("team-upgrade")).toBeTruthy();
     expect(screen.queryByTestId("managed-users-widget")).toBeNull();
   });
 

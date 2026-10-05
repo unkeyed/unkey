@@ -15,7 +15,7 @@ export const LogsDisplay = () => {
         title="Press 'F' to toggle filters"
       >
         <IconSlidersOutline18 className="text-gray-9 size-4" />
-        <span className="text-gray-12 font-medium text-[13px]">Display</span>
+        <span className="text-gray-12 font-medium text-sm">Display</span>
       </Button>
     </DisplayPopover>
   );

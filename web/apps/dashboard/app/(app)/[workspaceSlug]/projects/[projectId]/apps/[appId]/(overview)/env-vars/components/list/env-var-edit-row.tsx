@@ -143,7 +143,7 @@ export function EnvVarEditRow({
           {...register("value")}
         />
         <details className="group" open={Boolean(note)}>
-          <summary className="w-fit text-[13px] text-gray-11 hover:text-gray-12 transition-colors cursor-pointer list-none [&::-webkit-details-marker]:hidden flex items-center gap-1.5 group">
+          <summary className="w-fit text-sm text-gray-11 hover:text-gray-12 transition-colors cursor-pointer list-none [&::-webkit-details-marker]:hidden flex items-center gap-1.5 group">
             <span className="group-open:hidden flex items-center gap-2">
               <IconPlusOutline12 className="text-gray-9 group-hover:text-gray-12 transition-colors" />
               Add Note
@@ -167,7 +167,7 @@ export function EnvVarEditRow({
                 <Switch checked={field.value} onCheckedChange={field.onChange} />
               )}
             />
-            <span className="text-[13px] text-gray-12 font-medium">Sensitive</span>
+            <span className="text-sm text-gray-12 font-medium">Sensitive</span>
             <InfoTooltip
               content="Permanently hides values after saving. This cannot be undone."
               position={{ side: "top" }}

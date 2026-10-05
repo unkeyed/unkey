@@ -14,7 +14,11 @@ export function useCollectionPolling(
       return;
     }
 
-    const id = setInterval(() => refetchRef.current(), intervalMs);
+    const id = setInterval(() => {
+      if (!document.hidden) {
+        refetchRef.current();
+      }
+    }, intervalMs);
 
     const onVisibilityChange = () => {
       if (!document.hidden) {

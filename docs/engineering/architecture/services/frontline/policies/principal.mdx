@@ -1,6 +1,14 @@
 ---
 title: "Principal"
 description: "Authenticated identity from auth policies"
+notion:
+  rootPageID: 3ee512d643f38063b525d6c3619c1f69
+  owners:
+    - andreas
+  tags:
+    - Architecture
+    - Services
+    - Frontline
 ---
 
 `engine.Principal` is the shared identity shape produced by authentication policies. It decouples the authentication mechanism from downstream authorization decisions and from upstream applications, which receive it as a JSON payload on the `X-Unkey-Principal` header.

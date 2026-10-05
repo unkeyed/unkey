@@ -50,10 +50,10 @@ export function InstantRollbackRow() {
             <IconArrowDottedRotateAnticlockwiseOutline18 className="size-3.5 text-gray-12" />
           </div>
           <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-            <span className="text-[13px] font-medium leading-5 text-gray-12">
+            <span className="text-sm font-medium leading-5 text-gray-12">
               Need to revert these changes?
             </span>
-            <p className="text-[13px] leading-5 text-gray-11">
+            <p className="text-sm leading-5 text-gray-11">
               Your previous deployment is still running at full scale. Switch traffic back instantly
               without cold starts.
             </p>

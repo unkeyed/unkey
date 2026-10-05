@@ -1,14 +1,14 @@
 import { StatusBadge } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/settings/components/status-badge";
+import { createPermissionOptions } from "@/components/permission-options";
 import { SelectedItemsList } from "@/components/selected-item-list";
 import { FormCombobox } from "@/components/ui/form-combobox";
+import { useFetchPermissions } from "@/hooks/use-fetch-permissions";
+import { useSearchPermissions } from "@/hooks/use-search-permissions";
 import type { KeyPermission, KeyRole } from "@/lib/trpc/routers/key/rbac/connected-roles-and-perms";
 import { IconPage2Outline12 } from "@unkey/icons";
 import { InfoTooltip } from "@unkey/ui";
 import { useMemo, useState } from "react";
 import { useWatch } from "react-hook-form";
-import { createPermissionOptions } from "./create-permission-options";
-import { useFetchPermissions } from "./hooks/use-fetch-keys-permissions";
-import { useSearchPermissions } from "./hooks/use-search-keys-permissions";
 
 type PermissionFieldProps = {
   value: string[];
@@ -84,6 +84,7 @@ export const PermissionField = ({
 
   const baseOptions = createPermissionOptions({
     permissions: allPermissions,
+    valueField: "slug",
     hasNextPage: showLoadMore,
     isFetchingNextPage,
     loadMore,
@@ -200,19 +201,19 @@ export const PermissionField = ({
         onChange={(e) => setSearchValue(e.currentTarget.value)}
         onSelect={handleAddPermission}
         placeholder={
-          <div className="flex w-full text-grayA-8 text-[13px] gap-1.5 items-center py-2">
+          <div className="flex w-full text-grayA-8 text-sm gap-1.5 items-center py-2">
             Select permissions
           </div>
         }
         searchPlaceholder="Search permissions by name, ID, slug, or description..."
         emptyMessage={
           isComboboxLoading ? (
-            <div className="px-3 py-3 text-gray-10 text-[13px] flex items-center gap-2">
+            <div className="px-3 py-3 text-gray-10 text-sm flex items-center gap-2">
               <div className="animate-spin h-3 w-3 border border-gray-6 border-t-gray-11 rounded-full" />
               {isSearching ? "Searching..." : "Loading permissions..."}
             </div>
           ) : (
-            <div className="px-3 py-3 text-gray-10 text-[13px]">No permissions found</div>
+            <div className="px-3 py-3 text-gray-10 text-sm">No permissions found</div>
           )
         }
         variant="default"
@@ -248,7 +249,7 @@ export const PermissionField = ({
               <StatusBadge
                 variant="locked"
                 text="Inherited via role"
-                className="normal-case text-[11px]"
+                className="normal-case text-2xs"
               />
             </InfoTooltip>
           )

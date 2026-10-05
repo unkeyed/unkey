@@ -1,4 +1,5 @@
 "use client";
+import { queryKeys } from "@/lib/query-keys";
 import { getErrorToast, getUnkeyClient } from "@/lib/unkey-client";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { toast } from "@unkey/ui";
@@ -8,7 +9,7 @@ import { useMemo } from "react";
 export const MAX_ROLES_FETCH_LIMIT = 10;
 
 export const keysRbacRolesQueryOptions = (limit = MAX_ROLES_FETCH_LIMIT) => ({
-  queryKey: ["keys-rbac-roles", limit] as const,
+  queryKey: queryKeys.rbac.roles.list(limit),
   queryFn: ({ pageParam }: { pageParam?: string }) =>
     getUnkeyClient().permissions.listRoles({ cursor: pageParam, limit }),
 });

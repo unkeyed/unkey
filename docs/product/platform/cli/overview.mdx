@@ -1,0 +1,86 @@
+---
+title: The unkey CLI
+sidebarTitle: "Overview"
+description: "Run Unkey from your terminal with the unkey CLI and find the page for each command."
+sources:
+  - build/cli/main.go
+  - cmd/api/root.go
+  - cmd/api/util/flags.go
+  - cmd/api/analytics/root.go
+  - cmd/auth/main.go
+  - cmd/deploy/main.go
+  - cmd/healthcheck/main.go
+  - pkg/cli/parser.go
+  - .goreleaser.yaml
+---
+
+The `unkey` CLI lets you do from your terminal what you'd do with the API. It covers both products. Nearly every API endpoint has a matching `unkey api <group> <command>`. The exception is the customer portal's end-user endpoints, which use a portal session instead of a root key.
+
+There are also three top-level commands: `unkey deploy` deploys a prebuilt container image to Compute, `unkey auth login` stores a root key so you don't pass it on every call, and `unkey healthcheck` checks a URL from a script.
+
+<Warning>
+  The CLI is early and best effort. Commands, flags, and output can change without notice. The HTTP API is versioned and stable, so use the API for scripts that must not break.
+</Warning>
+
+## Command shape
+
+Commands look like `unkey <command> [subcommand] [flags] [arguments]`. `unkey --help`, `unkey <command> --help`, and `unkey help <command>` print usage, and `unkey --version` prints the installed version.
+
+Every `unkey api` command shares five flags for auth, output, and a raw request body. They're on [CLI output and shared flags](/platform/cli/output-and-flags), along with flag syntax, so each command page only lists its own flags.
+
+## Command groups
+
+`unkey api` has 14 groups, one per API service. Each command has its own page in the CLI section of the product it belongs to.
+
+### Compute
+
+<Tooltip tip="A Compute app: a deployable service inside a project. Not 'your application' in general.">Apps</Tooltip>, deployments, domains, <Tooltip tip="A production or preview environment of a Compute app, not the dashboard label on a key.">environments</Tooltip>, gateway policies, and the GitHub App installation are Compute resources.
+
+| Group | What it manages |
+| --- | --- |
+| [`unkey api projects`](/compute/cli/projects/create-project) | Create, read, update, and delete workspace projects |
+| [`unkey api apps`](/compute/cli/apps/create-app) | Create, read, update, and delete apps within projects |
+| [`unkey api environments`](/compute/cli/environments/list-environments) | Environment variables and settings |
+| [`unkey api deployments`](/compute/cli/deployments/create-deployment) | Create and control deployments |
+| [`unkey api domains`](/compute/cli/domains/create-domain) | Create, read, <Tooltip tip="Here: proving DNS ownership of a custom domain. Not key verification.">verify</Tooltip>, and delete custom domains |
+| [`unkey api gateway`](/compute/cli/gateway/list-policies) | List, replace, and update gateway policies |
+| [`unkey api github`](/compute/cli/github/install-app) | GitHub App installations |
+| `unkey api analytics` | [`get-gateway-requests`](/compute/cli/analytics/get-gateway-requests) and [`get-runtime-logs`](/compute/cli/analytics/get-runtime-logs) query gateway and runtime data |
+
+### API Management
+
+Keyspaces, keys, identities, permissions and roles, <Tooltip tip="Here: the standalone rate limiting API and its overrides. Not key rate limits or gateway policies.">rate limiting</Tooltip>, and the customer portal are API Management resources.
+
+| Group | What it manages |
+| --- | --- |
+| [`unkey api apis`](/api-management/cli/apis/create-api) | Keyspaces (the API namespaces keys belong to) |
+| [`unkey api keys`](/api-management/cli/keys/create-key) | Create, <Tooltip tip="Here: checking an API key on a request. Not domain verification.">verify</Tooltip>, update, and delete keys and their permissions and roles |
+| [`unkey api identities`](/api-management/cli/identities/create-identity) | Identities that group keys |
+| [`unkey api permissions`](/api-management/cli/permissions/create-permission) | Permissions and roles |
+| [`unkey api ratelimit`](/api-management/cli/ratelimit/limit) | Rate limit checks and overrides |
+| [`unkey api portal`](/api-management/cli/portal/create-session) | Customer portals and their sessions |
+| `unkey api analytics` | [`get-verifications`](/api-management/cli/analytics/get-verifications) and [`get-ratelimits`](/api-management/cli/analytics/get-ratelimits) query key and rate limit data |
+
+`analytics` appears in both tables because two of its commands read Compute data and two read API Management data.
+
+## Top-level commands
+
+| Command | Product | What it does |
+| --- | --- | --- |
+| `unkey deploy <image>` | Compute | Deploys a prebuilt container image to a project and waits until the deployment is active. Needs `--project` (or `UNKEY_PROJECT`), and a root key from `--root-key` or `UNKEY_ROOT_KEY`. It doesn't read the stored key. Reference: [unkey deploy](/compute/cli/deploy). |
+| `unkey auth login` | Platform | Prompts for a root key and stores it in `~/.unkey/config.toml`. Reference: [unkey auth login](/platform/cli/auth/login). |
+| `unkey healthcheck <url>` | Compute | Sends one HTTP GET and exits 0 on a 200 response, or 1 otherwise. Useful in CI and monitoring scripts. Reference: [unkey healthcheck](/compute/cli/healthcheck). |
+
+## Next steps
+
+<Columns cols={2}>
+  <Card title="Install the CLI" icon="download" href="/platform/cli/install">
+    npm package or GitHub release.
+  </Card>
+  <Card title="CLI authentication" icon="key" href="/platform/cli/authentication">
+    Where the root key comes from and in which order.
+  </Card>
+  <Card title="Output and shared flags" icon="terminal" href="/platform/cli/output-and-flags">
+    `--output json`, `--body`, `--api-url`, `--config`.
+  </Card>
+</Columns>

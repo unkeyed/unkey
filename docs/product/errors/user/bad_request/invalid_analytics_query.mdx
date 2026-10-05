@@ -1,107 +1,59 @@
 ---
 title: "invalid_analytics_query"
-description: "Your SQL analytics query has a syntax error in Unkey. Review your query for typos, missing clauses, or invalid column names and try again."
+sidebarTitle: "invalid_analytics_query"
+description: "The analytics query breaks one of the query rules, or failed when it ran."
+sources:
+  - pkg/codes/user_request.go
+  - svc/api/internal/middleware/errors.go
+  - pkg/clickhouse/query-parser/parser.go
+  - pkg/clickhouse/query-parser/validation.go
+  - internal/services/analytics/executor.go
+  - pkg/clickhouse/errors.go
+  - pkg/clickhouse/query-parser/tables.go
 ---
 
 <Danger>`err:user:bad_request:invalid_analytics_query`</Danger>
 
-```json Example
+We can't run the query you sent to an analytics endpoint (`analytics.getVerifications`, `analytics.getRatelimits`, `analytics.getGatewayRequests`, or `analytics.getRuntimeLogs`). You get HTTP 400, and `detail` says what's wrong.
+
+```json Example response
 {
   "meta": {
-    "requestId": "req_4dgzrNP3Je5mU1tD"
+    "requestId": "req_2c9a0jf23l4k567"
   },
   "error": {
-    "detail": "Syntax error: Expected identifier, got 'FROM' at position 15",
+    "detail": "Analytics queries must contain exactly one statement",
     "status": 400,
     "title": "Bad Request",
-    "type": "https://unkey.com/docs/errors/user/bad_request/invalid_analytics_query"
+    "type": "/errors/user/bad_request/invalid_analytics_query",
+    "errors": []
   }
 }
 ```
 
-## What Happened?
+## Likely causes
 
-Your SQL query has a syntax error! The query parser found invalid SQL syntax that prevents it from being executed.
+- More than one statement, separated by `;`, or no statement at all.
+- `SELECT *`, or a column that isn't exposed. The message says the column isn't available.
+- A `SETTINGS` clause, often pasted from a console session, such as `SETTINGS max_threads = 4`.
+- A syntax error, or no `FROM` clause.
+- An `IN` that reads from a table, such as `IN (SELECT ... FROM table)`.
+- The query is too big: more than 64 selected columns, more than 16 KiB of text, or more than 2000 syntax tree nodes (`Analytics query is too complex`).
+- The query failed while running, for example on an unknown column (`Unknown identifier`), a type mismatch, or a division by zero.
 
-Common causes include:
+A disallowed table, a disallowed function, and a statement that isn't a `SELECT` each have their own error.
 
-- Missing or extra commas
-- Unclosed quotes or parentheses
-- Typos in SQL keywords
-- Invalid column or table names
+## How to fix
 
-## How to Fix It
+1. Send exactly one `SELECT` with a `FROM`, using only the documented columns of the analytics tables.
+2. Remove `SETTINGS`.
+3. Replace an `IN (SELECT ... FROM table)` with a literal list or a CTE.
+4. For `Unknown identifier`, check the spelling and any CTE aliases.
+5. Keep the query under 16 KiB and 64 output columns.
 
-### 1. Check for Missing Commas
+## Related errors
 
-<CodeGroup>
-
-```sql Wrong - Missing comma
-SELECT
-  key_space_id
-  COUNT(*) as total
-FROM key_verifications_v1
-```
-
-```sql Correct
-SELECT
-  key_space_id,
-  COUNT(*) as total
-FROM key_verifications_v1
-```
-
-</CodeGroup>
-
-### 2. Match Quotes and Parentheses
-
-<CodeGroup>
-
-```sql Wrong - Unclosed quote
-SELECT key_space_id, outcome
-FROM key_verifications_v1
-WHERE key_space_id = 'ks_123
-```
-
-```sql Correct
-SELECT key_space_id, outcome
-FROM key_verifications_v1
-WHERE key_space_id = 'ks_123'
-```
-
-</CodeGroup>
-
-### 3. Use Correct SQL Keywords
-
-<CodeGroup>
-
-```sql Wrong - Typo in SELECT
-SELCT time, outcome
-FROM key_verifications_v1
-```
-
-```sql Correct
-SELECT time, outcome
-FROM key_verifications_v1
-```
-
-</CodeGroup>
-
-### 4. Verify Column Names
-
-Make sure you're using valid column names from your analytics tables:
-
-```sql
--- ✓ Valid columns
-SELECT time, key_space_id, outcome, key_id
-FROM key_verifications_v1
-WHERE time >= now() - INTERVAL 7 DAY
-```
-
-## Need Help?
-
-If you're stuck with a syntax error:
-
-1. **Check the error message** - It usually tells you exactly where the problem is
-2. **Test incrementally** - Start with a simple query like `SELECT time, outcome FROM table_name LIMIT 10` and add complexity step by step
-3. **Use a SQL validator** - Many online tools can help spot syntax errors
-4. **Check the schema** - Refer to the [Schema Reference](/platform/analytics/schema-reference) for valid column names
+- [`err:user:bad_request:invalid_analytics_table`](/errors/user/bad_request/invalid_analytics_table): the query names a table that isn't exposed.
+- [`err:user:bad_request:invalid_analytics_function`](/errors/user/bad_request/invalid_analytics_function): the query calls a function outside the allowlist.
+- [`err:user:bad_request:invalid_analytics_query_type`](/errors/user/bad_request/invalid_analytics_query_type): the statement isn't a `SELECT`.
+- [`err:user:bad_request:query_range_exceeds_retention`](/errors/user/bad_request/query_range_exceeds_retention): the time filter reaches past the workspace's retention window.

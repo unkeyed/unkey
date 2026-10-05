@@ -1,0 +1,89 @@
+---
+title: Logging policy
+description: "Add headers, query data, and bodies to the request log for the requests you choose."
+sources:
+  - svc/api/openapi/spec/common/LoggingPolicy.yaml
+  - svc/frontline/internal/policies/engine.go
+  - svc/frontline/routes/proxy/handler.go
+  - svc/frontline/middleware/clickhouse_logging.go
+  - svc/frontline/internal/policies/redaction.go
+  - pkg/zen/session.go
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/policies/components/add-panel/schema.ts
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/policies/components/add-panel/forms/logging-fields.tsx
+---
+
+The [gateway](/compute/gateway/overview) logs the method, host, path, status, and latency of every request that reaches your <Tooltip tip="A Compute app: a deployable service inside a project. Not 'your application' in general.">app</Tooltip>. A logging policy also saves headers, query data, or bodies for the requests it matches. Use it to debug a route. It never rejects a request or changes what your app receives.
+
+To add one, open the app, go to **Policies**, click **Add Policy**, and pick **Logging**.
+
+## Settings
+
+Each setting turns on one kind of data. In the dashboard all five start on, so check the switches before you save. In the API they all default to `false`, so a policy with none set saves nothing extra.
+
+<ParamField body="requestHeaders" type="boolean" default="false">
+  Save request headers, plus the user agent and client IP.
+</ParamField>
+
+<ParamField body="responseHeaders" type="boolean" default="false">
+  Save response headers.
+</ParamField>
+
+<ParamField body="requestBody" type="boolean" default="false">
+  Save the request body, up to 1 MiB.
+</ParamField>
+
+<ParamField body="responseBody" type="boolean" default="false">
+  Save the response body, up to 1 MiB.
+</ParamField>
+
+<ParamField body="query" type="boolean" default="false">
+  Save the query string and parameters. It's separate from headers because URLs often carry secrets like `?api_key=...`.
+</ParamField>
+
+```json Example: capture everything on one debugging route
+{
+  "name": "Debug the webhook receiver",
+  "enabled": true,
+  "match": [{ "path": { "path": { "exact": "/webhooks/stripe" } } }],
+  "logging": {
+    "requestHeaders": true,
+    "responseHeaders": true,
+    "requestBody": true,
+    "responseBody": true,
+    "query": true
+  }
+}
+```
+
+<Visibility for="agents">
+  In the dashboard this is the **Logging** type in **Policies > Add Policy**, with one switch per flag, all on by default. Programmatically, include the object above in the `policies` array of `POST /v2/gateway.setPolicies`. Omitted flags are `false`. The change applies to the next deployment.
+</Visibility>
+
+## What gets saved
+
+- **Several matching policies combine.** A request matched by a `requestHeaders` policy and a `requestBody` policy gets both saved. A policy with no match expressions applies to every request.
+- **Bodies are cut off at 1 MiB in each direction** in the log. The request and response themselves are never cut. Streaming requests are covered too.
+- **Rejected requests aren't logged**, whatever the logging policy says.
+
+## What's always redacted
+
+These are replaced with `[REDACTED]` before anything is saved:
+
+- The `Authorization` header.
+- Every header and query parameter listed as a key location in any [API key authentication policy](/compute/gateway/api-key-auth), even turned-off ones. When a query parameter is redacted, the saved query string can be in a different order or encoding than the original.
+- Body fields marked `x-unkey-redact: true` in your OpenAPI spec, when an [OpenAPI validation policy](/compute/gateway/openapi-validation) is on.
+
+## Where to see the data
+
+Saved data shows up in the project's **Requests** view in the dashboard and in the `gateway_requests_v1` analytics table. The header, query, and body columns are empty for requests no logging policy matched.
+
+## Next steps
+
+<Columns cols={2}>
+  <Card title="OpenAPI validation policy" icon="file-code" href="/compute/gateway/openapi-validation">
+    Mark body fields for redaction with `x-unkey-redact`.
+  </Card>
+  <Card title="Gateway policies" icon="list-check" href="/compute/gateway/policies">
+    Match expressions that pick which requests to capture.
+  </Card>
+</Columns>

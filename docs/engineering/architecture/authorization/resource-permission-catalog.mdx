@@ -1,11 +1,18 @@
 ---
 title: "Resource permission catalog"
 description: "Canonical resource hierarchy, paths, and actions"
+notion:
+  rootPageID: 3ee512d643f38063b525d6c3619c1f69
+  owners:
+    - andreas
+  tags:
+    - Architecture
+    - Authorization
 ---
 
 The resource permission catalog lists every canonical resource path and its
-supported actions. GitHub apps are workspace-scoped. Every other catalog
-resource is project-scoped.
+supported actions. GitHub apps and root keys are workspace-scoped. Every other
+catalog resource is project-scoped.
 
 Read [Unkey Resource Names](/architecture/resources/unkey-resource-names) for
 URN format and pattern rules. Read
@@ -23,6 +30,9 @@ Workspace
 │
 ├── GitHub app [read, write, delete]
 │   github/apps/{github_app_id}
+│
+├── Root key [read, write, delete]
+│   rootKeys/{key_id}
 │
 └── Project [read, write, delete]
     projects/{project_id}
@@ -97,6 +107,30 @@ not concrete resources and cannot be permission targets.
 ## Examples
 
 These examples show how concrete IDs and wildcards use the same catalog.
+
+### Create a root key
+
+`POST /v2/rootKeys.createKey` requires this permission:
+
+```plaintext
+unkey:v1:ws_123:rootKeys/*#write
+```
+
+The created root key cannot have more permissions than the caller. Only
+URN permissions are accepted. Legacy permissions are not translated.
+
+### Update, reroll, or delete a root key
+
+Use `write` to update or reroll a root key and `delete` to delete it.
+
+```plaintext
+unkey:v1:ws_123:rootKeys/key_123#write
+unkey:v1:ws_123:rootKeys/key_123#delete
+```
+
+A permission replacement or reroll cannot give a root key more permissions than
+the caller. Rerolling with a non-null `expiration` also requires `delete`
+because it shortens or revokes the original key.
 
 ### Create a key
 

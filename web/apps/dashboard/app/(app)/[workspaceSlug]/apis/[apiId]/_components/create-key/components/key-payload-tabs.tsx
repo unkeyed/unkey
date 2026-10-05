@@ -64,7 +64,7 @@ export function KeyPayloadTabs({ keyValue }: KeyPayloadTabsProps) {
       <TabsContent value="secure-link" className="w-full mt-0 min-h-[76px]">
         <div className="w-full flex flex-col gap-2 items-start">
           {hasError ? (
-            <div className="w-full text-center py-2 text-[13px] text-gray-9">
+            <div className="w-full text-center py-2 text-sm text-gray-9">
               <span className="text-warning-11">Could not create a secure link.</span>{" "}
               <button
                 type="button"
@@ -82,15 +82,13 @@ export function KeyPayloadTabs({ keyValue }: KeyPayloadTabsProps) {
               <div className="w-full px-4 py-2 bg-raised border rounded-xl">
                 <div className="flex items-center justify-between w-full gap-3">
                   <IconLink4Outline12 className="text-gray-12 shrink-0" />
-                  <p className="flex-1 min-w-0 truncate font-mono text-[13px] text-grayA-12">
-                    {link}
-                  </p>
+                  <p className="flex-1 min-w-0 truncate font-mono text-sm text-grayA-12">{link}</p>
                   <div className="flex items-center shrink-0">
                     <CopyButton value={link} title="Copy secure link" />
                   </div>
                 </div>
               </div>
-              <div className="text-gray-9 text-[13px] flex items-center gap-1.5 self-center">
+              <div className="text-gray-9 text-sm flex items-center gap-1.5 self-center">
                 <IconClockOutline12 className="text-gray-12" />
                 <span>
                   Expires after 72hrs.

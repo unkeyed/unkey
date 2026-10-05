@@ -1,0 +1,39 @@
+---
+title: Install the CLI
+sidebarTitle: "Install"
+description: "Install the unkey CLI from npm or a GitHub release and check its version."
+sources:
+  - .goreleaser.yaml
+  - build/cli/main.go
+  - pkg/cli/parser.go
+  - docs/product/snippets/cli-install.mdx
+---
+
+import CliInstall from "/snippets/cli-install.mdx";
+
+The CLI is a single static binary named `unkey`.
+
+<CliInstall />
+
+## Supported platforms
+
+The CLI runs on Linux and macOS, on both x86_64 and arm64. There's no Windows build. On the [releases page](https://github.com/unkeyed/unkey/releases), CLI releases are tagged `cli/vX.Y.Z` and each archive is named `unkey_<OS>_<arch>.tar.gz`, for example `unkey_Darwin_arm64.tar.gz` for an Apple silicon Mac or `unkey_Linux_x86_64.tar.gz`. On npm, stable releases are tagged `latest` and pre-releases `next`.
+
+## Check the installation
+
+```bash
+unkey --version
+```
+
+This prints the installed version. `unkey --help` lists top-level commands. See [The unkey CLI](/platform/cli/overview) for how they're organized.
+
+## Next steps
+
+<Columns cols={2}>
+  <Card title="CLI authentication" icon="key" href="/platform/cli/authentication">
+    Store a root key with `unkey auth login` or pass one per command.
+  </Card>
+  <Card title="Output and shared flags" icon="terminal" href="/platform/cli/output-and-flags">
+    JSON output for scripts and the flags every `unkey api` command accepts.
+  </Card>
+</Columns>

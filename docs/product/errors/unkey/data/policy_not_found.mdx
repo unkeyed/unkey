@@ -1,7 +1,42 @@
 ---
 title: "policy_not_found"
-description: "NotFound indicates the requested policy does not exist."
+sidebarTitle: "policy_not_found"
+description: "The gateway policy id is not in the environment's current policy list."
+sources:
+  - pkg/codes/unkey_data.go
+  - svc/api/internal/middleware/errors.go
+  - svc/api/routes/v2_gateway_update_policy/handler.go
 ---
 
 <Danger>`err:unkey:data:policy_not_found`</Danger>
 
+The policy ID you sent to `gateway.updatePolicy` isn't in the environment's current policy list. You get HTTP 404.
+
+```json Example response
+{
+  "meta": {
+    "requestId": "req_2c9a0jf23l4k567"
+  },
+  "error": {
+    "detail": "The requested policy does not exist. Note that policy ids change when the policy list is replaced.",
+    "status": 404,
+    "title": "Not Found",
+    "type": "/errors/unkey/data/policy_not_found"
+  }
+}
+```
+
+## Likely causes
+
+- Someone called `gateway.setPolicies` since you saved the ID. It replaces the whole list and gives every policy a new ID.
+- The environment has never had policies set, so no ID matches.
+
+## How to fix
+
+1. Get the current list with `gateway.listPolicies` and use an ID from it.
+2. In automation, replace the whole list with `gateway.setPolicies` instead of updating by ID, or fetch fresh IDs before each update.
+
+## Related errors
+
+- [`err:unkey:data:environment_not_found`](/errors/unkey/data/environment_not_found): the environment doesn't exist.
+- [`err:unkey:data:key_space_not_found`](/errors/unkey/data/key_space_not_found): a keyspace referenced by a key auth policy doesn't exist in the project.

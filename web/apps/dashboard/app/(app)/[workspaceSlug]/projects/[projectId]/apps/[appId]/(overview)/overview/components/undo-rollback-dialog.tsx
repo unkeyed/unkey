@@ -74,7 +74,7 @@ export function UndoRollbackDialog({
       }
     >
       <div className="flex flex-col gap-3">
-        <p className="text-[13px] text-gray-11">
+        <p className="text-sm text-gray-11">
           Choose the deployment to make live. The selected deployment is promoted to production and
           automatic deploys resume.
         </p>

@@ -58,8 +58,8 @@ export const ChooseSourceStep = ({
         isRolledBack: false,
         updatedAt: null,
         id: SERVER_PLACEHOLDER,
-        latestDeploymentId: null,
         domain: null,
+        customDomain: null,
         headlineDeployment: null,
       });
       await transaction.isPersisted.promise;
@@ -67,7 +67,6 @@ export const ChooseSourceStep = ({
       const nextCreatedApp = { id: appId, sourceKind: source.kind };
       setCreatedApp(nextCreatedApp);
       onAppCreated(appId);
-      await collection.projects.utils.refetch();
 
       if (source.kind === "git") {
         try {
@@ -134,10 +133,8 @@ export const ChooseSourceStep = ({
               <IconCodeBranchOutline18 className="size-[18px] text-gray-12" />
             </div>
             <div className="flex flex-col gap-3">
-              <span className="font-medium text-gray-12 text-[13px] leading-[9px]">
-                Connect a repo
-              </span>
-              <span className="text-gray-10 text-[13px] leading-[9px]">
+              <span className="font-medium text-gray-12 text-sm leading-2.25">Connect a repo</span>
+              <span className="text-gray-10 text-sm leading-2.25">
                 Add a repo from your GitHub account
               </span>
             </div>
@@ -149,7 +146,7 @@ export const ChooseSourceStep = ({
               disabled={selectedSource === "oci"}
             >
               <Github className="size-[18px]! text-gray-12 shrink-0" />
-              <span className="text-[13px] text-gray-12 font-medium">Import from GitHub</span>
+              <span className="text-sm text-gray-12 font-medium">Import from GitHub</span>
             </Button>
           </div>
         )}

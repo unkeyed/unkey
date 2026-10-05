@@ -34,7 +34,7 @@ export function StatusSelect() {
           <button
             type="button"
             key={option.value}
-            className="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-gray-3 cursor-pointer text-[13px] w-full"
+            className="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-gray-3 cursor-pointer text-sm w-full"
             onClick={() => toggleArrayFilter("status", option.value)}
           >
             <Checkbox

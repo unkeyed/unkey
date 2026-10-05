@@ -1,8 +1,9 @@
 import { getAuth } from "@/lib/auth";
+import { parseReturnPath } from "@/lib/billing/upgrade-result";
 import { db } from "@/lib/db";
 import { stripeEnv } from "@/lib/env";
 import { formatDollars } from "@/lib/fmt";
-import { routes } from "@/lib/navigation/routes";
+import { DEPLOY_CHECKOUT_ORIGINS, routes } from "@/lib/navigation/routes";
 import { getStripeClient } from "@/lib/stripe";
 import { subscriptionIdsByProduct } from "@/lib/stripe/billingSubscriptions";
 import { createSubscriptionCheckout } from "@/lib/stripe/createSubscriptionCheckout";
@@ -25,25 +26,20 @@ import Stripe from "stripe";
 
 export const dynamic = "force-dynamic";
 
-/**
- * Intents the billing page can attach to a checkout round-trip, so /success
- * knows what the user was actually trying to do. "compute" / "api" reopen
- * that product's plan picker after the card is added; "payment" means the
- * card itself was the goal. Their presence also tells /success to skip the
- * legacy forced API plan modal. "deploy" comes from the compute-plan gate and
- * carries `plan`/`from` so /success can return the user to the projects page
- * and subscribe there.
- */
-const CHECKOUT_INTENTS = ["compute", "api", "payment", "deploy"] as const;
-const DEPLOY_ORIGINS = ["create", "banner", "billing"] as const;
+const CHECKOUT_INTENTS = ["payment", "deploy"] as const;
 
 export default async function StripeRedirect(props: {
-  searchParams: Promise<{ intent?: string; plan?: string; from?: string }>;
+  searchParams: Promise<{ intent?: string; plan?: string; from?: string; returnTo?: string }>;
 }) {
-  const { intent: rawIntent, plan: rawPlan, from: rawFrom } = await props.searchParams;
+  const {
+    intent: rawIntent,
+    plan: rawPlan,
+    from: rawFrom,
+    returnTo: rawReturnTo,
+  } = await props.searchParams;
   const intent = CHECKOUT_INTENTS.find((known) => known === rawIntent);
   const plan = DEPLOY_PLANS.find((known) => known === rawPlan);
-  const from = DEPLOY_ORIGINS.find((known) => known === rawFrom);
+  const from = DEPLOY_CHECKOUT_ORIGINS.find((known) => known === rawFrom);
 
   const { orgId, role } = await getAuth();
 
@@ -116,12 +112,13 @@ export default async function StripeRedirect(props: {
   // VERCEL_BRANCH_URL rather than a deployment-specific VERCEL_URL.
   const baseUrl = getBaseUrl();
   const existingCustomerId = ws.billing?.stripeCustomerId ?? undefined;
+  const returnPath = intent === "deploy" ? parseReturnPath(rawReturnTo, ws.slug) : null;
 
   const successUrl = `${baseUrl}/success?session_id={CHECKOUT_SESSION_ID}${
     intent ? `&intent=${intent}` : ""
   }${intent === "deploy" && plan ? `&plan=${plan}` : ""}${
     intent === "deploy" && from ? `&from=${from}` : ""
-  }`;
+  }${returnPath ? `&returnTo=${encodeURIComponent(returnPath)}` : ""}`;
 
   // Dev/test only: Checkout cannot create customers under a Stripe test
   // clock, so when STRIPE_DEV_TEST_CLOCK is set we create a clocked customer

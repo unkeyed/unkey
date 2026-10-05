@@ -1,15 +1,21 @@
 import { clickhouse } from "@/lib/clickhouse";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
+import { z } from "zod";
 import { queryUsageResponse } from "./schemas";
 
 export const queryUsage = workspaceProcedure
   .use(withRatelimit(ratelimit.read))
+  .input(z.object({ period: z.enum(["current", "previous"]) }).optional())
   .output(queryUsageResponse)
-  .query(async ({ ctx }) => {
-    const dateNow = new Date();
-    const year = dateNow.getUTCFullYear();
-    const month = dateNow.getUTCMonth() + 1;
+  .query(async ({ ctx, input }) => {
+    const date = new Date();
+    date.setUTCDate(1);
+    if (input?.period === "previous") {
+      date.setUTCMonth(date.getUTCMonth() - 1);
+    }
+    const year = date.getUTCFullYear();
+    const month = date.getUTCMonth() + 1;
 
     const [billableRatelimits, billableVerifications] = await Promise.all([
       clickhouse.billing.billableRatelimits({

@@ -7,7 +7,6 @@ import (
 	"github.com/unkeyed/sdks/api/go/v3/models/components"
 	"github.com/unkeyed/sdks/api/go/v3/optionalnullable"
 	"github.com/unkeyed/unkey/cmd/api/internal/testutil"
-	"github.com/unkeyed/unkey/pkg/ptr"
 )
 
 func TestUpdatePortal(t *testing.T) {
@@ -35,13 +34,13 @@ func TestUpdatePortal(t *testing.T) {
 			"portal update-portal --portal=acme-portal --slug=developer-portal --display-name='Developer Portal' --keyspace-id=ks_1234abcd --enabled=false --logo-url=https://cdn.example.com/logo.svg --primary-color=#6366f1",
 			components.V2PortalUpdatePortalRequestBody{
 				Portal:       "acme-portal",
-				Slug:         ptr.P("developer-portal"),
-				DisplayName:  ptr.P("Developer Portal"),
-				KeyspaceID:   ptr.P("ks_1234abcd"),
+				Slug:         new("developer-portal"),
+				DisplayName:  new("Developer Portal"),
+				KeyspaceID:   new("ks_1234abcd"),
 				AppID:        nil,
-				Enabled:      ptr.P(false),
-				LogoURL:      optionalnullable.From(ptr.P("https://cdn.example.com/logo.svg")),
-				PrimaryColor: optionalnullable.From(ptr.P("#6366f1")),
+				Enabled:      new(false),
+				LogoURL:      optionalnullable.From(new("https://cdn.example.com/logo.svg")),
+				PrimaryColor: optionalnullable.From(new("#6366f1")),
 			},
 		},
 		{
@@ -52,7 +51,7 @@ func TestUpdatePortal(t *testing.T) {
 				Slug:         nil,
 				DisplayName:  nil,
 				KeyspaceID:   nil,
-				AppID:        ptr.P("app_1234abcd"),
+				AppID:        new("app_1234abcd"),
 				Enabled:      nil,
 				LogoURL:      optionalnullable.From[string](nil),
 				PrimaryColor: optionalnullable.From[string](nil),

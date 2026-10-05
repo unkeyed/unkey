@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -124,9 +123,9 @@ func TestRatelimitResponse(t *testing.T) {
 			Key: key.Key,
 			Ratelimits: &[]openapi.KeysVerifyKeyRatelimit{{
 				Name:     "custom",
-				Cost:     ptr.P(3),
-				Duration: ptr.P(int(time.Minute.Milliseconds())),
-				Limit:    ptr.P(10),
+				Cost:     new(3),
+				Duration: new(int(time.Minute.Milliseconds())),
+				Limit:    new(10),
 			}},
 		}
 
@@ -277,7 +276,7 @@ func TestRatelimitResponse(t *testing.T) {
 		key := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID: workspace.ID,
 			KeySpaceID:  api.KeyAuthID.String,
-			IdentityID:  ptr.P(identity.ID),
+			IdentityID:  new(identity.ID),
 		})
 
 		req := handler.Request{

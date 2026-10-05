@@ -98,9 +98,9 @@ export const Healthcheck = () => {
     >
       <SettingField>
         <div className="flex items-center gap-3">
-          <span className="w-24 text-[13px] text-gray-11">Method</span>
-          <span className="flex-1 text-[13px] text-gray-11">Path</span>
-          <span className="flex-1 text-[13px] text-gray-11">Interval</span>
+          <span className="w-24 text-sm text-gray-11">Method</span>
+          <span className="flex-1 text-sm text-gray-11">Path</span>
+          <span className="flex-1 text-sm text-gray-11">Interval</span>
         </div>
         <div className="flex items-start gap-2">
           <Controller

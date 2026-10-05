@@ -1,6 +1,61 @@
 ---
 title: "usage_exceeded"
-description: "UsageExceeded represents a 429 error - the credential has no remaining credits."
+sidebarTitle: "usage_exceeded"
+description: "The gateway rejected the request because the key has no credits left."
+sources:
+  - pkg/codes/frontline.go
+  - svc/frontline/middleware/observability.go
+  - svc/frontline/internal/policies/keyauth/executor.go
+  - internal/services/keys/status.go
 ---
 
 <Danger>`err:frontline:client:usage_exceeded`</Danger>
+
+import { ProductLink } from "/snippets/product-link.jsx";
+
+The API you called runs on Unkey, and each request spends credits from your API key. Your key has no credits left for this one. You get `429 Too Many Requests`.
+
+```json Example response
+{
+  "meta": {
+    "requestId": "req_3k2j1h0g9f8e7d6c"
+  },
+  "error": {
+    "code": "err:frontline:client:usage_exceeded",
+    "message": "Usage limit exceeded. This API key has no remaining credits."
+  }
+}
+```
+
+Browsers get the same error as an HTML page.
+
+## If you're calling an API hosted on Unkey
+
+Retrying won't help until the owner adds credits or a scheduled refill runs. There's no `Retry-After` header for this error. Contact the API owner with the request ID and ask about your quota.
+
+## If you own this API
+
+Each request that passes a key-auth policy costs the policy's `credits` value, or 1 if it isn't set. Gateway traffic and your own `keys.verifyKey` calls spend from the same balance on the key. Common causes:
+
+- The key used up its credits.
+- A route that shouldn't be metered is costing credits.
+
+### How to fix
+
+1. Add credits with `keys.updateCredits`, set up a refill so the balance tops up on a schedule, or remove the credit limit from the key.
+2. For a route that shouldn't cost credits, set `credits: 0` on its policy and create a new deployment.
+
+A negative `credits` value makes every matched request fail with [`invalid_configuration`](/errors/frontline/config/invalid_configuration).
+
+<ProductLink product="compute" href="/compute/gateway/errors" title="Compute gateway">
+  Gateway policies, deployments, and domains are Compute features. The Compute docs explain how to configure them.
+</ProductLink>
+
+<ProductLink product="api-management" href="/api-management/keys/credits-and-refill" title="API Management keys">
+  Credits, refills, and keys.updateCredits are API Management features.
+</ProductLink>
+
+## Related errors
+
+- [`err:frontline:client:rate_limited`](/errors/frontline/client/rate_limited): a per-window request limit rather than a credit balance.
+- [`err:frontline:config:invalid_configuration`](/errors/frontline/config/invalid_configuration): the policy's credit cost is negative.

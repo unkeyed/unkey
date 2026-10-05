@@ -5,7 +5,7 @@ import { type VariantProps, cva } from "class-variance-authority";
 import React from "react";
 import { cn } from "../../lib/utils";
 
-const fieldBaseClasses = "rounded-lg text-[13px] leading-5 transition-colors duration-300";
+const fieldBaseClasses = "rounded-lg text-sm leading-5 transition-colors duration-300";
 
 /**
  * The chrome of a text field: border, background, focus ring and text color.
@@ -97,7 +97,7 @@ function InputGroupInput({ className, ref, ...props }: InputGroupInputProps) {
     <input
       ref={ref}
       className={cn(
-        "flex h-9 w-full min-w-0 flex-1 bg-transparent px-2 text-[13px] leading-5 text-grayA-12 placeholder:text-grayA-8 focus:outline-hidden disabled:cursor-not-allowed",
+        "flex h-9 w-full min-w-0 flex-1 bg-transparent px-2 text-sm leading-5 text-grayA-12 placeholder:text-grayA-8 focus:outline-hidden disabled:cursor-not-allowed",
         className,
       )}
       {...props}
@@ -114,7 +114,7 @@ function InputGroupTextarea({ className, ref, ...props }: InputGroupTextareaProp
     <textarea
       ref={ref}
       className={cn(
-        "flex min-h-9 w-full min-w-0 flex-1 bg-transparent px-3 py-2 text-[13px] leading-5 text-grayA-12 placeholder:text-grayA-8 focus:outline-hidden disabled:cursor-not-allowed",
+        "flex min-h-9 w-full min-w-0 flex-1 bg-transparent px-3 py-2 text-sm leading-5 text-grayA-12 placeholder:text-grayA-8 focus:outline-hidden disabled:cursor-not-allowed",
         className,
       )}
       {...props}
@@ -141,7 +141,7 @@ function InputGroupText({ className, ref, ...props }: InputGroupTextProps) {
   return (
     <span
       ref={ref}
-      className={cn("shrink-0 select-none text-[13px] leading-5 opacity-40", className)}
+      className={cn("shrink-0 select-none text-sm leading-5 opacity-40", className)}
       {...props}
     />
   );

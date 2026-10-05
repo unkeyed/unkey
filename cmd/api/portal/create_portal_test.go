@@ -6,7 +6,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/sdks/api/go/v3/models/components"
 	"github.com/unkeyed/unkey/cmd/api/internal/testutil"
-	"github.com/unkeyed/unkey/pkg/ptr"
 )
 
 func TestCreatePortal(t *testing.T) {
@@ -23,7 +22,7 @@ func TestCreatePortal(t *testing.T) {
 				DisplayName:  "Acme",
 				KeyspaceID:   "ks_1234abcd",
 				AppID:        nil,
-				Enabled:      ptr.P(true),
+				Enabled:      new(true),
 				LogoURL:      nil,
 				PrimaryColor: nil,
 			}),
@@ -36,9 +35,9 @@ func TestCreatePortal(t *testing.T) {
 				DisplayName:  "Developer Portal",
 				KeyspaceID:   nil,
 				AppID:        "app_1234abcd",
-				Enabled:      ptr.P(false),
-				LogoURL:      ptr.P("https://cdn.example.com/logo.svg"),
-				PrimaryColor: ptr.P("#6366f1"),
+				Enabled:      new(false),
+				LogoURL:      new("https://cdn.example.com/logo.svg"),
+				PrimaryColor: new("#6366f1"),
 			}),
 		},
 	}

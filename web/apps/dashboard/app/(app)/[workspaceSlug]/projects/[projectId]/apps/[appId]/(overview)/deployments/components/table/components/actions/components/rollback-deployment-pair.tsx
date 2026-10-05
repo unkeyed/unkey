@@ -80,7 +80,7 @@ function Row({
       <span className="mt-0.5 shrink-0">{icon}</span>
       <div className="flex min-w-0 flex-1 flex-col gap-1.5">
         <div className="flex items-start justify-between gap-3">
-          <span className="min-w-0 truncate text-[13px] font-medium text-gray-12">
+          <span className="min-w-0 truncate text-sm font-medium text-gray-12">
             {deploymentTitle(deployment)}
           </span>
           <span className="shrink-0">{badge}</span>
@@ -101,7 +101,7 @@ export function RollbackDeploymentPair({ current, target }: RollbackPairProps) {
           badge={<RollbackBadge kind="current" />}
         />
       </div>
-      <h3 className="mt-3 text-[13px] text-gray-11">To this deployment</h3>
+      <h3 className="mt-3 text-sm text-gray-11">To this deployment</h3>
       <div className="rounded-lg border bg-raised px-3.5 py-3">
         <Row
           deployment={target}

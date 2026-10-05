@@ -5,13 +5,14 @@ import {
   PAGINATED_LIST_PREFETCH_OPTIONS,
   PAGINATED_LIST_QUERY_OPTIONS,
 } from "@/hooks/use-paginated-list-query";
+import { getTimestampFromRelative } from "@/lib/duration";
 import {
   type RuntimeLogsFilterValue,
   parseRuntimeLogsAttributeMatch,
 } from "@/lib/schemas/runtime-logs.filter.schema";
 import type { RuntimeLog } from "@/lib/schemas/runtime-logs.schema";
 import { trpc } from "@/lib/trpc/client";
-import { DEFAULT_LOGS_SINCE, getTimestampFromRelative } from "@/lib/utils";
+import { DEFAULT_LOGS_SINCE } from "@/lib/utils";
 import { useParams } from "next/navigation";
 import { parseAsInteger, useQueryState } from "nuqs";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";

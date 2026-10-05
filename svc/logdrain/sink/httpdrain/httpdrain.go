@@ -3,15 +3,14 @@
 //
 //	{"id":"evt_1","stream":"audit_logs","time":"2024-01-15T10:30:00.123Z",...}
 //
-// The body is either one JSON array of those objects (the default) or
-// newline-delimited JSON (one object per line), selected by [Config.Format].
+// The body is a JSON array, NDJSON, or HEC, selected by
+// [Config.Format]. HEC wraps each record in an event envelope with Unix-second time.
 // Batch metadata travels in X-Unkey-* request headers.
 package httpdrain
 
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
@@ -26,7 +25,7 @@ import (
 type Config struct {
 	// Endpoint is the customer-provided HTTPS URL that receives the body.
 	Endpoint string
-	// Format selects the body encoding. Unspecified defaults to JSON.
+	// Format selects the body encoding and must be explicitly specified.
 	Format logdrainv1.HttpBodyFormat
 	// Headers are customer-provided request headers, typically for authentication, sent verbatim on every delivery.
 	Headers http.Header
@@ -52,9 +51,11 @@ var _ sink.Sink = (*Sink)(nil)
 // or non-https endpoint or an unknown format.
 func New(cfg Config) (*Sink, error) {
 	switch cfg.Format {
-	case logdrainv1.HttpBodyFormat_HTTP_BODY_FORMAT_UNSPECIFIED,
-		logdrainv1.HttpBodyFormat_HTTP_BODY_FORMAT_JSON,
-		logdrainv1.HttpBodyFormat_HTTP_BODY_FORMAT_NDJSON:
+	case logdrainv1.HttpBodyFormat_HTTP_BODY_FORMAT_UNSPECIFIED:
+		return nil, fmt.Errorf("unknown http drain format %d", cfg.Format)
+	case logdrainv1.HttpBodyFormat_HTTP_BODY_FORMAT_JSON,
+		logdrainv1.HttpBodyFormat_HTTP_BODY_FORMAT_NDJSON,
+		logdrainv1.HttpBodyFormat_HTTP_BODY_FORMAT_HEC:
 	default:
 		return nil, fmt.Errorf("unknown http drain format %d", cfg.Format)
 	}
@@ -65,20 +66,29 @@ func New(cfg Config) (*Sink, error) {
 	if err := ssrf.ValidateEndpoint(cfg.Endpoint, opts...); err != nil {
 		return nil, err
 	}
-	return &Sink{cfg: cfg, client: ssrf.New(opts...)}, nil
+	return &Sink{
+		cfg:    cfg,
+		client: ssrf.New(opts...),
+	}, nil
 }
 
-// Deliver returns a result for each completed HTTP response. Only a 2xx
-// response acknowledges the batch.
+// Deliver requires a 2xx response and, for HEC, no application-level error.
 func (a *Sink) Deliver(ctx context.Context, batch sink.Batch) (sink.Result, error) {
-	contentType := "application/json"
-	if a.cfg.Format == logdrainv1.HttpBodyFormat_HTTP_BODY_FORMAT_NDJSON {
-		contentType = "application/x-ndjson"
+	switch a.cfg.Format {
+	case logdrainv1.HttpBodyFormat_HTTP_BODY_FORMAT_UNSPECIFIED:
+		return sink.Result{}, fmt.Errorf("unknown http drain format %d", a.cfg.Format)
+	case logdrainv1.HttpBodyFormat_HTTP_BODY_FORMAT_JSON:
+		return a.deliverJSON(ctx, batch)
+	case logdrainv1.HttpBodyFormat_HTTP_BODY_FORMAT_NDJSON:
+		return a.deliverNDJSON(ctx, batch)
+	case logdrainv1.HttpBodyFormat_HTTP_BODY_FORMAT_HEC:
+		return a.deliverHEC(ctx, batch)
+	default:
+		return sink.Result{}, fmt.Errorf("unknown http drain format %d", a.cfg.Format)
 	}
-	body, err := marshalBatch(batch, a.cfg.Format)
-	if err != nil {
-		return sink.Result{}, fmt.Errorf("marshal batch: %w", err)
-	}
+}
+
+func (a *Sink) post(ctx context.Context, batch sink.Batch, body []byte, contentType string) (sink.Result, bool, error) {
 	result := sink.Result{
 		Acknowledged:     false,
 		HTTPStatus:       0,
@@ -88,7 +98,7 @@ func (a *Sink) Deliver(ctx context.Context, batch sink.Batch) (sink.Result, erro
 	}
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, a.cfg.Endpoint, bytes.NewReader(body))
 	if err != nil {
-		return result, fmt.Errorf("create request: %w", err)
+		return result, false, fmt.Errorf("create request: %w", err)
 	}
 	for name, values := range a.cfg.Headers {
 		for _, value := range values {
@@ -103,44 +113,15 @@ func (a *Sink) Deliver(ctx context.Context, batch sink.Batch) (sink.Result, erro
 
 	resp, err := a.client.Do(req)
 	if err != nil {
-		return result, fmt.Errorf("deliver HTTP request: %w", err)
+		return result, false, fmt.Errorf("deliver HTTP request: %w", err)
 	}
 	result.HTTPStatus = resp.StatusCode
-	diagnostic, err := sink.ReadDiagnostic(resp.Body)
+	diagnostic, truncated, err := sink.ReadDiagnostic(resp.Body)
 	if err != nil {
-		return result, err
+		return result, false, err
 	}
 	retryAfter, _ := sink.ParseRetryAfter(resp.Header.Get("Retry-After"), time.Now())
-	result.Acknowledged = resp.StatusCode >= 200 && resp.StatusCode < 300
 	result.ResponseBody = strings.TrimSpace(string(diagnostic))
 	result.RetryAfter = retryAfter
-	return result, nil
-}
-
-// marshalBatch encodes the events as one JSON array of event objects, or as
-// one NDJSON line per event when the protobuf format selects NDJSON.
-func marshalBatch(batch sink.Batch, format logdrainv1.HttpBodyFormat) ([]byte, error) {
-	if format == logdrainv1.HttpBodyFormat_HTTP_BODY_FORMAT_NDJSON {
-		var body bytes.Buffer
-		encoder := json.NewEncoder(&body)
-		for _, event := range batch.Events {
-			record, err := event.MarshalRecord(false)
-			if err != nil {
-				return nil, err
-			}
-			if err := encoder.Encode(record); err != nil {
-				return nil, err
-			}
-		}
-		return body.Bytes(), nil
-	}
-	lines := make([]json.RawMessage, len(batch.Events))
-	for i, event := range batch.Events {
-		record, err := event.MarshalRecord(false)
-		if err != nil {
-			return nil, err
-		}
-		lines[i] = record
-	}
-	return json.Marshal(lines)
+	return result, truncated, nil
 }
