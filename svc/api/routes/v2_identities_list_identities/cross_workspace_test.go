@@ -32,7 +32,7 @@ func TestCrossWorkspaceForbidden(t *testing.T) {
 	workspaceB := uid.New(uid.WorkspacePrefix)
 
 	// Create root key for workspace A with full permissions
-	rootKeyA := h.CreateRootKey(workspaceA, "identity.*.read_identity")
+	rootKeyA := h.CreateRootKey(workspaceA, fmt.Sprintf("unkey:v1:%s:projects/*/identities/*#read", workspaceA))
 	headersA := http.Header{
 		"Content-Type":  {"application/json"},
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKeyA)},

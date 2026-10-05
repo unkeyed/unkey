@@ -1,6 +1,7 @@
 package handler_test
 
 import (
+	"fmt"
 	"net/http"
 	"testing"
 
@@ -17,8 +18,8 @@ import (
 // not own has a portal wired up.
 func TestGetPortalMasksEveryMiss(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route, headers := newRoute(t, h, "portal.*.read_portal")
 	workspace := h.Resources().UserWorkspace
+	route, headers := newRoute(t, h, fmt.Sprintf("unkey:v1:%s:projects/*/portals/*#read", workspace.ID))
 
 	// A portal the caller can see, so the passing path is known to work and the
 	// misses below cannot be masking a broken handler.
@@ -86,7 +87,8 @@ func TestGetPortalDenialMatchesAbsence(t *testing.T) {
 	stored := h.SeedPortal(t, workspace.ID, "parity", "parity", keyspaceMapping(t, h, workspace.ID),
 		nil, nil)
 
-	deniedKey := h.CreateRootKey(workspace.ID, "portal.*.create_portal")
+	deniedKey := h.CreateRootKey(workspace.ID, fmt.Sprintf(
+		"unkey:v1:%s:projects/%s/portals/%s#delete", workspace.ID, stored.ProjectID, stored.ID))
 	denied := testutil.CallRoute[handler.Request, handler.Response](h, route, headersFor(deniedKey), handler.Request{
 		Portal:     new(stored.ID),
 		KeyspaceId: nil,
@@ -95,7 +97,7 @@ func TestGetPortalDenialMatchesAbsence(t *testing.T) {
 	require.Equal(t, http.StatusNotFound, denied.Status,
 		"a denial must be masked, received: %s", denied.RawBody)
 
-	allowedKey := h.CreateRootKey(workspace.ID, "portal.*.read_portal")
+	allowedKey := h.CreateRootKey(workspace.ID, fmt.Sprintf("unkey:v1:%s:**#*", h.Resources().UserWorkspace.ID))
 	absent := testutil.CallRoute[handler.Request, handler.Response](h, route, headersFor(allowedKey), handler.Request{
 		Portal:     new("pc_doesnotexist"),
 		KeyspaceId: nil,

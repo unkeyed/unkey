@@ -40,7 +40,7 @@ func TestSearchAtScale(t *testing.T) {
 	ctx := context.Background()
 	seedScaleIdentities(t, ctx, h)
 
-	rootKey := h.CreateRootKey(scaleWorkspaceID, "identity.*.read_identity")
+	rootKey := h.CreateRootKey(scaleWorkspaceID, fmt.Sprintf("unkey:v1:%s:projects/*/identities/*#read", scaleWorkspaceID))
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
