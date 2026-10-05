@@ -1,5 +1,8 @@
 type: object
-description: Billable Unkey API operations in the period.
+description: |
+  Billable operations through the Unkey API in the period. Key verifications
+  through the Unkey gateway are not counted here. The gateway bills by active
+  keys, see `gateway`.
 required:
   - verifications
   - ratelimits

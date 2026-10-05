@@ -57,32 +57,42 @@ post:
                   period:
                     start: 1790812800000
                     end: 1790946000000
-                  api:
-                    verifications: 40000
-                    ratelimits: 2000
-                  compute:
-                    cpuSeconds: 5400.5
-                    memoryGiBHours: 96.2
-                    diskGiBHours: 0
-                    egressGiB: 1.4
-                    activeKeys: 12
-                    environments:
-                      - projectId: proj_1234abcd
-                        projectName: Payments
-                        appId: app_1234abcd
-                        appName: API
-                        environmentId: env_1234abcd
-                        environmentSlug: production
-                        cpuSeconds: 5400.5
-                        memoryGiBHours: 96.2
-                        diskGiBHours: 0
-                        egressGiB: 1.4
-                    apps:
-                      - appId: app_1234abcd
-                        appName: API
-                        projectId: proj_1234abcd
-                        projectName: Payments
-                        activeKeys: 12
+                  totals:
+                    api:
+                      verifications: 40000
+                      ratelimits: 2000
+                    compute:
+                      cpuSeconds: 5400.5
+                      memoryGiBHours: 96.2
+                      storageGiBHours: 0
+                      egressGiB: 1.4
+                    gateway:
+                      activeKeys: 12
+                  breakdowns:
+                    byEnvironment:
+                      - project:
+                          id: proj_1234abcd
+                          name: Payments
+                        app:
+                          id: app_1234abcd
+                          name: API
+                        environment:
+                          id: env_1234abcd
+                          slug: production
+                        compute:
+                          cpuSeconds: 5400.5
+                          memoryGiBHours: 96.2
+                          storageGiBHours: 0
+                          egressGiB: 1.4
+                    byApp:
+                      - project:
+                          id: proj_1234abcd
+                          name: Payments
+                        app:
+                          id: app_1234abcd
+                          name: API
+                        gateway:
+                          activeKeys: 12
             previousMonth:
               summary: Previous month
               description: The full previous month, ending at the start of the current month
@@ -93,32 +103,42 @@ post:
                   period:
                     start: 1788220800000
                     end: 1790812800000
-                  api:
-                    verifications: 120000
-                    ratelimits: 8000
-                  compute:
-                    cpuSeconds: 16200
-                    memoryGiBHours: 288.6
-                    diskGiBHours: 0
-                    egressGiB: 4.2
-                    activeKeys: 30
-                    environments:
-                      - projectId: proj_1234abcd
-                        projectName: Payments
-                        appId: app_1234abcd
-                        appName: API
-                        environmentId: env_1234abcd
-                        environmentSlug: production
-                        cpuSeconds: 16200
-                        memoryGiBHours: 288.6
-                        diskGiBHours: 0
-                        egressGiB: 4.2
-                    apps:
-                      - appId: app_1234abcd
-                        appName: API
-                        projectId: proj_1234abcd
-                        projectName: Payments
-                        activeKeys: 30
+                  totals:
+                    api:
+                      verifications: 120000
+                      ratelimits: 8000
+                    compute:
+                      cpuSeconds: 16200
+                      memoryGiBHours: 288.6
+                      storageGiBHours: 0
+                      egressGiB: 4.2
+                    gateway:
+                      activeKeys: 30
+                  breakdowns:
+                    byEnvironment:
+                      - project:
+                          id: proj_1234abcd
+                          name: Payments
+                        app:
+                          id: app_1234abcd
+                          name: API
+                        environment:
+                          id: env_1234abcd
+                          slug: production
+                        compute:
+                          cpuSeconds: 16200
+                          memoryGiBHours: 288.6
+                          storageGiBHours: 0
+                          egressGiB: 4.2
+                    byApp:
+                      - project:
+                          id: proj_1234abcd
+                          name: Payments
+                        app:
+                          id: app_1234abcd
+                          name: API
+                        gateway:
+                          activeKeys: 30
             emptyMonth:
               summary: No usage
               description: Nothing ran and no keys were verified, so totals are zero and the lists are empty
@@ -129,20 +149,23 @@ post:
                   period:
                     start: 1790812800000
                     end: 1790946000000
-                  api:
-                    verifications: 0
-                    ratelimits: 0
-                  compute:
-                    cpuSeconds: 0
-                    memoryGiBHours: 0
-                    diskGiBHours: 0
-                    egressGiB: 0
-                    activeKeys: 0
-                    environments: []
-                    apps: []
+                  totals:
+                    api:
+                      verifications: 0
+                      ratelimits: 0
+                    compute:
+                      cpuSeconds: 0
+                      memoryGiBHours: 0
+                      storageGiBHours: 0
+                      egressGiB: 0
+                    gateway:
+                      activeKeys: 0
+                  breakdowns:
+                    byEnvironment: []
+                    byApp: []
             deletedApp:
               summary: Usage of a deleted app
-              description: The app and its environment were deleted after they ran, so their names are omitted
+              description: The app and its environment were deleted after they ran, so their names are omitted. The last row has keys without an app id
               value:
                 meta:
                   requestId: req_1234abcd
@@ -150,27 +173,38 @@ post:
                   period:
                     start: 1788220800000
                     end: 1790812800000
-                  api:
-                    verifications: 0
-                    ratelimits: 0
-                  compute:
-                    cpuSeconds: 900
-                    memoryGiBHours: 12.5
-                    diskGiBHours: 0
-                    egressGiB: 0.2
-                    activeKeys: 3
-                    environments:
-                      - projectId: proj_1234abcd
-                        projectName: Payments
-                        appId: app_5678efgh
-                        environmentId: env_5678efgh
-                        cpuSeconds: 900
-                        memoryGiBHours: 12.5
-                        diskGiBHours: 0
-                        egressGiB: 0.2
-                    apps:
-                      - appId: app_5678efgh
-                        activeKeys: 3
+                  totals:
+                    api:
+                      verifications: 0
+                      ratelimits: 0
+                    compute:
+                      cpuSeconds: 900
+                      memoryGiBHours: 12.5
+                      storageGiBHours: 0
+                      egressGiB: 0.2
+                    gateway:
+                      activeKeys: 4
+                  breakdowns:
+                    byEnvironment:
+                      - project:
+                          id: proj_1234abcd
+                          name: Payments
+                        app:
+                          id: app_5678efgh
+                        environment:
+                          id: env_5678efgh
+                        compute:
+                          cpuSeconds: 900
+                          memoryGiBHours: 12.5
+                          storageGiBHours: 0
+                          egressGiB: 0.2
+                    byApp:
+                      - app:
+                          id: app_5678efgh
+                        gateway:
+                          activeKeys: 3
+                      - gateway:
+                          activeKeys: 1
     "400":
       description: Bad request
       content:

@@ -118,15 +118,24 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	compute := openapi.V2WorkspaceGetUsageCompute{
-		CpuSeconds:     0,
-		MemoryGiBHours: 0,
-		DiskGiBHours:   0,
-		EgressGiB:      0,
-		ActiveKeys:     0,
-		Environments:   make([]openapi.V2WorkspaceGetUsageEnvironment, 0, len(computeByEnvironment)),
-		Apps:           make([]openapi.V2WorkspaceGetUsageApp, 0, len(keysByApp)),
+	totals := openapi.V2WorkspaceGetUsageTotals{
+		Api: openapi.V2WorkspaceGetUsageApi{
+			Verifications: verifications,
+			Ratelimits:    ratelimits,
+		},
+		Compute: openapi.V2WorkspaceGetUsageCompute{
+			CpuSeconds:      0,
+			MemoryGiBHours:  0,
+			StorageGiBHours: 0,
+			EgressGiB:       0,
+		},
+		Gateway: openapi.V2WorkspaceGetUsageGateway{ActiveKeys: 0},
 	}
+	breakdowns := openapi.V2WorkspaceGetUsageBreakdowns{
+		ByEnvironment: make([]openapi.V2WorkspaceGetUsageByEnvironmentRow, 0, len(computeByEnvironment)),
+		ByApp:         make([]openapi.V2WorkspaceGetUsageByAppRow, 0, len(keysByApp)),
+	}
+
 	for _, row := range computeByEnvironment {
 		// A container that started before the collector recorded app ids keeps an
 		// empty app id. Its environment still has the app id
@@ -134,38 +143,57 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		if appID == "" {
 			appID = names.environments[row.EnvironmentID].ParentID
 		}
-		compute.CpuSeconds += row.CPUSeconds
-		compute.MemoryGiBHours += row.MemoryGiBHours
-		compute.DiskGiBHours += row.DiskGiBHours
-		compute.EgressGiB += row.EgressGiB
-		compute.Environments = append(compute.Environments, openapi.V2WorkspaceGetUsageEnvironment{
-			ProjectId:       row.ProjectID,
-			ProjectName:     nameOf(names.projects, row.ProjectID),
-			AppId:           appID,
-			AppName:         nameOf(names.apps, appID),
-			EnvironmentId:   row.EnvironmentID,
-			EnvironmentSlug: nameOf(names.environments, row.EnvironmentID),
-			CpuSeconds:      row.CPUSeconds,
-			MemoryGiBHours:  row.MemoryGiBHours,
-			DiskGiBHours:    row.DiskGiBHours,
-			EgressGiB:       row.EgressGiB,
-		})
+
+		totals.Compute.CpuSeconds += row.CPUSeconds
+		totals.Compute.MemoryGiBHours += row.MemoryGiBHours
+		totals.Compute.StorageGiBHours += row.DiskGiBHours
+		totals.Compute.EgressGiB += row.EgressGiB
+
+		environmentRow := openapi.V2WorkspaceGetUsageByEnvironmentRow{
+			Project: openapi.V2WorkspaceGetUsageResource{
+				Id:   row.ProjectID,
+				Name: nameOf(names.projects, row.ProjectID),
+			},
+			App: nil,
+			Environment: openapi.V2WorkspaceGetUsageEnvironmentResource{
+				Id:   row.EnvironmentID,
+				Slug: nameOf(names.environments, row.EnvironmentID),
+			},
+			Compute: openapi.V2WorkspaceGetUsageCompute{
+				CpuSeconds:      row.CPUSeconds,
+				MemoryGiBHours:  row.MemoryGiBHours,
+				StorageGiBHours: row.DiskGiBHours,
+				EgressGiB:       row.EgressGiB,
+			},
+		}
+		if appID != "" {
+			environmentRow.App = &openapi.V2WorkspaceGetUsageResource{
+				Id:   appID,
+				Name: nameOf(names.apps, appID),
+			}
+		}
+		breakdowns.ByEnvironment = append(breakdowns.ByEnvironment, environmentRow)
 	}
+
 	for _, row := range keysByApp {
-		compute.ActiveKeys += row.ActiveKeys
-		appRow := openapi.V2WorkspaceGetUsageApp{
-			AppId:       row.AppID,
-			AppName:     nil,
-			ProjectId:   nil,
-			ProjectName: nil,
-			ActiveKeys:  row.ActiveKeys,
+		totals.Gateway.ActiveKeys += row.ActiveKeys
+
+		appRow := openapi.V2WorkspaceGetUsageByAppRow{
+			Project: nil,
+			App:     nil,
+			Gateway: openapi.V2WorkspaceGetUsageGateway{ActiveKeys: row.ActiveKeys},
+		}
+		if row.AppID != "" {
+			appRow.App = &openapi.V2WorkspaceGetUsageResource{Id: row.AppID, Name: nil}
 		}
 		if app, ok := names.apps[row.AppID]; ok {
-			appRow.AppName = &app.Name
-			appRow.ProjectId = &app.ParentID
-			appRow.ProjectName = nameOf(names.projects, app.ParentID)
+			appRow.App.Name = &app.Name
+			appRow.Project = &openapi.V2WorkspaceGetUsageResource{
+				Id:   app.ParentID,
+				Name: nameOf(names.projects, app.ParentID),
+			}
 		}
-		compute.Apps = append(compute.Apps, appRow)
+		breakdowns.ByApp = append(breakdowns.ByApp, appRow)
 	}
 
 	return s.JSON(http.StatusOK, Response{
@@ -177,11 +205,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				Start: start.UnixMilli(),
 				End:   end.UnixMilli(),
 			},
-			Api: openapi.V2WorkspaceGetUsageApi{
-				Verifications: verifications,
-				Ratelimits:    ratelimits,
-			},
-			Compute: compute,
+			Totals:     totals,
+			Breakdowns: breakdowns,
 		},
 	})
 }

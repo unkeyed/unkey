@@ -1,0 +1,22 @@
+type: object
+description: Compute one environment used in the period.
+required:
+  - project
+  - environment
+  - compute
+properties:
+  project:
+    description: The project the environment belongs to.
+    allOf:
+      - "$ref": "./V2WorkspaceGetUsageResource.yaml"
+  app:
+    description: |
+      The app the environment belongs to. Omitted when the usage was recorded
+      before Unkey stored app ids and the environment was deleted since.
+    allOf:
+      - "$ref": "./V2WorkspaceGetUsageResource.yaml"
+  environment:
+    "$ref": "./V2WorkspaceGetUsageEnvironmentResource.yaml"
+  compute:
+    "$ref": "./V2WorkspaceGetUsageCompute.yaml"
+additionalProperties: false

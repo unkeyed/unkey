@@ -8114,15 +8114,15 @@ components:
             type: object
             required:
                 - period
-                - api
-                - compute
+                - totals
+                - breakdowns
             properties:
                 period:
                     "$ref": "#/components/schemas/V2WorkspaceGetUsagePeriod"
-                api:
-                    "$ref": "#/components/schemas/V2WorkspaceGetUsageApi"
-                compute:
-                    "$ref": "#/components/schemas/V2WorkspaceGetUsageCompute"
+                totals:
+                    "$ref": "#/components/schemas/V2WorkspaceGetUsageTotals"
+                breakdowns:
+                    "$ref": "#/components/schemas/V2WorkspaceGetUsageBreakdowns"
             additionalProperties: false
         V2WorkspaceGetUsagePeriod:
             type: object
@@ -8145,9 +8145,54 @@ components:
                         of the current month.
                     example: 1790946000000
             additionalProperties: false
+        V2WorkspaceGetUsageTotals:
+            type: object
+            description: |
+                Workspace totals in the period. `compute` is the sum of
+                `breakdowns.byEnvironment[].compute`. `gateway.activeKeys` is the sum of
+                `breakdowns.byApp[].gateway.activeKeys`.
+            required:
+                - api
+                - compute
+                - gateway
+            properties:
+                api:
+                    "$ref": "#/components/schemas/V2WorkspaceGetUsageApi"
+                compute:
+                    "$ref": "#/components/schemas/V2WorkspaceGetUsageCompute"
+                gateway:
+                    "$ref": "#/components/schemas/V2WorkspaceGetUsageGateway"
+            additionalProperties: false
+        V2WorkspaceGetUsageBreakdowns:
+            type: object
+            description: The totals split by environment and by app.
+            required:
+                - byEnvironment
+                - byApp
+            properties:
+                byEnvironment:
+                    type: array
+                    description: |
+                        One row per environment with compute usage in the period, most
+                        `compute.cpuSeconds` first, then by project id and environment id.
+                        Empty when nothing ran.
+                    items:
+                        "$ref": "#/components/schemas/V2WorkspaceGetUsageByEnvironmentRow"
+                byApp:
+                    type: array
+                    description: |
+                        One row per app whose gateway verified keys in the period, and one row
+                        without `app` for keys that have no app id. Most `gateway.activeKeys`
+                        first, then by app id. Empty when no keys were verified.
+                    items:
+                        "$ref": "#/components/schemas/V2WorkspaceGetUsageByAppRow"
+            additionalProperties: false
         V2WorkspaceGetUsageApi:
             type: object
-            description: Billable Unkey API operations in the period.
+            description: |
+                Billable operations through the Unkey API in the period. Key verifications
+                through the Unkey gateway are not counted here. The gateway bills by active
+                keys, see `gateway`.
             required:
                 - verifications
                 - ratelimits
@@ -8165,99 +8210,13 @@ components:
             additionalProperties: false
         V2WorkspaceGetUsageCompute:
             type: object
-            description: |
-                Compute usage in the period. `cpuSeconds`, `memoryGiBHours`, `diskGiBHours`,
-                and `egressGiB` are the sums of the `environments` rows. `activeKeys` is the
-                sum of the `apps` rows.
+            description: Compute usage in the period.
             required:
                 - cpuSeconds
                 - memoryGiBHours
-                - diskGiBHours
-                - egressGiB
-                - activeKeys
-                - environments
-                - apps
-            properties:
-                cpuSeconds:
-                    type: number
-                    format: double
-                    description: CPU time used across the workspace, in seconds.
-                    example: 5400.5
-                memoryGiBHours:
-                    type: number
-                    format: double
-                    description: Memory used over time across the workspace, in GiB-hours.
-                    example: 96.2
-                diskGiBHours:
-                    type: number
-                    format: double
-                    description: Ephemeral disk allocated over time across the workspace, in GiB-hours.
-                    example: 0
-                egressGiB:
-                    type: number
-                    format: double
-                    description: Public network egress across the workspace, in GiB.
-                    example: 1.4
-                activeKeys:
-                    type: integer
-                    format: int64
-                    description: Distinct keys verified through the Unkey gateway in the period.
-                    example: 12
-                environments:
-                    type: array
-                    description: |
-                        One row per environment with compute usage in the period, most
-                        `cpuSeconds` first, then by `projectId` and `environmentId`.
-                        Empty when nothing ran.
-                    items:
-                        "$ref": "#/components/schemas/V2WorkspaceGetUsageEnvironment"
-                apps:
-                    type: array
-                    description: |
-                        One row per app whose gateway verified keys in the period, and one row
-                        with an empty `appId` for keys that have no app id. Most `activeKeys`
-                        first, then by `appId`. Empty when no keys were verified.
-                    items:
-                        "$ref": "#/components/schemas/V2WorkspaceGetUsageApp"
-            additionalProperties: false
-        V2WorkspaceGetUsageEnvironment:
-            type: object
-            description: Compute one environment used in the period.
-            required:
-                - projectId
-                - appId
-                - environmentId
-                - cpuSeconds
-                - memoryGiBHours
-                - diskGiBHours
+                - storageGiBHours
                 - egressGiB
             properties:
-                projectId:
-                    type: string
-                    description: The project the environment belongs to.
-                    example: proj_1234abcd
-                projectName:
-                    type: string
-                    description: The project name. Omitted when the project was deleted.
-                    example: Payments
-                appId:
-                    type: string
-                    description: |
-                        The app the environment belongs to. Empty when the usage was recorded
-                        before Unkey stored app ids and the environment was deleted since.
-                    example: app_1234abcd
-                appName:
-                    type: string
-                    description: The app name. Omitted when the app was deleted.
-                    example: API
-                environmentId:
-                    type: string
-                    description: The environment that used the compute.
-                    example: env_1234abcd
-                environmentSlug:
-                    type: string
-                    description: The environment slug. Omitted when the environment was deleted.
-                    example: production
                 cpuSeconds:
                     type: number
                     format: double
@@ -8268,10 +8227,10 @@ components:
                     format: double
                     description: Memory used over time, in GiB-hours.
                     example: 96.2
-                diskGiBHours:
+                storageGiBHours:
                     type: number
                     format: double
-                    description: Ephemeral disk allocated over time, in GiB-hours.
+                    description: Ephemeral disk reserved over time, in GiB-hours.
                     example: 0
                 egressGiB:
                     type: number
@@ -8279,41 +8238,91 @@ components:
                     description: Public network egress, in GiB.
                     example: 1.4
             additionalProperties: false
-        V2WorkspaceGetUsageApp:
+        V2WorkspaceGetUsageGateway:
             type: object
-            description: Active gateway keys counted for one app in the period.
+            description: Unkey gateway usage in the period.
             required:
-                - appId
                 - activeKeys
             properties:
-                appId:
-                    type: string
-                    description: |
-                        The app whose gateway verified the keys. Empty for keys whose
-                        verifications were all recorded before Unkey stored app ids.
-                    example: app_1234abcd
-                appName:
-                    type: string
-                    description: The app name. Omitted when the app was deleted or `appId` is empty.
-                    example: API
-                projectId:
-                    type: string
-                    description: The project the app belongs to. Omitted when the app was deleted or `appId` is empty.
-                    example: proj_1234abcd
-                projectName:
-                    type: string
-                    description: |
-                        The project name. Omitted when the app or the project was deleted, or
-                        `appId` is empty.
-                    example: Payments
                 activeKeys:
                     type: integer
                     format: int64
                     description: |
-                        Distinct keys this app's gateway verified in the period. A key verified
-                        through several apps counts once, for the app that verified it most, so
-                        the rows sum to `compute.activeKeys`.
+                        Distinct keys verified through the Unkey gateway. A key verified through
+                        several apps counts once, for the app that verified it most.
                     example: 12
+            additionalProperties: false
+        V2WorkspaceGetUsageByEnvironmentRow:
+            type: object
+            description: Compute one environment used in the period.
+            required:
+                - project
+                - environment
+                - compute
+            properties:
+                project:
+                    description: The project the environment belongs to.
+                    allOf:
+                        - "$ref": "#/components/schemas/V2WorkspaceGetUsageResource"
+                app:
+                    description: |
+                        The app the environment belongs to. Omitted when the usage was recorded
+                        before Unkey stored app ids and the environment was deleted since.
+                    allOf:
+                        - "$ref": "#/components/schemas/V2WorkspaceGetUsageResource"
+                environment:
+                    "$ref": "#/components/schemas/V2WorkspaceGetUsageEnvironmentResource"
+                compute:
+                    "$ref": "#/components/schemas/V2WorkspaceGetUsageCompute"
+            additionalProperties: false
+        V2WorkspaceGetUsageByAppRow:
+            type: object
+            description: Active gateway keys counted for one app in the period.
+            required:
+                - gateway
+            properties:
+                project:
+                    description: The project the app belongs to. Omitted when the app was deleted or `app` is omitted.
+                    allOf:
+                        - "$ref": "#/components/schemas/V2WorkspaceGetUsageResource"
+                app:
+                    description: |
+                        The app whose gateway verified the keys. Omitted for keys whose
+                        verifications were all recorded before Unkey stored app ids.
+                    allOf:
+                        - "$ref": "#/components/schemas/V2WorkspaceGetUsageResource"
+                gateway:
+                    "$ref": "#/components/schemas/V2WorkspaceGetUsageGateway"
+            additionalProperties: false
+        V2WorkspaceGetUsageResource:
+            type: object
+            description: A project or app. `name` is omitted when the resource was deleted.
+            required:
+                - id
+            properties:
+                id:
+                    type: string
+                    description: The resource id.
+                    example: proj_1234abcd
+                name:
+                    type: string
+                    description: The resource name.
+                    example: Payments
+            additionalProperties: false
+        V2WorkspaceGetUsageEnvironmentResource:
+            type: object
+            description: An environment. `slug` is omitted when the environment was deleted.
+            required:
+                - id
+            properties:
+                id:
+                    type: string
+                    description: The environment id.
+                    example: env_1234abcd
+                slug:
+                    type: string
+                    description: The environment slug.
+                    example: production
             additionalProperties: false
         DeploymentSourceOCI:
             type: object
@@ -18165,66 +18174,87 @@ paths:
                                     summary: Current month to date
                                     value:
                                         data:
-                                            api:
-                                                ratelimits: 2000
-                                                verifications: 40000
-                                            compute:
-                                                activeKeys: 12
-                                                apps:
-                                                    - activeKeys: 12
-                                                      appId: app_1234abcd
-                                                      appName: API
-                                                      projectId: proj_1234abcd
-                                                      projectName: Payments
-                                                cpuSeconds: 5400.5
-                                                diskGiBHours: 0
-                                                egressGiB: 1.4
-                                                environments:
-                                                    - appId: app_1234abcd
-                                                      appName: API
-                                                      cpuSeconds: 5400.5
-                                                      diskGiBHours: 0
-                                                      egressGiB: 1.4
-                                                      environmentId: env_1234abcd
-                                                      environmentSlug: production
-                                                      memoryGiBHours: 96.2
-                                                      projectId: proj_1234abcd
-                                                      projectName: Payments
-                                                memoryGiBHours: 96.2
+                                            breakdowns:
+                                                byApp:
+                                                    - app:
+                                                        id: app_1234abcd
+                                                        name: API
+                                                      gateway:
+                                                        activeKeys: 12
+                                                      project:
+                                                        id: proj_1234abcd
+                                                        name: Payments
+                                                byEnvironment:
+                                                    - app:
+                                                        id: app_1234abcd
+                                                        name: API
+                                                      compute:
+                                                        cpuSeconds: 5400.5
+                                                        egressGiB: 1.4
+                                                        memoryGiBHours: 96.2
+                                                        storageGiBHours: 0
+                                                      environment:
+                                                        id: env_1234abcd
+                                                        slug: production
+                                                      project:
+                                                        id: proj_1234abcd
+                                                        name: Payments
                                             period:
                                                 end: 1790946000000
                                                 start: 1790812800000
+                                            totals:
+                                                api:
+                                                    ratelimits: 2000
+                                                    verifications: 40000
+                                                compute:
+                                                    cpuSeconds: 5400.5
+                                                    egressGiB: 1.4
+                                                    memoryGiBHours: 96.2
+                                                    storageGiBHours: 0
+                                                gateway:
+                                                    activeKeys: 12
                                         meta:
                                             requestId: req_1234abcd
                                 deletedApp:
-                                    description: The app and its environment were deleted after they ran, so their names are omitted
+                                    description: The app and its environment were deleted after they ran, so their names are omitted. The last row has keys without an app id
                                     summary: Usage of a deleted app
                                     value:
                                         data:
-                                            api:
-                                                ratelimits: 0
-                                                verifications: 0
-                                            compute:
-                                                activeKeys: 3
-                                                apps:
-                                                    - activeKeys: 3
-                                                      appId: app_5678efgh
-                                                cpuSeconds: 900
-                                                diskGiBHours: 0
-                                                egressGiB: 0.2
-                                                environments:
-                                                    - appId: app_5678efgh
-                                                      cpuSeconds: 900
-                                                      diskGiBHours: 0
-                                                      egressGiB: 0.2
-                                                      environmentId: env_5678efgh
-                                                      memoryGiBHours: 12.5
-                                                      projectId: proj_1234abcd
-                                                      projectName: Payments
-                                                memoryGiBHours: 12.5
+                                            breakdowns:
+                                                byApp:
+                                                    - app:
+                                                        id: app_5678efgh
+                                                      gateway:
+                                                        activeKeys: 3
+                                                    - gateway:
+                                                        activeKeys: 1
+                                                byEnvironment:
+                                                    - app:
+                                                        id: app_5678efgh
+                                                      compute:
+                                                        cpuSeconds: 900
+                                                        egressGiB: 0.2
+                                                        memoryGiBHours: 12.5
+                                                        storageGiBHours: 0
+                                                      environment:
+                                                        id: env_5678efgh
+                                                      project:
+                                                        id: proj_1234abcd
+                                                        name: Payments
                                             period:
                                                 end: 1790812800000
                                                 start: 1788220800000
+                                            totals:
+                                                api:
+                                                    ratelimits: 0
+                                                    verifications: 0
+                                                compute:
+                                                    cpuSeconds: 900
+                                                    egressGiB: 0.2
+                                                    memoryGiBHours: 12.5
+                                                    storageGiBHours: 0
+                                                gateway:
+                                                    activeKeys: 4
                                         meta:
                                             requestId: req_1234abcd
                                 emptyMonth:
@@ -18232,20 +18262,23 @@ paths:
                                     summary: No usage
                                     value:
                                         data:
-                                            api:
-                                                ratelimits: 0
-                                                verifications: 0
-                                            compute:
-                                                activeKeys: 0
-                                                apps: []
-                                                cpuSeconds: 0
-                                                diskGiBHours: 0
-                                                egressGiB: 0
-                                                environments: []
-                                                memoryGiBHours: 0
+                                            breakdowns:
+                                                byApp: []
+                                                byEnvironment: []
                                             period:
                                                 end: 1790946000000
                                                 start: 1790812800000
+                                            totals:
+                                                api:
+                                                    ratelimits: 0
+                                                    verifications: 0
+                                                compute:
+                                                    cpuSeconds: 0
+                                                    egressGiB: 0
+                                                    memoryGiBHours: 0
+                                                    storageGiBHours: 0
+                                                gateway:
+                                                    activeKeys: 0
                                         meta:
                                             requestId: req_1234abcd
                                 previousMonth:
@@ -18253,35 +18286,45 @@ paths:
                                     summary: Previous month
                                     value:
                                         data:
-                                            api:
-                                                ratelimits: 8000
-                                                verifications: 120000
-                                            compute:
-                                                activeKeys: 30
-                                                apps:
-                                                    - activeKeys: 30
-                                                      appId: app_1234abcd
-                                                      appName: API
-                                                      projectId: proj_1234abcd
-                                                      projectName: Payments
-                                                cpuSeconds: 16200
-                                                diskGiBHours: 0
-                                                egressGiB: 4.2
-                                                environments:
-                                                    - appId: app_1234abcd
-                                                      appName: API
-                                                      cpuSeconds: 16200
-                                                      diskGiBHours: 0
-                                                      egressGiB: 4.2
-                                                      environmentId: env_1234abcd
-                                                      environmentSlug: production
-                                                      memoryGiBHours: 288.6
-                                                      projectId: proj_1234abcd
-                                                      projectName: Payments
-                                                memoryGiBHours: 288.6
+                                            breakdowns:
+                                                byApp:
+                                                    - app:
+                                                        id: app_1234abcd
+                                                        name: API
+                                                      gateway:
+                                                        activeKeys: 30
+                                                      project:
+                                                        id: proj_1234abcd
+                                                        name: Payments
+                                                byEnvironment:
+                                                    - app:
+                                                        id: app_1234abcd
+                                                        name: API
+                                                      compute:
+                                                        cpuSeconds: 16200
+                                                        egressGiB: 4.2
+                                                        memoryGiBHours: 288.6
+                                                        storageGiBHours: 0
+                                                      environment:
+                                                        id: env_1234abcd
+                                                        slug: production
+                                                      project:
+                                                        id: proj_1234abcd
+                                                        name: Payments
                                             period:
                                                 end: 1790812800000
                                                 start: 1788220800000
+                                            totals:
+                                                api:
+                                                    ratelimits: 8000
+                                                    verifications: 120000
+                                                compute:
+                                                    cpuSeconds: 16200
+                                                    egressGiB: 4.2
+                                                    memoryGiBHours: 288.6
+                                                    storageGiBHours: 0
+                                                gateway:
+                                                    activeKeys: 30
                                         meta:
                                             requestId: req_1234abcd
                             schema:

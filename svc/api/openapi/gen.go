@@ -6939,7 +6939,9 @@ type V2WorkspaceGetLimitsResponseData struct {
 	StorageMibMaxPerInstance *V2WorkspaceGetLimitsLimit `json:"storageMibMaxPerInstance,omitempty"`
 }
 
-// V2WorkspaceGetUsageApi Billable Unkey API operations in the period.
+// V2WorkspaceGetUsageApi Billable operations through the Unkey API in the period. Key verifications
+// through the Unkey gateway are not counted here. The gateway bills by active
+// keys, see `gateway`.
 type V2WorkspaceGetUsageApi struct {
 	// Ratelimits Billable rate limit operations.
 	//
@@ -6952,134 +6954,92 @@ type V2WorkspaceGetUsageApi struct {
 	Verifications int64 `json:"verifications"`
 }
 
-// V2WorkspaceGetUsageApp Active gateway keys counted for one app in the period.
-type V2WorkspaceGetUsageApp struct {
-	// ActiveKeys Distinct keys this app's gateway verified in the period. A key verified
-	// through several apps counts once, for the app that verified it most, so
-	// the rows sum to `compute.activeKeys`.
-	//
-	//
-	// Example: 12
-	ActiveKeys int64 `json:"activeKeys"`
+// V2WorkspaceGetUsageBreakdowns The totals split by environment and by app.
+type V2WorkspaceGetUsageBreakdowns struct {
+	// ByApp One row per app whose gateway verified keys in the period, and one row
+	// without `app` for keys that have no app id. Most `gateway.activeKeys`
+	// first, then by app id. Empty when no keys were verified.
+	ByApp []V2WorkspaceGetUsageByAppRow `json:"byApp"`
 
-	// AppId The app whose gateway verified the keys. Empty for keys whose
-	// verifications were all recorded before Unkey stored app ids.
-	//
-	//
-	// Example: app_1234abcd
-	AppId string `json:"appId"`
-
-	// AppName The app name. Omitted when the app was deleted or `appId` is empty.
-	//
-	// Example: API
-	AppName *string `json:"appName,omitempty"`
-
-	// ProjectId The project the app belongs to. Omitted when the app was deleted or `appId` is empty.
-	//
-	// Example: proj_1234abcd
-	ProjectId *string `json:"projectId,omitempty"`
-
-	// ProjectName The project name. Omitted when the app or the project was deleted, or
-	// `appId` is empty.
-	//
-	//
-	// Example: Payments
-	ProjectName *string `json:"projectName,omitempty"`
-}
-
-// V2WorkspaceGetUsageCompute Compute usage in the period. `cpuSeconds`, `memoryGiBHours`, `diskGiBHours`,
-// and `egressGiB` are the sums of the `environments` rows. `activeKeys` is the
-// sum of the `apps` rows.
-type V2WorkspaceGetUsageCompute struct {
-	// ActiveKeys Distinct keys verified through the Unkey gateway in the period.
-	//
-	// Example: 12
-	ActiveKeys int64 `json:"activeKeys"`
-
-	// Apps One row per app whose gateway verified keys in the period, and one row
-	// with an empty `appId` for keys that have no app id. Most `activeKeys`
-	// first, then by `appId`. Empty when no keys were verified.
-	Apps []V2WorkspaceGetUsageApp `json:"apps"`
-
-	// CpuSeconds CPU time used across the workspace, in seconds.
-	//
-	// Example: 5400.5
-	CpuSeconds float64 `json:"cpuSeconds"`
-
-	// DiskGiBHours Ephemeral disk allocated over time across the workspace, in GiB-hours.
-	//
-	// Example: 0
-	DiskGiBHours float64 `json:"diskGiBHours"`
-
-	// EgressGiB Public network egress across the workspace, in GiB.
-	//
-	// Example: 1.4
-	EgressGiB float64 `json:"egressGiB"`
-
-	// Environments One row per environment with compute usage in the period, most
-	// `cpuSeconds` first, then by `projectId` and `environmentId`.
+	// ByEnvironment One row per environment with compute usage in the period, most
+	// `compute.cpuSeconds` first, then by project id and environment id.
 	// Empty when nothing ran.
-	Environments []V2WorkspaceGetUsageEnvironment `json:"environments"`
-
-	// MemoryGiBHours Memory used over time across the workspace, in GiB-hours.
-	//
-	// Example: 96.2
-	MemoryGiBHours float64 `json:"memoryGiBHours"`
+	ByEnvironment []V2WorkspaceGetUsageByEnvironmentRow `json:"byEnvironment"`
 }
 
-// V2WorkspaceGetUsageEnvironment Compute one environment used in the period.
-type V2WorkspaceGetUsageEnvironment struct {
-	// AppId The app the environment belongs to. Empty when the usage was recorded
+// V2WorkspaceGetUsageByAppRow Active gateway keys counted for one app in the period.
+type V2WorkspaceGetUsageByAppRow struct {
+	// App The app whose gateway verified the keys. Omitted for keys whose
+	// verifications were all recorded before Unkey stored app ids.
+	App *V2WorkspaceGetUsageResource `json:"app,omitempty"`
+
+	// Gateway Unkey gateway usage in the period.
+	Gateway V2WorkspaceGetUsageGateway `json:"gateway"`
+
+	// Project The project the app belongs to. Omitted when the app was deleted or `app` is omitted.
+	Project *V2WorkspaceGetUsageResource `json:"project,omitempty"`
+}
+
+// V2WorkspaceGetUsageByEnvironmentRow Compute one environment used in the period.
+type V2WorkspaceGetUsageByEnvironmentRow struct {
+	// App The app the environment belongs to. Omitted when the usage was recorded
 	// before Unkey stored app ids and the environment was deleted since.
-	//
-	//
-	// Example: app_1234abcd
-	AppId string `json:"appId"`
+	App *V2WorkspaceGetUsageResource `json:"app,omitempty"`
 
-	// AppName The app name. Omitted when the app was deleted.
-	//
-	// Example: API
-	AppName *string `json:"appName,omitempty"`
+	// Compute Compute usage in the period.
+	Compute V2WorkspaceGetUsageCompute `json:"compute"`
 
+	// Environment An environment. `slug` is omitted when the environment was deleted.
+	Environment V2WorkspaceGetUsageEnvironmentResource `json:"environment"`
+
+	// Project The project the environment belongs to.
+	Project V2WorkspaceGetUsageResource `json:"project"`
+}
+
+// V2WorkspaceGetUsageCompute Compute usage in the period.
+type V2WorkspaceGetUsageCompute struct {
 	// CpuSeconds CPU time used, in seconds.
 	//
 	// Example: 5400.5
 	CpuSeconds float64 `json:"cpuSeconds"`
-
-	// DiskGiBHours Ephemeral disk allocated over time, in GiB-hours.
-	//
-	// Example: 0
-	DiskGiBHours float64 `json:"diskGiBHours"`
 
 	// EgressGiB Public network egress, in GiB.
 	//
 	// Example: 1.4
 	EgressGiB float64 `json:"egressGiB"`
 
-	// EnvironmentId The environment that used the compute.
-	//
-	// Example: env_1234abcd
-	EnvironmentId string `json:"environmentId"`
-
-	// EnvironmentSlug The environment slug. Omitted when the environment was deleted.
-	//
-	// Example: production
-	EnvironmentSlug *string `json:"environmentSlug,omitempty"`
-
 	// MemoryGiBHours Memory used over time, in GiB-hours.
 	//
 	// Example: 96.2
 	MemoryGiBHours float64 `json:"memoryGiBHours"`
 
-	// ProjectId The project the environment belongs to.
+	// StorageGiBHours Ephemeral disk reserved over time, in GiB-hours.
 	//
-	// Example: proj_1234abcd
-	ProjectId string `json:"projectId"`
+	// Example: 0
+	StorageGiBHours float64 `json:"storageGiBHours"`
+}
 
-	// ProjectName The project name. Omitted when the project was deleted.
+// V2WorkspaceGetUsageEnvironmentResource An environment. `slug` is omitted when the environment was deleted.
+type V2WorkspaceGetUsageEnvironmentResource struct {
+	// Id The environment id.
 	//
-	// Example: Payments
-	ProjectName *string `json:"projectName,omitempty"`
+	// Example: env_1234abcd
+	Id string `json:"id"`
+
+	// Slug The environment slug.
+	//
+	// Example: production
+	Slug *string `json:"slug,omitempty"`
+}
+
+// V2WorkspaceGetUsageGateway Unkey gateway usage in the period.
+type V2WorkspaceGetUsageGateway struct {
+	// ActiveKeys Distinct keys verified through the Unkey gateway. A key verified through
+	// several apps counts once, for the app that verified it most.
+	//
+	//
+	// Example: 12
+	ActiveKeys int64 `json:"activeKeys"`
 }
 
 // V2WorkspaceGetUsagePeriod The time window the usage covers.
@@ -7114,6 +7074,19 @@ type V2WorkspaceGetUsageRequestBody struct {
 // Example: current
 type V2WorkspaceGetUsageRequestBodyPeriod string
 
+// V2WorkspaceGetUsageResource A project or app. `name` is omitted when the resource was deleted.
+type V2WorkspaceGetUsageResource struct {
+	// Id The resource id.
+	//
+	// Example: proj_1234abcd
+	Id string `json:"id"`
+
+	// Name The resource name.
+	//
+	// Example: Payments
+	Name *string `json:"name,omitempty"`
+}
+
 // V2WorkspaceGetUsageResponseBody defines model for V2WorkspaceGetUsageResponseBody.
 type V2WorkspaceGetUsageResponseBody struct {
 	Data V2WorkspaceGetUsageResponseData `json:"data"`
@@ -7124,16 +7097,32 @@ type V2WorkspaceGetUsageResponseBody struct {
 
 // V2WorkspaceGetUsageResponseData defines model for V2WorkspaceGetUsageResponseData.
 type V2WorkspaceGetUsageResponseData struct {
-	// Api Billable Unkey API operations in the period.
-	Api V2WorkspaceGetUsageApi `json:"api"`
-
-	// Compute Compute usage in the period. `cpuSeconds`, `memoryGiBHours`, `diskGiBHours`,
-	// and `egressGiB` are the sums of the `environments` rows. `activeKeys` is the
-	// sum of the `apps` rows.
-	Compute V2WorkspaceGetUsageCompute `json:"compute"`
+	// Breakdowns The totals split by environment and by app.
+	Breakdowns V2WorkspaceGetUsageBreakdowns `json:"breakdowns"`
 
 	// Period The time window the usage covers.
 	Period V2WorkspaceGetUsagePeriod `json:"period"`
+
+	// Totals Workspace totals in the period. `compute` is the sum of
+	// `breakdowns.byEnvironment[].compute`. `gateway.activeKeys` is the sum of
+	// `breakdowns.byApp[].gateway.activeKeys`.
+	Totals V2WorkspaceGetUsageTotals `json:"totals"`
+}
+
+// V2WorkspaceGetUsageTotals Workspace totals in the period. `compute` is the sum of
+// `breakdowns.byEnvironment[].compute`. `gateway.activeKeys` is the sum of
+// `breakdowns.byApp[].gateway.activeKeys`.
+type V2WorkspaceGetUsageTotals struct {
+	// Api Billable operations through the Unkey API in the period. Key verifications
+	// through the Unkey gateway are not counted here. The gateway bills by active
+	// keys, see `gateway`.
+	Api V2WorkspaceGetUsageApi `json:"api"`
+
+	// Compute Compute usage in the period.
+	Compute V2WorkspaceGetUsageCompute `json:"compute"`
+
+	// Gateway Unkey gateway usage in the period.
+	Gateway V2WorkspaceGetUsageGateway `json:"gateway"`
 }
 
 // V3DeploymentsCreateDeploymentRequestBody Create a deployment. Omit the source to use the app default, or provide one source override.

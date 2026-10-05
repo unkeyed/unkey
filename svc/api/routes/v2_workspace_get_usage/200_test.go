@@ -155,73 +155,86 @@ func TestGetUsage(t *testing.T) {
 		require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
 
 		projectName := "Payments"
+		project := ref(projectID, &projectName)
+		appRef := ref(setup.App.ID, &setup.App.Name)
+		compute := func(cpu, memory, storage, egress float64) openapi.V2WorkspaceGetUsageCompute {
+			return openapi.V2WorkspaceGetUsageCompute{CpuSeconds: cpu, MemoryGiBHours: memory, StorageGiBHours: storage, EgressGiB: egress}
+		}
 		// Most CPU first
-		environments := []openapi.V2WorkspaceGetUsageEnvironment{
+		byEnvironment := []openapi.V2WorkspaceGetUsageByEnvironmentRow{
 			{
-				ProjectId: projectID, ProjectName: &projectName,
-				AppId: setup.App.ID, AppName: &setup.App.Name,
-				EnvironmentId: production.ID, EnvironmentSlug: &production.Slug,
-				CpuSeconds: 150.75, MemoryGiBHours: 3.75, DiskGiBHours: 0.5, EgressGiB: 1,
+				Project:     project,
+				App:         &appRef,
+				Environment: openapi.V2WorkspaceGetUsageEnvironmentResource{Id: production.ID, Slug: &production.Slug},
+				Compute:     compute(150.75, 3.75, 0.5, 1),
 			},
 			{
-				ProjectId: projectID, ProjectName: &projectName,
-				AppId: deletedAppID, AppName: nil,
-				EnvironmentId: deletedEnvironmentID, EnvironmentSlug: nil,
-				CpuSeconds: 20, MemoryGiBHours: 1, DiskGiBHours: 0, EgressGiB: 0,
+				Project:     project,
+				App:         new(ref(deletedAppID, nil)),
+				Environment: openapi.V2WorkspaceGetUsageEnvironmentResource{Id: deletedEnvironmentID, Slug: nil},
+				Compute:     compute(20, 1, 0, 0),
 			},
 			{
-				ProjectId: projectID, ProjectName: &projectName,
-				AppId: setup.App.ID, AppName: &setup.App.Name,
-				EnvironmentId: preview.ID, EnvironmentSlug: &preview.Slug,
-				CpuSeconds: 15, MemoryGiBHours: 0.75, DiskGiBHours: 0, EgressGiB: 0,
+				Project:     project,
+				App:         &appRef,
+				Environment: openapi.V2WorkspaceGetUsageEnvironmentResource{Id: preview.ID, Slug: &preview.Slug},
+				Compute:     compute(15, 0.75, 0, 0),
 			},
 			{
-				ProjectId: projectID, ProjectName: &projectName,
-				AppId: worker.ID, AppName: &worker.Name,
-				EnvironmentId: workerProduction.ID, EnvironmentSlug: &workerProduction.Slug,
-				CpuSeconds: 2, MemoryGiBHours: 0.5, DiskGiBHours: 0, EgressGiB: 0,
+				Project:     project,
+				App:         new(ref(worker.ID, &worker.Name)),
+				Environment: openapi.V2WorkspaceGetUsageEnvironmentResource{Id: workerProduction.ID, Slug: &workerProduction.Slug},
+				Compute:     compute(2, 0.5, 0, 0),
 			},
 			{
-				ProjectId: other.Project.ID, ProjectName: nil,
-				AppId: other.App.ID, AppName: nil,
-				EnvironmentId: other.Environment.ID, EnvironmentSlug: nil,
-				CpuSeconds: 1, MemoryGiBHours: 0.25, DiskGiBHours: 0, EgressGiB: 0,
+				Project:     ref(other.Project.ID, nil),
+				App:         new(ref(other.App.ID, nil)),
+				Environment: openapi.V2WorkspaceGetUsageEnvironmentResource{Id: other.Environment.ID, Slug: nil},
+				Compute:     compute(1, 0.25, 0, 0),
 			},
 			{
-				ProjectId: other.Project.ID, ProjectName: nil,
-				AppId: "", AppName: nil,
-				EnvironmentId: otherPreview.ID, EnvironmentSlug: nil,
-				CpuSeconds: 0.5, MemoryGiBHours: 0, DiskGiBHours: 0, EgressGiB: 0,
+				Project:     ref(other.Project.ID, nil),
+				App:         nil,
+				Environment: openapi.V2WorkspaceGetUsageEnvironmentResource{Id: otherPreview.ID, Slug: nil},
+				Compute:     compute(0.5, 0, 0, 0),
 			},
 		}
 		labsName := "Labs"
-		apps := []openapi.V2WorkspaceGetUsageApp{
-			{AppId: setup.App.ID, AppName: &setup.App.Name, ProjectId: &projectID, ProjectName: &projectName, ActiveKeys: 1},
-			{AppId: deletedAppID, AppName: nil, ProjectId: nil, ProjectName: nil, ActiveKeys: 2},
-			{AppId: labsApp.ID, AppName: &labsApp.Name, ProjectId: &labs.ID, ProjectName: &labsName, ActiveKeys: 2},
-			{AppId: "", AppName: nil, ProjectId: nil, ProjectName: nil, ActiveKeys: 1},
-			{AppId: other.App.ID, AppName: nil, ProjectId: nil, ProjectName: nil, ActiveKeys: 1},
+		gateway := func(activeKeys int64) openapi.V2WorkspaceGetUsageGateway {
+			return openapi.V2WorkspaceGetUsageGateway{ActiveKeys: activeKeys}
 		}
-		// Most keys first, then app id order
-		slices.SortFunc(apps, func(a, b openapi.V2WorkspaceGetUsageApp) int {
-			if a.ActiveKeys != b.ActiveKeys {
-				return int(b.ActiveKeys - a.ActiveKeys)
+		byApp := []openapi.V2WorkspaceGetUsageByAppRow{
+			{Project: &project, App: &appRef, Gateway: gateway(1)},
+			{Project: nil, App: new(ref(deletedAppID, nil)), Gateway: gateway(2)},
+			{Project: new(ref(labs.ID, &labsName)), App: new(ref(labsApp.ID, &labsApp.Name)), Gateway: gateway(2)},
+			{Project: nil, App: nil, Gateway: gateway(1)},
+			{Project: nil, App: new(ref(other.App.ID, nil)), Gateway: gateway(1)},
+		}
+		// Most keys first, then app id order, where a row without an app sorts as an empty id
+		appID := func(row openapi.V2WorkspaceGetUsageByAppRow) string {
+			if row.App == nil {
+				return ""
 			}
-			return strings.Compare(a.AppId, b.AppId)
+			return row.App.Id
+		}
+		slices.SortFunc(byApp, func(a, b openapi.V2WorkspaceGetUsageByAppRow) int {
+			if a.Gateway.ActiveKeys != b.Gateway.ActiveKeys {
+				return int(b.Gateway.ActiveKeys - a.Gateway.ActiveKeys)
+			}
+			return strings.Compare(appID(a), appID(b))
 		})
 
 		require.Equal(t, openapi.V2WorkspaceGetUsageResponseData{
 			Period: openapi.V2WorkspaceGetUsagePeriod{Start: monthStart.UnixMilli(), End: now.UnixMilli()},
-			// billable_verifications_per_month_mv_v2 also counts the 9 API verifications of apiKey
-			Api: openapi.V2WorkspaceGetUsageApi{Verifications: 40 + 9, Ratelimits: 2},
-			Compute: openapi.V2WorkspaceGetUsageCompute{
-				CpuSeconds:     189.25,
-				MemoryGiBHours: 6.25,
-				DiskGiBHours:   0.5,
-				EgressGiB:      1,
-				ActiveKeys:     7,
-				Environments:   environments,
-				Apps:           apps,
+			Totals: openapi.V2WorkspaceGetUsageTotals{
+				// billable_verifications_per_month_mv_v2 also counts the 9 API verifications of apiKey
+				Api:     openapi.V2WorkspaceGetUsageApi{Verifications: 40 + 9, Ratelimits: 2},
+				Compute: compute(189.25, 6.25, 0.5, 1),
+				Gateway: gateway(7),
+			},
+			Breakdowns: openapi.V2WorkspaceGetUsageBreakdowns{
+				ByEnvironment: byEnvironment,
+				ByApp:         byApp,
 			},
 		}, res.Body.Data)
 	})
@@ -230,12 +243,13 @@ func TestGetUsage(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers(setup.RootKey), handler.Request{Period: new(openapi.UsagePeriodPrevious)})
 		require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
 
-		require.Equal(t, openapi.V2WorkspaceGetUsagePeriod{Start: lastMonth.UnixMilli(), End: monthStart.UnixMilli()}, res.Body.Data.Period)
-		require.Equal(t, openapi.V2WorkspaceGetUsageApi{Verifications: 7, Ratelimits: 1}, res.Body.Data.Api)
-		require.Len(t, res.Body.Data.Compute.Environments, 1)
-		require.Equal(t, production.ID, res.Body.Data.Compute.Environments[0].EnvironmentId)
-		require.Equal(t, 1000.0, res.Body.Data.Compute.CpuSeconds)
-		require.Empty(t, res.Body.Data.Compute.Apps)
+		data := res.Body.Data
+		require.Equal(t, openapi.V2WorkspaceGetUsagePeriod{Start: lastMonth.UnixMilli(), End: monthStart.UnixMilli()}, data.Period)
+		require.Equal(t, openapi.V2WorkspaceGetUsageApi{Verifications: 7, Ratelimits: 1}, data.Totals.Api)
+		require.Len(t, data.Breakdowns.ByEnvironment, 1)
+		require.Equal(t, production.ID, data.Breakdowns.ByEnvironment[0].Environment.Id)
+		require.Equal(t, 1000.0, data.Totals.Compute.CpuSeconds)
+		require.Empty(t, data.Breakdowns.ByApp)
 	})
 }
 
@@ -249,11 +263,15 @@ func TestGetUsageEmptyMonth(t *testing.T) {
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers(rootKey), handler.Request{})
 	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
-	require.Equal(t, openapi.V2WorkspaceGetUsageApi{Verifications: 0, Ratelimits: 0}, res.Body.Data.Api)
-	require.Contains(t, res.RawBody, `"environments":[]`)
-	require.Contains(t, res.RawBody, `"apps":[]`)
-	require.Zero(t, res.Body.Data.Compute.CpuSeconds)
-	require.Zero(t, res.Body.Data.Compute.ActiveKeys)
+	require.Equal(t, openapi.V2WorkspaceGetUsageApi{Verifications: 0, Ratelimits: 0}, res.Body.Data.Totals.Api)
+	require.Contains(t, res.RawBody, `"byEnvironment":[]`)
+	require.Contains(t, res.RawBody, `"byApp":[]`)
+	require.Zero(t, res.Body.Data.Totals.Compute.CpuSeconds)
+	require.Zero(t, res.Body.Data.Totals.Gateway.ActiveKeys)
+}
+
+func ref(id string, name *string) openapi.V2WorkspaceGetUsageResource {
+	return openapi.V2WorkspaceGetUsageResource{Id: id, Name: name}
 }
 
 // Each row gets its own container so FINAL does not collapse rows that share
