@@ -115,7 +115,6 @@ import { queryRatelimitTimeseriesBatch } from "./ratelimit/query-timeseries-batc
 import { updateNamespaceName } from "./ratelimit/updateNamespaceName";
 import { deleteRootKeys } from "./settings/root-keys/delete";
 import { getRootKey } from "./settings/root-keys/get";
-import { queryRootKeys } from "./settings/root-keys/query";
 import { cancelDeploy } from "./stripe/cancelDeploy";
 import { cancelSubscription } from "./stripe/cancelSubscription";
 import { changeDeployPlan } from "./stripe/changeDeployPlan";
@@ -170,7 +169,6 @@ export const router = t.router({
   }),
   settings: t.router({
     rootKeys: t.router({
-      query: queryRootKeys,
       get: getRootKey,
       delete: deleteRootKeys,
     }),

@@ -1,9 +1,14 @@
 "use client";
 
 import { useCallback, useSyncExternalStore } from "react";
-import { type RelativeStyle, parseTimestamp, relativeTime } from "../lib/time";
+import {
+  type RelativePrecision,
+  type RelativeStyle,
+  parseTimestamp,
+  relativeTime,
+} from "../lib/time";
 
-export type { RelativeStyle };
+export type { RelativePrecision, RelativeStyle };
 
 const TICK_MS = 1_000;
 
@@ -50,16 +55,27 @@ function clock(): number {
 export function useRelativeTime(
   value: string | number | Date,
   style: RelativeStyle = "long",
+  precision: RelativePrecision = "minute",
 ): string {
   const time = parseTimestamp(value).getTime();
-  const read = useCallback(() => relativeTime(time, clock(), style), [time, style]);
+  const read = useCallback(
+    () => relativeTime(time, clock(), style, precision),
+    [time, style, precision],
+  );
   return useSyncExternalStore(subscribe, read, read);
 }
 
 // A server timestamp read against the browser's clock can sit ahead of it, and
 // something that has already happened must never read "in 25 sec".
-export function useElapsed(value: string | number | Date, style: RelativeStyle = "long"): string {
+export function useElapsed(
+  value: string | number | Date,
+  style: RelativeStyle = "long",
+  precision: RelativePrecision = "minute",
+): string {
   const time = parseTimestamp(value).getTime();
-  const read = useCallback(() => relativeTime(time, Math.max(clock(), time), style), [time, style]);
+  const read = useCallback(
+    () => relativeTime(time, Math.max(clock(), time), style, precision),
+    [time, style, precision],
+  );
   return useSyncExternalStore(subscribe, read, read);
 }
