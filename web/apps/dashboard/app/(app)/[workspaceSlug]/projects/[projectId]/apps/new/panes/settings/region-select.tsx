@@ -47,7 +47,7 @@ export function RegionSelect({ regions, error, onChange }: RegionSelectProps) {
         >
           {first ? (
             <>
-              <span className="flex shrink-0 items-center -space-x-1">
+              <span className="flex shrink-0 items-center gap-1">
                 {picked.slice(0, 3).map((region) => (
                   <RectFlag key={region.name} flag={region.flag} size="sm" />
                 ))}
