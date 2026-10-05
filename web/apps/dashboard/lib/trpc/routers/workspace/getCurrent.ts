@@ -1,10 +1,11 @@
 import { db } from "@/lib/db";
+import { workspaceFlagExtras } from "@/lib/db/workspace-flags";
 import { subscriptionIdsByProduct } from "@/lib/stripe/billingSubscriptions";
 import { TRPCError } from "@trpc/server";
-import { and, eq, schema } from "@unkey/db";
 import { protectedProcedure } from "../../trpc";
 
 const workspaceProjection = {
+  extras: workspaceFlagExtras,
   columns: {
     pk: true,
     id: true,
@@ -73,7 +74,7 @@ const workspaceProjection = {
 
 export const getCurrentWorkspace = protectedProcedure.query(async ({ ctx }) => {
   if (ctx.workspace) {
-    return { ...ctx.workspace, flags: await loadFlags(ctx.workspace.id) };
+    return ctx.workspace;
   }
 
   if (!ctx.tenant?.id) {
@@ -93,6 +94,7 @@ export const getCurrentWorkspace = protectedProcedure.query(async ({ ctx }) => {
   >;
   try {
     workspace = await db.query.workspaces.findFirst({
+      extras: workspaceFlagExtras,
       columns: {
         pk: true,
         id: true,
@@ -180,7 +182,6 @@ export const getCurrentWorkspace = protectedProcedure.query(async ({ ctx }) => {
   // billing pages) read the fresh values from the billing row.
   return {
     ...workspace,
-    flags: await loadFlags(workspace.id),
     tier: workspace.billing?.tier ?? "Free",
     stripeCustomerId: workspace.billing?.stripeCustomerId ?? null,
     ...subscriptionIdsByProduct(workspace.billingSubscriptions ?? []),
@@ -191,23 +192,3 @@ export const getCurrentWorkspace = protectedProcedure.query(async ({ ctx }) => {
     deploySpendSuspended: workspace.billing?.spendSuspended ?? false,
   };
 });
-
-async function loadFlags(workspaceId: string): Promise<Record<string, boolean>> {
-  const rows = await db
-    .select({
-      slug: schema.flags.slug,
-      defaultValue: schema.flags.defaultValue,
-      overrideValue: schema.workspaceFlagOverrides.value,
-    })
-    .from(schema.flags)
-    .leftJoin(
-      schema.workspaceFlagOverrides,
-      and(
-        eq(schema.workspaceFlagOverrides.flagId, schema.flags.id),
-        eq(schema.workspaceFlagOverrides.workspaceId, workspaceId),
-      ),
-    );
-  return Object.fromEntries(
-    rows.map((flag) => [flag.slug, flag.overrideValue ?? flag.defaultValue]),
-  );
-}
