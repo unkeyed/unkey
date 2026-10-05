@@ -2,6 +2,7 @@ package handler_test
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"testing"
 
@@ -33,7 +34,7 @@ func TestGetUsageReadPanicReturns500(t *testing.T) {
 	h.Register(route)
 
 	workspace := h.CreateWorkspace()
-	rootKey := h.CreateRootKey(workspace.ID, "workspace.*.read_usage")
+	rootKey := h.CreateRootKey(workspace.ID, fmt.Sprintf("unkey:v1:%s:usage#read", workspace.ID))
 
 	res := testutil.CallRoute[handler.Request, openapi.InternalServerErrorResponse](h, route, headers(rootKey), handler.Request{})
 	require.Equal(t, http.StatusInternalServerError, res.Status, "expected 500, received: %s", res.RawBody)

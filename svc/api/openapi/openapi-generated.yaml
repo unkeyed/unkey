@@ -18167,8 +18167,7 @@ paths:
 
                 **Required Permissions**
 
-                Your root key must have one of the following permissions:
-                - `workspace.*.read_usage`
+                Your root key must have this permission:
                 - `unkey:v1:<workspace_id>:usage#read`
             operationId: workspace.getUsage
             requestBody:
@@ -18427,7 +18426,7 @@ paths:
                                     summary: Missing required permission
                                     value:
                                         error:
-                                            detail: 'Missing one of these permissions: unkey:v1:ws_1234abcd:usage#read or workspace.*.read_usage'
+                                            detail: 'Missing permission: ''unkey:v1:ws_1234abcd:usage#read'''
                                             status: 403
                                             title: Insufficient Permissions
                                             type: https://unkey.com/docs/errors/unkey/authorization/insufficient_permissions
@@ -18435,7 +18434,7 @@ paths:
                                             requestId: req_1234abcd
                             schema:
                                 $ref: '#/components/schemas/ForbiddenErrorResponse'
-                    description: Forbidden - Insufficient permissions (requires `workspace.*.read_usage`)
+                    description: Forbidden - Insufficient permissions (requires `unkey:v1:<workspace_id>:usage#read`)
                 "429":
                     content:
                         application/problem+json:

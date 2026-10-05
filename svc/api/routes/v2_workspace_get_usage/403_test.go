@@ -36,7 +36,7 @@ func TestGetUsageAuthorization(t *testing.T) {
 		permissions []string
 		shouldPass  bool
 	}{
-		{name: "legacy permission", permissions: []string{"workspace.*.read_usage"}, shouldPass: true},
+		{name: "legacy permission", permissions: []string{"workspace.*.read_usage"}, shouldPass: false},
 		{name: "URN permission", permissions: []string{fmt.Sprintf("unkey:v1:%s:usage#read", workspace.ID)}, shouldPass: true},
 		{name: "URN global permission", permissions: []string{fmt.Sprintf("unkey:v1:%s:**#read", workspace.ID)}, shouldPass: true},
 		{name: "URN permission for another workspace", permissions: []string{fmt.Sprintf("unkey:v1:%s:usage#read", otherWorkspace.ID)}, shouldPass: false},

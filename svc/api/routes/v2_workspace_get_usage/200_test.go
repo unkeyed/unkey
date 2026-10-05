@@ -1,6 +1,7 @@
 package handler_test
 
 import (
+	"fmt"
 	"net/http"
 	"slices"
 	"strings"
@@ -52,9 +53,9 @@ func TestGetUsage(t *testing.T) {
 
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
 		ProjectName: "Payments",
-		Permissions: []string{"workspace.*.read_usage"},
 	})
 	workspaceID := setup.Workspace.ID
+	rootKey := h.CreateRootKey(workspaceID, fmt.Sprintf("unkey:v1:%s:usage#read", workspaceID))
 	projectID := setup.Project.ID
 	production := setup.Environment
 	preview := h.CreateEnvironment(seed.CreateEnvironmentRequest{
@@ -151,7 +152,7 @@ func TestGetUsage(t *testing.T) {
 	insertBillable(t, h, "billable_ratelimits_per_month_v2", workspaceID, lastMonth, 1)
 
 	t.Run("current month to date", func(t *testing.T) {
-		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers(setup.RootKey), handler.Request{})
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers(rootKey), handler.Request{})
 		require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
 
 		projectName := "Payments"
@@ -240,7 +241,7 @@ func TestGetUsage(t *testing.T) {
 	})
 
 	t.Run("past month", func(t *testing.T) {
-		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers(setup.RootKey), handler.Request{Period: &openapi.V2WorkspaceGetUsageRequestPeriod{Year: lastMonth.Year(), Month: int(lastMonth.Month())}})
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers(rootKey), handler.Request{Period: &openapi.V2WorkspaceGetUsageRequestPeriod{Year: lastMonth.Year(), Month: int(lastMonth.Month())}})
 		require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
 
 		data := res.Body.Data
@@ -259,7 +260,7 @@ func TestGetUsageEmptyMonth(t *testing.T) {
 	h.Register(route)
 
 	workspace := h.CreateWorkspace()
-	rootKey := h.CreateRootKey(workspace.ID, "workspace.*.read_usage")
+	rootKey := h.CreateRootKey(workspace.ID, fmt.Sprintf("unkey:v1:%s:usage#read", workspace.ID))
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers(rootKey), handler.Request{})
 	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)

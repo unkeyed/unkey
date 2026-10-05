@@ -2,6 +2,7 @@ package handler_test
 
 import (
 	"bytes"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -18,7 +19,7 @@ func TestGetUsageBadRequest(t *testing.T) {
 	h.Register(route)
 
 	workspace := h.CreateWorkspace()
-	rootKey := h.CreateRootKey(workspace.ID, "workspace.*.read_usage")
+	rootKey := h.CreateRootKey(workspace.ID, fmt.Sprintf("unkey:v1:%s:usage#read", workspace.ID))
 
 	call := func(t *testing.T, body string) testutil.TestResponse[openapi.BadRequestErrorResponse] {
 		t.Helper()

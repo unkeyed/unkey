@@ -17,8 +17,7 @@ post:
 
     **Required Permissions**
 
-    Your root key must have one of the following permissions:
-    - `workspace.*.read_usage`
+    Your root key must have this permission:
     - `unkey:v1:<workspace_id>:usage#read`
   operationId: workspace.getUsage
   x-speakeasy-name-override: getUsage
@@ -274,7 +273,7 @@ post:
                   status: 401
                   type: https://unkey.com/docs/errors/unkey/authentication/key_not_found
     "403":
-      description: Forbidden - Insufficient permissions (requires `workspace.*.read_usage`)
+      description: Forbidden - Insufficient permissions (requires `unkey:v1:<workspace_id>:usage#read`)
       content:
         application/json:
           schema:
@@ -287,7 +286,7 @@ post:
                   requestId: req_1234abcd
                 error:
                   title: Insufficient Permissions
-                  detail: "Missing one of these permissions: unkey:v1:ws_1234abcd:usage#read or workspace.*.read_usage"
+                  detail: "Missing permission: 'unkey:v1:ws_1234abcd:usage#read'"
                   status: 403
                   type: https://unkey.com/docs/errors/unkey/authorization/insufficient_permissions
     "429":
