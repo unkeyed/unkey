@@ -14,7 +14,7 @@ const buildCommandSchema = z.object({
 });
 
 export const BuildCommand = () => {
-  const { settings, variant } = useEnvironmentSettings();
+  const { settings } = useEnvironmentSettings();
   const { buildCommand: defaultValue, dockerfile } = settings;
   const updateAllEnvironments = useUpdateAllEnvironments();
 
@@ -67,7 +67,6 @@ export const BuildCommand = () => {
       }
       onSubmit={handleSubmit(onSubmit)}
       saveState={saveState}
-      autoSave={variant === "onboarding"}
     >
       <SettingField>
         <FormInput

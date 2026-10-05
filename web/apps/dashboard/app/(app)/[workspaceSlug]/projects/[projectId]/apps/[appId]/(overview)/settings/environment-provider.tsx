@@ -11,11 +11,9 @@ import { SettingsSkeleton } from "./components/settings-skeleton";
 
 type EnvironmentContextType = {
   settings: EnvironmentSettings;
-  variant: "settings" | "onboarding";
-  isSaving: boolean;
 };
 
-export const EnvironmentContext = createContext<EnvironmentContextType | null>(null);
+const EnvironmentContext = createContext<EnvironmentContextType | null>(null);
 
 /**
  * Resolves the environment to show, then hands off to the inner provider.
@@ -87,9 +85,5 @@ const EnvironmentSettingsInner = ({
     return <SettingsSkeleton />;
   }
 
-  return (
-    <EnvironmentContext.Provider value={{ settings, variant: "settings", isSaving: false }}>
-      {children}
-    </EnvironmentContext.Provider>
-  );
+  return <EnvironmentContext.Provider value={{ settings }}>{children}</EnvironmentContext.Provider>;
 };

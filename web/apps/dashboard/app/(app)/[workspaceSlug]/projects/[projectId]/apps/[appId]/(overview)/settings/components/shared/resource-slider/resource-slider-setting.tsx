@@ -9,12 +9,10 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import type { Limits } from "@unkey/db";
 import { Slider } from "@unkey/ui";
 import type React from "react";
-import { useContext, useEffect, useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
-import { EnvironmentContext, useEnvironmentSettings } from "../../../environment-provider";
 import { useMultiEnvironmentSettings } from "../../../hooks/use-multi-environment-settings";
-import { useUpdateAllEnvironments } from "../../../hooks/use-update-all-environments";
 import { SettingDescription, WideContent } from "../form-blocks";
 import { FormSettingCard, type SaveState, resolveSaveState } from "../form-setting-card";
 import { EnvironmentDisplayValue } from "./environment-display-value";
@@ -193,7 +191,6 @@ function getSliderProps(strategy: SliderStrategy, currentValue: number) {
 }
 
 export const ResourceSliderSetting = ({ config }: { config: ResourceSliderConfig }) => {
-  const envContext = useContext(EnvironmentContext);
   const { limits } = useWorkspace();
 
   const effectiveConfig = useMemo<ResourceSliderConfig>(
@@ -204,128 +201,7 @@ export const ResourceSliderSetting = ({ config }: { config: ResourceSliderConfig
     [config, limits],
   );
 
-  if (!envContext) {
-    throw new Error("ResourceSliderSetting must be used within EnvironmentProvider");
-  }
-
-  if (envContext.variant === "onboarding") {
-    return <SingleMode config={effectiveConfig} />;
-  }
-
   return <DualMode config={effectiveConfig} />;
-};
-
-const singleSchema = z.object({ value: z.number() });
-type SingleFormValues = z.infer<typeof singleSchema>;
-
-const SingleMode = ({ config }: { config: ResourceSliderConfig }) => {
-  const { settings, variant } = useEnvironmentSettings();
-  const updateAllEnvironments = useUpdateAllEnvironments();
-  const defaultValue = config.readValue(settings);
-
-  const {
-    handleSubmit,
-    setValue,
-    formState: { isValid, isSubmitting },
-    control,
-    reset,
-  } = useForm<SingleFormValues>({
-    resolver: zodResolver(singleSchema),
-    mode: "onChange",
-    defaultValues: { value: defaultValue },
-  });
-
-  useEffect(() => {
-    reset({ value: defaultValue });
-  }, [defaultValue, reset]);
-
-  const currentValue = useWatch({ control, name: "value" });
-
-  const onSubmit = async (values: SingleFormValues) => {
-    updateAllEnvironments((draft) => {
-      config.writeValue(draft, values.value);
-    });
-  };
-
-  const slider = useMemo(
-    () => ensureValuesSelectable(config.slider, [defaultValue], config.formatValue),
-    [config.slider, config.formatValue, defaultValue],
-  );
-
-  const hasChanges = currentValue !== defaultValue;
-  const sp = getSliderProps(slider, currentValue);
-
-  const extraCheck = config.extraSaveChecks?.([settings]);
-  const saveState = resolveSaveState([
-    ...(extraCheck ? [[true, extraCheck] as [boolean, SaveState]] : []),
-    [isSubmitting, { status: "saving" }],
-    [!isValid, { status: "disabled" }],
-    [!hasChanges, { status: "disabled", reason: "No changes to save" }],
-  ]);
-
-  const displayParts = config.formatValue(defaultValue);
-
-  return (
-    <FormSettingCard
-      icon={config.icon}
-      title={config.title}
-      description={config.description}
-      displayValue={
-        <span>
-          <span className="font-medium text-gray-12">{displayParts.value}</span>{" "}
-          <span className="text-gray-11">{displayParts.unit}</span>
-        </span>
-      }
-      onSubmit={handleSubmit(onSubmit)}
-      saveState={saveState}
-      autoSave
-    >
-      <WideContent>
-        <div className="flex items-center gap-3">
-          <Slider
-            min={sp.min}
-            max={sp.max}
-            step={sp.step}
-            value={[sp.sliderValue]}
-            onValueChange={([v]) => {
-              if (v !== undefined) {
-                setValue("value", sp.toFormValue(v), { shouldValidate: true });
-              }
-            }}
-            onValueCommitted={
-              variant === "onboarding"
-                ? ([v]) => {
-                    if (v !== undefined) {
-                      const newValue = sp.toFormValue(v);
-                      if (newValue !== defaultValue) {
-                        updateAllEnvironments((draft) => {
-                          config.writeValue(draft, newValue);
-                        });
-                      }
-                    }
-                  }
-                : undefined
-            }
-            className="flex-1 max-w-(--setting-w)"
-            rangeStyle={buildSliderRangeStyle(
-              sp.rangeIndex,
-              sp.rangeMax,
-              sp.rangeMin,
-              config.colorVar,
-            )}
-          />
-          {config.sliderAdornment?.(settings)}
-          <span className="text-sm">
-            <span className="font-medium text-gray-12">
-              {config.formatValue(currentValue).value}
-            </span>{" "}
-            <span className="text-gray-11">{config.formatValue(currentValue).unit}</span>
-          </span>
-        </div>
-        <SettingDescription>{config.settingDescription}</SettingDescription>
-      </WideContent>
-    </FormSettingCard>
-  );
 };
 
 const dualSchema = z.object({ production: z.number(), preview: z.number() });

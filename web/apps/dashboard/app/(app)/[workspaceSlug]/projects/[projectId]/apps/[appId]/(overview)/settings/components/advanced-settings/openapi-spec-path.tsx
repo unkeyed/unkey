@@ -17,7 +17,7 @@ const openapiSpecPathSchema = z.object({
 });
 
 export const OpenapiSpecPath = () => {
-  const { settings, variant } = useEnvironmentSettings();
+  const { settings } = useEnvironmentSettings();
   const { openapiSpecPath } = settings;
   const updateAllEnvironments = useUpdateAllEnvironments();
 
@@ -72,7 +72,6 @@ export const OpenapiSpecPath = () => {
       }
       onSubmit={handleSubmit(onSubmit)}
       saveState={saveState}
-      autoSave={variant === "onboarding"}
     >
       <SettingField>
         <span className="text-gray-11 text-sm flex items-center">OpenAPI Spec Path</span>

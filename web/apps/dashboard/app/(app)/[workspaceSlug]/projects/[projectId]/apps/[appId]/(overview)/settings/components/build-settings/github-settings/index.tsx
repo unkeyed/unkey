@@ -8,10 +8,9 @@ import { trpc } from "@/lib/trpc/client";
 import { match } from "@unkey/match";
 import { toast } from "@unkey/ui";
 import { useCallback } from "react";
-import { SelectedConfig } from "../../shared/selected-config";
 import { GitHubConnected } from "./github-connected";
 import { GitHubNoRepo } from "./github-no-repo";
-import { ComboboxSkeleton, GitHubSettingCard, ManageGitHubAppLink, RepoNameLabel } from "./shared";
+import { ComboboxSkeleton, GitHubSettingCard, ManageGitHubAppLink } from "./shared";
 
 type GitHubConnectionState =
   | { status: "loading" }
@@ -26,11 +25,10 @@ type GitHubConnectionState =
     };
 
 type GitHubProps = {
-  readOnly?: boolean;
   onBeforeNavigate?: () => void;
 };
 
-export const GitHub = ({ readOnly = false, onBeforeNavigate }: GitHubProps) => {
+export const GitHub = ({ onBeforeNavigate }: GitHubProps) => {
   const { projectId } = useProjectData();
   const appId = useAppId();
 
@@ -96,13 +94,6 @@ export const GitHub = ({ readOnly = false, onBeforeNavigate }: GitHubProps) => {
       <GitHubNoRepo projectId={projectId} appId={appId} onInstall={install} />
     ))
     .with({ status: "connected" }, ({ appId, repoFullName, onInstall: install }) => {
-      if (readOnly) {
-        return (
-          <GitHubSettingCard chevronState="disabled">
-            <SelectedConfig label={<RepoNameLabel fullName={repoFullName} />} />
-          </GitHubSettingCard>
-        );
-      }
       return (
         <GitHubConnected
           projectId={projectId}

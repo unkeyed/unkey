@@ -16,7 +16,7 @@ const dockerfileSchema = z.object({
 });
 
 export const Dockerfile = () => {
-  const { settings, variant } = useEnvironmentSettings();
+  const { settings } = useEnvironmentSettings();
   const { dockerfile: defaultValue, dockerContext } = settings;
   const updateAllEnvironments = useUpdateAllEnvironments();
   const { branch, validateDockerfilePath, findDockerfileCaseMatch, getDockerfilesForContext } =
@@ -113,7 +113,6 @@ export const Dockerfile = () => {
       displayValue={defaultValue || "Automatic (no Dockerfile)"}
       onSubmit={handleSubmit(onSubmit)}
       saveState={saveState}
-      autoSave={variant === "onboarding"}
     >
       <SettingField>
         <FormCombobox

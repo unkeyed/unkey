@@ -33,7 +33,7 @@ const rootDirectorySchema = z.object({
 });
 
 export const RootDirectory = () => {
-  const { settings, variant } = useEnvironmentSettings();
+  const { settings } = useEnvironmentSettings();
   const { dockerContext: defaultValue } = settings;
   const updateAllEnvironments = useUpdateAllEnvironments();
   const { branch, validatePath, findCaseInsensitiveMatch, rootDirectorySuggestions } =
@@ -120,7 +120,6 @@ export const RootDirectory = () => {
       displayValue={defaultValue || "."}
       onSubmit={handleSubmit(onSubmit)}
       saveState={saveState}
-      autoSave={variant === "onboarding"}
     >
       <SettingField>
         <FormCombobox

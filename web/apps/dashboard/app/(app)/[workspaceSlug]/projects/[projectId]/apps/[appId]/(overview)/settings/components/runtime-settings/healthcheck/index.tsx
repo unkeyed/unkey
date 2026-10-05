@@ -22,7 +22,7 @@ import { HTTP_METHODS, type HealthcheckFormValues, healthcheckSchema } from "./s
 import { intervalToSeconds, secondsToInterval } from "./utils";
 
 export const Healthcheck = () => {
-  const { settings, variant } = useEnvironmentSettings();
+  const { settings } = useEnvironmentSettings();
   const { healthcheck } = settings;
   const updateAllEnvironments = useUpdateAllEnvironments();
 
@@ -94,7 +94,6 @@ export const Healthcheck = () => {
       }
       onSubmit={handleSubmit(onSubmit)}
       saveState={saveState}
-      autoSave={variant === "onboarding"}
     >
       <SettingField>
         <div className="flex items-center gap-3">
