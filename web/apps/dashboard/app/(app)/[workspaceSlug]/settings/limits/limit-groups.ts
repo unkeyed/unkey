@@ -1,8 +1,8 @@
-import { CUSTOM_DOMAINS_UNLIMITED } from "@/lib/limits";
 import type {
   LimitMeter,
   V2WorkspaceGetLimitsApi,
   V2WorkspaceGetLimitsCompute,
+  V2WorkspaceGetLimitsCustomDomains,
   V2WorkspaceGetLimitsLogs,
   V2WorkspaceGetLimitsResponseData,
   V2WorkspaceGetLimitsVcpuMeter,
@@ -139,25 +139,30 @@ function logsGroup(logs: V2WorkspaceGetLimitsLogs | undefined): LimitGroup {
   };
 }
 
-function customDomainsRow(customDomains: LimitMeter | undefined): LimitRow {
+function customDomainsRow(customDomains: V2WorkspaceGetLimitsCustomDomains | undefined): LimitRow {
   const text = {
     name: "Custom domains",
     description: "Domains you can attach across all apps in this workspace.",
     breachKey: "domains",
   } as const;
 
-  // A meter of 0 against 0 tells the reader nothing. The plan simply does not
-  // include the feature, which is how the docs say it too.
-  if (customDomains?.limit === 0) {
-    return ceiling(text, "Not included");
+  // While loading, the plan is unknown, so the row loads as a meter like a capped plan
+  if (customDomains === undefined) {
+    return metered(text, undefined, count);
   }
 
-  if (customDomains !== undefined && customDomains.limit >= CUSTOM_DOMAINS_UNLIMITED) {
+  const { limit, used } = customDomains;
+  if (limit === undefined) {
     return ceiling(text, "Unlimited");
   }
 
-  // While loading, the plan is unknown, so the row loads as a meter like a capped plan
-  return metered(text, customDomains, count);
+  // A meter of 0 against 0 tells the reader nothing. The plan simply does not
+  // include the feature, which is how the docs say it too.
+  if (limit === 0) {
+    return ceiling(text, "Not included");
+  }
+
+  return metered(text, { limit, used }, count);
 }
 
 function computeGroup(compute: V2WorkspaceGetLimitsCompute | undefined): LimitGroup {
@@ -168,24 +173,24 @@ function computeGroup(compute: V2WorkspaceGetLimitsCompute | undefined): LimitGr
     rows: [
       metered(
         { name: "Workspace CPU", description: "Total CPU across all your apps." },
-        compute?.vCpus,
+        compute?.workspace.vCpus,
         vCpus,
       ),
-      ceiling({ name: "CPU per instance" }, compute && vCpus(compute.vCpusPerInstance)),
+      ceiling({ name: "CPU per instance" }, compute && vCpus(compute.perInstance.vCpus)),
       metered(
         { name: "Workspace memory", description: "Total memory across all your apps." },
-        compute?.memoryMib,
+        compute?.workspace.memoryMib,
         mib,
       ),
-      ceiling({ name: "Memory per instance" }, compute && mib(compute.memoryMibPerInstance)),
+      ceiling({ name: "Memory per instance" }, compute && mib(compute.perInstance.memoryMib)),
       metered(
         { name: "Workspace ephemeral disk", description: "Total disk across all your apps." },
-        compute?.storageMib,
+        compute?.workspace.storageMib,
         mib,
       ),
       ceiling(
         { name: "Ephemeral disk per instance" },
-        compute && mib(compute.storageMibPerInstance),
+        compute && mib(compute.perInstance.storageMib),
       ),
       ceiling({ name: "Concurrent builds" }, compute && count(compute.concurrentBuilds)),
       ceiling(

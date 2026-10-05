@@ -1,4 +1,4 @@
-import { type LimitsPlan, limitsByPlan } from "@/lib/limits";
+import { CUSTOM_DOMAINS_UNLIMITED, type LimitsPlan, limitsByPlan } from "@/lib/limits";
 import type {
   V2WorkspaceGetLimitsCompute,
   V2WorkspaceGetLimitsResponseData,
@@ -11,15 +11,23 @@ const ROW = "Custom domains";
 function computeFor(plan: LimitsPlan, attachedDomains: number): V2WorkspaceGetLimitsCompute {
   const limits = limitsByPlan[plan];
   return {
-    vCpus: { limit: limits.cpuCoresMax, used: 0 },
-    vCpusPerInstance: limits.cpuCoresMaxPerInstance,
-    memoryMib: { limit: limits.memoryMibMax, used: 0 },
-    memoryMibPerInstance: limits.memoryMibMaxPerInstance,
-    storageMib: { limit: limits.storageMibMax, used: 0 },
-    storageMibPerInstance: limits.storageMibMaxPerInstance,
+    workspace: {
+      vCpus: { limit: limits.cpuCoresMax, used: 0 },
+      memoryMib: { limit: limits.memoryMibMax, used: 0 },
+      storageMib: { limit: limits.storageMibMax, used: 0 },
+    },
+    perInstance: {
+      vCpus: limits.cpuCoresMaxPerInstance,
+      memoryMib: limits.memoryMibMaxPerInstance,
+      storageMib: limits.storageMibMaxPerInstance,
+    },
     concurrentBuilds: limits.buildsConcurrentMax,
     replicasPerRegion: limits.autoscalingReplicasMax,
-    customDomains: { limit: limits.customDomainsMax, used: attachedDomains },
+    // The API omits the limit for unlimited plans
+    customDomains:
+      limits.customDomainsMax >= CUSTOM_DOMAINS_UNLIMITED
+        ? { used: attachedDomains }
+        : { limit: limits.customDomainsMax, used: attachedDomains },
   };
 }
 
@@ -87,7 +95,10 @@ describe("workspace CPU row", () => {
     const groups = buildLimitGroups(
       {
         ...responseFor("starter", 0),
-        compute: { ...computeFor("starter", 0), vCpus: { limit: 30, used: 2.5 } },
+        compute: {
+          ...computeFor("starter", 0),
+          workspace: { ...computeFor("starter", 0).workspace, vCpus: { limit: 30, used: 2.5 } },
+        },
       },
       true,
     );
@@ -155,7 +166,10 @@ describe("breachedKeys", () => {
     const groups = buildLimitGroups(
       {
         ...responseFor("starter", 0),
-        compute: { ...computeFor("starter", 0), storageMib: { limit: 0, used: 512 } },
+        compute: {
+          ...computeFor("starter", 0),
+          workspace: { ...computeFor("starter", 0).workspace, storageMib: { limit: 0, used: 512 } },
+        },
       },
       true,
     );
