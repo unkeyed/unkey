@@ -180,7 +180,7 @@ func insertLogdrain(t *testing.T, h *testutil.Harness, workspaceID string) {
 	t.Helper()
 	_, err := h.DB.RW().ExecContext(t.Context(),
 		"INSERT INTO logdrains (id, workspace_id, name, stream, config, lease_id, fencing_token, created_at) VALUES (?, ?, ?, 'audit_logs', ?, '', '', ?)",
-		uid.New("ld"), workspaceID, "KEBAP", []byte("{}"), time.Now().UnixMilli(),
+		uid.New(uid.LogdrainPrefix), workspaceID, "KEBAP", []byte("{}"), time.Now().UnixMilli(),
 	)
 	require.NoError(t, err)
 }

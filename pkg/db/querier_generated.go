@@ -3102,8 +3102,9 @@ type Querier interface {
 	//      AND workspace_id = ?
 	//      AND deleted_at IS NULL
 	SoftDeleteUnkeyRootKey(ctx context.Context, db DBTX, arg SoftDeleteUnkeyRootKeyParams) (int64, error)
-	// The same sum svc/ctrl reserveTopologies checks against the workspace limits
-	// before a deploy. Covered by workspace_idx on deployment_topology
+	// The sum svc/ctrl reserveTopologies checks against the workspace limits,
+	// without its exclude_deployment_id filter. Covered by workspace_idx on
+	// deployment_topology
 	//
 	//  SELECT
 	//    CAST(COALESCE(SUM(d.`cpu_millicores` * dt.`autoscaling_replicas_max`), 0) AS SIGNED) AS `total_cpu_millicores`,

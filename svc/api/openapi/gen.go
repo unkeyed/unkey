@@ -6856,9 +6856,9 @@ type V2WorkspaceGetLimitsApi struct {
 	// calendar month (UTC), against the monthly allowance.
 	BillableOperations LimitMeter `json:"billableOperations"`
 
-	// RequestsPerMinute The maximum API requests per minute for the workspace. Requests above it
-	// get a 429 with the `RateLimit-*` headers. Omitted when the workspace has
-	// no per-minute limit.
+	// RequestsPerMinute The maximum authenticated API requests per minute for the workspace.
+	// Requests above it get a 429. Omitted when the workspace has no
+	// per-minute limit.
 	//
 	//
 	// Example: 1000

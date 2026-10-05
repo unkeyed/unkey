@@ -20,11 +20,11 @@ export type V2WorkspaceGetLimitsApi = {
    */
   billableOperations: LimitMeter;
   /**
-   * The maximum API requests per minute for the workspace. Requests above it
+   * The maximum authenticated API requests per minute for the workspace.
    *
    * @remarks
-   * get a 429 with the `RateLimit-*` headers. Omitted when the workspace has
-   * no per-minute limit.
+   * Requests above it get a 429. Omitted when the workspace has no
+   * per-minute limit.
    */
   requestsPerMinute?: number | undefined;
 };

@@ -13,8 +13,8 @@ properties:
     type: integer
     format: int64
     description: |
-      The maximum API requests per minute for the workspace. Requests above it
-      get a 429 with the `RateLimit-*` headers. Omitted when the workspace has
-      no per-minute limit.
+      The maximum authenticated API requests per minute for the workspace.
+      Requests above it get a 429. Omitted when the workspace has no
+      per-minute limit.
     example: 1000
 additionalProperties: false
