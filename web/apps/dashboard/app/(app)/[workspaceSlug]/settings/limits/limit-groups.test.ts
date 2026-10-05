@@ -39,7 +39,7 @@ function responseFor(plan: LimitsPlan, attachedDomains: number): V2WorkspaceGetL
 }
 
 function groupsFor(plan: LimitsPlan, attachedDomains: number): LimitGroup[] {
-  return buildLimitGroups(responseFor(plan, attachedDomains));
+  return buildLimitGroups(responseFor(plan, attachedDomains), true);
 }
 
 function domainsRow(groups: LimitGroup[]) {
@@ -49,14 +49,13 @@ function domainsRow(groups: LimitGroup[]) {
 describe("log drains row", () => {
   it("meters the current count against the workspace allowance", () => {
     const response = responseFor("free", 0);
-    const groups = buildLimitGroups({
-      ...response,
-      logs: { ...response.logs, logDrains: { limit: 3, used: 1 } },
-    });
+    const groups = buildLimitGroups(
+      { ...response, logs: { ...response.logs, logDrains: { limit: 3, used: 1 } } },
+      true,
+    );
     expect(groups.find((group) => group.key === "logs")?.rows).toContainEqual({
       name: "Log drains",
-      limit: "3",
-      usage: { value: 1, max: 3, label: "1" },
+      value: { state: "ready", limit: "3", usage: { value: 1, max: 3, label: "1" } },
       status: "ok",
     });
   });
@@ -64,13 +63,19 @@ describe("log drains row", () => {
 
 describe("workspace CPU row", () => {
   it("shows fractional reserved vCPUs against the workspace limit", () => {
-    const groups = buildLimitGroups({
-      ...responseFor("starter", 0),
-      compute: { ...computeFor("starter", 0), vCpus: { limit: 30, used: 2.5 } },
-    });
+    const groups = buildLimitGroups(
+      {
+        ...responseFor("starter", 0),
+        compute: { ...computeFor("starter", 0), vCpus: { limit: 30, used: 2.5 } },
+      },
+      true,
+    );
     const row = groups.flatMap((group) => group.rows).find((r) => r.name === "Workspace CPU");
-    expect(row?.limit).toBe("30 vCPU");
-    expect(row?.usage).toEqual({ value: 2.5, max: 30, label: "2.50 vCPU" });
+    expect(row?.value).toEqual({
+      state: "ready",
+      limit: "30 vCPU",
+      usage: { value: 2.5, max: 30, label: "2.50 vCPU" },
+    });
   });
 });
 
@@ -79,29 +84,33 @@ describe("custom domains row", () => {
     const compute = groupsFor("starter", 0).find((group) => group.key === "compute");
     expect(compute?.rows.map((row) => row.name)).toContain(ROW);
 
-    const withoutPlan = buildLimitGroups({ ...responseFor("starter", 0), compute: undefined });
+    const withoutPlan = buildLimitGroups(
+      { ...responseFor("starter", 0), compute: undefined },
+      true,
+    );
     expect(domainsRow(withoutPlan)).toBeUndefined();
   });
 
   it("reads 'Not included' with no meter when the plan allows none", () => {
     const row = domainsRow(groupsFor("free", 0));
-    expect(row?.limit).toBe("Not included");
-    expect(row?.usage).toBeUndefined();
+    expect(row?.value).toEqual({ state: "ready", limit: "Not included" });
     expect(row?.status).toBe("ok");
   });
 
   it("reads 'Unlimited' with no meter on the uncapped plans", () => {
     for (const plan of ["pro", "business"] as const) {
       const row = domainsRow(groupsFor(plan, 3));
-      expect(row?.limit).toBe("Unlimited");
-      expect(row?.usage).toBeUndefined();
+      expect(row?.value).toEqual({ state: "ready", limit: "Unlimited" });
     }
   });
 
   it("meters the attached count against a real cap", () => {
     const row = domainsRow(groupsFor("starter", 0));
-    expect(row?.limit).toBe("1");
-    expect(row?.usage).toEqual({ value: 0, max: 1, label: "0" });
+    expect(row?.value).toEqual({
+      state: "ready",
+      limit: "1",
+      usage: { value: 0, max: 1, label: "0" },
+    });
     expect(row?.status).toBe("ok");
   });
 
@@ -122,10 +131,50 @@ describe("breachedKeys", () => {
 
   it("reports the group key for rows that carry no breachKey", () => {
     // A storage limit of 0 with disk reserved is a compute breach, not a domain one.
-    const groups = buildLimitGroups({
-      ...responseFor("starter", 0),
-      compute: { ...computeFor("starter", 0), storageMib: { limit: 0, used: 512 } },
-    });
+    const groups = buildLimitGroups(
+      {
+        ...responseFor("starter", 0),
+        compute: { ...computeFor("starter", 0), storageMib: { limit: 0, used: 512 } },
+      },
+      true,
+    );
     expect(breachedKeys(groups)).toEqual(["compute"]);
+  });
+});
+
+describe("loading page", () => {
+  // The loading page is the loaded page with values still loading, so nothing
+  // moves when the limits arrive
+  function shape(groups: LimitGroup[]) {
+    return groups.map((group) => ({
+      key: group.key,
+      title: group.title,
+      description: group.description,
+      rows: group.rows.map((row) => ({
+        name: row.name,
+        description: row.description,
+        metered: row.value.state === "loading" ? row.value.metered : row.value.usage !== undefined,
+      })),
+    }));
+  }
+
+  it("has the groups, rows, and meters of the loaded page", () => {
+    expect(shape(buildLimitGroups(undefined, true))).toEqual(shape(groupsFor("starter", 0)));
+  });
+
+  it("shows no Compute group without a compute plan", () => {
+    const loading = buildLimitGroups(undefined, false);
+    expect(loading.map((group) => group.key)).toEqual(["api", "logs"]);
+    expect(shape(loading)).toEqual(
+      shape(buildLimitGroups({ ...responseFor("starter", 0), compute: undefined }, false)),
+    );
+  });
+
+  it("loads every value and reports no breach", () => {
+    const loading = buildLimitGroups(undefined, true);
+    expect(
+      loading.flatMap((group) => group.rows).every((row) => row.value.state === "loading"),
+    ).toBe(true);
+    expect(breachedKeys(loading)).toEqual([]);
   });
 });

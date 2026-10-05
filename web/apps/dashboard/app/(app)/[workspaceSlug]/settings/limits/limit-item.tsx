@@ -43,36 +43,37 @@ export function LimitItem({ row }: { row: LimitRow }) {
   );
 }
 
-export function LimitItemSkeleton() {
-  return (
-    <Item>
-      <ItemContent>
-        <div className="flex h-5 items-center">
-          <Skeleton className="h-4 w-40" />
-        </div>
-      </ItemContent>
-      <ItemActions className="w-56 sm:w-80">
-        <div className={CELLS}>
-          <Skeleton className="h-4 w-14 justify-self-end" />
-          <Skeleton className="h-1.5 w-full rounded-full" />
-          <Skeleton className="h-4 w-12" />
-        </div>
-      </ItemActions>
-    </Item>
-  );
-}
-
 /** Content-width limit column, so the number stays flush right whatever its length. */
 const CELLS = "grid w-full grid-cols-[5.5rem_1fr_auto] items-center gap-3";
 
 function LimitValue({ row }: { row: LimitRow }) {
-  const usage = row.usage;
+  const value = row.value;
+  if (value.state === "loading") {
+    return (
+      <div className={CELLS}>
+        {value.metered ? (
+          <>
+            <Skeleton className="h-4 w-14 justify-self-end" />
+            <Skeleton className="h-1.5 w-full rounded-full" />
+          </>
+        ) : (
+          <>
+            <span />
+            <span />
+          </>
+        )}
+        <Skeleton className="h-4 w-16 justify-self-end" />
+      </div>
+    );
+  }
+
+  const usage = value.usage;
   if (!usage) {
     return (
       <div className={CELLS}>
         <span />
         <span />
-        <Limit>{row.limit}</Limit>
+        <Limit>{value.limit}</Limit>
       </div>
     );
   }
@@ -94,7 +95,7 @@ function LimitValue({ row }: { row: LimitRow }) {
       <MeterTrack>
         <MeterIndicator className={breached ? "bg-error-9" : undefined} />
       </MeterTrack>
-      <Limit>{row.limit}</Limit>
+      <Limit>{value.limit}</Limit>
     </Meter>
   );
 }

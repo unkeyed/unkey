@@ -26,14 +26,13 @@ import {
   PageHeaderActions,
   PageHeaderContent,
   PageHeaderTitle,
-  Skeleton,
 } from "@unkey/ui";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Fragment, type ReactNode } from "react";
 import { BreachBanner } from "./breach-banner";
 import { type GroupKey, type LimitGroup, breachedKeys, buildLimitGroups } from "./limit-groups";
-import { LimitItem, LimitItemSkeleton } from "./limit-item";
+import { LimitItem } from "./limit-item";
 
 const CHIPS: Record<GroupKey, { icon: ReactNode; className: string }> = {
   api: { icon: <IconNodesOutline18 />, className: "bg-infoA-3 text-info-11" },
@@ -41,15 +40,10 @@ const CHIPS: Record<GroupKey, { icon: ReactNode; className: string }> = {
   compute: { icon: <IconCubeOutline18 />, className: "bg-orangeA-3 text-orange-11" },
 };
 
-const SKELETON_ROWS: Record<GroupKey, number> = { api: 2, logs: 3, compute: 9 };
-
 export default function LimitsPage() {
   const billingUpgrades = useBillingUIUpgrades();
   const { workspace } = useWorkspace();
-  const skeletonGroups: GroupKey[] =
-    workspace?.deployPlan || workspace?.deployPlanOverride
-      ? ["api", "logs", "compute"]
-      : ["api", "logs"];
+  const hasComputePlan = Boolean(workspace?.deployPlan) || Boolean(workspace?.deployPlanOverride);
   const limits = useQuery({
     queryKey: queryKeys.workspace.limits,
     queryFn: async () => (await getUnkeyClient().workspace.getLimits()).data,
@@ -61,32 +55,7 @@ export default function LimitsPage() {
     notFound();
   }
 
-  if (limits.isLoading) {
-    return (
-      <Shell>
-        {skeletonGroups.map((key) => (
-          <ItemGroup key={key} variant="outline">
-            <ItemHeader>
-              <ItemMedia />
-              <ItemContent>
-                <Skeleton className="h-4 w-32" />
-                <Skeleton className="h-4 w-64" />
-              </ItemContent>
-            </ItemHeader>
-            {Array.from({ length: SKELETON_ROWS[key] }).map((_, i) => (
-              // biome-ignore lint/suspicious/noArrayIndexKey: skeleton items don't need stable keys
-              <Fragment key={i}>
-                <ItemSeparator />
-                <LimitItemSkeleton />
-              </Fragment>
-            ))}
-          </ItemGroup>
-        ))}
-      </Shell>
-    );
-  }
-
-  if (!limits.data) {
+  if (limits.isError && limits.data === undefined) {
     return (
       <Shell>
         <EmptyState>
@@ -101,7 +70,7 @@ export default function LimitsPage() {
     );
   }
 
-  const groups = buildLimitGroups(limits.data);
+  const groups = buildLimitGroups(limits.data, hasComputePlan);
   const breached = breachedKeys(groups);
 
   return (
