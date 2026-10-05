@@ -1,6 +1,14 @@
 ---
 title: "Routing and failover"
 description: "Frontline routing decisions and cross-region forwarding"
+notion:
+  rootPageID: 3ee512d643f38063b525d6c3619c1f69
+  owners:
+    - andreas
+  tags:
+    - Architecture
+    - Services
+    - Frontline
 ---
 
 Frontline routes a request by looking up its hostname, selecting a healthy instance of the target deployment, and proxying locally or forwarding to another region.

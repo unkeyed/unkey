@@ -1,6 +1,14 @@
 ---
 title: "GitHub App"
 description: "GitHub App authentication and failure modes"
+notion:
+  rootPageID: 3ee512d643f38063b525d6c3619c1f69
+  owners:
+    - andreas
+  tags:
+    - Architecture
+    - Services
+    - Control Plane
 ---
 
 The control worker uses a GitHub App to access repositories for git-based builds. Authentication uses JWTs signed by the app private key, then exchanges for installation tokens scoped to the repo.
