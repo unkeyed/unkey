@@ -21,6 +21,7 @@ type CreateImageAppInput = {
 export type CreateAppResult = { ok: true; appId: string } | { ok: false; error: string | null };
 
 const MAX_NAME_ATTEMPTS = 3;
+const REGIONS_STALE_MS = 5 * 60 * 1000;
 
 function isConflict(error: unknown): boolean {
   return (
@@ -32,12 +33,16 @@ function isConflict(error: unknown): boolean {
 export function useAppLifecycle(projectId: string) {
   const utils = trpc.useUtils();
 
-  const projectApps = async () => {
-    await collection.apps.utils.refetch();
+  // The flow's live query keeps the apps loaded; a stale list ends in a conflict retry.
+  const projectApps = async (fresh: boolean) => {
+    if (fresh) {
+      await collection.apps.utils.refetch();
+    }
     return collection.apps.toArray.filter((app) => app.projectId === projectId);
   };
 
-  const takenSlugs = async () => new Set((await projectApps()).map((app) => app.slug));
+  const takenSlugs = async (attempt: number) =>
+    new Set((await projectApps(attempt > 0)).map((app) => app.slug));
 
   const applyToEnvironments = async (appId: string, settings: InitialSettings) => {
     const { data: environments } = await getUnkeyClient().environments.listEnvironments({
@@ -92,7 +97,7 @@ export function useAppLifecycle(projectId: string) {
     settings,
   }: CreateImageAppInput): Promise<CreateAppResult> => {
     for (let attempt = 0; attempt < MAX_NAME_ATTEMPTS; attempt++) {
-      const name = uniqueAppName(baseName, await takenSlugs());
+      const name = uniqueAppName(baseName, await takenSlugs(attempt));
       try {
         const appId = await insertImageApp(name, imageReference);
         await applyOrWarn(appId, async () => settings);
@@ -108,8 +113,10 @@ export function useAppLifecycle(projectId: string) {
 
   // Skips the apps collection so the create raises no "App created" toast.
   const createGitApp = async (baseName: string): Promise<CreateAppResult> => {
+    const regionsQuery = utils.deploy.environmentSettings.getAvailableRegions;
+    void regionsQuery.prefetch(undefined, { staleTime: REGIONS_STALE_MS });
     for (let attempt = 0; attempt < MAX_NAME_ATTEMPTS; attempt++) {
-      const name = uniqueAppName(baseName, await takenSlugs());
+      const name = uniqueAppName(baseName, await takenSlugs(attempt));
       try {
         const { data } = await getUnkeyClient().apps.createApp({
           project: projectId,
@@ -117,11 +124,13 @@ export function useAppLifecycle(projectId: string) {
           slug: name,
           git: {},
         });
-        await applyOrWarn(data.appId, async () => {
-          const regions = await utils.deploy.environmentSettings.getAvailableRegions.fetch();
-          return { regionNames: regions.filter((r) => r.canSchedule).map((r) => r.name) };
-        });
-        await collection.apps.utils.refetch();
+        await Promise.all([
+          applyOrWarn(data.appId, async () => {
+            const regions = await regionsQuery.fetch(undefined, { staleTime: REGIONS_STALE_MS });
+            return { regionNames: regions.filter((r) => r.canSchedule).map((r) => r.name) };
+          }),
+          collection.apps.utils.refetch(),
+        ]);
         return { ok: true, appId: data.appId };
       } catch (error) {
         if (!isConflict(error)) {
@@ -133,13 +142,13 @@ export function useAppLifecycle(projectId: string) {
   };
 
   const createGitPlaceholder = async (): Promise<CreateAppResult> => {
-    const reusable = findReusablePlaceholder(await projectApps());
+    const reusable = findReusablePlaceholder(await projectApps(false));
     return reusable ? { ok: true, appId: reusable } : createGitApp(provisionalAppName);
   };
 
   const renameApp = async (appId: string, baseName: string): Promise<void> => {
     for (let attempt = 0; attempt < MAX_NAME_ATTEMPTS; attempt++) {
-      const apps = await projectApps();
+      const apps = await projectApps(attempt > 0);
       if (apps.find((app) => app.id === appId)?.slug === baseName) {
         return;
       }

@@ -5,6 +5,10 @@ export type RepoItem = {
   defaultBranch: string;
 };
 
+export function repoShortName(fullName: string): string {
+  return fullName.split("/").at(-1) ?? fullName;
+}
+
 export type Connection = {
   repositoryId: number;
   repositoryFullName: string;

@@ -3,17 +3,13 @@
 import { IconMagnifierOutline12 } from "@unkey/icons";
 import { InputGroup, InputGroupAddon, InputGroupInput, Loading } from "@unkey/ui";
 import { useState } from "react";
-import type { RepoItem } from "./repository-view";
+import { type RepoItem, repoShortName } from "./repository-view";
 
 type RepoNameListProps = {
   repos: RepoItem[];
   pendingRepoId: number | null;
   onPick: (repo: RepoItem) => void;
 };
-
-function repoName(fullName: string): string {
-  return fullName.split("/").at(-1) ?? fullName;
-}
 
 export function RepoListPlaceholder({ message }: { message: string }) {
   return (
@@ -75,7 +71,7 @@ export function RepoNameList({ repos, pendingRepoId, onPick }: RepoNameListProps
                     onClick={() => onPick(repo)}
                     className="flex h-10 w-full items-center gap-3 px-4 text-left text-sm text-gray-12 hover:bg-grayA-2 focus-visible:bg-grayA-2 focus-visible:outline-hidden disabled:cursor-not-allowed disabled:opacity-50"
                   >
-                    <span className="min-w-0 flex-1 truncate">{repoName(repo.fullName)}</span>
+                    <span className="min-w-0 flex-1 truncate">{repoShortName(repo.fullName)}</span>
                     {pendingRepoId === repo.id ? <Loading size={14} /> : null}
                   </button>
                 </li>

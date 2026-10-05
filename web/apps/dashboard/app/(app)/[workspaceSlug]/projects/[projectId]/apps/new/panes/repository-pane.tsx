@@ -17,6 +17,7 @@ import { RepoListPlaceholder, RepoNameList } from "./repository/repo-name-list";
 import {
   type Connection,
   type RepoItem,
+  repoShortName,
   resolvePickView,
   resolveSetupView,
 } from "./repository/repository-view";
@@ -78,7 +79,7 @@ export function PickRepoPane({ appId }: { appId: string | null }) {
   const { link } = useLinkRepository();
   const github = useConnectGithub();
   const [pendingRepoId, setPendingRepoId] = useState<number | null>(null);
-  const [linkedAppId, setLinkedAppId] = useState<string | null>(null);
+  const [linked, setLinked] = useState(false);
   const [pickError, setPickError] = useState<string | null>(null);
 
   const { data: context } = trpc.deploy.project.creationContext.useQuery();
@@ -101,19 +102,19 @@ export function PickRepoPane({ appId }: { appId: string | null }) {
         setPickError(app.error);
         return;
       }
-      if (existing) {
-        await renameApp(existing.id, baseName);
-      }
-      await link(
-        app.appId,
-        {
-          repositoryId: repo.id,
-          repositoryFullName: repo.fullName,
-          installationId: repo.installationId,
-        },
-        repo.defaultBranch,
-      );
-      setLinkedAppId(app.appId);
+      await Promise.all([
+        existing ? renameApp(existing.id, baseName) : null,
+        link(
+          app.appId,
+          {
+            repositoryId: repo.id,
+            repositoryFullName: repo.fullName,
+            installationId: repo.installationId,
+          },
+          repo.defaultBranch,
+        ),
+      ]);
+      setLinked(true);
     } catch (error) {
       setPendingRepoId(null);
       setPickError(`Could not connect the repository. ${getErrorMessage(error)}`);
@@ -165,7 +166,7 @@ export function PickRepoPane({ appId }: { appId: string | null }) {
             type="button"
             onClick={github.connect}
             disabled={busy}
-            className="text-xs text-gray-10 underline decoration-dotted underline-offset-2 hover:text-gray-12"
+            className="shrink-0 whitespace-nowrap text-xs text-gray-10 underline decoration-dotted underline-offset-2 hover:text-gray-12"
           >
             Can't find it? Add repositories on GitHub
           </button>
@@ -173,14 +174,19 @@ export function PickRepoPane({ appId }: { appId: string | null }) {
             <Button
               size="sm"
               variant="ghost"
+              className="min-w-0"
               disabled={pendingRepoId !== null}
               onClick={() => dispatch({ type: "go", card: "configure-repo" })}
             >
-              Keep {current.repositoryFullName}
+              <span className="truncate">
+                Continue with {repoShortName(current.repositoryFullName)}
+              </span>
             </Button>
           ) : null}
         </div>
-        {linkedAppId ? <AdvanceWhenSettingsReady appId={linkedAppId} /> : null}
+        {appId !== null && pendingRepoId !== null ? (
+          <AdvanceWhenSettingsReady appId={appId} linked={linked} />
+        ) : null}
       </div>
     ))
     .exhaustive();
@@ -188,14 +194,14 @@ export function PickRepoPane({ appId }: { appId: string | null }) {
 
 // The picked row keeps its spinner until the setup card has its settings, so
 // the column never slides onto a skeleton.
-function AdvanceWhenSettingsReady({ appId }: { appId: string }) {
+function AdvanceWhenSettingsReady({ appId, linked }: { appId: string; linked: boolean }) {
   const { projectId, dispatch } = useNewAppFlow();
   const ready = useAppSettings(projectId, appId).status === "ready";
   useEffect(() => {
-    if (ready) {
+    if (ready && linked) {
       dispatch({ type: "go", card: "configure-repo" });
     }
-  }, [ready, dispatch]);
+  }, [ready, linked, dispatch]);
   return null;
 }
 

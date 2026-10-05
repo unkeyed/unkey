@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { type PickViewInput, resolvePickView, resolveSetupView } from "./repository-view";
+import {
+  type PickViewInput,
+  repoShortName,
+  resolvePickView,
+  resolveSetupView,
+} from "./repository-view";
 
 const repo = {
   id: 1,
@@ -104,5 +109,12 @@ describe("resolveSetupView", () => {
         installationError: null,
       }),
     ).toEqual({ kind: "disconnected" });
+  });
+});
+
+describe("repoShortName", () => {
+  it("drops the owner", () => {
+    expect(repoShortName("acme/storefront")).toBe("storefront");
+    expect(repoShortName("storefront")).toBe("storefront");
   });
 });
