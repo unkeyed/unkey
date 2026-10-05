@@ -8,7 +8,12 @@ import type { V2WorkspaceGetLimitsResponseData } from "@unkey/api/models/compone
  * response, so each caller only picks how fresh it must be.
  */
 export function useWorkspaceLimits(
-  options: { enabled?: boolean; staleTime?: number; refetchOnWindowFocus?: boolean } = {},
+  options: {
+    enabled?: boolean;
+    staleTime?: number;
+    refetchInterval?: number;
+    refetchOnWindowFocus?: boolean;
+  } = {},
 ) {
   return useQuery<V2WorkspaceGetLimitsResponseData, Error>({
     queryKey: queryKeys.workspace.limits,

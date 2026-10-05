@@ -19,7 +19,7 @@ export function UsageBanner() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
 
-  const workspaceLimits = useWorkspaceLimits({ staleTime: 5 * 60 * 1000 });
+  const workspaceLimits = useWorkspaceLimits({ refetchInterval: 60 * 1000 });
 
   if (workspaceLimits.isError) {
     return null;

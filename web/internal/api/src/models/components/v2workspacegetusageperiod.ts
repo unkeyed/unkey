@@ -12,14 +12,6 @@ import { SDKValidationError } from "../errors/sdkvalidationerror.js";
  */
 export type V2WorkspaceGetUsagePeriod = {
   /**
-   * The year of the month the usage covers.
-   */
-  year: number;
-  /**
-   * The month the usage covers, from 1 (January) to 12 (December).
-   */
-  month: number;
-  /**
    * Unix timestamp in milliseconds of the first day of the month, 00:00 UTC.
    */
   start: number;
@@ -39,8 +31,6 @@ export const V2WorkspaceGetUsagePeriod$inboundSchema: z.ZodType<
   z.ZodTypeDef,
   unknown
 > = z.object({
-  year: z.number().int(),
-  month: z.number().int(),
   start: z.number().int(),
   end: z.number().int(),
 });
