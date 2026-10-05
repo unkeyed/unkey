@@ -349,13 +349,6 @@ paths:
   /v2/permissions.deletePermission:
     $ref: "./spec/paths/v2/permissions/deletePermission/index.yaml"
 
-  /v2/flags.listFlags:
-    $ref: "./spec/paths/v2/flags/listFlags/index.yaml"
-  /v2/flags.setOverride:
-    $ref: "./spec/paths/v2/flags/setOverride/index.yaml"
-  /v2/flags.removeOverride:
-    $ref: "./spec/paths/v2/flags/removeOverride/index.yaml"
-
 components:
   securitySchemes:
     bearer:
