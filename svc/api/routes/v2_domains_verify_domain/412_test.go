@@ -25,7 +25,7 @@ func TestVerifyDomainAlreadyVerified(t *testing.T) {
 	h.Register(route)
 
 	seeded := seedDomain(t, h, verifiedDomain)
-	rootKey := h.CreateRootKey(seeded.workspaceID, "environment.*.verify_domain")
+	rootKey := h.CreateRootKey(seeded.workspaceID, "unkey:v1:"+(seeded.workspaceID)+":**#*")
 
 	res := testutil.CallRoute[handler.Request, openapi.PreconditionFailedErrorResponse](h, route, authHeaders(rootKey), handler.Request{
 		Domain: seeded.domain,
@@ -52,7 +52,7 @@ func TestVerifyDomainCtrlPreconditionIsMasked(t *testing.T) {
 	h.Register(route)
 
 	seeded := seedDomain(t, h, nil)
-	rootKey := h.CreateRootKey(seeded.workspaceID, "environment.*.verify_domain")
+	rootKey := h.CreateRootKey(seeded.workspaceID, "unkey:v1:"+(seeded.workspaceID)+":**#*")
 
 	res := testutil.CallRoute[handler.Request, openapi.PreconditionFailedErrorResponse](h, route, authHeaders(rootKey), handler.Request{
 		Domain: seeded.domain,

@@ -17,7 +17,7 @@ func TestProjectNotFound(t *testing.T) {
 	h := testutil.NewHarness(t)
 
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"project.*.create_deployment"},
+		Permissions: []string{"unkey:v1:{workspaceID}:**#write"},
 	})
 
 	route := newRoute(h, testutil.UncalledDeployRestate(t))
@@ -53,12 +53,12 @@ func TestCrossWorkspaceProjectIsolation(t *testing.T) {
 
 	attackerSetup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
 		ProjectSlug: sharedSlug,
-		Permissions: []string{"project.*.create_deployment"},
+		Permissions: []string{"unkey:v1:{workspaceID}:**#write"},
 	})
 	// Victim has a project with the exact same slug in a different workspace.
 	_ = h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
 		ProjectSlug: sharedSlug,
-		Permissions: []string{"project.*.create_deployment"},
+		Permissions: []string{"unkey:v1:{workspaceID}:**#write"},
 	})
 
 	restate, creates := testutil.RecordingDeployRestate(t)
@@ -93,7 +93,7 @@ func TestCrossWorkspaceKeyspaceIsolation(t *testing.T) {
 
 	// Attacker owns a project they can deploy to.
 	attackerSetup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"project.*.create_deployment"},
+		Permissions: []string{"unkey:v1:{workspaceID}:**#write"},
 	})
 
 	// Victim has a keyspace in a *different* workspace.
@@ -131,7 +131,7 @@ func TestKeyspaceNotFound(t *testing.T) {
 	h := testutil.NewHarness(t)
 
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"project.*.create_deployment"},
+		Permissions: []string{"unkey:v1:{workspaceID}:**#write"},
 	})
 
 	route := newRoute(h, testutil.UncalledDeployRestate(t))
@@ -162,7 +162,7 @@ func TestEnvironmentNotFound(t *testing.T) {
 	h := testutil.NewHarness(t)
 
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"project.*.create_deployment"},
+		Permissions: []string{"unkey:v1:{workspaceID}:**#write"},
 	})
 
 	route := newRoute(h, testutil.UncalledDeployRestate(t))

@@ -99,16 +99,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 
 		err = principal.Authorize(rbac.Or(
-			rbac.T(rbac.Tuple{
-				ResourceType: rbac.App,
-				ResourceID:   "*",
-				Action:       rbac.UpdateApp,
-			}),
-			rbac.T(rbac.Tuple{
-				ResourceType: rbac.App,
-				ResourceID:   app.ID,
-				Action:       rbac.UpdateApp,
-			}),
 			rbac.U(
 				urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(app.ProjectID).App(app.ID),
 				permissions.Write,
@@ -118,7 +108,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			return openapi.App{}, err
 		}
 
-		// connect_repository gates every git change, disconnect included.
 		if gitSpecified && app.SourceType == db.AppsSourceTypeOci {
 			return openapi.App{}, fault.New(
 				"git update is incompatible with app source",
@@ -135,28 +124,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				fault.Public("OCI image configuration can only be updated for OCI-sourced apps."),
 			)
 		}
-		if gitSpecified {
-			err = principal.Authorize(rbac.Or(
-				rbac.T(rbac.Tuple{
-					ResourceType: rbac.App,
-					ResourceID:   "*",
-					Action:       rbac.ConnectRepository,
-				}),
-				rbac.T(rbac.Tuple{
-					ResourceType: rbac.App,
-					ResourceID:   app.ID,
-					Action:       rbac.ConnectRepository,
-				}),
-				rbac.U(
-					urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(app.ProjectID).App(app.ID),
-					permissions.Write,
-				),
-			))
-			if err != nil {
-				return openapi.App{}, err
-			}
-		}
-
 		updatedAt := time.Now().UnixMilli()
 		update := db.UpdateAppParams{
 			WorkspaceID:               principal.AuthorizedWorkspaceID,

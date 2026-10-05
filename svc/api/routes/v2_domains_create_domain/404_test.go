@@ -19,7 +19,7 @@ func TestCreateDomainNotFound(t *testing.T) {
 	h.Register(route)
 
 	env := seedEnvironment(t, h)
-	rootKey := h.CreateRootKey(env.workspaceID, "environment.*.create_domain")
+	rootKey := h.CreateRootKey(env.workspaceID, "unkey:v1:"+(env.workspaceID)+":**#*")
 	headers := authHeaders(rootKey)
 
 	// A second app under the same project, so the "environment belongs to another

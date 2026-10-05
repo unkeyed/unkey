@@ -20,7 +20,7 @@ func TestCreateDeploymentInsufficientPermissions(t *testing.T) {
 
 	// Create setup with insufficient permissions
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"project.*.read_deployment"},
+		Permissions: []string{"unkey:v1:{workspaceID}:**#read"},
 	})
 
 	headers := http.Header{

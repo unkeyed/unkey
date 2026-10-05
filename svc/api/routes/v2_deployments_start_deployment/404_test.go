@@ -18,7 +18,7 @@ func TestStartDeploymentNotFound(t *testing.T) {
 	h.Register(route)
 
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"environment.*.start_deployment"},
+		Permissions: []string{"unkey:v1:{workspaceID}:**#write"},
 	})
 
 	res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, authHeaders(setup.RootKey), handler.Request{
@@ -35,7 +35,7 @@ func TestStartDeploymentInsufficientPermissionsMasked(t *testing.T) {
 	h.Register(route)
 
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"environment.*.stop_deployment"},
+		Permissions: []string{"unkey:v1:{workspaceID}:**#read"},
 	})
 
 	dep := h.CreateDeployment(seed.CreateDeploymentRequest{
@@ -58,7 +58,7 @@ func TestStartDeploymentInAnotherWorkspace(t *testing.T) {
 	h.Register(route)
 
 	caller := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"environment.*.start_deployment"},
+		Permissions: []string{"unkey:v1:{workspaceID}:**#write"},
 	})
 	other := h.CreateTestDeploymentSetup()
 

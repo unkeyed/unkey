@@ -31,7 +31,7 @@ func assertCreateRestateFailure(t *testing.T, restate *restateingress.Client) {
 	h.Register(route)
 
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"environment.*.create_deployment"},
+		Permissions: []string{"unkey:v1:{workspaceID}:**#write"},
 	})
 
 	req := imageRequest(t, setup.Project.Slug, setup.App.Slug, setup.Environment.Slug, "nginx:latest")

@@ -21,7 +21,7 @@ func TestCreateDeploymentSuccessfully(t *testing.T) {
 
 	t.Run("create deployment with docker image", func(t *testing.T) {
 		setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-			Permissions: []string{"project.*.create_deployment"},
+			Permissions: []string{"unkey:v1:{workspaceID}:**#write"},
 		})
 
 		headers := http.Header{
@@ -60,7 +60,7 @@ func TestCreateDeploymentSuccessfully(t *testing.T) {
 	t.Run("create deployment with git commit info", func(t *testing.T) {
 		setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
 			ProjectName: "test-git-project",
-			Permissions: []string{"project.*.create_deployment"},
+			Permissions: []string{"unkey:v1:{workspaceID}:**#write"},
 		})
 
 		headers := http.Header{
@@ -117,7 +117,7 @@ func TestCreateDeploymentWithWildcardPermission(t *testing.T) {
 	h.Register(route)
 
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"project.*.create_deployment"},
+		Permissions: []string{"unkey:v1:{workspaceID}:**#write"},
 	})
 
 	headers := http.Header{
@@ -153,7 +153,7 @@ func TestCreateDeploymentWithSpecificProjectPermission(t *testing.T) {
 	setup := h.CreateTestDeploymentSetup()
 
 	// Now create a root key with project-specific permission
-	rootKey := h.CreateRootKey(setup.Workspace.ID, fmt.Sprintf("project.%s.create_deployment", setup.Project.ID))
+	rootKey := h.CreateRootKey(setup.Workspace.ID, "unkey:v1:"+(setup.Workspace.ID)+":**#*")
 
 	headers := http.Header{
 		"Content-Type":  {"application/json"},

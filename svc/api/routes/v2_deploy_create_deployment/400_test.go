@@ -18,7 +18,7 @@ func TestBadRequests(t *testing.T) {
 	h.Register(route)
 
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"project.*.create_deployment"},
+		Permissions: []string{"unkey:v1:{workspaceID}:**#write"},
 	})
 
 	headers := http.Header{

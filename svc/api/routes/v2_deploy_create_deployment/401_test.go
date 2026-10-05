@@ -16,7 +16,7 @@ func TestUnauthorizedAccess(t *testing.T) {
 	h.Register(route)
 
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"project.*.create_deployment"},
+		Permissions: []string{"unkey:v1:{workspaceID}:**#write"},
 	})
 
 	t.Run("invalid authorization token", func(t *testing.T) {

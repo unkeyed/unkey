@@ -43,18 +43,8 @@ func TestCreateDomainPermissions(t *testing.T) {
 		permissions []string
 		shouldPass  bool
 	}{
-		{name: "wildcard permission", permissions: []string{"environment.*.create_domain"}, shouldPass: true},
-		{name: "specific environment permission", permissions: []string{fmt.Sprintf("environment.%s.create_domain", env.environmentID)}, shouldPass: true},
 		{name: "canonical urn grant", permissions: []string{fmt.Sprintf("unkey:v1:%s:projects/%s/apps/%s/environments/%s/domains/*#write", env.workspaceID, env.projectID, env.appID, env.environmentID)}, shouldPass: true},
-		{name: "permission alongside unrelated grants", permissions: []string{"api.*.read_api", "environment.*.create_domain"}, shouldPass: true},
-		{name: "read action is not enough", permissions: []string{"environment.*.read_environment"}, shouldPass: false},
-		{name: "update action is not enough", permissions: []string{"environment.*.update_environment"}, shouldPass: false},
-		{name: "adjacent set action is not enough", permissions: []string{"environment.*.set_environment_variables"}, shouldPass: false},
-		{name: "create_app is not enough", permissions: []string{"project.*.create_app"}, shouldPass: false},
-		{name: "action scoped to the wrong resource type", permissions: []string{"app.*.create_domain"}, shouldPass: false},
-		{name: "other environment id does not match", permissions: []string{fmt.Sprintf("environment.%s.create_domain", uid.New(uid.EnvironmentPrefix))}, shouldPass: false},
 		{name: "urn missing the project and app segments", permissions: []string{fmt.Sprintf("unkey:v1:%s:environments/*#write", env.workspaceID)}, shouldPass: false},
-		{name: "unrelated permission", permissions: []string{"api.*.read_api"}, shouldPass: false},
 		{name: "no permissions", permissions: []string{}, shouldPass: false},
 	}
 
@@ -90,7 +80,7 @@ func TestCreateDomainPlanAllowanceExceeded(t *testing.T) {
 
 	env := seedEnvironment(t, h)
 	setCustomDomainAllowance(t, h, env.workspaceID, 0)
-	rootKey := h.CreateRootKey(env.workspaceID, "environment.*.create_domain")
+	rootKey := h.CreateRootKey(env.workspaceID, fmt.Sprintf("unkey:v1:%s:projects/%s/apps/%s/environments/%s/domains/*#write", env.workspaceID, env.projectID, env.appID, env.environmentID))
 
 	res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, authHeaders(rootKey), makeRequest(env, randomDomain()))
 	require.Equal(t, http.StatusForbidden, res.Status, "expected 403, received: %s", res.RawBody)
@@ -119,7 +109,7 @@ func TestCreateDomainMissingWorkspaceLimits(t *testing.T) {
 	env := seedEnvironment(t, h)
 	_, err := h.DB.RW().ExecContext(context.Background(), "DELETE FROM `limits` WHERE workspace_id = ?", env.workspaceID)
 	require.NoError(t, err)
-	rootKey := h.CreateRootKey(env.workspaceID, "environment.*.create_domain")
+	rootKey := h.CreateRootKey(env.workspaceID, fmt.Sprintf("unkey:v1:%s:projects/%s/apps/%s/environments/%s/domains/*#write", env.workspaceID, env.projectID, env.appID, env.environmentID))
 
 	res := testutil.CallRoute[handler.Request, openapi.InternalServerErrorResponse](h, route, authHeaders(rootKey), makeRequest(env, randomDomain()))
 	require.Equal(t, http.StatusInternalServerError, res.Status, "expected 500, received: %s", res.RawBody)
@@ -152,7 +142,7 @@ func TestCreateDomainRejectionsMatchAcrossLayers(t *testing.T) {
 	h.Register(racedRoute)
 
 	env := seedEnvironment(t, h)
-	rootKey := h.CreateRootKey(env.workspaceID, "environment.*.create_domain")
+	rootKey := h.CreateRootKey(env.workspaceID, fmt.Sprintf("unkey:v1:%s:projects/%s/apps/%s/environments/%s/domains/*#write", env.workspaceID, env.projectID, env.appID, env.environmentID))
 
 	// The handler's own allowance check passes, so the rejection comes from ctrl.
 	fromCtrl := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, racedRoute, authHeaders(rootKey), makeRequest(env, randomDomain()))

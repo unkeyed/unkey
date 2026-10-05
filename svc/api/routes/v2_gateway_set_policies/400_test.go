@@ -24,7 +24,10 @@ func TestSetPoliciesBadRequest(t *testing.T) {
 	workspace := h.Resources().UserWorkspace
 	env := seedEnvironment(t, h)
 	api := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspace.ID, ProjectID: env.projectID})
-	rootKey := h.CreateRootKey(workspace.ID, "environment.*.set_policies")
+	rootKey := h.CreateRootKey(workspace.ID,
+		fmt.Sprintf("unkey:v1:%s:projects/%s/apps/%s/environments/%s/gateway/policies/*#write", env.workspaceID, env.projectID, env.appID, env.environmentID),
+		fmt.Sprintf("unkey:v1:%s:projects/%s/apps/%s/environments/%s/gateway/policies/*#delete", env.workspaceID, env.projectID, env.appID, env.environmentID),
+	)
 	headers := authHeaders(rootKey)
 
 	callTyped := func(t *testing.T, policies []openapi.Policy) testutil.TestResponse[openapi.BadRequestErrorResponse] {

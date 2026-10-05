@@ -23,7 +23,7 @@ func TestRollbackDeploymentTargetNotReady(t *testing.T) {
 	h.Register(route)
 
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"environment.*.rollback_deployment"},
+		Permissions: []string{"unkey:v1:{workspaceID}:**#write"},
 	})
 
 	dep := h.CreateDeployment(seed.CreateDeploymentRequest{
@@ -50,7 +50,7 @@ func TestRollbackDeploymentTargetShuttingDown(t *testing.T) {
 	h.Register(route)
 
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"environment.*.rollback_deployment"},
+		Permissions: []string{"unkey:v1:{workspaceID}:**#write"},
 	})
 
 	dep := h.CreateDeployment(seed.CreateDeploymentRequest{
@@ -82,7 +82,7 @@ func TestRollbackDeploymentNonProduction(t *testing.T) {
 	h.Register(route)
 
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"environment.*.rollback_deployment"},
+		Permissions: []string{"unkey:v1:{workspaceID}:**#write"},
 	})
 
 	preview := h.CreateEnvironment(seed.CreateEnvironmentRequest{
@@ -116,7 +116,7 @@ func TestRollbackDeploymentNoLiveDeployment(t *testing.T) {
 	h.Register(route)
 
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"environment.*.rollback_deployment"},
+		Permissions: []string{"unkey:v1:{workspaceID}:**#write"},
 	})
 
 	dep := h.CreateDeployment(seed.CreateDeploymentRequest{
@@ -141,7 +141,7 @@ func TestRollbackDeploymentAlreadyLive(t *testing.T) {
 	h.Register(route)
 
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"environment.*.rollback_deployment"},
+		Permissions: []string{"unkey:v1:{workspaceID}:**#write"},
 	})
 
 	live := h.CreateDeployment(seed.CreateDeploymentRequest{
@@ -165,7 +165,7 @@ func TestRollbackDeploymentRequiresComputePlan(t *testing.T) {
 	h.Register(route)
 
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"environment.*.rollback_deployment"},
+		Permissions: []string{"unkey:v1:{workspaceID}:**#write"},
 	})
 	h.ClearComputePlanOverride(setup.Workspace.ID)
 	live := h.CreateDeployment(seed.CreateDeploymentRequest{
@@ -196,7 +196,7 @@ func TestRollbackDeploymentSourceMustShareEnvironment(t *testing.T) {
 	route := newRoute(h, newUncalledRestate(t))
 	h.Register(route)
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"environment.*.rollback_deployment"},
+		Permissions: []string{"unkey:v1:{workspaceID}:**#write"},
 	})
 	preview := h.CreateEnvironment(seed.CreateEnvironmentRequest{
 		ID:          uid.New(uid.EnvironmentPrefix),

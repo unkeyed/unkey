@@ -9,7 +9,10 @@ import (
 
 	"github.com/stretchr/testify/require"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
+	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -32,7 +35,7 @@ func TestCreateAppSuccessfully(t *testing.T) {
 	h.Register(route)
 
 	workspace := h.Resources().UserWorkspace
-	rootKey := h.CreateRootKey(workspace.ID, "project.*.create_app")
+	rootKey := h.CreateRootKey(workspace.ID, "unkey:v1:"+workspace.ID+":**#*")
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
@@ -86,7 +89,7 @@ func TestCreateAppByProjectId(t *testing.T) {
 	h.Register(route)
 
 	workspace := h.Resources().UserWorkspace
-	rootKey := h.CreateRootKey(workspace.ID, "project.*.create_app")
+	rootKey := h.CreateRootKey(workspace.ID, "unkey:v1:"+workspace.ID+":**#*")
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
@@ -125,13 +128,13 @@ func TestCreateOCIImageApp(t *testing.T) {
 	h.Register(route)
 
 	workspace := h.Resources().UserWorkspace
-	rootKey := h.CreateRootKey(workspace.ID, "project.*.create_app")
 	project := h.CreateProject(seed.CreateProjectRequest{
 		ID:          uid.New(uid.ProjectPrefix),
 		WorkspaceID: workspace.ID,
 		Name:        "Payments",
 		Slug:        strings.ToLower(strings.ReplaceAll(uid.New("test"), "_", "-")),
 	})
+	rootKey := h.CreateRootKey(workspace.ID, rbac.U(urn.New().Workspace(workspace.ID).Project(project.ID).App("*"), permissions.Write).Value)
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, http.Header{
 		"Content-Type":  {"application/json"},

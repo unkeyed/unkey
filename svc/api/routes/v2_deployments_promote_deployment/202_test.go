@@ -25,7 +25,7 @@ func TestPromoteDeployment(t *testing.T) {
 	h.Register(route)
 
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"environment.*.promote_deployment"},
+		Permissions: []string{"unkey:v1:{workspaceID}:**#write"},
 	})
 
 	live := h.CreateDeployment(seed.CreateDeploymentRequest{
@@ -72,7 +72,7 @@ func TestPromoteDeploymentConfirmRollback(t *testing.T) {
 	h.Register(route)
 
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"environment.*.promote_deployment"},
+		Permissions: []string{"unkey:v1:{workspaceID}:**#write"},
 	})
 
 	live := h.CreateDeployment(seed.CreateDeploymentRequest{

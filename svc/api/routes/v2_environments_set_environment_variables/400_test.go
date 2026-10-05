@@ -19,7 +19,7 @@ func TestSetEnvironmentVariablesBadRequest(t *testing.T) {
 	h.Register(route)
 
 	env := seedEnvironment(t, h)
-	rootKey := h.CreateRootKey(env.workspaceID, "environment.*.set_environment_variables")
+	rootKey := h.CreateRootKey(env.workspaceID, "unkey:v1:"+(env.workspaceID)+":**#*")
 	headers := authHeaders(rootKey)
 
 	t.Run("invalid key names are rejected", func(t *testing.T) {

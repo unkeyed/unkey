@@ -64,11 +64,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			urn.New().Workspace(principal.AuthorizedWorkspaceID).GitHubApp("*"),
 			permissions.Write,
 		),
-		rbac.T(rbac.Tuple{
-			ResourceType: rbac.Workspace,
-			ResourceID:   "*",
-			Action:       rbac.InstallGithub,
-		}),
 	))
 	if err != nil {
 		return err
