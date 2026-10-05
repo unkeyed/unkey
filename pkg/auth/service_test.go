@@ -286,6 +286,6 @@ func testPrincipal(workspaceID string) *principal.Principal {
 		Type:                  principal.TypeJWT,
 		Source:                principal.JWTSource{},
 		AuthorizedWorkspaceID: workspaceID,
-		Permissions:           []string{"api.*.create_api"},
+		Permissions:           []string{"unkey:v1:" + workspaceID + ":projects/*#write"},
 	}
 }
