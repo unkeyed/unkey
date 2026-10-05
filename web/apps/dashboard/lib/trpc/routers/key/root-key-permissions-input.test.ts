@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest";
 import { createRootKeyInput, updateRootKeyPermissionsInput } from "./root-key-permissions-input";
 
-const legacyPermission = "project.proj_12345678.read_project";
+const malformedPermission = "not-a-permission";
 const urnPermission = "unkey:v1:ws_12345678:projects/*#read_project";
 
 describe.each([
@@ -16,11 +16,11 @@ describe.each([
       updateRootKeyPermissionsInput.safeParse({ keyId: "key_12345678", permissions }).success,
   },
 ])("$name input", ({ parse }) => {
-  test("accepts legacy permissions", () => {
-    expect(parse([legacyPermission])).toBe(true);
+  test("accepts URN permissions", () => {
+    expect(parse([urnPermission])).toBe(true);
   });
 
-  test("rejects URN permissions", () => {
-    expect(parse([urnPermission])).toBe(false);
+  test("rejects malformed permissions", () => {
+    expect(parse([malformedPermission])).toBe(false);
   });
 });

@@ -2,10 +2,6 @@ import { describe, expect, it } from "vitest";
 import { grantLabel } from "./grant-label";
 
 describe("grantLabel", () => {
-  it("humanises a legacy permission string", () => {
-    expect(grantLabel("api.*.create_api")).toEqual({ path: null, action: "Create API" });
-  });
-
   it("splits a urn into path and action", () => {
     expect(grantLabel("unkey:v1:ws_123:ratelimits/namespaces/*/overrides/*#set_override")).toEqual({
       path: "ratelimits/namespaces/*/overrides/*",
@@ -21,6 +17,9 @@ describe("grantLabel", () => {
   });
 
   it("falls back to the raw grant when nothing parses", () => {
-    expect(grantLabel("*")).toEqual({ path: null, action: "All permissions" });
+    expect(grantLabel("invalid permission data")).toEqual({
+      path: null,
+      action: "invalid permission data",
+    });
   });
 });
