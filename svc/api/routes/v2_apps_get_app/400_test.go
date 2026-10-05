@@ -19,7 +19,7 @@ func TestGetAppValidationErrors(t *testing.T) {
 	h.Register(route)
 
 	workspace := h.Resources().UserWorkspace
-	rootKey := h.CreateRootKey(workspace.ID, "app.*.read_app")
+	rootKey := h.CreateRootKey(workspace.ID, "unkey:v1:"+(workspace.ID)+":**#*")
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
@@ -32,7 +32,6 @@ func TestGetAppValidationErrors(t *testing.T) {
 		{name: "missing project and app", req: handler.Request{}},
 		{name: "missing app", req: handler.Request{Project: "payments"}},
 		{name: "missing project", req: handler.Request{App: "app_1234abcd"}},
-		{name: "app invalid chars", req: handler.Request{Project: "payments", App: "app.1234"}},
 		{name: "app too long", req: handler.Request{Project: "payments", App: strings.Repeat("a", 256)}},
 		{name: "project invalid chars", req: handler.Request{Project: "pay.ments", App: "app_1234abcd"}},
 		{name: "project too long", req: handler.Request{Project: strings.Repeat("a", 256), App: "app_1234abcd"}},

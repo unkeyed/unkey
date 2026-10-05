@@ -33,14 +33,13 @@ func TestSuccess(t *testing.T) {
 	// Create a workspace and user
 	workspace := h.Resources().UserWorkspace
 
-	// Create a root key with appropriate permissions
-	rootKey := h.CreateRootKey(workspace.ID, "api.*.read_key", "api.*.read_api", "api.*.decrypt_key")
-
 	// Create a keySpace for the API
 	keySpaceID := uid.New(uid.KeySpacePrefix)
+	projectID := createTestProject(t, h, workspace.ID)
 	err := db.Query.InsertKeySpace(ctx, h.DB.RW(), db.InsertKeySpaceParams{
 		ID:            keySpaceID,
 		WorkspaceID:   workspace.ID,
+		ProjectID:     projectID,
 		CreatedAtM:    time.Now().UnixMilli(),
 		DefaultPrefix: sql.NullString{Valid: false},
 		DefaultBytes:  sql.NullInt32{Valid: false},
@@ -59,11 +58,17 @@ func TestSuccess(t *testing.T) {
 		ID:          apiID,
 		Name:        "Test API",
 		WorkspaceID: workspace.ID,
+		ProjectID:   projectID,
 		AuthType:    db.NullApisAuthType{Valid: true, ApisAuthType: db.ApisAuthTypeKey},
 		KeyAuthID:   sql.NullString{Valid: true, String: keySpaceID},
 		CreatedAtM:  time.Now().UnixMilli(),
 	})
 	require.NoError(t, err)
+	rootKey := h.CreateRootKey(workspace.ID,
+		keyspaceGrant(workspace.ID, "*", "*", "read"),
+		keyGrant(workspace.ID, "*", "*", "read"),
+		keyGrant(workspace.ID, "*", "*", "decrypt"),
+	)
 
 	// Create test identities
 	identity1ExternalID := "test_user_1"
@@ -398,6 +403,7 @@ func TestSuccess(t *testing.T) {
 		err := db.Query.InsertKeySpace(ctx, h.DB.RW(), db.InsertKeySpaceParams{
 			ID:          emptyKeySpaceID,
 			WorkspaceID: workspace.ID,
+			ProjectID:   projectID,
 			CreatedAtM:  time.Now().UnixMilli(),
 		})
 		require.NoError(t, err)
@@ -407,6 +413,7 @@ func TestSuccess(t *testing.T) {
 			ID:          emptyApiID,
 			Name:        "Empty API",
 			WorkspaceID: workspace.ID,
+			ProjectID:   projectID,
 			AuthType:    db.NullApisAuthType{Valid: true, ApisAuthType: db.ApisAuthTypeKey},
 			KeyAuthID:   sql.NullString{Valid: true, String: emptyKeySpaceID},
 			CreatedAtM:  time.Now().UnixMilli(),

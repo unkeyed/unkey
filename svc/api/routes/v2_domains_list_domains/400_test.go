@@ -18,7 +18,7 @@ func TestListDomainsBadRequest(t *testing.T) {
 	h.Register(route)
 
 	env := seedEnvironment(t, h)
-	rootKey := h.CreateRootKey(env.workspaceID, "environment.*.read_domain")
+	rootKey := h.CreateRootKey(env.workspaceID, "unkey:v1:"+env.workspaceID+":**#read")
 	headers := authHeaders(rootKey)
 
 	withEnv := func(mutate func(*handler.Request)) handler.Request {

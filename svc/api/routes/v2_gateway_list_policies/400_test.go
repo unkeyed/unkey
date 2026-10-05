@@ -1,6 +1,7 @@
 package handler_test
 
 import (
+	"fmt"
 	"net/http"
 	"testing"
 
@@ -17,7 +18,7 @@ func TestListPoliciesBadRequest(t *testing.T) {
 	h.Register(route)
 
 	workspace := h.Resources().UserWorkspace
-	rootKey := h.CreateRootKey(workspace.ID, "environment.*.read_policies")
+	rootKey := h.CreateRootKey(workspace.ID, fmt.Sprintf("unkey:v1:%s:projects/*/apps/*/environments/*/gateway/policies/*#read", workspace.ID))
 	headers := authHeaders(rootKey)
 
 	callTyped := func(t *testing.T, req handler.Request) testutil.TestResponse[openapi.BadRequestErrorResponse] {

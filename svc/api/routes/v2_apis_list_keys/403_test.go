@@ -33,9 +33,11 @@ func TestAuthorizationErrors(t *testing.T) {
 
 	// Create a keySpace for the API
 	keySpaceID := uid.New(uid.KeySpacePrefix)
+	projectID := createTestProject(t, h, workspace.ID)
 	err := db.Query.InsertKeySpace(ctx, h.DB.RW(), db.InsertKeySpaceParams{
 		ID:            keySpaceID,
 		WorkspaceID:   workspace.ID,
+		ProjectID:     projectID,
 		CreatedAtM:    time.Now().UnixMilli(),
 		DefaultPrefix: sql.NullString{Valid: false},
 		DefaultBytes:  sql.NullInt32{Valid: false},
@@ -54,6 +56,7 @@ func TestAuthorizationErrors(t *testing.T) {
 		ID:          apiID,
 		Name:        "Test API",
 		WorkspaceID: workspace.ID,
+		ProjectID:   projectID,
 		AuthType:    db.NullApisAuthType{Valid: true, ApisAuthType: db.ApisAuthTypeKey},
 		KeyAuthID:   sql.NullString{Valid: true, String: keySpaceID},
 		CreatedAtM:  time.Now().UnixMilli(),
@@ -67,7 +70,7 @@ func TestAuthorizationErrors(t *testing.T) {
 	// Test case for insufficient permissions - missing read_key
 	t.Run("missing read_key permission", func(t *testing.T) {
 		// Create a root key with only read_api but no read_key permission
-		rootKey := h.CreateRootKey(workspace.ID, "api.*.read_api")
+		rootKey := h.CreateRootKey(workspace.ID, keyspaceGrant(workspace.ID, projectID, keySpaceID, "read"))
 
 		headers := http.Header{
 			"Content-Type":  {"application/json"},
@@ -93,7 +96,7 @@ func TestAuthorizationErrors(t *testing.T) {
 	// Test case for insufficient permissions - missing read_api
 	t.Run("missing read_api permission", func(t *testing.T) {
 		// Create a root key with only read_key but no read_api permission
-		rootKey := h.CreateRootKey(workspace.ID, "api.*.read_key")
+		rootKey := h.CreateRootKey(workspace.ID, keyGrant(workspace.ID, projectID, keySpaceID, "read"))
 
 		headers := http.Header{
 			"Content-Type":  {"application/json"},
@@ -119,11 +122,11 @@ func TestAuthorizationErrors(t *testing.T) {
 	// Test case for permission for different API
 	t.Run("permission for different API", func(t *testing.T) {
 		// Create a root key with permissions for a specific different API
-		differentApiId := "api_different_123"
+		differentKeyspaceID := "keyspace_different_123"
 		rootKey := h.CreateRootKey(
 			workspace.ID,
-			fmt.Sprintf("api.%s.read_key", differentApiId),
-			fmt.Sprintf("api.%s.read_api", differentApiId),
+			keyspaceGrant(workspace.ID, projectID, differentKeyspaceID, "read"),
+			keyGrant(workspace.ID, projectID, differentKeyspaceID, "read"),
 		)
 
 		headers := http.Header{
@@ -151,7 +154,7 @@ func TestAuthorizationErrors(t *testing.T) {
 	// not masked as 404), but lacks decrypt, so the decrypt check returns 403.
 	t.Run("missing decrypt permission", func(t *testing.T) {
 		// Create a root key with read permissions but no decrypt permission
-		rootKey := h.CreateRootKey(workspace.ID, "api.*.read_key", "api.*.read_api")
+		rootKey := h.CreateRootKey(workspace.ID, keyspaceGrant(workspace.ID, projectID, keySpaceID, "read"), keyGrant(workspace.ID, projectID, keySpaceID, "read"))
 
 		headers := http.Header{
 			"Content-Type":  {"application/json"},
@@ -180,7 +183,7 @@ func TestAuthorizationErrors(t *testing.T) {
 	// Test case for no permissions at all
 	t.Run("no permissions", func(t *testing.T) {
 		// Create a root key with no relevant permissions
-		rootKey := h.CreateRootKey(workspace.ID, "workspace.read")
+		rootKey := h.CreateRootKey(workspace.ID, keyGrant(workspace.ID, projectID, keySpaceID, "write"))
 
 		headers := http.Header{
 			"Content-Type":  {"application/json"},
@@ -209,7 +212,7 @@ func TestAuthorizationErrors(t *testing.T) {
 		differentWorkspace := h.CreateWorkspace()
 
 		// Create a root key for the different workspace with full permissions
-		rootKey := h.CreateRootKey(differentWorkspace.ID, "api.*.read_key", "api.*.read_api")
+		rootKey := h.CreateRootKey(differentWorkspace.ID, keyspaceGrant(differentWorkspace.ID, projectID, keySpaceID, "read"), keyGrant(differentWorkspace.ID, projectID, keySpaceID, "read"))
 
 		headers := http.Header{
 			"Content-Type":  {"application/json"},
@@ -235,7 +238,7 @@ func TestAuthorizationErrors(t *testing.T) {
 	// Test case for wildcard permissions (should work)
 	t.Run("wildcard permissions should work", func(t *testing.T) {
 		// Create a root key with explicit wildcard API permissions for both required actions
-		rootKey := h.CreateRootKey(workspace.ID, "api.*.read_key", "api.*.read_api")
+		rootKey := h.CreateRootKey(workspace.ID, keyspaceGrant(workspace.ID, projectID, keySpaceID, "read"), keyGrant(workspace.ID, projectID, keySpaceID, "read"))
 
 		headers := http.Header{
 			"Content-Type":  {"application/json"},
@@ -263,8 +266,8 @@ func TestAuthorizationErrors(t *testing.T) {
 	t.Run("specific API permissions should work", func(t *testing.T) {
 		// Create a root key with permissions for this specific API
 		rootKey := h.CreateRootKey(workspace.ID,
-			fmt.Sprintf("api.%s.read_key", apiID),
-			fmt.Sprintf("api.%s.read_api", apiID))
+			keyspaceGrant(workspace.ID, projectID, keySpaceID, "read"),
+			keyGrant(workspace.ID, projectID, keySpaceID, "read"))
 
 		headers := http.Header{
 			"Content-Type":  {"application/json"},
@@ -291,7 +294,7 @@ func TestAuthorizationErrors(t *testing.T) {
 	// Test case for verifying masked-not-found response structure
 	t.Run("verify error response structure", func(t *testing.T) {
 		// Create a root key with insufficient permissions
-		rootKey := h.CreateRootKey(workspace.ID, "workspace.read")
+		rootKey := h.CreateRootKey(workspace.ID, keyGrant(workspace.ID, projectID, keySpaceID, "write"))
 
 		headers := http.Header{
 			"Content-Type":  {"application/json"},
@@ -324,7 +327,7 @@ func TestAuthorizationErrors(t *testing.T) {
 	// Test case for partial permissions (read_api but not read_key)
 	t.Run("partial permissions insufficient", func(t *testing.T) {
 		// Create a root key with only one of the required permissions
-		rootKey := h.CreateRootKey(workspace.ID, "api.*.read_api")
+		rootKey := h.CreateRootKey(workspace.ID, keyspaceGrant(workspace.ID, projectID, keySpaceID, "read"))
 
 		headers := http.Header{
 			"Content-Type":  {"application/json"},
@@ -350,7 +353,11 @@ func TestAuthorizationErrors(t *testing.T) {
 	// Test case for decrypt permission with wildcard
 	t.Run("decrypt with wildcard permission should work", func(t *testing.T) {
 		// Create a root key with wildcard API permissions (includes decrypt)
-		rootKey := h.CreateRootKey(workspace.ID, "api.*.read_key", "api.*.read_api", "api.*.decrypt_key")
+		rootKey := h.CreateRootKey(workspace.ID,
+			keyspaceGrant(workspace.ID, projectID, keySpaceID, "read"),
+			keyGrant(workspace.ID, projectID, keySpaceID, "read"),
+			keyGrant(workspace.ID, projectID, keySpaceID, "decrypt"),
+		)
 
 		headers := http.Header{
 			"Content-Type":  {"application/json"},

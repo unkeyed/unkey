@@ -141,7 +141,7 @@ func TestListDomains(t *testing.T) {
 		req.CnameVerified = true
 	})
 	second := attachDomain(t, h, env, nil)
-	rootKey := h.CreateRootKey(env.workspaceID, "environment.*.read_domain")
+	rootKey := h.CreateRootKey(env.workspaceID, "unkey:v1:"+env.workspaceID+":**#read")
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(rootKey), makeRequest(env))
 	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
@@ -206,7 +206,7 @@ func TestListDomainsOptionalScopes(t *testing.T) {
 
 	otherProject := seedEnvironment(t, h)
 	other := attachDomain(t, h, otherProject, nil)
-	rootKey := h.CreateRootKey(env.workspaceID, "environment.*.read_domain")
+	rootKey := h.CreateRootKey(env.workspaceID, "unkey:v1:"+env.workspaceID+":**#read")
 
 	testCases := []struct {
 		name    string
@@ -250,7 +250,7 @@ func TestListDomainsFiltersAreCumulative(t *testing.T) {
 	firstDomain := attachDomain(t, h, first, nil)
 	second := seedEnvironment(t, h)
 	secondDomain := attachDomain(t, h, second, nil)
-	headers := authHeaders(h.CreateRootKey(first.workspaceID, "environment.*.read_domain"))
+	headers := authHeaders(h.CreateRootKey(first.workspaceID, "unkey:v1:"+first.workspaceID+":**#read"))
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
 		Project: new(first.projectID),
@@ -276,7 +276,7 @@ func TestListDomainsStableOrder(t *testing.T) {
 	for range 5 {
 		seeded[attachDomain(t, h, env, nil).ID] = struct{}{}
 	}
-	rootKey := h.CreateRootKey(env.workspaceID, "environment.*.read_domain")
+	rootKey := h.CreateRootKey(env.workspaceID, rbac.U(urn.New().Workspace(env.workspaceID).Project(env.projectID).App(env.appID).Environment(env.environmentID).Domain("*"), permissions.Read).Value)
 	headers := authHeaders(rootKey)
 
 	ids := func() []string {
@@ -315,7 +315,7 @@ func TestListDomainsPagination(t *testing.T) {
 	for range total {
 		attachDomain(t, h, env, nil)
 	}
-	rootKey := h.CreateRootKey(env.workspaceID, "environment.*.read_domain")
+	rootKey := h.CreateRootKey(env.workspaceID, rbac.U(urn.New().Workspace(env.workspaceID).Project(env.projectID).App(env.appID).Environment(env.environmentID).Domain("*"), permissions.Read).Value)
 	headers := authHeaders(rootKey)
 
 	seen := map[string]struct{}{}
@@ -359,7 +359,7 @@ func TestListDomainsUnknownCursor(t *testing.T) {
 
 	env := seedEnvironment(t, h)
 	attachDomain(t, h, env, nil)
-	rootKey := h.CreateRootKey(env.workspaceID, "environment.*.read_domain")
+	rootKey := h.CreateRootKey(env.workspaceID, rbac.U(urn.New().Workspace(env.workspaceID).Project(env.projectID).App(env.appID).Environment(env.environmentID).Domain("*"), permissions.Read).Value)
 
 	req := makeRequest(env)
 	req.Cursor = new("dom_doesnotexist")
@@ -403,7 +403,7 @@ func TestListDomainsCursorStaysScoped(t *testing.T) {
 		VerificationError:  "",
 		LastCheckedAt:      0,
 	})
-	rootKey := h.CreateRootKey(env.workspaceID, "environment.*.read_domain")
+	rootKey := h.CreateRootKey(env.workspaceID, rbac.U(urn.New().Workspace(env.workspaceID).Project(env.projectID).App(env.appID).Environment(env.environmentID).Domain("*"), permissions.Read).Value)
 
 	req := makeRequest(env)
 	req.Cursor = new(siblingDomain.ID)
@@ -422,7 +422,7 @@ func TestListDomainsEmpty(t *testing.T) {
 	h.Register(route)
 
 	env := seedEnvironment(t, h)
-	rootKey := h.CreateRootKey(env.workspaceID, "environment.*.read_domain")
+	rootKey := h.CreateRootKey(env.workspaceID, rbac.U(urn.New().Workspace(env.workspaceID).Project(env.projectID).App(env.appID).Environment(env.environmentID).Domain("*"), permissions.Read).Value)
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(rootKey), makeRequest(env))
 	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
@@ -436,7 +436,7 @@ func TestListDomainsBySlugs(t *testing.T) {
 
 	env := seedEnvironment(t, h)
 	attached := attachDomain(t, h, env, nil)
-	rootKey := h.CreateRootKey(env.workspaceID, "environment.*.read_domain")
+	rootKey := h.CreateRootKey(env.workspaceID, rbac.U(urn.New().Workspace(env.workspaceID).Project(env.projectID).App(env.appID).Environment(env.environmentID).Domain("*"), permissions.Read).Value)
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(rootKey), handler.Request{
 		Project:     new(env.projectSlug),
@@ -483,7 +483,7 @@ func TestListDomainsScopedToEnvironment(t *testing.T) {
 		VerificationError:  "",
 		LastCheckedAt:      0,
 	})
-	rootKey := h.CreateRootKey(env.workspaceID, "environment.*.read_domain")
+	rootKey := h.CreateRootKey(env.workspaceID, rbac.U(urn.New().Workspace(env.workspaceID).Project(env.projectID).App(env.appID).Environment(env.environmentID).Domain("*"), permissions.Read).Value)
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(rootKey), makeRequest(env))
 	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
@@ -505,7 +505,7 @@ func TestListDomainsDnsRecordsPerEntry(t *testing.T) {
 	apex := attachDomain(t, h, env, func(req *seed.CreateCustomDomainRequest) {
 		req.Domain = apexName
 	})
-	rootKey := h.CreateRootKey(env.workspaceID, "environment.*.read_domain")
+	rootKey := h.CreateRootKey(env.workspaceID, rbac.U(urn.New().Workspace(env.workspaceID).Project(env.projectID).App(env.appID).Environment(env.environmentID).Domain("*"), permissions.Read).Value)
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(rootKey), makeRequest(env))
 	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
@@ -544,7 +544,7 @@ func TestListDomainsDomainConnectPerEntry(t *testing.T) {
 		req.DomainConnectURL = "https://dash.cloudflare.com/domainconnect?domain=acme.com"
 	})
 	withoutConnect := attachDomain(t, h, env, nil)
-	rootKey := h.CreateRootKey(env.workspaceID, "environment.*.read_domain")
+	rootKey := h.CreateRootKey(env.workspaceID, rbac.U(urn.New().Workspace(env.workspaceID).Project(env.projectID).App(env.appID).Environment(env.environmentID).Domain("*"), permissions.Read).Value)
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(rootKey), makeRequest(env))
 	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
@@ -580,7 +580,7 @@ func TestListDomainsVerifiedWithUnreadableRouting(t *testing.T) {
 		req.VerificationStatus = db.CustomDomainsVerificationStatusVerified
 		req.OwnershipVerified = true
 	})
-	rootKey := h.CreateRootKey(env.workspaceID, "environment.*.read_domain")
+	rootKey := h.CreateRootKey(env.workspaceID, rbac.U(urn.New().Workspace(env.workspaceID).Project(env.projectID).App(env.appID).Environment(env.environmentID).Domain("*"), permissions.Read).Value)
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(rootKey), makeRequest(env))
 	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
@@ -612,7 +612,7 @@ func TestListDomainsSearch(t *testing.T) {
 		req.Domain = "d" + uid.DNS1035(10) + ".searchme.example.com"
 	})
 	other := attachDomain(t, h, env, nil)
-	rootKey := h.CreateRootKey(env.workspaceID, "environment.*.read_domain")
+	rootKey := h.CreateRootKey(env.workspaceID, rbac.U(urn.New().Workspace(env.workspaceID).Project(env.projectID).App(env.appID).Environment(env.environmentID).Domain("*"), permissions.Read).Value)
 	headers := authHeaders(rootKey)
 
 	testCases := []struct {
@@ -657,7 +657,7 @@ func TestListDomainsFailedReportsError(t *testing.T) {
 		req.VerificationError = verificationError
 		req.LastCheckedAt = time.Now().UnixMilli()
 	})
-	rootKey := h.CreateRootKey(env.workspaceID, "environment.*.read_domain")
+	rootKey := h.CreateRootKey(env.workspaceID, rbac.U(urn.New().Workspace(env.workspaceID).Project(env.projectID).App(env.appID).Environment(env.environmentID).Domain("*"), permissions.Read).Value)
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(rootKey), makeRequest(env))
 	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)

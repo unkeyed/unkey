@@ -21,7 +21,7 @@ func TestGetApiInvalidRequest(t *testing.T) {
 	h.Register(route)
 
 	// Create a valid root key for authentication
-	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "api.*.read_api")
+	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "unkey:v1:"+(h.Resources().UserWorkspace.ID)+":**#*")
 	validHeaders := http.Header{
 		"Content-Type":  {"application/json"},
 		"Authorization": {rootKey},

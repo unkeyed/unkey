@@ -276,19 +276,26 @@ func TestListDeployments_URNDoesNotBypassAncestryOrWorkspace(t *testing.T) {
 		"read",
 	))
 
-	requests := map[string]handler.Request{
+	requests := map[string]struct {
+		request handler.Request
+		status  int
+	}{
 		"app outside project": {
-			Project: rid(setup.Project.ID),
-			App:     rid(otherApp.ID),
+			request: handler.Request{
+				Project: rid(setup.Project.ID),
+				App:     rid(otherApp.ID),
+			},
+			status: http.StatusNotFound,
 		},
 		"project outside workspace": {
-			Project: rid(foreign.Project.ID),
+			request: handler.Request{Project: rid(foreign.Project.ID)},
+			status:  http.StatusNotFound,
 		},
 	}
-	for name, req := range requests {
+	for name, tc := range requests {
 		t.Run(name, func(t *testing.T) {
-			res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(rootKey), req)
-			require.Equal(t, http.StatusForbidden, res.Status, "expected 403, received: %s", res.RawBody)
+			res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(rootKey), tc.request)
+			require.Equal(t, tc.status, res.Status, "received: %s", res.RawBody)
 		})
 	}
 }

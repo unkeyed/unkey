@@ -1,6 +1,7 @@
 package handler_test
 
 import (
+	"fmt"
 	"net/http"
 	"testing"
 
@@ -17,7 +18,7 @@ func TestListPoliciesNotFound(t *testing.T) {
 	h.Register(route)
 
 	env := seedEnvironment(t, h)
-	rootKey := h.CreateRootKey(env.workspaceID, "environment.*.read_policies")
+	rootKey := h.CreateRootKey(env.workspaceID, fmt.Sprintf("unkey:v1:%s:projects/%s/apps/%s/environments/%s/gateway/policies/*#read", env.workspaceID, env.projectID, env.appID, env.environmentID))
 	headers := authHeaders(rootKey)
 
 	t.Run("nonexistent environment", func(t *testing.T) {
@@ -43,7 +44,7 @@ func TestListPoliciesNotFound(t *testing.T) {
 
 	t.Run("another workspace's environment", func(t *testing.T) {
 		other := h.CreateWorkspace()
-		foreignKey := h.CreateRootKey(other.ID, "environment.*.read_policies")
+		foreignKey := h.CreateRootKey(other.ID, fmt.Sprintf("unkey:v1:%s:projects/*/apps/*/environments/*/gateway/policies/*#read", other.ID))
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(foreignKey), makeRequest(env))
 		require.Equal(t, http.StatusNotFound, res.Status, "expected 404, received: %s", res.RawBody)
 	})

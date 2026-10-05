@@ -21,8 +21,13 @@ func Test200_InaccessibleKeySpacesReturnNoData(t *testing.T) {
 	allowedAPI := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspace.ID})
 	otherAPI := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspace.ID})
 	h.SetupAnalytics(workspace.ID)
-	rootKey := h.CreateRootKey(workspace.ID, "api."+allowedAPI.ID+".read_analytics")
-	wildcardRootKey := h.CreateRootKey(workspace.ID, "api.*.read_analytics")
+	rootKey := h.CreateRootKey(workspace.ID, fmt.Sprintf(
+		"unkey:v1:%s:projects/%s/keyspaces/%s/logs#read",
+		workspace.ID,
+		allowedAPI.ProjectID,
+		allowedAPI.KeyAuthID.String,
+	))
+	wildcardRootKey := h.CreateRootKey(workspace.ID, "unkey:v1:"+(workspace.ID)+":**#*")
 	h.KeyVerifications.Buffer(schema.KeyVerification{
 		RequestID:   uid.New(uid.RequestPrefix),
 		Time:        time.Now().UnixMilli(),
@@ -69,7 +74,12 @@ func Test200_UnresolvableAnalyticsPermissionReturnsNoData(t *testing.T) {
 
 	workspace := h.CreateWorkspace()
 	h.SetupAnalytics(workspace.ID)
-	rootKey := h.CreateRootKey(workspace.ID, "api."+uid.New(uid.APIPrefix)+".read_analytics")
+	rootKey := h.CreateRootKey(workspace.ID, fmt.Sprintf(
+		"unkey:v1:%s:projects/%s/keyspaces/%s/logs#read",
+		workspace.ID,
+		uid.New(uid.ProjectPrefix),
+		uid.New(uid.KeySpacePrefix),
+	))
 	route := &Handler{
 		DB:                         h.DB,
 		AnalyticsConnectionManager: h.AnalyticsConnectionManager,
@@ -93,7 +103,7 @@ func Test200_Success(t *testing.T) {
 		WorkspaceID: workspace.ID,
 	})
 	h.SetupAnalytics(workspace.ID)
-	rootKey := h.CreateRootKey(workspace.ID, "api.*.read_analytics")
+	rootKey := h.CreateRootKey(workspace.ID, "unkey:v1:"+(workspace.ID)+":**#*")
 
 	now := time.Now().UnixMilli()
 
@@ -145,7 +155,7 @@ func Test200_QueriesGatewayAppID(t *testing.T) {
 	workspace := h.CreateWorkspace()
 	api := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspace.ID})
 	h.SetupAnalytics(workspace.ID)
-	rootKey := h.CreateRootKey(workspace.ID, "api.*.read_analytics")
+	rootKey := h.CreateRootKey(workspace.ID, "unkey:v1:"+(workspace.ID)+":**#*")
 	appID := uid.New("app")
 
 	h.KeyVerifications.Buffer(schema.KeyVerification{
@@ -194,8 +204,12 @@ func Test200_PermissionFiltersByApiId(t *testing.T) {
 	})
 	h.SetupAnalytics(workspace.ID)
 
-	// Create root key with permission ONLY for api1
-	rootKey := h.CreateRootKey(workspace.ID, "api."+api1.ID+".read_analytics")
+	rootKey := h.CreateRootKey(workspace.ID, fmt.Sprintf(
+		"unkey:v1:%s:projects/%s/keyspaces/%s/logs#read",
+		workspace.ID,
+		api1.ProjectID,
+		api1.KeyAuthID.String,
+	))
 
 	now := time.Now().UnixMilli()
 
@@ -272,8 +286,12 @@ func Test200_PermissionFiltersByKeySpaceId(t *testing.T) {
 	})
 	h.SetupAnalytics(workspace.ID)
 
-	// Create root key with permission ONLY for api1
-	rootKey := h.CreateRootKey(workspace.ID, "api."+api1.ID+".read_analytics")
+	rootKey := h.CreateRootKey(workspace.ID, fmt.Sprintf(
+		"unkey:v1:%s:projects/%s/keyspaces/%s/logs#read",
+		workspace.ID,
+		api1.ProjectID,
+		api1.KeyAuthID.String,
+	))
 
 	now := time.Now().UnixMilli()
 
@@ -353,7 +371,7 @@ func Test200_QueryWithin30DaysRetention(t *testing.T) {
 		WorkspaceID: workspace.ID,
 	})
 	h.SetupAnalytics(workspace.ID)
-	rootKey := h.CreateRootKey(workspace.ID, "api.*.read_analytics")
+	rootKey := h.CreateRootKey(workspace.ID, "unkey:v1:"+(workspace.ID)+":**#*")
 
 	now := time.Now().UnixMilli()
 
@@ -399,7 +417,7 @@ func Test200_QueryAtExact30DayRetentionLimit(t *testing.T) {
 
 	workspace := h.CreateWorkspace()
 	h.SetupAnalytics(workspace.ID)
-	rootKey := h.CreateRootKey(workspace.ID, "api.*.read_analytics")
+	rootKey := h.CreateRootKey(workspace.ID, "unkey:v1:"+(workspace.ID)+":**#*")
 
 	route := &Handler{
 		DB:                         h.DB,
@@ -428,7 +446,7 @@ func Test200_QueryWithCustomRetention90Days(t *testing.T) {
 
 	workspace := h.CreateWorkspace()
 	h.SetupAnalytics(workspace.ID, testutil.WithRetentionDays(90)) // 90-day retention
-	rootKey := h.CreateRootKey(workspace.ID, "api.*.read_analytics")
+	rootKey := h.CreateRootKey(workspace.ID, "unkey:v1:"+(workspace.ID)+":**#*")
 
 	route := &Handler{
 		DB:                         h.DB,
@@ -470,7 +488,7 @@ func Test200_RLSWorkspaceIsolation(t *testing.T) {
 	h.SetupAnalytics(workspace1.ID)
 	h.SetupAnalytics(workspace2.ID)
 
-	rootKey1 := h.CreateRootKey(workspace1.ID, "api.*.read_analytics")
+	rootKey1 := h.CreateRootKey(workspace1.ID, "unkey:v1:"+(workspace1.ID)+":**#*")
 
 	// Use actual current time for analytics data since ClickHouse's now() uses real time, not mock clock
 	now := time.Now().UnixMilli()
@@ -540,7 +558,7 @@ func Test200_QueryWithoutTimeFilter_AutoAddsFilter(t *testing.T) {
 
 	workspace := h.CreateWorkspace()
 	h.SetupAnalytics(workspace.ID)
-	rootKey := h.CreateRootKey(workspace.ID, "api.*.read_analytics")
+	rootKey := h.CreateRootKey(workspace.ID, "unkey:v1:"+(workspace.ID)+":**#*")
 
 	route := &Handler{
 		DB:                         h.DB,
