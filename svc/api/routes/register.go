@@ -136,6 +136,12 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 	withErrorHandling := middleware.WithErrorHandling()
 	withValidation := zen.WithValidation(svc.Validator)
 	withTimeout := zen.WithTimeout(time.Minute)
+	srv.RegisterRoutingErrors([]zen.Middleware{
+		withPanicRecovery,
+		withLogging,
+		withErrorHandling,
+	})
+
 	withAuthentication := middleware.WithAuthentication(middleware.AuthenticationConfig{
 		Auth:             svc.Auth,
 		KeyVerifications: svc.KeyVerifications,
