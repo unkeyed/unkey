@@ -99,7 +99,9 @@ export const environmentSettings = createCollection<EnvironmentSettings, string>
     getKey: (item) => item.environmentId,
     id: "environmentSettings",
     onUpdate: async ({ transaction }) => {
-      const silent = transaction.metadata?.silent === true;
+      const silent = [transaction.metadata, ...transaction.mutations.map((m) => m.metadata)].some(
+        (metadata) => silentMetadata.safeParse(metadata).success,
+      );
       // A transaction can carry one environment or every environment of an app,
       // so send them together and report the outcome once.
       await dispatchSettingsMutations(
@@ -111,6 +113,11 @@ export const environmentSettings = createCollection<EnvironmentSettings, string>
 );
 
 export type EnvironmentSettings = z.infer<typeof schema>;
+
+/** Pass as update metadata to save without a toast or the pending-redeploy banner. */
+export const SILENT_SAVE = { silent: true } as const;
+
+const silentMetadata = z.object({ silent: z.literal(true) });
 
 /** Default values for environment settings fields (excluding regions, which are runtime-dependent). */
 export const ENVIRONMENT_SETTINGS_DEFAULTS = {
@@ -284,8 +291,14 @@ export function applyDefaultSettings(
   projectId: string,
   appId: string,
   environmentId: string,
-  regionNames: string[],
+  initial: { regionNames: string[]; port?: number; cpuMillicores?: number; memoryMib?: number },
 ): Promise<unknown> {
+  const {
+    regionNames,
+    port = ENVIRONMENT_SETTINGS_DEFAULTS.port,
+    cpuMillicores = ENVIRONMENT_SETTINGS_DEFAULTS.cpuMillicores,
+    memoryMib = ENVIRONMENT_SETTINGS_DEFAULTS.memoryMib,
+  } = initial;
   const d = ENVIRONMENT_SETTINGS_DEFAULTS;
 
   return getUnkeyClient().environments.updateSettings({
@@ -297,9 +310,9 @@ export function applyDefaultSettings(
     rootDirectory: d.dockerContext,
     buildCommand: null,
     watchPaths: [],
-    port: d.port,
-    vCpus: d.cpuMillicores / 1000,
-    memoryMib: d.memoryMib,
+    port,
+    vCpus: cpuMillicores / 1000,
+    memoryMib,
     storageMib: d.storageMib,
     command: [],
     healthcheck: null,
@@ -328,13 +341,15 @@ async function dispatchSettingsMutations(
   const client = getUnkeyClient();
   const mutation = Promise.all(bodies.map((body) => client.environments.updateSettings(body)));
 
-  if (!silent) {
-    toast.promise(mutation, {
-      loading: "Saving settings...",
-      success: "Settings updated",
-      error: (err) => getErrorToast(err, "Failed to update settings"),
-    });
+  if (silent) {
+    await mutation;
+    return;
   }
+  toast.promise(mutation, {
+    loading: "Saving settings...",
+    success: "Settings updated",
+    error: (err) => getErrorToast(err, "Failed to update settings"),
+  });
   await trackSave(mutation);
 }
 
@@ -381,13 +396,6 @@ export function trackSave<T>(promise: Promise<T>): Promise<T> {
       saveStore.notify();
       throw err;
     },
-  );
-}
-
-export function useSettingsIsSaving(): boolean {
-  return useSyncExternalStore(
-    (cb) => saveStore.subscribe(cb),
-    () => saveStore.pendingSaves > 0,
   );
 }
 
