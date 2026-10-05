@@ -12,6 +12,7 @@ import {
   MeterIndicator,
   MeterTrack,
   MeterValue,
+  Skeleton,
 } from "@unkey/ui";
 import { cn } from "cn";
 import type { ReactNode } from "react";
@@ -37,6 +38,25 @@ export function LimitItem({ row }: { row: LimitRow }) {
       </ItemContent>
       <ItemActions className="w-56 sm:w-80">
         <LimitValue row={row} />
+      </ItemActions>
+    </Item>
+  );
+}
+
+export function LimitItemSkeleton() {
+  return (
+    <Item>
+      <ItemContent>
+        <div className="flex h-5 items-center">
+          <Skeleton className="h-4 w-40" />
+        </div>
+      </ItemContent>
+      <ItemActions className="w-56 sm:w-80">
+        <div className={CELLS}>
+          <Skeleton className="h-4 w-14 justify-self-end" />
+          <Skeleton className="h-1.5 w-full rounded-full" />
+          <Skeleton className="h-4 w-12" />
+        </div>
       </ItemActions>
     </Item>
   );
