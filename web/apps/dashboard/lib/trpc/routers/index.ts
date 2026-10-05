@@ -80,13 +80,9 @@ import { githubRouter } from "./github";
 import { queryIdentityDetails } from "./identity/query-identity-details";
 import { queryIdentityLogs } from "./identity/query-logs";
 import { queryIdentityTimeseries } from "./identity/query-timeseries";
-import { createRootKey } from "./key/createRootKey";
 import { queryKeyDetailsLogs } from "./key/query-logs";
 import { keyDetailsVerificationsTimeseries } from "./key/query-timeseries";
 import { getConnectedRolesAndPerms } from "./key/rbac/connected-roles-and-perms";
-import { rerollRootKey } from "./key/reroll";
-import { updateRootKeyName } from "./key/updateRootKeyName";
-import { updateRootKeyPermissions } from "./key/updateRootKeyPermissions";
 import { logdrain } from "./logdrain";
 import { llmSearch } from "./logs/llm-search";
 import { queryLogs } from "./logs/query-logs";
@@ -113,8 +109,6 @@ import { queryRatelimitOverviewLogs } from "./ratelimit/query-overview-logs";
 import { queryRatelimitTimeseries } from "./ratelimit/query-timeseries";
 import { queryRatelimitTimeseriesBatch } from "./ratelimit/query-timeseries-batch";
 import { updateNamespaceName } from "./ratelimit/updateNamespaceName";
-import { deleteRootKeys } from "./settings/root-keys/delete";
-import { getRootKey } from "./settings/root-keys/get";
 import { cancelDeploy } from "./stripe/cancelDeploy";
 import { cancelSubscription } from "./stripe/cancelSubscription";
 import { changeDeployPlan } from "./stripe/changeDeployPlan";
@@ -125,7 +119,6 @@ import { getDeployCredit } from "./stripe/getDeployCredit";
 import { getDeployEntitlement } from "./stripe/getDeployEntitlement";
 import { getDeployPlans } from "./stripe/getDeployPlans";
 import { getDeploySubscription } from "./stripe/getDeploySubscription";
-import { getProducts } from "./stripe/getProducts";
 import { getSetupIntent } from "./stripe/getSetupIntent";
 import { getSubscriptionPaymentUrl } from "./stripe/getSubscriptionPaymentUrl";
 import { getUpcomingInvoice } from "./stripe/getUpcomingInvoice";
@@ -142,7 +135,6 @@ import { createWorkspace } from "./workspace/create";
 import { getWorkspaceById } from "./workspace/getById";
 import { getCurrentWorkspace } from "./workspace/getCurrent";
 import { listAvailable } from "./workspace/listAvailable";
-import { onboardingKeyCreation } from "./workspace/onboarding";
 
 export const router = t.router({
   logdrain,
@@ -156,22 +148,6 @@ export const router = t.router({
       timeseries: keyDetailsVerificationsTimeseries,
     }),
     connectedRolesAndPerms: getConnectedRolesAndPerms,
-  }),
-  rootKey: t.router({
-    create: createRootKey,
-    reroll: rerollRootKey,
-    update: t.router({
-      name: updateRootKeyName,
-      // NOTE: permissions replaces the full permission set for a root key.
-      // Clients must send the authoritative list to avoid lost updates.
-      permissions: updateRootKeyPermissions,
-    }),
-  }),
-  settings: t.router({
-    rootKeys: t.router({
-      get: getRootKey,
-      delete: deleteRootKeys,
-    }),
   }),
   api: t.router({
     updateName: updateApiName,
@@ -200,7 +176,6 @@ export const router = t.router({
     listAvailable,
     getById: getWorkspaceById,
     updateName: changeWorkspaceName,
-    onboarding: onboardingKeyCreation,
   }),
   stripe: t.router({
     createSubscription,
@@ -210,7 +185,6 @@ export const router = t.router({
     getBillingInfo,
     updateCustomer,
     getCheckoutSession,
-    getProducts,
     getSetupIntent,
     getSubscriptionPaymentUrl,
     updateWorkspaceStripeCustomer,
