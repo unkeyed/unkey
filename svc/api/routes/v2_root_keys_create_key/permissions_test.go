@@ -8,6 +8,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
+	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_root_keys_create_key"
 )
 
@@ -87,6 +88,51 @@ func TestCreateRejectsInvalidResourceActionsAtomically(t *testing.T) {
 			}, handler.Request{Permissions: []string{base + "projects/*#read", permission}})
 			require.Equal(t, http.StatusBadRequest, res.Status, "%s", res.RawBody)
 			require.Equal(t, before, snapshot(t, h))
+		})
+	}
+}
+
+// TestCreateReturnsInvalidPermission guarantees clients can identify why a
+// permission caused root-key creation to fail.
+func TestCreateReturnsInvalidPermission(t *testing.T) {
+	h, route, p := newHarness(t)
+	base := "unkey:v1:" + p.AuthorizedWorkspaceID + ":"
+	for _, testCase := range []struct {
+		name       string
+		permission string
+		detail     string
+	}{
+		{
+			name:       "invalid format",
+			permission: base + "projects/*",
+			detail:     "The permission must contain exactly one # separator.",
+		},
+		{
+			name:       "malformed resource",
+			permission: "not-a-urn#read",
+			detail:     "The resource URN is malformed.",
+		},
+		{
+			name:       "different workspace",
+			permission: "unkey:v1:ws_other:projects/*#read",
+			detail:     "The resource belongs to another workspace.",
+		},
+		{
+			name:       "unsupported action",
+			permission: base + "rootKeys/*#decrypt",
+			detail:     "The action is not supported for this resource.",
+		},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, http.Header{
+				"Authorization": {"Bearer test"}, "Content-Type": {"application/json"},
+			}, handler.Request{Permissions: []string{
+				base + "projects/*#read",
+				testCase.permission,
+			}})
+
+			require.Equal(t, http.StatusBadRequest, res.Status, "%s", res.RawBody)
+			require.Equal(t, "Invalid permission: "+testCase.permission+". "+testCase.detail, res.Body.Error.Detail)
 		})
 	}
 }
