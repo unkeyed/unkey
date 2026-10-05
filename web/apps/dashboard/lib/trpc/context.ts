@@ -5,9 +5,11 @@ import type { NextRequest } from "next/server";
 import { getAuth } from "../auth/get-auth";
 import { getClientIp } from "../client-ip";
 import { db } from "../db";
+import { workspaceFlagExtras } from "../db/workspace-flags";
 import { subscriptionIdsByProduct } from "../stripe/billingSubscriptions";
 
 const workspaceProjection = {
+  extras: workspaceFlagExtras,
   columns: {
     pk: true,
     id: true,
@@ -86,6 +88,7 @@ export async function createContext({ req }: FetchCreateContextFnOptions) {
   if (orgId && userId) {
     try {
       ws = await db.query.workspaces.findFirst({
+        extras: workspaceFlagExtras,
         columns: {
           pk: true,
           id: true,
