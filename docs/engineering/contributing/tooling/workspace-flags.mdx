@@ -7,10 +7,9 @@ Workspace flags store boolean platform feature settings in MySQL. They are
 separate from [Vercel feature flags](/contributing/tooling/feature-flags), which
 remain the dashboard's frontend flag system.
 
-This implementation provides database tables and SQL queries only. It does not
-include API routes, a dashboard page, automatic registration, or workspace
-loading. Loading flags alongside the workspace is deferred until a consumer
-needs them. Customer-facing interfaces use the term platform features.
+The dashboard loads flags with the current workspace. There are no dedicated
+flag API routes, settings page, or automatic registration. Customer-facing
+interfaces use the term platform features.
 
 ## Store definitions and overrides
 
@@ -31,6 +30,28 @@ restores inheritance, which can enable a feature whose default is `true`.
 
 Definitions are operator-managed records. Provision them through the approved
 database change process with a boolean default. Treat published slugs as stable.
+
+## Read flags in the dashboard
+
+The existing `workspace.getCurrent` tRPC procedure loads effective flag values
+from MySQL and includes them in `workspace.flags`, keyed by slug. Both the
+preloaded-context path and the fallback workspace lookup include flags.
+
+The flag query left-joins all definitions to overrides for the resolved
+workspace ID. An explicit `false` overrides a `true` default. Missing overrides
+inherit the default, and an empty definition table produces an empty map.
+
+Consumers access the values through the existing workspace provider:
+
+```tsx
+const { workspace } = useWorkspace();
+const previewEnabled = workspace?.flags["deployment-preview"] ?? false;
+```
+
+This adds one database query to `workspace.getCurrent`, not to every tRPC context
+creation. It adds no separate browser request. Flag lookup failures fail the
+workspace request rather than silently returning an empty map. Apply the flag
+schema before deploying the updated workspace loader.
 
 ## Use the database queries
 
