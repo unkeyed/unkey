@@ -33,7 +33,7 @@ An identity is one user, organization, or service account in your system, named 
 
 ## Root key
 
-A root key authenticates you, not your users. Every call to `api.unkey.com` sends a root key in the `Authorization: Bearer` header, and its permissions decide which calls succeed. Create root keys in the dashboard under **Settings > Root Keys**. Permissions such as `api.*.create_key` or `api.<api_id>.verify_key` apply to every keyspace or to one. See [Root keys](/platform/root-keys/overview) for how permissions are granted and rotated.
+A root key authenticates you, not your users. Every call to `api.unkey.com` sends a root key in the `Authorization: Bearer` header, and its permissions decide which calls succeed. Create root keys in the dashboard under **Settings > Root Keys**. Permissions such as `unkey:v1:{workspace_id}:projects/*/keyspaces/*/keys/*#write` or `unkey:v1:{workspace_id}:projects/{project_id}/keyspaces/{keyspace_id}/keys/*#verify` apply to every keyspace or to one. See [Root keys](/platform/root-keys/overview) for how permissions are granted and rotated.
 
 ## How the objects relate
 

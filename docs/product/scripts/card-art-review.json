@@ -1292,7 +1292,7 @@
   {
     "id": "platform--root-keys--overview--2",
     "decision": "remove",
-    "reason": "Staggered floating boxes turn a short permission tuple into an oversized decorative diagram."
+    "reason": "Staggered floating boxes turn a short permission expression into an oversized decorative diagram."
   },
   {
     "id": "platform--security--key-storage--1",

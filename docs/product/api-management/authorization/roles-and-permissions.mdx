@@ -26,7 +26,7 @@ Create a permission for each action your API checks, and group them into roles f
 
 <RootKeyPrereq />
 
-The endpoints need the matching `rbac.*` permission: `create_permission`, `read_permission`, `delete_permission`, `create_role`, `read_role`, `delete_role`, and `add_permission_to_role` together with `remove_permission_from_role` for `permissions.setRolePermissions`.
+Permission endpoints need `#read`, `#write`, or `#delete` on `unkey:v1:{workspace_id}:projects/*/rbac/permissions/*`. Role endpoints use the same actions on `unkey:v1:{workspace_id}:projects/*/rbac/roles/*`. The `#write` action also covers changing the permissions attached to a role.
 
 ## Permissions
 
@@ -66,7 +66,7 @@ The response has `permissionId` (`perm_...`). A duplicate slug fails with HTTP 4
 </ParamField>
 
 <ParamField body="permissions" type="string[]">
-  Permission slugs to attach. Slugs that don't exist yet are created if the root key also has `rbac.*.create_permission`. Without it, an unknown slug fails with HTTP 403 `err:unkey:authorization:insufficient_permissions`. Leave it out or send `[]` for an empty role.
+  Permission slugs to attach. Slugs that don't exist yet are created if the root key also has `unkey:v1:{workspace_id}:projects/*/rbac/permissions/*#write`. Without it, an unknown slug fails with HTTP 403 `err:unkey:authorization:insufficient_permissions`. Leave it out or send `[]` for an empty role.
 </ParamField>
 
 ```bash

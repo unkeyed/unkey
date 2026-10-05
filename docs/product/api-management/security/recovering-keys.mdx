@@ -20,11 +20,11 @@ A key is only recoverable if its keyspace has **Store encrypted keys** turned on
 
 ## Two separate permissions
 
-Creating a recoverable key needs `api.*.encrypt_key` or `api.<api_id>.encrypt_key` on top of `create_key`. Reading a key back needs `api.*.decrypt_key` or `api.<api_id>.decrypt_key` on top of `read_key`. Without `decrypt_key`, a root key can create and list keys but never read them back. Give `decrypt_key` only to the one service that needs to show keys, for the one keyspace that needs it.
+Creating a recoverable key needs `unkey:v1:{workspace_id}:projects/*/keyspaces/*/keys/*#write` or `unkey:v1:{workspace_id}:projects/{project_id}/keyspaces/{keyspace_id}/keys/*#write`. Reading a key back needs `unkey:v1:{workspace_id}:projects/*/keyspaces/*/keys/*#decrypt` or `unkey:v1:{workspace_id}:projects/{project_id}/keyspaces/{keyspace_id}/keys/*#decrypt` in addition to `#read` on the same key path. Without `#decrypt`, a root key can create and list keys but never read them back. Give `#decrypt` only to the one service that needs to show keys, for the one keyspace that needs it.
 
 ## Limiting the exposure
 
-With recovery on, a copy of our database is no longer useless on its own. Someone who also got your workspace's encryption keys, or a leaked root key with `decrypt_key`, could read your keys. To limit that:
+With recovery on, a copy of our database is no longer useless on its own. Someone who also got your workspace's encryption keys, or a leaked root key with `#decrypt` on the key path, could read your keys. To limit that:
 
 - Only turn on recovery for keyspaces that need it.
 - Never pass `decrypt: true` in code that serves end users.

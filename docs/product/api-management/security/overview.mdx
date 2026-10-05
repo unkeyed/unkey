@@ -21,7 +21,7 @@ When you create a key, you get it back once and we keep only a hash. A copy of o
 
 ## Recovery is opt-in and separately permissioned
 
-If your product must show a key more than once, we can turn on encrypted storage for a keyspace. Keys created with `recoverable: true` are then also stored encrypted with keys unique to your workspace. It's off by default. Creating a recoverable key needs the `encrypt_key` permission, and reading one back needs `decrypt_key`, so you can grant recovery narrowly. See [Recovering keys](/api-management/security/recovering-keys) for the trade-offs and [Recoverable keys](/api-management/keys/recoverable-keys) for the steps.
+If your product must show a key more than once, we can turn on encrypted storage for a keyspace. Keys created with `recoverable: true` are then also stored encrypted with keys unique to your workspace. It's off by default. Creating a recoverable key needs `#write` on its key path. Reading one back needs both `#read` and `#decrypt`, so you can grant recovery narrowly. See [Recovering keys](/api-management/security/recovering-keys) for the trade-offs and [Recoverable keys](/api-management/keys/recoverable-keys) for the steps.
 
 ## Verification doesn't leak
 
@@ -37,7 +37,7 @@ With delete protection on, you can't delete a keyspace until you turn protection
 
 ## Root keys are scoped
 
-A root key has only the permissions you give it, down to one keyspace. For example, `api.<api_id>.verify_key` lets a service verify keys in one keyspace and nothing else. Give each service its own root key with as few permissions as it needs, so a leaked key does little damage and is easy to replace. See [Root key permissions](/platform/root-keys/permissions).
+A root key has only the permissions you give it, down to one keyspace. For example, `unkey:v1:{workspace_id}:projects/{project_id}/keyspaces/{keyspace_id}/keys/*#verify` lets a service verify keys in one keyspace and nothing else. Give each service its own root key with as few permissions as it needs, so a leaked key does little damage and is easy to replace. See [Root key permissions](/platform/root-keys/permissions).
 
 ## Leaked credentials
 

@@ -23,7 +23,7 @@ Create a keyspace, issue a key, and <Tooltip tip="Key verification: keys.verifyK
 
 <RootKeyPrereq />
 
-The root key you create needs `api.*.create_key` and `api.*.verify_key`. Pick your language with the switcher. Only the steps that call the API change.
+The root key you create needs `unkey:v1:{workspace_id}:projects/*/keyspaces/*/keys/*#write` and `unkey:v1:{workspace_id}:projects/*/keyspaces/*/keys/*#verify`. Pick your language with the switcher. Only the steps that call the API change.
 
 <Steps titleSize="h3">
   <Step title="Create a keyspace">

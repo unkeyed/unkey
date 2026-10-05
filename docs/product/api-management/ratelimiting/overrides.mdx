@@ -23,7 +23,7 @@ An override gives particular identifiers a different limit from the one your cod
 
 <RootKeyPrereq />
 
-Setting an override needs `ratelimit.*.set_override` or `ratelimit.<namespace_id>.set_override`. Reading and listing need `ratelimit.*.read_override`, and deleting needs `ratelimit.*.delete_override`.
+Setting an override needs `unkey:v1:{workspace_id}:projects/*/ratelimits/namespaces/*/overrides/*#write` or `unkey:v1:{workspace_id}:projects/{project_id}/ratelimits/namespaces/{namespace_id}/overrides/*#write`. Reading and listing need `unkey:v1:{workspace_id}:projects/*/ratelimits/namespaces/*/overrides/*#read`, and deleting needs `unkey:v1:{workspace_id}:projects/*/ratelimits/namespaces/*/overrides/*#delete`.
 
 ## Set an override
 

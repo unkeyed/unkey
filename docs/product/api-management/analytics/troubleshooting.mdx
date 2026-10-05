@@ -29,7 +29,7 @@ Start with the HTTP status:
 
 **Check retention.** Data older than your plan's log retention is left out, often without an error. See [Working with time](/api-management/analytics/query-language#working-with-time).
 
-**Check the root key.** If it has `read_analytics` for specific keyspaces or namespaces only, rows outside them are left out without an error.
+**Check the root key.** If it has `#read` on specific keyspace or namespace log paths only, rows outside them are left out without an error.
 
 ## The query was rejected (400)
 
@@ -65,7 +65,7 @@ Start with the HTTP status:
 
 ## Permission denied (403)
 
-`insufficient_permissions` names the permission the root key needs: `api.*.read_analytics` or `api.<api_id>.read_analytics` for verifications, `ratelimit.*.read_analytics` or `ratelimit.<namespace_id>.read_analytics` for rate limits. Grant it under **Settings > Root Keys**. See [Root key permissions](/platform/root-keys/permissions).
+`insufficient_permissions` names the permission the root key needs: `unkey:v1:{workspace_id}:projects/*/keyspaces/*/logs#read` or `unkey:v1:{workspace_id}:projects/{project_id}/keyspaces/{keyspace_id}/logs#read` for verifications, `unkey:v1:{workspace_id}:projects/*/ratelimits/namespaces/*/logs#read` or `unkey:v1:{workspace_id}:projects/{project_id}/ratelimits/namespaces/{namespace_id}/logs#read` for rate limits. Grant it under **Settings > Root Keys**. See [Root key permissions](/platform/root-keys/permissions).
 
 ## Numbers that look wrong
 
