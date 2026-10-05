@@ -26,7 +26,7 @@ func TestGetRootKey_Valid(t *testing.T) {
 	h := integration.New(t, integration.Config{NumNodes: 1})
 
 	workspace := h.Resources().UserWorkspace
-	rootKey := h.Seed.CreateRootKey(ctx, workspace.ID, "api.*.verify_key")
+	rootKey := h.Seed.CreateRootKey(ctx, workspace.ID, "unkey:v1:"+workspace.ID+":projects/*/keyspaces/*/keys/*#verify")
 
 	api := h.Seed.CreateAPI(ctx, seed.CreateApiRequest{
 		WorkspaceID: workspace.ID,
@@ -90,7 +90,7 @@ func TestGetRootKey_Disabled(t *testing.T) {
 	h := integration.New(t, integration.Config{NumNodes: 1})
 
 	workspace := h.Resources().UserWorkspace
-	rootKey := h.Seed.CreateRootKey(ctx, workspace.ID, "api.*.verify_key")
+	rootKey := h.Seed.CreateRootKey(ctx, workspace.ID, "unkey:v1:"+workspace.ID+":projects/*/keyspaces/*/keys/*#verify")
 
 	// Disable the root key
 	keyHash := hash.Sha256(rootKey)
@@ -178,7 +178,7 @@ func TestGetRootKey_TargetWorkspaceDisabled(t *testing.T) {
 	h := integration.New(t, integration.Config{NumNodes: 1})
 
 	workspace := h.Resources().UserWorkspace
-	rootKey := h.Seed.CreateRootKey(ctx, workspace.ID, "api.*.verify_key")
+	rootKey := h.Seed.CreateRootKey(ctx, workspace.ID, "unkey:v1:"+workspace.ID+":projects/*/keyspaces/*/keys/*#verify")
 
 	api := h.Seed.CreateAPI(ctx, seed.CreateApiRequest{
 		WorkspaceID: workspace.ID,
@@ -217,7 +217,7 @@ func TestGetRootKey_RootWorkspaceDisabled(t *testing.T) {
 
 	workspace := h.Resources().UserWorkspace
 	rootWorkspace := h.Resources().RootWorkspace
-	rootKey := h.Seed.CreateRootKey(ctx, workspace.ID, "api.*.verify_key")
+	rootKey := h.Seed.CreateRootKey(ctx, workspace.ID, "unkey:v1:"+workspace.ID+":projects/*/keyspaces/*/keys/*#verify")
 
 	// Disable the root workspace (the one that owns the root key)
 	_, err := db.Query.UpdateWorkspaceEnabled(ctx, h.DB.RW(), db.UpdateWorkspaceEnabledParams{
@@ -328,7 +328,7 @@ func TestGetRootKey_Deleted(t *testing.T) {
 	h := integration.New(t, integration.Config{NumNodes: 1})
 
 	workspace := h.Resources().UserWorkspace
-	rootKey := h.Seed.CreateRootKey(ctx, workspace.ID, "api.*.verify_key")
+	rootKey := h.Seed.CreateRootKey(ctx, workspace.ID, "unkey:v1:"+workspace.ID+":projects/*/keyspaces/*/keys/*#verify")
 
 	// Soft delete the root key
 	keyHash := hash.Sha256(rootKey)
@@ -372,9 +372,9 @@ func TestGetRootKey_InsufficientPermissions(t *testing.T) {
 
 	workspace := h.Resources().UserWorkspace
 	// Create root key without the required ratelimit permission
-	rootKey := h.Seed.CreateRootKey(ctx, workspace.ID, "api.*.create_key")
+	rootKey := h.Seed.CreateRootKey(ctx, workspace.ID, "unkey:v1:"+workspace.ID+":rootKeys/*#read")
 
-	// Try to use ratelimit endpoint which requires ratelimit.*.create_namespace permission
+	// Try to use a ratelimit endpoint without its namespace permission.
 	type RatelimitRequest struct {
 		Namespace  string `json:"namespace"`
 		Identifier string `json:"identifier"`
@@ -429,8 +429,8 @@ func TestGetRootKey_RegularKeyWithSamePermissions(t *testing.T) {
 		Permissions: []seed.CreatePermissionRequest{
 			{
 				WorkspaceID: workspace.ID,
-				Name:        "api.*.verify_key",
-				Slug:        "api.*.verify_key",
+				Name:        "unkey:v1:" + workspace.ID + ":projects/*/keyspaces/*/keys/*#verify",
+				Slug:        "unkey:v1:" + workspace.ID + ":projects/*/keyspaces/*/keys/*#verify",
 			},
 		},
 	})
