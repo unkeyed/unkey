@@ -7034,23 +7034,43 @@ type V2WorkspaceGetUsagePeriod struct {
 	// Example: 1790946000000
 	End int64 `json:"end"`
 
+	// Month The month the usage covers, from 1 (January) to 12 (December).
+	//
+	// Example: 9
+	Month int `json:"month"`
+
 	// Start Unix timestamp in milliseconds of the first day of the month, 00:00 UTC.
 	//
 	// Example: 1790812800000
 	Start int64 `json:"start"`
+
+	// Year The year of the month the usage covers.
+	//
+	// Example: 2026
+	Year int `json:"year"`
 }
 
 // V2WorkspaceGetUsageRequestBody defines model for V2WorkspaceGetUsageRequestBody.
 type V2WorkspaceGetUsageRequestBody struct {
-	// Month The calendar month (UTC) to read, as `YYYY-MM`. Omit it for the current
-	// month to date. A past month returns the full month.
+	// Period The calendar month (UTC) to read. Omit it for the current month to date. A
+	// past month returns the full month. It cannot be in the future, and it must
+	// start within the last 90 days, because compute usage is kept for 90 days.
+	Period *V2WorkspaceGetUsageRequestPeriod `json:"period,omitempty"`
+}
+
+// V2WorkspaceGetUsageRequestPeriod The calendar month (UTC) to read. Omit it for the current month to date. A
+// past month returns the full month. It cannot be in the future, and it must
+// start within the last 90 days, because compute usage is kept for 90 days.
+type V2WorkspaceGetUsageRequestPeriod struct {
+	// Month The month, from 1 (January) to 12 (December).
 	//
-	// The month cannot be in the future, and it must start within the last 90
-	// days, because compute usage is kept for 90 days.
+	// Example: 9
+	Month int `json:"month"`
+
+	// Year The year, for example 2026.
 	//
-	//
-	// Example: 2026-09
-	Month *string `json:"month,omitempty"`
+	// Example: 2026
+	Year int `json:"year"`
 }
 
 // V2WorkspaceGetUsageResource A project or app. `name` is omitted when the resource was deleted.

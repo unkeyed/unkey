@@ -1,15 +1,7 @@
 type: object
 properties:
-  month:
-    type: string
-    pattern: "^[0-9]{4}-(0[1-9]|1[0-2])$"
-    description: |
-      The calendar month (UTC) to read, as `YYYY-MM`. Omit it for the current
-      month to date. A past month returns the full month.
-
-      The month cannot be in the future, and it must start within the last 90
-      days, because compute usage is kept for 90 days.
-    example: "2026-09"
+  period:
+    "$ref": "./V2WorkspaceGetUsageRequestPeriod.yaml"
 additionalProperties: false
 examples:
   currentMonth:
@@ -18,4 +10,6 @@ examples:
   pastMonth:
     summary: A past month
     value:
-      month: "2026-09"
+      period:
+        year: 2026
+        month: 9

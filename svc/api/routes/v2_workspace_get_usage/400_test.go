@@ -30,9 +30,11 @@ func TestGetUsageBadRequest(t *testing.T) {
 	}
 
 	for name, tc := range map[string]struct{ body, location string }{
-		"month without leading zero": {body: `{"month":"2026-9"}`, location: "/properties/month/pattern"},
-		"month thirteen":             {body: `{"month":"2026-13"}`, location: "/properties/month/pattern"},
-		"unknown field":              {body: `{"period":"current"}`, location: "/additionalProperties"},
+		"month thirteen":  {body: `{"period":{"year":2026,"month":13}}`, location: "/properties/period/$ref/properties/month/maximum"},
+		"month zero":      {body: `{"period":{"year":2026,"month":0}}`, location: "/properties/period/$ref/properties/month/minimum"},
+		"missing year":    {body: `{"period":{"month":9}}`, location: "/properties/period/$ref/required"},
+		"month as string": {body: `{"period":{"year":2026,"month":"09"}}`, location: "/properties/period/$ref/properties/month/type"},
+		"unknown field":   {body: `{"month":"2026-09"}`, location: "/additionalProperties"},
 	} {
 		t.Run(name, func(t *testing.T) {
 			res := call(t, tc.body)
@@ -45,19 +47,19 @@ func TestGetUsageBadRequest(t *testing.T) {
 	h.Clock.Set(time.Date(2026, 10, 5, 12, 0, 0, 0, time.UTC))
 
 	t.Run("future month", func(t *testing.T) {
-		res := call(t, `{"month":"2026-11"}`)
-		require.Equal(t, "'month' 2026-11 is in the future. The latest month is 2026-10.", res.Body.Error.Detail)
+		res := call(t, `{"period":{"year":2026,"month":11}}`)
+		require.Equal(t, "'period' 2026-11 is in the future. The latest month is 2026-10.", res.Body.Error.Detail)
 	})
 
 	t.Run("earliest month is allowed", func(t *testing.T) {
-		req := httptest.NewRequest(route.Method(), route.Path(), bytes.NewBufferString(`{"month":"2026-08"}`))
+		req := httptest.NewRequest(route.Method(), route.Path(), bytes.NewBufferString(`{"period":{"year":2026,"month":8}}`))
 		req.Header = headers(rootKey)
 		res := testutil.CallRaw[openapi.V2WorkspaceGetUsageResponseBody](h, req)
 		require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
 	})
 
 	t.Run("month before compute usage retention", func(t *testing.T) {
-		res := call(t, `{"month":"2026-07"}`)
-		require.Equal(t, "'month' 2026-07 starts more than 90 days ago. Compute usage is kept for 90 days, so the earliest month is 2026-08.", res.Body.Error.Detail)
+		res := call(t, `{"period":{"year":2026,"month":7}}`)
+		require.Equal(t, "'period' 2026-07 starts more than 90 days ago. Compute usage is kept for 90 days, so the earliest month is 2026-08.", res.Body.Error.Detail)
 	})
 }

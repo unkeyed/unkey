@@ -11,8 +11,9 @@ post:
     Compute usage can be up to 15 minutes late, and it can change for up to 7
     days.
 
-    Send `{}` for the current month to date, or `{"month": "2026-09"}` for a full
-    past month. The month must start within the last 90 days.
+    Send `{}` for the current month to date, or
+    `{"period": {"year": 2026, "month": 9}}` for a full past month. The month
+    must start within the last 90 days.
 
     **Required Permissions**
 
@@ -36,7 +37,9 @@ post:
           pastMonth:
             summary: A past month
             value:
-              month: "2026-09"
+              period:
+                year: 2026
+                month: 9
     required: true
   responses:
     "200":
@@ -55,6 +58,8 @@ post:
                   requestId: req_1234abcd
                 data:
                   period:
+                    year: 2026
+                    month: 10
                     start: 1790812800000
                     end: 1790946000000
                   totals:
@@ -101,6 +106,8 @@ post:
                   requestId: req_1234abcd
                 data:
                   period:
+                    year: 2026
+                    month: 9
                     start: 1788220800000
                     end: 1790812800000
                   totals:
@@ -147,6 +154,8 @@ post:
                   requestId: req_1234abcd
                 data:
                   period:
+                    year: 2026
+                    month: 10
                     start: 1790812800000
                     end: 1790946000000
                   totals:
@@ -171,6 +180,8 @@ post:
                   requestId: req_1234abcd
                 data:
                   period:
+                    year: 2026
+                    month: 9
                     start: 1788220800000
                     end: 1790812800000
                   totals:
@@ -213,7 +224,7 @@ post:
             "$ref": "../../../../error/BadRequestErrorResponse.yaml"
           examples:
             invalidMonth:
-              summary: Month not in YYYY-MM format
+              summary: Month out of range
               value:
                 meta:
                   requestId: req_1234abcd
@@ -223,8 +234,8 @@ post:
                   status: 400
                   type: https://unkey.com/docs/errors/unkey/application/invalid_input
                   errors:
-                    - location: /properties/month/pattern
-                      message: "'2026-9' does not match pattern '^[0-9]{4}-(0[1-9]|1[0-2])$'"
+                    - location: /properties/period/$ref/properties/month/maximum
+                      message: "maximum: got 13, want 12"
             futureMonth:
               summary: Month in the future
               value:
@@ -232,7 +243,7 @@ post:
                   requestId: req_1234abcd
                 error:
                   title: Bad Request
-                  detail: "'month' 2026-11 is in the future. The latest month is 2026-10."
+                  detail: "'period' 2026-11 is in the future. The latest month is 2026-10."
                   status: 400
                   type: https://unkey.com/docs/errors/unkey/application/invalid_input
             monthTooOld:
@@ -242,7 +253,7 @@ post:
                   requestId: req_1234abcd
                 error:
                   title: Bad Request
-                  detail: "'month' 2026-07 starts more than 90 days ago. Compute usage is kept for 90 days, so the earliest month is 2026-08."
+                  detail: "'period' 2026-07 starts more than 90 days ago. Compute usage is kept for 90 days, so the earliest month is 2026-08."
                   status: 400
                   type: https://unkey.com/docs/errors/unkey/application/invalid_input
     "401":

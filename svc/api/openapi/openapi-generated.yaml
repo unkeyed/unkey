@@ -4216,16 +4216,8 @@ components:
         V2WorkspaceGetUsageRequestBody:
             type: object
             properties:
-                month:
-                    type: string
-                    pattern: "^[0-9]{4}-(0[1-9]|1[0-2])$"
-                    description: |
-                        The calendar month (UTC) to read, as `YYYY-MM`. Omit it for the current
-                        month to date. A past month returns the full month.
-
-                        The month cannot be in the future, and it must start within the last 90
-                        days, because compute usage is kept for 90 days.
-                    example: "2026-09"
+                period:
+                    "$ref": "#/components/schemas/V2WorkspaceGetUsageRequestPeriod"
             additionalProperties: false
         V2WorkspaceGetUsageResponseBody:
             type: object
@@ -8107,6 +8099,27 @@ components:
                         value, such as a retention period or a per-instance size.
                     example: 1
             additionalProperties: false
+        V2WorkspaceGetUsageRequestPeriod:
+            type: object
+            description: |
+                The calendar month (UTC) to read. Omit it for the current month to date. A
+                past month returns the full month. It cannot be in the future, and it must
+                start within the last 90 days, because compute usage is kept for 90 days.
+            required:
+                - year
+                - month
+            properties:
+                year:
+                    type: integer
+                    description: The year, for example 2026.
+                    example: 2026
+                month:
+                    type: integer
+                    minimum: 1
+                    maximum: 12
+                    description: The month, from 1 (January) to 12 (December).
+                    example: 9
+            additionalProperties: false
         V2WorkspaceGetUsageResponseData:
             type: object
             required:
@@ -8125,9 +8138,19 @@ components:
             type: object
             description: The time window the usage covers.
             required:
+                - year
+                - month
                 - start
                 - end
             properties:
+                year:
+                    type: integer
+                    description: The year of the month the usage covers.
+                    example: 2026
+                month:
+                    type: integer
+                    description: The month the usage covers, from 1 (January) to 12 (December).
+                    example: 9
                 start:
                     type: integer
                     format: int64
@@ -18138,8 +18161,9 @@ paths:
                 Compute usage can be up to 15 minutes late, and it can change for up to 7
                 days.
 
-                Send `{}` for the current month to date, or `{"month": "2026-09"}` for a full
-                past month. The month must start within the last 90 days.
+                Send `{}` for the current month to date, or
+                `{"period": {"year": 2026, "month": 9}}` for a full past month. The month
+                must start within the last 90 days.
 
                 **Required Permissions**
 
@@ -18157,7 +18181,9 @@ paths:
                             pastMonth:
                                 summary: A past month
                                 value:
-                                    month: 2026-09
+                                    period:
+                                        month: 9
+                                        year: 2026
                         schema:
                             $ref: '#/components/schemas/V2WorkspaceGetUsageRequestBody'
                 required: true
@@ -18198,7 +18224,9 @@ paths:
                                                         name: Payments
                                             period:
                                                 end: 1790946000000
+                                                month: 10
                                                 start: 1790812800000
+                                                year: 2026
                                             totals:
                                                 api:
                                                     ratelimits: 2000
@@ -18240,7 +18268,9 @@ paths:
                                                         name: Payments
                                             period:
                                                 end: 1790812800000
+                                                month: 9
                                                 start: 1788220800000
+                                                year: 2026
                                             totals:
                                                 api:
                                                     ratelimits: 0
@@ -18264,7 +18294,9 @@ paths:
                                                 byEnvironment: []
                                             period:
                                                 end: 1790946000000
+                                                month: 10
                                                 start: 1790812800000
+                                                year: 2026
                                             totals:
                                                 api:
                                                     ratelimits: 0
@@ -18310,7 +18342,9 @@ paths:
                                                         name: Payments
                                             period:
                                                 end: 1790812800000
+                                                month: 9
                                                 start: 1788220800000
+                                                year: 2026
                                             totals:
                                                 api:
                                                     ratelimits: 8000
@@ -18336,20 +18370,20 @@ paths:
                                     summary: Month in the future
                                     value:
                                         error:
-                                            detail: '''month'' 2026-11 is in the future. The latest month is 2026-10.'
+                                            detail: '''period'' 2026-11 is in the future. The latest month is 2026-10.'
                                             status: 400
                                             title: Bad Request
                                             type: https://unkey.com/docs/errors/unkey/application/invalid_input
                                         meta:
                                             requestId: req_1234abcd
                                 invalidMonth:
-                                    summary: Month not in YYYY-MM format
+                                    summary: Month out of range
                                     value:
                                         error:
                                             detail: POST request body for '/v2/workspace.getUsage' failed to validate schema
                                             errors:
-                                                - location: /properties/month/pattern
-                                                  message: '''2026-9'' does not match pattern ''^[0-9]{4}-(0[1-9]|1[0-2])$'''
+                                                - location: /properties/period/$ref/properties/month/maximum
+                                                  message: 'maximum: got 13, want 12'
                                             status: 400
                                             title: Bad Request
                                             type: https://unkey.com/docs/errors/unkey/application/invalid_input
@@ -18359,7 +18393,7 @@ paths:
                                     summary: Month older than the compute usage retention
                                     value:
                                         error:
-                                            detail: '''month'' 2026-07 starts more than 90 days ago. Compute usage is kept for 90 days, so the earliest month is 2026-08.'
+                                            detail: '''period'' 2026-07 starts more than 90 days ago. Compute usage is kept for 90 days, so the earliest month is 2026-08.'
                                             status: 400
                                             title: Bad Request
                                             type: https://unkey.com/docs/errors/unkey/application/invalid_input

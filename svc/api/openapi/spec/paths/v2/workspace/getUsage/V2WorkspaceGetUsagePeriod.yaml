@@ -1,9 +1,19 @@
 type: object
 description: The time window the usage covers.
 required:
+  - year
+  - month
   - start
   - end
 properties:
+  year:
+    type: integer
+    description: The year of the month the usage covers.
+    example: 2026
+  month:
+    type: integer
+    description: The month the usage covers, from 1 (January) to 12 (December).
+    example: 9
   start:
     type: integer
     format: int64

@@ -225,7 +225,7 @@ func TestGetUsage(t *testing.T) {
 		})
 
 		require.Equal(t, openapi.V2WorkspaceGetUsageResponseData{
-			Period: openapi.V2WorkspaceGetUsagePeriod{Start: monthStart.UnixMilli(), End: now.UnixMilli()},
+			Period: openapi.V2WorkspaceGetUsagePeriod{Year: monthStart.Year(), Month: int(monthStart.Month()), Start: monthStart.UnixMilli(), End: now.UnixMilli()},
 			Totals: openapi.V2WorkspaceGetUsageTotals{
 				// billable_verifications_per_month_mv_v2 also counts the 9 API verifications of apiKey
 				Api:     openapi.V2WorkspaceGetUsageApi{Verifications: 40 + 9, Ratelimits: 2},
@@ -240,11 +240,11 @@ func TestGetUsage(t *testing.T) {
 	})
 
 	t.Run("past month", func(t *testing.T) {
-		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers(setup.RootKey), handler.Request{Month: new(lastMonth.Format("2006-01"))})
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers(setup.RootKey), handler.Request{Period: &openapi.V2WorkspaceGetUsageRequestPeriod{Year: lastMonth.Year(), Month: int(lastMonth.Month())}})
 		require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
 
 		data := res.Body.Data
-		require.Equal(t, openapi.V2WorkspaceGetUsagePeriod{Start: lastMonth.UnixMilli(), End: monthStart.UnixMilli()}, data.Period)
+		require.Equal(t, openapi.V2WorkspaceGetUsagePeriod{Year: lastMonth.Year(), Month: int(lastMonth.Month()), Start: lastMonth.UnixMilli(), End: monthStart.UnixMilli()}, data.Period)
 		require.Equal(t, openapi.V2WorkspaceGetUsageApi{Verifications: 7, Ratelimits: 1}, data.Totals.Api)
 		require.Len(t, data.Breakdowns.ByEnvironment, 1)
 		require.Equal(t, production.ID, data.Breakdowns.ByEnvironment[0].Environment.Id)

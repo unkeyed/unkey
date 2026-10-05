@@ -78,15 +78,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	now := h.Clock.Now().UTC()
 	currentMonth := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.UTC)
 	start, end := currentMonth, now
-	if req.Month != nil {
-		start, err = time.Parse("2006-01", *req.Month)
-		if err != nil {
-			return fault.Wrap(err,
-				fault.Code(codes.App.Validation.InvalidInput.URN()),
-				fault.Internal("invalid month"),
-				fault.Public("'month' must be YYYY-MM, for example 2026-09."),
-			)
-		}
+	if req.Period != nil {
+		start = time.Date(req.Period.Year, time.Month(req.Period.Month), 1, 0, 0, 0, 0, time.UTC)
+		requested := start.Format("2006-01")
 
 		retentionStart := now.Add(-computeUsageRetention)
 		earliestMonth := time.Date(retentionStart.Year(), retentionStart.Month(), 1, 0, 0, 0, 0, time.UTC)
@@ -97,14 +91,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		case start.After(currentMonth):
 			return fault.New("month in the future",
 				fault.Code(codes.App.Validation.InvalidInput.URN()),
-				fault.Internal(fmt.Sprintf("month %s is after %s", *req.Month, currentMonth.Format("2006-01"))),
-				fault.Public(fmt.Sprintf("'month' %s is in the future. The latest month is %s.", *req.Month, currentMonth.Format("2006-01"))),
+				fault.Internal(fmt.Sprintf("month %s is after %s", requested, currentMonth.Format("2006-01"))),
+				fault.Public(fmt.Sprintf("'period' %s is in the future. The latest month is %s.", requested, currentMonth.Format("2006-01"))),
 			)
 		case start.Before(earliestMonth):
 			return fault.New("month beyond compute usage retention",
 				fault.Code(codes.App.Validation.InvalidInput.URN()),
-				fault.Internal(fmt.Sprintf("month %s starts before %s", *req.Month, retentionStart.Format(time.RFC3339))),
-				fault.Public(fmt.Sprintf("'month' %s starts more than 90 days ago. Compute usage is kept for 90 days, so the earliest month is %s.", *req.Month, earliestMonth.Format("2006-01"))),
+				fault.Internal(fmt.Sprintf("month %s starts before %s", requested, retentionStart.Format(time.RFC3339))),
+				fault.Public(fmt.Sprintf("'period' %s starts more than 90 days ago. Compute usage is kept for 90 days, so the earliest month is %s.", requested, earliestMonth.Format("2006-01"))),
 			)
 		}
 		if start.Before(currentMonth) {
@@ -235,6 +229,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		},
 		Data: openapi.V2WorkspaceGetUsageResponseData{
 			Period: openapi.V2WorkspaceGetUsagePeriod{
+				Year:  start.Year(),
+				Month: int(start.Month()),
 				Start: start.UnixMilli(),
 				End:   end.UnixMilli(),
 			},
