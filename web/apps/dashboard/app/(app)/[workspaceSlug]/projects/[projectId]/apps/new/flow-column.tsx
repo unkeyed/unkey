@@ -11,23 +11,15 @@ import {
   useMotionValue,
   useReducedMotion,
 } from "framer-motion";
-import { type ReactNode, createContext, useContext, useEffect, useRef, useState } from "react";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { COLUMN_CARD_MAX_HEIGHT, COLUMN_GAP, COLUMN_TOP_SPACE, cardSurface } from "./card";
 import { ConfigCard } from "./config-card";
 import { useNewAppFlow } from "./flow";
 import { Result, Watch } from "./panes/deploying-pane";
 import { DeployRunProvider } from "./panes/deploying/use-deploy-run";
-import {
-  type Card,
-  type CardId,
-  type Direction,
-  isConfigCard,
-  previousCard,
-  resolveCard,
-} from "./wizard-model";
+import { type CardId, type Direction, previousCard, resolveCard } from "./wizard-model";
 
 type Role = "previous" | "current" | "next";
-type ColumnItem = { id: CardId; node: ReactNode };
 
 const NEIGHBOR_OPACITY = 0.4;
 const ENTER_OFFSET_PX = 64;
@@ -45,6 +37,7 @@ type ColumnMotion = {
   animated: boolean;
   fadeTop: MotionValue<number>;
   fadeBottom: MotionValue<number>;
+  heights: Map<CardId, number>;
 };
 
 const ColumnMotionContext = createContext<ColumnMotion | null>(null);
@@ -64,9 +57,10 @@ export function FlowColumn() {
   const animated = useAnimatedAfterInteraction();
   const fadeTop = useMotionValue(0);
   const fadeBottom = useMotionValue(0);
+  const [heights] = useState(() => new Map<CardId, number>());
   const { app, deploymentId } = state;
   return (
-    <ColumnMotionContext.Provider value={{ animated, fadeTop, fadeBottom }}>
+    <ColumnMotionContext.Provider value={{ animated, fadeTop, fadeBottom, heights }}>
       {app && deploymentId ? (
         <DeployRunProvider
           projectId={projectId}
@@ -101,24 +95,30 @@ function Column() {
   const { card, cards } = useNewAppFlow();
   const at = cards.indexOf(card.id);
   const direction = useColumnDirection(at);
-  const item = (id: CardId | undefined): ColumnItem | null =>
-    id ? { id, node: <NeighbourCard id={id} /> } : null;
   return (
     <StepColumn
       direction={direction}
-      previous={item(cards[at - 1])}
-      current={{ id: card.id, node: <CurrentCard card={card} /> }}
-      next={item(cards[at + 1])}
+      previous={cards[at - 1] ?? null}
+      current={card.id}
+      next={cards[at + 1] ?? null}
     />
   );
 }
 
-function CurrentCard({ card }: { card: Card }) {
+function CardContent({ id }: { id: CardId }) {
   const { state, locked, dispatch } = useNewAppFlow();
-  if (!isConfigCard(card)) {
-    return card.id === "watch" ? <Watch appId={card.appId} /> : <Result />;
+  const at = { ...state, card: id };
+  const card = resolveCard(at);
+  if (card.id !== id) {
+    return null;
   }
-  const previous = previousCard(state);
+  if (card.id === "watch") {
+    return <Watch appId={card.appId} />;
+  }
+  if (card.id === "result") {
+    return <Result />;
+  }
+  const previous = previousCard(at);
   return (
     <ConfigCard
       card={card}
@@ -137,30 +137,35 @@ function CurrentCard({ card }: { card: Card }) {
   );
 }
 
-const placeholder = <div className="h-48" />;
-
-// Neighbours render their real content invisibly so each card keeps its true
-// height while it moves; only the empty card surface shows.
-function NeighbourCard({ id }: { id: CardId }) {
-  const { state } = useNewAppFlow();
-  const card = resolveCard({ ...state, card: id, focus: null });
-  if (card.id !== id) {
-    return placeholder;
+// Only the current card mounts its pane, so neighbours run no queries. A leaving
+// card keeps its content until the fade ends, then holds its height as a shell.
+function ColumnCard({ id, current }: { id: CardId; current: boolean }) {
+  const { animated, heights } = useColumnMotion();
+  const [live, setLive] = useState(current);
+  if (current && !live) {
+    setLive(true);
   }
-  if (!isConfigCard(card)) {
-    return card.id === "watch" ? <Watch appId={card.appId} /> : <Result />;
-  }
+  const ref = useRef<HTMLDivElement>(null);
   return (
-    <ConfigCard
-      card={card}
-      back={
-        previousCard({ ...state, card: id }) ? (
-          <Button variant="outline" size="sm" tabIndex={-1}>
-            Back
-          </Button>
-        ) : null
-      }
-    />
+    <motion.div
+      ref={ref}
+      className="relative flex min-h-0 flex-col"
+      initial={false}
+      animate={{ opacity: current ? 1 : 0 }}
+      transition={animated ? { duration: FADE_S, ease: "easeOut" } : { duration: 0 }}
+      onAnimationComplete={() => {
+        if (!current && ref.current) {
+          heights.set(id, ref.current.offsetHeight);
+          setLive(false);
+        }
+      }}
+    >
+      {live ? (
+        <CardContent id={id} />
+      ) : (
+        <div style={{ height: heights.get(id) ?? COLUMN_CARD_MAX_HEIGHT }} />
+      )}
+    </motion.div>
   );
 }
 
@@ -214,19 +219,19 @@ function StepColumn({
   next,
   direction,
 }: {
-  previous: ColumnItem | null;
-  current: ColumnItem;
-  next: ColumnItem | null;
+  previous: CardId | null;
+  current: CardId;
+  next: CardId | null;
   direction: Direction;
 }) {
   const { animated, fadeTop, fadeBottom } = useColumnMotion();
   const transition = animated ? { duration: MOVE_S, ease: EASE_IN_OUT_CUBIC } : { duration: 0 };
   const [view, setView] = useState<HTMLDivElement | null>(null);
-  const peek = usePeek(view, current.id);
+  const peek = usePeek(view, current);
 
-  const moved = useRef({ id: current.id, at: 0 });
-  if (moved.current.id !== current.id) {
-    moved.current = { id: current.id, at: performance.now() };
+  const moved = useRef({ id: current, at: 0 });
+  if (moved.current.id !== current) {
+    moved.current = { id: current, at: performance.now() };
   }
 
   const topTarget = previous ? peek.top : 0;
@@ -252,13 +257,10 @@ function StepColumn({
   const mask = useMotionTemplate`linear-gradient(to bottom, transparent 0, black ${fadeTop}px, black calc(100% - ${fadeBottom}px), transparent 100%)`;
 
   const offset = direction === "forward" ? ENTER_OFFSET_PX : -ENTER_OFFSET_PX;
-  const contentTransition = animated
-    ? { duration: FADE_S, ease: "easeOut" as const }
-    : { duration: 0 };
-  const items: { role: Role; item: ColumnItem }[] = [
-    ...(previous ? [{ role: "previous" as const, item: previous }] : []),
-    { role: "current", item: current },
-    ...(next ? [{ role: "next" as const, item: next }] : []),
+  const items: { role: Role; id: CardId }[] = [
+    ...(previous ? [{ role: "previous" as const, id: previous }] : []),
+    { role: "current", id: current },
+    ...(next ? [{ role: "next" as const, id: next }] : []),
   ];
 
   return (
@@ -275,12 +277,12 @@ function StepColumn({
         }}
       >
         <AnimatePresence initial={false}>
-          {items.map(({ role, item }) => (
+          {items.map(({ role, id }) => (
             <motion.div
-              key={item.id}
-              layoutId={`new-app-card-${item.id}`}
+              key={id}
+              layoutId={`new-app-card-${id}`}
               layout="position"
-              layoutDependency={current.id}
+              layoutDependency={current}
               data-current-card={role === "current" ? "" : undefined}
               inert={role !== "current"}
               className={cn(
@@ -295,14 +297,7 @@ function StepColumn({
               transition={transition}
             >
               <div aria-hidden className={cn(cardSurface, "absolute inset-0")} />
-              <motion.div
-                className="relative flex min-h-0 flex-col"
-                initial={false}
-                animate={{ opacity: role === "current" ? 1 : 0 }}
-                transition={contentTransition}
-              >
-                {item.node}
-              </motion.div>
+              <ColumnCard id={id} current={role === "current"} />
             </motion.div>
           ))}
         </AnimatePresence>

@@ -1,4 +1,8 @@
+"use client";
+
 import { TOP_NAV_HEIGHT } from "@/components/navigation/top-nav";
+import { cn } from "@unkey/ui/src/lib/utils";
+import { type ReactNode, useEffect, useState } from "react";
 import { formatStageDuration } from "./panes/deploying/run-model";
 
 export const COLUMN_GAP = "clamp(24px, 4vh, 48px)";
@@ -35,6 +39,58 @@ export function CardHeader({
       <span className="ml-auto font-mono text-sm tabular-nums text-gray-11">
         {elapsedMs === null ? "" : formatStageDuration(elapsedMs)}
       </span>
+    </div>
+  );
+}
+
+// Rounding and focus rings leave a few pixels of overflow on cards that fit.
+const MIN_HIDDEN_PX = 8;
+
+function useScrollFade() {
+  const [element, setElement] = useState<HTMLElement | null>(null);
+  useEffect(() => {
+    if (!element) {
+      return;
+    }
+    const update = () => {
+      const below = element.scrollHeight - element.scrollTop - element.clientHeight > MIN_HIDDEN_PX;
+      element.toggleAttribute("data-more-below", below);
+    };
+    update();
+    const resize = new ResizeObserver(update);
+    resize.observe(element);
+    for (const child of element.children) {
+      resize.observe(child);
+    }
+    const mutations = new MutationObserver(update);
+    mutations.observe(element, { childList: true, subtree: true });
+    element.addEventListener("scroll", update, { passive: true });
+    return () => {
+      resize.disconnect();
+      mutations.disconnect();
+      element.removeEventListener("scroll", update);
+    };
+  }, [element]);
+  return setElement;
+}
+
+export function CardScrollBody({
+  className,
+  children,
+}: {
+  className?: string;
+  children: ReactNode;
+}) {
+  const scrollRef = useScrollFade();
+  return (
+    <div
+      ref={scrollRef}
+      className={cn(
+        "flex min-h-0 flex-col gap-5 overflow-y-auto overscroll-contain p-5 [scrollbar-width:thin] data-[more-below]:[mask-image:linear-gradient(to_bottom,black_calc(100%-40px),transparent)]",
+        className,
+      )}
+    >
+      {children}
     </div>
   );
 }

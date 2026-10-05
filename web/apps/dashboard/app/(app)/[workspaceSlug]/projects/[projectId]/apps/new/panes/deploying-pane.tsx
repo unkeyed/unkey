@@ -6,9 +6,8 @@ import { Button } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { CardHeader, cardFooter, cardSurface } from "../card";
+import { CardHeader, CardScrollBody, cardFooter, cardSurface } from "../card";
 import { useNewAppFlow } from "../flow";
-import { scrollFadeClass, useScrollFade } from "../use-scroll-fade";
 import type { SetupFieldFocus } from "../wizard-model";
 import { CongratsBody } from "./deploying/congrats";
 import { useCrashHelp } from "./deploying/crash-help";
@@ -104,7 +103,6 @@ export function Watch({ appId }: { appId: string }) {
   const rows = stageRows(run.view, isInstanceCrash(run.view, run.instances));
   const onEditSettings: EditSettings = (focus) => dispatch({ type: "edit-settings", focus });
   const onNext = () => dispatch({ type: "go", card: "result" });
-  const scrollRef = useScrollFade();
   const live = run.view.outcome === "live";
   useEffect(() => {
     if (live) {
@@ -113,13 +111,7 @@ export function Watch({ appId }: { appId: string }) {
   }, [live, dispatch]);
   return (
     <div className={cardSurface}>
-      <div
-        ref={scrollRef}
-        className={cn(
-          "flex min-h-0 flex-col gap-4 overflow-y-auto overscroll-contain p-5 [scrollbar-width:thin]",
-          scrollFadeClass,
-        )}
-      >
+      <CardScrollBody className="gap-4">
         <CardHeader
           title="Deployment"
           description={watchStatus[run.view.outcome]}
@@ -132,7 +124,7 @@ export function Watch({ appId }: { appId: string }) {
           failedKey={run.view.failedStage?.key ?? null}
           onEditSettings={onEditSettings}
         />
-      </div>
+      </CardScrollBody>
       <WatchActions run={run} onEditSettings={onEditSettings} onNext={onNext} />
     </div>
   );

@@ -43,11 +43,6 @@ export type Card =
   | { id: "result"; appId: string; source: SourceKind; deploymentId: string };
 
 export type ConfigCard = Exclude<Card, { id: "watch" | "result" }>;
-export type ConfigCardId = ConfigCard["id"];
-
-export function isConfigCard(card: Card): card is ConfigCard {
-  return card.id !== "watch" && card.id !== "result";
-}
 
 export const sourceCopy: Record<
   SourceKind,
@@ -67,7 +62,7 @@ export const sourceCopy: Record<
 
 type CardCopy = { title: string; description: string };
 
-export const cardCopy: Record<ConfigCardId, CardCopy> = {
+export const cardCopy: Record<ConfigCard["id"], CardCopy> = {
   source: {
     title: "Deploy a new app",
     description: "Choose where your app's code comes from.",
@@ -92,15 +87,6 @@ export const cardCopy: Record<ConfigCardId, CardCopy> = {
     title: "Review and deploy",
     description: "Your first deployment uses these settings.",
   },
-};
-
-export const cardHasFooter: Record<ConfigCardId, boolean> = {
-  source: false,
-  "pick-repo": true,
-  "configure-repo": true,
-  image: true,
-  variables: true,
-  review: true,
 };
 
 export function wizardSource(state: WizardState): SourceKind | null {

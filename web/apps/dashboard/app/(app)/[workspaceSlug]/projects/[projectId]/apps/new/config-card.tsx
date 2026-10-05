@@ -3,15 +3,14 @@
 import { match } from "@unkey/match";
 import { cn } from "@unkey/ui/src/lib/utils";
 import { type ReactNode, useState } from "react";
-import { CardTitle, cardFooter } from "./card";
+import { CardScrollBody, CardTitle, cardFooter } from "./card";
 import { DeployPane } from "./panes/deploy-pane";
 import { ImagePane } from "./panes/image-pane";
 import { PaneFooterProvider } from "./panes/pane-actions";
 import { ConfigureRepoPane, PickRepoPane } from "./panes/repository-pane";
 import { SourcePane } from "./panes/source-pane";
 import { VariablesPane } from "./panes/variables-pane";
-import { scrollFadeClass, useScrollFade } from "./use-scroll-fade";
-import { type ConfigCard as ConfigCardState, cardCopy, cardHasFooter } from "./wizard-model";
+import { type ConfigCard as ConfigCardState, cardCopy } from "./wizard-model";
 
 function CardBody({ card }: { card: ConfigCardState }) {
   return match(card)
@@ -31,23 +30,16 @@ function CardBody({ card }: { card: ConfigCardState }) {
 export function ConfigCard({ card, back }: { card: ConfigCardState; back: ReactNode }) {
   const [footer, setFooter] = useState<HTMLDivElement | null>(null);
   const copy = cardCopy[card.id];
-  const scrollRef = useScrollFade();
   return (
     <PaneFooterProvider value={footer}>
       <div className="@container flex min-h-0 flex-col overflow-hidden rounded-lg border bg-raised">
-        <div
-          ref={scrollRef}
-          className={cn(
-            "flex min-h-0 flex-col gap-5 overflow-y-auto overscroll-contain p-5 [scrollbar-width:thin]",
-            scrollFadeClass,
-          )}
-        >
+        <CardScrollBody>
           <div className="shrink-0">
             <CardTitle title={copy.title} description={copy.description} />
           </div>
           <CardBody card={card} />
-        </div>
-        <div className={cn(cardFooter, !cardHasFooter[card.id] && "hidden")}>
+        </CardScrollBody>
+        <div className={cn(cardFooter, card.id === "source" && "hidden")}>
           {back}
           <div ref={setFooter} className="ml-auto flex items-center gap-3" />
         </div>

@@ -1,8 +1,7 @@
 "use client";
 
-import { cn } from "@unkey/ui/src/lib/utils";
 import type { ReactNode } from "react";
-import { scrollFadeClass, useScrollFade } from "../../use-scroll-fade";
+import { CardScrollBody } from "../../card";
 import { LiveRegionsMap } from "./live-map";
 import { formatStageDuration } from "./run-model";
 
@@ -13,15 +12,8 @@ export function CongratsBody({
   regions,
   rows,
 }: { elapsedMs: number | null; regions: string[]; rows: CongratsRow[] }) {
-  const scrollRef = useScrollFade();
   return (
-    <div
-      ref={scrollRef}
-      className={cn(
-        "flex min-h-0 flex-col gap-5 overflow-y-auto overscroll-contain p-5 [scrollbar-width:thin]",
-        scrollFadeClass,
-      )}
-    >
+    <CardScrollBody>
       <div
         className="flex animate-upgrade-rise flex-col items-center gap-2 text-center motion-reduce:animate-none"
         style={{ animationDelay: "40ms" }}
@@ -54,6 +46,6 @@ export function CongratsBody({
           </div>
         ))}
       </div>
-    </div>
+    </CardScrollBody>
   );
 }
