@@ -130,6 +130,7 @@ export default function UsagePage() {
       isLoading={
         (usage.data === undefined && !usage.isError) || (!planKnown && !billingInfo.isError)
       }
+      isError={usage.isError}
     />
   );
 
