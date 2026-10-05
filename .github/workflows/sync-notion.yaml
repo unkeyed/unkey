@@ -1,0 +1,31 @@
+name: Sync Notion
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "**/*.md"
+      - "**/*.mdx"
+      - ".github/notion.yaml"
+      - ".github/workflows/sync-notion.yaml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: notion-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - name: Sync documents
+        uses: unkeyed/actions/notion@94af2d50cd12a7fded9d5968d2448d33734bd966
+        env:
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
