@@ -74,7 +74,7 @@ export const environmentSettings = createCollection<EnvironmentSettings, string>
     queryKey: (opts) => {
       const { filters } = parseLoadSubsetOptions(opts);
       const appId = extractStringFilter(filters, "appId");
-      return appId ? ["environmentSettings", appId] : ["environmentSettings"];
+      return appId ? queryKeyFor(appId) : ["environmentSettings"];
     },
     retry: 3,
     syncMode: "on-demand",
@@ -134,6 +134,63 @@ export const ENVIRONMENT_SETTINGS_DEFAULTS = {
   shutdownSignal: "SIGTERM",
   upstreamProtocol: "http1",
 } as const;
+
+function queryKeyFor(appId: string): string[] {
+  return ["environmentSettings", appId];
+}
+
+type InitialSettings = {
+  regionNames: string[];
+  port?: number;
+  cpuMillicores?: number;
+  memoryMib?: number;
+};
+
+/** The row an environment has once `applyDefaultSettings` has written `initial`. */
+export function defaultSettingsRow(
+  projectId: string,
+  appId: string,
+  environmentId: string,
+  initial: InitialSettings,
+): EnvironmentSettings {
+  const d = ENVIRONMENT_SETTINGS_DEFAULTS;
+  return {
+    environmentId,
+    projectId,
+    appId,
+    autoDeploy: d.autoDeploy,
+    dockerfile: d.dockerfile,
+    dockerContext: d.dockerContext,
+    buildCommand: d.buildCommand,
+    watchPaths: [],
+    port: initial.port ?? d.port,
+    cpuMillicores: initial.cpuMillicores ?? d.cpuMillicores,
+    memoryMib: initial.memoryMib ?? d.memoryMib,
+    storageMib: d.storageMib,
+    command: [],
+    healthcheck: null,
+    regions: initial.regionNames.map((name) => ({ name, replicasMin: 1, replicasMax: 1 })),
+    shutdownSignal: d.shutdownSignal,
+    upstreamProtocol: d.upstreamProtocol,
+    openapiSpecPath: null,
+  };
+}
+
+/**
+ * Fills the cache for one app with the rows `applyDefaultSettings` is about to
+ * write, so the settings form can show them before the writes land.
+ */
+export function seedEnvironmentSettings(
+  projectId: string,
+  appId: string,
+  environmentIds: string[],
+  initial: InitialSettings,
+): void {
+  queryClient.setQueryData(
+    queryKeyFor(appId),
+    environmentIds.map((id) => defaultSettingsRow(projectId, appId, id, initial)),
+  );
+}
 
 function changed<T>(a: T, b: T): boolean {
   return JSON.stringify(a) !== JSON.stringify(b);
@@ -291,7 +348,7 @@ export function applyDefaultSettings(
   projectId: string,
   appId: string,
   environmentId: string,
-  initial: { regionNames: string[]; port?: number; cpuMillicores?: number; memoryMib?: number },
+  initial: InitialSettings,
 ): Promise<unknown> {
   const {
     regionNames,

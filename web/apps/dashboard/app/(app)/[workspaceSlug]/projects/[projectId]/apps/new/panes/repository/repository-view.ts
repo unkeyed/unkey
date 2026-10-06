@@ -85,7 +85,11 @@ export function resolvePickView(input: PickViewInput): PickView {
 export function resolveSetupView({
   installation,
   installationError,
-}: InstallationInput): SetupView {
+  picked,
+}: InstallationInput & { picked: Connection | null }): SetupView {
+  if (picked) {
+    return { kind: "connected", connection: picked };
+  }
   if (installation === undefined) {
     return installationError ? { kind: "error", message: installationError } : { kind: "loading" };
   }

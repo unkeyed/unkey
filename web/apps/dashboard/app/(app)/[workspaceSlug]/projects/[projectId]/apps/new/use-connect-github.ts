@@ -24,7 +24,10 @@ export function useConnectGithub() {
         setError(app.error);
         return;
       }
-      const { state } = await prepareInstallation.mutateAsync({ projectId, appId: app.appId });
+      const [{ state }] = await Promise.all([
+        prepareInstallation.mutateAsync({ projectId, appId: app.appId }),
+        app.applyDefaults(),
+      ]);
       window.location.href = githubInstallUrl(state);
     } catch (error) {
       setConnecting(false);

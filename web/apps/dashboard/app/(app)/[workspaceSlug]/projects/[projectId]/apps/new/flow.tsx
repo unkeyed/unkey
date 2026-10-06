@@ -18,7 +18,9 @@ import {
   useRef,
   useState,
 } from "react";
+import { type BackgroundWork, createBackgroundWork } from "./background-work";
 import { GithubConnectingCard } from "./github-connecting";
+import type { Connection } from "./panes/repository/repository-view";
 import type { CreateAppResult } from "./use-app-lifecycle";
 import {
   type Card,
@@ -38,6 +40,10 @@ import {
 
 export const viewportHeight: CSSProperties = { height: `calc(100dvh - ${TOP_NAV_HEIGHT}px)` };
 
+// The repository the user picked and the writes still landing for it: the
+// link, the default settings, and a rename of a reused app.
+export type AppSetup = { appId: string; connection: Connection; work: BackgroundWork };
+
 type NewAppFlow = {
   projectId: string;
   state: WizardState;
@@ -45,11 +51,13 @@ type NewAppFlow = {
   cards: readonly CardId[];
   locked: boolean;
   returningFromGithub: boolean;
+  setup: AppSetup | null;
   dispatch: Dispatch<WizardAction>;
   ensureApp: (
     source: SourceKind,
     create: () => Promise<CreateAppResult>,
   ) => Promise<CreateAppResult>;
+  beginSetup: (appId: string, connection: Connection) => BackgroundWork;
 };
 
 const NewAppFlowContext = createContext<NewAppFlow | null>(null);
@@ -197,11 +205,12 @@ function NewAppFlowProvider({
   children: ReactNode;
 }) {
   const [state, dispatch] = useReducer(wizardReducer, initial);
+  const [setup, setSetup] = useState<AppSetup | null>(null);
   useHistorySync(state, dispatch);
 
   const ensureApp: NewAppFlow["ensureApp"] = async (source, create) => {
     if (state.app) {
-      return { ok: true, appId: state.app.id };
+      return { ok: true, appId: state.app.id, applyDefaults: async () => {} };
     }
     dispatch({ type: "create-start" });
     const created = await create();
@@ -211,6 +220,12 @@ function NewAppFlowProvider({
     return created;
   };
 
+  const beginSetup: NewAppFlow["beginSetup"] = (appId, connection) => {
+    const work = setup?.appId === appId ? setup.work : createBackgroundWork();
+    setSetup({ appId, connection, work });
+    return work;
+  };
+
   const flow: NewAppFlow = {
     projectId,
     state,
@@ -218,8 +233,10 @@ function NewAppFlowProvider({
     cards: cardList(state),
     locked: flowLocked(state),
     returningFromGithub,
+    setup,
     dispatch,
     ensureApp,
+    beginSetup,
   };
   return <NewAppFlowContext.Provider value={flow}>{children}</NewAppFlowContext.Provider>;
 }

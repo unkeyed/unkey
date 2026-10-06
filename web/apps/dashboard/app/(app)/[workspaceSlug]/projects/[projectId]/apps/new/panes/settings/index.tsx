@@ -61,7 +61,6 @@ export function AppSettingsForm({ projectId, appId, source, onSaved }: AppSettin
   }
   return (
     <SettingsForm
-      projectId={projectId}
       appId={appId}
       source={source}
       production={data.production}

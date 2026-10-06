@@ -23,14 +23,13 @@ export type SettingField = keyof DeploymentConfig;
 
 export const settingsLayout: Record<
   SourceKind,
-  { main: readonly SettingField[]; advanced: readonly SettingField[]; usesRepoTree: boolean }
+  { main: readonly SettingField[]; advanced: readonly SettingField[] }
 > = {
   git: {
     main: ["dockerContext", "regions", "size"],
     advanced: ["port", "dockerfile", "buildCommand", "startCommand"],
-    usesRepoTree: true,
   },
-  oci: { main: ["port", "regions", "size"], advanced: [], usesRepoTree: false },
+  oci: { main: ["port", "regions", "size"], advanced: [] },
 };
 
 export const settingTitle: Record<SettingField, string> = {

@@ -11,6 +11,7 @@ import type { SetupFieldFocus } from "../../wizard-model";
 import { useAppSettings } from "../settings";
 import { Field, SettingsForm } from "../settings/settings-form";
 import { SettingsFormSkeleton } from "../settings/skeleton";
+import { useRepoTree } from "../settings/use-repo-tree";
 import { VariableFields, useVariableDraft } from "../variables/variables-section";
 import { BranchField } from "./branch-field";
 import type { Connection } from "./repository-view";
@@ -19,7 +20,6 @@ type ConnectedSetupProps = {
   projectId: string;
   appId: string;
   connection: Connection;
-  branchDisabled: boolean;
   onBranchChange: (branch: string) => void;
   onRename: (name: string) => Promise<void>;
   onContinue: () => void;
@@ -30,7 +30,6 @@ export function ConnectedSetup({
   projectId,
   appId,
   connection,
-  branchDisabled,
   onBranchChange,
   onRename,
   onContinue,
@@ -38,6 +37,7 @@ export function ConnectedSetup({
 }: ConnectedSetupProps) {
   const variables = useVariableDraft(projectId, appId);
   const settings = useAppSettings(projectId, appId);
+  const repoTree = useRepoTree(projectId, connection);
   const savedName = useApp(projectId, appId)?.name ?? "";
   const [draftName, setDraftName] = useState<string | null>(null);
   const name = draftName ?? savedName;
@@ -75,12 +75,12 @@ export function ConnectedSetup({
         <SettingsFormSkeleton />
       ) : (
         <SettingsForm
-          projectId={projectId}
           appId={appId}
           source="git"
           production={settings.production}
           environmentIds={settings.environmentIds}
           onSaved={saveAndContinue}
+          repoTree={repoTree}
           focusField={focusField}
           pairedField={{
             title: "App name",
@@ -115,7 +115,6 @@ export function ConnectedSetup({
                 installationId={connection.installationId}
                 repositoryFullName={connection.repositoryFullName}
                 branch={connection.branch}
-                disabled={branchDisabled}
                 onChange={onBranchChange}
               />
             </Field>

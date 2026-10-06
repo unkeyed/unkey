@@ -11,14 +11,23 @@ import {
   type EnvironmentSettings,
   SILENT_SAVE,
 } from "@/lib/collections/deploy/environment-settings";
-import { trpc } from "@/lib/trpc/client";
 import { getErrorMessage } from "@/lib/unkey-client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { IconChevronRightOutline18 } from "@unkey/icons";
-import { FormInput, toast } from "@unkey/ui";
+import { Button, FormInput, toast } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
-import { type ReactNode, useEffect, useId, useMemo, useRef, useState } from "react";
+import {
+  type ReactNode,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import { type FieldErrors, useForm, useWatch } from "react-hook-form";
+import { type BackgroundWork, WORK_DONE, type WorkStatus } from "../../background-work";
+import { useNewAppFlow } from "../../flow";
 import type { SourceKind } from "../../wizard-model";
 import { PaneSubmit } from "../pane-actions";
 import {
@@ -35,19 +44,32 @@ import {
 } from "./deployment-config";
 import { RegionSelect } from "./region-select";
 import { SizeField } from "./size-field";
+import type { RepoTree } from "./use-repo-tree";
 
 type SettingsFormProps = {
-  projectId: string;
   appId: string;
   source: SourceKind;
   production: EnvironmentSettings;
   environmentIds: string[];
   onSaved: () => void | Promise<void>;
+  repoTree?: RepoTree;
   pairedField?: { title: string; control: ReactNode };
   advancedLeadingRows?: ReactNode;
   sections?: { title: string; hint?: string; content: ReactNode }[];
   focusField?: SettingField | null;
 };
+
+const noRepoTree: RepoTree = { entries: [], loading: false };
+
+const noSubscription = () => () => {};
+
+function useWorkStatus(work: BackgroundWork | null): WorkStatus {
+  return useSyncExternalStore(work?.subscribe ?? noSubscription, () => work?.status() ?? WORK_DONE);
+}
+
+function loadingOption(label: string) {
+  return { label: <span className="text-gray-10">{label}</span>, value: label, disabled: true };
+}
 
 const buildCommandField: Record<BuildMethod, { description: string; disabled: boolean }> = {
   automatic: { description: "Leave empty to detect it automatically.", disabled: false },
@@ -182,12 +204,12 @@ export function FieldStack({ children }: { children: ReactNode }) {
 }
 
 export function SettingsForm({
-  projectId,
   appId,
   source,
   production,
   environmentIds,
   onSaved,
+  repoTree = noRepoTree,
   pairedField,
   advancedLeadingRows,
   sections = [],
@@ -197,11 +219,10 @@ export function SettingsForm({
   const [advancedOpen, setAdvancedOpen] = useState(
     focusField !== null && layout.advanced.includes(focusField),
   );
-  const { data: repoTree } = trpc.github.getRepoTree.useQuery(
-    { projectId, appId },
-    { staleTime: 5 * 60 * 1000, enabled: layout.usesRepoTree },
-  );
-  const tree = repoTree?.tree ?? [];
+  const { setup } = useNewAppFlow();
+  const work = setup?.appId === appId ? setup.work : null;
+  const workStatus = useWorkStatus(work);
+  const tree = repoTree.entries;
 
   const {
     register,
@@ -222,8 +243,8 @@ export function SettingsForm({
   const buildCommand = buildCommandField[resolveBuildMethod(dockerfile)];
 
   const rootDirectoryOptions = useMemo(
-    () =>
-      suggestRootDirectories(tree).map(({ path, marker }) => ({
+    () => [
+      ...suggestRootDirectories(tree).map(({ path, marker }) => ({
         label: (
           <span className="flex min-w-0 items-center gap-2">
             <DirectoryLabel path={path} />
@@ -234,7 +255,9 @@ export function SettingsForm({
         value: path,
         searchValue: path === "." ? ". repository root" : path,
       })),
-    [tree],
+      ...(repoTree.loading ? [loadingOption("Loading directories…")] : []),
+    ],
+    [tree, repoTree.loading],
   );
 
   const dockerfileOptions = useMemo(
@@ -251,8 +274,9 @@ export function SettingsForm({
         value: path,
         searchValue: path,
       })),
+      ...(repoTree.loading ? [loadingOption("Loading Dockerfiles…")] : []),
     ],
-    [tree, dockerContext],
+    [tree, dockerContext, repoTree.loading],
   );
 
   const controls: Record<SettingField, ReactNode> = {
@@ -265,7 +289,11 @@ export function SettingsForm({
         onSelect={(value) => setValue("dockerContext", value, { shouldValidate: true })}
         creatable
         searchPlaceholder="Search or enter a path…"
-        emptyMessage={<div className="mt-2">No app directories detected</div>}
+        emptyMessage={
+          <div className="mt-2">
+            {repoTree.loading ? "Loading directories…" : "No app directories detected"}
+          </div>
+        }
         placeholder={<DirectoryLabel path="." />}
       />
     ),
@@ -296,7 +324,11 @@ export function SettingsForm({
         onSelect={(value) => setValue("dockerfile", value, { shouldValidate: true })}
         creatable
         searchPlaceholder="Search or enter a path…"
-        emptyMessage={<div className="mt-2">No Dockerfiles detected</div>}
+        emptyMessage={
+          <div className="mt-2">
+            {repoTree.loading ? "Loading Dockerfiles…" : "No Dockerfiles detected"}
+          </div>
+        }
         placeholder={<span className="text-grayA-8">Automatic (no Dockerfile)</span>}
       />
     ),
@@ -335,7 +367,14 @@ export function SettingsForm({
       </Field>
     ));
 
+  // The default settings land in the background after the app is created; a
+  // save sent earlier could be overwritten by them.
   const onValid = async (config: DeploymentConfig) => {
+    try {
+      await work?.settled();
+    } catch {
+      return;
+    }
     const transaction = collection.environmentSettings.update(
       environmentIds,
       { metadata: SILENT_SAVE },
@@ -397,7 +436,21 @@ export function SettingsForm({
           {section.content}
         </Disclosure>
       ))}
-      <PaneSubmit form={formId} loading={isSubmitting} />
+      <PaneSubmit
+        form={formId}
+        loading={isSubmitting}
+        disabled={isSubmitting || workStatus.kind === "failed"}
+        notice={
+          workStatus.kind === "failed" && work ? (
+            <>
+              <span className="text-xs text-error-11">{getErrorMessage(workStatus.error)}</span>
+              <Button size="sm" variant="outline" onClick={work.retry}>
+                Retry
+              </Button>
+            </>
+          ) : null
+        }
+      />
     </form>
   );
 }

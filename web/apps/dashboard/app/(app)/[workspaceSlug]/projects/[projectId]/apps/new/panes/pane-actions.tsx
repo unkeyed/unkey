@@ -12,6 +12,8 @@ type PaneSubmitProps = {
   loading: boolean;
   disabled?: boolean;
   children?: ReactNode;
+  /** Rendered in the footer next to the button. */
+  notice?: ReactNode;
 } & ({ form: string } | { onClick: () => void });
 
 // The footer sits outside the scrolling body, so a submit button rendered here
@@ -20,6 +22,7 @@ export function PaneSubmit({
   loading,
   disabled = loading,
   children = "Continue",
+  notice,
   ...action
 }: PaneSubmitProps) {
   const footer = useContext(PaneFooterContext);
@@ -27,17 +30,20 @@ export function PaneSubmit({
     return null;
   }
   return createPortal(
-    <Button
-      type={"form" in action ? "submit" : "button"}
-      {...action}
-      variant="primary"
-      size="sm"
-      className="px-3"
-      loading={loading}
-      disabled={disabled}
-    >
-      {children}
-    </Button>,
+    <>
+      {notice}
+      <Button
+        type={"form" in action ? "submit" : "button"}
+        {...action}
+        variant="primary"
+        size="sm"
+        className="px-3"
+        loading={loading}
+        disabled={disabled}
+      >
+        {children}
+      </Button>
+    </>,
     footer,
   );
 }

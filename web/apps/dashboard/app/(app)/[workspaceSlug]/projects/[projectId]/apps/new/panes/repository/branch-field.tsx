@@ -11,7 +11,6 @@ type BranchFieldProps = {
   installationId: number;
   repositoryFullName: string;
   branch: string;
-  disabled: boolean;
   onChange: (branch: string) => void;
 };
 
@@ -20,7 +19,6 @@ export function BranchField({
   installationId,
   repositoryFullName,
   branch,
-  disabled,
   onChange,
 }: BranchFieldProps) {
   const [owner = "", repo = ""] = repositoryFullName.split("/");
@@ -51,7 +49,6 @@ export function BranchField({
       aria-label="Branch"
       options={options}
       value={branch}
-      disabled={disabled}
       onSelect={(value) => {
         setQuery("");
         if (value && value !== branch) {

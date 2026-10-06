@@ -1,7 +1,11 @@
 "use client";
 
 import { collection } from "@/lib/collections";
-import { applyDefaultSettings } from "@/lib/collections/deploy/environment-settings";
+import {
+  applyDefaultSettings,
+  seedEnvironmentSettings,
+} from "@/lib/collections/deploy/environment-settings";
+import { seedEnvironments } from "@/lib/collections/deploy/environments";
 import { SERVER_PLACEHOLDER } from "@/lib/collections/deploy/utils";
 import { trpc } from "@/lib/trpc/client";
 import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
@@ -18,7 +22,11 @@ type CreateImageAppInput = {
   settings: InitialSettings;
 };
 
-export type CreateAppResult = { ok: true; appId: string } | { ok: false; error: string | null };
+export type CreateAppResult =
+  | { ok: true; appId: string; applyDefaults: () => Promise<void> }
+  | { ok: false; error: string | null };
+
+const noDefaults = async () => {};
 
 const MAX_NAME_ATTEMPTS = 3;
 const REGIONS_STALE_MS = 5 * 60 * 1000;
@@ -101,7 +109,7 @@ export function useAppLifecycle(projectId: string) {
       try {
         const appId = await insertImageApp(name, imageReference);
         await applyOrWarn(appId, async () => settings);
-        return { ok: true, appId };
+        return { ok: true, appId, applyDefaults: noDefaults };
       } catch (error) {
         if (!isConflict(error)) {
           return { ok: false, error: null };
@@ -112,9 +120,15 @@ export function useAppLifecycle(projectId: string) {
   };
 
   // Skips the apps collection so the create raises no "App created" toast.
+  // The defaults are seeded into the collections at once and written by the
+  // returned task, so the caller decides when to wait for them.
   const createGitApp = async (baseName: string): Promise<CreateAppResult> => {
     const regionsQuery = utils.deploy.environmentSettings.getAvailableRegions;
     void regionsQuery.prefetch(undefined, { staleTime: REGIONS_STALE_MS });
+    const schedulableRegionNames = async () => {
+      const regions = await regionsQuery.fetch(undefined, { staleTime: REGIONS_STALE_MS });
+      return regions.filter((r) => r.canSchedule).map((r) => r.name);
+    };
     for (let attempt = 0; attempt < MAX_NAME_ATTEMPTS; attempt++) {
       const name = uniqueAppName(baseName, await takenSlugs(attempt));
       try {
@@ -124,14 +138,35 @@ export function useAppLifecycle(projectId: string) {
           slug: name,
           git: {},
         });
-        await Promise.all([
-          applyOrWarn(data.appId, async () => {
-            const regions = await regionsQuery.fetch(undefined, { staleTime: REGIONS_STALE_MS });
-            return { regionNames: regions.filter((r) => r.canSchedule).map((r) => r.name) };
-          }),
+        const appId = data.appId;
+        const [environments, regionNames] = await Promise.all([
+          getUnkeyClient()
+            .environments.listEnvironments({ project: projectId, app: appId })
+            .then((result) => result.data),
+          schedulableRegionNames(),
           collection.apps.utils.refetch(),
         ]);
-        return { ok: true, appId: data.appId };
+        const settings = { regionNames };
+        seedEnvironments(
+          projectId,
+          appId,
+          environments.map((e) => ({ id: e.id, projectId, appId, slug: e.slug, kind: e.kind })),
+        );
+        seedEnvironmentSettings(
+          projectId,
+          appId,
+          environments.map((e) => e.id),
+          settings,
+        );
+        return {
+          ok: true,
+          appId,
+          applyDefaults: async () => {
+            await Promise.all(
+              environments.map((e) => applyDefaultSettings(projectId, appId, e.id, settings)),
+            );
+          },
+        };
       } catch (error) {
         if (!isConflict(error)) {
           return { ok: false, error: getErrorMessage(error) };
@@ -143,7 +178,9 @@ export function useAppLifecycle(projectId: string) {
 
   const createGitPlaceholder = async (): Promise<CreateAppResult> => {
     const reusable = findReusablePlaceholder(await projectApps(false));
-    return reusable ? { ok: true, appId: reusable } : createGitApp(provisionalAppName);
+    return reusable
+      ? { ok: true, appId: reusable, applyDefaults: noDefaults }
+      : createGitApp(provisionalAppName);
   };
 
   const renameApp = async (appId: string, baseName: string): Promise<void> => {

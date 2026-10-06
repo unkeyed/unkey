@@ -4,8 +4,8 @@ import { trpc } from "@/lib/trpc/client";
 import { getErrorMessage } from "@/lib/unkey-client";
 import { Github, IconChevronRightOutline18 } from "@unkey/icons";
 import { match } from "@unkey/match";
-import { Button, ItemGroup, Skeleton, toast } from "@unkey/ui";
-import { useEffect, useState } from "react";
+import { Button, ItemGroup, Skeleton } from "@unkey/ui";
+import { useState } from "react";
 import { appNameFromRepo } from "../app-name";
 import { useNewAppFlow } from "../flow";
 import { useAppLifecycle } from "../use-app-lifecycle";
@@ -21,7 +21,7 @@ import {
   resolvePickView,
   resolveSetupView,
 } from "./repository/repository-view";
-import { useAppSettings } from "./settings";
+import { REPO_TREE_STALE_MS, repoTreeInput } from "./settings/use-repo-tree";
 
 function useInstallation(appId: string | null) {
   const { projectId } = useNewAppFlow();
@@ -31,25 +31,30 @@ function useInstallation(appId: string | null) {
   );
 }
 
+// The link and later branch changes queue under one key, so a branch change
+// never lands before the link it changes.
 function useLinkRepository() {
-  const { projectId } = useNewAppFlow();
+  const { projectId, beginSetup } = useNewAppFlow();
   const utils = trpc.useUtils();
   const selectRepository = trpc.github.selectRepository.useMutation();
-  const link = async (appId: string, repo: Omit<Connection, "branch">, branch: string) => {
-    await selectRepository.mutateAsync({
-      projectId,
-      appId,
-      repositoryId: repo.repositoryId,
-      repositoryFullName: repo.repositoryFullName,
-      installationId: repo.installationId,
-      selectedBranch: branch,
+  return (appId: string, connection: Connection) => {
+    const work = beginSetup(appId, connection);
+    work.run("link", async () => {
+      await selectRepository.mutateAsync({
+        projectId,
+        appId,
+        repositoryId: connection.repositoryId,
+        repositoryFullName: connection.repositoryFullName,
+        installationId: connection.installationId,
+        selectedBranch: connection.branch,
+      });
+      await Promise.all([
+        utils.github.getInstallations.invalidate(),
+        utils.github.getRepoTree.invalidate(),
+      ]);
     });
-    await Promise.all([
-      utils.github.getInstallations.invalidate(),
-      utils.github.getRepoTree.invalidate(),
-    ]);
+    return work;
   };
-  return { link, linking: selectRepository.isLoading };
 }
 
 function LoadingRows() {
@@ -76,10 +81,10 @@ function RetryBox({ message, onRetry }: { message: string; onRetry: () => void }
 export function PickRepoPane({ appId }: { appId: string | null }) {
   const { projectId, state, returningFromGithub, dispatch, ensureApp } = useNewAppFlow();
   const { createGitApp, renameApp } = useAppLifecycle(projectId);
-  const { link } = useLinkRepository();
+  const link = useLinkRepository();
+  const utils = trpc.useUtils();
   const github = useConnectGithub();
   const [pendingRepoId, setPendingRepoId] = useState<number | null>(null);
-  const [linked, setLinked] = useState(false);
   const [pickError, setPickError] = useState<string | null>(null);
 
   const { data: context } = trpc.deploy.project.creationContext.useQuery();
@@ -95,6 +100,15 @@ export function PickRepoPane({ appId }: { appId: string | null }) {
     setPickError(null);
     const baseName = appNameFromRepo(repo.fullName);
     const existing = state.app;
+    const connection: Connection = {
+      repositoryId: repo.id,
+      repositoryFullName: repo.fullName,
+      installationId: repo.installationId,
+      branch: repo.defaultBranch,
+    };
+    void utils.github.getRepositoryTree.prefetch(repoTreeInput(projectId, connection), {
+      staleTime: REPO_TREE_STALE_MS,
+    });
     try {
       const app = await ensureApp("git", () => createGitApp(baseName));
       if (!app.ok) {
@@ -102,22 +116,15 @@ export function PickRepoPane({ appId }: { appId: string | null }) {
         setPickError(app.error);
         return;
       }
-      await Promise.all([
-        existing ? renameApp(existing.id, baseName) : null,
-        link(
-          app.appId,
-          {
-            repositoryId: repo.id,
-            repositoryFullName: repo.fullName,
-            installationId: repo.installationId,
-          },
-          repo.defaultBranch,
-        ),
-      ]);
-      setLinked(true);
+      const work = link(app.appId, connection);
+      work.run("settings", app.applyDefaults);
+      if (existing) {
+        work.run("rename", () => renameApp(existing.id, baseName));
+      }
+      dispatch({ type: "go", card: "configure-repo" });
     } catch (error) {
       setPendingRepoId(null);
-      setPickError(`Could not connect the repository. ${getErrorMessage(error)}`);
+      setPickError(`Could not create the app. ${getErrorMessage(error)}`);
     }
   };
 
@@ -184,25 +191,9 @@ export function PickRepoPane({ appId }: { appId: string | null }) {
             </Button>
           ) : null}
         </div>
-        {appId !== null && pendingRepoId !== null ? (
-          <AdvanceWhenSettingsReady appId={appId} linked={linked} />
-        ) : null}
       </div>
     ))
     .exhaustive();
-}
-
-// The picked row keeps its spinner until the setup card has its settings, so
-// the column never slides onto a skeleton.
-function AdvanceWhenSettingsReady({ appId, linked }: { appId: string; linked: boolean }) {
-  const { projectId, dispatch } = useNewAppFlow();
-  const ready = useAppSettings(projectId, appId).status === "ready";
-  useEffect(() => {
-    if (ready && linked) {
-      dispatch({ type: "go", card: "configure-repo" });
-    }
-  }, [ready, linked, dispatch]);
-  return null;
 }
 
 export function ConfigureRepoPane({
@@ -212,13 +203,14 @@ export function ConfigureRepoPane({
   appId: string;
   focus: SetupFieldFocus | null;
 }) {
-  const { projectId, dispatch } = useNewAppFlow();
+  const { projectId, setup, dispatch } = useNewAppFlow();
   const { renameApp } = useAppLifecycle(projectId);
-  const { link, linking } = useLinkRepository();
+  const link = useLinkRepository();
   const installationQuery = useInstallation(appId);
   const view = resolveSetupView({
     installation: installationQuery.data,
     installationError: installationQuery.error?.message ?? null,
+    picked: setup?.appId === appId ? setup.connection : null,
   });
 
   return match(view)
@@ -244,12 +236,7 @@ export function ConfigureRepoPane({
         projectId={projectId}
         appId={appId}
         connection={connection}
-        branchDisabled={linking}
-        onBranchChange={(branch) =>
-          link(appId, connection, branch).catch((error) =>
-            toast.error("Could not change the branch", { description: getErrorMessage(error) }),
-          )
-        }
+        onBranchChange={(branch) => link(appId, { ...connection, branch })}
         onRename={(name) => renameApp(appId, name)}
         onContinue={() => dispatch({ type: "next" })}
         focusField={focus}

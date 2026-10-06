@@ -77,17 +77,21 @@ describe("resolvePickView", () => {
 
 describe("resolveSetupView", () => {
   it("waits for the installation, or shows its error", () => {
-    expect(resolveSetupView({ installation: undefined, installationError: null })).toEqual({
+    expect(
+      resolveSetupView({ installation: undefined, installationError: null, picked: null }),
+    ).toEqual({
       kind: "loading",
     });
-    expect(resolveSetupView({ installation: undefined, installationError: "boom" })).toEqual({
+    expect(
+      resolveSetupView({ installation: undefined, installationError: "boom", picked: null }),
+    ).toEqual({
       kind: "error",
       message: "boom",
     });
   });
 
   it("shows the connected repository on its selected branch", () => {
-    expect(resolveSetupView({ installation, installationError: null })).toEqual({
+    expect(resolveSetupView({ installation, installationError: null, picked: null })).toEqual({
       kind: "connected",
       connection,
     });
@@ -98,7 +102,11 @@ describe("resolveSetupView", () => {
       ...installation,
       repoConnection: { ...installation.repoConnection, defaultBranch: null },
     };
-    const view = resolveSetupView({ installation: noBranch, installationError: null });
+    const view = resolveSetupView({
+      installation: noBranch,
+      installationError: null,
+      picked: null,
+    });
     expect(view.kind === "connected" ? view.connection.branch : null).toBe("main");
   });
 
@@ -107,8 +115,21 @@ describe("resolveSetupView", () => {
       resolveSetupView({
         installation: { ...installation, repoConnection: null },
         installationError: null,
+        picked: null,
       }),
     ).toEqual({ kind: "disconnected" });
+  });
+
+  it("shows the picked repository before the server has the link", () => {
+    const picked = { ...connection, branch: "main" };
+    expect(resolveSetupView({ installation: undefined, installationError: null, picked })).toEqual({
+      kind: "connected",
+      connection: picked,
+    });
+    expect(resolveSetupView({ installation, installationError: null, picked })).toEqual({
+      kind: "connected",
+      connection: picked,
+    });
   });
 });
 
