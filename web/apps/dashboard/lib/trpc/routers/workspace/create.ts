@@ -1,10 +1,8 @@
-import { insertAuditLogs } from "@/lib/audit";
 import { auth as authProvider } from "@/lib/auth/server";
-import { type InsertWorkspace, db, schema } from "@/lib/db";
+import { db } from "@/lib/db";
 import { env } from "@/lib/env";
-import { freeTierLimits } from "@/lib/limits";
+import { WorkspaceCreateError, createFreeWorkspaceInTx } from "@/lib/workspace/create-workspace";
 import { TRPCError } from "@trpc/server";
-import { dns1035, newId } from "@unkey/id";
 import { z } from "zod";
 import { protectedProcedure } from "../../trpc";
 
@@ -28,101 +26,39 @@ export const createWorkspace = protectedProcedure
       });
     }
 
-    const orgId = await db
-      .transaction(async (tx) => {
-        if (env().AUTH_PROVIDER === "local") {
-          // Check if this user already has a workspace
-          const existingWorkspaces = await tx.query.workspaces.findMany({
-            where: (workspaces, { eq }) => eq(workspaces.orgId, ctx.tenant.id),
-            columns: { id: true },
-          });
-
-          if (existingWorkspaces.length > 0) {
-            throw new TRPCError({
-              code: "METHOD_NOT_SUPPORTED",
-              message:
-                "You cannot create additional workspaces in local development mode. Use workOS auth provider if you need to test multi-workspace functionality.",
-            });
-          }
-        }
-
-        const duplicateSlug = await tx.query.workspaces.findFirst({
-          where: (workspaces, { eq }) => eq(workspaces.slug, input.slug),
-          columns: { id: true },
-        });
-
-        if (duplicateSlug) {
-          throw new TRPCError({
-            code: "CONFLICT",
-            message: "A workspace with this slug already exists.",
-          });
-        }
-
-        const orgId = await authProvider.createTenant({
-          name: input.name,
-          userId,
-        });
-
-        const workspace: InsertWorkspace = {
-          id: newId("workspace"),
-          orgId: orgId,
+    try {
+      const created = await db.transaction((tx) =>
+        createFreeWorkspaceInTx(tx, {
           name: input.name,
           slug: input.slug,
-          betaFeatures: {},
-          enabled: true,
-          deleteProtection: true,
-          createdAtM: Date.now(),
-          updatedAtM: null,
-          deletedAtM: null,
-          k8sNamespace: dns1035(),
-        };
-
-        await tx.insert(schema.workspaces).values(workspace);
-        await tx.insert(schema.limits).values({
-          workspaceId: workspace.id,
-          ...freeTierLimits,
-        });
-        await tx.insert(schema.workspaceBilling).values({
-          workspaceId: workspace.id,
-          tier: "Free",
-        });
-
-        await insertAuditLogs(tx, [
-          {
-            workspaceId: workspace.id,
-            actor: { type: "user", id: ctx.user.id },
-            event: "workspace.create",
-            description: `Created ${workspace.id}`,
-            resources: [
-              {
-                type: "workspace",
-                id: workspace.id,
-                name: input.name,
-              },
-            ],
-            context: {
-              location: ctx.audit.location,
-              userAgent: ctx.audit.userAgent,
-            },
+          userId,
+          audit: {
+            location: ctx.audit.location,
+            userAgent: ctx.audit.userAgent,
           },
-        ]);
-
-        return orgId;
-      })
-      .catch((err) => {
-        if (err instanceof TRPCError) {
-          throw err;
-        }
-        console.error(err);
+          createTenant: (params) => authProvider.createTenant(params),
+          localOrgId: env().AUTH_PROVIDER === "local" ? ctx.tenant.id : null,
+        }),
+      );
+      return {
+        orgId: created.orgId,
+        slug: created.slug,
+      };
+    } catch (err) {
+      if (err instanceof WorkspaceCreateError) {
         throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message:
-            "We are unable to create the workspace. Please try again or contact support@unkey.com",
+          code: err.code,
+          message: err.message,
         });
+      }
+      if (err instanceof TRPCError) {
+        throw err;
+      }
+      console.error(err);
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message:
+          "We are unable to create the workspace. Please try again or contact support@unkey.com",
       });
-
-    return {
-      orgId,
-      slug: input.slug,
-    };
+    }
   });

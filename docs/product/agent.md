@@ -1,80 +1,163 @@
 ---
 title: Sign up a new user
 sidebarTitle: Agent signup
-description: "Steps for an agent to sign a person up for Unkey and create their first workspace."
+description: "Register through WorkOS Agent Registration, then create a workspace and the first root key."
 sources:
-  - web/apps/dashboard/proxy.ts
-  - web/apps/dashboard/app/auth/sign-up/[[...sign-up]]/page.tsx
-  - web/apps/dashboard/app/auth/sso-callback/[[...sso-callback]]/route.ts
-  - web/apps/dashboard/app/api/webhooks/workos/route.ts
-  - web/apps/dashboard/app/(app)/layout.tsx
-  - web/apps/dashboard/app/new/hooks/use-workspace-step.tsx
+  - web/apps/dashboard/app/api/agent/workspace/route.ts
+  - web/apps/dashboard/app/api/agent/root-key/route.ts
+  - web/apps/dashboard/app/api/agent/auth-md/route.ts
+  - web/apps/dashboard/app/.well-known/oauth-protected-resource/route.ts
+  - web/apps/dashboard/lib/agent-signup/verify.ts
+  - web/apps/dashboard/lib/workspace/create-workspace.ts
   - web/apps/dashboard/lib/trpc/routers/workspace/create.ts
-  - web/apps/dashboard/app/(app)/[workspaceSlug]/root-keys/page.tsx
-  - web/apps/dashboard/app/(app)/[workspaceSlug]/settings/root-keys/components/builder/schema.ts
-  - web/apps/dashboard/app/(app)/[workspaceSlug]/settings/root-keys/components/builder/lib/templates.ts
-  - cmd/auth/main.go
+  - web/apps/dashboard/proxy.ts
+  - https://workos.com/docs/authkit/agent-registration
+  - https://workos.com/docs/reference/authkit/agent-registration/register
+  - https://workos.com/docs/reference/agents/registration/get-registration
+  - https://workos.com/auth-md/docs/apps
 ---
 
 Unkey issues API keys and runs apps. Follow this page when you are creating an account for a person who does not have one yet.
 
+Registration happens on the WorkOS AuthKit domain. Unkey doesn't implement `POST /agent/identity`. After the person claims the registration, you call Unkey with the access token WorkOS returns.
+
 ## Follow these rules
 
-Create one account. If the person already has an Unkey account, open the sign-in URL below and stop. Do not create a second account.
+Create one account. If the person already has an Unkey account, stop and use [sign-in](https://app.unkey.com/auth/sign-in). Don't create a second account.
 
-Do not bypass a bot check, an email code, or an OAuth consent screen. Hosted AuthKit runs a Cloudflare Turnstile check that WorkOS operates. The person completes it. If Radar is enabled for that WorkOS environment, it can also block or challenge a bot, including an AI agent. This repository does not implement Turnstile or Radar.
+Use `service_auth` only. Don't register as `anonymous`. Don't send an `identity_assertion`.
 
-Ask the person for a verification code only so you can type it into the WorkOS page that sent it. Do not send that code anywhere else.
+Don't bypass the claim page. The person signs in on AuthKit and reads you the `user_code`. Hosted AuthKit runs a Cloudflare Turnstile check that WorkOS operates. If Radar is enabled for that WorkOS environment, it can also block or challenge a bot, including an AI agent. This repository does not implement Turnstile or Radar.
 
-Do not call an API to sign up or create a workspace. Unkey has no such endpoint. Do not call `POST /v2/rootKeys.createKey` for the first key. That route requires a root key that already exists.
+Don't create a WorkOS user with the email marked verified, and don't read a Magic Auth code from an API response. That skips the email check.
 
-WorkOS Agent Auth, Agent Registration, CLI device authorization, Connect, and the user-management APIs do not replace the hosted page. Agent Auth and machine-to-machine tokens act inside an organization that already exists. Agent Registration and CLI device authorization still send the person through sign-in. Creating a WorkOS user with the email marked verified, or reading a Magic Auth code from the API response, skips the email check. Do not do that. None of these calls create an Unkey workspace. `workspace.create` runs only for a signed-in dashboard session.
+Store the root key when Unkey returns it. Unkey shows that secret once.
 
-## Sign the person up
+## Discover the service
 
-Production sign-up does not render a form in this repository. `GET https://app.unkey.com/auth/sign-up` redirects to the WorkOS AuthKit hosted page with a sign-up screen hint. The callback is `https://app.unkey.com/auth/sso-callback`, which then sends the browser to `/apis`.
+Fetch `https://app.unkey.com/auth.md`. That URL reverse-proxies the WorkOS-generated skill at `https://<authkit-domain>/agent/auth.md`. WorkOS documents that hosted URL as public, so you can also open it directly. The copy on `app.unkey.com` is the one tied to this dashboard.
 
-1. Open `https://app.unkey.com/auth/sign-up`.
-2. Stop when the browser leaves `app.unkey.com` for the WorkOS page. Tell the person: "Unkey sign-up is on this WorkOS page. Use your own email. If it sends a code, read the code to me or type it on that page. If it asks you to approve an OAuth provider, finish that approval. If it shows a bot check, complete it. I will not bypass it."
-3. Wait until the browser is back on `app.unkey.com`. The callback opens `/apis`. When the account has no workspace, the app shell then opens `https://app.unkey.com/new`.
+A 401 from the Unkey agent endpoints includes:
 
-Email-code sign-up stays unverified until that code is confirmed. OAuth sign-up arrives already verified. You cannot see which methods the hosted page offers, because they are not configured in this repository. The person has to finish that page.
+```http
+WWW-Authenticate: Bearer resource_metadata="https://app.unkey.com/.well-known/oauth-protected-resource"
+```
 
-If they already have an account, open `https://app.unkey.com/auth/sign-in` instead and give them the same handoff.
+`GET https://app.unkey.com/.well-known/oauth-protected-resource` returns the protected resource document. Its `authorization_servers` value is the AuthKit origin. Fetch that origin's `/.well-known/oauth-authorization-server` and read `agent_auth` for `identity_endpoint`, `claim_endpoint`, and `skill`.
 
-If the browser lands on `https://app.unkey.com/auth/error`, the attempt failed. The page says "We could not sign you in" and links to sign-in. Start again at `https://app.unkey.com/auth/sign-up`. If it keeps failing, the person emails [support@unkey.com](mailto:support@unkey.com).
+If `auth.md` or the protected resource document returns 404, this Unkey environment doesn't have agent signup configured. Stop. Don't invent another signup URL.
 
-Ignore the local dashboard. With `AUTH_PROVIDER=local`, `/auth/sign-up` does not create an account.
+## Register
 
-## Create the first workspace
+`POST https://<authkit-domain>/agent/identity` with `Content-Type: application/json`:
 
-Open `https://app.unkey.com/new` if the person is signed in and has no workspace. The app shell also sends them there when the session has no organization.
+```json
+{"type": "service_auth", "login_hint": "person@example.com"}
+```
 
-The page title is **Create Company Workspace**. The description is "Name your workspace and choose its URL."
+Use the person's email as `login_hint`. The response includes `claim.token` and `claim.attempt.verification_uri`. Keep `claim.token`.
 
-1. Fill **Workspace name**. It is required, 3 to 50 characters after trimming.
-2. Fill **Workspace URL handle**. It is required, 3 to 64 characters: lowercase letters, numbers, and single hyphens, with no leading or trailing hyphen. The field is prefixed with `app.unkey.com/`. Once the name is at least 3 characters, the form fills the handle from the name. Edit it before submitting if you want a different handle. The handle is the slug in every dashboard URL and cannot be changed later. It must be unique across Unkey. If it is taken, the form reports "A workspace with this slug already exists." Pick another handle.
-3. Click **Create workspace**.
+This call is documented at [Register an agent](https://workos.com/docs/reference/authkit/agent-registration/register) and [Agent Registration](https://workos.com/docs/authkit/agent-registration).
 
-That submits the signed-in dashboard mutation `workspace.create` with `name` and `slug`. It is not a public HTTP endpoint. The workspace starts on the free API tier. No card is required. The creator becomes the workspace admin.
+## The person claims the agent
 
-The dashboard then switches into that workspace. With the default navigation it opens `https://app.unkey.com/<slug>/apis`. When the projects navigation flag is on, it opens `https://app.unkey.com/<slug>/projects`. Read `<slug>` from the address bar.
+Give the person `verification_uri`. That page is hosted by AuthKit. Unkey doesn't host a claim form.
 
-## Create a root key
+Tell them: "Open this AuthKit page and sign in with your own email. If it shows a bot check, complete it. Then read me the code on the page."
 
-Open `https://app.unkey.com/<slug>/root-keys`. You must still be the workspace admin. `https://app.unkey.com/<slug>/settings/root-keys` is the same page, and redirects to the first URL when projects navigation is on.
+The API reference shows a `user_code` shaped like `BCDF-GHJK`. The auth.md protocol text also describes a 6-digit code. Send the code exactly as the page shows it. Don't reformat it.
 
-1. Click **New Root Key**.
-2. Fill **Name**. It is required. Use a name that says what the key is for, such as `agent`.
-3. Under **Permissions**, pick one template. **All write permissions** can create keyspaces and keys. **All read permissions**, **Verify keys**, and **Standalone ratelimiting** are narrower. **Start new** begins an empty policy. At least one permission is required.
-4. Click **Create key**.
-5. The dialog title is **Root Key created**. Copy the secret before you click **Done**. It is shown only once and starts with `unkey_`.
+Then `POST https://<authkit-domain>/agent/identity/claim/complete`:
 
-`POST https://api.unkey.com/v2/rootKeys.createKey` cannot create this first key. That call requires an existing root key with permission to write root keys. The dashboard creates the first key with the signed-in session.
+```json
+{"claim_token": "<claim.token>", "user_code": "<code from the person>"}
+```
 
-On `main`, `unkey auth login` does not sign anyone in. It prompts `Enter your root key:` and stores whatever you type in `~/.unkey/config.toml`. Run it only after the dashboard has shown you a secret. See [unkey auth login](/platform/cli/auth/login).
+On success the body contains `identity.assertion` and `identity.refresh_token.value`. Save the assertion. Exchange that assertion at the token endpoint. WorkOS returns the verified identity once.
 
-`unkey login` device approval is not on `main`. It is on branch `eng-2994-add-device-code-login-flow-to-unkey-cli`, which adds `unkey login`, a `https://app.unkey.com/cli/device` approval page, and `POST /v2/cli.startDeviceLogin`. Do not run that command until the branch is on `main`. After it lands, the person still has to approve the code in the dashboard while signed in as a workspace admin.
+If the first attempt expires, `POST https://<authkit-domain>/agent/identity/claim` with `type`, `claim_token`, and `login_hint`, then use the new `verification_uri`. Don't call that endpoint while the original attempt is still valid.
+
+Documented errors include `invalid_user_code`, `user_code_expired`, `claim_not_confirmed`, `claim_expired`, `claim_revoked`, and `already_claimed`. For `claim_not_confirmed`, wait and retry the complete call. For an expired or revoked claim, start registration again.
+
+## Exchange the assertion
+
+`POST https://<authkit-domain>/oauth2/token` with `Content-Type: application/x-www-form-urlencoded`:
+
+```bash
+curl -X POST "https://<authkit-domain>/oauth2/token" \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d "grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer" \
+  --data-urlencode "assertion=<identity.assertion>"
+```
+
+Use the `access_token` from the response. Unkey accepts that access token only. An agent API key is not a JWT, and Unkey rejects it. The token's `exp` is enforced. Request a new token from WorkOS when it expires. Don't send the identity assertion to Unkey.
+
+## Create the workspace
+
+`POST https://app.unkey.com/api/agent/workspace`:
+
+```bash
+curl -X POST https://app.unkey.com/api/agent/workspace \
+  -H "Authorization: Bearer <access_token>" \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Acme","slug":"acme"}'
+```
+
+`name` is 3 to 50 characters. `slug` is 3 to 64 characters: lowercase letters, numbers, and single hyphens, with no leading or trailing hyphen. The slug is the workspace URL handle and cannot be changed later. It must be unique across Unkey.
+
+A 200 response is:
+
+```json
+{"workspaceId":"ws_...","orgId":"org_...","slug":"acme","name":"Acme"}
+```
+
+Unkey creates a WorkOS organization, a free-tier workspace, and an admin membership for the user who claimed the agent. That is the same creation path as the signed-in dashboard mutation `workspace.create`. One registration can create one workspace. A second call returns 409 `workspace_exists`. A taken slug returns 409 `slug_taken`.
+
+A signed-in person can still create a workspace in the dashboard at `https://app.unkey.com/new`. You don't need that page for this flow.
+
+## Create the first root key
+
+`POST https://app.unkey.com/api/agent/root-key` with the same bearer token.
+
+Omit `permissions` to receive the default set: read and write on `projects/*/keyspaces/*`, plus read, write, and verify on `projects/*/keyspaces/*/keys/*`. That set can create and verify API keys. It cannot decrypt key material, delete resources, or manage root keys.
+
+You can request a smaller set, or add delete and keyspace log read, using `path` and `action`:
+
+```json
+{
+  "name": "agent",
+  "permissions": [
+    {"path": "projects/*/keyspaces/*", "action": "read"},
+    {"path": "projects/*/keyspaces/*/keys/*", "action": "verify"}
+  ]
+}
+```
+
+Allowed paths are `projects/*/keyspaces/*`, `projects/*/keyspaces/*/logs`, and `projects/*/keyspaces/*/keys/*`. Allowed actions on those paths are read, write, delete, and verify. `logs` is read only. `decrypt`, `rootKeys/*`, and `**` are rejected even though a workspace admin could grant them in the dashboard.
+
+A 200 response is:
+
+```json
+{"keyId":"key_...","key":"unkey_...","permissions":["unkey:v1:ws_...:projects/*/keyspaces/*#read"]}
+```
+
+Copy `key` before you discard the response. Unkey stores only the key id. A second call returns 409 `root_key_exists`.
+
+The root key is created through `POST /v2/rootKeys.createKey`, which also writes the root-key audit events. You can't call that route yourself for this first key. It requires a root key that already exists.
+
+On `main`, `unkey auth login` does not sign anyone in. It prompts `Enter your root key:` and stores whatever you type in `~/.unkey/config.toml`. Run it only after you have this secret. See [unkey auth login](/platform/cli/auth/login).
+
+`unkey login` device approval is not on `main`. It is on branch `eng-2994-add-device-code-login-flow-to-unkey-cli`. Don't run that command until the branch is on `main`.
+
+## Failures
+
+| Status | `error` | What to do |
+| --- | --- | --- |
+| 401 | `missing_token`, `invalid_token`, `expired`, `wrong_audience` | Send a current access token whose `aud` matches this environment. |
+| 403 | `unclaimed`, `anonymous`, `unsupported_registration`, `user_mismatch` | Finish a `service_auth` claim for this user. Don't retry with an anonymous registration. |
+| 409 | `workspace_exists`, `root_key_exists`, `slug_taken` | Reuse the workspace or key you already created, or pick another slug. |
+| 429 | `rate_limited` | Wait and retry. |
+| 404 | `not_found` | This environment has agent signup turned off. |
 
 ## Continue after the root key
 

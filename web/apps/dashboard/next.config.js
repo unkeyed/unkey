@@ -148,6 +148,14 @@ const nextConfig = {
       },
     ];
   },
+  async rewrites() {
+    return [
+      {
+        source: "/auth.md",
+        destination: "/api/agent/auth-md",
+      },
+    ];
+  },
   async headers() {
     return [
       {

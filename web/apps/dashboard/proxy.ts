@@ -24,6 +24,8 @@ const PUBLIC_ROUTE_HANDLER_PATHS = [
   "/api/webhooks/stripe",
   "/api/webhooks/workos",
   "/api/v1/github/verify",
+  "/.well-known/oauth-protected-resource",
+  "/api/agent",
 ] as const;
 
 function isPublicPath(path: string): boolean {

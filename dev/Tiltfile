@@ -678,12 +678,15 @@ if not ORB:
     )
 
 # Dashboard - runs locally with HMR
-# Injects GitHub App env vars from dev/.env.github and dev/.github-private-key.pem
+# Injects GitHub App env vars from dev/.env.github and dev/.github-private-key.pem.
+# dev/.env.workos is optional. Agent signup reads WORKOS_AUTHKIT_DOMAIN and
+# WORKOS_AGENT_AUDIENCE from it and stays disabled when they are unset.
 local_resource(
     'dashboard',
     serve_cmd='''
       set -a
       [ -f ./.env.github ] && source ./.env.github
+      [ -f ./.env.workos ] && source ./.env.workos
       [ -f ./.github-private-key.pem ] && export UNKEY_GITHUB_PRIVATE_KEY_PEM="$(cat ./.github-private-key.pem)"
       export GITHUB_APP_ID="$UNKEY_GITHUB_APP_ID"
       export PORT=3000

@@ -5,6 +5,7 @@ export * from "./keys";
 export * from "./unkey_root_keys";
 export * from "./ratelimit";
 export * from "./workspaces";
+export * from "./agent_signups";
 export * from "./identity";
 export * from "./limits";
 export * from "./workspace_billing";

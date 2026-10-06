@@ -3,6 +3,7 @@ import { customAlphabet } from "nanoid";
 const nanoid = customAlphabet("123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz");
 
 const prefixes = {
+  agentSignup: "ags",
   key: "key",
   policy: "pol",
   api: "api",
