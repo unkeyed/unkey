@@ -15,7 +15,7 @@ This rules out three things we used to do. Do not put a form behind `SettingCard
 
 ## Title a group only to tell it apart
 
-A group title is an `h2` above its card, worded as a plain noun phrase, so "Healthcheck" rather than "Manage healthcheck".
+A group title is a `SettingsGroupTitle`, an `h2` above its card, worded as a plain noun phrase, so "Healthcheck" rather than "Manage healthcheck".
 
 Leave the title off when it only restates the page. The page title already says "Build", so a "Build settings" heading under it is noise. When a page has two or more groups, title each one so the reader can tell them apart.
 
@@ -29,7 +29,7 @@ A row is `20px` of padding with a `16px` gap between its columns. The label colu
 
 ## Anatomy of a row
 
-One setting is one `SettingsRow` inside a `SettingsGroup`. The group draws the border and the dividers, so a row never draws its own.
+One setting is one `SettingsRow` inside a `SettingsGroupContent`. The group content draws the border and the dividers, so a row never draws its own.
 
 The row is two columns. Title and description on the left, control on the right. It has no Save of its own, because the Save belongs to the group.
 

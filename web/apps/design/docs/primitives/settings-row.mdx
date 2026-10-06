@@ -5,12 +5,12 @@ description: One setting, laid out inline, inside a group that owns the Save.
 
 <Component path="settings-row/basic" />
 
-Put rows inside a `SettingsGroup`, inside a `SettingsGroups`. The group owns the heading, the card border, the dividers between rows and the one Save; the shell owns the width.
+Put rows inside a `SettingsGroupContent`, inside a `SettingsGroup`, inside a `SettingsGroups`. `SettingsGroupTitle` is the heading. `SettingsGroupContent` owns the card border, the dividers between rows and the one Save. The shell owns the width.
 
-`title` and `description` fill the left column, which is two fifths of the row. `children` is the control and takes the rest. There is no icon, on purpose, because an icon per row competes with the group heading for the reader's eye.
+`SettingsRowHeader` is the left column, two fifths of the row. It holds a `SettingsRowTitle` and an optional `SettingsRowDescription`. `SettingsRowContent` holds the control and takes the rest. There is no icon, on purpose, because an icon per row competes with the group heading for the reader's eye.
 
-A row has no Save of its own. To take part in the group's Save, wrap the row in a `SettingsForm` with the row's `onSubmit`, its `dirty` flag and its `SaveState`. `dirty` says the user changed something. The state says whether that change can be saved. The form refuses to submit, by Save or by Enter, unless its state is `ready`. A `SettingsForm` outside a `SettingsGroup` throws.
+A row has no Save of its own. To take part in the group's Save, wrap the row in a `SettingsForm` with the row's `onSubmit`, its `dirty` flag and its `SaveState`. `dirty` says the user changed something. The state says whether that change can be saved. The form refuses to submit, by Save or by Enter, unless its state is `ready`. A `SettingsForm` outside a `SettingsGroupContent` throws.
 
-The row defines `--setting-w` at `30rem`. Give a text field or an ID block `max-w-(--setting-w)` for a reading width, and let a slider or a domain list span the column.
+`SettingsRowContent` defines `--setting-w` at `30rem`. Give a text field or an ID block `max-w-(--setting-w)` for a reading width, and let a slider or a domain list span the column.
 
 See [Settings page](/patterns/settings-page) for how rows and groups fit together.
