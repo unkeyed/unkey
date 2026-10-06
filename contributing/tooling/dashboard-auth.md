@@ -2,7 +2,6 @@
 title: "Dashboard authentication"
 description: "Configure and operate the dashboard's WorkOS AuthKit integration"
 notion:
-  rootPageID: 3f1512d643f380d2b1affdac1d6420c8
   owners:
     - andreas
   tags:

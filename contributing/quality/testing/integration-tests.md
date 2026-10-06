@@ -2,7 +2,6 @@
 title: "Integration tests"
 description: "Testing components with real dependencies"
 notion:
-  rootPageID: 3f1512d643f380d2b1affdac1d6420c8
   owners:
     - andreas
   tags:
