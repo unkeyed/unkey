@@ -199,6 +199,7 @@
               {
                 "group": "AI coding",
                 "pages": [
+                  "agent",
                   "platform/ai-coding/overview",
                   "platform/ai-coding/mcp-servers",
                   "platform/ai-coding/claude-code",
