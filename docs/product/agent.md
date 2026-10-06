@@ -35,7 +35,7 @@ Store the root key when Unkey returns it. Unkey shows that secret once.
 
 ## Discover the service
 
-Fetch `https://app.unkey.com/auth.md`. That URL reverse-proxies the WorkOS-generated skill at `https://<authkit-domain>/agent/auth.md`. WorkOS documents that hosted URL as public, so you can also open it directly. The copy on `app.unkey.com` is the one tied to this dashboard.
+Fetch `https://app.unkey.com/auth.md`. That URL reverse-proxies the WorkOS-generated skill at `https://<authkit-domain>/agent/auth.md`, with a short Unkey preface that points at the workspace and root-key calls below. WorkOS documents the hosted skill URL as public, so you can also open it directly. Use this page for the Unkey calls. The generated skill doesn't describe them.
 
 A 401 from the Unkey agent endpoints includes:
 

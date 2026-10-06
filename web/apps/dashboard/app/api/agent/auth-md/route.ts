@@ -1,4 +1,5 @@
 import { agentSignupEnv } from "@/lib/agent-signup/config";
+import { getBaseUrl } from "@/lib/utils";
 import { NextResponse } from "next/server";
 
 export async function GET() {
@@ -17,7 +18,20 @@ export async function GET() {
         { status: 502 },
       );
     }
-    return new NextResponse(await response.text(), {
+    const base = getBaseUrl();
+    const preface = `# Unkey agent signup
+
+The WorkOS registration skill follows. After you exchange the identity assertion for an access token, create the workspace and the first root key on this dashboard:
+
+- \`POST ${base}/api/agent/workspace\`
+- \`POST ${base}/api/agent/root-key\`
+
+The full procedure is https://www.unkey.com/docs/agent.md
+
+---
+
+`;
+    return new NextResponse(preface + (await response.text()), {
       status: 200,
       headers: {
         "Content-Type": "text/markdown; charset=utf-8",
