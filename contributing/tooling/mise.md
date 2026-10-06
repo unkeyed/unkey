@@ -2,11 +2,10 @@
 title: "Mise"
 description: "How Unkey pins tools for local tasks, CI, and build containers"
 notion:
-  rootPageID: 3ee512d643f38063b525d6c3619c1f69
+  rootPageID: ed5512d643f38377b0d38164de40681e
   owners:
-    - james
+    - andreas
   tags:
-    - Development
     - Tooling
 ---
 
@@ -36,15 +35,12 @@ Install the pinned mise binary, then install the tools from `.mise/config.toml`:
 mise install --locked --yes
 ```
 
-<Note>
-  If you run into github ratelimit issues, mise can use an auth token to get higher limits
-  You can manually create a token, or use the one from your `gh` cli:
-
-  ```bash
-  GITHUB_TOKEN=$(gh auth token) mise install
-  ```
-
-</Note>
+> **Note:** If you run into GitHub rate limit issues, mise can use an auth token to get higher limits.
+> You can create a token manually or use the token from the `gh` CLI:
+>
+> ```bash
+> GITHUB_TOKEN=$(gh auth token) mise install
+> ```
 
 `mise install` installs languages, CLIs, and package managers. It does not run
 repository setup tasks. Repository tasks declare setup work as dependencies, so

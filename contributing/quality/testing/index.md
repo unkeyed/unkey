@@ -2,11 +2,10 @@
 title: "Testing"
 description: "Testing standards and patterns for Unkey"
 notion:
-  rootPageID: 3ee512d643f38063b525d6c3619c1f69
+  rootPageID: ed5512d643f38377b0d38164de40681e
   owners:
     - andreas
   tags:
-    - Development
     - Quality
     - Testing
 ---
@@ -125,6 +124,6 @@ mise run test
 
 Use these guides for deeper patterns:
 
-- [Unit tests](/contributing/quality/testing/unit-tests)
-- [Integration tests](/contributing/quality/testing/integration-tests)
-- [Anti-patterns](/contributing/quality/testing/anti-patterns)
+- [Unit tests](./unit-tests.md)
+- [Integration tests](./integration-tests.md)
+- [Anti-patterns](./anti-patterns.md)

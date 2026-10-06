@@ -77,7 +77,7 @@ checked or convert them all without a request.
 ## Prepare the real dashboard
 
 Read repository guidance and
-`docs/engineering/contributing/local/development.mdx`. Use `mise` for tools.
+`contributing/local/development.md`. Use `mise` for tools.
 Inspect running services before starting anything. Reuse a healthy local stack.
 
 - On a developer machine, `mise run dashboard` is the dashboard setup task.

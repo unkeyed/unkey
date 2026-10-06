@@ -2,11 +2,10 @@
 title: "Anti-patterns"
 description: "Common testing mistakes to avoid"
 notion:
-  rootPageID: 3ee512d643f38063b525d6c3619c1f69
+  rootPageID: ed5512d643f38377b0d38164de40681e
   owners:
     - andreas
   tags:
-    - Development
     - Quality
     - Testing
 ---

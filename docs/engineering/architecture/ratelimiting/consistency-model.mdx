@@ -1,13 +1,6 @@
 ---
 title: "Consistency model"
 description: "How rate limit state converges across processes and regions"
-notion:
-  rootPageID: 3ee512d643f38063b525d6c3619c1f69
-  owners:
-    - andreas
-  tags:
-    - Architecture
-    - Rate Limiting
 ---
 
 Rate limiting is intentionally not a single synchronous global counter. The system converges in layers so the request path stays fast even when shared dependencies are slow or unavailable.

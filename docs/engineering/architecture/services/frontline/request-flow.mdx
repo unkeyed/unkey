@@ -1,14 +1,6 @@
 ---
 title: "Request flow"
 description: "Request lifecycle through Frontline, from TLS termination to the proxied response"
-notion:
-  rootPageID: 3ee512d643f38063b525d6c3619c1f69
-  owners:
-    - andreas
-  tags:
-    - Architecture
-    - Services
-    - Frontline
 ---
 
 This page traces a request from the moment Frontline accepts the TLS connection to the response being streamed back to the client. Frontline owns the full path: it resolves the hostname, evaluates the deployment's policies inline, and proxies directly to a running instance.

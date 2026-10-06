@@ -1,12 +1,5 @@
 ---
 title: ctrl
-notion:
-  rootPageID: 3ee512d643f38063b525d6c3619c1f69
-  owners:
-    - andreas
-  tags:
-    - Infrastructure
-    - ClickHouse
 ---
 
 Control-plane data user, used by both `ctrl-api` and `ctrl-worker` via `[clickhouse].url` (sourced from `unkey/control.UNKEY_CLICKHOUSE_URL`). Distinct from the admin user (`unkey_admin`, used by `ctrl-worker`'s `[clickhouse].admin_url` for `ClickhouseUserService`).

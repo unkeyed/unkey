@@ -2,11 +2,10 @@
 title: "Releases"
 description: "How Unkey ships service images from a git tag to production"
 notion:
-  rootPageID: 3ee512d643f38063b525d6c3619c1f69
+  rootPageID: ed5512d643f38377b0d38164de40681e
   owners:
-    - james
+    - andreas
   tags:
-    - Development
     - Tooling
 ---
 
@@ -14,7 +13,7 @@ Releases are tag-driven. Pushing a `<service>/vx.y.z` tag from `main` causes
 Depot CI to build the image, push it to GHCR, and cut a GitHub release.
 Promotion through canary into production then happens in the
 [`unkeyed/infra`](https://github.com/unkeyed/infra) repo. For how the image
-itself is built, see [Builds](./builds).
+itself is built, see [Builds](./builds.md).
 
 ## Design choices worth knowing
 

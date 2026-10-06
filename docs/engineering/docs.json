@@ -14,50 +14,6 @@
   "navigation": {
     "tabs": [
       {
-        "tab": "Development",
-        "groups": [
-          {
-            "group": "Internal workflow",
-            "pages": [
-              "contributing/how-to-contribute",
-              "contributing/local/development",
-              {
-                "group": "Tooling",
-                "pages": [
-                  "contributing/tooling/mise",
-                  "contributing/tooling/builds",
-                  "contributing/tooling/releases",
-                  "contributing/tooling/feature-flags",
-                  "contributing/tooling/docs-screenshots",
-                  "contributing/tooling/emails",
-                  "contributing/tooling/dashboard-auth"
-                ]
-              }
-            ]
-          },
-          {
-            "group": "Quality",
-            "pages": [
-              "contributing/quality/code-quality",
-              "contributing/quality/documentation",
-              "contributing/quality/screenshots-and-recordings",
-              {
-                "group": "Testing",
-                "pages": [
-                  "contributing/quality/testing/index",
-                  "contributing/quality/testing/unit-tests",
-                  "contributing/quality/testing/integration-tests",
-                  "contributing/quality/testing/http-handler-tests",
-                  "contributing/quality/testing/fuzz-tests",
-                  "contributing/quality/testing/simulation-tests",
-                  "contributing/quality/testing/anti-patterns"
-                ]
-              }
-            ]
-          }
-        ]
-      },
-      {
         "tab": "Architecture",
         "groups": [
           {

@@ -4,13 +4,6 @@ description: Move vault object storage from a single R2 bucket to active-passive
 date: 2026-05-22
 authors:
   - Andreas Thomas
-notion:
-  rootPageID: 3ee512d643f38063b525d6c3619c1f69
-  owners:
-    - andreas
-  tags:
-    - Architecture
-    - RFC
 ---
 
 Vault stores encrypted data encryption keys (DEKs) in object storage. These DEKs are required to encrypt and decrypt recoverable customer key material. Vault caches DEKs to reduce object-storage reads, but a cache miss still requires the backing bucket.

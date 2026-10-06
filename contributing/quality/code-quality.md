@@ -2,11 +2,10 @@
 title: "Code quality"
 description: "Design goals and coding standards for Unkey"
 notion:
-  rootPageID: 3ee512d643f38063b525d6c3619c1f69
+  rootPageID: ed5512d643f38377b0d38164de40681e
   owners:
     - andreas
   tags:
-    - Development
     - Quality
 ---
 
@@ -114,7 +113,7 @@ Think of comments as breadcrumbs of context left for future readers. Use them sp
 
 Keep existing comments accurate when changing the code they describe.
 
-For symbol and package documentation requirements, see [Documentation](/contributing/quality/documentation).
+For symbol and package documentation requirements, see [Documentation](./documentation.md).
 
 Test docstrings and comments follow the same rule. They explain the guarantee a test protects, especially for security properties, regressions, invariants, and business rules. They do not repeat the mechanics of setup or assertions.
 
