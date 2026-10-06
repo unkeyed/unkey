@@ -2,11 +2,10 @@
 title: "Documentation"
 description: "Standards for internal documentation and code comments"
 notion:
-  rootPageID: 3ee512d643f38063b525d6c3619c1f69
+  rootPageID: ed5512d643f38377b0d38164de40681e
   owners:
-    - james
+    - andreas
   tags:
-    - Development
     - Quality
 ---
 

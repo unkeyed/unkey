@@ -2,11 +2,10 @@
 title: "Screenshots and recordings"
 description: "How to capture screenshots and screen recordings for pull requests with visual changes"
 notion:
-  rootPageID: 3ee512d643f38063b525d6c3619c1f69
+  rootPageID: ed5512d643f38377b0d38164de40681e
   owners:
-    - james
+    - andreas
   tags:
-    - Development
     - Quality
 ---
 
@@ -29,6 +28,5 @@ Both screenshots show the same change: the email input on the sign-in page.
 
 | Bad | Good |
 | --- | --- |
-| <Frame><img src="/contributing/quality/screenshot-bad.png" alt="A cropped screenshot of an email input with no surrounding page" /></Frame> | <Frame><img src="/contributing/quality/screenshot-good.png" alt="A screenshot of the whole browser window on the sign-in page, with an arrow and a label that point at the email input" /></Frame> |
+| ![A cropped screenshot of an email input with no surrounding page](./screenshot-bad.png) | ![A screenshot of the whole browser window on the sign-in page, with an arrow and a label that point at the email input](./screenshot-good.png) |
 | Cropped to the component. The reviewer cannot tell which page this is, where the component sits, or whether the rest of the page still works. | The whole browser window, so the URL and the page are visible. An arrow and a short label point at the part that changed. |
-

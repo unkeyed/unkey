@@ -2,11 +2,10 @@
 title: "Refresh docs screenshots"
 description: "Use Amp to check and refresh product documentation screenshots from the real dashboard."
 notion:
-  rootPageID: 3ee512d643f38063b525d6c3619c1f69
+  rootPageID: ed5512d643f38377b0d38164de40681e
   owners:
-    - james
+    - andreas
   tags:
-    - Development
     - Tooling
 ---
 
@@ -21,7 +20,7 @@ not a command run by the docs build.
 ## Run a check
 
 Open an Amp thread in the repository. Use a local environment that follows the
-[development guide](/contributing/local/development), or an orb with the
+[development guide](../local/development.md), or an orb with the
 repository's service configuration. Amp can prepare the local environment when
 needed. Never point the workflow at production or a shared database.
 
@@ -149,5 +148,5 @@ the real product docs preview. Review any changed timestamp with its image pair.
 
 The skill runs Mintlify validation and reports its verification. It does not
 publish changes without approval. For PR review images, follow the
-[screenshots and recordings guide](/contributing/quality/screenshots-and-recordings);
+[screenshots and recordings guide](../quality/screenshots-and-recordings.md);
 those full-context review images are separate from tightly cropped docs assets.

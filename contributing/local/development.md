@@ -2,19 +2,16 @@
 title: "Local development"
 description: "Set up, run, and test Unkey locally"
 notion:
-  rootPageID: 3ee512d643f38063b525d6c3619c1f69
+  rootPageID: ed5512d643f38377b0d38164de40681e
   owners:
-    - james
+    - andreas
   tags:
-    - Development
     - Onboarding
 ---
 
 ## Prerequisites
 
-<Warning>
-  We do not support Windows as development environment. It might work, or it might not.
-</Warning>
+> **Warning:** We do not support Windows as a development environment. It might work, or it might not.
 
 Unkey installs most tools and dependencies automatically. The only required preinstalled dependencies are:
 
@@ -27,37 +24,37 @@ All other tools are managed via [mise](https://mise.en.dev/), which you'll insta
 
 Clone the repository and install mise and other tools.
 
-<Steps>
-  <Step title="Clone the repository">
-    ```bash
-    git clone https://github.com/unkeyed/unkey
-    cd unkey
-    ```
-  </Step>
-  <Step title="Install and set up mise">
-    You can set up mise manually or use the install script. It pins mise to a specific version and SHA.
-    ```bash
-    ./dev/install-mise
-    ```
-  </Step>
-  <Step title="Bootstrap local configuration">
-    Run the bootstrap task to install the pinned toolchain, create local environment files, and configure the GitHub app.
+### 1. Clone the repository
 
-    ```bash
-    mise run bootstrap
-    ```
+```bash
+git clone https://github.com/unkeyed/unkey
+cd unkey
+```
 
-    If GitHub rate limits `mise install`, provide a `GH_TOKEN` when you rerun the task:
-    ```bash
-    GH_TOKEN=$(gh auth token) mise run bootstrap
-    ```
-  </Step>
-</Steps>
+### 2. Install and set up mise
 
+You can set up mise manually or use the install script. It pins mise to a specific version and SHA.
+
+```bash
+./dev/install-mise
+```
+
+### 3. Bootstrap local configuration
+
+Run the bootstrap task to install the pinned toolchain, create local environment files, and configure the GitHub app.
+
+```bash
+mise run bootstrap
+```
+
+If GitHub rate limits `mise install`, provide a `GH_TOKEN` when you rerun the task:
+
+```bash
+GH_TOKEN=$(gh auth token) mise run bootstrap
+```
 
 If you only want to develop on the dashboard, run `mise run dashboard`.
 Otherwise continue for a full dev setup.
-
 
 ## Run dev mode
 
@@ -74,6 +71,7 @@ You get:
 - Tilt UI at `http://localhost:10350`
 - Various services port-forwarded
 - Dashboard at `http://localhost:3000`
+
 ## Local HTTPS with Frontline (optional)
 
 Set up local TLS for `*.unkey.local`:
@@ -132,7 +130,7 @@ WORKOS_COOKIE_PASSWORD=<a unique secret with at least 32 characters>
 
 Hosted AuthKit owns sign-in, sessions, and MFA in WorkOS mode. The dashboard
 uses WorkOS User Profile and User Security for managed account settings. See
-[Dashboard authentication](/contributing/tooling/dashboard-auth) for provider
+[Dashboard authentication](../tooling/dashboard-auth.md) for provider
 configuration and release checks.
 
 Stripe billing:
@@ -181,13 +179,13 @@ Each is optional: a missing file disables that piece and never breaks startup.
   send). Without them the alerts only log; the suspend/resume enforcement is
   unaffected.
 
-See [Deploy Billing](/architecture/services/control-plane/worker/workflows/deploy-billing) and [Deploy Spend Cap](/architecture/services/control-plane/worker/workflows/deploy-spend-cap).
+See [Deploy Billing](../../docs/engineering/architecture/services/control-plane/worker/workflows/deploy-billing.mdx) and [Deploy Spend Cap](../../docs/engineering/architecture/services/control-plane/worker/workflows/deploy-spend-cap.mdx).
 
 ### Feature flags
 
 You don't need Vercel Flags setup to run dashboard code that imports `@/lib/flags`. When `FLAGS` is missing, the dashboard uses the noop adapter and resolves each flag to its declared `defaultValue`.
 
-If you're adding flags, testing remote targeting rules, or using Vercel Toolbar overrides, ask Andreas for the dev values of `FLAGS` and `FLAGS_SECRET`. Add them to `web/apps/dashboard/.env`. They're stable, so you set them once and forget. See [Feature flags](/contributing/tooling/feature-flags) for the rest of the workflow.
+If you're adding flags, testing remote targeting rules, or using Vercel Toolbar overrides, ask Andreas for the dev values of `FLAGS` and `FLAGS_SECRET`. Add them to `web/apps/dashboard/.env`. They're stable, so you set them once and forget. See [Feature flags](../tooling/feature-flags.md) for the rest of the workflow.
 
 ## Seed local data
 

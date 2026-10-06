@@ -1,14 +1,6 @@
 ---
 title: Deploy Spend Cap
 description: "How Compute spend budgets are checked, alerted, and enforced."
-notion:
-  rootPageID: 3ee512d643f38063b525d6c3619c1f69
-  owners:
-    - andreas
-  tags:
-    - Architecture
-    - Services
-    - Control Plane
 ---
 
 ## Why this exists
@@ -72,7 +64,7 @@ The worker needs ClickHouse (usage reader), Resend (`RESEND_API_KEY`), and WorkO
 
 Resend templates `compute-budget-alert` and `compute-budget-stopped` must be published (`web/internal/resend/scripts/sync-templates.tsx --publish`).
 
-See [local development](/contributing/local/development) for `dev/.env.resend` and `dev/.env.workos`.
+See <a href="https://github.com/unkeyed/unkey/blob/main/contributing/local/development.md" target="_blank">local development</a> for `dev/.env.resend` and `dev/.env.workos`.
 
 ## Code layout
 

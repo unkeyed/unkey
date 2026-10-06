@@ -2,16 +2,15 @@
 title: "Builds"
 description: "How Unkey builds service images with Docker"
 notion:
-  rootPageID: 3ee512d643f38063b525d6c3619c1f69
+  rootPageID: ed5512d643f38377b0d38164de40681e
   owners:
-    - james
+    - andreas
   tags:
-    - Development
     - Tooling
 ---
 
 Service images are built with Docker. For how a built image then ships to
-production, see [Releases](./releases).
+production, see [Releases](./releases.md).
 
 ## Why Docker produces the images
 
