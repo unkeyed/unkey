@@ -1,3 +1,4 @@
+import { getBaseUrl } from "@/lib/utils";
 import { type JWTPayload, type JWTVerifyGetKey, createRemoteJWKSet, errors, jwtVerify } from "jose";
 import { z } from "zod";
 import type { AgentSignupConfig } from "./config";
@@ -43,6 +44,16 @@ export type VerifiedAgent = {
   registrationId: string;
   userId: string;
 };
+
+export function acceptedAgentAudiences(
+  config: AgentSignupConfig,
+  resource = getBaseUrl(),
+): string[] {
+  if (!resource || resource === config.audience) {
+    return [config.audience];
+  }
+  return [config.audience, resource];
+}
 
 export type VerifyDeps = {
   fetch: typeof fetch;
@@ -91,16 +102,37 @@ function actSub(payload: JWTPayload): string | undefined {
   return typeof sub === "string" ? sub : undefined;
 }
 
+function audienceValues(aud: JWTPayload["aud"]): string[] {
+  if (aud === undefined) {
+    return [];
+  }
+  return Array.isArray(aud) ? aud : [aud];
+}
+
+function tokenAudience(payload: JWTPayload, accepted: readonly string[]): string {
+  const match = audienceValues(payload.aud).find((value) => accepted.includes(value));
+  if (!match) {
+    throw new AgentSignupError(
+      401,
+      "wrong_audience",
+      "The agent access token audience was rejected.",
+      true,
+    );
+  }
+  return match;
+}
+
 async function verifyAccessToken(
   token: string,
   config: AgentSignupConfig,
   key: JWTVerifyGetKey,
-): Promise<{ registrationId: string; userId: string }> {
+): Promise<{ registrationId: string; userId: string; audience: string }> {
+  const accepted = acceptedAgentAudiences(config);
   let payload: JWTPayload;
   try {
     const verified = await jwtVerify(token, key, {
       issuer: config.issuer,
-      audience: config.audience,
+      audience: accepted,
     });
     payload = verified.payload;
   } catch (error) {
@@ -132,7 +164,7 @@ async function verifyAccessToken(
   if (!USER_ID.test(userId)) {
     throw invalidToken("The agent access token claim is not bound to a WorkOS user.");
   }
-  return { registrationId: payload.sub, userId };
+  return { registrationId: payload.sub, userId, audience: tokenAudience(payload, accepted) };
 }
 
 async function workOsJson(
@@ -179,7 +211,7 @@ export async function authenticateAgent(
     body: JSON.stringify({
       type: "access_token",
       credential: token,
-      audience: config.audience,
+      audience: accessToken.audience,
     }),
   });
   const validation = validationSchema.safeParse(validationBody);
@@ -238,5 +270,8 @@ export async function authenticateAgent(
     );
   }
 
-  return accessToken;
+  return {
+    registrationId: accessToken.registrationId,
+    userId: accessToken.userId,
+  };
 }

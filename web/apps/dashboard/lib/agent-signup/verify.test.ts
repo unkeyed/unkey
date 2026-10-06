@@ -57,6 +57,7 @@ function workOsFetch(options: {
   valid?: boolean;
   expiresAt?: string | null;
   registrationBody?: unknown;
+  audience?: string;
 }) {
   return vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = String(input);
@@ -64,7 +65,7 @@ function workOsFetch(options: {
       const body = JSON.parse(String(init?.body));
       expect(body).toMatchObject({
         type: "access_token",
-        audience: config.audience,
+        audience: options.audience ?? config.audience,
       });
       return Response.json({
         valid: options.valid ?? true,
@@ -107,6 +108,31 @@ describe("authenticateAgent", () => {
     await expect(
       authenticateAgent(`Bearer ${accessToken}`, config, { fetch: workOsFetch({}), key }),
     ).rejects.toMatchObject({ code: "wrong_audience", status: 401 });
+  });
+
+  it("accepts the protected resource audience and rejects any other", async () => {
+    process.env.DASHBOARD_BASE_URL = "https://app.unkey.com";
+    try {
+      const { privateKey, key } = await signingKey();
+      const accessToken = await token(privateKey, {
+        act: { sub: userId },
+        audience: "https://app.unkey.com",
+      });
+      const fetchImpl = workOsFetch({ audience: "https://app.unkey.com" });
+      await expect(
+        authenticateAgent(`Bearer ${accessToken}`, config, { fetch: fetchImpl, key }),
+      ).resolves.toEqual({ registrationId, userId });
+
+      const other = await token(privateKey, {
+        act: { sub: userId },
+        audience: "https://evil.example",
+      });
+      await expect(
+        authenticateAgent(`Bearer ${other}`, config, { fetch: workOsFetch({}), key }),
+      ).rejects.toMatchObject({ code: "wrong_audience", status: 401 });
+    } finally {
+      delete process.env.DASHBOARD_BASE_URL;
+    }
   });
 
   it("rejects an unclaimed token and an anonymous registration", async () => {
