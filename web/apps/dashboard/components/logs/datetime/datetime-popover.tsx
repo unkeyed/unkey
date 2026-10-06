@@ -143,7 +143,9 @@ export const DatetimePopover = ({
     // In range mode, we use both from and to dates
     setTime({
       startTime: processTimeFilters(newRange?.from, newStart)?.getTime(),
-      endTime: singleDateMode ? undefined : processTimeFilters(newRange?.to, newEnd)?.getTime(),
+      endTime: singleDateMode
+        ? undefined
+        : processTimeFilters(newRange?.to ?? newRange?.from, newEnd)?.getTime(),
     });
   };
 

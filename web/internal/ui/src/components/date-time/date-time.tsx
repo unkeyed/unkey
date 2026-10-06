@@ -14,8 +14,7 @@ export type DateTimeContextType = {
   startTime: TimeUnit;
   endTime: TimeUnit;
   onDateChange: (newDate: DateRange) => void;
-  onStartTimeChange: (newTime: TimeUnit) => void;
-  onEndTimeChange: (newTime: TimeUnit) => void;
+  onTimeChange: (newStart: TimeUnit, newEnd: TimeUnit) => void;
 };
 
 export type Range = DateRange;
@@ -83,14 +82,10 @@ function DateTime({
     onChange(newRange, startTime, endTime);
   };
 
-  const handleStartTimeChange = (newTime: TimeUnit) => {
-    setStartTime(newTime);
-    onChange(date, newTime, endTime);
-  };
-
-  const handleEndTimeChange = (newTime: TimeUnit) => {
-    setEndTime(newTime);
-    onChange(date, startTime, newTime);
+  const handleTimeChange = (newStart: TimeUnit, newEnd: TimeUnit) => {
+    setStartTime(newStart);
+    setEndTime(newEnd);
+    onChange(date, newStart, newEnd);
   };
 
   return (
@@ -102,8 +97,7 @@ function DateTime({
         minDate,
         maxDate,
         onDateChange: handleDateChange,
-        onStartTimeChange: handleStartTimeChange,
-        onEndTimeChange: handleEndTimeChange,
+        onTimeChange: handleTimeChange,
       }}
     >
       <div className={`flex flex-col w-80 justify-center items-center ${className}`}>

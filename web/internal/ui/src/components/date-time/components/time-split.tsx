@@ -27,14 +27,15 @@ const MAX_VALUES = {
 } as const;
 
 const TimeSplitInput: React.FC<TimeSplitInputProps> = ({ type }) => {
-  const { startTime, endTime, date, onStartTimeChange, onEndTimeChange } = useDateTimeContext();
+  const { startTime, endTime, date, onTimeChange } = useDateTimeContext();
   const [focus, setFocus] = useState(false);
-  const [time, setTime] = useState<TimeUnit>(type === "start" ? startTime : endTime);
+  const [draft, setDraft] = useState<TimeUnit | null>(null);
+  const time = draft ?? (type === "start" ? startTime : endTime);
 
   const normalizeTimeUnit = (time: TimeUnit): TimeUnit => ({
-    HH: time.HH.padStart(2, "0") || "00",
-    mm: time.mm.padStart(2, "0") || "00",
-    ss: time.ss.padStart(2, "0") || "00",
+    HH: time.HH.padStart(2, "0"),
+    mm: time.mm.padStart(2, "0"),
+    ss: time.ss.padStart(2, "0"),
   });
 
   const isSameDay = (date1: Date, date2: Date) =>
@@ -46,55 +47,29 @@ const TimeSplitInput: React.FC<TimeSplitInputProps> = ({ type }) => {
     return t1 - t2;
   };
 
-  const handleTimeConflicts = (normalizedTime: TimeUnit) => {
-    // Only handle conflicts if start and end are on the same day
-    if (date?.from && date.to) {
-      if (!isSameDay(date.from, date?.to)) {
-        return;
-      }
-    }
-    // If this is a start time and it's later than the end time,
-    // push the end time forward to match the start time
-    if (type === "start" && endTime && compareTimeUnits(normalizedTime, endTime) > 0) {
-      onEndTimeChange(normalizedTime);
-    }
-    // If this is an end time and it's earlier than the start time,
-    // pull the start time backward to match the end time
-    else if (type === "end" && startTime && compareTimeUnits(normalizedTime, startTime) < 0) {
-      onStartTimeChange(normalizedTime);
-    }
-  };
-
-  const updateTimeState = (normalizedTime: TimeUnit) => {
-    setTime(normalizedTime);
-    if (type === "start") {
-      onStartTimeChange(normalizedTime);
-    }
-    if (type === "end") {
-      onEndTimeChange(normalizedTime);
-    }
-  };
-
-  const handleBlur = (value: string, field: TimeField) => {
-    if (value !== time[field]) {
-      handleChange(value, field);
-    }
+  const handleBlur = () => {
     const normalizedTime = normalizeTimeUnit(time);
-    updateTimeState(normalizedTime);
-    handleTimeConflicts(normalizedTime);
+    setDraft(null);
     setFocus(false);
+    if (compareTimeUnits(normalizedTime, type === "start" ? startTime : endTime) === 0) {
+      return;
+    }
+
+    const resolveConflicts = !(date?.from && date.to) || isSameDay(date.from, date.to);
+    if (type === "start") {
+      const pushEnd = resolveConflicts && compareTimeUnits(normalizedTime, endTime) > 0;
+      onTimeChange(normalizedTime, pushEnd ? normalizedTime : endTime);
+    } else {
+      const pullStart = resolveConflicts && compareTimeUnits(normalizedTime, startTime) < 0;
+      onTimeChange(pullStart ? normalizedTime : startTime, normalizedTime);
+    }
   };
 
   const handleChange = (value: string, field: TimeField) => {
-    if (value.length > 2) {
+    if (!/^\d{0,2}$/.test(value) || Number(value) > MAX_VALUES[field]) {
       return;
     }
-
-    const numValue = Number(value);
-    if (value && numValue > MAX_VALUES[field]) {
-      return;
-    }
-    setTime({ ...time, [field]: value });
+    setDraft({ ...time, [field]: value });
   };
 
   const handleFocus = (event: React.FocusEvent<HTMLInputElement>) => {
@@ -110,15 +85,15 @@ const TimeSplitInput: React.FC<TimeSplitInputProps> = ({ type }) => {
     text-gray-12 leading-6 tracking-normal font-medium text-sm
   `;
 
-  const TimeInput: React.FC<{ field: TimeField; ariaLabel: string }> = (props) => (
+  const renderTimeInput = (field: TimeField, ariaLabel: string) => (
     <input
       type="text"
-      value={time[props.field]}
-      onChange={(e) => handleChange(e.target.value, props.field)}
-      onBlur={(e) => handleBlur(e.target.value, props.field)}
+      value={time[field]}
+      onChange={(e) => handleChange(e.target.value, field)}
+      onBlur={handleBlur}
       onFocus={handleFocus}
       placeholder="00"
-      aria-label={props.ariaLabel}
+      aria-label={ariaLabel}
       className={inputClassNames}
     />
   );
@@ -131,11 +106,11 @@ const TimeSplitInput: React.FC<TimeSplitInputProps> = ({ type }) => {
       )}
     >
       <IconClockOutline18 className="size-3.5 text-gray-9 m-3" />
-      <TimeInput field="HH" ariaLabel="Hours" />
+      {renderTimeInput("HH", "Hours")}
       <span className="text-gray-12 leading-6 tracking-normal font-medium text-sm">:</span>
-      <TimeInput field="mm" ariaLabel="Minutes" />
+      {renderTimeInput("mm", "Minutes")}
       <span className="text-gray-12 leading-6 font-medium text-sm">:</span>
-      <TimeInput field="ss" ariaLabel="Seconds" />
+      {renderTimeInput("ss", "Seconds")}
       <span className="text-gray-12 leading-6 font-medium text-sm"> </span>
       {/* AM/PM and timezone still needs to be implemented */}
       {/* {renderTimeInput("")} */}
