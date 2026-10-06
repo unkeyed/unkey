@@ -16,7 +16,9 @@ sources:
   - https://workos.com/docs/authkit/metadata
   - https://workos.com/docs/reference/organization/create
   - https://workos.com/docs/reference/authkit/agent-registration/register
+  - https://workos.com/docs/reference/authkit/agent-registration/claim-complete
   - https://workos.com/docs/reference/agents/registration/get-registration
+  - https://workos.com/auth-md/docs/auth-md
   - https://workos.com/auth-md/docs/apps
 ---
 
@@ -76,7 +78,7 @@ Then `POST https://<authkit-domain>/agent/identity/claim/complete`:
 {"claim_token": "<claim.token>", "user_code": "<code from the person>"}
 ```
 
-On success the body contains `identity.assertion` and `identity.refresh_token.value`. Save the assertion. Exchange that assertion at the token endpoint. WorkOS returns the verified identity once.
+On success the body contains `identity.assertion`, `identity.expires_at`, and `identity.refresh_token` (`value` and `expires_at`). WorkOS delivers that verified identity in this response once, so save the assertion and `identity.refresh_token.value` immediately. You exchange the assertion for an access token below, and you use the refresh token when that assertion expires.
 
 If the first attempt expires, `POST https://<authkit-domain>/agent/identity/claim` with `type`, `claim_token`, and `login_hint`, then use the new `verification_uri`. Don't call that endpoint while the original attempt is still valid.
 
@@ -93,9 +95,31 @@ curl -X POST "https://<authkit-domain>/oauth2/token" \
   --data-urlencode "assertion=<identity.assertion>"
 ```
 
-Use the `access_token` from the response. Unkey accepts that access token only. An agent API key is not a JWT, and Unkey rejects it. The token's `exp` is enforced. Request a new token from WorkOS when it expires. Don't send the identity assertion to Unkey.
+Use the `access_token` from the response. Unkey accepts that access token only. An agent API key is not a JWT, and Unkey rejects it. Don't send the identity assertion to Unkey.
 
-`aud` must be the audience configured for this Unkey environment, or the `resource` URL from `/.well-known/oauth-protected-resource`. Unkey accepts those two values and no others. When credential exchange sends a resource, use the protected resource URL as that audience.
+The [auth.md protocol](https://workos.com/auth-md/docs/auth-md) describes this response as `access_token`, `token_type`, `expires_in`, and `scope`, with no `refresh_token`. The [Agent Registration guide](https://workos.com/docs/authkit/agent-registration) does not publish a JSON example for this call. The access token lifetime is the credential expiration configured for the WorkOS environment. WorkOS does not publish a fixed number of seconds.
+
+`aud` must be the audience configured for this Unkey environment, or the `resource` URL from `/.well-known/oauth-protected-resource`. Unkey accepts those two values and no others. The documented fields are `grant_type` and `assertion`. This grant does not take `client_id`. `resource` is optional. Add `--data-urlencode "resource=https://app.unkey.com"` when you want `aud` to be the protected resource URL.
+
+The same assertion can be exchanged again until it expires. Claim complete is the one response that delivers the identity.
+
+## Replace an expired access token
+
+Get a fresh access token before each Unkey call. If Unkey returns 401 `expired`, do the same thing and retry that Unkey call once.
+
+Exchange the saved assertion with the call above. Read `expires_in` when the response includes it, and exchange again before that access token expires.
+
+When `identity.expires_at` has passed, or `/oauth2/token` returns `invalid_grant`, rotate the assertion with the refresh token from claim complete:
+
+```bash
+curl -X POST "https://<authkit-domain>/agent/identity" \
+  -H "Content-Type: application/json" \
+  -d '{"type":"refresh","refresh_token":"<identity.refresh_token.value>"}'
+```
+
+That body is JSON. The field is `refresh_token`. There is no `grant_type`, `client_id`, or `resource` on this call. WorkOS returns a fresh identity assertion and a rotated refresh token. It does not publish a separate JSON example for this response, and it does not say the previous refresh token stops working. Save `identity.assertion` and `identity.refresh_token.value` from the response when they are present, then exchange that assertion at `/oauth2/token`.
+
+`invalid_refresh_token` means the refresh token is expired, revoked, or invalid. If the refresh token is missing, past `identity.refresh_token.expires_at`, or rejected, start again with `POST /agent/identity` and a new claim. Don't reuse the old claim token.
 
 ## Choose a workspace
 
@@ -132,7 +156,7 @@ A signed-in person can still create a workspace in the dashboard at `https://app
 
 ## Create a root key
 
-`POST https://app.unkey.com/api/agent/root-key` with the same bearer token. Send `workspaceId` from the workspace response, or `slug`. You must be an active admin of that workspace. Unkey loads the workspace, then checks your WorkOS organization membership and role. The body does not grant access by itself.
+`POST https://app.unkey.com/api/agent/root-key` with a current access token. Exchange the assertion again if the token you used for workspace creation has expired. Send `workspaceId` from the workspace response, or `slug`. You must be an active admin of that workspace. Unkey loads the workspace, then checks your WorkOS organization membership and role. The body does not grant access by itself.
 
 ```bash
 curl -X POST https://app.unkey.com/api/agent/root-key \
@@ -176,7 +200,8 @@ The root key is created through `POST /v2/rootKeys.createAgentKey`, which also w
 
 | Status | `error` | What to do |
 | --- | --- | --- |
-| 401 | `missing_token`, `invalid_token`, `expired`, `wrong_audience` | Send a current access token. `aud` must be this environment's configured audience or the `resource` value from the protected resource document. |
+| 401 | `expired` | Exchange the saved identity assertion for a new access token. If that assertion is expired or the exchange returns `invalid_grant`, rotate it with `POST /agent/identity` and `type: refresh`, then exchange again. Retry this Unkey call once. If the refresh token is missing or rejected, register and claim again. |
+| 401 | `missing_token`, `invalid_token`, `wrong_audience` | Send a current access token. `aud` must be this environment's configured audience or the `resource` value from the protected resource document. |
 | 403 | `unclaimed`, `anonymous`, `unsupported_registration` | Finish a `service_auth` claim for this user. Don't retry with an anonymous registration. |
 | 403 | `user_mismatch` | The access token's authorizing user does not match the user who completed the claim. Start registration again and claim it as that person. |
 | 403 | `forbidden` | Sign in as an admin of the workspace you named. |
