@@ -7,7 +7,7 @@
 //
 // Usage, from the repo root:
 //
-//   node docs/product/scripts/lint.mjs [docsDir]
+//   node docs/scripts/lint.mjs [docsDir]
 //
 // Every violation is printed as `path:line: message` and the exit code is 1
 // when any violation exists. Warnings never change the exit code. The script
@@ -704,7 +704,7 @@ function checkEndpointCoverage({ manifest, manifestText, manifestPath, nav, docs
 }
 
 function main() {
-  const docsDir = process.argv[2] ?? "docs/product";
+  const docsDir = process.argv[2] ?? "docs";
   const repoRoot = process.cwd();
   if (!fs.existsSync(docsDir)) {
     console.error(`docs-lint: ${docsDir} does not exist`);

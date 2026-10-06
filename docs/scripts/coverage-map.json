@@ -1,5 +1,5 @@
 {
-  "$comment": "One entry per capability from plan Appendix A (docs/plans/2026-09-03-001-docs-product-docs-rebuild-plan.md). `pages` are page refs under docs/product without .mdx; every listed page must exist and be in docs.json (or hidden). Checked by coverage-report.mjs.",
+  "$comment": "One entry per capability from plan Appendix A (docs/plans/2026-09-03-001-docs-product-docs-rebuild-plan.md). `pages` are page refs under docs without .mdx; every listed page must exist and be in docs.json (or hidden). Checked by coverage-report.mjs.",
   "capabilities": [
     {
       "id": "compute.hierarchy",
