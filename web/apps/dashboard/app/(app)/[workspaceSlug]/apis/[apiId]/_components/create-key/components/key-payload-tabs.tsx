@@ -2,7 +2,18 @@
 
 import { trpc } from "@/lib/trpc/client";
 import { IconClockOutline12, IconCloneOutline12, IconLink4Outline12 } from "@unkey/icons";
-import { CopyButton, Skeleton, Tabs, TabsContent, TabsList, TabsTrigger, toast } from "@unkey/ui";
+import {
+  CopyButton,
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+  Skeleton,
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+  toast,
+} from "@unkey/ui";
 import { useState } from "react";
 import { KeySecret } from "./key-secret-section";
 
@@ -76,23 +87,24 @@ export function KeyPayloadTabs({ keyValue }: KeyPayloadTabsProps) {
               </button>
             </div>
           ) : isGenerating ? (
-            <Skeleton className="w-full h-[42px] rounded-xl" />
+            <Skeleton className="w-full h-9 rounded-lg" />
           ) : link ? (
             <>
-              <div className="w-full px-4 py-2 bg-raised border rounded-xl">
-                <div className="flex items-center justify-between w-full gap-3">
-                  <IconLink4Outline12 className="text-gray-12 shrink-0" />
-                  <p
-                    data-sentry-mask
-                    className="flex-1 min-w-0 truncate font-mono text-sm text-grayA-12"
-                  >
-                    {link}
-                  </p>
-                  <div className="flex items-center shrink-0">
-                    <CopyButton value={link} title="Copy secure link" />
-                  </div>
-                </div>
-              </div>
+              <InputGroup className="min-w-0">
+                <InputGroupAddon>
+                  <IconLink4Outline12 className="text-gray-12" />
+                </InputGroupAddon>
+                <InputGroupInput
+                  data-sentry-mask
+                  readOnly
+                  value={link}
+                  aria-label="Secure link"
+                  className="truncate font-mono"
+                />
+                <InputGroupAddon align="inline-end">
+                  <CopyButton value={link} title="Copy secure link" />
+                </InputGroupAddon>
+              </InputGroup>
               <div className="text-gray-9 text-sm flex items-center gap-1.5 self-center">
                 <IconClockOutline12 className="text-gray-12" />
                 <span>

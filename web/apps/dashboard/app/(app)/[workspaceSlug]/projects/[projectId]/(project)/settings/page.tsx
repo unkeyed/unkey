@@ -2,12 +2,12 @@
 
 import { useProject } from "@/hooks/use-project";
 import {
-  PageBody,
   PageContainer,
   PageHeader,
   PageHeaderContent,
   PageHeaderTitle,
   SettingsDangerZone,
+  SettingsGroups,
 } from "@unkey/ui";
 import { DeleteProject } from "./components/delete-project";
 import { UpdateProjectSettings } from "./components/update-project-settings";
@@ -17,12 +17,12 @@ export default function ProjectSettingsPage() {
 
   return (
     <PageContainer>
-      <PageHeader>
+      <PageHeader className="max-w-[920px]">
         <PageHeaderContent>
           <PageHeaderTitle>Project Settings</PageHeaderTitle>
         </PageHeaderContent>
       </PageHeader>
-      <PageBody>
+      <SettingsGroups>
         {project ? (
           <>
             <UpdateProjectSettings project={project} />
@@ -33,7 +33,7 @@ export default function ProjectSettingsPage() {
             )}
           </>
         ) : null}
-      </PageBody>
+      </SettingsGroups>
     </PageContainer>
   );
 }

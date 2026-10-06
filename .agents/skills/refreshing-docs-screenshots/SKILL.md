@@ -15,7 +15,7 @@ build a substitute UI.
 
 Use one of these two modes:
 
-- `all`: Find every `DashboardScreenshot` declaration under `docs/product/`.
+- `all`: Find every `DashboardScreenshot` declaration under `docs/`.
   Check each image against the current dashboard and its surrounding docs.
   Refresh outdated or missing images. Leave accurate images unchanged.
   Report every declaration as current, refreshed, or blocked.
@@ -36,14 +36,14 @@ asks for one. An audit or refresh request does not authorize a push or PR.
 
 ## Read the declarations
 
-Read `docs/product/snippets/dashboard-screenshot.jsx` before interpreting its
+Read `docs/snippets/dashboard-screenshot.jsx` before interpreting its
 props. Discover declarations with a scoped search, then read the MDX and nearby
 text. Ignore component names inside explanatory code blocks. Read capture
 metadata from the MDX source, not the rendered docs HTML. The docs component
 only renders images; it does not emit capture metadata or execute the workflow.
 
 ```bash
-rg -n '<DashboardScreenshot' docs/product --glob '*.mdx'
+rg -n '<DashboardScreenshot' docs --glob '*.mdx'
 ```
 
 The declaration's contract is:
@@ -132,7 +132,7 @@ For each declaration:
 8. Inspect both captures with the media tool. Check the intended content, crop,
    readability, theme, and absence of secrets. Keep the existing pair if either
    capture fails. Do not make docs prose agree with a wrong screenshot.
-9. Save the verified pair at the paths derived from `src` under `docs/product/`.
+9. Save the verified pair at the paths derived from `src` under `docs/`.
    Keep paths within that directory. Set `capturedAt` to the UTC time the pair
    was captured, not when a later audit runs. Keep output paths stable.
 
@@ -173,8 +173,8 @@ a solid color or use background-removal image processing to hide a failed captur
 ## Verify and report
 
 Load `docs-writing` for documentation changes. Use the Mintlify version pinned
-in `docs/product/Dockerfile`; run it through `mise exec`. Run `mintlify validate`
-from `docs/product/` after changes. Preview the affected real product docs page,
+in `.mise/config.toml`; run it through `mise exec`. Run `mint validate`
+from `docs/` after changes. Preview the affected real product docs page,
 check both theme images load, and inspect the rendered result. Avoid enlarging
 a narrow crop beyond its original CSS width; use `width` when needed.
 

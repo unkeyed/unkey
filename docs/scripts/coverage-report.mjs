@@ -11,7 +11,7 @@
 //
 // Usage, from the repo root:
 //
-//   node docs/product/scripts/coverage-report.mjs [docsDir]
+//   node docs/scripts/coverage-report.mjs [docsDir]
 //
 // Exit code 1 on any missing capability page or forbidden hit. No dependencies.
 
@@ -148,7 +148,7 @@ export function coverageReport({ docsDir, mapPath, forbiddenPath }) {
 }
 
 function main() {
-  const docsDir = process.argv[2] ?? "docs/product";
+  const docsDir = process.argv[2] ?? "docs";
   if (!fs.existsSync(docsDir)) {
     console.error(`docs-coverage: ${docsDir} does not exist`);
     process.exit(2);

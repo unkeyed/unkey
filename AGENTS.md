@@ -20,7 +20,7 @@ typed, verified, and routed through `mise`.
   `.mise/tasks/*`.
 - Engineering standards: `contributing/`. These are normative
   standards for writing code, not only reference material for the docs site.
-- Product docs: `docs/product/`.
+- Product docs: `docs/`.
 - Go tooling: `go.mod`, `go.sum`, and `.golangci.yaml`. Rask is pinned as a
   tool in `.mise/config.toml`; it has no config file of its own.
 - Web workspace: `web/package.json`, `web/pnpm-workspace.yaml`, and
@@ -129,7 +129,7 @@ mise exec -- go test -fuzz=FuzzInRange -fuzztime=30s ./pkg/assert/
 
 - Follow `contributing/quality/documentation.md` for symbol,
   package, and site documentation.
-- Product docs live in `docs/product/` and need `docs/product/docs.json` nav
+- Product docs live in `docs/` and need `docs/docs.json` nav
   entries when adding pages.
 - Engineering docs live in `docs/engineering/` and need
   `docs/engineering/docs.json` nav entries when adding pages.

@@ -1,7 +1,16 @@
 "use client";
 
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import { PageBody, PageContainer, PageHeader, PageHeaderContent, PageHeaderTitle } from "@unkey/ui";
+import {
+  PageContainer,
+  PageHeader,
+  PageHeaderContent,
+  PageHeaderTitle,
+  SettingsGroup,
+  SettingsGroupContent,
+  SettingsGroupTitle,
+  SettingsGroups,
+} from "@unkey/ui";
 import { CopyWorkspaceId } from "./copy-workspace-id";
 import { GithubConnection } from "./github-connection";
 import { UpdateWorkspaceName } from "./update-workspace-name";
@@ -11,21 +20,26 @@ export default function SettingsPage() {
 
   return (
     <PageContainer>
-      <PageHeader>
+      <PageHeader className="max-w-[920px]">
         <PageHeaderContent>
           <PageHeaderTitle>General</PageHeaderTitle>
         </PageHeaderContent>
       </PageHeader>
-      <PageBody>
-        <div className="w-full flex flex-col">
-          <UpdateWorkspaceName />
-          {/* <UpdateWorkspaceImage /> */}
-          <CopyWorkspaceId workspaceId={workspace.id} />
-        </div>
-        <div className="w-full flex flex-col">
-          <GithubConnection />
-        </div>
-      </PageBody>
+      <SettingsGroups>
+        <SettingsGroup>
+          <SettingsGroupTitle>Workspace</SettingsGroupTitle>
+          <SettingsGroupContent>
+            <UpdateWorkspaceName />
+            <CopyWorkspaceId workspaceId={workspace.id} />
+          </SettingsGroupContent>
+        </SettingsGroup>
+        <SettingsGroup>
+          <SettingsGroupTitle>Integrations</SettingsGroupTitle>
+          <SettingsGroupContent>
+            <GithubConnection />
+          </SettingsGroupContent>
+        </SettingsGroup>
+      </SettingsGroups>
     </PageContainer>
   );
 }

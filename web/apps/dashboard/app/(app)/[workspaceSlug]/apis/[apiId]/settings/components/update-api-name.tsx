@@ -1,16 +1,20 @@
 "use client";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Button, Input, SettingCard } from "@unkey/ui";
-import type { Resolver } from "react-hook-form";
-import { Controller, useForm } from "react-hook-form";
-import { z } from "zod";
 import {
-  createApiFormConfig,
-  createMutationHandlers,
-  getStandardButtonProps,
-  validateFormChange,
-} from "./key-settings-form-helper";
+  FormInput,
+  SettingsForm,
+  SettingsRow,
+  SettingsRowContent,
+  SettingsRowDescription,
+  SettingsRowHeader,
+  SettingsRowTitle,
+  formSaveState,
+} from "@unkey/ui";
+import type { Resolver } from "react-hook-form";
+import { Controller, useForm, useWatch } from "react-hook-form";
+import { z } from "zod";
+import { createApiFormConfig, createMutationHandlers } from "./key-settings-form-helper";
 
 export const dynamic = "force-dynamic";
 
@@ -40,7 +44,8 @@ export const UpdateApiName: React.FC<Props> = ({ api }) => {
   const {
     control,
     handleSubmit,
-    formState: { isValid, isSubmitting, isDirty },
+    reset,
+    formState: { isValid, isSubmitting, isDirty: isFormDirty, errors },
   } = useForm<FormValues>({
     ...createApiFormConfig(formSchema),
     resolver: zodResolver(formSchema) as Resolver<FormValues>,
@@ -56,53 +61,56 @@ export const UpdateApiName: React.FC<Props> = ({ api }) => {
     onError,
   });
 
-  async function onSubmit(values: z.infer<typeof formSchema>) {
-    if (
-      !validateFormChange(api.name, values.apiName, "Please provide a valid name before saving.")
-    ) {
-      return;
-    }
+  const apiName = useWatch({ control, name: "apiName" });
+  const isDirty = isFormDirty && apiName.trim() !== api.name.trim();
 
+  async function onSubmit(values: z.infer<typeof formSchema>) {
     await updateName.mutateAsync({
       name: values.apiName,
       apiId: values.apiId,
       workspaceId: values.workspaceId,
     });
+    reset(values);
   }
 
   return (
-    <SettingCard
-      title="Name"
-      description="Change the name of your keyspace. This is only visible to you and your team."
-      contentWidth="w-full lg:w-[420px] h-full justify-end items-end"
+    <SettingsForm
+      onSubmit={handleSubmit(onSubmit)}
+      dirty={isDirty}
+      saveState={formSaveState({ isSubmitting, isValid, isDirty })}
     >
-      <form
-        onSubmit={handleSubmit(onSubmit)}
-        className="flex flex-row justify-end items-center gap-x-2 h-9"
-      >
-        <input type="hidden" name="apiId" value={api.id} />
-        <input type="hidden" name="workspaceId" value={api.workspaceId} />
+      <SettingsRow>
+        <SettingsRowHeader>
+          <SettingsRowTitle>Name</SettingsRowTitle>
+          <SettingsRowDescription>
+            Change the name of your keyspace. This is only visible to you and your team.
+          </SettingsRowDescription>
+        </SettingsRowHeader>
+        <SettingsRowContent>
+          <input type="hidden" name="apiId" value={api.id} />
+          <input type="hidden" name="workspaceId" value={api.workspaceId} />
 
-        <Controller
-          control={control}
-          name="apiName"
-          render={({ field }) => (
-            <Input
-              {...field}
-              placeholder="my-keyspace"
-              className="min-w-64 items-end h-9"
-              onChange={(e) => {
-                if (e.target.value === "") {
-                  return;
-                }
-                field.onChange(e);
-              }}
-            />
-          )}
-        />
-
-        <Button {...getStandardButtonProps(isValid, isSubmitting, isDirty)}>Save</Button>
-      </form>
-    </SettingCard>
+          <Controller
+            control={control}
+            name="apiName"
+            render={({ field }) => (
+              <FormInput
+                {...field}
+                aria-label="Name"
+                placeholder="my-keyspace"
+                className="max-w-(--setting-w)"
+                error={errors.apiName?.message}
+                onChange={(e) => {
+                  if (e.target.value === "") {
+                    return;
+                  }
+                  field.onChange(e);
+                }}
+              />
+            )}
+          />
+        </SettingsRowContent>
+      </SettingsRow>
+    </SettingsForm>
   );
 };

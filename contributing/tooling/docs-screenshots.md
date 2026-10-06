@@ -94,7 +94,7 @@ actions that must not happen, such as submitting an edit or confirming deletion.
 Amp chooses the seed data and browser steps; fixed scripts are not required.
 
 The `src` identifies the saved illustration. The component displays
-`${src}-light.png` and `${src}-dark.png` from `docs/product/`. Several illustrations
+`${src}-light.png` and `${src}-dark.png` from `docs/`. Several illustrations
 can use the same `target` with different `src` paths and descriptions. No separate
 image ID is needed. Keep an existing image pair when converting an old screenshot.
 
