@@ -3,9 +3,30 @@ import {
   auditLogsFilterFieldConfig,
 } from "@/app/(app)/[workspaceSlug]/audit/filters.schema";
 import { TRPCError } from "@trpc/server";
-import { unkeyAuditLogEvents } from "@unkey/schema/src/auditlog";
+import {
+  dashboardAuditLogBuckets,
+  isDashboardAuditLogBucket,
+  unkeyAuditLogEvents,
+} from "@unkey/schema/src/auditlog";
 import type OpenAI from "openai";
 import { zodResponseFormat } from "openai/helpers/zod";
+import type { z } from "zod";
+
+type AuditSearchFilters = z.infer<typeof auditFilterOutputSchema>;
+
+export function dropHiddenBucketFilters(parsed: AuditSearchFilters): AuditSearchFilters {
+  return {
+    ...parsed,
+    filters: parsed.filters.filter((group) => {
+      if (group.field !== "bucket") {
+        return true;
+      }
+      return group.filters.every(
+        (filter) => typeof filter.value === "string" && isDashboardAuditLogBucket(filter.value),
+      );
+    }),
+  };
+}
 
 export async function getStructuredAuditSearchFromLLM(
   openai: OpenAI | null,
@@ -50,13 +71,13 @@ export async function getStructuredAuditSearchFromLLM(
           "• 'show events from last 30 minutes'\n" +
           "• 'find activity for user user_abc123'\n" +
           "• 'show create_key events'\n" +
-          "• 'find logs from bucket audit_xyz'\n" +
+          "• 'find logs from bucket unkey_mutations'\n" +
           "• 'show activity since 1h'\n" +
           "For additional help, contact support@unkey.com",
       });
     }
 
-    return completion.choices[0].message.parsed;
+    return dropHiddenBucketFilters(completion.choices[0].message.parsed);
   } catch (error) {
     console.error(
       `Something went wrong when querying OpenAI. Input: ${JSON.stringify(
@@ -166,11 +187,11 @@ Result: [
 ]
 
 # Bucket Examples
-Query: "find logs in bucket audit_xyz"
+Query: "find logs in bucket unkey_mutations"
 Result: [
   {
     field: "bucket",
-    filters: [{ operator: "is", value: "audit_xyz" }]
+    filters: [{ operator: "is", value: "unkey_mutations" }]
   }
 ]
 
@@ -229,7 +250,7 @@ ${validEventTypes.map((event) => `   - ${event}`).join("\n")}
    - auditLogBucket.create
 3. Users should be matched exactly and typically follow patterns like user_xyz123
 4. Root keys typically follow patterns like root_abc123
-5. Buckets typically follow patterns like audit_xyz123
+5. Buckets must be one of: ${dashboardAuditLogBuckets.join(", ")}
 
 Ambiguity Resolution Priority:
 1. Explicit over implicit (e.g., exact event type over partial match)

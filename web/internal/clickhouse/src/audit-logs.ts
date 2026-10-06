@@ -5,7 +5,7 @@ const TABLE = "default.audit_logs_raw_v1";
 
 export const auditLogsRequestSchema = z.object({
   workspaceId: z.string(),
-  bucketId: z.string(),
+  buckets: z.array(z.string()).min(1),
   limit: z.int(),
   offset: z.int(),
   startTime: z.int(),
@@ -43,7 +43,7 @@ export function getAuditLogs(ch: Querier) {
     // can push event/actor predicates into the set/bloom skip indexes.
     const conditions = [
       "workspace_id = {workspaceId: String}",
-      "bucket = {bucketId: String}",
+      "bucket IN {buckets: Array(String)}",
       "time BETWEEN {startTime: UInt64} AND {endTime: UInt64}",
     ];
     if (args.events.length > 0) {

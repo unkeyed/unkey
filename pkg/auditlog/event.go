@@ -57,6 +57,31 @@ const (
 	EventSourceCustomer = "customer"
 )
 
+// Bucket values for Event.Bucket. BucketBackoffice holds staff actions
+// taken on a workspace from the back office. Dashboard and log drain readers
+// must restrict to DashboardBuckets so those rows never leak.
+const (
+	BucketUnkeyMutations = "unkey_mutations"
+	BucketBackoffice     = "unkey_backoffice"
+)
+
+// DashboardBuckets lists the buckets a workspace member may read
+// through the dashboard or export through a log drain.
+var DashboardBuckets = []string{BucketUnkeyMutations}
+
+// KnownBuckets lists every bucket a writer may emit.
+var KnownBuckets = []string{BucketUnkeyMutations, BucketBackoffice}
+
+// IsKnownBucket reports whether bucket is one of KnownBuckets.
+func IsKnownBucket(bucket string) bool {
+	for _, b := range KnownBuckets {
+		if b == bucket {
+			return true
+		}
+	}
+	return false
+}
+
 // OutboxVersionV1 is the `version` value the writer puts on every
 // clickhouse_outbox row that holds an Event. Drainers must include this
 // in their known-versions list to pick up audit-log events. Bumping it

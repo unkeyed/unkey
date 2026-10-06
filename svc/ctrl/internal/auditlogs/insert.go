@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"time"
 
+	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/fault"
@@ -12,13 +13,8 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
-// DefaultBucket is the default bucket name used for audit logs when no bucket
-// is specified. All audit logs are categorized into buckets for organization
-// and querying purposes, with "unkey_mutations" serving as the standard bucket
-// for most operational audit events.
-const (
-	DefaultBucket = "unkey_mutations"
-)
+// DefaultBucket is the bucket used when an AuditLog does not set one.
+const DefaultBucket = auditlog.BucketUnkeyMutations
 
 // Insert implements AuditLogService.Insert, persisting audit logs to the
 // `clickhouse_outbox` MySQL table within a transactional context. The
@@ -84,11 +80,19 @@ func (s *service) insertLogs(ctx context.Context, tx db.DBTX, logs []auditlog.Au
 			correlationID = sharedCorrelationID
 		}
 
+		bucket := l.Bucket
+		if bucket == "" {
+			bucket = DefaultBucket
+		}
+		if err := assert.True(auditlog.IsKnownBucket(bucket), "unknown audit log bucket"); err != nil {
+			return err
+		}
+
 		envelope := auditlog.Event{
 			EventID:     auditLogID,
 			Time:        now,
 			WorkspaceID: l.WorkspaceID,
-			Bucket:      DefaultBucket,
+			Bucket:      bucket,
 			Source:      auditlog.EventSourcePlatform,
 			Event:       string(l.Event),
 			Description: l.Display,

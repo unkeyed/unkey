@@ -1,4 +1,8 @@
-import type { unkeyAuditLogEvents } from "@unkey/schema/src/auditlog";
+import {
+  AUDIT_LOG_BUCKET_UNKEY_MUTATIONS,
+  type AuditLogBucket,
+  type unkeyAuditLogEvents,
+} from "@unkey/schema/src/auditlog";
 import type { z } from "zod";
 
 import type { MaybeArray } from "@/lib/types";
@@ -6,7 +10,7 @@ import { type Database, type Transaction, schema } from "@unkey/db";
 import type { clickhouseOutbox } from "@unkey/db/src/schema";
 import { newId } from "@unkey/id";
 
-export const AUDIT_LOG_BUCKET = "unkey_mutations";
+export const AUDIT_LOG_BUCKET: AuditLogBucket = AUDIT_LOG_BUCKET_UNKEY_MUTATIONS;
 
 // OUTBOX_VERSION_V1 must match the Go writer's
 // pkg/auditlog.OutboxVersionV1 constant — the drainer
@@ -22,6 +26,7 @@ const EVENT_SOURCE_PLATFORM = "platform";
 
 export type UnkeyAuditLog = {
   workspaceId: string;
+  bucket?: AuditLogBucket;
   event: z.infer<typeof unkeyAuditLogEvents>;
   description: string;
   actor: {
@@ -134,7 +139,7 @@ export async function insertAuditLogs(
       event_id: auditLogId,
       time: now,
       workspace_id: log.workspaceId,
-      bucket: AUDIT_LOG_BUCKET,
+      bucket: log.bucket ?? AUDIT_LOG_BUCKET,
       source: EVENT_SOURCE_PLATFORM,
       event: log.event,
       description: log.description,

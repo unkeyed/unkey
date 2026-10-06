@@ -9,6 +9,7 @@ import {
   usePaginatedPage,
 } from "@/hooks/use-paginated-list-query";
 import { trpc } from "@/lib/trpc/client";
+import { isDashboardAuditLogBucket } from "@unkey/schema/src/auditlog";
 import { useMemo } from "react";
 import { type AuditLogsQueryPayload, DEFAULT_BUCKET_NAME } from "../schema/audit-logs.schema";
 
@@ -72,7 +73,7 @@ export function useAuditLogsQuery(pageSize = DEFAULT_PAGE_SIZE) {
           break;
         }
         case "bucket": {
-          if (typeof filter.value === "string") {
+          if (typeof filter.value === "string" && isDashboardAuditLogBucket(filter.value)) {
             params.bucket = filter.value;
           }
           break;
