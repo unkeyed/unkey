@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { decodeJwt } from "jose";
+import { decodeJwt, decodeProtectedHeader } from "jose";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const state = vi.hoisted(() => ({
@@ -118,8 +118,11 @@ describe("issueAgentRootKey", () => {
       const header = new Headers(init?.headers).get("authorization");
       const token = header?.replace("Bearer ", "") ?? "";
       const claims = decodeJwt(token);
+      expect(decodeProtectedHeader(token)).toEqual({ alg: "HS256", typ: "JWT" });
       expect(claims.iss).toBe(AGENT_SIGNUP_ISSUER);
-      expect(claims.aud).toBe(AGENT_SIGNUP_AUDIENCE);
+      expect(claims.aud).toEqual([AGENT_SIGNUP_AUDIENCE]);
+      expect(claims.org).toEqual({ id: "org_123" });
+      expect(claims.sub).toBe("user_abc");
       expect(claims.roles).toEqual([AGENT_SIGNUP_ROLE]);
       expect(claims).not.toMatchObject({ role: "admin" });
       expect(JSON.parse(String(init?.body))).toMatchObject({

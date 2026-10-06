@@ -44,7 +44,9 @@ export async function mintAgentSignupJWT(params: {
       alg === "RS256" ? { alg, typ: "JWT", kid: SIGNING_KEY_ID } : { alg, typ: "JWT" },
     )
     .setIssuer(AGENT_SIGNUP_ISSUER)
-    .setAudience(AGENT_SIGNUP_AUDIENCE)
+    // Go's JWT claims type unmarshals aud as a string array. A single audience
+    // string fails verification even when the signature and secret match.
+    .setAudience([AGENT_SIGNUP_AUDIENCE])
     .setSubject(params.subject)
     .setIssuedAt(now)
     .setNotBefore(now)
