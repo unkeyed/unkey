@@ -30,7 +30,6 @@ const uploadSentrySourceMaps = shouldUploadSentrySourceMaps();
 const sentryReleaseName =
   process.env.SENTRY_RELEASE || process.env.VERCEL_GIT_COMMIT_SHA || "unkey-dashboard";
 
-
 const cspEnforced = ["object-src 'none'", "base-uri 'self'", "frame-ancestors 'self'"].join("; ");
 
 const scriptSrc = [
