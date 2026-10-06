@@ -90,7 +90,7 @@ export function KeyPayloadTabs({ keyValue }: KeyPayloadTabsProps) {
             <Skeleton className="w-full h-9 rounded-lg" />
           ) : link ? (
             <>
-              <InputGroup className="h-9 min-w-0">
+              <InputGroup className="min-w-0">
                 <InputGroupAddon>
                   <IconLink4Outline12 className="text-gray-12" />
                 </InputGroupAddon>

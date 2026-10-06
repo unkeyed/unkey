@@ -142,7 +142,7 @@ export function PortalConfig({ portal, keyAuthId }: Props) {
                   error={errors.slug?.message}
                 >
                   {(field) => (
-                    <InputGroup variant={field.variant} className="h-9">
+                    <InputGroup variant={field.variant}>
                       <InputGroupInput
                         id={field.id}
                         placeholder="acme"

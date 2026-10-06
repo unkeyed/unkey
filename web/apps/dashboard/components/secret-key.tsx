@@ -23,7 +23,7 @@ export const SecretKey = ({
   const displayValue = isVisible ? value : maskKey(value);
 
   return (
-    <InputGroup className={cn("h-9 min-w-0 unkey-root-key", className)}>
+    <InputGroup className={cn("min-w-0 unkey-root-key", className)}>
       <InputGroupAddon>
         <IconCircleLockOutline18 className="size-3 text-gray-12" />
       </InputGroupAddon>
