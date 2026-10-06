@@ -125,3 +125,29 @@ password = "depot-token"
 		require.Equal(t, "us-east-1", cfg.GetDepotConfig().ProjectRegion)
 	})
 }
+
+func TestConfigAcmeDirectoryURL(t *testing.T) {
+	base := `
+cname_domain = "unkey.local"
+database = "unkey:password@tcp(mysql:3306)/unkey?parseTime=true"
+
+[vault]
+url = "http://vault:8060"
+token = "vault-token"
+`
+
+	t.Run("defaults to lets encrypt production", func(t *testing.T) {
+		cfg, err := config.LoadBytes[Config]([]byte(base))
+		require.NoError(t, err)
+		require.Equal(t, "https://acme-v02.api.letsencrypt.org/directory", cfg.Acme.DirectoryURL)
+	})
+
+	t.Run("accepts staging directory", func(t *testing.T) {
+		cfg, err := config.LoadBytes[Config]([]byte(base + `
+[acme]
+directory_url = "https://acme-staging-v02.api.letsencrypt.org/directory"
+`))
+		require.NoError(t, err)
+		require.Equal(t, "https://acme-staging-v02.api.letsencrypt.org/directory", cfg.Acme.DirectoryURL)
+	})
+}

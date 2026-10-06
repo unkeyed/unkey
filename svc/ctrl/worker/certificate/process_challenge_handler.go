@@ -212,10 +212,11 @@ func isWildcard(domain string) bool {
 func (s *Service) getOrCreateAcmeClient(ctx context.Context, domain string) (*lego.Client, error) {
 	// Use a single global ACME user for all certificates
 	client, err := acme.GetOrCreateUser(ctx, acme.UserConfig{
-		DB:          s.db,
-		Vault:       s.vault,
-		WorkspaceID: globalAcmeUserID,
-		EmailDomain: s.emailDomain,
+		DB:           s.db,
+		Vault:        s.vault,
+		WorkspaceID:  globalAcmeUserID,
+		EmailDomain:  s.emailDomain,
+		DirectoryURL: s.directoryURL,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get/create ACME user: %w", err)

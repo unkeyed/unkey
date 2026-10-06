@@ -53,6 +53,8 @@ data:
 
     [acme]
     enabled = false
+    # Staging avoids production rate limits; its certificates are untrusted.
+    directory_url = "https://acme-staging-v02.api.letsencrypt.org/directory"
 
     [clickhouse]
     url = "clickhouse://default:password@clickhouse:9000?secure=false&skip_verify=true"

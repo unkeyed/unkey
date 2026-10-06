@@ -43,6 +43,17 @@ type UserConfig struct {
 	Vault       vault.VaultServiceClient
 	WorkspaceID string
 	EmailDomain string // Domain for ACME registration emails (e.g., "unkey.com")
+
+	// DirectoryURL is the ACME directory. Empty keeps lego's default, Let's Encrypt production.
+	DirectoryURL string
+}
+
+func newLegoConfig(user registration.User, directoryURL string) *lego.Config {
+	config := lego.NewConfig(user)
+	if directoryURL != "" {
+		config.CADirURL = directoryURL
+	}
+	return config
 }
 
 func GetOrCreateUser(ctx context.Context, cfg UserConfig) (*lego.Client, error) {
@@ -82,8 +93,7 @@ func GetOrCreateUser(ctx context.Context, cfg UserConfig) (*lego.Client, error) 
 		}
 	}
 
-	config := lego.NewConfig(user)
-	client, err := lego.NewClient(config)
+	client, err := lego.NewClient(newLegoConfig(user, cfg.DirectoryURL))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create ACME client: %w", err)
 	}
@@ -149,8 +159,7 @@ func register(ctx context.Context, cfg UserConfig) (*lego.Client, error) {
 		return nil, fmt.Errorf("failed to insert acme user: %w", err)
 	}
 
-	config := lego.NewConfig(&user)
-	client, err := lego.NewClient(config)
+	client, err := lego.NewClient(newLegoConfig(&user, cfg.DirectoryURL))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create acme client: %w", err)
 	}
