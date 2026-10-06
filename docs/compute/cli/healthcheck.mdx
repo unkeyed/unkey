@@ -4,7 +4,7 @@ sidebarTitle: "healthcheck"
 description: "Probe a URL and exit non-zero unless it answers 200, for scripts and CI."
 sources:
   - cmd/healthcheck/main.go
-  - docs/product/scripts/manifest.json
+  - docs/scripts/manifest.json
 ---
 
 Send one HTTP GET request to a URL and exit 0 if the server answers 200, or exit 1 otherwise. The command needs no root key and never contacts the Unkey API. Use it as a small probe for CI pipelines, load balancer checks, and monitoring scripts, for example against the hostname of a deployment.
