@@ -58,17 +58,22 @@ func TestSpecExcludesUnlaunchedPortalOperations(t *testing.T) {
 
 	require.Equal(t, []string{
 		"liveness", // infrastructure endpoint, not part of the customer-facing reference
+		"portal.createDomain",
 		"portal.createPortal",
 		"portal.createSession",
+		"portal.deleteDomain",
 		"portal.deletePortal",
 		"portal.exchangeCode",
+		"portal.getDomain",
 		"portal.getPortal",
 		"portal.getVerifications",
+		"portal.listDomains",
 		"portal.listKeys",
 		"portal.listSessions",
 		"portal.rerollKey",
 		"portal.revokeSession",
 		"portal.updatePortal",
+		"portal.verifyDomain",
 	}, excluded, "every excluded operation is accounted for")
 
 	require.Subset(t, excluded, portal,
