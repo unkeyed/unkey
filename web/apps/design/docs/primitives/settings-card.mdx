@@ -4,8 +4,9 @@ description: A settings component for application configuration
 ---
 
 <Callout type="warning" title="Legacy">
-  This component will be deprecated. Treat it as legacy and do not reach for it in new work. Use
-  [Settings Group](/patterns/settings-group).
+  Do not reach for this in new work. For a setting, use [Settings row](/primitives/settings-row) and
+  the [Settings page](/patterns/settings-page) pattern. Its `expandable` slot remains valid for real
+  progressive disclosure, such as deployment build logs, but never for a settings form.
 </Callout>
 
 <Component path="settings-card/group" />
