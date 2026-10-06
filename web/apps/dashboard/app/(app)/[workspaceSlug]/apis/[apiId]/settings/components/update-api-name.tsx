@@ -12,13 +12,9 @@ import {
   formSaveState,
 } from "@unkey/ui";
 import type { Resolver } from "react-hook-form";
-import { Controller, useForm } from "react-hook-form";
+import { Controller, useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
-import {
-  createApiFormConfig,
-  createMutationHandlers,
-  validateFormChange,
-} from "./key-settings-form-helper";
+import { createApiFormConfig, createMutationHandlers } from "./key-settings-form-helper";
 
 export const dynamic = "force-dynamic";
 
@@ -49,7 +45,7 @@ export const UpdateApiName: React.FC<Props> = ({ api }) => {
     control,
     handleSubmit,
     reset,
-    formState: { isValid, isSubmitting, isDirty, errors },
+    formState: { isValid, isSubmitting, isDirty: isFormDirty, errors },
   } = useForm<FormValues>({
     ...createApiFormConfig(formSchema),
     resolver: zodResolver(formSchema) as Resolver<FormValues>,
@@ -65,13 +61,10 @@ export const UpdateApiName: React.FC<Props> = ({ api }) => {
     onError,
   });
 
-  async function onSubmit(values: z.infer<typeof formSchema>) {
-    if (
-      !validateFormChange(api.name, values.apiName, "Please provide a valid name before saving.")
-    ) {
-      return;
-    }
+  const apiName = useWatch({ control, name: "apiName" });
+  const isDirty = isFormDirty && apiName.trim() !== api.name.trim();
 
+  async function onSubmit(values: z.infer<typeof formSchema>) {
     await updateName.mutateAsync({
       name: values.apiName,
       apiId: values.apiId,
