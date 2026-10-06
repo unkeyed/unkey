@@ -16,12 +16,12 @@ The goal is NOT to rubber-stamp what you did. The goal is to catch the shortcuts
 1. **Gather all changes.** Run `git status` to see the full picture — staged, unstaged, and untracked files. Then run `git diff` for unstaged changes, `git diff --cached` for staged changes, and read any new untracked files. Read every changed file fully — not just the diff hunks, but the surrounding context.
 
 2. **Read the quality standards.** Read these docs and review your work against each one:
-   - `docs/engineering/contributing/quality/code-quality.mdx`
-   - `docs/engineering/contributing/quality/documentation.mdx`
-   - `docs/engineering/contributing/quality/testing/index.mdx`
-   - `docs/engineering/contributing/quality/testing/unit-tests.mdx`
-   - `docs/engineering/contributing/quality/testing/integration-tests.mdx`
-   - `docs/engineering/contributing/quality/testing/anti-patterns.mdx`
+   - `contributing/quality/code-quality.md`
+   - `contributing/quality/documentation.md`
+   - `contributing/quality/testing/index.md`
+   - `contributing/quality/testing/unit-tests.md`
+   - `contributing/quality/testing/integration-tests.md`
+   - `contributing/quality/testing/anti-patterns.md`
 
 3. **Fix violations.** For every violation you find, fix it — don't just report it. If a fix would be too large or risky, flag it explicitly with what's wrong and why you're not fixing it now.
 
