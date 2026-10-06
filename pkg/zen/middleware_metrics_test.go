@@ -10,10 +10,12 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/auth/principal"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/redaction"
+	"github.com/unkeyed/unkey/pkg/uid"
 )
 
 // mockEventBuffer captures API requests for testing
@@ -510,4 +512,60 @@ func TestWithMetrics_RedactsCredentialHeaders(t *testing.T) {
 	require.Contains(t, requests[0].RequestHeaders, "Authorization: [REDACTED]")
 	require.Contains(t, requests[0].RequestHeaders, "User-Agent: unkey-go/1.2.3")
 	require.Contains(t, requests[0].ResponseHeaders, "Set-Cookie: [REDACTED]")
+}
+
+func TestWithMetrics_SkipsDashboardRequests(t *testing.T) {
+	tests := []struct {
+		name          string
+		principalType principal.Type
+		client        string
+		wantLogged    bool
+	}{
+		{name: "dashboard JWT", principalType: principal.TypeJWT, client: "unkey-dashboard", wantLogged: false},
+		{name: "other JWT client", principalType: principal.TypeJWT, client: "", wantLogged: true},
+		{name: "root key claiming dashboard", principalType: principal.TypeAPIKey, client: "unkey-dashboard", wantLogged: true},
+		{name: "root key", principalType: principal.TypeAPIKey, client: "", wantLogged: true},
+		{name: "unauthenticated claiming dashboard", principalType: "", client: "unkey-dashboard", wantLogged: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			eventBuffer := &mockEventBuffer{}
+			workspaceID := uid.New(uid.WorkspacePrefix)
+
+			server, err := New(Config{})
+			require.NoError(t, err)
+
+			server.RegisterRoute(
+				[]Middleware{WithMetrics(eventBuffer, InstanceInfo{Region: "test-region"}, nil)},
+				NewRoute(http.MethodPost, "/v2/deployments.listDeployments", func(ctx context.Context, s *Session) error {
+					if tt.principalType != "" {
+						s.SetPrincipal(&principal.Principal{Type: tt.principalType, AuthorizedWorkspaceID: workspaceID})
+					}
+					return s.JSON(http.StatusOK, map[string]string{"status": "KEBAP"})
+				}),
+			)
+
+			req := httptest.NewRequest(http.MethodPost, "/v2/deployments.listDeployments", nil)
+			if tt.client != "" {
+				req.Header.Set("X-Unkey-Client", tt.client)
+			}
+
+			recorder := httptest.NewRecorder()
+			server.Mux().ServeHTTP(recorder, req)
+			require.Equal(t, http.StatusOK, recorder.Code)
+
+			requests := eventBuffer.getRequests()
+			if !tt.wantLogged {
+				require.Empty(t, requests)
+				return
+			}
+			require.Len(t, requests, 1)
+			if tt.principalType == "" {
+				require.Empty(t, requests[0].WorkspaceID)
+				return
+			}
+			require.Equal(t, workspaceID, requests[0].WorkspaceID)
+		})
+	}
 }

@@ -5,6 +5,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/unkeyed/unkey/pkg/auth/principal"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/redaction"
 )
@@ -70,8 +71,11 @@ func WithMetrics(apiRequestBuffer ApiRequestBuffer, info InstanceInfo, redactor 
 			nextErr := next(ctx, s)
 			serviceLatency := time.Since(start)
 
-			// Only log if we should log request to ClickHouse
-			if s.ShouldLogRequestToClickHouse() {
+			caller, principalErr := s.GetPrincipal()
+			dashboardRequest := principalErr == nil && caller.Type == principal.TypeJWT &&
+				s.r.Header.Get("X-Unkey-Client") == "unkey-dashboard"
+
+			if s.ShouldLogRequestToClickHouse() && !dashboardRequest {
 				requestHeaders := make([]string, 0, len(s.r.Header))
 				for k, vv := range s.r.Header {
 					lk := strings.ToLower(k)
@@ -97,8 +101,8 @@ func WithMetrics(apiRequestBuffer ApiRequestBuffer, info InstanceInfo, redactor 
 				}
 
 				workspaceID := ""
-				if principal, err := s.GetPrincipal(); err == nil {
-					workspaceID = principal.AuthorizedWorkspaceID
+				if principalErr == nil {
+					workspaceID = caller.AuthorizedWorkspaceID
 				}
 
 				apiRequestBuffer.Buffer(schema.ApiRequest{
