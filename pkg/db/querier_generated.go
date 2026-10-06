@@ -1920,6 +1920,29 @@ type Querier interface {
 	//      ?
 	//  )
 	InsertPortal(ctx context.Context, db DBTX, arg InsertPortalParams) error
+	// Production portal domains are created by ctrl; this exists so API tests can
+	// seed rows through sqlc instead of hand-written SQL.
+	//
+	//  INSERT INTO portal_domains (
+	//      id,
+	//      workspace_id,
+	//      portal_id,
+	//      domain,
+	//      verification_status,
+	//      verification_token,
+	//      target_cname,
+	//      created_at
+	//  ) VALUES (
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?
+	//  )
+	InsertPortalDomain(ctx context.Context, db DBTX, arg InsertPortalDomainParams) error
 	// Creates a session in the `pending` state: an exchange code was minted, no
 	// access token has been issued yet. Only the code's hash is stored; the code
 	// itself is returned to the caller once and never persisted.

@@ -40,6 +40,7 @@ type BulkQuerier interface {
 	UpsertLimit(ctx context.Context, db DBTX, args []UpsertLimitParams) error
 	InsertPermissions(ctx context.Context, db DBTX, args []InsertPermissionParams) error
 	UpsertPermission(ctx context.Context, db DBTX, args []UpsertPermissionParams) error
+	InsertPortalDomains(ctx context.Context, db DBTX, args []InsertPortalDomainParams) error
 	InsertPortals(ctx context.Context, db DBTX, args []InsertPortalParams) error
 	InsertPortalSessions(ctx context.Context, db DBTX, args []InsertPortalSessionParams) error
 	InsertProjects(ctx context.Context, db DBTX, args []InsertProjectParams) error
