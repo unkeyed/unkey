@@ -18,7 +18,7 @@ const commandSchema = z.object({
 type CommandFormValues = z.infer<typeof commandSchema>;
 
 export const Command = () => {
-  const { settings, variant } = useEnvironmentSettings();
+  const { settings } = useEnvironmentSettings();
   const { command } = settings;
   const updateAllEnvironments = useUpdateAllEnvironments();
   const defaultCommand = command.join(" ");
@@ -72,7 +72,6 @@ export const Command = () => {
       }
       onSubmit={handleSubmit(onSubmit)}
       saveState={saveState}
-      autoSave={variant === "onboarding"}
     >
       <SettingField>
         <FormTextarea

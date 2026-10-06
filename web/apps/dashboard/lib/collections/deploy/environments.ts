@@ -57,9 +57,7 @@ export const environments = createCollection<Environment, string>(
     queryClient,
     queryKey: (opts) => {
       const apps = appsInWhere(opts.where);
-      return apps
-        ? ["environments", ...apps.map((a) => `${a.projectId}:${a.appId}`).sort()]
-        : ["environments"];
+      return apps ? queryKeyFor(apps) : ["environments"];
     },
     syncMode: "on-demand",
     retry: 3,
@@ -96,6 +94,18 @@ export const environments = createCollection<Environment, string>(
     id: "environments",
   }),
 );
+
+function queryKeyFor(apps: ReadonlyArray<{ projectId: string; appId: string }>): string[] {
+  return ["environments", ...apps.map((a) => `${a.projectId}:${a.appId}`).sort()];
+}
+
+/**
+ * Fills the cache for one app from an environments list already in hand, so
+ * the first live query on that app needs no request.
+ */
+export function seedEnvironments(projectId: string, appId: string, rows: Environment[]): void {
+  queryClient.setQueryData(queryKeyFor([{ projectId, appId }]), rows);
+}
 
 export type ProjectApps = { id: string; apps: ReadonlyArray<{ id: string }> };
 

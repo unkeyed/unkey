@@ -591,6 +591,39 @@ export const githubRouter = t.router({
       }
     }),
 
+  getRepositoryTree: workspaceProcedure
+    .input(
+      z.object({
+        projectId: z.string(),
+        installationId: z.number().int(),
+        repositoryFullName: z.string(),
+        branch: z.string().min(1),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      const projectInstallation = await fetchProjectInstallation(
+        ctx.workspace.id,
+        input.projectId,
+        input.installationId,
+      );
+      if (!projectInstallation) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Project not found" });
+      }
+      if (projectInstallation.installationPk === null) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "GitHub installation not found" });
+      }
+      const [owner, repo] = input.repositoryFullName.split("/");
+      if (!owner || !repo) {
+        return { tree: null };
+      }
+      try {
+        const result = await getRepositoryTree(input.installationId, owner, repo, input.branch);
+        return { tree: result.truncated ? null : result.tree };
+      } catch {
+        return { tree: null };
+      }
+    }),
+
   getInstallations: workspaceProcedure
     .input(
       z.object({

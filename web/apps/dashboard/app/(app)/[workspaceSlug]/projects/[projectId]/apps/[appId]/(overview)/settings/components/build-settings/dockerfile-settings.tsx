@@ -1,3 +1,4 @@
+import { findDockerfiles } from "@/app/(app)/[workspaceSlug]/projects/_components/repo-tree";
 import { FormCombobox } from "@/components/ui/form-combobox";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { IconFileSettingsOutline18 } from "@unkey/icons";
@@ -16,11 +17,10 @@ const dockerfileSchema = z.object({
 });
 
 export const Dockerfile = () => {
-  const { settings, variant } = useEnvironmentSettings();
+  const { settings } = useEnvironmentSettings();
   const { dockerfile: defaultValue, dockerContext } = settings;
   const updateAllEnvironments = useUpdateAllEnvironments();
-  const { branch, validateDockerfilePath, findDockerfileCaseMatch, getDockerfilesForContext } =
-    useRepoTree();
+  const { tree, branch, validateDockerfilePath, findDockerfileCaseMatch } = useRepoTree();
 
   const {
     handleSubmit,
@@ -41,7 +41,7 @@ export const Dockerfile = () => {
     : "valid";
   const caseMatch =
     validation === "invalid" ? findDockerfileCaseMatch(currentDockerfile, dockerContext) : null;
-  const detectedDockerfiles = getDockerfilesForContext(dockerContext);
+  const detectedDockerfiles = tree ? findDockerfiles(tree, dockerContext) : [];
 
   const options = useMemo(
     () => [
@@ -113,7 +113,6 @@ export const Dockerfile = () => {
       displayValue={defaultValue || "Automatic (no Dockerfile)"}
       onSubmit={handleSubmit(onSubmit)}
       saveState={saveState}
-      autoSave={variant === "onboarding"}
     >
       <SettingField>
         <FormCombobox

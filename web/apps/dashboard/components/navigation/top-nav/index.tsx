@@ -22,9 +22,10 @@ import { WorkspaceCrumb } from "./workspace-crumb";
 
 export const TOP_NAV_HEIGHT = 52;
 
-export function TopNav() {
+export function TopNav({ crumbs: crumbsOverride }: { crumbs?: BreadcrumbDescriptor[] } = {}) {
   const workspace = useWorkspaceNavigation();
-  const crumbs = useBreadcrumbs();
+  const routeCrumbs = useBreadcrumbs();
+  const crumbs = crumbsOverride ?? routeCrumbs;
   const { setOpenMobile } = useSidebar();
 
   return (

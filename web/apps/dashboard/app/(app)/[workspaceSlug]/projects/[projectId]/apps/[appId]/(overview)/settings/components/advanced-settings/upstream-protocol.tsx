@@ -22,7 +22,7 @@ const schema = z.object({
 const displayLabel = (value: string) => PROTOCOLS.find((p) => p.value === value)?.label ?? value;
 
 export const UpstreamProtocol = () => {
-  const { settings, variant } = useEnvironmentSettings();
+  const { settings } = useEnvironmentSettings();
   const { upstreamProtocol: defaultValue } = settings;
   const updateAllEnvironments = useUpdateAllEnvironments();
 
@@ -72,7 +72,6 @@ export const UpstreamProtocol = () => {
       displayValue={displayLabel(defaultValue)}
       onSubmit={handleSubmit(onSubmit)}
       saveState={saveState}
-      autoSave={variant === "onboarding"}
     >
       <SettingField>
         <Controller

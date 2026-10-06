@@ -41,20 +41,11 @@ import { SettingField } from "./components/shared/form-blocks";
 import { FormSettingCard, resolveSaveState } from "./components/shared/form-setting-card";
 import { SettingsGroup } from "./components/shared/settings-group";
 
-// build is only required to invalidate other defaults. E.g onboarding settings, passes build=true to prevent expanding other sections.
-type DeploymentSection = "advanced" | "runtime" | "build";
-
 type DeploymentSettingsProps = {
-  githubReadOnly?: boolean;
-  sections?: Partial<Record<DeploymentSection, true>>;
   onBeforeNavigate?: () => void;
 };
 
-export const DeploymentSettings = ({
-  githubReadOnly = false,
-  sections = { build: true, runtime: true, advanced: true },
-  onBeforeNavigate,
-}: DeploymentSettingsProps) => {
+export const DeploymentSettings = ({ onBeforeNavigate }: DeploymentSettingsProps) => {
   const { projectId } = useProjectData();
   const appId = useAppId();
   const appQuery = useLiveQuery(
@@ -97,12 +88,8 @@ export const DeploymentSettings = ({
                   imageReference={app.imageReference ?? ""}
                 />
               ))
-              .with("git", () => (
-                <GitHub readOnly={githubReadOnly} onBeforeNavigate={onBeforeNavigate} />
-              ))
-              .with("unknown", () => (
-                <GitHub readOnly={githubReadOnly} onBeforeNavigate={onBeforeNavigate} />
-              ))
+              .with("git", () => <GitHub onBeforeNavigate={onBeforeNavigate} />)
+              .with("unknown", () => <GitHub onBeforeNavigate={onBeforeNavigate} />)
               .exhaustive()
           : null}
         {showBuildSettings ? (
@@ -118,7 +105,7 @@ export const DeploymentSettings = ({
       <SettingsGroup
         icon={<IconCircleHalfDottedClockOutline18 className="size-3.5" />}
         title="Runtime settings"
-        defaultExpanded={Boolean(sections.runtime)}
+        defaultExpanded
       >
         <SettingCardGroup>
           <Regions />
@@ -136,7 +123,7 @@ export const DeploymentSettings = ({
       <SettingsGroup
         icon={<IconGearOutline18 className="size-3.5" />}
         title="Advanced configurations"
-        defaultExpanded={Boolean(sections.advanced)}
+        defaultExpanded
       >
         <SettingCardGroup>
           <div id="custom-domains" className="scroll-mt-24">

@@ -21,34 +21,19 @@ import { mapRegionToFlag } from "@/lib/trpc/routers/deploy/network/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { IconLocation2Outline18 } from "@unkey/icons";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@unkey/ui";
-import { FormLabel } from "@unkey/ui/src/components/form/form-helpers";
-import { useContext, useEffect, useId, useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
-import { EnvironmentContext, useEnvironmentSettings } from "../../environment-provider";
 import { useMultiEnvironmentSettings } from "../../hooks/use-multi-environment-settings";
-import { useUpdateAllEnvironments } from "../../hooks/use-update-all-environments";
 import { SettingDescription, SettingField } from "../shared/form-blocks";
 import { FormSettingCard, resolveSaveState } from "../shared/form-setting-card";
 import { EnvironmentSliderSection } from "../shared/resource-slider";
 
-export const Regions = () => {
-  const envContext = useContext(EnvironmentContext);
-
-  if (envContext?.variant === "onboarding") {
-    return <RegionsSingle />;
-  }
-
-  return <RegionsDual />;
-};
-
 const RegionMultibox = ({
-  inputId,
   regions,
   onChange,
   availableRegions,
 }: {
-  inputId?: string;
   regions: string[];
   onChange: (regions: string[]) => void;
   availableRegions: Array<{ name: string; canSchedule: boolean }>;
@@ -104,10 +89,7 @@ const RegionMultibox = ({
             }
             return chip;
           })}
-          <MultiboxInput
-            id={inputId}
-            placeholder={regions.length === 0 ? "Select a region" : undefined}
-          />
+          <MultiboxInput placeholder={regions.length === 0 ? "Select a region" : undefined} />
           <MultiboxTrigger />
         </MultiboxChips>
         <MultiboxContent anchor={anchor}>
@@ -130,132 +112,6 @@ const RegionMultibox = ({
   );
 };
 
-const RegionDisplayValue = ({ regions }: { regions: string[] }) => {
-  if (regions.length === 0) {
-    return null;
-  }
-  if (regions.length <= 2) {
-    return (
-      <span className="flex items-center gap-1.5">
-        {regions.map((r, i) => (
-          <span key={r} className="flex items-center gap-1.5">
-            {i > 0 && <span className="text-grayA-4">|</span>}
-            <span className="flex items-center gap-1">
-              <RegionFlag
-                flagCode={mapRegionToFlag(r)}
-                size="xs"
-                shape="circle"
-                className="[&_img]:size-3"
-              />
-              <span className="text-gray-11">{r}</span>
-            </span>
-          </span>
-        ))}
-      </span>
-    );
-  }
-  return (
-    <span className="flex items-center gap-1">
-      {regions.map((r) => (
-        <RegionFlag key={r} flagCode={mapRegionToFlag(r)} size="xs" shape="circle" />
-      ))}
-    </span>
-  );
-};
-
-const regionsSingleSchema = z.object({
-  regions: z.array(z.string()).min(1, "Select at least one region"),
-});
-
-type RegionsSingleFormValues = z.infer<typeof regionsSingleSchema>;
-
-const RegionsSingle = () => {
-  const { settings, variant } = useEnvironmentSettings();
-  const updateAllEnvironments = useUpdateAllEnvironments();
-  const { environmentId, regions: settingsRegions } = settings;
-  const defaultRegions = useMemo(() => settingsRegions.map((r) => r.name), [settingsRegions]);
-
-  const { data: availableRegions } = trpc.deploy.environmentSettings.getAvailableRegions.useQuery(
-    undefined,
-    { enabled: Boolean(environmentId) },
-  );
-
-  const {
-    handleSubmit,
-    setValue,
-    formState: { isValid, isSubmitting },
-    control,
-    reset,
-  } = useForm<RegionsSingleFormValues>({
-    resolver: zodResolver(regionsSingleSchema),
-    mode: "onChange",
-    defaultValues: { regions: defaultRegions },
-  });
-
-  useEffect(() => {
-    reset({ regions: defaultRegions });
-  }, [defaultRegions, reset]);
-
-  const currentRegions = useWatch({ control, name: "regions" });
-  const inputId = useId();
-
-  const onSubmit = async (values: RegionsSingleFormValues) => {
-    updateAllEnvironments((draft) => {
-      const defaultReplicasMin = draft.regions.at(0)?.replicasMin ?? 1;
-      const defaultReplicasMax = draft.regions.at(0)?.replicasMax ?? 1;
-      draft.regions = values.regions.map((name) => {
-        const existing = draft.regions.find((r) => r.name === name);
-        if (existing) {
-          return existing;
-        }
-        return {
-          name,
-          replicasMin: defaultReplicasMin,
-          replicasMax: defaultReplicasMax,
-        };
-      });
-    });
-  };
-
-  const hasChanges =
-    currentRegions.length !== defaultRegions.length ||
-    currentRegions.some((r) => !defaultRegions.includes(r));
-
-  const saveState = resolveSaveState([
-    [isSubmitting, { status: "saving" }],
-    [!isValid, { status: "disabled" }],
-    [!hasChanges, { status: "disabled", reason: "No changes to save" }],
-  ]);
-
-  return (
-    <FormSettingCard
-      icon={<IconLocation2Outline18 className="text-gray-12" />}
-      title="Regions"
-      description="Geographic regions where your app will run"
-      displayValue={<RegionDisplayValue regions={defaultRegions} />}
-      onSubmit={handleSubmit(onSubmit)}
-      saveState={saveState}
-      autoSave={variant === "onboarding"}
-    >
-      <SettingField>
-        <fieldset className="flex flex-col gap-1.5 border-0 m-0 p-0">
-          <FormLabel label="Region" requirement="optional" htmlFor={inputId} />
-          <RegionMultibox
-            inputId={inputId}
-            regions={currentRegions}
-            onChange={(next) => setValue("regions", next, { shouldValidate: true })}
-            availableRegions={availableRegions ?? []}
-          />
-        </fieldset>
-      </SettingField>
-
-      <SettingDescription>
-        Traffic is routed to the nearest selected region. Changes apply on next deploy.
-      </SettingDescription>
-    </FormSettingCard>
-  );
-};
-
 const regionsDualSchema = z.object({
   productionRegions: z.array(z.string()).min(1, "Select at least one region"),
   previewRegions: z.array(z.string()).min(1, "Select at least one region"),
@@ -263,7 +119,7 @@ const regionsDualSchema = z.object({
 
 type RegionsDualFormValues = z.infer<typeof regionsDualSchema>;
 
-const RegionsDual = () => {
+export const Regions = () => {
   const multiSettings = useMultiEnvironmentSettings();
 
   if (!multiSettings) {

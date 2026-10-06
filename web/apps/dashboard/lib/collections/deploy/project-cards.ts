@@ -1,6 +1,9 @@
 import type { App } from "./apps";
 
-export type ProjectApp = Pick<App, "id" | "name" | "customDomain" | "headlineDeployment">;
+export type ProjectApp = Pick<
+  App,
+  "id" | "name" | "customDomain" | "headlineDeployment" | "currentDeploymentId"
+>;
 
 export function byLatestUpdate(a: CardApp, b: CardApp): number {
   return (b.updatedAt ?? -1) - (a.updatedAt ?? -1) || byIdDescending(a, b);

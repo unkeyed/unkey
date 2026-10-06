@@ -4,7 +4,6 @@ import { useState } from "react";
 import { useProjectData } from "../data-provider";
 import { AddEnvVarExpandable } from "./components/add/add-env-var-expandable";
 import { EnvVarsList } from "./components/list/env-vars-list";
-import { EnvVarsHeader } from "./components/toolbar/env-vars-header";
 import {
   EnvVarsToolbar,
   type EnvironmentFilter,
@@ -52,21 +51,5 @@ export function EnvVarsBody({ isAddOpen, onCloseAdd }: EnvVarsBodyProps) {
         sortBy={sortBy}
       />
     </>
-  );
-}
-
-export function DeploymentEnvVars() {
-  const { appId } = useProjectData();
-  const [isAddOpen, setIsAddOpen] = useState(false);
-
-  if (!appId) {
-    return null;
-  }
-
-  return (
-    <div className="flex flex-col gap-5">
-      <EnvVarsHeader isAddOpen={isAddOpen} onToggleAdd={() => setIsAddOpen((prev) => !prev)} />
-      <EnvVarsBody isAddOpen={isAddOpen} onCloseAdd={() => setIsAddOpen(false)} />
-    </div>
   );
 }

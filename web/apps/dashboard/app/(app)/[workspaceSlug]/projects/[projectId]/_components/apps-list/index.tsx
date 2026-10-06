@@ -69,7 +69,7 @@ export function AppsList() {
   });
   const rows = filterApps(
     apps.data.map((app) =>
-      toAppRow(app, appHomeHref({ workspaceSlug: workspace.slug, projectId, appId: app.id })),
+      toAppRow(app, appHomeHref({ workspaceSlug: workspace.slug, projectId }, app)),
     ),
     search,
   );

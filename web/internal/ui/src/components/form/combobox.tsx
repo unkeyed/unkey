@@ -404,7 +404,12 @@ function Combobox({
       </div>
       <ComboboxContent className={popoverClassName}>
         <div className="p-1">
-          <ComboboxInput placeholder={searchPlaceholder} onInput={onChange} />
+          <ComboboxInput
+            placeholder={searchPlaceholder}
+            onInput={onChange}
+            autoComplete="off"
+            data-1p-ignore
+          />
         </div>
         <ComboboxEmpty>{emptyMessage}</ComboboxEmpty>
         <ComboboxList>
