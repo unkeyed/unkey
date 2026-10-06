@@ -31,10 +31,10 @@ func deploymentTopologySpread(deploymentID string, maxReplicas uint32) []corev1.
 		TopologyKey:       topologyKeyHostname,
 		WhenUnsatisfiable: corev1.ScheduleAnyway,
 		LabelSelector:     deploymentSelector,
-		NodeTaintsPolicy:  new(corev1.NodeInclusionPolicyHonor),
 	}
 	if maxReplicas > 1 {
 		hostname.WhenUnsatisfiable = corev1.DoNotSchedule
+		hostname.NodeTaintsPolicy = new(corev1.NodeInclusionPolicyHonor)
 		// Without minDomains, a one-node pool permits all replicas on that node.
 		hostname.MinDomains = new(int32(2))
 	}
@@ -46,7 +46,6 @@ func deploymentTopologySpread(deploymentID string, maxReplicas uint32) []corev1.
 			TopologyKey:       topologyKeyZone,
 			WhenUnsatisfiable: corev1.ScheduleAnyway,
 			LabelSelector:     fleetSelector,
-			NodeTaintsPolicy:  new(corev1.NodeInclusionPolicyHonor),
 		},
 	}
 }

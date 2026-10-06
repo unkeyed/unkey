@@ -286,11 +286,12 @@ func TestBuildReplicaSet_TopologySpread(t *testing.T) {
 		maxReplicas       uint32
 		whenUnsatisfiable corev1.UnsatisfiableConstraintAction
 		minDomains        *int32
+		nodeTaintsPolicy  *corev1.NodeInclusionPolicy
 	}{
-		{"single", 1, 1, corev1.ScheduleAnyway, nil},
-		{"single_minimum_with_autoscaling", 1, 2, corev1.DoNotSchedule, new(int32(2))},
-		{"two", 2, 5, corev1.DoNotSchedule, new(int32(2))},
-		{"three", 3, 3, corev1.DoNotSchedule, new(int32(2))},
+		{"single", 1, 1, corev1.ScheduleAnyway, nil, nil},
+		{"single_minimum_with_autoscaling", 1, 2, corev1.DoNotSchedule, new(int32(2)), new(corev1.NodeInclusionPolicyHonor)},
+		{"two", 2, 5, corev1.DoNotSchedule, new(int32(2)), new(corev1.NodeInclusionPolicyHonor)},
+		{"three", 3, 3, corev1.DoNotSchedule, new(int32(2)), new(corev1.NodeInclusionPolicyHonor)},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			req := fullApplyRequest(t)
@@ -305,7 +306,7 @@ func TestBuildReplicaSet_TopologySpread(t *testing.T) {
 			require.Equal(t, int32(1), hostname.MaxSkew)
 			require.Equal(t, tt.whenUnsatisfiable, hostname.WhenUnsatisfiable)
 			require.Equal(t, tt.minDomains, hostname.MinDomains)
-			require.Equal(t, new(corev1.NodeInclusionPolicyHonor), hostname.NodeTaintsPolicy)
+			require.Equal(t, tt.nodeTaintsPolicy, hostname.NodeTaintsPolicy)
 			require.NotNil(t, hostname.LabelSelector)
 			require.Equal(t, map[string]string{"unkey.com/deployment.id": testDeploymentID}, hostname.LabelSelector.MatchLabels)
 
@@ -314,7 +315,7 @@ func TestBuildReplicaSet_TopologySpread(t *testing.T) {
 			require.Equal(t, int32(1), zone.MaxSkew)
 			require.Equal(t, corev1.ScheduleAnyway, zone.WhenUnsatisfiable)
 			require.Nil(t, zone.MinDomains)
-			require.Equal(t, new(corev1.NodeInclusionPolicyHonor), zone.NodeTaintsPolicy)
+			require.Nil(t, zone.NodeTaintsPolicy)
 			require.NotNil(t, zone.LabelSelector)
 			require.Equal(t, map[string]string{
 				"app.kubernetes.io/managed-by": "krane",
