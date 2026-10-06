@@ -22,9 +22,8 @@ func TestListBuildLogsSuccess(t *testing.T) {
 	route := newRoute(h)
 	h.Register(route)
 
-	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"environment.*.read_deployment"},
-	})
+	setup := h.CreateTestDeploymentSetup()
+	rootKey := buildLogsRootKey(h, setup)
 	now := time.Now().UnixMilli()
 	firstSeq := uint64(now) * 1000
 
@@ -51,7 +50,7 @@ func TestListBuildLogsSuccess(t *testing.T) {
 		insertLogs(t, h, target, install, now, firstSeq+2, 1, true)
 
 		limit := 2
-		first := call(t, setup.RootKey, handler.Request{DeploymentId: target.deploymentID, Limit: &limit})
+		first := call(t, rootKey, handler.Request{DeploymentId: target.deploymentID, Limit: &limit})
 		require.Equal(t, []openapi.BuildLogEntry{
 			{Time: now, StepId: install, Step: "[3/4] RUN npm ci", Output: openapi.BuildLogOutputStdout, Message: "KEBAP 0"},
 			{Time: now, StepId: install, Step: "[3/4] RUN npm ci", Output: openapi.BuildLogOutputStdout, Message: "KEBAP 1"},
@@ -60,7 +59,7 @@ func TestListBuildLogsSuccess(t *testing.T) {
 		require.NotNil(t, first.Pagination.Cursor)
 		require.Equal(t, strconv.FormatUint(firstSeq+1, 10), *first.Pagination.Cursor)
 
-		next := call(t, setup.RootKey, handler.Request{DeploymentId: target.deploymentID, Cursor: first.Pagination.Cursor, Limit: &limit})
+		next := call(t, rootKey, handler.Request{DeploymentId: target.deploymentID, Cursor: first.Pagination.Cursor, Limit: &limit})
 		require.Equal(t, []openapi.BuildLogEntry{
 			{Time: now, StepId: install, Step: "[3/4] RUN npm ci", Output: openapi.BuildLogOutputStderr, Message: "KEBAP 0"},
 		}, next.Data)
@@ -75,10 +74,10 @@ func TestListBuildLogsSuccess(t *testing.T) {
 		insertStep(t, h, target, stepID, "[3/4] RUN npm ci", now)
 		insertLogs(t, h, target, stepID, now, firstSeq, 1, false)
 
-		first := call(t, setup.RootKey, handler.Request{DeploymentId: target.deploymentID})
+		first := call(t, rootKey, handler.Request{DeploymentId: target.deploymentID})
 		require.Len(t, first.Data, 1)
 
-		poll := call(t, setup.RootKey, handler.Request{DeploymentId: target.deploymentID, Cursor: first.Pagination.Cursor})
+		poll := call(t, rootKey, handler.Request{DeploymentId: target.deploymentID, Cursor: first.Pagination.Cursor})
 		require.Empty(t, poll.Data)
 		require.False(t, poll.Pagination.HasMore)
 		require.Equal(t, first.Pagination.Cursor, poll.Pagination.Cursor)
@@ -86,7 +85,7 @@ func TestListBuildLogsSuccess(t *testing.T) {
 
 	t.Run("a build without entries has no cursor", func(t *testing.T) {
 		target := createDeployment(h, setup)
-		res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(setup.RootKey), handler.Request{DeploymentId: target.deploymentID})
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(rootKey), handler.Request{DeploymentId: target.deploymentID})
 		require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
 		require.Contains(t, res.RawBody, `"data":[]`)
 		require.Nil(t, res.Body.Pagination.Cursor)
@@ -101,7 +100,7 @@ func TestListBuildLogsSuccess(t *testing.T) {
 		insertLogs(t, h, target, install, now, firstSeq, 2, false)
 		insertLogs(t, h, target, build, now, firstSeq+2, 1, false)
 
-		res := call(t, setup.RootKey, handler.Request{DeploymentId: target.deploymentID, StepId: &build})
+		res := call(t, rootKey, handler.Request{DeploymentId: target.deploymentID, StepId: &build})
 		require.Equal(t, []string{"KEBAP 0"}, messages(res.Data))
 		require.Equal(t, build, res.Data[0].StepId)
 		require.Equal(t, "[4/4] RUN npm run build", res.Data[0].Step)
@@ -116,7 +115,7 @@ func TestListBuildLogsSuccess(t *testing.T) {
 		insertLogs(t, h, target, stepID, now, firstSeq, 1, false)
 		insertLogs(t, h, other, stepID, now, firstSeq, 3, false)
 
-		res := call(t, setup.RootKey, handler.Request{DeploymentId: target.deploymentID})
+		res := call(t, rootKey, handler.Request{DeploymentId: target.deploymentID})
 		require.Len(t, res.Data, 1)
 	})
 
@@ -127,10 +126,9 @@ func TestListBuildLogsSuccess(t *testing.T) {
 			name       string
 			permission string
 		}{
-			{name: "any environment", permission: "environment.*.read_deployment"},
-			{name: "this environment", permission: fmt.Sprintf("environment.%s.read_deployment", setup.Environment.ID)},
-			{name: "urn for this deployment", permission: rbac.U(environment.Deployment(target.deploymentID), permissions.Read).Value},
-			{name: "urn for every deployment", permission: rbac.U(urn.New().Workspace(setup.Workspace.ID).Project("*").App("*").Environment("*").Deployment("*"), permissions.Read).Value},
+			{name: "build logs of this deployment", permission: rbac.U(environment.Deployment(target.deploymentID).BuildLogs(), permissions.Read).Value},
+			{name: "build logs of every deployment in the environment", permission: rbac.U(environment.Deployment("*").BuildLogs(), permissions.Read).Value},
+			{name: "read on the whole workspace", permission: fmt.Sprintf("unkey:v1:%s:**#read", setup.Workspace.ID)},
 		} {
 			t.Run(tc.name, func(t *testing.T) {
 				call(t, h.CreateRootKey(setup.Workspace.ID, tc.permission), handler.Request{DeploymentId: target.deploymentID})

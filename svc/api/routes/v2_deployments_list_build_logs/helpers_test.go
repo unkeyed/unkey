@@ -6,7 +6,10 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_deployments_list_build_logs"
@@ -18,6 +21,11 @@ func newRoute(h *testutil.Harness) *handler.Handler {
 		ClickHouse: h.ClickHouse,
 		Clock:      h.Clock,
 	}
+}
+
+func buildLogsRootKey(h *testutil.Harness, setup testutil.DeploymentTestSetup) string {
+	everyDeployment := urn.New().Workspace(setup.Workspace.ID).Project("*").App("*").Environment("*").Deployment("*")
+	return h.CreateRootKey(setup.Workspace.ID, rbac.U(everyDeployment.BuildLogs(), permissions.Read).Value)
 }
 
 func authHeaders(rootKey string) http.Header {

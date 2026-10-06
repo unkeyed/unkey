@@ -39,7 +39,7 @@ To follow a running build, poll the endpoint with a cursor:
 
 A response can contain fewer than `limit` entries and still have `hasMore: true` when the entries are large. To get the entries of one step, send its `stepId`. New entries become visible up to a few seconds after the build prints them. When a build attempt is retried, an entry from the earlier attempt can arrive after the cursor has moved past it. A request without a cursor returns it.
 
-The root key needs `read_deployment` on the deployment's environment.
+The root key needs `read` on the deployment's build logs, for example `unkey:v1:<workspace_id>:projects/<project_id>/apps/<app_id>/environments/<environment_id>/deployments/<deployment_id>/buildLogs#read`. Use `*` for an ID to cover all deployments of an environment, app, or project.
 
 ## Retention
 

@@ -15,9 +15,8 @@ func TestListBuildLogsBadRequest(t *testing.T) {
 	route := newRoute(h)
 	h.Register(route)
 
-	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"environment.*.read_deployment"},
-	})
+	setup := h.CreateTestDeploymentSetup()
+	rootKey := buildLogsRootKey(h, setup)
 	deploymentID := createDeployment(h, setup).deploymentID
 
 	for _, tc := range []struct {
@@ -40,7 +39,7 @@ func TestListBuildLogsBadRequest(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			req, err := http.NewRequest(route.Method(), route.Path(), strings.NewReader(tc.body))
 			require.NoError(t, err)
-			req.Header = authHeaders(setup.RootKey)
+			req.Header = authHeaders(rootKey)
 
 			res := testutil.CallRaw[openapi.BadRequestErrorResponse](h, req)
 			require.Equal(t, http.StatusBadRequest, res.Status, "expected 400, sent: %s, received: %s", tc.body, res.RawBody)

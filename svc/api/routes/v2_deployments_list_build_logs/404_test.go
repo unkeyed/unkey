@@ -1,7 +1,6 @@
 package handler_test
 
 import (
-	"fmt"
 	"net/http"
 	"testing"
 
@@ -20,9 +19,8 @@ func TestListBuildLogsNotFound(t *testing.T) {
 	route := newRoute(h)
 	h.Register(route)
 
-	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"environment.*.read_deployment"},
-	})
+	setup := h.CreateTestDeploymentSetup()
+	rootKey := buildLogsRootKey(h, setup)
 	dep := createDeployment(h, setup)
 	otherDep := createDeployment(h, h.CreateTestDeploymentSetup())
 
@@ -36,28 +34,30 @@ func TestListBuildLogsNotFound(t *testing.T) {
 	}
 
 	t.Run("unknown deployment", func(t *testing.T) {
-		call(t, setup.RootKey, uid.New(uid.DeploymentPrefix))
+		call(t, rootKey, uid.New(uid.DeploymentPrefix))
 	})
 
 	t.Run("deployment in another workspace", func(t *testing.T) {
-		call(t, setup.RootKey, otherDep.deploymentID)
+		call(t, rootKey, otherDep.deploymentID)
 	})
 
 	permissionFor := func(workspaceID, projectID, appID, environmentID, deploymentID string, action permissions.Action) string {
-		return rbac.U(urn.New().Workspace(workspaceID).Project(projectID).App(appID).Environment(environmentID).Deployment(deploymentID), action).Value
+		return rbac.U(urn.New().Workspace(workspaceID).Project(projectID).App(appID).Environment(environmentID).Deployment(deploymentID).BuildLogs(), action).Value
 	}
+	deployment := urn.New().Workspace(setup.Workspace.ID).Project(setup.Project.ID).App(setup.App.ID).Environment(setup.Environment.ID).Deployment(dep.deploymentID)
 	for _, tc := range []struct {
 		name       string
 		permission string
 	}{
-		{name: "other action on deployments", permission: "environment.*.create_deployment"},
-		{name: "other environment", permission: fmt.Sprintf("environment.%s.read_deployment", uid.New(uid.EnvironmentPrefix))},
+		{name: "legacy deployment read", permission: "environment.*.read_deployment"},
+		{name: "deployment read", permission: rbac.U(deployment, permissions.Read).Value},
+		{name: "runtime log read", permission: rbac.U(deployment.Logs(), permissions.Read).Value},
 		{name: "urn for another deployment", permission: permissionFor(setup.Workspace.ID, setup.Project.ID, setup.App.ID, setup.Environment.ID, uid.New(uid.DeploymentPrefix), permissions.Read)},
 		{name: "urn for another project", permission: permissionFor(setup.Workspace.ID, uid.New(uid.ProjectPrefix), setup.App.ID, setup.Environment.ID, dep.deploymentID, permissions.Read)},
 		{name: "urn for another app", permission: permissionFor(setup.Workspace.ID, setup.Project.ID, uid.New(uid.AppPrefix), setup.Environment.ID, dep.deploymentID, permissions.Read)},
 		{name: "urn for another environment", permission: permissionFor(setup.Workspace.ID, setup.Project.ID, setup.App.ID, uid.New(uid.EnvironmentPrefix), dep.deploymentID, permissions.Read)},
 		{name: "urn for another workspace", permission: permissionFor(uid.New(uid.WorkspacePrefix), setup.Project.ID, setup.App.ID, setup.Environment.ID, dep.deploymentID, permissions.Read)},
-		{name: "urn with wrong action", permission: permissionFor(setup.Workspace.ID, setup.Project.ID, setup.App.ID, setup.Environment.ID, dep.deploymentID, permissions.Delete)},
+		{name: "urn with wrong action", permission: permissionFor(setup.Workspace.ID, setup.Project.ID, setup.App.ID, setup.Environment.ID, dep.deploymentID, permissions.Write)},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			call(t, h.CreateRootKey(setup.Workspace.ID, tc.permission), dep.deploymentID)

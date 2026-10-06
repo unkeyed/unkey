@@ -43,6 +43,7 @@ func TestActions_BuildPlatformPermissions(t *testing.T) {
 	requirePermission(t, deployment, permissions.Write, "unkey:v1:ws_123:projects/proj_123/apps/app_123/environments/env_123/deployments/dep_123#write")
 	requirePermission(t, deployment, permissions.Delete, "unkey:v1:ws_123:projects/proj_123/apps/app_123/environments/env_123/deployments/dep_123#delete")
 	requirePermission(t, deployment.Logs(), permissions.Read, "unkey:v1:ws_123:projects/proj_123/apps/app_123/environments/env_123/deployments/dep_123/logs#read")
+	requirePermission(t, deployment.BuildLogs(), permissions.Read, "unkey:v1:ws_123:projects/proj_123/apps/app_123/environments/env_123/deployments/dep_123/buildLogs#read")
 	requirePermission(t, domain, permissions.Read, "unkey:v1:ws_123:projects/proj_123/apps/app_123/environments/env_123/domains/dom_123#read")
 	requirePermission(t, domain, permissions.Write, "unkey:v1:ws_123:projects/proj_123/apps/app_123/environments/env_123/domains/dom_123#write")
 	requirePermission(t, domain, permissions.Delete, "unkey:v1:ws_123:projects/proj_123/apps/app_123/environments/env_123/domains/dom_123#delete")
@@ -114,6 +115,7 @@ func TestSupportsPermissionAction_RejectsUnsupportedActions(t *testing.T) {
 		action   permissions.Action
 	}{
 		{name: "keyspace log write", resource: "projects/proj_123/keyspaces/ks_123/logs", action: permissions.Write},
+		{name: "deployment build log write", resource: "projects/proj_123/apps/app_123/environments/env_123/deployments/dep_123/buildLogs", action: permissions.Write},
 		{name: "key limit", resource: "projects/proj_123/keyspaces/ks_123/keys/key_123", action: permissions.Limit},
 		{name: "namespace decrypt", resource: "projects/proj_123/ratelimits/namespaces/ns_123", action: permissions.Decrypt},
 		{name: "override limit", resource: "projects/proj_123/ratelimits/namespaces/ns_123/overrides/ov_123", action: permissions.Limit},
