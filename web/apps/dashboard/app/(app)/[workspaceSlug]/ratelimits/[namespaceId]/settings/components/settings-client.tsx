@@ -3,7 +3,6 @@
 import { collection } from "@/lib/collections";
 import { eq, useLiveQuery } from "@tanstack/react-db";
 import {
-  Button,
   CopyButton,
   EmptyState,
   EmptyStateActions,
@@ -11,10 +10,17 @@ import {
   EmptyStateHeader,
   EmptyStateTitle,
   Input,
-  SettingCard,
-  SettingCardGroup,
   SettingsDangerZone,
+  SettingsForm,
+  SettingsGroup,
+  SettingsGroupContent,
+  SettingsRow,
+  SettingsRowContent,
+  SettingsRowDescription,
+  SettingsRowHeader,
+  SettingsRowTitle,
   SettingsZoneRow,
+  formSaveState,
   toast,
 } from "@unkey/ui";
 import { useEffect, useState } from "react";
@@ -38,6 +44,7 @@ export const SettingsClient = ({ namespaceId }: Props) => {
   const namespace = data.at(0);
 
   const [namespaceName, setNamespaceName] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
   useEffect(() => {
     if (namespaceName === null && namespace) {
       setNamespaceName(namespace.name);
@@ -62,12 +69,10 @@ export const SettingsClient = ({ namespaceId }: Props) => {
     );
   }
 
-  const handleUpdateName = async () => {
-    if (!namespace) {
-      return;
-    }
+  const isDirty = namespaceName !== null && namespaceName.trim() !== namespace.name.trim();
 
-    if (namespaceName === namespace.name || !namespaceName) {
+  const handleUpdateName = () => {
+    if (!isDirty || !namespaceName) {
       return toast.error("Please provide a different name before saving.");
     }
     let error = "";
@@ -81,63 +86,67 @@ export const SettingsClient = ({ namespaceId }: Props) => {
       return toast.error(error);
     }
 
-    collection.ratelimitNamespaces.update(namespace.id, (draft) => {
+    setIsSaving(true);
+    const tx = collection.ratelimitNamespaces.update(namespace.id, (draft) => {
       draft.name = namespaceName;
     });
+    const stopSaving = () => setIsSaving(false);
+    const failureAlreadyToastedByCollection = stopSaving;
+    tx.isPersisted.promise.then(stopSaving, failureAlreadyToastedByCollection);
   };
 
   return (
     <>
-      <div className="w-full">
-        <SettingCardGroup>
-          <SettingCard
-            title="Namespace name"
-            description={
-              <div>
-                Used in API calls. Changing this may cause rate limit
-                <br /> requests to be rejected.
+      <SettingsGroup>
+        <SettingsGroupContent>
+          <SettingsForm
+            dirty={isDirty}
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleUpdateName();
+            }}
+            saveState={formSaveState({
+              isSubmitting: isSaving,
+              isValid: Boolean(namespaceName),
+              isDirty,
+            })}
+          >
+            <SettingsRow>
+              <SettingsRowHeader>
+                <SettingsRowTitle>Namespace name</SettingsRowTitle>
+                <SettingsRowDescription>
+                  Used in API calls. Changing this may cause rate limit requests to be rejected.
+                </SettingsRowDescription>
+              </SettingsRowHeader>
+              <SettingsRowContent>
+                <Input
+                  aria-label="Namespace name"
+                  placeholder="Namespace name"
+                  value={namespaceName ?? ""}
+                  className="max-w-(--setting-w)"
+                  onChange={(e) => setNamespaceName(e.target.value)}
+                />
+              </SettingsRowContent>
+            </SettingsRow>
+          </SettingsForm>
+          <SettingsRow>
+            <SettingsRowHeader>
+              <SettingsRowTitle>Namespace ID</SettingsRowTitle>
+              <SettingsRowDescription>
+                An identifier for the namespace, used in some API calls.
+              </SettingsRowDescription>
+            </SettingsRowHeader>
+            <SettingsRowContent>
+              <div className="flex max-w-(--setting-w) items-center rounded-lg border bg-raised px-2 py-2 hover:border-strong">
+                <pre className="flex-1 text-xs text-left overflow-x-auto">
+                  <code>{namespace.id}</code>
+                </pre>
+                <CopyButton value={namespace.id} variant="ghost" size="sm" />
               </div>
-            }
-            contentWidth="w-full lg:w-[420px] h-full justify-end items-end"
-          >
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                handleUpdateName();
-              }}
-              className="flex flex-row justify-end items-center gap-x-2 mt-2 h-9"
-            >
-              <Input
-                placeholder="Namespace name"
-                value={namespaceName ?? ""}
-                className="min-w-64 items-end h-9"
-                onChange={(e) => setNamespaceName(e.target.value)}
-              />
-              <Button
-                type="submit"
-                className="h-full px-3.5 rounded-lg"
-                size="lg"
-                variant="primary"
-                disabled={namespaceName === namespace.name || !namespaceName}
-              >
-                Save
-              </Button>
-            </form>
-          </SettingCard>
-          <SettingCard
-            title="Namespace ID"
-            description="An identifier for the namespace, used in some API calls."
-            contentWidth="w-full lg:w-[320px] h-full justify-end items-end"
-          >
-            <div className="flex flex-row justify-end items-center pl-2 pr-2 py-2 w-full border hover:border-strong bg-raised rounded-lg min-w-[327px]">
-              <pre className="flex-1 text-xs text-left overflow-x-auto">
-                <code>{namespace.id}</code>
-              </pre>
-              <CopyButton value={namespace.id} variant="ghost" size="sm" />
-            </div>
-          </SettingCard>
-        </SettingCardGroup>
-      </div>
+            </SettingsRowContent>
+          </SettingsRow>
+        </SettingsGroupContent>
+      </SettingsGroup>
 
       <SettingsDangerZone>
         <SettingsZoneRow
