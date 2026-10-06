@@ -84,8 +84,10 @@ import { DashboardScreenshot } from "/snippets/dashboard-screenshot.jsx";
       pixels of padding. Do not submit changes."
     src="/platform/root-keys/root-key-edit"
     width={508}
-    alt="Edit root key dialog"
-  />
+  >
+    <img className="block dark:hidden" src="/platform/root-keys/root-key-edit-light.png" alt="Edit root key dialog" />
+    <img className="hidden dark:block" src="/platform/root-keys/root-key-edit-dark.png" alt="Edit root key dialog" />
+  </DashboardScreenshot>
 </Frame>
 ```
 
@@ -93,8 +95,10 @@ Write a description that explains the data, visible state, and boundaries. Name
 actions that must not happen, such as submitting an edit or confirming deletion.
 Amp chooses the seed data and browser steps; fixed scripts are not required.
 
-The `src` identifies the saved illustration. The component displays
-`${src}-light.png` and `${src}-dark.png` from `docs/`. Several illustrations
+The `src` identifies the saved illustration. The child images display
+`${src}-light.png` and `${src}-dark.png` from `docs/`. Write their paths as
+literal strings, not computed values: production serves the docs under `/docs`,
+and Mintlify only rewrites static image paths at build time. Several illustrations
 can use the same `target` with different `src` paths and descriptions. No separate
 image ID is needed. Keep an existing image pair when converting an old screenshot.
 

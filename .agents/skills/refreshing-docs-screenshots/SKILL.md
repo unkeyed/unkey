@@ -51,10 +51,13 @@ The declaration's contract is:
 - `target`: Value of `data-docs-target` on an existing dashboard element.
 - `description`: Desired data, UI state, navigation hints, and capture constraints.
 - `capture`: `target`, `viewport`, or `full-page`. Use `target` when omitted.
-- `src`: Root-relative image path without the theme suffix or extension. The
-  component renders `${src}-light.png` and `${src}-dark.png`. This identifies
-  the saved illustration; no separate `id` is needed.
-- `alt`: Reader-facing description of the image.
+- `src`: Root-relative image path without the theme suffix or extension. This
+  identifies the saved illustration; no separate `id` is needed.
+- Children: two static `<img>` tags with `src` set to `${src}-light.png`
+  (`className="block dark:hidden"`) and `${src}-dark.png`
+  (`className="hidden dark:block"`), each with a reader-facing `alt`. Keep them
+  as literal paths: Mintlify only rewrites static image paths, and the docs are
+  served under `/docs` in production.
 - `width`: Optional maximum display width in CSS pixels, not a capture viewport.
 - `capturedAt`: ISO 8601 UTC timestamp for the saved capture, for example
   `2026-09-11T04:48:23Z`. It stays in the MDX source, not the docs DOM.
