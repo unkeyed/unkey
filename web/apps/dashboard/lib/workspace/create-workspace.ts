@@ -1,6 +1,6 @@
 import { insertAuditLogs } from "@/lib/audit";
 import type { CreateTenantParams } from "@/lib/auth/types";
-import type { InsertWorkspace } from "@/lib/db";
+import { type InsertWorkspace, primaryDb } from "@/lib/db";
 import { freeTierLimits } from "@/lib/limits";
 import { type Transaction, isDuplicateKeyError, schema } from "@unkey/db";
 import { dns1035, newId } from "@unkey/id";
@@ -27,7 +27,22 @@ export type CreateFreeWorkspaceInput = {
   };
   metadata?: Record<string, string>;
   createTenant: (params: CreateTenantParams) => Promise<string>;
+  deleteTenant: (orgId: string) => Promise<void>;
   localOrgId: string | null;
+};
+
+export type WorkspaceCreateDeps = {
+  findWorkspacesByOrgId: (orgId: string) => Promise<Array<{ id: string }>>;
+  findWorkspaceBySlug: (slug: string) => Promise<{ id: string } | undefined>;
+  persist: (input: PersistFreeWorkspaceInput) => Promise<CreatedWorkspace>;
+};
+
+type PersistFreeWorkspaceInput = {
+  orgId: string;
+  name: string;
+  slug: string;
+  userId: string;
+  audit: CreateFreeWorkspaceInput["audit"];
 };
 
 export type CreatedWorkspace = {
@@ -36,9 +51,29 @@ export type CreatedWorkspace = {
   slug: string;
 };
 
-export async function createFreeWorkspaceInTx(
-  tx: Transaction,
+function productionWorkspaceCreateDeps(): WorkspaceCreateDeps {
+  return {
+    findWorkspacesByOrgId(orgId) {
+      return primaryDb.query.workspaces.findMany({
+        where: (workspaces, { eq }) => eq(workspaces.orgId, orgId),
+        columns: { id: true },
+      });
+    },
+    findWorkspaceBySlug(slug) {
+      return primaryDb.query.workspaces.findFirst({
+        where: (workspaces, { eq }) => eq(workspaces.slug, slug),
+        columns: { id: true },
+      });
+    },
+    persist(input) {
+      return primaryDb.transaction((tx) => insertFreeWorkspace(tx, input));
+    },
+  };
+}
+
+export async function createFreeWorkspace(
   input: CreateFreeWorkspaceInput,
+  deps: WorkspaceCreateDeps = productionWorkspaceCreateDeps(),
 ): Promise<CreatedWorkspace> {
   if (!input.userId) {
     throw new WorkspaceCreateError(
@@ -49,11 +84,7 @@ export async function createFreeWorkspaceInTx(
 
   const localOrgId = input.localOrgId;
   if (localOrgId) {
-    const existingWorkspaces = await tx.query.workspaces.findMany({
-      where: (workspaces, { eq }) => eq(workspaces.orgId, localOrgId),
-      columns: { id: true },
-    });
-
+    const existingWorkspaces = await deps.findWorkspacesByOrgId(localOrgId);
     if (existingWorkspaces.length > 0) {
       throw new WorkspaceCreateError(
         "METHOD_NOT_SUPPORTED",
@@ -62,11 +93,7 @@ export async function createFreeWorkspaceInTx(
     }
   }
 
-  const duplicateSlug = await tx.query.workspaces.findFirst({
-    where: (workspaces, { eq }) => eq(workspaces.slug, input.slug),
-    columns: { id: true },
-  });
-
+  const duplicateSlug = await deps.findWorkspaceBySlug(input.slug);
   if (duplicateSlug) {
     throw new WorkspaceCreateError("CONFLICT", "A workspace with this slug already exists.");
   }
@@ -77,9 +104,34 @@ export async function createFreeWorkspaceInTx(
     ...(input.metadata ? { metadata: input.metadata } : {}),
   });
 
+  try {
+    return await deps.persist({
+      orgId,
+      name: input.name,
+      slug: input.slug,
+      userId: input.userId,
+      audit: input.audit,
+    });
+  } catch (error) {
+    try {
+      await input.deleteTenant(orgId);
+    } catch (cleanupError) {
+      console.error(
+        "failed to delete organization after workspace create failed",
+        cleanupError instanceof Error ? cleanupError.name : "unknown",
+      );
+    }
+    throw error;
+  }
+}
+
+async function insertFreeWorkspace(
+  tx: Transaction,
+  input: PersistFreeWorkspaceInput,
+): Promise<CreatedWorkspace> {
   const workspace: InsertWorkspace = {
     id: newId("workspace"),
-    orgId,
+    orgId: input.orgId,
     name: input.name,
     slug: input.slug,
     betaFeatures: {},
@@ -130,7 +182,7 @@ export async function createFreeWorkspaceInTx(
   ]);
 
   return {
-    orgId,
+    orgId: input.orgId,
     workspaceId: workspace.id,
     slug: input.slug,
   };

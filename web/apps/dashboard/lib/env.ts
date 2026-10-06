@@ -20,6 +20,13 @@ export const env = () =>
       UNKEY_API_ID: z.string(),
       UNKEY_API_URL: z.url().optional().default("https://api.unkey.com"),
       UNKEY_JWT_SECRET: z.string().optional(),
+      // Production agent-signup root keys. PEM PKCS#1 or PKCS#8. When set, the
+      // dashboard signs RS256 and serves the public key at
+      // /.well-known/agent-signup-jwks.
+      UNKEY_AGENT_SIGNUP_JWT_PRIVATE_KEY: z.string().optional(),
+      // Local agent-signup root keys. HS256 secret of at least 32 bytes, used
+      // only when the private key above is unset.
+      UNKEY_AGENT_SIGNUP_JWT_SECRET: z.string().optional(),
 
       UPSTASH_REDIS_REST_URL: z.string().optional(),
       UPSTASH_REDIS_REST_TOKEN: z.string().optional(),

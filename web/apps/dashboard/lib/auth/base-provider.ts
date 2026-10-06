@@ -16,6 +16,7 @@ import type {
 export abstract class BaseAuthProvider {
   abstract getUser(userId: string): Promise<User | null>;
   abstract createTenant(params: CreateTenantParams): Promise<string>;
+  abstract deleteTenant(orgId: string): Promise<void>;
   abstract updateOrg(params: UpdateOrgParams): Promise<Organization>;
   protected abstract createOrg(
     name: string,

@@ -17,6 +17,7 @@ const replica = DATABASE_REPLICA
     })
   : undefined;
 
+export const primaryDb = primary;
 export const db = replica ? withReplicas(primary, [replica], () => replica) : primary;
 
 export * from "@unkey/db";

@@ -101,6 +101,11 @@ export class LocalAuthProvider extends BaseAuthProvider {
     return LOCAL_ORG_ID;
   }
 
+  async deleteTenant(_orgId: string): Promise<void> {
+    // Local mode has one shared organization. Deleting it would break every
+    // later request, so a failed workspace insert leaves that org in place.
+  }
+
   protected async createOrg(name: string): Promise<Organization> {
     if (!name) {
       throw new Error("Organization name is required.");

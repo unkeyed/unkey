@@ -1,7 +1,6 @@
 import { auth as authProvider } from "@/lib/auth/server";
-import { db } from "@/lib/db";
 import { env } from "@/lib/env";
-import { WorkspaceCreateError, createFreeWorkspaceInTx } from "@/lib/workspace/create-workspace";
+import { WorkspaceCreateError, createFreeWorkspace } from "@/lib/workspace/create-workspace";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { protectedProcedure } from "../../trpc";
@@ -27,19 +26,18 @@ export const createWorkspace = protectedProcedure
     }
 
     try {
-      const created = await db.transaction((tx) =>
-        createFreeWorkspaceInTx(tx, {
-          name: input.name,
-          slug: input.slug,
-          userId,
-          audit: {
-            location: ctx.audit.location,
-            userAgent: ctx.audit.userAgent,
-          },
-          createTenant: (params) => authProvider.createTenant(params),
-          localOrgId: env().AUTH_PROVIDER === "local" ? ctx.tenant.id : null,
-        }),
-      );
+      const created = await createFreeWorkspace({
+        name: input.name,
+        slug: input.slug,
+        userId,
+        audit: {
+          location: ctx.audit.location,
+          userAgent: ctx.audit.userAgent,
+        },
+        createTenant: (params) => authProvider.createTenant(params),
+        deleteTenant: (orgId) => authProvider.deleteTenant(orgId),
+        localOrgId: env().AUTH_PROVIDER === "local" ? ctx.tenant.id : null,
+      });
       return {
         orgId: created.orgId,
         slug: created.slug,

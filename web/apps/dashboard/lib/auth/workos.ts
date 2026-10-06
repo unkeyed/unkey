@@ -24,6 +24,25 @@ type ProviderPage<T> = {
 
 const PAGE_SIZE = 100;
 
+export async function createMembershipOrDeleteOrg(input: {
+  createMembership: () => Promise<string>;
+  deleteOrganization: () => Promise<void>;
+}): Promise<string> {
+  try {
+    return await input.createMembership();
+  } catch (error) {
+    try {
+      await input.deleteOrganization();
+    } catch (cleanupError) {
+      console.error(
+        "failed to delete WorkOS organization after membership create failed",
+        cleanupError instanceof Error ? cleanupError.name : "unknown",
+      );
+    }
+    throw error;
+  }
+}
+
 /**
  * Bounds every cursor loop. A provider cursor that never settles would
  * otherwise hang the request forever instead of failing.
@@ -86,15 +105,28 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
     try {
       const provider = await this.getProvider();
       const organization = await this.createOrg(params.name, params.metadata);
-      const membership = await provider.userManagement.createOrganizationMembership({
-        organizationId: organization.id,
-        userId: params.userId,
-        roleSlug: "admin",
+      return await createMembershipOrDeleteOrg({
+        createMembership: async () => {
+          const membership = await provider.userManagement.createOrganizationMembership({
+            organizationId: organization.id,
+            userId: params.userId,
+            roleSlug: "admin",
+          });
+          return membership.organizationId;
+        },
+        deleteOrganization: () => this.deleteTenant(organization.id),
       });
-      return membership.organizationId;
     } catch (error) {
       throw this.providerError(error);
     }
+  }
+
+  async deleteTenant(orgId: string): Promise<void> {
+    if (!orgId) {
+      throw new Error("Organization Id is required.");
+    }
+    const provider = await this.getProvider();
+    await provider.organizations.deleteOrganization(orgId);
   }
 
   protected async createOrg(

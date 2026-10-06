@@ -25,6 +25,13 @@ data:
     provider = "workos"
 
     [[auth]]
+    type = "jwt"
+    issuer = "https://app.unkey.com/agent-signup"
+    audience = "api.unkey.com"
+    secrets = ["local-dev-agent-signup-jwt-secret-32b"]
+    provider = "agent_signup"
+
+    [[auth]]
     type = "portal_session"
 
     [[auth]]

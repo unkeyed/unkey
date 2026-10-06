@@ -1,11 +1,11 @@
-import { mintProxyJWT } from "@/lib/auth/proxy-jwt";
 import { auth } from "@/lib/auth/server";
-import { db } from "@/lib/db";
+import { primaryDb } from "@/lib/db";
 import { env } from "@/lib/env";
-import { createFreeWorkspaceInTx } from "@/lib/workspace/create-workspace";
-import { and, eq, schema } from "@unkey/db";
+import { createFreeWorkspace } from "@/lib/workspace/create-workspace";
+import { and, eq, isNull, schema } from "@unkey/db";
 import { z } from "zod";
 import { assertWorkspaceAdmin } from "./authorize";
+import { mintAgentSignupJWT } from "./credential";
 import { AgentSignupError } from "./errors";
 import { type PermissionGrant, resolveAgentPermissions } from "./permissions";
 import type { VerifiedAgent } from "./verify";
@@ -25,19 +25,18 @@ export async function createAgentWorkspace(input: {
   slug: string;
   audit: { location: string; userAgent?: string };
 }) {
-  return db.transaction((tx) =>
-    createFreeWorkspaceInTx(tx, {
-      name: input.name,
-      slug: input.slug,
-      userId: input.agent.userId,
-      audit: input.audit,
-      metadata: {
-        [AGENT_REGISTRATION_METADATA_KEY]: input.agent.registrationId,
-      },
-      createTenant: (params) => auth.createTenant(params),
-      localOrgId: null,
-    }),
-  );
+  return createFreeWorkspace({
+    name: input.name,
+    slug: input.slug,
+    userId: input.agent.userId,
+    audit: input.audit,
+    metadata: {
+      [AGENT_REGISTRATION_METADATA_KEY]: input.agent.registrationId,
+    },
+    createTenant: (params) => auth.createTenant(params),
+    deleteTenant: (orgId) => auth.deleteTenant(orgId),
+    localOrgId: null,
+  });
 }
 
 async function createRootKey(input: {
@@ -48,9 +47,8 @@ async function createRootKey(input: {
 }): Promise<{ keyId: string; key: string }> {
   let token: string;
   try {
-    token = await mintProxyJWT({
+    token = await mintAgentSignupJWT({
       orgId: input.orgId,
-      role: "admin",
       subject: input.userId,
       name: input.userId,
     });
@@ -60,7 +58,7 @@ async function createRootKey(input: {
 
   let response: Response;
   try {
-    response = await fetch(new URL("/v2/rootKeys.createKey", env().UNKEY_API_URL), {
+    response = await fetch(new URL("/v2/rootKeys.createAgentKey", env().UNKEY_API_URL), {
       method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,
@@ -90,26 +88,38 @@ async function createRootKey(input: {
   return parsed.data.data;
 }
 
-async function findAgentWorkspace(workspaceId?: string, slug?: string) {
-  const filters = [
+export function liveWorkspaceWhere(workspaceId?: string, slug?: string) {
+  const identity = [
     ...(workspaceId ? [eq(schema.workspaces.id, workspaceId)] : []),
     ...(slug ? [eq(schema.workspaces.slug, slug)] : []),
   ];
-  if (filters.length === 0) {
+  if (identity.length === 0) {
+    return undefined;
+  }
+  return and(
+    isNull(schema.workspaces.deletedAtM),
+    eq(schema.workspaces.enabled, true),
+    ...identity,
+  );
+}
+
+async function findAgentWorkspace(workspaceId?: string, slug?: string) {
+  const where = liveWorkspaceWhere(workspaceId, slug);
+  if (!where) {
     throw new AgentSignupError(
       400,
       "invalid_body",
       "Send workspaceId or slug. name must be 1 to 256 characters. permissions must be a list of path and action.",
     );
   }
-  const [workspace] = await db
+  const [workspace] = await primaryDb
     .select({
       id: schema.workspaces.id,
       orgId: schema.workspaces.orgId,
       slug: schema.workspaces.slug,
     })
     .from(schema.workspaces)
-    .where(and(...filters))
+    .where(where)
     .limit(1);
   if (!workspace) {
     throw new AgentSignupError(
