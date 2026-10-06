@@ -23,7 +23,7 @@ CREATE TABLE `backoffice`.`audit_logs_v1`
     `actor_id`     String CODEC(ZSTD(1)),
 
     `table_name`   LowCardinality(String),
-    -- 'insert' | 'update' | 'softDelete' | 'restore'.
+    -- Back office operation id, e.g. 'workspace.setLimits', 'workspace.disable'.
     `action`       LowCardinality(String),
     `pk_value`     String CODEC(ZSTD(1)),
     -- Empty when the edited table has no workspace link.

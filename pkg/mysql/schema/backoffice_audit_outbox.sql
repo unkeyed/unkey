@@ -1,6 +1,6 @@
 CREATE TABLE `backoffice_audit_outbox` (
 	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
-	`event_id` varchar(64) NOT NULL,
+	`event_id` varchar(48) COLLATE utf8mb4_0900_as_cs NOT NULL,
 	`payload` json NOT NULL,
 	`created_at` bigint NOT NULL,
 	`drained_at` bigint unsigned,

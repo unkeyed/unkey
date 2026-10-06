@@ -1,4 +1,5 @@
 import { bigint, index, int, json, mysqlTable, varchar } from "drizzle-orm/mysql-core";
+import { id } from "./util/id";
 import { primaryKey } from "./util/primary_key";
 
 // backoffice_audit_outbox is the transactional outbox for the staff back
@@ -18,7 +19,7 @@ export const backofficeAuditOutbox = mysqlTable(
   {
     pk: primaryKey(),
     // boal_ id; also the ClickHouse dedupe key, so a re-drain is harmless.
-    eventId: varchar("event_id", { length: 64 }).notNull().unique(),
+    eventId: id("event_id").notNull().unique(),
     // The ClickHouse row, exactly as it will be inserted.
     payload: json("payload").notNull(),
     createdAt: bigint("created_at", { mode: "number" }).notNull(),
