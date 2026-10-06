@@ -1,9 +1,9 @@
-import { format } from "date-fns";
-
 import { IconClockOutline18 } from "@unkey/icons";
+import { isSameDay } from "date-fns";
 import { useState } from "react";
 // biome-ignore lint: React in this context is used throughout, so biome will change to types because no APIs are used even though React is needed.
 import * as React from "react";
+import type { DateRange } from "react-day-picker";
 import { cn } from "../../../lib/utils";
 import { useDateTimeContext } from "../date-time";
 
@@ -26,6 +26,15 @@ const MAX_VALUES = {
   ss: 59,
 } as const;
 
+export const compareTimeUnits = (time1: TimeUnit, time2: TimeUnit): number => {
+  const t1 = Number(time1.HH) * 3600 + Number(time1.mm) * 60 + Number(time1.ss);
+  const t2 = Number(time2.HH) * 3600 + Number(time2.mm) * 60 + Number(time2.ss);
+  return t1 - t2;
+};
+
+export const isSingleDay = (range?: DateRange) =>
+  !range?.from || !range.to || isSameDay(range.from, range.to);
+
 const TimeSplitInput: React.FC<TimeSplitInputProps> = ({ type }) => {
   const { startTime, endTime, date, onTimeChange } = useDateTimeContext();
   const [focus, setFocus] = useState(false);
@@ -38,15 +47,6 @@ const TimeSplitInput: React.FC<TimeSplitInputProps> = ({ type }) => {
     ss: time.ss.padStart(2, "0"),
   });
 
-  const isSameDay = (date1: Date, date2: Date) =>
-    format(new Date(date1), "dd/MM/yyyy") === format(new Date(date2), "dd/MM/yyyy");
-
-  const compareTimeUnits = (time1: TimeUnit, time2: TimeUnit): number => {
-    const t1 = Number(time1.HH) * 3600 + Number(time1.mm) * 60 + Number(time1.ss);
-    const t2 = Number(time2.HH) * 3600 + Number(time2.mm) * 60 + Number(time2.ss);
-    return t1 - t2;
-  };
-
   const handleBlur = () => {
     const normalizedTime = normalizeTimeUnit(time);
     setDraft(null);
@@ -55,7 +55,7 @@ const TimeSplitInput: React.FC<TimeSplitInputProps> = ({ type }) => {
       return;
     }
 
-    const resolveConflicts = !(date?.from && date.to) || isSameDay(date.from, date.to);
+    const resolveConflicts = isSingleDay(date);
     if (type === "start") {
       const pushEnd = resolveConflicts && compareTimeUnits(normalizedTime, endTime) > 0;
       onTimeChange(normalizedTime, pushEnd ? normalizedTime : endTime);

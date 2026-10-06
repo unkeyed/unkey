@@ -5,7 +5,7 @@ import React from "react";
 import type { DateRange } from "react-day-picker";
 import { DateTimeActions } from "./components/actions";
 import { Calendar } from "./components/calendar";
-import { TimeInput } from "./components/time-split";
+import { TimeInput, compareTimeUnits, isSingleDay } from "./components/time-split";
 
 export type DateTimeContextType = {
   minDate?: Date;
@@ -24,6 +24,8 @@ export type TimeUnit = {
   mm: string;
   ss: string;
 };
+
+const END_OF_DAY: TimeUnit = { HH: "23", mm: "59", ss: "59" };
 
 const DateTimeContext = createContext<DateTimeContextType>({} as DateTimeContextType);
 
@@ -74,12 +76,15 @@ function DateTime({
         ss: initialRange.to.getSeconds().toString().padStart(2, "0"),
       };
     }
-    return { HH: "23", mm: "59", ss: "59" };
+    return END_OF_DAY;
   });
 
   const handleDateChange = (newRange: DateRange) => {
+    const newEnd =
+      isSingleDay(newRange) && compareTimeUnits(endTime, startTime) < 0 ? END_OF_DAY : endTime;
     setDate(newRange);
-    onChange(newRange, startTime, endTime);
+    setEndTime(newEnd);
+    onChange(newRange, startTime, newEnd);
   };
 
   const handleTimeChange = (newStart: TimeUnit, newEnd: TimeUnit) => {
