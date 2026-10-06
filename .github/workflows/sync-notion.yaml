@@ -26,6 +26,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
       - name: Sync documents
-        uses: unkeyed/actions/notion@94af2d50cd12a7fded9d5968d2448d33734bd966
+        uses: unkeyed/actions/notion@198aaf732f420cfb0c0a98e56a95b801a66686af
         env:
           NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
