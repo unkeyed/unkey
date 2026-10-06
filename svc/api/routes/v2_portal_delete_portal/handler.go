@@ -120,11 +120,30 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			)
 		}
 
+		// Refused rather than cascaded: the domains' routes and certificates live in
+		// ctrl, and the portal domain routes can only reach them through this portal.
+		domainCount, err := db.Query.CountPortalDomainsByPortal(ctx, tx, db.CountPortalDomainsByPortalParams{
+			PortalID:    found.ID,
+			WorkspaceID: principal.AuthorizedWorkspaceID,
+		})
+		if err != nil {
+			return fault.Wrap(err,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("unable to count portal domains"),
+				fault.Public("We're unable to delete the portal."),
+			)
+		}
+		if domainCount > 0 {
+			return fault.New("portal has domains",
+				fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
+				fault.Internal(fmt.Sprintf("portal %s still has %d domains", found.ID, domainCount)),
+				fault.Public("This portal still has custom domains. Delete them before deleting the portal."),
+			)
+		}
+
 		// Scoped on (id, workspace_id) so one workspace can never delete another's
-		// row even if the resolve above were ever widened. There is no branding
-		// cleanup to do: `logo_url` and `primary_color` are columns on this row, not
-		// a side table, so the row going away takes the branding with it. Do not add
-		// a second delete here.
+		// row even if the resolve above were ever widened. Branding is columns on
+		// this row, so it needs no separate delete.
 		affected, err := db.Query.DeletePortal(ctx, tx, db.DeletePortalParams{
 			ID:          found.ID,
 			WorkspaceID: principal.AuthorizedWorkspaceID,

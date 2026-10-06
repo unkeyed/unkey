@@ -15679,6 +15679,8 @@ paths:
                 The app or keyspace it served is untouched, and its slug becomes free for a
                 new portal.
 
+                A portal with custom domains cannot be deleted. Delete its domains first.
+
                 **Required Permissions**
 
                 Your root key must have one of:
@@ -15720,6 +15722,13 @@ paths:
                                 $ref: '#/components/schemas/NotFoundErrorResponse'
                     description: |
                         No such portal, or your root key may not delete it.
+                "412":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/PreconditionFailedErrorResponse'
+                    description: |
+                        The portal still has custom domains. Delete them, then retry.
                 "429":
                     content:
                         application/problem+json:

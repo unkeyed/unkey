@@ -176,6 +176,8 @@ export class Portal extends ClientSDK {
    * The app or keyspace it served is untouched, and its slug becomes free for a
    * new portal.
    *
+   * A portal with custom domains cannot be deleted. Delete its domains first.
+   *
    * **Required Permissions**
    *
    * Your root key must have one of:
