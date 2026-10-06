@@ -46,8 +46,7 @@ type AcmeConfig struct {
 
 	// EmailDomain is the domain used for ACME account emails.
 	// Used for Let's Encrypt account registration and recovery.
-	// The address is "{WorkspaceID}@{EmailDomain}", so "unkey.com" registers
-	// accounts like "ws_abc123@unkey.com".
+	// All certificates share one account, registered as "acme@{EmailDomain}".
 	EmailDomain string `toml:"email_domain" config:"default=unkey.com"`
 
 	// DirectoryURL is the ACME directory. Non-production environments use Let's

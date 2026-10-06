@@ -47,7 +47,7 @@ var errNotVerified = errors.New("domain not verified yet")
 // TXT is also always required when another workspace already has the same domain
 // verified (contention), regardless of whether CNAME is visible.
 //
-// This is a Restate virtual object handler keyed by domain name, ensuring only one
+// This is a Restate virtual object handler keyed by domain ID, ensuring only one
 // verification workflow runs per domain at any time. The handler checks DNS once
 // per invocation - Restate's retry policy handles periodic re-checks (every 1 minute
 // for up to 24 hours).

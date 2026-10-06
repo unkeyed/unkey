@@ -9,7 +9,7 @@ import (
 //
 // Service implements hydrav1.CustomDomainServiceServer with handlers for
 // verifying domain ownership via CNAME records. It uses a Restate virtual
-// object pattern keyed by domain name to ensure only one verification
+// object pattern keyed by domain ID to ensure only one verification
 // workflow runs per domain at any time.
 //
 // The verification process checks that the user has added a CNAME record
