@@ -1,5 +1,5 @@
 import {
-  CopyButton,
+  CopyInput,
   SettingsRow,
   SettingsRowContent,
   SettingsRowDescription,
@@ -17,10 +17,7 @@ export const CopyApiId = ({ apiId }: { apiId: string }) => {
         </SettingsRowDescription>
       </SettingsRowHeader>
       <SettingsRowContent>
-        <div className="flex max-w-(--setting-w) items-center justify-between rounded-lg border bg-raised px-2 py-2">
-          <div className="text-sm text-gray-11">{apiId}</div>
-          <CopyButton value={apiId} variant="ghost" toastMessage={apiId} />
-        </div>
+        <CopyInput value={apiId} aria-label="API ID" className="max-w-(--setting-w)" />
       </SettingsRowContent>
     </SettingsRow>
   );

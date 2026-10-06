@@ -1,5 +1,5 @@
 import {
-  CopyButton,
+  CopyInput,
   SettingsRow,
   SettingsRowContent,
   SettingsRowDescription,
@@ -15,10 +15,7 @@ export const CopyKeySpaceId = ({ keySpaceId }: { keySpaceId: string }) => {
         <SettingsRowDescription>Identifier for the underlying keyspace.</SettingsRowDescription>
       </SettingsRowHeader>
       <SettingsRowContent>
-        <div className="flex max-w-(--setting-w) items-center justify-between rounded-lg border bg-raised px-2 py-2">
-          <div className="text-sm text-gray-11">{keySpaceId}</div>
-          <CopyButton value={keySpaceId} variant="ghost" toastMessage={keySpaceId} />
-        </div>
+        <CopyInput value={keySpaceId} aria-label="KeySpace ID" className="max-w-(--setting-w)" />
       </SettingsRowContent>
     </SettingsRow>
   );

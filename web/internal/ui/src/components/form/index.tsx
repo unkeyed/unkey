@@ -1,5 +1,6 @@
 export * from "./checkbox";
 export * from "./combobox";
+export * from "./copy-input";
 export * from "./form-checkbox";
 export * from "./form-field";
 export * from "./form-helpers";

@@ -3,7 +3,7 @@
 import { collection } from "@/lib/collections";
 import { eq, useLiveQuery } from "@tanstack/react-db";
 import {
-  CopyButton,
+  CopyInput,
   EmptyState,
   EmptyStateActions,
   EmptyStateDescription,
@@ -137,12 +137,11 @@ export const SettingsClient = ({ namespaceId }: Props) => {
               </SettingsRowDescription>
             </SettingsRowHeader>
             <SettingsRowContent>
-              <div className="flex max-w-(--setting-w) items-center rounded-lg border bg-raised px-2 py-2 hover:border-strong">
-                <pre className="flex-1 text-xs text-left overflow-x-auto">
-                  <code>{namespace.id}</code>
-                </pre>
-                <CopyButton value={namespace.id} variant="ghost" size="sm" />
-              </div>
+              <CopyInput
+                value={namespace.id}
+                aria-label="Namespace ID"
+                className="max-w-(--setting-w)"
+              />
             </SettingsRowContent>
           </SettingsRow>
         </SettingsGroupContent>
