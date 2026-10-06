@@ -2,7 +2,6 @@
 title: "Releases"
 description: "How Unkey ships service images from a git tag to production"
 notion:
-  rootPageID: 3f1512d643f380d2b1affdac1d6420c8
   owners:
     - andreas
   tags:

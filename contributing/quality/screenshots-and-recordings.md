@@ -2,7 +2,6 @@
 title: "Screenshots and recordings"
 description: "How to capture screenshots and screen recordings for pull requests with visual changes"
 notion:
-  rootPageID: 3f1512d643f380d2b1affdac1d6420c8
   owners:
     - andreas
   tags:

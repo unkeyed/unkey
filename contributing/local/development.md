@@ -2,7 +2,6 @@
 title: "Local development"
 description: "Set up, run, and test Unkey locally"
 notion:
-  rootPageID: 3f1512d643f380d2b1affdac1d6420c8
   owners:
     - andreas
   tags:

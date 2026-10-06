@@ -2,7 +2,6 @@
 title: "Mise"
 description: "How Unkey pins tools for local tasks, CI, and build containers"
 notion:
-  rootPageID: 3f1512d643f380d2b1affdac1d6420c8
   owners:
     - andreas
   tags:

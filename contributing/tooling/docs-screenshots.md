@@ -2,7 +2,6 @@
 title: "Refresh docs screenshots"
 description: "Use Amp to check and refresh product documentation screenshots from the real dashboard."
 notion:
-  rootPageID: 3f1512d643f380d2b1affdac1d6420c8
   owners:
     - andreas
   tags:
