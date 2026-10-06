@@ -11,10 +11,10 @@ FROM projects p
 JOIN (
     SELECT p1.id
     FROM projects p1
-    WHERE p1.id = sqlc.arg(project) AND p1.workspace_id = sqlc.arg(workspace_id)
+    WHERE p1.id = sqlc.arg(project) AND p1.workspace_id = sqlc.arg(workspace_id) AND p1.deleted_at_m IS NULL
     UNION ALL
     SELECT p2.id
     FROM projects p2
-    WHERE p2.slug = sqlc.arg(project) AND p2.workspace_id = sqlc.arg(workspace_id)
+    WHERE p2.slug = sqlc.arg(project) AND p2.workspace_id = sqlc.arg(workspace_id) AND p2.deleted_at_m IS NULL
 ) AS project_lookup ON project_lookup.id = p.id
 LIMIT 1;

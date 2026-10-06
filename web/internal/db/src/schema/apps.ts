@@ -11,7 +11,7 @@ import { appSourceOci } from "./app_source_oci";
 import { environments } from "./environments";
 import { githubRepoConnections } from "./github_app";
 import { deleteProtection } from "./util/delete_protection";
-import { lifecycleDates } from "./util/lifecycle_dates";
+import { lifecycleDates, lifecycleDatesMigration } from "./util/lifecycle_dates";
 import { workspaces } from "./workspaces";
 
 import { projects } from "./projects";
@@ -34,6 +34,7 @@ export const apps = mysqlTable(
 
     ...deleteProtection,
     ...lifecycleDates,
+    deletedAtM: lifecycleDatesMigration.deletedAtM,
   },
   (table) => [
     uniqueIndex("apps_project_slug_idx").on(table.projectId, table.slug),

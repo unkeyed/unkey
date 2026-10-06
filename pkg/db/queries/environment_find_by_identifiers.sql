@@ -4,6 +4,8 @@ FROM environments
 JOIN apps a ON environments.app_id = a.id AND environments.workspace_id = a.workspace_id
 JOIN projects p ON a.project_id = p.id AND a.workspace_id = p.workspace_id
 WHERE environments.workspace_id = sqlc.arg(workspace_id)
+  AND p.deleted_at_m IS NULL
+  AND a.deleted_at_m IS NULL
   AND (p.id = sqlc.arg(project) OR p.slug = sqlc.arg(project))
   AND (a.id = sqlc.arg(app) OR a.slug = sqlc.arg(app))
   AND (environments.id = sqlc.arg(environment) OR environments.slug = sqlc.arg(environment))

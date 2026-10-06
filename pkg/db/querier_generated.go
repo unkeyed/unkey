@@ -208,9 +208,10 @@ type Querier interface {
 	FindAppBuildSettingByAppEnv(ctx context.Context, db DBTX, arg FindAppBuildSettingByAppEnvParams) (AppBuildSetting, error)
 	//FindAppById
 	//
-	//  SELECT apps.pk, apps.id, apps.workspace_id, apps.project_id, apps.name, apps.slug, apps.source_type, apps.current_deployment_id, apps.is_rolled_back, apps.delete_protection, apps.created_at, apps.updated_at
+	//  SELECT apps.pk, apps.id, apps.workspace_id, apps.project_id, apps.name, apps.slug, apps.source_type, apps.current_deployment_id, apps.is_rolled_back, apps.delete_protection, apps.created_at, apps.updated_at, apps.deleted_at_m
 	//  FROM apps
 	//  WHERE id = ?
+	//    AND deleted_at_m IS NULL
 	FindAppById(ctx context.Context, db DBTX, id string) (App, error)
 	// Resolves an app by id within a workspace.
 	//
@@ -227,13 +228,16 @@ type Querier interface {
 	//  SELECT id, project_id FROM apps
 	//  WHERE id = ?
 	//    AND workspace_id = ?
+	//    AND deleted_at_m IS NULL
 	FindAppByIdAndWorkspace(ctx context.Context, db DBTX, arg FindAppByIdAndWorkspaceParams) (FindAppByIdAndWorkspaceRow, error)
 	//FindAppByProjectAndIdOrSlug
 	//
-	//  SELECT a.pk, a.id, a.workspace_id, a.project_id, a.name, a.slug, a.source_type, a.current_deployment_id, a.is_rolled_back, a.delete_protection, a.created_at, a.updated_at
+	//  SELECT a.pk, a.id, a.workspace_id, a.project_id, a.name, a.slug, a.source_type, a.current_deployment_id, a.is_rolled_back, a.delete_protection, a.created_at, a.updated_at, a.deleted_at_m
 	//  FROM apps a
 	//  JOIN projects p ON a.project_id = p.id AND a.workspace_id = p.workspace_id
 	//  WHERE a.workspace_id = ?
+	//    AND a.deleted_at_m IS NULL
+	//    AND p.deleted_at_m IS NULL
 	//    AND (p.id = ? OR p.slug = ?)
 	//    AND (a.id = ? OR a.slug = ?)
 	//  LIMIT 1
@@ -246,6 +250,7 @@ type Querier interface {
 	//    apps.slug
 	//  FROM apps
 	//  WHERE apps.project_id = ?
+	//    AND apps.deleted_at_m IS NULL
 	//    AND apps.slug = ?
 	FindAppByProjectAndSlug(ctx context.Context, db DBTX, arg FindAppByProjectAndSlugParams) (FindAppByProjectAndSlugRow, error)
 	//FindAppByWorkspaceAndSlugs
@@ -256,6 +261,8 @@ type Querier interface {
 	//  FROM apps a
 	//  INNER JOIN projects p ON a.project_id = p.id
 	//  WHERE p.workspace_id = ?
+	//    AND p.deleted_at_m IS NULL
+	//    AND a.deleted_at_m IS NULL
 	//    AND p.slug = ?
 	//    AND a.slug = ?
 	FindAppByWorkspaceAndSlugs(ctx context.Context, db DBTX, arg FindAppByWorkspaceAndSlugsParams) (FindAppByWorkspaceAndSlugsRow, error)
@@ -452,6 +459,8 @@ type Querier interface {
 	//  JOIN apps a ON environments.app_id = a.id AND environments.workspace_id = a.workspace_id
 	//  JOIN projects p ON a.project_id = p.id AND a.workspace_id = p.workspace_id
 	//  WHERE environments.workspace_id = ?
+	//    AND p.deleted_at_m IS NULL
+	//    AND a.deleted_at_m IS NULL
 	//    AND (p.id = ? OR p.slug = ?)
 	//    AND (a.id = ? OR a.slug = ?)
 	//    AND (environments.id = ? OR environments.slug = ?)
@@ -1056,9 +1065,10 @@ type Querier interface {
 	FindPortalSessionByExchangeCodeHash(ctx context.Context, db DBTX, exchangeCodeHash string) (PortalSession, error)
 	//FindProjectById
 	//
-	//  SELECT projects.pk, projects.id, projects.workspace_id, projects.name, projects.slug, projects.depot_project_id, projects.delete_protection, projects.created_at, projects.updated_at
+	//  SELECT projects.pk, projects.id, projects.workspace_id, projects.name, projects.slug, projects.depot_project_id, projects.delete_protection, projects.created_at, projects.updated_at, projects.deleted_at_m
 	//  FROM projects
 	//  WHERE id = ?
+	//    AND deleted_at_m IS NULL
 	FindProjectById(ctx context.Context, db DBTX, id string) (Project, error)
 	//FindProjectByIdOrSlug
 	//
@@ -1074,19 +1084,20 @@ type Querier interface {
 	//  JOIN (
 	//      SELECT p1.id
 	//      FROM projects p1
-	//      WHERE p1.id = ? AND p1.workspace_id = ?
+	//      WHERE p1.id = ? AND p1.workspace_id = ? AND p1.deleted_at_m IS NULL
 	//      UNION ALL
 	//      SELECT p2.id
 	//      FROM projects p2
-	//      WHERE p2.slug = ? AND p2.workspace_id = ?
+	//      WHERE p2.slug = ? AND p2.workspace_id = ? AND p2.deleted_at_m IS NULL
 	//  ) AS project_lookup ON project_lookup.id = p.id
 	//  LIMIT 1
 	FindProjectByIdOrSlug(ctx context.Context, db DBTX, arg FindProjectByIdOrSlugParams) (FindProjectByIdOrSlugRow, error)
 	//FindProjectBySlug
 	//
-	//  SELECT projects.pk, projects.id, projects.workspace_id, projects.name, projects.slug, projects.depot_project_id, projects.delete_protection, projects.created_at, projects.updated_at
+	//  SELECT projects.pk, projects.id, projects.workspace_id, projects.name, projects.slug, projects.depot_project_id, projects.delete_protection, projects.created_at, projects.updated_at, projects.deleted_at_m
 	//  FROM projects
 	//  WHERE slug = ?
+	//    AND deleted_at_m IS NULL
 	//  LIMIT 1
 	FindProjectBySlug(ctx context.Context, db DBTX, slug string) (Project, error)
 	//FindRatelimitNamespace
@@ -2180,6 +2191,7 @@ type Querier interface {
 	//  LEFT JOIN github_repo_connections grc ON grc.app_id = apps.id
 	//  LEFT JOIN app_source_oci aso ON aso.app_id = apps.id
 	//  WHERE apps.project_id = ?
+	//    AND apps.deleted_at_m IS NULL
 	//    AND apps.id >= ?
 	//    -- search is a pre-escaped LIKE pattern built by mysql.SearchContains; NULL disables the filter
 	//    AND (? IS NULL OR LOWER(apps.id) LIKE LOWER(?) OR LOWER(apps.name) LIKE LOWER(?) OR LOWER(apps.slug) LIKE LOWER(?))
@@ -2657,6 +2669,7 @@ type Querier interface {
 	//      updated_at
 	//  FROM projects
 	//  WHERE workspace_id = ?
+	//    AND deleted_at_m IS NULL
 	//    -- The default project is an internal ownership container, not a user-visible project.
 	//    AND BINARY slug != 'default'
 	//    AND id >= ?
@@ -2919,6 +2932,8 @@ type Querier interface {
 	//  FROM apps a
 	//  JOIN projects p ON p.id = a.project_id AND p.workspace_id = a.workspace_id
 	//  WHERE a.workspace_id = ?
+	//    AND a.deleted_at_m IS NULL
+	//    AND p.deleted_at_m IS NULL
 	//    AND a.id = ?
 	//    AND (? = '' OR p.id = ? OR p.slug = ?)
 	//  UNION ALL
@@ -2926,6 +2941,8 @@ type Querier interface {
 	//  FROM apps a
 	//  JOIN projects p ON p.id = a.project_id AND p.workspace_id = a.workspace_id
 	//  WHERE a.workspace_id = ?
+	//    AND a.deleted_at_m IS NULL
+	//    AND p.deleted_at_m IS NULL
 	//    AND a.slug = ?
 	//    AND a.id <> ?
 	//    AND (? = '' OR p.id = ? OR p.slug = ?)
@@ -2949,6 +2966,8 @@ type Querier interface {
 	//  JOIN apps a ON a.id = e.app_id AND a.project_id = e.project_id AND a.workspace_id = e.workspace_id
 	//  JOIN projects p ON p.id = a.project_id AND p.workspace_id = e.workspace_id
 	//  WHERE e.workspace_id = ?
+	//    AND p.deleted_at_m IS NULL
+	//    AND a.deleted_at_m IS NULL
 	//    AND e.id = ?
 	//    AND (? = '' OR p.id = ? OR p.slug = ?)
 	//    AND (? = '' OR a.id = ? OR a.slug = ?)
@@ -2958,6 +2977,8 @@ type Querier interface {
 	//  JOIN apps a ON a.id = e.app_id AND a.project_id = e.project_id AND a.workspace_id = e.workspace_id
 	//  JOIN projects p ON p.id = a.project_id AND p.workspace_id = e.workspace_id
 	//  WHERE e.workspace_id = ?
+	//    AND p.deleted_at_m IS NULL
+	//    AND a.deleted_at_m IS NULL
 	//    AND e.slug = ?
 	//    AND e.id <> ?
 	//    AND (? = '' OR p.id = ? OR p.slug = ?)
@@ -2976,6 +2997,7 @@ type Querier interface {
 	//  SELECT p.id
 	//  FROM projects p
 	//  WHERE p.workspace_id = ?
+	//    AND p.deleted_at_m IS NULL
 	//    AND (p.id = ? OR p.slug = ?)
 	ResolveCustomDomainProjects(ctx context.Context, db DBTX, arg ResolveCustomDomainProjectsParams) ([]string, error)
 	// Resolves a project (required) + optional app/environment, each an id or slug, to
@@ -2992,16 +3014,17 @@ type Querier interface {
 	//  FROM (
 	//      SELECT p1.id, p1.workspace_id
 	//      FROM projects p1
-	//      WHERE p1.workspace_id = ? AND p1.id = ?
+	//      WHERE p1.workspace_id = ? AND p1.id = ? AND p1.deleted_at_m IS NULL
 	//      UNION ALL
 	//      SELECT p2.id, p2.workspace_id
 	//      FROM projects p2
-	//      WHERE p2.workspace_id = ? AND p2.slug = ?
+	//      WHERE p2.workspace_id = ? AND p2.slug = ? AND p2.deleted_at_m IS NULL
 	//      LIMIT 1
 	//  ) p
 	//  LEFT JOIN apps a
 	//      ON a.project_id = p.id
 	//      AND a.workspace_id = p.workspace_id
+	//      AND a.deleted_at_m IS NULL
 	//      AND (a.id = ? OR a.slug = ?)
 	//  LEFT JOIN environments e
 	//      ON e.app_id = a.id
@@ -3038,6 +3061,12 @@ type Querier interface {
 	//  SET deleted_at_m = ?
 	//  WHERE id = ?
 	SoftDeleteApi(ctx context.Context, db DBTX, arg SoftDeleteApiParams) error
+	//SoftDeleteApp
+	//
+	//  UPDATE apps
+	//  SET deleted_at_m = ?
+	//  WHERE id = ?
+	SoftDeleteApp(ctx context.Context, db DBTX, arg SoftDeleteAppParams) error
 	//SoftDeleteIdentity
 	//
 	//  UPDATE identities
@@ -3074,6 +3103,12 @@ type Querier interface {
 	//    AND deleted_at_m IS NULL
 	//  LIMIT ?
 	SoftDeleteKeysByKeySpaceID(ctx context.Context, db DBTX, arg SoftDeleteKeysByKeySpaceIDParams) (int64, error)
+	//SoftDeleteProject
+	//
+	//  UPDATE projects
+	//  SET deleted_at_m = ?
+	//  WHERE id = ?
+	SoftDeleteProject(ctx context.Context, db DBTX, arg SoftDeleteProjectParams) error
 	//SoftDeleteRatelimitNamespace
 	//
 	//  UPDATE `ratelimit_namespaces`

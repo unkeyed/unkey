@@ -17,6 +17,8 @@ SELECT a.id
 FROM apps a
 JOIN projects p ON p.id = a.project_id AND p.workspace_id = a.workspace_id
 WHERE a.workspace_id = sqlc.arg(workspace_id)
+  AND a.deleted_at_m IS NULL
+  AND p.deleted_at_m IS NULL
   AND a.id = sqlc.arg(app)
   AND (sqlc.arg(project) = '' OR p.id = sqlc.arg(project) OR p.slug = sqlc.arg(project))
 UNION ALL
@@ -24,6 +26,8 @@ SELECT a.id
 FROM apps a
 JOIN projects p ON p.id = a.project_id AND p.workspace_id = a.workspace_id
 WHERE a.workspace_id = sqlc.arg(workspace_id)
+  AND a.deleted_at_m IS NULL
+  AND p.deleted_at_m IS NULL
   AND a.slug = sqlc.arg(app)
   AND a.id <> sqlc.arg(app)
   AND (sqlc.arg(project) = '' OR p.id = sqlc.arg(project) OR p.slug = sqlc.arg(project));

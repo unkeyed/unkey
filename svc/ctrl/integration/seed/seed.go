@@ -227,6 +227,7 @@ func (h *Seeder) CreateProject(ctx context.Context, req CreateProjectRequest) db
 		DeleteProtection: project.DeleteProtection,
 		CreatedAt:        project.CreatedAt,
 		UpdatedAt:        project.UpdatedAt,
+		DeletedAtM:       project.DeletedAtM,
 		Pk:               0,
 		DepotProjectID:   sql.NullString{String: "", Valid: false},
 	}

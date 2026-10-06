@@ -16,6 +16,8 @@ SELECT
 FROM apps a
 INNER JOIN projects p ON a.project_id = p.id
 WHERE p.workspace_id = ?
+  AND p.deleted_at_m IS NULL
+  AND a.deleted_at_m IS NULL
   AND p.slug = ?
   AND a.slug = ?
 `
@@ -39,6 +41,8 @@ type FindAppByWorkspaceAndSlugsRow struct {
 //	FROM apps a
 //	INNER JOIN projects p ON a.project_id = p.id
 //	WHERE p.workspace_id = ?
+//	  AND p.deleted_at_m IS NULL
+//	  AND a.deleted_at_m IS NULL
 //	  AND p.slug = ?
 //	  AND a.slug = ?
 func (q *Queries) FindAppByWorkspaceAndSlugs(ctx context.Context, db DBTX, arg FindAppByWorkspaceAndSlugsParams) (FindAppByWorkspaceAndSlugsRow, error) {

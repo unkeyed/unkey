@@ -15,6 +15,8 @@ FROM environments e
 JOIN apps a ON a.id = e.app_id AND a.project_id = e.project_id AND a.workspace_id = e.workspace_id
 JOIN projects p ON p.id = a.project_id AND p.workspace_id = e.workspace_id
 WHERE e.workspace_id = ?
+  AND p.deleted_at_m IS NULL
+  AND a.deleted_at_m IS NULL
   AND e.id = ?
   AND (? = '' OR p.id = ? OR p.slug = ?)
   AND (? = '' OR a.id = ? OR a.slug = ?)
@@ -24,6 +26,8 @@ FROM environments e
 JOIN apps a ON a.id = e.app_id AND a.project_id = e.project_id AND a.workspace_id = e.workspace_id
 JOIN projects p ON p.id = a.project_id AND p.workspace_id = e.workspace_id
 WHERE e.workspace_id = ?
+  AND p.deleted_at_m IS NULL
+  AND a.deleted_at_m IS NULL
   AND e.slug = ?
   AND e.id <> ?
   AND (? = '' OR p.id = ? OR p.slug = ?)
@@ -56,6 +60,8 @@ type ResolveCustomDomainEnvironmentsParams struct {
 //	JOIN apps a ON a.id = e.app_id AND a.project_id = e.project_id AND a.workspace_id = e.workspace_id
 //	JOIN projects p ON p.id = a.project_id AND p.workspace_id = e.workspace_id
 //	WHERE e.workspace_id = ?
+//	  AND p.deleted_at_m IS NULL
+//	  AND a.deleted_at_m IS NULL
 //	  AND e.id = ?
 //	  AND (? = '' OR p.id = ? OR p.slug = ?)
 //	  AND (? = '' OR a.id = ? OR a.slug = ?)
@@ -65,6 +71,8 @@ type ResolveCustomDomainEnvironmentsParams struct {
 //	JOIN apps a ON a.id = e.app_id AND a.project_id = e.project_id AND a.workspace_id = e.workspace_id
 //	JOIN projects p ON p.id = a.project_id AND p.workspace_id = e.workspace_id
 //	WHERE e.workspace_id = ?
+//	  AND p.deleted_at_m IS NULL
+//	  AND a.deleted_at_m IS NULL
 //	  AND e.slug = ?
 //	  AND e.id <> ?
 //	  AND (? = '' OR p.id = ? OR p.slug = ?)

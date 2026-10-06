@@ -12,4 +12,5 @@
 -- app it just proved it owns.
 SELECT id, project_id FROM apps
 WHERE id = sqlc.arg('id')
-  AND workspace_id = sqlc.arg('workspace_id');
+  AND workspace_id = sqlc.arg('workspace_id')
+  AND deleted_at_m IS NULL;

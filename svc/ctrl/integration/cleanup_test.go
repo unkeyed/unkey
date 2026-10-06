@@ -252,6 +252,12 @@ func TestProjectDeletion_CleansUpAllData(t *testing.T) {
 		require.Equal(t, 1, countRows(t, ctx, h.DB, c.query, c.arg))
 	}
 
+	// The API marks rows deleted before the worker runs.
+	_, err = h.DB.RW().ExecContext(ctx, "UPDATE projects SET deleted_at_m = ? WHERE id = ?", now, project.ID)
+	require.NoError(t, err)
+	_, err = h.DB.RW().ExecContext(ctx, "UPDATE apps SET deleted_at_m = ? WHERE id = ?", now, app.ID)
+	require.NoError(t, err)
+
 	// --- Trigger deletion via Restate ingress ---
 
 	projectClient := hydrav1.NewProjectServiceIngressClient(tEnv.Ingress(), project.ID)

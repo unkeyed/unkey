@@ -10,16 +10,18 @@ import (
 )
 
 const findAppById = `-- name: FindAppById :one
-SELECT apps.pk, apps.id, apps.workspace_id, apps.project_id, apps.name, apps.slug, apps.source_type, apps.current_deployment_id, apps.is_rolled_back, apps.delete_protection, apps.created_at, apps.updated_at
+SELECT apps.pk, apps.id, apps.workspace_id, apps.project_id, apps.name, apps.slug, apps.source_type, apps.current_deployment_id, apps.is_rolled_back, apps.delete_protection, apps.created_at, apps.updated_at, apps.deleted_at_m
 FROM apps
 WHERE id = ?
+  AND deleted_at_m IS NULL
 `
 
 // FindAppById
 //
-//	SELECT apps.pk, apps.id, apps.workspace_id, apps.project_id, apps.name, apps.slug, apps.source_type, apps.current_deployment_id, apps.is_rolled_back, apps.delete_protection, apps.created_at, apps.updated_at
+//	SELECT apps.pk, apps.id, apps.workspace_id, apps.project_id, apps.name, apps.slug, apps.source_type, apps.current_deployment_id, apps.is_rolled_back, apps.delete_protection, apps.created_at, apps.updated_at, apps.deleted_at_m
 //	FROM apps
 //	WHERE id = ?
+//	  AND deleted_at_m IS NULL
 func (q *Queries) FindAppById(ctx context.Context, db DBTX, id string) (App, error) {
 	row := db.QueryRowContext(ctx, findAppById, id)
 	var i App
@@ -36,6 +38,7 @@ func (q *Queries) FindAppById(ctx context.Context, db DBTX, id string) (App, err
 		&i.DeleteProtection,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.DeletedAtM,
 	)
 	return i, err
 }

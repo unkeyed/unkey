@@ -11,4 +11,5 @@
 SELECT p.id
 FROM projects p
 WHERE p.workspace_id = sqlc.arg(workspace_id)
+  AND p.deleted_at_m IS NULL
   AND (p.id = sqlc.arg(project) OR p.slug = sqlc.arg(project));
