@@ -34,13 +34,13 @@ type DNSProvider interface {
 type Provider struct {
 	db    db.Database
 	dns   DNSProvider
-	cache cache.Cache[string, db.CustomDomain]
+	cache cache.Cache[string, db.FindVerifiedDomainByHostnameRow]
 }
 
 type ProviderConfig struct {
 	DB          db.Database
 	DNS         DNSProvider
-	DomainCache cache.Cache[string, db.CustomDomain]
+	DomainCache cache.Cache[string, db.FindVerifiedDomainByHostnameRow]
 }
 
 // NewProvider creates a new Provider that wraps a DNS provider with database tracking.
@@ -61,28 +61,27 @@ func NewProvider(cfg ProviderConfig) (*Provider, error) {
 	}, nil
 }
 
-// resolveDomain finds the best matching custom domain for a given domain.
-// It queries for both the exact domain and wildcard (*.domain) in a single query,
-// preferring exact matches.
-func (p *Provider) resolveDomain(ctx context.Context, domain string) (db.CustomDomain, error) {
+// resolveDomain finds the verified domain row a challenge belongs to, preferring
+// an exact match over a wildcard (*.domain) in a single query.
+func (p *Provider) resolveDomain(ctx context.Context, domain string) (db.FindVerifiedDomainByHostnameRow, error) {
 	wildcardDomain := "*." + domain
 	cacheKey := domain + "|" + wildcardDomain
 
 	dom, hit, err := p.cache.SWR(ctx, cacheKey,
-		func(ctx context.Context) (db.CustomDomain, error) {
-			return p.db.FindCustomDomainByDomainOrWildcard(ctx, db.FindCustomDomainByDomainOrWildcardParams{
-				Domain:   domain,
-				Domain_2: wildcardDomain,
-				Domain_3: domain,
+		func(ctx context.Context) (db.FindVerifiedDomainByHostnameRow, error) {
+			row, findErr := p.db.FindVerifiedDomainByHostnameOrWildcard(ctx, db.FindVerifiedDomainByHostnameOrWildcardParams{
+				Domain:         domain,
+				WildcardDomain: wildcardDomain,
 			})
+			return db.FindVerifiedDomainByHostnameRow(row), findErr
 		},
 		caches.DefaultFindFirstOp,
 	)
 	if err != nil {
-		return db.CustomDomain{}, err
+		return db.FindVerifiedDomainByHostnameRow{}, err
 	}
 	if hit == cache.Null {
-		return db.CustomDomain{}, ErrDomainNotFound
+		return db.FindVerifiedDomainByHostnameRow{}, ErrDomainNotFound
 	}
 	return dom, nil
 }

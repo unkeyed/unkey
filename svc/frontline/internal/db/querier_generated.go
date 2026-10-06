@@ -36,12 +36,15 @@ type Querier interface {
 	//  ORDER BY hostname = ? DESC
 	//  LIMIT 1
 	FindBestCertificateByCandidates(ctx context.Context, arg FindBestCertificateByCandidatesParams) (FindBestCertificateByCandidatesRow, error)
-	// FindCustomDomainIDByDomain checks whether the caller-supplied domain has been
-	// registered as a custom domain. ACME HTTP-01 only needs to confirm ownership,
-	// not resolve any routing data, so the projection is just the row id.
+	// Checks whether a hostname is registered as a deploy or portal custom domain.
+	// ACME HTTP-01 only needs to confirm a registration exists, so the projection is
+	// just a row id.
 	//
-	//  SELECT id FROM custom_domains WHERE domain = ?
-	FindCustomDomainIDByDomain(ctx context.Context, domain string) (string, error)
+	//  SELECT custom_domains.id FROM custom_domains WHERE custom_domains.domain = ?
+	//  UNION ALL
+	//  SELECT portal_domains.id FROM portal_domains WHERE portal_domains.domain = ?
+	//  LIMIT 1
+	FindDomainIDByHostname(ctx context.Context, arg FindDomainIDByHostnameParams) (string, error)
 	// FindFrontlineRouteByFQDN resolves a hostname to the routing data frontline
 	// needs on the request path: the deployment ID, the policy bytes the engine
 	// evaluates, the upstream protocol used to pick a transport, the deployment's
