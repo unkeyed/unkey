@@ -2,6 +2,7 @@ import { BaseAuthProvider } from "./base-provider";
 import { getCookie } from "./cookies";
 import {
   type AuthenticatedUser,
+  type CreateTenantParams,
   type Invitation,
   type InvitationListResponse,
   LOCAL_AUTH_PERMISSIONS,
@@ -93,7 +94,7 @@ export class LocalAuthProvider extends BaseAuthProvider {
     return userId === LOCAL_USER_ID ? this.user : null;
   }
 
-  async createTenant(params: { name: string; userId: string }): Promise<string> {
+  async createTenant(params: CreateTenantParams): Promise<string> {
     if (!params.name || !params.userId) {
       throw new Error("Organization name and userId are required.");
     }

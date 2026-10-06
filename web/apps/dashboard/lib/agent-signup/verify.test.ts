@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { type KeyLike, SignJWT, createLocalJWKSet, exportJWK, generateKeyPair } from "jose";
 import { describe, expect, it, vi } from "vitest";
 import type { AgentSignupConfig } from "./config";

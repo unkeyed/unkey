@@ -1,4 +1,5 @@
 import { insertAuditLogs } from "@/lib/audit";
+import type { CreateTenantParams } from "@/lib/auth/types";
 import type { InsertWorkspace } from "@/lib/db";
 import { freeTierLimits } from "@/lib/limits";
 import { type Transaction, isDuplicateKeyError, schema } from "@unkey/db";
@@ -24,7 +25,8 @@ export type CreateFreeWorkspaceInput = {
     location: string;
     userAgent?: string;
   };
-  createTenant: (params: { name: string; userId: string }) => Promise<string>;
+  metadata?: Record<string, string>;
+  createTenant: (params: CreateTenantParams) => Promise<string>;
   localOrgId: string | null;
 };
 
@@ -72,6 +74,7 @@ export async function createFreeWorkspaceInTx(
   const orgId = await input.createTenant({
     name: input.name,
     userId: input.userId,
+    ...(input.metadata ? { metadata: input.metadata } : {}),
   });
 
   const workspace: InsertWorkspace = {

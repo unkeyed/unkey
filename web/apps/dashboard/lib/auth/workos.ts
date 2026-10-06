@@ -2,6 +2,7 @@ import { logOperation } from "@/lib/logging";
 import { BaseAuthProvider } from "./base-provider";
 import { mapWorkOSUser } from "./map-workos-user";
 import {
+  type CreateTenantParams,
   type MembershipListResponse,
   type Organization,
   OrganizationScopeError,
@@ -78,13 +79,13 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
     }
   }
 
-  async createTenant(params: { name: string; userId: string }): Promise<string> {
+  async createTenant(params: CreateTenantParams): Promise<string> {
     if (!params.name || !params.userId) {
       throw new Error("Organization name and userId are required.");
     }
     try {
       const provider = await this.getProvider();
-      const organization = await this.createOrg(params.name);
+      const organization = await this.createOrg(params.name, params.metadata);
       const membership = await provider.userManagement.createOrganizationMembership({
         organizationId: organization.id,
         userId: params.userId,
@@ -96,13 +97,21 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
     }
   }
 
-  protected async createOrg(name: string): Promise<Organization> {
+  protected async createOrg(
+    name: string,
+    metadata?: Record<string, string>,
+  ): Promise<Organization> {
     if (!name) {
       throw new Error("Organization name is required.");
     }
     try {
       const provider = await this.getProvider();
-      return this.transformOrganization(await provider.organizations.createOrganization({ name }));
+      return this.transformOrganization(
+        await provider.organizations.createOrganization({
+          name,
+          ...(metadata ? { metadata } : {}),
+        }),
+      );
     } catch (error) {
       throw this.providerError(error);
     }

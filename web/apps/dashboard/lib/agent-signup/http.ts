@@ -19,18 +19,34 @@ const workspaceBody = z.object({
     .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
 });
 
-const rootKeyBody = z.object({
-  name: z.string().trim().min(1).max(256).optional(),
-  permissions: z
-    .array(
-      z.object({
-        path: z.string(),
-        action: z.string(),
-      }),
-    )
-    .max(32)
-    .optional(),
-});
+const rootKeyBody = z
+  .object({
+    workspaceId: z
+      .string()
+      .trim()
+      .min(4)
+      .max(48)
+      .regex(/^ws_[A-Za-z0-9]+$/)
+      .optional(),
+    slug: z
+      .string()
+      .trim()
+      .min(3)
+      .max(64)
+      .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)
+      .optional(),
+    name: z.string().trim().min(1).max(256).optional(),
+    permissions: z
+      .array(
+        z.object({
+          path: z.string(),
+          action: z.string(),
+        }),
+      )
+      .max(32)
+      .optional(),
+  })
+  .refine((body) => body.workspaceId !== undefined || body.slug !== undefined);
 
 export function protectedResourceDocument(config: AgentSignupConfig) {
   return {
@@ -116,7 +132,7 @@ export async function readRootKeyBody(req: NextRequest) {
     throw new AgentSignupError(
       400,
       "invalid_body",
-      "name must be 1 to 256 characters. permissions must be a list of path and action.",
+      "Send workspaceId or slug. name must be 1 to 256 characters. permissions must be a list of path and action.",
     );
   }
   return parsed.data;

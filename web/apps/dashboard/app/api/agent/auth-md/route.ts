@@ -24,7 +24,7 @@ export async function GET() {
 The WorkOS registration skill follows. After you exchange the identity assertion for an access token, create the workspace and the first root key on this dashboard:
 
 - \`POST ${base}/api/agent/workspace\`
-- \`POST ${base}/api/agent/root-key\`
+- \`POST ${base}/api/agent/root-key\` with \`workspaceId\` or \`slug\`
 
 The full procedure is https://www.unkey.com/docs/agent.md
 

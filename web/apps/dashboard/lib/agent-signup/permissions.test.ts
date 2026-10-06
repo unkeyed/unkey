@@ -36,7 +36,7 @@ describe("resolveAgentPermissions", () => {
       resolveAgentPermissions(workspaceId, [
         { path: "projects/*/keyspaces/*/keys/*", action: "decrypt" },
       ]),
-    ).toThrow(AgentSignupError);
+    ).toThrow(expect.objectContaining({ status: 400, code: "permission_denied" }));
     expect(() =>
       resolveAgentPermissions(workspaceId, [{ path: "rootKeys/*", action: "write" }]),
     ).toThrow(AgentSignupError);

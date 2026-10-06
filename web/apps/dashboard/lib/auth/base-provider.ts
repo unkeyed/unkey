@@ -1,4 +1,10 @@
-import type { MembershipListResponse, Organization, UpdateOrgParams, User } from "./types";
+import type {
+  CreateTenantParams,
+  MembershipListResponse,
+  Organization,
+  UpdateOrgParams,
+  User,
+} from "./types";
 
 /**
  * Provider-neutral administrative operations used by the dashboard.
@@ -9,9 +15,12 @@ import type { MembershipListResponse, Organization, UpdateOrgParams, User } from
  */
 export abstract class BaseAuthProvider {
   abstract getUser(userId: string): Promise<User | null>;
-  abstract createTenant(params: { name: string; userId: string }): Promise<string>;
+  abstract createTenant(params: CreateTenantParams): Promise<string>;
   abstract updateOrg(params: UpdateOrgParams): Promise<Organization>;
-  protected abstract createOrg(name: string): Promise<Organization>;
+  protected abstract createOrg(
+    name: string,
+    metadata?: Record<string, string>,
+  ): Promise<Organization>;
   abstract getOrg(orgId: string): Promise<Organization>;
   abstract listMemberships(
     userId: string,

@@ -8,6 +8,8 @@ export async function POST(req: NextRequest) {
     const body = await readRootKeyBody(req);
     const created = await issueAgentRootKey({
       agent,
+      ...(body.workspaceId ? { workspaceId: body.workspaceId } : {}),
+      ...(body.slug ? { slug: body.slug } : {}),
       ...(body.name ? { name: body.name } : {}),
       ...(body.permissions ? { permissions: body.permissions } : {}),
     });

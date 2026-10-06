@@ -73,6 +73,12 @@ export interface Invitation {
   updatedAt: string;
 }
 
+export interface CreateTenantParams {
+  name: string;
+  userId: string;
+  metadata?: Record<string, string>;
+}
+
 export interface UpdateOrgParams {
   id: string;
   name: string;
