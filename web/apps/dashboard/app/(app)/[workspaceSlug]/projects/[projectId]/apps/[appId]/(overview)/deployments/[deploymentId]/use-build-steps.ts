@@ -10,18 +10,16 @@ const SETTLED_POLL_MS = 10_000;
 const SETTLED_POLL_WINDOW_MS = 5 * 60_000;
 
 export function useBuildSteps(deployment: Deployment) {
-  const inFlight = isDeploymentInFlight(deployment.status);
-  const settledAt = deployment.updatedAt ?? deployment.createdAt;
-
   return trpc.deploy.deployment.buildSteps.useQuery(
-    { deploymentId: deployment.id, includeStepLogs: true },
-    {
-      refetchInterval: () => {
-        if (inFlight) {
-          return IN_FLIGHT_POLL_MS;
-        }
-        return Date.now() - settledAt < SETTLED_POLL_WINDOW_MS ? SETTLED_POLL_MS : false;
-      },
-    },
+    { deploymentId: deployment.id },
+    { refetchInterval: () => buildPollInterval(deployment) },
   );
+}
+
+export function buildPollInterval(deployment: Deployment): number | false {
+  if (isDeploymentInFlight(deployment.status)) {
+    return IN_FLIGHT_POLL_MS;
+  }
+  const settledAt = deployment.updatedAt ?? deployment.createdAt;
+  return Date.now() - settledAt < SETTLED_POLL_WINDOW_MS ? SETTLED_POLL_MS : false;
 }

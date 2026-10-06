@@ -56,6 +56,7 @@ export function deploymentRows(environmentPath: string): PermissionRow[] {
       path: deploymentPath,
     }),
     logRow("deployment_log", "Runtime logs", `${deploymentPath}/logs`),
+    logRow("deployment_build_log", "Build logs", `${deploymentPath}/buildLogs`),
   ];
 }
 
