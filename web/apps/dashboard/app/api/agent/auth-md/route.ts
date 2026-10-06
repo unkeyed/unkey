@@ -21,10 +21,10 @@ export async function GET() {
     const base = getBaseUrl();
     const preface = `# Unkey agent signup
 
-The WorkOS registration skill follows. After you exchange the identity assertion for an access token, create the workspace and the first root key on this dashboard:
+The WorkOS registration skill follows. After you exchange the identity assertion for an access token:
 
-- \`POST ${base}/api/agent/workspace\`
-- \`POST ${base}/api/agent/root-key\` with \`workspaceId\` or \`slug\`
+- If the person already admins a workspace, \`POST ${base}/api/agent/root-key\` with that \`workspaceId\` or \`slug\`.
+- If they need a workspace, \`POST ${base}/api/agent/workspace\` with a new name and slug, then create a root key for it.
 
 The full procedure is https://www.unkey.com/docs/agent.md
 

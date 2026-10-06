@@ -1,7 +1,7 @@
 ---
-title: Sign up a new user
+title: Sign up a user
 sidebarTitle: Agent signup
-description: "Register through WorkOS Agent Registration, then create a workspace and a root key."
+description: "Register through WorkOS Agent Registration, then create a root key for a new or existing workspace."
 sources:
   - web/apps/dashboard/app/api/agent/workspace/route.ts
   - web/apps/dashboard/app/api/agent/root-key/route.ts
@@ -20,17 +20,17 @@ sources:
   - https://workos.com/auth-md/docs/apps
 ---
 
-Unkey issues API keys and runs apps. Follow this page when you are creating an account for a person who does not have one yet.
+Unkey issues API keys and runs apps. Follow this page to register an agent for a person, including a person who already has an Unkey account.
 
 Registration happens on the WorkOS AuthKit domain. Unkey doesn't implement `POST /agent/identity`. After the person claims the registration, you call Unkey with the access token WorkOS returns.
 
 ## Follow these rules
 
-Create one account. If the person already has an Unkey account, stop and use [sign-in](https://app.unkey.com/auth/sign-in). Don't create a second account.
-
 Use `service_auth` only. Don't register as `anonymous`. Don't send an `identity_assertion`.
 
-Don't bypass the claim page. The person signs in on AuthKit and reads you the `user_code`. Hosted AuthKit runs a Cloudflare Turnstile check that WorkOS operates. If Radar is enabled for that WorkOS environment, it can also block or challenge a bot, including an AI agent. This repository does not implement Turnstile or Radar.
+Don't bypass the claim page. The person signs in on AuthKit and reads you the `user_code`. If they already belong to a WorkOS organization, AuthKit asks them to pick one. Finish that selection, complete the claim, and continue on this page. Don't stop and send them to dashboard sign-in instead.
+
+Hosted AuthKit runs a Cloudflare Turnstile check that WorkOS operates. If Radar is enabled for that WorkOS environment, it can also block or challenge a bot, including an AI agent. This repository does not implement Turnstile or Radar.
 
 Don't create a WorkOS user with the email marked verified, and don't read a Magic Auth code from an API response. That skips the email check.
 
@@ -66,7 +66,7 @@ This call is documented at [Register an agent](https://workos.com/docs/reference
 
 Give the person `verification_uri`. That page is hosted by AuthKit. Unkey doesn't host a claim form.
 
-Tell them: "Open this AuthKit page and sign in with your own email. If it shows a bot check, complete it. Then read me the code on the page."
+Tell them: "Open this AuthKit page and sign in with your own email. If it asks you to choose an organization, pick one you already belong to. If it shows a bot check, complete it. Then read me the code on the page."
 
 The API reference shows a `user_code` shaped like `BCDF-GHJK`. The auth.md protocol text also describes a 6-digit code. Send the code exactly as the page shows it. Don't reformat it.
 
@@ -97,6 +97,14 @@ Use the `access_token` from the response. Unkey accepts that access token only. 
 
 `aud` must be the audience configured for this Unkey environment, or the `resource` URL from `/.well-known/oauth-protected-resource`. Unkey accepts those two values and no others. When credential exchange sends a resource, use the protected resource URL as that audience.
 
+## Choose a workspace
+
+The same access token works for a new account and for an existing one. Unkey treats the token's `act.sub` claim as the WorkOS user who authorized the agent. Unkey mints a root key only when that user is an active admin of the workspace.
+
+If the person already admins a workspace, skip workspace creation. Call `POST /api/agent/root-key` with that workspace's `workspaceId` or `slug`.
+
+If they need a workspace, call `POST /api/agent/workspace` with a new `name` and `slug`. Use that call when they have no workspace, and use it again when they want another one. Then create a root key for the workspace you just created.
+
 ## Create the workspace
 
 `POST https://app.unkey.com/api/agent/workspace`:
@@ -116,7 +124,7 @@ A 200 response is:
 {"workspaceId":"ws_...","orgId":"org_...","slug":"acme","name":"Acme"}
 ```
 
-Unkey creates a WorkOS organization, a free-tier workspace, and an admin membership for the user who claimed the agent. That is the same creation path as the signed-in dashboard mutation `workspace.create`. Call it again with another slug to create another workspace. The same registration can create more than one. A taken slug returns 409 `slug_taken`.
+Unkey creates a WorkOS organization, a free-tier workspace, and an admin membership for the user who authorized the claim (`act.sub`). That is the same creation path as the signed-in dashboard mutation `workspace.create`. Call it again with another slug to create another workspace. The same registration can create more than one. A taken slug returns 409 `slug_taken`. Don't send this call when the person already admins the workspace you want a root key for.
 
 Unkey stores this registration's id on the new WorkOS organization as metadata `agent_registration_id`. Organization metadata is not unique. See [Metadata and External IDs](https://workos.com/docs/authkit/metadata) and [Create an organization](https://workos.com/docs/reference/organization/create).
 
@@ -169,7 +177,8 @@ The root key is created through `POST /v2/rootKeys.createAgentKey`, which also w
 | Status | `error` | What to do |
 | --- | --- | --- |
 | 401 | `missing_token`, `invalid_token`, `expired`, `wrong_audience` | Send a current access token. `aud` must be this environment's configured audience or the `resource` value from the protected resource document. |
-| 403 | `unclaimed`, `anonymous`, `unsupported_registration`, `user_mismatch` | Finish a `service_auth` claim for this user. Don't retry with an anonymous registration. |
+| 403 | `unclaimed`, `anonymous`, `unsupported_registration` | Finish a `service_auth` claim for this user. Don't retry with an anonymous registration. |
+| 403 | `user_mismatch` | The access token's authorizing user does not match the user who completed the claim. Start registration again and claim it as that person. |
 | 403 | `forbidden` | Sign in as an admin of the workspace you named. |
 | 409 | `slug_taken` | Pick another slug. |
 | 429 | `rate_limited` | Wait and retry. |

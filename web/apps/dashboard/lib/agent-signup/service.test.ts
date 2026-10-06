@@ -46,8 +46,18 @@ vi.mock("@/lib/auth/server", () => ({
   },
 }));
 
+vi.mock("@/lib/workspace/create-workspace", () => ({
+  createFreeWorkspace: vi.fn(async (input: { slug: string }) => ({
+    orgId: "org_new",
+    workspaceId: "ws_new",
+    slug: input.slug,
+  })),
+}));
+
+import { auth } from "@/lib/auth/server";
+import { createFreeWorkspace } from "@/lib/workspace/create-workspace";
 import { AGENT_SIGNUP_AUDIENCE, AGENT_SIGNUP_ISSUER, AGENT_SIGNUP_ROLE } from "./credential";
-import { issueAgentRootKey, liveWorkspaceWhere } from "./service";
+import { createAgentWorkspace, issueAgentRootKey, liveWorkspaceWhere } from "./service";
 
 describe("liveWorkspaceWhere", () => {
   it("reads enabled rows that are not deleted", () => {
@@ -71,6 +81,27 @@ describe("liveWorkspaceWhere", () => {
 
   it("requires workspaceId or slug", () => {
     expect(liveWorkspaceWhere()).toBeUndefined();
+  });
+});
+
+describe("createAgentWorkspace", () => {
+  it("creates another workspace with a new slug for the authorizing user", async () => {
+    await expect(
+      createAgentWorkspace({
+        agent: { registrationId: "agent_reg_abc", userId: "user_existing" },
+        name: "Acme Agent",
+        slug: "acme-agent",
+        audit: { location: "127.0.0.1" },
+      }),
+    ).resolves.toEqual({ orgId: "org_new", workspaceId: "ws_new", slug: "acme-agent" });
+    expect(createFreeWorkspace).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId: "user_existing",
+        slug: "acme-agent",
+        name: "Acme Agent",
+        metadata: { agent_registration_id: "agent_reg_abc" },
+      }),
+    );
   });
 });
 
@@ -107,6 +138,22 @@ describe("issueAgentRootKey", () => {
       }),
     ).resolves.toMatchObject({ keyId: "key_123", key: "unkey_secret" });
     expect(state.selectCalls).toBe(1);
+    expect(auth.listMemberships).toHaveBeenCalledWith("user_abc", "org_123");
+  });
+
+  it("mints a root key for a workspace the authorizing user already admins", async () => {
+    const fetchImpl = vi.fn(async () =>
+      Response.json({ data: { keyId: "key_existing", key: "unkey_existing" } }),
+    );
+    vi.stubGlobal("fetch", fetchImpl);
+
+    await expect(
+      issueAgentRootKey({
+        agent: { registrationId: "agent_reg_abc", userId: "user_existing" },
+        slug: "acme",
+      }),
+    ).resolves.toMatchObject({ keyId: "key_existing", key: "unkey_existing" });
+    expect(auth.listMemberships).toHaveBeenCalledWith("user_existing", "org_123");
   });
 
   it("returns not_configured when signing material is missing", async () => {

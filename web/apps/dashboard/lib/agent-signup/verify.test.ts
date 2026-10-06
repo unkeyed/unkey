@@ -28,10 +28,17 @@ async function signingKey() {
 
 async function token(
   privateKey: KeyLike,
-  claims: { audience?: string; expired?: boolean; act?: { sub: string } },
+  claims: { audience?: string; expired?: boolean; act?: { sub: string }; orgId?: string },
 ): Promise<string> {
   const issuedAt = Math.floor(Date.now() / 1000) - 120;
-  let jwt = new SignJWT(claims.act ? { act: claims.act } : {})
+  const payload: Record<string, unknown> = {};
+  if (claims.act) {
+    payload.act = claims.act;
+  }
+  if (claims.orgId) {
+    payload.org_id = claims.orgId;
+  }
+  let jwt = new SignJWT(payload)
     .setProtectedHeader({ alg: "RS256", kid: "test" })
     .setIssuer(config.issuer)
     .setAudience(claims.audience ?? config.audience)
@@ -171,14 +178,95 @@ describe("authenticateAgent", () => {
     ).rejects.toMatchObject({ code: "expired" });
   });
 
-  it("rejects a verified registration bound to a different user", async () => {
+  it("rejects a verified registration bound to a different user when no organization was selected", async () => {
     const { privateKey, key } = await signingKey();
     const accessToken = await token(privateKey, { act: { sub: userId } });
     await expect(
       authenticateAgent(`Bearer ${accessToken}`, config, {
         fetch: workOsFetch({
           registrationBody: registration({
+            organization_id: null,
             agent_identity: { userland_user_id: "user_other" },
+          }),
+        }),
+        key,
+      }),
+    ).rejects.toMatchObject({ code: "user_mismatch", status: 403 });
+  });
+
+  it("accepts an existing user who selected an organization during claim", async () => {
+    const { privateKey, key } = await signingKey();
+    const existingUserId = "user_existing";
+    const accessToken = await token(privateKey, {
+      act: { sub: existingUserId },
+      orgId: "org_01EHQMYV6MBK39QC5PZXHY59C3",
+    });
+    await expect(
+      authenticateAgent(`Bearer ${accessToken}`, config, {
+        fetch: workOsFetch({
+          registrationBody: registration({
+            organization_id: "org_01EHQMYV6MBK39QC5PZXHY59C3",
+            agent_identity: { userland_user_id: "user_identity" },
+          }),
+        }),
+        key,
+      }),
+    ).resolves.toEqual({ registrationId, userId: existingUserId });
+  });
+
+  it("accepts an org-scoped token when the registration organization is still empty", async () => {
+    const { privateKey, key } = await signingKey();
+    const accessToken = await token(privateKey, {
+      act: { sub: userId },
+      orgId: "org_selected",
+    });
+    await expect(
+      authenticateAgent(`Bearer ${accessToken}`, config, {
+        fetch: workOsFetch({
+          registrationBody: registration({
+            organization_id: null,
+            agent_identity: { userland_user_id: "user_identity" },
+          }),
+        }),
+        key,
+      }),
+    ).resolves.toEqual({ registrationId, userId });
+  });
+
+  it("accepts a claimed registration whose agent identity has no user yet", async () => {
+    const { privateKey, key } = await signingKey();
+    const accessToken = await token(privateKey, { act: { sub: userId } });
+    await expect(
+      authenticateAgent(`Bearer ${accessToken}`, config, {
+        fetch: workOsFetch({
+          registrationBody: registration({
+            agent_identity: { userland_user_id: null },
+          }),
+        }),
+        key,
+      }),
+    ).resolves.toEqual({ registrationId, userId });
+  });
+
+  it("rejects a claim completed by a different user", async () => {
+    const { privateKey, key } = await signingKey();
+    const accessToken = await token(privateKey, {
+      act: { sub: userId },
+      orgId: "org_01EHQMYV6MBK39QC5PZXHY59C3",
+    });
+    await expect(
+      authenticateAgent(`Bearer ${accessToken}`, config, {
+        fetch: workOsFetch({
+          registrationBody: registration({
+            organization_id: "org_01EHQMYV6MBK39QC5PZXHY59C3",
+            agent_identity: { userland_user_id: userId },
+            claim: {
+              claimed_by: {
+                user_id: "user_other",
+                organization_id: "org_01EHQMYV6MBK39QC5PZXHY59C3",
+              },
+              claim_completion: { claimed_at: "2026-01-15T12:00:00.000Z" },
+            },
           }),
         }),
         key,

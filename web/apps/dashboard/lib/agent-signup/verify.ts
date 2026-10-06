@@ -7,12 +7,21 @@ import { AgentSignupError } from "./errors";
 const REGISTRATION_ID = /^agent_reg_[A-Za-z0-9]+$/;
 const USER_ID = /^user_[A-Za-z0-9]+$/;
 
+const claimedBySchema = z
+  .object({
+    user_id: z.string().nullable().optional(),
+    organization_id: z.string().nullable().optional(),
+  })
+  .passthrough();
+
 const registrationSchema = z
   .object({
     id: z.string(),
-    agent_identity: z.object({
-      userland_user_id: z.string(),
-    }),
+    agent_identity: z
+      .object({
+        userland_user_id: z.string().nullable().optional(),
+      })
+      .passthrough(),
     // Documented as required. A person who has not joined an organization yet
     // may omit it, and Unkey creates the workspace organization after this check.
     organization_id: z.string().nullable().optional(),
@@ -20,13 +29,17 @@ const registrationSchema = z
     kind: z.enum(["anonymous", "service_auth", "identity_assertion"]),
     claim: z
       .object({
+        claimed_by: claimedBySchema.nullable().optional(),
         claim_completion: z
           .object({
             claimed_at: z.string().nullable().optional(),
+            claimed_by: claimedBySchema.nullable().optional(),
           })
+          .passthrough()
           .nullable()
           .optional(),
       })
+      .passthrough()
       .nullable()
       .optional(),
   })
@@ -102,6 +115,53 @@ function actSub(payload: JWTPayload): string | undefined {
   return typeof sub === "string" ? sub : undefined;
 }
 
+function workOsUserId(value: string | null | undefined): string | undefined {
+  if (!value || !USER_ID.test(value)) {
+    return undefined;
+  }
+  return value;
+}
+
+function tokenOrgId(payload: JWTPayload): string | undefined {
+  const orgId = "org_id" in payload ? payload.org_id : undefined;
+  return typeof orgId === "string" && orgId.length > 0 ? orgId : undefined;
+}
+
+type RegistrationRecord = z.infer<typeof registrationSchema>;
+
+function claimCompletedBy(registration: RegistrationRecord): string | undefined {
+  return (
+    workOsUserId(registration.claim?.claimed_by?.user_id) ??
+    workOsUserId(registration.claim?.claim_completion?.claimed_by?.user_id)
+  );
+}
+
+// act.sub is the user who authorized the claim. userland_user_id is the user
+// bound to the agent identity. Hosted AuthKit org selection can leave those
+// ids different after credential validation succeeds. Membership follows
+// act.sub. Reject only when the claim record names a different user, or when
+// the registration is not placed in an organization and the identity user differs.
+function claimingUserId(
+  tokenUserId: string,
+  registration: RegistrationRecord,
+  orgId?: string,
+): string {
+  const completedBy = claimCompletedBy(registration);
+  const identityUser = workOsUserId(registration.agent_identity.userland_user_id);
+  const placedInOrg = Boolean(registration.organization_id) || Boolean(orgId);
+  if (
+    (completedBy && completedBy !== tokenUserId) ||
+    (identityUser && identityUser !== tokenUserId && !placedInOrg)
+  ) {
+    throw new AgentSignupError(
+      403,
+      "user_mismatch",
+      "The agent access token is not bound to the user on this registration.",
+    );
+  }
+  return tokenUserId;
+}
+
 function audienceValues(aud: JWTPayload["aud"]): string[] {
   if (aud === undefined) {
     return [];
@@ -126,7 +186,7 @@ async function verifyAccessToken(
   token: string,
   config: AgentSignupConfig,
   key: JWTVerifyGetKey,
-): Promise<{ registrationId: string; userId: string; audience: string }> {
+): Promise<{ registrationId: string; userId: string; audience: string; orgId?: string }> {
   const accepted = acceptedAgentAudiences(config);
   let payload: JWTPayload;
   try {
@@ -164,7 +224,12 @@ async function verifyAccessToken(
   if (!USER_ID.test(userId)) {
     throw invalidToken("The agent access token claim is not bound to a WorkOS user.");
   }
-  return { registrationId: payload.sub, userId, audience: tokenAudience(payload, accepted) };
+  return {
+    registrationId: payload.sub,
+    userId,
+    audience: tokenAudience(payload, accepted),
+    orgId: tokenOrgId(payload),
+  };
 }
 
 async function workOsJson(
@@ -262,16 +327,8 @@ export async function authenticateAgent(
   if (!claimedAt) {
     throw new AgentSignupError(403, "unclaimed", "The agent registration has no completed claim.");
   }
-  if (registration.data.agent_identity.userland_user_id !== accessToken.userId) {
-    throw new AgentSignupError(
-      403,
-      "user_mismatch",
-      "The agent access token is not bound to the user on this registration.",
-    );
-  }
-
   return {
     registrationId: accessToken.registrationId,
-    userId: accessToken.userId,
+    userId: claimingUserId(accessToken.userId, registration.data, accessToken.orgId),
   };
 }
