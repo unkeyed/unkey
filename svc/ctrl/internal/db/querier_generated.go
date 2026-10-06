@@ -171,7 +171,7 @@ type Querier interface {
 	//
 	//  DELETE FROM instances WHERE k8s_name = ? AND region_id = ?
 	DeleteInstance(ctx context.Context, arg DeleteInstanceParams) error
-	//DeletePortalDomainByID
+	// Unscoped by workspace: callers resolve ownership before deleting.
 	//
 	//  DELETE FROM portal_domains WHERE id = ?
 	DeletePortalDomainByID(ctx context.Context, id string) error
@@ -728,6 +728,14 @@ type Querier interface {
 	//  FROM portal_domains
 	//  WHERE workspace_id = ? AND domain = ?
 	FindPortalDomainByWorkspaceAndDomain(ctx context.Context, arg FindPortalDomainByWorkspaceAndDomainParams) (FindPortalDomainByWorkspaceAndDomainRow, error)
+	// Locks the row so a delete decides route ownership on the status it commits
+	// against, not one a concurrent revoke or verification already changed.
+	//
+	//  SELECT verification_status
+	//  FROM portal_domains
+	//  WHERE id = ?
+	//  FOR UPDATE
+	FindPortalDomainStatusByIdForUpdate(ctx context.Context, id string) (PortalDomainsVerificationStatus, error)
 	//FindProjectById
 	//
 	//  SELECT projects.pk, projects.id, projects.workspace_id, projects.name, projects.slug, projects.depot_project_id, projects.delete_protection, projects.created_at, projects.updated_at

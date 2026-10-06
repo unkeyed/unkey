@@ -103,6 +103,20 @@ func TestPresentRecordsChallengeOnVerifiedDomain(t *testing.T) {
 		err := provider.Present("pending.example.com", "tok-pending", "auth-pending")
 		require.True(t, db.IsNotFound(err), "expected not found, got %v", err)
 	})
+
+	t.Run("a miss before verification is not cached", func(t *testing.T) {
+		id := insertPortal(uid.New(uid.WorkspacePrefix), "later.example.com", db.PortalDomainsVerificationStatusPending)
+		require.Error(t, provider.Present("later.example.com", "tok-later", "auth-later"))
+
+		require.NoError(t, database.UpdatePortalDomainVerificationStatus(ctx, db.UpdatePortalDomainVerificationStatusParams{
+			ID:                 id,
+			VerificationStatus: db.PortalDomainsVerificationStatusVerified,
+			UpdatedAt:          sql.NullInt64{Int64: time.Now().UnixMilli(), Valid: true},
+		}))
+
+		require.NoError(t, provider.Present("later.example.com", "tok-later", "auth-later"))
+		require.Equal(t, "auth-later", challengeAuthorization(t, database, id))
+	})
 }
 
 func insertChallenge(t *testing.T, database db.Database, workspaceID, domainID string) {

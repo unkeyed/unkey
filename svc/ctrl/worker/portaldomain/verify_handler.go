@@ -58,6 +58,13 @@ func (s *Service) VerifyDomain(
 		return nil, fault.Wrap(err, fault.Internal("failed to fetch portal domain record"))
 	}
 
+	// A verified row is a retry whose earlier attempt journaled "mark verified"
+	// before a later step failed. Re-entering the success path replays those
+	// steps in order; rechecking DNS or writing `verifying` would downgrade it.
+	if dom.VerificationStatus == db.PortalDomainsVerificationStatusVerified {
+		return s.onVerificationSuccess(ctx, dom)
+	}
+
 	elapsed := time.Since(startedAt)
 	if elapsed > maxVerificationDuration {
 		return s.onVerificationFailed(ctx, dom, "domain verification timed out after 24 hours")
@@ -179,7 +186,7 @@ func (s *Service) onVerificationSuccess(
 
 	// Token and authorization come from the ACME server during the challenge.
 	err = restate.RunVoid(ctx, func(stepCtx restate.RunContext) error {
-		return s.db.InsertAcmeChallenge(stepCtx, db.InsertAcmeChallengeParams{
+		err := s.db.InsertAcmeChallenge(stepCtx, db.InsertAcmeChallengeParams{
 			DomainID:      dom.ID,
 			WorkspaceID:   dom.WorkspaceID,
 			Token:         "",
@@ -190,6 +197,12 @@ func (s *Service) onVerificationSuccess(
 			CreatedAt:     now,
 			UpdatedAt:     sql.NullInt64{Valid: true, Int64: now},
 		})
+		// One challenge per domain: an existing row is this step's own earlier
+		// insert or a previous verification's.
+		if db.IsDuplicateKeyError(err) {
+			return nil
+		}
+		return err
 	}, restate.WithName("create acme challenge"))
 	if err != nil {
 		return nil, fault.Wrap(err, fault.Internal("failed to create ACME challenge record"))

@@ -68,38 +68,10 @@ func TestVerifyCertificateAnswersForVerifiedDomain(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	database, err := db.New(containers.MySQLIsolated(t).DSN, sqlcomment.Disabled())
-	require.NoError(t, err)
-	t.Cleanup(func() { require.NoError(t, database.Close()) })
-
-	clk := clock.New()
-	domainCache, err := cache.New(cache.Config[string, db.FindVerifiedDomainByHostnameRow]{Fresh: time.Minute, Stale: time.Minute, MaxSize: 100, Resource: "test_domains", Clock: clk})
-	require.NoError(t, err)
-	t.Cleanup(domainCache.Close)
-	challengeCache, err := cache.New(cache.Config[string, db.AcmeChallenge]{Fresh: time.Minute, Stale: time.Minute, MaxSize: 100, Resource: "test_challenges", Clock: clk})
-	require.NoError(t, err)
-	t.Cleanup(challengeCache.Close)
-
-	svc := New(Config{DB: database, DomainCache: domainCache, ChallengeCache: challengeCache, Bearer: "ctrl-token"})
-	verify := func(domain, token string) (*connect.Response[ctrlv1.VerifyCertificateResponse], error) {
-		req := connect.NewRequest(&ctrlv1.VerifyCertificateRequest{Domain: domain, Token: token})
-		req.Header().Set("Authorization", "Bearer ctrl-token")
-		return svc.VerifyCertificate(ctx, req)
-	}
-
+	database, verify := newVerifyService(t)
 	now := time.Now().UnixMilli()
 	insertChallenge := func(workspaceID, domainID, token, authorization string) {
-		require.NoError(t, database.InsertAcmeChallenge(ctx, db.InsertAcmeChallengeParams{
-			WorkspaceID:   workspaceID,
-			DomainID:      domainID,
-			Token:         token,
-			Authorization: authorization,
-			Status:        db.AcmeChallengesStatusPending,
-			ChallengeType: db.AcmeChallengesChallengeTypeHTTP01,
-			CreatedAt:     now,
-			UpdatedAt:     sql.NullInt64{Int64: now, Valid: true},
-			ExpiresAt:     0,
-		}))
+		insertPendingChallenge(t, database, workspaceID, domainID, token, authorization)
 	}
 
 	// The pending deploy claim was created later and holds a challenge with the
@@ -147,4 +119,86 @@ func TestVerifyCertificateAnswersForVerifiedDomain(t *testing.T) {
 
 	_, err = verify("unknown.example.com", "tok")
 	require.Equal(t, connect.CodeNotFound, connect.CodeOf(err))
+}
+
+// Frontline forwards ACME requests for pending rows too, so a probe before
+// verification must not cache the miss and 404 the CA's first real request.
+func TestVerifyCertificateAnswersOnceAProbedDomainIsVerified(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping integration test in short mode")
+	}
+
+	ctx := context.Background()
+	database, verify := newVerifyService(t)
+
+	workspaceID := uid.New(uid.WorkspacePrefix)
+	domainID := uid.New(uid.PortalDomainPrefix)
+	require.NoError(t, database.InsertPortalDomain(ctx, db.InsertPortalDomainParams{
+		ID:                    domainID,
+		WorkspaceID:           workspaceID,
+		PortalID:              uid.New(uid.PortalPrefix),
+		Domain:                "probed.example.com",
+		VerificationStatus:    db.PortalDomainsVerificationStatusPending,
+		VerificationToken:     uid.New(uid.TestPrefix),
+		TargetCname:           uid.New(uid.TestPrefix),
+		DomainConnectProvider: sql.NullString{},
+		DomainConnectUrl:      sql.NullString{},
+		InvocationID:          sql.NullString{},
+		CreatedAt:             time.Now().UnixMilli(),
+	}))
+	insertPendingChallenge(t, database, workspaceID, domainID, "tok", "auth-probed")
+
+	_, err := verify("probed.example.com", "tok")
+	require.Equal(t, connect.CodeNotFound, connect.CodeOf(err))
+
+	require.NoError(t, database.UpdatePortalDomainVerificationStatus(ctx, db.UpdatePortalDomainVerificationStatusParams{
+		ID:                 domainID,
+		VerificationStatus: db.PortalDomainsVerificationStatusVerified,
+		UpdatedAt:          sql.NullInt64{Int64: time.Now().UnixMilli(), Valid: true},
+	}))
+
+	res, err := verify("probed.example.com", "tok")
+	require.NoError(t, err)
+	require.Equal(t, "auth-probed", res.Msg.GetAuthorization())
+}
+
+// newVerifyService wires VerifyCertificate to an isolated MySQL with real
+// caches and returns an authenticated caller for it.
+func newVerifyService(t *testing.T) (db.Database, func(domain, token string) (*connect.Response[ctrlv1.VerifyCertificateResponse], error)) {
+	t.Helper()
+
+	database, err := db.New(containers.MySQLIsolated(t).DSN, sqlcomment.Disabled())
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, database.Close()) })
+
+	clk := clock.New()
+	domainCache, err := cache.New(cache.Config[string, db.FindVerifiedDomainByHostnameRow]{Fresh: time.Minute, Stale: time.Minute, MaxSize: 100, Resource: "test_domains", Clock: clk})
+	require.NoError(t, err)
+	t.Cleanup(domainCache.Close)
+	challengeCache, err := cache.New(cache.Config[string, db.AcmeChallenge]{Fresh: time.Minute, Stale: time.Minute, MaxSize: 100, Resource: "test_challenges", Clock: clk})
+	require.NoError(t, err)
+	t.Cleanup(challengeCache.Close)
+
+	svc := New(Config{DB: database, DomainCache: domainCache, ChallengeCache: challengeCache, Bearer: "ctrl-token"})
+	return database, func(domain, token string) (*connect.Response[ctrlv1.VerifyCertificateResponse], error) {
+		req := connect.NewRequest(&ctrlv1.VerifyCertificateRequest{Domain: domain, Token: token})
+		req.Header().Set("Authorization", "Bearer ctrl-token")
+		return svc.VerifyCertificate(context.Background(), req)
+	}
+}
+
+func insertPendingChallenge(t *testing.T, database db.Database, workspaceID, domainID, token, authorization string) {
+	t.Helper()
+	now := time.Now().UnixMilli()
+	require.NoError(t, database.InsertAcmeChallenge(context.Background(), db.InsertAcmeChallengeParams{
+		WorkspaceID:   workspaceID,
+		DomainID:      domainID,
+		Token:         token,
+		Authorization: authorization,
+		Status:        db.AcmeChallengesStatusPending,
+		ChallengeType: db.AcmeChallengesChallengeTypeHTTP01,
+		CreatedAt:     now,
+		UpdatedAt:     sql.NullInt64{Int64: now, Valid: true},
+		ExpiresAt:     0,
+	}))
 }

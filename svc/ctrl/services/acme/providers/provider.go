@@ -75,7 +75,8 @@ func (p *Provider) resolveDomain(ctx context.Context, domain string) (db.FindVer
 			})
 			return db.FindVerifiedDomainByHostnameRow(row), findErr
 		},
-		caches.DefaultFindFirstOp,
+		// Issuance follows verification within seconds; a cached miss would fail it.
+		caches.FoundOnlyOp,
 	)
 	if err != nil {
 		return db.FindVerifiedDomainByHostnameRow{}, err
