@@ -17,6 +17,7 @@ const (
 	WorkspaceResourceType          AuditLogResourceType = "workspace"
 	PortalResourceType             AuditLogResourceType = "portal"
 	PortalSessionResourceType      AuditLogResourceType = "portalSession"
+	PortalDomainResourceType       AuditLogResourceType = "portalDomain"
 	DeploymentResourceType         AuditLogResourceType = "deployment"
 	ProjectResourceType            AuditLogResourceType = "project"
 	AppResourceType                AuditLogResourceType = "app"

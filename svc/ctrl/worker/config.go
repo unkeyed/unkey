@@ -281,6 +281,13 @@ type EmailConfig struct {
 	ResendAPIKey string `toml:"resend_api_key"`
 }
 
+// PortalConfig locates the portal app that every tenant's portal domain routes to.
+type PortalConfig struct {
+	// EnvironmentID is the portal app's production environment. Verified
+	// portal domains get a route to it.
+	EnvironmentID string `toml:"environment_id"`
+}
+
 // Config holds the complete configuration for the Restate worker service.
 // It is designed to be loaded from a TOML file using [config.Load]:
 //
@@ -323,6 +330,9 @@ type Config struct {
 
 	// Database is the MySQL DSN used for all control plane reads and writes.
 	Database string `toml:"database" config:"required,nonempty"`
+
+	// Portal configures portal domain routing. See [PortalConfig].
+	Portal PortalConfig `toml:"portal"`
 
 	// Vault configures the encryption/decryption service. See [config.VaultConfig].
 	Vault config.VaultConfig `toml:"vault"`

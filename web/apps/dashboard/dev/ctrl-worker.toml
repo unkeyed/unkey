@@ -5,6 +5,9 @@ cname_domain = "unkey.local"
 build_platform = "linux/amd64"
 database = "unkey:password@tcp(mysql:3306)/unkey?parseTime=true&interpolateParams=true"
 
+[portal]
+environment_id = ""
+
 [vault]
 url = "http://vault:8060"
 token = "vault-test-token-123"
