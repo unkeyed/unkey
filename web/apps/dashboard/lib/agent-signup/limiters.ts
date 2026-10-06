@@ -20,6 +20,20 @@ function unkeyLimiter(rootKey: string, namespace: string, limit: number): Limite
   });
 }
 
+// env().VERCEL_ENV prefaults an absent value to "development", which would
+// select the in-memory limiter in any environment that forgot the variable.
+// Read the process environment so only an explicit local dev process opts in.
+export function inMemoryAgentLimiterAllowed(
+  nodeEnv: string | undefined = process.env.NODE_ENV,
+  vercelEnv: string | undefined = process.env.VERCEL_ENV,
+): boolean {
+  return nodeEnv === "development" && (vercelEnv === undefined || vercelEnv === "");
+}
+
+export function resetAgentLimitersForTests(): void {
+  cached = undefined;
+}
+
 export function agentLimiters(): { identity: Limiter; ip: Limiter } {
   if (cached) {
     return cached;
@@ -32,7 +46,7 @@ export function agentLimiters(): { identity: Limiter; ip: Limiter } {
     };
     return cached;
   }
-  if (env().VERCEL_ENV !== "development") {
+  if (!inMemoryAgentLimiterAllowed()) {
     throw new AgentSignupError(
       503,
       "rate_limit_unavailable",
