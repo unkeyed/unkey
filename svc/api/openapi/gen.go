@@ -377,6 +377,30 @@ func (e MethodMatchMethods) Valid() bool {
 	}
 }
 
+// Defines values for PortalDomainStatus.
+const (
+	PortalDomainStatusFailed    PortalDomainStatus = "failed"
+	PortalDomainStatusPending   PortalDomainStatus = "pending"
+	PortalDomainStatusVerified  PortalDomainStatus = "verified"
+	PortalDomainStatusVerifying PortalDomainStatus = "verifying"
+)
+
+// Valid indicates whether the value is a known member of the PortalDomainStatus enum.
+func (e PortalDomainStatus) Valid() bool {
+	switch e {
+	case PortalDomainStatusFailed:
+		return true
+	case PortalDomainStatusPending:
+		return true
+	case PortalDomainStatusVerified:
+		return true
+	case PortalDomainStatusVerifying:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for UpdateKeyCreditsRefillInterval.
 const (
 	UpdateKeyCreditsRefillIntervalDaily   UpdateKeyCreditsRefillInterval = "daily"
@@ -2168,6 +2192,71 @@ type PortalBranding struct {
 	// Example: #6366f1
 	PrimaryColor string `json:"primaryColor,omitempty"`
 }
+
+// PortalDomain defines model for PortalDomain.
+type PortalDomain struct {
+	// CreatedAt Unix timestamp in milliseconds when the domain was created. The 24 hour verification window runs from here.
+	//
+	// Example: 1704067200000
+	CreatedAt int64 `json:"createdAt"`
+
+	// DnsRecords The DNS records this domain needs. Create each record at your DNS provider.
+	// Each record has a `verified` flag showing whether Unkey has read that record back.
+	DnsRecords []DnsRecord `json:"dnsRecords"`
+
+	// Domain Fully qualified domain name attached to the portal.
+	//
+	// Example: portal.acme.com
+	Domain string `json:"domain"`
+
+	// Id The portal domain's ID. Pass it as `domainId` to the other portal domain operations.
+	//
+	// Example: pdom_1234abcd
+	Id string `json:"id"`
+
+	// PortalId The portal this domain serves.
+	//
+	// Example: pc_1234abcd
+	PortalId string `json:"portalId"`
+
+	// Status The verification status of the domain.
+	//
+	// - `pending`: the domain is created. No DNS check has completed yet.
+	// - `verifying`: Unkey checks the DNS records approximately each minute.
+	// - `verified`: the domain is verified and serves the portal.
+	// - `failed`: the required DNS records did not appear within 24 hours. Fix the records, then retry verification.
+	//
+	//
+	// Example: verified
+	Status PortalDomainStatus `json:"status"`
+
+	// UpdatedAt Unix timestamp in milliseconds of the last change to this domain. Omitted if it has never changed.
+	//
+	// Example: 1704153600000
+	UpdatedAt *int64 `json:"updatedAt,omitempty"`
+
+	// VerificationError Why the most recent verification attempt did not succeed, in plain language.
+	// Omitted while verification is progressing normally.
+	//
+	//
+	// Example: domain verification timed out after 24 hours
+	VerificationError *string `json:"verificationError,omitempty"`
+}
+
+// PortalDomainStatus The verification status of the domain.
+//
+// - `pending`: the domain is created. No DNS check has completed yet.
+// - `verifying`: Unkey checks the DNS records approximately each minute.
+// - `verified`: the domain is verified and serves the portal.
+// - `failed`: the required DNS records did not appear within 24 hours. Fix the records, then retry verification.
+//
+// Example: verified
+type PortalDomainStatus string
+
+// PortalDomainId The portal domain ID that `portal.createDomain` returned.
+//
+// Example: pdom_1234abcd
+type PortalDomainId = string
 
 // PortalKeyspaceId The id of the keyspace this portal serves keys for. Must belong to your
 // workspace.
@@ -5621,6 +5710,44 @@ type V2PermissionsSetRolePermissionsResponseBody struct {
 // V2PermissionsSetRolePermissionsResponseData Complete list of permissions now directly assigned to the role.
 type V2PermissionsSetRolePermissionsResponseData = []Permission
 
+// V2PortalCreateDomainRequestBody defines model for V2PortalCreateDomainRequestBody.
+type V2PortalCreateDomainRequestBody struct {
+	// Domain Fully qualified domain name to attach to the portal, without a scheme, port, or path.
+	// Must be unique across your workspace: a name already attached to a portal or to an
+	// environment cannot be attached again.
+	//
+	//
+	// Example: portal.acme.com
+	Domain string `json:"domain"`
+
+	// Portal Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	//
+	//
+	// Example: proj_1234abcd
+	Portal ResourceIdentifier `json:"portal"`
+}
+
+// V2PortalCreateDomainResponseBody defines model for V2PortalCreateDomainResponseBody.
+type V2PortalCreateDomainResponseBody struct {
+	Data V2PortalCreateDomainResponseData `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// V2PortalCreateDomainResponseData defines model for V2PortalCreateDomainResponseData.
+type V2PortalCreateDomainResponseData struct {
+	// DnsRecords Every DNS record needed to finish setting up this domain, ready to create at your provider.
+	// One record routes traffic to the portal and one proves ownership. Create all of them.
+	DnsRecords []DnsRecord `json:"dnsRecords"`
+
+	// DomainId The portal domain ID that `portal.createDomain` returned.
+	//
+	// Example: pdom_1234abcd
+	DomainId PortalDomainId `json:"domainId"`
+}
+
 // V2PortalCreatePortalRequestBody defines model for V2PortalCreatePortalRequestBody.
 type V2PortalCreatePortalRequestBody struct {
 	// AppId The id of the app this portal serves keys for. Must belong to your workspace.
@@ -5779,6 +5906,30 @@ type V2PortalCreateSessionResponseData struct {
 	Url string `json:"url"`
 }
 
+// V2PortalDeleteDomainRequestBody defines model for V2PortalDeleteDomainRequestBody.
+type V2PortalDeleteDomainRequestBody struct {
+	// DomainId The portal domain ID that `portal.createDomain` returned.
+	//
+	// Example: pdom_1234abcd
+	DomainId PortalDomainId `json:"domainId"`
+
+	// Portal Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	//
+	//
+	// Example: proj_1234abcd
+	Portal ResourceIdentifier `json:"portal"`
+}
+
+// V2PortalDeleteDomainResponseBody defines model for V2PortalDeleteDomainResponseBody.
+type V2PortalDeleteDomainResponseBody struct {
+	// Data Empty response object by design. A successful response indicates this operation was successfully executed.
+	Data EmptyResponse `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
 // V2PortalDeletePortalRequestBody defines model for V2PortalDeletePortalRequestBody.
 type V2PortalDeletePortalRequestBody struct {
 	// Portal Identifies a resource by either its unique ID or its slug.
@@ -5829,6 +5980,29 @@ type V2PortalExchangeCodeResponseData struct {
 	//
 	// Example: 1711386400000
 	ExpiresAt int64 `json:"expiresAt"`
+}
+
+// V2PortalGetDomainRequestBody defines model for V2PortalGetDomainRequestBody.
+type V2PortalGetDomainRequestBody struct {
+	// DomainId The portal domain ID that `portal.createDomain` returned.
+	//
+	// Example: pdom_1234abcd
+	DomainId PortalDomainId `json:"domainId"`
+
+	// Portal Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	//
+	//
+	// Example: proj_1234abcd
+	Portal ResourceIdentifier `json:"portal"`
+}
+
+// V2PortalGetDomainResponseBody defines model for V2PortalGetDomainResponseBody.
+type V2PortalGetDomainResponseBody struct {
+	Data PortalDomain `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
 }
 
 // V2PortalGetPortalRequestBody Name the portal directly with `portal`, or name the resource it serves with
@@ -5974,6 +6148,26 @@ type V2PortalGetVerificationsResponseBody struct {
 	// that has since been deleted and will not appear in `portal.listKeys`;
 	// render those totals without assuming the key is still listable.
 	Keys []V2PortalGetVerificationsKeySeries `json:"keys"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// V2PortalListDomainsRequestBody defines model for V2PortalListDomainsRequestBody.
+type V2PortalListDomainsRequestBody struct {
+	// Portal Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	//
+	//
+	// Example: proj_1234abcd
+	Portal ResourceIdentifier `json:"portal"`
+}
+
+// V2PortalListDomainsResponseBody defines model for V2PortalListDomainsResponseBody.
+type V2PortalListDomainsResponseBody struct {
+	// Data Every domain attached to the portal, verified or not, sorted by ID. Empty when the
+	// portal has no domains.
+	Data []PortalDomain `json:"data"`
 
 	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
 	Meta Meta `json:"meta"`
@@ -6209,6 +6403,30 @@ type V2PortalUpdatePortalResponseBody struct {
 	// the portal serves. Neither is in the required list because which one appears
 	// depends on the portal, so a reader checks for the one it cares about.
 	Data Portal `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// V2PortalVerifyDomainRequestBody defines model for V2PortalVerifyDomainRequestBody.
+type V2PortalVerifyDomainRequestBody struct {
+	// DomainId The portal domain ID that `portal.createDomain` returned.
+	//
+	// Example: pdom_1234abcd
+	DomainId PortalDomainId `json:"domainId"`
+
+	// Portal Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	//
+	//
+	// Example: proj_1234abcd
+	Portal ResourceIdentifier `json:"portal"`
+}
+
+// V2PortalVerifyDomainResponseBody defines model for V2PortalVerifyDomainResponseBody.
+type V2PortalVerifyDomainResponseBody struct {
+	// Data Empty response object by design. A successful response indicates this operation was successfully executed.
+	Data EmptyResponse `json:"data"`
 
 	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
 	Meta Meta `json:"meta"`
@@ -7156,11 +7374,17 @@ type PermissionsListRolesJSONRequestBody = V2PermissionsListRolesRequestBody
 // PermissionsSetRolePermissionsJSONRequestBody defines body for PermissionsSetRolePermissions for application/json ContentType.
 type PermissionsSetRolePermissionsJSONRequestBody = V2PermissionsSetRolePermissionsRequestBody
 
+// PortalCreateDomainJSONRequestBody defines body for PortalCreateDomain for application/json ContentType.
+type PortalCreateDomainJSONRequestBody = V2PortalCreateDomainRequestBody
+
 // PortalCreatePortalJSONRequestBody defines body for PortalCreatePortal for application/json ContentType.
 type PortalCreatePortalJSONRequestBody = V2PortalCreatePortalRequestBody
 
 // PortalCreateSessionJSONRequestBody defines body for PortalCreateSession for application/json ContentType.
 type PortalCreateSessionJSONRequestBody = V2PortalCreateSessionRequestBody
+
+// PortalDeleteDomainJSONRequestBody defines body for PortalDeleteDomain for application/json ContentType.
+type PortalDeleteDomainJSONRequestBody = V2PortalDeleteDomainRequestBody
 
 // PortalDeletePortalJSONRequestBody defines body for PortalDeletePortal for application/json ContentType.
 type PortalDeletePortalJSONRequestBody = V2PortalDeletePortalRequestBody
@@ -7168,11 +7392,17 @@ type PortalDeletePortalJSONRequestBody = V2PortalDeletePortalRequestBody
 // PortalExchangeCodeJSONRequestBody defines body for PortalExchangeCode for application/json ContentType.
 type PortalExchangeCodeJSONRequestBody = V2PortalExchangeCodeRequestBody
 
+// PortalGetDomainJSONRequestBody defines body for PortalGetDomain for application/json ContentType.
+type PortalGetDomainJSONRequestBody = V2PortalGetDomainRequestBody
+
 // PortalGetPortalJSONRequestBody defines body for PortalGetPortal for application/json ContentType.
 type PortalGetPortalJSONRequestBody = V2PortalGetPortalRequestBody
 
 // PortalGetVerificationsJSONRequestBody defines body for PortalGetVerifications for application/json ContentType.
 type PortalGetVerificationsJSONRequestBody = V2PortalGetVerificationsRequestBody
+
+// PortalListDomainsJSONRequestBody defines body for PortalListDomains for application/json ContentType.
+type PortalListDomainsJSONRequestBody = V2PortalListDomainsRequestBody
 
 // PortalListKeysJSONRequestBody defines body for PortalListKeys for application/json ContentType.
 type PortalListKeysJSONRequestBody = V2PortalListKeysRequestBody
@@ -7188,6 +7418,9 @@ type PortalRevokeSessionJSONRequestBody = V2PortalRevokeSessionRequestBody
 
 // PortalUpdatePortalJSONRequestBody defines body for PortalUpdatePortal for application/json ContentType.
 type PortalUpdatePortalJSONRequestBody = V2PortalUpdatePortalRequestBody
+
+// PortalVerifyDomainJSONRequestBody defines body for PortalVerifyDomain for application/json ContentType.
+type PortalVerifyDomainJSONRequestBody = V2PortalVerifyDomainRequestBody
 
 // ProjectsCreateProjectJSONRequestBody defines body for ProjectsCreateProject for application/json ContentType.
 type ProjectsCreateProjectJSONRequestBody = V2ProjectsCreateProjectRequestBody

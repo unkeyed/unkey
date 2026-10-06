@@ -149,3 +149,31 @@ func (h *Harness) CountLivePortalSessions(t *testing.T, portalID, externalID str
 	require.NoError(t, h.DB.RW().QueryRowContext(context.Background(), query, args...).Scan(&count))
 	return count
 }
+
+// SeedPortalDomain inserts a domain on portalID in the given status and returns
+// it as the API reads it. ctrl owns the insert query, so the row is written
+// directly here.
+func (h *Harness) SeedPortalDomain(
+	t *testing.T,
+	workspaceID, portalID, domain string,
+	status db.PortalDomainsVerificationStatus,
+) db.FindPortalDomainByIdRow {
+	t.Helper()
+
+	ctx := context.Background()
+	id := uid.New(uid.PortalDomainPrefix)
+	_, err := h.DB.RW().ExecContext(ctx,
+		`INSERT INTO portal_domains (id, workspace_id, portal_id, domain, verification_status, verification_token, target_cname, created_at)
+		 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+		id, workspaceID, portalID, domain, string(status), uid.Secure(24), uid.DNS1035(16)+".portal.unkey.local", h.Clock.Now().UnixMilli(),
+	)
+	require.NoError(t, err)
+
+	row, err := db.Query.FindPortalDomainById(ctx, h.DB.RW(), db.FindPortalDomainByIdParams{
+		ID:          id,
+		WorkspaceID: workspaceID,
+		PortalID:    portalID,
+	})
+	require.NoError(t, err)
+	return row
+}

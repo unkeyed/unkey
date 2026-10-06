@@ -1,0 +1,28 @@
+type: object
+required:
+  - portal
+  - domain
+properties:
+  portal:
+    "$ref": "../../../../common/ResourceIdentifier.yaml"
+  domain:
+    type: string
+    minLength: 4
+    maxLength: 253
+    description: |
+      Fully qualified domain name to attach to the portal, without a scheme, port, or path.
+      Must be unique across your workspace: a name already attached to a portal or to an
+      environment cannot be attached again.
+    example: portal.acme.com
+additionalProperties: false
+examples:
+  byId:
+    summary: Attach a domain to a portal by ID
+    value:
+      portal: pc_1234abcd
+      domain: portal.acme.com
+  bySlug:
+    summary: Attach a domain to a portal by slug
+    value:
+      portal: acme-portal
+      domain: portal.acme.com

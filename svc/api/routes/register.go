@@ -76,17 +76,22 @@ import (
 	v2AnalyticsGetRuntimeLogs "github.com/unkeyed/unkey/svc/api/routes/v2_analytics_get_runtime_logs"
 	v2AnalyticsGetVerifications "github.com/unkeyed/unkey/svc/api/routes/v2_analytics_get_verifications"
 
+	v2PortalCreateDomain "github.com/unkeyed/unkey/svc/api/routes/v2_portal_create_domain"
 	v2PortalCreatePortal "github.com/unkeyed/unkey/svc/api/routes/v2_portal_create_portal"
 	v2PortalCreateSession "github.com/unkeyed/unkey/svc/api/routes/v2_portal_create_session"
+	v2PortalDeleteDomain "github.com/unkeyed/unkey/svc/api/routes/v2_portal_delete_domain"
 	v2PortalDeletePortal "github.com/unkeyed/unkey/svc/api/routes/v2_portal_delete_portal"
 	v2PortalExchangeCode "github.com/unkeyed/unkey/svc/api/routes/v2_portal_exchange_code"
+	v2PortalGetDomain "github.com/unkeyed/unkey/svc/api/routes/v2_portal_get_domain"
 	v2PortalGetPortal "github.com/unkeyed/unkey/svc/api/routes/v2_portal_get_portal"
 	v2PortalGetVerifications "github.com/unkeyed/unkey/svc/api/routes/v2_portal_get_verifications"
+	v2PortalListDomains "github.com/unkeyed/unkey/svc/api/routes/v2_portal_list_domains"
 	v2PortalListKeys "github.com/unkeyed/unkey/svc/api/routes/v2_portal_list_keys"
 	v2PortalListSessions "github.com/unkeyed/unkey/svc/api/routes/v2_portal_list_sessions"
 	v2PortalRerollKey "github.com/unkeyed/unkey/svc/api/routes/v2_portal_reroll_key"
 	v2PortalRevokeSession "github.com/unkeyed/unkey/svc/api/routes/v2_portal_revoke_session"
 	v2PortalUpdatePortal "github.com/unkeyed/unkey/svc/api/routes/v2_portal_update_portal"
+	v2PortalVerifyDomain "github.com/unkeyed/unkey/svc/api/routes/v2_portal_verify_domain"
 
 	v2AppsCreateApp "github.com/unkeyed/unkey/svc/api/routes/v2_apps_create_app"
 	v2AppsDeleteApp "github.com/unkeyed/unkey/svc/api/routes/v2_apps_delete_app"
@@ -842,6 +847,49 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 			DB:        svc.Database,
 			Auditlogs: svc.Auditlogs,
 			Clock:     svc.Clock,
+		},
+	)
+
+	// v2/portal.createDomain
+	srv.RegisterRoute(
+		protectedMiddlewares,
+		&v2PortalCreateDomain.Handler{
+			DB:         svc.Database,
+			CtrlClient: svc.CtrlPortalDomainClient,
+		},
+	)
+
+	// v2/portal.getDomain
+	srv.RegisterRoute(
+		protectedMiddlewares,
+		&v2PortalGetDomain.Handler{
+			DB: svc.Database,
+		},
+	)
+
+	// v2/portal.listDomains
+	srv.RegisterRoute(
+		protectedMiddlewares,
+		&v2PortalListDomains.Handler{
+			DB: svc.Database,
+		},
+	)
+
+	// v2/portal.verifyDomain
+	srv.RegisterRoute(
+		protectedMiddlewares,
+		&v2PortalVerifyDomain.Handler{
+			DB:         svc.Database,
+			CtrlClient: svc.CtrlPortalDomainClient,
+		},
+	)
+
+	// v2/portal.deleteDomain
+	srv.RegisterRoute(
+		protectedMiddlewares,
+		&v2PortalDeleteDomain.Handler{
+			DB:         svc.Database,
+			CtrlClient: svc.CtrlPortalDomainClient,
 		},
 	)
 

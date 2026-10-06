@@ -270,6 +270,16 @@ paths:
     $ref: "./spec/paths/v2/portal/rerollKey/index.yaml"
   /v2/portal.getVerifications:
     $ref: "./spec/paths/v2/portal/getVerifications/index.yaml"
+  /v2/portal.createDomain:
+    $ref: "./spec/paths/v2/portal/createDomain/index.yaml"
+  /v2/portal.getDomain:
+    $ref: "./spec/paths/v2/portal/getDomain/index.yaml"
+  /v2/portal.listDomains:
+    $ref: "./spec/paths/v2/portal/listDomains/index.yaml"
+  /v2/portal.verifyDomain:
+    $ref: "./spec/paths/v2/portal/verifyDomain/index.yaml"
+  /v2/portal.deleteDomain:
+    $ref: "./spec/paths/v2/portal/deleteDomain/index.yaml"
 
   # Project Endpoints
   /v2/projects.createProject:

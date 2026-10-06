@@ -1,0 +1,16 @@
+type: object
+required:
+  - domainId
+  - dnsRecords
+properties:
+  domainId:
+    "$ref": "../../../../common/PortalDomainId.yaml"
+  dnsRecords:
+    type: array
+    minItems: 1
+    items:
+      "$ref": "../../../../common/DnsRecord.yaml"
+    description: |
+      Every DNS record needed to finish setting up this domain, ready to create at your provider.
+      One record routes traffic to the portal and one proves ownership. Create all of them.
+additionalProperties: false

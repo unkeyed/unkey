@@ -468,6 +468,16 @@ func Run(ctx context.Context, cfg Config) error {
 		),
 	)
 
+	ctrlPortalDomainClient := ctrl.NewConnectPortalDomainServiceClient(
+		ctrlv1connect.NewPortalDomainServiceClient(
+			&http.Client{},
+			cfg.Control.URL,
+			connect.WithInterceptors(interceptor.NewHeaderInjector(map[string]string{
+				"Authorization": fmt.Sprintf("Bearer %s", cfg.Control.Token),
+			})),
+		),
+	)
+
 	restateClient := restateingress.NewClient(
 		cfg.Restate.URL,
 		restateingress.WithAuthKey(cfg.Restate.APIKey),
@@ -523,6 +533,7 @@ func Run(ctx context.Context, cfg Config) error {
 		Restate:           restateClient,
 
 		CtrlCustomDomainClient: ctrlCustomDomainClient,
+		CtrlPortalDomainClient: ctrlPortalDomainClient,
 		PprofEnabled:           pprofEnabled,
 		PprofUsername:          pprofUsername,
 		PprofPassword:          pprofPassword,

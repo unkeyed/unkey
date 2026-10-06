@@ -96,6 +96,11 @@ type Services struct {
 	// domain operations (create starts a durable DNS verification workflow).
 	CtrlCustomDomainClient ctrl.CustomDomainServiceClient
 
+	// CtrlPortalDomainClient communicates with the control plane for portal
+	// domain operations. ctrl does not check portal ownership, so callers must
+	// resolve and authorize the portal first.
+	CtrlPortalDomainClient ctrl.PortalDomainServiceClient
+
 	// Restate submits durable workflows through the Restate ingress.
 	Restate *restateingress.Client
 
