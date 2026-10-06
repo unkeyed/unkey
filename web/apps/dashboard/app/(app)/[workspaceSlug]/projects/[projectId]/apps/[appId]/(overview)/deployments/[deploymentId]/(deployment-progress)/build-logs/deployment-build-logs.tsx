@@ -15,6 +15,7 @@ import { cn } from "cn";
 import { type ReactNode, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import { useDeployment } from "../../layout-provider";
 import { BUILD_LOG_ENTRIES_SHOWN_MAX, useBuildLogs } from "../../use-build-logs";
+import { useDeploymentStatus } from "../../use-deployment-status";
 import { type BuildLogLine, type Tone, toBuildLogLines, toBuildLogText } from "./build-log-lines";
 import { BuildLogsHeader } from "./build-logs-header";
 import {
@@ -50,8 +51,9 @@ export function DeploymentBuildLogs({
   isOpen = true,
 }: Props) {
   const { deployment } = useDeployment();
-  const isFailed = deployment.status === "failed";
-  const isBuilding = BUILD_NOT_DONE_STATUSES.has(deployment.status);
+  const { derivedStatus } = useDeploymentStatus(deployment);
+  const isFailed = derivedStatus === "failed";
+  const isBuilding = BUILD_NOT_DONE_STATUSES.has(derivedStatus);
   const [followsTail, setFollowsTail] = useState(isBuilding);
   const [pendingJump, setPendingJump] = useState<PendingJump | null>(
     isFailed ? "last-error" : null,
@@ -217,7 +219,15 @@ export function DeploymentBuildLogs({
     setExpandedRunKeys((previous) => new Set(previous).add(runKey));
   };
 
-  if (logs.isLoading) {
+  if (logs.isError && !logs.data) {
+    return (
+      <BuildLogsMessage>
+        <IconTriangleWarningOutline18 className="size-3.5 text-error-11" />
+        Failed to load build logs
+      </BuildLogsMessage>
+    );
+  }
+  if (logs.isLoading || (isBuilding && !entries?.length)) {
     return (
       <div className="flex flex-col">
         <div className="flex h-11 items-center gap-2 border-b border-grayA-3 px-4 text-xs text-gray-10">
@@ -226,14 +236,6 @@ export function DeploymentBuildLogs({
         </div>
         <div style={{ height: logHeight }} />
       </div>
-    );
-  }
-  if (logs.isError && !logs.data) {
-    return (
-      <BuildLogsMessage>
-        <IconTriangleWarningOutline18 className="size-3.5 text-error-11" />
-        Failed to load build logs
-      </BuildLogsMessage>
     );
   }
   if (!entries || entries.length === 0) {
