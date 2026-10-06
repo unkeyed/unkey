@@ -1,20 +1,22 @@
 "use client";
-import { CopyButton, SettingCard } from "@unkey/ui";
+import {
+  CopyButton,
+  SettingsRow,
+  SettingsRowContent,
+  SettingsRowDescription,
+  SettingsRowHeader,
+  SettingsRowTitle,
+} from "@unkey/ui";
 
 export const CopyWorkspaceId = ({ workspaceId }: { workspaceId: string }) => {
   return (
-    <SettingCard
-      title={"Workspace ID"}
-      description={"An identifier for the workspace."}
-      border="bottom"
-      contentWidth="w-full lg:w-[420px] justify-end"
-    >
-      <div className="flex flex-row justify-end items-center">
-        <div
-          className={
-            "flex flex-row items-center justify-between min-w-[395px] pl-2 pr-2 py-2 bg-raised border rounded-lg"
-          }
-        >
+    <SettingsRow>
+      <SettingsRowHeader>
+        <SettingsRowTitle>Workspace ID</SettingsRowTitle>
+        <SettingsRowDescription>An identifier for the workspace.</SettingsRowDescription>
+      </SettingsRowHeader>
+      <SettingsRowContent>
+        <div className="flex max-w-(--setting-w) items-center justify-between rounded-lg border bg-raised px-2 py-2">
           <div className="text-sm leading-5 text-gray-11">{workspaceId}</div>
           <CopyButton
             value={workspaceId}
@@ -23,7 +25,7 @@ export const CopyWorkspaceId = ({ workspaceId }: { workspaceId: string }) => {
             className="shrink-0"
           />
         </div>
-      </div>
-    </SettingCard>
+      </SettingsRowContent>
+    </SettingsRow>
   );
 };
