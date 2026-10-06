@@ -26,6 +26,7 @@ type Service struct {
 	db           db.Database
 	vault        vault.VaultServiceClient
 	emailDomain  string
+	directoryURL string
 	dnsProvider  challenge.Provider
 	httpProvider challenge.Provider
 	heartbeat    healthcheck.Heartbeat
@@ -42,9 +43,12 @@ type Config struct {
 	// the workspace ID as the keyring identifier.
 	Vault vault.VaultServiceClient
 
-	// EmailDomain forms the email address for ACME account registration. The service
-	// constructs emails as "acme@{EmailDomain}" for the global ACME account.
+	// EmailDomain forms the email address for ACME account registration. The
+	// account address is "{WorkspaceID}@{EmailDomain}"; see [acme.AcmeUser.GetEmail].
 	EmailDomain string
+
+	// DirectoryURL is the ACME directory. Empty keeps lego's default, Let's Encrypt production.
+	DirectoryURL string
 
 	// DNSProvider handles DNS-01 challenges required for wildcard certificates.
 	// Must be set to issue wildcard certs; ignored for regular domain certificates.
@@ -69,6 +73,7 @@ func New(cfg Config) *Service {
 		db:                                    cfg.DB,
 		vault:                                 cfg.Vault,
 		emailDomain:                           cfg.EmailDomain,
+		directoryURL:                          cfg.DirectoryURL,
 		dnsProvider:                           cfg.DNSProvider,
 		httpProvider:                          cfg.HTTPProvider,
 		heartbeat:                             cfg.Heartbeat,

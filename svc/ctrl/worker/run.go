@@ -523,6 +523,7 @@ func Run(ctx context.Context, cfg Config) error {
 		DB:           database,
 		Vault:        vaultClient,
 		EmailDomain:  cfg.Acme.EmailDomain,
+		DirectoryURL: cfg.Acme.DirectoryURL,
 		DNSProvider:  dnsProvider,
 		HTTPProvider: httpProvider,
 		Heartbeat:    certHeartbeat,
