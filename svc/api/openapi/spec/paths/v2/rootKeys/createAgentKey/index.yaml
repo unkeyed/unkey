@@ -1,0 +1,48 @@
+post:
+  x-excluded: true
+  x-speakeasy-ignore: true
+  tags:
+    - rootKeys
+  summary: Create agent signup root key
+  description: |
+    Creates a root key for the workspace in an agent-signup JWT.
+    The caller must present a bearer JWT whose role is exactly `agent_signup`.
+    Each permission must be a member of that role's allowlist.
+  operationId: rootKeys.createAgentKey
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ./V2RootKeysCreateAgentKeyRequestBody.yaml
+  responses:
+    "200":
+      description: Root key created. Save the secret now; it cannot be retrieved later.
+      content:
+        application/json:
+          schema:
+            $ref: ./V2RootKeysCreateAgentKeyResponseBody.yaml
+    "400":
+      description: Invalid input.
+      content:
+        application/json:
+          schema:
+            $ref: ../../../../error/BadRequestErrorResponse.yaml
+    "401":
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            $ref: ../../../../error/UnauthorizedErrorResponse.yaml
+    "403":
+      description: The credential is not an agent_signup JWT, or a permission is outside the allowlist.
+      content:
+        application/json:
+          schema:
+            $ref: ../../../../error/ForbiddenErrorResponse.yaml
+    "500":
+      description: Internal server error, including missing or invalid root-key storage configuration.
+      content:
+        application/json:
+          schema:
+            $ref: ../../../../error/InternalServerErrorResponse.yaml

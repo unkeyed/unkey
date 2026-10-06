@@ -1,0 +1,22 @@
+type: object
+additionalProperties: false
+required:
+  - permissions
+properties:
+  name:
+    type: string
+    minLength: 1
+    maxLength: 256
+    description: Optional name for the root key.
+  permissions:
+    type: array
+    minItems: 1
+    maxItems: 32
+    description: |
+      Permissions to grant. Each item is a full URN,
+      `unkey:v1:<workspace_id>:<resource>#<action>`.
+      The resource may contain `*`, `/`, and `#`.
+    items:
+      type: string
+      minLength: 1
+      maxLength: 512

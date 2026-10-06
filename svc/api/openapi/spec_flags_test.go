@@ -69,6 +69,7 @@ func TestSpecExcludesUnlaunchedPortalOperations(t *testing.T) {
 		"portal.rerollKey",
 		"portal.revokeSession",
 		"portal.updatePortal",
+		"rootKeys.createAgentKey",
 	}, excluded, "every excluded operation is accounted for")
 
 	require.Subset(t, excluded, portal,

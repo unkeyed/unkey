@@ -31,22 +31,10 @@ import (
 )
 
 // Request is the JSON body for an agent-signup root key.
-type Request struct {
-	Name        *string  `json:"name"`
-	Permissions []string `json:"permissions"`
-}
+type Request = openapi.V2RootKeysCreateAgentKeyRequestBody
 
 // Response is the JSON body returned after a key is stored.
-type Response struct {
-	Meta openapi.Meta `json:"meta"`
-	Data ResponseData `json:"data"`
-}
-
-// ResponseData carries the new key id and the plaintext secret.
-type ResponseData struct {
-	KeyId string `json:"keyId"`
-	Key   string `json:"key"`
-}
+type Response = openapi.V2RootKeysCreateAgentKeyResponseBody
 
 // Handler creates a root key bounded to the agent-signup allowlist.
 type Handler struct {
@@ -183,7 +171,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 	return s.JSON(http.StatusOK, Response{
 		Meta: openapi.Meta{RequestId: s.RequestID()},
-		Data: ResponseData{
+		Data: openapi.V2RootKeysCreateAgentKeyResponseData{
 			KeyId: keyID,
 			Key:   key.Key,
 		},

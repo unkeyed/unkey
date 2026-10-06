@@ -156,6 +156,67 @@ describe("issueAgentRootKey", () => {
     expect(auth.listMemberships).toHaveBeenCalledWith("user_existing", "org_123");
   });
 
+  it("logs the upstream status and error fields when creation is rejected", async () => {
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () =>
+        Response.json(
+          {
+            meta: { requestId: "req_abc" },
+            error: {
+              title: "Bad Request",
+              type: "https://unkey.com/docs/errors/unkey/application/invalid_input",
+              detail: "POST Path '/v2/rootKeys.createAgentKey' not found",
+            },
+          },
+          { status: 400 },
+        ),
+      ),
+    );
+
+    await expect(
+      issueAgentRootKey({
+        agent: { registrationId: "agent_reg_abc", userId: "user_abc" },
+        workspaceId: "ws_123",
+      }),
+    ).rejects.toMatchObject({ status: 502, code: "root_key_rejected" });
+
+    const logged = JSON.stringify(errorSpy.mock.calls);
+    expect(logged).toContain("400");
+    expect(logged).toContain("req_abc");
+    expect(logged).toContain("Bad Request");
+    expect(logged).toContain("invalid_input");
+    expect(logged).toContain("not found");
+    expect(logged).not.toContain("Bearer");
+    expect(logged).not.toContain("eyJ");
+    expect(logged).not.toContain("local-dev-agent-signup");
+    errorSpy.mockRestore();
+  });
+
+  it("logs the fetch failure class when the root key API cannot be reached", async () => {
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() => {
+        throw new TypeError("fetch failed");
+      }),
+    );
+
+    await expect(
+      issueAgentRootKey({
+        agent: { registrationId: "agent_reg_abc", userId: "user_abc" },
+        workspaceId: "ws_123",
+      }),
+    ).rejects.toMatchObject({ status: 503, code: "upstream" });
+
+    const logged = JSON.stringify(errorSpy.mock.calls);
+    expect(logged).toContain("TypeError");
+    expect(logged).not.toContain("Bearer");
+    expect(logged).not.toContain("eyJ");
+    errorSpy.mockRestore();
+  });
+
   it("returns not_configured when signing material is missing", async () => {
     state.env.UNKEY_AGENT_SIGNUP_JWT_SECRET = "";
     state.env.UNKEY_AGENT_SIGNUP_JWT_PRIVATE_KEY = undefined;

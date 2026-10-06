@@ -17,6 +17,39 @@ const rootKeyResponse = z.object({
   }),
 });
 
+const upstreamErrorBody = z.object({
+  meta: z
+    .object({
+      requestId: z.string().optional(),
+    })
+    .optional(),
+  error: z
+    .object({
+      type: z.string().optional(),
+      title: z.string().optional(),
+      detail: z.string().optional(),
+    })
+    .optional(),
+});
+
+function upstreamErrorFields(body: unknown): {
+  type?: string;
+  title?: string;
+  detail?: string;
+  requestId?: string;
+} {
+  const parsed = upstreamErrorBody.safeParse(body);
+  if (!parsed.success) {
+    return {};
+  }
+  return {
+    type: parsed.data.error?.type,
+    title: parsed.data.error?.title,
+    detail: parsed.data.error?.detail,
+    requestId: parsed.data.meta?.requestId,
+  };
+}
+
 const AGENT_REGISTRATION_METADATA_KEY = "agent_registration_id";
 
 export async function createAgentWorkspace(input: {
@@ -71,10 +104,18 @@ async function createRootKey(input: {
       }),
       signal: AbortSignal.timeout(10_000),
     });
-  } catch {
+  } catch (error) {
+    console.error("agent root key upstream unreachable", {
+      reason: error instanceof Error ? error.name : "unknown",
+    });
     throw new AgentSignupError(503, "upstream", "The root key API could not be reached.");
   }
   if (!response.ok) {
+    const body: unknown = await response.json().catch(() => null);
+    console.error("agent root key rejected", {
+      status: response.status,
+      ...upstreamErrorFields(body),
+    });
     throw new AgentSignupError(502, "root_key_rejected", "Root key creation was rejected.");
   }
   const parsed = rootKeyResponse.safeParse(await response.json().catch(() => null));

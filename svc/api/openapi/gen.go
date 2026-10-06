@@ -6588,6 +6588,34 @@ type V2RatelimitSetOverrideResponseData struct {
 	OverrideId string `json:"overrideId"`
 }
 
+// V2RootKeysCreateAgentKeyRequestBody defines model for V2RootKeysCreateAgentKeyRequestBody.
+type V2RootKeysCreateAgentKeyRequestBody struct {
+	// Name Optional name for the root key.
+	Name *string `json:"name,omitempty"`
+
+	// Permissions Permissions to grant. Each item is a full URN,
+	// `unkey:v1:<workspace_id>:<resource>#<action>`.
+	// The resource may contain `*`, `/`, and `#`.
+	Permissions []string `json:"permissions"`
+}
+
+// V2RootKeysCreateAgentKeyResponseBody defines model for V2RootKeysCreateAgentKeyResponseBody.
+type V2RootKeysCreateAgentKeyResponseBody struct {
+	Data V2RootKeysCreateAgentKeyResponseData `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// V2RootKeysCreateAgentKeyResponseData defines model for V2RootKeysCreateAgentKeyResponseData.
+type V2RootKeysCreateAgentKeyResponseData struct {
+	// Key Root key secret, returned only once. Store it securely.
+	Key string `json:"key"`
+
+	// KeyId Identifier used to manage the root key.
+	KeyId string `json:"keyId"`
+}
+
 // V2RootKeysCreateKeyRequestBody defines model for V2RootKeysCreateKeyRequestBody.
 type V2RootKeysCreateKeyRequestBody struct {
 	// Expires Expiration as Unix milliseconds, strictly in the future. Expiring root-key callers must provide a child expiry no later than their own. JWT admins and nonexpiring root-key callers may omit it or set null for no expiration.
@@ -7116,6 +7144,9 @@ type RatelimitMultiLimitJSONRequestBody = V2RatelimitMultiLimitRequestBody
 
 // RatelimitSetOverrideJSONRequestBody defines body for RatelimitSetOverride for application/json ContentType.
 type RatelimitSetOverrideJSONRequestBody = V2RatelimitSetOverrideRequestBody
+
+// RootKeysCreateAgentKeyJSONRequestBody defines body for RootKeysCreateAgentKey for application/json ContentType.
+type RootKeysCreateAgentKeyJSONRequestBody = V2RootKeysCreateAgentKeyRequestBody
 
 // RootKeysCreateKeyJSONRequestBody defines body for RootKeysCreateKey for application/json ContentType.
 type RootKeysCreateKeyJSONRequestBody = V2RootKeysCreateKeyRequestBody

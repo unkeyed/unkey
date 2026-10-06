@@ -3979,6 +3979,39 @@ components:
                     "$ref": "#/components/schemas/Meta"
                 data:
                     "$ref": "#/components/schemas/V2RatelimitSetOverrideResponseData"
+        V2RootKeysCreateAgentKeyRequestBody:
+            type: object
+            additionalProperties: false
+            required:
+                - permissions
+            properties:
+                name:
+                    type: string
+                    minLength: 1
+                    maxLength: 256
+                    description: Optional name for the root key.
+                permissions:
+                    type: array
+                    minItems: 1
+                    maxItems: 32
+                    description: |
+                        Permissions to grant. Each item is a full URN,
+                        `unkey:v1:<workspace_id>:<resource>#<action>`.
+                        The resource may contain `*`, `/`, and `#`.
+                    items:
+                        type: string
+                        minLength: 1
+                        maxLength: 512
+        V2RootKeysCreateAgentKeyResponseBody:
+            type: object
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    $ref: '#/components/schemas/Meta'
+                data:
+                    $ref: '#/components/schemas/V2RootKeysCreateAgentKeyResponseData'
         V2RootKeysCreateKeyRequestBody:
             type: object
             additionalProperties: false
@@ -7779,6 +7812,19 @@ components:
                     type: string
             required:
                 - overrideId
+        V2RootKeysCreateAgentKeyResponseData:
+            type: object
+            required:
+                - keyId
+                - key
+            properties:
+                keyId:
+                    type: string
+                    description: Identifier used to manage the root key.
+                key:
+                    type: string
+                    x-unkey-redact: true
+                    description: Root key secret, returned only once. Store it securely.
         V2RootKeysCreateKeyResponseData:
             type: object
             required:
@@ -17004,6 +17050,55 @@ paths:
             tags:
                 - ratelimit
             x-speakeasy-name-override: setOverride
+    /v2/rootKeys.createAgentKey:
+        post:
+            description: |
+                Creates a root key for the workspace in an agent-signup JWT.
+                The caller must present a bearer JWT whose role is exactly `agent_signup`.
+                Each permission must be a member of that role's allowlist.
+            operationId: rootKeys.createAgentKey
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/V2RootKeysCreateAgentKeyRequestBody'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/V2RootKeysCreateAgentKeyResponseBody'
+                    description: Root key created. Save the secret now; it cannot be retrieved later.
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Invalid input.
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Unauthorized
+                "403":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: The credential is not an agent_signup JWT, or a permission is outside the allowlist.
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error, including missing or invalid root-key storage configuration.
+            summary: Create agent signup root key
+            tags:
+                - rootKeys
+            x-excluded: true
+            x-speakeasy-ignore: true
     /v2/rootKeys.createKey:
         post:
             description: |
