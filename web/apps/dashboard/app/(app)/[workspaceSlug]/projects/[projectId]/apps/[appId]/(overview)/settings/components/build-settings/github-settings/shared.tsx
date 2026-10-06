@@ -16,7 +16,7 @@ export const GitHubSettingCard = ({
     title="Repository"
     description="Source repository for this deployment"
     border="top"
-    contentWidth="w-full lg:w-[320px] justify-end"
+    contentWidth="w-full @2xl:w-[320px] justify-end"
     expandable={expandable}
     chevronState={chevronState}
   >

@@ -30,7 +30,7 @@ export const Usage: React.FC<{
         title="Usage this month"
         description="Valid key verifications and ratelimits."
         className="w-full"
-        contentWidth="w-full lg:w-[320px]"
+        contentWidth="w-full @2xl:w-[320px]"
       >
         <div className="w-full flex h-full items-center justify-end gap-4">
           <Skeleton className="h-5 w-32 bg-gray-4" />
@@ -46,7 +46,7 @@ export const Usage: React.FC<{
         title="Usage this month"
         description="Valid key verifications and ratelimits."
         className="w-full"
-        contentWidth="w-full lg:w-[320px]"
+        contentWidth="w-full @2xl:w-[320px]"
       >
         <div className="w-full flex flex-col gap-2">
           <p className="text-sm text-error-11">Failed to load usage: {error.message}</p>
@@ -68,7 +68,7 @@ export const Usage: React.FC<{
         title="Usage this month"
         description="Valid key verifications and ratelimits."
         className="w-full"
-        contentWidth="w-full lg:w-[320px]"
+        contentWidth="w-full @2xl:w-[320px]"
       >
         <div className="w-full flex flex-col gap-2">
           <p className="text-sm text-gray-11">No usage data available</p>
@@ -96,7 +96,7 @@ export const Usage: React.FC<{
       description="Valid key verifications and ratelimits."
       border="both"
       className="w-full"
-      contentWidth="w-full lg:w-[320px]"
+      contentWidth="w-full @2xl:w-[320px]"
     >
       <div className="w-full flex h-full items-center justify-end gap-4">
         <p className="text-sm font-semibold text-gray-12">
