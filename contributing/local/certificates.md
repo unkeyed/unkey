@@ -101,6 +101,8 @@ returns without waiting for the result.
 | --- | --- | --- |
 | `hydra.v1.CustomDomainService/VerifyDomain` | domain ID (`custom_domains.id`) | `{}` |
 | `hydra.v1.CustomDomainService/RetryVerification` | domain ID | `{}` |
+| `hydra.v1.PortalDomainService/VerifyDomain` | portal domain ID (`portal_domains.id`) | `{}` |
+| `hydra.v1.PortalDomainService/RetryVerification` | portal domain ID | `{}` |
 | `hydra.v1.CertificateService/ProcessChallenge` | domain name | `workspace_id`, `domain` |
 | `hydra.v1.CertificateService/RenewExpiringCertificates` | `global` | `{}` |
 
@@ -114,7 +116,8 @@ curl -X POST "http://localhost:8080/hydra.v1.CustomDomainService/<domain_id>/Ret
 ```
 
 Issue a certificate for one domain. The domain is the key and is also the body
-field `ProcessChallenge` looks up in `custom_domains`:
+field `ProcessChallenge` looks up among verified rows in `custom_domains` and
+`portal_domains`:
 
 ```bash
 curl -X POST "http://localhost:8080/hydra.v1.CertificateService/<domain>/ProcessChallenge/send" \
@@ -133,6 +136,73 @@ curl -X POST "http://localhost:8080/hydra.v1.CertificateService/global/RenewExpi
 
 The Restate UI on port `9070` shows each invocation's journal, retries, and
 errors, and can invoke the same handlers.
+
+## Portal domains
+
+Portal domains live in `portal_domains` and verify under the same DNS rules,
+but every verified hostname routes to one shared portal app rather than to the
+tenant's own environment. No portal app is seeded locally, so deploy any app to
+stand in for it, then find its production environment ID:
+
+```sql
+SELECT e.id, p.slug AS project, a.slug AS app
+FROM environments e
+JOIN apps a ON a.id = e.app_id
+JOIN projects p ON p.id = e.project_id
+WHERE e.slug = 'production';
+```
+
+Set that ID as `[portal] environment_id` in both
+`dev/k8s/manifests/ctrl-api.yaml` and `dev/k8s/manifests/ctrl-worker.yaml`.
+`ctrl-api` rejects `AddPortalDomain` with `FailedPrecondition` until it and
+`portal_cname_domain` are set, and `ctrl-worker` needs it to create the route.
+
+```toml
+# ctrl-api.yaml
+portal_cname_domain = "portal.unkey.local"
+
+[portal]
+environment_id = "<environment_id>"
+```
+
+```toml
+# ctrl-worker.yaml
+[portal]
+environment_id = "<environment_id>"
+```
+
+Each portal domain's `target_cname` is `<random>.<portal_cname_domain>`. The
+default `portal.unkey.local` has the same problem as `cname_domain`: no public
+resolver answers it. Point `portal_cname_domain` at a domain you control with a
+wildcard `*.<portal_cname_domain>` record to your tunnel, or verify with the TXT
+record instead.
+
+Attach a hostname with `POST /v2/portal.createDomain` on the local API, using a
+root key that can update the portal. The response carries the `domainId` and
+the DNS records to create:
+
+```bash
+curl -X POST "http://localhost:7070/v2/portal.createDomain" \
+  -H "Authorization: Bearer <root_key>" \
+  -H 'content-type: application/json' \
+  -d '{"portal": "<portal_id>", "domain": "<domain>"}'
+```
+
+`portal.getDomain`, `portal.listDomains`, `portal.verifyDomain`, and
+`portal.deleteDomain` cover the rest of the lifecycle. On success the workflow
+inserts a `frontline_routes` row on the portal environment with `sticky = 'live'`,
+so the hostname follows that app's promotions, and sends `ProcessChallenge`
+under the tenant's workspace.
+
+The verification object is `hydra.v1.PortalDomainService`, keyed by portal
+domain ID (`portal_domains.id`), with the same `VerifyDomain` and
+`RetryVerification` handlers as `CustomDomainService`:
+
+```bash
+curl -X POST "http://localhost:8080/hydra.v1.PortalDomainService/<portal_domain_id>/RetryVerification/send" \
+  -H 'content-type: application/json' \
+  -d '{}'
+```
 
 ## Staging certificates
 
