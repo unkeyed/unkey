@@ -343,8 +343,8 @@ function SettingsZoneRow({
   return (
     <div className="flex flex-col gap-3 p-4 @2xl:flex-row @2xl:items-center @2xl:justify-between">
       <div className="space-y-1">
-        <p className="font-medium text-gray-12 text-sm">{title}</p>
-        <p className="text-gray-11 text-sm">{description}</p>
+        <div className="font-medium text-gray-12 text-sm">{title}</div>
+        <div className="text-gray-11 text-sm">{description}</div>
       </div>
       <Button
         variant={btnProps.variant}

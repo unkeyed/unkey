@@ -213,9 +213,9 @@ function SettingsRowTitle({ className, ...props }: React.ComponentProps<"div">) 
 
 SettingsRowTitle.displayName = "SettingsRowTitle";
 
-function SettingsRowDescription({ className, ...props }: React.ComponentProps<"p">) {
+function SettingsRowDescription({ className, ...props }: React.ComponentProps<"div">) {
   return (
-    <p
+    <div
       data-slot="settings-row-description"
       className={cn("text-xs leading-5 text-gray-11", className)}
       {...props}
