@@ -92,10 +92,11 @@ func TestMigrateKeysSuccess(t *testing.T) {
 		Roles: new([]string{"admin"}),
 	}
 
-	t.Run("rejects identity from another project", func(t *testing.T) {
-		externalID := "ext_wrong_project"
+	t.Run("creates a separate identity when the external ID exists in another project", func(t *testing.T) {
+		externalID := uid.New("ext_other_project")
+		otherProjectIdentityID := uid.New(uid.IdentityPrefix)
 		err := db.Query.InsertIdentity(ctx, h.DB.RW(), db.InsertIdentityParams{
-			ID:          uid.New(uid.IdentityPrefix),
+			ID:          otherProjectIdentityID,
 			ExternalID:  externalID,
 			WorkspaceID: workspaceID,
 			ProjectID:   defaultAPI.ProjectID,
@@ -107,7 +108,7 @@ func TestMigrateKeysSuccess(t *testing.T) {
 
 		key, err := prefixedapikey.GenerateAPIKey(&prefixedapikey.GenerateAPIKeyOptions{KeyPrefix: "unkeyed"})
 		require.NoError(t, err)
-		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, handler.Request{
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
 			ApiId:       api.ID,
 			MigrationId: migrationID,
 			Keys: []openapi.V2KeysMigrateKeyData{{
@@ -115,12 +116,25 @@ func TestMigrateKeysSuccess(t *testing.T) {
 				ExternalId: new(externalID),
 			}},
 		})
+		require.Equal(t, http.StatusOK, res.Status, "got: %s", res.RawBody)
+		require.Len(t, res.Body.Data.Migrated, 1)
 
-		require.Equal(t, http.StatusNotFound, res.Status, "got: %s", res.RawBody)
-		require.Contains(t, res.Body.Error.Detail, externalID)
-		keys, err := db.Query.FindKeysByHash(ctx, h.DB.RO(), []string{key.LongTokenHash})
+		migratedKey, err := db.Query.FindLiveKeyByID(ctx, h.DB.RO(), res.Body.Data.Migrated[0].KeyId)
 		require.NoError(t, err)
-		require.Empty(t, keys)
+		keyData := db.ToKeyData(migratedKey)
+		require.NotNil(t, keyData.Identity)
+		require.NotEqual(t, otherProjectIdentityID, keyData.Identity.ID)
+		require.Equal(t, externalID, keyData.Identity.ExternalID)
+
+		identities, err := db.Query.FindIdentitiesByExternalId(ctx, h.DB.RO(), db.FindIdentitiesByExternalIdParams{
+			WorkspaceID: workspaceID,
+			ProjectID:   api.ProjectID,
+			ExternalIds: []string{externalID},
+			Deleted:     false,
+		})
+		require.NoError(t, err)
+		require.Len(t, identities, 1)
+		require.Equal(t, keyData.Identity.ID, identities[0].ID)
 	})
 
 	t.Run("rejects permission from another project", func(t *testing.T) {
@@ -240,7 +254,9 @@ func TestMigrateKeysSuccess(t *testing.T) {
 		// First, verify the identity, permission, and role exist from the first migration
 		identity, err := db.Query.FindIdentitiesByExternalId(ctx, h.DB.RO(), db.FindIdentitiesByExternalIdParams{
 			WorkspaceID: h.Resources().UserWorkspace.ID,
+			ProjectID:   api.ProjectID,
 			ExternalIds: []string{"ext_123"},
+			Deleted:     false,
 		})
 		require.NoError(t, err, "Identity should exist from first migration")
 		require.Len(t, identity, 1, "Identity should exist from first migration")
@@ -286,6 +302,7 @@ func TestMigrateKeysSuccess(t *testing.T) {
 		// Verify no duplicate identities were created
 		identities, err := db.Query.FindIdentitiesByExternalId(ctx, h.DB.RO(), db.FindIdentitiesByExternalIdParams{
 			WorkspaceID: h.Resources().UserWorkspace.ID,
+			ProjectID:   api.ProjectID,
 			ExternalIds: []string{"ext_123"},
 			Deleted:     false,
 		})

@@ -13,25 +13,35 @@ const findIdentityByExternalID = `-- name: FindIdentityByExternalID :one
 SELECT identities.pk, identities.id, identities.external_id, identities.workspace_id, identities.project_id, identities.environment, identities.meta, identities.deleted, identities.created_at, identities.updated_at
 FROM identities
 WHERE workspace_id = ?
+  AND project_id = ?
   AND external_id = ?
   AND deleted = ?
 `
 
 type FindIdentityByExternalIDParams struct {
 	WorkspaceID string `db:"workspace_id"`
+	ProjectID   string `db:"project_id"`
 	ExternalID  string `db:"external_id"`
 	Deleted     bool   `db:"deleted"`
 }
 
-// FindIdentityByExternalID
+// FindIdentityByExternalID resolves an external ID within one project. External
+// IDs are unique per project, so the same value can name different identities
+// in other projects of the workspace.
 //
 //	SELECT identities.pk, identities.id, identities.external_id, identities.workspace_id, identities.project_id, identities.environment, identities.meta, identities.deleted, identities.created_at, identities.updated_at
 //	FROM identities
 //	WHERE workspace_id = ?
+//	  AND project_id = ?
 //	  AND external_id = ?
 //	  AND deleted = ?
 func (q *Queries) FindIdentityByExternalID(ctx context.Context, db DBTX, arg FindIdentityByExternalIDParams) (Identity, error) {
-	row := db.QueryRowContext(ctx, findIdentityByExternalID, arg.WorkspaceID, arg.ExternalID, arg.Deleted)
+	row := db.QueryRowContext(ctx, findIdentityByExternalID,
+		arg.WorkspaceID,
+		arg.ProjectID,
+		arg.ExternalID,
+		arg.Deleted,
+	)
 	var i Identity
 	err := row.Scan(
 		&i.Pk,

@@ -1,7 +1,7 @@
 ---
 title: "identity_already_exists"
 sidebarTitle: "identity_already_exists"
-description: "An identity with that externalId already exists in the workspace."
+description: "An identity with that externalId already exists in the project."
 sources:
   - pkg/codes/unkey_data.go
   - svc/api/internal/middleware/errors.go
@@ -10,7 +10,7 @@ sources:
 
 <Danger>`err:unkey:data:identity_already_exists`</Danger>
 
-An identity with the same `externalId` already exists in your workspace, so `identities.createIdentity` didn't create one. You get HTTP 409.
+An identity with the same `externalId` already exists in the project, so `identities.createIdentity` didn't create one. You get HTTP 409.
 
 ```json Example response
 {
@@ -18,7 +18,7 @@ An identity with the same `externalId` already exists in your workspace, so `ide
     "requestId": "req_2c9a0jf23l4k567"
   },
   "error": {
-    "detail": "Identity with externalId 'user_123' already exists in this workspace.",
+    "detail": "Identity with externalId 'user_123' already exists in this project.",
     "status": 409,
     "title": "Conflicting Resource",
     "type": "/errors/unkey/data/identity_already_exists"
@@ -28,7 +28,7 @@ An identity with the same `externalId` already exists in your workspace, so `ide
 
 ## Likely causes
 
-- You already created an identity for this user or tenant. `externalId` is unique per workspace.
+- You already created an identity for this user or tenant. `externalId` is unique per project.
 
 ## How to fix
 

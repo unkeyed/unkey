@@ -96,7 +96,7 @@ post:
                   requestId: req_2wXyZaAbCdEfGhIjKlMnOp
                 error:
                   title: Conflict
-                  detail: Identity with externalId "user_abc123" already exists in this workspace.
+                  detail: Identity with externalId "user_abc123" already exists in this project.
                   status: 409
                   type: conflict
     "429":

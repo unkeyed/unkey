@@ -295,6 +295,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		if len(identitiesToFind) > 0 {
 			identities, err := db.Query.FindIdentitiesByExternalId(ctx, tx, db.FindIdentitiesByExternalIdParams{
 				WorkspaceID: principal.AuthorizedWorkspaceID,
+				ProjectID:   projectID,
 				ExternalIds: identitiesToFind,
 				Deleted:     false,
 			})
@@ -307,13 +308,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			}
 
 			for _, identity := range identities {
-				if identity.ProjectID != projectID {
-					return fault.New("identity not found",
-						fault.Code(codes.Data.Identity.NotFound.URN()),
-						fault.Internal("identity belongs to a different project"),
-						fault.Public(fmt.Sprintf("Identity '%s' was not found.", identity.ExternalID)),
-					)
-				}
 				externalIdToIdentityId[identity.ExternalID] = &identity.ID
 			}
 		}

@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"net/http"
 	"sort"
 
@@ -81,10 +82,39 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return h.emptyResponse(s)
 	}
 
+	keyspaces, err := db.Query.FindKeyAuthsByIdsAndWorkspace(ctx, h.DB.RO(), db.FindKeyAuthsByIdsAndWorkspaceParams{
+		WorkspaceID: principal.AuthorizedWorkspaceID,
+		KeyAuthIds:  keyspaceIDs,
+	})
+	if err != nil {
+		return fault.Wrap(err,
+			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+			fault.Internal("database error"),
+			fault.Public("Failed to retrieve keys."),
+		)
+	}
+	if len(keyspaces) == 0 {
+		return h.emptyResponse(s)
+	}
+
+	// portal.createSession only mints sessions whose keyspaces all belong to the
+	// portal's project, and external IDs are unique per project.
+	projectID := keyspaces[0].ProjectID
+	for _, keyspace := range keyspaces {
+		if keyspace.ProjectID != projectID {
+			return fault.New("portal session spans projects",
+				fault.Code(codes.App.Internal.UnexpectedError.URN()),
+				fault.Internal(fmt.Sprintf("portal session keyspaces belong to projects %s and %s", projectID, keyspace.ProjectID)),
+				fault.Public("An internal error occurred."),
+			)
+		}
+	}
+
 	// Scope to the end user's own keys. If the identity does not exist yet, the
 	// user simply has no keys.
 	identity, err := db.Query.FindIdentityByExternalID(ctx, h.DB.RO(), db.FindIdentityByExternalIDParams{
 		WorkspaceID: principal.AuthorizedWorkspaceID,
+		ProjectID:   projectID,
 		ExternalID:  externalID,
 		Deleted:     false,
 	})

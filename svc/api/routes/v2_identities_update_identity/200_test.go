@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/svc/api/internal/projects"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_identities_update_identity"
@@ -26,6 +27,9 @@ func TestSuccess(t *testing.T) {
 	}
 
 	h.Register(route)
+
+	defaultProjectID, err := projects.EnsureDefaultProject(t.Context(), h.DB.RW(), h.Resources().UserWorkspace.ID)
+	require.NoError(t, err)
 
 	rootKeyID := h.CreateRootKey(h.Resources().UserWorkspace.ID, "identity.*.update_identity")
 	headers := http.Header{
@@ -57,6 +61,7 @@ func TestSuccess(t *testing.T) {
 		ID:          identityID,
 		ExternalID:  externalID,
 		WorkspaceID: workspaceID,
+		ProjectID:   defaultProjectID,
 		Environment: "default",
 		CreatedAt:   time.Now().UnixMilli(),
 		Meta:        metaBytes,
@@ -67,6 +72,7 @@ func TestSuccess(t *testing.T) {
 		ID:          otherIdentityID,
 		ExternalID:  otherExternalID,
 		WorkspaceID: workspaceID,
+		ProjectID:   defaultProjectID,
 		Environment: "default",
 		CreatedAt:   time.Now().UnixMilli(),
 		Meta:        []byte("{}"),
@@ -282,6 +288,9 @@ func TestUpdateIdentityConcurrentRatelimits(t *testing.T) {
 
 	h.Register(route)
 
+	defaultProjectID, err := projects.EnsureDefaultProject(t.Context(), h.DB.RW(), h.Resources().UserWorkspace.ID)
+	require.NoError(t, err)
+
 	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "identity.*.update_identity")
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
@@ -292,10 +301,11 @@ func TestUpdateIdentityConcurrentRatelimits(t *testing.T) {
 	identityID := uid.New(uid.IdentityPrefix)
 	externalID := "concurrent_ratelimit_test"
 
-	err := db.Query.InsertIdentity(ctx, h.DB.RW(), db.InsertIdentityParams{
+	err = db.Query.InsertIdentity(ctx, h.DB.RW(), db.InsertIdentityParams{
 		ID:          identityID,
 		ExternalID:  externalID,
 		WorkspaceID: workspaceID,
+		ProjectID:   defaultProjectID,
 		Environment: "default",
 		CreatedAt:   time.Now().UnixMilli(),
 		Meta:        []byte("{}"),
@@ -342,6 +352,7 @@ func TestUpdateIdentityConcurrentRatelimits(t *testing.T) {
 	// Verify identity still exists
 	_, err = db.Query.FindIdentityByExternalID(ctx, h.DB.RO(), db.FindIdentityByExternalIDParams{
 		WorkspaceID: workspaceID,
+		ProjectID:   defaultProjectID,
 		ExternalID:  externalID,
 		Deleted:     false,
 	})
@@ -374,6 +385,9 @@ func TestBulkIdentityUpdateDeadlock(t *testing.T) {
 
 	h.Register(route)
 
+	defaultProjectID, err := projects.EnsureDefaultProject(t.Context(), h.DB.RW(), h.Resources().UserWorkspace.ID)
+	require.NoError(t, err)
+
 	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "identity.*.create_identity", "identity.*.update_identity")
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
@@ -394,6 +408,7 @@ func TestBulkIdentityUpdateDeadlock(t *testing.T) {
 			ID:          id,
 			ExternalID:  externalID,
 			WorkspaceID: workspaceID,
+			ProjectID:   defaultProjectID,
 			Environment: "default",
 			CreatedAt:   time.Now().UnixMilli(),
 			Meta:        []byte("{}"),

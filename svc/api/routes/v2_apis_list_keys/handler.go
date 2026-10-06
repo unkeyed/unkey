@@ -202,6 +202,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	if req.ExternalId != nil && *req.ExternalId != "" {
 		identity, identityErr := db.Query.FindIdentityByExternalID(ctx, h.DB.RO(), db.FindIdentityByExternalIDParams{
 			WorkspaceID: principal.AuthorizedWorkspaceID,
+			ProjectID:   api.KeyAuthProjectID,
 			ExternalID:  *req.ExternalId,
 			Deleted:     false,
 		})

@@ -165,6 +165,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 					identity, err := db.Query.FindIdentityByExternalID(ctx, tx, db.FindIdentityByExternalIDParams{
 						WorkspaceID: principal.AuthorizedWorkspaceID,
+						ProjectID:   projectID,
 						ExternalID:  externalID,
 						Deleted:     false,
 					})
@@ -177,7 +178,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					}
 					if db.IsNotFound(err) {
 						identity.ID = uid.New(uid.IdentityPrefix)
-						identity.ProjectID = projectID
 						err = db.Query.InsertIdentity(ctx, tx, db.InsertIdentityParams{
 							ID:          identity.ID,
 							ExternalID:  externalID,
@@ -194,13 +194,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 								fault.Public("Failed to create identity."),
 							)
 						}
-					}
-					if identity.ProjectID != projectID {
-						return fault.New("identity not found",
-							fault.Code(codes.Data.Identity.NotFound.URN()),
-							fault.Internal("identity belongs to a different project"),
-							fault.Public(fmt.Sprintf("Identity '%s' was not found.", externalID)),
-						)
 					}
 
 					update.IdentityID = sql.NullString{Valid: true, String: identity.ID}
