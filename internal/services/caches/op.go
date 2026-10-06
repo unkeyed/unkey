@@ -20,3 +20,14 @@ func DefaultFindFirstOp(err error) cache.Op {
 	// this is a noop in the cache
 	return cache.Noop
 }
+
+// WorkspaceByOrgIDOp is the cache write policy for organization to workspace
+// lookups. A missing row is not stored. Caching that miss hides a workspace
+// that is committed immediately afterwards for the fresh window, and for the
+// stale window after that.
+func WorkspaceByOrgIDOp(err error) cache.Op {
+	if db.IsNotFound(err) {
+		return cache.Noop
+	}
+	return DefaultFindFirstOp(err)
+}

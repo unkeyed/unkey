@@ -65,10 +65,11 @@ type RestateConfig struct {
 }
 
 const (
-	authTypeJWT           = "jwt"
-	authTypePortalSession = "portal_session"
-	authTypeRootKey       = "root_key"
-	jwtProviderWorkOS     = "workos"
+	authTypeJWT            = "jwt"
+	authTypePortalSession  = "portal_session"
+	authTypeRootKey        = "root_key"
+	jwtProviderWorkOS      = "workos"
+	jwtProviderAgentSignup = "agent_signup"
 )
 
 // AuthConfig is a discriminated union for one authentication resolver.
@@ -103,8 +104,9 @@ type JWTAuthConfig struct {
 	JWKSURL string `toml:"jwks_url"`
 
 	// Provider selects role mapping after JWT verification. Empty leaves the
-	// principal without role-derived permissions. "workos" maps the roles claim
-	// to API permissions.
+	// principal without role-derived permissions. "workos" maps organization
+	// roles to API permissions. "agent_signup" maps only the agent_signup role
+	// to the agent root-key allowlist and ignores admin.
 	Provider string `toml:"provider"`
 }
 
@@ -469,8 +471,8 @@ func (c *Config) Validate() error {
 					return fmt.Errorf("auth[%d].jwks_url must use https", i)
 				}
 			}
-			if auth.Provider != "" && auth.Provider != jwtProviderWorkOS {
-				return fmt.Errorf("auth[%d].provider must be %q when set", i, jwtProviderWorkOS)
+			if auth.Provider != "" && auth.Provider != jwtProviderWorkOS && auth.Provider != jwtProviderAgentSignup {
+				return fmt.Errorf("auth[%d].provider must be %q or %q when set", i, jwtProviderWorkOS, jwtProviderAgentSignup)
 			}
 		case PortalSessionAuthConfig:
 		case RootKeyAuthConfig:

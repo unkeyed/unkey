@@ -64,6 +64,7 @@ import (
 	v2KeysUpdateKey "github.com/unkeyed/unkey/svc/api/routes/v2_keys_update_key"
 	v2KeysVerifyKey "github.com/unkeyed/unkey/svc/api/routes/v2_keys_verify_key"
 	v2KeysWhoami "github.com/unkeyed/unkey/svc/api/routes/v2_keys_whoami"
+	v2RootKeysCreateAgentKey "github.com/unkeyed/unkey/svc/api/routes/v2_root_keys_create_agent_key"
 	v2RootKeysCreateKey "github.com/unkeyed/unkey/svc/api/routes/v2_root_keys_create_key"
 	v2RootKeysDeleteKey "github.com/unkeyed/unkey/svc/api/routes/v2_root_keys_delete_key"
 	v2RootKeysListKeys "github.com/unkeyed/unkey/svc/api/routes/v2_root_keys_list_keys"
@@ -594,6 +595,15 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 	srv.RegisterRoute(
 		protectedMiddlewares,
 		&v2RootKeysCreateKey.Handler{
+			DB:        svc.Database,
+			Keys:      svc.Keys,
+			Auditlogs: svc.Auditlogs,
+			Clock:     svc.Clock,
+		},
+	)
+	srv.RegisterRoute(
+		protectedMiddlewares,
+		&v2RootKeysCreateAgentKey.Handler{
 			DB:        svc.Database,
 			Keys:      svc.Keys,
 			Auditlogs: svc.Auditlogs,

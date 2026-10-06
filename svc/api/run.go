@@ -28,6 +28,7 @@ import (
 	"github.com/unkeyed/unkey/internal/services/usagelimiter"
 	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/auth"
+	authagentsignup "github.com/unkeyed/unkey/pkg/auth/agentsignup"
 	authjwt "github.com/unkeyed/unkey/pkg/auth/jwt"
 	portalsession "github.com/unkeyed/unkey/pkg/auth/portal_session"
 	rootkey "github.com/unkeyed/unkey/pkg/auth/root_key"
@@ -361,13 +362,16 @@ func Run(ctx context.Context, cfg Config) error {
 	// org-to-workspace mapping is served through the shared SWR cache like the
 	// other hot auth lookups. The SQL query filters soft-deleted workspaces;
 	// disabled workspaces are rejected here so their JWT principals lock out
-	// within the cache's fresh window.
+	// within the cache's fresh window. The read uses the primary. A miss is
+	// not stored: replica lag or a lookup that races workspace creation would
+	// otherwise hide the new workspace for the fresh window and up to the
+	// stale window.
 	workspaceByOrgID := authjwt.WorkspaceLookupFunc(func(ctx context.Context, orgID string) (string, error) {
 		workspace, hit, err := caches.WorkspaceByOrgID.SWR(ctx, orgID, func(ctx context.Context) (db.Workspace, error) {
 			return db.WithRetryContext(ctx, func() (db.Workspace, error) {
-				return db.Query.FindWorkspaceByOrgID(ctx, database.RO(), orgID)
+				return db.Query.FindWorkspaceByOrgID(ctx, database.RW(), orgID)
 			})
-		}, cachesvc.DefaultFindFirstOp)
+		}, cachesvc.WorkspaceByOrgIDOp)
 		if err != nil {
 			if db.IsNotFound(err) {
 				return "", authjwt.ErrWorkspaceNotFound
@@ -405,8 +409,11 @@ func Run(ctx context.Context, cfg Config) error {
 			if jwtErr != nil {
 				return fmt.Errorf("unable to create JWT auth resolver from auth[%d]: %w", i, jwtErr)
 			}
-			if authConfig.Provider == jwtProviderWorkOS {
+			switch authConfig.Provider {
+			case jwtProviderWorkOS:
 				jwtResolver = authworkos.NewRoleMappingResolver(jwtResolver)
+			case jwtProviderAgentSignup:
+				jwtResolver = authagentsignup.NewRoleMappingResolver(jwtResolver)
 			}
 			authResolvers = append(authResolvers, jwtResolver)
 		case PortalSessionAuthConfig:

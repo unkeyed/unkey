@@ -442,3 +442,25 @@ func TestConfig_ValidateRequiresRestateCredentials(t *testing.T) {
 		})
 	}
 }
+
+func TestConfig_ValidateAgentSignupJWKSProvider(t *testing.T) {
+	t.Parallel()
+
+	cfg := configWithAuth(JWTAuthConfig{
+		Issuer:   "https://app.unkey.com/agent-signup",
+		Audience: "api.unkey.com",
+		JWKSURL:  "https://app.unkey.com/.well-known/agent-signup-jwks",
+		Provider: "agent_signup",
+	})
+	require.NoError(t, cfg.Validate())
+
+	rejected := configWithAuth(JWTAuthConfig{
+		Issuer:   "https://app.unkey.com/agent-signup",
+		Audience: "api.unkey.com",
+		JWKSURL:  "https://app.unkey.com/.well-known/agent-signup-jwks",
+		Provider: "admin",
+	})
+	err := rejected.Validate()
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "provider")
+}
