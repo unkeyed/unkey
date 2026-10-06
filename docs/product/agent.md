@@ -22,11 +22,13 @@ Unkey issues API keys and runs apps. Follow this page when you are creating an a
 
 Create one account. If the person already has an Unkey account, open the sign-in URL below and stop. Do not create a second account.
 
-Do not bypass a bot check, an email code, or an OAuth consent screen. This repository has no CAPTCHA or Turnstile. If the hosted sign-up page shows one, the person completes it.
+Do not bypass a bot check, an email code, or an OAuth consent screen. Hosted AuthKit runs a Cloudflare Turnstile check that WorkOS operates. The person completes it. If Radar is enabled for that WorkOS environment, it can also block or challenge a bot, including an AI agent. This repository does not implement Turnstile or Radar.
 
 Ask the person for a verification code only so you can type it into the WorkOS page that sent it. Do not send that code anywhere else.
 
-Do not call an API to sign up or create a workspace. There is no such endpoint. Do not call `POST /v2/rootKeys.createKey` for the first key. That route requires a root key that already exists.
+Do not call an API to sign up or create a workspace. Unkey has no such endpoint. Do not call `POST /v2/rootKeys.createKey` for the first key. That route requires a root key that already exists.
+
+WorkOS Agent Auth, Agent Registration, CLI device authorization, Connect, and the user-management APIs do not replace the hosted page. Agent Auth and machine-to-machine tokens act inside an organization that already exists. Agent Registration and CLI device authorization still send the person through sign-in. Creating a WorkOS user with the email marked verified, or reading a Magic Auth code from the API response, skips the email check. Do not do that. None of these calls create an Unkey workspace. `workspace.create` runs only for a signed-in dashboard session.
 
 ## Sign the person up
 
