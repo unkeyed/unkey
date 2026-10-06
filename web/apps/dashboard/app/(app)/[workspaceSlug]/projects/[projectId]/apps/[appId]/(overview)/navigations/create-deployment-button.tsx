@@ -491,7 +491,7 @@ export const CreateDeploymentButton = ({
           )}
 
           {isGitApp && repositoryFullName && (
-            <div className="flex flex-col divide-y divide-gray-4 rounded-md border">
+            <div className="flex flex-col divide-y divide-gray-4 rounded-md border overflow-hidden">
               {repoDetails.isLoading &&
                 Array.from({ length: 5 }).map((_, i) => (
                   <div
