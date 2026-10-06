@@ -43,8 +43,8 @@ type Config struct {
 	// the workspace ID as the keyring identifier.
 	Vault vault.VaultServiceClient
 
-	// EmailDomain forms the email address for ACME account registration. The
-	// account address is "{WorkspaceID}@{EmailDomain}"; see [acme.AcmeUser.GetEmail].
+	// EmailDomain forms the email address for ACME account registration. All
+	// certificates share one account, registered as "acme@{EmailDomain}".
 	EmailDomain string
 
 	// DirectoryURL is the ACME directory. Empty keeps lego's default, Let's Encrypt production.

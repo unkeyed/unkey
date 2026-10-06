@@ -25,7 +25,7 @@
 // that take anywhere from seconds to hours to propagate globally, so the workflow
 // needs durable execution that survives restarts, a single verification attempt
 // per domain, and a long retry window. Restate provides virtual objects keyed by
-// domain name, durable retries every minute for up to 24 hours, and exactly-once
+// domain ID, durable retries every minute for up to 24 hours, and exactly-once
 // semantics for post-verification actions such as certificate issuance and routing.
 //
 // # Post-Verification
@@ -47,9 +47,10 @@
 //	    CnameDomain: "unkey-dns.com",
 //	})
 //
-// Register with Restate. The virtual object key is the domain name being verified:
+// Register with Restate. The virtual object key is the ID of the custom_domains row
+// being verified:
 //
-//	client := hydrav1.NewCustomDomainServiceClient(ctx, "api.example.com")
+//	client := hydrav1.NewCustomDomainServiceClient(ctx, domainID)
 //	client.VerifyDomain().Send(&hydrav1.VerifyDomainRequest{})
 //
 // # Retry Behavior
