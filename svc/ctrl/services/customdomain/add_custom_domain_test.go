@@ -10,6 +10,7 @@ import (
 	"strings"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"connectrpc.com/connect"
 	restateingress "github.com/restatedev/sdk-go/ingress"
@@ -242,6 +243,47 @@ func TestAddCustomDomainRejectsDuplicate(t *testing.T) {
 		FROM custom_domains
 		WHERE workspace_id = ? AND domain = ?
 	`, f.workspaceID, f.domain))
+}
+
+// A hostname the workspace already serves as a portal domain cannot also be a
+// deploy domain: one hostname routes one way. Refused like any other duplicate,
+// and nothing is written.
+func TestAddCustomDomainRejectsHostnameHeldAsPortalDomain(t *testing.T) {
+	ctx := context.Background()
+	f := newFixture(t, 5)
+	svc := f.newService(t)
+
+	require.NoError(t, f.database.InsertPortalDomain(ctx, db.InsertPortalDomainParams{
+		ID:                    uid.New(uid.PortalDomainPrefix),
+		WorkspaceID:           f.workspaceID,
+		PortalID:              uid.New(uid.PortalPrefix),
+		Domain:                f.domain,
+		VerificationStatus:    db.PortalDomainsVerificationStatusPending,
+		VerificationToken:     uid.New(uid.TestPrefix),
+		TargetCname:           uid.New(uid.TestPrefix),
+		DomainConnectProvider: sql.NullString{},
+		DomainConnectUrl:      sql.NullString{},
+		InvocationID:          sql.NullString{},
+		CreatedAt:             time.Now().UnixMilli(),
+	}))
+
+	_, err := svc.AddCustomDomain(ctx, f.request(f.domain))
+	require.Error(t, err)
+
+	var connectErr *connect.Error
+	require.ErrorAs(t, err, &connectErr)
+	require.Equal(t, connect.CodeAlreadyExists, connectErr.Code())
+	require.Equal(t, fault.UserFacingMessage(domaingate.AlreadyExists(f.domain)), connectErr.Message())
+
+	require.Equal(t, 0, countRows(t, ctx, f.database.RW(), `
+		SELECT COUNT(*)
+		FROM custom_domains
+		WHERE workspace_id = ? AND domain = ?
+	`, f.workspaceID, f.domain))
+
+	outboxRows, err := f.database.ListClickhouseOutboxByWorkspace(ctx, f.workspaceID)
+	require.NoError(t, err)
+	require.Empty(t, outboxRows)
 }
 
 // TestAddCustomDomainConcurrentDuplicateReadsTheSame pins that a name lost to a

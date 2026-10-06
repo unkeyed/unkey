@@ -768,14 +768,23 @@ type Querier interface {
 	//  FROM regions
 	//  WHERE platform = ? AND name = ? LIMIT 1
 	FindRegionByPlatformAndName(ctx context.Context, arg FindRegionByPlatformAndNameParams) (Region, error)
-	//FindVerifiedCustomDomainByDomainExcludingWorkspace
+	// Finds another workspace's verified claim on a hostname in custom_domains or
+	// portal_domains, so ownership contention spans both tables. source names the
+	// table holding the claim, which is where a takeover must revoke it.
 	//
-	//  SELECT custom_domains.pk, custom_domains.id, custom_domains.workspace_id, custom_domains.project_id, custom_domains.app_id, custom_domains.environment_id, custom_domains.domain, custom_domains.challenge_type, custom_domains.verification_status, custom_domains.verification_token, custom_domains.ownership_verified, custom_domains.cname_verified, custom_domains.target_cname, custom_domains.last_checked_at, custom_domains.check_attempts, custom_domains.verification_error, custom_domains.domain_connect_provider, custom_domains.domain_connect_url, custom_domains.invocation_id, custom_domains.created_at, custom_domains.updated_at FROM custom_domains
-	//  WHERE domain = ?
-	//    AND workspace_id != ?
-	//    AND verification_status = 'verified'
+	//  SELECT 'custom' AS source, custom_domains.id, custom_domains.workspace_id
+	//  FROM custom_domains
+	//  WHERE custom_domains.domain = ?
+	//    AND custom_domains.workspace_id != ?
+	//    AND custom_domains.verification_status = 'verified'
+	//  UNION ALL
+	//  SELECT 'portal' AS source, portal_domains.id, portal_domains.workspace_id
+	//  FROM portal_domains
+	//  WHERE portal_domains.domain = ?
+	//    AND portal_domains.workspace_id != ?
+	//    AND portal_domains.verification_status = 'verified'
 	//  LIMIT 1
-	FindVerifiedCustomDomainByDomainExcludingWorkspace(ctx context.Context, arg FindVerifiedCustomDomainByDomainExcludingWorkspaceParams) (CustomDomain, error)
+	FindVerifiedDomainClaimExcludingWorkspace(ctx context.Context, arg FindVerifiedDomainClaimExcludingWorkspaceParams) (FindVerifiedDomainClaimExcludingWorkspaceRow, error)
 	// Reads a workspace's billing row directly (Stripe linkage, tier, Compute plan,
 	// spend budget and spend-cap state). Used by the Deploy cancel path to read the
 	// current plan and Stripe subscription. When a workspace is already being

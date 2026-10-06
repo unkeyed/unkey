@@ -16,8 +16,9 @@
 //     lookup. A TXT record at _unkey.<domain> proves ownership instead.
 //
 // TXT is also always required when another workspace already has the same domain
-// verified (contention), regardless of whether CNAME is visible. On successful
-// contested verification, the old workspace's domain is revoked.
+// verified as a custom or portal domain (contention), regardless of whether CNAME
+// is visible. On successful contested verification, the old workspace's claim is
+// revoked. These rules are shared with portal domains through [domainverify].
 //
 // # Why Restate
 //
