@@ -99,8 +99,10 @@ token = "${UNKEY_VAULT_TOKEN}"
     </ResponseField>
     <ResponseField name="auth.provider" type="string">
       Optional JWT provider integration. Set `provider = "workos"` to map the
-      `roles` claim to API permissions. The API does not infer the provider from
-      the issuer.
+      `roles` claim to API permissions. Set `provider = "agent_signup"` to map
+      only the `agent_signup` role to the agent root-key allowlist. The API
+      does not infer the provider from the issuer, and `admin` on an
+      `agent_signup` entry grants nothing.
     </ResponseField>
     <ResponseField name="auth.audience" type="string">
       Optional expected JWT `aud` claim for `type = "jwt"`. Verification
@@ -322,6 +324,56 @@ entry to use the same role mapping.
   Local dashboard proxy signing secret. Add the same value to the API JWT auth
   entry's `secrets` list so the API can verify dashboard-minted fallback JWTs.
 </ResponseField>
+
+## Agent signup root keys
+
+Agent signup does not forward the WorkOS agent access token and does not sign
+the local admin proxy JWT. The dashboard calls `POST /v2/rootKeys.createAgentKey`
+with a 120 second JWT. The token's `roles` claim is `["agent_signup"]`, `aud`
+is `api.unkey.com`, and `iss` is `https://app.unkey.com/agent-signup`.
+
+Production verifies that token with a JWKS entry, the same shape as the WorkOS
+entry. The dashboard holds the RSA private key and serves the public key at
+`/.well-known/agent-signup-jwks`.
+
+```toml
+[[auth]]
+type = "jwt"
+issuer = "https://app.unkey.com/agent-signup"
+audience = "api.unkey.com"
+jwks_url = "https://app.unkey.com/.well-known/agent-signup-jwks"
+provider = "agent_signup"
+```
+
+Set `jwks_url` to the dashboard origin for that environment, plus
+`/.well-known/agent-signup-jwks`. Use `provider = "agent_signup"`. Don't set
+`provider = "workos"` on this entry. The `agent_signup` role grants only
+keyspace read, write, and delete, keyspace log read, and key read, write,
+delete, and verify. The route rejects every other permission, including
+`decrypt`, `rootKeys/*`, and `**`, even if the caller could otherwise delegate
+it.
+
+<ResponseField name="UNKEY_AGENT_SIGNUP_JWT_PRIVATE_KEY" type="env">
+  Production dashboard signing key, PEM PKCS#1 or PKCS#8. Set this on the
+  dashboard. The API does not receive the private key. It fetches the public
+  key from `jwks_url`.
+</ResponseField>
+
+Local development has no HTTPS JWKS URL the API can fetch. Leave the private
+key unset and set `UNKEY_AGENT_SIGNUP_JWT_SECRET` (at least 32 bytes) on the
+dashboard and in an API `secrets` entry with the same issuer, audience, and
+`provider = "agent_signup"`. Don't reuse `UNKEY_JWT_SECRET`.
+
+<ResponseField name="UNKEY_AGENT_SIGNUP_JWT_SECRET" type="env">
+  Local HS256 secret for agent-signup root keys. Used only when
+  `UNKEY_AGENT_SIGNUP_JWT_PRIVATE_KEY` is unset.
+</ResponseField>
+
+Agent signup rate limits use `UNKEY_ROOT_KEY` with `ratelimit.*.limit`. The
+in-process limiter runs only when `NODE_ENV` is `development` and `VERCEL_ENV`
+is unset. Create namespaces `agent_signup_identity` and `agent_signup_ip` in
+that key's workspace before serving traffic. `ratelimit.*.limit` cannot create
+a namespace, so a missing namespace makes every agent request return 503.
 
 ## Example configuration
 

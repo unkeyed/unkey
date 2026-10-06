@@ -95,6 +95,8 @@ curl -X POST "https://<authkit-domain>/oauth2/token" \
 
 Use the `access_token` from the response. Unkey accepts that access token only. An agent API key is not a JWT, and Unkey rejects it. The token's `exp` is enforced. Request a new token from WorkOS when it expires. Don't send the identity assertion to Unkey.
 
+`aud` must be the audience configured for this Unkey environment, or the `resource` URL from `/.well-known/oauth-protected-resource`. Unkey accepts those two values and no others. When credential exchange sends a resource, use the protected resource URL as that audience.
+
 ## Create the workspace
 
 `POST https://app.unkey.com/api/agent/workspace`:
@@ -148,7 +150,7 @@ You can request a smaller set, or add delete and keyspace log read, using `path`
 }
 ```
 
-Allowed paths are `projects/*/keyspaces/*`, `projects/*/keyspaces/*/logs`, and `projects/*/keyspaces/*/keys/*`. Allowed actions on those paths are read, write, delete, and verify. `logs` is read only. `decrypt`, `rootKeys/*`, and `**` are rejected even though a workspace admin could grant them in the dashboard.
+Allowed paths are `projects/*/keyspaces/*`, `projects/*/keyspaces/*/logs`, and `projects/*/keyspaces/*/keys/*`. Keyspaces accept read, write, and delete. Logs accept read. Keys accept read, write, delete, and verify. `verify` applies only to keys. `decrypt`, `rootKeys/*`, and `**` are rejected even though a workspace admin could grant them in the dashboard.
 
 A 200 response is:
 
@@ -156,19 +158,17 @@ A 200 response is:
 {"keyId":"key_...","key":"unkey_...","permissions":["unkey:v1:ws_...:projects/*/keyspaces/*#read"]}
 ```
 
-Copy `key` before you discard the response. Unkey stores only the key id.
+Copy `key` before you discard the response. Unkey stores the key hash, plus its id, name, prefix, start, and end. It does not store the plaintext secret.
 
-The root key is created through `POST /v2/rootKeys.createKey`, which also writes the root-key audit events. You can't call that route yourself. It requires a root key that already exists.
+The root key is created through `POST /v2/rootKeys.createAgentKey`, which also writes the root-key audit events. That route accepts only the permissions listed above. You can't call it yourself.
 
-On `main`, `unkey auth login` does not sign anyone in. It prompts `Enter your root key:` and stores whatever you type in `~/.unkey/config.toml`. Run it only after you have this secret. See [unkey auth login](/platform/cli/auth/login).
-
-`unkey login` device approval is not on `main`. It is on branch `eng-2994-add-device-code-login-flow-to-unkey-cli`. Don't run that command until the branch is on `main`.
+`unkey auth login` prompts `Enter your root key:` and stores whatever you type in `~/.unkey/config.toml`. Run it only after you have this secret. See [unkey auth login](/platform/cli/auth/login).
 
 ## Failures
 
 | Status | `error` | What to do |
 | --- | --- | --- |
-| 401 | `missing_token`, `invalid_token`, `expired`, `wrong_audience` | Send a current access token whose `aud` matches this environment. |
+| 401 | `missing_token`, `invalid_token`, `expired`, `wrong_audience` | Send a current access token. `aud` must be this environment's configured audience or the `resource` value from the protected resource document. |
 | 403 | `unclaimed`, `anonymous`, `unsupported_registration`, `user_mismatch` | Finish a `service_auth` claim for this user. Don't retry with an anonymous registration. |
 | 403 | `forbidden` | Sign in as an admin of the workspace you named. |
 | 409 | `slug_taken` | Pick another slug. |
