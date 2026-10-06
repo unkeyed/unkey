@@ -66,7 +66,7 @@ export function DeploymentBuildLogs({
   const logHeight = `min(${fixedHeight}px, 60dvh)`;
   const readsToEnd = isFailed || followsTail || pendingJump !== null || query.trim() !== "";
 
-  const logs = useBuildLogs(deployment, { readsToEnd });
+  const logs = useBuildLogs(deployment, { readsToEnd, isOpen });
   const entries = logs.data?.entries;
   const hasMore = logs.data?.hasMore === true;
   const isCaughtUp = logs.data !== undefined && !logs.data.hasMore;
