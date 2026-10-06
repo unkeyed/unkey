@@ -38,7 +38,7 @@ The deployment you referenced doesn't exist in your workspace. You get HTTP 404.
 ## How to fix
 
 1. List deployments with `deployments.listDeployments` and use the returned ID.
-2. Check that the root key has the right permission: `read_deployment` for `deployments.getDeployment`, or `promote_deployment`, `rollback_deployment`, `stop_deployment`, or `start_deployment` for the matching call.
+2. Check that the root key has the right permission: `read_deployment` for `deployments.getDeployment`, `read` on the deployment's `buildLogs` for `deployments.listBuildLogs`, or `promote_deployment`, `rollback_deployment`, `stop_deployment`, or `start_deployment` for the matching call.
 3. For a redeploy, pick a deployment from the same app and environment you're deploying to.
 
 A deployment that exists but can't take traffic returns a precondition error instead.

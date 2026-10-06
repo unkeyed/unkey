@@ -37,6 +37,7 @@ var resourcePathShapes = []resourcePathShape{
 	{resource: new(Environment), segments: []string{"projects", resourceIDSegment, "apps", resourceIDSegment, "environments", resourceIDSegment}},
 	{resource: new(Deployment), segments: []string{"projects", resourceIDSegment, "apps", resourceIDSegment, "environments", resourceIDSegment, "deployments", resourceIDSegment}},
 	{resource: new(DeploymentLogs), segments: []string{"projects", resourceIDSegment, "apps", resourceIDSegment, "environments", resourceIDSegment, "deployments", resourceIDSegment, "logs"}},
+	{resource: new(DeploymentBuildLogs), segments: []string{"projects", resourceIDSegment, "apps", resourceIDSegment, "environments", resourceIDSegment, "deployments", resourceIDSegment, "buildLogs"}},
 	{resource: new(Domain), segments: []string{"projects", resourceIDSegment, "apps", resourceIDSegment, "environments", resourceIDSegment, "domains", resourceIDSegment}},
 	{resource: new(EnvironmentVariable), segments: []string{"projects", resourceIDSegment, "apps", resourceIDSegment, "environments", resourceIDSegment, "variables", resourceIDSegment}},
 	{resource: new(GatewayLogs), segments: []string{"projects", resourceIDSegment, "apps", resourceIDSegment, "environments", resourceIDSegment, "gateway", "logs"}},

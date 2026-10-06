@@ -1,0 +1,35 @@
+type: object
+required:
+  - deploymentId
+properties:
+  deploymentId:
+    "$ref": "../../../../common/ResourceIdentifier.yaml"
+  stepId:
+    type: string
+    minLength: 1
+    maxLength: 256
+    description: |
+      Return only the log entries of this build step. Use the `stepId` of an
+      entry from a previous response. An unknown step returns no entries.
+      Omit this field to return the entries of every step.
+    example: sha256:3f9c2b7e1d4a6f8c0b5e9d2a7c4f1e8b3d6a9c2f5e8b1d4a7c0f3e6b9d2a5c8f
+  cursor:
+    type: string
+    minLength: 1
+    maxLength: 1024
+    description: |
+      Pagination cursor from a previous response to fetch the entries after
+      it. Omit it to start at the first entry of the build.
+    example: "1704067201000001"
+  limit:
+    type: integer
+    minimum: 1
+    maximum: 500
+    default: 100
+    description: |
+      Maximum number of log entries to return. A response can contain fewer
+      entries and still have `hasMore: true` when the entries are large.
+additionalProperties: false
+description: |
+  Retrieve the build log entries of a deployment. Get the deployment id from
+  `createDeployment` or `listDeployments`.

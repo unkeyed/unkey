@@ -17,6 +17,7 @@ unkey:v1:ws_123:projects/*/apps/*/environments/*/deployments/*#read
 unkey:v1:ws_123:projects/*/apps/*/environments/*/deployments/*#write
 unkey:v1:ws_123:projects/*/apps/*/environments/*/deployments/*#delete
 unkey:v1:ws_123:projects/*/apps/*/environments/*/deployments/*/logs#read
+unkey:v1:ws_123:projects/*/apps/*/environments/*/deployments/*/buildLogs#read
 unkey:v1:ws_123:projects/*/apps/*/environments/*/domains/*#read
 unkey:v1:ws_123:projects/*/apps/*/environments/*/domains/*#write
 unkey:v1:ws_123:projects/*/apps/*/environments/*/domains/*#delete
