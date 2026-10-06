@@ -118,7 +118,7 @@
       "Error codes have the form err:{system}:{category}:{specific} and each has a page at /errors/{system}/{category}/{specific}.",
       "The word environment means production or preview in Compute. Rate limiting has four meanings on this site; the glossary lists them."
     ],
-    "schema": true
+    "schema": false
   },
   "metadata": {
     "timestamp": true
