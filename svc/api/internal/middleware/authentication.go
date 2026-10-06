@@ -52,8 +52,6 @@ type AuthenticationConfig struct {
 // every credential source is checked consistently after authentication resolves
 // the workspace and before business logic runs. Root key usage is recorded at
 // this boundary because later route authorization can have multiple outcomes.
-// Dashboard requests are not logged to ClickHouse so they do not bury the
-// workspace's own API traffic.
 func WithAuthentication(config AuthenticationConfig) zen.Middleware {
 	return func(next zen.HandleFunc) zen.HandleFunc {
 		return func(ctx context.Context, sess *zen.Session) error {
@@ -63,8 +61,6 @@ func WithAuthentication(config AuthenticationConfig) zen.Middleware {
 				return err
 			}
 
-			// The header is caller-controlled, so it only counts on a verified JWT;
-			// otherwise a leaked root key could hide its requests from the owner.
 			if p.Type == principalauth.TypeJWT && sess.Request().Header.Get("X-Unkey-Client") == "unkey-dashboard" {
 				sess.DisableClickHouseLogging()
 			}
