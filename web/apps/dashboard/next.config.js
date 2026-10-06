@@ -8,6 +8,32 @@ const isProd = process.env.NODE_ENV === "production";
 // must not whitelist its origins.
 const allowVercelToolbar = isDev || process.env.VERCEL_ENV === "preview";
 
+// Preview and local builds still report to Sentry. Their stacks stay minified.
+// SENTRY_UPLOAD_SOURCEMAPS=true forces an upload; =false skips it.
+function shouldUploadSentrySourceMaps() {
+  const raw = process.env.SENTRY_UPLOAD_SOURCEMAPS;
+  if (raw === undefined || raw.trim() === "") {
+    return process.env.VERCEL_ENV === "production";
+  }
+
+  const flag = raw.trim().toLowerCase();
+  if (flag === "true" || flag === "1") {
+    return true;
+  }
+  if (flag === "false" || flag === "0") {
+    return false;
+  }
+
+  throw new Error(
+    `Invalid SENTRY_UPLOAD_SOURCEMAPS=${JSON.stringify(raw)}. Use true, false, 1, 0, or leave it unset.`,
+  );
+}
+
+const uploadSentrySourceMaps = shouldUploadSentrySourceMaps();
+
+const sentryReleaseName =
+  process.env.SENTRY_RELEASE || process.env.VERCEL_GIT_COMMIT_SHA || "unkey-dashboard";
+
 // Enforced policy: only directives that cannot break the app. These are
 // deliberately NOT repeated in the report-only policy below — keeping each
 // directive in exactly one header avoids duplicate console reports per
@@ -128,8 +154,9 @@ const nextConfig = {
   typedRoutes: true,
   allowedDevOrigins: process.env.AMP_ORB ? ["*.onamp.dev", "*.e2b.app"] : undefined,
   pageExtensions: ["tsx", "mdx", "ts", "js"],
-  productionBrowserSourceMaps: true,
-  // we're open-source anyways
+  // Leave this unset on upload builds so the SDK can generate maps and delete
+  // them after a successful upload. Skip builds must not publish client maps.
+  ...(uploadSentrySourceMaps ? {} : { productionBrowserSourceMaps: false }),
 
   poweredByHeader: false,
   webpack: (config) => {
@@ -177,8 +204,37 @@ module.exports = withSentryConfig(module.exports, {
   // For all available options, see:
   // https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/
 
+  // Webpack uploads once per compilation (client, server, edge) unless this is
+  // set. Turbopack already uploads once in this hook. Next.js 15.4.1+.
+  useRunAfterProductionCompileHook: true,
+
   // Upload a larger set of source maps for prettier stack traces (increases build time)
   widenClientFileUpload: true,
+
+  ...(uploadSentrySourceMaps
+    ? {
+        // A thrown upload error fails the build before client maps are deleted.
+        errorHandler(error) {
+          throw error;
+        },
+        release: {
+          name: sentryReleaseName,
+        },
+      }
+    : {
+        sourcemaps: {
+          disable: true,
+        },
+        // The name has to be set. Without it the SDK drops these flags and
+        // leaves the browser release unset.
+        release: {
+          name: sentryReleaseName,
+          create: false,
+          finalize: false,
+          setCommits: false,
+          deploy: false,
+        },
+      }),
 
   // Route browser requests to Sentry through a Next.js rewrite to circumvent ad-blockers.
   // This can increase your server load as well as your hosting bill.
