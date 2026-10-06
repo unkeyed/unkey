@@ -751,6 +751,50 @@ func (ns NullInstancesStatus) Value() (driver.Value, error) {
 	return string(ns.InstancesStatus), nil
 }
 
+type PortalDomainsVerificationStatus string
+
+const (
+	PortalDomainsVerificationStatusPending   PortalDomainsVerificationStatus = "pending"
+	PortalDomainsVerificationStatusVerifying PortalDomainsVerificationStatus = "verifying"
+	PortalDomainsVerificationStatusVerified  PortalDomainsVerificationStatus = "verified"
+	PortalDomainsVerificationStatusFailed    PortalDomainsVerificationStatus = "failed"
+)
+
+func (e *PortalDomainsVerificationStatus) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = PortalDomainsVerificationStatus(s)
+	case string:
+		*e = PortalDomainsVerificationStatus(s)
+	default:
+		return fmt.Errorf("unsupported scan type for PortalDomainsVerificationStatus: %T", src)
+	}
+	return nil
+}
+
+type NullPortalDomainsVerificationStatus struct {
+	PortalDomainsVerificationStatus PortalDomainsVerificationStatus
+	Valid                           bool // Valid is true if PortalDomainsVerificationStatus is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullPortalDomainsVerificationStatus) Scan(value interface{}) error {
+	if value == nil {
+		ns.PortalDomainsVerificationStatus, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.PortalDomainsVerificationStatus.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullPortalDomainsVerificationStatus) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.PortalDomainsVerificationStatus), nil
+}
+
 type AcmeChallenge struct {
 	Pk            uint64                      `db:"pk"`
 	DomainID      string                      `db:"domain_id"`
@@ -1051,6 +1095,27 @@ type Permission struct {
 	Description mysqltype.NullString `db:"description"`
 	CreatedAtM  int64                `db:"created_at_m"`
 	UpdatedAtM  sql.NullInt64        `db:"updated_at_m"`
+}
+
+type PortalDomain struct {
+	Pk                    uint64                          `db:"pk"`
+	ID                    string                          `db:"id"`
+	WorkspaceID           string                          `db:"workspace_id"`
+	PortalID              string                          `db:"portal_id"`
+	Domain                string                          `db:"domain"`
+	VerificationStatus    PortalDomainsVerificationStatus `db:"verification_status"`
+	VerificationToken     string                          `db:"verification_token"`
+	OwnershipVerified     bool                            `db:"ownership_verified"`
+	CnameVerified         bool                            `db:"cname_verified"`
+	TargetCname           string                          `db:"target_cname"`
+	LastCheckedAt         sql.NullInt64                   `db:"last_checked_at"`
+	CheckAttempts         int32                           `db:"check_attempts"`
+	VerificationError     sql.NullString                  `db:"verification_error"`
+	DomainConnectProvider sql.NullString                  `db:"domain_connect_provider"`
+	DomainConnectUrl      sql.NullString                  `db:"domain_connect_url"`
+	InvocationID          sql.NullString                  `db:"invocation_id"`
+	CreatedAt             int64                           `db:"created_at"`
+	UpdatedAt             sql.NullInt64                   `db:"updated_at"`
 }
 
 type Project struct {

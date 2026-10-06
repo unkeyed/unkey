@@ -1015,6 +1015,31 @@ type Querier interface {
 	//    AND workspace_id = ?
 	//  LIMIT 1
 	FindPortalByKeyspace(ctx context.Context, db DBTX, arg FindPortalByKeyspaceParams) (Portal, error)
+	// Scoped to workspace and portal so a caller cannot read a domain attached to
+	// another tenant's portal by guessing its id.
+	//
+	//  SELECT
+	//      id,
+	//      workspace_id,
+	//      portal_id,
+	//      domain,
+	//      verification_status,
+	//      verification_token,
+	//      ownership_verified,
+	//      cname_verified,
+	//      target_cname,
+	//      verification_error,
+	//      domain_connect_provider,
+	//      domain_connect_url,
+	//      last_checked_at,
+	//      created_at,
+	//      updated_at
+	//  FROM portal_domains
+	//  WHERE id = ?
+	//    AND workspace_id = ?
+	//    AND portal_id = ?
+	//  LIMIT 1
+	FindPortalDomainById(ctx context.Context, db DBTX, arg FindPortalDomainByIdParams) (FindPortalDomainByIdRow, error)
 	// Reports whether any portal already claims this app, across every workspace.
 	//
 	// Deliberately unscoped, unlike portal_find_by_app.sql: `idx_app_id` is unique
@@ -2645,6 +2670,30 @@ type Querier interface {
 	//      SELECT permission_slug FROM role_permissions
 	//  ) all_permissions
 	ListPermissionsByKeyID(ctx context.Context, db DBTX, arg ListPermissionsByKeyIDParams) ([]string, error)
+	// Lists every domain attached to a portal, verified or not, in id order.
+	// Workspace-scoped so a portal id from another tenant returns nothing.
+	//
+	//  SELECT
+	//      id,
+	//      workspace_id,
+	//      portal_id,
+	//      domain,
+	//      verification_status,
+	//      verification_token,
+	//      ownership_verified,
+	//      cname_verified,
+	//      target_cname,
+	//      verification_error,
+	//      domain_connect_provider,
+	//      domain_connect_url,
+	//      last_checked_at,
+	//      created_at,
+	//      updated_at
+	//  FROM portal_domains
+	//  WHERE portal_id = ?
+	//    AND workspace_id = ?
+	//  ORDER BY id ASC
+	ListPortalDomainsByPortal(ctx context.Context, db DBTX, arg ListPortalDomainsByPortalParams) ([]ListPortalDomainsByPortalRow, error)
 	//ListProjectsByWorkspaceId
 	//
 	//  SELECT

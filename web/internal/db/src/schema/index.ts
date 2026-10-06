@@ -47,3 +47,4 @@ export * from "./deployment_changes";
 // Portal tables
 export * from "./portals";
 export * from "./portal_sessions";
+export * from "./portal_domains";

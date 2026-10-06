@@ -30,6 +30,7 @@ const (
 	PortalAccessTokenPrefix  Prefix = "pat"
 	PortalSessionPrefix      Prefix = "ps"
 	PortalPrefix             Prefix = "prt"
+	PortalDomainPrefix       Prefix = "pdom"
 
 	// Control plane prefixes
 	OpenApiSpecPrefix         Prefix = "oas"

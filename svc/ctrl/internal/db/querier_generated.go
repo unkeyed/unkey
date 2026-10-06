@@ -58,6 +58,12 @@ type Querier interface {
 	//  FROM custom_domains
 	//  WHERE workspace_id = ?
 	CountCustomDomainsByWorkspace(ctx context.Context, workspaceID string) (int64, error)
+	// Covered by unique_workspace_domain_idx, which leads on workspace_id.
+	//
+	//  SELECT COUNT(*)
+	//  FROM portal_domains
+	//  WHERE workspace_id = ?
+	CountPortalDomainsByWorkspace(ctx context.Context, workspaceID string) (int64, error)
 	//DeleteAcmeChallengeByDomainID
 	//
 	//  DELETE FROM acme_challenges WHERE domain_id = ?
@@ -165,6 +171,10 @@ type Querier interface {
 	//
 	//  DELETE FROM instances WHERE k8s_name = ? AND region_id = ?
 	DeleteInstance(ctx context.Context, arg DeleteInstanceParams) error
+	//DeletePortalDomainByID
+	//
+	//  DELETE FROM portal_domains WHERE id = ?
+	DeletePortalDomainByID(ctx context.Context, id string) error
 	//DeleteProjectById
 	//
 	//  DELETE FROM projects WHERE id = ?
@@ -707,6 +717,25 @@ type Querier interface {
 	//  AND workspace_id = ?
 	//  LIMIT 1
 	FindPermissionByNameAndWorkspaceID(ctx context.Context, arg FindPermissionByNameAndWorkspaceIDParams) (Permission, error)
+	// Loads the full row by id, unscoped, for the verification workflow, which is
+	// keyed by portal domain id rather than by tenant.
+	//
+	//  SELECT portal_domains.pk, portal_domains.id, portal_domains.workspace_id, portal_domains.portal_id, portal_domains.domain, portal_domains.verification_status, portal_domains.verification_token, portal_domains.ownership_verified, portal_domains.cname_verified, portal_domains.target_cname, portal_domains.last_checked_at, portal_domains.check_attempts, portal_domains.verification_error, portal_domains.domain_connect_provider, portal_domains.domain_connect_url, portal_domains.invocation_id, portal_domains.created_at, portal_domains.updated_at
+	//  FROM portal_domains
+	//  WHERE id = ?
+	FindPortalDomainById(ctx context.Context, id string) (PortalDomain, error)
+	// Resolves a tenant's existing row for a hostname, letting the add path detect a
+	// repeat request before it hits unique_workspace_domain_idx.
+	//
+	//  SELECT
+	//      id,
+	//      portal_id,
+	//      domain,
+	//      verification_status,
+	//      invocation_id
+	//  FROM portal_domains
+	//  WHERE workspace_id = ? AND domain = ?
+	FindPortalDomainByWorkspaceAndDomain(ctx context.Context, arg FindPortalDomainByWorkspaceAndDomainParams) (FindPortalDomainByWorkspaceAndDomainRow, error)
 	//FindProjectById
 	//
 	//  SELECT projects.pk, projects.id, projects.workspace_id, projects.name, projects.slug, projects.depot_project_id, projects.delete_protection, projects.created_at, projects.updated_at
@@ -1439,6 +1468,15 @@ type Querier interface {
 	//    ?
 	//  )
 	InsertPermission(ctx context.Context, arg InsertPermissionParams) error
+	// Creates a portal domain awaiting verification. A duplicate (workspace_id, domain)
+	// or target_cname surfaces as a unique-key error for the caller to map.
+	//
+	//  INSERT INTO portal_domains (
+	//      id, workspace_id, portal_id, domain,
+	//      verification_status, verification_token, target_cname,
+	//      domain_connect_provider, domain_connect_url, invocation_id, created_at
+	//  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+	InsertPortalDomain(ctx context.Context, arg InsertPortalDomainParams) error
 	//InsertProject
 	//
 	//  INSERT INTO projects (
@@ -1726,6 +1764,13 @@ type Querier interface {
 	//    AND older.id != ?
 	//  ORDER BY older.created_at ASC
 	ListOlderActiveDeploymentsForDedup(ctx context.Context, arg ListOlderActiveDeploymentsForDedupParams) ([]ListOlderActiveDeploymentsForDedupRow, error)
+	// Returns every domain attached to a portal, verified or not. Unscoped by
+	// workspace because portal ids are globally unique and ctrl callers already hold one.
+	//
+	//  SELECT portal_domains.pk, portal_domains.id, portal_domains.workspace_id, portal_domains.portal_id, portal_domains.domain, portal_domains.verification_status, portal_domains.verification_token, portal_domains.ownership_verified, portal_domains.cname_verified, portal_domains.target_cname, portal_domains.last_checked_at, portal_domains.check_attempts, portal_domains.verification_error, portal_domains.domain_connect_provider, portal_domains.domain_connect_url, portal_domains.invocation_id, portal_domains.created_at, portal_domains.updated_at
+	//  FROM portal_domains
+	//  WHERE portal_id = ?
+	ListPortalDomainsByPortal(ctx context.Context, portalID string) ([]PortalDomain, error)
 	//ListPreviewEnvironments
 	//
 	//  SELECT environments.pk, environments.id, environments.workspace_id, environments.project_id, environments.app_id, environments.slug, environments.description, environments.kind, environments.delete_protection, environments.created_at, environments.updated_at
@@ -1973,6 +2018,18 @@ type Querier interface {
 	//      updated_at = ?
 	//  WHERE id = ?
 	ResetCustomDomainVerification(ctx context.Context, arg ResetCustomDomainVerificationParams) error
+	// Restarts verification from scratch, clearing the previous error and check
+	// history and recording the new workflow invocation.
+	//
+	//  UPDATE portal_domains
+	//  SET verification_status = ?,
+	//      check_attempts = ?,
+	//      verification_error = NULL,
+	//      last_checked_at = NULL,
+	//      invocation_id = ?,
+	//      updated_at = ?
+	//  WHERE id = ?
+	ResetPortalDomainVerification(ctx context.Context, arg ResetPortalDomainVerificationParams) error
 	// RevertDeploymentAuthorization puts a deployment back to awaiting_approval so
 	// the approve button reappears. Call it when an approval was accepted but the
 	// deployment never actually started.
@@ -2209,6 +2266,46 @@ type Querier interface {
 	//  WHERE id IN (/*SLICE:key_ids*/?)
 	//    AND last_used_at < ?
 	UpdateKeysLastUsed(ctx context.Context, arg UpdateKeysLastUsedParams) error
+	// Records one DNS check so callers can bound retries and show when the domain
+	// was last checked.
+	//
+	//  UPDATE portal_domains
+	//  SET check_attempts = ?,
+	//      last_checked_at = ?,
+	//      updated_at = ?
+	//  WHERE id = ?
+	UpdatePortalDomainCheckAttempt(ctx context.Context, arg UpdatePortalDomainCheckAttemptParams) error
+	// Marks verification as given up and keeps the reason for the tenant to read.
+	//
+	//  UPDATE portal_domains
+	//  SET verification_status = ?,
+	//      verification_error = ?,
+	//      updated_at = ?
+	//  WHERE id = ?
+	UpdatePortalDomainFailed(ctx context.Context, arg UpdatePortalDomainFailedParams) error
+	// Records the verification workflow invocation driving this domain; NULL clears it.
+	//
+	//  UPDATE portal_domains
+	//  SET invocation_id = ?,
+	//      updated_at = ?
+	//  WHERE id = ?
+	UpdatePortalDomainInvocationID(ctx context.Context, arg UpdatePortalDomainInvocationIDParams) error
+	// Stores the TXT (ownership) and CNAME (routing) results of the latest check.
+	//
+	//  UPDATE portal_domains
+	//  SET ownership_verified = ?,
+	//      cname_verified = ?,
+	//      updated_at = ?
+	//  WHERE id = ?
+	UpdatePortalDomainOwnership(ctx context.Context, arg UpdatePortalDomainOwnershipParams) error
+	// Moves a domain between verification states without touching the error or
+	// attempt counters.
+	//
+	//  UPDATE portal_domains
+	//  SET verification_status = ?,
+	//      updated_at = ?
+	//  WHERE id = ?
+	UpdatePortalDomainVerificationStatus(ctx context.Context, arg UpdatePortalDomainVerificationStatusParams) error
 	//UpdateProjectDepotID
 	//
 	//  UPDATE projects

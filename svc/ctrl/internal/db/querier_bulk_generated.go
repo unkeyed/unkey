@@ -42,6 +42,7 @@ type BulkQuerier interface {
 	UpsertLimit(ctx context.Context, args []UpsertLimitParams) error
 	UpsertOpenApiSpec(ctx context.Context, args []UpsertOpenApiSpecParams) error
 	InsertPermissions(ctx context.Context, args []InsertPermissionParams) error
+	InsertPortalDomains(ctx context.Context, args []InsertPortalDomainParams) error
 	InsertProjects(ctx context.Context, args []InsertProjectParams) error
 	InsertRoles(ctx context.Context, args []InsertRoleParams) error
 	InsertRolePermissions(ctx context.Context, args []InsertRolePermissionParams) error
