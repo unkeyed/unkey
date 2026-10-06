@@ -606,14 +606,14 @@ html[data-current-path^="/errors/"]:not([data-current-path="/errors/overview"]) 
   min-height: 190px;
   border-right: 1px solid var(--unkey-border);
   background-color: var(--unkey-bg-subtle);
-  background-image: url("/images/cards/workspace-light.svg"), radial-gradient(var(--unkey-border-strong) 0.7px, transparent 0.7px);
-  background-size: min(100%, 480px) auto, 16px 16px;
-  background-position: center, center;
-  background-repeat: no-repeat, repeat;
+  background-image: url("/docs/images/cards/workspace-light.svg"), url("/images/cards/workspace-light.svg"), radial-gradient(var(--unkey-border-strong) 0.7px, transparent 0.7px);
+  background-size: min(100%, 480px) auto, min(100%, 480px) auto, 16px 16px;
+  background-position: center, center, center;
+  background-repeat: no-repeat, no-repeat, repeat;
 }
 
 .dark .unkey-platform-art {
-  background-image: url("/images/cards/workspace-dark.svg"), radial-gradient(var(--unkey-border-strong) 0.7px, transparent 0.7px);
+  background-image: url("/docs/images/cards/workspace-dark.svg"), url("/images/cards/workspace-dark.svg"), radial-gradient(var(--unkey-border-strong) 0.7px, transparent 0.7px);
 }
 
 .unkey-platform-copy {
