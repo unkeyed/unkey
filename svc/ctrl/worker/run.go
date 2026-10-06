@@ -57,6 +57,7 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/worker/githubwebhook"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/keylastusedsync"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/legacybilling"
+	workerportaldomain "github.com/unkeyed/unkey/svc/ctrl/worker/portaldomain"
 
 	ratelimitdb "github.com/unkeyed/unkey/internal/services/ratelimit/db"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auditlogs"
@@ -459,6 +460,21 @@ func Run(ctx context.Context, cfg Config) error {
 		restate.WithInvocationRetryPolicy(
 			restate.WithInitialRetryInterval(1*time.Minute),
 			restate.WithRetryIntervalFactor(1.0), // Fixed interval, no exponential backoff
+			restate.WithMaxRetryInterval(1*time.Minute),
+			restate.WithMaxRetryAttempts(1440),
+			restate.PauseOnMaxAttempts(),
+		),
+	))
+
+	restateSrv.Bind(hydrav1.NewPortalDomainServiceServer(workerportaldomain.New(workerportaldomain.Config{
+		DB:            database,
+		Resolver:      domainverify.SystemResolver{},
+		EnvironmentID: cfg.Portal.EnvironmentID,
+	}),
+		// Same cadence and exhaustion behavior as custom domain verification.
+		restate.WithInvocationRetryPolicy(
+			restate.WithInitialRetryInterval(1*time.Minute),
+			restate.WithRetryIntervalFactor(1.0),
 			restate.WithMaxRetryInterval(1*time.Minute),
 			restate.WithMaxRetryAttempts(1440),
 			restate.PauseOnMaxAttempts(),

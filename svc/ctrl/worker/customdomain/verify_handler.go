@@ -12,7 +12,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/restate/restateutil"
-	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/domainverify"
 )
@@ -248,12 +247,6 @@ func (s *Service) onVerificationSuccess(
 
 // createFrontlineRoute routes dom's hostname to its app. If no deployment
 // exists yet, the route is assigned when the first deployment happens.
-//
-// The insert generates a fresh route id each attempt, so a retry of an insert
-// that already committed hits this domain's own route, which counts as
-// success. A route owned by anything else can never be inserted, so the domain
-// is failed and its ACME challenge removed in this same step, and the returned
-// terminal error stops retries instead of waiting out the 24-hour window.
 func (s *Service) createFrontlineRoute(ctx context.Context, dom db.CustomDomain, nowMs int64) error {
 	app, err := s.db.FindAppById(ctx, dom.AppID)
 	if err != nil {
@@ -265,53 +258,21 @@ func (s *Service) createFrontlineRoute(ctx context.Context, dom db.CustomDomain,
 		deploymentID = app.CurrentDeploymentID.String
 	}
 
-	err = s.db.InsertFrontlineRoute(ctx, db.InsertFrontlineRouteParams{
-		ID:                       uid.New(uid.FrontlineRoutePrefix),
-		ProjectID:                dom.ProjectID,
-		AppID:                    dom.AppID,
-		DeploymentID:             deploymentID,
-		EnvironmentID:            dom.EnvironmentID,
-		FullyQualifiedDomainName: dom.Domain,
-		Sticky:                   db.FrontlineRoutesStickyLive,
-		CreatedAt:                nowMs,
-		UpdatedAt:                sql.NullInt64{Valid: true, Int64: nowMs},
+	return domainverify.CreateRoute(ctx, s.db, domainverify.Route{
+		DomainID:      dom.ID,
+		Hostname:      dom.Domain,
+		ProjectID:     dom.ProjectID,
+		AppID:         dom.AppID,
+		EnvironmentID: dom.EnvironmentID,
+		DeploymentID:  deploymentID,
+	}, nowMs, func(ctx context.Context, reason string) error {
+		return s.db.UpdateCustomDomainFailed(ctx, db.UpdateCustomDomainFailedParams{
+			ID:                 dom.ID,
+			VerificationStatus: db.CustomDomainsVerificationStatusFailed,
+			VerificationError:  sql.NullString{Valid: true, String: reason},
+			UpdatedAt:          sql.NullInt64{Valid: true, Int64: nowMs},
+		})
 	})
-	if err == nil {
-		return nil
-	}
-	if !db.IsDuplicateKeyError(err) {
-		return fault.Wrap(err, fault.Internal("failed to insert frontline route"))
-	}
-
-	existing, err := s.db.FindFrontlineRouteByFQDN(ctx, dom.Domain)
-	if err != nil {
-		return fault.Wrap(err, fault.Internal("failed to read conflicting frontline route"))
-	}
-	if existing.ProjectID == dom.ProjectID &&
-		existing.EnvironmentID == dom.EnvironmentID &&
-		existing.FullyQualifiedDomainName == dom.Domain {
-		return nil
-	}
-
-	const reason = "domain is already routed to another target"
-	if err := s.db.UpdateCustomDomainFailed(ctx, db.UpdateCustomDomainFailedParams{
-		ID:                 dom.ID,
-		VerificationStatus: db.CustomDomainsVerificationStatusFailed,
-		VerificationError:  sql.NullString{Valid: true, String: reason},
-		UpdatedAt:          sql.NullInt64{Valid: true, Int64: nowMs},
-	}); err != nil {
-		return fault.Wrap(err, fault.Internal("failed to mark domain as failed"))
-	}
-	if err := s.db.DeleteAcmeChallengeByDomainID(ctx, dom.ID); err != nil && !db.IsNotFound(err) {
-		return fault.Wrap(err, fault.Internal("failed to delete ACME challenge"))
-	}
-
-	logger.Warn("frontline route conflict, domain marked failed",
-		"domain", dom.Domain,
-		"domain_id", dom.ID,
-		"route_id", existing.ID,
-	)
-	return restate.ToTerminalError(fmt.Errorf("frontline route conflict for %s: %s", dom.Domain, reason))
 }
 
 // onVerificationFailed handles failed domain verification after timeout.

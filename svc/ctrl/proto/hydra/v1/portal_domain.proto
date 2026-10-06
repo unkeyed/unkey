@@ -1,0 +1,25 @@
+syntax = "proto3";
+
+package hydra.v1;
+
+import "dev/restate/sdk/go.proto";
+
+option go_package = "github.com/unkeyed/unkey/gen/proto/hydra/v1;hydrav1";
+
+// PortalDomainService verifies portal domains. Keyed by portal domain id, so
+// one verification runs per row at a time.
+service PortalDomainService {
+  option (dev.restate.sdk.go.service_type) = VIRTUAL_OBJECT;
+
+  rpc VerifyDomain(VerifyPortalDomainRequest) returns (VerifyPortalDomainResponse) {}
+
+  rpc RetryVerification(RetryPortalDomainVerificationRequest) returns (RetryPortalDomainVerificationResponse) {}
+}
+
+message VerifyPortalDomainRequest {}
+
+message VerifyPortalDomainResponse {}
+
+message RetryPortalDomainVerificationRequest {}
+
+message RetryPortalDomainVerificationResponse {}
