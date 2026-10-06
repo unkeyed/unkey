@@ -61,6 +61,14 @@ type Querier interface {
 	//  FROM permissions
 	//  WHERE workspace_id = ?
 	CountPermissionsByWorkspace(ctx context.Context, db DBTX, workspaceID string) (int64, error)
+	// Counts a portal's domains so deletePortal can refuse while any remain, since
+	// a deleted portal would otherwise leave them routed and unmanageable.
+	//
+	//  SELECT COUNT(*)
+	//  FROM portal_domains
+	//  WHERE portal_id = ?
+	//    AND workspace_id = ?
+	CountPortalDomainsByPortal(ctx context.Context, db DBTX, arg CountPortalDomainsByPortalParams) (int64, error)
 	// CountPortalSessionsByExternalID counts every session minted for one end user
 	// in a workspace, in any state. Intended for tests.
 	//
@@ -225,8 +233,8 @@ type Querier interface {
 	DeletePermission(ctx context.Context, db DBTX, permissionID string) error
 	// Deletes a portal, scoped to the workspace so one workspace can never delete
 	// another's. Returns the row count so a concurrent delete that already removed
-	// the row is reported as not-found rather than as a second success. Branding lives on the portal row, so there is no side table to
-	// clean up.
+	// the row is reported as not-found rather than as a second success. Callers
+	// must reject the delete while the portal still has domains.
 	//
 	//  DELETE FROM portals
 	//  WHERE id = ?
