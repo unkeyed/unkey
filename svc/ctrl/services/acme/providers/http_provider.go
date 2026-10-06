@@ -45,7 +45,7 @@ type HTTPProvider = Provider
 
 type HTTPConfig struct {
 	DB          db.Database
-	DomainCache cache.Cache[string, db.CustomDomain]
+	DomainCache cache.Cache[string, db.FindVerifiedDomainByHostnameRow]
 }
 
 // NewHTTPProvider creates a new HTTP-01 challenge provider.

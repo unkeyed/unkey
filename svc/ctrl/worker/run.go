@@ -470,7 +470,7 @@ func Run(ctx context.Context, cfg Config) error {
 	if clk == nil {
 		clk = clock.New()
 	}
-	domainCache, domainCacheErr := cache.New(cache.Config[string, db.CustomDomain]{
+	domainCache, domainCacheErr := cache.New(cache.Config[string, db.FindVerifiedDomainByHostnameRow]{
 		Fresh:    5 * time.Minute,
 		Stale:    10 * time.Minute,
 		MaxSize:  10000,

@@ -9,14 +9,14 @@ import (
 type Service struct {
 	ctrlv1connect.UnimplementedAcmeServiceHandler
 	db             db.Database
-	domainCache    cache.Cache[string, db.CustomDomain]
+	domainCache    cache.Cache[string, db.FindVerifiedDomainByHostnameRow]
 	challengeCache cache.Cache[string, db.AcmeChallenge]
 	bearer         string
 }
 
 type Config struct {
 	DB             db.Database
-	DomainCache    cache.Cache[string, db.CustomDomain]
+	DomainCache    cache.Cache[string, db.FindVerifiedDomainByHostnameRow]
 	ChallengeCache cache.Cache[string, db.AcmeChallenge]
 	Bearer         string
 }

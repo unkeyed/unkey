@@ -15,7 +15,7 @@ type Route53Config struct {
 	AccessKeyID     string
 	SecretAccessKey string
 	Region          string
-	DomainCache     cache.Cache[string, db.CustomDomain]
+	DomainCache     cache.Cache[string, db.FindVerifiedDomainByHostnameRow]
 	// HostedZoneID bypasses zone auto-discovery. Required when domains have CNAMEs
 	// that would confuse the zone lookup (e.g., wildcard CNAMEs to load balancers).
 	HostedZoneID string

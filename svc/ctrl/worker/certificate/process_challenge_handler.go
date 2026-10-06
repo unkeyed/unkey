@@ -67,8 +67,13 @@ func (s *Service) ProcessChallenge(
 	)
 
 	// Step 1: Resolve domain
-	dom, err := restate.Run(ctx, func(stepCtx restate.RunContext) (db.CustomDomain, error) {
-		return s.db.FindCustomDomainByDomain(stepCtx, req.GetDomain())
+	dom, err := restate.Run(ctx, func(stepCtx restate.RunContext) (db.FindVerifiedDomainByHostnameRow, error) {
+		row, findErr := s.db.FindVerifiedDomainByHostname(stepCtx, db.FindVerifiedDomainByHostnameParams{Domain: req.GetDomain()})
+		// The claim may have been revoked since this was sent; retrying cannot bring it back.
+		if db.IsNotFound(findErr) {
+			return row, restate.ToTerminalError(fmt.Errorf("no verified domain for %s: %w", req.GetDomain(), findErr))
+		}
+		return row, findErr
 	}, restate.WithName("resolve domain"))
 	if err != nil {
 		return nil, err
@@ -106,7 +111,7 @@ func (s *Service) ProcessChallenge(
 	for rateLimitRetry := 0; rateLimitRetry <= maxRateLimitRetries; rateLimitRetry++ {
 		var obtainErr error
 		cert, obtainErr = restate.Run(ctx, func(stepCtx restate.RunContext) (EncryptedCertificate, error) {
-			return s.obtainCertificate(stepCtx, req.GetWorkspaceId(), dom, req.GetDomain())
+			return s.obtainCertificate(stepCtx, dom.WorkspaceID, req.GetDomain())
 		},
 			restate.WithName("obtain certificate"),
 			restate.WithMaxRetryAttempts(5),
@@ -245,8 +250,8 @@ func (s *Service) getOrCreateAcmeClient(ctx context.Context, domain string) (*le
 	return client, nil
 }
 
-// obtainCertificate requests a certificate and encrypts the private key for storage.
-func (s *Service) obtainCertificate(ctx context.Context, _ string, dom db.CustomDomain, domain string) (EncryptedCertificate, error) {
+// obtainCertificate requests a certificate and encrypts its private key under keyring.
+func (s *Service) obtainCertificate(ctx context.Context, keyring string, domain string) (EncryptedCertificate, error) {
 	logger.Info("creating ACME client", "domain", domain)
 	client, err := s.getOrCreateAcmeClient(ctx, domain)
 	if err != nil {
@@ -289,6 +294,12 @@ func (s *Service) obtainCertificate(ctx context.Context, _ string, dom db.Custom
 		return EncryptedCertificate{}, fmt.Errorf("failed to obtain certificate: %w", err)
 	}
 
+	return s.encryptCertificate(ctx, keyring, certificates)
+}
+
+// encryptCertificate encrypts an issued certificate's private key under keyring,
+// which must be the workspace that owns the domain.
+func (s *Service) encryptCertificate(ctx context.Context, keyring string, certificates *certificate.Resource) (EncryptedCertificate, error) {
 	// Parse certificate to get expiration
 	expiresAt, err := acme.GetCertificateExpiry(certificates.Certificate)
 	if err != nil {
@@ -296,9 +307,8 @@ func (s *Service) obtainCertificate(ctx context.Context, _ string, dom db.Custom
 		expiresAt = time.Now().Add(90 * 24 * time.Hour).UnixMilli()
 	}
 
-	// Encrypt the private key before storage
 	encryptResp, err := s.vault.Encrypt(ctx, &vaultv1.EncryptRequest{
-		Keyring: dom.WorkspaceID,
+		Keyring: keyring,
 		Data:    string(certificates.PrivateKey),
 	})
 	if err != nil {
@@ -314,7 +324,7 @@ func (s *Service) obtainCertificate(ctx context.Context, _ string, dom db.Custom
 }
 
 // persistCertificate stores the certificate and reuses the existing ID on renewals.
-func (s *Service) persistCertificate(ctx context.Context, dom db.CustomDomain, domain string, cert EncryptedCertificate) (string, error) {
+func (s *Service) persistCertificate(ctx context.Context, dom db.FindVerifiedDomainByHostnameRow, domain string, cert EncryptedCertificate) (string, error) {
 	now := time.Now().UnixMilli()
 
 	// Check if certificate already exists for this hostname (renewal case)

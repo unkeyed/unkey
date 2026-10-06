@@ -196,7 +196,7 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	// Initialize caches for ACME service (needed for certificate verification endpoint)
-	domainCache, err := cache.New(cache.Config[string, db.CustomDomain]{
+	domainCache, err := cache.New(cache.Config[string, db.FindVerifiedDomainByHostnameRow]{
 		Fresh:    5 * time.Minute,
 		Stale:    10 * time.Minute,
 		MaxSize:  10000,
