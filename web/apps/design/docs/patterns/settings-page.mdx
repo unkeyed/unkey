@@ -43,7 +43,7 @@ Save is enabled when at least one dirty row is ready, and it submits only the re
 
 That keeps the page quiet. A settings page at rest shows one disabled button per group rather than one per row, which is what made the per-row version feel like furniture.
 
-Drive each row's contribution from `SaveState`, which has three states and no booleans. `ready` means that row has something worth saving, `saving` shows its work in flight, and `disabled` means it cannot be saved now. For a plain form, build the state with `formSaveState`, which ranks saving, then `blocked`, then invalid, then unchanged. For anything else use `resolveSaveState`, which returns the first matching case, so order the checks from most specific to least.
+Drive each row's contribution from `SaveState`, which has three states and no booleans. `ready` means that row has something worth saving, `saving` shows its work in flight, and `disabled` means it cannot be saved now. For a plain form, build the state with `formSaveState`, which ranks saving, then `blocked`, then invalid, then unchanged. For anything else use `firstMatchingSaveState`, which returns the first matching case, so order the checks from most specific to least.
 
 ## Danger zone
 

@@ -7,7 +7,7 @@ import type { FormattedParts } from "@/lib/utils/deployment-formatters";
 import { useWorkspace } from "@/providers/workspace-provider";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { Limits } from "@unkey/db";
-import { type SaveState, Slider, resolveSaveState } from "@unkey/ui";
+import { type SaveState, Slider, firstMatchingSaveState } from "@unkey/ui";
 import type React from "react";
 import { useContext, useEffect, useMemo } from "react";
 import { useForm, useWatch } from "react-hook-form";
@@ -256,7 +256,7 @@ const SingleMode = ({ config }: { config: ResourceSliderConfig }) => {
   const sp = getSliderProps(slider, currentValue);
 
   const extraCheck = config.extraSaveChecks?.([settings]);
-  const saveState = resolveSaveState([
+  const saveState = firstMatchingSaveState([
     ...(extraCheck ? [[true, extraCheck] as [boolean, SaveState]] : []),
     [isSubmitting, { status: "saving" }],
     [!isValid, { status: "disabled" }],
@@ -402,7 +402,7 @@ const DualInner = ({ config, production, preview }: DualInnerProps) => {
   const hasChanges = currentProd !== defaultProd || currentPreview !== defaultPreview;
 
   const extraCheck = config.extraSaveChecks?.([production, preview]);
-  const saveState = resolveSaveState([
+  const saveState = firstMatchingSaveState([
     ...(extraCheck ? [[true, extraCheck] as [boolean, SaveState]] : []),
     [isSubmitting, { status: "saving" }],
     [!isValid, { status: "disabled" }],

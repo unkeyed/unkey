@@ -8,7 +8,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { and, eq, useLiveQuery } from "@tanstack/react-db";
 import { useMutation } from "@tanstack/react-query";
 import { match } from "@unkey/match";
-import { FormInput, SettingCardGroup, resolveSaveState, toast } from "@unkey/ui";
+import { FormInput, SettingCardGroup, firstMatchingSaveState, toast } from "@unkey/ui";
 import { useEffect } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
@@ -184,7 +184,7 @@ const OCIImage = ({
   }, [imageReference, reset]);
 
   const currentImageReference = useWatch({ control, name: "imageReference" });
-  const saveState = resolveSaveState([
+  const saveState = firstMatchingSaveState([
     [isSubmitting, { status: "saving" }],
     [!isValid, { status: "disabled" }],
     [

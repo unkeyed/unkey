@@ -102,7 +102,7 @@ export function UpdateWorkspaceName() {
     isSubmitting: updateName.isLoading || isSubmitting,
     isValid,
     isDirty,
-    blocked: adminRequired,
+    blockedReason: adminRequired,
   });
 
   return (

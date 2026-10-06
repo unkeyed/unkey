@@ -8,7 +8,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-  resolveSaveState,
+  firstMatchingSaveState,
 } from "@unkey/ui";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
@@ -45,7 +45,7 @@ export const UpstreamProtocol = () => {
 
   const currentProtocol = useWatch({ control, name: "upstreamProtocol" });
 
-  const saveState = resolveSaveState([
+  const saveState = firstMatchingSaveState([
     [isSubmitting, { status: "saving" }],
     [!isValid, { status: "disabled" }],
     [currentProtocol === defaultValue, { status: "disabled", reason: "No changes to save" }],

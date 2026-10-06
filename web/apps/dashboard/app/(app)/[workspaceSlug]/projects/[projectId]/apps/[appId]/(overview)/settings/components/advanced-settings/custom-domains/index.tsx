@@ -24,7 +24,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-  resolveSaveState,
+  firstMatchingSaveState,
 } from "@unkey/ui";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -129,7 +129,7 @@ const CustomDomainSettings: React.FC<CustomDomainSettingsProps> = ({
     }
   };
 
-  const saveState = resolveSaveState([
+  const saveState = firstMatchingSaveState([
     [isSubmitting, { status: "saving" }],
     [!isValid, { status: "disabled" }],
   ]);

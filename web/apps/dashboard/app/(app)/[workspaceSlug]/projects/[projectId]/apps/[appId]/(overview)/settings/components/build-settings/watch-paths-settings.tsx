@@ -3,7 +3,7 @@
 import { FormCombobox } from "@/components/ui/form-combobox";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { IconEyeOutline18, IconPlusOutline18 } from "@unkey/icons";
-import { FormInput, resolveSaveState } from "@unkey/ui";
+import { FormInput, firstMatchingSaveState } from "@unkey/ui";
 import { cn } from "cn";
 import { useCallback, useRef } from "react";
 import { useFieldArray, useForm, useWatch } from "react-hook-form";
@@ -144,7 +144,7 @@ export const WatchPaths = () => {
     [append, currentPaths, currentValues, fields.length, setValue, trigger],
   );
 
-  const saveState = resolveSaveState([
+  const saveState = firstMatchingSaveState([
     [isSubmitting, { status: "saving" }],
     [!isValid, { status: "disabled" }],
     [!hasChanges, { status: "disabled", reason: "No changes to save" }],

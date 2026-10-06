@@ -1,7 +1,7 @@
 import { FormCombobox } from "@/components/ui/form-combobox";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { IconFolderLinkOutline18 } from "@unkey/icons";
-import { resolveSaveState } from "@unkey/ui";
+import { firstMatchingSaveState } from "@unkey/ui";
 import { useMemo } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
@@ -72,7 +72,7 @@ export const RootDirectory = () => {
     [rootDirectorySuggestions],
   );
 
-  const saveState = resolveSaveState([
+  const saveState = firstMatchingSaveState([
     [isSubmitting, { status: "saving" }],
     [!isValid, { status: "disabled" }],
     [currentDockerContext === defaultValue, { status: "disabled", reason: "No changes to save" }],

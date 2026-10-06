@@ -1,6 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { IconNumberInputOutline18 } from "@unkey/icons";
-import { FormInput, resolveSaveState } from "@unkey/ui";
+import { FormInput, firstMatchingSaveState } from "@unkey/ui";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { useEnvironmentSettings } from "../../environment-provider";
@@ -30,7 +30,7 @@ export const Port = () => {
 
   const currentPort = useWatch({ control, name: "port" });
 
-  const saveState = resolveSaveState([
+  const saveState = firstMatchingSaveState([
     [isSubmitting, { status: "saving" }],
     [!isValid, { status: "disabled" }],
     [currentPort === defaultValue, { status: "disabled", reason: "No changes to save" }],

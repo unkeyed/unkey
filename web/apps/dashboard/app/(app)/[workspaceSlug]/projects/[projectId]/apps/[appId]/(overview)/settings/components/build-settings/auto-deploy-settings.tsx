@@ -5,7 +5,7 @@ import { collection } from "@/lib/collections";
 import type { EnvironmentSettings } from "@/lib/collections/deploy/environment-settings";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { IconHalfDottedCirclePlayOutline18 } from "@unkey/icons";
-import { resolveSaveState } from "@unkey/ui";
+import { firstMatchingSaveState } from "@unkey/ui";
 import { useEffect } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
@@ -78,7 +78,7 @@ const AutoDeployInner = ({
 
   const hasChanges = currentProd !== defaultProd || currentPreview !== defaultPreview;
 
-  const saveState = resolveSaveState([
+  const saveState = firstMatchingSaveState([
     [isSubmitting, { status: "saving" }],
     [!isValid, { status: "disabled" }],
     [!hasChanges, { status: "disabled", reason: "No changes to save" }],

@@ -8,7 +8,7 @@ import { mapRegionToFlag } from "@/lib/trpc/routers/deploy/network/utils";
 import { useWorkspace } from "@/providers/workspace-provider";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { IconConnections3Outline18 } from "@unkey/icons";
-import { type SaveState, Slider, resolveSaveState } from "@unkey/ui";
+import { type SaveState, Slider, firstMatchingSaveState } from "@unkey/ui";
 import { useContext, useEffect, useMemo } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
@@ -163,7 +163,7 @@ const SingleMode = () => {
     currentReplicasMin !== defaultValues.replicasMin ||
     currentReplicasMax !== defaultValues.replicasMax;
   const extraCheck = noRegionsCheck([settings]);
-  const saveState = resolveSaveState([
+  const saveState = firstMatchingSaveState([
     ...(extraCheck ? [[true, extraCheck] as [boolean, SaveState]] : []),
     [isSubmitting, { status: "saving" }],
     [!isValid, { status: "disabled" }],
@@ -360,7 +360,7 @@ const DualInner = ({ production, preview }: DualInnerProps) => {
   const hasChanges = productionHasChanges || previewHasChanges;
 
   const extraCheck = noRegionsCheck([production, preview]);
-  const saveState = resolveSaveState([
+  const saveState = firstMatchingSaveState([
     ...(extraCheck ? [[true, extraCheck] as [boolean, SaveState]] : []),
     [isSubmitting, { status: "saving" }],
     [!isValid, { status: "disabled" }],

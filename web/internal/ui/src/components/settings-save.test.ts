@@ -58,13 +58,18 @@ describe("formSaveState", () => {
 
   it("puts saving before blocked, invalid and unchanged", () => {
     expect(
-      formSaveState({ isSubmitting: true, isValid: false, isDirty: false, blocked: "No access" }),
+      formSaveState({
+        isSubmitting: true,
+        isValid: false,
+        isDirty: false,
+        blockedReason: "No access",
+      }),
     ).toEqual({ status: "saving" });
   });
 
   it("puts blocked before invalid and unchanged", () => {
     expect(
-      formSaveState({ ...idle, isValid: false, isDirty: false, blocked: "No access" }),
+      formSaveState({ ...idle, isValid: false, isDirty: false, blockedReason: "No access" }),
     ).toEqual({ status: "disabled", reason: "No access" });
   });
 

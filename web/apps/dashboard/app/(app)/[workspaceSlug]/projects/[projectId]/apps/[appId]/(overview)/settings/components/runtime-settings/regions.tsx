@@ -25,7 +25,7 @@ import {
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-  resolveSaveState,
+  firstMatchingSaveState,
 } from "@unkey/ui";
 import { FormLabel } from "@unkey/ui/src/components/form/form-helpers";
 import { useContext, useEffect, useId, useMemo } from "react";
@@ -227,7 +227,7 @@ const RegionsSingle = () => {
     currentRegions.length !== defaultRegions.length ||
     currentRegions.some((r) => !defaultRegions.includes(r));
 
-  const saveState = resolveSaveState([
+  const saveState = firstMatchingSaveState([
     [isSubmitting, { status: "saving" }],
     [!isValid, { status: "disabled" }],
     [!hasChanges, { status: "disabled", reason: "No changes to save" }],
@@ -372,7 +372,7 @@ const RegionsDualInner = ({ production, preview }: RegionsDualInnerProps) => {
     currentPreviewRegions.some((r) => !defaultPreviewRegions.includes(r));
   const hasChanges = prodHasChanges || previewHasChanges;
 
-  const saveState = resolveSaveState([
+  const saveState = firstMatchingSaveState([
     [isSubmitting, { status: "saving" }],
     [!isValid, { status: "disabled" }],
     [!hasChanges, { status: "disabled", reason: "No changes to save" }],

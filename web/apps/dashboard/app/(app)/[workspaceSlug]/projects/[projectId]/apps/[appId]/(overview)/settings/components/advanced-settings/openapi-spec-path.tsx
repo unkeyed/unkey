@@ -2,7 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { IconBracketsCurlyOutline18 } from "@unkey/icons";
-import { FormInput, resolveSaveState } from "@unkey/ui";
+import { FormInput, firstMatchingSaveState } from "@unkey/ui";
 import { useEffect } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
@@ -42,7 +42,7 @@ export const OpenapiSpecPath = () => {
   const current = useWatch({ control, name: "openapiSpecPath" });
   const hasChanges = current !== defaultValue;
 
-  const saveState = resolveSaveState([
+  const saveState = firstMatchingSaveState([
     [isSubmitting, { status: "saving" }],
     [!isValid, { status: "disabled" }],
     [!hasChanges, { status: "disabled", reason: "No changes to save" }],

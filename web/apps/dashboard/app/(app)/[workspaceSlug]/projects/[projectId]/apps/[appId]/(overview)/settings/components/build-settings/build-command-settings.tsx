@@ -1,6 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { IconHammer2Outline18 } from "@unkey/icons";
-import { FormInput, resolveSaveState } from "@unkey/ui";
+import { FormInput, firstMatchingSaveState } from "@unkey/ui";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { useEnvironmentSettings } from "../../environment-provider";
@@ -38,7 +38,7 @@ export const BuildCommand = () => {
 
   const currentBuildCommand = useWatch({ control, name: "buildCommand" });
 
-  const saveState = resolveSaveState([
+  const saveState = firstMatchingSaveState([
     [
       dockerfileConfigured,
       {

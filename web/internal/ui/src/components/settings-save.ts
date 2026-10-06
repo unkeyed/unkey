@@ -3,8 +3,9 @@ export type SaveState =
   | { status: "disabled"; reason?: string }
   | { status: "saving" };
 
-/** Returns the state of the first check that holds, so order checks from most specific. */
-export function resolveSaveState(checks: ReadonlyArray<readonly [boolean, SaveState]>): SaveState {
+export function firstMatchingSaveState(
+  checks: ReadonlyArray<readonly [boolean, SaveState]>,
+): SaveState {
   for (const [condition, state] of checks) {
     if (condition) {
       return state;
@@ -17,17 +18,16 @@ export function formSaveState({
   isSubmitting,
   isValid,
   isDirty,
-  blocked,
+  blockedReason,
 }: {
   isSubmitting: boolean;
   isValid: boolean;
   isDirty: boolean;
-  /** Why this row cannot be saved at all, such as a missing permission. */
-  blocked?: string;
+  blockedReason?: string;
 }): SaveState {
-  return resolveSaveState([
+  return firstMatchingSaveState([
     [isSubmitting, { status: "saving" }],
-    [blocked !== undefined, { status: "disabled", reason: blocked }],
+    [blockedReason !== undefined, { status: "disabled", reason: blockedReason }],
     [!isValid, { status: "disabled", reason: "Fix the invalid fields to save" }],
     [!isDirty, { status: "disabled" }],
   ]);
