@@ -5,7 +5,7 @@ notion:
   owners:
     - andreas
   tags:
-    - Tooling
+    - Local
 ---
 
 The hosted WorkOS AuthKit experience owns production sign-in, sign-up, email

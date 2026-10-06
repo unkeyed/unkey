@@ -129,8 +129,9 @@ WORKOS_COOKIE_PASSWORD=<a unique secret with at least 32 characters>
 
 Hosted AuthKit owns sign-in, sessions, and MFA in WorkOS mode. The dashboard
 uses WorkOS User Profile and User Security for managed account settings. See
-[Dashboard authentication](../tooling/dashboard-auth.md) for provider
+[Dashboard authentication](./dashboard-auth.md) for provider
 configuration and release checks.
+
 
 Stripe billing:
 
