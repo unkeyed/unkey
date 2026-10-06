@@ -1,0 +1,65 @@
+post:
+  x-excluded: true
+  tags:
+    - portal
+  summary: Delete portal domain
+  description: |
+    Detach a custom domain from a portal. A verified domain stops serving the portal.
+
+    Unreleased and subject to change without notice.
+
+    **Required Permissions**
+
+    Your root key must have one of:
+    - `portal.*.update_portal` (to manage domains on any portal in the workspace)
+    - `portal.<portal_id>.update_portal` (to manage domains on a specific portal)
+
+    Without the permission this returns **404**, not 403.
+  operationId: portal.deleteDomain
+  x-speakeasy-name-override: deleteDomain
+  security:
+    - bearer: []
+  requestBody:
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2PortalDeleteDomainRequestBody.yaml"
+    required: true
+  responses:
+    "200":
+      description: The domain was deleted.
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2PortalDeleteDomainResponseBody.yaml"
+    "400":
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/BadRequestErrorResponse.yaml"
+    "401":
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
+    "404":
+      description: |
+        No such portal or domain on that portal, or your root key may not update the portal.
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/NotFoundErrorResponse.yaml"
+    "429":
+      description: Too Many Requests
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/TooManyRequestsErrorResponse.yaml"
+    "500":
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/InternalServerErrorResponse.yaml"

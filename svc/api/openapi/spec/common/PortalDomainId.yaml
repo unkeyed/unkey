@@ -1,0 +1,6 @@
+type: string
+minLength: 3
+maxLength: 255
+pattern: "^[a-zA-Z0-9_]+$"
+description: The portal domain ID that `portal.createDomain` returned.
+example: pdom_1234abcd
