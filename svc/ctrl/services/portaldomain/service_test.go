@@ -218,6 +218,45 @@ func TestDeleteUnverifiedPortalDomainLeavesOtherTenantsRoute(t *testing.T) {
 	}
 }
 
+// revokedAfterRead lets the first FindPortalDomainById see the row as it was,
+// then marks it failed before the caller's transaction starts, the way a
+// contested claim is revoked between DeletePortalDomain's read and its delete.
+type revokedAfterRead struct {
+	db.Database
+	revoke func()
+}
+
+func (r *revokedAfterRead) FindPortalDomainById(ctx context.Context, id string) (db.PortalDomain, error) {
+	row, err := r.Database.FindPortalDomainById(ctx, id)
+	if r.revoke != nil {
+		r.revoke()
+		r.revoke = nil
+	}
+	return row, err
+}
+
+// The route is deleted only if the row is still verified inside the delete's
+// transaction: once revoked, the hostname's route belongs to the new owner.
+func TestDeletePortalDomainRevokedBeforeDeleteLeavesRoute(t *testing.T) {
+	ctx := context.Background()
+	f := newFixture(t)
+
+	mine := f.insertPortalDomain(t, f.workspaceID, f.domain, db.PortalDomainsVerificationStatusVerified)
+	f.insertRoute(t, f.domain)
+
+	cfg := f.config(t, acceptingIngress(t))
+	cfg.Database = &revokedAfterRead{Database: f.database, revoke: func() {
+		f.setStatus(t, mine, db.PortalDomainsVerificationStatusFailed)
+	}}
+	svc := New(cfg)
+
+	_, err := svc.DeletePortalDomain(ctx, f.deleteRequest(f.workspaceID, mine))
+	require.NoError(t, err)
+
+	require.Equal(t, 0, f.countPortalDomains(t, f.workspaceID))
+	require.Equal(t, 1, f.count(t, "SELECT COUNT(*) FROM frontline_routes WHERE fully_qualified_domain_name = ?", f.domain))
+}
+
 // Another workspace's id or another portal's id reads as NotFound, so ids
 // cannot be probed, and nothing is deleted.
 func TestDeletePortalDomainNotFound(t *testing.T) {

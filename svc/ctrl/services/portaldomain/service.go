@@ -6,6 +6,7 @@ package portaldomain
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"time"
 
@@ -228,25 +229,28 @@ func (s *Service) DeletePortalDomain(
 
 	s.cancelVerification(ctx, dom)
 
-	// Every tenant's route shares the portal project, so the project scope
-	// cannot tell tenants apart. Only the verified row for a hostname owns its
-	// route; deleting an unverified claim must leave another tenant's in place.
-	routeProjectID := ""
-	if dom.VerificationStatus == db.PortalDomainsVerificationStatusVerified {
-		env, envErr := s.db.FindEnvironmentById(ctx, s.environmentID)
-		if envErr != nil {
-			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to find portal environment: %w", envErr))
-		}
-		routeProjectID = env.ProjectID
-	}
-
 	err = db.TxRetry(ctx, s.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
 		q := db.NewQueries(tx)
 
-		if routeProjectID != "" {
+		status, txErr := q.FindPortalDomainStatusByIdForUpdate(txCtx, dom.ID)
+		if txErr != nil {
+			if db.IsNotFound(txErr) {
+				return connect.NewError(connect.CodeNotFound, fmt.Errorf("portal domain not found: %s", dom.ID))
+			}
+			return fmt.Errorf("failed to lock portal domain: %w", txErr)
+		}
+
+		// Every tenant's route shares the portal project, so the project scope
+		// cannot tell tenants apart. Only the verified row for a hostname owns its
+		// route; deleting an unverified claim must leave another tenant's in place.
+		if status == db.PortalDomainsVerificationStatusVerified {
+			env, envErr := q.FindEnvironmentById(txCtx, s.environmentID)
+			if envErr != nil {
+				return fmt.Errorf("failed to find portal environment: %w", envErr)
+			}
 			if txErr := q.DeleteFrontlineRouteByFQDNAndProject(txCtx, db.DeleteFrontlineRouteByFQDNAndProjectParams{
 				Fqdn:      dom.Domain,
-				ProjectID: routeProjectID,
+				ProjectID: env.ProjectID,
 			}); txErr != nil && !db.IsNotFound(txErr) {
 				return fmt.Errorf("failed to delete frontline route: %w", txErr)
 			}
@@ -264,6 +268,9 @@ func (s *Service) DeletePortalDomain(
 			fmt.Sprintf("Deleted portal domain %s", dom.Domain), dom.ID, dom.PortalID, dom.Domain)
 	})
 	if err != nil {
+		if connectErr, ok := errors.AsType[*connect.Error](err); ok {
+			return nil, connectErr
+		}
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 

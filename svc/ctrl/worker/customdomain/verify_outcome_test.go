@@ -3,6 +3,7 @@ package customdomain
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"log/slog"
 	"net"
 	"reflect"
@@ -70,6 +71,10 @@ type verifyDB struct {
 	claims []otherClaim
 	// routes is frontline_routes keyed by FQDN, enforcing its unique index.
 	routes map[string]db.FrontlineRoute
+	// acme is the set of domain ids with a challenge, enforcing its unique index.
+	acme map[string]bool
+	// routeInsertErr fails the next route insert once.
+	routeInsertErr error
 
 	events []string
 }
@@ -82,14 +87,16 @@ type otherClaim struct {
 
 func newVerifyDB(row db.CustomDomain) *verifyDB {
 	return &verifyDB{
-		Database:  nil,
-		row:       row,
-		app:       db.App{ID: row.AppID, CurrentDeploymentID: sql.NullString{Valid: true, String: "d_live"}}, //nolint:exhaustruct
-		ownership: nil,
-		failed:    nil,
-		claims:    nil,
-		routes:    map[string]db.FrontlineRoute{},
-		events:    nil,
+		Database:       nil,
+		row:            row,
+		app:            db.App{ID: row.AppID, CurrentDeploymentID: sql.NullString{Valid: true, String: "d_live"}}, //nolint:exhaustruct
+		ownership:      nil,
+		failed:         nil,
+		claims:         nil,
+		routes:         map[string]db.FrontlineRoute{},
+		acme:           map[string]bool{},
+		routeInsertErr: nil,
+		events:         nil,
 	}
 }
 
@@ -127,6 +134,10 @@ func (f *verifyDB) UpdatePortalDomainFailed(_ context.Context, arg db.UpdatePort
 }
 
 func (f *verifyDB) InsertAcmeChallenge(_ context.Context, arg db.InsertAcmeChallengeParams) error {
+	if f.acme[arg.DomainID] {
+		return duplicateKey("acme_challenges_domain_id_unique")
+	}
+	f.acme[arg.DomainID] = true
 	f.events = append(f.events, "insert acme "+arg.DomainID)
 	return nil
 }
@@ -155,8 +166,12 @@ func (f *verifyDB) FindAppById(_ context.Context, _ string) (db.App, error) {
 }
 
 func (f *verifyDB) InsertFrontlineRoute(_ context.Context, arg db.InsertFrontlineRouteParams) error {
+	if err := f.routeInsertErr; err != nil {
+		f.routeInsertErr = nil
+		return err
+	}
 	if _, taken := f.routes[arg.FullyQualifiedDomainName]; taken {
-		return &mysql.MySQLError{Number: 1062, SQLState: [5]byte{'2', '3', '0', '0', '0'}, Message: "Duplicate entry for key 'fully_qualified_domain_name'"}
+		return duplicateKey("fully_qualified_domain_name")
 	}
 	f.routes[arg.FullyQualifiedDomainName] = db.FrontlineRoute{ //nolint:exhaustruct
 		ID:                       arg.ID,
@@ -176,6 +191,10 @@ func (f *verifyDB) FindFrontlineRouteByFQDN(_ context.Context, fqdn string) (db.
 		return db.FrontlineRoute{}, sql.ErrNoRows //nolint:exhaustruct
 	}
 	return route, nil
+}
+
+func duplicateKey(index string) error {
+	return &mysql.MySQLError{Number: 1062, SQLState: [5]byte{'2', '3', '0', '0', '0'}, Message: "Duplicate entry for key '" + index + "'"}
 }
 
 func testDomainRow(domain string) db.CustomDomain {
@@ -412,4 +431,103 @@ func TestVerifyDomainRevokesContestedClaimBeforeIssuance(t *testing.T) {
 	require.NotEqual(t, -1, revoked)
 	require.NotEqual(t, -1, sent)
 	require.Less(t, revoked, sent, "events: %v", f.events)
+}
+
+// attemptAborted is how a retryable step failure surfaces: the SDK stops the
+// attempt and Restate retries the whole invocation.
+type attemptAborted struct{ err error }
+
+// journal counts the Void steps that completed, so a later attempt replays them
+// without executing them, the way Restate replays an invocation's journal.
+type journal struct{ completed int }
+
+// newJournaledContext is newVerifyContext with replay: the first j.completed
+// steps return their journaled result without running, and a step that fails
+// retryably aborts the attempt.
+func newJournaledContext(t *testing.T, domainID string, startedAt time.Time, j *journal) *mocks.MockContext {
+	t.Helper()
+
+	mockCtx := mocks.NewMockContext(t)
+	mockCtx.EXPECT().Key().Return(domainID)
+	mockStartedAt(mockCtx, startedAt)
+	mockCtx.EXPECT().Deadline().Return(time.Time{}, false).Maybe()
+	mockCtx.EXPECT().Done().Return(nil).Maybe()
+	mockCtx.EXPECT().Err().Return(nil).Maybe()
+	mockCtx.EXPECT().Value(mock.Anything).Return(nil).Maybe()
+
+	step := 0
+	mockCtx.EXPECT().
+		Run(mock.Anything, mock.AnythingOfType("*encoding.Void"), mock.Anything).
+		RunAndReturn(func(fn func(restate.RunContext) (any, error), _ any, _ ...restate.RunOption) restate.TerminalError {
+			step++
+			if step <= j.completed {
+				return nil
+			}
+			_, err := fn(testRunContext{Context: context.Background()})
+			if err != nil && restate.AsTerminalError(err) == nil {
+				panic(attemptAborted{err: err})
+			}
+			j.completed++
+			return restate.AsTerminalError(err)
+		}).
+		Maybe()
+
+	return mockCtx
+}
+
+// attempt runs one invocation attempt and reports whether a retryable step
+// aborted it.
+func attempt(svc *Service, mockCtx *mocks.MockContext) (err error, aborted bool) {
+	defer func() {
+		if r := recover(); r != nil {
+			if _, ok := r.(attemptAborted); !ok {
+				panic(r)
+			}
+			aborted = true
+		}
+	}()
+	_, err = svc.VerifyDomain(restate.WithMockContext(mockCtx), &hydrav1.VerifyDomainRequest{})
+	return err, false
+}
+
+// A transient failure after "mark verified" makes Restate retry the
+// invocation. The retry replays "mark verified" without running it, so it must
+// not first downgrade the row, or the row stays `verifying` with a live route
+// and never gets a certificate.
+func TestVerifyDomainRetryAfterMarkVerifiedStaysVerified(t *testing.T) {
+	row := testDomainRow("api.example.com")
+	f := newVerifyDB(row)
+	f.routeInsertErr = errors.New("connection reset")
+	svc := New(Config{DB: f, Resolver: fakeResolver{cname: testTargetCname, txt: nil, hosts: nil}, CnameDomain: "cname.unkey.local"})
+	startedAt := time.Now()
+	j := &journal{completed: 0}
+
+	_, aborted := attempt(svc, newJournaledContext(t, row.ID, startedAt, j))
+	require.True(t, aborted, "the failed route insert must abort the attempt")
+	require.Equal(t, db.CustomDomainsVerificationStatusVerified, f.row.VerificationStatus)
+
+	retry := newJournaledContext(t, row.ID, startedAt, j)
+	expectProcessChallenge(t, retry, f, row.Domain)
+	err, aborted := attempt(svc, retry)
+	require.False(t, aborted)
+	require.NoError(t, err)
+	require.Equal(t, db.CustomDomainsVerificationStatusVerified, f.row.VerificationStatus, "events: %v", f.events)
+	require.Contains(t, f.routes, row.Domain)
+}
+
+// The challenge row is unique per domain, so a second success path for the
+// same row, from a replay or a queued retry, finds it already there.
+func TestVerifyDomainExistingAcmeChallengeCountsAsCreated(t *testing.T) {
+	row := testDomainRow("api.example.com")
+	f := newVerifyDB(row)
+	f.acme[row.ID] = true
+	svc := New(Config{DB: f, Resolver: fakeResolver{cname: testTargetCname, txt: nil, hosts: nil}, CnameDomain: "cname.unkey.local"})
+
+	mockCtx := newVerifyContext(t, row.ID)
+	expectProcessChallenge(t, mockCtx, f, row.Domain)
+
+	_, err := svc.VerifyDomain(restate.WithMockContext(mockCtx), &hydrav1.VerifyDomainRequest{})
+	require.NoError(t, err)
+	require.Equal(t, db.CustomDomainsVerificationStatusVerified, f.row.VerificationStatus)
+	require.Contains(t, f.routes, row.Domain)
 }

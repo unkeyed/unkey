@@ -30,7 +30,9 @@ func (s *Service) VerifyCertificate(
 		func(ctx context.Context) (db.FindVerifiedDomainByHostnameRow, error) {
 			return s.db.FindVerifiedDomainByHostname(ctx, db.FindVerifiedDomainByHostnameParams{Domain: domainName})
 		},
-		caches.DefaultFindFirstOp,
+		// Frontline forwards challenges for pending rows too; a cached miss
+		// would 404 the CA's first request after verification.
+		caches.FoundOnlyOp,
 	)
 	if err != nil && !db.IsNotFound(err) {
 		return nil, connect.NewError(connect.CodeInternal, err)

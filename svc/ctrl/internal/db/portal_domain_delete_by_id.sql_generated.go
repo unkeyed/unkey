@@ -13,7 +13,7 @@ const deletePortalDomainByID = `-- name: DeletePortalDomainByID :exec
 DELETE FROM portal_domains WHERE id = ?
 `
 
-// DeletePortalDomainByID
+// Unscoped by workspace: callers resolve ownership before deleting.
 //
 //	DELETE FROM portal_domains WHERE id = ?
 func (q *Queries) DeletePortalDomainByID(ctx context.Context, id string) error {
