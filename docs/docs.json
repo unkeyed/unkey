@@ -401,6 +401,171 @@
             ],
             "icon": "book-open",
             "tab": "Guides"
+          },
+          {
+            "groups": [
+              {
+                "group": "Compute",
+                "pages": [
+                  {
+                    "group": "Projects",
+                    "pages": [
+                      "POST /v2/projects.createProject",
+                      "POST /v2/projects.getProject",
+                      "POST /v2/projects.listProjects",
+                      "POST /v2/projects.updateProject",
+                      "POST /v2/projects.deleteProject"
+                    ]
+                  },
+                  {
+                    "group": "Apps",
+                    "pages": [
+                      "POST /v2/apps.createApp",
+                      "POST /v2/apps.getApp",
+                      "POST /v2/apps.listApps",
+                      "POST /v2/apps.updateApp",
+                      "POST /v2/apps.deleteApp"
+                    ]
+                  },
+                  {
+                    "group": "Environments",
+                    "pages": [
+                      "POST /v2/environments.listEnvironments",
+                      "POST /v2/environments.getEnvironment",
+                      "POST /v2/environments.updateSettings",
+                      "POST /v2/environments.listEnvironmentVariables",
+                      "POST /v2/environments.setEnvironmentVariables",
+                      "POST /v2/environments.removeEnvironmentVariables"
+                    ]
+                  },
+                  {
+                    "group": "Deployments",
+                    "pages": [
+                      "POST /v3/deployments.createDeployment",
+                      "POST /v2/deployments.getDeployment",
+                      "POST /v2/deployments.listDeployments",
+                      "POST /v2/deployments.promoteDeployment",
+                      "POST /v2/deployments.rollbackDeployment",
+                      "POST /v2/deployments.startDeployment",
+                      "POST /v2/deployments.stopDeployment"
+                    ]
+                  },
+                  {
+                    "group": "Domains",
+                    "pages": [
+                      "POST /v2/domains.createDomain",
+                      "POST /v2/domains.getDomain",
+                      "POST /v2/domains.listDomains",
+                      "POST /v2/domains.verifyDomain",
+                      "POST /v2/domains.deleteDomain"
+                    ]
+                  },
+                  {
+                    "group": "Gateway",
+                    "pages": [
+                      "POST /v2/gateway.listPolicies",
+                      "POST /v2/gateway.setPolicies",
+                      "POST /v2/gateway.updatePolicy"
+                    ]
+                  },
+                  {
+                    "group": "GitHub",
+                    "pages": [
+                      "POST /v2/github.installApp"
+                    ]
+                  },
+                  {
+                    "group": "Analytics",
+                    "pages": [
+                      "POST /v2/analytics.getGatewayRequests",
+                      "POST /v2/analytics.getRuntimeLogs"
+                    ]
+                  }
+                ]
+              },
+              {
+                "group": "API management",
+                "pages": [
+                  {
+                    "group": "APIs",
+                    "pages": [
+                      "POST /v2/apis.createApi",
+                      "POST /v2/apis.deleteApi",
+                      "POST /v2/apis.getApi",
+                      "POST /v2/apis.listKeys"
+                    ]
+                  },
+                  {
+                    "group": "Keys",
+                    "pages": [
+                      "POST /v2/keys.addPermissions",
+                      "POST /v2/keys.addRoles",
+                      "POST /v2/keys.createKey",
+                      "POST /v2/keys.deleteKey",
+                      "POST /v2/keys.getKey",
+                      "POST /v2/keys.migrateKeys",
+                      "POST /v2/keys.removePermissions",
+                      "POST /v2/keys.removeRoles",
+                      "POST /v2/keys.rerollKey",
+                      "POST /v2/keys.setPermissions",
+                      "POST /v2/keys.setRoles",
+                      "POST /v2/keys.updateCredits",
+                      "POST /v2/keys.updateKey",
+                      "POST /v2/keys.verifyKey",
+                      "POST /v2/keys.whoami"
+                    ]
+                  },
+                  {
+                    "group": "Identities",
+                    "pages": [
+                      "POST /v2/identities.createIdentity",
+                      "POST /v2/identities.deleteIdentity",
+                      "POST /v2/identities.getIdentity",
+                      "POST /v2/identities.listIdentities",
+                      "POST /v2/identities.updateIdentity"
+                    ]
+                  },
+                  {
+                    "group": "Permissions",
+                    "pages": [
+                      "POST /v2/permissions.createPermission",
+                      "POST /v2/permissions.createRole",
+                      "POST /v2/permissions.deletePermission",
+                      "POST /v2/permissions.deleteRole",
+                      "POST /v2/permissions.getPermission",
+                      "POST /v2/permissions.getRole",
+                      "POST /v2/permissions.listPermissions",
+                      "POST /v2/permissions.listRoles",
+                      "POST /v2/permissions.setRolePermissions"
+                    ]
+                  },
+                  {
+                    "group": "Rate limiting",
+                    "pages": [
+                      "POST /v2/ratelimit.deleteOverride",
+                      "POST /v2/ratelimit.getOverride",
+                      "POST /v2/ratelimit.limit",
+                      "POST /v2/ratelimit.listOverrides",
+                      "POST /v2/ratelimit.multiLimit",
+                      "POST /v2/ratelimit.setOverride"
+                    ]
+                  },
+                  {
+                    "group": "Analytics",
+                    "pages": [
+                      "POST /v2/analytics.getRatelimits",
+                      "POST /v2/analytics.getVerifications"
+                    ]
+                  }
+                ]
+              }
+            ],
+            "icon": "code",
+            "openapi": {
+              "directory": "platform/api-reference",
+              "source": "https://spec.speakeasy.com/unkey/unkey/openapi-json-with-code-samples"
+            },
+            "tab": "API reference"
           }
         ]
       },
@@ -577,8 +742,91 @@
             ],
             "icon": "terminal",
             "tab": "CLI"
+          },
+          {
+            "groups": [
+              {
+                "group": "Projects",
+                "pages": [
+                  "POST /v2/projects.createProject",
+                  "POST /v2/projects.getProject",
+                  "POST /v2/projects.listProjects",
+                  "POST /v2/projects.updateProject",
+                  "POST /v2/projects.deleteProject"
+                ]
+              },
+              {
+                "group": "Apps",
+                "pages": [
+                  "POST /v2/apps.createApp",
+                  "POST /v2/apps.getApp",
+                  "POST /v2/apps.listApps",
+                  "POST /v2/apps.updateApp",
+                  "POST /v2/apps.deleteApp"
+                ]
+              },
+              {
+                "group": "Environments",
+                "pages": [
+                  "POST /v2/environments.listEnvironments",
+                  "POST /v2/environments.getEnvironment",
+                  "POST /v2/environments.updateSettings",
+                  "POST /v2/environments.listEnvironmentVariables",
+                  "POST /v2/environments.setEnvironmentVariables",
+                  "POST /v2/environments.removeEnvironmentVariables"
+                ]
+              },
+              {
+                "group": "Deployments",
+                "pages": [
+                  "POST /v3/deployments.createDeployment",
+                  "POST /v2/deployments.getDeployment",
+                  "POST /v2/deployments.listDeployments",
+                  "POST /v2/deployments.promoteDeployment",
+                  "POST /v2/deployments.rollbackDeployment",
+                  "POST /v2/deployments.startDeployment",
+                  "POST /v2/deployments.stopDeployment"
+                ]
+              },
+              {
+                "group": "Domains",
+                "pages": [
+                  "POST /v2/domains.createDomain",
+                  "POST /v2/domains.getDomain",
+                  "POST /v2/domains.listDomains",
+                  "POST /v2/domains.verifyDomain",
+                  "POST /v2/domains.deleteDomain"
+                ]
+              },
+              {
+                "group": "Gateway",
+                "pages": [
+                  "POST /v2/gateway.listPolicies",
+                  "POST /v2/gateway.setPolicies",
+                  "POST /v2/gateway.updatePolicy"
+                ]
+              },
+              {
+                "group": "GitHub",
+                "pages": [
+                  "POST /v2/github.installApp"
+                ]
+              },
+              {
+                "group": "Analytics",
+                "pages": [
+                  "POST /v2/analytics.getGatewayRequests",
+                  "POST /v2/analytics.getRuntimeLogs"
+                ]
+              }
+            ],
+            "icon": "code",
+            "openapi": {
+              "directory": "compute/api-reference",
+              "source": "https://spec.speakeasy.com/unkey/unkey/openapi-json-with-code-samples"
+            },
+            "tab": "API reference"
           }
-
         ]
       },
       {
@@ -789,7 +1037,87 @@
             "icon": "terminal",
             "tab": "CLI"
           },
-
+          {
+            "groups": [
+              {
+                "group": "APIs",
+                "pages": [
+                  "POST /v2/apis.createApi",
+                  "POST /v2/apis.deleteApi",
+                  "POST /v2/apis.getApi",
+                  "POST /v2/apis.listKeys"
+                ]
+              },
+              {
+                "group": "Keys",
+                "pages": [
+                  "POST /v2/keys.addPermissions",
+                  "POST /v2/keys.addRoles",
+                  "POST /v2/keys.createKey",
+                  "POST /v2/keys.deleteKey",
+                  "POST /v2/keys.getKey",
+                  "POST /v2/keys.migrateKeys",
+                  "POST /v2/keys.removePermissions",
+                  "POST /v2/keys.removeRoles",
+                  "POST /v2/keys.rerollKey",
+                  "POST /v2/keys.setPermissions",
+                  "POST /v2/keys.setRoles",
+                  "POST /v2/keys.updateCredits",
+                  "POST /v2/keys.updateKey",
+                  "POST /v2/keys.verifyKey",
+                  "POST /v2/keys.whoami"
+                ]
+              },
+              {
+                "group": "Identities",
+                "pages": [
+                  "POST /v2/identities.createIdentity",
+                  "POST /v2/identities.deleteIdentity",
+                  "POST /v2/identities.getIdentity",
+                  "POST /v2/identities.listIdentities",
+                  "POST /v2/identities.updateIdentity"
+                ]
+              },
+              {
+                "group": "Permissions",
+                "pages": [
+                  "POST /v2/permissions.createPermission",
+                  "POST /v2/permissions.createRole",
+                  "POST /v2/permissions.deletePermission",
+                  "POST /v2/permissions.deleteRole",
+                  "POST /v2/permissions.getPermission",
+                  "POST /v2/permissions.getRole",
+                  "POST /v2/permissions.listPermissions",
+                  "POST /v2/permissions.listRoles",
+                  "POST /v2/permissions.setRolePermissions"
+                ]
+              },
+              {
+                "group": "Rate limiting",
+                "pages": [
+                  "POST /v2/ratelimit.deleteOverride",
+                  "POST /v2/ratelimit.getOverride",
+                  "POST /v2/ratelimit.limit",
+                  "POST /v2/ratelimit.listOverrides",
+                  "POST /v2/ratelimit.multiLimit",
+                  "POST /v2/ratelimit.setOverride"
+                ]
+              },
+              {
+                "group": "Analytics",
+                "pages": [
+                  "POST /v2/analytics.getRatelimits",
+                  "POST /v2/analytics.getVerifications"
+                ]
+              }
+            ],
+            "icon": "code",
+            "openapi": {
+              "directory": "api-management/api-reference",
+              "source": "https://spec.speakeasy.com/unkey/unkey/openapi-json-with-code-samples"
+            },
+            "tab": "API reference"
+          },
           {
             "groups": [
               {
