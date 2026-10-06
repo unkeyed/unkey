@@ -1,5 +1,6 @@
 import { relations } from "drizzle-orm";
 import { boolean, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
+import { portalDomains } from "./portal_domains";
 import { portalSessions } from "./portal_sessions";
 import { projects } from "./projects";
 import { id } from "./util/id";
@@ -55,4 +56,5 @@ export const portalsRelations = relations(portals, ({ one, many }) => ({
     references: [projects.id],
   }),
   sessions: many(portalSessions),
+  domains: many(portalDomains),
 }));
