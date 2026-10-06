@@ -305,6 +305,7 @@ func TestBuildReplicaSet_TopologySpread(t *testing.T) {
 			require.Equal(t, int32(1), hostname.MaxSkew)
 			require.Equal(t, tt.whenUnsatisfiable, hostname.WhenUnsatisfiable)
 			require.Equal(t, tt.minDomains, hostname.MinDomains)
+			require.Equal(t, new(corev1.NodeInclusionPolicyHonor), hostname.NodeTaintsPolicy)
 			require.NotNil(t, hostname.LabelSelector)
 			require.Equal(t, map[string]string{"unkey.com/deployment.id": testDeploymentID}, hostname.LabelSelector.MatchLabels)
 
@@ -313,11 +314,18 @@ func TestBuildReplicaSet_TopologySpread(t *testing.T) {
 			require.Equal(t, int32(1), zone.MaxSkew)
 			require.Equal(t, corev1.ScheduleAnyway, zone.WhenUnsatisfiable)
 			require.Nil(t, zone.MinDomains)
+			require.Equal(t, new(corev1.NodeInclusionPolicyHonor), zone.NodeTaintsPolicy)
 			require.NotNil(t, zone.LabelSelector)
 			require.Equal(t, map[string]string{
 				"app.kubernetes.io/managed-by": "krane",
 				"app.kubernetes.io/component":  "deployment",
 			}, zone.LabelSelector.MatchLabels)
+
+			for _, constraint := range constraints {
+				for label, value := range constraint.LabelSelector.MatchLabels {
+					require.Equal(t, value, rs.Spec.Template.Labels[label])
+				}
+			}
 		})
 	}
 }
