@@ -2773,6 +2773,14 @@ components:
                     $ref: '#/components/schemas/LogdrainFilters'
                 destination:
                     $ref: '#/components/schemas/LogdrainDestinationWrite'
+                    properties:
+                        http:
+                            required:
+                                - url
+                        axiom:
+                            required:
+                                - dataset
+                                - token
         LogdrainMutationResponse:
             type: object
             required:
