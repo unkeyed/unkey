@@ -4,10 +4,16 @@ import type { Environment, EnvironmentKind } from "@/lib/collections/deploy/envi
 
 export type AssignedDomain = { hostname: string; assignedTo: string };
 
-const PLATFORM_ASSIGNMENT: ReadonlyArray<readonly [Domain["sticky"], string]> = [
-  ["live", "Live deployment"],
-  ["environment", "Latest deployment"],
-];
+const PLATFORM_ASSIGNMENT = {
+  live: "Live deployment",
+  environment: "Latest deployment",
+} as const satisfies Partial<Record<Domain["sticky"], string>>;
+
+type PlatformDomain = Domain & { sticky: keyof typeof PLATFORM_ASSIGNMENT };
+
+function isPlatformSticky(sticky: Domain["sticky"]): sticky is PlatformDomain["sticky"] {
+  return sticky in PLATFORM_ASSIGNMENT;
+}
 
 const CUSTOM_DOMAIN_ASSIGNMENT: Record<EnvironmentKind, string> = {
   production: "Live deployment",
@@ -16,15 +22,33 @@ const CUSTOM_DOMAIN_ASSIGNMENT: Record<EnvironmentKind, string> = {
 
 const BRANCH_DOMAIN_ASSIGNMENT = "Latest deployment of each branch";
 
+/** A verified custom domain also gets a live route, so routes on custom hostnames are left out. */
+export function platformDomainList(
+  domains: ReadonlyArray<Domain>,
+  customDomains: ReadonlyArray<CustomDomain>,
+): PlatformDomain[] {
+  const custom = new Set(customDomains.map((d) => d.domain));
+  return (["live", "environment"] as const).flatMap((sticky) =>
+    domains.filter(
+      (d): d is PlatformDomain =>
+        isPlatformSticky(d.sticky) &&
+        d.sticky === sticky &&
+        !custom.has(d.fullyQualifiedDomainName),
+    ),
+  );
+}
+
 function platformDomains(
   environment: Pick<Environment, "id">,
   domains: ReadonlyArray<Domain>,
+  customDomains: ReadonlyArray<CustomDomain>,
 ): AssignedDomain[] {
-  return PLATFORM_ASSIGNMENT.flatMap(([sticky, assignedTo]) =>
-    domains
-      .filter((d) => d.environmentId === environment.id && d.sticky === sticky)
-      .map((d) => ({ hostname: d.fullyQualifiedDomainName, assignedTo })),
-  );
+  return platformDomainList(domains, customDomains)
+    .filter((d) => d.environmentId === environment.id)
+    .map((d) => ({
+      hostname: d.fullyQualifiedDomainName,
+      assignedTo: PLATFORM_ASSIGNMENT[d.sticky],
+    }));
 }
 
 export function environmentDomains(
@@ -35,7 +59,7 @@ export function environmentDomains(
   const custom = customDomains
     .filter((d) => d.environmentId === environment.id)
     .map((d) => ({ hostname: d.domain, assignedTo: CUSTOM_DOMAIN_ASSIGNMENT[environment.kind] }));
-  return [...custom, ...platformDomains(environment, domains)];
+  return [...custom, ...platformDomains(environment, domains, customDomains)];
 }
 
 /**

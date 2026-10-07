@@ -1,7 +1,12 @@
 import type { CustomDomain } from "@/lib/collections/deploy/custom-domains";
 import type { Domain } from "@/lib/collections/deploy/domains";
 import { describe, expect, it } from "vitest";
-import { branchDomainPattern, environmentDomains, environmentPanelDomains } from "./model";
+import {
+  branchDomainPattern,
+  environmentDomains,
+  environmentPanelDomains,
+  platformDomainList,
+} from "./model";
 
 const production = { id: "env_prod", kind: "production" as const };
 const preview = { id: "env_prev", kind: "preview" as const };
@@ -45,7 +50,34 @@ const domains = [
   domain("shop-acme.unkey.app", "env_prod", "live"),
 ];
 
+describe("platformDomainList", () => {
+  it("leaves out custom domains, which also get a live route once verified", () => {
+    const withCustomRoute = [...domains, domain("api.acme.dev", "env_prod", "live")];
+    expect(
+      platformDomainList(withCustomRoute, [customDomain("api.acme.dev", "env_prod")]).map(
+        (d) => d.fullyQualifiedDomainName,
+      ),
+    ).not.toContain("api.acme.dev");
+  });
+
+  it("lists live then environment domains across environments", () => {
+    expect(platformDomainList(domains, []).map((d) => d.fullyQualifiedDomainName)).toEqual([
+      "shop-acme.unkey.app",
+      "shop-preview-acme.unkey.app",
+      "shop-production-acme.unkey.app",
+    ]);
+  });
+});
+
 describe("environmentDomains", () => {
+  it("lists a verified custom domain once", () => {
+    const withCustomRoute = [...domains, domain("api.acme.dev", "env_prod", "live")];
+    const hostnames = environmentDomains(production, withCustomRoute, [
+      customDomain("api.acme.dev", "env_prod"),
+    ]).map((d) => d.hostname);
+    expect(hostnames.filter((h) => h === "api.acme.dev")).toHaveLength(1);
+  });
+
   it("lists live then environment domains of one environment", () => {
     expect(environmentDomains(production, domains, [])).toEqual([
       { hostname: "shop-acme.unkey.app", assignedTo: "Live deployment" },
