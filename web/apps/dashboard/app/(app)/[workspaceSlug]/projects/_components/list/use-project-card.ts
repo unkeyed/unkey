@@ -1,5 +1,5 @@
 "use client";
-import { queryClient } from "@/lib/collections/client";
+import { refetchProjectApps } from "@/lib/collections/deploy/apps";
 import { isDeploymentInFlight } from "@/lib/collections/deploy/deployment-status";
 import { SERVER_PLACEHOLDER } from "@/lib/collections/deploy/utils";
 import { useCollectionPolling } from "@/lib/collections/use-collection-polling";
@@ -20,10 +20,10 @@ export function useProjectCard(projectId: string, { nearViewport }: { nearViewpo
   const inFlight = apps.some(
     (app) => app.headlineDeployment && isDeploymentInFlight(app.headlineDeployment.status),
   );
-  useCollectionPolling(
-    () => queryClient.refetchQueries({ queryKey: ["apps", projectId], type: "active" }),
-    { intervalMs: IN_FLIGHT_POLL_MS, enabled: enabled && inFlight },
-  );
+  useCollectionPolling(() => refetchProjectApps(projectId), {
+    intervalMs: IN_FLIGHT_POLL_MS,
+    enabled: enabled && inFlight,
+  });
 
   return { apps, isLoading: !nearViewport || projectApps.isLoading };
 }
