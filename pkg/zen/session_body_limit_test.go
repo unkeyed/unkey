@@ -214,8 +214,7 @@ func TestSession_BodySizeLimitHTTPStatus(t *testing.T) {
 	require.False(t, handlerInvoked, "Handler should not have been invoked due to body size limit")
 }
 
-func TestSession_ClickHouseLoggingControl(t *testing.T) {
-	// Test that the new ClickHouse logging control methods work correctly
+func TestSession_SkipRequestLog(t *testing.T) {
 	req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader("test"))
 	w := httptest.NewRecorder()
 
@@ -226,9 +225,8 @@ func TestSession_ClickHouseLoggingControl(t *testing.T) {
 	// Should default to true (logging enabled)
 	require.True(t, sess.ShouldLogRequestToClickHouse(), "Should default to logging enabled")
 
-	// Disable ClickHouse logging
-	sess.DisableClickHouseLogging()
-	require.False(t, sess.ShouldLogRequestToClickHouse(), "Should be disabled after calling DisableClickHouseLogging")
+	sess.SkipRequestLog()
+	require.False(t, sess.ShouldLogRequestToClickHouse(), "Request logging should be disabled after calling SkipRequestLog")
 
 	// Reset should re-enable logging
 	sess.reset()
