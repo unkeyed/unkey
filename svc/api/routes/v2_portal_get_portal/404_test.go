@@ -19,12 +19,18 @@ import (
 func TestGetPortalMasksEveryMiss(t *testing.T) {
 	h := testutil.NewHarness(t)
 	workspace := h.Resources().UserWorkspace
-	route, headers := newRoute(t, h, fmt.Sprintf("unkey:v1:%s:projects/*/portals/*#read", workspace.ID))
 
 	// A portal the caller can see, so the passing path is known to work and the
 	// misses below cannot be masking a broken handler.
 	visible := h.SeedPortal(t, workspace.ID, "visible", "visible", keyspaceMapping(t, h, workspace.ID),
 		nil, nil)
+	other := h.CreateWorkspace()
+	otherKeyspace := keyspaceMapping(t, h, other.ID)
+	otherPortal := h.SeedPortal(t, other.ID, "theirs", "theirs", otherKeyspace, nil, nil)
+	route, headers := newRoute(t, h,
+		fmt.Sprintf("unkey:v1:%s:projects/%s/portals/%s#read", workspace.ID, visible.ProjectID, visible.ID),
+		fmt.Sprintf("unkey:v1:%s:projects/%s/portals/%s#read", workspace.ID, otherPortal.ProjectID, otherPortal.ID),
+		fmt.Sprintf("unkey:v1:%s:projects/*/portals/pc_doesnotexist#read", workspace.ID))
 	ok := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
 		Portal:     new(visible.ID),
 		KeyspaceId: nil,
@@ -35,12 +41,6 @@ func TestGetPortalMasksEveryMiss(t *testing.T) {
 	// An association in this workspace with no portal behind it.
 	unmappedKeyspace := keyspaceMapping(t, h, workspace.ID)
 	unmappedApp := appMapping(t, h, workspace.ID, "unmapped")
-
-	// Another workspace with a portal of its own, addressed both by id and through
-	// the keyspace it maps.
-	other := h.CreateWorkspace()
-	otherKeyspace := keyspaceMapping(t, h, other.ID)
-	otherPortal := h.SeedPortal(t, other.ID, "theirs", "theirs", otherKeyspace, nil, nil)
 
 	unknownKeyspace := portal.Mapping{Type: portal.MappingTypeKeyspace, ID: "ks_doesnotexist"}
 	unknownApp := portal.Mapping{Type: portal.MappingTypeApp, ID: "app_doesnotexist"}
@@ -97,7 +97,7 @@ func TestGetPortalDenialMatchesAbsence(t *testing.T) {
 	require.Equal(t, http.StatusNotFound, denied.Status,
 		"a denial must be masked, received: %s", denied.RawBody)
 
-	allowedKey := h.CreateRootKey(workspace.ID, fmt.Sprintf("unkey:v1:%s:**#*", h.Resources().UserWorkspace.ID))
+	allowedKey := h.CreateRootKey(workspace.ID, fmt.Sprintf("unkey:v1:%s:projects/*/portals/pc_doesnotexist#read", workspace.ID))
 	absent := testutil.CallRoute[handler.Request, handler.Response](h, route, headersFor(allowedKey), handler.Request{
 		Portal:     new("pc_doesnotexist"),
 		KeyspaceId: nil,

@@ -21,14 +21,15 @@ func TestGetEnvironmentNotFound(t *testing.T) {
 	h.Register(route)
 
 	workspace := h.Resources().UserWorkspace
-	rootKey := h.CreateRootKey(workspace.ID, "unkey:v1:"+(workspace.ID)+":**#*")
-	headers := http.Header{
-		"Content-Type":  {"application/json"},
-		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
-	}
 
 	t.Run("unknown environment id returns 404", func(t *testing.T) {
-		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{Project: uid.New(uid.ProjectPrefix), App: uid.New(uid.AppPrefix), Environment: uid.New(uid.EnvironmentPrefix)})
+		req := handler.Request{Project: uid.New(uid.ProjectPrefix), App: uid.New(uid.AppPrefix), Environment: uid.New(uid.EnvironmentPrefix)}
+		rootKey := h.CreateRootKey(workspace.ID, fmt.Sprintf("unkey:v1:%s:projects/%s/apps/%s/environments/%s#read", workspace.ID, req.Project, req.App, req.Environment))
+		headers := http.Header{
+			"Content-Type":  {"application/json"},
+			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+		}
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 		require.Equal(t, http.StatusNotFound, res.Status, "expected 404, received: %s", res.RawBody)
 	})
 
@@ -58,6 +59,12 @@ func TestGetEnvironmentNotFound(t *testing.T) {
 			Kind:        mysqltype.EnvironmentKindProduction,
 			Description: "Theirs",
 		})
+
+		rootKey := h.CreateRootKey(workspace.ID, fmt.Sprintf("unkey:v1:%s:projects/%s/apps/%s/environments/%s#read", workspace.ID, otherProject.ID, otherApp.ID, otherEnvironment.ID))
+		headers := http.Header{
+			"Content-Type":  {"application/json"},
+			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{Project: otherProject.ID, App: otherApp.ID, Environment: otherEnvironment.ID})
 		require.Equal(t, http.StatusNotFound, res.Status, "expected 404 for cross-workspace environment, received: %s", res.RawBody)

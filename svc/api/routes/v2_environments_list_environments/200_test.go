@@ -25,11 +25,6 @@ func TestListEnvironmentsSuccessfully(t *testing.T) {
 	h.Register(route)
 
 	workspace := h.Resources().UserWorkspace
-	rootKey := h.CreateRootKey(workspace.ID, "unkey:v1:"+(workspace.ID)+":**#*")
-	headers := http.Header{
-		"Content-Type":  {"application/json"},
-		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
-	}
 
 	project := h.CreateProject(seed.CreateProjectRequest{
 		ID:          uid.New(uid.ProjectPrefix),
@@ -44,6 +39,12 @@ func TestListEnvironmentsSuccessfully(t *testing.T) {
 		Name:        "Payments API",
 		Slug:        slug(t),
 	})
+
+	rootKey := h.CreateRootKey(workspace.ID, fmt.Sprintf("unkey:v1:%s:projects/%s/apps/%s/environments/*#read", workspace.ID, project.ID, app.ID))
+	headers := http.Header{
+		"Content-Type":  {"application/json"},
+		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+	}
 
 	t.Run("app with no environments returns empty list", func(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{Project: project.Slug, App: app.Slug})
