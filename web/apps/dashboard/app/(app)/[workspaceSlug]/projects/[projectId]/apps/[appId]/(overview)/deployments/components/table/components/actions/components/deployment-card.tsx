@@ -1,4 +1,4 @@
-import type { Deployment } from "@/lib/collections";
+import type { DeploymentSummary } from "@/lib/collections";
 import { shortenId } from "@/lib/shorten-id";
 import {
   IconCodeBranchOutline18,
@@ -11,7 +11,7 @@ import { cn } from "cn";
 import type { ComponentProps, ReactNode } from "react";
 
 type DeploymentCardProps = {
-  deployment: Deployment;
+  deployment: DeploymentSummary;
   isCurrent: boolean;
 };
 

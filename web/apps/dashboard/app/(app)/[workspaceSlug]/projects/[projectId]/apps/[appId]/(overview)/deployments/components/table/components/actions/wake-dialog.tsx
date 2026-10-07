@@ -1,7 +1,7 @@
 "use client";
 
 import { useProjectData } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/data-provider";
-import type { Deployment } from "@/lib/collections";
+import type { DeploymentSummary } from "@/lib/collections";
 import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
 import { useMutation } from "@tanstack/react-query";
 import { Button, DialogContainer, toast } from "@unkey/ui";
@@ -10,7 +10,7 @@ import { DeploymentCard } from "./components/deployment-card";
 type WakeDialogProps = {
   isOpen: boolean;
   onClose: () => void;
-  deployment: Deployment;
+  deployment: DeploymentSummary;
 };
 
 export const WakeDialog = ({ isOpen, onClose, deployment }: WakeDialogProps) => {

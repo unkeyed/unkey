@@ -1,7 +1,7 @@
 "use client";
 
 import { Avatar } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/git-avatar";
-import type { Deployment } from "@/lib/collections";
+import type { DeploymentSummary } from "@/lib/collections";
 import { deploymentTitle } from "@/lib/collections/deploy/deployment-title";
 import {
   IconArrowDotRotateAnticlockwiseOutline12,
@@ -15,11 +15,11 @@ import { TimestampInfo } from "@unkey/ui";
 import type { ReactNode } from "react";
 
 type RollbackPairProps = {
-  current: Deployment;
-  target: Deployment;
+  current: DeploymentSummary;
+  target: DeploymentSummary;
 };
 
-function Meta({ deployment }: { deployment: Deployment }) {
+function Meta({ deployment }: { deployment: DeploymentSummary }) {
   return (
     <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-12">
       {deployment.gitCommitSha && (
@@ -73,7 +73,7 @@ function Row({
   icon,
   badge,
 }: {
-  deployment: Deployment;
+  deployment: DeploymentSummary;
   icon: ReactNode;
   badge: ReactNode;
 }) {

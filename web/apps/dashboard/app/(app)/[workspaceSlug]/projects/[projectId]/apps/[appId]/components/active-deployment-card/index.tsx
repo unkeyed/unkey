@@ -22,7 +22,6 @@ import { DottedLink } from "../dotted-link";
 import { ActiveDeploymentCardEmpty } from "./components/active-deployment-card-empty";
 import { ImageSource } from "./components/image-source";
 import { MetadataCell } from "./components/metadata-cell";
-import { ActiveDeploymentCardSkeleton } from "./components/skeleton";
 
 function GitHubLink({ href, children }: { href: string | undefined; children: React.ReactNode }) {
   if (!href) {
@@ -36,8 +35,7 @@ function GitHubLink({ href, children }: { href: string | undefined; children: Re
 }
 
 type ActiveDeploymentCardProps = {
-  deploymentId: string | null;
-  deployment?: Deployment;
+  deployment: Deployment;
   statusBadge?: React.ReactNode;
   expandableContent?: React.ReactNode;
   isCurrent?: boolean;
@@ -46,17 +44,14 @@ type ActiveDeploymentCardProps = {
 };
 
 export function ActiveDeploymentCard({
-  deploymentId,
-  deployment: directDeployment,
+  deployment,
   statusBadge,
   expandableContent,
   isCurrent,
   isRolledBack,
   environmentSlug,
 }: ActiveDeploymentCardProps) {
-  const { getDeploymentById, isDeploymentsLoading, projectId } = useProjectData();
-  const deployment =
-    directDeployment ?? (deploymentId ? getDeploymentById(deploymentId) : undefined);
+  const { projectId } = useProjectData();
   // Repo connections are per-app; the project-level repositoryFullName is
   // just some app's connection in this project.
   const appsQuery = useLiveQuery(
@@ -68,9 +63,6 @@ export function ActiveDeploymentCard({
   )?.repositoryFullName;
   const sourceRepo = deployment?.forkRepositoryFullName || repoFullName;
 
-  if (isDeploymentsLoading) {
-    return <ActiveDeploymentCardSkeleton />;
-  }
   if (!deployment) {
     return <ActiveDeploymentCardEmpty />;
   }
