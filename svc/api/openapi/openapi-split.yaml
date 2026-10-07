@@ -357,6 +357,9 @@ paths:
     $ref: "./spec/paths/v2/logdrains/createLogdrain/index.yaml"
 
 components:
+  schemas:
+    LogdrainWriteFilters:
+      $ref: ./spec/paths/v2/logdrains/LogdrainFilters.yaml
   securitySchemes:
     bearer:
       type: http

@@ -199,7 +199,7 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 
 	srv.RegisterRoute(publicMiddlewares, &v2Liveness.Handler{})
 
-	srv.RegisterRoute(protectedMiddlewares, &v2Logdrains.Create{
+	srv.RegisterRoute(protectedMiddlewares, &v2Logdrains.Handler{
 		DB:          svc.Database,
 		Vault:       svc.Vault,
 		Auditlogs:   svc.Auditlogs,
