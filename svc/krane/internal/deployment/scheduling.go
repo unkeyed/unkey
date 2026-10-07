@@ -17,22 +17,7 @@ const (
 	topologyKeyHostname = "kubernetes.io/hostname"
 )
 
-// deploymentTopologySpread returns topology spread constraints that distribute
-// customer workload pods across both nodes and availability zones.
-//
-// Both constraints use maxSkew=1 with WhenUnsatisfiable=ScheduleAnyway, meaning
-// the scheduler prefers even distribution but won't block scheduling if the
-// topology is imbalanced. This keeps deployments schedulable even in degraded
-// cluster states while still achieving node and zone redundancy under normal
-// conditions.
-//
-// The hostname constraint is what prevents replicas from stacking on a single
-// node. It selects on deployment ID so each deployment spreads independently of
-// others sharing the nodepool. The zone constraint selects all krane deployment
-// pods in the namespace, so single-replica deployments still contribute to
-// namespace-level AZ spread and Karpenter gets pressure to provision untrusted
-// nodes outside the currently crowded AZ.
-func deploymentTopologySpread(deploymentID string) []corev1.TopologySpreadConstraint {
+func deploymentTopologySpread(deploymentID string, maxReplicas uint32) []corev1.TopologySpreadConstraint {
 	deploymentSelector := &metav1.LabelSelector{
 		MatchLabels: labels.New().DeploymentID(deploymentID),
 	}
@@ -41,13 +26,21 @@ func deploymentTopologySpread(deploymentID string) []corev1.TopologySpreadConstr
 			ManagedByKrane().
 			ComponentDeployment(),
 	}
+	hostname := corev1.TopologySpreadConstraint{
+		MaxSkew:           1,
+		TopologyKey:       topologyKeyHostname,
+		WhenUnsatisfiable: corev1.ScheduleAnyway,
+		LabelSelector:     deploymentSelector,
+	}
+	if maxReplicas > 1 {
+		hostname.WhenUnsatisfiable = corev1.DoNotSchedule
+		hostname.NodeTaintsPolicy = new(corev1.NodeInclusionPolicyHonor)
+		// Without minDomains, a one-node pool permits all replicas on that node.
+		hostname.MinDomains = new(int32(2))
+	}
+
 	return []corev1.TopologySpreadConstraint{
-		{
-			MaxSkew:           1,
-			TopologyKey:       topologyKeyHostname,
-			WhenUnsatisfiable: corev1.ScheduleAnyway,
-			LabelSelector:     deploymentSelector,
-		},
+		hostname,
 		{
 			MaxSkew:           1,
 			TopologyKey:       topologyKeyZone,
