@@ -8,9 +8,7 @@
 //
 // Counters are monotonic accumulators incremented via __sync_fetch_and_add,
 // so billing math is the same max(counter) - min(counter) shape as the
-// cpu_usage_usec flow. See docs/engineering/infra/metering/heimdall.mdx
-// for the full design writeup including the TC_ACT_UNSPEC / TCX_NEXT trap
-// that keeps DNS working for gVisor pods.
+// cpu_usage_usec flow.
 //
 // Files:
 //   - network.go            - Reader interface + Counters type (cross-platform)

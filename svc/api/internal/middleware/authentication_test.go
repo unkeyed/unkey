@@ -21,6 +21,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/rbac/permissions"
+	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
 )
@@ -425,5 +426,70 @@ func TestWithAuthentication_MarksNewRootKeyUsageWithEmptyWorkspace(t *testing.T)
 		require.Equal(t, "root_key_123", rows[0].KeyID)
 	case <-time.After(time.Second):
 		t.Fatal("new root key usage did not flush")
+	}
+}
+
+type apiRequestRecorder struct {
+	requests []schema.ApiRequest
+}
+
+func (r *apiRequestRecorder) Buffer(req schema.ApiRequest) {
+	r.requests = append(r.requests, req)
+}
+
+func TestWithAuthentication_SkipsRequestLogForDashboard(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name          string
+		principalType principal.Type
+		client        string
+		wantLogged    bool
+	}{
+		{name: "dashboard JWT", principalType: principal.TypeJWT, client: "unkey-dashboard", wantLogged: false},
+		{name: "other JWT client", principalType: principal.TypeJWT, client: "", wantLogged: true},
+		{name: "root key claiming dashboard", principalType: principal.TypeAPIKey, client: "unkey-dashboard", wantLogged: true},
+		{name: "root key", principalType: principal.TypeAPIKey, client: "", wantLogged: true},
+		{name: "unauthenticated claiming dashboard", principalType: "", client: "unkey-dashboard", wantLogged: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			auth := &fakeAuth{err: errors.New("invalid token")}
+			if tt.principalType != "" {
+				auth = &fakeAuth{principal: &principal.Principal{
+					Type:                  tt.principalType,
+					AuthorizedWorkspaceID: uid.New(uid.WorkspacePrefix),
+				}}
+			}
+
+			recorder := &apiRequestRecorder{}
+			server, err := zen.New(zen.Config{})
+			require.NoError(t, err)
+			server.RegisterRoute(
+				[]zen.Middleware{
+					zen.WithMetrics(recorder, zen.InstanceInfo{Region: "test-region"}, nil),
+					WithErrorHandling(),
+					WithAuthentication(AuthenticationConfig{Auth: auth}),
+				},
+				zen.NewRoute(http.MethodPost, "/v2/deployments.listDeployments", func(_ context.Context, s *zen.Session) error {
+					return s.JSON(http.StatusOK, map[string]string{"status": "ok"})
+				}),
+			)
+
+			req := httptest.NewRequest(http.MethodPost, "/v2/deployments.listDeployments", nil)
+			if tt.client != "" {
+				req.Header.Set("X-Unkey-Client", tt.client)
+			}
+			server.Mux().ServeHTTP(httptest.NewRecorder(), req)
+
+			if tt.wantLogged {
+				require.Len(t, recorder.requests, 1)
+				return
+			}
+			require.Empty(t, recorder.requests)
+		})
 	}
 }
