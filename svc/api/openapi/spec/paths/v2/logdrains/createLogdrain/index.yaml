@@ -9,8 +9,7 @@ post:
   operationId: logdrains.createLogdrain
   x-speakeasy-name-override: createLogdrain
   security:
-    - bearer:
-        []
+    - bearer: []
   requestBody:
     required: true
     content:
