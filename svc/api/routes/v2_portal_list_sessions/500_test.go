@@ -1,6 +1,7 @@
 package handler_test
 
 import (
+	"fmt"
 	"net/http"
 	"testing"
 
@@ -15,9 +16,9 @@ import (
 // session with no scopes.
 func TestListSessionsFailsOnMalformedScopes(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route, headers := newRoute(t, h, workspaceAdminPermission(h))
 	workspace := h.Resources().UserWorkspace
 	stored := seedPortal(t, h, workspace.ID, "list-malformed-scopes")
+	route, headers := newRoute(t, h, fmt.Sprintf("unkey:v1:%s:projects/%s/portals/%s/sessions/*#read", workspace.ID, stored.ProjectID, stored.ID))
 
 	malformed := active(h, "user_1")
 	malformed.scopes = `["keys:read"]`

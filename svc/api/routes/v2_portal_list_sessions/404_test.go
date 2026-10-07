@@ -16,14 +16,18 @@ import (
 // An unknown portal and another workspace's portal get the same 404.
 func TestListSessionsUnknownPortal(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route, headers := newRoute(t, h, workspaceAdminPermission(h))
+	workspace := h.Resources().UserWorkspace
 
 	other := h.CreateWorkspace()
 	theirs := seedPortal(t, h, other.ID, "list-theirs-404")
+	unknownID := uid.New(uid.PortalPrefix)
+	route, headers := newRoute(t, h,
+		fmt.Sprintf("unkey:v1:%s:projects/%s/portals/%s/sessions/*#read", workspace.ID, theirs.ProjectID, theirs.ID),
+		fmt.Sprintf("unkey:v1:%s:projects/*/portals/%s/sessions/*#read", workspace.ID, unknownID))
 	insertSession(t, h, theirs.ID, other.ID, active(h, "user_1"))
 
 	testCases := map[string]string{
-		"unknown id":                  uid.New(uid.PortalPrefix),
+		"unknown id":                  unknownID,
 		"unknown slug":                "no-such-portal",
 		"portal in another workspace": theirs.ID,
 		"slug in another workspace":   theirs.Slug,
