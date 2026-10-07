@@ -67,7 +67,7 @@ export const Usage: React.FC<{
     );
   }
 
-  const current = limits.api.billableOperations.used;
+  const current = limits.apiBillableOperationsCountMaxPerMonth.current ?? 0;
   const max = quota;
   const percent = max > 0 ? Math.round((current / max) * 100) : 0;
 

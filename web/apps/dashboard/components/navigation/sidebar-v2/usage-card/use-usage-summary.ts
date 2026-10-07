@@ -103,7 +103,9 @@ function measureCompute(
 }
 
 function measureApi(
-  usage: Query<{ api: { billableOperations: { used: number; limit: number } } }>,
+  usage: Query<{
+    apiBillableOperationsCountMaxPerMonth: { limit: number | null; current?: number };
+  }>,
 ): Measured<ApiUsage> | null {
   if (usage.isError) {
     return { state: "error" };
@@ -111,9 +113,9 @@ function measureApi(
   if (usage.data === undefined) {
     return { state: "loading", bar: true };
   }
-  const { used, limit } = usage.data.api.billableOperations;
-  if (limit <= 0) {
+  const { limit, current } = usage.data.apiBillableOperationsCountMaxPerMonth;
+  if (limit === null || limit <= 0) {
     return null;
   }
-  return { state: "ready", value: { used, max: limit } };
+  return { state: "ready", value: { used: current ?? 0, max: limit } };
 }

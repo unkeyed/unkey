@@ -25,16 +25,16 @@ export function UsageBanner() {
     return null;
   }
 
-  const billable = workspaceLimits.data?.api.billableOperations;
-  if (billable !== undefined && billable.limit <= 0) {
+  const billable = workspaceLimits.data?.apiBillableOperationsCountMaxPerMonth;
+  if (billable !== undefined && (billable.limit === null || billable.limit <= 0)) {
     console.error(
-      "UsageBanner: billableOperations.limit must be greater than 0, got:",
+      "UsageBanner: apiBillableOperationsCountMaxPerMonth.limit must be greater than 0, got:",
       billable.limit,
     );
     return null;
   }
 
-  const current = billable?.used ?? 0;
+  const current = billable?.current ?? 0;
   const max = billable?.limit ?? 1;
   const percentage = (current / max) * 100;
   const shouldUpgrade = percentage > 90;

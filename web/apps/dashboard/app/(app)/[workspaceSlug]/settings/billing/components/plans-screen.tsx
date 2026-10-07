@@ -71,7 +71,7 @@ export function PlansScreen({ open, onOpenChange, reason, from = "billing" }: Pl
     trpc: { context: { skipBatch: true } },
   });
   const apiUsageQuery = useWorkspaceLimits({ enabled: wantsApi, staleTime: 60_000 });
-  const apiOperations = apiUsageQuery.data?.api.billableOperations.used;
+  const apiOperations = apiUsageQuery.data?.apiBillableOperationsCountMaxPerMonth.current;
 
   const products = availableProducts(copy.products, {
     computeEnabled: deployBilling && !plansQuery.isError && plansQuery.data?.configured !== false,

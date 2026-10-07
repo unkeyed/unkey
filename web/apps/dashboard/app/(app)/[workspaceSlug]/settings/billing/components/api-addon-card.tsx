@@ -111,7 +111,7 @@ export const ApiAddOnCard: React.FC<ApiAddOnCardProps> = ({
       : undefined;
 
   const quota = currentProduct?.quotas.requestsPerMonth ?? FREE_TIER_QUOTA;
-  const used = workspaceLimits?.api.billableOperations.used ?? 0;
+  const used = workspaceLimits?.apiBillableOperationsCountMaxPerMonth.current ?? 0;
 
   return (
     <>
