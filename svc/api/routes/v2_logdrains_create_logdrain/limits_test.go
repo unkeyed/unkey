@@ -15,13 +15,22 @@ import (
 
 func TestCreateUsesFreshCachedAllowance(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route := &logdrains.Create{DB: h.DB, Vault: h.Vault, Auditlogs: h.Auditlogs, Clock: h.Clock, LimitsCache: h.Caches.WorkspaceLimits}
+	route := &logdrains.Create{
+		DB:          h.DB,
+		Vault:       h.Vault,
+		Auditlogs:   h.Auditlogs,
+		Clock:       h.Clock,
+		LimitsCache: h.Caches.WorkspaceLimits,
+	}
 	h.Register(route)
 	workspaceID := h.Resources().UserWorkspace.ID
 	_, err := h.DB.RW().ExecContext(context.Background(), "UPDATE `limits` SET logdrains_max = 2 WHERE workspace_id = ?", workspaceID)
 	require.NoError(t, err)
 	key := h.CreateRootKey(workspaceID, "unkey:v1:"+workspaceID+":logdrains/*#write")
-	headers := http.Header{"Authorization": {"Bearer " + key}, "Content-Type": {"application/json"}}
+	headers := http.Header{
+		"Authorization": {"Bearer " + key},
+		"Content-Type":  {"application/json"},
+	}
 	input := json.RawMessage(`{"name":"Cached allowance","stream":"audit_logs","destination":{"http":{"url":"https://logs.example.com"}}}`)
 	first := testutil.CallRoute[json.RawMessage, openapi.LogdrainMutationResponse](h, route, headers, input)
 	require.Equal(t, http.StatusOK, first.Status, "%s", first.RawBody)
@@ -42,7 +51,13 @@ func TestCreateDeniesZeroOrMissingAllowance(t *testing.T) {
 		}
 		t.Run(name, func(t *testing.T) {
 			h := testutil.NewHarness(t)
-			route := &logdrains.Create{DB: h.DB, Vault: h.Vault, Auditlogs: h.Auditlogs, Clock: h.Clock, LimitsCache: h.Caches.WorkspaceLimits}
+			route := &logdrains.Create{
+				DB:          h.DB,
+				Vault:       h.Vault,
+				Auditlogs:   h.Auditlogs,
+				Clock:       h.Clock,
+				LimitsCache: h.Caches.WorkspaceLimits,
+			}
 			h.Register(route)
 			workspaceID := h.Resources().UserWorkspace.ID
 			query := "UPDATE `limits` SET logdrains_max = 0 WHERE workspace_id = ?"
@@ -52,7 +67,10 @@ func TestCreateDeniesZeroOrMissingAllowance(t *testing.T) {
 			_, err := h.DB.RW().ExecContext(context.Background(), query, workspaceID)
 			require.NoError(t, err)
 			key := h.CreateRootKey(workspaceID, "unkey:v1:"+workspaceID+":logdrains/*#write")
-			headers := http.Header{"Authorization": {"Bearer " + key}, "Content-Type": {"application/json"}}
+			headers := http.Header{
+				"Authorization": {"Bearer " + key},
+				"Content-Type":  {"application/json"},
+			}
 			response := testutil.CallRoute[json.RawMessage, openapi.ForbiddenErrorResponse](h, route, headers, json.RawMessage(`{"name":"Disabled","stream":"audit_logs","destination":{"http":{"url":"https://logs.example.com"}}}`))
 			require.Equal(t, http.StatusForbidden, response.Status, "%s", response.RawBody)
 			require.Contains(t, response.Body.Error.Detail, "Contact support to enable log drains")
@@ -65,13 +83,22 @@ func TestCreateDeniesZeroOrMissingAllowance(t *testing.T) {
 
 func TestConcurrentCreatesValidateRequests(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route := &logdrains.Create{DB: h.DB, Vault: h.Vault, Auditlogs: h.Auditlogs, Clock: h.Clock, LimitsCache: h.Caches.WorkspaceLimits}
+	route := &logdrains.Create{
+		DB:          h.DB,
+		Vault:       h.Vault,
+		Auditlogs:   h.Auditlogs,
+		Clock:       h.Clock,
+		LimitsCache: h.Caches.WorkspaceLimits,
+	}
 	h.Register(route)
 	workspaceID := h.Resources().UserWorkspace.ID
 	_, err := h.DB.RW().ExecContext(context.Background(), "UPDATE `limits` SET logdrains_max = 2 WHERE workspace_id = ?", workspaceID)
 	require.NoError(t, err)
 	key := h.CreateRootKey(workspaceID, "unkey:v1:"+workspaceID+":logdrains/*#write")
-	headers := http.Header{"Authorization": {"Bearer " + key}, "Content-Type": {"application/json"}}
+	headers := http.Header{
+		"Authorization": {"Bearer " + key},
+		"Content-Type":  {"application/json"},
+	}
 	input := json.RawMessage(`{"name":"Concurrent drain","stream":"audit_logs","destination":{"http":{"url":"https://logs.example.com"}}}`)
 	start := make(chan struct{})
 	statuses := make(chan int, 7)

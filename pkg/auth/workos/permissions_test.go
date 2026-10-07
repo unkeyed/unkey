@@ -47,7 +47,10 @@ func TestDeveloperRoleCoversProductPermissions(t *testing.T) {
 
 	catalog := []catalogResource{
 		{resource: "github/apps/*", actions: []string{"read", "write", "delete"}},
-		{resource: "logdrains/*", actions: []string{"read", "write", "delete"}},
+		{
+			resource: "logdrains/*",
+			actions:  []string{"read", "write", "delete"},
+		},
 		{resource: "projects/*", actions: []string{"read", "write", "delete"}},
 		{resource: "projects/*/portals/*", actions: []string{"read", "write", "delete"}},
 		{resource: "projects/*/apps/*", actions: []string{"read", "write", "delete"}},

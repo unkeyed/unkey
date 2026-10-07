@@ -22,17 +22,31 @@ func TestGetReturnsSecretSafeConfig(t *testing.T) {
 	id := uid.New("ld")
 	config, err := proto.Marshal(&logdrainv1.Config{
 		BatchSize: 73,
-		Destination: &logdrainv1.Config_Http{Http: &logdrainv1.HttpConfig{
-			Url: "https://logs.example.com/ingest", Format: logdrainv1.HttpBodyFormat_HTTP_BODY_FORMAT_HEC,
-			Headers: []*logdrainv1.HttpHeader{{Name: "Authorization", EncryptedValue: "must-not-leak"}},
-		}},
-		Stream: &logdrainv1.Config_Ratelimits{Ratelimits: &logdrainv1.RatelimitStreamConfig{NamespaceIds: []string{"ns_1"}, Passed: []bool{false}}},
+		Destination: &logdrainv1.Config_Http{
+			Http: &logdrainv1.HttpConfig{
+				Url:    "https://logs.example.com/ingest",
+				Format: logdrainv1.HttpBodyFormat_HTTP_BODY_FORMAT_HEC,
+				Headers: []*logdrainv1.HttpHeader{{
+					Name:           "Authorization",
+					EncryptedValue: "must-not-leak",
+				}},
+			},
+		},
+		Stream: &logdrainv1.Config_Ratelimits{
+			Ratelimits: &logdrainv1.RatelimitStreamConfig{
+				NamespaceIds: []string{"ns_1"},
+				Passed:       []bool{false},
+			},
+		},
 	})
 	require.NoError(t, err)
 	_, err = h.DB.RW().ExecContext(context.Background(), "INSERT INTO logdrains (id, workspace_id, name, stream, config, lease_id, fencing_token, created_at) VALUES (?, ?, 'Test drain', 'ratelimits', ?, '', '', 123)", id, workspaceID, config)
 	require.NoError(t, err)
 	key := h.CreateRootKey(workspaceID, "unkey:v1:"+workspaceID+":**#*")
-	response := testutil.CallRoute[openapi.LogdrainIdRequest, openapi.LogdrainResponse](h, route, http.Header{"Authorization": {"Bearer " + key}, "Content-Type": {"application/json"}}, openapi.LogdrainIdRequest{LogdrainId: id})
+	response := testutil.CallRoute[openapi.LogdrainIdRequest, openapi.LogdrainResponse](h, route, http.Header{
+		"Authorization": {"Bearer " + key},
+		"Content-Type":  {"application/json"},
+	}, openapi.LogdrainIdRequest{LogdrainId: id})
 	require.Equal(t, http.StatusOK, response.Status, "%s", response.RawBody)
 	require.NotContains(t, string(response.RawBody), "must-not-leak")
 	require.Equal(t, id, response.Body.Data.Id)
@@ -59,7 +73,10 @@ func TestGetMissingDrainReturnsNotFound(t *testing.T) {
 	h.Register(route)
 	workspaceID := h.Resources().UserWorkspace.ID
 	key := h.CreateRootKey(workspaceID, "unkey:v1:"+workspaceID+":logdrains/*#read")
-	response := testutil.CallRoute[openapi.LogdrainIdRequest, openapi.NotFoundErrorResponse](h, route, http.Header{"Authorization": {"Bearer " + key}, "Content-Type": {"application/json"}}, openapi.LogdrainIdRequest{LogdrainId: uid.New("ld")})
+	response := testutil.CallRoute[openapi.LogdrainIdRequest, openapi.NotFoundErrorResponse](h, route, http.Header{
+		"Authorization": {"Bearer " + key},
+		"Content-Type":  {"application/json"},
+	}, openapi.LogdrainIdRequest{LogdrainId: uid.New("ld")})
 	require.Equal(t, http.StatusNotFound, response.Status, "%s", response.RawBody)
 	require.Equal(t, http.StatusNotFound, response.Body.Error.Status)
 	require.Equal(t, "https://unkey.com/docs/errors/unkey/data/logdrain_not_found", response.Body.Error.Type)
@@ -72,7 +89,10 @@ func TestGetRequiresID(t *testing.T) {
 	h.Register(route)
 	workspaceID := h.Resources().UserWorkspace.ID
 	key := h.CreateRootKey(workspaceID, "unkey:v1:"+workspaceID+":logdrains/*#read")
-	response := testutil.CallRoute[openapi.LogdrainIdRequest, openapi.BadRequestErrorResponse](h, route, http.Header{"Authorization": {"Bearer " + key}, "Content-Type": {"application/json"}}, openapi.LogdrainIdRequest{})
+	response := testutil.CallRoute[openapi.LogdrainIdRequest, openapi.BadRequestErrorResponse](h, route, http.Header{
+		"Authorization": {"Bearer " + key},
+		"Content-Type":  {"application/json"},
+	}, openapi.LogdrainIdRequest{})
 	require.Equal(t, http.StatusBadRequest, response.Status, "%s", response.RawBody)
 	require.Contains(t, response.Body.Error.Type, "application/invalid_input")
 }

@@ -41,7 +41,10 @@ func (h *Update) Handle(ctx context.Context, s *zen.Session) error {
 	if err != nil {
 		return err
 	}
-	if err := principal.Authorize(rbac.U(urn.V1{WorkspaceID: principal.AuthorizedWorkspaceID, Resource: "logdrains/" + req.LogdrainId}, permissions.Write)); err != nil {
+	if err := principal.Authorize(rbac.U(urn.V1{
+		WorkspaceID: principal.AuthorizedWorkspaceID,
+		Resource:    "logdrains/" + req.LogdrainId,
+	}, permissions.Write)); err != nil {
 		return err
 	}
 	if req.Name != nil {
@@ -52,7 +55,10 @@ func (h *Update) Handle(ctx context.Context, s *zen.Session) error {
 		req.Name = &name
 	}
 	err = db.TxRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
-		row, err := db.Query.LockLogdrain(ctx, tx, db.LockLogdrainParams{WorkspaceID: principal.AuthorizedWorkspaceID, ID: req.LogdrainId})
+		row, err := db.Query.LockLogdrain(ctx, tx, db.LockLogdrainParams{
+			WorkspaceID: principal.AuthorizedWorkspaceID,
+			ID:          req.LogdrainId,
+		})
 		if err != nil {
 			if db.IsNotFound(err) {
 				return fault.Wrap(err, fault.Code(codes.Data.Logdrain.NotFound.URN()), fault.Public("Log drain not found."))
@@ -99,14 +105,40 @@ func (h *Update) Handle(ctx context.Context, s *zen.Session) error {
 		if req.Name != nil {
 			row.Name = *req.Name
 		}
-		if err := db.Query.UpdateLogdrain(ctx, tx, db.UpdateLogdrainParams{ID: row.ID, WorkspaceID: principal.AuthorizedWorkspaceID, Name: row.Name, Config: row.Config, Status: row.Status, LeaseExpiresAt: row.LeaseExpiresAt, ConsecutiveFailures: row.ConsecutiveFailures, NextAttemptAt: row.NextAttemptAt, UpdatedAt: sql.NullInt64{Int64: h.Clock.Now().UnixMilli(), Valid: true}}); err != nil {
+		if err := db.Query.UpdateLogdrain(ctx, tx, db.UpdateLogdrainParams{
+			ID:                  row.ID,
+			WorkspaceID:         principal.AuthorizedWorkspaceID,
+			Name:                row.Name,
+			Config:              row.Config,
+			Status:              row.Status,
+			LeaseExpiresAt:      row.LeaseExpiresAt,
+			ConsecutiveFailures: row.ConsecutiveFailures,
+			NextAttemptAt:       row.NextAttemptAt,
+			UpdatedAt: sql.NullInt64{
+				Int64: h.Clock.Now().UnixMilli(),
+				Valid: true,
+			},
+		}); err != nil {
 			return err
 		}
 		return h.Auditlogs.Insert(ctx, tx, []auditlog.AuditLog{{
-			WorkspaceID: principal.AuthorizedWorkspaceID, Event: "logdrain.update", Display: "Updated log drain " + row.ID,
-			ActorID: principal.Subject.ID, ActorType: auditlog.AuditLogActor(principal.Subject.Type), ActorName: principal.Subject.Name,
-			ActorMeta: map[string]any{}, CorrelationID: "", RemoteIP: s.Location(), UserAgent: s.UserAgent(),
-			Resources: []auditlog.AuditLogResource{{ID: row.ID, Type: "logdrain", Name: row.Name, DisplayName: "", Meta: map[string]any{}}},
+			WorkspaceID:   principal.AuthorizedWorkspaceID,
+			Event:         "logdrain.update",
+			Display:       "Updated log drain " + row.ID,
+			ActorID:       principal.Subject.ID,
+			ActorType:     auditlog.AuditLogActor(principal.Subject.Type),
+			ActorName:     principal.Subject.Name,
+			ActorMeta:     map[string]any{},
+			CorrelationID: "",
+			RemoteIP:      s.Location(),
+			UserAgent:     s.UserAgent(),
+			Resources: []auditlog.AuditLogResource{{
+				ID:          row.ID,
+				Type:        "logdrain",
+				Name:        row.Name,
+				DisplayName: "",
+				Meta:        map[string]any{},
+			}},
 		}})
 	})
 	if err != nil {
