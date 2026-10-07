@@ -27,11 +27,6 @@ func TestGetEnvironment(t *testing.T) {
 	h.Register(route)
 
 	workspace := h.Resources().UserWorkspace
-	rootKey := h.CreateRootKey(workspace.ID, "unkey:v1:"+(workspace.ID)+":**#*")
-	headers := http.Header{
-		"Content-Type":  {"application/json"},
-		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
-	}
 
 	projectSlug := strings.ToLower(strings.ReplaceAll(uid.New("test"), "_", "-"))
 	project := h.CreateProject(seed.CreateProjectRequest{
@@ -60,6 +55,12 @@ func TestGetEnvironment(t *testing.T) {
 			Description: "Production environment",
 			Kind:        mysqltype.EnvironmentKindProduction,
 		})
+
+		rootKey := h.CreateRootKey(workspace.ID, fmt.Sprintf("unkey:v1:%s:projects/%s/apps/%s/environments/%s#read", workspace.ID, project.ID, app.ID, environment.ID))
+		headers := http.Header{
+			"Content-Type":  {"application/json"},
+			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+		}
 
 		for _, tc := range []struct {
 			name        string
@@ -127,6 +128,12 @@ func TestGetEnvironment(t *testing.T) {
 		require.NoError(t, db.Query.DeleteAppRuntimeSettingsByEnvironmentId(ctx, h.DB.RW(), environment.ID))
 		require.NoError(t, db.Query.DeleteAppBuildSettingsByEnvironmentId(ctx, h.DB.RW(), environment.ID))
 
+		rootKey := h.CreateRootKey(workspace.ID, fmt.Sprintf("unkey:v1:%s:projects/%s/apps/%s/environments/%s#read", workspace.ID, project.ID, app.ID, environment.ID))
+		headers := http.Header{
+			"Content-Type":  {"application/json"},
+			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+		}
+
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
 			Project:     project.ID,
 			App:         app.ID,
@@ -177,6 +184,12 @@ func TestGetEnvironment(t *testing.T) {
 				UpdatedAt:     sql.NullInt64{Valid: false},
 			}))
 
+			rootKey := h.CreateRootKey(workspace.ID, fmt.Sprintf("unkey:v1:%s:projects/%s/apps/%s/environments/%s#read", workspace.ID, project.ID, app.ID, environment.ID))
+			headers := http.Header{
+				"Content-Type":  {"application/json"},
+				"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+			}
+
 			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
 				Project:     project.ID,
 				App:         app.ID,
@@ -221,6 +234,12 @@ func TestGetEnvironment(t *testing.T) {
 				CreatedAt:                     now,
 				UpdatedAt:                     sql.NullInt64{Valid: false},
 			}))
+
+			rootKey := h.CreateRootKey(workspace.ID, fmt.Sprintf("unkey:v1:%s:projects/%s/apps/%s/environments/%s#read", workspace.ID, project.ID, app.ID, environment.ID))
+			headers := http.Header{
+				"Content-Type":  {"application/json"},
+				"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+			}
 
 			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
 				Project:     project.ID,

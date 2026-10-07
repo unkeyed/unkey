@@ -1,6 +1,7 @@
 package handler_test
 
 import (
+	"fmt"
 	"net/http"
 	"testing"
 
@@ -17,13 +18,14 @@ func TestListEnvironmentVariablesEnvironmentNotFound(t *testing.T) {
 	h.Register(route)
 
 	env := seedEnvironment(t, h)
-	rootKey := h.CreateRootKey(env.workspaceID, "unkey:v1:"+(env.workspaceID)+":**#*")
+	missingID := uid.New(uid.EnvironmentPrefix)
+	rootKey := h.CreateRootKey(env.workspaceID, fmt.Sprintf("unkey:v1:%s:projects/%s/apps/%s/environments/%s/variables/*#read", env.workspaceID, env.projectID, env.appID, missingID))
 	headers := authHeaders(rootKey)
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
 		Project:     env.projectID,
 		App:         env.appID,
-		Environment: uid.New(uid.EnvironmentPrefix),
+		Environment: missingID,
 	})
 	require.Equal(t, http.StatusNotFound, res.Status, "expected 404, received: %s", res.RawBody)
 }

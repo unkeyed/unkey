@@ -17,7 +17,7 @@ func TestListEnvironmentVariablesBadRequest(t *testing.T) {
 	h.Register(route)
 
 	env := seedEnvironment(t, h)
-	rootKey := h.CreateRootKey(env.workspaceID, "unkey:v1:"+(env.workspaceID)+":**#*")
+	rootKey := h.CreateRootKey(env.workspaceID)
 	headers := authHeaders(rootKey)
 
 	t.Run("limit above maximum is rejected", func(t *testing.T) {
