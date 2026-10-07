@@ -79,8 +79,10 @@ checked or convert them all without a request.
 
 ## Prepare the real dashboard
 
-Read repository guidance and
-`contributing/local/development.md`. Use `mise` for tools.
+Read the root `AGENTS.md` and any nested `AGENTS.md` that governs the files you
+change, plus `contributing/local/development.md`. If setup requires internal
+context that the repository does not contain,
+use the task-relevant Notion page identified through the root guidance. Use `mise` for tools.
 Inspect running services before starting anything. Reuse a healthy local stack.
 
 - On a developer machine, `mise run dashboard` is the dashboard setup task.
