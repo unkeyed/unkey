@@ -2,8 +2,16 @@ type: object
 additionalProperties: false
 minProperties: 1
 properties:
-  url: { type: string, format: uri, minLength: 1 }
-  format: { type: string, enum: [json, ndjson, hec] }
+  url:
+    type: string
+    format: uri
+    minLength: 1
+  format:
+    type: string
+    enum:
+      - json
+      - ndjson
+      - hec
   headers:
     type: array
     maxItems: 32
