@@ -2034,7 +2034,7 @@
     }
   ],
   "seo": {
-    "indexing": "navigable",
+    "indexing": "all",
     "metatags": {
       "og:site_name": "Unkey Docs"
     }
