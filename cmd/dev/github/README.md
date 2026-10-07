@@ -10,7 +10,7 @@ The relay is optional. Neither production nor local development requires it.
 |------|---------------------|------------------|
 | Existing production App | Existing dashboard callback | Existing production receiver |
 | Your own development App | Your local dashboard callback | Your ngrok tunnel to ctrl-api |
-| Shared development relay | Relay callback, then your registered dashboard | Optional relay pull forwarder |
+| Shared development relay | Relay callback, then your registered dashboard | Optional relay stream forwarder |
 | No GitHub configuration | GitHub installation unavailable | None; container image deployment still works |
 
 For production and your own development App, leave `GITHUB_INSTALL_RELAY_URL`,
@@ -22,7 +22,7 @@ webhook delivery unchanged. Never run the development tunnel against the
 production App.
 
 Relay installation and relay webhook delivery are separate choices. A relay
-URL enables installation through the relay; it does not start webhook polling.
+URL enables installation through the relay; it does not start webhook forwarding.
 Partial relay settings fail closed instead of silently switching to direct mode.
 
 ## Commands
@@ -30,7 +30,7 @@ Partial relay settings fail closed instead of silently switching to direct mode.
 - `mise run unkey -- dev github setup`: create a GitHub App via manifest flow and write all credentials automatically
 - `mise run unkey -- dev github tunnel`: start an ngrok tunnel and update the GitHub App webhook URL automatically
 - `mise run unkey -- dev github trigger-webhook`: simulate a GitHub push webhook to trigger a deployment
-- `mise run unkey -- dev github relay-events`: pull registered events from the installation relay into the local control API
+- `mise run unkey -- dev github relay-events`: stream registered events from the installation relay into the local control API
 
 ---
 
@@ -150,9 +150,11 @@ overwrite the shared App's webhook URL.
 
 ## Receive events through a shared development relay
 
-If your relay supports webhook delivery, the local forwarder pulls your
-environment's queued events and sends them to its loopback control API.
-No public local webhook endpoint is required.
+If your relay supports SSE webhook delivery, the local forwarder opens one
+outbound HTTPS stream and sends received events to its loopback control API.
+No public local webhook endpoint is required. The relay must support
+`GET /v1/webhooks/stream`; older relays return an error instead of falling back
+to polling.
 
 1. Obtain the development App's webhook secret from the relay operator.
    Set `UNKEY_GITHUB_APP_WEBHOOK_SECRET` in `dev/.env.github` to that secret
@@ -186,7 +188,12 @@ disables the ngrok tunnel.
 
 Delivery preserves the raw payload, GitHub signature, event type, and delivery
 ID. Only a 2xx response from the control API acknowledges the leased event.
-Failures retry with backoff. A crash after acceptance but before acknowledgment
+The forwarder handles one event at a time. It reconnects with backoff and jitter
+after a disconnect; idle connections use heartbeats, not repeated HTTP claims.
+Streams without a complete line for 45 seconds are closed. Connections renew
+every 30 minutes so credential renewal can run. Unacknowledged events stay in
+the durable queue and retry after their lease and retry delay.
+A crash after acceptance but before acknowledgment
 can deliver the event again; the control API uses GitHub's delivery ID for
 Restate idempotency. Each environment has an independent queue. Do not attach
 multiple environments to the same control-plane database.
