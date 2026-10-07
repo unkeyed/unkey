@@ -180,8 +180,6 @@ describe("submittedStatusClasses", () => {
       filters: { statusClasses: [5, 4] },
       batchSize: 10000,
       createdAt: 123,
-      consecutiveFailures: 0,
-      committedOffsetInsertedAt: 0,
     });
     expect(values.statusMode).toBe("custom");
     expect(submittedStatusClasses(values)).toEqual([5, 4]);
@@ -207,8 +205,6 @@ describe("submittedSources", () => {
       filters: { severities: ["warn"], projectIds: ["deleted-project"] },
       batchSize: 10000,
       createdAt: 123,
-      consecutiveFailures: 0,
-      committedOffsetInsertedAt: 0,
     });
     expect(values.runtimeSourceMode).toBe("some");
     expect(values.sourceMode).toBe("all");

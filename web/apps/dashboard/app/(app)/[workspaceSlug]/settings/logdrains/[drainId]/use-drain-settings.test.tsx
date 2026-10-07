@@ -29,8 +29,6 @@ const drain = {
   },
   batchSize: 10000,
   createdAt: 123,
-  committedOffsetInsertedAt: 0,
-  consecutiveFailures: 0,
 } satisfies DrainDetail;
 
 it("submits unrestricted runtime sources without using retained gateway selections", async () => {
