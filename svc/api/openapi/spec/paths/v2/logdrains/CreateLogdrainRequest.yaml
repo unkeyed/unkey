@@ -80,13 +80,13 @@ properties:
             type: array
             maxItems: 4
             items:
-              type: integer
+              type: string
               x-go-type: LogdrainFiltersStatusClasses
               enum:
-                - 2
-                - 3
-                - 4
-                - 5
+                - 2xx
+                - 3xx
+                - 4xx
+                - 5xx
           projectIds:
             type: array
             maxItems: 256

@@ -78,11 +78,11 @@ func TestCreateHTTPStreamFilters(t *testing.T) {
 		{
 			"gateway_requests",
 			"gatewayRequests",
-			`{"statusClasses":[2,5],"projectIds":["proj_one"],"appIds":[],"environmentIds":[]}`,
+			`{"statusClasses":["2xx","5xx","3xx","4xx"],"projectIds":["proj_one"],"appIds":[],"environmentIds":[]}`,
 			&logdrainv1.Config{
 				Stream: &logdrainv1.Config_GatewayRequests{
 					GatewayRequests: &logdrainv1.GatewayRequestStreamConfig{
-						StatusClasses: []logdrainv1.HttpStatusClass{2, 5},
+						StatusClasses: []logdrainv1.HttpStatusClass{2, 5, 3, 4},
 						ProjectIds:    []string{"proj_one"},
 					},
 				},
