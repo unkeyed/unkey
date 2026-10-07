@@ -1,0 +1,26 @@
+type: object
+required:
+  - via
+properties:
+  via:
+    type: string
+    enum:
+      - unknown
+      - github
+      - api
+      - cli
+      - dashboard
+      - unkey
+    description: |
+      What started this deployment: `github` is a push or pull request, `api`
+      is a direct API call, `cli` is the Unkey CLI, `dashboard` is the Unkey
+      dashboard, and `unkey` is Unkey itself, for example a rebuild. `unknown`
+      marks deployments created before Unkey recorded the trigger. Unkey sets
+      `github` and `unkey` itself; `api`, `cli`, and `dashboard` are reported
+      by the calling client, so do not rely on them for security decisions.
+    example: github
+  actor:
+    "$ref": "./DeploymentTriggerActor.yaml"
+    description: |
+      Who started this deployment. Omitted when no actor was recorded.
+additionalProperties: false

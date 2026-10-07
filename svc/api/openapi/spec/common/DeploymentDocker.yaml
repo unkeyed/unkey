@@ -6,4 +6,10 @@ properties:
     type: string
     description: The OCI image reference requested for this deployment.
     example: ghcr.io/acme/api:v1.2.3
+  resolvedImage:
+    type: string
+    description: |
+      The image reference pinned to its sha256 digest. Omitted until Unkey
+      resolves the image.
+    example: ghcr.io/acme/api@sha256:3f1d9c0b7e2a4c8f5b6d1e0a9c8b7f6e5d4c3b2a1f0e9d8c7b6a5f4e3d2c1b0a
 additionalProperties: false

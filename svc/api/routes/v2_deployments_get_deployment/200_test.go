@@ -25,9 +25,8 @@ func TestGetDeployment(t *testing.T) {
 	route := newRoute(h)
 	h.Register(route)
 
-	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"environment.*.read_deployment"},
-	})
+	setup := h.CreateTestDeploymentSetup()
+	setup.RootKey = h.CreateRootKey(setup.Workspace.ID, readDeployments(setup.Workspace.ID))
 
 	dep := h.CreateDeployment(seed.CreateDeploymentRequest{
 		ID:                    uid.New(uid.DeploymentPrefix),
@@ -90,9 +89,8 @@ func TestGetDeploymentFailure(t *testing.T) {
 	route := newRoute(h)
 	h.Register(route)
 
-	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"environment.*.read_deployment"},
-	})
+	setup := h.CreateTestDeploymentSetup()
+	setup.RootKey = h.CreateRootKey(setup.Workspace.ID, readDeployments(setup.Workspace.ID))
 
 	recordFailedStep := func(deploymentID string, step db.DeploymentStepsStep, msg string) {
 		ctx := context.Background()
@@ -154,6 +152,47 @@ func TestGetDeploymentFailure(t *testing.T) {
 	})
 }
 
+func TestGetDeploymentFinishedAt(t *testing.T) {
+	h := testutil.NewHarness(t)
+	route := newRoute(h)
+	h.Register(route)
+
+	setup := h.CreateTestDeploymentSetup()
+	setup.RootKey = h.CreateRootKey(setup.Workspace.ID, readDeployments(setup.Workspace.ID))
+
+	dep := h.CreateDeployment(seed.CreateDeploymentRequest{
+		ID:            uid.New(uid.DeploymentPrefix),
+		WorkspaceID:   setup.Workspace.ID,
+		ProjectID:     setup.Project.ID,
+		AppID:         setup.App.ID,
+		EnvironmentID: setup.Environment.ID,
+		Status:        mysqltype.DeploymentsStatusReady,
+	})
+	ctx := context.Background()
+	for i, step := range []db.DeploymentStepsStep{db.DeploymentStepsStepBuilding, db.DeploymentStepsStepFinalizing} {
+		require.NoError(t, db.Query.InsertDeploymentStep(ctx, h.DB.RW(), db.InsertDeploymentStepParams{
+			WorkspaceID:   setup.Workspace.ID,
+			ProjectID:     setup.Project.ID,
+			AppID:         setup.App.ID,
+			EnvironmentID: setup.Environment.ID,
+			DeploymentID:  dep.ID,
+			Step:          step,
+			StartedAt:     uint64(1_704_067_200_000 + i),
+		}))
+		require.NoError(t, db.Query.EndDeploymentStep(ctx, h.DB.RW(), db.EndDeploymentStepParams{
+			DeploymentID: dep.ID,
+			Step:         step,
+			EndedAt:      sql.NullInt64{Valid: true, Int64: int64(1_704_067_260_000 + i)},
+			Error:        sql.NullString{Valid: false},
+		}))
+	}
+
+	res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(setup.RootKey), handler.Request{DeploymentId: dep.ID})
+	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
+	require.Equal(t, new(int64(1_704_067_260_001)), res.Body.Data.FinishedAt)
+	require.Nil(t, res.Body.Data.Error)
+}
+
 // TestGetDeploymentRegionsAndDomains covers the region-name join and the
 // frontline-only domain query end to end, which the mapper unit tests cannot
 // because the enrichment is pure SQL.
@@ -163,9 +202,8 @@ func TestGetDeploymentRegionsAndDomains(t *testing.T) {
 	route := newRoute(h)
 	h.Register(route)
 
-	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"environment.*.read_deployment"},
-	})
+	setup := h.CreateTestDeploymentSetup()
+	setup.RootKey = h.CreateRootKey(setup.Workspace.ID, readDeployments(setup.Workspace.ID))
 
 	dep := h.CreateDeployment(seed.CreateDeploymentRequest{
 		ID:            uid.New(uid.DeploymentPrefix),
@@ -218,29 +256,6 @@ func TestGetDeploymentRegionsAndDomains(t *testing.T) {
 	require.ElementsMatch(t, wantRegions, d.Regions)
 	require.NotNil(t, d.Domains)
 	require.ElementsMatch(t, wantDomains, *d.Domains)
-}
-
-func TestGetDeploymentSpecificEnvironmentPermission(t *testing.T) {
-	h := testutil.NewHarness(t)
-	route := newRoute(h)
-	h.Register(route)
-
-	setup := h.CreateTestDeploymentSetup()
-	rootKey := h.CreateRootKey(setup.Workspace.ID, "environment."+setup.Environment.ID+".read_deployment")
-
-	dep := h.CreateDeployment(seed.CreateDeploymentRequest{
-		ID:            uid.New(uid.DeploymentPrefix),
-		WorkspaceID:   setup.Workspace.ID,
-		ProjectID:     setup.Project.ID,
-		AppID:         setup.App.ID,
-		EnvironmentID: setup.Environment.ID,
-	})
-
-	req := handler.Request{DeploymentId: dep.ID}
-
-	res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(rootKey), req)
-	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
-	require.Equal(t, dep.ID, res.Body.Data.Id)
 }
 
 // TestGetDeploymentURNPermissions verifies that concrete and wildcard URN

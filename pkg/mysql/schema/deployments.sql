@@ -49,3 +49,5 @@ CREATE INDEX `project_idx` ON `deployments` (`project_id`);
 
 CREATE INDEX `status_idx` ON `deployments` (`status`);
 
+CREATE INDEX `app_idx` ON `deployments` (`app_id`);
+

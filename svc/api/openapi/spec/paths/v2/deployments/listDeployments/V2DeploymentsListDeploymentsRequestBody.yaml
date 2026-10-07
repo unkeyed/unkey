@@ -4,7 +4,7 @@ properties:
     "$ref": "../../../../common/ResourceIdentifier.yaml"
     description: |
       Restrict results to a single project, identified by its ID or slug.
-      Required when filtering by `app` or `environment`.
+      Required when filtering by `app`, `environment`, or `branch`.
   app:
     "$ref": "../../../../common/ResourceIdentifier.yaml"
     description: |
@@ -24,6 +24,37 @@ properties:
       Restrict results to deployments in any of the given lifecycle statuses.
       Omit to return deployments in every status.
     example: ["ready", "failed"]
+  branch:
+    type: array
+    maxItems: 50
+    items:
+      type: string
+      minLength: 1
+      maxLength: 256
+    description: |
+      Restrict results to deployments built from any of the given git branches.
+      Requires `project` and `app` to also be set. Omit or pass an empty list to
+      return deployments from every branch.
+    example: ["main", "feature/checkout"]
+  startTime:
+    type: integer
+    format: int64
+    minimum: 0
+    maximum: 9223372036854775807
+    description: |
+      Return only deployments created at or after this unix timestamp in
+      milliseconds (inclusive).
+    example: 1704067200000
+  endTime:
+    type: integer
+    format: int64
+    minimum: 0
+    maximum: 9223372036854775807
+    description: |
+      Return only deployments created before this unix timestamp in
+      milliseconds (exclusive). Must be later than `startTime` when both are
+      set.
+    example: 1704672000000
   limit:
     type: integer
     description: |
@@ -63,3 +94,12 @@ examples:
     description: Filter across the workspace by lifecycle status
     value:
       status: ["failed", "building"]
+  byBranchAndTime:
+    summary: List an app's deployments for some branches in a time window
+    description: Restrict to branches of one app, created within a week
+    value:
+      project: payments-service
+      app: payments-api
+      branch: ["main", "feature/checkout"]
+      startTime: 1704067200000
+      endTime: 1704672000000

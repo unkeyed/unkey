@@ -1,7 +1,9 @@
 package handler
 
 import (
+	"cmp"
 	"context"
+	"database/sql"
 	"net/http"
 
 	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
@@ -49,16 +51,32 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	page := pagination.Parse(req.Limit, req.Cursor, 100)
 
-	legacyPermission := rbac.T(rbac.Tuple{
-		ResourceType: rbac.Environment,
-		ResourceID:   "*",
-		Action:       rbac.ReadDeployment,
-	})
+	// Every rejection authorizes against the scope resolved so far, and a denial
+	// names no resolved ids, so a caller that cannot read a scope gets the same
+	// 403 whether or not the resource exists
+	authorize := func(projectID, appID, environmentID string) error {
+		err := principal.Authorize(rbac.U(
+			urn.New().Workspace(principal.AuthorizedWorkspaceID).
+				Project(cmp.Or(projectID, "*")).
+				App(cmp.Or(appID, "*")).
+				Environment(cmp.Or(environmentID, "*")).
+				Deployment("*"),
+			permissions.Read,
+		))
+		if err != nil {
+			return fault.New("insufficient permissions to list deployments",
+				fault.Code(codes.Auth.Authorization.InsufficientPermissions.URN()),
+				fault.Internal(fault.InternalMessage(err)),
+				fault.Public("You cannot read deployments in the requested scope. Grant read on projects/<project>/apps/<app>/environments/<environment>/deployments/* with * for every level you do not filter by."),
+			)
+		}
+		return nil
+	}
 
 	// Filters nest: an app lives in a project, an environment lives in an app.
 	// Requiring the parents keeps resolution unambiguous when a slug is passed.
 	if req.App != nil && req.Project == nil {
-		if err = principal.Authorize(legacyPermission); err != nil {
+		if err = authorize("", "", ""); err != nil {
 			return err
 		}
 		return fault.New(
@@ -69,7 +87,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 	if req.Environment != nil && (req.App == nil || req.Project == nil) {
-		if err = principal.Authorize(legacyPermission); err != nil {
+		if err = authorize("", "", ""); err != nil {
 			return err
 		}
 		return fault.New(
@@ -90,7 +108,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		})
 		if err != nil {
 			if db.IsNotFound(err) {
-				if err = principal.Authorize(legacyPermission); err != nil {
+				if err = authorize("", "", ""); err != nil {
 					return err
 				}
 				return fault.New(
@@ -111,7 +129,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 		if req.App != nil {
 			if !scope.AppID.Valid {
-				if err = principal.Authorize(legacyPermission); err != nil {
+				if err = authorize(scope.ProjectID, "", ""); err != nil {
 					return err
 				}
 				return fault.New(
@@ -125,7 +143,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 		if req.Environment != nil {
 			if !scope.EnvironmentID.Valid {
-				if err = principal.Authorize(legacyPermission); err != nil {
+				if err = authorize(scope.ProjectID, appID, ""); err != nil {
 					return err
 				}
 				return fault.New(
@@ -139,19 +157,26 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 	}
 
-	err = principal.Authorize(rbac.Or(
-		legacyPermission,
-		rbac.U(
-			urn.New().Workspace(principal.AuthorizedWorkspaceID).
-				Project(fallbackIfEmpty(projectID, "*")).
-				App(fallbackIfEmpty(appID, "*")).
-				Environment(fallbackIfEmpty(environmentID, "*")).
-				Deployment("*"),
-			permissions.Read,
-		),
-	))
-	if err != nil {
+	if err = authorize(projectID, appID, environmentID); err != nil {
 		return err
+	}
+
+	branches := ptr.SafeDeref(req.Branch, nil)
+	if len(branches) > 0 && appID == "" {
+		return fault.New(
+			"branch filter without parents",
+			fault.Code(codes.App.Validation.InvalidInput.URN()),
+			fault.Internal("branch filter requires project and app"),
+			fault.Public("The 'branch' filter requires both 'project' and 'app' to be set."),
+		)
+	}
+	if req.StartTime != nil && req.EndTime != nil && *req.StartTime >= *req.EndTime {
+		return fault.New(
+			"empty time range",
+			fault.Code(codes.App.Validation.InvalidInput.URN()),
+			fault.Internal("startTime is not before endTime"),
+			fault.Public("'startTime' must be earlier than 'endTime'."),
+		)
 	}
 
 	var statuses []mysqltype.DeploymentsStatus
@@ -162,6 +187,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 	}
 
+	branchFilter := make([]sql.NullString, len(branches))
+	for i, branch := range branches {
+		branchFilter[i] = sql.NullString{String: branch, Valid: true}
+	}
+
 	rows, err := db.Query.ListDeployments(ctx, h.DB.RO(), db.ListDeploymentsParams{
 		WorkspaceID:     principal.AuthorizedWorkspaceID,
 		ProjectID:       projectID,
@@ -169,6 +199,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		EnvironmentID:   environmentID,
 		HasStatusFilter: len(statuses) > 0,
 		Statuses:        statuses,
+		HasBranchFilter: len(branchFilter) > 0,
+		Branches:        branchFilter,
+		StartTime:       sql.NullInt64{Int64: ptr.SafeDeref(req.StartTime, 0), Valid: req.StartTime != nil},
+		EndTime:         sql.NullInt64{Int64: ptr.SafeDeref(req.EndTime, 0), Valid: req.EndTime != nil},
 		CursorID:        page.Cursor,
 		Limit:           page.FetchLimit(),
 	})
@@ -181,7 +215,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	rows, pg := pagination.Paginate(rows, page, func(r db.Deployment) string { return r.ID })
+	rows, pg := pagination.Paginate(rows, page, func(r db.ListDeploymentsRow) string { return r.ID })
 
 	data := make([]openapi.Deployment, len(rows))
 	if len(rows) > 0 {
@@ -223,7 +257,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			regionsByID[rr.DeploymentID] = append(regionsByID[rr.DeploymentID], rr.Region)
 		}
 
-		stepRows, err := db.Query.ListFailedDeploymentStepsByIds(ctx, h.DB.RO(), db.ListFailedDeploymentStepsByIdsParams{
+		stepRows, err := db.Query.ListDeploymentStepsByIds(ctx, h.DB.RO(), db.ListDeploymentStepsByIdsParams{
 			WorkspaceID:   principal.AuthorizedWorkspaceID,
 			DeploymentIds: ids,
 		})
@@ -275,12 +309,4 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		Data:       data,
 		Pagination: pg,
 	})
-}
-
-// fallbackIfEmpty returns fallback when value is empty.
-func fallbackIfEmpty(value, fallback string) string {
-	if value == "" {
-		return fallback
-	}
-	return value
 }

@@ -10,4 +10,37 @@ properties:
     type: string
     description: The git branch this deployment was built from. Omitted when unknown.
     example: main
+  commitMessage:
+    type: string
+    description: The commit message. Omitted when unknown.
+    example: "fix: retry on 429"
+  commitTimestamp:
+    type: integer
+    format: int64
+    minimum: 0
+    maximum: 9223372036854775807
+    description: Unix timestamp in milliseconds when the commit was authored. Omitted when unknown.
+    example: 1704067100000
+  authorHandle:
+    type: string
+    description: |
+      The handle of the person who triggered the deployment from git: the
+      GitHub login of the user who pushed or updated the pull request, or the
+      handle the client sent. Omitted when unknown.
+    example: octocat
+  authorAvatarUrl:
+    type: string
+    description: The avatar URL for `authorHandle`. Omitted when unknown.
+    example: https://avatars.githubusercontent.com/u/583231
+  prNumber:
+    type: integer
+    minimum: 1
+    description: The pull request number this deployment was built for. Omitted when the commit is not part of a pull request.
+    example: 412
+  forkRepositoryFullName:
+    type: string
+    description: |
+      The `owner/repo` name of the fork the pull request comes from. Omitted
+      when the pull request is not from a fork.
+    example: octocat/payments-api
 additionalProperties: false

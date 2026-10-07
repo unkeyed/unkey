@@ -148,6 +148,7 @@ export const deployments = mysqlTable(
     index("workspace_idx").on(table.workspaceId),
     index("project_idx").on(table.projectId),
     index("status_idx").on(table.status),
+    index("app_idx").on(table.appId),
   ],
 );
 

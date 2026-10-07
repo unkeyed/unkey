@@ -2459,22 +2459,40 @@ type Querier interface {
 	//    AND dt.deployment_id IN (/*SLICE:deployment_ids*/?)
 	//  ORDER BY dt.deployment_id, r.name
 	ListDeploymentRegionsByIds(ctx context.Context, db DBTX, arg ListDeploymentRegionsByIdsParams) ([]ListDeploymentRegionsByIdsRow, error)
-	// has_status_filter gates the status clause; without it sqlc renders an empty
-	// status set as IN (NULL), which matches nothing.
+	//ListDeploymentStepsByIds
 	//
-	//  SELECT d.pk, d.id, d.k8s_name, d.workspace_id, d.project_id, d.environment_id, d.app_id, d.source, d.image_requested, d.image_resolved, d.build_id, d.git_commit_sha, d.git_branch, d.git_commit_message, d.git_commit_author_handle, d.git_commit_author_avatar_url, d.git_commit_timestamp, d.sentinel_config, d.cpu_millicores, d.memory_mib, d.storage_mib, d.desired_state, d.encrypted_environment_variables, d.command, d.port, d.shutdown_signal, d.upstream_protocol, d.healthcheck, d.pr_number, d.fork_repository_full_name, d.github_deployment_id, d.invocation_id, d.status, d.`trigger`, d.triggered_by, d.trigger_reason, d.created_at, d.updated_at FROM `deployments` d
+	//  SELECT deployment_steps.pk, deployment_steps.workspace_id, deployment_steps.project_id, deployment_steps.environment_id, deployment_steps.deployment_id, deployment_steps.app_id, deployment_steps.step, deployment_steps.started_at, deployment_steps.ended_at, deployment_steps.error FROM deployment_steps
+	//  WHERE workspace_id = ?
+	//    AND deployment_id IN (/*SLICE:deployment_ids*/?)
+	//  ORDER BY deployment_id, started_at ASC
+	ListDeploymentStepsByIds(ctx context.Context, db DBTX, arg ListDeploymentStepsByIdsParams) ([]DeploymentStep, error)
+	// has_status_filter and has_branch_filter gate their clauses; without them sqlc
+	// renders an empty set as IN (NULL), which matches nothing.
+	// Rows come newest first by created_at, the time the dashboard sorts and filters
+	// by. pk is insertion order and can disagree with created_at, which would make
+	// pages under a time filter skip or repeat rows, so pk only breaks ties within a
+	// millisecond. The cursor names a deployment and resumes at its
+	// (created_at, pk), inclusive
+	//
+	//  SELECT d.id, d.source, d.image_requested, d.image_resolved, d.git_commit_sha, d.git_branch, d.git_commit_message, d.git_commit_author_handle, d.git_commit_author_avatar_url, d.git_commit_timestamp, d.cpu_millicores, d.memory_mib, d.storage_mib, d.desired_state, d.command, d.port, d.shutdown_signal, d.upstream_protocol, d.healthcheck, d.pr_number, d.fork_repository_full_name, d.status, d.`trigger`, d.triggered_by, d.created_at, d.updated_at FROM `deployments` d
 	//  WHERE d.workspace_id = ?
 	//    AND (? = '' OR d.project_id = ?)
 	//    AND (? = '' OR d.app_id = ?)
 	//    AND (? = '' OR d.environment_id = ?)
 	//    AND (? = FALSE OR d.status IN (/*SLICE:statuses*/?))
+	//    AND (? = FALSE OR d.git_branch IN (/*SLICE:branches*/?))
+	//    AND (? IS NULL OR d.created_at >= ?)
+	//    AND (? IS NULL OR d.created_at < ?)
 	//    AND (
 	//      ? = ''
-	//      OR d.pk <= (SELECT c.pk FROM `deployments` c WHERE c.id = ?)
+	//      OR (d.created_at, d.pk) <= (
+	//        SELECT c.created_at, c.pk FROM `deployments` c
+	//        WHERE c.id = ? AND c.workspace_id = ?
+	//      )
 	//    )
-	//  ORDER BY d.pk DESC
+	//  ORDER BY d.created_at DESC, d.pk DESC
 	//  LIMIT ?
-	ListDeployments(ctx context.Context, db DBTX, arg ListDeploymentsParams) ([]Deployment, error)
+	ListDeployments(ctx context.Context, db DBTX, arg ListDeploymentsParams) ([]ListDeploymentsRow, error)
 	//ListDirectPermissionsByKeyID
 	//
 	//  SELECT p.pk, p.id, p.workspace_id, p.project_id, p.name, p.slug, p.description, p.created_at_m, p.updated_at_m
@@ -2500,14 +2518,6 @@ type Querier interface {
 	//  WHERE app_id = ?
 	//  ORDER BY id ASC
 	ListEnvironmentsByApp(ctx context.Context, db DBTX, appID string) ([]Environment, error)
-	//ListFailedDeploymentStepsByIds
-	//
-	//  SELECT deployment_steps.pk, deployment_steps.workspace_id, deployment_steps.project_id, deployment_steps.environment_id, deployment_steps.deployment_id, deployment_steps.app_id, deployment_steps.step, deployment_steps.started_at, deployment_steps.ended_at, deployment_steps.error FROM deployment_steps
-	//  WHERE workspace_id = ?
-	//    AND deployment_id IN (/*SLICE:deployment_ids*/?)
-	//    AND error IS NOT NULL AND error != ''
-	//  ORDER BY deployment_id, started_at ASC
-	ListFailedDeploymentStepsByIds(ctx context.Context, db DBTX, arg ListFailedDeploymentStepsByIdsParams) ([]DeploymentStep, error)
 	// ListIdentities returns one page of a project's identities with their
 	// ratelimits aggregated into a JSON array (empty array when none exist).
 	// Pagination is cursor-based: ORDER BY i.id ASC with i.id >= id_cursor makes

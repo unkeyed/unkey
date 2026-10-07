@@ -871,6 +871,12 @@ type CreateDeploymentRequest struct {
 	GitCommitAuthorAvatar  string
 	GitCommitTimestamp     int64
 	ForkRepositoryFullName string
+	PrNumber               int64
+	ImageRequested         string
+	ImageResolved          string
+	Trigger                db.DeploymentsTrigger
+	TriggeredBy            string
+	CreatedAt              int64
 	// CpuMillicores defaults to 250 when zero.
 	CpuMillicores int32
 	// MemoryMib defaults to 256 when zero.
@@ -903,7 +909,14 @@ func (s *Seeder) CreateDeployment(ctx context.Context, req CreateDeploymentReque
 		memoryMib = 256
 	}
 
-	createdAt := time.Now().UnixMilli()
+	trigger := req.Trigger
+	if trigger == "" {
+		trigger = db.DeploymentsTriggerUnknown
+	}
+	createdAt := req.CreatedAt
+	if createdAt == 0 {
+		createdAt = time.Now().UnixMilli()
+	}
 	err := db.Query.InsertDeployment(ctx, s.DB.RW(), db.InsertDeploymentParams{
 		ID:                            req.ID,
 		K8sName:                       "test-" + req.ID,
@@ -912,7 +925,7 @@ func (s *Seeder) CreateDeployment(ctx context.Context, req CreateDeploymentReque
 		AppID:                         req.AppID,
 		EnvironmentID:                 req.EnvironmentID,
 		Source:                        source,
-		ImageRequested:                sql.NullString{Valid: false},
+		ImageRequested:                sql.NullString{String: req.ImageRequested, Valid: req.ImageRequested != ""},
 		GitCommitSha:                  sql.NullString{String: req.GitCommitSha, Valid: req.GitCommitSha != ""},
 		GitBranch:                     sql.NullString{String: req.GitBranch, Valid: req.GitBranch != ""},
 		SentinelConfig:                []byte("{}"),
@@ -930,15 +943,24 @@ func (s *Seeder) CreateDeployment(ctx context.Context, req CreateDeploymentReque
 		ShutdownSignal:                db.DeploymentsShutdownSignalSIGTERM,
 		UpstreamProtocol:              db.DeploymentsUpstreamProtocolHttp1,
 		Healthcheck:                   dbtype.NullHealthcheck{Healthcheck: nil, Valid: false},
-		PrNumber:                      sql.NullInt64{Int64: 0, Valid: false},
+		PrNumber:                      sql.NullInt64{Int64: req.PrNumber, Valid: req.PrNumber != 0},
 		ForkRepositoryFullName:        sql.NullString{String: req.ForkRepositoryFullName, Valid: req.ForkRepositoryFullName != ""},
-		DeploymentTrigger:             db.DeploymentsTriggerUnknown,
-		TriggeredBy:                   sql.NullString{Valid: false},
+		DeploymentTrigger:             trigger,
+		TriggeredBy:                   sql.NullString{String: req.TriggeredBy, Valid: req.TriggeredBy != ""},
 		TriggerReason:                 sql.NullString{Valid: false},
 		CreatedAt:                     createdAt,
 		UpdatedAt:                     sql.NullInt64{Valid: false},
 	})
 	require.NoError(s.t, err)
+
+	if req.ImageResolved != "" {
+		err = db.Query.UpdateDeploymentImage(ctx, s.DB.RW(), db.UpdateDeploymentImageParams{
+			ImageResolved: sql.NullString{String: req.ImageResolved, Valid: true},
+			UpdatedAt:     sql.NullInt64{Valid: false},
+			ID:            req.ID,
+		})
+		require.NoError(s.t, err)
+	}
 
 	// InsertDeployment does not take desired_state (it defaults to running), so a
 	// test that needs a stopped deployment sets it here.

@@ -288,7 +288,123 @@ func TestListDeployments_URNDoesNotBypassAncestryOrWorkspace(t *testing.T) {
 	for name, req := range requests {
 		t.Run(name, func(t *testing.T) {
 			res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(rootKey), req)
-			require.Equal(t, http.StatusForbidden, res.Status, "expected 403, received: %s", res.RawBody)
+			require.Equal(t, http.StatusNotFound, res.Status, "expected 404, received: %s", res.RawBody)
+		})
+	}
+}
+
+// TestListDeployments_URNRejectionsMatchLegacy guarantees a URN grant on every
+// deployment gets the same 400 and 404 answers a legacy wildcard key gets
+func TestListDeployments_URNRejectionsMatchLegacy(t *testing.T) {
+	h := testutil.NewHarness(t)
+	route := newRoute(h)
+	h.Register(route)
+
+	setup := h.CreateTestDeploymentSetup()
+	rootKey := h.CreateRootKey(setup.Workspace.ID, deploymentPermission(setup.Workspace.ID, "*", "*", "*", "*", "read"))
+
+	for _, tc := range []struct {
+		name   string
+		req    handler.Request
+		status int
+	}{
+		{name: "app without project", req: handler.Request{App: rid(setup.App.Slug)}, status: http.StatusBadRequest},
+		{name: "environment without app", req: handler.Request{Project: rid(setup.Project.Slug), Environment: rid(setup.Environment.Slug)}, status: http.StatusBadRequest},
+		{name: "branch without app", req: handler.Request{Project: rid(setup.Project.Slug), Branch: &[]string{"main"}}, status: http.StatusBadRequest},
+		{name: "unknown project", req: handler.Request{Project: rid(uid.New(uid.ProjectPrefix))}, status: http.StatusNotFound},
+		{name: "unknown app", req: handler.Request{Project: rid(setup.Project.Slug), App: rid(uid.New(uid.AppPrefix))}, status: http.StatusNotFound},
+		{name: "unknown environment", req: handler.Request{Project: rid(setup.Project.Slug), App: rid(setup.App.Slug), Environment: rid(uid.New(uid.EnvironmentPrefix))}, status: http.StatusNotFound},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			res := testutil.CallRoute[handler.Request, map[string]any](h, route, authHeaders(rootKey), tc.req)
+			require.Equal(t, tc.status, res.Status, "received: %s", res.RawBody)
+		})
+	}
+}
+
+// TestListDeployments_ScopedURNGetsRequestErrors guarantees a key that can read
+// the requested scope gets the request error, not a 403 for permissions it
+// does not need
+func TestListDeployments_ScopedURNGetsRequestErrors(t *testing.T) {
+	h := testutil.NewHarness(t)
+	route := newRoute(h)
+	h.Register(route)
+
+	setup := h.CreateTestDeploymentSetup()
+	rootKey := h.CreateRootKey(setup.Workspace.ID, deploymentPermission(setup.Workspace.ID, setup.Project.ID, "*", "*", "*", "read"))
+
+	for name, req := range map[string]handler.Request{
+		"branch without app": {Project: rid(setup.Project.ID), Branch: &[]string{"main"}},
+		"empty time range":   {Project: rid(setup.Project.ID), StartTime: new(int64(2)), EndTime: new(int64(1))},
+	} {
+		t.Run(name, func(t *testing.T) {
+			res := testutil.CallRoute[handler.Request, map[string]any](h, route, authHeaders(rootKey), req)
+			require.Equal(t, http.StatusBadRequest, res.Status, "received: %s", res.RawBody)
+		})
+	}
+}
+
+// TestListDeployments_ScopedURNCannotProbe guarantees a key scoped below the
+// requested collection gets 403 for a missing resource and for an existing one
+// it cannot read, so neither the status nor the body reveals existence
+func TestListDeployments_ScopedURNCannotProbe(t *testing.T) {
+	h := testutil.NewHarness(t)
+	route := newRoute(h)
+	h.Register(route)
+
+	setup := h.CreateTestDeploymentSetup()
+	otherProject := h.CreateProject(seed.CreateProjectRequest{
+		ID:          uid.New(uid.ProjectPrefix),
+		WorkspaceID: setup.Workspace.ID,
+		Name:        "other project",
+		Slug:        "other-project",
+	})
+	otherApp := h.CreateApp(seed.CreateAppRequest{
+		ID:          uid.New(uid.AppPrefix),
+		WorkspaceID: setup.Workspace.ID,
+		ProjectID:   setup.Project.ID,
+		Name:        "other app",
+		Slug:        "other-app",
+	})
+	otherEnvironment := h.CreateEnvironment(seed.CreateEnvironmentRequest{
+		ID:          uid.New(uid.EnvironmentPrefix),
+		WorkspaceID: setup.Workspace.ID,
+		ProjectID:   setup.Project.ID,
+		AppID:       setup.App.ID,
+		Slug:        "preview",
+		Description: "preview environment",
+	})
+	rootKey := h.CreateRootKey(setup.Workspace.ID, deploymentPermission(
+		setup.Workspace.ID, setup.Project.ID, setup.App.ID, setup.Environment.ID, "*", "read",
+	))
+
+	for _, tc := range []struct {
+		name     string
+		existing handler.Request
+		missing  handler.Request
+	}{
+		{
+			name:     "project",
+			existing: handler.Request{Project: rid(otherProject.Slug)},
+			missing:  handler.Request{Project: rid("missing-project")},
+		},
+		{
+			name:     "app",
+			existing: handler.Request{Project: rid(setup.Project.ID), App: rid(otherApp.Slug)},
+			missing:  handler.Request{Project: rid(setup.Project.ID), App: rid("missing-app")},
+		},
+		{
+			name:     "environment",
+			existing: handler.Request{Project: rid(setup.Project.ID), App: rid(setup.App.ID), Environment: rid(otherEnvironment.Slug)},
+			missing:  handler.Request{Project: rid(setup.Project.ID), App: rid(setup.App.ID), Environment: rid("missing-environment")},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			existing := testutil.CallRoute[handler.Request, map[string]any](h, route, authHeaders(rootKey), tc.existing)
+			missing := testutil.CallRoute[handler.Request, map[string]any](h, route, authHeaders(rootKey), tc.missing)
+			require.Equal(t, http.StatusForbidden, existing.Status, "existing: %s", existing.RawBody)
+			require.Equal(t, http.StatusForbidden, missing.Status, "missing: %s", missing.RawBody)
+			require.Equal(t, (*existing.Body)["error"], (*missing.Body)["error"], "403 bodies must not differ by existence")
 		})
 	}
 }

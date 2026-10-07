@@ -10,28 +10,26 @@ import (
 	"strings"
 )
 
-const listFailedDeploymentStepsByIds = `-- name: ListFailedDeploymentStepsByIds :many
+const listDeploymentStepsByIds = `-- name: ListDeploymentStepsByIds :many
 SELECT deployment_steps.pk, deployment_steps.workspace_id, deployment_steps.project_id, deployment_steps.environment_id, deployment_steps.deployment_id, deployment_steps.app_id, deployment_steps.step, deployment_steps.started_at, deployment_steps.ended_at, deployment_steps.error FROM deployment_steps
 WHERE workspace_id = ?
   AND deployment_id IN (/*SLICE:deployment_ids*/?)
-  AND error IS NOT NULL AND error != ''
 ORDER BY deployment_id, started_at ASC
 `
 
-type ListFailedDeploymentStepsByIdsParams struct {
+type ListDeploymentStepsByIdsParams struct {
 	WorkspaceID   string   `db:"workspace_id"`
 	DeploymentIds []string `db:"deployment_ids"`
 }
 
-// ListFailedDeploymentStepsByIds
+// ListDeploymentStepsByIds
 //
 //	SELECT deployment_steps.pk, deployment_steps.workspace_id, deployment_steps.project_id, deployment_steps.environment_id, deployment_steps.deployment_id, deployment_steps.app_id, deployment_steps.step, deployment_steps.started_at, deployment_steps.ended_at, deployment_steps.error FROM deployment_steps
 //	WHERE workspace_id = ?
 //	  AND deployment_id IN (/*SLICE:deployment_ids*/?)
-//	  AND error IS NOT NULL AND error != ''
 //	ORDER BY deployment_id, started_at ASC
-func (q *Queries) ListFailedDeploymentStepsByIds(ctx context.Context, db DBTX, arg ListFailedDeploymentStepsByIdsParams) ([]DeploymentStep, error) {
-	query := listFailedDeploymentStepsByIds
+func (q *Queries) ListDeploymentStepsByIds(ctx context.Context, db DBTX, arg ListDeploymentStepsByIdsParams) ([]DeploymentStep, error) {
+	query := listDeploymentStepsByIds
 	var queryParams []interface{}
 	queryParams = append(queryParams, arg.WorkspaceID)
 	if len(arg.DeploymentIds) > 0 {

@@ -57,7 +57,7 @@ func TestAvailableActions(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			got := availableActions(Input{
-				Deployment: db.Deployment{ID: self, Status: tc.status, DesiredState: tc.desiredState},
+				Deployment: db.ListDeploymentsRow{ID: self, Status: tc.status, DesiredState: tc.desiredState},
 				State: db.ListDeploymentEnvAndAppStateRow{
 					EnvironmentSlug:        tc.envSlug,
 					EnvironmentKind:        tc.envKind,

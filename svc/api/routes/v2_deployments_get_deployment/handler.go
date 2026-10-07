@@ -4,8 +4,6 @@ import (
 	"context"
 	"net/http"
 
-	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
-
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
@@ -66,21 +64,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	err = principal.Authorize(rbac.Or(
-		rbac.T(rbac.Tuple{
-			ResourceType: rbac.Environment,
-			ResourceID:   "*",
-			Action:       rbac.ReadDeployment,
-		}),
-		rbac.T(rbac.Tuple{
-			ResourceType: rbac.Environment,
-			ResourceID:   dep.EnvironmentID,
-			Action:       rbac.ReadDeployment,
-		}),
-		rbac.U(
-			urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(dep.ProjectID).App(dep.AppID).Environment(dep.EnvironmentID).Deployment(dep.ID),
-			permissions.Read,
-		),
+	err = principal.Authorize(rbac.U(
+		urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(dep.ProjectID).App(dep.AppID).Environment(dep.EnvironmentID).Deployment(dep.ID),
+		permissions.Read,
 	))
 	if err != nil {
 		return fault.New(
@@ -108,20 +94,17 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		state = states[0]
 	}
 
-	var steps []db.DeploymentStep
-	if dep.Status == mysqltype.DeploymentsStatusFailed {
-		steps, err = db.Query.ListFailedDeploymentStepsByIds(ctx, h.DB.RO(), db.ListFailedDeploymentStepsByIdsParams{
-			WorkspaceID:   principal.AuthorizedWorkspaceID,
-			DeploymentIds: []string{dep.ID},
-		})
-		if err != nil {
-			return fault.Wrap(
-				err,
-				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.Internal("database error"),
-				fault.Public("Failed to retrieve deployment."),
-			)
-		}
+	steps, err := db.Query.ListDeploymentStepsByIds(ctx, h.DB.RO(), db.ListDeploymentStepsByIdsParams{
+		WorkspaceID:   principal.AuthorizedWorkspaceID,
+		DeploymentIds: []string{dep.ID},
+	})
+	if err != nil {
+		return fault.Wrap(
+			err,
+			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+			fault.Internal("database error"),
+			fault.Public("Failed to retrieve deployment."),
+		)
 	}
 
 	domains, err := db.Query.ListDeploymentDomains(ctx, h.DB.RO(), db.ListDeploymentDomainsParams{
@@ -155,11 +138,38 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			RequestId: s.RequestID(),
 		},
 		Data: deployment.ToResponse(deployment.Input{
-			Deployment: dep,
-			State:      state,
-			Steps:      steps,
-			Regions:    regions,
-			Domains:    domains,
+			Deployment: db.ListDeploymentsRow{
+				ID:                       dep.ID,
+				Source:                   dep.Source,
+				ImageRequested:           dep.ImageRequested,
+				ImageResolved:            dep.ImageResolved,
+				GitCommitSha:             dep.GitCommitSha,
+				GitBranch:                dep.GitBranch,
+				GitCommitMessage:         dep.GitCommitMessage,
+				GitCommitAuthorHandle:    dep.GitCommitAuthorHandle,
+				GitCommitAuthorAvatarUrl: dep.GitCommitAuthorAvatarUrl,
+				GitCommitTimestamp:       dep.GitCommitTimestamp,
+				CpuMillicores:            dep.CpuMillicores,
+				MemoryMib:                dep.MemoryMib,
+				StorageMib:               dep.StorageMib,
+				DesiredState:             dep.DesiredState,
+				Command:                  dep.Command,
+				Port:                     dep.Port,
+				ShutdownSignal:           dep.ShutdownSignal,
+				UpstreamProtocol:         dep.UpstreamProtocol,
+				Healthcheck:              dep.Healthcheck,
+				PrNumber:                 dep.PrNumber,
+				ForkRepositoryFullName:   dep.ForkRepositoryFullName,
+				Status:                   dep.Status,
+				Trigger:                  dep.Trigger,
+				TriggeredBy:              dep.TriggeredBy,
+				CreatedAt:                dep.CreatedAt,
+				UpdatedAt:                dep.UpdatedAt,
+			},
+			State:   state,
+			Steps:   steps,
+			Regions: regions,
+			Domains: domains,
 		}),
 	})
 }
