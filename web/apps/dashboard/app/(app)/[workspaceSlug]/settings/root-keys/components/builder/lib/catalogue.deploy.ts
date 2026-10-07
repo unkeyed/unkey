@@ -6,6 +6,7 @@ import {
   identityRows,
   keyspaceRows,
   namespaceRows,
+  portalRows,
   projectRow,
   rbacRows,
 } from "./catalogue.rows";
@@ -88,6 +89,7 @@ function deployGroups({ project, app, environment }: DeploySpec): CatalogueGroup
         label: "Identity and RBAC",
         rows: [...identityRows(project), ...rbacRows(project)],
       },
+      { id: "portals", label: "Portals", rows: portalRows(project) },
     );
   }
   return groups;
