@@ -17,22 +17,84 @@ import (
 
 func TestCreateHTTPStreamFilters(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route := &logdrains.Create{DB: h.DB, Vault: h.Vault, Auditlogs: h.Auditlogs, Clock: h.Clock, LimitsCache: h.Caches.WorkspaceLimits}
+	route := &logdrains.Create{
+		DB:          h.DB,
+		Vault:       h.Vault,
+		Auditlogs:   h.Auditlogs,
+		Clock:       h.Clock,
+		LimitsCache: h.Caches.WorkspaceLimits,
+	}
 	h.Register(route)
 	workspaceID := h.Resources().UserWorkspace.ID
 	_, err := h.DB.RW().ExecContext(context.Background(), "UPDATE `limits` SET logdrains_max = 10 WHERE workspace_id = ?", workspaceID)
 	require.NoError(t, err)
 	key := h.CreateRootKey(workspaceID, "unkey:v1:"+workspaceID+":**#*")
-	headers := http.Header{"Authorization": {"Bearer " + key}, "Content-Type": {"application/json"}}
+	headers := http.Header{
+		"Authorization": {"Bearer " + key},
+		"Content-Type":  {"application/json"},
+	}
 	for _, tc := range []struct {
-		stream, filters string
-		expected        *logdrainv1.Config
+		stream   string
+		filters  string
+		expected *logdrainv1.Config
 	}{
-		{"audit_logs", `{"eventTypes":["key.create"]}`, &logdrainv1.Config{Stream: &logdrainv1.Config_AuditLogs{AuditLogs: &logdrainv1.AuditLogStreamConfig{EventTypes: []string{"key.create"}}}}},
-		{"ratelimits", `{"namespaceIds":["ns_one"],"passed":[false]}`, &logdrainv1.Config{Stream: &logdrainv1.Config_Ratelimits{Ratelimits: &logdrainv1.RatelimitStreamConfig{NamespaceIds: []string{"ns_one"}, Passed: []bool{false}}}}},
-		{"key_verifications", `{"outcomes":["VALID"],"keySpaceIds":["ks_one"]}`, &logdrainv1.Config{Stream: &logdrainv1.Config_KeyVerifications{KeyVerifications: &logdrainv1.KeyVerificationStreamConfig{Outcomes: []string{"VALID"}, KeySpaceIds: []string{"ks_one"}}}}},
-		{"gateway_requests", `{"statusClasses":[2,5],"projectIds":["proj_one"],"appIds":[],"environmentIds":[]}`, &logdrainv1.Config{Stream: &logdrainv1.Config_GatewayRequests{GatewayRequests: &logdrainv1.GatewayRequestStreamConfig{StatusClasses: []logdrainv1.HttpStatusClass{2, 5}, ProjectIds: []string{"proj_one"}}}}},
-		{"runtime_logs", `{"severities":["warn"],"projectIds":[],"appIds":["app_one"],"environmentIds":[]}`, &logdrainv1.Config{Stream: &logdrainv1.Config_RuntimeLogs{RuntimeLogs: &logdrainv1.RuntimeLogStreamConfig{Severities: []string{"warn"}, AppIds: []string{"app_one"}}}}},
+		{
+			"audit_logs",
+			`{"eventTypes":["key.create"]}`,
+			&logdrainv1.Config{
+				Stream: &logdrainv1.Config_AuditLogs{
+					AuditLogs: &logdrainv1.AuditLogStreamConfig{EventTypes: []string{"key.create"}},
+				},
+			},
+		},
+		{
+			"ratelimits",
+			`{"namespaceIds":["ns_one"],"passed":[false]}`,
+			&logdrainv1.Config{
+				Stream: &logdrainv1.Config_Ratelimits{
+					Ratelimits: &logdrainv1.RatelimitStreamConfig{
+						NamespaceIds: []string{"ns_one"},
+						Passed:       []bool{false},
+					},
+				},
+			},
+		},
+		{
+			"key_verifications",
+			`{"outcomes":["VALID"],"keySpaceIds":["ks_one"]}`,
+			&logdrainv1.Config{
+				Stream: &logdrainv1.Config_KeyVerifications{
+					KeyVerifications: &logdrainv1.KeyVerificationStreamConfig{
+						Outcomes:    []string{"VALID"},
+						KeySpaceIds: []string{"ks_one"},
+					},
+				},
+			},
+		},
+		{
+			"gateway_requests",
+			`{"statusClasses":[2,5],"projectIds":["proj_one"],"appIds":[],"environmentIds":[]}`,
+			&logdrainv1.Config{
+				Stream: &logdrainv1.Config_GatewayRequests{
+					GatewayRequests: &logdrainv1.GatewayRequestStreamConfig{
+						StatusClasses: []logdrainv1.HttpStatusClass{2, 5},
+						ProjectIds:    []string{"proj_one"},
+					},
+				},
+			},
+		},
+		{
+			"runtime_logs",
+			`{"severities":["warn"],"projectIds":[],"appIds":["app_one"],"environmentIds":[]}`,
+			&logdrainv1.Config{
+				Stream: &logdrainv1.Config_RuntimeLogs{
+					RuntimeLogs: &logdrainv1.RuntimeLogStreamConfig{
+						Severities: []string{"warn"},
+						AppIds:     []string{"app_one"},
+					},
+				},
+			},
+		},
 	} {
 		t.Run(tc.stream, func(t *testing.T) {
 			input := []byte(`{"name":"HTTP logs","stream":"` + tc.stream + `","filters":` + tc.filters + `,"destination":{"http":{"url":"https://logs.example.com","format":"ndjson","headers":[{"name":"Authorization","mode":"set","value":"secret-token"}]}}}`)
@@ -52,7 +114,10 @@ func TestCreateHTTPStreamFilters(t *testing.T) {
 			require.Len(t, config.GetHttp().GetHeaders(), 1)
 			header := config.GetHttp().GetHeaders()[0]
 			require.Equal(t, "Authorization", header.GetName())
-			decrypted, err := h.Vault.Decrypt(context.Background(), &vaultv1.DecryptRequest{Keyring: workspaceID, Encrypted: header.GetEncryptedValue()})
+			decrypted, err := h.Vault.Decrypt(context.Background(), &vaultv1.DecryptRequest{
+				Keyring:   workspaceID,
+				Encrypted: header.GetEncryptedValue(),
+			})
 			require.NoError(t, err)
 			require.Equal(t, "secret-token", decrypted.GetPlaintext())
 		})

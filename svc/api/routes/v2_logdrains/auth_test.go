@@ -33,22 +33,64 @@ func TestLogdrainsRequireAuthenticationAndPermission(t *testing.T) {
 		body    string
 		foreign bool
 	}{
-		{&logdrains.Get{DB: h.DB}, `{"logdrainId":"` + foreignID + `"}`, true},
-		{&logdrains.List{DB: h.DB}, `{}`, false},
-		{&logdrains.Update{DB: h.DB, Vault: h.Vault, Auditlogs: h.Auditlogs, Clock: h.Clock}, `{"logdrainId":"` + foreignID + `","name":"Changed"}`, true},
+		{
+			&logdrains.Get{DB: h.DB},
+			`{"logdrainId":"` + foreignID + `"}`,
+			true,
+		},
+		{
+			&logdrains.List{DB: h.DB},
+			`{}`,
+			false,
+		},
+		{
+			&logdrains.Update{
+				DB:        h.DB,
+				Vault:     h.Vault,
+				Auditlogs: h.Auditlogs,
+				Clock:     h.Clock,
+			},
+			`{"logdrainId":"` + foreignID + `","name":"Changed"}`,
+			true,
+		},
 	} {
 		t.Run(tc.route.Path(), func(t *testing.T) {
 			h.Register(tc.route)
 			for _, auth := range []struct {
-				name, authorization string
-				status              int
+				name          string
+				authorization string
+				status        int
 			}{
-				{"missing authorization", "", http.StatusBadRequest},
-				{"malformed authorization", "Basic invalid", http.StatusBadRequest},
-				{"missing bearer token", "Bearer", http.StatusBadRequest},
-				{"invalid key", "Bearer invalid", http.StatusUnauthorized},
-				{"revoked key", "Bearer " + revoked, http.StatusUnauthorized},
-				{"insufficient permission", "Bearer " + denied, http.StatusForbidden},
+				{
+					"missing authorization",
+					"",
+					http.StatusBadRequest,
+				},
+				{
+					"malformed authorization",
+					"Basic invalid",
+					http.StatusBadRequest,
+				},
+				{
+					"missing bearer token",
+					"Bearer",
+					http.StatusBadRequest,
+				},
+				{
+					"invalid key",
+					"Bearer invalid",
+					http.StatusUnauthorized,
+				},
+				{
+					"revoked key",
+					"Bearer " + revoked,
+					http.StatusUnauthorized,
+				},
+				{
+					"insufficient permission",
+					"Bearer " + denied,
+					http.StatusForbidden,
+				},
 			} {
 				t.Run(auth.name, func(t *testing.T) {
 					headers := http.Header{"Content-Type": {"application/json"}}
@@ -65,7 +107,10 @@ func TestLogdrainsRequireAuthenticationAndPermission(t *testing.T) {
 			}
 			if tc.foreign {
 				// Foreign IDs return 404 so callers cannot discover another workspace's drains.
-				result := testutil.CallRoute[json.RawMessage, openapi.NotFoundErrorResponse](h, tc.route, http.Header{"Authorization": {"Bearer " + allowed}, "Content-Type": {"application/json"}}, json.RawMessage(tc.body))
+				result := testutil.CallRoute[json.RawMessage, openapi.NotFoundErrorResponse](h, tc.route, http.Header{
+					"Authorization": {"Bearer " + allowed},
+					"Content-Type":  {"application/json"},
+				}, json.RawMessage(tc.body))
 				require.Equal(t, http.StatusNotFound, result.Status, "%s", result.RawBody)
 				require.Equal(t, http.StatusNotFound, result.Body.Error.Status)
 				require.Equal(t, "https://unkey.com/docs/errors/unkey/data/logdrain_not_found", result.Body.Error.Type)

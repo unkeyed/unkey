@@ -74,7 +74,11 @@ func toPublic(row db.Logdrain) (openapi.Logdrain, error) {
 			Format  openapi.LogdrainDestinationHttpFormat `json:"format"`
 			Headers []string                              `json:"headers"`
 			Url     string                                `json:"url"`
-		}{Format: format, Headers: headers, Url: destination.Http.Url}
+		}{
+			Format:  format,
+			Headers: headers,
+			Url:     destination.Http.Url,
+		}
 	case *logdrainv1.Config_Axiom:
 		data.Destination.Axiom = &struct {
 			Dataset string `json:"dataset"`

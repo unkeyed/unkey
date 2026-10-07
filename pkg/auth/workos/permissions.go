@@ -20,9 +20,18 @@ var developerPermissions = []resourcePermission{
 	{resource: "github/apps/*", action: rbac.ActionType(rbacpermissions.Write)},
 	{resource: "github/apps/*", action: rbac.ActionType(rbacpermissions.Delete)},
 
-	{resource: "logdrains/*", action: rbac.ActionType(rbacpermissions.Read)},
-	{resource: "logdrains/*", action: rbac.ActionType(rbacpermissions.Write)},
-	{resource: "logdrains/*", action: rbac.ActionType(rbacpermissions.Delete)},
+	{
+		resource: "logdrains/*",
+		action:   rbac.ActionType(rbacpermissions.Read),
+	},
+	{
+		resource: "logdrains/*",
+		action:   rbac.ActionType(rbacpermissions.Write),
+	},
+	{
+		resource: "logdrains/*",
+		action:   rbac.ActionType(rbacpermissions.Delete),
+	},
 
 	{resource: "projects/*", action: rbac.ActionType(rbacpermissions.Read)},
 	{resource: "projects/*", action: rbac.ActionType(rbacpermissions.Write)},
