@@ -2,7 +2,7 @@
 import { useDeployActionGate } from "@/app/(app)/[workspaceSlug]/projects/_components/hooks/use-deploy-action-gate";
 import { useAppHomeHref } from "@/hooks/use-app-home-href";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import { collection } from "@/lib/collections";
+import { refetchProjectApps } from "@/lib/collections/deploy/apps";
 import { isDeploymentInFlight } from "@/lib/collections/deploy/deployment-status";
 import { useCollectionPolling } from "@/lib/collections/use-collection-polling";
 import { routes } from "@/lib/navigation/routes";
@@ -63,7 +63,7 @@ export function AppsList() {
   const hasInFlightDeployment = apps.data.some(
     (app) => app.headlineDeployment && isDeploymentInFlight(app.headlineDeployment.status),
   );
-  useCollectionPolling(() => collection.apps.utils.refetch(), {
+  useCollectionPolling(() => refetchProjectApps(projectId), {
     intervalMs: hasInFlightDeployment ? BUILDING_POLL_MS : IDLE_POLL_MS,
     enabled: true,
   });

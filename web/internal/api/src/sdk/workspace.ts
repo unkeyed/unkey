@@ -3,6 +3,7 @@
  */
 
 import { workspaceGetLimits } from "../funcs/workspaceGetLimits.js";
+import { workspaceGetUsage } from "../funcs/workspaceGetUsage.js";
 import { ClientSDK, RequestOptions } from "../lib/sdks.js";
 import * as components from "../models/components/index.js";
 import { unwrapAsync } from "../types/fp.js";
@@ -34,6 +35,38 @@ export class Workspace extends ClientSDK {
   ): Promise<components.V2WorkspaceGetLimitsResponseBody> {
     return unwrapAsync(workspaceGetLimits(
       this,
+      options,
+    ));
+  }
+
+  /**
+   * Get workspace usage
+   *
+   * @remarks
+   * Get the usage of your workspace for one calendar month (UTC): billable API
+   * operations, compute usage per environment, and active keys per app.
+   *
+   * Use this to track usage during the month or to look back at a past
+   * month. The response has no prices. Your invoice is the source of truth.
+   * Compute usage can be up to 15 minutes late, and it can change for up to 7
+   * days.
+   *
+   * Send `{}` for the current month to date, or
+   * `{"period": {"year": 2026, "month": 9}}` for a full past month. The month
+   * must start within the last 90 days.
+   *
+   * **Required Permissions**
+   *
+   * Your root key must have this permission:
+   * - `unkey:v1:<workspace_id>:usage#read`
+   */
+  async getUsage(
+    request: components.V2WorkspaceGetUsageRequestBody,
+    options?: RequestOptions,
+  ): Promise<components.V2WorkspaceGetUsageResponseBody> {
+    return unwrapAsync(workspaceGetUsage(
+      this,
+      request,
       options,
     ));
   }

@@ -29,10 +29,8 @@ export const CancelPlan: React.FC<CancelPlanProps> = ({ disabled = false, disabl
       // Revalidate helper: invalidate AND explicitly refetch to ensure UI updates
       await Promise.all([
         invalidateWorkspace(),
-        trpcUtils.billing.queryUsage.invalidate(),
         trpcUtils.stripe.getBillingInfo.invalidate(),
         trpcUtils.workspace.getCurrent.refetch(),
-        trpcUtils.billing.queryUsage.refetch(),
         trpcUtils.stripe.getBillingInfo.refetch(),
       ]);
       router.refresh();

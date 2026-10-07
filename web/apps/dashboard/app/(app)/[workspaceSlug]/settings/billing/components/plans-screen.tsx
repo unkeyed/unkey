@@ -1,5 +1,6 @@
 "use client";
 
+import { useWorkspaceLimits } from "@/hooks/use-workspace-limits";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { currentPlanState } from "@/lib/billing/plan-card-state";
 import { useFlag } from "@/lib/flags/provider";
@@ -69,12 +70,8 @@ export function PlansScreen({ open, onOpenChange, reason, from = "billing" }: Pl
     retry: 1,
     trpc: { context: { skipBatch: true } },
   });
-  const apiUsageQuery = trpc.billing.queryUsage.useQuery(undefined, {
-    enabled: wantsApi,
-    staleTime: 60_000,
-    retry: 1,
-    trpc: { context: { skipBatch: true } },
-  });
+  const apiUsageQuery = useWorkspaceLimits({ enabled: wantsApi, staleTime: 60_000 });
+  const apiOperations = apiUsageQuery.data?.apiBillableOperationsCountMaxPerMonth.current;
 
   const products = availableProducts(copy.products, {
     computeEnabled: deployBilling && !plansQuery.isError && plansQuery.data?.configured !== false,
@@ -90,7 +87,7 @@ export function PlansScreen({ open, onOpenChange, reason, from = "billing" }: Pl
     setInitialProduct(
       defaultProduct(products, {
         compute: deployUsageQuery.data?.grossCents ?? 0,
-        api: apiUsageQuery.data?.billableTotal ?? 0,
+        api: apiOperations ?? 0,
       }) ?? null,
     );
   }
@@ -118,7 +115,7 @@ export function PlansScreen({ open, onOpenChange, reason, from = "billing" }: Pl
         <ApiPlans
           isAdmin={isAdmin}
           manage={copy.manage}
-          usedThisMonth={apiUsageQuery.data?.billableTotal ?? null}
+          usedThisMonth={apiOperations ?? null}
           onChanged={close}
         />
       </div>

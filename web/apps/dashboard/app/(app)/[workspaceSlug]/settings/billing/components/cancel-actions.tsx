@@ -100,7 +100,6 @@ export function CancelApiDialog({
     onSuccess: async () => {
       await Promise.all([
         invalidateWorkspace(),
-        trpcUtils.billing.queryUsage.invalidate(),
         trpcUtils.stripe.getBillingInfo.invalidate(),
         trpcUtils.stripe.getUpcomingInvoice.invalidate(),
       ]);

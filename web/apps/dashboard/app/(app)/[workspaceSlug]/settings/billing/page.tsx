@@ -1,19 +1,11 @@
 "use client";
 import { PageLoading } from "@/components/dashboard/page-loading";
+import { useWorkspaceUsage } from "@/hooks/use-workspace-usage";
 import { useFlag } from "@/lib/flags/provider";
 import { useBillingUIUpgrades } from "@/lib/flags/use-billing-ui-upgrades";
 import { formatNumber } from "@/lib/fmt";
-import { trpc } from "@/lib/trpc/client";
 import { useWorkspace } from "@/providers/workspace-provider";
-import {
-  Button,
-  EmptyState,
-  EmptyStateDescription,
-  EmptyStateHeader,
-  EmptyStateTitle,
-  Input,
-  SettingCard,
-} from "@unkey/ui";
+import { Button, Input, SettingCard } from "@unkey/ui";
 import Link from "next/link";
 import { BillingContainer } from "./billing-container";
 import { Client } from "./client";
@@ -32,17 +24,9 @@ export default function BillingPage() {
     data: usage,
     isLoading: usageLoading,
     isError,
-    error,
-  } = trpc.billing.queryUsage.useQuery(undefined, {
+  } = useWorkspaceUsage("current", {
     // Only enable query when workspace is loaded AND it's a legacy subscription
     enabled: Boolean(workspace && isLegacy),
-    // Skip batching to prevent analytics slowdown from blocking core UI
-    trpc: {
-      context: {
-        skipBatch: true,
-      },
-    },
-    retry: 1,
   });
 
   // Derive loading state: loading if workspace is loading OR (if legacy, usage is loading)
@@ -57,25 +41,10 @@ export default function BillingPage() {
     );
   }
 
-  if (isError) {
-    return (
-      <BillingContainer>
-        <EmptyState>
-          <EmptyStateHeader>
-            <EmptyStateTitle>Failed to load usage data</EmptyStateTitle>
-            <EmptyStateDescription>
-              {error?.message ||
-                "There was an error loading your usage information. Please try again later."}
-            </EmptyStateDescription>
-          </EmptyStateHeader>
-        </EmptyState>
-      </BillingContainer>
-    );
-  }
   if (isLegacy) {
     // Fetch usage data for legacy display
-    const verifications = usage?.billableVerifications || 0;
-    const ratelimits = usage?.billableRatelimits || 0;
+    const usageValue = (value: number | undefined) =>
+      isError ? "Unavailable" : formatNumber(value ?? 0);
 
     return (
       <BillingContainer>
@@ -87,7 +56,7 @@ export default function BillingPage() {
               border="top"
             >
               <div className="w-full">
-                <Input value={formatNumber(verifications)} />
+                <Input value={usageValue(usage?.totals.api.verifications)} />
               </div>
             </SettingCard>
             <SettingCard
@@ -97,7 +66,7 @@ export default function BillingPage() {
             >
               <div className="w-full">
                 <span className="text-xs text-gray-11">
-                  <Input value={formatNumber(ratelimits)} />
+                  <Input value={usageValue(usage?.totals.api.ratelimits)} />
                 </span>
               </div>
             </SettingCard>

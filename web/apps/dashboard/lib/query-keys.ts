@@ -1,3 +1,4 @@
+import type { UsagePeriod } from "@/app/(app)/[workspaceSlug]/settings/usage/period";
 const keysRoot = ["keys"] as const;
 const rbacRoot = ["rbac"] as const;
 const rolesRoot = [...rbacRoot, "roles"] as const;
@@ -51,5 +52,6 @@ export const queryKeys = {
   workspace: {
     all: workspaceRoot,
     limits: [...workspaceRoot, "limits"] as const,
+    usage: (period: UsagePeriod) => [...workspaceRoot, "usage", period] as const,
   },
 };
