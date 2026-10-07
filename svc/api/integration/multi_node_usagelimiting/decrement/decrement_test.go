@@ -65,7 +65,7 @@ func TestDecrementAccuracy(t *testing.T) {
 
 			// Set up test resources
 			workspace := h.Resources().UserWorkspace
-			rootKey := h.Seed.CreateRootKey(ctx, workspace.ID, "api.*.verify_key")
+			rootKey := h.Seed.CreateRootKey(ctx, workspace.ID, "unkey:v1:"+workspace.ID+":projects/*/keyspaces/*/keys/*#verify")
 
 			api := h.Seed.CreateAPI(ctx, seed.CreateApiRequest{
 				WorkspaceID: workspace.ID,
@@ -213,7 +213,7 @@ func TestDecrementEdgeCases(t *testing.T) {
 		h := integration.New(t, integration.Config{NumNodes: 1})
 
 		workspace := h.Resources().UserWorkspace
-		rootKey := h.Seed.CreateRootKey(ctx, workspace.ID, "api.*.verify_key")
+		rootKey := h.Seed.CreateRootKey(ctx, workspace.ID, "unkey:v1:"+workspace.ID+":projects/*/keyspaces/*/keys/*#verify")
 
 		api := h.Seed.CreateAPI(ctx, seed.CreateApiRequest{
 			WorkspaceID: workspace.ID,
@@ -249,7 +249,7 @@ func TestDecrementEdgeCases(t *testing.T) {
 		h := integration.New(t, integration.Config{NumNodes: 1})
 
 		workspace := h.Resources().UserWorkspace
-		rootKey := h.Seed.CreateRootKey(ctx, workspace.ID, "api.*.verify_key")
+		rootKey := h.Seed.CreateRootKey(ctx, workspace.ID, "unkey:v1:"+workspace.ID+":projects/*/keyspaces/*/keys/*#verify")
 
 		api := h.Seed.CreateAPI(ctx, seed.CreateApiRequest{
 			WorkspaceID: workspace.ID,
@@ -299,7 +299,7 @@ func TestDecrementEdgeCases(t *testing.T) {
 		h := integration.New(t, integration.Config{NumNodes: 3})
 
 		workspace := h.Resources().UserWorkspace
-		rootKey := h.Seed.CreateRootKey(ctx, workspace.ID, "api.*.verify_key")
+		rootKey := h.Seed.CreateRootKey(ctx, workspace.ID, "unkey:v1:"+workspace.ID+":projects/*/keyspaces/*/keys/*#verify")
 
 		api := h.Seed.CreateAPI(ctx, seed.CreateApiRequest{
 			WorkspaceID: workspace.ID,
