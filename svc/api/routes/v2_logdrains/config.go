@@ -52,6 +52,8 @@ func toPublic(row db.Logdrain) (openapi.Logdrain, error) {
 				classes[i] = "4xx"
 			case logdrainv1.HttpStatusClass_HTTP_STATUS_CLASS_5XX:
 				classes[i] = "5xx"
+			case logdrainv1.HttpStatusClass_HTTP_STATUS_CLASS_UNSPECIFIED:
+				return data, fmt.Errorf("HTTP status class is unspecified")
 			default:
 				return data, fmt.Errorf("unsupported HTTP status class %d", class)
 			}
