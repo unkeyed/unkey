@@ -1975,11 +1975,9 @@ type KeysVerifyKeyRatelimit struct {
 // Logdrain defines model for Logdrain.
 type Logdrain struct {
 	// BatchSize Effective maximum events per delivery. Defaults to 10000.
-	BatchSize                 int64               `json:"batchSize"`
-	CommittedOffsetInsertedAt int64               `json:"committedOffsetInsertedAt"`
-	ConsecutiveFailures       int                 `json:"consecutiveFailures"`
-	CreatedAt                 int64               `json:"createdAt"`
-	Destination               LogdrainDestination `json:"destination"`
+	BatchSize   int64               `json:"batchSize"`
+	CreatedAt   int64               `json:"createdAt"`
+	Destination LogdrainDestination `json:"destination"`
 
 	// Filters Only filters for the selected stream are accepted. Empty arrays select all
 	// values. Nonempty dimensions are combined with AND.

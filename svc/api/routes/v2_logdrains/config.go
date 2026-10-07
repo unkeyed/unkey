@@ -23,8 +23,6 @@ func toPublic(row db.Logdrain) (openapi.Logdrain, error) {
 	if data.BatchSize == 0 {
 		data.BatchSize = 10_000
 	}
-	data.ConsecutiveFailures = int(row.ConsecutiveFailures)
-	data.CommittedOffsetInsertedAt = row.CommittedOffsetInsertedAt
 	data.CreatedAt = row.CreatedAt
 	switch stream := config.Stream.(type) {
 	case nil:
