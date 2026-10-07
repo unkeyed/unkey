@@ -160,6 +160,12 @@ type Querier interface {
 	//
 	//  DELETE FROM `billing_subscriptions` WHERE workspace_id = ?
 	DeleteWorkspaceBillingSubscriptions(ctx context.Context, db DBTX, id string) error
+	// DeleteWorkspaceFlagOverride restores inheritance for this workspace only.
+	// Deleting an absent override is intentionally idempotent.
+	//
+	//  DELETE FROM workspace_flag_overrides
+	//  WHERE workspace_id = ? AND flag_id = ?
+	DeleteWorkspaceFlagOverride(ctx context.Context, db DBTX, arg DeleteWorkspaceFlagOverrideParams) error
 	//EndDeploymentStep
 	//
 	//  UPDATE `deployment_steps`
@@ -457,6 +463,12 @@ type Querier interface {
 	//    AND (environments.id = ? OR environments.slug = ?)
 	//  LIMIT 1
 	FindEnvironmentByIdentifiers(ctx context.Context, db DBTX, arg FindEnvironmentByIdentifiersParams) (Environment, error)
+	// FindFlagBySlug locks the definition during enrollment so a concurrent policy
+	// change cannot race the permission check and override write.
+	//
+	//  SELECT pk, id, slug, description, default_value, allow_opt_in, allow_opt_out
+	//  FROM flags WHERE slug = ? FOR UPDATE
+	FindFlagBySlug(ctx context.Context, db DBTX, slug string) (Flag, error)
 	//FindFrontlineRoutesByDeploymentID
 	//
 	//  SELECT frontline_routes.pk, frontline_routes.id, frontline_routes.project_id, frontline_routes.app_id, frontline_routes.deployment_id, frontline_routes.environment_id, frontline_routes.fully_qualified_domain_name, frontline_routes.sticky, frontline_routes.created_at, frontline_routes.updated_at FROM frontline_routes WHERE deployment_id = ?
@@ -2332,6 +2344,16 @@ type Querier interface {
 	//    AND error IS NOT NULL AND error != ''
 	//  ORDER BY deployment_id, started_at ASC
 	ListFailedDeploymentStepsByIds(ctx context.Context, db DBTX, arg ListFailedDeploymentStepsByIdsParams) ([]DeploymentStep, error)
+	// ListFlags includes definitions without overrides. Callers resolve NULL override
+	// values to the default, preserving explicit false overrides.
+	//
+	//  SELECT f.pk, f.id, f.slug, f.description, f.default_value,
+	//      f.allow_opt_in, f.allow_opt_out, o.value AS override_value
+	//  FROM flags f
+	//  LEFT JOIN workspace_flag_overrides o
+	//      ON o.flag_id = f.id AND o.workspace_id = ?
+	//  ORDER BY f.slug
+	ListFlags(ctx context.Context, db DBTX, workspaceID string) ([]ListFlagsRow, error)
 	// ListIdentities returns one page of a project's identities with their
 	// ratelimits aggregated into a JSON array (empty array when none exist).
 	// Pagination is cursor-based: ORDER BY i.id ASC with i.id >= id_cursor makes
@@ -3765,6 +3787,13 @@ type Querier interface {
 	//  ON DUPLICATE KEY UPDATE
 	//      spend_suspended = VALUES(spend_suspended)
 	UpsertWorkspaceBillingSpendSuspended(ctx context.Context, db DBTX, arg UpsertWorkspaceBillingSpendSuspendedParams) error
+	// UpsertWorkspaceFlagOverride makes retries safe and keeps one override per
+	// workspace and flag. The caller validates enrollment permission first.
+	//
+	//  INSERT INTO workspace_flag_overrides (workspace_id, flag_id, value)
+	//  VALUES (?, ?, ?)
+	//  ON DUPLICATE KEY UPDATE value = VALUES(value)
+	UpsertWorkspaceFlagOverride(ctx context.Context, db DBTX, arg UpsertWorkspaceFlagOverrideParams) error
 }
 
 var _ Querier = (*Queries)(nil)
