@@ -4,10 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 	logdrainv1 "github.com/unkeyed/unkey/gen/proto/logdrain/v1"
+	"github.com/unkeyed/unkey/pkg/openapi/validation"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
@@ -15,6 +18,26 @@ import (
 	logdrains "github.com/unkeyed/unkey/svc/api/routes/v2_logdrains"
 	"google.golang.org/protobuf/proto"
 )
+
+func TestUpdateSchemaAllowsPartialDestination(t *testing.T) {
+	validator, err := validation.NewFromBytes(openapi.Spec)
+	require.NoError(t, err)
+	for _, tc := range []struct {
+		name        string
+		destination string
+	}{
+		{"HTTP without URL", `{"http":{"format":"ndjson"}}`},
+		{"Axiom without dataset", `{"axiom":{"token":"new-token"}}`},
+		{"Axiom without token", `{"axiom":{"dataset":"new-dataset"}}`},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			request := httptest.NewRequest(http.MethodPost, "/v2/logdrains.updateLogdrain", strings.NewReader(`{"logdrainId":"ld_test","destination":`+tc.destination+`}`))
+			request.Header.Set("Content-Type", "application/json")
+			request.Header.Set("Authorization", "Bearer test")
+			require.Nil(t, validator.Validate(request))
+		})
+	}
+}
 
 func TestLogdrainsRejectInvalidInput(t *testing.T) {
 	h := testutil.NewHarness(t)
