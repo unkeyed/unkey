@@ -153,7 +153,6 @@ Follow these four phases for every documentation task.
 - Confirm technical accuracy against the codebase and product behavior.
 - Verify all internal links resolve (use relative paths like `/variables`).
 - Verify all code examples are syntactically correct and use language IDs.
-- Check that frontmatter matches comparable files in `docs/`.
 - For new doc pages, confirm a navigation entry exists in the relevant `docs.json`.
 - If renaming or moving a page, add a redirect (see redirects below).
 - Run the formatter if one is configured for the project.
