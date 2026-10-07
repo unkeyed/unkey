@@ -240,6 +240,19 @@ func TestRootKeyResource(t *testing.T) {
 	require.Equal(t, value, resource.String())
 }
 
+// TestLimitsResource guarantees the workspace builder and parser agree that
+// limits identifies the workspace's limits resource
+func TestLimitsResource(t *testing.T) {
+	t.Parallel()
+
+	value := New().Workspace("ws_123").Limits().String()
+	require.Equal(t, "unkey:v1:ws_123:limits", value)
+
+	resource, err := ParseV1(value)
+	require.NoError(t, err)
+	require.Equal(t, value, resource.String())
+}
+
 // TestParseV1AllowsCanonicalPatterns guarantees canonical resource patterns use
 // wildcards only in supported positions.
 func TestParseV1AllowsCanonicalPatterns(t *testing.T) {
@@ -248,6 +261,7 @@ func TestParseV1AllowsCanonicalPatterns(t *testing.T) {
 	for _, value := range []string{
 		"unkey:v1:ws_123:github/apps/*",
 		"unkey:v1:ws_123:rootKeys/*",
+		"unkey:v1:ws_123:limits",
 		"unkey:v1:ws_123:projects/*",
 		"unkey:v1:ws_123:projects/*/portals/*",
 		"unkey:v1:ws_123:projects/*/portals/*/sessions/*",

@@ -6837,6 +6837,90 @@ type V2RootKeysUpdateKeyResponseBody struct {
 	Meta Meta `json:"meta"`
 }
 
+// V2WorkspaceGetLimitsLimit A workspace limit and, when the limit has one, the current value against it.
+type V2WorkspaceGetLimitsLimit struct {
+	// Current The current value against `limit`. Omitted when the limit has no current
+	// value, such as a retention period or a per-instance size.
+	//
+	//
+	// Example: 1
+	Current *float64 `json:"current,omitempty"`
+
+	// Limit The maximum the workspace can have. `null` means unlimited.
+	//
+	// Example: 5
+	Limit nullable.Nullable[int64] `json:"limit"`
+}
+
+// V2WorkspaceGetLimitsResponseBody defines model for V2WorkspaceGetLimitsResponseBody.
+type V2WorkspaceGetLimitsResponseBody struct {
+	// Data The workspace limits. The Compute limits are present only when the workspace
+	// has a Compute plan.
+	Data V2WorkspaceGetLimitsResponseData `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// V2WorkspaceGetLimitsResponseData The workspace limits. The Compute limits are present only when the workspace
+// has a Compute plan.
+type V2WorkspaceGetLimitsResponseData struct {
+	// ApiBillableOperationsCountMaxPerMonth Billable key verifications and rate limit operations per calendar month
+	// (UTC). `current` counts the current month.
+	ApiBillableOperationsCountMaxPerMonth V2WorkspaceGetLimitsLimit `json:"apiBillableOperationsCountMaxPerMonth"`
+
+	// ApiRequestsCountMaxPerMinute Authenticated API requests per minute. Requests above it get a 429.
+	// `limit` is `null` when the workspace has no per-minute limit. Has no `current`.
+	ApiRequestsCountMaxPerMinute V2WorkspaceGetLimitsLimit `json:"apiRequestsCountMaxPerMinute"`
+
+	// AutoscalingReplicasMax Instances that autoscaling runs for one app in one region. Has no `current`.
+	// Present only with a Compute plan.
+	AutoscalingReplicasMax *V2WorkspaceGetLimitsLimit `json:"autoscalingReplicasMax,omitempty"`
+
+	// BuildsConcurrentMax Builds that run at the same time. Has no `current`. Present only with a Compute plan.
+	BuildsConcurrentMax *V2WorkspaceGetLimitsLimit `json:"buildsConcurrentMax,omitempty"`
+
+	// CpuCoresMax CPU cores the workspace can reserve across all running deployments.
+	// `current` is reserved capacity, not live usage: each running deployment
+	// reserves its instance CPU times its maximum replicas, in each region it
+	// runs in. A deploy that would bring `current` above `limit` is rejected.
+	// Present only with a Compute plan.
+	CpuCoresMax *V2WorkspaceGetLimitsLimit `json:"cpuCoresMax,omitempty"`
+
+	// CpuCoresMaxPerInstance CPU cores for one instance. Has no `current`. Present only with a Compute plan.
+	CpuCoresMaxPerInstance *V2WorkspaceGetLimitsLimit `json:"cpuCoresMaxPerInstance,omitempty"`
+
+	// CustomDomainsMax Custom domains across all apps. `current` is the custom domains attached
+	// now. `limit` is `null` when the plan has no limit. Present only with a
+	// Compute plan.
+	CustomDomainsMax *V2WorkspaceGetLimitsLimit `json:"customDomainsMax,omitempty"`
+
+	// LogdrainsMax Log drains. `current` is the log drains in the workspace now.
+	LogdrainsMax V2WorkspaceGetLimitsLimit `json:"logdrainsMax"`
+
+	// LogsAuditRetentionDaysMax How many days audit logs are kept. Has no `current`.
+	LogsAuditRetentionDaysMax V2WorkspaceGetLimitsLimit `json:"logsAuditRetentionDaysMax"`
+
+	// LogsRetentionDaysMax How many days back request and runtime logs can be queried. Has no `current`.
+	LogsRetentionDaysMax V2WorkspaceGetLimitsLimit `json:"logsRetentionDaysMax"`
+
+	// MemoryMibMax Memory in MiB the workspace can reserve across all running deployments.
+	// `current` is reserved memory, counted the same way as `cpuCoresMax`.
+	// Present only with a Compute plan.
+	MemoryMibMax *V2WorkspaceGetLimitsLimit `json:"memoryMibMax,omitempty"`
+
+	// MemoryMibMaxPerInstance Memory in MiB for one instance. Has no `current`. Present only with a Compute plan.
+	MemoryMibMaxPerInstance *V2WorkspaceGetLimitsLimit `json:"memoryMibMaxPerInstance,omitempty"`
+
+	// StorageMibMax Ephemeral disk in MiB the workspace can reserve across all running
+	// deployments. `current` is reserved disk, counted the same way as
+	// `cpuCoresMax`. Present only with a Compute plan.
+	StorageMibMax *V2WorkspaceGetLimitsLimit `json:"storageMibMax,omitempty"`
+
+	// StorageMibMaxPerInstance Ephemeral disk in MiB for one instance. Has no `current`. Present only with a Compute plan.
+	StorageMibMaxPerInstance *V2WorkspaceGetLimitsLimit `json:"storageMibMaxPerInstance,omitempty"`
+}
+
 // V3DeploymentsCreateDeploymentRequestBody Create a deployment. Omit the source to use the app default, or provide one source override.
 type V3DeploymentsCreateDeploymentRequestBody struct {
 	// App Identifies a resource by either its unique ID or its slug.

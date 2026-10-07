@@ -4202,6 +4202,17 @@ components:
                     $ref: '#/components/schemas/Meta'
                 data:
                     $ref: '#/components/schemas/EmptyResponse'
+        V2WorkspaceGetLimitsResponseBody:
+            type: object
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    $ref: "#/components/schemas/Meta"
+                data:
+                    $ref: "#/components/schemas/V2WorkspaceGetLimitsResponseData"
+            additionalProperties: false
         V3DeploymentsCreateDeploymentRequestBody:
             type: object
             required:
@@ -7961,6 +7972,116 @@ components:
                     type: string
                     x-unkey-redact: true
                     description: New root key secret, returned only once. Store it securely.
+        V2WorkspaceGetLimitsResponseData:
+            type: object
+            description: |
+                The workspace limits. The Compute limits are present only when the workspace
+                has a Compute plan.
+            required:
+                - apiBillableOperationsCountMaxPerMonth
+                - apiRequestsCountMaxPerMinute
+                - logsRetentionDaysMax
+                - logsAuditRetentionDaysMax
+                - logdrainsMax
+            properties:
+                apiBillableOperationsCountMaxPerMonth:
+                    description: |
+                        Billable key verifications and rate limit operations per calendar month
+                        (UTC). `current` counts the current month.
+                    allOf:
+                        - "$ref": "#/components/schemas/V2WorkspaceGetLimitsLimit"
+                apiRequestsCountMaxPerMinute:
+                    description: |
+                        Authenticated API requests per minute. Requests above it get a 429.
+                        `limit` is `null` when the workspace has no per-minute limit. Has no `current`.
+                    allOf:
+                        - "$ref": "#/components/schemas/V2WorkspaceGetLimitsLimit"
+                logsRetentionDaysMax:
+                    description: How many days back request and runtime logs can be queried. Has no `current`.
+                    allOf:
+                        - "$ref": "#/components/schemas/V2WorkspaceGetLimitsLimit"
+                logsAuditRetentionDaysMax:
+                    description: How many days audit logs are kept. Has no `current`.
+                    allOf:
+                        - "$ref": "#/components/schemas/V2WorkspaceGetLimitsLimit"
+                logdrainsMax:
+                    description: Log drains. `current` is the log drains in the workspace now.
+                    allOf:
+                        - "$ref": "#/components/schemas/V2WorkspaceGetLimitsLimit"
+                cpuCoresMax:
+                    description: |
+                        CPU cores the workspace can reserve across all running deployments.
+                        `current` is reserved capacity, not live usage: each running deployment
+                        reserves its instance CPU times its maximum replicas, in each region it
+                        runs in. A deploy that would bring `current` above `limit` is rejected.
+                        Present only with a Compute plan.
+                    allOf:
+                        - "$ref": "#/components/schemas/V2WorkspaceGetLimitsLimit"
+                cpuCoresMaxPerInstance:
+                    description: CPU cores for one instance. Has no `current`. Present only with a Compute plan.
+                    allOf:
+                        - "$ref": "#/components/schemas/V2WorkspaceGetLimitsLimit"
+                memoryMibMax:
+                    description: |
+                        Memory in MiB the workspace can reserve across all running deployments.
+                        `current` is reserved memory, counted the same way as `cpuCoresMax`.
+                        Present only with a Compute plan.
+                    allOf:
+                        - "$ref": "#/components/schemas/V2WorkspaceGetLimitsLimit"
+                memoryMibMaxPerInstance:
+                    description: Memory in MiB for one instance. Has no `current`. Present only with a Compute plan.
+                    allOf:
+                        - "$ref": "#/components/schemas/V2WorkspaceGetLimitsLimit"
+                storageMibMax:
+                    description: |
+                        Ephemeral disk in MiB the workspace can reserve across all running
+                        deployments. `current` is reserved disk, counted the same way as
+                        `cpuCoresMax`. Present only with a Compute plan.
+                    allOf:
+                        - "$ref": "#/components/schemas/V2WorkspaceGetLimitsLimit"
+                storageMibMaxPerInstance:
+                    description: Ephemeral disk in MiB for one instance. Has no `current`. Present only with a Compute plan.
+                    allOf:
+                        - "$ref": "#/components/schemas/V2WorkspaceGetLimitsLimit"
+                buildsConcurrentMax:
+                    description: Builds that run at the same time. Has no `current`. Present only with a Compute plan.
+                    allOf:
+                        - "$ref": "#/components/schemas/V2WorkspaceGetLimitsLimit"
+                autoscalingReplicasMax:
+                    description: |
+                        Instances that autoscaling runs for one app in one region. Has no `current`.
+                        Present only with a Compute plan.
+                    allOf:
+                        - "$ref": "#/components/schemas/V2WorkspaceGetLimitsLimit"
+                customDomainsMax:
+                    description: |
+                        Custom domains across all apps. `current` is the custom domains attached
+                        now. `limit` is `null` when the plan has no limit. Present only with a
+                        Compute plan.
+                    allOf:
+                        - "$ref": "#/components/schemas/V2WorkspaceGetLimitsLimit"
+            additionalProperties: false
+        V2WorkspaceGetLimitsLimit:
+            type: object
+            description: A workspace limit and, when the limit has one, the current value against it.
+            required:
+                - limit
+            properties:
+                limit:
+                    type:
+                        - integer
+                        - "null"
+                    format: int64
+                    description: The maximum the workspace can have. `null` means unlimited.
+                    example: 5
+                current:
+                    type: number
+                    format: double
+                    description: |
+                        The current value against `limit`. Omitted when the limit has no current
+                        value, such as a retention period or a per-instance size.
+                    example: 1
+            additionalProperties: false
         DeploymentSourceOCI:
             type: object
             required:
@@ -17596,6 +17717,177 @@ paths:
             tags:
                 - rootKeys
             x-speakeasy-name-override: updateKey
+    /v2/workspace.getLimits:
+        post:
+            description: |
+                Get every limit of your workspace, with the current value against each
+                limit that has one.
+
+                Use this before an operation that a limit can reject, for example to see how
+                many custom domains or log drains remain, or how much CPU, memory, and disk
+                a new deployment can still reserve.
+
+                The request takes no parameters. Each limit has a `limit`, which is `null`
+                when unlimited, and a `current` value when the limit has one. Billable
+                operations count the current calendar month in UTC. The Compute limits are
+                present only when the workspace has a Compute plan.
+
+                **Required Permissions**
+
+                Your root key must have the following permission:
+                - `unkey:v1:<workspace_id>:limits#read`
+            operationId: workspace.getLimits
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            examples:
+                                withCompute:
+                                    description: API, log, and Compute limits with current values. Custom domains are unlimited, so their `limit` is `null`.
+                                    summary: Workspace with a Compute plan
+                                    value:
+                                        data:
+                                            apiBillableOperationsCountMaxPerMonth:
+                                                current: 42000
+                                                limit: 150000
+                                            apiRequestsCountMaxPerMinute:
+                                                limit: 1000
+                                            autoscalingReplicasMax:
+                                                limit: 10
+                                            buildsConcurrentMax:
+                                                limit: 2
+                                            cpuCoresMax:
+                                                current: 2.5
+                                                limit: 4
+                                            cpuCoresMaxPerInstance:
+                                                limit: 2
+                                            customDomainsMax:
+                                                current: 1
+                                                limit: null
+                                            logdrainsMax:
+                                                current: 0
+                                                limit: 1
+                                            logsAuditRetentionDaysMax:
+                                                limit: 30
+                                            logsRetentionDaysMax:
+                                                limit: 7
+                                            memoryMibMax:
+                                                current: 4096
+                                                limit: 8192
+                                            memoryMibMaxPerInstance:
+                                                limit: 4096
+                                            storageMibMax:
+                                                current: 2048
+                                                limit: 10240
+                                            storageMibMaxPerInstance:
+                                                limit: 5120
+                                        meta:
+                                            requestId: req_1234abcd
+                                withoutCompute:
+                                    description: No Compute plan, so the Compute limits are omitted. No per-minute limit, so its `limit` is `null`.
+                                    summary: Workspace without a Compute plan
+                                    value:
+                                        data:
+                                            apiBillableOperationsCountMaxPerMonth:
+                                                current: 42000
+                                                limit: 150000
+                                            apiRequestsCountMaxPerMinute:
+                                                limit: null
+                                            logdrainsMax:
+                                                current: 0
+                                                limit: 0
+                                            logsAuditRetentionDaysMax:
+                                                limit: 30
+                                            logsRetentionDaysMax:
+                                                limit: 7
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/V2WorkspaceGetLimitsResponseBody'
+                    description: |
+                        The workspace limits and the current values against them.
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Bad request
+                "401":
+                    content:
+                        application/json:
+                            examples:
+                                invalidRootKey:
+                                    summary: Invalid root key
+                                    value:
+                                        error:
+                                            detail: The provided root key is invalid. We could not find the requested key.
+                                            status: 401
+                                            title: Unauthorized
+                                            type: https://unkey.com/docs/errors/unkey/authentication/key_not_found
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Unauthorized
+                "403":
+                    content:
+                        application/json:
+                            examples:
+                                missingPermission:
+                                    summary: Missing required permission
+                                    value:
+                                        error:
+                                            detail: 'Missing permission: ''unkey:v1:ws_1234abcd:limits#read'''
+                                            status: 403
+                                            title: Insufficient Permissions
+                                            type: https://unkey.com/docs/errors/unkey/authorization/insufficient_permissions
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: Forbidden - Insufficient permissions (requires `unkey:v1:<workspace_id>:limits#read`)
+                "429":
+                    content:
+                        application/problem+json:
+                            examples:
+                                workspaceRateLimited:
+                                    summary: Workspace rate limit exceeded
+                                    value:
+                                        error:
+                                            detail: This workspace has exceeded its API rate limit of 1000/1m0s. Please try again later.
+                                            status: 429
+                                            title: Too Many Requests
+                                            type: https://unkey.com/docs/errors/user/too_many_requests/workspace_rate_limited
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/TooManyRequestsErrorResponse'
+                    description: Too Many Requests
+                "500":
+                    content:
+                        application/json:
+                            examples:
+                                limitsNotConfigured:
+                                    description: The workspace has no limits row, which support has to fix
+                                    summary: Limits not configured
+                                    value:
+                                        error:
+                                            detail: Resource limits are not configured for this workspace. Contact support@unkey.com.
+                                            status: 500
+                                            title: Internal Server Error
+                                            type: https://unkey.com/docs/errors/unkey/application/service_unavailable
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error
+            security:
+                - bearer: []
+            summary: Get workspace limits
+            tags:
+                - workspace
+            x-speakeasy-name-override: getLimits
+            x-unkey-idempotency: idempotent
     /v3/deployments.createDeployment:
         post:
             description: |
@@ -17708,6 +18000,8 @@ tags:
       name: ratelimit
     - description: GitHub App installation operations
       name: github
+    - description: Workspace limits and usage operations
+      name: workspace
 x-speakeasy-retries:
     backoff:
         exponent: 1.5

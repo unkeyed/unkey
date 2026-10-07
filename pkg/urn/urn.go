@@ -32,6 +32,7 @@ type resourcePathShape struct {
 var resourcePathShapes = []resourcePathShape{
 	{resource: new(GitHubApp), segments: []string{"github", "apps", resourceIDSegment}},
 	{resource: rootKey{}, segments: []string{"rootKeys", resourceIDSegment}},
+	{resource: limits{}, segments: []string{"limits"}},
 	{resource: new(Project), segments: []string{"projects", resourceIDSegment}},
 	{resource: new(App), segments: []string{"projects", resourceIDSegment, "apps", resourceIDSegment}},
 	{resource: new(Environment), segments: []string{"projects", resourceIDSegment, "apps", resourceIDSegment, "environments", resourceIDSegment}},

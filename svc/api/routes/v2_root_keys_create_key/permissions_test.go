@@ -20,6 +20,7 @@ func TestCreateStoresEveryResourceAction(t *testing.T) {
 	catalog := map[string][]string{
 		"github/apps/*":                    {"read", "write", "delete"},
 		"rootKeys/*":                       {"read", "write"},
+		"limits":                           {"read"},
 		"projects/*":                       {"read", "write", "delete"},
 		"projects/*/apps/*":                {"read", "write", "delete"},
 		"projects/*/apps/*/environments/*": {"read", "write", "delete"},
@@ -73,6 +74,7 @@ func TestCreateRejectsInvalidResourceActionsAtomically(t *testing.T) {
 	base := "unkey:v1:" + p.AuthorizedWorkspaceID + ":"
 	for _, permission := range []string{
 		base + "rootKeys/*#decrypt",
+		base + "limits#write",
 		base + "projects/*/keyspaces/*/logs#decrypt",
 		base + "projects/*/ratelimits/namespaces/*/overrides/*#limit",
 		base + "projects/*/apps/*/environments/*/gateway#write",
