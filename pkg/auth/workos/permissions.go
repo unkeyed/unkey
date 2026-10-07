@@ -129,6 +129,12 @@ var rolePolicies = map[string][]resourcePermission{
 	"viewer":       viewerPermissions,
 }
 
+// PermissionsForRoles expands organization roles into the permissions a root
+// key created for that member may receive.
+func PermissionsForRoles(workspaceID string, roles []string) []string {
+	return permissionsForRoles(workspaceID, roles)
+}
+
 // permissionsForRoles expands role slugs into API-owned permissions.
 // Unknown roles are ignored and logged so they cannot add permissions by accident.
 func permissionsForRoles(workspaceID string, roles []string) []string {

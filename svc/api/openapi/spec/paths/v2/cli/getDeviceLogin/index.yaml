@@ -1,0 +1,41 @@
+post:
+  x-speakeasy-ignore: true
+  tags:
+    - cli
+  summary: Get CLI device login
+  description: |
+    Returns the device label, requester details, and status for a user code.
+    Requires a dashboard session.
+  operationId: cli.getDeviceLogin
+  x-speakeasy-name-override: getDeviceLogin
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ./V2CliGetDeviceLoginRequestBody.yaml
+  responses:
+    "200":
+      description: Device login found.
+      content:
+        application/json:
+          schema:
+            $ref: ./V2CliGetDeviceLoginResponseBody.yaml
+    "400":
+      description: Unknown or invalid code.
+      content:
+        application/json:
+          schema:
+            $ref: ../../../../error/BadRequestErrorResponse.yaml
+    "401":
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            $ref: ../../../../error/UnauthorizedErrorResponse.yaml
+    "500":
+      description: Internal server error.
+      content:
+        application/json:
+          schema:
+            $ref: ../../../../error/InternalServerErrorResponse.yaml

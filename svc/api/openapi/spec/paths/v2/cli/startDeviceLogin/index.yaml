@@ -1,0 +1,43 @@
+post:
+  x-speakeasy-ignore: true
+  tags:
+    - cli
+  summary: Start CLI device login
+  description: |
+    Starts a device login for `unkey login`.
+    The response includes the user code and the dashboard URL where the user confirms it and chooses root-key permissions.
+    No authentication is required. Requests are rate limited per IP address.
+  operationId: cli.startDeviceLogin
+  x-speakeasy-name-override: startDeviceLogin
+  security: []
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ./V2CliStartDeviceLoginRequestBody.yaml
+  responses:
+    "200":
+      description: Device login started.
+      content:
+        application/json:
+          schema:
+            $ref: ./V2CliStartDeviceLoginResponseBody.yaml
+    "400":
+      description: Invalid input.
+      content:
+        application/json:
+          schema:
+            $ref: ../../../../error/BadRequestErrorResponse.yaml
+    "429":
+      description: Too many requests from this IP address.
+      content:
+        application/json:
+          schema:
+            $ref: ../../../../error/TooManyRequestsErrorResponse.yaml
+    "500":
+      description: Internal server error, including when CLI login is not configured on this API.
+      content:
+        application/json:
+          schema:
+            $ref: ../../../../error/InternalServerErrorResponse.yaml

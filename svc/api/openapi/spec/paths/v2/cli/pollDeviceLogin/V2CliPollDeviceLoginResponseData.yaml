@@ -1,0 +1,28 @@
+type: object
+required:
+  - status
+  - interval
+properties:
+  status:
+    type: string
+    enum:
+      - permissions_required
+      - access_denied
+      - expired_token
+      - complete
+    description: |
+      `permissions_required` while the user has not approved the login yet. `access_denied` and `expired_token` are terminal. `complete` includes the root key.
+  interval:
+    type: integer
+    format: int64
+    description: Seconds to wait before polling again.
+  detail:
+    type: string
+    description: Human-readable reason for a terminal status.
+  keyId:
+    type: string
+    description: Root key identifier. Present only when status is complete.
+  key:
+    type: string
+    x-unkey-redact: true
+    description: Root key secret, returned only once. Present only when status is complete.
