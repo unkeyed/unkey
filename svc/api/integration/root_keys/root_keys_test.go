@@ -16,6 +16,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/integration"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
+	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_keys_verify_key"
 )
 
@@ -128,7 +129,8 @@ func TestGetRootKey_Disabled(t *testing.T) {
 	require.Equal(t, 403, res.Status, "should return 403 for disabled root key")
 }
 
-// TestGetRootKey_Expired tests that an expired root key returns proper error
+// TestGetRootKey_Expired guarantees that authentication does not reveal
+// whether an invalid root key exists.
 func TestGetRootKey_Expired(t *testing.T) {
 
 	ctx := context.Background()
@@ -164,11 +166,12 @@ func TestGetRootKey_Expired(t *testing.T) {
 	}
 
 	lb := integration.NewLoadbalancer(h)
-	res, err := integration.CallRandomNode[handler.Request, handler.Response](
+	res, err := integration.CallRandomNode[handler.Request, openapi.ForbiddenErrorResponse](
 		lb, "POST", "/v2/keys.verifyKey", headers, req)
 
 	require.NoError(t, err)
 	require.Equal(t, 403, res.Status, "should return 403 for expired root key")
+	require.Equal(t, "The provided root key is invalid.", res.Body.Error.Detail)
 }
 
 // TestGetRootKey_TargetWorkspaceDisabled tests that a root key for a disabled workspace returns proper error

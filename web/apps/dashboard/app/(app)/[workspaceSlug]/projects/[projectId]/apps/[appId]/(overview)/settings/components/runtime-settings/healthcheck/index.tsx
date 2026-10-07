@@ -9,13 +9,14 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
+  firstMatchingSaveState,
 } from "@unkey/ui";
 import { useEffect } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { useEnvironmentSettings } from "../../../environment-provider";
 import { useUpdateAllEnvironments } from "../../../hooks/use-update-all-environments";
 import { SettingField } from "../../shared/form-blocks";
-import { FormSettingCard, resolveSaveState } from "../../shared/form-setting-card";
+import { FormSettingCard } from "../../shared/form-setting-card";
 import { RemoveButton } from "../../shared/remove-button";
 import { MethodBadge } from "./method-badge";
 import { HTTP_METHODS, type HealthcheckFormValues, healthcheckSchema } from "./schema";
@@ -72,7 +73,7 @@ export const Healthcheck = () => {
     reset({ method: "GET", path: "", interval: "30s" });
   };
 
-  const saveState = resolveSaveState([
+  const saveState = firstMatchingSaveState([
     [isSubmitting, { status: "saving" }],
     [!isValid, { status: "disabled" }],
     [!isDirty, { status: "disabled", reason: "No changes to save" }],
