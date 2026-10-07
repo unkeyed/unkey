@@ -4,16 +4,47 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 	logdrainv1 "github.com/unkeyed/unkey/gen/proto/logdrain/v1"
+	"github.com/unkeyed/unkey/pkg/openapi/validation"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	logdrains "github.com/unkeyed/unkey/svc/api/routes/v2_logdrains_create_logdrain"
 	"google.golang.org/protobuf/proto"
 )
+
+func TestCreateSchemaRequiresDestinationFields(t *testing.T) {
+	validator, err := validation.NewFromBytes(openapi.Spec)
+	require.NoError(t, err)
+	for _, tc := range []struct {
+		name        string
+		destination string
+		valid       bool
+	}{
+		{"missing HTTP URL", `{"http":{"format":"json"}}`, false},
+		{"missing Axiom dataset", `{"axiom":{"token":"secret"}}`, false},
+		{"missing Axiom token", `{"axiom":{"dataset":"logs"}}`, false},
+		{"HTTP URL", `{"http":{"url":"https://logs.example.com"}}`, true},
+		{"Axiom dataset and token", `{"axiom":{"dataset":"logs","token":"secret"}}`, true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			request := httptest.NewRequest(http.MethodPost, "/v2/logdrains.createLogdrain", strings.NewReader(`{"name":"Logs","stream":"audit_logs","destination":`+tc.destination+`}`))
+			request.Header.Set("Content-Type", "application/json")
+			request.Header.Set("Authorization", "Bearer test")
+			result := validator.Validate(request)
+			if tc.valid {
+				require.Nil(t, result)
+			} else {
+				require.NotNil(t, result)
+			}
+		})
+	}
+}
 
 func TestCreateRejectsInvalidInputWithoutChangingExistingDrains(t *testing.T) {
 	h := testutil.NewHarness(t)
