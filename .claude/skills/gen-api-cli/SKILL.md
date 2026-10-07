@@ -346,7 +346,7 @@ The project uses strict linters via golangci-lint. Watch out for:
 
 ## Step 5: Generate documentation
 
-For each command, generate a documentation page at `docs/product/cli/{group}/{command-name}.mdx`.
+For each command, generate a documentation page at `docs/{product}/cli/{group}/{command-name}.mdx`, where `{product}` is `api-management` or `compute`.
 
 ### Doc file structure
 
@@ -441,27 +441,24 @@ unkey api keys create-key --api-id=api_123 --meta='{"plan":"pro"}'
 
 ### Register in docs.json
 
-**IMPORTANT**: Every new doc file MUST be registered in `docs/product/docs.json` or it won't appear in the documentation site. After creating doc files, read the current `docs.json`, find the CLI navigation group, and add any missing pages. The structure should be:
+**IMPORTANT**: Every new doc file MUST be registered in `docs/docs.json` or it won't appear in the documentation site. After creating doc files, read the current `docs.json`, find the product's CLI navigation group, and add any missing pages. The structure should be:
 
 ```json
 {
-  "group": "CLI",
-  "icon": "terminal",
-  "pages": [
-    "cli/overview",
+  "groups": [
     {
-      "group": "apis",
+      "group": "APIs",
       "pages": [
-        "cli/apis/create-api",
-        "cli/apis/delete-api",
-        "cli/apis/get-api",
-        "cli/apis/list-keys"
+        "api-management/cli/apis/create-api",
+        "api-management/cli/apis/delete-api",
+        "api-management/cli/apis/get-api",
+        "api-management/cli/apis/list-keys"
       ]
     },
     {
-      "group": "keys",
+      "group": "Keys",
       "pages": [
-        "cli/keys/create-key",
+        "api-management/cli/keys/create-key",
         ...
       ]
     }
@@ -472,7 +469,7 @@ unkey api keys create-key --api-id=api_123 --meta='{"plan":"pro"}'
 ### Audit mode docs and tests check
 
 When running in `check` mode, also report:
-- **Missing docs**: CLI commands with no corresponding `.mdx` file in `docs/product/cli/`
+- **Missing docs**: CLI commands with no corresponding `.mdx` file in `docs/api-management/cli/` or `docs/compute/cli/`
 - **Missing from nav**: Doc files that exist but aren't registered in `docs.json`
 - **Missing tests**: CLI command files with no corresponding `_test.go` file. Do not require per-leaf body-mode tests unless the command has structurally unusual request construction.
 - **Body flag ownership**: A leaf command that does not explicitly define exactly one `--body` flag.

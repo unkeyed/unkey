@@ -6,7 +6,6 @@
 <div align="center">
   <a href="https://go.unkey.com">unkey.com</a> ·
   <a href="https://www.unkey.com/docs">Docs</a> ·
-  <a href="https://engineering.unkey.com">Engineering</a> ·
   <a href="https://go.unkey.com/discord">Discord</a>
 </div>
 <br/>

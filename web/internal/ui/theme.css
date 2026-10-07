@@ -45,7 +45,6 @@ When to use certain tokens:
   --shadow-floating: var(--elevation-floating);
 
   --animate-marquee: marquee 15s linear infinite;
-  --animate-error-blink: error-blink 0.7s ease-in-out;
   --animate-fade-slide-in: fade-slide-in 0.3s ease-out forwards;
   --animate-fade-in: fade-in 0.5s ease-out;
   --animate-fade-in-down: fade-in-down 0.3s ease-out backwards;
@@ -60,20 +59,6 @@ When to use certain tokens:
     }
     100% {
       transform: translateX(-100%);
-    }
-  }
-  @keyframes error-blink {
-    0%,
-    100% {
-      background-color: var(--color-error-2);
-    }
-    20%,
-    60% {
-      background-color: var(--color-error-5);
-    }
-    40%,
-    80% {
-      background-color: var(--color-error-3);
     }
   }
   @keyframes fade-slide-in {

@@ -187,7 +187,7 @@ export function ProductionCardMetadata() {
             <Avatar src={deployment.gitCommitAuthorAvatarUrl} alt="Author" />
           )}
           {deployment.source === "git" && deployment.gitCommitAuthorHandle && (
-            <span className="font-medium text-gray-12 text-sm truncate">
+            <span data-sentry-mask className="font-medium text-gray-12 text-sm truncate">
               {deployment.gitCommitAuthorHandle}
             </span>
           )}

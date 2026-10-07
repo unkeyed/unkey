@@ -5,14 +5,22 @@ import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Button, Input, SettingCard } from "@unkey/ui";
+import {
+  FormInput,
+  SettingsForm,
+  SettingsRow,
+  SettingsRowContent,
+  SettingsRowDescription,
+  SettingsRowHeader,
+  SettingsRowTitle,
+  formSaveState,
+} from "@unkey/ui";
 import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
 import { keyBytesSchema } from "../../_components/create-key/create-key.schema";
 import {
   createApiFormConfig,
   createMutationHandlers,
-  getStandardButtonProps,
   validateFormChange,
 } from "./key-settings-form-helper";
 
@@ -37,7 +45,8 @@ export const DefaultBytes: React.FC<Props> = ({ keyAuth, apiId }) => {
   const {
     control,
     handleSubmit,
-    formState: { isValid, isSubmitting, isDirty },
+    reset,
+    formState: { isValid, isSubmitting, isDirty, errors },
   } = useForm<z.infer<typeof formSchema>>({
     ...createApiFormConfig(formSchema),
     // biome-ignore lint/suspicious/noExplicitAny: Zod v4 type inference with z.coerce creates resolver type mismatch
@@ -65,42 +74,44 @@ export const DefaultBytes: React.FC<Props> = ({ keyAuth, apiId }) => {
     }
 
     await setDefaultBytes.mutateAsync(values);
+    reset(values);
 
     revalidate(routes.apis.settings({ workspaceSlug: workspace.slug, ...scope, apiId }));
   }
 
   return (
-    <SettingCard
-      title="Default Bytes"
-      description={
-        <div className="max-w-[380px]">
-          Sets the default byte size for keys under this keyspace. Must be between 16 and 255.
-        </div>
-      }
-      contentWidth="w-full lg:w-[420px] h-full justify-end items-end"
+    <SettingsForm
+      onSubmit={handleSubmit(onSubmit)}
+      dirty={isDirty}
+      saveState={formSaveState({ isSubmitting, isValid, isDirty })}
     >
-      <form
-        onSubmit={handleSubmit(onSubmit)}
-        className="flex flex-row justify-end items-center gap-x-2 h-9"
-      >
-        <input type="hidden" name="keyAuthId" value={keyAuth.id} />
+      <SettingsRow>
+        <SettingsRowHeader>
+          <SettingsRowTitle>Default Bytes</SettingsRowTitle>
+          <SettingsRowDescription>
+            Sets the default byte size for keys under this keyspace. Must be between 16 and 255.
+          </SettingsRowDescription>
+        </SettingsRowHeader>
+        <SettingsRowContent>
+          <input type="hidden" name="keyAuthId" value={keyAuth.id} />
 
-        <Controller
-          control={control}
-          name="defaultBytes"
-          render={({ field }) => (
-            <Input
-              {...field}
-              className="min-w-64 items-end h-9"
-              autoComplete="off"
-              type="text"
-              onChange={(e) => field.onChange(Number(e.target.value.replace(/\D/g, "")))}
-            />
-          )}
-        />
-
-        <Button {...getStandardButtonProps(isValid, isSubmitting, isDirty)}>Save</Button>
-      </form>
-    </SettingCard>
+          <Controller
+            control={control}
+            name="defaultBytes"
+            render={({ field }) => (
+              <FormInput
+                {...field}
+                aria-label="Default Bytes"
+                className="max-w-(--setting-w)"
+                autoComplete="off"
+                type="text"
+                error={errors.defaultBytes?.message}
+                onChange={(e) => field.onChange(Number(e.target.value.replace(/\D/g, "")))}
+              />
+            )}
+          />
+        </SettingsRowContent>
+      </SettingsRow>
+    </SettingsForm>
   );
 };

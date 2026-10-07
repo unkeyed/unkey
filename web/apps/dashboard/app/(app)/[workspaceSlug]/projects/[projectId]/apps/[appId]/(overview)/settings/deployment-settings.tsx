@@ -8,7 +8,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { and, eq, useLiveQuery } from "@tanstack/react-db";
 import { useMutation } from "@tanstack/react-query";
 import { match } from "@unkey/match";
-import { FormInput, SettingCardGroup, toast } from "@unkey/ui";
+import { FormInput, SettingCardGroup, firstMatchingSaveState, toast } from "@unkey/ui";
 import { useEffect } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
@@ -38,7 +38,7 @@ import { CustomDomains } from "./components/advanced-settings/custom-domains";
 import { OpenapiSpecPath } from "./components/advanced-settings/openapi-spec-path";
 import { UpstreamProtocol } from "./components/advanced-settings/upstream-protocol";
 import { SettingField } from "./components/shared/form-blocks";
-import { FormSettingCard, resolveSaveState } from "./components/shared/form-setting-card";
+import { FormSettingCard } from "./components/shared/form-setting-card";
 import { SettingsGroup } from "./components/shared/settings-group";
 
 // build is only required to invalidate other defaults. E.g onboarding settings, passes build=true to prevent expanding other sections.
@@ -184,7 +184,7 @@ const OCIImage = ({
   }, [imageReference, reset]);
 
   const currentImageReference = useWatch({ control, name: "imageReference" });
-  const saveState = resolveSaveState([
+  const saveState = firstMatchingSaveState([
     [isSubmitting, { status: "saving" }],
     [!isValid, { status: "disabled" }],
     [

@@ -49,7 +49,7 @@ const fieldGroupInvalidClasses =
 
 const inputGroupVariants = cva(
   [
-    "flex w-full items-center",
+    "flex h-9 w-full items-center has-[textarea]:h-auto",
     fieldBaseClasses,
     fieldGroupInvalidClasses,
     "has-[input:disabled]:opacity-50 has-[input:disabled]:cursor-not-allowed",
@@ -97,7 +97,7 @@ function InputGroupInput({ className, ref, ...props }: InputGroupInputProps) {
     <input
       ref={ref}
       className={cn(
-        "flex h-9 w-full min-w-0 flex-1 bg-transparent px-2 text-sm leading-5 text-grayA-12 placeholder:text-grayA-8 focus:outline-hidden disabled:cursor-not-allowed",
+        "flex h-full w-full min-w-0 flex-1 bg-transparent px-2 text-sm leading-5 text-grayA-12 placeholder:text-grayA-8 focus:outline-hidden disabled:cursor-not-allowed",
         className,
       )}
       {...props}
