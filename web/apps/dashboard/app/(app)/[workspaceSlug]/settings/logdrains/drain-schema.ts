@@ -12,9 +12,7 @@ const outcomesSchema = z.array(z.enum(KEY_VERIFICATION_OUTCOMES)).max(256);
 const keySpaceIdsSchema = resourceIdsSchema;
 const severitiesSchema = z.array(z.string().trim().min(1).max(256)).max(256);
 const passedSchema = z.array(z.boolean()).max(2);
-const statusClassesSchema = z
-  .array(z.union([z.literal(2), z.literal(3), z.literal(4), z.literal(5)]))
-  .max(4);
+const statusClassesSchema = z.array(z.enum(["2xx", "3xx", "4xx", "5xx"])).max(4);
 
 const headerRowSchema = z.object({
   name: z.string().max(256, "Header name must be 256 characters or less"),
@@ -234,7 +232,7 @@ export function editDrainSchemaFor(current: DrainFormValues) {
   });
 }
 
-export function submittedStatusClasses(values: DrainFormValues): number[] {
+export function submittedStatusClasses(values: DrainFormValues): DrainFormValues["statusClasses"] {
   switch (values.statusMode) {
     case "all":
       return [];
@@ -269,7 +267,9 @@ export function submittedSources(values: DrainFormValues): {
   };
 }
 
-function statusModeFor(statusClasses: number[]): DrainFormValues["statusMode"] {
+function statusModeFor(
+  statusClasses: DrainFormValues["statusClasses"],
+): DrainFormValues["statusMode"] {
   return statusClasses.length === 0 ? "all" : "custom";
 }
 

@@ -144,7 +144,11 @@ it.each(["gateway_requests", "runtime_logs"] as const)(
   async (stream) => {
     const stored: DrainDetail =
       stream === "gateway_requests"
-        ? { ...drain, stream, filters: { ...drain.filters, statusClasses: [4, 5], severities: [] } }
+        ? {
+            ...drain,
+            stream,
+            filters: { ...drain.filters, statusClasses: ["4xx", "5xx"], severities: [] },
+          }
         : drain;
     const { result } = renderHook(() => useDrainSettings(stored, { onDeleted: vi.fn() }));
     act(() => result.current.form.setValue("name", "Renamed"));

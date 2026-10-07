@@ -628,11 +628,11 @@ function GatewayStatusesField() {
             name="statusClasses"
             render={({ field }) => (
               <ChoiceMultibox
-                value={field.value.map(String)}
-                onChange={(values) => field.onChange(values.map(Number))}
+                value={field.value}
+                onChange={field.onChange}
                 onBlur={field.onBlur}
-                options={["2", "3", "4", "5"]}
-                getLabel={(value) => `${value}xx`}
+                options={["2xx", "3xx", "4xx", "5xx"]}
+                getLabel={(value) => value}
                 searchLabel="Search HTTP statuses"
                 placeholder="Choose status classes"
                 emptyMessage="No HTTP statuses found."

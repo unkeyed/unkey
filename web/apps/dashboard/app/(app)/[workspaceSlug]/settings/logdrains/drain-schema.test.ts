@@ -43,7 +43,7 @@ it.each<{ stream: DrainFormValues["stream"]; expected: object }>([
     stream: "gateway_requests",
     expected: {
       gatewayRequests: {
-        statusClasses: [4],
+        statusClasses: ["4xx"],
         projectIds: ["project"],
         appIds: [],
         environmentIds: [],
@@ -71,7 +71,7 @@ it.each<{ stream: DrainFormValues["stream"]; expected: object }>([
       outcomes: ["VALID"],
       keySpaceIds: ["ks"],
       statusMode: "custom",
-      statusClasses: [4],
+      statusClasses: ["4xx"],
       sourceMode: "some",
       projectIds: ["project"],
       severities: ["warn"],
@@ -226,7 +226,7 @@ describe("createDrainSchema", () => {
 describe("submittedStatusClasses", () => {
   it("sends nothing in all mode", () => {
     expect(
-      submittedStatusClasses({ ...emptyDrainForm, statusMode: "all", statusClasses: [2] }),
+      submittedStatusClasses({ ...emptyDrainForm, statusMode: "all", statusClasses: ["2xx"] }),
     ).toEqual([]);
   });
 
@@ -237,18 +237,18 @@ describe("submittedStatusClasses", () => {
       status: "running",
       stream: "gateway_requests",
       destination: { http: { url: "https://example.com/ingest", format: "ndjson", headers: [] } },
-      filters: { statusClasses: [5, 4] },
+      filters: { statusClasses: ["5xx", "4xx"] },
       batchSize: 10000,
       createdAt: 123,
     });
     expect(values.statusMode).toBe("custom");
-    expect(submittedStatusClasses(values)).toEqual([5, 4]);
+    expect(submittedStatusClasses(values)).toEqual(["5xx", "4xx"]);
   });
 
   it("sends the chosen classes in custom mode", () => {
     expect(
-      submittedStatusClasses({ ...emptyDrainForm, statusMode: "custom", statusClasses: [3] }),
-    ).toEqual([3]);
+      submittedStatusClasses({ ...emptyDrainForm, statusMode: "custom", statusClasses: ["3xx"] }),
+    ).toEqual(["3xx"]);
   });
 });
 

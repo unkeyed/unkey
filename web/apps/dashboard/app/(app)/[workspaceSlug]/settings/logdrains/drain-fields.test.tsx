@@ -351,7 +351,7 @@ function Form() {
       eventTypes: ["key.create"],
       eventTypesMode: "specific",
       outcomes: ["RATE_LIMITED"],
-      statusClasses: [4],
+      statusClasses: ["4xx"],
       severities: ["error"],
       passed: [false],
     },
