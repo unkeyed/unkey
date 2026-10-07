@@ -79,10 +79,10 @@ func TestListSessionsRejectsDashboardPortalReaders(t *testing.T) {
 		t.Run(role, func(t *testing.T) {
 			h := testutil.NewHarness(t)
 			workspace := h.Resources().UserWorkspace
-			route := registerAs(h, dashboardPrincipal(workspace.ID, role,
-				fmt.Sprintf("unkey:v1:%s:projects/*/portals/*#read", workspace.ID)))
-
 			stored := seedPortal(t, h, workspace.ID, "list-dashboard-"+role)
+			route := registerAs(h, dashboardPrincipal(workspace.ID, role,
+				fmt.Sprintf("unkey:v1:%s:projects/%s/portals/%s#read", workspace.ID, stored.ProjectID, stored.ID)))
+
 			insertSession(t, h, stored.ID, workspace.ID, active(h, "user_1"))
 
 			res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, jwtHeaders(), request(stored.ID))

@@ -14,7 +14,7 @@ import (
 
 func TestListSessionsRejectsInvalidBody(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route, headers := newRoute(t, h, workspaceAdminPermission(h))
+	route, headers := newRoute(t, h)
 	workspace := h.Resources().UserWorkspace
 	stored := seedPortal(t, h, workspace.ID, "list-invalid")
 
