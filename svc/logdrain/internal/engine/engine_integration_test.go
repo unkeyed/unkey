@@ -158,7 +158,8 @@ type drainState struct {
 }
 
 func TestEngine_Integration(t *testing.T) {
-	mysqlCfg := containers.MySQL(t)
+	// Lease acquisition scans all workspaces, including other suites' old cursors.
+	mysqlCfg := containers.MySQLIsolated(t)
 	clickhouseCfg := containers.ClickHouse(t)
 	mysqlDB, err := sql.Open("mysql", mysqlCfg.DSN)
 	require.NoError(t, err)
