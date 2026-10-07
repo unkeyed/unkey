@@ -26,7 +26,10 @@ func TestDistributedCacheInvalidation_EndToEnd(t *testing.T) {
 	api := h.Seed.CreateAPI(context.Background(), seed.CreateApiRequest{
 		WorkspaceID: h.Seed.Resources.UserWorkspace.ID,
 	})
-	rootKey := h.Seed.CreateRootKey(context.Background(), api.WorkspaceID, fmt.Sprintf("api.%s.read_api", api.ID), fmt.Sprintf("api.%s.delete_api", api.ID))
+	rootKey := h.Seed.CreateRootKey(context.Background(), api.WorkspaceID,
+		fmt.Sprintf("unkey:v1:%s:projects/%s/keyspaces/%s#read", api.WorkspaceID, api.ProjectID, api.KeyAuthID.String),
+		fmt.Sprintf("unkey:v1:%s:projects/%s/keyspaces/%s#delete", api.WorkspaceID, api.ProjectID, api.KeyAuthID.String),
+	)
 
 	headers := http.Header{
 		"Authorization": []string{"Bearer " + rootKey},
@@ -134,7 +137,9 @@ func TestCacheDebugHeaders(t *testing.T) {
 	api := h.Seed.CreateAPI(context.Background(), seed.CreateApiRequest{
 		WorkspaceID: h.Seed.Resources.UserWorkspace.ID,
 	})
-	rootKey := h.Seed.CreateRootKey(context.Background(), api.WorkspaceID, fmt.Sprintf("api.%s.read_api", api.ID))
+	rootKey := h.Seed.CreateRootKey(context.Background(), api.WorkspaceID,
+		fmt.Sprintf("unkey:v1:%s:projects/%s/keyspaces/%s#read", api.WorkspaceID, api.ProjectID, api.KeyAuthID.String),
+	)
 
 	headers := http.Header{
 		"Authorization": []string{"Bearer " + rootKey},
