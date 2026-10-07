@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
+	"strings"
 	"time"
 
 	"connectrpc.com/connect"
@@ -56,6 +57,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/pkg/zen/validation"
+	"github.com/unkeyed/unkey/svc/api/internal/clidevice"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	"github.com/unkeyed/unkey/svc/api/routes"
 )
@@ -501,6 +503,11 @@ func Run(ctx context.Context, cfg Config) error {
 		githubClient = ghc
 	}
 
+	var devices clidevice.DeviceAuthorizer
+	if strings.TrimSpace(cfg.CLIAuth.WorkOSAPIKey) != "" && strings.TrimSpace(cfg.CLIAuth.WorkOSClientID) != "" {
+		devices = authworkos.NewDeviceClient(cfg.CLIAuth.WorkOSAPIKey, cfg.CLIAuth.WorkOSAPIBaseURL)
+	}
+
 	routes.Register(srv, &routes.Services{
 		Database:          database,
 		ClickHouse:        ch,
@@ -533,6 +540,16 @@ func Run(ctx context.Context, cfg Config) error {
 		GitHubAppName:              cfg.GitHub.AppName,
 		GitHubPrivateKeyPEM:        cfg.GitHub.PrivateKeyPEM,
 		GitHubClient:               githubClient,
+		CLIDevice: &clidevice.Service{
+			DB:               database,
+			Keys:             keySvc,
+			Auditlogs:        auditlogSvc,
+			Clock:            clk,
+			Ratelimit:        rlSvc,
+			Devices:          devices,
+			ClientID:         cfg.CLIAuth.WorkOSClientID,
+			DashboardBaseURL: cfg.CLIAuth.DashboardBaseURL,
+		},
 	},
 		zen.InstanceInfo{
 			ID:     cfg.InstanceID,

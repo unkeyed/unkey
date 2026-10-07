@@ -1,0 +1,29 @@
+type: object
+required:
+  - userCode
+  - status
+  - createdAt
+  - expiresAt
+properties:
+  userCode:
+    type: string
+  deviceName:
+    type: string
+    description: Label sent by the CLI. The requester chooses it, so do not trust it.
+  requesterIp:
+    type: string
+    description: IP address that started the login. Empty when the API could not determine it.
+  requesterUserAgent:
+    type: string
+    description: User agent of the client that started the login.
+  status:
+    type: string
+    description: pending, approved, consumed, denied, or expired.
+  createdAt:
+    type: integer
+    format: int64
+    description: Unix millisecond time the login was started.
+  expiresAt:
+    type: integer
+    format: int64
+    description: Unix millisecond expiry.

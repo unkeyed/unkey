@@ -1,0 +1,44 @@
+post:
+  x-speakeasy-ignore: true
+  tags:
+    - cli
+  summary: Poll CLI device login
+  description: |
+    Polls a device login started by cli.startDeviceLogin.
+    While the user is confirming the code or choosing permissions, the status is `permissions_required`.
+    When both steps are done, the response includes a root key secret exactly once.
+    No authentication header is required. `loginId` is the secret. Requests are rate limited per IP address.
+  operationId: cli.pollDeviceLogin
+  x-speakeasy-name-override: pollDeviceLogin
+  security: []
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ./V2CliPollDeviceLoginRequestBody.yaml
+  responses:
+    "200":
+      description: Current login state. `complete` includes the root key secret.
+      content:
+        application/json:
+          schema:
+            $ref: ./V2CliPollDeviceLoginResponseBody.yaml
+    "400":
+      description: Unknown login.
+      content:
+        application/json:
+          schema:
+            $ref: ../../../../error/BadRequestErrorResponse.yaml
+    "429":
+      description: Too many requests from this IP address.
+      content:
+        application/json:
+          schema:
+            $ref: ../../../../error/TooManyRequestsErrorResponse.yaml
+    "500":
+      description: Internal server error, including when CLI login is not configured on this API.
+      content:
+        application/json:
+          schema:
+            $ref: ../../../../error/InternalServerErrorResponse.yaml

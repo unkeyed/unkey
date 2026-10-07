@@ -1,0 +1,10 @@
+type: object
+additionalProperties: false
+required:
+  - loginId
+properties:
+  loginId:
+    type: string
+    minLength: 8
+    maxLength: 48
+    description: loginId from cli.startDeviceLogin.
