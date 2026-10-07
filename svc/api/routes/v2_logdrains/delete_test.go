@@ -15,7 +15,7 @@ import (
 
 func TestDeleteWorksAfterAllowanceRevoked(t *testing.T) {
 	h := testutil.NewHarness(t)
-	create := &createRoute.Create{
+	create := &createRoute.Handler{
 		DB:          h.DB,
 		Vault:       h.Vault,
 		Auditlogs:   h.Auditlogs,
@@ -38,7 +38,7 @@ func TestDeleteWorksAfterAllowanceRevoked(t *testing.T) {
 		"Authorization": {"Bearer " + key},
 		"Content-Type":  {"application/json"},
 	}
-	created := testutil.CallRoute[json.RawMessage, openapi.LogdrainMutationResponse](h, create, headers, json.RawMessage(`{"name":"Delete me","stream":"audit_logs","destination":{"http":{"url":"https://logs.example.com"}}}`))
+	created := testutil.CallRoute[json.RawMessage, openapi.LogdrainMutationResponse](h, create, headers, json.RawMessage(`{"name":"Delete me","stream":{"auditLogs":{}},"destination":{"http":{"url":"https://logs.example.com"}}}`))
 	require.Equal(t, http.StatusOK, created.Status)
 	_, err = h.DB.RW().ExecContext(context.Background(), "UPDATE `limits` SET logdrains_max = 0 WHERE workspace_id = ?", workspaceID)
 	require.NoError(t, err)
