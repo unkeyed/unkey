@@ -2,8 +2,11 @@ import { and, db, desc, eq, isNotNull, lt, ne, or, sql } from "@/lib/db";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { deployments, environments } from "@unkey/db/src/schema";
 import { z } from "zod";
-import { deploymentListSelect, excludeSkipped } from "./deployment-query-helpers";
-import { enrichDeploymentRows } from "./enrich-deployment-rows";
+import {
+  deploymentListSelect,
+  excludeSkipped,
+  normalizeDeploymentRow,
+} from "./deployment-query-helpers";
 
 const MAX_LIMIT = 100;
 
@@ -75,7 +78,7 @@ export const listActiveBranches = workspaceProcedure
     }
 
     return {
-      branches: await enrichDeploymentRows(ctx.workspace.id, branchRows),
+      branches: branchRows.map((row) => ({ ...row, ...normalizeDeploymentRow(row) })),
       nextCursor,
     };
   });
