@@ -24,9 +24,9 @@ _If there is not an issue for this, create one first. This is used for tracking 
 
 ## Screenshots / recordings
 
-<!-- Required for any visual change. Add a screenshot for a static change and a screen recording for a flow or an interaction. Show before and after when you change something that exists. 
+<!-- Required for any visual change. Add a screenshot for a static change and a screen recording for a flow or an interaction. Show before and after when you change something that exists.
 
-For taking good screenshots / videos - **read** the guide: ../docs/engineering/contributing/quality/screenshots-and-recordings.mdx -->
+For taking good screenshots / videos - **read** the guide: ../contributing/quality/screenshots-and-recordings.md -->
 
 _Not applicable: this PR makes no visual change._
 
@@ -54,7 +54,7 @@ _Not applicable: this PR makes no visual change._
 - [ ] Removed all `console.logs`
 - [ ] Merged the latest changes from main onto my branch with `git pull origin main`
 - [ ] My changes don't cause any responsiveness issues
-- [ ] If I made a visual change: Filled out the "Screenshots / recordings" section, as shown in the [screenshot and recording guide](../docs/engineering/contributing/quality/screenshots-and-recordings.mdx)
+- [ ] If I made a visual change: Filled out the "Screenshots / recordings" section, as shown in the [screenshot and recording guide](../contributing/quality/screenshots-and-recordings.md)
 
 ### Appreciated
 

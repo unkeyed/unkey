@@ -288,7 +288,7 @@ func (c *Controller) buildReplicaSet(req *ctrlv1.ApplyDeployment, hasSecrets boo
 		EnableServiceLinks:           new(false),
 		NodeSelector:                 map[string]string{nodeClassLabelKey: CustomerNodeClass},
 		Tolerations:                  []corev1.Toleration{untrustedToleration},
-		TopologySpreadConstraints:    deploymentTopologySpread(req.GetDeploymentId()),
+		TopologySpreadConstraints:    deploymentTopologySpread(req.GetDeploymentId(), req.GetAutoscaling().GetMaxReplicas()),
 		Containers:                   []corev1.Container{container},
 	}
 

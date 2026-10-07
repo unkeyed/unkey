@@ -2,14 +2,14 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { IconBracketsCurlyOutline18 } from "@unkey/icons";
-import { FormInput } from "@unkey/ui";
+import { FormInput, firstMatchingSaveState } from "@unkey/ui";
 import { useEffect } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { useEnvironmentSettings } from "../../environment-provider";
 import { useUpdateAllEnvironments } from "../../hooks/use-update-all-environments";
 import { SettingField } from "../shared/form-blocks";
-import { FormSettingCard, resolveSaveState } from "../shared/form-setting-card";
+import { FormSettingCard } from "../shared/form-setting-card";
 import { RemoveButton } from "../shared/remove-button";
 
 const openapiSpecPathSchema = z.object({
@@ -42,7 +42,7 @@ export const OpenapiSpecPath = () => {
   const current = useWatch({ control, name: "openapiSpecPath" });
   const hasChanges = current !== defaultValue;
 
-  const saveState = resolveSaveState([
+  const saveState = firstMatchingSaveState([
     [isSubmitting, { status: "saving" }],
     [!isValid, { status: "disabled" }],
     [!hasChanges, { status: "disabled", reason: "No changes to save" }],

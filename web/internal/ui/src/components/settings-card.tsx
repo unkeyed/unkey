@@ -147,11 +147,16 @@ function SettingCard({
 
   return (
     <div
-      className={cn("w-full bg-raised", getBorderRadiusClass(), borderClass, expandedBottomRadius)}
+      className={cn(
+        "@container w-full bg-raised",
+        getBorderRadiusClass(),
+        borderClass,
+        expandedBottomRadius,
+      )}
     >
       <div
         className={cn(
-          "px-4 py-[18px] lg:w-full flex gap-6 lg:justify-between lg:items-center flex-col lg:flex-row group",
+          "px-4 py-[18px] flex gap-6 @2xl:justify-between @2xl:items-center flex-col @2xl:flex-row group",
           isInteractive && "cursor-pointer",
           className,
         )}
@@ -277,9 +282,14 @@ function SettingsZone({
   const styles = zoneStyles[variant];
   return (
     <SettingsZoneContext.Provider value={variant}>
-      <div className={cn("w-full", className)}>
-        <h2 className={cn("font-semibold text-lg mb-4", styles.heading)}>{title}</h2>
-        <div className={cn("rounded-lg border overflow-hidden divide-y bg-raised", styles.border)}>
+      <div className={cn("flex w-full flex-col gap-6", className)}>
+        <h2 className={cn("font-semibold text-lg leading-6", styles.heading)}>{title}</h2>
+        <div
+          className={cn(
+            "@container rounded-lg border overflow-hidden divide-y bg-raised",
+            styles.border,
+          )}
+        >
           {children}
         </div>
       </div>
@@ -331,10 +341,10 @@ function SettingsZoneRow({
   const btnProps = zoneButtonProps[zoneVariant];
 
   return (
-    <div className="flex items-center justify-between p-4">
+    <div className="flex flex-col gap-3 p-4 @2xl:flex-row @2xl:items-center @2xl:justify-between">
       <div className="space-y-1">
-        <p className="font-medium text-gray-12 text-sm">{title}</p>
-        <p className="text-gray-11 text-sm">{description}</p>
+        <div className="font-medium text-gray-12 text-sm">{title}</div>
+        <div className="text-gray-11 text-sm">{description}</div>
       </div>
       <Button
         variant={btnProps.variant}

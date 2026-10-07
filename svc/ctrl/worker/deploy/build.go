@@ -65,6 +65,9 @@ const (
 	// build slot for the other five. Must stay above buildBackendDeadline, or
 	// cancel silently stops working for every build that runs longer than this
 	BuildKeepAliveWindow = buildBackendDeadline + 5*time.Minute
+
+	// BuildKit does not export its stderr stream number
+	buildkitStderrStream = 2
 )
 
 // knownBuildError maps a BuildKit error pattern to a user-friendly message.
@@ -499,11 +502,19 @@ func (w *Workflow) solveWithStatus(
 	buildClient *client.Client,
 	params gitBuildParams,
 	solverOptions client.SolveOpt,
+	seq *logSequence,
 ) error {
 	buildStatusCh := make(chan *client.SolveStatus, 100)
-	go w.processBuildStatus(buildStatusCh, params.WorkspaceID, params.ProjectID, params.DeploymentID)
+	statusDrained := make(chan struct{})
+	go func() {
+		defer close(statusDrained)
+		w.processBuildStatus(buildStatusCh, params.WorkspaceID, params.ProjectID, params.DeploymentID, seq)
+	}()
 
 	_, err := buildClient.Solve(runCtx, nil, solverOptions, buildStatusCh)
+	// Solve returns with statuses still buffered, and a later solve on the
+	// same sequence must not start numbering before this one is done
+	<-statusDrained
 	if err != nil {
 		// Context cancellations and timeouts are transient — let Restate retry.
 		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
@@ -553,7 +564,7 @@ func (w *Workflow) solveOnBuildMachine(
 	solverOptions client.SolveOpt,
 ) (*buildResult, error) {
 	buildID, err := w.withBuildkit(runCtx, depotProjectID, params, func(buildCtx context.Context, buildClient *client.Client) error {
-		return w.solveWithStatus(buildCtx, buildClient, params, solverOptions)
+		return w.solveWithStatus(buildCtx, buildClient, params, solverOptions, newLogSequence())
 	})
 	if err != nil {
 		return nil, err
@@ -773,6 +784,7 @@ func (w *Workflow) getOrCreateDepotProject(ctx context.Context, unkeyProjectID s
 func (w *Workflow) processBuildStatus(
 	statusCh <-chan *client.SolveStatus,
 	workspaceID, projectID, deploymentID string,
+	seq *logSequence,
 ) {
 	started := map[digest.Digest]bool{}
 	completed := map[digest.Digest]bool{}
@@ -781,6 +793,16 @@ func (w *Workflow) processBuildStatus(
 	for status := range statusCh {
 		for _, log := range status.Logs {
 			verticesWithLogs[log.Vertex] = true
+			w.buildStepLogs.Buffer(schema.BuildStepLogV1{
+				WorkspaceID:  workspaceID,
+				ProjectID:    projectID,
+				DeploymentID: deploymentID,
+				StepID:       log.Vertex.String(),
+				Time:         log.Timestamp.UnixMilli(),
+				Message:      string(log.Data),
+				Seq:          seq.next(),
+				Stderr:       log.Stream == buildkitStderrStream,
+			})
 		}
 
 		for _, vertex := range status.Vertexes {
@@ -819,18 +841,28 @@ func (w *Workflow) processBuildStatus(
 					Cached:       vertex.Cached,
 					HasLogs:      verticesWithLogs[vertex.Digest],
 				})
-			}
-		}
 
-		for _, log := range status.Logs {
-			w.buildStepLogs.Buffer(schema.BuildStepLogV1{
-				WorkspaceID:  workspaceID,
-				ProjectID:    projectID,
-				DeploymentID: deploymentID,
-				StepID:       log.Vertex.String(),
-				Time:         log.Timestamp.UnixMilli(),
-				Message:      string(log.Data),
-			})
+				duration := vertex.Completed.Sub(ptr.SafeDeref(vertex.Started)).Round(100 * time.Millisecond)
+				message := fmt.Sprintf("DONE %.1fs", duration.Seconds())
+				switch {
+				case vertex.Error != "":
+					message = "ERROR: " + vertex.Error
+				case vertex.Cached:
+					message = "CACHED"
+				case duration == 0:
+					continue
+				}
+				w.buildStepLogs.Buffer(schema.BuildStepLogV1{
+					WorkspaceID:  workspaceID,
+					ProjectID:    projectID,
+					DeploymentID: deploymentID,
+					StepID:       vertex.Digest.String(),
+					Time:         vertex.Completed.UnixMilli(),
+					Message:      message,
+					Seq:          seq.next(),
+					Stderr:       vertex.Error != "",
+				})
+			}
 		}
 	}
 }
@@ -926,4 +958,18 @@ func extractUserBuildError(err error) string {
 		}
 	}
 	return "Build failed. Please check the build logs for details."
+}
+
+// logSequence numbers the log rows of one build attempt. It starts at the
+// wall clock in microseconds, not a journaled value, so a retried attempt
+// numbers its rows after the failed one
+type logSequence struct{ last uint64 }
+
+func newLogSequence() *logSequence {
+	return &logSequence{last: uint64(time.Now().UnixMicro())}
+}
+
+func (s *logSequence) next() uint64 {
+	s.last++
+	return s.last
 }
