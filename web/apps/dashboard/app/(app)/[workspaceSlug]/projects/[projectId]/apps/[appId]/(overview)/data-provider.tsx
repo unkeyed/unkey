@@ -160,7 +160,7 @@ export const ProjectDataProvider = ({
   );
   // A poll refetches only the subsets on screen and skips "load more" pages:
   // new and moving deployments sit on the first page. The last two key
-  // segments are the page offset and cursor, both null for a first page.
+  // segments are the page boundary and offset, both null for a first page.
   // Active branches only move when a deployment does
   const pollDeployments = useCallback(async () => {
     const before = readDeploymentStates();
