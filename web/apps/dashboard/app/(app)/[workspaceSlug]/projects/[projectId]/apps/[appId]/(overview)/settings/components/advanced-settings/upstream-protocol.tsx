@@ -1,15 +1,9 @@
 "use client";
 
+import { Radio } from "@base-ui/react/radio";
+import { RadioGroup } from "@base-ui/react/radio-group";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { IconConnectionsOutline18 } from "@unkey/icons";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-  firstMatchingSaveState,
-} from "@unkey/ui";
+import { formSaveState } from "@unkey/ui";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { useEnvironmentSettings } from "../../environment-provider";
@@ -18,18 +12,16 @@ import { SettingField } from "../shared/form-blocks";
 import { FormSettingCard } from "../shared/form-setting-card";
 
 const PROTOCOLS = [
-  { value: "http1", label: "HTTP/1.1" },
-  { value: "h2c", label: "HTTP/2 (h2c)" },
+  { value: "http1", label: "HTTP/1.1", hint: "Works with every server." },
+  { value: "h2c", label: "HTTP/2 (h2c)", hint: "Cleartext HTTP/2. For gRPC and streaming." },
 ] as const;
 
 const schema = z.object({
   upstreamProtocol: z.enum(["http1", "h2c"]),
 });
 
-const displayLabel = (value: string) => PROTOCOLS.find((p) => p.value === value)?.label ?? value;
-
 export const UpstreamProtocol = () => {
-  const { settings, variant } = useEnvironmentSettings();
+  const { settings, autoSave } = useEnvironmentSettings();
   const { upstreamProtocol: defaultValue } = settings;
   const updateAllEnvironments = useUpdateAllEnvironments();
 
@@ -40,16 +32,17 @@ export const UpstreamProtocol = () => {
   } = useForm<z.infer<typeof schema>>({
     resolver: zodResolver(schema),
     mode: "onChange",
-    defaultValues: { upstreamProtocol: defaultValue },
+    values: { upstreamProtocol: defaultValue },
   });
 
   const currentProtocol = useWatch({ control, name: "upstreamProtocol" });
 
-  const saveState = firstMatchingSaveState([
-    [isSubmitting, { status: "saving" }],
-    [!isValid, { status: "disabled" }],
-    [currentProtocol === defaultValue, { status: "disabled", reason: "No changes to save" }],
-  ]);
+  const dirty = currentProtocol !== defaultValue;
+  const saveState = formSaveState({
+    isSubmitting,
+    isValid,
+    isDirty: dirty,
+  });
 
   const onSubmit = async (values: z.infer<typeof schema>) => {
     updateAllEnvironments((draft) => {
@@ -59,12 +52,10 @@ export const UpstreamProtocol = () => {
 
   return (
     <FormSettingCard
-      icon={<IconConnectionsOutline18 className="text-gray-12" />}
-      title="Upstream Protocol"
+      title="Upstream protocol"
       description={
         <>
-          Protocol used to connect to your application. If you don&apos;t know what this is, use
-          HTTP/1.1.{" "}
+          Protocol Unkey uses to reach your app.{" "}
           <a
             href="https://www.unkey.com/docs/platform/apps/settings#upstream-protocol"
             target="_blank"
@@ -76,32 +67,45 @@ export const UpstreamProtocol = () => {
           .
         </>
       }
-      displayValue={displayLabel(defaultValue)}
       onSubmit={handleSubmit(onSubmit)}
+      dirty={dirty}
       saveState={saveState}
-      autoSave={variant === "onboarding"}
+      autoSave={autoSave}
     >
       <SettingField>
         <Controller
           control={control}
           name="upstreamProtocol"
           render={({ field }) => (
-            <Select value={field.value} onValueChange={field.onChange} items={PROTOCOLS}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select protocol" />
-              </SelectTrigger>
-              <SelectContent>
-                {PROTOCOLS.map((protocol) => (
-                  <SelectItem
-                    key={protocol.value}
-                    value={protocol.value}
-                    className="focus:bg-gray-3"
-                  >
-                    {protocol.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <RadioGroup
+              aria-label="Upstream protocol"
+              value={field.value}
+              onValueChange={(value) => {
+                const protocol = PROTOCOLS.find((option) => option.value === value);
+                if (protocol) {
+                  field.onChange(protocol.value);
+                }
+              }}
+              className="grid gap-3 sm:grid-cols-2"
+            >
+              {PROTOCOLS.map((protocol) => (
+                <Radio.Root
+                  key={protocol.value}
+                  value={protocol.value}
+                  className="group flex items-start gap-3 rounded-lg border border-grayA-5 p-3.5 text-left transition-colors hover:border-grayA-7 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-gray-7 data-checked:border-gray-12 data-checked:bg-grayA-2 data-checked:ring-1 data-checked:ring-gray-12"
+                >
+                  <span className="mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-full border border-grayA-7 group-data-checked:border-gray-12 group-data-checked:bg-gray-12">
+                    <Radio.Indicator className="size-1.5 rounded-full bg-gray-1" />
+                  </span>
+                  <span className="flex flex-col gap-1">
+                    <span className="font-mono text-sm font-medium text-gray-12">
+                      {protocol.label}
+                    </span>
+                    <span className="text-xs leading-5 text-gray-11">{protocol.hint}</span>
+                  </span>
+                </Radio.Root>
+              ))}
+            </RadioGroup>
           )}
         />
       </SettingField>

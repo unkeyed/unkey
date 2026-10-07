@@ -1,6 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { IconNumberInputOutline18 } from "@unkey/icons";
-import { FormInput, firstMatchingSaveState } from "@unkey/ui";
+import { FormInput, formSaveState } from "@unkey/ui";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { useEnvironmentSettings } from "../../environment-provider";
@@ -13,7 +12,7 @@ const portSchema = z.object({
 });
 
 export const Port = () => {
-  const { settings, variant } = useEnvironmentSettings();
+  const { settings, autoSave } = useEnvironmentSettings();
   const { port: defaultValue } = settings;
   const updateAllEnvironments = useUpdateAllEnvironments();
 
@@ -25,16 +24,17 @@ export const Port = () => {
   } = useForm<z.infer<typeof portSchema>>({
     resolver: zodResolver(portSchema),
     mode: "onChange",
-    defaultValues: { port: defaultValue },
+    values: { port: defaultValue },
   });
 
   const currentPort = useWatch({ control, name: "port" });
 
-  const saveState = firstMatchingSaveState([
-    [isSubmitting, { status: "saving" }],
-    [!isValid, { status: "disabled" }],
-    [currentPort === defaultValue, { status: "disabled", reason: "No changes to save" }],
-  ]);
+  const dirty = currentPort !== defaultValue;
+  const saveState = formSaveState({
+    isSubmitting,
+    isValid,
+    isDirty: dirty,
+  });
 
   const onSubmit = async (values: z.infer<typeof portSchema>) => {
     updateAllEnvironments((draft) => {
@@ -44,24 +44,21 @@ export const Port = () => {
 
   return (
     <FormSettingCard
-      icon={<IconNumberInputOutline18 className="text-gray-12" />}
       title="Port"
-      description="Port your application listens on"
-      displayValue={String(defaultValue)}
       onSubmit={handleSubmit(onSubmit)}
+      dirty={dirty}
       saveState={saveState}
-      autoSave={variant === "onboarding"}
+      autoSave={autoSave}
     >
       <SettingField>
         <FormInput
-          requirement="required"
+          data-1p-ignore
           type="number"
           onWheelCapture={(e) => {
             //@ts-expect-error there is no other way to prevent scroll here
             e.target.blur();
           }}
-          label="Port"
-          description="Port your application listens on. Changes apply on next deploy."
+          aria-label="Port"
           placeholder="8080"
           min={1}
           max={65535}

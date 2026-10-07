@@ -1,148 +1,184 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { IconChevronDownOutline12, IconHeartPulseOutline18 } from "@unkey/icons";
+import { IconChevronDownOutline12 } from "@unkey/icons";
 import {
-  FormInput,
+  FormField,
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+  InputGroupText,
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-  firstMatchingSaveState,
+  SettingsForm,
+  SettingsRow,
+  SettingsRowContent,
+  SettingsRowHeader,
+  SettingsRowTitle,
+  formSaveState,
 } from "@unkey/ui";
-import { useEffect } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { useEnvironmentSettings } from "../../../environment-provider";
 import { useUpdateAllEnvironments } from "../../../hooks/use-update-all-environments";
 import { SettingField } from "../../shared/form-blocks";
-import { FormSettingCard } from "../../shared/form-setting-card";
-import { RemoveButton } from "../../shared/remove-button";
 import { MethodBadge } from "./method-badge";
-import { HTTP_METHODS, type HealthcheckFormValues, healthcheckSchema } from "./schema";
-import { intervalToSeconds, secondsToInterval } from "./utils";
+import {
+  HTTP_METHODS,
+  type HealthcheckFormValues,
+  INTERVAL_SECONDS,
+  healthcheckSchema,
+} from "./schema";
 
-export const Healthcheck = () => {
-  const { settings, variant } = useEnvironmentSettings();
+export function Healthcheck() {
+  const { settings, autoSave } = useEnvironmentSettings();
   const { healthcheck } = settings;
   const updateAllEnvironments = useUpdateAllEnvironments();
 
   const defaultValues: HealthcheckFormValues = {
     method: healthcheck?.method ?? "GET",
     path: healthcheck?.path ?? "",
-    interval: healthcheck ? secondsToInterval(healthcheck.intervalSeconds) : "30s",
+    intervalSeconds: healthcheck?.intervalSeconds ?? INTERVAL_SECONDS.default,
   };
 
   const {
     handleSubmit,
     control,
     register,
-    reset,
+    watch,
     formState: { isValid, isSubmitting, isDirty, errors },
   } = useForm<HealthcheckFormValues>({
     resolver: zodResolver(healthcheckSchema),
     mode: "onChange",
-    defaultValues,
+    values: defaultValues,
   });
-
-  // biome-ignore lint/correctness/useExhaustiveDependencies: we gucci
-  useEffect(() => {
-    reset(defaultValues);
-  }, [defaultValues.method, defaultValues.path, defaultValues.interval, reset]);
 
   const onSubmit = async (values: HealthcheckFormValues) => {
     updateAllEnvironments((draft) => {
       draft.healthcheck =
-        values.path.trim() === ""
+        values.path === ""
           ? null
           : {
               method: values.method,
-              path: values.path.trim(),
-              intervalSeconds: intervalToSeconds(values.interval),
-              timeoutSeconds: 5,
-              failureThreshold: 3,
-              initialDelaySeconds: 0,
+              path: values.path,
+              intervalSeconds: values.intervalSeconds,
+              timeoutSeconds: draft.healthcheck?.timeoutSeconds ?? 5,
+              failureThreshold: draft.healthcheck?.failureThreshold ?? 3,
+              initialDelaySeconds: draft.healthcheck?.initialDelaySeconds ?? 0,
             };
     });
   };
 
-  const handleRemove = () => {
-    updateAllEnvironments((draft) => {
-      draft.healthcheck = null;
-    });
-    reset({ method: "GET", path: "", interval: "30s" });
-  };
+  const saveState = formSaveState({
+    isSubmitting,
+    isValid,
+    isDirty: isDirty,
+  });
 
-  const saveState = firstMatchingSaveState([
-    [isSubmitting, { status: "saving" }],
-    [!isValid, { status: "disabled" }],
-    [!isDirty, { status: "disabled", reason: "No changes to save" }],
-  ]);
+  const pathEmpty = watch("path") === "";
 
   return (
-    <FormSettingCard
-      icon={<IconHeartPulseOutline18 className="text-gray-12" />}
-      title="Healthcheck"
-      description="Endpoint used to verify the service is healthy"
-      displayValue={
-        healthcheck ? (
-          <div className="flex gap-1.5 items-center justify-center">
-            <MethodBadge method={healthcheck.method} />
-            <span className="font-medium text-gray-12">{healthcheck.path}</span>
-            <span className="text-gray-11 font-normal">every {healthcheck.intervalSeconds}s</span>
-          </div>
-        ) : null
-      }
+    <SettingsForm
+      className="divide-y divide-grayA-4"
       onSubmit={handleSubmit(onSubmit)}
+      dirty={isDirty}
       saveState={saveState}
-      autoSave={variant === "onboarding"}
+      autoSave={autoSave}
     >
-      <SettingField>
-        <div className="flex items-center gap-3">
-          <span className="w-24 text-sm text-gray-11">Method</span>
-          <span className="flex-1 text-sm text-gray-11">Path</span>
-          <span className="flex-1 text-sm text-gray-11">Interval</span>
-        </div>
-        <div className="flex items-start gap-2">
-          <Controller
-            control={control}
-            name="method"
-            render={({ field }) => (
-              <Select value={field.value} onValueChange={field.onChange}>
-                <SelectTrigger
-                  wrapperClassName="w-24"
-                  variant={errors.method ? "error" : "default"}
-                  rightIcon={<IconChevronDownOutline12 className="absolute right-3 text-gray-11" />}
-                >
-                  <SelectValue placeholder={<MethodBadge method={"GET"} />}>
-                    <MethodBadge method={field.value} />
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {HTTP_METHODS.map((method) => (
-                    <SelectItem key={method} value={method} className="focus:bg-gray-3">
-                      <MethodBadge method={method} />
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-          />
-          <FormInput
-            placeholder="/health"
-            className="flex-1 [&_input]:font-mono"
-            error={errors.path?.message}
-            {...register("path")}
-          />
-          <FormInput
-            className="flex-1"
-            placeholder="30s"
-            error={errors.interval?.message}
-            {...register("interval")}
-          />
-          {healthcheck && <RemoveButton onClick={handleRemove} className="shrink-0" />}
-        </div>
-      </SettingField>
-    </FormSettingCard>
+      <SettingsRow>
+        <SettingsRowHeader>
+          <SettingsRowTitle>Endpoint</SettingsRowTitle>
+        </SettingsRowHeader>
+        <SettingsRowContent>
+          <SettingField>
+            <FormField
+              error={errors.path?.message}
+              description={pathEmpty ? "Leave empty to turn off health checks." : undefined}
+            >
+              {(field) => (
+                <InputGroup variant={field.variant}>
+                  <Controller
+                    control={control}
+                    name="method"
+                    render={({ field: method }) => (
+                      <Select value={method.value} onValueChange={method.onChange}>
+                        <SelectTrigger
+                          aria-label="HTTP method"
+                          variant="ghost"
+                          wrapperClassName="w-auto shrink-0"
+                          className="rounded-r-none border-0 border-r border-grayA-4 hover:bg-grayA-2 focus:border-grayA-4 focus:ring-0"
+                          rightIcon={
+                            <IconChevronDownOutline12 className="absolute right-3 text-gray-11" />
+                          }
+                        >
+                          <SelectValue>
+                            <MethodBadge method={method.value} />
+                          </SelectValue>
+                        </SelectTrigger>
+                        <SelectContent>
+                          {HTTP_METHODS.map((option) => (
+                            <SelectItem key={option} value={option} className="focus:bg-gray-3">
+                              <MethodBadge method={option} />
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
+                  <InputGroupInput
+                    data-1p-ignore
+                    id={field.id}
+                    aria-label="Path"
+                    aria-invalid={field.invalid}
+                    aria-describedby={field.describedBy}
+                    placeholder="/health"
+                    autoComplete="off"
+                    spellCheck={false}
+                    className="px-3 font-mono"
+                    {...register("path")}
+                  />
+                </InputGroup>
+              )}
+            </FormField>
+          </SettingField>
+        </SettingsRowContent>
+      </SettingsRow>
+      <SettingsRow>
+        <SettingsRowHeader>
+          <SettingsRowTitle>Interval</SettingsRowTitle>
+        </SettingsRowHeader>
+        <SettingsRowContent>
+          <SettingField>
+            <FormField error={errors.intervalSeconds?.message}>
+              {(field) => (
+                <InputGroup variant={field.variant} className="w-28">
+                  <InputGroupInput
+                    data-1p-ignore
+                    id={field.id}
+                    type="number"
+                    inputMode="numeric"
+                    min={INTERVAL_SECONDS.min}
+                    max={INTERVAL_SECONDS.max}
+                    step={1}
+                    aria-label="Interval in seconds"
+                    aria-invalid={field.invalid}
+                    aria-describedby={field.describedBy}
+                    disabled={pathEmpty}
+                    className="pl-3 font-mono tabular-nums"
+                    onWheelCapture={(e) => e.currentTarget.blur()}
+                    {...register("intervalSeconds", { valueAsNumber: true })}
+                  />
+                  <InputGroupAddon align="inline-end">
+                    <InputGroupText className="font-mono">s</InputGroupText>
+                  </InputGroupAddon>
+                </InputGroup>
+              )}
+            </FormField>
+          </SettingField>
+        </SettingsRowContent>
+      </SettingsRow>
+    </SettingsForm>
   );
-};
+}

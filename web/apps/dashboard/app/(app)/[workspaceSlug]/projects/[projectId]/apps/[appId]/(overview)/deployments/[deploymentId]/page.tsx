@@ -106,11 +106,11 @@ export default function DeploymentOverview() {
       {deployment.status === "failed" && (
         <FailedDeploymentBanner
           stepsData={steps.data}
-          settingsUrl={routes.projects.apps.settings({
+          appScope={{
             workspaceSlug: workspace.slug,
             projectId: deployment.projectId,
             appId: deployment.appId,
-          })}
+          }}
           limitsUrl={routes.settings.limits({ workspaceSlug: workspace.slug })}
           deployment={deployment}
         />

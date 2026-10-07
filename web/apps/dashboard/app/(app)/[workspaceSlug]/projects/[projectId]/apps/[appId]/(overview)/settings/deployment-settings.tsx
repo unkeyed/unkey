@@ -2,92 +2,55 @@
 
 import { collection } from "@/lib/collections";
 import { ociImageReferenceSchema } from "@/lib/collections/deploy/apps";
-import { trpc } from "@/lib/trpc/client";
+import { NEXT_DEPLOY } from "@/lib/collections/deploy/pending-redeploy";
 import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { and, eq, useLiveQuery } from "@tanstack/react-db";
-import { useMutation } from "@tanstack/react-query";
 import { match } from "@unkey/match";
-import { FormInput, SettingCardGroup, firstMatchingSaveState, toast } from "@unkey/ui";
-import { useEffect } from "react";
+import {
+  FormInput,
+  SettingsGroup,
+  SettingsGroupContent,
+  SettingsGroupTitle,
+  formSaveState,
+  toast,
+} from "@unkey/ui";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
-import { useAppId, useProjectData } from "../data-provider";
-import { AutoDeploy } from "./components/build-settings/auto-deploy-settings";
+import { OpenapiSpecPath } from "./components/advanced-settings/openapi-spec-path";
+import { UpstreamProtocol } from "./components/advanced-settings/upstream-protocol";
+import { AppName } from "./components/app-name";
 import { BuildCommand } from "./components/build-settings/build-command-settings";
 import { Dockerfile } from "./components/build-settings/dockerfile-settings";
 import { GitHub } from "./components/build-settings/github-settings";
 import { RootDirectory } from "./components/build-settings/root-directory-settings";
 import { WatchPaths } from "./components/build-settings/watch-paths-settings";
-
 import { Command } from "./components/runtime-settings/command";
-import { Cpu } from "./components/runtime-settings/cpu";
 import { Healthcheck } from "./components/runtime-settings/healthcheck";
-import { Instances } from "./components/runtime-settings/instances";
-import { Memory } from "./components/runtime-settings/memory";
 import { Port } from "./components/runtime-settings/port-settings";
-import { Regions } from "./components/runtime-settings/regions";
-import { Storage } from "./components/runtime-settings/storage";
-
-import {
-  IconCircleHalfDottedClockOutline18,
-  IconGearOutline18,
-  IconLayers2Outline18,
-} from "@unkey/icons";
-import { CustomDomains } from "./components/advanced-settings/custom-domains";
-import { OpenapiSpecPath } from "./components/advanced-settings/openapi-spec-path";
-import { UpstreamProtocol } from "./components/advanced-settings/upstream-protocol";
 import { SettingField } from "./components/shared/form-blocks";
 import { FormSettingCard } from "./components/shared/form-setting-card";
-import { SettingsGroup } from "./components/shared/settings-group";
+import { useApp, useBuildSource } from "./hooks/use-build-source";
 
-// build is only required to invalidate other defaults. E.g onboarding settings, passes build=true to prevent expanding other sections.
-type DeploymentSection = "advanced" | "runtime" | "build";
-
-type DeploymentSettingsProps = {
-  githubReadOnly?: boolean;
-  sections?: Partial<Record<DeploymentSection, true>>;
-  onBeforeNavigate?: () => void;
-};
-
-export const DeploymentSettings = ({
-  githubReadOnly = false,
-  sections = { build: true, runtime: true, advanced: true },
-  onBeforeNavigate,
-}: DeploymentSettingsProps) => {
-  const { projectId } = useProjectData();
-  const appId = useAppId();
-  const appQuery = useLiveQuery(
-    (q) =>
-      q
-        .from({ app: collection.apps })
-        .where(({ app }) => and(eq(app.projectId, projectId), eq(app.id, appId))),
-    [projectId, appId],
+export function GeneralSettings() {
+  const { projectId, appId, app } = useApp();
+  if (!app) {
+    return null;
+  }
+  return (
+    <SettingsGroup>
+      <SettingsGroupContent>
+        <AppName projectId={projectId} appId={appId} name={app.name} />
+      </SettingsGroupContent>
+    </SettingsGroup>
   );
-  const app = appQuery.data?.[0];
-  const shouldLoadGitHub = app
-    ? match(app.sourceType)
-        .with("git", () => true)
-        .with("oci", () => false)
-        .with("unknown", () => true)
-        .exhaustive()
-    : false;
-  const { data } = trpc.github.getInstallations.useQuery(
-    { projectId, appId },
-    { enabled: shouldLoadGitHub },
-  );
+}
 
-  const showBuildSettings = app
-    ? match(app.sourceType)
-        .with("oci", () => false)
-        .with("git", () => !data || Boolean(data.repoConnection?.repositoryFullName))
-        .with("unknown", () => Boolean(data?.repoConnection?.repositoryFullName))
-        .exhaustive()
-    : false;
+export function BuildSettings({ githubReadOnly = false }: { githubReadOnly?: boolean }) {
+  const { projectId, appId, app, hasRepository } = useBuildSource();
 
   return (
-    <div className="flex flex-col gap-6">
-      <SettingCardGroup>
+    <SettingsGroup>
+      <SettingsGroupContent pendingNote={NEXT_DEPLOY}>
         {app
           ? match(app.sourceType)
               .with("oci", () => (
@@ -97,76 +60,70 @@ export const DeploymentSettings = ({
                   imageReference={app.imageReference ?? ""}
                 />
               ))
-              .with("git", () => (
-                <GitHub readOnly={githubReadOnly} onBeforeNavigate={onBeforeNavigate} />
-              ))
-              .with("unknown", () => (
-                <GitHub readOnly={githubReadOnly} onBeforeNavigate={onBeforeNavigate} />
-              ))
+              .with("git", "unknown", () => <GitHub readOnly={githubReadOnly} />)
               .exhaustive()
           : null}
-        {showBuildSettings ? (
+        {hasRepository ? (
           <>
             <RootDirectory />
             <Dockerfile />
             <BuildCommand />
             <WatchPaths />
-            <AutoDeploy />
           </>
         ) : null}
-      </SettingCardGroup>
-      <SettingsGroup
-        icon={<IconCircleHalfDottedClockOutline18 className="size-3.5" />}
-        title="Runtime settings"
-        defaultExpanded={Boolean(sections.runtime)}
-      >
-        <SettingCardGroup>
-          <Regions />
-          <Instances />
-          <Cpu />
-          <Memory />
-          <Storage />
-          <Healthcheck />
+      </SettingsGroupContent>
+    </SettingsGroup>
+  );
+}
+
+export function RuntimeSettings() {
+  return (
+    <>
+      <SettingsGroup>
+        <SettingsGroupTitle>Process</SettingsGroupTitle>
+        <SettingsGroupContent pendingNote={NEXT_DEPLOY}>
           <Port />
           <Command />
-          {/* Temporarily disabled */}
-          {/* <Scaling /> */}
-        </SettingCardGroup>
+        </SettingsGroupContent>
       </SettingsGroup>
-      <SettingsGroup
-        icon={<IconGearOutline18 className="size-3.5" />}
-        title="Advanced configurations"
-        defaultExpanded={Boolean(sections.advanced)}
-      >
-        <SettingCardGroup>
-          <div id="custom-domains" className="scroll-mt-24">
-            <CustomDomains />
-          </div>
-          <OpenapiSpecPath />
-          <UpstreamProtocol />
-        </SettingCardGroup>
+      <SettingsGroup>
+        <SettingsGroupTitle>Health check</SettingsGroupTitle>
+        <SettingsGroupContent pendingNote={NEXT_DEPLOY}>
+          <Healthcheck />
+        </SettingsGroupContent>
       </SettingsGroup>
-    </div>
+    </>
   );
-};
+}
+
+export function AdvancedSettings() {
+  return (
+    <>
+      <SettingsGroup>
+        <SettingsGroupTitle>API</SettingsGroupTitle>
+        <SettingsGroupContent pendingNote={NEXT_DEPLOY}>
+          <OpenapiSpecPath />
+        </SettingsGroupContent>
+      </SettingsGroup>
+      <SettingsGroup>
+        <SettingsGroupTitle>Networking</SettingsGroupTitle>
+        <SettingsGroupContent pendingNote={NEXT_DEPLOY}>
+          <UpstreamProtocol />
+        </SettingsGroupContent>
+      </SettingsGroup>
+    </>
+  );
+}
 
 const ociImageFormSchema = z.object({
   imageReference: ociImageReferenceSchema,
 });
 
-const OCIImage = ({
+function OCIImage({
   projectId,
   appId,
   imageReference,
-}: { projectId: string; appId: string; imageReference: string }) => {
-  const updateImage = useMutation({
-    mutationFn: (image: string) =>
-      getUnkeyClient().apps.updateApp({
-        project: projectId,
-        app: appId,
-        oci: { image },
-      }),
-  });
+}: { projectId: string; appId: string; imageReference: string }) {
   const {
     register,
     handleSubmit,
@@ -176,26 +133,24 @@ const OCIImage = ({
   } = useForm<z.infer<typeof ociImageFormSchema>>({
     resolver: zodResolver(ociImageFormSchema),
     mode: "onChange",
-    defaultValues: { imageReference },
+    values: { imageReference },
   });
 
-  useEffect(() => {
-    reset({ imageReference });
-  }, [imageReference, reset]);
-
   const currentImageReference = useWatch({ control, name: "imageReference" });
-  const saveState = firstMatchingSaveState([
-    [isSubmitting, { status: "saving" }],
-    [!isValid, { status: "disabled" }],
-    [
-      currentImageReference === imageReference,
-      { status: "disabled", reason: "No changes to save" },
-    ],
-  ]);
+  const dirty = currentImageReference !== imageReference;
+  const saveState = formSaveState({
+    isSubmitting,
+    isValid,
+    isDirty: dirty,
+  });
 
   const onSubmit = async (values: z.infer<typeof ociImageFormSchema>) => {
     try {
-      await updateImage.mutateAsync(values.imageReference);
+      await getUnkeyClient().apps.updateApp({
+        project: projectId,
+        app: appId,
+        oci: { image: values.imageReference },
+      });
       reset(values);
       await collection.apps.utils.refetch();
       toast.success("Container image updated");
@@ -206,18 +161,15 @@ const OCIImage = ({
 
   return (
     <FormSettingCard
-      icon={<IconLayers2Outline18 className="text-gray-12" />}
       title="Image"
-      description="Default image reference for new deployments"
-      displayValue={<span className="font-mono text-xs">{imageReference}</span>}
       onSubmit={handleSubmit(onSubmit)}
+      dirty={dirty}
       saveState={saveState}
     >
       <SettingField>
         <FormInput
-          label="Image reference"
-          requirement="required"
-          description="Include a tag or digest. Saving changes the default for future deployments; it does not replace the running deployment."
+          data-1p-ignore
+          aria-label="Image reference"
           placeholder="ghcr.io/acme/app:v1.2.3"
           error={errors.imageReference?.message}
           {...register("imageReference")}
@@ -225,4 +177,4 @@ const OCIImage = ({
       </SettingField>
     </FormSettingCard>
   );
-};
+}

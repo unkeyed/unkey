@@ -1,9 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { IconSquareTerminalOutline18 } from "@unkey/icons";
-import { FormTextarea, InfoTooltip, firstMatchingSaveState } from "@unkey/ui";
-import { useEffect } from "react";
+import { FormTextarea, formSaveState } from "@unkey/ui";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { useEnvironmentSettings } from "../../environment-provider";
@@ -18,7 +16,7 @@ const commandSchema = z.object({
 type CommandFormValues = z.infer<typeof commandSchema>;
 
 export const Command = () => {
-  const { settings, variant } = useEnvironmentSettings();
+  const { settings, autoSave } = useEnvironmentSettings();
   const { command } = settings;
   const updateAllEnvironments = useUpdateAllEnvironments();
   const defaultCommand = command.join(" ");
@@ -28,25 +26,20 @@ export const Command = () => {
     handleSubmit,
     formState: { isValid, isSubmitting, errors },
     control,
-    reset,
   } = useForm<CommandFormValues>({
     resolver: zodResolver(commandSchema),
     mode: "onChange",
-    defaultValues: { command: defaultCommand },
+    values: { command: defaultCommand },
   });
-
-  useEffect(() => {
-    reset({ command: defaultCommand });
-  }, [defaultCommand, reset]);
 
   const currentCommand = useWatch({ control, name: "command" });
   const hasChanges = currentCommand !== defaultCommand;
 
-  const saveState = firstMatchingSaveState([
-    [isSubmitting, { status: "saving" }],
-    [!isValid, { status: "disabled" }],
-    [!hasChanges, { status: "disabled", reason: "No changes to save" }],
-  ]);
+  const saveState = formSaveState({
+    isSubmitting,
+    isValid,
+    isDirty: hasChanges,
+  });
 
   const onSubmit = async (values: CommandFormValues) => {
     const trimmed = values.command.trim();
@@ -58,30 +51,19 @@ export const Command = () => {
 
   return (
     <FormSettingCard
-      icon={<IconSquareTerminalOutline18 className="text-gray-12" />}
       title="Command"
-      description="The command to start your application. Changes apply on next deploy."
-      displayValue={
-        defaultCommand ? (
-          <InfoTooltip content={defaultCommand} asChild position={{ side: "bottom" }}>
-            <span className="font-medium text-gray-12 font-mono text-xs truncate max-w-[100px]">
-              {defaultCommand}
-            </span>
-          </InfoTooltip>
-        ) : null
-      }
+      description="Unkey splits arguments on whitespace."
       onSubmit={handleSubmit(onSubmit)}
+      dirty={hasChanges}
       saveState={saveState}
-      autoSave={variant === "onboarding"}
+      autoSave={autoSave}
     >
       <SettingField>
         <FormTextarea
-          label="Command"
-          placeholder="~ npm start"
+          data-1p-ignore
+          aria-label="Command"
+          placeholder="Image default"
           className="[&_textarea]:font-mono"
-          description="
-          Overrides the default container startup command. Arguments are split on whitespace. Leave
-          empty to use the image's default command."
           variant={errors.command ? "error" : "default"}
           {...register("command")}
         />

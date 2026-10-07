@@ -2,15 +2,15 @@
 
 import { FormCombobox } from "@/components/ui/form-combobox";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { IconEyeOutline18, IconPlusOutline18 } from "@unkey/icons";
-import { FormInput, firstMatchingSaveState } from "@unkey/ui";
+import { IconPlusOutline18 } from "@unkey/icons";
+import { FormInput, formSaveState } from "@unkey/ui";
 import { cn } from "cn";
 import { useCallback, useRef } from "react";
 import { useFieldArray, useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { useEnvironmentSettings } from "../../environment-provider";
 import { useUpdateAllEnvironments } from "../../hooks/use-update-all-environments";
-import { SettingDescription, SettingField } from "../shared/form-blocks";
+import { SettingField } from "../shared/form-blocks";
 import { FormSettingCard } from "../shared/form-setting-card";
 import { RemoveButton } from "../shared/remove-button";
 import { useRepoTree } from "./use-repo-tree";
@@ -59,7 +59,7 @@ export const WatchPaths = () => {
   } = useForm<WatchPathsForm>({
     resolver: zodResolver(watchPathsSchema),
     mode: "onChange",
-    defaultValues: { paths: toFormPaths(defaultPaths) },
+    values: { paths: toFormPaths(defaultPaths) },
   });
 
   const { fields, append, remove } = useFieldArray({
@@ -144,11 +144,11 @@ export const WatchPaths = () => {
     [append, currentPaths, currentValues, fields.length, setValue, trigger],
   );
 
-  const saveState = firstMatchingSaveState([
-    [isSubmitting, { status: "saving" }],
-    [!isValid, { status: "disabled" }],
-    [!hasChanges, { status: "disabled", reason: "No changes to save" }],
-  ]);
+  const saveState = formSaveState({
+    isSubmitting,
+    isValid,
+    isDirty: hasChanges,
+  });
 
   const onSubmit = async (values: WatchPathsForm) => {
     const watchPaths = fromFormPaths(values.paths);
@@ -158,36 +158,23 @@ export const WatchPaths = () => {
     reset({ paths: toFormPaths(watchPaths) });
   };
 
-  const displayValue =
-    defaultPaths.length > 0 ? (
-      <span className="flex items-center gap-1 truncate">
-        <span className="truncate">{defaultPaths[0]}</span>
-        {defaultPaths.length > 1 && (
-          <span className="shrink-0 text-gray-9">+{defaultPaths.length - 1}</span>
-        )}
-      </span>
-    ) : (
-      "All files (no filter)"
-    );
-
   return (
     <FormSettingCard
-      icon={<IconEyeOutline18 className="text-gray-12" />}
       title="Watch paths"
-      description="Only trigger deployments when files matching these glob patterns change. Leave empty to deploy on all changes."
-      displayValue={displayValue}
+      description="Only deploy when these files change."
       onSubmit={handleSubmit(onSubmit)}
+      dirty={hasChanges}
       saveState={saveState}
     >
       <SettingField>
-        <span className="text-gray-11 text-sm flex items-center">Watch paths</span>
         {fields.map((field, index) => {
           const { ref: rhfRef, ...fieldProps } = register(`paths.${index}.value`);
           return (
             <div key={field.id} className="flex items-start gap-2">
               <FormInput
+                data-1p-ignore
                 className="flex-1 [&_input]:font-mono"
-                placeholder="e.g. src/** or services/api/**"
+                placeholder="src/**"
                 error={errors.paths?.[index]?.value?.message}
                 {...fieldProps}
                 ref={(el: HTMLInputElement | null) => {
@@ -220,12 +207,13 @@ export const WatchPaths = () => {
           leftIcon={<IconPlusOutline18 />}
           searchPlaceholder="Search suggestions or enter a glob..."
           emptyMessage={<div className="mt-2">No suggested watch paths detected</div>}
-          placeholder={<span className="text-grayA-8">Add a watch path...</span>}
+          placeholder={
+            <span className="text-grayA-8">
+              {fields.length === 0 ? "All files" : "Add a watch path..."}
+            </span>
+          }
         />
       </SettingField>
-      <SettingDescription>
-        Glob patterns (e.g. src/**, **/*.go). Deployments are skipped when no changed files match.
-      </SettingDescription>
     </FormSettingCard>
   );
 };

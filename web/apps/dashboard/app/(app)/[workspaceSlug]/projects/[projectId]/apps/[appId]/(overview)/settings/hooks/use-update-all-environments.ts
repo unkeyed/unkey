@@ -5,6 +5,8 @@ import type { EnvironmentSettings } from "@/lib/collections/deploy/environment-s
 import { useCallback } from "react";
 import { useProjectData } from "../../data-provider";
 
+type SettingsTransaction = ReturnType<typeof collection.environmentSettings.update>;
+
 /**
  * Returns a function that applies a settings mutation to every environment.
  *
@@ -16,14 +18,14 @@ export function useUpdateAllEnvironments() {
   const { environments } = useProjectData();
 
   return useCallback(
-    (updater: (draft: EnvironmentSettings) => void) => {
+    (updater: (draft: EnvironmentSettings) => void): SettingsTransaction | null => {
       if (environments.length === 0) {
-        return;
+        return null;
       }
       // One transaction for every environment. The collection refetches each
       // loaded environment after a transaction settles, so a transaction per
       // environment would multiply the reads.
-      collection.environmentSettings.update(
+      return collection.environmentSettings.update(
         environments.map((env) => env.id),
         (drafts) => drafts.forEach(updater),
       );

@@ -3,73 +3,81 @@
 import { collection } from "@/lib/collections";
 import type { EnvironmentSettings } from "@/lib/collections/deploy/environment-settings";
 import { ENVIRONMENT_KIND } from "@/lib/collections/deploy/environments";
+import { useCollectionLoad } from "@/lib/collections/use-collection-load";
 import { and, eq, useLiveQuery } from "@tanstack/react-db";
-import { useSearchParams } from "next/navigation";
-import { type PropsWithChildren, createContext, useContext, useMemo } from "react";
-import { useProjectData } from "../data-provider";
+import { type PropsWithChildren, type ReactNode, createContext, use } from "react";
+import { LoadError } from "../../components/load-error";
+import { useAppId, useProjectData } from "../data-provider";
 import { SettingsSkeleton } from "./components/settings-skeleton";
 
 type EnvironmentContextType = {
   settings: EnvironmentSettings;
-  variant: "settings" | "onboarding";
-  isSaving: boolean;
+  autoSave: boolean;
 };
 
-export const EnvironmentContext = createContext<EnvironmentContextType | null>(null);
+type ScopeProps = PropsWithChildren<{ autoSave?: boolean; fallback?: ReactNode }>;
+
+const EnvironmentContext = createContext<EnvironmentContextType | null>(null);
 
 /**
- * Resolves the environment to show, then hands off to the inner provider.
+ * Scopes the page to the production environment's settings.
  *
  * The settings query needs a project, an app, and an environment, and the query
- * builder rejects an undefined value. Waiting here keeps the inner query free of
- * placeholder ids.
+ * builder rejects an undefined value. Waiting here keeps the scoped query free
+ * of placeholder ids.
  */
-export const EnvironmentSettingsProvider = ({ children }: PropsWithChildren) => {
-  const { environments, isEnvironmentsLoading, projectId, appId } = useProjectData();
-  const searchParams = useSearchParams();
-  const envIdParam = searchParams.get("environmentId");
+export function EnvironmentSettingsProvider({
+  children,
+  autoSave = false,
+  fallback = <SettingsSkeleton />,
+}: ScopeProps) {
+  const { environments, isEnvironmentsLoading, projectId } = useProjectData();
+  const appId = useAppId();
+  // Loads the settings alongside the environments, so both share one listEnvironments request.
+  useLiveQuery(
+    (q) =>
+      q
+        .from({ s: collection.environmentSettings })
+        .where(({ s }) => and(eq(s.projectId, projectId), eq(s.appId, appId))),
+    [projectId, appId],
+  );
+  const activeEnvironmentId =
+    environments.find((e) => e.kind === ENVIRONMENT_KIND.production)?.id ?? environments.at(0)?.id;
 
-  const activeEnvironmentId = useMemo(() => {
-    if (envIdParam) {
-      const match = environments.find((e) => e.id === envIdParam);
-      if (match) {
-        return match.id;
-      }
-    }
-    return (
-      environments.find((e) => e.kind === ENVIRONMENT_KIND.production)?.id ?? environments.at(0)?.id
-    );
-  }, [envIdParam, environments]);
-
-  if (isEnvironmentsLoading || !activeEnvironmentId || !appId) {
-    return <SettingsSkeleton />;
+  if (isEnvironmentsLoading) {
+    return fallback;
+  }
+  if (!activeEnvironmentId) {
+    return <SettingsLoadError />;
   }
 
   return (
-    <EnvironmentSettingsInner
-      projectId={projectId}
-      appId={appId}
+    <EnvironmentSettingsScope
       environmentId={activeEnvironmentId}
+      autoSave={autoSave}
+      fallback={fallback}
     >
       {children}
-    </EnvironmentSettingsInner>
+    </EnvironmentSettingsScope>
   );
-};
+}
 
 export function useEnvironmentSettings(): EnvironmentContextType {
-  const context = useContext(EnvironmentContext);
+  const context = use(EnvironmentContext);
   if (!context) {
     throw new Error("useEnvironmentSettings must be used within EnvironmentProvider");
   }
   return context;
 }
 
-const EnvironmentSettingsInner = ({
+export function EnvironmentSettingsScope({
   children,
-  projectId,
-  appId,
   environmentId,
-}: PropsWithChildren<{ projectId: string; appId: string; environmentId: string }>) => {
+  autoSave = false,
+  fallback = <SettingsSkeleton />,
+}: ScopeProps & { environmentId: string }) {
+  const { projectId } = useProjectData();
+  const appId = useAppId();
   const { data } = useLiveQuery(
     (q) =>
       q
@@ -80,16 +88,26 @@ const EnvironmentSettingsInner = ({
     [projectId, appId, environmentId],
   );
 
+  const settingsLoad = useCollectionLoad(collection.environmentSettings.utils);
+
   // Every environment has settings, because the defaults are written at create
-  // time, so this is only empty while the request is in flight.
+  // time, so this is only empty while the request is in flight or after it fails.
   const settings = data.at(0);
   if (!settings) {
-    return <SettingsSkeleton />;
+    return settingsLoad.failed ? <SettingsLoadError /> : fallback;
   }
 
   return (
-    <EnvironmentContext.Provider value={{ settings, variant: "settings", isSaving: false }}>
+    <EnvironmentContext.Provider value={{ settings, autoSave }}>
       {children}
     </EnvironmentContext.Provider>
   );
-};
+}
+
+function SettingsLoadError() {
+  const { retry } = useCollectionLoad(
+    collection.environments.utils,
+    collection.environmentSettings.utils,
+  );
+  return <LoadError title="Could not load settings" onRetry={retry} />;
+}

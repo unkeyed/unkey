@@ -1,7 +1,6 @@
 import { FormCombobox } from "@/components/ui/form-combobox";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { IconFolderLinkOutline18 } from "@unkey/icons";
-import { firstMatchingSaveState } from "@unkey/ui";
+import { formSaveState } from "@unkey/ui";
 import { useMemo } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
@@ -9,6 +8,8 @@ import { useEnvironmentSettings } from "../../environment-provider";
 import { useUpdateAllEnvironments } from "../../hooks/use-update-all-environments";
 import { SettingField } from "../shared/form-blocks";
 import { FormSettingCard } from "../shared/form-setting-card";
+import { pathHint, pathInputVariant } from "./path-hint";
+import { pathHintMessage } from "./path-hint-message";
 import { useRepoTree } from "./use-repo-tree";
 
 const dockerContextSegment = /^[A-Za-z0-9._-]+$/;
@@ -34,7 +35,7 @@ const rootDirectorySchema = z.object({
 });
 
 export const RootDirectory = () => {
-  const { settings, variant } = useEnvironmentSettings();
+  const { settings, autoSave } = useEnvironmentSettings();
   const { dockerContext: defaultValue } = settings;
   const updateAllEnvironments = useUpdateAllEnvironments();
   const { branch, validatePath, findCaseInsensitiveMatch, rootDirectorySuggestions } =
@@ -48,14 +49,17 @@ export const RootDirectory = () => {
   } = useForm<z.infer<typeof rootDirectorySchema>>({
     resolver: zodResolver(rootDirectorySchema),
     mode: "onChange",
-    defaultValues: { dockerContext: defaultValue },
+    values: { dockerContext: defaultValue },
   });
 
-  const currentDockerContext = useWatch({ control, name: "dockerContext", defaultValue });
+  const currentDockerContext = useWatch({ control, name: "dockerContext" });
 
   const validation = validatePath(currentDockerContext, "tree");
-  const caseMatch =
-    validation === "invalid" ? findCaseInsensitiveMatch(currentDockerContext, "tree") : null;
+  const hint = pathHint(
+    validation,
+    () => findCaseInsensitiveMatch(currentDockerContext, "tree"),
+    branch,
+  );
   const options = useMemo(
     () =>
       rootDirectorySuggestions.map(({ path, marker }) => ({
@@ -72,11 +76,12 @@ export const RootDirectory = () => {
     [rootDirectorySuggestions],
   );
 
-  const saveState = firstMatchingSaveState([
-    [isSubmitting, { status: "saving" }],
-    [!isValid, { status: "disabled" }],
-    [currentDockerContext === defaultValue, { status: "disabled", reason: "No changes to save" }],
-  ]);
+  const dirty = currentDockerContext !== defaultValue;
+  const saveState = formSaveState({
+    isSubmitting,
+    isValid,
+    isDirty: dirty,
+  });
 
   const onSubmit = async (values: z.infer<typeof rootDirectorySchema>) => {
     updateAllEnvironments((draft) => {
@@ -84,64 +89,32 @@ export const RootDirectory = () => {
     });
   };
 
-  const inputVariant = errors.dockerContext
-    ? "error"
-    : validation === "invalid"
-      ? "warning"
-      : "default";
-
-  const warningMessage =
-    validation === "invalid" ? (
-      caseMatch ? (
-        <span>
-          Did you mean{" "}
-          <button
-            type="button"
-            className="underline font-medium hover:text-warning-12"
-            onClick={() => setValue("dockerContext", caseMatch, { shouldValidate: true })}
-          >
-            {caseMatch}
-          </button>
-          ?
-        </span>
-      ) : branch ? (
-        <span>
-          Directory not found on branch <span className="font-medium text-gray-12">{branch}</span>
-        </span>
-      ) : (
-        "Directory not found on this branch"
-      )
-    ) : undefined;
+  const inputVariant = pathInputVariant(Boolean(errors.dockerContext), hint);
+  const warningMessage = pathHintMessage(hint, "Directory", (path) =>
+    setValue("dockerContext", path, { shouldValidate: true }),
+  );
 
   return (
     <FormSettingCard
-      icon={<IconFolderLinkOutline18 className="text-gray-12" />}
       title="Root directory"
-      description="The directory your app lives in. Unkey builds from here. Set it when your app is in a subdirectory (e.g., services/api)."
-      displayValue={defaultValue || "."}
       onSubmit={handleSubmit(onSubmit)}
+      dirty={dirty}
       saveState={saveState}
-      autoSave={variant === "onboarding"}
+      autoSave={autoSave}
     >
       <SettingField>
         <FormCombobox
-          label="Root directory"
-          requirement="required"
-          description={
-            warningMessage ??
-            "Select a suggested app directory or enter any repository-relative path. Changes apply on next deploy."
-          }
+          aria-label="Root directory"
+          description={warningMessage}
           error={errors.dockerContext?.message}
           variant={inputVariant}
           options={options}
-          wrapperClassName="max-w-[calc(var(--setting-w)-1rem)]"
-          className="max-w-[calc(var(--setting-w)-1rem)]"
           value={currentDockerContext}
           onSelect={(value) => setValue("dockerContext", value, { shouldValidate: true })}
           creatable
           searchPlaceholder="Search or enter a directory..."
           emptyMessage={<div className="mt-2">No app directories detected</div>}
-          placeholder={<span className="text-grayA-8">.</span>}
+          placeholder={<span className="text-grayA-8">services/api</span>}
         />
       </SettingField>
     </FormSettingCard>

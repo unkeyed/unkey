@@ -1,9 +1,8 @@
 "use client";
 
 import { ProjectDataProvider } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/data-provider";
-import { useState } from "react";
+import { EnvironmentSettingsProvider } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/settings/environment-provider";
 import { ConfigureDeploymentContent } from "./content";
-import { OnboardingEnvironmentSettingsProvider } from "./environment-provider";
 import { ConfigureDeploymentFallback } from "./fallback";
 
 type ConfigureDeploymentStepProps = {
@@ -12,14 +11,11 @@ type ConfigureDeploymentStepProps = {
 };
 
 export const ConfigureDeploymentStep = ({ projectId, appId }: ConfigureDeploymentStepProps) => {
-  const [settingsReady, setSettingsReady] = useState(false);
-
   return (
     <ProjectDataProvider projectId={projectId} appId={appId}>
-      <OnboardingEnvironmentSettingsProvider onSettingsReady={() => setSettingsReady(true)}>
+      <EnvironmentSettingsProvider autoSave fallback={<ConfigureDeploymentFallback />}>
         <ConfigureDeploymentContent />
-      </OnboardingEnvironmentSettingsProvider>
-      <ConfigureDeploymentFallback settingsReady={settingsReady} />
+      </EnvironmentSettingsProvider>
     </ProjectDataProvider>
   );
 };

@@ -1,6 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { IconHammer2Outline18 } from "@unkey/icons";
-import { FormInput, firstMatchingSaveState } from "@unkey/ui";
+import { FormInput, formSaveState } from "@unkey/ui";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { useEnvironmentSettings } from "../../environment-provider";
@@ -14,7 +13,7 @@ const buildCommandSchema = z.object({
 });
 
 export const BuildCommand = () => {
-  const { settings, variant } = useEnvironmentSettings();
+  const { settings, autoSave } = useEnvironmentSettings();
   const { buildCommand: defaultValue, dockerfile } = settings;
   const updateAllEnvironments = useUpdateAllEnvironments();
 
@@ -33,23 +32,20 @@ export const BuildCommand = () => {
   } = useForm<z.infer<typeof buildCommandSchema>>({
     resolver: zodResolver(buildCommandSchema),
     mode: "onChange",
-    defaultValues: { buildCommand: defaultValue },
+    values: { buildCommand: defaultValue },
   });
 
   const currentBuildCommand = useWatch({ control, name: "buildCommand" });
 
-  const saveState = firstMatchingSaveState([
-    [
-      dockerfileConfigured,
-      {
-        status: "disabled",
-        reason: "Not used with a Dockerfile build. Remove the Dockerfile to build automatically.",
-      },
-    ],
-    [isSubmitting, { status: "saving" }],
-    [!isValid, { status: "disabled" }],
-    [currentBuildCommand === defaultValue, { status: "disabled", reason: "No changes to save" }],
-  ]);
+  const dirty = currentBuildCommand !== defaultValue;
+  const saveState = formSaveState({
+    isSubmitting,
+    isValid,
+    isDirty: dirty,
+    blockedReason: dockerfileConfigured
+      ? "Not used with a Dockerfile build. Remove the Dockerfile to build automatically."
+      : undefined,
+  });
 
   const onSubmit = async (values: z.infer<typeof buildCommandSchema>) => {
     updateAllEnvironments((draft) => {
@@ -59,26 +55,18 @@ export const BuildCommand = () => {
 
   return (
     <FormSettingCard
-      icon={<IconHammer2Outline18 className="text-gray-12" />}
       title="Build command"
-      description="Override the auto-detected build command. Useful for monorepos, e.g. pnpm build --filter api. Only applies when no Dockerfile is set."
-      displayValue={
-        dockerfileConfigured ? "Not used (Dockerfile build)" : defaultValue || "Automatic"
-      }
+      description={dockerfileConfigured ? "Not used with a Dockerfile." : undefined}
       onSubmit={handleSubmit(onSubmit)}
+      dirty={dirty}
       saveState={saveState}
-      autoSave={variant === "onboarding"}
+      autoSave={autoSave}
     >
       <SettingField>
         <FormInput
-          label="Build command"
-          requirement="optional"
-          description={
-            dockerfileConfigured
-              ? "Disabled because a Dockerfile is configured. Build commands only apply to automatic (Railpack) builds."
-              : "Leave empty to let Unkey detect it automatically. Changes apply on next deploy."
-          }
-          placeholder="Automatic"
+          data-1p-ignore
+          aria-label="Build command"
+          placeholder="Auto-detected"
           disabled={dockerfileConfigured}
           error={errors.buildCommand?.message}
           {...register("buildCommand")}

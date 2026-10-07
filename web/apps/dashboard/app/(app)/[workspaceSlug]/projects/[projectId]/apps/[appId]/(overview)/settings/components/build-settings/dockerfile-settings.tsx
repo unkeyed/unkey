@@ -1,7 +1,6 @@
 import { FormCombobox } from "@/components/ui/form-combobox";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { IconFileSettingsOutline18 } from "@unkey/icons";
-import { firstMatchingSaveState } from "@unkey/ui";
+import { formSaveState } from "@unkey/ui";
 import { useMemo } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
@@ -9,6 +8,8 @@ import { useEnvironmentSettings } from "../../environment-provider";
 import { useUpdateAllEnvironments } from "../../hooks/use-update-all-environments";
 import { SettingField } from "../shared/form-blocks";
 import { FormSettingCard } from "../shared/form-setting-card";
+import { pathHint, pathInputVariant } from "./path-hint";
+import { pathHintMessage } from "./path-hint-message";
 import { useRepoTree } from "./use-repo-tree";
 
 const dockerfileSchema = z.object({
@@ -17,7 +18,7 @@ const dockerfileSchema = z.object({
 });
 
 export const Dockerfile = () => {
-  const { settings, variant } = useEnvironmentSettings();
+  const { settings, autoSave } = useEnvironmentSettings();
   const { dockerfile: defaultValue, dockerContext } = settings;
   const updateAllEnvironments = useUpdateAllEnvironments();
   const { branch, validateDockerfilePath, findDockerfileCaseMatch, getDockerfilesForContext } =
@@ -31,17 +32,20 @@ export const Dockerfile = () => {
   } = useForm<z.infer<typeof dockerfileSchema>>({
     resolver: zodResolver(dockerfileSchema),
     mode: "onChange",
-    defaultValues: { dockerfile: defaultValue },
+    values: { dockerfile: defaultValue },
   });
 
-  const currentDockerfile = useWatch({ control, name: "dockerfile", defaultValue });
+  const currentDockerfile = useWatch({ control, name: "dockerfile" });
 
   // An empty path is valid: it means the app builds with Railpack instead.
   const validation = currentDockerfile
     ? validateDockerfilePath(currentDockerfile, dockerContext)
     : "valid";
-  const caseMatch =
-    validation === "invalid" ? findDockerfileCaseMatch(currentDockerfile, dockerContext) : null;
+  const hint = pathHint(
+    validation,
+    () => findDockerfileCaseMatch(currentDockerfile, dockerContext),
+    branch,
+  );
   const detectedDockerfiles = getDockerfilesForContext(dockerContext);
 
   const options = useMemo(
@@ -65,11 +69,12 @@ export const Dockerfile = () => {
     [detectedDockerfiles],
   );
 
-  const saveState = firstMatchingSaveState([
-    [isSubmitting, { status: "saving" }],
-    [!isValid, { status: "disabled" }],
-    [currentDockerfile === defaultValue, { status: "disabled", reason: "No changes to save" }],
-  ]);
+  const dirty = currentDockerfile !== defaultValue;
+  const saveState = formSaveState({
+    isSubmitting,
+    isValid,
+    isDirty: dirty,
+  });
 
   const onSubmit = async (values: z.infer<typeof dockerfileSchema>) => {
     updateAllEnvironments((draft) => {
@@ -77,62 +82,30 @@ export const Dockerfile = () => {
     });
   };
 
-  const inputVariant = errors.dockerfile
-    ? "error"
-    : validation === "invalid"
-      ? "warning"
-      : "default";
-
-  const warningMessage =
-    validation === "invalid" ? (
-      caseMatch ? (
-        <span>
-          Did you mean{" "}
-          <button
-            type="button"
-            className="underline font-medium hover:text-warning-12"
-            onClick={() => setValue("dockerfile", caseMatch, { shouldValidate: true })}
-          >
-            {caseMatch}
-          </button>
-          ?
-        </span>
-      ) : branch ? (
-        <span>
-          File not found on branch <span className="font-medium text-gray-12">{branch}</span>
-        </span>
-      ) : (
-        "File not found on this branch"
-      )
-    ) : undefined;
+  const inputVariant = pathInputVariant(Boolean(errors.dockerfile), hint);
+  const warningMessage = pathHintMessage(hint, "File", (path) =>
+    setValue("dockerfile", path, { shouldValidate: true }),
+  );
 
   return (
     <FormSettingCard
-      icon={<IconFileSettingsOutline18 className="text-gray-12" />}
       title="Dockerfile"
-      description="Dockerfile location used for docker build. Leave empty and Unkey builds your app automatically without a Dockerfile."
-      displayValue={defaultValue || "Automatic (no Dockerfile)"}
       onSubmit={handleSubmit(onSubmit)}
+      dirty={dirty}
       saveState={saveState}
-      autoSave={variant === "onboarding"}
+      autoSave={autoSave}
     >
       <SettingField>
         <FormCombobox
-          requirement="optional"
-          label="Dockerfile"
-          description={
-            warningMessage ??
-            "Dockerfile location used for docker build. Leave empty to build automatically without a Dockerfile. Changes apply on next deploy."
-          }
+          aria-label="Dockerfile"
+          description={warningMessage}
           options={options}
-          wrapperClassName="max-w-[calc(var(--setting-w)-1rem)]"
-          className="max-w-[calc(var(--setting-w)-1rem)]"
           value={currentDockerfile}
           onSelect={(val) => setValue("dockerfile", val, { shouldValidate: true })}
           creatable
           searchPlaceholder="Search or type a path..."
           emptyMessage={<div className="mt-2">No Dockerfiles detected in repository</div>}
-          placeholder={<span className="text-grayA-8">Dockerfile</span>}
+          placeholder={<span className="text-grayA-8">None (auto-detected build)</span>}
           variant={inputVariant}
         />
       </SettingField>

@@ -1,40 +1,32 @@
 "use client";
 
-import { usePreventLeave } from "@/hooks/use-prevent-leave";
-import {
-  PageBody,
-  PageContainer,
-  PageHeader,
-  PageHeaderContent,
-  PageHeaderTitle,
-  SettingsDangerZone,
-} from "@unkey/ui";
+import { collection } from "@/lib/collections";
+import { useCollectionLoad } from "@/lib/collections/use-collection-load";
+import { SettingsDangerZone, SettingsGroups } from "@unkey/ui";
+import { LoadError } from "../../components/load-error";
 import { DeleteApp } from "./components/delete-app";
 import { DisconnectGitHub } from "./components/disconnect-github";
-import { DeploymentSettings } from "./deployment-settings";
-import { EnvironmentSettingsProvider } from "./environment-provider";
-import { useScrollToHash } from "./hooks/use-scroll-to-hash";
+import { SettingsSkeleton } from "./components/settings-skeleton";
+import { GeneralSettings } from "./deployment-settings";
+import { useApp } from "./hooks/use-build-source";
 
-export default function SettingsPage() {
-  const { bypass } = usePreventLeave();
-  useScrollToHash();
+export default function GeneralSettingsPage() {
+  const { app, isLoading } = useApp();
+  const appsLoad = useCollectionLoad(collection.apps.utils);
+  if (!app) {
+    if (appsLoad.failed && !isLoading) {
+      return <LoadError title="Could not load this app" onRetry={appsLoad.retry} />;
+    }
+    return <SettingsSkeleton />;
+  }
 
   return (
-    <PageContainer>
-      <PageHeader>
-        <PageHeaderContent>
-          <PageHeaderTitle>App Settings</PageHeaderTitle>
-        </PageHeaderContent>
-      </PageHeader>
-      <PageBody>
-        <EnvironmentSettingsProvider>
-          <DeploymentSettings onBeforeNavigate={bypass} />
-        </EnvironmentSettingsProvider>
-        <SettingsDangerZone>
-          <DisconnectGitHub />
-          <DeleteApp />
-        </SettingsDangerZone>
-      </PageBody>
-    </PageContainer>
+    <SettingsGroups>
+      <GeneralSettings />
+      <SettingsDangerZone>
+        <DisconnectGitHub />
+        <DeleteApp />
+      </SettingsDangerZone>
+    </SettingsGroups>
   );
 }

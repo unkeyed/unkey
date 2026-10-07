@@ -5,7 +5,7 @@ import {
 import { trpc } from "@/lib/trpc/client";
 import { useMemo } from "react";
 
-type ValidationResult = "valid" | "invalid" | "unknown";
+export type ValidationResult = "valid" | "invalid" | "unknown";
 
 const rootDirectoryMarkers = new Set([
   "build.gradle",
