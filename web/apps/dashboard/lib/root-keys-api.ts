@@ -1,3 +1,4 @@
+import { proxyPost } from "@/lib/proxy-post";
 import { z } from "zod";
 
 const rootKeySchema = z.object({
@@ -27,16 +28,6 @@ const listResponseSchema = z.object({
 
 const secretResponseSchema = z.object({ data: rootKeySecretSchema });
 
-const apiErrorSchema = z.object({
-  error: z.union([
-    z.string(),
-    z.object({
-      detail: z.string().optional(),
-      title: z.string().optional(),
-    }),
-  ]),
-});
-
 export type V2RootKey = z.infer<typeof rootKeySchema>;
 export type RootKeySecret = z.infer<typeof rootKeySecretSchema>;
 
@@ -63,26 +54,8 @@ export const rootKeysV2QueryKeys = {
   workspace: (workspaceId: string) => [...rootKeysV2QueryKeys.all, workspaceId] as const,
 };
 
-async function post(path: string, body: unknown, signal?: AbortSignal): Promise<unknown> {
-  const response = await fetch(`/proxy/v2/rootKeys.${path}`, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify(body),
-    signal,
-  });
-
-  const payload: unknown = await response.json();
-  if (!response.ok) {
-    const error = apiErrorSchema.safeParse(payload);
-    const message = error.success
-      ? typeof error.data.error === "string"
-        ? error.data.error
-        : (error.data.error.detail ?? error.data.error.title)
-      : undefined;
-    throw new Error(message ?? "Root key request failed");
-  }
-
-  return payload;
+function post(path: string, body: unknown, signal?: AbortSignal): Promise<unknown> {
+  return proxyPost(`rootKeys.${path}`, body, "Root key request failed", signal);
 }
 
 export async function listRootKeys(signal?: AbortSignal): Promise<V2RootKey[]> {
