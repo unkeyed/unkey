@@ -28,6 +28,18 @@ export const domainsQueryFor =
       )
       .orderBy(({ domain }) => domain.createdAt, "desc");
 
+export const appDeploymentQueryFor =
+  (projectId: string, appId: string, deploymentId: string) => (q: InitialQueryBuilder) =>
+    q
+      .from({ deployment: collection.deployments })
+      .where(({ deployment }) =>
+        and(
+          eq(deployment.projectId, projectId),
+          eq(deployment.appId, appId),
+          eq(deployment.id, deploymentId),
+        ),
+      );
+
 export const customDomainsQueryFor =
   (projectId: string, appId: string | undefined) => (q: InitialQueryBuilder) =>
     q
@@ -113,10 +125,15 @@ export function warmDeploymentsTable(projectId: string, appId: string) {
 }
 
 export function warmAppPage(projectId: string, appId: string) {
+  warmDeploymentsTable(projectId, appId);
+  const currentDeploymentId = collection.apps.get(appId)?.currentDeploymentId;
   warmQueries(`app/${projectId}/${appId}`, () => [
     createLiveQueryCollection(recentDeploymentsQueryFor(projectId, appId)),
     createLiveQueryCollection(domainsQueryFor(projectId, appId)),
     createLiveQueryCollection(customDomainsQueryFor(projectId, appId)),
     createLiveQueryCollection(environmentsQueryFor(projectId, [appId])),
+    ...(currentDeploymentId
+      ? [createLiveQueryCollection(appDeploymentQueryFor(projectId, appId, currentDeploymentId))]
+      : []),
   ]);
 }
