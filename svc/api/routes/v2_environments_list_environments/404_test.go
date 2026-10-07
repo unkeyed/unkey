@@ -19,11 +19,6 @@ func TestListEnvironmentsNotFound(t *testing.T) {
 	h.Register(route)
 
 	workspace := h.Resources().UserWorkspace
-	rootKey := h.CreateRootKey(workspace.ID, "unkey:v1:"+(workspace.ID)+":**#*")
-	headers := http.Header{
-		"Content-Type":  {"application/json"},
-		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
-	}
 
 	project := h.CreateProject(seed.CreateProjectRequest{
 		ID:          uid.New(uid.ProjectPrefix),
@@ -40,12 +35,24 @@ func TestListEnvironmentsNotFound(t *testing.T) {
 	})
 
 	t.Run("unknown app slug returns 404", func(t *testing.T) {
-		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{Project: project.Slug, App: slug(t)})
+		missingApp := slug(t)
+		rootKey := h.CreateRootKey(workspace.ID, fmt.Sprintf("unkey:v1:%s:projects/%s/apps/%s/environments/*#read", workspace.ID, project.ID, missingApp))
+		headers := http.Header{
+			"Content-Type":  {"application/json"},
+			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+		}
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{Project: project.Slug, App: missingApp})
 		require.Equal(t, http.StatusNotFound, res.Status, "expected 404, received: %s", res.RawBody)
 	})
 
 	t.Run("unknown project slug returns 404", func(t *testing.T) {
-		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{Project: slug(t), App: app.Slug})
+		missingProject := slug(t)
+		rootKey := h.CreateRootKey(workspace.ID, fmt.Sprintf("unkey:v1:%s:projects/%s/apps/%s/environments/*#read", workspace.ID, missingProject, app.ID))
+		headers := http.Header{
+			"Content-Type":  {"application/json"},
+			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+		}
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{Project: missingProject, App: app.Slug})
 		require.Equal(t, http.StatusNotFound, res.Status, "expected 404, received: %s", res.RawBody)
 	})
 
@@ -71,6 +78,12 @@ func TestListEnvironmentsNotFound(t *testing.T) {
 			AppID:       otherApp.ID,
 			Slug:        slug(t),
 		})
+
+		rootKey := h.CreateRootKey(workspace.ID, fmt.Sprintf("unkey:v1:%s:projects/%s/apps/%s/environments/*#read", workspace.ID, otherProject.ID, otherApp.ID))
+		headers := http.Header{
+			"Content-Type":  {"application/json"},
+			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{Project: otherProject.Slug, App: otherApp.Slug})
 		require.Equal(t, http.StatusNotFound, res.Status, "expected 404 for cross-workspace app, received: %s", res.RawBody)
