@@ -1,15 +1,20 @@
 "use client";
 import { getErrorToast, getUnkeyClient } from "@/lib/unkey-client";
-import { parseLoadSubsetOptions, queryCollectionOptions } from "@tanstack/query-db-collection";
+import {
+  type QueryCollectionUtils,
+  parseLoadSubsetOptions,
+  queryCollectionOptions,
+} from "@tanstack/query-db-collection";
 import { createCollection } from "@tanstack/react-db";
 import type {
   Environment,
   V2EnvironmentsUpdateSettingsRequestBody,
 } from "@unkey/api/models/components";
 import { toast } from "@unkey/ui";
-import { useSyncExternalStore } from "react";
 import { z } from "zod";
 import { queryClient } from "../client";
+import { listAppEnvironments, markAppEnvironmentsChanged } from "./app-environments";
+import { appliesOnNextDeploy, trackSave } from "./pending-redeploy";
 import { extractStringFilter } from "./utils";
 
 const healthcheckSchema = z
@@ -68,7 +73,11 @@ const schema = z.object({
  *   eq(s.environmentId, environmentId),
  * ))
  */
-export const environmentSettings = createCollection<EnvironmentSettings, string>(
+export const environmentSettings = createCollection<
+  EnvironmentSettings,
+  string,
+  QueryCollectionUtils<EnvironmentSettings, string>
+>(
   queryCollectionOptions({
     queryClient,
     queryKey: (opts) => {
@@ -89,22 +98,17 @@ export const environmentSettings = createCollection<EnvironmentSettings, string>
 
       // One request carries the settings of every environment in the app, so
       // selecting one environment costs no extra round trip.
-      const result = await getUnkeyClient().environments.listEnvironments({
-        project: projectId,
-        app: appId,
-      });
+      const data = await listAppEnvironments(projectId, appId);
 
-      return result.data.map((env) => flattenEnvironment(projectId, appId, env));
+      return data.map((env) => flattenEnvironment(projectId, appId, env));
     },
     getKey: (item) => item.environmentId,
     id: "environmentSettings",
     onUpdate: async ({ transaction }) => {
-      const silent = transaction.metadata?.silent === true;
       // A transaction can carry one environment or every environment of an app,
       // so send them together and report the outcome once.
       await dispatchSettingsMutations(
         transaction.mutations.map((m) => ({ original: m.original, modified: m.modified })),
-        silent,
       );
     },
   }),
@@ -288,34 +292,35 @@ export function applyDefaultSettings(
 ): Promise<unknown> {
   const d = ENVIRONMENT_SETTINGS_DEFAULTS;
 
-  return getUnkeyClient().environments.updateSettings({
-    project: projectId,
-    app: appId,
-    environment: environmentId,
-    autoDeploy: d.autoDeploy,
-    dockerfile: null,
-    rootDirectory: d.dockerContext,
-    buildCommand: null,
-    watchPaths: [],
-    port: d.port,
-    vCpus: d.cpuMillicores / 1000,
-    memoryMib: d.memoryMib,
-    storageMib: d.storageMib,
-    command: [],
-    healthcheck: null,
-    upstreamProtocol: d.upstreamProtocol,
-    openapiSpecPath: null,
-    // The API rejects an empty list, so keep the regions if the available ones
-    // have not loaded.
-    ...(regionNames.length > 0
-      ? { regions: regionNames.map((name) => ({ name, replicas: { min: 1, max: 1 } })) }
-      : {}),
-  });
+  return getUnkeyClient()
+    .environments.updateSettings({
+      project: projectId,
+      app: appId,
+      environment: environmentId,
+      autoDeploy: d.autoDeploy,
+      dockerfile: null,
+      rootDirectory: d.dockerContext,
+      buildCommand: null,
+      watchPaths: [],
+      port: d.port,
+      vCpus: d.cpuMillicores / 1000,
+      memoryMib: d.memoryMib,
+      storageMib: d.storageMib,
+      command: [],
+      healthcheck: null,
+      upstreamProtocol: d.upstreamProtocol,
+      openapiSpecPath: null,
+      // The API rejects an empty list, so keep the regions if the available ones
+      // have not loaded.
+      ...(regionNames.length > 0
+        ? { regions: regionNames.map((name) => ({ name, replicas: { min: 1, max: 1 } })) }
+        : {}),
+    })
+    .finally(() => markAppEnvironmentsChanged(projectId, appId));
 }
 
 async function dispatchSettingsMutations(
   changes: { original: EnvironmentSettings; modified: EnvironmentSettings }[],
-  silent = false,
 ): Promise<void> {
   const bodies = changes
     .map(({ original, modified }) => buildSettingsUpdate(original, modified))
@@ -326,80 +331,31 @@ async function dispatchSettingsMutations(
   }
 
   const client = getUnkeyClient();
-  const mutation = Promise.all(bodies.map((body) => client.environments.updateSettings(body)));
-
-  if (!silent) {
-    toast.promise(mutation, {
-      loading: "Saving settings...",
-      success: "Settings updated",
-      error: (err) => getErrorToast(err, "Failed to update settings"),
-    });
-  }
-  await trackSave(mutation);
-}
-
-/**
- * Store for tracking in-flight and completed collection saves.
- *
- * Shared by environment-settings and env-vars collections so the
- * pending-redeploy banner reacts to mutations from either source.
- */
-const saveStore = {
-  pendingSaves: 0,
-  savedCount: 0,
-  dismissedAtCount: 0,
-  listeners: new Set<() => void>(),
-  notify() {
-    for (const cb of this.listeners) {
-      cb();
+  const mutation = Promise.allSettled(
+    bodies.map((body) => client.environments.updateSettings(body)),
+  ).then((results) => {
+    for (const body of bodies) {
+      markAppEnvironmentsChanged(body.project, body.app);
     }
-  },
-  subscribe(cb: () => void): () => void {
-    this.listeners.add(cb);
-    return () => {
-      this.listeners.delete(cb);
-    };
-  },
-  dismiss() {
-    this.dismissedAtCount = this.savedCount;
-    this.notify();
-  },
-};
+    const failure = results.find(
+      (result): result is PromiseRejectedResult => result.status === "rejected",
+    );
+    if (failure) {
+      // Rollback drops every optimistic row, so reload the environments that did save.
+      void environmentSettings.utils.refetch();
+      throw failure.reason;
+    }
+  });
 
-export function trackSave<T>(promise: Promise<T>): Promise<T> {
-  saveStore.pendingSaves++;
-  saveStore.notify();
-  return promise.then(
-    (result) => {
-      saveStore.savedCount++;
-      saveStore.pendingSaves--;
-      saveStore.notify();
-      return result;
-    },
-    (err) => {
-      saveStore.pendingSaves--;
-      saveStore.notify();
-      throw err;
-    },
-  );
-}
-
-export function useSettingsIsSaving(): boolean {
-  return useSyncExternalStore(
-    (cb) => saveStore.subscribe(cb),
-    () => saveStore.pendingSaves > 0,
-  );
-}
-
-/** Returns true when there are saves the user hasn't dismissed yet. Survives navigation. */
-export function useSettingsBannerVisible(): boolean {
-  return useSyncExternalStore(
-    (cb) => saveStore.subscribe(cb),
-    () => saveStore.savedCount > saveStore.dismissedAtCount,
-  );
-}
-
-/** Dismisses the pending-redeploy banner until a new save occurs. */
-export function dismissSettingsBanner(): void {
-  saveStore.dismiss();
+  // A save that takes effect now is confirmed by the row that made it.
+  if (!bodies.some(appliesOnNextDeploy)) {
+    await mutation;
+    return;
+  }
+  toast.promise(mutation, {
+    loading: "Saving settings...",
+    success: "Settings updated",
+    error: (err) => getErrorToast(err, "Failed to update settings"),
+  });
+  await trackSave(mutation);
 }

@@ -82,6 +82,24 @@ describe("app-scoped paths", () => {
     expect(routes.projects.apps.deployments(scope)).toBe(
       "/acme/projects/proj_123/apps/app_456/deployments",
     );
+    expect(routes.projects.apps.domains(scope)).toBe(
+      "/acme/projects/proj_123/apps/app_456/domains",
+    );
+  });
+
+  it("builds settings sub-page paths", () => {
+    expect(routes.projects.apps.settings({ ...scope, page: "build" })).toBe(
+      "/acme/projects/proj_123/apps/app_456/settings/build",
+    );
+    expect(routes.projects.apps.settings({ ...scope, page: "environments" })).toBe(
+      "/acme/projects/proj_123/apps/app_456/settings/environments",
+    );
+  });
+
+  it("opens one environment on the environments settings page", () => {
+    expect(
+      routes.projects.apps.settings({ ...scope, page: "environments", environment: "preview" }),
+    ).toBe("/acme/projects/proj_123/apps/app_456/settings/environments?environment=preview");
   });
 
   it("builds a deployment path", () => {

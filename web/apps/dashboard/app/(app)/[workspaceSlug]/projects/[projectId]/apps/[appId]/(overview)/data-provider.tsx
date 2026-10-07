@@ -82,8 +82,6 @@ type ProjectDataContextType = {
   isCustomDomainsLoading: boolean;
 
   getDomainsForDeployment: (deploymentId: string) => Domain[];
-  getLiveDomains: () => Domain[];
-  getEnvironmentOrLiveDomains: () => Domain[];
   getDeploymentById: (id: string) => Deployment | undefined;
 
   refetchDomains: () => void;
@@ -228,6 +226,7 @@ export const ProjectDataProvider = ({
     const environments = environmentsQuery.data ?? [];
     const customDomains = customDomainsQuery.data ?? [];
     const activeApp = appId ? app : primaryApp;
+    const isEnvironmentsLoading = projectAppsQuery.isLoading || environmentsQuery.isLoading;
     const project = projectQuery.data
       ? {
           ...projectQuery.data,
@@ -250,18 +249,13 @@ export const ProjectDataProvider = ({
       isDeploymentsLoading: deploymentsQuery.isLoading,
 
       environments,
-      isEnvironmentsLoading: projectAppsQuery.isLoading || environmentsQuery.isLoading,
+      isEnvironmentsLoading,
 
       customDomains,
       isCustomDomainsLoading: customDomainsQuery.isLoading,
 
       getDomainsForDeployment: (deploymentId: string) =>
         domains.filter((d) => d.deploymentId === deploymentId),
-
-      getLiveDomains: () => domains.filter((d) => d.sticky === "live"),
-
-      getEnvironmentOrLiveDomains: () =>
-        domains.filter((d) => d.sticky === "environment" || d.sticky === "live"),
 
       getDeploymentById: (id: string) => deployments.find((d) => d.id === id),
 

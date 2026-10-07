@@ -25,6 +25,45 @@ function ResourceListItem({ className, ...props }: React.ComponentProps<"li">) {
   return <li className={cn("relative", className)} {...props} />;
 }
 
+/**
+ * The whole row activates through a button stretched under its cells.
+ * Give interactive cells `relative` so they stay clickable above it.
+ */
+function ResourceListRow({
+  label,
+  onActivate,
+  expanded,
+  active = false,
+  className,
+  children,
+  ...props
+}: React.ComponentProps<"div"> & {
+  label: string;
+  onActivate: () => void;
+  expanded?: boolean;
+  active?: boolean;
+}) {
+  return (
+    <div
+      className={cn(
+        "relative h-12 px-4 transition-colors hover:bg-grayA-2 has-[>button:focus-visible]:bg-grayA-2",
+        active && "bg-grayA-2",
+        className,
+      )}
+      {...props}
+    >
+      <button
+        type="button"
+        aria-label={label}
+        aria-expanded={expanded}
+        onClick={onActivate}
+        className="absolute inset-0 cursor-pointer outline-hidden"
+      />
+      {children}
+    </div>
+  );
+}
+
 function ResourceListFooter({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div className={cn("flex items-center justify-end border-t px-4 py-3", className)} {...props} />
@@ -38,4 +77,5 @@ export {
   ResourceListFooter,
   ResourceListHeader,
   ResourceListItem,
+  ResourceListRow,
 };

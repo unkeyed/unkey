@@ -1,6 +1,5 @@
-import { RegionFlag } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/region-flag";
+import { RegionFlag } from "@/components/region-flag";
 import type { Column } from "@/components/virtual-table/types";
-import { mapRegionToFlag } from "@/lib/trpc/routers/deploy/network/utils";
 import { IconTriangleWarningOutline18 } from "@unkey/icons";
 import { TimestampInfo } from "@unkey/ui";
 import { TruncatedCell } from "../truncated-cell";
@@ -59,7 +58,7 @@ export const containerLogColumns: Column<ContainerLogRow>[] = [
     cellClassName: "align-top",
     render: (log) => (
       <div className="my-2 flex items-center gap-1.5">
-        <RegionFlag flagCode={mapRegionToFlag(log.region)} size="xs" shape="circle" />
+        <RegionFlag region={log.region} size="xs" shape="circle" />
         <span className="font-mono text-xs text-gray-11">{log.region}</span>
       </div>
     ),

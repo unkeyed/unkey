@@ -1,5 +1,4 @@
-import { RegionFlag } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/region-flag";
-import { mapRegionToFlag } from "@/lib/trpc/routers/deploy/network/utils";
+import { RegionFlag } from "@/components/region-flag";
 import { Badge, type DataTableColumnDef, TimestampInfo } from "@unkey/ui";
 import { cn } from "cn";
 import { type RuntimeLogRow, getLogKey, getSeverityStyle } from "../utils/get-row-class";
@@ -67,7 +66,7 @@ export const createRuntimeLogsColumns = ({
     },
     cell: ({ row }) => (
       <div className="flex items-center gap-1.5">
-        <RegionFlag flagCode={mapRegionToFlag(row.original.region)} size="xs" shape="circle" />
+        <RegionFlag region={row.original.region} size="xs" shape="circle" />
         <span className="font-mono text-xs text-gray-11">{row.original.region}</span>
       </div>
     ),

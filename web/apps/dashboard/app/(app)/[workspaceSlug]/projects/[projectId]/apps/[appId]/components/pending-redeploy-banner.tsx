@@ -6,7 +6,7 @@ import { collection } from "@/lib/collections";
 import {
   dismissSettingsBanner,
   useSettingsBannerVisible,
-} from "@/lib/collections/deploy/environment-settings";
+} from "@/lib/collections/deploy/pending-redeploy";
 import { routes } from "@/lib/navigation/routes";
 import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
 import { useMutation } from "@tanstack/react-query";

@@ -1,6 +1,7 @@
 "use client";
 
 import { EnvStatusBadge } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/deployments/components/table/components/env-status-badge";
+import { RegionFlag } from "@/components/region-flag";
 import { collection } from "@/lib/collections";
 import type { Deployment } from "@/lib/collections/deploy/deployments";
 import { githubUrl } from "@/lib/github-url";
@@ -17,7 +18,6 @@ import { Badge, Card, InfoTooltip, TimestampInfo } from "@unkey/ui";
 import { useProjectData } from "../../(overview)/data-provider";
 import { DeploymentTriggerBadge } from "../../../../components/deployment-trigger-badge";
 import { Avatar } from "../../components/git-avatar";
-import { RegionFlag } from "../../components/region-flag";
 import { DottedLink } from "../dotted-link";
 import { ActiveDeploymentCardEmpty } from "./components/active-deployment-card-empty";
 import { ImageSource } from "./components/image-source";
@@ -275,7 +275,7 @@ export function ActiveDeploymentCard({
                       content={instance.region.name}
                       position={{ side: "top", align: "center" }}
                     >
-                      <RegionFlag flagCode={instance.flagCode} size="xs" shape="rounded" />
+                      <RegionFlag region={instance.region.name} size="xs" shape="rounded" />
                     </InfoTooltip>
                   ))}
                 </div>

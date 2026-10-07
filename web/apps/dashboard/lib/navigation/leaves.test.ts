@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildApiLinks, buildNamespaceLinks } from "./leaves";
+import { buildApiLinks, buildAppLinks, buildNamespaceLinks } from "./leaves";
 import type { ResolvedNavLink } from "./types";
 
 const ws = "acme";
@@ -177,5 +177,58 @@ describe("namespace links inside a project", () => {
       "overrides",
     ]);
     expect(links.filter((link) => link.isActive).map((link) => link.key)).toEqual(["overrides"]);
+  });
+});
+
+describe("buildAppLinks", () => {
+  const appId = "app_456";
+
+  it("lists the app pages, then the project logs and requests", () => {
+    const links = buildAppLinks(ws, projectId, appId, [
+      "projects",
+      projectId,
+      "apps",
+      appId,
+      "domains",
+    ]);
+    expect(links.map(({ key, label, href }) => ({ key, label, href }))).toEqual([
+      { key: "overview", label: "Overview", href: "/acme/projects/proj_123/apps/app_456/overview" },
+      {
+        key: "deployments",
+        label: "Deployments",
+        href: "/acme/projects/proj_123/apps/app_456/deployments",
+      },
+      {
+        key: "env-vars",
+        label: "Environment variables",
+        href: "/acme/projects/proj_123/apps/app_456/env-vars",
+      },
+      { key: "domains", label: "Domains", href: "/acme/projects/proj_123/apps/app_456/domains" },
+      { key: "policies", label: "Policies", href: "/acme/projects/proj_123/apps/app_456/policies" },
+      {
+        key: "settings",
+        label: "App settings",
+        href: "/acme/projects/proj_123/apps/app_456/settings",
+      },
+      { key: "logs", label: "Go to logs", href: "/acme/projects/proj_123/logs?appId=is:app_456" },
+      {
+        key: "requests",
+        label: "Go to requests",
+        href: "/acme/projects/proj_123/requests?appId=is:app_456",
+      },
+    ]);
+    expect(links.filter((link) => link.isActive).map((link) => link.key)).toEqual(["domains"]);
+  });
+
+  it("keeps App settings active on its sub-pages", () => {
+    const links = buildAppLinks(ws, projectId, appId, [
+      "projects",
+      projectId,
+      "apps",
+      appId,
+      "settings",
+      "environments",
+    ]);
+    expect(links.filter((link) => link.isActive).map((link) => link.key)).toEqual(["settings"]);
   });
 });

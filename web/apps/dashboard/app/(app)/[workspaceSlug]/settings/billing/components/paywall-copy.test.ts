@@ -16,6 +16,7 @@ describe("paywallCopy", () => {
   it("limits deploy and custom domains to Compute plans", () => {
     expect(paywallCopy("deploy").products).toEqual(["compute"]);
     expect(paywallCopy("custom-domains").products).toEqual(["compute"]);
+    expect(paywallCopy("compute-size").products).toEqual(["compute"]);
   });
 
   it("limits the API quota wall to API plans", () => {

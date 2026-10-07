@@ -71,7 +71,7 @@ export function SlidePanel({
           data-docs-target={docsTarget}
           className={cn(
             "[--slide-panel-inset:0.75rem]",
-            "fixed z-51 flex flex-col shadow-floating",
+            "fixed z-50 flex flex-col shadow-floating",
             "rounded-xl bg-raised",
             "top-(--slide-panel-inset) bottom-(--slide-panel-inset)",
             "max-w-[calc(100dvw_-_var(--slide-panel-inset)_*_2)]",
@@ -148,6 +148,14 @@ export type SlidePanelFooterProps = {
 
 export function SlidePanelFooter({ children, className }: SlidePanelFooterProps) {
   return <div className={cn("border-t px-6 py-4", className)}>{children}</div>;
+}
+
+export type SlidePanelCloseProps = DialogPrimitive.Close.Props & {
+  ref?: React.Ref<HTMLButtonElement>;
+};
+
+export function SlidePanelClose(props: SlidePanelCloseProps) {
+  return <DialogPrimitive.Close {...props} />;
 }
 
 export type SlidePanelCloseButtonProps = DialogPrimitive.Close.Props & {

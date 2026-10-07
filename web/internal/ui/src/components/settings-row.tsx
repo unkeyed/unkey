@@ -5,6 +5,7 @@ import { cn } from "../lib/utils";
 import { Button } from "./buttons/button";
 import { InfoTooltip } from "./info-tooltip";
 import { type SaveState, resolveGroupSave } from "./settings-save";
+import { useReportUnsavedChanges } from "./unsaved-changes";
 
 type Member = {
   dirty: boolean;
@@ -20,7 +21,7 @@ type GroupContext = {
 const SettingsGroupContext = React.createContext<GroupContext | null>(null);
 
 function useSettingsGroupMember({ dirty, saveState, submit }: Member) {
-  const group = React.useContext(SettingsGroupContext);
+  const group = React.use(SettingsGroupContext);
   if (!group) {
     throw new Error("A settings form must be rendered inside a SettingsGroupContent.");
   }
@@ -66,7 +67,15 @@ function SettingsGroupTitle({ className, ...props }: React.ComponentProps<"h2">)
 
 SettingsGroupTitle.displayName = "SettingsGroupTitle";
 
-function SettingsGroupContent({ className, children, ...props }: React.ComponentProps<"div">) {
+function SettingsGroupContent({
+  className,
+  children,
+  pendingNote,
+  ...props
+}: React.ComponentProps<"div"> & {
+  /** Shown beside Save only while the group has unsaved changes. */
+  pendingNote?: React.ReactNode;
+}) {
   const [members, setMembers] = React.useState<ReadonlyMap<string, Member>>(new Map());
 
   const update = React.useCallback((id: string, member: Member) => {
@@ -83,8 +92,15 @@ function SettingsGroupContent({ className, children, ...props }: React.Component
 
   const context = React.useMemo(() => ({ update, remove }), [update, remove]);
   const values = [...members.values()];
+  useReportUnsavedChanges(values.some((member) => member.dirty));
   const save = resolveGroupSave(values);
   const blockedReasons = save.status === "blocked" ? save.reasons : [];
+  const note =
+    save.status === "ready" && save.submit.length < save.dirty
+      ? `Saves ${save.submit.length} of ${save.dirty} changes`
+      : save.status === "ready" || save.status === "blocked"
+        ? pendingNote
+        : null;
 
   const saveReady = () => {
     if (save.status !== "ready") {
@@ -105,11 +121,7 @@ function SettingsGroupContent({ className, children, ...props }: React.Component
         <div className="divide-y divide-grayA-4">{children}</div>
         {values.length > 0 ? (
           <div className="border-t border-grayA-4 bg-grayA-2 px-5 py-3 flex items-center justify-end gap-3">
-            {save.status === "ready" && save.submit.length < save.dirty ? (
-              <span className="text-xs text-gray-11">
-                Saves {save.submit.length} of {save.dirty} changes
-              </span>
-            ) : null}
+            {note ? <span className="text-xs text-gray-11">{note}</span> : null}
             <InfoTooltip
               content={blockedReasons.join(" ")}
               disabled={blockedReasons.length === 0}
@@ -141,19 +153,22 @@ function SettingsForm({
   dirty,
   saveState,
   onSubmit,
+  autoSave = false,
   className,
   children,
 }: {
   dirty: boolean;
   saveState: SaveState;
   onSubmit: React.FormEventHandler<HTMLFormElement>;
+  /** Submits when focus leaves the form, and keeps the form out of the group's Save button. */
+  autoSave?: boolean;
   className?: string;
   children: React.ReactNode;
 }) {
   const formRef = React.useRef<HTMLFormElement>(null);
 
   useSettingsGroupMember({
-    dirty,
+    dirty: !autoSave && dirty,
     saveState,
     submit: () => formRef.current?.requestSubmit(),
   });
@@ -168,6 +183,15 @@ function SettingsForm({
           return;
         }
         onSubmit(e);
+      }}
+      onBlur={(e) => {
+        if (!autoSave || saveState.status !== "ready") {
+          return;
+        }
+        const relatedTarget = e.relatedTarget instanceof Node ? e.relatedTarget : null;
+        if (!e.currentTarget.contains(relatedTarget)) {
+          e.currentTarget.requestSubmit();
+        }
       }}
     >
       {children}

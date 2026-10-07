@@ -1,5 +1,9 @@
 "use client";
-import { parseLoadSubsetOptions, queryCollectionOptions } from "@tanstack/query-db-collection";
+import {
+  type QueryCollectionUtils,
+  parseLoadSubsetOptions,
+  queryCollectionOptions,
+} from "@tanstack/query-db-collection";
 import { createCollection } from "@tanstack/react-db";
 
 import { getErrorToast, getUnkeyClient } from "@/lib/unkey-client";
@@ -7,7 +11,8 @@ import type { EnvironmentVariable } from "@unkey/api/models/components";
 import { toast } from "@unkey/ui";
 import { z } from "zod";
 import { queryClient } from "../client";
-import { trackSave } from "./environment-settings";
+import { listAppEnvironments } from "./app-environments";
+import { trackSave } from "./pending-redeploy";
 import { extractStringFilter } from "./utils";
 
 const schema = z.object({
@@ -34,7 +39,7 @@ export type EnvVar = z.infer<typeof schema>;
  * IMPORTANT: All queries MUST filter by projectId and appId:
  * .where(({ v }) => and(eq(v.projectId, projectId), eq(v.appId, appId)))
  */
-export const envVars = createCollection<EnvVar, string>(
+export const envVars = createCollection<EnvVar, string, QueryCollectionUtils<EnvVar, string>>(
   queryCollectionOptions({
     queryClient,
     queryKey: (opts) => {
@@ -57,10 +62,7 @@ export const envVars = createCollection<EnvVar, string>(
 
       // The API lists the variables of one environment, so get the app's
       // environments first.
-      const { data: appEnvironments } = await getUnkeyClient().environments.listEnvironments({
-        project: projectId,
-        app: appId,
-      });
+      const appEnvironments = await listAppEnvironments(projectId, appId);
 
       const perEnvironment = await Promise.all(
         appEnvironments.map(async (environment) => {
@@ -163,7 +165,7 @@ async function listAllVariables(
 }
 
 /** Lists the keys already set in the given environments. */
-export async function listExistingKeys(
+async function listExistingKeys(
   projectId: string,
   appId: string,
   environmentIds: string[],
@@ -189,11 +191,54 @@ export type VariableInput = {
 // sent in parts, and each part commits on its own.
 const MAX_VARIABLES_PER_REQUEST = 50;
 
+type AddVariablesResult =
+  | { status: "taken"; keys: Set<string> }
+  | { status: "added"; count: number };
+
+/**
+ * Adds the variables to every given environment, unless one of their keys is
+ * already set in one of them. Then nothing is written.
+ */
+export async function addVariables({
+  projectId,
+  appId,
+  environmentIds,
+  variables,
+}: {
+  projectId: string;
+  appId: string;
+  environmentIds: string[];
+  variables: VariableInput[];
+}): Promise<AddVariablesResult> {
+  const existing = new Set(
+    (await listExistingKeys(projectId, appId, environmentIds)).map((v) => v.key),
+  );
+  const taken = new Set(variables.map((v) => v.key).filter((key) => existing.has(key)));
+  if (taken.size > 0) {
+    return { status: "taken", keys: taken };
+  }
+
+  try {
+    await trackSave(
+      Promise.all(
+        environmentIds.map((environmentId) =>
+          setVariables(projectId, appId, environmentId, variables),
+        ),
+      ),
+    );
+  } finally {
+    // A rejection can still leave variables written, since each environment
+    // and each part commits on its own.
+    await envVars.utils.refetch().catch(() => {});
+  }
+  return { status: "added", count: new Set(variables.map((v) => v.key)).size };
+}
+
 /**
  * Upserts variables in one environment. The API writes each entry exactly as
  * sent and merges nothing, so send the kind and the description every time.
  */
-export async function setVariables(
+async function setVariables(
   projectId: string,
   appId: string,
   environmentId: string,

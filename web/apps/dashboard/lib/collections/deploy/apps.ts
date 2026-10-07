@@ -1,5 +1,9 @@
 import { getErrorToast, getUnkeyClient } from "@/lib/unkey-client";
-import { parseLoadSubsetOptions, queryCollectionOptions } from "@tanstack/query-db-collection";
+import {
+  type QueryCollectionUtils,
+  parseLoadSubsetOptions,
+  queryCollectionOptions,
+} from "@tanstack/query-db-collection";
 import { createCollection } from "@tanstack/react-db";
 import { NotFoundErrorResponse } from "@unkey/api/models/errors";
 import { toast } from "@unkey/ui";
@@ -71,7 +75,7 @@ export type CreateAppRequestSchema = z.infer<typeof createAppRequestSchema>;
  * IMPORTANT: All queries MUST filter by projectId with eq or inArray:
  * .where(({ app }) => eq(app.projectId, projectId))
  */
-export const apps = createCollection<App, string>(
+export const apps = createCollection<App, string, QueryCollectionUtils<App, string>>(
   queryCollectionOptions({
     queryClient,
     queryKey: (opts) => {

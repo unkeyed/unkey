@@ -48,7 +48,11 @@ export type DocumentedSelectProps = VariantProps<typeof selectTriggerVariants> &
 
 const Select = SelectPrimitive.Root;
 const SelectGroup = SelectPrimitive.Group;
-const SelectValue = SelectPrimitive.Value;
+function SelectValue({ className, ...props }: SelectPrimitive.Value.Props) {
+  return (
+    <SelectPrimitive.Value className={cn("flex min-w-0 items-center", className)} {...props} />
+  );
+}
 
 function SelectTrigger({
   className,
@@ -178,7 +182,9 @@ function SelectItem({
         </SelectPrimitive.ItemIndicator>
       </span>
 
-      <SelectPrimitive.ItemText>{children}</SelectPrimitive.ItemText>
+      <SelectPrimitive.ItemText className="flex min-w-0 items-center">
+        {children}
+      </SelectPrimitive.ItemText>
     </SelectPrimitive.Item>
   );
 }

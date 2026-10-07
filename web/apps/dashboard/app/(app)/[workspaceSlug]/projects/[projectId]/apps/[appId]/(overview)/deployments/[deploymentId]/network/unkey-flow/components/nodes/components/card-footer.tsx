@@ -1,7 +1,6 @@
-import { RegionFlag } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/region-flag";
+import { RegionFlag } from "@/components/region-flag";
 import { formatCpuParts, formatMemoryParts } from "@/lib/utils/deployment-formatters";
 import { IconChartActivityOutline12, IconMicrochipOutline18, IconRamOutline18 } from "@unkey/icons";
-import type { RegionNode } from "../types";
 import { MetricPill } from "./metric-pill";
 
 // Region cards show only an aggregate RPS pill; per-resource metrics
@@ -13,7 +12,7 @@ type RegionCardFooterProps = {
 
 type InstanceCardFooterProps = {
   type: "instance";
-  flagCode: RegionNode["metadata"]["flagCode"];
+  region: string;
   rps?: number;
   cpu?: number;
   memory?: number;
@@ -23,13 +22,13 @@ type CardFooterProps = RegionCardFooterProps | InstanceCardFooterProps;
 
 export function CardFooter(props: CardFooterProps) {
   const rps = props.rps;
-  const flagCode = props.type === "instance" ? props.flagCode : undefined;
+  const region = props.type === "instance" ? props.region : undefined;
   const cpu = props.type === "instance" ? props.cpu : undefined;
   const memory = props.type === "instance" ? props.memory : undefined;
 
   return (
     <div className="p-1 flex items-center h-full bg-grayA-2 rounded-b-2xl">
-      {flagCode && <RegionFlag flagCode={flagCode} size="sm" shape="circle" className="mr-1.5" />}
+      {region && <RegionFlag region={region} size="sm" shape="circle" className="mr-1.5" />}
       {rps !== undefined && (
         <MetricPill
           icon={<IconChartActivityOutline12 className="shrink-0" />}

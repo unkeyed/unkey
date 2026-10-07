@@ -1,8 +1,8 @@
 import {
   IconArrowDottedRotateAnticlockwiseOutline18,
   IconArrowsOppositeDirectionYOutline18,
-  IconBracketsSquareDotsOutline18,
   IconCubeOutline18,
+  IconEarthOutline18,
   IconFingerprintOutline18,
   IconGaugeOutline18,
   IconGearOutline18,
@@ -10,8 +10,10 @@ import {
   IconKeyOutline18,
   IconLayers3Outline18,
   IconNodesOutline18,
+  IconShieldGlobeOutline18,
   IconShieldKeyOutline18,
   IconSquareBulletListOutline18,
+  IconTableCodeOutline18,
   IconWindowLayoutOutline18,
 } from "@unkey/icons";
 import { routes } from "./routes";
@@ -65,7 +67,7 @@ export function buildWorkspaceSections(slug: string, segments: string[]): Resolv
     },
     {
       key: "audit",
-      label: "Audit Log",
+      label: "Audit log",
       href: `/${slug}/audit`,
       icon: IconInputSearchOutline18,
       isActive: top === "audit",
@@ -111,7 +113,7 @@ export function buildProjectLinks(
     },
     {
       key: "settings",
-      label: "Project Settings",
+      label: "Project settings",
       href: routes.projects.settings(scope),
       icon: IconGearOutline18,
       isActive: page === "settings",
@@ -144,28 +146,35 @@ export function buildAppLinks(
     },
     {
       key: "env-vars",
-      label: "Environment Variables",
+      label: "Environment variables",
       href: routes.projects.apps.envVars(scope),
-      icon: IconBracketsSquareDotsOutline18,
+      icon: IconTableCodeOutline18,
       isActive: page === "env-vars",
+    },
+    {
+      key: "domains",
+      label: "Domains",
+      href: routes.projects.apps.domains(scope),
+      icon: IconEarthOutline18,
+      isActive: page === "domains",
     },
     {
       key: "policies",
       label: "Policies",
       href: routes.projects.apps.policies(scope),
-      icon: IconShieldKeyOutline18,
+      icon: IconShieldGlobeOutline18,
       isActive: page === "policies",
     },
     {
       key: "settings",
-      label: "App Settings",
+      label: "App settings",
       href: routes.projects.apps.settings(scope),
       icon: IconGearOutline18,
       isActive: page === "settings",
     },
     {
       key: "logs",
-      label: "Go to Logs",
+      label: "Go to logs",
       href: routes.projects.logs(scope),
       icon: IconLayers3Outline18,
       isActive: page === "logs",
@@ -173,7 +182,7 @@ export function buildAppLinks(
     },
     {
       key: "requests",
-      label: "Go to Requests",
+      label: "Go to requests",
       href: routes.projects.requests(scope),
       icon: IconArrowsOppositeDirectionYOutline18,
       isActive: page === "requests",

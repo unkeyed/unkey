@@ -1,6 +1,5 @@
 "use client";
-import { getUnkeyClient } from "@/lib/unkey-client";
-import { queryCollectionOptions } from "@tanstack/query-db-collection";
+import { type QueryCollectionUtils, queryCollectionOptions } from "@tanstack/query-db-collection";
 import {
   type IR,
   type Ref,
@@ -15,6 +14,7 @@ import { NotFoundErrorResponse } from "@unkey/api/models/errors";
 import type { environments as environmentsTable } from "@unkey/db/src/schema";
 import { z } from "zod";
 import { queryClient } from "../client";
+import { listAppEnvironments } from "./app-environments";
 
 const kind = z.enum(["production", "preview"] as const satisfies readonly KindColumn[]);
 
@@ -52,7 +52,11 @@ export type Environment = z.infer<typeof schema>;
  * Do not reach it through the nullable side of an outer join. TanStack DB does
  * not push that side's where clause into the load, so the projectId is lost.
  */
-export const environments = createCollection<Environment, string>(
+export const environments = createCollection<
+  Environment,
+  string,
+  QueryCollectionUtils<Environment, string>
+>(
   queryCollectionOptions({
     queryClient,
     queryKey: (opts) => {
@@ -75,10 +79,7 @@ export const environments = createCollection<Environment, string>(
       const perApp = await Promise.all(
         apps.map(async ({ projectId, appId }) => {
           try {
-            const { data } = await getUnkeyClient().environments.listEnvironments({
-              project: projectId,
-              app: appId,
-            });
+            const data = await listAppEnvironments(projectId, appId);
             return data.map((e) => ({ id: e.id, projectId, appId, slug: e.slug, kind: e.kind }));
           } catch (error) {
             // A deleted app or one without read permission must not hide the other apps' environments

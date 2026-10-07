@@ -49,7 +49,7 @@ function planLabel(plan: DeployPlan): string {
   return plan.charAt(0).toUpperCase() + plan.slice(1);
 }
 
-export function planName(plan: DeployPlan, options: DeployPlanOption[] | undefined): string {
+export function planName(plan: DeployPlan, options?: DeployPlanOption[]): string {
   return options?.find((option) => option.plan === plan)?.name ?? planLabel(plan);
 }
 

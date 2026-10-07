@@ -56,6 +56,22 @@ export function formatStorageParts(mib: number): FormattedParts {
   return { value: `${mib}`, unit: "MiB" };
 }
 
+function joinParts({ value, unit }: FormattedParts): string {
+  return unit ? `${value} ${unit}` : value;
+}
+
+export function formatCpu(millicores: number): string {
+  return joinParts(formatCpuParts(millicores));
+}
+
+export function formatMemory(mib: number): string {
+  return joinParts(formatMemoryParts(mib));
+}
+
+export function formatStorage(mib: number): string {
+  return joinParts(formatStorageParts(mib));
+}
+
 // Pick a binary unit (B/s, KiB/s, MiB/s, GiB/s) based on the magnitude.
 // Idle pods read as "—" (the dash display value) instead of "0 B/s" so the chart row header stays
 // honest about the absence of data versus a true zero rate.
