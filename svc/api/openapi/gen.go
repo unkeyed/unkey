@@ -415,22 +415,22 @@ func (e LogdrainDestinationHttpFormat) Valid() bool {
 
 // Defines values for LogdrainFiltersStatusClasses.
 const (
-	N2 LogdrainFiltersStatusClasses = 2
-	N3 LogdrainFiltersStatusClasses = 3
-	N4 LogdrainFiltersStatusClasses = 4
-	N5 LogdrainFiltersStatusClasses = 5
+	N2xx LogdrainFiltersStatusClasses = "2xx"
+	N3xx LogdrainFiltersStatusClasses = "3xx"
+	N4xx LogdrainFiltersStatusClasses = "4xx"
+	N5xx LogdrainFiltersStatusClasses = "5xx"
 )
 
 // Valid indicates whether the value is a known member of the LogdrainFiltersStatusClasses enum.
 func (e LogdrainFiltersStatusClasses) Valid() bool {
 	switch e {
-	case N2:
+	case N2xx:
 		return true
-	case N3:
+	case N3xx:
 		return true
-	case N4:
+	case N4xx:
 		return true
-	case N5:
+	case N5xx:
 		return true
 	default:
 		return false
@@ -2019,7 +2019,7 @@ type LogdrainFilters struct {
 }
 
 // LogdrainFiltersStatusClasses defines model for LogdrainFilters.StatusClasses.
-type LogdrainFiltersStatusClasses int
+type LogdrainFiltersStatusClasses string
 
 // LogdrainHeaderWrite defines model for LogdrainHeaderWrite.
 type LogdrainHeaderWrite struct {

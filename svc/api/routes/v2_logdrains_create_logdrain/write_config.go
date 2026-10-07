@@ -68,7 +68,18 @@ func setStream(config *logdrainv1.Config, stream string, filters openapi.Logdrai
 		if filters.StatusClasses != nil {
 			classes = make([]logdrainv1.HttpStatusClass, len(*filters.StatusClasses))
 			for i, class := range *filters.StatusClasses {
-				classes[i] = logdrainv1.HttpStatusClass(class)
+				switch class {
+				case "2xx":
+					classes[i] = logdrainv1.HttpStatusClass_HTTP_STATUS_CLASS_2XX
+				case "3xx":
+					classes[i] = logdrainv1.HttpStatusClass_HTTP_STATUS_CLASS_3XX
+				case "4xx":
+					classes[i] = logdrainv1.HttpStatusClass_HTTP_STATUS_CLASS_4XX
+				case "5xx":
+					classes[i] = logdrainv1.HttpStatusClass_HTTP_STATUS_CLASS_5XX
+				default:
+					return invalid("Unsupported HTTP status class.")
+				}
 			}
 		}
 		config.Stream = &logdrainv1.Config_GatewayRequests{

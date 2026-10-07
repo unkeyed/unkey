@@ -43,7 +43,18 @@ func toPublic(row db.Logdrain) (openapi.Logdrain, error) {
 	case *logdrainv1.Config_GatewayRequests:
 		classes := make([]openapi.LogdrainFiltersStatusClasses, len(stream.GatewayRequests.StatusClasses))
 		for i, class := range stream.GatewayRequests.StatusClasses {
-			classes[i] = openapi.LogdrainFiltersStatusClasses(class)
+			switch class {
+			case logdrainv1.HttpStatusClass_HTTP_STATUS_CLASS_2XX:
+				classes[i] = "2xx"
+			case logdrainv1.HttpStatusClass_HTTP_STATUS_CLASS_3XX:
+				classes[i] = "3xx"
+			case logdrainv1.HttpStatusClass_HTTP_STATUS_CLASS_4XX:
+				classes[i] = "4xx"
+			case logdrainv1.HttpStatusClass_HTTP_STATUS_CLASS_5XX:
+				classes[i] = "5xx"
+			default:
+				return data, fmt.Errorf("unsupported HTTP status class %d", class)
+			}
 		}
 		data.Filters.StatusClasses = &classes
 		data.Filters.ProjectIds = array(stream.GatewayRequests.ProjectIds)
