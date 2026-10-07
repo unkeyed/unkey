@@ -116,7 +116,7 @@ function ManagedTeamWidgets() {
   }
 
   return (
-    <section aria-label="Members" className="flex flex-col gap-3">
+    <section data-sentry-mask aria-label="Members" className="flex flex-col gap-3">
       <ManagedUsersWidget getAccessToken={getWidgetAccessToken} />
     </section>
   );

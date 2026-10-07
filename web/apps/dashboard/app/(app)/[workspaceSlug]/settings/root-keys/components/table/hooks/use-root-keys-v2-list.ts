@@ -15,6 +15,7 @@ import {
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { listRootKeys, rootKeysV2QueryKeys } from "@/lib/root-keys-api";
 import { useQuery } from "@tanstack/react-query";
+import { parseAsString, useQueryState } from "nuqs";
 import { selectRootKeysPage } from "../root-keys-v2";
 
 const DEFAULT_PAGE_SIZE = 50;
@@ -30,6 +31,17 @@ type RootKeysFilterParams = Pick<RootKeysQueryPayload, "name">;
 
 export function useRootKeysV2List(pageSize = DEFAULT_PAGE_SIZE) {
   const workspace = useWorkspaceNavigation();
+  const [search, setSearch] = useQueryState(
+    "name",
+    parseAsString
+      .withDefault("")
+      .withOptions({ history: "replace", shallow: true, clearOnDefault: true }),
+  );
+  const query = useQuery({
+    queryKey: rootKeysV2QueryKeys.workspace(workspace.id),
+    queryFn: ({ signal }) => listRootKeys(signal),
+    ...PAGINATED_LIST_QUERY_OPTIONS,
+  });
   const result = usePaginatedListQuery<
     ReturnType<typeof selectRootKeysPage>,
     RootKeysFilterValue,
@@ -45,19 +57,11 @@ export function useRootKeysV2List(pageSize = DEFAULT_PAGE_SIZE) {
     useFilters,
     filterFieldNames: rootKeysListFilterFieldNames,
     filterFieldConfig: rootKeysFilterFieldConfig,
-    useListQuery: (params) => {
-      // biome-ignore lint/correctness/useHookAtTopLevel: hook factory invoked unconditionally inside the paginated-list hook
-      const query = useQuery({
-        queryKey: rootKeysV2QueryKeys.workspace(workspace.id),
-        queryFn: ({ signal }) => listRootKeys(signal),
-        ...PAGINATED_LIST_QUERY_OPTIONS,
-      });
-      return {
-        data: query.data ? selectRootKeysPage(query.data, params) : undefined,
-        isLoading: query.isLoading,
-        isFetching: query.isFetching,
-      };
-    },
+    useListQuery: (params) => ({
+      data: query.data ? selectRootKeysPage(query.data, params) : undefined,
+      isLoading: query.isLoading,
+      isFetching: query.isFetching,
+    }),
     prefetch: () => undefined,
     getTotalCount: (data) => data.total,
     syncDefaultSortToUrl: false,
@@ -72,5 +76,9 @@ export function useRootKeysV2List(pageSize = DEFAULT_PAGE_SIZE) {
     totalPages: result.totalPages,
     totalCount: result.totalCount,
     onPageChange: result.onPageChange,
+    isError: query.isError,
+    retry: () => query.refetch(),
+    search: search.trim(),
+    clearFilters: () => setSearch(null),
   };
 }
