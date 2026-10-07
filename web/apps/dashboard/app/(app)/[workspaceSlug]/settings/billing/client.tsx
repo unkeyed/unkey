@@ -2,9 +2,13 @@
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
+import { useWorkspace } from "@/providers/workspace-provider";
 import {
   Button,
-  Empty,
+  EmptyState,
+  EmptyStateDescription,
+  EmptyStateHeader,
+  EmptyStateTitle,
   InfoTooltip,
   SettingCard,
   SettingCardGroup,
@@ -19,7 +23,7 @@ import { CancelPlan } from "./components/cancel-plan";
 import { ADMIN_ONLY_TOOLTIP } from "./components/constants";
 import { CurrentPlanCard } from "./components/current-plan-card";
 import { FreeTierAlert } from "./components/free-tier-alert";
-import { PlanSelectionModal } from "./components/plan-selection-modal";
+import { PlansScreen } from "./components/plans-screen";
 import { SubscriptionStatus } from "./components/subscription-status";
 import { Usage } from "./components/usage";
 
@@ -34,7 +38,7 @@ export const Client: React.FC = () => {
   // mutation; we mirror it on the client purely for UX so non-admin members
   // get a clear "admin required" affordance instead of a request that fails
   // with FORBIDDEN.
-  const { data: currentUser } = trpc.user.getCurrentUser.useQuery();
+  const { user: currentUser } = useWorkspace();
   const isAdmin = currentUser?.role === "admin";
 
   // Fetch billing info using new tRPC route
@@ -68,12 +72,14 @@ export const Client: React.FC = () => {
   if (billingError) {
     return (
       <BillingContainer>
-        <Empty>
-          <Empty.Title>Failed to load billing information</Empty.Title>
-          <Empty.Description>
-            There was an error loading your billing information. Please try again later.
-          </Empty.Description>
-        </Empty>
+        <EmptyState>
+          <EmptyStateHeader>
+            <EmptyStateTitle>Failed to load billing information</EmptyStateTitle>
+            <EmptyStateDescription>
+              There was an error loading your billing information. Please try again later.
+            </EmptyStateDescription>
+          </EmptyStateHeader>
+        </EmptyState>
       </BillingContainer>
     );
   }
@@ -146,14 +152,7 @@ export const Client: React.FC = () => {
               </SettingCard>
             </SettingCardGroup>
 
-            <PlanSelectionModal
-              isOpen={showPlanModal}
-              onOpenChange={setShowPlanModal}
-              products={products}
-              currentProductId={currentProductId}
-              workspaceSlug={workspace.slug}
-              isChangingPlan={Boolean(subscription)}
-            />
+            <PlansScreen open={showPlanModal} onOpenChange={setShowPlanModal} reason="api-plan" />
           </div>
         ) : (
           <div className="w-full">
@@ -161,14 +160,14 @@ export const Client: React.FC = () => {
               <SettingCard
                 title="Add payment method"
                 description="Before upgrading, you need to add a payment method."
-                contentWidth="w-full lg:w-[320px]"
+                contentWidth="w-full @2xl:w-[320px]"
               >
                 <div className="flex justify-end w-full">
                   <InfoTooltip content={ADMIN_ONLY_TOOLTIP} disabled={isAdmin} asChild>
                     <span>
                       <Button
                         variant="outline"
-                        className="px-3 py-2 text-gray-12 font-medium text-[13px] bg-grayA-2 shadow-md hover:bg-grayA-3"
+                        className="px-3 py-2 text-gray-12 font-medium text-sm bg-grayA-2 shadow-md hover:bg-grayA-3"
                         aria-label="Add payment method"
                         disabled={!isAdmin}
                         onClick={() => {

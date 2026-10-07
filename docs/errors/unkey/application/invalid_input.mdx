@@ -1,0 +1,54 @@
+---
+title: "invalid_input"
+sidebarTitle: "invalid_input"
+description: "The request failed validation, either against the endpoint's schema or against a rule the endpoint checks in code."
+sources:
+  - pkg/codes/unkey_application.go
+  - svc/api/internal/middleware/errors.go
+  - svc/api/internal/errors/errors.go
+  - pkg/domain/domaingate/domaingate.go
+  - pkg/deploy/imageref/imageref.go
+  - svc/api/internal/ctrlclient/errors.go
+---
+
+<Danger>`err:unkey:application:invalid_input`</Danger>
+
+A value in your request isn't valid. You get HTTP 400, and the response says what's wrong. Any endpoint can return it.
+
+```json Example response
+{
+  "meta": {
+    "requestId": "req_2c9a0jf23l4k567"
+  },
+  "error": {
+    "detail": "Metadata is too large: it must be at most 1.0 MB, but is 1.4 MB.",
+    "status": 400,
+    "title": "Bad Request",
+    "type": "/errors/unkey/application/invalid_input",
+    "errors": []
+  }
+}
+```
+
+## Likely causes
+
+- A required field is missing, or a field has the wrong type, an unknown enum value, or is too long. The `errors` array lists each problem, and `detail` reads like `POST request body for '/v2/keys.createKey' failed to validate schema`.
+- The `Authorization` header is missing.
+- A value breaks a rule the endpoint checks, such as a size limit on `meta` or environment variable values, a domain that isn't a fully qualified name or is a public suffix, an image reference we can't parse, or rate limit and credit settings that contradict each other. Here `errors` is empty and `detail` explains.
+
+Size limits count bytes, while `maxLength` counts characters. A value with multibyte characters can pass `maxLength` and still be too large.
+
+## How to fix
+
+1. If `errors` has entries, fix each one. `location` is the path that failed (such as `/required`) and `message` says why.
+2. Otherwise, follow the rule in `detail`. Size errors show both the limit and your value, so trim to the limit.
+3. For domains, send a bare host name such as `api.acme.com`, with no scheme, port, or path.
+4. For images, send a full reference such as `ghcr.io/acme/app:1.2.3`.
+
+If the message doesn't match what you think you sent, check for hidden characters or encoding differences.
+
+## Related errors
+
+- [`err:unkey:application:invalid_environment_settings`](/errors/unkey/application/invalid_environment_settings): the environment's settings, not your request, block a deployment.
+- [`err:user:bad_request:request_body_too_large`](/errors/user/bad_request/request_body_too_large): the whole body exceeded the size cap.
+- [`err:user:bad_request:permissions_query_syntax_error`](/errors/user/bad_request/permissions_query_syntax_error): a `keys.verifyKey` permissions query couldn't be parsed.

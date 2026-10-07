@@ -10,8 +10,8 @@ export function DrainLogsTable({ drainId }: { drainId: string }) {
 
   return (
     <Card className="overflow-hidden">
-      <div className="border-b border-gray-4 px-4 py-3">
-        <span className="text-[13px] font-medium text-accent-12">Deliveries</span>
+      <div className="border-b px-4 py-3">
+        <span className="text-sm font-medium text-gray-12">Deliveries</span>
       </div>
       <div className="overflow-x-auto">
         <LogRows deliveries={deliveries} isError={isError} retry={retry} />
@@ -83,7 +83,7 @@ function LogRows({
         <col />
       </colgroup>
       <thead>
-        <tr className="border-b border-gray-4 bg-grayA-2">
+        <tr className="border-b bg-grayA-2">
           <Th>Time</Th>
           <Th>Status</Th>
           <Th>Events</Th>
@@ -168,7 +168,9 @@ function ResponseCell({ delivery }: { delivery: Delivery }) {
       {isFailure(delivery) ? (
         <IconCircleXmarkOutline18 className="size-3.5 shrink-0 text-error-11" />
       ) : null}
-      <span className="min-w-0 flex-1 truncate font-mono text-xs text-gray-12">{text}</span>
+      <span data-sentry-mask className="min-w-0 flex-1 truncate font-mono text-xs text-gray-12">
+        {text}
+      </span>
       <CopyButton value={text} variant="ghost" size="sm" className="shrink-0" />
     </div>
   );

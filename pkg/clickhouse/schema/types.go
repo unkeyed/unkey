@@ -128,6 +128,10 @@ type ApiRequestAggregated struct {
 // This tracks individual build steps within a deployment process
 // including timing, caching, and error information.
 //
+// A step gets a row with CompletedAt 0 when it starts and another when it
+// completes. Readers keep the latest row per StepID, preferring the
+// completed one.
+//
 //unkey:table default.build_steps_v1
 type BuildStepV1 struct {
 	StartedAt    int64  `ch:"started_at" json:"started_at"`
@@ -154,6 +158,8 @@ type BuildStepLogV1 struct {
 	DeploymentID string `ch:"deployment_id" json:"deployment_id"`
 	StepID       string `ch:"step_id" json:"step_id"`
 	Message      string `ch:"message" json:"message"`
+	Seq          uint64 `ch:"seq" json:"seq"`
+	Stderr       bool   `ch:"stderr" json:"stderr"`
 }
 
 // InstanceCheckpoint is a single counter reading for one container, written

@@ -1,7 +1,12 @@
 "use client";
 
 import { trpc } from "@/lib/trpc/client";
-import { SettingCardGroup, SettingsDangerZone } from "@unkey/ui";
+import {
+  SettingsDangerZone,
+  SettingsGroup,
+  SettingsGroupContent,
+  SettingsGroupTitle,
+} from "@unkey/ui";
 import { CopyApiId } from "./copy-api-id";
 import { CopyKeySpaceId } from "./copy-key-space-id";
 import { DefaultBytes } from "./default-bytes";
@@ -50,19 +55,21 @@ export const SettingsClient = ({ apiId }: { apiId: string }) => {
 
   return (
     <>
-      <div className="w-full">
-        <SettingCardGroup>
+      <SettingsGroup>
+        <SettingsGroupTitle>General</SettingsGroupTitle>
+        <SettingsGroupContent>
           <UpdateApiName api={api} />
           <CopyApiId apiId={api.id} />
           <CopyKeySpaceId keySpaceId={keyAuth.id} />
-        </SettingCardGroup>
-      </div>
-      <div className="w-full">
-        <SettingCardGroup>
+        </SettingsGroupContent>
+      </SettingsGroup>
+      <SettingsGroup>
+        <SettingsGroupTitle>Key defaults</SettingsGroupTitle>
+        <SettingsGroupContent>
           <DefaultBytes keyAuth={keyAuthForComponents} apiId={api.id} />
           <DefaultPrefix keyAuth={keyAuthForComponents} apiId={api.id} />
-        </SettingCardGroup>
-      </div>
+        </SettingsGroupContent>
+      </SettingsGroup>
       <SettingsDangerZone>
         <DeleteProtection api={api} />
         <DeleteApi api={api} keys={keyAuthForComponents.sizeApprox} />

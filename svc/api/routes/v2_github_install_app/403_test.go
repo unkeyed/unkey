@@ -10,8 +10,8 @@ import (
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_github_install_app"
 )
 
-// Installing the GitHub App is workspace-wide, gated by workspace.*.install_github.
-// Any key missing that permission is rejected with a 403.
+// TestInstallGithubAuthorization guarantees that installation requires either
+// the URN collection write permission or its legacy equivalent.
 func TestInstallGithubAuthorization(t *testing.T) {
 	h := testutil.NewHarness(t)
 
@@ -19,6 +19,7 @@ func TestInstallGithubAuthorization(t *testing.T) {
 	h.Register(route)
 
 	workspace := h.Resources().UserWorkspace
+	otherWorkspace := h.CreateWorkspace()
 
 	testCases := []struct {
 		name        string
@@ -29,6 +30,21 @@ func TestInstallGithubAuthorization(t *testing.T) {
 		{name: "permission and more", permissions: []string{"some.other.permission", "workspace.*.install_github"}, shouldPass: true},
 		{name: "wrong action", permissions: []string{"api.*.read_api"}, shouldPass: false},
 		{name: "app-level permission", permissions: []string{"app.*.read_app"}, shouldPass: false},
+		{
+			name:        "URN permission for another workspace",
+			permissions: []string{fmt.Sprintf("unkey:v1:%s:github/apps/*#write", otherWorkspace.ID)},
+			shouldPass:  false,
+		},
+		{
+			name:        "URN collection permission with wrong action",
+			permissions: []string{fmt.Sprintf("unkey:v1:%s:github/apps/*#read", workspace.ID)},
+			shouldPass:  false,
+		},
+		{
+			name:        "URN concrete app permission",
+			permissions: []string{fmt.Sprintf("unkey:v1:%s:github/apps/github_app_123#write", workspace.ID)},
+			shouldPass:  false,
+		},
 		{name: "no permissions", permissions: []string{}, shouldPass: false},
 	}
 

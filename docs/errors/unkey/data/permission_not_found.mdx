@@ -1,0 +1,48 @@
+---
+title: "permission_not_found"
+sidebarTitle: "permission_not_found"
+description: "A permission named in the request does not exist in the workspace."
+sources:
+  - pkg/codes/unkey_data.go
+  - svc/api/internal/middleware/errors.go
+  - svc/api/routes/v2_permissions_get_permission/handler.go
+  - svc/api/routes/v2_keys_create_key/handler.go
+  - svc/api/routes/v2_keys_set_permissions/handler.go
+  - svc/api/routes/v2_permissions_set_role_permissions/handler.go
+---
+
+<Danger>`err:unkey:data:permission_not_found`</Danger>
+
+A permission you referenced doesn't exist in your workspace. You get HTTP 404, and `detail` names the slug.
+
+```json Example response
+{
+  "meta": {
+    "requestId": "req_2c9a0jf23l4k567"
+  },
+  "error": {
+    "detail": "Permission 'documents.read' was not found.",
+    "status": 404,
+    "title": "Not Found",
+    "type": "/errors/unkey/data/permission_not_found"
+  }
+}
+```
+
+## Likely causes
+
+- You attached a permission to a key or role before creating it. The whole request fails if any one slug is missing, and `detail` names the first.
+- The slug has a typo. Slugs aren't case-sensitive.
+- Your root key doesn't have permission. `permissions.getPermission` and `permissions.deletePermission` return this 404 instead of a 403.
+
+## How to fix
+
+1. Create every permission you need with `permissions.createPermission` before you reference it.
+2. Check the slug. `permissions.listPermissions` shows what exists.
+3. On `permissions.getPermission` or `permissions.deletePermission`, check the root key's permissions before you decide the permission is missing.
+
+## Related errors
+
+- [`err:unkey:data:permission_already_exists`](/errors/unkey/data/permission_already_exists): a slug collides on create.
+- [`err:unkey:data:role_not_found`](/errors/unkey/data/role_not_found): a role doesn't exist.
+- [`err:unkey:data:key_not_found`](/errors/unkey/data/key_not_found): the key doesn't exist.

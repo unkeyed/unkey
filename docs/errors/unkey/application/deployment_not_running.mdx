@@ -1,0 +1,48 @@
+---
+title: "deployment_not_running"
+sidebarTitle: "deployment_not_running"
+description: "The deployment is not running, so there is nothing to stop."
+sources:
+  - pkg/codes/unkey_application.go
+  - svc/api/internal/middleware/errors.go
+  - pkg/deploy/deploygate/deploygate.go
+  - svc/api/routes/v2_deployments_stop_deployment/handler.go
+---
+
+<Danger>`err:unkey:application:deployment_not_running`</Danger>
+
+You asked to stop a deployment that isn't running. You can only stop a deployment that's ready and running. You get HTTP 412.
+
+```json Example response
+{
+  "meta": {
+    "requestId": "req_2c9a0jf23l4k567"
+  },
+  "error": {
+    "detail": "The deployment is not running.",
+    "status": 412,
+    "title": "Precondition Failed",
+    "type": "/errors/unkey/application/deployment_not_running"
+  }
+}
+```
+
+## Likely causes
+
+- The deployment is already stopped.
+- The deployment is still building.
+- The deployment failed.
+
+A deployment that's in the middle of stopping returns [`err:unkey:application:deployment_is_stopping`](/errors/unkey/application/deployment_is_stopping) instead.
+
+## How to fix
+
+1. Read the deployment with `deployments.getDeployment`. `stop` is in its `availableActions` only when the call would succeed.
+2. If it's already stopped, there's nothing to do.
+3. If it's still building, wait for `status` to reach `ready`.
+
+## Related errors
+
+- [`err:unkey:application:deployment_is_stopping`](/errors/unkey/application/deployment_is_stopping): a stop is already in progress.
+- [`err:unkey:application:deployment_is_production`](/errors/unkey/application/deployment_is_production): production deployments can't be stopped.
+- [`err:unkey:application:deployment_not_stopped`](/errors/unkey/application/deployment_not_stopped): the mirror case on start.

@@ -31,7 +31,17 @@ export const createPlainIssue = workspaceProcedure
       apiKey,
     });
 
-    const user = await auth.getUser(ctx.user.id);
+    let user: Awaited<ReturnType<typeof auth.getUser>>;
+    try {
+      user = ctx.user.profile ?? (await auth.getUser(ctx.user.id));
+    } catch (error) {
+      console.error("Error fetching user for Plain issue:", error);
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Failed to fetch user data",
+        cause: error,
+      });
+    }
     if (!user) {
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",

@@ -24,6 +24,8 @@ type userBadRequest struct {
 	InvalidAnalyticsQueryType Code
 	// QueryRangeExceedsRetention indicates the query attempts to access data older than the workspace's retention period.
 	QueryRangeExceedsRetention Code
+	// PerKeyBreakoutTooLarge indicates more keys had traffic in the requested window than the per-key breakout will return.
+	PerKeyBreakoutTooLarge Code
 }
 
 // userUnprocessableEntity defines errors for requests that are syntactically correct but cannot be processed.
@@ -71,6 +73,7 @@ var User = UserErrors{
 		InvalidAnalyticsFunction:    Code{SystemUser, CategoryUserBadRequest, "invalid_analytics_function"},
 		InvalidAnalyticsQueryType:   Code{SystemUser, CategoryUserBadRequest, "invalid_analytics_query_type"},
 		QueryRangeExceedsRetention:  Code{SystemUser, CategoryUserBadRequest, "query_range_exceeds_retention"},
+		PerKeyBreakoutTooLarge:      Code{SystemUser, CategoryUserBadRequest, "per_key_breakout_too_large"},
 	},
 	UnprocessableEntity: userUnprocessableEntity{
 		QueryExecutionTimeout:    Code{SystemUser, CategoryUserUnprocessableEntity, "query_execution_timeout"},

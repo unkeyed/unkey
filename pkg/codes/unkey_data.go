@@ -137,6 +137,9 @@ type dataPortal struct {
 	Duplicate Code
 	// NotFound indicates the requested portal was not found.
 	NotFound Code
+	// Changed indicates the portal was re-pointed while a request was using it,
+	// so the request was refused rather than acting on the old mapping.
+	Changed Code
 }
 
 // dataAnalytics defines errors related to analytics operations.
@@ -266,6 +269,7 @@ var Data = UnkeyDataErrors{
 	Portal: dataPortal{
 		Duplicate: Code{SystemUnkey, CategoryUnkeyData, "portal_already_exists"},
 		NotFound:  Code{SystemUnkey, CategoryUnkeyData, "portal_not_found"},
+		Changed:   Code{SystemUnkey, CategoryUnkeyData, "portal_changed"},
 	},
 
 	Analytics: dataAnalytics{

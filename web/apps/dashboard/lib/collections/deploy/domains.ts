@@ -3,7 +3,7 @@ import { parseLoadSubsetOptions, queryCollectionOptions } from "@tanstack/query-
 import { createCollection } from "@tanstack/react-db";
 import { z } from "zod";
 import { queryClient, trpcClient } from "../client";
-import { extractStringFilter, validateProjectIdInQuery } from "./utils";
+import { extractStringFilter } from "./utils";
 
 const schema = z.object({
   id: z.string(),
@@ -40,10 +40,7 @@ export const domains = createCollection<Domain, string>(
     },
     retry: 3,
     queryFn: async (ctx) => {
-      const options = ctx.meta?.loadSubsetOptions;
-
-      validateProjectIdInQuery(options?.where);
-      const { filters } = parseLoadSubsetOptions(options);
+      const { filters } = parseLoadSubsetOptions(ctx.meta?.loadSubsetOptions);
       const projectId = extractStringFilter(filters, "projectId");
       const appId = extractStringFilter(filters, "appId");
 

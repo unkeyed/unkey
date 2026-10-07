@@ -1,0 +1,65 @@
+---
+title: "precondition_failed"
+sidebarTitle: "precondition_failed"
+description: "The request was valid but the current state does not allow the operation yet."
+sources:
+  - pkg/codes/unkey_application.go
+  - svc/api/internal/middleware/errors.go
+  - svc/api/routes/v2_keys_create_key/handler.go
+  - internal/services/keys/validation.go
+  - svc/api/routes/v2_deployments_create_deployment/handler.go
+  - svc/api/internal/githubapp/githubapp.go
+  - pkg/deploy/deploygate/deploygate.go
+  - pkg/domain/domaingate/domaingate.go
+---
+
+<Danger>`err:unkey:application:precondition_failed`</Danger>
+
+Your request is valid, but something about your setup has to change first. You get HTTP 412, and `detail` says what.
+
+```json Example response
+{
+  "meta": {
+    "requestId": "req_2c9a0jf23l4k567"
+  },
+  "error": {
+    "detail": "The requested API is not set up to handle keys.",
+    "status": 412,
+    "title": "Precondition Failed",
+    "type": "/errors/unkey/application/precondition_failed"
+  }
+}
+```
+
+## Likely causes
+
+In API Management:
+
+- The API isn't set up for keys (`The requested API is not set up to handle keys.`).
+- You asked for key recovery (`recoverable: true` or `decrypt: true`) on an API that doesn't store recoverable keys.
+- A rate limit you named in `keys.verifyKey` isn't set on the key or its identity.
+
+In Compute:
+
+- The workspace has no active Compute plan, or compute is paused because the workspace reached its spend limit.
+- You asked for a git deployment, but the app has no connected GitHub repository, or the Unkey GitHub App isn't installed or can't access the repository.
+- You redeployed a deployment that never produced an image.
+- The domain you're verifying is already verified.
+
+## How to fix
+
+Do what `detail` says, then retry:
+
+- Use an API with key support, or check the API ID.
+- Turn on recoverable keys for the API before you ask for `recoverable: true` or `decrypt: true`.
+- Set the named rate limit on the key or identity before you check it.
+- Connect the repository, or install the GitHub App from the link in the message.
+- Choose a Compute plan under [Plans](/platform/billing/plans), or raise or remove the spend budget under **Settings > Billing**.
+- For an already verified domain, there's nothing to do.
+
+## Related errors
+
+- [`err:unkey:application:deployment_not_ready`](/errors/unkey/application/deployment_not_ready): a deployment lifecycle precondition on promote or rollback.
+- [`err:unkey:application:invalid_environment_settings`](/errors/unkey/application/invalid_environment_settings): the environment's settings block the deployment.
+- [`err:unkey:data:analytics_not_configured`](/errors/unkey/data/analytics_not_configured): analytics isn't set up for the workspace.
+- [`err:unkey:application:protected_resource`](/errors/unkey/application/protected_resource): a delete was blocked by delete protection.

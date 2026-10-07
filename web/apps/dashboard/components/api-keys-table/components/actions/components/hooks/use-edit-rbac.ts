@@ -1,4 +1,4 @@
-import { trpc } from "@/lib/trpc/client";
+import { useInvalidateRbacQueries } from "@/hooks/use-invalidate-rbac-queries";
 import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
 import { useMutation } from "@tanstack/react-query";
 import { toast } from "@unkey/ui";
@@ -17,7 +17,7 @@ type UpdateKeyRbacVariables = FormValues & {
 };
 
 export const useUpdateKeyRbac = (onSuccess: (data: UpdateKeyRbacResult) => void) => {
-  const trpcUtils = trpc.useUtils();
+  const invalidateRbacQueries = useInvalidateRbacQueries();
 
   const updateKeyRbac = useMutation<UpdateKeyRbacResult, unknown, UpdateKeyRbacVariables>({
     mutationFn: async (variables) => {
@@ -36,8 +36,7 @@ export const useUpdateKeyRbac = (onSuccess: (data: UpdateKeyRbacResult) => void)
       };
     },
     onSuccess(data) {
-      trpcUtils.key.connectedRolesAndPerms.invalidate();
-      trpcUtils.api.keys.list.invalidate();
+      invalidateRbacQueries();
 
       const { rolesAssigned, directPermissionsAssigned, totalEffectivePermissions } = data;
 

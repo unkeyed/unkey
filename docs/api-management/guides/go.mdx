@@ -1,0 +1,205 @@
+---
+title: Go guide
+sidebarTitle: "Go"
+description: "Verify API keys in a Go net/http handler."
+sources:
+  - svc/api/openapi/spec/paths/v2/apis/createApi/V2ApisCreateApiRequestBody.yaml
+  - svc/api/openapi/spec/paths/v2/apis/createApi/V2ApisCreateApiResponseData.yaml
+  - pkg/rbac/permissions.go
+  - svc/api/openapi/spec/paths/v2/keys/createKey/V2KeysCreateKeyRequestBody.yaml
+  - svc/api/openapi/spec/paths/v2/keys/createKey/V2KeysCreateKeyResponseData.yaml
+  - svc/api/openapi/spec/paths/v2/keys/verifyKey/V2KeysVerifyKeyRequestBody.yaml
+  - svc/api/openapi/spec/paths/v2/keys/verifyKey/V2KeysVerifyKeyResponseData.yaml
+  - https://github.com/unkeyed/sdks/blob/3bb124498270d8aff36e358dc2e0010e9991869a/api/go/v3/keys.go
+  - https://github.com/unkeyed/sdks/blob/3bb124498270d8aff36e358dc2e0010e9991869a/api/go/v3/unkey.go
+  - https://github.com/unkeyed/sdks/blob/3bb124498270d8aff36e358dc2e0010e9991869a/api/go/v3/models/components/v2keysverifykeyresponsedata.go
+  - https://github.com/unkeyed/sdks/blob/3bb124498270d8aff36e358dc2e0010e9991869a/api/go/v3/README.md
+---
+import RootKeyPrereq from "/snippets/root-key-prereq.mdx";
+import { versions } from "/snippets/versions.mdx";
+
+Protect a Go HTTP server with API keys, using the official Go SDK, `github.com/unkeyed/sdks/api/go/v3` (version {versions.goSdk}). For ready-made middleware for `net/http`, Gin, and Echo, see [Go middleware](/api-management/cookbook/go-middleware).
+
+<RootKeyPrereq />
+
+<Steps titleSize="h3">
+  <Step title="Create a root key and a keyspace">
+    In the dashboard, go to **Settings > Root Keys** and create a root key with `api.*.create_api`, `api.*.create_key`, and `api.*.verify_key`. Put it in your server's `UNKEY_ROOT_KEY` environment variable. Never send it to a browser or mobile app.
+
+    Then create a keyspace, which holds your keys. Use **Keyspaces (APIs)** in the dashboard, or `apis.createApi`:
+
+    ```bash create a keyspace
+    curl -X POST https://api.unkey.com/v2/apis.createApi \
+      -H "Authorization: Bearer $UNKEY_ROOT_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{ "name": "my-api" }'
+    ```
+
+    Keep the `data.apiId` from the response. You need it to create keys. See [Root keys](/platform/root-keys/overview) for more on root keys.
+  </Step>
+  <Step title="Install the SDK">
+    ```bash
+    go get github.com/unkeyed/sdks/api/go/v3
+    ```
+
+    Create the client once with `unkey.New(unkey.WithSecurity(rootKey))`. It's safe to share across goroutines.
+  </Step>
+  <Step title="Create a key for a user">
+    Create a key from your backend when a user signs up or asks for one. `externalId` links the key to the user, so verification tells you who's calling. `meta` comes back on every verification. You get `data.key` only once: show it to the user and store only `data.keyId`.
+
+    <CodeGroup>
+    ```bash curl
+    curl -X POST https://api.unkey.com/v2/keys.createKey \
+      -H "Authorization: Bearer $UNKEY_ROOT_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{ "apiId": "api_...", "prefix": "sk_live", "externalId": "user_123", "meta": { "plan": "free" } }'
+    ```
+    ```go Go
+    package main
+
+    import (
+    	"context"
+    	"fmt"
+    	"log"
+    	"os"
+
+    	unkey "github.com/unkeyed/sdks/api/go/v3"
+    	"github.com/unkeyed/sdks/api/go/v3/models/components"
+    )
+
+    func main() {
+    	client := unkey.New(unkey.WithSecurity(os.Getenv("UNKEY_ROOT_KEY")))
+
+    	prefix := "sk_live"
+    	externalID := "user_123"
+    	res, err := client.Keys.CreateKey(context.Background(), components.V2KeysCreateKeyRequestBody{
+    		APIID:      os.Getenv("UNKEY_API_ID"),
+    		Prefix:     &prefix,
+    		ExternalID: &externalID,
+    		Meta:       map[string]any{"plan": "free"},
+    	})
+    	if err != nil {
+    		log.Fatal(err)
+    	}
+    	if res.V2KeysCreateKeyResponseBody == nil {
+    		log.Fatal("unkey: empty response body")
+    	}
+    	// res.V2KeysCreateKeyResponseBody.Data.Key is the plaintext, Data.KeyID the handle you keep
+    	fmt.Println(res.V2KeysCreateKeyResponseBody.Data.KeyID)
+    }
+    ```
+    </CodeGroup>
+
+    Every field is described in [Creating keys](/api-management/keys/creating-keys).
+  </Step>
+  <Step title="Verify the key in a handler">
+    The answer is in `res.V2KeysVerifyKeyResponseBody.Data.Valid` and `.Data.Code`. `V2KeysVerifyKeyResponseBody` is a pointer, so check it for `nil` even when `err` is `nil`. Use the `components.Code*` constants to switch on the outcome. An `error` means the call itself failed, not that the key is invalid.
+
+    ```go main.go
+    package main
+
+    import (
+    	"context"
+    	"encoding/json"
+    	"log"
+    	"net/http"
+    	"os"
+    	"strings"
+
+    	unkey "github.com/unkeyed/sdks/api/go/v3"
+    	"github.com/unkeyed/sdks/api/go/v3/models/components"
+    )
+
+    var client = unkey.New(unkey.WithSecurity(os.Getenv("UNKEY_ROOT_KEY")))
+
+    func statusFor(code components.Code) int {
+    	switch code {
+    	case components.CodeRateLimited:
+    		return http.StatusTooManyRequests
+    	case components.CodeUsageExceeded:
+    		return http.StatusPaymentRequired
+    	case components.CodeForbidden, components.CodeInsufficientPermissions:
+    		return http.StatusForbidden
+    	default:
+    		return http.StatusUnauthorized
+    	}
+    }
+
+    func requireKey(next http.HandlerFunc) http.HandlerFunc {
+    	return func(w http.ResponseWriter, r *http.Request) {
+    		key := strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer ")
+    		if key == "" || key == r.Header.Get("Authorization") {
+    			http.Error(w, "missing API key", http.StatusUnauthorized)
+    			return
+    		}
+
+    		res, err := client.Keys.VerifyKey(r.Context(), components.V2KeysVerifyKeyRequestBody{
+    			Key:  key,
+    			Tags: []string{"endpoint=" + r.URL.Path, "method=" + r.Method},
+    		})
+    		if err != nil {
+    			log.Printf("unkey: %v", err)
+    			http.Error(w, "authentication unavailable", http.StatusServiceUnavailable)
+    			return
+    		}
+    		if res.V2KeysVerifyKeyResponseBody == nil {
+    			log.Print("unkey: empty response body")
+    			http.Error(w, "authentication unavailable", http.StatusServiceUnavailable)
+    			return
+    		}
+
+    		data := res.V2KeysVerifyKeyResponseBody.Data
+    		if !data.Valid {
+    			http.Error(w, string(data.Code), statusFor(data.Code))
+    			return
+    		}
+
+    		ctx := context.WithValue(r.Context(), verificationKey{}, data)
+    		next(w, r.WithContext(ctx))
+    	}
+    }
+
+    type verificationKey struct{}
+
+    func main() {
+    	http.HandleFunc("/items", requireKey(func(w http.ResponseWriter, r *http.Request) {
+    		data := r.Context().Value(verificationKey{}).(components.V2KeysVerifyKeyResponseData)
+    		owner := ""
+    		if data.Identity != nil {
+    			owner = data.Identity.ExternalID
+    		}
+    		json.NewEncoder(w).Encode(map[string]any{"items": []string{}, "owner": owner})
+    	}))
+    	log.Fatal(http.ListenAndServe(":3000", nil))
+    }
+    ```
+
+    ```bash
+    go run . &
+    curl http://localhost:3000/items -H "Authorization: Bearer sk_live_..."
+    ```
+  </Step>
+  <Step title="Handle the outcome codes">
+    `keys.verifyKey` returns HTTP 200 for every outcome. Check `data.valid`, then `data.code` for the reason, and return the matching status from your API:
+
+    | `data.code` | Meaning | Return |
+    | --- | --- | --- |
+    | `VALID` | Every check passed. | continue |
+    | `NOT_FOUND` | No such key, or your root key may not verify this keyspace. | 401 |
+    | `DISABLED` | The key was disabled. | 401 |
+    | `EXPIRED` | The key's expiry passed. | 401 |
+    | `FORBIDDEN` | Client IP not on the keyspace allow list, or the workspace is disabled. | 403 |
+    | `INSUFFICIENT_PERMISSIONS` | The `permissions` query was not satisfied. | 403 |
+    | `RATE_LIMITED` | A <Tooltip tip="Here: limits enforced by keys.verifyKey on a key or identity, or by the standalone ratelimit API. Not a Compute gateway policy.">rate limit</Tooltip> on the key or its identity was exceeded. | 429 |
+    | `USAGE_EXCEEDED` | The key has no credits left. | 402 or 429 |
+
+    Remaining credits are in `data.credits`, and each checked rate limit is in `data.ratelimits` with `remaining` and `reset`. The call only fails with an HTTP error (which the SDKs throw) when the call itself is wrong, such as a bad root key or a malformed body. See [Verifying keys](/api-management/keys/verifying-keys) for every field.
+  </Step>
+  <Step title="Next steps">
+    <Columns cols={2}>
+      <Card title="Verifying keys" href="/api-management/keys/verifying-keys" icon="key">Every request field, the order of checks, and every response field.</Card>
+      <Card title="Credits and refill" href="/api-management/keys/credits-and-refill" icon="coins">Meter usage per key and refill balances on a schedule.</Card>
+      <Card title="Cookbook" href="/api-management/cookbook/index" icon="book">Copy-ready recipes for rate limits, billing, and subscription tiers.</Card>
+    </Columns>
+  </Step>
+</Steps>

@@ -27,7 +27,7 @@ type MetricConfig = {
 const METRIC_CONFIGS: Record<MetricType, MetricConfig> = {
   latency: {
     label: "Latency",
-    color: "hsl(var(--bronze-8))",
+    color: "var(--color-bronze-8)",
     iconBg: "bg-bronze-3",
     iconText: "text-bronze-11",
     unit: "ms",
@@ -36,15 +36,15 @@ const METRIC_CONFIGS: Record<MetricType, MetricConfig> = {
   },
   rps: {
     label: "RPS",
-    color: "hsl(var(--accent-8))",
-    iconBg: "bg-accent-3",
-    iconText: "text-accent-11",
+    color: "var(--color-gray-8)",
+    iconBg: "bg-gray-3",
+    iconText: "text-gray-11",
     unit: "req/s",
     chartVariant: "bar",
   },
   cpu: {
     label: "CPU",
-    color: "hsl(var(--feature-8))",
+    color: "var(--color-feature-8)",
     iconBg: "bg-feature-3",
     iconText: "text-feature-11",
     unit: "%",
@@ -52,7 +52,7 @@ const METRIC_CONFIGS: Record<MetricType, MetricConfig> = {
   },
   memory: {
     label: "Memory",
-    color: "hsl(var(--info-8))",
+    color: "var(--color-info-8)",
     iconBg: "bg-info-3",
     iconText: "text-info-11",
     unit: "%",
@@ -99,10 +99,10 @@ export function MetricCard({
   const noData = isError || isLoading;
   const valueText = noData ? "‒" : parts.value;
   const secondaryText = noData ? "‒" : secondaryValue?.numeric;
-  const gradientColor = isError ? "hsl(var(--error-9))" : config.color;
+  const gradientColor = isError ? "var(--color-error-9)" : config.color;
 
   return (
-    <div className="border border-gray-4 bg-grayA-1 w-full rounded-lg flex flex-col">
+    <div className="border bg-grayA-2 w-full rounded-lg flex flex-col">
       <div className="flex items-center gap-3 w-full px-[14px] pt-[12px] pb-[8px]">
         <div
           className={cn(
@@ -122,19 +122,17 @@ export function MetricCard({
               onValueChange={onPercentileChange}
             />
           ) : (
-            <span className="text-gray-12 text-[13px]">{config.label}</span>
+            <span className="text-gray-12 text-sm">{config.label}</span>
           )}
         </div>
         <div className="ml-auto flex items-baseline gap-1">
-          <span className="text-gray-12 font-medium text-[13px] tabular-nums">{valueText}</span>
-          <span className="text-grayA-10 text-[11px]">{parts.unit}</span>
+          <span className="text-gray-12 font-medium text-sm tabular-nums">{valueText}</span>
+          <span className="text-grayA-10 text-2xs">{parts.unit}</span>
           {secondaryValue && (
             <>
-              <span className="text-grayA-9 text-[11px]">·</span>
-              <span className="text-gray-12 font-medium text-[12px] tabular-nums">
-                {secondaryText}
-              </span>
-              <span className="text-grayA-10 text-[11px]">{secondaryValue.unit}</span>
+              <span className="text-grayA-9 text-2xs">·</span>
+              <span className="text-gray-12 font-medium text-xs tabular-nums">{secondaryText}</span>
+              <span className="text-grayA-10 text-2xs">{secondaryValue.unit}</span>
             </>
           )}
         </div>
@@ -163,7 +161,7 @@ export function MetricCard({
           />
         ) : (
           <LogsTimeseriesBarChart
-            chartContainerClassname="px-[14px] border-gray-3"
+            chartContainerClassname="px-[14px]"
             data={chartData.data}
             config={{
               [chartData.dataKey]: {
@@ -178,7 +176,7 @@ export function MetricCard({
           />
         )}
         {timeWindow?.chart && (
-          <span className="text-grayA-11 text-[10px] px-[14px] my-1">{timeWindow.chart}</span>
+          <span className="text-grayA-11 text-3xs px-[14px] my-1">{timeWindow.chart}</span>
         )}
       </div>
     </div>

@@ -4,6 +4,8 @@
   "exclude": ["dist"],
   "compilerOptions": {
     "outDir": "dist",
+    "module": "esnext",
+    "moduleResolution": "bundler",
     "jsx": "react",
     "baseUrl": ".",
     "paths": {

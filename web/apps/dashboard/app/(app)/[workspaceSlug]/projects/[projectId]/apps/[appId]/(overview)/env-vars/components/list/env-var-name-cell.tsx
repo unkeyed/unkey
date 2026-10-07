@@ -59,7 +59,7 @@ export const EnvVarNameCell = ({
               ) : (
                 <div className="flex flex-col gap-0.5">
                   <span className="font-mono break-all">{variableKey}</span>
-                  <span className="text-gray-11">
+                  <span className="opacity-75">
                     {type === "recoverable" ? "Click to copy KEY=VALUE" : "Click to copy key"}
                   </span>
                 </div>
@@ -71,14 +71,14 @@ export const EnvVarNameCell = ({
             <button
               type="button"
               onClick={handleCopy}
-              className="font-mono font-medium text-[13px] text-accent-12 truncate leading-4 cursor-pointer hover:text-accent-11 transition-colors max-w-[250px] "
+              className="font-mono font-medium text-sm text-gray-12 truncate leading-4 cursor-pointer hover:text-gray-11 transition-colors max-w-[250px] "
             >
               <HighlightMatch text={variableKey} query={searchQuery} />
             </button>
           </InfoTooltip>
           {type === "writeonly" && (
             <Badge
-              className="px-1.5 py-0 rounded-md h-5 text-[11px] font-medium pointer-events-none"
+              className="px-1.5 py-0 rounded-md h-5 text-2xs font-medium pointer-events-none"
               variant="warning"
             >
               Sensitive
@@ -92,7 +92,7 @@ export const EnvVarNameCell = ({
             </InfoTooltip>
           )}
         </div>
-        <div className="text-[13px] mt-1 text-gray-10 capitalize">{environmentName}</div>
+        <div className="text-sm mt-1 text-gray-10 capitalize">{environmentName}</div>
       </div>
     </div>
   );

@@ -32,7 +32,7 @@ const SettingCardGroupContext = React.createContext(false);
 function SettingCardGroup({ children }: { children: React.ReactNode }) {
   return (
     <SettingCardGroupContext.Provider value={true}>
-      <div className="border border-grayA-4 rounded-lg overflow-hidden divide-y divide-grayA-4">
+      <div className="border rounded-lg overflow-hidden divide-y divide-grayA-4 bg-raised">
         {children}
       </div>
     </SettingCardGroupContext.Provider>
@@ -108,7 +108,7 @@ function SettingCard({
   const borderClass = inGroup
     ? {}
     : {
-        "border border-grayA-4": border !== "none",
+        border: border !== "none",
         "border-t-0": border === "bottom",
         "border-b-0": border === "top",
       };
@@ -146,10 +146,17 @@ function SettingCard({
   };
 
   return (
-    <div className={cn("w-full", getBorderRadiusClass(), borderClass, expandedBottomRadius)}>
+    <div
+      className={cn(
+        "@container w-full bg-raised",
+        getBorderRadiusClass(),
+        borderClass,
+        expandedBottomRadius,
+      )}
+    >
       <div
         className={cn(
-          "px-4 py-[18px] lg:w-full flex gap-6 lg:justify-between lg:items-center flex-col lg:flex-row group",
+          "px-4 py-[18px] flex gap-6 @2xl:justify-between @2xl:items-center flex-col @2xl:flex-row group",
           isInteractive && "cursor-pointer",
           className,
         )}
@@ -168,7 +175,7 @@ function SettingCard({
           {icon && (
             <div
               className={cn(
-                "bg-gray-3 size-8 rounded-[10px] flex items-center justify-center shrink-0 dark:ring-1 dark:ring-gray-4 dark:shadow-none shadow-sm shadow-grayA-8/20",
+                "bg-gray-3 size-8 rounded-xl flex items-center justify-center shrink-0 dark:ring-1 dark:ring-gray-4 dark:shadow-none shadow-sm shadow-grayA-8/20",
                 iconClassName,
               )}
             >
@@ -176,7 +183,7 @@ function SettingCard({
             </div>
           )}
           <div className="flex flex-col gap-1 text-sm w-fit">
-            <div className="font-medium text-gray-12 text-[13px] leading-4 tracking-normal">
+            <div className="font-medium text-gray-12 text-sm leading-4 tracking-normal">
               {title}
             </div>
             <InfoTooltip
@@ -223,7 +230,7 @@ function SettingCard({
           <div
             ref={innerRef}
             className={cn(
-              "border-t border-grayA-4 transition-all duration-300 ease-out",
+              "border-t transition-all duration-300 ease-out",
               isExpanded ? "opacity-100 translate-y-0 delay-75" : "opacity-0 -translate-y-2",
             )}
           >
@@ -275,9 +282,14 @@ function SettingsZone({
   const styles = zoneStyles[variant];
   return (
     <SettingsZoneContext.Provider value={variant}>
-      <div className={cn("w-full", className)}>
-        <h2 className={cn("font-semibold text-lg mb-4", styles.heading)}>{title}</h2>
-        <div className={cn("rounded-lg border overflow-hidden divide-y", styles.border)}>
+      <div className={cn("flex w-full flex-col gap-6", className)}>
+        <h2 className={cn("font-semibold text-lg leading-6", styles.heading)}>{title}</h2>
+        <div
+          className={cn(
+            "@container rounded-lg border overflow-hidden divide-y bg-raised",
+            styles.border,
+          )}
+        >
           {children}
         </div>
       </div>
@@ -329,10 +341,10 @@ function SettingsZoneRow({
   const btnProps = zoneButtonProps[zoneVariant];
 
   return (
-    <div className="flex items-center justify-between p-4">
+    <div className="flex flex-col gap-3 p-4 @2xl:flex-row @2xl:items-center @2xl:justify-between">
       <div className="space-y-1">
-        <p className="font-medium text-gray-12 text-sm">{title}</p>
-        <p className="text-gray-11 text-[13px]">{description}</p>
+        <div className="font-medium text-gray-12 text-sm">{title}</div>
+        <div className="text-gray-11 text-sm">{description}</div>
       </div>
       <Button
         variant={btnProps.variant}

@@ -1,0 +1,72 @@
+---
+title: Projects, apps, and environments
+description: "How projects, apps, and environments fit together."
+sources:
+  - svc/ctrl/services/project/create_project.go
+  - svc/ctrl/services/app/create_app.go
+  - pkg/deploy/projectgate/projectgate.go
+  - svc/api/openapi/spec/common/Project.yaml
+  - svc/api/openapi/spec/common/App.yaml
+  - svc/api/openapi/spec/common/Environment.yaml
+  - svc/api/openapi/spec/common/EnvironmentKind.yaml
+  - svc/api/openapi/spec/paths/v2/apps/createApp/V2AppsCreateAppRequestBody.yaml
+  - svc/api/openapi/spec/paths/v2/apps/updateApp/V2AppsUpdateAppRequestBody.yaml
+  - web/internal/db/src/schema/environments.ts
+  - web/apps/dashboard/lib/navigation/leaves.ts
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/page.tsx
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/new/page.tsx
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/settings/deployment-settings.tsx
+---
+
+Your workspace holds projects. A project holds <Tooltip tip="A Compute app: a deployable service inside a project. Not 'your application' in general.">apps</Tooltip>. Every app has exactly two <Tooltip tip="A production or preview environment of a Compute app, not the dashboard label on a key.">environments</Tooltip>: production and preview. A <Tooltip tip="One built and running version of an app in one environment.">deployment</Tooltip> belongs to one environment. Almost everything you configure (environment variables, gateway policies, the container's CPU) is set per environment.
+
+<Tree>
+  <Tree.Folder name="acme (workspace)" defaultOpen>
+    <Tree.Folder name="payments (project)" defaultOpen>
+      <Tree.Folder name="api (app, connected to acme/payments on GitHub)" defaultOpen>
+        <Tree.Folder name="production (environment)" defaultOpen>
+          <Tree.File name="build and runtime settings" />
+          <Tree.File name="environment variables" />
+          <Tree.File name="custom domains" />
+          <Tree.File name="gateway policies" />
+          <Tree.File name="deployments, one of them current" />
+        </Tree.Folder>
+        <Tree.Folder name="preview (environment)">
+          <Tree.File name="its own settings, variables, policies, and deployments" />
+        </Tree.Folder>
+      </Tree.Folder>
+      <Tree.Folder name="worker (app, deployed from an image)">
+        <Tree.File name="production and preview, same shape" />
+      </Tree.Folder>
+    </Tree.Folder>
+  </Tree.Folder>
+</Tree>
+
+## Projects
+
+A project is how you group apps. It has a name and a slug. The slug is what you pass to the API and the CLI, so it must be unique in your workspace. The slug `default` is reserved, so the API will return an error if you use it. A project can also carry delete protection, which blocks deletion until you turn it off. See [Delete protection](/platform/security/delete-protection).
+
+Creating a project creates nothing else. There's no default app. The project page shows an empty Apps list and a **Create app** button, and the API returns the project alone. Unlike platforms where a project is itself what you deploy, here the project is only a folder.
+
+In the dashboard, the project level holds things that span apps: runtime **Logs** and gateway **Requests** for every app in the project, plus project **Settings** (name and delete).
+
+## Apps
+
+An app is what you deploy. Two apps in one project build and deploy on their own. A monorepo with an API and a background worker is two apps on the same repository with different root directories. The project page lists apps. **Create app** adds another.
+
+An app has a name, a slug unique within its project, and a source. The source is either a GitHub repository or a container image. The source kind is fixed when you create the app. Image-sourced apps hide build settings in the dashboard because there's nothing to build.
+
+For a git-connected app the tracked branch is `defaultBranch`, which defaults to the repository's default branch on GitHub. Pushes to that branch deploy to production. Every other branch deploys to preview. You can retarget the branch, replace the repository, or disconnect.
+
+## Environments
+
+Creating an app also creates its two environments: `production` with kind `production` and `preview` with kind `preview`. You can't add a third environment or delete either of these. The environment slug is what you pass to the API alongside the project and app slugs.
+
+The kind decides how deployments behave:
+
+- `production` deployments serve the live domains, can be promoted and rolled back, and can't be stopped.
+- `preview` deployments can be stopped and started and are stopped automatically when idle.
+
+## Identifiers
+
+Every Compute endpoint accepts either the ID or the slug for a project, app, or environment. A request looks like `project: payments, app: api, environment: production`, or uses the `proj_`, `app_`, and `env_` IDs the list endpoints return. The dashboard URL carries the IDs.

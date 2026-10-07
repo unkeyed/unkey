@@ -65,3 +65,12 @@ func (r *TransportRegistry) Get(proto db.DeploymentsUpstreamProtocol) http.Round
 	logger.Warn("unsupported upstream protocol, falling back to http1", "protocol", string(proto))
 	return r.fallback
 }
+
+// CloseIdleConnections releases pooled upstream connections after shutdown.
+func (r *TransportRegistry) CloseIdleConnections() {
+	for _, transport := range r.transports {
+		if closer, ok := transport.(interface{ CloseIdleConnections() }); ok {
+			closer.CloseIdleConnections()
+		}
+	}
+}

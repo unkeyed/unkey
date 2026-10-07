@@ -7,7 +7,7 @@ properties:
     additionalProperties: false
     properties:
       url: { type: string }
-      format: { type: string, enum: [json, ndjson] }
+      format: { type: string, enum: [json, ndjson, hec] }
       headers:
         type: array
         description: Header names only. Values remain encrypted and are never returned.

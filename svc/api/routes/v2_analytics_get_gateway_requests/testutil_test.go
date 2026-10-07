@@ -19,7 +19,7 @@ func newRoute(t *testing.T, analytics bool) (*testutil.Harness, *Handler, string
 	if analytics {
 		h.SetupAnalytics(workspace.ID)
 	}
-	route := &Handler{AnalyticsConnectionManager: h.AnalyticsConnectionManager}
+	route := &Handler{DB: h.DB, AnalyticsConnectionManager: h.AnalyticsConnectionManager}
 	h.Register(route)
 	return h, route, workspace.ID
 }

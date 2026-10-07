@@ -27,11 +27,7 @@ export const InlineFilter = ({
   const activeFilters = filters.filter((f) => TIME_FIELDS.includes(f.field));
 
   return (
-    <InfoTooltip
-      asChild
-      variant="inverted"
-      content={<span className="text-xs font-medium">{content}</span>}
-    >
+    <InfoTooltip asChild content={<span className="text-xs font-medium">{content}</span>}>
       <button
         onClick={() => {
           const pairFilters: RatelimitOverviewFilterValue[] = [];

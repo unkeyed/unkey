@@ -1,0 +1,66 @@
+---
+title: Use Unkey with Claude Code
+sidebarTitle: "Claude Code"
+description: "Add the Unkey MCP servers and docs to Claude Code with one command each."
+sources:
+  - https://mcp.unkey.com/mcp/v2/install
+  - https://mcp.unkey.com/mcp/compute/install
+  - https://code.claude.com/docs/en/mcp
+---
+
+You need a root key for your assistant. See [Create a root key](/platform/ai-coding/mcp-servers#create-a-root-key).
+
+## Add the Unkey server
+
+<Steps titleSize="h3">
+  <Step title="Set your root key">
+    Export the key in the shell you start Claude Code from, or add it to your shell profile.
+
+    ```bash
+    export UNKEY_ROOT_KEY="unkey_..."
+    ```
+  </Step>
+  <Step title="Add the server">
+    ```bash
+    claude mcp add --transport http unkey "https://mcp.unkey.com/mcp/v2" \
+      --header 'Mcp-Unkey-V2-Bearer:${UNKEY_ROOT_KEY}'
+    ```
+
+    Keep the single quotes. Claude Code saves `${UNKEY_ROOT_KEY}` as written and reads the variable each time it connects, so the key isn't stored in its config.
+
+    To add the Compute server instead, use its URL:
+
+    ```bash
+    claude mcp add --transport http unkey-compute "https://mcp.unkey.com/mcp/compute" \
+      --header 'Mcp-Unkey-V2-Bearer:${UNKEY_ROOT_KEY}'
+    ```
+  </Step>
+  <Step title="Check the connection">
+    ```bash
+    claude mcp list
+    ```
+
+    The server shows **Connected**. Inside a session, run `/mcp` to see its status and tools.
+  </Step>
+</Steps>
+
+The server is added for you in the current project. Add `--scope user` to use it in every project, or `--scope project` to save it to `.mcp.json` so your team gets it too. Each person then sets `UNKEY_ROOT_KEY` to their own key.
+
+## Add the docs
+
+```bash
+claude mcp add --transport http unkey-docs "https://www.unkey.com/docs/mcp"
+```
+
+Claude Code can then search these docs when you ask about Unkey.
+
+## Next steps
+
+<Columns cols={2}>
+  <Card title="Try some prompts" icon="message" href="/platform/ai-coding/mcp-servers#try-it">
+    Example requests for keys, analytics, and deployments.
+  </Card>
+  <Card title="Fix connection problems" icon="wrench" href="/platform/ai-coding/mcp-servers#fix-connection-problems">
+    What to check when the server doesn't connect.
+  </Card>
+</Columns>

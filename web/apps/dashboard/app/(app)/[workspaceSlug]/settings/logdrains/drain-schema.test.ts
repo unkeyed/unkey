@@ -1,3 +1,4 @@
+import { httpFormatSchema } from "@/lib/trpc/routers/logdrain/validation";
 import { describe, expect, it } from "vitest";
 import {
   type DrainFormValues,
@@ -22,6 +23,18 @@ const httpDrain = {
 } satisfies Partial<DrainFormValues>;
 
 describe("createDrainSchema", () => {
+  it("accepts HEC in the API and both destination forms", () => {
+    expect(httpFormatSchema.parse("hec")).toBe("hec");
+    for (const schema of [createDrainSchema, editDrainSchema]) {
+      const result = schema.parse({
+        ...emptyDrainForm,
+        ...httpDrain,
+        format: "hec",
+      });
+      expect(result.format).toBe("hec");
+    }
+  });
+
   it.each([createDrainSchema, editDrainSchema])(
     "rejects an empty runtime selection without using gateway sources",
     (schema) => {

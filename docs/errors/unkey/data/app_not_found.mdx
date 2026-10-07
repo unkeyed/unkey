@@ -1,0 +1,47 @@
+---
+title: "app_not_found"
+sidebarTitle: "app_not_found"
+description: "The app does not exist in the project."
+sources:
+  - pkg/codes/unkey_data.go
+  - svc/api/internal/middleware/errors.go
+  - svc/api/routes/v2_apps_get_app/handler.go
+  - svc/api/routes/v2_apps_update_app/handler.go
+  - svc/api/routes/v2_apps_delete_app/handler.go
+---
+
+<Danger>`err:unkey:data:app_not_found`</Danger>
+
+The <Tooltip tip="A Compute app: a deployable service inside a project, not an application in the API Management sense.">app</Tooltip> you referenced doesn't exist in the project. You get HTTP 404.
+
+```json Example response
+{
+  "meta": {
+    "requestId": "req_2c9a0jf23l4k567"
+  },
+  "error": {
+    "detail": "The requested app does not exist.",
+    "status": 404,
+    "title": "Not Found",
+    "type": "/errors/unkey/data/app_not_found"
+  }
+}
+```
+
+## Likely causes
+
+- The app ID or slug has a typo.
+- You passed the wrong project, so the app isn't in it.
+- Your root key doesn't have read permission on the app. `apps.getApp` returns this 404 instead of a 403.
+
+## How to fix
+
+1. List the project's apps with `apps.listApps` and use the returned ID or slug.
+2. Make sure the project you pass is the one that owns the app.
+3. Check that the root key has read (or the relevant write) permission on the app.
+
+## Related errors
+
+- [`err:unkey:data:project_not_found`](/errors/unkey/data/project_not_found): the project doesn't exist.
+- [`err:unkey:data:environment_not_found`](/errors/unkey/data/environment_not_found): an environment of the app doesn't exist.
+- [`err:unkey:application:protected_resource`](/errors/unkey/application/protected_resource): the app can't be deleted while delete protection is on.

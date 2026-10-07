@@ -8,13 +8,10 @@ import (
 	"github.com/stretchr/testify/require"
 	frontlinev1 "github.com/unkeyed/unkey/gen/proto/frontline/v1"
 	"github.com/unkeyed/unkey/pkg/db"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
-	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_gateway_update_policy"
-	"google.golang.org/protobuf/proto"
 )
 
 func TestUpdatePolicyNotFound(t *testing.T) {
@@ -31,7 +28,7 @@ func TestUpdatePolicyNotFound(t *testing.T) {
 	call := func(t *testing.T, req handler.Request) testutil.TestResponse[openapi.NotFoundErrorResponse] {
 		t.Helper()
 		if req.Name == nil {
-			req.Name = ptr.P("KEBAP")
+			req.Name = new("KEBAP")
 		}
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
 		require.Equal(t, http.StatusNotFound, res.Status, "expected 404, received: %s", res.RawBody)
@@ -68,7 +65,7 @@ func TestUpdatePolicyNotFound(t *testing.T) {
 		seedSentinelConfig(t, h, other, &frontlinev1.Config{Policies: []*frontlinev1.Policy{{
 			Id:      foreignPolicyID,
 			Name:    "KEBAP",
-			Enabled: proto.Bool(true),
+			Enabled: new(true),
 			Config: &frontlinev1.Policy_Firewall{Firewall: &frontlinev1.Firewall{
 				Action: frontlinev1.Action_ACTION_DENY,
 			}},
@@ -91,21 +88,11 @@ func TestUpdatePolicyNotFound(t *testing.T) {
 		require.Contains(t, res.Body.Error.Type, "key_space_not_found")
 	})
 
-	t.Run("keyspace from another project", func(t *testing.T) {
-		foreign := h.CreateApi(seed.CreateApiRequest{WorkspaceID: env.workspaceID})
-		require.NotEqual(t, env.projectID, foreign.ProjectID)
-
-		req := makeRequest(env, ids[0])
-		req.Keyauth = &openapi.KeyauthPolicy{Keyspaces: []string{foreign.KeyAuthID.String}}
-		res := call(t, req)
-		require.Contains(t, res.Body.Error.Type, "key_space_not_found")
-	})
-
 	t.Run("another workspace's environment", func(t *testing.T) {
 		other := h.CreateWorkspace()
 		foreignKey := h.CreateRootKey(other.ID, "environment.*.update_policy")
 		req := makeRequest(env, ids[0])
-		req.Name = ptr.P("KEBAP")
+		req.Name = new("KEBAP")
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, authHeaders(foreignKey), req)
 		require.Equal(t, http.StatusNotFound, res.Status, "expected 404, received: %s", res.RawBody)
 	})

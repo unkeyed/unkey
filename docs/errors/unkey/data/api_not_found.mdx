@@ -1,0 +1,49 @@
+---
+title: "api_not_found"
+sidebarTitle: "api_not_found"
+description: "The apiId does not match a live API in your workspace."
+sources:
+  - pkg/codes/unkey_data.go
+  - svc/api/internal/middleware/errors.go
+  - svc/api/routes/v2_apis_get_api/handler.go
+  - svc/api/routes/v2_apis_delete_api/handler.go
+  - svc/api/routes/v2_keys_create_key/handler.go
+  - svc/api/routes/v2_apis_list_keys/handler.go
+---
+
+<Danger>`err:unkey:data:api_not_found`</Danger>
+
+The `apiId` you sent doesn't match an API in your workspace. You get HTTP 404.
+
+```json Example response
+{
+  "meta": {
+    "requestId": "req_2c9a0jf23l4k567"
+  },
+  "error": {
+    "detail": "The specified API was not found.",
+    "status": 404,
+    "title": "Not Found",
+    "type": "/errors/unkey/data/api_not_found"
+  }
+}
+```
+
+## Likely causes
+
+- The ID has a typo, or isn't an API ID. API IDs start with `api_`.
+- The API was deleted.
+- The API is in another workspace.
+- Your root key doesn't have permission on the API. `apis.getApi`, `apis.listKeys`, and `keys.createKey` return this 404 instead of a 403, so a 404 doesn't prove the API is gone.
+
+## How to fix
+
+1. Copy the ID from the dashboard or from the `apis.createApi` response.
+2. If the ID is right, check that the root key has the permission the endpoint needs on that API.
+3. If the API was deleted, create a new one. Deleting an API from the dashboard also deletes its keyspace and all its keys. Deleting it with `apis.deleteApi` removes only the API, and its keys can't be reached through that `apiId` any more.
+
+## Related errors
+
+- [`err:unkey:data:key_not_found`](/errors/unkey/data/key_not_found): a key within the API doesn't exist.
+- [`err:unkey:application:precondition_failed`](/errors/unkey/application/precondition_failed): the API exists but isn't set up for keys or for key recovery.
+- [`err:unkey:application:protected_resource`](/errors/unkey/application/protected_resource): the API can't be deleted while delete protection is on.

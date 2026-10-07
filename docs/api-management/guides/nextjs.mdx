@@ -1,0 +1,186 @@
+---
+title: Next.js guide
+sidebarTitle: "Next.js"
+description: "Protect a Next.js route handler with an API key."
+sources:
+  - svc/api/openapi/spec/paths/v2/apis/createApi/V2ApisCreateApiRequestBody.yaml
+  - svc/api/openapi/spec/paths/v2/apis/createApi/V2ApisCreateApiResponseData.yaml
+  - pkg/rbac/permissions.go
+  - svc/api/openapi/spec/paths/v2/keys/createKey/V2KeysCreateKeyRequestBody.yaml
+  - svc/api/openapi/spec/paths/v2/keys/createKey/V2KeysCreateKeyResponseData.yaml
+  - svc/api/openapi/spec/paths/v2/keys/verifyKey/V2KeysVerifyKeyRequestBody.yaml
+  - svc/api/openapi/spec/paths/v2/keys/verifyKey/V2KeysVerifyKeyResponseData.yaml
+  - web/internal/api/src/sdk/keys.ts
+  - web/internal/api/src/models/components/v2keysverifykeyresponsedata.ts
+  - https://github.com/unkeyed/sdks/blob/3bb124498270d8aff36e358dc2e0010e9991869a/api/ts/README.md
+  - https://github.com/unkeyed/sdks/blob/3bb124498270d8aff36e358dc2e0010e9991869a/nextjs/README.md
+---
+import RootKeyPrereq from "/snippets/root-key-prereq.mdx";
+import { versions } from "/snippets/versions.mdx";
+
+Protect a Next.js App Router route handler with API keys. Your server creates keys for users, and every request to the route is checked with `keys.verifyKey` before your handler runs. Verification needs your root key, so do it in route handlers or server actions, never in client components.
+
+<RootKeyPrereq />
+
+<Steps titleSize="h3">
+  <Step title="Create a root key and a keyspace">
+    In the dashboard, go to **Settings > Root Keys** and create a root key with `api.*.create_api`, `api.*.create_key`, and `api.*.verify_key`. Put it in your server's `UNKEY_ROOT_KEY` environment variable. Never send it to a browser or mobile app.
+
+    Then create a keyspace, which holds your keys. Use **Keyspaces (APIs)** in the dashboard, or `apis.createApi`:
+
+    ```bash create a keyspace
+    curl -X POST https://api.unkey.com/v2/apis.createApi \
+      -H "Authorization: Bearer $UNKEY_ROOT_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{ "name": "my-api" }'
+    ```
+
+    Keep the `data.apiId` from the response. You need it to create keys. See [Root keys](/platform/root-keys/overview) for more on root keys.
+  </Step>
+  <Step title="Install the SDK">
+    `@unkey/api` (version {versions.tsApi}) is the client for the whole API. `@unkey/nextjs` (version {versions.tsNextjs}) wraps a route handler and verifies for you. You only need it for the wrapper in step 4.
+
+    <CodeGroup>
+    ```bash npm
+    npm install @unkey/api @unkey/nextjs
+    ```
+    ```bash pnpm
+    pnpm add @unkey/api @unkey/nextjs
+    ```
+    ```bash bun
+    bun add @unkey/api @unkey/nextjs
+    ```
+    </CodeGroup>
+  </Step>
+  <Step title="Create a key for a user">
+    Create a key from your backend when a user signs up or asks for one. `externalId` links the key to the user, so verification tells you who's calling. `meta` comes back on every verification. You get `data.key` only once: show it to the user and store only `data.keyId`.
+
+    <CodeGroup>
+    ```bash curl
+    curl -X POST https://api.unkey.com/v2/keys.createKey \
+      -H "Authorization: Bearer $UNKEY_ROOT_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{ "apiId": "api_...", "prefix": "sk_live", "externalId": "user_123", "meta": { "plan": "free" } }'
+    ```
+    ```ts TypeScript
+    import { Unkey } from "@unkey/api";
+
+    const unkey = new Unkey({ rootKey: process.env.UNKEY_ROOT_KEY ?? "" });
+
+    const created = await unkey.keys.createKey({
+      apiId: process.env.UNKEY_API_ID ?? "",
+      prefix: "sk_live",
+      externalId: "user_123",
+      meta: { plan: "free" },
+    });
+    // created.data.key is the plaintext, created.data.keyId the handle you keep
+    ```
+    </CodeGroup>
+
+    Every field is described in [Creating keys](/api-management/keys/creating-keys).
+  </Step>
+  <Step title="Verify the key in a route handler">
+    The first handler calls `keys.verifyKey` directly, so you control the response. The second uses `withUnkey`, which reads the bearer token from the `Authorization` header, <Tooltip tip="Here: keys.verifyKey checking a key your user presented. Not domain verification and not the gateway policy.">verifies</Tooltip> it, and puts the result in `req.unkey`. Pass `handleInvalidKey` to choose the response for a bad key.
+
+    <CodeGroup>
+    ```ts app/api/items/route.ts (@unkey/api)
+    import { Unkey } from "@unkey/api";
+    import * as errors from "@unkey/api/models/errors";
+    import { NextResponse } from "next/server";
+
+    const unkey = new Unkey({ rootKey: process.env.UNKEY_ROOT_KEY ?? "" });
+
+    export async function GET(req: Request) {
+      const auth = req.headers.get("authorization") ?? "";
+      const key = auth.startsWith("Bearer ") ? auth.slice("Bearer ".length) : "";
+      if (!key) {
+        return NextResponse.json({ error: "missing API key" }, { status: 401 });
+      }
+
+      try {
+        const result = await unkey.keys.verifyKey({
+          key,
+          tags: ["endpoint=/api/items", "method=GET"],
+        });
+        if (!result.data.valid) {
+          return NextResponse.json({ error: result.data.code }, { status: statusFor(result.data.code) });
+        }
+        return NextResponse.json({ items: [], owner: result.data.identity?.externalId });
+      } catch (err) {
+        if (err instanceof errors.UnkeyError) {
+          // The verification call itself failed (bad root key, throttle, outage), not the user's key.
+          console.error("unkey", err.statusCode, err.message);
+        }
+        return NextResponse.json({ error: "authentication unavailable" }, { status: 503 });
+      }
+    }
+
+    function statusFor(code: string): number {
+      switch (code) {
+        case "RATE_LIMITED":
+          return 429;
+        case "USAGE_EXCEEDED":
+          return 402;
+        case "FORBIDDEN":
+        case "INSUFFICIENT_PERMISSIONS":
+          return 403;
+        default:
+          return 401;
+      }
+    }
+    ```
+    ```ts app/api/items/route.ts (@unkey/nextjs)
+    import { withUnkey } from "@unkey/nextjs";
+    import { NextResponse } from "next/server";
+
+    export const GET = withUnkey(
+      async (req) => {
+        // req.unkey holds the verification response; the key is already valid here
+        return NextResponse.json({ items: [], keyId: req.unkey?.data.keyId });
+      },
+      {
+        rootKey: process.env.UNKEY_ROOT_KEY ?? "",
+        handleInvalidKey: () => NextResponse.json({ error: "invalid API key" }, { status: 401 }),
+        onError: (_req, err) => {
+          console.error("unkey", err.message);
+          return NextResponse.json({ error: "authentication unavailable" }, { status: 503 });
+        },
+      },
+    );
+    ```
+    </CodeGroup>
+
+    <Warning>
+    `withUnkey` only calls `onError` for unexpected responses, such as a 502 from a proxy. A rejected root key, a throttled request, a 500, or a network failure is thrown instead, so your route fails with an unhandled error rather than a 503. The hand-written version catches all of these and returns 503.
+    </Warning>
+
+    Test it with the key from step 3:
+
+    ```bash
+    curl http://localhost:3000/api/items -H "Authorization: Bearer sk_live_..."
+    ```
+  </Step>
+  <Step title="Handle the outcome codes">
+    `keys.verifyKey` returns HTTP 200 for every outcome. Check `data.valid`, then `data.code` for the reason, and return the matching status from your API:
+
+    | `data.code` | Meaning | Return |
+    | --- | --- | --- |
+    | `VALID` | Every check passed. | continue |
+    | `NOT_FOUND` | No such key, or your root key may not verify this keyspace. | 401 |
+    | `DISABLED` | The key was disabled. | 401 |
+    | `EXPIRED` | The key's expiry passed. | 401 |
+    | `FORBIDDEN` | Client IP not on the keyspace allow list, or the workspace is disabled. | 403 |
+    | `INSUFFICIENT_PERMISSIONS` | The `permissions` query was not satisfied. | 403 |
+    | `RATE_LIMITED` | A <Tooltip tip="Here: limits enforced by keys.verifyKey on a key or identity, or by the standalone ratelimit API. Not a Compute gateway policy.">rate limit</Tooltip> on the key or its identity was exceeded. | 429 |
+    | `USAGE_EXCEEDED` | The key has no credits left. | 402 or 429 |
+
+    Remaining credits are in `data.credits`, and each checked rate limit is in `data.ratelimits` with `remaining` and `reset`. The call only fails with an HTTP error (which the SDKs throw) when the call itself is wrong, such as a bad root key or a malformed body. See [Verifying keys](/api-management/keys/verifying-keys) for every field.
+  </Step>
+  <Step title="Next steps">
+    <Columns cols={2}>
+      <Card title="Verifying keys" href="/api-management/keys/verifying-keys" icon="key">Every request field, the order of checks, and every response field.</Card>
+      <Card title="Credits and refill" href="/api-management/keys/credits-and-refill" icon="coins">Meter usage per key and refill balances on a schedule.</Card>
+      <Card title="Cookbook" href="/api-management/cookbook/index" icon="book">Copy-ready recipes for rate limits, billing, and subscription tiers.</Card>
+    </Columns>
+  </Step>
+</Steps>

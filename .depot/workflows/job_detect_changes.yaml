@@ -57,6 +57,9 @@ jobs:
 
             # Dashboard application and its dependencies
             dashboard:
+              - '.mise/**'
+              - 'dev/install-mise'
+              - '.depot/actions/setup-mise/**'
               - 'web/apps/dashboard/**/!(*.md|*.txt)'
               - 'web/apps/dashboard/!(*.md|*.txt)'
               - 'web/internal/billing/**'
@@ -80,6 +83,9 @@ jobs:
 
             # Go services (API v2, Ctrl, Deploy services)
             go:
+              - '.mise/**'
+              - 'dev/install-mise'
+              - '.depot/actions/setup-mise/**'
               - 'cmd/**'
               - 'svc/**'
               - 'pkg/**'
@@ -107,9 +113,15 @@ jobs:
             # Depot workflows and CI/CD
             workflows:
               - '.depot/**'
+              - '.github/workflows/**'
+              - '.mise/**'
+              - 'dev/install-mise'
 
             # Dependency changes
             dependencies:
+              - '.mise/**'
+              - 'dev/install-mise'
+              - '.depot/actions/setup-mise/**'
               - 'web/pnpm-lock.yaml'
               - 'go.sum'
               - 'go.mod'

@@ -1,6 +1,5 @@
 "use client";
 import { formatNumber } from "@/lib/fmt";
-import { cn } from "@/lib/utils";
 import type { KeysOverviewLog } from "@unkey/clickhouse/src/keys/keys";
 import {
   Badge,
@@ -9,12 +8,13 @@ import {
   SortableHeader,
   TimestampInfo,
 } from "@unkey/ui";
+import { cn } from "cn";
 import { KeyIdentifierColumn } from "../components/key-identifier-column";
 import { getErrorPercentage, getSuccessPercentage } from "../utils/calculate-blocked-percentage";
 import { SEVERITY_STYLES, getStatusStyle } from "../utils/get-row-class";
 
 const TruncatedTextCell = ({ value }: { value: string }) => (
-  <div className="flex items-center font-mono">
+  <div data-sentry-mask className="flex items-center font-mono">
     <div className="w-full max-w-37.5 truncate whitespace-nowrap" title={value}>
       {value}
     </div>

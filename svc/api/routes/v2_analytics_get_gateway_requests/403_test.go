@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -34,11 +35,23 @@ func Test403_UnrelatedPermissions(t *testing.T) {
 // refused before the handler opens a ClickHouse connection, so a missing
 // analytics setup cannot mask a permission failure.
 func Test403_ReturnsBeforeAnalyticsLookup(t *testing.T) {
-	h, route, workspaceID := newRoute(t, false)
-	rootKey := h.CreateRootKey(workspaceID, "project.*.read_project")
+	for name, permission := range map[string]func(string) string{
+		"legacy unrelated action": func(string) string { return "project.*.read_project" },
+		"URN wrong action": func(workspaceID string) string {
+			return fmt.Sprintf("unkey:v1:%s:projects/*/apps/*/environments/*/gateway/logs#write", workspaceID)
+		},
+		"URN wrong workspace": func(string) string {
+			return "unkey:v1:ws_foreign:projects/*/apps/*/environments/*/gateway/logs#read"
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			h, route, workspaceID := newRoute(t, false)
+			rootKey := h.CreateRootKey(workspaceID, permission(workspaceID))
 
-	res := testutil.CallRoute[Request, Response](h, route, auth(rootKey), Request{
-		Query: "SELECT count() FROM gateway_requests_v1",
-	})
-	require.Equal(t, 403, res.Status)
+			res := testutil.CallRoute[Request, Response](h, route, auth(rootKey), Request{
+				Query: "SELECT count() FROM gateway_requests_v1",
+			})
+			require.Equal(t, 403, res.Status)
+		})
+	}
 }

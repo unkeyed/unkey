@@ -47,7 +47,7 @@ function Slider({
               6px track, so clipping would shrink their visible size and hit area. */}
         <SliderPrimitive.Track className="relative h-1.5 w-full grow rounded-full bg-grayA-3">
           <SliderPrimitive.Indicator
-            className={cn("absolute h-full rounded-full bg-accent-12", rangeClassName)}
+            className={cn("absolute h-full rounded-full bg-gray-12", rangeClassName)}
             style={rangeStyle}
           />
           {Array.from({ length: thumbCount }).map((_, i) => (

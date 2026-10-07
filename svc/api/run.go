@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
-	restate "github.com/restatedev/sdk-go"
 	restateingress "github.com/restatedev/sdk-go/ingress"
 	"github.com/unkeyed/unkey/gen/proto/ctrl/v1/ctrlv1connect"
 	"github.com/unkeyed/unkey/gen/proto/vault/v1/vaultv1connect"
@@ -342,6 +341,7 @@ func Run(ctx context.Context, cfg Config) error {
 	keySvc, err := keys.New(keys.Config{
 		DB:           db.ToMySQL(database),
 		KeyCache:     caches.VerificationKeyByHash,
+		RootKeyCache: caches.RootKeyByHash,
 		RateLimiter:  rlSvc,
 		RBAC:         rbac.New(),
 		Region:       cfg.Region,
@@ -470,8 +470,8 @@ func Run(ctx context.Context, cfg Config) error {
 
 	restateClient := restateingress.NewClient(
 		cfg.Restate.URL,
-		restate.WithAuthKey(cfg.Restate.APIKey),
-		restate.WithHttpClient(&http.Client{Timeout: 30 * time.Second}),
+		restateingress.WithAuthKey(cfg.Restate.APIKey),
+		restateingress.WithHttpClient(&http.Client{Timeout: 30 * time.Second}),
 	)
 
 	logger.Info("Control plane clients initialized", "url", cfg.Control.URL)

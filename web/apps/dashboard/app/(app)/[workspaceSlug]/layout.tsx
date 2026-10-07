@@ -8,5 +8,9 @@ interface WorkspaceLayoutProps {
 }
 
 export default function WorkspaceLayout({ children }: WorkspaceLayoutProps) {
-  return <Suspense fallback={<LoadingState message="Loading workspace..." />}>{children}</Suspense>;
+  return (
+    <Suspense fallback={<LoadingState delayMs={300} message="Loading workspace..." />}>
+      {children}
+    </Suspense>
+  );
 }

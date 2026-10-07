@@ -1,13 +1,5 @@
 import { relations } from "drizzle-orm";
-import {
-  bigint,
-  boolean,
-  index,
-  json,
-  mysqlTable,
-  uniqueIndex,
-  varchar,
-} from "drizzle-orm/mysql-core";
+import { bigint, index, json, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
 import { portals } from "./portals";
 import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
 import { id } from "./util/id";
@@ -55,7 +47,6 @@ export const portalSessions = mysqlTable(
     portalId: id("portal_id").notNull(),
     externalId: caseSensitiveVarchar("external_id", { length: 256 }).notNull(),
     scopes: json("scopes").notNull(),
-    preview: boolean("preview").notNull().default(false),
 
     exchangeCodeHash: caseSensitiveVarchar("exchange_code_hash", { length: 256 }).notNull(),
     exchangeCodeExpiresAt: bigint("exchange_code_expires_at", { mode: "number" }).notNull(),
@@ -94,8 +85,12 @@ export const portalSessions = mysqlTable(
      *
      * `revoked_at` is second so the predicate is covered end to end: revocation
      * filters on it, and the reader checks it on every session lookup.
+     *
+     * `external_id` is third so listing a portal's end users can walk the index
+     * in `external_id` order from the cursor and stop at the page limit, instead
+     * of sorting every unrevoked row the portal has ever had.
      */
-    index("idx_portal_revoked").on(table.portalId, table.revokedAt),
+    index("idx_portal_revoked").on(table.portalId, table.revokedAt, table.externalId),
     index("idx_external_id").on(table.externalId),
     index("idx_exchange_code_expires").on(table.exchangeCodeExpiresAt),
     index("idx_access_token_expires").on(table.accessTokenExpiresAt),

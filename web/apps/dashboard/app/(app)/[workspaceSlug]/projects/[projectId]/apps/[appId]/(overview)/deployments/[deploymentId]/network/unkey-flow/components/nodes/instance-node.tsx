@@ -58,7 +58,7 @@ export function InstanceNode({ node, flagCode, deploymentId }: InstanceNodeProps
       <CardHeader
         type="instance"
         icon={
-          <div className="border rounded-[10px] size-9 flex items-center justify-center border-grayA-5 bg-grayA-2">
+          <div className="border rounded-xl size-9 flex items-center justify-center bg-grayA-2">
             <IconLayers3Outline18 className="size-4 text-gray-11" />
           </div>
         }

@@ -86,7 +86,7 @@ func (h *Handler) closeAllowed(
 ) (billingperiod.Period, time.Time, error) {
 	p, err := billingperiod.Parse(period)
 	if err != nil {
-		return billingperiod.Period{}, time.Time{}, restate.TerminalError(fmt.Errorf("invalid billing period %q: %w", period, err))
+		return billingperiod.Period{}, time.Time{}, restate.ToTerminalError(fmt.Errorf("invalid billing period %q: %w", period, err))
 	}
 
 	nowTime, err := restateutil.Now(ctx)
@@ -98,7 +98,7 @@ func (h *Handler) closeAllowed(
 		stripePeriodEnd = req.GetPeriodEnd()
 	}
 	if !p.CloseAllowed(nowTime, stripePeriodEnd) {
-		return billingperiod.Period{}, time.Time{}, restate.TerminalError(
+		return billingperiod.Period{}, time.Time{}, restate.ToTerminalError(
 			fmt.Errorf("billing period %s has not ended yet (ends %s)", period, p.End().Format(time.RFC3339)),
 		)
 	}
@@ -313,7 +313,7 @@ func (h *Handler) closeSummary(
 	)
 
 	if push.pushesFailed > 0 {
-		return nil, restate.TerminalError(
+		return nil, restate.ToTerminalError(
 			fmt.Errorf("deploy billing close for %s deferred %d workspace(s) after %d failed push(es)", period, finalize.deferred, push.pushesFailed),
 		)
 	}

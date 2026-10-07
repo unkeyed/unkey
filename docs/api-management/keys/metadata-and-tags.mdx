@@ -1,0 +1,68 @@
+---
+title: Metadata and tags
+description: "Attach data to a key and to each verification of it."
+sources:
+  - svc/api/openapi/spec/paths/v2/keys/createKey/V2KeysCreateKeyRequestBody.yaml
+  - svc/api/openapi/spec/paths/v2/keys/updateKey/V2KeysUpdateKeyRequestBody.yaml
+  - svc/api/openapi/spec/paths/v2/keys/verifyKey/V2KeysVerifyKeyRequestBody.yaml
+  - svc/api/openapi/spec/common/Identity.yaml
+  - svc/api/routes/v2_keys_create_key/handler.go
+  - svc/api/routes/v2_keys_update_key/handler.go
+  - svc/api/routes/v2_keys_verify_key/handler.go
+  - internal/services/keys/verifier.go
+  - pkg/clickhouse/schema/001_key_verifications_raw_v2.sql
+  - web/internal/db/src/schema/keys.ts
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/apis/[apiId]/_components/create-key/create-key.schema.ts
+---
+
+Metadata is data you store on a key, like a plan tier. It comes back on every verification, so your backend doesn't need a database lookup. Tags are labels you send with each verification, like the endpoint called. They go only to analytics, so you can break usage down later.
+
+## Metadata
+
+<ParamField body="meta" type="object | null">
+  A JSON object with at most 100 top-level properties. Nesting is allowed. Set it on `keys.createKey` or replace it on `keys.updateKey`, where leaving it out keeps the current value and `null` removes it. Every `keys.verifyKey` response returns it as `data.meta`.
+</ParamField>
+
+```bash
+curl -X POST https://api.unkey.com/v2/keys.createKey \
+  -H "Authorization: Bearer $UNKEY_ROOT_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "apiId": "api_...",
+    "meta": { "plan": "pro", "features": ["exports", "webhooks"], "billingEmail": "ops@example.com" }
+  }'
+```
+
+Keep metadata to what your request handler needs right away, like a plan tier, feature flags, or a tenant ID. Anything large slows every verification, and any service that calls `keys.verifyKey` can see it, so don't store secrets. To change one property, send the whole object again.
+
+Metadata on an identity comes back separately as `data.identity.meta`. Put facts shared by all of a user's keys there, and key-specific facts on the key.
+
+<Visibility for="agents">
+  The dashboard's **Create key** dialog also has an <Tooltip tip="An optional free-text label stored on a key in the dashboard, such as live or test. Unkey attaches no behavior to it, and it is unrelated to Compute environments.">environment</Tooltip> field that sets a label on the key. That label isn't part of `keys.createKey`, `keys.updateKey`, or the verification response. Store such labels in `meta` when your backend must read them.
+</Visibility>
+
+## Tags
+
+<ParamField body="tags" type="string[]">
+  On `keys.verifyKey`. Up to 20 strings of 1 to 512 characters each. They're recorded with the verification and don't change the result.
+</ParamField>
+
+```bash
+curl -X POST https://api.unkey.com/v2/keys.verifyKey \
+  -H "Authorization: Bearer $UNKEY_ROOT_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "key": "sk_live_...",
+    "tags": ["endpoint=/documents", "method=GET", "region=eu-west-1"]
+  }'
+```
+
+Tags land in the `tags` column of the verifications table in analytics, so you can break usage down by endpoint, client version, or anything else. A `key=value` format makes them easy to filter. Don't put anything sensitive in a tag, because tags show up in analytics and the dashboard's verification logs. The [key verifications table](/api-management/analytics/tables/key-verifications) shows how to query them.
+
+## Which one to use
+
+| Need | Use |
+| --- | --- |
+| Know the caller's plan or flags while handling the request | `meta` on the key, or `meta` on the identity if it is shared by all of a user's keys |
+| Break usage reports down by endpoint, version, or region | `tags` on each verification |
+| Tell live keys from test keys in your code | `meta`, since the dashboard environment label is not returned by verification |

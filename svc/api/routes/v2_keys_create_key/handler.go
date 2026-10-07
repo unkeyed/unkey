@@ -98,11 +98,25 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
+	if api.DeletedAtM.Valid {
+		return fault.New("api not found",
+			fault.Code(codes.Data.Api.NotFound.URN()),
+			fault.Internal("api is deleted"), fault.Public("The specified API was not found."),
+		)
+	}
+
 	keySpace, keySpaceErr := db.Query.FindKeySpaceByID(ctx, h.DB.RO(), api.KeyAuthID.String)
 	if keySpaceErr != nil && !db.IsNotFound(keySpaceErr) {
 		return fault.Wrap(keySpaceErr,
 			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 			fault.Internal("database error"), fault.Public("Failed to retrieve API information."),
+		)
+	}
+
+	if keySpaceErr == nil && keySpace.DeletedAtM.Valid {
+		return fault.New("keyspace not found",
+			fault.Code(codes.Data.Api.NotFound.URN()),
+			fault.Internal("keyspace is deleted"), fault.Public("The specified API was not found."),
 		)
 	}
 
@@ -291,36 +305,37 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			if req.ExternalId != nil {
 				externalID := *req.ExternalId
 
-				// Upsert identity - inserts if not exists, no-op if exists
-				err = db.Query.UpsertIdentity(ctx, tx, db.UpsertIdentityParams{
-					ID:          uid.New(uid.IdentityPrefix),
-					ExternalID:  externalID,
-					WorkspaceID: principal.AuthorizedWorkspaceID,
-					ProjectID:   projectID,
-					Environment: "default",
-					CreatedAt:   now,
-					Meta:        []byte("{}"),
-				})
-				if err != nil {
-					return fault.Wrap(err,
-						fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-						fault.Internal("failed to upsert identity"),
-						fault.Public("Failed to create identity."),
-					)
-				}
-
-				// Fetch the identity ID (either just created or already existed)
 				identity, err := db.Query.FindIdentityByExternalID(ctx, tx, db.FindIdentityByExternalIDParams{
 					WorkspaceID: principal.AuthorizedWorkspaceID,
 					ExternalID:  externalID,
 					Deleted:     false,
 				})
-				if err != nil {
+				if err != nil && !db.IsNotFound(err) {
 					return fault.Wrap(err,
 						fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-						fault.Internal("failed to find identity after upsert"),
+						fault.Internal("failed to find identity"),
 						fault.Public("Failed to find identity."),
 					)
+				}
+				if db.IsNotFound(err) {
+					identity.ID = uid.New(uid.IdentityPrefix)
+					identity.ProjectID = projectID
+					err = db.Query.InsertIdentity(ctx, tx, db.InsertIdentityParams{
+						ID:          identity.ID,
+						ExternalID:  externalID,
+						WorkspaceID: principal.AuthorizedWorkspaceID,
+						ProjectID:   projectID,
+						Environment: "default",
+						CreatedAt:   now,
+						Meta:        []byte("{}"),
+					})
+					if err != nil {
+						return fault.Wrap(err,
+							fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+							fault.Internal("failed to insert identity"),
+							fault.Public("Failed to create identity."),
+						)
+					}
 				}
 				if identity.ProjectID != projectID {
 					return fault.New("identity not found",

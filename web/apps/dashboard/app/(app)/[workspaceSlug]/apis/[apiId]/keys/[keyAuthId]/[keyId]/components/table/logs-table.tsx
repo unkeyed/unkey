@@ -1,15 +1,26 @@
 "use client";
 import {
-  EmptyKeyDetailsLogs,
+  buildGatewayRequestDetailsQueryParams,
+  buildRequestDetailsQueryParams,
   createKeyDetailsLogsColumns,
   getRowClassName,
   useKeyDetailsLogsQuery,
 } from "@/components/key-details-logs-table";
 import { trpc } from "@/lib/trpc/client";
-import { useQueryTime } from "@/providers/query-time-provider";
 import type { RowSelectionState } from "@tanstack/react-table";
 import type { KeyDetailsLog } from "@unkey/clickhouse/src/verifications";
-import { DataTable, PaginationFooter } from "@unkey/ui";
+import { IconArrowsOppositeDirectionYOutline18, IconBookBookmarkOutline18 } from "@unkey/icons";
+import {
+  Button,
+  DataTable,
+  EmptyState,
+  EmptyStateActions,
+  EmptyStateDescription,
+  EmptyStateHeader,
+  EmptyStateIcon,
+  EmptyStateTitle,
+  PaginationFooter,
+} from "@unkey/ui";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useKeyDetailsLogsContext } from "../../context/logs";
 
@@ -40,7 +51,6 @@ export const KeyDetailsLogsTable = ({ keyspaceId, keyId, selectedLog, onLogSelec
   });
 
   const [hoveredLogId, setHoveredLogId] = useState<string | null>(null);
-  const { queryTime: timestamp } = useQueryTime();
   const utils = trpc.useUtils();
   const hoverTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -65,31 +75,21 @@ export const KeyDetailsLogsTable = ({ keyspaceId, keyId, selectedLog, onLogSelec
           clearTimeout(hoverTimerRef.current);
         }
         hoverTimerRef.current = setTimeout(() => {
-          utils.logs.queryLogs.prefetch(
-            {
-              limit: 1,
-              startTime: 0,
-              endTime: timestamp,
-              host: { filters: [] },
-              method: { filters: [] },
-              path: { filters: [] },
-              status: { filters: [] },
-              requestId: {
-                filters: [
-                  {
-                    operator: "is",
-                    value: log.request_id,
-                  },
-                ],
-              },
-              since: "",
-            },
-            { staleTime: Number.POSITIVE_INFINITY },
-          );
+          const target = { requestId: log.request_id, time: log.time };
+          if (log.source === "gateway") {
+            utils.deploy.requestLogs.details.prefetch(
+              buildGatewayRequestDetailsQueryParams(target),
+              { staleTime: Number.POSITIVE_INFINITY },
+            );
+            return;
+          }
+          utils.logs.queryLogs.prefetch(buildRequestDetailsQueryParams(target), {
+            staleTime: Number.POSITIVE_INFINITY,
+          });
         }, 150);
       }
     },
-    [hoveredLogId, utils.logs.queryLogs, timestamp],
+    [hoveredLogId, utils.logs.queryLogs, utils.deploy.requestLogs.details],
   );
 
   const handleRowMouseLeave = useCallback(() => {
@@ -123,7 +123,32 @@ export const KeyDetailsLogsTable = ({ keyspaceId, keyId, selectedLog, onLogSelec
         enableRowSelection={true}
         rowSelection={rowSelection}
         config={{ rowHeight: 26, layout: "classic", rowBorders: false }}
-        emptyState={<EmptyKeyDetailsLogs />}
+        emptyState={
+          <EmptyState frame="none">
+            <EmptyStateIcon>
+              <IconArrowsOppositeDirectionYOutline18 />
+            </EmptyStateIcon>
+            <EmptyStateHeader>
+              <EmptyStateTitle>Key Verification Logs</EmptyStateTitle>
+              <EmptyStateDescription>
+                No verification logs found for this key. When this API key is used, details about
+                each verification attempt will appear here.
+              </EmptyStateDescription>
+            </EmptyStateHeader>
+            <EmptyStateActions>
+              <a
+                href="https://www.unkey.com/docs/introduction"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <Button variant="outline" size="md">
+                  <IconBookBookmarkOutline18 />
+                  Documentation
+                </Button>
+              </a>
+            </EmptyStateActions>
+          </EmptyState>
+        }
       />
       <PaginationFooter
         page={page}

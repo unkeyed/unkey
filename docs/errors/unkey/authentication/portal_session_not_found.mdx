@@ -1,0 +1,45 @@
+---
+title: "portal_session_not_found"
+sidebarTitle: "portal_session_not_found"
+description: "The portal session token or exchange code is unknown, expired, or already used."
+sources:
+  - pkg/codes/unkey_portal.go
+  - svc/api/internal/middleware/errors.go
+  - internal/services/portal/get_session.go
+  - svc/api/routes/v2_portal_exchange_code/handler.go
+---
+
+<Danger>`err:unkey:authentication:portal_session_not_found`</Danger>
+
+The portal session token or exchange code you sent doesn't match an active session. You get HTTP 401.
+
+```json Example response
+{
+  "meta": {
+    "requestId": "req_2c9a0jf23l4k567"
+  },
+  "error": {
+    "detail": "The portal session is invalid or has expired.",
+    "status": 401,
+    "title": "Unauthorized",
+    "type": "/errors/unkey/authentication/portal_session_not_found"
+  }
+}
+```
+
+## Likely causes
+
+- The session in the `portal_session` cookie expired or was revoked. The message is the same for an unknown token, so it doesn't say which.
+- On `portal.exchangeCode`, the code was already used, has expired, or was never issued. The message is `Session is invalid, expired, or has already been used.` A code works once, so a second exchange fails even if the first succeeded.
+
+## How to fix
+
+1. Start a new session from your backend with `portal.createSession` and complete the exchange promptly.
+2. If your frontend retries `portal.exchangeCode` on a slow network, keep the access token from the first success instead of exchanging again.
+3. If an active session starts returning this error, send the user back through your login flow.
+
+## Related errors
+
+- [`err:unkey:authentication:portal_token_missing`](/errors/unkey/authentication/portal_token_missing): no token was sent at all.
+- [`err:unkey:data:portal_not_found`](/errors/unkey/data/portal_not_found): the portal itself doesn't exist or isn't visible to your root key.
+- [`err:unkey:authorization:forbidden`](/errors/unkey/authorization/forbidden): the portal is disabled or can't serve sessions right now.

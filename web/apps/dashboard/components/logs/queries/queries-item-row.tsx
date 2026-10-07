@@ -20,7 +20,7 @@ export const QueriesItemRow = ({ list, field, operator, icon }: QueriesItemRowPr
   return (
     <>
       <div className="flex flex-row items-center justify-start w-full gap-2">
-        <div className="flex-col font-mono text-xs font-normal text-gray-9 align-start">
+        <div className="flex-col font-mono text-xs font-normal text-gray-9">
           {field.charAt(0).toUpperCase() + field.slice(1)}
         </div>
         <div className="flex w-[20px] justify-center shrink-0 grow-0">{icon}</div>

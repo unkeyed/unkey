@@ -1,0 +1,47 @@
+---
+title: "portal_not_found"
+sidebarTitle: "portal_not_found"
+description: "No portal in your workspace matches the id, slug, app, or keyspace."
+sources:
+  - pkg/codes/unkey_data.go
+  - svc/api/internal/middleware/errors.go
+  - svc/api/routes/v2_portal_get_portal/handler.go
+  - svc/api/routes/v2_portal_create_session/handler.go
+  - svc/api/internal/portal/portal.go
+---
+
+<Danger>`err:unkey:data:portal_not_found`</Danger>
+
+No portal in your workspace matches the ID, slug, app, or keyspace you sent. You get HTTP 404.
+
+```json Example response
+{
+  "meta": {
+    "requestId": "req_2c9a0jf23l4k567"
+  },
+  "error": {
+    "detail": "Portal not found.",
+    "status": 404,
+    "title": "Not Found",
+    "type": "/errors/unkey/data/portal_not_found"
+  }
+}
+```
+
+## Likely causes
+
+- The slug or ID is wrong.
+- You addressed the portal by an app or keyspace from another workspace.
+- Your root key doesn't have permission to read the portal. On `portal.createSession`, it needs `create_portal_session`. The message is the same either way.
+
+## How to fix
+
+1. Check the slug or ID in the dashboard's portal settings.
+2. If you address the portal by app or keyspace, use one from this workspace.
+3. For `portal.createSession`, make sure the root key has the `create_portal_session` permission on the portal.
+
+## Related errors
+
+- [`err:unkey:data:portal_already_exists`](/errors/unkey/data/portal_already_exists): a portal collides on create or update.
+- [`err:unkey:authentication:portal_session_not_found`](/errors/unkey/authentication/portal_session_not_found): a session token, not the portal, is invalid.
+- [`err:unkey:authorization:forbidden`](/errors/unkey/authorization/forbidden): the portal exists but is disabled or can't serve sessions.

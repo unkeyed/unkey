@@ -25,7 +25,7 @@ type InsertLogdrainParams struct {
 	UpdatedAt   sql.NullInt64   `db:"updated_at"`
 }
 
-// The caller holds the workspace limits lock and has checked current capacity.
+// The caller has checked capacity; concurrent creates may exceed the allowance.
 // Initialize the cursor at creation time so historical records are not exported.
 //
 //	INSERT INTO logdrains (id, workspace_id, name, stream, config, committed_offset_inserted_at, lease_id, fencing_token, created_at, updated_at)

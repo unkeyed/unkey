@@ -1,0 +1,48 @@
+---
+title: "unkey/authentication/key_not_found"
+sidebarTitle: "key_not_found"
+description: "The bearer token is not a root key the API recognizes."
+sources:
+  - pkg/codes/unkey_auth.go
+  - svc/api/internal/middleware/errors.go
+  - internal/services/keys/get.go
+  - internal/services/keys/status.go
+---
+
+<Danger>`err:unkey:authentication:key_not_found`</Danger>
+
+The bearer token you sent isn't a valid root key. You get HTTP 401.
+
+```json Example response
+{
+  "meta": {
+    "requestId": "req_2c9a0jf23l4k567"
+  },
+  "error": {
+    "detail": "The provided root key is invalid. We could not find the requested key.",
+    "status": 401,
+    "title": "Unauthorized",
+    "type": "/errors/unkey/authentication/key_not_found"
+  }
+}
+```
+
+## Likely causes
+
+- The root key was deleted or rotated.
+- The token has a typo or was copied incompletely.
+- You sent one of your own API keys instead of a root key. Then `detail` is just `The provided root key is invalid.`, without the second sentence.
+
+## How to fix
+
+1. Check the token against the root key you created in the dashboard. Root keys start with `unkey_`.
+2. If you rotated or deleted the key, create a new one and update every service that uses it.
+3. Don't send your own API keys in the header. They go in the body of `keys.verifyKey`.
+
+This is about the key you authenticate with. A key you manage that doesn't exist is [`err:unkey:data:key_not_found`](/errors/unkey/data/key_not_found). A `keys.verifyKey` result of `valid: false` with code `NOT_FOUND` isn't an error: the call worked and is telling you about one of your keys.
+
+## Related errors
+
+- [`err:unkey:authorization:key_disabled`](/errors/unkey/authorization/key_disabled): the root key exists but is disabled.
+- [`err:unkey:authorization:workspace_disabled`](/errors/unkey/authorization/workspace_disabled): the key's workspace is disabled.
+- [`err:unkey:data:key_not_found`](/errors/unkey/data/key_not_found): a key referenced in a request body or path doesn't exist.

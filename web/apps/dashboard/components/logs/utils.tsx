@@ -145,7 +145,7 @@ export const formatTooltipInterval = (
   if (!data?.length) {
     return (
       <div className="px-4">
-        <span className="font-mono text-accent-9 text-xs whitespace-nowrap">
+        <span className="font-mono text-gray-9 text-xs whitespace-nowrap">
           {formatTooltipTimestamp(payloadTimestamp, granularity, data)}
         </span>
       </div>
@@ -156,7 +156,7 @@ export const formatTooltipInterval = (
   if (data.length === 1) {
     return (
       <div className="px-4">
-        <span className="font-mono text-accent-9 text-xs whitespace-nowrap">
+        <span className="font-mono text-gray-9 text-xs whitespace-nowrap">
           {formatTooltipTimestamp(payloadTimestamp, granularity, data)}
         </span>
       </div>
@@ -178,7 +178,7 @@ export const formatTooltipInterval = (
   if (currentIndex === -1) {
     return (
       <div className="px-4">
-        <span className="font-mono text-accent-9 text-xs whitespace-nowrap">
+        <span className="font-mono text-gray-9 text-xs whitespace-nowrap">
           {formatTooltipTimestamp(currentTimestampNumeric, granularity, data)}
         </span>
       </div>
@@ -205,7 +205,7 @@ export const formatTooltipInterval = (
       // Fallback to single timestamp if next point is invalid
       return (
         <div className="px-4">
-          <span className="font-mono text-accent-9 text-xs whitespace-nowrap">
+          <span className="font-mono text-gray-9 text-xs whitespace-nowrap">
             {formatTooltipTimestamp(currentTimestampNumeric, granularity, data)}
           </span>
         </div>
@@ -230,7 +230,7 @@ export const formatTooltipInterval = (
   // Return formatted interval with timezone info
   return (
     <div className="px-4">
-      <span className="font-mono text-accent-9 text-xs whitespace-nowrap">
+      <span className="font-mono text-gray-9 text-xs whitespace-nowrap">
         {formattedCurrentTimestamp} - {formattedNextTimestamp} ({timezone})
       </span>
     </div>
