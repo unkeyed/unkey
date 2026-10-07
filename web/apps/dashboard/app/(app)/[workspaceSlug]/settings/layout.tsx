@@ -50,7 +50,7 @@ export default function SettingsLayout({ children }: { children: ReactNode }) {
             <SecondaryNavItem
               key={item.segment}
               active={active === item.segment}
-              render={<Link href={item.getHref({ workspaceSlug: workspace.slug })} />}
+              render={<Link href={item.getHref({ workspaceSlug: workspace.slug })} prefetch />}
               onMouseEnter={item.segment === "usage" ? prefetchUsage : undefined}
               onFocus={item.segment === "usage" ? prefetchUsage : undefined}
             >
