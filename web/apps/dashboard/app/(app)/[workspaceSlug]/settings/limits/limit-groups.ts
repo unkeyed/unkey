@@ -1,12 +1,6 @@
 import type {
-  LimitMeter,
-  V2WorkspaceGetLimitsApi,
-  V2WorkspaceGetLimitsCompute,
-  V2WorkspaceGetLimitsCustomDomains,
-  V2WorkspaceGetLimitsLog,
-  V2WorkspaceGetLimitsReservedMeter,
+  V2WorkspaceGetLimitsLimit,
   V2WorkspaceGetLimitsResponseData,
-  V2WorkspaceGetLimitsVcpuMeter,
 } from "@unkey/api/models/components";
 
 export type LimitStatus = "ok" | "at-limit" | "over";
@@ -74,17 +68,20 @@ function statusOf(usage: RowUsage): LimitStatus {
 
 function metered(
   text: RowText,
-  meter: LimitMeter | V2WorkspaceGetLimitsReservedMeter | V2WorkspaceGetLimitsVcpuMeter | undefined,
+  entry: V2WorkspaceGetLimitsLimit | undefined,
   format: (value: number) => string,
 ): LimitRow {
-  if (meter === undefined) {
+  if (entry === undefined) {
     return { ...text, value: { state: "loading", metered: true }, status: "ok" };
   }
-  const value = "reserved" in meter ? meter.reserved : meter.used;
-  const usage = { value, max: meter.limit, label: format(value) };
+  if (entry.limit === null) {
+    return ceiling(text, "Unlimited");
+  }
+  const value = entry.current ?? 0;
+  const usage = { value, max: entry.limit, label: format(value) };
   return {
     ...text,
-    value: { state: "ready", limit: format(meter.limit), usage },
+    value: { state: "ready", limit: format(entry.limit), usage },
     status: statusOf(usage),
   };
 }
@@ -97,7 +94,17 @@ function ceiling(text: RowText, limit: string | undefined): LimitRow {
   };
 }
 
-function apiGroup(api: V2WorkspaceGetLimitsApi | undefined): LimitGroup {
+function capped(
+  entry: V2WorkspaceGetLimitsLimit | undefined,
+  format: (value: number) => string,
+): string | undefined {
+  if (entry === undefined) {
+    return undefined;
+  }
+  return entry.limit === null ? "Unlimited" : format(entry.limit);
+}
+
+function apiGroup(limits: V2WorkspaceGetLimitsResponseData | undefined): LimitGroup {
   return {
     key: "api",
     title: "API management",
@@ -108,21 +115,18 @@ function apiGroup(api: V2WorkspaceGetLimitsApi | undefined): LimitGroup {
           name: "Monthly API operations",
           description: "Billable key verifications and rate limit operations each month.",
         },
-        api?.billableOperations,
+        limits?.apiBillableOperationsCountMaxPerMonth,
         count,
       ),
       ceiling(
         { name: "API requests per minute" },
-        api &&
-          (api.requestsPerMinute === undefined
-            ? "Unlimited"
-            : `${count(api.requestsPerMinute)} / min`),
+        capped(limits?.apiRequestsCountMaxPerMinute, (value) => `${count(value)} / min`),
       ),
     ],
   };
 }
 
-function logGroup(log: V2WorkspaceGetLimitsLog | undefined): LimitGroup {
+function logGroup(limits: V2WorkspaceGetLimitsResponseData | undefined): LimitGroup {
   return {
     key: "logs",
     title: "Logs",
@@ -133,15 +137,15 @@ function logGroup(log: V2WorkspaceGetLimitsLog | undefined): LimitGroup {
           name: "Log retention",
           description: "How long request and runtime logs remain available.",
         },
-        log && days(log.retentionDays),
+        capped(limits?.logsRetentionDaysMax, days),
       ),
-      ceiling({ name: "Audit log retention" }, log && days(log.auditRetentionDays)),
-      metered({ name: "Log drains" }, log?.drains, count),
+      ceiling({ name: "Audit log retention" }, capped(limits?.logsAuditRetentionDaysMax, days)),
+      metered({ name: "Log drains" }, limits?.logdrainsMax, count),
     ],
   };
 }
 
-function customDomainsRow(customDomains: V2WorkspaceGetLimitsCustomDomains | undefined): LimitRow {
+function customDomainsRow(customDomains: V2WorkspaceGetLimitsLimit | undefined): LimitRow {
   const text = {
     name: "Custom domains",
     description: "Domains you can attach across all apps in this workspace.",
@@ -153,21 +157,20 @@ function customDomainsRow(customDomains: V2WorkspaceGetLimitsCustomDomains | und
     return metered(text, undefined, count);
   }
 
-  const { limit, used } = customDomains;
-  if (limit === undefined) {
+  if (customDomains.limit === null) {
     return ceiling(text, "Unlimited");
   }
 
   // A meter of 0 against 0 tells the reader nothing. The plan simply does not
   // include the feature, which is how the docs say it too.
-  if (limit === 0) {
+  if (customDomains.limit === 0) {
     return ceiling(text, "Not included");
   }
 
-  return metered(text, { limit, used }, count);
+  return metered(text, customDomains, count);
 }
 
-function computeGroup(compute: V2WorkspaceGetLimitsCompute | undefined): LimitGroup {
+function computeGroup(limits: V2WorkspaceGetLimitsResponseData | undefined): LimitGroup {
   return {
     key: "compute",
     title: "Compute",
@@ -175,34 +178,34 @@ function computeGroup(compute: V2WorkspaceGetLimitsCompute | undefined): LimitGr
     rows: [
       metered(
         { name: "Workspace CPU", description: "Total CPU across all your apps." },
-        compute?.workspace.vCpus,
+        limits?.cpuCoresMax,
         vCpus,
       ),
-      ceiling({ name: "CPU per instance" }, compute && vCpus(compute.perInstance.vCpus)),
+      ceiling({ name: "CPU per instance" }, capped(limits?.cpuCoresMaxPerInstance, vCpus)),
       metered(
         { name: "Workspace memory", description: "Total memory across all your apps." },
-        compute?.workspace.memoryMib,
+        limits?.memoryMibMax,
         mib,
       ),
-      ceiling({ name: "Memory per instance" }, compute && mib(compute.perInstance.memoryMib)),
+      ceiling({ name: "Memory per instance" }, capped(limits?.memoryMibMaxPerInstance, mib)),
       metered(
         { name: "Workspace ephemeral disk", description: "Total disk across all your apps." },
-        compute?.workspace.storageMib,
+        limits?.storageMibMax,
         mib,
       ),
       ceiling(
         { name: "Ephemeral disk per instance" },
-        compute && mib(compute.perInstance.storageMib),
+        capped(limits?.storageMibMaxPerInstance, mib),
       ),
-      ceiling({ name: "Concurrent builds" }, compute && count(compute.concurrentBuilds)),
+      ceiling({ name: "Concurrent builds" }, capped(limits?.buildsConcurrentMax, count)),
       ceiling(
         {
           name: "Replicas per region",
           description: "Instances autoscaling can run for one app in a region.",
         },
-        compute && count(compute.replicasPerRegion),
+        capped(limits?.autoscalingReplicasMax, count),
       ),
-      customDomainsRow(compute?.customDomains),
+      customDomainsRow(limits?.customDomainsMax),
     ],
   };
 }
@@ -210,16 +213,17 @@ function computeGroup(compute: V2WorkspaceGetLimitsCompute | undefined): LimitGr
 /**
  * Builds the page from loaded limits, or the same page in its loading state
  * when limits is undefined. hasComputePlan decides the Compute group only while
- * loading, because loaded limits carry compute exactly when the plan has it
+ * loading, because loaded limits carry the Compute limits exactly when the plan
+ * has it
  */
 export function buildLimitGroups(
   limits: V2WorkspaceGetLimitsResponseData | undefined,
   hasComputePlan: boolean,
 ): LimitGroup[] {
-  const groups = [apiGroup(limits?.api), logGroup(limits?.log)];
-  const showCompute = limits === undefined ? hasComputePlan : limits.compute !== undefined;
+  const groups = [apiGroup(limits), logGroup(limits)];
+  const showCompute = limits === undefined ? hasComputePlan : limits.cpuCoresMax !== undefined;
   if (showCompute) {
-    groups.push(computeGroup(limits?.compute));
+    groups.push(computeGroup(limits));
   }
   return groups;
 }

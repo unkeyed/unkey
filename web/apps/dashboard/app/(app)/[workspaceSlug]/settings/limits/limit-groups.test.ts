@@ -1,48 +1,41 @@
 import { CUSTOM_DOMAINS_UNLIMITED, type LimitsPlan, limitsByPlan } from "@/lib/limits";
-import type {
-  V2WorkspaceGetLimitsCompute,
-  V2WorkspaceGetLimitsResponseData,
-} from "@unkey/api/models/components";
+import type { V2WorkspaceGetLimitsResponseData } from "@unkey/api/models/components";
 import { describe, expect, it } from "vitest";
 import { type LimitGroup, breachedKeys, buildLimitGroups } from "./limit-groups";
 
 const ROW = "Custom domains";
 
-function computeFor(plan: LimitsPlan, attachedDomains: number): V2WorkspaceGetLimitsCompute {
+function withoutComputeFor(plan: LimitsPlan): V2WorkspaceGetLimitsResponseData {
   const limits = limitsByPlan[plan];
   return {
-    workspace: {
-      vCpus: { limit: limits.cpuCoresMax, reserved: 0 },
-      memoryMib: { limit: limits.memoryMibMax, reserved: 0 },
-      storageMib: { limit: limits.storageMibMax, reserved: 0 },
+    apiBillableOperationsCountMaxPerMonth: {
+      limit: limits.apiBillableOperationsCountMaxPerMonth,
+      current: 0,
     },
-    perInstance: {
-      vCpus: limits.cpuCoresMaxPerInstance,
-      memoryMib: limits.memoryMibMaxPerInstance,
-      storageMib: limits.storageMibMaxPerInstance,
-    },
-    concurrentBuilds: limits.buildsConcurrentMax,
-    replicasPerRegion: limits.autoscalingReplicasMax,
-    // The API omits the limit for unlimited plans
-    customDomains:
-      limits.customDomainsMax >= CUSTOM_DOMAINS_UNLIMITED
-        ? { used: attachedDomains }
-        : { limit: limits.customDomainsMax, used: attachedDomains },
+    apiRequestsCountMaxPerMinute: { limit: null },
+    logsRetentionDaysMax: { limit: limits.logsRetentionDaysMax },
+    logsAuditRetentionDaysMax: { limit: limits.logsAuditRetentionDaysMax },
+    logdrainsMax: { limit: limits.logdrainsMax, current: 0 },
   };
 }
 
 function responseFor(plan: LimitsPlan, attachedDomains: number): V2WorkspaceGetLimitsResponseData {
   const limits = limitsByPlan[plan];
   return {
-    api: {
-      billableOperations: { limit: limits.apiBillableOperationsCountMaxPerMonth, used: 0 },
+    ...withoutComputeFor(plan),
+    cpuCoresMax: { limit: limits.cpuCoresMax, current: 0 },
+    cpuCoresMaxPerInstance: { limit: limits.cpuCoresMaxPerInstance },
+    memoryMibMax: { limit: limits.memoryMibMax, current: 0 },
+    memoryMibMaxPerInstance: { limit: limits.memoryMibMaxPerInstance },
+    storageMibMax: { limit: limits.storageMibMax, current: 0 },
+    storageMibMaxPerInstance: { limit: limits.storageMibMaxPerInstance },
+    buildsConcurrentMax: { limit: limits.buildsConcurrentMax },
+    autoscalingReplicasMax: { limit: limits.autoscalingReplicasMax },
+    // The API sends a null limit for unlimited plans
+    customDomainsMax: {
+      limit: limits.customDomainsMax >= CUSTOM_DOMAINS_UNLIMITED ? null : limits.customDomainsMax,
+      current: attachedDomains,
     },
-    log: {
-      retentionDays: limits.logsRetentionDaysMax,
-      auditRetentionDays: limits.logsAuditRetentionDaysMax,
-      drains: { limit: limits.logdrainsMax, used: 0 },
-    },
-    compute: computeFor(plan, attachedDomains),
   };
 }
 
@@ -55,10 +48,9 @@ function domainsRow(groups: LimitGroup[]) {
 }
 
 describe("API requests per minute row", () => {
-  function requestsRow(requestsPerMinute: number | undefined) {
-    const response = responseFor("free", 0);
+  function requestsRow(requestsPerMinute: number | null) {
     const groups = buildLimitGroups(
-      { ...response, api: { ...response.api, requestsPerMinute } },
+      { ...responseFor("free", 0), apiRequestsCountMaxPerMinute: { limit: requestsPerMinute } },
       true,
     );
     return groups
@@ -67,7 +59,7 @@ describe("API requests per minute row", () => {
   }
 
   it("reads 'Unlimited' when the workspace has no per-minute limit", () => {
-    expect(requestsRow(undefined)?.value).toEqual({ state: "ready", limit: "Unlimited" });
+    expect(requestsRow(null)?.value).toEqual({ state: "ready", limit: "Unlimited" });
   });
 
   it("shows the per-minute limit", () => {
@@ -77,9 +69,8 @@ describe("API requests per minute row", () => {
 
 describe("log drains row", () => {
   it("meters the current count against the workspace allowance", () => {
-    const response = responseFor("free", 0);
     const groups = buildLimitGroups(
-      { ...response, log: { ...response.log, drains: { limit: 3, used: 1 } } },
+      { ...responseFor("free", 0), logdrainsMax: { limit: 3, current: 1 } },
       true,
     );
     expect(groups.find((group) => group.key === "logs")?.rows).toContainEqual({
@@ -93,13 +84,7 @@ describe("log drains row", () => {
 describe("workspace CPU row", () => {
   it("shows fractional reserved vCPUs against the workspace limit", () => {
     const groups = buildLimitGroups(
-      {
-        ...responseFor("starter", 0),
-        compute: {
-          ...computeFor("starter", 0),
-          workspace: { ...computeFor("starter", 0).workspace, vCpus: { limit: 30, reserved: 2.5 } },
-        },
-      },
+      { ...responseFor("starter", 0), cpuCoresMax: { limit: 30, current: 2.5 } },
       true,
     );
     const row = groups.flatMap((group) => group.rows).find((r) => r.name === "Workspace CPU");
@@ -116,10 +101,7 @@ describe("custom domains row", () => {
     const compute = groupsFor("starter", 0).find((group) => group.key === "compute");
     expect(compute?.rows.map((row) => row.name)).toContain(ROW);
 
-    const withoutPlan = buildLimitGroups(
-      { ...responseFor("starter", 0), compute: undefined },
-      true,
-    );
+    const withoutPlan = buildLimitGroups(withoutComputeFor("starter"), true);
     expect(domainsRow(withoutPlan)).toBeUndefined();
   });
 
@@ -164,16 +146,7 @@ describe("breachedKeys", () => {
   it("reports the group key for rows that carry no breachKey", () => {
     // A storage limit of 0 with disk reserved is a compute breach, not a domain one.
     const groups = buildLimitGroups(
-      {
-        ...responseFor("starter", 0),
-        compute: {
-          ...computeFor("starter", 0),
-          workspace: {
-            ...computeFor("starter", 0).workspace,
-            storageMib: { limit: 0, reserved: 512 },
-          },
-        },
-      },
+      { ...responseFor("starter", 0), storageMibMax: { limit: 0, current: 512 } },
       true,
     );
     expect(breachedKeys(groups)).toEqual(["compute"]);
@@ -203,9 +176,7 @@ describe("loading page", () => {
   it("shows no Compute group without a compute plan", () => {
     const loading = buildLimitGroups(undefined, false);
     expect(loading.map((group) => group.key)).toEqual(["api", "logs"]);
-    expect(shape(loading)).toEqual(
-      shape(buildLimitGroups({ ...responseFor("starter", 0), compute: undefined }, false)),
-    );
+    expect(shape(loading)).toEqual(shape(buildLimitGroups(withoutComputeFor("starter"), false)));
   });
 
   it("loads every value and reports no breach", () => {
