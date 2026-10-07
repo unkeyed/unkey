@@ -53,6 +53,7 @@ func TestDeveloperRoleCoversProductPermissions(t *testing.T) {
 		{resource: "projects/*/apps/*/environments/*", actions: []string{"read", "write", "delete"}},
 		{resource: "projects/*/apps/*/environments/*/deployments/*", actions: []string{"read", "write", "delete"}},
 		{resource: "projects/*/apps/*/environments/*/deployments/*/logs", actions: []string{"read"}},
+		{resource: "projects/*/apps/*/environments/*/deployments/*/buildLogs", actions: []string{"read"}},
 		{resource: "projects/*/apps/*/environments/*/domains/*", actions: []string{"read", "write", "delete"}},
 		{resource: "projects/*/apps/*/environments/*/variables/*", actions: []string{"read", "write", "delete"}},
 		{resource: "projects/*/apps/*/environments/*/gateway/logs", actions: []string{"read"}},

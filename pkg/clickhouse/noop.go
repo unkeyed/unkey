@@ -49,6 +49,11 @@ func (n *noop) GetKeyLastUsedBatchPartitioned(ctx context.Context, req GetKeyLas
 	return nil, nil
 }
 
+// GetBuildLogs implements the Querier interface but always returns no entries
+func (n *noop) GetBuildLogs(ctx context.Context, req GetBuildLogsRequest) (BuildLogsPage, error) {
+	return BuildLogsPage{Entries: []BuildLogEntry{}, HasMore: false}, nil
+}
+
 // InsertAuditLogs implements the Querier interface but discards the input.
 func (n *noop) InsertAuditLogs(ctx context.Context, rows []schema.AuditLogV1) error {
 	return nil

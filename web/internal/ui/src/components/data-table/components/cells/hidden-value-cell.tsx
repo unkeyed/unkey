@@ -47,7 +47,7 @@ export const HiddenValueCell = ({
       onClick={handleClick}
     >
       <IconCircleLockOutline18 className="size-3 text-gray-9 shrink-0" />
-      <span>{displayValue}</span>
+      <span data-sentry-mask>{displayValue}</span>
     </div>
   );
 };
