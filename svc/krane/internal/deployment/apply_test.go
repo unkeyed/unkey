@@ -115,10 +115,6 @@ func hasLabelValue(labels map[string]string, want string) bool {
 	return false
 }
 
-// fieldAssertions maps each ApplyDeployment proto field (by proto name) to an
-// assertion that it is wired into the rendered ReplicaSet. Together with
-// fieldsRenderedElsewhere it must cover every proto field; the coverage test
-// fails otherwise, so a field cannot be added or dropped without a test.
 var fieldAssertions = map[string]func(t *testing.T, rs *appsv1.ReplicaSet){
 	"k8s_namespace": func(t *testing.T, rs *appsv1.ReplicaSet) {
 		require.Equal(t, testNamespace, rs.Namespace)
@@ -223,6 +219,13 @@ var fieldAssertions = map[string]func(t *testing.T, rs *appsv1.ReplicaSet){
 		require.True(t, ok)
 		require.Equal(t, testGitCommitMessage, v)
 	},
+	"autoscaling": func(t *testing.T, rs *appsv1.ReplicaSet) {
+		constraints := rs.Spec.Template.Spec.TopologySpreadConstraints
+		require.Len(t, constraints, 3)
+		require.Equal(t, corev1.DoNotSchedule, constraints[2].WhenUnsatisfiable)
+		require.Equal(t, int32(2), constraints[2].MaxSkew)
+		require.Equal(t, new(int32(3)), constraints[2].MinDomains)
+	},
 	"ephemeral_storage": func(t *testing.T, rs *appsv1.ReplicaSet) {
 		var found bool
 		for _, vol := range rs.Spec.Template.Spec.Volumes {
@@ -239,12 +242,6 @@ var fieldAssertions = map[string]func(t *testing.T, rs *appsv1.ReplicaSet){
 		}
 		require.True(t, mounted, "ephemeral volume must be mounted at /data")
 	},
-}
-
-// fieldsRenderedElsewhere lists proto fields that intentionally do not surface
-// in the ReplicaSet, with the reason.
-var fieldsRenderedElsewhere = map[string]string{
-	"autoscaling": "rendered into a HorizontalPodAutoscaler by ensureHPAExists, not the ReplicaSet",
 }
 
 // labelDeploymentIDKey returns the label key used for the deployment id by
@@ -274,27 +271,82 @@ func TestBuildReplicaSet_WiresProtoFields(t *testing.T) {
 	}
 }
 
-// TestApplyDeploymentFieldCoverage enumerates every field in the
-// ApplyDeployment proto and fails if any is not covered by fieldAssertions or
-// fieldsRenderedElsewhere, so a field cannot be dropped from the render path
-// without a failing test naming it.
 func TestApplyDeploymentFieldCoverage(t *testing.T) {
 	fields := (&ctrlv1.ApplyDeployment{}).ProtoReflect().Descriptor().Fields()
 
 	for i := 0; i < fields.Len(); i++ {
 		name := string(fields.Get(i).Name())
+		require.Contains(t, fieldAssertions, name, "ApplyDeployment proto field must be covered by fieldAssertions")
+	}
+}
 
-		_, asserted := fieldAssertions[name]
-		_, elsewhere := fieldsRenderedElsewhere[name]
+func TestBuildReplicaSet_TopologySpread(t *testing.T) {
+	for _, tt := range []struct {
+		name        string
+		minReplicas uint32
+		maxReplicas uint32
+		// hardMaxSkew is the maxSkew of the DoNotSchedule hostname constraint,
+		// or 0 when the deployment has no hard hostname constraint.
+		hardMaxSkew int32
+	}{
+		{"single", 1, 1, 0},
+		{"single_minimum_with_autoscaling", 1, 2, 1},
+		{"three", 3, 3, 1},
+		{"four", 2, 4, 2},
+		{"five", 2, 5, 2},
+		{"six", 2, 6, 2},
+		{"seven", 2, 7, 3},
+		{"sixteen", 2, 16, 6},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			req := fullApplyRequest(t)
+			req.Autoscaling = &ctrlv1.AutoscalingPolicy{MinReplicas: tt.minReplicas, MaxReplicas: tt.maxReplicas}
+			rs := testController().buildReplicaSet(req, false)
+			require.Nil(t, rs.Spec.Replicas)
+			constraints := rs.Spec.Template.Spec.TopologySpreadConstraints
 
-		require.Truef(t, asserted || elsewhere,
-			"ApplyDeployment proto field %q is not covered by a test. Wire it into "+
-				"buildReplicaSet and add an entry to fieldAssertions, or document it in "+
-				"fieldsRenderedElsewhere.", name)
+			deploymentLabels := map[string]string{"unkey.com/deployment.id": testDeploymentID}
+			if tt.hardMaxSkew > 0 {
+				require.Len(t, constraints, 3)
+				hard := constraints[2]
+				require.Equal(t, "kubernetes.io/hostname", hard.TopologyKey)
+				require.Equal(t, tt.hardMaxSkew, hard.MaxSkew)
+				require.Equal(t, corev1.DoNotSchedule, hard.WhenUnsatisfiable)
+				require.Equal(t, new(int32(3)), hard.MinDomains)
+				require.Equal(t, new(corev1.NodeInclusionPolicyHonor), hard.NodeTaintsPolicy)
+				require.NotNil(t, hard.LabelSelector)
+				require.Equal(t, deploymentLabels, hard.LabelSelector.MatchLabels)
+			} else {
+				require.Len(t, constraints, 2)
+			}
 
-		require.Falsef(t, asserted && elsewhere,
-			"ApplyDeployment proto field %q is in both fieldAssertions and "+
-				"fieldsRenderedElsewhere; it must be in exactly one.", name)
+			hostname := constraints[0]
+			require.Equal(t, "kubernetes.io/hostname", hostname.TopologyKey)
+			require.Equal(t, int32(1), hostname.MaxSkew)
+			require.Equal(t, corev1.ScheduleAnyway, hostname.WhenUnsatisfiable)
+			require.Nil(t, hostname.MinDomains)
+			require.Nil(t, hostname.NodeTaintsPolicy)
+			require.NotNil(t, hostname.LabelSelector)
+			require.Equal(t, deploymentLabels, hostname.LabelSelector.MatchLabels)
+
+			zone := constraints[1]
+			require.Equal(t, "topology.kubernetes.io/zone", zone.TopologyKey)
+			require.Equal(t, int32(1), zone.MaxSkew)
+			require.Equal(t, corev1.ScheduleAnyway, zone.WhenUnsatisfiable)
+			require.Nil(t, zone.MinDomains)
+			require.Nil(t, zone.NodeTaintsPolicy)
+			require.NotNil(t, zone.LabelSelector)
+			require.Equal(t, map[string]string{
+				"app.kubernetes.io/managed-by": "krane",
+				"app.kubernetes.io/component":  "deployment",
+			}, zone.LabelSelector.MatchLabels)
+
+			for _, constraint := range rs.Spec.Template.Spec.TopologySpreadConstraints {
+				for label, value := range constraint.LabelSelector.MatchLabels {
+					require.Equal(t, value, rs.Spec.Template.Labels[label])
+				}
+			}
+		})
 	}
 }
 

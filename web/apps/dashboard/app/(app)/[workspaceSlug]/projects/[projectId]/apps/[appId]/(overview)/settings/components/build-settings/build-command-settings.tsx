@@ -1,12 +1,12 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { IconHammer2Outline18 } from "@unkey/icons";
-import { FormInput } from "@unkey/ui";
+import { FormInput, firstMatchingSaveState } from "@unkey/ui";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { useEnvironmentSettings } from "../../environment-provider";
 import { useUpdateAllEnvironments } from "../../hooks/use-update-all-environments";
 import { SettingField } from "../shared/form-blocks";
-import { FormSettingCard, resolveSaveState } from "../shared/form-setting-card";
+import { FormSettingCard } from "../shared/form-setting-card";
 
 const buildCommandSchema = z.object({
   // Empty means "let Railpack auto-detect the build command".
@@ -38,7 +38,7 @@ export const BuildCommand = () => {
 
   const currentBuildCommand = useWatch({ control, name: "buildCommand" });
 
-  const saveState = resolveSaveState([
+  const saveState = firstMatchingSaveState([
     [
       dockerfileConfigured,
       {

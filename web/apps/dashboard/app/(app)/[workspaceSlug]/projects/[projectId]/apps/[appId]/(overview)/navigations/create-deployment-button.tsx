@@ -408,6 +408,8 @@ export const CreateDeploymentButton = ({
               <FormInput
                 label={isImageApp ? "Image Reference" : "Commit or Branch Reference"}
                 className="min-h-9"
+                autoComplete="off"
+                data-1p-ignore
                 description={
                   isImageApp
                     ? "Paste a container image reference to deploy, or pick a previously deployed image below."
@@ -456,34 +458,32 @@ export const CreateDeploymentButton = ({
           {isImageApp && imageRows.length > 0 && (
             <div className="flex flex-col divide-y divide-gray-4 rounded-md border overflow-hidden">
               {imageRows.map((deployment) => (
-                // TimestampInfo renders its own popover trigger button, so it
-                // must be a sibling of the row button rather than nested in it.
                 <div
                   key={deployment.id}
-                  className="flex items-center justify-between px-3 py-2 bg-grayA-2 hover:bg-grayA-3 transition-colors text-sm text-grayA-11"
+                  className="relative flex items-center justify-between px-3 py-2 bg-grayA-2 hover:bg-grayA-3 transition-colors text-sm text-grayA-11"
                 >
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setValue("name", deployment.resolvedImage ?? "", {
-                        shouldValidate: true,
-                        shouldDirty: true,
-                      })
-                    }
-                    className="flex items-center gap-1.5 min-w-0 max-w-[300px] cursor-pointer text-left"
+                  <InfoTooltip
+                    content={deployment.resolvedImage}
+                    asChild
+                    position={{ align: "start", side: "top" }}
                   >
-                    <InfoTooltip
-                      content={deployment.resolvedImage}
-                      asChild
-                      position={{ align: "start", side: "top" }}
-                    >
-                      <span className="truncate">{deployment.resolvedImage}</span>
-                    </InfoTooltip>
-                  </button>
+                    <button
+                      type="button"
+                      aria-label={`Select ${deployment.resolvedImage}`}
+                      onClick={() =>
+                        setValue("name", deployment.resolvedImage ?? "", {
+                          shouldValidate: true,
+                          shouldDirty: true,
+                        })
+                      }
+                      className="absolute inset-0 z-10 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-grayA-7"
+                    />
+                  </InfoTooltip>
+                  <span className="min-w-0 max-w-[300px] truncate">{deployment.resolvedImage}</span>
                   <TimestampInfo
                     value={deployment.createdAt}
                     displayType="relative"
-                    className="text-gray-11 shrink-0 ml-3"
+                    className="relative z-20 text-gray-11 shrink-0 ml-3"
                   />
                 </div>
               ))}
@@ -491,7 +491,7 @@ export const CreateDeploymentButton = ({
           )}
 
           {isGitApp && repositoryFullName && (
-            <div className="flex flex-col divide-y divide-gray-4 rounded-md border">
+            <div className="flex flex-col divide-y divide-gray-4 rounded-md border overflow-hidden">
               {repoDetails.isLoading &&
                 Array.from({ length: 5 }).map((_, i) => (
                   <div
@@ -509,25 +509,25 @@ export const CreateDeploymentButton = ({
                   </div>
                 ))}
               {branches.map((branch) => (
-                // TimestampInfo renders its own popover trigger button, so it
-                // must be a sibling of the row button rather than nested in it.
                 <div
                   key={branch.name}
-                  className="flex items-center justify-between px-3 py-2 bg-grayA-2 hover:bg-grayA-3 transition-colors text-sm text-grayA-11"
+                  className="relative flex items-center justify-between px-3 py-2 bg-grayA-2 hover:bg-grayA-3 transition-colors text-sm text-grayA-11"
                 >
                   <button
                     type="button"
+                    aria-label={`Select ${branch.name}`}
                     onClick={() => setValue("name", branch.name, { shouldValidate: true })}
-                    className="flex items-center gap-1.5 min-w-0 max-w-[300px] cursor-pointer text-left"
-                  >
+                    className="absolute inset-0 z-10 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-grayA-7"
+                  />
+                  <span className="flex items-center gap-1.5 min-w-0 max-w-[300px]">
                     <IconCodeBranchOutline18 className="size-3 shrink-0 text-gray-12" />
                     <span className="truncate">{branch.name}</span>
-                  </button>
+                  </span>
                   {branch.lastPushDate && (
                     <TimestampInfo
                       value={branch.lastPushDate}
                       displayType="relative"
-                      className="text-gray-11 shrink-0 ml-3"
+                      className="relative z-20 text-gray-11 shrink-0 ml-3"
                     />
                   )}
                 </div>

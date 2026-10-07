@@ -1,12 +1,12 @@
 "use client";
 
-import type { RootKey } from "@/lib/trpc/routers/settings/root-keys/query";
 import { useCallback, useState } from "react";
 import { EditKeyAside } from "../builder/edit-key-aside";
 import { useRootKeysV2List } from "./hooks/use-root-keys-v2-list";
 import { RootKeysDataTable } from "./root-keys-data-table";
+import type { RootKey } from "./root-keys-v2";
 
-export function RootKeysList() {
+export function RootKeysList({ onCreate }: { onCreate: () => void }) {
   const list = useRootKeysV2List();
   const [editingKeyId, setEditingKeyId] = useState<string | null>(null);
   const [isOpen, setIsOpen] = useState(false);
@@ -20,7 +20,12 @@ export function RootKeysList() {
 
   return (
     <>
-      <RootKeysDataTable selectedKeyId={editingKeyId} onEditKey={edit} list={list} />
+      <RootKeysDataTable
+        selectedKeyId={editingKeyId}
+        onEditKey={edit}
+        onCreate={onCreate}
+        list={list}
+      />
       {editingKeyId === null ? null : (
         <EditKeyAside
           key={editingKeyId}

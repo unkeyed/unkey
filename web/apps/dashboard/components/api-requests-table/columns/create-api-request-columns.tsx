@@ -14,7 +14,7 @@ import { getErrorPercentage, getSuccessPercentage } from "../utils/calculate-blo
 import { SEVERITY_STYLES, getStatusStyle } from "../utils/get-row-class";
 
 const TruncatedTextCell = ({ value }: { value: string }) => (
-  <div className="flex items-center font-mono">
+  <div data-sentry-mask className="flex items-center font-mono">
     <div className="w-full max-w-37.5 truncate whitespace-nowrap" title={value}>
       {value}
     </div>
