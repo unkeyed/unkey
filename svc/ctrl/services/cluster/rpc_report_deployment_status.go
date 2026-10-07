@@ -18,7 +18,7 @@ import (
 )
 
 // deploymentActiveStatuses are the non-terminal statuses where a Deploy
-// handler may be parked on the instances-ready awakeable. If the deployment
+// run may be awaiting the instances-ready promise. If the deployment
 // is outside this set (ready, failed, cancelled, superseded, skipped,
 // stopped, awaiting_approval), there's nothing to notify.
 var deploymentActiveStatuses = map[mysqltype.DeploymentsStatus]bool{
@@ -175,7 +175,7 @@ func (s *Service) ReportDeploymentStatus(ctx context.Context, req *connect.Reque
 	// After the tx commits, if an Update just upserted instances for an
 	// active deployment, check whether the per-region healthy threshold is
 	// met and notify the suspended Deploy workflow. This is the feedback
-	// loop that unblocks waitForDeployments's awakeable. Any errors here
+	// loop that resolves the promise waitForDeployments awaits. Any errors here
 	// are logged but don't fail the RPC — krane retrying wouldn't help, and
 	// the Deploy workflow will eventually hit its own timeout if nobody
 	// ever notifies it.
@@ -187,8 +187,8 @@ func (s *Service) ReportDeploymentStatus(ctx context.Context, req *connect.Reque
 }
 
 // maybeNotifyInstancesReady checks whether enough regions are healthy for
-// the given deployment and, if so, calls DeployService.NotifyInstancesReady
-// to unblock the suspended Deploy workflow. Best-effort: errors are logged
+// the given deployment and, if so, sends NotifyInstancesReady to unblock the
+// suspended Deploy. Best-effort: errors are logged
 // but not returned, gating the thundering herd from concurrent retries.
 func (s *Service) maybeNotifyInstancesReady(ctx context.Context, deployment db.Deployment) {
 	if !deploymentActiveStatuses[deployment.Status] {
@@ -248,7 +248,7 @@ func (s *Service) maybeNotifyInstancesReady(ctx context.Context, deployment db.D
 
 	healthyRegions := 0
 	for regionID, minReplicas := range regionMinReplicas {
-		if runningPerRegion[regionID] >= minReplicas {
+		if runningPerRegion[regionID] >= max(minReplicas, 1) {
 			healthyRegions++
 		}
 	}
@@ -275,12 +275,34 @@ func (s *Service) maybeNotifyInstancesReady(ctx context.Context, deployment db.D
 		return
 	}
 
-	_, err = hydrav1.NewDeployServiceIngressClient(s.restate, deployment.ID).
-		NotifyInstancesReady().
-		Send(ctx, &hydrav1.NotifyInstancesReadyRequest{
-			DeploymentId: deployment.ID,
-		})
+	// Wake also runs with status deploying. Its reports must not resolve a
+	// promise on a DeployWorkflow key whose run already finished
+	if !deployment.InvocationID.Valid {
+		metrics.NotifyInstancesReadyTotal.WithLabelValues("no_invocation").Inc()
+		logger.Info("notify instances ready: skipped",
+			"deployment_id", deployment.ID,
+			"outcome", "no_invocation",
+		)
+		return
+	}
+	live, err := s.restateAdmin.FindLiveInvocations(ctx, []string{deployment.InvocationID.String})
 	if err != nil {
+		metrics.NotifyInstancesReadyTotal.WithLabelValues("liveness_error").Inc()
+		logger.Error("failed to check deploy invocation liveness, notifying anyway",
+			"deployment_id", deployment.ID,
+			"error", err,
+		)
+	} else if !live[deployment.InvocationID.String] {
+		metrics.NotifyInstancesReadyTotal.WithLabelValues("deploy_not_live").Inc()
+		logger.Info("notify instances ready: skipped",
+			"deployment_id", deployment.ID,
+			"outcome", "deploy_not_live",
+		)
+		return
+	}
+
+	req := &hydrav1.NotifyInstancesReadyRequest{DeploymentId: deployment.ID}
+	if _, err := hydrav1.NewDeployWorkflowIngressClient(s.restate, deployment.ID).NotifyInstancesReady().Send(ctx, req); err != nil {
 		metrics.NotifyInstancesReadyTotal.WithLabelValues("restate_error").Inc()
 		logger.Error("failed to notify deploy workflow of instance readiness",
 			"deployment_id", deployment.ID,

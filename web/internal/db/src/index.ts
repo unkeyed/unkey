@@ -9,6 +9,7 @@ import type {
 import * as schema from "./schema";
 export { schema };
 export * from "drizzle-orm";
+export { withReplicas } from "drizzle-orm/mysql-core";
 export { drizzle } from "drizzle-orm/mysql2";
 export { annotateSql, staticTagsFromEnv } from "./sqlcomment";
 export type { SqlCommentDynamicTags, SqlCommentStaticTags } from "./sqlcomment";

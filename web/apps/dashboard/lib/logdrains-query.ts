@@ -16,9 +16,10 @@ export const logdrainQueryKeys = {
   detail: (workspaceId: string, id: string) => ["logdrains", workspaceId, "detail", id] as const,
 };
 
-export function useLogdrains() {
+export function useLogdrains(options: { enabled?: boolean; retry?: number } = {}) {
   const workspace = useWorkspaceNavigation();
   return useQuery({
+    ...options,
     queryKey: logdrainQueryKeys.list(workspace.id),
     queryFn: async ({ signal }) => {
       const drains: Logdrain[] = [];

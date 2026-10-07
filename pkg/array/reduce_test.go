@@ -270,7 +270,7 @@ func TestReduce(t *testing.T) {
 	})
 
 	t.Run("handles pointer types safely", func(t *testing.T) {
-		values := []*int{intPtr(10), nil, intPtr(20), intPtr(30)}
+		values := []*int{new(10), nil, new(20), new(30)}
 		sum := Reduce(values, func(acc int, ptr *int) int {
 			if ptr == nil {
 				return acc

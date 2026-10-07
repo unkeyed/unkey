@@ -17,7 +17,7 @@ func TestRestateInvokeRoute(t *testing.T) {
 		want string
 		ok   bool
 	}{
-		{path: "/invoke/hydra.v1.DeployService/Deploy", want: "hydra.v1.DeployService/Deploy", ok: true},
+		{path: "/invoke/hydra.v1.DeployWorkflow/Deploy", want: "hydra.v1.DeployWorkflow/Deploy", ok: true},
 		{path: "/invoke/hydra.v1.CronService/RunKeyRefill", want: "hydra.v1.CronService/RunKeyRefill", ok: true},
 		{path: "/health", ok: false},
 		{path: "/invoke/only-one-part", ok: false},
@@ -41,12 +41,12 @@ func TestWrapRestateInvokeHandler(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	})
 
-	req := httptest.NewRequest(http.MethodPost, "/invoke/hydra.v1.DeployService/Deploy", nil)
+	req := httptest.NewRequest(http.MethodPost, "/invoke/hydra.v1.DeployWorkflow/Deploy", nil)
 	rec := httptest.NewRecorder()
 	WrapRestateInvokeHandler(inner).ServeHTTP(rec, req)
 
 	require.Equal(t, http.StatusOK, rec.Code)
-	require.Equal(t, Dynamic{Route: "hydra.v1.DeployService/Deploy", Source: "restate"}, got)
+	require.Equal(t, Dynamic{Route: "hydra.v1.DeployWorkflow/Deploy", Source: "restate"}, got)
 }
 
 func TestWrapRestateInvokeHandler_skipsNonInvokePaths(t *testing.T) {

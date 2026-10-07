@@ -6,14 +6,15 @@ import {
   type DeploymentStatus,
   isDeploymentSettling,
 } from "@/lib/collections/deploy/deployment-status";
-import { DEPLOYMENTS_DEFAULT_LIMIT, type Deployment } from "@/lib/collections/deploy/deployments";
+import type { Deployment } from "@/lib/collections/deploy/deployments";
 import type { Domain } from "@/lib/collections/deploy/domains";
 import type { Environment } from "@/lib/collections/deploy/environments";
+import { pickPrimaryApp } from "@/lib/collections/deploy/project-cards";
 import type { Project } from "@/lib/collections/deploy/projects";
 import { useCollectionPolling } from "@/lib/collections/use-collection-polling";
 import { trpc } from "@/lib/trpc/client";
 import { and, eq, useLiveQuery } from "@tanstack/react-db";
-import { notFound, useParams } from "next/navigation";
+import { useParams } from "next/navigation";
 import {
   type PropsWithChildren,
   createContext,
@@ -23,6 +24,12 @@ import {
   useMemo,
   useRef,
 } from "react";
+import {
+  customDomainsQueryFor,
+  deploymentsQueryFor,
+  domainsQueryFor,
+  environmentsQueryFor,
+} from "./data-provider-queries";
 import { useAwaitTarget } from "./hooks/use-await-target";
 
 // Deploys arrive from GitHub, the CLI and other people, so every app page
@@ -59,7 +66,9 @@ type ProjectDataContextType = {
   // mount supplies an app.
   appId: string | undefined;
 
-  project: Project | undefined;
+  project:
+    | (Project & { repositoryFullName: string | null; currentDeploymentId: string | null })
+    | undefined;
   isProjectLoading: boolean;
 
   domains: Domain[];
@@ -105,54 +114,43 @@ export const ProjectDataProvider = ({
 
   const trpcUtils = trpc.useUtils();
 
-  const deploymentsQuery = useLiveQuery(
-    (q) =>
-      q
-        .from({ deployment: collection.deployments })
-        .where(({ deployment }) =>
-          appId
-            ? and(eq(deployment.projectId, projectId), eq(deployment.appId, appId))
-            : eq(deployment.projectId, projectId),
-        )
-        .orderBy(({ deployment }) => deployment.createdAt, "desc")
-        .limit(DEPLOYMENTS_DEFAULT_LIMIT),
-    [projectId, appId],
-  );
+  const deploymentsQuery = useLiveQuery(deploymentsQueryFor(projectId, appId), [projectId, appId]);
 
   const projectQuery = useLiveQuery(
     (q) =>
-      q.from({ project: collection.projects }).where(({ project }) => eq(project.id, projectId)),
+      q
+        .from({ project: collection.projects })
+        .where(({ project }) => eq(project.id, projectId))
+        .findOne(),
     [projectId],
   );
 
-  const project = projectQuery.data?.at(0);
   const appQuery = useLiveQuery(
     (q) =>
       appId
         ? q
             .from({ app: collection.apps })
             .where(({ app }) => and(eq(app.projectId, projectId), eq(app.id, appId)))
+            .findOne()
         : null,
     [projectId, appId],
   );
-  const app = appQuery.data?.at(0);
-  const currentDeploymentId = appId ? app?.currentDeploymentId : project?.currentDeploymentId;
-
-  const domainsQuery = useLiveQuery(
-    (q) =>
-      q
-        .from({ domain: collection.domains })
-        .where(({ domain }) =>
-          appId
-            ? and(eq(domain.projectId, projectId), eq(domain.appId, appId))
-            : eq(domain.projectId, projectId),
-        )
-        .orderBy(({ domain }) => domain.createdAt, "desc"),
-    [projectId, appId],
+  const app = appQuery.data;
+  const projectAppsQuery = useLiveQuery(
+    (q) => q.from({ app: collection.apps }).where(({ app }) => eq(app.projectId, projectId)),
+    [projectId],
   );
+  const primaryApp = pickPrimaryApp(projectAppsQuery.data ?? []);
+  const currentDeploymentId = appId
+    ? app?.currentDeploymentId
+    : (primaryApp?.currentDeploymentId ?? undefined);
+
+  const domainsQuery = useLiveQuery(domainsQueryFor(projectId, appId), [projectId, appId]);
   const refetchDeployments = useCallback(() => {
     collection.deployments.utils.refetch();
-    trpcUtils.deploy.deployment.invalidate();
+    trpcUtils.deploy.deployment.list.invalidate();
+    trpcUtils.deploy.deployment.listActiveBranches.invalidate();
+    trpcUtils.deploy.deployment.listBranches.invalidate();
   }, [trpcUtils]);
 
   const refetchAll = useCallback(() => {
@@ -192,30 +190,20 @@ export const ProjectDataProvider = ({
     prevDeploymentIdRef.current = currentDeploymentId;
   }, [currentDeploymentId]);
 
+  const environmentAppIds = useMemo(
+    () => (appId ? [appId] : (projectAppsQuery.data ?? []).map((a) => a.id).sort()),
+    [appId, projectAppsQuery.data],
+  );
   const environmentsQuery = useLiveQuery(
     (q) =>
-      q
-        .from({ env: collection.environments })
-        .where(({ env }) =>
-          appId
-            ? and(eq(env.projectId, projectId), eq(env.appId, appId))
-            : eq(env.projectId, projectId),
-        ),
-    [projectId, appId],
+      environmentAppIds.length === 0 ? null : environmentsQueryFor(projectId, environmentAppIds)(q),
+    [projectId, environmentAppIds.join(",")],
   );
 
-  const customDomainsQuery = useLiveQuery(
-    (q) =>
-      q
-        .from({ customDomain: collection.customDomains })
-        .where(({ customDomain }) =>
-          appId
-            ? and(eq(customDomain.projectId, projectId), eq(customDomain.appId, appId))
-            : eq(customDomain.projectId, projectId),
-        )
-        .orderBy(({ customDomain }) => customDomain.createdAt, "desc"),
-    [projectId, appId],
-  );
+  const customDomainsQuery = useLiveQuery(customDomainsQueryFor(projectId, appId), [
+    projectId,
+    appId,
+  ]);
 
   const hasSettlingDeployment = (deploymentsQuery.data ?? []).some(isDeploymentSettling);
   const hasPendingDomain = (customDomainsQuery.data ?? []).some(
@@ -239,14 +227,21 @@ export const ProjectDataProvider = ({
     const deployments = deploymentsQuery.data ?? [];
     const environments = environmentsQuery.data ?? [];
     const customDomains = customDomainsQuery.data ?? [];
-    const project = projectQuery.data?.at(0);
+    const activeApp = appId ? app : primaryApp;
+    const project = projectQuery.data
+      ? {
+          ...projectQuery.data,
+          repositoryFullName: activeApp?.repositoryFullName ?? null,
+          currentDeploymentId: activeApp?.currentDeploymentId ?? null,
+        }
+      : undefined;
 
     return {
       projectId,
       appId,
 
       project,
-      isProjectLoading: projectQuery.isLoading,
+      isProjectLoading: projectQuery.isLoading || projectAppsQuery.isLoading || appQuery.isLoading,
 
       domains,
       isDomainsLoading: domainsQuery.isLoading,
@@ -255,7 +250,7 @@ export const ProjectDataProvider = ({
       isDeploymentsLoading: deploymentsQuery.isLoading,
 
       environments,
-      isEnvironmentsLoading: environmentsQuery.isLoading,
+      isEnvironmentsLoading: projectAppsQuery.isLoading || environmentsQuery.isLoading,
 
       customDomains,
       isCustomDomainsLoading: customDomainsQuery.isLoading,
@@ -283,6 +278,10 @@ export const ProjectDataProvider = ({
     domainsQuery,
     deploymentsQuery,
     projectQuery,
+    projectAppsQuery.isLoading,
+    appQuery.isLoading,
+    primaryApp,
+    app,
     environmentsQuery,
     customDomainsQuery,
     refetchDeployments,
@@ -290,13 +289,6 @@ export const ProjectDataProvider = ({
     liveDeployment.start,
     deploymentStatus.start,
   ]);
-
-  // The projects collection holds every project in the workspace, so once it has
-  // finished loading an absent project means it does not exist (or is inaccessible).
-  // Checked after all hooks have run to keep hook ordering stable across renders.
-  if (!projectQuery.isLoading && !project) {
-    notFound();
-  }
 
   return <ProjectDataContext.Provider value={value}>{children}</ProjectDataContext.Provider>;
 };

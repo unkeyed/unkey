@@ -16,5 +16,5 @@ export const OUTCOME_BACKGROUND_COLORS: Record<string, string> = {
   DISABLED: "bg-gray-9",
   EXPIRED: "bg-orange-9",
   USAGE_EXCEEDED: "bg-feature-9",
-  "": "bg-accent-9",
+  "": "bg-gray-9",
 };

@@ -131,8 +131,7 @@ func DefaultBranch(fallback string, override *string) string {
 func normalizeRepository(repository string) (string, error) {
 	repository = strings.TrimSpace(repository)
 
-	if i := strings.LastIndex(repository, "github.com"); i >= 0 {
-		rest := repository[i+len("github.com"):]
+	if _, rest, found := strings.CutLast(repository, "github.com"); found {
 		if strings.HasPrefix(rest, "/") || strings.HasPrefix(rest, ":") {
 			repository = strings.TrimLeft(rest, "/:")
 		}

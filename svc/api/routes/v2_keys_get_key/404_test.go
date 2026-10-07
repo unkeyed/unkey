@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
@@ -36,7 +35,7 @@ func TestGetKeyNotFound(t *testing.T) {
 		nonexistentKeyID := uid.New(uid.KeyPrefix)
 		req := handler.Request{
 			KeyId:   nonexistentKeyID,
-			Decrypt: ptr.P(false),
+			Decrypt: new(false),
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
@@ -64,7 +63,7 @@ func TestGetKeyNotFound(t *testing.T) {
 		// Try to access the key from different workspace using our root key
 		req := handler.Request{
 			KeyId:   otherKey.KeyID,
-			Decrypt: ptr.P(false),
+			Decrypt: new(false),
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)

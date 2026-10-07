@@ -1,0 +1,53 @@
+---
+title: "query_execution_timeout"
+sidebarTitle: "query_execution_timeout"
+description: "The analytics query ran longer than its 10 second budget and was canceled."
+sources:
+  - pkg/codes/user_request.go
+  - svc/api/internal/middleware/errors.go
+  - pkg/clickhouse/errors.go
+  - pkg/clickhouse/user.go
+  - internal/services/analytics/executor.go
+---
+
+<Danger>`err:user:unprocessable_entity:query_execution_timeout`</Danger>
+
+Your analytics query was valid, but it ran longer than its 10 seconds and was canceled. You get HTTP 422.
+
+```json Example response
+{
+  "meta": {
+    "requestId": "req_2c9a0jf23l4k567"
+  },
+  "error": {
+    "detail": "Query execution time limit exceeded. Try simplifying your query or reducing the time range.",
+    "status": 422,
+    "title": "Unprocessable Entity",
+    "type": "/errors/user/unprocessable_entity/query_execution_timeout"
+  }
+}
+```
+
+## Likely causes
+
+- The time range is too wide.
+- The query reads a raw table when a rollup would do.
+- The query filters late, or pulls raw rows instead of aggregating.
+
+A request that hits the API's one-minute limit returns [`request_timeout`](/errors/user/bad_request/request_timeout) instead.
+
+## How to fix
+
+Make the query cheaper:
+
+- **Narrow the time range first.** A shorter range reads fewer rows.
+- **Query a rollup table** (per-minute, per-hour, per-day) instead of the raw table when you don't need individual events.
+- **Filter early** on identifiers such as key ID, identity ID, or namespace before grouping.
+- **Aggregate in the query** instead of pulling raw rows and aggregating on your side.
+- **Split long ranges** into several queries by day or week and combine the results.
+
+## Related errors
+
+- [`err:user:unprocessable_entity:query_rows_limit_exceeded`](/errors/user/unprocessable_entity/query_rows_limit_exceeded): the query read or returned too many rows.
+- [`err:user:unprocessable_entity:query_memory_limit_exceeded`](/errors/user/unprocessable_entity/query_memory_limit_exceeded): the query used too much memory or the result was too large.
+- [`err:user:bad_request:request_timeout`](/errors/user/bad_request/request_timeout): the whole request hit the API deadline.

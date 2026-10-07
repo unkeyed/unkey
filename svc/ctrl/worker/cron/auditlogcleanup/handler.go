@@ -23,7 +23,7 @@ import (
 // retention is how long an exported (soft-deleted) outbox row is kept before
 // this sweep hard-deletes it. The window leaves headroom for ops to re-queue
 // (clear deleted_at) or audit recently-exported events.
-const retention = 30 * 24 * time.Hour
+const retention = 7 * 24 * time.Hour
 
 // batchLimit bounds each DELETE so row locks stay short and replication lag
 // stays bounded; the handler loops until a batch deletes fewer than this.

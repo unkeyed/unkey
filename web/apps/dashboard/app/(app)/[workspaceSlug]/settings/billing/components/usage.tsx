@@ -1,7 +1,7 @@
 "use client";
 import { formatNumber } from "@/lib/fmt";
 import { trpc } from "@/lib/trpc/client";
-import { SettingCard } from "@unkey/ui";
+import { SettingCard, Skeleton } from "@unkey/ui";
 
 export const Usage: React.FC<{
   quota: number;
@@ -30,11 +30,11 @@ export const Usage: React.FC<{
         title="Usage this month"
         description="Valid key verifications and ratelimits."
         className="w-full"
-        contentWidth="w-full lg:w-[320px]"
+        contentWidth="w-full @2xl:w-[320px]"
       >
         <div className="w-full flex h-full items-center justify-end gap-4">
-          <div className="h-5 w-32 bg-gray-4 animate-pulse rounded-sm" />
-          <div className="h-6 w-6 bg-gray-4 animate-pulse rounded-full" />
+          <Skeleton className="h-5 w-32 bg-gray-4" />
+          <Skeleton className="h-6 w-6 bg-gray-4 rounded-full" />
         </div>
       </SettingCard>
     );
@@ -46,14 +46,14 @@ export const Usage: React.FC<{
         title="Usage this month"
         description="Valid key verifications and ratelimits."
         className="w-full"
-        contentWidth="w-full lg:w-[320px]"
+        contentWidth="w-full @2xl:w-[320px]"
       >
         <div className="w-full flex flex-col gap-2">
-          <p className="text-sm text-red-11">Failed to load usage: {error.message}</p>
+          <p className="text-sm text-error-11">Failed to load usage: {error.message}</p>
           <button
             type="button"
             onClick={() => refetch()}
-            className="text-sm text-accent-11 hover:text-accent-12 transition-colors text-left"
+            className="text-sm text-gray-11 hover:text-gray-12 transition-colors text-left"
           >
             Retry
           </button>
@@ -68,7 +68,7 @@ export const Usage: React.FC<{
         title="Usage this month"
         description="Valid key verifications and ratelimits."
         className="w-full"
-        contentWidth="w-full lg:w-[320px]"
+        contentWidth="w-full @2xl:w-[320px]"
       >
         <div className="w-full flex flex-col gap-2">
           <p className="text-sm text-gray-11">No usage data available</p>
@@ -96,7 +96,7 @@ export const Usage: React.FC<{
       description="Valid key verifications and ratelimits."
       border="both"
       className="w-full"
-      contentWidth="w-full lg:w-[320px]"
+      contentWidth="w-full @2xl:w-[320px]"
     >
       <div className="w-full flex h-full items-center justify-end gap-4">
         <p className="text-sm font-semibold text-gray-12">
@@ -156,7 +156,7 @@ export const ProgressCircle: React.FC<{
               fill="transparent"
               stroke=""
               strokeLinecap="round"
-              className="stroke-accent-12 transform-gpu transition-all duration-300 ease-in-out"
+              className="stroke-gray-12 transform-gpu transition-all duration-300 ease-in-out"
               style={{ stroke: color }}
             />
           ) : null}

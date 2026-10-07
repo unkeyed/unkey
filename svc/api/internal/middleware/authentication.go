@@ -73,7 +73,7 @@ func WithAuthentication(config AuthenticationConfig) zen.Middleware {
 				verification := schema.KeyVerification{
 					RequestID:    sess.RequestID(),
 					Time:         time.Now().UnixMilli(),
-					WorkspaceID:  keySource.WorkspaceID,
+					WorkspaceID:  "",
 					KeySpaceID:   keySource.KeySpaceID,
 					IdentityID:   "",
 					ExternalID:   "",
@@ -103,7 +103,6 @@ func WithAuthentication(config AuthenticationConfig) zen.Middleware {
 		}
 	}
 }
-
 func checkWorkspaceRateLimit(ctx context.Context, sess *zen.Session, config AuthenticationConfig, workspaceID string) error {
 	if config.LimitsCache == nil || config.Ratelimit == nil {
 		return nil

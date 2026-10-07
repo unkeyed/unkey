@@ -8,7 +8,11 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/pkg/urn"
+	"github.com/unkeyed/unkey/svc/api/internal/projects"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_apis_create_api"
@@ -170,4 +174,72 @@ func TestCreateApiSuccessfully(t *testing.T) {
 		require.False(t, api.DeleteProtection.Bool)
 	})
 
+}
+
+// TestCreateApiWithKeyspaceUrnGrant verifies that a caller holding only the
+// canonical keyspace URN write grant can create an API. The dashboard proxy mints
+// URN grants exclusively, so without this arm every dashboard role, admin
+// included, is rejected by the legacy api.*.create_api tuple.
+func TestCreateApiWithKeyspaceUrnGrant(t *testing.T) {
+	ctx := context.Background()
+	h := testutil.NewHarness(t)
+
+	route := &handler.Handler{
+		DB:        h.DB,
+		Auditlogs: h.Auditlogs,
+	}
+	h.Register(route)
+
+	workspaceID := h.Resources().UserWorkspace.ID
+	grant := rbac.U(
+		urn.New().Workspace(workspaceID).Project("*").Keyspace("*"),
+		permissions.Write,
+	).Value
+
+	headers := http.Header{
+		"Content-Type":  {"application/json"},
+		"Authorization": {fmt.Sprintf("Bearer %s", h.CreateRootKey(workspaceID, grant))},
+	}
+
+	req := handler.Request{Name: "KEBAP"}
+	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+	require.Equal(t, http.StatusOK, res.Status, "%s", res.RawBody)
+	require.NotEmpty(t, res.Body.Data.ApiId)
+
+	api, err := db.Query.FindApiByID(ctx, h.DB.RO(), res.Body.Data.ApiId)
+	require.NoError(t, err)
+	require.Equal(t, req.Name, api.Name)
+}
+
+// TestCreateApiWithDefaultProjectKeyspaceGrant verifies that a grant scoped to
+// the default project, where the new API lands, is enough to create it.
+func TestCreateApiWithDefaultProjectKeyspaceGrant(t *testing.T) {
+	ctx := context.Background()
+	h := testutil.NewHarness(t)
+
+	route := &handler.Handler{
+		DB:        h.DB,
+		Auditlogs: h.Auditlogs,
+	}
+	h.Register(route)
+
+	workspaceID := h.Resources().UserWorkspace.ID
+	defaultProjectID, err := projects.EnsureDefaultProject(ctx, h.DB.RW(), workspaceID)
+	require.NoError(t, err)
+
+	grant := rbac.U(
+		urn.New().Workspace(workspaceID).Project(defaultProjectID).Keyspace("*"),
+		permissions.Write,
+	).Value
+	headers := http.Header{
+		"Content-Type":  {"application/json"},
+		"Authorization": {fmt.Sprintf("Bearer %s", h.CreateRootKey(workspaceID, grant))},
+	}
+
+	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{Name: "KEBAP"})
+	require.Equal(t, http.StatusOK, res.Status, "%s", res.RawBody)
+
+	api, err := db.Query.FindApiByID(ctx, h.DB.RO(), res.Body.Data.ApiId)
+	require.NoError(t, err)
+	require.Equal(t, defaultProjectID, api.ProjectID)
 }

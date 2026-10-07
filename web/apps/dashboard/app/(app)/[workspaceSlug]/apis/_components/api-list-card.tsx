@@ -1,6 +1,7 @@
 "use client";
 
 import { StatsListCard } from "@/components/stats-list-card";
+import { useProjectScope } from "@/hooks/use-project-scope";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { formatNumber } from "@/lib/fmt";
 import { routes } from "@/lib/navigation/routes";
@@ -14,10 +15,11 @@ type Props = {
 export function ApiListCard({ api }: Props) {
   const { timeseries, isLoading, isError } = useFetchVerificationTimeseries(api.keyspaceId);
   const workspace = useWorkspaceNavigation();
+  const scope = useProjectScope();
 
   return (
     <StatsListCard
-      href={routes.apis.detail({ workspaceSlug: workspace.slug, apiId: api.id })}
+      href={routes.apis.detail({ workspaceSlug: workspace.slug, ...scope, apiId: api.id })}
       ariaLabel={`View ${api.name} API`}
       title={api.name}
       subtitle={api.id}

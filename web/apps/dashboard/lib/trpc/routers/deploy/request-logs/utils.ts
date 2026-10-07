@@ -1,4 +1,5 @@
-import { DEFAULT_LOGS_SINCE, getTimestampFromRelative } from "@/lib/utils";
+import { getTimestampFromRelative } from "@/lib/duration";
+import { DEFAULT_LOGS_SINCE } from "@/lib/utils";
 import type { RequestLogsRequest } from "@unkey/clickhouse/src/frontline";
 
 export function transformRequestLogsFilters(params: Omit<RequestLogsRequest, "workspaceId">) {

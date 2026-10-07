@@ -13,12 +13,53 @@ vi.stubGlobal("PointerEvent", MouseEvent);
 const sourceState = vi.hoisted(() => ({
   loading: false,
   failed: false,
+  environmentsFailed: false,
   combined: false,
   empty: false,
 }));
 const createDrain = vi.hoisted(() => vi.fn());
 vi.mock("@/lib/logdrains-query", () => ({
   useCreateLogdrainMutation: () => ({ mutate: createDrain, isLoading: false }),
+}));
+vi.mock("@/hooks/use-project-environments", () => ({
+  useProjectEnvironments: () => ({
+    data: [
+      { id: "env", slug: "Production", kind: "production", projectId: "project", appId: "app" },
+      { id: "env_preview", slug: "Preview", kind: "preview", projectId: "project", appId: "app" },
+      {
+        id: "other-env",
+        slug: "Production",
+        kind: "production",
+        projectId: "other-project",
+        appId: "other-app",
+      },
+    ],
+    isLoading: false,
+    isError: sourceState.environmentsFailed,
+  }),
+}));
+vi.mock("@/hooks/use-projects-with-apps", () => ({
+  useProjectsWithApps: () => ({
+    data: sourceState.empty
+      ? []
+      : [
+          {
+            id: "project",
+            name: "Store",
+            apps: [
+              { id: "app", name: "Backend" },
+              ...(sourceState.combined ? [{ id: "other-app", name: "Reports" }] : []),
+            ],
+          },
+          {
+            id: "other-project",
+            name: "Analytics",
+            apps: sourceState.combined ? [] : [{ id: "other-app", name: "Reports" }],
+          },
+        ],
+    isLoading: sourceState.loading,
+    isError: sourceState.failed,
+  }),
 }));
 vi.mock("@/lib/trpc/client", () => ({
   trpc: {
@@ -28,48 +69,6 @@ vi.mock("@/lib/trpc/client", () => ({
       },
     },
     deploy: {
-      project: {
-        list: {
-          useQuery: () => ({
-            data: sourceState.empty
-              ? []
-              : [
-                  {
-                    id: "project",
-                    name: "Store",
-                    apps: [
-                      { id: "app", name: "Backend" },
-                      ...(sourceState.combined ? [{ id: "other-app", name: "Reports" }] : []),
-                    ],
-                  },
-                  {
-                    id: "other-project",
-                    name: "Analytics",
-                    apps: sourceState.combined ? [] : [{ id: "other-app", name: "Reports" }],
-                  },
-                ],
-            isLoading: sourceState.loading,
-            error: sourceState.failed ? new Error("Unavailable") : null,
-          }),
-        },
-      },
-      environment: {
-        listAll: {
-          useQuery: () => ({
-            data: [
-              { id: "env", name: "Production", projectId: "project", appId: "app" },
-              { id: "env_preview", name: "Preview", projectId: "project", appId: "app" },
-              {
-                id: "other-env",
-                name: "Production",
-                projectId: "other-project",
-                appId: "other-app",
-              },
-            ],
-            isLoading: false,
-          }),
-        },
-      },
       environmentSettings: {
         getAvailableKeyspaces: {
           useQuery: () => ({
@@ -87,6 +86,7 @@ afterEach(() => {
   cleanup();
   sourceState.loading = false;
   sourceState.failed = false;
+  sourceState.environmentsFailed = false;
   sourceState.combined = false;
   sourceState.empty = false;
   createDrain.mockClear();
@@ -527,15 +527,18 @@ it("shows nothing selected after clearing every source", () => {
   );
 });
 
-it.each(["loading", "failed"] as const)("does not change sources while queries are %s", (state) => {
-  sourceState[state] = true;
-  render(<Form />);
-  fireEvent.click(screen.getByText("Gateway"));
-  fireEvent.click(screen.getByRole("radio", { name: "Specific sources" }));
-  expect(screen.getByRole("radio", { name: "All sources" }).getAttribute("aria-checked")).toBe(
-    "true",
-  );
-});
+it.each(["loading", "failed", "environmentsFailed"] as const)(
+  "does not change sources while queries are %s",
+  (state) => {
+    sourceState[state] = true;
+    render(<Form />);
+    fireEvent.click(screen.getByText("Gateway"));
+    fireEvent.click(screen.getByRole("radio", { name: "Specific sources" }));
+    expect(screen.getByRole("radio", { name: "All sources" }).getAttribute("aria-checked")).toBe(
+      "true",
+    );
+  },
+);
 
 it("keeps a searched project checkbox bound to every app in that project", () => {
   sourceState.combined = true;

@@ -1,0 +1,40 @@
+---
+title: "assertion_failed"
+sidebarTitle: "assertion_failed"
+description: "A check that should never fail did, which means a bug on our side rather than a problem with your request."
+sources:
+  - pkg/codes/unkey_application.go
+  - svc/api/internal/middleware/errors.go
+  - pkg/assert/not_empty.go
+  - internal/services/analytics/executor.go
+  - internal/services/ratelimit/ratelimit.go
+  - svc/api/routes/v2_keys_reroll_key/handler.go
+---
+
+<Danger>`err:unkey:application:assertion_failed`</Danger>
+
+Something went wrong on our side. It's a bug in Unkey, not a problem with your request. You get HTTP 500 with an empty `detail`.
+
+```json Example response
+{
+  "meta": {
+    "requestId": "req_2c9a0jf23l4k567"
+  },
+  "error": {
+    "detail": "",
+    "status": 500,
+    "title": "Internal Server Error",
+    "type": "/errors/unkey/application/assertion_failed"
+  }
+}
+```
+
+## How to fix
+
+1. Retry once, with backoff, if the request is safe to repeat.
+2. If it fails again, contact support with the `requestId`, the endpoint, and the time. We need the `requestId` to find what failed.
+
+## Related errors
+
+- [`err:unkey:application:unexpected_error`](/errors/unkey/application/unexpected_error): another failure on our side with no more specific code.
+- [`err:unkey:application:service_unavailable`](/errors/unkey/application/service_unavailable): the API failed on our side and `detail` names what failed.

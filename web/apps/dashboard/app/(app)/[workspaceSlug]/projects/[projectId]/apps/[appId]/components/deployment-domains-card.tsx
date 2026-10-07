@@ -10,11 +10,16 @@ import {
 import {
   Button,
   CopyButton,
+  EmptyState,
+  EmptyStateDescription,
+  EmptyStateHeader,
+  EmptyStateTitle,
   Popover,
   PopoverContent,
   PopoverTrigger,
   SettingCard,
   SettingCardGroup,
+  Skeleton,
 } from "@unkey/ui";
 import { type ReactNode, useState } from "react";
 import { useProjectData } from "../(overview)/data-provider";
@@ -25,10 +30,9 @@ import { GlowIcon } from "./glow-icon";
 import { TagBadge } from "./tag-badge";
 
 export function DeploymentDomainsCard({
-  emptyState,
   glow,
   domainFilter,
-}: { emptyState?: ReactNode; glow?: boolean; domainFilter?: (d: Domain) => boolean }) {
+}: { glow?: boolean; domainFilter?: (d: Domain) => boolean }) {
   const [urlsOpen, setUrlsOpen] = useState(false);
   const { deployment } = useDeployment();
   const {
@@ -56,24 +60,31 @@ export function DeploymentDomainsCard({
   const isLoading = isDomainsLoading || isCustomDomainsLoading;
 
   if (!isLoading && primaryDomain === null) {
-    return emptyState ?? null;
+    return (
+      <DomainsGroup>
+        <EmptyState>
+          <EmptyStateHeader>
+            <EmptyStateTitle>No domains yet</EmptyStateTitle>
+            <EmptyStateDescription>
+              Add a domain to make this deployment reachable.
+            </EmptyStateDescription>
+          </EmptyStateHeader>
+        </EmptyState>
+      </DomainsGroup>
+    );
   }
 
   return (
-    <SettingsGroup
-      icon={<IconEarthOutline18 className="size-3.5" />}
-      title={<span className="font-medium text-gray-12 text-[13px] leading-4">Domains</span>}
-      hideChevron
-    >
+    <DomainsGroup>
       <SettingCardGroup>
         {isLoading || primaryDomain === null ? (
           <SettingCard
             icon={
-              <div className="w-full h-full rounded-[10px] flex items-center justify-center shrink-0">
+              <div className="w-full h-full rounded-xl flex items-center justify-center shrink-0">
                 <IconEarthOutline18 />
               </div>
             }
-            title={<div className="h-4 w-36 bg-grayA-3 rounded animate-pulse" />}
+            title={<Skeleton className="h-4 w-36 rounded" />}
             description="Loading domains..."
           />
         ) : (
@@ -95,7 +106,7 @@ export function DeploymentDomainsCard({
                 {additionalDomains.length > 0 && (
                   <button
                     type="button"
-                    className="rounded-full px-1.5 py-0.5 bg-grayA-3 text-gray-12 text-xs leading-[18px] font-mono tabular-nums hover:bg-grayA-4 transition-colors cursor-pointer"
+                    className="rounded-full px-1.5 py-0.5 bg-grayA-3 text-gray-12 text-xs leading-4.5 font-mono tabular-nums hover:bg-grayA-4 transition-colors cursor-pointer"
                     onClick={() => setUrlsOpen(true)}
                   >
                     +{additionalDomains.length}
@@ -111,7 +122,7 @@ export function DeploymentDomainsCard({
                   <PopoverTrigger
                     render={
                       <Button
-                        className="text-gray-12 font-medium bg-grayA-2 rounded-[8px]"
+                        className="text-gray-12 font-medium bg-grayA-2 rounded-lg"
                         variant="outline"
                       >
                         Show URLs
@@ -123,7 +134,7 @@ export function DeploymentDomainsCard({
                     {allDomains.map((d) => (
                       <div
                         key={d.id}
-                        className="flex items-center justify-left w-full h-10 border-b border-gray-4 px-3 py-[14px] gap-2"
+                        className="flex items-center justify-start w-full h-10 border-b px-3 py-[14px] gap-2"
                       >
                         <IconLink4Outline12 className="text-gray-9 ! shrink-0" />
                         <a
@@ -145,6 +156,18 @@ export function DeploymentDomainsCard({
           </SettingCard>
         )}
       </SettingCardGroup>
+    </DomainsGroup>
+  );
+}
+
+function DomainsGroup({ children }: { children: ReactNode }) {
+  return (
+    <SettingsGroup
+      icon={<IconEarthOutline18 className="size-3.5" />}
+      title={<span className="font-medium text-gray-12 text-sm leading-4">Domains</span>}
+      hideChevron
+    >
+      {children}
     </SettingsGroup>
   );
 }

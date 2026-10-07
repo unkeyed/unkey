@@ -1,0 +1,42 @@
+---
+title: "permission_already_exists"
+sidebarTitle: "permission_already_exists"
+description: "A permission with that slug already exists in the workspace."
+sources:
+  - pkg/codes/unkey_data.go
+  - svc/api/internal/middleware/errors.go
+  - svc/api/routes/v2_permissions_create_permission/handler.go
+---
+
+<Danger>`err:unkey:data:permission_already_exists`</Danger>
+
+A permission with the same slug already exists in your workspace, so `permissions.createPermission` didn't create one. You get HTTP 409.
+
+```json Example response
+{
+  "meta": {
+    "requestId": "req_2c9a0jf23l4k567"
+  },
+  "error": {
+    "detail": "A permission with slug 'documents.read' already exists in this workspace",
+    "status": 409,
+    "title": "Conflicting Resource",
+    "type": "/errors/unkey/data/permission_already_exists"
+  }
+}
+```
+
+## Likely causes
+
+- You already created this permission. Slugs are unique per workspace.
+
+## How to fix
+
+1. Reuse the existing permission (find it with `permissions.listPermissions`), or pick a different slug.
+
+In provisioning code, treat a 409 as success and continue.
+
+## Related errors
+
+- [`err:unkey:data:permission_not_found`](/errors/unkey/data/permission_not_found): a referenced permission doesn't exist.
+- [`err:unkey:data:role_already_exists`](/errors/unkey/data/role_already_exists): a role name collides.

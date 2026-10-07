@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+#MISE description="Build web workspaces (accepts Turbo filters)"
+#MISE depends=["install-web"]
+set -euo pipefail
+
+pnpm --dir=web turbo run build "$@"

@@ -1,0 +1,38 @@
+---
+title: "workspace_not_found"
+sidebarTitle: "workspace_not_found"
+description: "The workspace the root key belongs to no longer exists."
+sources:
+  - pkg/codes/unkey_data.go
+  - svc/api/internal/middleware/errors.go
+  - internal/services/keys/status.go
+---
+
+<Danger>`err:unkey:data:workspace_not_found`</Danger>
+
+The root key you're using belongs to a workspace that no longer exists. You get HTTP 404. It's rare, and means the key outlived its workspace.
+
+```json Example response
+{
+  "meta": {
+    "requestId": "req_2c9a0jf23l4k567"
+  },
+  "error": {
+    "detail": "The provided root key is invalid. The requested workspace does not exist.",
+    "status": 404,
+    "title": "Not Found",
+    "type": "/errors/unkey/data/workspace_not_found"
+  }
+}
+```
+
+## How to fix
+
+1. Sign in to the dashboard, open the workspace you want to use, and create a new root key there.
+2. Replace the old key in your services.
+3. If you think the workspace should still exist, contact support with the `requestId`.
+
+## Related errors
+
+- [`err:unkey:authorization:workspace_disabled`](/errors/unkey/authorization/workspace_disabled): the workspace exists but is disabled.
+- [`err:unkey:authentication:key_not_found`](/errors/unkey/authentication/key_not_found): the root key itself doesn't exist.

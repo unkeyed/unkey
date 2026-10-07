@@ -22,7 +22,7 @@ import (
 func (v *VirtualObject) WakeDeployment(ctx restate.ObjectContext, req *hydrav1.WakeDeploymentRequest) (*hydrav1.WakeDeploymentResponse, error) {
 	deploymentID := restate.Key(ctx)
 	if id := req.GetDeploymentId(); id != "" && id != deploymentID {
-		return nil, restate.TerminalError(fmt.Errorf("deployment_id %q does not match object key %q", id, deploymentID), 400)
+		return nil, restate.ToTerminalError(fmt.Errorf("deployment_id %q does not match object key %q", id, deploymentID), restate.WithErrorCode(400))
 	}
 
 	deployment, err := v.loadDeployment(ctx, deploymentID, "wake")
@@ -106,7 +106,7 @@ func (v *VirtualObject) waitUntilHealthy(ctx restate.ObjectContext, deploymentID
 			return fmt.Errorf("load required instances per region: %w", err)
 		}
 		if len(rows) == 0 {
-			return restate.TerminalError(fmt.Errorf("deployment has no topology"), 400)
+			return restate.ToTerminalError(fmt.Errorf("deployment has no topology"), restate.WithErrorCode(400))
 		}
 		requiredPerRegion := make(map[string]uint32, len(rows))
 		for _, row := range rows {

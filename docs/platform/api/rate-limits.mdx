@@ -1,0 +1,12 @@
+---
+title: Too many requests
+description: "What a 429 from api.unkey.com means and what to do about it."
+sources:
+  - svc/api/internal/middleware/authentication.go
+  - pkg/codes/constants_gen.go
+  - svc/api/internal/middleware/errors.go
+---
+
+A 429 with `err:user:too_many_requests:workspace_rate_limited` means your workspace is sending too many requests to the Unkey API. Nothing ran, so it's safe to retry. Wait a moment, then retry with exponential backoff. If it keeps happening, contact [support@unkey.com](mailto:support@unkey.com).
+
+A 429 with `err:user:too_many_requests:query_quota_exceeded` is the analytics query quota, covered on [Analytics restrictions and quotas](/api-management/analytics/restrictions-and-quotas).

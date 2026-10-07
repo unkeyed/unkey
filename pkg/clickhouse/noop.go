@@ -24,8 +24,8 @@ func (n *noop) GetBillableRatelimits(ctx context.Context, workspaceID string, ye
 	return 0, nil
 }
 
-// GetVerificationsByExternalID implements the Querier interface but always returns nil.
-func (n *noop) GetVerificationsByExternalID(ctx context.Context, req VerificationTimeseriesRequest) ([]VerificationTimeseriesDataPoint, error) {
+// GetVerificationsByExternalIDPerKey implements the Querier interface but always returns nil.
+func (n *noop) GetVerificationsByExternalIDPerKey(ctx context.Context, req VerificationTimeseriesPerKeyRequest) ([]VerificationTimeseriesPerKey, error) {
 	return nil, nil
 }
 
@@ -47,6 +47,11 @@ func (n *noop) GetDeploymentRequestCount(ctx context.Context, req GetDeploymentR
 // GetKeyLastUsedBatchPartitioned implements the Querier interface but always returns an empty slice.
 func (n *noop) GetKeyLastUsedBatchPartitioned(ctx context.Context, req GetKeyLastUsedBatchRequest) ([]KeyLastUsed, error) {
 	return nil, nil
+}
+
+// GetBuildLogs implements the Querier interface but always returns no entries
+func (n *noop) GetBuildLogs(ctx context.Context, req GetBuildLogsRequest) (BuildLogsPage, error) {
+	return BuildLogsPage{Entries: []BuildLogEntry{}, HasMore: false}, nil
 }
 
 // InsertAuditLogs implements the Querier interface but discards the input.

@@ -7,7 +7,7 @@ import type { FormattedParts } from "@/lib/utils/deployment-formatters";
 import { useWorkspace } from "@/providers/workspace-provider";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { Limits } from "@unkey/db";
-import { Slider } from "@unkey/ui";
+import { type SaveState, Slider, firstMatchingSaveState } from "@unkey/ui";
 import type React from "react";
 import { useContext, useEffect, useMemo } from "react";
 import { useForm, useWatch } from "react-hook-form";
@@ -16,7 +16,7 @@ import { EnvironmentContext, useEnvironmentSettings } from "../../../environment
 import { useMultiEnvironmentSettings } from "../../../hooks/use-multi-environment-settings";
 import { useUpdateAllEnvironments } from "../../../hooks/use-update-all-environments";
 import { SettingDescription, WideContent } from "../form-blocks";
-import { FormSettingCard, type SaveState, resolveSaveState } from "../form-setting-card";
+import { FormSettingCard } from "../form-setting-card";
 import { EnvironmentDisplayValue } from "./environment-display-value";
 import { EnvironmentSliderSection } from "./environment-slider-section";
 import { buildSliderRangeStyle, indexToValue, valueToIndex } from "./slider-utils";
@@ -256,7 +256,7 @@ const SingleMode = ({ config }: { config: ResourceSliderConfig }) => {
   const sp = getSliderProps(slider, currentValue);
 
   const extraCheck = config.extraSaveChecks?.([settings]);
-  const saveState = resolveSaveState([
+  const saveState = firstMatchingSaveState([
     ...(extraCheck ? [[true, extraCheck] as [boolean, SaveState]] : []),
     [isSubmitting, { status: "saving" }],
     [!isValid, { status: "disabled" }],
@@ -315,7 +315,7 @@ const SingleMode = ({ config }: { config: ResourceSliderConfig }) => {
             )}
           />
           {config.sliderAdornment?.(settings)}
-          <span className="text-[13px]">
+          <span className="text-sm">
             <span className="font-medium text-gray-12">
               {config.formatValue(currentValue).value}
             </span>{" "}
@@ -402,7 +402,7 @@ const DualInner = ({ config, production, preview }: DualInnerProps) => {
   const hasChanges = currentProd !== defaultProd || currentPreview !== defaultPreview;
 
   const extraCheck = config.extraSaveChecks?.([production, preview]);
-  const saveState = resolveSaveState([
+  const saveState = firstMatchingSaveState([
     ...(extraCheck ? [[true, extraCheck] as [boolean, SaveState]] : []),
     [isSubmitting, { status: "saving" }],
     [!isValid, { status: "disabled" }],
@@ -480,7 +480,7 @@ const DualSliderSection = ({ label, config, sp, settings, onSliderChange }: Slid
         rangeStyle={buildSliderRangeStyle(sp.rangeIndex, sp.rangeMax, sp.rangeMin, config.colorVar)}
       />
       {config.sliderAdornment?.(settings)}
-      <span className="text-[13px]">
+      <span className="text-sm">
         <span className="font-medium text-gray-12">
           {config.formatValue(sp.toFormValue(sp.sliderValue)).value}
         </span>{" "}

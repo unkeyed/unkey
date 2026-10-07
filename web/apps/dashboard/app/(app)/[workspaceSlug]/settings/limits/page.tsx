@@ -2,14 +2,17 @@
 
 import { PageLoading } from "@/components/dashboard/page-loading";
 import { useBillingUIUpgrades } from "@/lib/flags/use-billing-ui-upgrades";
-import { routes } from "@/lib/navigation/routes";
+import { useLogdrains } from "@/lib/logdrains-query";
 import { SUPPORT_MAILTO } from "@/lib/support";
 import { trpc } from "@/lib/trpc/client";
 import { useWorkspace } from "@/providers/workspace-provider";
 import { IconCubeOutline18, IconLayers3Outline18, IconNodesOutline18 } from "@unkey/icons";
 import {
   Button,
-  Empty,
+  EmptyState,
+  EmptyStateDescription,
+  EmptyStateHeader,
+  EmptyStateTitle,
   ItemContent,
   ItemDescription,
   ItemGroup,
@@ -70,6 +73,10 @@ export default function LimitsPage() {
     trpc: { context: { skipBatch: true } },
     retry: 1,
   });
+  const logdrains = useLogdrains({
+    enabled: Boolean(workspace) && billingUpgrades,
+    retry: 1,
+  });
 
   if (!billingUpgrades) {
     notFound();
@@ -86,12 +93,14 @@ export default function LimitsPage() {
   if (!limits || !workspace) {
     return (
       <Shell>
-        <Empty>
-          <Empty.Title>Limits unavailable</Empty.Title>
-          <Empty.Description>
-            We could not read the limits for this workspace. Please try again later.
-          </Empty.Description>
-        </Empty>
+        <EmptyState>
+          <EmptyStateHeader>
+            <EmptyStateTitle>Limits unavailable</EmptyStateTitle>
+            <EmptyStateDescription>
+              We could not read the limits for this workspace. Please try again later.
+            </EmptyStateDescription>
+          </EmptyStateHeader>
+        </EmptyState>
       </Shell>
     );
   }
@@ -102,17 +111,13 @@ export default function LimitsPage() {
     apiOperations: measured({ data: usage.data?.billableTotal, isError: usage.isError }),
     allocation: measured(allocation),
     customDomains: measured(customDomains),
+    logdrains: measured({ data: logdrains.data?.length, isError: logdrains.isError }),
   });
   const breached = breachedKeys(groups);
 
   return (
     <Shell>
-      {breached.length > 0 ? (
-        <BreachBanner
-          breached={breached}
-          billingHref={routes.settings.billing({ workspaceSlug: workspace.slug, intent: "api" })}
-        />
-      ) : null}
+      {breached.length > 0 ? <BreachBanner breached={breached} /> : null}
       {groups.map((group) => (
         <Group key={group.key} group={group} />
       ))}

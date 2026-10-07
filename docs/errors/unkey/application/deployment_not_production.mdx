@@ -1,0 +1,45 @@
+---
+title: "deployment_not_production"
+sidebarTitle: "deployment_not_production"
+description: "Only production deployments can be promoted or rolled back to."
+sources:
+  - pkg/codes/unkey_application.go
+  - svc/api/internal/middleware/errors.go
+  - pkg/deploy/deploygate/deploygate.go
+  - svc/api/routes/v2_deployments_promote_deployment/handler.go
+  - svc/api/routes/v2_deployments_rollback_deployment/handler.go
+---
+
+<Danger>`err:unkey:application:deployment_not_production`</Danger>
+
+You asked to promote or roll back to a preview deployment. Only a deployment in a production <Tooltip tip="A production or preview environment of a Compute app, not the dashboard label on a key.">environment</Tooltip> can become the one serving your production hostname. You get HTTP 412.
+
+```json Example response
+{
+  "meta": {
+    "requestId": "req_2c9a0jf23l4k567"
+  },
+  "error": {
+    "detail": "Only production deployments can be promoted or rolled back.",
+    "status": 412,
+    "title": "Precondition Failed",
+    "type": "/errors/unkey/application/deployment_not_production"
+  }
+}
+```
+
+## Likely causes
+
+- The deployment ID is from a preview environment. Preview deployments have their own URLs and never serve the production hostname.
+
+## How to fix
+
+1. Deploy the same commit or image to the production environment with `deployments.createDeployment`.
+2. Promote that deployment.
+
+To test a preview deployment, use its own URL. See [Production and preview](/compute/concepts/production-and-preview) for how the two differ.
+
+## Related errors
+
+- [`err:unkey:application:deployment_not_ready`](/errors/unkey/application/deployment_not_ready): the target isn't ready.
+- [`err:unkey:application:deployment_is_production`](/errors/unkey/application/deployment_is_production): the opposite case: stop and start don't apply to production.

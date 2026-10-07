@@ -1,8 +1,8 @@
 "use client";
 
-import { cn } from "@/lib/utils";
 import { IconCircleLockOutline18 } from "@unkey/icons";
-import { CopyButton, VisibleButton } from "@unkey/ui";
+import { CopyButton, InputGroup, InputGroupAddon, InputGroupInput, VisibleButton } from "@unkey/ui";
+import { cn } from "cn";
 import { useState } from "react";
 
 const maskKey = (key: string): string => {
@@ -23,32 +23,24 @@ export const SecretKey = ({
   const displayValue = isVisible ? value : maskKey(value);
 
   return (
-    <div
-      className={cn(
-        "w-full px-4 py-2 bg-white dark:bg-black border rounded-xl border-grayA-5 unkey-root-key",
-        className,
-      )}
-    >
-      <div className="flex items-center justify-between w-full gap-3 pointer-events-auto">
-        <div className="shrink-0">
-          <IconCircleLockOutline18 className="size-3 text-gray-12" />
-        </div>
-        <div className="flex-1 overflow-x-auto min-w-0">
-          {" "}
-          <p className="whitespace-pre-wrap break-all font-mono text-[13px] text-grayA-12 pr-2">
-            {displayValue}
-          </p>
-        </div>
-        <div className="flex items-center justify-between gap-2 shrink-0 pointer-events-auto">
-          <VisibleButton
-            isVisible={isVisible}
-            setIsVisible={(visible) => setIsVisible(visible)}
-            title={title}
-          />
-
-          <CopyButton value={value} title={title} />
-        </div>
-      </div>
-    </div>
+    <InputGroup className={cn("min-w-0 unkey-root-key", className)}>
+      <InputGroupAddon>
+        <IconCircleLockOutline18 className="size-3 text-gray-12" />
+      </InputGroupAddon>
+      <InputGroupInput
+        readOnly
+        value={displayValue}
+        aria-label={title}
+        className="truncate font-mono"
+      />
+      <InputGroupAddon align="inline-end">
+        <VisibleButton
+          isVisible={isVisible}
+          setIsVisible={(visible) => setIsVisible(visible)}
+          title={title}
+        />
+        <CopyButton value={value} title={title} />
+      </InputGroupAddon>
+    </InputGroup>
   );
 };

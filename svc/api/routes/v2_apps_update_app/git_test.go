@@ -14,8 +14,10 @@ import (
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/pkg/db"
 	github "github.com/unkeyed/unkey/pkg/github"
-	"github.com/unkeyed/unkey/pkg/ptr"
+	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -75,7 +77,7 @@ func TestUpdateAppConnectRepository(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
 			Project: project.ID,
 			App:     id,
-			Git:     nullable.NewNullableWithValue(openapi.AppGitUpdateInput{Repository: ptr.P("unkeyed/unkey")}),
+			Git:     nullable.NewNullableWithValue(openapi.AppGitUpdateInput{Repository: new("unkeyed/unkey")}),
 		})
 		require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
 		require.NotNil(t, res.Body.Data.Git)
@@ -101,7 +103,7 @@ func TestUpdateAppConnectRepository(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
 			Project: project.ID,
 			App:     id,
-			Git:     nullable.NewNullableWithValue(openapi.AppGitUpdateInput{Repository: ptr.P("unkeyed/unkey"), DefaultBranch: &branch}),
+			Git:     nullable.NewNullableWithValue(openapi.AppGitUpdateInput{Repository: new("unkeyed/unkey"), DefaultBranch: &branch}),
 		})
 		require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
 		git := res.Body.Data.Git
@@ -139,7 +141,7 @@ func TestUpdateAppConnectRepository(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
 			Project: project.ID,
 			App:     id,
-			Git:     nullable.NewNullableWithValue(openapi.AppGitUpdateInput{Repository: ptr.P("unkeyed/unkey")}),
+			Git:     nullable.NewNullableWithValue(openapi.AppGitUpdateInput{Repository: new("unkeyed/unkey")}),
 		})
 		require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
 		git := res.Body.Data.Git
@@ -170,7 +172,7 @@ func TestUpdateAppConnectRepository(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
 			Project: project.ID,
 			App:     id,
-			Git:     nullable.NewNullableWithValue(openapi.AppGitUpdateInput{DefaultBranch: ptr.P("release")}),
+			Git:     nullable.NewNullableWithValue(openapi.AppGitUpdateInput{DefaultBranch: new("release")}),
 		})
 		require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
 		git := res.Body.Data.Git
@@ -188,7 +190,7 @@ func TestUpdateAppConnectRepository(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, handler.Request{
 			Project: project.ID,
 			App:     id,
-			Git:     nullable.NewNullableWithValue(openapi.AppGitUpdateInput{DefaultBranch: ptr.P("release")}),
+			Git:     nullable.NewNullableWithValue(openapi.AppGitUpdateInput{DefaultBranch: new("release")}),
 		})
 		require.Equal(t, http.StatusBadRequest, res.Status, "expected 400, received: %s", res.RawBody)
 	})
@@ -288,7 +290,7 @@ func TestUpdateAppConnectRepositoryNotConfigured(t *testing.T) {
 	res := testutil.CallRoute[handler.Request, openapi.InternalServerErrorResponse](h, route, headers, handler.Request{
 		Project: project.ID,
 		App:     app.ID,
-		Git:     nullable.NewNullableWithValue(openapi.AppGitUpdateInput{Repository: ptr.P("unkeyed/unkey")}),
+		Git:     nullable.NewNullableWithValue(openapi.AppGitUpdateInput{Repository: new("unkeyed/unkey")}),
 	})
 	require.GreaterOrEqual(t, res.Status, 500, "unconfigured GitHub connection should fail, received: %s", res.RawBody)
 }
@@ -329,7 +331,7 @@ func TestUpdateAppConnectRepositoryForbidden(t *testing.T) {
 	res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers, handler.Request{
 		Project: project.ID,
 		App:     app.ID,
-		Git:     nullable.NewNullableWithValue(openapi.AppGitUpdateInput{Repository: ptr.P("unkeyed/unkey")}),
+		Git:     nullable.NewNullableWithValue(openapi.AppGitUpdateInput{Repository: new("unkeyed/unkey")}),
 	})
 	require.Equal(t, http.StatusForbidden, res.Status, "expected 403, received: %s", res.RawBody)
 }
@@ -376,7 +378,7 @@ func TestUpdateAppOCIImageWithAppSettings(t *testing.T) {
 		App:              app.ID,
 		Name:             &updatedName,
 		Slug:             &updatedSlug,
-		DeleteProtection: ptr.P(true),
+		DeleteProtection: new(true),
 		Oci: &openapi.AppOCI{
 			Image: "nginx:1.27",
 		},
@@ -482,4 +484,58 @@ func requireAuditEvent(ctx context.Context, t *testing.T, h *testutil.Harness, t
 		}
 	}
 	require.Failf(t, "audit event not found", "expected event %q for target %s", event, targetID)
+}
+
+func TestUpdateAppConnectRepositoryWithAppURN(t *testing.T) {
+	ctx := context.Background()
+	h := testutil.NewHarness(t)
+
+	route := &handler.Handler{
+		DB:            h.DB,
+		Auditlogs:     h.Auditlogs,
+		GitHubAppName: "unkey-app",
+		GitHubClient: testutil.FakeGitHub{
+			Noop:       github.NewNoop(),
+			Repo:       github.RepoInfo{ID: 42, FullName: "unkeyed/unkey", DefaultBranch: "main"},
+			Accessible: true,
+		},
+	}
+	h.Register(route)
+
+	workspace := h.Resources().UserWorkspace
+	project := h.CreateProject(seed.CreateProjectRequest{
+		ID:          uid.New(uid.ProjectPrefix),
+		WorkspaceID: workspace.ID,
+		Name:        "Payments",
+		Slug:        appSlug(),
+	})
+	h.SeedGitHubInstallation(t, workspace.ID, 12345)
+	app := h.CreateApp(seed.CreateAppRequest{
+		ID:          uid.New(uid.AppPrefix),
+		WorkspaceID: workspace.ID,
+		ProjectID:   project.ID,
+		Name:        "App",
+		Slug:        appSlug(),
+	})
+
+	// App write is the whole grant: it covers both the update and the repository gate.
+	rootKey := h.CreateRootKey(workspace.ID,
+		rbac.U(urn.New().Workspace(workspace.ID).Project(project.ID).App(app.ID), permissions.Write).Value,
+	)
+	headers := http.Header{
+		"Content-Type":  {"application/json"},
+		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+	}
+
+	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
+		Project: project.ID,
+		App:     app.ID,
+		Git:     nullable.NewNullableWithValue(openapi.AppGitUpdateInput{Repository: new("unkeyed/unkey")}),
+	})
+	require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
+
+	conn, err := db.Query.FindGithubRepoConnectionByAppId(ctx, h.DB.RO(), app.ID)
+	require.NoError(t, err)
+	require.Equal(t, "unkeyed/unkey", conn.RepositoryFullName)
+	requireAuditEvent(ctx, t, h, app.ID, "app.connect_repository")
 }

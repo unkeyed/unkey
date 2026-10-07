@@ -1,5 +1,6 @@
 "use client";
 import { LogDetails } from "@/components/logs/details/log-details";
+import { useProjectScope } from "@/hooks/use-project-scope";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { routes } from "@/lib/navigation/routes";
 import type { KeysOverviewLog } from "@unkey/clickhouse/src/keys/keys";
@@ -20,6 +21,7 @@ type Props = {
 
 export const KeysOverviewLogDetails = ({ distanceToTop, log, setSelectedLog, apiId }: Props) => {
   const workspace = useWorkspaceNavigation();
+  const scope = useProjectScope();
   const errorShownRef = useRef(false);
 
   useEffect(() => {
@@ -74,6 +76,7 @@ export const KeysOverviewLogDetails = ({ distanceToTop, log, setSelectedLog, api
         className="font-mono underline decoration-dotted"
         href={routes.apis.keys.detail({
           workspaceSlug: workspace.slug,
+          ...scope,
           apiId,
           keyAuthId: log.key_details.key_auth_id,
           keyId: log.key_id,

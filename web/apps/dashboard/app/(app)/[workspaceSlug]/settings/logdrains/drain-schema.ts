@@ -118,7 +118,7 @@ const baseSchema = z.object({
   environmentIds: resourceIdsSchema,
   name: z.string().trim().min(1, "Enter a name").max(128, "Name must be 128 characters or less"),
   url: z.string(),
-  format: z.enum(["json", "ndjson"]),
+  format: z.enum(["json", "ndjson", "hec"]),
   headers: z.array(headerRowSchema).max(32, "A maximum of 32 headers is supported"),
   dataset: z.string(),
   token: z.string(),

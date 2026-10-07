@@ -58,7 +58,7 @@ func (v *VirtualObject) loadDeployment(ctx restate.ObjectContext, deploymentID, 
 		row, err := v.db.FindDeploymentWithEnvironmentAndApp(runCtx, deploymentID)
 		if err != nil {
 			if db.IsNotFound(err) {
-				return db.FindDeploymentWithEnvironmentAndAppRow{}, restate.TerminalError(fmt.Errorf("deployment not found"), 404)
+				return db.FindDeploymentWithEnvironmentAndAppRow{}, restate.ToTerminalError(fmt.Errorf("deployment not found"), restate.WithErrorCode(404))
 			}
 			return db.FindDeploymentWithEnvironmentAndAppRow{}, fmt.Errorf("load deployment: %w", err)
 		}

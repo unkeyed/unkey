@@ -1,5 +1,5 @@
 import type { AuditLogsQueryPayload } from "@/components/audit-logs-table/schema/audit-logs.schema";
-import { getTimestampFromRelative } from "@/lib/utils";
+import { getTimestampFromRelative } from "@/lib/duration";
 import type { AuditQueryLogsParams } from "./schema";
 
 export function transformFilters(

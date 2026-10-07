@@ -1,0 +1,15 @@
+-- name: ListUnkeyPermissionsByPrincipal :many
+-- ListUnkeyPermissionsByPrincipal loads permissions for exactly one principal
+-- and authorized workspace. The same ID under another type or workspace is excluded.
+SELECT slug FROM unkey_principal_permissions
+WHERE workspace_id = sqlc.arg(workspace_id)
+  AND principal_type = sqlc.arg(principal_type)
+  AND principal_id = sqlc.arg(principal_id);
+
+-- name: ListUnkeyPermissionRowsByPrincipal :many
+-- ListUnkeyPermissionRowsByPrincipal loads permission identities before a
+-- replacement so removed assignments retain their audit target IDs.
+SELECT id, slug FROM unkey_principal_permissions
+WHERE workspace_id = sqlc.arg(workspace_id)
+  AND principal_type = sqlc.arg(principal_type)
+  AND principal_id = sqlc.arg(principal_id);

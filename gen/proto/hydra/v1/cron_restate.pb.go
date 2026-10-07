@@ -51,13 +51,13 @@ type CronServiceClient interface {
 	// RunRatelimitGlobalCountersCleanup deletes expired rows from
 	// ratelimit_global_counters (cross-region propagation). Stateless;
 	// key is the fixed slug "ratelimit-global-counters-cleanup" so a
-	// paused/wedged invocation here cannot block the every-minute handlers.
+	// paused or stuck invocation here cannot block the every-minute handlers.
 	// Hourly schedule.
 	RunRatelimitGlobalCountersCleanup(opts ...sdk_go.ClientOption) sdk_go.Client[*RunRatelimitGlobalCountersCleanupRequest, *RunRatelimitGlobalCountersCleanupResponse]
 	// RunAuditLogOutboxCleanup hard-deletes already-exported clickhouse_outbox
 	// rows (deleted_at stamped) older than the retention window so the outbox
 	// stays bounded. Stateless; key is the fixed slug "audit-log-outbox-cleanup"
-	// so a paused/wedged invocation cannot block other handlers. Daily schedule.
+	// so a paused or stuck invocation cannot block other handlers. Daily schedule.
 	RunAuditLogOutboxCleanup(opts ...sdk_go.ClientOption) sdk_go.Client[*RunAuditLogOutboxCleanupRequest, *RunAuditLogOutboxCleanupResponse]
 	// RunDeployBillingPush computes month-to-date Deploy usage (CPU, memory,
 	// egress, disk, active keys) from ClickHouse, fans out one
@@ -95,6 +95,14 @@ type CronServiceClient interface {
 	// per-workspace work prices usage locally from ClickHouse, so the tight
 	// cadence costs no Stripe calls.
 	RunDeploySpendCheck(opts ...sdk_go.ClientOption) sdk_go.Client[*RunDeploySpendCheckRequest, *RunDeploySpendCheckResponse]
+	// RunBuildLimitSync keeps the build concurrency rules in Restate. Each rule
+	// caps how many invocations run at once for a scope and a limit key. This
+	// handler writes "builds/*" and one "builds/<workspace_id>" rule per
+	// workspace whose limits row is above the default, and deletes such a rule
+	// once the row is back at the default. Key is the fixed slug
+	// "build-limit-sync" so ticks serialize without sharing a queue with other
+	// singleton handlers
+	RunBuildLimitSync(opts ...sdk_go.ClientOption) sdk_go.Client[*RunBuildLimitSyncRequest, *RunBuildLimitSyncResponse]
 	// RunClickhouseUserReconcile reapplies workspace ClickHouse grants when the
 	// desired allowed-table fingerprint changes. Key is the fixed slug
 	// "clickhouse-user-reconcile" so Restate state survives worker releases.
@@ -203,6 +211,14 @@ func (c *cronServiceClient) RunDeploySpendCheck(opts ...sdk_go.ClientOption) sdk
 	return sdk_go.WithRequestType[*RunDeploySpendCheckRequest](sdk_go.Object[*RunDeploySpendCheckResponse](c.ctx, "hydra.v1.CronService", c.key, "RunDeploySpendCheck", cOpts...))
 }
 
+func (c *cronServiceClient) RunBuildLimitSync(opts ...sdk_go.ClientOption) sdk_go.Client[*RunBuildLimitSyncRequest, *RunBuildLimitSyncResponse] {
+	cOpts := c.options
+	if len(opts) > 0 {
+		cOpts = append(append([]sdk_go.ClientOption{}, cOpts...), opts...)
+	}
+	return sdk_go.WithRequestType[*RunBuildLimitSyncRequest](sdk_go.Object[*RunBuildLimitSyncResponse](c.ctx, "hydra.v1.CronService", c.key, "RunBuildLimitSync", cOpts...))
+}
+
 func (c *cronServiceClient) RunClickhouseUserReconcile(opts ...sdk_go.ClientOption) sdk_go.Client[*RunClickhouseUserReconcileRequest, *RunClickhouseUserReconcileResponse] {
 	cOpts := c.options
 	if len(opts) > 0 {
@@ -234,13 +250,13 @@ type CronServiceIngressClient interface {
 	// RunRatelimitGlobalCountersCleanup deletes expired rows from
 	// ratelimit_global_counters (cross-region propagation). Stateless;
 	// key is the fixed slug "ratelimit-global-counters-cleanup" so a
-	// paused/wedged invocation here cannot block the every-minute handlers.
+	// paused or stuck invocation here cannot block the every-minute handlers.
 	// Hourly schedule.
 	RunRatelimitGlobalCountersCleanup() ingress.Requester[*RunRatelimitGlobalCountersCleanupRequest, *RunRatelimitGlobalCountersCleanupResponse]
 	// RunAuditLogOutboxCleanup hard-deletes already-exported clickhouse_outbox
 	// rows (deleted_at stamped) older than the retention window so the outbox
 	// stays bounded. Stateless; key is the fixed slug "audit-log-outbox-cleanup"
-	// so a paused/wedged invocation cannot block other handlers. Daily schedule.
+	// so a paused or stuck invocation cannot block other handlers. Daily schedule.
 	RunAuditLogOutboxCleanup() ingress.Requester[*RunAuditLogOutboxCleanupRequest, *RunAuditLogOutboxCleanupResponse]
 	// RunDeployBillingPush computes month-to-date Deploy usage (CPU, memory,
 	// egress, disk, active keys) from ClickHouse, fans out one
@@ -278,6 +294,14 @@ type CronServiceIngressClient interface {
 	// per-workspace work prices usage locally from ClickHouse, so the tight
 	// cadence costs no Stripe calls.
 	RunDeploySpendCheck() ingress.Requester[*RunDeploySpendCheckRequest, *RunDeploySpendCheckResponse]
+	// RunBuildLimitSync keeps the build concurrency rules in Restate. Each rule
+	// caps how many invocations run at once for a scope and a limit key. This
+	// handler writes "builds/*" and one "builds/<workspace_id>" rule per
+	// workspace whose limits row is above the default, and deletes such a rule
+	// once the row is back at the default. Key is the fixed slug
+	// "build-limit-sync" so ticks serialize without sharing a queue with other
+	// singleton handlers
+	RunBuildLimitSync() ingress.Requester[*RunBuildLimitSyncRequest, *RunBuildLimitSyncResponse]
 	// RunClickhouseUserReconcile reapplies workspace ClickHouse grants when the
 	// desired allowed-table fingerprint changes. Key is the fixed slug
 	// "clickhouse-user-reconcile" so Restate state survives worker releases.
@@ -353,6 +377,11 @@ func (c *cronServiceIngressClient) RunDeploySpendCheck() ingress.Requester[*RunD
 	return ingress.NewRequester[*RunDeploySpendCheckRequest, *RunDeploySpendCheckResponse](c.client, c.serviceName, "RunDeploySpendCheck", &c.key, &codec)
 }
 
+func (c *cronServiceIngressClient) RunBuildLimitSync() ingress.Requester[*RunBuildLimitSyncRequest, *RunBuildLimitSyncResponse] {
+	codec := encoding.ProtoJSONCodec
+	return ingress.NewRequester[*RunBuildLimitSyncRequest, *RunBuildLimitSyncResponse](c.client, c.serviceName, "RunBuildLimitSync", &c.key, &codec)
+}
+
 func (c *cronServiceIngressClient) RunClickhouseUserReconcile() ingress.Requester[*RunClickhouseUserReconcileRequest, *RunClickhouseUserReconcileResponse] {
 	codec := encoding.ProtoJSONCodec
 	return ingress.NewRequester[*RunClickhouseUserReconcileRequest, *RunClickhouseUserReconcileResponse](c.client, c.serviceName, "RunClickhouseUserReconcile", &c.key, &codec)
@@ -398,13 +427,13 @@ type CronServiceServer interface {
 	// RunRatelimitGlobalCountersCleanup deletes expired rows from
 	// ratelimit_global_counters (cross-region propagation). Stateless;
 	// key is the fixed slug "ratelimit-global-counters-cleanup" so a
-	// paused/wedged invocation here cannot block the every-minute handlers.
+	// paused or stuck invocation here cannot block the every-minute handlers.
 	// Hourly schedule.
 	RunRatelimitGlobalCountersCleanup(ctx sdk_go.ObjectContext, req *RunRatelimitGlobalCountersCleanupRequest) (*RunRatelimitGlobalCountersCleanupResponse, error)
 	// RunAuditLogOutboxCleanup hard-deletes already-exported clickhouse_outbox
 	// rows (deleted_at stamped) older than the retention window so the outbox
 	// stays bounded. Stateless; key is the fixed slug "audit-log-outbox-cleanup"
-	// so a paused/wedged invocation cannot block other handlers. Daily schedule.
+	// so a paused or stuck invocation cannot block other handlers. Daily schedule.
 	RunAuditLogOutboxCleanup(ctx sdk_go.ObjectContext, req *RunAuditLogOutboxCleanupRequest) (*RunAuditLogOutboxCleanupResponse, error)
 	// RunDeployBillingPush computes month-to-date Deploy usage (CPU, memory,
 	// egress, disk, active keys) from ClickHouse, fans out one
@@ -442,6 +471,14 @@ type CronServiceServer interface {
 	// per-workspace work prices usage locally from ClickHouse, so the tight
 	// cadence costs no Stripe calls.
 	RunDeploySpendCheck(ctx sdk_go.ObjectContext, req *RunDeploySpendCheckRequest) (*RunDeploySpendCheckResponse, error)
+	// RunBuildLimitSync keeps the build concurrency rules in Restate. Each rule
+	// caps how many invocations run at once for a scope and a limit key. This
+	// handler writes "builds/*" and one "builds/<workspace_id>" rule per
+	// workspace whose limits row is above the default, and deletes such a rule
+	// once the row is back at the default. Key is the fixed slug
+	// "build-limit-sync" so ticks serialize without sharing a queue with other
+	// singleton handlers
+	RunBuildLimitSync(ctx sdk_go.ObjectContext, req *RunBuildLimitSyncRequest) (*RunBuildLimitSyncResponse, error)
 	// RunClickhouseUserReconcile reapplies workspace ClickHouse grants when the
 	// desired allowed-table fingerprint changes. Key is the fixed slug
 	// "clickhouse-user-reconcile" so Restate state survives worker releases.
@@ -456,40 +493,43 @@ type CronServiceServer interface {
 type UnimplementedCronServiceServer struct{}
 
 func (UnimplementedCronServiceServer) RunQuotaCheck(ctx sdk_go.ObjectContext, req *RunQuotaCheckRequest) (*RunQuotaCheckResponse, error) {
-	return nil, sdk_go.TerminalError(fmt.Errorf("method RunQuotaCheck not implemented"), 501)
+	return nil, sdk_go.ToTerminalError(fmt.Errorf("method RunQuotaCheck not implemented"), sdk_go.WithErrorCode(501))
 }
 func (UnimplementedCronServiceServer) RunKeyRefill(ctx sdk_go.ObjectContext, req *RunKeyRefillRequest) (*RunKeyRefillResponse, error) {
-	return nil, sdk_go.TerminalError(fmt.Errorf("method RunKeyRefill not implemented"), 501)
+	return nil, sdk_go.ToTerminalError(fmt.Errorf("method RunKeyRefill not implemented"), sdk_go.WithErrorCode(501))
 }
 func (UnimplementedCronServiceServer) RunKeyLastUsedSync(ctx sdk_go.ObjectContext, req *RunKeyLastUsedSyncRequest) (*RunKeyLastUsedSyncResponse, error) {
-	return nil, sdk_go.TerminalError(fmt.Errorf("method RunKeyLastUsedSync not implemented"), 501)
+	return nil, sdk_go.ToTerminalError(fmt.Errorf("method RunKeyLastUsedSync not implemented"), sdk_go.WithErrorCode(501))
 }
 func (UnimplementedCronServiceServer) RunAuditLogExport(ctx sdk_go.ObjectContext, req *RunAuditLogExportRequest) (*RunAuditLogExportResponse, error) {
-	return nil, sdk_go.TerminalError(fmt.Errorf("method RunAuditLogExport not implemented"), 501)
+	return nil, sdk_go.ToTerminalError(fmt.Errorf("method RunAuditLogExport not implemented"), sdk_go.WithErrorCode(501))
 }
 func (UnimplementedCronServiceServer) RunRatelimitGlobalCountersCleanup(ctx sdk_go.ObjectContext, req *RunRatelimitGlobalCountersCleanupRequest) (*RunRatelimitGlobalCountersCleanupResponse, error) {
-	return nil, sdk_go.TerminalError(fmt.Errorf("method RunRatelimitGlobalCountersCleanup not implemented"), 501)
+	return nil, sdk_go.ToTerminalError(fmt.Errorf("method RunRatelimitGlobalCountersCleanup not implemented"), sdk_go.WithErrorCode(501))
 }
 func (UnimplementedCronServiceServer) RunAuditLogOutboxCleanup(ctx sdk_go.ObjectContext, req *RunAuditLogOutboxCleanupRequest) (*RunAuditLogOutboxCleanupResponse, error) {
-	return nil, sdk_go.TerminalError(fmt.Errorf("method RunAuditLogOutboxCleanup not implemented"), 501)
+	return nil, sdk_go.ToTerminalError(fmt.Errorf("method RunAuditLogOutboxCleanup not implemented"), sdk_go.WithErrorCode(501))
 }
 func (UnimplementedCronServiceServer) RunDeployBillingPush(ctx sdk_go.ObjectContext, req *RunDeployBillingPushRequest) (*RunDeployBillingPushResponse, error) {
-	return nil, sdk_go.TerminalError(fmt.Errorf("method RunDeployBillingPush not implemented"), 501)
+	return nil, sdk_go.ToTerminalError(fmt.Errorf("method RunDeployBillingPush not implemented"), sdk_go.WithErrorCode(501))
 }
 func (UnimplementedCronServiceServer) RunScaleDownIdlePreviewDeployments(ctx sdk_go.ObjectContext, req *RunScaleDownIdlePreviewDeploymentsRequest) (*RunScaleDownIdlePreviewDeploymentsResponse, error) {
-	return nil, sdk_go.TerminalError(fmt.Errorf("method RunScaleDownIdlePreviewDeployments not implemented"), 501)
+	return nil, sdk_go.ToTerminalError(fmt.Errorf("method RunScaleDownIdlePreviewDeployments not implemented"), sdk_go.WithErrorCode(501))
 }
 func (UnimplementedCronServiceServer) RunDeployBillingClose(ctx sdk_go.ObjectContext, req *RunDeployBillingCloseRequest) (*RunDeployBillingCloseResponse, error) {
-	return nil, sdk_go.TerminalError(fmt.Errorf("method RunDeployBillingClose not implemented"), 501)
+	return nil, sdk_go.ToTerminalError(fmt.Errorf("method RunDeployBillingClose not implemented"), sdk_go.WithErrorCode(501))
 }
 func (UnimplementedCronServiceServer) CloseDeployBillingWorkspace(ctx sdk_go.ObjectContext, req *CloseDeployBillingWorkspaceRequest) (*CloseDeployBillingWorkspaceResponse, error) {
-	return nil, sdk_go.TerminalError(fmt.Errorf("method CloseDeployBillingWorkspace not implemented"), 501)
+	return nil, sdk_go.ToTerminalError(fmt.Errorf("method CloseDeployBillingWorkspace not implemented"), sdk_go.WithErrorCode(501))
 }
 func (UnimplementedCronServiceServer) RunDeploySpendCheck(ctx sdk_go.ObjectContext, req *RunDeploySpendCheckRequest) (*RunDeploySpendCheckResponse, error) {
-	return nil, sdk_go.TerminalError(fmt.Errorf("method RunDeploySpendCheck not implemented"), 501)
+	return nil, sdk_go.ToTerminalError(fmt.Errorf("method RunDeploySpendCheck not implemented"), sdk_go.WithErrorCode(501))
+}
+func (UnimplementedCronServiceServer) RunBuildLimitSync(ctx sdk_go.ObjectContext, req *RunBuildLimitSyncRequest) (*RunBuildLimitSyncResponse, error) {
+	return nil, sdk_go.ToTerminalError(fmt.Errorf("method RunBuildLimitSync not implemented"), sdk_go.WithErrorCode(501))
 }
 func (UnimplementedCronServiceServer) RunClickhouseUserReconcile(ctx sdk_go.ObjectContext, req *RunClickhouseUserReconcileRequest) (*RunClickhouseUserReconcileResponse, error) {
-	return nil, sdk_go.TerminalError(fmt.Errorf("method RunClickhouseUserReconcile not implemented"), 501)
+	return nil, sdk_go.ToTerminalError(fmt.Errorf("method RunClickhouseUserReconcile not implemented"), sdk_go.WithErrorCode(501))
 }
 func (UnimplementedCronServiceServer) testEmbeddedByValue() {}
 
@@ -521,6 +561,7 @@ func NewCronServiceServer(srv CronServiceServer, opts ...sdk_go.ServiceDefinitio
 	router = router.Handler("RunDeployBillingClose", sdk_go.NewObjectHandler(srv.RunDeployBillingClose))
 	router = router.Handler("CloseDeployBillingWorkspace", sdk_go.NewObjectHandler(srv.CloseDeployBillingWorkspace))
 	router = router.Handler("RunDeploySpendCheck", sdk_go.NewObjectHandler(srv.RunDeploySpendCheck))
+	router = router.Handler("RunBuildLimitSync", sdk_go.NewObjectHandler(srv.RunBuildLimitSync))
 	router = router.Handler("RunClickhouseUserReconcile", sdk_go.NewObjectHandler(srv.RunClickhouseUserReconcile))
 	return router
 }

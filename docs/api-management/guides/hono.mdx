@@ -1,0 +1,189 @@
+---
+title: Hono guide
+sidebarTitle: "Hono"
+description: "Protect Hono routes with API keys."
+sources:
+  - svc/api/openapi/spec/paths/v2/apis/createApi/V2ApisCreateApiRequestBody.yaml
+  - svc/api/openapi/spec/paths/v2/apis/createApi/V2ApisCreateApiResponseData.yaml
+  - pkg/rbac/permissions.go
+  - svc/api/openapi/spec/paths/v2/keys/createKey/V2KeysCreateKeyRequestBody.yaml
+  - svc/api/openapi/spec/paths/v2/keys/createKey/V2KeysCreateKeyResponseData.yaml
+  - svc/api/openapi/spec/paths/v2/keys/verifyKey/V2KeysVerifyKeyRequestBody.yaml
+  - svc/api/openapi/spec/paths/v2/keys/verifyKey/V2KeysVerifyKeyResponseData.yaml
+  - web/internal/api/src/sdk/keys.ts
+  - web/internal/api/src/models/components/v2keysverifykeyresponsedata.ts
+  - https://github.com/unkeyed/sdks/blob/3bb124498270d8aff36e358dc2e0010e9991869a/api/ts/README.md
+  - https://github.com/unkeyed/sdks/blob/3bb124498270d8aff36e358dc2e0010e9991869a/hono/README.md
+---
+import RootKeyPrereq from "/snippets/root-key-prereq.mdx";
+import { versions } from "/snippets/versions.mdx";
+
+Protect Hono routes with API keys. The code works on Node, Bun, Deno, and Cloudflare Workers. Only how you read the root key changes. Use the `@unkey/hono` middleware to have verification handled for you, or write a few lines with `@unkey/api` to control every response.
+
+<RootKeyPrereq />
+
+<Steps titleSize="h3">
+  <Step title="Create a root key and a keyspace">
+    In the dashboard, go to **Settings > Root Keys** and create a root key with `api.*.create_api`, `api.*.create_key`, and `api.*.verify_key`. Put it in your server's `UNKEY_ROOT_KEY` environment variable. Never send it to a browser or mobile app.
+
+    Then create a keyspace, which holds your keys. Use **Keyspaces (APIs)** in the dashboard, or `apis.createApi`:
+
+    ```bash create a keyspace
+    curl -X POST https://api.unkey.com/v2/apis.createApi \
+      -H "Authorization: Bearer $UNKEY_ROOT_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{ "name": "my-api" }'
+    ```
+
+    Keep the `data.apiId` from the response. You need it to create keys. See [Root keys](/platform/root-keys/overview) for more on root keys.
+  </Step>
+  <Step title="Install the SDK">
+    `@unkey/hono` (version {versions.tsHono}) is the middleware. `@unkey/api` (version {versions.tsApi}) is the client for creating keys and for the hand-written version.
+
+    <CodeGroup>
+    ```bash npm
+    npm install hono @unkey/hono @unkey/api
+    ```
+    ```bash bun
+    bun add hono @unkey/hono @unkey/api
+    ```
+    </CodeGroup>
+  </Step>
+  <Step title="Create a key for a user">
+    Create a key from your backend when a user signs up or asks for one. `externalId` links the key to the user, so verification tells you who's calling. `meta` comes back on every verification. You get `data.key` only once: show it to the user and store only `data.keyId`.
+
+    <CodeGroup>
+    ```bash curl
+    curl -X POST https://api.unkey.com/v2/keys.createKey \
+      -H "Authorization: Bearer $UNKEY_ROOT_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{ "apiId": "api_...", "prefix": "sk_live", "externalId": "user_123", "meta": { "plan": "free" } }'
+    ```
+    ```ts TypeScript
+    import { Unkey } from "@unkey/api";
+
+    const unkey = new Unkey({ rootKey: process.env.UNKEY_ROOT_KEY ?? "" });
+
+    const created = await unkey.keys.createKey({
+      apiId: process.env.UNKEY_API_ID ?? "",
+      prefix: "sk_live",
+      externalId: "user_123",
+      meta: { plan: "free" },
+    });
+    // created.data.key is the plaintext, created.data.keyId the handle you keep
+    ```
+    </CodeGroup>
+
+    Every field is described in [Creating keys](/api-management/keys/creating-keys).
+  </Step>
+  <Step title="Verify the key in a middleware">
+    With `@unkey/hono`, the `unkey()` middleware reads the bearer token, <Tooltip tip="Here: keys.verifyKey checking a key your user presented. Not domain verification and not the gateway policy.">verifies</Tooltip> it, and stores the result in the `unkey` context variable. `handleInvalidKey` decides the response for a bad key.
+
+    `onError` only runs for unexpected responses, such as a 502 from a proxy. A rejected root key, a throttled request, a 500, or a network failure is thrown instead, so catch those in Hono's `app.onError` if you want one response for every authentication failure.
+
+    <CodeGroup>
+    ```ts src/index.ts (@unkey/hono)
+    import { Hono } from "hono";
+    import { type UnkeyContext, unkey } from "@unkey/hono";
+
+    const app = new Hono<{ Variables: { unkey: UnkeyContext } }>();
+
+    app.use(
+      "/items/*",
+      unkey({
+        rootKey: process.env.UNKEY_ROOT_KEY ?? "",
+        handleInvalidKey: (c) => c.json({ error: "invalid API key" }, 401),
+        onError: (c, err) => {
+          console.error("unkey", err.message);
+          return c.json({ error: "authentication unavailable" }, 503);
+        },
+      }),
+    );
+
+    app.get("/items/list", (c) => {
+      const verification = c.get("unkey");
+      return c.json({ items: [], owner: verification.data.identity?.externalId });
+    });
+
+    export default app;
+    ```
+    ```ts src/index.ts (@unkey/api)
+    import { Hono } from "hono";
+    import { Unkey } from "@unkey/api";
+    import * as errors from "@unkey/api/models/errors";
+    import type {
+      V2KeysVerifyKeyResponseBody,
+      V2KeysVerifyKeyResponseData,
+    } from "@unkey/api/models/components";
+
+    const unkey = new Unkey({ rootKey: process.env.UNKEY_ROOT_KEY ?? "" });
+    const app = new Hono<{ Variables: { unkey: V2KeysVerifyKeyResponseData } }>();
+
+    app.use("/items/*", async (c, next) => {
+      const auth = c.req.header("authorization") ?? "";
+      const key = auth.startsWith("Bearer ") ? auth.slice("Bearer ".length) : "";
+      if (!key) return c.json({ error: "missing API key" }, 401);
+
+      let result: V2KeysVerifyKeyResponseBody;
+      try {
+        result = await unkey.keys.verifyKey({ key });
+      } catch (err) {
+        if (err instanceof errors.UnkeyError) console.error("unkey", err.statusCode, err.message);
+        return c.json({ error: "authentication unavailable" }, 503);
+      }
+
+      if (!result.data.valid) {
+        return c.json({ error: result.data.code }, statusFor(result.data.code));
+      }
+      c.set("unkey", result.data);
+      await next();
+    });
+
+    app.get("/items/list", (c) => c.json({ items: [], owner: c.get("unkey").identity?.externalId }));
+
+    function statusFor(code: string): 401 | 402 | 403 | 429 {
+      switch (code) {
+        case "RATE_LIMITED":
+          return 429;
+        case "USAGE_EXCEEDED":
+          return 402;
+        case "FORBIDDEN":
+        case "INSUFFICIENT_PERMISSIONS":
+          return 403;
+        default:
+          return 401;
+      }
+    }
+
+    export default app;
+    ```
+    </CodeGroup>
+
+    Keep `next()` outside the `try`. Otherwise an error in a route handler is caught here and answered as an authentication failure.
+
+    The middleware also takes `permissions` (a permission query every key must pass), `tags`, and `getKey` (for keys sent somewhere other than the `Authorization` header).
+  </Step>
+  <Step title="Handle the outcome codes">
+    `keys.verifyKey` returns HTTP 200 for every outcome. Check `data.valid`, then `data.code` for the reason, and return the matching status from your API:
+
+    | `data.code` | Meaning | Return |
+    | --- | --- | --- |
+    | `VALID` | Every check passed. | continue |
+    | `NOT_FOUND` | No such key, or your root key may not verify this keyspace. | 401 |
+    | `DISABLED` | The key was disabled. | 401 |
+    | `EXPIRED` | The key's expiry passed. | 401 |
+    | `FORBIDDEN` | Client IP not on the keyspace allow list, or the workspace is disabled. | 403 |
+    | `INSUFFICIENT_PERMISSIONS` | The `permissions` query was not satisfied. | 403 |
+    | `RATE_LIMITED` | A <Tooltip tip="Here: limits enforced by keys.verifyKey on a key or identity, or by the standalone ratelimit API. Not a Compute gateway policy.">rate limit</Tooltip> on the key or its identity was exceeded. | 429 |
+    | `USAGE_EXCEEDED` | The key has no credits left. | 402 or 429 |
+
+    Remaining credits are in `data.credits`, and each checked rate limit is in `data.ratelimits` with `remaining` and `reset`. The call only fails with an HTTP error (which the SDKs throw) when the call itself is wrong, such as a bad root key or a malformed body. See [Verifying keys](/api-management/keys/verifying-keys) for every field.
+  </Step>
+  <Step title="Next steps">
+    <Columns cols={2}>
+      <Card title="Verifying keys" href="/api-management/keys/verifying-keys" icon="key">Every request field, the order of checks, and every response field.</Card>
+      <Card title="Credits and refill" href="/api-management/keys/credits-and-refill" icon="coins">Meter usage per key and refill balances on a schedule.</Card>
+      <Card title="Cookbook" href="/api-management/cookbook/index" icon="book">Copy-ready recipes for rate limits, billing, and subscription tiers.</Card>
+    </Columns>
+  </Step>
+</Steps>

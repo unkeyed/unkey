@@ -1,0 +1,47 @@
+---
+title: "identity_not_found"
+sidebarTitle: "identity_not_found"
+description: "The identity does not exist in your workspace."
+sources:
+  - pkg/codes/unkey_data.go
+  - svc/api/internal/middleware/errors.go
+  - svc/api/routes/v2_identities_get_identity/handler.go
+  - svc/api/routes/v2_identities_update_identity/handler.go
+  - svc/api/routes/v2_keys_create_key/handler.go
+---
+
+<Danger>`err:unkey:data:identity_not_found`</Danger>
+
+The identity you referenced doesn't exist in your workspace. You get HTTP 404.
+
+```json Example response
+{
+  "meta": {
+    "requestId": "req_2c9a0jf23l4k567"
+  },
+  "error": {
+    "detail": "This identity does not exist.",
+    "status": 404,
+    "title": "Not Found",
+    "type": "/errors/unkey/data/identity_not_found"
+  }
+}
+```
+
+## Likely causes
+
+- You attached a key to an `externalId` before creating the identity.
+- The ID or `externalId` has a typo or a case difference. `externalId` is matched exactly.
+- On `keys.createKey`, `keys.updateKey`, or `keys.migrateKeys`, the identity is in a different project from the keyspace.
+- Your root key doesn't have permission. `identities.updateIdentity` and `identities.deleteIdentity` return this 404 instead of a 403.
+
+## How to fix
+
+1. Create the identity with `identities.createIdentity` before you attach keys to it.
+2. Check the `externalId` for typos and case. `identities.listIdentities` shows what exists.
+3. On `identities.updateIdentity` or `identities.deleteIdentity`, check the root key's permissions before you decide the identity is gone.
+
+## Related errors
+
+- [`err:unkey:data:identity_already_exists`](/errors/unkey/data/identity_already_exists): an identity with that `externalId` already exists.
+- [`err:unkey:data:key_not_found`](/errors/unkey/data/key_not_found): the key doesn't exist.

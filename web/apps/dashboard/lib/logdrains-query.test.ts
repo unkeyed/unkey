@@ -15,6 +15,22 @@ afterEach(() => {
   vi.resetAllMocks();
 });
 
+it("does not load drains when the limits page is disabled", async () => {
+  api.listLogdrains.mockResolvedValue({ data: [], pagination: { hasMore: false } });
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const wrapper = ({ children }: PropsWithChildren) =>
+    createElement(QueryClientProvider, { client }, children);
+  const { result, rerender } = renderHook(({ enabled }) => useLogdrains({ enabled }), {
+    wrapper,
+    initialProps: { enabled: false },
+  });
+  expect(result.current.fetchStatus).toBe("idle");
+  expect(api.listLogdrains).not.toHaveBeenCalled();
+  rerender({ enabled: true });
+  await waitFor(() => expect(result.current.data).toEqual([]));
+  client.clear();
+});
+
 it("loads every page before exposing the workspace drain count", async () => {
   api.listLogdrains
     .mockResolvedValueOnce({

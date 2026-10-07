@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_gateway_update_policy"
@@ -44,7 +43,7 @@ func TestUpdatePolicyForbidden(t *testing.T) {
 			headers := authHeaders(rootKey)
 
 			req := makeRequest(env, ids[0])
-			req.Name = ptr.P("KEBAP")
+			req.Name = new("KEBAP")
 			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 			if tc.shouldPass {
 				require.Equal(t, 200, res.Status, "expected 200 for %v, got: %s", tc.permissions, res.RawBody)

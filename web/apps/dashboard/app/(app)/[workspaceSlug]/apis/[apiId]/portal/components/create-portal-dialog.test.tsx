@@ -62,7 +62,6 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock("@/lib/portal/use-portal", () => ({
   useCreatePortal: () => ({ mutateAsync: mocks.mutateAsync }),
-  portalQueryKey: (keyAuthId: string) => ["portal", keyAuthId],
 }));
 
 vi.mock("@/lib/portal/client", () => ({

@@ -1,7 +1,7 @@
 "use client";
 
-import { cn } from "@/lib/utils";
 import { IconPlusOutline12 } from "@unkey/icons";
+import { cn } from "cn";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { useId } from "react";
@@ -17,7 +17,7 @@ export function UsagePanel({ summary }: { summary: UsageSummary }) {
   const bodyId = useId();
 
   return (
-    <div className="relative overflow-hidden rounded-lg border border-grayA-4">
+    <div className="relative overflow-hidden rounded-lg border">
       {folded ? null : (
         <Link
           href={summary.href}
@@ -27,7 +27,7 @@ export function UsagePanel({ summary }: { summary: UsageSummary }) {
       )}
       <div
         className={cn(
-          "pointer-events-none relative flex items-center gap-2 text-[11px]",
+          "pointer-events-none relative flex items-center gap-2 text-2xs",
           !folded && "px-2.5 pt-2 pb-1.5",
         )}
       >
@@ -42,7 +42,7 @@ export function UsagePanel({ summary }: { summary: UsageSummary }) {
             className={cn(
               "pointer-events-auto flex items-center rounded text-gray-9 hover:text-gray-12",
               folded
-                ? "w-full gap-2 px-2.5 pt-2 pb-1.5 text-left text-[11px] transition-colors hover:bg-grayA-2"
+                ? "w-full gap-2 px-2.5 pt-2 pb-1.5 text-left text-2xs transition-colors hover:bg-grayA-2"
                 : "-mr-1 ml-auto size-5 justify-center",
             )}
           >

@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_projects_list_projects"
@@ -30,9 +29,9 @@ func TestListProjectsBadRequest(t *testing.T) {
 		name string
 		req  handler.Request
 	}{
-		{name: "limit below minimum", req: handler.Request{Limit: ptr.P(0)}},
-		{name: "limit above maximum", req: handler.Request{Limit: ptr.P(101)}},
-		{name: "search above max length", req: handler.Request{Search: ptr.P(strings.Repeat("a", 257))}},
+		{name: "limit below minimum", req: handler.Request{Limit: new(0)}},
+		{name: "limit above maximum", req: handler.Request{Limit: new(101)}},
+		{name: "search above max length", req: handler.Request{Search: new(strings.Repeat("a", 257))}},
 	}
 
 	for _, tc := range testCases {

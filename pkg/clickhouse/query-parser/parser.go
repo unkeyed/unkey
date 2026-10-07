@@ -110,6 +110,7 @@ func (p *Parser) Parse(ctx context.Context, query string) (string, error) {
 	}
 
 	// Qualify every injected predicate with its rewritten physical source.
+	p.injectSecurityScopes()
 	p.injectSecurityFilters()
 	p.injectWorkspaceFilter()
 

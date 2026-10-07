@@ -18,7 +18,8 @@ import (
 func (s *Service) Encrypt(
 	ctx context.Context,
 	req *connect.Request[vaultv1.EncryptRequest],
-) (*connect.Response[vaultv1.EncryptResponse], error) {
+) (_ *connect.Response[vaultv1.EncryptResponse], err error) {
+	defer func() { observeOperation("encrypt", err) }()
 	if err := s.authenticate(req); err != nil {
 		return nil, err
 	}

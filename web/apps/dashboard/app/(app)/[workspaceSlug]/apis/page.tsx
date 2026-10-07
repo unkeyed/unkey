@@ -1,5 +1,4 @@
 "use client";
-import { PostAuthInvitationHandler } from "@/components/auth/post-auth-invitation-handler";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import {
   PageBody,
@@ -21,7 +20,6 @@ export default function ApisOverviewPage() {
 
   return (
     <PageContainer>
-      <PostAuthInvitationHandler />
       <PageHeader>
         <PageHeaderContent>
           <PageHeaderTitle>Keyspaces</PageHeaderTitle>

@@ -1,0 +1,11 @@
+type: string
+enum:
+  - stdout
+  - stderr
+x-enum-varnames:
+  - BuildLogOutputStdout
+  - BuildLogOutputStderr
+description: |
+  The output stream a build log entry was printed to. Many tools write progress
+  and warnings to `stderr`, so `stderr` does not mean that the step failed.
+example: stdout

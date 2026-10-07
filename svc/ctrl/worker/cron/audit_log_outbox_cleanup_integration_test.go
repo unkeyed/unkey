@@ -13,10 +13,6 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
-// The cron handler keeps exported rows for 30 days before sweeping them, so
-// the test seeds deleted_at offsets safely on either side of that boundary.
-const cleanupRetention = 30 * 24 * time.Hour
-
 // seededRow identifies a clickhouse_outbox row by its (unique) workspace and
 // event id so the test can look it up via ListClickhouseOutboxByWorkspace.
 type seededRow struct {
@@ -30,9 +26,9 @@ func TestRunAuditLogOutboxCleanup_Integration(t *testing.T) {
 	now := time.Now()
 
 	// stale: exported well before the retention cutoff -> must be deleted.
-	stale := seedExportedRow(t, h, now.Add(-(cleanupRetention + 10*24*time.Hour)).UnixMilli())
+	stale := seedExportedRow(t, h, now.Add(-8*24*time.Hour).UnixMilli())
 	// recent: exported within the retention window -> must survive.
-	recent := seedExportedRow(t, h, now.Add(-10*24*time.Hour).UnixMilli())
+	recent := seedExportedRow(t, h, now.Add(-6*24*time.Hour).UnixMilli())
 	// pending: never exported (deleted_at IS NULL) -> must survive.
 	pending := seedPendingRow(t, h)
 

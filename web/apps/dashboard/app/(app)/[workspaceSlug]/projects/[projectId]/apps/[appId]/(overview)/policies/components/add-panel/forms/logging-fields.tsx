@@ -22,8 +22,8 @@ function CaptureToggle({
   return (
     <div className="flex items-center justify-between gap-4">
       <div className="flex flex-col gap-1">
-        <span className="text-[13px] text-gray-12">{label}</span>
-        <span className="text-[12px] text-gray-10">{description}</span>
+        <span className="text-sm text-gray-12">{label}</span>
+        <span className="text-xs text-gray-10">{description}</span>
       </div>
       <Switch
         size="sm"
@@ -39,7 +39,7 @@ function CaptureToggle({
 export function LoggingFields() {
   return (
     <div className="flex flex-col gap-4">
-      <div className="text-gray-11 text-[13px] leading-5">
+      <div className="text-gray-11 text-sm leading-5">
         The gateway always logs the method, host, path, status, and latency of each request. This
         policy adds more data for matched requests. If you set no match conditions, the policy
         applies to all requests. The gateway always redacts sensitive headers such as{" "}

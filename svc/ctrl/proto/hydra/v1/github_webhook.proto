@@ -18,7 +18,7 @@ service GitHubWebhookService {
 
   // HandlePush processes a GitHub push event: looks up the repo connections,
   // matches each app's watch paths against the changed files, then calls
-  // DeployService.Create once per app to write the row and start it.
+  // DeployWorkflow.Create once per app to write the row and start it.
   rpc HandlePush(HandlePushRequest) returns (HandlePushResponse) {}
 }
 

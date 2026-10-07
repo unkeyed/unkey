@@ -26,8 +26,8 @@ var ctrlCodes = map[connect.Code]codes.URN{
 // between that read and ctrl's re-check. Anything ctrl does not raise through a gate
 // falls through to [ctrlclient.HandleError].
 func MapCtrlError(err error, action string) error {
-	var connectErr *connect.Error
-	if !errors.As(err, &connectErr) {
+	connectErr, ok := errors.AsType[*connect.Error](err)
+	if !ok {
 		return ctrlclient.HandleError(err, action)
 	}
 

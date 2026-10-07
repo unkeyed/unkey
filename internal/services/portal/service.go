@@ -18,7 +18,6 @@ type SessionInfo struct {
 	WorkspaceID string
 	ExternalID  string
 	PortalID    string
-	Preview     bool
 
 	// KeyspaceIDs scopes the session's key capabilities to a set of keyspaces.
 	KeyspaceIDs []string

@@ -22,6 +22,17 @@ const httpDrain = {
 } satisfies Partial<DrainFormValues>;
 
 describe("createDrainSchema", () => {
+  it("accepts HEC in both destination forms", () => {
+    for (const schema of [createDrainSchema, editDrainSchema]) {
+      const result = schema.parse({
+        ...emptyDrainForm,
+        ...httpDrain,
+        format: "hec",
+      });
+      expect(result.format).toBe("hec");
+    }
+  });
+
   it.each([createDrainSchema, editDrainSchema])(
     "rejects an empty runtime selection without using gateway sources",
     (schema) => {

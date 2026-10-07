@@ -1,8 +1,8 @@
-import { cn } from "@/lib/utils";
-import { Card } from "../../components/card";
+import { Card, Skeleton } from "@unkey/ui";
+import { cn } from "cn";
 
 function Bar({ className }: { className?: string }) {
-  return <div className={cn("bg-grayA-3 rounded animate-pulse", className)} />;
+  return <Skeleton className={cn("rounded", className)} />;
 }
 
 const METADATA_CELLS = ["status", "region", "resources", "instances", "source", "created"];
@@ -10,7 +10,7 @@ const METADATA_CELLS = ["status", "region", "resources", "instances", "source", 
 export function AppProductionCardSkeleton() {
   return (
     <Card className="flex flex-col">
-      <div className="flex items-center justify-between gap-4 px-4 py-3 border-b border-gray-4">
+      <div className="flex items-center justify-between gap-4 px-4 py-3 border-b">
         <Bar className="h-4 w-40" />
         <div className="flex items-center gap-2">
           <Bar className="h-7 w-16 rounded-md" />
@@ -20,7 +20,7 @@ export function AppProductionCardSkeleton() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2">
-        <div className="p-4 md:border-r border-gray-4 flex flex-col gap-3">
+        <div className="p-4 md:border-r flex flex-col gap-3">
           <div className="flex items-baseline justify-between">
             <Bar className="h-7 w-24" />
             <Bar className="h-4 w-12" />

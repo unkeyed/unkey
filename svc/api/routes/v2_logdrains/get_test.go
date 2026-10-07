@@ -23,7 +23,7 @@ func TestGetReturnsSecretSafeConfig(t *testing.T) {
 	config, err := proto.Marshal(&logdrainv1.Config{
 		BatchSize: 73,
 		Destination: &logdrainv1.Config_Http{Http: &logdrainv1.HttpConfig{
-			Url: "https://logs.example.com/ingest", Format: logdrainv1.HttpBodyFormat_HTTP_BODY_FORMAT_NDJSON,
+			Url: "https://logs.example.com/ingest", Format: logdrainv1.HttpBodyFormat_HTTP_BODY_FORMAT_HEC,
 			Headers: []*logdrainv1.HttpHeader{{Name: "Authorization", EncryptedValue: "must-not-leak"}},
 		}},
 		Stream: &logdrainv1.Config_Ratelimits{Ratelimits: &logdrainv1.RatelimitStreamConfig{NamespaceIds: []string{"ns_1"}, Passed: []bool{false}}},
@@ -45,7 +45,7 @@ func TestGetReturnsSecretSafeConfig(t *testing.T) {
 	require.NotNil(t, response.Body.Data.Destination.Http)
 	require.Nil(t, response.Body.Data.Destination.Axiom)
 	require.Equal(t, "https://logs.example.com/ingest", response.Body.Data.Destination.Http.Url)
-	require.Equal(t, openapi.LogdrainDestinationHttpFormat("ndjson"), response.Body.Data.Destination.Http.Format)
+	require.Equal(t, openapi.LogdrainDestinationHttpFormat("hec"), response.Body.Data.Destination.Http.Format)
 	require.Equal(t, []string{"Authorization"}, response.Body.Data.Destination.Http.Headers)
 	require.Zero(t, response.Body.Data.ConsecutiveFailures)
 	require.Zero(t, response.Body.Data.CommittedOffsetInsertedAt)
