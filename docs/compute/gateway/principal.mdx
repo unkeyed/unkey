@@ -1,0 +1,187 @@
+---
+title: The principal header
+sidebarTitle: "Principal header"
+description: "The X-Unkey-Principal header your app receives after the gateway verifies a key."
+sources:
+  - svc/frontline/internal/policies/principal/principal.go
+  - svc/frontline/internal/policies/engine.go
+  - svc/frontline/routes/proxy/handler.go
+  - svc/frontline/middleware/sanitize_headers.go
+  - svc/frontline/internal/proxy/headers.go
+  - svc/frontline/proto/frontline/policies/v1/policy.proto
+---
+
+When an [API key authentication policy](/compute/gateway/api-key-auth) <Tooltip tip="Key verification: the same checks keys.verifyKey runs, performed by the gateway. Not domain verification.">verifies</Tooltip> a key, the [gateway](/compute/gateway/overview) tells your <Tooltip tip="A Compute app: a deployable service inside a project. Not 'your application' in general.">app</Tooltip> who's calling in the `X-Unkey-Principal` request header, as JSON. Your code reads this one header instead of calling Unkey. If the header is missing, no key was verified for that request.
+
+## What's in the header
+
+```json
+{
+  "version": "v1",
+  "subject": "user_123",
+  "type": "API_KEY",
+  "identity": {
+    "externalId": "user_123",
+    "meta": { "plan": "pro" }
+  },
+  "source": {
+    "key": {
+      "keyId": "key_2ZSM3h",
+      "keySpaceId": "ks_1234abcd",
+      "name": "production laptop",
+      "expiresAt": 1767225600000,
+      "credits": 41,
+      "meta": { "region": "eu" },
+      "roles": ["editor"],
+      "permissions": ["documents.read", "documents.write"]
+    }
+  }
+}
+```
+
+<ResponseField name="version" type="string" required>
+  Format version, currently `v1`. It only changes if a field is removed, renamed, or changes type. New optional fields can appear without a version change, so ignore fields you don't know.
+</ResponseField>
+
+<ResponseField name="subject" type="string" required>
+  Who's calling. For a key linked to an identity, it's the identity's `externalId`, so all keys of one identity share it. Otherwise it's the key ID.
+</ResponseField>
+
+<ResponseField name="type" type="string" required>
+  How the caller authenticated. Always `API_KEY` today. Treat any other value as unknown.
+</ResponseField>
+
+<ResponseField name="identity" type="object">
+  The identity the key is linked to. Left out when the key has none. `externalId` is the ID you assigned, and `meta` is the identity's metadata (`{}` when empty).
+</ResponseField>
+
+<ResponseField name="source.key" type="object" required>
+  The verified key.
+
+  - `keyId` and `keySpaceId`: always present.
+  - `name`: left out when the key has no name.
+  - `expiresAt`: Unix milliseconds, left out when the key doesn't expire. Always in the future, because expired keys are rejected.
+  - `credits`: credits left after this request. Left out for unlimited keys, so `0` means this request used the last one.
+  - `meta`: the key's metadata (`{}` when empty).
+  - `roles` and `permissions`: the key's roles and permissions, left out when empty. The policy's permission query has already passed, so use these for finer checks in your app.
+</ResponseField>
+
+## Read it in your app
+
+Parse the header as JSON, and expect optional fields to be missing.
+
+<CodeGroup>
+
+```ts Hono
+import { Hono } from "hono";
+
+type Principal = {
+  version: string;
+  subject: string;
+  type: "API_KEY" | string;
+  identity?: { externalId: string; meta: Record<string, unknown> };
+  source: {
+    key?: {
+      keyId: string;
+      keySpaceId: string;
+      name?: string;
+      expiresAt?: number;
+      credits?: number;
+      meta: Record<string, unknown>;
+      roles?: string[];
+      permissions?: string[];
+    };
+  };
+};
+
+const app = new Hono<{ Variables: { principal: Principal } }>();
+
+app.use("*", async (c, next) => {
+  const raw = c.req.header("x-unkey-principal");
+  if (!raw) {
+    return c.json({ error: "unauthenticated" }, 401);
+  }
+  c.set("principal", JSON.parse(raw) as Principal);
+  await next();
+});
+
+app.get("/documents", (c) => {
+  const principal = c.get("principal");
+  if (!principal.source.key?.permissions?.includes("documents.read")) {
+    return c.json({ error: "forbidden" }, 403);
+  }
+  return c.json({ owner: principal.subject });
+});
+```
+
+```ts Next.js route handler
+import { NextRequest, NextResponse } from "next/server";
+
+export async function GET(req: NextRequest) {
+  const raw = req.headers.get("x-unkey-principal");
+  if (!raw) {
+    return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
+  }
+  const principal = JSON.parse(raw);
+  return NextResponse.json({ owner: principal.subject, plan: principal.identity?.meta?.plan });
+}
+```
+
+```go Go net/http
+type Principal struct {
+	Version  string `json:"version"`
+	Subject  string `json:"subject"`
+	Type     string `json:"type"`
+	Identity *struct {
+		ExternalID string         `json:"externalId"`
+		Meta       map[string]any `json:"meta"`
+	} `json:"identity,omitempty"`
+	Source struct {
+		Key *struct {
+			KeyID       string         `json:"keyId"`
+			KeySpaceID  string         `json:"keySpaceId"`
+			Name        *string        `json:"name,omitempty"`
+			ExpiresAt   *int64         `json:"expiresAt,omitempty"`
+			Credits     *int64         `json:"credits,omitempty"`
+			Meta        map[string]any `json:"meta"`
+			Roles       []string       `json:"roles,omitempty"`
+			Permissions []string       `json:"permissions,omitempty"`
+		} `json:"key,omitempty"`
+	} `json:"source"`
+}
+
+func handler(w http.ResponseWriter, r *http.Request) {
+	raw := r.Header.Get("X-Unkey-Principal")
+	if raw == "" {
+		http.Error(w, "unauthenticated", http.StatusUnauthorized)
+		return
+	}
+	var p Principal
+	if err := json.Unmarshal([]byte(raw), &p); err != nil {
+		http.Error(w, "bad principal", http.StatusBadRequest)
+		return
+	}
+	fmt.Fprintf(w, "hello %s", p.Subject)
+}
+```
+
+</CodeGroup>
+
+## Why you can trust it
+
+The header isn't signed, but callers can't fake it. The gateway removes any `X-Unkey-*` header a client sends, and only then sets `X-Unkey-Principal`. Compute deployments can only be reached through the gateway, so inside your app the header is always real. If you run the same code somewhere else, for example during [local development](/compute/gateway/local-development), anyone who can reach it can send a fake header.
+
+If several API key policies match a request, the first one that succeeds sets the principal.
+
+You can rate limit by the principal: `authenticatedSubject` counts by `subject`, and `principalField` counts by a field such as `source.key.meta.org_id`. Only string values work. See [Rate limit policy](/compute/gateway/rate-limiting).
+
+## Next steps
+
+<Columns cols={2}>
+  <Card title="Local development with the gateway" icon="laptop-code" href="/compute/gateway/local-development">
+    Send the header yourself while developing.
+  </Card>
+  <Card title="API key authentication policy" icon="key" href="/compute/gateway/api-key-auth">
+    The policy that produces the principal.
+  </Card>
+</Columns>

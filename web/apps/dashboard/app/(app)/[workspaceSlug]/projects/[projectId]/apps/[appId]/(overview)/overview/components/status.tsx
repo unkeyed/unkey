@@ -1,17 +1,11 @@
+import {
+  DEPLOYMENT_GROUP_COLOR,
+  DEPLOYMENT_STATUS_LABELS,
+  isDeploymentInFlight,
+} from "@/lib/collections/deploy/deployment-status";
 import type { Deployment } from "@/lib/collections/deploy/deployments";
-import { cn } from "@/lib/utils";
 
 export type DeploymentDisplayStatus = "live" | "deploying" | "crashing" | "failed" | "stopped";
-
-const DEPLOYING_STATUSES = new Set([
-  "pending",
-  "starting",
-  "building",
-  "deploying",
-  "network",
-  "finalizing",
-  "awaiting_approval",
-]);
 
 export function deriveProductionStatus(deployment: Deployment): DeploymentDisplayStatus {
   if (deployment.status === "stopped") {
@@ -26,21 +20,19 @@ export function deriveProductionStatus(deployment: Deployment): DeploymentDispla
   if (crashing) {
     return "crashing";
   }
-  if (DEPLOYING_STATUSES.has(deployment.status)) {
+  if (isDeploymentInFlight(deployment.status) || deployment.status === "awaiting_approval") {
     return "deploying";
   }
   return "live";
 }
 
 export const STATUS_META: Record<DeploymentDisplayStatus, { label: string; dotClass: string }> = {
-  live: { label: "Live", dotClass: "bg-success-9" },
-  deploying: { label: "Deploying", dotClass: "bg-info-9" },
-  crashing: { label: "Crashing", dotClass: "bg-error-9" },
-  failed: { label: "Failed", dotClass: "bg-error-9" },
-  stopped: { label: "Stopped", dotClass: "bg-gray-9" },
+  live: { label: "Live", dotClass: DEPLOYMENT_GROUP_COLOR.ready },
+  deploying: {
+    label: DEPLOYMENT_STATUS_LABELS.deploying,
+    dotClass: DEPLOYMENT_GROUP_COLOR.building,
+  },
+  crashing: { label: "Crashing", dotClass: DEPLOYMENT_GROUP_COLOR.failed },
+  failed: { label: DEPLOYMENT_STATUS_LABELS.failed, dotClass: DEPLOYMENT_GROUP_COLOR.failed },
+  stopped: { label: DEPLOYMENT_STATUS_LABELS.stopped, dotClass: DEPLOYMENT_GROUP_COLOR.stopped },
 };
-
-export function StatusDot({ status }: { status: DeploymentDisplayStatus }) {
-  const meta = STATUS_META[status];
-  return <span className={cn("size-2 shrink-0 rounded-full", meta.dotClass)} />;
-}

@@ -12,6 +12,10 @@ export type { LogOutcomeType, LogOutcomeInfo } from "./utils/outcome-definitions
 export { StatusBadge } from "./components/status-badge";
 export { KeyDetailsDrawer } from "./components/key-details-drawer";
 export { OutcomeCell } from "./components/outcome-cell";
-export { EmptyKeyDetailsLogs } from "./components/empty-key-details-logs";
 export { KeyDetailsCountInfo } from "./components/key-details-count-info";
-export { useFetchRequestDetails } from "./hooks/use-fetch-request-details";
+export {
+  useFetchRequestDetails,
+  buildRequestDetailsQueryParams,
+  buildGatewayRequestDetailsQueryParams,
+} from "./hooks/use-fetch-request-details";
+export type { RequestDetails } from "./hooks/use-fetch-request-details";

@@ -1,0 +1,176 @@
+"use client";
+
+import "@unkey/workos-widgets/styles.css";
+import { logManagedAuthOutcome } from "@/lib/auth/telemetry";
+import { routes } from "@/lib/navigation/routes";
+import { Button, Skeleton } from "@unkey/ui";
+import { ManagedUsersWidget } from "@unkey/workos-widgets";
+import { useAccessToken, useAuth } from "@workos-inc/authkit-nextjs/components";
+import Link from "next/link";
+import { useCallback, useState } from "react";
+import { TeamUpgrade } from "./team-upgrade";
+
+const MANAGE_USERS_PERMISSION = "widgets:users-table:manage";
+
+export function ManagedTeam({ team }: { team: boolean }) {
+  const { user, impersonator, permissions, loading } = useAuth();
+
+  if (!team) {
+    return <TeamUpgrade />;
+  }
+
+  if (loading) {
+    return <ManagedTeamSkeleton />;
+  }
+
+  if (!user) {
+    return (
+      <ManagedTeamError
+        heading="Your session has expired"
+        description="Sign in again to manage workspace members."
+        action={
+          <Link className="underline" href={routes.auth.signIn()}>
+            Sign in again
+          </Link>
+        }
+      />
+    );
+  }
+
+  if (impersonator) {
+    return (
+      <ManagedTeamError
+        heading="Team management unavailable"
+        description="Managed team controls are disabled while you are impersonating another user."
+      />
+    );
+  }
+
+  if (!permissions?.includes(MANAGE_USERS_PERMISSION)) {
+    return (
+      <ManagedTeamError
+        heading="Admin access required"
+        description="Your WorkOS role does not allow you to manage workspace members."
+      />
+    );
+  }
+
+  return <ManagedTeamWidgets />;
+}
+
+function ManagedTeamWidgets() {
+  const { accessToken, loading, error, refresh, getAccessToken } = useAccessToken();
+  const [retryError, setRetryError] = useState<string | null>(null);
+  const [retrying, setRetrying] = useState(false);
+
+  const getWidgetAccessToken = useCallback(async () => {
+    try {
+      const token = await getAccessToken();
+      if (!token) {
+        throw new Error("Session expired");
+      }
+      logManagedAuthOutcome("widget_token", "success");
+      return token;
+    } catch {
+      logManagedAuthOutcome("widget_token", "failure");
+      throw new Error("Your session has expired.");
+    }
+  }, [getAccessToken]);
+
+  if (loading || (!accessToken && !error && !retryError)) {
+    return <ManagedTeamSkeleton />;
+  }
+
+  if (error || retryError) {
+    return (
+      <ManagedTeamError
+        heading="Team management is temporarily unavailable"
+        description={retryError ?? "WorkOS could not load workspace members."}
+        action={
+          <Button
+            type="button"
+            disabled={retrying}
+            loading={retrying}
+            onClick={async () => {
+              setRetrying(true);
+              setRetryError(null);
+              try {
+                const token = await refresh();
+                if (!token) {
+                  throw new Error("Session expired");
+                }
+                logManagedAuthOutcome("widget_token", "success");
+              } catch {
+                logManagedAuthOutcome("widget_token", "failure");
+                setRetryError("We could not refresh your account session. Sign in again.");
+              } finally {
+                setRetrying(false);
+              }
+            }}
+          >
+            Retry
+          </Button>
+        }
+      />
+    );
+  }
+
+  return (
+    <section data-sentry-mask aria-label="Members" className="flex flex-col gap-3">
+      <ManagedUsersWidget getAccessToken={getWidgetAccessToken} />
+    </section>
+  );
+}
+
+function ManagedTeamSkeleton() {
+  return (
+    <section aria-busy="true" aria-label="Members" className="flex flex-col gap-3">
+      <output aria-live="polite" className="sr-only">
+        Loading workspace members...
+      </output>
+      <div aria-hidden="true" className="flex flex-col gap-3">
+        <div className="flex gap-2">
+          <Skeleton className="h-8 w-80 max-w-full" />
+          <Skeleton className="ml-auto h-8 w-28 shrink-0" />
+        </div>
+        <div className="overflow-hidden rounded-lg border bg-raised">
+          <div className="flex min-h-10 items-center gap-4 border-b px-4">
+            <Skeleton className="h-3 w-40" />
+            <Skeleton className="ml-auto h-3 w-20" />
+          </div>
+          {[0, 1, 2].map((row) => (
+            <div
+              key={row}
+              className="flex min-h-16 items-center gap-3 border-b px-4 last:border-b-0"
+            >
+              <Skeleton className="size-8 shrink-0 rounded-full" />
+              <div className="flex flex-1 flex-col gap-2">
+                <Skeleton className="h-3.5 w-40 max-w-full" />
+                <Skeleton className="h-3 w-56 max-w-full" />
+              </div>
+              <Skeleton className="h-7 w-20 shrink-0" />
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function ManagedTeamError({
+  heading,
+  description,
+  action,
+}: {
+  heading: string;
+  description: string;
+  action?: React.ReactNode;
+}) {
+  return (
+    <section className="rounded-lg border bg-raised p-6" role="alert">
+      <h2 className="m-0 font-medium">{heading}</h2>
+      <p className="mt-2 mb-0 text-sm text-gray-11">{description}</p>
+      {action ? <div className="mt-4 text-sm font-medium">{action}</div> : null}
+    </section>
+  );
+}

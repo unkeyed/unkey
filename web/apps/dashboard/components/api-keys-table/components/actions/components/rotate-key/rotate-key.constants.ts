@@ -9,6 +9,7 @@ const GRACE_PERIODS = [
   { ms: 3_600_000, label: "1 hour" },
   { ms: 21_600_000, label: "6 hours" },
   { ms: 86_400_000, label: "24 hours" },
+  { ms: null, label: "Do not expire original key" },
 ] as const;
 
 export type GracePeriodMs = (typeof GRACE_PERIODS)[number]["ms"];

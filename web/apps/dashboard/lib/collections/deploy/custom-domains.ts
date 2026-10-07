@@ -1,15 +1,15 @@
 "use client";
 import { routes } from "@/lib/navigation/routes";
 import { getErrorMessage, getErrorToast, getUnkeyClient } from "@/lib/unkey-client";
-import { queryCollectionOptions } from "@tanstack/query-db-collection";
+import { parseLoadSubsetOptions, queryCollectionOptions } from "@tanstack/query-db-collection";
 import { createCollection } from "@tanstack/react-db";
 import type { Domain as ApiDomain, DnsRecord } from "@unkey/api/models/components";
 import { ConflictErrorResponse, ForbiddenErrorResponse } from "@unkey/api/models/errors";
 import { toast } from "@unkey/ui";
 import { z } from "zod";
-import { queryClient, trpcClient } from "../client";
+import { queryClient } from "../client";
 import { domains } from "./domains";
-import { parseProjectIdFromWhere, validateProjectIdInQuery } from "./utils";
+import { extractStringFilter } from "./utils";
 
 const verificationStatusSchema = z.enum(["pending", "verifying", "verified", "failed"]);
 
@@ -54,21 +54,20 @@ export const customDomains = createCollection<CustomDomain, string>(
     queryClient,
     syncMode: "on-demand",
     queryKey: (opts) => {
-      const projectId = parseProjectIdFromWhere(opts.where);
+      const { filters } = parseLoadSubsetOptions(opts);
+      const projectId = extractStringFilter(filters, "projectId");
       return projectId ? ["customDomains", projectId] : ["customDomains"];
     },
     retry: 3,
     queryFn: async (ctx) => {
-      const options = ctx.meta?.loadSubsetOptions;
-
-      validateProjectIdInQuery(options?.where);
-      const projectId = parseProjectIdFromWhere(options?.where);
+      const { filters } = parseLoadSubsetOptions(ctx.meta?.loadSubsetOptions);
+      const projectId = extractStringFilter(filters, "projectId");
 
       if (!projectId) {
         throw new Error("Query must include eq(collection.projectId, projectId) constraint");
       }
 
-      return listProjectDomains(projectId);
+      return (await listAllDomains(projectId)).map(toCustomDomain);
     },
     getKey: (item) => item.id,
     id: "customDomains",
@@ -198,23 +197,6 @@ function dnsSetupHint(records: DnsRecord[]): string {
     : "Add the DNS records shown below";
 }
 
-async function listProjectDomains(projectId: string): Promise<CustomDomain[]> {
-  const [apiDomains, hints] = await Promise.all([
-    listAllDomains(projectId),
-    trpcClient.deploy.customDomain.hints.query({ projectId }).catch(() => []),
-  ]);
-
-  const byDomain = new Map(hints.map((hint) => [hint.domain, hint]));
-
-  return apiDomains.map((apiDomain) => {
-    const domain = toCustomDomain(apiDomain);
-    const hint = byDomain.get(domain.domain);
-    return hint
-      ? { ...domain, domainConnectProvider: hint.provider, domainConnectUrl: hint.url }
-      : domain;
-  });
-}
-
 async function listAllDomains(projectId: string): Promise<ApiDomain[]> {
   const all: ApiDomain[] = [];
   let cursor: string | undefined;
@@ -248,8 +230,8 @@ function toCustomDomain(domain: ApiDomain): CustomDomain {
       note: record.note ?? null,
     })),
     verificationError: domain.verificationError ?? null,
-    domainConnectProvider: null,
-    domainConnectUrl: null,
+    domainConnectProvider: domain.domainConnect?.provider ?? null,
+    domainConnectUrl: domain.domainConnect?.url ?? null,
     createdAt: domain.createdAt,
     updatedAt: domain.updatedAt ?? null,
   };

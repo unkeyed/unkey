@@ -74,7 +74,7 @@ export const EnvVarValueCell = memo(function EnvVarValueCell({
   }
 
   return (
-    <div className="flex items-center min-w-0">
+    <div data-sentry-mask className="flex items-center min-w-0">
       <div className="shrink-0 w-7 flex items-center justify-center">
         <button
           type="button"
@@ -91,13 +91,13 @@ export const EnvVarValueCell = memo(function EnvVarValueCell({
           <button
             type="button"
             onClick={handleCopy}
-            className="font-mono bg-gray-3 px-1.5 py-0.5 truncate text-[13px] text-accent-12 cursor-pointer transition-colors min-w-0 rounded-md h-5.5 max-w-70"
+            className="font-mono bg-gray-3 px-1.5 py-0.5 truncate text-sm text-gray-12 cursor-pointer transition-colors min-w-0 rounded-md h-5.5 max-w-70"
           >
             {value}
           </button>
         </InfoTooltip>
       ) : (
-        <span className="font-mono text-[13px] text-gray-11">••••••••••••</span>
+        <span className="font-mono text-sm text-gray-11">••••••••••••</span>
       )}
     </div>
   );

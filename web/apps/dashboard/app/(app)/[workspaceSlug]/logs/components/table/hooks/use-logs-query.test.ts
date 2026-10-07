@@ -99,9 +99,7 @@ describe("useLogsQuery realtime logs", () => {
   beforeEach(() => {
     vi.setSystemTime(mockDate);
     mockFilters = [];
-    //@ts-expect-error hacky way to mock trpc
     useInfiniteQuery = vi.mocked(trpc.logs.queryLogs.useInfiniteQuery);
-    //@ts-expect-error hacky way to mock trpc
     fetch = vi.mocked(trpc.useUtils().logs.queryLogs.fetch);
   });
 

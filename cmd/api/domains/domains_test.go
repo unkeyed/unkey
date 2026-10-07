@@ -16,7 +16,6 @@ import (
 	"github.com/unkeyed/sdks/api/go/v3/models/components"
 	"github.com/unkeyed/unkey/cmd/api/internal/testutil"
 	"github.com/unkeyed/unkey/pkg/cli"
-	"github.com/unkeyed/unkey/pkg/ptr"
 )
 
 func TestCreateDomain(t *testing.T) {
@@ -39,8 +38,42 @@ func TestListDomains(t *testing.T) {
 		name, args string
 		want       components.V2DomainsListDomainsRequestBody
 	}{
-		{"defaults", "domains list-domains --project=payments --app=api --environment=production", components.V2DomainsListDomainsRequestBody{Project: "payments", App: "api", Environment: "production", Limit: ptr.P(int64(100)), Cursor: nil, Search: nil}},
-		{"all options", "domains list-domains --project=payments --app=api --environment=production --limit=25 --cursor=dom_1234abcd --search=acme.com", components.V2DomainsListDomainsRequestBody{Project: "payments", App: "api", Environment: "production", Limit: ptr.P(int64(25)), Cursor: ptr.P("dom_1234abcd"), Search: ptr.P("acme.com")}},
+		{
+			"workspace wide",
+			"domains list-domains",
+			components.V2DomainsListDomainsRequestBody{
+				Project:     nil,
+				App:         nil,
+				Environment: nil,
+				Limit:       new(int64(100)),
+				Cursor:      nil,
+				Search:      nil,
+			},
+		},
+		{
+			"independent app filter",
+			"domains list-domains --app=api",
+			components.V2DomainsListDomainsRequestBody{
+				Project:     nil,
+				App:         new("api"),
+				Environment: nil,
+				Limit:       new(int64(100)),
+				Cursor:      nil,
+				Search:      nil,
+			},
+		},
+		{
+			"all options",
+			"domains list-domains --project=payments --app=api --environment=production --limit=25 --cursor=dom_1234abcd --search=acme.com",
+			components.V2DomainsListDomainsRequestBody{
+				Project:     new("payments"),
+				App:         new("api"),
+				Environment: new("production"),
+				Limit:       new(int64(25)),
+				Cursor:      new("dom_1234abcd"),
+				Search:      new("acme.com"),
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

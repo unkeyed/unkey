@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/oapi-codegen/nullable"
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
@@ -45,7 +46,7 @@ func TestRerollKeyUnauthorized(t *testing.T) {
 	// Basic request body
 	req := handler.Request{
 		KeyId:      key.KeyID,
-		Expiration: 0,
+		Expiration: nullable.NewNullableWithValue(int64(0)),
 	}
 
 	t.Run("invalid bearer token", func(t *testing.T) {

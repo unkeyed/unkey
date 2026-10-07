@@ -1,0 +1,208 @@
+---
+title: Go middleware for net/http, Gin, and Echo
+sidebarTitle: "Go middleware"
+description: "Drop-in key verification middleware for net/http, Gin, and Echo."
+sources:
+  - svc/api/openapi/spec/paths/v2/keys/verifyKey/V2KeysVerifyKeyRequestBody.yaml
+  - svc/api/openapi/spec/paths/v2/keys/verifyKey/V2KeysVerifyKeyResponseData.yaml
+  - https://github.com/unkeyed/sdks/blob/3bb124498270d8aff36e358dc2e0010e9991869a/api/go/v3/keys.go
+  - https://github.com/unkeyed/sdks/blob/3bb124498270d8aff36e358dc2e0010e9991869a/api/go/v3/unkey.go
+  - https://github.com/unkeyed/sdks/blob/3bb124498270d8aff36e358dc2e0010e9991869a/api/go/v3/models/components/v2keysverifykeyresponsedata.go
+  - https://github.com/unkeyed/sdks/blob/3bb124498270d8aff36e358dc2e0010e9991869a/api/go/v3/README.md
+---
+import RootKeyPrereq from "/snippets/root-key-prereq.mdx";
+
+**Outcome:** one `Verify` function with small adapters for net/http, Gin, and Echo. Each reads the bearer key, checks an optional permission query, returns the right status, and puts the verification data on the request.
+
+<RootKeyPrereq />
+
+The root key needs `api.*.verify_key`. Install the SDK with `go get github.com/unkeyed/sdks/api/go/v3`, then the frameworks you use.
+
+## The shared core
+
+```go auth/auth.go
+package auth
+
+import (
+	"context"
+	"errors"
+	"net/http"
+	"strings"
+
+	unkey "github.com/unkeyed/sdks/api/go/v3"
+	"github.com/unkeyed/sdks/api/go/v3/models/components"
+)
+
+type Verifier struct {
+	client *unkey.Unkey
+}
+
+func New(rootKey string) *Verifier {
+	return &Verifier{client: unkey.New(unkey.WithSecurity(rootKey))}
+}
+
+// Result is what the adapters hand to handlers on success, or use to reject.
+type Result struct {
+	Data   components.V2KeysVerifyKeyResponseData
+	Status int    // HTTP status to return when !Data.Valid
+	Reason string // what to tell the client when !Data.Valid
+	Err    error
+}
+
+func (v *Verifier) Verify(ctx context.Context, header string, permissions string) Result {
+	key := strings.TrimPrefix(header, "Bearer ")
+	if key == "" || key == header {
+		// No key was sent. Saying NOT_FOUND here would claim their key does not exist.
+		return Result{Status: http.StatusUnauthorized, Reason: "missing bearer token"}
+	}
+	req := components.V2KeysVerifyKeyRequestBody{Key: key}
+	if permissions != "" {
+		req.Permissions = &permissions
+	}
+	res, err := v.client.Keys.VerifyKey(ctx, req)
+	if err != nil {
+		// The call failed (bad root key, throttle, outage); do not treat as an invalid key.
+		return Result{Status: http.StatusServiceUnavailable, Err: err}
+	}
+	// V2KeysVerifyKeyResponseBody is a pointer, so check it even when err is nil.
+	if res.V2KeysVerifyKeyResponseBody == nil {
+		return Result{Status: http.StatusServiceUnavailable, Err: errors.New("empty response body")}
+	}
+	data := res.V2KeysVerifyKeyResponseBody.Data
+	return Result{Data: data, Status: statusFor(data.Code), Reason: string(data.Code)}
+}
+
+func statusFor(code components.Code) int {
+	switch code {
+	case components.CodeValid:
+		return http.StatusOK
+	case components.CodeRateLimited:
+		return http.StatusTooManyRequests
+	case components.CodeUsageExceeded:
+		return http.StatusPaymentRequired
+	case components.CodeForbidden, components.CodeInsufficientPermissions:
+		return http.StatusForbidden
+	default:
+		return http.StatusUnauthorized
+	}
+}
+```
+
+`Reason` tells a caller who sent no key that the token is missing, instead of `NOT_FOUND`. `Err` is set only when the call to Unkey failed, so the adapters can return 503.
+
+## Adapters
+
+<CodeGroup>
+```go net/http
+package auth
+
+import (
+	"context"
+	"net/http"
+
+	"github.com/unkeyed/sdks/api/go/v3/models/components"
+)
+
+type ctxKey struct{}
+
+// Middleware verifies the bearer key and, when permissions is non-empty,
+// requires the key to satisfy that permission query.
+func (v *Verifier) Middleware(permissions string) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			res := v.Verify(r.Context(), r.Header.Get("Authorization"), permissions)
+			if res.Err != nil {
+				http.Error(w, "authentication unavailable", res.Status)
+				return
+			}
+			if !res.Data.Valid {
+				http.Error(w, res.Reason, res.Status)
+				return
+			}
+			next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), ctxKey{}, res.Data)))
+		})
+	}
+}
+
+// FromContext returns the verification data stored by Middleware.
+func FromContext(ctx context.Context) (components.V2KeysVerifyKeyResponseData, bool) {
+	d, ok := ctx.Value(ctxKey{}).(components.V2KeysVerifyKeyResponseData)
+	return d, ok
+}
+```
+```go Gin
+package auth
+
+import (
+	"github.com/gin-gonic/gin"
+)
+
+func (v *Verifier) Gin(permissions string) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		res := v.Verify(c.Request.Context(), c.GetHeader("Authorization"), permissions)
+		if res.Err != nil {
+			c.AbortWithStatusJSON(res.Status, gin.H{"error": "authentication unavailable"})
+			return
+		}
+		if !res.Data.Valid {
+			c.AbortWithStatusJSON(res.Status, gin.H{"error": res.Reason})
+			return
+		}
+		c.Set("unkey", res.Data)
+		c.Next()
+	}
+}
+```
+```go Echo
+package auth
+
+import (
+	"github.com/labstack/echo/v4"
+)
+
+func (v *Verifier) Echo(permissions string) echo.MiddlewareFunc {
+	return func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			res := v.Verify(c.Request().Context(), c.Request().Header.Get("Authorization"), permissions)
+			if res.Err != nil {
+				return c.JSON(res.Status, map[string]string{"error": "authentication unavailable"})
+			}
+			if !res.Data.Valid {
+				return c.JSON(res.Status, map[string]string{"error": res.Reason})
+			}
+			c.Set("unkey", res.Data)
+			return next(c)
+		}
+	}
+}
+```
+</CodeGroup>
+
+## Using it
+
+```go wiring
+verifier := auth.New(os.Getenv("UNKEY_ROOT_KEY"))
+
+// net/http
+mux := http.NewServeMux()
+mux.Handle("/items", verifier.Middleware("")(http.HandlerFunc(listItems)))
+mux.Handle("/admin", verifier.Middleware("admin.read")(http.HandlerFunc(admin)))
+
+// Gin
+r := gin.Default()
+r.GET("/items", verifier.Gin(""), func(c *gin.Context) {
+	data := c.MustGet("unkey").(components.V2KeysVerifyKeyResponseData)
+	c.JSON(200, gin.H{"keyId": data.KeyID})
+})
+
+// Echo
+e := echo.New()
+e.GET("/items", listItemsEcho, verifier.Echo(""))
+```
+
+To forward rate limit state to clients, read `res.Data.Ratelimits`. Each entry has `Limit`, `Remaining`, and `Reset` (Unix milliseconds) for one checked limit.
+
+## Related
+
+- [Go guide](/api-management/guides/go) for creating keys and the full walk-through.
+- [Verifying keys](/api-management/keys/verifying-keys) for the fields on `V2KeysVerifyKeyResponseData`.

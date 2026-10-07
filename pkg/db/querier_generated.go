@@ -130,8 +130,11 @@ type Querier interface {
 	DeleteOldIdentityByExternalID(ctx context.Context, db DBTX, arg DeleteOldIdentityByExternalIDParams) error
 	//DeletePermission
 	//
-	//  DELETE FROM permissions
-	//  WHERE id = ?
+	//  DELETE p, rp, kp
+	//  FROM permissions p
+	//  LEFT JOIN roles_permissions rp ON rp.permission_id = p.id
+	//  LEFT JOIN keys_permissions kp ON kp.permission_id = p.id
+	//  WHERE p.id = ?
 	DeletePermission(ctx context.Context, db DBTX, permissionID string) error
 	// Deletes a portal, scoped to the workspace so one workspace can never delete
 	// another's. Returns the row count so a concurrent delete that already removed
@@ -144,9 +147,19 @@ type Querier interface {
 	DeletePortal(ctx context.Context, db DBTX, arg DeletePortalParams) (int64, error)
 	//DeleteRoleByID
 	//
-	//  DELETE FROM roles
-	//  WHERE id = ?
+	//  DELETE r, rp, kr
+	//  FROM roles r
+	//  LEFT JOIN roles_permissions rp ON rp.role_id = r.id
+	//  LEFT JOIN keys_roles kr ON kr.role_id = r.id
+	//  WHERE r.id = ?
 	DeleteRoleByID(ctx context.Context, db DBTX, roleID string) error
+	// DeleteUnkeyPermissionsByPrincipal removes principal permissions before a replacement.
+	//
+	//  DELETE FROM unkey_principal_permissions
+	//  WHERE workspace_id = ?
+	//      AND principal_type = ?
+	//      AND principal_id = ?
+	DeleteUnkeyPermissionsByPrincipal(ctx context.Context, db DBTX, arg DeleteUnkeyPermissionsByPrincipalParams) error
 	// Removes every Stripe subscription row for a workspace. Paired with
 	// ResetWorkspaceBilling by the `unkey dev stripe reset` tooling.
 	//
@@ -601,6 +614,17 @@ type Querier interface {
 	//  WHERE key_id = ?
 	//    AND role_id = ?
 	FindKeyRoleByKeyAndRoleID(ctx context.Context, db DBTX, arg FindKeyRoleByKeyAndRoleIDParams) ([]KeysRole, error)
+	// FindKeySpaceAnalyticsOwnership resolves candidate keyspaces to their owning projects before analytics authorization.
+	// Rows remain available after soft deletion because historical analytics still reference them.
+	//
+	//  SELECT id, project_id
+	//  FROM key_auth
+	//  WHERE workspace_id = ?
+	//    AND (
+	//      id IN (/*SLICE:key_space_ids*/?)
+	//      OR project_id IN (/*SLICE:project_ids*/?)
+	//    )
+	FindKeySpaceAnalyticsOwnership(ctx context.Context, db DBTX, arg FindKeySpaceAnalyticsOwnershipParams) ([]FindKeySpaceAnalyticsOwnershipRow, error)
 	//FindKeySpaceByID
 	//
 	//  SELECT key_auth.pk, key_auth.id, key_auth.workspace_id, key_auth.project_id, key_auth.created_at_m, key_auth.updated_at_m, key_auth.deleted_at_m, key_auth.store_encrypted_keys, key_auth.default_prefix, key_auth.default_bytes, key_auth.size_approx, key_auth.size_last_updated_at FROM `key_auth` WHERE id = ?
@@ -1032,7 +1056,7 @@ type Querier interface {
 	// true at fill time. The caller derives session state from the row against the
 	// current clock instead.
 	//
-	//  SELECT pk, id, workspace_id, portal_id, external_id, scopes, preview, exchange_code_hash, exchange_code_expires_at, access_token_hash, access_token_created_at, access_token_expires_at, revoked_at, return_url, created_at FROM portal_sessions
+	//  SELECT pk, id, workspace_id, portal_id, external_id, scopes, exchange_code_hash, exchange_code_expires_at, access_token_hash, access_token_created_at, access_token_expires_at, revoked_at, return_url, created_at FROM portal_sessions
 	//  WHERE access_token_hash = ?
 	FindPortalSessionByAccessTokenHash(ctx context.Context, db DBTX, accessTokenHash sql.NullString) (PortalSession, error)
 	// Reads back the row a redemption just claimed, to build the response and the
@@ -1040,7 +1064,7 @@ type Querier interface {
 	// reported one affected row: the hash is UNIQUE, so this is the same row, and
 	// the caller already established it won the race.
 	//
-	//  SELECT pk, id, workspace_id, portal_id, external_id, scopes, preview, exchange_code_hash, exchange_code_expires_at, access_token_hash, access_token_created_at, access_token_expires_at, revoked_at, return_url, created_at FROM portal_sessions
+	//  SELECT pk, id, workspace_id, portal_id, external_id, scopes, exchange_code_hash, exchange_code_expires_at, access_token_hash, access_token_created_at, access_token_expires_at, revoked_at, return_url, created_at FROM portal_sessions
 	//  WHERE exchange_code_hash = ?
 	FindPortalSessionByExchangeCodeHash(ctx context.Context, db DBTX, exchangeCodeHash string) (PortalSession, error)
 	//FindProjectById
@@ -1190,6 +1214,46 @@ type Querier interface {
 	//  WHERE workspace_id = ?
 	//    AND name IN (/*SLICE:names*/?)
 	FindRolesByNamesInWorkspace(ctx context.Context, db DBTX, arg FindRolesByNamesInWorkspaceParams) ([]FindRolesByNamesInWorkspaceRow, error)
+	// FindUnkeyRootKeyByID reads a new-format root key, excluding soft-deleted keys.
+	// It does not fall back to the legacy keys table.
+	//
+	//  SELECT
+	//      pk,
+	//      id,
+	//      workspace_id,
+	//      hash,
+	//      name,
+	//      prefix,
+	//      start,
+	//      end,
+	//      enabled,
+	//      expires,
+	//      created_at,
+	//      last_used_at,
+	//      deleted_at
+	//  FROM unkey_root_keys
+	//  WHERE id = ? AND deleted_at IS NULL
+	FindUnkeyRootKeyByID(ctx context.Context, db DBTX, id string) (UnkeyRootKey, error)
+	// FindUnkeyRootKeyByIDForUpdate locks a live new-format root key for a mutation.
+	//
+	//  SELECT
+	//      pk,
+	//      id,
+	//      workspace_id,
+	//      hash,
+	//      name,
+	//      prefix,
+	//      start,
+	//      end,
+	//      enabled,
+	//      expires,
+	//      created_at,
+	//      last_used_at,
+	//      deleted_at
+	//  FROM unkey_root_keys
+	//  WHERE id = ? AND deleted_at IS NULL
+	//  FOR UPDATE
+	FindUnkeyRootKeyByIDForUpdate(ctx context.Context, db DBTX, id string) (UnkeyRootKey, error)
 	// Reads a workspace's billing row directly (Stripe linkage, tier, Compute plan,
 	// spend budget and spend-cap state). Use this when only billing state is needed;
 	// when a workspace is already being fetched, prefer joining workspace_billing in
@@ -1793,7 +1857,7 @@ type Querier interface {
 	//      0
 	//  )
 	InsertKeySpace(ctx context.Context, db DBTX, arg InsertKeySpaceParams) error
-	// The caller holds the workspace limits lock and has checked current capacity.
+	// The caller has checked capacity; concurrent creates may exceed the allowance.
 	// Initialize the cursor at creation time so historical records are not exported.
 	//
 	//  INSERT INTO logdrains (id, workspace_id, name, stream, config, committed_offset_inserted_at, lease_id, fencing_token, created_at, updated_at)
@@ -1860,13 +1924,11 @@ type Querier interface {
 	//      portal_id,
 	//      external_id,
 	//      scopes,
-	//      preview,
 	//      exchange_code_hash,
 	//      exchange_code_expires_at,
 	//      return_url,
 	//      created_at
 	//  ) VALUES (
-	//      ?,
 	//      ?,
 	//      ?,
 	//      ?,
@@ -1938,7 +2000,8 @@ type Querier interface {
 	//  ON DUPLICATE KEY UPDATE
 	//      `limit` = VALUES(`limit`),
 	//      duration = VALUES(duration),
-	//      updated_at_m = ?
+	//      updated_at_m = ?,
+	//      deleted_at_m = NULL
 	InsertRatelimitOverride(ctx context.Context, db DBTX, arg InsertRatelimitOverrideParams) error
 	//InsertRole
 	//
@@ -1974,6 +2037,52 @@ type Querier interface {
 	//    ?
 	//  )
 	InsertRolePermission(ctx context.Context, db DBTX, arg InsertRolePermissionParams) error
+	// InsertUnkeyPermission assigns a permission directly to a principal in the
+	// customer workspace that owns it. Duplicate permissions for that principal are rejected.
+	//
+	//  INSERT INTO unkey_principal_permissions (
+	//      id,
+	//      workspace_id,
+	//      principal_type,
+	//      principal_id,
+	//      slug,
+	//      created_at
+	//  ) VALUES (
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?
+	//  )
+	InsertUnkeyPermission(ctx context.Context, db DBTX, arg InsertUnkeyPermissionParams) error
+	// InsertUnkeyRootKey creates an administrative credential outside the regular
+	// API-key table. Callers insert its permissions and audit events in the same transaction.
+	//
+	//  INSERT INTO unkey_root_keys (
+	//      id,
+	//      workspace_id,
+	//      hash,
+	//      name,
+	//      prefix,
+	//      start,
+	//      end,
+	//      enabled,
+	//      expires,
+	//      created_at
+	//  ) VALUES (
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?
+	//  )
+	InsertUnkeyRootKey(ctx context.Context, db DBTX, arg InsertUnkeyRootKeyParams) error
 	//InsertWorkspace
 	//
 	//  INSERT INTO `workspaces` (
@@ -2482,6 +2591,42 @@ type Querier interface {
 	//  ORDER BY k.id ASC
 	//  LIMIT ?
 	ListLiveKeysByKeySpaceIDs(ctx context.Context, db DBTX, arg ListLiveKeysByKeySpaceIDsParams) ([]ListLiveKeysByKeySpaceIDsRow, error)
+	// Returns one page of the end users holding a revocable session on a portal,
+	// using the same live predicate as LockLivePortalSessionsByExternalID. Ordered
+	// by external_id with external_id >= external_id_cursor, so an empty cursor
+	// starts at the first end user. search is a LIKE pattern from
+	// mysql.SearchPrefix; NULL disables the filter. The hint pins idx_portal_revoked:
+	// left to itself the planner can walk the workspace-wide idx_external_id and
+	// scan every other portal's sessions to fill a page.
+	//
+	//  SELECT DISTINCT external_id FROM portal_sessions FORCE INDEX (idx_portal_revoked)
+	//  WHERE workspace_id = ?
+	//    AND portal_id = ?
+	//    AND revoked_at IS NULL
+	//    AND (
+	//      (access_token_hash IS NOT NULL AND access_token_expires_at > ?)
+	//      OR (access_token_hash IS NULL AND exchange_code_expires_at > ?)
+	//    )
+	//    AND external_id >= ?
+	//    AND (? IS NULL OR external_id LIKE ?)
+	//  ORDER BY external_id ASC
+	//  LIMIT ?
+	ListLivePortalSessionExternalIDs(ctx context.Context, db DBTX, arg ListLivePortalSessionExternalIDsParams) ([]string, error)
+	// Loads the revocable sessions for the end users ListLivePortalSessionExternalIDs
+	// returned, with the same live predicate. Ordered by external_id, then newest
+	// first, so callers can group rows in one pass.
+	//
+	//  SELECT id, external_id, scopes, access_token_hash, access_token_expires_at, exchange_code_expires_at, created_at FROM portal_sessions
+	//  WHERE workspace_id = ?
+	//    AND portal_id = ?
+	//    AND external_id IN (/*SLICE:external_ids*/?)
+	//    AND revoked_at IS NULL
+	//    AND (
+	//      (access_token_hash IS NOT NULL AND access_token_expires_at > ?)
+	//      OR (access_token_hash IS NULL AND exchange_code_expires_at > ?)
+	//    )
+	//  ORDER BY external_id ASC, created_at DESC, id ASC
+	ListLivePortalSessionsByExternalIDs(ctx context.Context, db DBTX, arg ListLivePortalSessionsByExternalIDsParams) ([]ListLivePortalSessionsByExternalIDsRow, error)
 	// Stable ID ordering supports pagination without crossing the workspace boundary.
 	// Fetch one extra row to determine whether another page exists.
 	//
@@ -2548,6 +2693,14 @@ type Querier interface {
 	//  ORDER BY id ASC
 	//  LIMIT ?
 	ListProjectsByWorkspaceId(ctx context.Context, db DBTX, arg ListProjectsByWorkspaceIdParams) ([]ListProjectsByWorkspaceIdRow, error)
+	// Resolves URN analytics permissions to namespace IDs owned by one workspace.
+	// Soft-deleted namespaces remain present because their historical ClickHouse
+	// rows must stay queryable, and the unpaginated result prevents scope loss.
+	//
+	//  SELECT id, project_id
+	//  FROM ratelimit_namespaces
+	//  WHERE workspace_id = ?
+	ListRatelimitNamespaceOwnershipByWorkspace(ctx context.Context, db DBTX, workspaceID string) ([]ListRatelimitNamespaceOwnershipByWorkspaceRow, error)
 	//ListRatelimitOverridesByNamespaceID
 	//
 	//  SELECT ratelimit_overrides.pk, ratelimit_overrides.id, ratelimit_overrides.workspace_id, ratelimit_overrides.namespace_id, ratelimit_overrides.identifier, ratelimit_overrides.`limit`, ratelimit_overrides.duration, ratelimit_overrides.created_at_m, ratelimit_overrides.updated_at_m, ratelimit_overrides.deleted_at_m FROM ratelimit_overrides
@@ -2622,6 +2775,50 @@ type Querier interface {
 	//  WHERE kr.key_id = ?
 	//  ORDER BY r.name
 	ListRolesByKeyID(ctx context.Context, db DBTX, keyID string) ([]ListRolesByKeyIDRow, error)
+	// ListRootKeys returns live root keys from the new store for one customer workspace.
+	// The cursor is inclusive: a cursor of key_b returns key_b before key_c.
+	//
+	//  SELECT
+	//      id,
+	//      name,
+	//      prefix,
+	//      start,
+	//      end,
+	//      enabled,
+	//      expires,
+	//      created_at,
+	//      last_used_at,
+	//      COALESCE(
+	//          (SELECT JSON_ARRAYAGG(p.slug)
+	//          FROM unkey_principal_permissions p
+	//          WHERE p.workspace_id = k.workspace_id
+	//              AND p.principal_type = 'root_key'
+	//              AND p.principal_id = k.id),
+	//          JSON_ARRAY()
+	//      ) AS permissions
+	//  FROM unkey_root_keys k
+	//  WHERE k.workspace_id = ?
+	//      AND k.deleted_at IS NULL
+	//      AND k.id >= ?
+	//  ORDER BY id ASC
+	//  LIMIT ?
+	ListRootKeys(ctx context.Context, db DBTX, arg ListRootKeysParams) ([]ListRootKeysRow, error)
+	// ListUnkeyPermissionRowsByPrincipal loads permission identities before a
+	// replacement so removed assignments retain their audit target IDs.
+	//
+	//  SELECT id, slug FROM unkey_principal_permissions
+	//  WHERE workspace_id = ?
+	//    AND principal_type = ?
+	//    AND principal_id = ?
+	ListUnkeyPermissionRowsByPrincipal(ctx context.Context, db DBTX, arg ListUnkeyPermissionRowsByPrincipalParams) ([]ListUnkeyPermissionRowsByPrincipalRow, error)
+	// ListUnkeyPermissionsByPrincipal loads permissions for exactly one principal
+	// and authorized workspace. The same ID under another type or workspace is excluded.
+	//
+	//  SELECT slug FROM unkey_principal_permissions
+	//  WHERE workspace_id = ?
+	//    AND principal_type = ?
+	//    AND principal_id = ?
+	ListUnkeyPermissionsByPrincipal(ctx context.Context, db DBTX, arg ListUnkeyPermissionsByPrincipalParams) ([]string, error)
 	// Fetches the Stripe customer identity for a batch of workspaces, used by the
 	// hourly Deploy billing push to decide where each workspace's month-to-date
 	// usage gets reported. The Stripe Billing Meters map usage to a customer by
@@ -2668,6 +2865,27 @@ type Querier interface {
 	//  WHERE id = ?
 	//  FOR UPDATE
 	LockKeyForUpdate(ctx context.Context, db DBTX, id string) (string, error)
+	// Locks up to `limit` of one end user's live sessions on a portal: an unexpired
+	// access token, or an unexpired code that was never exchanged. Expired rows are
+	// left alone so the revoke reports only access it actually cut. Only rows at or
+	// below `max_pk` are taken, so a caller revoking in batches stops even while new
+	// sessions are being minted. The lock pins exactly the rows
+	// RevokePortalSessionsByIDs then revokes.
+	//
+	//  SELECT pk, id, workspace_id, portal_id, external_id, scopes, exchange_code_hash, exchange_code_expires_at, access_token_hash, access_token_created_at, access_token_expires_at, revoked_at, return_url, created_at FROM portal_sessions
+	//  WHERE workspace_id = ?
+	//    AND portal_id = ?
+	//    AND external_id = ?
+	//    AND revoked_at IS NULL
+	//    AND pk <= ?
+	//    AND (
+	//      (access_token_hash IS NOT NULL AND access_token_expires_at > ?)
+	//      OR (access_token_hash IS NULL AND exchange_code_expires_at > ?)
+	//    )
+	//  ORDER BY pk
+	//  LIMIT ?
+	//  FOR UPDATE
+	LockLivePortalSessionsByExternalID(ctx context.Context, db DBTX, arg LockLivePortalSessionsByExternalIDParams) ([]PortalSession, error)
 	// Serialize configuration, status, and delete operations with worker writes.
 	// The workspace predicate prevents locking or reading a foreign drain.
 	//
@@ -2676,6 +2894,17 @@ type Querier interface {
 	//    lease_id, fencing_token, lease_expires_at, created_at, updated_at
 	//  FROM logdrains WHERE workspace_id = ? AND id = ? FOR UPDATE
 	LockLogdrain(ctx context.Context, db DBTX, arg LockLogdrainParams) (Logdrain, error)
+	// Locks the portal row while a session is minted. Disabling, re-pointing, and
+	// deleting a portal all write this row before revoking its sessions, so the
+	// lock orders a mint before or after them: either the revoke sees the new
+	// session, or the mint sees the change and refuses. The mapping columns let the
+	// caller check the row still points where its grant was built from.
+	//
+	//  SELECT id, enabled, key_auth_id, app_id FROM portals
+	//  WHERE id = ?
+	//    AND workspace_id = ?
+	//  FOR UPDATE
+	LockPortalForMint(ctx context.Context, db DBTX, arg LockPortalForMintParams) (LockPortalForMintRow, error)
 	//LockRoleByIDOrNameAndWorkspaceID
 	//
 	//  SELECT id, project_id, name
@@ -2684,6 +2913,16 @@ type Querier interface {
 	//    AND (id = ? OR name = ?)
 	//  FOR UPDATE
 	LockRoleByIDOrNameAndWorkspaceID(ctx context.Context, db DBTX, arg LockRoleByIDOrNameAndWorkspaceIDParams) (LockRoleByIDOrNameAndWorkspaceIDRow, error)
+	// Returns the highest pk among one end user's sessions on a portal, or 0 when
+	// there are none. Read on the primary before revoking in batches, it bounds the
+	// revoke to sessions that already exist: pk is assigned at insert, so a session
+	// minted while the batches run lands above it.
+	//
+	//  SELECT CAST(COALESCE(MAX(pk), 0) AS UNSIGNED) AS max_pk FROM portal_sessions
+	//  WHERE workspace_id = ?
+	//    AND portal_id = ?
+	//    AND external_id = ?
+	MaxPortalSessionPkByExternalID(ctx context.Context, db DBTX, arg MaxPortalSessionPkByExternalIDParams) (int64, error)
 	// Clears the workspace_billing linkage on a workspace, returning it to the
 	// Free tier. Mirrors what the customer.subscription.deleted webhook writes,
 	// plus stripe_customer_id, which no webhook ever clears. Stripe subscription
@@ -2806,6 +3045,15 @@ type Querier interface {
 	//      AND (e.id = ? OR e.slug = ?)
 	//  LIMIT 1
 	ResolveDeploymentScope(ctx context.Context, db DBTX, arg ResolveDeploymentScopeParams) (ResolveDeploymentScopeRow, error)
+	// Revokes the sessions LockLivePortalSessionsByExternalID locked. Run it in the
+	// same transaction, so the ids are exactly the rows this call revokes.
+	//
+	//  UPDATE portal_sessions
+	//  SET revoked_at = ?
+	//  WHERE workspace_id = ?
+	//    AND id IN (/*SLICE:ids*/?)
+	//    AND revoked_at IS NULL
+	RevokePortalSessionsByIDs(ctx context.Context, db DBTX, arg RevokePortalSessionsByIDsParams) (int64, error)
 	// Revokes every live session belonging to a portal, scoped to the workspace.
 	//
 	// A session's keyspace scope is frozen in `scopes` at mint time and the session
@@ -2837,6 +3085,31 @@ type Querier interface {
 	//
 	//  UPDATE `keys` SET deleted_at_m = ? WHERE id = ?
 	SoftDeleteKeyByID(ctx context.Context, db DBTX, arg SoftDeleteKeyByIDParams) error
+	//SoftDeleteKeySpace
+	//
+	//  UPDATE key_auth
+	//  SET deleted_at_m = ?
+	//  WHERE id = ?
+	SoftDeleteKeySpace(ctx context.Context, db DBTX, arg SoftDeleteKeySpaceParams) error
+	// SoftDeleteKeysByKeySpaceID tombstones a bounded batch of live keys in one
+	// keyspace and returns the number of rows affected so the caller can loop
+	// until the keyspace is drained.
+	//
+	// LIMIT is required, not an optimization: PlanetScale rejects any single DML
+	// statement that would affect more than 100,000 rows, so an unbounded UPDATE
+	// fails outright on a large keyspace. Bounding each batch also keeps row locks
+	// short.
+	//
+	// deleted_at_m IS NULL both preserves the timestamp on keys deleted earlier
+	// and shrinks the candidate set every batch, so the caller's loop terminates.
+	// key_auth_id_deleted_at_idx makes this a range seek rather than a full scan.
+	//
+	//  UPDATE `keys`
+	//  SET deleted_at_m = ?
+	//  WHERE key_auth_id = ?
+	//    AND deleted_at_m IS NULL
+	//  LIMIT ?
+	SoftDeleteKeysByKeySpaceID(ctx context.Context, db DBTX, arg SoftDeleteKeysByKeySpaceIDParams) (int64, error)
 	//SoftDeleteRatelimitNamespace
 	//
 	//  UPDATE `ratelimit_namespaces`
@@ -2851,6 +3124,14 @@ type Querier interface {
 	//      deleted_at_m =  ?
 	//  WHERE id = ?
 	SoftDeleteRatelimitOverride(ctx context.Context, db DBTX, arg SoftDeleteRatelimitOverrideParams) error
+	// SoftDeleteUnkeyRootKey tombstones a live new-format root key in one workspace.
+	//
+	//  UPDATE unkey_root_keys
+	//  SET deleted_at = ?
+	//  WHERE id = ?
+	//      AND workspace_id = ?
+	//      AND deleted_at IS NULL
+	SoftDeleteUnkeyRootKey(ctx context.Context, db DBTX, arg SoftDeleteUnkeyRootKeyParams) (int64, error)
 	//UpdateApiDeleteProtection
 	//
 	//  UPDATE apis
@@ -3181,6 +3462,29 @@ type Querier interface {
 	//  WHERE
 	//      id = ?
 	UpdateRatelimit(ctx context.Context, db DBTX, arg UpdateRatelimitParams) error
+	// UpdateUnkeyRootKey changes mutable fields on a live new-format root key.
+	//
+	//  UPDATE unkey_root_keys SET
+	//      name = CASE
+	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+	//          ELSE name
+	//      END,
+	//      enabled = CASE
+	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+	//          ELSE enabled
+	//      END
+	//  WHERE id = ?
+	//      AND workspace_id = ?
+	//      AND deleted_at IS NULL
+	UpdateUnkeyRootKey(ctx context.Context, db DBTX, arg UpdateUnkeyRootKeyParams) error
+	// UpdateUnkeyRootKeyExpiration sets when a live new-format root key expires.
+	//
+	//  UPDATE unkey_root_keys
+	//  SET expires = ?
+	//  WHERE id = ?
+	//      AND workspace_id = ?
+	//      AND deleted_at IS NULL
+	UpdateUnkeyRootKeyExpiration(ctx context.Context, db DBTX, arg UpdateUnkeyRootKeyExpirationParams) error
 	//UpdateWorkspaceEnabled
 	//
 	//  UPDATE `workspaces`
@@ -3459,7 +3763,8 @@ type Querier interface {
 	//  )
 	//  ON DUPLICATE KEY UPDATE name = name
 	UpsertRegion(ctx context.Context, db DBTX, arg UpsertRegionParams) error
-	//UpsertWorkspace
+	// UpsertWorkspace seeds local workspaces while preserving fields that local tooling does not manage.
+	// New rows receive a caller-generated Kubernetes namespace; existing rows retain their namespace.
 	//
 	//  INSERT INTO workspaces (
 	//      id,
@@ -3468,9 +3773,10 @@ type Querier interface {
 	//      slug,
 	//      created_at_m,
 	//      beta_features,
+	//      k8s_namespace,
 	//      enabled,
 	//      delete_protection
-	//  ) VALUES (?, ?, ?, ?, ?, ?, true, false)
+	//  ) VALUES (?, ?, ?, ?, ?, ?, ?, true, false)
 	//  ON DUPLICATE KEY UPDATE
 	//      beta_features = VALUES(beta_features),
 	//      name = VALUES(name)

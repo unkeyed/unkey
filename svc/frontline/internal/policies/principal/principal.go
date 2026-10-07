@@ -6,7 +6,6 @@ import (
 	"fmt"
 
 	"github.com/unkeyed/unkey/internal/services/keys"
-	"github.com/unkeyed/unkey/pkg/ptr"
 )
 
 // Marshal serializes the Principal to the JSON string carried on the
@@ -25,7 +24,7 @@ func (p *Principal) Marshal() (string, error) {
 //
 // The struct tags on this file are the authoritative wire contract — if
 // any json tag, omitempty flag, or field type changes here, update
-// docs/product/platform/gateway/principal/*.mdx and the wire-format test
+// docs/compute/gateway/principal.mdx and the wire-format test
 // in the same commit.
 //
 // Every Principal contains exactly one populated variant of Source matching
@@ -177,19 +176,19 @@ func KeyPrincipalFromVerifier(verifier *keys.KeyVerifier) (*Principal, error) {
 
 	var name *string
 	if verifier.Key.Name.Valid && verifier.Key.Name.String != "" {
-		name = ptr.P(verifier.Key.Name.String)
+		name = new(verifier.Key.Name.String)
 	}
 
 	var expiresAt *int64
 	if verifier.Key.Expires.Valid {
-		expiresAt = ptr.P(verifier.Key.Expires.Time.UnixMilli())
+		expiresAt = new(verifier.Key.Expires.Time.UnixMilli())
 	}
 
 	// RemainingRequests is NULL for keys with unlimited credits; leave Credits
 	// nil in that case so the field is omitted from the wire format.
 	var credits *int64
 	if verifier.Key.RemainingRequests.Valid {
-		credits = ptr.P(verifier.Key.RemainingRequests.Int64)
+		credits = new(verifier.Key.RemainingRequests.Int64)
 	}
 
 	var roles []string

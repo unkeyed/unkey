@@ -6,7 +6,6 @@ import (
 
 	"github.com/oapi-codegen/nullable"
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -50,7 +49,7 @@ func TestUpdatePolicyBadRequest(t *testing.T) {
 	t.Run("invalid regex in match", func(t *testing.T) {
 		req := makeRequest(env, ids[0])
 		req.Match = nullable.NewNullableWithValue([]openapi.MatchExpr{
-			{Path: &openapi.PathMatch{Path: openapi.StringMatch{Regex: ptr.P("(unclosed")}}},
+			{Path: &openapi.PathMatch{Path: openapi.StringMatch{Regex: new("(unclosed")}}},
 		})
 		res := callTyped(t, req)
 		require.Contains(t, res.Body.Error.Detail, "regular expression")
@@ -67,7 +66,7 @@ func TestUpdatePolicyBadRequest(t *testing.T) {
 		req := makeRequest(env, ids[0])
 		req.Keyauth = &openapi.KeyauthPolicy{
 			Keyspaces:       []string{uid.New(uid.KeySpacePrefix)},
-			PermissionQuery: ptr.P("documents.read AND NOT other"),
+			PermissionQuery: new("documents.read AND NOT other"),
 		}
 		res := callTyped(t, req)
 		require.Contains(t, res.Body.Error.Detail, "permission query")
@@ -77,7 +76,7 @@ func TestUpdatePolicyBadRequest(t *testing.T) {
 		req := makeRequest(env, ids[0])
 		req.Keyauth = &openapi.KeyauthPolicy{
 			Keyspaces:  []string{uid.New(uid.KeySpacePrefix)},
-			Ratelimits: ptr.P([]openapi.KeyRatelimit{{Name: "burst", Limit: ptr.P(int64(10))}}),
+			Ratelimits: new([]openapi.KeyRatelimit{{Name: "burst", Limit: new(int64(10))}}),
 		}
 		res := callTyped(t, req)
 		require.Contains(t, res.Body.Error.Detail, "limit and duration together")
@@ -85,7 +84,7 @@ func TestUpdatePolicyBadRequest(t *testing.T) {
 
 	t.Run("missing identifiers", func(t *testing.T) {
 		req := makeRequest(seededEnv{}, "")
-		req.Enabled = ptr.P(false)
+		req.Enabled = new(false)
 		callTyped(t, req)
 	})
 

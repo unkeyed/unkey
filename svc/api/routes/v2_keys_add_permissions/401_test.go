@@ -54,6 +54,7 @@ func TestAuthenticationErrors(t *testing.T) {
 	err := db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
 		PermissionID: permissionID,
 		WorkspaceID:  workspace.ID,
+		ProjectID:    api.ProjectID,
 		Name:         "documents.read.auth",
 		Slug:         "documents.read.auth",
 		Description:  dbtype.NullString{Valid: true, String: "Read documents permission"},

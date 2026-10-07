@@ -11,7 +11,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/logdrain/internal/source"
-	"github.com/unkeyed/unkey/svc/logdrain/sink"
 )
 
 // TestAuditLogsRead_CursorBounds preserves timestamp ties across pages without
@@ -62,9 +61,6 @@ func TestAuditLogsRead_CursorBounds(t *testing.T) {
 	require.Equal(t, "c", firstPage[0].EventID)
 	require.Equal(t, "d", firstPage[1].EventID)
 	require.Equal(t, occurredAt.UnixMilli(), firstPage[0].Time)
-	payload, ok := firstPage[0].Payload.(sink.AuditLogPayload)
-	require.True(t, ok)
-	require.Equal(t, occurredAt.Format(time.RFC3339Nano), payload.OccurredAt)
 	require.Equal(t, source.Cursor{Time: insertedAt, EventID: "d"}, cursor)
 
 	secondPage, cursor, err := auditLogs.Read(ctx, workspaceID, cursor, toExclusive, 2, nil)

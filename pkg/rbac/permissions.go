@@ -91,6 +91,9 @@ const (
 // Predefined workspace actions. These constants define workspace-wide
 // operations that are not scoped to a project, app, or api.
 const (
+	// CreateRootKey permits creating root keys within the caller's permissions.
+	CreateRootKey ActionType = "create_root_key"
+
 	// InstallGithub permits installing the Unkey GitHub App for the workspace
 	// (minting the install URL and binding the resulting installation). It is a
 	// workspace-wide action, so it is granted as workspace.*.install_github.

@@ -53,7 +53,7 @@ import {
  */
 export type Identifier = {
   /**
-   * Rate limit by the client's IP address.
+   * Rate limit by the remote IP.
    */
   remoteIp?: RemoteIpKey | undefined;
   /**

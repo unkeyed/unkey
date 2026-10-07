@@ -2,14 +2,14 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { IconBracketsCurlyOutline18 } from "@unkey/icons";
-import { FormInput } from "@unkey/ui";
+import { FormInput, firstMatchingSaveState } from "@unkey/ui";
 import { useEffect } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { useEnvironmentSettings } from "../../environment-provider";
 import { useUpdateAllEnvironments } from "../../hooks/use-update-all-environments";
 import { SettingField } from "../shared/form-blocks";
-import { FormSettingCard, resolveSaveState } from "../shared/form-setting-card";
+import { FormSettingCard } from "../shared/form-setting-card";
 import { RemoveButton } from "../shared/remove-button";
 
 const openapiSpecPathSchema = z.object({
@@ -42,7 +42,7 @@ export const OpenapiSpecPath = () => {
   const current = useWatch({ control, name: "openapiSpecPath" });
   const hasChanges = current !== defaultValue;
 
-  const saveState = resolveSaveState([
+  const saveState = firstMatchingSaveState([
     [isSubmitting, { status: "saving" }],
     [!isValid, { status: "disabled" }],
     [!hasChanges, { status: "disabled", reason: "No changes to save" }],
@@ -75,7 +75,7 @@ export const OpenapiSpecPath = () => {
       autoSave={variant === "onboarding"}
     >
       <SettingField>
-        <span className="text-gray-11 text-[13px] flex items-center">OpenAPI Spec Path</span>
+        <span className="text-gray-11 text-sm flex items-center">OpenAPI Spec Path</span>
         <div className="flex items-start gap-2">
           <FormInput
             description="Path your deployment serves the OpenAPI spec (e.g. /openapi.yaml). Changes apply on next deploy."

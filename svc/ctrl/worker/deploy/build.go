@@ -50,6 +50,24 @@ const (
 	// token to github.com; BuildKit's git source looks up the host-suffixed
 	// name first. Shared by the Dockerfile and Railpack build paths.
 	gitAuthTokenSecretID = "GIT_AUTH_TOKEN.github.com"
+
+	// buildBackendDeadline bounds one attempt at acquiring a build machine and
+	// solving on it. Say Depot stops answering mid-build: without this the Run
+	// never returns, the workspace's one build slot stays taken, and every
+	// other deployment in that workspace queues behind it forever. At 30
+	// minutes the build fails instead. Equal to buildImageRetryCeiling, so a
+	// build that hits it is not retried either
+	buildBackendDeadline = 30 * time.Minute
+
+	// BuildKeepAliveWindow keeps Restate from suspending a running Build. Say a
+	// build takes ten minutes and the user cancels at minute five: a suspended
+	// Build never hears about it, so it keeps building and holds the workspace's
+	// build slot for the other five. Must stay above buildBackendDeadline, or
+	// cancel silently stops working for every build that runs longer than this
+	BuildKeepAliveWindow = buildBackendDeadline + 5*time.Minute
+
+	// BuildKit does not export its stderr stream number
+	buildkitStderrStream = 2
 )
 
 // knownBuildError maps a BuildKit error pattern to a user-friendly message.
@@ -234,7 +252,7 @@ func (w *Workflow) runGitBuild(
 	buildFn func(runCtx restate.RunContext, bctx gitBuildContext) (*buildResult, error),
 ) (*buildResult, error) {
 	if err := validateGitBuildParams(params); err != nil {
-		return nil, restate.TerminalError(fmt.Errorf("invalid git build params: %w", err))
+		return nil, restate.ToTerminalError(fmt.Errorf("invalid git build params: %w", err))
 	}
 
 	depotProjectID := ""
@@ -273,11 +291,11 @@ func (w *Workflow) runGitBuild(
 		// surfaced to the user fast than burned inside a retry loop.
 		envVars, err := w.decryptEnvVars(runCtx, params.EncryptedEnvironmentVariables, params.EnvironmentID)
 		if err != nil {
-			return nil, restate.TerminalError(fmt.Errorf("failed to decrypt env vars for build: %w", err))
+			return nil, restate.ToTerminalError(fmt.Errorf("failed to decrypt env vars for build: %w", err))
 		}
 
 		if err := validateShellEnvKeys(envVars); err != nil {
-			return nil, restate.TerminalError(err)
+			return nil, restate.ToTerminalError(err)
 		}
 
 		return buildFn(runCtx, gitBuildContext{
@@ -323,10 +341,11 @@ func (w *Workflow) buildDockerImageFromGit(
 		// routing bug, so assert instead.
 		dockerfilePath := params.DockerfilePath
 		if assertErr := assert.NotEmpty(dockerfilePath, "dockerfile path must be set for dockerfile builds"); assertErr != nil {
-			return nil, restate.TerminalError(assertErr)
+			return nil, restate.ToTerminalError(assertErr)
 		}
 
-		logger.Info("Starting build execution",
+		logger.Info(
+			"Starting build execution",
 			"image_name", bctx.ImageName,
 			"dockerfile", dockerfilePath,
 			"platform", platform,
@@ -396,16 +415,23 @@ func buildGitContextURL(params gitBuildParams) string {
 // build backend and invokes fn with it. Returns the backend's build ID
 // alongside fn's error. The backend value is validated at config load, so
 // anything but the two known backends is unreachable.
+//
+// fn must use the context it is given rather than the caller's: it carries
+// [buildBackendDeadline], which is what stops a backend that never answers
+// from holding the workspace's build slot forever.
 func (w *Workflow) withBuildkit(
 	runCtx context.Context,
 	depotProjectID string,
 	params gitBuildParams,
-	fn func(buildClient *client.Client) error,
+	fn func(buildCtx context.Context, buildClient *client.Client) error,
 ) (string, error) {
+	buildCtx, cancel := context.WithTimeout(runCtx, buildBackendDeadline)
+	defer cancel()
+
 	if w.buildConfig.Backend == BuildBackendKubernetes {
-		return w.withKubernetesBuildkit(runCtx, params, fn)
+		return w.withKubernetesBuildkit(buildCtx, params, fn)
 	}
-	return w.withDepotBuildkit(runCtx, depotProjectID, params, fn)
+	return w.withDepotBuildkit(buildCtx, depotProjectID, params, fn)
 }
 
 // withDepotBuildkit creates a Depot build, acquires a remote BuildKit
@@ -413,12 +439,12 @@ func (w *Workflow) withBuildkit(
 // build is finalized and the machine released regardless of fn's outcome.
 // Returns the Depot build ID alongside fn's error.
 func (w *Workflow) withDepotBuildkit(
-	runCtx context.Context,
+	buildCtx context.Context,
 	depotProjectID string,
 	params gitBuildParams,
-	fn func(buildClient *client.Client) error,
+	fn func(buildCtx context.Context, buildClient *client.Client) error,
 ) (_ string, err error) {
-	depotBuild, err := build.NewBuild(runCtx, &cliv1.CreateBuildRequest{
+	depotBuild, err := build.NewBuild(buildCtx, &cliv1.CreateBuildRequest{
 		Options:   nil,
 		ProjectId: depotProjectID,
 	}, w.registryConfig.Password)
@@ -437,7 +463,7 @@ func (w *Workflow) withDepotBuildkit(
 		"architecture", w.buildPlatform.Architecture,
 		"project_id", params.ProjectID)
 
-	buildkit, err := machine.Acquire(runCtx, depotBuild.ID, depotBuild.Token, w.buildPlatform.Architecture)
+	buildkit, err := machine.Acquire(buildCtx, depotBuild.ID, depotBuild.Token, w.buildPlatform.Architecture)
 	if err != nil {
 		return "", fmt.Errorf("failed to acquire machine: %w", err)
 	}
@@ -451,7 +477,7 @@ func (w *Workflow) withDepotBuildkit(
 		"build_id", depotBuild.ID,
 		"project_id", params.ProjectID)
 
-	buildClient, err := buildkit.Connect(runCtx)
+	buildClient, err := buildkit.Connect(buildCtx)
 	if err != nil {
 		return "", fmt.Errorf("unable to create build client: %w", err)
 	}
@@ -461,7 +487,7 @@ func (w *Workflow) withDepotBuildkit(
 		}
 	}()
 
-	err = fn(buildClient)
+	err = fn(buildCtx, buildClient)
 	return depotBuild.ID, err
 }
 
@@ -476,11 +502,19 @@ func (w *Workflow) solveWithStatus(
 	buildClient *client.Client,
 	params gitBuildParams,
 	solverOptions client.SolveOpt,
+	seq *logSequence,
 ) error {
 	buildStatusCh := make(chan *client.SolveStatus, 100)
-	go w.processBuildStatus(buildStatusCh, params.WorkspaceID, params.ProjectID, params.DeploymentID)
+	statusDrained := make(chan struct{})
+	go func() {
+		defer close(statusDrained)
+		w.processBuildStatus(buildStatusCh, params.WorkspaceID, params.ProjectID, params.DeploymentID, seq)
+	}()
 
 	_, err := buildClient.Solve(runCtx, nil, solverOptions, buildStatusCh)
+	// Solve returns with statuses still buffered, and a later solve on the
+	// same sequence must not start numbering before this one is done
+	<-statusDrained
 	if err != nil {
 		// Context cancellations and timeouts are transient — let Restate retry.
 		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
@@ -489,7 +523,7 @@ func (w *Workflow) solveWithStatus(
 		if isTransientSolveError(err) {
 			return fmt.Errorf("build hit a transient registry error: %w", err)
 		}
-		return restate.TerminalError(fmt.Errorf("build failed: %w", err))
+		return restate.ToTerminalError(fmt.Errorf("build failed: %w", err))
 	}
 	return nil
 }
@@ -529,8 +563,8 @@ func (w *Workflow) solveOnBuildMachine(
 	params gitBuildParams,
 	solverOptions client.SolveOpt,
 ) (*buildResult, error) {
-	buildID, err := w.withBuildkit(runCtx, depotProjectID, params, func(buildClient *client.Client) error {
-		return w.solveWithStatus(runCtx, buildClient, params, solverOptions)
+	buildID, err := w.withBuildkit(runCtx, depotProjectID, params, func(buildCtx context.Context, buildClient *client.Client) error {
+		return w.solveWithStatus(buildCtx, buildClient, params, solverOptions, newLogSequence())
 	})
 	if err != nil {
 		return nil, err
@@ -750,19 +784,47 @@ func (w *Workflow) getOrCreateDepotProject(ctx context.Context, unkeyProjectID s
 func (w *Workflow) processBuildStatus(
 	statusCh <-chan *client.SolveStatus,
 	workspaceID, projectID, deploymentID string,
+	seq *logSequence,
 ) {
+	started := map[digest.Digest]bool{}
 	completed := map[digest.Digest]bool{}
 	verticesWithLogs := map[digest.Digest]bool{}
 
 	for status := range statusCh {
 		for _, log := range status.Logs {
 			verticesWithLogs[log.Vertex] = true
+			w.buildStepLogs.Buffer(schema.BuildStepLogV1{
+				WorkspaceID:  workspaceID,
+				ProjectID:    projectID,
+				DeploymentID: deploymentID,
+				StepID:       log.Vertex.String(),
+				Time:         log.Timestamp.UnixMilli(),
+				Message:      string(log.Data),
+				Seq:          seq.next(),
+				Stderr:       log.Stream == buildkitStderrStream,
+			})
 		}
 
 		for _, vertex := range status.Vertexes {
 			if vertex == nil {
 				logger.Warn("vertex is nil")
 				continue
+			}
+			if vertex.Started != nil && vertex.Completed == nil && !started[vertex.Digest] && !completed[vertex.Digest] {
+				started[vertex.Digest] = true
+
+				w.buildSteps.Buffer(schema.BuildStepV1{
+					Error:        "",
+					StartedAt:    vertex.Started.UnixMilli(),
+					CompletedAt:  0,
+					WorkspaceID:  workspaceID,
+					ProjectID:    projectID,
+					DeploymentID: deploymentID,
+					StepID:       vertex.Digest.String(),
+					Name:         vertex.Name,
+					Cached:       false,
+					HasLogs:      false,
+				})
 			}
 			if vertex.Completed != nil && !completed[vertex.Digest] {
 				completed[vertex.Digest] = true
@@ -779,18 +841,28 @@ func (w *Workflow) processBuildStatus(
 					Cached:       vertex.Cached,
 					HasLogs:      verticesWithLogs[vertex.Digest],
 				})
-			}
-		}
 
-		for _, log := range status.Logs {
-			w.buildStepLogs.Buffer(schema.BuildStepLogV1{
-				WorkspaceID:  workspaceID,
-				ProjectID:    projectID,
-				DeploymentID: deploymentID,
-				StepID:       log.Vertex.String(),
-				Time:         log.Timestamp.UnixMilli(),
-				Message:      string(log.Data),
-			})
+				duration := vertex.Completed.Sub(ptr.SafeDeref(vertex.Started)).Round(100 * time.Millisecond)
+				message := fmt.Sprintf("DONE %.1fs", duration.Seconds())
+				switch {
+				case vertex.Error != "":
+					message = "ERROR: " + vertex.Error
+				case vertex.Cached:
+					message = "CACHED"
+				case duration == 0:
+					continue
+				}
+				w.buildStepLogs.Buffer(schema.BuildStepLogV1{
+					WorkspaceID:  workspaceID,
+					ProjectID:    projectID,
+					DeploymentID: deploymentID,
+					StepID:       vertex.Digest.String(),
+					Time:         vertex.Completed.UnixMilli(),
+					Message:      message,
+					Seq:          seq.next(),
+					Stderr:       vertex.Error != "",
+				})
+			}
 		}
 	}
 }
@@ -852,7 +924,7 @@ func (w *Workflow) resolveCloneToken(params gitBuildParams, isForkBuild bool) (g
 				return noToken, false, fmt.Errorf("could not determine visibility of fork repository %s: %w", scopeRepo, err)
 			}
 			// Confirmed private: terminal, retrying never helps.
-			return noToken, false, restate.TerminalError(fmt.Errorf(
+			return noToken, false, restate.ToTerminalError(fmt.Errorf(
 				"cannot access private fork repository %s: it is outside this GitHub App installation", scopeRepo,
 			))
 		}
@@ -886,4 +958,18 @@ func extractUserBuildError(err error) string {
 		}
 	}
 	return "Build failed. Please check the build logs for details."
+}
+
+// logSequence numbers the log rows of one build attempt. It starts at the
+// wall clock in microseconds, not a journaled value, so a retried attempt
+// numbers its rows after the failed one
+type logSequence struct{ last uint64 }
+
+func newLogSequence() *logSequence {
+	return &logSequence{last: uint64(time.Now().UnixMicro())}
+}
+
+func (s *logSequence) next() uint64 {
+	s.last++
+	return s.last
 }

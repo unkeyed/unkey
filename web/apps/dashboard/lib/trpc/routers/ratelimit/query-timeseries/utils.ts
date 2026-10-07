@@ -1,5 +1,5 @@
 import type { RatelimitQueryTimeseriesPayload } from "@/app/(app)/[workspaceSlug]/ratelimits/[namespaceId]/logs/components/charts/query-timeseries.schema";
-import { getTimestampFromRelative } from "@/lib/utils";
+import { getTimestampFromRelative } from "@/lib/duration";
 import type { RatelimitLogsTimeseriesParams } from "@unkey/clickhouse/src/ratelimits";
 import {
   type TimeseriesConfig,

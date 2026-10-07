@@ -1,8 +1,9 @@
 package testutil
 
 import (
+	"net/http"
+	"net/http/httptest"
 	"testing"
-	"time"
 
 	restate "github.com/restatedev/sdk-go"
 	restateingress "github.com/restatedev/sdk-go/ingress"
@@ -17,12 +18,12 @@ type ObservedCreate struct {
 	Request      *hydrav1.DeployCreateRequest
 }
 
-type recordingDeployService struct {
-	hydrav1.UnimplementedDeployServiceServer
+type recordingDeployWorkflow struct {
+	hydrav1.UnimplementedDeployWorkflowServer
 	creates chan ObservedCreate
 }
 
-func (service *recordingDeployService) Create(ctx restate.ObjectContext, request *hydrav1.DeployCreateRequest) (*hydrav1.DeployCreateResponse, error) {
+func (service *recordingDeployWorkflow) Create(ctx restate.WorkflowSharedContext, request *hydrav1.DeployCreateRequest) (*hydrav1.DeployCreateResponse, error) {
 	service.creates <- ObservedCreate{
 		DeploymentID: restate.Key(ctx),
 		Request:      request,
@@ -37,22 +38,22 @@ func (service *recordingDeployService) Create(ctx restate.ObjectContext, request
 func RecordingDeployRestate(t *testing.T) (*restateingress.Client, <-chan ObservedCreate) {
 	t.Helper()
 
-	recorder := &recordingDeployService{
-		UnimplementedDeployServiceServer: hydrav1.UnimplementedDeployServiceServer{},
-		creates:                          make(chan ObservedCreate, 8),
+	recorder := &recordingDeployWorkflow{
+		UnimplementedDeployWorkflowServer: hydrav1.UnimplementedDeployWorkflowServer{},
+		creates:                           make(chan ObservedCreate, 8),
 	}
-	restateConfig := containers.Restate(t, hydrav1.NewDeployServiceServer(recorder))
+	restateConfig := containers.Restate(t, hydrav1.NewDeployWorkflowServer(recorder))
 
 	return restateingress.NewClient(restateConfig.IngressURL), recorder.creates
 }
 
-type rejectingDeployService struct {
-	hydrav1.UnimplementedDeployServiceServer
+type rejectingDeployWorkflow struct {
+	hydrav1.UnimplementedDeployWorkflowServer
 	outcome hydrav1.CreateOutcome
 	detail  string
 }
 
-func (service *rejectingDeployService) Create(_ restate.ObjectContext, _ *hydrav1.DeployCreateRequest) (*hydrav1.DeployCreateResponse, error) {
+func (service *rejectingDeployWorkflow) Create(_ restate.WorkflowSharedContext, _ *hydrav1.DeployCreateRequest) (*hydrav1.DeployCreateResponse, error) {
 	return &hydrav1.DeployCreateResponse{Outcome: service.outcome, Detail: service.detail, DeploymentId: ""}, nil
 }
 
@@ -62,21 +63,30 @@ func (service *rejectingDeployService) Create(_ restate.ObjectContext, _ *hydrav
 func RejectingDeployRestate(t *testing.T, outcome hydrav1.CreateOutcome, detail string) *restateingress.Client {
 	t.Helper()
 
-	restateConfig := containers.Restate(t, hydrav1.NewDeployServiceServer(&rejectingDeployService{
-		UnimplementedDeployServiceServer: hydrav1.UnimplementedDeployServiceServer{},
-		outcome:                          outcome,
-		detail:                           detail,
+	restateConfig := containers.Restate(t, hydrav1.NewDeployWorkflowServer(&rejectingDeployWorkflow{
+		UnimplementedDeployWorkflowServer: hydrav1.UnimplementedDeployWorkflowServer{},
+		outcome:                           outcome,
+		detail:                            detail,
 	}))
 
 	return restateingress.NewClient(restateConfig.IngressURL)
 }
 
-// UncalledDeployRestate fails the test during cleanup if Create was invoked, for
-// tests that must refuse before submitting.
+// UncalledDeployRestate returns an ingress client for tests that must refuse
+// before submitting.
+//
+// These tests never reach Restate, so they get a local endpoint that fails on
+// contact rather than a container. A Restate of their own would cost a
+// single-node cluster each, a third of every container the suite starts, to
+// prove that nothing was sent to it.
 func UncalledDeployRestate(t *testing.T) *restateingress.Client {
 	t.Helper()
 
-	client, creates := RecordingDeployRestate(t)
-	t.Cleanup(func() { RequireNoReceive(t, creates, time.Second) })
-	return client
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Errorf("handler submitted %s %s to Restate but must refuse before submitting", r.Method, r.URL.Path)
+		w.WriteHeader(http.StatusInternalServerError)
+	}))
+	t.Cleanup(server.Close)
+
+	return restateingress.NewClient(server.URL)
 }

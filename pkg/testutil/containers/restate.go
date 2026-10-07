@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -30,6 +31,9 @@ const (
 	// keepRestateEnv leaves the Restate container of a failed test running so
 	// its invocation journal and state can be inspected through the admin API.
 	keepRestateEnv = "UNKEY_TEST_KEEP_RESTATE"
+
+	restateAdminReadyTimeout = 60 * time.Second
+	restateLogTailLines      = 200
 )
 
 // RestateConfig holds connection information for the Restate test container.
@@ -53,8 +57,42 @@ type RestateConfig struct {
 // shared server between registrations, has to serialize every test that
 // touches an overlapping service name.
 //
+// A package whose tests all register the same services has no such conflict
+// and should use RestatePackage instead.
+//
 // Callers must supply every service that the registered handlers can invoke.
 func Restate(t *testing.T, services ...restate.ServiceDefinition) RestateConfig {
+	t.Helper()
+
+	cfg, stop := startRestate(t, t.Errorf, services...)
+	t.Cleanup(func() {
+		if t.Failed() && os.Getenv(keepRestateEnv) != "" {
+			t.Logf("%s is set: keeping Restate for this test at admin %s", keepRestateEnv, cfg.AdminURL)
+			return
+		}
+		stop()
+	})
+	return cfg
+}
+
+// RestatePackage starts a Restate that outlives the test creating it, for a
+// package whose tests all register the same services.
+//
+// One per test costs a single-node cluster each, which is the dominant startup
+// cost of a package with many of them. Tests that reach Restate under ids of
+// their own can share one, because Restate keys invocation state by the id the
+// caller sends. The caller owns teardown and has to run stop from TestMain.
+func RestatePackage(t *testing.T, services ...restate.ServiceDefinition) (RestateConfig, func()) {
+	t.Helper()
+	// stop runs from TestMain, after the test that built this one has finished,
+	// so a shutdown problem is logged rather than reported against it.
+	return startRestate(t, log.Printf, services...)
+}
+
+// startRestate builds the container and worker, returning the teardown its
+// caller owns. report carries a worker that would not shut down, which the
+// caller decides how to surface.
+func startRestate(t *testing.T, report func(format string, args ...any), services ...restate.ServiceDefinition) (RestateConfig, func()) {
 	t.Helper()
 	require.NotEmpty(t, services, "at least one Restate service is required")
 
@@ -67,28 +105,65 @@ func Restate(t *testing.T, services ...restate.ServiceDefinition) RestateConfig 
 	}
 
 	var worker *httptest.Server
-	t.Cleanup(func() {
-		if t.Failed() && os.Getenv(keepRestateEnv) != "" {
-			t.Logf("%s is set: keeping Restate for this test at admin %s", keepRestateEnv, cfg.AdminURL)
+	stopped := false
+	stop := func() {
+		if stopped {
 			return
 		}
+		stopped = true
 		// Remove the server before the worker. Restate holds a long-lived
 		// request open per running invocation, and httptest.Server.Close waits
 		// for in-flight requests, so closing the worker first would block for
 		// as long as an invocation keeps running.
 		removeContainer()
-		closeWorker(t, worker)
+		closeWorker(report, worker)
+	}
+
+	// Setup below can fail at any point, and a test that dies there must not
+	// leave its container behind. Once it returns, the caller owns teardown.
+	ready := false
+	t.Cleanup(func() {
+		if ready {
+			return
+		}
+		stop()
 	})
 
 	admin := restateAdminClient{
 		baseURL: cfg.AdminURL,
 		http:    &http.Client{Timeout: 10 * time.Second}, //nolint:exhaustruct // Defaults are sufficient for tests.
 	}
-	require.Eventually(t, func() bool {
+	deadline := time.Now().Add(restateAdminReadyTimeout)
+	nextStateCheck := time.Now().Add(2 * time.Second)
+	for {
 		healthCtx, cancel := context.WithTimeout(t.Context(), 2*time.Second)
-		defer cancel()
-		return admin.health(healthCtx) == nil
-	}, 60*time.Second, 50*time.Millisecond, "restate admin never became healthy")
+		healthErr := admin.health(healthCtx)
+		cancel()
+		if healthErr == nil {
+			break
+		}
+
+		// A container that is no longer running will never serve /health, and
+		// sitting out the whole timeout reports a crash, an OOM kill, a failed
+		// port publish and a slow start as the same bare timeout.
+		now := time.Now()
+		gone := false
+		if now.After(nextStateCheck) {
+			nextStateCheck = now.Add(2 * time.Second)
+			state, ok := container.state()
+			gone = ok && state.State != "running"
+		}
+
+		if gone || now.After(deadline) {
+			state, _ := container.state()
+			require.FailNowf(t, "restate admin never became healthy",
+				"admin %s after %s: %v\ncontainer %q: state=%q health=%q exit=%d\nrestate logs:\n%s",
+				cfg.AdminURL, restateAdminReadyTimeout, healthErr,
+				state.Status, state.State, state.Health, state.ExitCode,
+				container.logs(restateLogTailLines))
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
 
 	restateSrv := restateServer.NewRestate()
 	for _, service := range services {
@@ -133,13 +208,13 @@ func Restate(t *testing.T, services ...restate.ServiceDefinition) RestateConfig 
 		return err == nil
 	}, 30*time.Second, 100*time.Millisecond, "restate never became ready for keyed invocations")
 
-	return cfg
+	ready = true
+	return cfg, stop
 }
 
 // closeWorker shuts the test worker down without letting a handler that
 // ignores cancellation hang the whole test binary in cleanup.
-func closeWorker(t *testing.T, worker *httptest.Server) {
-	t.Helper()
+func closeWorker(report func(format string, args ...any), worker *httptest.Server) {
 	if worker == nil {
 		return
 	}
@@ -155,7 +230,7 @@ func closeWorker(t *testing.T, worker *httptest.Server) {
 	select {
 	case <-closed:
 	case <-timer.C:
-		t.Errorf("Restate test worker did not shut down: a handler is still running after the server was removed")
+		report("Restate test worker did not shut down: a handler is still running after the server was removed")
 	}
 }
 

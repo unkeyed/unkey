@@ -12,7 +12,6 @@ type RoleFieldProps = {
   onChange: (names: string[]) => void;
   error?: string;
   disabled?: boolean;
-  keyId?: string;
   assignedRoleDetails: KeyRole[];
 };
 
@@ -21,7 +20,6 @@ export const RoleField = ({
   onChange,
   error,
   disabled = false,
-  keyId,
   assignedRoleDetails,
 }: RoleFieldProps) => {
   const [searchValue, setSearchValue] = useState("");
@@ -52,7 +50,6 @@ export const RoleField = ({
     roles: allRoles,
     hasNextPage: showLoadMore,
     isFetchingNextPage,
-    keyId,
     previouslySelectedRoleNames: assignedRoleDetails.map((r) => r.name),
     loadMore,
   });
@@ -127,19 +124,19 @@ export const RoleField = ({
         onChange={(e) => setSearchValue(e.currentTarget.value)}
         onSelect={handleAddRole}
         placeholder={
-          <div className="flex w-full text-grayA-8 text-[13px] gap-1.5 items-center py-2">
+          <div className="flex w-full text-grayA-8 text-sm gap-1.5 items-center py-2">
             Select roles
           </div>
         }
         searchPlaceholder="Search roles by name or description..."
         emptyMessage={
           isComboboxLoading ? (
-            <div className="px-3 py-3 text-gray-10 text-[13px] flex items-center gap-2">
+            <div className="px-3 py-3 text-gray-10 text-sm flex items-center gap-2">
               <div className="animate-spin h-3 w-3 border border-gray-6 border-t-gray-11 rounded-full" />
               {isSearching ? "Searching..." : "Loading roles..."}
             </div>
           ) : (
-            <div className="px-3 py-3 text-gray-10 text-[13px]">No roles found</div>
+            <div className="px-3 py-3 text-gray-10 text-sm">No roles found</div>
           )
         }
         variant="default"

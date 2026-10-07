@@ -16,10 +16,11 @@ export const RbacSetup = () => {
     defaultValue: [],
   });
 
-  const { data: permissionSlugs, isLoading: isPermissionSlugsLoading } = useFetchPermissionSlugs(
-    roleNames,
-    directPermissionSlugs,
-  );
+  const {
+    data: permissionSlugs,
+    isLoading: isPermissionSlugsLoading,
+    hasError: hasPermissionSlugsError,
+  } = useFetchPermissionSlugs(roleNames, directPermissionSlugs);
 
   return (
     <div className="flex flex-col gap-5">
@@ -52,6 +53,7 @@ export const RbacSetup = () => {
         slugs={permissionSlugs?.slugs}
         totalCount={permissionSlugs?.totalCount}
         isLoading={isPermissionSlugsLoading}
+        hasError={hasPermissionSlugsError}
       />
     </div>
   );

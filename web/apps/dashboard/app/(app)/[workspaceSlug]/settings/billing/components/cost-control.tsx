@@ -37,7 +37,7 @@ type CostControlProps = {
 export function CostControl({ isAdmin, apiFeeCents }: CostControlProps) {
   return (
     <div className="flex flex-col gap-3">
-      <h2 className="font-medium text-[13px] text-gray-12">Cost control</h2>
+      <h2 className="font-medium text-sm text-gray-12">Cost control</h2>
       <ComputeBudget isAdmin={isAdmin} />
       <ApiFixedFee apiFeeCents={apiFeeCents} />
     </div>
@@ -129,7 +129,7 @@ function ComputeBudget({ isAdmin }: { isAdmin: boolean | undefined }) {
         {budgetCents !== null ? (
           <>
             <ItemSeparator />
-            <div className="bg-grayA-2 px-4 py-2 font-semibold text-[10px] text-gray-9 uppercase tracking-wider">
+            <div className="bg-grayA-2 px-4 py-2 font-semibold text-3xs text-gray-9 uppercase tracking-wider">
               Alerts
             </div>
             {/* The deployspendcheck worker sends the stopped email instead of the 100% warning when stopping is on. */}
@@ -188,7 +188,7 @@ function ApiFixedFee({ apiFeeCents }: { apiFeeCents: number | null }) {
       <ItemSeparator />
       <Item>
         <ItemContent>
-          <ItemDescription className="text-[13px] leading-5">
+          <ItemDescription className="text-sm leading-5">
             {apiFeeCents === null
               ? "Plan fee unavailable."
               : `Fixed at ${formatDollars(apiFeeCents)}/month.`}

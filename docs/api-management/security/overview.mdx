@@ -1,0 +1,48 @@
+---
+title: API key security
+sidebarTitle: "Overview"
+description: "How the keys you issue are protected, from storage to leak detection."
+sources:
+  - pkg/hash/sha256.go
+  - internal/services/keys/create.go
+  - svc/api/routes/v2_keys_verify_key/handler.go
+  - svc/api/routes/v2_keys_create_key/handler.go
+  - web/internal/db/src/schema/keyAuth.ts
+  - web/internal/db/src/schema/util/delete_protection.ts
+  - web/apps/dashboard/app/api/v1/github/verify/route.ts
+  - pkg/rbac/permissions.go
+---
+
+Here's how the API keys you issue are protected, and what you can do to keep them safe. For workspace security, such as how your team signs in, see [Security](/platform/security/overview).
+
+## Keys are stored as hashes
+
+When you create a key, you get it back once and we keep only a hash. A copy of our database wouldn't give anyone a working key, and we can't show a key again. So show the key when it's created and let users roll it over. Don't promise to show it later. See [Key storage](/platform/security/key-storage).
+
+## Recovery is opt-in and separately permissioned
+
+If your product must show a key more than once, we can turn on encrypted storage for a keyspace. Keys created with `recoverable: true` are then also stored encrypted with keys unique to your workspace. It's off by default. Creating a recoverable key needs the `encrypt_key` permission, and reading one back needs `decrypt_key`, so you can grant recovery narrowly. See [Recovering keys](/api-management/security/recovering-keys) for the trade-offs and [Recoverable keys](/api-management/keys/recoverable-keys) for the steps.
+
+## Verification doesn't leak
+
+`keys.verifyKey` returns `NOT_FOUND` for several failures, including a root key without permission for the keyspace, so nobody can use it to find out which keys exist. Every verification is recorded in [analytics](/api-management/analytics/overview), and verifications made with a root key are also in the [audit log](/platform/workspace/audit-logs/overview).
+
+## IP allow lists
+
+A keyspace can have a list of IP addresses its keys can be verified from. Verification from anywhere else fails with `FORBIDDEN`. Use it for keys that should only be used from your own servers. See [Keyspace settings](/api-management/keyspaces/settings).
+
+## Delete protection
+
+With delete protection on, you can't delete a keyspace until you turn protection off, so one wrong call can't wipe out a production keyspace and all its keys. See [Delete protection](/platform/security/delete-protection).
+
+## Root keys are scoped
+
+A root key has only the permissions you give it, down to one keyspace. For example, `api.<api_id>.verify_key` lets a service verify keys in one keyspace and nothing else. Give each service its own root key with as few permissions as it needs, so a leaked key does little damage and is easy to replace. See [Root key permissions](/platform/root-keys/permissions).
+
+## Leaked credentials
+
+GitHub's secret scanning recognizes root keys by their `unkey_` prefix. If one is pushed to a public repository, every member of your workspace gets an email. The keys you issue to your users use your own prefixes, and GitHub doesn't scan for them, so delete or reroll a user's key yourself when you learn it leaked. Details are on [GitHub secret scanning](/platform/security/github-secret-scanning).
+
+## Everything is audited
+
+Every change to keyspaces, keys, identities, roles, permissions, and portals is in the audit log, with who did it and from where. You can stream it to your own systems. See [Audit logs](/platform/workspace/audit-logs/overview).

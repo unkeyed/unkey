@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
@@ -63,9 +62,9 @@ func TestListDomainsIDSlugCollisionsMatchBoth(t *testing.T) {
 		req     handler.Request
 		wantIDs []string
 	}{
-		{name: "project", req: handler.Request{Project: ptr.P(base.projectID)}, wantIDs: []string{baseDomain.ID, appDomain.ID, environmentDomain.ID, projectDomain.ID}},
-		{name: "app", req: handler.Request{App: ptr.P(base.appID)}, wantIDs: []string{baseDomain.ID, appDomain.ID, environmentDomain.ID}},
-		{name: "environment", req: handler.Request{Environment: ptr.P(base.environmentID)}, wantIDs: []string{baseDomain.ID, environmentDomain.ID}},
+		{name: "project", req: handler.Request{Project: new(base.projectID)}, wantIDs: []string{baseDomain.ID, appDomain.ID, environmentDomain.ID, projectDomain.ID}},
+		{name: "app", req: handler.Request{App: new(base.appID)}, wantIDs: []string{baseDomain.ID, appDomain.ID, environmentDomain.ID}},
+		{name: "environment", req: handler.Request{Environment: new(base.environmentID)}, wantIDs: []string{baseDomain.ID, environmentDomain.ID}},
 	}
 
 	for _, tc := range testCases {
@@ -96,12 +95,12 @@ func TestListDomainsMissingAndMismatchedFiltersReturnEmpty(t *testing.T) {
 		name string
 		req  handler.Request
 	}{
-		{name: "missing project", req: handler.Request{Project: ptr.P(uid.New(uid.ProjectPrefix))}},
-		{name: "missing app", req: handler.Request{App: ptr.P(uid.New(uid.AppPrefix))}},
-		{name: "missing environment", req: handler.Request{Environment: ptr.P(uid.New(uid.EnvironmentPrefix))}},
-		{name: "app from another project", req: handler.Request{Project: ptr.P(env.projectID), App: ptr.P(other.appID)}},
-		{name: "environment from another app", req: handler.Request{App: ptr.P(env.appID), Environment: ptr.P(other.environmentID)}},
-		{name: "environment slug mismatched with app", req: handler.Request{App: ptr.P(other.appID), Environment: ptr.P("production"), Search: ptr.P(domain.Domain)}},
+		{name: "missing project", req: handler.Request{Project: new(uid.New(uid.ProjectPrefix))}},
+		{name: "missing app", req: handler.Request{App: new(uid.New(uid.AppPrefix))}},
+		{name: "missing environment", req: handler.Request{Environment: new(uid.New(uid.EnvironmentPrefix))}},
+		{name: "app from another project", req: handler.Request{Project: new(env.projectID), App: new(other.appID)}},
+		{name: "environment from another app", req: handler.Request{App: new(env.appID), Environment: new(other.environmentID)}},
+		{name: "environment slug mismatched with app", req: handler.Request{App: new(other.appID), Environment: new("production"), Search: new(domain.Domain)}},
 	}
 
 	for _, tc := range testCases {
@@ -142,10 +141,10 @@ func TestListDomainsCrossWorkspaceFiltersReturnEmpty(t *testing.T) {
 	headers := authHeaders(h.CreateRootKey(env.workspaceID, "environment.*.read_domain"))
 
 	requests := []handler.Request{
-		{Project: ptr.P(otherProject.ID)},
-		{App: ptr.P(otherApp.ID)},
-		{Environment: ptr.P(otherEnvironment.ID)},
-		{Project: ptr.P(otherProject.Slug), App: ptr.P(otherApp.Slug), Environment: ptr.P(otherEnvironment.Slug)},
+		{Project: new(otherProject.ID)},
+		{App: new(otherApp.ID)},
+		{Environment: new(otherEnvironment.ID)},
+		{Project: new(otherProject.Slug), App: new(otherApp.Slug), Environment: new(otherEnvironment.Slug)},
 	}
 	for _, req := range requests {
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)

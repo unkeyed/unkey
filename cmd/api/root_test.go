@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -90,13 +91,43 @@ func TestBodyBypassesSpecialRequestConstruction(t *testing.T) {
 		name       string
 		command    []string
 		body       string
+		response   string
 		statusCode int
 	}{
 		{
-			name:       "deployment union",
+			name:       "app source union",
+			command:    []string{"apps", "create-app"},
+			body:       `{"project":"project","name":"Payments","slug":"payments","oci":{"image":"ghcr.io/acme/payments:v1"}}`,
+			response:   `{}`,
+			statusCode: http.StatusOK,
+		},
+		{
+			name:       "deployment source",
 			command:    []string{"deployments", "create-deployment"},
-			body:       `{"project":"project","app":"app","environment":"production","git":{"branch":"main"}}`,
+			body:       `{"project":"project","app":"app","environment":"production"}`,
+			response:   `{}`,
 			statusCode: http.StatusCreated,
+		},
+		{
+			name:       "role selector union",
+			command:    []string{"permissions", "set-role-permissions"},
+			body:       `{"role":"admin","permissions":[]}`,
+			response:   `[]`,
+			statusCode: http.StatusOK,
+		},
+		{
+			name:       "portal resource union",
+			command:    []string{"portal", "create-portal"},
+			body:       `{"slug":"acme","displayName":"Acme","keyspaceId":"ks_1234abcd"}`,
+			response:   `{}`,
+			statusCode: http.StatusOK,
+		},
+		{
+			name:       "portal selector union",
+			command:    []string{"portal", "get-portal"},
+			body:       `{"portal":"acme"}`,
+			response:   `{}`,
+			statusCode: http.StatusOK,
 		},
 	}
 
@@ -109,7 +140,7 @@ func TestBodyBypassesSpecialRequestConstruction(t *testing.T) {
 				require.NoError(t, err)
 				w.Header().Set("Content-Type", "application/json")
 				w.WriteHeader(tt.statusCode)
-				_, err = w.Write([]byte("{\"meta\":{\"requestId\":\"test\"},\"data\":{}}"))
+				_, err = w.Write(fmt.Appendf(nil, `{"meta":{"requestId":"test"},"data":%s}`, tt.response))
 				require.NoError(t, err)
 			}))
 			t.Cleanup(server.Close)

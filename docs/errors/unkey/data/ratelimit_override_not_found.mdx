@@ -1,0 +1,43 @@
+---
+title: "ratelimit_override_not_found"
+sidebarTitle: "ratelimit_override_not_found"
+description: "No rate limit override matches the identifier in that namespace."
+sources:
+  - pkg/codes/unkey_data.go
+  - svc/api/internal/middleware/errors.go
+  - svc/api/routes/v2_ratelimit_get_override/handler.go
+  - svc/api/routes/v2_ratelimit_delete_override/handler.go
+---
+
+<Danger>`err:unkey:data:ratelimit_override_not_found`</Danger>
+
+No override in that namespace matches the identifier you sent. You get HTTP 404.
+
+```json Example response
+{
+  "meta": {
+    "requestId": "req_2c9a0jf23l4k567"
+  },
+  "error": {
+    "detail": "This override does not exist.",
+    "status": 404,
+    "title": "Not Found",
+    "type": "/errors/unkey/data/ratelimit_override_not_found"
+  }
+}
+```
+
+## Likely causes
+
+- The identifier doesn't exactly match an override, including any wildcard.
+- Your root key doesn't have permission on the namespace's overrides. `ratelimit.getOverride` and `ratelimit.deleteOverride` return this 404 instead of a 403.
+
+## How to fix
+
+1. List overrides with `ratelimit.listOverrides` and use an identifier from the list, with any wildcard exactly as it was set.
+2. Check that the root key has the override permission for the namespace.
+
+## Related errors
+
+- [`err:unkey:data:ratelimit_namespace_not_found`](/errors/unkey/data/ratelimit_namespace_not_found): the namespace doesn't exist.
+- [`err:unkey:authorization:insufficient_permissions`](/errors/unkey/authorization/insufficient_permissions): how permission failures look when they aren't hidden behind a 404.

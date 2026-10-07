@@ -755,6 +755,60 @@ components:
                     "$ref": "#/components/schemas/Meta"
                 data:
                     "$ref": "#/components/schemas/Deployment"
+        V2DeploymentsListBuildLogsRequestBody:
+            type: object
+            required:
+                - deploymentId
+            properties:
+                deploymentId:
+                    "$ref": "#/components/schemas/ResourceIdentifier"
+                stepId:
+                    type: string
+                    minLength: 1
+                    maxLength: 256
+                    description: |
+                        Return only the log entries of this build step. Use the `stepId` of an
+                        entry from a previous response. An unknown step returns no entries.
+                        Omit this field to return the entries of every step.
+                    example: sha256:3f9c2b7e1d4a6f8c0b5e9d2a7c4f1e8b3d6a9c2f5e8b1d4a7c0f3e6b9d2a5c8f
+                cursor:
+                    type: string
+                    minLength: 1
+                    maxLength: 1024
+                    description: |
+                        Pagination cursor from a previous response to fetch the entries after
+                        it. Omit it to start at the first entry of the build.
+                    example: "1704067201000001"
+                limit:
+                    type: integer
+                    minimum: 1
+                    maximum: 500
+                    default: 100
+                    description: |
+                        Maximum number of log entries to return. A response can contain fewer
+                        entries and still have `hasMore: true` when the entries are large.
+            additionalProperties: false
+            description: |
+                Retrieve the build log entries of a deployment. Get the deployment id from
+                `createDeployment` or `listDeployments`.
+        V2DeploymentsListBuildLogsResponseBody:
+            type: object
+            required:
+                - meta
+                - data
+                - pagination
+            properties:
+                meta:
+                    "$ref": "#/components/schemas/Meta"
+                data:
+                    type: array
+                    maxItems: 500
+                    items:
+                        "$ref": "#/components/schemas/BuildLogEntry"
+                    description: The log entries, in the order the build printed them.
+                pagination:
+                    "$ref": "#/components/schemas/Pagination"
+            additionalProperties: false
         V2DeploymentsListDeploymentsRequestBody:
             type: object
             properties:
@@ -2251,7 +2305,9 @@ components:
                         - API key listing endpoints
                     example: key_2cGKbMxRyIzhCxo1Idjz8q
                 expiration:
-                    type: integer
+                    type:
+                        - integer
+                        - "null"
                     format: int64
                     minimum: 0
                     maximum: 4102444800000
@@ -2261,6 +2317,7 @@ components:
                         This parameter controls the overlap period for key rotation:
                         - Set to `0` to revoke the original key immediately
                         - Positive values keep the original key active for the specified duration
+                        - Set to `null` to keep the original key active; it keeps its current expiration, if any
                         - Allows graceful migration by giving users time to update their credentials
 
                         Common overlap periods:
@@ -2385,7 +2442,7 @@ components:
                         - "null"
                     format: int64
                     minimum: 0
-                    maximum: 9223372036854776000
+                    maximum: 9223372036854775807
                     description: |
                         The credit value to use with the specified operation. The meaning depends on the operation: for 'set', this becomes the new remaining credits value; for 'increment', this amount is added to current credits; for 'decrement', this amount is subtracted from current credits.
 
@@ -2612,6 +2669,20 @@ components:
                     example: "documents.read AND users.view"
                 credits:
                     "$ref": "#/components/schemas/KeysVerifyKeyCredits"
+                keyspaces:
+                    type: array
+                    minItems: 1
+                    maxItems: 5
+                    items:
+                        type: string
+                        minLength: 1
+                        maxLength: 100
+                    description: |
+                        Restricts verification to keys in these keyspaces, matched by exact ID.
+                        Omit this field to verify without a keyspace restriction.
+                        A failed keyspace check returns `NOT_FOUND` without consuming credits or rate limits.
+                    example:
+                        - ks_1234abcd
                 ratelimits:
                     type: array
                     items:
@@ -3263,6 +3334,7 @@ components:
                         enum:
                             - "keys:read"
                             - "keys:reroll"
+                            - "analytics:read"
                     minItems: 1
                     description: |
                         The capabilities granted to the end user in the Portal, from a fixed
@@ -3271,19 +3343,13 @@ components:
                         configured on the portal. An end user can never see another identity's
                         keys.
 
-                        The portal currently exposes only the keys page, so these scopes gate
-                        what the end user can do there rather than which pages they see. Because
-                        rerolling is reached from that page, `keys:reroll` requires `keys:read`
-                        in the same session; requesting it alone is rejected.
+                        Rerolling and usage analytics are both reached from the keys page, so
+                        `keys:reroll` and `analytics:read` each require `keys:read` in the same
+                        session; requesting either without it is rejected.
 
                         Each scope requires the equivalent permission on your own root key. See
                         Required Permissions on this operation.
                     example: ["keys:read", "keys:reroll"]
-                preview:
-                    type: boolean
-                    default: false
-                    description: |
-                        When true, creates a preview session for testing the portal experience.
                 returnUrl:
                     type: string
                     format: uri
@@ -3416,18 +3482,33 @@ components:
             type: object
             required:
                 - meta
-                - data
+                - bucketMillis
+                - keys
             properties:
                 meta:
                     $ref: "#/components/schemas/Meta"
-                data:
+                bucketMillis:
+                    type: integer
+                    format: int64
+                    description: |
+                        Width of one bucket in milliseconds, chosen from the window size. Every
+                        series below is aligned to it, so a client can build the buckets for a
+                        window that returned no keys at all without restating the granularity
+                        rule.
+                    example: 60000
+                keys:
                     type: array
                     description: |
-                        Zero-filled verification timeseries for the authenticated end user, ordered
-                        by time ascending. Buckets with no verifications are present with zero
-                        counts so the series is contiguous across the requested window.
+                        One entry per key the end user has verifications for in the window, each
+                        zero-filled across the whole window and ordered by time ascending. Sum
+                        them to get the account-wide series.
+
+                        Keys with no verifications anywhere in the window are omitted. Entries
+                        come from the verification events themselves, so a `keyId` may name a key
+                        that has since been deleted and will not appear in `portal.listKeys`;
+                        render those totals without assuming the key is still listable.
                     items:
-                        $ref: "#/components/schemas/V2PortalGetVerificationsDataPoint"
+                        $ref: "#/components/schemas/V2PortalGetVerificationsKeySeries"
             additionalProperties: false
         V2PortalListKeysRequestBody:
             type: object
@@ -3460,6 +3541,80 @@ components:
                     "$ref": "#/components/schemas/V2PortalListKeysResponseData"
                 pagination:
                     "$ref": "#/components/schemas/Pagination"
+            additionalProperties: false
+        V2PortalListSessionsRequestBody:
+            type: object
+            required:
+                - portal
+            properties:
+                portal:
+                    "$ref": "#/components/schemas/ResourceIdentifier"
+                limit:
+                    type: integer
+                    description: Maximum number of end users to return per request.
+                    default: 100
+                    minimum: 1
+                    maximum: 100
+                cursor:
+                    type: string
+                    description: |
+                        Pagination cursor from a previous response to fetch the next page.
+                        Use when `hasMore: true` in the previous response.
+                    example: user_123
+                search:
+                    type: string
+                    maxLength: 256
+                    description: |
+                        Returns only end users whose `externalId` starts with this string.
+                        Matching is case-sensitive, and `%` and `_` match literally.
+                    example: user_
+            additionalProperties: false
+        V2PortalListSessionsResponseBody:
+            type: object
+            required:
+                - meta
+                - data
+                - pagination
+            properties:
+                meta:
+                    "$ref": "#/components/schemas/Meta"
+                data:
+                    type: array
+                    maxItems: 100
+                    items:
+                        "$ref": "#/components/schemas/V2PortalListSessionsResponseData"
+                    description: End users with revocable sessions, ordered by `externalId`.
+                pagination:
+                    "$ref": "#/components/schemas/Pagination"
+            additionalProperties: false
+        V2PortalRevokeSessionRequestBody:
+            type: object
+            required:
+                - portal
+                - externalId
+            properties:
+                portal:
+                    "$ref": "#/components/schemas/ResourceIdentifier"
+                externalId:
+                    type: string
+                    minLength: 1
+                    maxLength: 256
+                    description: |
+                        The end user's identifier in your system, as passed to
+                        `portal.createSession`. Every live session this end user holds on the
+                        portal is revoked.
+                    example: user_123
+            additionalProperties: false
+        V2PortalRevokeSessionResponseBody:
+            type: object
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    "$ref": "#/components/schemas/Meta"
+                data:
+                    "$ref": "#/components/schemas/V2PortalRevokeSessionResponseData"
             additionalProperties: false
         V2PortalUpdatePortalRequestBody:
             type: object
@@ -3517,7 +3672,8 @@ components:
                     description: |
                         Whether new sessions can be minted. Omit to leave unchanged.
 
-                        Disabling does not end sessions that are already live.
+                        Disabling also revokes the portal's live sessions. Re-enabling does not
+                        restore them.
                     example: false
                 logoUrl:
                     type:
@@ -4002,6 +4158,175 @@ components:
                     "$ref": "#/components/schemas/Meta"
                 data:
                     "$ref": "#/components/schemas/V2RatelimitSetOverrideResponseData"
+        V2RootKeysCreateKeyRequestBody:
+            type: object
+            additionalProperties: false
+            required:
+                - permissions
+            properties:
+                name:
+                    type: string
+                    maxLength: 255
+                    description: Optional name for the root key.
+                permissions:
+                    type: array
+                    minItems: 0
+                    maxItems: 1000
+                    description: Permissions to grant to the root key. Each permission must be within the caller's existing permissions.
+                    items:
+                        type: string
+                        minLength: 1
+                        maxLength: 512
+                expires:
+                    type:
+                        - integer
+                        - "null"
+                    format: int64
+                    description: Expiration as Unix milliseconds, strictly in the future. Expiring root-key callers must provide a child expiry no later than their own. JWT admins and nonexpiring root-key callers may omit it or set null for no expiration.
+        V2RootKeysCreateKeyResponseBody:
+            type: object
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    $ref: '#/components/schemas/Meta'
+                data:
+                    $ref: '#/components/schemas/V2RootKeysCreateKeyResponseData'
+        V2RootKeysDeleteKeyRequestBody:
+            type: object
+            additionalProperties: false
+            required:
+                - keyId
+            properties:
+                keyId:
+                    type: string
+                    minLength: 3
+                    maxLength: 255
+                    pattern: "^[a-zA-Z0-9_]+$"
+                    description: Root key identifier returned by rootKeys.createKey or rootKeys.listKeys.
+        V2RootKeysDeleteKeyResponseBody:
+            type: object
+            additionalProperties: false
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    $ref: '#/components/schemas/Meta'
+                data:
+                    $ref: '#/components/schemas/EmptyResponse'
+        V2RootKeysListKeysRequestBody:
+            type: object
+            additionalProperties: false
+            properties:
+                limit:
+                    type: integer
+                    default: 100
+                    minimum: 1
+                    maximum: 100
+                    description: Maximum number of readable root keys per page.
+                cursor:
+                    type: string
+                    maxLength: 256
+                    description: Opaque cursor from a previous response. Omit for the first page.
+        V2RootKeysListKeysResponseBody:
+            type: object
+            additionalProperties: false
+            required:
+                - meta
+                - data
+                - pagination
+            properties:
+                meta:
+                    $ref: '#/components/schemas/Meta'
+                data:
+                    type: array
+                    maxItems: 100
+                    items:
+                        $ref: '#/components/schemas/V2RootKeysListKeysResponseData'
+                pagination:
+                    $ref: '#/components/schemas/Pagination'
+        V2RootKeysRerollKeyRequestBody:
+            type: object
+            additionalProperties: false
+            required:
+                - keyId
+                - expiration
+            properties:
+                keyId:
+                    type: string
+                    minLength: 3
+                    maxLength: 255
+                    pattern: "^[a-zA-Z0-9_]+$"
+                    description: Root key identifier returned by rootKeys.createKey or rootKeys.listKeys.
+                expiration:
+                    type:
+                        - integer
+                        - "null"
+                    format: int64
+                    minimum: 0
+                    maximum: 4102444800000
+                    description: |
+                        Milliseconds until the original root key expires. Use 0 to revoke it immediately.
+                        Use null to keep the original key's current expiration. This value never extends
+                        an existing expiration.
+        V2RootKeysRerollKeyResponseBody:
+            type: object
+            additionalProperties: false
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    $ref: '#/components/schemas/Meta'
+                data:
+                    $ref: '#/components/schemas/V2RootKeysRerollKeyResponseData'
+        V2RootKeysUpdateKeyRequestBody:
+            type: object
+            additionalProperties: false
+            required:
+                - keyId
+            minProperties: 2
+            properties:
+                keyId:
+                    type: string
+                    minLength: 3
+                    maxLength: 255
+                    pattern: "^[a-zA-Z0-9_]+$"
+                    description: Root key identifier returned by rootKeys.createKey or rootKeys.listKeys.
+                name:
+                    type:
+                        - string
+                        - "null"
+                    minLength: 1
+                    maxLength: 255
+                    description: New root key name. Set null to remove the name. Omit to keep the current name.
+                enabled:
+                    type: boolean
+                    description: Whether the root key can authenticate. Omit to keep the current state.
+                permissions:
+                    type: array
+                    minItems: 0
+                    maxItems: 1000
+                    description: |
+                        Complete replacement permission set. Every permission must be a supported URN in the authenticated workspace
+                        and within the caller's permissions. Omit to keep the current permissions.
+                    items:
+                        type: string
+                        minLength: 1
+                        maxLength: 512
+        V2RootKeysUpdateKeyResponseBody:
+            type: object
+            additionalProperties: false
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    $ref: '#/components/schemas/Meta'
+                data:
+                    $ref: '#/components/schemas/EmptyResponse'
         V3DeploymentsCreateDeploymentRequestBody:
             type: object
             required:
@@ -4182,6 +4507,7 @@ components:
             additionalProperties: false
         EmptyResponse:
             type: object
+            properties: {}
             additionalProperties: false
             description: Empty response object by design. A successful response indicates this operation was successfully executed.
         V2ApisGetApiResponseData:
@@ -4280,14 +4606,14 @@ components:
                     type: integer
                     format: int64
                     minimum: 0
-                    maximum: 9223372036854776000
+                    maximum: 9223372036854775807
                     description: Unix timestamp in milliseconds when key was created.
                     example: 1701425400000
                 updatedAt:
                     type: integer
                     format: int64
                     minimum: 0
-                    maximum: 9223372036854776000
+                    maximum: 9223372036854775807
                     description: Unix timestamp in milliseconds when key was last updated.
                     example: 1701425400000
                     x-go-type-skip-optional-pointer: true
@@ -4304,7 +4630,7 @@ components:
                     type: integer
                     format: int64
                     minimum: 0
-                    maximum: 9223372036854776000
+                    maximum: 9223372036854775807
                     description: Unix timestamp in milliseconds when key expires (if set).
                     example: 1735689600000
                     x-go-type-skip-optional-pointer: true
@@ -4333,8 +4659,8 @@ components:
                     "$ref": "#/components/schemas/KeyCreditsData"
                 identity:
                     "$ref": "#/components/schemas/Identity"
-                    x-go-type-skip-optional-pointer: true
-                    x-go-type-skip-optional-pointer-with-omitzero: true
+                    # Keep the pointer: nil distinguishes "no identity" from an empty object.
+                    x-go-type-skip-optional-pointer: false
                 plaintext:
                     type: string
                     x-unkey-redact: true
@@ -4365,13 +4691,13 @@ components:
                         - "null"
                     format: int64
                     minimum: 0
-                    maximum: 9223372036854776000
+                    maximum: 9223372036854775807
                     description: Number of credits remaining (null for unlimited).
                     example: 1000
                 refill:
                     "$ref": "#/components/schemas/KeyCreditsRefill"
-                    x-go-type-skip-optional-pointer: true
-                    x-go-type-skip-optional-pointer-with-omitzero: true
+                    # Keep the pointer: nil distinguishes "no refill" from an empty object.
+                    x-go-type-skip-optional-pointer: false
             required:
                 - remaining
             additionalProperties: false
@@ -4457,7 +4783,7 @@ components:
                     type: integer
                     format: int64
                     minimum: 1
-                    maximum: 9223372036854776000
+                    maximum: 9223372036854775807
                     description: Number of credits to add during each refill cycle.
                     example: 1000
                 refillDay:
@@ -4609,7 +4935,7 @@ components:
                     type: integer
                     format: int64
                     minimum: 0
-                    maximum: 9223372036854776000
+                    maximum: 9223372036854775807
                     description: |
                         Unix timestamp in milliseconds when the app was created.
                     example: 1704067200000
@@ -4617,7 +4943,7 @@ components:
                     type: integer
                     format: int64
                     minimum: 0
-                    maximum: 9223372036854776000
+                    maximum: 9223372036854775807
                     description: |
                         Unix timestamp in milliseconds when the app was last updated.
                         Omitted if the app has never been updated.
@@ -4900,7 +5226,7 @@ components:
                     type: integer
                     format: int64
                     minimum: 0
-                    maximum: 9223372036854776000
+                    maximum: 9223372036854775807
                     description: |
                         Unix timestamp in milliseconds when the deployment was created.
                     example: 1704067200000
@@ -4908,7 +5234,7 @@ components:
                     type: integer
                     format: int64
                     minimum: 0
-                    maximum: 9223372036854776000
+                    maximum: 9223372036854775807
                     description: |
                         Unix timestamp in milliseconds when the deployment was last updated.
                         Omitted if the deployment has never been updated.
@@ -5004,7 +5330,7 @@ components:
                 step:
                     type: string
                     description: |
-                        The pipeline step that failed (e.g. `building`, `deploying`, `starting`).
+                        The pipeline step that failed (e.g. `queued`, `building`, `deploying`).
                     example: deploying
                 message:
                     type: string
@@ -5152,6 +5478,56 @@ components:
                         Delay before the first probe runs, in seconds. Defaults to 0 when omitted.
                     example: 5
             additionalProperties: false
+        BuildLogEntry:
+            type: object
+            required:
+                - time
+                - stepId
+                - step
+                - output
+                - message
+            properties:
+                time:
+                    type: integer
+                    format: int64
+                    description: When the build printed the entry, in Unix epoch milliseconds.
+                    example: 1704067201000
+                stepId:
+                    type: string
+                    description: |
+                        The build step that printed the entry. Pass it as `stepId` to return only
+                        this step's entries.
+                    example: sha256:3f9c2b7e1d4a6f8c0b5e9d2a7c4f1e8b3d6a9c2f5e8b1d4a7c0f3e6b9d2a5c8f
+                step:
+                    type: string
+                    maxLength: 256
+                    description: |
+                        The name of the build step, such as `[3/7] RUN npm ci`, cut to 256
+                        characters. Empty when the step name is not known.
+                    example: "[3/7] RUN npm ci"
+                output:
+                    "$ref": "#/components/schemas/BuildLogOutput"
+                message:
+                    type: string
+                    description: |
+                        The text the build printed. One entry can contain several lines or part
+                        of a line.
+                    example: |
+                        added 412 packages in 12s
+            additionalProperties: false
+            description: One chunk of build output.
+        BuildLogOutput:
+            type: string
+            enum:
+                - stdout
+                - stderr
+            x-enum-varnames:
+                - BuildLogOutputStdout
+                - BuildLogOutputStderr
+            description: |
+                The output stream a build log entry was printed to. Many tools write progress
+                and warnings to `stderr`, so `stderr` does not mean that the step failed.
+            example: stdout
         V2DomainsCreateDomainResponseData:
             type: object
             required:
@@ -5412,7 +5788,7 @@ components:
                     type: integer
                     format: int64
                     minimum: 0
-                    maximum: 9223372036854776000
+                    maximum: 9223372036854775807
                     description: |
                         Unix timestamp in milliseconds when the environment was created.
                     example: 1704067200000
@@ -5420,7 +5796,7 @@ components:
                     type: integer
                     format: int64
                     minimum: 0
-                    maximum: 9223372036854776000
+                    maximum: 9223372036854775807
                     description: |
                         Unix timestamp in milliseconds when the environment was last updated.
                         Omitted if the environment has never been updated.
@@ -5606,7 +5982,7 @@ components:
                     type: integer
                     format: int64
                     minimum: 0
-                    maximum: 9223372036854776000
+                    maximum: 9223372036854775807
                     description: Unix timestamp in milliseconds when the variable was created.
                     example: 1704067200000
             additionalProperties: false
@@ -5728,10 +6104,12 @@ components:
                     "$ref": "#/components/schemas/FieldMatch"
                 queryParam:
                     "$ref": "#/components/schemas/FieldMatch"
+                remoteIp:
+                    "$ref": "#/components/schemas/RemoteIpMatch"
             additionalProperties: false
             description: |-
                 A single request match expression. Exactly one of `path`, `method`,
-                `header` or `queryParam` must be set.
+                `header`, `queryParam` or `remoteIp` must be set.
             example:
                 path:
                     path:
@@ -5846,6 +6224,7 @@ components:
                 action: ACTION_DENY
         OpenapiPolicy:
             type: object
+            properties: {}
             additionalProperties: false
             description: |-
                 Validates matching requests against the app's uploaded OpenAPI spec. Has no
@@ -5946,6 +6325,41 @@ components:
             description: |-
                 Matches a named request field (header or query parameter). Exactly one of
                 `present` or `value` must be set.
+        RemoteIpMatch:
+            type: object
+            properties:
+                in:
+                    type: array
+                    minItems: 1
+                    maxItems: 100
+                    items:
+                        type: string
+                        minLength: 1
+                        maxLength: 43
+                    description: |-
+                        Matches when the remote IP is in at least one of these ranges. Entries
+                        are CIDRs such as `203.0.113.0/24` or single addresses such as
+                        `203.0.113.7`.
+                notIn:
+                    type: array
+                    minItems: 1
+                    maxItems: 100
+                    items:
+                        type: string
+                        minLength: 1
+                        maxLength: 43
+                    description: |-
+                        Matches when the remote IP is in none of these ranges. Entries are CIDRs
+                        such as `198.51.100.0/24` or single addresses such as `198.51.100.7`.
+            additionalProperties: false
+            description: |-
+                Matches the remote IP against IPv4 or IPv6 CIDR ranges. Exactly one of `in`
+                or `notIn` must be set. Entries are rejected if they have host bits set (such
+                as `10.1.2.3/8`), are IPv4-mapped IPv6 addresses, or carry a zone. Single
+                addresses are returned as full-length prefixes, such as `203.0.113.7/32`.
+            example:
+                notIn:
+                    - 198.51.100.0/24
         StringMatch:
             type: object
             properties:
@@ -6031,6 +6445,7 @@ components:
                 duration: 60000
         BearerTokenLocation:
             type: object
+            properties: {}
             additionalProperties: false
             description: Extract the key from the `Authorization Bearer` header.
         HeaderKeyLocation:
@@ -6080,8 +6495,9 @@ components:
                 remoteIp: {}
         RemoteIpKey:
             type: object
+            properties: {}
             additionalProperties: false
-            description: Rate limit by the client's IP address.
+            description: Rate limit by the remote IP.
         HeaderKey:
             type: object
             required:
@@ -6095,10 +6511,12 @@ components:
             description: Rate limit by the value of a request header.
         AuthenticatedSubjectKey:
             type: object
+            properties: {}
             additionalProperties: false
             description: Rate limit by the authenticated subject (e.g. the verified key).
         PathKey:
             type: object
+            properties: {}
             additionalProperties: false
             description: Rate limit by the request path.
         PrincipalFieldKey:
@@ -6656,7 +7074,7 @@ components:
                         - "null"
                     format: int64
                     minimum: 0
-                    maximum: 9223372036854776000
+                    maximum: 9223372036854775807
                     description: Number of credits remaining (null for unlimited). This also clears the refilling schedule.
                     example: 1000
                 refill:
@@ -6680,7 +7098,7 @@ components:
                     type: integer
                     format: int64
                     minimum: 1
-                    maximum: 9223372036854776000
+                    maximum: 9223372036854775807
                     description: Number of credits to add during each refill cycle.
                     example: 1000
                 refillDay:
@@ -6780,6 +7198,13 @@ components:
                         is returned for both valid and invalid keys (except when `code=NOT_FOUND`).
                     x-go-type-skip-optional-pointer: true
                     x-go-type-skip-optional-pointer-with-omitzero: true
+                keyspaceId:
+                    type: string
+                    description: |
+                        The ID of the keyspace the key belongs to.
+                        Returned for both valid and invalid keys, except when `code=NOT_FOUND`.
+                    x-go-type-skip-optional-pointer: true
+                    x-go-type-skip-optional-pointer-with-omitzero: true
                 name:
                     type: string
                     description: |
@@ -6849,8 +7274,8 @@ components:
                         Information about the identity associated with this key. Identities
                         allow multiple keys to share resources (like rate limits) and represent
                         the same user or entity across different applications or devices.
-                    x-go-type-skip-optional-pointer: true
-                    x-go-type-skip-optional-pointer-with-omitzero: true
+                    # Keep the pointer: nil distinguishes "no identity" from an empty object.
+                    x-go-type-skip-optional-pointer: false
                 ratelimits:
                     type: array
                     items:
@@ -7048,6 +7473,7 @@ components:
                     enum:
                         - json
                         - ndjson
+                        - hec
                 headers:
                     type: array
                     maxItems: 32
@@ -7161,6 +7587,7 @@ components:
                             enum:
                                 - json
                                 - ndjson
+                                - hec
                         headers:
                             type: array
                             description: Header names only. Values remain encrypted and are never returned.
@@ -7396,6 +7823,24 @@ components:
                     x-go-type-skip-optional-pointer: true
                     x-go-type-skip-optional-pointer-with-omitzero: true
             additionalProperties: false
+        V2PortalGetVerificationsKeySeries:
+            type: object
+            required:
+                - keyId
+                - data
+            properties:
+                keyId:
+                    type: string
+                    description: The key these buckets belong to.
+                    example: key_1234abcd
+                data:
+                    type: array
+                    description: |
+                        Verification timeseries for this key, zero-filled across the requested
+                        window and ordered by time ascending.
+                    items:
+                        $ref: "#/components/schemas/V2PortalGetVerificationsDataPoint"
+            additionalProperties: false
         V2PortalGetVerificationsDataPoint:
             type: object
             required:
@@ -7453,6 +7898,78 @@ components:
             items:
                 "$ref": "#/components/schemas/KeyResponseData"
             description: Array of the portal end user's API keys.
+        V2PortalListSessionsResponseData:
+            type: object
+            required:
+                - externalId
+                - sessions
+            properties:
+                externalId:
+                    type: string
+                    description: The end user's identifier, as passed to `portal.createSession`.
+                    example: user_123
+                sessions:
+                    type: array
+                    items:
+                        "$ref": "#/components/schemas/V2PortalListSessionsSession"
+                    description: The end user's revocable sessions, newest first.
+            additionalProperties: false
+        V2PortalListSessionsSession:
+            type: object
+            required:
+                - id
+                - status
+                - createdAt
+                - expiresAt
+                - scopes
+            properties:
+                id:
+                    type: string
+                    description: The session id.
+                    example: ps_1234abcd
+                status:
+                    type: string
+                    enum:
+                        - pending
+                        - active
+                    description: |
+                        `pending` when the portal URL was created but not opened yet. `active`
+                        when the end user opened it.
+                    example: active
+                createdAt:
+                    type: integer
+                    format: int64
+                    description: When the session was created, in Unix milliseconds.
+                    example: 1704067200000
+                expiresAt:
+                    type: integer
+                    format: int64
+                    description: |
+                        When the session stops working, in Unix milliseconds. For a `pending`
+                        session this is when its portal URL expires.
+                    example: 1704153600000
+                scopes:
+                    type: array
+                    items:
+                        type: string
+                    description: The capabilities the session was created with.
+                    example:
+                        - "keys:read"
+            additionalProperties: false
+        V2PortalRevokeSessionResponseData:
+            type: object
+            required:
+                - sessionsRevoked
+            properties:
+                sessionsRevoked:
+                    type: integer
+                    format: int64
+                    minimum: 0
+                    description: |
+                        How many live sessions were revoked. Zero when the end user had none,
+                        including when an earlier call already revoked them.
+                    example: 2
+            additionalProperties: false
         V2ProjectsCreateProjectResponseData:
             type: object
             required:
@@ -7497,7 +8014,7 @@ components:
                     type: integer
                     format: int64
                     minimum: 0
-                    maximum: 9223372036854776000
+                    maximum: 9223372036854775807
                     description: |
                         Unix timestamp in milliseconds when the project was created.
                     example: 1704067200000
@@ -7505,7 +8022,7 @@ components:
                     type: integer
                     format: int64
                     minimum: 0
-                    maximum: 9223372036854776000
+                    maximum: 9223372036854775807
                     description: |
                         Unix timestamp in milliseconds when the project was last updated.
                         Omitted if the project has never been updated.
@@ -7733,6 +8250,84 @@ components:
                     type: string
             required:
                 - overrideId
+        V2RootKeysCreateKeyResponseData:
+            type: object
+            required:
+                - keyId
+                - key
+            properties:
+                keyId:
+                    type: string
+                    description: Identifier used to manage the root key.
+                key:
+                    type: string
+                    x-unkey-redact: true
+                    description: Root key secret, returned only once. Store it securely.
+        V2RootKeysListKeysResponseData:
+            type: object
+            additionalProperties: false
+            required:
+                - keyId
+                - name
+                - start
+                - end
+                - enabled
+                - createdAt
+                - lastUsedAt
+                - expires
+                - permissions
+            properties:
+                keyId:
+                    type: string
+                    description: Stable root key identifier.
+                name:
+                    type:
+                        - string
+                        - "null"
+                    description: User-supplied name, or null when absent.
+                start:
+                    type: string
+                    description: Stored display fragment, including the prefix when present.
+                end:
+                    type: string
+                    description: Stored trailing display fragment. Empty for keys without a recorded suffix.
+                enabled:
+                    type: boolean
+                    description: Whether the key is administratively enabled. An enabled key can still be expired.
+                createdAt:
+                    type: integer
+                    format: int64
+                    description: Creation time in Unix milliseconds.
+                lastUsedAt:
+                    type: integer
+                    format: int64
+                    minimum: 0
+                    description: Last verification time in Unix milliseconds. Zero means the root key has not been used.
+                expires:
+                    type:
+                        - integer
+                        - "null"
+                    format: int64
+                    description: Expiration time in Unix milliseconds, or null for no expiration.
+                permissions:
+                    type: array
+                    description: All permissions assigned to the root key.
+                    items:
+                        type: string
+        V2RootKeysRerollKeyResponseData:
+            type: object
+            additionalProperties: false
+            required:
+                - keyId
+                - key
+            properties:
+                keyId:
+                    type: string
+                    description: Identifier of the new root key.
+                key:
+                    type: string
+                    x-unkey-redact: true
+                    description: New root key secret, returned only once. Store it securely.
         DeploymentSourceOCI:
             type: object
             required:
@@ -9423,6 +10018,187 @@ paths:
             tags:
                 - deployments
             x-speakeasy-name-override: getDeployment
+    /v2/deployments.listBuildLogs:
+        post:
+            description: |
+                Retrieve the build output of a deployment as a list of log entries, in the
+                order the build printed them. A log entry is one chunk of build output,
+                and can contain several lines or part of a line.
+
+                Poll this endpoint to follow a running build:
+
+                - Send the `pagination.cursor` of the last response as `cursor`. The
+                  response contains only the entries after it.
+                - When `hasMore` is true, request again now.
+                - When `hasMore` is false, you have all entries so far. Wait,
+                  then request again with the same cursor.
+                - The cursor is absent only when the request had no cursor and the build
+                  has no entries yet.
+                - A response can contain fewer than `limit` entries and still have
+                  `hasMore: true` when the entries are large.
+
+                New entries become visible up to a few seconds after the build prints
+                them. To know that a build is done, check the deployment status with
+                `getDeployment`. After the status is no longer `building`, request until
+                you get an empty response at least 5 seconds later.
+
+                When a build attempt is retried, an entry from the earlier attempt can
+                arrive after the cursor has moved past it, and a poll does not return it.
+                A request without a cursor returns it. A deployment from a prebuilt image
+                has no build and returns no entries. Build logs are kept for 3 months.
+
+                **Required Permissions**
+
+                Your root key must have the following permission:
+                - `unkey:v1:<workspace_id>:projects/<project_id>/apps/<app_id>/environments/<environment_id>/deployments/<deployment_id>/buildLogs#read`
+            operationId: deployments.listBuildLogs
+            requestBody:
+                content:
+                    application/json:
+                        examples:
+                            firstPage:
+                                description: Fetch the build log entries of a deployment from the start
+                                summary: Start at the first entry
+                                value:
+                                    deploymentId: d_1234abcd
+                            nextPage:
+                                description: Fetch the entries after the previous response
+                                summary: Continue after a cursor
+                                value:
+                                    cursor: "1704067201000001"
+                                    deploymentId: d_1234abcd
+                            oneStep:
+                                description: Fetch only the entries of one build step
+                                summary: Entries of one step
+                                value:
+                                    deploymentId: d_1234abcd
+                                    stepId: sha256:3f9c2b7e1d4a6f8c0b5e9d2a7c4f1e8b3d6a9c2f5e8b1d4a7c0f3e6b9d2a5c8f
+                        schema:
+                            $ref: '#/components/schemas/V2DeploymentsListBuildLogsRequestBody'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            examples:
+                                caughtUp:
+                                    description: The poll is caught up, so request again later with the same cursor
+                                    summary: No new entries
+                                    value:
+                                        data: []
+                                        meta:
+                                            requestId: req_1234abcd
+                                        pagination:
+                                            cursor: "1704067201000001"
+                                            hasMore: false
+                                entries:
+                                    description: Output of two steps, more entries are available
+                                    summary: Log entries of a running build
+                                    value:
+                                        data:
+                                            - message: |
+                                                OK: 12 MiB in 18 packages
+                                              output: stdout
+                                              step: '[2/7] RUN apk add --no-cache git'
+                                              stepId: sha256:1d4a6f8c0b5e9d2a7c4f1e8b3d6a9c2f5e8b1d4a7c0f3e6b9d2a5c8f3f9c2b7e
+                                              time: 1704067199000
+                                            - message: |
+                                                npm warn deprecated inflight@1.0.6
+                                              output: stderr
+                                              step: '[3/7] RUN npm ci'
+                                              stepId: sha256:3f9c2b7e1d4a6f8c0b5e9d2a7c4f1e8b3d6a9c2f5e8b1d4a7c0f3e6b9d2a5c8f
+                                              time: 1704067201000
+                                        meta:
+                                            requestId: req_1234abcd
+                                        pagination:
+                                            cursor: "1704067201000001"
+                                            hasMore: true
+                            schema:
+                                $ref: '#/components/schemas/V2DeploymentsListBuildLogsResponseBody'
+                    description: |
+                        Successfully retrieved the build log entries.
+                "400":
+                    content:
+                        application/json:
+                            examples:
+                                invalidCursor:
+                                    summary: Invalid cursor
+                                    value:
+                                        error:
+                                            detail: The cursor is not valid. Send the pagination.cursor of a previous response, or omit it to start at the first entry.
+                                            errors: []
+                                            status: 400
+                                            title: Bad Request
+                                            type: https://unkey.com/docs/errors/unkey/application/invalid_input
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Bad request
+                "401":
+                    content:
+                        application/json:
+                            examples:
+                                invalidRootKey:
+                                    summary: Invalid root key
+                                    value:
+                                        error:
+                                            detail: The provided root key is invalid. We could not find the requested key.
+                                            status: 401
+                                            title: Unauthorized
+                                            type: https://unkey.com/docs/errors/unkey/authentication/key_not_found
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Unauthorized
+                "404":
+                    content:
+                        application/json:
+                            examples:
+                                deploymentNotFound:
+                                    summary: Deployment not found
+                                    value:
+                                        error:
+                                            detail: The requested deployment does not exist.
+                                            status: 404
+                                            title: Not Found
+                                            type: https://unkey.com/docs/errors/unkey/data/deployment_not_found
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/NotFoundErrorResponse'
+                    description: Not Found - The requested deployment does not exist in your workspace
+                "429":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/TooManyRequestsErrorResponse'
+                    description: Too Many Requests
+                "500":
+                    content:
+                        application/json:
+                            examples:
+                                logsUnavailable:
+                                    summary: Build logs unavailable
+                                    value:
+                                        error:
+                                            detail: Failed to retrieve build logs.
+                                            status: 500
+                                            title: Internal Server Error
+                                            type: https://unkey.com/docs/errors/unkey/application/service_unavailable
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error
+            security:
+                - bearer: []
+            summary: List build logs
+            tags:
+                - deployments
+            x-speakeasy-name-override: listBuildLogs
+            x-unkey-idempotency: idempotent
     /v2/deployments.listDeployments:
         post:
             description: |
@@ -15006,6 +15782,7 @@ paths:
                 - `keys:read` requires `api.<api_id>.read_key` **and** `api.<api_id>.read_api`
                 - `keys:reroll` requires `api.<api_id>.create_key`, plus
                   `api.<api_id>.encrypt_key` when the keyspace stores encrypted keys
+                - `analytics:read` requires `api.<api_id>.read_analytics`
 
                 The `*` form of each is also accepted. Requesting a scope you do not hold
                 returns 403 for the whole request rather than minting a reduced session, so a
@@ -15067,6 +15844,14 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/NotFoundErrorResponse'
                     description: Not Found
+                "409":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ConflictErrorResponse'
+                    description: |
+                        The portal was pointed at a different app or keyspace while the session
+                        was being created. Retry the request.
                 "429":
                     content:
                         application/problem+json:
@@ -15308,8 +16093,13 @@ paths:
                 Authenticates only with a portal session cookie and always restricts results
                 to verification events attributed to the session's external identity. Unlike
                 `analytics.getVerifications`, this endpoint takes a fixed time window (no
-                query language) and returns a zero-filled, outcome-broken-out timeseries.
-                Bucket granularity is chosen automatically from the window size.
+                query language) and returns outcome-broken-out counts. Bucket granularity is
+                chosen automatically from the window size.
+
+                The response carries one zero-filled series per key the end user has
+                verifications for, so a client can render both a per-key table and an
+                account-wide chart from one call by summing them. Pass `keyId` to narrow the
+                window to a single key.
             operationId: portal.getVerifications
             requestBody:
                 content:
@@ -15349,6 +16139,12 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/NotFoundErrorResponse'
                     description: Not Found
+                "422":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnprocessableEntityErrorResponse'
+                    description: Query exceeds the maximum response size
                 "429":
                     content:
                         application/problem+json:
@@ -15445,6 +16241,81 @@ paths:
                 outputs:
                     nextCursor: $.pagination.cursor
                 type: cursor
+    /v2/portal.listSessions:
+        post:
+            description: |
+                List the end users holding a revocable session on a portal, with each
+                end user's sessions.
+
+                Unreleased and subject to change without notice.
+
+                A session is revocable until it expires or is revoked. That includes
+                sessions whose portal URL was created but not opened yet. Pass an end
+                user's `externalId` to `portal.revokeSession` to end their sessions.
+
+                **Required Permissions**
+
+                Your root key must have one of:
+                - `portal.*.create_portal_session` (for any portal in the workspace)
+                - `portal.<portal_id>.create_portal_session` (for a specific portal)
+
+                It also accepts `unkey:v1:<workspace_id>:projects/<project_id>/portals/<portal_id>/sessions/*`
+                with `#read` or `#write`. Reading the portal itself is not enough.
+
+                Without the permission this returns **404**, not 403.
+            operationId: portal.listSessions
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/V2PortalListSessionsRequestBody'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/V2PortalListSessionsResponseBody'
+                    description: |
+                        One page of end users with revocable sessions.
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Bad request
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Unauthorized
+                "404":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/NotFoundErrorResponse'
+                    description: |
+                        No such portal, or your root key may not see its sessions.
+                "429":
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/TooManyRequestsErrorResponse'
+                    description: Too Many Requests
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error
+            security:
+                - bearer: []
+            summary: List portal sessions
+            tags:
+                - portal
+            x-excluded: true
+            x-speakeasy-name-override: listSessions
     /v2/portal.rerollKey:
         post:
             description: |
@@ -15512,6 +16383,86 @@ paths:
                 - portal
             x-excluded: true
             x-speakeasy-name-override: rerollKey
+    /v2/portal.revokeSession:
+        post:
+            description: |
+                Revoke every live session an end user holds on a portal.
+
+                Unreleased and subject to change without notice.
+
+                Sessions that were created but not yet opened are revoked too, so their
+                portal URLs stop working. Revocation is not instantaneous: session lookups
+                are cached briefly, so a request already in flight may still succeed.
+
+                Revoking ends existing sessions only. To keep the end user out, also stop
+                calling `portal.createSession` for them.
+
+                Calling this again for the same end user is safe and revokes nothing.
+
+                **Required Permissions**
+
+                Your root key must have one of:
+                - `portal.*.create_portal_session` (for any portal in the workspace)
+                - `portal.<portal_id>.create_portal_session` (for a specific portal)
+
+                It also accepts `unkey:v1:<workspace_id>:projects/<project_id>/portals/<portal_id>/sessions/*#write`,
+                which dashboard roles carry. Unlike `portal.createSession`, a dashboard
+                session can call this, not just a root key.
+
+                Without the permission this returns **404**, not 403.
+            operationId: portal.revokeSession
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/V2PortalRevokeSessionRequestBody'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/V2PortalRevokeSessionResponseBody'
+                    description: |
+                        The end user's live sessions on the portal are revoked.
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Bad request
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Unauthorized
+                "404":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/NotFoundErrorResponse'
+                    description: |
+                        No such portal, or your root key may not revoke its sessions.
+                "429":
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/TooManyRequestsErrorResponse'
+                    description: Too Many Requests
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error
+            security:
+                - bearer: []
+            summary: Revoke portal sessions
+            tags:
+                - portal
+            x-excluded: true
+            x-speakeasy-name-override: revokeSession
     /v2/portal.updatePortal:
         post:
             description: |
@@ -15526,7 +16477,8 @@ paths:
                 Two changes affect your end users immediately:
                 - Re-pointing at a different resource revokes the portal's live sessions,
                   because a session carries the scope it was minted with.
-                - Disabling stops new sessions but leaves live ones running until they expire.
+                - Disabling stops new sessions and revokes the live ones. Re-enabling does
+                  not restore them.
 
                 **Required Permissions**
 
@@ -16917,6 +17869,313 @@ paths:
             tags:
                 - ratelimit
             x-speakeasy-name-override: setOverride
+    /v2/rootKeys.createKey:
+        post:
+            description: |
+                Creates a root key for the authenticated workspace.
+                Requires `unkey:v1:<workspace_id>:rootKeys/*#write`.
+                The created root key cannot have more permissions than the caller.
+            operationId: rootKeys.createKey
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/V2RootKeysCreateKeyRequestBody'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/V2RootKeysCreateKeyResponseBody'
+                    description: Root key created. Save the secret now; it cannot be retrieved later.
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Invalid input or unsupported permission.
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Unauthorized
+                "403":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: Requires a workspace admin or an authorized root key, and grants within the caller's permissions.
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error, including missing or invalid root-key storage configuration.
+            summary: Create root key
+            tags:
+                - rootKeys
+            x-speakeasy-name-override: createKey
+    /v2/rootKeys.deleteKey:
+        post:
+            description: |
+                Deletes a root key in the authenticated workspace.
+                Requires `unkey:v1:<workspace_id>:rootKeys/<key_id>#delete`.
+                Use `rootKeys/*#delete` to delete any root key in the workspace.
+                Deleted keys cannot authenticate.
+            operationId: rootKeys.deleteKey
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/V2RootKeysDeleteKeyRequestBody'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/V2RootKeysDeleteKeyResponseBody'
+                    description: Root key deleted.
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Invalid request.
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Authentication is required.
+                "403":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: The caller cannot delete this root key.
+                "404":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/NotFoundErrorResponse'
+                    description: The root key was not found.
+                "429":
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/TooManyRequestsErrorResponse'
+                    description: Too many requests.
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: The root key could not be deleted.
+            security:
+                - bearer: []
+            summary: Delete root key
+            tags:
+                - rootKeys
+            x-speakeasy-name-override: deleteKey
+    /v2/rootKeys.listKeys:
+        post:
+            description: |
+                Lists readable root keys in the authenticated workspace, ordered by key ID.
+                Requires `unkey:v1:<workspace_id>:rootKeys/<key_id>#read` for each returned key.
+                Use `rootKeys/*#read` to read all root keys. Write permission does not imply read.
+                A caller with no readable keys receives an empty page.
+
+                Includes disabled and expired keys from the new root-key store.
+                Deleted keys are excluded. Secrets and hashes are never returned.
+                Pass the returned cursor when hasMore is true to retrieve the next page.
+            operationId: rootKeys.listKeys
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/V2RootKeysListKeysRequestBody'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/V2RootKeysListKeysResponseBody'
+                    description: A page of readable root keys.
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Invalid request.
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Authentication is required.
+                "429":
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/TooManyRequestsErrorResponse'
+                    description: Too many requests.
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: The list could not be loaded.
+            security:
+                - bearer: []
+            summary: List root keys
+            tags:
+                - rootKeys
+            x-speakeasy-name-override: listKeys
+            x-speakeasy-pagination:
+                inputs:
+                    - in: requestBody
+                      name: cursor
+                      type: cursor
+                outputs:
+                    nextCursor: $.pagination.cursor
+                type: cursor
+    /v2/rootKeys.rerollKey:
+        post:
+            description: |
+                Creates a new root key secret with the same name, enabled state, expiration, and
+                effective permissions as an existing root key in the authenticated workspace.
+                Requires `unkey:v1:<workspace_id>:rootKeys/<key_id>#write`, and the caller must
+                already hold every permission of the original key. When `expiration` is not null,
+                it also requires `unkey:v1:<workspace_id>:rootKeys/<key_id>#delete`.
+
+                `expiration` controls the original key: 0 revokes it immediately, a positive value
+                keeps it valid for that many milliseconds, and null keeps its current expiration.
+            operationId: rootKeys.rerollKey
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/V2RootKeysRerollKeyRequestBody'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/V2RootKeysRerollKeyResponseBody'
+                    description: Root key rerolled. Save the secret now; it cannot be retrieved later.
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Invalid request.
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Authentication is required.
+                "403":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: The caller cannot reroll this root key or does not hold its permissions.
+                "404":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/NotFoundErrorResponse'
+                    description: The root key was not found.
+                "429":
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/TooManyRequestsErrorResponse'
+                    description: Too many requests.
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: The root key could not be rerolled.
+            security:
+                - bearer: []
+            summary: Reroll root key
+            tags:
+                - rootKeys
+            x-speakeasy-name-override: rerollKey
+    /v2/rootKeys.updateKey:
+        post:
+            description: |
+                Updates a root key in the authenticated workspace.
+                Requires `unkey:v1:<workspace_id>:rootKeys/<key_id>#write`.
+                Use `rootKeys/*#write` to update any root key in the workspace.
+
+                `permissions` replaces the complete permission set. Each permission must be a supported URN
+                in the authenticated workspace and within the caller's permissions.
+                An expiring root key can only update root keys that expire no later than itself.
+            operationId: rootKeys.updateKey
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/V2RootKeysUpdateKeyRequestBody'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/V2RootKeysUpdateKeyResponseBody'
+                    description: Root key updated.
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Invalid request or unsupported permission.
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Authentication is required.
+                "403":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: The caller cannot update this root key or grant a requested permission.
+                "404":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/NotFoundErrorResponse'
+                    description: The root key was not found.
+                "429":
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/TooManyRequestsErrorResponse'
+                    description: Too many requests.
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: The root key could not be updated.
+            security:
+                - bearer: []
+            summary: Update root key
+            tags:
+                - rootKeys
+            x-speakeasy-name-override: updateKey
     /v3/deployments.createDeployment:
         post:
             description: |

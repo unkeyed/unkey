@@ -1,4 +1,5 @@
 "use client";
+import { queryKeys } from "@/lib/query-keys";
 
 import { getErrorMessage, getErrorToast, getUnkeyClient } from "@/lib/unkey-client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -27,16 +28,11 @@ export type PortalState =
 // A 404 means "no portal for this keyspace", which is a state, not a failure.
 export type PortalQueryResult = { found: true; portal: Portal } | { found: false };
 
-// Shared by the read and every mutation's invalidation, so they cannot drift.
-export function portalQueryKey(keyAuthId: string): readonly [string, string] {
-  return ["portal", keyAuthId];
-}
-
 // Collapses the read into the states the surface renders. Undefined keyspace id
 // means the query never runs.
 export function usePortal(keyAuthId: string | undefined): PortalState {
   const query = useQuery<PortalQueryResult>({
-    queryKey: portalQueryKey(keyAuthId ?? ""),
+    queryKey: queryKeys.portal.detail(keyAuthId ?? ""),
     enabled: Boolean(keyAuthId),
     queryFn: async () => {
       if (!keyAuthId) {
@@ -82,10 +78,10 @@ export type PortalMutationOptions = {
 
 function useInvalidatePortal(keyAuthId: string) {
   const queryClient = useQueryClient();
-  return () => queryClient.invalidateQueries({ queryKey: portalQueryKey(keyAuthId) });
+  return () => queryClient.invalidateQueries({ queryKey: queryKeys.portal.detail(keyAuthId) });
 }
 
-function toastUnless(options: PortalMutationOptions | undefined, fallback: string) {
+export function toastUnless(options: PortalMutationOptions | undefined, fallback: string) {
   return (error: unknown) => {
     if (options?.onError?.(error)) {
       return;

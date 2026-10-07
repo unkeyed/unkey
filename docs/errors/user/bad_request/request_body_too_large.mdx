@@ -1,0 +1,46 @@
+---
+title: "request_body_too_large"
+sidebarTitle: "request_body_too_large"
+description: "The request body is larger than the 10 MiB the API accepts."
+sources:
+  - pkg/codes/user_request.go
+  - svc/api/internal/middleware/errors.go
+  - pkg/zen/session.go
+  - svc/api/config.go
+---
+
+<Danger>`err:user:bad_request:request_body_too_large`</Danger>
+
+Your request body is larger than the 10 MiB (10485760 bytes) the API accepts. You get HTTP 413 on any endpoint.
+
+```json Example response
+{
+  "meta": {
+    "requestId": "req_2c9a0jf23l4k567"
+  },
+  "error": {
+    "detail": "The request body exceeds the maximum allowed size of 10485760 bytes.",
+    "status": 413,
+    "title": "Request Entity Too Large",
+    "type": "/errors/user/bad_request/request_body_too_large",
+    "errors": []
+  }
+}
+```
+
+## Likely causes
+
+- Large `meta` objects on keys or identities.
+- A `keys.migrateKeys` batch that's too big.
+
+## How to fix
+
+1. Send less in one request. Keep bulky data on your side and store a reference in `meta`.
+2. Split `keys.migrateKeys` batches into smaller requests.
+
+Each endpoint also has much smaller per-field limits, so a trimmed body can still fail field validation.
+
+## Related errors
+
+- [`err:user:bad_request:request_body_unreadable`](/errors/user/bad_request/request_body_unreadable): the body couldn't be read for a reason other than size.
+- [`err:unkey:application:invalid_input`](/errors/unkey/application/invalid_input): a field exceeds its own limit.

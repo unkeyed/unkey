@@ -1,7 +1,7 @@
 import { RegionFlag } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/region-flag";
 import { mapRegionToFlag } from "@/lib/trpc/routers/deploy/network/utils";
-import { cn } from "@/lib/utils";
 import { Badge, type DataTableColumnDef, TimestampInfo } from "@unkey/ui";
+import { cn } from "cn";
 import { type RuntimeLogRow, getLogKey, getSeverityStyle } from "../utils/get-row-class";
 
 type CreateRuntimeLogsColumnsOptions = {
@@ -95,7 +95,11 @@ export const createRuntimeLogsColumns = ({
       width: "20%",
     },
     cell: ({ row }) => (
-      <div className="font-mono truncate pr-4 max-w-75" title={row.original.message}>
+      <div
+        data-sentry-mask
+        className="font-mono truncate pr-4 max-w-75"
+        title={row.original.message}
+      >
         {row.original.message}
       </div>
     ),

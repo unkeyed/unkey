@@ -1,6 +1,6 @@
 module github.com/unkeyed/unkey/tools/gha-fetch-digest
 
-go 1.25.1
+go 1.27.1
 
 require (
 	github.com/google/go-github/v63 v63.0.0

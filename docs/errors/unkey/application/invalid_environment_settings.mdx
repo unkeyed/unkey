@@ -1,0 +1,52 @@
+---
+title: "invalid_environment_settings"
+sidebarTitle: "invalid_environment_settings"
+description: "The environment's settings would fail the deploy pipeline, so the deployment was refused."
+sources:
+  - pkg/codes/unkey_application.go
+  - svc/api/internal/middleware/errors.go
+  - svc/api/routes/v2_deployments_create_deployment/handler.go
+  - svc/api/internal/deployment/create_outcome.go
+  - svc/ctrl/worker/deploy/create.go
+  - pkg/deploy/deployfail/messages.go
+---
+
+<Danger>`err:unkey:application:invalid_environment_settings`</Danger>
+
+The <Tooltip tip="A production or preview environment of a Compute app, not the dashboard label on a key.">environment</Tooltip> you're deploying to has settings a deployment can't run with, so `deployments.createDeployment` didn't start one. You get HTTP 400, and `detail` lists every problem, separated by semicolons, with your current value in parentheses.
+
+```json Example response
+{
+  "meta": {
+    "requestId": "req_2c9a0jf23l4k567"
+  },
+  "error": {
+    "detail": "This environment cannot be deployed: CPU millicores must be at least 250 (is 100). Update the environment's settings before deploying.",
+    "status": 400,
+    "title": "Bad Request",
+    "type": "/errors/unkey/application/invalid_environment_settings",
+    "errors": []
+  }
+}
+```
+
+## Likely causes
+
+- CPU is below 250 millicores.
+- Memory is below 256 MiB.
+- The environment has no region it can run in.
+- The port isn't between 1 and 65535.
+- You're deploying from git to an environment created for prebuilt images, which has no build settings. The message names the environment slug.
+
+## How to fix
+
+1. Update the environment in the dashboard or with `environments.updateSettings` so every problem in `detail` is fixed.
+2. Create the deployment again.
+
+These values live on the environment, not in your request, so retrying with different arguments won't help. Nothing was created, so there's no deployment to clean up.
+
+## Related errors
+
+- [`err:unkey:data:environment_not_found`](/errors/unkey/data/environment_not_found): the project, app, or environment doesn't exist.
+- [`err:unkey:application:precondition_failed`](/errors/unkey/application/precondition_failed): another precondition such as a missing repository connection blocked the deployment.
+- [`err:unkey:application:invalid_input`](/errors/unkey/application/invalid_input): a field of the request itself is invalid.

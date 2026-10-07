@@ -1,0 +1,40 @@
+---
+title: "custom_domain_limit_exceeded"
+sidebarTitle: "custom_domain_limit_exceeded"
+description: "The workspace already has as many custom domains as its plan allows."
+sources:
+  - pkg/codes/unkey_limits.go
+  - svc/api/internal/middleware/errors.go
+  - pkg/domain/domaingate/domaingate.go
+  - svc/api/routes/v2_domains_create_domain/handler.go
+  - svc/api/internal/customdomain/error.go
+---
+
+<Danger>`err:unkey:limits:custom_domain_limit_exceeded`</Danger>
+
+Your workspace already has as many custom domains as your plan allows, so `domains.createDomain` didn't add another one. You get HTTP 403. Waiting won't change it.
+
+```json Example response
+{
+  "meta": {
+    "requestId": "req_2c9a0jf23l4k567"
+  },
+  "error": {
+    "detail": "Your plan does not allow another custom domain. Upgrade your plan, or remove a domain you no longer need, then retry.",
+    "status": 403,
+    "title": "Forbidden",
+    "type": "/errors/unkey/limits/custom_domain_limit_exceeded"
+  }
+}
+```
+
+## How to fix
+
+1. Remove a domain you no longer use with `domains.deleteDomain`, or move to a plan with a higher limit. See [Limits](/platform/billing/limits) and [Plans](/platform/billing/plans).
+2. Create the domain again.
+
+## Related errors
+
+- [`err:unkey:data:domain_already_exists`](/errors/unkey/data/domain_already_exists): the domain is already attached to this workspace.
+- [`err:unkey:application:invalid_input`](/errors/unkey/application/invalid_input): the domain name itself isn't valid.
+- [`err:unkey:application:service_unavailable`](/errors/unkey/application/service_unavailable): your workspace's plan limits aren't set up (`Resource limits are not configured for this workspace.`), which support has to fix.

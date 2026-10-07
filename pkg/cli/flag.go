@@ -40,6 +40,8 @@ type baseFlag struct {
 	set               bool         // Whether user explicitly provided this flag
 	validate          ValidateFunc // Optional validation function
 	mutuallyExclusive []string     // Flag names that cannot be explicitly set with this flag
+	defaultValue      string       // Formatted declared default value, if any
+	hasEnvValue       bool         // Whether the value came from an environment variable
 }
 
 // Name returns the flag name
@@ -60,8 +62,7 @@ func (b *baseFlag) EnvVar() string { return b.envVar }
 // StringFlag represents a string command line flag
 type StringFlag struct {
 	baseFlag
-	value       string // Current value
-	hasEnvValue bool   // Track if value came from environment
+	value string // Current value
 }
 
 // Parse sets the flag value from a string
@@ -86,8 +87,7 @@ func (f *StringFlag) HasValue() bool { return f.value != "" || f.hasEnvValue }
 // DurationFlag represents a duration command line flag
 type DurationFlag struct {
 	baseFlag
-	value       time.Duration // Current value
-	hasEnvValue bool          // Track if value came from environment
+	value time.Duration // Current value
 }
 
 // Parse sets the flag value from a string
@@ -116,8 +116,7 @@ func (f *DurationFlag) HasValue() bool { return f.value != 0 || f.hasEnvValue }
 // BoolFlag represents a boolean command line flag
 type BoolFlag struct {
 	baseFlag
-	value       bool
-	hasEnvValue bool // Track if value came from environment
+	value bool
 }
 
 // Parse sets the flag value from a string
@@ -156,8 +155,7 @@ func (f *BoolFlag) HasValue() bool { return true }
 // IntFlag represents an integer command line flag
 type IntFlag struct {
 	baseFlag
-	value       int  // Current value
-	hasEnvValue bool // Track if value came from environment
+	value int // Current value
 }
 
 // Parse sets the flag value from a string
@@ -188,8 +186,7 @@ func (f *IntFlag) HasValue() bool { return f.set || f.hasEnvValue }
 // Int64Flag represents an int64 command line flag
 type Int64Flag struct {
 	baseFlag
-	value       int64 // Current value
-	hasEnvValue bool  // Track if value came from environment
+	value int64 // Current value
 }
 
 // Parse sets the flag value from a string
@@ -220,8 +217,7 @@ func (f *Int64Flag) HasValue() bool { return f.set || f.hasEnvValue }
 // FloatFlag represents a float64 command line flag
 type FloatFlag struct {
 	baseFlag
-	value       float64 // Current value
-	hasEnvValue bool    // Track if value came from environment
+	value float64 // Current value
 }
 
 // Parse sets the flag value from a string
@@ -252,8 +248,7 @@ func (f *FloatFlag) HasValue() bool { return f.set || f.hasEnvValue }
 // StringSliceFlag represents a string slice command line flag
 type StringSliceFlag struct {
 	baseFlag
-	value       []string // Current value
-	hasEnvValue bool     // Track if value came from environment
+	value []string // Current value
 }
 
 // parseCommaSeparated splits a comma-separated string into a slice of trimmed non-empty strings
@@ -300,9 +295,8 @@ func (f *StringSliceFlag) HasValue() bool { return len(f.value) > 0 || f.hasEnvV
 // errors, so they only need to be declared once.
 type EnumFlag struct {
 	baseFlag
-	value       string   // Current value
-	allowed     []string // Permitted values
-	hasEnvValue bool     // Track if value came from environment
+	value   string   // Current value
+	allowed []string // Permitted values
 }
 
 // Parse sets the flag value, rejecting anything outside the allowed set.
@@ -448,42 +442,53 @@ func Default(value any) FlagOption {
 		case *StringFlag:
 			if v, ok := value.(string); ok {
 				flag.value = v
+				flag.defaultValue = fmt.Sprintf(`"%s"`, v)
 			} else {
 				err = fmt.Errorf("default value for string flag '%s' must be string, got %T", flag.name, value)
 			}
 		case *BoolFlag:
 			if v, ok := value.(bool); ok {
 				flag.value = v
+				flag.defaultValue = fmt.Sprintf("%t", v)
 			} else {
 				err = fmt.Errorf("default value for bool flag '%s' must be bool, got %T", flag.name, value)
 			}
 		case *IntFlag:
 			if v, ok := value.(int); ok {
 				flag.value = v
+				flag.defaultValue = fmt.Sprintf("%d", v)
 			} else {
 				err = fmt.Errorf("default value for int flag '%s' must be int, got %T", flag.name, value)
 			}
 		case *Int64Flag:
 			if v, ok := value.(int64); ok {
 				flag.value = v
+				flag.defaultValue = fmt.Sprintf("%d", v)
 			} else {
 				err = fmt.Errorf("default value for int64 flag '%s' must be int64, got %T", flag.name, value)
 			}
 		case *FloatFlag:
 			if v, ok := value.(float64); ok {
 				flag.value = v
+				flag.defaultValue = fmt.Sprintf("%.2f", v)
 			} else {
 				err = fmt.Errorf("default value for float flag '%s' must be float64, got %T", flag.name, value)
 			}
 		case *StringSliceFlag:
 			if v, ok := value.([]string); ok {
 				flag.value = v
+				if len(v) == 0 {
+					flag.defaultValue = "[]"
+				} else {
+					flag.defaultValue = fmt.Sprintf(`["%s"]`, strings.Join(v, `", "`))
+				}
 			} else {
 				err = fmt.Errorf("default value for string slice flag '%s' must be []string, got %T", flag.name, value)
 			}
 		case *DurationFlag:
 			if v, ok := value.(time.Duration); ok {
 				flag.value = v
+				flag.defaultValue = v.String()
 			} else {
 				err = fmt.Errorf("default value for duration flag '%s' must be time.Duration, got %T", flag.name, value)
 			}
@@ -496,11 +501,13 @@ func Default(value any) FlagOption {
 				err = fmt.Errorf("default value %q for enum flag '%s' must be one of: %s", v, flag.name, strings.Join(flag.allowed, ", "))
 			default:
 				flag.value = v
+				flag.defaultValue = fmt.Sprintf(`"%s"`, v)
 			}
 		}
 
 		if err != nil {
 			_ = Exit(fmt.Sprintf("Configuration error: %s", err.Error()), 1)
+			return
 		}
 	}
 }
@@ -529,8 +536,7 @@ func String(name, usage string, opts ...FlagOption) *StringFlag {
 			// Apply validation to environment variable values
 			if flag.validate != nil {
 				if err := flag.validate(envValue); err != nil {
-					_ = Exit(fmt.Sprintf("Environment variable error: validation failed for %s=%q: %v",
-						flag.envVar, envValue, err), 1)
+					_ = Exit(fmt.Sprintf("Environment variable error: validation failed for %s", flag.envVar), 1)
 				}
 			}
 			flag.value = envValue
@@ -565,14 +571,12 @@ func Duration(name, usage string, opts ...FlagOption) *DurationFlag {
 		if envValue := os.Getenv(flag.envVar); envValue != "" {
 			parsed, err := time.ParseDuration(envValue)
 			if err != nil {
-				_ = Exit(fmt.Sprintf("Environment variable error: invalid duration value in %s=%q: %v",
-					flag.envVar, envValue, err), 1)
+				_ = Exit(fmt.Sprintf("Environment variable error: invalid duration value in %s", flag.envVar), 1)
 			}
 			// Apply validation to environment variable values
 			if flag.validate != nil {
 				if err := flag.validate(envValue); err != nil {
-					_ = Exit(fmt.Sprintf("Environment variable error: validation failed for %s=%q: %v",
-						flag.envVar, envValue, err), 1)
+					_ = Exit(fmt.Sprintf("Environment variable error: validation failed for %s", flag.envVar), 1)
 				}
 			}
 			flag.value = parsed
@@ -606,14 +610,12 @@ func Bool(name, usage string, opts ...FlagOption) *BoolFlag {
 		if envValue := os.Getenv(flag.envVar); envValue != "" {
 			parsed, err := strconv.ParseBool(envValue)
 			if err != nil {
-				_ = Exit(fmt.Sprintf("Environment variable error: invalid boolean value in %s=%q: %v",
-					flag.envVar, envValue, err), 1)
+				_ = Exit(fmt.Sprintf("Environment variable error: invalid boolean value in %s", flag.envVar), 1)
 			}
 			// Apply validation to environment variable values
 			if flag.validate != nil {
 				if err := flag.validate(envValue); err != nil {
-					_ = Exit(fmt.Sprintf("Environment variable error: validation failed for %s=%q: %v",
-						flag.envVar, envValue, err), 1)
+					_ = Exit(fmt.Sprintf("Environment variable error: validation failed for %s", flag.envVar), 1)
 				}
 			}
 			flag.value = parsed
@@ -647,14 +649,12 @@ func Int(name, usage string, opts ...FlagOption) *IntFlag {
 		if envValue := os.Getenv(flag.envVar); envValue != "" {
 			parsed, err := strconv.Atoi(envValue)
 			if err != nil {
-				_ = Exit(fmt.Sprintf("Environment variable error: invalid integer value in %s=%q: %v",
-					flag.envVar, envValue, err), 1)
+				_ = Exit(fmt.Sprintf("Environment variable error: invalid integer value in %s", flag.envVar), 1)
 			}
 			// Apply validation to environment variable values
 			if flag.validate != nil {
 				if err := flag.validate(envValue); err != nil {
-					_ = Exit(fmt.Sprintf("Environment variable error: validation failed for %s=%q: %v",
-						flag.envVar, envValue, err), 1)
+					_ = Exit(fmt.Sprintf("Environment variable error: validation failed for %s", flag.envVar), 1)
 				}
 			}
 			flag.value = parsed
@@ -689,14 +689,12 @@ func Float(name, usage string, opts ...FlagOption) *FloatFlag {
 		if envValue := os.Getenv(flag.envVar); envValue != "" {
 			parsed, err := strconv.ParseFloat(envValue, 64)
 			if err != nil {
-				_ = Exit(fmt.Sprintf("Environment variable error: invalid float value in %s=%q: %v",
-					flag.envVar, envValue, err), 1)
+				_ = Exit(fmt.Sprintf("Environment variable error: invalid float value in %s", flag.envVar), 1)
 			}
 			// Apply validation to environment variable values
 			if flag.validate != nil {
 				if err := flag.validate(envValue); err != nil {
-					_ = Exit(fmt.Sprintf("Environment variable error: validation failed for %s=%q: %v",
-						flag.envVar, envValue, err), 1)
+					_ = Exit(fmt.Sprintf("Environment variable error: validation failed for %s", flag.envVar), 1)
 				}
 			}
 			flag.value = parsed
@@ -732,8 +730,7 @@ func StringSlice(name, usage string, opts ...FlagOption) *StringSliceFlag {
 			// Apply validation to environment variable values
 			if flag.validate != nil {
 				if err := flag.validate(envValue); err != nil {
-					_ = Exit(fmt.Sprintf("Environment variable error: validation failed for %s=%q: %v",
-						flag.envVar, envValue, err), 1)
+					_ = Exit(fmt.Sprintf("Environment variable error: validation failed for %s", flag.envVar), 1)
 				}
 			}
 			flag.value = flag.parseCommaSeparated(envValue)
@@ -770,13 +767,12 @@ func Enum(name, usage string, allowed []string, opts ...FlagOption) *EnumFlag {
 	if flag.envVar != "" {
 		if envValue := os.Getenv(flag.envVar); envValue != "" {
 			if !slices.Contains(flag.allowed, envValue) {
-				_ = Exit(fmt.Sprintf("Environment variable error: %s=%q must be one of: %s",
-					flag.envVar, envValue, strings.Join(flag.allowed, ", ")), 1)
+				_ = Exit(fmt.Sprintf("Environment variable error: %s must be one of: %s",
+					flag.envVar, strings.Join(flag.allowed, ", ")), 1)
 			}
 			if flag.validate != nil {
 				if err := flag.validate(envValue); err != nil {
-					_ = Exit(fmt.Sprintf("Environment variable error: validation failed for %s=%q: %v",
-						flag.envVar, envValue, err), 1)
+					_ = Exit(fmt.Sprintf("Environment variable error: validation failed for %s", flag.envVar), 1)
 				}
 			}
 			flag.value = envValue
@@ -810,14 +806,12 @@ func Int64(name, usage string, opts ...FlagOption) *Int64Flag {
 		if envValue := os.Getenv(flag.envVar); envValue != "" {
 			parsed, err := strconv.ParseInt(envValue, 10, 64)
 			if err != nil {
-				_ = Exit(fmt.Sprintf("Environment variable error: invalid int64 value in %s=%q: %v",
-					flag.envVar, envValue, err), 1)
+				_ = Exit(fmt.Sprintf("Environment variable error: invalid int64 value in %s", flag.envVar), 1)
 			}
 			// Apply validation to environment variable values
 			if flag.validate != nil {
 				if err := flag.validate(envValue); err != nil {
-					_ = Exit(fmt.Sprintf("Environment variable error: validation failed for %s=%q: %v",
-						flag.envVar, envValue, err), 1)
+					_ = Exit(fmt.Sprintf("Environment variable error: validation failed for %s", flag.envVar), 1)
 				}
 			}
 			flag.value = parsed

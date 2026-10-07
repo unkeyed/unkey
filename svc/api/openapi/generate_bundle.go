@@ -49,6 +49,8 @@ func main() {
 	config := datamodel.NewDocumentConfiguration()
 	config.BasePath = "."
 	config.ExtractRefsSequentially = true
+	// Wrapping a $ref and its siblings in allOf makes oapi-codegen emit inline structs instead of named types.
+	config.TransformSiblingRefs = false
 
 	// Parse the preprocessed specification
 	document, err := libopenapi.NewDocumentWithConfiguration(preprocessedSpec, config)

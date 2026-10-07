@@ -1,0 +1,59 @@
+---
+title: Authorization
+sidebarTitle: "Overview"
+description: "Control what each key may do with permissions checked at verification."
+sources:
+  - svc/api/openapi/spec/paths/v2/keys/createKey/V2KeysCreateKeyRequestBody.yaml
+  - svc/api/openapi/spec/paths/v2/keys/verifyKey/V2KeysVerifyKeyRequestBody.yaml
+  - svc/api/openapi/spec/paths/v2/permissions/createPermission/V2PermissionsCreatePermissionRequestBody.yaml
+  - svc/api/openapi/spec/paths/v2/permissions/createRole/V2PermissionsCreateRoleRequestBody.yaml
+  - svc/api/routes/v2_keys_verify_key/handler.go
+  - internal/services/keys/validation.go
+  - pkg/rbac/rbac.go
+  - pkg/rbac/permissions.go
+  - web/internal/db/src/schema/rbac.ts
+---
+
+Verification tells you a key is real. Authorization tells you what it's allowed to do. Give each key permissions, directly or through roles. Then, when you verify the key, ask whether it has the permissions a request needs. If it doesn't, verification fails with `code: INSUFFICIENT_PERMISSIONS` and no rate limit or credits are used.
+
+## The pieces
+
+A **permission** is a string you define, such as `documents.read` or `billing:write`. It has a readable `name`, a `slug` that keys and queries use, and an optional description. It means whatever your API decides it means.
+
+A **role** is a named group of permissions, such as `editor` with `documents.read` and `documents.write`. A key with the role gets all its permissions, and changing the role changes every key that has it.
+
+A **key** can have permissions, roles, or both. Its permissions are its own plus those from its roles. Verification returns them as `data.permissions`, and the roles as `data.roles`.
+
+A **permission query** is what you send as `permissions` on `keys.verifyKey`: one slug, or slugs combined with `AND`, `OR`, and parentheses. Verification passes only if the key's permissions satisfy it.
+
+```bash
+curl -X POST https://api.unkey.com/v2/keys.verifyKey \
+  -H "Authorization: Bearer $UNKEY_ROOT_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{ "key": "sk_live_...", "permissions": "documents.write OR admin" }'
+```
+
+## Key permissions vs root key permissions
+
+The permissions on this page belong to your users' keys, and your API decides what they allow. Root key permissions, such as `api.*.create_key`, control what your root keys can do on `api.unkey.com`. The two never mix. See [Root key permissions](/platform/root-keys/permissions).
+
+## When to check where
+
+Send a `permissions` query when the answer depends only on the key: "can this key write documents?" Unkey answers as part of the verification. Check `data.permissions` in your own code when the answer also depends on your data: "can this key delete *this* document?" needs the document's owner, which Unkey doesn't know.
+
+## Next steps
+
+<Columns cols={2}>
+  <Card title="Roles and permissions" icon="shield" href="/api-management/authorization/roles-and-permissions">
+    Create permissions and roles through the API or the dashboard, with slug rules and bounds.
+  </Card>
+  <Card title="Permission queries" icon="code" href="/api-management/authorization/permission-queries">
+    The query grammar, its limits, and why an asterisk isn't a wildcard.
+  </Card>
+  <Card title="Managing key roles and permissions" icon="key" href="/api-management/authorization/managing-key-permissions">
+    Attach, replace, and remove roles and permissions on a key.
+  </Card>
+  <Card title="Verifying keys" icon="shield-check" href="/api-management/keys/verifying-keys">
+    Where the permission check sits among the other verification checks.
+  </Card>
+</Columns>

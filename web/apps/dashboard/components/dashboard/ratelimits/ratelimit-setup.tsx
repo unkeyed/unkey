@@ -196,12 +196,12 @@ export const RatelimitSetup = ({
       <div className="flex w-full justify-between items-center px-1">
         <div className="flex gap-2 items-center">
           <span className="font-medium text-sm text-gray-12">Ratelimits</span>
-          <span className="rounded-full border border-grayA-3 justify-center items-center flex bg-grayA-3 w-[22px] h-[18px] text-gray-12 text-[11px]">
+          <span className="rounded-full border border-grayA-3 justify-center items-center flex bg-grayA-3 w-[22px] h-[18px] text-gray-12 text-2xs">
             {fields.length}
           </span>
         </div>
         <Button
-          className="rounded-lg bg-white dark:bg-black text-gray-12 font-medium"
+          className="rounded-lg bg-raised text-gray-12 font-medium"
           variant="outline"
           onClick={handleAddRatelimit}
           type="button"
@@ -213,7 +213,7 @@ export const RatelimitSetup = ({
 
       <div>
         {fields.map((field, index) => (
-          <div key={field.id} className="flex flex-col gap-4 w-full border-t border-grayA-3 py-6">
+          <div key={field.id} className="flex flex-col gap-4 w-full border-t py-6">
             <div className="flex items-center gap-3.5 w-full">
               <FormInput
                 className={cn(

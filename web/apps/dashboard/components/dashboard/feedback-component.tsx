@@ -144,7 +144,7 @@ export const Feedback: React.FC = () => {
             name="issueType"
             render={({ field }) => (
               <div className="flex flex-col gap-1.5">
-                <div className="text-gray-11 text-[13px] flex items-center">Area</div>
+                <div className="text-gray-11 text-sm flex items-center">Area</div>
                 <Select
                   onValueChange={field.onChange}
                   value={field.value}
@@ -172,7 +172,7 @@ export const Feedback: React.FC = () => {
                 {errors.issueType && (
                   <div className="text-error-11 text-xs">{errors.issueType.message}</div>
                 )}
-                <output className="text-gray-9 flex gap-2 items-center text-[13px]">
+                <output className="text-gray-9 flex gap-2 items-center text-sm">
                   <IconCircleInfoOutline18 className="size-3.5" aria-hidden="true" />
                   <span>Select the appropriate category</span>
                 </output>
@@ -185,7 +185,7 @@ export const Feedback: React.FC = () => {
             name="severity"
             render={({ field }) => (
               <div className="flex flex-col gap-1.5">
-                <div className="text-gray-11 text-[13px] flex items-center">Severity</div>
+                <div className="text-gray-11 text-sm flex items-center">Severity</div>
                 <Select
                   onValueChange={field.onChange}
                   value={field.value}
@@ -209,7 +209,7 @@ export const Feedback: React.FC = () => {
                 {errors.severity && (
                   <div className="text-error-11 text-xs">{errors.severity.message}</div>
                 )}
-                <output className="text-gray-9 flex gap-2 items-center text-[13px]">
+                <output className="text-gray-9 flex gap-2 items-center text-sm">
                   <IconCircleInfoOutline18 className="size-3.5" aria-hidden="true" />
                   <span>How urgent is this issue?</span>
                 </output>

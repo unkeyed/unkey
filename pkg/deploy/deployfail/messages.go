@@ -1,8 +1,11 @@
-// Package deployfail holds the user-facing failure messages the deploy worker
-// writes to deployment_steps.error. The API read path matches on these exact
-// constants to classify a failure into a stable DeploymentFailureCode. Sharing
-// the strings here is what keeps the two sides from drifting: edit a message and
-// both the producer and the classifier move together.
+// Package deployfail holds the user-facing failure messages a deploy rejection
+// carries. The region and quota messages reach deployment_steps.error from the
+// worker; the runtime-settings ones are only a create-time rejection detail,
+// and the read path still matches them for rows written before that gate
+// moved. The API read path matches these exact constants to classify a failure
+// into a stable DeploymentFailureCode. Sharing the strings here is what keeps
+// the two sides from drifting: edit a message and both the producer and the
+// classifier move together.
 package deployfail
 
 const (
@@ -21,8 +24,8 @@ const (
 )
 
 // RuntimeViolation is one runtime setting that fails a deploy precondition.
-// Message is one of the Msg* constants above, so a violation stays classifiable
-// by the read-path classifier; Actual is the offending value for reporting.
+// Message is one of the Msg* constants above; Actual is the offending value for
+// reporting.
 type RuntimeViolation struct {
 	Message string
 	Actual  int32
@@ -32,7 +35,7 @@ type RuntimeViolation struct {
 // pipeline: port must be 1..65535, cpu must be at least 250 millicores, and
 // memory at least 256 MiB. An empty result means the runtime settings are
 // deployable. It is the single source of truth shared by the create-time gates
-// (API, ctrl) and the worker.
+// (API, ctrl), which refuse these settings before a deployment row exists.
 func RuntimeViolations(port, cpuMillicores, memoryMib int32) []RuntimeViolation {
 	var violations []RuntimeViolation
 	if port < 1 || port > 65535 {

@@ -1,0 +1,46 @@
+---
+title: "portal_token_missing"
+sidebarTitle: "portal_token_missing"
+description: "A portal endpoint was called without a portal session token."
+sources:
+  - pkg/codes/unkey_portal.go
+  - svc/api/internal/middleware/errors.go
+  - internal/services/portal/get_session.go
+---
+
+<Danger>`err:unkey:authentication:portal_token_missing`</Danger>
+
+You called a portal endpoint with an empty `portal_session` cookie. You get HTTP 400.
+
+```json Example response
+{
+  "meta": {
+    "requestId": "req_2c9a0jf23l4k567"
+  },
+  "error": {
+    "detail": "A valid portal session token is required.",
+    "status": 400,
+    "title": "Bad Request",
+    "type": "/errors/unkey/authentication/portal_token_missing",
+    "errors": []
+  }
+}
+```
+
+## Likely causes
+
+- The session flow didn't finish, so there's no token to send.
+- The cookie was lost, for example across a redirect.
+
+Portal endpoints such as `portal.listKeys`, `portal.rerollKey`, and `portal.getVerifications` use the access token from `portal.exchangeCode` in the `portal_session` cookie, not a root key. A request with no cookie at all returns [`err:unkey:application:invalid_input`](/errors/unkey/application/invalid_input). A token that's unknown, expired, or revoked returns [`err:unkey:authentication:portal_session_not_found`](/errors/unkey/authentication/portal_session_not_found).
+
+## How to fix
+
+1. Finish the session flow: your backend calls `portal.createSession` with a root key to get an exchange code, and the user's browser calls `portal.exchangeCode` with it to get the access token.
+2. Send that token in the `portal_session` cookie on every portal request. If the browser calls the portal API directly, make sure the cookie is set after the exchange and survives redirects.
+3. Don't send the token as `Authorization: Bearer`. Portal endpoints ignore the cookie when an `Authorization` header is present, and you get [`err:unkey:authentication:missing`](/errors/unkey/authentication/missing).
+
+## Related errors
+
+- [`err:unkey:authentication:portal_session_not_found`](/errors/unkey/authentication/portal_session_not_found): the token is present but not an active session.
+- [`err:unkey:authentication:missing`](/errors/unkey/authentication/missing): a portal endpoint was called with an `Authorization` header instead of the cookie.

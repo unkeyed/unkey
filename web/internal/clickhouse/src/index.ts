@@ -1,6 +1,5 @@
 import { getAuditLogs } from "./audit-logs";
 import { getBillableRatelimits, getBillableVerifications } from "./billing";
-import { getBuildStepLogs, getBuildSteps } from "./build-steps";
 import {
   getActiveKeysByApp,
   getActiveKeysUsage,
@@ -128,6 +127,7 @@ import {
   getDeploymentRpsTimeseries,
   getInstanceRps,
   getRegionRps,
+  getRequestDetails,
   getRequestLogs,
 } from "./frontline";
 import { getEnvironmentRequests } from "./frontline/environment-requests";
@@ -404,6 +404,7 @@ export class ClickHouse {
   public get frontline() {
     return {
       logs: getRequestLogs(this.querier),
+      requestDetails: getRequestDetails(this.querier),
       rps: {
         byInstance: getInstanceRps(this.querier),
         byRegion: getRegionRps(this.querier),
@@ -422,12 +423,6 @@ export class ClickHouse {
   public get instanceEvents() {
     return {
       list: getInstanceEvents(this.querier),
-    };
-  }
-  public get buildSteps() {
-    return {
-      getSteps: getBuildSteps(this.querier),
-      getLogs: getBuildStepLogs(this.querier),
     };
   }
   public get auditLogs() {

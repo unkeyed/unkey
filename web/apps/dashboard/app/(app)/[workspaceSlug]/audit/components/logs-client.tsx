@@ -13,12 +13,6 @@ export type WorkspaceProps = {
     name: string | null;
   }[];
   buckets: string[];
-  members:
-    | {
-        label: string;
-        value: string;
-      }[]
-    | null;
 };
 
 export const LogsClient = (props: WorkspaceProps) => {

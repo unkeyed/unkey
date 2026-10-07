@@ -29,7 +29,7 @@ func TestUpdateResumesFailedDrainWithoutResettingCursor(t *testing.T) {
 	require.NoError(t, err)
 	key := h.CreateRootKey(workspaceID, "unkey:v1:"+workspaceID+":**#*")
 	headers := http.Header{"Authorization": {"Bearer " + key}, "Content-Type": {"application/json"}}
-	created := testutil.CallRoute[json.RawMessage, openapi.LogdrainMutationResponse](h, &create, headers, json.RawMessage(`{"name":"HTTP","stream":"ratelimits","filters":{"namespaceIds":["ns_keep"],"passed":[false]},"destination":{"http":{"url":"https://logs.example.com","headers":[{"name":"Authorization","mode":"set","value":"secret"}]}}}`))
+	created := testutil.CallRoute[json.RawMessage, openapi.LogdrainMutationResponse](h, &create, headers, json.RawMessage(`{"name":"HTTP","stream":"ratelimits","filters":{"namespaceIds":["ns_keep"],"passed":[false]},"destination":{"http":{"url":"https://logs.example.com","format":"hec","headers":[{"name":"Authorization","mode":"set","value":"secret"}]}}}`))
 	require.Equal(t, http.StatusOK, created.Status, "%s", created.RawBody)
 	id := created.Body.Data.Id
 	_, err = h.DB.RW().ExecContext(context.Background(), "UPDATE logdrains SET status = 'paused_by_failure', consecutive_failures = 8, next_attempt_at = 9000, lease_expires_at = 9999, committed_offset_inserted_at = 3456, committed_offset_event_id = 'event_keep' WHERE id = ?", id)
@@ -45,6 +45,7 @@ func TestUpdateResumesFailedDrainWithoutResettingCursor(t *testing.T) {
 	require.Equal(t, []string{"ns_keep"}, *result.Body.Data.Filters.NamespaceIds)
 	require.Equal(t, []bool{true}, *result.Body.Data.Filters.Passed)
 	require.Equal(t, []string{"Authorization"}, result.Body.Data.Destination.Http.Headers)
+	require.Equal(t, openapi.LogdrainDestinationHttpFormatHec, result.Body.Data.Destination.Http.Format)
 	var lease, failures, next, offset int64
 	var event string
 	require.NoError(t, h.DB.RW().QueryRowContext(context.Background(), "SELECT lease_expires_at, consecutive_failures, next_attempt_at, committed_offset_inserted_at, committed_offset_event_id FROM logdrains WHERE id = ?", id).Scan(&lease, &failures, &next, &offset, &event))

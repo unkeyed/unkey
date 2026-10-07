@@ -1,0 +1,163 @@
+---
+title: Bun guide
+sidebarTitle: "Bun"
+description: "Verify API keys in a Bun.serve handler."
+sources:
+  - svc/api/openapi/spec/paths/v2/apis/createApi/V2ApisCreateApiRequestBody.yaml
+  - svc/api/openapi/spec/paths/v2/apis/createApi/V2ApisCreateApiResponseData.yaml
+  - pkg/rbac/permissions.go
+  - svc/api/openapi/spec/paths/v2/keys/createKey/V2KeysCreateKeyRequestBody.yaml
+  - svc/api/openapi/spec/paths/v2/keys/createKey/V2KeysCreateKeyResponseData.yaml
+  - svc/api/openapi/spec/paths/v2/keys/verifyKey/V2KeysVerifyKeyRequestBody.yaml
+  - svc/api/openapi/spec/paths/v2/keys/verifyKey/V2KeysVerifyKeyResponseData.yaml
+  - web/internal/api/src/sdk/keys.ts
+  - web/internal/api/src/models/components/v2keysverifykeyresponsedata.ts
+  - https://github.com/unkeyed/sdks/blob/3bb124498270d8aff36e358dc2e0010e9991869a/api/ts/README.md
+---
+import RootKeyPrereq from "/snippets/root-key-prereq.mdx";
+import { versions } from "/snippets/versions.mdx";
+
+Protect a Bun HTTP server with API keys. `Bun.serve` has one `fetch` handler, so you call a verify helper at the top of it, and `keys.verifyKey` decides whether the request goes on.
+
+<RootKeyPrereq />
+
+<Steps titleSize="h3">
+  <Step title="Create a root key and a keyspace">
+    In the dashboard, go to **Settings > Root Keys** and create a root key with `api.*.create_api`, `api.*.create_key`, and `api.*.verify_key`. Put it in your server's `UNKEY_ROOT_KEY` environment variable. Never send it to a browser or mobile app.
+
+    Then create a keyspace, which holds your keys. Use **Keyspaces (APIs)** in the dashboard, or `apis.createApi`:
+
+    ```bash create a keyspace
+    curl -X POST https://api.unkey.com/v2/apis.createApi \
+      -H "Authorization: Bearer $UNKEY_ROOT_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{ "name": "my-api" }'
+    ```
+
+    Keep the `data.apiId` from the response. You need it to create keys. See [Root keys](/platform/root-keys/overview) for more on root keys.
+  </Step>
+  <Step title="Install the SDK">
+    `@unkey/api` (version {versions.tsApi}) runs unchanged on Bun.
+
+    ```bash
+    bun add @unkey/api
+    ```
+  </Step>
+  <Step title="Create a key for a user">
+    Create a key from your backend when a user signs up or asks for one. `externalId` links the key to the user, so verification tells you who's calling. `meta` comes back on every verification. You get `data.key` only once: show it to the user and store only `data.keyId`.
+
+    <CodeGroup>
+    ```bash curl
+    curl -X POST https://api.unkey.com/v2/keys.createKey \
+      -H "Authorization: Bearer $UNKEY_ROOT_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{ "apiId": "api_...", "prefix": "sk_live", "externalId": "user_123", "meta": { "plan": "free" } }'
+    ```
+    ```ts TypeScript
+    import { Unkey } from "@unkey/api";
+
+    const unkey = new Unkey({ rootKey: process.env.UNKEY_ROOT_KEY ?? "" });
+
+    const created = await unkey.keys.createKey({
+      apiId: process.env.UNKEY_API_ID ?? "",
+      prefix: "sk_live",
+      externalId: "user_123",
+      meta: { plan: "free" },
+    });
+    // created.data.key is the plaintext, created.data.keyId the handle you keep
+    ```
+    </CodeGroup>
+
+    Every field is described in [Creating keys](/api-management/keys/creating-keys).
+  </Step>
+  <Step title="Verify the key in the fetch handler">
+    The helper returns either the verification data or a `Response` to send back. Its optional second argument is a permission query, for routes that need more than a valid key. You can read the root key from `Bun.env` or `process.env`.
+
+    ```ts server.ts
+    import { Unkey } from "@unkey/api";
+    import * as errors from "@unkey/api/models/errors";
+
+    const unkey = new Unkey({ rootKey: Bun.env.UNKEY_ROOT_KEY ?? "" });
+
+    async function authenticate(req: Request, permissions?: string) {
+      const auth = req.headers.get("authorization") ?? "";
+      const key = auth.startsWith("Bearer ") ? auth.slice("Bearer ".length) : "";
+      if (!key) {
+        return Response.json({ error: "missing API key" }, { status: 401 });
+      }
+      try {
+        const result = await unkey.keys.verifyKey({ key, permissions });
+        if (!result.data.valid) {
+          return Response.json({ error: result.data.code }, { status: statusFor(result.data.code) });
+        }
+        return result.data;
+      } catch (err) {
+        if (err instanceof errors.UnkeyError) {
+          console.error("unkey", err.statusCode, err.message);
+        }
+        return Response.json({ error: "authentication unavailable" }, { status: 503 });
+      }
+    }
+
+    function statusFor(code: string): number {
+      switch (code) {
+        case "RATE_LIMITED":
+          return 429;
+        case "USAGE_EXCEEDED":
+          return 402;
+        case "FORBIDDEN":
+        case "INSUFFICIENT_PERMISSIONS":
+          return 403;
+        default:
+          return 401;
+      }
+    }
+
+    Bun.serve({
+      port: 3000,
+      async fetch(req) {
+        const url = new URL(req.url);
+        if (url.pathname === "/items") {
+          const auth = await authenticate(req);
+          if (auth instanceof Response) return auth;
+          return Response.json({ items: [], owner: auth.identity?.externalId });
+        }
+        if (url.pathname === "/exports") {
+          const auth = await authenticate(req, "exports.create");
+          if (auth instanceof Response) return auth;
+          return Response.json({ started: true });
+        }
+        return new Response("not found", { status: 404 });
+      },
+    });
+    ```
+
+    ```bash
+    bun run server.ts
+    curl http://localhost:3000/items -H "Authorization: Bearer sk_live_..."
+    ```
+  </Step>
+  <Step title="Handle the outcome codes">
+    `keys.verifyKey` returns HTTP 200 for every outcome. Check `data.valid`, then `data.code` for the reason, and return the matching status from your API:
+
+    | `data.code` | Meaning | Return |
+    | --- | --- | --- |
+    | `VALID` | Every check passed. | continue |
+    | `NOT_FOUND` | No such key, or your root key may not verify this keyspace. | 401 |
+    | `DISABLED` | The key was disabled. | 401 |
+    | `EXPIRED` | The key's expiry passed. | 401 |
+    | `FORBIDDEN` | Client IP not on the keyspace allow list, or the workspace is disabled. | 403 |
+    | `INSUFFICIENT_PERMISSIONS` | The `permissions` query was not satisfied. | 403 |
+    | `RATE_LIMITED` | A <Tooltip tip="Here: limits enforced by keys.verifyKey on a key or identity, or by the standalone ratelimit API. Not a Compute gateway policy.">rate limit</Tooltip> on the key or its identity was exceeded. | 429 |
+    | `USAGE_EXCEEDED` | The key has no credits left. | 402 or 429 |
+
+    Remaining credits are in `data.credits`, and each checked rate limit is in `data.ratelimits` with `remaining` and `reset`. The call only fails with an HTTP error (which the SDKs throw) when the call itself is wrong, such as a bad root key or a malformed body. See [Verifying keys](/api-management/keys/verifying-keys) for every field.
+  </Step>
+  <Step title="Next steps">
+    <Columns cols={2}>
+      <Card title="Verifying keys" href="/api-management/keys/verifying-keys" icon="key">Every request field, the order of checks, and every response field.</Card>
+      <Card title="Credits and refill" href="/api-management/keys/credits-and-refill" icon="coins">Meter usage per key and refill balances on a schedule.</Card>
+      <Card title="Cookbook" href="/api-management/cookbook/index" icon="book">Copy-ready recipes for rate limits, billing, and subscription tiers.</Card>
+    </Columns>
+  </Step>
+</Steps>

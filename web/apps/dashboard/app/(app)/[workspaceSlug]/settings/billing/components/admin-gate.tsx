@@ -6,14 +6,12 @@ import { ADMIN_ONLY_TOOLTIP } from "./constants";
 
 type AdminGateProps = {
   isAdmin: boolean | undefined;
-  blocked?: boolean;
-  blockedReason?: string;
   children: (disabled: boolean) => ReactNode;
 };
 
-export function AdminGate({ isAdmin, blocked = false, blockedReason, children }: AdminGateProps) {
-  const disabled = isAdmin !== true || blocked;
-  const reason = isAdmin === false ? ADMIN_ONLY_TOOLTIP : blockedReason;
+export function AdminGate({ isAdmin, children }: AdminGateProps) {
+  const disabled = isAdmin !== true;
+  const reason = isAdmin === false ? ADMIN_ONLY_TOOLTIP : undefined;
 
   return (
     <InfoTooltip content={reason} disabled={!disabled || reason === undefined} asChild>

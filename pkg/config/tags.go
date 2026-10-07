@@ -59,7 +59,7 @@ func applyDefaultsRecursive(rv reflect.Value) error {
 		}
 
 		// Dereference pointer to struct and recurse.
-		if field.Kind() == reflect.Ptr && field.Type().Elem().Kind() == reflect.Struct {
+		if field.Kind() == reflect.Pointer && field.Type().Elem().Kind() == reflect.Struct {
 			if !field.IsNil() {
 				if err := applyDefaultsRecursive(field.Elem()); err != nil {
 					return err
@@ -179,7 +179,7 @@ func validateRecursive(rv reflect.Value, prefix string) []error {
 		}
 
 		// Dereference pointer to struct and recurse.
-		if field.Kind() == reflect.Ptr && field.Type().Elem().Kind() == reflect.Struct {
+		if field.Kind() == reflect.Pointer && field.Type().Elem().Kind() == reflect.Struct {
 			tag := structField.Tag.Get("config")
 			directives := parseTag(tag)
 			if hasDirective(directives, "required") && field.IsNil() {
@@ -283,7 +283,7 @@ func validateDirective(field reflect.Value, fieldPath string, d directive) error
 
 func isZero(v reflect.Value) bool {
 	switch v.Kind() {
-	case reflect.Ptr, reflect.Interface:
+	case reflect.Pointer, reflect.Interface:
 		return v.IsNil()
 	case reflect.Slice, reflect.Map:
 		return v.IsNil()
@@ -344,7 +344,7 @@ func validateCustom(v any) error {
 
 func validateCustomRecursive(rv reflect.Value) []error {
 	// Dereference pointers.
-	for rv.Kind() == reflect.Ptr {
+	for rv.Kind() == reflect.Pointer {
 		if rv.IsNil() {
 			return nil
 		}
@@ -377,7 +377,7 @@ func validateCustomRecursive(rv reflect.Value) []error {
 		switch field.Kind() {
 		case reflect.Struct:
 			errs = append(errs, validateCustomRecursive(field)...)
-		case reflect.Ptr:
+		case reflect.Pointer:
 			if !field.IsNil() && field.Type().Elem().Kind() == reflect.Struct {
 				errs = append(errs, validateCustomRecursive(field)...)
 			}

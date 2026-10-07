@@ -1,0 +1,80 @@
+---
+title: Recoverable keys
+description: "Store an encrypted copy of a key so you can show it again later."
+sources:
+  - svc/api/openapi/spec/paths/v2/keys/createKey/V2KeysCreateKeyRequestBody.yaml
+  - svc/api/openapi/spec/paths/v2/keys/getKey/V2KeysGetKeyRequestBody.yaml
+  - svc/api/openapi/spec/paths/v2/apis/listKeys/V2ApisListKeysRequestBody.yaml
+  - svc/api/openapi/spec/common/KeyResponseData.yaml
+  - svc/api/routes/v2_keys_create_key/handler.go
+  - svc/api/routes/v2_keys_get_key/handler.go
+  - svc/api/routes/v2_keys_reroll_key/handler.go
+  - web/internal/db/src/schema/keyAuth.ts
+  - web/internal/db/src/schema/keys.ts
+  - web/apps/dashboard/lib/trpc/routers/workspace/onboarding.ts
+---
+
+import RootKeyPrereq from "/snippets/root-key-prereq.mdx";
+
+A recoverable key is one you can show again after it's created. By default Unkey keeps only a hash of each key, so once `keys.createKey` returns it, nobody (including Unkey) can read it again. That's the safest setup and right for most apps: a user who loses a key gets a new one.
+
+Use recoverable keys when showing a key again is worth the extra risk, such as an API playground that needs a working key, or a settings page where users expect to reveal their key. We store an encrypted copy and decrypt it only when you ask. [Key storage](/platform/security/key-storage) explains how that copy is protected.
+
+## Opt the keyspace in
+
+Recoverable keys need the keyspace's **Store encrypted keys** setting. It's off for new keyspaces and there's no dashboard toggle, so email support with the keyspace's API ID and we'll turn it on. Keys created before that can't be recovered.
+
+<RootKeyPrereq />
+
+Creating a recoverable key needs `api.*.encrypt_key` or `api.<api_id>.encrypt_key` in addition to the create permission. Reading one back needs `api.*.decrypt_key` or `api.<api_id>.decrypt_key` in addition to the read permission. Grant these only to root keys that need them. See [Root key permissions](/platform/root-keys/permissions).
+
+A missing encrypt permission doesn't look like a permission problem. `keys.createKey` returns HTTP 404 [`err:unkey:data:api_not_found`](/errors/unkey/data/api_not_found), "The specified API was not found." If you see this for an API ID you know is correct, check the root key's `encrypt_key` permission first.
+
+## Create a recoverable key
+
+<ParamField body="recoverable" type="boolean" default="false">
+  On `keys.createKey`. When `true`, an encrypted copy of the key is stored. Fails with HTTP 412 [`err:unkey:application:precondition_failed`](/errors/unkey/application/precondition_failed) when the keyspace doesn't store encrypted keys ("This API does not support key encryption."), and with HTTP 404 `err:unkey:data:api_not_found` when the root key lacks `encrypt_key`.
+</ParamField>
+
+```bash
+curl -X POST https://api.unkey.com/v2/keys.createKey \
+  -H "Authorization: Bearer $UNKEY_ROOT_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{ "apiId": "api_...", "recoverable": true }'
+```
+
+Rerolling a recoverable key produces a recoverable key, so the reroll needs the encrypt permission too.
+
+## Read the plaintext back
+
+Both `keys.getKey` and `apis.listKeys` accept `decrypt`.
+
+<ParamField body="decrypt" type="boolean" default="false">
+  When `true`, every returned key that's recoverable has a `plaintext` field. Other keys come back without it, and the request doesn't fail.
+</ParamField>
+
+```bash
+curl -X POST https://api.unkey.com/v2/keys.getKey \
+  -H "Authorization: Bearer $UNKEY_ROOT_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{ "keyId": "key_...", "decrypt": true }'
+```
+
+```json
+{
+  "meta": { "requestId": "req_..." },
+  "data": {
+    "keyId": "key_...",
+    "start": "sk_live_abc1",
+    "enabled": true,
+    "createdAt": 1704067200000,
+    "plaintext": "sk_live_..."
+  }
+}
+```
+
+`decrypt: true` fails with HTTP 412 when the key's keyspace doesn't store encrypted keys, and with a permission error when the root key lacks `decrypt_key`. Treat any response with `plaintext` like the original create response: send it over a secure channel, and never log or cache it.
+
+## Recoverable keys and rotation
+
+If a key may have leaked, reroll it. Being able to read it again doesn't make it safe. See [Rerolling keys](/api-management/keys/rerolling-keys).
