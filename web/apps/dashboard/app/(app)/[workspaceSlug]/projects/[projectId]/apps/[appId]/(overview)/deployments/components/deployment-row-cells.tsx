@@ -270,7 +270,7 @@ export function AuthorCell({
         alt={deployment.gitCommitAuthorHandle ?? "Author"}
       />
       {withHandle && deployment.gitCommitAuthorHandle && (
-        <span className="max-w-28 truncate text-sm text-gray-12">
+        <span data-sentry-mask className="max-w-28 truncate text-sm text-gray-12">
           {deployment.gitCommitAuthorHandle}
         </span>
       )}

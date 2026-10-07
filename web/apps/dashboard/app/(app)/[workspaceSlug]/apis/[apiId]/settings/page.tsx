@@ -1,5 +1,11 @@
 "use client";
-import { PageBody, PageContainer, PageHeader, PageHeaderContent, PageHeaderTitle } from "@unkey/ui";
+import {
+  PageContainer,
+  PageHeader,
+  PageHeaderContent,
+  PageHeaderTitle,
+  SettingsGroups,
+} from "@unkey/ui";
 import { use } from "react";
 import { SettingsClient } from "./components/settings-client";
 
@@ -15,14 +21,14 @@ export default function SettingsPage(props: Props) {
 
   return (
     <PageContainer>
-      <PageHeader>
+      <PageHeader className="max-w-[920px]">
         <PageHeaderContent>
           <PageHeaderTitle>Settings</PageHeaderTitle>
         </PageHeaderContent>
       </PageHeader>
-      <PageBody>
+      <SettingsGroups>
         <SettingsClient apiId={apiId} />
-      </PageBody>
+      </SettingsGroups>
     </PageContainer>
   );
 }

@@ -31,9 +31,10 @@
 // # Scheduling
 //
 // Deployment pods are spread across both nodes and availability zones using
-// TopologySpreadConstraints with maxSkew=1 for high availability. The hostname
-// constraint keeps a deployment's replicas from stacking on a single node; the
-// zone constraint adds cross-AZ redundancy once the cluster spans multiple zones.
+// TopologySpreadConstraints. A deployment that can scale past one replica must
+// spread across at least three nodes, with at most ceil(maxReplicas/3)
+// replicas on one node. Soft maxSkew=1 constraints prefer one replica per node
+// and an even spread across zones when there is room.
 //
 // # Usage
 //

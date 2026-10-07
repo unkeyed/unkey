@@ -124,6 +124,11 @@ func TestResourceSpecificParsersRoundTrip(t *testing.T) {
 			parse: func(value string) (fmt.Stringer, error) { return ParseDeploymentLogs(value) },
 		},
 		{
+			name:  "deployment build logs",
+			value: deployment.BuildLogs(),
+			parse: func(value string) (fmt.Stringer, error) { return ParseDeploymentBuildLogs(value) },
+		},
+		{
 			name:  "domain",
 			value: environment.Domain("domain_123"),
 			parse: func(value string) (fmt.Stringer, error) { return ParseDomain(value) },
@@ -250,6 +255,7 @@ func TestParseV1AllowsCanonicalPatterns(t *testing.T) {
 		"unkey:v1:ws_123:projects/proj_123/portals/portal_123/sessions/sess_123",
 		"unkey:v1:ws_123:projects/proj_123/portals/portal_123/**",
 		"unkey:v1:ws_123:projects/*/apps/*/environments/*/deployments/*/logs",
+		"unkey:v1:ws_123:projects/*/apps/*/environments/*/deployments/*/buildLogs",
 		"unkey:v1:ws_123:projects/*/apps/*/environments/*/gateway/logs",
 		"unkey:v1:ws_123:projects/*/keyspaces/*/logs",
 		"unkey:v1:ws_123:projects/*/ratelimits/namespaces/*/logs",
@@ -386,6 +392,7 @@ func TestResourceCatalogBuilders(t *testing.T) {
 		{name: "environment", got: environment.String(), want: "unkey:v1:ws_123:projects/proj_123/apps/app_123/environments/env_123"},
 		{name: "deployment", got: deployment.String(), want: "unkey:v1:ws_123:projects/proj_123/apps/app_123/environments/env_123/deployments/dep_123"},
 		{name: "deployment logs", got: deployment.Logs().String(), want: "unkey:v1:ws_123:projects/proj_123/apps/app_123/environments/env_123/deployments/dep_123/logs"},
+		{name: "deployment build logs", got: deployment.BuildLogs().String(), want: "unkey:v1:ws_123:projects/proj_123/apps/app_123/environments/env_123/deployments/dep_123/buildLogs"},
 		{name: "domain", got: environment.Domain("dom_123").String(), want: "unkey:v1:ws_123:projects/proj_123/apps/app_123/environments/env_123/domains/dom_123"},
 		{name: "environment variable", got: environment.Variable("var_123").String(), want: "unkey:v1:ws_123:projects/proj_123/apps/app_123/environments/env_123/variables/var_123"},
 		{name: "gateway logs", got: environment.Gateway().Logs().String(), want: "unkey:v1:ws_123:projects/proj_123/apps/app_123/environments/env_123/gateway/logs"},
