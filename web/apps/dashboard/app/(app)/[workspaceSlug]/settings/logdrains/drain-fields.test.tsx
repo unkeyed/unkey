@@ -101,6 +101,12 @@ it("submits only runtime filters after switching from a restricted gateway", asy
   fireEvent.change(screen.getByRole("textbox", { name: "URL" }), {
     target: { value: "https://example.com/ingest" },
   });
+  fireEvent.change(screen.getByPlaceholderText("Authorization"), {
+    target: { value: "Authorization" },
+  });
+  fireEvent.change(screen.getByPlaceholderText("Bearer …"), {
+    target: { value: "Bearer token" },
+  });
   fireEvent.click(screen.getByRole("combobox", { name: "Stream" }));
   fireEvent.keyDown(await screen.findByRole("option", { name: "Gateway HTTP requests" }), {
     key: "Enter",
@@ -119,9 +125,21 @@ it("submits only runtime filters after switching from a restricted gateway", asy
   await waitFor(() =>
     expect(createDrain.mock.calls[0]?.[0]).toEqual({
       name: "Runtime export",
-      stream: "runtime_logs",
-      filters: { severities: [], projectIds: ["other-project"], appIds: [], environmentIds: [] },
-      destination: { http: { url: "https://example.com/ingest", format: "json", headers: [] } },
+      stream: {
+        runtimeLogs: {
+          severities: [],
+          projectIds: ["other-project"],
+          appIds: [],
+          environmentIds: [],
+        },
+      },
+      destination: {
+        http: {
+          url: "https://example.com/ingest",
+          format: "json",
+          headers: [{ name: "Authorization", value: "Bearer token" }],
+        },
+      },
     }),
   );
 });
@@ -153,7 +171,13 @@ it.each(["Gateway HTTP requests", "Runtime logs"])(
     fireEvent.click(screen.getByRole("button", { name: "Create Log Drain" }));
     await waitFor(() =>
       expect(createDrain.mock.calls[0]?.[0]).toMatchObject({
-        filters: { projectIds: [], appIds: [], environmentIds: [] },
+        stream: {
+          [stream === "Runtime logs" ? "runtimeLogs" : "gatewayRequests"]: {
+            projectIds: [],
+            appIds: [],
+            environmentIds: [],
+          },
+        },
       }),
     );
     fireEvent.click(screen.getByRole("radio", { name: "Specific sources" }));
@@ -166,7 +190,13 @@ it.each(["Gateway HTTP requests", "Runtime logs"])(
     fireEvent.click(screen.getByRole("button", { name: "Create Log Drain" }));
     await waitFor(() =>
       expect(createDrain.mock.calls[1]?.[0]).toMatchObject({
-        filters: { projectIds: ["project"], appIds: [], environmentIds: [] },
+        stream: {
+          [stream === "Runtime logs" ? "runtimeLogs" : "gatewayRequests"]: {
+            projectIds: ["project"],
+            appIds: [],
+            environmentIds: [],
+          },
+        },
       }),
     );
   },

@@ -8,6 +8,7 @@ import {
   submittedEventTypes,
   submittedSources,
   submittedStatusClasses,
+  submittedStream,
 } from "./drain-schema";
 
 function messagesFor(schema: typeof createDrainSchema, values: Partial<DrainFormValues>): string[] {
@@ -20,6 +21,65 @@ const httpDrain = {
   name: "Production audit logs",
   url: "https://example.com/ingest",
 } satisfies Partial<DrainFormValues>;
+
+it("creates a nested audit stream without top-level filters", () => {
+  expect(
+    submittedStream({ ...emptyDrainForm, eventTypesMode: "specific", eventTypes: ["key.create"] }),
+  ).toEqual({
+    auditLogs: { eventTypes: ["key.create"] },
+  });
+});
+
+it.each<{ stream: DrainFormValues["stream"]; expected: object }>([
+  {
+    stream: "ratelimits",
+    expected: { ratelimits: { namespaceIds: ["ns"], passed: [true, false] } },
+  },
+  {
+    stream: "key_verifications",
+    expected: { keyVerifications: { outcomes: ["VALID"], keySpaceIds: ["ks"] } },
+  },
+  {
+    stream: "gateway_requests",
+    expected: {
+      gatewayRequests: {
+        statusClasses: [4],
+        projectIds: ["project"],
+        appIds: [],
+        environmentIds: [],
+      },
+    },
+  },
+  {
+    stream: "runtime_logs",
+    expected: {
+      runtimeLogs: {
+        severities: ["warn"],
+        projectIds: [],
+        appIds: ["runtime-app"],
+        environmentIds: [],
+      },
+    },
+  },
+])("creates exactly one nested $stream object", ({ stream, expected }) => {
+  expect(
+    submittedStream({
+      ...emptyDrainForm,
+      stream,
+      namespaceIds: ["ns"],
+      passed: [true, false],
+      outcomes: ["VALID"],
+      keySpaceIds: ["ks"],
+      statusMode: "custom",
+      statusClasses: [4],
+      sourceMode: "some",
+      projectIds: ["project"],
+      severities: ["warn"],
+      runtimeSourceMode: "some",
+      runtimeAppIds: ["runtime-app"],
+    }),
+  ).toEqual(expected);
+});
 
 describe("createDrainSchema", () => {
   it("accepts HEC in both destination forms", () => {

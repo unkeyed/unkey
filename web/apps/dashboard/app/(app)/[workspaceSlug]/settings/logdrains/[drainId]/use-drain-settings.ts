@@ -11,8 +11,9 @@ import {
   type DrainDetail,
   type DrainFormValues,
   drainToFormValues,
-  editDrainSchema,
+  editDrainSchemaFor,
   emptyDrainForm,
+  headersChanged,
   submittedEventTypes,
   submittedSources,
   submittedStatusClasses,
@@ -24,7 +25,7 @@ export function useDrainSettings(drain: DrainDetail, { onDeleted }: { onDeleted:
   const values = useMemo(() => drainToFormValues(drain), [drain]);
 
   const form = useForm<DrainFormValues>({
-    resolver: zodResolver(editDrainSchema),
+    resolver: zodResolver(editDrainSchemaFor(values)),
     defaultValues: emptyDrainForm,
     values,
     mode: "onChange",
@@ -145,31 +146,21 @@ function changedDestination(
   switch (submitted.kind) {
     case "http": {
       const headers = submitted.headers.filter((header) => header.name.trim() !== "");
-      const headersChanged =
-        headers.length !== current.headers.length ||
-        headers.some(
-          (header, index) =>
-            header.name.trim() !== current.headers[index]?.name || header.value !== "",
-        );
+      const changedHeaders = headersChanged(submitted.headers, current.headers);
       const url = submitted.url.trim();
-      if (url === current.url && submitted.format === current.format && !headersChanged) {
+      if (url === current.url && submitted.format === current.format && !changedHeaders) {
         return undefined;
       }
       return {
         http: {
           ...(url !== current.url ? { url } : {}),
           ...(submitted.format !== current.format ? { format: submitted.format } : {}),
-          ...(headersChanged
+          ...(changedHeaders
             ? {
-                headers: headers.map((header) =>
-                  header.stored && header.value === ""
-                    ? { mode: "preserve" as const, name: header.name.trim() }
-                    : {
-                        mode: "set" as const,
-                        name: header.name.trim(),
-                        value: header.value,
-                      },
-                ),
+                headers: headers.map((header) => ({
+                  name: header.name.trim(),
+                  value: header.value,
+                })),
               }
             : {}),
         },

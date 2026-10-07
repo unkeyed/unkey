@@ -16,11 +16,6 @@ const statusClassesSchema = z
   .array(z.union([z.literal(2), z.literal(3), z.literal(4), z.literal(5)]))
   .max(4);
 
-/**
- * A stored header keeps its encrypted value on the server, so an empty value on one of those
- * rows means "leave it alone" rather than "clear it". New rows have no stored value to fall
- * back on and must carry one.
- */
 const headerRowSchema = z.object({
   name: z.string().max(256, "Header name must be 256 characters or less"),
   value: z
@@ -212,6 +207,33 @@ export const createDrainSchema = drainSchema({ tokenRequired: true });
 /** Editing keeps the stored token when the field is left blank. */
 export const editDrainSchema = drainSchema({ tokenRequired: false });
 
+export function headersChanged(submitted: HeaderRow[], current: HeaderRow[]): boolean {
+  const headers = submitted.filter((header) => header.name.trim() !== "");
+  return (
+    headers.length !== current.length ||
+    headers.some(
+      (header, index) => header.name.trim() !== current[index]?.name || header.value !== "",
+    )
+  );
+}
+
+export function editDrainSchemaFor(current: DrainFormValues) {
+  return editDrainSchema.superRefine((values, context) => {
+    if (values.kind !== "http" || !headersChanged(values.headers, current.headers)) {
+      return;
+    }
+    for (const [index, header] of values.headers.entries()) {
+      if (header.name.trim() !== "" && header.value === "") {
+        context.addIssue({
+          code: "custom",
+          path: ["headers", index, "value"],
+          message: "Enter a value for every header you keep when changing headers",
+        });
+      }
+    }
+  });
+}
+
 export function submittedStatusClasses(values: DrainFormValues): number[] {
   switch (values.statusMode) {
     case "all":
@@ -253,6 +275,28 @@ function statusModeFor(statusClasses: number[]): DrainFormValues["statusMode"] {
 
 export function submittedEventTypes(values: DrainFormValues): string[] {
   return values.eventTypesMode === "all" ? [] : values.eventTypes;
+}
+
+export function submittedStream(values: DrainFormValues) {
+  switch (values.stream) {
+    case "audit_logs":
+      return { auditLogs: { eventTypes: submittedEventTypes(values) } };
+    case "key_verifications":
+      return { keyVerifications: { outcomes: values.outcomes, keySpaceIds: values.keySpaceIds } };
+    case "ratelimits":
+      return { ratelimits: { namespaceIds: values.namespaceIds, passed: values.passed } };
+    case "gateway_requests":
+      return {
+        gatewayRequests: {
+          statusClasses: submittedStatusClasses(values),
+          ...submittedSources(values),
+        },
+      };
+    case "runtime_logs":
+      return { runtimeLogs: { severities: values.severities, ...submittedSources(values) } };
+    default:
+      throw new Error(`Unsupported log drain stream: ${values.stream satisfies never}`);
+  }
 }
 
 export const emptyHeaderRow = { name: "", value: "", stored: false };

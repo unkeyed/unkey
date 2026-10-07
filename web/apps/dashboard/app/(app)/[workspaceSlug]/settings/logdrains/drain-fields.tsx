@@ -983,6 +983,7 @@ export function HeaderFields() {
       <legend className="text-sm text-gray-11">Headers</legend>
       <span className="text-xs text-gray-9">
         Optional. Unkey encrypts header values before storing them, and hides them afterwards.
+        Changing headers replaces the entire list. Enter a value for every header you keep.
       </span>
       <div className="mt-1.5 flex flex-col gap-3">
         {fields.map((field, index) => (
@@ -991,8 +992,6 @@ export function HeaderFields() {
               label="Name"
               placeholder="Authorization"
               className="flex-1 [&_input:first-of-type]:h-[36px]"
-              // A stored header is addressed by name on save, so renaming it cannot mean anything.
-              readOnly={field.stored}
               error={errors?.[index]?.name?.message}
               {...register(`headers.${index}.name`)}
             />
@@ -1000,7 +999,7 @@ export function HeaderFields() {
               label="Value"
               type="password"
               autoComplete="off"
-              placeholder={field.stored ? "•••••••••• unchanged" : "Bearer …"}
+              placeholder={field.stored ? "Stored value hidden" : "Bearer …"}
               className="flex-1 [&_input:first-of-type]:h-[36px]"
               error={errors?.[index]?.value?.message}
               {...register(`headers.${index}.value`)}

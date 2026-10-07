@@ -3,7 +3,6 @@
 import { useCreateLogdrainMutation } from "@/lib/logdrains-query";
 import { getErrorMessage } from "@/lib/unkey-client";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { match } from "@unkey/match";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -34,9 +33,7 @@ import {
   type DrainKind,
   createDrainSchema,
   emptyDrainForm,
-  submittedEventTypes,
-  submittedSources,
-  submittedStatusClasses,
+  submittedStream,
 } from "./drain-schema";
 import { DrainStepCard } from "./drain-step-card";
 
@@ -95,7 +92,6 @@ export function CreateLogdrainPanel({
                 .filter((header) => header.name.trim() !== "")
                 .map((header) => ({
                   name: header.name.trim(),
-                  mode: "set" as const,
                   value: header.value,
                 })),
             },
@@ -106,26 +102,7 @@ export function CreateLogdrainPanel({
 
     create.mutate({
       name: values.name.trim(),
-      stream: values.stream,
-      filters: match(values.stream)
-        .with("ratelimits", () => ({
-          namespaceIds: values.namespaceIds,
-          passed: values.passed,
-        }))
-        .with("runtime_logs", () => ({
-          severities: values.severities,
-          ...submittedSources(values),
-        }))
-        .with("audit_logs", () => ({ eventTypes: submittedEventTypes(values) }))
-        .with("gateway_requests", () => ({
-          statusClasses: submittedStatusClasses(values),
-          ...submittedSources(values),
-        }))
-        .with("key_verifications", () => ({
-          outcomes: values.outcomes,
-          keySpaceIds: values.keySpaceIds,
-        }))
-        .exhaustive(),
+      stream: submittedStream(values),
       destination,
     });
   });
