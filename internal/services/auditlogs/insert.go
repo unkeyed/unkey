@@ -12,9 +12,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/uid"
 )
 
-// DefaultBucket is the bucket used when an AuditLog does not set one.
-const DefaultBucket = auditlog.BucketUnkeyMutations
-
 // Insert implements AuditLogService.Insert, persisting audit logs to the
 // `clickhouse_outbox` MySQL table within a transactional context. The
 // AuditLogExportService worker drains the outbox and ships each row to
@@ -100,16 +97,11 @@ func PrepareOutboxRows(ctx context.Context, logs []auditlog.AuditLog) ([]db.Inse
 			correlationID = sharedCorrelationID
 		}
 
-		bucket, err := auditlog.ResolveBucket(l.Bucket)
-		if err != nil {
-			return nil, err
-		}
-
 		envelope := auditlog.Event{
 			EventID:     auditLogID,
 			Time:        now,
 			WorkspaceID: l.WorkspaceID,
-			Bucket:      bucket,
+			Bucket:      auditlog.BucketUnkeyMutations,
 			Source:      auditlog.EventSourcePlatform,
 			Event:       string(l.Event),
 			Description: l.Display,

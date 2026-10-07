@@ -19,11 +19,6 @@ type AuditLog struct {
 	RemoteIP  string
 	UserAgent string
 
-	// Bucket selects the stream this event is written to. Leave empty for
-	// BucketUnkeyMutations. Back office writers set BucketBackoffice so
-	// dashboard and log drain readers never return the event.
-	Bucket string
-
 	// CorrelationID groups this event with other audit logs from the same
 	// logical user action. Leave empty to let the Insert service decide:
 	// it auto-mints one when the batch contains >1 events, or pulls from

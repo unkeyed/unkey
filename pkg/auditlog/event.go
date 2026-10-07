@@ -83,10 +83,10 @@ func IsKnownBucket(bucket string) bool {
 	return slices.Contains(KnownBuckets, bucket)
 }
 
-// ResolveBucket returns the bucket a writer must stamp on an event. An
-// empty bucket resolves to BucketUnkeyMutations. Any other value outside
-// KnownBuckets is a programmer error and returns an assertion error, so a
-// typo can never create a bucket that no reader filters on.
+// ResolveBucket returns the bucket to store for an event. An empty bucket
+// resolves to BucketUnkeyMutations. Any other value outside KnownBuckets is
+// a programmer error and returns an assertion error, so a typo can never
+// create a bucket that no reader filters on.
 func ResolveBucket(bucket string) (string, error) {
 	if bucket == "" {
 		return BucketUnkeyMutations, nil
