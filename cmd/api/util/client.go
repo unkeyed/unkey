@@ -1,6 +1,7 @@
 package util
 
 import (
+	"errors"
 	"fmt"
 
 	unkey "github.com/unkeyed/sdks/api/go/v3"
@@ -9,16 +10,24 @@ import (
 
 // CreateClient builds an SDK client using the root key from (in priority order):
 // 1. --root-key flag or UNKEY_ROOT_KEY env var (handled by the flag's EnvVar option)
-// 2. Config file at ~/.unkey/config.toml (from unkey auth login)
+// 2. The system keychain, when --config is the default ~/.unkey/config.toml
+// 3. The config file
 func CreateClient(cmd *cli.Command) (*unkey.Unkey, error) {
+	return createClient(cmd, cli.DefaultRootKeyStore())
+}
+
+func createClient(cmd *cli.Command, keys cli.RootKeyStore) (*unkey.Unkey, error) {
 	key := cmd.String("root-key")
 
 	if key == "" {
-		cfg, err := cli.LoadUserConfig(cmd.String("config"))
+		loaded, err := cli.LoadRootKey(keys, cmd.String("config"))
 		if err != nil {
-			return nil, fmt.Errorf("no root key provided\n\nProvide one via:\n  --root-key flag\n  UNKEY_ROOT_KEY environment variable\n  unkey auth login")
+			if errors.Is(err, cli.ErrRootKeyNotFound) {
+				return nil, fmt.Errorf("no root key provided\n\nProvide one via:\n  --root-key flag\n  UNKEY_ROOT_KEY environment variable\n  unkey login")
+			}
+			return nil, fmt.Errorf("failed to load root key: %w", err)
 		}
-		key = cfg.RootKey
+		key = loaded
 	}
 
 	opts := []unkey.SDKOption{
