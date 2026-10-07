@@ -18,9 +18,9 @@ typed, verified, and routed through `mise`.
 
 - Tooling and task runner: `.mise/config.toml`, `.mise/mise.lock`, and
   `.mise/tasks/*`.
-- Engineering docs: `docs/engineering/contributing/`. These are normative
+- Engineering standards: `contributing/`. These are normative
   standards for writing code, not only reference material for the docs site.
-- Product docs: `docs/product/`.
+- Product docs: `docs/`.
 - Go tooling: `go.mod`, `go.sum`, and `.golangci.yaml`. Rask is pinned as a
   tool in `.mise/config.toml`; it has no config file of its own.
 - Web workspace: `web/package.json`, `web/pnpm-workspace.yaml`, and
@@ -38,7 +38,7 @@ typed, verified, and routed through `mise`.
   and tooling. Shared code lives in `web/internal/`; there is no
   `web/packages/`.
 - `docs/`: Mintlify product and engineering documentation.
-  `docs/engineering/contributing/` holds the coding standards themselves.
+- `contributing/`: Engineering workflow and coding standards.
 - `dev/`: local development, Tilt, Kubernetes, and formatting config.
 
 ## Tooling rules
@@ -127,9 +127,9 @@ mise exec -- go test -fuzz=FuzzInRange -fuzztime=30s ./pkg/assert/
 
 ## Documentation conventions
 
-- Follow `docs/engineering/contributing/quality/documentation.mdx` for symbol,
+- Follow `contributing/quality/documentation.md` for symbol,
   package, and site documentation.
-- Product docs live in `docs/product/` and need `docs/product/docs.json` nav
+- Product docs live in `docs/` and need `docs/docs.json` nav
   entries when adding pages.
 - Engineering docs live in `docs/engineering/` and need
   `docs/engineering/docs.json` nav entries when adding pages.
@@ -171,11 +171,11 @@ Unkey runs on PlanetScale Vitess. Every production MySQL query should carry SQLC
 Read the page that covers the area before writing code in it. These pages define
 how Unkey code is written; this file only summarizes them.
 
-- Local development: `docs/engineering/contributing/local/development.mdx`.
-- Build workflow: `docs/engineering/contributing/tooling/builds.mdx`.
-- Code quality: `docs/engineering/contributing/quality/code-quality.mdx`.
-- Testing: `docs/engineering/contributing/quality/testing/index.mdx`.
-- Documentation: `docs/engineering/contributing/quality/documentation.mdx`.
+- Local development: `contributing/local/development.md`.
+- Build workflow: `contributing/tooling/builds.md`.
+- Code quality: `contributing/quality/code-quality.md`.
+- Testing: `contributing/quality/testing/index.md`.
+- Documentation: `contributing/quality/documentation.md`.
 
 <!-- polylane:start -->
 ## Investigating production with Polylane

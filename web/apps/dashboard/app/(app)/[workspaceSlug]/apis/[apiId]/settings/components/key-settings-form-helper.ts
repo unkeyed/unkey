@@ -118,20 +118,3 @@ export const validateFormChange = <T>(
   }
   return true;
 };
-
-/**
- * Standard button props for API setting forms
- */
-export const getStandardButtonProps = (
-  isValid: boolean,
-  isSubmitting: boolean,
-  isDirty: boolean,
-) => ({
-  size: "lg" as const,
-  variant: "primary" as const,
-  className: "h-full px-3.5 rounded-lg",
-  disabled: !isValid || isSubmitting || !isDirty,
-  type: "submit" as const,
-  loading: isSubmitting,
-  children: "Save",
-});

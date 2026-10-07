@@ -1,7 +1,6 @@
 "use client";
 
-import { IconMagnifierOutline18, IconXmarkOutline18 } from "@unkey/icons";
-import { Button, InputGroup, InputGroupAddon, InputGroupInput } from "@unkey/ui";
+import { SearchInput } from "@unkey/ui";
 import { parseAsString, useQueryState } from "nuqs";
 import { useEffect, useRef, useState } from "react";
 
@@ -88,38 +87,13 @@ export function ResourceSearchInput({
 
   return (
     <div className="flex h-8 w-full items-center md:w-80">
-      <InputGroup className="h-8">
-        <InputGroupAddon>
-          <IconMagnifierOutline18 className="size-4 text-gray-9" />
-        </InputGroupAddon>
-        <InputGroupInput
-          aria-label={label}
-          type="text"
-          value={text}
-          maxLength={MAX_LENGTH}
-          placeholder={placeholder}
-          className="h-8 text-sm font-medium"
-          onChange={(event) => type(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key === "Escape") {
-              clear();
-            }
-          }}
-        />
-        {text ? (
-          <InputGroupAddon align="inline-end">
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              aria-label="Clear search"
-              onClick={clear}
-            >
-              <IconXmarkOutline18 className="size-4" />
-            </Button>
-          </InputGroupAddon>
-        ) : null}
-      </InputGroup>
+      <SearchInput
+        value={text}
+        onValueChange={(value) => (value === "" ? clear() : type(value))}
+        label={label}
+        placeholder={placeholder}
+        maxLength={MAX_LENGTH}
+      />
     </div>
   );
 }

@@ -15,7 +15,8 @@ var deploymentPattern = compileResourcePattern(deploymentPathFormat)
 //	    └── apps/{app_id}
 //	        └── environments/{environment_id}
 //	            └── deployments/{deployment_id}
-//	                └── logs
+//	                ├── logs
+//	                └── buildLogs
 type Deployment struct {
 	WorkspaceID   string
 	ProjectID     string
@@ -74,6 +75,22 @@ func ParseDeployment(urn string) (Deployment, error) {
 //	└── logs
 func (d Deployment) Logs() DeploymentLogs {
 	return DeploymentLogs{
+		WorkspaceID:   d.WorkspaceID,
+		ProjectID:     d.ProjectID,
+		AppID:         d.AppID,
+		EnvironmentID: d.EnvironmentID,
+		DeploymentID:  d.DeploymentID,
+	}
+}
+
+// BuildLogs returns the deployment build log resource path
+//
+// Subresource:
+//
+//	deployments/{deployment_id}
+//	└── buildLogs
+func (d Deployment) BuildLogs() DeploymentBuildLogs {
+	return DeploymentBuildLogs{
 		WorkspaceID:   d.WorkspaceID,
 		ProjectID:     d.ProjectID,
 		AppID:         d.AppID,

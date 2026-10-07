@@ -191,6 +191,7 @@ describe("catalogue grammar", () => {
       "projects/*/apps/*/environments/*/domains/*",
       "projects/*/apps/*/environments/*/deployments/*",
       "projects/*/apps/*/environments/*/deployments/*/logs",
+      "projects/*/apps/*/environments/*/deployments/*/buildLogs",
       "projects/*/apps/*/environments/*/gateway/logs",
       "projects/*/apps/*/environments/*/gateway/policies/*",
       "projects/*/keyspaces/*",
@@ -424,6 +425,7 @@ describe("buildUrns on the projects scope", () => {
       "unkey:v1:ws_123:projects/proj_1/apps/*/environments/*/domains/*#read",
       "unkey:v1:ws_123:projects/proj_1/apps/*/environments/*/deployments/*#read",
       "unkey:v1:ws_123:projects/proj_1/apps/*/environments/*/deployments/*/logs#read",
+      "unkey:v1:ws_123:projects/proj_1/apps/*/environments/*/deployments/*/buildLogs#read",
       "unkey:v1:ws_123:projects/proj_1/apps/*/environments/*/gateway/logs#read",
       "unkey:v1:ws_123:projects/proj_1/apps/*/environments/*/gateway/policies/*#read",
       "unkey:v1:ws_123:projects/proj_1/keyspaces/*#read",
@@ -480,6 +482,7 @@ describe("buildUrns on the apps scope", () => {
       `unkey:v1:ws_123:${APP}/environments/*/domains/*#read`,
       `unkey:v1:ws_123:${APP}/environments/*/deployments/*#read`,
       `unkey:v1:ws_123:${APP}/environments/*/deployments/*/logs#read`,
+      `unkey:v1:ws_123:${APP}/environments/*/deployments/*/buildLogs#read`,
       `unkey:v1:ws_123:${APP}/environments/*/gateway/logs#read`,
       `unkey:v1:ws_123:${APP}/environments/*/gateway/policies/*#read`,
     ]);

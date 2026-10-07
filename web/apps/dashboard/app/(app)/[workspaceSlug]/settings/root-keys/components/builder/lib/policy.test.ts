@@ -217,6 +217,7 @@ describe("the eight resource scopes", () => {
       "domain",
       "deployment",
       "deployment_log",
+      "deployment_build_log",
       "gateway_log",
       "gateway_policy",
       "keyspace",
@@ -238,6 +239,7 @@ describe("the eight resource scopes", () => {
       "domain",
       "deployment",
       "deployment_log",
+      "deployment_build_log",
       "gateway_log",
       "gateway_policy",
     ]);
@@ -247,6 +249,7 @@ describe("the eight resource scopes", () => {
       "domain",
       "deployment",
       "deployment_log",
+      "deployment_build_log",
       "gateway_log",
       "gateway_policy",
     ]);
