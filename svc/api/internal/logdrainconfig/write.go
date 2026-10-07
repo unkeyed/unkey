@@ -153,40 +153,20 @@ func SetDestination(ctx context.Context, client vault.VaultServiceClient, worksp
 				return invalid("HTTP header names must be valid and unique, ignoring case.")
 			}
 			seen[name] = true
-			switch header.Mode {
-			case openapi.LogdrainHeaderSet:
-				if header.Value == nil || !httpguts.ValidHeaderFieldValue(*header.Value) {
-					return invalid("A valid HTTP header value is required for set.")
-				}
-				encrypted, err := client.Encrypt(ctx, &vaultv1.EncryptRequest{
-					Keyring: workspaceID,
-					Data:    *header.Value,
-				})
-				if err != nil {
-					return err
-				}
-				headers = append(headers, &logdrainv1.HttpHeader{
-					Name:           header.Name,
-					EncryptedValue: encrypted.GetEncrypted(),
-				})
-			case openapi.LogdrainHeaderPreserve:
-				if header.Value != nil {
-					return invalid("Preserved headers must omit value.")
-				}
-				var found *logdrainv1.HttpHeader
-				for _, existing := range current.Headers {
-					if strings.EqualFold(existing.Name, header.Name) {
-						found = existing
-						break
-					}
-				}
-				if found == nil {
-					return invalid("Cannot preserve an unknown HTTP header.")
-				}
-				headers = append(headers, found)
-			default:
-				return invalid("Unsupported HTTP header mode.")
+			if !httpguts.ValidHeaderFieldValue(header.Value) {
+				return invalid("A valid HTTP header value is required.")
 			}
+			encrypted, err := client.Encrypt(ctx, &vaultv1.EncryptRequest{
+				Keyring: workspaceID,
+				Data:    header.Value,
+			})
+			if err != nil {
+				return err
+			}
+			headers = append(headers, &logdrainv1.HttpHeader{
+				Name:           header.Name,
+				EncryptedValue: encrypted.GetEncrypted(),
+			})
 		}
 		current.Headers = headers
 	}

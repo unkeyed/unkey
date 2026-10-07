@@ -15,7 +15,7 @@ import (
 
 func TestCreateRequiresAuthenticationAndPermission(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route := &logdrains.Create{
+	route := &logdrains.Handler{
 		DB:          h.DB,
 		Vault:       h.Vault,
 		Auditlogs:   h.Auditlogs,
@@ -49,7 +49,7 @@ func TestCreateRequiresAuthenticationAndPermission(t *testing.T) {
 			if tc.authorization != "" {
 				headers.Set("Authorization", tc.authorization)
 			}
-			result := testutil.CallRoute[json.RawMessage, openapi.UnauthorizedErrorResponse](h, route, headers, json.RawMessage(`{"name":"Logs","stream":"audit_logs","destination":{"http":{"url":"https://logs.example.com"}}}`))
+			result := testutil.CallRoute[json.RawMessage, openapi.UnauthorizedErrorResponse](h, route, headers, json.RawMessage(`{"name":"Logs","stream":{"auditLogs":{}},"destination":{"http":{"url":"https://logs.example.com"}}}`))
 			require.Equal(t, tc.status, result.Status, "%s", result.RawBody)
 			require.Equal(t, tc.status, result.Body.Error.Status)
 			require.NotEmpty(t, result.Body.Error.Type)
