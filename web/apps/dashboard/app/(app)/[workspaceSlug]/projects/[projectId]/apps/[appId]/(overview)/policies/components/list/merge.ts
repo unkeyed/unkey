@@ -8,6 +8,9 @@ import {
 
 export type Env = EnvironmentKind;
 
+/** `id` is empty while the environment is unknown. */
+export type PolicyEnvs = Record<Env, { id: string; slug: string }>;
+
 /**
  * One row of the merged list. It holds up to two environment copies of one
  * policy.

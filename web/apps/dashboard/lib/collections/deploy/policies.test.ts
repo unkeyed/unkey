@@ -163,3 +163,17 @@ describe("fromWirePolicy remoteIp match", () => {
     expect(() => fromWirePolicy(wire({ in: [] }))).toThrow();
   });
 });
+
+describe("fromWirePolicy variant", () => {
+  it("names the policy type after the variant field it carries", () => {
+    expect(fromWirePolicy({ id: "p", name: "Spec", enabled: true, openapi: {} }).type).toBe(
+      "openapi",
+    );
+  });
+
+  it("rejects a policy with no known variant field", () => {
+    expect(() => fromWirePolicy({ id: "p", name: "x", enabled: true, waf: {} })).toThrow(
+      "unknown gateway policy variant",
+    );
+  });
+});

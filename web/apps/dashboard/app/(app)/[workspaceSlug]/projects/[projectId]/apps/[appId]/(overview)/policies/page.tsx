@@ -1,9 +1,10 @@
 "use client";
 import { policyMatchKey } from "@/lib/collections/deploy/policies.schema";
-import { IconPlusOutline18, IconShieldKeyOutline18 } from "@unkey/icons";
+import { IconCircleInfoOutline18, IconPlusOutline18, IconShieldGlobeOutline18 } from "@unkey/icons";
 import {
   Button,
   EmptyState,
+  EmptyStateActions,
   EmptyStateDescription,
   EmptyStateHeader,
   EmptyStateIcon,
@@ -13,14 +14,16 @@ import {
   PageHeader,
   PageHeaderActions,
   PageHeaderContent,
-  PageHeaderDescription,
   PageHeaderTitle,
+  ResourceListContent,
 } from "@unkey/ui";
 import { useAppId, useProjectData } from "../data-provider";
-import { PolicyPanel } from "./components/add-panel";
+import { HowPoliciesWorkPanel } from "./components/how-policies-work";
 import { PoliciesList } from "./components/list";
 import { PoliciesError } from "./components/list/error";
 import { PoliciesListSkeleton } from "./components/list/skeleton";
+import { AddPolicyPanel } from "./components/policy-form/add-policy-panel";
+import { EditPolicyPanel } from "./components/policy-form/edit-policy-panel";
 import { usePoliciesData } from "./hooks/use-policies-data";
 import { usePolicyActions } from "./hooks/use-policy-actions";
 import { usePolicyPanels } from "./hooks/use-policy-panels";
@@ -28,64 +31,27 @@ import { usePolicyPanels } from "./hooks/use-policy-panels";
 export default function PoliciesPage() {
   const { projectId } = useProjectData();
   const appId = useAppId();
-  const {
-    productionId,
-    previewId,
-    productionSlug,
-    previewSlug,
-    merged,
-    rowsByEnv,
-    isLoading,
-    isError,
-  } = usePoliciesData();
-  const actions = usePolicyActions({
-    productionId,
-    previewId,
-    projectId,
-    appId,
-    merged,
-    rowsByEnv,
-  });
+  const data = usePoliciesData();
+  const { envs, merged, isLoading, isError, canWrite } = data;
+  const actions = usePolicyActions({ ...data, projectId, appId });
   const panels = usePolicyPanels();
 
-  const editingRow = panels.editing
-    ? merged.find(
-        (m) => m.production?.id === panels.editing?.id || m.preview?.id === panels.editing?.id,
-      )
-    : undefined;
-  const editingEnabled = {
-    a: editingRow?.production?.enabled ?? false,
-    b: editingRow?.preview?.enabled ?? false,
-  };
+  const editingKey = panels.editing?.key;
+  const editingRow = merged.find((m) => m.key === editingKey);
 
   const existingMatchKeys = merged.map((m) => policyMatchKey(m.type, m.name));
-
-  const editingInitialEnvId =
-    editingEnabled.a && editingEnabled.b
-      ? "__all__"
-      : editingEnabled.a
-        ? productionSlug
-        : editingEnabled.b
-          ? previewSlug
-          : "__all__";
-
-  const editingPolicy =
-    editingInitialEnvId === previewSlug
-      ? (editingRow?.preview ?? panels.editing)
-      : (editingRow?.production ?? panels.editing);
 
   return (
     <PageContainer>
       <PageHeader>
         <PageHeaderContent>
           <PageHeaderTitle>Policies</PageHeaderTitle>
-          <PageHeaderDescription>
-            Middleware policy chains that protect your API. Policies are evaluated in order, drag to
-            reorder.
-          </PageHeaderDescription>
         </PageHeaderContent>
         <PageHeaderActions>
-          <Button size="md" onClick={panels.openAdd} variant="primary">
+          <Button size="md" variant="outline" onClick={panels.openGuide}>
+            How policies work
+          </Button>
+          <Button size="md" variant="primary" disabled={!canWrite} onClick={panels.openAdd}>
             <IconPlusOutline18 />
             Add policy
           </Button>
@@ -99,54 +65,58 @@ export default function PoliciesPage() {
         ) : merged.length === 0 ? (
           <EmptyState>
             <EmptyStateIcon>
-              <IconShieldKeyOutline18 />
+              <IconShieldGlobeOutline18 />
             </EmptyStateIcon>
             <EmptyStateHeader>
-              <EmptyStateTitle>No policies</EmptyStateTitle>
+              <EmptyStateTitle>No policies yet</EmptyStateTitle>
               <EmptyStateDescription>
-                Add policies to protect your API with authentication, rate limiting, and more.
-                Policies are evaluated sequentially on each incoming request.
+                Policies check requests before they reach your app.
               </EmptyStateDescription>
             </EmptyStateHeader>
+            <EmptyStateActions>
+              <Button variant="primary" size="md" onClick={panels.openAdd}>
+                <IconPlusOutline18 />
+                Add policy
+              </Button>
+            </EmptyStateActions>
           </EmptyState>
         ) : (
-          <PoliciesList
-            productionSlug={productionSlug}
-            previewSlug={previewSlug}
-            merged={merged}
-            onToggleEnv={actions.toggleEnv}
-            onAddToEnv={actions.addToEnv}
-            onReorder={actions.reorder}
-            onDelete={actions.delete}
-            onEdit={panels.openEdit}
-          />
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center gap-2 rounded-lg bg-grayA-2 px-3 py-2 text-sm text-gray-11">
+              <IconCircleInfoOutline18 className="size-3.5 shrink-0" />
+              Policies run top to bottom. Drag a row to reorder.
+            </div>
+            <ResourceListContent>
+              <PoliciesList
+                envs={envs}
+                merged={merged}
+                onReorder={actions.reorder}
+                onDelete={actions.delete}
+                onEdit={panels.openEdit}
+              />
+            </ResourceListContent>
+          </div>
         )}
-        <PolicyPanel
-          mode="add"
-          productionSlug={productionSlug}
-          previewSlug={previewSlug}
+        <HowPoliciesWorkPanel isOpen={panels.isGuideOpen} onClose={panels.closeGuide} />
+        <AddPolicyPanel
+          key={panels.addSession}
+          envs={envs}
           isOpen={panels.isAddPanelOpen}
           onClose={panels.closeAdd}
           existingMatchKeys={existingMatchKeys}
           onSave={actions.save}
         />
-        {editingPolicy !== null && (
-          <PolicyPanel
-            key={editingPolicy.id}
-            mode="edit"
-            productionSlug={productionSlug}
-            previewSlug={previewSlug}
-            isOpen={panels.isEditPanelOpen}
-            onClose={panels.closeEdit}
-            existingMatchKeys={existingMatchKeys}
-            initialPolicy={editingPolicy}
-            initialEnvironmentId={editingInitialEnvId}
-            onSave={(prodPolicy, previewPolicy) => {
-              actions.save(prodPolicy, previewPolicy, editingRow);
-              panels.closeEdit();
-            }}
-          />
-        )}
+        <EditPolicyPanel
+          editing={panels.editing}
+          row={editingRow}
+          envs={envs}
+          isOpen={panels.isEditPanelOpen}
+          onClose={panels.closeEdit}
+          existingMatchKeys={existingMatchKeys}
+          onUpdate={actions.update}
+          onToggleEnv={actions.toggleEnv}
+          onAddToEnv={actions.addToEnv}
+        />
       </PageBody>
     </PageContainer>
   );

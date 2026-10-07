@@ -1,11 +1,16 @@
 "use client";
 
 import { getErrorToast, getUnkeyClient } from "@/lib/unkey-client";
-import { parseLoadSubsetOptions, queryCollectionOptions } from "@tanstack/query-db-collection";
+import {
+  type QueryCollectionUtils,
+  parseLoadSubsetOptions,
+  queryCollectionOptions,
+} from "@tanstack/query-db-collection";
 import { createCollection } from "@tanstack/react-db";
 import { toast } from "@unkey/ui";
 import { queryClient } from "../client";
-import { trackSave } from "./environment-settings";
+import type { LoadSource } from "../use-collection-load";
+import { trackSave } from "./pending-redeploy";
 import { type Policy, fromWirePolicy } from "./policies.schema";
 import { extractStringFilter } from "./utils";
 
@@ -20,6 +25,20 @@ export type PolicyRow = Policy & {
 export const rowKey = (environmentId: string, policyId: string) => `${environmentId}::${policyId}`;
 
 /**
+ * Each environment is its own subset, and any subset that loads clears the
+ * collection's isError, so a failure is read from the environment's query.
+ * Clearing the collection's error refetches every subset.
+ */
+export function policyListLoad(environmentId: string): LoadSource {
+  return {
+    get isError() {
+      return queryClient.getQueryState(["policies", environmentId])?.status === "error";
+    },
+    clearError: () => policies.utils.clearError(),
+  };
+}
+
+/**
  * Gateway policies collection. It holds one row for each (environment, policy).
  *
  * IMPORTANT: All queries MUST filter by projectId, appId, and environmentId.
@@ -29,7 +48,11 @@ export const rowKey = (environmentId: string, policyId: string) => `${environmen
  * Only edits run through it. Insert, delete and reorder go through
  * `replacePolicyLists` instead.
  */
-export const policies = createCollection<PolicyRow, string>(
+export const policies = createCollection<
+  PolicyRow,
+  string,
+  QueryCollectionUtils<PolicyRow, string>
+>(
   queryCollectionOptions({
     queryClient,
     queryKey: (opts) => {

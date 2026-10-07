@@ -7,8 +7,7 @@
  * attaches `type` on read. `type` and the server-owned `id` are dropped
  * again by the SDK's own outbound schema, which ignores unknown keys.
  *
- * Add a policy type by extending the union below and wiring it through
- * `fromWirePolicy`.
+ * Add a policy type by extending the union below and `POLICY_VARIANTS`.
  */
 import { z } from "zod";
 
@@ -61,13 +60,21 @@ export type StringMatch = z.infer<typeof stringMatchSchema>;
 
 const remoteIpListSchema = z.array(z.string().min(1)).min(1).max(POLICY_LIMITS.maxRemoteIpEntries);
 
-const httpMethod = z.enum(["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"]);
+export const httpMethodSchema = z.enum([
+  "GET",
+  "POST",
+  "PUT",
+  "PATCH",
+  "DELETE",
+  "HEAD",
+  "OPTIONS",
+]);
 
 export const matchExprSchema = z.union([
   z.object({ path: z.object({ path: stringMatchSchema }).strict() }).strict(),
   z
     .object({
-      method: z.object({ methods: z.array(httpMethod).min(1) }).strict(),
+      method: z.object({ methods: z.array(httpMethodSchema).min(1) }).strict(),
     })
     .strict(),
   z
@@ -304,26 +311,22 @@ export function policyMatchKey(type: PolicyType, name: string): string {
   return `${type}:${normalizePolicyName(name)}`;
 }
 
+const POLICY_VARIANTS: { [T in PolicyType]: T } = {
+  keyauth: "keyauth",
+  ratelimit: "ratelimit",
+  firewall: "firewall",
+  openapi: "openapi",
+  logging: "logging",
+};
+
 /** Attaches the `type` discriminator the API leaves implicit. */
 export function fromWirePolicy(raw: unknown): Policy {
   if (typeof raw !== "object" || raw === null) {
     throw new Error("policy must be an object");
   }
-  const obj: Record<string, unknown> = { ...(raw as Record<string, unknown>) };
-  if ("keyauth" in obj) {
-    return policySchema.parse({ ...obj, type: "keyauth" });
+  const type = Object.values(POLICY_VARIANTS).find((variant) => variant in raw);
+  if (!type) {
+    throw new Error("unknown gateway policy variant");
   }
-  if ("ratelimit" in obj) {
-    return policySchema.parse({ ...obj, type: "ratelimit" });
-  }
-  if ("firewall" in obj) {
-    return policySchema.parse({ ...obj, type: "firewall" });
-  }
-  if ("openapi" in obj) {
-    return policySchema.parse({ ...obj, type: "openapi" });
-  }
-  if ("logging" in obj) {
-    return policySchema.parse({ ...obj, type: "logging" });
-  }
-  throw new Error("unknown gateway policy variant");
+  return policySchema.parse({ ...raw, type });
 }
