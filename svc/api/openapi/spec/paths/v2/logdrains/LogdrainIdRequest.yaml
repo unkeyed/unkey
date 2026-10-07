@@ -1,5 +1,6 @@
 type: object
-required: [logdrainId]
+required:
+  - logdrainId
 additionalProperties: false
 properties:
   logdrainId:

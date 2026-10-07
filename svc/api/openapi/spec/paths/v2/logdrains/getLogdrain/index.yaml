@@ -1,5 +1,6 @@
 post:
-  tags: [logdrains]
+  tags:
+    - logdrains
   summary: Get log drain
   description: |
     Read a log drain in your workspace. Credential values are never returned.

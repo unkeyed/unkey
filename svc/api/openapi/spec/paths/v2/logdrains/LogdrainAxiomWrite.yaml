@@ -2,7 +2,9 @@ type: object
 additionalProperties: false
 minProperties: 1
 properties:
-  dataset: { type: string, minLength: 1 }
+  dataset:
+    type: string
+    minLength: 1
   token:
     type: string
     minLength: 1
