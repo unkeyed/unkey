@@ -46,7 +46,10 @@ func (h *Create) Handle(ctx context.Context, s *zen.Session) error {
 	if err != nil {
 		return err
 	}
-	if err := principal.Authorize(rbac.U(urn.V1{WorkspaceID: principal.AuthorizedWorkspaceID, Resource: "logdrains/*"}, permissions.Write)); err != nil {
+	if err := principal.Authorize(rbac.U(urn.V1{
+		WorkspaceID: principal.AuthorizedWorkspaceID,
+		Resource:    "logdrains/*",
+	}, permissions.Write)); err != nil {
 		return err
 	}
 	limits, hit, err := h.LimitsCache.SWR(ctx, principal.AuthorizedWorkspaceID, func(ctx context.Context) (keysdb.Limit, error) {
@@ -85,15 +88,38 @@ func (h *Create) Handle(ctx context.Context, s *zen.Session) error {
 		if count >= int64(limits.LogdrainsMax) {
 			return fault.New("log drain limit reached", fault.Code(codes.Auth.Authorization.Forbidden.URN()), fault.Public("Contact support to increase this workspace's log drain allowance."))
 		}
-		if err := db.Query.InsertLogdrain(ctx, tx, db.InsertLogdrainParams{ID: id, WorkspaceID: principal.AuthorizedWorkspaceID, Name: name, Stream: db.LogdrainsStream(req.Stream), Config: encoded, CreatedAt: now, UpdatedAt: sql.NullInt64{Int64: now, Valid: true}}); err != nil {
+		if err := db.Query.InsertLogdrain(ctx, tx, db.InsertLogdrainParams{
+			ID:          id,
+			WorkspaceID: principal.AuthorizedWorkspaceID,
+			Name:        name,
+			Stream:      db.LogdrainsStream(req.Stream),
+			Config:      encoded,
+			CreatedAt:   now,
+			UpdatedAt: sql.NullInt64{
+				Int64: now,
+				Valid: true,
+			},
+		}); err != nil {
 			return err
 		}
 		return h.Auditlogs.Insert(ctx, tx, []auditlog.AuditLog{{
-			WorkspaceID: principal.AuthorizedWorkspaceID, Event: "logdrain.create", Display: "Created log drain " + id,
-			ActorID: principal.Subject.ID, ActorType: auditlog.AuditLogActor(principal.Subject.Type), ActorName: principal.Subject.Name,
-			ActorMeta: map[string]any{}, CorrelationID: "",
-			RemoteIP: s.Location(), UserAgent: s.UserAgent(),
-			Resources: []auditlog.AuditLogResource{{ID: id, Type: "logdrain", Name: name, DisplayName: "", Meta: map[string]any{}}},
+			WorkspaceID:   principal.AuthorizedWorkspaceID,
+			Event:         "logdrain.create",
+			Display:       "Created log drain " + id,
+			ActorID:       principal.Subject.ID,
+			ActorType:     auditlog.AuditLogActor(principal.Subject.Type),
+			ActorName:     principal.Subject.Name,
+			ActorMeta:     map[string]any{},
+			CorrelationID: "",
+			RemoteIP:      s.Location(),
+			UserAgent:     s.UserAgent(),
+			Resources: []auditlog.AuditLogResource{{
+				ID:          id,
+				Type:        "logdrain",
+				Name:        name,
+				DisplayName: "",
+				Meta:        map[string]any{},
+			}},
 		}})
 	})
 	if err != nil {

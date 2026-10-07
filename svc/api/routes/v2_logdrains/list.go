@@ -26,15 +26,29 @@ func (h *List) Handle(ctx context.Context, s *zen.Session) error {
 	if err != nil {
 		return err
 	}
-	if err := principal.Authorize(rbac.U(urn.V1{WorkspaceID: principal.AuthorizedWorkspaceID, Resource: "logdrains/*"}, permissions.Read)); err != nil {
+	if err := principal.Authorize(rbac.U(urn.V1{
+		WorkspaceID: principal.AuthorizedWorkspaceID,
+		Resource:    "logdrains/*",
+	}, permissions.Read)); err != nil {
 		return err
 	}
 	limit := ptr.SafeDeref(req.Limit, 100)
-	rows, err := db.Query.ListLogdrains(ctx, h.DB.RO(), db.ListLogdrainsParams{WorkspaceID: principal.AuthorizedWorkspaceID, AfterID: ptr.SafeDeref(req.Cursor), Limit: int32(limit + 1)})
+	rows, err := db.Query.ListLogdrains(ctx, h.DB.RO(), db.ListLogdrainsParams{
+		WorkspaceID: principal.AuthorizedWorkspaceID,
+		AfterID:     ptr.SafeDeref(req.Cursor),
+		Limit:       int32(limit + 1),
+	})
 	if err != nil {
 		return err
 	}
-	response := openapi.ListLogdrainsResponse{Meta: openapi.Meta{RequestId: s.RequestID()}, Data: []openapi.Logdrain{}, Pagination: openapi.Pagination{Cursor: nil, HasMore: false}}
+	response := openapi.ListLogdrainsResponse{
+		Meta: openapi.Meta{RequestId: s.RequestID()},
+		Data: []openapi.Logdrain{},
+		Pagination: openapi.Pagination{
+			Cursor:  nil,
+			HasMore: false,
+		},
+	}
 	response.Pagination.HasMore = len(rows) > limit
 	if response.Pagination.HasMore {
 		rows = rows[:limit]

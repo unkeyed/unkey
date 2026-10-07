@@ -21,27 +21,52 @@ func TestCreateHTTPFormatSupportsDelivery(t *testing.T) {
 		format *openapi.LogdrainHttpWriteFormat
 		want   logdrainv1.HttpBodyFormat
 	}{
-		{name: "default", want: logdrainv1.HttpBodyFormat_HTTP_BODY_FORMAT_JSON},
-		{name: "hec", format: new(openapi.LogdrainHttpWriteFormat("hec")), want: logdrainv1.HttpBodyFormat_HTTP_BODY_FORMAT_HEC},
+		{
+			name: "default",
+			want: logdrainv1.HttpBodyFormat_HTTP_BODY_FORMAT_JSON,
+		},
+		{
+			name:   "hec",
+			format: new(openapi.LogdrainHttpWriteFormat("hec")),
+			want:   logdrainv1.HttpBodyFormat_HTTP_BODY_FORMAT_HEC,
+		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			h := testutil.NewHarness(t)
-			route := &logdrains.Create{DB: h.DB, Vault: h.Vault, Auditlogs: h.Auditlogs, Clock: h.Clock, LimitsCache: h.Caches.WorkspaceLimits}
+			route := &logdrains.Create{
+				DB:          h.DB,
+				Vault:       h.Vault,
+				Auditlogs:   h.Auditlogs,
+				Clock:       h.Clock,
+				LimitsCache: h.Caches.WorkspaceLimits,
+			}
 			h.Register(route)
 			workspaceID := h.Resources().UserWorkspace.ID
 			_, err := h.DB.RW().ExecContext(t.Context(), "UPDATE `limits` SET logdrains_max = 1 WHERE workspace_id = ?", workspaceID)
 			require.NoError(t, err)
 			key := h.CreateRootKey(workspaceID, "unkey:v1:"+workspaceID+":logdrains/*#write")
-			response := testutil.CallRoute[openapi.CreateLogdrainRequest, openapi.LogdrainMutationResponse](h, route, http.Header{"Authorization": {"Bearer " + key}, "Content-Type": {"application/json"}}, openapi.CreateLogdrainRequest{
-				Name: "HTTP logs", Stream: "audit_logs",
-				Destination: openapi.LogdrainDestinationWrite{Http: &openapi.LogdrainHttpWrite{Url: new("https://logs.example.com"), Format: tc.format}},
+			response := testutil.CallRoute[openapi.CreateLogdrainRequest, openapi.LogdrainMutationResponse](h, route, http.Header{
+				"Authorization": {"Bearer " + key},
+				"Content-Type":  {"application/json"},
+			}, openapi.CreateLogdrainRequest{
+				Name:   "HTTP logs",
+				Stream: "audit_logs",
+				Destination: openapi.LogdrainDestinationWrite{
+					Http: &openapi.LogdrainHttpWrite{
+						Url:    new("https://logs.example.com"),
+						Format: tc.format,
+					},
+				},
 			})
 			require.Equal(t, http.StatusOK, response.Status, "%s", response.RawBody)
 			var stored []byte
 			require.NoError(t, h.DB.RW().QueryRowContext(t.Context(), "SELECT config FROM logdrains WHERE id = ?", response.Body.Data.Id).Scan(&stored))
 			config := &logdrainv1.Config{}
 			require.NoError(t, proto.Unmarshal(stored, config))
-			_, err = httpdrain.New(httpdrain.Config{Endpoint: config.GetHttp().GetUrl(), Format: config.GetHttp().GetFormat()})
+			_, err = httpdrain.New(httpdrain.Config{
+				Endpoint: config.GetHttp().GetUrl(),
+				Format:   config.GetHttp().GetFormat(),
+			})
 			require.NoError(t, err)
 			require.Equal(t, tc.want, config.GetHttp().GetFormat())
 		})
@@ -50,17 +75,33 @@ func TestCreateHTTPFormatSupportsDelivery(t *testing.T) {
 
 func TestCreatePersistsEncryptedDestination(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route := &logdrains.Create{DB: h.DB, Vault: h.Vault, Auditlogs: h.Auditlogs, Clock: h.Clock, LimitsCache: h.Caches.WorkspaceLimits}
+	route := &logdrains.Create{
+		DB:          h.DB,
+		Vault:       h.Vault,
+		Auditlogs:   h.Auditlogs,
+		Clock:       h.Clock,
+		LimitsCache: h.Caches.WorkspaceLimits,
+	}
 	h.Register(route)
 	workspaceID := h.Resources().UserWorkspace.ID
 	_, err := h.DB.RW().ExecContext(context.Background(), "UPDATE `limits` SET logdrains_max = 1 WHERE workspace_id = ?", workspaceID)
 	require.NoError(t, err)
 	key := h.CreateRootKey(workspaceID, "unkey:v1:"+workspaceID+":logdrains/*#write")
-	headers := http.Header{"Authorization": {"Bearer " + key}, "Content-Type": {"application/json"}}
+	headers := http.Header{
+		"Authorization": {"Bearer " + key},
+		"Content-Type":  {"application/json"},
+	}
 	response := testutil.CallRoute[openapi.CreateLogdrainRequest, openapi.LogdrainMutationResponse](h, route, headers, openapi.CreateLogdrainRequest{
-		Name: "My logs", Stream: "audit_logs", BatchSize: new(int64(17)),
-		Destination: openapi.LogdrainDestinationWrite{Axiom: &openapi.LogdrainAxiomWrite{Dataset: new("production"), Token: new("secret-token")}},
-		Filters:     &openapi.LogdrainFilters{EventTypes: new([]string{"  key.create  "})},
+		Name:      "My logs",
+		Stream:    "audit_logs",
+		BatchSize: new(int64(17)),
+		Destination: openapi.LogdrainDestinationWrite{
+			Axiom: &openapi.LogdrainAxiomWrite{
+				Dataset: new("production"),
+				Token:   new("secret-token"),
+			},
+		},
+		Filters: &openapi.LogdrainFilters{EventTypes: new([]string{"  key.create  "})},
 	})
 	require.Equal(t, http.StatusOK, response.Status, "%s", response.RawBody)
 	require.NotEmpty(t, response.Body.Data.Id)
@@ -82,7 +123,10 @@ func TestCreatePersistsEncryptedDestination(t *testing.T) {
 	require.Equal(t, uint32(17), config.GetBatchSize())
 	require.Equal(t, "production", config.GetAxiom().GetDataset())
 	require.Equal(t, []string{"key.create"}, config.GetAuditLogs().GetEventTypes())
-	decrypted, err := h.Vault.Decrypt(context.Background(), &vaultv1.DecryptRequest{Keyring: workspaceID, Encrypted: config.GetAxiom().GetEncryptedToken()})
+	decrypted, err := h.Vault.Decrypt(context.Background(), &vaultv1.DecryptRequest{
+		Keyring:   workspaceID,
+		Encrypted: config.GetAxiom().GetEncryptedToken(),
+	})
 	require.NoError(t, err)
 	require.Equal(t, "secret-token", decrypted.GetPlaintext())
 	events := h.FindAuditLogsByTargetID(context.Background(), t, response.Body.Data.Id)
