@@ -3,6 +3,7 @@ package github
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -70,16 +71,17 @@ func TestEventForwarderPreservesSignedDeliveryAndAcknowledgesOnlyAcceptance(t *t
 			}))
 			t.Cleanup(receiver.Close)
 			relay := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				if r.Method != http.MethodPost || r.Header.Get("Authorization") != "Bearer "+strings.Repeat("s", 43) {
+				if r.Header.Get("Authorization") != "Bearer "+strings.Repeat("s", 43) {
 					t.Error("missing scoped credential")
 				}
 				switch r.URL.Path {
 				case "/v1/webhooks/enable":
 					w.WriteHeader(http.StatusNoContent)
-				case "/v1/webhooks/claim":
-					if err := json.NewEncoder(w).Encode(delivery); err != nil {
-						t.Error(err)
+				case "/v1/webhooks/stream":
+					if r.Method != http.MethodGet || r.Header.Get("Accept") != "text/event-stream" {
+						t.Error("invalid stream request")
 					}
+					writeRelayDelivery(t, w, delivery)
 				case "/v1/webhooks/" + delivery.ID + "/ack":
 					var body map[string]string
 					if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body["leaseToken"] != delivery.LeaseToken || len(body) != 1 {
@@ -94,14 +96,13 @@ func TestEventForwarderPreservesSignedDeliveryAndAcknowledgesOnlyAcceptance(t *t
 			}))
 			t.Cleanup(relay.Close)
 			f := testEventForwarder(t, relay, receiver.URL+"/webhooks/github")
-			delivered, err := f.forwardNext(t.Context())
+			err := f.forwardStream(t.Context())
 			if status >= 200 && status < 300 {
-				require.NoError(t, err)
-				require.True(t, delivered)
+				require.ErrorIs(t, err, io.EOF)
 				require.EqualValues(t, 1, acknowledgments.Load())
 			} else {
 				require.Error(t, err)
-				require.False(t, delivered)
+				require.NotErrorIs(t, err, io.EOF)
 				require.Zero(t, acknowledgments.Load())
 			}
 			require.EqualValues(t, 1, receiverCalls.Load())
@@ -113,7 +114,7 @@ func TestEventForwarderPreservesSignedDeliveryAndAcknowledgesOnlyAcceptance(t *t
 func TestEventForwarderEnrollment(t *testing.T) {
 	for _, scenario := range []string{"valid", "wrong-origin", "expired", "too-long", "invalid-token"} {
 		t.Run(scenario, func(t *testing.T) {
-			var enrollments, claims, enables atomic.Int32
+			var enrollments, streams, enables atomic.Int32
 			relay := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				if r.URL.Path == "/v1/environments" {
 					enrollments.Add(1)
@@ -144,31 +145,33 @@ func TestEventForwarderEnrollment(t *testing.T) {
 				if r.Header.Get("Authorization") != "Bearer "+strings.Repeat("s", 43) {
 					t.Error("admin credential leaked to scoped endpoint")
 				}
-				if r.URL.Path == "/v1/webhooks/claim" {
-					claims.Add(1)
+				if r.URL.Path == "/v1/webhooks/stream" {
+					streams.Add(1)
+					w.Header().Set("Content-Type", "text/event-stream")
+					w.WriteHeader(http.StatusOK)
 				} else {
 					enables.Add(1)
+					w.WriteHeader(http.StatusNoContent)
 				}
-				w.WriteHeader(http.StatusNoContent)
 			}))
 			t.Cleanup(relay.Close)
 			f := testEventForwarder(t, relay, "http://localhost:7091/webhooks/github")
 			f.token, f.adminToken = "", "admin-secret"
-			_, err := f.forwardNext(t.Context())
+			err := f.forwardStream(t.Context())
 			if scenario != "valid" {
 				require.Error(t, err)
-				require.Zero(t, claims.Load())
+				require.Zero(t, streams.Load())
 				return
 			}
-			require.NoError(t, err)
-			_, err = f.forwardNext(t.Context())
-			require.NoError(t, err)
+			require.ErrorIs(t, err, io.EOF)
+			err = f.forwardStream(t.Context())
+			require.ErrorIs(t, err, io.EOF)
 			require.EqualValues(t, 1, enrollments.Load())
 			require.EqualValues(t, 1, enables.Load())
-			require.EqualValues(t, 2, claims.Load())
+			require.EqualValues(t, 2, streams.Load())
 			f.expiresAt = time.Now().Add(time.Hour)
-			_, err = f.forwardNext(t.Context())
-			require.NoError(t, err)
+			err = f.forwardStream(t.Context())
+			require.ErrorIs(t, err, io.EOF)
 			require.EqualValues(t, 2, enrollments.Load())
 		})
 	}
@@ -189,26 +192,28 @@ func TestEventForwarderBoundsAndRedirects(t *testing.T) {
 					w.WriteHeader(http.StatusTemporaryRedirect)
 					return
 				}
+				w.Header().Set("Content-Type", "text/event-stream")
 				if _, err := io.WriteString(w, strings.Repeat("x", relayResponseLimit+1)); err != nil && scenario != "oversize" {
 					t.Error(err)
 				}
 			}))
 			t.Cleanup(relay.Close)
 			f := testEventForwarder(t, relay, "http://localhost:7091/webhooks/github")
+			f.enabled = true
 			ctx, cancel := context.WithCancel(t.Context())
 			t.Cleanup(cancel)
 			if scenario == "cancel" {
 				cancel()
 			}
-			delivered, err := f.forwardNext(ctx)
+			err := f.forwardStream(ctx)
 			require.Error(t, err)
-			require.False(t, delivered)
+			require.NotErrorIs(t, err, io.EOF)
 			require.Zero(t, destinationCalls.Load())
 		})
 	}
 }
 
-func TestEventForwarderRejectsInvalidClaimsAndFailedAcknowledgments(t *testing.T) {
+func TestEventForwarderRejectsInvalidEventsAndFailedAcknowledgments(t *testing.T) {
 	for _, scenario := range []string{"malformed", "unsafe-id", "unknown-event", "ack-failed"} {
 		t.Run(scenario, func(t *testing.T) {
 			var received, acknowledged atomic.Int32
@@ -221,9 +226,10 @@ func TestEventForwarderRejectsInvalidClaimsAndFailedAcknowledgments(t *testing.T
 				switch r.URL.Path {
 				case "/v1/webhooks/enable":
 					w.WriteHeader(http.StatusNoContent)
-				case "/v1/webhooks/claim":
+				case "/v1/webhooks/stream":
+					w.Header().Set("Content-Type", "text/event-stream")
 					if scenario == "malformed" {
-						if _, err := io.WriteString(w, "not-json-secret"); err != nil {
+						if _, err := io.WriteString(w, "event: delivery\ndata: not-json-secret\n\n"); err != nil {
 							t.Error(err)
 						}
 						return
@@ -238,9 +244,7 @@ func TestEventForwarderRejectsInvalidClaimsAndFailedAcknowledgments(t *testing.T
 					if scenario == "unknown-event" {
 						delivery.Event = "installation"
 					}
-					if err := json.NewEncoder(w).Encode(delivery); err != nil {
-						t.Error(err)
-					}
+					writeRelayDelivery(t, w, delivery)
 				default:
 					acknowledged.Add(1)
 					w.WriteHeader(http.StatusConflict)
@@ -248,10 +252,10 @@ func TestEventForwarderRejectsInvalidClaimsAndFailedAcknowledgments(t *testing.T
 			}))
 			t.Cleanup(relay.Close)
 			f := testEventForwarder(t, relay, receiver.URL+"/webhooks/github")
-			delivered, err := f.forwardNext(t.Context())
+			err := f.forwardStream(t.Context())
 			require.Error(t, err)
+			require.NotErrorIs(t, err, io.EOF)
 			require.NotContains(t, err.Error(), "not-json-secret")
-			require.False(t, delivered)
 			if scenario == "ack-failed" {
 				require.EqualValues(t, 1, received.Load())
 				require.EqualValues(t, 1, acknowledged.Load())
@@ -263,6 +267,119 @@ func TestEventForwarderRejectsInvalidClaimsAndFailedAcknowledgments(t *testing.T
 	}
 }
 
+func TestEventForwarderSSEFraming(t *testing.T) {
+	delivery := relayDelivery{
+		ID: strings.Repeat("d", 43), LeaseToken: strings.Repeat("l", 43),
+		DeliveryID: "github-id", Event: "push", Signature: "signature", Payload: "{\"text\":\"café\\nhello\"}",
+	}
+	body, err := json.Marshal(delivery)
+	require.NoError(t, err)
+	split := strings.IndexByte(string(body), ',') + 1
+	for _, test := range []struct {
+		name, frame string
+		deliveries  int32
+	}{
+		{"multiline CRLF and heartbeat", ": heartbeat\r\n\r\nevent: delivery\r\ndata: " + string(body[:split]) + "\r\ndata: " + string(body[split:]) + "\r\n\r\n", 1},
+		{"truncated event", "event: delivery\ndata: " + string(body) + "\n", 0},
+		{"unrecognized event", "event: heartbeat\ndata: {}\n\n", 0},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			var received, acknowledged atomic.Int32
+			receiver := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				payload, err := io.ReadAll(r.Body)
+				if err != nil || string(payload) != delivery.Payload {
+					t.Error("payload changed during SSE decoding")
+				}
+				received.Add(1)
+				w.WriteHeader(http.StatusNoContent)
+			}))
+			t.Cleanup(receiver.Close)
+			relay := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if r.URL.Path != "/v1/webhooks/stream" {
+					acknowledged.Add(1)
+					w.WriteHeader(http.StatusNoContent)
+					return
+				}
+				w.Header().Set("Content-Type", "text/event-stream; charset=utf-8")
+				for _, part := range strings.SplitAfter(test.frame, ":") {
+					if _, err := io.WriteString(w, part); err != nil {
+						t.Error(err)
+						return
+					}
+					if err := http.NewResponseController(w).Flush(); err != nil {
+						t.Error(err)
+						return
+					}
+				}
+			}))
+			t.Cleanup(relay.Close)
+			f := testEventForwarder(t, relay, receiver.URL+"/webhooks/github")
+			f.enabled = true
+			require.ErrorIs(t, f.forwardStream(t.Context()), io.EOF)
+			require.Equal(t, test.deliveries, received.Load())
+			require.Equal(t, test.deliveries, acknowledged.Load())
+		})
+	}
+}
+
+func TestEventForwarderKeepsOneStreamAcrossDeliveriesAndCancels(t *testing.T) {
+	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
+	t.Cleanup(cancel)
+	var received, streams atomic.Int32
+	acked := make(chan struct{}, 2)
+	receiver := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		received.Add(1)
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	t.Cleanup(receiver.Close)
+	relay := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v1/webhooks/stream" {
+			acked <- struct{}{}
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+		streams.Add(1)
+		w.Header().Set("Content-Type", "text/event-stream")
+		if _, err := io.WriteString(w, ": heartbeat\n\n"); err != nil {
+			t.Error(err)
+			return
+		}
+		if err := http.NewResponseController(w).Flush(); err != nil {
+			t.Error(err)
+			return
+		}
+		select {
+		case <-time.After(500 * time.Millisecond):
+		case <-r.Context().Done():
+			return
+		}
+		for _, id := range []string{strings.Repeat("a", 43), strings.Repeat("b", 43)} {
+			writeRelayDelivery(t, w, relayDelivery{
+				ID: id, LeaseToken: strings.Repeat("l", 43), Event: "push",
+				DeliveryID: id, Signature: "signature", Payload: "{}",
+			})
+			if err := http.NewResponseController(w).Flush(); err != nil {
+				t.Error(err)
+				return
+			}
+			select {
+			case <-acked:
+			case <-r.Context().Done():
+				return
+			}
+		}
+		cancel()
+		<-r.Context().Done()
+	}))
+	t.Cleanup(relay.Close)
+	f := testEventForwarder(t, relay, receiver.URL+"/webhooks/github")
+	f.enabled = true
+	f.client.Timeout = 200 * time.Millisecond
+	require.Error(t, f.forwardStream(ctx))
+	require.EqualValues(t, 2, received.Load())
+	require.EqualValues(t, 1, streams.Load())
+}
+
 func testEventForwarder(t *testing.T, relay *httptest.Server, target string) *eventForwarder {
 	t.Helper()
 	f, err := newEventForwarder(relay.URL, "https://dashboard.test", target, strings.Repeat("s", 43), "")
@@ -270,4 +387,17 @@ func testEventForwarder(t *testing.T, relay *httptest.Server, target string) *ev
 	f.client.Transport = relay.Client().Transport
 	t.Cleanup(f.client.CloseIdleConnections)
 	return f
+}
+
+func writeRelayDelivery(t *testing.T, w http.ResponseWriter, delivery relayDelivery) {
+	t.Helper()
+	body, err := json.Marshal(delivery)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	w.Header().Set("Content-Type", "text/event-stream")
+	if _, err := fmt.Fprintf(w, "event: delivery\ndata: %s\n\n", body); err != nil {
+		t.Error(err)
+	}
 }
