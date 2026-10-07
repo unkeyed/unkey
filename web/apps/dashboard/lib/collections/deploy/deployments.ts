@@ -134,7 +134,22 @@ const DEFAULT_AVATAR_URL = "https://github.com/identicons/dummy-user.png";
 type DeploymentDetailsById = Awaited<
   ReturnType<typeof trpcClient.deploy.deployment.listDetails.query>
 >;
-type DeploymentDetails = DeploymentDetailsById[string];
+type RowDetails = Pick<
+  Deployment,
+  | "appId"
+  | "environmentId"
+  | "hasOpenApiSpec"
+  | "desiredState"
+  | "instances"
+  | "desiredInstanceCount"
+  | "desiredRegions"
+  | "triggerReason"
+  | "lastExit"
+>;
+
+// Once a row in one of these statuses has no instances left, nothing changes its
+// details, so a refetch keeps the held details instead of asking again
+const SETTLED_DETAIL_STATUSES = new Set<DeploymentStatus>(["superseded", "cancelled", "skipped"]);
 
 // Subsets of one page load resolve within milliseconds of each other, so their
 // detail lookups wait a moment and share one request
@@ -170,7 +185,7 @@ function loadDeploymentDetails(ids: string[]): Promise<DeploymentDetailsById> {
 
 function toDeployment(
   deployment: ApiDeployment,
-  details: DeploymentDetails,
+  details: RowDetails,
   projectId: string,
 ): Deployment {
   const { git, docker, runtime } = deployment;
@@ -373,7 +388,7 @@ export const deployments = createCollection<Deployment, string>(
     },
     retry: 3,
     syncMode: "on-demand",
-    queryFn: async (ctx) => {
+    queryFn: async (ctx): Promise<Deployment[]> => {
       const subset = readDeploymentSubset(ctx.meta?.loadSubsetOptions);
       const { projectId } = subset;
       if (!projectId) {
@@ -384,9 +399,21 @@ export const deployments = createCollection<Deployment, string>(
       if (rows.length === 0) {
         return [];
       }
-      const details = await loadDeploymentDetails(rows.map((d) => d.id));
+      const held = new Map(
+        rows.flatMap((row) => {
+          const known = deployments.get(row.id);
+          return known &&
+            known.status === row.status &&
+            known.instances.length === 0 &&
+            SETTLED_DETAIL_STATUSES.has(row.status)
+            ? [[row.id, known] as const]
+            : [];
+        }),
+      );
+      const missing = rows.filter((row) => !held.has(row.id)).map((row) => row.id);
+      const details = missing.length > 0 ? await loadDeploymentDetails(missing) : {};
       return rows.flatMap((row) => {
-        const detail = details[row.id];
+        const detail = details[row.id] ?? held.get(row.id);
         return detail?.projectId === projectId ? [toDeployment(row, detail, projectId)] : [];
       });
     },
