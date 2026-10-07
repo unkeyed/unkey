@@ -317,7 +317,7 @@ importers:
         version: link:../../internal/ui
       blume:
         specifier: 2.0.3
-        version: 2.0.3(@emnapi/runtime@1.11.3)(@shikijs/themes@4.4.3)(@types/react-dom@19.2.3(@types/react@19.2.4))(@types/react@19.2.4)(@vercel/functions@3.9.9(ws@8.20.1))(csstype@3.2.3)(db0@0.3.4(drizzle-orm@0.45.1(@opentelemetry/api@1.9.1)(@types/pg@8.15.6)(mysql2@3.10.3))(mysql2@3.10.3))(esbuild@0.28.2)(ioredis@5.11.1)(next@16.3.6(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@types/node@22.20.4)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(prettier@3.9.9)(rollup@4.60.4)(terser@5.51.2)(tsx@4.19.1)(vite@8.3.1(@types/node@22.20.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.19.1)(yaml@2.9.1))(ws@8.20.1)(yaml@2.9.1)
+        version: 2.0.3(@emnapi/runtime@1.11.3)(@shikijs/themes@4.4.3)(@types/react-dom@19.2.3(@types/react@19.2.4))(@types/react@19.2.4)(@vercel/functions@3.9.9(ws@8.20.1))(csstype@3.2.3)(db0@0.3.4(drizzle-orm@0.45.3(@opentelemetry/api@1.9.1)(@types/pg@8.15.6)(mysql2@3.10.3))(mysql2@3.10.3))(esbuild@0.28.2)(ioredis@5.11.1)(next@16.3.6(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@types/node@22.20.4)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(prettier@3.9.9)(rollup@4.60.4)(terser@5.51.2)(tsx@4.19.1)(vite@8.3.1(@types/node@22.20.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.19.1)(yaml@2.9.1))(ws@8.20.1)(yaml@2.9.1)
       react:
         specifier: 19.2.3
         version: 19.2.3
@@ -396,7 +396,7 @@ importers:
         version: 4.2.1(vite@8.3.0(@types/node@22.14.0)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.51.2)(tsx@4.19.1)(yaml@2.9.1))
       '@tanstack/nitro-v2-vite-plugin':
         specifier: 1.155.0
-        version: 1.155.0(@vercel/functions@3.9.9(ws@8.20.1))(drizzle-orm@0.45.1(@opentelemetry/api@1.9.1)(@types/pg@8.15.6)(mysql2@3.10.3))(mysql2@3.10.3)(rolldown@1.2.11)(srvx@0.11.22)(vite@8.3.0(@types/node@22.14.0)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.51.2)(tsx@4.19.1)(yaml@2.9.1))(webpack@5.107.0(esbuild@0.28.1))
+        version: 1.155.0(@vercel/functions@3.9.9(ws@8.20.1))(drizzle-orm@0.45.3(@opentelemetry/api@1.9.1)(@types/pg@8.15.6)(mysql2@3.10.3))(mysql2@3.10.3)(rolldown@1.2.11)(srvx@0.11.22)(vite@8.3.0(@types/node@22.14.0)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.51.2)(tsx@4.19.1)(yaml@2.9.1))(webpack@5.107.0(esbuild@0.28.1))
       '@types/node':
         specifier: 22.14.0
         version: 22.14.0
@@ -476,8 +476,8 @@ importers:
         specifier: workspace:^
         version: link:../id
       drizzle-orm:
-        specifier: 0.45.1
-        version: 0.45.1(@opentelemetry/api@1.9.1)(@types/pg@8.15.6)(mysql2@3.10.3)
+        specifier: 0.45.3
+        version: 0.45.3(@opentelemetry/api@1.9.1)(@types/pg@8.15.6)(mysql2@3.10.3)
       mysql2:
         specifier: 'catalog:'
         version: 3.10.3
@@ -499,7 +499,7 @@ importers:
         version: 5.5.3
       vitest:
         specifier: 5.0.1
-        version: 5.0.1(@opentelemetry/api@1.9.1)(@types/node@20.14.9)(@vitest/ui@5.0.1)(jsdom@26.0.0)(vite@8.3.1(@types/node@20.14.9)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.19.1)(yaml@2.9.1))
+        version: 5.0.1(@opentelemetry/api@1.9.1)(@types/node@20.14.9)(@vitest/ui@5.0.1)(jsdom@26.0.0)(vite@8.3.1(@types/node@20.14.9)(esbuild@0.25.12)(jiti@2.7.0)(terser@5.51.2)(tsx@4.19.1)(yaml@2.9.1))
 
   internal/encoding:
     devDependencies:
@@ -527,7 +527,7 @@ importers:
         version: 5.5.3
       vitest:
         specifier: 5.0.1
-        version: 5.0.1(@opentelemetry/api@1.9.1)(@types/node@25.0.10)(@vitest/ui@5.0.1)(jsdom@26.0.0)(vite@8.3.1(@types/node@25.0.10)(esbuild@0.25.12)(jiti@2.7.0)(terser@5.51.2)(tsx@4.19.1)(yaml@2.9.1))
+        version: 5.0.1(@opentelemetry/api@1.9.1)(@types/node@25.0.10)(@vitest/ui@5.0.1)(jsdom@26.0.0)(vite@8.3.1(@types/node@25.0.10)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.19.1)(yaml@2.9.1))
 
   internal/error:
     dependencies:
@@ -6778,8 +6778,8 @@ packages:
     engines: {node: ^6 || ^7 || ^8 || ^9 || ^10 || ^11 || ^12 || >=13.7}
     hasBin: true
 
-  browserslist@4.29.2:
-    resolution: {integrity: sha512-/u9r8k8ue4ZhHCw9ovDtltpWdXeXzjhdxCGj6vm1RGLPXb8lu33EMdoCHF5Sx8oYBS+Q/FYYNmAqlHncxR3RmA==}
+  browserslist@4.29.3:
+    resolution: {integrity: sha512-1R4kiYKXGViqEN0CnoDrXc1StD9niAwu+j2dukWzrD4bJgsD4lDmEp0CRbc6E/vYJIfTHwPmwyaKtVSudICdPA==}
     engines: {node: ^6 || ^7 || ^8 || ^9 || ^10 || ^11 || ^12 || >=13.7}
     hasBin: true
 
@@ -6830,8 +6830,8 @@ packages:
   caniuse-lite@1.0.30001810:
     resolution: {integrity: sha512-TITQPUkaz+aVk5GL6NhOdwk1aEaNTSDPsGFWrTuhKGtjTF70jL/Oht2W4c6rXUe5fu7Ie19VIahAXHIIiWWNeg==}
 
-  caniuse-lite@1.0.30001813:
-    resolution: {integrity: sha512-zfjJo4rM0+fUomGDBW/xcDjhIwz/210DGvip2MAMDZ8KHcRPnOHmEgHPZP0UHlZoxr8fYKVJOqcORhYQcG4FKQ==}
+  caniuse-lite@1.0.30001814:
+    resolution: {integrity: sha512-/Uaf1lAzr59XcMpW0o96WoEfr+VXK2OX4U9AgFoiSHsVJ4HppnIFUjtYzsyDH2+tgANaQb2/oxYGwCPapN1FpA==}
 
   ccount@2.0.1:
     resolution: {integrity: sha512-eyrF0jiFpY+3drT6383f1qhkbGsLSifNAjA61IUjZjmLCWjItY6LB9ft9YhoDgwfmclB2zhu51Lc7+95b8NRAg==}
@@ -7500,8 +7500,8 @@ packages:
     resolution: {integrity: sha512-tCPWVZWZqWVx2XUsVpJRnH9Mx0ClVOf5YUHerZ5so1OKSlqww4zy1R5ksEdGRcO3tM3zj0PYN6V48TbQCL1RfA==}
     hasBin: true
 
-  drizzle-orm@0.45.1:
-    resolution: {integrity: sha512-Te0FOdKIistGNPMq2jscdqngBRfBpC8uMFVwqjf6gtTVJHIQ/dosgV/CLBU2N4ZJBsXL5savCba9b0YJskKdcA==}
+  drizzle-orm@0.45.3:
+    resolution: {integrity: sha512-CAloER21cDdcgZ1OmjrZX82EeRNsdP+y0onX/eyoYDaYzki/adrAa91lzM5jWh7zZPK4qUbw/6LGv9J+A+uizA==}
     peerDependencies:
       '@aws-sdk/client-rds-data': '>=3'
       '@cloudflare/workers-types': '>=4'
@@ -7509,6 +7509,7 @@ packages:
       '@libsql/client': '>=0.10.0'
       '@libsql/client-wasm': '>=0.10.0'
       '@neondatabase/serverless': '>=0.10.0'
+      '@netlify/db': '>=0.4.0'
       '@op-engineering/op-sqlite': '>=2'
       '@opentelemetry/api': ^1.4.1
       '@planetscale/database': '>=1.13'
@@ -7544,6 +7545,8 @@ packages:
       '@libsql/client-wasm':
         optional: true
       '@neondatabase/serverless':
+        optional: true
+      '@netlify/db':
         optional: true
       '@op-engineering/op-sqlite':
         optional: true
@@ -7620,8 +7623,8 @@ packages:
   electron-to-chromium@1.5.430:
     resolution: {integrity: sha512-e1QEj72Y4zd8RlNZVmoTg+iCOSVwpk05IOiiQwdrkwCSVlZfPthevErhE+nckGd2YbsXfp1SkisznhGVIXP2NQ==}
 
-  electron-to-chromium@1.5.440:
-    resolution: {integrity: sha512-SghDzqdJokdz8zP8YNlvS74+CwLRoUPDGvP/gFA+HrKVw+pOshUAgx8pXR37xl/u16zGae746rFNWvZ/22kU2Q==}
+  electron-to-chromium@1.5.442:
+    resolution: {integrity: sha512-najZYZ3+ZpjN1z3VOsrBiv5ej18vQgfV2lvEmxWzfmKrk4bdm3Owseyud4yGU6DfFn9pyunoAHDDyM4KmP78Ew==}
 
   elkjs@0.9.3:
     resolution: {integrity: sha512-f/ZeWvW/BCXbhGEf1Ujp29EASo/lk1FDnETgNKwJrsVvGZhUWCZyg3xLJjAsxfOmt8KjswHmI5EwCQcPMpOYhQ==}
@@ -11671,17 +11674,17 @@ snapshots:
       github-slugger: 2.0.0
       satteri: 0.10.5
 
-  '@astrojs/mdx@8.0.2(@astrojs/markdown-satteri@0.4.2)(astro@7.3.5(@types/node@22.20.4)(@vercel/functions@3.9.9(ws@8.20.1))(db0@0.3.4(drizzle-orm@0.45.1(@opentelemetry/api@1.9.1)(@types/pg@8.15.6)(mysql2@3.10.3))(mysql2@3.10.3))(ioredis@5.11.1)(jiti@2.7.0)(terser@5.51.2)(tsx@4.19.1)(yaml@2.9.1))':
+  '@astrojs/mdx@8.0.2(@astrojs/markdown-satteri@0.4.2)(astro@7.3.5(@types/node@22.20.4)(@vercel/functions@3.9.9(ws@8.20.1))(db0@0.3.4(drizzle-orm@0.45.3(@opentelemetry/api@1.9.1)(@types/pg@8.15.6)(mysql2@3.10.3))(mysql2@3.10.3))(ioredis@5.11.1)(jiti@2.7.0)(terser@5.51.2)(tsx@4.19.1)(yaml@2.9.1))':
     dependencies:
       '@astrojs/internal-helpers': 0.11.0
       '@astrojs/markdown-satteri': 0.4.2
-      astro: 7.3.5(@types/node@22.20.4)(@vercel/functions@3.9.9(ws@8.20.1))(db0@0.3.4(drizzle-orm@0.45.1(@opentelemetry/api@1.9.1)(@types/pg@8.15.6)(mysql2@3.10.3))(mysql2@3.10.3))(ioredis@5.11.1)(jiti@2.7.0)(terser@5.51.2)(tsx@4.19.1)(yaml@2.9.1)
+      astro: 7.3.5(@types/node@22.20.4)(@vercel/functions@3.9.9(ws@8.20.1))(db0@0.3.4(drizzle-orm@0.45.3(@opentelemetry/api@1.9.1)(@types/pg@8.15.6)(mysql2@3.10.3))(mysql2@3.10.3))(ioredis@5.11.1)(jiti@2.7.0)(terser@5.51.2)(tsx@4.19.1)(yaml@2.9.1)
       es-module-lexer: 2.3.2
 
-  '@astrojs/node@11.1.6(astro@7.3.5(@types/node@22.20.4)(@vercel/functions@3.9.9(ws@8.20.1))(db0@0.3.4(drizzle-orm@0.45.1(@opentelemetry/api@1.9.1)(@types/pg@8.15.6)(mysql2@3.10.3))(mysql2@3.10.3))(ioredis@5.11.1)(jiti@2.7.0)(terser@5.51.2)(tsx@4.19.1)(yaml@2.9.1))':
+  '@astrojs/node@11.1.6(astro@7.3.5(@types/node@22.20.4)(@vercel/functions@3.9.9(ws@8.20.1))(db0@0.3.4(drizzle-orm@0.45.3(@opentelemetry/api@1.9.1)(@types/pg@8.15.6)(mysql2@3.10.3))(mysql2@3.10.3))(ioredis@5.11.1)(jiti@2.7.0)(terser@5.51.2)(tsx@4.19.1)(yaml@2.9.1))':
     dependencies:
       '@astrojs/internal-helpers': 0.11.0
-      astro: 7.3.5(@types/node@22.20.4)(@vercel/functions@3.9.9(ws@8.20.1))(db0@0.3.4(drizzle-orm@0.45.1(@opentelemetry/api@1.9.1)(@types/pg@8.15.6)(mysql2@3.10.3))(mysql2@3.10.3))(ioredis@5.11.1)(jiti@2.7.0)(terser@5.51.2)(tsx@4.19.1)(yaml@2.9.1)
+      astro: 7.3.5(@types/node@22.20.4)(@vercel/functions@3.9.9(ws@8.20.1))(db0@0.3.4(drizzle-orm@0.45.3(@opentelemetry/api@1.9.1)(@types/pg@8.15.6)(mysql2@3.10.3))(mysql2@3.10.3))(ioredis@5.11.1)(jiti@2.7.0)(terser@5.51.2)(tsx@4.19.1)(yaml@2.9.1)
       send: 1.2.1
       server-destroy: 1.0.1
     transitivePeerDependencies:
@@ -11724,14 +11727,14 @@ snapshots:
       is-docker: 4.0.0
       package-manager-detector: 1.8.0
 
-  '@astrojs/vercel@11.0.11(astro@7.3.5(@types/node@22.20.4)(@vercel/functions@3.9.9(ws@8.20.1))(db0@0.3.4(drizzle-orm@0.45.1(@opentelemetry/api@1.9.1)(@types/pg@8.15.6)(mysql2@3.10.3))(mysql2@3.10.3))(ioredis@5.11.1)(jiti@2.7.0)(terser@5.51.2)(tsx@4.19.1)(yaml@2.9.1))(next@16.3.6(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@types/node@22.20.4)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react@19.2.3)(rollup@4.60.4)(ws@8.20.1)':
+  '@astrojs/vercel@11.0.11(astro@7.3.5(@types/node@22.20.4)(@vercel/functions@3.9.9(ws@8.20.1))(db0@0.3.4(drizzle-orm@0.45.3(@opentelemetry/api@1.9.1)(@types/pg@8.15.6)(mysql2@3.10.3))(mysql2@3.10.3))(ioredis@5.11.1)(jiti@2.7.0)(terser@5.51.2)(tsx@4.19.1)(yaml@2.9.1))(next@16.3.6(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@types/node@22.20.4)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react@19.2.3)(rollup@4.60.4)(ws@8.20.1)':
     dependencies:
       '@astrojs/internal-helpers': 0.11.0
       '@vercel/analytics': 2.0.1(next@16.3.6(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@types/node@22.20.4)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react@19.2.3)
       '@vercel/functions': 3.9.9(ws@8.20.1)
       '@vercel/nft': 1.11.0(rollup@4.60.4)
       '@vercel/routing-utils': 6.6.0
-      astro: 7.3.5(@types/node@22.20.4)(@vercel/functions@3.9.9(ws@8.20.1))(db0@0.3.4(drizzle-orm@0.45.1(@opentelemetry/api@1.9.1)(@types/pg@8.15.6)(mysql2@3.10.3))(mysql2@3.10.3))(ioredis@5.11.1)(jiti@2.7.0)(terser@5.51.2)(tsx@4.19.1)(yaml@2.9.1)
+      astro: 7.3.5(@types/node@22.20.4)(@vercel/functions@3.9.9(ws@8.20.1))(db0@0.3.4(drizzle-orm@0.45.3(@opentelemetry/api@1.9.1)(@types/pg@8.15.6)(mysql2@3.10.3))(mysql2@3.10.3))(ioredis@5.11.1)(jiti@2.7.0)(terser@5.51.2)(tsx@4.19.1)(yaml@2.9.1)
       esbuild: 0.28.2
       tinyglobby: 0.2.17
     transitivePeerDependencies:
@@ -14917,10 +14920,10 @@ snapshots:
   '@rollup/rollup-win32-x64-msvc@4.60.4':
     optional: true
 
-  '@scalar/astro@0.4.24(astro@7.3.5(@types/node@22.20.4)(@vercel/functions@3.9.9(ws@8.20.1))(db0@0.3.4(drizzle-orm@0.45.1(@opentelemetry/api@1.9.1)(@types/pg@8.15.6)(mysql2@3.10.3))(mysql2@3.10.3))(ioredis@5.11.1)(jiti@2.7.0)(terser@5.51.2)(tsx@4.19.1)(yaml@2.9.1))':
+  '@scalar/astro@0.4.24(astro@7.3.5(@types/node@22.20.4)(@vercel/functions@3.9.9(ws@8.20.1))(db0@0.3.4(drizzle-orm@0.45.3(@opentelemetry/api@1.9.1)(@types/pg@8.15.6)(mysql2@3.10.3))(mysql2@3.10.3))(ioredis@5.11.1)(jiti@2.7.0)(terser@5.51.2)(tsx@4.19.1)(yaml@2.9.1))':
     dependencies:
       '@scalar/client-side-rendering': 0.4.6
-      astro: 7.3.5(@types/node@22.20.4)(@vercel/functions@3.9.9(ws@8.20.1))(db0@0.3.4(drizzle-orm@0.45.1(@opentelemetry/api@1.9.1)(@types/pg@8.15.6)(mysql2@3.10.3))(mysql2@3.10.3))(ioredis@5.11.1)(jiti@2.7.0)(terser@5.51.2)(tsx@4.19.1)(yaml@2.9.1)
+      astro: 7.3.5(@types/node@22.20.4)(@vercel/functions@3.9.9(ws@8.20.1))(db0@0.3.4(drizzle-orm@0.45.3(@opentelemetry/api@1.9.1)(@types/pg@8.15.6)(mysql2@3.10.3))(mysql2@3.10.3))(ioredis@5.11.1)(jiti@2.7.0)(terser@5.51.2)(tsx@4.19.1)(yaml@2.9.1)
 
   '@scalar/client-side-rendering@0.4.6':
     dependencies:
@@ -15552,9 +15555,9 @@ snapshots:
 
   '@tanstack/history@1.162.4': {}
 
-  '@tanstack/nitro-v2-vite-plugin@1.155.0(@vercel/functions@3.9.9(ws@8.20.1))(drizzle-orm@0.45.1(@opentelemetry/api@1.9.1)(@types/pg@8.15.6)(mysql2@3.10.3))(mysql2@3.10.3)(rolldown@1.2.11)(srvx@0.11.22)(vite@8.3.0(@types/node@22.14.0)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.51.2)(tsx@4.19.1)(yaml@2.9.1))(webpack@5.107.0(esbuild@0.28.1))':
+  '@tanstack/nitro-v2-vite-plugin@1.155.0(@vercel/functions@3.9.9(ws@8.20.1))(drizzle-orm@0.45.3(@opentelemetry/api@1.9.1)(@types/pg@8.15.6)(mysql2@3.10.3))(mysql2@3.10.3)(rolldown@1.2.11)(srvx@0.11.22)(vite@8.3.0(@types/node@22.14.0)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.51.2)(tsx@4.19.1)(yaml@2.9.1))(webpack@5.107.0(esbuild@0.28.1))':
     dependencies:
-      nitropack: 2.13.4(@vercel/functions@3.9.9(ws@8.20.1))(drizzle-orm@0.45.1(@opentelemetry/api@1.9.1)(@types/pg@8.15.6)(mysql2@3.10.3))(mysql2@3.10.3)(rolldown@1.2.11)(srvx@0.11.22)(vite@8.3.0(@types/node@22.14.0)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.51.2)(tsx@4.19.1)(yaml@2.9.1))(webpack@5.107.0(esbuild@0.28.1))
+      nitropack: 2.13.4(@vercel/functions@3.9.9(ws@8.20.1))(drizzle-orm@0.45.3(@opentelemetry/api@1.9.1)(@types/pg@8.15.6)(mysql2@3.10.3))(mysql2@3.10.3)(rolldown@1.2.11)(srvx@0.11.22)(vite@8.3.0(@types/node@22.14.0)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.51.2)(tsx@4.19.1)(yaml@2.9.1))(webpack@5.107.0(esbuild@0.28.1))
       pathe: 2.0.3
       vite: 8.3.0(@types/node@22.14.0)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.51.2)(tsx@4.19.1)(yaml@2.9.1)
     transitivePeerDependencies:
@@ -16476,6 +16479,15 @@ snapshots:
     optionalDependencies:
       vite: 8.3.0(@types/node@22.14.0)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.51.2)(tsx@4.19.1)(yaml@2.9.1)
 
+  '@vitest/mocker@5.0.1(vite@8.3.1(@types/node@20.14.9)(esbuild@0.25.12)(jiti@2.7.0)(terser@5.51.2)(tsx@4.19.1)(yaml@2.9.1))':
+    dependencies:
+      '@jridgewell/trace-mapping': 0.3.31
+      '@vitest/spy': 5.0.1
+      estree-walker: 3.0.3
+      magic-string: 1.4.1
+    optionalDependencies:
+      vite: 8.3.1(@types/node@20.14.9)(esbuild@0.25.12)(jiti@2.7.0)(terser@5.51.2)(tsx@4.19.1)(yaml@2.9.1)
+
   '@vitest/mocker@5.0.1(vite@8.3.1(@types/node@20.14.9)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.19.1)(yaml@2.9.1))':
     dependencies:
       '@jridgewell/trace-mapping': 0.3.31
@@ -16502,15 +16514,6 @@ snapshots:
       magic-string: 1.4.1
     optionalDependencies:
       vite: 8.3.1(@types/node@22.14.0)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.19.1)(yaml@2.9.1)
-
-  '@vitest/mocker@5.0.1(vite@8.3.1(@types/node@25.0.10)(esbuild@0.25.12)(jiti@2.7.0)(terser@5.51.2)(tsx@4.19.1)(yaml@2.9.1))':
-    dependencies:
-      '@jridgewell/trace-mapping': 0.3.31
-      '@vitest/spy': 5.0.1
-      estree-walker: 3.0.3
-      magic-string: 1.4.1
-    optionalDependencies:
-      vite: 8.3.1(@types/node@25.0.10)(esbuild@0.25.12)(jiti@2.7.0)(terser@5.51.2)(tsx@4.19.1)(yaml@2.9.1)
 
   '@vitest/mocker@5.0.1(vite@8.3.1(@types/node@25.0.10)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.19.1)(yaml@2.9.1))':
     dependencies:
@@ -16861,7 +16864,7 @@ snapshots:
 
   assertion-error@2.0.1: {}
 
-  astro@7.3.5(@types/node@22.20.4)(@vercel/functions@3.9.9(ws@8.20.1))(db0@0.3.4(drizzle-orm@0.45.1(@opentelemetry/api@1.9.1)(@types/pg@8.15.6)(mysql2@3.10.3))(mysql2@3.10.3))(ioredis@5.11.1)(jiti@2.7.0)(terser@5.51.2)(tsx@4.19.1)(yaml@2.9.1):
+  astro@7.3.5(@types/node@22.20.4)(@vercel/functions@3.9.9(ws@8.20.1))(db0@0.3.4(drizzle-orm@0.45.3(@opentelemetry/api@1.9.1)(@types/pg@8.15.6)(mysql2@3.10.3))(mysql2@3.10.3))(ioredis@5.11.1)(jiti@2.7.0)(terser@5.51.2)(tsx@4.19.1)(yaml@2.9.1):
     dependencies:
       '@astrojs/compiler-rs': 0.5.1
       '@astrojs/internal-helpers': 0.11.0
@@ -16909,7 +16912,7 @@ snapshots:
       tinyglobby: 0.2.17
       ultrahtml: 1.7.0
       unifont: 0.7.5
-      unstorage: 1.17.5(@vercel/functions@3.9.9(ws@8.20.1))(db0@0.3.4(drizzle-orm@0.45.1(@opentelemetry/api@1.9.1)(@types/pg@8.15.6)(mysql2@3.10.3))(mysql2@3.10.3))(ioredis@5.11.1)
+      unstorage: 1.17.5(@vercel/functions@3.9.9(ws@8.20.1))(db0@0.3.4(drizzle-orm@0.45.3(@opentelemetry/api@1.9.1)(@types/pg@8.15.6)(mysql2@3.10.3))(mysql2@3.10.3))(ioredis@5.11.1)
       verkit: 0.4.1
       vite: 8.3.1(@types/node@22.20.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.19.1)(yaml@2.9.1)
       vitefu: 1.1.3(vite@8.3.1(@types/node@22.20.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.19.1)(yaml@2.9.1))
@@ -17036,14 +17039,14 @@ snapshots:
     dependencies:
       file-uri-to-path: 1.0.0
 
-  blume@2.0.3(@emnapi/runtime@1.11.3)(@shikijs/themes@4.4.3)(@types/react-dom@19.2.3(@types/react@19.2.4))(@types/react@19.2.4)(@vercel/functions@3.9.9(ws@8.20.1))(csstype@3.2.3)(db0@0.3.4(drizzle-orm@0.45.1(@opentelemetry/api@1.9.1)(@types/pg@8.15.6)(mysql2@3.10.3))(mysql2@3.10.3))(esbuild@0.28.2)(ioredis@5.11.1)(next@16.3.6(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@types/node@22.20.4)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(prettier@3.9.9)(rollup@4.60.4)(terser@5.51.2)(tsx@4.19.1)(vite@8.3.1(@types/node@22.20.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.19.1)(yaml@2.9.1))(ws@8.20.1)(yaml@2.9.1):
+  blume@2.0.3(@emnapi/runtime@1.11.3)(@shikijs/themes@4.4.3)(@types/react-dom@19.2.3(@types/react@19.2.4))(@types/react@19.2.4)(@vercel/functions@3.9.9(ws@8.20.1))(csstype@3.2.3)(db0@0.3.4(drizzle-orm@0.45.3(@opentelemetry/api@1.9.1)(@types/pg@8.15.6)(mysql2@3.10.3))(mysql2@3.10.3))(esbuild@0.28.2)(ioredis@5.11.1)(next@16.3.6(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@types/node@22.20.4)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(prettier@3.9.9)(rollup@4.60.4)(terser@5.51.2)(tsx@4.19.1)(vite@8.3.1(@types/node@22.20.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.19.1)(yaml@2.9.1))(ws@8.20.1)(yaml@2.9.1):
     dependencies:
       '@astrojs/check': 0.9.10(@emnapi/runtime@1.11.3)(prettier@3.9.9)(typescript@6.0.3)
       '@astrojs/markdown-satteri': 0.4.2
-      '@astrojs/mdx': 8.0.2(@astrojs/markdown-satteri@0.4.2)(astro@7.3.5(@types/node@22.20.4)(@vercel/functions@3.9.9(ws@8.20.1))(db0@0.3.4(drizzle-orm@0.45.1(@opentelemetry/api@1.9.1)(@types/pg@8.15.6)(mysql2@3.10.3))(mysql2@3.10.3))(ioredis@5.11.1)(jiti@2.7.0)(terser@5.51.2)(tsx@4.19.1)(yaml@2.9.1))
-      '@astrojs/node': 11.1.6(astro@7.3.5(@types/node@22.20.4)(@vercel/functions@3.9.9(ws@8.20.1))(db0@0.3.4(drizzle-orm@0.45.1(@opentelemetry/api@1.9.1)(@types/pg@8.15.6)(mysql2@3.10.3))(mysql2@3.10.3))(ioredis@5.11.1)(jiti@2.7.0)(terser@5.51.2)(tsx@4.19.1)(yaml@2.9.1))
+      '@astrojs/mdx': 8.0.2(@astrojs/markdown-satteri@0.4.2)(astro@7.3.5(@types/node@22.20.4)(@vercel/functions@3.9.9(ws@8.20.1))(db0@0.3.4(drizzle-orm@0.45.3(@opentelemetry/api@1.9.1)(@types/pg@8.15.6)(mysql2@3.10.3))(mysql2@3.10.3))(ioredis@5.11.1)(jiti@2.7.0)(terser@5.51.2)(tsx@4.19.1)(yaml@2.9.1))
+      '@astrojs/node': 11.1.6(astro@7.3.5(@types/node@22.20.4)(@vercel/functions@3.9.9(ws@8.20.1))(db0@0.3.4(drizzle-orm@0.45.3(@opentelemetry/api@1.9.1)(@types/pg@8.15.6)(mysql2@3.10.3))(mysql2@3.10.3))(ioredis@5.11.1)(jiti@2.7.0)(terser@5.51.2)(tsx@4.19.1)(yaml@2.9.1))
       '@astrojs/react': 6.0.6(@types/node@22.20.4)(@types/react-dom@19.2.3(@types/react@19.2.4))(@types/react@19.2.4)(esbuild@0.28.2)(jiti@2.7.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(terser@5.51.2)(tsx@4.19.1)(yaml@2.9.1)
-      '@astrojs/vercel': 11.0.11(astro@7.3.5(@types/node@22.20.4)(@vercel/functions@3.9.9(ws@8.20.1))(db0@0.3.4(drizzle-orm@0.45.1(@opentelemetry/api@1.9.1)(@types/pg@8.15.6)(mysql2@3.10.3))(mysql2@3.10.3))(ioredis@5.11.1)(jiti@2.7.0)(terser@5.51.2)(tsx@4.19.1)(yaml@2.9.1))(next@16.3.6(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@types/node@22.20.4)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react@19.2.3)(rollup@4.60.4)(ws@8.20.1)
+      '@astrojs/vercel': 11.0.11(astro@7.3.5(@types/node@22.20.4)(@vercel/functions@3.9.9(ws@8.20.1))(db0@0.3.4(drizzle-orm@0.45.3(@opentelemetry/api@1.9.1)(@types/pg@8.15.6)(mysql2@3.10.3))(mysql2@3.10.3))(ioredis@5.11.1)(jiti@2.7.0)(terser@5.51.2)(tsx@4.19.1)(yaml@2.9.1))(next@16.3.6(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@types/node@22.20.4)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react@19.2.3)(rollup@4.60.4)(ws@8.20.1)
       '@clack/prompts': 1.8.1
       '@iconify-json/lucide': 1.2.137
       '@iconify/types': 2.0.0
@@ -17051,7 +17054,7 @@ snapshots:
       '@modelcontextprotocol/sdk': 1.31.0(zod@4.3.5)
       '@orama/orama': 3.1.18
       '@pierre/diffs': 1.5.1(@shikijs/themes@4.4.3)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
-      '@scalar/astro': 0.4.24(astro@7.3.5(@types/node@22.20.4)(@vercel/functions@3.9.9(ws@8.20.1))(db0@0.3.4(drizzle-orm@0.45.1(@opentelemetry/api@1.9.1)(@types/pg@8.15.6)(mysql2@3.10.3))(mysql2@3.10.3))(ioredis@5.11.1)(jiti@2.7.0)(terser@5.51.2)(tsx@4.19.1)(yaml@2.9.1))
+      '@scalar/astro': 0.4.24(astro@7.3.5(@types/node@22.20.4)(@vercel/functions@3.9.9(ws@8.20.1))(db0@0.3.4(drizzle-orm@0.45.3(@opentelemetry/api@1.9.1)(@types/pg@8.15.6)(mysql2@3.10.3))(mysql2@3.10.3))(ioredis@5.11.1)(jiti@2.7.0)(terser@5.51.2)(tsx@4.19.1)(yaml@2.9.1))
       '@scalar/openapi-parser': 0.29.8
       '@scalar/openapi-types': 0.9.7
       '@shikijs/transformers': 4.4.3
@@ -17062,7 +17065,7 @@ snapshots:
       '@types/node': 22.20.4
       '@vercel/analytics': 2.0.1(next@16.3.6(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@types/node@22.20.4)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react@19.2.3)
       ai: 7.0.122(zod@4.3.5)
-      astro: 7.3.5(@types/node@22.20.4)(@vercel/functions@3.9.9(ws@8.20.1))(db0@0.3.4(drizzle-orm@0.45.1(@opentelemetry/api@1.9.1)(@types/pg@8.15.6)(mysql2@3.10.3))(mysql2@3.10.3))(ioredis@5.11.1)(jiti@2.7.0)(terser@5.51.2)(tsx@4.19.1)(yaml@2.9.1)
+      astro: 7.3.5(@types/node@22.20.4)(@vercel/functions@3.9.9(ws@8.20.1))(db0@0.3.4(drizzle-orm@0.45.3(@opentelemetry/api@1.9.1)(@types/pg@8.15.6)(mysql2@3.10.3))(mysql2@3.10.3))(ioredis@5.11.1)(jiti@2.7.0)(terser@5.51.2)(tsx@4.19.1)(yaml@2.9.1)
       babel-plugin-react-compiler: 1.0.0
       chokidar: 5.0.0
       citty: 0.2.2
@@ -17223,13 +17226,13 @@ snapshots:
       node-releases: 2.0.55
       update-browserslist-db: 1.3.3(browserslist@4.29.0)
 
-  browserslist@4.29.2:
+  browserslist@4.29.3:
     dependencies:
       baseline-browser-mapping: 2.11.26
-      caniuse-lite: 1.0.30001813
-      electron-to-chromium: 1.5.440
+      caniuse-lite: 1.0.30001814
+      electron-to-chromium: 1.5.442
       node-releases: 2.0.57
-      update-browserslist-db: 1.3.3(browserslist@4.29.2)
+      update-browserslist-db: 1.3.3(browserslist@4.29.3)
 
   buffer-crc32@1.0.0: {}
 
@@ -17282,7 +17285,7 @@ snapshots:
 
   caniuse-lite@1.0.30001810: {}
 
-  caniuse-lite@1.0.30001813: {}
+  caniuse-lite@1.0.30001814: {}
 
   ccount@2.0.1: {}
 
@@ -17766,9 +17769,9 @@ snapshots:
 
   dayjs@1.11.23: {}
 
-  db0@0.3.4(drizzle-orm@0.45.1(@opentelemetry/api@1.9.1)(@types/pg@8.15.6)(mysql2@3.10.3))(mysql2@3.10.3):
+  db0@0.3.4(drizzle-orm@0.45.3(@opentelemetry/api@1.9.1)(@types/pg@8.15.6)(mysql2@3.10.3))(mysql2@3.10.3):
     optionalDependencies:
-      drizzle-orm: 0.45.1(@opentelemetry/api@1.9.1)(@types/pg@8.15.6)(mysql2@3.10.3)
+      drizzle-orm: 0.45.3(@opentelemetry/api@1.9.1)(@types/pg@8.15.6)(mysql2@3.10.3)
       mysql2: 3.10.3
 
   debounce-fn@6.0.0:
@@ -17906,7 +17909,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  drizzle-orm@0.45.1(@opentelemetry/api@1.9.1)(@types/pg@8.15.6)(mysql2@3.10.3):
+  drizzle-orm@0.45.3(@opentelemetry/api@1.9.1)(@types/pg@8.15.6)(mysql2@3.10.3):
     optionalDependencies:
       '@opentelemetry/api': 1.9.1
       '@types/pg': 8.15.6
@@ -17934,7 +17937,7 @@ snapshots:
 
   electron-to-chromium@1.5.430: {}
 
-  electron-to-chromium@1.5.440: {}
+  electron-to-chromium@1.5.442: {}
 
   elkjs@0.9.3: {}
 
@@ -18881,7 +18884,7 @@ snapshots:
 
   jest-worker@27.5.1:
     dependencies:
-      '@types/node': 22.14.0
+      '@types/node': 25.0.10
       merge-stream: 2.0.0
       supports-color: 8.1.1
 
@@ -19840,7 +19843,7 @@ snapshots:
       - babel-plugin-macros
     optional: true
 
-  nitropack@2.13.4(@vercel/functions@3.9.9(ws@8.20.1))(drizzle-orm@0.45.1(@opentelemetry/api@1.9.1)(@types/pg@8.15.6)(mysql2@3.10.3))(mysql2@3.10.3)(rolldown@1.2.11)(srvx@0.11.22)(vite@8.3.0(@types/node@22.14.0)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.51.2)(tsx@4.19.1)(yaml@2.9.1))(webpack@5.107.0(esbuild@0.28.1)):
+  nitropack@2.13.4(@vercel/functions@3.9.9(ws@8.20.1))(drizzle-orm@0.45.3(@opentelemetry/api@1.9.1)(@types/pg@8.15.6)(mysql2@3.10.3))(mysql2@3.10.3)(rolldown@1.2.11)(srvx@0.11.22)(vite@8.3.0(@types/node@22.14.0)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.51.2)(tsx@4.19.1)(yaml@2.9.1))(webpack@5.107.0(esbuild@0.28.1)):
     dependencies:
       '@cloudflare/kv-asset-handler': 0.4.2
       '@rollup/plugin-alias': 6.0.0(rollup@4.60.4)
@@ -19861,7 +19864,7 @@ snapshots:
       cookie-es: 2.0.1
       croner: 10.0.1
       crossws: 0.3.5
-      db0: 0.3.4(drizzle-orm@0.45.1(@opentelemetry/api@1.9.1)(@types/pg@8.15.6)(mysql2@3.10.3))(mysql2@3.10.3)
+      db0: 0.3.4(drizzle-orm@0.45.3(@opentelemetry/api@1.9.1)(@types/pg@8.15.6)(mysql2@3.10.3))(mysql2@3.10.3)
       defu: 6.1.7
       destr: 2.0.5
       dot-prop: 10.1.0
@@ -19907,7 +19910,7 @@ snapshots:
       unenv: 2.0.0-rc.24
       unimport: 6.4.0(esbuild@0.28.1)(rolldown@1.2.11)(rollup@4.60.4)(vite@8.3.0(@types/node@22.14.0)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.51.2)(tsx@4.19.1)(yaml@2.9.1))(webpack@5.107.0(esbuild@0.28.1))
       unplugin-utils: 0.3.2
-      unstorage: 1.17.5(@vercel/functions@3.9.9(ws@8.20.1))(db0@0.3.4(drizzle-orm@0.45.1(@opentelemetry/api@1.9.1)(@types/pg@8.15.6)(mysql2@3.10.3))(mysql2@3.10.3))(ioredis@5.11.1)
+      unstorage: 1.17.5(@vercel/functions@3.9.9(ws@8.20.1))(db0@0.3.4(drizzle-orm@0.45.3(@opentelemetry/api@1.9.1)(@types/pg@8.15.6)(mysql2@3.10.3))(mysql2@3.10.3))(ioredis@5.11.1)
       untyped: 2.0.0
       unwasm: 0.5.3
       youch: 4.1.1
@@ -21786,7 +21789,7 @@ snapshots:
       vite: 8.3.0(@types/node@22.14.0)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.51.2)(tsx@4.19.1)(yaml@2.9.1)
       webpack: 5.107.0(esbuild@0.28.1)
 
-  unstorage@1.17.5(@vercel/functions@3.9.9(ws@8.20.1))(db0@0.3.4(drizzle-orm@0.45.1(@opentelemetry/api@1.9.1)(@types/pg@8.15.6)(mysql2@3.10.3))(mysql2@3.10.3))(ioredis@5.11.1):
+  unstorage@1.17.5(@vercel/functions@3.9.9(ws@8.20.1))(db0@0.3.4(drizzle-orm@0.45.3(@opentelemetry/api@1.9.1)(@types/pg@8.15.6)(mysql2@3.10.3))(mysql2@3.10.3))(ioredis@5.11.1):
     dependencies:
       anymatch: 3.1.3
       chokidar: 5.0.0
@@ -21798,7 +21801,7 @@ snapshots:
       ufo: 1.6.4
     optionalDependencies:
       '@vercel/functions': 3.9.9(ws@8.20.1)
-      db0: 0.3.4(drizzle-orm@0.45.1(@opentelemetry/api@1.9.1)(@types/pg@8.15.6)(mysql2@3.10.3))(mysql2@3.10.3)
+      db0: 0.3.4(drizzle-orm@0.45.3(@opentelemetry/api@1.9.1)(@types/pg@8.15.6)(mysql2@3.10.3))(mysql2@3.10.3)
       ioredis: 5.11.1
 
   untun@0.2.2: {}
@@ -21832,9 +21835,9 @@ snapshots:
       escalade: 3.2.0
       picocolors: 1.1.1
 
-  update-browserslist-db@1.3.3(browserslist@4.29.2):
+  update-browserslist-db@1.3.3(browserslist@4.29.3):
     dependencies:
-      browserslist: 4.29.2
+      browserslist: 4.29.3
       escalade: 3.2.0
       picocolors: 1.1.1
 
@@ -21955,6 +21958,22 @@ snapshots:
       tsx: 4.19.1
       yaml: 2.9.1
 
+  vite@8.3.1(@types/node@20.14.9)(esbuild@0.25.12)(jiti@2.7.0)(terser@5.51.2)(tsx@4.19.1)(yaml@2.9.1):
+    dependencies:
+      lightningcss: 1.33.0
+      picomatch: 4.0.7
+      postcss: 8.5.28
+      rolldown: 1.2.11
+      tinyglobby: 0.2.17
+    optionalDependencies:
+      '@types/node': 20.14.9
+      esbuild: 0.25.12
+      fsevents: 2.3.3
+      jiti: 2.7.0
+      terser: 5.51.2
+      tsx: 4.19.1
+      yaml: 2.9.1
+
   vite@8.3.1(@types/node@20.14.9)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.19.1)(yaml@2.9.1):
     dependencies:
       lightningcss: 1.33.0
@@ -22019,22 +22038,6 @@ snapshots:
       tsx: 4.19.1
       yaml: 2.9.1
 
-  vite@8.3.1(@types/node@25.0.10)(esbuild@0.25.12)(jiti@2.7.0)(terser@5.51.2)(tsx@4.19.1)(yaml@2.9.1):
-    dependencies:
-      lightningcss: 1.33.0
-      picomatch: 4.0.7
-      postcss: 8.5.28
-      rolldown: 1.2.11
-      tinyglobby: 0.2.17
-    optionalDependencies:
-      '@types/node': 25.0.10
-      esbuild: 0.25.12
-      fsevents: 2.3.3
-      jiti: 2.7.0
-      terser: 5.51.2
-      tsx: 4.19.1
-      yaml: 2.9.1
-
   vite@8.3.1(@types/node@25.0.10)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.19.1)(yaml@2.9.1):
     dependencies:
       lightningcss: 1.33.0
@@ -22058,6 +22061,30 @@ snapshots:
   vitefu@1.1.3(vite@8.3.1(@types/node@22.20.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.19.1)(yaml@2.9.1)):
     optionalDependencies:
       vite: 8.3.1(@types/node@22.20.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.19.1)(yaml@2.9.1)
+
+  vitest@5.0.1(@opentelemetry/api@1.9.1)(@types/node@20.14.9)(@vitest/ui@5.0.1)(jsdom@26.0.0)(vite@8.3.1(@types/node@20.14.9)(esbuild@0.25.12)(jiti@2.7.0)(terser@5.51.2)(tsx@4.19.1)(yaml@2.9.1)):
+    dependencies:
+      '@types/chai': 5.2.3
+      '@vitest/mocker': 5.0.1(vite@8.3.1(@types/node@20.14.9)(esbuild@0.25.12)(jiti@2.7.0)(terser@5.51.2)(tsx@4.19.1)(yaml@2.9.1))
+      chai: 6.2.2
+      es-module-lexer: 2.3.2
+      expect-type: 1.4.0
+      magic-string: 1.4.1
+      obug: 2.2.1
+      picomatch: 4.0.7
+      std-env: 4.2.0
+      tinybench: 6.1.4
+      tinyexec: 1.3.0
+      tinyglobby: 0.2.17
+      vite: 8.3.1(@types/node@20.14.9)(esbuild@0.25.12)(jiti@2.7.0)(terser@5.51.2)(tsx@4.19.1)(yaml@2.9.1)
+      why-is-node-running: 2.3.0
+    optionalDependencies:
+      '@opentelemetry/api': 1.9.1
+      '@types/node': 20.14.9
+      '@vitest/ui': 5.0.1(vitest@5.0.1)
+      jsdom: 26.0.0
+    transitivePeerDependencies:
+      - msw
 
   vitest@5.0.1(@opentelemetry/api@1.9.1)(@types/node@20.14.9)(@vitest/ui@5.0.1)(jsdom@26.0.0)(vite@8.3.1(@types/node@20.14.9)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.19.1)(yaml@2.9.1)):
     dependencies:
@@ -22150,30 +22177,6 @@ snapshots:
     optionalDependencies:
       '@opentelemetry/api': 1.9.1
       '@types/node': 22.14.0
-      '@vitest/ui': 5.0.1(vitest@5.0.1)
-      jsdom: 26.0.0
-    transitivePeerDependencies:
-      - msw
-
-  vitest@5.0.1(@opentelemetry/api@1.9.1)(@types/node@25.0.10)(@vitest/ui@5.0.1)(jsdom@26.0.0)(vite@8.3.1(@types/node@25.0.10)(esbuild@0.25.12)(jiti@2.7.0)(terser@5.51.2)(tsx@4.19.1)(yaml@2.9.1)):
-    dependencies:
-      '@types/chai': 5.2.3
-      '@vitest/mocker': 5.0.1(vite@8.3.1(@types/node@25.0.10)(esbuild@0.25.12)(jiti@2.7.0)(terser@5.51.2)(tsx@4.19.1)(yaml@2.9.1))
-      chai: 6.2.2
-      es-module-lexer: 2.3.2
-      expect-type: 1.4.0
-      magic-string: 1.4.1
-      obug: 2.2.1
-      picomatch: 4.0.7
-      std-env: 4.2.0
-      tinybench: 6.1.4
-      tinyexec: 1.3.0
-      tinyglobby: 0.2.17
-      vite: 8.3.1(@types/node@25.0.10)(esbuild@0.25.12)(jiti@2.7.0)(terser@5.51.2)(tsx@4.19.1)(yaml@2.9.1)
-      why-is-node-running: 2.3.0
-    optionalDependencies:
-      '@opentelemetry/api': 1.9.1
-      '@types/node': 25.0.10
       '@vitest/ui': 5.0.1(vitest@5.0.1)
       jsdom: 26.0.0
     transitivePeerDependencies:
@@ -22338,7 +22341,7 @@ snapshots:
       '@webassemblyjs/wasm-parser': 1.14.1
       acorn: 8.18.0
       acorn-import-phases: 1.0.4(acorn@8.18.0)
-      browserslist: 4.29.2
+      browserslist: 4.29.3
       chrome-trace-event: 1.0.4
       enhanced-resolve: 5.26.0
       es-module-lexer: 2.3.2
@@ -22377,7 +22380,7 @@ snapshots:
       '@webassemblyjs/wasm-parser': 1.14.1
       acorn: 8.18.0
       acorn-import-phases: 1.0.4(acorn@8.18.0)
-      browserslist: 4.29.2
+      browserslist: 4.29.3
       chrome-trace-event: 1.0.4
       enhanced-resolve: 5.26.0
       es-module-lexer: 2.3.2
