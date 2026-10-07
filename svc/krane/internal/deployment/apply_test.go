@@ -221,9 +221,10 @@ var fieldAssertions = map[string]func(t *testing.T, rs *appsv1.ReplicaSet){
 	},
 	"autoscaling": func(t *testing.T, rs *appsv1.ReplicaSet) {
 		constraints := rs.Spec.Template.Spec.TopologySpreadConstraints
-		require.Len(t, constraints, 2)
-		require.Equal(t, corev1.DoNotSchedule, constraints[0].WhenUnsatisfiable)
-		require.Equal(t, new(int32(2)), constraints[0].MinDomains)
+		require.Len(t, constraints, 3)
+		require.Equal(t, corev1.DoNotSchedule, constraints[2].WhenUnsatisfiable)
+		require.Equal(t, int32(2), constraints[2].MaxSkew)
+		require.Equal(t, new(int32(3)), constraints[2].MinDomains)
 	},
 	"ephemeral_storage": func(t *testing.T, rs *appsv1.ReplicaSet) {
 		var found bool
@@ -281,17 +282,21 @@ func TestApplyDeploymentFieldCoverage(t *testing.T) {
 
 func TestBuildReplicaSet_TopologySpread(t *testing.T) {
 	for _, tt := range []struct {
-		name              string
-		minReplicas       uint32
-		maxReplicas       uint32
-		whenUnsatisfiable corev1.UnsatisfiableConstraintAction
-		minDomains        *int32
-		nodeTaintsPolicy  *corev1.NodeInclusionPolicy
+		name        string
+		minReplicas uint32
+		maxReplicas uint32
+		// hardMaxSkew is the maxSkew of the DoNotSchedule hostname constraint,
+		// or 0 when the deployment has no hard hostname constraint.
+		hardMaxSkew int32
 	}{
-		{"single", 1, 1, corev1.ScheduleAnyway, nil, nil},
-		{"single_minimum_with_autoscaling", 1, 2, corev1.DoNotSchedule, new(int32(2)), new(corev1.NodeInclusionPolicyHonor)},
-		{"two", 2, 5, corev1.DoNotSchedule, new(int32(2)), new(corev1.NodeInclusionPolicyHonor)},
-		{"three", 3, 3, corev1.DoNotSchedule, new(int32(2)), new(corev1.NodeInclusionPolicyHonor)},
+		{"single", 1, 1, 0},
+		{"single_minimum_with_autoscaling", 1, 2, 1},
+		{"three", 3, 3, 1},
+		{"four", 2, 4, 2},
+		{"five", 2, 5, 2},
+		{"six", 2, 6, 2},
+		{"seven", 2, 7, 3},
+		{"sixteen", 2, 16, 6},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			req := fullApplyRequest(t)
@@ -299,16 +304,30 @@ func TestBuildReplicaSet_TopologySpread(t *testing.T) {
 			rs := testController().buildReplicaSet(req, false)
 			require.Nil(t, rs.Spec.Replicas)
 			constraints := rs.Spec.Template.Spec.TopologySpreadConstraints
-			require.Len(t, constraints, 2)
+
+			deploymentLabels := map[string]string{"unkey.com/deployment.id": testDeploymentID}
+			if tt.hardMaxSkew > 0 {
+				require.Len(t, constraints, 3)
+				hard := constraints[2]
+				require.Equal(t, "kubernetes.io/hostname", hard.TopologyKey)
+				require.Equal(t, tt.hardMaxSkew, hard.MaxSkew)
+				require.Equal(t, corev1.DoNotSchedule, hard.WhenUnsatisfiable)
+				require.Equal(t, new(int32(3)), hard.MinDomains)
+				require.Equal(t, new(corev1.NodeInclusionPolicyHonor), hard.NodeTaintsPolicy)
+				require.NotNil(t, hard.LabelSelector)
+				require.Equal(t, deploymentLabels, hard.LabelSelector.MatchLabels)
+			} else {
+				require.Len(t, constraints, 2)
+			}
 
 			hostname := constraints[0]
 			require.Equal(t, "kubernetes.io/hostname", hostname.TopologyKey)
 			require.Equal(t, int32(1), hostname.MaxSkew)
-			require.Equal(t, tt.whenUnsatisfiable, hostname.WhenUnsatisfiable)
-			require.Equal(t, tt.minDomains, hostname.MinDomains)
-			require.Equal(t, tt.nodeTaintsPolicy, hostname.NodeTaintsPolicy)
+			require.Equal(t, corev1.ScheduleAnyway, hostname.WhenUnsatisfiable)
+			require.Nil(t, hostname.MinDomains)
+			require.Nil(t, hostname.NodeTaintsPolicy)
 			require.NotNil(t, hostname.LabelSelector)
-			require.Equal(t, map[string]string{"unkey.com/deployment.id": testDeploymentID}, hostname.LabelSelector.MatchLabels)
+			require.Equal(t, deploymentLabels, hostname.LabelSelector.MatchLabels)
 
 			zone := constraints[1]
 			require.Equal(t, "topology.kubernetes.io/zone", zone.TopologyKey)
@@ -322,7 +341,7 @@ func TestBuildReplicaSet_TopologySpread(t *testing.T) {
 				"app.kubernetes.io/component":  "deployment",
 			}, zone.LabelSelector.MatchLabels)
 
-			for _, constraint := range constraints {
+			for _, constraint := range rs.Spec.Template.Spec.TopologySpreadConstraints {
 				for label, value := range constraint.LabelSelector.MatchLabels {
 					require.Equal(t, value, rs.Spec.Template.Labels[label])
 				}
