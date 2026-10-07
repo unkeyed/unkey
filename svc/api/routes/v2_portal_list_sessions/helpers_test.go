@@ -19,10 +19,6 @@ import (
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_portal_list_sessions"
 )
 
-func workspaceAdminPermission(h *testutil.Harness) string {
-	return fmt.Sprintf("unkey:v1:%s:**#*", h.Resources().UserWorkspace.ID)
-}
-
 func registerRoute(h *testutil.Harness) *handler.Handler {
 	route := &handler.Handler{
 		DB:    h.DB,

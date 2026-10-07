@@ -131,12 +131,12 @@ func normalizeRequestID(body string) string {
 
 func TestGetPortalByIdAndSlug(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route, headers := newRoute(t, h, fmt.Sprintf("unkey:v1:%s:**#*", h.Resources().UserWorkspace.ID))
 	workspace := h.Resources().UserWorkspace
 
 	mapping := keyspaceMapping(t, h, workspace.ID)
 	stored := h.SeedPortal(t, workspace.ID, "acme-portal", "acme-portal", mapping,
 		new("https://cdn.example.com/logo.svg"), new("#6366f1"))
+	route, headers := newRoute(t, h, fmt.Sprintf("unkey:v1:%s:projects/%s/portals/%s#read", workspace.ID, stored.ProjectID, stored.ID))
 
 	for name, target := range map[string]string{
 		"by id":   stored.ID,
@@ -166,7 +166,6 @@ func TestGetPortalByIdAndSlug(t *testing.T) {
 func TestGetPortalByMapping(t *testing.T) {
 	h := testutil.NewHarness(t)
 	workspace := h.Resources().UserWorkspace
-	route, headers := newRoute(t, h, fmt.Sprintf("unkey:v1:%s:projects/*/portals/*#read", workspace.ID))
 
 	keyspace := keyspaceMapping(t, h, workspace.ID)
 	keyspacePortal := h.SeedPortal(t, workspace.ID, "keyspace-portal", "keyspace-portal", keyspace,
@@ -175,6 +174,9 @@ func TestGetPortalByMapping(t *testing.T) {
 	app := appMapping(t, h, workspace.ID, "payments")
 	appPortal := h.SeedPortal(t, workspace.ID, "app-portal", "app-portal", app,
 		nil, nil)
+	route, headers := newRoute(t, h,
+		fmt.Sprintf("unkey:v1:%s:projects/%s/portals/%s#read", workspace.ID, keyspacePortal.ProjectID, keyspacePortal.ID),
+		fmt.Sprintf("unkey:v1:%s:projects/%s/portals/%s#read", workspace.ID, appPortal.ProjectID, appPortal.ID))
 
 	for name, tc := range map[string]struct {
 		mapping  portal.Mapping
@@ -221,10 +223,10 @@ func TestGetPortalByMapping(t *testing.T) {
 func TestGetPortalOmitsAbsentBranding(t *testing.T) {
 	h := testutil.NewHarness(t)
 	workspace := h.Resources().UserWorkspace
-	route, headers := newRoute(t, h, fmt.Sprintf("unkey:v1:%s:projects/*/portals/*#read", workspace.ID))
 
 	stored := h.SeedPortal(t, workspace.ID, "plain", "plain", keyspaceMapping(t, h, workspace.ID),
 		nil, nil)
+	route, headers := newRoute(t, h, fmt.Sprintf("unkey:v1:%s:projects/%s/portals/%s#read", workspace.ID, stored.ProjectID, stored.ID))
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
 		Portal:     new(stored.ID),
@@ -242,10 +244,10 @@ func TestGetPortalOmitsAbsentBranding(t *testing.T) {
 func TestGetPortalCarriesDisplayNameButNoReturnURL(t *testing.T) {
 	h := testutil.NewHarness(t)
 	workspace := h.Resources().UserWorkspace
-	route, headers := newRoute(t, h, fmt.Sprintf("unkey:v1:%s:projects/*/portals/*#read", workspace.ID))
 
 	stored := h.SeedPortal(t, workspace.ID, "no-extras", "no-extras", keyspaceMapping(t, h, workspace.ID),
 		new("https://cdn.example.com/logo.svg"), nil)
+	route, headers := newRoute(t, h, fmt.Sprintf("unkey:v1:%s:projects/%s/portals/%s#read", workspace.ID, stored.ProjectID, stored.ID))
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
 		Portal:     new(stored.ID),
