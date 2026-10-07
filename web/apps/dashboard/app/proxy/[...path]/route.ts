@@ -1,4 +1,4 @@
-import { getAuth } from "@/lib/auth/get-auth";
+import { type GetAuthResult, getAuth } from "@/lib/auth/get-auth";
 import { env } from "@/lib/env";
 import { SignJWT } from "jose";
 import type { NextRequest } from "next/server";
@@ -24,8 +24,9 @@ export async function POST(req: NextRequest, ctx: RouteContext): Promise<NextRes
   }
   const orgId = auth.orgId;
   const userId = auth.userId;
+  const apiURL = env().UNKEY_API_URL;
 
-  let bearerToken: string | null | undefined = auth.accessToken;
+  let bearerToken: string | null | undefined = upstreamBearerToken(auth, apiURL);
   if (!bearerToken) {
     if (!auth.role) {
       return NextResponse.json({ error: "Role required." }, { status: 403 });
@@ -60,7 +61,7 @@ export async function POST(req: NextRequest, ctx: RouteContext): Promise<NextRes
     }
   }
 
-  const baseURL = new URL(env().UNKEY_API_URL);
+  const baseURL = new URL(apiURL);
   const upstreamURL = new URL(`/${path.join("/")}`, baseURL);
   upstreamURL.search = req.nextUrl.search;
 
@@ -115,6 +116,28 @@ function upstreamRequestHeaders(req: NextRequest): Headers {
   // dashboard rather than to a generic API client.
   headers.set("x-unkey-client", "unkey-dashboard");
   return headers;
+}
+
+function upstreamBearerToken(auth: GetAuthResult, apiURL: string): string | undefined {
+  if (env().UNKEY_JWT_SECRET && apiVerifiesDashboardJWT(apiURL)) {
+    return undefined;
+  }
+  return auth.accessToken;
+}
+
+function apiVerifiesDashboardJWT(apiURL: string): boolean {
+  let hostname: string;
+  try {
+    hostname = new URL(apiURL).hostname;
+  } catch {
+    return false;
+  }
+  return (
+    hostname === "localhost" ||
+    hostname === "127.0.0.1" ||
+    hostname === "[::1]" ||
+    hostname.endsWith(".unkey.local")
+  );
 }
 
 const hopByHopResponseHeaders = new Set([

@@ -62,7 +62,9 @@ export default function Layout({ children }: LayoutProps) {
   const { user, workspace, isLoading, error, workspaceMissing } = useWorkspace();
   // Creation wizards are focused full-screen experiences without the sidebar.
   const isCreationWizard =
-    /\/projects\/[^/]+\/apps\/new$/.test(pathname) || /\/settings\/logdrains\/new$/.test(pathname);
+    /\/projects\/[^/]+\/apps\/new$/.test(pathname) ||
+    /\/settings\/logdrains\/new$/.test(pathname) ||
+    pathname === "/cli/device";
 
   useEffect(() => {
     // Don't navigate while loading
