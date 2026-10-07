@@ -1,12 +1,13 @@
+import { AUDIT_LOG_BUCKET_UNKEY_MUTATIONS } from "@unkey/schema/src/auditlog";
 import { describe, expect, it } from "vitest";
-import { DEFAULT_BUCKET_NAME, auditLogsQueryPayload } from "./audit-logs.schema";
+import { auditLogsQueryPayload } from "./audit-logs.schema";
 
 const base = { since: "", events: null, users: null, rootKeys: null };
 
 describe("auditLogsQueryPayload bucket", () => {
   it("defaults to the dashboard bucket", () => {
     const parsed = auditLogsQueryPayload.parse(base);
-    expect(parsed.bucket).toBe(DEFAULT_BUCKET_NAME);
+    expect(parsed.bucket).toBe(AUDIT_LOG_BUCKET_UNKEY_MUTATIONS);
   });
 
   it("accepts the dashboard bucket", () => {

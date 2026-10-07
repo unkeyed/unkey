@@ -16,12 +16,11 @@ export const auditLogsRequestSchema = z.object({
 
 export type AuditLogsRequest = z.infer<typeof auditLogsRequestSchema>;
 
-// workspace_id and bucket are intentionally omitted: they're always equal
-// to the query filter values and selecting `any(workspace_id) AS workspaceId`
-// would shadow the WHERE column and trigger ILLEGAL_AGGREGATION in ClickHouse.
-// Callers reconstruct those fields from their own context.
+// workspace_id is omitted because it always equals the filter value. bucket
+// is returned because a caller may read several buckets in one query.
 export const auditLogRow = z.object({
   eventId: z.string(),
+  bucket: z.string(),
   time: z.int(),
   event: z.string(),
   description: z.string(),
@@ -62,6 +61,7 @@ export function getAuditLogs(ch: Querier) {
       query: `
         SELECT
           event_id AS eventId,
+          bucket,
           time,
           event,
           description,

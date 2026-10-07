@@ -127,8 +127,9 @@ func TestAuditLogsRead_EventTypes(t *testing.T) {
 	require.Equal(t, "g", page[0].EventID)
 }
 
-// TestAuditLogsRead_DashboardBucketsOnly keeps back office rows out of
-// customer exports even when the drain has no event type filter.
+// TestAuditLogsRead_DashboardBucketsOnly guarantees a log drain never exports
+// back office rows, even when the drain has no event type filter. Drains ship
+// data off platform, so a leak here cannot be recalled.
 func TestAuditLogsRead_DashboardBucketsOnly(t *testing.T) {
 	cfg := containers.ClickHouse(t)
 	client, err := clickhouse.New(clickhouse.Config{URL: cfg.HTTPDSN})

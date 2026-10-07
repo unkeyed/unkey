@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
@@ -101,11 +100,8 @@ func PrepareOutboxRows(ctx context.Context, logs []auditlog.AuditLog) ([]db.Inse
 			correlationID = sharedCorrelationID
 		}
 
-		bucket := l.Bucket
-		if bucket == "" {
-			bucket = DefaultBucket
-		}
-		if err := assert.True(auditlog.IsKnownBucket(bucket), "unknown audit log bucket"); err != nil {
+		bucket, err := auditlog.ResolveBucket(l.Bucket)
+		if err != nil {
 			return nil, err
 		}
 

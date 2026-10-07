@@ -14,6 +14,9 @@ import type { z } from "zod";
 
 type AuditSearchFilters = z.infer<typeof auditFilterOutputSchema>;
 
+// The model can name any bucket it has seen in the prompt or the query. A
+// hidden bucket would fail the tRPC input enum and surface as an error for
+// the whole search, so it is dropped here and the other filters still apply.
 export function dropHiddenBucketFilters(parsed: AuditSearchFilters): AuditSearchFilters {
   return {
     ...parsed,

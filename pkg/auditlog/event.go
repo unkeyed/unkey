@@ -1,5 +1,11 @@
 package auditlog
 
+import (
+	"slices"
+
+	"github.com/unkeyed/unkey/pkg/assert"
+)
+
 // Event is the canonical envelope JSON-encoded into the clickhouse_outbox
 // payload column. Both the writer (internal/services/auditlogs) and the
 // drainer (svc/ctrl/worker/cron RunAuditLogExport) marshal/unmarshal this shape.
@@ -74,12 +80,21 @@ var KnownBuckets = []string{BucketUnkeyMutations, BucketBackoffice}
 
 // IsKnownBucket reports whether bucket is one of KnownBuckets.
 func IsKnownBucket(bucket string) bool {
-	for _, b := range KnownBuckets {
-		if b == bucket {
-			return true
-		}
+	return slices.Contains(KnownBuckets, bucket)
+}
+
+// ResolveBucket returns the bucket a writer must stamp on an event. An
+// empty bucket resolves to BucketUnkeyMutations. Any other value outside
+// KnownBuckets is a programmer error and returns an assertion error, so a
+// typo can never create a bucket that no reader filters on.
+func ResolveBucket(bucket string) (string, error) {
+	if bucket == "" {
+		return BucketUnkeyMutations, nil
 	}
-	return false
+	if err := assert.True(IsKnownBucket(bucket), "unknown audit log bucket"); err != nil {
+		return "", err
+	}
+	return bucket, nil
 }
 
 // OutboxVersionV1 is the `version` value the writer puts on every

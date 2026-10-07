@@ -7,6 +7,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/auditlog"
+	"github.com/unkeyed/unkey/pkg/uid"
 )
 
 func decodeBucket(t *testing.T, payload json.RawMessage) string {
@@ -16,10 +17,14 @@ func decodeBucket(t *testing.T, payload json.RawMessage) string {
 	return event.Bucket
 }
 
+// TestPrepareOutboxRows_Bucket guarantees the bucket chosen by the caller
+// survives into the outbox payload the drainer copies to ClickHouse. If the
+// writer dropped it, back office events would land in the dashboard bucket
+// and become visible to the workspace.
 func TestPrepareOutboxRows_Bucket(t *testing.T) {
 	ctx := context.Background()
 	base := auditlog.AuditLog{
-		WorkspaceID: "ws_1",
+		WorkspaceID: uid.New(uid.WorkspacePrefix),
 		Event:       auditlog.KeyCreateEvent,
 		ActorType:   auditlog.SystemActor,
 		ActorID:     "system",
