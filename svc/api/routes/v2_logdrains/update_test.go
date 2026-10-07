@@ -97,34 +97,10 @@ func TestUpdateDistinguishesUserPauseFromFailurePause(t *testing.T) {
 		status   string
 		failures int
 	}{
-		{
-			"rename preserves failure pause",
-			"paused_by_failure",
-			`"name":"Renamed"`,
-			"paused_by_failure",
-			8,
-		},
-		{
-			"delivery changes preserve user pause",
-			"paused_by_user",
-			`"batchSize":23`,
-			"paused_by_user",
-			0,
-		},
-		{
-			"explicit resume clears failures",
-			"paused_by_user",
-			`"status":"running"`,
-			"running",
-			0,
-		},
-		{
-			"explicit pause",
-			"running",
-			`"status":"paused_by_user"`,
-			"paused_by_user",
-			8,
-		},
+		{"rename preserves failure pause", "paused_by_failure", `"name":"Renamed"`, "paused_by_failure", 8},
+		{"delivery changes preserve user pause", "paused_by_user", `"batchSize":23`, "paused_by_user", 0},
+		{"explicit resume clears failures", "paused_by_user", `"status":"running"`, "running", 0},
+		{"explicit pause", "running", `"status":"paused_by_user"`, "paused_by_user", 8},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			id := uid.New("ld")
