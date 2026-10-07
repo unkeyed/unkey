@@ -2817,12 +2817,12 @@ components:
             properties:
                 cursor:
                     type: string
-                    maxLength: 48
                     minLength: 1
+                    maxLength: 48
                 limit:
                     type: integer
-                    maximum: 100
                     minimum: 1
+                    maximum: 100
                     default: 100
         ListLogdrainsResponse:
             type: object
