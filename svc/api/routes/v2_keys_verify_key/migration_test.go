@@ -10,7 +10,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/hash"
 	"github.com/unkeyed/unkey/pkg/prefixedapikey"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
@@ -76,7 +75,7 @@ func TestKeyVerificationWithMigration(t *testing.T) {
 			Keys: []openapi.V2KeysMigrateKeyData{
 				{
 					Hash:    resendKey.LongTokenHash,
-					Enabled: ptr.P(true),
+					Enabled: new(true),
 				},
 			},
 		}
@@ -89,7 +88,7 @@ func TestKeyVerificationWithMigration(t *testing.T) {
 
 		req := handler.Request{
 			Key:         resendKey.Token,
-			MigrationId: ptr.P(migrationID),
+			MigrationId: new(migrationID),
 		}
 
 		res1 := testutil.CallRoute[handler.Request, handler.Response](h, verifyRoute, headers, req)

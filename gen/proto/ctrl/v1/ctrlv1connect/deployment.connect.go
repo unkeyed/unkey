@@ -53,9 +53,9 @@ type DeployServiceClient interface {
 	GetDeployment(context.Context, *connect.Request[v1.GetDeploymentRequest]) (*connect.Response[v1.GetDeploymentResponse], error)
 	// Authorize deployment for an external contributor's push on a branch
 	AuthorizeDeployment(context.Context, *connect.Request[v1.AuthorizeDeploymentRequest]) (*connect.Response[v1.AuthorizeDeploymentResponse], error)
-	// Cancel a running or queued deployment. Cancels the underlying Restate
-	// Deploy invocation, which triggers the workflow's compensation stack to
-	// transition the deployment to failed and release any held build slot.
+	// Cancel a running or queued deployment. Marks the row cancelled and cancels
+	// the Restate Deploy invocation; Restate cancels a queued or running Build
+	// with it.
 	// Idempotent: returns success if the deployment is already terminal.
 	CancelDeployment(context.Context, *connect.Request[v1.CancelDeploymentRequest]) (*connect.Response[v1.CancelDeploymentResponse], error)
 	// DeprovisionCompute tears down a workspace's Compute: it stops all running
@@ -139,9 +139,9 @@ type DeployServiceHandler interface {
 	GetDeployment(context.Context, *connect.Request[v1.GetDeploymentRequest]) (*connect.Response[v1.GetDeploymentResponse], error)
 	// Authorize deployment for an external contributor's push on a branch
 	AuthorizeDeployment(context.Context, *connect.Request[v1.AuthorizeDeploymentRequest]) (*connect.Response[v1.AuthorizeDeploymentResponse], error)
-	// Cancel a running or queued deployment. Cancels the underlying Restate
-	// Deploy invocation, which triggers the workflow's compensation stack to
-	// transition the deployment to failed and release any held build slot.
+	// Cancel a running or queued deployment. Marks the row cancelled and cancels
+	// the Restate Deploy invocation; Restate cancels a queued or running Build
+	// with it.
 	// Idempotent: returns success if the deployment is already terminal.
 	CancelDeployment(context.Context, *connect.Request[v1.CancelDeploymentRequest]) (*connect.Response[v1.CancelDeploymentResponse], error)
 	// DeprovisionCompute tears down a workspace's Compute: it stops all running

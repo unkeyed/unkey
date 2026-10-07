@@ -1,10 +1,5 @@
 import type { TimeUnit } from "@unkey/ui";
-import { type ClassValue, clsx } from "clsx";
-import { twMerge } from "tailwind-merge";
 
-export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
-}
 export const isBrowser = typeof window !== "undefined";
 
 export function debounce<T extends (...args: unknown[]) => unknown>(func: T, delay: number) {
@@ -132,40 +127,14 @@ export function throttle<T extends (...args: unknown[]) => unknown>(
 
 export const DEFAULT_LOGS_SINCE = "6h";
 
-export const getTimestampFromRelative = (relativeTime: string): number => {
-  if (!relativeTime.match(/^(\d+[whdm])+$/)) {
-    throw new Error(
-      'Invalid relative time format. Expected format: combination of numbers followed by w, h, d, or m (e.g., "1h", "2d", "30m", "1w", "1w2d")',
-    );
-  }
-  let totalMilliseconds = 0;
-  for (const [, amount, unit] of relativeTime.matchAll(/(\d+)([whdm])/g)) {
-    const value = Number.parseInt(amount, 10);
-    switch (unit) {
-      case "w":
-        totalMilliseconds += value * 7 * 24 * 60 * 60 * 1000;
-        break;
-      case "h":
-        totalMilliseconds += value * 60 * 60 * 1000;
-        break;
-      case "d":
-        totalMilliseconds += value * 24 * 60 * 60 * 1000;
-        break;
-      case "m":
-        totalMilliseconds += value * 60 * 1000;
-        break;
-    }
-  }
-  return Date.now() - totalMilliseconds;
-};
-
 export const processTimeFilters = (date?: Date, newTime?: TimeUnit) => {
   if (date) {
     const hours = newTime?.HH ? Number.parseInt(newTime.HH) : 0;
     const minutes = newTime?.mm ? Number.parseInt(newTime.mm) : 0;
     const seconds = newTime?.ss ? Number.parseInt(newTime.ss) : 0;
-    date.setHours(hours, minutes, seconds, 0);
-    return date;
+    const newDate = new Date(date);
+    newDate.setHours(hours, minutes, seconds, 0);
+    return newDate;
   }
   const now = new Date();
   return now;

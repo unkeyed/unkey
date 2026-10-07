@@ -73,9 +73,18 @@ func sourceFiles(root string) ([]string, error) {
 	parts := bytes.Split(output, []byte{0})
 	paths := make([]string, 0, len(parts))
 	for _, part := range parts {
-		if len(part) > 0 {
-			paths = append(paths, string(part))
+		if len(part) == 0 {
+			continue
 		}
+		path := string(part)
+		_, statErr := os.Stat(filepath.Join(root, filepath.FromSlash(path)))
+		if errors.Is(statErr, os.ErrNotExist) {
+			continue
+		}
+		if statErr != nil {
+			return nil, fmt.Errorf("stat %s: %w", path, statErr)
+		}
+		paths = append(paths, path)
 	}
 	return paths, nil
 }

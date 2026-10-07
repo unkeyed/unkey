@@ -1,0 +1,43 @@
+---
+title: "role_already_exists"
+sidebarTitle: "role_already_exists"
+description: "A role with that name already exists in the workspace."
+sources:
+  - pkg/codes/unkey_data.go
+  - svc/api/internal/middleware/errors.go
+  - svc/api/routes/v2_permissions_create_role/handler.go
+  - web/internal/db/src/schema/rbac.ts
+---
+
+<Danger>`err:unkey:data:role_already_exists`</Danger>
+
+A role with the same name already exists in your workspace, so `permissions.createRole` didn't create one. You get HTTP 409.
+
+```json Example response
+{
+  "meta": {
+    "requestId": "req_2c9a0jf23l4k567"
+  },
+  "error": {
+    "detail": "A role with name 'admin' already exists in this workspace",
+    "status": 409,
+    "title": "Conflicting Resource",
+    "type": "/errors/unkey/data/role_already_exists"
+  }
+}
+```
+
+## Likely causes
+
+- You already created this role. Role names are unique per workspace, and separately per project.
+- The name differs only in case. `Admin` clashes with an existing `admin`.
+
+## How to fix
+
+1. Reuse the existing role (find it with `permissions.listRoles`), or choose another name.
+2. To change what a role grants, use `permissions.setRolePermissions` on the existing role instead of creating a second one.
+
+## Related errors
+
+- [`err:unkey:data:role_not_found`](/errors/unkey/data/role_not_found): a referenced role doesn't exist.
+- [`err:unkey:data:permission_already_exists`](/errors/unkey/data/permission_already_exists): a permission slug collides.

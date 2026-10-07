@@ -1,0 +1,103 @@
+---
+title: Usage-based billing with credits
+sidebarTitle: "Usage-based billing"
+description: "Meter and bill API usage with credits."
+sources:
+  - svc/api/openapi/spec/common/KeyCreditsData.yaml
+  - svc/api/openapi/spec/common/KeyCreditsRefill.yaml
+  - svc/api/openapi/spec/paths/v2/keys/verifyKey/KeysVerifyKeyCredits.yaml
+  - svc/api/openapi/spec/paths/v2/keys/updateCredits/V2KeysUpdateCreditsRequestBody.yaml
+  - svc/api/openapi/spec/paths/v2/keys/createKey/V2KeysCreateKeyRequestBody.yaml
+  - svc/api/openapi/spec/paths/v2/keys/createKey/V2KeysCreateKeyResponseData.yaml
+  - svc/api/openapi/spec/paths/v2/keys/verifyKey/V2KeysVerifyKeyRequestBody.yaml
+  - svc/api/openapi/spec/paths/v2/keys/verifyKey/V2KeysVerifyKeyResponseData.yaml
+  - svc/ctrl/internal/db/queries/key_list_for_refill.sql
+  - svc/ctrl/internal/db/queries/key_refill_by_ids.sql
+---
+import RootKeyPrereq from "/snippets/root-key-prereq.mdx";
+
+**Outcome:** each customer gets a monthly allowance, heavy operations cost more than light ones, a customer who runs out gets a 402, and a purchased top-up works on the next request. Unkey does the counting.
+
+<RootKeyPrereq />
+
+## Give the key a monthly allowance
+
+`credits.remaining` is the balance and `credits.refill` resets it on a schedule. A monthly refill needs a `refillDay` (in shorter months it runs on the last day). A refill resets the balance to `refill.amount` rather than adding to it, so unused credits don't roll over.
+
+```bash 10,000 requests a month, reset on the 1st
+curl -X POST https://api.unkey.com/v2/keys.createKey \
+  -H "Authorization: Bearer $UNKEY_ROOT_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "apiId": "api_...",
+    "externalId": "customer_123",
+    "credits": {
+      "remaining": 10000,
+      "refill": { "interval": "monthly", "amount": 10000, "refillDay": 1 }
+    }
+  }'
+```
+
+## Charge per operation
+
+Each verification spends `credits.cost`, 1 by default. Set the cost per operation: a bulk export might cost 50 and a status check 0. A request that fails any other check, such as a rate limit or permission, spends nothing.
+
+```ts src/billing.ts
+import { Unkey } from "@unkey/api";
+
+const unkey = new Unkey({ rootKey: process.env.UNKEY_ROOT_KEY ?? "" });
+
+const COST: Record<string, number> = {
+  "GET /v1/status": 0,
+  "GET /v1/items": 1,
+  "POST /v1/export": 50,
+};
+
+export async function meter(key: string, route: string) {
+  const result = await unkey.keys.verifyKey({
+    key,
+    credits: { cost: COST[route] ?? 1 },
+    tags: [`route=${route}`],
+  });
+
+  if (!result.data.valid) {
+    if (result.data.code === "USAGE_EXCEEDED") {
+      // data.credits is the unchanged balance; nothing was deducted.
+      return { ok: false as const, status: 402, remaining: result.data.credits ?? 0 };
+    }
+    return { ok: false as const, status: 401, remaining: result.data.credits };
+  }
+  // data.credits is the balance after this call. Surface it so clients can plan.
+  return { ok: true as const, remaining: result.data.credits, customer: result.data.identity?.externalId };
+}
+```
+
+Return the balance in a header such as `X-Credits-Remaining` so customers can see it. Analytics records the credits spent per key and identity, so you can build invoices from it.
+
+## Sell top-ups and change plans
+
+`keys.updateCredits` changes the balance and leaves the refill schedule alone. Use `increment` when a customer buys credits, `decrement` to take some back, and `set` for a new balance. `set` with `value: null` makes the key unlimited, for example for an enterprise plan with no cap.
+
+<CodeGroup>
+```bash add 5,000 purchased credits
+curl -X POST https://api.unkey.com/v2/keys.updateCredits \
+  -H "Authorization: Bearer $UNKEY_ROOT_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{ "keyId": "key_...", "operation": "increment", "value": 5000 }'
+```
+```ts TypeScript
+await unkey.keys.updateCredits({ keyId, operation: "increment", value: 5000 });
+```
+</CodeGroup>
+
+To change the monthly allowance, use `keys.updateKey` with a new `credits.refill.amount`. It applies at the next refill.
+
+<Warning>
+A refill never lowers a balance, but it doesn't add to one either. If a top-up leaves the customer below their allowance, the next refill wipes it out. If it leaves them above, the refill skips them. To make top-ups always add on top, track them in your own records and re-apply them after the refill day, or sell them as a separate key with no refill.
+</Warning>
+
+## Related
+
+- [Credits and refill](/api-management/keys/credits-and-refill) for every field and the refill schedule.
+- [Verifying keys](/api-management/keys/verifying-keys) for why credits are checked last.
+- [Tiered subscriptions](/api-management/cookbook/tiered-subscriptions) for combining credits with limits and permissions per plan.

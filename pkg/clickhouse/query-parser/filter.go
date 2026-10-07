@@ -79,6 +79,21 @@ func (p *Parser) injectSecurityFilters() {
 
 }
 
+func (p *Parser) injectSecurityScopes() {
+	if p.config.SecurityScopes == nil {
+		return
+	}
+
+	walkQueryIncludingExcept(p.stmt, func(node clickhouse.Expr) bool {
+		if selectQuery, ok := node.(*clickhouse.SelectQuery); ok {
+			for _, source := range p.directTableSources(selectQuery) {
+				p.injectSecurityScopeOnSelect(selectQuery, source)
+			}
+		}
+		return true
+	})
+}
+
 // directTableSources returns the qualifiers for physical tables in this SELECT's
 // FROM clause. It deliberately does not descend into subqueries, which are
 // visited and filtered as independent SELECT nodes by the caller's AST walk.
@@ -129,37 +144,65 @@ func cloneIdentifier(ident clickhouse.Ident) *clickhouse.Ident {
 	return &clone
 }
 
+func (p *Parser) injectSecurityScopeOnSelect(stmt *clickhouse.SelectQuery, source clickhouse.Ident) {
+	var allowed clickhouse.Expr
+	for _, scope := range p.config.SecurityScopes {
+		var scoped clickhouse.Expr
+		for _, filter := range scope.Filters {
+			scoped = combineExpressions(scoped, "AND", securityFilterExpression(source, filter))
+		}
+		if scoped == nil {
+			scoped = &clickhouse.NumberLiteral{Literal: "0"}
+		}
+		allowed = combineExpressions(allowed, "OR", parenthesize(scoped))
+	}
+	if allowed == nil {
+		allowed = &clickhouse.NumberLiteral{Literal: "0"}
+	}
+	allowed = parenthesize(allowed)
+
+	if stmt.Where == nil {
+		stmt.Where = &clickhouse.WhereClause{Expr: allowed}
+		return
+	}
+	stmt.Where.Expr = &clickhouse.BinaryOperation{
+		LeftExpr:  allowed,
+		Operation: "AND",
+		RightExpr: parenthesize(stmt.Where.Expr),
+	}
+}
+
+func combineExpressions(left clickhouse.Expr, operation clickhouse.TokenKind, right clickhouse.Expr) clickhouse.Expr {
+	if left == nil {
+		return right
+	}
+	return &clickhouse.BinaryOperation{LeftExpr: left, Operation: operation, RightExpr: right}
+}
+
+func securityFilterExpression(source clickhouse.Ident, securityFilter SecurityFilter) clickhouse.Expr {
+	if len(securityFilter.AllowedValues) == 0 {
+		return &clickhouse.NumberLiteral{Literal: "0"}
+	}
+
+	items := make([]clickhouse.Expr, len(securityFilter.AllowedValues))
+	for i, value := range securityFilter.AllowedValues {
+		items[i] = &clickhouse.ColumnExpr{Expr: &clickhouse.StringLiteral{Literal: value}}
+	}
+	return &clickhouse.BinaryOperation{
+		LeftExpr: &clickhouse.NestedIdentifier{
+			Ident:    cloneIdentifier(source),
+			DotIdent: &clickhouse.Ident{Name: securityFilter.Column},
+		},
+		Operation: "IN",
+		RightExpr: &clickhouse.ParamExprList{
+			Items: &clickhouse.ColumnExprList{Items: items},
+		},
+	}
+}
+
 // injectSecurityFilterOnSelect injects a security filter on a single SELECT statement
 func (p *Parser) injectSecurityFilterOnSelect(stmt *clickhouse.SelectQuery, source clickhouse.Ident, securityFilter SecurityFilter) {
-	var filter clickhouse.Expr
-	if len(securityFilter.AllowedValues) == 0 {
-		// Fail closed: no allowed values means no rows are visible. We cannot
-		// emit `{column} IN ()` since an empty IN list is a syntax error in
-		// ClickHouse, so we use a constant-false predicate instead.
-		filter = &clickhouse.NumberLiteral{Literal: "0"}
-	} else {
-		// Build IN list: {column} IN ('val1', 'val2', ...)
-		items := make([]clickhouse.Expr, len(securityFilter.AllowedValues))
-		for i, value := range securityFilter.AllowedValues {
-			items[i] = &clickhouse.ColumnExpr{
-				Expr: &clickhouse.StringLiteral{
-					Literal: value,
-				},
-			}
-		}
-
-		// Create filter using column name
-		filter = &clickhouse.BinaryOperation{
-			LeftExpr: &clickhouse.NestedIdentifier{
-				Ident:    cloneIdentifier(source),
-				DotIdent: &clickhouse.Ident{Name: securityFilter.Column},
-			},
-			Operation: "IN",
-			RightExpr: &clickhouse.ParamExprList{
-				Items: &clickhouse.ColumnExprList{Items: items},
-			},
-		}
-	}
+	filter := securityFilterExpression(source, securityFilter)
 
 	// Add to WHERE clause
 	if stmt.Where == nil {

@@ -1,0 +1,46 @@
+---
+title: "query_range_exceeds_retention"
+sidebarTitle: "query_range_exceeds_retention"
+description: "The analytics query asks for data older than the workspace's retention window."
+sources:
+  - pkg/codes/user_request.go
+  - svc/api/internal/middleware/errors.go
+  - pkg/clickhouse/query-parser/time_range.go
+  - internal/services/analytics/executor.go
+---
+
+<Danger>`err:user:bad_request:query_range_exceeds_retention`</Danger>
+
+The time filter in your analytics query asks for data older than your workspace keeps. You get HTTP 400, and `detail` gives the earliest date you can query and the date you asked for.
+
+```json Example response
+{
+  "meta": {
+    "requestId": "req_2c9a0jf23l4k567"
+  },
+  "error": {
+    "detail": "Cannot query data older than 30 days. Your query attempts to access data from 2026-07-01, but only data from 2026-08-23 onwards is available.",
+    "status": 400,
+    "title": "Bad Request",
+    "type": "/errors/user/bad_request/query_range_exceeds_retention",
+    "errors": []
+  }
+}
+```
+
+## Likely causes
+
+- The lower bound on `time` (with `>`, `>=`, `=`, or `BETWEEN`) goes back further than your plan's retention.
+
+We check bounds written as a literal timestamp or date, `today()`, or `now()` with `INTERVAL N UNIT`, such as `now() - INTERVAL 90 DAY`. A bound written another way, such as `toIntervalDay(90)`, or no lower bound at all, isn't rejected. The query runs, and rows older than your retention are left out without an error.
+
+## How to fix
+
+1. Move the lower bound to the date in `detail` or later.
+2. If you need older data, move to a plan with longer retention. See [Limits](/platform/billing/limits).
+3. To keep data long-term, schedule exports that run inside the retention window.
+
+## Related errors
+
+- [`err:user:bad_request:invalid_analytics_query`](/errors/user/bad_request/invalid_analytics_query): the query failed for another structural reason.
+- [`err:user:too_many_requests:query_quota_exceeded`](/errors/user/too_many_requests/query_quota_exceeded): the workspace used up its analytics query quota.

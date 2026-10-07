@@ -7,7 +7,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/portal"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
@@ -29,7 +28,7 @@ func TestGetPortalAuthorizesAdminURN(t *testing.T) {
 	rootKey := h.CreateRootKey(workspace.ID, fmt.Sprintf("unkey:v1:%s:**#*", workspace.ID))
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headersFor(rootKey), handler.Request{
-		Portal:     ptr.P(stored.Slug),
+		Portal:     new(stored.Slug),
 		KeyspaceId: nil,
 		AppId:      nil,
 	})
@@ -79,7 +78,7 @@ func TestGetPortalAuthorizesCanonicalPortalURNs(t *testing.T) {
 				fmt.Sprintf("unkey:v1:%s:%s#%s", workspace.ID, tc.resource, tc.action))
 
 			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headersFor(rootKey), handler.Request{
-				Portal:     ptr.P(stored.Slug),
+				Portal:     new(stored.Slug),
 				KeyspaceId: nil,
 				AppId:      nil,
 			})

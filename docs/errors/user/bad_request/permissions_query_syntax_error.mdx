@@ -1,0 +1,51 @@
+---
+title: "permissions_query_syntax_error"
+sidebarTitle: "permissions_query_syntax_error"
+description: "The permissions query passed to keys.verifyKey could not be parsed."
+sources:
+  - pkg/codes/user_request.go
+  - svc/api/internal/middleware/errors.go
+  - svc/api/routes/v2_keys_verify_key/handler.go
+  - pkg/rbac/lexer.go
+  - pkg/rbac/parser.go
+---
+
+<Danger>`err:user:bad_request:permissions_query_syntax_error`</Danger>
+
+The `permissions` string you sent to `keys.verifyKey` isn't a valid permission query. You get HTTP 400 before the key is checked, and `detail` gives the position of the problem and what was expected there.
+
+```json Example response
+{
+  "meta": {
+    "requestId": "req_2c9a0jf23l4k567"
+  },
+  "error": {
+    "detail": "Missing closing parenthesis ')' at position 24. Every opening parenthesis must have a matching closing parenthesis.",
+    "status": 400,
+    "title": "Bad Request",
+    "type": "/errors/user/bad_request/permissions_query_syntax_error",
+    "errors": []
+  }
+}
+```
+
+## Likely causes
+
+- You wrote `&&` or `||` instead of `AND` or `OR`.
+- You put quotes around slugs.
+- A `(` has no matching `)`, or a group is empty: `()`.
+- A slug has a character outside the allowed set: letters, numbers, dots, underscores, hyphens, slashes, colons, asterisks, and parentheses.
+- A token is where an operator or slug was expected, or the query is blank.
+
+If you pass an array of slugs instead of a string, you get [`err:unkey:application:invalid_input`](/errors/unkey/application/invalid_input) instead.
+
+## How to fix
+
+1. Fix the query at the position named in `detail`.
+2. Write it as slugs joined with `AND` and `OR`, grouped with parentheses. For example: `documents.read AND (billing.read OR billing.write)`.
+3. If you build the query from user input, validate it first. A syntax error fails the whole request instead of returning `valid: false`.
+
+## Related errors
+
+- [`err:unkey:authorization:insufficient_permissions`](/errors/unkey/authorization/insufficient_permissions): the query parsed but your root key lacks a permission the endpoint needs.
+- [`err:unkey:application:invalid_input`](/errors/unkey/application/invalid_input): another field of the request failed validation.

@@ -38,7 +38,7 @@ export type LogdrainConfig = {
   | {
       kind: "http";
       url: string;
-      format: "json" | "ndjson";
+      format: "json" | "ndjson" | "hec";
       headers: EncryptedHttpHeader[];
     }
   | {
@@ -63,7 +63,7 @@ export function encodeLogdrainConfig(config: LogdrainConfig): Buffer {
               case: config.kind,
               value: {
                 url: config.url,
-                format: config.format === "ndjson" ? HttpBodyFormat.NDJSON : HttpBodyFormat.JSON,
+                format: encodeHttpFormat(config.format),
                 headers: config.headers,
               },
             },
@@ -266,13 +266,28 @@ export function toPublicLogdrainConfig(config: LogdrainConfig) {
   }
 }
 
-function decodeHttpFormat(format: HttpBodyFormat): "json" | "ndjson" {
+function encodeHttpFormat(format: "json" | "ndjson" | "hec"): HttpBodyFormat {
+  switch (format) {
+    case "json":
+      return HttpBodyFormat.JSON;
+    case "ndjson":
+      return HttpBodyFormat.NDJSON;
+    case "hec":
+      return HttpBodyFormat.HEC;
+    default:
+      throw new Error(`Unknown HTTP body format ${format satisfies never}`);
+  }
+}
+
+function decodeHttpFormat(format: HttpBodyFormat): "json" | "ndjson" | "hec" {
   switch (format) {
     case HttpBodyFormat.UNSPECIFIED:
     case HttpBodyFormat.JSON:
       return "json";
     case HttpBodyFormat.NDJSON:
       return "ndjson";
+    case HttpBodyFormat.HEC:
+      return "hec";
     default:
       throw new Error(`Unknown HTTP body format ${format}`);
   }

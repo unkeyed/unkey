@@ -17,8 +17,6 @@ import (
 	"strings"
 
 	"github.com/unkeyed/unkey/pkg/codes"
-	"golang.org/x/text/cases"
-	"golang.org/x/text/language"
 )
 
 // commentMap stores comments for types and fields
@@ -243,7 +241,7 @@ func processCategory(f *os.File, systemName, domainName, categoryName, domain st
 // generateMissingMDXFiles creates MDX documentation files for error codes that don't have them
 func generateMissingMDXFiles(errorCodes []ErrorCodeInfo) error {
 	// Get the base docs directory path (relative to this file)
-	baseDocsPath := filepath.Join("..", "..", "docs", "product", "errors")
+	baseDocsPath := filepath.Join("..", "..", "docs", "errors")
 
 	created := 0
 	skipped := 0
@@ -303,7 +301,7 @@ description: "%s"
 
 // removeObsoleteMDXFiles deletes MDX files that don't have corresponding error codes
 func removeObsoleteMDXFiles(errorCodes []ErrorCodeInfo) error {
-	baseDocsPath := filepath.Join("..", "..", "docs", "product", "errors")
+	baseDocsPath := filepath.Join("..", "..", "docs", "errors")
 
 	// Build a set of valid file paths from error codes
 	validPaths := make(map[string]bool)
@@ -364,7 +362,7 @@ func removeObsoleteMDXFiles(errorCodes []ErrorCodeInfo) error {
 
 // updateDocsJSON updates the docs.json navigation to include all error pages
 func updateDocsJSON(errorCodes []ErrorCodeInfo) error {
-	docsJSONPath := filepath.Join("..", "..", "docs", "product", "docs.json")
+	docsJSONPath := filepath.Join("..", "..", "docs", "docs.json")
 
 	// Read existing docs.json
 	data, err := os.ReadFile(docsJSONPath)
@@ -384,41 +382,9 @@ func updateDocsJSON(errorCodes []ErrorCodeInfo) error {
 		return fmt.Errorf("navigation not found in docs.json")
 	}
 
-	tabs, ok := navigation["tabs"].([]interface{})
-	if !ok {
-		return fmt.Errorf("tabs not found in navigation")
-	}
-
-	// Find the Documentation tab
-	var docsTab map[string]interface{}
-	for _, tab := range tabs {
-		t := tab.(map[string]interface{})
-		if t["tab"] == "Documentation" {
-			docsTab = t
-			break
-		}
-	}
-
-	if docsTab == nil {
-		return fmt.Errorf("Documentation tab not found")
-	}
-
-	groups := docsTab["groups"].([]interface{})
-
-	// Find the Errors group (should be one of the top-level groups)
-	var errorsGroup map[string]interface{}
-	var errorsGroupIndex int
-	for i, group := range groups {
-		g := group.(map[string]interface{})
-		if g["group"] == "Errors" {
-			errorsGroup = g
-			errorsGroupIndex = i
-			break
-		}
-	}
-
-	if errorsGroup == nil {
-		return fmt.Errorf("Errors group not found in groups")
+	errorsGroup, err := findErrorsGroup(navigation)
+	if err != nil {
+		return err
 	}
 
 	// Organize error codes by category
@@ -434,10 +400,9 @@ func updateDocsJSON(errorCodes []ErrorCodeInfo) error {
 
 	addCategory := func(m map[string]*ErrorCategory, category, errorPath string) {
 		if _, exists := m[category]; !exists {
-			titleName := strings.ReplaceAll(category, "_", " ")
-			caser := cases.Title(language.English)
+			name := strings.ReplaceAll(category, "_", " ")
 			m[category] = &ErrorCategory{
-				Name:  caser.String(titleName),
+				Name:  strings.ToUpper(name[:1]) + name[1:],
 				Path:  category,
 				Files: []string{},
 			}
@@ -508,7 +473,7 @@ func updateDocsJSON(errorCodes []ErrorCodeInfo) error {
 	}
 
 	errorPages = append(errorPages, map[string]interface{}{
-		"group": "Unkey Errors",
+		"group": "Unkey errors",
 		"pages": unkeyErrorsPages,
 	})
 
@@ -540,7 +505,7 @@ func updateDocsJSON(errorCodes []ErrorCodeInfo) error {
 	}
 
 	errorPages = append(errorPages, map[string]interface{}{
-		"group": "User Errors",
+		"group": "User errors",
 		"pages": userErrorsPages,
 	})
 
@@ -567,21 +532,20 @@ func updateDocsJSON(errorCodes []ErrorCodeInfo) error {
 
 	if len(frontlineErrorsPages) > 0 {
 		errorPages = append(errorPages, map[string]interface{}{
-			"group": "Frontline Errors",
+			"group": "Frontline errors",
 			"pages": frontlineErrorsPages,
 		})
 	}
 
 	// Update the errors group
 	errorsGroup["pages"] = errorPages
-	groups[errorsGroupIndex] = errorsGroup
-	docsTab["groups"] = groups
 
 	// Write back to docs.json with nice formatting
 	updatedJSON, err := json.MarshalIndent(docsConfig, "", "  ")
 	if err != nil {
 		return fmt.Errorf("failed to marshal docs.json: %w", err)
 	}
+	updatedJSON = append(updatedJSON, '\n')
 
 	if err := os.WriteFile(docsJSONPath, updatedJSON, 0644); err != nil {
 		return fmt.Errorf("failed to write docs.json: %w", err)
@@ -589,4 +553,42 @@ func updateDocsJSON(errorCodes []ErrorCodeInfo) error {
 
 	fmt.Println("Updated docs.json with all error pages")
 	return nil
+}
+
+// findErrorsGroup searches every product and tab for the "Errors" group so the
+// generator survives the group moving between tabs.
+func findErrorsGroup(navigation map[string]interface{}) (map[string]interface{}, error) {
+	products, ok := navigation["products"].([]interface{})
+	if !ok {
+		return nil, fmt.Errorf("products not found in navigation")
+	}
+
+	for _, product := range products {
+		p, ok := product.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		tabs, ok := p["tabs"].([]interface{})
+		if !ok {
+			continue
+		}
+		for _, tab := range tabs {
+			t, ok := tab.(map[string]interface{})
+			if !ok {
+				continue
+			}
+			groups, ok := t["groups"].([]interface{})
+			if !ok {
+				continue
+			}
+			for _, group := range groups {
+				g, ok := group.(map[string]interface{})
+				if ok && g["group"] == "Errors" {
+					return g, nil
+				}
+			}
+		}
+	}
+
+	return nil, fmt.Errorf("Errors group not found in navigation")
 }

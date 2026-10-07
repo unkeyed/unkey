@@ -110,7 +110,7 @@ export function InternalDevTreeGenerator({ onGenerate, onReset }: DevTreeGenerat
       <Button
         variant="outline"
         onClick={() => setIsOpen(true)}
-        className="pointer-events-auto fixed bottom-4 right-4 rounded-full shadow-lg transition-colors"
+        className="pointer-events-auto fixed bottom-4 right-4 rounded-full shadow-floating transition-colors"
         title="Tree Generator"
       >
         <IconLayers3Outline18 className="size-3" />
@@ -119,10 +119,10 @@ export function InternalDevTreeGenerator({ onGenerate, onReset }: DevTreeGenerat
   }
 
   return (
-    <div className="pointer-events-auto fixed bottom-4 right-4 z-50 w-80 bg-gray-1 border border-grayA-6 rounded-lg shadow-xl">
-      <div className="flex items-center justify-between p-3 border-b border-grayA-4">
+    <div className="pointer-events-auto fixed bottom-4 right-4 z-50 w-80 bg-raised rounded-lg shadow-floating">
+      <div className="flex items-center justify-between p-3 border-b">
         <div className="flex items-center gap-2">
-          <IconLayers3Outline18 className="size-3 text-accent-9" />
+          <IconLayers3Outline18 className="size-3 text-gray-9" />
           <span className="font-medium text-sm">Tree Generator</span>
         </div>
         <Button onClick={() => setIsOpen(false)}>
@@ -149,7 +149,7 @@ export function InternalDevTreeGenerator({ onGenerate, onReset }: DevTreeGenerat
                   setCustomConfig(preset.config);
                 }}
                 disabled={generateMutation.isLoading}
-                className="text-left px-3 py-2 rounded-sm border border-grayA-4 text-xs transition-colors"
+                className="text-left px-3 py-2 rounded-sm border text-xs transition-colors"
               >
                 {preset.label}
               </Button>
@@ -158,7 +158,7 @@ export function InternalDevTreeGenerator({ onGenerate, onReset }: DevTreeGenerat
         </div>
 
         {/* Custom Configuration */}
-        <div className="flex flex-col gap-3 pt-3 border-t border-grayA-4">
+        <div className="flex flex-col gap-3 pt-3 border-t">
           <div className="text-xs font-medium text-gray-11">Custom</div>
 
           {/* Regions */}
@@ -195,7 +195,7 @@ export function InternalDevTreeGenerator({ onGenerate, onReset }: DevTreeGenerat
                     }))
                   }
                   disabled={generateMutation.isLoading}
-                  className="flex-1 px-2 py-1 text-xs rounded-sm border border-grayA-4 bg-gray-1"
+                  className="flex-1 px-2 py-1 text-xs rounded-sm border bg-gray-1"
                 >
                   <option value="horizontal">Horizontal (side-by-side)</option>
                   <option value="vertical">Vertical (stacked)</option>
@@ -212,7 +212,7 @@ export function InternalDevTreeGenerator({ onGenerate, onReset }: DevTreeGenerat
                     }))
                   }
                   disabled={generateMutation.isLoading}
-                  className="flex-1 px-2 py-1 text-xs rounded-sm border border-grayA-4 bg-gray-1"
+                  className="flex-1 px-2 py-1 text-xs rounded-sm border bg-gray-1"
                 >
                   <option value="horizontal">Horizontal (side-by-side)</option>
                   <option value="vertical">Vertical (stacked)</option>
@@ -278,7 +278,7 @@ export function InternalDevTreeGenerator({ onGenerate, onReset }: DevTreeGenerat
         <Button
           onClick={onReset}
           disabled={generateMutation.isLoading}
-          className="w-full px-3 py-2 rounded-sm text-xs font-medium transition-colors border border-grayA-4"
+          className="w-full px-3 py-2 rounded-sm text-xs font-medium transition-colors border"
         >
           Reset to Original
         </Button>

@@ -4,6 +4,7 @@ package cli
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -71,6 +72,14 @@ func (c *Command) String(name string) string {
 		}
 	}
 	return ""
+}
+
+// JSON decodes a string flag's value into destination.
+func (c *Command) JSON(name string, destination any) error {
+	if err := json.Unmarshal([]byte(c.String(name)), destination); err != nil {
+		return fmt.Errorf("invalid JSON for --%s: %w", name, err)
+	}
+	return nil
 }
 
 // RequireString returns the value of a string flag by name

@@ -1,0 +1,48 @@
+---
+title: "query_quota_exceeded"
+sidebarTitle: "query_quota_exceeded"
+description: "Your workspace used up its analytics query quota for the current window."
+sources:
+  - pkg/codes/user_request.go
+  - svc/api/internal/middleware/errors.go
+  - pkg/clickhouse/errors.go
+  - pkg/clickhouse/user.go
+  - svc/ctrl/worker/clickhouseuser/configure_user_handler.go
+---
+
+<Danger>`err:user:too_many_requests:query_quota_exceeded`</Danger>
+
+Your workspace used up its analytics query quota for the current hour, so this query was refused. You get HTTP 429.
+
+```json Example response
+{
+  "meta": {
+    "requestId": "req_2c9a0jf23l4k567"
+  },
+  "error": {
+    "detail": "Query quota exceeded for the current time window. Please try again later.",
+    "status": 429,
+    "title": "Too Many Requests",
+    "type": "/errors/user/too_many_requests/query_quota_exceeded"
+  }
+}
+```
+
+## Likely causes
+
+- Too many queries. The quota is 1000 queries per rolling hour, unless we've raised it for you.
+- Too much query time. The same hour allows 1800 seconds of combined execution time, so slow queries can run out well before 1000.
+- A dashboard or job polls with many small queries.
+
+## How to fix
+
+1. Wait for the window to roll over, then retry with backoff.
+2. Cache results on your side for dashboards that poll, and combine small queries into one aggregation.
+3. Make queries faster, for example by narrowing time ranges, so they use less of the time budget.
+4. If you need more, contact [support@unkey.com](mailto:support@unkey.com).
+
+See [Analytics restrictions and quotas](/api-management/analytics/restrictions-and-quotas).
+
+## Related errors
+
+- [`err:user:unprocessable_entity:query_execution_timeout`](/errors/user/unprocessable_entity/query_execution_timeout): a single query ran too long.

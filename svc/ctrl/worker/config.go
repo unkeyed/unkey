@@ -241,6 +241,11 @@ type HeartbeatConfig struct {
 	// check orchestrator. When set, a heartbeat is sent after a successful run.
 	// Optional - if empty, no heartbeat is sent.
 	DeploySpendCheckURL string `toml:"deploy_spend_check_url"`
+
+	// BuildLimitSyncURL is the heartbeat URL for the build concurrency rule
+	// sync. When set, a heartbeat is sent after a run confirms the rule is in
+	// the book. Optional - if empty, no heartbeat is sent
+	BuildLimitSyncURL string `toml:"build_limit_sync_url"`
 }
 
 // BillingConfig holds Stripe configuration for the hourly Deploy billing push.

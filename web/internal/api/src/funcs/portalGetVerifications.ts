@@ -37,8 +37,13 @@ import { Result } from "../types/fp.js";
  * Authenticates only with a portal session cookie and always restricts results
  * to verification events attributed to the session's external identity. Unlike
  * `analytics.getVerifications`, this endpoint takes a fixed time window (no
- * query language) and returns a zero-filled, outcome-broken-out timeseries.
- * Bucket granularity is chosen automatically from the window size.
+ * query language) and returns outcome-broken-out counts. Bucket granularity is
+ * chosen automatically from the window size.
+ *
+ * The response carries one zero-filled series per key the end user has
+ * verifications for, so a client can render both a per-key table and an
+ * account-wide chart from one call by summing them. Pass `keyId` to narrow the
+ * window to a single key.
  */
 export function portalGetVerifications(
   client: UnkeyCore,
@@ -52,6 +57,7 @@ export function portalGetVerifications(
     | errors.UnauthorizedErrorResponse
     | errors.ForbiddenErrorResponse
     | errors.NotFoundErrorResponse
+    | errors.UnprocessableEntityErrorResponse
     | errors.TooManyRequestsErrorResponse
     | errors.InternalServerErrorResponse
     | UnkeyError
@@ -85,6 +91,7 @@ async function $do(
       | errors.UnauthorizedErrorResponse
       | errors.ForbiddenErrorResponse
       | errors.NotFoundErrorResponse
+      | errors.UnprocessableEntityErrorResponse
       | errors.TooManyRequestsErrorResponse
       | errors.InternalServerErrorResponse
       | UnkeyError
@@ -192,6 +199,7 @@ async function $do(
     | errors.UnauthorizedErrorResponse
     | errors.ForbiddenErrorResponse
     | errors.NotFoundErrorResponse
+    | errors.UnprocessableEntityErrorResponse
     | errors.TooManyRequestsErrorResponse
     | errors.InternalServerErrorResponse
     | UnkeyError
@@ -208,6 +216,7 @@ async function $do(
     M.jsonErr(401, errors.UnauthorizedErrorResponse$inboundSchema),
     M.jsonErr(403, errors.ForbiddenErrorResponse$inboundSchema),
     M.jsonErr(404, errors.NotFoundErrorResponse$inboundSchema),
+    M.jsonErr(422, errors.UnprocessableEntityErrorResponse$inboundSchema),
     M.jsonErr(429, errors.TooManyRequestsErrorResponse$inboundSchema, {
       ctype: "application/problem+json",
     }),

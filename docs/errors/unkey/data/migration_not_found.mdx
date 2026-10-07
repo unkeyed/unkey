@@ -1,0 +1,43 @@
+---
+title: "migration_not_found"
+sidebarTitle: "migration_not_found"
+description: "The migrationId passed to keys.migrateKeys does not exist in your workspace."
+sources:
+  - pkg/codes/unkey_data.go
+  - svc/api/internal/middleware/errors.go
+  - svc/api/routes/v2_keys_migrate_keys/handler.go
+---
+
+<Danger>`err:unkey:data:migration_not_found`</Danger>
+
+The `migrationId` you sent to `keys.migrateKeys` doesn't exist in your workspace. You get HTTP 404.
+
+```json Example response
+{
+  "meta": {
+    "requestId": "req_2c9a0jf23l4k567"
+  },
+  "error": {
+    "detail": "The requested Migration does not exist or has been deleted.",
+    "status": 404,
+    "title": "Not Found",
+    "type": "/errors/unkey/data/migration_not_found"
+  }
+}
+```
+
+## Likely causes
+
+- The migration ID is for another workspace, such as a staging ID used with a production root key.
+- You don't have a migration ID yet. There's no endpoint to create one: our support team sets up the migration and gives you the ID.
+
+## How to fix
+
+1. Use the `migrationId` we gave you, with a root key from the same workspace. Use the same ID for every batch of the import.
+2. If you don't have one, contact support before you import.
+
+## Related errors
+
+- [`err:unkey:data:api_not_found`](/errors/unkey/data/api_not_found): the target API doesn't exist.
+- [`err:unkey:data:identity_not_found`](/errors/unkey/data/identity_not_found): an identity named in the batch doesn't exist.
+- [`err:unkey:data:permission_not_found`](/errors/unkey/data/permission_not_found): a permission named in the batch doesn't exist.

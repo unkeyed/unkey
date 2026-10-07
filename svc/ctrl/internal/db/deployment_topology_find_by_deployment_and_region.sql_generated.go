@@ -82,7 +82,7 @@ type FindDeploymentTopologyByDeploymentAndRegionRow struct {
 	Port                          int32                           `db:"port"`
 	ShutdownSignal                DeploymentsShutdownSignal       `db:"shutdown_signal"`
 	Healthcheck                   mysqltype.NullHealthcheck       `db:"healthcheck"`
-	K8sNamespace                  sql.NullString                  `db:"k8s_namespace"`
+	K8sNamespace                  string                          `db:"k8s_namespace"`
 	EnvironmentSlug               string                          `db:"environment_slug"`
 	RegionName                    string                          `db:"region_name"`
 	GitRepo                       sql.NullString                  `db:"git_repo"`

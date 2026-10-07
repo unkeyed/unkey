@@ -1,3 +1,4 @@
+import { queryKeys } from "@/lib/query-keys";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { renderHook, waitFor } from "@testing-library/react";
 import type { Portal } from "@unkey/api/models/components";
@@ -21,7 +22,7 @@ vi.mock("@unkey/ui", () => ({
   toast: { error: vi.fn() },
 }));
 
-const { portalQueryKey, usePortal } = await import("./use-portal");
+const { usePortal } = await import("./use-portal");
 
 const portal: Portal = {
   id: "portal_123",
@@ -40,14 +41,14 @@ function wrapperFor(client: QueryClient) {
 describe("usePortal", () => {
   it("keeps rendering the cached portal when a background refetch fails", async () => {
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-    client.setQueryData(portalQueryKey("ks_123"), { found: true, portal });
+    client.setQueryData(queryKeys.portal.detail("ks_123"), { found: true, portal });
     getPortalByKeyspace.mockRejectedValue(new Error("upstream exploded"));
 
     const { result } = renderHook(() => usePortal("ks_123"), { wrapper: wrapperFor(client) });
 
     // The refetch fires immediately because the seeded row is already stale.
     await waitFor(() => {
-      expect(client.getQueryState(portalQueryKey("ks_123"))?.error).toBeTruthy();
+      expect(client.getQueryState(queryKeys.portal.detail("ks_123"))?.error).toBeTruthy();
     });
 
     // A single failed focus/reconnect refetch must not unmount the

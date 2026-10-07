@@ -27,6 +27,7 @@ import (
 	v2DeployGetDeployment "github.com/unkeyed/unkey/svc/api/routes/v2_deploy_get_deployment"
 	v2DeploymentsCreateDeployment "github.com/unkeyed/unkey/svc/api/routes/v2_deployments_create_deployment"
 	v2DeploymentsGetDeployment "github.com/unkeyed/unkey/svc/api/routes/v2_deployments_get_deployment"
+	v2DeploymentsListBuildLogs "github.com/unkeyed/unkey/svc/api/routes/v2_deployments_list_build_logs"
 	v2DeploymentsListDeployments "github.com/unkeyed/unkey/svc/api/routes/v2_deployments_list_deployments"
 	v2DeploymentsPromoteDeployment "github.com/unkeyed/unkey/svc/api/routes/v2_deployments_promote_deployment"
 	v2DeploymentsRollbackDeployment "github.com/unkeyed/unkey/svc/api/routes/v2_deployments_rollback_deployment"
@@ -65,6 +66,11 @@ import (
 	v2KeysUpdateKey "github.com/unkeyed/unkey/svc/api/routes/v2_keys_update_key"
 	v2KeysVerifyKey "github.com/unkeyed/unkey/svc/api/routes/v2_keys_verify_key"
 	v2KeysWhoami "github.com/unkeyed/unkey/svc/api/routes/v2_keys_whoami"
+	v2RootKeysCreateKey "github.com/unkeyed/unkey/svc/api/routes/v2_root_keys_create_key"
+	v2RootKeysDeleteKey "github.com/unkeyed/unkey/svc/api/routes/v2_root_keys_delete_key"
+	v2RootKeysListKeys "github.com/unkeyed/unkey/svc/api/routes/v2_root_keys_list_keys"
+	v2RootKeysRerollKey "github.com/unkeyed/unkey/svc/api/routes/v2_root_keys_reroll_key"
+	v2RootKeysUpdateKey "github.com/unkeyed/unkey/svc/api/routes/v2_root_keys_update_key"
 
 	v2AnalyticsGetGatewayRequests "github.com/unkeyed/unkey/svc/api/routes/v2_analytics_get_gateway_requests"
 	v2AnalyticsGetRatelimits "github.com/unkeyed/unkey/svc/api/routes/v2_analytics_get_ratelimits"
@@ -78,7 +84,9 @@ import (
 	v2PortalGetPortal "github.com/unkeyed/unkey/svc/api/routes/v2_portal_get_portal"
 	v2PortalGetVerifications "github.com/unkeyed/unkey/svc/api/routes/v2_portal_get_verifications"
 	v2PortalListKeys "github.com/unkeyed/unkey/svc/api/routes/v2_portal_list_keys"
+	v2PortalListSessions "github.com/unkeyed/unkey/svc/api/routes/v2_portal_list_sessions"
 	v2PortalRerollKey "github.com/unkeyed/unkey/svc/api/routes/v2_portal_reroll_key"
+	v2PortalRevokeSession "github.com/unkeyed/unkey/svc/api/routes/v2_portal_revoke_session"
 	v2PortalUpdatePortal "github.com/unkeyed/unkey/svc/api/routes/v2_portal_update_portal"
 
 	v2AppsCreateApp "github.com/unkeyed/unkey/svc/api/routes/v2_apps_create_app"
@@ -130,6 +138,12 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 	withErrorHandling := middleware.WithErrorHandling()
 	withValidation := zen.WithValidation(svc.Validator)
 	withTimeout := zen.WithTimeout(time.Minute)
+	srv.RegisterRoutingErrors([]zen.Middleware{
+		withPanicRecovery,
+		withLogging,
+		withErrorHandling,
+	})
+
 	withAuthentication := middleware.WithAuthentication(middleware.AuthenticationConfig{
 		Auth:             svc.Auth,
 		KeyVerifications: svc.KeyVerifications,
@@ -395,6 +409,16 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 		},
 	)
 
+	// v2/deployments.listBuildLogs
+	srv.RegisterRoute(
+		protectedMiddlewares,
+		&v2DeploymentsListBuildLogs.Handler{
+			DB:         svc.Database,
+			ClickHouse: svc.ClickHouse,
+			Clock:      svc.Clock,
+		},
+	)
+
 	// v2/deployments.listDeployments
 	srv.RegisterRoute(
 		protectedMiddlewares,
@@ -581,6 +605,36 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 		},
 	)
 
+	srv.RegisterRoute(
+		protectedMiddlewares,
+		&v2RootKeysCreateKey.Handler{
+			DB:        svc.Database,
+			Keys:      svc.Keys,
+			Auditlogs: svc.Auditlogs,
+			Clock:     svc.Clock,
+		},
+	)
+	srv.RegisterRoute(protectedMiddlewares, &v2RootKeysListKeys.Handler{DB: svc.Database})
+	srv.RegisterRoute(protectedMiddlewares, &v2RootKeysUpdateKey.Handler{
+		DB:           svc.Database,
+		Auditlogs:    svc.Auditlogs,
+		RootKeyCache: svc.Caches.RootKeyByHash,
+		Clock:        svc.Clock,
+	})
+	srv.RegisterRoute(protectedMiddlewares, &v2RootKeysDeleteKey.Handler{
+		DB:           svc.Database,
+		Auditlogs:    svc.Auditlogs,
+		RootKeyCache: svc.Caches.RootKeyByHash,
+		Clock:        svc.Clock,
+	})
+	srv.RegisterRoute(protectedMiddlewares, &v2RootKeysRerollKey.Handler{
+		DB:           svc.Database,
+		Keys:         svc.Keys,
+		Auditlogs:    svc.Auditlogs,
+		RootKeyCache: svc.Caches.RootKeyByHash,
+		Clock:        svc.Clock,
+	})
+
 	// v2/keys.rerollKey
 	srv.RegisterRoute(
 		protectedMiddlewares,
@@ -721,6 +775,7 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 	srv.RegisterRoute(
 		protectedMiddlewares,
 		&v2AnalyticsGetGatewayRequests.Handler{
+			DB:                         svc.Database,
 			AnalyticsConnectionManager: svc.AnalyticsConnectionManager,
 		},
 	)
@@ -747,6 +802,7 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 	srv.RegisterRoute(
 		protectedMiddlewares,
 		&v2AnalyticsGetRatelimits.Handler{
+			DB:                         svc.Database,
 			AnalyticsConnectionManager: svc.AnalyticsConnectionManager,
 		},
 	)
@@ -803,6 +859,26 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 		},
 	)
 
+	// v2/portal.revokeSession
+	srv.RegisterRoute(
+		protectedMiddlewares,
+		&v2PortalRevokeSession.Handler{
+			DB:           svc.Database,
+			Auditlogs:    svc.Auditlogs,
+			Clock:        svc.Clock,
+			SessionCache: svc.Caches.PortalSession,
+		},
+	)
+
+	// v2/portal.listSessions
+	srv.RegisterRoute(
+		protectedMiddlewares,
+		&v2PortalListSessions.Handler{
+			DB:    svc.Database,
+			Clock: svc.Clock,
+		},
+	)
+
 	// v2/portal.exchangeCode
 	srv.RegisterRoute(
 		publicMiddlewares,
@@ -837,9 +913,11 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 	srv.RegisterRoute(
 		portalMiddlewares,
 		&v2PortalGetVerifications.Handler{
-			ClickHouse:  svc.ClickHouse,
-			DB:          svc.Database,
-			LimitsCache: svc.Caches.WorkspaceLimits,
+			ClickHouse:       svc.ClickHouse,
+			DB:               svc.Database,
+			LimitsCache:      svc.Caches.WorkspaceLimits,
+			MaxPerKeySeries:  v2PortalGetVerifications.DefaultMaxPerKeySeries,
+			MaxResponseBytes: v2PortalGetVerifications.DefaultMaxResponseBytes,
 		},
 	)
 

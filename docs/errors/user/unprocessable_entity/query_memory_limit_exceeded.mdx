@@ -1,0 +1,44 @@
+---
+title: "query_memory_limit_exceeded"
+sidebarTitle: "query_memory_limit_exceeded"
+description: "The analytics query used too much memory or its result exceeded 4 MiB."
+sources:
+  - pkg/codes/user_request.go
+  - svc/api/internal/middleware/errors.go
+  - pkg/clickhouse/errors.go
+  - pkg/clickhouse/user.go
+  - svc/api/routes/v2_analytics_get_verifications/handler.go
+---
+
+<Danger>`err:user:unprocessable_entity:query_memory_limit_exceeded`</Danger>
+
+Your analytics query returned a result that's too large, or needed too much memory. You get HTTP 422, and `detail` says which.
+
+```json Example response
+{
+  "meta": {
+    "requestId": "req_2c9a0jf23l4k567"
+  },
+  "error": {
+    "detail": "Query result exceeds the maximum response size.",
+    "status": 422,
+    "title": "Unprocessable Entity",
+    "type": "/errors/user/unprocessable_entity/query_memory_limit_exceeded"
+  }
+}
+```
+
+## Likely causes
+
+- The result is over 4 MiB as JSON. This is the common one, and `detail` is `Query result exceeds the maximum response size.`
+- The query needed more than 1 GB of memory while running, unless we've raised that for you. `detail` is a memory message.
+
+## How to fix
+
+1. For a result that's too large, return fewer rows or columns: add a `LIMIT`, drop wide columns you don't need, and page through long ranges by time. Aggregations that return a few rows never hit this.
+2. For memory, filter earlier, group on fewer or lower-cardinality columns, and avoid `groupArray` over large groups.
+
+## Related errors
+
+- [`err:user:unprocessable_entity:query_rows_limit_exceeded`](/errors/user/unprocessable_entity/query_rows_limit_exceeded): the query read or returned too many rows.
+- [`err:user:unprocessable_entity:query_execution_timeout`](/errors/user/unprocessable_entity/query_execution_timeout): the query ran too long.

@@ -329,14 +329,12 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			}
 		}
 
-		// A session freezes its keyspace scope at mint time and the session
-		// resolver never reads `portals`, so re-pointing the mapping without this
-		// would keep authenticating end users against the resource the portal no
-		// longer serves. Re-sending the same mapping is not a change and must not
-		// cut live sessions; neither does disabling the portal, which only stops new
-		// sessions from being minted.
+		// The session resolver never reads `portals`, so a re-point or a disable
+		// has to revoke here or live sessions would outlive it. A request that
+		// changes neither must not cut them.
+		disabled := found.Enabled && !after.Enabled
 		var revoked int64
-		if mappingChanged {
+		if mappingChanged || disabled {
 			revoked, err = db.Query.RevokePortalSessionsByPortal(ctx, tx, db.RevokePortalSessionsByPortalParams{
 				RevokedAt:   sql.NullInt64{Valid: true, Int64: now},
 				PortalID:    found.ID,

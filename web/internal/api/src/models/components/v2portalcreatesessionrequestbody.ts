@@ -8,6 +8,7 @@ import { ClosedEnum } from "../../types/enums.js";
 export const Scope = {
   KeysRead: "keys:read",
   KeysReroll: "keys:reroll",
+  AnalyticsRead: "analytics:read",
 } as const;
 export type Scope = ClosedEnum<typeof Scope>;
 
@@ -35,21 +36,14 @@ export type V2PortalCreateSessionRequestBody = {
    * configured on the portal. An end user can never see another identity's
    * keys.
    *
-   * The portal currently exposes only the keys page, so these scopes gate
-   * what the end user can do there rather than which pages they see. Because
-   * rerolling is reached from that page, `keys:reroll` requires `keys:read`
-   * in the same session; requesting it alone is rejected.
+   * Rerolling and usage analytics are both reached from the keys page, so
+   * `keys:reroll` and `analytics:read` each require `keys:read` in the same
+   * session; requesting either without it is rejected.
    *
    * Each scope requires the equivalent permission on your own root key. See
    * Required Permissions on this operation.
    */
   scopes: Array<Scope>;
-  /**
-   * When true, creates a preview session for testing the portal experience.
-   *
-   * @remarks
-   */
-  preview?: boolean | undefined;
   /**
    * Absolute URL the end user is sent back to when they leave the portal, or
    *
@@ -73,7 +67,6 @@ export type V2PortalCreateSessionRequestBody$Outbound = {
   portal: string;
   externalId: string;
   scopes: Array<string>;
-  preview: boolean;
   returnUrl?: string | undefined;
 };
 
@@ -86,7 +79,6 @@ export const V2PortalCreateSessionRequestBody$outboundSchema: z.ZodType<
   portal: z.string(),
   externalId: z.string(),
   scopes: z.array(Scope$outboundSchema),
-  preview: z.boolean().default(false),
   returnUrl: z.string().optional(),
 });
 

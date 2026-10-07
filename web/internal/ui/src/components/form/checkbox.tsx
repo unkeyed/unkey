@@ -12,27 +12,27 @@ import type * as React from "react";
 import { cn } from "../../lib/utils";
 
 const checkboxVariants = cva(
-  "group peer relative flex h-4 w-4 shrink-0 items-center justify-center rounded-sm border transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 data-disabled:cursor-not-allowed",
+  "group peer relative flex h-4 w-4 shrink-0 items-center justify-center rounded-sm border transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-gray-6 focus-visible:ring-offset-2 data-disabled:cursor-not-allowed",
   {
     variants: {
       variant: {
         default: "",
         primary: [
-          "border-grayA-6 data-checked:bg-accent-12 data-checked:border-transparent",
-          "data-indeterminate:bg-accent-12 data-indeterminate:border-transparent",
+          "border-input data-checked:bg-gray-12 data-checked:border-transparent",
+          "data-indeterminate:bg-gray-12 data-indeterminate:border-transparent",
           "focus:ring-3 focus:ring-gray-5 focus-visible:outline-hidden focus:ring-offset-0",
           "data-disabled:border-grayA-4 data-disabled:data-checked:bg-grayA-6",
           "transition-all duration-200 ease-in-out",
         ],
         outline: [
-          "border-grayA-6 bg-transparent data-checked:bg-transparent data-checked:border-grayA-8",
+          "border-input bg-transparent data-checked:bg-transparent data-checked:border-grayA-8",
           "data-indeterminate:bg-transparent data-indeterminate:border-grayA-8",
           "focus:border-grayA-12 focus:ring-3 focus:ring-gray-5 focus-visible:outline-hidden focus:ring-offset-0",
           "data-disabled:border-grayA-5 data-disabled:opacity-70",
           "transition-all duration-200 ease-in-out",
         ],
         ghost: [
-          "border-grayA-6 bg-transparent hover:bg-grayA-2 data-checked:bg-transparent data-checked:border-grayA-8",
+          "border-input bg-transparent hover:bg-grayA-2 data-checked:bg-transparent data-checked:border-grayA-8",
           "data-indeterminate:bg-transparent data-indeterminate:border-grayA-8",
           "focus:border-grayA-12 focus:ring-3 focus:ring-gray-5 focus-visible:outline-hidden focus:ring-offset-0",
           "data-disabled:border-grayA-4 data-disabled:opacity-70",

@@ -1,0 +1,105 @@
+---
+title: "@unkey/hono"
+description: "Hono middleware that verifies API keys for you."
+sources:
+  - web/internal/api/src/models/components/v2keysverifykeyresponsedata.ts
+  - https://github.com/unkeyed/sdks/blob/3bb124498270d8aff36e358dc2e0010e9991869a/hono/README.md
+  - https://github.com/unkeyed/sdks/blob/3bb124498270d8aff36e358dc2e0010e9991869a/hono/src/index.ts
+  - https://github.com/unkeyed/sdks/blob/3bb124498270d8aff36e358dc2e0010e9991869a/hono/package.json
+  - https://www.npmjs.com/package/@unkey/hono
+---
+
+import { versions } from "/snippets/versions.mdx";
+import RootKeyPrereq from "/snippets/root-key-prereq.mdx";
+
+`@unkey/hono` (version {versions.tsHono}) is a [Hono](https://hono.dev) middleware that <Tooltip tip="Here: checking an API key on a request with keys.verifyKey. Not domain verification.">verifies</Tooltip> the API key on each request and puts the result on the context. It needs `hono` 4.6 or later.
+
+<RootKeyPrereq />
+
+## Install
+
+```bash
+npm install @unkey/hono
+```
+
+## Protect routes
+
+```typescript
+import { Hono } from "hono";
+import { type UnkeyContext, unkey } from "@unkey/hono";
+
+const app = new Hono<{ Variables: { unkey: UnkeyContext } }>();
+
+app.use("*", unkey({ rootKey: process.env.UNKEY_ROOT_KEY ?? "" }));
+
+app.get("/protected", (c) => {
+  const verification = c.get("unkey");
+  if (!verification.data.valid) {
+    return c.json({ error: "unauthorized" }, 401);
+  }
+  return c.json({ keyId: verification.data.keyId, permissions: verification.data.permissions });
+});
+```
+
+The middleware reads the bearer token from the `Authorization` header, calls `keys.verifyKey`, and puts the full result in `c.get("unkey")`, so your handler can read `data.valid`, `data.code`, `data.keyId`, `data.meta`, and the rest. A request with no key gets `401 {"error":"unauthorized"}`.
+
+<Warning>
+  Unless you pass `handleInvalidKey`, an invalid key doesn't stop the request: the middleware stores the failed verification and calls the next handler. Check `data.valid` in your handler, or set `handleInvalidKey` to reject centrally.
+</Warning>
+
+## Options
+
+<ParamField body="rootKey" type="string" required>
+  Root key used to call `keys.verifyKey`.
+</ParamField>
+
+<ParamField body="permissions" type="string">
+  A permission query the key must satisfy for `data.valid` to be `true`, for example `"documents.read"`.
+</ParamField>
+
+<ParamField body="tags" type="string[]">
+  Tags recorded with the verification for later filtering in analytics.
+</ParamField>
+
+<ParamField body="getKey" type="(c: Context) => string | undefined | Response">
+  Read the key from somewhere else, such as a query parameter. Return a `Response` to stop there. Return nothing to get a 401.
+</ParamField>
+
+<ParamField body="handleInvalidKey" type="(c: Context, result: UnkeyContext) => Response | Promise<Response>">
+  Called when the key is present but `data.valid` is `false`. Return the response the client should get.
+</ParamField>
+
+<ParamField body="onError" type="(c: Context, err: errors.APIError) => Response | Promise<Response>">
+  Called only for unexpected responses from the verify call, such as a 502 from a proxy. Return the response the client should get. Without it, these become a Hono `HTTPException` with status 500.
+</ParamField>
+
+## Reject invalid keys centrally
+
+```typescript
+app.use(
+  "*",
+  unkey({
+    rootKey: process.env.UNKEY_ROOT_KEY ?? "",
+    permissions: "documents.read",
+    getKey: (c) => c.req.query("api_key"),
+    handleInvalidKey: (c, result) => c.json({ error: "invalid key", code: result.data.code }, 401),
+    onError: (c, err) => {
+      console.error("unkey error", err.message);
+      return c.json({ error: "authentication unavailable" }, 503);
+    },
+  }),
+);
+```
+
+`onError` doesn't catch everything. A rejected root key (401), a throttled request (429), a 500, or a connection failure or timeout is thrown instead. Catch those in Hono's `app.onError` if you want one response for every authentication failure.
+
+## Next steps
+
+<Columns cols={2}>
+  <Card title="Verifying keys" icon="key" href="/api-management/keys/verifying-keys">
+    What `valid`, `code`, permissions, and rate limits mean in the result.
+  </Card>
+  <Card title="@unkey/api" icon="js" href="/api-management/sdks/typescript/api">
+    Call any other endpoint from the same app.
+  </Card>
+</Columns>

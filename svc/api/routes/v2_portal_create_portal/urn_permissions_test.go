@@ -8,7 +8,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/portal"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
@@ -47,7 +46,7 @@ func TestCreatePortalAuthorizesAdminURNAndLegacyTuple(t *testing.T) {
 				DisplayName: "Acme",
 				KeyspaceId:  ksOf(keyspaceMapping(t, h, workspace.ID)),
 				AppId:       appOf(keyspaceMapping(t, h, workspace.ID)),
-				Enabled:     ptr.P(true),
+				Enabled:     new(true),
 			})
 			require.Equal(t, http.StatusOK, res.Status, "the grant must authorize portal creation: %s", res.RawBody)
 		})
@@ -147,7 +146,7 @@ func TestCreatePortalAuthorizesCanonicalPortalURNs(t *testing.T) {
 				DisplayName: "Acme",
 				KeyspaceId:  ksOf(mapping),
 				AppId:       appOf(mapping),
-				Enabled:     ptr.P(true),
+				Enabled:     new(true),
 			})
 
 			if tc.shouldPass {
@@ -206,7 +205,7 @@ func TestCreatePortalAuthorizesAppMappingUnderItsProject(t *testing.T) {
 		DisplayName: "Acme",
 		KeyspaceId:  ksOf(mapping),
 		AppId:       appOf(mapping),
-		Enabled:     ptr.P(true),
+		Enabled:     new(true),
 	})
 	require.Equal(t, http.StatusOK, res.Status,
 		"a grant on the app's project must authorize the create: %s", res.RawBody)
@@ -241,7 +240,7 @@ func TestCreatePortalDeniesBeforeTheResourceClaimSignal(t *testing.T) {
 		DisplayName: "Acme",
 		KeyspaceId:  ksOf(mapping),
 		AppId:       appOf(mapping),
-		Enabled:     ptr.P(true),
+		Enabled:     new(true),
 	}
 
 	unauthorized := h.CreateRootKey(workspace.ID, targetReadGrants...)
@@ -288,7 +287,7 @@ func TestCreatePortalReportsAnUnownedMappingBeforeADeniedGrant(t *testing.T) {
 		DisplayName: "Acme",
 		KeyspaceId:  ksOf(foreign),
 		AppId:       appOf(foreign),
-		Enabled:     ptr.P(true),
+		Enabled:     new(true),
 	})
 	require.Equal(t, http.StatusNotFound, res.Status, "expected 404, got: %s", res.RawBody)
 }

@@ -1,0 +1,1387 @@
+[
+  {
+    "id": "api-management--analytics--overview--1",
+    "decision": "remove",
+    "reason": "Generic log strokes and HTTP sparkline feed a floating SQL box; weak hierarchy and decorative wiring."
+  },
+  {
+    "id": "api-management--analytics--overview--2",
+    "decision": "remove",
+    "reason": "SQL fragment and detached unlabeled bars form two unrelated visual weights."
+  },
+  {
+    "id": "api-management--analytics--overview--3",
+    "decision": "remove",
+    "reason": "Oversized SELECT box, floating brackets, and unexplained progress meter do not depict query quotas."
+  },
+  {
+    "id": "api-management--analytics--overview--4",
+    "decision": "remove",
+    "reason": "Unlabeled outcome bars use weak low-contrast fills inside an over-rounded shadowed panel."
+  },
+  {
+    "id": "api-management--analytics--overview--5",
+    "decision": "remove",
+    "reason": "Cartoon magnifier, placeholder document strokes, and overlapping caption pill feel like generic clip art."
+  },
+  {
+    "id": "api-management--authorization--overview--1",
+    "decision": "remove",
+    "reason": "Floating Editor pill and oversized shadowed permission tiles retain the generic diagram style."
+  },
+  {
+    "id": "api-management--authorization--overview--2",
+    "decision": "remove",
+    "reason": "Pills inside oversized brackets make the permission expression visually fragmented."
+  },
+  {
+    "id": "api-management--authorization--overview--3",
+    "decision": "remove",
+    "reason": "Repeated physical key slab and looping connectors obscure direct versus inherited grants."
+  },
+  {
+    "id": "api-management--authorization--overview--4",
+    "decision": "remove",
+    "reason": "Credential slab passes through arbitrary vertical gates with no meaningful check labels."
+  },
+  {
+    "id": "api-management--cli--portal--create-portal--1",
+    "decision": "remove",
+    "reason": "Navigation card added during the accuracy review; no bespoke illustration commissioned."
+  },
+  {
+    "id": "api-management--cli--portal--create-portal--2",
+    "decision": "remove",
+    "reason": "Navigation card added during the accuracy review; no bespoke illustration commissioned."
+  },
+  {
+    "id": "api-management--cookbook--index--1",
+    "decision": "remove",
+    "reason": "Cartoon avatar and repeated dark credential slabs dominate an otherwise simple shared-limit story."
+  },
+  {
+    "id": "api-management--cookbook--index--2",
+    "decision": "remove",
+    "reason": "Not shown on any page; individual card artwork library removed from the docs tree."
+  },
+  {
+    "id": "api-management--cookbook--index--3",
+    "decision": "remove",
+    "reason": "Faux currency coin and detached cost pill weaken the useful remaining-credit value."
+  },
+  {
+    "id": "api-management--cookbook--index--4",
+    "decision": "remove",
+    "reason": "Stair-stepped subscription tiles contain placeholder lines instead of meaningful entitlements."
+  },
+  {
+    "id": "api-management--cookbook--index--5",
+    "decision": "remove",
+    "reason": "Oversized logo tile branches into floating pills with unexplained selective teal emphasis."
+  },
+  {
+    "id": "api-management--cookbook--index--6",
+    "decision": "remove",
+    "reason": "Unlabeled narrow gate between oversized framework and dependency tiles is arbitrary."
+  },
+  {
+    "id": "api-management--get-started--concepts--1",
+    "decision": "remove",
+    "reason": "Credential overlaps cartoon folder while detached giant success icon repeats the rejected composition."
+  },
+  {
+    "id": "api-management--get-started--concepts--2",
+    "decision": "remove",
+    "reason": "Three physical credit-card keys inside a cartoon folder replace meaningful product UI."
+  },
+  {
+    "id": "api-management--get-started--quickstart--1",
+    "decision": "remove",
+    "reason": "Large empty credential slab and overlapping plus badge repeat the rejected physical-card metaphor."
+  },
+  {
+    "id": "api-management--get-started--quickstart--2",
+    "decision": "remove",
+    "reason": "Floating VALID pill overlaps a sparse response panel instead of using a coherent result row."
+  },
+  {
+    "id": "api-management--get-started--quickstart--3",
+    "decision": "remove",
+    "reason": "Decorative coin and long arrow spread a simple balance calculation across excessive empty space."
+  },
+  {
+    "id": "api-management--get-started--quickstart--4",
+    "decision": "remove",
+    "reason": "Disconnected folder, avatar, and credential objects show no relationships between the four concepts."
+  },
+  {
+    "id": "api-management--get-started--quickstart--5",
+    "decision": "remove",
+    "reason": "Unexplained twin gates and a decorative cube make gateway verification look like clip art."
+  },
+  {
+    "id": "api-management--guides--bun--1",
+    "decision": "remove",
+    "reason": "Unlabeled check bubbles and a numbered final bubble fail to explain the verification checks."
+  },
+  {
+    "id": "api-management--guides--bun--2",
+    "decision": "remove",
+    "reason": "Cartoon calendar and coin are connected by an oversized sweeping decorative arrow."
+  },
+  {
+    "id": "api-management--guides--bun--3",
+    "decision": "remove",
+    "reason": "Not shown on any page; individual card artwork library removed from the docs tree."
+  },
+  {
+    "id": "api-management--guides--cloudflare-workers--1",
+    "decision": "remove",
+    "reason": "Dark key slab, oversized question bubble, and floating verdict pill lack a disciplined hierarchy."
+  },
+  {
+    "id": "api-management--guides--cloudflare-workers--2",
+    "decision": "remove",
+    "reason": "Oversized clock and sparse shadowed allowance tile add little beyond the caption."
+  },
+  {
+    "id": "api-management--guides--cloudflare-workers--3",
+    "decision": "remove",
+    "reason": "Placeholder receipt strokes and scattered faux currency coins are generic billing clip art."
+  },
+  {
+    "id": "api-management--guides--express--1",
+    "decision": "remove",
+    "reason": "Credential slab and floating clock use detached tick marks and an isolated verdict pill."
+  },
+  {
+    "id": "api-management--guides--express--2",
+    "decision": "remove",
+    "reason": "Oversized coin and clock in matching blank tiles provide a generic rather than product-specific comparison."
+  },
+  {
+    "id": "api-management--guides--express--3",
+    "decision": "remove",
+    "reason": "Physical key slab branches into floating pricing pills without showing actual subscription behavior."
+  },
+  {
+    "id": "api-management--guides--go--1",
+    "decision": "remove",
+    "reason": "Oversized equation panel uses hanging brackets and isolated AND text instead of crisp code typography."
+  },
+  {
+    "id": "api-management--guides--go--2",
+    "decision": "remove",
+    "reason": "Floating Not deducted pill overlaps the balance panel; faux coin and plus sign confuse an insufficient balance."
+  },
+  {
+    "id": "api-management--guides--go--3",
+    "decision": "remove",
+    "reason": "Floating Go logo connects through a dangling divider to an uneven framework list."
+  },
+  {
+    "id": "api-management--guides--hono--1",
+    "decision": "remove",
+    "reason": "Partial gauge, arbitrary amber gate, and repeated key slab form a fragmented verification story."
+  },
+  {
+    "id": "api-management--guides--hono--2",
+    "decision": "remove",
+    "reason": "Huge zero panel plus oversized detached check badge is sparse and repetitive."
+  },
+  {
+    "id": "api-management--guides--hono--3",
+    "decision": "remove",
+    "reason": "Large framework icon and vague protected-route panel repeat generic logo-to-box artwork."
+  },
+  {
+    "id": "api-management--guides--nextjs--1",
+    "decision": "remove",
+    "reason": "Repeated physical key slab and a dotted hash tile oversimplify exact lookup through a generic connector."
+  },
+  {
+    "id": "api-management--guides--nextjs--2",
+    "decision": "remove",
+    "reason": "Faux credit coin and floating arithmetic surround an over-large sparse balance tile."
+  },
+  {
+    "id": "api-management--guides--nextjs--3",
+    "decision": "remove",
+    "reason": "Cartoon identity tree and unrelated endpoint pills are split by an arbitrary vertical divider."
+  },
+  {
+    "id": "api-management--guides--python--1",
+    "decision": "remove",
+    "reason": "Oversized toggle overlaps the dark credential slab and dominates the disabled-state label."
+  },
+  {
+    "id": "api-management--guides--python--2",
+    "decision": "remove",
+    "reason": "Cartoon calendar with protruding binding strokes feeds a generic sparse amount box."
+  },
+  {
+    "id": "api-management--guides--python--3",
+    "decision": "remove",
+    "reason": "Two faux currency coins and a looping orbit scatter lifecycle labels without an explicit sequence."
+  },
+  {
+    "id": "api-management--index--1",
+    "decision": "remove",
+    "reason": "Not shown on any page; individual card artwork library removed from the docs tree."
+  },
+  {
+    "id": "api-management--index--2",
+    "decision": "remove",
+    "reason": "Not shown on any page; individual card artwork library removed from the docs tree."
+  },
+  {
+    "id": "api-management--index--3",
+    "decision": "remove",
+    "reason": "Not shown on any page; individual card artwork library removed from the docs tree."
+  },
+  {
+    "id": "api-management--index--4",
+    "decision": "remove",
+    "reason": "Not shown on any page; individual card artwork library removed from the docs tree."
+  },
+  {
+    "id": "api-management--index--5",
+    "decision": "remove",
+    "reason": "Not shown on any page; individual card artwork library removed from the docs tree."
+  },
+  {
+    "id": "api-management--index--6",
+    "decision": "remove",
+    "reason": "Not shown on any page; individual card artwork library removed from the docs tree."
+  },
+  {
+    "id": "api-management--index--7",
+    "decision": "remove",
+    "reason": "Not shown on any page; individual card artwork library removed from the docs tree."
+  },
+  {
+    "id": "api-management--index--8",
+    "decision": "remove",
+    "reason": "Not shown on any page; individual card artwork library removed from the docs tree."
+  },
+  {
+    "id": "api-management--keyspaces--overview--1",
+    "decision": "remove",
+    "reason": "Cartoon folder, physical credential slab, and overlapping unlabeled slider tile repeat the rejected style."
+  },
+  {
+    "id": "api-management--keyspaces--overview--2",
+    "decision": "remove",
+    "reason": "Three floating physical key slabs and an arrow do not clearly represent pagination."
+  },
+  {
+    "id": "api-management--portal--overview--1",
+    "decision": "remove",
+    "reason": "Cartoon avatar, narrow code gate, and oversized logo tile with an overlapping pill feel generic."
+  },
+  {
+    "id": "api-management--portal--overview--2",
+    "decision": "remove",
+    "reason": "Physical credential slab and arbitrary usage sparkline form a miniature generic dashboard cartoon."
+  },
+  {
+    "id": "api-management--ratelimiting--overview--1",
+    "decision": "remove",
+    "reason": "Oversized shadowed chart uses a decorative arrow and previous/current labels without explaining the sliding window."
+  },
+  {
+    "id": "api-management--ratelimiting--overview--2",
+    "decision": "remove",
+    "reason": "Three shadowed check tiles inside oversized detached brackets repeat a generic validation motif."
+  },
+  {
+    "id": "api-management--ratelimiting--overview--3",
+    "decision": "remove",
+    "reason": "Floating identifier pill branches into poorly differentiated boxes with arbitrary teal emphasis."
+  },
+  {
+    "id": "api-management--ratelimiting--overview--4",
+    "decision": "remove",
+    "reason": "Physical key slab and cartoon avatar connect to a floating Both pass pill rather than a clear rule."
+  },
+  {
+    "id": "api-management--sdks--go--1",
+    "decision": "remove",
+    "reason": "Large terminal slab uses placeholder output strokes and excessive blank space instead of an actual command example."
+  },
+  {
+    "id": "api-management--sdks--go--2",
+    "decision": "remove",
+    "reason": "Small floating Go mark and oversized POST pill-panel have uneven weight and redundant labels."
+  },
+  {
+    "id": "api-management--sdks--overview--1",
+    "decision": "remove",
+    "reason": "Large logo tile points to a fragmented import statement spread across a sparse shadowed box."
+  },
+  {
+    "id": "api-management--sdks--overview--2",
+    "decision": "remove",
+    "reason": "Not shown on any page; individual card artwork library removed from the docs tree."
+  },
+  {
+    "id": "api-management--sdks--overview--3",
+    "decision": "remove",
+    "reason": "Python mark sits on a visible white square and branches into detached pills with arbitrary async emphasis."
+  },
+  {
+    "id": "api-management--sdks--python--1",
+    "decision": "remove",
+    "reason": "Python tile points to the repeated credential slab with an overlapping plus badge."
+  },
+  {
+    "id": "api-management--sdks--python--2",
+    "decision": "remove",
+    "reason": "Placeholder document strokes and detached response box fail to show an actual request schema."
+  },
+  {
+    "id": "api-management--sdks--typescript--api--1",
+    "decision": "remove",
+    "reason": "Two oversized framework tiles and a floating check between them do not explain route protection."
+  },
+  {
+    "id": "api-management--sdks--typescript--api--2",
+    "decision": "remove",
+    "reason": "Not shown on any page; individual card artwork library removed from the docs tree."
+  },
+  {
+    "id": "api-management--sdks--typescript--hono--1",
+    "decision": "remove",
+    "reason": "Placeholder event lines and giant detached check badge substitute for meaningful verification analytics."
+  },
+  {
+    "id": "api-management--sdks--typescript--hono--2",
+    "decision": "remove",
+    "reason": "Oversized TypeScript tile branches into floating pills rather than showing actual shared-client usage."
+  },
+  {
+    "id": "api-management--sdks--typescript--nextjs--1",
+    "decision": "remove",
+    "reason": "Oversized detached error bubble and sparse response tile repeat the generic verdict layout."
+  },
+  {
+    "id": "api-management--sdks--typescript--nextjs--2",
+    "decision": "remove",
+    "reason": "Physical root-key slab inside a framework tile connects to a vague SDK box with excessive empty space."
+  },
+  {
+    "id": "compute--build--build-secrets--1",
+    "decision": "remove",
+    "reason": "Generic panel, connector, or icon composition falls below the premium bar."
+  },
+  {
+    "id": "compute--build--build-secrets--2",
+    "decision": "remove",
+    "reason": "Docker card and cube form a generic decorative flow."
+  },
+  {
+    "id": "compute--build--dockerfile--1",
+    "decision": "remove",
+    "reason": "Lock-to-cube composition is generic and unbalanced."
+  },
+  {
+    "id": "compute--build--dockerfile--2",
+    "decision": "remove",
+    "reason": "Chip, container, and port lack a clear visual hierarchy."
+  },
+  {
+    "id": "compute--build--github--1",
+    "decision": "remove",
+    "reason": "Generic panel, connector, or icon composition falls below the premium bar."
+  },
+  {
+    "id": "compute--build--github--2",
+    "decision": "remove",
+    "reason": "Generic panel, connector, or icon composition falls below the premium bar."
+  },
+  {
+    "id": "compute--build--overview--1",
+    "decision": "remove",
+    "reason": "Generic panel, connector, or icon composition falls below the premium bar."
+  },
+  {
+    "id": "compute--build--overview--2",
+    "decision": "remove",
+    "reason": "Lock, dotted line, and cube are generic visual filler."
+  },
+  {
+    "id": "compute--build--overview--3",
+    "decision": "remove",
+    "reason": "Generic panel, connector, or icon composition falls below the premium bar."
+  },
+  {
+    "id": "compute--build--overview--4",
+    "decision": "remove",
+    "reason": "Cube, server stack, and check are a generic disconnected sequence."
+  },
+  {
+    "id": "compute--cli--analytics--get-gateway-requests--1",
+    "decision": "remove",
+    "reason": "Generic panel, connector, or icon composition falls below the premium bar."
+  },
+  {
+    "id": "compute--cli--analytics--get-runtime-logs--1",
+    "decision": "remove",
+    "reason": "Generic panel, connector, or icon composition falls below the premium bar."
+  },
+  {
+    "id": "compute--cli--apps--create-app--1",
+    "decision": "remove",
+    "reason": "Generic panel, connector, or icon composition falls below the premium bar."
+  },
+  {
+    "id": "compute--cli--apps--create-app--2",
+    "decision": "remove",
+    "reason": "Generic panel, connector, or icon composition falls below the premium bar."
+  },
+  {
+    "id": "compute--cli--deploy--1",
+    "decision": "remove",
+    "reason": "Registry-to-cube pull flow relies on a generic shadowed cube."
+  },
+  {
+    "id": "compute--cli--deploy--2",
+    "decision": "remove",
+    "reason": "Generic panel, connector, or icon composition falls below the premium bar."
+  },
+  {
+    "id": "compute--cli--deploy--3",
+    "decision": "remove",
+    "reason": "Key, cube, and server progression is generic and visually loose."
+  },
+  {
+    "id": "compute--cli--deployments--create-deployment--1",
+    "decision": "remove",
+    "reason": "Generic panel, connector, or icon composition falls below the premium bar."
+  },
+  {
+    "id": "compute--cli--deployments--create-deployment--2",
+    "decision": "remove",
+    "reason": "Candidate-to-production uses generic cubes without useful detail."
+  },
+  {
+    "id": "compute--cli--deployments--promote-deployment--1",
+    "decision": "remove",
+    "reason": "Promotion is reduced to two generic shadowed cubes."
+  },
+  {
+    "id": "compute--cli--deployments--rollback-deployment--1",
+    "decision": "remove",
+    "reason": "Rollback is a decorative cube pair with a dangling connector."
+  },
+  {
+    "id": "compute--cli--deployments--start-deployment--1",
+    "decision": "remove",
+    "reason": "Generic panel, connector, or icon composition falls below the premium bar."
+  },
+  {
+    "id": "compute--cli--deployments--stop-deployment--1",
+    "decision": "remove",
+    "reason": "Generic panel, connector, or icon composition falls below the premium bar."
+  },
+  {
+    "id": "compute--cli--domains--create-domain--1",
+    "decision": "remove",
+    "reason": "Abstract globe and dotted line do not clarify domain creation."
+  },
+  {
+    "id": "compute--cli--domains--delete-domain--1",
+    "decision": "remove",
+    "reason": "Abstract globe and dotted line do not clarify deletion."
+  },
+  {
+    "id": "compute--cli--domains--get-domain--1",
+    "decision": "remove",
+    "reason": "Generic panel, connector, or icon composition falls below the premium bar."
+  },
+  {
+    "id": "compute--cli--domains--list-domains--1",
+    "decision": "remove",
+    "reason": "Generic panel, connector, or icon composition falls below the premium bar."
+  },
+  {
+    "id": "compute--cli--domains--verify-domain--1",
+    "decision": "remove",
+    "reason": "Generic panel, connector, or icon composition falls below the premium bar."
+  },
+  {
+    "id": "compute--cli--environments--list-environment-variables--1",
+    "decision": "remove",
+    "reason": "Generic panel, connector, or icon composition falls below the premium bar."
+  },
+  {
+    "id": "compute--cli--environments--list-environments--1",
+    "decision": "remove",
+    "reason": "Generic panel, connector, or icon composition falls below the premium bar."
+  },
+  {
+    "id": "compute--cli--environments--remove-environment-variables--1",
+    "decision": "remove",
+    "reason": "Oversized empty field with a detached caption repeats generic settings chrome instead of a considered composition."
+  },
+  {
+    "id": "compute--cli--environments--set-environment-variables--1",
+    "decision": "remove",
+    "reason": "Floating plus badge and large empty field are generic UI decoration."
+  },
+  {
+    "id": "compute--cli--environments--update-settings--1",
+    "decision": "remove",
+    "reason": "Resource sliders plus cube are generic and visually disconnected."
+  },
+  {
+    "id": "compute--cli--environments--update-settings--2",
+    "decision": "remove",
+    "reason": "Generic panel, connector, or icon composition falls below the premium bar."
+  },
+  {
+    "id": "compute--cli--environments--update-settings--3",
+    "decision": "remove",
+    "reason": "Generic panel, connector, or icon composition falls below the premium bar."
+  },
+  {
+    "id": "compute--cli--gateway--list-policies--1",
+    "decision": "remove",
+    "reason": "Generic panel, connector, or icon composition falls below the premium bar."
+  },
+  {
+    "id": "compute--cli--gateway--set-policies--1",
+    "decision": "remove",
+    "reason": "Generic panel, connector, or icon composition falls below the premium bar."
+  },
+  {
+    "id": "compute--cli--gateway--update-policy--1",
+    "decision": "remove",
+    "reason": "Generic panel, connector, or icon composition falls below the premium bar."
+  },
+  {
+    "id": "compute--cli--github--install-app--1",
+    "decision": "remove",
+    "reason": "Generic panel, connector, or icon composition falls below the premium bar."
+  },
+  {
+    "id": "compute--configure--build-settings--1",
+    "decision": "remove",
+    "reason": "Commit-to-cube diagram is a generic connector composition."
+  },
+  {
+    "id": "compute--configure--build-settings--2",
+    "decision": "remove",
+    "reason": "Generic panel, connector, or icon composition falls below the premium bar."
+  },
+  {
+    "id": "compute--configure--environment-variables--1",
+    "decision": "remove",
+    "reason": "Physical credential slab, padlock, and floating Memory pill repeat the rejected visual language."
+  },
+  {
+    "id": "compute--configure--environment-variables--2",
+    "decision": "remove",
+    "reason": "Decorative microchip and floating PORT/Environment pills do not show a real runtime configuration."
+  },
+  {
+    "id": "compute--configure--health-checks--1",
+    "decision": "remove",
+    "reason": "Generic panel, connector, or icon composition falls below the premium bar."
+  },
+  {
+    "id": "compute--configure--health-checks--2",
+    "decision": "remove",
+    "reason": "Generic panel, connector, or icon composition falls below the premium bar."
+  },
+  {
+    "id": "compute--configure--limits--1",
+    "decision": "remove",
+    "reason": "Generic panel, connector, or icon composition falls below the premium bar."
+  },
+  {
+    "id": "compute--configure--limits--2",
+    "decision": "remove",
+    "reason": "Generic panel, connector, or icon composition falls below the premium bar."
+  },
+  {
+    "id": "compute--configure--runtime-settings--1",
+    "decision": "remove",
+    "reason": "Generic panel, connector, or icon composition falls below the premium bar."
+  },
+  {
+    "id": "compute--configure--runtime-settings--2",
+    "decision": "remove",
+    "reason": "Generic panel, connector, or icon composition falls below the premium bar."
+  },
+  {
+    "id": "compute--configure--runtime-settings--3",
+    "decision": "remove",
+    "reason": "Container-limit sliders are generic decorative controls."
+  },
+  {
+    "id": "compute--configure--runtime-settings--4",
+    "decision": "remove",
+    "reason": "Globe, dots, and arc are abstract decoration rather than a clear setting."
+  },
+  {
+    "id": "compute--configure--spend-budget--1",
+    "decision": "remove",
+    "reason": "Generic panel, connector, or icon composition falls below the premium bar."
+  },
+  {
+    "id": "compute--configure--spend-budget--2",
+    "decision": "remove",
+    "reason": "Generic panel, connector, or icon composition falls below the premium bar."
+  },
+  {
+    "id": "compute--configure--spend-budget--3",
+    "decision": "remove",
+    "reason": "Generic panel, connector, or icon composition falls below the premium bar."
+  },
+  {
+    "id": "compute--gateway--api-key-auth--1",
+    "decision": "remove",
+    "reason": "Generic panel, connector, or icon composition falls below the premium bar."
+  },
+  {
+    "id": "compute--gateway--api-key-auth--2",
+    "decision": "remove",
+    "reason": "Generic panel, connector, or icon composition falls below the premium bar."
+  },
+  {
+    "id": "compute--gateway--api-key-auth--3",
+    "decision": "remove",
+    "reason": "Generic panel, connector, or icon composition falls below the premium bar."
+  },
+  {
+    "id": "compute--gateway--errors--1",
+    "decision": "remove",
+    "reason": "Generic panel, connector, or icon composition falls below the premium bar."
+  },
+  {
+    "id": "compute--gateway--errors--2",
+    "decision": "remove",
+    "reason": "Sparse rounded panels repeat field names without a useful example or enough information to justify the image."
+  },
+  {
+    "id": "compute--gateway--errors--3",
+    "decision": "remove",
+    "reason": "Generic panel, connector, or icon composition falls below the premium bar."
+  },
+  {
+    "id": "compute--gateway--firewall--1",
+    "decision": "remove",
+    "reason": "Generic panel, connector, or icon composition falls below the premium bar."
+  },
+  {
+    "id": "compute--gateway--firewall--2",
+    "decision": "remove",
+    "reason": "Generic panel, connector, or icon composition falls below the premium bar."
+  },
+  {
+    "id": "compute--gateway--local-development--1",
+    "decision": "remove",
+    "reason": "Generic panel, connector, or icon composition falls below the premium bar."
+  },
+  {
+    "id": "compute--gateway--local-development--2",
+    "decision": "remove",
+    "reason": "Navigation card added during the accuracy review; no bespoke illustration commissioned."
+  },
+  {
+    "id": "compute--gateway--logging--1",
+    "decision": "remove",
+    "reason": "Generic panel, connector, or icon composition falls below the premium bar."
+  },
+  {
+    "id": "compute--gateway--logging--2",
+    "decision": "remove",
+    "reason": "Policy card to cube is a generic redeploy motif."
+  },
+  {
+    "id": "compute--gateway--openapi-validation--1",
+    "decision": "remove",
+    "reason": "Floating padlock and oversized field repeat generic security clip art."
+  },
+  {
+    "id": "compute--gateway--openapi-validation--2",
+    "decision": "remove",
+    "reason": "Large empty panels and repeated request labels lack a purposeful information hierarchy."
+  },
+  {
+    "id": "compute--gateway--overview--1",
+    "decision": "remove",
+    "reason": "Generic panel, connector, or icon composition falls below the premium bar."
+  },
+  {
+    "id": "compute--gateway--overview--2",
+    "decision": "remove",
+    "reason": "Generic panel, connector, or icon composition falls below the premium bar."
+  },
+  {
+    "id": "compute--gateway--overview--3",
+    "decision": "remove",
+    "reason": "Generic panel, connector, or icon composition falls below the premium bar."
+  },
+  {
+    "id": "compute--gateway--overview--4",
+    "decision": "remove",
+    "reason": "Generic panel, connector, or icon composition falls below the premium bar."
+  },
+  {
+    "id": "compute--gateway--overview--5",
+    "decision": "remove",
+    "reason": "Generic panel, connector, or icon composition falls below the premium bar."
+  },
+  {
+    "id": "compute--gateway--policies--1",
+    "decision": "remove",
+    "reason": "Generic panel, connector, or icon composition falls below the premium bar."
+  },
+  {
+    "id": "compute--gateway--policies--2",
+    "decision": "remove",
+    "reason": "Generic panel, connector, or icon composition falls below the premium bar."
+  },
+  {
+    "id": "compute--gateway--policies--3",
+    "decision": "remove",
+    "reason": "Shield-over-bars composition is crowded and visually arbitrary."
+  },
+  {
+    "id": "compute--gateway--policies--4",
+    "decision": "remove",
+    "reason": "Not shown on any page; individual card artwork library removed from the docs tree."
+  },
+  {
+    "id": "compute--gateway--principal--1",
+    "decision": "remove",
+    "reason": "Terminal placeholder and floating Local pill add no explanatory detail beyond the link text."
+  },
+  {
+    "id": "compute--gateway--principal--2",
+    "decision": "remove",
+    "reason": "Generic panel, connector, or icon composition falls below the premium bar."
+  },
+  {
+    "id": "compute--gateway--rate-limiting--1",
+    "decision": "remove",
+    "reason": "Generic panel, connector, or icon composition falls below the premium bar."
+  },
+  {
+    "id": "compute--gateway--rate-limiting--2",
+    "decision": "remove",
+    "reason": "Unlabeled stacked bars and a dotted ceiling are arbitrary rather than meaningful policy data."
+  },
+  {
+    "id": "compute--get-started--deploy-an-image--1",
+    "decision": "remove",
+    "reason": "Preview-to-production is represented only by generic cubes."
+  },
+  {
+    "id": "compute--get-started--deploy-an-image--2",
+    "decision": "remove",
+    "reason": "GitHub-to-build-to-cube flow relies on generic connector imagery."
+  },
+  {
+    "id": "compute--get-started--deploy-an-image--3",
+    "decision": "remove",
+    "reason": "One-image-to-replica cubes are generic and visually thin."
+  },
+  {
+    "id": "compute--get-started--deploy-an-image--4",
+    "decision": "remove",
+    "reason": "Configuration field is undermined by an unrelated shadowed cube."
+  },
+  {
+    "id": "compute--get-started--deploy-an-image--5",
+    "decision": "remove",
+    "reason": "Cube, shield, and add icon form an unstructured generic sequence."
+  },
+  {
+    "id": "compute--get-started--deploy-from-github--1",
+    "decision": "remove",
+    "reason": "Generic panel, connector, or icon composition falls below the premium bar."
+  },
+  {
+    "id": "compute--get-started--deploy-from-github--2",
+    "decision": "remove",
+    "reason": "Generic panel, connector, or icon composition falls below the premium bar."
+  },
+  {
+    "id": "compute--get-started--deploy-from-github--3",
+    "decision": "remove",
+    "reason": "Resource sliders and cube repeat generic deployment decoration."
+  },
+  {
+    "id": "compute--get-started--deploy-from-github--4",
+    "decision": "remove",
+    "reason": "Generic panel, connector, or icon composition falls below the premium bar."
+  },
+  {
+    "id": "compute--get-started--deploy-from-github--5",
+    "decision": "remove",
+    "reason": "Trusted-principal composition ends in a generic cube."
+  },
+  {
+    "id": "compute--get-started--plans--1",
+    "decision": "remove",
+    "reason": "GitHub-to-cube ready state is a generic, low-information flow."
+  },
+  {
+    "id": "compute--get-started--plans--2",
+    "decision": "remove",
+    "reason": "Generic panel, connector, or icon composition falls below the premium bar."
+  },
+  {
+    "id": "compute--index--1",
+    "decision": "remove",
+    "reason": "Not shown on any page; individual card artwork library removed from the docs tree."
+  },
+  {
+    "id": "compute--index--10",
+    "decision": "remove",
+    "reason": "Dockerfile-to-stacked-cube composition is generic deployment decoration."
+  },
+  {
+    "id": "compute--index--11",
+    "decision": "remove",
+    "reason": "Secret-to-cube flow is generic and dominated by a shadowed cube."
+  },
+  {
+    "id": "compute--index--12",
+    "decision": "remove",
+    "reason": "Not shown on any page; individual card artwork library removed from the docs tree."
+  },
+  {
+    "id": "compute--index--13",
+    "decision": "remove",
+    "reason": "Not shown on any page; individual card artwork library removed from the docs tree."
+  },
+  {
+    "id": "compute--index--14",
+    "decision": "remove",
+    "reason": "Not shown on any page; individual card artwork library removed from the docs tree."
+  },
+  {
+    "id": "compute--index--15",
+    "decision": "remove",
+    "reason": "Not shown on any page; individual card artwork library removed from the docs tree."
+  },
+  {
+    "id": "compute--index--16",
+    "decision": "remove",
+    "reason": "Not shown on any page; individual card artwork library removed from the docs tree."
+  },
+  {
+    "id": "compute--index--17",
+    "decision": "remove",
+    "reason": "Generic panel, connector, or icon composition falls below the premium bar."
+  },
+  {
+    "id": "compute--index--18",
+    "decision": "remove",
+    "reason": "Not shown on any page; individual card artwork library removed from the docs tree."
+  },
+  {
+    "id": "compute--index--19",
+    "decision": "remove",
+    "reason": "Not shown on any page; individual card artwork library removed from the docs tree."
+  },
+  {
+    "id": "compute--index--2",
+    "decision": "remove",
+    "reason": "Deployment card relies on a generic stacked cube as its focal point."
+  },
+  {
+    "id": "compute--index--3",
+    "decision": "remove",
+    "reason": "Three generic plan bars lack a distinctive premium composition."
+  },
+  {
+    "id": "compute--index--4",
+    "decision": "remove",
+    "reason": "Not shown on any page; individual card artwork library removed from the docs tree."
+  },
+  {
+    "id": "compute--index--5",
+    "decision": "remove",
+    "reason": "Not shown on any page; individual card artwork library removed from the docs tree."
+  },
+  {
+    "id": "compute--index--6",
+    "decision": "remove",
+    "reason": "Generic panel, connector, or icon composition falls below the premium bar."
+  },
+  {
+    "id": "compute--index--7",
+    "decision": "remove",
+    "reason": "Not shown on any page; individual card artwork library removed from the docs tree."
+  },
+  {
+    "id": "compute--index--8",
+    "decision": "remove",
+    "reason": "Generic panel, connector, or icon composition falls below the premium bar."
+  },
+  {
+    "id": "compute--index--9",
+    "decision": "remove",
+    "reason": "Not shown on any page; individual card artwork library removed from the docs tree."
+  },
+  {
+    "id": "compute--observe--analytics-api--1",
+    "decision": "remove",
+    "reason": "Generic panel, connector, or icon composition falls below the premium bar."
+  },
+  {
+    "id": "compute--observe--overview--1",
+    "decision": "remove",
+    "reason": "Generic panel, connector, or icon composition falls below the premium bar."
+  },
+  {
+    "id": "compute--observe--overview--2",
+    "decision": "remove",
+    "reason": "Generic panel, connector, or icon composition falls below the premium bar."
+  },
+  {
+    "id": "compute--observe--overview--3",
+    "decision": "remove",
+    "reason": "Generic panel, connector, or icon composition falls below the premium bar."
+  },
+  {
+    "id": "compute--observe--overview--4",
+    "decision": "remove",
+    "reason": "Generic panel, connector, or icon composition falls below the premium bar."
+  },
+  {
+    "id": "errors--frontline--capacity--deployment_offline--1",
+    "decision": "remove",
+    "reason": "Generic server tiles and a power icon read as stock infrastructure clip-art."
+  },
+  {
+    "id": "errors--frontline--capacity--no_running_instances--1",
+    "decision": "remove",
+    "reason": "Repeated server boxes and dotted baseline have no premium focal composition."
+  },
+  {
+    "id": "errors--frontline--capacity--spend_limit_reached--1",
+    "decision": "remove",
+    "reason": "Budget card is weakened by the oversized floating pause badge."
+  },
+  {
+    "id": "errors--frontline--client--firewall_denied--1",
+    "decision": "remove",
+    "reason": "Shield, cross, and server are a generic security-icon collage."
+  },
+  {
+    "id": "errors--frontline--client--insufficient_permissions--1",
+    "decision": "remove",
+    "reason": "Credential cards, arrow, and cross use a stock access-denied metaphor."
+  },
+  {
+    "id": "errors--frontline--client--insufficient_permissions--2",
+    "decision": "remove",
+    "reason": "Grant pills and connectors remain diagrammatic clip-art, not polished product UI."
+  },
+  {
+    "id": "errors--frontline--client--invalid_key--1",
+    "decision": "remove",
+    "reason": "Crossed credential and floating cross are generic validation imagery."
+  },
+  {
+    "id": "errors--frontline--client--invalid_key--2",
+    "decision": "remove",
+    "reason": "Credential with toggle controls is an arbitrary settings collage."
+  },
+  {
+    "id": "errors--frontline--client--missing_credentials--1",
+    "decision": "remove",
+    "reason": "Large authorization card with a floating key is a generic credential trope."
+  },
+  {
+    "id": "errors--frontline--client--missing_credentials--2",
+    "decision": "remove",
+    "reason": "Folder, key, and copy badge are disconnected stock-style symbols."
+  },
+  {
+    "id": "errors--frontline--client--openapi_validation_failed--1",
+    "decision": "remove",
+    "reason": "Document, braces, schema card, and 400 pill are overassembled generic motifs."
+  },
+  {
+    "id": "errors--frontline--client--rate_limited--1",
+    "decision": "remove",
+    "reason": "Giant clock and threshold dots are a generic waiting illustration."
+  },
+  {
+    "id": "errors--frontline--client--rate_limited--2",
+    "decision": "remove",
+    "reason": "Avatar and repeated key cards are generic people-and-access clip-art."
+  },
+  {
+    "id": "errors--frontline--client--usage_exceeded--1",
+    "decision": "remove",
+    "reason": "Single credits card and refill pill look like an undifferentiated dashboard fragment."
+  },
+  {
+    "id": "errors--frontline--client--usage_exceeded--2",
+    "decision": "remove",
+    "reason": "Balance line is too sparse and reads as a generic chart widget."
+  },
+  {
+    "id": "errors--frontline--config--invalid_configuration--1",
+    "decision": "remove",
+    "reason": "Document plus floating cross and review chip is a stock error construction."
+  },
+  {
+    "id": "errors--frontline--platform--config_load_failed--1",
+    "decision": "remove",
+    "reason": "Paper, broken dotted connector, and server tiles are generic configuration clip-art."
+  },
+  {
+    "id": "errors--frontline--platform--internal_server_error--1",
+    "decision": "remove",
+    "reason": "The electrocardiogram trace and floating 500 badge are generic outage imagery."
+  },
+  {
+    "id": "errors--frontline--routing--config_not_found--1",
+    "decision": "remove",
+    "reason": "Globe, dashed route, and crossed panel are generic network-not-found symbols."
+  },
+  {
+    "id": "errors--frontline--upstream--bad_gateway--1",
+    "decision": "remove",
+    "reason": "The electrocardiogram route and server tile are generic gateway-failure imagery."
+  },
+  {
+    "id": "errors--frontline--upstream--gateway_timeout--1",
+    "decision": "remove",
+    "reason": "Server-to-oversized-clock arrangement is a generic timeout trope."
+  },
+  {
+    "id": "errors--frontline--upstream--service_unavailable--1",
+    "decision": "remove",
+    "reason": "Sparse warning marks and a server tile lack a product-specific composition."
+  },
+  {
+    "id": "errors--overview--1",
+    "decision": "remove",
+    "reason": "Bearer field and floating key are generic credential clip-art."
+  },
+  {
+    "id": "errors--overview--10",
+    "decision": "remove",
+    "reason": "Three floating cubes are generic infrastructure symbolism."
+  },
+  {
+    "id": "errors--overview--11",
+    "decision": "remove",
+    "reason": "Globe, folder, and dotted path are generic and visually loose."
+  },
+  {
+    "id": "errors--overview--12",
+    "decision": "remove",
+    "reason": "Logo, broken pulse line, and server tile form a generic upstream-error collage."
+  },
+  {
+    "id": "errors--overview--13",
+    "decision": "remove",
+    "reason": "Document and shield repeat stock configuration-security imagery."
+  },
+  {
+    "id": "errors--overview--14",
+    "decision": "remove",
+    "reason": "Request-id timeline is a floating label over a generic dot-and-line diagram."
+  },
+  {
+    "id": "errors--overview--2",
+    "decision": "remove",
+    "reason": "Shield, crossed mark, credential, and grant pill are stock authorization symbols."
+  },
+  {
+    "id": "errors--overview--3",
+    "decision": "remove",
+    "reason": "Two oversized folders and a question mark are generic missing-resource imagery."
+  },
+  {
+    "id": "errors--overview--4",
+    "decision": "remove",
+    "reason": "Cube and list panel are arbitrary generic product shapes."
+  },
+  {
+    "id": "errors--overview--5",
+    "decision": "remove",
+    "reason": "Globe and domains panel repeat generic network clip-art."
+  },
+  {
+    "id": "errors--overview--6",
+    "decision": "remove",
+    "reason": "Document, braces, and body brackets still read as a generic error collage."
+  },
+  {
+    "id": "errors--overview--7",
+    "decision": "remove",
+    "reason": "SQL card plus giant clock is a conventional timeout illustration."
+  },
+  {
+    "id": "errors--overview--9",
+    "decision": "remove",
+    "reason": "Credential-to-shield arrangement is generic security clip-art."
+  },
+  {
+    "id": "homepage--workspace",
+    "decision": "keep",
+    "reason": "Flat workspace surface, equal product columns, and a shared-access footer follow the dashboard without decorative clip art."
+  },
+  {
+    "id": "platform--cli--install--1",
+    "decision": "remove",
+    "reason": "Physical key slab and generic terminal repeat the rejected credential-card metaphor."
+  },
+  {
+    "id": "platform--cli--install--2",
+    "decision": "remove",
+    "reason": "Oversized terminal and detached JSON/Text pills use more space than the simple output choice merits."
+  },
+  {
+    "id": "platform--cli--overview--1",
+    "decision": "remove",
+    "reason": "Decorative cube weakens the otherwise simple version-command scene."
+  },
+  {
+    "id": "platform--cli--overview--2",
+    "decision": "remove",
+    "reason": "Floating credential and root-key callout make the command scene feel diagrammatic."
+  },
+  {
+    "id": "platform--cli--overview--3",
+    "decision": "remove",
+    "reason": "Generic document lines, floating JSON pill, and detached check tile feel like assembled clip art."
+  },
+  {
+    "id": "platform--index--1",
+    "decision": "remove",
+    "reason": "Workspace is crowded with generic avatars, key, and cube icons."
+  },
+  {
+    "id": "platform--index--10",
+    "decision": "remove",
+    "reason": "GitHub logo, dotted route, envelope, and alert badge are generic integration symbols."
+  },
+  {
+    "id": "platform--index--11",
+    "decision": "remove",
+    "reason": "Folder, cube, and shield repeat generic protected-resource clip-art."
+  },
+  {
+    "id": "platform--index--12",
+    "decision": "remove",
+    "reason": "Oversized brand mark and action chips feel like a generic landing-card treatment."
+  },
+  {
+    "id": "platform--index--13",
+    "decision": "remove",
+    "reason": "Decorative cube and arrow reduce the command illustration to generic flow art."
+  },
+  {
+    "id": "platform--index--14",
+    "decision": "remove",
+    "reason": "Credential, saved-config chip, and connector are a generic setup collage."
+  },
+  {
+    "id": "platform--index--15",
+    "decision": "remove",
+    "reason": "Generic terminal-to-braces collage has detached labels and excessive empty surfaces."
+  },
+  {
+    "id": "platform--index--16",
+    "decision": "remove",
+    "reason": "Floating POST and envelope pills are loosely connected to an oversized URL panel."
+  },
+  {
+    "id": "platform--index--17",
+    "decision": "remove",
+    "reason": "Bearer field and oversized shield are generic authorization imagery."
+  },
+  {
+    "id": "platform--index--18",
+    "decision": "remove",
+    "reason": "Small detached anatomy labels and faint guide lines do not hold up at card size."
+  },
+  {
+    "id": "platform--index--19",
+    "decision": "remove",
+    "reason": "Error labels plus a floating clock are an ordinary diagnostics icon collage."
+  },
+  {
+    "id": "platform--index--2",
+    "decision": "remove",
+    "reason": "Unlabeled slider and oversized workspace panel do not describe the settings named by the card."
+  },
+  {
+    "id": "platform--index--21",
+    "decision": "remove",
+    "reason": "Two credentials and large circular arrows are a generic key-rotation motif."
+  },
+  {
+    "id": "platform--index--22",
+    "decision": "remove",
+    "reason": "Credential slab with floating Read/Write pills lacks the precision of an actual permission example."
+  },
+  {
+    "id": "platform--index--23",
+    "decision": "remove",
+    "reason": "Permission chips alone are too slight to sustain a premium card composition."
+  },
+  {
+    "id": "platform--index--25",
+    "decision": "remove",
+    "reason": "Oversized paper stack and decorative index tabs are generic book clip art."
+  },
+  {
+    "id": "platform--index--26",
+    "decision": "remove",
+    "reason": "Repository, cube, and server pipeline relies on generic deployment clip-art."
+  },
+  {
+    "id": "platform--index--27",
+    "decision": "remove",
+    "reason": "Credential, globe, shield, and dotted routes make a generic API collage."
+  },
+  {
+    "id": "platform--index--3",
+    "decision": "remove",
+    "reason": "Organization hierarchy is dominated by generic avatar iconography."
+  },
+  {
+    "id": "platform--index--4",
+    "decision": "remove",
+    "reason": "Device code, sign-in card, and check badge are a generic auth illustration."
+  },
+  {
+    "id": "platform--index--5",
+    "decision": "remove",
+    "reason": "Floating product boxes and a shared-billing pill provide little information and oversimplify separately billed plans."
+  },
+  {
+    "id": "platform--index--6",
+    "decision": "remove",
+    "reason": "Unlabeled bars, detached scale, and floating Plan pill do not explain actual limits."
+  },
+  {
+    "id": "platform--index--7",
+    "decision": "remove",
+    "reason": "Unlabeled decorative curve and detached This month pill are not a credible usage visualization."
+  },
+  {
+    "id": "platform--index--8",
+    "decision": "remove",
+    "reason": "Oversized shield, key, and avatar are generic protection clip-art."
+  },
+  {
+    "id": "platform--index--9",
+    "decision": "remove",
+    "reason": "Two generic credential boxes with repeated dots oversimplify hashing without adding useful detail."
+  },
+  {
+    "id": "platform--root-keys--overview--1",
+    "decision": "remove",
+    "reason": "Large key icon and detached grammar pills lack an informative permission example."
+  },
+  {
+    "id": "platform--root-keys--overview--2",
+    "decision": "remove",
+    "reason": "Staggered floating boxes turn a short permission tuple into an oversized decorative diagram."
+  },
+  {
+    "id": "platform--security--key-storage--1",
+    "decision": "remove",
+    "reason": "Locked credential and recoverable card are generic key-storage clip-art."
+  },
+  {
+    "id": "platform--security--overview--1",
+    "decision": "remove",
+    "reason": "Physical credential boxes and repeated dots recycle the rejected key-card treatment."
+  },
+  {
+    "id": "platform--security--overview--2",
+    "decision": "remove",
+    "reason": "GitHub, credential, envelope, and dotted connector are generic integration symbols."
+  },
+  {
+    "id": "platform--security--overview--3",
+    "decision": "remove",
+    "reason": "Folder, cube, and shield repeat generic deletion-protection imagery."
+  },
+  {
+    "id": "platform--security--overview--4",
+    "decision": "remove",
+    "reason": "Generic avatar and detached device dominate the second-factor scene."
+  },
+  {
+    "id": "platform--workspace--settings--1",
+    "decision": "remove",
+    "reason": "Envelope-to-avatar invitation is generic people-management clip-art."
+  },
+  {
+    "id": "platform--workspace--settings--2",
+    "decision": "remove",
+    "reason": "Navigation card added during the accuracy review; no bespoke illustration commissioned."
+  },
+  {
+    "id": "platform--workspace--settings--3",
+    "decision": "remove",
+    "reason": "Generic document skeleton and floating product pills do not explain billing settings."
+  },
+  {
+    "id": "platform--workspace--settings--4",
+    "decision": "remove",
+    "reason": "Uncalibrated usage bars and a detached Usage badge are decorative rather than informative."
+  },
+  {
+    "id": "platform--ai-coding--overview--1",
+    "decision": "remove",
+    "reason": "No individual card illustration shipped; homepage is the only page that shows card art."
+  },
+  {
+    "id": "platform--ai-coding--overview--2",
+    "decision": "remove",
+    "reason": "No individual card illustration shipped; homepage is the only page that shows card art."
+  },
+  {
+    "id": "platform--ai-coding--overview--3",
+    "decision": "remove",
+    "reason": "No individual card illustration shipped; homepage is the only page that shows card art."
+  },
+  {
+    "id": "platform--ai-coding--overview--4",
+    "decision": "remove",
+    "reason": "No individual card illustration shipped; homepage is the only page that shows card art."
+  },
+  {
+    "id": "platform--ai-coding--cursor--1",
+    "decision": "remove",
+    "reason": "No individual card illustration shipped; homepage is the only page that shows card art."
+  },
+  {
+    "id": "platform--ai-coding--cursor--2",
+    "decision": "remove",
+    "reason": "No individual card illustration shipped; homepage is the only page that shows card art."
+  },
+  {
+    "id": "platform--ai-coding--claude-code--1",
+    "decision": "remove",
+    "reason": "No individual card illustration shipped; homepage is the only page that shows card art."
+  },
+  {
+    "id": "platform--ai-coding--claude-code--2",
+    "decision": "remove",
+    "reason": "No individual card illustration shipped; homepage is the only page that shows card art."
+  },
+  {
+    "id": "errors--overview--8",
+    "decision": "remove",
+    "reason": "No individual card illustration shipped; homepage is the only page that shows card art."
+  }
+]

@@ -40,7 +40,7 @@ export const SearchActions: React.FC<SearchActionsProps> = ({
         type="button"
         data-testid="clear-search-button"
       >
-        <IconXmarkOutline18 className="size-4 text-accent-9" />
+        <IconXmarkOutline18 className="size-4 text-gray-9" />
       </button>
     );
   }

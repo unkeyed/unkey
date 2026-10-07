@@ -1,7 +1,7 @@
 "use client";
 
-import { cn } from "@/lib/utils";
-import { Fragment, type ReactNode, useEffect, useRef } from "react";
+import { cn } from "cn";
+import { type ReactNode, useEffect, useRef } from "react";
 import type { Column } from "../virtual-table/types";
 
 const ROW_HEIGHT_PX = 26;
@@ -12,8 +12,6 @@ type StreamingTableProps<T> = {
   columns: Column<T>[];
   keyExtractor: (item: T) => string | number;
   rowClassName?: (item: T) => string;
-  onRowClick?: (item: T) => void;
-  renderExpanded?: (item: T) => ReactNode;
   renderSkeletonCell: (col: Column<T>) => ReactNode;
   isLoading?: boolean;
   fixedHeight?: number;
@@ -25,8 +23,6 @@ export function StreamingTable<T>({
   columns,
   keyExtractor,
   rowClassName,
-  onRowClick,
-  renderExpanded,
   renderSkeletonCell,
   isLoading = false,
   fixedHeight = 500,
@@ -116,45 +112,25 @@ export function StreamingTable<T>({
                 </tr>
               ))
             : data.map((item) => (
-                <Fragment key={keyExtractor(item)}>
-                  <tr
-                    data-row-id={keyExtractor(item)}
-                    onClick={onRowClick ? () => onRowClick(item) : undefined}
-                    onKeyDown={
-                      onRowClick
-                        ? (e) => {
-                            if (e.key === "Enter" || e.key === " ") {
-                              e.preventDefault();
-                              onRowClick(item);
-                            }
-                          }
-                        : undefined
-                    }
-                    tabIndex={onRowClick ? 0 : undefined}
-                    role={onRowClick ? "button" : undefined}
-                    className={cn(
-                      onRowClick && "cursor-pointer",
-                      "transition-colors",
-                      rowClassName?.(item),
-                    )}
-                    style={{ height: `${ROW_HEIGHT_PX}px` }}
-                  >
-                    {columns.map((col, idx) => (
-                      <td
-                        key={col.key}
-                        className={cn(
-                          "text-xs align-middle whitespace-nowrap pr-4",
-                          idx === 0 ? "rounded-l-md" : "",
-                          idx === columns.length - 1 ? "rounded-r-md" : "",
-                          col.cellClassName,
-                        )}
-                      >
-                        {col.render(item)}
-                      </td>
-                    ))}
-                  </tr>
-                  {renderExpanded?.(item)}
-                </Fragment>
+                <tr
+                  key={keyExtractor(item)}
+                  className={cn("transition-colors", rowClassName?.(item))}
+                  style={{ height: `${ROW_HEIGHT_PX}px` }}
+                >
+                  {columns.map((col, idx) => (
+                    <td
+                      key={col.key}
+                      className={cn(
+                        "text-xs align-middle whitespace-nowrap pr-4",
+                        idx === 0 ? "rounded-l-md" : "",
+                        idx === columns.length - 1 ? "rounded-r-md" : "",
+                        col.cellClassName,
+                      )}
+                    >
+                      {col.render(item)}
+                    </td>
+                  ))}
+                </tr>
               ))}
         </tbody>
       </table>

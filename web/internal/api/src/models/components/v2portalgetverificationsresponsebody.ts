@@ -8,9 +8,9 @@ import { Result as SafeParseResult } from "../../types/fp.js";
 import { SDKValidationError } from "../errors/sdkvalidationerror.js";
 import { Meta, Meta$inboundSchema } from "./meta.js";
 import {
-  V2PortalGetVerificationsDataPoint,
-  V2PortalGetVerificationsDataPoint$inboundSchema,
-} from "./v2portalgetverificationsdatapoint.js";
+  V2PortalGetVerificationsKeySeries,
+  V2PortalGetVerificationsKeySeries$inboundSchema,
+} from "./v2portalgetverificationskeyseries.js";
 
 export type V2PortalGetVerificationsResponseBody = {
   /**
@@ -18,13 +18,27 @@ export type V2PortalGetVerificationsResponseBody = {
    */
   meta: Meta;
   /**
-   * Zero-filled verification timeseries for the authenticated end user, ordered
+   * Width of one bucket in milliseconds, chosen from the window size. Every
    *
    * @remarks
-   * by time ascending. Buckets with no verifications are present with zero
-   * counts so the series is contiguous across the requested window.
+   * series below is aligned to it, so a client can build the buckets for a
+   * window that returned no keys at all without restating the granularity
+   * rule.
    */
-  data: Array<V2PortalGetVerificationsDataPoint>;
+  bucketMillis: number;
+  /**
+   * One entry per key the end user has verifications for in the window, each
+   *
+   * @remarks
+   * zero-filled across the whole window and ordered by time ascending. Sum
+   * them to get the account-wide series.
+   *
+   * Keys with no verifications anywhere in the window are omitted. Entries
+   * come from the verification events themselves, so a `keyId` may name a key
+   * that has since been deleted and will not appear in `portal.listKeys`;
+   * render those totals without assuming the key is still listable.
+   */
+  keys: Array<V2PortalGetVerificationsKeySeries>;
 };
 
 /** @internal */
@@ -34,7 +48,8 @@ export const V2PortalGetVerificationsResponseBody$inboundSchema: z.ZodType<
   unknown
 > = z.object({
   meta: Meta$inboundSchema,
-  data: z.array(V2PortalGetVerificationsDataPoint$inboundSchema),
+  bucketMillis: z.number().int(),
+  keys: z.array(V2PortalGetVerificationsKeySeries$inboundSchema),
 });
 
 export function v2PortalGetVerificationsResponseBodyFromJSON(

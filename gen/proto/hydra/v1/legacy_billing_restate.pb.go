@@ -83,7 +83,7 @@ type LegacyBillingWorkflowServer interface {
 type UnimplementedLegacyBillingWorkflowServer struct{}
 
 func (UnimplementedLegacyBillingWorkflowServer) Run(ctx sdk_go.Context, req *LegacyBillingRunRequest) (*LegacyBillingRunResponse, error) {
-	return nil, sdk_go.TerminalError(fmt.Errorf("method Run not implemented"), 501)
+	return nil, sdk_go.ToTerminalError(fmt.Errorf("method Run not implemented"), sdk_go.WithErrorCode(501))
 }
 func (UnimplementedLegacyBillingWorkflowServer) testEmbeddedByValue() {}
 

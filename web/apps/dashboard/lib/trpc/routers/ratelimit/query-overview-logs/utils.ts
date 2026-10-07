@@ -1,5 +1,5 @@
 import type { RatelimitQueryOverviewLogsPayload } from "@/app/(app)/[workspaceSlug]/ratelimits/[namespaceId]/_overview/components/table/query-logs.schema";
-import { getTimestampFromRelative } from "@/lib/utils";
+import { getTimestampFromRelative } from "@/lib/duration";
 import type { RatelimitOverviewLogsParams } from "@unkey/clickhouse/src/ratelimits";
 
 export function transformFilters(

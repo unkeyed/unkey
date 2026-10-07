@@ -140,7 +140,7 @@ export const InviteForm = ({ organization }: InviteFormProps) => {
     <Card>
       <CardContent className="p-6">
         <div className="mb-6">
-          <h3 className="text-base font-medium text-content">
+          <h3 className="text-base font-medium text-gray-12">
             Invite new members by email address
           </h3>
         </div>
@@ -162,7 +162,7 @@ export const InviteForm = ({ organization }: InviteFormProps) => {
                   name={`invites.${index}.role`}
                   render={({ field: roleField }) => (
                     <fieldset className="flex flex-col gap-1.5 border-0 m-0 p-0 w-48">
-                      <label htmlFor={`invites.${index}.role`} className="text-gray-11 text-[13px]">
+                      <label htmlFor={`invites.${index}.role`} className="text-gray-11 text-sm">
                         Role
                       </label>
                       <Select
@@ -200,7 +200,7 @@ export const InviteForm = ({ organization }: InviteFormProps) => {
             ))}
           </div>
 
-          <div className="border-t border-border pt-4">
+          <div className="border-t pt-4">
             <div className="flex items-center justify-between">
               <Button
                 type="button"

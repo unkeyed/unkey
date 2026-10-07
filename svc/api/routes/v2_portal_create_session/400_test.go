@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -165,6 +164,21 @@ func TestCreateSessionBadRequest(t *testing.T) {
 		require.NotNil(t, res.Body)
 	})
 
+	// `preview` was removed from the request schema. The body is untyped because
+	// handler.Request no longer carries the field, and the pinned Go SDK still
+	// serializes it, so this is the check that keeps the two in step.
+	t.Run("preview rejected", func(t *testing.T) {
+		req := map[string]any{
+			"portal":     "test-portal",
+			"externalId": "user_123",
+			"scopes":     validScopes,
+			"preview":    true,
+		}
+		res := testutil.CallRoute[map[string]any, openapi.BadRequestErrorResponse](h, route, headers, req)
+		require.Equal(t, 400, res.Status)
+		require.NotNil(t, res.Body)
+	})
+
 	t.Run("legacy rbac tuple rejected", func(t *testing.T) {
 		req := handler.Request{
 			Portal:     "test-portal",
@@ -188,8 +202,9 @@ func TestCreateSessionBadRequest(t *testing.T) {
 	})
 }
 
-// The root key holds every permission the two scopes used to require, so a 400
-// here can only be the request validator, not the mint-time ceiling.
+// The root key holds every permission these scopes require, so a 400 here can
+// only be the request validator or the scope-combination rule, not the
+// mint-time ceiling.
 func TestCreateSessionRejectsRemovedScopes(t *testing.T) {
 	h := testutil.NewHarness(t)
 
@@ -236,7 +251,7 @@ func TestCreateSessionRejectsRemovedScopes(t *testing.T) {
 		return res.Status
 	}
 
-	for _, scope := range []openapi.V2PortalCreateSessionRequestBodyScopes{"analytics:read", "keys:create"} {
+	for _, scope := range []openapi.V2PortalCreateSessionRequestBodyScopes{"keys:create"} {
 		t.Run(string(scope)+" alone is rejected", func(t *testing.T) {
 			require.Equal(t, 400, call(t, scope))
 		})
@@ -249,6 +264,25 @@ func TestCreateSessionRejectsRemovedScopes(t *testing.T) {
 	// Reroll is reached from the keys page, so the pair cannot be split.
 	t.Run("reroll without read is rejected", func(t *testing.T) {
 		require.Equal(t, 400, call(t, "keys:reroll"))
+	})
+
+	// Analytics renders inside the keys page, so an analytics-only session has
+	// nowhere to land.
+	t.Run("analytics without read is rejected", func(t *testing.T) {
+		require.Equal(t, 400, call(t, "analytics:read"))
+	})
+
+	t.Run("analytics with reroll but without read is rejected", func(t *testing.T) {
+		require.Equal(t, 400, call(t, "analytics:read", "keys:reroll"))
+	})
+
+	t.Run("analytics with read is accepted", func(t *testing.T) {
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
+			Portal:     "removed-scope-portal",
+			ExternalId: "user_removed_scope",
+			Scopes:     []openapi.V2PortalCreateSessionRequestBodyScopes{"keys:read", "analytics:read"},
+		})
+		require.Equal(t, 200, res.Status, "got: %s", res.RawBody)
 	})
 
 	t.Run("reroll with read is accepted", func(t *testing.T) {
@@ -338,7 +372,7 @@ func TestCreateSessionRejectsUnsafeReturnUrl(t *testing.T) {
 				Portal:     "return-url-portal",
 				ExternalId: "user_return_url",
 				Scopes:     scopes,
-				ReturnUrl:  ptr.P(returnURL),
+				ReturnUrl:  new(returnURL),
 			})
 			require.Equal(t, 400, res.Status, "expected 400 for %s, received: %s", name, res.RawBody)
 		})
@@ -349,7 +383,7 @@ func TestCreateSessionRejectsUnsafeReturnUrl(t *testing.T) {
 			Portal:     "return-url-portal",
 			ExternalId: "user_return_url_ok",
 			Scopes:     scopes,
-			ReturnUrl:  ptr.P("https://app.example.com/settings/api-keys"),
+			ReturnUrl:  new("https://app.example.com/settings/api-keys"),
 		})
 		require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
 	})

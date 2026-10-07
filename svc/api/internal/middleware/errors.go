@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"net/http"
 
@@ -49,8 +50,7 @@ func errorLogAttrs(s *zen.Session, err error, status int, urn codes.URN) []any {
 	}
 }
 
-// WithErrorHandling returns middleware that translates errors into appropriate
-// HTTP responses based on error URNs.
+// WithErrorHandling translates application and routing errors into HTTP responses.
 func WithErrorHandling() zen.Middleware {
 	return func(next zen.HandleFunc) zen.HandleFunc {
 		return func(ctx context.Context, s *zen.Session) error {
@@ -62,6 +62,25 @@ func WithErrorHandling() zen.Middleware {
 			// Store the internal error message for metrics logging before we
 			// convert it to an HTTP response and lose the details.
 			s.SetInternalError(fault.InternalMessage(err))
+
+			if routingErr, ok := errors.AsType[*zen.RoutingError](err); ok {
+				detail := "The requested endpoint does not exist."
+				if routingErr.Status == http.StatusMethodNotAllowed {
+					detail = "The request method is not supported for this endpoint."
+				}
+				return s.ProblemJSON(routingErr.Status, struct {
+					Meta  openapi.Meta      `json:"meta"`
+					Error openapi.BaseError `json:"error"`
+				}{
+					Meta: openapi.Meta{RequestId: s.RequestID()},
+					Error: openapi.BaseError{
+						Title:  http.StatusText(routingErr.Status),
+						Type:   "about:blank",
+						Detail: detail,
+						Status: routingErr.Status,
+					},
+				})
+			}
 
 			// Get the error URN from the error
 			urn, ok := fault.GetCode(err)
@@ -134,7 +153,8 @@ func WithErrorHandling() zen.Middleware {
 				codes.UserErrorsBadRequestInvalidAnalyticsTable,
 				codes.UserErrorsBadRequestInvalidAnalyticsFunction,
 				codes.UserErrorsBadRequestInvalidAnalyticsQueryType,
-				codes.UserErrorsBadRequestQueryRangeExceedsRetention:
+				codes.UserErrorsBadRequestQueryRangeExceedsRetention,
+				codes.UserErrorsBadRequestPerKeyBreakoutTooLarge:
 				return s.ProblemJSON(http.StatusBadRequest, openapi.BadRequestErrorResponse{
 					Meta: openapi.Meta{
 						RequestId: s.RequestID(),
@@ -304,7 +324,8 @@ func WithErrorHandling() zen.Middleware {
 				codes.UnkeyDataErrorsProjectDuplicate,
 				codes.UnkeyDataErrorsAppDuplicate,
 				codes.UnkeyDataErrorsDomainDuplicate,
-				codes.UnkeyDataErrorsPortalDuplicate:
+				codes.UnkeyDataErrorsPortalDuplicate,
+				codes.UnkeyDataErrorsPortalChanged:
 				return s.ProblemJSON(http.StatusConflict, openapi.ConflictErrorResponse{
 					Meta: openapi.Meta{
 						RequestId: s.RequestID(),

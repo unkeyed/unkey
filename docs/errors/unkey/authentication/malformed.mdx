@@ -1,0 +1,48 @@
+---
+title: "malformed"
+sidebarTitle: "malformed"
+description: "The Authorization header is not in the form Bearer <token>."
+sources:
+  - pkg/codes/unkey_auth.go
+  - svc/api/internal/middleware/errors.go
+  - pkg/zen/auth.go
+  - pkg/auth/jwt/resolver.go
+---
+
+<Danger>`err:unkey:authentication:malformed`</Danger>
+
+The API found an `Authorization` header but couldn't read a credential from it. The header must be `Bearer`, one space, and the token. You get HTTP 400.
+
+```json Example response
+{
+  "meta": {
+    "requestId": "req_2c9a0jf23l4k567"
+  },
+  "error": {
+    "detail": "You must provide a valid root key in the Authorization header in the format 'Bearer ROOT_KEY'. Your authorization header is missing the 'Bearer ' prefix.",
+    "status": 400,
+    "title": "Bad Request",
+    "type": "/errors/unkey/authentication/malformed",
+    "errors": []
+  }
+}
+```
+
+## Likely causes
+
+- The `Bearer ` prefix is missing, or you used a different scheme such as `Basic`.
+- The token after the prefix is empty.
+- Whitespace, a newline, or quotes got in when the key was copied, or a client library added its own scheme.
+- A dashboard session token has expired or doesn't validate. The message is `Invalid bearer token.`
+
+## How to fix
+
+1. Send the header as `Authorization: Bearer unkey_xxx`, with one space and no quotes.
+2. Check for stray whitespace or a newline, and for a client library that adds its own scheme.
+3. If you're using a dashboard session token, sign in again.
+
+## Related errors
+
+- [`err:unkey:application:invalid_input`](/errors/unkey/application/invalid_input): the header is missing entirely.
+- [`err:unkey:authentication:missing`](/errors/unkey/authentication/missing): the endpoint doesn't accept the kind of credential you sent.
+- [`err:unkey:authentication:key_not_found`](/errors/unkey/authentication/key_not_found): the token is readable but isn't a valid root key.

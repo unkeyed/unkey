@@ -1,19 +1,15 @@
 /**
- * The per-key stuff is a stand in for a grouped per-key verifications
- * endpoint the API does not offer yet. Everything the keys page fetches lives
- * here, so this is the one file to rewrite when that endpoint lands.
+ * Everything the keys page fetches. One `portal.getVerifications` call returns
+ * every key's series, so the account-wide chart is their sum rather than a
+ * second read, and the per-key table needs no fan-out.
  */
-import { type UseQueryResult, useQueries } from "@tanstack/react-query";
-import { type KeyUsage, keyUsage } from "~/components/analytics/key-usage";
-import type { VerificationBucket } from "~/components/analytics/schema/analytics.schema";
+import { type KeyUsage, keyUsage, sumSeries } from "~/components/analytics/key-usage";
+import type { KeySeries, VerificationBucket } from "~/components/analytics/schema/analytics.schema";
 import type { TimeWindow } from "~/components/analytics/time-presets";
 import type { Key } from "~/components/keys-table/schema/keys.schema";
 import { useKeysListQuery } from "~/hooks/use-keys-list-query";
-import { useVerificationsQuery, verificationsQueryOptions } from "~/hooks/use-verifications-query";
+import { useVerificationsQuery } from "~/hooks/use-verifications-query";
 import { canReadAnalytics } from "~/lib/scopes";
-
-// @dh warning - If we ship with this still here, the portal won't work properly.
-const MAX_PER_KEY_USAGE_QUERIES = 50;
 
 export type KeyUsageRow =
   | { key: Key; status: "pending" }
@@ -34,57 +30,54 @@ export type KeysUsage = {
   aggregateState: QueryState & { isFetching: boolean };
   /** Whether the session may read analytics at all; without it there are no numbers to show. */
   analytics: boolean;
-  /** "unavailable" when the session cannot read analytics or the account has more keys than we will fan out for. Otherwise one entry per key in `keys`, always. */
+  /** "unavailable" when the session cannot read analytics. Otherwise one entry per key in `keys`, always. */
   byKey:
     | "unavailable"
     | { rows: ReadonlyMap<string, KeyUsageRow>; isPending: boolean; retryFailed: () => void };
 };
 
-function rowOf(key: Key, result: UseQueryResult<VerificationBucket[]>): KeyUsageRow {
-  if (result.data) {
-    return { key, status: "ok", usage: keyUsage(key, result.data) };
+/**
+ * Every row shares the one request's outcome. A key the response omits had no
+ * traffic in the window, which is a settled zero rather than a missing number.
+ */
+function rowOf(key: Key, series: KeySeries | undefined, state: QueryState): KeyUsageRow {
+  if (state.isError) {
+    return { key, status: "error" };
   }
-  return { key, status: result.isError ? "error" : "pending" };
+  if (state.isInitialLoading) {
+    return { key, status: "pending" };
+  }
+  return { key, status: "ok", usage: keyUsage(key, series?.buckets ?? []) };
 }
 
 export function useKeysUsage(window: TimeWindow, scopes: ReadonlyArray<string>): KeysUsage {
   const analytics = canReadAnalytics(scopes);
   const keysList = useKeysListQuery();
-  const aggregate = useVerificationsQuery(
+  const verifications = useVerificationsQuery(
     { startTime: window.startTime, endTime: window.endTime },
     analytics,
   );
 
-  const fanOut = analytics && keysList.keys.length <= MAX_PER_KEY_USAGE_QUERIES;
-  const queried = fanOut ? keysList.keys : [];
-
-  const byKey = useQueries({
-    queries: queried.map((key) =>
-      verificationsQueryOptions({
-        startTime: window.startTime,
-        endTime: window.endTime,
-        keyId: key.id,
-      }),
-    ),
-    combine: (results) => ({
-      rows: new Map(queried.map((key, i) => [key.id, rowOf(key, results[i])])),
-      isPending: results.some((result) => result.isPending),
-      retryFailed: () => {
-        for (const result of results) {
-          if (result.isError) {
-            result.refetch();
-          }
-        }
-      },
-    }),
-  });
+  // Series come from the verification events, so they can name a key the list
+  // does not carry; the table is driven by the list and ignores those, while
+  // the account-wide sum below deliberately keeps them.
+  const seriesByKey = new Map(verifications.keys.map((series) => [series.keyId, series]));
+  const rows = new Map(
+    keysList.keys.map((key) => [key.id, rowOf(key, seriesByKey.get(key.id), verifications)]),
+  );
 
   return {
     keys: keysList.keys,
     keysState: keysList,
-    aggregate: aggregate.buckets,
-    aggregateState: aggregate,
+    aggregate: sumSeries(verifications.keys),
+    aggregateState: verifications,
     analytics,
-    byKey: fanOut ? byKey : "unavailable",
+    byKey: analytics
+      ? {
+          rows,
+          isPending: verifications.isInitialLoading,
+          retryFailed: verifications.refetch,
+        }
+      : "unavailable",
   };
 }

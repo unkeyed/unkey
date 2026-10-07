@@ -6,7 +6,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_portal_update_portal"
 )
@@ -29,7 +28,7 @@ func TestUpdatePortalConflicts(t *testing.T) {
 
 	t.Run("slug held by a sibling", func(t *testing.T) {
 		req := baseRequest(mine.ID)
-		req.Slug = ptr.P(sibling.Slug)
+		req.Slug = new(sibling.Slug)
 
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 		require.Equal(t, http.StatusConflict, res.Status, "expected 409, received: %s", res.RawBody)
@@ -67,10 +66,10 @@ func TestUpdatePortalAcceptsItsOwnCurrentValues(t *testing.T) {
 	stored := h.SeedPortal(t, workspace.ID, "idempotent", "idempotent", mapping, nil, nil)
 
 	req := baseRequest(stored.ID)
-	req.Slug = ptr.P(stored.Slug)
+	req.Slug = new(stored.Slug)
 	req.KeyspaceId = ksOf(mapping)
 	req.AppId = appOf(mapping)
-	req.Enabled = ptr.P(true)
+	req.Enabled = new(true)
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 	require.Equal(t, http.StatusOK, res.Status,
@@ -95,7 +94,7 @@ func TestUpdatePortalAllowsSlugHeldByAnotherWorkspace(t *testing.T) {
 		nil, nil)
 
 	req := baseRequest(stored.ID)
-	req.Slug = ptr.P("shared-slug")
+	req.Slug = new("shared-slug")
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 	require.Equal(t, http.StatusOK, res.Status,

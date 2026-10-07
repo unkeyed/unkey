@@ -7,7 +7,6 @@ import (
 	"github.com/stretchr/testify/require"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	dbtype "github.com/unkeyed/unkey/pkg/db/types"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 )
@@ -66,19 +65,19 @@ func fullApplyRequest(t *testing.T) *ctrlv1.ApplyDeployment {
 		Image:                         testImage,
 		CpuMillicores:                 testCPUMillicores,
 		MemoryMib:                     testMemoryMib,
-		BuildId:                       ptr.P(testBuildID),
+		BuildId:                       new(testBuildID),
 		EncryptedEnvironmentVariables: []byte("ciphertext-sentinel"),
 		Command:                       testCommand,
 		Port:                          testPort,
 		ShutdownSignal:                testShutdownSignal,
 		Healthcheck:                   hc,
 		AppId:                         testAppID,
-		EnvironmentSlug:               ptr.P(testEnvironmentSlug),
-		Region:                        ptr.P(testRegion),
-		GitCommitSha:                  ptr.P(testGitCommitSha),
-		GitBranch:                     ptr.P(testGitBranch),
-		GitRepo:                       ptr.P(testGitRepo),
-		GitCommitMessage:              ptr.P(testGitCommitMessage),
+		EnvironmentSlug:               new(testEnvironmentSlug),
+		Region:                        new(testRegion),
+		GitCommitSha:                  new(testGitCommitSha),
+		GitBranch:                     new(testGitBranch),
+		GitRepo:                       new(testGitRepo),
+		GitCommitMessage:              new(testGitCommitMessage),
 		Autoscaling:                   &ctrlv1.AutoscalingPolicy{MinReplicas: 2, MaxReplicas: 5},
 		EphemeralStorage:              &ctrlv1.EphemeralStorage{SizeMib: testEphemeralMib},
 	}
@@ -316,4 +315,17 @@ func TestBuildReplicaSet_NoSecretsOmitsEnvFrom(t *testing.T) {
 	rs := testController().buildReplicaSet(fullApplyRequest(t), false)
 	require.Empty(t, mainContainer(t, rs).EnvFrom)
 	require.Empty(t, rs.Spec.Template.Spec.ServiceAccountName)
+}
+
+// TestBuildReplicaSet_GvisorToggle pins both ends: pods are sandboxed by
+// default, and disabling it leaves them on the node's default runtime rather
+// than naming a RuntimeClass the node may not have.
+func TestBuildReplicaSet_GvisorToggle(t *testing.T) {
+	rs := testController().buildReplicaSet(fullApplyRequest(t), true)
+	require.Equal(t, new(runtimeClassGvisor), rs.Spec.Template.Spec.RuntimeClassName)
+
+	c := testController()
+	c.disableGvisor = true
+	rs = c.buildReplicaSet(fullApplyRequest(t), true)
+	require.Nil(t, rs.Spec.Template.Spec.RuntimeClassName)
 }

@@ -1,0 +1,47 @@
+---
+title: "request_body_unreadable"
+sidebarTitle: "request_body_unreadable"
+description: "The API could not read the request body to the end."
+sources:
+  - pkg/codes/user_request.go
+  - svc/api/internal/middleware/errors.go
+  - pkg/zen/session.go
+---
+
+<Danger>`err:user:bad_request:request_body_unreadable`</Danger>
+
+The API couldn't read your request body to the end, for a reason other than size. You get HTTP 400 on any endpoint.
+
+```json Example response
+{
+  "meta": {
+    "requestId": "req_2c9a0jf23l4k567"
+  },
+  "error": {
+    "detail": "The request body could not be read.",
+    "status": 400,
+    "title": "Bad Request",
+    "type": "/errors/user/bad_request/request_body_unreadable",
+    "errors": []
+  }
+}
+```
+
+## Likely causes
+
+- Your client disconnected mid-upload.
+- The `Content-Length` header doesn't match the bytes sent.
+- A proxy between you and `api.unkey.com` cut the body short.
+
+## How to fix
+
+1. Retry the request.
+2. If it keeps failing, make sure your HTTP client sends the full body with a correct `Content-Length` and doesn't close the connection early on a slow network.
+3. Check that any proxy or gateway in between forwards the body unchanged.
+
+The official SDKs avoid most of these problems.
+
+## Related errors
+
+- [`err:user:bad_request:request_body_too_large`](/errors/user/bad_request/request_body_too_large): the body exceeded the size cap.
+- [`err:user:bad_request:client_closed_request`](/errors/user/bad_request/client_closed_request): the client disconnected while the request was being processed.

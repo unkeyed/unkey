@@ -7,7 +7,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
@@ -55,7 +54,7 @@ func TestPortalSessionRerollOwnKey(t *testing.T) {
 	key := h.CreateKey(seed.CreateKeyRequest{
 		WorkspaceID: workspace.ID,
 		KeySpaceID:  api.KeyAuthID.String,
-		IdentityID:  ptr.P(identity.ID),
+		IdentityID:  new(identity.ID),
 	})
 
 	headers := h.CreatePortalSession(workspace.ID, externalID, []string{api.KeyAuthID.String}, []string{"keys:reroll"})
@@ -96,7 +95,7 @@ func TestPortalSessionRequiresRerollCapability(t *testing.T) {
 	key := h.CreateKey(seed.CreateKeyRequest{
 		WorkspaceID: workspace.ID,
 		KeySpaceID:  api.KeyAuthID.String,
-		IdentityID:  ptr.P(identity.ID),
+		IdentityID:  new(identity.ID),
 	})
 
 	headers := h.CreatePortalSession(
@@ -131,7 +130,7 @@ func TestPortalSessionCannotRerollKeyOutsideSessionKeyspaces(t *testing.T) {
 	key := h.CreateKey(seed.CreateKeyRequest{
 		WorkspaceID: workspace.ID,
 		KeySpaceID:  keyApi.KeyAuthID.String,
-		IdentityID:  ptr.P(identity.ID),
+		IdentityID:  new(identity.ID),
 	})
 
 	headers := h.CreatePortalSession(
@@ -167,7 +166,7 @@ func TestPortalSessionCannotRerollOtherIdentityKey(t *testing.T) {
 	otherKey := h.CreateKey(seed.CreateKeyRequest{
 		WorkspaceID: workspace.ID,
 		KeySpaceID:  api.KeyAuthID.String,
-		IdentityID:  ptr.P(otherIdentity.ID),
+		IdentityID:  new(otherIdentity.ID),
 	})
 
 	// Session belongs to user A and can reroll its own keys.

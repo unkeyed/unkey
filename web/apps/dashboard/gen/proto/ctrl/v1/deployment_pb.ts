@@ -626,9 +626,9 @@ export const DeployService: GenService<{
     output: typeof AuthorizeDeploymentResponseSchema;
   },
   /**
-   * Cancel a running or queued deployment. Cancels the underlying Restate
-   * Deploy invocation, which triggers the workflow's compensation stack to
-   * transition the deployment to failed and release any held build slot.
+   * Cancel a running or queued deployment. Marks the row cancelled and cancels
+   * the Restate Deploy invocation; Restate cancels a queued or running Build
+   * with it.
    * Idempotent: returns success if the deployment is already terminal.
    *
    * @generated from rpc ctrl.v1.DeployService.CancelDeployment

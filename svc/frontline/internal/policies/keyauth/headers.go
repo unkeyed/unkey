@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"github.com/unkeyed/unkey/internal/services/keys"
+	"github.com/unkeyed/unkey/internal/services/ratelimit"
 	"github.com/unkeyed/unkey/pkg/clock"
 )
 
@@ -22,7 +23,13 @@ func writeRateLimitHeaders(w http.ResponseWriter, results map[string]keys.Rateli
 		return
 	}
 
-	resp := mostRestrictive.Response
+	writeRateLimitResponseHeaders(w, mostRestrictive.Response, clk)
+}
+
+func writeRateLimitResponseHeaders(w http.ResponseWriter, resp *ratelimit.RatelimitResponse, clk clock.Clock) {
+	if resp == nil {
+		return
+	}
 	h := w.Header()
 	h.Set("X-RateLimit-Limit", strconv.FormatInt(resp.Limit, 10))
 	h.Set("X-RateLimit-Remaining", strconv.FormatInt(resp.Remaining, 10))
@@ -45,17 +52,17 @@ func findMostRestrictive(results map[string]keys.RatelimitConfigAndResult) *keys
 		if r.Response == nil {
 			continue
 		}
-		if best == nil || moreRestrictive(r, *best) {
+		if best == nil || moreRestrictive(r.Response, best.Response) {
 			best = &r
 		}
 	}
 	return best
 }
 
-func moreRestrictive(a, b keys.RatelimitConfigAndResult) bool {
-	aDenied, bDenied := !a.Response.Success, !b.Response.Success
+func moreRestrictive(a, b *ratelimit.RatelimitResponse) bool {
+	aDenied, bDenied := !a.Success, !b.Success
 	if aDenied != bDenied {
 		return aDenied
 	}
-	return a.Response.Remaining < b.Response.Remaining
+	return a.Remaining < b.Remaining
 }

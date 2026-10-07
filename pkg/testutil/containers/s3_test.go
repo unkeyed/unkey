@@ -3,7 +3,6 @@ package containers_test
 import (
 	"bytes"
 	"context"
-	"fmt"
 	"io"
 	"testing"
 	"time"
@@ -16,8 +15,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 )
 
-// TestS3 verifies that the MinIO container starts correctly and is accessible
-// via the AWS S3 SDK.
+// TestS3 verifies that container startup provisions a bucket usable through S3.
 func TestS3(t *testing.T) {
 	s3Cfg := containers.S3(t)
 
@@ -26,17 +24,12 @@ func TestS3(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	// Create a test bucket
-	bucketName := fmt.Sprintf("test-bucket-%d", time.Now().UnixNano())
-	_, err := client.CreateBucket(ctx, &awsS3.CreateBucketInput{
-		Bucket: aws.String(bucketName),
-	})
-	require.NoError(t, err)
+	bucketName := "vault"
 
 	// Put an object
 	testKey := "test-key"
 	testData := []byte("hello, world!")
-	_, err = client.PutObject(ctx, &awsS3.PutObjectInput{
+	_, err := client.PutObject(ctx, &awsS3.PutObjectInput{
 		Bucket: aws.String(bucketName),
 		Key:    aws.String(testKey),
 		Body:   bytes.NewReader(testData),
@@ -67,14 +60,10 @@ func TestS3_ReusesContainer(t *testing.T) {
 
 	ctx := context.Background()
 
-	bucketName := fmt.Sprintf("shared-bucket-%d", time.Now().UnixNano())
-	_, err := client1.CreateBucket(ctx, &awsS3.CreateBucketInput{
-		Bucket: aws.String(bucketName),
-	})
-	require.NoError(t, err)
+	bucketName := s3Cfg1.CreateBucket(t)
 
 	testKey := "test-key"
-	_, err = client1.PutObject(ctx, &awsS3.PutObjectInput{
+	_, err := client1.PutObject(ctx, &awsS3.PutObjectInput{
 		Bucket: aws.String(bucketName),
 		Key:    aws.String(testKey),
 		Body:   bytes.NewReader([]byte("shared data")),
@@ -92,7 +81,7 @@ func TestS3_ReusesContainer(t *testing.T) {
 	require.Equal(t, []byte("shared data"), data2)
 }
 
-// newS3Client creates an S3 client configured for the MinIO test container.
+// newS3Client creates an S3 client configured for the Garage test container.
 func newS3Client(t *testing.T, s3Cfg containers.S3Config) *awsS3.Client {
 	t.Helper()
 
@@ -112,7 +101,7 @@ func newS3Client(t *testing.T, s3Cfg containers.S3Config) *awsS3.Client {
 		awsConfig.WithCredentialsProvider(
 			credentials.NewStaticCredentialsProvider(s3Cfg.AccessKeyID, s3Cfg.SecretAccessKey, ""),
 		),
-		awsConfig.WithRegion("us-east-1"),
+		awsConfig.WithRegion("auto"),
 	)
 	require.NoError(t, err)
 

@@ -44,6 +44,21 @@ func MySQL(t testing.TB) MySQLConfig {
 	c := startService(t, "mysql")
 	t.Logf("  MySQL container started in %s", time.Since(containerStart))
 
+	return configureMySQL(t, c)
+}
+
+// MySQLIsolated gives tests with database-wide queries a private MySQL instance.
+// The container is removed during test cleanup, after its connections close.
+func MySQLIsolated(t testing.TB) MySQLConfig {
+	t.Helper()
+	c, stop := startIsolatedService(t, "mysql")
+	t.Cleanup(stop)
+	return configureMySQL(t, c)
+}
+
+func configureMySQL(t testing.TB, c Container) MySQLConfig {
+	t.Helper()
+
 	dsnCfg := mysql.NewConfig()
 	dsnCfg.User = mysqlUser
 	dsnCfg.Passwd = mysqlPassword

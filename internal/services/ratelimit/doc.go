@@ -2,6 +2,11 @@
 Package ratelimit implements lockless distributed rate limiting using a sliding window
 algorithm with atomic counters.
 
+For development, [NewLocal] uses the same algorithm with an independent in-memory
+counter. It needs no Redis, MySQL, or region configuration and does not synchronize
+with other instances. Counters are lost when the instance is discarded. [New]
+continues to require a database and region for distributed operation.
+
 # Architecture
 
 All rate limit state is stored in a flat sync.Map of counter entries, keyed by

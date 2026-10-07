@@ -1,0 +1,43 @@
+---
+title: "key_auth_not_found"
+sidebarTitle: "key_auth_not_found"
+description: "The keyspaceId passed to the deprecated deploy.createDeployment does not exist."
+sources:
+  - pkg/codes/unkey_data.go
+  - svc/api/internal/middleware/errors.go
+  - svc/api/routes/v2_deploy_create_deployment/handler.go
+---
+
+<Danger>`err:unkey:data:key_auth_not_found`</Danger>
+
+The `keyspaceId` you sent doesn't match a keyspace in your workspace. You get HTTP 404. Only the deprecated `deploy.createDeployment` endpoint returns this, and the `unkey deploy` CLI command still calls it.
+
+```json Example response
+{
+  "meta": {
+    "requestId": "req_2c9a0jf23l4k567"
+  },
+  "error": {
+    "detail": "The specified keyspace was not found.",
+    "status": 404,
+    "title": "Not Found",
+    "type": "/errors/unkey/data/key_auth_not_found"
+  }
+}
+```
+
+## Likely causes
+
+- The keyspace ID has a typo, or isn't a keyspace ID. Keyspace IDs start with `ks_`.
+- The keyspace is in another workspace.
+
+## How to fix
+
+1. Pass the keyspace ID of an API in the same workspace, or leave out `keyspaceId`.
+2. For new integrations, use `deployments.createDeployment` and set key auth with `gateway.setPolicies`. A missing keyspace there returns [`err:unkey:data:key_space_not_found`](/errors/unkey/data/key_space_not_found).
+
+## Related errors
+
+- [`err:unkey:data:key_space_not_found`](/errors/unkey/data/key_space_not_found): the same problem on the gateway policy endpoints.
+- [`err:unkey:data:api_not_found`](/errors/unkey/data/api_not_found): the API doesn't exist.
+- [`err:unkey:data:project_not_found`](/errors/unkey/data/project_not_found): the project doesn't exist.

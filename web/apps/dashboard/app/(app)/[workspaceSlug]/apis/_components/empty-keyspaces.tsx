@@ -1,14 +1,15 @@
 "use client";
 
+import { IconBookBookmarkOutline18, IconNodesOutline18 } from "@unkey/icons";
 import {
-  IconBookBookmarkOutline18,
-  IconFingerprintOutline18,
-  IconGaugeOutline18,
-  IconKeyOutline18,
-  IconNodesOutline18,
-  IconShieldKeyOutline18,
-} from "@unkey/icons";
-import { Button, EmptyHero } from "@unkey/ui";
+  Button,
+  EmptyState,
+  EmptyStateActions,
+  EmptyStateDescription,
+  EmptyStateHeader,
+  EmptyStateIcon,
+  EmptyStateTitle,
+} from "@unkey/ui";
 import { CreateApiButton } from "./create-api-button";
 
 export function EmptyKeyspaces({
@@ -19,19 +20,17 @@ export function EmptyKeyspaces({
   isNewApi: boolean;
 }) {
   return (
-    <EmptyHero>
-      <EmptyHero.Icons>
-        <IconGaugeOutline18 className="size-4" />
-        <IconFingerprintOutline18 className="size-4" />
-        <IconKeyOutline18 className="size-4" />
-        <IconShieldKeyOutline18 className="size-4" />
-        <IconNodesOutline18 className="size-4" />
-      </EmptyHero.Icons>
-      <EmptyHero.Title>Create your first keyspace</EmptyHero.Title>
-      <EmptyHero.Description>
-        You haven't created any keyspaces yet. Create one to get started.
-      </EmptyHero.Description>
-      <EmptyHero.Actions>
+    <EmptyState>
+      <EmptyStateIcon>
+        <IconNodesOutline18 />
+      </EmptyStateIcon>
+      <EmptyStateHeader>
+        <EmptyStateTitle>Create your first keyspace</EmptyStateTitle>
+        <EmptyStateDescription>
+          You haven't created any keyspaces yet. Create one to get started.
+        </EmptyStateDescription>
+      </EmptyStateHeader>
+      <EmptyStateActions>
         <CreateApiButton defaultOpen={isNewApi} workspaceSlug={workspaceSlug} />
         <a
           href="https://www.unkey.com/docs/platform/apis/overview"
@@ -43,7 +42,7 @@ export function EmptyKeyspaces({
             Read the docs
           </Button>
         </a>
-      </EmptyHero.Actions>
-    </EmptyHero>
+      </EmptyStateActions>
+    </EmptyState>
   );
 }

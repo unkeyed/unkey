@@ -1,0 +1,39 @@
+---
+title: "unexpected_error"
+sidebarTitle: "unexpected_error"
+description: "Something failed on our side that has no more specific error code."
+sources:
+  - pkg/codes/unkey_application.go
+  - svc/api/internal/middleware/errors.go
+  - pkg/zen/middleware_panic_recovery.go
+  - svc/api/routes/v2_portal_create_session/handler.go
+  - internal/services/portal/get_session.go
+---
+
+<Danger>`err:unkey:application:unexpected_error`</Danger>
+
+Something failed on our side, and it isn't caused by your request. You get HTTP 500. Any endpoint can return it.
+
+```json Example response
+{
+  "meta": {
+    "requestId": "req_2c9a0jf23l4k567"
+  },
+  "error": {
+    "detail": "An unexpected error occurred while processing your request.",
+    "status": 500,
+    "title": "Internal Server Error",
+    "type": "/errors/unkey/application/unexpected_error"
+  }
+}
+```
+
+## How to fix
+
+1. Retry once, with backoff, if the request is safe to repeat. Don't retry in a tight loop.
+2. If it fails again, contact support with the `requestId`, the endpoint, and a redacted copy of the request.
+
+## Related errors
+
+- [`err:unkey:application:service_unavailable`](/errors/unkey/application/service_unavailable): the API failed on our side and `detail` names what failed.
+- [`err:unkey:application:assertion_failed`](/errors/unkey/application/assertion_failed): a bug on our side, with an empty `detail`.

@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
@@ -90,9 +89,9 @@ func attachDomain(t *testing.T, h *testutil.Harness, env seededEnv, mutate func(
 
 func makeRequest(env seededEnv) handler.Request {
 	return handler.Request{
-		Project:     ptr.P(env.projectID),
-		App:         ptr.P(env.appID),
-		Environment: ptr.P(env.environmentID),
+		Project:     new(env.projectID),
+		App:         new(env.appID),
+		Environment: new(env.environmentID),
 		Search:      nil,
 	}
 }

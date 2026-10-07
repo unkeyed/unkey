@@ -1,0 +1,48 @@
+---
+title: "unkey/data/key_not_found"
+sidebarTitle: "key_not_found"
+description: "The keyId in the request does not match a live key in your workspace."
+sources:
+  - pkg/codes/unkey_data.go
+  - svc/api/internal/middleware/errors.go
+  - svc/api/routes/v2_keys_get_key/handler.go
+  - svc/api/routes/v2_keys_update_key/handler.go
+  - svc/api/routes/v2_keys_delete_key/handler.go
+---
+
+<Danger>`err:unkey:data:key_not_found`</Danger>
+
+The `keyId` you sent doesn't match a key in your workspace. You get HTTP 404. This is about a key you manage. If your root key is the problem, you get [`err:unkey:authentication:key_not_found`](/errors/unkey/authentication/key_not_found) instead.
+
+```json Example response
+{
+  "meta": {
+    "requestId": "req_2c9a0jf23l4k567"
+  },
+  "error": {
+    "detail": "We could not find the requested key.",
+    "status": 404,
+    "title": "Not Found",
+    "type": "/errors/unkey/data/key_not_found"
+  }
+}
+```
+
+## Likely causes
+
+- You sent the secret key string where a `keyId` is expected.
+- The key was deleted.
+- The key ID is from another workspace, such as a staging workspace used with a production root key.
+- On `keys.whoami`, which takes the key string, the string doesn't match any key.
+
+## How to fix
+
+1. Use the `keyId` returned when the key was created. It starts with `key_`.
+2. If you lost it, list keys with `apis.listKeys` to find it.
+3. If the key was deleted, create a new one. Deleted keys can't be restored through the API.
+
+## Related errors
+
+- [`err:unkey:authentication:key_not_found`](/errors/unkey/authentication/key_not_found): the root key in the `Authorization` header isn't valid.
+- [`err:unkey:data:api_not_found`](/errors/unkey/data/api_not_found): the API that would own the key doesn't exist.
+- [`err:unkey:data:key_auth_not_found`](/errors/unkey/data/key_auth_not_found): the keyspace id doesn't exist.

@@ -10,7 +10,6 @@ const mocks = vi.hoisted(() => ({
     name: "Manage Billing",
     slug: "billing.manage",
     description: "Manage billing settings",
-    roles: [],
   },
 }));
 
@@ -20,7 +19,7 @@ vi.mock("@/components/roles-table/hooks/use-role-limits", () => ({
   }),
 }));
 
-vi.mock("./hooks/use-fetch-permissions", () => ({
+vi.mock("@/hooks/use-fetch-permissions", () => ({
   useFetchPermissions: () => ({
     permissions: [],
     isFetchingNextPage: false,
@@ -30,7 +29,7 @@ vi.mock("./hooks/use-fetch-permissions", () => ({
   }),
 }));
 
-vi.mock("./hooks/use-search-permissions", () => ({
+vi.mock("@/hooks/use-search-permissions", () => ({
   useSearchPermissions: (query: string) => ({
     searchResults: query ? [mocks.searchedPermission] : [],
     isSearching: false,

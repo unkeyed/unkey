@@ -20,7 +20,7 @@ export function SkeletonRow<TData>({ columns, rowHeight, className }: SkeletonRo
             column.meta.skeleton()
           ) : (
             <div
-              className="bg-accent-3 rounded animate-pulse"
+              className="bg-gray-3 rounded animate-pulse"
               style={{ height: `${Math.min(rowHeight * 0.5, 16)}px` }}
             />
           )}

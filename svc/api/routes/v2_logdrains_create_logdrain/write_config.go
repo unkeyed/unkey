@@ -82,7 +82,7 @@ func setDestination(ctx context.Context, client vault.VaultServiceClient, worksp
 		return nil
 	}
 	input := destination.Http
-	current := &logdrainv1.HttpConfig{}
+	current := &logdrainv1.HttpConfig{Format: logdrainv1.HttpBodyFormat_HTTP_BODY_FORMAT_JSON}
 	if input.Url != nil {
 		current.Url = *input.Url
 	}
@@ -95,6 +95,8 @@ func setDestination(ctx context.Context, client vault.VaultServiceClient, worksp
 			current.Format = logdrainv1.HttpBodyFormat_HTTP_BODY_FORMAT_JSON
 		case openapi.Ndjson:
 			current.Format = logdrainv1.HttpBodyFormat_HTTP_BODY_FORMAT_NDJSON
+		case openapi.Hec:
+			current.Format = logdrainv1.HttpBodyFormat_HTTP_BODY_FORMAT_HEC
 		default:
 			return invalid("Unsupported HTTP body format.")
 		}

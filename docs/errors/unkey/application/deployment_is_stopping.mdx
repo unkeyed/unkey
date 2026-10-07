@@ -1,0 +1,42 @@
+---
+title: "deployment_is_stopping"
+sidebarTitle: "deployment_is_stopping"
+description: "A stop is already in progress for this deployment."
+sources:
+  - pkg/codes/unkey_application.go
+  - svc/api/internal/middleware/errors.go
+  - pkg/deploy/deploygate/deploygate.go
+  - svc/api/routes/v2_deployments_stop_deployment/handler.go
+---
+
+<Danger>`err:unkey:application:deployment_is_stopping`</Danger>
+
+You asked to stop a deployment that's already stopping. You get HTTP 412.
+
+```json Example response
+{
+  "meta": {
+    "requestId": "req_2c9a0jf23l4k567"
+  },
+  "error": {
+    "detail": "The deployment is already stopping.",
+    "status": 412,
+    "title": "Precondition Failed",
+    "type": "/errors/unkey/application/deployment_is_stopping"
+  }
+}
+```
+
+## Likely causes
+
+- You called `deployments.stopDeployment` again before the first stop finished. A stop takes effect right away, but the status only reads stopped once the last instance has shut down.
+
+## How to fix
+
+1. Nothing to do: the first stop is already in progress. Poll `deployments.getDeployment` until the status reads stopped.
+2. If you want the deployment back, call `deployments.startDeployment`. You don't have to wait for the stop to finish.
+
+## Related errors
+
+- [`err:unkey:application:deployment_not_running`](/errors/unkey/application/deployment_not_running): the deployment isn't running at all.
+- [`err:unkey:application:deployment_not_stopped`](/errors/unkey/application/deployment_not_stopped): start was called on a deployment that isn't stopped.

@@ -152,9 +152,9 @@ func (v *VirtualObject) Teardown(
 	// journals dozens of entries over the grace window). The deadline is derived
 	// from a journaled Now(), so a replay on another node measures against the
 	// same absolute cutoff rather than restarting the clock from zero.
-	now, err := restateutil.Now(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("get current time: %w", err)
+	now, nowErr := restateutil.Now(ctx)
+	if nowErr != nil {
+		return nil, fmt.Errorf("get current time: %w", nowErr)
 	}
 	deadline := now.Add(v.drainGraceTimeout)
 

@@ -1,0 +1,49 @@
+---
+title: "role_not_found"
+sidebarTitle: "role_not_found"
+description: "A role named in the request does not exist in the workspace."
+sources:
+  - pkg/codes/unkey_data.go
+  - svc/api/internal/middleware/errors.go
+  - svc/api/routes/v2_permissions_get_role/handler.go
+  - svc/api/routes/v2_keys_create_key/handler.go
+  - svc/api/routes/v2_keys_set_roles/handler.go
+  - svc/api/routes/v2_permissions_set_role_permissions/handler.go
+  - web/internal/db/src/schema/rbac.ts
+---
+
+<Danger>`err:unkey:data:role_not_found`</Danger>
+
+A role you referenced doesn't exist in your workspace. You get HTTP 404, and `detail` names the role.
+
+```json Example response
+{
+  "meta": {
+    "requestId": "req_2c9a0jf23l4k567"
+  },
+  "error": {
+    "detail": "Role 'admin' was not found.",
+    "status": 404,
+    "title": "Not Found",
+    "type": "/errors/unkey/data/role_not_found"
+  }
+}
+```
+
+## Likely causes
+
+- You attached a role to a key before creating it. The request stops at the first missing role.
+- The name has a typo. Names aren't case-sensitive, so `Admin` finds `admin`.
+- Your root key doesn't have permission. `permissions.getRole` and `permissions.deleteRole` return this 404 instead of a 403.
+
+## How to fix
+
+1. Create the role with `permissions.createRole` before you reference it.
+2. Check the name. `permissions.listRoles` shows what exists.
+3. On `permissions.getRole` or `permissions.deleteRole`, check the root key's permissions before you decide the role is missing.
+
+## Related errors
+
+- [`err:unkey:data:role_already_exists`](/errors/unkey/data/role_already_exists): a name collides on create.
+- [`err:unkey:data:permission_not_found`](/errors/unkey/data/permission_not_found): a permission doesn't exist.
+- [`err:unkey:data:key_not_found`](/errors/unkey/data/key_not_found): the key doesn't exist.

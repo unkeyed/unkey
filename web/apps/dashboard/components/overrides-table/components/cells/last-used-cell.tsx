@@ -1,7 +1,7 @@
 import { trpc } from "@/lib/trpc/client";
-import { cn } from "@/lib/utils";
 import { IconChartActivity2Outline12 } from "@unkey/icons";
-import { Badge, STATUS_STYLES, TimestampInfo } from "@unkey/ui";
+import { Badge, STATUS_STYLES, Skeleton, TimestampInfo } from "@unkey/ui";
+import { cn } from "cn";
 import { useRef, useState } from "react";
 
 type LastUsedCellProps = {
@@ -37,9 +37,9 @@ export const LastUsedCell = ({ namespaceId, identifier }: LastUsedCellProps) => 
       <div className="truncate">
         {isLoading ? (
           <div className="flex items-center gap-1">
-            <div className="h-2 w-2 bg-grayA-5 rounded-full animate-pulse" />
-            <div className="h-2 w-12 bg-grayA-5 rounded-sm animate-pulse" />
-            <div className="h-2 w-12 bg-grayA-5 rounded-sm animate-pulse" />
+            <Skeleton className="h-2 w-2 bg-grayA-5 rounded-full" />
+            <Skeleton className="h-2 w-12 bg-grayA-5" />
+            <Skeleton className="h-2 w-12 bg-grayA-5" />
           </div>
         ) : isError ? (
           "Failed to load"

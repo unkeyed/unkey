@@ -1,0 +1,44 @@
+---
+title: "ratelimit_namespace_gone"
+sidebarTitle: "ratelimit_namespace_gone"
+description: "The rate limit namespace was deleted, so ratelimit.limit refuses to use it."
+sources:
+  - pkg/codes/unkey_data.go
+  - svc/api/internal/middleware/errors.go
+  - svc/api/routes/v2_ratelimit_limit/handler.go
+  - svc/api/routes/v2_ratelimit_multi_limit/handler.go
+---
+
+<Danger>`err:unkey:data:ratelimit_namespace_gone`</Danger>
+
+`ratelimit.limit` or `ratelimit.multiLimit` named a rate limit namespace that was deleted. You get HTTP 410.
+
+```json Example response
+{
+  "meta": {
+    "requestId": "req_2c9a0jf23l4k567"
+  },
+  "error": {
+    "detail": "This namespace has been deleted. Contact support to restore.",
+    "status": 410,
+    "title": "Resource Gone",
+    "type": "/errors/unkey/data/ratelimit_namespace_gone"
+  }
+}
+```
+
+## Likely causes
+
+- The namespace was deleted. A deleted name can't be reused. Normally `ratelimit.limit` creates a namespace the first time you use a name, but for a deleted name it returns this error instead, so an accidental delete can't turn into unlimited traffic.
+
+## How to fix
+
+1. Use a new namespace name.
+2. Or, if you need the old overrides and history, ask support to restore it.
+
+Don't delete a namespace to reset its counters. Only delete one you're retiring.
+
+## Related errors
+
+- [`err:unkey:data:ratelimit_namespace_not_found`](/errors/unkey/data/ratelimit_namespace_not_found): the namespace never existed.
+- [`err:unkey:data:ratelimit_override_not_found`](/errors/unkey/data/ratelimit_override_not_found): an override doesn't exist.

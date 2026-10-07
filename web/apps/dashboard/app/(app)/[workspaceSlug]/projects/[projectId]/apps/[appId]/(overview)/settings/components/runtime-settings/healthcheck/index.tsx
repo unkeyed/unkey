@@ -9,13 +9,14 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
+  firstMatchingSaveState,
 } from "@unkey/ui";
 import { useEffect } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { useEnvironmentSettings } from "../../../environment-provider";
 import { useUpdateAllEnvironments } from "../../../hooks/use-update-all-environments";
 import { SettingField } from "../../shared/form-blocks";
-import { FormSettingCard, resolveSaveState } from "../../shared/form-setting-card";
+import { FormSettingCard } from "../../shared/form-setting-card";
 import { RemoveButton } from "../../shared/remove-button";
 import { MethodBadge } from "./method-badge";
 import { HTTP_METHODS, type HealthcheckFormValues, healthcheckSchema } from "./schema";
@@ -72,7 +73,7 @@ export const Healthcheck = () => {
     reset({ method: "GET", path: "", interval: "30s" });
   };
 
-  const saveState = resolveSaveState([
+  const saveState = firstMatchingSaveState([
     [isSubmitting, { status: "saving" }],
     [!isValid, { status: "disabled" }],
     [!isDirty, { status: "disabled", reason: "No changes to save" }],
@@ -98,9 +99,9 @@ export const Healthcheck = () => {
     >
       <SettingField>
         <div className="flex items-center gap-3">
-          <span className="w-24 text-[13px] text-gray-11">Method</span>
-          <span className="flex-1 text-[13px] text-gray-11">Path</span>
-          <span className="flex-1 text-[13px] text-gray-11">Interval</span>
+          <span className="w-24 text-sm text-gray-11">Method</span>
+          <span className="flex-1 text-sm text-gray-11">Path</span>
+          <span className="flex-1 text-sm text-gray-11">Interval</span>
         </div>
         <div className="flex items-start gap-2">
           <Controller

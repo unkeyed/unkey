@@ -7,7 +7,6 @@ import (
 	"github.com/unkeyed/sdks/api/go/v3/models/components"
 	"github.com/unkeyed/unkey/cmd/api/util"
 	"github.com/unkeyed/unkey/pkg/cli"
-	"github.com/unkeyed/unkey/pkg/ptr"
 )
 
 func listKeysCmd() *cli.Command {
@@ -69,8 +68,8 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/apis/lis
 				Limit:               nil,
 				Cursor:              nil,
 				ExternalID:          nil,
-				Decrypt:             ptr.P(cmd.Bool("decrypt")),
-				RevalidateKeysCache: ptr.P(cmd.Bool("revalidate-keys-cache")),
+				Decrypt:             new(cmd.Bool("decrypt")),
+				RevalidateKeysCache: new(cmd.Bool("revalidate-keys-cache")),
 			}
 
 			if v := cmd.Int64("limit"); v != 0 {
