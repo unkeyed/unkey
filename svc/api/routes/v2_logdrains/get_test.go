@@ -37,7 +37,7 @@ func TestGetReturnsSecretSafeConfig(t *testing.T) {
 		},
 	})
 	require.NoError(t, err)
-	_, err = h.DB.RW().ExecContext(context.Background(), "INSERT INTO logdrains (id, workspace_id, name, stream, config, lease_id, fencing_token, created_at) VALUES (?, ?, 'Test drain', 'ratelimits', ?, '', '', 123)", id, workspaceID, config)
+	_, err = h.DB.RW().ExecContext(context.Background(), "INSERT INTO logdrains (id, workspace_id, name, stream, config, lease_id, fencing_token, consecutive_failures, committed_offset_inserted_at, created_at) VALUES (?, ?, 'Test drain', 'ratelimits', ?, '', '', 7, 456, 123)", id, workspaceID, config)
 	require.NoError(t, err)
 	key := h.CreateRootKey(workspaceID, "unkey:v1:"+workspaceID+":**#*")
 	response := testutil.CallRoute[openapi.LogdrainIdRequest, openapi.LogdrainResponse](h, route, http.Header{
@@ -58,8 +58,8 @@ func TestGetReturnsSecretSafeConfig(t *testing.T) {
 	require.Equal(t, "https://logs.example.com/ingest", response.Body.Data.Destination.Http.Url)
 	require.Equal(t, openapi.LogdrainDestinationHttpFormat("hec"), response.Body.Data.Destination.Http.Format)
 	require.Equal(t, []string{"Authorization"}, response.Body.Data.Destination.Http.Headers)
-	require.Zero(t, response.Body.Data.ConsecutiveFailures)
-	require.Zero(t, response.Body.Data.CommittedOffsetInsertedAt)
+	require.NotContains(t, string(response.RawBody), `"consecutiveFailures"`)
+	require.NotContains(t, string(response.RawBody), `"committedOffsetInsertedAt"`)
 	require.Equal(t, int64(123), response.Body.Data.CreatedAt)
 	require.NotEmpty(t, response.Body.Meta.RequestId)
 }
