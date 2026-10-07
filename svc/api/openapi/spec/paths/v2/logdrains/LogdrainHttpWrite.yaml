@@ -4,10 +4,17 @@ minProperties: 1
 properties:
   url:
     type: string
+    description: |
+      HTTPS endpoint that receives POST requests. Embedded URL credentials are
+      not allowed. Use headers for authentication instead.
     format: uri
     minLength: 1
   format:
     type: string
+    description: |
+      Choose json (the default) for a JSON array of records, ndjson for one JSON
+      record per line, or hec for newline-separated Splunk HTTP Event Collector
+      envelopes with time, source, sourcetype, and event fields.
     enum:
       - json
       - ndjson
@@ -16,6 +23,7 @@ properties:
     type: array
     maxItems: 32
     description: |
-      Headers sent to the destination. Values are encrypted at rest.
+      Headers sent to the destination. Values are encrypted at rest. When
+      supplied, this list replaces all headers; an empty list removes them.
     items:
       $ref: LogdrainHeaderWrite.yaml

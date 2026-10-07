@@ -15,7 +15,7 @@ import (
 
 func TestCreateUsesFreshCachedAllowance(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route := &logdrains.Create{
+	route := &logdrains.Handler{
 		DB:          h.DB,
 		Vault:       h.Vault,
 		Auditlogs:   h.Auditlogs,
@@ -31,7 +31,7 @@ func TestCreateUsesFreshCachedAllowance(t *testing.T) {
 		"Authorization": {"Bearer " + key},
 		"Content-Type":  {"application/json"},
 	}
-	input := json.RawMessage(`{"name":"Cached allowance","stream":"audit_logs","destination":{"http":{"url":"https://logs.example.com"}}}`)
+	input := json.RawMessage(`{"name":"Cached allowance","stream":{"auditLogs":{}},"destination":{"http":{"url":"https://logs.example.com"}}}`)
 	first := testutil.CallRoute[json.RawMessage, openapi.LogdrainMutationResponse](h, route, headers, input)
 	require.Equal(t, http.StatusOK, first.Status, "%s", first.RawBody)
 	_, err = h.DB.RW().ExecContext(context.Background(), "UPDATE `limits` SET logdrains_max = 0 WHERE workspace_id = ?", workspaceID)
@@ -40,7 +40,7 @@ func TestCreateUsesFreshCachedAllowance(t *testing.T) {
 	require.Equal(t, http.StatusOK, second.Status, "%s", second.RawBody)
 	third := testutil.CallRoute[json.RawMessage, openapi.ForbiddenErrorResponse](h, route, headers, input)
 	require.Equal(t, http.StatusForbidden, third.Status, "%s", third.RawBody)
-	require.Contains(t, third.Body.Error.Detail, "increase this workspace's log drain allowance")
+	require.Equal(t, "This workspace uses 2 of 2 allowed log drains. Delete an existing drain or contact support to increase this workspace's log drain allowance.", third.Body.Error.Detail)
 }
 
 func TestCreateDeniesZeroOrMissingAllowance(t *testing.T) {
@@ -51,7 +51,7 @@ func TestCreateDeniesZeroOrMissingAllowance(t *testing.T) {
 		}
 		t.Run(name, func(t *testing.T) {
 			h := testutil.NewHarness(t)
-			route := &logdrains.Create{
+			route := &logdrains.Handler{
 				DB:          h.DB,
 				Vault:       h.Vault,
 				Auditlogs:   h.Auditlogs,
@@ -71,7 +71,7 @@ func TestCreateDeniesZeroOrMissingAllowance(t *testing.T) {
 				"Authorization": {"Bearer " + key},
 				"Content-Type":  {"application/json"},
 			}
-			response := testutil.CallRoute[json.RawMessage, openapi.ForbiddenErrorResponse](h, route, headers, json.RawMessage(`{"name":"Disabled","stream":"audit_logs","destination":{"http":{"url":"https://logs.example.com"}}}`))
+			response := testutil.CallRoute[json.RawMessage, openapi.ForbiddenErrorResponse](h, route, headers, json.RawMessage(`{"name":"Disabled","stream":{"auditLogs":{}},"destination":{"http":{"url":"https://logs.example.com"}}}`))
 			require.Equal(t, http.StatusForbidden, response.Status, "%s", response.RawBody)
 			require.Contains(t, response.Body.Error.Detail, "Contact support to enable log drains")
 			var count int
@@ -83,7 +83,7 @@ func TestCreateDeniesZeroOrMissingAllowance(t *testing.T) {
 
 func TestConcurrentCreatesValidateRequests(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route := &logdrains.Create{
+	route := &logdrains.Handler{
 		DB:          h.DB,
 		Vault:       h.Vault,
 		Auditlogs:   h.Auditlogs,
@@ -99,7 +99,7 @@ func TestConcurrentCreatesValidateRequests(t *testing.T) {
 		"Authorization": {"Bearer " + key},
 		"Content-Type":  {"application/json"},
 	}
-	input := json.RawMessage(`{"name":"Concurrent drain","stream":"audit_logs","destination":{"http":{"url":"https://logs.example.com"}}}`)
+	input := json.RawMessage(`{"name":"Concurrent drain","stream":{"auditLogs":{}},"destination":{"http":{"url":"https://logs.example.com"}}}`)
 	start := make(chan struct{})
 	statuses := make(chan int, 7)
 	var workers sync.WaitGroup
@@ -114,8 +114,8 @@ func TestConcurrentCreatesValidateRequests(t *testing.T) {
 		})
 	}
 	for _, invalid := range []json.RawMessage{
-		json.RawMessage(`{"name":"Invalid mode","stream":"audit_logs","destination":{"http":{"url":"https://logs.example.com","headers":[{"name":"Authorization","mode":"bogus","value":"secret"}]}}}`),
-		json.RawMessage(`{"name":"Missing header name","stream":"audit_logs","destination":{"http":{"url":"https://logs.example.com","headers":[{"mode":"set","value":"secret"}]}}}`),
+		json.RawMessage(`{"name":"Invalid mode","stream":{"auditLogs":{}},"destination":{"http":{"url":"https://logs.example.com","headers":[{"name":"Authorization","mode":"bogus","value":"secret"}]}}}`),
+		json.RawMessage(`{"name":"Missing header name","stream":{"auditLogs":{}},"destination":{"http":{"url":"https://logs.example.com","headers":[{"value":"secret"}]}}}`),
 	} {
 		workers.Go(func() {
 			<-start

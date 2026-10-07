@@ -16,6 +16,19 @@ post:
       application/json:
         schema:
           $ref: ../CreateLogdrainRequest.yaml
+        example:
+          name: Production audit logs
+          stream:
+            auditLogs:
+              eventTypes:
+                - key.create
+          destination:
+            http:
+              url: https://logs.example.com/ingest
+              format: ndjson
+              headers:
+                - name: Authorization
+                  value: Bearer destination-token
   responses:
     "200":
       description: Log drain created.

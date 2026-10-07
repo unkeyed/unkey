@@ -47,33 +47,6 @@ func (e BuildLogOutput) Valid() bool {
 	}
 }
 
-// Defines values for CreateLogdrainRequestStream.
-const (
-	CreateLogdrainRequestStreamAuditLogs        CreateLogdrainRequestStream = "audit_logs"
-	CreateLogdrainRequestStreamGatewayRequests  CreateLogdrainRequestStream = "gateway_requests"
-	CreateLogdrainRequestStreamKeyVerifications CreateLogdrainRequestStream = "key_verifications"
-	CreateLogdrainRequestStreamRatelimits       CreateLogdrainRequestStream = "ratelimits"
-	CreateLogdrainRequestStreamRuntimeLogs      CreateLogdrainRequestStream = "runtime_logs"
-)
-
-// Valid indicates whether the value is a known member of the CreateLogdrainRequestStream enum.
-func (e CreateLogdrainRequestStream) Valid() bool {
-	switch e {
-	case CreateLogdrainRequestStreamAuditLogs:
-		return true
-	case CreateLogdrainRequestStreamGatewayRequests:
-		return true
-	case CreateLogdrainRequestStreamKeyVerifications:
-		return true
-	case CreateLogdrainRequestStreamRatelimits:
-		return true
-	case CreateLogdrainRequestStreamRuntimeLogs:
-		return true
-	default:
-		return false
-	}
-}
-
 // Defines values for DeploymentAction.
 const (
 	DeploymentActionPromote  DeploymentAction = "promote"
@@ -394,25 +367,25 @@ func (e LogdrainStatus) Valid() bool {
 
 // Defines values for LogdrainStream.
 const (
-	LogdrainStreamAuditLogs        LogdrainStream = "audit_logs"
-	LogdrainStreamGatewayRequests  LogdrainStream = "gateway_requests"
-	LogdrainStreamKeyVerifications LogdrainStream = "key_verifications"
-	LogdrainStreamRatelimits       LogdrainStream = "ratelimits"
-	LogdrainStreamRuntimeLogs      LogdrainStream = "runtime_logs"
+	AuditLogs        LogdrainStream = "audit_logs"
+	GatewayRequests  LogdrainStream = "gateway_requests"
+	KeyVerifications LogdrainStream = "key_verifications"
+	Ratelimits       LogdrainStream = "ratelimits"
+	RuntimeLogs      LogdrainStream = "runtime_logs"
 )
 
 // Valid indicates whether the value is a known member of the LogdrainStream enum.
 func (e LogdrainStream) Valid() bool {
 	switch e {
-	case LogdrainStreamAuditLogs:
+	case AuditLogs:
 		return true
-	case LogdrainStreamGatewayRequests:
+	case GatewayRequests:
 		return true
-	case LogdrainStreamKeyVerifications:
+	case KeyVerifications:
 		return true
-	case LogdrainStreamRatelimits:
+	case Ratelimits:
 		return true
-	case LogdrainStreamRuntimeLogs:
+	case RuntimeLogs:
 		return true
 	default:
 		return false
@@ -458,21 +431,6 @@ func (e LogdrainFiltersStatusClasses) Valid() bool {
 	case N4:
 		return true
 	case N5:
-		return true
-	default:
-		return false
-	}
-}
-
-// Defines values for LogdrainHeaderWriteMode.
-const (
-	LogdrainHeaderSet LogdrainHeaderWriteMode = "set"
-)
-
-// Valid indicates whether the value is a known member of the LogdrainHeaderWriteMode enum.
-func (e LogdrainHeaderWriteMode) Valid() bool {
-	switch e {
-	case LogdrainHeaderSet:
 		return true
 	default:
 		return false
@@ -964,15 +922,37 @@ type CreateLogdrainRequest struct {
 	// Destination Exactly one destination: an HTTP URL or an Axiom dataset and token.
 	Destination LogdrainDestinationWrite `json:"destination"`
 
-	// Filters Only filters for the selected stream are accepted. Empty arrays select all
-	// values. Nonempty dimensions are combined with AND.
-	Filters *LogdrainFilters            `json:"filters,omitempty"`
-	Name    string                      `json:"name"`
-	Stream  CreateLogdrainRequestStream `json:"stream"`
-}
+	// Name A human-readable name to identify this log drain.
+	Name string `json:"name"`
 
-// CreateLogdrainRequestStream defines model for CreateLogdrainRequest.Stream.
-type CreateLogdrainRequestStream string
+	// Stream Select exactly one stream. Empty filter arrays select all values.
+	// Nonempty filter dimensions are combined with AND.
+	Stream struct {
+		AuditLogs *struct {
+			EventTypes *[]string `json:"eventTypes,omitempty"`
+		} `json:"auditLogs,omitempty"`
+		GatewayRequests *struct {
+			AppIds         *[]string                       `json:"appIds,omitempty"`
+			EnvironmentIds *[]string                       `json:"environmentIds,omitempty"`
+			ProjectIds     *[]string                       `json:"projectIds,omitempty"`
+			StatusClasses  *[]LogdrainFiltersStatusClasses `json:"statusClasses,omitempty"`
+		} `json:"gatewayRequests,omitempty"`
+		KeyVerifications *struct {
+			KeySpaceIds *[]string `json:"keySpaceIds,omitempty"`
+			Outcomes    *[]string `json:"outcomes,omitempty"`
+		} `json:"keyVerifications,omitempty"`
+		Ratelimits *struct {
+			NamespaceIds *[]string `json:"namespaceIds,omitempty"`
+			Passed       *[]bool   `json:"passed,omitempty"`
+		} `json:"ratelimits,omitempty"`
+		RuntimeLogs *struct {
+			AppIds         *[]string `json:"appIds,omitempty"`
+			EnvironmentIds *[]string `json:"environmentIds,omitempty"`
+			ProjectIds     *[]string `json:"projectIds,omitempty"`
+			Severities     *[]string `json:"severities,omitempty"`
+		} `json:"runtimeLogs,omitempty"`
+	} `json:"stream"`
+}
 
 // Deployment defines model for Deployment.
 type Deployment struct {
@@ -2043,24 +2023,29 @@ type LogdrainFiltersStatusClasses int
 
 // LogdrainHeaderWrite defines model for LogdrainHeaderWrite.
 type LogdrainHeaderWrite struct {
-	Mode  LogdrainHeaderWriteMode `json:"mode"`
-	Name  string                  `json:"name"`
-	Value *string                 `json:"value,omitempty"`
+	Name  string `json:"name"`
+	Value string `json:"value,omitempty"`
 }
-
-// LogdrainHeaderWriteMode defines model for LogdrainHeaderWrite.Mode.
-type LogdrainHeaderWriteMode string
 
 // LogdrainHttpWrite defines model for LogdrainHttpWrite.
 type LogdrainHttpWrite struct {
+	// Format Choose json (the default) for a JSON array of records, ndjson for one JSON
+	// record per line, or hec for newline-separated Splunk HTTP Event Collector
+	// envelopes with time, source, sourcetype, and event fields.
 	Format *LogdrainHttpWriteFormat `json:"format,omitempty"`
 
-	// Headers Headers sent to the destination. Values are encrypted at rest.
+	// Headers Headers sent to the destination. Values are encrypted at rest. When
+	// supplied, this list replaces all headers; an empty list removes them.
 	Headers *[]LogdrainHeaderWrite `json:"headers,omitempty"`
-	Url     *string                `json:"url,omitempty"`
+
+	// Url HTTPS endpoint that receives POST requests. Embedded URL credentials are
+	// not allowed. Use headers for authentication instead.
+	Url *string `json:"url,omitempty"`
 }
 
-// LogdrainHttpWriteFormat defines model for LogdrainHttpWrite.Format.
+// LogdrainHttpWriteFormat Choose json (the default) for a JSON array of records, ndjson for one JSON
+// record per line, or hec for newline-separated Splunk HTTP Event Collector
+// envelopes with time, source, sourcetype, and event fields.
 type LogdrainHttpWriteFormat string
 
 // LogdrainIdRequest defines model for LogdrainIdRequest.
@@ -2085,6 +2070,10 @@ type LogdrainResponse struct {
 	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
 	Meta Meta `json:"meta"`
 }
+
+// LogdrainWriteFilters Only filters for the selected stream are accepted. Empty arrays select all
+// values. Nonempty dimensions are combined with AND.
+type LogdrainWriteFilters = LogdrainFilters
 
 // LoggingPolicy Adds request data to the log entries of matching requests. The gateway
 // always records a basic log entry for every request: method, host, path,
