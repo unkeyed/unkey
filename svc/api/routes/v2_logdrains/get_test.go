@@ -64,6 +64,34 @@ func TestGetReturnsSecretSafeConfig(t *testing.T) {
 	require.NotEmpty(t, response.Body.Meta.RequestId)
 }
 
+func TestGetReturnsReadableStatusClasses(t *testing.T) {
+	h := testutil.NewHarness(t)
+	route := &logdrains.Get{DB: h.DB}
+	h.Register(route)
+	workspaceID := h.Resources().UserWorkspace.ID
+	id := uid.New("ld")
+	config, err := proto.Marshal(&logdrainv1.Config{
+		Destination: &logdrainv1.Config_Http{
+			Http: &logdrainv1.HttpConfig{Url: "https://logs.example.com"},
+		},
+		Stream: &logdrainv1.Config_GatewayRequests{
+			GatewayRequests: &logdrainv1.GatewayRequestStreamConfig{
+				StatusClasses: []logdrainv1.HttpStatusClass{4, 2, 5, 3},
+			},
+		},
+	})
+	require.NoError(t, err)
+	_, err = h.DB.RW().ExecContext(t.Context(), "INSERT INTO logdrains (id, workspace_id, name, stream, config, lease_id, fencing_token, created_at) VALUES (?, ?, 'Gateway', 'gateway_requests', ?, '', '', 123)", id, workspaceID, config)
+	require.NoError(t, err)
+	key := h.CreateRootKey(workspaceID, "unkey:v1:"+workspaceID+":logdrains/*#read")
+	response := testutil.CallRoute[openapi.LogdrainIdRequest, openapi.LogdrainResponse](h, route, http.Header{
+		"Authorization": {"Bearer " + key},
+		"Content-Type":  {"application/json"},
+	}, openapi.LogdrainIdRequest{LogdrainId: id})
+	require.Equal(t, http.StatusOK, response.Status, "%s", response.RawBody)
+	require.Contains(t, string(response.RawBody), `"statusClasses":["4xx","2xx","5xx","3xx"]`)
+}
+
 func TestGetMissingDrainReturnsNotFound(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route := &logdrains.Get{DB: h.DB}

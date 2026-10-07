@@ -56,6 +56,8 @@ func TestCreateSchemaAcceptsNestedStream(t *testing.T) {
 	}{
 		{"boolean array", `{"ratelimits":{"passed":[false]}}`, true},
 		{"unfiltered stream", `{"auditLogs":{}}`, true},
+		{"numeric status class", `{"gatewayRequests":{"statusClasses":[2]}}`, false},
+		{"unsupported status class", `{"gatewayRequests":{"statusClasses":["6xx"]}}`, false},
 		{"no stream", `{}`, false},
 		{"multiple streams", `{"auditLogs":{},"ratelimits":{}}`, false},
 		{"mismatched filters", `{"auditLogs":{"passed":[false]}}`, false},
