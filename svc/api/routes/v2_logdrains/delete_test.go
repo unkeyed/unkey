@@ -15,8 +15,17 @@ import (
 
 func TestDeleteWorksAfterAllowanceRevoked(t *testing.T) {
 	h := testutil.NewHarness(t)
-	create := &createRoute.Create{DB: h.DB, Vault: h.Vault, Auditlogs: h.Auditlogs, Clock: h.Clock, LimitsCache: h.Caches.WorkspaceLimits}
-	remove := &logdrains.Delete{DB: h.DB, Auditlogs: h.Auditlogs}
+	create := &createRoute.Create{
+		DB:          h.DB,
+		Vault:       h.Vault,
+		Auditlogs:   h.Auditlogs,
+		Clock:       h.Clock,
+		LimitsCache: h.Caches.WorkspaceLimits,
+	}
+	remove := &logdrains.Delete{
+		DB:        h.DB,
+		Auditlogs: h.Auditlogs,
+	}
 	get := &logdrains.Get{DB: h.DB}
 	h.Register(create)
 	h.Register(remove)
@@ -25,7 +34,10 @@ func TestDeleteWorksAfterAllowanceRevoked(t *testing.T) {
 	_, err := h.DB.RW().ExecContext(context.Background(), "UPDATE `limits` SET logdrains_max = 1 WHERE workspace_id = ?", workspaceID)
 	require.NoError(t, err)
 	key := h.CreateRootKey(workspaceID, "unkey:v1:"+workspaceID+":**#*")
-	headers := http.Header{"Authorization": {"Bearer " + key}, "Content-Type": {"application/json"}}
+	headers := http.Header{
+		"Authorization": {"Bearer " + key},
+		"Content-Type":  {"application/json"},
+	}
 	created := testutil.CallRoute[json.RawMessage, openapi.LogdrainMutationResponse](h, create, headers, json.RawMessage(`{"name":"Delete me","stream":"audit_logs","destination":{"http":{"url":"https://logs.example.com"}}}`))
 	require.Equal(t, http.StatusOK, created.Status)
 	_, err = h.DB.RW().ExecContext(context.Background(), "UPDATE `limits` SET logdrains_max = 0 WHERE workspace_id = ?", workspaceID)
@@ -48,10 +60,16 @@ func TestDeleteWorksAfterAllowanceRevoked(t *testing.T) {
 
 func TestDeleteRequiresID(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route := &logdrains.Delete{DB: h.DB, Auditlogs: h.Auditlogs}
+	route := &logdrains.Delete{
+		DB:        h.DB,
+		Auditlogs: h.Auditlogs,
+	}
 	h.Register(route)
 	key := h.CreateRootKey(h.Resources().UserWorkspace.ID, "unkey:v1:"+h.Resources().UserWorkspace.ID+":**#*")
-	result := testutil.CallRoute[json.RawMessage, openapi.BadRequestErrorResponse](h, route, http.Header{"Authorization": {"Bearer " + key}, "Content-Type": {"application/json"}}, json.RawMessage(`{}`))
+	result := testutil.CallRoute[json.RawMessage, openapi.BadRequestErrorResponse](h, route, http.Header{
+		"Authorization": {"Bearer " + key},
+		"Content-Type":  {"application/json"},
+	}, json.RawMessage(`{}`))
 	require.Equal(t, http.StatusBadRequest, result.Status, "%s", result.RawBody)
 	require.Contains(t, result.Body.Error.Type, "application/invalid_input")
 	require.NotEmpty(t, result.Body.Error.Detail)

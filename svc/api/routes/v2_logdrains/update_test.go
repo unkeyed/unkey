@@ -18,8 +18,19 @@ import (
 
 func TestUpdateResumesFailedDrainWithoutResettingCursor(t *testing.T) {
 	h := testutil.NewHarness(t)
-	create := createRoute.Create{DB: h.DB, Vault: h.Vault, Auditlogs: h.Auditlogs, Clock: h.Clock, LimitsCache: h.Caches.WorkspaceLimits}
-	update := &logdrains.Update{DB: h.DB, Vault: h.Vault, Auditlogs: h.Auditlogs, Clock: h.Clock}
+	create := createRoute.Create{
+		DB:          h.DB,
+		Vault:       h.Vault,
+		Auditlogs:   h.Auditlogs,
+		Clock:       h.Clock,
+		LimitsCache: h.Caches.WorkspaceLimits,
+	}
+	update := &logdrains.Update{
+		DB:        h.DB,
+		Vault:     h.Vault,
+		Auditlogs: h.Auditlogs,
+		Clock:     h.Clock,
+	}
 	get := &logdrains.Get{DB: h.DB}
 	h.Register(&create)
 	h.Register(update)
@@ -28,7 +39,10 @@ func TestUpdateResumesFailedDrainWithoutResettingCursor(t *testing.T) {
 	_, err := h.DB.RW().ExecContext(context.Background(), "UPDATE `limits` SET logdrains_max = 1 WHERE workspace_id = ?", workspaceID)
 	require.NoError(t, err)
 	key := h.CreateRootKey(workspaceID, "unkey:v1:"+workspaceID+":**#*")
-	headers := http.Header{"Authorization": {"Bearer " + key}, "Content-Type": {"application/json"}}
+	headers := http.Header{
+		"Authorization": {"Bearer " + key},
+		"Content-Type":  {"application/json"},
+	}
 	created := testutil.CallRoute[json.RawMessage, openapi.LogdrainMutationResponse](h, &create, headers, json.RawMessage(`{"name":"HTTP","stream":"ratelimits","filters":{"namespaceIds":["ns_keep"],"passed":[false]},"destination":{"http":{"url":"https://logs.example.com","format":"hec","headers":[{"name":"Authorization","mode":"set","value":"secret"}]}}}`))
 	require.Equal(t, http.StatusOK, created.Status, "%s", created.RawBody)
 	id := created.Body.Data.Id
@@ -55,23 +69,62 @@ func TestUpdateResumesFailedDrainWithoutResettingCursor(t *testing.T) {
 
 func TestUpdateDistinguishesUserPauseFromFailurePause(t *testing.T) {
 	h := testutil.NewHarness(t)
-	update := &logdrains.Update{DB: h.DB, Vault: h.Vault, Auditlogs: h.Auditlogs, Clock: h.Clock}
+	update := &logdrains.Update{
+		DB:        h.DB,
+		Vault:     h.Vault,
+		Auditlogs: h.Auditlogs,
+		Clock:     h.Clock,
+	}
 	get := &logdrains.Get{DB: h.DB}
 	h.Register(update)
 	h.Register(get)
 	workspaceID := h.Resources().UserWorkspace.ID
 	key := h.CreateRootKey(workspaceID, "unkey:v1:"+workspaceID+":**#*")
-	headers := http.Header{"Authorization": {"Bearer " + key}, "Content-Type": {"application/json"}}
-	config, err := proto.Marshal(&logdrainv1.Config{Destination: &logdrainv1.Config_Http{Http: &logdrainv1.HttpConfig{Url: "https://logs.example.com"}}})
+	headers := http.Header{
+		"Authorization": {"Bearer " + key},
+		"Content-Type":  {"application/json"},
+	}
+	config, err := proto.Marshal(&logdrainv1.Config{
+		Destination: &logdrainv1.Config_Http{
+			Http: &logdrainv1.HttpConfig{Url: "https://logs.example.com"},
+		},
+	})
 	require.NoError(t, err)
 	for _, tc := range []struct {
-		name, initial, patch, status string
-		failures                     int
+		name     string
+		initial  string
+		patch    string
+		status   string
+		failures int
 	}{
-		{"rename preserves failure pause", "paused_by_failure", `"name":"Renamed"`, "paused_by_failure", 8},
-		{"delivery changes preserve user pause", "paused_by_user", `"batchSize":23`, "paused_by_user", 0},
-		{"explicit resume clears failures", "paused_by_user", `"status":"running"`, "running", 0},
-		{"explicit pause", "running", `"status":"paused_by_user"`, "paused_by_user", 8},
+		{
+			"rename preserves failure pause",
+			"paused_by_failure",
+			`"name":"Renamed"`,
+			"paused_by_failure",
+			8,
+		},
+		{
+			"delivery changes preserve user pause",
+			"paused_by_user",
+			`"batchSize":23`,
+			"paused_by_user",
+			0,
+		},
+		{
+			"explicit resume clears failures",
+			"paused_by_user",
+			`"status":"running"`,
+			"running",
+			0,
+		},
+		{
+			"explicit pause",
+			"running",
+			`"status":"paused_by_user"`,
+			"paused_by_user",
+			8,
+		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			id := uid.New("ld")

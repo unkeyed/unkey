@@ -277,6 +277,10 @@ var Data = UnkeyDataErrors{
 		ConnectionFailed: Code{SystemUnkey, CategoryUnkeyData, "analytics_connection_failed"},
 	},
 	Logdrain: dataLogdrain{
-		NotFound: Code{SystemUnkey, CategoryUnkeyData, "logdrain_not_found"},
+		NotFound: Code{
+			SystemUnkey,
+			CategoryUnkeyData,
+			"logdrain_not_found",
+		},
 	},
 }

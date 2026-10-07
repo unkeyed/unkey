@@ -29,10 +29,16 @@ func (h *Get) Handle(ctx context.Context, s *zen.Session) error {
 	if err != nil {
 		return err
 	}
-	if err := principal.Authorize(rbac.U(urn.V1{WorkspaceID: principal.AuthorizedWorkspaceID, Resource: "logdrains/" + req.LogdrainId}, permissions.Read)); err != nil {
+	if err := principal.Authorize(rbac.U(urn.V1{
+		WorkspaceID: principal.AuthorizedWorkspaceID,
+		Resource:    "logdrains/" + req.LogdrainId,
+	}, permissions.Read)); err != nil {
 		return err
 	}
-	row, err := db.Query.FindLogdrain(ctx, h.DB.RO(), db.FindLogdrainParams{WorkspaceID: principal.AuthorizedWorkspaceID, ID: req.LogdrainId})
+	row, err := db.Query.FindLogdrain(ctx, h.DB.RO(), db.FindLogdrainParams{
+		WorkspaceID: principal.AuthorizedWorkspaceID,
+		ID:          req.LogdrainId,
+	})
 	if err != nil {
 		if db.IsNotFound(err) {
 			return fault.Wrap(err, fault.Code(codes.Data.Logdrain.NotFound.URN()), fault.Public("Log drain not found."))
@@ -43,5 +49,8 @@ func (h *Get) Handle(ctx context.Context, s *zen.Session) error {
 	if err != nil {
 		return err
 	}
-	return s.JSON(http.StatusOK, openapi.LogdrainResponse{Meta: openapi.Meta{RequestId: s.RequestID()}, Data: data})
+	return s.JSON(http.StatusOK, openapi.LogdrainResponse{
+		Meta: openapi.Meta{RequestId: s.RequestID()},
+		Data: data,
+	})
 }

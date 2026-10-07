@@ -37,14 +37,33 @@ func SetStream(config *logdrainv1.Config, stream string, filters openapi.Logdrai
 	}
 	switch stream {
 	case "audit_logs":
-		config.Stream = &logdrainv1.Config_AuditLogs{AuditLogs: &logdrainv1.AuditLogStreamConfig{EventTypes: ptr.SafeDeref(filters.EventTypes, config.GetAuditLogs().GetEventTypes())}}
+		config.Stream = &logdrainv1.Config_AuditLogs{
+			AuditLogs: &logdrainv1.AuditLogStreamConfig{EventTypes: ptr.SafeDeref(filters.EventTypes, config.GetAuditLogs().GetEventTypes())},
+		}
 	case "key_verifications":
-		config.Stream = &logdrainv1.Config_KeyVerifications{KeyVerifications: &logdrainv1.KeyVerificationStreamConfig{Outcomes: ptr.SafeDeref(filters.Outcomes, config.GetKeyVerifications().GetOutcomes()), KeySpaceIds: ptr.SafeDeref(filters.KeySpaceIds, config.GetKeyVerifications().GetKeySpaceIds())}}
+		config.Stream = &logdrainv1.Config_KeyVerifications{
+			KeyVerifications: &logdrainv1.KeyVerificationStreamConfig{
+				Outcomes:    ptr.SafeDeref(filters.Outcomes, config.GetKeyVerifications().GetOutcomes()),
+				KeySpaceIds: ptr.SafeDeref(filters.KeySpaceIds, config.GetKeyVerifications().GetKeySpaceIds()),
+			},
+		}
 	case "ratelimits":
-		config.Stream = &logdrainv1.Config_Ratelimits{Ratelimits: &logdrainv1.RatelimitStreamConfig{NamespaceIds: ptr.SafeDeref(filters.NamespaceIds, config.GetRatelimits().GetNamespaceIds()), Passed: ptr.SafeDeref(filters.Passed, config.GetRatelimits().GetPassed())}}
+		config.Stream = &logdrainv1.Config_Ratelimits{
+			Ratelimits: &logdrainv1.RatelimitStreamConfig{
+				NamespaceIds: ptr.SafeDeref(filters.NamespaceIds, config.GetRatelimits().GetNamespaceIds()),
+				Passed:       ptr.SafeDeref(filters.Passed, config.GetRatelimits().GetPassed()),
+			},
+		}
 	case "runtime_logs":
 		current := config.GetRuntimeLogs()
-		config.Stream = &logdrainv1.Config_RuntimeLogs{RuntimeLogs: &logdrainv1.RuntimeLogStreamConfig{Severities: ptr.SafeDeref(filters.Severities, current.GetSeverities()), ProjectIds: ptr.SafeDeref(filters.ProjectIds, current.GetProjectIds()), AppIds: ptr.SafeDeref(filters.AppIds, current.GetAppIds()), EnvironmentIds: ptr.SafeDeref(filters.EnvironmentIds, current.GetEnvironmentIds())}}
+		config.Stream = &logdrainv1.Config_RuntimeLogs{
+			RuntimeLogs: &logdrainv1.RuntimeLogStreamConfig{
+				Severities:     ptr.SafeDeref(filters.Severities, current.GetSeverities()),
+				ProjectIds:     ptr.SafeDeref(filters.ProjectIds, current.GetProjectIds()),
+				AppIds:         ptr.SafeDeref(filters.AppIds, current.GetAppIds()),
+				EnvironmentIds: ptr.SafeDeref(filters.EnvironmentIds, current.GetEnvironmentIds()),
+			},
+		}
 	case "gateway_requests":
 		current := config.GetGatewayRequests()
 		classes := current.GetStatusClasses()
@@ -54,7 +73,14 @@ func SetStream(config *logdrainv1.Config, stream string, filters openapi.Logdrai
 				classes[i] = logdrainv1.HttpStatusClass(class)
 			}
 		}
-		config.Stream = &logdrainv1.Config_GatewayRequests{GatewayRequests: &logdrainv1.GatewayRequestStreamConfig{StatusClasses: classes, ProjectIds: ptr.SafeDeref(filters.ProjectIds, current.GetProjectIds()), AppIds: ptr.SafeDeref(filters.AppIds, current.GetAppIds()), EnvironmentIds: ptr.SafeDeref(filters.EnvironmentIds, current.GetEnvironmentIds())}}
+		config.Stream = &logdrainv1.Config_GatewayRequests{
+			GatewayRequests: &logdrainv1.GatewayRequestStreamConfig{
+				StatusClasses:  classes,
+				ProjectIds:     ptr.SafeDeref(filters.ProjectIds, current.GetProjectIds()),
+				AppIds:         ptr.SafeDeref(filters.AppIds, current.GetAppIds()),
+				EnvironmentIds: ptr.SafeDeref(filters.EnvironmentIds, current.GetEnvironmentIds()),
+			},
+		}
 	default:
 		return invalid("Unsupported log drain stream.")
 	}
@@ -77,7 +103,10 @@ func SetDestination(ctx context.Context, client vault.VaultServiceClient, worksp
 			current.Dataset = *input.Dataset
 		}
 		if input.Token != nil {
-			encrypted, err := client.Encrypt(ctx, &vaultv1.EncryptRequest{Keyring: workspaceID, Data: *input.Token})
+			encrypted, err := client.Encrypt(ctx, &vaultv1.EncryptRequest{
+				Keyring: workspaceID,
+				Data:    *input.Token,
+			})
 			if err != nil {
 				return err
 			}
@@ -129,11 +158,17 @@ func SetDestination(ctx context.Context, client vault.VaultServiceClient, worksp
 				if header.Value == nil || !httpguts.ValidHeaderFieldValue(*header.Value) {
 					return invalid("A valid HTTP header value is required for set.")
 				}
-				encrypted, err := client.Encrypt(ctx, &vaultv1.EncryptRequest{Keyring: workspaceID, Data: *header.Value})
+				encrypted, err := client.Encrypt(ctx, &vaultv1.EncryptRequest{
+					Keyring: workspaceID,
+					Data:    *header.Value,
+				})
 				if err != nil {
 					return err
 				}
-				headers = append(headers, &logdrainv1.HttpHeader{Name: header.Name, EncryptedValue: encrypted.GetEncrypted()})
+				headers = append(headers, &logdrainv1.HttpHeader{
+					Name:           header.Name,
+					EncryptedValue: encrypted.GetEncrypted(),
+				})
 			case openapi.LogdrainHeaderPreserve:
 				if header.Value != nil {
 					return invalid("Preserved headers must omit value.")
