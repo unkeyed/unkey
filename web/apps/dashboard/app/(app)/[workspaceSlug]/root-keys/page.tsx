@@ -56,7 +56,7 @@ export default function RootKeysPage() {
       <PageBody className="flex-1">
         <ResourceList>
           <RootKeysListControls />
-          <RootKeysList />
+          <RootKeysList onCreate={() => setAsideOpen(true)} />
         </ResourceList>
       </PageBody>
       <BuilderAside isOpen={asideOpen} onClose={() => setAsideOpen(false)} />

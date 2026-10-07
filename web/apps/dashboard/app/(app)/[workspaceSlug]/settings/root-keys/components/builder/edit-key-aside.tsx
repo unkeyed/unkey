@@ -163,6 +163,7 @@ function EditablePolicyForm({
   );
 
   const isSaving = update.isLoading;
+  const { isDirty } = form.formState;
 
   return (
     <FormProvider {...form}>
@@ -174,7 +175,13 @@ function EditablePolicyForm({
         </div>
         <SlidePanelFooter className="flex items-center justify-between">
           <ActionButtons onAction={onAction} />
-          <Button type="submit" variant="primary" size="md" loading={isSaving} disabled={isSaving}>
+          <Button
+            type="submit"
+            variant="primary"
+            size="md"
+            loading={isSaving}
+            disabled={isSaving || !isDirty}
+          >
             Save changes
           </Button>
         </SlidePanelFooter>

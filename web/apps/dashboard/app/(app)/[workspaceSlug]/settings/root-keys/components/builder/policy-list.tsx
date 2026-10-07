@@ -28,8 +28,8 @@ type PolicyListAction =
   | { type: "openGallery" }
   | { type: "closeGallery" };
 
-function entryOf(policy: Policy): PolicyEntry {
-  return { id: crypto.randomUUID(), policy, collapsed: isPolicyComplete(policy) };
+function entryOf(policy: Policy, collapsed = isPolicyComplete(policy)): PolicyEntry {
+  return { id: crypto.randomUUID(), policy, collapsed };
 }
 
 function reduce(state: PolicyListState, action: PolicyListAction): PolicyListState {
@@ -83,7 +83,9 @@ function PolicyListBody({ policies, onChange }: PolicyListBodyProps) {
   const { control } = useFormContext<RootKeyFormValues>();
   const { errors } = useFormState({ control, name: "policies" });
   const [state, dispatch] = useReducer(reduce, policies, (initial) => ({
-    entries: initial.map(entryOf),
+    entries: initial.map((policy) =>
+      entryOf(policy, initial.length > 1 && isPolicyComplete(policy)),
+    ),
     gallery: false,
   }));
 
@@ -124,7 +126,9 @@ function PolicyListBody({ policies, onChange }: PolicyListBodyProps) {
 
       {showGallery ? (
         <TemplateGallery
-          onPick={(picked) => send({ type: "add", entries: picked.map(entryOf) })}
+          onPick={(picked) =>
+            send({ type: "add", entries: picked.map((policy) => entryOf(policy)) })
+          }
           onCancel={state.entries.length > 0 ? () => send({ type: "closeGallery" }) : undefined}
         />
       ) : (

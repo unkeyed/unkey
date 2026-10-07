@@ -41,7 +41,7 @@ const soNetnsCookie = 71
 // when Cilium's bpf_redirect_peer delivers packets into the pod netns.
 // The helper falls back to init_net's cookie, so every pod's ingress
 // conflates into one map slot. Baking POD_KEY into .rodata per-pod
-// sidesteps the helper entirely. See docs/engineering/infra/metering/heimdall.mdx.
+// sidesteps the helper entirely.
 //
 // Runs on a locked OS thread; if setns back to the host netns fails we
 // deliberately leak the thread so the runtime never hands it to another

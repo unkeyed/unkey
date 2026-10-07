@@ -26,6 +26,11 @@ export const workosPermissionDefinitions = [
   { slug: "apps:read", path: "projects/{project_id}/apps/{app_id}", action: "read_app" },
   { slug: "apps:write", path: "projects/{project_id}/apps/{app_id}", action: "write_app" },
   {
+    slug: "deployment_build_logs:read",
+    path: "projects/{project_id}/apps/{app_id}/environments/{environment_id}/deployments/{deployment_id}/buildLogs",
+    action: "read_deployment_build_logs",
+  },
+  {
     slug: "deployment_logs:read",
     path: "projects/{project_id}/apps/{app_id}/environments/{environment_id}/deployments/{deployment_id}/logs",
     action: "read_deployment_logs",

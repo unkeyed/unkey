@@ -1,0 +1,78 @@
+---
+title: "Unit tests"
+description: "Table-driven patterns and unit test conventions"
+notion:
+  owners:
+    - andreas
+  tags:
+    - Quality
+    - Testing
+---
+
+## Table-driven tests
+
+Use table-driven tests when cases share setup and assertions. Add `t.Run` so each case is reported by name.
+
+```go
+func TestValidateEmail(t *testing.T) {
+    tests := []struct {
+        name    string
+        email   string
+        wantErr bool
+    }{
+        {name: "valid email", email: "user@example.com", wantErr: false},
+        {name: "missing @", email: "userexample.com", wantErr: true},
+    }
+
+    for _, tt := range tests {
+        t.Run(tt.name, func(t *testing.T) {
+            err := ValidateEmail(tt.email)
+            if tt.wantErr {
+                require.Error(t, err)
+                return
+            }
+            require.NoError(t, err)
+        })
+    }
+}
+```
+
+Use individual tests when setup or assertions diverge meaningfully.
+
+## Naming
+
+Name test functions `Test<Type>_<Behavior>` or `Test<Function>_<Scenario>`. Name table cases so failures read like a sentence.
+
+Prefer names that state the guarantee under test. `TestParseURN_RejectsCrossWorkspaceResources` is better than `TestParseURN_InvalidInput` because it tells the reader which production boundary the test protects.
+
+Add a docstring when the guarantee is not obvious from the name. Use the docstring to explain the invariant, regression, or business rule, not the steps the test performs.
+
+```go
+// TestAuthorizeRejectsCrossWorkspaceAccess guarantees that a valid key from one
+// workspace cannot authorize reads in another workspace. Returning not found
+// prevents callers from discovering that the target resource exists.
+func TestAuthorizeRejectsCrossWorkspaceAccess(t *testing.T) {
+    // ...
+}
+```
+
+## Parallel execution
+
+Use `t.Parallel()` only when tests do not share mutable state or external resources.
+
+## Helpers and cleanup
+
+Helpers that assert must call `t.Helper()`. Use `t.Cleanup()` for resource cleanup so subtests complete before cleanup runs.
+
+Helpers are production test APIs. Keep them small, typed, and named after the domain object or state they create. If a helper hides important setup, document the guarantee it establishes for callers.
+
+## Test data
+
+Inline small fixtures. Use `testdata/` for larger files that belong with the
+package under test.
+
+Name fixtures by the behavior they exercise. A fixture named `expired_root_key.json` is better than `case_3.json` because it carries the test guarantee into the filesystem.
+
+## Time-dependent logic
+
+Use `pkg/clock` to control time rather than sleeping.

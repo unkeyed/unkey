@@ -68,6 +68,7 @@ describe("permission catalog", () => {
       "apps:delete",
       "apps:read",
       "apps:write",
+      "deployment_build_logs:read",
       "deployment_logs:read",
       "deployments:delete",
       "deployments:read",

@@ -7,6 +7,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
+	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_root_keys_create_key"
 )
 
@@ -21,22 +22,24 @@ func TestCreateStoresEveryResourceAction(t *testing.T) {
 		"projects/*":                       {"read", "write", "delete"},
 		"projects/*/apps/*":                {"read", "write", "delete"},
 		"projects/*/apps/*/environments/*": {"read", "write", "delete"},
-		"projects/*/apps/*/environments/*/deployments/*":      {"read", "write", "delete"},
-		"projects/*/apps/*/environments/*/deployments/*/logs": {"read"},
-		"projects/*/apps/*/environments/*/domains/*":          {"read", "write", "delete"},
-		"projects/*/apps/*/environments/*/variables/*":        {"read", "write", "delete"},
-		"projects/*/apps/*/environments/*/gateway/logs":       {"read"},
-		"projects/*/apps/*/environments/*/gateway/policies/*": {"read", "write", "delete"},
-		"projects/*/identities/*":                             {"read", "write", "delete"},
-		"projects/*/keyspaces/*":                              {"read", "write", "delete"},
-		"projects/*/keyspaces/*/logs":                         {"read"},
-		"projects/*/keyspaces/*/keys/*":                       {"read", "write", "delete", "decrypt", "verify"},
-		"projects/*/ratelimits/namespaces/*":                  {"read", "write", "delete", "limit"},
-		"projects/*/ratelimits/namespaces/*/logs":             {"read"},
-		"projects/*/ratelimits/namespaces/*/overrides/*":      {"read", "write", "delete"},
-		"projects/*/rbac/roles/*":                             {"read", "write", "delete"},
-		"projects/*/rbac/permissions/*":                       {"read", "write", "delete"},
-		"projects/*/portals/*/sessions/*":                     {"read", "write"},
+		"projects/*/apps/*/environments/*/deployments/*":           {"read", "write", "delete"},
+		"projects/*/apps/*/environments/*/deployments/*/logs":      {"read"},
+		"projects/*/apps/*/environments/*/deployments/*/buildLogs": {"read"},
+		"projects/*/apps/*/environments/*/domains/*":               {"read", "write", "delete"},
+		"projects/*/apps/*/environments/*/variables/*":             {"read", "write", "delete"},
+		"projects/*/apps/*/environments/*/gateway/logs":            {"read"},
+		"projects/*/apps/*/environments/*/gateway/policies/*":      {"read", "write", "delete"},
+		"projects/*/identities/*":                                  {"read", "write", "delete"},
+		"projects/*/keyspaces/*":                                   {"read", "write", "delete"},
+		"projects/*/keyspaces/*/logs":                              {"read"},
+		"projects/*/keyspaces/*/keys/*":                            {"read", "write", "delete", "decrypt", "verify"},
+		"projects/*/ratelimits/namespaces/*":                       {"read", "write", "delete", "limit"},
+		"projects/*/ratelimits/namespaces/*/logs":                  {"read"},
+		"projects/*/ratelimits/namespaces/*/overrides/*":           {"read", "write", "delete"},
+		"projects/*/rbac/roles/*":                                  {"read", "write", "delete"},
+		"projects/*/rbac/permissions/*":                            {"read", "write", "delete"},
+		"projects/*/portals/*":                                     {"read", "write", "delete"},
+		"projects/*/portals/*/sessions/*":                          {"read", "write"},
 	}
 	requested := []string{
 		base + "**#*",
@@ -86,6 +89,51 @@ func TestCreateRejectsInvalidResourceActionsAtomically(t *testing.T) {
 			}, handler.Request{Permissions: []string{base + "projects/*#read", permission}})
 			require.Equal(t, http.StatusBadRequest, res.Status, "%s", res.RawBody)
 			require.Equal(t, before, snapshot(t, h))
+		})
+	}
+}
+
+// TestCreateReturnsInvalidPermission guarantees clients can identify why a
+// permission caused root-key creation to fail.
+func TestCreateReturnsInvalidPermission(t *testing.T) {
+	h, route, p := newHarness(t)
+	base := "unkey:v1:" + p.AuthorizedWorkspaceID + ":"
+	for _, testCase := range []struct {
+		name       string
+		permission string
+		detail     string
+	}{
+		{
+			name:       "invalid format",
+			permission: base + "projects/*",
+			detail:     "The permission must contain exactly one # separator.",
+		},
+		{
+			name:       "malformed resource",
+			permission: "not-a-urn#read",
+			detail:     "The resource URN is malformed.",
+		},
+		{
+			name:       "different workspace",
+			permission: "unkey:v1:ws_other:projects/*#read",
+			detail:     "The resource belongs to another workspace.",
+		},
+		{
+			name:       "unsupported action",
+			permission: base + "rootKeys/*#decrypt",
+			detail:     "The action is not supported for this resource.",
+		},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, http.Header{
+				"Authorization": {"Bearer test"}, "Content-Type": {"application/json"},
+			}, handler.Request{Permissions: []string{
+				base + "projects/*#read",
+				testCase.permission,
+			}})
+
+			require.Equal(t, http.StatusBadRequest, res.Status, "%s", res.RawBody)
+			require.Equal(t, "Invalid permission: "+testCase.permission+". "+testCase.detail, res.Body.Error.Detail)
 		})
 	}
 }

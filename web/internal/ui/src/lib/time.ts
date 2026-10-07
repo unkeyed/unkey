@@ -1,4 +1,5 @@
 export type RelativeStyle = "narrow" | "short" | "long";
+export type RelativePrecision = "second" | "minute";
 
 const UNIX_MICRO_DIGITS = 16;
 
@@ -50,13 +51,20 @@ export function parseTimestamp(value: string | number | Date): Date {
 
 // Intl picks its own unit when you let it, including ones nobody reads an age in.
 // Flooring keeps a key with 9 days left from rounding up to a fortnight.
-export function relativeTime(time: number, now: number, style: RelativeStyle = "long"): string {
+export function relativeTime(
+  time: number,
+  now: number,
+  style: RelativeStyle = "long",
+  precision: RelativePrecision = "minute",
+): string {
   const diff = time - now;
   const distance = Math.abs(diff);
-  if (distance < SECOND) {
-    return "now";
+  const isPast = diff < 0;
+  const roundsToNow = precision === "minute" && isPast ? distance < MINUTE : distance < SECOND;
+  if (roundsToNow) {
+    return "just now";
   }
   const [unit, size] = UNITS.find(([, ms]) => distance >= ms) ?? UNITS[UNITS.length - 1];
   const count = Math.floor(distance / size);
-  return formatter(style).format(diff < 0 ? -count : count, unit);
+  return formatter(style).format(isPast ? -count : count, unit);
 }

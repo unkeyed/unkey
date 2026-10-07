@@ -3,8 +3,10 @@ package zen
 import (
 	"context"
 	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -194,4 +196,55 @@ func TestNewRoute(t *testing.T) {
 		require.True(t, called, "handler should have been called")
 		require.Equal(t, http.StatusOK, w.Code)
 	})
+}
+
+func TestRouteMiddlewareComposedOncePreservesOrderAndInitErrors(t *testing.T) {
+	srv, err := New(Config{})
+	require.NoError(t, err)
+	sess := &Session{}
+	srv.sessions.New = func() any { return sess }
+
+	compositions := 0
+	var events []string
+	record := func(name string) Middleware {
+		return func(next HandleFunc) HandleFunc {
+			compositions++
+			return func(ctx context.Context, s *Session) error {
+				events = append(events, name+" before")
+				err := next(ctx, s)
+				events = append(events, name+" after")
+				return err
+			}
+		}
+	}
+	srv.RegisterRoute([]Middleware{record("outer"), record("inner"), withErrorHandling()},
+		NewRoute(http.MethodPost, "/echo", func(_ context.Context, s *Session) error {
+			events = append(events, "handler")
+			return s.Send(http.StatusOK, s.requestBody)
+		}))
+	require.Equal(t, 2, compositions)
+
+	for _, tt := range []struct {
+		name   string
+		body   io.Reader
+		status int
+		output string
+		events []string
+	}{
+		{"first request", strings.NewReader("first"), 200, "first", []string{"outer before", "inner before", "handler", "inner after", "outer after"}},
+		{"unreadable body", &failingReadCloser{readErr: io.ErrUnexpectedEOF}, 400, "", []string{"outer before", "inner before", "inner after", "outer after"}},
+		{"after failed init", strings.NewReader("last"), 200, "last", []string{"outer before", "inner before", "handler", "inner after", "outer after"}},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			events = nil
+			w := httptest.NewRecorder()
+			srv.ServeHTTP(w, httptest.NewRequest(http.MethodPost, "/echo", tt.body))
+			require.Equal(t, tt.status, w.Code)
+			require.Equal(t, tt.events, events)
+			require.Equal(t, 2, compositions)
+			if tt.output != "" {
+				require.Equal(t, tt.output, w.Body.String())
+			}
+		})
+	}
 }
