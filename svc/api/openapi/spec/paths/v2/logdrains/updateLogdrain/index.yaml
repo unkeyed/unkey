@@ -1,5 +1,6 @@
 post:
-  tags: [logdrains]
+  tags:
+    - logdrains
   summary: Update log drain
   description: |
     Patch configuration or pause/resume a log drain. Requires
