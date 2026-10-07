@@ -115,6 +115,28 @@ export function computeLastExit(
   return result;
 }
 
+export function lastExitsByDeployment(
+  rows: { deploymentId: string; containerStatus: ContainerStatus | null }[],
+): Map<string, LastExit> {
+  const rowsByDeployment = new Map<string, { containerStatus: ContainerStatus | null }[]>();
+  for (const row of rows) {
+    const list = rowsByDeployment.get(row.deploymentId);
+    if (list) {
+      list.push(row);
+    } else {
+      rowsByDeployment.set(row.deploymentId, [row]);
+    }
+  }
+  const lastExits = new Map<string, LastExit>();
+  for (const [deploymentId, deploymentRows] of rowsByDeployment) {
+    const lastExit = computeLastExit(deploymentRows);
+    if (lastExit) {
+      lastExits.set(deploymentId, lastExit);
+    }
+  }
+  return lastExits;
+}
+
 export function normalizeDeploymentRow(deployment: {
   source: "unknown" | "git" | "oci";
   gitBranch: string | null;

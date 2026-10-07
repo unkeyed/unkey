@@ -9,11 +9,13 @@ import { useAppId, useProjectData } from "../../data-provider";
 import { DeploymentRow } from "../../deployments/components/deployment-row";
 import { DeploymentsSkeleton } from "../../deployments/components/deployments-skeleton";
 import { useAppCurrentDeployment } from "../../hooks/use-app-current-deployment";
+import { useRecentDeployments } from "../../hooks/use-recent-deployments";
 
 export function RecentDeployments() {
   const workspace = useWorkspaceNavigation();
   const appId = useAppId();
-  const { projectId, deployments, environments, isDeploymentsLoading } = useProjectData();
+  const { projectId, environments } = useProjectData();
+  const { deployments, isLoading: isDeploymentsLoading } = useRecentDeployments();
   const { app, currentDeployment, isRolledBack } = useAppCurrentDeployment();
   const rolledBackFromId =
     isRolledBack && currentDeployment

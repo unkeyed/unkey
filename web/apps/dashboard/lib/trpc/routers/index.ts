@@ -32,11 +32,10 @@ import { queryDeployUsageTimeseries } from "./billing/query-deploy-usage-timeser
 import { authorizeDeployment } from "./deploy/deployment/authorize";
 import { cancelDeployment } from "./deploy/deployment/cancel";
 import { getDeploymentSteps } from "./deploy/deployment/deployment-steps";
-import { getById as getDeploymentById } from "./deploy/deployment/getById";
 import { getOpenApiDiff } from "./deploy/deployment/getOpenApiDiff";
-import { listDeployments } from "./deploy/deployment/list";
 import { listActiveBranches } from "./deploy/deployment/list-active-branches";
 import { listDeploymentBranches } from "./deploy/deployment/list-branches";
+import { listDeploymentDetails } from "./deploy/deployment/list-details";
 import { listDeploymentHeadlines } from "./deploy/deployment/list-headlines";
 import { getDeploymentRuntimeLogs } from "./deploy/deployment/runtime-logs";
 import { listDomains } from "./deploy/domains/list";
@@ -307,11 +306,10 @@ export const router = t.router({
       listDisplayDomains,
     }),
     deployment: t.router({
-      list: listDeployments,
       listHeadlines: listDeploymentHeadlines,
       listBranches: listDeploymentBranches,
       listActiveBranches,
-      getById: getDeploymentById,
+      listDetails: listDeploymentDetails,
       runtimeLogs: getDeploymentRuntimeLogs,
       steps: getDeploymentSteps,
       getOpenApiDiff: getOpenApiDiff,
