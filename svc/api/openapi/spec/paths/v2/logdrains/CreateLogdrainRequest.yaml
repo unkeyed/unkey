@@ -26,3 +26,11 @@ properties:
     $ref: LogdrainFilters.yaml
   destination:
     $ref: LogdrainDestinationWrite.yaml
+    properties:
+      http:
+        required:
+          - url
+      axiom:
+        required:
+          - dataset
+          - token
