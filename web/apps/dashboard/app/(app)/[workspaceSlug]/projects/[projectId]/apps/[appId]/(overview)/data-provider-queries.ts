@@ -28,6 +28,14 @@ export const domainsQueryFor =
       )
       .orderBy(({ domain }) => domain.createdAt, "desc");
 
+export const deploymentQueryFor =
+  (projectId: string, deploymentId: string) => (q: InitialQueryBuilder) =>
+    q
+      .from({ deployment: collection.deployments })
+      .where(({ deployment }) =>
+        and(eq(deployment.projectId, projectId), eq(deployment.id, deploymentId)),
+      );
+
 export const appDeploymentQueryFor =
   (projectId: string, appId: string, deploymentId: string) => (q: InitialQueryBuilder) =>
     q

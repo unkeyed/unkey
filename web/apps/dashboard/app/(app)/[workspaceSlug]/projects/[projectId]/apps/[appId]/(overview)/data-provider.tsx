@@ -28,6 +28,7 @@ import {
 } from "react";
 import {
   customDomainsQueryFor,
+  deploymentQueryFor,
   domainsQueryFor,
   environmentsQueryFor,
 } from "./data-provider-queries";
@@ -248,6 +249,13 @@ export const ProjectDataProvider = ({
     isReached: (target) => statusById.get(target.deploymentId) === target.status,
     onSettled: refetchAll,
   });
+  // The awaited row may sit on a load-more page, which polls skip; holding it
+  // by id puts it on the poll so the status lands within one interval
+  const awaitedDeploymentId = deploymentStatus.target?.deploymentId;
+  useLiveQuery(
+    (q) => (awaitedDeploymentId ? deploymentQueryFor(projectId, awaitedDeploymentId)(q) : null),
+    [projectId, awaitedDeploymentId],
+  );
   const hasPendingDomain = (customDomainsQuery.data ?? []).some(
     (d) => d.verificationStatus === "pending" || d.verificationStatus === "verifying",
   );
