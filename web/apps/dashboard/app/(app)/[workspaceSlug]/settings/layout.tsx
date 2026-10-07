@@ -1,5 +1,6 @@
 "use client";
 
+import { usePrefetchWorkspaceUsage } from "@/hooks/use-prefetch-workspace-usage";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { useFlag } from "@/lib/flags/provider";
 import { useBillingUIUpgrades } from "@/lib/flags/use-billing-ui-upgrades";
@@ -8,7 +9,7 @@ import { useWorkspace } from "@/providers/workspace-provider";
 import { SecondaryNav, SecondaryNavGroup, SecondaryNavItem, SecondaryNavTitle } from "@unkey/ui";
 import Link from "next/link";
 import { useSelectedLayoutSegments } from "next/navigation";
-import type { ReactNode } from "react";
+import { type ReactNode, useEffect } from "react";
 
 const ITEMS = [
   { segment: "general", label: "General", getHref: routes.settings.general },
@@ -35,6 +36,11 @@ export default function SettingsLayout({ children }: { children: ReactNode }) {
     (item) => billingUpgrades || !BILLING_UPGRADE_SEGMENTS.has(item.segment),
   ).filter((item) => rootKeysInRail || item.segment !== "root-keys");
 
+  const prefetchUsage = usePrefetchWorkspaceUsage();
+  useEffect(() => {
+    prefetchUsage();
+  }, [prefetchUsage]);
+
   return (
     <div className="flex flex-col md:flex-row w-full flex-1 min-h-0">
       <SecondaryNav aria-label="Settings">
@@ -45,6 +51,8 @@ export default function SettingsLayout({ children }: { children: ReactNode }) {
               key={item.segment}
               active={active === item.segment}
               render={<Link href={item.getHref({ workspaceSlug: workspace.slug })} />}
+              onMouseEnter={item.segment === "usage" ? prefetchUsage : undefined}
+              onFocus={item.segment === "usage" ? prefetchUsage : undefined}
             >
               {item.label}
             </SecondaryNavItem>
