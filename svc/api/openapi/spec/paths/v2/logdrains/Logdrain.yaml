@@ -1,14 +1,13 @@
 type: object
-required: [
-  id,
-  name,
-  stream,
-  status,
-  batchSize,
-  filters,
-  destination,
-  createdAt,
-]
+required:
+  - id
+  - name
+  - stream
+  - status
+  - batchSize
+  - filters
+  - destination
+  - createdAt
 additionalProperties: false
 properties:
   id:
@@ -17,16 +16,18 @@ properties:
     type: string
   stream:
     type: string
-    enum: [
-      audit_logs,
-      key_verifications,
-      gateway_requests,
-      runtime_logs,
-      ratelimits,
-    ]
+    enum:
+      - audit_logs
+      - key_verifications
+      - gateway_requests
+      - runtime_logs
+      - ratelimits
   status:
     type: string
-    enum: [running, paused_by_user, paused_by_failure]
+    enum:
+      - running
+      - paused_by_user
+      - paused_by_failure
   batchSize:
     type: integer
     format: int64
