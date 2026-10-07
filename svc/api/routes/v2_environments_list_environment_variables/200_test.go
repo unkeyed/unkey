@@ -1,6 +1,7 @@
 package handler_test
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -16,12 +17,11 @@ func TestListEnvironmentVariablesSuccessfully(t *testing.T) {
 	route := &handler.Handler{DB: h.DB, Vault: h.Vault}
 	h.Register(route)
 
-	workspace := h.Resources().UserWorkspace
-	rootKey := h.CreateRootKey(workspace.ID, "unkey:v1:"+(workspace.ID)+":**#*")
-	headers := authHeaders(rootKey)
-
 	call := func(t *testing.T, req handler.Request) handler.Response {
 		t.Helper()
+		workspace := h.Resources().UserWorkspace
+		rootKey := h.CreateRootKey(workspace.ID, fmt.Sprintf("unkey:v1:%s:projects/%s/apps/%s/environments/%s/variables/*#read", workspace.ID, req.Project, req.App, req.Environment))
+		headers := authHeaders(rootKey)
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 		require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
 		require.NotEmpty(t, res.Body.Meta.RequestId)
