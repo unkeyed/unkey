@@ -30,6 +30,7 @@ describe("TEMPLATES", () => {
       "unkey:v1:ws_123:projects/*/apps/*/environments/*/domains/*#read",
       "unkey:v1:ws_123:projects/*/apps/*/environments/*/deployments/*#read",
       "unkey:v1:ws_123:projects/*/apps/*/environments/*/deployments/*/logs#read",
+      "unkey:v1:ws_123:projects/*/apps/*/environments/*/deployments/*/buildLogs#read",
       "unkey:v1:ws_123:projects/*/apps/*/environments/*/gateway/logs#read",
       "unkey:v1:ws_123:projects/*/apps/*/environments/*/gateway/policies/*#read",
       "unkey:v1:ws_123:projects/*/keyspaces/*#read",
@@ -41,6 +42,8 @@ describe("TEMPLATES", () => {
       "unkey:v1:ws_123:projects/*/identities/*#read",
       "unkey:v1:ws_123:projects/*/rbac/roles/*#read",
       "unkey:v1:ws_123:projects/*/rbac/permissions/*#read",
+      "unkey:v1:ws_123:projects/*/portals/*#read",
+      "unkey:v1:ws_123:projects/*/portals/*/sessions/*#read",
       "unkey:v1:ws_123:rootKeys/*#read",
       "unkey:v1:ws_123:github/apps/*#read",
     ]);

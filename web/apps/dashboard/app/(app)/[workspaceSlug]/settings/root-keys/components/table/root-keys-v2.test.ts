@@ -42,16 +42,10 @@ describe("selectRootKeysPage", () => {
       keys: [
         {
           id: "key_b",
-          prefix: "",
           start: "unkey_ci",
           end: "bbbb",
           lastUsedAt: 0,
-          permissions: [
-            {
-              id: "unkey:v1:ws_1:projects/*#deploy_project",
-              name: "unkey:v1:ws_1:projects/*#deploy_project",
-            },
-          ],
+          permissions: [{ name: "unkey:v1:ws_1:projects/*#deploy_project" }],
         },
       ],
     });

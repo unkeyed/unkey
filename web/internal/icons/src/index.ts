@@ -93,6 +93,7 @@ export * from "./icons/discord";
 export * from "./icons/docker";
 export * from "./icons/dots-outline-12";
 export * from "./icons/dots-outline-18";
+export * from "./icons/double-chevron-down-outline-12";
 export * from "./icons/double-chevron-right-outline-18";
 export * from "./icons/earth-outline-18";
 export * from "./icons/envelope-outline-18";

@@ -47,7 +47,7 @@ export function EnvVarsToolbar({
   return (
     <div className="flex flex-col md:flex-row items-stretch gap-2">
       <div className="flex-[50%]">
-        <InputGroup className="h-9 w-full bg-gray-1">
+        <InputGroup className="w-full bg-gray-1">
           <InputGroupAddon className="pointer-events-none">
             <IconMagnifierOutline18 className="size-4 text-gray-9" />
           </InputGroupAddon>

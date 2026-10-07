@@ -15,7 +15,7 @@ build a substitute UI.
 
 Use one of these two modes:
 
-- `all`: Find every `DashboardScreenshot` declaration under `docs/product/`.
+- `all`: Find every `DashboardScreenshot` declaration under `docs/`.
   Check each image against the current dashboard and its surrounding docs.
   Refresh outdated or missing images. Leave accurate images unchanged.
   Report every declaration as current, refreshed, or blocked.
@@ -36,14 +36,14 @@ asks for one. An audit or refresh request does not authorize a push or PR.
 
 ## Read the declarations
 
-Read `docs/product/snippets/dashboard-screenshot.jsx` before interpreting its
+Read `docs/snippets/dashboard-screenshot.jsx` before interpreting its
 props. Discover declarations with a scoped search, then read the MDX and nearby
 text. Ignore component names inside explanatory code blocks. Read capture
 metadata from the MDX source, not the rendered docs HTML. The docs component
 only renders images; it does not emit capture metadata or execute the workflow.
 
 ```bash
-rg -n '<DashboardScreenshot' docs/product --glob '*.mdx'
+rg -n '<DashboardScreenshot' docs --glob '*.mdx'
 ```
 
 The declaration's contract is:
@@ -51,10 +51,13 @@ The declaration's contract is:
 - `target`: Value of `data-docs-target` on an existing dashboard element.
 - `description`: Desired data, UI state, navigation hints, and capture constraints.
 - `capture`: `target`, `viewport`, or `full-page`. Use `target` when omitted.
-- `src`: Root-relative image path without the theme suffix or extension. The
-  component renders `${src}-light.png` and `${src}-dark.png`. This identifies
-  the saved illustration; no separate `id` is needed.
-- `alt`: Reader-facing description of the image.
+- `src`: Root-relative image path without the theme suffix or extension. This
+  identifies the saved illustration; no separate `id` is needed.
+- Children: two static `<img>` tags with `src` set to `${src}-light.png`
+  (`className="block dark:hidden"`) and `${src}-dark.png`
+  (`className="hidden dark:block"`), each with a reader-facing `alt`. Keep them
+  as literal paths: Mintlify only rewrites static image paths, and the docs are
+  served under `/docs` in production.
 - `width`: Optional maximum display width in CSS pixels, not a capture viewport.
 - `capturedAt`: ISO 8601 UTC timestamp for the saved capture, for example
   `2026-09-11T04:48:23Z`. It stays in the MDX source, not the docs DOM.
@@ -76,8 +79,10 @@ checked or convert them all without a request.
 
 ## Prepare the real dashboard
 
-Read repository guidance and
-`docs/engineering/contributing/local/development.mdx`. Use `mise` for tools.
+Read the root `AGENTS.md` and any nested `AGENTS.md` that governs the files you
+change, plus `contributing/local/development.md`. If setup requires internal
+context that the repository does not contain,
+use the task-relevant Notion page identified through the root guidance. Use `mise` for tools.
 Inspect running services before starting anything. Reuse a healthy local stack.
 
 - On a developer machine, `mise run dashboard` is the dashboard setup task.
@@ -132,7 +137,7 @@ For each declaration:
 8. Inspect both captures with the media tool. Check the intended content, crop,
    readability, theme, and absence of secrets. Keep the existing pair if either
    capture fails. Do not make docs prose agree with a wrong screenshot.
-9. Save the verified pair at the paths derived from `src` under `docs/product/`.
+9. Save the verified pair at the paths derived from `src` under `docs/`.
    Keep paths within that directory. Set `capturedAt` to the UTC time the pair
    was captured, not when a later audit runs. Keep output paths stable.
 
@@ -173,8 +178,8 @@ a solid color or use background-removal image processing to hide a failed captur
 ## Verify and report
 
 Load `docs-writing` for documentation changes. Use the Mintlify version pinned
-in `docs/product/Dockerfile`; run it through `mise exec`. Run `mintlify validate`
-from `docs/product/` after changes. Preview the affected real product docs page,
+in `.mise/config.toml`; run it through `mise exec`. Run `mint validate`
+from `docs/` after changes. Preview the affected real product docs page,
 check both theme images load, and inspect the rendered result. Avoid enlarging
 a narrow crop beyond its original CSS width; use `width` when needed.
 

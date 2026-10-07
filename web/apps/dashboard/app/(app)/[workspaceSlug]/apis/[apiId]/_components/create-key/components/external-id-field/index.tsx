@@ -176,7 +176,7 @@ export const ExternalIdField = ({
               >
                 <IconTriangleWarningOutline12 />
               </div>
-              <span className="text-sm text-gray-12 ">
+              <span data-sentry-mask className="text-sm text-gray-12 ">
                 <span className="text-gray-10 font-normal">Create</span> "{trimmedSearchValue}"
               </span>
             </div>

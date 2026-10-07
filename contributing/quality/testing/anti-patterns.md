@@ -1,0 +1,68 @@
+---
+title: "Anti-patterns"
+description: "Common testing mistakes to avoid"
+notion:
+  owners:
+    - andreas
+  tags:
+    - Quality
+    - Testing
+---
+
+## Sleeping instead of synchronizing
+
+Do not use `time.Sleep` to wait for async work. Use `require.Eventually` or a test clock.
+
+## Testing implementation details
+
+Verify public behavior, not internal fields. Refactors must not break tests when behavior is unchanged.
+
+## Treating tests as throwaway code
+
+Tests are production code. Do not accept unclear names, hidden setup, flaky timing, duplicated fixtures, unsafe casts, ignored errors, or comments that would be rejected in application code.
+
+## Hiding the guarantee
+
+Do not make readers infer the guarantee from setup and assertions alone. Use a precise test name, table case name, and docstring when the protected behavior is not obvious.
+
+```go
+// Bad: the guarantee is hidden.
+func TestAuth(t *testing.T) {
+    // ...
+}
+
+// Good: the guarantee is explicit.
+// TestAuthRejectsRevokedRootKeys guarantees that revoked credentials cannot be
+// used after revocation has been persisted.
+func TestAuthRejectsRevokedRootKeys(t *testing.T) {
+    // ...
+}
+```
+
+## Bypassing `pkg/fuzz`
+
+Fuzz tests must use `pkg/fuzz`. Do not fuzz typed parameters directly, use ad hoc byte slicing, or introduce separate randomness with `math/rand`. Use `fuzz.Seed(f)`, `fuzz.New(t, data)`, and the consumer helpers so every generated value remains controlled by the fuzzer.
+
+## Shared mutable state
+
+Avoid global state between tests. Isolate resources per test or reset state explicitly.
+
+## Ignoring setup errors
+
+Fail fast on setup errors so failures are clear and localized.
+
+## Hardcoded identifiers
+
+Use `pkg/uid` to generate unique IDs so parallel tests do not collide.
+
+## Over-mocking
+
+Prefer real dependencies when feasible. Mocks often assert calls instead of behavior.
+
+## Missing subtests
+
+Use `t.Run` for table cases so failures identify the case.
+
+## Forgetting `t.Helper()`
+
+Helpers that assert must call `t.Helper()` so failures point at the call site.

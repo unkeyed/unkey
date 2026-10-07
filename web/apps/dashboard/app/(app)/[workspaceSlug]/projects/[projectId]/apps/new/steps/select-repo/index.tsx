@@ -205,7 +205,7 @@ export const SelectRepo = ({
               searchPlaceholder="Filter accounts..."
               leftIcon={<Github />}
             />
-            <InputGroup className="flex-1 min-w-0 bg-transparent h-9">
+            <InputGroup className="flex-1 min-w-0 bg-transparent">
               <InputGroupAddon>
                 <IconMagnifierOutline12 className="text-gray-12 shrink-0" />
               </InputGroupAddon>
@@ -213,6 +213,8 @@ export const SelectRepo = ({
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search repositories..."
+                autoComplete="off"
+                data-1p-ignore
               />
             </InputGroup>
           </div>
