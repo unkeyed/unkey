@@ -8,7 +8,6 @@ import {
   PageHeader,
   PageHeaderActions,
   PageHeaderContent,
-  PageHeaderDescription,
   PageHeaderTitle,
 } from "@unkey/ui";
 import { useState } from "react";
@@ -21,10 +20,7 @@ export default function EnvVarsPage() {
     <PageContainer>
       <PageHeader>
         <PageHeaderContent>
-          <PageHeaderTitle>Environment Variables</PageHeaderTitle>
-          <PageHeaderDescription>
-            Store API keys, tokens, and config securely. Changes apply on next deploy.
-          </PageHeaderDescription>
+          <PageHeaderTitle>Environment variables</PageHeaderTitle>
         </PageHeaderContent>
         <PageHeaderActions>
           <Button

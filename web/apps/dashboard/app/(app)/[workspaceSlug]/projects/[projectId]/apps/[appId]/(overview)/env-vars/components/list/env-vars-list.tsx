@@ -2,29 +2,26 @@
 
 import { collection } from "@/lib/collections";
 import type { Environment } from "@/lib/collections/deploy/environments";
+import { useCollectionLoad } from "@/lib/collections/use-collection-load";
 import { and, eq, useLiveQuery } from "@tanstack/react-db";
-import { IconBracketsSquareDotsOutline18 } from "@unkey/icons";
+import { IconTableCodeOutline18 } from "@unkey/icons";
 import {
   EmptyState,
   EmptyStateDescription,
   EmptyStateHeader,
   EmptyStateIcon,
   EmptyStateTitle,
+  ResourceListBody,
+  ResourceListContent,
+  ResourceListItem,
 } from "@unkey/ui";
-import { useCallback, useDeferredValue, useEffect, useMemo, useState } from "react";
+import { useCallback, useDeferredValue, useMemo, useState } from "react";
+import { LoadError } from "../../../../components/load-error";
 import { useRowSelection } from "../../hooks/use-row-selection";
 import { useVirtualList } from "../../hooks/use-virtual-list";
 import { EnvVarsSkeleton } from "../shared/env-vars-skeleton";
 import type { EnvironmentFilter, SortOption } from "../toolbar/env-vars-toolbar";
-import { GroupRow } from "./env-var-group-row";
-import {
-  type DisplayRow,
-  type EnvVarItem,
-  EnvVarItemRow,
-  groupByKey,
-  rowKey,
-  rowTime,
-} from "./env-var-item-row";
+import { type EnvVarItem, EnvVarRow } from "./env-var-row";
 import { EnvVarSelectionBar } from "./env-var-selection-bar";
 
 type EnvVarsListProps = {
@@ -45,7 +42,6 @@ export function EnvVarsList({
   sortBy,
 }: EnvVarsListProps) {
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [expandedRow, setExpandedRow] = useState<string | null>(null);
   const closeEdit = useCallback(() => setEditingId(null), []);
 
   const openEdit = useCallback(
@@ -61,10 +57,6 @@ export function EnvVarsList({
   );
   const deferredQuery = useDeferredValue(searchQuery);
 
-  const toggleGroup = useCallback((key: string) => {
-    setExpandedRow((prev) => (prev === key ? "" : key));
-  }, []);
-
   const { data: envVarData, isLoading } = useLiveQuery(
     (q) =>
       q
@@ -73,108 +65,82 @@ export function EnvVarsList({
     [projectId, appId],
   );
 
-  const displayRows = useMemo((): DisplayRow[] => {
+  const rows = useMemo((): EnvVarItem[] => {
     if (!envVarData) {
       return [];
     }
-
     const query = deferredQuery.toLowerCase();
+    const environmentsById = new Map(environments.map((env) => [env.id, env]));
 
-    const filtered: EnvVarItem[] = [];
-    for (const v of envVarData) {
-      if (query && !v.key.toLowerCase().includes(query)) {
-        continue;
-      }
-      if (environmentFilter !== "all" && v.environmentId !== environmentFilter) {
-        continue;
-      }
-      filtered.push({
-        ...v,
-        environmentName: environments.find((e) => e.id === v.environmentId)?.slug ?? "Unknown",
-      });
-    }
+    const filtered = envVarData
+      .filter(
+        (v) =>
+          (!query || v.key.toLowerCase().includes(query)) &&
+          (environmentFilter === "all" || v.environmentId === environmentFilter),
+      )
+      .map((v) => ({ ...v, environment: environmentsById.get(v.environmentId) }));
 
-    // When filtering by a specific environment, each var is a standalone row.
-    // When viewing all environments, group vars that share the same key.
-    const rows =
-      environmentFilter !== "all"
-        ? filtered.map((item): DisplayRow => ({ kind: "single", item }))
-        : groupByKey(filtered);
-
-    // Sort rows by name or most recently updated
-    if (sortBy === "name-asc") {
-      rows.sort((a, b) => rowKey(a).localeCompare(rowKey(b)));
-    } else {
-      rows.sort((a, b) => rowTime(b) - rowTime(a));
-    }
-
-    return rows;
+    const byName = (a: EnvVarItem, b: EnvVarItem) =>
+      a.key.localeCompare(b.key) ||
+      (a.environment?.slug ?? "").localeCompare(b.environment?.slug ?? "");
+    return filtered.sort(
+      sortBy === "name-asc" ? byName : (a, b) => b.createdAt - a.createdAt || byName(a, b),
+    );
   }, [envVarData, environments, deferredQuery, environmentFilter, sortBy]);
 
   const {
     selectedIds,
     toggleRowSelection,
-    toggleItemSelection,
-    isRowSelected,
     handleBulkDelete,
     handleBulkMakeSensitive,
     clearSelection,
-  } = useRowSelection(displayRows, envVarData);
+  } = useRowSelection(rows, envVarData);
 
-  useCloseEditOnGroupCollapse(displayRows, expandedRow, editingId, setEditingId);
-
-  const { virtualizer, listRefCallback, scrollMargin } = useVirtualList(
-    displayRows,
-    editingId,
-    expandedRow,
-  );
+  const { virtualizer, listRefCallback, scrollMargin } = useVirtualList(rows, editingId);
+  const envVarsLoad = useCollectionLoad(collection.envVars.utils);
 
   if (isLoading) {
     return <EnvVarsSkeleton />;
   }
 
-  if (displayRows.length === 0) {
+  if (envVarsLoad.failed) {
+    return <LoadError title="Could not load environment variables" onRetry={envVarsLoad.retry} />;
+  }
+
+  if (rows.length === 0) {
+    const isFiltered = searchQuery !== "" || environmentFilter !== "all";
     return (
       <EmptyState>
         <EmptyStateIcon>
-          <IconBracketsSquareDotsOutline18 />
+          <IconTableCodeOutline18 />
         </EmptyStateIcon>
         <EmptyStateHeader>
           <EmptyStateTitle>
-            {searchQuery ? "No Matching Variables" : "No Environment Variables"}
+            {isFiltered ? "No matching variables" : "No environment variables"}
           </EmptyStateTitle>
           <EmptyStateDescription>
             {searchQuery
               ? `No variables matching "${searchQuery}". Try a different search term.`
-              : "Environment variables will appear here once you add them. Store API keys, tokens, and config securely."}
+              : isFiltered
+                ? "No variables in this environment."
+                : "Add a variable to pass secrets and settings to your deployments."}
           </EmptyStateDescription>
         </EmptyStateHeader>
       </EmptyState>
     );
   }
 
-  const virtualItems = virtualizer.getVirtualItems();
-
   return (
     <>
-      <div ref={listRefCallback} className="border bg-raised rounded-lg overflow-hidden">
-        <div
-          style={{
-            height: virtualizer.getTotalSize(),
-            position: "relative",
-            width: "100%",
-          }}
-        >
-          {virtualItems.map((virtualRow) => {
-            const row = displayRows[virtualRow.index];
-            const isLast = virtualRow.index === displayRows.length - 1;
-
+      <ResourceListContent ref={listRefCallback}>
+        <ResourceListBody style={{ height: virtualizer.getTotalSize(), position: "relative" }}>
+          {virtualizer.getVirtualItems().map((virtualRow) => {
+            const item = rows[virtualRow.index];
             return (
-              <div
+              <ResourceListItem
                 key={virtualRow.key}
                 ref={virtualizer.measureElement}
                 data-index={virtualRow.index}
-                className={isLast ? undefined : "border-b"}
                 style={{
                   position: "absolute",
                   top: 0,
@@ -183,38 +149,21 @@ export function EnvVarsList({
                   transform: `translateY(${virtualRow.start - scrollMargin}px)`,
                 }}
               >
-                {row.kind === "single" ? (
-                  <EnvVarItemRow
-                    item={row.item}
-                    searchQuery={deferredQuery}
-                    isEditing={editingId === row.item.id}
-                    onEdit={() => openEdit(row.item.id)}
-                    onCloseEdit={closeEdit}
-                    isSelected={selectedIds.has(row.item.id)}
-                    onToggleSelection={(shiftKey) => toggleRowSelection(virtualRow.index, shiftKey)}
-                    hasSelection={selectedIds.size > 0}
-                  />
-                ) : (
-                  <GroupRow
-                    row={row}
-                    isExpanded={expandedRow === row.key}
-                    selected={isRowSelected(row)}
-                    selectedIds={selectedIds}
-                    deferredQuery={deferredQuery}
-                    editingId={editingId}
-                    onToggleGroup={() => toggleGroup(row.key)}
-                    onToggleSelection={(shiftKey) => toggleRowSelection(virtualRow.index, shiftKey)}
-                    onToggleItemSelection={toggleItemSelection}
-                    onEdit={openEdit}
-                    onCloseEdit={closeEdit}
-                    hasSelection={selectedIds.size > 0}
-                  />
-                )}
-              </div>
+                <EnvVarRow
+                  item={item}
+                  searchQuery={deferredQuery}
+                  isEditing={editingId === item.id}
+                  onEdit={() => openEdit(item.id)}
+                  onCloseEdit={closeEdit}
+                  isSelected={selectedIds.has(item.id)}
+                  hasSelection={selectedIds.size > 0}
+                  onToggleSelection={(shiftKey) => toggleRowSelection(virtualRow.index, shiftKey)}
+                />
+              </ResourceListItem>
             );
           })}
-        </div>
-      </div>
+        </ResourceListBody>
+      </ResourceListContent>
       <EnvVarSelectionBar
         selectedCount={selectedIds.size}
         onDelete={handleBulkDelete}
@@ -223,25 +172,4 @@ export function EnvVarsList({
       />
     </>
   );
-}
-
-function useCloseEditOnGroupCollapse(
-  displayRows: DisplayRow[],
-  expandedRow: string | null,
-  editingId: string | null,
-  setEditingId: (id: string | null) => void,
-) {
-  useEffect(() => {
-    if (editingId === null) {
-      return;
-    }
-    for (const row of displayRows) {
-      if (row.kind === "group" && expandedRow !== row.key) {
-        if (row.items.some((i) => i.id === editingId)) {
-          setEditingId(null);
-          break;
-        }
-      }
-    }
-  }, [expandedRow, displayRows, editingId, setEditingId]);
 }

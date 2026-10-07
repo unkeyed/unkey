@@ -1,4 +1,5 @@
 "use client";
+import { DiscardChangesDialog } from "@/components/discard-changes-dialog";
 import { OnboardingStepContainer } from "@/components/onboarding/step-container";
 import { OnboardingStepHeader } from "@/components/onboarding/step-header";
 import { usePreventLeave } from "@/hooks/use-prevent-leave";
@@ -36,86 +37,90 @@ export default function AppSetupPage() {
   const [appDetails, setAppDetails] = useState<AppDetails | null>(null);
   const [deploymentId, setDeploymentId] = useState<string | null>(null);
 
-  const { bypass } = usePreventLeave(!deploymentId);
+  const projectHref = routes.projects.detail({ workspaceSlug: workspace.slug, projectId });
+  const { bypass, backPrompt } = usePreventLeave(!deploymentId, projectHref);
 
   const handleSkipGithubSetup = () => {
     bypass();
-    router.replace(routes.projects.detail({ workspaceSlug: workspace.slug, projectId }));
+    router.replace(projectHref);
   };
 
   return (
-    <StepWizard.Root defaultStepId={initialStep}>
-      <StepWizard.Step id="create-app" label="Create app">
-        <OnboardingStepContainer>
-          {deployYourAppHeader}
-          <CreateAppStep onAppDetailsSubmitted={setAppDetails} />
-        </OnboardingStepContainer>
-      </StepWizard.Step>
-      <StepWizard.Step id="choose-source" label="Choose source">
-        {appDetails ? (
+    <>
+      <DiscardChangesDialog {...backPrompt} />
+      <StepWizard.Root defaultStepId={initialStep}>
+        <StepWizard.Step id="create-app" label="Create app">
           <OnboardingStepContainer>
             {deployYourAppHeader}
-            <ChooseSourceStep
-              projectId={projectId}
-              appDetails={appDetails}
-              onAppCreated={setAppId}
-              onBeforeNavigate={bypass}
-            />
+            <CreateAppStep onAppDetailsSubmitted={setAppDetails} />
           </OnboardingStepContainer>
-        ) : null}
-      </StepWizard.Step>
-      <StepWizard.Step id="select-repo" label="Select repository" kind="optional">
-        {appId ? (
-          <OnboardingStepContainer>
-            <OnboardingStepHeader
-              title="Select a repository"
-              subtitle={
-                <>
-                  Choose a repository and a branch containing your app.
-                  <br />
-                  We'll detect how to build it automatically.
-                </>
-              }
-            />
-            <SelectRepo
-              projectId={projectId}
-              appId={appId}
-              onBeforeNavigate={bypass}
-              hasGithubInstallation={context?.hasGithubInstallation ?? false}
-              onSkip={handleSkipGithubSetup}
-            />
-          </OnboardingStepContainer>
-        ) : null}
-      </StepWizard.Step>
-      <StepWizard.Step id="configure-deployment" label="Configure deployment">
-        {appId ? (
-          <OnboardingStepContainer>
-            <OnboardingStepHeader
-              title="Configure deployment"
-              subtitle="Review the defaults. Edit anything you'd like to adjust."
-              allowBack
-            />
-            <ConfigureDeploymentStep projectId={projectId} appId={appId} />
-          </OnboardingStepContainer>
-        ) : null}
-      </StepWizard.Step>
-      <StepWizard.Step id="configure-env-vars" label="Configure environment variables">
-        {appId ? (
-          <OnboardingStepContainer>
-            <EnvVarsStep
-              projectId={projectId}
-              appId={appId}
-              onDeploymentCreated={setDeploymentId}
-            />
-          </OnboardingStepContainer>
-        ) : null}
-      </StepWizard.Step>
-      <StepWizard.Step id="deploying" label="Deploying" preventBack>
-        {appId && deploymentId ? (
-          <DeploymentLiveStep projectId={projectId} appId={appId} deploymentId={deploymentId} />
-        ) : null}
-      </StepWizard.Step>
-    </StepWizard.Root>
+        </StepWizard.Step>
+        <StepWizard.Step id="choose-source" label="Choose source">
+          {appDetails ? (
+            <OnboardingStepContainer>
+              {deployYourAppHeader}
+              <ChooseSourceStep
+                projectId={projectId}
+                appDetails={appDetails}
+                onAppCreated={setAppId}
+                onBeforeNavigate={bypass}
+              />
+            </OnboardingStepContainer>
+          ) : null}
+        </StepWizard.Step>
+        <StepWizard.Step id="select-repo" label="Select repository" kind="optional">
+          {appId ? (
+            <OnboardingStepContainer>
+              <OnboardingStepHeader
+                title="Select a repository"
+                subtitle={
+                  <>
+                    Choose a repository and a branch containing your app.
+                    <br />
+                    We'll detect how to build it automatically.
+                  </>
+                }
+              />
+              <SelectRepo
+                projectId={projectId}
+                appId={appId}
+                onBeforeNavigate={bypass}
+                hasGithubInstallation={context?.hasGithubInstallation ?? false}
+                onSkip={handleSkipGithubSetup}
+              />
+            </OnboardingStepContainer>
+          ) : null}
+        </StepWizard.Step>
+        <StepWizard.Step id="configure-deployment" label="Configure deployment">
+          {appId ? (
+            <OnboardingStepContainer>
+              <OnboardingStepHeader
+                title="Configure deployment"
+                subtitle="Review the defaults. Edit anything you'd like to adjust."
+                allowBack
+              />
+              <ConfigureDeploymentStep projectId={projectId} appId={appId} />
+            </OnboardingStepContainer>
+          ) : null}
+        </StepWizard.Step>
+        <StepWizard.Step id="configure-env-vars" label="Configure environment variables">
+          {appId ? (
+            <OnboardingStepContainer>
+              <EnvVarsStep
+                projectId={projectId}
+                appId={appId}
+                onDeploymentCreated={setDeploymentId}
+              />
+            </OnboardingStepContainer>
+          ) : null}
+        </StepWizard.Step>
+        <StepWizard.Step id="deploying" label="Deploying" preventBack>
+          {appId && deploymentId ? (
+            <DeploymentLiveStep projectId={projectId} appId={appId} deploymentId={deploymentId} />
+          ) : null}
+        </StepWizard.Step>
+      </StepWizard.Root>
+    </>
   );
 }
 

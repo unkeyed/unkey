@@ -4,12 +4,12 @@ import { Switch } from "@/components/ui/switch";
 import { collection } from "@/lib/collections";
 import { envVarKeySchema, envVarValueSchema } from "@/lib/schemas/env-var";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { IconCircleInfoOutline18, IconPlusOutline12 } from "@unkey/icons";
+import { IconCircleInfoOutline18 } from "@unkey/icons";
 import { Button, FormInput, FormTextarea, InfoTooltip } from "@unkey/ui";
 import { type ClipboardEvent, useCallback } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
-import { parseEnvText } from "../../hooks/use-drop-zone";
+import { pastedEntries } from "../../env-file";
 
 const editEnvVarSchema = z.object({
   key: envVarKeySchema,
@@ -90,17 +90,13 @@ export function EnvVarEditRow({
       if (isWriteonly) {
         return;
       }
-      const text = e.clipboardData.getData("text/plain");
-      if (!text.includes("=")) {
-        return;
-      }
-      const { entries } = parseEnvText(text);
-      if (entries.length === 0) {
+      const [entry] = pastedEntries(e.clipboardData.getData("text/plain"));
+      if (!entry) {
         return;
       }
       e.preventDefault();
-      setValue("key", entries[0].key);
-      setValue("value", entries[0].value);
+      setValue("key", entry.key);
+      setValue("value", entry.value);
     },
     [isWriteonly, setValue],
   );
@@ -116,80 +112,65 @@ export function EnvVarEditRow({
   );
 
   return (
-    <div className="bg-raised px-12 pb-6 pt-5 border-t" onKeyDown={handleKeyDown}>
-      <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-5">
-        <FormInput
-          label="Key"
-          className="[&_input]:font-mono"
-          placeholder="VARIABLE_NAME"
-          error={errors.key?.message}
-          readOnly={isWriteonly}
-          disabled={isWriteonly}
-          title={isWriteonly ? "You cannot rename sensitive environment variables" : ""}
-          {...register("key")}
-          onPaste={handleKeyPaste}
-        />
-        <FormTextarea
-          label="Value"
-          rows={1}
-          className="[&_textarea]:font-mono [&_textarea]:min-h-9 [&_textarea]:max-h-40 [&_textarea]:resize-y [&_textarea]:overflow-y-auto"
-          placeholder={isWriteonly ? "Leave empty to keep the current value" : "value"}
-          description={
-            isWriteonly
-              ? "A sensitive value cannot be shown. Type a new value to replace it, or leave this empty to keep the current one."
-              : undefined
-          }
-          error={errors.value?.message}
-          {...register("value")}
-        />
-        <details className="group" open={Boolean(note)}>
-          <summary className="w-fit text-sm text-gray-11 hover:text-gray-12 transition-colors cursor-pointer list-none [&::-webkit-details-marker]:hidden flex items-center gap-1.5 group">
-            <span className="group-open:hidden flex items-center gap-2">
-              <IconPlusOutline12 className="text-gray-9 group-hover:text-gray-12 transition-colors" />
-              Add Note
-            </span>
-            <span className="hidden group-open:inline">Note</span>
-          </summary>
-          <div className="pt-1.5">
-            <FormInput
-              className="[&_input]:text-sm"
-              placeholder="Optional description for this variable..."
-              {...register("description")}
-            />
-          </div>
-        </details>
-        {!isWriteonly && (
-          <div className="flex items-center gap-3">
-            <Controller
-              control={control}
-              name="sensitive"
-              render={({ field }) => (
-                <Switch checked={field.value} onCheckedChange={field.onChange} />
-              )}
-            />
-            <span className="text-sm text-gray-12 font-medium">Sensitive</span>
-            <InfoTooltip
-              content="Permanently hides values after saving. This cannot be undone."
-              position={{ side: "top" }}
-              className="z-60"
-              asChild
-            >
-              <span className="text-grayA-9">
-                <IconCircleInfoOutline18 className="size-3.5" />
-              </span>
-            </InfoTooltip>
-          </div>
-        )}
-
-        <div className="flex items-center justify-end gap-2 pt-5 mt-1">
-          <Button type="button" variant="outline" size="md" onClick={onClose} className="px-3">
+    <div className="bg-raised border-t" onKeyDown={handleKeyDown}>
+      <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col">
+        <div className="flex flex-col gap-5 px-4 pt-5 pb-5">
+          <FormInput
+            label="Key"
+            className="[&_input]:font-mono"
+            placeholder="VARIABLE_NAME"
+            error={errors.key?.message}
+            readOnly={isWriteonly}
+            disabled={isWriteonly}
+            title={isWriteonly ? "You cannot rename sensitive environment variables" : ""}
+            {...register("key")}
+            onPaste={handleKeyPaste}
+          />
+          <FormTextarea
+            label="Value"
+            rows={1}
+            className="[&_textarea]:font-mono [&_textarea]:min-h-24 [&_textarea]:max-h-60 [&_textarea]:resize-y [&_textarea]:overflow-y-auto"
+            placeholder={isWriteonly ? "Leave empty to keep the current value" : "value"}
+            error={errors.value?.message}
+            {...register("value")}
+          />
+          <FormInput
+            label="Note (optional)"
+            placeholder="Where to rotate it, or who to contact"
+            {...register("description")}
+          />
+          {!isWriteonly && (
+            <div className="flex items-center gap-3">
+              <Controller
+                control={control}
+                name="sensitive"
+                render={({ field }) => (
+                  <Switch checked={field.value} onCheckedChange={field.onChange} />
+                )}
+              />
+              <span className="text-sm text-gray-12 font-medium">Sensitive</span>
+              <InfoTooltip
+                content="Hides the value after saving. This cannot be undone."
+                position={{ side: "top" }}
+                className="z-60"
+                asChild
+              >
+                <span className="text-grayA-9">
+                  <IconCircleInfoOutline18 className="size-3.5" />
+                </span>
+              </InfoTooltip>
+            </div>
+          )}
+        </div>
+        <div className="flex items-center justify-end gap-3 border-t border-grayA-4 bg-grayA-2 px-4 py-3">
+          <Button type="button" variant="outline" size="sm" onClick={onClose} className="px-3">
             Cancel
           </Button>
           <Button
             type="submit"
             className="px-3"
             variant="primary"
-            size="md"
+            size="sm"
             loading={isSubmitting}
             disabled={isSubmitting}
           >

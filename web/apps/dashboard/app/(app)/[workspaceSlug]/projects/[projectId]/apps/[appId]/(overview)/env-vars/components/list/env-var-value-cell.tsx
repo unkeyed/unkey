@@ -74,30 +74,30 @@ export const EnvVarValueCell = memo(function EnvVarValueCell({
   }
 
   return (
-    <div data-sentry-mask className="flex items-center min-w-0">
-      <div className="shrink-0 w-7 flex items-center justify-center">
+    <div data-sentry-mask className="flex min-w-0 items-center gap-1">
+      <div className="flex shrink-0 items-center">
         <button
           type="button"
-          aria-label={visible ? "Click to hide" : "Click to reveal"}
-          title={visible ? "Click to hide" : "Click to reveal"}
+          aria-label={visible ? "Hide value" : "Reveal value"}
+          title={visible ? "Hide value" : "Reveal value"}
           onClick={handleToggleReveal}
-          className="text-gray-10 hover:text-gray-11 transition-colors cursor-pointer hover:bg-gray-3 rounded-md px-1.5 py-0.5 h-[22px]"
+          className="flex size-6 cursor-pointer items-center justify-center rounded-md text-gray-10 transition-colors hover:bg-grayA-3 hover:text-gray-12"
         >
           {visible ? <IconEyeSlashOutline18 className="size-3" /> : <IconEyeOutline12 />}
         </button>
       </div>
       {visible ? (
-        <InfoTooltip content={copied ? "Copied!" : "Click to copy"} position={{ side: "top" }}>
+        <InfoTooltip content={copied ? "Copied!" : "Copy"} position={{ side: "top" }} asChild>
           <button
             type="button"
             onClick={handleCopy}
-            className="font-mono bg-gray-3 px-1.5 py-0.5 truncate text-sm text-gray-12 cursor-pointer transition-colors min-w-0 rounded-md h-5.5 max-w-70"
+            className="min-w-0 cursor-pointer truncate rounded-md bg-grayA-3 px-1.5 py-0.5 font-mono text-xs text-gray-12"
           >
             {value}
           </button>
         </InfoTooltip>
       ) : (
-        <span className="font-mono text-sm text-gray-11">••••••••••••</span>
+        <span className="font-mono text-xs tracking-widest text-gray-11">••••••••••••</span>
       )}
     </div>
   );

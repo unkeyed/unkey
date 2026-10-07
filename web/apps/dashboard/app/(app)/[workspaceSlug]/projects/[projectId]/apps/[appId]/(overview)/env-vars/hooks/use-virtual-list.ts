@@ -1,18 +1,11 @@
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { useCallback, useEffect, useRef, useState } from "react";
-import type { DisplayRow } from "../components/list/env-var-item-row";
+import { useCallback, useEffect, useState } from "react";
 
-export function useVirtualList(
-  displayRows: DisplayRow[],
-  editingId: string | null,
-  expandedRow: string | null,
-) {
-  const listRef = useRef<HTMLDivElement>(null);
+export function useVirtualList(rows: { id: string }[], editingId: string | null) {
   const [scrollElement, setScrollElement] = useState<HTMLElement | null>(null);
   const [scrollMargin, setScrollMargin] = useState(0);
 
   const listRefCallback = useCallback((node: HTMLDivElement | null) => {
-    listRef.current = node;
     if (!node) {
       return;
     }
@@ -35,15 +28,9 @@ export function useVirtualList(
     }
   }, []);
 
-  const getItemKey = useCallback(
-    (index: number) => {
-      const row = displayRows[index];
-      return row.kind === "single" ? row.item.id : `group-${row.key}`;
-    },
-    [displayRows],
-  );
+  const getItemKey = useCallback((index: number) => rows[index].id, [rows]);
 
-  const ROW_HEIGHT = 70;
+  const ROW_HEIGHT = 48;
   const EDIT_HEIGHT = 470;
 
   // Pre-calculate row heights so the virtualizer positions items correctly
@@ -51,29 +38,12 @@ export function useVirtualList(
   // delay where items below an expanding row keep their old positions,
   // causing a visible flash/ghost artifact.
   const estimateSize = useCallback(
-    (index: number) => {
-      const row = displayRows[index];
-
-      if (row.kind === "single") {
-        return row.item.id === editingId ? ROW_HEIGHT + EDIT_HEIGHT : ROW_HEIGHT;
-      }
-
-      if (expandedRow !== row.key) {
-        return ROW_HEIGHT;
-      }
-
-      // Expanded group: header + each sub-item (+ edit form if editing inside)
-      let height = ROW_HEIGHT + row.items.length * ROW_HEIGHT;
-      if (editingId && row.items.some((item) => item.id === editingId)) {
-        height += EDIT_HEIGHT;
-      }
-      return height;
-    },
-    [displayRows, editingId, expandedRow],
+    (index: number) => (rows[index].id === editingId ? ROW_HEIGHT + EDIT_HEIGHT : ROW_HEIGHT),
+    [rows, editingId],
   );
 
   const virtualizer = useVirtualizer({
-    count: displayRows.length,
+    count: rows.length,
     getScrollElement: useCallback(() => scrollElement, [scrollElement]),
     estimateSize,
     overscan: 5,
@@ -81,10 +51,10 @@ export function useVirtualList(
     scrollMargin,
   });
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: editingId/expandedGroups trigger measurement invalidation so estimateSize is re-consulted
+  // biome-ignore lint/correctness/useExhaustiveDependencies: editingId triggers measurement invalidation so estimateSize is re-consulted
   useEffect(() => {
     virtualizer.measure();
-  }, [editingId, expandedRow, virtualizer]);
+  }, [editingId, virtualizer]);
 
   return { virtualizer, listRefCallback, scrollMargin };
 }

@@ -59,11 +59,11 @@ export function EnvVarsToolbar({
           />
         </InputGroup>
       </div>
-      <div className="flex-[25%] max-w-[184px]">
+      <div className="flex-[25%] max-w-[184px] min-w-[184px]">
         <Select
           value={environmentFilter}
           items={[
-            { value: "all", label: "All Environments" },
+            { value: "all", label: "All environments" },
             ...environments.map((env) => ({ value: env.id, label: env.slug })),
           ]}
           onValueChange={(value) => {
@@ -77,10 +77,10 @@ export function EnvVarsToolbar({
             leftIcon={<IconLayers3Outline18 className="size-3.5 text-gray-9" />}
             rightIcon={<IconChevronDownOutline18 className="size-3.5 absolute right-2" />}
           >
-            <SelectValue placeholder="All Environments" />
+            <SelectValue placeholder="All environments" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Environments</SelectItem>
+            <SelectItem value="all">All environments</SelectItem>
             {environments.map((env) => (
               <SelectItem key={env.id} value={env.id} className="capitalize">
                 {env.slug}
@@ -93,7 +93,7 @@ export function EnvVarsToolbar({
         <Select
           value={sortBy}
           items={[
-            { value: "last-updated", label: "Last Updated" },
+            { value: "last-updated", label: "Newest" },
             { value: "name-asc", label: "Name A-Z" },
           ]}
           onValueChange={(v) => {
@@ -110,7 +110,7 @@ export function EnvVarsToolbar({
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="last-updated">Last Updated</SelectItem>
+            <SelectItem value="last-updated">Newest</SelectItem>
             <SelectItem value="name-asc">Name A-Z</SelectItem>
           </SelectContent>
         </Select>

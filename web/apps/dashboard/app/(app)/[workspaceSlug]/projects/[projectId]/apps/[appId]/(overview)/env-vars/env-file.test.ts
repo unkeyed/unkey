@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseEnvText } from "./use-drop-zone";
+import { parseEnvText, pastedEntries } from "./env-file";
 
 describe("parseEnvText", () => {
   it("parses simple key=value pairs and skips blanks and comments", () => {
@@ -67,5 +67,26 @@ describe("parseEnvText", () => {
       { key: "PEM", value: "line1\nline2" },
       { key: "NEXT", value: "ok" },
     ]);
+  });
+});
+
+describe("pastedEntries", () => {
+  it("reads a pasted pair", () => {
+    expect(pastedEntries("PORT=3000")).toEqual([{ key: "PORT", value: "3000" }]);
+  });
+
+  it("reads every line of a pasted .env blob", () => {
+    expect(pastedEntries("A=1\nB=2")).toEqual([
+      { key: "A", value: "1" },
+      { key: "B", value: "2" },
+    ]);
+  });
+
+  it("yields nothing for a plain key", () => {
+    expect(pastedEntries("DATABASE_URL")).toEqual([]);
+  });
+
+  it("yields nothing when no line holds a pair", () => {
+    expect(pastedEntries("# only = a comment")).toEqual([]);
   });
 });

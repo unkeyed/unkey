@@ -3,13 +3,8 @@ import type { EnvVar } from "@/lib/collections/deploy/env-vars";
 import { trpc } from "@/lib/trpc/client";
 import { toast } from "@unkey/ui";
 import { useCallback, useRef, useState } from "react";
-import type { DisplayRow } from "../components/list/env-var-item-row";
 
-function getRowIds(row: DisplayRow): string[] {
-  return row.kind === "single" ? [row.item.id] : row.items.map((i) => i.id);
-}
-
-export function useRowSelection(displayRows: DisplayRow[], envVars: EnvVar[] | undefined) {
+export function useRowSelection(rows: EnvVar[], envVars: EnvVar[] | undefined) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const lastClickedIndexRef = useRef<number | null>(null);
 
@@ -21,77 +16,36 @@ export function useRowSelection(displayRows: DisplayRow[], envVars: EnvVar[] | u
   const toggleRowSelection = useCallback(
     (rowIndex: number, shiftKey: boolean) => {
       setSelectedIds((prev) => {
-        const next = new Set(prev);
-        const row = displayRows[rowIndex];
+        const row = rows[rowIndex];
         if (!row) {
           return prev;
         }
-
-        // Shift+click: select entire range from last clicked row
-        // Normal click: toggle row, deselect if all IDs selected, select otherwise
+        const next = new Set(prev);
         if (shiftKey && lastClickedIndexRef.current !== null) {
           const start = Math.min(lastClickedIndexRef.current, rowIndex);
           const end = Math.max(lastClickedIndexRef.current, rowIndex);
-          for (let i = start; i <= end; i++) {
-            const r = displayRows[i];
-            if (r) {
-              for (const id of getRowIds(r)) {
-                next.add(id);
-              }
-            }
+          for (const r of rows.slice(start, end + 1)) {
+            next.add(r.id);
           }
+        } else if (next.has(row.id)) {
+          next.delete(row.id);
         } else {
-          const ids = getRowIds(row);
-          const allSelected = ids.every((id) => next.has(id));
-          for (const id of ids) {
-            if (allSelected) {
-              next.delete(id);
-            } else {
-              next.add(id);
-            }
-          }
+          next.add(row.id);
         }
-
         lastClickedIndexRef.current = rowIndex;
         return next;
       });
     },
-    [displayRows],
-  );
-
-  const isRowSelected = useCallback(
-    (row: DisplayRow): boolean | "partial" => {
-      const ids = getRowIds(row);
-      const selectedCount = ids.filter((id) => selectedIds.has(id)).length;
-      if (selectedCount === 0) {
-        return false;
-      }
-      return selectedCount === ids.length ? true : "partial";
-    },
-    [selectedIds],
+    [rows],
   );
 
   const handleBulkDelete = useCallback(() => {
     const ids = resolveSelection().map((item) => item.id);
-    if (ids.length === 0) {
-      setSelectedIds(new Set());
-      return;
+    if (ids.length > 0) {
+      collection.envVars.delete(ids);
     }
-    collection.envVars.delete(ids);
     setSelectedIds(new Set());
   }, [resolveSelection]);
-
-  const toggleItemSelection = useCallback((itemId: string) => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(itemId)) {
-        next.delete(itemId);
-      } else {
-        next.add(itemId);
-      }
-      return next;
-    });
-  }, []);
 
   const makeSensitiveMutation = trpc.deploy.envVar.makeSensitive.useMutation();
 
@@ -120,8 +74,6 @@ export function useRowSelection(displayRows: DisplayRow[], envVars: EnvVar[] | u
   return {
     selectedIds,
     toggleRowSelection,
-    toggleItemSelection,
-    isRowSelected,
     handleBulkDelete,
     handleBulkMakeSensitive,
     clearSelection,
