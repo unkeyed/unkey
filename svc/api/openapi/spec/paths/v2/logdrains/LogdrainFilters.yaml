@@ -58,12 +58,12 @@ properties:
     type: array
     maxItems: 4
     items:
-      type: integer
+      type: string
       enum:
-        - 2
-        - 3
-        - 4
-        - 5
+        - 2xx
+        - 3xx
+        - 4xx
+        - 5xx
   severities:
     type: array
     maxItems: 256
