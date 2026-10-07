@@ -1,5 +1,6 @@
 post:
-  tags: [logdrains]
+  tags:
+    - logdrains
   summary: Create log drain
   description: |
     Create a log drain within your workspace allowance. Requires
@@ -8,7 +9,8 @@ post:
   operationId: logdrains.createLogdrain
   x-speakeasy-name-override: createLogdrain
   security:
-    - bearer: []
+    - bearer:
+        []
   requestBody:
     required: true
     content:
