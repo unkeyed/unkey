@@ -7,7 +7,7 @@ import { IconCubeOutline18 } from "@unkey/icons";
 import { HoverCard, HoverCardContent, HoverCardTrigger, InfoTooltip, Skeleton } from "@unkey/ui";
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { warmAppPage } from "../../[projectId]/apps/[appId]/(overview)/data-provider-queries";
+import { useWarmAppPage } from "../../[projectId]/apps/[appId]/(overview)/hooks/use-warm-app-page";
 import { AppDetailHoverCard, AppRow } from "../apps/app-row";
 
 type ProjectCardProps = {
@@ -29,6 +29,7 @@ function byRecency(apps: ProjectApp[]): ProjectApp[] {
 export function ProjectCard({ name, projectId, apps, isLoading, actions }: ProjectCardProps) {
   const workspace = useWorkspaceNavigation();
   const appHomeHref = useAppHomeHref();
+  const warmApp = useWarmAppPage();
   const projectPath = routes.projects.detail({ workspaceSlug: workspace.slug, projectId });
   const hrefFor = (app: ProjectApp) =>
     appHomeHref({ workspaceSlug: workspace.slug, projectId, appId: app.id });
@@ -84,8 +85,8 @@ export function ProjectCard({ name, projectId, apps, isLoading, actions }: Proje
                 app={app}
                 href={hrefFor(app)}
                 className="-mx-2 px-2 py-0.5"
-                onPointerEnter={() => warmAppPage(projectId, app.id)}
-                onFocus={() => warmAppPage(projectId, app.id)}
+                onPointerEnter={() => warmApp(projectId, app.id)}
+                onFocus={() => warmApp(projectId, app.id)}
               />
             </AppDetailHoverCard>
           ))}
@@ -112,8 +113,8 @@ export function ProjectCard({ name, projectId, apps, isLoading, actions }: Proje
                       app={app}
                       href={hrefFor(app)}
                       className="px-2 py-1"
-                      onPointerEnter={() => warmAppPage(projectId, app.id)}
-                      onFocus={() => warmAppPage(projectId, app.id)}
+                      onPointerEnter={() => warmApp(projectId, app.id)}
+                      onFocus={() => warmApp(projectId, app.id)}
                     />
                   ))}
                 </div>

@@ -1,7 +1,7 @@
 "use client";
 
 import { EnvironmentBadge } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/environment-badge";
-import type { Deployment, Environment } from "@/lib/collections";
+import type { Deployment, DeploymentSummary, Environment } from "@/lib/collections";
 import { ResourceListItem } from "@unkey/ui";
 import type { Route } from "next";
 import Link from "next/link";
@@ -16,7 +16,7 @@ import {
 
 type ActiveBranchRowProps = {
   branch: string;
-  deployment: Deployment;
+  deployment: DeploymentSummary & Pick<Deployment, "desiredState">;
   environment: Environment | undefined;
   repoFullName: string | null;
   currentDeployment: Deployment | undefined;

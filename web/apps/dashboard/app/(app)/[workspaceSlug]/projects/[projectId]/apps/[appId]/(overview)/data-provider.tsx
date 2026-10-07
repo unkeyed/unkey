@@ -148,17 +148,31 @@ export const ProjectDataProvider = ({
     trpcUtils.deploy.deployment.listActiveBranches.invalidate();
     trpcUtils.deploy.deployment.listBranches.invalidate();
   }, [trpcUtils]);
+  // One string per held deployment of this project, so comparing two reads
+  // tells whether any row appeared or changed status
+  const readDeploymentStates = useCallback(
+    () =>
+      [...collection.deployments.values()]
+        .filter((d) => d.projectId === projectId)
+        .map((d) => `${d.id}:${d.status}:${isDeploymentSettling(d) ? 1 : 0}`)
+        .join(","),
+    [projectId],
+  );
   // A poll refetches only the subsets on screen and skips "load more" pages:
   // new and moving deployments sit on the first page. The last two key
-  // segments are the page offset and cursor, both null for a first page
-  const pollDeployments = useCallback(() => {
-    collectionsQueryClient.refetchQueries({
+  // segments are the page offset and cursor, both null for a first page.
+  // Active branches only move when a deployment does
+  const pollDeployments = useCallback(async () => {
+    const before = readDeploymentStates();
+    await collectionsQueryClient.refetchQueries({
       queryKey: ["deployments", projectId],
       type: "active",
       predicate: (query) => query.queryKey.slice(-2).every((segment) => segment === null),
     });
-    trpcUtils.deploy.deployment.listActiveBranches.invalidate();
-  }, [trpcUtils, projectId]);
+    if (readDeploymentStates() !== before) {
+      trpcUtils.deploy.deployment.listActiveBranches.invalidate();
+    }
+  }, [trpcUtils, projectId, readDeploymentStates]);
 
   const refetchAll = useCallback(() => {
     collection.projects.utils.refetch();
@@ -218,14 +232,7 @@ export const ProjectDataProvider = ({
       });
       return () => subscription.unsubscribe();
     }, []),
-    useCallback(
-      () =>
-        [...collection.deployments.values()]
-          .filter((d) => d.projectId === projectId)
-          .map((d) => `${d.id}:${d.status}:${isDeploymentSettling(d) ? 1 : 0}`)
-          .join(","),
-      [projectId],
-    ),
+    readDeploymentStates,
     () => "",
   );
   const { statusById, hasSettlingDeployment } = useMemo(() => {
