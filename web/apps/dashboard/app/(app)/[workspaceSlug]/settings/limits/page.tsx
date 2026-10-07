@@ -1,10 +1,11 @@
 "use client";
 
-import { PageLoading } from "@/components/dashboard/page-loading";
 import { useBillingUIUpgrades } from "@/lib/flags/use-billing-ui-upgrades";
+import { queryKeys } from "@/lib/query-keys";
 import { SUPPORT_MAILTO } from "@/lib/support";
-import { trpc } from "@/lib/trpc/client";
+import { getUnkeyClient } from "@/lib/unkey-client";
 import { useWorkspace } from "@/providers/workspace-provider";
+import { useQuery } from "@tanstack/react-query";
 import { IconCubeOutline18, IconLayers3Outline18, IconNodesOutline18 } from "@unkey/icons";
 import {
   Button,
@@ -30,13 +31,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Fragment, type ReactNode } from "react";
 import { BreachBanner } from "./breach-banner";
-import {
-  type GroupKey,
-  type LimitGroup,
-  type Measured,
-  breachedKeys,
-  buildLimitGroups,
-} from "./limit-groups";
+import { type GroupKey, type LimitGroup, breachedKeys, buildLimitGroups } from "./limit-groups";
 import { LimitItem } from "./limit-item";
 
 const CHIPS: Record<GroupKey, { icon: ReactNode; className: string }> = {
@@ -45,35 +40,14 @@ const CHIPS: Record<GroupKey, { icon: ReactNode; className: string }> = {
   compute: { icon: <IconCubeOutline18 />, className: "bg-orangeA-3 text-orange-11" },
 };
 
-function measured<T>(query: { data: T | undefined; isError: boolean }): Measured<T> {
-  if (query.isError) {
-    return { state: "error" };
-  }
-  return query.data === undefined ? { state: "loading" } : { state: "ready", value: query.data };
-}
-
 export default function LimitsPage() {
   const billingUpgrades = useBillingUIUpgrades();
-  const { workspace, limits, isLoading } = useWorkspace();
+  const { workspace } = useWorkspace();
   const hasComputePlan = Boolean(workspace?.deployPlan) || Boolean(workspace?.deployPlanOverride);
-
-  const usage = trpc.billing.queryUsage.useQuery(undefined, {
-    enabled: Boolean(workspace) && billingUpgrades,
-    trpc: { context: { skipBatch: true } },
-    retry: 1,
-  });
-  const allocation = trpc.billing.queryComputeAllocation.useQuery(undefined, {
-    enabled: Boolean(workspace) && billingUpgrades && hasComputePlan,
-    trpc: { context: { skipBatch: true } },
-    retry: 1,
-  });
-  const customDomains = trpc.deploy.customDomain.count.useQuery(undefined, {
-    enabled: Boolean(workspace) && billingUpgrades && hasComputePlan,
-    trpc: { context: { skipBatch: true } },
-    retry: 1,
-  });
-  const logdrains = trpc.logdrain.list.useQuery(undefined, {
-    enabled: Boolean(workspace) && billingUpgrades,
+  const limits = useQuery({
+    queryKey: queryKeys.workspace.limits,
+    queryFn: async () => (await getUnkeyClient().workspace.getLimits()).data,
+    enabled: billingUpgrades,
     retry: 1,
   });
 
@@ -81,15 +55,7 @@ export default function LimitsPage() {
     notFound();
   }
 
-  if (isLoading) {
-    return (
-      <Shell>
-        <PageLoading message="Loading limits..." />
-      </Shell>
-    );
-  }
-
-  if (!limits || !workspace) {
+  if (limits.isError && limits.data === undefined) {
     return (
       <Shell>
         <EmptyState>
@@ -104,14 +70,7 @@ export default function LimitsPage() {
     );
   }
 
-  const groups = buildLimitGroups({
-    limits,
-    hasComputePlan,
-    apiOperations: measured({ data: usage.data?.billableTotal, isError: usage.isError }),
-    allocation: measured(allocation),
-    customDomains: measured(customDomains),
-    logdrains: measured({ data: logdrains.data?.length, isError: logdrains.isError }),
-  });
+  const groups = buildLimitGroups(limits.data, hasComputePlan);
   const breached = breachedKeys(groups);
 
   return (

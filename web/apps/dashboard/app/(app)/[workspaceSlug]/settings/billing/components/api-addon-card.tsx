@@ -1,5 +1,6 @@
 "use client";
 
+import { useInvalidateWorkspaceQueries } from "@/hooks/use-invalidate-workspace-queries";
 import { formatNumber } from "@/lib/fmt";
 import { formatMs } from "@/lib/ms";
 import { trpc } from "@/lib/trpc/client";
@@ -55,6 +56,7 @@ export const ApiAddOnCard: React.FC<ApiAddOnCardProps> = ({
 }) => {
   const router = useRouter();
   const trpcUtils = trpc.useUtils();
+  const invalidateWorkspace = useInvalidateWorkspaceQueries();
   const [showPlanModal, setShowPlanModal] = useState(false);
   const [isCancelOpen, setCancelOpen] = useState(false);
 
@@ -66,7 +68,7 @@ export const ApiAddOnCard: React.FC<ApiAddOnCardProps> = ({
 
   const revalidate = async () => {
     await Promise.all([
-      trpcUtils.workspace.getCurrent.invalidate(),
+      invalidateWorkspace(),
       trpcUtils.billing.queryUsage.invalidate(),
       trpcUtils.stripe.getBillingInfo.invalidate(),
       trpcUtils.stripe.getUpcomingInvoice.invalidate(),

@@ -1,8 +1,10 @@
 "use client";
 
+import { queryKeys } from "@/lib/query-keys";
 import { trpc } from "@/lib/trpc/client";
 import type { Router } from "@/lib/trpc/routers";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useQueryClient } from "@tanstack/react-query";
 import type { inferRouterInputs } from "@trpc/server";
 import { toast } from "@unkey/ui";
 import { useMemo, useState } from "react";
@@ -20,6 +22,7 @@ import {
 
 export function useDrainSettings(drain: DrainDetail, { onDeleted }: { onDeleted: () => void }) {
   const utils = trpc.useUtils();
+  const queryClient = useQueryClient();
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   const values = useMemo(() => drainToFormValues(drain), [drain]);
@@ -49,6 +52,7 @@ export function useDrainSettings(drain: DrainDetail, { onDeleted }: { onDeleted:
   const remove = trpc.logdrain.delete.useMutation({
     onSuccess: () => {
       utils.logdrain.list.invalidate();
+      queryClient.invalidateQueries({ queryKey: queryKeys.workspace.limits });
       toast.success("Log drain deleted");
       setConfirmDelete(false);
       onDeleted();

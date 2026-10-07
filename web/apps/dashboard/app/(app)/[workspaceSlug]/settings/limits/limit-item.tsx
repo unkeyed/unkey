@@ -1,7 +1,6 @@
 "use client";
 
 import { IconCircleInfoOutline12 } from "@unkey/icons";
-import { P, match } from "@unkey/match";
 import {
   Badge,
   InfoTooltip,
@@ -48,49 +47,57 @@ export function LimitItem({ row }: { row: LimitRow }) {
 const CELLS = "grid w-full grid-cols-[5.5rem_1fr_auto] items-center gap-3";
 
 function LimitValue({ row }: { row: LimitRow }) {
-  const breached = row.status !== "ok";
+  const value = row.value;
+  if (value.state === "loading") {
+    return (
+      <div className={CELLS}>
+        {value.metered ? (
+          <>
+            <Skeleton className="h-4 w-14 justify-self-end" />
+            <Skeleton className="h-1.5 w-full rounded-full" />
+          </>
+        ) : (
+          <>
+            <span />
+            <span />
+          </>
+        )}
+        <Skeleton className="h-4 w-16 justify-self-end" />
+      </div>
+    );
+  }
 
-  return match(row.usage)
-    .with(P.nullish, () => (
+  const usage = value.usage;
+  if (!usage) {
+    return (
       <div className={CELLS}>
         <span />
         <span />
-        <Limit>{row.limit}</Limit>
+        <Limit>{value.limit}</Limit>
       </div>
-    ))
-    .with({ state: "loading" }, () => (
-      <div className={CELLS}>
-        <Skeleton className="h-3 w-14 justify-self-end" />
-        <Skeleton className="h-1.5 w-full rounded-full" />
-        <Limit>{row.limit}</Limit>
-      </div>
-    ))
-    .with({ state: "error" }, () => (
-      <div className={CELLS}>
-        <span className="col-span-2 text-right text-xs text-gray-9">Usage unavailable</span>
-        <Limit>{row.limit}</Limit>
-      </div>
-    ))
-    .with({ state: "ready" }, (usage) => (
-      <Meter
-        layout="inline"
-        className={CELLS}
-        aria-label={row.name}
-        value={usage.value}
-        max={Math.max(usage.max, 1)}
+    );
+  }
+
+  const breached = row.status !== "ok";
+  return (
+    <Meter
+      layout="inline"
+      className={CELLS}
+      aria-label={row.name}
+      value={usage.value}
+      max={Math.max(usage.max, 1)}
+    >
+      <MeterValue
+        className={cn("text-right", breached ? "text-error-11" : "font-normal text-gray-11")}
       >
-        <MeterValue
-          className={cn("text-right", breached ? "text-error-11" : "font-normal text-gray-11")}
-        >
-          {() => usage.label}
-        </MeterValue>
-        <MeterTrack>
-          <MeterIndicator className={breached ? "bg-error-9" : undefined} />
-        </MeterTrack>
-        <Limit>{row.limit}</Limit>
-      </Meter>
-    ))
-    .exhaustive();
+        {() => usage.label}
+      </MeterValue>
+      <MeterTrack>
+        <MeterIndicator className={breached ? "bg-error-9" : undefined} />
+      </MeterTrack>
+      <Limit>{value.limit}</Limit>
+    </Meter>
+  );
 }
 
 function Limit({ children }: { children: ReactNode }) {

@@ -1,4 +1,5 @@
 "use client";
+import { useInvalidateWorkspaceQueries } from "@/hooks/use-invalidate-workspace-queries";
 import { formatMs } from "@/lib/ms";
 import { trpc } from "@/lib/trpc/client";
 import { SettingsZone, SettingsZoneRow, toast } from "@unkey/ui";
@@ -11,11 +12,12 @@ export const CancelAlert: React.FC<{
 }> = (props) => {
   const router = useRouter();
   const trpcUtils = trpc.useUtils();
+  const invalidateWorkspace = useInvalidateWorkspaceQueries();
   const uncancelSubscription = trpc.stripe.uncancelSubscription.useMutation({
     onSuccess: async () => {
       // Revalidate helper: invalidate AND explicitly refetch to ensure UI updates
       await Promise.all([
-        trpcUtils.workspace.getCurrent.invalidate(),
+        invalidateWorkspace(),
         trpcUtils.billing.queryUsage.invalidate(),
         trpcUtils.stripe.getBillingInfo.invalidate(),
         trpcUtils.workspace.getCurrent.refetch(),
