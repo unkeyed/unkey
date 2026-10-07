@@ -64,7 +64,7 @@ func TestRedactorFromSpecStripsKnownSecrets(t *testing.T) {
 		"portal access token":         `{"data":{"accessToken":"pat_FIXTURE_LEAK","expiresAt":1711386400000},"meta":{"requestId":"req_1"}}`,
 		"truncated env var payload":   `{"variables":[{"key":"DATABASE_URL","value":"postgresql://user:FIXTURE_LEAK`,
 		"log drain Axiom token":       `{"destination":{"axiom":{"dataset":"logs","token":"FIXTURE_LEAK"}}}`,
-		"log drain HTTP headers":      `{"destination":{"http":{"headers":[{"name":"Authorization","mode":"set","value":"FIXTURE_LEAK"},{"name":"X-Token","mode":"set","value":"FIXTURE_LEAK"}]}}}`,
+		"log drain HTTP headers":      `{"destination":{"http":{"headers":[{"name":"Authorization","value":"FIXTURE_LEAK"},{"name":"X-Token","value":"FIXTURE_LEAK"}]}}}`,
 	}
 
 	for name, body := range bodies {
