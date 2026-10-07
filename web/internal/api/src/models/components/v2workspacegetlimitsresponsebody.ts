@@ -17,6 +17,12 @@ export type V2WorkspaceGetLimitsResponseBody = {
    * Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
    */
   meta: Meta;
+  /**
+   * The workspace limits. The Compute limits are present only when the workspace
+   *
+   * @remarks
+   * has a Compute plan.
+   */
   data: V2WorkspaceGetLimitsResponseData;
 };
 

@@ -11,39 +11,42 @@ additionalProperties: false
 examples:
   withCompute:
     summary: Workspace with a Compute plan
-    description: API, logs, and Compute limits with current usage
+    description: API, log, and Compute limits with current values. Custom domains are unlimited, so their `limit` is `null`.
     value:
       meta:
         requestId: req_1234abcd
       data:
-        api:
-          billableOperations:
-            limit: 150000
-            used: 42000
-          requestsPerMinute: 1000
-        log:
-          retentionDays: 7
-          auditRetentionDays: 30
-          drains:
-            limit: 1
-            used: 0
-        compute:
-          workspace:
-            vCpus:
-              limit: 4
-              reserved: 2.5
-            memoryMib:
-              limit: 8192
-              reserved: 4096
-            storageMib:
-              limit: 10240
-              reserved: 2048
-          perInstance:
-            vCpus: 2
-            memoryMib: 4096
-            storageMib: 5120
-          concurrentBuilds: 2
-          replicasPerRegion: 10
-          customDomains:
-            limit: 5
-            used: 1
+        apiBillableOperationsCountMaxPerMonth:
+          limit: 150000
+          current: 42000
+        apiRequestsCountMaxPerMinute:
+          limit: 1000
+        logsRetentionDaysMax:
+          limit: 7
+        logsAuditRetentionDaysMax:
+          limit: 30
+        logdrainsMax:
+          limit: 1
+          current: 0
+        cpuCoresMax:
+          limit: 4
+          current: 2.5
+        cpuCoresMaxPerInstance:
+          limit: 2
+        memoryMibMax:
+          limit: 8192
+          current: 4096
+        memoryMibMaxPerInstance:
+          limit: 4096
+        storageMibMax:
+          limit: 10240
+          current: 2048
+        storageMibMaxPerInstance:
+          limit: 5120
+        buildsConcurrentMax:
+          limit: 2
+        autoscalingReplicasMax:
+          limit: 10
+        customDomainsMax:
+          limit: null
+          current: 1

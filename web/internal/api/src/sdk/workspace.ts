@@ -12,16 +12,17 @@ export class Workspace extends ClientSDK {
    * Get workspace limits
    *
    * @remarks
-   * Get every limit of your workspace, with the current usage against each
-   * limit that is metered.
+   * Get every limit of your workspace, with the current value against each
+   * limit that has one.
    *
    * Use this before an operation that a limit can reject, for example to see how
    * many custom domains or log drains remain, or how much CPU, memory, and disk
    * a new deployment can still reserve.
    *
-   * The request takes no parameters. Billable operations count the current
-   * calendar month in UTC. The `compute` object is present only when the
-   * workspace has a Compute plan.
+   * The request takes no parameters. Each limit has a `limit`, which is `null`
+   * when unlimited, and a `current` value when the limit has one. Billable
+   * operations count the current calendar month in UTC. The Compute limits are
+   * present only when the workspace has a Compute plan.
    *
    * **Required Permissions**
    *

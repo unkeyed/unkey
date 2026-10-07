@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 
+	"github.com/oapi-codegen/nullable"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/codes"
@@ -20,7 +21,7 @@ import (
 
 type Response = openapi.V2WorkspaceGetLimitsResponseBody
 
-const millicoresPerVCpu = 1000
+const millicoresPerCpuCore = 1000
 
 // Plans store this custom domain limit to mean unlimited, the same value as
 // CUSTOM_DOMAINS_UNLIMITED in the dashboard
@@ -88,60 +89,40 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	data := openapi.V2WorkspaceGetLimitsResponseData{
-		Api: openapi.V2WorkspaceGetLimitsApi{
-			BillableOperations: openapi.LimitMeter{
-				Limit: int64(limits.ApiBillableOperationsCountMaxPerMonth),
-				Used:  verifications + ratelimits,
-			},
-			RequestsPerMinute: nil,
-		},
-		Log: openapi.V2WorkspaceGetLimitsLog{
-			RetentionDays:      int(limits.LogsRetentionDaysMax),
-			AuditRetentionDays: int(limits.LogsAuditRetentionDaysMax),
-			Drains: openapi.LimitMeter{
-				Limit: int64(limits.LogdrainsMax),
-				Used:  limits.LogdrainsCount,
-			},
-		},
-		Compute: nil,
+		ApiBillableOperationsCountMaxPerMonth: meteredLimit(int64(limits.ApiBillableOperationsCountMaxPerMonth), float64(verifications+ratelimits)),
+		ApiRequestsCountMaxPerMinute:          limit(int64(limits.ApiRequestsCountMaxPerMinute.Int32)),
+		LogsRetentionDaysMax:                  limit(int64(limits.LogsRetentionDaysMax)),
+		LogsAuditRetentionDaysMax:             limit(int64(limits.LogsAuditRetentionDaysMax)),
+		LogdrainsMax:                          meteredLimit(int64(limits.LogdrainsMax), float64(limits.LogdrainsCount)),
+		CpuCoresMax:                           nil,
+		CpuCoresMaxPerInstance:                nil,
+		MemoryMibMax:                          nil,
+		MemoryMibMaxPerInstance:               nil,
+		StorageMibMax:                         nil,
+		StorageMibMaxPerInstance:              nil,
+		BuildsConcurrentMax:                   nil,
+		AutoscalingReplicasMax:                nil,
+		CustomDomainsMax:                      nil,
 	}
-	if limits.ApiRequestsCountMaxPerMinute.Valid {
-		requestsPerMinute := int64(limits.ApiRequestsCountMaxPerMinute.Int32)
-		data.Api.RequestsPerMinute = &requestsPerMinute
+	if !limits.ApiRequestsCountMaxPerMinute.Valid {
+		data.ApiRequestsCountMaxPerMinute.Limit = nullable.NewNullNullable[int64]()
 	}
 
 	if deploygate.Entitled(limits.Plan, limits.PlanOverride) {
-		data.Compute = &openapi.V2WorkspaceGetLimitsCompute{
-			Workspace: openapi.V2WorkspaceGetLimitsComputeWorkspace{
-				VCpus: openapi.V2WorkspaceGetLimitsVcpuMeter{
-					Limit:    float64(limits.CpuCoresMax),
-					Reserved: float64(limits.TotalCpuMillicores) / millicoresPerVCpu,
-				},
-				MemoryMib: openapi.V2WorkspaceGetLimitsReservedMeter{
-					Limit:    int64(limits.MemoryMibMax),
-					Reserved: limits.TotalMemoryMib,
-				},
-				StorageMib: openapi.V2WorkspaceGetLimitsReservedMeter{
-					Limit:    int64(limits.StorageMibMax),
-					Reserved: limits.TotalStorageMib,
-				},
-			},
-			PerInstance: openapi.V2WorkspaceGetLimitsComputePerInstance{
-				VCpus:      float64(limits.CpuCoresMaxPerInstance),
-				MemoryMib:  int(limits.MemoryMibMaxPerInstance),
-				StorageMib: int(limits.StorageMibMaxPerInstance),
-			},
-			ConcurrentBuilds:  int(limits.BuildsConcurrentMax),
-			ReplicasPerRegion: int(limits.AutoscalingReplicasMax),
-			CustomDomains: openapi.V2WorkspaceGetLimitsCustomDomains{
-				Limit: nil,
-				Used:  limits.CustomDomainsCount,
-			},
+		data.CpuCoresMax = new(meteredLimit(int64(limits.CpuCoresMax), float64(limits.TotalCpuMillicores)/millicoresPerCpuCore))
+		data.CpuCoresMaxPerInstance = new(limit(int64(limits.CpuCoresMaxPerInstance)))
+		data.MemoryMibMax = new(meteredLimit(int64(limits.MemoryMibMax), float64(limits.TotalMemoryMib)))
+		data.MemoryMibMaxPerInstance = new(limit(int64(limits.MemoryMibMaxPerInstance)))
+		data.StorageMibMax = new(meteredLimit(int64(limits.StorageMibMax), float64(limits.TotalStorageMib)))
+		data.StorageMibMaxPerInstance = new(limit(int64(limits.StorageMibMaxPerInstance)))
+		data.BuildsConcurrentMax = new(limit(int64(limits.BuildsConcurrentMax)))
+		data.AutoscalingReplicasMax = new(limit(int64(limits.AutoscalingReplicasMax)))
+
+		customDomains := meteredLimit(int64(limits.CustomDomainsMax), float64(limits.CustomDomainsCount))
+		if limits.CustomDomainsMax >= unlimitedCustomDomains {
+			customDomains.Limit = nullable.NewNullNullable[int64]()
 		}
-		if limits.CustomDomainsMax < unlimitedCustomDomains {
-			customDomainsLimit := int64(limits.CustomDomainsMax)
-			data.Compute.CustomDomains.Limit = &customDomainsLimit
-		}
+		data.CustomDomainsMax = &customDomains
 	}
 
 	return s.JSON(http.StatusOK, Response{
@@ -150,4 +131,18 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		},
 		Data: data,
 	})
+}
+
+func limit(maximum int64) openapi.V2WorkspaceGetLimitsLimit {
+	return openapi.V2WorkspaceGetLimitsLimit{
+		Limit:   nullable.NewNullableWithValue(maximum),
+		Current: nil,
+	}
+}
+
+func meteredLimit(maximum int64, current float64) openapi.V2WorkspaceGetLimitsLimit {
+	return openapi.V2WorkspaceGetLimitsLimit{
+		Limit:   nullable.NewNullableWithValue(maximum),
+		Current: &current,
+	}
 }

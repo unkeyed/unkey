@@ -3,16 +3,17 @@ post:
     - workspace
   summary: Get workspace limits
   description: |
-    Get every limit of your workspace, with the current usage against each
-    limit that is metered.
+    Get every limit of your workspace, with the current value against each
+    limit that has one.
 
     Use this before an operation that a limit can reject, for example to see how
     many custom domains or log drains remain, or how much CPU, memory, and disk
     a new deployment can still reserve.
 
-    The request takes no parameters. Billable operations count the current
-    calendar month in UTC. The `compute` object is present only when the
-    workspace has a Compute plan.
+    The request takes no parameters. Each limit has a `limit`, which is `null`
+    when unlimited, and a `current` value when the limit has one. Billable
+    operations count the current calendar month in UTC. The Compute limits are
+    present only when the workspace has a Compute plan.
 
     **Required Permissions**
 
@@ -26,7 +27,7 @@ post:
   responses:
     "200":
       description: |
-        The workspace limits and the current usage against them.
+        The workspace limits and the current values against them.
       content:
         application/json:
           schema:
@@ -34,59 +35,64 @@ post:
           examples:
             withCompute:
               summary: Workspace with a Compute plan
-              description: API, logs, and Compute limits with current usage
+              description: API, log, and Compute limits with current values. Custom domains are unlimited, so their `limit` is `null`.
               value:
                 meta:
                   requestId: req_1234abcd
                 data:
-                  api:
-                    billableOperations:
-                      limit: 150000
-                      used: 42000
-                    requestsPerMinute: 1000
-                  log:
-                    retentionDays: 7
-                    auditRetentionDays: 30
-                    drains:
-                      limit: 1
-                      used: 0
-                  compute:
-                    workspace:
-                      vCpus:
-                        limit: 4
-                        reserved: 2.5
-                      memoryMib:
-                        limit: 8192
-                        reserved: 4096
-                      storageMib:
-                        limit: 10240
-                        reserved: 2048
-                    perInstance:
-                      vCpus: 2
-                      memoryMib: 4096
-                      storageMib: 5120
-                    concurrentBuilds: 2
-                    replicasPerRegion: 10
-                    customDomains:
-                      limit: 5
-                      used: 1
+                  apiBillableOperationsCountMaxPerMonth:
+                    limit: 150000
+                    current: 42000
+                  apiRequestsCountMaxPerMinute:
+                    limit: 1000
+                  logsRetentionDaysMax:
+                    limit: 7
+                  logsAuditRetentionDaysMax:
+                    limit: 30
+                  logdrainsMax:
+                    limit: 1
+                    current: 0
+                  cpuCoresMax:
+                    limit: 4
+                    current: 2.5
+                  cpuCoresMaxPerInstance:
+                    limit: 2
+                  memoryMibMax:
+                    limit: 8192
+                    current: 4096
+                  memoryMibMaxPerInstance:
+                    limit: 4096
+                  storageMibMax:
+                    limit: 10240
+                    current: 2048
+                  storageMibMaxPerInstance:
+                    limit: 5120
+                  buildsConcurrentMax:
+                    limit: 2
+                  autoscalingReplicasMax:
+                    limit: 10
+                  customDomainsMax:
+                    limit: null
+                    current: 1
             withoutCompute:
               summary: Workspace without a Compute plan
-              description: No Compute plan and no per-minute limit, so `compute` and `requestsPerMinute` are omitted
+              description: No Compute plan, so the Compute limits are omitted. No per-minute limit, so its `limit` is `null`.
               value:
                 meta:
                   requestId: req_1234abcd
                 data:
-                  api:
-                    billableOperations:
-                      limit: 150000
-                      used: 42000
-                  log:
-                    retentionDays: 7
-                    auditRetentionDays: 30
-                    drains:
-                      limit: 0
-                      used: 0
+                  apiBillableOperationsCountMaxPerMonth:
+                    limit: 150000
+                    current: 42000
+                  apiRequestsCountMaxPerMinute:
+                    limit: null
+                  logsRetentionDaysMax:
+                    limit: 7
+                  logsAuditRetentionDaysMax:
+                    limit: 30
+                  logdrainsMax:
+                    limit: 0
+                    current: 0
     "400":
       description: Bad request
       content:

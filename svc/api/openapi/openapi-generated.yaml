@@ -7974,204 +7974,113 @@ components:
                     description: New root key secret, returned only once. Store it securely.
         V2WorkspaceGetLimitsResponseData:
             type: object
+            description: |
+                The workspace limits. The Compute limits are present only when the workspace
+                has a Compute plan.
             required:
-                - api
-                - log
+                - apiBillableOperationsCountMaxPerMonth
+                - apiRequestsCountMaxPerMinute
+                - logsRetentionDaysMax
+                - logsAuditRetentionDaysMax
+                - logdrainsMax
             properties:
-                api:
-                    "$ref": "#/components/schemas/V2WorkspaceGetLimitsApi"
-                log:
-                    "$ref": "#/components/schemas/V2WorkspaceGetLimitsLog"
-                compute:
+                apiBillableOperationsCountMaxPerMonth:
                     description: |
-                        Compute limits and reserved capacity. Omitted when the workspace has no
+                        Billable key verifications and rate limit operations per calendar month
+                        (UTC). `current` counts the current month.
+                    allOf:
+                        - "$ref": "#/components/schemas/V2WorkspaceGetLimitsLimit"
+                apiRequestsCountMaxPerMinute:
+                    description: |
+                        Authenticated API requests per minute. Requests above it get a 429.
+                        `limit` is `null` when the workspace has no per-minute limit. Has no `current`.
+                    allOf:
+                        - "$ref": "#/components/schemas/V2WorkspaceGetLimitsLimit"
+                logsRetentionDaysMax:
+                    description: How many days back request and runtime logs can be queried. Has no `current`.
+                    allOf:
+                        - "$ref": "#/components/schemas/V2WorkspaceGetLimitsLimit"
+                logsAuditRetentionDaysMax:
+                    description: How many days audit logs are kept. Has no `current`.
+                    allOf:
+                        - "$ref": "#/components/schemas/V2WorkspaceGetLimitsLimit"
+                logdrainsMax:
+                    description: Log drains. `current` is the log drains in the workspace now.
+                    allOf:
+                        - "$ref": "#/components/schemas/V2WorkspaceGetLimitsLimit"
+                cpuCoresMax:
+                    description: |
+                        CPU cores the workspace can reserve across all running deployments.
+                        `current` is reserved capacity, not live usage: each running deployment
+                        reserves its instance CPU times its maximum replicas, in each region it
+                        runs in. A deploy that would bring `current` above `limit` is rejected.
+                        Present only with a Compute plan.
+                    allOf:
+                        - "$ref": "#/components/schemas/V2WorkspaceGetLimitsLimit"
+                cpuCoresMaxPerInstance:
+                    description: CPU cores for one instance. Has no `current`. Present only with a Compute plan.
+                    allOf:
+                        - "$ref": "#/components/schemas/V2WorkspaceGetLimitsLimit"
+                memoryMibMax:
+                    description: |
+                        Memory in MiB the workspace can reserve across all running deployments.
+                        `current` is reserved memory, counted the same way as `cpuCoresMax`.
+                        Present only with a Compute plan.
+                    allOf:
+                        - "$ref": "#/components/schemas/V2WorkspaceGetLimitsLimit"
+                memoryMibMaxPerInstance:
+                    description: Memory in MiB for one instance. Has no `current`. Present only with a Compute plan.
+                    allOf:
+                        - "$ref": "#/components/schemas/V2WorkspaceGetLimitsLimit"
+                storageMibMax:
+                    description: |
+                        Ephemeral disk in MiB the workspace can reserve across all running
+                        deployments. `current` is reserved disk, counted the same way as
+                        `cpuCoresMax`. Present only with a Compute plan.
+                    allOf:
+                        - "$ref": "#/components/schemas/V2WorkspaceGetLimitsLimit"
+                storageMibMaxPerInstance:
+                    description: Ephemeral disk in MiB for one instance. Has no `current`. Present only with a Compute plan.
+                    allOf:
+                        - "$ref": "#/components/schemas/V2WorkspaceGetLimitsLimit"
+                buildsConcurrentMax:
+                    description: Builds that run at the same time. Has no `current`. Present only with a Compute plan.
+                    allOf:
+                        - "$ref": "#/components/schemas/V2WorkspaceGetLimitsLimit"
+                autoscalingReplicasMax:
+                    description: |
+                        Instances that autoscaling runs for one app in one region. Has no `current`.
+                        Present only with a Compute plan.
+                    allOf:
+                        - "$ref": "#/components/schemas/V2WorkspaceGetLimitsLimit"
+                customDomainsMax:
+                    description: |
+                        Custom domains across all apps. `current` is the custom domains attached
+                        now. `limit` is `null` when the plan has no limit. Present only with a
                         Compute plan.
                     allOf:
-                        - "$ref": "#/components/schemas/V2WorkspaceGetLimitsCompute"
+                        - "$ref": "#/components/schemas/V2WorkspaceGetLimitsLimit"
             additionalProperties: false
-        V2WorkspaceGetLimitsApi:
+        V2WorkspaceGetLimitsLimit:
             type: object
-            description: Limits for the Unkey API.
-            required:
-                - billableOperations
-            properties:
-                billableOperations:
-                    description: |
-                        Billable key verifications and rate limit operations in the current
-                        calendar month (UTC), against the monthly allowance.
-                    allOf:
-                        - "$ref": "#/components/schemas/LimitMeter"
-                requestsPerMinute:
-                    type: integer
-                    format: int64
-                    description: |
-                        The maximum authenticated API requests per minute for the workspace.
-                        Requests above it get a 429. Omitted when the workspace has no
-                        per-minute limit.
-                    example: 1000
-            additionalProperties: false
-        V2WorkspaceGetLimitsLog:
-            type: object
-            description: Limits for logs and log drains.
-            required:
-                - retentionDays
-                - auditRetentionDays
-                - drains
-            properties:
-                retentionDays:
-                    type: integer
-                    description: How many days back request and runtime logs can be queried.
-                    example: 7
-                auditRetentionDays:
-                    type: integer
-                    description: The audit log retention of the workspace plan, in days.
-                    example: 30
-                drains:
-                    description: The log drains in the workspace, against the allowance.
-                    allOf:
-                        - "$ref": "#/components/schemas/LimitMeter"
-            additionalProperties: false
-        V2WorkspaceGetLimitsCompute:
-            type: object
-            description: Limits for Compute.
-            required:
-                - workspace
-                - perInstance
-                - concurrentBuilds
-                - replicasPerRegion
-                - customDomains
-            properties:
-                workspace:
-                    "$ref": "#/components/schemas/V2WorkspaceGetLimitsComputeWorkspace"
-                perInstance:
-                    "$ref": "#/components/schemas/V2WorkspaceGetLimitsComputePerInstance"
-                concurrentBuilds:
-                    type: integer
-                    description: The maximum builds that run at the same time.
-                    example: 2
-                replicasPerRegion:
-                    type: integer
-                    description: The maximum instances that autoscaling runs for one app in one region.
-                    example: 10
-                customDomains:
-                    "$ref": "#/components/schemas/V2WorkspaceGetLimitsCustomDomains"
-            additionalProperties: false
-        LimitMeter:
-            type: object
-            description: A workspace limit and the current usage against it.
+            description: A workspace limit and, when the limit has one, the current value against it.
             required:
                 - limit
-                - used
             properties:
                 limit:
-                    type: integer
+                    type:
+                        - integer
+                        - "null"
                     format: int64
-                    description: The maximum the workspace can use.
+                    description: The maximum the workspace can have. `null` means unlimited.
                     example: 5
-                used:
-                    type: integer
-                    format: int64
-                    description: The amount the workspace uses now.
+                current:
+                    type: number
+                    format: double
+                    description: |
+                        The current value against `limit`. Omitted when the limit has no current
+                        value, such as a retention period or a per-instance size.
                     example: 1
-            additionalProperties: false
-        V2WorkspaceGetLimitsComputeWorkspace:
-            type: object
-            description: |
-                Reserved capacity across the workspace, against the workspace limits. This is
-                not live usage. Each running deployment reserves its instance size times its
-                maximum replicas, in each region it runs in. `reserved` is the sum over all
-                running deployments. A deploy that would bring this sum above `limit` is
-                rejected.
-            required:
-                - vCpus
-                - memoryMib
-                - storageMib
-            properties:
-                vCpus:
-                    "$ref": "#/components/schemas/V2WorkspaceGetLimitsVcpuMeter"
-                memoryMib:
-                    description: Reserved memory in MiB.
-                    allOf:
-                        - "$ref": "#/components/schemas/V2WorkspaceGetLimitsReservedMeter"
-                storageMib:
-                    description: Reserved ephemeral disk in MiB.
-                    allOf:
-                        - "$ref": "#/components/schemas/V2WorkspaceGetLimitsReservedMeter"
-            additionalProperties: false
-        V2WorkspaceGetLimitsComputePerInstance:
-            type: object
-            description: The maximum size of one instance.
-            required:
-                - vCpus
-                - memoryMib
-                - storageMib
-            properties:
-                vCpus:
-                    type: number
-                    format: double
-                    description: The maximum vCPUs for one instance.
-                    example: 2
-                memoryMib:
-                    type: integer
-                    description: The maximum memory for one instance, in MiB.
-                    example: 4096
-                storageMib:
-                    type: integer
-                    description: The maximum ephemeral disk for one instance, in MiB.
-                    example: 5120
-            additionalProperties: false
-        V2WorkspaceGetLimitsCustomDomains:
-            type: object
-            description: The custom domains attached across all apps, against the allowance.
-            required:
-                - used
-            properties:
-                limit:
-                    type: integer
-                    format: int64
-                    description: The maximum custom domains. Omitted when the plan has no limit.
-                    example: 5
-                used:
-                    type: integer
-                    format: int64
-                    description: The custom domains attached now.
-                    example: 1
-            additionalProperties: false
-        V2WorkspaceGetLimitsVcpuMeter:
-            type: object
-            description: The workspace CPU limit and the reserved CPU against it, in vCPUs.
-            required:
-                - limit
-                - reserved
-            properties:
-                limit:
-                    type: number
-                    format: double
-                    description: The maximum vCPUs the workspace can reserve.
-                    example: 4
-                reserved:
-                    type: number
-                    format: double
-                    description: The vCPUs the workspace reserves now.
-                    example: 2.5
-            additionalProperties: false
-        V2WorkspaceGetLimitsReservedMeter:
-            type: object
-            description: A workspace compute limit and the capacity reserved against it.
-            required:
-                - limit
-                - reserved
-            properties:
-                limit:
-                    type: integer
-                    format: int64
-                    description: The maximum the workspace can reserve.
-                    example: 8192
-                reserved:
-                    type: integer
-                    format: int64
-                    description: The amount running deployments reserve now.
-                    example: 4096
             additionalProperties: false
         DeploymentSourceOCI:
             type: object
@@ -17811,16 +17720,17 @@ paths:
     /v2/workspace.getLimits:
         post:
             description: |
-                Get every limit of your workspace, with the current usage against each
-                limit that is metered.
+                Get every limit of your workspace, with the current value against each
+                limit that has one.
 
                 Use this before an operation that a limit can reject, for example to see how
                 many custom domains or log drains remain, or how much CPU, memory, and disk
                 a new deployment can still reserve.
 
-                The request takes no parameters. Billable operations count the current
-                calendar month in UTC. The `compute` object is present only when the
-                workspace has a Compute plan.
+                The request takes no parameters. Each limit has a `limit`, which is `null`
+                when unlimited, and a `current` value when the limit has one. Billable
+                operations count the current calendar month in UTC. The Compute limits are
+                present only when the workspace has a Compute plan.
 
                 **Required Permissions**
 
@@ -17833,64 +17743,69 @@ paths:
                         application/json:
                             examples:
                                 withCompute:
-                                    description: API, logs, and Compute limits with current usage
+                                    description: API, log, and Compute limits with current values. Custom domains are unlimited, so their `limit` is `null`.
                                     summary: Workspace with a Compute plan
                                     value:
                                         data:
-                                            api:
-                                                billableOperations:
-                                                    limit: 150000
-                                                    used: 42000
-                                                requestsPerMinute: 1000
-                                            compute:
-                                                concurrentBuilds: 2
-                                                customDomains:
-                                                    limit: 5
-                                                    used: 1
-                                                perInstance:
-                                                    memoryMib: 4096
-                                                    storageMib: 5120
-                                                    vCpus: 2
-                                                replicasPerRegion: 10
-                                                workspace:
-                                                    memoryMib:
-                                                        limit: 8192
-                                                        reserved: 4096
-                                                    storageMib:
-                                                        limit: 10240
-                                                        reserved: 2048
-                                                    vCpus:
-                                                        limit: 4
-                                                        reserved: 2.5
-                                            log:
-                                                auditRetentionDays: 30
-                                                drains:
-                                                    limit: 1
-                                                    used: 0
-                                                retentionDays: 7
+                                            apiBillableOperationsCountMaxPerMonth:
+                                                current: 42000
+                                                limit: 150000
+                                            apiRequestsCountMaxPerMinute:
+                                                limit: 1000
+                                            autoscalingReplicasMax:
+                                                limit: 10
+                                            buildsConcurrentMax:
+                                                limit: 2
+                                            cpuCoresMax:
+                                                current: 2.5
+                                                limit: 4
+                                            cpuCoresMaxPerInstance:
+                                                limit: 2
+                                            customDomainsMax:
+                                                current: 1
+                                                limit: null
+                                            logdrainsMax:
+                                                current: 0
+                                                limit: 1
+                                            logsAuditRetentionDaysMax:
+                                                limit: 30
+                                            logsRetentionDaysMax:
+                                                limit: 7
+                                            memoryMibMax:
+                                                current: 4096
+                                                limit: 8192
+                                            memoryMibMaxPerInstance:
+                                                limit: 4096
+                                            storageMibMax:
+                                                current: 2048
+                                                limit: 10240
+                                            storageMibMaxPerInstance:
+                                                limit: 5120
                                         meta:
                                             requestId: req_1234abcd
                                 withoutCompute:
-                                    description: No Compute plan and no per-minute limit, so `compute` and `requestsPerMinute` are omitted
+                                    description: No Compute plan, so the Compute limits are omitted. No per-minute limit, so its `limit` is `null`.
                                     summary: Workspace without a Compute plan
                                     value:
                                         data:
-                                            api:
-                                                billableOperations:
-                                                    limit: 150000
-                                                    used: 42000
-                                            log:
-                                                auditRetentionDays: 30
-                                                drains:
-                                                    limit: 0
-                                                    used: 0
-                                                retentionDays: 7
+                                            apiBillableOperationsCountMaxPerMonth:
+                                                current: 42000
+                                                limit: 150000
+                                            apiRequestsCountMaxPerMinute:
+                                                limit: null
+                                            logdrainsMax:
+                                                current: 0
+                                                limit: 0
+                                            logsAuditRetentionDaysMax:
+                                                limit: 30
+                                            logsRetentionDaysMax:
+                                                limit: 7
                                         meta:
                                             requestId: req_1234abcd
                             schema:
                                 $ref: '#/components/schemas/V2WorkspaceGetLimitsResponseBody'
                     description: |
-                        The workspace limits and the current usage against them.
+                        The workspace limits and the current values against them.
                 "400":
                     content:
                         application/json:

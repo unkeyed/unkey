@@ -4,11 +4,14 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"maps"
 	"net/http"
 	"net/http/httptest"
+	"slices"
 	"testing"
 	"time"
 
+	"github.com/oapi-codegen/nullable"
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/db"
@@ -114,33 +117,25 @@ func TestGetLimitsWithComputePlan(t *testing.T) {
 	res := callGetLimits(h, route, bearer(rootKey))
 	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
 
-	requestsPerMinute := int64(1000)
-	customDomainsLimit := int64(5)
 	require.Equal(t, openapi.V2WorkspaceGetLimitsResponseData{
-		Api: openapi.V2WorkspaceGetLimitsApi{
-			BillableOperations: openapi.LimitMeter{Limit: 150_000, Used: 42_000},
-			RequestsPerMinute:  &requestsPerMinute,
-		},
-		Log: openapi.V2WorkspaceGetLimitsLog{
-			RetentionDays:      7,
-			AuditRetentionDays: 30,
-			Drains:             openapi.LimitMeter{Limit: 3, Used: 1},
-		},
-		Compute: &openapi.V2WorkspaceGetLimitsCompute{
-			Workspace: openapi.V2WorkspaceGetLimitsComputeWorkspace{
-				VCpus:      openapi.V2WorkspaceGetLimitsVcpuMeter{Limit: 4, Reserved: 1.5},
-				MemoryMib:  openapi.V2WorkspaceGetLimitsReservedMeter{Limit: 8192, Reserved: 1536},
-				StorageMib: openapi.V2WorkspaceGetLimitsReservedMeter{Limit: 10_240, Reserved: 3072},
-			},
-			PerInstance:       openapi.V2WorkspaceGetLimitsComputePerInstance{VCpus: 2, MemoryMib: 4096, StorageMib: 5120},
-			ConcurrentBuilds:  2,
-			ReplicasPerRegion: 10,
-			CustomDomains:     openapi.V2WorkspaceGetLimitsCustomDomains{Limit: &customDomainsLimit, Used: 1},
-		},
+		ApiBillableOperationsCountMaxPerMonth: meteredLimit(150_000, 42_000),
+		ApiRequestsCountMaxPerMinute:          limit(1000),
+		LogsRetentionDaysMax:                  limit(7),
+		LogsAuditRetentionDaysMax:             limit(30),
+		LogdrainsMax:                          meteredLimit(3, 1),
+		CpuCoresMax:                           new(meteredLimit(4, 1.5)),
+		CpuCoresMaxPerInstance:                new(limit(2)),
+		MemoryMibMax:                          new(meteredLimit(8192, 1536)),
+		MemoryMibMaxPerInstance:               new(limit(4096)),
+		StorageMibMax:                         new(meteredLimit(10_240, 3072)),
+		StorageMibMaxPerInstance:              new(limit(5120)),
+		BuildsConcurrentMax:                   new(limit(2)),
+		AutoscalingReplicasMax:                new(limit(10)),
+		CustomDomainsMax:                      new(meteredLimit(5, 1)),
 	}, res.Body.Data)
 }
 
-func TestGetLimitsOmitsComputeAndRequestsPerMinute(t *testing.T) {
+func TestGetLimitsWithoutComputePlanOrRequestsPerMinute(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route := newRoute(h)
 	h.Register(route)
@@ -152,14 +147,18 @@ func TestGetLimitsOmitsComputeAndRequestsPerMinute(t *testing.T) {
 	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
 
 	var body struct {
-		Data struct {
-			Api map[string]json.RawMessage `json:"api"`
-		} `json:"data"`
+		Data map[string]json.RawMessage `json:"data"`
 	}
 	require.NoError(t, json.Unmarshal([]byte(res.RawBody), &body))
-	require.NotContains(t, body.Data.Api, "requestsPerMinute")
-	require.NotContains(t, res.RawBody, `"compute"`)
-	require.Equal(t, openapi.LimitMeter{Limit: 1_000_000, Used: 0}, res.Body.Data.Api.BillableOperations)
+	require.ElementsMatch(t, []string{
+		"apiBillableOperationsCountMaxPerMonth",
+		"apiRequestsCountMaxPerMinute",
+		"logsRetentionDaysMax",
+		"logsAuditRetentionDaysMax",
+		"logdrainsMax",
+	}, slices.Collect(maps.Keys(body.Data)))
+	require.JSONEq(t, `{"limit":null}`, string(body.Data["apiRequestsCountMaxPerMinute"]))
+	require.Equal(t, meteredLimit(1_000_000, 0), res.Body.Data.ApiBillableOperationsCountMaxPerMonth)
 }
 
 func createDeployment(t *testing.T, h *testutil.Harness, setup testutil.DeploymentTestSetup, cpuMillicores, memoryMib, storageMib int) db.Deployment {
@@ -211,7 +210,7 @@ func insertBillable(t *testing.T, h *testutil.Harness, table, workspaceID string
 	require.NoError(t, err)
 }
 
-func TestGetLimitsOmitsUnlimitedCustomDomainsLimit(t *testing.T) {
+func TestGetLimitsReturnsNullForUnlimitedCustomDomains(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route := newRoute(h)
 	h.Register(route)
@@ -222,7 +221,24 @@ func TestGetLimitsOmitsUnlimitedCustomDomainsLimit(t *testing.T) {
 
 	res := callGetLimits(h, route, bearer(rootKey))
 	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
-	require.NotNil(t, res.Body.Data.Compute)
-	require.Equal(t, openapi.V2WorkspaceGetLimitsCustomDomains{Limit: nil, Used: 0}, res.Body.Data.Compute.CustomDomains)
-	require.Contains(t, res.RawBody, `"customDomains":{"used":0}`)
+
+	var body struct {
+		Data map[string]json.RawMessage `json:"data"`
+	}
+	require.NoError(t, json.Unmarshal([]byte(res.RawBody), &body))
+	require.JSONEq(t, `{"limit":null,"current":0}`, string(body.Data["customDomainsMax"]))
+}
+
+func limit(maximum int64) openapi.V2WorkspaceGetLimitsLimit {
+	return openapi.V2WorkspaceGetLimitsLimit{
+		Limit:   nullable.NewNullableWithValue(maximum),
+		Current: nil,
+	}
+}
+
+func meteredLimit(maximum int64, current float64) openapi.V2WorkspaceGetLimitsLimit {
+	return openapi.V2WorkspaceGetLimitsLimit{
+		Limit:   nullable.NewNullableWithValue(maximum),
+		Current: &current,
+	}
 }

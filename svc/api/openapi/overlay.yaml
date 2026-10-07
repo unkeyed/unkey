@@ -130,3 +130,8 @@ actions:
   - target: $["components"]["schemas"]["V2PortalUpdatePortalRequestBody"]["properties"]["primaryColor"]
     update:
       nullable: true
+  - target: $["components"]["schemas"]["V2WorkspaceGetLimitsLimit"]["properties"]["limit"]["type"]
+    update: integer
+  - target: $["components"]["schemas"]["V2WorkspaceGetLimitsLimit"]["properties"]["limit"]
+    update:
+      nullable: true

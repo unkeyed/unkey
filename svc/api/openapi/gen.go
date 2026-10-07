@@ -1799,19 +1799,6 @@ type KeysVerifyKeyRatelimit struct {
 	Name string `json:"name"`
 }
 
-// LimitMeter A workspace limit and the current usage against it.
-type LimitMeter struct {
-	// Limit The maximum the workspace can use.
-	//
-	// Example: 5
-	Limit int64 `json:"limit"`
-
-	// Used The amount the workspace uses now.
-	//
-	// Example: 1
-	Used int64 `json:"used"`
-}
-
 // LoggingPolicy Adds request data to the log entries of matching requests. The gateway
 // always records a basic log entry for every request: method, host, path,
 // status, and latency. Each capture setting is a separate opt-in: request
@@ -6850,155 +6837,88 @@ type V2RootKeysUpdateKeyResponseBody struct {
 	Meta Meta `json:"meta"`
 }
 
-// V2WorkspaceGetLimitsApi Limits for the Unkey API.
-type V2WorkspaceGetLimitsApi struct {
-	// BillableOperations Billable key verifications and rate limit operations in the current
-	// calendar month (UTC), against the monthly allowance.
-	BillableOperations LimitMeter `json:"billableOperations"`
-
-	// RequestsPerMinute The maximum authenticated API requests per minute for the workspace.
-	// Requests above it get a 429. Omitted when the workspace has no
-	// per-minute limit.
+// V2WorkspaceGetLimitsLimit A workspace limit and, when the limit has one, the current value against it.
+type V2WorkspaceGetLimitsLimit struct {
+	// Current The current value against `limit`. Omitted when the limit has no current
+	// value, such as a retention period or a per-instance size.
 	//
-	//
-	// Example: 1000
-	RequestsPerMinute *int64 `json:"requestsPerMinute,omitempty"`
-}
-
-// V2WorkspaceGetLimitsCompute Limits for Compute.
-type V2WorkspaceGetLimitsCompute struct {
-	// ConcurrentBuilds The maximum builds that run at the same time.
-	//
-	// Example: 2
-	ConcurrentBuilds int `json:"concurrentBuilds"`
-
-	// CustomDomains The custom domains attached across all apps, against the allowance.
-	CustomDomains V2WorkspaceGetLimitsCustomDomains `json:"customDomains"`
-
-	// PerInstance The maximum size of one instance.
-	PerInstance V2WorkspaceGetLimitsComputePerInstance `json:"perInstance"`
-
-	// ReplicasPerRegion The maximum instances that autoscaling runs for one app in one region.
-	//
-	// Example: 10
-	ReplicasPerRegion int `json:"replicasPerRegion"`
-
-	// Workspace Reserved capacity across the workspace, against the workspace limits. This is
-	// not live usage. Each running deployment reserves its instance size times its
-	// maximum replicas, in each region it runs in. `reserved` is the sum over all
-	// running deployments. A deploy that would bring this sum above `limit` is
-	// rejected.
-	Workspace V2WorkspaceGetLimitsComputeWorkspace `json:"workspace"`
-}
-
-// V2WorkspaceGetLimitsComputePerInstance The maximum size of one instance.
-type V2WorkspaceGetLimitsComputePerInstance struct {
-	// MemoryMib The maximum memory for one instance, in MiB.
-	//
-	// Example: 4096
-	MemoryMib int `json:"memoryMib"`
-
-	// StorageMib The maximum ephemeral disk for one instance, in MiB.
-	//
-	// Example: 5120
-	StorageMib int `json:"storageMib"`
-
-	// VCpus The maximum vCPUs for one instance.
-	//
-	// Example: 2
-	VCpus float64 `json:"vCpus"`
-}
-
-// V2WorkspaceGetLimitsComputeWorkspace Reserved capacity across the workspace, against the workspace limits. This is
-// not live usage. Each running deployment reserves its instance size times its
-// maximum replicas, in each region it runs in. `reserved` is the sum over all
-// running deployments. A deploy that would bring this sum above `limit` is
-// rejected.
-type V2WorkspaceGetLimitsComputeWorkspace struct {
-	// MemoryMib Reserved memory in MiB.
-	MemoryMib V2WorkspaceGetLimitsReservedMeter `json:"memoryMib"`
-
-	// StorageMib Reserved ephemeral disk in MiB.
-	StorageMib V2WorkspaceGetLimitsReservedMeter `json:"storageMib"`
-
-	// VCpus The workspace CPU limit and the reserved CPU against it, in vCPUs.
-	VCpus V2WorkspaceGetLimitsVcpuMeter `json:"vCpus"`
-}
-
-// V2WorkspaceGetLimitsCustomDomains The custom domains attached across all apps, against the allowance.
-type V2WorkspaceGetLimitsCustomDomains struct {
-	// Limit The maximum custom domains. Omitted when the plan has no limit.
-	//
-	// Example: 5
-	Limit *int64 `json:"limit,omitempty"`
-
-	// Used The custom domains attached now.
 	//
 	// Example: 1
-	Used int64 `json:"used"`
-}
+	Current *float64 `json:"current,omitempty"`
 
-// V2WorkspaceGetLimitsLog Limits for logs and log drains.
-type V2WorkspaceGetLimitsLog struct {
-	// AuditRetentionDays The audit log retention of the workspace plan, in days.
+	// Limit The maximum the workspace can have. `null` means unlimited.
 	//
-	// Example: 30
-	AuditRetentionDays int `json:"auditRetentionDays"`
-
-	// Drains The log drains in the workspace, against the allowance.
-	Drains LimitMeter `json:"drains"`
-
-	// RetentionDays How many days back request and runtime logs can be queried.
-	//
-	// Example: 7
-	RetentionDays int `json:"retentionDays"`
-}
-
-// V2WorkspaceGetLimitsReservedMeter A workspace compute limit and the capacity reserved against it.
-type V2WorkspaceGetLimitsReservedMeter struct {
-	// Limit The maximum the workspace can reserve.
-	//
-	// Example: 8192
-	Limit int64 `json:"limit"`
-
-	// Reserved The amount running deployments reserve now.
-	//
-	// Example: 4096
-	Reserved int64 `json:"reserved"`
+	// Example: 5
+	Limit nullable.Nullable[int64] `json:"limit"`
 }
 
 // V2WorkspaceGetLimitsResponseBody defines model for V2WorkspaceGetLimitsResponseBody.
 type V2WorkspaceGetLimitsResponseBody struct {
+	// Data The workspace limits. The Compute limits are present only when the workspace
+	// has a Compute plan.
 	Data V2WorkspaceGetLimitsResponseData `json:"data"`
 
 	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
 	Meta Meta `json:"meta"`
 }
 
-// V2WorkspaceGetLimitsResponseData defines model for V2WorkspaceGetLimitsResponseData.
+// V2WorkspaceGetLimitsResponseData The workspace limits. The Compute limits are present only when the workspace
+// has a Compute plan.
 type V2WorkspaceGetLimitsResponseData struct {
-	// Api Limits for the Unkey API.
-	Api V2WorkspaceGetLimitsApi `json:"api"`
+	// ApiBillableOperationsCountMaxPerMonth Billable key verifications and rate limit operations per calendar month
+	// (UTC). `current` counts the current month.
+	ApiBillableOperationsCountMaxPerMonth V2WorkspaceGetLimitsLimit `json:"apiBillableOperationsCountMaxPerMonth"`
 
-	// Compute Compute limits and reserved capacity. Omitted when the workspace has no
+	// ApiRequestsCountMaxPerMinute Authenticated API requests per minute. Requests above it get a 429.
+	// `limit` is `null` when the workspace has no per-minute limit. Has no `current`.
+	ApiRequestsCountMaxPerMinute V2WorkspaceGetLimitsLimit `json:"apiRequestsCountMaxPerMinute"`
+
+	// AutoscalingReplicasMax Instances that autoscaling runs for one app in one region. Has no `current`.
+	// Present only with a Compute plan.
+	AutoscalingReplicasMax *V2WorkspaceGetLimitsLimit `json:"autoscalingReplicasMax,omitempty"`
+
+	// BuildsConcurrentMax Builds that run at the same time. Has no `current`. Present only with a Compute plan.
+	BuildsConcurrentMax *V2WorkspaceGetLimitsLimit `json:"buildsConcurrentMax,omitempty"`
+
+	// CpuCoresMax CPU cores the workspace can reserve across all running deployments.
+	// `current` is reserved capacity, not live usage: each running deployment
+	// reserves its instance CPU times its maximum replicas, in each region it
+	// runs in. A deploy that would bring `current` above `limit` is rejected.
+	// Present only with a Compute plan.
+	CpuCoresMax *V2WorkspaceGetLimitsLimit `json:"cpuCoresMax,omitempty"`
+
+	// CpuCoresMaxPerInstance CPU cores for one instance. Has no `current`. Present only with a Compute plan.
+	CpuCoresMaxPerInstance *V2WorkspaceGetLimitsLimit `json:"cpuCoresMaxPerInstance,omitempty"`
+
+	// CustomDomainsMax Custom domains across all apps. `current` is the custom domains attached
+	// now. `limit` is `null` when the plan has no limit. Present only with a
 	// Compute plan.
-	Compute *V2WorkspaceGetLimitsCompute `json:"compute,omitempty"`
+	CustomDomainsMax *V2WorkspaceGetLimitsLimit `json:"customDomainsMax,omitempty"`
 
-	// Log Limits for logs and log drains.
-	Log V2WorkspaceGetLimitsLog `json:"log"`
-}
+	// LogdrainsMax Log drains. `current` is the log drains in the workspace now.
+	LogdrainsMax V2WorkspaceGetLimitsLimit `json:"logdrainsMax"`
 
-// V2WorkspaceGetLimitsVcpuMeter The workspace CPU limit and the reserved CPU against it, in vCPUs.
-type V2WorkspaceGetLimitsVcpuMeter struct {
-	// Limit The maximum vCPUs the workspace can reserve.
-	//
-	// Example: 4
-	Limit float64 `json:"limit"`
+	// LogsAuditRetentionDaysMax How many days audit logs are kept. Has no `current`.
+	LogsAuditRetentionDaysMax V2WorkspaceGetLimitsLimit `json:"logsAuditRetentionDaysMax"`
 
-	// Reserved The vCPUs the workspace reserves now.
-	//
-	// Example: 2.5
-	Reserved float64 `json:"reserved"`
+	// LogsRetentionDaysMax How many days back request and runtime logs can be queried. Has no `current`.
+	LogsRetentionDaysMax V2WorkspaceGetLimitsLimit `json:"logsRetentionDaysMax"`
+
+	// MemoryMibMax Memory in MiB the workspace can reserve across all running deployments.
+	// `current` is reserved memory, counted the same way as `cpuCoresMax`.
+	// Present only with a Compute plan.
+	MemoryMibMax *V2WorkspaceGetLimitsLimit `json:"memoryMibMax,omitempty"`
+
+	// MemoryMibMaxPerInstance Memory in MiB for one instance. Has no `current`. Present only with a Compute plan.
+	MemoryMibMaxPerInstance *V2WorkspaceGetLimitsLimit `json:"memoryMibMaxPerInstance,omitempty"`
+
+	// StorageMibMax Ephemeral disk in MiB the workspace can reserve across all running
+	// deployments. `current` is reserved disk, counted the same way as
+	// `cpuCoresMax`. Present only with a Compute plan.
+	StorageMibMax *V2WorkspaceGetLimitsLimit `json:"storageMibMax,omitempty"`
+
+	// StorageMibMaxPerInstance Ephemeral disk in MiB for one instance. Has no `current`. Present only with a Compute plan.
+	StorageMibMaxPerInstance *V2WorkspaceGetLimitsLimit `json:"storageMibMaxPerInstance,omitempty"`
 }
 
 // V3DeploymentsCreateDeploymentRequestBody Create a deployment. Omit the source to use the app default, or provide one source override.

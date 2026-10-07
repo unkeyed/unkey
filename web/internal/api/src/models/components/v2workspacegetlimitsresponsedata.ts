@@ -7,34 +7,100 @@ import { safeParse } from "../../lib/schemas.js";
 import { Result as SafeParseResult } from "../../types/fp.js";
 import { SDKValidationError } from "../errors/sdkvalidationerror.js";
 import {
-  V2WorkspaceGetLimitsApi,
-  V2WorkspaceGetLimitsApi$inboundSchema,
-} from "./v2workspacegetlimitsapi.js";
-import {
-  V2WorkspaceGetLimitsCompute,
-  V2WorkspaceGetLimitsCompute$inboundSchema,
-} from "./v2workspacegetlimitscompute.js";
-import {
-  V2WorkspaceGetLimitsLog,
-  V2WorkspaceGetLimitsLog$inboundSchema,
-} from "./v2workspacegetlimitslog.js";
+  V2WorkspaceGetLimitsLimit,
+  V2WorkspaceGetLimitsLimit$inboundSchema,
+} from "./v2workspacegetlimitslimit.js";
 
+/**
+ * The workspace limits. The Compute limits are present only when the workspace
+ *
+ * @remarks
+ * has a Compute plan.
+ */
 export type V2WorkspaceGetLimitsResponseData = {
   /**
-   * Limits for the Unkey API.
-   */
-  api: V2WorkspaceGetLimitsApi;
-  /**
-   * Limits for logs and log drains.
-   */
-  log: V2WorkspaceGetLimitsLog;
-  /**
-   * Compute limits and reserved capacity. Omitted when the workspace has no
+   * Billable key verifications and rate limit operations per calendar month
    *
    * @remarks
+   * (UTC). `current` counts the current month.
+   */
+  apiBillableOperationsCountMaxPerMonth: V2WorkspaceGetLimitsLimit;
+  /**
+   * Authenticated API requests per minute. Requests above it get a 429.
+   *
+   * @remarks
+   * `limit` is `null` when the workspace has no per-minute limit. Has no `current`.
+   */
+  apiRequestsCountMaxPerMinute: V2WorkspaceGetLimitsLimit;
+  /**
+   * How many days back request and runtime logs can be queried. Has no `current`.
+   */
+  logsRetentionDaysMax: V2WorkspaceGetLimitsLimit;
+  /**
+   * How many days audit logs are kept. Has no `current`.
+   */
+  logsAuditRetentionDaysMax: V2WorkspaceGetLimitsLimit;
+  /**
+   * Log drains. `current` is the log drains in the workspace now.
+   */
+  logdrainsMax: V2WorkspaceGetLimitsLimit;
+  /**
+   * CPU cores the workspace can reserve across all running deployments.
+   *
+   * @remarks
+   * `current` is reserved capacity, not live usage: each running deployment
+   * reserves its instance CPU times its maximum replicas, in each region it
+   * runs in. A deploy that would bring `current` above `limit` is rejected.
+   * Present only with a Compute plan.
+   */
+  cpuCoresMax?: V2WorkspaceGetLimitsLimit | undefined;
+  /**
+   * CPU cores for one instance. Has no `current`. Present only with a Compute plan.
+   */
+  cpuCoresMaxPerInstance?: V2WorkspaceGetLimitsLimit | undefined;
+  /**
+   * Memory in MiB the workspace can reserve across all running deployments.
+   *
+   * @remarks
+   * `current` is reserved memory, counted the same way as `cpuCoresMax`.
+   * Present only with a Compute plan.
+   */
+  memoryMibMax?: V2WorkspaceGetLimitsLimit | undefined;
+  /**
+   * Memory in MiB for one instance. Has no `current`. Present only with a Compute plan.
+   */
+  memoryMibMaxPerInstance?: V2WorkspaceGetLimitsLimit | undefined;
+  /**
+   * Ephemeral disk in MiB the workspace can reserve across all running
+   *
+   * @remarks
+   * deployments. `current` is reserved disk, counted the same way as
+   * `cpuCoresMax`. Present only with a Compute plan.
+   */
+  storageMibMax?: V2WorkspaceGetLimitsLimit | undefined;
+  /**
+   * Ephemeral disk in MiB for one instance. Has no `current`. Present only with a Compute plan.
+   */
+  storageMibMaxPerInstance?: V2WorkspaceGetLimitsLimit | undefined;
+  /**
+   * Builds that run at the same time. Has no `current`. Present only with a Compute plan.
+   */
+  buildsConcurrentMax?: V2WorkspaceGetLimitsLimit | undefined;
+  /**
+   * Instances that autoscaling runs for one app in one region. Has no `current`.
+   *
+   * @remarks
+   * Present only with a Compute plan.
+   */
+  autoscalingReplicasMax?: V2WorkspaceGetLimitsLimit | undefined;
+  /**
+   * Custom domains across all apps. `current` is the custom domains attached
+   *
+   * @remarks
+   * now. `limit` is `null` when the plan has no limit. Present only with a
    * Compute plan.
    */
-  compute?: V2WorkspaceGetLimitsCompute | undefined;
+  customDomainsMax?: V2WorkspaceGetLimitsLimit | undefined;
 };
 
 /** @internal */
@@ -43,9 +109,21 @@ export const V2WorkspaceGetLimitsResponseData$inboundSchema: z.ZodType<
   z.ZodTypeDef,
   unknown
 > = z.object({
-  api: V2WorkspaceGetLimitsApi$inboundSchema,
-  log: V2WorkspaceGetLimitsLog$inboundSchema,
-  compute: V2WorkspaceGetLimitsCompute$inboundSchema.optional(),
+  apiBillableOperationsCountMaxPerMonth:
+    V2WorkspaceGetLimitsLimit$inboundSchema,
+  apiRequestsCountMaxPerMinute: V2WorkspaceGetLimitsLimit$inboundSchema,
+  logsRetentionDaysMax: V2WorkspaceGetLimitsLimit$inboundSchema,
+  logsAuditRetentionDaysMax: V2WorkspaceGetLimitsLimit$inboundSchema,
+  logdrainsMax: V2WorkspaceGetLimitsLimit$inboundSchema,
+  cpuCoresMax: V2WorkspaceGetLimitsLimit$inboundSchema.optional(),
+  cpuCoresMaxPerInstance: V2WorkspaceGetLimitsLimit$inboundSchema.optional(),
+  memoryMibMax: V2WorkspaceGetLimitsLimit$inboundSchema.optional(),
+  memoryMibMaxPerInstance: V2WorkspaceGetLimitsLimit$inboundSchema.optional(),
+  storageMibMax: V2WorkspaceGetLimitsLimit$inboundSchema.optional(),
+  storageMibMaxPerInstance: V2WorkspaceGetLimitsLimit$inboundSchema.optional(),
+  buildsConcurrentMax: V2WorkspaceGetLimitsLimit$inboundSchema.optional(),
+  autoscalingReplicasMax: V2WorkspaceGetLimitsLimit$inboundSchema.optional(),
+  customDomainsMax: V2WorkspaceGetLimitsLimit$inboundSchema.optional(),
 });
 
 export function v2WorkspaceGetLimitsResponseDataFromJSON(

@@ -1,16 +1,88 @@
 type: object
+description: |
+  The workspace limits. The Compute limits are present only when the workspace
+  has a Compute plan.
 required:
-  - api
-  - log
+  - apiBillableOperationsCountMaxPerMonth
+  - apiRequestsCountMaxPerMinute
+  - logsRetentionDaysMax
+  - logsAuditRetentionDaysMax
+  - logdrainsMax
 properties:
-  api:
-    "$ref": "./V2WorkspaceGetLimitsApi.yaml"
-  log:
-    "$ref": "./V2WorkspaceGetLimitsLog.yaml"
-  compute:
+  apiBillableOperationsCountMaxPerMonth:
     description: |
-      Compute limits and reserved capacity. Omitted when the workspace has no
+      Billable key verifications and rate limit operations per calendar month
+      (UTC). `current` counts the current month.
+    allOf:
+      - "$ref": "./V2WorkspaceGetLimitsLimit.yaml"
+  apiRequestsCountMaxPerMinute:
+    description: |
+      Authenticated API requests per minute. Requests above it get a 429.
+      `limit` is `null` when the workspace has no per-minute limit. Has no `current`.
+    allOf:
+      - "$ref": "./V2WorkspaceGetLimitsLimit.yaml"
+  logsRetentionDaysMax:
+    description: How many days back request and runtime logs can be queried. Has no `current`.
+    allOf:
+      - "$ref": "./V2WorkspaceGetLimitsLimit.yaml"
+  logsAuditRetentionDaysMax:
+    description: How many days audit logs are kept. Has no `current`.
+    allOf:
+      - "$ref": "./V2WorkspaceGetLimitsLimit.yaml"
+  logdrainsMax:
+    description: Log drains. `current` is the log drains in the workspace now.
+    allOf:
+      - "$ref": "./V2WorkspaceGetLimitsLimit.yaml"
+  cpuCoresMax:
+    description: |
+      CPU cores the workspace can reserve across all running deployments.
+      `current` is reserved capacity, not live usage: each running deployment
+      reserves its instance CPU times its maximum replicas, in each region it
+      runs in. A deploy that would bring `current` above `limit` is rejected.
+      Present only with a Compute plan.
+    allOf:
+      - "$ref": "./V2WorkspaceGetLimitsLimit.yaml"
+  cpuCoresMaxPerInstance:
+    description: CPU cores for one instance. Has no `current`. Present only with a Compute plan.
+    allOf:
+      - "$ref": "./V2WorkspaceGetLimitsLimit.yaml"
+  memoryMibMax:
+    description: |
+      Memory in MiB the workspace can reserve across all running deployments.
+      `current` is reserved memory, counted the same way as `cpuCoresMax`.
+      Present only with a Compute plan.
+    allOf:
+      - "$ref": "./V2WorkspaceGetLimitsLimit.yaml"
+  memoryMibMaxPerInstance:
+    description: Memory in MiB for one instance. Has no `current`. Present only with a Compute plan.
+    allOf:
+      - "$ref": "./V2WorkspaceGetLimitsLimit.yaml"
+  storageMibMax:
+    description: |
+      Ephemeral disk in MiB the workspace can reserve across all running
+      deployments. `current` is reserved disk, counted the same way as
+      `cpuCoresMax`. Present only with a Compute plan.
+    allOf:
+      - "$ref": "./V2WorkspaceGetLimitsLimit.yaml"
+  storageMibMaxPerInstance:
+    description: Ephemeral disk in MiB for one instance. Has no `current`. Present only with a Compute plan.
+    allOf:
+      - "$ref": "./V2WorkspaceGetLimitsLimit.yaml"
+  buildsConcurrentMax:
+    description: Builds that run at the same time. Has no `current`. Present only with a Compute plan.
+    allOf:
+      - "$ref": "./V2WorkspaceGetLimitsLimit.yaml"
+  autoscalingReplicasMax:
+    description: |
+      Instances that autoscaling runs for one app in one region. Has no `current`.
+      Present only with a Compute plan.
+    allOf:
+      - "$ref": "./V2WorkspaceGetLimitsLimit.yaml"
+  customDomainsMax:
+    description: |
+      Custom domains across all apps. `current` is the custom domains attached
+      now. `limit` is `null` when the plan has no limit. Present only with a
       Compute plan.
     allOf:
-      - "$ref": "./V2WorkspaceGetLimitsCompute.yaml"
+      - "$ref": "./V2WorkspaceGetLimitsLimit.yaml"
 additionalProperties: false
