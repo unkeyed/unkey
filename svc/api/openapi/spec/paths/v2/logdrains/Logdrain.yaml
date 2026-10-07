@@ -7,8 +7,6 @@ required: [
   batchSize,
   filters,
   destination,
-  consecutiveFailures,
-  committedOffsetInsertedAt,
   createdAt,
 ]
 additionalProperties: false
@@ -37,11 +35,6 @@ properties:
     $ref: LogdrainFilters.yaml
   destination:
     $ref: LogdrainDestination.yaml
-  consecutiveFailures:
-    type: integer
-  committedOffsetInsertedAt:
-    type: integer
-    format: int64
   createdAt:
     type: integer
     format: int64

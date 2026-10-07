@@ -7496,8 +7496,6 @@ components:
                 - batchSize
                 - filters
                 - destination
-                - consecutiveFailures
-                - committedOffsetInsertedAt
                 - createdAt
             additionalProperties: false
             properties:
@@ -7527,11 +7525,6 @@ components:
                     $ref: '#/components/schemas/LogdrainFilters'
                 destination:
                     $ref: '#/components/schemas/LogdrainDestination'
-                consecutiveFailures:
-                    type: integer
-                committedOffsetInsertedAt:
-                    type: integer
-                    format: int64
                 createdAt:
                     type: integer
                     format: int64
