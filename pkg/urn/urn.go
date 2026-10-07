@@ -31,10 +31,7 @@ type resourcePathShape struct {
 // resourceIDSegment marks a segment that accepts one concrete ID or "*".
 var resourcePathShapes = []resourcePathShape{
 	{resource: new(GitHubApp), segments: []string{"github", "apps", resourceIDSegment}},
-	{
-		resource: logdrain{},
-		segments: []string{"logdrains", resourceIDSegment},
-	},
+	{resource: logdrain{}, segments: []string{"logdrains", resourceIDSegment}},
 	{resource: rootKey{}, segments: []string{"rootKeys", resourceIDSegment}},
 	{resource: new(Project), segments: []string{"projects", resourceIDSegment}},
 	{resource: new(App), segments: []string{"projects", resourceIDSegment, "apps", resourceIDSegment}},
