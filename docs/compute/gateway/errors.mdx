@@ -1,0 +1,127 @@
+---
+title: Gateway errors
+sidebarTitle: "Errors"
+description: "What the gateway returns when it rejects or cannot serve a request."
+sources:
+  - svc/frontline/middleware/observability.go
+  - pkg/codes/frontline.go
+  - pkg/codes/codes.go
+  - svc/frontline/internal/policies/keyauth/executor.go
+  - svc/frontline/internal/policies/ratelimit/executor.go
+  - svc/frontline/internal/policies/firewall/executor.go
+  - svc/frontline/internal/policies/openapi/executor.go
+  - svc/frontline/internal/router/lookup.go
+  - svc/frontline/middleware/clickhouse_logging.go
+  - internal/services/keys/status.go
+---
+
+import { ProductLink } from "/snippets/product-link.jsx";
+
+When a policy rejects a request, or the [gateway](/compute/gateway/overview) can't reach your <Tooltip tip="A Compute app: a deployable service inside a project. Not 'your application' in general.">app</Tooltip>, the gateway responds with an error code and a request ID. Use this page to find out what a code means and who needs to fix it. Most codes look like `err:frontline:{category}:{specific}`, and each one has its own page.
+
+## Response format
+
+If the request's `Accept` header includes `application/json`, `application/*`, or `*/*` without `text/html`, the body is JSON:
+
+```json
+{
+  "meta": { "requestId": "req_2gJbXhAr4" },
+  "error": {
+    "code": "err:frontline:client:rate_limited",
+    "message": "Rate limit exceeded. Please try again later."
+  }
+}
+```
+
+Otherwise it returns an HTML page with the status, message, code, request ID, and a link to the code's page. So browsers see a page and API clients see JSON. This format is different from the one the Unkey API uses.
+
+`meta.requestId` matches the `X-Unkey-Request-Id` response header. Quote it when you contact the API owner or Unkey support.
+
+## The codes
+
+Codes are grouped by who needs to act.
+
+### Client: fix the request or the key
+
+| Code | Status | Cause |
+| --- | --- | --- |
+| [`err:frontline:client:missing_credentials`](/errors/frontline/client/missing_credentials) | 401 | An [API key authentication policy](/compute/gateway/api-key-auth) found no key in any configured location. |
+| [`err:frontline:client:invalid_key`](/errors/frontline/client/invalid_key) | 401 | The key does not exist, is disabled or expired, belongs to a keyspace the policy does not list, or its workspace is disabled. |
+| [`err:frontline:client:insufficient_permissions`](/errors/frontline/client/insufficient_permissions) | 403 | The key failed the policy's `permissionQuery`. |
+| [`err:frontline:client:firewall_denied`](/errors/frontline/client/firewall_denied) | 403 | A [firewall policy](/compute/gateway/firewall) matched the request. |
+| [`err:frontline:client:rate_limited`](/errors/frontline/client/rate_limited) | 429 | A per-key limit or a [rate limit policy](/compute/gateway/rate-limiting) was exceeded, or the rate limit policy couldn't identify the caller. |
+| [`err:frontline:client:usage_exceeded`](/errors/frontline/client/usage_exceeded) | 429 | The key has no credits left. |
+| [`err:frontline:client:openapi_validation_failed`](/errors/frontline/client/openapi_validation_failed) | 400 | The request didn't match the deployment's OpenAPI spec under an [OpenAPI validation policy](/compute/gateway/openapi-validation). |
+
+### Configuration and capacity: you own the API
+
+| Code | Status | Cause |
+| --- | --- | --- |
+| [`err:frontline:config:invalid_configuration`](/errors/frontline/config/invalid_configuration) | 422 | A policy on the deployment is invalid: a `permissionQuery` can't be parsed, a `credits` value is negative, or the OpenAPI spec is invalid. Fix it and redeploy. |
+| [`err:frontline:capacity:no_running_instances`](/errors/frontline/capacity/no_running_instances) | 503 | No instance in any region is running to take the request. |
+| [`err:frontline:capacity:deployment_offline`](/errors/frontline/capacity/deployment_offline) | 503 | The deployment was stopped, or its project was cancelled. |
+| [`err:frontline:capacity:spend_limit_reached`](/errors/frontline/capacity/spend_limit_reached) | 402 | Compute for the workspace is paused because it reached its [spend budget](/compute/configure/spend-budget). Raise or remove the budget to resume. |
+| [`err:frontline:routing:config_not_found`](/errors/frontline/routing/config_not_found) | 404 | No deployment is routed for this hostname. |
+| [`err:frontline:routing:deployment_not_found`](/errors/frontline/routing/deployment_not_found) | 404 | The deployment requested by ID doesn't exist. |
+
+### Upstream: your app or its connection
+
+| Code | Status | Cause |
+| --- | --- | --- |
+| [`err:frontline:upstream:bad_gateway`](/errors/frontline/upstream/bad_gateway) | 502 | The connection to your app failed, for example it was reset. |
+| [`err:frontline:upstream:proxy_forward_failed`](/errors/frontline/upstream/proxy_forward_failed) | 502 | Forwarding to your app failed for another reason. |
+| [`err:frontline:upstream:service_unavailable`](/errors/frontline/upstream/service_unavailable) | 503 | The gateway couldn't connect to your app: it refused the connection or couldn't be reached. |
+| [`err:frontline:upstream:gateway_timeout`](/errors/frontline/upstream/gateway_timeout) | 504 | Your app took too long to accept the connection or to respond. |
+
+### Platform: Unkey acts
+
+| Code | Status | Cause |
+| --- | --- | --- |
+| [`err:frontline:platform:config_load_failed`](/errors/frontline/platform/config_load_failed) | 500 | The gateway couldn't load the routing for this request. |
+| [`err:frontline:platform:deployment_selection_failed`](/errors/frontline/platform/deployment_selection_failed) | 500 | The gateway couldn't pick an instance. |
+| [`err:frontline:platform:internal_server_error`](/errors/frontline/platform/internal_server_error) | 500 | Something unexpected failed, including rate limiting or key checks. |
+
+### Codes that are not `err:frontline:*`
+
+A few `err:user:*` codes can also come from the gateway. Their pages describe how the Unkey API uses them, which can differ. For a Compute app, the status and cause are the ones below.
+
+| Code | Status | Cause |
+| --- | --- | --- |
+| [`err:user:bad_request:client_closed_request`](/errors/user/bad_request/client_closed_request) | 499 | The client disconnected before the response finished. |
+| [`err:user:bad_request:request_timeout`](/errors/user/bad_request/request_timeout) | 504 | The request took longer than the gateway's 15 minute limit. (The linked page's `408` and shorter limit apply to the Unkey API, not to Compute.) |
+| [`err:user:bad_request:request_body_unreadable`](/errors/user/bad_request/request_body_unreadable) | 400 | The gateway couldn't read the request body. |
+| [`err:user:bad_request:request_body_too_large`](/errors/user/bad_request/request_body_too_large) | 413 | You shouldn't see this in front of a Compute app. The gateway doesn't limit request body size. |
+
+Requests that fail before reaching your app don't appear in your request log.
+
+## If you already use keys.verifyKey
+
+An [API key authentication policy](/compute/gateway/api-key-auth) checks keys like `keys.verifyKey`. If you already handle that endpoint's `code` values, here's what each one becomes at the gateway:
+
+| Verification `code` | Gateway response |
+| --- | --- |
+| `VALID` | Forwarded, with `X-Unkey-Principal` set. |
+| `NOT_FOUND` | 401 `err:frontline:client:invalid_key` |
+| `DISABLED` | 401 `err:frontline:client:invalid_key` |
+| `EXPIRED` | 401 `err:frontline:client:invalid_key` |
+| `FORBIDDEN` | 401 `err:frontline:client:invalid_key` |
+| `INSUFFICIENT_PERMISSIONS` | 403 `err:frontline:client:insufficient_permissions` |
+| `RATE_LIMITED` | 429 `err:frontline:client:rate_limited` |
+| `USAGE_EXCEEDED` | 429 `err:frontline:client:usage_exceeded` |
+
+A key from a keyspace the policy doesn't list returns `invalid_key`, and a request with no key returns `missing_credentials`.
+
+<ProductLink product="api-management" href="/api-management/keys/verifying-keys" title="Verifying keys">
+  The verification checks, their order, and the `code` values are documented with `keys.verifyKey` in API Management.
+</ProductLink>
+
+## Next steps
+
+<Columns cols={2}>
+  <Card title="Error catalog" icon="book" href="/errors/overview">
+    All three error systems and both envelope shapes.
+  </Card>
+  <Card title="Gateway policies" icon="list-check" href="/compute/gateway/policies">
+    Evaluation order determines which error a request gets first.
+  </Card>
+</Columns>

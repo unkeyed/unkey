@@ -1,0 +1,43 @@
+---
+title: "invalid_analytics_query_type"
+sidebarTitle: "invalid_analytics_query_type"
+description: "The analytics query is not a SELECT statement."
+sources:
+  - pkg/codes/user_request.go
+  - svc/api/internal/middleware/errors.go
+  - pkg/clickhouse/query-parser/parser.go
+---
+
+<Danger>`err:user:bad_request:invalid_analytics_query_type`</Danger>
+
+The statement you sent to an analytics endpoint isn't a `SELECT`. Analytics is read-only. You get HTTP 400.
+
+```json Example response
+{
+  "meta": {
+    "requestId": "req_2c9a0jf23l4k567"
+  },
+  "error": {
+    "detail": "Only SELECT queries are allowed",
+    "status": 400,
+    "title": "Bad Request",
+    "type": "/errors/user/bad_request/invalid_analytics_query_type",
+    "errors": []
+  }
+}
+```
+
+## Likely causes
+
+- You sent `INSERT`, `ALTER`, `CREATE`, `DROP`, or another statement that isn't a `SELECT`.
+- You used `DESCRIBE` to look at a table's columns.
+
+## How to fix
+
+1. Send a `SELECT`.
+2. To see a table's columns, use the table reference on this site.
+3. To remove or correct data, contact support with the `requestId`. The API can't write to the analytics tables.
+
+## Related errors
+
+- [`err:user:bad_request:invalid_analytics_query`](/errors/user/bad_request/invalid_analytics_query): the `SELECT` itself was malformed, or the statement couldn't be recognized at all.

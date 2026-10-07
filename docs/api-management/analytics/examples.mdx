@@ -1,0 +1,226 @@
+---
+title: Analytics query examples
+sidebarTitle: "Query examples"
+description: "Copy-ready SQL for the questions people ask most about verifications and rate limits."
+sources:
+  - pkg/clickhouse/query-parser/validation.go
+  - pkg/clickhouse/schema/001_key_verifications_raw_v2.sql
+  - pkg/clickhouse/schema/003_key_verifications_per_hour_v3.sql
+  - pkg/clickhouse/schema/004_key_verifications_per_day_v3.sql
+  - pkg/clickhouse/schema/006_ratelimits_raw_v2.sql
+  - pkg/clickhouse/schema/008_ratelimits_per_hour_v2.sql
+---
+
+Copy these queries to answer common questions. Send each as the `query` string of `analytics.getVerifications` or `analytics.getRatelimits`. You don't need a workspace filter.
+
+Some of these reach back seven days or a calendar month, which is longer than some plans keep data. Check your [retention](/api-management/analytics/restrictions-and-quotas) first. If a query fails with `err:user:bad_request:query_range_exceeds_retention`, shorten the window.
+
+## Verifications
+
+### Total verifications in the last 24 hours
+
+The per-hour rollup already sums verifications, so read `sum(count)` rather than `count()`.
+
+```sql
+SELECT sum(count) AS verifications
+FROM key_verifications_per_hour_v1
+WHERE time >= now() - INTERVAL 24 HOUR
+```
+
+### Outcomes per hour for the last day
+
+```sql
+SELECT
+  time,
+  outcome,
+  sum(count) AS verifications
+FROM key_verifications_per_hour_v1
+WHERE time >= now() - INTERVAL 24 HOUR
+GROUP BY time, outcome
+ORDER BY time, outcome
+```
+
+### Valid versus rejected, per day
+
+`sumIf` lets you split one scan into several totals. Per-day `time` is a `Date`, so compare with `today()`.
+
+```sql
+SELECT
+  time AS day,
+  sumIf(count, outcome = 'VALID') AS valid,
+  sumIf(count, outcome != 'VALID') AS rejected,
+  round(100 * valid / (valid + rejected), 2) AS valid_percent
+FROM key_verifications_per_day_v1
+WHERE time >= today() - INTERVAL 7 DAY
+GROUP BY day
+ORDER BY day
+```
+
+### Usage per customer this month
+
+`external_id` is your ID for the identity behind each key, so it's a good way to bill.
+
+```sql
+SELECT
+  external_id,
+  sum(count) AS verifications,
+  sum(spent_credits) AS credits
+FROM key_verifications_per_day_v1
+WHERE time >= toStartOfMonth(today())
+  AND external_id != ''
+GROUP BY external_id
+ORDER BY verifications DESC
+LIMIT 100
+```
+
+### Keys hitting rate limits or running out of credits
+
+```sql
+SELECT
+  key_id,
+  external_id,
+  sumIf(count, outcome = 'RATE_LIMITED') AS rate_limited,
+  sumIf(count, outcome = 'USAGE_EXCEEDED') AS usage_exceeded
+FROM key_verifications_per_hour_v1
+WHERE time >= now() - INTERVAL 1 DAY
+GROUP BY key_id, external_id
+HAVING rate_limited > 0 OR usage_exceeded > 0
+ORDER BY rate_limited + usage_exceeded DESC
+LIMIT 50
+```
+
+### Latency percentiles from the raw table
+
+Latency stats have to come from the raw table. Raw `time` is in milliseconds, so convert the bound.
+
+```sql
+SELECT
+  round(avg(latency), 2) AS avg_ms,
+  round(quantile(0.5)(latency), 2) AS p50_ms,
+  round(quantile(0.99)(latency), 2) AS p99_ms
+FROM key_verifications_v1
+WHERE time >= toUnixTimestamp64Milli(now() - INTERVAL 1 HOUR)
+```
+
+### Verifications per tag
+
+Tags are an array on each row. `arrayJoin` gives one row per tag, and `has` keeps rows with a specific tag.
+
+```sql
+SELECT
+  arrayJoin(tags) AS tag,
+  sum(count) AS verifications
+FROM key_verifications_per_day_v1
+WHERE time >= today() - INTERVAL 7 DAY
+GROUP BY tag
+ORDER BY verifications DESC
+```
+
+```sql
+SELECT sum(count) AS checkout_calls
+FROM key_verifications_per_day_v1
+WHERE time >= today() - INTERVAL 7 DAY
+  AND has(tags, 'endpoint:checkout')
+```
+
+### Hourly buckets from the raw table
+
+When you need a dimension the rollups don't carry, such as `region`, bucket the raw rows yourself.
+
+```sql
+SELECT
+  toStartOfHour(fromUnixTimestamp64Milli(time)) AS hour,
+  region,
+  count() AS verifications
+FROM key_verifications_v1
+WHERE time >= toUnixTimestamp64Milli(now() - INTERVAL 6 HOUR)
+GROUP BY hour, region
+ORDER BY hour, region
+```
+
+### Gateway-verified versus API-verified
+
+Keys verified by a Compute gateway key-auth policy carry `source = 'gateway'` and the `app_id` of the app that fronted them. Direct `keys.verifyKey` calls carry `source = 'api'` and an empty `app_id`.
+
+```sql
+SELECT
+  source,
+  app_id,
+  sum(count) AS verifications
+FROM key_verifications_per_day_v1
+WHERE time >= today() - INTERVAL 7 DAY
+GROUP BY source, app_id
+ORDER BY verifications DESC
+```
+
+## Rate limits
+
+### Pass rate per namespace over the last day
+
+```sql
+SELECT
+  namespace_id,
+  sum(passed) AS passed,
+  sum(total) AS total,
+  round(100 * passed / total, 2) AS pass_percent
+FROM ratelimits_per_hour_v1
+WHERE time >= now() - INTERVAL 24 HOUR
+GROUP BY namespace_id
+ORDER BY total DESC
+```
+
+### Most rejected identifiers
+
+```sql
+SELECT
+  identifier,
+  sum(total) - sum(passed) AS rejected
+FROM ratelimits_per_hour_v1
+WHERE time >= now() - INTERVAL 24 HOUR
+GROUP BY identifier
+HAVING rejected > 0
+ORDER BY rejected DESC
+LIMIT 25
+```
+
+### Checks that used an override
+
+```sql
+SELECT
+  override_id,
+  identifier,
+  countIf(passed) AS passed,
+  countIf(NOT passed) AS rejected
+FROM ratelimits_v1
+WHERE time >= toUnixTimestamp64Milli(now() - INTERVAL 6 HOUR)
+  AND override_id != ''
+GROUP BY override_id, identifier
+ORDER BY rejected DESC
+```
+
+## Combining tables
+
+Use a CTE to answer a two-step question.
+
+```sql
+WITH top_customers AS (
+  SELECT external_id
+  FROM key_verifications_per_day_v1
+  WHERE time >= today() - INTERVAL 7 DAY
+    AND external_id != ''
+  GROUP BY external_id
+  ORDER BY sum(count) DESC
+  LIMIT 10
+)
+SELECT
+  time,
+  external_id,
+  sum(count) AS verifications
+FROM key_verifications_per_hour_v1
+WHERE time >= now() - INTERVAL 24 HOUR
+  AND external_id IN (SELECT external_id FROM top_customers)
+GROUP BY time, external_id
+ORDER BY time, external_id
+```
+
+If a query is rejected, the [troubleshooting page](/api-management/analytics/troubleshooting) maps each error to its fix.

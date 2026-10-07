@@ -1,0 +1,48 @@
+---
+title: "request_timeout"
+sidebarTitle: "request_timeout"
+description: "The request did not finish within the API's one minute deadline."
+sources:
+  - pkg/codes/user_request.go
+  - svc/api/internal/middleware/errors.go
+  - pkg/zen/middleware_timeout.go
+  - svc/api/routes/register.go
+---
+
+<Danger>`err:user:bad_request:request_timeout`</Danger>
+
+Your request didn't finish within the API's one-minute limit, so the API canceled it. You get HTTP 408 on any endpoint.
+
+```json Example response
+{
+  "meta": {
+    "requestId": "req_2c9a0jf23l4k567"
+  },
+  "error": {
+    "detail": "Request timeout",
+    "status": 408,
+    "title": "Request Timeout",
+    "type": "/errors/user/bad_request/request_timeout",
+    "errors": []
+  }
+}
+```
+
+## Likely causes
+
+- A brief slowdown. Most timeouts don't repeat.
+- The request asks for too much at once, such as a large list without paging.
+
+If your client gives up first, the request is recorded as [`client_closed_request`](/errors/user/bad_request/client_closed_request) instead. Analytics queries have their own, shorter limit, reported as [`query_execution_timeout`](/errors/user/unprocessable_entity/query_execution_timeout), so a 408 on an analytics endpoint isn't about the query itself.
+
+## How to fix
+
+1. Retry the request.
+2. If one endpoint keeps timing out, ask for less: page through large lists with `cursor` and `limit`.
+3. If it still happens, contact support with the `requestId`.
+
+## Related errors
+
+- [`err:user:bad_request:client_closed_request`](/errors/user/bad_request/client_closed_request): your client closed the connection first.
+- [`err:user:unprocessable_entity:query_execution_timeout`](/errors/user/unprocessable_entity/query_execution_timeout): an analytics query hit its own time limit.
+- [`err:unkey:application:service_unavailable`](/errors/unkey/application/service_unavailable): a dependency failed without timing out.

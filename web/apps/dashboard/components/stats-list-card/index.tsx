@@ -68,19 +68,15 @@ export function StatsListCard({
     <Link
       href={href}
       aria-label={ariaLabel}
-      className="relative h-full p-5 flex flex-col border border-grayA-4 hover:border-grayA-7 rounded-lg w-full gap-5 transition-all duration-300"
+      className="relative h-full p-5 flex flex-col border hover:border-strong bg-raised shadow-xs rounded-lg w-full gap-5 transition-all duration-300"
     >
       <div className="flex flex-col w-full gap-2 min-w-0">
         <InfoTooltip content={title} asChild position={{ align: "start", side: "top" }}>
-          <span className="font-medium text-sm leading-[14px] text-accent-12 truncate">
-            {title}
-          </span>
+          <span className="font-medium text-sm leading-3.5 text-gray-12 truncate">{title}</span>
         </InfoTooltip>
         {subtitle ? (
           <InfoTooltip content={subtitle} asChild position={{ align: "start", side: "top" }}>
-            <span className="font-mono text-xs leading-[12px] text-gray-11 truncate">
-              {subtitle}
-            </span>
+            <span className="font-mono text-xs leading-3 text-gray-11 truncate">{subtitle}</span>
           </InfoTooltip>
         ) : null}
       </div>
@@ -92,7 +88,7 @@ export function StatsListCard({
           {chart.type === "data" ? (
             <div className="ml-auto flex items-center gap-3">
               <span className="flex items-center gap-1.5">
-                <span className="bg-accent-4 rounded h-[10px] w-1 shrink-0" />
+                <span className="bg-gray-4 rounded h-[10px] w-1 shrink-0" />
                 <span>
                   <span className="tabular-nums">{formatNumber(success)}</span>{" "}
                   <span className="lowercase">{labels.success}</span>
@@ -117,17 +113,17 @@ function ChartWell({ chart, labels }: { chart: ChartState; labels: StatsListCard
   return (
     <div className="relative h-12 w-full">
       {chart.type === "loading" ? (
-        <div className="absolute inset-0 flex items-center justify-center text-[11px] text-gray-9 pointer-events-none">
+        <div className="absolute inset-0 flex items-center justify-center text-2xs text-gray-9 pointer-events-none">
           Loading...
         </div>
       ) : chart.type === "error" ? (
-        <div className="absolute inset-0 flex items-center justify-center text-[11px] text-gray-9 pointer-events-none">
+        <div className="absolute inset-0 flex items-center justify-center text-2xs text-gray-9 pointer-events-none">
           Activity unavailable
         </div>
       ) : chart.type === "empty" ? (
         <>
           <BaselineTicks buckets={chart.buckets} />
-          <div className="absolute inset-0 flex items-center justify-center text-[11px] text-gray-9 pointer-events-none">
+          <div className="absolute inset-0 flex items-center justify-center text-2xs text-gray-9 pointer-events-none">
             No activity
           </div>
         </>
@@ -152,7 +148,7 @@ function BaselineTicks({ buckets }: { buckets: number }) {
         <div
           // biome-ignore lint/suspicious/noArrayIndexKey: ticks are purely positional
           key={i}
-          className="flex items-end justify-center rounded-sm hover:bg-accent-3"
+          className="flex items-end justify-center rounded-sm hover:bg-gray-3"
         >
           <div className="h-0.5 w-2 max-w-full bg-gray-5" />
         </div>
@@ -170,7 +166,7 @@ function NarrowCursor(props: { x?: number; y?: number; width?: number; height?: 
       y={y}
       width={CURSOR_WIDTH}
       height={height}
-      fill="hsl(var(--accent-3))"
+      fill="var(--color-gray-3)"
       opacity={0.6}
       rx={2}
     />
@@ -256,12 +252,12 @@ function StatsSparkline({
                 return null;
               }
               return (
-                <div className="px-2.5 py-2 bg-gray-12 text-gray-1 text-[11px] rounded shadow-lg whitespace-nowrap">
+                <div className="px-2.5 py-2 bg-gray-12 text-gray-1 text-2xs rounded shadow-floating whitespace-nowrap">
                   <div className="font-medium opacity-80 mb-1.5">{point.displayX}</div>
                   <div className="flex flex-col gap-1">
                     <div className="flex items-center justify-between gap-4">
                       <span className="flex items-center gap-1.5">
-                        <span className="bg-accent-4 w-1 h-2.5 rounded-sm" />
+                        <span className="bg-gray-4 w-1 h-2.5 rounded-sm" />
                         <span>{labels.success}</span>
                       </span>
                       <span className="tabular-nums">{formatNumber(point.success)}</span>
@@ -287,16 +283,16 @@ function StatsSparkline({
           <Bar
             dataKey="barSuccess"
             stackId="a"
-            fill="hsl(var(--accent-4))"
-            activeBar={{ fill: "hsl(var(--accent-7))" }}
+            fill="var(--color-gray-4)"
+            activeBar={{ fill: "var(--color-gray-7)" }}
             maxBarSize={8}
             isAnimationActive={false}
           />
           <Bar
             dataKey="barError"
             stackId="a"
-            fill="hsl(var(--orange-9))"
-            activeBar={{ fill: "hsl(var(--orange-10))" }}
+            fill="var(--color-orange-9)"
+            activeBar={{ fill: "var(--color-orange-10)" }}
             maxBarSize={8}
             isAnimationActive={false}
           />

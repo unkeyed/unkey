@@ -1,6 +1,6 @@
-import { cn } from "@/lib/utils";
 import type { DataTableColumnDef } from "@unkey/ui";
 import { SortableHeader, TimestampInfo } from "@unkey/ui";
+import { cn } from "cn";
 import { LogsTableAction } from "../components/actions/logs-table-action";
 import { DurationCell } from "../components/cells/duration-cell";
 import { LimitCell } from "../components/cells/limit-cell";
@@ -65,7 +65,9 @@ export const createRatelimitLogsColumns = ({
       width: "15%",
     },
     cell: ({ row }) => (
-      <div className="font-mono truncate mr-1 max-w-40">{row.original.identifier}</div>
+      <div data-sentry-mask className="font-mono truncate mr-1 max-w-40">
+        {row.original.identifier}
+      </div>
     ),
   },
   {

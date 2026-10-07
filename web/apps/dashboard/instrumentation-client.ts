@@ -12,10 +12,10 @@ import {
   scrubUrl,
 } from "./lib/sentry";
 
-const isSentryDisabled = process.env.NEXT_PUBLIC_SENTRY_DISABLED === "true";
-if (process.env.NODE_ENV !== "development" && !isSentryDisabled) {
+const dsn = process.env.NEXT_PUBLIC_SENTRY_DSN;
+if (process.env.NODE_ENV !== "development" && dsn) {
   Sentry.init({
-    dsn: "https://08589d17fe3b4b7e8b70b6c916123ee5@o4510544758046720.ingest.us.sentry.io/4510544758308864",
+    dsn,
 
     beforeSend: createClientErrorFilter(),
     beforeSendTransaction: scrubTransactionPii,
@@ -32,7 +32,7 @@ if (process.env.NODE_ENV !== "development" && !isSentryDisabled) {
     tracesSampler: createTracesSampler(),
     enableLogs: true,
     beforeSendLog: scrubLog,
-    replaysSessionSampleRate: 0.1,
+    replaysSessionSampleRate: 0,
     replaysOnErrorSampleRate: 1.0,
     sendDefaultPii: false,
   });

@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+#MISE description="Check the rebuilt product docs against the plan's capability inventory and forbidden stale claims (default dir: docs)"
+set -euo pipefail
+
+node docs/scripts/coverage-report.mjs "${1:-docs}"

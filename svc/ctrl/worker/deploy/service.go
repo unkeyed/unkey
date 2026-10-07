@@ -77,12 +77,12 @@ type RegistryConfig struct {
 // domain routing to ensure consistent deployment state. Promotion and rollback
 // live on EnvironmentService.
 //
-// The workflow is a Restate virtual object keyed by deployment id, so operations
-// on one deployment serialize while deployments proceed in parallel. Two deploys
+// The workflow is a Restate workflow keyed by deployment id: one Deploy run per
+// key, signalled by NotifyInstancesReady through a durable promise. Two deploys
 // of the same app run concurrently; the ordering they need comes from the dedup
 // and supersede checks.
 type Workflow struct {
-	hydrav1.UnimplementedDeployServiceServer
+	hydrav1.UnimplementedDeployWorkflowServer
 	db        db.Database
 	auditlogs auditlogs.AuditLogService
 
@@ -106,7 +106,7 @@ type Workflow struct {
 	restateAdmin *restateadmin.Client
 }
 
-var _ hydrav1.DeployServiceServer = (*Workflow)(nil)
+var _ hydrav1.DeployWorkflowServer = (*Workflow)(nil)
 
 // Config holds the configuration for creating a deployment workflow.
 type Config struct {
@@ -180,11 +180,11 @@ func New(cfg Config) (*Workflow, error) {
 	cleanupStaleRailpackWorkspaces()
 
 	return &Workflow{
-		UnimplementedDeployServiceServer: hydrav1.UnimplementedDeployServiceServer{},
-		db:                               cfg.DB,
-		auditlogs:                        cfg.Auditlogs,
-		defaultDomain:                    cfg.DefaultDomain,
-		vault:                            cfg.Vault,
+		UnimplementedDeployWorkflowServer: hydrav1.UnimplementedDeployWorkflowServer{},
+		db:                                cfg.DB,
+		auditlogs:                         cfg.Auditlogs,
+		defaultDomain:                     cfg.DefaultDomain,
+		vault:                             cfg.Vault,
 
 		github:                          cfg.GitHub,
 		buildConfig:                     cfg.Build,

@@ -1,6 +1,6 @@
 import crypto from "node:crypto";
 import { insertAuditLogs } from "@/lib/audit";
-import { and, db, eq, schema } from "@/lib/db";
+import { db, eq, schema } from "@/lib/db";
 import { githubAppEnv, githubOAuthEnv } from "@/lib/env";
 import {
   type BranchActivity,
@@ -968,108 +968,6 @@ export const githubRouter = t.router({
           throw new TRPCError({
             code: "INTERNAL_SERVER_ERROR",
             message: "Failed to disconnect GitHub repository",
-          });
-        });
-
-      return { success: true };
-    }),
-
-  updateDefaultBranch: workspaceProcedure
-    .input(
-      z.object({
-        appId: z.string(),
-        defaultBranch: z.string().min(1),
-      }),
-    )
-    .mutation(async ({ ctx, input }) => {
-      const app = await db.query.apps
-        .findFirst({
-          where: (table, { and, eq }) =>
-            and(eq(table.id, input.appId), eq(table.workspaceId, ctx.workspace.id)),
-          columns: { id: true },
-        })
-        .catch(() => {
-          throw new TRPCError({
-            code: "INTERNAL_SERVER_ERROR",
-            message: "Failed to load app",
-          });
-        });
-
-      if (!app) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "App not found",
-        });
-      }
-
-      await db.transaction(async (tx) => {
-        const updatedAt = Date.now();
-        await tx
-          .update(schema.githubRepoConnections)
-          .set({ defaultBranch: input.defaultBranch, updatedAt })
-          .where(eq(schema.githubRepoConnections.appId, input.appId));
-      });
-
-      return { success: true };
-    }),
-
-  removeInstallation: workspaceProcedure
-    .input(
-      z.object({
-        installationId: z.number().int(),
-      }),
-    )
-    .mutation(async ({ ctx, input }) => {
-      const installation = await db.query.githubAppInstallations
-        .findFirst({
-          where: (table, { and, eq }) =>
-            and(
-              eq(table.installationId, input.installationId),
-              eq(table.workspaceId, ctx.workspace.id),
-            ),
-          columns: { pk: true },
-        })
-        .catch(() => {
-          throw new TRPCError({
-            code: "INTERNAL_SERVER_ERROR",
-            message: "Failed to load GitHub installation",
-          });
-        });
-
-      if (!installation) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Installation not found",
-        });
-      }
-
-      await db
-        .delete(schema.githubRepoConnections)
-        .where(
-          and(
-            eq(schema.githubRepoConnections.installationId, input.installationId),
-            eq(schema.githubRepoConnections.workspaceId, ctx.workspace.id),
-          ),
-        )
-        .catch(() => {
-          throw new TRPCError({
-            code: "INTERNAL_SERVER_ERROR",
-            message: "Failed to remove GitHub installation",
-          });
-        });
-
-      await db
-        .delete(schema.githubAppInstallations)
-        .where(
-          and(
-            eq(schema.githubAppInstallations.installationId, input.installationId),
-            eq(schema.githubAppInstallations.workspaceId, ctx.workspace.id),
-          ),
-        )
-        .catch(() => {
-          throw new TRPCError({
-            code: "INTERNAL_SERVER_ERROR",
-            message: "Failed to remove GitHub installation",
           });
         });
 

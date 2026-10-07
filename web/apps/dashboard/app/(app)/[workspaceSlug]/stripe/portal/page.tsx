@@ -3,7 +3,15 @@ import { db } from "@/lib/db";
 import { routes } from "@/lib/navigation/routes";
 import { getStripeClient } from "@/lib/stripe";
 import { getBaseUrl } from "@/lib/utils";
-import { Code, Empty } from "@unkey/ui";
+import {
+  Code,
+  EmptyState,
+  EmptyStateDescription,
+  EmptyStateHeader,
+  EmptyStateTitle,
+  PageBody,
+  PageContainer,
+} from "@unkey/ui";
 import type { Route } from "next";
 import { redirect } from "next/navigation";
 import type Stripe from "stripe";
@@ -23,12 +31,18 @@ export default async function StripeRedirect() {
   // URL — refuse to mint a Stripe billing-portal session for non-admins.
   if (role !== "admin") {
     return (
-      <Empty>
-        <Empty.Title>Admin access required</Empty.Title>
-        <Empty.Description>
-          Only workspace admins can manage billing. Ask an admin to make changes.
-        </Empty.Description>
-      </Empty>
+      <PageContainer>
+        <PageBody>
+          <EmptyState>
+            <EmptyStateHeader>
+              <EmptyStateTitle>Admin access required</EmptyStateTitle>
+              <EmptyStateDescription>
+                Only workspace admins can manage billing. Ask an admin to make changes.
+              </EmptyStateDescription>
+            </EmptyStateHeader>
+          </EmptyState>
+        </PageBody>
+      </PageContainer>
     );
   }
 
@@ -53,12 +67,19 @@ export default async function StripeRedirect() {
     stripe = getStripeClient();
   } catch (_error) {
     return (
-      <Empty>
-        <Empty.Title>Stripe is not configured</Empty.Title>
-        <Empty.Description>
-          If you are selfhosting Unkey, you need to configure Stripe in your environment variables.
-        </Empty.Description>
-      </Empty>
+      <PageContainer>
+        <PageBody>
+          <EmptyState>
+            <EmptyStateHeader>
+              <EmptyStateTitle>Stripe is not configured</EmptyStateTitle>
+              <EmptyStateDescription>
+                If you are selfhosting Unkey, you need to configure Stripe in your environment
+                variables.
+              </EmptyStateDescription>
+            </EmptyStateHeader>
+          </EmptyState>
+        </PageBody>
+      </PageContainer>
     );
   }
 
@@ -70,14 +91,20 @@ export default async function StripeRedirect() {
 
   if (!stripeCustomerId) {
     return (
-      <Empty>
-        <Empty.Title>No customer found</Empty.Title>
-        <Empty.Description>Your workspace</Empty.Description>
-        <Code>{ws.id}</Code>
-        <Empty.Description>
-          is not in Stripe yet. Please contact support@unkey.com.
-        </Empty.Description>
-      </Empty>
+      <PageContainer>
+        <PageBody>
+          <EmptyState>
+            <EmptyStateHeader>
+              <EmptyStateTitle>No customer found</EmptyStateTitle>
+              <EmptyStateDescription>Your workspace</EmptyStateDescription>
+            </EmptyStateHeader>
+            <Code>{ws.id}</Code>
+            <EmptyStateDescription>
+              is not in Stripe yet. Please contact support@unkey.com.
+            </EmptyStateDescription>
+          </EmptyState>
+        </PageBody>
+      </PageContainer>
     );
   }
 

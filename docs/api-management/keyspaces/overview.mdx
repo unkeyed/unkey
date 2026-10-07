@@ -1,0 +1,91 @@
+---
+title: Keyspaces
+sidebarTitle: "Overview"
+description: "Group related keys in a keyspace and decide when you need more than one."
+sources:
+  - web/internal/db/src/schema/apis.ts
+  - web/internal/db/src/schema/keyAuth.ts
+  - svc/api/openapi/spec/paths/v2/apis/createApi/V2ApisCreateApiRequestBody.yaml
+  - svc/api/openapi/spec/paths/v2/apis/getApi/V2ApisGetApiResponseData.yaml
+  - svc/api/routes/v2_apis_create_api/handler.go
+  - svc/api/routes/v2_apis_delete_api/handler.go
+  - svc/api/routes/v2_keys_create_key/handler.go
+  - internal/services/keys/get.go
+  - web/apps/dashboard/lib/trpc/routers/api/create.ts
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/apis/_components/create-api-button.tsx
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/apis/[apiId]/settings/components/delete-api.tsx
+---
+
+import RootKeyPrereq from "/snippets/root-key-prereq.mdx";
+
+A keyspace is a group of related API keys. Every key belongs to one keyspace, and you name it every time you create a key. It's not a running service and has no URL. The dashboard lists keyspaces under **Keyspaces (APIs)**, and API endpoints call them APIs, as in `apis.createApi`.
+
+## When to create more than one
+
+One keyspace is enough when all your keys share the same defaults and you tell them apart by metadata or identity. Create more when you want a hard boundary: different key prefixes per product, separate analytics per <Tooltip tip="An optional free-text label stored on a key in the dashboard, such as live or test. Unkey attaches no behavior to it, and it is unrelated to Compute environments.">environment</Tooltip> such as production and staging, or root keys that can only touch one product's keys. Root key permissions such as `api.<api_id>.create_key` can be limited to one keyspace.
+
+## Two identifiers
+
+Each keyspace has two IDs, used in different places.
+
+| Identifier | Format | Used by |
+| --- | --- | --- |
+| API ID | `api_...` | `keys.createKey`, `apis.listKeys`, `apis.getApi`, `apis.deleteApi`, and root key permissions such as `api.<api_id>.verify_key` |
+| Keyspace ID | `ks_...` | Analytics tables (`key_space_id`), the `keyspaces` filter on `keys.verifyKey`, and the customer portal |
+
+Both appear on the keyspace's **Settings** page with a copy button.
+
+## Settings that apply to every key
+
+These settings apply to every key in the keyspace. [Keyspace settings](/api-management/keyspaces/settings) covers each one.
+
+| Setting | Effect |
+| --- | --- |
+| Default prefix | Prepended to new keys that do not pass their own `prefix`. |
+| Default bytes | Random bytes used for new keys that do not pass their own `byteLength`; 16 unless changed. |
+| Store encrypted keys | Allows keys to be created as recoverable; opt-in through support. |
+| IP allow list | Verification rejects requests from any other client IP; exact match, not editable in the dashboard. |
+| Delete protection | Blocks `apis.deleteApi` and the dashboard delete button while on. |
+
+## Create a keyspace
+
+<RootKeyPrereq />
+
+<Steps titleSize="h3">
+  <Step title="From the dashboard">
+    Open **Keyspaces (APIs)** in the sidebar, click **Create keyspace**, and enter a name. Both IDs are on the new keyspace's settings page.
+
+    <Frame>
+      <img src="/images/dashboard/api-management--keyspaces-overview--list.png" alt="Keyspaces page showing keyspace cards with their key counts and the Create keyspace button" />
+    </Frame>
+  </Step>
+  <Step title="From the API">
+    `apis.createApi` takes a `name` (3 to 256 characters, just a label) and needs `api.*.create_api` on the root key. The response has the new API ID.
+
+    ```bash
+    curl -X POST https://api.unkey.com/v2/apis.createApi \
+      -H "Authorization: Bearer $UNKEY_ROOT_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{ "name": "payment-service-prod" }'
+    ```
+
+    `apis.getApi` returns the `id` and `name` for an API ID you already have.
+  </Step>
+</Steps>
+
+## Delete a keyspace
+
+Deleting a keyspace makes every key in it verify as `NOT_FOUND`. In the dashboard, use the **Delete Keyspace** card in the settings danger zone and type the keyspace name and the confirmation phrase. From the API, call `apis.deleteApi` with the `apiId`. It needs `api.*.delete_api` or `api.<api_id>.delete_api`.
+
+If delete protection is on, both fail with HTTP 412 `err:unkey:application:protected_resource`. Turn protection off on the settings page first. See [Delete protection](/platform/security/delete-protection).
+
+## Next steps
+
+<Columns cols={2}>
+  <Card title="Keyspace settings" icon="sliders" href="/api-management/keyspaces/settings">
+    Defaults, encrypted storage, IP allow list, and delete protection.
+  </Card>
+  <Card title="Listing keys" icon="list" href="/api-management/keyspaces/listing-keys">
+    Page through the keys in a keyspace and filter by owner.
+  </Card>
+</Columns>

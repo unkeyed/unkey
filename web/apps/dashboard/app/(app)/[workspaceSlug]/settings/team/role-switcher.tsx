@@ -87,7 +87,7 @@ export const RoleSwitcher = memo<RoleSwitcherProps>(
       );
     }
 
-    return <span className="text-content">{organizationRoleLabel(role)}</span>;
+    return <span className="text-gray-12">{organizationRoleLabel(role)}</span>;
   },
 );
 

@@ -1,0 +1,4894 @@
+{
+  "commands": [
+    {
+      "path": "api analytics get-gateway-requests",
+      "usage": "Query gateway request data",
+      "flags": [
+        {
+          "name": "api-url",
+          "type": "string",
+          "default": "https://api.unkey.com",
+          "env": "UNKEY_API_BASE_URL",
+          "required": false
+        },
+        {
+          "name": "body",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "config",
+          "type": "string",
+          "default": "~/.unkey/config.toml",
+          "env": "UNKEY_CONFIG",
+          "required": false
+        },
+        {
+          "name": "output",
+          "type": "string",
+          "env": "UNKEY_OUTPUT",
+          "required": false
+        },
+        {
+          "name": "query",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "root-key",
+          "type": "string",
+          "env": "UNKEY_ROOT_KEY",
+          "required": false
+        }
+      ]
+    },
+    {
+      "path": "api analytics get-ratelimits",
+      "usage": "Query rate limit data",
+      "flags": [
+        {
+          "name": "api-url",
+          "type": "string",
+          "default": "https://api.unkey.com",
+          "env": "UNKEY_API_BASE_URL",
+          "required": false
+        },
+        {
+          "name": "body",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "config",
+          "type": "string",
+          "default": "~/.unkey/config.toml",
+          "env": "UNKEY_CONFIG",
+          "required": false
+        },
+        {
+          "name": "output",
+          "type": "string",
+          "env": "UNKEY_OUTPUT",
+          "required": false
+        },
+        {
+          "name": "query",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "root-key",
+          "type": "string",
+          "env": "UNKEY_ROOT_KEY",
+          "required": false
+        }
+      ]
+    },
+    {
+      "path": "api analytics get-runtime-logs",
+      "usage": "Query runtime log data",
+      "flags": [
+        {
+          "name": "api-url",
+          "type": "string",
+          "default": "https://api.unkey.com",
+          "env": "UNKEY_API_BASE_URL",
+          "required": false
+        },
+        {
+          "name": "body",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "config",
+          "type": "string",
+          "default": "~/.unkey/config.toml",
+          "env": "UNKEY_CONFIG",
+          "required": false
+        },
+        {
+          "name": "output",
+          "type": "string",
+          "env": "UNKEY_OUTPUT",
+          "required": false
+        },
+        {
+          "name": "query",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "root-key",
+          "type": "string",
+          "env": "UNKEY_ROOT_KEY",
+          "required": false
+        }
+      ]
+    },
+    {
+      "path": "api analytics get-verifications",
+      "usage": "Execute custom SQL queries against your key verification analytics",
+      "flags": [
+        {
+          "name": "api-url",
+          "type": "string",
+          "default": "https://api.unkey.com",
+          "env": "UNKEY_API_BASE_URL",
+          "required": false
+        },
+        {
+          "name": "body",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "config",
+          "type": "string",
+          "default": "~/.unkey/config.toml",
+          "env": "UNKEY_CONFIG",
+          "required": false
+        },
+        {
+          "name": "output",
+          "type": "string",
+          "env": "UNKEY_OUTPUT",
+          "required": false
+        },
+        {
+          "name": "query",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "root-key",
+          "type": "string",
+          "env": "UNKEY_ROOT_KEY",
+          "required": false
+        }
+      ]
+    },
+    {
+      "path": "api apis create-api",
+      "usage": "Create an API namespace for organizing keys by environment, service, or product",
+      "flags": [
+        {
+          "name": "api-url",
+          "type": "string",
+          "default": "https://api.unkey.com",
+          "env": "UNKEY_API_BASE_URL",
+          "required": false
+        },
+        {
+          "name": "body",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "config",
+          "type": "string",
+          "default": "~/.unkey/config.toml",
+          "env": "UNKEY_CONFIG",
+          "required": false
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "output",
+          "type": "string",
+          "env": "UNKEY_OUTPUT",
+          "required": false
+        },
+        {
+          "name": "root-key",
+          "type": "string",
+          "env": "UNKEY_ROOT_KEY",
+          "required": false
+        }
+      ]
+    },
+    {
+      "path": "api apis delete-api",
+      "usage": "Permanently delete an API namespace and immediately invalidate all associated keys",
+      "flags": [
+        {
+          "name": "api-id",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "api-url",
+          "type": "string",
+          "default": "https://api.unkey.com",
+          "env": "UNKEY_API_BASE_URL",
+          "required": false
+        },
+        {
+          "name": "body",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "config",
+          "type": "string",
+          "default": "~/.unkey/config.toml",
+          "env": "UNKEY_CONFIG",
+          "required": false
+        },
+        {
+          "name": "output",
+          "type": "string",
+          "env": "UNKEY_OUTPUT",
+          "required": false
+        },
+        {
+          "name": "root-key",
+          "type": "string",
+          "env": "UNKEY_ROOT_KEY",
+          "required": false
+        }
+      ]
+    },
+    {
+      "path": "api apis get-api",
+      "usage": "Retrieve basic information about an API namespace including its ID and name",
+      "flags": [
+        {
+          "name": "api-id",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "api-url",
+          "type": "string",
+          "default": "https://api.unkey.com",
+          "env": "UNKEY_API_BASE_URL",
+          "required": false
+        },
+        {
+          "name": "body",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "config",
+          "type": "string",
+          "default": "~/.unkey/config.toml",
+          "env": "UNKEY_CONFIG",
+          "required": false
+        },
+        {
+          "name": "output",
+          "type": "string",
+          "env": "UNKEY_OUTPUT",
+          "required": false
+        },
+        {
+          "name": "root-key",
+          "type": "string",
+          "env": "UNKEY_ROOT_KEY",
+          "required": false
+        }
+      ]
+    },
+    {
+      "path": "api apis list-keys",
+      "usage": "Retrieve a paginated list of API keys for dashboard and administrative interfaces",
+      "flags": [
+        {
+          "name": "api-id",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "api-url",
+          "type": "string",
+          "default": "https://api.unkey.com",
+          "env": "UNKEY_API_BASE_URL",
+          "required": false
+        },
+        {
+          "name": "body",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "config",
+          "type": "string",
+          "default": "~/.unkey/config.toml",
+          "env": "UNKEY_CONFIG",
+          "required": false
+        },
+        {
+          "name": "cursor",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "decrypt",
+          "type": "boolean",
+          "default": "false",
+          "required": false
+        },
+        {
+          "name": "external-id",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "limit",
+          "type": "integer",
+          "required": false
+        },
+        {
+          "name": "output",
+          "type": "string",
+          "env": "UNKEY_OUTPUT",
+          "required": false
+        },
+        {
+          "name": "revalidate-keys-cache",
+          "type": "boolean",
+          "default": "false",
+          "required": false
+        },
+        {
+          "name": "root-key",
+          "type": "string",
+          "env": "UNKEY_ROOT_KEY",
+          "required": false
+        }
+      ]
+    },
+    {
+      "path": "api apps create-app",
+      "usage": "Create an app within a project.",
+      "flags": [
+        {
+          "name": "api-url",
+          "type": "string",
+          "default": "https://api.unkey.com",
+          "env": "UNKEY_API_BASE_URL",
+          "required": false
+        },
+        {
+          "name": "body",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "config",
+          "type": "string",
+          "default": "~/.unkey/config.toml",
+          "env": "UNKEY_CONFIG",
+          "required": false
+        },
+        {
+          "name": "git",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "oci",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "output",
+          "type": "string",
+          "env": "UNKEY_OUTPUT",
+          "required": false
+        },
+        {
+          "name": "project",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "root-key",
+          "type": "string",
+          "env": "UNKEY_ROOT_KEY",
+          "required": false
+        },
+        {
+          "name": "slug",
+          "type": "string",
+          "required": true
+        }
+      ]
+    },
+    {
+      "path": "api apps delete-app",
+      "usage": "Delete an existing app, identified by its id.",
+      "flags": [
+        {
+          "name": "api-url",
+          "type": "string",
+          "default": "https://api.unkey.com",
+          "env": "UNKEY_API_BASE_URL",
+          "required": false
+        },
+        {
+          "name": "app",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "body",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "config",
+          "type": "string",
+          "default": "~/.unkey/config.toml",
+          "env": "UNKEY_CONFIG",
+          "required": false
+        },
+        {
+          "name": "output",
+          "type": "string",
+          "env": "UNKEY_OUTPUT",
+          "required": false
+        },
+        {
+          "name": "project",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "root-key",
+          "type": "string",
+          "env": "UNKEY_ROOT_KEY",
+          "required": false
+        }
+      ]
+    },
+    {
+      "path": "api apps get-app",
+      "usage": "Retrieve a single app by its id or slug within a project.",
+      "flags": [
+        {
+          "name": "api-url",
+          "type": "string",
+          "default": "https://api.unkey.com",
+          "env": "UNKEY_API_BASE_URL",
+          "required": false
+        },
+        {
+          "name": "app",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "body",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "config",
+          "type": "string",
+          "default": "~/.unkey/config.toml",
+          "env": "UNKEY_CONFIG",
+          "required": false
+        },
+        {
+          "name": "output",
+          "type": "string",
+          "env": "UNKEY_OUTPUT",
+          "required": false
+        },
+        {
+          "name": "project",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "root-key",
+          "type": "string",
+          "env": "UNKEY_ROOT_KEY",
+          "required": false
+        }
+      ]
+    },
+    {
+      "path": "api apps list-apps",
+      "usage": "Retrieve a paginated list of apps within a project.",
+      "flags": [
+        {
+          "name": "api-url",
+          "type": "string",
+          "default": "https://api.unkey.com",
+          "env": "UNKEY_API_BASE_URL",
+          "required": false
+        },
+        {
+          "name": "body",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "config",
+          "type": "string",
+          "default": "~/.unkey/config.toml",
+          "env": "UNKEY_CONFIG",
+          "required": false
+        },
+        {
+          "name": "cursor",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "limit",
+          "type": "integer",
+          "default": "100",
+          "required": false
+        },
+        {
+          "name": "output",
+          "type": "string",
+          "env": "UNKEY_OUTPUT",
+          "required": false
+        },
+        {
+          "name": "project",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "root-key",
+          "type": "string",
+          "env": "UNKEY_ROOT_KEY",
+          "required": false
+        },
+        {
+          "name": "search",
+          "type": "string",
+          "required": false
+        }
+      ]
+    },
+    {
+      "path": "api apps update-app",
+      "usage": "Update an existing app, identified by its id.",
+      "flags": [
+        {
+          "name": "api-url",
+          "type": "string",
+          "default": "https://api.unkey.com",
+          "env": "UNKEY_API_BASE_URL",
+          "required": false
+        },
+        {
+          "name": "app",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "body",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "config",
+          "type": "string",
+          "default": "~/.unkey/config.toml",
+          "env": "UNKEY_CONFIG",
+          "required": false
+        },
+        {
+          "name": "delete-protection",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "git",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "oci",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "output",
+          "type": "string",
+          "env": "UNKEY_OUTPUT",
+          "required": false
+        },
+        {
+          "name": "project",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "root-key",
+          "type": "string",
+          "env": "UNKEY_ROOT_KEY",
+          "required": false
+        },
+        {
+          "name": "slug",
+          "type": "string",
+          "required": false
+        }
+      ]
+    },
+    {
+      "path": "api deployments create-deployment",
+      "usage": "Create a deployment for an app in a project.",
+      "flags": [
+        {
+          "name": "api-url",
+          "type": "string",
+          "default": "https://api.unkey.com",
+          "env": "UNKEY_API_BASE_URL",
+          "required": false
+        },
+        {
+          "name": "app",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "body",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "config",
+          "type": "string",
+          "default": "~/.unkey/config.toml",
+          "env": "UNKEY_CONFIG",
+          "required": false
+        },
+        {
+          "name": "deployment",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "environment",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "git",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "oci",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "output",
+          "type": "string",
+          "env": "UNKEY_OUTPUT",
+          "required": false
+        },
+        {
+          "name": "project",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "root-key",
+          "type": "string",
+          "env": "UNKEY_ROOT_KEY",
+          "required": false
+        }
+      ]
+    },
+    {
+      "path": "api deployments get-deployment",
+      "usage": "Retrieve a deployment by ID",
+      "flags": [
+        {
+          "name": "api-url",
+          "type": "string",
+          "default": "https://api.unkey.com",
+          "env": "UNKEY_API_BASE_URL",
+          "required": false
+        },
+        {
+          "name": "body",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "config",
+          "type": "string",
+          "default": "~/.unkey/config.toml",
+          "env": "UNKEY_CONFIG",
+          "required": false
+        },
+        {
+          "name": "deployment-id",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "output",
+          "type": "string",
+          "env": "UNKEY_OUTPUT",
+          "required": false
+        },
+        {
+          "name": "root-key",
+          "type": "string",
+          "env": "UNKEY_ROOT_KEY",
+          "required": false
+        }
+      ]
+    },
+    {
+      "path": "api deployments list-deployments",
+      "usage": "List deployments with optional resource and status filters",
+      "flags": [
+        {
+          "name": "api-url",
+          "type": "string",
+          "default": "https://api.unkey.com",
+          "env": "UNKEY_API_BASE_URL",
+          "required": false
+        },
+        {
+          "name": "app",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "body",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "config",
+          "type": "string",
+          "default": "~/.unkey/config.toml",
+          "env": "UNKEY_CONFIG",
+          "required": false
+        },
+        {
+          "name": "cursor",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "environment",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "limit",
+          "type": "integer",
+          "required": false
+        },
+        {
+          "name": "output",
+          "type": "string",
+          "env": "UNKEY_OUTPUT",
+          "required": false
+        },
+        {
+          "name": "project",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "root-key",
+          "type": "string",
+          "env": "UNKEY_ROOT_KEY",
+          "required": false
+        },
+        {
+          "name": "status",
+          "type": "string[]",
+          "required": false
+        }
+      ]
+    },
+    {
+      "path": "api deployments promote-deployment",
+      "usage": "Promote a deployment to production",
+      "flags": [
+        {
+          "name": "api-url",
+          "type": "string",
+          "default": "https://api.unkey.com",
+          "env": "UNKEY_API_BASE_URL",
+          "required": false
+        },
+        {
+          "name": "body",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "config",
+          "type": "string",
+          "default": "~/.unkey/config.toml",
+          "env": "UNKEY_CONFIG",
+          "required": false
+        },
+        {
+          "name": "deployment-id",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "output",
+          "type": "string",
+          "env": "UNKEY_OUTPUT",
+          "required": false
+        },
+        {
+          "name": "root-key",
+          "type": "string",
+          "env": "UNKEY_ROOT_KEY",
+          "required": false
+        }
+      ]
+    },
+    {
+      "path": "api deployments rollback-deployment",
+      "usage": "Roll back to an earlier deployment",
+      "flags": [
+        {
+          "name": "api-url",
+          "type": "string",
+          "default": "https://api.unkey.com",
+          "env": "UNKEY_API_BASE_URL",
+          "required": false
+        },
+        {
+          "name": "body",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "config",
+          "type": "string",
+          "default": "~/.unkey/config.toml",
+          "env": "UNKEY_CONFIG",
+          "required": false
+        },
+        {
+          "name": "deployment-id",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "output",
+          "type": "string",
+          "env": "UNKEY_OUTPUT",
+          "required": false
+        },
+        {
+          "name": "root-key",
+          "type": "string",
+          "env": "UNKEY_ROOT_KEY",
+          "required": false
+        }
+      ]
+    },
+    {
+      "path": "api deployments start-deployment",
+      "usage": "Start a stopped deployment",
+      "flags": [
+        {
+          "name": "api-url",
+          "type": "string",
+          "default": "https://api.unkey.com",
+          "env": "UNKEY_API_BASE_URL",
+          "required": false
+        },
+        {
+          "name": "body",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "config",
+          "type": "string",
+          "default": "~/.unkey/config.toml",
+          "env": "UNKEY_CONFIG",
+          "required": false
+        },
+        {
+          "name": "deployment-id",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "output",
+          "type": "string",
+          "env": "UNKEY_OUTPUT",
+          "required": false
+        },
+        {
+          "name": "root-key",
+          "type": "string",
+          "env": "UNKEY_ROOT_KEY",
+          "required": false
+        }
+      ]
+    },
+    {
+      "path": "api deployments stop-deployment",
+      "usage": "Stop a running deployment",
+      "flags": [
+        {
+          "name": "api-url",
+          "type": "string",
+          "default": "https://api.unkey.com",
+          "env": "UNKEY_API_BASE_URL",
+          "required": false
+        },
+        {
+          "name": "body",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "config",
+          "type": "string",
+          "default": "~/.unkey/config.toml",
+          "env": "UNKEY_CONFIG",
+          "required": false
+        },
+        {
+          "name": "deployment-id",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "output",
+          "type": "string",
+          "env": "UNKEY_OUTPUT",
+          "required": false
+        },
+        {
+          "name": "root-key",
+          "type": "string",
+          "env": "UNKEY_ROOT_KEY",
+          "required": false
+        }
+      ]
+    },
+    {
+      "path": "api domains create-domain",
+      "usage": "Attach a custom domain to an environment and start verifying it.",
+      "flags": [
+        {
+          "name": "api-url",
+          "type": "string",
+          "default": "https://api.unkey.com",
+          "env": "UNKEY_API_BASE_URL",
+          "required": false
+        },
+        {
+          "name": "app",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "body",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "config",
+          "type": "string",
+          "default": "~/.unkey/config.toml",
+          "env": "UNKEY_CONFIG",
+          "required": false
+        },
+        {
+          "name": "domain",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "environment",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "output",
+          "type": "string",
+          "env": "UNKEY_OUTPUT",
+          "required": false
+        },
+        {
+          "name": "project",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "root-key",
+          "type": "string",
+          "env": "UNKEY_ROOT_KEY",
+          "required": false
+        }
+      ]
+    },
+    {
+      "path": "api domains delete-domain",
+      "usage": "Delete a custom domain from your workspace.",
+      "flags": [
+        {
+          "name": "api-url",
+          "type": "string",
+          "default": "https://api.unkey.com",
+          "env": "UNKEY_API_BASE_URL",
+          "required": false
+        },
+        {
+          "name": "body",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "config",
+          "type": "string",
+          "default": "~/.unkey/config.toml",
+          "env": "UNKEY_CONFIG",
+          "required": false
+        },
+        {
+          "name": "domain",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "output",
+          "type": "string",
+          "env": "UNKEY_OUTPUT",
+          "required": false
+        },
+        {
+          "name": "root-key",
+          "type": "string",
+          "env": "UNKEY_ROOT_KEY",
+          "required": false
+        }
+      ]
+    },
+    {
+      "path": "api domains get-domain",
+      "usage": "Retrieve a custom domain and its verification status.",
+      "flags": [
+        {
+          "name": "api-url",
+          "type": "string",
+          "default": "https://api.unkey.com",
+          "env": "UNKEY_API_BASE_URL",
+          "required": false
+        },
+        {
+          "name": "body",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "config",
+          "type": "string",
+          "default": "~/.unkey/config.toml",
+          "env": "UNKEY_CONFIG",
+          "required": false
+        },
+        {
+          "name": "domain",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "output",
+          "type": "string",
+          "env": "UNKEY_OUTPUT",
+          "required": false
+        },
+        {
+          "name": "root-key",
+          "type": "string",
+          "env": "UNKEY_ROOT_KEY",
+          "required": false
+        }
+      ]
+    },
+    {
+      "path": "api domains list-domains",
+      "usage": "List your custom domains with their verification status and DNS records.",
+      "flags": [
+        {
+          "name": "api-url",
+          "type": "string",
+          "default": "https://api.unkey.com",
+          "env": "UNKEY_API_BASE_URL",
+          "required": false
+        },
+        {
+          "name": "app",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "body",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "config",
+          "type": "string",
+          "default": "~/.unkey/config.toml",
+          "env": "UNKEY_CONFIG",
+          "required": false
+        },
+        {
+          "name": "cursor",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "environment",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "limit",
+          "type": "integer",
+          "default": "100",
+          "required": false
+        },
+        {
+          "name": "output",
+          "type": "string",
+          "env": "UNKEY_OUTPUT",
+          "required": false
+        },
+        {
+          "name": "project",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "root-key",
+          "type": "string",
+          "env": "UNKEY_ROOT_KEY",
+          "required": false
+        },
+        {
+          "name": "search",
+          "type": "string",
+          "required": false
+        }
+      ]
+    },
+    {
+      "path": "api domains verify-domain",
+      "usage": "Restart verification for a custom domain.",
+      "flags": [
+        {
+          "name": "api-url",
+          "type": "string",
+          "default": "https://api.unkey.com",
+          "env": "UNKEY_API_BASE_URL",
+          "required": false
+        },
+        {
+          "name": "body",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "config",
+          "type": "string",
+          "default": "~/.unkey/config.toml",
+          "env": "UNKEY_CONFIG",
+          "required": false
+        },
+        {
+          "name": "domain",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "output",
+          "type": "string",
+          "env": "UNKEY_OUTPUT",
+          "required": false
+        },
+        {
+          "name": "root-key",
+          "type": "string",
+          "env": "UNKEY_ROOT_KEY",
+          "required": false
+        }
+      ]
+    },
+    {
+      "path": "api environments get-environment",
+      "usage": "Retrieve an environment by ID or slug",
+      "flags": [
+        {
+          "name": "api-url",
+          "type": "string",
+          "default": "https://api.unkey.com",
+          "env": "UNKEY_API_BASE_URL",
+          "required": false
+        },
+        {
+          "name": "app",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "body",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "config",
+          "type": "string",
+          "default": "~/.unkey/config.toml",
+          "env": "UNKEY_CONFIG",
+          "required": false
+        },
+        {
+          "name": "environment",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "output",
+          "type": "string",
+          "env": "UNKEY_OUTPUT",
+          "required": false
+        },
+        {
+          "name": "project",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "root-key",
+          "type": "string",
+          "env": "UNKEY_ROOT_KEY",
+          "required": false
+        }
+      ]
+    },
+    {
+      "path": "api environments list-environment-variables",
+      "usage": "List an environment's variables",
+      "flags": [
+        {
+          "name": "api-url",
+          "type": "string",
+          "default": "https://api.unkey.com",
+          "env": "UNKEY_API_BASE_URL",
+          "required": false
+        },
+        {
+          "name": "app",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "body",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "config",
+          "type": "string",
+          "default": "~/.unkey/config.toml",
+          "env": "UNKEY_CONFIG",
+          "required": false
+        },
+        {
+          "name": "cursor",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "environment",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "limit",
+          "type": "integer",
+          "required": false
+        },
+        {
+          "name": "output",
+          "type": "string",
+          "env": "UNKEY_OUTPUT",
+          "required": false
+        },
+        {
+          "name": "project",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "root-key",
+          "type": "string",
+          "env": "UNKEY_ROOT_KEY",
+          "required": false
+        }
+      ]
+    },
+    {
+      "path": "api environments list-environments",
+      "usage": "List environments for an app",
+      "flags": [
+        {
+          "name": "api-url",
+          "type": "string",
+          "default": "https://api.unkey.com",
+          "env": "UNKEY_API_BASE_URL",
+          "required": false
+        },
+        {
+          "name": "app",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "body",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "config",
+          "type": "string",
+          "default": "~/.unkey/config.toml",
+          "env": "UNKEY_CONFIG",
+          "required": false
+        },
+        {
+          "name": "output",
+          "type": "string",
+          "env": "UNKEY_OUTPUT",
+          "required": false
+        },
+        {
+          "name": "project",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "root-key",
+          "type": "string",
+          "env": "UNKEY_ROOT_KEY",
+          "required": false
+        }
+      ]
+    },
+    {
+      "path": "api environments remove-environment-variables",
+      "usage": "Remove variables from an environment",
+      "flags": [
+        {
+          "name": "api-url",
+          "type": "string",
+          "default": "https://api.unkey.com",
+          "env": "UNKEY_API_BASE_URL",
+          "required": false
+        },
+        {
+          "name": "app",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "body",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "config",
+          "type": "string",
+          "default": "~/.unkey/config.toml",
+          "env": "UNKEY_CONFIG",
+          "required": false
+        },
+        {
+          "name": "environment",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "output",
+          "type": "string",
+          "env": "UNKEY_OUTPUT",
+          "required": false
+        },
+        {
+          "name": "project",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "root-key",
+          "type": "string",
+          "env": "UNKEY_ROOT_KEY",
+          "required": false
+        },
+        {
+          "name": "variables",
+          "type": "string[]",
+          "required": true
+        }
+      ]
+    },
+    {
+      "path": "api environments set-environment-variables",
+      "usage": "Set environment variables",
+      "flags": [
+        {
+          "name": "api-url",
+          "type": "string",
+          "default": "https://api.unkey.com",
+          "env": "UNKEY_API_BASE_URL",
+          "required": false
+        },
+        {
+          "name": "app",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "body",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "config",
+          "type": "string",
+          "default": "~/.unkey/config.toml",
+          "env": "UNKEY_CONFIG",
+          "required": false
+        },
+        {
+          "name": "environment",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "output",
+          "type": "string",
+          "env": "UNKEY_OUTPUT",
+          "required": false
+        },
+        {
+          "name": "project",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "prune",
+          "type": "boolean",
+          "default": "false",
+          "required": false
+        },
+        {
+          "name": "root-key",
+          "type": "string",
+          "env": "UNKEY_ROOT_KEY",
+          "required": false
+        },
+        {
+          "name": "variables",
+          "type": "string",
+          "required": true
+        }
+      ]
+    },
+    {
+      "path": "api environments update-settings",
+      "usage": "Update environment build and runtime settings",
+      "flags": [
+        {
+          "name": "api-url",
+          "type": "string",
+          "default": "https://api.unkey.com",
+          "env": "UNKEY_API_BASE_URL",
+          "required": false
+        },
+        {
+          "name": "app",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "auto-deploy",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "body",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "build-command",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "command",
+          "type": "string[]",
+          "required": false
+        },
+        {
+          "name": "config",
+          "type": "string",
+          "default": "~/.unkey/config.toml",
+          "env": "UNKEY_CONFIG",
+          "required": false
+        },
+        {
+          "name": "dockerfile",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "environment",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "healthcheck",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "memory-mib",
+          "type": "integer",
+          "required": false
+        },
+        {
+          "name": "openapi-spec-path",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "output",
+          "type": "string",
+          "env": "UNKEY_OUTPUT",
+          "required": false
+        },
+        {
+          "name": "port",
+          "type": "integer",
+          "required": false
+        },
+        {
+          "name": "project",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "regions",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "root-directory",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "root-key",
+          "type": "string",
+          "env": "UNKEY_ROOT_KEY",
+          "required": false
+        },
+        {
+          "name": "shutdown-signal",
+          "type": "enum",
+          "required": false
+        },
+        {
+          "name": "storage-mib",
+          "type": "integer",
+          "required": false
+        },
+        {
+          "name": "upstream-protocol",
+          "type": "enum",
+          "required": false
+        },
+        {
+          "name": "v-cpus",
+          "type": "float",
+          "required": false
+        },
+        {
+          "name": "watch-paths",
+          "type": "string[]",
+          "required": false
+        }
+      ]
+    },
+    {
+      "path": "api gateway list-policies",
+      "usage": "Retrieve an environment's gateway policies in evaluation order",
+      "flags": [
+        {
+          "name": "api-url",
+          "type": "string",
+          "default": "https://api.unkey.com",
+          "env": "UNKEY_API_BASE_URL",
+          "required": false
+        },
+        {
+          "name": "app",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "body",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "config",
+          "type": "string",
+          "default": "~/.unkey/config.toml",
+          "env": "UNKEY_CONFIG",
+          "required": false
+        },
+        {
+          "name": "environment",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "output",
+          "type": "string",
+          "env": "UNKEY_OUTPUT",
+          "required": false
+        },
+        {
+          "name": "project",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "root-key",
+          "type": "string",
+          "env": "UNKEY_ROOT_KEY",
+          "required": false
+        }
+      ]
+    },
+    {
+      "path": "api gateway set-policies",
+      "usage": "Replace an environment's gateway policies in a single atomic request",
+      "flags": [
+        {
+          "name": "api-url",
+          "type": "string",
+          "default": "https://api.unkey.com",
+          "env": "UNKEY_API_BASE_URL",
+          "required": false
+        },
+        {
+          "name": "app",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "body",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "config",
+          "type": "string",
+          "default": "~/.unkey/config.toml",
+          "env": "UNKEY_CONFIG",
+          "required": false
+        },
+        {
+          "name": "environment",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "output",
+          "type": "string",
+          "env": "UNKEY_OUTPUT",
+          "required": false
+        },
+        {
+          "name": "policies",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "project",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "root-key",
+          "type": "string",
+          "env": "UNKEY_ROOT_KEY",
+          "required": false
+        }
+      ]
+    },
+    {
+      "path": "api gateway update-policy",
+      "usage": "Update a single policy in place without resending the environment's full policy list",
+      "flags": [
+        {
+          "name": "api-url",
+          "type": "string",
+          "default": "https://api.unkey.com",
+          "env": "UNKEY_API_BASE_URL",
+          "required": false
+        },
+        {
+          "name": "app",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "body",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "config",
+          "type": "string",
+          "default": "~/.unkey/config.toml",
+          "env": "UNKEY_CONFIG",
+          "required": false
+        },
+        {
+          "name": "environment",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "output",
+          "type": "string",
+          "env": "UNKEY_OUTPUT",
+          "required": false
+        },
+        {
+          "name": "policy",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "policy-id",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "project",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "root-key",
+          "type": "string",
+          "env": "UNKEY_ROOT_KEY",
+          "required": false
+        }
+      ]
+    },
+    {
+      "path": "api github install-app",
+      "usage": "Start installing the Unkey GitHub App for your workspace.",
+      "flags": [
+        {
+          "name": "api-url",
+          "type": "string",
+          "default": "https://api.unkey.com",
+          "env": "UNKEY_API_BASE_URL",
+          "required": false
+        },
+        {
+          "name": "body",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "config",
+          "type": "string",
+          "default": "~/.unkey/config.toml",
+          "env": "UNKEY_CONFIG",
+          "required": false
+        },
+        {
+          "name": "output",
+          "type": "string",
+          "env": "UNKEY_OUTPUT",
+          "required": false
+        },
+        {
+          "name": "root-key",
+          "type": "string",
+          "env": "UNKEY_ROOT_KEY",
+          "required": false
+        }
+      ]
+    },
+    {
+      "path": "api identities create-identity",
+      "usage": "Create an identity to group multiple API keys under a single entity.",
+      "flags": [
+        {
+          "name": "api-url",
+          "type": "string",
+          "default": "https://api.unkey.com",
+          "env": "UNKEY_API_BASE_URL",
+          "required": false
+        },
+        {
+          "name": "body",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "config",
+          "type": "string",
+          "default": "~/.unkey/config.toml",
+          "env": "UNKEY_CONFIG",
+          "required": false
+        },
+        {
+          "name": "external-id",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "meta",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "output",
+          "type": "string",
+          "env": "UNKEY_OUTPUT",
+          "required": false
+        },
+        {
+          "name": "ratelimits",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "root-key",
+          "type": "string",
+          "env": "UNKEY_ROOT_KEY",
+          "required": false
+        }
+      ]
+    },
+    {
+      "path": "api identities delete-identity",
+      "usage": "Permanently delete an identity.",
+      "flags": [
+        {
+          "name": "api-url",
+          "type": "string",
+          "default": "https://api.unkey.com",
+          "env": "UNKEY_API_BASE_URL",
+          "required": false
+        },
+        {
+          "name": "body",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "config",
+          "type": "string",
+          "default": "~/.unkey/config.toml",
+          "env": "UNKEY_CONFIG",
+          "required": false
+        },
+        {
+          "name": "identity",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "output",
+          "type": "string",
+          "env": "UNKEY_OUTPUT",
+          "required": false
+        },
+        {
+          "name": "root-key",
+          "type": "string",
+          "env": "UNKEY_ROOT_KEY",
+          "required": false
+        }
+      ]
+    },
+    {
+      "path": "api identities get-identity",
+      "usage": "Retrieve an identity by external ID",
+      "flags": [
+        {
+          "name": "api-url",
+          "type": "string",
+          "default": "https://api.unkey.com",
+          "env": "UNKEY_API_BASE_URL",
+          "required": false
+        },
+        {
+          "name": "body",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "config",
+          "type": "string",
+          "default": "~/.unkey/config.toml",
+          "env": "UNKEY_CONFIG",
+          "required": false
+        },
+        {
+          "name": "identity",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "output",
+          "type": "string",
+          "env": "UNKEY_OUTPUT",
+          "required": false
+        },
+        {
+          "name": "root-key",
+          "type": "string",
+          "env": "UNKEY_ROOT_KEY",
+          "required": false
+        }
+      ]
+    },
+    {
+      "path": "api identities list-identities",
+      "usage": "Get a paginated list of all identities in your workspace",
+      "flags": [
+        {
+          "name": "api-url",
+          "type": "string",
+          "default": "https://api.unkey.com",
+          "env": "UNKEY_API_BASE_URL",
+          "required": false
+        },
+        {
+          "name": "body",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "config",
+          "type": "string",
+          "default": "~/.unkey/config.toml",
+          "env": "UNKEY_CONFIG",
+          "required": false
+        },
+        {
+          "name": "cursor",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "limit",
+          "type": "integer",
+          "required": false
+        },
+        {
+          "name": "output",
+          "type": "string",
+          "env": "UNKEY_OUTPUT",
+          "required": false
+        },
+        {
+          "name": "root-key",
+          "type": "string",
+          "env": "UNKEY_ROOT_KEY",
+          "required": false
+        },
+        {
+          "name": "search",
+          "type": "string",
+          "required": false
+        }
+      ]
+    },
+    {
+      "path": "api identities update-identity",
+      "usage": "Update an identity's metadata and rate limits.",
+      "flags": [
+        {
+          "name": "api-url",
+          "type": "string",
+          "default": "https://api.unkey.com",
+          "env": "UNKEY_API_BASE_URL",
+          "required": false
+        },
+        {
+          "name": "body",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "config",
+          "type": "string",
+          "default": "~/.unkey/config.toml",
+          "env": "UNKEY_CONFIG",
+          "required": false
+        },
+        {
+          "name": "identity",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "meta",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "output",
+          "type": "string",
+          "env": "UNKEY_OUTPUT",
+          "required": false
+        },
+        {
+          "name": "ratelimits",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "root-key",
+          "type": "string",
+          "env": "UNKEY_ROOT_KEY",
+          "required": false
+        }
+      ]
+    },
+    {
+      "path": "api keys add-permissions",
+      "usage": "Add permissions to a key without affecting existing permissions",
+      "flags": [
+        {
+          "name": "api-url",
+          "type": "string",
+          "default": "https://api.unkey.com",
+          "env": "UNKEY_API_BASE_URL",
+          "required": false
+        },
+        {
+          "name": "body",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "config",
+          "type": "string",
+          "default": "~/.unkey/config.toml",
+          "env": "UNKEY_CONFIG",
+          "required": false
+        },
+        {
+          "name": "key-id",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "output",
+          "type": "string",
+          "env": "UNKEY_OUTPUT",
+          "required": false
+        },
+        {
+          "name": "permissions",
+          "type": "string[]",
+          "required": true
+        },
+        {
+          "name": "root-key",
+          "type": "string",
+          "env": "UNKEY_ROOT_KEY",
+          "required": false
+        }
+      ]
+    },
+    {
+      "path": "api keys add-roles",
+      "usage": "Add roles to a key without affecting existing roles or permissions",
+      "flags": [
+        {
+          "name": "api-url",
+          "type": "string",
+          "default": "https://api.unkey.com",
+          "env": "UNKEY_API_BASE_URL",
+          "required": false
+        },
+        {
+          "name": "body",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "config",
+          "type": "string",
+          "default": "~/.unkey/config.toml",
+          "env": "UNKEY_CONFIG",
+          "required": false
+        },
+        {
+          "name": "key-id",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "output",
+          "type": "string",
+          "env": "UNKEY_OUTPUT",
+          "required": false
+        },
+        {
+          "name": "roles",
+          "type": "string[]",
+          "required": true
+        },
+        {
+          "name": "root-key",
+          "type": "string",
+          "env": "UNKEY_ROOT_KEY",
+          "required": false
+        }
+      ]
+    },
+    {
+      "path": "api keys create-key",
+      "usage": "Create a new API key for user authentication and authorization",
+      "flags": [
+        {
+          "name": "api-id",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "api-url",
+          "type": "string",
+          "default": "https://api.unkey.com",
+          "env": "UNKEY_API_BASE_URL",
+          "required": false
+        },
+        {
+          "name": "body",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "byte-length",
+          "type": "integer",
+          "required": false
+        },
+        {
+          "name": "config",
+          "type": "string",
+          "default": "~/.unkey/config.toml",
+          "env": "UNKEY_CONFIG",
+          "required": false
+        },
+        {
+          "name": "credits",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "enabled",
+          "type": "boolean",
+          "default": "true",
+          "required": false
+        },
+        {
+          "name": "expires",
+          "type": "integer",
+          "required": false
+        },
+        {
+          "name": "external-id",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "meta",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "output",
+          "type": "string",
+          "env": "UNKEY_OUTPUT",
+          "required": false
+        },
+        {
+          "name": "permissions",
+          "type": "string[]",
+          "required": false
+        },
+        {
+          "name": "prefix",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "ratelimits",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "recoverable",
+          "type": "boolean",
+          "default": "false",
+          "required": false
+        },
+        {
+          "name": "roles",
+          "type": "string[]",
+          "required": false
+        },
+        {
+          "name": "root-key",
+          "type": "string",
+          "env": "UNKEY_ROOT_KEY",
+          "required": false
+        }
+      ]
+    },
+    {
+      "path": "api keys delete-key",
+      "usage": "Delete API keys permanently from user accounts or for cleanup purposes",
+      "flags": [
+        {
+          "name": "api-url",
+          "type": "string",
+          "default": "https://api.unkey.com",
+          "env": "UNKEY_API_BASE_URL",
+          "required": false
+        },
+        {
+          "name": "body",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "config",
+          "type": "string",
+          "default": "~/.unkey/config.toml",
+          "env": "UNKEY_CONFIG",
+          "required": false
+        },
+        {
+          "name": "key-id",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "output",
+          "type": "string",
+          "env": "UNKEY_OUTPUT",
+          "required": false
+        },
+        {
+          "name": "permanent",
+          "type": "boolean",
+          "default": "false",
+          "required": false
+        },
+        {
+          "name": "root-key",
+          "type": "string",
+          "env": "UNKEY_ROOT_KEY",
+          "required": false
+        }
+      ]
+    },
+    {
+      "path": "api keys get-key",
+      "usage": "Retrieve detailed key information for dashboard interfaces and administrative purposes",
+      "flags": [
+        {
+          "name": "api-url",
+          "type": "string",
+          "default": "https://api.unkey.com",
+          "env": "UNKEY_API_BASE_URL",
+          "required": false
+        },
+        {
+          "name": "body",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "config",
+          "type": "string",
+          "default": "~/.unkey/config.toml",
+          "env": "UNKEY_CONFIG",
+          "required": false
+        },
+        {
+          "name": "decrypt",
+          "type": "boolean",
+          "default": "false",
+          "required": false
+        },
+        {
+          "name": "key-id",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "output",
+          "type": "string",
+          "env": "UNKEY_OUTPUT",
+          "required": false
+        },
+        {
+          "name": "root-key",
+          "type": "string",
+          "env": "UNKEY_ROOT_KEY",
+          "required": false
+        }
+      ]
+    },
+    {
+      "path": "api keys migrate-keys",
+      "usage": "Returns HTTP 200 even on partial success; hashes that could not be migrated are listed under data.failed",
+      "flags": [
+        {
+          "name": "api-id",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "api-url",
+          "type": "string",
+          "default": "https://api.unkey.com",
+          "env": "UNKEY_API_BASE_URL",
+          "required": false
+        },
+        {
+          "name": "body",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "config",
+          "type": "string",
+          "default": "~/.unkey/config.toml",
+          "env": "UNKEY_CONFIG",
+          "required": false
+        },
+        {
+          "name": "keys",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "migration-id",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "output",
+          "type": "string",
+          "env": "UNKEY_OUTPUT",
+          "required": false
+        },
+        {
+          "name": "root-key",
+          "type": "string",
+          "env": "UNKEY_ROOT_KEY",
+          "required": false
+        }
+      ]
+    },
+    {
+      "path": "api keys remove-permissions",
+      "usage": "Remove permissions from a key without affecting existing roles or other permissions",
+      "flags": [
+        {
+          "name": "api-url",
+          "type": "string",
+          "default": "https://api.unkey.com",
+          "env": "UNKEY_API_BASE_URL",
+          "required": false
+        },
+        {
+          "name": "body",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "config",
+          "type": "string",
+          "default": "~/.unkey/config.toml",
+          "env": "UNKEY_CONFIG",
+          "required": false
+        },
+        {
+          "name": "key-id",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "output",
+          "type": "string",
+          "env": "UNKEY_OUTPUT",
+          "required": false
+        },
+        {
+          "name": "permissions",
+          "type": "string[]",
+          "required": true
+        },
+        {
+          "name": "root-key",
+          "type": "string",
+          "env": "UNKEY_ROOT_KEY",
+          "required": false
+        }
+      ]
+    },
+    {
+      "path": "api keys remove-roles",
+      "usage": "Remove roles from a key without affecting direct permissions or other roles",
+      "flags": [
+        {
+          "name": "api-url",
+          "type": "string",
+          "default": "https://api.unkey.com",
+          "env": "UNKEY_API_BASE_URL",
+          "required": false
+        },
+        {
+          "name": "body",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "config",
+          "type": "string",
+          "default": "~/.unkey/config.toml",
+          "env": "UNKEY_CONFIG",
+          "required": false
+        },
+        {
+          "name": "key-id",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "output",
+          "type": "string",
+          "env": "UNKEY_OUTPUT",
+          "required": false
+        },
+        {
+          "name": "roles",
+          "type": "string[]",
+          "required": true
+        },
+        {
+          "name": "root-key",
+          "type": "string",
+          "env": "UNKEY_ROOT_KEY",
+          "required": false
+        }
+      ]
+    },
+    {
+      "path": "api keys reroll-key",
+      "usage": "Generate a new API key while preserving the configuration from an existing key",
+      "flags": [
+        {
+          "name": "api-url",
+          "type": "string",
+          "default": "https://api.unkey.com",
+          "env": "UNKEY_API_BASE_URL",
+          "required": false
+        },
+        {
+          "name": "body",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "config",
+          "type": "string",
+          "default": "~/.unkey/config.toml",
+          "env": "UNKEY_CONFIG",
+          "required": false
+        },
+        {
+          "name": "expiration",
+          "type": "integer",
+          "required": true
+        },
+        {
+          "name": "key-id",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "output",
+          "type": "string",
+          "env": "UNKEY_OUTPUT",
+          "required": false
+        },
+        {
+          "name": "root-key",
+          "type": "string",
+          "env": "UNKEY_ROOT_KEY",
+          "required": false
+        }
+      ]
+    },
+    {
+      "path": "api keys set-permissions",
+      "usage": "Replace all permissions on a key with the specified set in a single atomic operation",
+      "flags": [
+        {
+          "name": "api-url",
+          "type": "string",
+          "default": "https://api.unkey.com",
+          "env": "UNKEY_API_BASE_URL",
+          "required": false
+        },
+        {
+          "name": "body",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "config",
+          "type": "string",
+          "default": "~/.unkey/config.toml",
+          "env": "UNKEY_CONFIG",
+          "required": false
+        },
+        {
+          "name": "key-id",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "output",
+          "type": "string",
+          "env": "UNKEY_OUTPUT",
+          "required": false
+        },
+        {
+          "name": "permissions",
+          "type": "string[]",
+          "required": true
+        },
+        {
+          "name": "root-key",
+          "type": "string",
+          "env": "UNKEY_ROOT_KEY",
+          "required": false
+        }
+      ]
+    },
+    {
+      "path": "api keys set-roles",
+      "usage": "Replace all roles on a key with the specified set in a single atomic operation",
+      "flags": [
+        {
+          "name": "api-url",
+          "type": "string",
+          "default": "https://api.unkey.com",
+          "env": "UNKEY_API_BASE_URL",
+          "required": false
+        },
+        {
+          "name": "body",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "config",
+          "type": "string",
+          "default": "~/.unkey/config.toml",
+          "env": "UNKEY_CONFIG",
+          "required": false
+        },
+        {
+          "name": "key-id",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "output",
+          "type": "string",
+          "env": "UNKEY_OUTPUT",
+          "required": false
+        },
+        {
+          "name": "roles",
+          "type": "string[]",
+          "required": true
+        },
+        {
+          "name": "root-key",
+          "type": "string",
+          "env": "UNKEY_ROOT_KEY",
+          "required": false
+        }
+      ]
+    },
+    {
+      "path": "api keys update-credits",
+      "usage": "Update credit quotas in response to plan changes, billing cycles, or usage purchases",
+      "flags": [
+        {
+          "name": "api-url",
+          "type": "string",
+          "default": "https://api.unkey.com",
+          "env": "UNKEY_API_BASE_URL",
+          "required": false
+        },
+        {
+          "name": "body",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "config",
+          "type": "string",
+          "default": "~/.unkey/config.toml",
+          "env": "UNKEY_CONFIG",
+          "required": false
+        },
+        {
+          "name": "key-id",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "operation",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "output",
+          "type": "string",
+          "env": "UNKEY_OUTPUT",
+          "required": false
+        },
+        {
+          "name": "root-key",
+          "type": "string",
+          "env": "UNKEY_ROOT_KEY",
+          "required": false
+        },
+        {
+          "name": "value",
+          "type": "integer",
+          "required": false
+        }
+      ]
+    },
+    {
+      "path": "api keys update-key",
+      "usage": "Update key properties in response to plan changes, subscription updates, or account status changes",
+      "flags": [
+        {
+          "name": "api-url",
+          "type": "string",
+          "default": "https://api.unkey.com",
+          "env": "UNKEY_API_BASE_URL",
+          "required": false
+        },
+        {
+          "name": "body",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "config",
+          "type": "string",
+          "default": "~/.unkey/config.toml",
+          "env": "UNKEY_CONFIG",
+          "required": false
+        },
+        {
+          "name": "credits",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "enabled",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "expires",
+          "type": "integer",
+          "required": false
+        },
+        {
+          "name": "external-id",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "key-id",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "meta",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "output",
+          "type": "string",
+          "env": "UNKEY_OUTPUT",
+          "required": false
+        },
+        {
+          "name": "permissions",
+          "type": "string[]",
+          "required": false
+        },
+        {
+          "name": "ratelimits",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "roles",
+          "type": "string[]",
+          "required": false
+        },
+        {
+          "name": "root-key",
+          "type": "string",
+          "env": "UNKEY_ROOT_KEY",
+          "required": false
+        }
+      ]
+    },
+    {
+      "path": "api keys verify-key",
+      "usage": "Verify an API key's validity and permissions for request authentication",
+      "flags": [
+        {
+          "name": "api-url",
+          "type": "string",
+          "default": "https://api.unkey.com",
+          "env": "UNKEY_API_BASE_URL",
+          "required": false
+        },
+        {
+          "name": "body",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "config",
+          "type": "string",
+          "default": "~/.unkey/config.toml",
+          "env": "UNKEY_CONFIG",
+          "required": false
+        },
+        {
+          "name": "credits",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "key",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "migration-id",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "output",
+          "type": "string",
+          "env": "UNKEY_OUTPUT",
+          "required": false
+        },
+        {
+          "name": "permissions",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "ratelimits",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "root-key",
+          "type": "string",
+          "env": "UNKEY_ROOT_KEY",
+          "required": false
+        },
+        {
+          "name": "tags",
+          "type": "string[]",
+          "required": false
+        }
+      ]
+    },
+    {
+      "path": "api keys whoami",
+      "usage": "Find out what key this is",
+      "flags": [
+        {
+          "name": "api-url",
+          "type": "string",
+          "default": "https://api.unkey.com",
+          "env": "UNKEY_API_BASE_URL",
+          "required": false
+        },
+        {
+          "name": "body",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "config",
+          "type": "string",
+          "default": "~/.unkey/config.toml",
+          "env": "UNKEY_CONFIG",
+          "required": false
+        },
+        {
+          "name": "key",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "output",
+          "type": "string",
+          "env": "UNKEY_OUTPUT",
+          "required": false
+        },
+        {
+          "name": "root-key",
+          "type": "string",
+          "env": "UNKEY_ROOT_KEY",
+          "required": false
+        }
+      ]
+    },
+    {
+      "path": "api permissions create-permission",
+      "usage": "Create a new permission to define specific actions or capabilities in your RBAC system",
+      "flags": [
+        {
+          "name": "api-url",
+          "type": "string",
+          "default": "https://api.unkey.com",
+          "env": "UNKEY_API_BASE_URL",
+          "required": false
+        },
+        {
+          "name": "body",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "config",
+          "type": "string",
+          "default": "~/.unkey/config.toml",
+          "env": "UNKEY_CONFIG",
+          "required": false
+        },
+        {
+          "name": "description",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "output",
+          "type": "string",
+          "env": "UNKEY_OUTPUT",
+          "required": false
+        },
+        {
+          "name": "root-key",
+          "type": "string",
+          "env": "UNKEY_ROOT_KEY",
+          "required": false
+        },
+        {
+          "name": "slug",
+          "type": "string",
+          "required": true
+        }
+      ]
+    },
+    {
+      "path": "api permissions create-role",
+      "usage": "Create a new role to group related permissions for easier management",
+      "flags": [
+        {
+          "name": "api-url",
+          "type": "string",
+          "default": "https://api.unkey.com",
+          "env": "UNKEY_API_BASE_URL",
+          "required": false
+        },
+        {
+          "name": "body",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "config",
+          "type": "string",
+          "default": "~/.unkey/config.toml",
+          "env": "UNKEY_CONFIG",
+          "required": false
+        },
+        {
+          "name": "description",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "output",
+          "type": "string",
+          "env": "UNKEY_OUTPUT",
+          "required": false
+        },
+        {
+          "name": "permissions",
+          "type": "string[]",
+          "required": false
+        },
+        {
+          "name": "root-key",
+          "type": "string",
+          "env": "UNKEY_ROOT_KEY",
+          "required": false
+        }
+      ]
+    },
+    {
+      "path": "api permissions delete-permission",
+      "usage": "Remove a permission from your workspace",
+      "flags": [
+        {
+          "name": "api-url",
+          "type": "string",
+          "default": "https://api.unkey.com",
+          "env": "UNKEY_API_BASE_URL",
+          "required": false
+        },
+        {
+          "name": "body",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "config",
+          "type": "string",
+          "default": "~/.unkey/config.toml",
+          "env": "UNKEY_CONFIG",
+          "required": false
+        },
+        {
+          "name": "output",
+          "type": "string",
+          "env": "UNKEY_OUTPUT",
+          "required": false
+        },
+        {
+          "name": "permission",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "root-key",
+          "type": "string",
+          "env": "UNKEY_ROOT_KEY",
+          "required": false
+        }
+      ]
+    },
+    {
+      "path": "api permissions delete-role",
+      "usage": "Remove a role from your workspace",
+      "flags": [
+        {
+          "name": "api-url",
+          "type": "string",
+          "default": "https://api.unkey.com",
+          "env": "UNKEY_API_BASE_URL",
+          "required": false
+        },
+        {
+          "name": "body",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "config",
+          "type": "string",
+          "default": "~/.unkey/config.toml",
+          "env": "UNKEY_CONFIG",
+          "required": false
+        },
+        {
+          "name": "output",
+          "type": "string",
+          "env": "UNKEY_OUTPUT",
+          "required": false
+        },
+        {
+          "name": "role",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "root-key",
+          "type": "string",
+          "env": "UNKEY_ROOT_KEY",
+          "required": false
+        }
+      ]
+    },
+    {
+      "path": "api permissions get-permission",
+      "usage": "Retrieve details about a specific permission",
+      "flags": [
+        {
+          "name": "api-url",
+          "type": "string",
+          "default": "https://api.unkey.com",
+          "env": "UNKEY_API_BASE_URL",
+          "required": false
+        },
+        {
+          "name": "body",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "config",
+          "type": "string",
+          "default": "~/.unkey/config.toml",
+          "env": "UNKEY_CONFIG",
+          "required": false
+        },
+        {
+          "name": "output",
+          "type": "string",
+          "env": "UNKEY_OUTPUT",
+          "required": false
+        },
+        {
+          "name": "permission",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "root-key",
+          "type": "string",
+          "env": "UNKEY_ROOT_KEY",
+          "required": false
+        }
+      ]
+    },
+    {
+      "path": "api permissions get-role",
+      "usage": "Retrieve details about a specific role including its assigned permissions",
+      "flags": [
+        {
+          "name": "api-url",
+          "type": "string",
+          "default": "https://api.unkey.com",
+          "env": "UNKEY_API_BASE_URL",
+          "required": false
+        },
+        {
+          "name": "body",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "config",
+          "type": "string",
+          "default": "~/.unkey/config.toml",
+          "env": "UNKEY_CONFIG",
+          "required": false
+        },
+        {
+          "name": "output",
+          "type": "string",
+          "env": "UNKEY_OUTPUT",
+          "required": false
+        },
+        {
+          "name": "role",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "root-key",
+          "type": "string",
+          "env": "UNKEY_ROOT_KEY",
+          "required": false
+        }
+      ]
+    },
+    {
+      "path": "api permissions list-permissions",
+      "usage": "Retrieve all permissions in your workspace",
+      "flags": [
+        {
+          "name": "api-url",
+          "type": "string",
+          "default": "https://api.unkey.com",
+          "env": "UNKEY_API_BASE_URL",
+          "required": false
+        },
+        {
+          "name": "body",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "config",
+          "type": "string",
+          "default": "~/.unkey/config.toml",
+          "env": "UNKEY_CONFIG",
+          "required": false
+        },
+        {
+          "name": "cursor",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "limit",
+          "type": "integer",
+          "required": false
+        },
+        {
+          "name": "output",
+          "type": "string",
+          "env": "UNKEY_OUTPUT",
+          "required": false
+        },
+        {
+          "name": "root-key",
+          "type": "string",
+          "env": "UNKEY_ROOT_KEY",
+          "required": false
+        },
+        {
+          "name": "search",
+          "type": "string",
+          "required": false
+        }
+      ]
+    },
+    {
+      "path": "api permissions list-roles",
+      "usage": "Retrieve all roles in your workspace including their assigned permissions",
+      "flags": [
+        {
+          "name": "api-url",
+          "type": "string",
+          "default": "https://api.unkey.com",
+          "env": "UNKEY_API_BASE_URL",
+          "required": false
+        },
+        {
+          "name": "body",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "config",
+          "type": "string",
+          "default": "~/.unkey/config.toml",
+          "env": "UNKEY_CONFIG",
+          "required": false
+        },
+        {
+          "name": "cursor",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "limit",
+          "type": "integer",
+          "required": false
+        },
+        {
+          "name": "output",
+          "type": "string",
+          "env": "UNKEY_OUTPUT",
+          "required": false
+        },
+        {
+          "name": "root-key",
+          "type": "string",
+          "env": "UNKEY_ROOT_KEY",
+          "required": false
+        },
+        {
+          "name": "search",
+          "type": "string",
+          "required": false
+        }
+      ]
+    },
+    {
+      "path": "api permissions set-role-permissions",
+      "usage": "Atomically replace all permissions directly assigned to a role.",
+      "flags": [
+        {
+          "name": "api-url",
+          "type": "string",
+          "default": "https://api.unkey.com",
+          "env": "UNKEY_API_BASE_URL",
+          "required": false
+        },
+        {
+          "name": "body",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "config",
+          "type": "string",
+          "default": "~/.unkey/config.toml",
+          "env": "UNKEY_CONFIG",
+          "required": false
+        },
+        {
+          "name": "output",
+          "type": "string",
+          "env": "UNKEY_OUTPUT",
+          "required": false
+        },
+        {
+          "name": "permissions",
+          "type": "string[]",
+          "required": false
+        },
+        {
+          "name": "role",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "role-id",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "root-key",
+          "type": "string",
+          "env": "UNKEY_ROOT_KEY",
+          "required": false
+        }
+      ]
+    },
+    {
+      "path": "api portal create-portal",
+      "usage": "Create a portal for one app or keyspace in your workspace.",
+      "flags": [
+        {
+          "name": "api-url",
+          "type": "string",
+          "default": "https://api.unkey.com",
+          "env": "UNKEY_API_BASE_URL",
+          "required": false
+        },
+        {
+          "name": "app-id",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "body",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "config",
+          "type": "string",
+          "default": "~/.unkey/config.toml",
+          "env": "UNKEY_CONFIG",
+          "required": false
+        },
+        {
+          "name": "display-name",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "enabled",
+          "type": "boolean",
+          "default": "true",
+          "required": false
+        },
+        {
+          "name": "keyspace-id",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "logo-url",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "output",
+          "type": "string",
+          "env": "UNKEY_OUTPUT",
+          "required": false
+        },
+        {
+          "name": "primary-color",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "root-key",
+          "type": "string",
+          "env": "UNKEY_ROOT_KEY",
+          "required": false
+        },
+        {
+          "name": "slug",
+          "type": "string",
+          "required": true
+        }
+      ]
+    },
+    {
+      "path": "api portal create-session",
+      "usage": "Create a short-lived session token for an end user to access the Customer Portal",
+      "flags": [
+        {
+          "name": "api-url",
+          "type": "string",
+          "default": "https://api.unkey.com",
+          "env": "UNKEY_API_BASE_URL",
+          "required": false
+        },
+        {
+          "name": "body",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "config",
+          "type": "string",
+          "default": "~/.unkey/config.toml",
+          "env": "UNKEY_CONFIG",
+          "required": false
+        },
+        {
+          "name": "external-id",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "output",
+          "type": "string",
+          "env": "UNKEY_OUTPUT",
+          "required": false
+        },
+        {
+          "name": "portal",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "preview",
+          "type": "boolean",
+          "default": "false",
+          "required": false
+        },
+        {
+          "name": "return-url",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "root-key",
+          "type": "string",
+          "env": "UNKEY_ROOT_KEY",
+          "required": false
+        },
+        {
+          "name": "scopes",
+          "type": "string[]",
+          "required": true
+        }
+      ]
+    },
+    {
+      "path": "api portal delete-portal",
+      "usage": "Delete a portal and revoke the sessions it minted.",
+      "flags": [
+        {
+          "name": "api-url",
+          "type": "string",
+          "default": "https://api.unkey.com",
+          "env": "UNKEY_API_BASE_URL",
+          "required": false
+        },
+        {
+          "name": "body",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "config",
+          "type": "string",
+          "default": "~/.unkey/config.toml",
+          "env": "UNKEY_CONFIG",
+          "required": false
+        },
+        {
+          "name": "output",
+          "type": "string",
+          "env": "UNKEY_OUTPUT",
+          "required": false
+        },
+        {
+          "name": "portal",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "root-key",
+          "type": "string",
+          "env": "UNKEY_ROOT_KEY",
+          "required": false
+        }
+      ]
+    },
+    {
+      "path": "api portal get-portal",
+      "usage": "Read one portal, by its id or slug, or by the resource it serves.",
+      "flags": [
+        {
+          "name": "api-url",
+          "type": "string",
+          "default": "https://api.unkey.com",
+          "env": "UNKEY_API_BASE_URL",
+          "required": false
+        },
+        {
+          "name": "app-id",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "body",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "config",
+          "type": "string",
+          "default": "~/.unkey/config.toml",
+          "env": "UNKEY_CONFIG",
+          "required": false
+        },
+        {
+          "name": "keyspace-id",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "output",
+          "type": "string",
+          "env": "UNKEY_OUTPUT",
+          "required": false
+        },
+        {
+          "name": "portal",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "root-key",
+          "type": "string",
+          "env": "UNKEY_ROOT_KEY",
+          "required": false
+        }
+      ]
+    },
+    {
+      "path": "api portal update-portal",
+      "usage": "Change a portal's slug, display name, the resource it serves, its enabled state, or its branding.",
+      "flags": [
+        {
+          "name": "api-url",
+          "type": "string",
+          "default": "https://api.unkey.com",
+          "env": "UNKEY_API_BASE_URL",
+          "required": false
+        },
+        {
+          "name": "app-id",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "body",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "config",
+          "type": "string",
+          "default": "~/.unkey/config.toml",
+          "env": "UNKEY_CONFIG",
+          "required": false
+        },
+        {
+          "name": "display-name",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "enabled",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "keyspace-id",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "logo-url",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "output",
+          "type": "string",
+          "env": "UNKEY_OUTPUT",
+          "required": false
+        },
+        {
+          "name": "portal",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "primary-color",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "root-key",
+          "type": "string",
+          "env": "UNKEY_ROOT_KEY",
+          "required": false
+        },
+        {
+          "name": "slug",
+          "type": "string",
+          "required": false
+        }
+      ]
+    },
+    {
+      "path": "api projects create-project",
+      "usage": "Create a project to group deployments and applications under a workspace-scoped slug.",
+      "flags": [
+        {
+          "name": "api-url",
+          "type": "string",
+          "default": "https://api.unkey.com",
+          "env": "UNKEY_API_BASE_URL",
+          "required": false
+        },
+        {
+          "name": "body",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "config",
+          "type": "string",
+          "default": "~/.unkey/config.toml",
+          "env": "UNKEY_CONFIG",
+          "required": false
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "output",
+          "type": "string",
+          "env": "UNKEY_OUTPUT",
+          "required": false
+        },
+        {
+          "name": "root-key",
+          "type": "string",
+          "env": "UNKEY_ROOT_KEY",
+          "required": false
+        },
+        {
+          "name": "slug",
+          "type": "string",
+          "required": true
+        }
+      ]
+    },
+    {
+      "path": "api projects delete-project",
+      "usage": "Delete an existing project in your workspace, identified by its id.",
+      "flags": [
+        {
+          "name": "api-url",
+          "type": "string",
+          "default": "https://api.unkey.com",
+          "env": "UNKEY_API_BASE_URL",
+          "required": false
+        },
+        {
+          "name": "body",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "config",
+          "type": "string",
+          "default": "~/.unkey/config.toml",
+          "env": "UNKEY_CONFIG",
+          "required": false
+        },
+        {
+          "name": "output",
+          "type": "string",
+          "env": "UNKEY_OUTPUT",
+          "required": false
+        },
+        {
+          "name": "project",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "root-key",
+          "type": "string",
+          "env": "UNKEY_ROOT_KEY",
+          "required": false
+        }
+      ]
+    },
+    {
+      "path": "api projects get-project",
+      "usage": "Retrieve a single project in your workspace by its id.",
+      "flags": [
+        {
+          "name": "api-url",
+          "type": "string",
+          "default": "https://api.unkey.com",
+          "env": "UNKEY_API_BASE_URL",
+          "required": false
+        },
+        {
+          "name": "body",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "config",
+          "type": "string",
+          "default": "~/.unkey/config.toml",
+          "env": "UNKEY_CONFIG",
+          "required": false
+        },
+        {
+          "name": "output",
+          "type": "string",
+          "env": "UNKEY_OUTPUT",
+          "required": false
+        },
+        {
+          "name": "project",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "root-key",
+          "type": "string",
+          "env": "UNKEY_ROOT_KEY",
+          "required": false
+        }
+      ]
+    },
+    {
+      "path": "api projects list-projects",
+      "usage": "Retrieve a paginated list of projects in your workspace.",
+      "flags": [
+        {
+          "name": "api-url",
+          "type": "string",
+          "default": "https://api.unkey.com",
+          "env": "UNKEY_API_BASE_URL",
+          "required": false
+        },
+        {
+          "name": "body",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "config",
+          "type": "string",
+          "default": "~/.unkey/config.toml",
+          "env": "UNKEY_CONFIG",
+          "required": false
+        },
+        {
+          "name": "cursor",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "limit",
+          "type": "integer",
+          "default": "100",
+          "required": false
+        },
+        {
+          "name": "output",
+          "type": "string",
+          "env": "UNKEY_OUTPUT",
+          "required": false
+        },
+        {
+          "name": "root-key",
+          "type": "string",
+          "env": "UNKEY_ROOT_KEY",
+          "required": false
+        },
+        {
+          "name": "search",
+          "type": "string",
+          "required": false
+        }
+      ]
+    },
+    {
+      "path": "api projects update-project",
+      "usage": "Update an existing project in your workspace, identified by its id.",
+      "flags": [
+        {
+          "name": "api-url",
+          "type": "string",
+          "default": "https://api.unkey.com",
+          "env": "UNKEY_API_BASE_URL",
+          "required": false
+        },
+        {
+          "name": "body",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "config",
+          "type": "string",
+          "default": "~/.unkey/config.toml",
+          "env": "UNKEY_CONFIG",
+          "required": false
+        },
+        {
+          "name": "delete-protection",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "output",
+          "type": "string",
+          "env": "UNKEY_OUTPUT",
+          "required": false
+        },
+        {
+          "name": "project",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "root-key",
+          "type": "string",
+          "env": "UNKEY_ROOT_KEY",
+          "required": false
+        },
+        {
+          "name": "slug",
+          "type": "string",
+          "required": false
+        }
+      ]
+    },
+    {
+      "path": "api ratelimit delete-override",
+      "usage": "Permanently remove a rate limit override.",
+      "flags": [
+        {
+          "name": "api-url",
+          "type": "string",
+          "default": "https://api.unkey.com",
+          "env": "UNKEY_API_BASE_URL",
+          "required": false
+        },
+        {
+          "name": "body",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "config",
+          "type": "string",
+          "default": "~/.unkey/config.toml",
+          "env": "UNKEY_CONFIG",
+          "required": false
+        },
+        {
+          "name": "identifier",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "namespace",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "output",
+          "type": "string",
+          "env": "UNKEY_OUTPUT",
+          "required": false
+        },
+        {
+          "name": "root-key",
+          "type": "string",
+          "env": "UNKEY_ROOT_KEY",
+          "required": false
+        }
+      ]
+    },
+    {
+      "path": "api ratelimit get-override",
+      "usage": "Retrieve the configuration of a specific rate limit override by its identifier.",
+      "flags": [
+        {
+          "name": "api-url",
+          "type": "string",
+          "default": "https://api.unkey.com",
+          "env": "UNKEY_API_BASE_URL",
+          "required": false
+        },
+        {
+          "name": "body",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "config",
+          "type": "string",
+          "default": "~/.unkey/config.toml",
+          "env": "UNKEY_CONFIG",
+          "required": false
+        },
+        {
+          "name": "identifier",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "namespace",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "output",
+          "type": "string",
+          "env": "UNKEY_OUTPUT",
+          "required": false
+        },
+        {
+          "name": "root-key",
+          "type": "string",
+          "env": "UNKEY_ROOT_KEY",
+          "required": false
+        }
+      ]
+    },
+    {
+      "path": "api ratelimit limit",
+      "usage": "Check and enforce rate limits for any identifier",
+      "flags": [
+        {
+          "name": "api-url",
+          "type": "string",
+          "default": "https://api.unkey.com",
+          "env": "UNKEY_API_BASE_URL",
+          "required": false
+        },
+        {
+          "name": "body",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "config",
+          "type": "string",
+          "default": "~/.unkey/config.toml",
+          "env": "UNKEY_CONFIG",
+          "required": false
+        },
+        {
+          "name": "cost",
+          "type": "integer",
+          "required": false
+        },
+        {
+          "name": "duration",
+          "type": "integer",
+          "required": true
+        },
+        {
+          "name": "identifier",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "limit",
+          "type": "integer",
+          "required": true
+        },
+        {
+          "name": "namespace",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "output",
+          "type": "string",
+          "env": "UNKEY_OUTPUT",
+          "required": false
+        },
+        {
+          "name": "root-key",
+          "type": "string",
+          "env": "UNKEY_ROOT_KEY",
+          "required": false
+        }
+      ]
+    },
+    {
+      "path": "api ratelimit list-overrides",
+      "usage": "Retrieve a paginated list of all rate limit overrides in a namespace",
+      "flags": [
+        {
+          "name": "api-url",
+          "type": "string",
+          "default": "https://api.unkey.com",
+          "env": "UNKEY_API_BASE_URL",
+          "required": false
+        },
+        {
+          "name": "body",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "config",
+          "type": "string",
+          "default": "~/.unkey/config.toml",
+          "env": "UNKEY_CONFIG",
+          "required": false
+        },
+        {
+          "name": "cursor",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "limit",
+          "type": "integer",
+          "required": false
+        },
+        {
+          "name": "namespace",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "output",
+          "type": "string",
+          "env": "UNKEY_OUTPUT",
+          "required": false
+        },
+        {
+          "name": "root-key",
+          "type": "string",
+          "env": "UNKEY_ROOT_KEY",
+          "required": false
+        }
+      ]
+    },
+    {
+      "path": "api ratelimit multi-limit",
+      "usage": "Check and enforce multiple rate limits in a single request",
+      "flags": [
+        {
+          "name": "api-url",
+          "type": "string",
+          "default": "https://api.unkey.com",
+          "env": "UNKEY_API_BASE_URL",
+          "required": false
+        },
+        {
+          "name": "body",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "config",
+          "type": "string",
+          "default": "~/.unkey/config.toml",
+          "env": "UNKEY_CONFIG",
+          "required": false
+        },
+        {
+          "name": "limits",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "output",
+          "type": "string",
+          "env": "UNKEY_OUTPUT",
+          "required": false
+        },
+        {
+          "name": "root-key",
+          "type": "string",
+          "env": "UNKEY_ROOT_KEY",
+          "required": false
+        }
+      ]
+    },
+    {
+      "path": "api ratelimit set-override",
+      "usage": "Create or update a custom rate limit for specific identifiers",
+      "flags": [
+        {
+          "name": "api-url",
+          "type": "string",
+          "default": "https://api.unkey.com",
+          "env": "UNKEY_API_BASE_URL",
+          "required": false
+        },
+        {
+          "name": "body",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "config",
+          "type": "string",
+          "default": "~/.unkey/config.toml",
+          "env": "UNKEY_CONFIG",
+          "required": false
+        },
+        {
+          "name": "duration",
+          "type": "integer",
+          "required": true
+        },
+        {
+          "name": "identifier",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "limit",
+          "type": "integer",
+          "required": true
+        },
+        {
+          "name": "namespace",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "output",
+          "type": "string",
+          "env": "UNKEY_OUTPUT",
+          "required": false
+        },
+        {
+          "name": "root-key",
+          "type": "string",
+          "env": "UNKEY_ROOT_KEY",
+          "required": false
+        }
+      ]
+    },
+    {
+      "path": "auth login",
+      "usage": "Authenticate with a root key",
+      "flags": []
+    },
+    {
+      "path": "deploy",
+      "usage": "Deploy a pre-built Docker image",
+      "flags": [
+        {
+          "name": "api-base-url",
+          "type": "string",
+          "env": "UNKEY_API_BASE_URL",
+          "required": false
+        },
+        {
+          "name": "app",
+          "type": "string",
+          "default": "default",
+          "env": "UNKEY_APP",
+          "required": false
+        },
+        {
+          "name": "branch",
+          "type": "string",
+          "default": "main",
+          "required": false
+        },
+        {
+          "name": "commit",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "env",
+          "type": "string",
+          "default": "preview",
+          "required": false
+        },
+        {
+          "name": "keyspace-id",
+          "type": "string",
+          "env": "UNKEY_KEYSPACE_ID",
+          "required": false
+        },
+        {
+          "name": "project",
+          "type": "string",
+          "env": "UNKEY_PROJECT",
+          "required": true
+        },
+        {
+          "name": "root-key",
+          "type": "string",
+          "env": "UNKEY_ROOT_KEY",
+          "required": true
+        }
+      ]
+    },
+    {
+      "path": "healthcheck",
+      "usage": "Perform an HTTP healthcheck against a given URL",
+      "flags": []
+    }
+  ],
+  "endpoints": [
+    {
+      "path": "/v2/analytics.getGatewayRequests",
+      "method": "POST",
+      "tag": "analytics",
+      "deprecated": false
+    },
+    {
+      "path": "/v2/analytics.getRatelimits",
+      "method": "POST",
+      "tag": "analytics",
+      "deprecated": false
+    },
+    {
+      "path": "/v2/analytics.getRuntimeLogs",
+      "method": "POST",
+      "tag": "analytics",
+      "deprecated": false
+    },
+    {
+      "path": "/v2/analytics.getVerifications",
+      "method": "POST",
+      "tag": "analytics",
+      "deprecated": false
+    },
+    {
+      "path": "/v2/apis.createApi",
+      "method": "POST",
+      "tag": "apis",
+      "deprecated": false
+    },
+    {
+      "path": "/v2/apis.deleteApi",
+      "method": "POST",
+      "tag": "apis",
+      "deprecated": false
+    },
+    {
+      "path": "/v2/apis.getApi",
+      "method": "POST",
+      "tag": "apis",
+      "deprecated": false
+    },
+    {
+      "path": "/v2/apis.listKeys",
+      "method": "POST",
+      "tag": "apis",
+      "deprecated": false
+    },
+    {
+      "path": "/v2/apps.createApp",
+      "method": "POST",
+      "tag": "apps",
+      "deprecated": false
+    },
+    {
+      "path": "/v2/apps.deleteApp",
+      "method": "POST",
+      "tag": "apps",
+      "deprecated": false
+    },
+    {
+      "path": "/v2/apps.getApp",
+      "method": "POST",
+      "tag": "apps",
+      "deprecated": false
+    },
+    {
+      "path": "/v2/apps.listApps",
+      "method": "POST",
+      "tag": "apps",
+      "deprecated": false
+    },
+    {
+      "path": "/v2/apps.updateApp",
+      "method": "POST",
+      "tag": "apps",
+      "deprecated": false
+    },
+    {
+      "path": "/v2/deploy.createDeployment",
+      "method": "POST",
+      "tag": "deploy",
+      "deprecated": true
+    },
+    {
+      "path": "/v2/deploy.getDeployment",
+      "method": "POST",
+      "tag": "deploy",
+      "deprecated": true
+    },
+    {
+      "path": "/v2/deployments.createDeployment",
+      "method": "POST",
+      "tag": "deployments",
+      "deprecated": true
+    },
+    {
+      "path": "/v2/deployments.getDeployment",
+      "method": "POST",
+      "tag": "deployments",
+      "deprecated": false
+    },
+    {
+      "path": "/v2/deployments.listDeployments",
+      "method": "POST",
+      "tag": "deployments",
+      "deprecated": false
+    },
+    {
+      "path": "/v2/deployments.promoteDeployment",
+      "method": "POST",
+      "tag": "deployments",
+      "deprecated": false
+    },
+    {
+      "path": "/v2/deployments.rollbackDeployment",
+      "method": "POST",
+      "tag": "deployments",
+      "deprecated": false
+    },
+    {
+      "path": "/v2/deployments.startDeployment",
+      "method": "POST",
+      "tag": "deployments",
+      "deprecated": false
+    },
+    {
+      "path": "/v2/deployments.stopDeployment",
+      "method": "POST",
+      "tag": "deployments",
+      "deprecated": false
+    },
+    {
+      "path": "/v2/domains.createDomain",
+      "method": "POST",
+      "tag": "domains",
+      "deprecated": false
+    },
+    {
+      "path": "/v2/domains.deleteDomain",
+      "method": "POST",
+      "tag": "domains",
+      "deprecated": false
+    },
+    {
+      "path": "/v2/domains.getDomain",
+      "method": "POST",
+      "tag": "domains",
+      "deprecated": false
+    },
+    {
+      "path": "/v2/domains.listDomains",
+      "method": "POST",
+      "tag": "domains",
+      "deprecated": false
+    },
+    {
+      "path": "/v2/domains.verifyDomain",
+      "method": "POST",
+      "tag": "domains",
+      "deprecated": false
+    },
+    {
+      "path": "/v2/environments.getEnvironment",
+      "method": "POST",
+      "tag": "environments",
+      "deprecated": false
+    },
+    {
+      "path": "/v2/environments.listEnvironmentVariables",
+      "method": "POST",
+      "tag": "environments",
+      "deprecated": false
+    },
+    {
+      "path": "/v2/environments.listEnvironments",
+      "method": "POST",
+      "tag": "environments",
+      "deprecated": false
+    },
+    {
+      "path": "/v2/environments.removeEnvironmentVariables",
+      "method": "POST",
+      "tag": "environments",
+      "deprecated": false
+    },
+    {
+      "path": "/v2/environments.setEnvironmentVariables",
+      "method": "POST",
+      "tag": "environments",
+      "deprecated": false
+    },
+    {
+      "path": "/v2/environments.updateSettings",
+      "method": "POST",
+      "tag": "environments",
+      "deprecated": false
+    },
+    {
+      "path": "/v2/gateway.listPolicies",
+      "method": "POST",
+      "tag": "gateway",
+      "deprecated": false
+    },
+    {
+      "path": "/v2/gateway.setPolicies",
+      "method": "POST",
+      "tag": "gateway",
+      "deprecated": false
+    },
+    {
+      "path": "/v2/gateway.updatePolicy",
+      "method": "POST",
+      "tag": "gateway",
+      "deprecated": false
+    },
+    {
+      "path": "/v2/github.installApp",
+      "method": "POST",
+      "tag": "github",
+      "deprecated": false
+    },
+    {
+      "path": "/v2/identities.createIdentity",
+      "method": "POST",
+      "tag": "identities",
+      "deprecated": false
+    },
+    {
+      "path": "/v2/identities.deleteIdentity",
+      "method": "POST",
+      "tag": "identities",
+      "deprecated": false
+    },
+    {
+      "path": "/v2/identities.getIdentity",
+      "method": "POST",
+      "tag": "identities",
+      "deprecated": false
+    },
+    {
+      "path": "/v2/identities.listIdentities",
+      "method": "POST",
+      "tag": "identities",
+      "deprecated": false
+    },
+    {
+      "path": "/v2/identities.updateIdentity",
+      "method": "POST",
+      "tag": "identities",
+      "deprecated": false
+    },
+    {
+      "path": "/v2/keys.addPermissions",
+      "method": "POST",
+      "tag": "keys",
+      "deprecated": false
+    },
+    {
+      "path": "/v2/keys.addRoles",
+      "method": "POST",
+      "tag": "keys",
+      "deprecated": false
+    },
+    {
+      "path": "/v2/keys.createKey",
+      "method": "POST",
+      "tag": "keys",
+      "deprecated": false
+    },
+    {
+      "path": "/v2/keys.deleteKey",
+      "method": "POST",
+      "tag": "keys",
+      "deprecated": false
+    },
+    {
+      "path": "/v2/keys.getKey",
+      "method": "POST",
+      "tag": "keys",
+      "deprecated": false
+    },
+    {
+      "path": "/v2/keys.migrateKeys",
+      "method": "POST",
+      "tag": "keys",
+      "deprecated": false
+    },
+    {
+      "path": "/v2/keys.removePermissions",
+      "method": "POST",
+      "tag": "keys",
+      "deprecated": false
+    },
+    {
+      "path": "/v2/keys.removeRoles",
+      "method": "POST",
+      "tag": "keys",
+      "deprecated": false
+    },
+    {
+      "path": "/v2/keys.rerollKey",
+      "method": "POST",
+      "tag": "keys",
+      "deprecated": false
+    },
+    {
+      "path": "/v2/keys.setPermissions",
+      "method": "POST",
+      "tag": "keys",
+      "deprecated": false
+    },
+    {
+      "path": "/v2/keys.setRoles",
+      "method": "POST",
+      "tag": "keys",
+      "deprecated": false
+    },
+    {
+      "path": "/v2/keys.updateCredits",
+      "method": "POST",
+      "tag": "keys",
+      "deprecated": false
+    },
+    {
+      "path": "/v2/keys.updateKey",
+      "method": "POST",
+      "tag": "keys",
+      "deprecated": false
+    },
+    {
+      "path": "/v2/keys.verifyKey",
+      "method": "POST",
+      "tag": "keys",
+      "deprecated": false
+    },
+    {
+      "path": "/v2/keys.whoami",
+      "method": "POST",
+      "tag": "keys",
+      "deprecated": false
+    },
+    {
+      "path": "/v2/liveness",
+      "method": "GET",
+      "tag": "liveness",
+      "deprecated": false
+    },
+    {
+      "path": "/v2/permissions.createPermission",
+      "method": "POST",
+      "tag": "permissions",
+      "deprecated": false
+    },
+    {
+      "path": "/v2/permissions.createRole",
+      "method": "POST",
+      "tag": "permissions",
+      "deprecated": false
+    },
+    {
+      "path": "/v2/permissions.deletePermission",
+      "method": "POST",
+      "tag": "permissions",
+      "deprecated": false
+    },
+    {
+      "path": "/v2/permissions.deleteRole",
+      "method": "POST",
+      "tag": "permissions",
+      "deprecated": false
+    },
+    {
+      "path": "/v2/permissions.getPermission",
+      "method": "POST",
+      "tag": "permissions",
+      "deprecated": false
+    },
+    {
+      "path": "/v2/permissions.getRole",
+      "method": "POST",
+      "tag": "permissions",
+      "deprecated": false
+    },
+    {
+      "path": "/v2/permissions.listPermissions",
+      "method": "POST",
+      "tag": "permissions",
+      "deprecated": false
+    },
+    {
+      "path": "/v2/permissions.listRoles",
+      "method": "POST",
+      "tag": "permissions",
+      "deprecated": false
+    },
+    {
+      "path": "/v2/permissions.setRolePermissions",
+      "method": "POST",
+      "tag": "permissions",
+      "deprecated": false
+    },
+    {
+      "path": "/v2/portal.createPortal",
+      "method": "POST",
+      "tag": "portal",
+      "deprecated": false
+    },
+    {
+      "path": "/v2/portal.createSession",
+      "method": "POST",
+      "tag": "portal",
+      "deprecated": false
+    },
+    {
+      "path": "/v2/portal.deletePortal",
+      "method": "POST",
+      "tag": "portal",
+      "deprecated": false
+    },
+    {
+      "path": "/v2/portal.exchangeCode",
+      "method": "POST",
+      "tag": "portal",
+      "deprecated": false
+    },
+    {
+      "path": "/v2/portal.getPortal",
+      "method": "POST",
+      "tag": "portal",
+      "deprecated": false
+    },
+    {
+      "path": "/v2/portal.getVerifications",
+      "method": "POST",
+      "tag": "portal",
+      "deprecated": false
+    },
+    {
+      "path": "/v2/portal.listKeys",
+      "method": "POST",
+      "tag": "portal",
+      "deprecated": false
+    },
+    {
+      "path": "/v2/portal.rerollKey",
+      "method": "POST",
+      "tag": "portal",
+      "deprecated": false
+    },
+    {
+      "path": "/v2/portal.updatePortal",
+      "method": "POST",
+      "tag": "portal",
+      "deprecated": false
+    },
+    {
+      "path": "/v2/projects.createProject",
+      "method": "POST",
+      "tag": "projects",
+      "deprecated": false
+    },
+    {
+      "path": "/v2/projects.deleteProject",
+      "method": "POST",
+      "tag": "projects",
+      "deprecated": false
+    },
+    {
+      "path": "/v2/projects.getProject",
+      "method": "POST",
+      "tag": "projects",
+      "deprecated": false
+    },
+    {
+      "path": "/v2/projects.listProjects",
+      "method": "POST",
+      "tag": "projects",
+      "deprecated": false
+    },
+    {
+      "path": "/v2/projects.updateProject",
+      "method": "POST",
+      "tag": "projects",
+      "deprecated": false
+    },
+    {
+      "path": "/v2/ratelimit.deleteOverride",
+      "method": "POST",
+      "tag": "ratelimit",
+      "deprecated": false
+    },
+    {
+      "path": "/v2/ratelimit.getOverride",
+      "method": "POST",
+      "tag": "ratelimit",
+      "deprecated": false
+    },
+    {
+      "path": "/v2/ratelimit.limit",
+      "method": "POST",
+      "tag": "ratelimit",
+      "deprecated": false
+    },
+    {
+      "path": "/v2/ratelimit.listOverrides",
+      "method": "POST",
+      "tag": "ratelimit",
+      "deprecated": false
+    },
+    {
+      "path": "/v2/ratelimit.multiLimit",
+      "method": "POST",
+      "tag": "ratelimit",
+      "deprecated": false
+    },
+    {
+      "path": "/v2/ratelimit.setOverride",
+      "method": "POST",
+      "tag": "ratelimit",
+      "deprecated": false
+    }
+  ],
+  "groups": [
+    {
+      "path": "api",
+      "usage": "Interact with the Unkey API"
+    },
+    {
+      "path": "api analytics",
+      "usage": "Query analytics data"
+    },
+    {
+      "path": "api apis",
+      "usage": "Manage API namespaces"
+    },
+    {
+      "path": "api apps",
+      "usage": "Manage apps"
+    },
+    {
+      "path": "api deployments",
+      "usage": "Manage deployments"
+    },
+    {
+      "path": "api domains",
+      "usage": "Manage custom domains"
+    },
+    {
+      "path": "api environments",
+      "usage": "Manage environments"
+    },
+    {
+      "path": "api gateway",
+      "usage": "Manage gateway policies"
+    },
+    {
+      "path": "api github",
+      "usage": "Manage GitHub App installations"
+    },
+    {
+      "path": "api identities",
+      "usage": "Manage identities"
+    },
+    {
+      "path": "api keys",
+      "usage": "Manage API keys"
+    },
+    {
+      "path": "api permissions",
+      "usage": "Manage permissions and roles"
+    },
+    {
+      "path": "api portal",
+      "usage": "Manage Customer Portals and sessions"
+    },
+    {
+      "path": "api projects",
+      "usage": "Manage projects"
+    },
+    {
+      "path": "api ratelimit",
+      "usage": "Manage rate limiting"
+    },
+    {
+      "path": "auth",
+      "usage": "Manage authentication"
+    }
+  ],
+  "tag_to_product": {
+    "tags": {
+      "apis": "api-management",
+      "apps": "compute",
+      "deployments": "compute",
+      "domains": "compute",
+      "environments": "compute",
+      "gateway": "compute",
+      "github": "compute",
+      "identities": "api-management",
+      "keys": "api-management",
+      "liveness": "api-management",
+      "permissions": "api-management",
+      "portal": "api-management",
+      "projects": "compute",
+      "ratelimit": "api-management"
+    },
+    "operations": {
+      "/v2/analytics.getGatewayRequests": "compute",
+      "/v2/analytics.getRatelimits": "api-management",
+      "/v2/analytics.getRuntimeLogs": "compute",
+      "/v2/analytics.getVerifications": "api-management"
+    }
+  }
+}

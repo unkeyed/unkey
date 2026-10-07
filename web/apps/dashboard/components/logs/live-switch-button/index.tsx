@@ -20,7 +20,7 @@ export const LiveSwitchButton = ({ isLive, onToggle }: LiveSwitchProps) => {
         "px-2 relative rounded-lg group overflow-hidden",
         isLive
           ? "bg-info-3 text-info-11 hover:bg-info-3 hover:text-info-11 border border-solid border-info-7"
-          : "text-accent-12 [&_svg]:text-accent-9",
+          : "text-gray-12 [&_svg]:text-gray-9",
       )}
     >
       {isLive && (
@@ -29,7 +29,7 @@ export const LiveSwitchButton = ({ isLive, onToggle }: LiveSwitchProps) => {
         </div>
       )}
       <IconCircleCaretRightOutline18 className="size-4 relative z-10" />
-      <span className="font-medium text-[13px]">Live</span>
+      <span className="font-medium text-sm">Live</span>
       <div className="max-w-0 opacity-0 group-hover:max-w-[100px] group-hover:opacity-100 transition-all duration-300 ease-in-out overflow-hidden">
         <KeyboardButton shortcut="⌥+⇧+Q" className="ml-1" />
       </div>

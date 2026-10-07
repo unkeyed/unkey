@@ -48,8 +48,7 @@ func (c *stripeCloser) ListDraftInvoices(ctx context.Context, stripeSubscription
 func (c *stripeCloser) GetInvoice(ctx context.Context, invoiceID string) (DraftInvoice, error) {
 	invoice, err := c.client.V1Invoices.Retrieve(ctx, invoiceID, nil)
 	if err != nil {
-		var sErr *stripe.Error
-		if errors.As(err, &sErr) && sErr.Code == stripe.ErrorCodeResourceMissing {
+		if sErr, ok := errors.AsType[*stripe.Error](err); ok && sErr.Code == stripe.ErrorCodeResourceMissing {
 			return DraftInvoice{}, ErrNotFound //nolint:exhaustruct // zero value on the not-found path
 		}
 		return DraftInvoice{}, fault.Wrap(err, fault.Internal("failed to read stripe invoice")) //nolint:exhaustruct // zero value on the error path
@@ -75,8 +74,8 @@ func (c *stripeCloser) GetInvoice(ctx context.Context, invoiceID string) (DraftI
 // deadline exists to bound.
 func (c *stripeCloser) ClaimInvoice(ctx context.Context, invoiceID string, finalizeAt int64) error {
 	_, err := c.client.V1Invoices.Update(ctx, invoiceID, &stripe.InvoiceUpdateParams{ //nolint:exhaustruct // only finalization scheduling changes
-		AutoAdvance:              stripe.Bool(true),
-		AutomaticallyFinalizesAt: stripe.Int64(finalizeAt),
+		AutoAdvance:              new(true),
+		AutomaticallyFinalizesAt: new(finalizeAt),
 	})
 	if err != nil {
 		return fault.Wrap(err, fault.Internal("failed to claim stripe invoice"))

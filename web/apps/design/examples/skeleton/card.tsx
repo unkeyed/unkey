@@ -4,7 +4,7 @@ export default function SkeletonCard() {
   return (
     <Card className="mx-auto max-w-xs">
       <CardHeader className="flex-row items-center gap-4">
-        <Skeleton className="size-10 rounded-[10px]" />
+        <Skeleton className="size-10 rounded-xl" />
         <div className="flex min-w-0 flex-1 flex-col gap-2">
           <Skeleton className="h-3.5 w-24" />
           <Skeleton className="h-3 w-32" />

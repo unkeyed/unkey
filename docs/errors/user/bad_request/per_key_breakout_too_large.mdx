@@ -1,0 +1,43 @@
+---
+title: "per_key_breakout_too_large"
+sidebarTitle: "per_key_breakout_too_large"
+description: "A portal analytics window covers more keys than the per-key breakout returns."
+sources:
+  - pkg/codes/user_request.go
+  - svc/api/routes/v2_portal_get_verifications/handler.go
+  - pkg/clickhouse/key_verifications_timeseries.go
+---
+
+<Danger>`err:user:bad_request:per_key_breakout_too_large`</Danger>
+
+`portal.getVerifications` returns one series per key that had traffic in the window, up to 150 keys. More than 150 of the user's keys had traffic in this window, so you get HTTP 400 instead of a partial result that leaves keys out.
+
+```json Example response
+{
+  "meta": {
+    "requestId": "req_2c9a0jf23l4k567"
+  },
+  "error": {
+    "detail": "This window covers more than 150 keys. Request a narrower window or a single `keyId`.",
+    "status": 400,
+    "title": "Bad Request",
+    "type": "/errors/user/bad_request/per_key_breakout_too_large",
+    "errors": []
+  }
+}
+```
+
+## Likely causes
+
+- The window is too wide. The count is of keys with at least one verification in the window, not keys the user owns, so a wider window makes this more likely.
+- The window covers a bulk migration or a lot of short-lived keys.
+
+## How to fix
+
+1. Narrow the window. Halving it roughly halves the number of keys with traffic, and gives you finer buckets.
+2. Or pass `keyId` to get just that key's series. That isn't subject to the cap, and is the right call when the user is looking at one key.
+3. For usage over a wider window, query from your own backend with [analytics](/api-management/analytics/overview). The portal response has no combined total, so the cap applies even if you only want account-wide numbers.
+
+## Related errors
+
+- [`err:user:bad_request:query_range_exceeds_retention`](/errors/user/bad_request/query_range_exceeds_retention): the window reaches back past what your workspace keeps.

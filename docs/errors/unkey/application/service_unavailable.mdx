@@ -1,0 +1,46 @@
+---
+title: "unkey/application/service_unavailable"
+sidebarTitle: "service_unavailable"
+description: "The API failed on our side and couldn't complete the request, so retry with backoff."
+sources:
+  - pkg/codes/unkey_application.go
+  - svc/api/internal/middleware/errors.go
+  - pkg/db/tx.go
+  - svc/api/internal/ctrlclient/errors.go
+  - pkg/domain/domaingate/domaingate.go
+  - pkg/auth/jwt/resolver.go
+---
+
+<Danger>`err:unkey:application:service_unavailable`</Danger>
+
+The API failed on our side and couldn't finish your request. You get HTTP 500, and `detail` names what failed. Unless `detail` says otherwise, the request didn't take effect.
+
+```json Example response
+{
+  "meta": {
+    "requestId": "req_2c9a0jf23l4k567"
+  },
+  "error": {
+    "detail": "Failed to create deployment.",
+    "status": 500,
+    "title": "Internal Server Error",
+    "type": "/errors/unkey/application/service_unavailable"
+  }
+}
+```
+
+## How to fix
+
+1. Retry with exponential backoff, and check the Unkey status page for an incident.
+2. If it keeps failing, contact support with the `requestId`.
+
+Two cases need something else:
+
+- **HTTP 503 on `domains.listDomains`.** Your filters match too many domains. The `detail` is `The domain scan limit was reached. Narrow the project, app, environment, or search filters and retry.` Narrow the filters.
+- **`Resource limits are not configured for this workspace.`** Your workspace is missing its plan limits. Retrying won't help, so contact support.
+
+## Related errors
+
+- [`err:unkey:application:unexpected_error`](/errors/unkey/application/unexpected_error): another failure on our side with no more specific code.
+- [`err:unkey:data:analytics_connection_failed`](/errors/unkey/data/analytics_connection_failed): analytics queries couldn't run because of a failure on our side, reported as 503.
+- [`err:user:bad_request:request_timeout`](/errors/user/bad_request/request_timeout): the request ran out of time instead.

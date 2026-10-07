@@ -54,6 +54,7 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 		UsageLimiter: nil,
 		Source:       schema.SourceAPI,
 		KeyCache:     nil,
+		RootKeyCache: nil,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to create key service: %w", err)
@@ -107,6 +108,7 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 				Slug:         slug,
 				CreatedAtM:   now,
 				BetaFeatures: json.RawMessage(`{}`),
+				K8sNamespace: uid.DNS1035(),
 			},
 			{
 				ID:           rootWorkspaceID,
@@ -115,6 +117,7 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 				Slug:         fmt.Sprintf("unkey-%s", slug),
 				CreatedAtM:   now,
 				BetaFeatures: json.RawMessage(`{}`),
+				K8sNamespace: uid.DNS1035(),
 			},
 		})
 		if err != nil {

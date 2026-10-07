@@ -13,7 +13,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -231,8 +230,8 @@ func TestGetKey_AdditionalScenarios(t *testing.T) {
 		keyResponse := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID:  workspace.ID,
 			KeySpaceID:   api.KeyAuthID.String,
-			Remaining:    ptr.P(int64(50)),
-			RefillAmount: ptr.P(int64(100)),
+			Remaining:    new(int64(50)),
+			RefillAmount: new(int64(100)),
 		})
 
 		req := handler.Request{
@@ -253,9 +252,9 @@ func TestGetKey_AdditionalScenarios(t *testing.T) {
 		keyResponse := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID:  workspace.ID,
 			KeySpaceID:   api.KeyAuthID.String,
-			Remaining:    ptr.P(int64(50)),
-			RefillAmount: ptr.P(int64(100)),
-			RefillDay:    ptr.P(int16(1)),
+			Remaining:    new(int64(50)),
+			RefillAmount: new(int64(100)),
+			RefillDay:    new(int16(1)),
 		})
 
 		req := handler.Request{

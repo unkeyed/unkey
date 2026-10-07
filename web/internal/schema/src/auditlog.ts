@@ -14,6 +14,10 @@ export const unkeyAuditLogEvents = z.enum([
   "key.update",
   "key.delete",
   "key.verify",
+  "rootKey.create",
+  "rootKey.reroll",
+  "rootKey.update",
+  "rootKey.delete",
   "ratelimitNamespace.create",
   "ratelimitNamespace.update",
   "ratelimitNamespace.delete",
@@ -77,6 +81,7 @@ export const unkeyAuditLogEvents = z.enum([
   "portal.delete",
   "portal.session.create",
   "portal.session.exchange",
+  "portal.session.revoke",
 ]);
 
 export const auditLogSchemaV1 = z.object({

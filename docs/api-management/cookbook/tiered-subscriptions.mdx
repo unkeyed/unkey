@@ -1,0 +1,125 @@
+---
+title: Tiered subscriptions
+description: "Model free, pro, and enterprise plans on a key."
+sources:
+  - svc/api/openapi/spec/paths/v2/keys/createKey/V2KeysCreateKeyRequestBody.yaml
+  - svc/api/openapi/spec/paths/v2/keys/createKey/V2KeysCreateKeyResponseData.yaml
+  - svc/api/openapi/spec/paths/v2/keys/verifyKey/V2KeysVerifyKeyRequestBody.yaml
+  - svc/api/openapi/spec/paths/v2/keys/verifyKey/V2KeysVerifyKeyResponseData.yaml
+  - svc/api/openapi/spec/paths/v2/keys/updateKey/V2KeysUpdateKeyRequestBody.yaml
+  - svc/api/openapi/spec/common/RatelimitRequest.yaml
+  - svc/api/routes/v2_keys_create_key/handler.go
+  - svc/api/routes/v2_keys_set_permissions/handler.go
+  - pkg/rbac/permissions.go
+---
+import RootKeyPrereq from "/snippets/root-key-prereq.mdx";
+
+**Outcome:** each plan is a small object in your code, a key carries its plan's limits, credits, permissions, and a `meta.plan` label, and upgrading a customer is one `keys.updateKey` call that takes effect within about ten seconds.
+
+<RootKeyPrereq />
+
+## Define the tiers
+
+Define each plan once and build every key from it. Rate limits cap how often, credits cap how much, permissions unlock features, and `meta` returns the plan name on every verification so your handlers don't need a database lookup.
+
+```ts src/plans.ts
+export const PLANS = {
+  free: {
+    ratelimits: [{ name: "requests", limit: 60, duration: 60_000, autoApply: true }],
+    credits: { remaining: 1_000, refill: { interval: "monthly" as const, amount: 1_000, refillDay: 1 } },
+    permissions: ["items.read"],
+  },
+  pro: {
+    ratelimits: [{ name: "requests", limit: 600, duration: 60_000, autoApply: true }],
+    credits: { remaining: 100_000, refill: { interval: "monthly" as const, amount: 100_000, refillDay: 1 } },
+    permissions: ["items.read", "items.write", "exports.create"],
+  },
+  enterprise: {
+    ratelimits: [{ name: "requests", limit: 6_000, duration: 60_000, autoApply: true }],
+    credits: null,
+    permissions: ["items.read", "items.write", "exports.create", "webhooks.manage"],
+  },
+};
+
+export type Plan = keyof typeof PLANS;
+```
+
+You don't have to create these permissions first. `keys.createKey` creates any that don't exist. `keys.setPermissions` does too, but only if the root key has `rbac.*.create_permission`; otherwise it returns 403. Don't use `*` in slugs, because it isn't a wildcard.
+
+## Create a key for a plan
+
+```ts src/keys.ts
+import { Unkey } from "@unkey/api";
+import { PLANS, type Plan } from "./plans";
+
+const unkey = new Unkey({ rootKey: process.env.UNKEY_ROOT_KEY ?? "" });
+
+export async function createKeyFor(customerId: string, plan: Plan) {
+  const tier = PLANS[plan];
+  const created = await unkey.keys.createKey({
+    apiId: process.env.UNKEY_API_ID ?? "",
+    externalId: customerId,
+    meta: { plan },
+    ratelimits: tier.ratelimits,
+    permissions: tier.permissions,
+    ...(tier.credits ? { credits: tier.credits } : {}),
+  });
+  return created.data; // key (plaintext, show once) and keyId
+}
+```
+
+## Read the plan during verification
+
+Gate features with a `permissions` query so Unkey makes the decision. Use `meta.plan` only for softer choices, such as page size.
+
+```ts src/handler.ts
+const result = await unkey.keys.verifyKey({ key, permissions: "exports.create" });
+if (!result.data.valid) {
+  // INSUFFICIENT_PERMISSIONS here means "not on a plan that includes exports"
+  return Response.json({ error: result.data.code }, { status: result.data.code === "INSUFFICIENT_PERMISSIONS" ? 403 : 401 });
+}
+const plan = (result.data.meta as { plan?: string } | undefined)?.plan ?? "free";
+const pageSize = plan === "enterprise" ? 1000 : 100;
+```
+
+## Change a customer's plan
+
+`keys.updateKey` changes a key in place. Fields you leave out keep their value, `ratelimits` replaces the whole list, and `credits: null` removes the cap and any refill. Use `keys.setPermissions` for permissions. It replaces the key's permissions, so a downgrade removes what the higher plan granted.
+
+<CodeGroup>
+```ts TypeScript
+export async function changePlan(keyId: string, plan: Plan) {
+  const tier = PLANS[plan];
+  await unkey.keys.updateKey({
+    keyId,
+    meta: { plan },
+    ratelimits: tier.ratelimits,
+    credits: tier.credits,
+  });
+  await unkey.keys.setPermissions({ keyId, permissions: tier.permissions });
+}
+```
+```bash curl (downgrade to free)
+curl -X POST https://api.unkey.com/v2/keys.updateKey \
+  -H "Authorization: Bearer $UNKEY_ROOT_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "keyId": "key_...",
+    "meta": { "plan": "free" },
+    "ratelimits": [{ "name": "requests", "limit": 60, "duration": 60000, "autoApply": true }],
+    "credits": { "remaining": 1000, "refill": { "interval": "monthly", "amount": 1000, "refillDay": 1 } }
+  }'
+curl -X POST https://api.unkey.com/v2/keys.setPermissions \
+  -H "Authorization: Bearer $UNKEY_ROOT_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{ "keyId": "key_...", "permissions": ["items.read"] }'
+```
+</CodeGroup>
+
+Changes take about 10 seconds to reach verification. Credit changes apply right away. If a customer has several keys, put the plan's rate limits on their identity so all keys share one limit, as shown in [Per-user rate limits](/api-management/cookbook/per-user-rate-limit).
+
+## Related
+
+- [Creating keys](/api-management/keys/creating-keys) for every field and its bounds.
+- [Usage-based billing with credits](/api-management/cookbook/usage-billing) for metering inside a plan.
+- Roles and permissions are documented under [Roles and permissions](/api-management/authorization/roles-and-permissions).

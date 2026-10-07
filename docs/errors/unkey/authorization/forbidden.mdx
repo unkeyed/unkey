@@ -1,0 +1,52 @@
+---
+title: "forbidden"
+sidebarTitle: "forbidden"
+description: "The request is authenticated but not allowed, for a reason other than a missing permission."
+sources:
+  - pkg/codes/unkey_auth.go
+  - svc/api/internal/middleware/errors.go
+  - internal/services/keys/status.go
+  - pkg/auth/jwt/resolver.go
+  - svc/api/routes/v2_portal_create_session/handler.go
+  - svc/api/internal/portalscope/portalscope.go
+---
+
+<Danger>`err:unkey:authorization:forbidden`</Danger>
+
+The API knows who you are but won't do this, for a reason other than a missing permission. You get HTTP 403, and `detail` gives the reason.
+
+```json Example response
+{
+  "meta": {
+    "requestId": "req_2c9a0jf23l4k567"
+  },
+  "error": {
+    "detail": "Portal is disabled.",
+    "status": 403,
+    "title": "Forbidden",
+    "type": "/errors/unkey/authorization/forbidden"
+  }
+}
+```
+
+## Likely causes
+
+- Your root key has expired. The message starts with `The provided root key is invalid.` and then gives the expiry.
+- On `portal.createSession`, the portal is disabled: `Portal is disabled.`
+- On `portal.createSession`, the portal can't serve sessions because the app has no active deployment, the app's gateway policies don't verify keys, or the portal's API was deleted. The message starts with `Portal is not available`.
+- You called `portal.createSession` with a dashboard session or a portal token: `Portal sessions can only be created with a root key.`
+- You called a portal-only endpoint without a portal session: `This endpoint is only accessible with a portal session.`
+- Your dashboard organization has no usable workspace: `Your organization does not have an active workspace.`
+
+## How to fix
+
+1. For an expired root key, create a new one. Use one without an expiry for server-to-server calls.
+2. For portal messages, turn the portal on, deploy the app, or add a key verification policy to the app's gateway, then retry.
+3. For a portal-only endpoint, send the portal session instead of a root key. For `portal.createSession`, use a root key.
+4. For a dashboard session without a workspace, finish setting up the workspace in the dashboard.
+
+## Related errors
+
+- [`err:unkey:authorization:insufficient_permissions`](/errors/unkey/authorization/insufficient_permissions): a specific permission is missing.
+- [`err:unkey:authorization:key_disabled`](/errors/unkey/authorization/key_disabled): the root key is disabled.
+- [`err:unkey:authorization:workspace_disabled`](/errors/unkey/authorization/workspace_disabled): the workspace is disabled.

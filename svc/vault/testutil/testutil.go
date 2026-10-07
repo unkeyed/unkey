@@ -5,11 +5,9 @@ package testutil
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
-	"time"
 
 	"connectrpc.com/connect"
 	"github.com/stretchr/testify/require"
@@ -32,7 +30,7 @@ type TestVault struct {
 
 // StartTestVault creates an in-memory vault with S3 storage and HTTP server.
 // Returns a TestVault with a VaultServiceClient configured to connect to it.
-// The vault uses MinIO for S3-compatible storage and generates a fresh master key.
+// The vault uses Garage for S3-compatible storage and generates a fresh master key.
 // All resources are cleaned up when the test completes.
 func StartTestVault(t *testing.T) *TestVault {
 	t.Helper()
@@ -41,11 +39,11 @@ func StartTestVault(t *testing.T) *TestVault {
 	s3 := containers.S3(t)
 
 	// Create S3 storage
-	// MinIO is shared across tests, while each test vault gets a fresh master key.
+	// Garage is shared across tests, while each test vault gets a fresh master key.
 	// Reusing a bucket can make a new vault read DEKs encrypted by an old key.
 	st, err := storage.NewS3(storage.S3Config{
 		S3URL:             s3.URL,
-		S3Bucket:          fmt.Sprintf("vault-test-%d", time.Now().UnixNano()),
+		S3Bucket:          s3.CreateBucket(t),
 		S3AccessKeyID:     s3.AccessKeyID,
 		S3AccessKeySecret: s3.SecretAccessKey,
 	})

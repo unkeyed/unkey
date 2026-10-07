@@ -9,6 +9,10 @@ export type Config = {
 };
 
 export class Client implements Querier, Inserter {
+  private static readonly QUERY_MAX_ATTEMPTS = 3;
+  private static readonly QUERY_RETRY_BASE_DELAY_MS = 50;
+  private static readonly QUERY_RETRY_SLOW_ATTEMPT_MS = 5_000;
+
   private readonly client: ClickHouseClient;
 
   constructor(config: Config) {
@@ -42,16 +46,37 @@ export class Client implements Querier, Inserter {
         return Err(new QueryError(`Bad params: ${validParams.error.message}`, { query: "" }));
       }
       let unparsedRows: Array<TOut> = [];
-      try {
-        const res = await this.client.query({
-          query: req.query,
-          query_params: validParams?.data, // Default to empty object
-          format: "JSONEachRow",
-        });
-        unparsedRows = await res.json();
-      } catch (err) {
-        const message = err instanceof Error ? err.message : JSON.stringify(err);
-        console.error(err);
+      let lastError: unknown;
+      for (let attempt = 1; attempt <= Client.QUERY_MAX_ATTEMPTS; attempt++) {
+        const startedAt = Date.now();
+        try {
+          const res = await this.client.query({
+            query: req.query,
+            query_params: validParams?.data, // Default to empty object
+            format: "JSONEachRow",
+          });
+          unparsedRows = await res.json();
+          lastError = undefined;
+          break;
+        } catch (err) {
+          lastError = err;
+          // A read that spent a long time failing points at a saturated or
+          // unreachable server; retrying adds load and latency without helping.
+          const elapsedMs = Date.now() - startedAt;
+          if (
+            attempt === Client.QUERY_MAX_ATTEMPTS ||
+            elapsedMs >= Client.QUERY_RETRY_SLOW_ATTEMPT_MS
+          ) {
+            break;
+          }
+          await new Promise((resolve) =>
+            setTimeout(resolve, Client.QUERY_RETRY_BASE_DELAY_MS * attempt),
+          );
+        }
+      }
+      if (lastError !== undefined) {
+        const message = lastError instanceof Error ? lastError.message : JSON.stringify(lastError);
+        console.error(lastError);
 
         return Err(new QueryError(`Unable to query clickhouse: ${message}`, { query: req.query }));
       }

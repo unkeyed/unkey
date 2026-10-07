@@ -1,0 +1,44 @@
+---
+title: Security
+sidebarTitle: "Overview"
+description: "See how Unkey protects your keys and workspace and what you can turn on."
+sources:
+  - pkg/hash/sha256.go
+  - web/apps/dashboard/lib/auth/roles.ts
+  - web/apps/dashboard/lib/trpc/trpc.ts
+  - web/apps/dashboard/lib/trpc/routers/workspace/changeName.ts
+  - web/apps/dashboard/lib/trpc/routers/api/updateDeleteProtection.ts
+  - web/internal/db/src/schema/util/delete_protection.ts
+  - SECURITY.md
+---
+
+You hand Unkey keys that open your production systems. Here's how we protect them, and what you can turn on.
+
+## How we protect you
+
+**Keys are never stored in plaintext.** We keep only a SHA-256 hash of every API key and root key. A copy of our database doesn't yield working keys, and we can't show you a key again after you create it. If you need to read a key back later, you opt in per keyspace. See [Key storage](/platform/security/key-storage).
+
+**Access is scoped.** A root key only works in the workspace that issued it, and every endpoint needs a specific permission. Dashboard users are either an admin or a developer. A developer who tries an admin-only action gets `This action requires admin privileges.` See [Team](/platform/workspace/team).
+
+**Changes are audited.** Changes made in the dashboard appear in the audit log with who made them, the event, and a description. For example, renaming a workspace logs `workspace.update`. How long entries are kept depends on your plan. See [Limits](/platform/billing/limits).
+
+## Security features you can use
+
+<Columns cols={2}>
+  <Card title="Key storage" icon="lock" href="/platform/security/key-storage">
+    Hashing, verification, and the opt-in encrypted storage for recoverable keys.
+  </Card>
+  <Card title="GitHub secret scanning" icon="github" href="/platform/security/github-secret-scanning">
+    What happens when a key is pushed to a public repository.
+  </Card>
+  <Card title="Delete protection" icon="shield-halved" href="/platform/security/delete-protection">
+    A flag that blocks deleting a keyspace, project, or app until you turn it off.
+  </Card>
+  <Card title="Two-factor authentication" icon="mobile-screen" href="/platform/workspace/two-factor-auth">
+    Enroll a second factor on your own account.
+  </Card>
+</Columns>
+
+## Reporting a vulnerability
+
+If you find a security issue, email [security@unkey.com](mailto:security@unkey.com) with steps to reproduce. Don't open a public issue or pull request. Reports about `api.unkey.com` and `app.unkey.com` are in scope. The docs site, the marketing site, and misconfigured self-hosted setups aren't. The full policy is in [SECURITY.md](https://github.com/unkeyed/unkey/blob/main/SECURITY.md).

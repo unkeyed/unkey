@@ -31,6 +31,7 @@ import (
 // is handled.
 type Session struct {
 	requestID string
+	initErr   error
 
 	w http.ResponseWriter // Wrapped with statusRecorder to capture status code
 	r *http.Request
@@ -43,7 +44,6 @@ type Session struct {
 	responseStatus int
 	responseBody   []byte
 
-	// Fixed server configuration that persists when this session is reused.
 	streamRequestBody bool
 
 	// ClickHouse request logging control - defaults to true (log by default)
@@ -91,8 +91,7 @@ func (s *Session) Init(w http.ResponseWriter, r *http.Request, maxBodySize int64
 		// Handle read errors (including MaxBytesError)
 		if err != nil {
 			// Check if this is a MaxBytesError from http.MaxBytesReader
-			var maxBytesErr *http.MaxBytesError
-			if errors.As(err, &maxBytesErr) {
+			if maxBytesErr, ok := errors.AsType[*http.MaxBytesError](err); ok {
 				return fault.Wrap(err,
 					fault.Code(codes.User.BadRequest.RequestBodyTooLarge.URN()),
 					fault.Internal(fmt.Sprintf("request body exceeds size limit of %d bytes", maxBytesErr.Limit)),
@@ -182,6 +181,13 @@ func (s *Session) Location() string {
 		return s.clientIP.String()
 	}
 	return ""
+}
+
+// ClientIP returns the TCP peer address, or the address set by
+// [Session.SetClientIP]. The zero value means no valid client address was
+// captured
+func (s *Session) ClientIP() netip.Addr {
+	return s.clientIP
 }
 
 // SetClientIP sets the client address after peer metadata has been authenticated.
@@ -285,7 +291,7 @@ func (s *Session) BindBody(dst any) error {
 //	// Use params.Limit, params.Cursor, and params.Filter
 func (s *Session) BindQuery(dst interface{}) error {
 	val := reflect.ValueOf(dst)
-	if val.Kind() != reflect.Ptr || val.IsNil() {
+	if val.Kind() != reflect.Pointer || val.IsNil() {
 		return fault.New("destination must be a non-nil pointer")
 	}
 
@@ -551,9 +557,9 @@ func (s *Session) SetResponseBody(body []byte) {
 const MaxBodyCapture = 1 << 20 // 1 MiB
 
 // reset clears request-specific state before the session returns to the pool.
-// Server configuration such as streamRequestBody persists across requests.
 func (s *Session) reset() {
 	s.requestID = ""
+	s.initErr = nil
 
 	s.w = nil
 	s.r = nil

@@ -1,0 +1,59 @@
+---
+title: "missing"
+sidebarTitle: "missing"
+description: "The endpoint didn't accept the kind of credential you sent, so it couldn't identify you."
+sources:
+  - pkg/codes/unkey_auth.go
+  - svc/api/internal/middleware/errors.go
+  - pkg/zen/auth.go
+  - pkg/zen/session.go
+---
+
+<Danger>`err:unkey:authentication:missing`</Danger>
+
+The endpoint didn't find a credential it accepts, so it couldn't tell who you are. You get HTTP 400.
+
+```json Example response
+{
+  "meta": {
+    "requestId": "req_2c9a0jf23l4k567"
+  },
+  "error": {
+    "detail": "You must provide a bearer credential in the Authorization header.",
+    "status": 400,
+    "title": "Bad Request",
+    "type": "/errors/unkey/authentication/missing",
+    "errors": []
+  }
+}
+```
+
+## Likely causes
+
+- You called a portal endpoint (`portal.listKeys`, `portal.rerollKey`, `portal.getVerifications`) with an `Authorization` header. Those endpoints only accept the `portal_session` cookie, and ignore it when an `Authorization` header is present. The message is `You must provide a bearer credential in the Authorization header.`
+- You put the root key in the body or a custom header instead of `Authorization`.
+- Rarely, an endpoint that needs a signed-in caller got a request without one. The message is `You must authenticate before accessing this resource.`
+
+A request with no `Authorization` header at all returns [`err:unkey:application:invalid_input`](/errors/unkey/application/invalid_input) instead. A header that isn't in the form `Bearer <token>` returns [`err:unkey:authentication:malformed`](/errors/unkey/authentication/malformed).
+
+## How to fix
+
+1. Send your root key as a bearer token on every request:
+
+   ```bash
+   curl -X POST https://api.unkey.com/v2/keys.verifyKey \
+     -H "Authorization: Bearer unkey_xxx" \
+     -H "Content-Type: application/json" \
+     -d '{"key": "sk_live_xxx"}'
+   ```
+
+   The key you're verifying goes in the body. The root key goes in the header.
+2. On a portal endpoint, drop the `Authorization` header and send the `portal_session` cookie instead.
+
+Create or rotate root keys in the dashboard under Settings. See [Root keys](/platform/root-keys/overview).
+
+## Related errors
+
+- [`err:unkey:authentication:malformed`](/errors/unkey/authentication/malformed): the header is present but not `Bearer <token>`.
+- [`err:unkey:application:invalid_input`](/errors/unkey/application/invalid_input): the `Authorization` header is missing.
+- [`err:unkey:authentication:key_not_found`](/errors/unkey/authentication/key_not_found): the token is well formed but isn't a valid root key.

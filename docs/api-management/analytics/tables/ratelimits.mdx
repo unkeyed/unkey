@@ -1,0 +1,97 @@
+---
+title: ratelimits tables
+description: "Every column in the rate limit tables and their rollups."
+sources:
+  - svc/api/routes/v2_analytics_get_ratelimits/handler.go
+  - pkg/clickhouse/schema/006_ratelimits_raw_v2.sql
+  - pkg/clickhouse/schema/007_ratelimits_per_minute_v2.sql
+  - pkg/clickhouse/schema/008_ratelimits_per_hour_v2.sql
+  - pkg/clickhouse/schema/009_ratelimits_per_day_v2.sql
+  - pkg/clickhouse/schema/010_ratelimits_per_month_v2.sql
+---
+
+Query <Tooltip tip="Here: decisions made by the standalone ratelimit API (ratelimit.limit and ratelimit.multiLimit). Not key limits checked during verification and not the gateway policy.">rate limit</Tooltip> decisions with `analytics.getRatelimits` from five tables. They record calls to `ratelimit.limit` and `ratelimit.multiLimit`. Limits on keys and identities show up as `RATE_LIMITED` outcomes in the [key_verifications tables](/api-management/analytics/tables/key-verifications) instead.
+
+## ratelimits_v1
+
+One row per rate limit check.
+
+<ResponseField name="request_id" type="String">
+  The `meta.requestId` of the request that performed the check.
+</ResponseField>
+<ResponseField name="time" type="Int64">
+  When the check happened, in milliseconds since the Unix epoch.
+</ResponseField>
+<ResponseField name="inserted_at" type="Int64">
+  When the row was recorded, in milliseconds since the Unix epoch. Filter on `time` instead.
+</ResponseField>
+<ResponseField name="workspace_id" type="String">
+  Your workspace. Always the same value.
+</ResponseField>
+<ResponseField name="namespace_id" type="String">
+  The namespace the check ran in, as an `rlns_` ID.
+</ResponseField>
+<ResponseField name="identifier" type="String">
+  The identifier you passed: a user ID, an IP, a tenant, whatever you chose to limit on.
+</ResponseField>
+<ResponseField name="passed" type="Bool">
+  `true` if the request was allowed, `false` if it was rejected.
+</ResponseField>
+<ResponseField name="latency" type="Float64">
+  How long Unkey took to process the check, in milliseconds.
+</ResponseField>
+<ResponseField name="override_id" type="String">
+  The override that applied, or empty when the request used the default limit.
+</ResponseField>
+<ResponseField name="limit" type="UInt64">
+  The limit in force for this check.
+</ResponseField>
+<ResponseField name="remaining" type="UInt64">
+  Requests left in the window after this check.
+</ResponseField>
+<ResponseField name="reset_at" type="Int64">
+  When the window resets, in milliseconds since the Unix epoch.
+</ResponseField>
+<ResponseField name="tokens" type="UInt64">
+  The `cost` charged, `1` by default. Zero when the request sent `cost: 0`, or for older rows recorded before this column existed.
+</ResponseField>
+
+## Rollup tables
+
+`ratelimits_per_minute_v1`, `ratelimits_per_hour_v1`, `ratelimits_per_day_v1`, and `ratelimits_per_month_v1` have the same columns: one row per time bucket, namespace, and identifier.
+
+<ResponseField name="time" type="DateTime | Date">
+  Start of the bucket. `DateTime` on per-minute and per-hour, `Date` on per-day and per-month.
+</ResponseField>
+<ResponseField name="workspace_id" type="String">
+  Your workspace.
+</ResponseField>
+<ResponseField name="namespace_id" type="String">
+  The namespace `rlns_` ID.
+</ResponseField>
+<ResponseField name="identifier" type="String">
+  The rate limited identifier.
+</ResponseField>
+<ResponseField name="passed" type="SimpleAggregateFunction(sum, Int64)">
+  Checks that were allowed in the bucket. Read with `sum(passed)`.
+</ResponseField>
+<ResponseField name="total" type="SimpleAggregateFunction(sum, Int64)">
+  All checks in the bucket. `sum(total) - sum(passed)` is the number rejected.
+</ResponseField>
+<ResponseField name="total_tokens" type="SimpleAggregateFunction(sum, Int64)">
+  Sum of `tokens` over all checks.
+</ResponseField>
+<ResponseField name="passed_tokens" type="SimpleAggregateFunction(sum, Int64)">
+  Sum of `tokens` over allowed checks.
+</ResponseField>
+<ResponseField name="latency_avg" type="AggregateFunction(avg, Float64)">
+  Can't be read, because `avgMerge` isn't allowed. Use `avg(latency)` on the raw table.
+</ResponseField>
+<ResponseField name="latency_p75" type="AggregateFunction(quantilesTDigest(0.75), Float64)">
+  Aggregate state, with the same limitation.
+</ResponseField>
+<ResponseField name="latency_p99" type="AggregateFunction(quantilesTDigest(0.99), Float64)">
+  Aggregate state, with the same limitation.
+</ResponseField>
+
+The rate limit tables keep less history than the verification tables: raw 1 month, per-minute 7 days, per-hour 30 days, per-day 100 days, per-month 3 years. For a month-long chart, use the per-day table. Your plan's retention also applies. See [Analytics restrictions and quotas](/api-management/analytics/restrictions-and-quotas).

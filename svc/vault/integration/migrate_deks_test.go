@@ -32,7 +32,7 @@ func TestMigrateDeks(t *testing.T) {
 
 	storage, err := storage.NewS3(storage.S3Config{
 		S3URL:             s3.URL,
-		S3Bucket:          "test",
+		S3Bucket:          s3.CreateBucket(t),
 		S3AccessKeyID:     s3.AccessKeyID,
 		S3AccessKeySecret: s3.SecretAccessKey,
 	})

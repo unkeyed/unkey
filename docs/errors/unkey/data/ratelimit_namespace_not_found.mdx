@@ -1,0 +1,47 @@
+---
+title: "ratelimit_namespace_not_found"
+sidebarTitle: "ratelimit_namespace_not_found"
+description: "The rate limit namespace does not exist in your workspace."
+sources:
+  - pkg/codes/unkey_data.go
+  - svc/api/internal/middleware/errors.go
+  - svc/api/routes/v2_ratelimit_set_override/handler.go
+  - svc/api/routes/v2_ratelimit_get_override/handler.go
+  - svc/api/routes/v2_ratelimit_list_overrides/handler.go
+  - svc/api/routes/v2_ratelimit_delete_override/handler.go
+  - svc/api/routes/v2_ratelimit_limit/handler.go
+---
+
+<Danger>`err:unkey:data:ratelimit_namespace_not_found`</Danger>
+
+The <Tooltip tip="The standalone rate limiting API (ratelimit.limit and overrides), not key rate limits or gateway policies.">rate limit</Tooltip> namespace you referenced doesn't exist in your workspace. You get HTTP 404.
+
+```json Example response
+{
+  "meta": {
+    "requestId": "req_2c9a0jf23l4k567"
+  },
+  "error": {
+    "detail": "This namespace does not exist.",
+    "status": 404,
+    "title": "Not Found",
+    "type": "/errors/unkey/data/ratelimit_namespace_not_found"
+  }
+}
+```
+
+## Likely causes
+
+- You set an override before the namespace existed. Namespaces are created the first time you call `ratelimit.limit` or `ratelimit.multiLimit` with a new name. The override endpoints (`ratelimit.setOverride`, `ratelimit.getOverride`, `ratelimit.listOverrides`, `ratelimit.deleteOverride`) don't create them.
+- The name has a typo. Names are matched exactly.
+- The namespace was deleted. `ratelimit.setOverride` returns this 404 for it, while `ratelimit.limit` returns [`err:unkey:data:ratelimit_namespace_gone`](/errors/unkey/data/ratelimit_namespace_gone).
+
+## How to fix
+
+1. Call `ratelimit.limit` with the namespace once to create it, then set overrides.
+2. Check the spelling. If you pass an ID, use the `rlns_` ID from the dashboard.
+
+## Related errors
+
+- [`err:unkey:data:ratelimit_namespace_gone`](/errors/unkey/data/ratelimit_namespace_gone): the namespace existed and was deleted.
+- [`err:unkey:data:ratelimit_override_not_found`](/errors/unkey/data/ratelimit_override_not_found): the namespace exists but the override doesn't.

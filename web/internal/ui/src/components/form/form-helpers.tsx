@@ -5,7 +5,7 @@ import React from "react";
 import { cn } from "../../lib/utils";
 import { InfoTooltip } from "../info-tooltip";
 import { OptionalTag, RequiredTag } from "./form-tags";
-export { DocsTag } from "./form-tags";
+export { DocsTag, OptionalTag, RequiredTag } from "./form-tags";
 
 export type FormHelperProps = {
   description?: string | React.ReactNode;
@@ -27,7 +27,7 @@ export const FormDescription = ({
   }
 
   return (
-    <div className="text-[13px] leading-5">
+    <div className="text-sm leading-5">
       {error ? (
         <div id={errorId} role="alert" className="text-error-11 flex gap-2 items-center">
           <IconTriangleWarningOutline18
@@ -92,7 +92,7 @@ export const FormLabel = ({
     <label
       id={`${htmlFor}-label`}
       htmlFor={htmlFor}
-      className="text-gray-11 text-[13px] flex items-center"
+      className="text-gray-11 text-sm flex items-center"
     >
       {label}
       {requirement === "required" && <RequiredTag hasError={hasError} />}

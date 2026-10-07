@@ -20,7 +20,6 @@ const mocks = vi.hoisted(
 vi.mock("@/lib/portal/use-portal", () => ({
   usePortal: () => mocks.portalState,
   useUpdatePortal: () => mocks.updateMutation,
-  portalQueryKey: (keyAuthId: string) => ["portal", keyAuthId],
 }));
 
 vi.mock("@tanstack/react-query", () => ({

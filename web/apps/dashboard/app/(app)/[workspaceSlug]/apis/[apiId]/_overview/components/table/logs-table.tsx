@@ -7,7 +7,19 @@ import { getRowClassName } from "@/components/api-requests-table/utils/get-row-c
 import { useSort } from "@/components/logs/hooks/use-sort";
 import type { RowSelectionState, SortingState } from "@tanstack/react-table";
 import type { KeysOverviewLog } from "@unkey/clickhouse/src/keys/keys";
-import { DataTable, type DataTableConfig, EmptyApiRequests, PaginationFooter } from "@unkey/ui";
+import { IconArrowsOppositeDirectionYOutline18, IconBookBookmarkOutline18 } from "@unkey/icons";
+import {
+  DataTable,
+  type DataTableConfig,
+  EmptyState,
+  EmptyStateActions,
+  EmptyStateDescription,
+  EmptyStateHeader,
+  EmptyStateIcon,
+  EmptyStateTitle,
+  PaginationFooter,
+  buttonVariants,
+} from "@unkey/ui";
 import { useCallback, useMemo, useRef } from "react";
 
 const TABLE_CONFIG: DataTableConfig = {
@@ -99,7 +111,31 @@ export const KeysOverviewLogsTable = ({ apiId, setSelectedLog, log: selectedLog 
         enableRowSelection={true}
         rowSelection={rowSelection}
         config={TABLE_CONFIG}
-        emptyState={<EmptyApiRequests />}
+        emptyState={
+          <EmptyState frame="none">
+            <EmptyStateIcon>
+              <IconArrowsOppositeDirectionYOutline18 />
+            </EmptyStateIcon>
+            <EmptyStateHeader>
+              <EmptyStateTitle>Key Verification Logs</EmptyStateTitle>
+              <EmptyStateDescription>
+                No key verification data to show. Once requests are made with API keys, you'll see a
+                summary of successful and failed verification attempts.
+              </EmptyStateDescription>
+            </EmptyStateHeader>
+            <EmptyStateActions>
+              <a
+                href="https://www.unkey.com/docs/introduction"
+                target="_blank"
+                rel="noopener noreferrer"
+                className={buttonVariants({ size: "md", variant: "outline" })}
+              >
+                <IconBookBookmarkOutline18 />
+                Documentation
+              </a>
+            </EmptyStateActions>
+          </EmptyState>
+        }
       />
       <PaginationFooter
         page={page}

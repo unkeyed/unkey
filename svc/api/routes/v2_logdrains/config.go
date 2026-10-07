@@ -5,7 +5,6 @@ import (
 
 	logdrainv1 "github.com/unkeyed/unkey/gen/proto/logdrain/v1"
 	"github.com/unkeyed/unkey/pkg/db"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	"google.golang.org/protobuf/proto"
 )
@@ -29,7 +28,7 @@ func toPublic(row db.Logdrain) (openapi.Logdrain, error) {
 	data.CreatedAt = row.CreatedAt
 	switch stream := config.Stream.(type) {
 	case nil:
-		data.Filters.EventTypes = ptr.P([]string{})
+		data.Filters.EventTypes = new([]string{})
 	case *logdrainv1.Config_AuditLogs:
 		data.Filters.EventTypes = array(stream.AuditLogs.EventTypes)
 	case *logdrainv1.Config_KeyVerifications:
@@ -62,6 +61,8 @@ func toPublic(row db.Logdrain) (openapi.Logdrain, error) {
 		case logdrainv1.HttpBodyFormat_HTTP_BODY_FORMAT_UNSPECIFIED, logdrainv1.HttpBodyFormat_HTTP_BODY_FORMAT_JSON:
 		case logdrainv1.HttpBodyFormat_HTTP_BODY_FORMAT_NDJSON:
 			format = "ndjson"
+		case logdrainv1.HttpBodyFormat_HTTP_BODY_FORMAT_HEC:
+			format = "hec"
 		default:
 			return data, fmt.Errorf("unsupported log drain body format %d", destination.Http.Format)
 		}

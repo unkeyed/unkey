@@ -150,7 +150,7 @@ export const MetadataSetup = ({ overrideEnabled = false, entityType }: MetadataS
                   disabled={!metadataEnabled || field.invalid}
                   type="button"
                 >
-                  <div className="text-[13px]">Format</div>
+                  <div className="text-sm">Format</div>
                 </Button>
               </InputGroupAddon>
             </InputGroup>

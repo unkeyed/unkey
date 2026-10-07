@@ -1,14 +1,13 @@
 "use client";
 
 import { routes } from "@/lib/navigation/routes";
-import { trpc } from "@/lib/trpc/client";
 import { IconHammer2Outline18 } from "@unkey/icons";
 import { Button, SettingCardGroup } from "@unkey/ui";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useProjectData } from "../../../data-provider";
 import { useDeployment } from "../layout-provider";
-import { DeploymentBuildStepsTable } from "./build-steps-table/deployment-build-steps-table";
+import { DeploymentBuildLogs } from "./build-logs/deployment-build-logs";
 import { DeploymentStep } from "./deployment-step";
 
 export function DeploymentBuild() {
@@ -24,16 +23,6 @@ export function DeploymentBuild() {
     deploymentId: deployment.id,
   });
 
-  const buildSteps = trpc.deploy.deployment.buildSteps.useQuery(
-    {
-      deploymentId: deployment.id,
-      includeStepLogs: true,
-    },
-    {
-      refetchInterval: 1_000,
-    },
-  );
-
   router.prefetch(deploymentUrl);
 
   return (
@@ -46,11 +35,7 @@ export function DeploymentBuild() {
           status="completed"
           expandable={
             <div className="bg-grayA-2">
-              <DeploymentBuildStepsTable
-                steps={buildSteps.data?.steps ?? []}
-                isLoading={buildSteps.isLoading}
-                fixedHeight={750}
-              />
+              <DeploymentBuildLogs fixedHeight={750} />
             </div>
           }
           defaultExpanded
@@ -63,7 +48,7 @@ export function DeploymentBuild() {
             Continue to deployment
           </Button>
         </Link>
-        <span className="text-gray-10 text-[13px] text-center">
+        <span className="text-gray-10 text-sm text-center">
           Continue to view live status, domains, and metrics.
         </span>
       </div>

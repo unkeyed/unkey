@@ -1,0 +1,95 @@
+---
+title: Health checks
+description: "Tell Unkey how to probe your app and what happens when the probe fails."
+sources:
+  - svc/api/openapi/spec/common/EnvironmentHealthcheck.yaml
+  - svc/api/openapi/spec/paths/v2/environments/updateSettings/V2EnvironmentsUpdateSettingsRequestBody.yaml
+  - svc/api/routes/v2_environments_update_settings/handler.go
+  - svc/krane/internal/deployment/apply.go
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/settings/components/runtime-settings/healthcheck/schema.ts
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/settings/components/runtime-settings/healthcheck/index.tsx
+  - web/apps/dashboard/lib/collections/deploy/environment-settings.ts
+---
+
+A health check tells us how to tell whether your <Tooltip tip="A Compute app: a deployable service inside a project. Not 'your application' in general.">app</Tooltip> is ready and still working. We send an HTTP request to each instance on a schedule. It's optional, and you set it per <Tooltip tip="A production or preview environment of a Compute app, not the dashboard label on a key.">environment</Tooltip>.
+
+## What the health check does
+
+- **An instance gets no traffic until it passes.** So a deployment can wait for your app to finish starting before the first request arrives.
+- **An instance that fails `failureThreshold` checks in a row is restarted.**
+
+A `GET` check passes on any status from 200 to 399. Anything else, including a timeout, is a failure.
+
+Without a health check, an instance is ready as soon as its container is running, and it's only restarted if the process exits. That's fine for apps that are ready as soon as they open the port. Add a check if startup takes a while, or if your process can be running but unable to serve.
+
+## Choose what to check
+
+Check the process, not its dependencies. A failing check restarts the container, so a check that queries your database takes every instance down when the database has a bad minute. `GET /healthz` returning `200` is enough.
+
+## Add a health check
+
+<Frame>
+  <img src="/images/dashboard/compute--configure-runtime-settings--runtime.png" alt="App Settings runtime section showing instances, max CPU, memory, storage, healthcheck, port, and command for production and preview" />
+</Frame>
+
+In the dashboard, open the app's settings and use the **Health check** card. In the API, set `healthcheck` in [runtime settings](/compute/configure/runtime-settings) with `environments.updateSettings`:
+
+```bash Add a check with a shorter timeout
+curl -X POST https://api.unkey.com/v2/environments.updateSettings \
+  -H "Authorization: Bearer $UNKEY_ROOT_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "project": "payments",
+    "app": "api",
+    "environment": "production",
+    "healthcheck": {
+      "method": "GET",
+      "path": "/healthz",
+      "intervalSeconds": 10,
+      "timeoutSeconds": 3,
+      "failureThreshold": 3,
+      "initialDelaySeconds": 5
+    }
+  }'
+```
+
+Like every runtime setting, it applies from the next deployment. To remove the check, use the remove action on the card, or send `"healthcheck": null`.
+
+## Fields
+
+Only `method` and `path` are required. The others use the defaults below.
+
+<ParamField body="method" type="GET | POST" required>
+  The HTTP method. `POST` sends an empty body using `wget` inside your container, so your image must include `wget`.
+</ParamField>
+
+<ParamField body="path" type="string" required>
+  The path to request on your app's port, 1 to 512 characters, starting with `/` and matching `^(/[\w\-]+)+(\.[\w]+)?$`, for example `/healthz`.
+</ParamField>
+
+<ParamField body="intervalSeconds" type="integer" default="10">
+  Seconds between checks, 1 to 3600. The dashboard defaults to `30s` and accepts values like `15s`, `2m`, or `1h`.
+</ParamField>
+
+<ParamField body="timeoutSeconds" type="integer" default="5">
+  Seconds to wait for a response before the check fails, 1 to 3600. Only settable in the API. Saving from the dashboard sets 5.
+</ParamField>
+
+<ParamField body="failureThreshold" type="integer" default="3">
+  Failures in a row before the instance is restarted, 1 to 100. Only settable in the API. Saving from the dashboard sets 3.
+</ParamField>
+
+<ParamField body="initialDelaySeconds" type="integer" default="0">
+  Seconds after the container starts before the first check, 0 to 3600. Only settable in the API. Saving from the dashboard sets 0.
+</ParamField>
+
+## Next steps
+
+<Columns cols={2}>
+  <Card title="Instances and autoscaling" icon="server" href="/compute/concepts/instances-and-autoscaling">
+    How readiness, restarts, and traffic distribution fit together.
+  </Card>
+  <Card title="Deployments" icon="rocket" href="/compute/concepts/deployments">
+    How a deployment waits for healthy instances across regions.
+  </Card>
+</Columns>

@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_permissions_set_role_permissions"
@@ -35,7 +34,7 @@ func TestSetRolePermissionsAuthorizesCanonicalWriteRole(t *testing.T) {
 	}
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
-		Role:        ptr.P(role.ID),
+		Role:        new(role.ID),
 		Permissions: []string{permission.Slug},
 	})
 

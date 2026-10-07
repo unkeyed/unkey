@@ -51,7 +51,7 @@ export default function BasicResourceList() {
           {visibleKeys.map((key) => (
             <ResourceListItem key={key.id} className="flex items-center gap-4 px-4 py-3">
               <div className="min-w-0 flex-1">
-                <div className="truncate font-medium text-accent-12 text-sm">{key.name}</div>
+                <div className="truncate font-medium text-gray-12 text-sm">{key.name}</div>
                 <div className="font-mono text-gray-9 text-xs">{key.id}</div>
               </div>
               <span className="text-gray-11 text-xs">{key.status}</span>

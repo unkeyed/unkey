@@ -7,8 +7,19 @@ import {
 import { EditRole } from "@/components/roles-table/components/actions/components/edit-role";
 import { SelectionControls } from "@/components/roles-table/components/selection-controls";
 import type { RoleBasic } from "@/lib/trpc/routers/authorization/roles/query";
-import { IconBookBookmarkOutline18 } from "@unkey/icons";
-import { Button, DataTable, Empty, PaginationFooter, getSelectableRowClassName } from "@unkey/ui";
+import { IconBookBookmarkOutline18, IconShieldKeyOutline18 } from "@unkey/icons";
+import {
+  Button,
+  DataTable,
+  EmptyState,
+  EmptyStateActions,
+  EmptyStateDescription,
+  EmptyStateHeader,
+  EmptyStateIcon,
+  EmptyStateTitle,
+  PaginationFooter,
+  getSelectableRowClassName,
+} from "@unkey/ui";
 import { useCallback, useMemo, useState } from "react";
 
 export const RolesList = () => {
@@ -69,28 +80,30 @@ export const RolesList = () => {
         rowClassName={(role) => getSelectableRowClassName(role.roleId === selectedRole?.roleId)}
         renderSkeletonRow={renderRolesSkeletonRow}
         emptyState={
-          <div className="w-full flex justify-center items-center h-full">
-            <Empty className="w-[400px] flex items-start">
-              <Empty.Icon className="w-auto" />
-              <Empty.Title>No Roles Found</Empty.Title>
-              <Empty.Description className="text-left">
+          <EmptyState frame="none">
+            <EmptyStateIcon>
+              <IconShieldKeyOutline18 />
+            </EmptyStateIcon>
+            <EmptyStateHeader>
+              <EmptyStateTitle>No Roles Found</EmptyStateTitle>
+              <EmptyStateDescription>
                 There are no roles configured yet. Create your first role to start managing
                 permissions and access control.
-              </Empty.Description>
-              <Empty.Actions className="mt-4 justify-start">
-                <a
-                  href="https://www.unkey.com/docs/platform/apis/features/authorization/introduction"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <Button size="md">
-                    <IconBookBookmarkOutline18 />
-                    Learn about Roles
-                  </Button>
-                </a>
-              </Empty.Actions>
-            </Empty>
-          </div>
+              </EmptyStateDescription>
+            </EmptyStateHeader>
+            <EmptyStateActions>
+              <a
+                href="https://www.unkey.com/docs/platform/apis/features/authorization/introduction"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <Button variant="outline" size="md">
+                  <IconBookBookmarkOutline18 />
+                  Learn about Roles
+                </Button>
+              </a>
+            </EmptyStateActions>
+          </EmptyState>
         }
         config={{
           rowHeight: 52,

@@ -7,19 +7,15 @@ type SelectionControlsProps = {
 };
 
 export const SelectionControls = ({ selectedRoles, setSelectedRoles }: SelectionControlsProps) => {
-  const deleteRole = useDeleteRole(() => {
-    setSelectedRoles(new Set());
+  const deleteRole = useDeleteRole((remainingRoleIds) => {
+    setSelectedRoles(new Set(remainingRoleIds));
   });
 
   return (
     <TableDeleteSelectionControls
       selectedCount={selectedRoles.size}
       onClearSelection={() => setSelectedRoles(new Set())}
-      onConfirmDelete={() =>
-        deleteRole.mutate({
-          roleIds: Array.from(selectedRoles),
-        })
-      }
+      onConfirmDelete={() => deleteRole.mutate(Array.from(selectedRoles))}
       isDeleting={deleteRole.isLoading}
       singular="role"
       plural="roles"

@@ -16,7 +16,12 @@ export function useAppFilterOptionsWithLoading(): {
   const { projectId } = useProjectData();
 
   const apps = useLiveQuery(
-    (q) => q.from({ app: collection.apps }).where(({ app }) => eq(app.projectId, projectId)),
+    (q) =>
+      q
+        .from({ app: collection.apps })
+        .where(({ app }) => eq(app.projectId, projectId))
+        .orderBy(({ app }) => app.updatedAt, { direction: "desc", nulls: "last" })
+        .orderBy(({ app }) => app.id, "desc"),
     [projectId],
   );
 
@@ -41,7 +46,7 @@ export function useAppNameById(): Map<string, string> {
 }
 
 export function renderAppOption(option: AppFilterOption) {
-  return <div className="text-accent-12 text-xs">{option.name}</div>;
+  return <div className="text-gray-12 text-xs">{option.name}</div>;
 }
 
 type AppFilterOption = {

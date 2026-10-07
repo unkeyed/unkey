@@ -2,13 +2,20 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { IconConnectionsOutline18 } from "@unkey/icons";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@unkey/ui";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  firstMatchingSaveState,
+} from "@unkey/ui";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { useEnvironmentSettings } from "../../environment-provider";
 import { useUpdateAllEnvironments } from "../../hooks/use-update-all-environments";
 import { SettingField } from "../shared/form-blocks";
-import { FormSettingCard, resolveSaveState } from "../shared/form-setting-card";
+import { FormSettingCard } from "../shared/form-setting-card";
 
 const PROTOCOLS = [
   { value: "http1", label: "HTTP/1.1" },
@@ -38,7 +45,7 @@ export const UpstreamProtocol = () => {
 
   const currentProtocol = useWatch({ control, name: "upstreamProtocol" });
 
-  const saveState = resolveSaveState([
+  const saveState = firstMatchingSaveState([
     [isSubmitting, { status: "saving" }],
     [!isValid, { status: "disabled" }],
     [currentProtocol === defaultValue, { status: "disabled", reason: "No changes to save" }],
@@ -62,7 +69,7 @@ export const UpstreamProtocol = () => {
             href="https://www.unkey.com/docs/platform/apps/settings#upstream-protocol"
             target="_blank"
             rel="noopener noreferrer"
-            className="underline text-accent-11"
+            className="underline text-gray-11"
           >
             Learn more
           </a>

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"strconv"
 	"strings"
@@ -20,6 +21,38 @@ func TestStringFlag_BasicParsing(t *testing.T) {
 	require.Equal(t, "hello", flag.Value())
 	require.True(t, flag.IsSet())
 	require.True(t, flag.HasValue())
+}
+
+func TestCommandJSON(t *testing.T) {
+	flag := String("source", "JSON source")
+	cmd := &Command{
+		Name:  "test",
+		Flags: []Flag{flag},
+	}
+	cmd.initFlagMap()
+	require.NoError(t, flag.Parse(`{"image":"ghcr.io/acme/api:v1"}`))
+
+	var source struct {
+		Image string `json:"image"`
+	}
+	require.NoError(t, cmd.JSON("source", &source))
+	require.Equal(t, "ghcr.io/acme/api:v1", source.Image)
+}
+
+func TestCommandJSONIncludesFlagNameInError(t *testing.T) {
+	flag := String("source", "JSON source")
+	cmd := &Command{
+		Name:  "test",
+		Flags: []Flag{flag},
+	}
+	cmd.initFlagMap()
+	require.NoError(t, flag.Parse(`{"image":`))
+
+	var source struct {
+		Image string `json:"image"`
+	}
+	err := cmd.JSON("source", &source)
+	require.ErrorContains(t, err, "invalid JSON for --source")
 }
 
 func TestStringFlag_WithValidation_Failure(t *testing.T) {
@@ -56,6 +89,19 @@ func TestStringFlag_ValidationOnEnvVar(t *testing.T) {
 	}()
 
 	String("url", "URL flag", EnvVar("INVALID_URL"), Validate(validateURL))
+}
+
+func TestEnvironmentValidationErrorDoesNotExposeValue(t *testing.T) {
+	t.Setenv("UNKEY_ROOT_KEY", "root-key-secret")
+
+	message := captureExitMessage(t, func() {
+		String("root-key", "Root key.", EnvVar("UNKEY_ROOT_KEY"), Validate(func(string) error {
+			return errors.New("invalid root key")
+		}))
+	})
+
+	require.Contains(t, message, "UNKEY_ROOT_KEY")
+	require.NotContains(t, message, "root-key-secret")
 }
 
 // BoolFlag Tests
@@ -943,4 +989,34 @@ func mockExit() (exitCode *int, exitCalled *bool, cleanup func()) {
 	return &code, &called, func() {
 		ExitFunc = originalExit
 	}
+}
+
+func captureExitMessage(t *testing.T, action func()) (message string) {
+	t.Helper()
+
+	read, write, err := os.Pipe()
+	require.NoError(t, err)
+
+	stdout := os.Stdout
+	os.Stdout = write
+	defer func() {
+		os.Stdout = stdout
+		require.NoError(t, write.Close())
+
+		output, err := io.ReadAll(read)
+		require.NoError(t, err)
+		require.NoError(t, read.Close())
+		message = string(output)
+	}()
+
+	exitCode, exitCalled, cleanup := mockExit()
+	defer cleanup()
+	defer func() {
+		require.Equal(t, "exit called", recover())
+		require.True(t, *exitCalled)
+		require.Equal(t, 1, *exitCode)
+	}()
+
+	action()
+	return ""
 }

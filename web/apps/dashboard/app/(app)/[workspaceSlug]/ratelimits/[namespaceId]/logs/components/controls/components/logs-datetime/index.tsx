@@ -1,7 +1,7 @@
 import { DatetimePopover } from "@/components/logs/datetime/datetime-popover";
-import { cn } from "@/lib/utils";
 import { IconCalendarOutline18 } from "@unkey/icons";
 import { Button } from "@unkey/ui";
+import { cn } from "cn";
 import { useEffect, useState } from "react";
 import { useFilters } from "../../../../hooks/use-filters";
 
@@ -84,7 +84,7 @@ export const LogsDateTime = () => {
         disabled={displayTitle === "Loading..."}
       >
         <IconCalendarOutline18 className="text-gray-9 size-4" />
-        <span className="text-gray-12 font-medium text-[13px]">{displayTitle}</span>
+        <span className="text-gray-12 font-medium text-sm">{displayTitle}</span>
       </Button>
     </DatetimePopover>
   );

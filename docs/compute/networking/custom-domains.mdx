@@ -1,0 +1,104 @@
+---
+title: Custom domains
+description: "Serve an environment from your own domain, from DNS records to certificate."
+sources:
+  - svc/ctrl/services/customdomain/service.go
+  - svc/ctrl/worker/customdomain/doc.go
+  - svc/ctrl/worker/customdomain/verify_handler.go
+  - svc/ctrl/worker/certificate/doc.go
+  - svc/ctrl/worker/certificate/renew_handler.go
+  - svc/ctrl/worker/certificate/process_challenge_handler.go
+  - svc/frontline/routes/acme/handler.go
+  - svc/frontline/routes/register.go
+  - pkg/dns/dns.go
+  - pkg/dns/domainconnect/doc.go
+  - pkg/dns/domainconnect/discover.go
+  - pkg/domain/domaingate/domaingate.go
+  - svc/api/openapi/spec/common/Domain.yaml
+  - svc/api/openapi/spec/common/DnsRecord.yaml
+  - svc/api/openapi/spec/common/DomainConnect.yaml
+  - svc/api/openapi/spec/paths/v2/domains/createDomain/V2DomainsCreateDomainRequestBody.yaml
+  - cmd/api/domains/create_domain.go
+  - cmd/api/domains/verify_domain.go
+  - web/apps/dashboard/lib/limits.ts
+---
+
+A custom domain lets you serve an <Tooltip tip="A production or preview environment of a Compute app, not the dashboard label on a key.">environment</Tooltip> of your <Tooltip tip="A Compute app: a deployable service inside a project. Not 'your application' in general.">app</Tooltip> from a hostname you own, such as `api.acme.com`. You add the domain, publish two DNS records to prove you own it, and we route it and get a certificate for it. It always serves the environment's current deployment, like the [automatic hostnames](/compute/networking/automatic-domains).
+
+## Before you start
+
+- **Your plan must allow it.** Starter includes one custom domain, and Pro and Business have no practical limit. Going over returns [`custom_domain_limit_exceeded`](/errors/unkey/limits/custom_domain_limit_exceeded). See [Compute plans](/compute/get-started/plans).
+- **Each name can be used once in your workspace**, so you can't attach it to two environments.
+- **It must be under a domain someone can register.** `api.acme.co.uk` is fine, but `co.uk` on its own isn't. Wildcards and IP addresses aren't allowed. Unicode names work, and we store them in lowercase Punycode.
+- **Port 80 must reach us as well as 443**, so we can get a certificate.
+
+## Attach a domain
+
+<Steps titleSize="h3">
+  <Step title="Add the domain">
+
+    <Frame>
+      <img src="/images/dashboard/compute--networking-custom-domains--add-domain.png" alt="App Settings with the Custom Domains row expanded, showing an environment picker and a domain field" />
+    </Frame>
+
+    In the dashboard, open the app, go to **App Settings**, add the domain under **Custom Domains**, and pick the environment it should serve. Or use the CLI:
+
+    ```bash
+    unkey api domains create-domain --project=payments --app=api --environment=production --domain=api.acme.com
+    ```
+
+    <Visibility for="agents">
+      The API equivalent is `POST /v2/domains.createDomain` with `project`, `app`, `environment`, and `domain`. The response is the domain object, including `dnsRecords` and, when available, `domainConnect`.
+    </Visibility>
+  </Step>
+  <Step title="Publish the DNS records">
+    We show the records to create at your DNS provider:
+
+    | Type | Name | Value | When |
+    | --- | --- | --- | --- |
+    | `CNAME` | `api.acme.com` | `<16 characters>.<Unkey CNAME domain>` | Subdomains |
+    | `ALIAS` | `acme.com` | the same target | Apex domains |
+    | `TXT` | `_unkey.api.acme.com` | `unkey-domain-verify=<token>` | Always |
+
+    Copy the values exactly, with a TTL of 60 seconds. `ALIAS` means whatever your provider calls an alias at the apex: ALIAS, ANAME, or a flattened CNAME.
+
+    Some providers want names without the zone. In zone `acme.com`, enter `api` instead of `api.acme.com`, and `_unkey.api` instead of `_unkey.api.acme.com`. The zone itself is usually `@`.
+
+    If your DNS is hosted at Cloudflare or Vercel, you can skip the manual step. We give you a Domain Connect link (`domainConnect` in the API). Open it, approve the pre-filled records at your provider, and you're sent back to the app's settings.
+  </Step>
+  <Step title="Wait for verification">
+    We check DNS once a minute for up to 24 hours after you added the domain. The status goes from `pending` to `verifying` to `verified`. Each record also shows whether we've found it yet.
+
+    Once it's verified, we get a Let's Encrypt certificate and start serving HTTPS on the domain.
+  </Step>
+</Steps>
+
+## Verification failed or is stuck
+
+After 24 hours without the right records, the status becomes `failed` and `verificationError` says why. Fix the records, then retry. Retrying starts a new 24 hour window:
+
+```bash
+unkey api domains verify-domain --domain=api.acme.com
+```
+
+Things to check:
+
+- **Publish both records**, even for a subdomain. A subdomain passes when its CNAME points at our target. But an apex domain, a flattened CNAME, or a proxied record that hides the CNAME can only pass with the TXT record.
+- **An apex domain must also resolve to an IP address** (an A or AAAA record) through the alias.
+- **Values must match exactly.** We compare them character for character.
+
+## Certificates
+
+Certificates come from Let's Encrypt and renew automatically when they have less than 30 days left. The name must be reachable on port 80, because Let's Encrypt checks it over plain HTTP. If Let's Encrypt rate limits us, we wait and retry up to three times, then mark the certificate as failed. HTTPS on custom domains requires TLS 1.2 or later. See [Request lifecycle and headers](/compute/networking/request-lifecycle).
+
+## Move a domain from another workspace
+
+If another workspace has already verified the name, publish the TXT record. When your verification passes, the domain moves to your workspace and is removed from the other one.
+
+## While the app is rolled back
+
+A custom domain normally moves to each new live deployment. While the app is rolled back, new production deployments don't go live, so your domain keeps serving the deployment you rolled back to until you promote. See [Production and preview](/compute/concepts/production-and-preview).
+
+## Remove a domain
+
+Delete the domain, and requests to it stop reaching your app right away. Deleting the app or project also deletes its domains. Remove the DNS records yourself.

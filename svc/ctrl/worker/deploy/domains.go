@@ -1,6 +1,7 @@
 package deploy
 
 import (
+	"crypto/sha256"
 	"fmt"
 	"regexp"
 	"strings"
@@ -55,6 +56,9 @@ type newDomain struct {
 // successive deploys collide on the per-commit domain. Git-driven deploys never
 // repeat a SHA so they don't need it. Callers derive this from the deployment's
 // trigger column.
+//
+// Every domain goes through [cappedDomain], so no label is longer than
+// [dnsLabelMaxLength]
 func buildDomains(
 	workspaceSlug, projectSlug, appSlug, environmentSlug,
 	gitSha, branchName, forkOwner, apex string,
@@ -103,7 +107,7 @@ func buildDomains(
 		short += disambiguator
 		domains = append(domains,
 			newDomain{
-				domain: fmt.Sprintf("%s-git-%s-%s.%s", prefix, short, workspaceSlug, apex),
+				domain: cappedDomain(prefix+"-git-"+short, workspaceSlug, apex),
 				//nolint: exhaustruct
 				sticky: db.FrontlineRoutesStickyNone,
 			},
@@ -114,7 +118,7 @@ func buildDomains(
 		domains = append(
 			domains,
 			newDomain{
-				domain: fmt.Sprintf("%s-git-%s-%s.%s", prefix, sluggify(branchName), workspaceSlug, apex),
+				domain: cappedDomain(prefix+"-git-"+sluggify(branchName), workspaceSlug, apex),
 				sticky: db.FrontlineRoutesStickyBranch,
 			},
 		)
@@ -123,7 +127,7 @@ func buildDomains(
 	domains = append(
 		domains,
 		newDomain{
-			domain: fmt.Sprintf("%s-%s-%s.%s", prefix, environmentSlug, workspaceSlug, apex),
+			domain: cappedDomain(prefix+"-"+environmentSlug, workspaceSlug, apex),
 			sticky: db.FrontlineRoutesStickyEnvironment,
 		},
 	)
@@ -131,19 +135,55 @@ func buildDomains(
 	if isProduction {
 		domains = append(domains,
 			newDomain{
-				domain: fmt.Sprintf("%s-%s.%s", prefix, workspaceSlug, apex),
+				domain: cappedDomain(prefix, workspaceSlug, apex),
 				sticky: db.FrontlineRoutesStickyLive,
 			})
 	}
 
 	// deployment-specific domain for stable public access.
 	domains = append(domains, newDomain{
-		domain: fmt.Sprintf("%s-%s-%s.%s", prefix, sluggify(deploymentID), workspaceSlug, apex),
+		domain: cappedDomain(prefix+"-"+sluggify(deploymentID), workspaceSlug, apex),
 		//nolint: exhaustruct
 		sticky: db.FrontlineRoutesStickyDeployment,
 	})
 
 	return domains
+}
+
+// dnsLabelMaxLength is the length limit for one label of a domain name, from
+// [RFC 1035 section 2.3.4]. DNS clients reject a longer label, so a domain
+// with one never resolves
+//
+// [RFC 1035 section 2.3.4]: https://www.rfc-editor.org/rfc/rfc1035.html#section-2.3.4
+const dnsLabelMaxLength = 63
+
+// labelHashLength is the number of hex characters of the hash that
+// [cappedDomain] puts in a cut label
+const labelHashLength = 8
+
+// workspaceSlugMaxLength is the longest workspace slug a cut label keeps. It
+// leaves room for the hash, two hyphens, and one character of head
+const workspaceSlugMaxLength = dnsLabelMaxLength - labelHashLength - 3
+
+// cappedDomain returns `<head>-<workspaceSlug>.<apex>`. A label longer than
+// [dnsLabelMaxLength] becomes `<cut head>-<hash of full label>-<workspaceSlug>`.
+// The hash keeps long labels apart and is stable, so a branch keeps its sticky
+// domain across deploys
+func cappedDomain(head, workspaceSlug, apex string) string {
+	label := head + "-" + workspaceSlug
+	if len(label) <= dnsLabelMaxLength {
+		return label + "." + apex
+	}
+
+	hash := fmt.Sprintf("%x", sha256.Sum256([]byte(label)))[:labelHashLength]
+	tail := "-" + hash + "-" + cutLabel(workspaceSlug, workspaceSlugMaxLength)
+	return cutLabel(head, dnsLabelMaxLength-len(tail)) + tail + "." + apex
+}
+
+// cutLabel shortens s to at most length characters and drops the hyphens
+// left at the cut
+func cutLabel(s string, length int) string {
+	return strings.TrimRight(s[:min(len(s), length)], "-")
 }
 
 var (
@@ -163,7 +203,6 @@ var (
 // - Collapses multiple spaces into single space
 // - Replaces spaces with hyphens
 // - Converts to lowercase
-// - Limits to 80 characters
 // - Removes trailing hyphens
 //
 // This is used to convert Git branch names into URL-safe domain components.
@@ -184,11 +223,6 @@ func sluggify(s string) string {
 
 	// Convert to lowercase
 	s = strings.ToLower(s)
-
-	// Limit to 80 characters
-	if len(s) > 80 {
-		s = s[:80]
-	}
 
 	// Remove trailing hyphen if present
 	s = strings.TrimSuffix(s, "-")
