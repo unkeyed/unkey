@@ -73,7 +73,8 @@ func TestLogdrainsRejectInvalidInput(t *testing.T) {
 		{"update requires change", update, `{"logdrainId":"` + id + `"}`},
 		{"failure status is internal", update, `{"logdrainId":"` + id + `","status":"paused_by_failure"}`},
 		{"destination kind cannot change", update, `{"logdrainId":"` + id + `","name":"Changed","destination":{"axiom":{"dataset":"logs","token":"secret"}}}`},
-		{"update cannot preserve unknown header", update, `{"logdrainId":"` + id + `","name":"Changed","destination":{"http":{"headers":[{"name":"Authorization","mode":"preserve"}]}}}`},
+		{"header modes are not supported", update, `{"logdrainId":"` + id + `","name":"Changed","destination":{"http":{"headers":[{"name":"Authorization","mode":"preserve","value":"secret"}]}}}`},
+		{"header values are required", update, `{"logdrainId":"` + id + `","name":"Changed","destination":{"http":{"headers":[{"name":"Authorization"}]}}}`},
 		{"update filter must match stream", update, `{"logdrainId":"` + id + `","name":"Changed","filters":{"passed":[true]}}`},
 	} {
 		t.Run(tc.name, func(t *testing.T) {

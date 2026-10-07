@@ -33,7 +33,7 @@ func TestCreateSchemaRequiresDestinationFields(t *testing.T) {
 		{"Axiom dataset and token", `{"axiom":{"dataset":"logs","token":"secret"}}`, true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			request := httptest.NewRequest(http.MethodPost, "/v2/logdrains.createLogdrain", strings.NewReader(`{"name":"Logs","stream":"audit_logs","destination":`+tc.destination+`}`))
+			request := httptest.NewRequest(http.MethodPost, "/v2/logdrains.createLogdrain", strings.NewReader(`{"name":"Logs","stream":{"auditLogs":{}},"destination":`+tc.destination+`}`))
 			request.Header.Set("Content-Type", "application/json")
 			request.Header.Set("Authorization", "Bearer test")
 			result := validator.Validate(request)
@@ -41,6 +41,36 @@ func TestCreateSchemaRequiresDestinationFields(t *testing.T) {
 				require.Nil(t, result)
 			} else {
 				require.NotNil(t, result)
+			}
+		})
+	}
+}
+
+func TestCreateSchemaAcceptsNestedStream(t *testing.T) {
+	validator, err := validation.NewFromBytes(openapi.Spec)
+	require.NoError(t, err)
+	for _, tc := range []struct {
+		name   string
+		stream string
+		valid  bool
+	}{
+		{"boolean array", `{"ratelimits":{"passed":[false]}}`, true},
+		{"unfiltered stream", `{"auditLogs":{}}`, true},
+		{"no stream", `{}`, false},
+		{"multiple streams", `{"auditLogs":{},"ratelimits":{}}`, false},
+		{"mismatched filters", `{"auditLogs":{"passed":[false]}}`, false},
+		{"scalar passed", `{"ratelimits":{"passed":false}}`, false},
+		{"unknown stream", `{"other":{}}`, false},
+		{"legacy stream", `"audit_logs"`, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			request := httptest.NewRequest(http.MethodPost, "/v2/logdrains.createLogdrain", strings.NewReader(`{"name":"Logs","stream":`+tc.stream+`,"destination":{"http":{"url":"https://logs.example.com"}}}`))
+			request.Header.Set("Content-Type", "application/json")
+			request.Header.Set("Authorization", "Bearer test")
+			if tc.valid {
+				require.Nil(t, validator.Validate(request))
+			} else {
+				require.NotNil(t, validator.Validate(request))
 			}
 		})
 	}
@@ -65,7 +95,7 @@ func TestCreateRejectsInvalidInputWithoutChangingExistingDrains(t *testing.T) {
 		"Authorization": {"Bearer " + key},
 		"Content-Type":  {"application/json"},
 	}
-	route := &logdrains.Create{
+	route := &logdrains.Handler{
 		DB:          h.DB,
 		Vault:       h.Vault,
 		Auditlogs:   h.Auditlogs,
@@ -78,14 +108,18 @@ func TestCreateRejectsInvalidInputWithoutChangingExistingDrains(t *testing.T) {
 		body string
 	}{
 		{"missing create fields", `{}`},
-		{"empty name", `{"name":" ","stream":"audit_logs","destination":{"http":{"url":"https://logs.example.com"}}}`},
-		{"zero batch size", `{"name":"Logs","stream":"audit_logs","batchSize":0,"destination":{"http":{"url":"https://logs.example.com"}}}`},
-		{"mismatched filter", `{"name":"Logs","stream":"audit_logs","filters":{"passed":[false]},"destination":{"http":{"url":"https://logs.example.com"}}}`},
-		{"empty filter value", `{"name":"Logs","stream":"audit_logs","filters":{"eventTypes":[" "]},"destination":{"http":{"url":"https://logs.example.com"}}}`},
-		{"two destinations", `{"name":"Logs","stream":"audit_logs","destination":{"http":{"url":"https://logs.example.com"},"axiom":{"dataset":"logs","token":"secret"}}}`},
-		{"URL credentials", `{"name":"Logs","stream":"audit_logs","destination":{"http":{"url":"https://user:secret@logs.example.com"}}}`},
-		{"duplicate header names", `{"name":"Logs","stream":"audit_logs","destination":{"http":{"url":"https://logs.example.com","headers":[{"name":"Authorization","mode":"set","value":"secret"},{"name":"authorization","mode":"set","value":"other"}]}}}`},
-		{"preserve on create", `{"name":"Logs","stream":"audit_logs","destination":{"http":{"url":"https://logs.example.com","headers":[{"name":"Authorization","mode":"preserve"}]}}}`},
+		{"empty name", `{"name":" ","stream":{"auditLogs":{}},"destination":{"http":{"url":"https://logs.example.com"}}}`},
+		{"zero batch size", `{"name":"Logs","stream":{"auditLogs":{}},"batchSize":0,"destination":{"http":{"url":"https://logs.example.com"}}}`},
+		{"mismatched filter", `{"name":"Logs","stream":{"auditLogs":{"passed":[false]}},"destination":{"http":{"url":"https://logs.example.com"}}}`},
+		{"empty filter value", `{"name":"Logs","stream":{"auditLogs":{"eventTypes":[" "]}},"destination":{"http":{"url":"https://logs.example.com"}}}`},
+		{"two destinations", `{"name":"Logs","stream":{"auditLogs":{}},"destination":{"http":{"url":"https://logs.example.com"},"axiom":{"dataset":"logs","token":"secret"}}}`},
+		{"URL credentials", `{"name":"Logs","stream":{"auditLogs":{}},"destination":{"http":{"url":"https://user:secret@logs.example.com"}}}`},
+		{"duplicate header names", `{"name":"Logs","stream":{"auditLogs":{}},"destination":{"http":{"url":"https://logs.example.com","headers":[{"name":"Authorization","value":"secret"},{"name":"authorization","value":"other"}]}}}`},
+		{"invalid header name", `{"name":"Logs","stream":{"auditLogs":{}},"destination":{"http":{"url":"https://logs.example.com","headers":[{"name":"Bad Name","value":"secret"}]}}}`},
+		{"invalid header value", `{"name":"Logs","stream":{"auditLogs":{}},"destination":{"http":{"url":"https://logs.example.com","headers":[{"name":"Authorization","value":"secret\r\nInjected: value"}]}}}`},
+		{"missing header value", `{"name":"Logs","stream":{"auditLogs":{}},"destination":{"http":{"url":"https://logs.example.com","headers":[{"name":"Authorization"}]}}}`},
+		{"legacy top-level filters", `{"name":"Logs","stream":{"auditLogs":{}},"filters":{"eventTypes":[]},"destination":{"http":{"url":"https://logs.example.com"}}}`},
+		{"preserve on create", `{"name":"Logs","stream":{"auditLogs":{}},"destination":{"http":{"url":"https://logs.example.com","headers":[{"name":"Authorization","mode":"preserve"}]}}}`},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			result := testutil.CallRoute[json.RawMessage, openapi.BadRequestErrorResponse](h, route, headers, json.RawMessage(tc.body))

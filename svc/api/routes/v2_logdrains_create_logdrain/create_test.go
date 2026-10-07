@@ -2,6 +2,7 @@ package logdrains_test
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"testing"
 
@@ -26,7 +27,7 @@ func TestCreateHTTPFormatSupportsDelivery(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			h := testutil.NewHarness(t)
-			route := &logdrains.Create{
+			route := &logdrains.Handler{
 				DB:          h.DB,
 				Vault:       h.Vault,
 				Auditlogs:   h.Auditlogs,
@@ -38,19 +39,14 @@ func TestCreateHTTPFormatSupportsDelivery(t *testing.T) {
 			_, err := h.DB.RW().ExecContext(t.Context(), "UPDATE `limits` SET logdrains_max = 1 WHERE workspace_id = ?", workspaceID)
 			require.NoError(t, err)
 			key := h.CreateRootKey(workspaceID, "unkey:v1:"+workspaceID+":logdrains/*#write")
-			response := testutil.CallRoute[openapi.CreateLogdrainRequest, openapi.LogdrainMutationResponse](h, route, http.Header{
+			input := json.RawMessage(`{"name":"HTTP logs","stream":{"auditLogs":{}},"destination":{"http":{"url":"https://logs.example.com"}}}`)
+			if tc.format != nil {
+				input = json.RawMessage(`{"name":"HTTP logs","stream":{"auditLogs":{}},"destination":{"http":{"url":"https://logs.example.com","format":"` + string(*tc.format) + `"}}}`)
+			}
+			response := testutil.CallRoute[json.RawMessage, openapi.LogdrainMutationResponse](h, route, http.Header{
 				"Authorization": {"Bearer " + key},
 				"Content-Type":  {"application/json"},
-			}, openapi.CreateLogdrainRequest{
-				Name:   "HTTP logs",
-				Stream: "audit_logs",
-				Destination: openapi.LogdrainDestinationWrite{
-					Http: &openapi.LogdrainHttpWrite{
-						Url:    new("https://logs.example.com"),
-						Format: tc.format,
-					},
-				},
-			})
+			}, input)
 			require.Equal(t, http.StatusOK, response.Status, "%s", response.RawBody)
 			var stored []byte
 			require.NoError(t, h.DB.RW().QueryRowContext(t.Context(), "SELECT config FROM logdrains WHERE id = ?", response.Body.Data.Id).Scan(&stored))
@@ -68,7 +64,7 @@ func TestCreateHTTPFormatSupportsDelivery(t *testing.T) {
 
 func TestCreatePersistsEncryptedDestination(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route := &logdrains.Create{
+	route := &logdrains.Handler{
 		DB:          h.DB,
 		Vault:       h.Vault,
 		Auditlogs:   h.Auditlogs,
@@ -84,18 +80,7 @@ func TestCreatePersistsEncryptedDestination(t *testing.T) {
 		"Authorization": {"Bearer " + key},
 		"Content-Type":  {"application/json"},
 	}
-	response := testutil.CallRoute[openapi.CreateLogdrainRequest, openapi.LogdrainMutationResponse](h, route, headers, openapi.CreateLogdrainRequest{
-		Name:      "My logs",
-		Stream:    "audit_logs",
-		BatchSize: new(int64(17)),
-		Destination: openapi.LogdrainDestinationWrite{
-			Axiom: &openapi.LogdrainAxiomWrite{
-				Dataset: new("production"),
-				Token:   new("secret-token"),
-			},
-		},
-		Filters: &openapi.LogdrainFilters{EventTypes: new([]string{"  key.create  "})},
-	})
+	response := testutil.CallRoute[json.RawMessage, openapi.LogdrainMutationResponse](h, route, headers, json.RawMessage(`{"name":"My logs","stream":{"auditLogs":{"eventTypes":["  key.create  "]}},"batchSize":17,"destination":{"axiom":{"dataset":"production","token":"secret-token"}}}`))
 	require.Equal(t, http.StatusOK, response.Status, "%s", response.RawBody)
 	require.NotEmpty(t, response.Body.Data.Id)
 	require.NotEmpty(t, response.Body.Meta.RequestId)

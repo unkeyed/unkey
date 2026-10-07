@@ -8,6 +8,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	logdrainv1 "github.com/unkeyed/unkey/gen/proto/logdrain/v1"
+	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -18,7 +19,7 @@ import (
 
 func TestUpdateResumesFailedDrainWithoutResettingCursor(t *testing.T) {
 	h := testutil.NewHarness(t)
-	create := createRoute.Create{
+	create := createRoute.Handler{
 		DB:          h.DB,
 		Vault:       h.Vault,
 		Auditlogs:   h.Auditlogs,
@@ -43,14 +44,14 @@ func TestUpdateResumesFailedDrainWithoutResettingCursor(t *testing.T) {
 		"Authorization": {"Bearer " + key},
 		"Content-Type":  {"application/json"},
 	}
-	created := testutil.CallRoute[json.RawMessage, openapi.LogdrainMutationResponse](h, &create, headers, json.RawMessage(`{"name":"HTTP","stream":"ratelimits","filters":{"namespaceIds":["ns_keep"],"passed":[false]},"destination":{"http":{"url":"https://logs.example.com","format":"hec","headers":[{"name":"Authorization","mode":"set","value":"secret"}]}}}`))
+	created := testutil.CallRoute[json.RawMessage, openapi.LogdrainMutationResponse](h, &create, headers, json.RawMessage(`{"name":"HTTP","stream":{"ratelimits":{"namespaceIds":["ns_keep"],"passed":[false]}},"destination":{"http":{"url":"https://logs.example.com","format":"hec","headers":[{"name":"Authorization","value":"secret"}]}}}`))
 	require.Equal(t, http.StatusOK, created.Status, "%s", created.RawBody)
 	id := created.Body.Data.Id
 	_, err = h.DB.RW().ExecContext(context.Background(), "UPDATE logdrains SET status = 'paused_by_failure', consecutive_failures = 8, next_attempt_at = 9000, lease_expires_at = 9999, committed_offset_inserted_at = 3456, committed_offset_event_id = 'event_keep' WHERE id = ?", id)
 	require.NoError(t, err)
 	_, err = h.DB.RW().ExecContext(context.Background(), "UPDATE `limits` SET logdrains_max = 0 WHERE workspace_id = ?", workspaceID)
 	require.NoError(t, err)
-	response := testutil.CallRoute[json.RawMessage, openapi.LogdrainMutationResponse](h, update, headers, json.RawMessage(`{"logdrainId":"`+id+`","batchSize":31,"filters":{"passed":[true]},"destination":{"http":{"headers":[{"name":"authorization","mode":"preserve"}]}}}`))
+	response := testutil.CallRoute[json.RawMessage, openapi.LogdrainMutationResponse](h, update, headers, json.RawMessage(`{"logdrainId":"`+id+`","batchSize":31,"filters":{"passed":[true]},"destination":{"http":{"format":"hec"}}}`))
 	require.Equal(t, http.StatusOK, response.Status, "%s", response.RawBody)
 	result := testutil.CallRoute[openapi.LogdrainIdRequest, openapi.LogdrainResponse](h, get, headers, openapi.LogdrainIdRequest{LogdrainId: id})
 	require.Equal(t, http.StatusOK, result.Status)
@@ -65,6 +66,35 @@ func TestUpdateResumesFailedDrainWithoutResettingCursor(t *testing.T) {
 	require.NoError(t, h.DB.RW().QueryRowContext(context.Background(), "SELECT lease_expires_at, consecutive_failures, next_attempt_at, committed_offset_inserted_at, committed_offset_event_id FROM logdrains WHERE id = ?", id).Scan(&lease, &failures, &next, &offset, &event))
 	require.Equal(t, []int64{0, 0, 0, 3456}, []int64{lease, failures, next, offset})
 	require.Equal(t, "event_keep", event)
+	var encoded []byte
+	require.NoError(t, h.DB.RW().QueryRowContext(t.Context(), "SELECT config FROM logdrains WHERE id = ?", id).Scan(&encoded))
+	var config logdrainv1.Config
+	require.NoError(t, proto.Unmarshal(encoded, &config))
+	secret, err := h.Vault.Decrypt(t.Context(), &vaultv1.DecryptRequest{
+		Keyring:   workspaceID,
+		Encrypted: config.GetHttp().GetHeaders()[0].GetEncryptedValue(),
+	})
+	require.NoError(t, err)
+	require.Equal(t, "secret", secret.GetPlaintext())
+
+	replaced := testutil.CallRoute[json.RawMessage, openapi.LogdrainMutationResponse](h, update, headers, json.RawMessage(`{"logdrainId":"`+id+`","destination":{"http":{"headers":[{"name":"X-Token","value":"replacement"}]}}}`))
+	require.Equal(t, http.StatusOK, replaced.Status, "%s", replaced.RawBody)
+	require.NoError(t, h.DB.RW().QueryRowContext(t.Context(), "SELECT config FROM logdrains WHERE id = ?", id).Scan(&encoded))
+	require.NoError(t, proto.Unmarshal(encoded, &config))
+	require.Len(t, config.GetHttp().GetHeaders(), 1)
+	require.Equal(t, "X-Token", config.GetHttp().GetHeaders()[0].GetName())
+	secret, err = h.Vault.Decrypt(t.Context(), &vaultv1.DecryptRequest{
+		Keyring:   workspaceID,
+		Encrypted: config.GetHttp().GetHeaders()[0].GetEncryptedValue(),
+	})
+	require.NoError(t, err)
+	require.Equal(t, "replacement", secret.GetPlaintext())
+
+	cleared := testutil.CallRoute[json.RawMessage, openapi.LogdrainMutationResponse](h, update, headers, json.RawMessage(`{"logdrainId":"`+id+`","destination":{"http":{"headers":[]}}}`))
+	require.Equal(t, http.StatusOK, cleared.Status, "%s", cleared.RawBody)
+	require.NoError(t, h.DB.RW().QueryRowContext(t.Context(), "SELECT config FROM logdrains WHERE id = ?", id).Scan(&encoded))
+	require.NoError(t, proto.Unmarshal(encoded, &config))
+	require.Empty(t, config.GetHttp().GetHeaders())
 }
 
 func TestUpdateDistinguishesUserPauseFromFailurePause(t *testing.T) {
