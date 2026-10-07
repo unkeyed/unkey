@@ -17,7 +17,6 @@ export function workspaceUsageQuery(period: UsagePeriod) {
         )
       ).data,
     retry: 1,
-    staleTime: 60_000,
   };
 }
 

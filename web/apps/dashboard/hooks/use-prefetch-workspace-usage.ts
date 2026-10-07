@@ -2,6 +2,7 @@ import { workspaceUsageQuery } from "@/hooks/use-workspace-usage";
 import { useBillingUIUpgrades } from "@/lib/flags/use-billing-ui-upgrades";
 import { trpc } from "@/lib/trpc/client";
 import { useQueryClient } from "@tanstack/react-query";
+import { getQueryKey } from "@trpc/react-query";
 import { useCallback } from "react";
 
 /**
@@ -18,6 +19,13 @@ export function usePrefetchWorkspaceUsage(): () => void {
       return;
     }
     void queryClient.prefetchQuery(workspaceUsageQuery("current"));
-    void trpcUtils.stripe.getBillingInfo.prefetch(undefined, { staleTime: 30_000 });
+    void queryClient.prefetchQuery({
+      queryKey: getQueryKey(trpc.stripe.getBillingInfo, undefined, "query"),
+      queryFn: () =>
+        trpcUtils.client.stripe.getBillingInfo.query(undefined, {
+          context: { skipBatch: true },
+        }),
+      staleTime: 30_000,
+    });
   }, [billingUpgrades, queryClient, trpcUtils]);
 }
