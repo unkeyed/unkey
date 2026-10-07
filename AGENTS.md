@@ -3,6 +3,36 @@
 This file is the first stop for agents working in this repo. Keep changes small,
 typed, verified, and routed through `mise`.
 
+## Scoped guidance and additional context
+
+Before changing a file, read this guide and every nested `AGENTS.md` along the
+path to that file. Do this explicitly if your harness does not load nested
+guidance automatically. For new files, check their parent directories. Repeat
+the check when work crosses into another service or package.
+
+Nested guidance applies to its directory and descendants. Keep the root rules
+and add the more specific local constraints. Each service under `svc/` has an
+`AGENTS.md`; `svc/ctrl/worker/` has additional Restate guidance. Keep shared rules
+here and service-specific constraints near the code, without copying them into
+parallel instruction files.
+
+The root `contributing/` directory holds testing, code quality,
+and screenshot and recording standards. These standards stay in the repository,
+not in Notion. Read the relevant guide for your task.
+
+Broader engineering context, design discussions, and operational workflows are in
+[Notion's Engineering wiki](https://app.notion.com/p/ed5512d643f38377b0d38164de40681e).
+When repository guidance does not answer a task-relevant question, use the
+Notion MCP server to search for the service or topic and fetch the relevant
+pages. Search results alone are not the full context. Distinguish proposals
+and historical plans from accepted decisions, and check implementation claims
+against the code.
+
+If Notion MCP is unavailable, the relevant page is inaccessible, or a material
+decision is still unclear, ask your operator for the missing context. Do not
+invent requirements or silently resolve conflicting guidance. Continue work
+that does not depend on the missing information.
+
 ## Communication
 
 - Be concise.
@@ -18,9 +48,9 @@ typed, verified, and routed through `mise`.
 
 - Tooling and task runner: `.mise/config.toml`, `.mise/mise.lock`, and
   `.mise/tasks/*`.
-- Engineering docs: `docs/engineering/contributing/`. These are normative
+- Engineering standards: `contributing/`. These are normative
   standards for writing code, not only reference material for the docs site.
-- Product docs: `docs/product/`.
+- Product docs: `docs/`.
 - Go tooling: `go.mod`, `go.sum`, and `.golangci.yaml`. Rask is pinned as a
   tool in `.mise/config.toml`; it has no config file of its own.
 - Web workspace: `web/package.json`, `web/pnpm-workspace.yaml`, and
@@ -30,15 +60,16 @@ typed, verified, and routed through `mise`.
 
 - `cmd/`: development commands and utilities.
 - `build/`: CLI and service entrypoints.
-- `svc/`: Go services (`api`, `ctrl`, `frontline`, `heimdall`, `krane`, `vault`).
+- `svc/`: Go services (`api`, `ctrl`, `frontline`, `heimdall`, `kitchensink`,
+  `krane`, `logdrain`, `vault`).
 - `pkg/`: shared Go libraries.
 - `internal/services/`: shared internal Go services.
 - `proto/` and `gen/`: protobuf definitions and generated code.
 - `web/`: TypeScript apps (`web/apps/`) and shared packages, database schema,
   and tooling. Shared code lives in `web/internal/`; there is no
   `web/packages/`.
-- `docs/`: Mintlify product and engineering documentation.
-  `docs/engineering/contributing/` holds the coding standards themselves.
+- `docs/`: Mintlify product documentation.
+- `contributing/`: Engineering workflow and coding standards.
 - `dev/`: local development, Tilt, Kubernetes, and formatting config.
 
 ## Tooling rules
@@ -127,12 +158,10 @@ mise exec -- go test -fuzz=FuzzInRange -fuzztime=30s ./pkg/assert/
 
 ## Documentation conventions
 
-- Follow `docs/engineering/contributing/quality/documentation.mdx` for symbol,
+- Follow `contributing/quality/documentation.md` for symbol,
   package, and site documentation.
-- Product docs live in `docs/product/` and need `docs/product/docs.json` nav
+- Product docs live in `docs/` and need `docs/docs.json` nav
   entries when adding pages.
-- Engineering docs live in `docs/engineering/` and need
-  `docs/engineering/docs.json` nav entries when adding pages.
 - Use `bash` for shell code blocks.
 - Prefer root-relative internal doc links.
 - Do not use em dashes in docs.
@@ -149,7 +178,7 @@ and pre-push requirements below still apply.
 - Formatting-sensitive change: format changed files through `mise exec` or a
   scoped task. Use repository-wide `mise run fmt` only when that scope is needed.
 - Docs-only change: link/content review. Note if no formatter applies.
-- Before pushing: `mise run test`, as required by the testing standard.
+- Before pushing: `mise run test`.
 - Never install tooling or build an environment to verify a change. If the
   existing checks cannot cover it, say so instead.
 
@@ -164,18 +193,17 @@ Unkey runs on PlanetScale Vitess. Every production MySQL query should carry SQLC
 - Go: inject tags through `db.Config.Tags` and `sqlcomment.ForService` in service `run.go`. See [`pkg/mysql/sqlcomment`](pkg/mysql/sqlcomment/doc.go).
 - TypeScript: use `createCommentedPool` from `@unkey/db` instead of raw `mysql.createPool`.
 - Never put high-cardinality values (user ids, key ids, request ids) in SQL comments.
-- Full guide: [`docs/engineering/infra/planetscale/query-insights-tags.mdx`](docs/engineering/infra/planetscale/query-insights-tags.mdx).
 
 ## High-signal references
 
 Read the page that covers the area before writing code in it. These pages define
 how Unkey code is written; this file only summarizes them.
 
-- Local development: `docs/engineering/contributing/local/development.mdx`.
-- Build workflow: `docs/engineering/contributing/tooling/builds.mdx`.
-- Code quality: `docs/engineering/contributing/quality/code-quality.mdx`.
-- Testing: `docs/engineering/contributing/quality/testing/index.mdx`.
-- Documentation: `docs/engineering/contributing/quality/documentation.mdx`.
+- Local development: `contributing/local/development.md`.
+- Build workflow: `contributing/tooling/builds.md`.
+- Code quality: `contributing/quality/code-quality.md`.
+- Testing: `contributing/quality/testing/index.md`.
+- Documentation: `contributing/quality/documentation.md`.
 
 <!-- polylane:start -->
 ## Investigating production with Polylane

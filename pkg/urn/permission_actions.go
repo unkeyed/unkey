@@ -123,6 +123,11 @@ func (DeploymentLogs) permissionActions(bool) permissionActionSet {
 	return newPermissionActionSet(PermissionRead)
 }
 
+// permissionActions returns read for deployment build logs
+func (DeploymentBuildLogs) permissionActions(bool) permissionActionSet {
+	return newPermissionActionSet(PermissionRead)
+}
+
 // permissionActions returns the read, write, and delete actions for domains.
 func (Domain) permissionActions(bool) permissionActionSet { return readWriteDelete }
 

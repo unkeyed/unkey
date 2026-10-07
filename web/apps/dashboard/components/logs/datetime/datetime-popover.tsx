@@ -16,6 +16,7 @@ import {
   type TimeUnit,
 } from "@unkey/ui";
 import { cn } from "cn";
+import { endOfDay, startOfDay } from "date-fns";
 import {
   type PropsWithChildren,
   type ReactElement,
@@ -143,7 +144,9 @@ export const DatetimePopover = ({
     // In range mode, we use both from and to dates
     setTime({
       startTime: processTimeFilters(newRange?.from, newStart)?.getTime(),
-      endTime: singleDateMode ? undefined : processTimeFilters(newRange?.to, newEnd)?.getTime(),
+      endTime: singleDateMode
+        ? undefined
+        : processTimeFilters(newRange?.to ?? newRange?.from, newEnd)?.getTime(),
     });
   };
 
@@ -166,10 +169,10 @@ export const DatetimePopover = ({
   };
 
   const isDateInRange = (date: Date): boolean => {
-    if (minDate && date < minDate) {
+    if (minDate && date < startOfDay(minDate)) {
       return false;
     }
-    if (maxDate && date > maxDate) {
+    if (maxDate && date > endOfDay(maxDate)) {
       return false;
     }
     return true;

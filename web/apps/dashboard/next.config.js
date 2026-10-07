@@ -1,6 +1,4 @@
 const isDev = process.env.NODE_ENV === "development";
-// Not `!isDev`: NODE_ENV is also "test", which is neither, and HSTS must only
-// ever be sent by a real production build.
 const isProd = process.env.NODE_ENV === "production";
 
 // The Vercel toolbar is injected on preview deployments and rendered manually
@@ -8,36 +6,42 @@ const isProd = process.env.NODE_ENV === "production";
 // must not whitelist its origins.
 const allowVercelToolbar = isDev || process.env.VERCEL_ENV === "preview";
 
-// Enforced policy: only directives that cannot break the app. These are
-// deliberately NOT repeated in the report-only policy below — keeping each
-// directive in exactly one header avoids duplicate console reports per
-// violation. `frame-ancestors` mirrors X-Frame-Options; the spec forbids it
-// in report-only policies anyway.
+function shouldUploadSentrySourceMaps() {
+  const raw = process.env.SENTRY_UPLOAD_SOURCEMAPS;
+  if (raw === undefined || raw.trim() === "") {
+    return process.env.VERCEL_ENV === "production";
+  }
+
+  const flag = raw.trim().toLowerCase();
+  if (flag === "true" || flag === "1") {
+    return true;
+  }
+  if (flag === "false" || flag === "0") {
+    return false;
+  }
+
+  throw new Error(
+    `Invalid SENTRY_UPLOAD_SOURCEMAPS=${JSON.stringify(raw)}. Use true, false, 1, 0, or leave it unset.`,
+  );
+}
+
+const uploadSentrySourceMaps = shouldUploadSentrySourceMaps();
+
+const sentryReleaseName =
+  process.env.SENTRY_RELEASE || process.env.VERCEL_GIT_COMMIT_SHA || "unkey-dashboard";
+
 const cspEnforced = ["object-src 'none'", "base-uri 'self'", "frame-ancestors 'self'"].join("; ");
 
 const scriptSrc = [
   "'self'",
-  // Next.js emits inline bootstrap scripts. Tighten to nonces before
-  // enforcing (requires wiring a nonce through proxy.ts and forces dynamic
-  // rendering).
   "'unsafe-inline'",
-  // Webpack/react-refresh eval only exists in dev; keeping it out of the
-  // production policy means any real eval usage shows up as a report-only
-  // violation instead of being silently allowed.
   ...(isDev ? ["'unsafe-eval'"] : []),
   ...(allowVercelToolbar ? ["https://vercel.live"] : []),
 ].join(" ");
 
 const connectSrc = [
   "'self'",
-  // Sentry is tunneled through /monitoring (same-origin), but session replay
-  // uploads can go straight to the ingest host. Region-specific and
-  // intentionally hardcoded (this file has no DSN to derive it from): if the
-  // Sentry org ever migrates regions, update this alongside the DSNs in the
-  // three sentry.*.config/instrumentation files — drift shows up as
-  // connect-src report-only violations.
   "https://*.ingest.us.sentry.io",
-  // The preview toolbar talks to vercel.live and Pusher websockets.
   ...(allowVercelToolbar ? ["https://vercel.live", "wss://*.pusher.com"] : []),
 ].join(" ");
 
@@ -67,12 +71,9 @@ const cspReportOnly = [
   "default-src 'self'",
   `script-src ${scriptSrc}`,
   `style-src ${styleSrc}`,
-  // Member avatars come from the auth provider and can live on arbitrary
-  // https hosts (Google, GitHub, ...).
   "img-src 'self' blob: data: https:",
   `font-src ${fontSrc}`,
   `connect-src ${connectSrc}`,
-  // Sentry session replay runs in a blob: worker.
   "worker-src 'self' blob:",
   ...(allowVercelToolbar ? ["frame-src https://vercel.live"] : []),
   "form-action 'self'",
@@ -83,14 +84,7 @@ const securityHeaders = [
     key: "X-Frame-Options",
     value: "SAMEORIGIN",
   },
-  // HSTS only in production builds so a local https session (e.g.
-  // *.unkey.local via `mise run tunnel`) doesn't pin dev hosts to https for
-  // two years. `preload` is deliberately absent: the dashboard serves from a
-  // subdomain, and preload-list submission is an apex-domain (unkey.com)
-  // decision with a months-long exit path. Note for self-hosters:
-  // includeSubDomains pins every subdomain of the deployment host to https
-  // for the max-age — remove it if plain-http services live under the
-  // dashboard's hostname.
+
   ...(isProd
     ? [
         {
@@ -128,8 +122,7 @@ const nextConfig = {
   typedRoutes: true,
   allowedDevOrigins: process.env.AMP_ORB ? ["*.onamp.dev", "*.e2b.app"] : undefined,
   pageExtensions: ["tsx", "mdx", "ts", "js"],
-  productionBrowserSourceMaps: true,
-  // we're open-source anyways
+  ...(uploadSentrySourceMaps ? {} : { productionBrowserSourceMaps: false }),
 
   poweredByHeader: false,
   webpack: (config) => {
@@ -173,17 +166,31 @@ module.exports = withSentryConfig(module.exports, {
 
   // Only print logs for uploading source maps in CI
   silent: !process.env.CI,
-
-  // For all available options, see:
-  // https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/
-
-  // Upload a larger set of source maps for prettier stack traces (increases build time)
+  useRunAfterProductionCompileHook: true,
   widenClientFileUpload: true,
 
-  // Route browser requests to Sentry through a Next.js rewrite to circumvent ad-blockers.
-  // This can increase your server load as well as your hosting bill.
-  // Note: Check that the configured route will not match with your Next.js middleware, otherwise reporting of client-
-  // side errors will fail.
+  ...(uploadSentrySourceMaps
+    ? {
+        // A thrown upload error fails the build before client maps are deleted.
+        errorHandler(error) {
+          throw error;
+        },
+        release: {
+          name: sentryReleaseName,
+        },
+      }
+    : {
+        sourcemaps: {
+          disable: true,
+        },
+        release: {
+          name: sentryReleaseName,
+          create: false,
+          finalize: false,
+          setCommits: false,
+          deploy: false,
+        },
+      }),
   tunnelRoute: "/monitoring",
 
   webpack: {

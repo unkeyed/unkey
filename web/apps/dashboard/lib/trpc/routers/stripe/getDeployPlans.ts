@@ -18,8 +18,7 @@ export type DeployPlanOption = {
 /**
  * Lists the available Unkey Deploy plans with their plan-fee pricing, for the
  * subscribe / change UI. Unlike getDeploySubscription (which reads the local
- * deploy_plan signal), this is a catalog read and hits Stripe, mirroring
- * getProducts for the API plans. Returns configured=false when Deploy billing
+ * deploy_plan signal), this is a catalog read and hits Stripe. Returns configured=false when Deploy billing
  * is not set up so the UI can hide the section gracefully.
  */
 export const getDeployPlans = workspaceProcedure.query(async () => {

@@ -158,7 +158,7 @@ export const DiffViewerContent: React.FC<DiffViewerContentProps> = ({
 
       {/* Filters */}
       <div className="px-4 pb-4 flex gap-2.5 items-center">
-        <InputGroup className="flex-1 h-9 rounded-md">
+        <InputGroup className="flex-1 rounded-md">
           <InputGroupAddon className="pointer-events-none">
             <IconInputSearchOutline18 className="size-3 text-grayA-9" />
           </InputGroupAddon>
