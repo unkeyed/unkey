@@ -24,12 +24,9 @@ func TestGetReturnsSecretSafeConfig(t *testing.T) {
 		BatchSize: 73,
 		Destination: &logdrainv1.Config_Http{
 			Http: &logdrainv1.HttpConfig{
-				Url:    "https://logs.example.com/ingest",
-				Format: logdrainv1.HttpBodyFormat_HTTP_BODY_FORMAT_HEC,
-				Headers: []*logdrainv1.HttpHeader{{
-					Name:           "Authorization",
-					EncryptedValue: "must-not-leak",
-				}},
+				Url:     "https://logs.example.com/ingest",
+				Format:  logdrainv1.HttpBodyFormat_HTTP_BODY_FORMAT_HEC,
+				Headers: []*logdrainv1.HttpHeader{{Name: "Authorization", EncryptedValue: "must-not-leak"}},
 			},
 		},
 		Stream: &logdrainv1.Config_Ratelimits{
