@@ -1,12 +1,16 @@
 package handler_test
 
 import (
+	"context"
+	"fmt"
 	"net/http"
 	"strings"
 	"testing"
 
 	"github.com/oapi-codegen/nullable"
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_environments_update_settings"
@@ -122,4 +126,43 @@ func TestUpdateSettings400(t *testing.T) {
 		require.Equal(t, http.StatusBadRequest, res.Status, "raw body: %s", res.RawBody)
 		require.Contains(t, res.Body.Error.Detail, "src/[")
 	})
+}
+
+func TestUpdateSettingsRejectsAmbiguousRegionNames(t *testing.T) {
+	h := testutil.NewHarness(t)
+	route := &handler.Handler{DB: h.DB, Auditlogs: h.Auditlogs, LimitsCache: h.Caches.WorkspaceLimits}
+	h.Register(route)
+	ctx := context.Background()
+
+	for _, canSchedule := range []bool{true, false} {
+		t.Run(fmt.Sprintf("dev region schedulable=%t", canSchedule), func(t *testing.T) {
+			env := seedEnvironment(t, h)
+			regionName := uid.New("local")
+			seedRegions(t, h, regionName)
+			_, err := h.DB.RW().ExecContext(ctx,
+				"INSERT INTO regions (id, name, platform, can_schedule) VALUES (?, ?, 'dev', ?)",
+				uid.New(uid.RegionPrefix), regionName, canSchedule)
+			require.NoError(t, err)
+
+			rootKey := h.CreateRootKey(env.workspaceID, "environment.*.update_environment")
+			res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, authHeaders(rootKey), handler.Request{
+				Project: env.projectID, App: env.appID, Environment: env.environmentID,
+				Port:    new(9090),
+				Regions: new([]openapi.EnvironmentRegion{regionSetting(regionName, 1, 1)}),
+			})
+			require.Equal(t, http.StatusBadRequest, res.Status, "raw body: %s", res.RawBody)
+			require.Equal(t, fmt.Sprintf("Region '%s' exists on multiple platforms and cannot be selected by name.", regionName), res.Body.Error.Detail)
+
+			rows, err := db.Query.ListAppRegionalSettingsByAppEnv(ctx, h.DB.RO(), db.ListAppRegionalSettingsByAppEnvParams{
+				AppID: env.appID, EnvironmentID: env.environmentID,
+			})
+			require.NoError(t, err)
+			require.Empty(t, rows)
+			runtime, err := db.Query.FindAppRuntimeSettingsByAppAndEnv(ctx, h.DB.RO(), db.FindAppRuntimeSettingsByAppAndEnvParams{
+				AppID: env.appID, EnvironmentID: env.environmentID,
+			})
+			require.NoError(t, err)
+			require.Equal(t, int32(8080), runtime.Port)
+		})
+	}
 }

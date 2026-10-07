@@ -33,8 +33,6 @@ type (
 	Response = openapi.V2EnvironmentsUpdateSettingsResponseBody
 )
 
-const platform = "aws"
-
 // cpuThreshold is the fixed autoscaling CPU threshold; the API does not expose it.
 const cpuThreshold = 80
 
@@ -448,22 +446,21 @@ func (h *Handler) resolveRegions(ctx context.Context, regions []openapi.Environm
 			fault.Public("Failed to resolve regions."),
 		)
 	}
-	byKey := make(map[string]db.ListRegionsRow, len(all))
+	byName := make(map[string][]db.ListRegionsRow, len(all))
 	for _, region := range all {
-		byKey[region.Platform+"/"+region.Name] = region
+		byName[region.Name] = append(byName[region.Name], region)
 	}
 
 	seen := make(map[string]struct{}, len(regions))
 	resolved := make([]resolvedRegion, 0, len(regions))
 
 	for _, r := range regions {
-		key := platform + "/" + r.Name
 		rmin, rmax := int32(r.Replicas.Min), int32(r.Replicas.Max)
 
-		if _, dup := seen[key]; dup {
+		if _, dup := seen[r.Name]; dup {
 			return nil, invalidRegion(fmt.Sprintf("Region '%s' is listed more than once.", r.Name))
 		}
-		seen[key] = struct{}{}
+		seen[r.Name] = struct{}{}
 
 		if rmin < minReplicasPerRegion || rmax > maxReplicasPerRegion {
 			return nil, invalidRegion(fmt.Sprintf("Region '%s' replicas must be between %d and %d.", r.Name, minReplicasPerRegion, maxReplicasPerRegion))
@@ -473,10 +470,14 @@ func (h *Handler) resolveRegions(ctx context.Context, regions []openapi.Environm
 			return nil, invalidRegion(fmt.Sprintf("Region '%s' min replicas cannot exceed max replicas.", r.Name))
 		}
 
-		region, ok := byKey[key]
-		if !ok {
+		matches := byName[r.Name]
+		if len(matches) == 0 {
 			return nil, invalidRegion(fmt.Sprintf("Region '%s' does not exist.", r.Name))
 		}
+		if len(matches) > 1 {
+			return nil, invalidRegion(fmt.Sprintf("Region '%s' exists on multiple platforms and cannot be selected by name.", r.Name))
+		}
+		region := matches[0]
 
 		// The deploy worker silently skips regions with can_schedule=false, so
 		// reject them here rather than store a set that never schedules.
