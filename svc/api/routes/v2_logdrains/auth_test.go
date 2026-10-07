@@ -33,11 +33,7 @@ func TestLogdrainsRequireAuthenticationAndPermission(t *testing.T) {
 		body    string
 		foreign bool
 	}{
-		{
-			&logdrains.Get{DB: h.DB},
-			`{"logdrainId":"` + foreignID + `"}`,
-			true,
-		},
+		{&logdrains.Get{DB: h.DB}, `{"logdrainId":"` + foreignID + `"}`, true},
 	} {
 		t.Run(tc.route.Path(), func(t *testing.T) {
 			h.Register(tc.route)
@@ -46,36 +42,12 @@ func TestLogdrainsRequireAuthenticationAndPermission(t *testing.T) {
 				authorization string
 				status        int
 			}{
-				{
-					"missing authorization",
-					"",
-					http.StatusBadRequest,
-				},
-				{
-					"malformed authorization",
-					"Basic invalid",
-					http.StatusBadRequest,
-				},
-				{
-					"missing bearer token",
-					"Bearer",
-					http.StatusBadRequest,
-				},
-				{
-					"invalid key",
-					"Bearer invalid",
-					http.StatusUnauthorized,
-				},
-				{
-					"revoked key",
-					"Bearer " + revoked,
-					http.StatusUnauthorized,
-				},
-				{
-					"insufficient permission",
-					"Bearer " + denied,
-					http.StatusForbidden,
-				},
+				{"missing authorization", "", http.StatusBadRequest},
+				{"malformed authorization", "Basic invalid", http.StatusBadRequest},
+				{"missing bearer token", "Bearer", http.StatusBadRequest},
+				{"invalid key", "Bearer invalid", http.StatusUnauthorized},
+				{"revoked key", "Bearer " + revoked, http.StatusUnauthorized},
+				{"insufficient permission", "Bearer " + denied, http.StatusForbidden},
 			} {
 				t.Run(auth.name, func(t *testing.T) {
 					headers := http.Header{"Content-Type": {"application/json"}}

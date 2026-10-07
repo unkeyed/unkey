@@ -113,13 +113,7 @@ func (h *Create) Handle(ctx context.Context, s *zen.Session) error {
 			CorrelationID: "",
 			RemoteIP:      s.Location(),
 			UserAgent:     s.UserAgent(),
-			Resources: []auditlog.AuditLogResource{{
-				ID:          id,
-				Type:        "logdrain",
-				Name:        name,
-				DisplayName: "",
-				Meta:        map[string]any{},
-			}},
+			Resources:     []auditlog.AuditLogResource{{ID: id, Type: "logdrain", Name: name, DisplayName: "", Meta: map[string]any{}}},
 		}})
 	})
 	if err != nil {

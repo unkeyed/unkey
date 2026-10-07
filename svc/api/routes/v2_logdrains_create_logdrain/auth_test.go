@@ -36,41 +36,13 @@ func TestCreateRequiresAuthenticationAndPermission(t *testing.T) {
 		authorization string
 		status        int
 	}{
-		{
-			"missing authorization",
-			"",
-			http.StatusBadRequest,
-		},
-		{
-			"malformed authorization",
-			"Basic invalid",
-			http.StatusBadRequest,
-		},
-		{
-			"missing bearer token",
-			"Bearer",
-			http.StatusBadRequest,
-		},
-		{
-			"invalid key",
-			"Bearer invalid",
-			http.StatusUnauthorized,
-		},
-		{
-			"revoked key",
-			"Bearer " + revoked,
-			http.StatusUnauthorized,
-		},
-		{
-			"insufficient permission",
-			"Bearer " + denied,
-			http.StatusForbidden,
-		},
-		{
-			"permission for another workspace",
-			"Bearer " + foreign,
-			http.StatusForbidden,
-		},
+		{"missing authorization", "", http.StatusBadRequest},
+		{"malformed authorization", "Basic invalid", http.StatusBadRequest},
+		{"missing bearer token", "Bearer", http.StatusBadRequest},
+		{"invalid key", "Bearer invalid", http.StatusUnauthorized},
+		{"revoked key", "Bearer " + revoked, http.StatusUnauthorized},
+		{"insufficient permission", "Bearer " + denied, http.StatusForbidden},
+		{"permission for another workspace", "Bearer " + foreign, http.StatusForbidden},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			headers := http.Header{"Content-Type": {"application/json"}}
