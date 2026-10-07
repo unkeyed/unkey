@@ -2,7 +2,7 @@
 // Pushing a `<service>/vx.y.z` tag drives CI to build the image, push it to
 // GHCR, and cut a GitHub release. Versions are auto-numbered from existing tags
 // unless pinned; --bump selects the stable increment and --rc/--pre cut a
-// pre-release. See docs/engineering/contributing/tooling/releases.mdx.
+// pre-release.
 package main
 
 import (

@@ -12,7 +12,7 @@ export function GrantList({ grants }: GrantListProps) {
       {grants.map((grant) => {
         const { path, action } = grantLabel(grant);
         return (
-          <li key={grant} className="rounded-lg border border-grayA-4 bg-white p-4 dark:bg-black">
+          <li key={grant} className="rounded-lg border bg-raised p-4">
             <span className="block truncate text-sm text-gray-12">
               {path === null ? null : (
                 <span className="font-mono text-xs text-gray-10">{path} — </span>

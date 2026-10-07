@@ -56,6 +56,7 @@ export function deploymentRows(environmentPath: string): PermissionRow[] {
       path: deploymentPath,
     }),
     logRow("deployment_log", "Runtime logs", `${deploymentPath}/logs`),
+    logRow("deployment_build_log", "Build logs", `${deploymentPath}/buildLogs`),
   ];
 }
 
@@ -128,6 +129,19 @@ export function rbacRows(projectPath: string): PermissionRow[] {
       id: "permission",
       label: "Permissions",
       path: `${projectPath}/rbac/permissions/*`,
+    }),
+  ];
+}
+
+export function portalRows(projectPath: string): PermissionRow[] {
+  const portalPath = `${projectPath}/portals/*`;
+  return [
+    permissionRow({ id: "portal", label: "Portals", path: portalPath }),
+    permissionRow({
+      id: "portal_session",
+      label: "Portal sessions",
+      path: `${portalPath}/sessions/*`,
+      actions: { delete: [] },
     }),
   ];
 }

@@ -4,11 +4,9 @@ This workflow handles fixing a Linear issue end-to-end: from fetching the issue 
 
 ## Guidelines
 
-Before implementing any fix, review and follow these standards:
-
-- **Code Style**: `web/apps/engineering/content/docs/contributing/code-style.mdx`
-- **Documentation**: `web/apps/engineering/content/docs/contributing/documentation.mdx`
-- **Testing**: `web/apps/engineering/content/docs/contributing/testing/`
+Before implementing any fix, read the root `AGENTS.md` and the nested guidance
+for the files you change. Use the root guide's Notion lookup process when
+task-relevant context is missing.
 
 ## Trigger
 
@@ -65,10 +63,8 @@ When the user provides a Linear issue identifier.
    
    "Review the following code changes for a PR. Act as a senior engineer reviewer.
    
-   Check against our guidelines:
-   - Code style: web/apps/engineering/content/docs/contributing/code-style.mdx
-   - Documentation: web/apps/engineering/content/docs/contributing/documentation.mdx  
-   - Testing: web/apps/engineering/content/docs/contributing/testing/
+   Check against the root AGENTS.md and the nested guidance for the changed files.
+   If task-relevant context is missing, follow the root guide's Notion lookup process.
    
    Files changed: <list the modified files>
    
