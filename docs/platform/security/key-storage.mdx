@@ -1,0 +1,41 @@
+---
+title: Key storage
+description: "Know why Unkey shows a key only once and when you can get it back."
+sources:
+  - pkg/hash/sha256.go
+  - internal/services/keys/create.go
+  - web/internal/keys/src/util.ts
+  - web/internal/hash/src/sha256.ts
+  - web/apps/dashboard/lib/trpc/routers/key/createRootKey.ts
+  - web/internal/db/src/schema/keyAuth.ts
+  - svc/api/routes/v2_keys_create_key/handler.go
+---
+
+import { ProductLink } from "/snippets/product-link.jsx";
+
+<ProductLink product="api-management" href="/api-management/keys/recoverable-keys" title="Keyspaces and recoverable keys">
+  Keyspaces, `keys.createKey`, and recoverable keys are part of API Management. Here we only cover how keys are stored.
+</ProductLink>
+
+## A key is shown once
+
+When you create an API key or a root key, you see it once, in the create response or the dashboard dialog. We keep only a SHA-256 hash of it. A leaked copy of our database doesn't yield working keys, and we can't show you a key again unless it's a recoverable key.
+
+Moving keys from another system? [Migrating keys](/api-management/keys/migrating-keys) lists the hash formats we accept.
+
+## Recoverable keys
+
+A recoverable key is one you can show again later. To create one:
+
+1. Ask [support@unkey.com](mailto:support@unkey.com) to turn on encrypted storage for the keyspace. It's off by default and set per keyspace.
+2. Create the key with `recoverable: true`, using a root key with the encrypt permission for that keyspace.
+
+We keep an encrypted copy next to the hash. A root key with the decrypt permission can read the key back later.
+
+Without encrypted storage, creating a recoverable key fails with `err:unkey:application:precondition_failed` and "This API does not support key encryption."
+
+This weakens the guarantee above: anyone with a root key that has decrypt can read the key, so grant decrypt narrowly.
+
+## What you should do
+
+Copy a non-recoverable key when it's returned. That's the only time you'll see it. If you lose a key, create a new one and delete the old one. The same goes for root keys. Use a separate root key per service so a leak affects as little as possible. If a root key lands in a public repo, [GitHub secret scanning](/platform/security/github-secret-scanning) tells you, but it doesn't disable the key for you.

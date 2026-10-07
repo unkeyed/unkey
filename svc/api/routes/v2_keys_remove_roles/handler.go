@@ -32,6 +32,11 @@ type Handler struct {
 	KeyCache  cache.Cache[string, keysdb.CachedKeyData]
 }
 
+type txResult struct {
+	remainingRoles map[string]db.ListRolesByKeyIDRow
+	removedCount   int
+}
+
 // Method returns the HTTP method this route responds to
 func (h *Handler) Method() string {
 	return "POST"
@@ -98,123 +103,145 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	currentRoles, err := db.Query.ListRolesByKeyID(ctx, h.DB.RO(), req.KeyId)
-	if err != nil {
-		return fault.Wrap(err,
-			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Internal("database error"), fault.Public("Failed to retrieve current roles."),
-		)
-	}
-
-	currentRoleIDs := make(map[string]db.ListRolesByKeyIDRow)
-	for _, role := range currentRoles {
-		currentRoleIDs[role.ID] = role
-	}
-
-	foundRoles, err := db.Query.FindManyRolesByNamesWithPerms(ctx, h.DB.RO(), db.FindManyRolesByNamesWithPermsParams{
-		WorkspaceID: principal.AuthorizedWorkspaceID,
-		ProjectID:   key.KeyAuth.ProjectID,
-		Names:       req.Roles,
-	})
-	if err != nil {
-		return fault.Wrap(err,
-			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Internal("database error"), fault.Public("Failed to retrieve current roles."),
-		)
-	}
-
-	foundMap := make(map[string]struct{})
-	for _, role := range foundRoles {
-		foundMap[role.ID] = struct{}{}
-		foundMap[role.Name] = struct{}{}
-	}
-
-	for _, role := range req.Roles {
-		_, exists := foundMap[role]
-		if !exists {
-			return fault.New("role not found",
-				fault.Code(codes.Data.Role.NotFound.URN()),
-				fault.Public(fmt.Sprintf("Role '%s' was not found.", role)),
-			)
-		}
-	}
-
-	rolesToRemove := make([]db.FindManyRolesByNamesWithPermsRow, 0)
-	for _, role := range foundRoles {
-		_, exists := currentRoleIDs[role.ID]
-		if !exists {
-			continue
-		}
-
-		rolesToRemove = append(rolesToRemove, role)
-		delete(currentRoleIDs, role.ID)
-	}
-
-	if len(rolesToRemove) > 0 {
-		err = db.TxRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
-			var auditLogs []auditlog.AuditLog
-			var roleIds []string
-
-			for _, role := range rolesToRemove {
-				roleIds = append(roleIds, role.ID)
-				auditLogs = append(auditLogs, auditlog.AuditLog{
-					WorkspaceID:   principal.AuthorizedWorkspaceID,
-					Event:         auditlog.AuthDisconnectRoleKeyEvent,
-					ActorType:     auditlog.AuditLogActor(principal.Subject.Type),
-					ActorID:       principal.Subject.ID,
-					ActorName:     principal.Subject.Name,
-					ActorMeta:     map[string]any{},
-					Display:       fmt.Sprintf("Removed role %s from key %s", role.Name, req.KeyId),
-					RemoteIP:      s.Location(),
-					UserAgent:     s.UserAgent(),
-					CorrelationID: "",
-					Resources: []auditlog.AuditLogResource{
-						{
-							Type:        auditlog.KeyResourceType,
-							ID:          req.KeyId,
-							Name:        key.Key.Name.String,
-							DisplayName: key.Key.Name.String,
-							Meta:        map[string]any{},
-						},
-						{
-							Type:        auditlog.RoleResourceType,
-							ID:          role.ID,
-							Name:        role.Name,
-							DisplayName: role.Name,
-							Meta:        map[string]any{},
-						},
-					},
-				})
-			}
-
-			err = db.Query.DeleteManyKeyRolesByKeyAndRoleIDs(ctx, tx, db.DeleteManyKeyRolesByKeyAndRoleIDsParams{
-				KeyID:   req.KeyId,
-				RoleIds: roleIds,
-			})
-			if err != nil {
-				return fault.Wrap(err,
-					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-					fault.Internal("database error"),
-					fault.Public("Failed to remove role assignment."),
+	result, err := db.TxWithResultRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) (txResult, error) {
+		// Every read below runs after this lock and on the primary. Concurrent
+		// requests for the same key see each other's deletes, and a role assigned
+		// moments ago is visible even when the replica lags
+		_, err := db.Query.LockKeyForUpdate(ctx, tx, req.KeyId)
+		if err != nil {
+			if db.IsNotFound(err) {
+				return txResult{}, fault.New("key not found",
+					fault.Code(codes.Data.Key.NotFound.URN()),
+					fault.Internal("key not found"), fault.Public("The specified key was not found."),
 				)
 			}
-
-			err = h.Auditlogs.Insert(ctx, tx, auditLogs)
-			if err != nil {
-				return err
-			}
-
-			return nil
-		})
-		if err != nil {
-			return err
+			return txResult{}, fault.Wrap(err,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("unable to lock key"),
+				fault.Public("We're unable to update the key."),
+			)
 		}
 
+		currentRoles, err := db.Query.ListRolesByKeyID(ctx, tx, req.KeyId)
+		if err != nil {
+			return txResult{}, fault.Wrap(err,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("database error"), fault.Public("Failed to retrieve current roles."),
+			)
+		}
+
+		currentRoleIDs := make(map[string]db.ListRolesByKeyIDRow)
+		for _, role := range currentRoles {
+			currentRoleIDs[role.ID] = role
+		}
+
+		foundRoles, err := db.Query.FindManyRolesByNamesWithPerms(ctx, tx, db.FindManyRolesByNamesWithPermsParams{
+			WorkspaceID: principal.AuthorizedWorkspaceID,
+			ProjectID:   key.KeyAuth.ProjectID,
+			Names:       req.Roles,
+		})
+		if err != nil {
+			return txResult{}, fault.Wrap(err,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("database error"), fault.Public("Failed to retrieve current roles."),
+			)
+		}
+
+		foundMap := make(map[string]struct{})
+		for _, role := range foundRoles {
+			foundMap[role.ID] = struct{}{}
+			foundMap[role.Name] = struct{}{}
+		}
+
+		for _, role := range req.Roles {
+			_, exists := foundMap[role]
+			if !exists {
+				return txResult{}, fault.New("role not found",
+					fault.Code(codes.Data.Role.NotFound.URN()),
+					fault.Public(fmt.Sprintf("Role '%s' was not found.", role)),
+				)
+			}
+		}
+
+		rolesToRemove := make([]db.FindManyRolesByNamesWithPermsRow, 0)
+		for _, role := range foundRoles {
+			_, exists := currentRoleIDs[role.ID]
+			if !exists {
+				continue
+			}
+
+			rolesToRemove = append(rolesToRemove, role)
+			delete(currentRoleIDs, role.ID)
+		}
+
+		if len(rolesToRemove) == 0 {
+			return txResult{remainingRoles: currentRoleIDs, removedCount: 0}, nil
+		}
+
+		var auditLogs []auditlog.AuditLog
+		var roleIds []string
+
+		for _, role := range rolesToRemove {
+			roleIds = append(roleIds, role.ID)
+			auditLogs = append(auditLogs, auditlog.AuditLog{
+				WorkspaceID:   principal.AuthorizedWorkspaceID,
+				Event:         auditlog.AuthDisconnectRoleKeyEvent,
+				ActorType:     auditlog.AuditLogActor(principal.Subject.Type),
+				ActorID:       principal.Subject.ID,
+				ActorName:     principal.Subject.Name,
+				ActorMeta:     map[string]any{},
+				Display:       fmt.Sprintf("Removed role %s from key %s", role.Name, req.KeyId),
+				RemoteIP:      s.Location(),
+				UserAgent:     s.UserAgent(),
+				CorrelationID: "",
+				Resources: []auditlog.AuditLogResource{
+					{
+						Type:        auditlog.KeyResourceType,
+						ID:          req.KeyId,
+						Name:        key.Key.Name.String,
+						DisplayName: key.Key.Name.String,
+						Meta:        map[string]any{},
+					},
+					{
+						Type:        auditlog.RoleResourceType,
+						ID:          role.ID,
+						Name:        role.Name,
+						DisplayName: role.Name,
+						Meta:        map[string]any{},
+					},
+				},
+			})
+		}
+
+		err = db.Query.DeleteManyKeyRolesByKeyAndRoleIDs(ctx, tx, db.DeleteManyKeyRolesByKeyAndRoleIDsParams{
+			KeyID:   req.KeyId,
+			RoleIds: roleIds,
+		})
+		if err != nil {
+			return txResult{}, fault.Wrap(err,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("database error"),
+				fault.Public("Failed to remove role assignment."),
+			)
+		}
+
+		err = h.Auditlogs.Insert(ctx, tx, auditLogs)
+		if err != nil {
+			return txResult{}, err
+		}
+
+		return txResult{remainingRoles: currentRoleIDs, removedCount: len(rolesToRemove)}, nil
+	})
+	if err != nil {
+		return err
+	}
+
+	if result.removedCount > 0 {
 		h.KeyCache.Remove(ctx, key.Key.Hash)
 	}
 
 	responseData := make(openapi.V2KeysRemoveRolesResponseData, 0)
-	for _, role := range currentRoleIDs {
+	for _, role := range result.remainingRoles {
 		r := openapi.Role{
 			Id:          role.ID,
 			Name:        role.Name,

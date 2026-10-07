@@ -1,0 +1,56 @@
+---
+title: Runtime logs
+description: "Read and filter what your instances write to stdout and stderr."
+sources:
+  - dev/k8s/manifests/vector-logs.yaml
+  - pkg/clickhouse/schema/023_runtime_logs_raw_v1.sql
+  - pkg/clickhouse/user.go
+  - web/apps/dashboard/lib/schemas/runtime-logs.filter.schema.ts
+  - web/internal/clickhouse/src/runtime-logs.ts
+  - web/apps/dashboard/lib/trpc/routers/deploy/runtime-logs/query.ts
+  - web/apps/dashboard/lib/navigation/leaves.ts
+  - internal/services/analytics/executor.go
+  - web/apps/dashboard/lib/limits.ts
+---
+
+Everything your instances write to stdout or stderr shows up as runtime logs, with nothing to install or configure. Print a line and it appears under **Logs** in the project a few seconds later, tagged with the <Tooltip tip="A Compute app: a deployable service inside a project. Not 'your application' in general.">app</Tooltip>, <Tooltip tip="A production or preview environment of a Compute app, not the dashboard label on a key.">environment</Tooltip>, <Tooltip tip="One built and running version of an app in one environment.">deployment</Tooltip>, region, and instance that wrote it.
+
+## Write logs you can filter
+
+Print one JSON object per line, with `level` and `message` (or `msg`), and put the values you'll search for in their own fields:
+
+```json
+{"level":"error","message":"charge failed","order_id":"ord_1234","customer":{"id":"cus_98","plan":"pro"},"attempt":3}
+```
+
+That entry has severity `error`, message `charge failed`, and attributes `order_id`, `customer.id`, `customer.plan`, and `attempt`, which you can all filter on.
+
+## How lines are read
+
+Color codes are removed first.
+
+- **JSON object:** the message is `msg` or `message` (or the whole line), the severity is `level` or `severity` (default `info`), and every other key becomes an attribute, including nested ones.
+- **`key=value` (logfmt):** handled like JSON, but only if the line has `level`, `severity`, `msg`, or `message`.
+- **Anything else:** plain text. The whole line is the message, and we guess the severity. Panics, tracebacks, exception names, and words like `error`, `fatal`, `failed to`, `crashed`, or `oom` mean error. `warn` or `warning` mean warning, and `debug` or `trace` mean debug. Everything else is info. If severity matters, use JSON.
+
+## Filter the logs
+
+<Frame>
+  <img src="/images/dashboard/compute--observe-runtime-logs--logs.png" alt="Logs page filtered to one app, listing log lines with time, severity, region, instance, and message" />
+</Frame>
+
+| Filter | Operators | Notes |
+| --- | --- | --- |
+| Severity | is | `ERROR`, `WARN`, `INFO`, `DEBUG` |
+| Message | contains | Case-insensitive substring, at least 3 characters |
+| Attributes | is, contains | Written as `path=value`, for example `customer.plan=pro`. The value must be at least 3 characters. |
+| App, environment, deployment, region, instance | is | Narrow from the project to one source |
+| Time | since, or start and end | Relative or absolute range |
+
+Each entry shows its severity, time, message, attributes, and the instance and region that wrote it.
+
+## Retention and access
+
+Runtime logs are kept for 90 days, and the dashboard shows all of them. The [analytics API](/compute/observe/analytics-api) can only reach back as far as your plan's log query range: 3 days on Starter, 7 on Pro, and 14 on Business. A query that reaches further fails with [`err:user:bad_request:query_range_exceeds_retention`](/errors/user/bad_request/query_range_exceeds_retention). See [Compute limits](/compute/configure/limits).
+
+To query logs with SQL, use the `runtime_logs_v1` table. See [Query gateway requests and runtime logs](/compute/observe/analytics-api).

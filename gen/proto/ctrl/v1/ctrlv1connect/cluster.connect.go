@@ -64,15 +64,13 @@ const (
 
 // ClusterServiceClient is a client for the ctrl.v1.ClusterService service.
 type ClusterServiceClient interface {
-	// WatchDeploymentChanges streams incremental resource changes from the
-	// deployment_changes outbox table. When version_last_seen is 0, the server
-	// jumps to the current max version and polls from there (no replay).
-	// The stream stays open indefinitely, polling for new changes.
+	// WatchDeploymentChanges follows topology changes in the cluster's region.
+	// An empty resume_token copies current rows before following changes.
+	// CodeOutOfRange means the saved position is gone. Start a new copy and
+	// remove local resources that no longer exist in desired state.
 	WatchDeploymentChanges(context.Context, *connect.Request[v1.WatchDeploymentChangesRequest]) (*connect.ServerStreamForClient[v1.DeploymentChangeEvent], error)
-	// SyncDesiredState streams the full desired state for a region: all running
-	// deployments and Cilium policies. The server closes the stream after all
-	// state has been sent. Krane calls this on startup and periodically as a
-	// safety net to reconcile any drift.
+	// SyncDesiredState sends all running deployments in a region, then closes.
+	// Krane calls it on startup and periodically to repair missed changes.
 	SyncDesiredState(context.Context, *connect.Request[v1.SyncDesiredStateRequest]) (*connect.ServerStreamForClient[v1.DeploymentChangeEvent], error)
 	// GetDesiredDeploymentState returns the current desired state for a single deployment.
 	// Used by the resync loop to verify consistency for existing resources.
@@ -184,15 +182,13 @@ func (c *clusterServiceClient) Heartbeat(ctx context.Context, req *connect.Reque
 
 // ClusterServiceHandler is an implementation of the ctrl.v1.ClusterService service.
 type ClusterServiceHandler interface {
-	// WatchDeploymentChanges streams incremental resource changes from the
-	// deployment_changes outbox table. When version_last_seen is 0, the server
-	// jumps to the current max version and polls from there (no replay).
-	// The stream stays open indefinitely, polling for new changes.
+	// WatchDeploymentChanges follows topology changes in the cluster's region.
+	// An empty resume_token copies current rows before following changes.
+	// CodeOutOfRange means the saved position is gone. Start a new copy and
+	// remove local resources that no longer exist in desired state.
 	WatchDeploymentChanges(context.Context, *connect.Request[v1.WatchDeploymentChangesRequest], *connect.ServerStream[v1.DeploymentChangeEvent]) error
-	// SyncDesiredState streams the full desired state for a region: all running
-	// deployments and Cilium policies. The server closes the stream after all
-	// state has been sent. Krane calls this on startup and periodically as a
-	// safety net to reconcile any drift.
+	// SyncDesiredState sends all running deployments in a region, then closes.
+	// Krane calls it on startup and periodically to repair missed changes.
 	SyncDesiredState(context.Context, *connect.Request[v1.SyncDesiredStateRequest], *connect.ServerStream[v1.DeploymentChangeEvent]) error
 	// GetDesiredDeploymentState returns the current desired state for a single deployment.
 	// Used by the resync loop to verify consistency for existing resources.

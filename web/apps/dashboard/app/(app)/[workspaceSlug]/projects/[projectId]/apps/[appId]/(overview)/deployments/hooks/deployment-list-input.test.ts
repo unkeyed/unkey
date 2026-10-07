@@ -38,7 +38,7 @@ describe("buildDeploymentListInput", () => {
 
   test("maps the previous filter bar's status values onto their groups", () => {
     const { input } = buildDeploymentListInput(
-      [filter("status", "deploying"), filter("status", "skipped")],
+      [filter("status", "deploying"), filter("status", "pending")],
       environments,
     );
     expect(input.statuses).toEqual([
@@ -47,9 +47,13 @@ describe("buildDeploymentListInput", () => {
       "deploying",
       "network",
       "finalizing",
-      "cancelled",
-      "skipped",
+      "pending",
     ]);
+  });
+
+  test("keeps skipped separate from cancelled", () => {
+    const { input } = buildDeploymentListInput([filter("status", "skipped")], environments);
+    expect(input.statuses).toEqual(["skipped"]);
   });
 
   test("flags a status that is not a group as unable to match", () => {
@@ -86,6 +90,16 @@ describe("buildDeploymentListInput", () => {
     const { input } = buildDeploymentListInput([filter("since", "1h")], environments, now);
     const expected = Math.floor((now - 60 * 60 * 1000) / 60_000) * 60_000;
     expect(input.startTime).toBe(expected);
+  });
+
+  test.each([
+    ["1w", "2026-09-21T12:34:00Z"],
+    ["7d", "2026-09-21T12:34:00Z"],
+    ["1w2d3h30m", "2026-09-19T09:04:00Z"],
+  ])("converts the URL relative window %s", (since, expected) => {
+    const now = Date.parse("2026-09-28T12:34:56.789Z");
+    const { input } = buildDeploymentListInput([filter("since", since)], environments, now);
+    expect(input.startTime).toBe(Date.parse(expected));
   });
 
   test("keeps the later of an explicit start and a relative window", () => {

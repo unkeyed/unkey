@@ -1,13 +1,13 @@
+import { createPermissionOptions } from "@/components/permission-options";
 import { useRoleLimits } from "@/components/roles-table/hooks/use-role-limits";
 import { SelectedItemsList } from "@/components/selected-item-list";
 import { FormCombobox } from "@/components/ui/form-combobox";
+import { useFetchPermissions } from "@/hooks/use-fetch-permissions";
+import { useSearchPermissions } from "@/hooks/use-search-permissions";
 import type { RolePermission } from "@/lib/trpc/routers/authorization/roles/connected-keys-and-perms";
 import { IconPage2Outline12 } from "@unkey/icons";
 import { useMemo, useState } from "react";
 import { RoleWarningCallout } from "../warning-callout";
-import { createPermissionOptions } from "./create-permission-options";
-import { useFetchPermissions } from "./hooks/use-fetch-permissions";
-import { useSearchPermissions } from "./hooks/use-search-permissions";
 
 type PermissionFieldProps = {
   value: string[];
@@ -60,34 +60,16 @@ export const PermissionField = ({
 
   const baseOptions = createPermissionOptions({
     permissions: allPermissions,
+    valueField: "id",
     hasNextPage: showLoadMore,
     isFetchingNextPage,
-    roleId,
     loadMore,
   });
 
-  const selectableOptions = useMemo(() => {
-    return baseOptions.filter((option) => {
-      if (option.value === "__load_more__") {
-        return true;
-      }
-      if (value.includes(option.value)) {
-        return false;
-      }
-
-      // Find the permission and check if it's already assigned to this role
-      const permission = allPermissions.find((p) => p.id === option.value);
-      if (!permission) {
-        return true;
-      }
-
-      // Filter out permissions that already have this role assigned (if roleId provided)
-      if (roleId) {
-        return !permission.roles?.some((role) => role.id === roleId);
-      }
-      return true;
-    });
-  }, [baseOptions, allPermissions, roleId, value]);
+  const selectableOptions = useMemo(
+    () => baseOptions.filter((option) => !value.includes(option.value)),
+    [baseOptions, value],
+  );
 
   const selectedPermissions = useMemo(() => {
     return value
@@ -133,7 +115,7 @@ export const PermissionField = ({
       if (permission) {
         setSelectedPermissionDetails((permissions) => [
           ...permissions.filter((item) => item.id !== permission.id),
-          permission,
+          { ...permission, description: permission.description ?? null },
         ]);
       }
       onChange([...value, permissionId]);
@@ -159,19 +141,19 @@ export const PermissionField = ({
           handleAddPermission(val);
         }}
         placeholder={
-          <div className="flex w-full text-grayA-8 text-[13px] gap-1.5 items-center py-2">
+          <div className="flex w-full text-grayA-8 text-sm gap-1.5 items-center py-2">
             Select permissions
           </div>
         }
         searchPlaceholder="Search permissions by name, ID, slug, or description..."
         emptyMessage={
           isComboboxLoading ? (
-            <div className="px-3 py-3 text-gray-10 text-[13px] flex items-center gap-2">
-              <div className="animate-spin h-3 w-3 border border-gray-6 border-t-gray-11 rounded-full" />
+            <div className="px-3 py-3 text-gray-10 text-sm flex items-center gap-2">
+              <div className="animate-spin h-3 w-3 border border-t-gray-11 rounded-full" />
               {isSearching ? "Searching..." : "Loading permissions..."}
             </div>
           ) : (
-            <div className="px-3 py-3 text-gray-10 text-[13px]">No permissions found</div>
+            <div className="px-3 py-3 text-gray-10 text-sm">No permissions found</div>
           )
         }
         variant="default"

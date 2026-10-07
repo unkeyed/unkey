@@ -1,0 +1,46 @@
+---
+title: "client_closed_request"
+sidebarTitle: "client_closed_request"
+description: "The client disconnected before the API finished handling the request."
+sources:
+  - pkg/codes/user_request.go
+  - svc/api/internal/middleware/errors.go
+  - pkg/zen/middleware_timeout.go
+  - svc/api/routes/register.go
+---
+
+<Danger>`err:user:bad_request:client_closed_request`</Danger>
+
+Your client closed the connection before the API finished, so the API stopped working on the request. It's recorded as HTTP 499. You'll usually see it in your Unkey request logs rather than in a response, because no client was left to receive one.
+
+```json Example response
+{
+  "meta": {
+    "requestId": "req_2c9a0jf23l4k567"
+  },
+  "error": {
+    "detail": "Client closed request",
+    "status": 499,
+    "title": "Client Closed Request",
+    "type": "/errors/user/bad_request/client_closed_request",
+    "errors": []
+  }
+}
+```
+
+## Likely causes
+
+- Your HTTP client's timeout is shorter than the request takes. This is common on `keys.verifyKey` when the verification timeout is tighter than the network allows.
+- Your code aborted the request, for example in a retry loop that cancels requests still in flight.
+- The client closed the connection or the process exited.
+
+## How to fix
+
+1. Set your client timeout to at least the API's one-minute deadline, or measure real latency and leave headroom.
+2. Don't cancel in-flight requests when you retry.
+3. A canceled write may or may not have gone through. Read the resource back before you retry a create.
+
+## Related errors
+
+- [`err:user:bad_request:request_timeout`](/errors/user/bad_request/request_timeout): the server-side deadline expired instead.
+- [`err:user:bad_request:request_body_unreadable`](/errors/user/bad_request/request_body_unreadable): the connection dropped while the body was still being uploaded.

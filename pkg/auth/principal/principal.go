@@ -2,6 +2,7 @@ package principal
 
 import (
 	"log/slog"
+	"time"
 
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/rbac"
@@ -52,11 +53,11 @@ type Principal struct {
 	// Source carries the method-specific authentication details.
 	Source Source
 
-	// AuthorizedWorkspaceID is the workspace this principal can access. For root
-	// keys, it is keys.for_workspace_id, not the key owner in [KeySource.WorkspaceID].
+	// AuthorizedWorkspaceID is the workspace this principal can access. For
+	// legacy root keys, it is keys.for_workspace_id.
 	AuthorizedWorkspaceID string
 
-	// Permissions is the flat set of exact or resource-scoped authorization grants.
+	// Permissions is the flat set of exact or resource-scoped permissions.
 	Permissions []string
 
 	// authorizationError records the latest authorization denial for this request.
@@ -111,13 +112,15 @@ type KeySource struct {
 	// KeySpaceID is the key space that owns the authenticated key.
 	KeySpaceID string
 
-	// WorkspaceID is the keys.workspace_id value that identifies the key owner.
-	// For root keys, it identifies Unkey's internal workspace, not the customer
-	// workspace in keys.for_workspace_id.
+	// WorkspaceID identifies the key owner. New root keys use the customer
+	// workspace. Legacy root keys use Unkey's internal workspace.
 	WorkspaceID string
 
 	// Permissions are the raw RBAC permission strings attached to the key.
 	Permissions []string
+
+	// ExpiresAt is the authenticated key's expiry. Nil means the key does not expire.
+	ExpiresAt *time.Time
 }
 
 func (KeySource) principalSource() {}

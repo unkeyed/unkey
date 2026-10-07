@@ -1,0 +1,48 @@
+---
+title: "protected_resource"
+sidebarTitle: "protected_resource"
+description: "The delete was refused because the resource has delete protection enabled."
+sources:
+  - pkg/codes/unkey_application.go
+  - svc/api/internal/middleware/errors.go
+  - svc/api/routes/v2_apis_delete_api/handler.go
+  - svc/api/routes/v2_apps_delete_app/handler.go
+  - svc/api/routes/v2_projects_delete_project/handler.go
+  - web/internal/db/src/schema/util/delete_protection.ts
+---
+
+<Danger>`err:unkey:application:protected_resource`</Danger>
+
+You tried to delete something that has delete protection turned on. Nothing was deleted. You get HTTP 412.
+
+```json Example response
+{
+  "meta": {
+    "requestId": "req_2c9a0jf23l4k567"
+  },
+  "error": {
+    "detail": "This API has delete protection enabled. Disable it before attempting to delete.",
+    "status": 412,
+    "title": "Resource is protected",
+    "type": "/errors/unkey/application/protected_resource"
+  }
+}
+```
+
+## Likely causes
+
+- You called `apis.deleteApi`, `apps.deleteApp`, or `projects.deleteProject` on a resource with delete protection on. The message names the resource type.
+
+## How to fix
+
+1. Make sure you really mean to delete it. Deleting an API from the dashboard also deletes its keyspace and every key in it. Deleting a project removes its apps, environments, and deployments.
+2. Turn off delete protection in the dashboard, or with the resource's update endpoint where it has the setting. See [Delete protection](/platform/security/delete-protection) for where the switch is.
+3. Delete it again.
+
+Turning protection on or off is recorded in the audit log.
+
+## Related errors
+
+- [`err:unkey:data:api_not_found`](/errors/unkey/data/api_not_found): the API you tried to delete doesn't exist.
+- [`err:unkey:data:app_not_found`](/errors/unkey/data/app_not_found): the app doesn't exist.
+- [`err:unkey:data:project_not_found`](/errors/unkey/data/project_not_found): the project doesn't exist.

@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+#MISE description="Run docs lint (writing, nav, CLI, errors, individual card artwork) on a Mintlify docs site (default dir: docs)"
+set -euo pipefail
+
+node docs/scripts/lint.mjs "${1:-docs}"
+
+if [[ -f "${1:-docs}/scripts/card-art.mjs" ]]; then
+  node "${1:-docs}/scripts/card-art.mjs" --check
+fi

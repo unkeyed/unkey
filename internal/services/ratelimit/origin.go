@@ -22,8 +22,10 @@ func errorReason(err error) string {
 	}
 	// go-redis surfaces a blown deadline as a socket timeout that doesn't unwrap
 	// to context.DeadlineExceeded, so check net.Error too.
-	var netErr net.Error
-	if errors.Is(err, context.DeadlineExceeded) || (errors.As(err, &netErr) && netErr.Timeout()) {
+	if errors.Is(err, context.DeadlineExceeded) {
+		return "timeout"
+	}
+	if netErr, ok := errors.AsType[net.Error](err); ok && netErr.Timeout() {
 		return "timeout"
 	}
 	return "other"
@@ -65,6 +67,10 @@ const (
 // timeout, or Redis error) it returns ok=false so callers can preserve local
 // state without marking it fresh.
 func (s *service) fetchFromOrigin(ctx context.Context, key counterKey, op string) (count int64, ok bool) {
+	if ctx.Err() != nil {
+		return 0, false
+	}
+
 	rk := key.redisKey()
 	metrics.RatelimitOriginOperations.WithLabelValues(op).Inc()
 
@@ -78,6 +84,9 @@ func (s *service) fetchFromOrigin(ctx context.Context, key counterKey, op string
 		metrics.RatelimitOriginLatency.WithLabelValues(op).Observe(time.Since(start).Seconds())
 		return res, err
 	})
+	if errors.Is(err, context.Canceled) {
+		return 0, false
+	}
 	if err != nil {
 		metrics.RatelimitOriginErrors.WithLabelValues(op, errorReason(err)).Inc()
 		// Don't log breaker short-circuits — they'd flood the log for the whole

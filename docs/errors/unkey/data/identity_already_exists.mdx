@@ -1,0 +1,42 @@
+---
+title: "identity_already_exists"
+sidebarTitle: "identity_already_exists"
+description: "An identity with that externalId already exists in the workspace."
+sources:
+  - pkg/codes/unkey_data.go
+  - svc/api/internal/middleware/errors.go
+  - svc/api/routes/v2_identities_create_identity/handler.go
+---
+
+<Danger>`err:unkey:data:identity_already_exists`</Danger>
+
+An identity with the same `externalId` already exists in your workspace, so `identities.createIdentity` didn't create one. You get HTTP 409.
+
+```json Example response
+{
+  "meta": {
+    "requestId": "req_2c9a0jf23l4k567"
+  },
+  "error": {
+    "detail": "Identity with externalId 'user_123' already exists in this workspace.",
+    "status": 409,
+    "title": "Conflicting Resource",
+    "type": "/errors/unkey/data/identity_already_exists"
+  }
+}
+```
+
+## Likely causes
+
+- You already created an identity for this user or tenant. `externalId` is unique per workspace.
+
+## How to fix
+
+1. Use the existing identity: fetch it with `identities.getIdentity`, or change its `meta` or rate limits with `identities.updateIdentity`.
+2. To attach keys to it, pass its `externalId` on `keys.createKey`.
+
+In provisioning code, treat a 409 as success.
+
+## Related errors
+
+- [`err:unkey:data:identity_not_found`](/errors/unkey/data/identity_not_found): the identity doesn't exist.

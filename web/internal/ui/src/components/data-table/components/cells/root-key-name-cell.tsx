@@ -22,8 +22,8 @@ export const RootKeyNameCell = ({ name, isSelected = false }: RootKeyNameCellPro
         <div className="w-[150px]">
           <div
             className={cn(
-              "font-medium truncate leading-4 text-[13px]",
-              name ? "text-accent-12" : "text-gray-9 italic font-normal",
+              "font-medium truncate leading-4 text-sm",
+              name ? "text-gray-12" : "text-gray-9 italic font-normal",
             )}
           >
             {name ?? "Unnamed Root Key"}

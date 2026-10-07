@@ -2,7 +2,14 @@
 import { LoadingState } from "@/components/loading-state";
 import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
-import { Empty } from "@unkey/ui";
+import {
+  EmptyState,
+  EmptyStateDescription,
+  EmptyStateHeader,
+  EmptyStateTitle,
+  PageBody,
+  PageContainer,
+} from "@unkey/ui";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef } from "react";
 
@@ -77,34 +84,50 @@ export default function Page() {
 
   if (!state) {
     return (
-      <div className="w-full min-h-[60vh] flex justify-center items-center">
-        <Empty>
-          <Empty.Title>Invalid callback state</Empty.Title>
-          <Empty.Description>Missing or invalid GitHub installation state.</Empty.Description>
-        </Empty>
-      </div>
+      <PageContainer>
+        <PageBody>
+          <EmptyState>
+            <EmptyStateHeader>
+              <EmptyStateTitle>Invalid callback state</EmptyStateTitle>
+              <EmptyStateDescription>
+                Missing or invalid GitHub installation state.
+              </EmptyStateDescription>
+            </EmptyStateHeader>
+          </EmptyState>
+        </PageBody>
+      </PageContainer>
     );
   }
 
   if (installationIdNumber === null && !code) {
     return (
-      <div className="w-full min-h-[60vh] flex justify-center items-center">
-        <Empty>
-          <Empty.Title>Missing installation</Empty.Title>
-          <Empty.Description>Missing or invalid GitHub installation id.</Empty.Description>
-        </Empty>
-      </div>
+      <PageContainer>
+        <PageBody>
+          <EmptyState>
+            <EmptyStateHeader>
+              <EmptyStateTitle>Missing installation</EmptyStateTitle>
+              <EmptyStateDescription>
+                Missing or invalid GitHub installation id.
+              </EmptyStateDescription>
+            </EmptyStateHeader>
+          </EmptyState>
+        </PageBody>
+      </PageContainer>
     );
   }
 
   if (mutation.isError) {
     return (
-      <div className="w-full min-h-[60vh] flex justify-center items-center">
-        <Empty>
-          <Empty.Title>Installation failed</Empty.Title>
-          <Empty.Description>{mutation.error.message}</Empty.Description>
-        </Empty>
-      </div>
+      <PageContainer>
+        <PageBody>
+          <EmptyState>
+            <EmptyStateHeader>
+              <EmptyStateTitle>Installation failed</EmptyStateTitle>
+              <EmptyStateDescription>{mutation.error.message}</EmptyStateDescription>
+            </EmptyStateHeader>
+          </EmptyState>
+        </PageBody>
+      </PageContainer>
     );
   }
 

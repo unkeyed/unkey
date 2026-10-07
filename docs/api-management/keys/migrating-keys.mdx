@@ -1,0 +1,123 @@
+---
+title: Migrating existing keys
+sidebarTitle: "Migrating keys"
+description: "Bring existing keys from another system into Unkey without rotating them."
+sources:
+  - svc/api/openapi/spec/paths/v2/keys/migrateKeys/V2KeysMigrateKeysRequestBody.yaml
+  - svc/api/openapi/spec/paths/v2/keys/migrateKeys/V2KeysMigrateKeyData.yaml
+  - svc/api/openapi/spec/paths/v2/keys/migrateKeys/V2KeysMigrateKeysResponseData.yaml
+  - svc/api/openapi/spec/paths/v2/keys/verifyKey/V2KeysVerifyKeyRequestBody.yaml
+  - svc/api/routes/v2_keys_migrate_keys/handler.go
+  - svc/api/routes/v2_keys_verify_key/handler.go
+  - internal/services/keys/get_migrated.go
+  - internal/services/keys/db/models_generated.go
+  - pkg/hash/sha256.go
+  - web/internal/db/src/schema/keys.ts
+---
+
+import RootKeyPrereq from "/snippets/root-key-prereq.mdx";
+
+If your app already has API keys in production, you can move them to Unkey without asking users to replace them. You send us the hash of each key, never the key itself, and your users keep using the keys they have. We agree on the hash format with you first.
+
+## Get a migration ID
+
+Email [support@unkey.com](mailto:support@unkey.com) with your workspace ID, the system the keys come from, and how they're hashed, and we'll send you a `migrationId`. We support two hash formats today.
+
+| Algorithm | What you send as `hash` | Verification |
+| --- | --- | --- |
+| `sha256` | SHA-256 of the full key string, **base64** encoded. This is Unkey's native format. | Works immediately with a plain `keys.verifyKey`; no `migrationId` needed at verify time. |
+| `github.com/seamapi/prefixed-api-key` | SHA-256 of the key's long token only, **hex** encoded, as that library stores it. Keys look like `prefix_shortToken_longToken`. | Send `migrationId` on `keys.verifyKey` until each key has been verified once. After that the key verifies without it. |
+
+Keys hashed any other way, such as bcrypt or a salted hash, can't be imported from the hash alone. Tell support, and we'll plan the migration another way.
+
+### Hash the keys yourself
+
+For `sha256`, this is the same function Unkey uses, so a key hashed this way works exactly like one Unkey created.
+
+```typescript hash.ts
+import { createHash } from "node:crypto";
+
+function hashKey(plaintext: string): string {
+  return createHash("sha256").update(plaintext).digest("base64");
+}
+
+hashKey("sk_live_abc"); // "5Q7m..." base64, not hex
+```
+
+Never include plaintext keys in the export or the migration request.
+
+<RootKeyPrereq />
+
+`keys.migrateKeys` needs `api.*.create_key` or `api.<api_id>.create_key`. Verifying afterwards needs the usual `api.*.verify_key`. See [Root key permissions](/platform/root-keys/permissions).
+
+## Import the hashes
+
+<ParamField body="migrationId" type="string" required>
+  The identifier from support, 3 to 255 characters. An unknown ID returns HTTP 404 `err:unkey:data:migration_not_found`.
+</ParamField>
+
+<ParamField body="apiId" type="string" required>
+  The keyspace to import into.
+</ParamField>
+
+<ParamField body="keys" type="object[]" required>
+  At least one entry. Each has a required `hash` (3 or more characters, in your migration's format) and the same optional fields as `keys.createKey`: `name`, `externalId`, `meta`, `roles` (up to 100), `permissions` (up to 1000), `expires`, `enabled` (default `true`), `credits`, and `ratelimits` (up to 50). The rules match [Creating keys](/api-management/keys/creating-keys).
+</ParamField>
+
+```bash
+curl -X POST https://api.unkey.com/v2/keys.migrateKeys \
+  -H "Authorization: Bearer $UNKEY_ROOT_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "migrationId": "<from support>",
+    "apiId": "api_...",
+    "keys": [
+      {
+        "hash": "xfV3...base64...=",
+        "name": "Acme production",
+        "externalId": "org_acme",
+        "meta": { "migratedFrom": "legacy" },
+        "ratelimits": [
+          { "name": "requests", "limit": 1000, "duration": 60000, "autoApply": true }
+        ]
+      }
+    ]
+  }'
+```
+
+## Response
+
+The response is HTTP 200 even when some hashes fail. A hash that already exists anywhere in Unkey, not just in your workspace, is skipped and listed under `failed`. Every other key is created and returned with its new `keyId`. Store it next to your own record of the key.
+
+```json
+{
+  "meta": { "requestId": "req_..." },
+  "data": {
+    "migrated": [
+      { "hash": "xfV3...base64...=", "keyId": "key_..." }
+    ],
+    "failed": [
+      "duplicate...hash...="
+    ]
+  }
+}
+```
+
+Send large migrations in batches and reconcile `migrated` against your export after each one.
+
+## Switch verification over
+
+Point your backend at `keys.verifyKey`. For the `sha256` algorithm nothing else changes. For the prefixed-api-key algorithm, include the `migrationId` in every verification during the roll-out:
+
+```bash
+curl -X POST https://api.unkey.com/v2/keys.verifyKey \
+  -H "Authorization: Bearer $UNKEY_ROOT_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{ "key": "prefix_short_long", "migrationId": "<from support>" }'
+```
+
+After a key's first verification with `migrationId`, it works with or without the field. A key that hasn't been verified yet still needs it and returns `NOT_FOUND` without it, so keep sending `migrationId` until the fallback below goes quiet.
+
+## Run both systems during the switch
+
+Verify against Unkey first. If a key comes back `NOT_FOUND`, check your old system and log it. Remove the fallback when the log goes quiet. Create new keys with `keys.createKey` so new users are never in the old system.

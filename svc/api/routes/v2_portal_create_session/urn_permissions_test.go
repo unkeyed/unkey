@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
@@ -185,19 +184,19 @@ func TestProjectWideGrantsDeliberatelyReachPortals(t *testing.T) {
 			createRes := testutil.CallRoute[createportal.Request, createportal.Response](h, create, headers, createportal.Request{
 				Slug:        fmt.Sprintf("project-wide-created-%d", i),
 				DisplayName: "Acme",
-				KeyspaceId:  ptr.P(openapi.PortalKeyspaceId(target.KeyAuthID.String)),
-				Enabled:     ptr.P(true),
+				KeyspaceId:  new(openapi.PortalKeyspaceId(target.KeyAuthID.String)),
+				Enabled:     new(true),
 			})
 			require.Equal(t, tc.createStatus, createRes.Status, "create: %s", createRes.RawBody)
 
 			getRes := testutil.CallRoute[getportal.Request, getportal.Response](h, get, headers, getportal.Request{
-				Portal: ptr.P(openapi.ResourceIdentifier(stored)),
+				Portal: new(openapi.ResourceIdentifier(stored)),
 			})
 			require.Equal(t, tc.otherStatus, getRes.Status, "get: %s", getRes.RawBody)
 
 			updateRes := testutil.CallRoute[updateportal.Request, updateportal.Response](h, update, headers, updateportal.Request{
 				Portal:      openapi.ResourceIdentifier(stored),
-				DisplayName: ptr.P("Renamed"),
+				DisplayName: new("Renamed"),
 			})
 			require.Equal(t, tc.otherStatus, updateRes.Status, "update: %s", updateRes.RawBody)
 

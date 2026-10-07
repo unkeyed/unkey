@@ -2,18 +2,24 @@
 
 import { useDeployActionGate } from "@/app/(app)/[workspaceSlug]/projects/_components/hooks/use-deploy-action-gate";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import { collection } from "@/lib/collections";
+import { type Deployment, collection } from "@/lib/collections";
+import { isDeploymentInFlight } from "@/lib/collections/deploy/deployment-status";
 import { ENVIRONMENT_KIND } from "@/lib/collections/deploy/environments";
-import { findRolledBackFrom } from "@/lib/collections/deploy/rollback";
+import {
+  findRolledBackFrom,
+  previousRollbackTarget,
+  rollbackCandidates,
+} from "@/lib/collections/deploy/rollback";
 import { useCollectionPolling } from "@/lib/collections/use-collection-polling";
 import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
 import { and, eq, useLiveQuery } from "@tanstack/react-db";
+import { Card } from "@unkey/ui";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import dynamic from "next/dynamic";
 import { useState } from "react";
 import { ActiveDeploymentCardEmpty } from "../../../components/active-deployment-card/components/active-deployment-card-empty";
 import { getDomainPriority } from "../../../components/domain-priority";
-import { Card } from "../../components/card";
 import { useAppId, useProjectData } from "../../data-provider";
 import { useAppCurrentDeployment } from "../../hooks/use-app-current-deployment";
 import { CreateDeploymentButton } from "../../navigations/create-deployment-button";
@@ -21,6 +27,7 @@ import { AppProductionCardSkeleton } from "./app-production-card-skeleton";
 import { BuildInProgressChart, ProductionCardChart } from "./card-chart";
 import { ProductionCardHeader } from "./card-header";
 import { ProductionCardMetadata } from "./card-metadata";
+import { NewerDeploymentRow, hasVisibleBuildState } from "./card-newer-deployment";
 import { ProductionCardRollbackBanner } from "./card-rollback-banner";
 import { buildPulse } from "./g-pulse";
 import { type ProductionCardContextValue, ProductionCardProvider } from "./production-card-context";
@@ -45,6 +52,7 @@ export function AppProductionCard() {
   const appId = useAppId();
   const workspace = useWorkspaceNavigation();
   const { gated, openPaywall, planGate } = useDeployActionGate();
+  const reduceMotion = useReducedMotion();
   const [rollbackOpen, setRollbackOpen] = useState(false);
   const [undoOpen, setUndoOpen] = useState(false);
 
@@ -65,7 +73,15 @@ export function AppProductionCard() {
     : undefined;
 
   const deployment = currentDeployment ?? latestProductionDeployment;
+  const [rollbackTargetSnapshot, setRollbackTargetSnapshot] = useState<Deployment>();
   const isCurrent = Boolean(currentDeployment);
+  const newerDeployment =
+    deployment &&
+    latestProductionDeployment &&
+    latestProductionDeployment.id !== deployment.id &&
+    hasVisibleBuildState(latestProductionDeployment)
+      ? latestProductionDeployment
+      : undefined;
   const liveDomainsQuery = useLiveQuery(
     (q) =>
       q
@@ -84,7 +100,11 @@ export function AppProductionCard() {
   const productionStatus = deployment ? deriveProductionStatus(deployment) : undefined;
   useCollectionPolling(() => collection.deployments.utils.refetch(), {
     intervalMs: 10_000,
-    enabled: productionStatus === "live" || productionStatus === "crashing",
+    enabled:
+      productionStatus === "live" ||
+      productionStatus === "crashing" ||
+      productionStatus === "deploying" ||
+      (newerDeployment ? isDeploymentInFlight(newerDeployment.status) : false),
   });
 
   if (isDeploymentsLoading || isCurrentDeploymentLoading || liveDomainsQuery.isLoading) {
@@ -117,17 +137,11 @@ export function AppProductionCard() {
     currentDeploymentId,
   });
 
-  const readySiblings = deployments.filter(
-    (d) =>
-      d.environmentId === deployment.environmentId &&
-      d.status === "ready" &&
-      d.id !== deployment.id,
-  );
-  const rollbackTarget = readySiblings
-    .filter((d) => d.createdAt < deployment.createdAt)
-    .sort((a, b) => b.createdAt - a.createdAt)[0];
+  const rollbackTarget = previousRollbackTarget(deployments, deployment);
   const undoCandidates = isRolledBack
-    ? [...readySiblings, deployment].sort((a, b) => b.createdAt - a.createdAt)
+    ? [...rollbackCandidates(deployments, deployment), deployment].sort(
+        (a, b) => b.createdAt - a.createdAt,
+      )
     : [];
   const rolledBackFromDeployment = isRolledBack
     ? findRolledBackFrom(deployments, deployment)
@@ -214,7 +228,14 @@ export function AppProductionCard() {
     isChartLoading: metrics.isLoading,
     isChartError: metrics.isError,
     // Without a Compute plan these open the paywall instead of switching traffic.
-    openRollback: () => (gated ? openPaywall() : setRollbackOpen(true)),
+    openRollback: () => {
+      if (gated) {
+        openPaywall();
+        return;
+      }
+      setRollbackTargetSnapshot(rollbackTarget);
+      setRollbackOpen(true);
+    },
     openUndo: () => (gated ? openPaywall() : setUndoOpen(true)),
   };
 
@@ -234,14 +255,39 @@ export function AppProductionCard() {
               <ProductionCardMetadata />
             </div>
           </div>
+          <AnimatePresence initial={false} mode="wait">
+            {newerDeployment && (
+              <motion.div
+                key={newerDeployment.id}
+                className="overflow-hidden"
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={
+                  reduceMotion ? { duration: 0 } : { duration: 0.2, ease: [0.215, 0.61, 0.355, 1] }
+                }
+              >
+                <NewerDeploymentRow
+                  deployment={newerDeployment}
+                  href={routes.projects.apps.deployment({
+                    workspaceSlug: workspace.slug,
+                    projectId,
+                    appId,
+                    deploymentId: newerDeployment.id,
+                    build: true,
+                  })}
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
         </Card>
       </div>
 
-      {rollbackTarget && (
+      {rollbackOpen && rollbackTargetSnapshot && (
         <RollbackDialog
           isOpen={rollbackOpen}
           onClose={() => setRollbackOpen(false)}
-          targetDeployment={rollbackTarget}
+          targetDeployment={rollbackTargetSnapshot}
           currentDeployment={deployment}
         />
       )}

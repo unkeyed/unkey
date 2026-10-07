@@ -52,7 +52,6 @@ const RefreshButton = ({ onRefresh, isEnabled, isLive, toggleLive }: RefreshButt
   return (
     <InfoTooltip
       content="Refresh unavailable - please select a relative time filter in the 'Since' dropdown"
-      variant="inverted"
       position={{ side: "bottom", align: "center" }}
       disabled={isEnabled && !isLoading}
       asChild
@@ -65,10 +64,10 @@ const RefreshButton = ({ onRefresh, isEnabled, isLive, toggleLive }: RefreshButt
           title={isEnabled ? "Refresh data (Shortcut: ⌥+⇧+W)" : ""}
           disabled={!isEnabled || isLoading}
           loading={isLoading}
-          className="flex w-full items-center justify-center rounded-lg border border-gray-4 group overflow-hidden"
+          className="flex w-full items-center justify-center rounded-lg border group overflow-hidden"
         >
           <IconRefresh3Outline18 className="size-4" />
-          <span className="font-medium text-[13px] relative z-10">Refresh</span>
+          <span className="font-medium text-sm relative z-10">Refresh</span>
           <div className="max-w-0 opacity-0 group-hover:max-w-[100px] group-hover:opacity-100 transition-all duration-300 ease-in-out overflow-hidden">
             <KeyboardButton shortcut="⌥+⇧+W" className="ml-1" />
           </div>

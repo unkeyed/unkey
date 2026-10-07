@@ -1,0 +1,48 @@
+---
+title: "invalid_analytics_table"
+sidebarTitle: "invalid_analytics_table"
+description: "The analytics query reads a table the endpoint does not expose."
+sources:
+  - pkg/codes/user_request.go
+  - svc/api/internal/middleware/errors.go
+  - pkg/clickhouse/query-parser/tables.go
+  - pkg/clickhouse/query-parser/cte.go
+  - internal/services/analytics/executor.go
+---
+
+<Danger>`err:user:bad_request:invalid_analytics_table`</Danger>
+
+Your analytics query reads from a table this endpoint doesn't expose. You get HTTP 400, and `detail` names the table.
+
+```json Example response
+{
+  "meta": {
+    "requestId": "req_2c9a0jf23l4k567"
+  },
+  "error": {
+    "detail": "Access to table 'system.tables' is not allowed",
+    "status": 400,
+    "title": "Bad Request",
+    "type": "/errors/user/bad_request/invalid_analytics_table",
+    "errors": []
+  }
+}
+```
+
+## Likely causes
+
+- The table belongs to another endpoint. Each endpoint reads only its own tables: verification tables on `analytics.getVerifications`, rate limit tables on `analytics.getRatelimits`, and so on.
+- You copied a query that uses an internal table name, such as `default.key_verifications_raw_v1`.
+- You queried a ClickHouse system table.
+- A CTE has the same name as one of the endpoint's tables.
+
+## How to fix
+
+1. Use the table names documented for the endpoint you're calling. For another product area's data, call that endpoint.
+2. Replace internal table names with the documented name.
+3. Rename any CTE that shares a name with a documented table.
+
+## Related errors
+
+- [`err:user:bad_request:invalid_analytics_query`](/errors/user/bad_request/invalid_analytics_query): the query failed for another structural reason.
+- [`err:user:bad_request:invalid_analytics_function`](/errors/user/bad_request/invalid_analytics_function): the query calls a function outside the allowlist.

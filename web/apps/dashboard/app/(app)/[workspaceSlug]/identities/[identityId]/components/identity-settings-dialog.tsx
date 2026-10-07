@@ -2,6 +2,7 @@
 
 import { IdentityTableActions } from "@/components/identities-table/components/identity-table-actions";
 import { NavbarActionButton } from "@/components/navigation/action-button";
+import { useProjectScope } from "@/hooks/use-project-scope";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { useIdentity } from "@/lib/identities-query";
 import { routes } from "@/lib/navigation/routes";
@@ -12,6 +13,7 @@ export const IdentitySettingsDialog = ({ identityId }: { identityId: string }) =
   const { data: identity, isError, refetch } = useIdentity(identityId);
   const router = useRouter();
   const workspace = useWorkspaceNavigation();
+  const scope = useProjectScope();
 
   if (isError && !identity) {
     return (
@@ -43,7 +45,7 @@ export const IdentitySettingsDialog = ({ identityId }: { identityId: string }) =
       <IdentityTableActions
         identity={identity}
         onDeleted={() => {
-          router.push(routes.identities.list({ workspaceSlug: workspace.slug }));
+          router.push(routes.identities.list({ workspaceSlug: workspace.slug, ...scope }));
         }}
       >
         <NavbarActionButton variant="outline">

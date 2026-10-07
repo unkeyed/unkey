@@ -31,7 +31,7 @@ func InstancesHealthy(
 
 	healthyRegions := 0
 	for regionID, minReplicas := range regionMinReplicas {
-		if runningPerRegion[regionID] >= minReplicas {
+		if runningPerRegion[regionID] >= max(minReplicas, 1) {
 			healthyRegions++
 		}
 	}

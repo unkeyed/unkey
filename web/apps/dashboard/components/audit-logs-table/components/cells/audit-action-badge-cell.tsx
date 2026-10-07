@@ -1,6 +1,6 @@
 import type { AuditLog } from "@/lib/trpc/routers/audit/schema";
-import { cn } from "@/lib/utils";
 import { Badge } from "@unkey/ui";
+import { cn } from "cn";
 import { getAuditStatusStyle, getEventType } from "../../utils/get-row-class";
 
 type AuditActionBadgeCellProps = {

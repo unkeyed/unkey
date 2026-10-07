@@ -10,7 +10,6 @@ import type { Column } from "@/components/virtual-table/types";
 import { shortenId } from "@/lib/shorten-id";
 import { trpc } from "@/lib/trpc/client";
 import type { IdentityLog } from "@/lib/trpc/routers/identity/query-logs";
-import { cn } from "@/lib/utils";
 import { useQueryTime } from "@/providers/query-time-provider";
 import type { KEY_VERIFICATION_OUTCOMES } from "@unkey/clickhouse/src/keys/keys";
 import {
@@ -19,11 +18,26 @@ import {
   IconCircleCheckOutline12,
   IconClockOutline12,
   IconKeyOutline18,
+  IconLayers3Outline18,
   IconLockOutline12,
   IconShieldKeyOutline18,
   IconTriangleWarningOutline12,
 } from "@unkey/icons";
-import { Badge, Button, CopyButton, Empty, InfoTooltip, TimestampInfo } from "@unkey/ui";
+import {
+  Badge,
+  Button,
+  CopyButton,
+  EmptyState,
+  EmptyStateActions,
+  EmptyStateDescription,
+  EmptyStateHeader,
+  EmptyStateIcon,
+  EmptyStateTitle,
+  InfoHoverCard,
+  InfoTooltip,
+  TimestampInfo,
+} from "@unkey/ui";
+import { cn } from "cn";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useIdentityDetailsLogsContext } from "../../context/logs";
 import { useIdentityLogsQuery } from "./hooks/use-logs-query";
@@ -133,7 +147,7 @@ export const IdentityDetailsLogsTable = ({ identityId, selectedLog, onLogSelect 
       style.base,
       style.hover,
       "group rounded-md cursor-pointer transition-colors",
-      "focus:outline-hidden focus:ring-1 focus:ring-opacity-40",
+      "focus:outline-hidden focus:ring-1",
       style.focusRing,
       isSelected && style.selected,
     );
@@ -230,7 +244,6 @@ export const IdentityDetailsLogsTable = ({ identityId, selectedLog, onLogSelect 
           const outcomeInfo = LOG_OUTCOME_DEFINITIONS[outcomeType];
           return (
             <InfoTooltip
-              variant="inverted"
               className="cursor-default"
               content={<p>{outcomeInfo.tooltip}</p>}
               position={{ side: "top", align: "center", sideOffset: 5 }}
@@ -258,7 +271,6 @@ export const IdentityDetailsLogsTable = ({ identityId, selectedLog, onLogSelect 
           <div className="flex items-center gap-2">
             <IconKeyOutline18 className="size-3 text-gray-9" />
             <InfoTooltip
-              variant="inverted"
               content={
                 <div className="flex flex-col gap-1">
                   <div className="text-xs font-medium">Key ID:</div>
@@ -305,9 +317,7 @@ export const IdentityDetailsLogsTable = ({ identityId, selectedLog, onLogSelect 
             <div className="flex flex-wrap gap-1 items-center">
               {log.tags && log.tags.length > 0 ? (
                 log.tags.slice(0, 3).map((tag) => (
-                  <InfoTooltip
-                    variant="inverted"
-                    className="px-2 py-1"
+                  <InfoHoverCard
                     key={tag}
                     content={
                       <div className="max-w-xs">
@@ -356,14 +366,13 @@ export const IdentityDetailsLogsTable = ({ identityId, selectedLog, onLogSelect 
                         startChars: 10,
                       })}
                     </Badge>
-                  </InfoTooltip>
+                  </InfoHoverCard>
                 ))
               ) : (
                 <span className="text-gray-8">—</span>
               )}
               {log.tags && log.tags.length > 3 && (
-                <InfoTooltip
-                  variant="inverted"
+                <InfoHoverCard
                   content={
                     <div className="flex flex-col gap-2 py-1 max-w-xs max-h-[300px] overflow-y-auto">
                       <div className="text-xs opacity-75 font-medium">
@@ -414,7 +423,7 @@ export const IdentityDetailsLogsTable = ({ identityId, selectedLog, onLogSelect 
                   >
                     +{log.tags.length - 3}
                   </Badge>
-                </InfoTooltip>
+                </InfoHoverCard>
               )}
             </div>
           );
@@ -445,7 +454,7 @@ export const IdentityDetailsLogsTable = ({ identityId, selectedLog, onLogSelect 
           countInfoText: (
             <div className="flex gap-2">
               <span>Showing</span>{" "}
-              <span className="text-accent-12">
+              <span className="text-gray-12">
                 {new Intl.NumberFormat().format(historicalLogs.length)}
               </span>
               <span>of</span>{" "}
@@ -455,28 +464,30 @@ export const IdentityDetailsLogsTable = ({ identityId, selectedLog, onLogSelect 
           ),
         }}
         emptyState={
-          <div className="w-full flex justify-center items-center h-full">
-            <Empty className="w-[400px] flex items-start">
-              <Empty.Icon className="w-auto" />
-              <Empty.Title>Identity Verification Logs</Empty.Title>
-              <Empty.Description className="text-left">
+          <EmptyState frame="none">
+            <EmptyStateIcon>
+              <IconLayers3Outline18 />
+            </EmptyStateIcon>
+            <EmptyStateHeader>
+              <EmptyStateTitle>Identity Verification Logs</EmptyStateTitle>
+              <EmptyStateDescription>
                 No verification logs found for this identity. When API keys belonging to this
                 identity are used, details about each verification attempt will appear here.
-              </Empty.Description>
-              <Empty.Actions className="mt-4 justify-center md:justify-start">
-                <a
-                  href="https://www.unkey.com/docs/introduction"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <Button size="md">
-                    <IconBookBookmarkOutline18 />
-                    Documentation
-                  </Button>
-                </a>
-              </Empty.Actions>
-            </Empty>
-          </div>
+              </EmptyStateDescription>
+            </EmptyStateHeader>
+            <EmptyStateActions>
+              <a
+                href="https://www.unkey.com/docs/introduction"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <Button variant="outline" size="md">
+                  <IconBookBookmarkOutline18 />
+                  Documentation
+                </Button>
+              </a>
+            </EmptyStateActions>
+          </EmptyState>
         }
       />
     </div>

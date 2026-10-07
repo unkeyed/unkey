@@ -1,0 +1,20 @@
+---
+title: "audit_log_not_found"
+sidebarTitle: "audit_log_not_found"
+description: "A reserved code that no endpoint returns."
+sources:
+  - pkg/codes/unkey_data.go
+  - pkg/codes/constants_gen.go
+---
+
+<Danger>`err:unkey:data:audit_log_not_found`</Danger>
+
+This code is reserved, and the API doesn't return it. No endpoint looks up a single audit log entry.
+
+## How to fix
+
+There's nothing to fix. You read audit logs in the dashboard. Entries are dropped once they're older than your plan's retention. See [Limits](/platform/billing/limits).
+
+## Related errors
+
+- [`err:unkey:data:workspace_not_found`](/errors/unkey/data/workspace_not_found): the workspace doesn't exist.

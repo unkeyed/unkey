@@ -37,7 +37,7 @@ export const CurrentPlanCard = ({
         </div>
       }
       description={`$${price}/mo`}
-      contentWidth="w-full lg:w-[320px]"
+      contentWidth="w-full @2xl:w-[320px]"
     >
       <div className="w-full flex h-full items-center justify-end gap-4">
         <InfoTooltip content={disabledReason ?? ""} disabled={!disabled || !disabledReason} asChild>

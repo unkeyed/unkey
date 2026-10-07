@@ -1,0 +1,41 @@
+---
+title: "key_disabled"
+sidebarTitle: "key_disabled"
+description: "The root key used to authenticate has been disabled."
+sources:
+  - pkg/codes/unkey_auth.go
+  - svc/api/internal/middleware/errors.go
+  - internal/services/keys/status.go
+---
+
+<Danger>`err:unkey:authorization:key_disabled`</Danger>
+
+The root key you're using still exists, but it's disabled, so every request with it fails. You get HTTP 403.
+
+```json Example response
+{
+  "meta": {
+    "requestId": "req_2c9a0jf23l4k567"
+  },
+  "error": {
+    "detail": "The provided root key is invalid. The key is disabled.",
+    "status": 403,
+    "title": "Key is disabled",
+    "type": "/errors/unkey/authorization/key_disabled"
+  }
+}
+```
+
+Keys you check with `keys.verifyKey` never return this error. A disabled key there comes back as `valid: false` with code `DISABLED`.
+
+## How to fix
+
+1. Create a new root key under **Settings > Root Keys**, with only the permissions the service needs.
+2. Switch the service to the new key and delete the disabled one.
+3. If you don't know why the key was disabled, contact support with the `requestId`.
+
+## Related errors
+
+- [`err:unkey:authentication:key_not_found`](/errors/unkey/authentication/key_not_found): the key doesn't exist or was deleted.
+- [`err:unkey:authorization:workspace_disabled`](/errors/unkey/authorization/workspace_disabled): the whole workspace is disabled.
+- [`err:unkey:authorization:forbidden`](/errors/unkey/authorization/forbidden): the key is expired.

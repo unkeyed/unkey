@@ -20,7 +20,7 @@ export type DeploymentError = {
    */
   code: DeploymentErrorCode;
   /**
-   * The pipeline step that failed (e.g. `building`, `deploying`, `starting`).
+   * The pipeline step that failed (e.g. `queued`, `building`, `deploying`).
    *
    * @remarks
    */

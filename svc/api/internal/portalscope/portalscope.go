@@ -49,8 +49,10 @@ func ExternalID(s *zen.Session) (string, error) {
 // to these; the request never supplies a keyspace or api id.
 //
 // A non-portal principal is a broken invariant (portal routes only run behind
-// the portal-only authenticator). An empty slice is legitimate: a session with
-// no key capabilities (for example analytics only) is scoped to no keyspaces.
+// the portal-only authenticator). So is an empty slice: portal.createSession
+// refuses to mint a session that resolves no keyspace, and every scope it
+// grants depends on keys:read. Callers must treat one as fail-closed rather
+// than as an unscoped query.
 func KeyspaceIDs(s *zen.Session) ([]string, error) {
 	principal, err := s.GetPrincipal()
 	if err != nil {

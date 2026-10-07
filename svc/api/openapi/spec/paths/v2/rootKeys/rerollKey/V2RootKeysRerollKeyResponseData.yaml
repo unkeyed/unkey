@@ -1,0 +1,13 @@
+type: object
+additionalProperties: false
+required:
+  - keyId
+  - key
+properties:
+  keyId:
+    type: string
+    description: Identifier of the new root key.
+  key:
+    type: string
+    x-unkey-redact: true
+    description: New root key secret, returned only once. Store it securely.

@@ -1,6 +1,7 @@
 import { and, db, eq, inArray, schema } from "@/lib/db";
+import { getTimestampFromRelative } from "@/lib/duration";
 import type { RuntimeLogsRequestSchema } from "@/lib/schemas/runtime-logs.schema";
-import { DEFAULT_LOGS_SINCE, getTimestampFromRelative } from "@/lib/utils";
+import { DEFAULT_LOGS_SINCE } from "@/lib/utils";
 import type { RuntimeLogsRequest } from "@unkey/clickhouse/src/runtime-logs";
 
 export type K8sRegionEntry = { k8sPodName: string; region: string };

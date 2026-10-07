@@ -10,14 +10,12 @@ import (
 
 	"github.com/stretchr/testify/require"
 	frontlinev1 "github.com/unkeyed/unkey/gen/proto/frontline/v1"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_gateway_set_policies"
 	"google.golang.org/protobuf/encoding/protojson"
-	"google.golang.org/protobuf/proto"
 )
 
 func TestSetPoliciesSuccessfully(t *testing.T) {
@@ -37,6 +35,28 @@ func TestSetPoliciesSuccessfully(t *testing.T) {
 		require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
 		require.NotEmpty(t, res.Body.Meta.RequestId)
 	}
+
+	// Keyspaces are always created in the workspace's internal "default"
+	// ownership project, which a policy's environment can never belong to, so
+	// workspace ownership is the only scope this route can enforce.
+	t.Run("keyauth referencing a keyspace in the default ownership project", func(t *testing.T) {
+		env := seedEnvironment(t, h)
+		api := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspace.ID})
+		require.NotEqual(t, env.projectID, api.ProjectID)
+
+		call(t, makeRequest(env, []openapi.Policy{{
+			Name:    "keyauth",
+			Enabled: true,
+			Keyauth: &openapi.KeyauthPolicy{Keyspaces: []string{api.KeyAuthID.String}},
+		}}))
+
+		stored := readStoredPolicies(t, h, env)
+		require.Len(t, stored, 1)
+		var keys map[string]json.RawMessage
+		require.NoError(t, json.Unmarshal(stored[0], &keys))
+		require.JSONEq(t, fmt.Sprintf(`{"keySpaceIds":["%s"]}`, api.KeyAuthID.String),
+			string(keys["keyauth"]))
+	})
 
 	t.Run("batch of all five variants stores dashboard-compatible wire JSON", func(t *testing.T) {
 		env := seedEnvironment(t, h)
@@ -145,7 +165,7 @@ func TestSetPoliciesSuccessfully(t *testing.T) {
 		seedSentinelConfig(t, h, env, &frontlinev1.Config{Policies: []*frontlinev1.Policy{{
 			Id:      legacyPolicyID,
 			Name:    "legacy jwt",
-			Enabled: proto.Bool(true),
+			Enabled: new(true),
 			Config:  &frontlinev1.Policy_Jwtauth{Jwtauth: &frontlinev1.JWTAuth{}},
 		}}})
 
@@ -210,29 +230,31 @@ func TestSetPoliciesSuccessfully(t *testing.T) {
 			Name:    "kitchen-sink",
 			Enabled: true,
 			Match: &[]openapi.MatchExpr{
-				{Path: &openapi.PathMatch{Path: openapi.StringMatch{Exact: ptr.P("/v1/kebap"), IgnoreCase: ptr.P(false)}}},
-				{Path: &openapi.PathMatch{Path: openapi.StringMatch{Prefix: ptr.P("/api/"), IgnoreCase: ptr.P(true)}}},
-				{Path: &openapi.PathMatch{Path: openapi.StringMatch{Regex: ptr.P("^/a/[0-9]+$")}}},
+				{Path: &openapi.PathMatch{Path: openapi.StringMatch{Exact: new("/v1/kebap"), IgnoreCase: new(false)}}},
+				{Path: &openapi.PathMatch{Path: openapi.StringMatch{Prefix: new("/api/"), IgnoreCase: new(true)}}},
+				{Path: &openapi.PathMatch{Path: openapi.StringMatch{Regex: new("^/a/[0-9]+$")}}},
 				{Method: &openapi.MethodMatch{Methods: []openapi.MethodMatchMethods{"GET", "POST"}}},
 				{Header: &openapi.FieldMatch{Name: "x-kebap", Present: &present}},
-				{Header: &openapi.FieldMatch{Name: "x-token", Value: &openapi.StringMatch{Prefix: ptr.P("tok_")}}},
+				{Header: &openapi.FieldMatch{Name: "x-token", Value: &openapi.StringMatch{Prefix: new("tok_")}}},
 				{QueryParam: &openapi.FieldMatch{Name: "debug", Present: &present}},
-				{QueryParam: &openapi.FieldMatch{Name: "v", Value: &openapi.StringMatch{Exact: ptr.P("1")}}},
+				{QueryParam: &openapi.FieldMatch{Name: "v", Value: &openapi.StringMatch{Exact: new("1")}}},
+				{RemoteIp: &openapi.RemoteIpMatch{In: &[]string{"203.0.113.0/24"}}},
+				{RemoteIp: &openapi.RemoteIpMatch{NotIn: &[]string{"198.51.100.0/24", "192.0.2.0/24", "2001:db8::/32"}}},
 			},
 			Keyauth: &openapi.KeyauthPolicy{
 				Keyspaces: []string{apiA.KeyAuthID.String, apiB.KeyAuthID.String},
 				Locations: &[]openapi.KeyLocation{
 					{Bearer: &openapi.BearerTokenLocation{}},
-					{Header: &openapi.HeaderKeyLocation{Name: "x-api-key", StripPrefix: ptr.P("Key ")}},
+					{Header: &openapi.HeaderKeyLocation{Name: "x-api-key", StripPrefix: new("Key ")}},
 					{Header: &openapi.HeaderKeyLocation{Name: "x-plain"}},
 					{QueryParam: &openapi.QueryParamKeyLocation{Name: "api_key"}},
 				},
-				PermissionQuery: ptr.P("documents.read AND (billing.read OR billing.admin)"),
+				PermissionQuery: new("documents.read AND (billing.read OR billing.admin)"),
 				Ratelimits: &[]openapi.KeyRatelimit{
 					{Name: "requests"},
-					{Name: "burst", Limit: ptr.P(int64(10)), Duration: ptr.P(int64(1000))},
-					{Name: "heavy", Limit: ptr.P(int64(5)), Duration: ptr.P(int64(60000)), Cost: ptr.P(int64(2))},
-					{Name: "kebap", Cost: ptr.P(int64(3))},
+					{Name: "burst", Limit: new(int64(10)), Duration: new(int64(1000))},
+					{Name: "heavy", Limit: new(int64(5)), Duration: new(int64(60000)), Cost: new(int64(2))},
+					{Name: "kebap", Cost: new(int64(3))},
 				},
 			},
 		}
@@ -306,7 +328,9 @@ func TestSetPoliciesSuccessfully(t *testing.T) {
 			{"header":{"name":"x-kebap","present":true}},
 			{"header":{"name":"x-token","value":{"prefix":"tok_"}}},
 			{"queryParam":{"name":"debug","present":true}},
-			{"queryParam":{"name":"v","value":{"exact":"1"}}}
+			{"queryParam":{"name":"v","value":{"exact":"1"}}},
+			{"remoteIp":{"in":["203.0.113.0/24"]}},
+			{"remoteIp":{"notIn":["198.51.100.0/24","192.0.2.0/24","2001:db8::/32"]}}
 		]`, string(byName["kitchen-sink"]["match"]))
 
 		require.JSONEq(t, fmt.Sprintf(`{

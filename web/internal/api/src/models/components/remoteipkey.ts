@@ -8,7 +8,7 @@ import { Result as SafeParseResult } from "../../types/fp.js";
 import { SDKValidationError } from "../errors/sdkvalidationerror.js";
 
 /**
- * Rate limit by the client's IP address.
+ * Rate limit by the remote IP.
  */
 export type RemoteIpKey = {};
 

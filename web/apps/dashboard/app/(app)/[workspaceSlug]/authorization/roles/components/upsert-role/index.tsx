@@ -14,7 +14,8 @@ import { useEffect, useState } from "react";
 import { Controller, FormProvider } from "react-hook-form";
 import { KeyField } from "./components/assign-key/key-field";
 import { PermissionField } from "./components/assign-permission/permissions-field";
-import { useUpsertRole } from "./hooks/use-upsert-role";
+import { useCreateRole } from "./hooks/use-create-role";
+import { useUpdateRole } from "./hooks/use-update-role";
 import { type FormValues, rbacRoleSchema } from "./upsert-role.schema";
 
 const FORM_STORAGE_KEY = "unkey_upsert_role_form_state";
@@ -122,11 +123,14 @@ export const UpsertRoleDialog = ({
     loadData();
   }, [existingRole, reset, loadSavedValues, isDialogOpen]);
 
-  const upsertRoleMutation = useUpsertRole(() => {
+  const onSaved = () => {
     clearPersistedData();
     reset(getDefaultValues());
     setIsDialogOpen(false);
-  });
+  };
+  const createRole = useCreateRole(onSaved);
+  const updateRole = useUpdateRole(onSaved);
+  const isSaving = createRole.isLoading || updateRole.isLoading;
 
   const onSubmit = async (data: FormValues) => {
     // Calculate limits with current form data
@@ -148,7 +152,11 @@ export const UpsertRoleDialog = ({
       permissionIds: !shouldAllowEdit || hasPermWarning ? undefined : data.permissionIds,
     };
 
-    upsertRoleMutation.mutate(submissionData);
+    if (submissionData.roleId) {
+      updateRole.mutate({ ...submissionData, roleId: submissionData.roleId });
+    } else {
+      createRole.mutate(submissionData);
+    }
   };
 
   const handleDialogToggle = (open: boolean) => {
@@ -197,8 +205,8 @@ export const UpsertRoleDialog = ({
                   variant="primary"
                   size="xlg"
                   className="w-full rounded-lg"
-                  disabled={!isValid || upsertRoleMutation.isLoading}
-                  loading={upsertRoleMutation.isLoading}
+                  disabled={!isValid || isSaving}
+                  loading={isSaving}
                 >
                   {dialogConfig.buttonText}
                 </Button>

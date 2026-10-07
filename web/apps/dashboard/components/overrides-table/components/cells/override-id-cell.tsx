@@ -1,4 +1,4 @@
-import { CopyButton, InfoTooltip } from "@unkey/ui";
+import { CopyButton, InfoHoverCard } from "@unkey/ui";
 
 type OverrideIdCellProps = {
   id: string;
@@ -7,7 +7,7 @@ type OverrideIdCellProps = {
 export const OverrideIdCell = ({ id }: OverrideIdCellProps) => {
   return (
     <div className="pl-2">
-      <InfoTooltip
+      <InfoHoverCard
         content={
           <div className="inline-flex justify-center gap-3 items-center font-mono text-xs text-gray-11">
             <span className="secret">{id}</span>
@@ -19,7 +19,7 @@ export const OverrideIdCell = ({ id }: OverrideIdCellProps) => {
         <div className="font-mono text-xs text-gray-11 sm:max-w-[100px] md:max-w-[100px] lg:max-w-full truncate">
           {id}
         </div>
-      </InfoTooltip>
+      </InfoHoverCard>
     </div>
   );
 };

@@ -270,11 +270,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	preview := false
-	if req.Preview != nil {
-		preview = *req.Preview
-	}
-
 	// Optional, and an empty string is treated as absent: a portal with no
 	// return URL simply shows no return link.
 	returnURL := sql.NullString{Valid: false, String: ""}
@@ -296,7 +291,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		Scopes:      verbs,
 		KeyspaceIDs: keyspaceIDs,
 		ScopesJSON:  scopesJSON,
-		Preview:     preview,
 		ReturnURL:   returnURL,
 	})
 	if err != nil {
@@ -327,7 +321,6 @@ type mintRequest struct {
 	Scopes      []string
 	KeyspaceIDs []string
 	ScopesJSON  []byte
-	Preview     bool
 	ReturnURL   sql.NullString
 }
 
@@ -352,31 +345,42 @@ func (h *Handler) mintSession(
 	exchangeCodeExpiresAt := now.Add(15 * time.Minute).UnixMilli()
 
 	err := db.Tx(ctx, h.DB.RW(), func(txCtx context.Context, tx db.DBTX) error {
-		// Re-read on the primary inside the write transaction. The resolve above
-		// runs on the read-only connection, so a portal deleted moments earlier can
-		// still appear live there.
-		//
-		// This matters because deleting a portal revokes its sessions: revocation
-		// only touches rows that exist when it runs, so a session minted in the
-		// replica-lag window would survive the delete, and once the portal row is
-		// gone nothing can revoke it afterwards. Losing the race here costs the
-		// caller a retry; losing it silently costs an end user access that was
-		// supposed to be cut.
-		if _, txErr := db.Query.FindPortalByIdOrSlug(txCtx, tx, db.FindPortalByIdOrSlugParams{
+		// The resolve above read a replica, which can lag a delete or disable.
+		// Revoking only touches sessions that exist when it runs, so a session
+		// inserted after it would never be revoked. Locking the row on the primary
+		// orders this mint against those writes.
+		current, txErr := db.Query.LockPortalForMint(txCtx, tx, db.LockPortalForMintParams{
+			ID:          req.Portal.ID,
 			WorkspaceID: principal.AuthorizedWorkspaceID,
-			Portal:      req.Portal.ID,
-		}); txErr != nil {
+		})
+		if txErr != nil {
 			if db.IsNotFound(txErr) {
 				return fault.New("portal not found",
 					fault.Code(codes.Data.Portal.NotFound.URN()),
-					fault.Internal(fmt.Sprintf("portal %s was deleted between the replica read and the session insert", req.Portal.ID)),
+					fault.Internal(fmt.Sprintf("portal %s was deleted after the replica read", req.Portal.ID)),
 					fault.Public("Portal not found."),
 				)
 			}
 			return fault.Wrap(txErr,
 				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.Internal("database error re-reading portal before minting a session"),
+				fault.Internal("database error locking portal before minting a session"),
 				fault.Public("Failed to create session."),
+			)
+		}
+		if !current.Enabled {
+			return fault.New("portal is disabled",
+				fault.Code(codes.Auth.Authorization.Forbidden.URN()),
+				fault.Internal(fmt.Sprintf("portal %s was disabled after the replica read", req.Portal.ID)),
+				fault.Public("Portal is disabled."),
+			)
+		}
+		// The grant was built from the replica's mapping. A re-point since then has
+		// already revoked, so a session scoped to the old mapping would never be.
+		if !portalrules.SameAssociation(current.KeyAuthID, req.Portal.KeyAuthID) || !portalrules.SameAssociation(current.AppID, req.Portal.AppID) {
+			return fault.New("portal was re-pointed",
+				fault.Code(codes.Data.Portal.Changed.URN()),
+				fault.Internal(fmt.Sprintf("portal %s was re-pointed after the replica read", req.Portal.ID)),
+				fault.Public("The portal changed while the session was being created. Try again."),
 			)
 		}
 
@@ -386,7 +390,6 @@ func (h *Handler) mintSession(
 			PortalID:              req.Portal.ID,
 			ExternalID:            req.ExternalID,
 			Scopes:                req.ScopesJSON,
-			Preview:               req.Preview,
 			ExchangeCodeHash:      hash.Sha256(exchangeCode),
 			ExchangeCodeExpiresAt: exchangeCodeExpiresAt,
 			ReturnUrl:             req.ReturnURL,
@@ -478,25 +481,40 @@ func requireRootKeyCredential(principal *authprincipal.Principal) error {
 
 // validateScopeCombination rejects a scope set the portal cannot serve.
 //
-// The portal reaches rerolling from the keys page, so a reroll-only session
-// mints fine and then strands the end user with no page to open. The enum
-// constrains each item, not the combination, so the check lives here.
+// Rerolling and usage analytics are both reached from the keys page, so a
+// session carrying either without keys:read mints fine and then strands the end
+// user with no page to open. The enum constrains each item, not the
+// combination, so the check lives here.
 func validateScopeCombination(scopes []openapi.V2PortalCreateSessionRequestBodyScopes) error {
-	var hasRead, hasReroll bool
+	var hasRead, hasReroll, hasAnalytics bool
 	for _, scope := range scopes {
 		switch scope {
 		case openapi.KeysRead:
 			hasRead = true
 		case openapi.KeysReroll:
 			hasReroll = true
+		case openapi.AnalyticsRead:
+			hasAnalytics = true
 		}
 	}
 
-	if hasReroll && !hasRead {
+	if hasRead {
+		return nil
+	}
+
+	if hasReroll {
 		return fault.New("keys:reroll requires keys:read",
 			fault.Code(codes.App.Validation.InvalidInput.URN()),
 			fault.Internal("scopes contained keys:reroll without keys:read"),
 			fault.Public("The \"keys:reroll\" scope requires \"keys:read\" in the same session."),
+		)
+	}
+
+	if hasAnalytics {
+		return fault.New("analytics:read requires keys:read",
+			fault.Code(codes.App.Validation.InvalidInput.URN()),
+			fault.Internal("scopes contained analytics:read without keys:read"),
+			fault.Public("The \"analytics:read\" scope requires \"keys:read\" in the same session."),
 		)
 	}
 
@@ -550,6 +568,26 @@ func ScopeQueries(
 		}
 		return queries, true
 
+	case openapi.AnalyticsRead:
+		// Borrowed vocabulary, not a semantic match: read_analytics gates raw
+		// ClickHouse SQL on the operator endpoint, which is a different question
+		// from handing one end user a graph of their own usage. The route this
+		// ceiling mirrors is v2_portal_get_verifications.
+		return []rbac.PermissionQuery{
+			rbac.Or(
+				rbac.T(rbac.Tuple{
+					ResourceType: rbac.Api,
+					ResourceID:   "*",
+					Action:       rbac.ReadAnalytics,
+				}),
+				rbac.T(rbac.Tuple{
+					ResourceType: rbac.Api,
+					ResourceID:   apiID,
+					Action:       rbac.ReadAnalytics,
+				}),
+			),
+		}, true
+
 	default:
 		return nil, false
 	}
@@ -589,6 +627,9 @@ func CanonicalScopeQueries(
 		// route resolves both create_key and encrypt_key to key write, so this
 		// is weaker than the legacy form it sits beside.
 		return []rbac.PermissionQuery{rbac.U(anyKey, permissions.Write)}, true
+
+	case openapi.AnalyticsRead:
+		return []rbac.PermissionQuery{rbac.U(keyspace.Logs(), permissions.Read)}, true
 
 	default:
 		return nil, false

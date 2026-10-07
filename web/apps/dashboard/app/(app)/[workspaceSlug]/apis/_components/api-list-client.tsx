@@ -3,9 +3,18 @@
 import { StatsListCardSkeleton } from "@/components/stats-list-card/skeleton";
 import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
-import { Button, Empty, ResourceListContent } from "@unkey/ui";
+import { IconNodesOutline18 } from "@unkey/icons";
+import {
+  Button,
+  EmptyState,
+  EmptyStateDescription,
+  EmptyStateHeader,
+  EmptyStateIcon,
+  EmptyStateTitle,
+  ResourceListContent,
+} from "@unkey/ui";
 import { useRouter, useSearchParams } from "next/navigation";
-import { type PropsWithChildren, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ApiListCard } from "./api-list-card";
 import { ApiListControls } from "./controls";
 import { EmptyKeyspaces } from "./empty-keyspaces";
@@ -85,7 +94,7 @@ export const ApiListClient = ({ workspaceSlug }: { workspaceSlug: string }) => {
 
           {!isSearching && hasNextPage && (
             <div className="flex flex-col items-center justify-center mt-8 pb-8 gap-4">
-              <div className="text-center text-sm text-accent-11">
+              <div className="text-center text-sm text-gray-11">
                 Showing {apiList.length} of {apisData?.pages[0]?.total || 0} keyspaces
               </div>
 
@@ -105,24 +114,20 @@ export const ApiListClient = ({ workspaceSlug }: { workspaceSlug: string }) => {
           )}
         </>
       ) : (
-        <EmptyComponentSpacer>
-          <Empty className="w-[400px] items-start p-0">
-            <Empty.Icon className="w-auto" />
-            <Empty.Title>No keyspaces found</Empty.Title>
-            <Empty.Description className="text-left">
-              No keyspaces match your search criteria. Try a different search term.
-            </Empty.Description>
-          </Empty>
-        </EmptyComponentSpacer>
+        <ResourceListContent>
+          <EmptyState frame="none">
+            <EmptyStateIcon>
+              <IconNodesOutline18 />
+            </EmptyStateIcon>
+            <EmptyStateHeader>
+              <EmptyStateTitle>No keyspaces found</EmptyStateTitle>
+              <EmptyStateDescription>
+                No keyspaces match your search criteria. Try a different search term.
+              </EmptyStateDescription>
+            </EmptyStateHeader>
+          </EmptyState>
+        </ResourceListContent>
       )}
     </div>
-  );
-};
-
-const EmptyComponentSpacer = ({ children }: PropsWithChildren) => {
-  return (
-    <ResourceListContent>
-      <div className="flex w-full items-center justify-center px-4 py-16">{children}</div>
-    </ResourceListContent>
   );
 };

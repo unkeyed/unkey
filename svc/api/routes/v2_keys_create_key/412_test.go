@@ -10,7 +10,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
@@ -63,7 +62,7 @@ func TestPreconditionError(t *testing.T) {
 	t.Run("Try creating a recoverable key without being opt-in", func(t *testing.T) {
 		req := handler.Request{
 			ApiId:       apiID,
-			Recoverable: ptr.P(true),
+			Recoverable: new(true),
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.PreconditionFailedErrorResponse](

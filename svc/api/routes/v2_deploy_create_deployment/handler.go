@@ -13,6 +13,8 @@ import (
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/internal/ctrlclient"
 	"github.com/unkeyed/unkey/svc/api/internal/deployment"
@@ -95,6 +97,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			ResourceID:   row.ProjectID,
 			Action:       rbac.CreateDeployment,
 		}),
+		rbac.U(
+			urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(row.ProjectID).App(row.AppID).Environment(environment.ID).Deployment("*"),
+			permissions.Write,
+		),
 	))
 	if err != nil {
 		return err
@@ -130,11 +136,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		Source: &hydrav1.DeployCreateRequest_Image{
 			Image: &hydrav1.CreateImageSource{Image: req.DockerImage, Commit: commit},
 		},
-		Decision:      hydrav1.CreateDecision_CREATE_DECISION_DEPLOY,
-		Trigger:       deployment.TriggerFromClient(s),
-		TriggeredBy:   principal.Subject.ID,
-		TriggerReason: "",
-		Actor:         actorInfo,
+		Decision: hydrav1.CreateDecision_CREATE_DECISION_DEPLOY,
+		Trigger:  &hydrav1.Trigger{Source: deployment.TriggerFromClient(s), Actor: actorInfo, Reason: ""},
 	}
 
 	// Add optional keyspace ID for authentication. Verify the keyspace belongs

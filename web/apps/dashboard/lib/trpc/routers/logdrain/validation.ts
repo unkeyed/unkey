@@ -44,7 +44,7 @@ export const httpsUrl = z
   });
 
 /** httpFormatSchema defines the supported HTTP request body formats. */
-export const httpFormatSchema = z.enum(["json", "ndjson"]);
+export const httpFormatSchema = z.enum(["json", "ndjson", "hec"]);
 
 /** httpHeadersSchema validates bounded HTTP header records at the API boundary. */
 export const httpHeadersSchema = z

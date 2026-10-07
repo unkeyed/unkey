@@ -1,0 +1,19 @@
+# Endpoints present in svc/api/openapi/openapi-generated.yaml but not yet published
+# to the Speakeasy spec both API reference tabs render. Listing them in docs.json
+# fails `mint validate`, so they stay out of the reference until upstream publishes
+# them; docs-lint downgrades their coverage gap to a warning while they are here.
+# `mise run docs-check` prints the current pending set under "pending upstream publish".
+/v2/portal.createPortal
+/v2/portal.deletePortal
+/v2/portal.getPortal
+/v2/portal.updatePortal
+# The five published portal endpoints are excluded too: `mint validate` fails with
+# "Failed to generate OpenAPI endpoint page" for them from the current published spec.
+# Relist the Portal group once the spec renders.
+/v2/portal.createSession
+/v2/portal.exchangeCode
+/v2/portal.getVerifications
+/v2/portal.listKeys
+/v2/portal.rerollKey
+# GET /v2/liveness is published without x-codeSamples and `mint validate` fails to generate its page.
+/v2/liveness

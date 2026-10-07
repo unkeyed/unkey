@@ -1,3 +1,4 @@
+import { parseReturnPath } from "@/lib/billing/upgrade-result";
 import { stripeEnv } from "@/lib/env";
 import { getStripeClient } from "@/lib/stripe";
 import { createSubscriptionCheckout } from "@/lib/stripe/createSubscriptionCheckout";
@@ -14,6 +15,7 @@ export const createSubscription = workspaceProcedure
   .input(
     z.object({
       productId: z.string(),
+      returnTo: z.string().max(512).optional(),
     }),
   )
   .mutation(async ({ ctx, input }) => {
@@ -73,13 +75,6 @@ export const createSubscription = workspaceProcedure
       });
     }
 
-    if (!ctx.workspace.stripeCustomerId) {
-      throw new TRPCError({
-        code: "PRECONDITION_FAILED",
-        message: "Workspaces does not have a stripe account.",
-      });
-    }
-
     // The API product owns its own subscription now, so a live recorded API
     // subscription means the workspace already has an API plan. A corpse
     // (cancelled mid-month, deleted-webhook that clears the column lagging) or a
@@ -114,28 +109,34 @@ export const createSubscription = workspaceProcedure
       }
     }
 
-    const customer = await stripe.customers.retrieve(ctx.workspace.stripeCustomerId);
-    if (!customer) {
-      throw new TRPCError({
-        code: "NOT_FOUND",
-        message: `Customer ${ctx.workspace.stripeCustomerId} could not be found.`,
-      });
+    const customerId = ctx.workspace.stripeCustomerId ?? undefined;
+    if (customerId) {
+      const customer = await stripe.customers.retrieve(customerId);
+      if (!customer) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: `Customer ${customerId} could not be found.`,
+        });
+      }
     }
 
     // First payment belongs in Checkout even when a card is already vaulted:
     // Stripe can show the selected API plan, recollect CVC, replace the card, or
     // complete 3DS in one product-specific flow. The paid subscription is linked
     // and granted quotas by /success and checkout.session.completed.
-    const successUrl = `${getBaseUrl()}/success?session_id={CHECKOUT_SESSION_ID}&intent=api-subscription`;
+    const returnPath = parseReturnPath(input.returnTo, ctx.workspace.slug);
+    const successUrl = `${getBaseUrl()}/success?session_id={CHECKOUT_SESSION_ID}&intent=api-subscription${
+      returnPath ? `&returnTo=${encodeURIComponent(returnPath)}` : ""
+    }`;
     let checkoutUrl: string | null;
     try {
       const destination = await createSubscriptionCheckout(stripe, {
         workspaceId: ctx.workspace.id,
         product: "api",
-        customerId: customer.id,
+        customerId,
         lineItems: [{ price: defaultPriceId, quantity: 1 }],
         successUrl,
-        idempotencyKey: `api-checkout:${ctx.workspace.id}:${input.productId}:${customer.id}`,
+        idempotencyKey: `api-checkout:${ctx.workspace.id}:${input.productId}:${customerId ?? "new"}`,
       });
       checkoutUrl = destination.kind === "success" ? destination.url : destination.session.url;
     } catch (err) {

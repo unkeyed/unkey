@@ -1,0 +1,37 @@
+---
+title: "workspace_disabled"
+sidebarTitle: "workspace_disabled"
+description: "The workspace that owns the root key is disabled."
+sources:
+  - pkg/codes/unkey_auth.go
+  - svc/api/internal/middleware/errors.go
+  - internal/services/keys/status.go
+  - pkg/auth/jwt/resolver.go
+---
+
+<Danger>`err:unkey:authorization:workspace_disabled`</Danger>
+
+Your workspace is disabled, so every request made with its root keys fails, whatever the state of the key. You get HTTP 403. A dashboard session for a disabled workspace gets the same error with `Your organization does not have an active workspace.`
+
+```json Example response
+{
+  "meta": {
+    "requestId": "req_2c9a0jf23l4k567"
+  },
+  "error": {
+    "detail": "The provided root key is invalid. The workspace is disabled.",
+    "status": 403,
+    "title": "Workspace is disabled",
+    "type": "/errors/unkey/authorization/workspace_disabled"
+  }
+}
+```
+
+## How to fix
+
+You can't turn a workspace back on yourself. Contact support with the `requestId` and your workspace ID, and ask why it was disabled. Until it's back on, nothing works for the workspace, including key verification.
+
+## Related errors
+
+- [`err:unkey:authorization:key_disabled`](/errors/unkey/authorization/key_disabled): only the key is disabled.
+- [`err:unkey:data:workspace_not_found`](/errors/unkey/data/workspace_not_found): the key points at a workspace that no longer exists.

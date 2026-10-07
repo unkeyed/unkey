@@ -16,8 +16,8 @@ func TestConnect(t *testing.T) {
 	f := fault.New("internal detail", fault.Public("The deployment is not ready."))
 	err := gatefault.Connect(f)
 
-	var ce *connect.Error
-	require.True(t, errors.As(err, &ce))
+	ce, ok := errors.AsType[*connect.Error](err)
+	require.True(t, ok)
 	require.Equal(t, connect.CodeFailedPrecondition, ce.Code())
 	require.Equal(t, "The deployment is not ready.", ce.Message())
 	require.NotContains(t, ce.Message(), "internal detail")

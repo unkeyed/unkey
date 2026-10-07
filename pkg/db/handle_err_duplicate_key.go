@@ -7,12 +7,8 @@ import (
 )
 
 // IsDuplicateKeyError reports whether err is a MySQL duplicate-entry error
-// (error number 1062), traversing wrapped errors via errors.As.
+// (error number 1062), including wrapped errors.
 func IsDuplicateKeyError(err error) bool {
-	var mysqlErr *mysql.MySQLError
-	if errors.As(err, &mysqlErr) && mysqlErr.Number == 1062 {
-		return true
-	}
-
-	return false
+	mysqlErr, ok := errors.AsType[*mysql.MySQLError](err)
+	return ok && mysqlErr.Number == 1062
 }

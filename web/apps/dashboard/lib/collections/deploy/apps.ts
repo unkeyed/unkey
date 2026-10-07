@@ -1,10 +1,12 @@
 import { getErrorToast, getUnkeyClient } from "@/lib/unkey-client";
 import { parseLoadSubsetOptions, queryCollectionOptions } from "@tanstack/query-db-collection";
 import { createCollection } from "@tanstack/react-db";
+import { NotFoundErrorResponse } from "@unkey/api/models/errors";
 import { toast } from "@unkey/ui";
 import { z } from "zod";
 import { queryClient, trpcClient } from "../client";
-import { extractStringFilter } from "./utils";
+import { DEPLOYMENT_STATUSES } from "./deployment-status";
+import { extractStringValues } from "./utils";
 
 const schema = z.object({
   id: z.string(),
@@ -18,17 +20,20 @@ const schema = z.object({
   isRolledBack: z.boolean(),
   updatedAt: z.number().nullable(),
   repositoryFullName: z.string().nullable(),
-  latestDeploymentId: z.string().nullable(),
-  // Flattened current-deployment fields for the shared deployable card.
-  commitTitle: z.string().nullable(),
-  commitSha: z.string().nullable(),
-  forkRepositoryFullName: z.string().nullable(),
-  prNumber: z.number().int().nullable(),
-  branch: z.string(),
-  author: z.string().nullable(),
-  authorAvatar: z.string().nullable(),
-  commitTimestamp: z.number().int().nullable(),
   domain: z.string().nullable(),
+  customDomain: z.string().nullable(),
+  headlineDeployment: z
+    .object({
+      id: z.string(),
+      status: z.enum(DEPLOYMENT_STATUSES),
+      deployedAt: z.number().int(),
+      commitMessage: z.string().nullable(),
+      commitSha: z.string().nullable(),
+      branch: z.string().nullable(),
+      prNumber: z.number().int().nullable(),
+      forkRepositoryFullName: z.string().nullable(),
+    })
+    .nullable(),
 });
 
 export const ociImageReferenceSchema = z
@@ -63,7 +68,7 @@ export type CreateAppRequestSchema = z.infer<typeof createAppRequestSchema>;
 /**
  * Global apps collection.
  *
- * IMPORTANT: All queries MUST filter by projectId:
+ * IMPORTANT: All queries MUST filter by projectId with eq or inArray:
  * .where(({ app }) => eq(app.projectId, projectId))
  */
 export const apps = createCollection<App, string>(
@@ -71,20 +76,20 @@ export const apps = createCollection<App, string>(
     queryClient,
     queryKey: (opts) => {
       const { filters } = parseLoadSubsetOptions(opts);
-      const projectId = extractStringFilter(filters, "projectId");
-      return projectId ? ["apps", projectId] : ["apps"];
+      return ["apps", ...extractStringValues(filters, "projectId")];
     },
     retry: 3,
     syncMode: "on-demand",
     queryFn: async (ctx) => {
       const { filters } = parseLoadSubsetOptions(ctx.meta?.loadSubsetOptions);
-      const projectId = extractStringFilter(filters, "projectId");
+      const projectIds = extractStringValues(filters, "projectId");
 
-      if (!projectId) {
-        throw new Error("Query must include eq(collection.projectId, projectId) constraint");
+      if (projectIds.length === 0) {
+        throw new Error("Query must include an eq or inArray constraint on collection.projectId");
       }
 
-      return trpcClient.deploy.app.list.query({ projectId });
+      const perProject = await Promise.all(projectIds.map(listProjectApps));
+      return perProject.flat();
     },
     getKey: (item) => item.id,
     id: "apps",
@@ -148,3 +153,46 @@ export const apps = createCollection<App, string>(
     },
   }),
 );
+
+async function listProjectApps(projectId: string): Promise<App[]> {
+  try {
+    const [pages, headlines, displayDomains] = await Promise.all([
+      getUnkeyClient()
+        .apps.listApps({ project: projectId, limit: 100 })
+        .then((firstPage) => Array.fromAsync(firstPage)),
+      trpcClient.deploy.deployment.listHeadlines.query({ projectId }),
+      trpcClient.deploy.domain.listDisplayDomains.query({ projectId }),
+    ]);
+    const headlineByApp = new Map(headlines.map(({ appId, ...headline }) => [appId, headline]));
+    const domainsByApp = new Map(displayDomains.map((d) => [d.appId, d]));
+
+    return pages.flatMap((page) =>
+      page.result.data.map((app): App => {
+        const currentDeploymentId = app.currentDeploymentId ?? null;
+        return {
+          id: app.id,
+          projectId,
+          name: app.name,
+          slug: app.slug,
+          sourceType: app.sourceType ?? "unknown",
+          imageReference: app.oci?.image ?? null,
+          defaultBranch: app.git?.defaultBranch || "main",
+          currentDeploymentId,
+          isRolledBack: app.isRolledBack,
+          updatedAt: app.updatedAt ?? null,
+          repositoryFullName: app.git?.repository ?? null,
+          domain: currentDeploymentId ? (domainsByApp.get(app.id)?.domain ?? null) : null,
+          customDomain: currentDeploymentId
+            ? (domainsByApp.get(app.id)?.customDomain ?? null)
+            : null,
+          headlineDeployment: headlineByApp.get(app.id) ?? null,
+        };
+      }),
+    );
+  } catch (error) {
+    if (error instanceof NotFoundErrorResponse) {
+      return [];
+    }
+    throw error;
+  }
+}

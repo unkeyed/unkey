@@ -1,4 +1,5 @@
 "use client";
+import { queryKeys } from "@/lib/query-keys";
 
 import { trpc } from "@/lib/trpc/client";
 import { getUnkeyClient } from "@/lib/unkey-client";
@@ -10,7 +11,7 @@ import { useQuery } from "@tanstack/react-query";
 export function useApiName(apiId: string): { name: string | undefined; isLoading: boolean } {
   const details = trpc.api.queryApiKeyDetails.useQuery({ apiId }, { enabled: Boolean(apiId) });
   const proxied = useQuery({
-    queryKey: ["dashboard-api-proxy", "apis.getApi", apiId],
+    queryKey: queryKeys.apis.detail(apiId),
     enabled: Boolean(apiId),
     queryFn: async () => {
       const response = await getUnkeyClient().apis.getApi({ apiId });

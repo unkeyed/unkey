@@ -20,6 +20,10 @@ var developerPermissions = []resourcePermission{
 	{resource: "github/apps/*", action: rbac.ActionType(rbacpermissions.Write)},
 	{resource: "github/apps/*", action: rbac.ActionType(rbacpermissions.Delete)},
 
+	{resource: "logdrains/*", action: rbac.ActionType(rbacpermissions.Read)},
+	{resource: "logdrains/*", action: rbac.ActionType(rbacpermissions.Write)},
+	{resource: "logdrains/*", action: rbac.ActionType(rbacpermissions.Delete)},
+
 	{resource: "projects/*", action: rbac.ActionType(rbacpermissions.Read)},
 	{resource: "projects/*", action: rbac.ActionType(rbacpermissions.Write)},
 	{resource: "projects/*", action: rbac.ActionType(rbacpermissions.Delete)},
@@ -42,6 +46,7 @@ var developerPermissions = []resourcePermission{
 	{resource: "projects/*/apps/*/environments/*/deployments/*", action: rbac.ActionType(rbacpermissions.Write)},
 	{resource: "projects/*/apps/*/environments/*/deployments/*", action: rbac.ActionType(rbacpermissions.Delete)},
 	{resource: "projects/*/apps/*/environments/*/deployments/*/logs", action: rbac.ActionType(rbacpermissions.Read)},
+	{resource: "projects/*/apps/*/environments/*/deployments/*/buildLogs", action: rbac.ActionType(rbacpermissions.Read)},
 
 	{resource: "projects/*/apps/*/environments/*/domains/*", action: rbac.ActionType(rbacpermissions.Read)},
 	{resource: "projects/*/apps/*/environments/*/domains/*", action: rbac.ActionType(rbacpermissions.Write)},
@@ -96,6 +101,7 @@ var viewerPermissions = []resourcePermission{
 	{resource: "projects/*/apps/*/environments/*", action: rbac.ActionType(rbacpermissions.Read)},
 	{resource: "projects/*/apps/*/environments/*/deployments/*", action: rbac.ActionType(rbacpermissions.Read)},
 	{resource: "projects/*/apps/*/environments/*/deployments/*/logs", action: rbac.ActionType(rbacpermissions.Read)},
+	{resource: "projects/*/apps/*/environments/*/deployments/*/buildLogs", action: rbac.ActionType(rbacpermissions.Read)},
 	{resource: "projects/*/apps/*/environments/*/domains/*", action: rbac.ActionType(rbacpermissions.Read)},
 	{resource: "projects/*/apps/*/environments/*/variables/*", action: rbac.ActionType(rbacpermissions.Read)},
 	{resource: "projects/*/apps/*/environments/*/gateway/logs", action: rbac.ActionType(rbacpermissions.Read)},

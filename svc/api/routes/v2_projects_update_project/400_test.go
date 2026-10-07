@@ -9,7 +9,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/deploy/projectgate"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
@@ -41,9 +40,9 @@ func TestUpdateProjectBadRequest(t *testing.T) {
 		req  handler.Request
 	}{
 		{name: "missing project", req: handler.Request{}},
-		{name: "slug with dot", req: handler.Request{Project: validID, Slug: ptr.P("payments.service")}},
-		{name: "slug with space", req: handler.Request{Project: validID, Slug: ptr.P("payments service")}},
-		{name: "slug too long", req: handler.Request{Project: validID, Slug: ptr.P(strings.Repeat("a", 257))}},
+		{name: "slug with dot", req: handler.Request{Project: validID, Slug: new("payments.service")}},
+		{name: "slug with space", req: handler.Request{Project: validID, Slug: new("payments service")}},
+		{name: "slug too long", req: handler.Request{Project: validID, Slug: new(strings.Repeat("a", 257))}},
 		{name: "empty name", req: handler.Request{Project: validID, Name: &emptyName}},
 		{name: "name too long", req: handler.Request{Project: validID, Name: &longName}},
 	}

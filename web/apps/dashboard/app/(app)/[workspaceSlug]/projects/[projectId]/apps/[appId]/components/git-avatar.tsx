@@ -1,5 +1,5 @@
-import { cn } from "@/lib/utils";
 import { IconUserOutline18 } from "@unkey/icons";
+import { cn } from "cn";
 import { useState } from "react";
 
 type AvatarProps = {
@@ -13,7 +13,7 @@ export function Avatar({ src, alt, className }: AvatarProps) {
 
   if (!src || hasError) {
     return (
-      <div className="size-5  border rounded-full border-grayA-5 items-center flex justify-center">
+      <div className="size-5  border rounded-full items-center flex justify-center">
         <IconUserOutline18 className="size-3.5" />
       </div>
     );

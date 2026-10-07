@@ -1,0 +1,51 @@
+---
+title: "query_rows_limit_exceeded"
+sidebarTitle: "query_rows_limit_exceeded"
+description: "The analytics query read or returned more rows than the workspace allows."
+sources:
+  - pkg/codes/user_request.go
+  - svc/api/internal/middleware/errors.go
+  - pkg/clickhouse/errors.go
+  - pkg/clickhouse/user.go
+  - pkg/clickhouse/query-parser/limits.go
+  - internal/services/analytics/executor.go
+---
+
+<Danger>`err:user:unprocessable_entity:query_rows_limit_exceeded`</Danger>
+
+Your analytics query read or tried to return more rows than your workspace allows. You get HTTP 422, and `detail` says which.
+
+```json Example response
+{
+  "meta": {
+    "requestId": "req_2c9a0jf23l4k567"
+  },
+  "error": {
+    "detail": "Query attempted to read too many rows. Try adding more filters or reducing the time range.",
+    "status": 422,
+    "title": "Unprocessable Entity",
+    "type": "/errors/user/unprocessable_entity/query_rows_limit_exceeded"
+  }
+}
+```
+
+## Likely causes
+
+- The query scans too much: a wide time range, few filters, or raw rows instead of an aggregate.
+
+The cap is 10,000,000 rows unless we've changed it for you. Every `SELECT`, including subqueries, gets a `LIMIT` at the cap, and a larger `LIMIT` you write is lowered to it. You'll usually hit the 4 MiB result size first, which returns [`query_memory_limit_exceeded`](/errors/user/unprocessable_entity/query_memory_limit_exceeded).
+
+## How to fix
+
+1. Narrow the time range.
+2. Filter on key ID, identity ID, namespace, or another indexed column.
+3. Aggregate instead of selecting raw rows.
+4. If you need every row in a large range, split it into smaller windows and run one query per window.
+
+See [Analytics restrictions and quotas](/api-management/analytics/restrictions-and-quotas).
+
+## Related errors
+
+- [`err:user:unprocessable_entity:query_memory_limit_exceeded`](/errors/user/unprocessable_entity/query_memory_limit_exceeded): the query used too much memory or the result was too large.
+- [`err:user:unprocessable_entity:query_execution_timeout`](/errors/user/unprocessable_entity/query_execution_timeout): the query ran too long.
+- [`err:user:bad_request:query_range_exceeds_retention`](/errors/user/bad_request/query_range_exceeds_retention): the time filter reaches past the retention window.

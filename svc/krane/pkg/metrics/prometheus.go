@@ -50,17 +50,6 @@ var (
 		},
 	)
 
-	// WatcherVersionLastSeen is the current cursor position in the deployment_changes
-	// stream. If this flatlines, the stream is stuck or the watcher is not receiving events.
-	WatcherVersionLastSeen = lazy.NewGauge(
-		prometheus.GaugeOpts{
-			Namespace: "unkey",
-			Subsystem: "krane",
-			Name:      "watcher_version_last_seen",
-			Help:      "Current cursor position in the deployment_changes stream.",
-		},
-	)
-
 	// StreamConnectionsTotal counts incremental stream connection attempts by outcome.
 	//
 	// Labels:
@@ -82,6 +71,17 @@ var (
 			Subsystem: "krane",
 			Name:      "stream_events_received_total",
 			Help:      "Total number of events received on the incremental stream.",
+		},
+	)
+
+	// LastSuccessfulCheckpointUnixSeconds records when Krane last saved a token
+	// after applying all earlier events.
+	LastSuccessfulCheckpointUnixSeconds = lazy.NewGauge(
+		prometheus.GaugeOpts{
+			Namespace: "unkey",
+			Subsystem: "krane",
+			Name:      "last_successful_checkpoint_unix_seconds",
+			Help:      "Unix time when the incremental stream last accepted a checkpoint.",
 		},
 	)
 
