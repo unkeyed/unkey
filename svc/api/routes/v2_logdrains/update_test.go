@@ -111,8 +111,12 @@ func TestUpdateDistinguishesUserPauseFromFailurePause(t *testing.T) {
 			read := testutil.CallRoute[openapi.LogdrainIdRequest, openapi.LogdrainResponse](h, get, headers, openapi.LogdrainIdRequest{LogdrainId: id})
 			require.Equal(t, http.StatusOK, read.Status)
 			require.Equal(t, tc.status, string(read.Body.Data.Status))
-			require.Equal(t, tc.failures, read.Body.Data.ConsecutiveFailures)
-			require.Equal(t, int64(4321), read.Body.Data.CommittedOffsetInsertedAt)
+			var failures int
+			var committedOffsetInsertedAt int64
+			err = h.DB.RW().QueryRowContext(t.Context(), "SELECT consecutive_failures, committed_offset_inserted_at FROM logdrains WHERE id = ?", id).Scan(&failures, &committedOffsetInsertedAt)
+			require.NoError(t, err)
+			require.Equal(t, tc.failures, failures)
+			require.Equal(t, int64(4321), committedOffsetInsertedAt)
 		})
 	}
 }
