@@ -15,7 +15,7 @@ import { SDKValidationError } from "../errors/sdkvalidationerror.js";
  * alias, which providers expose as ALIAS, ANAME, or a flattened CNAME. Apex domains cannot
  * hold a plain CNAME, so they receive `ALIAS` where a subdomain receives `CNAME`.
  */
-export const Type = {
+export const DnsRecordType = {
   Cname: "CNAME",
   Alias: "ALIAS",
   Txt: "TXT",
@@ -27,7 +27,7 @@ export const Type = {
  * alias, which providers expose as ALIAS, ANAME, or a flattened CNAME. Apex domains cannot
  * hold a plain CNAME, so they receive `ALIAS` where a subdomain receives `CNAME`.
  */
-export type Type = ClosedEnum<typeof Type>;
+export type DnsRecordType = ClosedEnum<typeof DnsRecordType>;
 
 export type DnsRecord = {
   /**
@@ -37,7 +37,7 @@ export type DnsRecord = {
    * alias, which providers expose as ALIAS, ANAME, or a flattened CNAME. Apex domains cannot
    * hold a plain CNAME, so they receive `ALIAS` where a subdomain receives `CNAME`.
    */
-  type: Type;
+  type: DnsRecordType;
   /**
    * Fully qualified name of the record, ready to use as-is.
    *
@@ -89,9 +89,9 @@ export type DnsRecord = {
 };
 
 /** @internal */
-export const Type$inboundSchema: z.ZodNativeEnum<typeof Type> = z.nativeEnum(
-  Type,
-);
+export const DnsRecordType$inboundSchema: z.ZodNativeEnum<
+  typeof DnsRecordType
+> = z.nativeEnum(DnsRecordType);
 
 /** @internal */
 export const DnsRecord$inboundSchema: z.ZodType<
@@ -99,7 +99,7 @@ export const DnsRecord$inboundSchema: z.ZodType<
   z.ZodTypeDef,
   unknown
 > = z.object({
-  type: Type$inboundSchema,
+  type: DnsRecordType$inboundSchema,
   name: z.string(),
   value: z.string(),
   ttl: z.number().int(),

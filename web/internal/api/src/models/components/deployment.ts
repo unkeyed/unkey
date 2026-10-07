@@ -27,6 +27,10 @@ import {
   DeploymentStatus,
   DeploymentStatus$inboundSchema,
 } from "./deploymentstatus.js";
+import {
+  DeploymentTrigger,
+  DeploymentTrigger$inboundSchema,
+} from "./deploymenttrigger.js";
 
 export type Deployment = {
   /**
@@ -66,6 +70,7 @@ export type Deployment = {
   project: string;
   git?: DeploymentGit | undefined;
   docker?: DeploymentDocker | undefined;
+  trigger: DeploymentTrigger;
   /**
    * Lifecycle operations you are allowed to call on this deployment right now.
    *
@@ -81,6 +86,15 @@ export type Deployment = {
    */
   regions: Array<string>;
   error?: DeploymentError | undefined;
+  /**
+   * Unix timestamp in milliseconds when the last pipeline step ended.
+   *
+   * @remarks
+   * Omitted while the pipeline is still running, while any step is still
+   * open, or when no step was recorded. Waking a stopped deployment does not
+   * clear it.
+   */
+  finishedAt?: number | undefined;
   /**
    * Public hostnames this deployment is reachable at.
    *
@@ -117,9 +131,11 @@ export const Deployment$inboundSchema: z.ZodType<
   project: z.string(),
   git: DeploymentGit$inboundSchema.optional(),
   docker: DeploymentDocker$inboundSchema.optional(),
+  trigger: DeploymentTrigger$inboundSchema,
   availableActions: z.array(DeploymentAction$inboundSchema),
   regions: z.array(z.string()),
   error: DeploymentError$inboundSchema.optional(),
+  finishedAt: z.number().int().optional(),
   domains: z.array(z.string()).optional(),
   runtime: DeploymentRuntime$inboundSchema,
   createdAt: z.number().int(),

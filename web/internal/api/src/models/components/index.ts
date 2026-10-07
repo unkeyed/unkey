@@ -25,6 +25,8 @@ export * from "./deploymentsourcegit.js";
 export * from "./deploymentsourceimage.js";
 export * from "./deploymentsourceoci.js";
 export * from "./deploymentstatus.js";
+export * from "./deploymenttrigger.js";
+export * from "./deploymenttriggeractor.js";
 export * from "./dnsrecord.js";
 export * from "./domain.js";
 export * from "./domainconnect.js";
