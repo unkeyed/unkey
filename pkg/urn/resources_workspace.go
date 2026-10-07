@@ -10,6 +10,7 @@ import "fmt"
 //	├── github/apps/{github_app_id}
 //	├── rootKeys/{key_id}
 //	├── limits
+//	├── usage
 //	└── projects/{project_id}
 type workspace struct {
 	workspaceID string
@@ -36,6 +37,11 @@ func (w workspace) RootKey(keyID string) V1 {
 // Limits returns the workspace limits resource name
 func (w workspace) Limits() V1 {
 	return V1{WorkspaceID: w.workspaceID, Resource: "limits"}
+}
+
+// Usage returns the workspace usage resource name
+func (w workspace) Usage() V1 {
+	return V1{WorkspaceID: w.workspaceID, Resource: "usage"}
 }
 
 // Project returns builders for project resource paths.

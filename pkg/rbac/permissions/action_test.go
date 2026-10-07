@@ -31,6 +31,7 @@ func TestActions_BuildPlatformPermissions(t *testing.T) {
 	requirePermission(t, githubApp, permissions.Write, "unkey:v1:ws_123:github/apps/gh_123#write")
 	requirePermission(t, githubApp, permissions.Delete, "unkey:v1:ws_123:github/apps/gh_123#delete")
 	requirePermission(t, workspace.Limits(), permissions.Read, "unkey:v1:ws_123:limits#read")
+	requirePermission(t, workspace.Usage(), permissions.Read, "unkey:v1:ws_123:usage#read")
 	requirePermission(t, project, permissions.Read, "unkey:v1:ws_123:projects/proj_123#read")
 	requirePermission(t, project, permissions.Write, "unkey:v1:ws_123:projects/proj_123#write")
 	requirePermission(t, project, permissions.Delete, "unkey:v1:ws_123:projects/proj_123#delete")
@@ -119,6 +120,7 @@ func TestSupportsPermissionAction_RejectsUnsupportedActions(t *testing.T) {
 		{name: "deployment build log write", resource: "projects/proj_123/apps/app_123/environments/env_123/deployments/dep_123/buildLogs", action: permissions.Write},
 		{name: "limits write", resource: "limits", action: permissions.Write},
 		{name: "limits delete", resource: "limits", action: permissions.Delete},
+		{name: "usage write", resource: "usage", action: permissions.Write},
 		{name: "key limit", resource: "projects/proj_123/keyspaces/ks_123/keys/key_123", action: permissions.Limit},
 		{name: "namespace decrypt", resource: "projects/proj_123/ratelimits/namespaces/ns_123", action: permissions.Decrypt},
 		{name: "override limit", resource: "projects/proj_123/ratelimits/namespaces/ns_123/overrides/ov_123", action: permissions.Limit},
