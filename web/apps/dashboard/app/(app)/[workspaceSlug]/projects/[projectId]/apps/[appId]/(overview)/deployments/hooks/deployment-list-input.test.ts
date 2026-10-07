@@ -80,6 +80,14 @@ describe("buildDeploymentListInput", () => {
     expect(result.cannotMatch).toBe(true);
   });
 
+  test("treats both time bounds as inclusive", () => {
+    const at = (start: number, end: number) =>
+      buildDeploymentListInput([filter("startTime", start), filter("endTime", end)], environments)
+        .cannotMatch;
+    expect(at(1_000, 1_000)).toBe(false);
+    expect(at(1_001, 1_000)).toBe(true);
+  });
+
   test("passes branches and explicit time bounds through", () => {
     const { filter: listFilter } = buildDeploymentListInput(
       [filter("branch", "main"), filter("startTime", 1_000), filter("endTime", 2_000)],

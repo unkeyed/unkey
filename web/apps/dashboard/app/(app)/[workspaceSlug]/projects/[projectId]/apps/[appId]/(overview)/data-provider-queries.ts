@@ -12,7 +12,7 @@ import {
   eq,
   gte,
   inArray,
-  lt,
+  lte,
 } from "@tanstack/react-db";
 import type { DeploymentListFilter } from "./deployments/hooks/deployment-list-input";
 import { buildDeploymentListInput } from "./deployments/hooks/deployment-list-input";
@@ -100,7 +100,7 @@ export const deploymentsTableQueryFor =
       query = query.where(({ deployment }) => gte(deployment.createdAt, startTime));
     }
     if (endTime !== undefined) {
-      query = query.where(({ deployment }) => lt(deployment.createdAt, endTime));
+      query = query.where(({ deployment }) => lte(deployment.createdAt, endTime));
     }
     return query.orderBy(({ deployment }) => deployment.createdAt, "desc");
   };
