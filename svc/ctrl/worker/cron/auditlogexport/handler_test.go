@@ -98,7 +98,7 @@ func newOutboxEvent(event string) auditlog.Event {
 		EventID:     uid.New("evt"),
 		Time:        time.Now().UnixMilli(),
 		WorkspaceID: uid.New("ws"),
-		Bucket:      "audit",
+		Bucket:      auditlog.BucketUnkeyMutations,
 		Source:      auditlog.EventSourcePlatform,
 		Event:       event,
 		Description: "test export",
@@ -301,7 +301,7 @@ func TestCancelledClickHouseAcquiresDoNotBlockOutboxWrites(t *testing.T) {
 	seed := func(ctx context.Context) error {
 		event := auditlog.Event{
 			EventID: uid.New("evt"), WorkspaceID: uid.New("ws"), Time: time.Now().UnixMilli(),
-			Bucket: "audit", Event: "test.incident", Source: auditlog.EventSourcePlatform,
+			Bucket: auditlog.BucketUnkeyMutations, Event: "test.incident", Source: auditlog.EventSourcePlatform,
 			Actor: auditlog.EventActor{Type: "system", ID: "test"},
 		}
 		payload, err := json.Marshal(event)
