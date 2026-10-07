@@ -17,7 +17,7 @@ import (
 
 func TestCreateHTTPStreamFilters(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route := &logdrains.Create{
+	route := &logdrains.Handler{
 		DB:          h.DB,
 		Vault:       h.Vault,
 		Auditlogs:   h.Auditlogs,
@@ -35,11 +35,13 @@ func TestCreateHTTPStreamFilters(t *testing.T) {
 	}
 	for _, tc := range []struct {
 		stream   string
+		key      string
 		filters  string
 		expected *logdrainv1.Config
 	}{
 		{
 			"audit_logs",
+			"auditLogs",
 			`{"eventTypes":["key.create"]}`,
 			&logdrainv1.Config{
 				Stream: &logdrainv1.Config_AuditLogs{
@@ -48,6 +50,7 @@ func TestCreateHTTPStreamFilters(t *testing.T) {
 			},
 		},
 		{
+			"ratelimits",
 			"ratelimits",
 			`{"namespaceIds":["ns_one"],"passed":[false]}`,
 			&logdrainv1.Config{
@@ -61,6 +64,7 @@ func TestCreateHTTPStreamFilters(t *testing.T) {
 		},
 		{
 			"key_verifications",
+			"keyVerifications",
 			`{"outcomes":["VALID"],"keySpaceIds":["ks_one"]}`,
 			&logdrainv1.Config{
 				Stream: &logdrainv1.Config_KeyVerifications{
@@ -73,6 +77,7 @@ func TestCreateHTTPStreamFilters(t *testing.T) {
 		},
 		{
 			"gateway_requests",
+			"gatewayRequests",
 			`{"statusClasses":[2,5],"projectIds":["proj_one"],"appIds":[],"environmentIds":[]}`,
 			&logdrainv1.Config{
 				Stream: &logdrainv1.Config_GatewayRequests{
@@ -85,6 +90,7 @@ func TestCreateHTTPStreamFilters(t *testing.T) {
 		},
 		{
 			"runtime_logs",
+			"runtimeLogs",
 			`{"severities":["warn"],"projectIds":[],"appIds":["app_one"],"environmentIds":[]}`,
 			&logdrainv1.Config{
 				Stream: &logdrainv1.Config_RuntimeLogs{
@@ -97,7 +103,7 @@ func TestCreateHTTPStreamFilters(t *testing.T) {
 		},
 	} {
 		t.Run(tc.stream, func(t *testing.T) {
-			input := []byte(`{"name":"HTTP logs","stream":"` + tc.stream + `","filters":` + tc.filters + `,"destination":{"http":{"url":"https://logs.example.com","format":"ndjson","headers":[{"name":"Authorization","mode":"set","value":"secret-token"}]}}}`)
+			input := []byte(`{"name":"HTTP logs","stream":{"` + tc.key + `":` + tc.filters + `},"destination":{"http":{"url":"https://logs.example.com","format":"ndjson","headers":[{"name":"Authorization","value":"secret-token"}]}}}`)
 			response := testutil.CallRoute[json.RawMessage, openapi.LogdrainMutationResponse](h, route, headers, input)
 			require.Equal(t, http.StatusOK, response.Status, "%s", response.RawBody)
 			require.NotContains(t, string(response.RawBody), "secret-token")

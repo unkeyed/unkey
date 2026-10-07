@@ -3,6 +3,7 @@ package logdrains
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -28,7 +29,7 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-type Create struct {
+type Handler struct {
 	DB          db.Database
 	Vault       vault.VaultServiceClient
 	Auditlogs   auditlogs.AuditLogService
@@ -36,9 +37,9 @@ type Create struct {
 	LimitsCache cache.Cache[string, keysdb.Limit]
 }
 
-func (h *Create) Method() string { return http.MethodPost }
-func (h *Create) Path() string   { return "/v2/logdrains.createLogdrain" }
-func (h *Create) Handle(ctx context.Context, s *zen.Session) error {
+func (h *Handler) Method() string { return http.MethodPost }
+func (h *Handler) Path() string   { return "/v2/logdrains.createLogdrain" }
+func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	principal, err := s.GetPrincipal()
 	if err != nil {
 		return err
@@ -69,7 +70,36 @@ func (h *Create) Handle(ctx context.Context, s *zen.Session) error {
 	config := &logdrainv1.Config{
 		BatchSize: uint32(ptr.SafeDeref(req.BatchSize)),
 	}
-	if err := logdrainconfig.SetStream(config, string(req.Stream), ptr.SafeDeref(req.Filters)); err != nil {
+	var stream string
+	var filters openapi.LogdrainFilters
+	switch {
+	case req.Stream.AuditLogs != nil:
+		stream = "audit_logs"
+		filters.EventTypes = req.Stream.AuditLogs.EventTypes
+	case req.Stream.KeyVerifications != nil:
+		stream = "key_verifications"
+		filters.Outcomes = req.Stream.KeyVerifications.Outcomes
+		filters.KeySpaceIds = req.Stream.KeyVerifications.KeySpaceIds
+	case req.Stream.Ratelimits != nil:
+		stream = "ratelimits"
+		filters.NamespaceIds = req.Stream.Ratelimits.NamespaceIds
+		filters.Passed = req.Stream.Ratelimits.Passed
+	case req.Stream.GatewayRequests != nil:
+		stream = "gateway_requests"
+		input := req.Stream.GatewayRequests
+		filters.AppIds = input.AppIds
+		filters.EnvironmentIds = input.EnvironmentIds
+		filters.ProjectIds = input.ProjectIds
+		filters.StatusClasses = input.StatusClasses
+	case req.Stream.RuntimeLogs != nil:
+		stream = "runtime_logs"
+		input := req.Stream.RuntimeLogs
+		filters.Severities = input.Severities
+		filters.AppIds = input.AppIds
+		filters.EnvironmentIds = input.EnvironmentIds
+		filters.ProjectIds = input.ProjectIds
+	}
+	if err := logdrainconfig.SetStream(config, stream, filters); err != nil {
 		return err
 	}
 	if err := logdrainconfig.SetDestination(ctx, h.Vault, principal.AuthorizedWorkspaceID, config, req.Destination); err != nil {
@@ -87,13 +117,13 @@ func (h *Create) Handle(ctx context.Context, s *zen.Session) error {
 			return err
 		}
 		if count >= int64(limits.LogdrainsMax) {
-			return fault.New("log drain limit reached", fault.Code(codes.Auth.Authorization.Forbidden.URN()), fault.Public("Contact support to increase this workspace's log drain allowance."))
+			return fault.New("log drain limit reached", fault.Code(codes.Auth.Authorization.Forbidden.URN()), fault.Public(fmt.Sprintf("This workspace uses %d of %d allowed log drains. Delete an existing drain or contact support to increase this workspace's log drain allowance.", count, limits.LogdrainsMax)))
 		}
 		if err := db.Query.InsertLogdrain(ctx, tx, db.InsertLogdrainParams{
 			ID:          id,
 			WorkspaceID: principal.AuthorizedWorkspaceID,
 			Name:        name,
-			Stream:      db.LogdrainsStream(req.Stream),
+			Stream:      db.LogdrainsStream(stream),
 			Config:      encoded,
 			CreatedAt:   now,
 			UpdatedAt: sql.NullInt64{
