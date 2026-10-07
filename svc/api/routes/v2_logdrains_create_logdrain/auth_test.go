@@ -15,7 +15,13 @@ import (
 
 func TestCreateRequiresAuthenticationAndPermission(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route := &logdrains.Create{DB: h.DB, Vault: h.Vault, Auditlogs: h.Auditlogs, Clock: h.Clock, LimitsCache: h.Caches.WorkspaceLimits}
+	route := &logdrains.Create{
+		DB:          h.DB,
+		Vault:       h.Vault,
+		Auditlogs:   h.Auditlogs,
+		Clock:       h.Clock,
+		LimitsCache: h.Caches.WorkspaceLimits,
+	}
 	h.Register(route)
 	workspaceID := h.Resources().UserWorkspace.ID
 	_, err := h.DB.RW().ExecContext(context.Background(), "UPDATE `limits` SET logdrains_max = 1 WHERE workspace_id = ?", workspaceID)
@@ -26,16 +32,45 @@ func TestCreateRequiresAuthenticationAndPermission(t *testing.T) {
 	_, err = h.DB.RW().ExecContext(context.Background(), "UPDATE `keys` SET deleted_at_m = ? WHERE hash = ?", h.Clock.Now().UnixMilli(), hash.Sha256(revoked))
 	require.NoError(t, err)
 	for _, tc := range []struct {
-		name, authorization string
-		status              int
+		name          string
+		authorization string
+		status        int
 	}{
-		{"missing authorization", "", http.StatusBadRequest},
-		{"malformed authorization", "Basic invalid", http.StatusBadRequest},
-		{"missing bearer token", "Bearer", http.StatusBadRequest},
-		{"invalid key", "Bearer invalid", http.StatusUnauthorized},
-		{"revoked key", "Bearer " + revoked, http.StatusUnauthorized},
-		{"insufficient permission", "Bearer " + denied, http.StatusForbidden},
-		{"permission for another workspace", "Bearer " + foreign, http.StatusForbidden},
+		{
+			"missing authorization",
+			"",
+			http.StatusBadRequest,
+		},
+		{
+			"malformed authorization",
+			"Basic invalid",
+			http.StatusBadRequest,
+		},
+		{
+			"missing bearer token",
+			"Bearer",
+			http.StatusBadRequest,
+		},
+		{
+			"invalid key",
+			"Bearer invalid",
+			http.StatusUnauthorized,
+		},
+		{
+			"revoked key",
+			"Bearer " + revoked,
+			http.StatusUnauthorized,
+		},
+		{
+			"insufficient permission",
+			"Bearer " + denied,
+			http.StatusForbidden,
+		},
+		{
+			"permission for another workspace",
+			"Bearer " + foreign,
+			http.StatusForbidden,
+		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			headers := http.Header{"Content-Type": {"application/json"}}

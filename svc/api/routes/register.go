@@ -199,7 +199,13 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 
 	srv.RegisterRoute(publicMiddlewares, &v2Liveness.Handler{})
 
-	srv.RegisterRoute(protectedMiddlewares, &v2Logdrains.Create{DB: svc.Database, Vault: svc.Vault, Auditlogs: svc.Auditlogs, Clock: svc.Clock, LimitsCache: svc.Caches.WorkspaceLimits})
+	srv.RegisterRoute(protectedMiddlewares, &v2Logdrains.Create{
+		DB:          svc.Database,
+		Vault:       svc.Vault,
+		Auditlogs:   svc.Auditlogs,
+		Clock:       svc.Clock,
+		LimitsCache: svc.Caches.WorkspaceLimits,
+	})
 
 	// ---------------------------------------------------------------------------
 	// pprof (internal profiling endpoints)
