@@ -1,5 +1,6 @@
 post:
-  tags: [logdrains]
+  tags:
+    - logdrains
   summary: Delete log drain
   description: |
     Delete a log drain, regardless of workspace allowance. Requires

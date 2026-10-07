@@ -1,12 +1,21 @@
 type: object
 additionalProperties: false
-required: [name, mode]
+required:
+  - name
+  - mode
 properties:
-  name: { type: string, minLength: 1, maxLength: 256 }
+  name:
+    type: string
+    minLength: 1
+    maxLength: 256
   mode:
     type: string
-    enum: [set, preserve]
-    x-enum-varnames: [LogdrainHeaderSet, LogdrainHeaderPreserve]
+    enum:
+      - set
+      - preserve
+    x-enum-varnames:
+      - LogdrainHeaderSet
+      - LogdrainHeaderPreserve
   value:
     type: string
     minLength: 1

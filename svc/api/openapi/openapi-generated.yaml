@@ -2754,8 +2754,8 @@ components:
             properties:
                 name:
                     type: string
-                    maxLength: 128
                     minLength: 1
+                    maxLength: 128
                 stream:
                     type: string
                     enum:
@@ -2766,9 +2766,9 @@ components:
                         - ratelimits
                 batchSize:
                     type: integer
-                    maximum: 4294967295
-                    minimum: 1
                     format: int64
+                    minimum: 1
+                    maximum: 4294967295
                 filters:
                     $ref: '#/components/schemas/LogdrainFilters'
                 destination:
@@ -2817,12 +2817,12 @@ components:
             properties:
                 cursor:
                     type: string
-                    maxLength: 48
                     minLength: 1
+                    maxLength: 48
                 limit:
                     type: integer
-                    maximum: 100
                     minimum: 1
+                    maximum: 100
                     default: 100
         ListLogdrainsResponse:
             type: object
@@ -2849,12 +2849,12 @@ components:
             properties:
                 logdrainId:
                     type: string
-                    maxLength: 48
                     minLength: 1
+                    maxLength: 48
                 name:
                     type: string
-                    maxLength: 128
                     minLength: 1
+                    maxLength: 128
                 status:
                     type: string
                     enum:
@@ -2862,9 +2862,9 @@ components:
                         - paused_by_user
                 batchSize:
                     type: integer
-                    maximum: 4294967295
-                    minimum: 1
                     format: int64
+                    minimum: 1
+                    maximum: 4294967295
                 filters:
                     $ref: '#/components/schemas/LogdrainFilters'
                 destination:
@@ -7371,14 +7371,23 @@ components:
                     maxItems: 256
                     items:
                         type: string
-                        maxLength: 256
                         minLength: 1
+                        maxLength: 256
                 outcomes:
                     type: array
                     maxItems: 256
                     items:
                         type: string
                         x-go-type: string
+                        x-enum-varnames:
+                            - LogdrainOutcomeValid
+                            - LogdrainOutcomeInsufficientPermissions
+                            - LogdrainOutcomeRateLimited
+                            - LogdrainOutcomeForbidden
+                            - LogdrainOutcomeDisabled
+                            - LogdrainOutcomeExpired
+                            - LogdrainOutcomeUsageExceeded
+                            - LogdrainOutcomeUnknown
                         enum:
                             - VALID
                             - INSUFFICIENT_PERMISSIONS
@@ -7388,21 +7397,20 @@ components:
                             - EXPIRED
                             - USAGE_EXCEEDED
                             - ""
-                        x-enum-varnames: [LogdrainOutcomeValid, LogdrainOutcomeInsufficientPermissions, LogdrainOutcomeRateLimited, LogdrainOutcomeForbidden, LogdrainOutcomeDisabled, LogdrainOutcomeExpired, LogdrainOutcomeUsageExceeded, LogdrainOutcomeUnknown]
                 keySpaceIds:
                     type: array
                     maxItems: 256
                     items:
                         type: string
-                        maxLength: 256
                         minLength: 1
+                        maxLength: 256
                 namespaceIds:
                     type: array
                     maxItems: 256
                     items:
                         type: string
-                        maxLength: 256
                         minLength: 1
+                        maxLength: 256
                 passed:
                     type: array
                     maxItems: 2
@@ -7423,29 +7431,29 @@ components:
                     maxItems: 256
                     items:
                         type: string
-                        maxLength: 256
                         minLength: 1
+                        maxLength: 256
                 projectIds:
                     type: array
                     maxItems: 256
                     items:
                         type: string
-                        maxLength: 256
                         minLength: 1
+                        maxLength: 256
                 appIds:
                     type: array
                     maxItems: 256
                     items:
                         type: string
-                        maxLength: 256
                         minLength: 1
+                        maxLength: 256
                 environmentIds:
                     type: array
                     maxItems: 256
                     items:
                         type: string
-                        maxLength: 256
                         minLength: 1
+                        maxLength: 256
         LogdrainDestinationWrite:
             type: object
             additionalProperties: false
@@ -7466,8 +7474,8 @@ components:
             properties:
                 url:
                     type: string
-                    minLength: 1
                     format: uri
+                    minLength: 1
                 format:
                     type: string
                     enum:
@@ -7505,14 +7513,16 @@ components:
             properties:
                 name:
                     type: string
-                    maxLength: 256
                     minLength: 1
+                    maxLength: 256
                 mode:
                     type: string
                     enum:
                         - set
                         - preserve
-                    x-enum-varnames: [LogdrainHeaderSet, LogdrainHeaderPreserve]
+                    x-enum-varnames:
+                        - LogdrainHeaderSet
+                        - LogdrainHeaderPreserve
                 value:
                     type: string
                     minLength: 1

@@ -1,5 +1,6 @@
 post:
-  tags: [logdrains]
+  tags:
+    - logdrains
   summary: Create log drain
   description: |
     Create a log drain within your workspace allowance. Requires

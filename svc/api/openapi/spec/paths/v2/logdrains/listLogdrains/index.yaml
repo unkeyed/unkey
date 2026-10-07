@@ -1,5 +1,6 @@
 post:
-  tags: [logdrains]
+  tags:
+    - logdrains
   summary: List log drains
   description: |
     List log drains in your workspace in ascending ID order, without credential
