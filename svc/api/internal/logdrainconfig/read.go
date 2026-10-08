@@ -1,4 +1,4 @@
-package logdrains
+package logdrainconfig
 
 import (
 	"fmt"
@@ -9,7 +9,7 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-func toPublic(row db.Logdrain) (openapi.Logdrain, error) {
+func ToPublic(row db.Logdrain) (openapi.Logdrain, error) {
 	var data openapi.Logdrain
 	config := &logdrainv1.Config{}
 	if err := proto.Unmarshal(row.Config, config); err != nil {
