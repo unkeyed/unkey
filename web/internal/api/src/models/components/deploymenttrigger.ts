@@ -13,14 +13,12 @@ import {
 } from "./deploymenttriggeractor.js";
 
 /**
- * What started this deployment: `github` is a push or pull request, `api`
+ * What started this deployment: `github` (a push or pull request), `api`,
  *
  * @remarks
- * is a direct API call, `cli` is the Unkey CLI, `dashboard` is the Unkey
- * dashboard, and `unkey` is Unkey itself, for example a rebuild. `unknown`
- * marks deployments created before Unkey recorded the trigger. Unkey sets
- * `github` and `unkey` itself; `api`, `cli`, and `dashboard` are reported
- * by the calling client, so do not rely on them for security decisions.
+ * `cli`, `dashboard`, or `unkey` (Unkey itself, for example a rebuild).
+ * `unknown` when it was not recorded. `api`, `cli` and `dashboard` are
+ * reported by the client.
  */
 export const Via = {
   Unknown: "unknown",
@@ -31,27 +29,23 @@ export const Via = {
   Unkey: "unkey",
 } as const;
 /**
- * What started this deployment: `github` is a push or pull request, `api`
+ * What started this deployment: `github` (a push or pull request), `api`,
  *
  * @remarks
- * is a direct API call, `cli` is the Unkey CLI, `dashboard` is the Unkey
- * dashboard, and `unkey` is Unkey itself, for example a rebuild. `unknown`
- * marks deployments created before Unkey recorded the trigger. Unkey sets
- * `github` and `unkey` itself; `api`, `cli`, and `dashboard` are reported
- * by the calling client, so do not rely on them for security decisions.
+ * `cli`, `dashboard`, or `unkey` (Unkey itself, for example a rebuild).
+ * `unknown` when it was not recorded. `api`, `cli` and `dashboard` are
+ * reported by the client.
  */
 export type Via = ClosedEnum<typeof Via>;
 
 export type DeploymentTrigger = {
   /**
-   * What started this deployment: `github` is a push or pull request, `api`
+   * What started this deployment: `github` (a push or pull request), `api`,
    *
    * @remarks
-   * is a direct API call, `cli` is the Unkey CLI, `dashboard` is the Unkey
-   * dashboard, and `unkey` is Unkey itself, for example a rebuild. `unknown`
-   * marks deployments created before Unkey recorded the trigger. Unkey sets
-   * `github` and `unkey` itself; `api`, `cli`, and `dashboard` are reported
-   * by the calling client, so do not rely on them for security decisions.
+   * `cli`, `dashboard`, or `unkey` (Unkey itself, for example a rebuild).
+   * `unknown` when it was not recorded. `api`, `cli` and `dashboard` are
+   * reported by the client.
    */
   via: Via;
   actor?: DeploymentTriggerActor | undefined;

@@ -9,12 +9,11 @@ import { Result as SafeParseResult } from "../../types/fp.js";
 import { SDKValidationError } from "../errors/sdkvalidationerror.js";
 
 /**
- * The kind of actor. `user` is a dashboard user, `root_key` is a root key,
+ * `user` is a dashboard user, `root_key` a root key, `github` the GitHub
  *
  * @remarks
- * `github` is the GitHub user whose push or pull request event started the
- * deployment, and `system` is Unkey itself.
- * `unknown` means the actor id has a format Unkey does not recognize.
+ * user who pushed or opened the pull request, `system` Unkey itself.
+ * `unknown` when the actor isn't recognized.
  */
 export const DeploymentTriggerActorType = {
   User: "user",
@@ -24,12 +23,11 @@ export const DeploymentTriggerActorType = {
   Unknown: "unknown",
 } as const;
 /**
- * The kind of actor. `user` is a dashboard user, `root_key` is a root key,
+ * `user` is a dashboard user, `root_key` a root key, `github` the GitHub
  *
  * @remarks
- * `github` is the GitHub user whose push or pull request event started the
- * deployment, and `system` is Unkey itself.
- * `unknown` means the actor id has a format Unkey does not recognize.
+ * user who pushed or opened the pull request, `system` Unkey itself.
+ * `unknown` when the actor isn't recognized.
  */
 export type DeploymentTriggerActorType = ClosedEnum<
   typeof DeploymentTriggerActorType
@@ -37,12 +35,11 @@ export type DeploymentTriggerActorType = ClosedEnum<
 
 export type DeploymentTriggerActor = {
   /**
-   * The kind of actor. `user` is a dashboard user, `root_key` is a root key,
+   * `user` is a dashboard user, `root_key` a root key, `github` the GitHub
    *
    * @remarks
-   * `github` is the GitHub user whose push or pull request event started the
-   * deployment, and `system` is Unkey itself.
-   * `unknown` means the actor id has a format Unkey does not recognize.
+   * user who pushed or opened the pull request, `system` Unkey itself.
+   * `unknown` when the actor isn't recognized.
    */
   type: DeploymentTriggerActorType;
   /**

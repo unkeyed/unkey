@@ -87,12 +87,10 @@ export type Deployment = {
   regions: Array<string>;
   error?: DeploymentError | undefined;
   /**
-   * Unix timestamp in milliseconds when the last pipeline step ended.
+   * Unix timestamp in milliseconds when the deployment finished, successfully
    *
    * @remarks
-   * Omitted while the pipeline is still running, while any step is still
-   * open, or when no step was recorded. Waking a stopped deployment does not
-   * clear it.
+   * or not. Omitted while it is in progress.
    */
   finishedAt?: number | undefined;
   /**
