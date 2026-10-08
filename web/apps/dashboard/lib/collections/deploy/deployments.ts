@@ -387,7 +387,7 @@ export const deployments = createCollection<Deployment, string>(
       const details = await loadDeploymentDetails(rows.map((d) => d.id));
       return rows.flatMap((row) => {
         const detail = details[row.id];
-        return detail ? [toDeployment(row, detail, projectId)] : [];
+        return detail?.projectId === projectId ? [toDeployment(row, detail, projectId)] : [];
       });
     },
     getKey: (item) => item.id,

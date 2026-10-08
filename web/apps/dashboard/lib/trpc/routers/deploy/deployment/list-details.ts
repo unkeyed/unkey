@@ -14,6 +14,7 @@ export const listDeploymentDetails = workspaceProcedure
     const rows = await db
       .select({
         id: deployments.id,
+        projectId: deployments.projectId,
         appId: deployments.appId,
         environmentId: deployments.environmentId,
         desiredState: deployments.desiredState,
