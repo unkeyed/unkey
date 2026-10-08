@@ -6,11 +6,16 @@ import { type VariantProps, cva } from "class-variance-authority";
 import type * as React from "react";
 import { popupTransition } from "../../lib/popup";
 import { cn } from "../../lib/utils";
-import { fieldBaseClasses, fieldInvalidClasses, fieldSurfaceClasses } from "./input-group";
+import {
+  fieldBaseClasses,
+  fieldFrameVariants,
+  fieldInvalidClasses,
+  fieldSurfaceClasses,
+} from "./input-group";
 
 const selectTriggerVariants = cva(
   [
-    "flex h-9 w-full items-center justify-between disabled:cursor-not-allowed disabled:opacity-50 placeholder:text-grayA-8",
+    "flex h-9 w-full items-center justify-between disabled:cursor-not-allowed placeholder:text-grayA-8",
     fieldBaseClasses,
     fieldInvalidClasses,
   ],
@@ -64,7 +69,13 @@ function SelectTrigger({
     ref?: React.Ref<React.ComponentRef<typeof SelectPrimitive.Trigger>>;
   }) {
   return (
-    <div className={cn(selectWrapperVariants({ variant }), wrapperClassName)}>
+    <div
+      className={cn(
+        fieldFrameVariants({ variant }),
+        selectWrapperVariants({ variant }),
+        wrapperClassName,
+      )}
+    >
       {leftIcon && (
         <div className="absolute left-3 flex items-center pointer-events-none">{leftIcon}</div>
       )}

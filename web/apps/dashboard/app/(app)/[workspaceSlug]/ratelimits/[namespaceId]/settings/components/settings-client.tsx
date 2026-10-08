@@ -123,7 +123,7 @@ export const SettingsClient = ({ namespaceId }: Props) => {
                   aria-label="Namespace name"
                   placeholder="Namespace name"
                   value={namespaceName ?? ""}
-                  className="max-w-(--setting-w)"
+                  wrapperClassName="max-w-(--setting-w)"
                   onChange={(e) => setNamespaceName(e.target.value)}
                 />
               </SettingsRowContent>

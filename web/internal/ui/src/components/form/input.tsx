@@ -4,12 +4,18 @@ import { type VariantProps, cva } from "class-variance-authority";
 // biome-ignore lint/style/useImportType: Biome wants this
 import React from "react";
 import { cn } from "../../lib/utils";
-import { fieldBaseClasses, fieldInvalidClasses, fieldSurfaceClasses } from "./input-group";
+import {
+  fieldBaseClasses,
+  fieldFrameVariants,
+  fieldInvalidClasses,
+  fieldSurfaceClasses,
+} from "./input-group";
 
 const inputVariants = cva(
   [
-    "flex h-9 w-full px-3 py-2 disabled:cursor-not-allowed disabled:opacity-50 placeholder:text-grayA-8",
     fieldBaseClasses,
+    "block w-full appearance-none px-[calc(--spacing(3.5)-1px)] py-[calc(--spacing(2.5)-1px)] sm:px-[calc(--spacing(3)-1px)] sm:py-[calc(--spacing(1.5)-1px)]",
+    "text-base/6 sm:text-sm/6 placeholder:text-grayA-8 disabled:cursor-not-allowed",
     fieldInvalidClasses,
   ],
   {
@@ -23,15 +29,21 @@ const inputVariants = cva(
 );
 
 // Hack to populate fumadocs' AutoTypeTable
-type DocumentedInputProps = VariantProps<typeof inputVariants>;
+type DocumentedInputProps = VariantProps<typeof inputVariants> & {
+  wrapperClassName?: string;
+};
 
 type InputProps = DocumentedInputProps &
   React.InputHTMLAttributes<HTMLInputElement> & {
     ref?: React.Ref<HTMLInputElement>;
   };
 
-function Input({ className, variant, ref, ...props }: InputProps) {
-  return <input ref={ref} className={cn(inputVariants({ variant }), className)} {...props} />;
+function Input({ className, wrapperClassName, variant, ref, ...props }: InputProps) {
+  return (
+    <span data-slot="control" className={cn(fieldFrameVariants({ variant }), wrapperClassName)}>
+      <input ref={ref} className={cn(inputVariants({ variant }), className)} {...props} />
+    </span>
+  );
 }
 
 export { Input, inputVariants, type InputProps, type DocumentedInputProps };
