@@ -42,7 +42,7 @@ func assertRestateFailure(t *testing.T, restate *restateingress.Client) {
 		Slug:             strings.ToLower(strings.ReplaceAll(uid.New("failure"), "_", "-")),
 		DeleteProtection: false,
 	})
-	rootKey := h.CreateRootKey(workspace.ID, "project.*.delete_project")
+	rootKey := h.CreateRootKey(workspace.ID, fmt.Sprintf("unkey:v1:%s:projects/*#delete", workspace.ID))
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},

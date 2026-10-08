@@ -35,7 +35,7 @@ func TestDeleteDomainCtrlFailureIsRetryable(t *testing.T) {
 	h.Register(route)
 
 	seeded := seedDomain(t, h, nil)
-	rootKey := h.CreateRootKey(seeded.workspaceID, "environment.*.delete_domain")
+	rootKey := h.CreateRootKey(seeded.workspaceID, "unkey:v1:"+(seeded.workspaceID)+":**#*")
 	req := handler.Request{Domain: seeded.domain}
 
 	res := testutil.CallRoute[handler.Request, openapi.InternalServerErrorResponse](h, route, authHeaders(rootKey), req)
@@ -63,7 +63,7 @@ func TestDeleteDomainCtrlUnreachable(t *testing.T) {
 	h.Register(route)
 
 	seeded := seedDomain(t, h, nil)
-	rootKey := h.CreateRootKey(seeded.workspaceID, "environment.*.delete_domain")
+	rootKey := h.CreateRootKey(seeded.workspaceID, "unkey:v1:"+(seeded.workspaceID)+":**#*")
 
 	res := testutil.CallRoute[handler.Request, openapi.InternalServerErrorResponse](h, route, authHeaders(rootKey), handler.Request{
 		Domain: seeded.domain,

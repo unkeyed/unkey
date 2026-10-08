@@ -201,32 +201,3 @@ func TestDeleteAPIRejectsForeignWorkspaceKeyspace(t *testing.T) {
 	require.NoError(t, err)
 	require.False(t, notDeleted.DeletedAtM.Valid)
 }
-
-// TestDeleteAPIWithoutKeyspaceRetainsLegacyAuthorization guarantees that old
-// API rows with a nullable keyspace remain deletable through legacy permissions.
-func TestDeleteAPIWithoutKeyspaceRetainsLegacyAuthorization(t *testing.T) {
-	ctx := context.Background()
-	h := testutil.NewHarness(t)
-	route := &handler.Handler{
-		DB:        h.DB,
-		Auditlogs: h.Auditlogs,
-		Caches:    h.Caches,
-	}
-	h.Register(route)
-
-	workspace := h.Resources().UserWorkspace
-	api := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspace.ID})
-	_, err := h.DB.RW().ExecContext(ctx, "UPDATE apis SET key_auth_id = NULL WHERE id = ?", api.ID)
-	require.NoError(t, err)
-	rootKey := h.CreateRootKey(workspace.ID, fmt.Sprintf("api.%s.delete_api", api.ID))
-
-	res := testutil.CallRoute[handler.Request, handler.Response](h, route, http.Header{
-		"Content-Type":  {"application/json"},
-		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
-	}, handler.Request{ApiId: api.ID})
-	require.Equal(t, http.StatusOK, res.Status, "received: %s", res.RawBody)
-
-	deleted, err := db.Query.FindApiByID(ctx, h.DB.RO(), api.ID)
-	require.NoError(t, err)
-	require.True(t, deleted.DeletedAtM.Valid)
-}

@@ -72,11 +72,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	)
 	err = principal.Authorize(rbac.Or(
 		deletePermission,
-		rbac.T(rbac.Tuple{
-			ResourceType: rbac.Rbac,
-			ResourceID:   "*",
-			Action:       rbac.DeletePermission,
-		}),
 	))
 	if err != nil {
 		return apierrors.MaskInsufficientPermissionsAsNotFound(

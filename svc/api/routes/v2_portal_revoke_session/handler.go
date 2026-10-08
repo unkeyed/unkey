@@ -138,21 +138,9 @@ func (h *Handler) authorizedPortal(ctx context.Context, principal *authprincipal
 
 	// Same grant as minting, but no root-key-only guard: revoking only removes
 	// access, so a dashboard admin may do it too.
-	err = principal.Authorize(rbac.Or(
-		rbac.T(rbac.Tuple{
-			ResourceType: rbac.Portal,
-			ResourceID:   "*",
-			Action:       rbac.CreatePortalSession,
-		}),
-		rbac.T(rbac.Tuple{
-			ResourceType: rbac.Portal,
-			ResourceID:   found.ID,
-			Action:       rbac.CreatePortalSession,
-		}),
-		rbac.U(
-			urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(found.ProjectID).Portal(found.ID).Session("*"),
-			permissions.Write,
-		),
+	err = principal.Authorize(rbac.U(
+		urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(found.ProjectID).Portal(found.ID).Session("*"),
+		permissions.Write,
 	))
 	if err != nil {
 		return db.Portal{}, apierrors.MaskInsufficientPermissionsAsNotFound(err, codes.Data.Portal.NotFound.URN(), notFoundMessage)

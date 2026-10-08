@@ -121,16 +121,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	// Permission check
 	err = principal.Authorize(rbac.Or(
-		rbac.T(rbac.Tuple{
-			ResourceType: rbac.Api,
-			ResourceID:   "*",
-			Action:       rbac.DeleteKey,
-		}),
-		rbac.T(rbac.Tuple{
-			ResourceType: rbac.Api,
-			ResourceID:   key.Api.ID,
-			Action:       rbac.DeleteKey,
-		}),
+
 		rbac.U(
 			urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(key.KeyAuth.ProjectID).Keyspace(key.Key.KeyAuthID).Key(req.KeyId),
 			permissions.Delete,

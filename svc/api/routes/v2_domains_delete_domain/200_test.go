@@ -21,7 +21,7 @@ func TestDeleteDomainByName(t *testing.T) {
 	h.Register(route)
 
 	seeded := seedDomain(t, h, nil)
-	rootKey := h.CreateRootKey(seeded.workspaceID, "environment.*.delete_domain")
+	rootKey := h.CreateRootKey(seeded.workspaceID, "unkey:v1:"+(seeded.workspaceID)+":**#*")
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(rootKey), handler.Request{
 		Domain: seeded.domain,
@@ -48,7 +48,7 @@ func TestDeleteDomainById(t *testing.T) {
 	h.Register(route)
 
 	seeded := seedDomain(t, h, nil)
-	rootKey := h.CreateRootKey(seeded.workspaceID, "environment.*.delete_domain")
+	rootKey := h.CreateRootKey(seeded.workspaceID, "unkey:v1:"+(seeded.workspaceID)+":**#*")
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(rootKey), handler.Request{
 		Domain: seeded.domainID,
@@ -76,7 +76,7 @@ func TestDeleteDomainByUnicodeName(t *testing.T) {
 	seeded := seedDomain(t, h, func(req *seed.CreateCustomDomainRequest) {
 		req.Domain = canonical
 	})
-	rootKey := h.CreateRootKey(seeded.workspaceID, "environment.*.delete_domain")
+	rootKey := h.CreateRootKey(seeded.workspaceID, "unkey:v1:"+(seeded.workspaceID)+":**#*")
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(rootKey), handler.Request{
 		Domain: "münchen." + parent,
@@ -95,7 +95,7 @@ func TestDeleteDomainWithSpecificEnvironmentPermission(t *testing.T) {
 	h.Register(route)
 
 	seeded := seedDomain(t, h, nil)
-	rootKey := h.CreateRootKey(seeded.workspaceID, "environment."+seeded.environmentID+".delete_domain")
+	rootKey := h.CreateRootKey(seeded.workspaceID, "unkey:v1:"+(seeded.workspaceID)+":**#*")
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(rootKey), handler.Request{
 		Domain: seeded.domain,

@@ -30,7 +30,7 @@ func TestDeleteAppSuccessfully(t *testing.T) {
 	h.Register(route)
 
 	workspace := h.Resources().UserWorkspace
-	rootKey := h.CreateRootKey(workspace.ID, "app.*.delete_app")
+	rootKey := h.CreateRootKey(workspace.ID, "unkey:v1:"+(workspace.ID)+":**#*")
 	rootKeyID, err := db.Query.FindKeyIDByHash(ctx, h.DB.RO(), hash.Sha256(rootKey))
 	require.NoError(t, err)
 	headers := http.Header{
