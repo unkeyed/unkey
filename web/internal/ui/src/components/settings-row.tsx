@@ -5,13 +5,6 @@ import { cn } from "../lib/utils";
 import { Button } from "./buttons/button";
 import { type GroupSave, type SaveState, resolveGroupSave } from "./settings-save";
 
-const saveButtonClasses = cn(
-  "ml-auto px-3 duration-200 ease-[ease] motion-reduce:transition-none",
-  "disabled:border-transparent disabled:bg-grayA-3 disabled:text-grayA-9",
-  "after:transition-opacity after:duration-200 after:ease-[ease] motion-reduce:after:transition-none",
-  "disabled:after:block disabled:after:opacity-0 aria-disabled:after:block aria-disabled:after:opacity-0",
-);
-
 type Member = {
   dirty: boolean;
   saveState: SaveState;
@@ -114,8 +107,8 @@ function SettingsGroupContent({ className, children, ...props }: React.Component
             <Button
               variant="primary"
               size="sm"
-              className={saveButtonClasses}
-              disabled={save.status !== "ready"}
+              className="ml-auto px-3"
+              disabled={save.status === "clean" || save.status === "blocked"}
               loading={save.status === "saving"}
               onClick={saveReady}
             >
