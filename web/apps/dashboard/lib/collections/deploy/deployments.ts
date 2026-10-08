@@ -136,6 +136,7 @@ type DeploymentDetailsById = Awaited<
 >;
 type RowDetails = Pick<
   Deployment,
+  | "projectId"
   | "appId"
   | "environmentId"
   | "hasOpenApiSpec"

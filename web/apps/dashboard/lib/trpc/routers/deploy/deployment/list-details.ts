@@ -19,7 +19,7 @@ type DesiredRegion = {
 
 type DeploymentDetails = Pick<
   InferSelectModel<typeof deployments>,
-  "id" | "appId" | "environmentId" | "desiredState" | "triggerReason"
+  "id" | "projectId" | "appId" | "environmentId" | "desiredState" | "triggerReason"
 > & {
   instances: ReturnType<typeof mapInstanceRow>[];
   lastExit: LastExit | null;
