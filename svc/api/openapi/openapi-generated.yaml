@@ -15059,8 +15059,11 @@ paths:
     /v2/logdrains.listLogdrains:
         post:
             description: |
-                List log drains in your workspace in ascending ID order, without credential
-                values. Requires `unkey:v1:{workspaceId}:logdrains/*#read`.
+                List readable log drains in your workspace in ascending ID order, without
+                credential values. Each drain requires
+                `unkey:v1:{workspaceId}:logdrains/{logdrainId}#read` or a broader read grant.
+                Drains without read permission are omitted from pages and cursors.
+                If no drains are readable, the response contains an empty list.
             operationId: logdrains.listLogdrains
             requestBody:
                 content:
