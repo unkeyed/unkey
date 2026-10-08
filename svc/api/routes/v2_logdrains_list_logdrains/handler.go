@@ -10,14 +10,15 @@ import (
 	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
+	"github.com/unkeyed/unkey/svc/api/internal/logdrainconfig"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
-type List struct{ DB db.Database }
+type Handler struct{ DB db.Database }
 
-func (h *List) Method() string { return http.MethodPost }
-func (h *List) Path() string   { return "/v2/logdrains.listLogdrains" }
-func (h *List) Handle(ctx context.Context, s *zen.Session) error {
+func (h *Handler) Method() string { return http.MethodPost }
+func (h *Handler) Path() string   { return "/v2/logdrains.listLogdrains" }
+func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	principal, err := s.GetPrincipal()
 	if err != nil {
 		return err
@@ -54,7 +55,7 @@ func (h *List) Handle(ctx context.Context, s *zen.Session) error {
 		rows = rows[:limit]
 	}
 	for _, row := range rows {
-		data, err := toPublic(row)
+		data, err := logdrainconfig.ToPublic(row)
 		if err != nil {
 			return err
 		}
