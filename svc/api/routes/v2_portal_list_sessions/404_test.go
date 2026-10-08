@@ -1,13 +1,15 @@
 package handler_test
 
 import (
-	"fmt"
 	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_portal_list_sessions"
@@ -22,8 +24,8 @@ func TestListSessionsUnknownPortal(t *testing.T) {
 	theirs := seedPortal(t, h, other.ID, "list-theirs-404")
 	unknownID := uid.New(uid.PortalPrefix)
 	route, headers := newRoute(t, h,
-		fmt.Sprintf("unkey:v1:%s:projects/%s/portals/%s/sessions/*#read", workspace.ID, theirs.ProjectID, theirs.ID),
-		fmt.Sprintf("unkey:v1:%s:projects/*/portals/%s/sessions/*#read", workspace.ID, unknownID))
+		rbac.U(urn.New().Workspace(workspace.ID).Project(theirs.ProjectID).Portal(theirs.ID).Session("*"), permissions.Read).Value,
+		rbac.U(urn.New().Workspace(workspace.ID).Project("*").Portal(unknownID).Session("*"), permissions.Read).Value)
 	insertSession(t, h, theirs.ID, other.ID, active(h, "user_1"))
 
 	testCases := map[string]string{
@@ -52,11 +54,9 @@ func TestListSessionsWithoutPermission(t *testing.T) {
 	insertSession(t, h, stored.ID, workspace.ID, active(h, "user_1"))
 
 	testCases := map[string][]string{
-		"no permissions": nil,
-		"portal resource only": {fmt.Sprintf("unkey:v1:%s:projects/%s/portals/%s#write",
-			workspace.ID, stored.ProjectID, stored.ID)},
-		"another portal only": {fmt.Sprintf("unkey:v1:%s:projects/%s/portals/%s/sessions/*#read",
-			workspace.ID, stored.ProjectID, uid.New(uid.PortalPrefix))},
+		"no permissions":       nil,
+		"portal resource only": {rbac.U(urn.New().Workspace(workspace.ID).Project(stored.ProjectID).Portal(stored.ID), permissions.Write).Value},
+		"another portal only":  {rbac.U(urn.New().Workspace(workspace.ID).Project(stored.ProjectID).Portal(uid.New(uid.PortalPrefix)).Session("*"), permissions.Read).Value},
 	}
 
 	for name, permissions := range testCases {

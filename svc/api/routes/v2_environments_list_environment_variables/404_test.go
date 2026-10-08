@@ -1,12 +1,14 @@
 package handler_test
 
 import (
-	"fmt"
 	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_environments_list_environment_variables"
 )
@@ -19,7 +21,7 @@ func TestListEnvironmentVariablesEnvironmentNotFound(t *testing.T) {
 
 	env := seedEnvironment(t, h)
 	missingID := uid.New(uid.EnvironmentPrefix)
-	rootKey := h.CreateRootKey(env.workspaceID, fmt.Sprintf("unkey:v1:%s:projects/%s/apps/%s/environments/%s/variables/*#read", env.workspaceID, env.projectID, env.appID, missingID))
+	rootKey := h.CreateRootKey(env.workspaceID, rbac.U(urn.New().Workspace(env.workspaceID).Project(env.projectID).App(env.appID).Environment(missingID).Variable("*"), permissions.Read).Value)
 	headers := authHeaders(rootKey)
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{

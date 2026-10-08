@@ -1,12 +1,14 @@
 package handler_test
 
 import (
-	"fmt"
 	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/svc/api/internal/portal"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_portal_get_portal"
@@ -28,9 +30,9 @@ func TestGetPortalMasksEveryMiss(t *testing.T) {
 	otherKeyspace := keyspaceMapping(t, h, other.ID)
 	otherPortal := h.SeedPortal(t, other.ID, "theirs", "theirs", otherKeyspace, nil, nil)
 	route, headers := newRoute(t, h,
-		fmt.Sprintf("unkey:v1:%s:projects/%s/portals/%s#read", workspace.ID, visible.ProjectID, visible.ID),
-		fmt.Sprintf("unkey:v1:%s:projects/%s/portals/%s#read", workspace.ID, otherPortal.ProjectID, otherPortal.ID),
-		fmt.Sprintf("unkey:v1:%s:projects/*/portals/pc_doesnotexist#read", workspace.ID))
+		rbac.U(urn.New().Workspace(workspace.ID).Project(visible.ProjectID).Portal(visible.ID), permissions.Read).Value,
+		rbac.U(urn.New().Workspace(workspace.ID).Project(otherPortal.ProjectID).Portal(otherPortal.ID), permissions.Read).Value,
+		rbac.U(urn.New().Workspace(workspace.ID).Project("*").Portal("pc_doesnotexist"), permissions.Read).Value)
 	ok := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
 		Portal:     new(visible.ID),
 		KeyspaceId: nil,
@@ -87,8 +89,7 @@ func TestGetPortalDenialMatchesAbsence(t *testing.T) {
 	stored := h.SeedPortal(t, workspace.ID, "parity", "parity", keyspaceMapping(t, h, workspace.ID),
 		nil, nil)
 
-	deniedKey := h.CreateRootKey(workspace.ID, fmt.Sprintf(
-		"unkey:v1:%s:projects/%s/portals/%s#delete", workspace.ID, stored.ProjectID, stored.ID))
+	deniedKey := h.CreateRootKey(workspace.ID, rbac.U(urn.New().Workspace(workspace.ID).Project(stored.ProjectID).Portal(stored.ID), permissions.Delete).Value)
 	denied := testutil.CallRoute[handler.Request, handler.Response](h, route, headersFor(deniedKey), handler.Request{
 		Portal:     new(stored.ID),
 		KeyspaceId: nil,
@@ -97,7 +98,7 @@ func TestGetPortalDenialMatchesAbsence(t *testing.T) {
 	require.Equal(t, http.StatusNotFound, denied.Status,
 		"a denial must be masked, received: %s", denied.RawBody)
 
-	allowedKey := h.CreateRootKey(workspace.ID, fmt.Sprintf("unkey:v1:%s:projects/*/portals/pc_doesnotexist#read", workspace.ID))
+	allowedKey := h.CreateRootKey(workspace.ID, rbac.U(urn.New().Workspace(workspace.ID).Project("*").Portal("pc_doesnotexist"), permissions.Read).Value)
 	absent := testutil.CallRoute[handler.Request, handler.Response](h, route, headersFor(allowedKey), handler.Request{
 		Portal:     new("pc_doesnotexist"),
 		KeyspaceId: nil,
