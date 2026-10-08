@@ -43,11 +43,11 @@ CREATE TABLE `deployments` (
 	CONSTRAINT `deployments_build_id_unique` UNIQUE(`build_id`)
 );
 
-CREATE INDEX `workspace_idx` ON `deployments` (`workspace_id`);
+CREATE INDEX `workspace_created_at_idx` ON `deployments` (`workspace_id`,`created_at`);
 
-CREATE INDEX `project_idx` ON `deployments` (`project_id`);
+CREATE INDEX `project_created_at_idx` ON `deployments` (`project_id`,`created_at`);
 
 CREATE INDEX `status_idx` ON `deployments` (`status`);
 
-CREATE INDEX `app_idx` ON `deployments` (`app_id`);
+CREATE INDEX `app_created_at_idx` ON `deployments` (`app_id`,`created_at`);
 
