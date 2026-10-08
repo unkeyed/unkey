@@ -2,6 +2,7 @@ package handler_test
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"net/http"
 	"strings"
@@ -173,19 +174,6 @@ func fetchPortal(t *testing.T, h *testutil.Harness, workspaceID, portalID string
 		db.FindPortalByIdOrSlugParams{Portal: portalID, WorkspaceID: workspaceID})
 	require.NoError(t, err)
 	return stored
-}
-
-// liveSessions counts a portal's unrevoked sessions. Revocation is asserted
-// against the column rather than through the session resolver, whose cache would
-// otherwise decide the result.
-func liveSessions(t *testing.T, h *testutil.Harness, portalID string) int {
-	t.Helper()
-
-	var count int
-	require.NoError(t, h.DB.RO().QueryRowContext(context.Background(),
-		"SELECT COUNT(*) FROM portal_sessions WHERE portal_id = ? AND revoked_at IS NULL", portalID,
-	).Scan(&count))
-	return count
 }
 
 // countPortals counts portals in a workspace, so a rejected call can be shown to
@@ -426,7 +414,7 @@ func TestUpdatePortalRepointsMappingAndRevokesSessions(t *testing.T) {
 
 	h.CreatePortalSessionForPortal(stored.ID, workspace.ID, "user_1", []string{keyspace.ID}, []string{"keys.read"})
 	h.CreatePortalSessionForPortal(stored.ID, workspace.ID, "user_2", []string{keyspace.ID}, []string{"keys.read"})
-	require.Equal(t, 2, liveSessions(t, h, stored.ID))
+	require.Equal(t, 2, h.CountLivePortalSessions(t, stored.ID, ""))
 
 	// A different portal in the same workspace, whose sessions must survive.
 	bystander := h.SeedPortal(t, workspace.ID, "bystander", "bystander", keyspaceMapping(t, h, workspace.ID),
@@ -447,9 +435,9 @@ func TestUpdatePortalRepointsMappingAndRevokesSessions(t *testing.T) {
 	require.Equal(t, project, row.ProjectID,
 		"a remap within the project leaves the stored project alone")
 
-	require.Equal(t, 0, liveSessions(t, h, stored.ID),
+	require.Equal(t, 0, h.CountLivePortalSessions(t, stored.ID, ""),
 		"re-pointing the mapping revokes the portal's sessions")
-	require.Equal(t, 1, liveSessions(t, h, bystander.ID),
+	require.Equal(t, 1, h.CountLivePortalSessions(t, bystander.ID, ""),
 		"another portal's sessions must be untouched")
 }
 
@@ -480,12 +468,12 @@ func TestUpdatePortalWithoutMappingChangeKeepsSessions(t *testing.T) {
 	for name, mutate := range testCases {
 		t.Run(name, func(t *testing.T) {
 			h.CreatePortalSessionForPortal(stored.ID, workspace.ID, "user_"+name, []string{mapping.ID}, []string{"keys.read"})
-			before := liveSessions(t, h, stored.ID)
+			before := h.CountLivePortalSessions(t, stored.ID, "")
 			require.Positive(t, before, "the fixture must have a live session to lose")
 
 			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, mutate(baseRequest(stored.ID)))
 			require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
-			require.Equal(t, before, liveSessions(t, h, stored.ID),
+			require.Equal(t, before, h.CountLivePortalSessions(t, stored.ID, ""),
 				"sessions must survive an update that leaves the mapping alone")
 		})
 	}
@@ -502,20 +490,20 @@ func TestUpdatePortalDisableRevokesSessions(t *testing.T) {
 	bystander := h.SeedPortal(t, workspace.ID, "still-on", "still-on", keyspaceMapping(t, h, workspace.ID), nil, nil)
 	h.CreatePortalSessionForPortal(stored.ID, workspace.ID, "user_1", []string{mapping.ID}, []string{"keys.read"})
 	h.CreatePortalSessionForPortal(bystander.ID, workspace.ID, "user_2", []string{mapping.ID}, []string{"keys.read"})
-	require.Equal(t, 1, liveSessions(t, h, stored.ID), "the fixture must have a live session to lose")
+	require.Equal(t, 1, h.CountLivePortalSessions(t, stored.ID, ""), "the fixture must have a live session to lose")
 
 	disable := baseRequest(stored.ID)
 	disable.Enabled = new(false)
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, disable)
 	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
-	require.Equal(t, 0, liveSessions(t, h, stored.ID), "disabling revokes the portal's sessions")
-	require.Equal(t, 1, liveSessions(t, h, bystander.ID), "another portal's sessions must be untouched")
+	require.Equal(t, 0, h.CountLivePortalSessions(t, stored.ID, ""), "disabling revokes the portal's sessions")
+	require.Equal(t, 1, h.CountLivePortalSessions(t, bystander.ID, ""), "another portal's sessions must be untouched")
 
 	enable := baseRequest(stored.ID)
 	enable.Enabled = new(true)
 	res = testutil.CallRoute[handler.Request, handler.Response](h, route, headers, enable)
 	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
-	require.Equal(t, 0, liveSessions(t, h, stored.ID), "re-enabling does not restore revoked sessions")
+	require.Equal(t, 0, h.CountLivePortalSessions(t, stored.ID, ""), "re-enabling does not restore revoked sessions")
 }
 
 // Disabling a portal that's already off revokes nothing.
@@ -524,17 +512,22 @@ func TestUpdatePortalAlreadyDisabledKeepsSessions(t *testing.T) {
 	route, headers := newRoute(t, h, "portal.*.update_portal")
 	workspace := h.Resources().UserWorkspace
 
-	mapping := keyspaceMapping(t, h, workspace.ID)
-	stored := h.SeedPortal(t, workspace.ID, "already-off", "already-off", mapping, nil, nil)
-	_, err := h.DB.RW().ExecContext(context.Background(), "UPDATE portals SET enabled = false WHERE id = ?", stored.ID)
-	require.NoError(t, err)
+	mapping, projectID := keyspaceMappingWithProject(t, h, workspace.ID)
+	stored := h.CreatePortal(seed.CreatePortalRequest{
+		WorkspaceID: workspace.ID,
+		ProjectID:   projectID,
+		Slug:        "already-off",
+		DisplayName: "already-off",
+		KeyAuthID:   sql.NullString{String: mapping.ID, Valid: true},
+		Enabled:     false,
+	})
 	h.CreatePortalSessionForPortal(stored.ID, workspace.ID, "user_1", []string{mapping.ID}, []string{"keys.read"})
 
 	req := baseRequest(stored.ID)
 	req.Enabled = new(false)
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
-	require.Equal(t, 1, liveSessions(t, h, stored.ID), "a no-op disable must not revoke")
+	require.Equal(t, 1, h.CountLivePortalSessions(t, stored.ID, ""), "a no-op disable must not revoke")
 }
 
 // The target is an id or a slug, and both must reach the same row.

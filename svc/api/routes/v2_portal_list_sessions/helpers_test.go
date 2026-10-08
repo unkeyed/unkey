@@ -3,6 +3,7 @@ package handler_test
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"testing"
@@ -10,6 +11,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	portalservice "github.com/unkeyed/unkey/internal/services/portal"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/hash"
 	"github.com/unkeyed/unkey/pkg/uid"
@@ -66,14 +68,20 @@ func seedPortal(t *testing.T, h *testutil.Harness, workspaceID, slug string) db.
 	return h.SeedPortal(t, workspaceID, slug, slug, mapping, nil, nil)
 }
 
+// grantedKeyspaceID is the keyspace every seeded session is scoped to, so a
+// response can be checked for leaking it.
+var grantedKeyspaceID = uid.New(uid.KeySpacePrefix)
+
 // session describes one portal_sessions row to seed. A nil tokenExpiresAt leaves
-// the session pending; otherwise it was exchanged and expires then.
+// the session pending; otherwise it was exchanged and expires then. A non-nil
+// rawScopes is stored verbatim in place of grant.
 type session struct {
 	externalID     string
 	codeExpiresAt  time.Time
 	tokenExpiresAt *time.Time
 	revoked        bool
-	scopes         string
+	grant          portalservice.Grant
+	rawScopes      []byte
 }
 
 // pending is an unopened session whose portal URL is still valid.
@@ -83,7 +91,8 @@ func pending(h *testutil.Harness, externalID string) session {
 		codeExpiresAt:  h.Clock.Now().Add(15 * time.Minute),
 		tokenExpiresAt: nil,
 		revoked:        false,
-		scopes:         `{"keyspaceIds":["ks_1"],"scopes":["keys:read"]}`,
+		grant:          portalservice.Grant{KeyspaceIDs: []string{grantedKeyspaceID}, Scopes: []string{"keys:read"}},
+		rawScopes:      nil,
 	}
 }
 
@@ -95,7 +104,8 @@ func active(h *testutil.Harness, externalID string) session {
 		codeExpiresAt:  h.Clock.Now().Add(-time.Minute),
 		tokenExpiresAt: new(h.Clock.Now().Add(24 * time.Hour)),
 		revoked:        false,
-		scopes:         `{"keyspaceIds":["ks_1"],"scopes":["keys:read","keys:reroll"]}`,
+		grant:          portalservice.Grant{KeyspaceIDs: []string{grantedKeyspaceID}, Scopes: []string{"keys:read", "keys:reroll"}},
+		rawScopes:      nil,
 	}
 }
 
@@ -109,12 +119,19 @@ func insertSession(t *testing.T, h *testutil.Harness, portalID, workspaceID stri
 	now := h.Clock.Now()
 	ctx := context.Background()
 
+	scopes := s.rawScopes
+	if scopes == nil {
+		var err error
+		scopes, err = json.Marshal(s.grant)
+		require.NoError(t, err)
+	}
+
 	err := db.Query.InsertPortalSession(ctx, h.DB.RW(), db.InsertPortalSessionParams{
 		ID:                    id,
 		WorkspaceID:           workspaceID,
 		PortalID:              portalID,
 		ExternalID:            s.externalID,
-		Scopes:                []byte(s.scopes),
+		Scopes:                scopes,
 		ExchangeCodeHash:      hash.Sha256(exchangeCode),
 		ExchangeCodeExpiresAt: s.codeExpiresAt.UnixMilli(),
 		ReturnUrl:             sql.NullString{Valid: false, String: ""},
@@ -124,16 +141,27 @@ func insertSession(t *testing.T, h *testutil.Harness, portalID, workspaceID stri
 
 	if s.tokenExpiresAt != nil {
 		accessToken := string(uid.PortalAccessTokenPrefix) + "_" + uid.Secure()
-		_, err = h.DB.RW().ExecContext(ctx,
-			"UPDATE portal_sessions SET access_token_hash = ?, access_token_created_at = ?, access_token_expires_at = ? WHERE id = ?",
-			hash.Sha256(accessToken), now.UnixMilli(), s.tokenExpiresAt.UnixMilli(), id,
-		)
+		res, err := db.Query.ExchangePortalSessionCode(ctx, h.DB.RW(), db.ExchangePortalSessionCodeParams{
+			AccessTokenHash:      sql.NullString{String: hash.Sha256(accessToken), Valid: true},
+			AccessTokenCreatedAt: sql.NullInt64{Int64: now.UnixMilli(), Valid: true},
+			AccessTokenExpiresAt: sql.NullInt64{Int64: s.tokenExpiresAt.UnixMilli(), Valid: true},
+			ExchangeCodeHash:     hash.Sha256(exchangeCode),
+			Now:                  s.codeExpiresAt.Add(-time.Millisecond).UnixMilli(),
+		})
 		require.NoError(t, err)
+		exchanged, err := res.RowsAffected()
+		require.NoError(t, err)
+		require.Equal(t, int64(1), exchanged)
 	}
 
 	if s.revoked {
-		_, err = h.DB.RW().ExecContext(ctx, "UPDATE portal_sessions SET revoked_at = ? WHERE id = ?", now.UnixMilli(), id)
+		revoked, err := db.Query.RevokePortalSessionsByIDs(ctx, h.DB.RW(), db.RevokePortalSessionsByIDsParams{
+			RevokedAt:   sql.NullInt64{Int64: now.UnixMilli(), Valid: true},
+			WorkspaceID: workspaceID,
+			Ids:         []string{id},
+		})
 		require.NoError(t, err)
+		require.Equal(t, int64(1), revoked)
 	}
 
 	return id

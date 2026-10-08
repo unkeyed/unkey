@@ -32,7 +32,7 @@ func TestNotFound(t *testing.T) {
 	}
 
 	t.Run("external ID does not exist", func(t *testing.T) {
-		nonExistentExternalID := "non_existent_external_id"
+		nonExistentExternalID := uid.New(uid.TestPrefix)
 		req := handler.Request{
 			Identity: nonExistentExternalID,
 		}
@@ -49,7 +49,7 @@ func TestNotFound(t *testing.T) {
 		// Create an identity that we'll mark as deleted
 		ctx := context.Background()
 		deletedIdentityID := uid.New(uid.IdentityPrefix)
-		deletedExternalID := "test_deleted_identity"
+		deletedExternalID := uid.New(uid.TestPrefix)
 
 		tx, err := h.DB.RW().Begin(ctx)
 		require.NoError(t, err)

@@ -68,6 +68,7 @@ func TestMigrateKeysSuccess(t *testing.T) {
 	})
 	require.NoError(t, err)
 
+	externalID := uid.New(uid.TestPrefix)
 	keyToMigrate := openapi.V2KeysMigrateKeyData{
 		Hash: generatedKey.LongTokenHash,
 		Credits: &openapi.KeyCreditsData{
@@ -75,7 +76,7 @@ func TestMigrateKeysSuccess(t *testing.T) {
 		},
 		Enabled:    new(false),
 		Expires:    nil,
-		ExternalId: new("ext_123"),
+		ExternalId: new(externalID),
 		Meta: new(map[string]interface{}{
 			"key": "value",
 		}),
@@ -93,7 +94,7 @@ func TestMigrateKeysSuccess(t *testing.T) {
 	}
 
 	t.Run("rejects identity from another project", func(t *testing.T) {
-		externalID := "ext_wrong_project"
+		externalID := uid.New(uid.TestPrefix)
 		err := db.Query.InsertIdentity(ctx, h.DB.RW(), db.InsertIdentityParams{
 			ID:          uid.New(uid.IdentityPrefix),
 			ExternalID:  externalID,
@@ -240,7 +241,7 @@ func TestMigrateKeysSuccess(t *testing.T) {
 		// First, verify the identity, permission, and role exist from the first migration
 		identity, err := db.Query.FindIdentitiesByExternalId(ctx, h.DB.RO(), db.FindIdentitiesByExternalIdParams{
 			WorkspaceID: h.Resources().UserWorkspace.ID,
-			ExternalIds: []string{"ext_123"},
+			ExternalIds: []string{externalID},
 		})
 		require.NoError(t, err, "Identity should exist from first migration")
 		require.Len(t, identity, 1, "Identity should exist from first migration")
@@ -281,12 +282,12 @@ func TestMigrateKeysSuccess(t *testing.T) {
 
 		require.NotNil(t, keydata.Identity)
 		require.Equal(t, identity[0].ID, keydata.Identity.ID, "Should reuse existing identity")
-		require.Equal(t, "ext_123", keydata.Identity.ExternalID)
+		require.Equal(t, externalID, keydata.Identity.ExternalID)
 
 		// Verify no duplicate identities were created
 		identities, err := db.Query.FindIdentitiesByExternalId(ctx, h.DB.RO(), db.FindIdentitiesByExternalIdParams{
 			WorkspaceID: h.Resources().UserWorkspace.ID,
-			ExternalIds: []string{"ext_123"},
+			ExternalIds: []string{externalID},
 			Deleted:     false,
 		})
 		require.NoError(t, err)

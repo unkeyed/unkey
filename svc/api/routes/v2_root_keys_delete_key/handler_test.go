@@ -1,11 +1,15 @@
 package handler_test
 
 import (
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/auditlog"
+	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
@@ -41,13 +45,7 @@ func TestDeleteRootKeyRecordsRootKeyAuditEvent(t *testing.T) {
 	res := call(h, route, caller, handler.Request{KeyId: target.KeyID})
 	require.Equal(t, http.StatusOK, res.Status, "%s", res.RawBody)
 
-	var event string
-	err := h.DB.RO().QueryRowContext(t.Context(),
-		"SELECT JSON_UNQUOTE(JSON_EXTRACT(payload, '$.event')) FROM clickhouse_outbox WHERE workspace_id = ? ORDER BY pk DESC LIMIT 1",
-		workspace.ID,
-	).Scan(&event)
-	require.NoError(t, err)
-	require.Equal(t, "rootKey.delete", event)
+	require.Equal(t, "rootKey.delete", latestAuditEvent(t, h, workspace.ID).Event)
 }
 
 // TestDeleteRootKeyAuditFallsBackToID guarantees an unnamed key remains
@@ -62,13 +60,19 @@ func TestDeleteRootKeyAuditFallsBackToID(t *testing.T) {
 	res := call(h, route, caller, handler.Request{KeyId: target.KeyID})
 	require.Equal(t, http.StatusOK, res.Status, "%s", res.RawBody)
 
-	var name string
-	err := h.DB.RO().QueryRowContext(t.Context(),
-		"SELECT JSON_UNQUOTE(JSON_EXTRACT(payload, '$.targets[0].name')) FROM clickhouse_outbox WHERE workspace_id = ? ORDER BY pk DESC LIMIT 1",
-		workspace.ID,
-	).Scan(&name)
+	event := latestAuditEvent(t, h, workspace.ID)
+	require.NotEmpty(t, event.Targets)
+	require.Equal(t, target.KeyID, event.Targets[0].Name)
+}
+
+func latestAuditEvent(t *testing.T, h *testutil.Harness, workspaceID string) auditlog.Event {
+	t.Helper()
+	rows, err := db.Query.ListClickhouseOutboxByWorkspace(t.Context(), h.DB.RO(), workspaceID)
 	require.NoError(t, err)
-	require.Equal(t, target.KeyID, name)
+	require.NotEmpty(t, rows)
+	var event auditlog.Event
+	require.NoError(t, json.Unmarshal(rows[len(rows)-1].Payload, &event))
+	return event
 }
 
 // TestDeleteRootKeyRequiresConcreteDeletePermission guarantees read, write, or
@@ -81,7 +85,7 @@ func TestDeleteRootKeyRequiresConcreteDeletePermission(t *testing.T) {
 	for _, permission := range []string{
 		"unkey:v1:" + workspace.ID + ":rootKeys/" + target.KeyID + "#read",
 		"unkey:v1:" + workspace.ID + ":rootKeys/" + target.KeyID + "#write",
-		"unkey:v1:" + workspace.ID + ":rootKeys/key_other#delete",
+		"unkey:v1:" + workspace.ID + ":rootKeys/" + uid.New(uid.KeyPrefix) + "#delete",
 	} {
 		t.Run(permission, func(t *testing.T) {
 			res := call(h, route, h.CreateRootKey(workspace.ID, permission), handler.Request{KeyId: target.KeyID})

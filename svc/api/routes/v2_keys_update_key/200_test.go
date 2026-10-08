@@ -13,6 +13,7 @@ import (
 	"github.com/unkeyed/unkey/internal/services/keys"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/hash"
+	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
@@ -426,7 +427,7 @@ func TestUpdateKeyConcurrentWithSameExternalId(t *testing.T) {
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 	}
 
-	externalID := "shared_identity_deadlock_test"
+	externalID := uid.New(uid.TestPrefix)
 
 	// Warm up the validator's schema cache with a single request so the
 	// concurrent burst exercises the deadlock regression rather than the

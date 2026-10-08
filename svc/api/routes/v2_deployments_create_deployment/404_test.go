@@ -47,7 +47,7 @@ func TestRedeployDeploymentNotFound(t *testing.T) {
 		Permissions: []string{"environment.*.create_deployment"},
 	})
 
-	req := deploymentRequest(t, setup.Project.Slug, setup.App.Slug, setup.Environment.Slug, "d_does_not_exist")
+	req := deploymentRequest(t, setup.Project.Slug, setup.App.Slug, setup.Environment.Slug, uid.New(uid.DeploymentPrefix))
 
 	res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, authHeaders(setup.RootKey), req)
 	require.Equal(t, http.StatusNotFound, res.Status, "expected 404, received: %s", res.RawBody)

@@ -18,6 +18,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/batch"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
+	pkgdb "github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/deploy/deployfail"
 	githubclient "github.com/unkeyed/unkey/pkg/github"
 	"github.com/unkeyed/unkey/pkg/mysql/sqlcomment"
@@ -987,10 +988,7 @@ func TestDeployTargetCarriesSourceColumns(t *testing.T) {
 	ctx := context.Background()
 	h := newCreateHarness(t, ctx)
 	h.setAppSource(t, ctx, db.AppsSourceTypeGit)
-	h.connectRepo(t, ctx)
-	_, err := h.database.RW().ExecContext(ctx,
-		"UPDATE github_repo_connections SET default_branch = ? WHERE app_id = ?", "release", h.appID)
-	require.NoError(t, err)
+	h.connectRepoWithDefaultBranch(t, ctx, sql.NullString{Valid: true, String: "release"})
 
 	target, err := h.database.FindDeployTarget(ctx, db.FindDeployTargetParams{
 		ProjectID:     h.projectID,
@@ -1560,11 +1558,18 @@ func (h *createHarness) deployment(t *testing.T, ctx context.Context, deployment
 
 func (h *createHarness) countDeployments(t *testing.T, ctx context.Context) int {
 	t.Helper()
-	var count int
-	require.NoError(t, h.database.RO().QueryRowContext(ctx,
-		"SELECT COUNT(*) FROM deployments WHERE app_id = ?", h.appID,
-	).Scan(&count))
-	return count
+	rows, err := pkgdb.Query.ListDeployments(ctx, h.database.RO(), pkgdb.ListDeploymentsParams{
+		WorkspaceID:     h.workspaceID,
+		ProjectID:       "",
+		AppID:           h.appID,
+		EnvironmentID:   "",
+		HasStatusFilter: false,
+		Statuses:        nil,
+		CursorID:        "",
+		Limit:           1000,
+	})
+	require.NoError(t, err)
+	return len(rows)
 }
 
 // queuedStep returns the queued step's ended_at, or nil while it is still open.
@@ -1611,24 +1616,37 @@ func (h *createHarness) auditPayload(t *testing.T, ctx context.Context, event au
 
 func (h *createHarness) clearRegions(t *testing.T, ctx context.Context) {
 	t.Helper()
-	_, err := h.database.RW().ExecContext(ctx,
-		"DELETE FROM app_regional_settings WHERE app_id = ?", h.appID)
-	require.NoError(t, err)
+	require.NoError(t, h.database.DeleteAppRegionalSettingsByEnvironmentId(ctx, h.environmentID))
 }
 
 func (h *createHarness) setRuntimeBounds(t *testing.T, ctx context.Context, port, cpuMillicores, memoryMib int32) {
 	t.Helper()
-	_, err := h.database.RW().ExecContext(ctx,
-		"UPDATE app_runtime_settings SET port = ?, cpu_millicores = ?, memory_mib = ? WHERE app_id = ?",
-		port, cpuMillicores, memoryMib, h.appID)
-	require.NoError(t, err)
+	require.NoError(t, h.database.UpsertAppRuntimeSettings(ctx, db.UpsertAppRuntimeSettingsParams{
+		WorkspaceID:      h.workspaceID,
+		AppID:            h.appID,
+		EnvironmentID:    h.environmentID,
+		Port:             port,
+		CpuMillicores:    cpuMillicores,
+		MemoryMib:        memoryMib,
+		StorageMib:       0,
+		Command:          nil,
+		Healthcheck:      mysqltype.NullHealthcheck{Healthcheck: nil, Valid: false},
+		ShutdownSignal:   db.AppRuntimeSettingsShutdownSignalSIGTERM,
+		UpstreamProtocol: db.AppRuntimeSettingsUpstreamProtocolHttp1,
+		SentinelConfig:   []byte("{}"),
+		OpenapiSpecPath:  sql.NullString{Valid: false},
+		CreatedAt:        time.Now().UnixMilli(),
+		UpdatedAt:        sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+	}))
 }
 
 func (h *createHarness) setCurrentDeployment(t *testing.T, ctx context.Context, deploymentID string) {
 	t.Helper()
-	_, err := h.database.RW().ExecContext(ctx,
-		"UPDATE apps SET current_deployment_id = ? WHERE id = ?", deploymentID, h.appID)
-	require.NoError(t, err)
+	require.NoError(t, h.database.SetAppCurrentDeployment(ctx, db.SetAppCurrentDeploymentParams{
+		DeploymentID: sql.NullString{Valid: true, String: deploymentID},
+		UpdatedAt:    sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+		AppID:        h.appID,
+	}))
 }
 
 func (h *createHarness) backdate(t *testing.T, ctx context.Context, deploymentID string, createdAt int64) {
@@ -1640,26 +1658,41 @@ func (h *createHarness) backdate(t *testing.T, ctx context.Context, deploymentID
 
 func (h *createHarness) grantComputePlan(t *testing.T, ctx context.Context) {
 	t.Helper()
-	_, err := h.database.RW().ExecContext(ctx,
-		"UPDATE workspace_billing SET plan_override = ? WHERE workspace_id = ?", "starter", h.workspaceID)
-	require.NoError(t, err)
+	require.NoError(t, pkgdb.Query.UpsertWorkspaceBillingPlanOverride(ctx, h.database.RW(), pkgdb.UpsertWorkspaceBillingPlanOverrideParams{
+		WorkspaceID:  h.workspaceID,
+		PlanOverride: sql.NullString{Valid: true, String: "starter"},
+		CreatedAtM:   time.Now().UnixMilli(),
+	}))
 }
 
 func (h *createHarness) clearComputePlan(t *testing.T, ctx context.Context) {
 	t.Helper()
-	_, err := h.database.RW().ExecContext(ctx,
-		"UPDATE workspace_billing SET plan = NULL, plan_override = NULL WHERE workspace_id = ?", h.workspaceID)
-	require.NoError(t, err)
+	require.NoError(t, h.database.ClearWorkspaceDeployPlan(ctx, db.ClearWorkspaceDeployPlanParams{
+		UpdatedAt: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+		ID:        h.workspaceID,
+	}))
+	require.NoError(t, pkgdb.Query.UpsertWorkspaceBillingPlanOverride(ctx, h.database.RW(), pkgdb.UpsertWorkspaceBillingPlanOverrideParams{
+		WorkspaceID:  h.workspaceID,
+		PlanOverride: sql.NullString{Valid: false},
+		CreatedAtM:   time.Now().UnixMilli(),
+	}))
 }
 
 func (h *createHarness) suspendSpend(t *testing.T, ctx context.Context) {
 	t.Helper()
-	_, err := h.database.RW().ExecContext(ctx,
-		"UPDATE workspace_billing SET spend_suspended = 1 WHERE workspace_id = ?", h.workspaceID)
-	require.NoError(t, err)
+	require.NoError(t, h.database.SetWorkspaceDeploySpendSuspended(ctx, db.SetWorkspaceDeploySpendSuspendedParams{
+		Suspended: true,
+		UpdatedAt: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+		ID:        h.workspaceID,
+	}))
 }
 
 func (h *createHarness) connectRepo(t *testing.T, ctx context.Context) {
+	t.Helper()
+	h.connectRepoWithDefaultBranch(t, ctx, sql.NullString{Valid: false})
+}
+
+func (h *createHarness) connectRepoWithDefaultBranch(t *testing.T, ctx context.Context, defaultBranch sql.NullString) {
 	t.Helper()
 	require.NoError(t, h.database.InsertGithubRepoConnection(ctx, db.InsertGithubRepoConnectionParams{
 		WorkspaceID:        h.workspaceID,
@@ -1668,6 +1701,7 @@ func (h *createHarness) connectRepo(t *testing.T, ctx context.Context) {
 		InstallationID:     12345,
 		RepositoryID:       67890,
 		RepositoryFullName: fixtureRepo,
+		DefaultBranch:      defaultBranch,
 		CreatedAt:          time.Now().UnixMilli(),
 		UpdatedAt:          sql.NullInt64{Valid: false},
 	}))
@@ -1769,7 +1803,5 @@ func (h *createHarness) seedOciSource(t *testing.T, ctx context.Context, image s
 // gets no build settings row.
 func (h *createHarness) dropBuildSettings(t *testing.T, ctx context.Context) {
 	t.Helper()
-	_, err := h.database.RW().ExecContext(ctx,
-		"DELETE FROM app_build_settings WHERE app_id = ?", h.appID)
-	require.NoError(t, err)
+	require.NoError(t, h.database.DeleteAppBuildSettingsByEnvironmentId(ctx, h.environmentID))
 }

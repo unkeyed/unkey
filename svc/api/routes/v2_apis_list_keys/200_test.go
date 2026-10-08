@@ -66,7 +66,7 @@ func TestSuccess(t *testing.T) {
 	require.NoError(t, err)
 
 	// Create test identities
-	identity1ExternalID := "test_user_1"
+	identity1ExternalID := uid.New(uid.TestPrefix)
 	identity1Meta, err := json.Marshal(map[string]string{"role": "admin"})
 	require.NoError(t, err)
 	identity1 := h.CreateIdentity(seed.CreateIdentityRequest{
@@ -75,7 +75,7 @@ func TestSuccess(t *testing.T) {
 		Meta:        identity1Meta,
 	})
 
-	identity2ExternalID := "test_user_2"
+	identity2ExternalID := uid.New(uid.TestPrefix)
 	identity2Meta, err := json.Marshal(map[string]string{"role": "user"})
 	require.NoError(t, err)
 	identity2 := h.CreateIdentity(seed.CreateIdentityRequest{
@@ -289,7 +289,7 @@ func TestSuccess(t *testing.T) {
 	})
 
 	t.Run("filter by non-existent external ID returns empty", func(t *testing.T) {
-		nonExistentID := "non_existent_user"
+		nonExistentID := uid.New(uid.TestPrefix)
 		req := handler.Request{
 			ApiId:      apiID,
 			ExternalId: &nonExistentID,

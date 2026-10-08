@@ -64,7 +64,7 @@ func TestAuthorizationErrors(t *testing.T) {
 	// Test case for permission for different API
 	t.Run("permission for different API", func(t *testing.T) {
 		// Create a root key with permissions for a specific different API
-		differentApiId := "api_different"
+		differentApiId := uid.New(uid.APIPrefix)
 		rootKey := h.CreateRootKey(
 			workspace.ID,
 			fmt.Sprintf("api.%s.delete_api", differentApiId),

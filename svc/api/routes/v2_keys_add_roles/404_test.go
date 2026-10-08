@@ -42,8 +42,8 @@ func TestNotFoundErrors(t *testing.T) {
 	// Test case for key not found
 	t.Run("key not found", func(t *testing.T) {
 		req := handler.Request{
-			KeyId: "key_nonexistent123456789", // Non-existent key ID
-			Roles: []string{"role_123"},
+			KeyId: uid.New(uid.KeyPrefix),
+			Roles: []string{uid.New(uid.RolePrefix)},
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](
@@ -83,7 +83,7 @@ func TestNotFoundErrors(t *testing.T) {
 
 		req := handler.Request{
 			KeyId: keyID, // Key from workspace2, but accessed with workspace1 root key
-			Roles: []string{"role_123"},
+			Roles: []string{uid.New(uid.RolePrefix)},
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](
@@ -118,7 +118,7 @@ func TestNotFoundErrors(t *testing.T) {
 		})
 		keyID := keyResponse.KeyID
 
-		nonExistentRoleId := "role_nonexistent123456789"
+		nonExistentRoleId := uid.New(uid.RolePrefix)
 		req := handler.Request{
 			KeyId: keyID,
 			Roles: []string{nonExistentRoleId},
@@ -156,7 +156,7 @@ func TestNotFoundErrors(t *testing.T) {
 		})
 		keyID := keyResponse.KeyID
 
-		nonExistentRoleName := "nonexistent_role"
+		nonExistentRoleName := uid.New(uid.TestPrefix)
 		req := handler.Request{
 			KeyId: keyID,
 			Roles: []string{nonExistentRoleName},
@@ -303,7 +303,7 @@ func TestNotFoundErrors(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		invalidName := "role_nonexistent123456789"
+		invalidName := uid.New(uid.TestPrefix)
 
 		req := handler.Request{
 			KeyId: keyID,
@@ -407,7 +407,7 @@ func TestNotFoundErrors(t *testing.T) {
 		require.NoError(t, err)
 
 		// Use non-existent role ID to simulate deleted role
-		deletedRoleID := "role_deleted123456789"
+		deletedRoleID := uid.New(uid.RolePrefix)
 
 		req := handler.Request{
 			KeyId: keyID,

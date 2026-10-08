@@ -16,6 +16,7 @@ import (
 	"github.com/unkeyed/sdks/api/go/v3/models/components"
 	"github.com/unkeyed/unkey/cmd/api/internal/testutil"
 	"github.com/unkeyed/unkey/pkg/cli"
+	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
 func TestCreateDomain(t *testing.T) {
@@ -96,8 +97,10 @@ func captureVerifyRequest(t *testing.T, args string) components.V2DomainsVerifyD
 		require.NoError(t, err)
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusAccepted)
-		_, err = w.Write([]byte(`{"meta":{"requestId":"test"},"data":{}}`))
-		require.NoError(t, err)
+		require.NoError(t, json.NewEncoder(w).Encode(openapi.V2DomainsVerifyDomainResponseBody{
+			Meta: openapi.Meta{RequestId: "test"},
+			Data: openapi.EmptyResponse{},
+		}))
 	}))
 	t.Cleanup(srv.Close)
 	orig := os.Stdout

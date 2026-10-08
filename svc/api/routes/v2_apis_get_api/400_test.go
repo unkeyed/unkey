@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_apis_get_api"
@@ -69,7 +70,7 @@ func TestGetApiInvalidRequest(t *testing.T) {
 	// Test with a valid apiId
 	t.Run("valid request", func(t *testing.T) {
 		// Create a test API in the database
-		apiID := "api_valid_test_id"
+		apiID := uid.New(uid.APIPrefix)
 
 		req := handler.Request{
 			ApiId: apiID,

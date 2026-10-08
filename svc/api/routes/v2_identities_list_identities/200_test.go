@@ -184,7 +184,7 @@ func TestSuccess(t *testing.T) {
 	t.Run("deleted identities are excluded", func(t *testing.T) {
 		// Create a new identity
 		deletedIdentityID := uid.New(uid.IdentityPrefix)
-		deletedExternalID := "test_deleted_user"
+		deletedExternalID := uid.New(uid.TestPrefix)
 
 		tx, err := h.DB.RW().Begin(ctx)
 		require.NoError(t, err)
@@ -294,7 +294,7 @@ func TestSuccess(t *testing.T) {
 		// Create a new workspace with exactly one identity
 		singleWorkspaceID := uid.New(uid.WorkspacePrefix)
 		singleIdentityID := uid.New(uid.IdentityPrefix)
-		singleExternalID := "test_single_user"
+		singleExternalID := uid.New(uid.TestPrefix)
 
 		tx, err := h.DB.RW().Begin(ctx)
 		require.NoError(t, err)

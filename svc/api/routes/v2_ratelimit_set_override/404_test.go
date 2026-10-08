@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_ratelimit_set_override"
@@ -32,7 +33,7 @@ func TestNamespaceNotFound(t *testing.T) {
 	// Test with non-existent namespace ID
 	t.Run("namespace id not found", func(t *testing.T) {
 		req := handler.Request{
-			Namespace:  "ns_nonexistent",
+			Namespace:  uid.New(uid.RatelimitNamespacePrefix),
 			Identifier: "some_identifier",
 			Limit:      10,
 			Duration:   1000,

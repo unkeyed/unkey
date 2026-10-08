@@ -44,7 +44,7 @@ func TestForbidden(t *testing.T) {
 	workspaceID := h.Resources().UserWorkspace.ID
 	identityID := uid.New(uid.IdentityPrefix)
 	otherIdentityID := uid.New(uid.IdentityPrefix)
-	externalID := "test_user_403"
+	externalID := uid.New(uid.TestPrefix)
 
 	// Insert test identity
 	err = db.Query.InsertIdentity(ctx, tx, db.InsertIdentityParams{
@@ -60,7 +60,7 @@ func TestForbidden(t *testing.T) {
 	// Insert another test identity
 	err = db.Query.InsertIdentity(ctx, tx, db.InsertIdentityParams{
 		ID:          otherIdentityID,
-		ExternalID:  "other_user_403",
+		ExternalID:  uid.New(uid.TestPrefix),
 		WorkspaceID: workspaceID,
 		Environment: "default",
 		CreatedAt:   time.Now().UnixMilli(),

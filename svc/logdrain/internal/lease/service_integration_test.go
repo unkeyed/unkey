@@ -33,8 +33,8 @@ func TestService_LeaseOwnership(t *testing.T) {
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, database.Close()) })
 
-	drainID := uid.New("ld", 16)
-	workspaceID := uid.New("ws", 16)
+	drainID := uid.New(uid.LogdrainPrefix, 16)
+	workspaceID := uid.New(uid.WorkspacePrefix, 16)
 	config, err := proto.Marshal(&logdrainv1.Config{
 		Destination: &logdrainv1.Config_Http{Http: &logdrainv1.HttpConfig{
 			Url:    "https://example.com/logs",

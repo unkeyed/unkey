@@ -18,6 +18,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/zen"
+	"github.com/unkeyed/unkey/svc/api/openapi"
 	"github.com/unkeyed/unkey/svc/frontline/internal/policies"
 	"github.com/unkeyed/unkey/svc/frontline/internal/policies/keyauth"
 )
@@ -33,10 +34,19 @@ func TestAPIExecutor_VerifiesPolicyAndBuildsPrincipal(t *testing.T) {
 		body, err := io.ReadAll(r.Body)
 		requests <- request{r.Method, r.URL.Path, r.Header.Get("Authorization"), r.Header.Get("Content-Type"), string(body), err}
 		w.Header().Set("Content-Type", "application/json")
-		_, err = io.WriteString(w, `{"data":{"valid":true,"code":"VALID","keyId":"key_orders","keyspaceId":"ks_secondary","name":"Orders","expires":1900000000123,"credits":0,"meta":{"plan":"pro"},"roles":["reader"],"permissions":["orders.read"],"identity":{"id":"id_customer","externalId":"customer_42","meta":{"org":"acme"}}}}`)
-		if err != nil {
-			t.Error(err)
-		}
+		writeVerifyResponse(t, w, openapi.V2KeysVerifyKeyResponseData{
+			Valid:       true,
+			Code:        openapi.VALID,
+			KeyId:       "key_orders",
+			KeyspaceId:  "ks_secondary",
+			Name:        "Orders",
+			Expires:     1900000000123,
+			Credits:     new(int64(0)),
+			Meta:        map[string]any{"plan": "pro"},
+			Roles:       []string{"reader"},
+			Permissions: []string{"orders.read"},
+			Identity:    &openapi.Identity{Id: "id_customer", ExternalId: "customer_42", Meta: map[string]any{"org": "acme"}},
+		})
 	}))
 	t.Cleanup(server.Close)
 	executor, err := keyauth.NewAPI(keyauth.APIConfig{BaseURL: server.URL, RootKey: "root_test", Clock: clock.New()})
@@ -121,9 +131,7 @@ func TestAPIExecutor_EmptyKeyspacesRemainRestricted(t *testing.T) {
 			t.Error(err)
 		}
 		requests <- string(body)
-		if _, err := io.WriteString(w, `{"data":{"valid":false,"code":"NOT_FOUND"}}`); err != nil {
-			t.Error(err)
-		}
+		writeVerifyResponse(t, w, openapi.V2KeysVerifyKeyResponseData{Valid: false, Code: openapi.NOTFOUND})
 	}))
 	req := httptest.NewRequest(http.MethodGet, "/orders", nil)
 	req.Header.Set("Authorization", "Bearer user_test")
@@ -137,16 +145,24 @@ func TestAPIExecutor_EmptyKeyspacesRemainRestricted(t *testing.T) {
 
 func TestAPIExecutor_PrincipalDefaults(t *testing.T) {
 	t.Parallel()
-	for _, tt := range []struct{ name, identity, want string }{
-		{"unlinked", "", `{"version":"v1","subject":"key_orders","type":"API_KEY","source":{"key":{"keyId":"key_orders","keySpaceId":"ks_orders","meta":{}}}}`},
-		{"linked", `,"identity":{"id":"id_customer","externalId":"customer_42"}`, `{"version":"v1","subject":"customer_42","type":"API_KEY","identity":{"externalId":"customer_42","meta":{}},"source":{"key":{"keyId":"key_orders","keySpaceId":"ks_orders","meta":{}}}}`},
+	for _, tt := range []struct {
+		name     string
+		identity *openapi.Identity
+		want     string
+	}{
+		{"unlinked", nil, `{"version":"v1","subject":"key_orders","type":"API_KEY","source":{"key":{"keyId":"key_orders","keySpaceId":"ks_orders","meta":{}}}}`},
+		{"linked", &openapi.Identity{Id: "id_customer", ExternalId: "customer_42"}, `{"version":"v1","subject":"customer_42","type":"API_KEY","identity":{"externalId":"customer_42","meta":{}},"source":{"key":{"keyId":"key_orders","keySpaceId":"ks_orders","meta":{}}}}`},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			executor := newAPIExecutor(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				if _, err := io.WriteString(w, `{"data":{"valid":true,"code":"VALID","keyId":"key_orders","keyspaceId":"ks_orders"`+tt.identity+`}}`); err != nil {
-					t.Error(err)
-				}
+				writeVerifyResponse(t, w, openapi.V2KeysVerifyKeyResponseData{
+					Valid:      true,
+					Code:       openapi.VALID,
+					KeyId:      "key_orders",
+					KeyspaceId: "ks_orders",
+					Identity:   tt.identity,
+				})
 			}))
 			req := httptest.NewRequest(http.MethodGet, "/orders", nil)
 			req.Header.Set("Authorization", "Bearer user_test")
@@ -163,7 +179,11 @@ func TestAPIExecutor_PrincipalDefaults(t *testing.T) {
 
 func TestAPIExecutor_RejectsHTTPFailuresWithoutRetrying(t *testing.T) {
 	t.Parallel()
-	valid := `{"data":{"valid":true,"code":"VALID","keyId":"key_orders","keyspaceId":"ks_orders"}}`
+	encoded, err := json.Marshal(openapi.V2KeysVerifyKeyResponseBody{
+		Data: openapi.V2KeysVerifyKeyResponseData{Valid: true, Code: openapi.VALID, KeyId: "key_orders", KeyspaceId: "ks_orders"},
+	})
+	require.NoError(t, err)
+	valid := string(encoded)
 	for _, tt := range []struct {
 		name   string
 		status int
@@ -242,23 +262,29 @@ func TestAPIExecutor_RejectsMissingCredentialsAndInvalidPolicyLocally(t *testing
 func TestAPIExecutor_RateLimitHeaders(t *testing.T) {
 	t.Parallel()
 	for _, tt := range []struct {
-		name, results, limit, remaining, reset, retry string
-		valid                                         bool
+		name                           string
+		results                        []openapi.VerifyKeyRatelimitData
+		limit, remaining, reset, retry string
+		valid                          bool
 	}{
-		{"lowest remaining", `[{"limit":70,"remaining":9,"reset":1700000004000,"exceeded":false},{"limit":11,"remaining":2,"reset":1700000002124,"exceeded":false}]`, "11", "2", "1700000002", "", true},
-		{"denial beats lower remaining", `[{"limit":70,"remaining":0,"reset":1700000004000,"exceeded":false},{"limit":11,"remaining":2,"reset":1700000002124,"exceeded":true}]`, "11", "2", "1700000002", "3", false},
-		{"minimum retry", `[{"limit":11,"remaining":0,"reset":1700000000000,"exceeded":true}]`, "11", "0", "1700000000", "1", false},
+		{"lowest remaining", []openapi.VerifyKeyRatelimitData{{Limit: 70, Remaining: 9, Reset: 1700000004000, Exceeded: false}, {Limit: 11, Remaining: 2, Reset: 1700000002124, Exceeded: false}}, "11", "2", "1700000002", "", true},
+		{"denial beats lower remaining", []openapi.VerifyKeyRatelimitData{{Limit: 70, Remaining: 0, Reset: 1700000004000, Exceeded: false}, {Limit: 11, Remaining: 2, Reset: 1700000002124, Exceeded: true}}, "11", "2", "1700000002", "3", false},
+		{"minimum retry", []openapi.VerifyKeyRatelimitData{{Limit: 11, Remaining: 0, Reset: 1700000000000, Exceeded: true}}, "11", "0", "1700000000", "1", false},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			status := "RATE_LIMITED"
+			status := openapi.RATELIMITED
 			if tt.valid {
-				status = "VALID"
+				status = openapi.VALID
 			}
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				if _, err := fmt.Fprintf(w, `{"data":{"valid":%t,"code":%q,"keyId":"key_orders","keyspaceId":"ks_orders","ratelimits":%s}}`, tt.valid, status, tt.results); err != nil {
-					t.Error(err)
-				}
+				writeVerifyResponse(t, w, openapi.V2KeysVerifyKeyResponseData{
+					Valid:      tt.valid,
+					Code:       status,
+					KeyId:      "key_orders",
+					KeyspaceId: "ks_orders",
+					Ratelimits: tt.results,
+				})
 			}))
 			t.Cleanup(server.Close)
 			executor, err := keyauth.NewAPI(keyauth.APIConfig{BaseURL: server.URL, RootKey: "root_test", Clock: clock.NewTestClock(time.UnixMilli(1700000000123))})
@@ -355,4 +381,11 @@ func newAPIExecutor(t *testing.T, handler http.Handler) *keyauth.APIExecutor {
 	executor, err := keyauth.NewAPI(keyauth.APIConfig{BaseURL: server.URL, RootKey: "root_test", Clock: clock.New()})
 	require.NoError(t, err)
 	return executor
+}
+
+func writeVerifyResponse(t *testing.T, w io.Writer, data openapi.V2KeysVerifyKeyResponseData) {
+	t.Helper()
+	if err := json.NewEncoder(w).Encode(openapi.V2KeysVerifyKeyResponseBody{Meta: openapi.Meta{RequestId: "test"}, Data: data}); err != nil {
+		t.Error(err)
+	}
 }

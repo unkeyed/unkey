@@ -9,6 +9,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -42,7 +43,7 @@ func TestNotFoundErrors(t *testing.T) {
 	// Test case for non-existent API
 	t.Run("non-existent API", func(t *testing.T) {
 		req := handler.Request{
-			ApiId: "api_does_not_exist",
+			ApiId: uid.New(uid.APIPrefix),
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](

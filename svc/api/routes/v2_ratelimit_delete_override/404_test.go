@@ -62,7 +62,7 @@ func TestNotFound(t *testing.T) {
 	// Test with non-existent namespace
 	t.Run("namespace not found", func(t *testing.T) {
 		req := handler.Request{
-			Namespace:  "ns_nonexistent",
+			Namespace:  uid.New(uid.RatelimitNamespacePrefix),
 			Identifier: "some_identifier",
 		}
 

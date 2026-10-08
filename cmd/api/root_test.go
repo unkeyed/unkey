@@ -3,7 +3,6 @@ package api
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -11,6 +10,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/cli"
+	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
 func TestEveryAPILeafHasOneBodyFlag(t *testing.T) {
@@ -71,7 +71,12 @@ func TestUpdatePolicyBodyPreservesMatchClear(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, request *http.Request) {
 		got, readErr = io.ReadAll(request.Body)
 		w.Header().Set("Content-Type", "application/json")
-		_, _ = w.Write([]byte(`{"meta":{"requestId":"test"},"data":{}}`))
+		if err := json.NewEncoder(w).Encode(openapi.V2GatewayUpdatePolicyResponseBody{
+			Meta: openapi.Meta{RequestId: "test"},
+			Data: openapi.EmptyResponse{},
+		}); err != nil {
+			t.Error(err)
+		}
 	}))
 	t.Cleanup(server.Close)
 
@@ -91,42 +96,42 @@ func TestBodyBypassesSpecialRequestConstruction(t *testing.T) {
 		name       string
 		command    []string
 		body       string
-		response   string
+		response   any
 		statusCode int
 	}{
 		{
 			name:       "app source union",
 			command:    []string{"apps", "create-app"},
 			body:       `{"project":"project","name":"Payments","slug":"payments","oci":{"image":"ghcr.io/acme/payments:v1"}}`,
-			response:   `{}`,
+			response:   map[string]any{},
 			statusCode: http.StatusOK,
 		},
 		{
 			name:       "deployment source",
 			command:    []string{"deployments", "create-deployment"},
 			body:       `{"project":"project","app":"app","environment":"production"}`,
-			response:   `{}`,
+			response:   map[string]any{},
 			statusCode: http.StatusCreated,
 		},
 		{
 			name:       "role selector union",
 			command:    []string{"permissions", "set-role-permissions"},
 			body:       `{"role":"admin","permissions":[]}`,
-			response:   `[]`,
+			response:   []any{},
 			statusCode: http.StatusOK,
 		},
 		{
 			name:       "portal resource union",
 			command:    []string{"portal", "create-portal"},
 			body:       `{"slug":"acme","displayName":"Acme","keyspaceId":"ks_1234abcd"}`,
-			response:   `{}`,
+			response:   map[string]any{},
 			statusCode: http.StatusOK,
 		},
 		{
 			name:       "portal selector union",
 			command:    []string{"portal", "get-portal"},
 			body:       `{"portal":"acme"}`,
-			response:   `{}`,
+			response:   map[string]any{},
 			statusCode: http.StatusOK,
 		},
 	}
@@ -140,8 +145,10 @@ func TestBodyBypassesSpecialRequestConstruction(t *testing.T) {
 				require.NoError(t, err)
 				w.Header().Set("Content-Type", "application/json")
 				w.WriteHeader(tt.statusCode)
-				_, err = w.Write(fmt.Appendf(nil, `{"meta":{"requestId":"test"},"data":%s}`, tt.response))
-				require.NoError(t, err)
+				require.NoError(t, json.NewEncoder(w).Encode(struct {
+					Meta openapi.Meta `json:"meta"`
+					Data any          `json:"data"`
+				}{Meta: openapi.Meta{RequestId: "test"}, Data: tt.response}))
 			}))
 			t.Cleanup(server.Close)
 

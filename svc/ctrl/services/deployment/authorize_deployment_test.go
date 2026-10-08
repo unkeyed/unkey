@@ -18,6 +18,7 @@ import (
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/batch"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
+	pkgdb "github.com/unkeyed/unkey/pkg/db"
 	githubclient "github.com/unkeyed/unkey/pkg/github"
 	"github.com/unkeyed/unkey/pkg/mysql/sqlcomment"
 	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
@@ -118,8 +119,7 @@ func TestAuthorizeDeploymentRefusals(t *testing.T) {
 
 	t.Run("a deployment that is not awaiting approval is refused", func(t *testing.T) {
 		f := newAuthorizeFixture(t, ctx)
-		deployment := f.seedGitAwaitingApproval(ctx)
-		f.setStatus(ctx, deployment.ID, mysqltype.DeploymentsStatusReady)
+		deployment := f.seedGit(ctx, mysqltype.DeploymentsStatusReady)
 
 		_, err := f.svc.AuthorizeDeployment(ctx, f.request(deployment.ID))
 		require.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
@@ -221,7 +221,7 @@ func TestAuthorizeDeploymentRevertsWhenCreateRefuses(t *testing.T) {
 	deployment := f.seedGitAwaitingApproval(ctx)
 
 	// Nowhere left to schedule. The pre-CAS gate does not look at regions
-	f.exec(ctx, "DELETE FROM app_regional_settings WHERE app_id = ?", f.appID)
+	require.NoError(t, f.database.DeleteAppRegionalSettingsByEnvironmentId(ctx, f.environmentID))
 
 	_, err := f.svc.AuthorizeDeployment(ctx, f.request(deployment.ID))
 	require.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
@@ -234,8 +234,7 @@ func TestAuthorizeDeploymentRevertsWhenCreateRefuses(t *testing.T) {
 func TestRevertAuthorizationLeavesANonPendingRow(t *testing.T) {
 	ctx := context.Background()
 	f := newAuthorizeFixture(t, ctx)
-	deployment := f.seedGitAwaitingApproval(ctx)
-	f.setStatus(ctx, deployment.ID, mysqltype.DeploymentsStatusCancelled)
+	deployment := f.seedGit(ctx, mysqltype.DeploymentsStatusCancelled)
 
 	f.svc.revertAuthorization(ctx, deployment.ID)
 
@@ -249,10 +248,12 @@ func TestRevertAuthorizationLeavesANonPendingRow(t *testing.T) {
 func TestRevertAuthorizationLeavesAStartedRun(t *testing.T) {
 	ctx := context.Background()
 	f := newAuthorizeFixture(t, ctx)
-	deployment := f.seedGitAwaitingApproval(ctx)
-	f.setStatus(ctx, deployment.ID, mysqltype.DeploymentsStatusPending)
-	f.exec(ctx, "UPDATE deployments SET invocation_id = ? WHERE id = ?",
-		uid.New("inv"), deployment.ID)
+	deployment := f.seedGit(ctx, mysqltype.DeploymentsStatusPending)
+	require.NoError(t, f.database.UpdateDeploymentInvocationID(ctx, db.UpdateDeploymentInvocationIDParams{
+		InvocationID: sql.NullString{Valid: true, String: uid.New("inv")},
+		UpdatedAt:    sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+		ID:           deployment.ID,
+	}))
 
 	f.svc.revertAuthorization(ctx, deployment.ID)
 
@@ -281,9 +282,9 @@ func TestAuthorizeDeploymentRefusesAnUntaggedImage(t *testing.T) {
 func TestAuthorizeDeploymentIgnoresANewerSibling(t *testing.T) {
 	ctx := context.Background()
 	f := newAuthorizeFixture(t, ctx)
-	deployment := f.seedGitAwaitingApproval(ctx)
-	f.exec(ctx, "UPDATE deployments SET created_at = ? WHERE id = ?",
-		time.Now().Add(-2*time.Hour).UnixMilli(), deployment.ID)
+	req := gitDeploymentRequest()
+	req.CreatedAt = time.Now().Add(-2 * time.Hour).UnixMilli()
+	deployment := f.seedAwaitingApproval(ctx, req)
 
 	newer := f.seedAwaitingApproval(ctx, seed.CreateDeploymentRequest{
 		CreatedAt:        time.Now().Add(-1 * time.Hour).UnixMilli(),
@@ -449,57 +450,77 @@ func (f *authorizeFixture) request(deploymentID string) *connect.Request[ctrlv1.
 	return req
 }
 
-func (f *authorizeFixture) seedAwaitingApproval(ctx context.Context, req seed.CreateDeploymentRequest) db.Deployment {
+func (f *authorizeFixture) seedDeployment(ctx context.Context, status mysqltype.DeploymentsStatus, req seed.CreateDeploymentRequest) db.Deployment {
 	f.t.Helper()
 	req.ID = uid.New(uid.DeploymentPrefix)
 	req.WorkspaceID = f.workspaceID
 	req.ProjectID = f.projectID
 	req.AppID = f.appID
 	req.EnvironmentID = f.environmentID
-	req.Status = mysqltype.DeploymentsStatusAwaitingApproval
+	req.Status = status
 	return f.seeder.CreateDeployment(ctx, req)
 }
 
-func (f *authorizeFixture) seedGitAwaitingApproval(ctx context.Context) db.Deployment {
+func (f *authorizeFixture) seedAwaitingApproval(ctx context.Context, req seed.CreateDeploymentRequest) db.Deployment {
 	f.t.Helper()
-	return f.seedAwaitingApproval(ctx, seed.CreateDeploymentRequest{
+	return f.seedDeployment(ctx, mysqltype.DeploymentsStatusAwaitingApproval, req)
+}
+
+func gitDeploymentRequest() seed.CreateDeploymentRequest {
+	return seed.CreateDeploymentRequest{
 		GitCommitSha:           sql.NullString{Valid: true, String: testCommitSHA()},
 		GitBranch:              sql.NullString{Valid: true, String: "feature/kebap"},
 		GitCommitMessage:       sql.NullString{Valid: true, String: "feat: KEBAP"},
 		PrNumber:               sql.NullInt64{Valid: true, Int64: authorizePRNumber},
 		ForkRepositoryFullName: sql.NullString{Valid: true, String: authorizeForkRepo},
-	})
+	}
 }
 
-func (f *authorizeFixture) exec(ctx context.Context, query string, args ...any) {
+func (f *authorizeFixture) seedGitAwaitingApproval(ctx context.Context) db.Deployment {
 	f.t.Helper()
-	_, err := f.database.RW().ExecContext(ctx, query, args...)
-	require.NoError(f.t, err)
+	return f.seedAwaitingApproval(ctx, gitDeploymentRequest())
+}
+
+func (f *authorizeFixture) seedGit(ctx context.Context, status mysqltype.DeploymentsStatus) db.Deployment {
+	f.t.Helper()
+	return f.seedDeployment(ctx, status, gitDeploymentRequest())
 }
 
 func (f *authorizeFixture) setImageRequested(ctx context.Context, deploymentID, image string) {
 	f.t.Helper()
-	f.exec(ctx, "UPDATE deployments SET image_requested = ? WHERE id = ?", image, deploymentID)
-}
-
-func (f *authorizeFixture) setStatus(ctx context.Context, deploymentID string, status mysqltype.DeploymentsStatus) {
-	f.t.Helper()
-	f.exec(ctx, "UPDATE deployments SET status = ? WHERE id = ?", string(status), deploymentID)
+	_, err := f.database.RW().ExecContext(ctx, "UPDATE deployments SET image_requested = ? WHERE id = ?", image, deploymentID)
+	require.NoError(f.t, err)
 }
 
 func (f *authorizeFixture) grantComputePlan(ctx context.Context) {
 	f.t.Helper()
-	f.exec(ctx, "UPDATE workspace_billing SET plan_override = ? WHERE workspace_id = ?", "starter", f.workspaceID)
+	require.NoError(f.t, pkgdb.Query.UpsertWorkspaceBillingPlanOverride(ctx, f.database.RW(), pkgdb.UpsertWorkspaceBillingPlanOverrideParams{
+		WorkspaceID:  f.workspaceID,
+		PlanOverride: sql.NullString{Valid: true, String: "starter"},
+		CreatedAtM:   time.Now().UnixMilli(),
+	}))
 }
 
 func (f *authorizeFixture) clearComputePlan(ctx context.Context) {
 	f.t.Helper()
-	f.exec(ctx, "UPDATE workspace_billing SET plan = NULL, plan_override = NULL WHERE workspace_id = ?", f.workspaceID)
+	require.NoError(f.t, f.database.ClearWorkspaceDeployPlan(ctx, db.ClearWorkspaceDeployPlanParams{
+		UpdatedAt: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+		ID:        f.workspaceID,
+	}))
+	require.NoError(f.t, pkgdb.Query.UpsertWorkspaceBillingPlanOverride(ctx, f.database.RW(), pkgdb.UpsertWorkspaceBillingPlanOverrideParams{
+		WorkspaceID:  f.workspaceID,
+		PlanOverride: sql.NullString{Valid: false},
+		CreatedAtM:   time.Now().UnixMilli(),
+	}))
 }
 
 func (f *authorizeFixture) suspendSpend(ctx context.Context) {
 	f.t.Helper()
-	f.exec(ctx, "UPDATE workspace_billing SET spend_suspended = 1 WHERE workspace_id = ?", f.workspaceID)
+	require.NoError(f.t, f.database.SetWorkspaceDeploySpendSuspended(ctx, db.SetWorkspaceDeploySpendSuspendedParams{
+		Suspended: true,
+		UpdatedAt: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+		ID:        f.workspaceID,
+	}))
 }
 
 func (f *authorizeFixture) requireStatus(ctx context.Context, deploymentID string, want mysqltype.DeploymentsStatus) {

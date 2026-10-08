@@ -250,7 +250,7 @@ func TestValidationErrors(t *testing.T) {
 		})
 		keyID := keyResponse.KeyID
 
-		nonExistentRoleName := "non_existent_role_name"
+		nonExistentRoleName := uid.New(uid.TestPrefix)
 
 		req := handler.Request{
 			KeyId: keyID,

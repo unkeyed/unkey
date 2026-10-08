@@ -196,7 +196,7 @@ func TestListSessionsOmitsSecretsAndKeyspaces(t *testing.T) {
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, request(stored.ID))
 	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
-	for _, field := range []string{"hash", "Hash", "returnUrl", "keyspaceIds", "ks_1"} {
+	for _, field := range []string{"hash", "Hash", "returnUrl", "keyspaceIds", grantedKeyspaceID} {
 		require.NotContains(t, res.RawBody, field)
 	}
 }

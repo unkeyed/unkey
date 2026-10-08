@@ -92,7 +92,7 @@ func TestUpdateKeyRejectsIdentityFromAnotherProject(t *testing.T) {
 	})
 	keyProjectAPI := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspace.ID, ProjectID: keyProject.ID})
 	key := h.CreateKey(seed.CreateKeyRequest{WorkspaceID: workspace.ID, KeySpaceID: keyProjectAPI.KeyAuthID.String})
-	externalID := "identity_update_wrong_project"
+	externalID := uid.New(uid.TestPrefix)
 	err := db.Query.InsertIdentity(t.Context(), h.DB.RW(), db.InsertIdentityParams{
 		ID:          uid.New(uid.IdentityPrefix),
 		ExternalID:  externalID,

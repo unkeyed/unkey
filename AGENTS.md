@@ -127,6 +127,16 @@ mise exec -- go test -fuzz=FuzzInRange -fuzztime=30s ./pkg/assert/
 - Handle every error. If a state is impossible, assert it rather than ignoring it.
 - Add tests for Go behavior and pure TypeScript functions. Do not add React
   component, hook, or render tests unless asked.
+- Do not write raw SQL in tests. Use seed and harness helpers, then generated
+  sqlc queries from `pkg/db`. If no query exists, add one to
+  `pkg/db/queries/` and run `mise run generate`. For ClickHouse, append
+  `pkg/clickhouse/schema` structs.
+- Do not write raw JSON strings in tests. Encode and decode typed structs,
+  preferably existing OpenAPI or handler request and response types.
+- Do not hardcode IDs in tests. Generate them with `uid.New(uid.<Entity>Prefix)`
+  from `pkg/uid`.
+- Exceptions to these rules, such as malformed input or exact-byte tests, are in
+  `contributing/quality/testing/anti-patterns.md`.
 - Be extremely conservative with code comments. 
 
 ## Code comments

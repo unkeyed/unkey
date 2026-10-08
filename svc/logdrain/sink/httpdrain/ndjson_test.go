@@ -1,6 +1,7 @@
 package httpdrain
 
 import (
+	"encoding/json"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -13,6 +14,8 @@ import (
 )
 
 func TestDeliverNDJSONReportsRejectionAndRetry(t *testing.T) {
+	responseBody, err := json.Marshal(map[string]int{"code": 0})
+	require.NoError(t, err)
 	var receivedBody []byte
 	var contentType string
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -25,7 +28,7 @@ func TestDeliverNDJSONReportsRejectionAndRetry(t *testing.T) {
 		contentType = r.Header.Get("Content-Type")
 		w.Header().Set("Retry-After", "23")
 		w.WriteHeader(http.StatusTooManyRequests)
-		if _, err := io.WriteString(w, `{"code":0}`); err != nil {
+		if _, err := w.Write(responseBody); err != nil {
 			t.Error(err)
 		}
 	}))
@@ -39,7 +42,7 @@ func TestDeliverNDJSONReportsRejectionAndRetry(t *testing.T) {
 	require.False(t, result.Acknowledged)
 	require.Equal(t, http.StatusTooManyRequests, result.HTTPStatus)
 	require.Equal(t, 23*time.Second, result.RetryAfter)
-	require.Equal(t, `{"code":0}`, result.ResponseBody)
+	require.Equal(t, string(responseBody), result.ResponseBody)
 	require.Equal(t, int64(len(receivedBody)), result.RequestBodyBytes)
 	require.Equal(t, "application/x-ndjson", contentType)
 	lines := strings.Split(strings.TrimSuffix(string(receivedBody), "\n"), "\n")

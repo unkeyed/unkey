@@ -2,6 +2,7 @@ package source_test
 
 import (
 	"context"
+	"encoding/json"
 	"strconv"
 	"strings"
 	"testing"
@@ -11,6 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 	logdrainv1 "github.com/unkeyed/unkey/gen/proto/logdrain/v1"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
+	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/logdrain/internal/source"
@@ -24,7 +26,7 @@ func TestGatewayRequestsRead_ByteBoundedPrefix(t *testing.T) {
 	client, err := clickhouse.New(clickhouse.Config{URL: cfg.HTTPDSN})
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, client.Close()) })
-	workspace := uid.New("workspace")
+	workspace := uid.New(uid.WorkspacePrefix)
 	now := time.Now().UnixMilli()
 	body := strings.Repeat("<", 1<<20)
 	for _, row := range []struct{ id, request, response string }{
@@ -91,7 +93,7 @@ func TestGatewayRequestsRead_OversizedEventBlocksCursor(t *testing.T) {
 	client, err := clickhouse.New(clickhouse.Config{URL: cfg.HTTPDSN})
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, client.Close()) })
-	workspace := uid.New("workspace")
+	workspace := uid.New(uid.WorkspacePrefix)
 	now := time.Now().UnixMilli()
 	for _, row := range []struct {
 		id    string
@@ -135,7 +137,7 @@ func TestGatewayRequestsRead_KeepsCursorGroupsTogether(t *testing.T) {
 			client, err := clickhouse.New(clickhouse.Config{URL: cfg.HTTPDSN})
 			require.NoError(t, err)
 			t.Cleanup(func() { require.NoError(t, client.Close()) })
-			workspace := uid.New("workspace")
+			workspace := uid.New(uid.WorkspacePrefix)
 			now := time.Now().UnixMilli()
 			for i, id := range []string{"a", "b", "b", "c"} {
 				require.NoError(t, client.Conn().Exec(t.Context(), `INSERT INTO frontline_requests_raw_v1
@@ -170,30 +172,59 @@ func TestGatewayRequestsRead_Payload(t *testing.T) {
 	client, err := clickhouse.New(clickhouse.Config{URL: cfg.HTTPDSN})
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, client.Close()) })
-	workspaceID := uid.New("workspace")
+	workspaceID := uid.New(uid.WorkspacePrefix)
+	requestID := uid.New(uid.RequestPrefix)
+	projectID := uid.New(uid.ProjectPrefix)
+	appID := uid.New(uid.AppPrefix)
+	environmentID := uid.New(uid.EnvironmentPrefix)
+	deploymentID := uid.New(uid.DeploymentPrefix)
+	requestBody, err := json.Marshal(map[string]string{"input": "[REDACTED]"})
+	require.NoError(t, err)
+	responseBody, err := json.Marshal(map[string]bool{"ok": true})
+	require.NoError(t, err)
 	now := time.Now().UnixMilli()
-	require.NoError(t, client.Conn().Exec(t.Context(), `INSERT INTO frontline_requests_raw_v1
-		(workspace_id, request_id, time, project_id, app_id, environment_id, deployment_id,
-		region, method, host, path, response_status, total_latency, instance_latency, gateway_latency,
-		instance_address, request_headers, request_body, query_string, ip_address,
-		query_params, response_headers, response_body, user_agent)
-		VALUES (?, 'req_1', ?, 'project_1', 'app_1', 'env_1', 'deployment_1',
-		'eu-west-1', 'POST', 'api.example.com', '/orders', 201, 53, 41, 12,
-		'10.0.0.1', ['Authorization: [REDACTED]', 'X-Custom: value'], ?, 'tag=a&tag=b', '192.0.2.1',
-		map('tag', ['a', 'b']), ['Content-Type: application/json'], ?, 'test-agent')`, workspaceID, now-3600000, `{"input":"[REDACTED]"}`, `{"ok":true}`))
+	batch, err := client.Conn().PrepareBatch(t.Context(), clickhouse.InsertQuery[schema.FrontlineRequest]())
+	require.NoError(t, err)
+	require.NoError(t, batch.AppendStruct(&schema.FrontlineRequest{
+		RequestID:       requestID,
+		Time:            now - 3600000,
+		WorkspaceID:     workspaceID,
+		ProjectID:       projectID,
+		AppID:           appID,
+		EnvironmentID:   environmentID,
+		DeploymentID:    deploymentID,
+		InstanceAddress: "10.0.0.1",
+		Region:          "eu-west-1",
+		Method:          "POST",
+		Host:            "api.example.com",
+		Path:            "/orders",
+		QueryString:     "tag=a&tag=b",
+		QueryParams:     map[string][]string{"tag": {"a", "b"}},
+		RequestHeaders:  []string{"Authorization: [REDACTED]", "X-Custom: value"},
+		RequestBody:     string(requestBody),
+		ResponseStatus:  201,
+		ResponseHeaders: []string{"Content-Type: application/json"},
+		ResponseBody:    string(responseBody),
+		UserAgent:       "test-agent",
+		IPAddress:       "192.0.2.1",
+		TotalLatency:    53,
+		InstanceLatency: 41,
+		GatewayLatency:  12,
+	}))
+	require.NoError(t, batch.Send())
 	events, cursor, err := source.NewGatewayRequests(client).Read(t.Context(), workspaceID, source.Cursor{Time: now - 1}, time.Now().UnixMilli()+1000, 10, nil)
 	require.NoError(t, err)
 	require.Len(t, events, 1)
 	require.Equal(t, "gateway_requests", events[0].Stream)
 	require.Equal(t, now-3600000, events[0].Time)
 	require.GreaterOrEqual(t, cursor.Time, now)
-	require.Equal(t, "req_1", cursor.EventID)
+	require.Equal(t, requestID, cursor.EventID)
 	require.Equal(t, sink.GatewayRequestPayload{
-		RequestID:     "req_1",
-		ProjectID:     "project_1",
-		AppID:         "app_1",
-		EnvironmentID: "env_1",
-		DeploymentID:  "deployment_1",
+		RequestID:     requestID,
+		ProjectID:     projectID,
+		AppID:         appID,
+		EnvironmentID: environmentID,
+		DeploymentID:  deploymentID,
 		Region:        "eu-west-1",
 		Request: sink.GatewayRequest{
 			Method:      "POST",
@@ -204,14 +235,14 @@ func TestGatewayRequestsRead_Payload(t *testing.T) {
 				"tag": {"a", "b"},
 			},
 			Headers:   []string{"Authorization: [REDACTED]", "X-Custom: value"},
-			Body:      `{"input":"[REDACTED]"}`,
+			Body:      string(requestBody),
 			UserAgent: "test-agent",
 			IPAddress: "192.0.2.1",
 		},
 		Response: sink.GatewayResponse{
 			Status:  201,
 			Headers: []string{"Content-Type: application/json"},
-			Body:    `{"ok":true}`,
+			Body:    string(responseBody),
 		},
 		Latency: sink.GatewayRequestLatency{
 			Total:    53,
@@ -226,7 +257,7 @@ func TestGatewayRequestsRead_FilteredCursorBounds(t *testing.T) {
 	client, err := clickhouse.New(clickhouse.Config{URL: cfg.HTTPDSN})
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, client.Close()) })
-	workspace := uid.New("workspace")
+	workspace := uid.New(uid.WorkspacePrefix)
 	now := time.Now().UnixMilli()
 	for _, row := range []struct {
 		workspace, id string
@@ -242,7 +273,7 @@ func TestGatewayRequestsRead_FilteredCursorBounds(t *testing.T) {
 		{workspace, "f", now, 499},
 		{workspace, "a", now + 1, 404},
 		{workspace, "g", now + 2, 403},
-		{uid.New("workspace"), "h", now, 400},
+		{uid.New(uid.WorkspacePrefix), "h", now, 400},
 	} {
 		require.NoError(t, client.Conn().Exec(t.Context(), `INSERT INTO frontline_requests_raw_v1
 			(workspace_id, request_id, inserted_at, time, response_status) VALUES (?, ?, ?, ?, ?)`, row.workspace, row.id, row.insertedAt, now-60000, row.status))
@@ -277,7 +308,7 @@ func TestGatewayRequestsRead_ResourceFiltersBeforeLimit(t *testing.T) {
 	client, err := clickhouse.New(clickhouse.Config{URL: cfg.HTTPDSN})
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, client.Close()) })
-	workspace := uid.New("workspace")
+	workspace := uid.New(uid.WorkspacePrefix)
 	now := time.Now().UnixMilli()
 	for _, row := range []struct {
 		id, project, app, environment string

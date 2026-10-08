@@ -6,6 +6,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/portal"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_portal_get_portal"
@@ -41,11 +42,11 @@ func TestGetPortalMasksEveryMiss(t *testing.T) {
 	otherKeyspace := keyspaceMapping(t, h, other.ID)
 	otherPortal := h.SeedPortal(t, other.ID, "theirs", "theirs", otherKeyspace, nil, nil)
 
-	unknownKeyspace := portal.Mapping{Type: portal.MappingTypeKeyspace, ID: "ks_doesnotexist"}
-	unknownApp := portal.Mapping{Type: portal.MappingTypeApp, ID: "app_doesnotexist"}
+	unknownKeyspace := portal.Mapping{Type: portal.MappingTypeKeyspace, ID: uid.New(uid.KeySpacePrefix)}
+	unknownApp := portal.Mapping{Type: portal.MappingTypeApp, ID: uid.New(uid.AppPrefix)}
 
 	testCases := map[string]handler.Request{
-		"unknown id":                    {Portal: new("pc_doesnotexist"), KeyspaceId: nil, AppId: nil},
+		"unknown id":                    {Portal: new(uid.New(uid.PortalPrefix)), KeyspaceId: nil, AppId: nil},
 		"unknown slug":                  {Portal: new("no-such-portal"), KeyspaceId: nil, AppId: nil},
 		"portal in another workspace":   {Portal: new(otherPortal.ID), KeyspaceId: nil, AppId: nil},
 		"slug in another workspace":     {Portal: new(otherPortal.Slug), KeyspaceId: nil, AppId: nil},
@@ -97,7 +98,7 @@ func TestGetPortalDenialMatchesAbsence(t *testing.T) {
 
 	allowedKey := h.CreateRootKey(workspace.ID, "portal.*.read_portal")
 	absent := testutil.CallRoute[handler.Request, handler.Response](h, route, headersFor(allowedKey), handler.Request{
-		Portal:     new("pc_doesnotexist"),
+		Portal:     new(uid.New(uid.PortalPrefix)),
 		KeyspaceId: nil,
 		AppId:      nil,
 	})

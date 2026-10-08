@@ -2,6 +2,7 @@ package handler_test
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"net/http"
 	"testing"
@@ -23,18 +24,40 @@ func TestCreateKeyUsesKeyspaceProjectForURN(t *testing.T) {
 	h.Register(route)
 
 	workspace := h.Resources().UserWorkspace
-	api := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspace.ID})
-	keyspaceProjectID := api.ProjectID
 	apiProject := h.CreateProject(seed.CreateProjectRequest{
 		ID:          uid.New(uid.ProjectPrefix),
 		WorkspaceID: workspace.ID,
 		Name:        "API project",
 		Slug:        uid.New("project"),
 	})
-	_, err := h.DB.RW().ExecContext(context.Background(), "UPDATE apis SET project_id = ? WHERE id = ?", apiProject.ID, api.ID)
+	keyspaceProject := h.CreateProject(seed.CreateProjectRequest{
+		ID:          uid.New(uid.ProjectPrefix),
+		WorkspaceID: workspace.ID,
+		Name:        "Keyspace project",
+		Slug:        uid.New("project"),
+	})
+	keyspaceProjectID := keyspaceProject.ID
+	keySpaceID := uid.New(uid.KeySpacePrefix)
+	err := db.Query.InsertKeySpace(context.Background(), h.DB.RW(), db.InsertKeySpaceParams{
+		ID:          keySpaceID,
+		WorkspaceID: workspace.ID,
+		ProjectID:   keyspaceProjectID,
+		CreatedAtM:  time.Now().UnixMilli(),
+	})
+	require.NoError(t, err)
+	apiID := uid.New(uid.APIPrefix)
+	err = db.Query.InsertApi(context.Background(), h.DB.RW(), db.InsertApiParams{
+		ID:          apiID,
+		Name:        "test-api",
+		WorkspaceID: workspace.ID,
+		ProjectID:   apiProject.ID,
+		AuthType:    db.NullApisAuthType{Valid: true, ApisAuthType: db.ApisAuthTypeKey},
+		KeyAuthID:   sql.NullString{Valid: true, String: keySpaceID},
+		CreatedAtM:  time.Now().UnixMilli(),
+	})
 	require.NoError(t, err)
 
-	request := handler.Request{ApiId: api.ID}
+	request := handler.Request{ApiId: apiID}
 	call := func(t *testing.T, permission string) int {
 		t.Helper()
 		rootKey := h.CreateRootKey(workspace.ID, permission)
@@ -46,11 +69,11 @@ func TestCreateKeyUsesKeyspaceProjectForURN(t *testing.T) {
 	}
 
 	t.Run("API project does not authorize the keyspace", func(t *testing.T) {
-		require.Equal(t, http.StatusNotFound, call(t, createKeyPermission(workspace.ID, apiProject.ID, api.KeyAuthID.String)))
+		require.Equal(t, http.StatusNotFound, call(t, createKeyPermission(workspace.ID, apiProject.ID, keySpaceID)))
 	})
 
 	t.Run("keyspace project authorizes the keyspace", func(t *testing.T) {
-		require.Equal(t, http.StatusOK, call(t, createKeyPermission(workspace.ID, keyspaceProjectID, api.KeyAuthID.String)))
+		require.Equal(t, http.StatusOK, call(t, createKeyPermission(workspace.ID, keyspaceProjectID, keySpaceID)))
 	})
 }
 
@@ -117,7 +140,7 @@ func TestCreateKeyRejectsIdentityFromAnotherProject(t *testing.T) {
 		Slug:        uid.New("project"),
 	})
 	keyProjectAPI := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspace.ID, ProjectID: keyProject.ID})
-	externalID := "identity_create_wrong_project"
+	externalID := uid.New(uid.TestPrefix)
 	err := db.Query.InsertIdentity(t.Context(), h.DB.RW(), db.InsertIdentityParams{
 		ID:          uid.New(uid.IdentityPrefix),
 		ExternalID:  externalID,

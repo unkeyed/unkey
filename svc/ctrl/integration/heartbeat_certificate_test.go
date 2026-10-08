@@ -16,6 +16,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/clock"
 	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
+	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 	"github.com/unkeyed/unkey/svc/ctrl/services/cluster"
 
@@ -33,9 +34,9 @@ func TestHeartbeatProvisionsCertificates(t *testing.T) {
 		bearer         = "test-bearer"
 		regionalDomain = "unkey.cloud"
 		platform       = "aws"
-		regionName     = "ap-southeast-1"
-		cellID         = "cell004"
 	)
+	regionName := uid.DNS1035(12)
+	cellID := uid.DNS1035(12)
 	// Matches the platform-ful format the frontline expects, e.g.
 	// *.ap-southeast-1.aws.unkey.cloud.
 	wildcardDomain := "*." + regionName + "." + platform + "." + regionalDomain
@@ -62,19 +63,19 @@ func TestHeartbeatProvisionsCertificates(t *testing.T) {
 	require.Equal(t, db.CustomDomainsVerificationStatusVerified, domain.VerificationStatus)
 
 	require.Equal(t, 1, countCustomDomains(ctx, t, h.DB, wildcardDomain))
-	require.Equal(t, 1, countAcmeChallenges(ctx, t, h.DB, domain.ID))
+	require.Equal(t, 1, countAcmeChallenges(ctx, t, h.DB, wildcardDomain, domain.ID))
 	cellDomain, err := h.DB.FindCustomDomainByDomain(ctx, cellWildcardDomain)
 	require.NoError(t, err)
 	require.Equal(t, 1, countCustomDomains(ctx, t, h.DB, cellWildcardDomain))
-	require.Equal(t, 1, countAcmeChallenges(ctx, t, h.DB, cellDomain.ID))
+	require.Equal(t, 1, countAcmeChallenges(ctx, t, h.DB, cellWildcardDomain, cellDomain.ID))
 
 	// Second heartbeat for the same region must not create duplicate records:
 	// the existing challenge row makes EnsureInfraCertificate a no-op.
 	heartbeat(svc)
 	require.Equal(t, 1, countCustomDomains(ctx, t, h.DB, wildcardDomain))
-	require.Equal(t, 1, countAcmeChallenges(ctx, t, h.DB, domain.ID))
+	require.Equal(t, 1, countAcmeChallenges(ctx, t, h.DB, wildcardDomain, domain.ID))
 	require.Equal(t, 1, countCustomDomains(ctx, t, h.DB, cellWildcardDomain))
-	require.Equal(t, 1, countAcmeChallenges(ctx, t, h.DB, cellDomain.ID))
+	require.Equal(t, 1, countAcmeChallenges(ctx, t, h.DB, cellWildcardDomain, cellDomain.ID))
 
 	// Recovery: if provisioning previously failed before writing the challenge
 	// (region row exists, backstop missing), a later heartbeat must re-create it
@@ -82,11 +83,11 @@ func TestHeartbeatProvisionsCertificates(t *testing.T) {
 	// challenge, then heartbeat from a fresh replica (cold cache) so the check
 	// hits the DB rather than the first instance's cached "provisioned" entry.
 	require.NoError(t, h.DB.DeleteAcmeChallengeByDomainID(ctx, domain.ID))
-	require.Equal(t, 0, countAcmeChallenges(ctx, t, h.DB, domain.ID))
+	require.Equal(t, 0, countAcmeChallenges(ctx, t, h.DB, wildcardDomain, domain.ID))
 
 	heartbeat(newHeartbeatService(t, h.DB, bearer, regionalDomain))
 	require.Equal(t, 1, countCustomDomains(ctx, t, h.DB, wildcardDomain))
-	require.Equal(t, 1, countAcmeChallenges(ctx, t, h.DB, domain.ID))
+	require.Equal(t, 1, countAcmeChallenges(ctx, t, h.DB, wildcardDomain, domain.ID))
 
 	// Recovery from a terminal 'failed' challenge: once ProcessChallenge gives up
 	// it marks the row 'failed', which the renewal cron skips (it matches only
@@ -100,8 +101,8 @@ func TestHeartbeatProvisionsCertificates(t *testing.T) {
 	}))
 
 	heartbeat(newHeartbeatService(t, h.DB, bearer, regionalDomain))
-	require.Equal(t, 1, countAcmeChallenges(ctx, t, h.DB, domain.ID))
-	require.Equal(t, "waiting", challengeStatus(ctx, t, h.DB, domain.ID))
+	require.Equal(t, 1, countAcmeChallenges(ctx, t, h.DB, wildcardDomain, domain.ID))
+	require.Equal(t, db.AcmeChallengesStatusWaiting, challengeStatus(ctx, t, h.DB, wildcardDomain))
 }
 
 // newHeartbeatService builds an isolated ctrl service instance backed by the
@@ -134,12 +135,11 @@ func newHeartbeatService(t *testing.T, database db.Database, bearer, regionalDom
 	return svc
 }
 
-func challengeStatus(ctx context.Context, t *testing.T, database db.Database, domainID string) string {
+func challengeStatus(ctx context.Context, t *testing.T, database db.Database, domain string) db.AcmeChallengesStatus {
 	t.Helper()
-	var status string
-	err := database.RO().QueryRowContext(ctx, "SELECT status FROM acme_challenges WHERE domain_id = ?", domainID).Scan(&status)
+	challenge, err := database.FindAcmeChallengeByDomain(ctx, domain)
 	require.NoError(t, err)
-	return status
+	return challenge.Status
 }
 
 func countCustomDomains(ctx context.Context, t *testing.T, database db.Database, domain string) int {
@@ -150,10 +150,13 @@ func countCustomDomains(ctx context.Context, t *testing.T, database db.Database,
 	return n
 }
 
-func countAcmeChallenges(ctx context.Context, t *testing.T, database db.Database, domainID string) int {
+func countAcmeChallenges(ctx context.Context, t *testing.T, database db.Database, domain, domainID string) int {
 	t.Helper()
-	var n int
-	err := database.RO().QueryRowContext(ctx, "SELECT COUNT(*) FROM acme_challenges WHERE domain_id = ?", domainID).Scan(&n)
+	challenge, err := database.FindAcmeChallengeByDomain(ctx, domain)
+	if db.IsNotFound(err) {
+		return 0
+	}
 	require.NoError(t, err)
-	return n
+	require.Equal(t, domainID, challenge.DomainID)
+	return 1
 }

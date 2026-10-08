@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_identities_create_identity"
@@ -27,7 +28,7 @@ func TestWorkspacePermissions(t *testing.T) {
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 	}
 
-	req := handler.Request{ExternalId: "external_test_id"}
+	req := handler.Request{ExternalId: uid.New(uid.TestPrefix)}
 	res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
 	require.Equal(t, http.StatusForbidden, res.Status, "got: %s", res.RawBody)
 	require.NotNil(t, res.Body)

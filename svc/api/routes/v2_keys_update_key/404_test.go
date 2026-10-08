@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -36,7 +37,7 @@ func TestUpdateKeyNotFound(t *testing.T) {
 	t.Run("when the key does not exist", func(t *testing.T) {
 		t.Parallel()
 		req := handler.Request{
-			KeyId:   "nonexistent_key",
+			KeyId:   uid.New(uid.KeyPrefix),
 			Enabled: new(false),
 		}
 

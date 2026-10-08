@@ -32,13 +32,13 @@ func TestRemoveEnvironmentVariablesSuccessfully(t *testing.T) {
 
 	t.Run("remove existing keys deletes them", func(t *testing.T) {
 		env := seedEnvironment(t, h)
-		seedVar(t, h, env, "GONE", "v", db.AppEnvironmentVariablesTypeRecoverable, false)
-		seedVar(t, h, env, "ALSO_GONE", "v", db.AppEnvironmentVariablesTypeRecoverable, false)
-		seedVar(t, h, env, "KEEP", "v", db.AppEnvironmentVariablesTypeRecoverable, false)
+		seedVar(t, h, env, "GONE", "v", db.AppEnvironmentVariablesTypeRecoverable)
+		seedVar(t, h, env, "ALSO_GONE", "v", db.AppEnvironmentVariablesTypeRecoverable)
+		seedVar(t, h, env, "KEEP", "v", db.AppEnvironmentVariablesTypeRecoverable)
 
 		call(t, makeRequest(env, []string{"GONE", "ALSO_GONE"}))
 
-		raw := listRawVars(t, h, env.environmentID)
+		raw := listRawVars(t, h, env)
 		require.Len(t, raw, 1)
 		_, ok := raw["KEEP"]
 		require.True(t, ok)
@@ -46,11 +46,11 @@ func TestRemoveEnvironmentVariablesSuccessfully(t *testing.T) {
 
 	t.Run("removing a key that is not present is a noop", func(t *testing.T) {
 		env := seedEnvironment(t, h)
-		seedVar(t, h, env, "KEEP", "v", db.AppEnvironmentVariablesTypeRecoverable, false)
+		seedVar(t, h, env, "KEEP", "v", db.AppEnvironmentVariablesTypeRecoverable)
 
 		call(t, makeRequest(env, []string{"MISSING"}))
 
-		raw := listRawVars(t, h, env.environmentID)
+		raw := listRawVars(t, h, env)
 		require.Len(t, raw, 1)
 		_, ok := raw["KEEP"]
 		require.True(t, ok)
@@ -58,28 +58,28 @@ func TestRemoveEnvironmentVariablesSuccessfully(t *testing.T) {
 
 	t.Run("delete protection no longer blocks removal", func(t *testing.T) {
 		env := seedEnvironment(t, h)
-		seedVar(t, h, env, "PROTECTED", "v", db.AppEnvironmentVariablesTypeRecoverable, true)
+		seedLegacyProtectedVar(t, h, env, "PROTECTED", "v", db.AppEnvironmentVariablesTypeRecoverable)
 
 		call(t, makeRequest(env, []string{"PROTECTED"}))
 
-		raw := listRawVars(t, h, env.environmentID)
+		raw := listRawVars(t, h, env)
 		require.Empty(t, raw)
 	})
 
 	t.Run("duplicate keys in payload collapse to a single removal", func(t *testing.T) {
 		env := seedEnvironment(t, h)
-		seedVar(t, h, env, "DUP", "v", db.AppEnvironmentVariablesTypeRecoverable, false)
+		seedVar(t, h, env, "DUP", "v", db.AppEnvironmentVariablesTypeRecoverable)
 
 		call(t, makeRequest(env, []string{"DUP", "DUP"}))
 
-		raw := listRawVars(t, h, env.environmentID)
+		raw := listRawVars(t, h, env)
 		require.Empty(t, raw)
 	})
 
 	t.Run("emits one audit event per removed key, grouped by correlation id", func(t *testing.T) {
 		env := seedEnvironment(t, h)
-		seedVar(t, h, env, "ALPHA", "v", db.AppEnvironmentVariablesTypeRecoverable, false)
-		seedVar(t, h, env, "BETA", "v", db.AppEnvironmentVariablesTypeRecoverable, false)
+		seedVar(t, h, env, "ALPHA", "v", db.AppEnvironmentVariablesTypeRecoverable)
+		seedVar(t, h, env, "BETA", "v", db.AppEnvironmentVariablesTypeRecoverable)
 
 		// Duplicates and a non-existent key (KEBAP) in the request: only the keys
 		// that were actually present and removed get an audit log.

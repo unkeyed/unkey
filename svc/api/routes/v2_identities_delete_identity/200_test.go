@@ -36,11 +36,10 @@ func TestDeleteIdentitySuccess(t *testing.T) {
 	}
 
 	t.Run("delete identity by external ID", func(t *testing.T) {
-		externalID := "test_user_1"
+		externalID := uid.New(uid.TestPrefix)
 		_ = h.CreateIdentity(seed.CreateIdentityRequest{
 			WorkspaceID: h.Resources().UserWorkspace.ID,
 			ExternalID:  externalID,
-			Meta:        []byte("{}"),
 		})
 
 		// Verify identity exists before deletion
@@ -80,7 +79,7 @@ func TestDeleteIdentitySuccess(t *testing.T) {
 
 	t.Run("delete identity with rate limits", func(t *testing.T) {
 		numberOfRatelimits := 3
-		externalID := "test_user_with_ratelimits"
+		externalID := uid.New(uid.TestPrefix)
 
 		ratelimits := array.Fill(
 			numberOfRatelimits,
@@ -97,7 +96,6 @@ func TestDeleteIdentitySuccess(t *testing.T) {
 		identity := h.CreateIdentity(seed.CreateIdentityRequest{
 			WorkspaceID: h.Resources().UserWorkspace.ID,
 			ExternalID:  externalID,
-			Meta:        []byte("{}"),
 			Ratelimits:  ratelimits,
 		})
 
@@ -128,11 +126,10 @@ func TestDeleteIdentitySuccess(t *testing.T) {
 	})
 
 	t.Run("delete identity with wildcard permission", func(t *testing.T) {
-		externalID := "test_user_wildcard"
+		externalID := uid.New(uid.TestPrefix)
 		identity := h.CreateIdentity(seed.CreateIdentityRequest{
 			WorkspaceID: h.Resources().UserWorkspace.ID,
 			ExternalID:  externalID,
-			Meta:        []byte("{}"),
 		})
 
 		// Create root key with wildcard permission
@@ -158,11 +155,10 @@ func TestDeleteIdentitySuccess(t *testing.T) {
 	})
 
 	t.Run("verify audit logs are created", func(t *testing.T) {
-		externalID := "test_user_audit_logs"
+		externalID := uid.New(uid.TestPrefix)
 		identity := h.CreateIdentity(seed.CreateIdentityRequest{
 			WorkspaceID: h.Resources().UserWorkspace.ID,
 			ExternalID:  externalID,
-			Meta:        []byte("{}"),
 			Ratelimits: []seed.CreateRatelimitRequest{
 				{
 					Name:        "ratelimit_1",
@@ -200,13 +196,12 @@ func TestDeleteIdentitySuccess(t *testing.T) {
 	})
 
 	t.Run("delete identity twice (duplicate key error handling)", func(t *testing.T) {
-		externalID := "test_user_duplicate"
+		externalID := uid.New(uid.TestPrefix)
 
 		// Create first identity
 		identity1 := h.CreateIdentity(seed.CreateIdentityRequest{
 			WorkspaceID: h.Resources().UserWorkspace.ID,
 			ExternalID:  externalID,
-			Meta:        []byte("{}"),
 		})
 
 		// Delete the identity once
@@ -218,7 +213,6 @@ func TestDeleteIdentitySuccess(t *testing.T) {
 		identity2 := h.CreateIdentity(seed.CreateIdentityRequest{
 			WorkspaceID: h.Resources().UserWorkspace.ID,
 			ExternalID:  externalID,
-			Meta:        []byte("{}"),
 		})
 
 		// Delete the new identity (this should trigger duplicate key error handling)
@@ -248,7 +242,7 @@ func TestDeleteIdentitySuccess(t *testing.T) {
 		// 1. User starts with "Advanced" tier (300k requests/month)
 		// 2. User downgrades to "Starter" tier (20k requests/month)
 		// 3. Implementation: delete old identity, create new identity with new limits
-		externalID := "stripe_user_12345"
+		externalID := uid.New(uid.TestPrefix)
 
 		// Step 1: Create initial identity with "Advanced" tier ratelimit (300k/month)
 		advancedMeta, err := json.Marshal(map[string]string{"tier": "advanced"})

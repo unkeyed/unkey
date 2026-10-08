@@ -12,6 +12,7 @@ import (
 	logdrainv1 "github.com/unkeyed/unkey/gen/proto/logdrain/v1"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
+	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/logdrain/internal/db"
 	"github.com/unkeyed/unkey/svc/logdrain/internal/engine"
 	"github.com/unkeyed/unkey/svc/logdrain/internal/source"
@@ -114,16 +115,17 @@ func assertDueSchedule(t *testing.T, commit db.RecordLogdrainSuccessParams, comm
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, conn.Close()) })
 	workspaceID, drainID := uniqueIDs()
+	fencingToken := uid.New(uid.TestPrefix)
 	seedDrain(t, pool, workspaceID, drainID, "https://example.com", commit.CommittedOffsetInsertedAt-1)
 	cleanupDrain(t, pool, drainID)
 	_, err = conn.ExecContext(t.Context(), "SET timestamp = ?", committedAt.Unix())
 	require.NoError(t, err)
 	queries := db.NewQueries(conn)
-	rows, err := queries.AcquireLogdrainLease(t.Context(), db.AcquireLogdrainLeaseParams{LogdrainID: drainID, LeaseID: drainID, FencingToken: "fence", TtlMillis: time.Hour.Milliseconds()})
+	rows, err := queries.AcquireLogdrainLease(t.Context(), db.AcquireLogdrainLeaseParams{LogdrainID: drainID, LeaseID: drainID, FencingToken: fencingToken, TtlMillis: time.Hour.Milliseconds()})
 	require.NoError(t, err)
 	require.EqualValues(t, 1, rows)
 	commit.LogdrainID = drainID
-	commit.FencingToken = "fence"
+	commit.FencingToken = fencingToken
 	rows, err = queries.RecordLogdrainSuccess(t.Context(), commit)
 	require.NoError(t, err)
 	require.EqualValues(t, 1, rows)
@@ -136,7 +138,7 @@ func assertDueSchedule(t *testing.T, commit db.RecordLogdrainSuccessParams, comm
 		due, err := queries.ListDueLogdrains(t.Context(), drainID)
 		require.NoError(t, err)
 		require.Empty(t, due, "caught-up drain must not be queued at %s", elapsed)
-		_, err = queries.GetLeasedAndDueLogdrain(t.Context(), db.GetLeasedAndDueLogdrainParams{LogdrainID: drainID, FencingToken: "fence"})
+		_, err = queries.GetLeasedAndDueLogdrain(t.Context(), db.GetLeasedAndDueLogdrainParams{LogdrainID: drainID, FencingToken: fencingToken})
 		require.ErrorIs(t, err, sql.ErrNoRows)
 	}
 	_, err = conn.ExecContext(t.Context(), "SET timestamp = ?", committedAt.Add(delay).Unix())

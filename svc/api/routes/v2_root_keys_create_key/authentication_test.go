@@ -51,7 +51,11 @@ func TestRootKeyAuthenticationPrefersNewStore(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, newID, rootKey.Key.ID)
 
-	_, err = h.DB.RW().ExecContext(t.Context(), "UPDATE unkey_root_keys SET deleted_at = 1 WHERE id = ?", newID)
+	_, err = db.Query.SoftDeleteUnkeyRootKey(t.Context(), h.DB.RW(), db.SoftDeleteUnkeyRootKeyParams{
+		Now:         sql.NullInt64{Int64: 1, Valid: true},
+		ID:          newID,
+		WorkspaceID: r.UserWorkspace.ID,
+	})
 	require.NoError(t, err)
 	h.Caches.RootKeyByHash.Remove(t.Context(), hash.Sha256(legacy.Key))
 	for range 2 {
@@ -70,10 +74,12 @@ func TestNewRootKeyAuthenticationIgnoresLegacyOwnership(t *testing.T) {
 	require.Equal(t, http.StatusOK, res.Status, "%s", res.RawBody)
 
 	r := h.Resources()
-	_, err := h.DB.RW().ExecContext(t.Context(), "UPDATE workspaces SET enabled = FALSE WHERE id = ?", r.RootWorkspace.ID)
+	_, err := db.Query.UpdateWorkspaceEnabled(t.Context(), h.DB.RW(), db.UpdateWorkspaceEnabledParams{Enabled: false, ID: r.RootWorkspace.ID})
 	require.NoError(t, err)
-	_, err = h.DB.RW().ExecContext(t.Context(), "UPDATE apis SET deleted_at_m = 1 WHERE key_auth_id = ?", r.RootKeySpace.ID)
-	require.NoError(t, err)
+	require.NoError(t, db.Query.SoftDeleteApi(t.Context(), h.DB.RW(), db.SoftDeleteApiParams{
+		Now:   sql.NullInt64{Int64: 1, Valid: true},
+		ApiID: r.RootApi.ID,
+	}))
 	_, err = h.DB.RW().ExecContext(t.Context(), "DELETE FROM key_auth WHERE id = ?", r.RootKeySpace.ID)
 	require.NoError(t, err)
 
@@ -91,16 +97,41 @@ func TestNewRootKeyAuthenticationIgnoresLegacyOwnership(t *testing.T) {
 // keys whose target workspace is missing or disabled.
 func TestNewRootKeyAuthenticationChecksLifecycle(t *testing.T) {
 	for _, tt := range []struct {
-		name      string
-		statement string
-		target    string
-		code      codes.URN
+		name   string
+		mutate func(t *testing.T, h *testutil.Harness, keyID, workspaceID string)
+		code   codes.URN
 	}{
-		{"disabled", "UPDATE unkey_root_keys SET enabled = FALSE WHERE id = ?", "key", codes.Auth.Authorization.KeyDisabled.URN()},
-		{"expired", "UPDATE unkey_root_keys SET expires = 946684800000 WHERE id = ?", "key", codes.Auth.Authorization.Forbidden.URN()},
-		{"deleted", "UPDATE unkey_root_keys SET deleted_at = 1 WHERE id = ?", "key", codes.Auth.Authentication.KeyNotFound.URN()},
-		{"missing target", "UPDATE unkey_root_keys SET workspace_id = 'ws_missing' WHERE id = ?", "key", codes.Data.Workspace.NotFound.URN()},
-		{"disabled target", "UPDATE workspaces SET enabled = FALSE WHERE id = ?", "target", codes.Auth.Authorization.WorkspaceDisabled.URN()},
+		{"disabled", func(t *testing.T, h *testutil.Harness, keyID, workspaceID string) {
+			require.NoError(t, db.Query.UpdateUnkeyRootKey(t.Context(), h.DB.RW(), db.UpdateUnkeyRootKeyParams{
+				EnabledSpecified: 1,
+				Enabled:          sql.NullBool{Bool: false, Valid: true},
+				ID:               keyID,
+				WorkspaceID:      workspaceID,
+			}))
+		}, codes.Auth.Authorization.KeyDisabled.URN()},
+		{"expired", func(t *testing.T, h *testutil.Harness, keyID, workspaceID string) {
+			require.NoError(t, db.Query.UpdateUnkeyRootKeyExpiration(t.Context(), h.DB.RW(), db.UpdateUnkeyRootKeyExpirationParams{
+				Expires:     sql.NullInt64{Int64: 946684800000, Valid: true},
+				ID:          keyID,
+				WorkspaceID: workspaceID,
+			}))
+		}, codes.Auth.Authorization.Forbidden.URN()},
+		{"deleted", func(t *testing.T, h *testutil.Harness, keyID, workspaceID string) {
+			_, err := db.Query.SoftDeleteUnkeyRootKey(t.Context(), h.DB.RW(), db.SoftDeleteUnkeyRootKeyParams{
+				Now:         sql.NullInt64{Int64: 1, Valid: true},
+				ID:          keyID,
+				WorkspaceID: workspaceID,
+			})
+			require.NoError(t, err)
+		}, codes.Auth.Authentication.KeyNotFound.URN()},
+		{"missing target", func(t *testing.T, h *testutil.Harness, keyID, _ string) {
+			_, err := h.DB.RW().ExecContext(t.Context(), "UPDATE unkey_root_keys SET workspace_id = ? WHERE id = ?", uid.New(uid.WorkspacePrefix), keyID)
+			require.NoError(t, err)
+		}, codes.Data.Workspace.NotFound.URN()},
+		{"disabled target", func(t *testing.T, h *testutil.Harness, _, workspaceID string) {
+			_, err := db.Query.UpdateWorkspaceEnabled(t.Context(), h.DB.RW(), db.UpdateWorkspaceEnabledParams{Enabled: false, ID: workspaceID})
+			require.NoError(t, err)
+		}, codes.Auth.Authorization.WorkspaceDisabled.URN()},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			h, route, p := newHarness(t)
@@ -108,18 +139,13 @@ func TestNewRootKeyAuthenticationChecksLifecycle(t *testing.T) {
 				"Authorization": {"Bearer test"}, "Content-Type": {"application/json"},
 			}, handler.Request{Permissions: []string{}})
 			require.Equal(t, http.StatusOK, res.Status, "%s", res.RawBody)
-			targets := map[string]string{
-				"key":    res.Body.Data.KeyId,
-				"target": p.AuthorizedWorkspaceID,
-			}
-			_, err := h.DB.RW().ExecContext(t.Context(), tt.statement, targets[tt.target])
-			require.NoError(t, err)
+			tt.mutate(t, h, res.Body.Data.KeyId, p.AuthorizedWorkspaceID)
 			request := httptest.NewRequest(http.MethodPost, "/", nil)
 			request.Header.Set("Authorization", "Bearer "+res.Body.Data.Key)
 			session := &zen.Session{}
 			require.NoError(t, session.Init(httptest.NewRecorder(), request, 0))
 			for range 2 {
-				_, err = h.Keys.GetRootKey(t.Context(), session)
+				_, err := h.Keys.GetRootKey(t.Context(), session)
 				require.Error(t, err)
 				code, ok := fault.GetCode(err)
 				require.True(t, ok)

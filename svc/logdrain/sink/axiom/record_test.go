@@ -9,6 +9,12 @@ import (
 )
 
 func TestMarshalRecordNestedFields(t *testing.T) {
+	actorMetadata, err := json.Marshal(map[string]int{"actor": 1})
+	require.NoError(t, err)
+	targetMetadata, err := json.Marshal(map[string]int{"target": 2})
+	require.NoError(t, err)
+	eventMetadata, err := json.Marshal(map[string]int{"event": 3})
+	require.NoError(t, err)
 	for _, tt := range []struct {
 		name    string
 		payload sink.Payload
@@ -23,19 +29,19 @@ func TestMarshalRecordNestedFields(t *testing.T) {
 					ID:       "actor",
 					Type:     "user",
 					Name:     "Alice",
-					Metadata: json.RawMessage(`{"actor":1}`),
+					Metadata: actorMetadata,
 				},
 				Targets: []sink.AuditLogTarget{{
 					ID:       "target",
 					Type:     "key",
 					Name:     "Production",
-					Metadata: json.RawMessage(`{"target":2}`),
+					Metadata: targetMetadata,
 				}},
 				Context: sink.AuditLogContext{
 					Location:  "region",
 					UserAgent: "agent",
 				},
-				Metadata:      json.RawMessage(`{"event":3}`),
+				Metadata:      eventMetadata,
 				Description:   "description",
 				CorrelationID: "correlation",
 			},

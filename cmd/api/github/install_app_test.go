@@ -3,6 +3,7 @@ package github
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -13,6 +14,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/cli"
+	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
 func TestInstallApp(t *testing.T) {
@@ -24,8 +26,13 @@ func TestInstallApp(t *testing.T) {
 		require.Equal(t, http.MethodPost, r.Method)
 		require.Equal(t, "/v2/github.installApp", r.URL.Path)
 		w.Header().Set("Content-Type", "application/json")
-		_, err = w.Write([]byte(`{"meta":{"requestId":"test"},"data":{"url":"https://github.com/apps/unkey/installations/new","expiresAt":1700000900000}}`))
-		require.NoError(t, err)
+		require.NoError(t, json.NewEncoder(w).Encode(openapi.V2GithubInstallAppResponseBody{
+			Meta: openapi.Meta{RequestId: "test"},
+			Data: openapi.V2GithubInstallAppResponseData{
+				Url:       "https://github.com/apps/unkey/installations/new",
+				ExpiresAt: 1700000900000,
+			},
+		}))
 	}))
 	t.Cleanup(server.Close)
 

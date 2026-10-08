@@ -143,11 +143,12 @@ type auditEvent struct {
 	id            string
 	eventType     string
 	insertedAt    int64
-	actorMeta     string
+	actorID       string
+	actorMeta     map[string]any
 	targetTypes   []string
 	targetIDs     []string
 	targetNames   []string
-	targetMetas   []string
+	targetMetas   []map[string]any
 	correlationID string
 }
 
@@ -175,10 +176,12 @@ func TestEngine_Integration(t *testing.T) {
 		workspaceID, drainID := uniqueIDs()
 		httpSink := newSink(t, http.StatusOK)
 		start := time.Now().Add(-6 * time.Minute).UnixMilli()
+		actorID := uid.New(uid.TestPrefix)
+		apiID := uid.New(uid.APIPrefix)
 		events := []auditEvent{
-			{id: drainID + "_event_1", insertedAt: start, actorMeta: `{"role":"admin"}`, targetTypes: []string{"api"}, targetIDs: []string{"api_123"}, targetNames: []string{"My API"}, targetMetas: []string{`{"region":"us"}`}},
-			{id: drainID + "_event_2", insertedAt: start + 1, actorMeta: `{}`},
-			{id: drainID + "_event_3", insertedAt: start + 2, actorMeta: `{}`, correlationID: drainID + "_correlation"},
+			{id: drainID + "_event_1", insertedAt: start, actorID: actorID, actorMeta: map[string]any{"role": "admin"}, targetTypes: []string{"api"}, targetIDs: []string{apiID}, targetNames: []string{"My API"}, targetMetas: []map[string]any{{"region": "us"}}},
+			{id: drainID + "_event_2", insertedAt: start + 1, actorID: actorID},
+			{id: drainID + "_event_3", insertedAt: start + 2, actorID: actorID, correlationID: drainID + "_correlation"},
 		}
 		insertAuditEvents(t, chConn, workspaceID, events)
 		seedDrain(t, mysqlDB, workspaceID, drainID, httpSink.server.URL+"/ingest", start-1, "Bearer it-test-token")
@@ -210,11 +213,11 @@ func TestEngine_Integration(t *testing.T) {
 			require.NotContains(c, event, "timestamp")
 			actor := event["actor"].(map[string]any)
 			require.Equal(c, "user", actor["type"])
-			require.Equal(c, "actor_1", actor["id"])
+			require.Equal(c, actorID, actor["id"])
 			require.Equal(c, "Integration Tester", actor["name"])
 			require.Equal(c, "admin", actor["metadata"].(map[string]any)["role"])
 			targets := event["targets"].([]any)
-			require.Equal(c, map[string]any{"id": "api_123", "type": "api", "name": "My API", "metadata": map[string]any{"region": "us"}}, targets[0])
+			require.Equal(c, map[string]any{"id": apiID, "type": "api", "name": "My API", "metadata": map[string]any{"region": "us"}}, targets[0])
 			require.Equal(c, events[2].correlationID, eventPayloads[events[2].id]["correlation_id"])
 		}, 30*time.Second, 250*time.Millisecond)
 
@@ -254,9 +257,9 @@ func TestEngine_Integration(t *testing.T) {
 			t.Cleanup(httpSink.Close)
 			insertedAt := time.Now().Add(-6 * time.Minute).UnixMilli()
 			insertAuditEvents(t, chConn, workspaceID, []auditEvent{
-				{id: drainID + "_a", eventType: "key.create", insertedAt: insertedAt, actorMeta: `{}`},
-				{id: drainID + "_b", eventType: "key.create", insertedAt: insertedAt, actorMeta: `{}`},
-				{id: drainID + "_c", eventType: "key.delete", insertedAt: insertedAt, actorMeta: `{}`},
+				{id: drainID + "_a", eventType: "key.create", insertedAt: insertedAt},
+				{id: drainID + "_b", eventType: "key.create", insertedAt: insertedAt},
+				{id: drainID + "_c", eventType: "key.delete", insertedAt: insertedAt},
 			})
 			seedDrain(t, mysqlDB, workspaceID, drainID, httpSink.URL, insertedAt)
 			cleanupDrain(t, mysqlDB, drainID)
@@ -508,7 +511,7 @@ func TestEngine_Integration(t *testing.T) {
 		workspaceID, drainID := uniqueIDs()
 		httpSink := newSink(t, http.StatusInternalServerError)
 		start := time.Now().Add(-6 * time.Minute).UnixMilli()
-		events := []auditEvent{{id: drainID + "_event_1", insertedAt: start, actorMeta: `{}`}, {id: drainID + "_event_2", insertedAt: start + 1, actorMeta: `{}`}}
+		events := []auditEvent{{id: drainID + "_event_1", insertedAt: start}, {id: drainID + "_event_2", insertedAt: start + 1}}
 		insertAuditEvents(t, chConn, workspaceID, events)
 		seedDrain(t, mysqlDB, workspaceID, drainID, httpSink.server.URL+"/ingest", start-1)
 		cleanupDrain(t, mysqlDB, drainID)
@@ -541,12 +544,14 @@ func TestEngine_Integration(t *testing.T) {
 	t.Run("client error pauses drain at failure threshold", func(t *testing.T) {
 		workspaceID, drainID := uniqueIDs()
 		httpSink := newSink(t, http.StatusBadRequest)
-		httpSink.responseBody = `{"message":"invalid payload"}`
+		responseBody, err := json.Marshal(map[string]string{"message": "invalid payload"})
+		require.NoError(t, err)
+		httpSink.responseBody = string(responseBody)
 		start := time.Now().Add(-6 * time.Minute).UnixMilli()
-		insertAuditEvents(t, chConn, workspaceID, []auditEvent{{id: drainID + "_event_1", insertedAt: start, actorMeta: `{}`}})
+		insertAuditEvents(t, chConn, workspaceID, []auditEvent{{id: drainID + "_event_1", insertedAt: start}})
 		seedDrain(t, mysqlDB, workspaceID, drainID, httpSink.server.URL+"/ingest", start-1)
 		cleanupDrain(t, mysqlDB, drainID)
-		_, err := mysqlDB.Exec("UPDATE logdrains SET consecutive_failures = 4 WHERE id = ?", drainID)
+		_, err = mysqlDB.Exec("UPDATE logdrains SET consecutive_failures = 4 WHERE id = ?", drainID)
 		require.NoError(t, err)
 		deliveries := startEngine(t, mysqlCfg.DSN, clickhouseCfg.HTTPDSN)
 
@@ -575,9 +580,9 @@ func TestEngine_Integration(t *testing.T) {
 		httpSink := newSlowSink(t, http.StatusOK, time.Second)
 		start := time.Now().Add(-6 * time.Minute).UnixMilli()
 		events := []auditEvent{
-			{id: drainID + "_event_1", insertedAt: start, actorMeta: `{}`},
-			{id: drainID + "_event_2", insertedAt: start + 1, actorMeta: `{}`},
-			{id: drainID + "_event_3", insertedAt: start + 2, actorMeta: `{}`},
+			{id: drainID + "_event_1", insertedAt: start},
+			{id: drainID + "_event_2", insertedAt: start + 1},
+			{id: drainID + "_event_3", insertedAt: start + 2},
 		}
 		insertAuditEvents(t, chConn, workspaceID, events)
 		seedDrain(t, mysqlDB, workspaceID, drainID, httpSink.server.URL+"/ingest", start-1, "Bearer it-test-token")
@@ -615,8 +620,8 @@ func TestEngine_Integration(t *testing.T) {
 		require.NotEqual(t, drainA, drainB)
 		httpSink := newSlowSink(t, http.StatusOK, time.Second)
 		start := time.Now().Add(-6 * time.Minute).UnixMilli()
-		insertAuditEvents(t, chConn, workspaceA, []auditEvent{{id: drainA + "_event_1", insertedAt: start, actorMeta: `{}`}})
-		insertAuditEvents(t, chConn, workspaceB, []auditEvent{{id: drainB + "_event_1", insertedAt: start, actorMeta: `{}`}})
+		insertAuditEvents(t, chConn, workspaceA, []auditEvent{{id: drainA + "_event_1", insertedAt: start}})
+		insertAuditEvents(t, chConn, workspaceB, []auditEvent{{id: drainB + "_event_1", insertedAt: start}})
 		seedDrain(t, mysqlDB, workspaceA, drainA, httpSink.server.URL+"/ingest", start-1)
 		seedDrain(t, mysqlDB, workspaceB, drainB, httpSink.server.URL+"/ingest", start-1)
 		cleanupDrain(t, mysqlDB, drainA)
@@ -638,7 +643,7 @@ func TestEngine_Integration(t *testing.T) {
 		insertedAt := time.Now().Add(-6 * time.Minute).UnixMilli()
 		events := make([]auditEvent, 1000)
 		for i := range events {
-			events[i] = auditEvent{id: fmt.Sprintf("%s_event_%04d", drainID, i), insertedAt: insertedAt, actorMeta: `{}`}
+			events[i] = auditEvent{id: fmt.Sprintf("%s_event_%04d", drainID, i), insertedAt: insertedAt}
 		}
 		insertAuditEvents(t, chConn, workspaceID, events)
 		seedDrain(t, mysqlDB, workspaceID, drainID, httpSink.server.URL+"/ingest", insertedAt-1)
@@ -662,10 +667,10 @@ func TestEngine_Integration(t *testing.T) {
 		httpSink := newSink(t, http.StatusOK)
 		insertedAt := time.Now().Add(-6 * time.Minute).UnixMilli()
 		events := []auditEvent{
-			{id: drainID + "_B", insertedAt: insertedAt, actorMeta: `{}`},
-			{id: drainID + "_C", insertedAt: insertedAt, actorMeta: `{}`},
-			{id: drainID + "_a", insertedAt: insertedAt, actorMeta: `{}`},
-			{id: drainID + "_b", insertedAt: insertedAt, actorMeta: `{}`},
+			{id: drainID + "_B", insertedAt: insertedAt},
+			{id: drainID + "_C", insertedAt: insertedAt},
+			{id: drainID + "_a", insertedAt: insertedAt},
+			{id: drainID + "_b", insertedAt: insertedAt},
 		}
 		insertAuditEvents(t, chConn, workspaceID, events)
 		seedDrain(t, mysqlDB, workspaceID, drainID, httpSink.server.URL+"/ingest", insertedAt-1)
@@ -707,7 +712,7 @@ func TestEngine_Integration(t *testing.T) {
 		for i := range eventIDs {
 			workspaceID, drainID := uniqueIDs()
 			eventIDs[i] = drainID + "_event"
-			insertAuditEvents(t, chConn, workspaceID, []auditEvent{{id: eventIDs[i], insertedAt: insertedAt, actorMeta: `{}`}})
+			insertAuditEvents(t, chConn, workspaceID, []auditEvent{{id: eventIDs[i], insertedAt: insertedAt}})
 			seedDrain(t, mysqlDB, workspaceID, drainID, httpSink.server.URL+"/ingest", insertedAt-1)
 			cleanupDrain(t, mysqlDB, drainID)
 		}
@@ -724,20 +729,33 @@ func TestEngine_Integration(t *testing.T) {
 }
 
 func uniqueIDs() (string, string) {
-	suffix := time.Now().UnixNano()
-	return fmt.Sprintf("ws_it_%d", suffix), fmt.Sprintf("ld_it_%d", suffix)
+	return uid.New(uid.WorkspacePrefix), uid.New(uid.LogdrainPrefix)
 }
 
 func insertAuditEvents(t *testing.T, conn ch.Conn, workspaceID string, events []auditEvent) {
 	t.Helper()
 	ctx := context.Background()
+	meta, err := json.Marshal(map[string]any{})
+	require.NoError(t, err)
 	for _, event := range events {
 		eventType := event.eventType
 		if eventType == "" {
 			eventType = "integration.test"
 		}
-		err := conn.Exec(ctx, "INSERT INTO audit_logs_raw_v1 (workspace_id, bucket, event_id, event, time, inserted_at, source, description, actor_type, actor_id, actor_name, actor_meta, remote_ip, user_agent, meta, `targets.type`, `targets.id`, `targets.name`, `targets.meta`, correlation_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-			workspaceID, "integration", event.id, eventType, event.insertedAt, event.insertedAt, "platform", "integration test event", "user", "actor_1", "Integration Tester", event.actorMeta, "127.0.0.1", "integration-test", `{}`, event.targetTypes, event.targetIDs, event.targetNames, event.targetMetas, event.correlationID)
+		actorMeta := event.actorMeta
+		if actorMeta == nil {
+			actorMeta = map[string]any{}
+		}
+		encodedActorMeta, err := json.Marshal(actorMeta)
+		require.NoError(t, err)
+		targetMetas := make([]string, len(event.targetMetas))
+		for i, targetMeta := range event.targetMetas {
+			encodedTargetMeta, err := json.Marshal(targetMeta)
+			require.NoError(t, err)
+			targetMetas[i] = string(encodedTargetMeta)
+		}
+		err = conn.Exec(ctx, "INSERT INTO audit_logs_raw_v1 (workspace_id, bucket, event_id, event, time, inserted_at, source, description, actor_type, actor_id, actor_name, actor_meta, remote_ip, user_agent, meta, `targets.type`, `targets.id`, `targets.name`, `targets.meta`, correlation_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+			workspaceID, "integration", event.id, eventType, event.insertedAt, event.insertedAt, "platform", "integration test event", "user", event.actorID, "Integration Tester", string(encodedActorMeta), "127.0.0.1", "integration-test", string(meta), event.targetTypes, event.targetIDs, event.targetNames, targetMetas, event.correlationID)
 		require.NoError(t, err)
 	}
 }

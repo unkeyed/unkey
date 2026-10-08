@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
@@ -28,7 +29,7 @@ func TestNotFound(t *testing.T) {
 	}
 
 	t.Run("external ID does not exist", func(t *testing.T) {
-		nonExistentExternalID := "non_existent_external_id"
+		nonExistentExternalID := uid.New(uid.TestPrefix)
 		meta := map[string]interface{}{
 			"test": "value",
 		}

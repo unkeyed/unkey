@@ -39,8 +39,8 @@ func TestSuccess(t *testing.T) {
 	workspaceID := h.Resources().UserWorkspace.ID
 	identityID := uid.New(uid.IdentityPrefix)
 	otherIdentityID := uid.New(uid.IdentityPrefix)
-	externalID := "test_user_123"
-	otherExternalID := "test_user_456"
+	externalID := uid.New(uid.TestPrefix)
+	otherExternalID := uid.New(uid.TestPrefix)
 
 	// Create initial metadata
 	metaMap := map[string]interface{}{
@@ -290,7 +290,7 @@ func TestUpdateIdentityConcurrentRatelimits(t *testing.T) {
 
 	workspaceID := h.Resources().UserWorkspace.ID
 	identityID := uid.New(uid.IdentityPrefix)
-	externalID := "concurrent_ratelimit_test"
+	externalID := uid.New(uid.TestPrefix)
 
 	err := db.Query.InsertIdentity(ctx, h.DB.RW(), db.InsertIdentityParams{
 		ID:          identityID,

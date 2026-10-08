@@ -139,9 +139,9 @@ func TestUpdateRootKeyIgnoresLegacyKeys(t *testing.T) {
 	caller := h.CreateRootKey(workspace.ID, "unkey:v1:"+workspace.ID+":rootKeys/*#write")
 	res := call(h, route, caller, handler.Request{KeyId: legacy.KeyID, Enabled: new(false)})
 	require.Equal(t, http.StatusNotFound, res.Status, "%s", res.RawBody)
-	var enabled bool
-	require.NoError(t, h.DB.RO().QueryRowContext(t.Context(), "SELECT enabled FROM `keys` WHERE id = ?", legacy.KeyID).Scan(&enabled))
-	require.True(t, enabled)
+	stored, err := db.Query.FindKeyByID(t.Context(), h.DB.RO(), legacy.KeyID)
+	require.NoError(t, err)
+	require.True(t, stored.Enabled)
 }
 
 func newRoute(h *testutil.Harness) *handler.Handler {
