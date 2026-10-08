@@ -112,7 +112,7 @@ function SettingsGroupContent({ className, children, ...props }: React.Component
               loading={save.status === "saving"}
               onClick={saveReady}
             >
-              Save changes
+              Save
             </Button>
           </div>
         ) : null}
