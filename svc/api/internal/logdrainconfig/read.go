@@ -1,0 +1,101 @@
+package logdrainconfig
+
+import (
+	"fmt"
+
+	logdrainv1 "github.com/unkeyed/unkey/gen/proto/logdrain/v1"
+	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/svc/api/openapi"
+	"google.golang.org/protobuf/proto"
+)
+
+func ToPublic(row db.Logdrain) (openapi.Logdrain, error) {
+	var data openapi.Logdrain
+	config := &logdrainv1.Config{}
+	if err := proto.Unmarshal(row.Config, config); err != nil {
+		return data, fmt.Errorf("decode log drain: %w", err)
+	}
+	data.Id = row.ID
+	data.Name = row.Name
+	data.Status = openapi.LogdrainStatus(row.Status)
+	data.Stream = openapi.LogdrainStream(row.Stream)
+	data.BatchSize = int64(config.GetBatchSize())
+	if data.BatchSize == 0 {
+		data.BatchSize = 10_000
+	}
+	data.CreatedAt = row.CreatedAt
+	switch stream := config.Stream.(type) {
+	case nil:
+		data.Filters.EventTypes = new([]string{})
+	case *logdrainv1.Config_AuditLogs:
+		data.Filters.EventTypes = new(append([]string{}, stream.AuditLogs.EventTypes...))
+	case *logdrainv1.Config_KeyVerifications:
+		data.Filters.Outcomes = new(append([]string{}, stream.KeyVerifications.Outcomes...))
+		data.Filters.KeySpaceIds = new(append([]string{}, stream.KeyVerifications.KeySpaceIds...))
+	case *logdrainv1.Config_Ratelimits:
+		data.Filters.NamespaceIds = new(append([]string{}, stream.Ratelimits.NamespaceIds...))
+		data.Filters.Passed = new(append([]bool{}, stream.Ratelimits.Passed...))
+	case *logdrainv1.Config_RuntimeLogs:
+		data.Filters.Severities = new(append([]string{}, stream.RuntimeLogs.Severities...))
+		data.Filters.ProjectIds = new(append([]string{}, stream.RuntimeLogs.ProjectIds...))
+		data.Filters.AppIds = new(append([]string{}, stream.RuntimeLogs.AppIds...))
+		data.Filters.EnvironmentIds = new(append([]string{}, stream.RuntimeLogs.EnvironmentIds...))
+	case *logdrainv1.Config_GatewayRequests:
+		classes := make([]openapi.LogdrainFiltersStatusClasses, len(stream.GatewayRequests.StatusClasses))
+		for i, class := range stream.GatewayRequests.StatusClasses {
+			switch class {
+			case logdrainv1.HttpStatusClass_HTTP_STATUS_CLASS_2XX:
+				classes[i] = "2xx"
+			case logdrainv1.HttpStatusClass_HTTP_STATUS_CLASS_3XX:
+				classes[i] = "3xx"
+			case logdrainv1.HttpStatusClass_HTTP_STATUS_CLASS_4XX:
+				classes[i] = "4xx"
+			case logdrainv1.HttpStatusClass_HTTP_STATUS_CLASS_5XX:
+				classes[i] = "5xx"
+			case logdrainv1.HttpStatusClass_HTTP_STATUS_CLASS_UNSPECIFIED:
+				return data, fmt.Errorf("HTTP status class is unspecified")
+			default:
+				return data, fmt.Errorf("unsupported HTTP status class %d", class)
+			}
+		}
+		data.Filters.StatusClasses = &classes
+		data.Filters.ProjectIds = new(append([]string{}, stream.GatewayRequests.ProjectIds...))
+		data.Filters.AppIds = new(append([]string{}, stream.GatewayRequests.AppIds...))
+		data.Filters.EnvironmentIds = new(append([]string{}, stream.GatewayRequests.EnvironmentIds...))
+	default:
+		return data, fmt.Errorf("unsupported log drain stream %T", stream)
+	}
+	switch destination := config.Destination.(type) {
+	case *logdrainv1.Config_Http:
+		format := openapi.LogdrainDestinationHttpFormat("json")
+		switch destination.Http.Format {
+		case logdrainv1.HttpBodyFormat_HTTP_BODY_FORMAT_UNSPECIFIED, logdrainv1.HttpBodyFormat_HTTP_BODY_FORMAT_JSON:
+		case logdrainv1.HttpBodyFormat_HTTP_BODY_FORMAT_NDJSON:
+			format = "ndjson"
+		case logdrainv1.HttpBodyFormat_HTTP_BODY_FORMAT_HEC:
+			format = "hec"
+		default:
+			return data, fmt.Errorf("unsupported log drain body format %d", destination.Http.Format)
+		}
+		headers := make([]string, len(destination.Http.Headers))
+		for i, header := range destination.Http.Headers {
+			headers[i] = header.Name
+		}
+		data.Destination.Http = &struct {
+			Format  openapi.LogdrainDestinationHttpFormat `json:"format"`
+			Headers []string                              `json:"headers"`
+			Url     string                                `json:"url"`
+		}{
+			Format:  format,
+			Headers: headers,
+			Url:     destination.Http.Url,
+		}
+	case *logdrainv1.Config_Axiom:
+		data.Destination.Axiom = &struct {
+			Dataset string `json:"dataset"`
+		}{Dataset: destination.Axiom.Dataset}
+	default:
+		return data, fmt.Errorf("unsupported log drain destination %T", destination)
+	}
+	return data, nil
+}

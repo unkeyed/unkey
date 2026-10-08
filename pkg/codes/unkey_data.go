@@ -151,6 +151,11 @@ type dataAnalytics struct {
 	ConnectionFailed Code
 }
 
+type dataLogdrain struct {
+	// NotFound indicates the requested log drain was not found.
+	NotFound Code
+}
+
 // UnkeyDataErrors defines all data-related errors in the Unkey system.
 // These errors generally relate to CRUD operations on domain entities.
 type UnkeyDataErrors struct {
@@ -174,6 +179,7 @@ type UnkeyDataErrors struct {
 	Identity           dataIdentity
 	AuditLog           dataAuditLog
 	Portal             dataPortal
+	Logdrain           dataLogdrain
 	Analytics          dataAnalytics
 }
 
@@ -269,5 +275,12 @@ var Data = UnkeyDataErrors{
 	Analytics: dataAnalytics{
 		NotConfigured:    Code{SystemUnkey, CategoryUnkeyData, "analytics_not_configured"},
 		ConnectionFailed: Code{SystemUnkey, CategoryUnkeyData, "analytics_connection_failed"},
+	},
+	Logdrain: dataLogdrain{
+		NotFound: Code{
+			SystemUnkey,
+			CategoryUnkeyData,
+			"logdrain_not_found",
+		},
 	},
 }

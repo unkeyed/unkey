@@ -198,6 +198,11 @@ const (
 	// so the request was refused rather than acting on the old mapping.
 	UnkeyDataErrorsPortalChanged URN = "err:unkey:data:portal_changed"
 
+	// Logdrain
+
+	// NotFound indicates the requested log drain was not found.
+	UnkeyDataErrorsLogdrainNotFound URN = "err:unkey:data:logdrain_not_found"
+
 	// Analytics
 
 	// NotConfigured indicates analytics is not configured for the workspace.

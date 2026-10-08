@@ -8,6 +8,7 @@ import (
 	"github.com/unkeyed/unkey/svc/api/routes/reference"
 	v2Liveness "github.com/unkeyed/unkey/svc/api/routes/v2_liveness"
 	v2Logdrains "github.com/unkeyed/unkey/svc/api/routes/v2_logdrains_create_logdrain"
+	v2LogdrainsGetLogdrain "github.com/unkeyed/unkey/svc/api/routes/v2_logdrains_get_logdrain"
 
 	pprofRoute "github.com/unkeyed/unkey/pkg/pprof"
 
@@ -208,6 +209,7 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 		Clock:       svc.Clock,
 		LimitsCache: svc.Caches.WorkspaceLimits,
 	})
+	srv.RegisterRoute(protectedMiddlewares, &v2LogdrainsGetLogdrain.Handler{DB: svc.Database})
 
 	// ---------------------------------------------------------------------------
 	// pprof (internal profiling endpoints)

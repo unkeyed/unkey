@@ -344,6 +344,75 @@ func (e KeyCreditsRefillInterval) Valid() bool {
 	}
 }
 
+// Defines values for LogdrainStatus.
+const (
+	PausedByFailure LogdrainStatus = "paused_by_failure"
+	PausedByUser    LogdrainStatus = "paused_by_user"
+	Running         LogdrainStatus = "running"
+)
+
+// Valid indicates whether the value is a known member of the LogdrainStatus enum.
+func (e LogdrainStatus) Valid() bool {
+	switch e {
+	case PausedByFailure:
+		return true
+	case PausedByUser:
+		return true
+	case Running:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LogdrainStream.
+const (
+	AuditLogs        LogdrainStream = "audit_logs"
+	GatewayRequests  LogdrainStream = "gateway_requests"
+	KeyVerifications LogdrainStream = "key_verifications"
+	Ratelimits       LogdrainStream = "ratelimits"
+	RuntimeLogs      LogdrainStream = "runtime_logs"
+)
+
+// Valid indicates whether the value is a known member of the LogdrainStream enum.
+func (e LogdrainStream) Valid() bool {
+	switch e {
+	case AuditLogs:
+		return true
+	case GatewayRequests:
+		return true
+	case KeyVerifications:
+		return true
+	case Ratelimits:
+		return true
+	case RuntimeLogs:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LogdrainDestinationHttpFormat.
+const (
+	LogdrainDestinationHttpFormatHec    LogdrainDestinationHttpFormat = "hec"
+	LogdrainDestinationHttpFormatJson   LogdrainDestinationHttpFormat = "json"
+	LogdrainDestinationHttpFormatNdjson LogdrainDestinationHttpFormat = "ndjson"
+)
+
+// Valid indicates whether the value is a known member of the LogdrainDestinationHttpFormat enum.
+func (e LogdrainDestinationHttpFormat) Valid() bool {
+	switch e {
+	case LogdrainDestinationHttpFormatHec:
+		return true
+	case LogdrainDestinationHttpFormatJson:
+		return true
+	case LogdrainDestinationHttpFormatNdjson:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for LogdrainFiltersStatusClasses.
 const (
 	N2xx LogdrainFiltersStatusClasses = "2xx"
@@ -370,19 +439,19 @@ func (e LogdrainFiltersStatusClasses) Valid() bool {
 
 // Defines values for LogdrainHttpWriteFormat.
 const (
-	Hec    LogdrainHttpWriteFormat = "hec"
-	Json   LogdrainHttpWriteFormat = "json"
-	Ndjson LogdrainHttpWriteFormat = "ndjson"
+	LogdrainHttpWriteFormatHec    LogdrainHttpWriteFormat = "hec"
+	LogdrainHttpWriteFormatJson   LogdrainHttpWriteFormat = "json"
+	LogdrainHttpWriteFormatNdjson LogdrainHttpWriteFormat = "ndjson"
 )
 
 // Valid indicates whether the value is a known member of the LogdrainHttpWriteFormat enum.
 func (e LogdrainHttpWriteFormat) Valid() bool {
 	switch e {
-	case Hec:
+	case LogdrainHttpWriteFormatHec:
 		return true
-	case Json:
+	case LogdrainHttpWriteFormatJson:
 		return true
-	case Ndjson:
+	case LogdrainHttpWriteFormatNdjson:
 		return true
 	default:
 		return false
@@ -1883,11 +1952,50 @@ type KeysVerifyKeyRatelimit struct {
 	Name string `json:"name"`
 }
 
+// Logdrain defines model for Logdrain.
+type Logdrain struct {
+	// BatchSize Effective maximum events per delivery. Defaults to 10000.
+	BatchSize   int64               `json:"batchSize"`
+	CreatedAt   int64               `json:"createdAt"`
+	Destination LogdrainDestination `json:"destination"`
+
+	// Filters Only filters for the selected stream are accepted. Empty arrays select all
+	// values. Nonempty dimensions are combined with AND.
+	Filters LogdrainFilters `json:"filters"`
+	Id      string          `json:"id"`
+	Name    string          `json:"name"`
+	Status  LogdrainStatus  `json:"status"`
+	Stream  LogdrainStream  `json:"stream"`
+}
+
+// LogdrainStatus defines model for Logdrain.Status.
+type LogdrainStatus string
+
+// LogdrainStream defines model for Logdrain.Stream.
+type LogdrainStream string
+
 // LogdrainAxiomWrite defines model for LogdrainAxiomWrite.
 type LogdrainAxiomWrite struct {
 	Dataset *string `json:"dataset,omitempty"`
 	Token   *string `json:"token,omitempty"`
 }
+
+// LogdrainDestination defines model for LogdrainDestination.
+type LogdrainDestination struct {
+	Axiom *struct {
+		Dataset string `json:"dataset"`
+	} `json:"axiom,omitempty"`
+	Http *struct {
+		Format LogdrainDestinationHttpFormat `json:"format"`
+
+		// Headers Header names only. Values remain encrypted and are never returned.
+		Headers []string `json:"headers"`
+		Url     string   `json:"url"`
+	} `json:"http,omitempty"`
+}
+
+// LogdrainDestinationHttpFormat defines model for LogdrainDestination.Http.Format.
+type LogdrainDestinationHttpFormat string
 
 // LogdrainDestinationWrite Exactly one destination: an HTTP URL or an Axiom dataset and token.
 type LogdrainDestinationWrite struct {
@@ -1940,11 +2048,24 @@ type LogdrainHttpWrite struct {
 // envelopes with time, source, sourcetype, and event fields.
 type LogdrainHttpWriteFormat string
 
+// LogdrainIdRequest defines model for LogdrainIdRequest.
+type LogdrainIdRequest struct {
+	LogdrainId string `json:"logdrainId"`
+}
+
 // LogdrainMutationResponse defines model for LogdrainMutationResponse.
 type LogdrainMutationResponse struct {
 	Data struct {
 		Id string `json:"id"`
 	} `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// LogdrainResponse defines model for LogdrainResponse.
+type LogdrainResponse struct {
+	Data Logdrain `json:"data"`
 
 	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
 	Meta Meta `json:"meta"`
@@ -7563,6 +7684,9 @@ type KeysWhoamiJSONRequestBody = V2KeysWhoamiRequestBody
 
 // LogdrainsCreateLogdrainJSONRequestBody defines body for LogdrainsCreateLogdrain for application/json ContentType.
 type LogdrainsCreateLogdrainJSONRequestBody = CreateLogdrainRequest
+
+// LogdrainsGetLogdrainJSONRequestBody defines body for LogdrainsGetLogdrain for application/json ContentType.
+type LogdrainsGetLogdrainJSONRequestBody = LogdrainIdRequest
 
 // PermissionsCreatePermissionJSONRequestBody defines body for PermissionsCreatePermission for application/json ContentType.
 type PermissionsCreatePermissionJSONRequestBody = V2PermissionsCreatePermissionRequestBody
