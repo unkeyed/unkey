@@ -12,7 +12,10 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
 	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
+	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -56,7 +59,7 @@ func TestGetEnvironment(t *testing.T) {
 			Kind:        mysqltype.EnvironmentKindProduction,
 		})
 
-		rootKey := h.CreateRootKey(workspace.ID, fmt.Sprintf("unkey:v1:%s:projects/%s/apps/%s/environments/%s#read", workspace.ID, project.ID, app.ID, environment.ID))
+		rootKey := h.CreateRootKey(workspace.ID, rbac.U(urn.New().Workspace(workspace.ID).Project(project.ID).App(app.ID).Environment(environment.ID), permissions.Read).Value)
 		headers := http.Header{
 			"Content-Type":  {"application/json"},
 			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
@@ -128,7 +131,7 @@ func TestGetEnvironment(t *testing.T) {
 		require.NoError(t, db.Query.DeleteAppRuntimeSettingsByEnvironmentId(ctx, h.DB.RW(), environment.ID))
 		require.NoError(t, db.Query.DeleteAppBuildSettingsByEnvironmentId(ctx, h.DB.RW(), environment.ID))
 
-		rootKey := h.CreateRootKey(workspace.ID, fmt.Sprintf("unkey:v1:%s:projects/%s/apps/%s/environments/%s#read", workspace.ID, project.ID, app.ID, environment.ID))
+		rootKey := h.CreateRootKey(workspace.ID, rbac.U(urn.New().Workspace(workspace.ID).Project(project.ID).App(app.ID).Environment(environment.ID), permissions.Read).Value)
 		headers := http.Header{
 			"Content-Type":  {"application/json"},
 			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
@@ -184,7 +187,7 @@ func TestGetEnvironment(t *testing.T) {
 				UpdatedAt:     sql.NullInt64{Valid: false},
 			}))
 
-			rootKey := h.CreateRootKey(workspace.ID, fmt.Sprintf("unkey:v1:%s:projects/%s/apps/%s/environments/%s#read", workspace.ID, project.ID, app.ID, environment.ID))
+			rootKey := h.CreateRootKey(workspace.ID, rbac.U(urn.New().Workspace(workspace.ID).Project(project.ID).App(app.ID).Environment(environment.ID), permissions.Read).Value)
 			headers := http.Header{
 				"Content-Type":  {"application/json"},
 				"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
@@ -235,7 +238,7 @@ func TestGetEnvironment(t *testing.T) {
 				UpdatedAt:                     sql.NullInt64{Valid: false},
 			}))
 
-			rootKey := h.CreateRootKey(workspace.ID, fmt.Sprintf("unkey:v1:%s:projects/%s/apps/%s/environments/%s#read", workspace.ID, project.ID, app.ID, environment.ID))
+			rootKey := h.CreateRootKey(workspace.ID, rbac.U(urn.New().Workspace(workspace.ID).Project(project.ID).App(app.ID).Environment(environment.ID), permissions.Read).Value)
 			headers := http.Header{
 				"Content-Type":  {"application/json"},
 				"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
