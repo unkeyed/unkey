@@ -1,0 +1,20 @@
+type: object
+description: |
+  The calendar month (UTC) to read. Omit it for the current month to date. A
+  past month returns the full month. It cannot be in the future, and it must
+  start within the last 90 days, because compute usage is kept for 90 days.
+required:
+  - year
+  - month
+properties:
+  year:
+    type: integer
+    description: The year, for example 2026.
+    example: 2026
+  month:
+    type: integer
+    minimum: 1
+    maximum: 12
+    description: The month, from 1 (January) to 12 (December).
+    example: 9
+additionalProperties: false

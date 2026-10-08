@@ -10,4 +10,5 @@ export type ResolvedNavLink = {
   external?: boolean;
   separatorAbove?: boolean;
   tag?: ReactNode;
+  onIntent?: () => void;
 };

@@ -1,5 +1,6 @@
 "use client";
 
+import { useInvalidateWorkspaceQueries } from "@/hooks/use-invalidate-workspace-queries";
 import { DEPLOY_METER_RATE_LABELS, priceDeployMetersCents } from "@/lib/billing/deployPricing";
 import { formatCompactQuantity, formatDollars, formatPrice } from "@/lib/fmt";
 import { trpc } from "@/lib/trpc/client";
@@ -33,6 +34,7 @@ export const DeployProductCard: React.FC<DeployProductCardProps> = ({
   hasPaymentMethod,
 }) => {
   const trpcUtils = trpc.useUtils();
+  const invalidateWorkspace = useInvalidateWorkspaceQueries();
   const [isPlanModalOpen, setPlanModalOpen] = useState(false);
   const [isCancelOpen, setCancelOpen] = useState(false);
 
@@ -79,7 +81,7 @@ export const DeployProductCard: React.FC<DeployProductCardProps> = ({
       trpcUtils.stripe.getDeployEntitlement.invalidate(),
       trpcUtils.stripe.getUpcomingInvoice.invalidate(),
       trpcUtils.billing.queryDeployUsage.invalidate(),
-      trpcUtils.workspace.getCurrent.invalidate(),
+      invalidateWorkspace(),
       trpcUtils.stripe.getDeploySubscription.refetch(),
     ]);
   };

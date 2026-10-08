@@ -7130,6 +7130,283 @@ type V2RootKeysUpdateKeyResponseBody struct {
 	Meta Meta `json:"meta"`
 }
 
+// V2WorkspaceGetLimitsLimit A workspace limit and, when the limit has one, the current value against it.
+type V2WorkspaceGetLimitsLimit struct {
+	// Current The current value against `limit`. Omitted when the limit has no current
+	// value, such as a retention period or a per-instance size.
+	//
+	//
+	// Example: 1
+	Current *float64 `json:"current,omitempty"`
+
+	// Limit The maximum the workspace can have. `null` means unlimited.
+	//
+	// Example: 5
+	Limit nullable.Nullable[int64] `json:"limit"`
+}
+
+// V2WorkspaceGetLimitsResponseBody defines model for V2WorkspaceGetLimitsResponseBody.
+type V2WorkspaceGetLimitsResponseBody struct {
+	// Data The workspace limits. The Compute limits are present only when the workspace
+	// has a Compute plan.
+	Data V2WorkspaceGetLimitsResponseData `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// V2WorkspaceGetLimitsResponseData The workspace limits. The Compute limits are present only when the workspace
+// has a Compute plan.
+type V2WorkspaceGetLimitsResponseData struct {
+	// ApiBillableOperationsCountMaxPerMonth Billable key verifications and rate limit operations per calendar month
+	// (UTC). `current` counts the current month.
+	ApiBillableOperationsCountMaxPerMonth V2WorkspaceGetLimitsLimit `json:"apiBillableOperationsCountMaxPerMonth"`
+
+	// ApiRequestsCountMaxPerMinute Authenticated API requests per minute. Requests above it get a 429.
+	// `limit` is `null` when the workspace has no per-minute limit. Has no `current`.
+	ApiRequestsCountMaxPerMinute V2WorkspaceGetLimitsLimit `json:"apiRequestsCountMaxPerMinute"`
+
+	// AutoscalingReplicasMax Instances that autoscaling runs for one app in one region. Has no `current`.
+	// Present only with a Compute plan.
+	AutoscalingReplicasMax *V2WorkspaceGetLimitsLimit `json:"autoscalingReplicasMax,omitempty"`
+
+	// BuildsConcurrentMax Builds that run at the same time. Has no `current`. Present only with a Compute plan.
+	BuildsConcurrentMax *V2WorkspaceGetLimitsLimit `json:"buildsConcurrentMax,omitempty"`
+
+	// CpuCoresMax CPU cores the workspace can reserve across all running deployments.
+	// `current` is reserved capacity, not live usage: each running deployment
+	// reserves its instance CPU times its maximum replicas, in each region it
+	// runs in. A deploy that would bring `current` above `limit` is rejected.
+	// Present only with a Compute plan.
+	CpuCoresMax *V2WorkspaceGetLimitsLimit `json:"cpuCoresMax,omitempty"`
+
+	// CpuCoresMaxPerInstance CPU cores for one instance. Has no `current`. Present only with a Compute plan.
+	CpuCoresMaxPerInstance *V2WorkspaceGetLimitsLimit `json:"cpuCoresMaxPerInstance,omitempty"`
+
+	// CustomDomainsMax Custom domains across all apps. `current` is the custom domains attached
+	// now. `limit` is `null` when the plan has no limit. Present only with a
+	// Compute plan.
+	CustomDomainsMax *V2WorkspaceGetLimitsLimit `json:"customDomainsMax,omitempty"`
+
+	// LogdrainsMax Log drains. `current` is the log drains in the workspace now.
+	LogdrainsMax V2WorkspaceGetLimitsLimit `json:"logdrainsMax"`
+
+	// LogsAuditRetentionDaysMax How many days audit logs are kept. Has no `current`.
+	LogsAuditRetentionDaysMax V2WorkspaceGetLimitsLimit `json:"logsAuditRetentionDaysMax"`
+
+	// LogsRetentionDaysMax How many days back request and runtime logs can be queried. Has no `current`.
+	LogsRetentionDaysMax V2WorkspaceGetLimitsLimit `json:"logsRetentionDaysMax"`
+
+	// MemoryMibMax Memory in MiB the workspace can reserve across all running deployments.
+	// `current` is reserved memory, counted the same way as `cpuCoresMax`.
+	// Present only with a Compute plan.
+	MemoryMibMax *V2WorkspaceGetLimitsLimit `json:"memoryMibMax,omitempty"`
+
+	// MemoryMibMaxPerInstance Memory in MiB for one instance. Has no `current`. Present only with a Compute plan.
+	MemoryMibMaxPerInstance *V2WorkspaceGetLimitsLimit `json:"memoryMibMaxPerInstance,omitempty"`
+
+	// StorageMibMax Ephemeral disk in MiB the workspace can reserve across all running
+	// deployments. `current` is reserved disk, counted the same way as
+	// `cpuCoresMax`. Present only with a Compute plan.
+	StorageMibMax *V2WorkspaceGetLimitsLimit `json:"storageMibMax,omitempty"`
+
+	// StorageMibMaxPerInstance Ephemeral disk in MiB for one instance. Has no `current`. Present only with a Compute plan.
+	StorageMibMaxPerInstance *V2WorkspaceGetLimitsLimit `json:"storageMibMaxPerInstance,omitempty"`
+}
+
+// V2WorkspaceGetUsageApi Billable operations through the Unkey API in the period. Key verifications
+// through the Unkey gateway are not counted here. The gateway bills by active
+// keys, see `gateway`.
+type V2WorkspaceGetUsageApi struct {
+	// Ratelimits Billable rate limit operations.
+	//
+	// Example: 2000
+	Ratelimits int64 `json:"ratelimits"`
+
+	// Verifications Billable key verifications.
+	//
+	// Example: 40000
+	Verifications int64 `json:"verifications"`
+}
+
+// V2WorkspaceGetUsageBreakdowns The totals split by environment and by app.
+type V2WorkspaceGetUsageBreakdowns struct {
+	// ByApp One row per app whose gateway verified keys in the period, and one row
+	// without `app` for keys that have no app id. Most `gateway.activeKeys`
+	// first, then by app id. Empty when no keys were verified.
+	ByApp []V2WorkspaceGetUsageByAppRow `json:"byApp"`
+
+	// ByEnvironment One row per environment with compute usage in the period, most
+	// `compute.cpuSeconds` first, then by project id and environment id.
+	// Empty when nothing ran.
+	ByEnvironment []V2WorkspaceGetUsageByEnvironmentRow `json:"byEnvironment"`
+}
+
+// V2WorkspaceGetUsageByAppRow Active gateway keys counted for one app in the period.
+type V2WorkspaceGetUsageByAppRow struct {
+	// App The app whose gateway verified the keys. Omitted for keys whose
+	// verifications were all recorded before Unkey stored app ids.
+	App *V2WorkspaceGetUsageResource `json:"app,omitempty"`
+
+	// Gateway Unkey gateway usage in the period.
+	Gateway V2WorkspaceGetUsageGateway `json:"gateway"`
+
+	// Project The project the app belongs to. Omitted when the app was deleted or `app` is omitted.
+	Project *V2WorkspaceGetUsageResource `json:"project,omitempty"`
+}
+
+// V2WorkspaceGetUsageByEnvironmentRow Compute one environment used in the period.
+type V2WorkspaceGetUsageByEnvironmentRow struct {
+	// App The app the environment belongs to. Omitted when the usage was recorded
+	// before Unkey stored app ids and the environment was deleted since.
+	App *V2WorkspaceGetUsageResource `json:"app,omitempty"`
+
+	// Compute Compute usage in the period.
+	Compute V2WorkspaceGetUsageCompute `json:"compute"`
+
+	// Environment An environment. `slug` is omitted when the environment was deleted.
+	Environment V2WorkspaceGetUsageEnvironmentResource `json:"environment"`
+
+	// Project The project the environment belongs to.
+	Project V2WorkspaceGetUsageResource `json:"project"`
+}
+
+// V2WorkspaceGetUsageCompute Compute usage in the period.
+type V2WorkspaceGetUsageCompute struct {
+	// CpuSeconds CPU time used, in seconds.
+	//
+	// Example: 5400.5
+	CpuSeconds float64 `json:"cpuSeconds"`
+
+	// EgressGiB Public network egress, in GiB.
+	//
+	// Example: 1.4
+	EgressGiB float64 `json:"egressGiB"`
+
+	// MemoryGiBHours Memory used over time, in GiB-hours.
+	//
+	// Example: 96.2
+	MemoryGiBHours float64 `json:"memoryGiBHours"`
+
+	// StorageGiBHours Ephemeral disk reserved over time, in GiB-hours.
+	//
+	// Example: 0
+	StorageGiBHours float64 `json:"storageGiBHours"`
+}
+
+// V2WorkspaceGetUsageEnvironmentResource An environment. `slug` is omitted when the environment was deleted.
+type V2WorkspaceGetUsageEnvironmentResource struct {
+	// Id The environment id.
+	//
+	// Example: env_1234abcd
+	Id string `json:"id"`
+
+	// Slug The environment slug.
+	//
+	// Example: production
+	Slug *string `json:"slug,omitempty"`
+}
+
+// V2WorkspaceGetUsageGateway Unkey gateway usage in the period.
+type V2WorkspaceGetUsageGateway struct {
+	// ActiveKeys Distinct keys verified through the Unkey gateway. A key verified through
+	// several apps counts once, for the app that verified it most.
+	//
+	//
+	// Example: 12
+	ActiveKeys int64 `json:"activeKeys"`
+}
+
+// V2WorkspaceGetUsagePeriod The time window the usage covers.
+type V2WorkspaceGetUsagePeriod struct {
+	// End Unix timestamp in milliseconds of the end of the period, exclusive. For
+	// the current month it is the time of the request. For a past month it is
+	// the start of the next month.
+	//
+	//
+	// Example: 1790946000000
+	End int64 `json:"end"`
+
+	// Start Unix timestamp in milliseconds of the first day of the month, 00:00 UTC.
+	//
+	// Example: 1790812800000
+	Start int64 `json:"start"`
+}
+
+// V2WorkspaceGetUsageRequestBody defines model for V2WorkspaceGetUsageRequestBody.
+type V2WorkspaceGetUsageRequestBody struct {
+	// Period The calendar month (UTC) to read. Omit it for the current month to date. A
+	// past month returns the full month. It cannot be in the future, and it must
+	// start within the last 90 days, because compute usage is kept for 90 days.
+	Period *V2WorkspaceGetUsageRequestPeriod `json:"period,omitempty"`
+}
+
+// V2WorkspaceGetUsageRequestPeriod The calendar month (UTC) to read. Omit it for the current month to date. A
+// past month returns the full month. It cannot be in the future, and it must
+// start within the last 90 days, because compute usage is kept for 90 days.
+type V2WorkspaceGetUsageRequestPeriod struct {
+	// Month The month, from 1 (January) to 12 (December).
+	//
+	// Example: 9
+	Month int `json:"month"`
+
+	// Year The year, for example 2026.
+	//
+	// Example: 2026
+	Year int `json:"year"`
+}
+
+// V2WorkspaceGetUsageResource A project or app. `name` is omitted when the resource was deleted.
+type V2WorkspaceGetUsageResource struct {
+	// Id The resource id.
+	//
+	// Example: proj_1234abcd
+	Id string `json:"id"`
+
+	// Name The resource name.
+	//
+	// Example: Payments
+	Name *string `json:"name,omitempty"`
+}
+
+// V2WorkspaceGetUsageResponseBody defines model for V2WorkspaceGetUsageResponseBody.
+type V2WorkspaceGetUsageResponseBody struct {
+	Data V2WorkspaceGetUsageResponseData `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// V2WorkspaceGetUsageResponseData defines model for V2WorkspaceGetUsageResponseData.
+type V2WorkspaceGetUsageResponseData struct {
+	// Breakdowns The totals split by environment and by app.
+	Breakdowns V2WorkspaceGetUsageBreakdowns `json:"breakdowns"`
+
+	// Period The time window the usage covers.
+	Period V2WorkspaceGetUsagePeriod `json:"period"`
+
+	// Totals Workspace totals in the period. `compute` is the sum of
+	// `breakdowns.byEnvironment[].compute`. `gateway.activeKeys` is the sum of
+	// `breakdowns.byApp[].gateway.activeKeys`.
+	Totals V2WorkspaceGetUsageTotals `json:"totals"`
+}
+
+// V2WorkspaceGetUsageTotals Workspace totals in the period. `compute` is the sum of
+// `breakdowns.byEnvironment[].compute`. `gateway.activeKeys` is the sum of
+// `breakdowns.byApp[].gateway.activeKeys`.
+type V2WorkspaceGetUsageTotals struct {
+	// Api Billable operations through the Unkey API in the period. Key verifications
+	// through the Unkey gateway are not counted here. The gateway bills by active
+	// keys, see `gateway`.
+	Api V2WorkspaceGetUsageApi `json:"api"`
+
+	// Compute Compute usage in the period.
+	Compute V2WorkspaceGetUsageCompute `json:"compute"`
+
+	// Gateway Unkey gateway usage in the period.
+	Gateway V2WorkspaceGetUsageGateway `json:"gateway"`
+}
+
 // V3DeploymentsCreateDeploymentRequestBody Create a deployment. Omit the source to use the app default, or provide one source override.
 type V3DeploymentsCreateDeploymentRequestBody struct {
 	// App Identifies a resource by either its unique ID or its slug.
@@ -7538,6 +7815,9 @@ type RootKeysRerollKeyJSONRequestBody = V2RootKeysRerollKeyRequestBody
 
 // RootKeysUpdateKeyJSONRequestBody defines body for RootKeysUpdateKey for application/json ContentType.
 type RootKeysUpdateKeyJSONRequestBody = V2RootKeysUpdateKeyRequestBody
+
+// WorkspaceGetUsageJSONRequestBody defines body for WorkspaceGetUsage for application/json ContentType.
+type WorkspaceGetUsageJSONRequestBody = V2WorkspaceGetUsageRequestBody
 
 // DeploymentsCreateDeploymentV3JSONRequestBody defines body for DeploymentsCreateDeploymentV3 for application/json ContentType.
 type DeploymentsCreateDeploymentV3JSONRequestBody = V3DeploymentsCreateDeploymentRequestBody
