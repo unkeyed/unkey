@@ -82,6 +82,16 @@ Tilt builds `@unkey/api` before starting the dashboard and rebuilds it when SDK
 source files change. The dashboard picks up the compiled output without a
 manual SDK build. SDK build failures appear in the `api-sdk` resource.
 
+Independent updates run in parallel, with up to 16 active Tilt updates.
+`seed-compile` builds the host CLI while MySQL starts. `seed` then writes the
+fixtures without blocking unrelated updates. Both steps have separate timings
+in Tilt.
+
+MySQL and ClickHouse pull their pinned upstream images directly into the
+cluster. Their SQL and initialization scripts mount from ConfigMaps, so Tilt
+does not rebuild or push database images. A fresh node still downloads the
+upstream images. Image pulls run in parallel.
+
 Minikube waits for the API server, kubelet, and node readiness. Tilt then checks
 Cilium, its policy CRDs, and CoreDNS before applying network policies. It does
 not wait for old application pods before starting Tilt, so Tilt can repair
@@ -91,6 +101,16 @@ An existing Minikube profile is reused, not reapplied through `ctlptl`.
 Changes to `dev/cluster.yaml` apply only when creating a cluster, because
 `ctlptl apply` can delete a cluster when its configuration changes. To adopt
 cluster configuration changes, explicitly reset it using the command below.
+
+The toolchain pins Minikube 1.39.0 and kubectl 1.37.1. Fresh local and orb
+clusters use Kubernetes 1.37.0, the newest version built into Minikube 1.39.0.
+Newer versions require a GitHub version check on every start, including resume,
+which can fail when GitHub rate-limits the request.
+
+Run `mise install` after pulling toolchain changes. Existing clusters are not
+upgraded automatically. kubectl 1.37 is outside the supported version range for
+a Kubernetes 1.34 cluster; upgrade that cluster deliberately or reset it after
+saving any data you need.
 
 Local deployments use in-cluster BuildKit Jobs by default and don't require Depot credentials. To test the Depot backend, copy `dev/.env.depot.example` to `dev/.env.depot` and set both values to your Depot token before starting the environment.
 

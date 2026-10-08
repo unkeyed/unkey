@@ -339,43 +339,43 @@ url_api = "https://api.github.com/repos/jqlang/jq/releases/assets/268981509"
 provenance = "github-attestations"
 
 [[tools."github:kubernetes/minikube"]]
-version = "1.38.1"
+version = "1.39.0"
 backend = "github:kubernetes/minikube"
 
 [tools."github:kubernetes/minikube"."platforms.linux-arm64"]
-checksum = "sha256:63e030e50a5ff6c7c2a0dbf41a004cd99a50a45b70408eec2aadb39c811c6ed8"
-url = "https://github.com/kubernetes/minikube/releases/download/v1.38.1/minikube-linux-arm64.tar.gz"
-url_api = "https://api.github.com/repos/kubernetes/minikube/releases/assets/358743933"
+checksum = "sha256:2ce53fe7bb99b595739b076d19ad45da5e199c4b06d6fa508b171a566cc49ed7"
+url = "https://github.com/kubernetes/minikube/releases/download/v1.39.0/minikube-linux-arm64.tar.gz"
+url_api = "https://api.github.com/repos/kubernetes/minikube/releases/assets/541768926"
 
 [tools."github:kubernetes/minikube"."platforms.linux-arm64-musl"]
-checksum = "sha256:63e030e50a5ff6c7c2a0dbf41a004cd99a50a45b70408eec2aadb39c811c6ed8"
-url = "https://github.com/kubernetes/minikube/releases/download/v1.38.1/minikube-linux-arm64.tar.gz"
-url_api = "https://api.github.com/repos/kubernetes/minikube/releases/assets/358743933"
+checksum = "sha256:2ce53fe7bb99b595739b076d19ad45da5e199c4b06d6fa508b171a566cc49ed7"
+url = "https://github.com/kubernetes/minikube/releases/download/v1.39.0/minikube-linux-arm64.tar.gz"
+url_api = "https://api.github.com/repos/kubernetes/minikube/releases/assets/541768926"
 
 [tools."github:kubernetes/minikube"."platforms.linux-x64"]
-checksum = "sha256:4ef8e04d2678ebc8b74c42cf538ca9df5c10dd42d7050d428352f555bc9c6479"
-url = "https://github.com/kubernetes/minikube/releases/download/v1.38.1/minikube-linux-amd64.tar.gz"
-url_api = "https://api.github.com/repos/kubernetes/minikube/releases/assets/358742047"
+checksum = "sha256:e4216586c07c05441910cce39600f0424132c3ae69400ce1a7daaae17dc2e855"
+url = "https://github.com/kubernetes/minikube/releases/download/v1.39.0/minikube-linux-amd64.tar.gz"
+url_api = "https://api.github.com/repos/kubernetes/minikube/releases/assets/541762589"
 
 [tools."github:kubernetes/minikube"."platforms.linux-x64-musl"]
-checksum = "sha256:4ef8e04d2678ebc8b74c42cf538ca9df5c10dd42d7050d428352f555bc9c6479"
-url = "https://github.com/kubernetes/minikube/releases/download/v1.38.1/minikube-linux-amd64.tar.gz"
-url_api = "https://api.github.com/repos/kubernetes/minikube/releases/assets/358742047"
+checksum = "sha256:e4216586c07c05441910cce39600f0424132c3ae69400ce1a7daaae17dc2e855"
+url = "https://github.com/kubernetes/minikube/releases/download/v1.39.0/minikube-linux-amd64.tar.gz"
+url_api = "https://api.github.com/repos/kubernetes/minikube/releases/assets/541762589"
 
 [tools."github:kubernetes/minikube"."platforms.macos-arm64"]
-checksum = "sha256:fc524f257cef1fc09a50701bb9309c7ae44c0aa7994c4fc0808a232f8c100528"
-url = "https://github.com/kubernetes/minikube/releases/download/v1.38.1/minikube-darwin-arm64.tar.gz"
-url_api = "https://api.github.com/repos/kubernetes/minikube/releases/assets/358743720"
+checksum = "sha256:d680e5dd163773959e1f61a57d50df90c9b672128d0bbe929caf5e8e53652e0b"
+url = "https://github.com/kubernetes/minikube/releases/download/v1.39.0/minikube-darwin-arm64.tar.gz"
+url_api = "https://api.github.com/repos/kubernetes/minikube/releases/assets/541767411"
 
 [tools."github:kubernetes/minikube"."platforms.macos-x64"]
-checksum = "sha256:a1316d1a550b4f25c3a0d828539998a4824612be982e957a556f48a36f980187"
-url = "https://github.com/kubernetes/minikube/releases/download/v1.38.1/minikube-darwin-amd64.tar.gz"
-url_api = "https://api.github.com/repos/kubernetes/minikube/releases/assets/358743674"
+checksum = "sha256:4de88af8b94effd843859e36e29ecae08fe6822f7c0b85d7e9d5eeee59b3c54f"
+url = "https://github.com/kubernetes/minikube/releases/download/v1.39.0/minikube-darwin-amd64.tar.gz"
+url_api = "https://api.github.com/repos/kubernetes/minikube/releases/assets/541767223"
 
 [tools."github:kubernetes/minikube"."platforms.windows-x64"]
-checksum = "sha256:eb196db9eb9f682275a335eed242753cda76516be4aaf7f9372f58863ff3587a"
-url = "https://github.com/kubernetes/minikube/releases/download/v1.38.1/minikube-windows-amd64.tar.gz"
-url_api = "https://api.github.com/repos/kubernetes/minikube/releases/assets/358742759"
+checksum = "sha256:5efa01a1609409e62263fb9ca0b5d60045e55092aabd0af10782c62325274c00"
+url = "https://github.com/kubernetes/minikube/releases/download/v1.39.0/minikube-windows-amd64.tar.gz"
+url_api = "https://api.github.com/repos/kubernetes/minikube/releases/assets/541765689"
 
 [[tools."github:planetscale/cli"]]
 version = "0.284.0"
@@ -644,36 +644,36 @@ checksum = "sha256:3ea6b8383e6c0b7ce45d06a5746313b8e9225edd88d42f4f64582ff3792d7
 url = "https://get.helm.sh/helm-v3.21.0-windows-amd64.zip"
 
 [[tools."http:kubectl"]]
-version = "1.34.8"
+version = "1.37.1"
 backend = "http:kubectl"
 
 [tools."http:kubectl"."platforms.linux-arm64"]
-checksum = "sha256:4c9fe1f717738950c638c38056130a8db5075e6413ae36d8687221a240cdf88b"
-url = "https://dl.k8s.io/release/v1.34.8/bin/linux/arm64/kubectl"
+checksum = "sha256:ff749f4b78d9c4f1ec87307df9b50119ed819e2094aa9810cb9acffc3286c8c7"
+url = "https://dl.k8s.io/release/v1.37.1/bin/linux/arm64/kubectl"
 
 [tools."http:kubectl"."platforms.linux-arm64-musl"]
-checksum = "sha256:4c9fe1f717738950c638c38056130a8db5075e6413ae36d8687221a240cdf88b"
-url = "https://dl.k8s.io/release/v1.34.8/bin/linux/arm64/kubectl"
+checksum = "sha256:ff749f4b78d9c4f1ec87307df9b50119ed819e2094aa9810cb9acffc3286c8c7"
+url = "https://dl.k8s.io/release/v1.37.1/bin/linux/arm64/kubectl"
 
 [tools."http:kubectl"."platforms.linux-x64"]
-checksum = "sha256:f6249132865c13abe3c9dd5038f5da65849cb86eee1608c001831504e481aa8c"
-url = "https://dl.k8s.io/release/v1.34.8/bin/linux/amd64/kubectl"
+checksum = "sha256:65691ff77eb6fa44c908b77a1082c9f092c3b9733b5cefabec0d1104890e21a8"
+url = "https://dl.k8s.io/release/v1.37.1/bin/linux/amd64/kubectl"
 
 [tools."http:kubectl"."platforms.linux-x64-musl"]
-checksum = "sha256:f6249132865c13abe3c9dd5038f5da65849cb86eee1608c001831504e481aa8c"
-url = "https://dl.k8s.io/release/v1.34.8/bin/linux/amd64/kubectl"
+checksum = "sha256:65691ff77eb6fa44c908b77a1082c9f092c3b9733b5cefabec0d1104890e21a8"
+url = "https://dl.k8s.io/release/v1.37.1/bin/linux/amd64/kubectl"
 
 [tools."http:kubectl"."platforms.macos-arm64"]
-checksum = "sha256:173e101c8f9f195ea16771a1262313ea4c916d4d517f72902b0afd57f61c1917"
-url = "https://dl.k8s.io/release/v1.34.8/bin/darwin/arm64/kubectl"
+checksum = "sha256:fd65982c97ddad3106754b69ffa196d0e543aa591930ae52aed1adfb92f8c77f"
+url = "https://dl.k8s.io/release/v1.37.1/bin/darwin/arm64/kubectl"
 
 [tools."http:kubectl"."platforms.macos-x64"]
-checksum = "sha256:149be66a64b26c59a7bf5037a895b8ecb244d8224d84f533584457355a44520b"
-url = "https://dl.k8s.io/release/v1.34.8/bin/darwin/amd64/kubectl"
+checksum = "sha256:6851381c486ff6edd691623e3d65c87cb9a5b02887ff8fbbb38d8a031b748387"
+url = "https://dl.k8s.io/release/v1.37.1/bin/darwin/amd64/kubectl"
 
 [tools."http:kubectl"."platforms.windows-x64"]
-checksum = "sha256:35bc3cb7050f6d39436e6c486c65e2d2d6198988b10c5e76b58b8c929373a7fa"
-url = "https://dl.k8s.io/release/v1.34.8/bin/windows/amd64/kubectl.exe"
+checksum = "sha256:14b93c4916a6f37a06fbc1f46b0a1d2404c4f9741be09f00d6caf8af3b05f1d3"
+url = "https://dl.k8s.io/release/v1.37.1/bin/windows/amd64/kubectl.exe"
 
 [[tools."http:ngrok"]]
 version = "3.39.4"
