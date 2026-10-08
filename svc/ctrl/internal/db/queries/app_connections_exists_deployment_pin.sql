@@ -1,0 +1,23 @@
+-- name: ExistsAppConnectionPinningDeployment :one
+SELECT EXISTS(
+    SELECT 1 FROM app_connections b
+    INNER JOIN connection_app_targets t ON t.connection_id = b.id
+    WHERE b.resource_type = 'app'
+        AND t.selection_mode = 'deployment'
+        AND t.target_deployment_id = sqlc.arg(deployment_id)
+    UNION ALL
+    SELECT 1 FROM deployment_connections b
+    INNER JOIN deployment_connection_app_targets t
+        ON t.deployment_id = b.deployment_id AND t.connection_id = b.connection_id
+    INNER JOIN deployments caller ON caller.id = b.deployment_id
+        AND caller.workspace_id = b.workspace_id AND caller.project_id = b.project_id
+        AND caller.app_id = b.app_id AND caller.environment_id = b.environment_id
+    INNER JOIN apps a ON a.id = caller.app_id
+    INNER JOIN environments e ON e.id = caller.environment_id
+    WHERE b.resource_type = 'app'
+        AND t.selection_mode = 'deployment'
+        AND t.target_deployment_id = sqlc.arg(deployment_id)
+        AND caller.desired_state = 'running'
+        AND caller.status IN ('pending', 'starting', 'building', 'deploying', 'network', 'finalizing', 'ready')
+        AND JSON_CONTAINS(caller.capabilities, 'true', '$.private_networking')
+) AS pinned;

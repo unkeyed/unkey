@@ -1,11 +1,14 @@
 package environment_test
 
 import (
+	"database/sql"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/auditlog"
 	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
 func TestPromoteDeploymentSwapsLiveRoutes(t *testing.T) {
@@ -47,4 +50,15 @@ func TestPromoteDeploymentRejectsForeignEnvironment(t *testing.T) {
 	f.requireLive(t, f.live.ID, false)
 	f.requireRoutes(t, f.live.ID, f.live.ID)
 	require.Equal(t, 0, countAudits(t, f.ctx, f.db, f.workspaceID, auditlog.DeploymentPromoteEvent, f.candidate.ID, f.actorID))
+}
+
+func TestPromotePrivateOnlyDeploymentWithCustomEnvironmentSlug(t *testing.T) {
+	f := newFixture(t)
+	require.NoError(t, f.db.UpdateEnvironmentSlug(f.ctx, db.UpdateEnvironmentSlugParams{
+		ID: f.env.ID, Slug: "live", UpdatedAt: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+	}))
+	require.NoError(t, f.db.DeleteFrontlineRoutesByEnvironmentId(f.ctx, f.env.ID))
+
+	require.NoError(t, f.promote(f.env.ID, f.candidate.ID))
+	f.requireLive(t, f.candidate.ID, false)
 }
