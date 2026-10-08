@@ -1066,11 +1066,20 @@ type Querier interface {
 	// FindPermissionByIdOrSlug resolves a permission within a workspace so the
 	// caller can authorize access against the permission's actual project.
 	//
-	//  SELECT permissions.pk, permissions.id, permissions.workspace_id, permissions.project_id, permissions.name, permissions.slug, permissions.description, permissions.created_at_m, permissions.updated_at_m
-	//  FROM permissions
-	//  WHERE workspace_id = ?
-	//    AND (id = ? OR slug = ?)
-	FindPermissionByIdOrSlug(ctx context.Context, db DBTX, arg FindPermissionByIdOrSlugParams) (Permission, error)
+	//  (
+	//      SELECT p1.pk, p1.id, p1.workspace_id, p1.project_id, p1.name, p1.slug, p1.description, p1.created_at_m, p1.updated_at_m, 0 AS lookup_priority
+	//      FROM permissions p1
+	//      WHERE p1.workspace_id = ? AND p1.id = ?
+	//  )
+	//  UNION ALL
+	//  (
+	//      SELECT p2.pk, p2.id, p2.workspace_id, p2.project_id, p2.name, p2.slug, p2.description, p2.created_at_m, p2.updated_at_m, 1 AS lookup_priority
+	//      FROM permissions p2
+	//      WHERE p2.workspace_id = ? AND p2.slug = ?
+	//  )
+	//  ORDER BY lookup_priority
+	//  LIMIT 1
+	FindPermissionByIdOrSlug(ctx context.Context, db DBTX, arg FindPermissionByIdOrSlugParams) (FindPermissionByIdOrSlugRow, error)
 	//FindPermissionByNameAndWorkspaceID
 	//
 	//  SELECT permissions.pk, permissions.id, permissions.workspace_id, permissions.project_id, permissions.name, permissions.slug, permissions.description, permissions.created_at_m, permissions.updated_at_m
@@ -3067,6 +3076,24 @@ type Querier interface {
 	//  LIMIT ?
 	//  FOR UPDATE
 	LockLivePortalSessionsByExternalID(ctx context.Context, db DBTX, arg LockLivePortalSessionsByExternalIDParams) ([]PortalSession, error)
+	//LockPermissionByIdOrSlug
+	//
+	//  (
+	//      SELECT p1.id, p1.project_id, p1.name, p1.slug, p1.description, 0 AS lookup_priority
+	//      FROM permissions p1
+	//      WHERE p1.workspace_id = ? AND p1.id = ?
+	//      FOR UPDATE
+	//  )
+	//  UNION ALL
+	//  (
+	//      SELECT p2.id, p2.project_id, p2.name, p2.slug, p2.description, 1 AS lookup_priority
+	//      FROM permissions p2
+	//      WHERE p2.workspace_id = ? AND p2.slug = ?
+	//      FOR UPDATE
+	//  )
+	//  ORDER BY lookup_priority
+	//  LIMIT 1
+	LockPermissionByIdOrSlug(ctx context.Context, db DBTX, arg LockPermissionByIdOrSlugParams) (LockPermissionByIdOrSlugRow, error)
 	// Locks the portal row while a session is minted. Disabling, re-pointing, and
 	// deleting a portal all write this row before revoking its sessions, so the
 	// lock orders a mint before or after them: either the revoke sees the new
@@ -3546,6 +3573,17 @@ type Querier interface {
 	//  SET logdrains_max = ?
 	//  WHERE workspace_id = ?
 	UpdateLogdrainsMax(ctx context.Context, db DBTX, arg UpdateLogdrainsMaxParams) error
+	//UpdatePermission
+	//
+	//  UPDATE permissions
+	//  SET
+	//      name = ?,
+	//      slug = ?,
+	//      description = ?,
+	//      updated_at_m = ?
+	//  WHERE workspace_id = ?
+	//    AND id = ?
+	UpdatePermission(ctx context.Context, db DBTX, arg UpdatePermissionParams) error
 	// Updates a portal's mutable fields, scoped to the workspace so one workspace can
 	// never mutate another's portal.
 	//

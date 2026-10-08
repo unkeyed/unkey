@@ -360,6 +360,8 @@ paths:
     $ref: "./spec/paths/v2/permissions/listPermissions/index.yaml"
   /v2/permissions.deletePermission:
     $ref: "./spec/paths/v2/permissions/deletePermission/index.yaml"
+  /v2/permissions.updatePermission:
+    $ref: "./spec/paths/v2/permissions/updatePermission/index.yaml"
 
 components:
   securitySchemes:

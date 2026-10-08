@@ -1,0 +1,61 @@
+type: object
+required:
+  - permission
+properties:
+  permission:
+    type: string
+    minLength: 1
+    # See createKey for the shared permission slug rule
+    maxLength: 128
+    pattern: ^[a-zA-Z0-9_:\-\.\*]+$
+    description: |
+      The permission to update. Pass the permission ID (`perm_...`) or its current slug.
+    example: perm_1234567890abcdef
+  name:
+    type: string
+    minLength: 1
+    maxLength: 512
+    description: |
+      New human-readable name for the permission.
+      Omit this field to keep the current name.
+    example: Read documents
+  slug:
+    type: string
+    minLength: 1
+    # See createKey for the shared permission slug rule
+    maxLength: 128
+    pattern: ^[a-zA-Z0-9_:\-\.\*]+$
+    description: |
+      New slug for the permission. Keys and roles that have this permission get the new slug in verification responses.
+      The slug must be unique in your workspace.
+      Omit this field to keep the current slug.
+    example: documents.read
+  description:
+    type:
+      - string
+      - "null"
+    maxLength: 512
+    description: |
+      New description for the permission.
+      Omit this field to keep the current description. Send null or an empty string to remove it.
+    example: Allows reading document resources
+additionalProperties: false
+examples:
+  rename:
+    summary: Rename a permission by ID
+    description: Change only the display name, locating the permission by its ID
+    value:
+      permission: perm_1234567890abcdef
+      name: Read documents
+  changeSlug:
+    summary: Change a permission slug by slug
+    description: Locate the permission by its current slug and assign a new one
+    value:
+      permission: documents-read
+      slug: documents.read
+  clearDescription:
+    summary: Remove a description
+    description: Clear the description and keep the name and slug
+    value:
+      permission: perm_1234567890abcdef
+      description: null

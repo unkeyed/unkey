@@ -2756,7 +2756,6 @@ components:
                     maxLength: 512
                     description: |
                         Creates a permission with this human-readable name that describes its purpose.
-                        Names must be unique within your workspace to prevent conflicts during assignment.
                         Use clear, semantic names that developers can easily understand when building authorization logic.
                         Consider using hierarchical naming conventions like 'resource.action' for better organization.
 
@@ -3113,6 +3112,58 @@ components:
                     "$ref": "#/components/schemas/Meta"
                 data:
                     "$ref": "#/components/schemas/V2PermissionsSetRolePermissionsResponseData"
+        V2PermissionsUpdatePermissionRequestBody:
+            type: object
+            required:
+                - permission
+            properties:
+                permission:
+                    type: string
+                    minLength: 1
+                    maxLength: 128
+                    pattern: ^[a-zA-Z0-9_:\-\.\*]+$
+                    description: |
+                        The permission to update. Pass the permission ID (`perm_...`) or its current slug.
+                    example: perm_1234567890abcdef
+                name:
+                    type: string
+                    minLength: 1
+                    maxLength: 512
+                    description: |
+                        New human-readable name for the permission.
+                        Omit this field to keep the current name.
+                    example: Read documents
+                slug:
+                    type: string
+                    minLength: 1
+                    maxLength: 128
+                    pattern: ^[a-zA-Z0-9_:\-\.\*]+$
+                    description: |
+                        New slug for the permission. Keys and roles that have this permission get the new slug in verification responses.
+                        The slug must be unique in your workspace.
+                        Omit this field to keep the current slug.
+                    example: documents.read
+                description:
+                    type:
+                        - string
+                        - "null"
+                    maxLength: 512
+                    description: |
+                        New description for the permission.
+                        Omit this field to keep the current description. Send null or an empty string to remove it.
+                    example: Allows reading document resources
+            additionalProperties: false
+        V2PermissionsUpdatePermissionResponseBody:
+            type: object
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    "$ref": "#/components/schemas/Meta"
+                data:
+                    "$ref": "#/components/schemas/Permission"
+            additionalProperties: false
         V2PortalCreatePortalRequestBody:
             type: object
             required:
@@ -6605,7 +6656,6 @@ components:
                         The human-readable name for this permission that describes its purpose.
                         Should be descriptive enough for developers to understand what access it grants.
                         Use clear, semantic names that reflect the resources or actions being permitted.
-                        Names must be unique within your workspace to avoid confusion and conflicts.
                     example: "users.read"
                 slug:
                     pattern: ^[a-zA-Z0-9_:\-\.\*]+$
@@ -14848,7 +14898,7 @@ paths:
 
                 Use hierarchical naming patterns like `documents.read`, `admin.users.delete`, or `billing.invoices.create` for clear organization.
 
-                **Important:** Permission names must be unique within the workspace. Once created, permissions are immediately available for assignment.
+                **Important:** Permission slugs must be unique within the workspace. Names do not need to be unique. Once created, permissions are immediately available for assignment.
 
                 **Required Permissions**
 
@@ -15468,6 +15518,173 @@ paths:
             tags:
                 - permissions
             x-speakeasy-name-override: setRolePermissions
+    /v2/permissions.updatePermission:
+        post:
+            description: |
+                Update the name, slug, or description of a permission, identified by its ID or slug.
+
+                Omitted fields keep their current values. A request with no fields to update returns the stored permission without a write.
+
+                **Important**: Keys and roles reference the permission by ID, so they keep the permission after a slug change. Key verification can return the old slug for a short time while caches refresh. A slug that another permission in your workspace already uses returns 409.
+
+                **Required Permissions**
+
+                Your root key must have the following permission:
+                - `unkey:v1:<workspace_id>:projects/<project_id>/rbac/permissions/<permission_id>#write`
+            operationId: permissions.updatePermission
+            requestBody:
+                content:
+                    application/json:
+                        examples:
+                            changeSlug:
+                                description: Locate the permission by its current slug and assign a new one
+                                summary: Change a permission slug by slug
+                                value:
+                                    permission: documents-read
+                                    slug: documents.read
+                            clearDescription:
+                                description: Clear the description and keep the name and slug
+                                summary: Remove a description
+                                value:
+                                    description: null
+                                    permission: perm_1234567890abcdef
+                            rename:
+                                description: Change only the display name, locating the permission by its ID
+                                summary: Rename a permission by ID
+                                value:
+                                    name: Read documents
+                                    permission: perm_1234567890abcdef
+                        schema:
+                            $ref: '#/components/schemas/V2PermissionsUpdatePermissionRequestBody'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            examples:
+                                updated:
+                                    summary: Updated permission
+                                    value:
+                                        data:
+                                            description: Allows reading document resources
+                                            id: perm_1234567890abcdef
+                                            name: Read documents
+                                            slug: documents.read
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/V2PermissionsUpdatePermissionResponseBody'
+                    description: Permission updated successfully
+                "400":
+                    content:
+                        application/json:
+                            examples:
+                                invalidSlug:
+                                    summary: Slug has invalid characters
+                                    value:
+                                        error:
+                                            detail: POST request body for '/v2/permissions.updatePermission' failed to validate schema
+                                            errors:
+                                                - fix: 'Use only letters, numbers, and the characters _ : - . *'
+                                                  location: body.slug
+                                                  message: does not match pattern '^[a-zA-Z0-9_:\-\.\*]+$'
+                                            status: 400
+                                            title: Bad Request
+                                            type: https://unkey.com/docs/errors/unkey/application/invalid_input
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Bad request
+                "401":
+                    content:
+                        application/json:
+                            examples:
+                                missingKey:
+                                    summary: Missing root key
+                                    value:
+                                        error:
+                                            detail: You must provide a valid root key in the Authorization header in this format 'Bearer unkey_xxx'
+                                            status: 401
+                                            title: Unauthorized
+                                            type: https://unkey.com/docs/errors/unkey/authentication/missing
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Unauthorized
+                "403":
+                    content:
+                        application/json:
+                            examples:
+                                keyDisabled:
+                                    summary: Root key disabled
+                                    value:
+                                        error:
+                                            detail: The key is disabled.
+                                            status: 403
+                                            title: Forbidden
+                                            type: https://unkey.com/docs/errors/unkey/authorization/key_disabled
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: Forbidden - The root key or the workspace is disabled. A key that lacks the required permission gets 404 instead.
+                "404":
+                    content:
+                        application/json:
+                            examples:
+                                permissionNotFound:
+                                    summary: Permission not found
+                                    value:
+                                        error:
+                                            detail: The requested permission does not exist.
+                                            status: 404
+                                            title: Not Found
+                                            type: https://unkey.com/docs/errors/unkey/data/permission_not_found
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/NotFoundErrorResponse'
+                    description: |
+                        Not Found - The permission does not exist in your workspace, or your root key lacks write access to it.
+                        Both cases return the same response, so a root key cannot learn which permissions exist.
+                "409":
+                    content:
+                        application/json:
+                            examples:
+                                slugTaken:
+                                    summary: Slug already in use
+                                    value:
+                                        error:
+                                            detail: A permission with slug 'documents.read' already exists in this workspace.
+                                            status: 409
+                                            title: Conflict
+                                            type: https://unkey.com/docs/errors/unkey/data/permission_already_exists
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/ConflictErrorResponse'
+                    description: Conflict - Another permission in the workspace already uses this slug
+                "429":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/TooManyRequestsErrorResponse'
+                    description: Too Many Requests
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error
+            security:
+                - bearer: []
+            summary: Update permission
+            tags:
+                - permissions
+            x-speakeasy-name-override: UpdatePermission
+            x-unkey-idempotency: idempotent
     /v2/portal.createPortal:
         post:
             description: |

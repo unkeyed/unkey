@@ -1947,7 +1947,6 @@ type Permission struct {
 	// Name The human-readable name for this permission that describes its purpose.
 	// Should be descriptive enough for developers to understand what access it grants.
 	// Use clear, semantic names that reflect the resources or actions being permitted.
-	// Names must be unique within your workspace to avoid confusion and conflicts.
 	//
 	//
 	// Example: users.read
@@ -5313,7 +5312,6 @@ type V2PermissionsCreatePermissionRequestBody struct {
 	Description *string `json:"description,omitempty"`
 
 	// Name Creates a permission with this human-readable name that describes its purpose.
-	// Names must be unique within your workspace to prevent conflicts during assignment.
 	// Use clear, semantic names that developers can easily understand when building authorization logic.
 	// Consider using hierarchical naming conventions like 'resource.action' for better organization.
 	//
@@ -5620,6 +5618,45 @@ type V2PermissionsSetRolePermissionsResponseBody struct {
 
 // V2PermissionsSetRolePermissionsResponseData Complete list of permissions now directly assigned to the role.
 type V2PermissionsSetRolePermissionsResponseData = []Permission
+
+// V2PermissionsUpdatePermissionRequestBody defines model for V2PermissionsUpdatePermissionRequestBody.
+type V2PermissionsUpdatePermissionRequestBody struct {
+	// Description New description for the permission.
+	// Omit this field to keep the current description. Send null or an empty string to remove it.
+	//
+	//
+	// Example: Allows reading document resources
+	Description nullable.Nullable[string] `json:"description,omitempty"`
+
+	// Name New human-readable name for the permission.
+	// Omit this field to keep the current name.
+	//
+	//
+	// Example: Read documents
+	Name *string `json:"name,omitempty"`
+
+	// Permission The permission to update. Pass the permission ID (`perm_...`) or its current slug.
+	//
+	//
+	// Example: perm_1234567890abcdef
+	Permission string `json:"permission"`
+
+	// Slug New slug for the permission. Keys and roles that have this permission get the new slug in verification responses.
+	// The slug must be unique in your workspace.
+	// Omit this field to keep the current slug.
+	//
+	//
+	// Example: documents.read
+	Slug *string `json:"slug,omitempty"`
+}
+
+// V2PermissionsUpdatePermissionResponseBody defines model for V2PermissionsUpdatePermissionResponseBody.
+type V2PermissionsUpdatePermissionResponseBody struct {
+	Data Permission `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
 
 // V2PortalCreatePortalRequestBody defines model for V2PortalCreatePortalRequestBody.
 type V2PortalCreatePortalRequestBody struct {
@@ -7432,6 +7469,9 @@ type PermissionsListRolesJSONRequestBody = V2PermissionsListRolesRequestBody
 
 // PermissionsSetRolePermissionsJSONRequestBody defines body for PermissionsSetRolePermissions for application/json ContentType.
 type PermissionsSetRolePermissionsJSONRequestBody = V2PermissionsSetRolePermissionsRequestBody
+
+// PermissionsUpdatePermissionJSONRequestBody defines body for PermissionsUpdatePermission for application/json ContentType.
+type PermissionsUpdatePermissionJSONRequestBody = V2PermissionsUpdatePermissionRequestBody
 
 // PortalCreatePortalJSONRequestBody defines body for PortalCreatePortal for application/json ContentType.
 type PortalCreatePortalJSONRequestBody = V2PortalCreatePortalRequestBody
