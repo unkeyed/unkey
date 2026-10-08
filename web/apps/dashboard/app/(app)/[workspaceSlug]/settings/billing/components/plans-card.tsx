@@ -27,19 +27,11 @@ type PlansCardProps = {
   isAdmin: boolean | undefined;
   hasPaymentMethod: boolean;
   workspaceSlug: string;
-  products: BillingInfo["products"];
-  subscription?: BillingInfo["subscription"];
-  currentProductId?: BillingInfo["currentProductId"];
+  /** Undefined while the billing info loads */
+  billing: BillingInfo | undefined;
 };
 
-export function PlansCard({
-  isAdmin,
-  hasPaymentMethod,
-  workspaceSlug,
-  products,
-  subscription,
-  currentProductId,
-}: PlansCardProps) {
+export function PlansCard({ isAdmin, hasPaymentMethod, workspaceSlug, billing }: PlansCardProps) {
   const router = useRouter();
   const trpcUtils = trpc.useUtils();
   const { data: deploySubscription } = trpc.stripe.getDeploySubscription.useQuery(undefined, {
@@ -55,8 +47,8 @@ export function PlansCard({
     onError: (err) => toast.error(err.message),
   });
 
-  const hasPaidApiPlan = Boolean(currentApiProduct({ products, subscription, currentProductId }));
-  const emphasize = !deploySubscription?.plan && !hasPaidApiPlan;
+  const hasPaidApiPlan = billing !== undefined && Boolean(currentApiProduct(billing));
+  const emphasize = billing !== undefined && !deploySubscription?.plan && !hasPaidApiPlan;
 
   return (
     <ItemGroup variant="outline">
@@ -124,13 +116,7 @@ export function PlansCard({
       <ComputePlanRow isAdmin={isAdmin} emphasize={emphasize} />
 
       <ItemSeparator />
-      <ApiPlanRow
-        isAdmin={isAdmin}
-        emphasize={emphasize}
-        products={products}
-        subscription={subscription}
-        currentProductId={currentProductId}
-      />
+      <ApiPlanRow isAdmin={isAdmin} emphasize={emphasize} billing={billing} />
     </ItemGroup>
   );
 }

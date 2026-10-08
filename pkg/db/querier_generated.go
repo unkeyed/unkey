@@ -633,6 +633,47 @@ type Querier interface {
 	//
 	//  SELECT id, hash FROM `keys` WHERE hash IN (/*SLICE:hashes*/?)
 	FindKeysByHash(ctx context.Context, db DBTX, hashes []string) ([]FindKeysByHashRow, error)
+	// The allocation sum matches svc/ctrl reserveTopologies without its
+	// exclude_deployment_id filter. Each subquery is covered by a workspace_id index
+	//
+	//  SELECT
+	//    l.api_billable_operations_count_max_per_month,
+	//    l.api_requests_count_max_per_minute,
+	//    l.logs_retention_days_max,
+	//    l.logs_audit_retention_days_max,
+	//    l.logdrains_max,
+	//    l.cpu_cores_max,
+	//    l.cpu_cores_max_per_instance,
+	//    l.memory_mib_max,
+	//    l.memory_mib_max_per_instance,
+	//    l.storage_mib_max,
+	//    l.storage_mib_max_per_instance,
+	//    l.builds_concurrent_max,
+	//    l.custom_domains_max,
+	//    l.autoscaling_replicas_max,
+	//    b.plan,
+	//    b.plan_override,
+	//    CAST((SELECT COUNT(*) FROM `logdrains` ld WHERE ld.`workspace_id` = l.`workspace_id`) AS SIGNED) AS `logdrains_count`,
+	//    CAST((SELECT COUNT(*) FROM `custom_domains` cd WHERE cd.`workspace_id` = l.`workspace_id`) AS SIGNED) AS `custom_domains_count`,
+	//    CAST(COALESCE(a.`total_cpu_millicores`, 0) AS SIGNED) AS `total_cpu_millicores`,
+	//    CAST(COALESCE(a.`total_memory_mib`, 0) AS SIGNED) AS `total_memory_mib`,
+	//    CAST(COALESCE(a.`total_storage_mib`, 0) AS SIGNED) AS `total_storage_mib`
+	//  FROM `limits` l
+	//  LEFT JOIN `workspace_billing` b ON b.`workspace_id` = l.`workspace_id`
+	//  LEFT JOIN (
+	//    SELECT
+	//      dt.`workspace_id`,
+	//      SUM(d.`cpu_millicores` * dt.`autoscaling_replicas_max`) AS `total_cpu_millicores`,
+	//      SUM(d.`memory_mib` * dt.`autoscaling_replicas_max`) AS `total_memory_mib`,
+	//      SUM(d.`storage_mib` * dt.`autoscaling_replicas_max`) AS `total_storage_mib`
+	//    FROM `deployment_topology` dt
+	//    JOIN `deployments` d ON d.`id` = dt.`deployment_id`
+	//    WHERE dt.`workspace_id` = ?
+	//      AND dt.`desired_status` = 'running'
+	//    GROUP BY dt.`workspace_id`
+	//  ) a ON a.`workspace_id` = l.`workspace_id`
+	//  WHERE l.`workspace_id` = ?
+	FindLimitsWithUsageByWorkspaceID(ctx context.Context, db DBTX, arg FindLimitsWithUsageByWorkspaceIDParams) (FindLimitsWithUsageByWorkspaceIDRow, error)
 	//FindLiveApiByID
 	//
 	//  SELECT
@@ -2710,6 +2751,39 @@ type Querier interface {
 	//
 	//  SELECT id, name, platform, can_schedule FROM regions
 	ListRegions(ctx context.Context, db DBTX) ([]ListRegionsRow, error)
+	// A deleted app or environment does not hide the name of its parent. The query
+	// also finds an app through its environment and a project through its app. Each
+	// branch finds its rows through the id_unique index of its table
+	//
+	//  SELECT 'project' AS kind, p.id, p.name, '' AS parent_id
+	//  FROM projects p
+	//  WHERE p.workspace_id = ?
+	//    AND p.id IN (/*SLICE:project_ids*/?)
+	//  UNION ALL
+	//  SELECT 'project' AS kind, p.id, p.name, '' AS parent_id
+	//  FROM apps a
+	//  JOIN projects p ON p.id = a.project_id
+	//  WHERE a.workspace_id = ?
+	//    AND a.id IN (/*SLICE:project_of_app_ids*/?)
+	//    AND p.workspace_id = ?
+	//  UNION ALL
+	//  SELECT 'app' AS kind, a.id, a.name, a.project_id AS parent_id
+	//  FROM apps a
+	//  WHERE a.workspace_id = ?
+	//    AND a.id IN (/*SLICE:app_ids*/?)
+	//  UNION ALL
+	//  SELECT 'app' AS kind, a.id, a.name, a.project_id AS parent_id
+	//  FROM environments e
+	//  JOIN apps a ON a.id = e.app_id
+	//  WHERE e.workspace_id = ?
+	//    AND e.id IN (/*SLICE:app_of_environment_ids*/?)
+	//    AND a.workspace_id = ?
+	//  UNION ALL
+	//  SELECT 'environment' AS kind, e.id, e.slug AS name, e.app_id AS parent_id
+	//  FROM environments e
+	//  WHERE e.workspace_id = ?
+	//    AND e.id IN (/*SLICE:environment_ids*/?)
+	ListResourceNamesByIDs(ctx context.Context, db DBTX, arg ListResourceNamesByIDsParams) ([]ListResourceNamesByIDsRow, error)
 	// ListRoles returns one page of roles and their permissions from one project.
 	// search is a pre-escaped LIKE pattern built by mysql.SearchContains; NULL disables the filter
 	//

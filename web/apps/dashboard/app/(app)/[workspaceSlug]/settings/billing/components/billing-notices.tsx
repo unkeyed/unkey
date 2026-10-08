@@ -1,5 +1,6 @@
 "use client";
 
+import { useInvalidateWorkspaceQueries } from "@/hooks/use-invalidate-workspace-queries";
 import { formatDate } from "@/lib/fmt";
 import { trpc } from "@/lib/trpc/client";
 import type { Router } from "@/lib/trpc/routers";
@@ -79,11 +80,12 @@ function ScheduledCancellation({
 }) {
   const router = useRouter();
   const trpcUtils = trpc.useUtils();
+  const invalidateWorkspace = useInvalidateWorkspaceQueries();
 
   const uncancel = trpc.stripe.uncancelSubscription.useMutation({
     onSuccess: async () => {
       await Promise.all([
-        trpcUtils.workspace.getCurrent.invalidate(),
+        invalidateWorkspace(),
         trpcUtils.stripe.getBillingInfo.invalidate(),
         trpcUtils.stripe.getUpcomingInvoice.invalidate(),
       ]);

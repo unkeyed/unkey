@@ -229,6 +229,8 @@ describe("the eight resource scopes", () => {
       "identity",
       "role",
       "permission",
+      "portal",
+      "portal_session",
     ]);
     expect(catalogueRows(appsCatalogue).map((row) => row.id)).toEqual([
       "app",

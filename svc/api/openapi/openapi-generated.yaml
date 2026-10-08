@@ -4446,6 +4446,34 @@ components:
                     $ref: '#/components/schemas/Meta'
                 data:
                     $ref: '#/components/schemas/EmptyResponse'
+        V2WorkspaceGetLimitsResponseBody:
+            type: object
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    $ref: "#/components/schemas/Meta"
+                data:
+                    $ref: "#/components/schemas/V2WorkspaceGetLimitsResponseData"
+            additionalProperties: false
+        V2WorkspaceGetUsageRequestBody:
+            type: object
+            properties:
+                period:
+                    "$ref": "#/components/schemas/V2WorkspaceGetUsageRequestPeriod"
+            additionalProperties: false
+        V2WorkspaceGetUsageResponseBody:
+            type: object
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    $ref: "#/components/schemas/Meta"
+                data:
+                    $ref: "#/components/schemas/V2WorkspaceGetUsageResponseData"
+            additionalProperties: false
         V3DeploymentsCreateDeploymentRequestBody:
             type: object
             required:
@@ -8278,6 +8306,351 @@ components:
                     type: string
                     x-unkey-redact: true
                     description: New root key secret, returned only once. Store it securely.
+        V2WorkspaceGetLimitsResponseData:
+            type: object
+            description: |
+                The workspace limits. The Compute limits are present only when the workspace
+                has a Compute plan.
+            required:
+                - apiBillableOperationsCountMaxPerMonth
+                - apiRequestsCountMaxPerMinute
+                - logsRetentionDaysMax
+                - logsAuditRetentionDaysMax
+                - logdrainsMax
+            properties:
+                apiBillableOperationsCountMaxPerMonth:
+                    description: |
+                        Billable key verifications and rate limit operations per calendar month
+                        (UTC). `current` counts the current month.
+                    allOf:
+                        - "$ref": "#/components/schemas/V2WorkspaceGetLimitsLimit"
+                apiRequestsCountMaxPerMinute:
+                    description: |
+                        Authenticated API requests per minute. Requests above it get a 429.
+                        `limit` is `null` when the workspace has no per-minute limit. Has no `current`.
+                    allOf:
+                        - "$ref": "#/components/schemas/V2WorkspaceGetLimitsLimit"
+                logsRetentionDaysMax:
+                    description: How many days back request and runtime logs can be queried. Has no `current`.
+                    allOf:
+                        - "$ref": "#/components/schemas/V2WorkspaceGetLimitsLimit"
+                logsAuditRetentionDaysMax:
+                    description: How many days audit logs are kept. Has no `current`.
+                    allOf:
+                        - "$ref": "#/components/schemas/V2WorkspaceGetLimitsLimit"
+                logdrainsMax:
+                    description: Log drains. `current` is the log drains in the workspace now.
+                    allOf:
+                        - "$ref": "#/components/schemas/V2WorkspaceGetLimitsLimit"
+                cpuCoresMax:
+                    description: |
+                        CPU cores the workspace can reserve across all running deployments.
+                        `current` is reserved capacity, not live usage: each running deployment
+                        reserves its instance CPU times its maximum replicas, in each region it
+                        runs in. A deploy that would bring `current` above `limit` is rejected.
+                        Present only with a Compute plan.
+                    allOf:
+                        - "$ref": "#/components/schemas/V2WorkspaceGetLimitsLimit"
+                cpuCoresMaxPerInstance:
+                    description: CPU cores for one instance. Has no `current`. Present only with a Compute plan.
+                    allOf:
+                        - "$ref": "#/components/schemas/V2WorkspaceGetLimitsLimit"
+                memoryMibMax:
+                    description: |
+                        Memory in MiB the workspace can reserve across all running deployments.
+                        `current` is reserved memory, counted the same way as `cpuCoresMax`.
+                        Present only with a Compute plan.
+                    allOf:
+                        - "$ref": "#/components/schemas/V2WorkspaceGetLimitsLimit"
+                memoryMibMaxPerInstance:
+                    description: Memory in MiB for one instance. Has no `current`. Present only with a Compute plan.
+                    allOf:
+                        - "$ref": "#/components/schemas/V2WorkspaceGetLimitsLimit"
+                storageMibMax:
+                    description: |
+                        Ephemeral disk in MiB the workspace can reserve across all running
+                        deployments. `current` is reserved disk, counted the same way as
+                        `cpuCoresMax`. Present only with a Compute plan.
+                    allOf:
+                        - "$ref": "#/components/schemas/V2WorkspaceGetLimitsLimit"
+                storageMibMaxPerInstance:
+                    description: Ephemeral disk in MiB for one instance. Has no `current`. Present only with a Compute plan.
+                    allOf:
+                        - "$ref": "#/components/schemas/V2WorkspaceGetLimitsLimit"
+                buildsConcurrentMax:
+                    description: Builds that run at the same time. Has no `current`. Present only with a Compute plan.
+                    allOf:
+                        - "$ref": "#/components/schemas/V2WorkspaceGetLimitsLimit"
+                autoscalingReplicasMax:
+                    description: |
+                        Instances that autoscaling runs for one app in one region. Has no `current`.
+                        Present only with a Compute plan.
+                    allOf:
+                        - "$ref": "#/components/schemas/V2WorkspaceGetLimitsLimit"
+                customDomainsMax:
+                    description: |
+                        Custom domains across all apps. `current` is the custom domains attached
+                        now. `limit` is `null` when the plan has no limit. Present only with a
+                        Compute plan.
+                    allOf:
+                        - "$ref": "#/components/schemas/V2WorkspaceGetLimitsLimit"
+            additionalProperties: false
+        V2WorkspaceGetLimitsLimit:
+            type: object
+            description: A workspace limit and, when the limit has one, the current value against it.
+            required:
+                - limit
+            properties:
+                limit:
+                    type:
+                        - integer
+                        - "null"
+                    format: int64
+                    description: The maximum the workspace can have. `null` means unlimited.
+                    example: 5
+                current:
+                    type: number
+                    format: double
+                    description: |
+                        The current value against `limit`. Omitted when the limit has no current
+                        value, such as a retention period or a per-instance size.
+                    example: 1
+            additionalProperties: false
+        V2WorkspaceGetUsageRequestPeriod:
+            type: object
+            description: |
+                The calendar month (UTC) to read. Omit it for the current month to date. A
+                past month returns the full month. It cannot be in the future, and it must
+                start within the last 90 days, because compute usage is kept for 90 days.
+            required:
+                - year
+                - month
+            properties:
+                year:
+                    type: integer
+                    description: The year, for example 2026.
+                    example: 2026
+                month:
+                    type: integer
+                    minimum: 1
+                    maximum: 12
+                    description: The month, from 1 (January) to 12 (December).
+                    example: 9
+            additionalProperties: false
+        V2WorkspaceGetUsageResponseData:
+            type: object
+            required:
+                - period
+                - totals
+                - breakdowns
+            properties:
+                period:
+                    "$ref": "#/components/schemas/V2WorkspaceGetUsagePeriod"
+                totals:
+                    "$ref": "#/components/schemas/V2WorkspaceGetUsageTotals"
+                breakdowns:
+                    "$ref": "#/components/schemas/V2WorkspaceGetUsageBreakdowns"
+            additionalProperties: false
+        V2WorkspaceGetUsagePeriod:
+            type: object
+            description: The time window the usage covers.
+            required:
+                - start
+                - end
+            properties:
+                start:
+                    type: integer
+                    format: int64
+                    description: Unix timestamp in milliseconds of the first day of the month, 00:00 UTC.
+                    example: 1790812800000
+                end:
+                    type: integer
+                    format: int64
+                    description: |
+                        Unix timestamp in milliseconds of the end of the period, exclusive. For
+                        the current month it is the time of the request. For a past month it is
+                        the start of the next month.
+                    example: 1790946000000
+            additionalProperties: false
+        V2WorkspaceGetUsageTotals:
+            type: object
+            description: |
+                Workspace totals in the period. `compute` is the sum of
+                `breakdowns.byEnvironment[].compute`. `gateway.activeKeys` is the sum of
+                `breakdowns.byApp[].gateway.activeKeys`.
+            required:
+                - api
+                - compute
+                - gateway
+            properties:
+                api:
+                    "$ref": "#/components/schemas/V2WorkspaceGetUsageApi"
+                compute:
+                    "$ref": "#/components/schemas/V2WorkspaceGetUsageCompute"
+                gateway:
+                    "$ref": "#/components/schemas/V2WorkspaceGetUsageGateway"
+            additionalProperties: false
+        V2WorkspaceGetUsageBreakdowns:
+            type: object
+            description: The totals split by environment and by app.
+            required:
+                - byEnvironment
+                - byApp
+            properties:
+                byEnvironment:
+                    type: array
+                    description: |
+                        One row per environment with compute usage in the period, most
+                        `compute.cpuSeconds` first, then by project id and environment id.
+                        Empty when nothing ran.
+                    items:
+                        "$ref": "#/components/schemas/V2WorkspaceGetUsageByEnvironmentRow"
+                byApp:
+                    type: array
+                    description: |
+                        One row per app whose gateway verified keys in the period, and one row
+                        without `app` for keys that have no app id. Most `gateway.activeKeys`
+                        first, then by app id. Empty when no keys were verified.
+                    items:
+                        "$ref": "#/components/schemas/V2WorkspaceGetUsageByAppRow"
+            additionalProperties: false
+        V2WorkspaceGetUsageApi:
+            type: object
+            description: |
+                Billable operations through the Unkey API in the period. Key verifications
+                through the Unkey gateway are not counted here. The gateway bills by active
+                keys, see `gateway`.
+            required:
+                - verifications
+                - ratelimits
+            properties:
+                verifications:
+                    type: integer
+                    format: int64
+                    description: Billable key verifications.
+                    example: 40000
+                ratelimits:
+                    type: integer
+                    format: int64
+                    description: Billable rate limit operations.
+                    example: 2000
+            additionalProperties: false
+        V2WorkspaceGetUsageCompute:
+            type: object
+            description: Compute usage in the period.
+            required:
+                - cpuSeconds
+                - memoryGiBHours
+                - storageGiBHours
+                - egressGiB
+            properties:
+                cpuSeconds:
+                    type: number
+                    format: double
+                    description: CPU time used, in seconds.
+                    example: 5400.5
+                memoryGiBHours:
+                    type: number
+                    format: double
+                    description: Memory used over time, in GiB-hours.
+                    example: 96.2
+                storageGiBHours:
+                    type: number
+                    format: double
+                    description: Ephemeral disk reserved over time, in GiB-hours.
+                    example: 0
+                egressGiB:
+                    type: number
+                    format: double
+                    description: Public network egress, in GiB.
+                    example: 1.4
+            additionalProperties: false
+        V2WorkspaceGetUsageGateway:
+            type: object
+            description: Unkey gateway usage in the period.
+            required:
+                - activeKeys
+            properties:
+                activeKeys:
+                    type: integer
+                    format: int64
+                    description: |
+                        Distinct keys verified through the Unkey gateway. A key verified through
+                        several apps counts once, for the app that verified it most.
+                    example: 12
+            additionalProperties: false
+        V2WorkspaceGetUsageByEnvironmentRow:
+            type: object
+            description: Compute one environment used in the period.
+            required:
+                - project
+                - environment
+                - compute
+            properties:
+                project:
+                    description: The project the environment belongs to.
+                    allOf:
+                        - "$ref": "#/components/schemas/V2WorkspaceGetUsageResource"
+                app:
+                    description: |
+                        The app the environment belongs to. Omitted when the usage was recorded
+                        before Unkey stored app ids and the environment was deleted since.
+                    allOf:
+                        - "$ref": "#/components/schemas/V2WorkspaceGetUsageResource"
+                environment:
+                    "$ref": "#/components/schemas/V2WorkspaceGetUsageEnvironmentResource"
+                compute:
+                    "$ref": "#/components/schemas/V2WorkspaceGetUsageCompute"
+            additionalProperties: false
+        V2WorkspaceGetUsageByAppRow:
+            type: object
+            description: Active gateway keys counted for one app in the period.
+            required:
+                - gateway
+            properties:
+                project:
+                    description: The project the app belongs to. Omitted when the app was deleted or `app` is omitted.
+                    allOf:
+                        - "$ref": "#/components/schemas/V2WorkspaceGetUsageResource"
+                app:
+                    description: |
+                        The app whose gateway verified the keys. Omitted for keys whose
+                        verifications were all recorded before Unkey stored app ids.
+                    allOf:
+                        - "$ref": "#/components/schemas/V2WorkspaceGetUsageResource"
+                gateway:
+                    "$ref": "#/components/schemas/V2WorkspaceGetUsageGateway"
+            additionalProperties: false
+        V2WorkspaceGetUsageResource:
+            type: object
+            description: A project or app. `name` is omitted when the resource was deleted.
+            required:
+                - id
+            properties:
+                id:
+                    type: string
+                    description: The resource id.
+                    example: proj_1234abcd
+                name:
+                    type: string
+                    description: The resource name.
+                    example: Payments
+            additionalProperties: false
+        V2WorkspaceGetUsageEnvironmentResource:
+            type: object
+            description: An environment. `slug` is omitted when the environment was deleted.
+            required:
+                - id
+            properties:
+                id:
+                    type: string
+                    description: The environment id.
+                    example: env_1234abcd
+                slug:
+                    type: string
+                    description: The environment slug.
+                    example: production
+            additionalProperties: false
         DeploymentSourceOCI:
             type: object
             required:
@@ -18004,6 +18377,495 @@ paths:
             tags:
                 - rootKeys
             x-speakeasy-name-override: updateKey
+    /v2/workspace.getLimits:
+        post:
+            description: |
+                Get every limit of your workspace, with the current value against each
+                limit that has one.
+
+                Use this before an operation that a limit can reject, for example to see how
+                many custom domains or log drains remain, or how much CPU, memory, and disk
+                a new deployment can still reserve.
+
+                The request takes no parameters. Each limit has a `limit`, which is `null`
+                when unlimited, and a `current` value when the limit has one. Billable
+                operations count the current calendar month in UTC. The Compute limits are
+                present only when the workspace has a Compute plan.
+
+                **Required Permissions**
+
+                Your root key must have the following permission:
+                - `unkey:v1:<workspace_id>:limits#read`
+            operationId: workspace.getLimits
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            examples:
+                                withCompute:
+                                    description: API, log, and Compute limits with current values. Custom domains are unlimited, so their `limit` is `null`.
+                                    summary: Workspace with a Compute plan
+                                    value:
+                                        data:
+                                            apiBillableOperationsCountMaxPerMonth:
+                                                current: 42000
+                                                limit: 150000
+                                            apiRequestsCountMaxPerMinute:
+                                                limit: 1000
+                                            autoscalingReplicasMax:
+                                                limit: 10
+                                            buildsConcurrentMax:
+                                                limit: 2
+                                            cpuCoresMax:
+                                                current: 2.5
+                                                limit: 4
+                                            cpuCoresMaxPerInstance:
+                                                limit: 2
+                                            customDomainsMax:
+                                                current: 1
+                                                limit: null
+                                            logdrainsMax:
+                                                current: 0
+                                                limit: 1
+                                            logsAuditRetentionDaysMax:
+                                                limit: 30
+                                            logsRetentionDaysMax:
+                                                limit: 7
+                                            memoryMibMax:
+                                                current: 4096
+                                                limit: 8192
+                                            memoryMibMaxPerInstance:
+                                                limit: 4096
+                                            storageMibMax:
+                                                current: 2048
+                                                limit: 10240
+                                            storageMibMaxPerInstance:
+                                                limit: 5120
+                                        meta:
+                                            requestId: req_1234abcd
+                                withoutCompute:
+                                    description: No Compute plan, so the Compute limits are omitted. No per-minute limit, so its `limit` is `null`.
+                                    summary: Workspace without a Compute plan
+                                    value:
+                                        data:
+                                            apiBillableOperationsCountMaxPerMonth:
+                                                current: 42000
+                                                limit: 150000
+                                            apiRequestsCountMaxPerMinute:
+                                                limit: null
+                                            logdrainsMax:
+                                                current: 0
+                                                limit: 0
+                                            logsAuditRetentionDaysMax:
+                                                limit: 30
+                                            logsRetentionDaysMax:
+                                                limit: 7
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/V2WorkspaceGetLimitsResponseBody'
+                    description: |
+                        The workspace limits and the current values against them.
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Bad request
+                "401":
+                    content:
+                        application/json:
+                            examples:
+                                invalidRootKey:
+                                    summary: Invalid root key
+                                    value:
+                                        error:
+                                            detail: The provided root key is invalid. We could not find the requested key.
+                                            status: 401
+                                            title: Unauthorized
+                                            type: https://unkey.com/docs/errors/unkey/authentication/key_not_found
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Unauthorized
+                "403":
+                    content:
+                        application/json:
+                            examples:
+                                missingPermission:
+                                    summary: Missing required permission
+                                    value:
+                                        error:
+                                            detail: 'Missing permission: ''unkey:v1:ws_1234abcd:limits#read'''
+                                            status: 403
+                                            title: Insufficient Permissions
+                                            type: https://unkey.com/docs/errors/unkey/authorization/insufficient_permissions
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: Forbidden - Insufficient permissions (requires `unkey:v1:<workspace_id>:limits#read`)
+                "429":
+                    content:
+                        application/problem+json:
+                            examples:
+                                workspaceRateLimited:
+                                    summary: Workspace rate limit exceeded
+                                    value:
+                                        error:
+                                            detail: This workspace has exceeded its API rate limit of 1000/1m0s. Please try again later.
+                                            status: 429
+                                            title: Too Many Requests
+                                            type: https://unkey.com/docs/errors/user/too_many_requests/workspace_rate_limited
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/TooManyRequestsErrorResponse'
+                    description: Too Many Requests
+                "500":
+                    content:
+                        application/json:
+                            examples:
+                                limitsNotConfigured:
+                                    description: The workspace has no limits row, which support has to fix
+                                    summary: Limits not configured
+                                    value:
+                                        error:
+                                            detail: Resource limits are not configured for this workspace. Contact support@unkey.com.
+                                            status: 500
+                                            title: Internal Server Error
+                                            type: https://unkey.com/docs/errors/unkey/application/service_unavailable
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error
+            security:
+                - bearer: []
+            summary: Get workspace limits
+            tags:
+                - workspace
+            x-speakeasy-name-override: getLimits
+            x-unkey-idempotency: idempotent
+    /v2/workspace.getUsage:
+        post:
+            description: |
+                Get the usage of your workspace for one calendar month (UTC): billable API
+                operations, compute usage per environment, and active keys per app.
+
+                Use this to track usage during the month or to look back at a past
+                month. The response has no prices. Your invoice is the source of truth.
+                Compute usage can be up to 15 minutes late, and it can change for up to 7
+                days.
+
+                Send `{}` for the current month to date, or
+                `{"period": {"year": 2026, "month": 9}}` for a full past month. The month
+                must start within the last 90 days.
+
+                **Required Permissions**
+
+                Your root key must have this permission:
+                - `unkey:v1:<workspace_id>:usage#read`
+            operationId: workspace.getUsage
+            requestBody:
+                content:
+                    application/json:
+                        examples:
+                            currentMonth:
+                                summary: Current month to date
+                                value: {}
+                            pastMonth:
+                                summary: A past month
+                                value:
+                                    period:
+                                        month: 9
+                                        year: 2026
+                        schema:
+                            $ref: '#/components/schemas/V2WorkspaceGetUsageRequestBody'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            examples:
+                                currentMonth:
+                                    description: Usage so far this month, ending at the time of the request
+                                    summary: Current month to date
+                                    value:
+                                        data:
+                                            breakdowns:
+                                                byApp:
+                                                    - app:
+                                                        id: app_1234abcd
+                                                        name: API
+                                                      gateway:
+                                                        activeKeys: 12
+                                                      project:
+                                                        id: proj_1234abcd
+                                                        name: Payments
+                                                byEnvironment:
+                                                    - app:
+                                                        id: app_1234abcd
+                                                        name: API
+                                                      compute:
+                                                        cpuSeconds: 5400.5
+                                                        egressGiB: 1.4
+                                                        memoryGiBHours: 96.2
+                                                        storageGiBHours: 0
+                                                      environment:
+                                                        id: env_1234abcd
+                                                        slug: production
+                                                      project:
+                                                        id: proj_1234abcd
+                                                        name: Payments
+                                            period:
+                                                end: 1790946000000
+                                                start: 1790812800000
+                                            totals:
+                                                api:
+                                                    ratelimits: 2000
+                                                    verifications: 40000
+                                                compute:
+                                                    cpuSeconds: 5400.5
+                                                    egressGiB: 1.4
+                                                    memoryGiBHours: 96.2
+                                                    storageGiBHours: 0
+                                                gateway:
+                                                    activeKeys: 12
+                                        meta:
+                                            requestId: req_1234abcd
+                                deletedApp:
+                                    description: The app and its environment were deleted after they ran, so their names are omitted. The last row has keys without an app id
+                                    summary: Usage of a deleted app
+                                    value:
+                                        data:
+                                            breakdowns:
+                                                byApp:
+                                                    - app:
+                                                        id: app_5678efgh
+                                                      gateway:
+                                                        activeKeys: 3
+                                                    - gateway:
+                                                        activeKeys: 1
+                                                byEnvironment:
+                                                    - app:
+                                                        id: app_5678efgh
+                                                      compute:
+                                                        cpuSeconds: 900
+                                                        egressGiB: 0.2
+                                                        memoryGiBHours: 12.5
+                                                        storageGiBHours: 0
+                                                      environment:
+                                                        id: env_5678efgh
+                                                      project:
+                                                        id: proj_1234abcd
+                                                        name: Payments
+                                            period:
+                                                end: 1790812800000
+                                                start: 1788220800000
+                                            totals:
+                                                api:
+                                                    ratelimits: 0
+                                                    verifications: 0
+                                                compute:
+                                                    cpuSeconds: 900
+                                                    egressGiB: 0.2
+                                                    memoryGiBHours: 12.5
+                                                    storageGiBHours: 0
+                                                gateway:
+                                                    activeKeys: 4
+                                        meta:
+                                            requestId: req_1234abcd
+                                emptyMonth:
+                                    description: Nothing ran and no keys were verified, so totals are zero and the lists are empty
+                                    summary: No usage
+                                    value:
+                                        data:
+                                            breakdowns:
+                                                byApp: []
+                                                byEnvironment: []
+                                            period:
+                                                end: 1790946000000
+                                                start: 1790812800000
+                                            totals:
+                                                api:
+                                                    ratelimits: 0
+                                                    verifications: 0
+                                                compute:
+                                                    cpuSeconds: 0
+                                                    egressGiB: 0
+                                                    memoryGiBHours: 0
+                                                    storageGiBHours: 0
+                                                gateway:
+                                                    activeKeys: 0
+                                        meta:
+                                            requestId: req_1234abcd
+                                pastMonth:
+                                    description: The full month of September 2026
+                                    summary: A past month
+                                    value:
+                                        data:
+                                            breakdowns:
+                                                byApp:
+                                                    - app:
+                                                        id: app_1234abcd
+                                                        name: API
+                                                      gateway:
+                                                        activeKeys: 30
+                                                      project:
+                                                        id: proj_1234abcd
+                                                        name: Payments
+                                                byEnvironment:
+                                                    - app:
+                                                        id: app_1234abcd
+                                                        name: API
+                                                      compute:
+                                                        cpuSeconds: 16200
+                                                        egressGiB: 4.2
+                                                        memoryGiBHours: 288.6
+                                                        storageGiBHours: 0
+                                                      environment:
+                                                        id: env_1234abcd
+                                                        slug: production
+                                                      project:
+                                                        id: proj_1234abcd
+                                                        name: Payments
+                                            period:
+                                                end: 1790812800000
+                                                start: 1788220800000
+                                            totals:
+                                                api:
+                                                    ratelimits: 8000
+                                                    verifications: 120000
+                                                compute:
+                                                    cpuSeconds: 16200
+                                                    egressGiB: 4.2
+                                                    memoryGiBHours: 288.6
+                                                    storageGiBHours: 0
+                                                gateway:
+                                                    activeKeys: 30
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/V2WorkspaceGetUsageResponseBody'
+                    description: |
+                        The workspace usage for the requested month.
+                "400":
+                    content:
+                        application/json:
+                            examples:
+                                futureMonth:
+                                    summary: Month in the future
+                                    value:
+                                        error:
+                                            detail: '''period'' 2026-11 is in the future. The latest month is 2026-10.'
+                                            status: 400
+                                            title: Bad Request
+                                            type: https://unkey.com/docs/errors/unkey/application/invalid_input
+                                        meta:
+                                            requestId: req_1234abcd
+                                invalidMonth:
+                                    summary: Month out of range
+                                    value:
+                                        error:
+                                            detail: POST request body for '/v2/workspace.getUsage' failed to validate schema
+                                            errors:
+                                                - location: /properties/period/$ref/properties/month/maximum
+                                                  message: 'maximum: got 13, want 12'
+                                            status: 400
+                                            title: Bad Request
+                                            type: https://unkey.com/docs/errors/unkey/application/invalid_input
+                                        meta:
+                                            requestId: req_1234abcd
+                                monthTooOld:
+                                    summary: Month older than the compute usage retention
+                                    value:
+                                        error:
+                                            detail: '''period'' 2026-07 starts more than 90 days ago. Compute usage is kept for 90 days, so the earliest month is 2026-08.'
+                                            status: 400
+                                            title: Bad Request
+                                            type: https://unkey.com/docs/errors/unkey/application/invalid_input
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Bad request
+                "401":
+                    content:
+                        application/json:
+                            examples:
+                                invalidRootKey:
+                                    summary: Invalid root key
+                                    value:
+                                        error:
+                                            detail: The provided root key is invalid. We could not find the requested key.
+                                            status: 401
+                                            title: Unauthorized
+                                            type: https://unkey.com/docs/errors/unkey/authentication/key_not_found
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Unauthorized
+                "403":
+                    content:
+                        application/json:
+                            examples:
+                                missingPermission:
+                                    summary: Missing required permission
+                                    value:
+                                        error:
+                                            detail: 'Missing permission: ''unkey:v1:ws_1234abcd:usage#read'''
+                                            status: 403
+                                            title: Insufficient Permissions
+                                            type: https://unkey.com/docs/errors/unkey/authorization/insufficient_permissions
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: Forbidden - Insufficient permissions (requires `unkey:v1:<workspace_id>:usage#read`)
+                "429":
+                    content:
+                        application/problem+json:
+                            examples:
+                                workspaceRateLimited:
+                                    summary: Workspace rate limit exceeded
+                                    value:
+                                        error:
+                                            detail: This workspace has exceeded its API rate limit of 1000/1m0s. Please try again later.
+                                            status: 429
+                                            title: Too Many Requests
+                                            type: https://unkey.com/docs/errors/user/too_many_requests/workspace_rate_limited
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/TooManyRequestsErrorResponse'
+                    description: Too Many Requests
+                "500":
+                    content:
+                        application/json:
+                            examples:
+                                usageUnavailable:
+                                    summary: Usage could not be read
+                                    value:
+                                        error:
+                                            detail: Failed to read the workspace's usage.
+                                            status: 500
+                                            title: Internal Server Error
+                                            type: https://unkey.com/docs/errors/unkey/application/service_unavailable
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error
+            security:
+                - bearer: []
+            summary: Get workspace usage
+            tags:
+                - workspace
+            x-speakeasy-name-override: getUsage
+            x-unkey-idempotency: idempotent
     /v3/deployments.createDeployment:
         post:
             description: |
@@ -18116,6 +18978,8 @@ tags:
       name: ratelimit
     - description: GitHub App installation operations
       name: github
+    - description: Workspace limits and usage operations
+      name: workspace
 x-speakeasy-retries:
     backoff:
         exponent: 1.5

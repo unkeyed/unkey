@@ -3,6 +3,7 @@ package seed
 import (
 	"github.com/unkeyed/unkey/cmd/dev/seed/checkpoints"
 	"github.com/unkeyed/unkey/cmd/dev/seed/deployusage"
+	"github.com/unkeyed/unkey/cmd/dev/seed/workspaceusage"
 	"github.com/unkeyed/unkey/pkg/cli"
 )
 
@@ -15,5 +16,6 @@ var Cmd = &cli.Command{
 		frontlineCmd,
 		checkpoints.Cmd,
 		deployusage.Cmd,
+		workspaceusage.Cmd,
 	},
 }

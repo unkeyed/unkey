@@ -1,0 +1,29 @@
+type: object
+description: Compute usage in the period.
+required:
+  - cpuSeconds
+  - memoryGiBHours
+  - storageGiBHours
+  - egressGiB
+properties:
+  cpuSeconds:
+    type: number
+    format: double
+    description: CPU time used, in seconds.
+    example: 5400.5
+  memoryGiBHours:
+    type: number
+    format: double
+    description: Memory used over time, in GiB-hours.
+    example: 96.2
+  storageGiBHours:
+    type: number
+    format: double
+    description: Ephemeral disk reserved over time, in GiB-hours.
+    example: 0
+  egressGiB:
+    type: number
+    format: double
+    description: Public network egress, in GiB.
+    example: 1.4
+additionalProperties: false
