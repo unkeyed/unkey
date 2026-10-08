@@ -28,18 +28,18 @@ func ToPublic(row db.Logdrain) (openapi.Logdrain, error) {
 	case nil:
 		data.Filters.EventTypes = new([]string{})
 	case *logdrainv1.Config_AuditLogs:
-		data.Filters.EventTypes = array(stream.AuditLogs.EventTypes)
+		data.Filters.EventTypes = new(append([]string{}, stream.AuditLogs.EventTypes...))
 	case *logdrainv1.Config_KeyVerifications:
-		data.Filters.Outcomes = array(stream.KeyVerifications.Outcomes)
-		data.Filters.KeySpaceIds = array(stream.KeyVerifications.KeySpaceIds)
+		data.Filters.Outcomes = new(append([]string{}, stream.KeyVerifications.Outcomes...))
+		data.Filters.KeySpaceIds = new(append([]string{}, stream.KeyVerifications.KeySpaceIds...))
 	case *logdrainv1.Config_Ratelimits:
-		data.Filters.NamespaceIds = array(stream.Ratelimits.NamespaceIds)
-		data.Filters.Passed = array(stream.Ratelimits.Passed)
+		data.Filters.NamespaceIds = new(append([]string{}, stream.Ratelimits.NamespaceIds...))
+		data.Filters.Passed = new(append([]bool{}, stream.Ratelimits.Passed...))
 	case *logdrainv1.Config_RuntimeLogs:
-		data.Filters.Severities = array(stream.RuntimeLogs.Severities)
-		data.Filters.ProjectIds = array(stream.RuntimeLogs.ProjectIds)
-		data.Filters.AppIds = array(stream.RuntimeLogs.AppIds)
-		data.Filters.EnvironmentIds = array(stream.RuntimeLogs.EnvironmentIds)
+		data.Filters.Severities = new(append([]string{}, stream.RuntimeLogs.Severities...))
+		data.Filters.ProjectIds = new(append([]string{}, stream.RuntimeLogs.ProjectIds...))
+		data.Filters.AppIds = new(append([]string{}, stream.RuntimeLogs.AppIds...))
+		data.Filters.EnvironmentIds = new(append([]string{}, stream.RuntimeLogs.EnvironmentIds...))
 	case *logdrainv1.Config_GatewayRequests:
 		classes := make([]openapi.LogdrainFiltersStatusClasses, len(stream.GatewayRequests.StatusClasses))
 		for i, class := range stream.GatewayRequests.StatusClasses {
@@ -59,9 +59,9 @@ func ToPublic(row db.Logdrain) (openapi.Logdrain, error) {
 			}
 		}
 		data.Filters.StatusClasses = &classes
-		data.Filters.ProjectIds = array(stream.GatewayRequests.ProjectIds)
-		data.Filters.AppIds = array(stream.GatewayRequests.AppIds)
-		data.Filters.EnvironmentIds = array(stream.GatewayRequests.EnvironmentIds)
+		data.Filters.ProjectIds = new(append([]string{}, stream.GatewayRequests.ProjectIds...))
+		data.Filters.AppIds = new(append([]string{}, stream.GatewayRequests.AppIds...))
+		data.Filters.EnvironmentIds = new(append([]string{}, stream.GatewayRequests.EnvironmentIds...))
 	default:
 		return data, fmt.Errorf("unsupported log drain stream %T", stream)
 	}
@@ -98,11 +98,4 @@ func ToPublic(row db.Logdrain) (openapi.Logdrain, error) {
 		return data, fmt.Errorf("unsupported log drain destination %T", destination)
 	}
 	return data, nil
-}
-
-func array[T any](values []T) *[]T {
-	if values == nil {
-		values = []T{}
-	}
-	return &values
 }
