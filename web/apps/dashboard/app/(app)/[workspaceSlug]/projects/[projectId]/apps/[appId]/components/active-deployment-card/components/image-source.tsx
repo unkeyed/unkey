@@ -1,6 +1,6 @@
 "use client";
 
-import { IconCheckOutline12, IconClipboardOutline12, IconLayers2Outline18 } from "@unkey/icons";
+import { IconCheckOutline12, IconCloneOutline12, IconLayers2Outline18 } from "@unkey/icons";
 import { InfoTooltip, toast } from "@unkey/ui";
 import { useState } from "react";
 
@@ -47,7 +47,7 @@ export function ImageSource({
         {copied ? (
           <IconCheckOutline12 className="text-success-11 shrink-0" />
         ) : (
-          <IconClipboardOutline12 className="text-gray-9 shrink-0 opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100" />
+          <IconCloneOutline12 className="text-gray-9 shrink-0 opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100" />
         )}
       </button>
     </InfoTooltip>
