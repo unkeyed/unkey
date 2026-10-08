@@ -11,7 +11,10 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/svc/api/internal/portal"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
@@ -136,7 +139,7 @@ func TestGetPortalByIdAndSlug(t *testing.T) {
 	mapping := keyspaceMapping(t, h, workspace.ID)
 	stored := h.SeedPortal(t, workspace.ID, "acme-portal", "acme-portal", mapping,
 		new("https://cdn.example.com/logo.svg"), new("#6366f1"))
-	route, headers := newRoute(t, h, fmt.Sprintf("unkey:v1:%s:projects/%s/portals/%s#read", workspace.ID, stored.ProjectID, stored.ID))
+	route, headers := newRoute(t, h, rbac.U(urn.New().Workspace(workspace.ID).Project(stored.ProjectID).Portal(stored.ID), permissions.Read).Value)
 
 	for name, target := range map[string]string{
 		"by id":   stored.ID,
@@ -175,8 +178,8 @@ func TestGetPortalByMapping(t *testing.T) {
 	appPortal := h.SeedPortal(t, workspace.ID, "app-portal", "app-portal", app,
 		nil, nil)
 	route, headers := newRoute(t, h,
-		fmt.Sprintf("unkey:v1:%s:projects/%s/portals/%s#read", workspace.ID, keyspacePortal.ProjectID, keyspacePortal.ID),
-		fmt.Sprintf("unkey:v1:%s:projects/%s/portals/%s#read", workspace.ID, appPortal.ProjectID, appPortal.ID))
+		rbac.U(urn.New().Workspace(workspace.ID).Project(keyspacePortal.ProjectID).Portal(keyspacePortal.ID), permissions.Read).Value,
+		rbac.U(urn.New().Workspace(workspace.ID).Project(appPortal.ProjectID).Portal(appPortal.ID), permissions.Read).Value)
 
 	for name, tc := range map[string]struct {
 		mapping  portal.Mapping
@@ -226,7 +229,7 @@ func TestGetPortalOmitsAbsentBranding(t *testing.T) {
 
 	stored := h.SeedPortal(t, workspace.ID, "plain", "plain", keyspaceMapping(t, h, workspace.ID),
 		nil, nil)
-	route, headers := newRoute(t, h, fmt.Sprintf("unkey:v1:%s:projects/%s/portals/%s#read", workspace.ID, stored.ProjectID, stored.ID))
+	route, headers := newRoute(t, h, rbac.U(urn.New().Workspace(workspace.ID).Project(stored.ProjectID).Portal(stored.ID), permissions.Read).Value)
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
 		Portal:     new(stored.ID),
@@ -247,7 +250,7 @@ func TestGetPortalCarriesDisplayNameButNoReturnURL(t *testing.T) {
 
 	stored := h.SeedPortal(t, workspace.ID, "no-extras", "no-extras", keyspaceMapping(t, h, workspace.ID),
 		new("https://cdn.example.com/logo.svg"), nil)
-	route, headers := newRoute(t, h, fmt.Sprintf("unkey:v1:%s:projects/%s/portals/%s#read", workspace.ID, stored.ProjectID, stored.ID))
+	route, headers := newRoute(t, h, rbac.U(urn.New().Workspace(workspace.ID).Project(stored.ProjectID).Portal(stored.ID), permissions.Read).Value)
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
 		Portal:     new(stored.ID),

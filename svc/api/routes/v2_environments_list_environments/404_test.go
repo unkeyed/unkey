@@ -6,7 +6,10 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_environments_list_environments"
@@ -36,7 +39,7 @@ func TestListEnvironmentsNotFound(t *testing.T) {
 
 	t.Run("unknown app slug returns 404", func(t *testing.T) {
 		missingApp := slug(t)
-		rootKey := h.CreateRootKey(workspace.ID, fmt.Sprintf("unkey:v1:%s:projects/%s/apps/%s/environments/*#read", workspace.ID, project.ID, missingApp))
+		rootKey := h.CreateRootKey(workspace.ID, rbac.U(urn.New().Workspace(workspace.ID).Project(project.ID).App(missingApp).Environment("*"), permissions.Read).Value)
 		headers := http.Header{
 			"Content-Type":  {"application/json"},
 			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
@@ -47,7 +50,7 @@ func TestListEnvironmentsNotFound(t *testing.T) {
 
 	t.Run("unknown project slug returns 404", func(t *testing.T) {
 		missingProject := slug(t)
-		rootKey := h.CreateRootKey(workspace.ID, fmt.Sprintf("unkey:v1:%s:projects/%s/apps/%s/environments/*#read", workspace.ID, missingProject, app.ID))
+		rootKey := h.CreateRootKey(workspace.ID, rbac.U(urn.New().Workspace(workspace.ID).Project(missingProject).App(app.ID).Environment("*"), permissions.Read).Value)
 		headers := http.Header{
 			"Content-Type":  {"application/json"},
 			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
@@ -79,7 +82,7 @@ func TestListEnvironmentsNotFound(t *testing.T) {
 			Slug:        slug(t),
 		})
 
-		rootKey := h.CreateRootKey(workspace.ID, fmt.Sprintf("unkey:v1:%s:projects/%s/apps/%s/environments/*#read", workspace.ID, otherProject.ID, otherApp.ID))
+		rootKey := h.CreateRootKey(workspace.ID, rbac.U(urn.New().Workspace(workspace.ID).Project(otherProject.ID).App(otherApp.ID).Environment("*"), permissions.Read).Value)
 		headers := http.Header{
 			"Content-Type":  {"application/json"},
 			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
