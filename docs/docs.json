@@ -25,7 +25,9 @@
       "cursor",
       "vscode",
       "mcp",
-      "add-mcp"
+      "add-mcp",
+      "grok",
+      "devin-mcp"
     ]
   },
   "description": "Unkey documentation for two products: Compute, which builds, deploys, and runs your app behind a gateway, and API Management, which issues API keys, enforces rate limits, and reports usage. Platform pages cover the workspace, billing, root keys, the CLI, and error codes shared by both.",
@@ -2030,7 +2032,7 @@
     }
   ],
   "seo": {
-    "indexing": "navigable",
+    "indexing": "all",
     "metatags": {
       "og:site_name": "Unkey Docs"
     }
