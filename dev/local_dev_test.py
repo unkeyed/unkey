@@ -19,7 +19,7 @@ class LocalDevTest(unittest.TestCase):
         cls.root = Path(cls.temporary.name)
         cls.dev = cls.root / "dev"
         cls.dev.mkdir()
-        for name in ("Tiltfile", "Dockerfile.binary", "Dockerfile.mysql", "Dockerfile.clickhouse", "start-cluster.sh"):
+        for name in ("Tiltfile", "Dockerfile.binary", "Dockerfile.mysql", "Dockerfile.clickhouse", "start-cluster.sh", "stripe-webhook-secret.mjs"):
             shutil.copyfile(ROOT / "dev" / name, cls.dev / name)
         (cls.dev / "k8s").symlink_to(ROOT / "dev/k8s", target_is_directory=True)
         cls.dashboard_env = cls.root / "web/apps/dashboard/.env"
@@ -30,7 +30,7 @@ class LocalDevTest(unittest.TestCase):
         stub = cls.bin / "stub"
         stub.write_text(
             f"#!{sys.executable}\n"
-            "import json, os, pathlib, sys\n"
+            "import json, os, pathlib, sys, time\n"
             "name = pathlib.Path(sys.argv[0]).name\n"
             "args = sys.argv[1:]\n"
             "with open(os.environ['COMMAND_LOG'], 'a') as log:\n"
@@ -42,8 +42,9 @@ class LocalDevTest(unittest.TestCase):
             "    else: sys.exit(1)\n"
             "elif name == 'stripe':\n"
             "    if args == ['config', '--list']: print('account_id = stale')\n"
-            "    elif args == ['listen', '--print-secret']:\n"
-            "        print(os.environ.get('STRIPE_TEST_SECRET', 'whsec_fixture'))\n"
+            "    elif args == ['listen', '--print-secret', '--skip-update']:\n"
+            "        time.sleep(float(os.environ.get('STRIPE_TEST_DELAY', '0')))\n"
+            "        print(os.environ.get('STRIPE_TEST_SECRET', ''))\n"
             "    else: sys.exit(18)\n"
             "elif name == 'kubectl' and args[:5] == ['-n', 'kube-system', 'patch', 'configmap', 'cilium-config']:\n"
             "    print(os.environ.get('CONFIG_VERSION', '41'), end='')\n"
@@ -62,10 +63,10 @@ class LocalDevTest(unittest.TestCase):
         if tilt is None:
             raise RuntimeError("Run with mise exec -- python3 dev/local_dev_test.py")
 
-        def evaluate(*args):
+        def evaluate(*args, **env):
             result = subprocess.run(
                 [tilt, "alpha", "tiltfile-result", "-f", str(cls.dev / "Tiltfile"), "--", *args],
-                cwd=cls.root, env=cls.env, capture_output=True, text=True, timeout=120,
+                cwd=cls.root, env=dict(cls.env, **env), capture_output=True, text=True, timeout=120,
             )
             if result.returncode:
                 raise RuntimeError(result.stderr)
@@ -75,8 +76,9 @@ class LocalDevTest(unittest.TestCase):
             manifests = {manifest["Name"]: manifest for manifest in data["Manifests"]}
             return manifests, set(data["EnabledManifests"])
 
+        cls.evaluate = staticmethod(evaluate)
         cls.default, _ = evaluate()
-        cls.stripe, _ = evaluate("--stripe")
+        cls.stripe, _ = evaluate(STRIPE_TEST_SECRET="whsec_fixture")
         cls.orb, _ = evaluate("--orb")
         _, cls.api_enabled = evaluate("api")
         _, cls.krane_enabled = evaluate("krane")
@@ -84,7 +86,6 @@ class LocalDevTest(unittest.TestCase):
         (cls.dev / ".env.github").write_text("UNKEY_GITHUB_APP_ID=123\n")
         (cls.dev / ".github-private-key.pem").write_text("fixture\n")
         cls.github, _ = evaluate()
-        cls.evaluation_calls = cls.log.read_text()
 
     def setUp(self):
         self.log.write_text("")
@@ -138,8 +139,7 @@ class LocalDevTest(unittest.TestCase):
                 "failureThreshold": 30,
             })
 
-    def test_stripe_is_opt_in_even_with_stale_login(self):
-        self.assertNotIn('"stripe"', self.evaluation_calls)
+    def test_stripe_is_optional_without_a_secret(self):
         self.assertNotIn("stripe-webhook-secret", self.default)
         self.assertNotIn("stripe-listen-dashboard", self.default)
         self.assertNotIn("stripe-listen-ctrl", self.default)
@@ -147,28 +147,49 @@ class LocalDevTest(unittest.TestCase):
         for name in ("ctrl-api", "ctrl-worker"):
             self.assertIn("stripe-credentials", self.default[name]["ResourceDependencies"])
 
-    def test_opt_in_preserves_secret_before_consumer_order(self):
+    def test_configured_stripe_preserves_secret_before_consumer_order(self):
         for name in ("dashboard", "stripe-credentials"):
             self.assertIn("stripe-webhook-secret", self.stripe[name]["ResourceDependencies"])
         for listener, consumer in (("stripe-listen-dashboard", "dashboard"), ("stripe-listen-ctrl", "ctrl-api")):
             self.assertEqual(self.stripe[listener]["ResourceDependencies"], [consumer])
 
+    def test_missing_stripe_cli_is_optional(self):
+        result = self.command(
+            [shutil.which("node"), str(ROOT / "dev/stripe-webhook-secret.mjs")],
+            PATH=str(self.root / "missing-bin"),
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout, "")
+
     def test_failed_stripe_auth_or_invalid_secret_does_not_overwrite_env(self):
-        for env in ({"FAIL_COMMAND": "stripe"}, {"STRIPE_TEST_SECRET": ""}, {"STRIPE_TEST_SECRET": "not-a-secret"}):
+        for env in (
+            {"FAIL_COMMAND": "stripe"},
+            {"STRIPE_TEST_SECRET": ""},
+            {"STRIPE_TEST_SECRET": "not-a-secret"},
+            {"STRIPE_TEST_SECRET": "whsec_bad&secret"},
+            {"STRIPE_TEST_SECRET": "whsec_fixture", "STRIPE_TEST_DELAY": "10"},
+        ):
             with self.subTest(env=env):
                 for path in (self.dev / ".env.stripe", self.dashboard_env):
                     path.write_text("STRIPE_WEBHOOK_SECRET=whsec_existing\nOTHER=keep\n")
-                result = self.command(self.update_command(self.stripe, "stripe-webhook-secret"), **env)
-                self.assertNotEqual(result.returncode, 0)
+                manifests, _ = self.evaluate(**env)
+                self.assertNotIn("stripe-webhook-secret", manifests)
+                self.assertNotIn("stripe-listen-dashboard", manifests)
+                self.assertNotIn("stripe-listen-ctrl", manifests)
+                self.assertEqual(manifests["stripe-credentials"]["ResourceDependencies"], ["namespace"])
+                self.assertNotIn("stripe-webhook-secret", manifests["dashboard"]["ResourceDependencies"])
                 for path in (self.dev / ".env.stripe", self.dashboard_env):
                     self.assertEqual(path.read_text(), "STRIPE_WEBHOOK_SECRET=whsec_existing\nOTHER=keep\n")
 
     def test_secret_update_is_shared_and_repeatable(self):
         (self.dev / ".env.stripe").write_text("STRIPE_WEBHOOK_SECRET=whsec_old\nOTHER=keep\n")
         self.dashboard_env.write_text("OTHER=dashboard\n")
+        spec = self.stripe["stripe-webhook-secret"]["DeployTarget"]["UpdateCmdSpec"]
+        self.assertEqual(spec["env"], ["STRIPE_WEBHOOK_SECRET=whsec_fixture"])
         for _ in range(2):
-            result = self.command(self.update_command(self.stripe, "stripe-webhook-secret"))
+            result = self.command(self.update_command(self.stripe, "stripe-webhook-secret"), STRIPE_WEBHOOK_SECRET="whsec_fixture")
             self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertFalse(any(call[0] == "stripe" for call in self.calls()))
         self.assertEqual((self.dev / ".env.stripe").read_text(), "STRIPE_WEBHOOK_SECRET=whsec_fixture\nOTHER=keep\n")
         self.assertEqual(self.dashboard_env.read_text(), "OTHER=dashboard\nSTRIPE_WEBHOOK_SECRET=whsec_fixture\n")
 
@@ -261,12 +282,12 @@ class LocalDevTest(unittest.TestCase):
         self.assertEqual(len(self.calls()), 1)
 
     def test_dev_applies_cluster_once_and_forwards_options(self):
-        result = self.command(["bash", str(ROOT / ".mise/tasks/dev"), "--stripe", "--topolvm_backing_size=32G"], cwd=self.root)
+        result = self.command(["bash", str(ROOT / ".mise/tasks/dev"), "api", "--topolvm_backing_size=32G"], cwd=self.root)
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(self.calls(), [
             ["minikube", "profile", "list", "-o", "json"],
             ["ctlptl", "apply", "-f", "./dev/cluster.yaml"],
-            ["tilt", "up", "-f", "./dev/Tiltfile", "--", "--stripe", "--topolvm_backing_size=32G"],
+            ["tilt", "up", "-f", "./dev/Tiltfile", "--", "api", "--topolvm_backing_size=32G"],
         ])
         self.log.write_text("")
         result = self.command(["bash", str(ROOT / ".mise/tasks/dev")], cwd=self.root, FAIL_COMMAND="ctlptl")

@@ -187,22 +187,22 @@ catalog), so you only add two values:
 - `STRIPE_SECRET_KEY` - a test-mode key (`sk_test_...`) from the shared sandbox.
 - `STRIPE_WEBHOOK_SECRET` - the signing secret for forwarded webhook events.
 
-Stripe webhook forwarding is opt-in. Normal startup does not run the Stripe
-CLI or check your login. Existing `dev/.env.stripe` credentials still load.
-For billing development, authenticate and enable forwarding:
+Stripe webhook forwarding starts automatically when the Stripe CLI can obtain
+a valid signing secret. For billing development, authenticate before starting:
 
 ```bash
 mise exec -- stripe login
-mise run dev -- --stripe
+mise run dev
 ```
 
 This runs `stripe listen` against both the dashboard
 (`localhost:3000/api/webhooks/stripe`) and ctrl-api
 (`localhost:7091/webhooks/stripe`). Tilt writes the shared `STRIPE_WEBHOOK_SECRET`
 into both `web/apps/dashboard/.env` and `dev/.env.stripe` before starting its
-consumers. A Stripe authentication failure blocks this billing-enabled startup
-so consumers cannot start with an incorrect signing secret. Exit Tilt and run
-`mise run dev` without `--stripe` to continue unrelated development.
+consumers. A missing CLI, authentication failure, invalid secret, or a check
+that takes more than five seconds skips forwarding without blocking startup.
+Existing credentials stay unchanged and still load from `dev/.env.stripe`.
+After logging in, reload Tilt to retry the check.
 
 To set up a fresh Stripe sandbox (products, meters, prices), follow the catalog
 guide in the infra repo: <a href="https://github.com/unkeyed/infra/blob/main/docs/services/stripe-billing.md" target="_blank">Stripe Billing</a>.
@@ -216,7 +216,7 @@ Each is optional: a missing file disables that piece and never breaks startup.
   - `STRIPE_SECRET_KEY` - test-mode key for the hourly usage push and the
     month-end invoice finalize.
   - `STRIPE_WEBHOOK_SECRET` - the close webhook's signing secret, written
-    automatically when you enable forwarding with `--stripe` (as above).
+    automatically when the Stripe CLI is available and authenticated (as above).
   - `STRIPE_DEPLOY_*_LOOKUP_KEY` - the price lookup_keys `CancelDeploy` uses to
     find a subscription's Deploy items. Same handles the dashboard uses; empty
     disables cancel.
