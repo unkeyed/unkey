@@ -45,7 +45,8 @@ func TestUpdateSettingsSuccessfully(t *testing.T) {
 	headers := authHeaders(rootKey)
 
 	// Seed regions used by the region reconciliation subtests.
-	seedRegions(t, h, "us-east-1", "us-west-2")
+	primaryRegion, secondaryRegion := uid.New("region"), uid.New("region")
+	seedRegions(t, h, primaryRegion, secondaryRegion)
 
 	call := func(t *testing.T, req handler.Request) {
 		t.Helper()
@@ -438,7 +439,7 @@ func TestUpdateSettingsSuccessfully(t *testing.T) {
 		env := seedEnvironment(t, h)
 
 		// Create: one region with bounds 1..3.
-		create := []openapi.EnvironmentRegion{regionSetting("us-east-1", 1, 3)}
+		create := []openapi.EnvironmentRegion{regionSetting(primaryRegion, 1, 3)}
 		call(t, handler.Request{
 			Project: env.projectID, App: env.appID, Environment: env.environmentID,
 			Regions: &create,
@@ -453,7 +454,7 @@ func TestUpdateSettingsSuccessfully(t *testing.T) {
 		firstPolicyID := rows[0].HorizontalAutoscalingPolicyID.String
 
 		// Update: same region, new bounds 2..2. Policy id must be reused.
-		update := []openapi.EnvironmentRegion{regionSetting("us-east-1", 2, 2)}
+		update := []openapi.EnvironmentRegion{regionSetting(primaryRegion, 2, 2)}
 		call(t, handler.Request{
 			Project: env.projectID, App: env.appID, Environment: env.environmentID,
 			Regions: &update,
@@ -471,8 +472,8 @@ func TestUpdateSettingsSuccessfully(t *testing.T) {
 		env := seedEnvironment(t, h)
 
 		regions := []openapi.EnvironmentRegion{
-			regionSetting("us-east-1", 1, 3),
-			regionSetting("us-west-2", 1, 3),
+			regionSetting(primaryRegion, 1, 3),
+			regionSetting(secondaryRegion, 1, 3),
 		}
 		call(t, handler.Request{
 			Project: env.projectID, App: env.appID, Environment: env.environmentID,

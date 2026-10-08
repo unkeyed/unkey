@@ -30,8 +30,9 @@ func TestUpdateSettings400(t *testing.T) {
 	rootKey := h.CreateRootKey(env.workspaceID, "environment.*.update_environment")
 	headers := authHeaders(rootKey)
 
-	seedRegions(t, h, "us-east-1", "us-west-2")
-	seedUnschedulableRegion(t, h, "eu-west-1")
+	primaryRegion, secondaryRegion, unschedulableRegion := uid.New("region"), uid.New("region"), uid.New("region")
+	seedRegions(t, h, primaryRegion, secondaryRegion)
+	seedUnschedulableRegion(t, h, unschedulableRegion)
 
 	overLimit := func(n int) []string {
 		s := make([]string, n)
@@ -90,16 +91,16 @@ func TestUpdateSettings400(t *testing.T) {
 		})}},
 
 		// Region replica bounds (handler).
-		{name: "replicas max above limit", req: handler.Request{Regions: new([]openapi.EnvironmentRegion{regionSetting("us-east-1", 1, 5)})}},
-		{name: "replicas min below one", req: handler.Request{Regions: new([]openapi.EnvironmentRegion{regionSetting("us-east-1", 0, 2)})}},
+		{name: "replicas max above limit", req: handler.Request{Regions: new([]openapi.EnvironmentRegion{regionSetting(primaryRegion, 1, 5)})}},
+		{name: "replicas min below one", req: handler.Request{Regions: new([]openapi.EnvironmentRegion{regionSetting(primaryRegion, 0, 2)})}},
 		{name: "empty regions list", req: handler.Request{Regions: new([]openapi.EnvironmentRegion{})}},
 
 		// Region logic (handler).
-		{name: "replicas min greater than max", req: handler.Request{Regions: new([]openapi.EnvironmentRegion{regionSetting("us-east-1", 3, 1)})}},
+		{name: "replicas min greater than max", req: handler.Request{Regions: new([]openapi.EnvironmentRegion{regionSetting(primaryRegion, 3, 1)})}},
 		{name: "unknown region", req: handler.Request{Regions: new([]openapi.EnvironmentRegion{regionSetting("ap-south-1", 1, 2)})}},
-		{name: "unschedulable region", req: handler.Request{Regions: new([]openapi.EnvironmentRegion{regionSetting("eu-west-1", 1, 2)})}},
-		{name: "duplicate region", req: handler.Request{Regions: new([]openapi.EnvironmentRegion{regionSetting("us-east-1", 1, 2), regionSetting("us-east-1", 1, 3)})}},
-		{name: "mismatched replica bounds", req: handler.Request{Regions: new([]openapi.EnvironmentRegion{regionSetting("us-east-1", 1, 3), regionSetting("us-west-2", 2, 4)})}},
+		{name: "unschedulable region", req: handler.Request{Regions: new([]openapi.EnvironmentRegion{regionSetting(unschedulableRegion, 1, 2)})}},
+		{name: "duplicate region", req: handler.Request{Regions: new([]openapi.EnvironmentRegion{regionSetting(primaryRegion, 1, 2), regionSetting(primaryRegion, 1, 3)})}},
+		{name: "mismatched replica bounds", req: handler.Request{Regions: new([]openapi.EnvironmentRegion{regionSetting(primaryRegion, 1, 3), regionSetting(secondaryRegion, 2, 4)})}},
 	}
 
 	for _, tc := range testCases {

@@ -62,16 +62,7 @@ func setSpendSuspended(t *testing.T, h *harness.Harness, workspaceID string, sus
 // fan-out decision without driving the per-workspace check to completion.
 func TestRunDeploySpendCheck_OrchestratorIntegration(t *testing.T) {
 	reader := &fakeUsageReader{} //nolint:exhaustruct // set per subtest
-	h := harness.New(t, harness.WithDeployBilling(reader, newFakePusher(), newFakeCloser()))
-
-	// The harness database is shared across test processes, and other tests
-	// leave budgeted or spend-suspended workspaces behind. Both are scanned by
-	// the orchestrator, and the counts below are asserted exactly, so start
-	// from an empty set.
-	_, err := h.DB.RW().ExecContext(h.Ctx,
-		`UPDATE workspace_billing SET spend_budget_cents = NULL, spend_suspended = false
-		WHERE spend_budget_cents IS NOT NULL OR spend_suspended = true`)
-	require.NoError(t, err)
+	h := harness.New(t, harness.WithDeployBilling(reader, newFakePusher(), newFakeCloser()), harness.WithIsolatedMySQL())
 
 	period := time.Now().UTC().Format("2006-01")
 	run := func() (*hydrav1.RunDeploySpendCheckResponse, error) {
