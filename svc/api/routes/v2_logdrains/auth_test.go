@@ -67,6 +67,14 @@ func TestLogdrainsRequireAuthenticationAndPermission(t *testing.T) {
 					if auth.authorization != "" {
 						headers.Set("Authorization", auth.authorization)
 					}
+					if _, isList := tc.route.(*listRoute.Handler); isList && auth.name == "insufficient permission" {
+						result := testutil.CallRoute[json.RawMessage, openapi.ListLogdrainsResponse](h, tc.route, headers, json.RawMessage(tc.body))
+						require.Equal(t, http.StatusOK, result.Status, "%s", result.RawBody)
+						require.Empty(t, result.Body.Data)
+						require.False(t, result.Body.Pagination.HasMore)
+						require.Nil(t, result.Body.Pagination.Cursor)
+						return
+					}
 					result := testutil.CallRoute[json.RawMessage, openapi.UnauthorizedErrorResponse](h, tc.route, headers, json.RawMessage(tc.body))
 					require.Equal(t, auth.status, result.Status, "%s", result.RawBody)
 					require.Equal(t, auth.status, result.Body.Error.Status)

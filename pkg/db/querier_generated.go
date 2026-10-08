@@ -2628,12 +2628,12 @@ type Querier interface {
 	//  ORDER BY external_id ASC, created_at DESC, id ASC
 	ListLivePortalSessionsByExternalIDs(ctx context.Context, db DBTX, arg ListLivePortalSessionsByExternalIDsParams) ([]ListLivePortalSessionsByExternalIDsRow, error)
 	// Stable ID ordering supports pagination without crossing the workspace boundary.
-	// Fetch one extra row to determine whether another page exists.
+	// The inclusive cursor is the first candidate of the next page.
 	//
 	//  SELECT pk, id, workspace_id, name, stream, config, status, consecutive_failures,
 	//    committed_offset_inserted_at, committed_offset_event_id, next_attempt_at,
 	//    lease_id, fencing_token, lease_expires_at, created_at, updated_at
-	//  FROM logdrains WHERE workspace_id = ? AND id > ?
+	//  FROM logdrains WHERE workspace_id = ? AND id >= ?
 	//  ORDER BY id ASC LIMIT ?
 	ListLogdrains(ctx context.Context, db DBTX, arg ListLogdrainsParams) ([]Logdrain, error)
 	// ListPermissions returns one page of permission definitions from one project.
