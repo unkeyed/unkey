@@ -1,13 +1,15 @@
 package handler_test
 
 import (
-	"fmt"
 	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_portal_list_sessions"
@@ -16,14 +18,18 @@ import (
 // An unknown portal and another workspace's portal get the same 404.
 func TestListSessionsUnknownPortal(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route, headers := newRoute(t, h, permission)
+	workspace := h.Resources().UserWorkspace
 
 	other := h.CreateWorkspace()
 	theirs := seedPortal(t, h, other.ID, "list-theirs-404")
+	unknownID := uid.New(uid.PortalPrefix)
+	route, headers := newRoute(t, h,
+		rbac.U(urn.New().Workspace(workspace.ID).Project(theirs.ProjectID).Portal(theirs.ID).Session("*"), permissions.Read).Value,
+		rbac.U(urn.New().Workspace(workspace.ID).Project("*").Portal(unknownID).Session("*"), permissions.Read).Value)
 	insertSession(t, h, theirs.ID, other.ID, active(h, "user_1"))
 
 	testCases := map[string]string{
-		"unknown id":                  uid.New(uid.PortalPrefix),
+		"unknown id":                  unknownID,
 		"unknown slug":                "no-such-portal",
 		"portal in another workspace": theirs.ID,
 		"slug in another workspace":   theirs.Slug,
@@ -48,9 +54,9 @@ func TestListSessionsWithoutPermission(t *testing.T) {
 	insertSession(t, h, stored.ID, workspace.ID, active(h, "user_1"))
 
 	testCases := map[string][]string{
-		"no permissions":      nil,
-		"portal admin only":   {"portal.*.create_portal", "portal.*.read_portal", "portal.*.update_portal", "portal.*.delete_portal"},
-		"another portal only": {fmt.Sprintf("portal.%s.create_portal_session", uid.New(uid.PortalPrefix))},
+		"no permissions":       nil,
+		"portal resource only": {rbac.U(urn.New().Workspace(workspace.ID).Project(stored.ProjectID).Portal(stored.ID), permissions.Write).Value},
+		"another portal only":  {rbac.U(urn.New().Workspace(workspace.ID).Project(stored.ProjectID).Portal(uid.New(uid.PortalPrefix)).Session("*"), permissions.Read).Value},
 	}
 
 	for name, permissions := range testCases {

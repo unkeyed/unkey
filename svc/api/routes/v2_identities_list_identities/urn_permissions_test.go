@@ -16,7 +16,7 @@ import (
 )
 
 // TestListIdentities_AuthorizesCanonicalURNPermission guarantees project-scoped
-// URNs can list identities without a legacy tuple grant.
+// URNs can list identities.
 func TestListIdentities_AuthorizesCanonicalURNPermission(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route := &handler.Handler{DB: h.DB}

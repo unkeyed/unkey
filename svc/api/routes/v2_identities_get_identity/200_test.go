@@ -28,7 +28,9 @@ func TestSuccess(t *testing.T) {
 
 	h.Register(route)
 
-	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "identity.*.read_identity")
+	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID,
+		fmt.Sprintf("unkey:v1:%s:projects/*/identities/*#read", h.Resources().UserWorkspace.ID),
+	)
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
@@ -49,7 +51,7 @@ func TestSuccess(t *testing.T) {
 	require.NoError(t, err)
 
 	// Create identity with ratelimits using testutil helper
-	h.CreateIdentity(seed.CreateIdentityRequest{
+	seededIdentity := h.CreateIdentity(seed.CreateIdentityRequest{
 		WorkspaceID: h.Resources().UserWorkspace.ID,
 		ExternalID:  externalID,
 		Meta:        metaBytes,
@@ -107,6 +109,7 @@ func TestSuccess(t *testing.T) {
 			ID:          identityWithoutMetaID,
 			ExternalID:  externalIDWithoutMeta,
 			WorkspaceID: h.Resources().UserWorkspace.ID,
+			ProjectID:   seededIdentity.ProjectID,
 
 			Environment: "default",
 			CreatedAt:   time.Now().UnixMilli(),
@@ -145,6 +148,7 @@ func TestSuccess(t *testing.T) {
 			ID:          identityWithoutRatelimitsID,
 			ExternalID:  externalIDWithoutRatelimits,
 			WorkspaceID: h.Resources().UserWorkspace.ID,
+			ProjectID:   seededIdentity.ProjectID,
 
 			Environment: "default",
 			CreatedAt:   time.Now().UnixMilli(),
@@ -234,6 +238,7 @@ func TestSuccess(t *testing.T) {
 			ID:          largeMetaIdentityID,
 			ExternalID:  largeMetaExternalID,
 			WorkspaceID: h.Resources().UserWorkspace.ID,
+			ProjectID:   seededIdentity.ProjectID,
 
 			Environment: "default",
 			CreatedAt:   time.Now().UnixMilli(),
@@ -285,6 +290,7 @@ func TestSuccess(t *testing.T) {
 			ID:          manyRateLimitsIdentityID,
 			ExternalID:  manyRateLimitsExternalID,
 			WorkspaceID: h.Resources().UserWorkspace.ID,
+			ProjectID:   seededIdentity.ProjectID,
 
 			Environment: "default",
 			CreatedAt:   time.Now().UnixMilli(),
@@ -369,6 +375,7 @@ func TestSuccess(t *testing.T) {
 			ID:          recentIdentityID,
 			ExternalID:  recentExternalID,
 			WorkspaceID: h.Resources().UserWorkspace.ID,
+			ProjectID:   seededIdentity.ProjectID,
 			Environment: "default",
 			CreatedAt:   creationTime,
 			Meta:        []byte("{}"),

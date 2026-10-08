@@ -73,21 +73,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	err = principal.Authorize(rbac.Or(
-		rbac.U(
-			urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(namespace.ProjectID).RatelimitNamespace(namespace.ID).Override("*"),
-			permissions.Read,
-		),
-		rbac.T(rbac.Tuple{
-			ResourceType: rbac.Ratelimit,
-			ResourceID:   namespace.ID,
-			Action:       rbac.ReadOverride,
-		}),
-		rbac.T(rbac.Tuple{
-			ResourceType: rbac.Ratelimit,
-			ResourceID:   "*",
-			Action:       rbac.ReadOverride,
-		}),
+	err = principal.Authorize(rbac.U(
+		urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(namespace.ProjectID).RatelimitNamespace(namespace.ID).Override("*"),
+		permissions.Read,
 	))
 	if err != nil {
 		return err

@@ -6,6 +6,9 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_portal_list_sessions"
@@ -15,9 +18,9 @@ import (
 // session with no scopes.
 func TestListSessionsFailsOnMalformedScopes(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route, headers := newRoute(t, h, permission)
 	workspace := h.Resources().UserWorkspace
 	stored := seedPortal(t, h, workspace.ID, "list-malformed-scopes")
+	route, headers := newRoute(t, h, rbac.U(urn.New().Workspace(workspace.ID).Project(stored.ProjectID).Portal(stored.ID).Session("*"), permissions.Read).Value)
 
 	malformed := active(h, "user_1")
 	malformed.scopes = `["keys:read"]`

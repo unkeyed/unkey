@@ -19,8 +19,6 @@ import (
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_portal_list_sessions"
 )
 
-const permission = "portal.*.create_portal_session"
-
 func registerRoute(h *testutil.Harness) *handler.Handler {
 	route := &handler.Handler{
 		DB:    h.DB,

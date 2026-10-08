@@ -8,7 +8,10 @@ import (
 
 	"github.com/stretchr/testify/require"
 	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
+	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_environments_get_environment"
@@ -21,14 +24,15 @@ func TestGetEnvironmentNotFound(t *testing.T) {
 	h.Register(route)
 
 	workspace := h.Resources().UserWorkspace
-	rootKey := h.CreateRootKey(workspace.ID, "environment.*.read_environment")
-	headers := http.Header{
-		"Content-Type":  {"application/json"},
-		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
-	}
 
 	t.Run("unknown environment id returns 404", func(t *testing.T) {
-		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{Project: uid.New(uid.ProjectPrefix), App: uid.New(uid.AppPrefix), Environment: uid.New(uid.EnvironmentPrefix)})
+		req := handler.Request{Project: uid.New(uid.ProjectPrefix), App: uid.New(uid.AppPrefix), Environment: uid.New(uid.EnvironmentPrefix)}
+		rootKey := h.CreateRootKey(workspace.ID, rbac.U(urn.New().Workspace(workspace.ID).Project(req.Project).App(req.App).Environment(req.Environment), permissions.Read).Value)
+		headers := http.Header{
+			"Content-Type":  {"application/json"},
+			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+		}
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 		require.Equal(t, http.StatusNotFound, res.Status, "expected 404, received: %s", res.RawBody)
 	})
 
@@ -58,6 +62,12 @@ func TestGetEnvironmentNotFound(t *testing.T) {
 			Kind:        mysqltype.EnvironmentKindProduction,
 			Description: "Theirs",
 		})
+
+		rootKey := h.CreateRootKey(workspace.ID, rbac.U(urn.New().Workspace(workspace.ID).Project(otherProject.ID).App(otherApp.ID).Environment(otherEnvironment.ID), permissions.Read).Value)
+		headers := http.Header{
+			"Content-Type":  {"application/json"},
+			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{Project: otherProject.ID, App: otherApp.ID, Environment: otherEnvironment.ID})
 		require.Equal(t, http.StatusNotFound, res.Status, "expected 404 for cross-workspace environment, received: %s", res.RawBody)

@@ -33,10 +33,8 @@ func TestListProjectsFiltersUnauthorizedRows(t *testing.T) {
 		permissions []string
 		shouldPass  bool
 	}{
-		{name: "exact permission", permissions: []string{"project.*.read_project"}, shouldPass: true},
-		{name: "permission and more", permissions: []string{"some.other.permission", "project.*.read_project"}, shouldPass: true},
-		{name: "wrong action", permissions: []string{"project.*.create_project"}, shouldPass: false},
-		{name: "unrelated permission", permissions: []string{"api.*.read_api"}, shouldPass: false},
+		{name: "exact permission", permissions: []string{fmt.Sprintf("unkey:v1:%s:projects/*#read", workspaceID)}, shouldPass: true},
+		{name: "permission and more", permissions: []string{"some.other.permission", fmt.Sprintf("unkey:v1:%s:projects/*#read", workspaceID)}, shouldPass: true},
 		{name: "urn on every project", permissions: []string{grant(workspaceID, "*", permissions.Read)}, shouldPass: true},
 		{name: "urn on one project only", permissions: []string{grant(workspaceID, uid.New(uid.ProjectPrefix), permissions.Read)}, shouldPass: false},
 		{name: "urn in another workspace", permissions: []string{grant(uid.New(uid.WorkspacePrefix), "*", permissions.Read)}, shouldPass: false},

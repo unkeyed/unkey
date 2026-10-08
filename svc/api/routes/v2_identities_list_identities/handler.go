@@ -78,11 +78,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	if len(identities) == 0 {
 		err = principal.Authorize(rbac.Or(
-			rbac.T(rbac.Tuple{
-				ResourceType: rbac.Identity,
-				ResourceID:   "*",
-				Action:       rbac.ReadIdentity,
-			}),
+
 			rbac.U(
 				urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(projectID).Identity("*"),
 				permissions.Read,
@@ -97,16 +93,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	for _, id := range identities {
 		// Check permissions
 		permissionCheck := rbac.Or(
-			rbac.T(rbac.Tuple{
-				ResourceType: rbac.Identity,
-				ResourceID:   id.ID,
-				Action:       rbac.ReadIdentity,
-			}),
-			rbac.T(rbac.Tuple{
-				ResourceType: rbac.Identity,
-				ResourceID:   "*",
-				Action:       rbac.ReadIdentity,
-			}),
+
 			rbac.U(
 				urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(id.ProjectID).Identity(id.ID),
 				permissions.Read,

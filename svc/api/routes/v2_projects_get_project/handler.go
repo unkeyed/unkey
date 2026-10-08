@@ -78,21 +78,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	err = principal.Authorize(rbac.Or(
-		rbac.T(rbac.Tuple{
-			ResourceType: rbac.Project,
-			ResourceID:   "*",
-			Action:       rbac.ReadProject,
-		}),
-		rbac.T(rbac.Tuple{
-			ResourceType: rbac.Project,
-			ResourceID:   project.ID,
-			Action:       rbac.ReadProject,
-		}),
-		rbac.U(
-			urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(project.ID),
-			permissions.Read,
-		),
+	err = principal.Authorize(rbac.U(
+		urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(project.ID),
+		permissions.Read,
 	))
 	if err != nil {
 		// Mirror the missing-slug 404 so an unauthorized key can't probe which

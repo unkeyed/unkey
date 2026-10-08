@@ -33,7 +33,7 @@ func TestSuccess(t *testing.T) {
 	require.NoError(t, err)
 
 	// Create a root key with appropriate permissions
-	rootKey := h.CreateRootKey(workspace.ID, "rbac.*.read_permission")
+	rootKey := h.CreateRootKey(workspace.ID, fmt.Sprintf("unkey:v1:%s:projects/*/rbac/permissions/*#read", workspace.ID))
 
 	// Set up request headers
 	headers := http.Header{
@@ -117,7 +117,7 @@ func TestSuccess(t *testing.T) {
 	// Test case for empty results in a new workspace
 	t.Run("empty results", func(t *testing.T) {
 		emptyWorkspace := h.CreateWorkspace()
-		emptyKey := h.CreateRootKey(emptyWorkspace.ID, "rbac.*.read_permission")
+		emptyKey := h.CreateRootKey(emptyWorkspace.ID, fmt.Sprintf("unkey:v1:%s:projects/*/rbac/permissions/*#read", emptyWorkspace.ID))
 
 		emptyHeaders := http.Header{
 			"Content-Type":  {"application/json"},
@@ -204,7 +204,7 @@ func TestSuccess(t *testing.T) {
 		searchWorkspace := h.CreateWorkspace()
 		searchProjectID, projectErr := projects.EnsureDefaultProject(ctx, h.DB.RW(), searchWorkspace.ID)
 		require.NoError(t, projectErr)
-		searchKey := h.CreateRootKey(searchWorkspace.ID, "rbac.*.read_permission")
+		searchKey := h.CreateRootKey(searchWorkspace.ID, fmt.Sprintf("unkey:v1:%s:projects/*/rbac/permissions/*#read", searchWorkspace.ID))
 		searchHeaders := http.Header{
 			"Content-Type":  {"application/json"},
 			"Authorization": {fmt.Sprintf("Bearer %s", searchKey)},
