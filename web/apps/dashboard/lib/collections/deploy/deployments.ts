@@ -345,7 +345,10 @@ async function fetchDeploymentRows(subset: DeploymentSubset): Promise<ApiDeploym
   // Rows created in the same millisecond as the boundary may sit on either
   // side of it, so a next page asks again for the ones already held
   const tied = held.filter((d) => d.createdAt === before).length;
-  const limit = Math.min((subset.limit ?? API_PAGE_LIMIT) + tied, API_PAGE_LIMIT);
+  // useLiveInfiniteQuery holds one row past the first page to know whether a
+  // next page exists; fetching it here saves a second request for that row
+  const lookahead = isNextPage ? 0 : 1;
+  const limit = Math.min((subset.limit ?? API_PAGE_LIMIT) + tied + lookahead, API_PAGE_LIMIT);
   const response = await getUnkeyClient().deployments.listDeployments({
     project: subset.projectId,
     app: subset.appId,
