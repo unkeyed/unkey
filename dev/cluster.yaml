@@ -11,6 +11,6 @@ minikube:
     - "--docker-opt=containerd=/var/run/containerd/containerd.sock"
     - "--cni=cilium"
     - "--addons=metrics-server"
-    - "--wait=all"
+    - "--wait=apiserver,kubelet,node_ready"
 registry: ctlptl-registry
 kubernetesVersion: v1.34.0

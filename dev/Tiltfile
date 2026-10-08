@@ -5,8 +5,12 @@ load('ext://restart_process', 'docker_build_with_restart')
 
 config.define_string('topolvm_backing_size')
 config.define_bool('orb')
+config.define_bool('stripe')
+config.define_string_list('resources', args=True)
 cfg = config.parse()
+config.set_enabled_resources(cfg.get('resources', []))
 ORB = cfg.get('orb', False)
+STRIPE = cfg.get('stripe', False)
 # Sparse loopback file size. Sparse means this is a ceiling, not a reservation —
 # 20 GiB on a fresh cluster costs ~0 bytes. Bump if your test workloads fill more.
 TOPOLVM_BACKING_SIZE = cfg.get('topolvm_backing_size', '20G')
@@ -23,15 +27,6 @@ has_github_credentials = os.path.exists('./.env.github') and os.path.exists('./.
 has_domain_connect_key = os.path.exists('./.domain-connect-private-key.pem')
 has_depot_credentials = os.path.exists('./.env.depot')
 
-# The stripe CLI is "logged in" when it has a configured account. When it is,
-# Tilt writes the shared webhook signing secret into both env files and forwards
-# test events to the dashboard and ctrl-api webhooks; otherwise this is skipped.
-has_stripe_login = str(local(
-    "stripe config --list 2>/dev/null | grep -q account_id && echo yes || echo no",
-    quiet=True,
-    echo_off=True,
-)).strip() == "yes"
-
 local_resource(
   'namespace',
   'kubectl apply -f k8s/manifests/namespace.yaml',
@@ -41,6 +36,7 @@ local_resource(
 local_resource(
   'rbac',
   'kubectl apply -f k8s/manifests/rbac.yaml',
+  resource_deps=['namespace'],
   labels=['setup'],
 )
 
@@ -97,9 +93,18 @@ if ORB:
     )
 else:
     local_resource(
+      'cilium-ready',
+      'kubectl -n kube-system rollout status daemonset/cilium --timeout=180s && ' +
+      'kubectl wait --for=condition=Established crd/ciliumnetworkpolicies.cilium.io crd/ciliumclusterwidenetworkpolicies.cilium.io --timeout=60s && ' +
+      'kubectl -n kube-system rollout status deployment/coredns --timeout=180s',
+      labels=['setup'],
+      allow_parallel=True,
+    )
+    local_resource(
       'cilium-policies',
       'kubectl apply -f k8s/manifests/cilium-policies.yaml',
-      resource_deps=['namespace'],
+      deps=['k8s/manifests/cilium-policies.yaml'],
+      resource_deps=['namespace', 'cilium-ready'],
       labels=['setup'],
     )
 
@@ -138,6 +143,7 @@ local_resource(
   deps=['k8s/topolvm/setup-vg.sh'],
   resource_deps=['topolvm-disable-old-csi'],
   labels=['storage'],
+  allow_parallel=True,
 )
 
 helm_remote(
@@ -179,9 +185,11 @@ local_resource(
 if not ORB:
     local_resource(
       'hubble',
-      'kubectl -n kube-system patch configmap cilium-config --type merge -p \'{"data":{"enable-hubble":"true","hubble-listen-address":":4244"}}\' && kubectl -n kube-system rollout restart daemonset cilium && kubectl apply -f k8s/manifests/hubble.yaml && kubectl -n kube-system rollout status daemonset cilium --timeout=120s',
+      'bash setup-hubble.sh',
+      deps=['setup-hubble.sh', 'k8s/manifests/hubble.yaml'],
       resource_deps=['cilium-policies'],
       labels=['observability'],
+      allow_parallel=True,
     )
 
     local_resource(
@@ -227,16 +235,17 @@ local_resource(
     allow_parallel=True,
 )
 
-# When the stripe CLI is logged in, capture its signing secret (stable per
-# account) and upsert it into both env files, so ctrl-api and the dashboard
-# verify forwarded events with the same secret. Runs before the consumers below.
 stripe_secret_dep = []
-if has_stripe_login:
+if STRIPE:
     local_resource(
         'stripe-webhook-secret',
         '''
         set -eu
         whsec=$(stripe listen --print-secret)
+        case "$whsec" in
+          whsec_?*) ;;
+          *) echo "Stripe did not return a webhook signing secret. Run mise exec -- stripe login and retry." >&2; exit 1 ;;
+        esac
         for f in ./.env.stripe ../web/apps/dashboard/.env; do
           touch "$f"
           if grep -q '^STRIPE_WEBHOOK_SECRET=' "$f"; then
@@ -299,7 +308,7 @@ local_resource(
 
 # Redis service
 k8s_yaml('k8s/manifests/redis.yaml')
-k8s_resource('redis', port_forwards='6379:6379', resource_deps=[], labels=['database'])
+k8s_resource('redis', port_forwards='6379:6379', resource_deps=['namespace'], labels=['database'])
 
 # Keep the mysql service name so existing DSNs still work.
 # Restrict rebuilds to schema and seed changes to avoid unrelated pod restarts.
@@ -310,7 +319,7 @@ docker_build(
     only=['pkg/mysql/schema', 'dev/04-seed-workspace.sql'],
 )
 k8s_yaml('k8s/manifests/mysql.yaml')
-k8s_resource('mysql', port_forwards=['3306:33577', '33575:33575'], resource_deps=[], labels=['database'])
+k8s_resource('mysql', port_forwards=['3306:33577', '33575:33575'], resource_deps=['namespace'], labels=['database'])
 
 local_resource(
     'seed',
@@ -332,7 +341,7 @@ docker_build(
     ],
 )
 k8s_yaml('k8s/manifests/clickhouse.yaml')
-k8s_resource('clickhouse', port_forwards=['8123:8123','9000:9000'], resource_deps=[], labels=['database'])
+k8s_resource('clickhouse', port_forwards=['8123:8123','9000:9000'], resource_deps=['namespace'], labels=['database'])
 
 # Vector Logs (collects logs from krane-managed deployments -> ClickHouse)
 k8s_yaml('k8s/manifests/vector-logs.yaml')
@@ -340,11 +349,11 @@ k8s_resource('vector-logs', resource_deps=['clickhouse', 'rbac'], labels=['obser
 
 # S3 (Garage) service
 k8s_yaml('k8s/manifests/s3.yaml')
-k8s_resource('s3', port_forwards=['3902:3902', '3903:3903'], resource_deps=[], labels=['database'])
+k8s_resource('s3', port_forwards=['3902:3902', '3903:3903'], resource_deps=['namespace'], labels=['database'])
 
 # Restate service
 k8s_yaml('k8s/manifests/restate.yaml')
-k8s_resource('restate', port_forwards=['8080:8080', '9070:9070'], resource_deps=[], labels=['database'])
+k8s_resource('restate', port_forwards=['8080:8080', '9070:9070'], resource_deps=['namespace'], labels=['database'])
 
 # Observability (Prometheus + OTEL Collector w/ Grafana)
 k8s_yaml('k8s/manifests/observability.yaml')
@@ -358,15 +367,11 @@ k8s_resource(
 )
 
 # Restate CronJobs (scheduled tasks that call Restate handlers)
-k8s_yaml(helm('k8s/charts/restate-cronjobs'))
-k8s_resource('restate-key-last-used-sync', resource_deps=['restate', 'ctrl-worker'], labels=['unkey'])
-k8s_resource('restate-key-refill', resource_deps=['restate', 'ctrl-worker'], labels=['unkey'])
-k8s_resource('restate-quota-check', resource_deps=['restate', 'ctrl-worker'], labels=['unkey'])
-k8s_resource('restate-ratelimit-global-counters-cleanup', resource_deps=['restate', 'ctrl-worker'], labels=['unkey'])
-k8s_resource('restate-audit-log-export', resource_deps=['restate', 'ctrl-worker'], labels=['unkey'])
-k8s_resource('restate-build-limit-sync', resource_deps=['restate', 'ctrl-worker'], labels=['unkey'])
-k8s_resource('restate-deploy-billing-push', resource_deps=['restate', 'ctrl-worker'], labels=['unkey'])
-k8s_resource('restate-idle-preview-deployments', resource_deps=['restate', 'ctrl-worker'], labels=['unkey'])
+cron_resources = decode_yaml_stream(helm('k8s/charts/restate-cronjobs'))
+k8s_yaml(encode_yaml_stream(cron_resources))
+for resource in cron_resources:
+    if resource.get('kind') == 'CronJob':
+        k8s_resource(resource['metadata']['name'], resource_deps=['restate', 'ctrl-worker'], labels=['unkey'])
 
 
 # Service binaries are compiled on the host so rebuilds hit the local Go
@@ -482,7 +487,7 @@ if not has_github_credentials:
     k8s_yaml(blob(ctrl_api_manifest))
 else:
     k8s_yaml('k8s/manifests/ctrl-api.yaml')
-ctrl_api_deps = ['mysql', 'clickhouse', 'restate', 'vault', 'github-credentials', 'domain-connect-credentials', 'stripe-credentials', 'control-api-compile']
+ctrl_api_deps = ['mysql', 'clickhouse', 'restate', 'vault', 'rbac', 'github-credentials', 'domain-connect-credentials', 'stripe-credentials', 'control-api-compile']
 k8s_resource(
   'ctrl-api',
   port_forwards='7091:7091',
@@ -556,12 +561,12 @@ if not has_github_credentials:
         'app_id = 0',
     )
 k8s_yaml(blob(ctrl_worker_manifest))
-ctrl_worker_deps = ['mysql', 'clickhouse', 'restate', 'registry', 'webhooks-config', 'github-credentials', 'stripe-credentials', 'control-worker-compile', 'workos-credentials', 'resend-credentials']
+ctrl_worker_deps = ['mysql', 'clickhouse', 'restate', 'registry', 'rbac', 'webhooks-config', 'github-credentials', 'stripe-credentials', 'control-worker-compile', 'workos-credentials', 'resend-credentials']
 if has_depot_credentials:
     ctrl_worker_deps.append('depot-credentials')
 k8s_resource(
   'ctrl-worker',
-  port_forwards=['7092:7092'],
+  port_forwards=['7092:9080'],
   resource_deps=ctrl_worker_deps,
   labels=['unkey'],
   auto_init=True,
@@ -620,7 +625,7 @@ password = "${UNKEY_REGISTRY_PASSWORD}"
                     }]
 k8s_yaml(encode_yaml_stream(krane_resources))
 krane_network_deps = ['cilium-network-policy-crd'] if ORB else ['cilium-policies']
-krane_deps = ['ctrl-api', 'rbac', 'namespace', 'registry', 'topolvm-storageclass', 'krane-compile'] + krane_network_deps
+krane_deps = ['ctrl-api', 'rbac', 'namespace', 'node-labels', 'registry', 'topolvm-storageclass', 'krane-compile'] + krane_network_deps
 if has_depot_credentials:
     krane_deps.append('depot-credentials')
 k8s_resource(
@@ -680,6 +685,14 @@ if not ORB:
         links=['http://localhost:3100'],
     )
 
+local_resource(
+    'api-sdk',
+    cmd='pnpm --dir=../web --filter=@unkey/api build',
+    deps=['../web/internal/api/src', '../web/internal/api/tsconfig.json', '../web/internal/api/package.json'],
+    labels=['build'],
+    allow_parallel=True,
+)
+
 # Dashboard - runs locally with HMR
 # Injects GitHub App env vars from dev/.env.github and dev/.github-private-key.pem
 local_resource(
@@ -694,19 +707,16 @@ local_resource(
       cd ../web && pnpm --filter=@unkey/dashboard dev
     ''',
     deps=[],
-    resource_deps=['mysql', 'clickhouse', 'ctrl-api'] + stripe_secret_dep,
+    resource_deps=['mysql', 'clickhouse', 'ctrl-api', 'api-sdk'] + stripe_secret_dep,
     labels=['unkey'],
     auto_init=True,
-    readiness_probe=probe(http_get=http_get_action(port=3000, path='/'), period_secs=5, failure_threshold=30),
+    readiness_probe=probe(tcp_socket=tcp_socket_action(port=3000), period_secs=5, failure_threshold=30),
     links=['http://localhost:3000'],
 )
 
 # ─── Stripe webhook listeners (stripe CLI -> dashboard + ctrl-api) ──────────
-# Forward test-mode events to both webhook endpoints so local billing flows
-# (subscribe, invoice.created close) fire end to end. Only when logged in; the
-# signing secret was written into both env files by stripe-webhook-secret above.
 # --forward-to takes one URL, so one listener per endpoint.
-if has_stripe_login:
+if STRIPE:
     local_resource(
         'stripe-listen-dashboard',
         serve_cmd='stripe listen --forward-to http://localhost:3000/api/webhooks/stripe',
@@ -731,7 +741,8 @@ Web UI: http://localhost:10350
 Tips:
 - Press 's' to open a shell in running containers
 - Press 'r' to manually trigger rebuilds
-- Use 'tilt down' to stop all services
+- Exit Tilt with Ctrl+C, then use 'mise run down' to stop Minikube and keep data
+- Use 'mise run dev -- --stripe' to enable Stripe webhook forwarding
 - Use 'tilt logs <service>' to view specific service logs
 
 Frontline (HTTPS on *.unkey.local):

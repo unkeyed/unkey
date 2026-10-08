@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#MISE description="Stop tilt and delete minikube cluster"
+#MISE description="Stop minikube, preserving local data (exit Tilt first)"
 set -euo pipefail
 
-minikube delete
+minikube stop -p minikube

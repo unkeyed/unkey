@@ -12,6 +12,6 @@ minikube:
     # Amp's orb kernel does not include the eBPF JIT required by Cilium.
     - "--cni=bridge"
     - "--addons=metrics-server"
-    - "--wait=all"
+    - "--wait=apiserver,kubelet,node_ready"
 registry: ctlptl-registry
 kubernetesVersion: v1.34.0
