@@ -109,7 +109,7 @@ class LocalDevTest(unittest.TestCase):
     def test_selected_service_includes_dependencies_without_unrelated_services(self):
         self.assertEqual(self.api_enabled, {
             "api", "api-compile", "mysql", "clickhouse", "redis",
-            "namespace", "github-credentials", "uncategorized",
+            "namespace", "github-credentials", "uncategorized", "storage-provisioner",
         })
         self.assertTrue({
             "krane", "ctrl-api", "cilium-ready", "cilium-policies",
@@ -139,8 +139,8 @@ class LocalDevTest(unittest.TestCase):
         for manifests in (self.default, self.orb, self.stripe):
             self.assertEqual(manifests["dashboard"]["DeployTarget"]["ReadinessProbe"], {
                 "tcpSocket": {"port": 3000},
-                "periodSeconds": 5,
-                "failureThreshold": 30,
+                "periodSeconds": 1,
+                "failureThreshold": 150,
             })
 
     def test_stripe_is_optional_without_a_secret(self):
@@ -240,12 +240,35 @@ class LocalDevTest(unittest.TestCase):
             self.assertIn("uncategorized", self.default[name]["ResourceDependencies"])
         for name in ("mysql", "clickhouse", "redis", "s3", "restate"):
             self.assertIn("namespace", self.default[name]["ResourceDependencies"])
+        for name in ("mysql", "clickhouse", "s3", "restate"):
+            self.assertIn("storage-provisioner", self.default[name]["ResourceDependencies"])
         for name in ("cilium-ready", "hubble", "topolvm-vg"):
             self.assertTrue(self.default[name]["DeployTarget"]["AllowParallel"])
         self.assertIn("heimdall", self.default)
         self.assertNotIn("cilium-network-policy-crd", self.default)
         self.assertNotIn("cilium-ready", self.orb)
         self.assertIn("cilium-network-policy-crd", self.orb["krane"]["ResourceDependencies"])
+
+    def test_storage_provisioner_replaces_addon_only_after_successful_disable(self):
+        command = self.update_command(self.default, "storage-provisioner")
+        result = self.command(command)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(self.calls(), [
+            ["minikube", "addons", "disable", "storage-provisioner"],
+            ["kubectl", "apply", "-f", "k8s/manifests/storage-provisioner.yaml"],
+        ])
+        self.log.write_text("")
+        result = self.command(command, FAIL_COMMAND="minikube")
+        self.assertEqual(result.returncode, 17)
+        self.assertEqual(self.calls(), [["minikube", "addons", "disable", "storage-provisioner"]])
+        manifest = (ROOT / "dev/k8s/manifests/storage-provisioner.yaml").read_text()
+        self.assertIn("hostNetwork: true", manifest)
+        self.assertIn('name: KUBERNETES_SERVICE_HOST\n          value: "127.0.0.1"', manifest)
+        self.assertIn('name: KUBERNETES_SERVICE_PORT\n          value: "8443"', manifest)
+        self.assertIn("serviceAccountName: storage-provisioner", manifest)
+        self.assertIn("path: /tmp\n        type: Directory", manifest)
+        self.assertNotIn("addonmanager.kubernetes.io/mode", manifest)
+        self.assertNotIn("kind: PersistentVolume", manifest)
 
     def test_local_updates_do_not_hold_a_global_lock(self):
         for manifests in (self.default, self.orb, self.github, self.stripe):
