@@ -1,6 +1,7 @@
 "use client";
 
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
+import { queryKeys } from "@/lib/query-keys";
 import { getUnkeyClient } from "@/lib/unkey-client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type {
@@ -75,10 +76,13 @@ export function useCreateLogdrainMutation(callbacks: MutationCallbacks) {
     onSuccess: callbacks.onSuccess,
     onError: callbacks.onError,
     onSettled: () =>
-      client.invalidateQueries({
-        queryKey: logdrainQueryKeys.list(workspace.id),
-        refetchType: "all",
-      }),
+      Promise.all([
+        client.invalidateQueries({
+          queryKey: logdrainQueryKeys.list(workspace.id),
+          refetchType: "all",
+        }),
+        client.invalidateQueries({ queryKey: queryKeys.workspace.limits }),
+      ]),
   });
 }
 
@@ -114,9 +118,12 @@ export function useDeleteLogdrainMutation(callbacks: MutationCallbacks) {
     },
     onError: callbacks.onError,
     onSettled: () =>
-      client.invalidateQueries({
-        queryKey: logdrainQueryKeys.list(workspace.id),
-        refetchType: "all",
-      }),
+      Promise.all([
+        client.invalidateQueries({
+          queryKey: logdrainQueryKeys.list(workspace.id),
+          refetchType: "all",
+        }),
+        client.invalidateQueries({ queryKey: queryKeys.workspace.limits }),
+      ]),
   });
 }

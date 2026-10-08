@@ -154,6 +154,10 @@ export const apps = createCollection<App, string>(
   }),
 );
 
+export function refetchProjectApps(projectId: string) {
+  return queryClient.refetchQueries({ queryKey: ["apps", projectId], type: "active" });
+}
+
 async function listProjectApps(projectId: string): Promise<App[]> {
   try {
     const [pages, headlines, displayDomains] = await Promise.all([

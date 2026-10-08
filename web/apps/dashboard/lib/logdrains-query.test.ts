@@ -1,18 +1,62 @@
+import { useWorkspaceLimits } from "@/hooks/use-workspace-limits";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, renderHook, waitFor } from "@testing-library/react";
 import { type PropsWithChildren, createElement } from "react";
 import { afterEach, expect, it, vi } from "vitest";
-import { useCreateLogdrainMutation, useLogdrains } from "./logdrains-query";
+import {
+  useCreateLogdrainMutation,
+  useDeleteLogdrainMutation,
+  useLogdrains,
+} from "./logdrains-query";
 
-const api = vi.hoisted(() => ({ listLogdrains: vi.fn(), createLogdrain: vi.fn() }));
+const api = vi.hoisted(() => ({
+  listLogdrains: vi.fn(),
+  createLogdrain: vi.fn(),
+  deleteLogdrain: vi.fn(),
+  getLimits: vi.fn(),
+}));
 vi.mock("@/hooks/use-workspace-navigation", () => ({
   useWorkspaceNavigation: () => ({ id: "ws_1" }),
 }));
-vi.mock("@/lib/unkey-client", () => ({ getUnkeyClient: () => ({ logdrains: api }) }));
+vi.mock("@/lib/unkey-client", () => ({
+  getUnkeyClient: () => ({ logdrains: api, workspace: api }),
+}));
 
 afterEach(() => {
   cleanup();
   vi.resetAllMocks();
+});
+
+it.each(["create", "delete"] as const)("refreshes workspace limits after %s", async (operation) => {
+  const current = operation === "create" ? 2 : 0;
+  api.getLimits
+    .mockResolvedValueOnce({ data: { logdrainsMax: { current: 1, limit: 5 } } })
+    .mockResolvedValueOnce({ data: { logdrainsMax: { current, limit: 5 } } });
+  api.createLogdrain.mockResolvedValue({ data: { id: "ld_created" } });
+  api.deleteLogdrain.mockResolvedValue({ data: { id: "ld_deleted" } });
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const wrapper = ({ children }: PropsWithChildren) =>
+    createElement(QueryClientProvider, { client }, children);
+  const { result } = renderHook(
+    () => ({
+      limits: useWorkspaceLimits(),
+      create: useCreateLogdrainMutation({ onSuccess: vi.fn(), onError: vi.fn() }),
+      remove: useDeleteLogdrainMutation({ onSuccess: vi.fn(), onError: vi.fn() }),
+    }),
+    { wrapper },
+  );
+  await waitFor(() => expect(result.current.limits.data?.logdrainsMax.current).toBe(1));
+  if (operation === "create") {
+    result.current.create.mutate({
+      name: "Logs",
+      stream: { auditLogs: {} },
+      destination: { http: { url: "https://logs.example.com" } },
+    });
+  } else {
+    result.current.remove.mutate({ logdrainId: "ld_deleted" });
+  }
+  await waitFor(() => expect(result.current.limits.data?.logdrainsMax.current).toBe(current));
+  client.clear();
 });
 
 it("does not load drains when the limits page is disabled", async () => {

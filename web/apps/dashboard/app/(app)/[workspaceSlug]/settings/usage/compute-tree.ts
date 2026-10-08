@@ -1,9 +1,11 @@
 import {
   type DeployMeterCostsCents,
   MICRO_CENTS_PER_CENT,
+  priceActiveKeysMicroCents,
+  priceComputeMeterMicroCents,
   priceDeployMetersCents,
 } from "@/lib/billing/deployPricing";
-import type { DeployUsageBreakdown } from "@/lib/trpc/routers/billing/query-deploy-usage-breakdown";
+import type { V2WorkspaceGetUsageBreakdowns } from "@unkey/api/models/components";
 
 const SECONDS_PER_HOUR = 3600;
 
@@ -51,6 +53,30 @@ export type ComputeTree = {
   microCents: number;
 };
 
+/** Priced usage rows. An empty id means the usage has no project or app id. */
+export type UsageBreakdown = {
+  usage: Array<{
+    projectId: string;
+    projectName: string | null;
+    appId: string;
+    appName: string | null;
+    environmentId: string;
+    environmentSlug: string | null;
+    cpuSeconds: number;
+    memoryGiBHours: number;
+    diskGiBHours: number;
+    egressGiB: number;
+    grossMicroCents: number;
+  }>;
+  gateway: Array<{
+    projectId: string;
+    projectName: string | null;
+    appId: string;
+    activeKeys: number;
+    grossMicroCents: number;
+  }>;
+};
+
 function zero(): Priced {
   return { cpuHours: 0, memoryGiBHours: 0, egressGiB: 0, diskGiBHours: 0, microCents: 0 };
 }
@@ -85,7 +111,44 @@ function byCostDescending(a: Priced, b: Priced): number {
   return b.microCents - a.microCents;
 }
 
-export function buildComputeTree({ usage, gateway }: DeployUsageBreakdown): ComputeTree {
+/**
+ * Prices each workspace.getUsage row with the Deploy meter rates. A missing name
+ * becomes null, and a missing app or project becomes "".
+ */
+export function breakdownFromUsage({
+  byEnvironment,
+  byApp,
+}: V2WorkspaceGetUsageBreakdowns): UsageBreakdown {
+  return {
+    usage: byEnvironment.map((row) => {
+      const meters = {
+        cpuSeconds: row.compute.cpuSeconds,
+        memoryGiBHours: row.compute.memoryGiBHours,
+        diskGiBHours: row.compute.storageGiBHours,
+        egressGiB: row.compute.egressGiB,
+      };
+      return {
+        projectId: row.project.id,
+        projectName: row.project.name ?? null,
+        appId: row.app?.id ?? "",
+        appName: row.app?.name ?? null,
+        environmentId: row.environment.id,
+        environmentSlug: row.environment.slug ?? null,
+        ...meters,
+        grossMicroCents: priceComputeMeterMicroCents(meters),
+      };
+    }),
+    gateway: byApp.map((row) => ({
+      projectId: row.project?.id ?? "",
+      projectName: row.project?.name ?? null,
+      appId: row.app?.id ?? "",
+      activeKeys: row.gateway.activeKeys,
+      grossMicroCents: priceActiveKeysMicroCents(row.gateway.activeKeys),
+    })),
+  };
+}
+
+export function buildComputeTree({ usage, gateway }: UsageBreakdown): ComputeTree {
   const gatewayByProject = Map.groupBy(gateway, (row) => row.projectId);
   const usageByProject = Map.groupBy(usage, (row) => row.projectId);
   const projectIds = new Set([...gatewayByProject.keys(), ...usageByProject.keys()]);

@@ -11,9 +11,12 @@ You are a technical writer for Unkey's documentation. Your job is to produce
 clear, accurate, and consistent content that helps developers succeed on
 Unkey.
 
-Refer to `contributing/quality/documentation.md` for documentation standards.
-This skill is the primary reference for voice, style, workflow,
-component usage, and content quality.
+Read the root `AGENTS.md` and any nested `AGENTS.md` that governs the files you
+change. Refer to `contributing/quality/documentation.md` for documentation
+standards. This skill is the primary reference for voice, style, workflow,
+component usage, and content quality. If an internal process question requires
+context that the repository does not contain, use the task-relevant Notion page
+identified through the root guidance.
 
 ## Voice and tone
 
@@ -150,7 +153,6 @@ Follow these four phases for every documentation task.
 - Confirm technical accuracy against the codebase and product behavior.
 - Verify all internal links resolve (use relative paths like `/variables`).
 - Verify all code examples are syntactically correct and use language IDs.
-- Check that frontmatter matches the format in `docs/engineering/CONTRIBUTING.md`.
 - For new doc pages, confirm a navigation entry exists in the relevant `docs.json`.
 - If renaming or moving a page, add a redirect (see redirects below).
 - Run the formatter if one is configured for the project.
@@ -335,12 +337,13 @@ import { Unkey } from "@unkey/api";
 
 ### Snippets
 
-Reusable snippets live under `docs/engineering/snippets/` and can be imported into MDX:
+Reusable snippets live under `docs/snippets/`. Before using or adding a
+snippet, verify its import and export conventions against existing product files.
 
 ```mdx
-import SnippetIntro from "/snippets/snippet-intro.mdx";
+import RootKeyPrereq from "/snippets/root-key-prereq.mdx";
 
-<SnippetIntro />
+<RootKeyPrereq />
 ```
 
 ## Operational rules

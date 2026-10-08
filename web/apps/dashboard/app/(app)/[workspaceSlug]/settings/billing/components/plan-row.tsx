@@ -2,7 +2,7 @@
 
 import { formatDollars } from "@/lib/fmt";
 import { IconCircleInfoOutline12 } from "@unkey/icons";
-import { Button, InfoTooltip } from "@unkey/ui";
+import { Button, InfoTooltip, Skeleton } from "@unkey/ui";
 import { AdminGate } from "./admin-gate";
 
 export function PlanTableHeader() {
@@ -13,6 +13,23 @@ export function PlanTableHeader() {
       <div className="w-36">Price</div>
       <div className="w-20" />
     </div>
+  );
+}
+
+/** The plan, price, and action cells of a plan row while its data loads */
+export function PlanCellsSkeleton() {
+  return (
+    <>
+      <span className="flex h-5 w-28 items-center">
+        <Skeleton className="h-4 w-14" />
+      </span>
+      <span className="flex h-5 w-36 items-center">
+        <Skeleton className="h-4 w-20" />
+      </span>
+      <span className="flex w-20 justify-end">
+        <Skeleton className="h-7 w-16 rounded-md" />
+      </span>
+    </>
   );
 }
 

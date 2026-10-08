@@ -61,6 +61,10 @@ vi.mock("@/hooks/use-projects-with-apps", () => ({
     isError: sourceState.failed,
   }),
 }));
+vi.mock("@tanstack/react-query", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@tanstack/react-query")>()),
+  useQueryClient: () => ({ invalidateQueries: vi.fn() }),
+}));
 vi.mock("@/lib/trpc/client", () => ({
   trpc: {
     ratelimit: {

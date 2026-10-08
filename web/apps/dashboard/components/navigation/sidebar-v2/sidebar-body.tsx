@@ -1,6 +1,7 @@
 "use client";
 
 import { useApiKeyAuthId } from "@/hooks/use-api-key-auth-id";
+import { usePrefetchWorkspaceUsage } from "@/hooks/use-prefetch-workspace-usage";
 import { useSectionContext } from "@/hooks/use-section-context";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { useFlag } from "@/lib/flags/provider";
@@ -15,6 +16,7 @@ import {
   buildProjectLinks as buildProjectsNavProjectLinks,
   buildWorkspaceSections as buildProjectsNavWorkspaceSections,
 } from "@/lib/navigation/leaves-projects";
+import { routes } from "@/lib/navigation/routes";
 import { useWorkspace } from "@/providers/workspace-provider";
 import { useSelectedLayoutSegments } from "next/navigation";
 import { NavLinkList } from "./nav-link-list";
@@ -31,6 +33,7 @@ export function SidebarBody() {
   const portalManagement = useFlag("portalManagement");
   const projectsNav = useFlag("projectsNav");
   const { user } = useWorkspace();
+  const prefetchUsage = usePrefetchWorkspaceUsage();
 
   const workspaceSections = (segs: string[]) =>
     projectsNav
@@ -71,5 +74,13 @@ export function SidebarBody() {
     }
   })();
 
-  return <NavLinkList links={links} />;
+  const settingsHref = routes.settings.general({ workspaceSlug: slug });
+
+  return (
+    <NavLinkList
+      links={links.map((link) =>
+        link.href === settingsHref ? { ...link, onIntent: prefetchUsage } : link,
+      )}
+    />
+  );
 }

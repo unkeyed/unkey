@@ -1,5 +1,5 @@
 import { projectsCatalogue } from "./catalogue.deploy";
-import { githubRows, rootKeyRows } from "./catalogue.rows";
+import { githubRows, limitsRows, rootKeyRows, usageRows } from "./catalogue.rows";
 import {
   ACTIONS,
   type ActionGrant,
@@ -39,5 +39,7 @@ export const workspaceCatalogue: ScopeCatalogue = {
     ...wildcardGroups(projectsCatalogue),
     { id: "root_keys", label: "Root keys", rows: rootKeyRows() },
     { id: "github", label: "Connections", rows: githubRows() },
+    { id: "limits", label: "Limits", rows: limitsRows() },
+    { id: "usage", label: "Usage", rows: usageRows() },
   ],
 };

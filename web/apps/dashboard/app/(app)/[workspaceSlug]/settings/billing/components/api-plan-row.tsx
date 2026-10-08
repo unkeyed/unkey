@@ -6,7 +6,7 @@ import type { inferRouterOutputs } from "@trpc/server";
 import { IconNodesOutline18 } from "@unkey/icons";
 import { Item, ItemActions, ItemContent, ItemMedia, ItemTitle } from "@unkey/ui";
 import { useState } from "react";
-import { PlanName, PlanPrice, PlanRowAction } from "./plan-row";
+import { PlanCellsSkeleton, PlanName, PlanPrice, PlanRowAction } from "./plan-row";
 import { PlansScreen } from "./plans-screen";
 
 type BillingInfo = inferRouterOutputs<Router>["stripe"]["getBillingInfo"];
@@ -14,31 +14,43 @@ type BillingInfo = inferRouterOutputs<Router>["stripe"]["getBillingInfo"];
 type ApiPlanRowProps = {
   isAdmin: boolean | undefined;
   emphasize: boolean;
-  products: BillingInfo["products"];
-  subscription?: BillingInfo["subscription"];
-  currentProductId?: BillingInfo["currentProductId"];
+  /** Undefined while the billing info loads */
+  billing: BillingInfo | undefined;
 };
 
-export function ApiPlanRow({
-  isAdmin,
-  emphasize,
-  products,
-  subscription,
-  currentProductId,
-}: ApiPlanRowProps) {
+function ProductCell() {
+  return (
+    <>
+      <ItemMedia className="bg-infoA-3 text-info-11">
+        <IconNodesOutline18 />
+      </ItemMedia>
+      <ItemContent>
+        <ItemTitle className="truncate">API management</ItemTitle>
+      </ItemContent>
+    </>
+  );
+}
+
+export function ApiPlanRow({ isAdmin, emphasize, billing }: ApiPlanRowProps) {
   const [showPlanModal, setShowPlanModal] = useState(false);
 
-  const currentProduct = currentApiProduct({ products, subscription, currentProductId });
+  if (!billing) {
+    return (
+      <Item>
+        <ProductCell />
+        <ItemActions className="gap-3">
+          <PlanCellsSkeleton />
+        </ItemActions>
+      </Item>
+    );
+  }
+
+  const currentProduct = currentApiProduct(billing);
 
   return (
     <>
       <Item>
-        <ItemMedia className="bg-infoA-3 text-info-11">
-          <IconNodesOutline18 />
-        </ItemMedia>
-        <ItemContent>
-          <ItemTitle className="truncate">API management</ItemTitle>
-        </ItemContent>
+        <ProductCell />
         <ItemActions className="gap-3">
           <PlanName>{currentProduct ? currentProduct.name : "Free"}</PlanName>
           <PlanPrice feeCents={(currentProduct?.dollar ?? 0) * 100} />
