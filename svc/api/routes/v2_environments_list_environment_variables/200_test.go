@@ -1,11 +1,13 @@
 package handler_test
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_environments_list_environment_variables"
@@ -20,7 +22,7 @@ func TestListEnvironmentVariablesSuccessfully(t *testing.T) {
 	call := func(t *testing.T, req handler.Request) handler.Response {
 		t.Helper()
 		workspace := h.Resources().UserWorkspace
-		rootKey := h.CreateRootKey(workspace.ID, fmt.Sprintf("unkey:v1:%s:projects/%s/apps/%s/environments/%s/variables/*#read", workspace.ID, req.Project, req.App, req.Environment))
+		rootKey := h.CreateRootKey(workspace.ID, rbac.U(urn.New().Workspace(workspace.ID).Project(req.Project).App(req.App).Environment(req.Environment).Variable("*"), permissions.Read).Value)
 		headers := authHeaders(rootKey)
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 		require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)

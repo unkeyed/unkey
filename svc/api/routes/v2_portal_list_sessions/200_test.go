@@ -1,13 +1,15 @@
 package handler_test
 
 import (
-	"fmt"
 	"net/http"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_portal_list_sessions"
@@ -17,7 +19,7 @@ func TestListSessionsReturnsOnlyRevocableSessions(t *testing.T) {
 	h := testutil.NewHarness(t)
 	workspace := h.Resources().UserWorkspace
 	stored := seedPortal(t, h, workspace.ID, "list-revocable")
-	route, headers := newRoute(t, h, fmt.Sprintf("unkey:v1:%s:projects/%s/portals/%s/sessions/*#read", workspace.ID, stored.ProjectID, stored.ID))
+	route, headers := newRoute(t, h, rbac.U(urn.New().Workspace(workspace.ID).Project(stored.ProjectID).Portal(stored.ID).Session("*"), permissions.Read).Value)
 
 	activeID := insertSession(t, h, stored.ID, workspace.ID, active(h, "user_1"))
 	pendingID := insertSession(t, h, stored.ID, workspace.ID, pending(h, "user_1"))
@@ -62,7 +64,7 @@ func TestListSessionsOrdersSessionsNewestFirst(t *testing.T) {
 	h := testutil.NewHarness(t)
 	workspace := h.Resources().UserWorkspace
 	stored := seedPortal(t, h, workspace.ID, "list-order")
-	route, headers := newRoute(t, h, fmt.Sprintf("unkey:v1:%s:projects/%s/portals/%s/sessions/*#read", workspace.ID, stored.ProjectID, stored.ID))
+	route, headers := newRoute(t, h, rbac.U(urn.New().Workspace(workspace.ID).Project(stored.ProjectID).Portal(stored.ID).Session("*"), permissions.Read).Value)
 
 	first := insertSession(t, h, stored.ID, workspace.ID, active(h, "user_1"))
 	h.Clock.Tick(time.Second)
@@ -85,7 +87,7 @@ func TestListSessionsIsScopedToPortalAndWorkspace(t *testing.T) {
 	h := testutil.NewHarness(t)
 	workspace := h.Resources().UserWorkspace
 	stored := seedPortal(t, h, workspace.ID, "list-scoped")
-	route, headers := newRoute(t, h, fmt.Sprintf("unkey:v1:%s:projects/%s/portals/%s/sessions/*#read", workspace.ID, stored.ProjectID, stored.ID))
+	route, headers := newRoute(t, h, rbac.U(urn.New().Workspace(workspace.ID).Project(stored.ProjectID).Portal(stored.ID).Session("*"), permissions.Read).Value)
 	sibling := seedPortal(t, h, workspace.ID, "list-sibling")
 
 	other := h.CreateWorkspace()
@@ -104,7 +106,7 @@ func TestListSessionsPaginatesByEndUser(t *testing.T) {
 	h := testutil.NewHarness(t)
 	workspace := h.Resources().UserWorkspace
 	stored := seedPortal(t, h, workspace.ID, "list-pages")
-	route, headers := newRoute(t, h, fmt.Sprintf("unkey:v1:%s:projects/%s/portals/%s/sessions/*#read", workspace.ID, stored.ProjectID, stored.ID))
+	route, headers := newRoute(t, h, rbac.U(urn.New().Workspace(workspace.ID).Project(stored.ProjectID).Portal(stored.ID).Session("*"), permissions.Read).Value)
 
 	for _, externalID := range []string{"c", "a", "b"} {
 		insertSession(t, h, stored.ID, workspace.ID, active(h, externalID))
@@ -134,7 +136,7 @@ func TestListSessionsSearchesByExternalIDPrefix(t *testing.T) {
 	h := testutil.NewHarness(t)
 	workspace := h.Resources().UserWorkspace
 	stored := seedPortal(t, h, workspace.ID, "list-search")
-	route, headers := newRoute(t, h, fmt.Sprintf("unkey:v1:%s:projects/%s/portals/%s/sessions/*#read", workspace.ID, stored.ProjectID, stored.ID))
+	route, headers := newRoute(t, h, rbac.U(urn.New().Workspace(workspace.ID).Project(stored.ProjectID).Portal(stored.ID).Session("*"), permissions.Read).Value)
 
 	for _, externalID := range []string{"user_1", "user_10", "admin_1", "userx1", "User_1"} {
 		insertSession(t, h, stored.ID, workspace.ID, active(h, externalID))
@@ -166,7 +168,7 @@ func TestListSessionsEmptyPortal(t *testing.T) {
 	h := testutil.NewHarness(t)
 	workspace := h.Resources().UserWorkspace
 	stored := seedPortal(t, h, workspace.ID, "list-empty")
-	route, headers := newRoute(t, h, fmt.Sprintf("unkey:v1:%s:projects/%s/portals/%s/sessions/*#read", workspace.ID, stored.ProjectID, stored.ID))
+	route, headers := newRoute(t, h, rbac.U(urn.New().Workspace(workspace.ID).Project(stored.ProjectID).Portal(stored.ID).Session("*"), permissions.Read).Value)
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, request(stored.ID))
 	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
@@ -179,7 +181,7 @@ func TestListSessionsBySlug(t *testing.T) {
 	h := testutil.NewHarness(t)
 	workspace := h.Resources().UserWorkspace
 	stored := seedPortal(t, h, workspace.ID, "list-by-slug")
-	route, headers := newRoute(t, h, fmt.Sprintf("unkey:v1:%s:projects/%s/portals/%s/sessions/*#read", workspace.ID, stored.ProjectID, stored.ID))
+	route, headers := newRoute(t, h, rbac.U(urn.New().Workspace(workspace.ID).Project(stored.ProjectID).Portal(stored.ID).Session("*"), permissions.Read).Value)
 	insertSession(t, h, stored.ID, workspace.ID, active(h, "user_1"))
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, request(stored.Slug))
@@ -192,7 +194,7 @@ func TestListSessionsOmitsSecretsAndKeyspaces(t *testing.T) {
 	h := testutil.NewHarness(t)
 	workspace := h.Resources().UserWorkspace
 	stored := seedPortal(t, h, workspace.ID, "list-redacted")
-	route, headers := newRoute(t, h, fmt.Sprintf("unkey:v1:%s:projects/%s/portals/%s/sessions/*#read", workspace.ID, stored.ProjectID, stored.ID))
+	route, headers := newRoute(t, h, rbac.U(urn.New().Workspace(workspace.ID).Project(stored.ProjectID).Portal(stored.ID).Session("*"), permissions.Read).Value)
 	insertSession(t, h, stored.ID, workspace.ID, active(h, "user_1"))
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, request(stored.ID))
