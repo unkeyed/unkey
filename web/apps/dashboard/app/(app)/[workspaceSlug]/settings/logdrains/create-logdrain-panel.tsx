@@ -1,7 +1,9 @@
 "use client";
 
+import { queryKeys } from "@/lib/query-keys";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useQueryClient } from "@tanstack/react-query";
 import { match } from "@unkey/match";
 import {
   AlertDialog,
@@ -48,6 +50,7 @@ export function CreateLogdrainPanel({
   onClose: () => void;
 }) {
   const utils = trpc.useUtils();
+  const queryClient = useQueryClient();
   const [kind, setKind] = useState<DrainKind | null>(null);
   const [confirmChange, setConfirmChange] = useState(false);
 
@@ -62,6 +65,7 @@ export function CreateLogdrainPanel({
   const create = trpc.logdrain.create.useMutation({
     onSuccess: () => {
       utils.logdrain.list.invalidate();
+      queryClient.invalidateQueries({ queryKey: queryKeys.workspace.limits });
       toast.success("Log drain created");
       onClose();
     },

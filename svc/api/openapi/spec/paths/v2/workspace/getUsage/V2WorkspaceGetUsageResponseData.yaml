@@ -1,0 +1,13 @@
+type: object
+required:
+  - period
+  - totals
+  - breakdowns
+properties:
+  period:
+    "$ref": "./V2WorkspaceGetUsagePeriod.yaml"
+  totals:
+    "$ref": "./V2WorkspaceGetUsageTotals.yaml"
+  breakdowns:
+    "$ref": "./V2WorkspaceGetUsageBreakdowns.yaml"
+additionalProperties: false

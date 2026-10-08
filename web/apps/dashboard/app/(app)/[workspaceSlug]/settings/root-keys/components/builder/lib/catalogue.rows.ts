@@ -133,6 +133,19 @@ export function rbacRows(projectPath: string): PermissionRow[] {
   ];
 }
 
+export function portalRows(projectPath: string): PermissionRow[] {
+  const portalPath = `${projectPath}/portals/*`;
+  return [
+    permissionRow({ id: "portal", label: "Portals", path: portalPath }),
+    permissionRow({
+      id: "portal_session",
+      label: "Portal sessions",
+      path: `${portalPath}/sessions/*`,
+      actions: { delete: [] },
+    }),
+  ];
+}
+
 export function rootKeyRows(): PermissionRow[] {
   return [permissionRow({ id: "root_key", label: "Root keys", path: "rootKeys/*" })];
 }
@@ -143,6 +156,28 @@ export function githubRows(): PermissionRow[] {
       id: "github_app",
       label: "GitHub apps",
       path: "github/apps/*",
+    }),
+  ];
+}
+
+export function limitsRows(): PermissionRow[] {
+  return [
+    permissionRow({
+      id: "limits",
+      label: "Limits",
+      path: "limits",
+      actions: { write: [], delete: [] },
+    }),
+  ];
+}
+
+export function usageRows(): PermissionRow[] {
+  return [
+    permissionRow({
+      id: "usage",
+      label: "Usage",
+      path: "usage",
+      actions: { write: [], delete: [] },
     }),
   ];
 }

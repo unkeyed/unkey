@@ -1,0 +1,13 @@
+type: object
+description: Unkey gateway usage in the period.
+required:
+  - activeKeys
+properties:
+  activeKeys:
+    type: integer
+    format: int64
+    description: |
+      Distinct keys verified through the Unkey gateway. A key verified through
+      several apps counts once, for the app that verified it most.
+    example: 12
+additionalProperties: false

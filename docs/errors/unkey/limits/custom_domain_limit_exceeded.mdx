@@ -8,6 +8,7 @@ sources:
   - pkg/domain/domaingate/domaingate.go
   - svc/api/routes/v2_domains_create_domain/handler.go
   - svc/api/internal/customdomain/error.go
+  - svc/api/routes/v2_workspace_get_limits/handler.go
 ---
 
 <Danger>`err:unkey:limits:custom_domain_limit_exceeded`</Danger>
@@ -30,7 +31,7 @@ Your workspace already has as many custom domains as your plan allows, so `domai
 
 ## How to fix
 
-1. Remove a domain you no longer use with `domains.deleteDomain`, or move to a plan with a higher limit. See [Limits](/platform/billing/limits) and [Plans](/platform/billing/plans).
+1. Remove a domain you no longer use with `domains.deleteDomain`, or move to a plan with a higher limit. See [Limits](/platform/billing/limits) and [Plans](/platform/billing/plans). To see your domain count and limit from code, call `workspace.getLimits` with a root key that has `unkey:v1:{workspace_id}:limits#read`.
 2. Create the domain again.
 
 ## Related errors
