@@ -50,6 +50,7 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/deploybilling"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/deployspendcheck"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/resourcecleanup"
 	workercustomdomain "github.com/unkeyed/unkey/svc/ctrl/worker/customdomain"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deploy"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deployment"
@@ -650,6 +651,7 @@ func Run(ctx context.Context, cfg Config) error {
 			AuditLogExport:     cronHeartbeat(cfg.Heartbeat.AuditLogExportURL),
 			AuditLogCleanup:    cronHeartbeat(cfg.Heartbeat.AuditLogOutboxCleanupURL),
 			RatelimitCleanup:   cronHeartbeat(cfg.Heartbeat.RatelimitGlobalCountersCleanupURL),
+			ResourceCleanup:    cronHeartbeat(cfg.Heartbeat.ResourceCleanupURL),
 			DeployBillingPush:  cronHeartbeat(cfg.Heartbeat.DeployBillingPushURL),
 			DeployBillingClose: cronHeartbeat(cfg.Heartbeat.DeployBillingCloseURL),
 			DeploySpendCheck:   cronHeartbeat(cfg.Heartbeat.DeploySpendCheckURL),
@@ -795,6 +797,7 @@ func Run(ctx context.Context, cfg Config) error {
 		ConfigureHandler("RunKeyLastUsedSync", cronKeyLastUsedRetry).
 		ConfigureHandler("RunRatelimitGlobalCountersCleanup", cronRatelimitGCCRetry).
 		ConfigureHandler("RunAuditLogOutboxCleanup", cronAuditLogCleanupRetry).
+		ConfigureHandler("RunResourceCleanup", resourcecleanup.RetryPolicy()).
 		// 1h journal retention keeps debugging headroom for an oncall to
 		// inspect a recent failure without bloating the journal store with
 		// ~1440 dead invocations/day.

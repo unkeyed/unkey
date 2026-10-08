@@ -40,6 +40,7 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/buildlimitsync"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/deploybilling"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/deployspendcheck"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/resourcecleanup"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deploy"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deployment"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deployteardown"
@@ -279,6 +280,7 @@ func New(t *testing.T, opts ...Option) *Harness {
 			AuditLogExport:     healthcheck.NewNoop(),
 			AuditLogCleanup:    healthcheck.NewNoop(),
 			RatelimitCleanup:   healthcheck.NewNoop(),
+			ResourceCleanup:    healthcheck.NewNoop(),
 			DeployBillingPush:  healthcheck.NewNoop(),
 			DeployBillingClose: healthcheck.NewNoop(),
 			DeploySpendCheck:   healthcheck.NewNoop(),
@@ -356,6 +358,7 @@ func New(t *testing.T, opts ...Option) *Harness {
 	// correct service names.
 	restateCfg := containers.Restate(t,
 		hydrav1.NewCronServiceServer(cronSvc).
+			ConfigureHandler("RunResourceCleanup", resourcecleanup.RetryPolicy()).
 			ConfigureHandler("RunDeploySpendCheck", deployspendcheck.RetryPolicy()),
 		// The deploy billing orchestrator (push and close) fans out to this
 		// per-workspace push service, so it must be bound for those handlers to
