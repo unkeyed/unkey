@@ -1,0 +1,17 @@
+type: object
+additionalProperties: false
+required:
+  - name
+  - value
+properties:
+  name:
+    type: string
+    minLength: 1
+    maxLength: 256
+  value:
+    type: string
+    x-go-type-skip-optional-pointer: true
+    minLength: 1
+    maxLength: 8192
+    writeOnly: true
+    x-unkey-redact: true

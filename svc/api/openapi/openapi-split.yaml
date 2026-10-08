@@ -361,7 +361,13 @@ paths:
   /v2/permissions.deletePermission:
     $ref: "./spec/paths/v2/permissions/deletePermission/index.yaml"
 
+  /v2/logdrains.createLogdrain:
+    $ref: "./spec/paths/v2/logdrains/createLogdrain/index.yaml"
+
 components:
+  schemas:
+    LogdrainWriteFilters:
+      $ref: ./spec/paths/v2/logdrains/LogdrainFilters.yaml
   securitySchemes:
     bearer:
       type: http

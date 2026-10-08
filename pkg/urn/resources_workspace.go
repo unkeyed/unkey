@@ -34,6 +34,13 @@ func (w workspace) RootKey(keyID string) V1 {
 	return V1{WorkspaceID: w.workspaceID, Resource: fmt.Sprintf("rootKeys/%s", keyID)}
 }
 
+func (w workspace) Logdrain(logdrainID string) V1 {
+	return V1{
+		WorkspaceID: w.workspaceID,
+		Resource:    fmt.Sprintf("logdrains/%s", logdrainID),
+	}
+}
+
 // Limits returns the workspace limits resource name
 func (w workspace) Limits() V1 {
 	return V1{WorkspaceID: w.workspaceID, Resource: "limits"}

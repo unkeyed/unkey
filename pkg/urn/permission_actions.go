@@ -47,6 +47,8 @@ type permissionResource interface {
 // rootKey represents the root key path shape used by parsed resource names.
 type rootKey struct{}
 
+type logdrain struct{}
+
 // portalSession represents the portal session path shape used by parsed resource names.
 type portalSession struct{}
 
@@ -106,6 +108,8 @@ func (GitHubApp) permissionActions(bool) permissionActionSet { return readWriteD
 
 // permissionActions returns the read, write, and delete actions for root keys.
 func (rootKey) permissionActions(bool) permissionActionSet { return readWriteDelete }
+
+func (logdrain) permissionActions(bool) permissionActionSet { return readWriteDelete }
 
 // permissionActions returns read for workspace limits
 func (limits) permissionActions(bool) permissionActionSet {

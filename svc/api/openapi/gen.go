@@ -344,6 +344,51 @@ func (e KeyCreditsRefillInterval) Valid() bool {
 	}
 }
 
+// Defines values for LogdrainFiltersStatusClasses.
+const (
+	N2xx LogdrainFiltersStatusClasses = "2xx"
+	N3xx LogdrainFiltersStatusClasses = "3xx"
+	N4xx LogdrainFiltersStatusClasses = "4xx"
+	N5xx LogdrainFiltersStatusClasses = "5xx"
+)
+
+// Valid indicates whether the value is a known member of the LogdrainFiltersStatusClasses enum.
+func (e LogdrainFiltersStatusClasses) Valid() bool {
+	switch e {
+	case N2xx:
+		return true
+	case N3xx:
+		return true
+	case N4xx:
+		return true
+	case N5xx:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LogdrainHttpWriteFormat.
+const (
+	Hec    LogdrainHttpWriteFormat = "hec"
+	Json   LogdrainHttpWriteFormat = "json"
+	Ndjson LogdrainHttpWriteFormat = "ndjson"
+)
+
+// Valid indicates whether the value is a known member of the LogdrainHttpWriteFormat enum.
+func (e LogdrainHttpWriteFormat) Valid() bool {
+	switch e {
+	case Hec:
+		return true
+	case Json:
+		return true
+	case Ndjson:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for MethodMatchMethods.
 const (
 	MethodMatchMethodsDELETE  MethodMatchMethods = "DELETE"
@@ -799,6 +844,45 @@ type ConflictErrorResponse struct {
 
 	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
 	Meta Meta `json:"meta"`
+}
+
+// CreateLogdrainRequest defines model for CreateLogdrainRequest.
+type CreateLogdrainRequest struct {
+	BatchSize *int64 `json:"batchSize,omitempty"`
+
+	// Destination Exactly one destination: an HTTP URL or an Axiom dataset and token.
+	Destination LogdrainDestinationWrite `json:"destination"`
+
+	// Name A human-readable name to identify this log drain.
+	Name string `json:"name"`
+
+	// Stream Select exactly one stream. Empty filter arrays select all values.
+	// Nonempty filter dimensions are combined with AND.
+	Stream struct {
+		AuditLogs *struct {
+			EventTypes *[]string `json:"eventTypes,omitempty"`
+		} `json:"auditLogs,omitempty"`
+		GatewayRequests *struct {
+			AppIds         *[]string                       `json:"appIds,omitempty"`
+			EnvironmentIds *[]string                       `json:"environmentIds,omitempty"`
+			ProjectIds     *[]string                       `json:"projectIds,omitempty"`
+			StatusClasses  *[]LogdrainFiltersStatusClasses `json:"statusClasses,omitempty"`
+		} `json:"gatewayRequests,omitempty"`
+		KeyVerifications *struct {
+			KeySpaceIds *[]string `json:"keySpaceIds,omitempty"`
+			Outcomes    *[]string `json:"outcomes,omitempty"`
+		} `json:"keyVerifications,omitempty"`
+		Ratelimits *struct {
+			NamespaceIds *[]string `json:"namespaceIds,omitempty"`
+			Passed       *[]bool   `json:"passed,omitempty"`
+		} `json:"ratelimits,omitempty"`
+		RuntimeLogs *struct {
+			AppIds         *[]string `json:"appIds,omitempty"`
+			EnvironmentIds *[]string `json:"environmentIds,omitempty"`
+			ProjectIds     *[]string `json:"projectIds,omitempty"`
+			Severities     *[]string `json:"severities,omitempty"`
+		} `json:"runtimeLogs,omitempty"`
+	} `json:"stream"`
 }
 
 // Deployment defines model for Deployment.
@@ -1798,6 +1882,77 @@ type KeysVerifyKeyRatelimit struct {
 	// Example: tokens
 	Name string `json:"name"`
 }
+
+// LogdrainAxiomWrite defines model for LogdrainAxiomWrite.
+type LogdrainAxiomWrite struct {
+	Dataset *string `json:"dataset,omitempty"`
+	Token   *string `json:"token,omitempty"`
+}
+
+// LogdrainDestinationWrite Exactly one destination: an HTTP URL or an Axiom dataset and token.
+type LogdrainDestinationWrite struct {
+	Axiom *LogdrainAxiomWrite `json:"axiom,omitempty"`
+	Http  *LogdrainHttpWrite  `json:"http,omitempty"`
+}
+
+// LogdrainFilters Only filters for the selected stream are accepted. Empty arrays select all
+// values. Nonempty dimensions are combined with AND.
+type LogdrainFilters struct {
+	AppIds         *[]string                       `json:"appIds,omitempty"`
+	EnvironmentIds *[]string                       `json:"environmentIds,omitempty"`
+	EventTypes     *[]string                       `json:"eventTypes,omitempty"`
+	KeySpaceIds    *[]string                       `json:"keySpaceIds,omitempty"`
+	NamespaceIds   *[]string                       `json:"namespaceIds,omitempty"`
+	Outcomes       *[]string                       `json:"outcomes,omitempty"`
+	Passed         *[]bool                         `json:"passed,omitempty"`
+	ProjectIds     *[]string                       `json:"projectIds,omitempty"`
+	Severities     *[]string                       `json:"severities,omitempty"`
+	StatusClasses  *[]LogdrainFiltersStatusClasses `json:"statusClasses,omitempty"`
+}
+
+// LogdrainFiltersStatusClasses defines model for LogdrainFilters.StatusClasses.
+type LogdrainFiltersStatusClasses string
+
+// LogdrainHeaderWrite defines model for LogdrainHeaderWrite.
+type LogdrainHeaderWrite struct {
+	Name  string `json:"name"`
+	Value string `json:"value,omitempty"`
+}
+
+// LogdrainHttpWrite defines model for LogdrainHttpWrite.
+type LogdrainHttpWrite struct {
+	// Format Choose json (the default) for a JSON array of records, ndjson for one JSON
+	// record per line, or hec for newline-separated Splunk HTTP Event Collector
+	// envelopes with time, source, sourcetype, and event fields.
+	Format *LogdrainHttpWriteFormat `json:"format,omitempty"`
+
+	// Headers Headers sent to the destination. Values are encrypted at rest. When
+	// supplied, this list replaces all headers; an empty list removes them.
+	Headers *[]LogdrainHeaderWrite `json:"headers,omitempty"`
+
+	// Url HTTPS endpoint that receives POST requests. Embedded URL credentials are
+	// not allowed. Use headers for authentication instead.
+	Url *string `json:"url,omitempty"`
+}
+
+// LogdrainHttpWriteFormat Choose json (the default) for a JSON array of records, ndjson for one JSON
+// record per line, or hec for newline-separated Splunk HTTP Event Collector
+// envelopes with time, source, sourcetype, and event fields.
+type LogdrainHttpWriteFormat string
+
+// LogdrainMutationResponse defines model for LogdrainMutationResponse.
+type LogdrainMutationResponse struct {
+	Data struct {
+		Id string `json:"id"`
+	} `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// LogdrainWriteFilters Only filters for the selected stream are accepted. Empty arrays select all
+// values. Nonempty dimensions are combined with AND.
+type LogdrainWriteFilters = LogdrainFilters
 
 // LoggingPolicy Adds request data to the log entries of matching requests. The gateway
 // always records a basic log entry for every request: method, host, path,
@@ -7405,6 +7560,9 @@ type KeysVerifyKeyJSONRequestBody = V2KeysVerifyKeyRequestBody
 
 // KeysWhoamiJSONRequestBody defines body for KeysWhoami for application/json ContentType.
 type KeysWhoamiJSONRequestBody = V2KeysWhoamiRequestBody
+
+// LogdrainsCreateLogdrainJSONRequestBody defines body for LogdrainsCreateLogdrain for application/json ContentType.
+type LogdrainsCreateLogdrainJSONRequestBody = CreateLogdrainRequest
 
 // PermissionsCreatePermissionJSONRequestBody defines body for PermissionsCreatePermission for application/json ContentType.
 type PermissionsCreatePermissionJSONRequestBody = V2PermissionsCreatePermissionRequestBody

@@ -2,35 +2,104 @@
 # Source: openapi-split.yaml
 
 components:
-    securitySchemes:
-        bearer:
-            bearerFormat: bearer token
-            description: |-
-                Unkey uses bearer tokens for authentication. Public integrations use root keys, while the dashboard proxy uses short-lived JWTs.
-                To authenticate, include the token in the Authorization header of each request:
-                ```
-                Authorization: Bearer unkey_123
-                ```
-                Root keys have specific permissions attached to them, controlling what operations they can perform. Legacy permissions use tuple strings like `api.*.create_key`; resource permissions use Unkey Resource Names plus actions, like `unkey:v1:ws_123:keyspaces/*#create_key`.
-                Security best practices:
-                - Keep root keys secure and never expose them in client-side code
-                - Use different root keys for different environments
-                - Rotate keys periodically, especially after team member departures
-                - Create keys with minimal necessary permissions following least privilege principle
-                - Monitor key usage with audit logs.
-            scheme: bearer
-            type: http
-            x-speakeasy-name-override: rootKey
-        portalSession:
-            description: |-
-                Session cookie for the Customer Portal. Set by `portal.exchangeCode`
-                and sent automatically by the browser on `portal.*` requests. Portal sessions
-                are scoped to a single end user (external identity) and can only access the
-                `portal.*` routes.
-            in: cookie
-            name: portal_session
-            type: apiKey
     schemas:
+        LogdrainWriteFilters:
+            $ref: '#/components/schemas/LogdrainFilters'
+        LogdrainFilters:
+            type: object
+            additionalProperties: false
+            description: |
+                Only filters for the selected stream are accepted. Empty arrays select all
+                values. Nonempty dimensions are combined with AND.
+            properties:
+                eventTypes:
+                    type: array
+                    maxItems: 256
+                    items:
+                        type: string
+                        minLength: 1
+                        maxLength: 256
+                outcomes:
+                    type: array
+                    maxItems: 256
+                    items:
+                        type: string
+                        x-go-type: string
+                        x-enum-varnames:
+                            - LogdrainOutcomeValid
+                            - LogdrainOutcomeInsufficientPermissions
+                            - LogdrainOutcomeRateLimited
+                            - LogdrainOutcomeForbidden
+                            - LogdrainOutcomeDisabled
+                            - LogdrainOutcomeExpired
+                            - LogdrainOutcomeUsageExceeded
+                            - LogdrainOutcomeUnknown
+                        enum:
+                            - VALID
+                            - INSUFFICIENT_PERMISSIONS
+                            - RATE_LIMITED
+                            - FORBIDDEN
+                            - DISABLED
+                            - EXPIRED
+                            - USAGE_EXCEEDED
+                            - ""
+                keySpaceIds:
+                    type: array
+                    maxItems: 256
+                    items:
+                        type: string
+                        minLength: 1
+                        maxLength: 256
+                namespaceIds:
+                    type: array
+                    maxItems: 256
+                    items:
+                        type: string
+                        minLength: 1
+                        maxLength: 256
+                passed:
+                    type: array
+                    maxItems: 2
+                    items:
+                        type: boolean
+                statusClasses:
+                    type: array
+                    maxItems: 4
+                    items:
+                        type: string
+                        enum:
+                            - 2xx
+                            - 3xx
+                            - 4xx
+                            - 5xx
+                severities:
+                    type: array
+                    maxItems: 256
+                    items:
+                        type: string
+                        minLength: 1
+                        maxLength: 256
+                projectIds:
+                    type: array
+                    maxItems: 256
+                    items:
+                        type: string
+                        minLength: 1
+                        maxLength: 256
+                appIds:
+                    type: array
+                    maxItems: 256
+                    items:
+                        type: string
+                        minLength: 1
+                        maxLength: 256
+                environmentIds:
+                    type: array
+                    maxItems: 256
+                    items:
+                        type: string
+                        minLength: 1
+                        maxLength: 256
         V2AnalyticsGetGatewayRequestsRequestBody:
             type: object
             required:
@@ -2744,6 +2813,181 @@ components:
                     "$ref": "#/components/schemas/Meta"
                 data:
                     "$ref": "#/components/schemas/V2LivenessResponseData"
+        CreateLogdrainRequest:
+            type: object
+            required:
+                - name
+                - stream
+                - destination
+            additionalProperties: false
+            properties:
+                name:
+                    type: string
+                    description: A human-readable name to identify this log drain.
+                    minLength: 1
+                    maxLength: 128
+                stream:
+                    type: object
+                    additionalProperties: false
+                    minProperties: 1
+                    maxProperties: 1
+                    description: |
+                        Select exactly one stream. Empty filter arrays select all values.
+                        Nonempty filter dimensions are combined with AND.
+                    properties:
+                        auditLogs:
+                            type: object
+                            additionalProperties: false
+                            properties:
+                                eventTypes:
+                                    type: array
+                                    maxItems: 256
+                                    items:
+                                        type: string
+                                        minLength: 1
+                                        maxLength: 256
+                        keyVerifications:
+                            type: object
+                            additionalProperties: false
+                            properties:
+                                outcomes:
+                                    type: array
+                                    maxItems: 256
+                                    items:
+                                        type: string
+                                        x-go-type: string
+                                        enum:
+                                            - VALID
+                                            - INSUFFICIENT_PERMISSIONS
+                                            - RATE_LIMITED
+                                            - FORBIDDEN
+                                            - DISABLED
+                                            - EXPIRED
+                                            - USAGE_EXCEEDED
+                                            - ""
+                                keySpaceIds:
+                                    type: array
+                                    maxItems: 256
+                                    items:
+                                        type: string
+                                        minLength: 1
+                                        maxLength: 256
+                        ratelimits:
+                            type: object
+                            additionalProperties: false
+                            properties:
+                                namespaceIds:
+                                    type: array
+                                    maxItems: 256
+                                    items:
+                                        type: string
+                                        minLength: 1
+                                        maxLength: 256
+                                passed:
+                                    type: array
+                                    maxItems: 2
+                                    items:
+                                        type: boolean
+                        gatewayRequests:
+                            type: object
+                            additionalProperties: false
+                            properties:
+                                statusClasses:
+                                    type: array
+                                    maxItems: 4
+                                    items:
+                                        type: string
+                                        x-go-type: LogdrainFiltersStatusClasses
+                                        enum:
+                                            - 2xx
+                                            - 3xx
+                                            - 4xx
+                                            - 5xx
+                                projectIds:
+                                    type: array
+                                    maxItems: 256
+                                    items:
+                                        type: string
+                                        minLength: 1
+                                        maxLength: 256
+                                appIds:
+                                    type: array
+                                    maxItems: 256
+                                    items:
+                                        type: string
+                                        minLength: 1
+                                        maxLength: 256
+                                environmentIds:
+                                    type: array
+                                    maxItems: 256
+                                    items:
+                                        type: string
+                                        minLength: 1
+                                        maxLength: 256
+                        runtimeLogs:
+                            type: object
+                            additionalProperties: false
+                            properties:
+                                severities:
+                                    type: array
+                                    maxItems: 256
+                                    items:
+                                        type: string
+                                        minLength: 1
+                                        maxLength: 256
+                                projectIds:
+                                    type: array
+                                    maxItems: 256
+                                    items:
+                                        type: string
+                                        minLength: 1
+                                        maxLength: 256
+                                appIds:
+                                    type: array
+                                    maxItems: 256
+                                    items:
+                                        type: string
+                                        minLength: 1
+                                        maxLength: 256
+                                environmentIds:
+                                    type: array
+                                    maxItems: 256
+                                    items:
+                                        type: string
+                                        minLength: 1
+                                        maxLength: 256
+                batchSize:
+                    type: integer
+                    format: int64
+                    minimum: 1
+                    maximum: 4294967295
+                destination:
+                    $ref: '#/components/schemas/LogdrainDestinationWrite'
+                    properties:
+                        http:
+                            required:
+                                - url
+                        axiom:
+                            required:
+                                - dataset
+                                - token
+        LogdrainMutationResponse:
+            type: object
+            required:
+                - meta
+                - data
+            additionalProperties: false
+            properties:
+                meta:
+                    $ref: '#/components/schemas/Meta'
+                data:
+                    type: object
+                    required:
+                        - id
+                    additionalProperties: false
+                    properties:
+                        id:
+                            type: string
         V2PermissionsCreatePermissionRequestBody:
             type: object
             required:
@@ -7262,6 +7506,79 @@ components:
             required:
                 - message
             description: Response data for the liveness check endpoint. This provides a simple indication of whether the Unkey API service is running and able to process requests. Monitoring systems can use this endpoint to track service availability and trigger alerts if the service becomes unhealthy.
+        LogdrainDestinationWrite:
+            type: object
+            additionalProperties: false
+            minProperties: 1
+            maxProperties: 1
+            description: |
+                Exactly one destination: an HTTP URL or an Axiom dataset and token.
+            properties:
+                http:
+                    $ref: '#/components/schemas/LogdrainHttpWrite'
+                axiom:
+                    $ref: '#/components/schemas/LogdrainAxiomWrite'
+        LogdrainHttpWrite:
+            type: object
+            additionalProperties: false
+            minProperties: 1
+            properties:
+                url:
+                    type: string
+                    description: |
+                        HTTPS endpoint that receives POST requests. Embedded URL credentials are
+                        not allowed. Use headers for authentication instead.
+                    format: uri
+                    minLength: 1
+                format:
+                    type: string
+                    description: |
+                        Choose json (the default) for a JSON array of records, ndjson for one JSON
+                        record per line, or hec for newline-separated Splunk HTTP Event Collector
+                        envelopes with time, source, sourcetype, and event fields.
+                    enum:
+                        - json
+                        - ndjson
+                        - hec
+                headers:
+                    type: array
+                    maxItems: 32
+                    description: |
+                        Headers sent to the destination. Values are encrypted at rest. When
+                        supplied, this list replaces all headers; an empty list removes them.
+                    items:
+                        $ref: '#/components/schemas/LogdrainHeaderWrite'
+        LogdrainAxiomWrite:
+            type: object
+            additionalProperties: false
+            minProperties: 1
+            properties:
+                dataset:
+                    type: string
+                    minLength: 1
+                token:
+                    type: string
+                    minLength: 1
+                    writeOnly: true
+                    x-unkey-redact: true
+        LogdrainHeaderWrite:
+            type: object
+            additionalProperties: false
+            required:
+                - name
+                - value
+            properties:
+                name:
+                    type: string
+                    minLength: 1
+                    maxLength: 256
+                value:
+                    type: string
+                    x-go-type-skip-optional-pointer: true
+                    minLength: 1
+                    x-unkey-redact: true
+                    maxLength: 8192
+                    writeOnly: true
         V2PermissionsCreatePermissionResponseData:
             type: object
             properties:
@@ -8358,6 +8675,34 @@ components:
                     description: Unique deployment identifier
                     example: "d_abc123xyz"
             additionalProperties: false
+    securitySchemes:
+        bearer:
+            bearerFormat: bearer token
+            description: |-
+                Unkey uses bearer tokens for authentication. Public integrations use root keys, while the dashboard proxy uses short-lived JWTs.
+                To authenticate, include the token in the Authorization header of each request:
+                ```
+                Authorization: Bearer unkey_123
+                ```
+                Root keys have specific permissions attached to them, controlling what operations they can perform. Legacy permissions use tuple strings like `api.*.create_key`; resource permissions use Unkey Resource Names plus actions, like `unkey:v1:ws_123:keyspaces/*#create_key`.
+                Security best practices:
+                - Keep root keys secure and never expose them in client-side code
+                - Use different root keys for different environments
+                - Rotate keys periodically, especially after team member departures
+                - Create keys with minimal necessary permissions following least privilege principle
+                - Monitor key usage with audit logs.
+            scheme: bearer
+            type: http
+            x-speakeasy-name-override: rootKey
+        portalSession:
+            description: |-
+                Session cookie for the Customer Portal. Set by `portal.exchangeCode`
+                and sent automatically by the browser on `portal.*` requests. Portal sessions
+                are scoped to a single end user (external identity) and can only access the
+                `portal.*` routes.
+            in: cookie
+            name: portal_session
+            type: apiKey
 info:
     description: |-
         Unkey's API provides programmatic access for all resources within our platform.
@@ -14841,6 +15186,69 @@ paths:
                 - liveness
             x-excluded: true
             x-speakeasy-ignore: true
+    /v2/logdrains.createLogdrain:
+        post:
+            description: |
+                Create a log drain within your workspace allowance. Requires
+                `unkey:v1:{workspaceId}:logdrains/*#write`. Credentials are encrypted at rest.
+                New drains start running from the creation time, without historical backfill.
+            operationId: logdrains.createLogdrain
+            requestBody:
+                content:
+                    application/json:
+                        example:
+                            destination:
+                                http:
+                                    format: ndjson
+                                    headers:
+                                        - name: Authorization
+                                          value: Bearer destination-token
+                                    url: https://logs.example.com/ingest
+                            name: Production audit logs
+                            stream:
+                                auditLogs:
+                                    eventTypes:
+                                        - key.create
+                        schema:
+                            $ref: '#/components/schemas/CreateLogdrainRequest'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/LogdrainMutationResponse'
+                    description: Log drain created.
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Invalid input.
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Missing or invalid credentials.
+                "403":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: Insufficient permission or workspace allowance.
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error.
+            security:
+                - bearer: []
+            summary: Create log drain
+            tags:
+                - logdrains
+            x-speakeasy-name-override: createLogdrain
     /v2/permissions.createPermission:
         post:
             description: |
