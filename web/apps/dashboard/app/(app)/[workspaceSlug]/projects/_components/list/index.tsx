@@ -80,7 +80,7 @@ export const ProjectsList = () => {
 function ProjectListCard({ project, name }: { project: Project; name: string }) {
   const { ref, isNear } = useNearViewport<HTMLDivElement>();
   const { apps, isLoading } = useProjectCard(project.id, { nearViewport: isNear });
-  const warmApp = useWarmAppPage();
+  const { warmApp, cancelWarm } = useWarmAppPage();
   // Warming every app of a project would load a deployment list per app, so only
   // a project with a single app warms the app the visit leads on to
   const warmNextPages = () => {
@@ -91,7 +91,13 @@ function ProjectListCard({ project, name }: { project: Project; name: string }) 
     }
   };
   return (
-    <div ref={ref} className="h-full" onPointerEnter={warmNextPages} onFocusCapture={warmNextPages}>
+    <div
+      ref={ref}
+      className="h-full"
+      onPointerEnter={warmNextPages}
+      onPointerLeave={cancelWarm}
+      onFocusCapture={warmNextPages}
+    >
       <ProjectCard
         projectId={project.id}
         name={name}

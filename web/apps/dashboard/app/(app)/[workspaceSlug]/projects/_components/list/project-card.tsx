@@ -29,7 +29,7 @@ function byRecency(apps: ProjectApp[]): ProjectApp[] {
 export function ProjectCard({ name, projectId, apps, isLoading, actions }: ProjectCardProps) {
   const workspace = useWorkspaceNavigation();
   const appHomeHref = useAppHomeHref();
-  const warmApp = useWarmAppPage();
+  const { warmApp, cancelWarm } = useWarmAppPage();
   const projectPath = routes.projects.detail({ workspaceSlug: workspace.slug, projectId });
   const hrefFor = (app: ProjectApp) =>
     appHomeHref({ workspaceSlug: workspace.slug, projectId, appId: app.id });
@@ -86,6 +86,7 @@ export function ProjectCard({ name, projectId, apps, isLoading, actions }: Proje
                 href={hrefFor(app)}
                 className="-mx-2 px-2 py-0.5"
                 onPointerEnter={() => warmApp(projectId, app.id)}
+                onPointerLeave={cancelWarm}
                 onFocus={() => warmApp(projectId, app.id)}
               />
             </AppDetailHoverCard>
@@ -114,6 +115,7 @@ export function ProjectCard({ name, projectId, apps, isLoading, actions }: Proje
                       href={hrefFor(app)}
                       className="px-2 py-1"
                       onPointerEnter={() => warmApp(projectId, app.id)}
+                      onPointerLeave={cancelWarm}
                       onFocus={() => warmApp(projectId, app.id)}
                     />
                   ))}
