@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 
+	"github.com/unkeyed/unkey/pkg/array"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
@@ -43,17 +44,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return fault.Wrap(err, fault.Code(codes.App.Internal.ServiceUnavailable.URN()), fault.Public("Failed to retrieve log drains."))
 	}
 	rows, pg := pagination.Paginate(rows, p, func(row db.Logdrain) string { return row.ID })
+	data, err := array.MapErr(rows, logdrainconfig.ToPublic)
+	if err != nil {
+		return err
+	}
 	response := openapi.ListLogdrainsResponse{
 		Meta:       openapi.Meta{RequestId: s.RequestID()},
-		Data:       []openapi.Logdrain{},
+		Data:       data,
 		Pagination: pg,
-	}
-	for _, row := range rows {
-		data, err := logdrainconfig.ToPublic(row)
-		if err != nil {
-			return err
-		}
-		response.Data = append(response.Data, data)
 	}
 	return s.JSON(http.StatusOK, response)
 }
