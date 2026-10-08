@@ -7,6 +7,7 @@ import (
 
 	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 
+	"github.com/unkeyed/unkey/pkg/conc"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/deploy/deployactor"
 	"github.com/unkeyed/unkey/pkg/uid"
@@ -21,7 +22,7 @@ type Input struct {
 	Domains    []string
 }
 
-func ToResponse(ctx context.Context, database db.DBTX, workspaceID string, row db.ListDeploymentsRow) (openapi.Deployment, error) {
+func ToResponse(ctx context.Context, database *db.Replica, workspaceID string, row db.ListDeploymentsRow) (openapi.Deployment, error) {
 	responses, err := ToResponses(ctx, database, workspaceID, []db.ListDeploymentsRow{row})
 	if err != nil {
 		return openapi.Deployment{}, err //nolint:exhaustruct // no response on error
@@ -30,8 +31,8 @@ func ToResponse(ctx context.Context, database db.DBTX, workspaceID string, row d
 }
 
 // ToResponses loads the state, steps, regions, and domains of rows in four
-// queries, whatever the number of rows, and maps each row to its response
-func ToResponses(ctx context.Context, database db.DBTX, workspaceID string, rows []db.ListDeploymentsRow) ([]openapi.Deployment, error) {
+// parallel queries, whatever the number of rows, and maps each row to its response
+func ToResponses(ctx context.Context, database *db.Replica, workspaceID string, rows []db.ListDeploymentsRow) ([]openapi.Deployment, error) {
 	if len(rows) == 0 {
 		return []openapi.Deployment{}, nil
 	}
@@ -40,19 +41,28 @@ func ToResponses(ctx context.Context, database db.DBTX, workspaceID string, rows
 		ids[i] = row.ID
 	}
 
-	states, err := db.Query.ListDeploymentEnvAndAppState(ctx, database, db.ListDeploymentEnvAndAppStateParams{WorkspaceID: workspaceID, DeploymentIds: ids})
-	if err != nil {
-		return nil, err
-	}
-	steps, err := db.Query.ListDeploymentStepsByIds(ctx, database, db.ListDeploymentStepsByIdsParams{WorkspaceID: workspaceID, DeploymentIds: ids})
-	if err != nil {
-		return nil, err
-	}
-	regions, err := db.Query.ListDeploymentRegionsByIds(ctx, database, db.ListDeploymentRegionsByIdsParams{WorkspaceID: workspaceID, DeploymentIds: ids})
-	if err != nil {
-		return nil, err
-	}
-	domains, err := db.Query.ListDeploymentDomainsByIds(ctx, database, db.ListDeploymentDomainsByIdsParams{WorkspaceID: workspaceID, DeploymentIds: ids})
+	var states []db.ListDeploymentEnvAndAppStateRow
+	var steps []db.DeploymentStep
+	var regions []db.ListDeploymentRegionsByIdsRow
+	var domains []db.ListDeploymentDomainsByIdsRow
+	err := conc.All(ctx,
+		func(ctx context.Context) (err error) {
+			states, err = db.Query.ListDeploymentEnvAndAppState(ctx, database, db.ListDeploymentEnvAndAppStateParams{WorkspaceID: workspaceID, DeploymentIds: ids})
+			return err
+		},
+		func(ctx context.Context) (err error) {
+			steps, err = db.Query.ListDeploymentStepsByIds(ctx, database, db.ListDeploymentStepsByIdsParams{WorkspaceID: workspaceID, DeploymentIds: ids})
+			return err
+		},
+		func(ctx context.Context) (err error) {
+			regions, err = db.Query.ListDeploymentRegionsByIds(ctx, database, db.ListDeploymentRegionsByIdsParams{WorkspaceID: workspaceID, DeploymentIds: ids})
+			return err
+		},
+		func(ctx context.Context) (err error) {
+			domains, err = db.Query.ListDeploymentDomainsByIds(ctx, database, db.ListDeploymentDomainsByIdsParams{WorkspaceID: workspaceID, DeploymentIds: ids})
+			return err
+		},
+	)
 	if err != nil {
 		return nil, err
 	}
