@@ -2,6 +2,8 @@ package logdrains_test
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"net/http"
 	"testing"
 
@@ -62,6 +64,11 @@ func TestGetReturnsSecretSafeConfig(t *testing.T) {
 	require.NotContains(t, string(response.RawBody), `"committedOffsetInsertedAt"`)
 	require.Equal(t, int64(123), response.Body.Data.CreatedAt)
 	require.NotEmpty(t, response.Body.Meta.RequestId)
+	var body struct {
+		Data json.RawMessage `json:"data"`
+	}
+	require.NoError(t, json.Unmarshal([]byte(response.RawBody), &body))
+	require.JSONEq(t, fmt.Sprintf(`{"id":%q,"name":"Test drain","stream":"ratelimits","status":"running","batchSize":73,"createdAt":123,"filters":{"namespaceIds":["ns_1"],"passed":[false]},"destination":{"http":{"url":"https://logs.example.com/ingest","format":"hec","headers":["Authorization"]}}}`, id), string(body.Data))
 }
 
 func TestGetReturnsReadableStatusClasses(t *testing.T) {
