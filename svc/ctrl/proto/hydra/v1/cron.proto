@@ -58,6 +58,9 @@ service CronService {
   // so a paused or stuck invocation cannot block other handlers. Daily schedule.
   rpc RunAuditLogOutboxCleanup(RunAuditLogOutboxCleanupRequest) returns (RunAuditLogOutboxCleanupResponse) {}
 
+  // Key = "resource-cleanup". Periodic scans also repair manual parent deletions.
+  rpc RunResourceCleanup(RunResourceCleanupRequest) returns (RunResourceCleanupResponse) {}
+
   // RunDeployBillingPush computes month-to-date Deploy usage (CPU, memory,
   // egress, disk, active keys) from ClickHouse, fans out one
   // DeployBillingPushService.PushWorkspaceUsage invocation per billable
@@ -145,6 +148,11 @@ message RunRatelimitGlobalCountersCleanupResponse {
 message RunAuditLogOutboxCleanupRequest {}
 message RunAuditLogOutboxCleanupResponse {
   // Number of rows deleted.
+  int64 rows_deleted = 1;
+}
+
+message RunResourceCleanupRequest {}
+message RunResourceCleanupResponse {
   int64 rows_deleted = 1;
 }
 
