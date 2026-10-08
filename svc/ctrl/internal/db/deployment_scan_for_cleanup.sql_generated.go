@@ -31,7 +31,7 @@ type ScanDeploymentsForCleanupRow struct {
 	Orphaned      int64  `db:"orphaned"`
 }
 
-// Missing environments still need their deployment shutdown workflow.
+// ScanDeploymentsForCleanup
 //
 //	SELECT d.pk, d.environment_id, CAST((e.id IS NULL) AS SIGNED) AS orphaned
 //	FROM (
