@@ -497,6 +497,53 @@ func (s *Seeder) CreateDeployment(ctx context.Context, req CreateDeploymentReque
 	return deployment
 }
 
+type CreateAppConnectionRequest struct {
+	WorkspaceID         string
+	ProjectID           string
+	CallerAppID         string
+	CallerEnvironmentID string
+	TargetAppID         string
+	Name                string
+
+	// Optional app target. An empty SelectionMode selects automatically.
+	SelectionMode       db.ConnectionAppTargetsSelectionMode
+	TargetEnvironmentID sql.NullString
+	TargetDeploymentID  sql.NullString
+}
+
+func (s *Seeder) CreateAppConnection(ctx context.Context, req CreateAppConnectionRequest) string {
+	s.t.Helper()
+	id := uid.New(uid.ConnectionPrefix)
+	mode := req.SelectionMode
+	if mode == "" {
+		mode = db.ConnectionAppTargetsSelectionModeAutomatic
+	}
+	err := db.Tx(ctx, s.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
+		queries := db.NewQueries(tx)
+		if err := queries.InsertAppConnection(ctx, db.InsertAppConnectionParams{
+			ID:            id,
+			WorkspaceID:   req.WorkspaceID,
+			ProjectID:     req.ProjectID,
+			AppID:         req.CallerAppID,
+			EnvironmentID: req.CallerEnvironmentID,
+			ResourceType:  db.AppConnectionsResourceTypeApp,
+			ResourceID:    req.TargetAppID,
+			Name:          req.Name,
+			CreatedAt:     time.Now().UnixMilli(),
+		}); err != nil {
+			return err
+		}
+		return queries.InsertConnectionAppTarget(ctx, db.InsertConnectionAppTargetParams{
+			ConnectionID:        id,
+			SelectionMode:       mode,
+			TargetEnvironmentID: req.TargetEnvironmentID,
+			TargetDeploymentID:  req.TargetDeploymentID,
+		})
+	})
+	require.NoError(s.t, err)
+	return id
+}
+
 // CreateRootKey creates a root key with optional permissions
 func (s *Seeder) CreateRootKey(ctx context.Context, workspaceID string, permissions ...string) string {
 	key := uid.New("test_root_key")
