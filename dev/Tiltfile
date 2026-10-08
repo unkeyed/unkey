@@ -5,12 +5,10 @@ load('ext://restart_process', 'docker_build_with_restart')
 
 config.define_string('topolvm_backing_size')
 config.define_bool('orb')
-config.define_bool('stripe')
 config.define_string_list('resources', args=True)
 cfg = config.parse()
 config.set_enabled_resources(cfg.get('resources', []))
 ORB = cfg.get('orb', False)
-STRIPE = cfg.get('stripe', False)
 # Sparse loopback file size. Sparse means this is a ceiling, not a reservation —
 # 20 GiB on a fresh cluster costs ~0 bytes. Bump if your test workloads fill more.
 TOPOLVM_BACKING_SIZE = cfg.get('topolvm_backing_size', '20G')
@@ -235,17 +233,15 @@ local_resource(
     allow_parallel=True,
 )
 
+watch_file('stripe-webhook-secret.mjs')
+stripe_webhook_secret = str(local('node stripe-webhook-secret.mjs', quiet=True, echo_off=True)).strip()
 stripe_secret_dep = []
-if STRIPE:
+if stripe_webhook_secret:
     local_resource(
         'stripe-webhook-secret',
         '''
         set -eu
-        whsec=$(stripe listen --print-secret)
-        case "$whsec" in
-          whsec_?*) ;;
-          *) echo "Stripe did not return a webhook signing secret. Run mise exec -- stripe login and retry." >&2; exit 1 ;;
-        esac
+        whsec="$STRIPE_WEBHOOK_SECRET"
         for f in ./.env.stripe ../web/apps/dashboard/.env; do
           touch "$f"
           if grep -q '^STRIPE_WEBHOOK_SECRET=' "$f"; then
@@ -256,11 +252,14 @@ if STRIPE:
         done
         echo "Wrote STRIPE_WEBHOOK_SECRET to .env.stripe and dashboard .env"
         ''',
+        env={'STRIPE_WEBHOOK_SECRET': stripe_webhook_secret},
         resource_deps=['namespace'],
         labels=['setup'],
         allow_parallel=True,
     )
     stripe_secret_dep = ['stripe-webhook-secret']
+else:
+    print('Stripe forwarding unavailable; continuing without it. Run mise exec -- stripe login and reload Tilt to enable it.')
 
 local_resource(
     'stripe-credentials',
@@ -716,7 +715,7 @@ local_resource(
 
 # ─── Stripe webhook listeners (stripe CLI -> dashboard + ctrl-api) ──────────
 # --forward-to takes one URL, so one listener per endpoint.
-if STRIPE:
+if stripe_webhook_secret:
     local_resource(
         'stripe-listen-dashboard',
         serve_cmd='stripe listen --forward-to http://localhost:3000/api/webhooks/stripe',
@@ -742,7 +741,7 @@ Tips:
 - Press 's' to open a shell in running containers
 - Press 'r' to manually trigger rebuilds
 - Exit Tilt with Ctrl+C, then use 'mise run down' to stop Minikube and keep data
-- Use 'mise run dev -- --stripe' to enable Stripe webhook forwarding
+- Stripe webhook forwarding starts automatically when the Stripe CLI is authenticated
 - Use 'tilt logs <service>' to view specific service logs
 
 Frontline (HTTPS on *.unkey.local):
