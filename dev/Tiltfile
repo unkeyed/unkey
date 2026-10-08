@@ -450,7 +450,7 @@ k8s_resource(
 
 # ─── API ───────────────────────────────────────────────────────────────────
 go_service_image('unkey/api:dev', 'api')
-if ORB and not has_github_credentials:
+if not has_github_credentials:
     # Kubernetes omits optional secret values rather than setting a typed zero.
     # Use a valid integer so TOML parsing succeeds while GitHub remains disabled.
     api_manifest = str(read_file('k8s/manifests/api.yaml')).replace(
@@ -471,10 +471,13 @@ k8s_resource(
 
 # ─── Ctrl API ──────────────────────────────────────────────────────────────
 go_service_image('unkey/control-api:dev', 'control-api')
-if ORB and not has_github_credentials:
+if not has_github_credentials:
+    ctrl_api_github = 'app_id = 0'
+    if ORB:
+        ctrl_api_github += '\n    allow_unauthenticated_deployments = true'
     ctrl_api_manifest = str(read_file('k8s/manifests/ctrl-api.yaml')).replace(
         'app_id = ${UNKEY_GITHUB_APP_ID}',
-        'app_id = 0\n    allow_unauthenticated_deployments = true',
+        ctrl_api_github,
     )
     k8s_yaml(blob(ctrl_api_manifest))
 else:
@@ -547,11 +550,11 @@ if ORB:
         'build_platform = "linux/arm64"',
         'build_platform = "linux/%s"' % goarch,
     )
-    if not has_github_credentials:
-        ctrl_worker_manifest = ctrl_worker_manifest.replace(
-            'app_id = ${UNKEY_GITHUB_APP_ID}',
-            'app_id = 0',
-        )
+if not has_github_credentials:
+    ctrl_worker_manifest = ctrl_worker_manifest.replace(
+        'app_id = ${UNKEY_GITHUB_APP_ID}',
+        'app_id = 0',
+    )
 k8s_yaml(blob(ctrl_worker_manifest))
 ctrl_worker_deps = ['mysql', 'clickhouse', 'restate', 'registry', 'webhooks-config', 'github-credentials', 'stripe-credentials', 'control-worker-compile', 'workos-credentials', 'resend-credentials']
 if has_depot_credentials:

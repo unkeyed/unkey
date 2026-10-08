@@ -1,0 +1,20 @@
+type: object
+description: A workspace limit and, when the limit has one, the current value against it.
+required:
+  - limit
+properties:
+  limit:
+    type:
+      - integer
+      - "null"
+    format: int64
+    description: The maximum the workspace can have. `null` means unlimited.
+    example: 5
+  current:
+    type: number
+    format: double
+    description: |
+      The current value against `limit`. Omitted when the limit has no current
+      value, such as a retention period or a per-instance size.
+    example: 1
+additionalProperties: false

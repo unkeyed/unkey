@@ -27,12 +27,8 @@ import { rolesLlmSearch } from "./authorization/roles/llm-search";
 import { queryRoles } from "./authorization/roles/query";
 import { updateRole } from "./authorization/roles/update";
 import { getDeployBudget, setDeployBudget } from "./billing/deploy-budget";
-import { queryComputeAllocation } from "./billing/query-compute-allocation";
 import { queryDeployUsage } from "./billing/query-deploy-usage";
-import { queryDeployUsageBreakdown } from "./billing/query-deploy-usage-breakdown";
 import { queryDeployUsageTimeseries } from "./billing/query-deploy-usage-timeseries";
-import { queryUsage } from "./billing/query-usage";
-import { countCustomDomains } from "./deploy/custom-domains/count";
 import { authorizeDeployment } from "./deploy/deployment/authorize";
 import { cancelDeployment } from "./deploy/deployment/cancel";
 import { getDeploymentSteps } from "./deploy/deployment/deployment-steps";
@@ -250,11 +246,8 @@ export const router = t.router({
     llmSearch,
   }),
   billing: t.router({
-    queryUsage,
     queryDeployUsage,
-    queryDeployUsageBreakdown,
     queryDeployUsageTimeseries,
-    queryComputeAllocation,
     getDeployBudget,
     setDeployBudget,
   }),
@@ -312,9 +305,6 @@ export const router = t.router({
     domain: t.router({
       list: listDomains,
       listDisplayDomains,
-    }),
-    customDomain: t.router({
-      count: countCustomDomains,
     }),
     deployment: t.router({
       list: listDeployments,
