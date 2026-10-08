@@ -10,13 +10,13 @@ import (
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
-	logdrains "github.com/unkeyed/unkey/svc/api/routes/v2_logdrains"
+	logdrains "github.com/unkeyed/unkey/svc/api/routes/v2_logdrains_get_logdrain"
 	"google.golang.org/protobuf/proto"
 )
 
 func TestGetReturnsSecretSafeConfig(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route := &logdrains.Get{DB: h.DB}
+	route := &logdrains.Handler{DB: h.DB}
 	h.Register(route)
 	workspaceID := h.Resources().UserWorkspace.ID
 	id := uid.New("ld")
@@ -66,7 +66,7 @@ func TestGetReturnsSecretSafeConfig(t *testing.T) {
 
 func TestGetReturnsReadableStatusClasses(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route := &logdrains.Get{DB: h.DB}
+	route := &logdrains.Handler{DB: h.DB}
 	h.Register(route)
 	workspaceID := h.Resources().UserWorkspace.ID
 	id := uid.New("ld")
@@ -94,7 +94,7 @@ func TestGetReturnsReadableStatusClasses(t *testing.T) {
 
 func TestGetMissingDrainReturnsNotFound(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route := &logdrains.Get{DB: h.DB}
+	route := &logdrains.Handler{DB: h.DB}
 	h.Register(route)
 	workspaceID := h.Resources().UserWorkspace.ID
 	key := h.CreateRootKey(workspaceID, "unkey:v1:"+workspaceID+":logdrains/*#read")
@@ -110,7 +110,7 @@ func TestGetMissingDrainReturnsNotFound(t *testing.T) {
 
 func TestGetRequiresID(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route := &logdrains.Get{DB: h.DB}
+	route := &logdrains.Handler{DB: h.DB}
 	h.Register(route)
 	workspaceID := h.Resources().UserWorkspace.ID
 	key := h.CreateRootKey(workspaceID, "unkey:v1:"+workspaceID+":logdrains/*#read")

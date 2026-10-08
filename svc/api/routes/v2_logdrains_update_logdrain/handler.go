@@ -23,16 +23,16 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-type Update struct {
+type Handler struct {
 	DB        db.Database
 	Vault     vault.VaultServiceClient
 	Auditlogs auditlogs.AuditLogService
 	Clock     clock.Clock
 }
 
-func (h *Update) Method() string { return http.MethodPost }
-func (h *Update) Path() string   { return "/v2/logdrains.updateLogdrain" }
-func (h *Update) Handle(ctx context.Context, s *zen.Session) error {
+func (h *Handler) Method() string { return http.MethodPost }
+func (h *Handler) Path() string   { return "/v2/logdrains.updateLogdrain" }
+func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	principal, err := s.GetPrincipal()
 	if err != nil {
 		return err
@@ -50,7 +50,7 @@ func (h *Update) Handle(ctx context.Context, s *zen.Session) error {
 	if req.Name != nil {
 		name := strings.TrimSpace(*req.Name)
 		if name == "" {
-			return invalid("Name must not be empty.")
+			return fault.New("invalid log drain configuration", fault.Code(codes.App.Validation.InvalidInput.URN()), fault.Public("Name must not be empty."))
 		}
 		req.Name = &name
 	}
@@ -142,8 +142,4 @@ func (h *Update) Handle(ctx context.Context, s *zen.Session) error {
 	response.Meta.RequestId = s.RequestID()
 	response.Data.Id = req.LogdrainId
 	return s.JSON(http.StatusOK, response)
-}
-
-func invalid(message string) error {
-	return fault.New("invalid log drain configuration", fault.Code(codes.App.Validation.InvalidInput.URN()), fault.Public(message))
 }

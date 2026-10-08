@@ -7,8 +7,11 @@ import (
 	openapi "github.com/unkeyed/unkey/svc/api/routes/openapi"
 	"github.com/unkeyed/unkey/svc/api/routes/reference"
 	v2Liveness "github.com/unkeyed/unkey/svc/api/routes/v2_liveness"
-	logdrains "github.com/unkeyed/unkey/svc/api/routes/v2_logdrains"
 	v2Logdrains "github.com/unkeyed/unkey/svc/api/routes/v2_logdrains_create_logdrain"
+	v2LogdrainsDeleteLogdrain "github.com/unkeyed/unkey/svc/api/routes/v2_logdrains_delete_logdrain"
+	v2LogdrainsGetLogdrain "github.com/unkeyed/unkey/svc/api/routes/v2_logdrains_get_logdrain"
+	v2LogdrainsListLogdrains "github.com/unkeyed/unkey/svc/api/routes/v2_logdrains_list_logdrains"
+	v2LogdrainsUpdateLogdrain "github.com/unkeyed/unkey/svc/api/routes/v2_logdrains_update_logdrain"
 
 	pprofRoute "github.com/unkeyed/unkey/pkg/pprof"
 
@@ -207,15 +210,15 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 		Clock:       svc.Clock,
 		LimitsCache: svc.Caches.WorkspaceLimits,
 	})
-	srv.RegisterRoute(protectedMiddlewares, &logdrains.Get{DB: svc.Database})
-	srv.RegisterRoute(protectedMiddlewares, &logdrains.List{DB: svc.Database})
-	srv.RegisterRoute(protectedMiddlewares, &logdrains.Update{
+	srv.RegisterRoute(protectedMiddlewares, &v2LogdrainsGetLogdrain.Handler{DB: svc.Database})
+	srv.RegisterRoute(protectedMiddlewares, &v2LogdrainsListLogdrains.Handler{DB: svc.Database})
+	srv.RegisterRoute(protectedMiddlewares, &v2LogdrainsUpdateLogdrain.Handler{
 		DB:        svc.Database,
 		Vault:     svc.Vault,
 		Auditlogs: svc.Auditlogs,
 		Clock:     svc.Clock,
 	})
-	srv.RegisterRoute(protectedMiddlewares, &logdrains.Delete{
+	srv.RegisterRoute(protectedMiddlewares, &v2LogdrainsDeleteLogdrain.Handler{
 		DB:        svc.Database,
 		Auditlogs: svc.Auditlogs,
 	})

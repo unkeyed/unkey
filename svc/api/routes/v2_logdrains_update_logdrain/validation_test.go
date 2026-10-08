@@ -15,7 +15,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
-	logdrains "github.com/unkeyed/unkey/svc/api/routes/v2_logdrains"
+	updateRoute "github.com/unkeyed/unkey/svc/api/routes/v2_logdrains_update_logdrain"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -58,7 +58,7 @@ func TestLogdrainsRejectInvalidInput(t *testing.T) {
 		"Authorization": {"Bearer " + key},
 		"Content-Type":  {"application/json"},
 	}
-	update := &logdrains.Update{
+	update := &updateRoute.Handler{
 		DB:        h.DB,
 		Vault:     h.Vault,
 		Auditlogs: h.Auditlogs,
