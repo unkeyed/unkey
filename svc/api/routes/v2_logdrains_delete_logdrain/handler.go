@@ -16,14 +16,14 @@ import (
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
-type Delete struct {
+type Handler struct {
 	DB        db.Database
 	Auditlogs auditlogs.AuditLogService
 }
 
-func (h *Delete) Method() string { return http.MethodPost }
-func (h *Delete) Path() string   { return "/v2/logdrains.deleteLogdrain" }
-func (h *Delete) Handle(ctx context.Context, s *zen.Session) error {
+func (h *Handler) Method() string { return http.MethodPost }
+func (h *Handler) Path() string   { return "/v2/logdrains.deleteLogdrain" }
+func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	principal, err := s.GetPrincipal()
 	if err != nil {
 		return err

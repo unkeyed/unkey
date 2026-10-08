@@ -8,6 +8,7 @@ import (
 	"github.com/unkeyed/unkey/svc/api/routes/reference"
 	v2Liveness "github.com/unkeyed/unkey/svc/api/routes/v2_liveness"
 	v2Logdrains "github.com/unkeyed/unkey/svc/api/routes/v2_logdrains_create_logdrain"
+	v2LogdrainsDeleteLogdrain "github.com/unkeyed/unkey/svc/api/routes/v2_logdrains_delete_logdrain"
 	v2LogdrainsGetLogdrain "github.com/unkeyed/unkey/svc/api/routes/v2_logdrains_get_logdrain"
 	v2LogdrainsListLogdrains "github.com/unkeyed/unkey/svc/api/routes/v2_logdrains_list_logdrains"
 	v2LogdrainsUpdateLogdrain "github.com/unkeyed/unkey/svc/api/routes/v2_logdrains_update_logdrain"
@@ -217,7 +218,7 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 		Auditlogs: svc.Auditlogs,
 		Clock:     svc.Clock,
 	})
-	srv.RegisterRoute(protectedMiddlewares, &logdrains.Delete{
+	srv.RegisterRoute(protectedMiddlewares, &v2LogdrainsDeleteLogdrain.Handler{
 		DB:        svc.Database,
 		Auditlogs: svc.Auditlogs,
 	})

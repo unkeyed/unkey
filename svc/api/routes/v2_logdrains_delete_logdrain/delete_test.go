@@ -9,8 +9,9 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
-	logdrains "github.com/unkeyed/unkey/svc/api/routes/v2_logdrains"
 	createRoute "github.com/unkeyed/unkey/svc/api/routes/v2_logdrains_create_logdrain"
+	deleteRoute "github.com/unkeyed/unkey/svc/api/routes/v2_logdrains_delete_logdrain"
+	getRoute "github.com/unkeyed/unkey/svc/api/routes/v2_logdrains_get_logdrain"
 )
 
 func TestDeleteWorksAfterAllowanceRevoked(t *testing.T) {
@@ -22,11 +23,11 @@ func TestDeleteWorksAfterAllowanceRevoked(t *testing.T) {
 		Clock:       h.Clock,
 		LimitsCache: h.Caches.WorkspaceLimits,
 	}
-	remove := &logdrains.Delete{
+	remove := &deleteRoute.Handler{
 		DB:        h.DB,
 		Auditlogs: h.Auditlogs,
 	}
-	get := &logdrains.Get{DB: h.DB}
+	get := &getRoute.Handler{DB: h.DB}
 	h.Register(create)
 	h.Register(remove)
 	h.Register(get)
@@ -60,7 +61,7 @@ func TestDeleteWorksAfterAllowanceRevoked(t *testing.T) {
 
 func TestDeleteRequiresID(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route := &logdrains.Delete{
+	route := &deleteRoute.Handler{
 		DB:        h.DB,
 		Auditlogs: h.Auditlogs,
 	}

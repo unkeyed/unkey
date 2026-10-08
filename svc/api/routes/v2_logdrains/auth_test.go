@@ -12,6 +12,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
+	deleteRoute "github.com/unkeyed/unkey/svc/api/routes/v2_logdrains_delete_logdrain"
 	getRoute "github.com/unkeyed/unkey/svc/api/routes/v2_logdrains_get_logdrain"
 	listRoute "github.com/unkeyed/unkey/svc/api/routes/v2_logdrains_list_logdrains"
 	updateRoute "github.com/unkeyed/unkey/svc/api/routes/v2_logdrains_update_logdrain"
@@ -48,7 +49,7 @@ func TestLogdrainsRequireAuthenticationAndPermission(t *testing.T) {
 			true,
 		},
 		{
-			&logdrains.Delete{
+			&deleteRoute.Handler{
 				DB:        h.DB,
 				Auditlogs: h.Auditlogs,
 			},
