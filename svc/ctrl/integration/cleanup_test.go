@@ -13,17 +13,61 @@ import (
 
 	"github.com/stretchr/testify/require"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
+	"github.com/unkeyed/unkey/pkg/healthcheck"
 	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/ctrl/integration/seed"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auditlogs"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 	workerapp "github.com/unkeyed/unkey/svc/ctrl/worker/app"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/resourcecleanup"
 	workerenvironment "github.com/unkeyed/unkey/svc/ctrl/worker/environment"
 	workerproject "github.com/unkeyed/unkey/svc/ctrl/worker/project"
 
+	restate "github.com/restatedev/sdk-go"
 	restatetest "github.com/restatedev/sdk-go/testing"
 )
+
+type resourceCleanupCron struct {
+	hydrav1.UnimplementedCronServiceServer
+	cleanup *resourcecleanup.Handler
+}
+
+func (c resourceCleanupCron) RunResourceCleanup(ctx restate.ObjectContext, req *hydrav1.RunResourceCleanupRequest) (*hydrav1.RunResourceCleanupResponse, error) {
+	return c.cleanup.Handle(ctx, req)
+}
+
+func startDeletionRestate(t *testing.T, h *Harness) *restatetest.TestEnvironment {
+	t.Helper()
+	auditlogsService, err := auditlogs.New(auditlogs.Config{DB: h.DB})
+	require.NoError(t, err)
+	envSvc, err := workerenvironment.New(workerenvironment.Config{
+		DB:        h.DB,
+		Admin:     restateadmin.New(restateadmin.Config{BaseURL: "http://127.0.0.1:9070", APIKey: ""}),
+		Auditlogs: auditlogsService,
+	})
+	require.NoError(t, err)
+	projSvc, err := workerproject.New(workerproject.Config{DB: h.DB, Auditlogs: auditlogsService})
+	require.NoError(t, err)
+	appSvc, err := workerapp.New(workerapp.Config{DB: h.DB, Auditlogs: auditlogsService})
+	require.NoError(t, err)
+	cleanup, err := resourcecleanup.New(resourcecleanup.Config{DB: h.DB, Heartbeat: healthcheck.NewNoop()})
+	require.NoError(t, err)
+
+	return restatetest.Start(t,
+		hydrav1.NewProjectServiceServer(projSvc),
+		hydrav1.NewAppServiceServer(appSvc),
+		hydrav1.NewEnvironmentServiceServer(envSvc),
+		hydrav1.NewCronServiceServer(resourceCleanupCron{cleanup: cleanup}).
+			ConfigureHandler("RunResourceCleanup", resourcecleanup.RetryPolicy()),
+	)
+}
+
+func runResourceCleanup(t *testing.T, ctx context.Context, tEnv *restatetest.TestEnvironment) {
+	t.Helper()
+	_, err := hydrav1.NewCronServiceIngressClient(tEnv.Ingress(), "resource-cleanup").RunResourceCleanup().Request(ctx, &hydrav1.RunResourceCleanupRequest{})
+	require.NoError(t, err)
+}
 
 func TestDeletionCleansUpOwnedData(t *testing.T) {
 	for _, target := range []string{"environment", "app", "project"} {
@@ -36,27 +80,7 @@ func testDeletionCleansUpOwnedData(t *testing.T, target string) {
 	h := New(t)
 	ctx, cancel := context.WithTimeout(t.Context(), 90*time.Second)
 	defer cancel()
-	auditlogsService, err := auditlogs.New(auditlogs.Config{DB: h.DB})
-	require.NoError(t, err)
-
-	envSvc, err := workerenvironment.New(workerenvironment.Config{
-		DB:        h.DB,
-		Admin:     restateadmin.New(restateadmin.Config{BaseURL: "http://127.0.0.1:9070", APIKey: ""}),
-		Auditlogs: auditlogsService,
-	})
-	require.NoError(t, err)
-
-	projSvc, err := workerproject.New(workerproject.Config{DB: h.DB, Auditlogs: auditlogsService})
-	require.NoError(t, err)
-	appSvc, err := workerapp.New(workerapp.Config{DB: h.DB, Auditlogs: auditlogsService})
-	require.NoError(t, err)
-
-	// Start Restate with all three deletion VOs bound.
-	tEnv := restatetest.Start(t,
-		hydrav1.NewProjectServiceServer(projSvc),
-		hydrav1.NewAppServiceServer(appSvc),
-		hydrav1.NewEnvironmentServiceServer(envSvc),
-	)
+	tEnv := startDeletionRestate(t, h)
 
 	workspaceID := h.Seed.Resources.UserWorkspace.ID
 	now := time.Now().UnixMilli()
@@ -100,7 +124,7 @@ func testDeletionCleansUpOwnedData(t *testing.T, target string) {
 
 	// Region (needed for topology and cilium policies)
 	regionID := uid.New(uid.RegionPrefix)
-	err = h.DB.UpsertRegion(ctx, db.UpsertRegionParams{
+	err := h.DB.UpsertRegion(ctx, db.UpsertRegionParams{
 		ID:       regionID,
 		Name:     "test-cleanup",
 		Platform: "test",
@@ -361,6 +385,7 @@ func testDeletionCleansUpOwnedData(t *testing.T, target string) {
 		t.Fatal(ctx.Err())
 	}
 	require.NoError(t, deleteResource())
+	runResourceCleanup(t, ctx, tEnv)
 
 	for _, c := range checks {
 		want := 0
@@ -387,7 +412,132 @@ func testDeletionCleansUpOwnedData(t *testing.T, target string) {
 	}
 }
 
-//nolint:gosec // queries are test constants, not user input
+func TestResourceCleanupRepairsMissingParents(t *testing.T) {
+	for _, parent := range []string{"environment", "app", "project"} {
+		t.Run(parent, func(t *testing.T) { testResourceCleanupRepairsMissingParent(t, parent) })
+	}
+}
+
+func testResourceCleanupRepairsMissingParent(t *testing.T, parent string) {
+	t.Helper()
+	h := New(t)
+	ctx, cancel := context.WithTimeout(t.Context(), 90*time.Second)
+	defer cancel()
+	tEnv := startDeletionRestate(t, h)
+
+	workspaceID := h.Seed.Resources.UserWorkspace.ID
+	now := time.Now().UnixMilli()
+	deployment := h.CreateDeployment(ctx, CreateDeploymentRequest{Region: uid.DNS1035()})
+	sibling := h.CreateDeployment(ctx, CreateDeploymentRequest{Region: uid.DNS1035()})
+	var firstRegionID string
+	err := h.DB.RO().QueryRowContext(ctx, "SELECT region_id FROM deployment_topology WHERE deployment_id = ?", deployment.ID).Scan(&firstRegionID)
+	require.NoError(t, err)
+	regionIDs := []string{firstRegionID, h.Seed.CreateRegion(ctx, seed.CreateRegionRequest{Name: uid.DNS1035(), Platform: "test"}).ID}
+	require.NoError(t, h.DB.InsertDeploymentTopology(ctx, db.InsertDeploymentTopologyParams{
+		WorkspaceID: workspaceID, DeploymentID: deployment.ID, RegionID: regionIDs[1],
+		AutoscalingReplicasMin: 1, AutoscalingReplicasMax: 1,
+		DesiredStatus: db.DeploymentTopologyDesiredStatusRunning, CreatedAt: now,
+	}))
+	h.Seed.CreateInstance(ctx, seed.CreateInstanceRequest{
+		WorkspaceID: workspaceID, ProjectID: deployment.ProjectID, AppID: deployment.AppID,
+		DeploymentID: deployment.ID, RegionID: regionIDs[0], Address: "10.0.0.1",
+	})
+	require.NoError(t, h.DB.InsertFrontlineRoute(ctx, db.InsertFrontlineRouteParams{
+		ID: uid.New("fr"), ProjectID: deployment.ProjectID, AppID: deployment.AppID, DeploymentID: deployment.ID,
+		EnvironmentID: deployment.EnvironmentID, FullyQualifiedDomainName: uid.DNS1035() + ".example.com",
+		Sticky: db.FrontlineRoutesStickyNone, CreatedAt: now,
+	}))
+	require.NoError(t, h.DB.InsertCiliumNetworkPolicy(ctx, db.InsertCiliumNetworkPolicyParams{
+		ID: uid.New("cnp"), WorkspaceID: workspaceID, ProjectID: deployment.ProjectID, AppID: deployment.AppID,
+		EnvironmentID: deployment.EnvironmentID, DeploymentID: deployment.ID, K8sName: uid.New("k8s"),
+		K8sNamespace: "test-ns", RegionID: regionIDs[0], Policy: []byte("{}"), CreatedAt: now,
+	}))
+	require.NoError(t, h.DB.InsertAppEnvironmentVariable(ctx, db.InsertAppEnvironmentVariableParams{
+		ID: uid.New("aev"), WorkspaceID: workspaceID, AppID: deployment.AppID, EnvironmentID: deployment.EnvironmentID,
+		EnvKey: "TEST_KEY", Value: "test_value", CreatedAt: now,
+	}))
+	require.NoError(t, h.DB.InsertGithubRepoConnection(ctx, db.InsertGithubRepoConnectionParams{
+		WorkspaceID: workspaceID, ProjectID: deployment.ProjectID, AppID: deployment.AppID,
+		InstallationID: 12345, RepositoryID: 67890, RepositoryFullName: "unkeyed/test-repo", CreatedAt: now,
+	}))
+	portalID := uid.New(uid.PortalPrefix)
+	_, err = h.DB.RW().ExecContext(ctx, `INSERT INTO portals (id, workspace_id, project_id, app_id, slug, display_name, created_at)
+		VALUES (?, ?, ?, ?, ?, 'test', 1)`, portalID, workspaceID, deployment.ProjectID, deployment.AppID, portalID)
+	require.NoError(t, err)
+
+	missingEnvironment, missingApp, missingProject := parent == "environment", parent == "app", parent == "project"
+	checks := []struct {
+		query   string
+		arg     string
+		pending bool
+		final   bool
+	}{
+		{"SELECT COUNT(*) FROM deployments WHERE id = ?", deployment.ID, true, false},
+		{"SELECT COUNT(*) FROM instances WHERE deployment_id = ?", deployment.ID, true, false},
+		{"SELECT COUNT(*) FROM frontline_routes WHERE deployment_id = ?", deployment.ID, true, false},
+		{"SELECT COUNT(*) FROM cilium_network_policies WHERE deployment_id = ?", deployment.ID, true, false},
+		{"SELECT COUNT(*) FROM environments WHERE id = ?", deployment.EnvironmentID, !missingEnvironment, false},
+		{"SELECT COUNT(*) FROM app_environment_variables WHERE environment_id = ?", deployment.EnvironmentID, !missingEnvironment, false},
+		{"SELECT COUNT(*) FROM apps WHERE id = ?", deployment.AppID, !missingApp, missingEnvironment},
+		{"SELECT COUNT(*) FROM github_repo_connections WHERE app_id = ?", deployment.AppID, !missingApp, missingEnvironment},
+		{"SELECT COUNT(*) FROM projects WHERE id = ?", deployment.ProjectID, !missingProject, !missingProject},
+		{"SELECT COUNT(*) FROM portals WHERE id = ?", portalID, missingEnvironment, missingEnvironment},
+		{"SELECT COUNT(*) FROM deployment_topology WHERE deployment_id = ? AND desired_status = 'running'", sibling.ID, true, true},
+		{"SELECT COUNT(*) FROM environments WHERE id = ?", sibling.EnvironmentID, true, true},
+	}
+	requireRows := func(final bool) {
+		t.Helper()
+		for _, c := range checks {
+			want := c.pending
+			if final {
+				want = c.final
+			}
+			wantCount := 0
+			if want {
+				wantCount = 1
+			}
+			require.Equal(t, wantCount, countRows(t, ctx, h.DB, c.query, c.arg), "%s [%s]", c.query, c.arg)
+		}
+	}
+
+	switch parent {
+	case "environment":
+		_, err = h.DB.RW().ExecContext(ctx, "DELETE FROM environments WHERE id = ?", deployment.EnvironmentID)
+	case "app":
+		_, err = h.DB.RW().ExecContext(ctx, "DELETE FROM apps WHERE id = ?", deployment.AppID)
+	default:
+		_, err = h.DB.RW().ExecContext(ctx, "DELETE FROM projects WHERE id = ?", deployment.ProjectID)
+	}
+	require.NoError(t, err)
+
+	runResourceCleanup(t, ctx, tEnv)
+	require.Eventually(t, func() bool {
+		return countRows(t, ctx, h.DB, "SELECT COUNT(*) FROM deployment_topology WHERE deployment_id = ? AND desired_status = 'stopped'", deployment.ID) == 2
+	}, 30*time.Second, 25*time.Millisecond)
+	for range 2 {
+		runResourceCleanup(t, ctx, tEnv)
+		requireRows(false)
+	}
+
+	for i, regionID := range regionIDs {
+		require.Equal(t, len(regionIDs)-i, countRows(t, ctx, h.DB, "SELECT COUNT(*) FROM deployment_topology WHERE deployment_id = ?", deployment.ID))
+		runResourceCleanup(t, ctx, tEnv)
+		requireRows(false)
+		removed, err := h.DB.ConfirmDeploymentTopologyRemoval(ctx, db.ConfirmDeploymentTopologyRemovalParams{
+			DeploymentID: deployment.ID, RegionID: regionID,
+		})
+		require.NoError(t, err)
+		require.EqualValues(t, 1, removed)
+	}
+	require.Eventually(t, func() bool {
+		return countRows(t, ctx, h.DB, "SELECT COUNT(*) FROM deployments WHERE environment_id = ?", deployment.EnvironmentID) == 0 &&
+			countRows(t, ctx, h.DB, "SELECT COUNT(*) FROM environments WHERE id = ?", deployment.EnvironmentID) == 0
+	}, 60*time.Second, 100*time.Millisecond)
+
+	runResourceCleanup(t, ctx, tEnv)
+	requireRows(true)
+}
+
 func countRows(t *testing.T, ctx context.Context, database db.Database, query string, args ...any) int {
 	t.Helper()
 	var count int

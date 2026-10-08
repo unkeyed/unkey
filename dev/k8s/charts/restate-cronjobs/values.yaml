@@ -32,6 +32,11 @@ jobs:
     urlPath: "hydra.v1.CronService/audit-log-export/RunAuditLogExport/send"
     idempotencyKey: "audit-log-export-$(date -u +%Y-%m-%dT%H:%M)"
 
+  resource-cleanup:
+    schedule: "* * * * *"
+    urlPath: "hydra.v1.CronService/resource-cleanup/RunResourceCleanup/send"
+    idempotencyKey: "resource-cleanup-$(date -u +%Y-%m-%dT%H:%M)"
+
   # Reconfigures existing workspace ClickHouse users only when the compiled
   # allowed-table fingerprint changes. The fixed VO key stores that fingerprint
   # across worker releases; frequent no-op checks keep rollout latency low.

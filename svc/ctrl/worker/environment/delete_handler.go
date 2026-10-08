@@ -15,6 +15,7 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/internal/audit"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/deploycancel"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/resourcecleanup"
 )
 
 // envDeletedMessage is written on open deployment steps when an
@@ -38,12 +39,8 @@ func topologyRemovalPollInterval(attempt uint) time.Duration {
 	return delay
 }
 
-// Delete removes an environment and all associated resources.
-//
-// In-flight deployments are cancelled first so the cascade below doesn't
-// drop deployment rows out from under workflows that are still mid-build.
-// This handler is the single chokepoint for deployment row deletion;
-// project and app deletes fan out to here via the virtual object cascade.
+// Delete waits for regional shutdown before removing the environment.
+// Ordinary child rows are reclaimed by resourcecleanup, including after manual deletion.
 //
 // Key: environment_id
 func (s *Service) Delete(
@@ -64,9 +61,6 @@ func (s *Service) Delete(
 	}, restate.WithName("find environment"))
 	if err != nil {
 		return nil, fmt.Errorf("find environment: %w", err)
-	}
-	if env == nil {
-		return &hydrav1.DeleteEnvironmentResponse{}, nil
 	}
 	if err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
 		return db.TxRetry(runCtx, s.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
@@ -89,7 +83,7 @@ func (s *Service) Delete(
 		return nil, fmt.Errorf("begin environment deletion: %w", err)
 	}
 
-	if err := s.cancelProgressingDeployments(ctx, *env, req); err != nil {
+	if err := s.cancelProgressingDeployments(ctx, env, req); err != nil {
 		return nil, fmt.Errorf("cancel progressing deployments: %w", err)
 	}
 
@@ -113,66 +107,6 @@ func (s *Service) Delete(
 	}
 
 	if err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
-		return s.db.DeleteCiliumNetworkPoliciesByEnvironmentId(runCtx, envID)
-	}, restate.WithName("delete network policies")); err != nil {
-		return nil, fmt.Errorf("delete network policies: %w", err)
-	}
-
-	if err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
-		return s.db.DeleteCustomDomainsByEnvironmentId(runCtx, envID)
-	}, restate.WithName("delete custom domains")); err != nil {
-		return nil, fmt.Errorf("delete custom domains: %w", err)
-	}
-
-	if err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
-		return s.db.DeleteFrontlineRoutesByEnvironmentId(runCtx, envID)
-	}, restate.WithName("delete frontline routes")); err != nil {
-		return nil, fmt.Errorf("delete frontline routes: %w", err)
-	}
-
-	if err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
-		return s.db.DeleteAppEnvVarsByEnvironmentId(runCtx, envID)
-	}, restate.WithName("delete env vars")); err != nil {
-		return nil, fmt.Errorf("delete env vars: %w", err)
-	}
-
-	if err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
-		return s.db.DeleteAppRegionalSettingsByEnvironmentId(runCtx, envID)
-	}, restate.WithName("delete regional settings")); err != nil {
-		return nil, fmt.Errorf("delete regional settings: %w", err)
-	}
-
-	if err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
-		return s.db.DeleteAppBuildSettingsByEnvironmentId(runCtx, envID)
-	}, restate.WithName("delete build settings")); err != nil {
-		return nil, fmt.Errorf("delete build settings: %w", err)
-	}
-
-	if err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
-		return s.db.DeleteAppRuntimeSettingsByEnvironmentId(runCtx, envID)
-	}, restate.WithName("delete runtime settings")); err != nil {
-		return nil, fmt.Errorf("delete runtime settings: %w", err)
-	}
-
-	if err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
-		return s.db.DeleteDeploymentStepsByEnvironmentId(runCtx, envID)
-	}, restate.WithName("delete deployment steps")); err != nil {
-		return nil, fmt.Errorf("delete deployment steps: %w", err)
-	}
-
-	if err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
-		return s.db.DeleteInstancesByEnvironment(runCtx, envID)
-	}, restate.WithName("delete residual instances")); err != nil {
-		return nil, fmt.Errorf("delete residual instances: %w", err)
-	}
-
-	if err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
-		return db.NewQueries(s.db.RW()).DeleteOpenApiSpecsByEnvironmentId(runCtx, envID)
-	}, restate.WithName("delete openapi specs")); err != nil {
-		return nil, fmt.Errorf("delete openapi specs: %w", err)
-	}
-
-	if err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
 		return s.db.DeleteDeploymentsByEnvironmentId(runCtx, envID)
 	}, restate.WithName("delete deployments")); err != nil {
 		return nil, fmt.Errorf("delete deployments: %w", err)
@@ -182,6 +116,13 @@ func (s *Service) Delete(
 		return s.db.DeleteEnvironmentById(runCtx, envID)
 	}, restate.WithName("delete environment")); err != nil {
 		return nil, fmt.Errorf("delete environment: %w", err)
+	}
+
+	if err := resourcecleanup.Schedule(ctx); err != nil {
+		return nil, fmt.Errorf("schedule resource cleanup: %w", err)
+	}
+	if env == nil {
+		return &hydrav1.DeleteEnvironmentResponse{}, nil
 	}
 
 	// The environment has no display name, so its slug stands in.
@@ -214,12 +155,13 @@ func (s *Service) Delete(
 // Restate invocations running.
 func (s *Service) cancelProgressingDeployments(
 	ctx restate.ObjectContext,
-	env db.Environment,
+	env *db.Environment,
 	req *hydrav1.DeleteEnvironmentRequest,
 ) error {
+	envID := restate.Key(ctx)
 	active, err := restate.Run(ctx, func(runCtx restate.RunContext) ([]db.ListProgressingDeploymentsByEnvironmentIdRow, error) {
 		return s.db.ListProgressingDeploymentsByEnvironmentId(runCtx, db.ListProgressingDeploymentsByEnvironmentIdParams{
-			EnvironmentID:       env.ID,
+			EnvironmentID:       envID,
 			ProgressingStatuses: mysqltype.ProgressingDeploymentStatuses,
 		})
 	}, restate.WithName("list progressing deployments"))
@@ -241,34 +183,27 @@ func (s *Service) cancelProgressingDeployments(
 	}
 
 	logger.Info("cancelling in-flight deployments for environment deletion",
-		"environment_id", env.ID,
+		"environment_id", envID,
 		"count", len(deployments),
 	)
 
+	var cancelAudit *deploycancel.Audit
+	if env != nil {
+		cancelAudit = &deploycancel.Audit{
+			Service: s.auditlogs, Actor: req.GetActor(), CorrelationID: req.GetCorrelationId(), WorkspaceID: env.WorkspaceID,
+			Meta: map[string]any{"projectId": env.ProjectID, "appId": env.AppID, "environmentId": envID},
+		}
+	}
 	return restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
 		return deploycancel.Cancel(runCtx, s.db, s.admin, deploycancel.Params{
 			Deployments: deployments,
 			Reason:      envDeletedMessage,
 			Status:      mysqltype.DeploymentsStatusCancelled,
-			Audit: &deploycancel.Audit{
-				Service:       s.auditlogs,
-				Actor:         req.GetActor(),
-				CorrelationID: req.GetCorrelationId(),
-				WorkspaceID:   env.WorkspaceID,
-				Meta: map[string]any{
-					"projectId":     env.ProjectID,
-					"appId":         env.AppID,
-					"environmentId": env.ID,
-				},
-			},
+			Audit:       cancelAudit,
 		})
 	}, restate.WithName("cancel progressing deployments"))
 }
 
-// cancelDomainVerifications aborts in-flight custom domain verification
-// workflows before the cascade deletes custom_domains rows. Without this,
-// VerifyDomain retries would keep hitting sql.ErrNoRows until the 24-hour
-// retry window expires.
 func (s *Service) cancelDomainVerifications(ctx restate.ObjectContext, envID string) error {
 	domains, err := restate.Run(ctx, func(runCtx restate.RunContext) ([]db.CustomDomain, error) {
 		return s.db.ListCustomDomainsByEnvironmentID(runCtx, envID)

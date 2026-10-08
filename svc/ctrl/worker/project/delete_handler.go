@@ -11,14 +11,9 @@ import (
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/audit"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/resourcecleanup"
 )
 
-// Delete removes a project by delegating all resource cleanup to each
-// app's virtual object, then deleting the project record itself. In-flight
-// deployments are cancelled inside the environment delete handler (the
-// closest owner of deployment rows), which the app -> environment cascade
-// fans out to.
-//
 // The project.delete audit log is written here as a durable step rather than
 // on the enqueueing RPC, so the audit record is tied to the retried unit. The
 // actor and correlation ID are forwarded to each app delete (and on to each
@@ -43,9 +38,6 @@ func (s *Service) Delete(
 	}, restate.WithName("find project"))
 	if err != nil {
 		return nil, fmt.Errorf("find project: %w", err)
-	}
-	if project == nil {
-		return &hydrav1.DeleteProjectResponse{}, nil
 	}
 
 	if err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
@@ -77,15 +69,16 @@ func (s *Service) Delete(
 	}
 
 	if err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
-		return s.db.DeletePortalsByProjectID(runCtx, projectID)
-	}, restate.WithName("delete project portals")); err != nil {
-		return nil, fmt.Errorf("delete project portals: %w", err)
-	}
-
-	if err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
 		return s.db.DeleteProjectById(runCtx, projectID)
 	}, restate.WithName("delete project")); err != nil {
 		return nil, fmt.Errorf("delete project: %w", err)
+	}
+
+	if err := resourcecleanup.Schedule(ctx); err != nil {
+		return nil, fmt.Errorf("schedule resource cleanup: %w", err)
+	}
+	if project == nil {
+		return &hydrav1.DeleteProjectResponse{}, nil
 	}
 
 	if err := audit.Insert(ctx, s.auditlogs, audit.Event{
