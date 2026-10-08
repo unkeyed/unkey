@@ -22,7 +22,7 @@ Use `ratelimit.limit` to check one identifier against one limit. Use `ratelimit.
 
 <RootKeyPrereq />
 
-The root key needs `ratelimit.*.limit` or `ratelimit.<namespace_id>.limit` for every namespace checked. The first call with a new namespace name creates it, which also needs `ratelimit.*.create_namespace`.
+The root key needs `unkey:v1:{workspace_id}:projects/*/ratelimits/namespaces/*#limit` or `unkey:v1:{workspace_id}:projects/{project_id}/ratelimits/namespaces/{namespace_id}#limit` for every namespace checked. The same `#limit` permission covers creation on first use.
 
 ## Namespaces
 

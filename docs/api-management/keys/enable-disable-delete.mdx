@@ -19,7 +19,7 @@ To stop a key from working, disable it or delete it. Disable when it might be te
 
 <RootKeyPrereq />
 
-Disabling and enabling use `keys.updateKey` and need `api.*.update_key` or `api.<api_id>.update_key`. Deleting uses `keys.deleteKey` and needs `api.*.delete_key` or `api.<api_id>.delete_key`. See [Root key permissions](/platform/root-keys/permissions).
+Disabling and enabling use `keys.updateKey` and need `unkey:v1:{workspace_id}:projects/*/keyspaces/*/keys/*#write` or `unkey:v1:{workspace_id}:projects/{project_id}/keyspaces/{keyspace_id}/keys/*#write`. Deleting uses `keys.deleteKey` and needs `unkey:v1:{workspace_id}:projects/*/keyspaces/*/keys/*#delete` or `unkey:v1:{workspace_id}:projects/{project_id}/keyspaces/{keyspace_id}/keys/*#delete`. See [Root key permissions](/platform/root-keys/permissions).
 
 ## Disable or enable a key
 

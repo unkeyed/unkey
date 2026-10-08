@@ -51,9 +51,8 @@ go run ./build/cli dev seed local --slug awesome --portal
 
 Save the root key printed at the end (e.g. `unkey_xxx`).
 
-The portal slug is the value you passed to `--slug` (e.g. `awesome`). Use
-it in `createSession` calls — it's also written to `dev/.env.seed` as
-`UNKEY_PORTAL_SLUG`.
+The seeded portal slug is `awesome`. Use it in `createSession` calls. The
+portal ID is written to `dev/.env.seed` as `UNKEY_PORTAL_ID`.
 
 ---
 
@@ -92,7 +91,7 @@ The portal is port-forwarded to `http://localhost:3100`.
 curl -s -X POST http://localhost:7070/v2/portal.createSession \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer <ROOT_KEY>" \
-  -d '{"slug": "awesome", "externalId": "user_123", "permissions": ["api.*.read_key", "api.*.create_key", "api.*.read_analytics"]}'
+  -d '{"portal": "awesome", "externalId": "user_123", "scopes": ["keys:read", "keys:reroll", "analytics:read"]}'
 ```
 
 Open `http://localhost:3100/?session=pst_xxx` in the browser.
@@ -124,7 +123,7 @@ Runs on `http://localhost:3100`. Port 3100 avoids conflict with the dashboard.
 curl -s -X POST http://localhost:7070/v2/portal.createSession \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer <ROOT_KEY>" \
-  -d '{"slug": "awesome", "externalId": "user_123", "permissions": ["api.*.read_key", "api.*.create_key", "api.*.read_analytics"]}'
+  -d '{"portal": "awesome", "externalId": "user_123", "scopes": ["keys:read", "keys:reroll", "analytics:read"]}'
 ```
 
 Take the `sessionId` from the response and open:
@@ -180,7 +179,7 @@ like `<app-slug>-<env>.unkey.com`.
 curl -s -X POST https://api.unkey.dev/v2/portal.createSession \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer <ROOT_KEY>" \
-  -d '{"slug": "<YOUR_SLUG>", "externalId": "user_123", "permissions": ["api.*.read_key", "api.*.create_key", "api.*.read_analytics"]}'
+  -d '{"portal": "awesome", "externalId": "user_123", "scopes": ["keys:read", "keys:reroll", "analytics:read"]}'
 ```
 
 The response URL always points at the configured `portal_base_url`. Open it in
@@ -219,7 +218,6 @@ drives all generated IDs.
 | Workspace | ID | Purpose |
 |-----------|----|---------|
 | User workspace | `ws_<slug>` | Your working workspace |
-| Root workspace | `ws_unkey` | Unkey internal workspace that owns root keys |
 
 ### Deploy resources (user workspace)
 
@@ -230,9 +228,9 @@ drives all generated IDs.
 
 ### Auth resources
 
-- **Keyspaces**: `ks_<slug>_root_keys` (root, in `ws_unkey`) and `ks_<slug>` (user, in `ws_<slug>`)
-- **APIs**: `api_unkey` (root) and `api_<slug>` (user), each linked to their keyspace
-- **Root key** with all permissions (api, identity, RBAC, ratelimit, workspace, deploy)
+- **Keyspace**: `ks_<slug>` in `ws_<slug>`
+- **API**: `api_<slug>`, linked to the keyspace
+- **Root key** owned by `ws_<slug>` with the workspace-admin grant `unkey:v1:ws_<slug>:**#*`
 
 ### Portal resources (only with `--portal`)
 
@@ -250,7 +248,7 @@ UNKEY_PROJECT_ID=<generated>
 UNKEY_API_ID=api_<slug>
 UNKEY_KEYSPACE_ID=ks_<slug>
 UNKEY_ROOT_KEY=unkey_<generated>
-UNKEY_PORTAL_SLUG=<slug>   # only with --portal
+UNKEY_PORTAL_ID=portal_<slug>   # only with --portal
 ```
 
 You can run the seed multiple times with different slugs to create separate

@@ -75,7 +75,7 @@ Each table also has a maximum age, whatever your plan:
 | Status | Code | Meaning |
 | --- | --- | --- |
 | 412 | `err:unkey:data:analytics_not_configured` | Analytics is not enabled for this workspace yet. See [Analytics](/api-management/analytics/overview). |
-| 403 | `err:unkey:authorization:insufficient_permissions` | The root key lacks `read_analytics` (or `read_gateway_requests` / `read_runtime_logs`) for the endpoint. |
+| 403 | `err:unkey:authorization:insufficient_permissions` | The root key lacks `#read` on the endpoint's log resource. |
 | 503 | `err:unkey:data:analytics_connection_failed` | Analytics is temporarily unavailable. Retry with backoff. |
 
 All errors use the standard [API error format](/platform/api/errors), and each error's `type` field links to its page.

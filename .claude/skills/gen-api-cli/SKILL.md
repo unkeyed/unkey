@@ -179,8 +179,8 @@ Copy the entire OpenAPI path `description` field verbatim, with these adjustment
 - Format permissions as a flat bullet list (no extra indentation):
   ```
   Required permissions:
-  - api.*.create_api
-  - api.<api_id>.create_api
+  - unkey:v1:<workspace_id>:projects/*/keyspaces/*#write
+  - unkey:v1:<workspace_id>:projects/<project_id>/keyspaces/*#write
   ```
 - Do NOT put examples in the Description — use the `Examples` field instead (see below)
 - End the description with a docs link. Look up the correct URL from https://unkey.com/docs/llms.txt — the URLs follow the pattern `https://www.unkey.com/docs/api-reference/v2/{group}/{slug}` but the slugs don't always match the operation ID (e.g., `keys.createKey` → `/v2/keys/create-api-key`). Always verify the URL exists. Format as:

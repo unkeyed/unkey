@@ -543,12 +543,12 @@
       ]
     },
     {
-      "id": "apim.root-key-grammars",
+      "id": "apim.root-key-permissions",
       "product": "api-management",
-      "capability": "root key permissions: the resource.id.action grammar and catalog",
+      "capability": "root key permissions: URN grammar and catalog",
       "pages": [
         "platform/root-keys/permissions",
-        "platform/root-keys/permissions-legacy"
+        "platform/root-keys/permission-reference"
       ]
     },
     {
