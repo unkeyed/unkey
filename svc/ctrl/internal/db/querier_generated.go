@@ -1625,8 +1625,12 @@ type Querier interface {
 	ListAllDeploymentTopologiesByRegion(ctx context.Context, arg ListAllDeploymentTopologiesByRegionParams) ([]ListAllDeploymentTopologiesByRegionRow, error)
 	//ListAppIdsByProject
 	//
-	//  SELECT id FROM apps WHERE project_id = ?
-	ListAppIdsByProject(ctx context.Context, projectID string) ([]string, error)
+	//  SELECT apps.id FROM apps WHERE apps.project_id = ?
+	//  UNION
+	//  SELECT environments.app_id AS id FROM environments WHERE environments.project_id = ?
+	//  UNION
+	//  SELECT deployments.app_id AS id FROM deployments WHERE deployments.project_id = ?
+	ListAppIdsByProject(ctx context.Context, arg ListAppIdsByProjectParams) ([]string, error)
 	// ListClickhouseOutboxByWorkspace returns every outbox row queued for a
 	// workspace, regardless of drainer state. Intended for tests and ad-hoc
 	// inspection (the live drainer uses FindClickhouseOutboxBatch which locks
@@ -1697,8 +1701,10 @@ type Querier interface {
 	ListDeploymentsByEnvironmentIdAndStatus(ctx context.Context, arg ListDeploymentsByEnvironmentIdAndStatusParams) ([]Deployment, error)
 	//ListEnvironmentIdsByApp
 	//
-	//  SELECT id FROM environments WHERE app_id = ?
-	ListEnvironmentIdsByApp(ctx context.Context, appID string) ([]string, error)
+	//  SELECT environments.id FROM environments WHERE environments.app_id = ?
+	//  UNION
+	//  SELECT deployments.environment_id AS id FROM deployments WHERE deployments.app_id = ?
+	ListEnvironmentIdsByApp(ctx context.Context, arg ListEnvironmentIdsByAppParams) ([]string, error)
 	//ListExecutableChallenges
 	//
 	//  SELECT dc.workspace_id, dc.challenge_type, d.domain FROM acme_challenges dc

@@ -1,2 +1,4 @@
 -- name: ListEnvironmentIdsByApp :many
-SELECT id FROM environments WHERE app_id = sqlc.arg(app_id);
+SELECT environments.id FROM environments WHERE environments.app_id = sqlc.arg(app_id)
+UNION
+SELECT deployments.environment_id AS id FROM deployments WHERE deployments.app_id = sqlc.arg(app_id);
