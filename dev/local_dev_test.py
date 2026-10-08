@@ -20,9 +20,10 @@ class LocalDevTest(unittest.TestCase):
         cls.root = Path(cls.temporary.name)
         cls.dev = cls.root / "dev"
         cls.dev.mkdir()
-        for name in ("Tiltfile", "Dockerfile.binary", "Dockerfile.mysql", "Dockerfile.clickhouse", "start-cluster.sh", "stripe-webhook-secret.sh"):
+        for name in ("Tiltfile", "Dockerfile.binary", "04-seed-workspace.sql", "clickhouse-local-admin.sql", "init-clickhouse.sh", "start-cluster.sh", "stripe-webhook-secret.sh"):
             shutil.copyfile(ROOT / "dev" / name, cls.dev / name)
         (cls.dev / "k8s").symlink_to(ROOT / "dev/k8s", target_is_directory=True)
+        (cls.root / "pkg").symlink_to(ROOT / "pkg", target_is_directory=True)
         cls.dashboard_env = cls.root / "web/apps/dashboard/.env"
         cls.dashboard_env.parent.mkdir(parents=True)
         cls.bin = cls.root / "mock-bin"
@@ -226,14 +227,17 @@ class LocalDevTest(unittest.TestCase):
             "krane": {"cilium-policies", "node-labels", "rbac", "ctrl-api", "registry", "topolvm-storageclass", "krane-compile"},
             "topolvm-storageclass": {"topolvm-controller", "topolvm-node", "topolvm-lvmd-0"},
             "ctrl-api": {"mysql", "clickhouse", "restate", "vault", "rbac", "control-api-compile"},
-            "ctrl-worker": {"mysql", "clickhouse", "restate", "registry", "rbac", "control-worker-compile"},
+            "ctrl-worker": {"mysql", "clickhouse", "restate", "registry", "rbac", "vault", "control-worker-compile"},
             "rbac": {"namespace"},
+            "prometheus": {"namespace"},
+            "otel-collector": {"namespace"},
         }
         for name, dependencies in required.items():
             with self.subTest(resource=name):
                 self.assertTrue(dependencies <= set(self.default[name]["ResourceDependencies"]))
         for name in ("topolvm-controller", "topolvm-node", "topolvm-lvmd-0"):
             self.assertIn("topolvm-vg", self.default[name]["ResourceDependencies"])
+            self.assertIn("uncategorized", self.default[name]["ResourceDependencies"])
         for name in ("mysql", "clickhouse", "redis", "s3", "restate"):
             self.assertIn("namespace", self.default[name]["ResourceDependencies"])
         for name in ("cilium-ready", "hubble", "topolvm-vg"):
@@ -242,6 +246,77 @@ class LocalDevTest(unittest.TestCase):
         self.assertNotIn("cilium-network-policy-crd", self.default)
         self.assertNotIn("cilium-ready", self.orb)
         self.assertIn("cilium-network-policy-crd", self.orb["krane"]["ResourceDependencies"])
+
+    def test_local_updates_do_not_hold_a_global_lock(self):
+        for manifests in (self.default, self.orb, self.github, self.stripe):
+            for name, manifest in manifests.items():
+                target = manifest["DeployTarget"]
+                if "UpdateCmdSpec" in target:
+                    with self.subTest(resource=name):
+                        self.assertTrue(target["AllowParallel"])
+        self.assertEqual(self.default["seed"]["ResourceDependencies"], ["mysql", "seed-compile"])
+        self.assertFalse(self.default["seed-compile"]["ResourceDependencies"])
+        self.assertIn("go build", " ".join(self.update_command(self.default, "seed-compile")))
+        self.assertNotIn("go run", " ".join(self.update_command(self.default, "seed")))
+
+    def test_namespaced_objects_deploy_with_their_consumers(self):
+        for name in ("api", "ctrl-api", "ctrl-worker", "vault", "frontline", "krane", "logdrain", "s3", "prometheus", "vector-logs"):
+            with self.subTest(resource=name):
+                documents = self.default[name]["DeployTarget"]["yaml"].split("\n---\n")
+                self.assertTrue(any(
+                    "kind: ConfigMap\n" in document and f"\n  name: {name}-config\n" in document
+                    for document in documents
+                ))
+        for name in ("s3", "restate"):
+            self.assertIn("kind: PersistentVolumeClaim", self.default[name]["DeployTarget"]["yaml"])
+        uncategorized = self.default["uncategorized"]["DeployTarget"]["yaml"]
+        for document in uncategorized.split("\n---\n"):
+            if any(f"kind: {kind}" in document.splitlines() for kind in ("ConfigMap", "PersistentVolumeClaim", "ServiceAccount")):
+                self.assertNotIn("\n  namespace: unkey\n", document)
+                self.assertNotIn("\n  namespace: frontline\n", document)
+
+    def test_database_images_are_pulled_without_local_builds(self):
+        for name, schema_path, image in (
+            ("mysql", "/schema/unkey", "vitess/vttestserver:v24.0.3-mysql80@sha256:"),
+            ("clickhouse", "/opt/clickhouse-schemas", "clickhouse/clickhouse-server:26.2.1.1139@sha256:"),
+        ):
+            with self.subTest(database=name):
+                manifest = self.default[name]
+                self.assertEqual(manifest["ImageTargets"], [])
+                yaml = manifest["DeployTarget"]["yaml"]
+                self.assertIn(image, yaml)
+                self.assertIn(f"mountPath: {schema_path}", yaml)
+                self.assertIn(f"name: {name}-schema", yaml)
+                self.assertIn("kind: ConfigMap", yaml)
+        mysql_yaml = self.default["mysql"]["DeployTarget"]["yaml"]
+        self.assertIn("zzz-seed.sql:", mysql_yaml)
+        self.assertNotIn("USE unkey;", mysql_yaml)
+        self.assertIn("--persistent_mode", mysql_yaml)
+        self.assertIn("--data_dir=/vt/vtdataroot", mysql_yaml)
+        readiness = self.default["clickhouse"]["DeployTarget"]["yaml"].split("readinessProbe:")[1].split("resources:")[0]
+        self.assertIn("httpGet:", readiness)
+        self.assertIn("path: /ping", readiness)
+        self.assertNotIn("initialDelaySeconds:", readiness)
+
+    def test_database_input_changes_roll_pods_without_image_builds(self):
+        paths = [self.dev / "04-seed-workspace.sql", self.dev / "init-clickhouse.sh"]
+        originals = [path.read_text() for path in paths]
+        try:
+            for path, original in zip(paths, originals):
+                path.write_text(original + "\n")
+            changed, _ = self.evaluate()
+        finally:
+            for path, original in zip(paths, originals):
+                path.write_text(original)
+        for name in ("mysql", "clickhouse"):
+            with self.subTest(database=name):
+                old_yaml = self.default[name]["DeployTarget"]["yaml"]
+                new_yaml = changed[name]["DeployTarget"]["yaml"]
+                self.assertIn("      annotations:\n        checksum/init:", new_yaml)
+                old_checksum = next(line for line in old_yaml.splitlines() if "checksum/init:" in line)
+                new_checksum = next(line for line in new_yaml.splitlines() if "checksum/init:" in line)
+                self.assertNotEqual(old_checksum, new_checksum)
+                self.assertEqual(changed[name]["ImageTargets"], [])
 
     def test_every_cron_waits_for_the_worker(self):
         crons = {
@@ -324,6 +399,7 @@ class LocalDevTest(unittest.TestCase):
         self.assertIn('"--wait=apiserver,kubelet,node_ready"', cluster)
         self.assertIn('"--cni=cilium"', cluster)
         self.assertIn('"--addons=metrics-server"', cluster)
+        self.assertIn('"--extra-config=kubelet.serialize-image-pulls=false"', cluster)
 
     def test_orb_forwards_resource_selection_and_preserves_network_mode(self):
         result = self.command(["bash", str(ROOT / ".mise/tasks/dev-orb"), "api"], cwd=self.root, PORT="10350")
@@ -337,6 +413,7 @@ class LocalDevTest(unittest.TestCase):
         cluster = (ROOT / "dev/cluster.orb.yaml").read_text()
         self.assertIn('"--wait=apiserver,kubelet,node_ready"', cluster)
         self.assertIn('"--cni=bridge"', cluster)
+        self.assertIn('"--extra-config=kubelet.serialize-image-pulls=false"', cluster)
 
     def test_existing_clusters_are_never_reapplied_or_recreated(self):
         for stopped in (False, True):

@@ -38,8 +38,17 @@ spec:
         fsGroup: 999
       containers:
         - name: mysql
-          image: unkey/mysql:local
-          imagePullPolicy: Never
+          image: vitess/vttestserver:v24.0.3-mysql80@sha256:230586284ba936139d0f9afb3e7ef8d2494e0fc752cc6ed3f243bcc5082ef485
+          command: ["/vt/bin/vttestserver"]
+          args:
+            - "--port=33574"
+            - "--keyspaces=unkey"
+            - "--num_shards=1"
+            - "--mysql_bind_host=0.0.0.0"
+            - "--vtcombo-bind-host=0.0.0.0"
+            - "--schema_dir=/schema"
+            - "--persistent_mode"
+            - "--data_dir=/vt/vtdataroot"
           ports:
             - name: mysql
               containerPort: 33577
@@ -48,6 +57,9 @@ spec:
           volumeMounts:
             - name: vitess-storage
               mountPath: /vt/vtdataroot
+            - name: mysql-schema
+              mountPath: /schema/unkey
+              readOnly: true
           startupProbe:
             exec:
               command: [
@@ -86,6 +98,9 @@ spec:
         - name: vitess-storage
           persistentVolumeClaim:
             claimName: vitess-pvc
+        - name: mysql-schema
+          configMap:
+            name: mysql-schema
 
 ---
 apiVersion: v1
