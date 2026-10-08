@@ -8,7 +8,10 @@ import (
 
 	"github.com/stretchr/testify/require"
 	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
+	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_environments_get_environment"
@@ -24,7 +27,7 @@ func TestGetEnvironmentNotFound(t *testing.T) {
 
 	t.Run("unknown environment id returns 404", func(t *testing.T) {
 		req := handler.Request{Project: uid.New(uid.ProjectPrefix), App: uid.New(uid.AppPrefix), Environment: uid.New(uid.EnvironmentPrefix)}
-		rootKey := h.CreateRootKey(workspace.ID, fmt.Sprintf("unkey:v1:%s:projects/%s/apps/%s/environments/%s#read", workspace.ID, req.Project, req.App, req.Environment))
+		rootKey := h.CreateRootKey(workspace.ID, rbac.U(urn.New().Workspace(workspace.ID).Project(req.Project).App(req.App).Environment(req.Environment), permissions.Read).Value)
 		headers := http.Header{
 			"Content-Type":  {"application/json"},
 			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
@@ -60,7 +63,7 @@ func TestGetEnvironmentNotFound(t *testing.T) {
 			Description: "Theirs",
 		})
 
-		rootKey := h.CreateRootKey(workspace.ID, fmt.Sprintf("unkey:v1:%s:projects/%s/apps/%s/environments/%s#read", workspace.ID, otherProject.ID, otherApp.ID, otherEnvironment.ID))
+		rootKey := h.CreateRootKey(workspace.ID, rbac.U(urn.New().Workspace(workspace.ID).Project(otherProject.ID).App(otherApp.ID).Environment(otherEnvironment.ID), permissions.Read).Value)
 		headers := http.Header{
 			"Content-Type":  {"application/json"},
 			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
