@@ -17,7 +17,7 @@ const fieldBaseClasses =
 const fieldFrameVariants = cva(
   [
     "relative isolate block w-full",
-    "before:absolute before:inset-px before:-z-10 before:rounded-[calc(var(--radius-lg)-1px)] before:bg-raised before:shadow-xs dark:before:hidden",
+    "before:absolute before:inset-px before:-z-10 before:rounded-[calc(var(--radius-lg)-1px)] before:bg-raised before:shadow-[0_1px_2px_0_rgb(0_0_0/0.07)] dark:before:hidden",
     "after:pointer-events-none after:absolute after:inset-0 after:rounded-lg after:ring-transparent after:ring-inset focus-within:after:ring-2",
     "has-disabled:opacity-50 has-disabled:before:bg-grayA-2 has-disabled:before:shadow-none",
     "has-aria-invalid:before:shadow-error-9/10 has-aria-invalid:focus-within:after:ring-error-8",
