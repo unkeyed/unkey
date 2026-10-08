@@ -18,11 +18,13 @@ import (
 
 func TestWatch_VitessDeletesFilteringAndResume(t *testing.T) {
 	for _, test := range []struct {
-		name  string
-		query string
+		name     string
+		query    string
+		expected []string
 	}{
-		{name: "soft delete", query: "UPDATE deployment_topology SET desired_status = 'stopped' WHERE region_id IN (?, ?)"},
-		{name: "hard delete", query: "DELETE FROM deployment_topology WHERE region_id IN (?, ?)"},
+		{name: "soft delete", query: "UPDATE deployment_topology SET desired_status = 'stopped', updated_at = 2 WHERE region_id IN (?, ?)", expected: []string{"included", "historical", "included", "historical"}},
+		{name: "hard delete", query: "DELETE FROM deployment_topology WHERE region_id IN (?, ?)", expected: []string{"included", "historical", "included", "historical"}},
+		{name: "touch stopped", query: "UPDATE deployment_topology SET updated_at = 2 WHERE desired_status = 'stopped' AND region_id IN (?, ?)", expected: []string{"included", "historical", "historical"}},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			vitess := containers.Vitess(t)
@@ -49,23 +51,24 @@ func TestWatch_VitessDeletesFilteringAndResume(t *testing.T) {
 			err = client.Watch(ctx, region, nil, func(event Event) error {
 				if event.DeploymentID != "" {
 					require.Empty(t, event.ResumeToken)
+					require.Equal(t, updated, event.HasBefore)
 					delivered = append(delivered, event.DeploymentID)
 					return nil
 				}
 				require.NotEmpty(t, event.ResumeToken)
 				token = event.ResumeToken
-				if len(delivered) == 1 && !updated {
+				if len(delivered) == 2 && !updated {
 					updated = true
 					_, err := database.ExecContext(ctx, test.query, region, region+"_other")
 					return err
 				}
-				if len(delivered) >= 2 {
+				if len(delivered) >= len(test.expected) {
 					cancel()
 				}
 				return nil
 			})
 			require.ErrorIs(t, err, context.Canceled)
-			require.Equal(t, []string{"included", "included"}, delivered, "deletion must emit the matching deployment ID, but not stopped or other-region IDs")
+			require.Equal(t, test.expected, delivered, "stopped-row updates must be delivered while other regions stay excluded")
 			require.NotEmpty(t, token)
 
 			resumeCtx, resumeCancel := context.WithTimeout(t.Context(), 30*time.Second)
@@ -74,21 +77,24 @@ func TestWatch_VitessDeletesFilteringAndResume(t *testing.T) {
 			require.ErrorIs(t, err, cdc.ErrInvalidToken)
 			_, err = database.ExecContext(resumeCtx, `INSERT INTO deployment_topology
 		(workspace_id, deployment_id, region_id, desired_status, created_at)
-		VALUES ('test', 'while_offline', ?, 'running', 2)`, region)
+		VALUES ('test', 'while_offline', ?, 'stopped', 2)`, region)
+			require.NoError(t, err)
+			_, err = database.ExecContext(resumeCtx, "UPDATE deployment_topology SET updated_at = 3 WHERE region_id = ? AND deployment_id = 'while_offline'", region)
 			require.NoError(t, err)
 			delivered = nil
 			err = client.Watch(resumeCtx, region, token, func(event Event) error {
 				if event.DeploymentID != "" {
+					require.Equal(t, len(delivered) > 0, event.HasBefore)
 					delivered = append(delivered, event.DeploymentID)
 					return nil
 				}
-				if len(delivered) > 0 {
+				if len(delivered) == 2 {
 					resumeCancel()
 				}
 				return nil
 			})
 			require.ErrorIs(t, err, context.Canceled)
-			require.Equal(t, []string{"while_offline"}, delivered, "resume must not copy the existing rows again")
+			require.Equal(t, []string{"while_offline", "while_offline"}, delivered, "resume must deliver stopped-row updates without copying existing history")
 		})
 	}
 }

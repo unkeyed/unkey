@@ -18,8 +18,8 @@ import (
 // database. Unhandled desired states result in CodeInternal.
 //
 // Returns CodeUnauthenticated if bearer token is invalid, CodeInvalidArgument if
-// the cluster key is missing, CodeNotFound if the cluster or deployment does not
-// exist, or CodeInternal for database errors or unhandled states.
+// the cluster key is missing, CodeFailedPrecondition if the cluster is not registered,
+// CodeNotFound if the deployment topology does not exist, or CodeInternal for database errors.
 func (s *Service) GetDesiredDeploymentState(ctx context.Context, req *connect.Request[ctrlv1.GetDesiredDeploymentStateRequest]) (*connect.Response[ctrlv1.DeploymentState], error) {
 
 	if err := auth.Authenticate(req, s.bearer); err != nil {

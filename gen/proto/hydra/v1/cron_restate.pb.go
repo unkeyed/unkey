@@ -59,6 +59,8 @@ type CronServiceClient interface {
 	// stays bounded. Stateless; key is the fixed slug "audit-log-outbox-cleanup"
 	// so a paused or stuck invocation cannot block other handlers. Daily schedule.
 	RunAuditLogOutboxCleanup(opts ...sdk_go.ClientOption) sdk_go.Client[*RunAuditLogOutboxCleanupRequest, *RunAuditLogOutboxCleanupResponse]
+	// Key = "resource-cleanup". Periodic scans also repair manual parent deletions.
+	RunResourceCleanup(opts ...sdk_go.ClientOption) sdk_go.Client[*RunResourceCleanupRequest, *RunResourceCleanupResponse]
 	// RunDeployBillingPush computes month-to-date Deploy usage (CPU, memory,
 	// egress, disk, active keys) from ClickHouse, fans out one
 	// DeployBillingPushService.PushWorkspaceUsage invocation per billable
@@ -171,6 +173,14 @@ func (c *cronServiceClient) RunAuditLogOutboxCleanup(opts ...sdk_go.ClientOption
 	return sdk_go.WithRequestType[*RunAuditLogOutboxCleanupRequest](sdk_go.Object[*RunAuditLogOutboxCleanupResponse](c.ctx, "hydra.v1.CronService", c.key, "RunAuditLogOutboxCleanup", cOpts...))
 }
 
+func (c *cronServiceClient) RunResourceCleanup(opts ...sdk_go.ClientOption) sdk_go.Client[*RunResourceCleanupRequest, *RunResourceCleanupResponse] {
+	cOpts := c.options
+	if len(opts) > 0 {
+		cOpts = append(append([]sdk_go.ClientOption{}, cOpts...), opts...)
+	}
+	return sdk_go.WithRequestType[*RunResourceCleanupRequest](sdk_go.Object[*RunResourceCleanupResponse](c.ctx, "hydra.v1.CronService", c.key, "RunResourceCleanup", cOpts...))
+}
+
 func (c *cronServiceClient) RunDeployBillingPush(opts ...sdk_go.ClientOption) sdk_go.Client[*RunDeployBillingPushRequest, *RunDeployBillingPushResponse] {
 	cOpts := c.options
 	if len(opts) > 0 {
@@ -258,6 +268,8 @@ type CronServiceIngressClient interface {
 	// stays bounded. Stateless; key is the fixed slug "audit-log-outbox-cleanup"
 	// so a paused or stuck invocation cannot block other handlers. Daily schedule.
 	RunAuditLogOutboxCleanup() ingress.Requester[*RunAuditLogOutboxCleanupRequest, *RunAuditLogOutboxCleanupResponse]
+	// Key = "resource-cleanup". Periodic scans also repair manual parent deletions.
+	RunResourceCleanup() ingress.Requester[*RunResourceCleanupRequest, *RunResourceCleanupResponse]
 	// RunDeployBillingPush computes month-to-date Deploy usage (CPU, memory,
 	// egress, disk, active keys) from ClickHouse, fans out one
 	// DeployBillingPushService.PushWorkspaceUsage invocation per billable
@@ -352,6 +364,11 @@ func (c *cronServiceIngressClient) RunAuditLogOutboxCleanup() ingress.Requester[
 	return ingress.NewRequester[*RunAuditLogOutboxCleanupRequest, *RunAuditLogOutboxCleanupResponse](c.client, c.serviceName, "RunAuditLogOutboxCleanup", &c.key, &codec)
 }
 
+func (c *cronServiceIngressClient) RunResourceCleanup() ingress.Requester[*RunResourceCleanupRequest, *RunResourceCleanupResponse] {
+	codec := encoding.ProtoJSONCodec
+	return ingress.NewRequester[*RunResourceCleanupRequest, *RunResourceCleanupResponse](c.client, c.serviceName, "RunResourceCleanup", &c.key, &codec)
+}
+
 func (c *cronServiceIngressClient) RunDeployBillingPush() ingress.Requester[*RunDeployBillingPushRequest, *RunDeployBillingPushResponse] {
 	codec := encoding.ProtoJSONCodec
 	return ingress.NewRequester[*RunDeployBillingPushRequest, *RunDeployBillingPushResponse](c.client, c.serviceName, "RunDeployBillingPush", &c.key, &codec)
@@ -435,6 +452,8 @@ type CronServiceServer interface {
 	// stays bounded. Stateless; key is the fixed slug "audit-log-outbox-cleanup"
 	// so a paused or stuck invocation cannot block other handlers. Daily schedule.
 	RunAuditLogOutboxCleanup(ctx sdk_go.ObjectContext, req *RunAuditLogOutboxCleanupRequest) (*RunAuditLogOutboxCleanupResponse, error)
+	// Key = "resource-cleanup". Periodic scans also repair manual parent deletions.
+	RunResourceCleanup(ctx sdk_go.ObjectContext, req *RunResourceCleanupRequest) (*RunResourceCleanupResponse, error)
 	// RunDeployBillingPush computes month-to-date Deploy usage (CPU, memory,
 	// egress, disk, active keys) from ClickHouse, fans out one
 	// DeployBillingPushService.PushWorkspaceUsage invocation per billable
@@ -510,6 +529,9 @@ func (UnimplementedCronServiceServer) RunRatelimitGlobalCountersCleanup(ctx sdk_
 func (UnimplementedCronServiceServer) RunAuditLogOutboxCleanup(ctx sdk_go.ObjectContext, req *RunAuditLogOutboxCleanupRequest) (*RunAuditLogOutboxCleanupResponse, error) {
 	return nil, sdk_go.ToTerminalError(fmt.Errorf("method RunAuditLogOutboxCleanup not implemented"), sdk_go.WithErrorCode(501))
 }
+func (UnimplementedCronServiceServer) RunResourceCleanup(ctx sdk_go.ObjectContext, req *RunResourceCleanupRequest) (*RunResourceCleanupResponse, error) {
+	return nil, sdk_go.ToTerminalError(fmt.Errorf("method RunResourceCleanup not implemented"), sdk_go.WithErrorCode(501))
+}
 func (UnimplementedCronServiceServer) RunDeployBillingPush(ctx sdk_go.ObjectContext, req *RunDeployBillingPushRequest) (*RunDeployBillingPushResponse, error) {
 	return nil, sdk_go.ToTerminalError(fmt.Errorf("method RunDeployBillingPush not implemented"), sdk_go.WithErrorCode(501))
 }
@@ -556,6 +578,7 @@ func NewCronServiceServer(srv CronServiceServer, opts ...sdk_go.ServiceDefinitio
 	router = router.Handler("RunAuditLogExport", sdk_go.NewObjectHandler(srv.RunAuditLogExport))
 	router = router.Handler("RunRatelimitGlobalCountersCleanup", sdk_go.NewObjectHandler(srv.RunRatelimitGlobalCountersCleanup))
 	router = router.Handler("RunAuditLogOutboxCleanup", sdk_go.NewObjectHandler(srv.RunAuditLogOutboxCleanup))
+	router = router.Handler("RunResourceCleanup", sdk_go.NewObjectHandler(srv.RunResourceCleanup))
 	router = router.Handler("RunDeployBillingPush", sdk_go.NewObjectHandler(srv.RunDeployBillingPush))
 	router = router.Handler("RunScaleDownIdlePreviewDeployments", sdk_go.NewObjectHandler(srv.RunScaleDownIdlePreviewDeployments))
 	router = router.Handler("RunDeployBillingClose", sdk_go.NewObjectHandler(srv.RunDeployBillingClose))

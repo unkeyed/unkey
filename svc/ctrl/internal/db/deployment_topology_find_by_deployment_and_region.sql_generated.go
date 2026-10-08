@@ -15,6 +15,12 @@ import (
 const findDeploymentTopologyByDeploymentAndRegion = `-- name: FindDeploymentTopologyByDeploymentAndRegion :one
 SELECT
     dt.desired_status,
+    CAST((p.id IS NULL OR a.id IS NULL OR e.id IS NULL
+      OR p.deleting_at IS NOT NULL OR a.deleting_at IS NOT NULL OR e.deleting_at IS NOT NULL) AS SIGNED) AS removal_required,
+    CAST((dt.desired_status = 'stopped' AND (
+      (d.desired_state = 'stopped' AND d.status <> 'stopped')
+      OR EXISTS (SELECT 1 FROM instances i WHERE i.deployment_id = dt.deployment_id AND i.region_id = dt.region_id)
+    )) AS SIGNED) AS status_repair_required,
     dt.autoscaling_replicas_min,
     dt.autoscaling_replicas_max,
     dt.autoscaling_threshold_cpu,
@@ -39,14 +45,16 @@ SELECT
     d.shutdown_signal,
     d.healthcheck,
     w.k8s_namespace,
-    e.slug AS environment_slug,
+    COALESCE(e.slug, '') AS environment_slug,
     r.name AS region_name,
     grc.repository_full_name AS git_repo
 FROM ` + "`" + `deployment_topology` + "`" + ` dt
 INNER JOIN ` + "`" + `deployments` + "`" + ` d ON d.id = dt.deployment_id
 INNER JOIN ` + "`" + `workspaces` + "`" + ` w ON w.id = d.workspace_id
 INNER JOIN ` + "`" + `regions` + "`" + ` r ON r.id = dt.region_id
-INNER JOIN ` + "`" + `environments` + "`" + ` e ON e.id = d.environment_id
+LEFT JOIN ` + "`" + `projects` + "`" + ` p ON p.id = d.project_id
+LEFT JOIN ` + "`" + `apps` + "`" + ` a ON a.id = d.app_id
+LEFT JOIN ` + "`" + `environments` + "`" + ` e ON e.id = d.environment_id
 LEFT JOIN ` + "`" + `github_repo_connections` + "`" + ` grc ON grc.app_id = d.app_id
 WHERE dt.deployment_id = ? AND dt.region_id = ?
 LIMIT 1
@@ -59,6 +67,8 @@ type FindDeploymentTopologyByDeploymentAndRegionParams struct {
 
 type FindDeploymentTopologyByDeploymentAndRegionRow struct {
 	DesiredStatus                 DeploymentTopologyDesiredStatus `db:"desired_status"`
+	RemovalRequired               int64                           `db:"removal_required"`
+	StatusRepairRequired          int64                           `db:"status_repair_required"`
 	AutoscalingReplicasMin        uint32                          `db:"autoscaling_replicas_min"`
 	AutoscalingReplicasMax        uint32                          `db:"autoscaling_replicas_max"`
 	AutoscalingThresholdCpu       sql.NullInt16                   `db:"autoscaling_threshold_cpu"`
@@ -93,6 +103,12 @@ type FindDeploymentTopologyByDeploymentAndRegionRow struct {
 //
 //	SELECT
 //	    dt.desired_status,
+//	    CAST((p.id IS NULL OR a.id IS NULL OR e.id IS NULL
+//	      OR p.deleting_at IS NOT NULL OR a.deleting_at IS NOT NULL OR e.deleting_at IS NOT NULL) AS SIGNED) AS removal_required,
+//	    CAST((dt.desired_status = 'stopped' AND (
+//	      (d.desired_state = 'stopped' AND d.status <> 'stopped')
+//	      OR EXISTS (SELECT 1 FROM instances i WHERE i.deployment_id = dt.deployment_id AND i.region_id = dt.region_id)
+//	    )) AS SIGNED) AS status_repair_required,
 //	    dt.autoscaling_replicas_min,
 //	    dt.autoscaling_replicas_max,
 //	    dt.autoscaling_threshold_cpu,
@@ -117,14 +133,16 @@ type FindDeploymentTopologyByDeploymentAndRegionRow struct {
 //	    d.shutdown_signal,
 //	    d.healthcheck,
 //	    w.k8s_namespace,
-//	    e.slug AS environment_slug,
+//	    COALESCE(e.slug, '') AS environment_slug,
 //	    r.name AS region_name,
 //	    grc.repository_full_name AS git_repo
 //	FROM `deployment_topology` dt
 //	INNER JOIN `deployments` d ON d.id = dt.deployment_id
 //	INNER JOIN `workspaces` w ON w.id = d.workspace_id
 //	INNER JOIN `regions` r ON r.id = dt.region_id
-//	INNER JOIN `environments` e ON e.id = d.environment_id
+//	LEFT JOIN `projects` p ON p.id = d.project_id
+//	LEFT JOIN `apps` a ON a.id = d.app_id
+//	LEFT JOIN `environments` e ON e.id = d.environment_id
 //	LEFT JOIN `github_repo_connections` grc ON grc.app_id = d.app_id
 //	WHERE dt.deployment_id = ? AND dt.region_id = ?
 //	LIMIT 1
@@ -133,6 +151,8 @@ func (q *Queries) FindDeploymentTopologyByDeploymentAndRegion(ctx context.Contex
 	var i FindDeploymentTopologyByDeploymentAndRegionRow
 	err := row.Scan(
 		&i.DesiredStatus,
+		&i.RemovalRequired,
+		&i.StatusRepairRequired,
 		&i.AutoscalingReplicasMin,
 		&i.AutoscalingReplicasMax,
 		&i.AutoscalingThresholdCpu,
