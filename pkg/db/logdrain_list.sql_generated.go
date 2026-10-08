@@ -13,26 +13,26 @@ const listLogdrains = `-- name: ListLogdrains :many
 SELECT pk, id, workspace_id, name, stream, config, status, consecutive_failures,
   committed_offset_inserted_at, committed_offset_event_id, next_attempt_at,
   lease_id, fencing_token, lease_expires_at, created_at, updated_at
-FROM logdrains WHERE workspace_id = ? AND id > ?
+FROM logdrains WHERE workspace_id = ? AND id >= ?
 ORDER BY id ASC LIMIT ?
 `
 
 type ListLogdrainsParams struct {
 	WorkspaceID string `db:"workspace_id"`
-	AfterID     string `db:"after_id"`
+	IDCursor    string `db:"id_cursor"`
 	Limit       int32  `db:"limit"`
 }
 
 // Stable ID ordering supports pagination without crossing the workspace boundary.
-// Fetch one extra row to determine whether another page exists.
+// The inclusive cursor is the first candidate of the next page.
 //
 //	SELECT pk, id, workspace_id, name, stream, config, status, consecutive_failures,
 //	  committed_offset_inserted_at, committed_offset_event_id, next_attempt_at,
 //	  lease_id, fencing_token, lease_expires_at, created_at, updated_at
-//	FROM logdrains WHERE workspace_id = ? AND id > ?
+//	FROM logdrains WHERE workspace_id = ? AND id >= ?
 //	ORDER BY id ASC LIMIT ?
 func (q *Queries) ListLogdrains(ctx context.Context, db DBTX, arg ListLogdrainsParams) ([]Logdrain, error) {
-	rows, err := db.QueryContext(ctx, listLogdrains, arg.WorkspaceID, arg.AfterID, arg.Limit)
+	rows, err := db.QueryContext(ctx, listLogdrains, arg.WorkspaceID, arg.IDCursor, arg.Limit)
 	if err != nil {
 		return nil, err
 	}
