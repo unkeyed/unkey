@@ -1,5 +1,6 @@
 import { relations } from "drizzle-orm";
 import {
+  bigint,
   boolean,
   index,
   mysqlEnum,
@@ -34,6 +35,7 @@ export const apps = mysqlTable(
 
     ...deleteProtection,
     ...lifecycleDates,
+    deletingAt: bigint("deleting_at", { mode: "number" }),
   },
   (table) => [
     uniqueIndex("apps_project_slug_idx").on(table.projectId, table.slug),

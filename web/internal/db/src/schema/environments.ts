@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { index, mysqlEnum, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
+import { bigint, index, mysqlEnum, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
 import { apps } from "./apps";
 import { deleteProtection } from "./util/delete_protection";
 import { lifecycleDates } from "./util/lifecycle_dates";
@@ -24,6 +24,7 @@ export const environments = mysqlTable(
 
     ...deleteProtection,
     ...lifecycleDates,
+    deletingAt: bigint("deleting_at", { mode: "number" }),
   },
   (table) => [
     uniqueIndex("environments_app_slug_idx").on(table.appId, table.slug),

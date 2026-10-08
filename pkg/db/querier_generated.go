@@ -208,7 +208,7 @@ type Querier interface {
 	FindAppBuildSettingByAppEnv(ctx context.Context, db DBTX, arg FindAppBuildSettingByAppEnvParams) (AppBuildSetting, error)
 	//FindAppById
 	//
-	//  SELECT apps.pk, apps.id, apps.workspace_id, apps.project_id, apps.name, apps.slug, apps.source_type, apps.current_deployment_id, apps.is_rolled_back, apps.delete_protection, apps.created_at, apps.updated_at
+	//  SELECT apps.pk, apps.id, apps.workspace_id, apps.project_id, apps.name, apps.slug, apps.source_type, apps.current_deployment_id, apps.is_rolled_back, apps.delete_protection, apps.created_at, apps.updated_at, apps.deleting_at
 	//  FROM apps
 	//  WHERE id = ?
 	FindAppById(ctx context.Context, db DBTX, id string) (App, error)
@@ -230,7 +230,7 @@ type Querier interface {
 	FindAppByIdAndWorkspace(ctx context.Context, db DBTX, arg FindAppByIdAndWorkspaceParams) (FindAppByIdAndWorkspaceRow, error)
 	//FindAppByProjectAndIdOrSlug
 	//
-	//  SELECT a.pk, a.id, a.workspace_id, a.project_id, a.name, a.slug, a.source_type, a.current_deployment_id, a.is_rolled_back, a.delete_protection, a.created_at, a.updated_at
+	//  SELECT a.pk, a.id, a.workspace_id, a.project_id, a.name, a.slug, a.source_type, a.current_deployment_id, a.is_rolled_back, a.delete_protection, a.created_at, a.updated_at, a.deleting_at
 	//  FROM apps a
 	//  JOIN projects p ON a.project_id = p.id AND a.workspace_id = p.workspace_id
 	//  WHERE a.workspace_id = ?
@@ -441,13 +441,13 @@ type Querier interface {
 	FindEnvironmentByAppIdAndSlug(ctx context.Context, db DBTX, arg FindEnvironmentByAppIdAndSlugParams) (FindEnvironmentByAppIdAndSlugRow, error)
 	//FindEnvironmentById
 	//
-	//  SELECT environments.pk, environments.id, environments.workspace_id, environments.project_id, environments.app_id, environments.slug, environments.description, environments.kind, environments.delete_protection, environments.created_at, environments.updated_at
+	//  SELECT environments.pk, environments.id, environments.workspace_id, environments.project_id, environments.app_id, environments.slug, environments.description, environments.kind, environments.delete_protection, environments.created_at, environments.updated_at, environments.deleting_at
 	//  FROM environments
 	//  WHERE id = ?
 	FindEnvironmentById(ctx context.Context, db DBTX, id string) (Environment, error)
 	//FindEnvironmentByIdentifiers
 	//
-	//  SELECT environments.pk, environments.id, environments.workspace_id, environments.project_id, environments.app_id, environments.slug, environments.description, environments.kind, environments.delete_protection, environments.created_at, environments.updated_at
+	//  SELECT environments.pk, environments.id, environments.workspace_id, environments.project_id, environments.app_id, environments.slug, environments.description, environments.kind, environments.delete_protection, environments.created_at, environments.updated_at, environments.deleting_at
 	//  FROM environments
 	//  JOIN apps a ON environments.app_id = a.id AND environments.workspace_id = a.workspace_id
 	//  JOIN projects p ON a.project_id = p.id AND a.workspace_id = p.workspace_id
@@ -1097,7 +1097,7 @@ type Querier interface {
 	FindPortalSessionByExchangeCodeHash(ctx context.Context, db DBTX, exchangeCodeHash string) (PortalSession, error)
 	//FindProjectById
 	//
-	//  SELECT projects.pk, projects.id, projects.workspace_id, projects.name, projects.slug, projects.depot_project_id, projects.delete_protection, projects.created_at, projects.updated_at
+	//  SELECT projects.pk, projects.id, projects.workspace_id, projects.name, projects.slug, projects.depot_project_id, projects.delete_protection, projects.created_at, projects.updated_at, projects.deleting_at
 	//  FROM projects
 	//  WHERE id = ?
 	FindProjectById(ctx context.Context, db DBTX, id string) (Project, error)
@@ -1125,7 +1125,7 @@ type Querier interface {
 	FindProjectByIdOrSlug(ctx context.Context, db DBTX, arg FindProjectByIdOrSlugParams) (FindProjectByIdOrSlugRow, error)
 	//FindProjectBySlug
 	//
-	//  SELECT projects.pk, projects.id, projects.workspace_id, projects.name, projects.slug, projects.depot_project_id, projects.delete_protection, projects.created_at, projects.updated_at
+	//  SELECT projects.pk, projects.id, projects.workspace_id, projects.name, projects.slug, projects.depot_project_id, projects.delete_protection, projects.created_at, projects.updated_at, projects.deleting_at
 	//  FROM projects
 	//  WHERE slug = ?
 	//  LIMIT 1
@@ -2360,7 +2360,7 @@ type Querier interface {
 	// An app has only a handful of environments, so this returns all of them
 	// without pagination.
 	//
-	//  SELECT environments.pk, environments.id, environments.workspace_id, environments.project_id, environments.app_id, environments.slug, environments.description, environments.kind, environments.delete_protection, environments.created_at, environments.updated_at
+	//  SELECT environments.pk, environments.id, environments.workspace_id, environments.project_id, environments.app_id, environments.slug, environments.description, environments.kind, environments.delete_protection, environments.created_at, environments.updated_at, environments.deleting_at
 	//  FROM environments
 	//  WHERE app_id = ?
 	//  ORDER BY id ASC
@@ -2880,6 +2880,25 @@ type Querier interface {
 	//  LEFT JOIN `workspace_billing` b ON w.id = b.workspace_id
 	//  WHERE w.id IN (/*SLICE:workspace_ids*/?)
 	ListWorkspacesForDeployBillingByIDs(ctx context.Context, db DBTX, workspaceIds []string) ([]ListWorkspacesForDeployBillingByIDsRow, error)
+	//LockActiveApp
+	//
+	//  SELECT a.id FROM apps a
+	//  JOIN projects p ON p.id = a.project_id
+	//  WHERE a.id = ? AND a.deleting_at IS NULL AND p.deleting_at IS NULL
+	//  LOCK IN SHARE MODE
+	LockActiveApp(ctx context.Context, db DBTX, id string) (string, error)
+	//LockActivePortal
+	//
+	//  SELECT p.id
+	//  FROM portals p
+	//  JOIN projects project ON project.id = p.project_id
+	//  LEFT JOIN apps a ON a.id = p.app_id
+	//  WHERE p.id = ?
+	//      AND p.workspace_id = ?
+	//      AND project.deleting_at IS NULL
+	//      AND (p.app_id IS NULL OR (a.id IS NOT NULL AND a.deleting_at IS NULL))
+	//  LOCK IN SHARE MODE
+	LockActivePortal(ctx context.Context, db DBTX, arg LockActivePortalParams) (string, error)
 	// LockDefaultProjectByWorkspaceID uses a current read so a transaction can
 	// observe a default project created after its repeatable-read snapshot.
 	//
@@ -2890,11 +2909,15 @@ type Querier interface {
 	//  LIMIT 1
 	//  FOR UPDATE
 	LockDefaultProjectByWorkspaceID(ctx context.Context, db DBTX, workspaceID string) (string, error)
-	// Acquires an exclusive lock on the environment row to prevent concurrent modifications.
-	// This serializes region reconciliation, which reads the current set then replaces it.
+	//LockEnvironmentForUpdate
 	//
-	//  SELECT id FROM environments
-	//  WHERE id = ?
+	//  SELECT e.id FROM environments e
+	//  JOIN apps a ON a.id = e.app_id
+	//  JOIN projects p ON p.id = e.project_id
+	//  WHERE e.id = ?
+	//    AND e.deleting_at IS NULL
+	//    AND a.deleting_at IS NULL
+	//    AND p.deleting_at IS NULL
 	//  FOR UPDATE
 	LockEnvironmentForUpdate(ctx context.Context, db DBTX, id string) (string, error)
 	// Acquires an exclusive lock on the identity row to prevent concurrent modifications.

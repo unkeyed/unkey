@@ -10,16 +10,25 @@ import (
 )
 
 const lockEnvironmentForUpdate = `-- name: LockEnvironmentForUpdate :one
-SELECT id FROM environments
-WHERE id = ?
+SELECT e.id FROM environments e
+JOIN apps a ON a.id = e.app_id
+JOIN projects p ON p.id = e.project_id
+WHERE e.id = ?
+  AND e.deleting_at IS NULL
+  AND a.deleting_at IS NULL
+  AND p.deleting_at IS NULL
 FOR UPDATE
 `
 
-// Acquires an exclusive lock on the environment row to prevent concurrent modifications.
-// This serializes region reconciliation, which reads the current set then replaces it.
+// LockEnvironmentForUpdate
 //
-//	SELECT id FROM environments
-//	WHERE id = ?
+//	SELECT e.id FROM environments e
+//	JOIN apps a ON a.id = e.app_id
+//	JOIN projects p ON p.id = e.project_id
+//	WHERE e.id = ?
+//	  AND e.deleting_at IS NULL
+//	  AND a.deleting_at IS NULL
+//	  AND p.deleting_at IS NULL
 //	FOR UPDATE
 func (q *Queries) LockEnvironmentForUpdate(ctx context.Context, db DBTX, id string) (string, error) {
 	row := db.QueryRowContext(ctx, lockEnvironmentForUpdate, id)

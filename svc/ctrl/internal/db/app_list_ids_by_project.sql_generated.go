@@ -10,14 +10,26 @@ import (
 )
 
 const listAppIdsByProject = `-- name: ListAppIdsByProject :many
-SELECT id FROM apps WHERE project_id = ?
+SELECT apps.id FROM apps WHERE apps.project_id = ?
+UNION
+SELECT environments.app_id AS id FROM environments WHERE environments.project_id = ?
+UNION
+SELECT deployments.app_id AS id FROM deployments WHERE deployments.project_id = ?
 `
+
+type ListAppIdsByProjectParams struct {
+	ProjectID string `db:"project_id"`
+}
 
 // ListAppIdsByProject
 //
-//	SELECT id FROM apps WHERE project_id = ?
-func (q *Queries) ListAppIdsByProject(ctx context.Context, projectID string) ([]string, error) {
-	rows, err := q.db.QueryContext(ctx, listAppIdsByProject, projectID)
+//	SELECT apps.id FROM apps WHERE apps.project_id = ?
+//	UNION
+//	SELECT environments.app_id AS id FROM environments WHERE environments.project_id = ?
+//	UNION
+//	SELECT deployments.app_id AS id FROM deployments WHERE deployments.project_id = ?
+func (q *Queries) ListAppIdsByProject(ctx context.Context, arg ListAppIdsByProjectParams) ([]string, error) {
+	rows, err := q.db.QueryContext(ctx, listAppIdsByProject, arg.ProjectID, arg.ProjectID, arg.ProjectID)
 	if err != nil {
 		return nil, err
 	}
