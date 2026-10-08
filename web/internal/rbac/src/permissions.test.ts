@@ -1,11 +1,7 @@
 import { describe, expect, test } from "vitest";
 import {
   PERMISSION_MAX_LENGTH,
-  buildIdSchema,
   permissionValidation,
-  portalActions,
-  ratelimitActions,
-  unkeyPermissionValidation,
   urnPermissionWorkspaceId,
   workosPermissionDefinitions,
 } from "./permissions";
@@ -49,84 +45,6 @@ function concretePath(path: string): string {
 const canonicalPermissions = workosPermissionDefinitions.map(
   (definition) => `unkey:v1:${ws}:${concretePath(definition.path)}#${definition.action}`,
 );
-
-describe("apiIdSchema", () => {
-  const testCases = [
-    { input: "123456789012", valid: false },
-    { input: "a1234asfas12", valid: false },
-    { input: "api_123456789ABCDEFGHJKLMNPQRS", valid: true },
-    { input: "api_0OIl0OIl", valid: true },
-    { input: "*", valid: true },
-  ];
-
-  for (const { input, valid } of testCases) {
-    test(`parsing ${input} should be ${valid ? "valid" : "invalid"}`, () => {
-      const result = buildIdSchema("api").safeParse(input);
-      expect(result.success).toBe(valid);
-    });
-  }
-});
-
-describe("ratelimit permissions", () => {
-  test("includes read analytics", () => {
-    expect(ratelimitActions.safeParse("read_analytics").success).toBe(true);
-    expect(unkeyPermissionValidation.safeParse("ratelimit.*.read_analytics").success).toBe(true);
-  });
-
-  test("requires the rlns namespace ID prefix", () => {
-    expect(
-      unkeyPermissionValidation.safeParse("ratelimit.rlns_12345678.read_analytics").success,
-    ).toBe(true);
-    expect(
-      unkeyPermissionValidation.safeParse("ratelimit.rl_12345678.read_analytics").success,
-    ).toBe(false);
-  });
-});
-
-describe("portal permissions", () => {
-  const testCases = [
-    { input: "portal.pc_1234abcd.create_portal", valid: true },
-    { input: "portal.pc_1234abcd.read_portal", valid: true },
-    { input: "portal.pc_1234abcd.update_portal", valid: true },
-    { input: "portal.pc_1234abcd.delete_portal", valid: true },
-    { input: "portal.pc_1234abcd.create_portal_session", valid: true },
-    { input: "portal.*.read_portal", valid: true },
-    // action is not part of the enum
-    { input: "portal.pc_1234abcd.mint_session", valid: false },
-    // id does not carry the pc_ prefix
-    { input: "portal.badid.read_portal", valid: false },
-    // legacy tuples must have exactly three parts
-    { input: "portal.create_portal", valid: false },
-  ];
-
-  for (const { input, valid } of testCases) {
-    test(`${input} should be ${valid ? "valid" : "invalid"}`, () => {
-      expect(unkeyPermissionValidation.safeParse(input).success).toBe(valid);
-    });
-  }
-
-  test("exposes every portal action", () => {
-    expect(portalActions.options).toStrictEqual([
-      "create_portal",
-      "read_portal",
-      "update_portal",
-      "delete_portal",
-      "create_portal_session",
-    ]);
-  });
-});
-
-describe("legacy permission validation", () => {
-  test("does not throw on non-string input", () => {
-    expect(() => unkeyPermissionValidation.safeParse(42)).not.toThrow();
-    expect(unkeyPermissionValidation.safeParse(42).success).toBe(false);
-    expect(unkeyPermissionValidation.safeParse(undefined).success).toBe(false);
-  });
-
-  test("accepts the legacy wildcard", () => {
-    expect(unkeyPermissionValidation.safeParse("*").success).toBe(true);
-  });
-});
 
 // The fixture states the grammar alone, in step with pkg/urn. Whether an action
 // belongs on a path is the catalog's business, so these cases drive the grammar
@@ -265,19 +183,19 @@ describe("urnPermissionWorkspaceId", () => {
   });
 
   test("returns null for anything that is not a urn permission", () => {
-    expect(urnPermissionWorkspaceId("api.api_123.read_api")).toBeNull();
+    expect(urnPermissionWorkspaceId("documents.read")).toBeNull();
     expect(urnPermissionWorkspaceId("*")).toBeNull();
     expect(urnPermissionWorkspaceId("unkey:v1:ws_123:keyspaces/ks_1")).toBeNull();
   });
 });
 
 describe("permissionValidation", () => {
-  test("accepts both grammars", () => {
-    expect(permissionValidation.safeParse("api.api_12345678.read_api").success).toBe(true);
-    expect(permissionValidation.safeParse("*").success).toBe(true);
+  test("accepts catalog URNs and rejects customer permissions", () => {
     expect(permissionValidation.safeParse(`unkey:v1:${ws}:projects/*#read_project`).success).toBe(
       true,
     );
+    expect(permissionValidation.safeParse("documents.read").success).toBe(false);
+    expect(permissionValidation.safeParse("*").success).toBe(false);
   });
 
   test("rejects strings longer than the slug column", () => {
@@ -302,15 +220,8 @@ describe("permissionValidation", () => {
     );
   });
 
-  test("reports the legacy grammar rule that failed", () => {
-    expect(firstError("api.api_12345678")).toBe(
-      'Permission must be a "unkey:v1:<workspace_id>:<resource_path>#<action>" URN or a legacy "resource.id.action" tuple.',
-    );
-    expect(firstError("keyspace.ks_12345678.read_key")).toContain('Unknown resource "keyspace".');
-    expect(firstError("api.nope.read_api")).toContain('Invalid id "nope" for resource "api".');
-    expect(firstError("api.api_12345678.fly")).toContain(
-      'Unknown action "fly" for resource "api".',
-    );
+  test("requires the URN prefix", () => {
+    expect(firstError("documents.read")).toBe('Permission must start with "unkey:v1:".');
   });
 
   test("reports one issue, not a union of two", () => {

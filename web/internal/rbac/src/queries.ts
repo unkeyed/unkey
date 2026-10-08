@@ -1,5 +1,4 @@
 import { z } from "zod";
-import type { unkeyPermissionValidation } from "./permissions";
 
 type Rule = "and" | "or";
 
@@ -59,8 +58,3 @@ export function buildQuery<R extends string = string>(
 ): PermissionQuery {
   return fn({ or, and });
 }
-
-/**
- * buildUnkeyQuery is preloaded with out available roles and ensures typesafety for root key validation
- */
-export const buildUnkeyQuery = buildQuery<z.infer<typeof unkeyPermissionValidation>>;
