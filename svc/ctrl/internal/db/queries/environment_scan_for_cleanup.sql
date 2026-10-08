@@ -1,5 +1,4 @@
 -- name: ScanEnvironmentsForCleanup :many
--- Page before checking parents so healthy rows cannot cause an unbounded scan.
 SELECT e.pk, e.id, CAST((a.id IS NULL OR p.id IS NULL) AS SIGNED) AS orphaned
 FROM (
     SELECT environments.pk, environments.id, environments.app_id, environments.project_id FROM environments

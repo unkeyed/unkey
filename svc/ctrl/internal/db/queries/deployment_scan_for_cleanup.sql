@@ -1,5 +1,4 @@
 -- name: ScanDeploymentsForCleanup :many
--- Missing environments still need their deployment shutdown workflow.
 SELECT d.pk, d.environment_id, CAST((e.id IS NULL) AS SIGNED) AS orphaned
 FROM (
     SELECT deployments.pk, deployments.environment_id FROM deployments

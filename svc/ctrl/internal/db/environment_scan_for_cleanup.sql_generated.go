@@ -32,7 +32,7 @@ type ScanEnvironmentsForCleanupRow struct {
 	Orphaned int64  `db:"orphaned"`
 }
 
-// Page before checking parents so healthy rows cannot cause an unbounded scan.
+// ScanEnvironmentsForCleanup
 //
 //	SELECT e.pk, e.id, CAST((a.id IS NULL OR p.id IS NULL) AS SIGNED) AS orphaned
 //	FROM (

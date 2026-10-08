@@ -2095,7 +2095,7 @@ type Querier interface {
 	//    AND status = 'pending'
 	//    AND invocation_id IS NULL
 	RevertDeploymentAuthorization(ctx context.Context, arg RevertDeploymentAuthorizationParams) (sql.Result, error)
-	// Missing environments still need their deployment shutdown workflow.
+	//ScanDeploymentsForCleanup
 	//
 	//  SELECT d.pk, d.environment_id, CAST((e.id IS NULL) AS SIGNED) AS orphaned
 	//  FROM (
@@ -2106,7 +2106,7 @@ type Querier interface {
 	//  LEFT JOIN environments e ON e.id = d.environment_id
 	//  ORDER BY d.pk
 	ScanDeploymentsForCleanup(ctx context.Context, arg ScanDeploymentsForCleanupParams) ([]ScanDeploymentsForCleanupRow, error)
-	// Page before checking parents so healthy rows cannot cause an unbounded scan.
+	//ScanEnvironmentsForCleanup
 	//
 	//  SELECT e.pk, e.id, CAST((a.id IS NULL OR p.id IS NULL) AS SIGNED) AS orphaned
 	//  FROM (
