@@ -223,6 +223,8 @@ type HeartbeatConfig struct {
 	// Optional - if empty, no heartbeat is sent.
 	AuditLogOutboxCleanupURL string `toml:"audit_log_outbox_cleanup_url"`
 
+	ResourceCleanupURL string `toml:"resource_cleanup_url"`
+
 	// RatelimitGlobalCountersCleanupURL is the heartbeat URL for the hourly
 	// sweep that deletes expired global rate limit counters. When set, a
 	// heartbeat is sent after a successful sweep.
