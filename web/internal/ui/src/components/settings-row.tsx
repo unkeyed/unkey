@@ -3,8 +3,7 @@
 import * as React from "react";
 import { cn } from "../lib/utils";
 import { Button } from "./buttons/button";
-import { InfoTooltip } from "./info-tooltip";
-import { type SaveState, resolveGroupSave } from "./settings-save";
+import { type GroupSave, type SaveState, resolveGroupSave } from "./settings-save";
 
 type Member = {
   dirty: boolean;
@@ -84,7 +83,6 @@ function SettingsGroupContent({ className, children, ...props }: React.Component
   const context = React.useMemo(() => ({ update, remove }), [update, remove]);
   const values = [...members.values()];
   const save = resolveGroupSave(values);
-  const blockedReasons = save.status === "blocked" ? save.reasons : [];
 
   const saveReady = () => {
     if (save.status !== "ready") {
@@ -104,30 +102,18 @@ function SettingsGroupContent({ className, children, ...props }: React.Component
       >
         <div className="divide-y divide-grayA-4">{children}</div>
         {values.length > 0 ? (
-          <div className="border-t border-grayA-4 bg-grayA-2 px-5 py-3 flex items-center justify-end gap-3">
-            {save.status === "ready" && save.submit.length < save.dirty ? (
-              <span className="text-xs text-gray-11">
-                Saves {save.submit.length} of {save.dirty} changes
-              </span>
-            ) : null}
-            <InfoTooltip
-              content={blockedReasons.join(" ")}
-              disabled={blockedReasons.length === 0}
-              asChild
+          <div className="flex items-center gap-3 border-t border-grayA-4 px-5 py-3">
+            <SaveStatus save={save} />
+            <Button
+              variant={save.status === "ready" || save.status === "saving" ? "primary" : "outline"}
+              size="sm"
+              className="ml-auto px-3"
+              disabled={save.status !== "ready"}
+              loading={save.status === "saving"}
+              onClick={saveReady}
             >
-              <span>
-                <Button
-                  variant="primary"
-                  size="sm"
-                  className="px-3"
-                  disabled={save.status !== "ready"}
-                  loading={save.status === "saving"}
-                  onClick={saveReady}
-                >
-                  Save changes
-                </Button>
-              </span>
-            </InfoTooltip>
+              Save changes
+            </Button>
           </div>
         ) : null}
       </div>
@@ -136,6 +122,30 @@ function SettingsGroupContent({ className, children, ...props }: React.Component
 }
 
 SettingsGroupContent.displayName = "SettingsGroupContent";
+
+function SaveStatus({ save }: { save: GroupSave<Member> }) {
+  switch (save.status) {
+    case "clean":
+      return null;
+    case "saving":
+      return <span className="text-xs text-gray-11">Saving…</span>;
+    case "blocked":
+      return (
+        <span className="truncate text-xs text-gray-11">
+          {save.reasons.length > 0 ? save.reasons.join(" ") : "Can't save these changes yet"}
+        </span>
+      );
+    case "ready":
+      return (
+        <span className="flex items-center gap-2 text-xs text-gray-12">
+          <span className="size-1.5 shrink-0 rounded-full bg-warning-9" />
+          {save.submit.length < save.dirty
+            ? `Saves ${save.submit.length} of ${save.dirty} changes`
+            : "Unsaved changes"}
+        </span>
+      );
+  }
+}
 
 function SettingsForm({
   dirty,
