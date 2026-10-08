@@ -14,8 +14,8 @@ func TestParseQuery(t *testing.T) {
 	}{
 		{
 			name:     "Simple permission",
-			query:    "api.key1.read_key",
-			expected: S("api.key1.read_key"),
+			query:    "documents.read",
+			expected: S("documents.read"),
 		},
 		{
 			name:  "Simple AND",
@@ -70,8 +70,8 @@ func TestParseQuery(t *testing.T) {
 		},
 		{
 			name:     "Permission with multiple asterisks",
-			query:    "api.*.*.read",
-			expected: S("api.*.*.read"),
+			query:    "documents.*.read",
+			expected: S("documents.*.read"),
 		},
 		{
 			name:     "Permission with colon namespace",

@@ -61,7 +61,7 @@ func TestHasPermissionIn_ReportsPermissionOverlapWithCollection(t *testing.T) {
 		{name: "wrong ancestry", callerPermissions: []string{"unkey:v1:ws_123:projects/proj_1/keyspaces/ks_1#read"}},
 		{name: "wrong action", callerPermissions: []string{"unkey:v1:ws_123:projects/proj_1/apps/app_1#write"}},
 		{name: "wrong workspace", callerPermissions: []string{"unkey:v1:ws_other:projects/proj_1/apps/app_1#read"}},
-		{name: "malformed and legacy", callerPermissions: []string{"unkey:v1:ws_123:projects/proj_1/apps/app_1", "api.*.read_api"}},
+		{name: "malformed and customer permission", callerPermissions: []string{"unkey:v1:ws_123:projects/proj_1/apps/app_1", "documents.read"}},
 	}
 
 	for _, tt := range tests {
@@ -231,13 +231,13 @@ func TestParseUrnPermission_AcceptsOnlySupportedGrammar(t *testing.T) {
 }
 
 // TestIsUnkeyPermission_OnlyAcceptsCanonicalUnkeyPermissions guarantees the
-// evaluator never applies Unkey wildcard semantics to legacy or customer grants.
+// evaluator never applies Unkey wildcard semantics to customer grants.
 func TestIsUnkeyPermission_OnlyAcceptsCanonicalUnkeyPermissions(t *testing.T) {
 	t.Parallel()
 
 	require.True(t, isUnkeyPermission("unkey:v1:ws_123:projects/proj_123/ratelimits/namespaces/ns_123#read"))
-	require.False(t, isUnkeyPermission("api.*.read_key"))
-	require.False(t, isUnkeyPermission("ratelimit.ns_123.read_override"))
+	require.False(t, isUnkeyPermission("documents.read"))
+	require.False(t, isUnkeyPermission("billing.admin"))
 	require.False(t, isUnkeyPermission("unkey:v1:ws_123:projects/proj_123/ratelimits/namespaces/ns_123"))
 }
 
@@ -395,7 +395,7 @@ func TestUrnPermissionEvaluation_MatchesThroughRBACEvaluator(t *testing.T) {
 			permissions: []string{
 				"unkey:v1:ws_123:projects/proj_123/ratelimits/namespaces/ns_123/overrides/**/nested#read",
 				"unkey:v1:ws_123:projects/proj_123/ratelimits/namespaces/ns_123/overrides/ov_123#delete",
-				"ratelimit.ns_123.read_override",
+				"documents.read",
 			},
 			wantValid: false,
 		},
