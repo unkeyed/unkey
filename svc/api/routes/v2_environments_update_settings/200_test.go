@@ -8,6 +8,7 @@ import (
 	"github.com/oapi-codegen/nullable"
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_environments_update_settings"
@@ -405,6 +406,32 @@ func TestUpdateSettingsSuccessfully(t *testing.T) {
 		require.Equal(t, int32(500), rt.CpuMillicores)
 		require.Equal(t, int32(256), rt.MemoryMib, "memory untouched, keeps seed default")
 		require.Equal(t, int32(8080), rt.Port, "port untouched, keeps seed default")
+	})
+
+	t.Run("non-aws region resolves by name despite unrelated ambiguous names", func(t *testing.T) {
+		env := seedEnvironment(t, h)
+		regionID := uid.New(uid.RegionPrefix)
+		regionName := uid.New("local")
+		unrelatedName := uid.New("other")
+		for _, region := range []db.UpsertRegionParams{
+			{ID: regionID, Name: regionName, Platform: "dev"},
+			{ID: uid.New(uid.RegionPrefix), Name: unrelatedName, Platform: "aws"},
+			{ID: uid.New(uid.RegionPrefix), Name: unrelatedName, Platform: "dev"},
+		} {
+			require.NoError(t, db.Query.UpsertRegion(ctx, h.DB.RW(), region))
+		}
+
+		call(t, handler.Request{
+			Project: env.projectID, App: env.appID, Environment: env.environmentID,
+			Regions: new([]openapi.EnvironmentRegion{regionSetting(regionName, 1, 2)}),
+		})
+		rows, err := db.Query.ListAppRegionalSettingsByAppEnv(ctx, h.DB.RO(), db.ListAppRegionalSettingsByAppEnvParams{
+			AppID: env.appID, EnvironmentID: env.environmentID,
+		})
+		require.NoError(t, err)
+		require.Len(t, rows, 1)
+		require.Equal(t, regionID, rows[0].RegionID)
+		require.Equal(t, int32(2), rows[0].Replicas)
 	})
 
 	t.Run("regions create and update", func(t *testing.T) {
