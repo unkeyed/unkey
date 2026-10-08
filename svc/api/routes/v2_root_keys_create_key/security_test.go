@@ -81,10 +81,11 @@ func TestCreateAcceptsContainedDescendants(t *testing.T) {
 func TestLegacyProjectPermissionDoesNotBlockCreation(t *testing.T) {
 	h, route, p := newHarness(t)
 	api := h.CreateApi(seed.CreateApiRequest{WorkspaceID: p.AuthorizedWorkspaceID})
-	otherProject := h.CreateProject(seed.CreateProjectRequest{WorkspaceID: h.Resources().RootWorkspace.ID, ID: uid.New(uid.ProjectPrefix)})
+	legacyResources := h.LegacyRootResources()
+	otherProject := h.CreateProject(seed.CreateProjectRequest{WorkspaceID: legacyResources.Workspace.ID, ID: uid.New(uid.ProjectPrefix)})
 	grant := "unkey:v1:" + p.AuthorizedWorkspaceID + ":projects/" + api.ProjectID + "/keyspaces/" + api.KeyAuthID.String + "/keys/*#delete"
 	require.NoError(t, db.Query.InsertPermission(t.Context(), h.DB.RW(), db.InsertPermissionParams{
-		PermissionID: uid.New(uid.PermissionPrefix), WorkspaceID: h.Resources().RootWorkspace.ID,
+		PermissionID: uid.New(uid.PermissionPrefix), WorkspaceID: legacyResources.Workspace.ID,
 		ProjectID: otherProject.ID, Name: grant, Slug: grant,
 	}))
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, http.Header{"Authorization": {"Bearer test"}, "Content-Type": {"application/json"}}, handler.Request{Permissions: []string{grant}})
@@ -99,15 +100,16 @@ func TestLegacyProjectPermissionDoesNotBlockCreation(t *testing.T) {
 // space cannot replace requested ks_one in the new table.
 func TestLegacyCollationCannotSubstitutePermission(t *testing.T) {
 	h, route, p := newHarness(t)
+	legacyResources := h.LegacyRootResources()
 	projectID := uid.New(uid.ProjectPrefix)
 	permission := "unkey:v1:" + p.AuthorizedWorkspaceID + ":projects/" + projectID + "/keyspaces/ks_one#write"
 	stored := strings.Replace(permission, "ks_one", "ks_one\u200b", 1)
 	require.NoError(t, db.Query.InsertPermission(t.Context(), h.DB.RW(), db.InsertPermissionParams{
-		PermissionID: uid.New(uid.PermissionPrefix), WorkspaceID: h.Resources().RootWorkspace.ID,
-		ProjectID: h.Resources().RootKeySpace.ProjectID, Name: stored, Slug: stored,
+		PermissionID: uid.New(uid.PermissionPrefix), WorkspaceID: legacyResources.Workspace.ID,
+		ProjectID: legacyResources.KeySpace.ProjectID, Name: stored, Slug: stored,
 	}))
 	var equal bool
-	require.NoError(t, h.DB.RO().QueryRowContext(t.Context(), "SELECT slug = ? FROM permissions WHERE workspace_id = ? AND slug = ?", permission, h.Resources().RootWorkspace.ID, stored).Scan(&equal))
+	require.NoError(t, h.DB.RO().QueryRowContext(t.Context(), "SELECT slug = ? FROM permissions WHERE workspace_id = ? AND slug = ?", permission, legacyResources.Workspace.ID, stored).Scan(&equal))
 	require.True(t, equal, "fixture must reproduce collation-equivalent but byte-distinct slugs")
 	p.Permissions = []string{"unkey:v1:" + p.AuthorizedWorkspaceID + ":rootKeys/*#write", permission}
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, http.Header{"Authorization": {"Bearer test"}, "Content-Type": {"application/json"}}, handler.Request{Permissions: []string{permission}})
@@ -134,16 +136,19 @@ func TestPermissionStoragePreservesCase(t *testing.T) {
 func snapshot(t *testing.T, h *testutil.Harness) []int {
 	t.Helper()
 	var counts []int
-	for _, query := range []struct{ sql, workspaceID string }{
-		{"SELECT COUNT(*) FROM `keys` WHERE workspace_id = ?", h.Resources().RootWorkspace.ID},
-		{"SELECT COUNT(*) FROM unkey_root_keys WHERE workspace_id = ?", h.Resources().UserWorkspace.ID},
-		{"SELECT COUNT(*) FROM permissions WHERE workspace_id = ?", h.Resources().RootWorkspace.ID},
-		{"SELECT COUNT(*) FROM keys_permissions WHERE workspace_id = ?", h.Resources().RootWorkspace.ID},
-		{"SELECT COUNT(*) FROM unkey_principal_permissions WHERE workspace_id = ?", h.Resources().UserWorkspace.ID},
-		{"SELECT COUNT(*) FROM clickhouse_outbox WHERE workspace_id = ?", h.Resources().UserWorkspace.ID},
+	for _, query := range []struct {
+		sql  string
+		args []any
+	}{
+		{"SELECT COUNT(*) FROM `keys`", nil},
+		{"SELECT COUNT(*) FROM unkey_root_keys WHERE workspace_id = ?", []any{h.Resources().UserWorkspace.ID}},
+		{"SELECT COUNT(*) FROM permissions", nil},
+		{"SELECT COUNT(*) FROM keys_permissions", nil},
+		{"SELECT COUNT(*) FROM unkey_principal_permissions WHERE workspace_id = ?", []any{h.Resources().UserWorkspace.ID}},
+		{"SELECT COUNT(*) FROM clickhouse_outbox WHERE workspace_id = ?", []any{h.Resources().UserWorkspace.ID}},
 	} {
 		var count int
-		require.NoError(t, h.DB.RO().QueryRowContext(t.Context(), query.sql, query.workspaceID).Scan(&count))
+		require.NoError(t, h.DB.RO().QueryRowContext(t.Context(), query.sql, query.args...).Scan(&count))
 		counts = append(counts, count)
 	}
 	return counts
