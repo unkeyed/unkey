@@ -27,3 +27,17 @@ func Map[T any, R any](arr []T, fn func(T) R) []R {
 	}
 	return result
 }
+
+// MapErr maps elements in order, returning nil and the first error without
+// processing subsequent elements. Empty input returns a non-nil empty slice.
+func MapErr[T any, R any](arr []T, fn func(T) (R, error)) ([]R, error) {
+	result := make([]R, len(arr))
+	for i := range arr {
+		value, err := fn(arr[i])
+		if err != nil {
+			return nil, err
+		}
+		result[i] = value
+	}
+	return result, nil
+}

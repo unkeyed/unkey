@@ -13,6 +13,7 @@ import (
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	getRoute "github.com/unkeyed/unkey/svc/api/routes/v2_logdrains_get_logdrain"
+	listRoute "github.com/unkeyed/unkey/svc/api/routes/v2_logdrains_list_logdrains"
 )
 
 func TestLogdrainsRequireAuthenticationAndPermission(t *testing.T) {
@@ -34,6 +35,7 @@ func TestLogdrainsRequireAuthenticationAndPermission(t *testing.T) {
 		foreign bool
 	}{
 		{&getRoute.Handler{DB: h.DB}, `{"logdrainId":"` + foreignID + `"}`, true},
+		{&listRoute.Handler{DB: h.DB}, `{}`, false},
 	} {
 		t.Run(tc.route.Path(), func(t *testing.T) {
 			h.Register(tc.route)
@@ -53,6 +55,14 @@ func TestLogdrainsRequireAuthenticationAndPermission(t *testing.T) {
 					headers := http.Header{"Content-Type": {"application/json"}}
 					if auth.authorization != "" {
 						headers.Set("Authorization", auth.authorization)
+					}
+					if _, isList := tc.route.(*listRoute.Handler); isList && auth.name == "insufficient permission" {
+						result := testutil.CallRoute[json.RawMessage, openapi.ListLogdrainsResponse](h, tc.route, headers, json.RawMessage(tc.body))
+						require.Equal(t, http.StatusOK, result.Status, "%s", result.RawBody)
+						require.Empty(t, result.Body.Data)
+						require.False(t, result.Body.Pagination.HasMore)
+						require.Nil(t, result.Body.Pagination.Cursor)
+						return
 					}
 					result := testutil.CallRoute[json.RawMessage, openapi.UnauthorizedErrorResponse](h, tc.route, headers, json.RawMessage(tc.body))
 					require.Equal(t, auth.status, result.Status, "%s", result.RawBody)
