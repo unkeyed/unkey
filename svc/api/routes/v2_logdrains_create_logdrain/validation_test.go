@@ -110,6 +110,11 @@ func TestCreateRejectsInvalidInputWithoutChangingExistingDrains(t *testing.T) {
 		body string
 	}{
 		{"missing create fields", `{}`},
+		{"missing HTTP URL", `{"name":"Logs","stream":{"auditLogs":{}},"destination":{"http":{"format":"json"}}}`},
+		{"missing Axiom token", `{"name":"Logs","stream":{"auditLogs":{}},"destination":{"axiom":{"dataset":"logs"}}}`},
+		{"missing Axiom dataset", `{"name":"Logs","stream":{"auditLogs":{}},"destination":{"axiom":{"token":"secret"}}}`},
+		{"unsupported URL scheme", `{"name":"Logs","stream":{"auditLogs":{}},"destination":{"http":{"url":"ftp://logs.example.com"}}}`},
+		{"unsupported HTTP format", `{"name":"Logs","stream":{"auditLogs":{}},"destination":{"http":{"url":"https://logs.example.com","format":"csv"}}}`},
 		{"empty name", `{"name":" ","stream":{"auditLogs":{}},"destination":{"http":{"url":"https://logs.example.com"}}}`},
 		{"zero batch size", `{"name":"Logs","stream":{"auditLogs":{}},"batchSize":0,"destination":{"http":{"url":"https://logs.example.com"}}}`},
 		{"mismatched filter", `{"name":"Logs","stream":{"auditLogs":{"passed":[false]}},"destination":{"http":{"url":"https://logs.example.com"}}}`},
