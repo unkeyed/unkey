@@ -126,9 +126,8 @@ SettingsGroupContent.displayName = "SettingsGroupContent";
 function SaveStatus({ save }: { save: GroupSave<Member> }) {
   switch (save.status) {
     case "clean":
-      return null;
     case "saving":
-      return <span className="text-xs text-gray-11">Saving…</span>;
+      return null;
     case "blocked":
       return (
         <span className="truncate text-xs text-gray-11">
@@ -136,14 +135,11 @@ function SaveStatus({ save }: { save: GroupSave<Member> }) {
         </span>
       );
     case "ready":
-      return (
-        <span className="flex items-center gap-2 text-xs text-gray-12">
-          <span className="size-1.5 shrink-0 rounded-full bg-warning-9" />
-          {save.submit.length < save.dirty
-            ? `Saves ${save.submit.length} of ${save.dirty} changes`
-            : "Unsaved changes"}
+      return save.submit.length < save.dirty ? (
+        <span className="text-xs text-gray-11">
+          Saves {save.submit.length} of {save.dirty} changes
         </span>
-      );
+      ) : null;
   }
 }
 
