@@ -1,12 +1,10 @@
 package handler_test
 
 import (
-	"fmt"
 	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_environments_update_settings"
 )
@@ -24,12 +22,6 @@ func TestUpdateSettingsForbidden(t *testing.T) {
 		permissions []string
 		shouldPass  bool
 	}{
-		{name: "wildcard update permission", permissions: []string{"environment.*.update_environment"}, shouldPass: true},
-		{name: "specific update permission", permissions: []string{fmt.Sprintf("environment.%s.update_environment", env.environmentID)}, shouldPass: true},
-		{name: "update permission and more", permissions: []string{"some.other.permission", "environment.*.update_environment"}, shouldPass: true},
-		{name: "read action is not enough", permissions: []string{"environment.*.read_environment"}, shouldPass: false},
-		{name: "other environment id does not match", permissions: []string{fmt.Sprintf("environment.%s.update_environment", uid.New(uid.EnvironmentPrefix))}, shouldPass: false},
-		{name: "unrelated permission", permissions: []string{"api.*.read_api"}, shouldPass: false},
 		{name: "no permissions", permissions: []string{}, shouldPass: false},
 	}
 

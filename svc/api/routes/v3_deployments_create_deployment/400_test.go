@@ -13,9 +13,8 @@ import (
 
 func TestRequestValidation(t *testing.T) {
 	h := testutil.NewHarness(t)
-	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"environment.*.create_deployment"},
-	})
+	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{})
+	setup.RootKey = deploymentRootKey(h, setup)
 	route := &handler.Handler{DB: h.DB, Restate: testutil.UncalledDeployRestate(t)}
 	h.Register(route)
 

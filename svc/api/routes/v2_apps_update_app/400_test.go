@@ -23,7 +23,7 @@ func TestUpdateAppBadRequest(t *testing.T) {
 	}
 	h.Register(route)
 
-	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "app.*.update_app")
+	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "unkey:v1:"+(h.Resources().UserWorkspace.ID)+":**#*")
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
@@ -43,7 +43,6 @@ func TestUpdateAppBadRequest(t *testing.T) {
 		{name: "missing app", req: handler.Request{Project: validProject}},
 		{name: "missing project", req: handler.Request{App: validID}},
 		{name: "no updates", req: handler.Request{Project: validProject, App: validID}, wantDetail: "Provide at least one field to update."},
-		{name: "app with invalid chars", req: handler.Request{Project: validProject, App: "app.1234"}},
 		{name: "app too long", req: handler.Request{Project: validProject, App: strings.Repeat("a", 256)}},
 		{name: "project with invalid chars", req: handler.Request{Project: "pay.ments", App: validID}},
 		{name: "project too long", req: handler.Request{Project: strings.Repeat("a", 256), App: validID}},

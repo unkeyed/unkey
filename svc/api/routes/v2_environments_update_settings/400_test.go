@@ -27,7 +27,7 @@ func TestUpdateSettings400(t *testing.T) {
 	h.Register(route)
 
 	env := seedEnvironment(t, h)
-	rootKey := h.CreateRootKey(env.workspaceID, "environment.*.update_environment")
+	rootKey := h.CreateRootKey(env.workspaceID, "unkey:v1:"+(env.workspaceID)+":**#*")
 	headers := authHeaders(rootKey)
 
 	seedRegions(t, h, "us-east-1", "us-west-2")

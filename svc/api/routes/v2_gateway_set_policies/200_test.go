@@ -26,7 +26,10 @@ func TestSetPoliciesSuccessfully(t *testing.T) {
 
 	ctx := context.Background()
 	workspace := h.Resources().UserWorkspace
-	rootKey := h.CreateRootKey(workspace.ID, "environment.*.set_policies")
+	rootKey := h.CreateRootKey(workspace.ID,
+		fmt.Sprintf("unkey:v1:%s:projects/*/apps/*/environments/*/gateway/policies/*#write", workspace.ID),
+		fmt.Sprintf("unkey:v1:%s:projects/*/apps/*/environments/*/gateway/policies/*#delete", workspace.ID),
+	)
 	headers := authHeaders(rootKey)
 
 	call := func(t *testing.T, req handler.Request) {

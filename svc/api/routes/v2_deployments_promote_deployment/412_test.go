@@ -22,7 +22,7 @@ func TestPromoteDeploymentNotReady(t *testing.T) {
 	h.Register(route)
 
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"environment.*.promote_deployment"},
+		Permissions: []string{"unkey:v1:{workspaceID}:**#write"},
 	})
 
 	dep := h.CreateDeployment(seed.CreateDeploymentRequest{
@@ -49,7 +49,7 @@ func TestPromoteDeploymentShuttingDown(t *testing.T) {
 	h.Register(route)
 
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"environment.*.promote_deployment"},
+		Permissions: []string{"unkey:v1:{workspaceID}:**#write"},
 	})
 
 	dep := h.CreateDeployment(seed.CreateDeploymentRequest{
@@ -81,7 +81,7 @@ func TestPromoteDeploymentNonProduction(t *testing.T) {
 	h.Register(route)
 
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"environment.*.promote_deployment"},
+		Permissions: []string{"unkey:v1:{workspaceID}:**#write"},
 	})
 
 	preview := h.CreateEnvironment(seed.CreateEnvironmentRequest{
@@ -115,7 +115,7 @@ func TestPromoteDeploymentNoLiveDeployment(t *testing.T) {
 	h.Register(route)
 
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"environment.*.promote_deployment"},
+		Permissions: []string{"unkey:v1:{workspaceID}:**#write"},
 	})
 
 	dep := h.CreateDeployment(seed.CreateDeploymentRequest{
@@ -141,7 +141,7 @@ func TestPromoteDeploymentAlreadyLive(t *testing.T) {
 	h.Register(route)
 
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"environment.*.promote_deployment"},
+		Permissions: []string{"unkey:v1:{workspaceID}:**#write"},
 	})
 
 	live := h.CreateDeployment(seed.CreateDeploymentRequest{
@@ -165,7 +165,7 @@ func TestPromoteDeploymentRequiresComputePlan(t *testing.T) {
 	route := newRoute(h, newUncalledRestate(t))
 	h.Register(route)
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"environment.*.promote_deployment"},
+		Permissions: []string{"unkey:v1:{workspaceID}:**#write"},
 	})
 	h.ClearComputePlanOverride(setup.Workspace.ID)
 	live := h.CreateDeployment(seed.CreateDeploymentRequest{

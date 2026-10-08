@@ -27,7 +27,7 @@ func TestRollbackDeploymentDerivesSource(t *testing.T) {
 	h.Register(route)
 
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"environment.*.rollback_deployment"},
+		Permissions: []string{"unkey:v1:{workspaceID}:**#write"},
 	})
 
 	previous := h.CreateDeployment(seed.CreateDeploymentRequest{

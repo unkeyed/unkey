@@ -2,6 +2,7 @@ package handler_test
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"testing"
 	"time"
@@ -21,7 +22,10 @@ func TestSetPoliciesNotFound(t *testing.T) {
 	h.Register(route)
 
 	env := seedEnvironment(t, h)
-	rootKey := h.CreateRootKey(env.workspaceID, "environment.*.set_policies")
+	rootKey := h.CreateRootKey(env.workspaceID,
+		fmt.Sprintf("unkey:v1:%s:projects/%s/apps/%s/environments/%s/gateway/policies/*#write", env.workspaceID, env.projectID, env.appID, env.environmentID),
+		fmt.Sprintf("unkey:v1:%s:projects/%s/apps/%s/environments/%s/gateway/policies/*#delete", env.workspaceID, env.projectID, env.appID, env.environmentID),
+	)
 	headers := authHeaders(rootKey)
 
 	t.Run("nonexistent environment", func(t *testing.T) {

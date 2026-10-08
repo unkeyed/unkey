@@ -17,9 +17,8 @@ func TestEnvironmentNotFound(t *testing.T) {
 	route := &handler.Handler{DB: h.DB, Restate: testutil.UncalledDeployRestate(t)}
 	h.Register(route)
 
-	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"environment.*.create_deployment"},
-	})
+	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{})
+	setup.RootKey = deploymentRootKey(h, setup)
 
 	t.Run("unknown environment", func(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, authHeaders(setup.RootKey), handler.Request{
@@ -49,9 +48,8 @@ func TestRedeployDeploymentNotFound(t *testing.T) {
 	route := &handler.Handler{DB: h.DB, Restate: testutil.UncalledDeployRestate(t)}
 	h.Register(route)
 
-	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"environment.*.create_deployment"},
-	})
+	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{})
+	setup.RootKey = deploymentRootKey(h, setup)
 
 	res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, authHeaders(setup.RootKey), handler.Request{
 		Project:     setup.Project.Slug,
@@ -74,6 +72,7 @@ func TestRedeployCrossWorkspaceMasked(t *testing.T) {
 	victim := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
 		ProjectSlug: "victim-project",
 	})
+	victim.RootKey = deploymentRootKey(h, victim)
 	victimDep := h.CreateDeployment(seed.CreateDeploymentRequest{
 		ID:            uid.New(uid.DeploymentPrefix),
 		WorkspaceID:   victim.Workspace.ID,
@@ -84,8 +83,8 @@ func TestRedeployCrossWorkspaceMasked(t *testing.T) {
 
 	attacker := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
 		ProjectSlug: "attacker-project",
-		Permissions: []string{"environment.*.create_deployment"},
 	})
+	attacker.RootKey = deploymentRootKey(h, attacker)
 
 	res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, authHeaders(attacker.RootKey), handler.Request{
 		Project:     attacker.Project.Slug,
@@ -106,9 +105,8 @@ func TestRedeployWrongAppOrEnvironmentMasked(t *testing.T) {
 	route := &handler.Handler{DB: h.DB, Restate: testutil.UncalledDeployRestate(t)}
 	h.Register(route)
 
-	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"environment.*.create_deployment"},
-	})
+	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{})
+	setup.RootKey = deploymentRootKey(h, setup)
 
 	otherApp := h.CreateApp(seed.CreateAppRequest{
 		ID:          uid.New(uid.AppPrefix),

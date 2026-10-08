@@ -15,9 +15,8 @@ func TestInvalidRootKey(t *testing.T) {
 	route := &handler.Handler{DB: h.DB, Restate: testutil.UncalledDeployRestate(t)}
 	h.Register(route)
 
-	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"environment.*.create_deployment"},
-	})
+	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{})
+	setup.RootKey = deploymentRootKey(h, setup)
 
 	headers := http.Header{
 		"Content-Type":  {"application/json"},

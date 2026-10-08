@@ -22,7 +22,7 @@ func TestSetEnvironmentVariablesSuccessfully(t *testing.T) {
 
 	ctx := context.Background()
 	workspace := h.Resources().UserWorkspace
-	rootKey := h.CreateRootKey(workspace.ID, "environment.*.set_environment_variables")
+	rootKey := h.CreateRootKey(workspace.ID, "unkey:v1:"+(workspace.ID)+":**#*")
 	headers := authHeaders(rootKey)
 
 	call := func(t *testing.T, req handler.Request) handler.Response {

@@ -17,7 +17,7 @@ func TestUpdateSettingsEnvironmentNotFound(t *testing.T) {
 	h.Register(route)
 
 	env := seedEnvironment(t, h)
-	rootKey := h.CreateRootKey(env.workspaceID, "environment.*.update_environment")
+	rootKey := h.CreateRootKey(env.workspaceID, "unkey:v1:"+(env.workspaceID)+":**#*")
 	headers := authHeaders(rootKey)
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{

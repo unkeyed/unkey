@@ -36,7 +36,7 @@ func TestCreateDomainDuplicate(t *testing.T) {
 	h.Register(route)
 
 	env := seedEnvironment(t, h)
-	rootKey := h.CreateRootKey(env.workspaceID, "environment.*.create_domain")
+	rootKey := h.CreateRootKey(env.workspaceID, "unkey:v1:"+(env.workspaceID)+":**#*")
 
 	domain := randomDomain()
 	res := testutil.CallRoute[handler.Request, openapi.ConflictErrorResponse](h, route, authHeaders(rootKey), makeRequest(env, domain))
