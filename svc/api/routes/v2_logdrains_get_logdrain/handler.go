@@ -11,16 +11,17 @@ import (
 	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
+	"github.com/unkeyed/unkey/svc/api/internal/logdrainconfig"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
-type Get struct {
+type Handler struct {
 	DB db.Database
 }
 
-func (h *Get) Method() string { return http.MethodPost }
-func (h *Get) Path() string   { return "/v2/logdrains.getLogdrain" }
-func (h *Get) Handle(ctx context.Context, s *zen.Session) error {
+func (h *Handler) Method() string { return http.MethodPost }
+func (h *Handler) Path() string   { return "/v2/logdrains.getLogdrain" }
+func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	principal, err := s.GetPrincipal()
 	if err != nil {
 		return err
@@ -45,7 +46,7 @@ func (h *Get) Handle(ctx context.Context, s *zen.Session) error {
 		}
 		return err
 	}
-	data, err := toPublic(row)
+	data, err := logdrainconfig.ToPublic(row)
 	if err != nil {
 		return err
 	}
