@@ -1,27 +1,19 @@
-import type { Router } from "@/lib/trpc/routers";
-import {
-  httpFormatSchema,
-  keySpaceIdsSchema,
-  outcomesSchema,
-  passedSchema,
-  resourceIdsSchema,
-  severitiesSchema,
-  statusClassesSchema,
-} from "@/lib/trpc/routers/logdrain/validation";
-import type { inferRouterOutputs } from "@trpc/server";
+import type { Logdrain } from "@unkey/api/models/components";
+import { KEY_VERIFICATION_OUTCOMES } from "@unkey/clickhouse/src/keys/keys";
 import { z } from "zod";
 import { headerNamePattern, isValidHttpHeaderValue } from "./header-fields";
 
-type Outputs = inferRouterOutputs<Router>;
-export type DrainListItem = Outputs["logdrain"]["list"][number];
-export type DrainDetail = Outputs["logdrain"]["get"];
-export type DrainKind = DrainListItem["kind"];
+export type DrainListItem = Logdrain;
+export type DrainDetail = Logdrain;
+export type DrainKind = "http" | "axiom";
 
-/**
- * A stored header keeps its encrypted value on the server, so an empty value on one of those
- * rows means "leave it alone" rather than "clear it". New rows have no stored value to fall
- * back on and must carry one.
- */
+const resourceIdsSchema = z.array(z.string().trim().min(1).max(256)).max(256);
+const outcomesSchema = z.array(z.enum(KEY_VERIFICATION_OUTCOMES)).max(256);
+const keySpaceIdsSchema = resourceIdsSchema;
+const severitiesSchema = z.array(z.string().trim().min(1).max(256)).max(256);
+const passedSchema = z.array(z.boolean()).max(2);
+const statusClassesSchema = z.array(z.enum(["2xx", "3xx", "4xx", "5xx"])).max(4);
+
 const headerRowSchema = z.object({
   name: z.string().max(256, "Header name must be 256 characters or less"),
   value: z
@@ -119,7 +111,7 @@ const baseSchema = z.object({
   environmentIds: resourceIdsSchema,
   name: z.string().trim().min(1, "Enter a name").max(128, "Name must be 128 characters or less"),
   url: z.string(),
-  format: httpFormatSchema,
+  format: z.enum(["json", "ndjson", "hec"]),
   headers: z.array(headerRowSchema).max(32, "A maximum of 32 headers is supported"),
   dataset: z.string(),
   token: z.string(),
@@ -213,7 +205,34 @@ export const createDrainSchema = drainSchema({ tokenRequired: true });
 /** Editing keeps the stored token when the field is left blank. */
 export const editDrainSchema = drainSchema({ tokenRequired: false });
 
-export function submittedStatusClasses(values: DrainFormValues): number[] {
+export function headersChanged(submitted: HeaderRow[], current: HeaderRow[]): boolean {
+  const headers = submitted.filter((header) => header.name.trim() !== "");
+  return (
+    headers.length !== current.length ||
+    headers.some(
+      (header, index) => header.name.trim() !== current[index]?.name || header.value !== "",
+    )
+  );
+}
+
+export function editDrainSchemaFor(current: DrainFormValues) {
+  return editDrainSchema.superRefine((values, context) => {
+    if (values.kind !== "http" || !headersChanged(values.headers, current.headers)) {
+      return;
+    }
+    for (const [index, header] of values.headers.entries()) {
+      if (header.name.trim() !== "" && header.value === "") {
+        context.addIssue({
+          code: "custom",
+          path: ["headers", index, "value"],
+          message: "Enter a value for every header you keep when changing headers",
+        });
+      }
+    }
+  });
+}
+
+export function submittedStatusClasses(values: DrainFormValues): DrainFormValues["statusClasses"] {
   switch (values.statusMode) {
     case "all":
       return [];
@@ -248,12 +267,36 @@ export function submittedSources(values: DrainFormValues): {
   };
 }
 
-function statusModeFor(statusClasses: number[]): DrainFormValues["statusMode"] {
+function statusModeFor(
+  statusClasses: DrainFormValues["statusClasses"],
+): DrainFormValues["statusMode"] {
   return statusClasses.length === 0 ? "all" : "custom";
 }
 
 export function submittedEventTypes(values: DrainFormValues): string[] {
   return values.eventTypesMode === "all" ? [] : values.eventTypes;
+}
+
+export function submittedStream(values: DrainFormValues) {
+  switch (values.stream) {
+    case "audit_logs":
+      return { auditLogs: { eventTypes: submittedEventTypes(values) } };
+    case "key_verifications":
+      return { keyVerifications: { outcomes: values.outcomes, keySpaceIds: values.keySpaceIds } };
+    case "ratelimits":
+      return { ratelimits: { namespaceIds: values.namespaceIds, passed: values.passed } };
+    case "gateway_requests":
+      return {
+        gatewayRequests: {
+          statusClasses: submittedStatusClasses(values),
+          ...submittedSources(values),
+        },
+      };
+    case "runtime_logs":
+      return { runtimeLogs: { severities: values.severities, ...submittedSources(values) } };
+    default:
+      throw new Error(`Unsupported log drain stream: ${values.stream satisfies never}`);
+  }
 }
 
 export const emptyHeaderRow = { name: "", value: "", stored: false };
@@ -287,46 +330,39 @@ export const emptyDrainForm: DrainFormValues = {
 };
 
 export function drainToFormValues(drain: DrainDetail): DrainFormValues {
+  const filters = drain.filters;
+  const projectIds = filters.projectIds ?? [];
+  const appIds = filters.appIds ?? [];
+  const environmentIds = filters.environmentIds ?? [];
+  const statusClasses = statusClassesSchema.parse(filters.statusClasses ?? []);
+  const eventTypes = filters.eventTypes ?? [];
+  const hasSources = projectIds.length + appIds.length + environmentIds.length > 0;
   return {
     ...emptyDrainForm,
-    kind: drain.kind,
+    kind: drain.destination.http ? "http" : "axiom",
     name: drain.name,
     stream: drain.stream,
-    namespaceIds: "namespaceIds" in drain ? drain.namespaceIds : [],
-    passed: "passed" in drain ? drain.passed : [],
-    outcomes: outcomesSchema.parse(drain.outcomes),
-    keySpaceIds: drain.keySpaceIds,
-    statusClasses: statusClassesSchema.parse(drain.statusClasses),
-    severities: drain.severities,
-    runtimeProjectIds: drain.stream === "runtime_logs" ? drain.projectIds : [],
-    runtimeAppIds: drain.stream === "runtime_logs" ? drain.appIds : [],
-    runtimeEnvironmentIds: drain.stream === "runtime_logs" ? drain.environmentIds : [],
-    runtimeSourceMode:
-      drain.stream === "runtime_logs" &&
-      drain.projectIds.length + drain.appIds.length + drain.environmentIds.length > 0
-        ? "some"
-        : "all",
-    projectIds: drain.stream === "gateway_requests" ? drain.projectIds : [],
-    appIds: drain.stream === "gateway_requests" ? drain.appIds : [],
-    environmentIds: drain.stream === "gateway_requests" ? drain.environmentIds : [],
-    sourceMode:
-      drain.stream === "gateway_requests" &&
-      drain.projectIds.length + drain.appIds.length + drain.environmentIds.length > 0
-        ? "some"
-        : "all",
-    statusMode: statusModeFor(statusClassesSchema.parse(drain.statusClasses)),
-    eventTypes: drain.eventTypes,
-    eventTypesMode: drain.eventTypes.length > 0 ? "specific" : "all",
-    url: drain.kind === "http" ? drain.config.url : "",
-    format: drain.kind === "http" ? drain.config.format : "json",
+    namespaceIds: filters.namespaceIds ?? [],
+    passed: filters.passed ?? [],
+    outcomes: outcomesSchema.parse(filters.outcomes ?? []),
+    keySpaceIds: filters.keySpaceIds ?? [],
+    statusClasses,
+    severities: filters.severities ?? [],
+    runtimeProjectIds: drain.stream === "runtime_logs" ? projectIds : [],
+    runtimeAppIds: drain.stream === "runtime_logs" ? appIds : [],
+    runtimeEnvironmentIds: drain.stream === "runtime_logs" ? environmentIds : [],
+    runtimeSourceMode: drain.stream === "runtime_logs" && hasSources ? "some" : "all",
+    projectIds: drain.stream === "gateway_requests" ? projectIds : [],
+    appIds: drain.stream === "gateway_requests" ? appIds : [],
+    environmentIds: drain.stream === "gateway_requests" ? environmentIds : [],
+    sourceMode: drain.stream === "gateway_requests" && hasSources ? "some" : "all",
+    statusMode: statusModeFor(statusClasses),
+    eventTypes,
+    eventTypesMode: eventTypes.length > 0 ? "specific" : "all",
+    url: drain.destination.http?.url ?? "",
+    format: drain.destination.http?.format ?? "json",
     headers:
-      drain.kind === "http"
-        ? drain.config.headers.map((name) => ({
-            name,
-            value: "",
-            stored: true,
-          }))
-        : [],
-    dataset: drain.kind === "axiom" ? drain.config.dataset : "",
+      drain.destination.http?.headers.map((name) => ({ name, value: "", stored: true })) ?? [],
+    dataset: drain.destination.axiom?.dataset ?? "",
   };
 }

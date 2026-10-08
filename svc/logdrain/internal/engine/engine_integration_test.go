@@ -97,10 +97,10 @@ func (s *sink) maxOverlap() int64 {
 
 func newSink(t *testing.T, status int) *sink {
 	t.Helper()
-	return newSlowSink(t, status, 0)
+	return newSlowSink(t, status, 0, nil)
 }
 
-func newSlowSink(t *testing.T, status int, delay time.Duration) *sink {
+func newSlowSink(t *testing.T, status int, delay time.Duration, release <-chan struct{}) *sink {
 	t.Helper()
 	s := &sink{delay: delay}
 	s.status.Store(int64(status))
@@ -119,6 +119,13 @@ func newSlowSink(t *testing.T, status int, delay time.Duration) *sink {
 			return
 		}
 		time.Sleep(s.delay)
+		if release != nil {
+			select {
+			case <-release:
+			case <-r.Context().Done():
+				return
+			}
+		}
 		responseStatus := int(s.status.Load())
 		s.mu.Lock()
 		s.requests = append(s.requests, capturedRequest{method: r.Method, path: r.URL.Path, header: r.Header.Clone(), body: body, responseStatus: responseStatus})
@@ -572,7 +579,7 @@ func TestEngine_Integration(t *testing.T) {
 		// One valid lease must prevent concurrent happy-path delivery. Delivery
 		// remains at-least-once if the lease expires during an external request.
 		workspaceID, drainID := uniqueIDs()
-		httpSink := newSlowSink(t, http.StatusOK, time.Second)
+		httpSink := newSlowSink(t, http.StatusOK, time.Second, nil)
 		start := time.Now().Add(-6 * time.Minute).UnixMilli()
 		events := []auditEvent{
 			{id: drainID + "_event_1", insertedAt: start, actorMeta: `{}`},
@@ -607,21 +614,30 @@ func TestEngine_Integration(t *testing.T) {
 	})
 
 	t.Run("one replica processes drains in parallel up to the limit", func(t *testing.T) {
-		// MaxConcurrentDrains bounds in-replica parallelism. Two due drains
-		// pointed at one slow sink must overlap when the limit is 2. The in-flight
-		// set serializes work per drain, so overlap can only come from different drains.
+		// Leases can become visible in separate polls. Hold responses until both
+		// workers reach the sink so overlap does not depend on poll timing.
 		workspaceA, drainA := uniqueIDs()
 		workspaceB, drainB := uniqueIDs()
 		require.NotEqual(t, drainA, drainB)
-		httpSink := newSlowSink(t, http.StatusOK, time.Second)
+		release := make(chan struct{})
+		releaseResponses := sync.OnceFunc(func() { close(release) })
+		httpSink := newSlowSink(t, http.StatusOK, 0, release)
+		t.Cleanup(releaseResponses)
 		start := time.Now().Add(-6 * time.Minute).UnixMilli()
 		insertAuditEvents(t, chConn, workspaceA, []auditEvent{{id: drainA + "_event_1", insertedAt: start, actorMeta: `{}`}})
 		insertAuditEvents(t, chConn, workspaceB, []auditEvent{{id: drainB + "_event_1", insertedAt: start, actorMeta: `{}`}})
 		seedDrain(t, mysqlDB, workspaceA, drainA, httpSink.server.URL+"/ingest", start-1)
-		seedDrain(t, mysqlDB, workspaceB, drainB, httpSink.server.URL+"/ingest", start-1)
 		cleanupDrain(t, mysqlDB, drainA)
 		cleanupDrain(t, mysqlDB, drainB)
 		startEngineConcurrent(t, mysqlCfg.DSN, clickhouseCfg.HTTPDSN, 2)
+		require.Eventually(t, func() bool {
+			return httpSink.inflight.Load() == 1
+		}, 30*time.Second, 10*time.Millisecond)
+		seedDrain(t, mysqlDB, workspaceB, drainB, httpSink.server.URL+"/ingest", start-1)
+		require.Eventually(t, func() bool {
+			return httpSink.inflight.Load() == 2
+		}, 30*time.Second, 10*time.Millisecond)
+		releaseResponses()
 
 		require.EventuallyWithT(t, func(c *assert.CollectT) {
 			ids, _, parseErr := parseSuccessfulRequests(httpSink.snapshot())
