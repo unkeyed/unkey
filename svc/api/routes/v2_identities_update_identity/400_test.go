@@ -21,7 +21,7 @@ func TestBadRequests(t *testing.T) {
 
 	h.Register(route)
 
-	rootKeyID := h.CreateRootKey(h.Resources().UserWorkspace.ID, "identity.*.update_identity")
+	rootKeyID := h.CreateRootKey(h.Resources().UserWorkspace.ID, fmt.Sprintf("unkey:v1:%s:projects//identities/*#write", h.Resources().UserWorkspace.ID))
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKeyID)},

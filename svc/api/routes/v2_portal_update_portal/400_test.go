@@ -21,7 +21,7 @@ import (
 // those states cannot be expressed.
 func TestUpdatePortalRejectsInvalidInput(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route, headers := newRoute(t, h, "portal.*.update_portal")
+	route, headers := newRoute(t, h, fmt.Sprintf("unkey:v1:%s:**#*", h.Resources().UserWorkspace.ID))
 	workspace := h.Resources().UserWorkspace
 
 	mapping := keyspaceMapping(t, h, workspace.ID)
@@ -139,7 +139,7 @@ func TestUpdatePortalRejectsInvalidInput(t *testing.T) {
 // typed request cannot express the state.
 func TestUpdatePortalRejectsNullForNotNullFields(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route, headers := newRoute(t, h, "portal.*.update_portal")
+	route, headers := newRoute(t, h, fmt.Sprintf("unkey:v1:%s:**#*", h.Resources().UserWorkspace.ID))
 	workspace := h.Resources().UserWorkspace
 
 	stored := h.SeedPortal(t, workspace.ID, "not-null", "not-null", keyspaceMapping(t, h, workspace.ID),

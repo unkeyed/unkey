@@ -56,7 +56,7 @@ func TestMintLockMakesDisableRevokeTheNewSession(t *testing.T) {
 
 	update := &updateportal.Handler{DB: h.DB, Auditlogs: h.Auditlogs, Clock: h.Clock}
 	h.Register(update)
-	headers := testutil.RootKeyHeaders(h.CreateRootKey(workspace.ID, "portal.*.update_portal"))
+	headers := testutil.RootKeyHeaders(h.CreateRootKey(workspace.ID, fmt.Sprintf("unkey:v1:%s:**#*", h.Resources().UserWorkspace.ID)))
 
 	mint, err := h.DB.RW().Begin(ctx)
 	require.NoError(t, err)
@@ -102,7 +102,7 @@ func TestDisableLockMakesMintRefuse(t *testing.T) {
 
 	create := &handler.Handler{DB: h.DB, Auditlogs: h.Auditlogs, PortalBaseURL: "https://portal.unkey.com", Clock: h.Clock}
 	h.Register(create)
-	headers := testutil.RootKeyHeaders(h.CreateRootKey(workspace.ID, "portal.*.create_portal_session", "api.*.read_key", "api.*.read_api"))
+	headers := testutil.RootKeyHeaders(h.CreateRootKey(workspace.ID, fmt.Sprintf("unkey:v1:%s:**#*", h.Resources().UserWorkspace.ID), fmt.Sprintf("unkey:v1:%s:**#*", h.Resources().UserWorkspace.ID), fmt.Sprintf("unkey:v1:%s:**#*", h.Resources().UserWorkspace.ID)))
 
 	// Stands in for updatePortal's disable: write the portal row, then revoke.
 	disable, err := h.DB.RW().Begin(ctx)
@@ -147,7 +147,7 @@ func TestRepointLockMakesMintRefuse(t *testing.T) {
 
 	create := &handler.Handler{DB: h.DB, Auditlogs: h.Auditlogs, PortalBaseURL: "https://portal.unkey.com", Clock: h.Clock}
 	h.Register(create)
-	headers := testutil.RootKeyHeaders(h.CreateRootKey(workspace.ID, "portal.*.create_portal_session", "api.*.read_key", "api.*.read_api"))
+	headers := testutil.RootKeyHeaders(h.CreateRootKey(workspace.ID, fmt.Sprintf("unkey:v1:%s:**#*", h.Resources().UserWorkspace.ID), fmt.Sprintf("unkey:v1:%s:**#*", h.Resources().UserWorkspace.ID), fmt.Sprintf("unkey:v1:%s:**#*", h.Resources().UserWorkspace.ID)))
 
 	// Stands in for updatePortal's re-point: write the portal row, then revoke.
 	repoint, err := h.DB.RW().Begin(ctx)
@@ -192,7 +192,7 @@ func TestMintLockMakesRepointRevokeTheNewSession(t *testing.T) {
 	update := &updateportal.Handler{DB: h.DB, Auditlogs: h.Auditlogs, Clock: h.Clock}
 	h.Register(update)
 	// Re-pointing also needs read access to the new keyspace.
-	headers := testutil.RootKeyHeaders(h.CreateRootKey(workspace.ID, "portal.*.update_portal", "api.*.read_api"))
+	headers := testutil.RootKeyHeaders(h.CreateRootKey(workspace.ID, fmt.Sprintf("unkey:v1:%s:**#*", h.Resources().UserWorkspace.ID), fmt.Sprintf("unkey:v1:%s:**#*", h.Resources().UserWorkspace.ID)))
 
 	mint, err := h.DB.RW().Begin(ctx)
 	require.NoError(t, err)

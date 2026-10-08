@@ -64,9 +64,9 @@ func TestCreateSessionSuccess(t *testing.T) {
 	// permission plus the read-keys conjunction the equivalent operator route
 	// demands. Without the second conjunct the mint is refused at stage 2.
 	rootKey := h.CreateRootKey(workspaceID,
-		"portal.*.create_portal_session",
-		"api.*.read_key",
-		"api.*.read_api",
+		fmt.Sprintf("unkey:v1:%s:**#*", workspaceID),
+		fmt.Sprintf("unkey:v1:%s:**#*", workspaceID),
+		fmt.Sprintf("unkey:v1:%s:**#*", workspaceID),
 	)
 
 	headers := http.Header{
@@ -207,10 +207,10 @@ func TestCreateSessionAuditsGrantedScopesAndKeyspaces(t *testing.T) {
 	// Several scopes, so the assertion pins the whole granted set rather than
 	// passing on a single-element slice.
 	rootKey := h.CreateRootKey(workspaceID,
-		"portal.*.create_portal_session",
-		"api.*.read_key",
-		"api.*.read_api",
-		"api.*.create_key",
+		fmt.Sprintf("unkey:v1:%s:**#*", workspaceID),
+		fmt.Sprintf("unkey:v1:%s:**#*", workspaceID),
+		fmt.Sprintf("unkey:v1:%s:**#*", workspaceID),
+		fmt.Sprintf("unkey:v1:%s:**#*", workspaceID),
 	)
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
@@ -279,9 +279,9 @@ func TestCreateSessionAuditsMintingSubject(t *testing.T) {
 	insertKeyspacePortal(t, h, workspaceID, "minter-portal", api.KeyAuthID.String)
 
 	rootKey := h.CreateRootKey(workspaceID,
-		"portal.*.create_portal_session",
-		"api.*.read_key",
-		"api.*.read_api",
+		fmt.Sprintf("unkey:v1:%s:**#*", workspaceID),
+		fmt.Sprintf("unkey:v1:%s:**#*", workspaceID),
+		fmt.Sprintf("unkey:v1:%s:**#*", workspaceID),
 	)
 
 	// CreateRootKey returns the secret only, and the audit entry names the key

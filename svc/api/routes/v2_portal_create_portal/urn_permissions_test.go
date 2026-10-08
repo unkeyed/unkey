@@ -15,42 +15,29 @@ import (
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_portal_create_portal"
 )
 
-// TestCreatePortalAuthorizesAdminURNAndLegacyTuple guarantees the dashboard
-// admin grant and existing root-key permission can create a portal.
-func TestCreatePortalAuthorizesAdminURNAndLegacyTuple(t *testing.T) {
+// TestCreatePortalAuthorizesAdminURN guarantees the dashboard admin grant can
+// create a portal.
+func TestCreatePortalAuthorizesAdminURN(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route := &handler.Handler{DB: h.DB, Auditlogs: h.Auditlogs, Clock: h.Clock}
 	h.Register(route)
 
 	workspace := h.Resources().UserWorkspace
 
-	testCases := map[string][]string{
-		"workspace-wide admin URN": {
-			fmt.Sprintf("unkey:v1:%s:**#*", workspace.ID),
-		},
-		"legacy tuples": append([]string{"portal.*.create_portal"}, targetReadGrants...),
+	rootKey := h.CreateRootKey(workspace.ID, fmt.Sprintf("unkey:v1:%s:**#*", workspace.ID))
+	headers := http.Header{
+		"Content-Type":  {"application/json"},
+		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 	}
 
-	i := 0
-	for name, grants := range testCases {
-		i++
-		t.Run(name, func(t *testing.T) {
-			rootKey := h.CreateRootKey(workspace.ID, grants...)
-			headers := http.Header{
-				"Content-Type":  {"application/json"},
-				"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
-			}
-
-			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
-				Slug:        fmt.Sprintf("urn-portal-%d", i),
-				DisplayName: "Acme",
-				KeyspaceId:  ksOf(keyspaceMapping(t, h, workspace.ID)),
-				AppId:       appOf(keyspaceMapping(t, h, workspace.ID)),
-				Enabled:     new(true),
-			})
-			require.Equal(t, http.StatusOK, res.Status, "the grant must authorize portal creation: %s", res.RawBody)
-		})
-	}
+	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
+		Slug:        "urn-portal",
+		DisplayName: "Acme",
+		KeyspaceId:  ksOf(keyspaceMapping(t, h, workspace.ID)),
+		AppId:       appOf(keyspaceMapping(t, h, workspace.ID)),
+		Enabled:     new(true),
+	})
+	require.Equal(t, http.StatusOK, res.Status, "the grant must authorize portal creation: %s", res.RawBody)
 }
 
 // keyspaceMappingWithProject seeds an api and returns its keyspace mapping
@@ -60,6 +47,13 @@ func keyspaceMappingWithProject(t *testing.T, h *testutil.Harness, workspaceID s
 
 	api := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspaceID})
 	return portal.Mapping{Type: portal.MappingTypeKeyspace, ID: api.KeyAuthID.String}, api.ProjectID
+}
+
+func mappingReadGrant(workspaceID, projectID string, mapping portal.Mapping) string {
+	if mapping.Type == portal.MappingTypeApp {
+		return fmt.Sprintf("unkey:v1:%s:projects/%s/apps/%s#read", workspaceID, projectID, mapping.ID)
+	}
+	return fmt.Sprintf("unkey:v1:%s:projects/%s/keyspaces/%s#read", workspaceID, projectID, mapping.ID)
 }
 
 // TestCreatePortalAuthorizesCanonicalPortalURNs pins which canonical grants
@@ -132,9 +126,9 @@ func TestCreatePortalAuthorizesCanonicalPortalURNs(t *testing.T) {
 			// A mapping per case, so a passing case cannot make the next one
 			// report a conflict instead of an authorization result.
 			mapping, projectID := keyspaceMappingWithProject(t, h, workspace.ID)
-			rootKey := h.CreateRootKey(workspace.ID, append([]string{
+			rootKey := h.CreateRootKey(workspace.ID,
 				fmt.Sprintf("unkey:v1:%s:%s#%s", workspace.ID, tc.resource(projectID), tc.action),
-			}, targetReadGrants...)...)
+				mappingReadGrant(workspace.ID, projectID, mapping))
 			headers := http.Header{
 				"Content-Type":  {"application/json"},
 				"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
@@ -192,9 +186,9 @@ func TestCreatePortalAuthorizesAppMappingUnderItsProject(t *testing.T) {
 	})
 	mapping := portal.Mapping{Type: portal.MappingTypeApp, ID: app.ID}
 
-	rootKey := h.CreateRootKey(workspace.ID, append([]string{
+	rootKey := h.CreateRootKey(workspace.ID,
 		fmt.Sprintf("unkey:v1:%s:projects/%s/portals/*#write", workspace.ID, project.ID),
-	}, targetReadGrants...)...)
+		mappingReadGrant(workspace.ID, project.ID, mapping))
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
@@ -243,7 +237,7 @@ func TestCreatePortalDeniesBeforeTheResourceClaimSignal(t *testing.T) {
 		Enabled:     new(true),
 	}
 
-	unauthorized := h.CreateRootKey(workspace.ID, targetReadGrants...)
+	unauthorized := h.CreateRootKey(workspace.ID, mappingReadGrant(workspace.ID, projectID, mapping))
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, http.Header{
 		"Content-Type":  {"application/json"},
 		"Authorization": {fmt.Sprintf("Bearer %s", unauthorized)},
@@ -254,9 +248,9 @@ func TestCreatePortalDeniesBeforeTheResourceClaimSignal(t *testing.T) {
 
 	// The same request behind the grant reaches the check, which is what makes the
 	// assertion above about ordering rather than about the fixture.
-	authorized := h.CreateRootKey(workspace.ID, append([]string{
+	authorized := h.CreateRootKey(workspace.ID,
 		fmt.Sprintf("unkey:v1:%s:projects/%s/portals/*#write", workspace.ID, projectID),
-	}, targetReadGrants...)...)
+		mappingReadGrant(workspace.ID, projectID, mapping))
 	res = testutil.CallRoute[handler.Request, handler.Response](h, route, http.Header{
 		"Content-Type":  {"application/json"},
 		"Authorization": {fmt.Sprintf("Bearer %s", authorized)},
@@ -278,7 +272,7 @@ func TestCreatePortalReportsAnUnownedMappingBeforeADeniedGrant(t *testing.T) {
 	other := h.CreateWorkspace()
 	foreign, _ := keyspaceMappingWithProject(t, h, other.ID)
 
-	rootKey := h.CreateRootKey(workspace.ID, targetReadGrants...)
+	rootKey := h.CreateRootKey(workspace.ID)
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, http.Header{
 		"Content-Type":  {"application/json"},
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},

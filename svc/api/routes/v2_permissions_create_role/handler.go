@@ -89,27 +89,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			return resolveErr
 		}
 
-		legacyAuthorization := rbac.T(rbac.Tuple{
-			ResourceType: rbac.Rbac,
-			ResourceID:   "*",
-			Action:       rbac.CreateRole,
-		})
-		if len(permissionSlugs) > 0 {
-			legacyAuthorization = rbac.And(
-				legacyAuthorization,
-				rbac.T(rbac.Tuple{
-					ResourceType: rbac.Rbac,
-					ResourceID:   "*",
-					Action:       rbac.AddPermissionToRole,
-				}),
-			)
-		}
 		if authorizeErr := principal.Authorize(rbac.Or(
 			rbac.U(
 				urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(projectID).RBAC().Role("*"),
 				rbacpermissions.Write,
 			),
-			legacyAuthorization,
 		)); authorizeErr != nil {
 			return authorizeErr
 		}
@@ -151,11 +135,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 						urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(projectID).RBAC().Permission("*"),
 						rbacpermissions.Write,
 					),
-					rbac.T(rbac.Tuple{
-						ResourceType: rbac.Rbac,
-						ResourceID:   "*",
-						Action:       rbac.CreatePermission,
-					}),
 				)); authorizeErr != nil {
 					return authorizeErr
 				}

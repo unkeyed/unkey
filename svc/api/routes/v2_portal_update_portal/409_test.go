@@ -1,6 +1,7 @@
 package handler_test
 
 import (
+	"fmt"
 	"net/http"
 	"testing"
 
@@ -17,7 +18,7 @@ import (
 // case would fall through to a 500 still carrying the right code.
 func TestUpdatePortalConflicts(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route, headers := newRoute(t, h, "portal.*.update_portal")
+	route, headers := newRoute(t, h, fmt.Sprintf("unkey:v1:%s:**#*", h.Resources().UserWorkspace.ID))
 	workspace := h.Resources().UserWorkspace
 
 	mine := h.SeedPortal(t, workspace.ID, "mine", "mine", keyspaceMapping(t, h, workspace.ID),
@@ -59,8 +60,8 @@ func TestUpdatePortalConflicts(t *testing.T) {
 // dashboard save that round-trips the current values -- would 409.
 func TestUpdatePortalAcceptsItsOwnCurrentValues(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route, headers := newRoute(t, h, "portal.*.update_portal")
 	workspace := h.Resources().UserWorkspace
+	route, headers := newRoute(t, h, fmt.Sprintf("unkey:v1:%s:**#*", h.Resources().UserWorkspace.ID))
 
 	mapping := keyspaceMapping(t, h, workspace.ID)
 	stored := h.SeedPortal(t, workspace.ID, "idempotent", "idempotent", mapping, nil, nil)
@@ -83,7 +84,7 @@ func TestUpdatePortalAcceptsItsOwnCurrentValues(t *testing.T) {
 // is not a collision here.
 func TestUpdatePortalAllowsSlugHeldByAnotherWorkspace(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route, headers := newRoute(t, h, "portal.*.update_portal")
+	route, headers := newRoute(t, h, fmt.Sprintf("unkey:v1:%s:**#*", h.Resources().UserWorkspace.ID))
 	workspace := h.Resources().UserWorkspace
 
 	stored := h.SeedPortal(t, workspace.ID, "local", "local", keyspaceMapping(t, h, workspace.ID),

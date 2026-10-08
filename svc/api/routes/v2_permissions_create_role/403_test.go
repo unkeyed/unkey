@@ -30,7 +30,7 @@ func TestAuthorizationErrors(t *testing.T) {
 	// Test case for insufficient permissions - missing create_role
 	t.Run("missing create_role permission", func(t *testing.T) {
 		// Create a root key with some permissions but not create_role
-		rootKey := h.CreateRootKey(workspace.ID, "rbac.*.read_role")
+		rootKey := h.CreateRootKey(workspace.ID, fmt.Sprintf("unkey:v1:%s:projects/*/rbac/roles/*#read", workspace.ID))
 
 		headers := http.Header{
 			"Content-Type":  {"application/json"},
@@ -62,7 +62,7 @@ func TestAuthorizationErrors(t *testing.T) {
 	})
 
 	t.Run("missing add_permission_to_role permission", func(t *testing.T) {
-		rootKey := h.CreateRootKey(workspace.ID, "rbac.*.create_role", "rbac.*.create_permission")
+		rootKey := h.CreateRootKey(workspace.ID, fmt.Sprintf("unkey:v1:%s:projects/*/rbac/permissions/*#write", workspace.ID))
 		headers := http.Header{
 			"Content-Type":  {"application/json"},
 			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
@@ -85,7 +85,7 @@ func TestAuthorizationErrors(t *testing.T) {
 			Name:        "documents.read.existing.create.role",
 			Slug:        "documents.read.existing.create.role",
 		})
-		rootKey := h.CreateRootKey(workspace.ID, "rbac.*.create_role", "rbac.*.add_permission_to_role")
+		rootKey := h.CreateRootKey(workspace.ID, fmt.Sprintf("unkey:v1:%s:projects/*/rbac/roles/*#write", workspace.ID))
 		headers := http.Header{
 			"Content-Type":  {"application/json"},
 			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
@@ -115,7 +115,7 @@ func TestAuthorizationErrors(t *testing.T) {
 		otherWorkspace := h.CreateWorkspace()
 
 		// Create a root key for the other workspace with all permissions
-		rootKey := h.CreateRootKey(otherWorkspace.ID, "rbac.*.create_role")
+		rootKey := h.CreateRootKey(otherWorkspace.ID, fmt.Sprintf("unkey:v1:%s:projects/*/rbac/roles/*#write", otherWorkspace.ID))
 
 		headers := http.Header{
 			"Content-Type":  {"application/json"},

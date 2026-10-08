@@ -402,15 +402,17 @@ func AuthorizeMappingTarget(
 
 	switch m.Type {
 	case MappingTypeApp:
-		// Legacy tuples only, unlike the keyspace arm below. An app URN is
-		// addressed as projects/{project_id}/apps/{app_id} and this function is
-		// handed an app ID alone. Resolving the project ID and adding the URN
-		// check belong to migrating v2_apps_get_app, which authorizes the same
-		// way. Until then a portal can only be pointed at an app by a caller
-		// holding a legacy grant, which is no worse than reading the app itself.
-		err := principal.Authorize(rbac.Or(
-			rbac.T(rbac.Tuple{ResourceType: rbac.App, ResourceID: "*", Action: rbac.ReadApp}),
-			rbac.T(rbac.Tuple{ResourceType: rbac.App, ResourceID: m.ID, Action: rbac.ReadApp}),
+		app, err := db.Query.FindAppById(ctx, tx, m.ID)
+		if err != nil {
+			return fault.Wrap(err,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("database error resolving app for portal mapping"),
+				fault.Public("Failed to look up the app."),
+			)
+		}
+		err = principal.Authorize(rbac.U(
+			urn.New().Workspace(workspaceID).Project(app.ProjectID).App(m.ID),
+			permissions.Read,
 		))
 		if err != nil {
 			return denied(fmt.Sprintf("caller may not read app %s: %s", m.ID, fault.InternalMessage(err)))
@@ -438,23 +440,12 @@ func AuthorizeMappingTarget(
 			return denied(fmt.Sprintf("keyspace %s has no owning api in workspace %s", m.ID, workspaceID))
 		}
 
-		apiID := rows[0].ApiID
-		// The URN arm is what makes this reachable from the dashboard. A
-		// dashboard operator authenticates with a JWT whose only grant is the
-		// workspace-wide admin URN. The JWT admin role produces
-		// `unkey:v1:{ws}:**#*` without a legacy tuple. URN wildcards expand for
-		// URN queries only, so a tuple-only check can never pass for the one caller
-		// this operator route exists to serve.
-		err = principal.Authorize(rbac.Or(
-			rbac.T(rbac.Tuple{ResourceType: rbac.Api, ResourceID: "*", Action: rbac.ReadAPI}),
-			rbac.T(rbac.Tuple{ResourceType: rbac.Api, ResourceID: apiID, Action: rbac.ReadAPI}),
-			rbac.U(
-				urn.New().Workspace(workspaceID).Project(rows[0].ProjectID).Keyspace(m.ID),
-				permissions.Read,
-			),
+		err = principal.Authorize(rbac.U(
+			urn.New().Workspace(workspaceID).Project(rows[0].ProjectID).Keyspace(m.ID),
+			permissions.Read,
 		))
 		if err != nil {
-			return denied(fmt.Sprintf("caller may not read api %s owning keyspace %s: %s", apiID, m.ID, fault.InternalMessage(err)))
+			return denied(fmt.Sprintf("caller may not read keyspace %s: %s", m.ID, fault.InternalMessage(err)))
 		}
 		return nil
 

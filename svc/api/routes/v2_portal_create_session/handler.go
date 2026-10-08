@@ -30,10 +30,6 @@ import (
 	"github.com/unkeyed/unkey/svc/api/internal/policyconfig"
 	portalrules "github.com/unkeyed/unkey/svc/api/internal/portal"
 	"github.com/unkeyed/unkey/svc/api/openapi"
-	// The key requirements below are owned by the operator routes that
-	// enforce them, so this route borrows them rather than restating them.
-	listkeys "github.com/unkeyed/unkey/svc/api/routes/v2_apis_list_keys"
-	rerollkey "github.com/unkeyed/unkey/svc/api/routes/v2_keys_reroll_key"
 )
 
 type (
@@ -188,32 +184,13 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	// Stage 1: may this caller mint a session for *this* portal at all?
 	//
-	// It runs before the enabled check so the tuple can name a concrete portal,
-	// and it is built from portal.ID rather than req.Portal: req.Portal accepts
-	// an id or a slug, legacy tuples match literally, and a slug-shaped tuple
-	// could never match a dashboard-granted portal.pc_*.create_portal_session.
-	// The wildcard tuple branch is spelled out for the same reason: `*` in a
-	// stored legacy grant is matched literally, it does not expand.
-	//
 	// No arm names the portal resource itself: administering a portal must not
 	// imply minting sessions for its end users. A stored `**#*` still satisfies
-	// the canonical arm, so requireRootKeyCredential above is what actually
+	// this check, so requireRootKeyCredential above is what actually
 	// keeps a dashboard admin from minting.
-	if err = principal.Authorize(rbac.Or(
-		rbac.T(rbac.Tuple{
-			ResourceType: rbac.Portal,
-			ResourceID:   "*",
-			Action:       rbac.CreatePortalSession,
-		}),
-		rbac.T(rbac.Tuple{
-			ResourceType: rbac.Portal,
-			ResourceID:   portal.ID,
-			Action:       rbac.CreatePortalSession,
-		}),
-		rbac.U(
-			urn.New().Workspace(workspaceID).Project(portal.ProjectID).Portal(portal.ID).Session("*"),
-			permissions.Write,
-		),
+	if err = principal.Authorize(rbac.U(
+		urn.New().Workspace(workspaceID).Project(portal.ProjectID).Portal(portal.ID).Session("*"),
+		permissions.Write,
 	)); err != nil {
 		// Masked as 404 so a caller short of the minting permission cannot tell an
 		// existing portal from an absent one, or learn the resolved portal id --
@@ -521,89 +498,17 @@ func validateScopeCombination(scopes []openapi.V2PortalCreateSessionRequestBodyS
 	return nil
 }
 
-// ScopeQueries returns the authorization requirements the *calling* root key
-// must satisfy for one requested portal scope on one keyspace.
-//
-// The mapping is a total function over the scope enum, and the ok result is what
-// makes that checkable: rbac.And over zero children evaluates to valid, so a
-// scope that were silently skipped would mint a session with no check at all.
-// An unrecognized scope therefore reports ok=false and the caller denies.
-//
-// It is exported so the deny-by-default behaviour can be tested directly. The
-// OpenAPI enum rejects unknown values at the request boundary, so there is no
-// way to reach the default arm through the route itself.
-func ScopeQueries(
-	scope openapi.V2PortalCreateSessionRequestBodyScopes,
-	apiID string,
-	storeEncryptedKeys bool,
-) ([]rbac.PermissionQuery, bool) {
-	switch scope {
-	case openapi.KeysRead:
-		return []rbac.PermissionQuery{listkeys.ReadKeysPermissions(apiID)}, true
-
-	case openapi.KeysReroll:
-		// Rerolling is a create, matching what the operator reroll route
-		// requires. The encryption conjunct is keyspace-conditional: a portal
-		// session that can reroll a key in a keyspace storing recoverable key
-		// material also hands out that material.
-		//
-		// The conjunct keys off the keyspace flag rather than an individual
-		// key's encryption row because mint time cannot know which key a
-		// session will later reroll. That makes it a conservative proxy
-		// that can go stale, which is safe today: the reroll core gates both
-		// the encryption operation and the legacy encrypt_key check on the key
-		// itself, so turning a keyspace's encryption on does not
-		// make already-existing keys recoverable and gives a live session
-		// nothing new.
-		//
-		// One path would escalate once UpdateKeySpaceKeyEncryption gains a
-		// production caller: a keyspace toggled on, off, then on again around a
-		// mint. That belongs to the toggle, which must invalidate live portal
-		// sessions on a keyspace when it turns encryption on. Do not close it
-		// here by requiring encrypt_key unconditionally: that would make this
-		// ceiling stricter than the operator route it exists to mirror.
-		queries := []rbac.PermissionQuery{rerollkey.CreateKeyPermissions(apiID)}
-		if storeEncryptedKeys {
-			queries = append(queries, rerollkey.EncryptKeyPermissions(apiID))
-		}
-		return queries, true
-
-	case openapi.AnalyticsRead:
-		// Borrowed vocabulary, not a semantic match: read_analytics gates raw
-		// ClickHouse SQL on the operator endpoint, which is a different question
-		// from handing one end user a graph of their own usage. The route this
-		// ceiling mirrors is v2_portal_get_verifications.
-		return []rbac.PermissionQuery{
-			rbac.Or(
-				rbac.T(rbac.Tuple{
-					ResourceType: rbac.Api,
-					ResourceID:   "*",
-					Action:       rbac.ReadAnalytics,
-				}),
-				rbac.T(rbac.Tuple{
-					ResourceType: rbac.Api,
-					ResourceID:   apiID,
-					Action:       rbac.ReadAnalytics,
-				}),
-			),
-		}, true
-
-	default:
-		return nil, false
-	}
-}
-
-// CanonicalScopeQueries returns the canonical form of the requirement
-// [ScopeQueries] expresses in legacy tuples, for one scope on one keyspace.
+// ScopeQueries returns the canonical authorization requirements the calling
+// root key must satisfy for one requested portal scope on one keyspace.
 //
 // The ok flag is load-bearing: rbac.And over zero children evaluates to valid,
 // so an unmapped scope must be dropped from the composition rather than
 // contribute an empty conjunction.
 //
-// Unlike the legacy arms, these are hand-written rather than borrowed from the
-// operator routes they mirror (v2_apis_list_keys for read, v2_keys_reroll_key
-// for reroll), so they can drift weaker than those routes without failing.
-func CanonicalScopeQueries(
+// These are hand-written rather than borrowed from the operator routes they
+// mirror (v2_apis_list_keys for read, v2_keys_reroll_key for reroll), so they
+// can drift weaker than those routes without failing.
+func ScopeQueries(
 	scope openapi.V2PortalCreateSessionRequestBodyScopes,
 	workspaceID string,
 	projectID string,
@@ -623,9 +528,9 @@ func CanonicalScopeQueries(
 		}, true
 
 	case openapi.KeysReroll:
-		// There is no separate encryption requirement canonically: the reroll
+		// There is no separate encryption requirement: the reroll
 		// route resolves both create_key and encrypt_key to key write, so this
-		// is weaker than the legacy form it sits beside.
+		// matches the permission enforced by that route.
 		return []rbac.PermissionQuery{rbac.U(anyKey, permissions.Write)}, true
 
 	case openapi.AnalyticsRead:
@@ -668,18 +573,13 @@ func (h *Handler) authorizeScopes(
 		return err
 	}
 
-	encrypted, err := h.encryptionByKeyspace(ctx, portal.WorkspaceID, keyspaceIDs)
-	if err != nil {
-		return err
-	}
-
 	for _, scope := range scopes {
 		var checks []rbac.PermissionQuery
 
 		for _, keyspaceID := range keyspaceIDs {
 			owner := owners[keyspaceID]
 
-			legacy, ok := ScopeQueries(scope, owner.APIID, encrypted[keyspaceID])
+			queries, ok := ScopeQueries(scope, portal.WorkspaceID, owner.ProjectID, keyspaceID)
 			if !ok {
 				// Reaching this means the request enum and the mapping have
 				// diverged, which is a server bug rather than a caller problem.
@@ -691,17 +591,7 @@ func (h *Handler) authorizeScopes(
 				)
 			}
 
-			// One disjunction per keyspace rather than a flat conjunction over
-			// all of them: flattening would let a caller satisfy one keyspace
-			// in legacy tuples and another canonically.
-			arms := []rbac.PermissionQuery{rbac.And(legacy...)}
-			if canonical, hasCanonical := CanonicalScopeQueries(
-				scope, portal.WorkspaceID, owner.ProjectID, keyspaceID,
-			); hasCanonical {
-				arms = append(arms, rbac.And(canonical...))
-			}
-
-			checks = append(checks, rbac.Or(arms...))
+			checks = append(checks, rbac.And(queries...))
 		}
 
 		if len(checks) == 0 {
@@ -811,41 +701,4 @@ func (h *Handler) ownersByKeyspace(ctx context.Context, workspaceID string, keys
 	}
 
 	return owners, nil
-}
-
-// encryptionByKeyspace reports, per resolved keyspace, whether it stores
-// recoverable key material. A keyspace missing from the result is the same
-// misconfiguration apiIDsByKeyspace rejects, so it fails rather than defaulting
-// to the weaker no-encryption requirement.
-func (h *Handler) encryptionByKeyspace(ctx context.Context, workspaceID string, keyspaceIDs []string) (map[string]bool, error) {
-	rows, err := db.Query.FindKeyAuthsByIdsAndWorkspace(ctx, h.DB.RO(), db.FindKeyAuthsByIdsAndWorkspaceParams{
-		WorkspaceID: workspaceID,
-		KeyAuthIds:  keyspaceIDs,
-	})
-	if err != nil {
-		return nil, fault.Wrap(err,
-			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Internal("database error resolving portal keyspaces"),
-			fault.Public("Failed to look up portal configuration."),
-		)
-	}
-
-	encrypted := make(map[string]bool, len(rows))
-	found := make(map[string]struct{}, len(rows))
-	for _, row := range rows {
-		encrypted[row.ID] = row.StoreEncryptedKeys
-		found[row.ID] = struct{}{}
-	}
-
-	for _, keyspaceID := range keyspaceIDs {
-		if _, ok := found[keyspaceID]; !ok {
-			return nil, fault.New("portal keyspace not found",
-				fault.Code(codes.App.Internal.UnexpectedError.URN()),
-				fault.Internal(fmt.Sprintf("keyspace %s does not exist in this workspace", keyspaceID)),
-				fault.Public("Portal configuration is invalid."),
-			)
-		}
-	}
-
-	return encrypted, nil
 }

@@ -1,6 +1,7 @@
 package handler_test
 
 import (
+	"fmt"
 	"net/http"
 	"testing"
 
@@ -17,7 +18,7 @@ import (
 // workspace the caller cannot see.
 func TestUpdatePortalMasksEveryMiss(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route, headers := newRoute(t, h, "portal.*.update_portal")
+	route, headers := newRoute(t, h, fmt.Sprintf("unkey:v1:%s:**#*", h.Resources().UserWorkspace.ID))
 	workspace := h.Resources().UserWorkspace
 
 	// A control case, so the misses below cannot be masking a broken handler.
@@ -75,7 +76,8 @@ func TestUpdatePortalDenialMatchesAbsence(t *testing.T) {
 	req := baseRequest(stored.ID)
 	req.Enabled = new(false)
 
-	deniedKey := h.CreateRootKey(workspace.ID, "portal.*.read_portal")
+	deniedKey := h.CreateRootKey(workspace.ID, fmt.Sprintf(
+		"unkey:v1:%s:projects/%s/portals/%s#read", workspace.ID, stored.ProjectID, stored.ID))
 	denied := testutil.CallRoute[handler.Request, handler.Response](h, route, headersFor(deniedKey), req)
 	require.Equal(t, http.StatusNotFound, denied.Status,
 		"a denial must be masked, received: %s", denied.RawBody)
@@ -86,7 +88,7 @@ func TestUpdatePortalDenialMatchesAbsence(t *testing.T) {
 
 	absentReq := baseRequest(uid.New(uid.PortalPrefix))
 	absentReq.Enabled = new(false)
-	allowedKey := h.CreateRootKey(workspace.ID, "portal.*.update_portal")
+	allowedKey := h.CreateRootKey(workspace.ID, fmt.Sprintf("unkey:v1:%s:**#*", h.Resources().UserWorkspace.ID))
 	absent := testutil.CallRoute[handler.Request, handler.Response](h, route, headersFor(allowedKey), absentReq)
 	require.Equal(t, http.StatusNotFound, absent.Status,
 		"an absent portal must be 404, received: %s", absent.RawBody)
@@ -101,7 +103,7 @@ func TestUpdatePortalDenialMatchesAbsence(t *testing.T) {
 // on another tenant's app or keyspace.
 func TestUpdatePortalRejectsMappingsItDoesNotOwn(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route, headers := newRoute(t, h, "portal.*.update_portal")
+	route, headers := newRoute(t, h, fmt.Sprintf("unkey:v1:%s:**#*", h.Resources().UserWorkspace.ID))
 	workspace := h.Resources().UserWorkspace
 
 	mapping := keyspaceMapping(t, h, workspace.ID)

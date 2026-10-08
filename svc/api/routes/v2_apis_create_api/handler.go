@@ -64,11 +64,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(projectIDRequired).Keyspace("*"),
 			permissions.Write,
 		),
-		rbac.T(rbac.Tuple{
-			ResourceType: rbac.Api,
-			ResourceID:   "*",
-			Action:       rbac.CreateAPI,
-		}),
 	))
 	if err != nil {
 		return err

@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/svc/api/internal/projects"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_identities_update_identity"
@@ -27,7 +28,10 @@ func TestSuccess(t *testing.T) {
 
 	h.Register(route)
 
-	rootKeyID := h.CreateRootKey(h.Resources().UserWorkspace.ID, "identity.*.update_identity")
+	rootKeyID := h.CreateRootKey(h.Resources().UserWorkspace.ID,
+		fmt.Sprintf("unkey:v1:%s:projects/*/identities/*#write", h.Resources().UserWorkspace.ID),
+		fmt.Sprintf("unkey:v1:%s:projects//identities/*#write", h.Resources().UserWorkspace.ID),
+	)
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKeyID)},
@@ -37,6 +41,8 @@ func TestSuccess(t *testing.T) {
 	ctx := context.Background()
 
 	workspaceID := h.Resources().UserWorkspace.ID
+	projectID, err := projects.EnsureDefaultProject(ctx, h.DB.RW(), workspaceID)
+	require.NoError(t, err)
 	identityID := uid.New(uid.IdentityPrefix)
 	otherIdentityID := uid.New(uid.IdentityPrefix)
 	externalID := "test_user_123"
@@ -57,6 +63,7 @@ func TestSuccess(t *testing.T) {
 		ID:          identityID,
 		ExternalID:  externalID,
 		WorkspaceID: workspaceID,
+		ProjectID:   projectID,
 		Environment: "default",
 		CreatedAt:   time.Now().UnixMilli(),
 		Meta:        metaBytes,
@@ -67,6 +74,7 @@ func TestSuccess(t *testing.T) {
 		ID:          otherIdentityID,
 		ExternalID:  otherExternalID,
 		WorkspaceID: workspaceID,
+		ProjectID:   projectID,
 		Environment: "default",
 		CreatedAt:   time.Now().UnixMilli(),
 		Meta:        []byte("{}"),
@@ -282,20 +290,26 @@ func TestUpdateIdentityConcurrentRatelimits(t *testing.T) {
 
 	h.Register(route)
 
-	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "identity.*.update_identity")
+	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID,
+		fmt.Sprintf("unkey:v1:%s:projects/*/identities/*#write", h.Resources().UserWorkspace.ID),
+		fmt.Sprintf("unkey:v1:%s:projects//identities/*#write", h.Resources().UserWorkspace.ID),
+	)
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 	}
 
 	workspaceID := h.Resources().UserWorkspace.ID
+	projectID, err := projects.EnsureDefaultProject(ctx, h.DB.RW(), workspaceID)
+	require.NoError(t, err)
 	identityID := uid.New(uid.IdentityPrefix)
 	externalID := "concurrent_ratelimit_test"
 
-	err := db.Query.InsertIdentity(ctx, h.DB.RW(), db.InsertIdentityParams{
+	err = db.Query.InsertIdentity(ctx, h.DB.RW(), db.InsertIdentityParams{
 		ID:          identityID,
 		ExternalID:  externalID,
 		WorkspaceID: workspaceID,
+		ProjectID:   projectID,
 		Environment: "default",
 		CreatedAt:   time.Now().UnixMilli(),
 		Meta:        []byte("{}"),
@@ -374,13 +388,18 @@ func TestBulkIdentityUpdateDeadlock(t *testing.T) {
 
 	h.Register(route)
 
-	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "identity.*.create_identity", "identity.*.update_identity")
+	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID,
+		fmt.Sprintf("unkey:v1:%s:projects/*/identities/*#write", h.Resources().UserWorkspace.ID),
+		fmt.Sprintf("unkey:v1:%s:projects//identities/*#write", h.Resources().UserWorkspace.ID),
+	)
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 	}
 
 	workspaceID := h.Resources().UserWorkspace.ID
+	projectID, err := projects.EnsureDefaultProject(ctx, h.DB.RW(), workspaceID)
+	require.NoError(t, err)
 	numIdentities := 50
 	rlNames := []string{"rl_a", "rl_b", "rl_c", "rl_d", "rl_e"}
 
@@ -390,10 +409,11 @@ func TestBulkIdentityUpdateDeadlock(t *testing.T) {
 	for i := range numIdentities {
 		id := uid.New(uid.IdentityPrefix)
 		externalID := fmt.Sprintf("deadlock_test_%d_%s", i, uid.New("test"))
-		err := db.Query.InsertIdentity(ctx, h.DB.RW(), db.InsertIdentityParams{
+		err = db.Query.InsertIdentity(ctx, h.DB.RW(), db.InsertIdentityParams{
 			ID:          id,
 			ExternalID:  externalID,
 			WorkspaceID: workspaceID,
+			ProjectID:   projectID,
 			Environment: "default",
 			CreatedAt:   time.Now().UnixMilli(),
 			Meta:        []byte("{}"),
