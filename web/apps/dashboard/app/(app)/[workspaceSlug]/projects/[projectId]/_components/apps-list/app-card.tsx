@@ -19,12 +19,13 @@ function Line({ icon, children }: { icon: ReactNode; children: ReactNode }) {
 
 export function AppCard({ row, projectId }: { row: AppRowData; projectId: string }) {
   const { app, deployment } = row;
-  const warmApp = useWarmAppPage();
+  const { warmApp, cancelWarm } = useWarmAppPage();
 
   return (
     <div
       className="relative flex h-full w-full flex-col gap-4 rounded-lg border bg-raised p-5 shadow-xs transition-all duration-300 hover:border-strong [&_a]:z-10 [&_button]:z-10"
       onPointerEnter={() => warmApp(projectId, app.id)}
+      onPointerLeave={cancelWarm}
       onFocusCapture={() => warmApp(projectId, app.id)}
     >
       <Link href={row.href} className="absolute inset-0 z-0" tabIndex={-1} aria-hidden="true" />
