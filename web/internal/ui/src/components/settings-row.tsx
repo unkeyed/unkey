@@ -105,9 +105,9 @@ function SettingsGroupContent({ className, children, ...props }: React.Component
           <div className="flex items-center gap-3 border-t border-grayA-4 px-5 py-3">
             <SaveStatus save={save} />
             <Button
-              variant={save.status === "ready" || save.status === "saving" ? "primary" : "outline"}
+              variant="primary"
               size="sm"
-              className="ml-auto px-3"
+              className="ml-auto px-3 disabled:border-transparent disabled:bg-grayA-3 disabled:text-grayA-9"
               disabled={save.status !== "ready"}
               loading={save.status === "saving"}
               onClick={saveReady}
