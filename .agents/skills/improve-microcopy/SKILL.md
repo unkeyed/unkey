@@ -64,7 +64,7 @@ Then check:
 ## Copy Patterns
 
 ### CTAs
-Start with a verb. Name the object when context is not obvious: "Create key", "Save changes", "Delete permission". Avoid "Submit", "Confirm", "Continue", and "OK".
+Start with a verb. Name the object when context is not obvious: "Create key", "Delete permission". When the surrounding form already names it, use the verb alone: "Save". Avoid "Submit", "Confirm", "Continue", and "OK".
 
 ### Errors
 Structure: blocker + cause + next step. Put the most useful information first. Use "Name already in use. Choose a different key name." Avoid "Something went wrong. Please try again."
