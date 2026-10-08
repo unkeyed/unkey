@@ -11,6 +11,10 @@ const (
 	// so field ownership/conflict detection is tracked per manager.
 	fieldManagerKrane = "krane"
 
+	fieldManagerRolloutGate = "krane-rollout-gate"
+
+	revisionHistoryLimit int32 = 1
+
 	// CustomerNodeClass is the Karpenter nodepool name for untrusted customer
 	// workloads. Nodes in this pool have additional isolation and monitoring.
 	CustomerNodeClass = "untrusted"

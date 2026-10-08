@@ -7,7 +7,6 @@ import (
 
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/svc/krane/pkg/labels"
-	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -19,10 +18,9 @@ import (
 // installing this policy is what unblocks ingress; without it, the
 // customer pods are reachable only from inside their own namespace.
 //
-// The policy is namespaced to the deployment's namespace and owned by the
-// ReplicaSet so it is garbage-collected automatically when the deployment
-// is deleted.
-func (c *Controller) ensureCiliumNetworkPolicy(ctx context.Context, req *ctrlv1.ApplyDeployment, rs *appsv1.ReplicaSet) error {
+// The policy is namespaced to the deployment's namespace and owned by owner
+// so it is garbage-collected automatically when the deployment is deleted.
+func (c *Controller) ensureCiliumNetworkPolicy(ctx context.Context, req *ctrlv1.ApplyDeployment, owner metav1.OwnerReference) error {
 	policyName := fmt.Sprintf("%s-frontline-ingress", req.GetK8SName())
 
 	policy := &unstructured.Unstructured{
@@ -42,10 +40,10 @@ func (c *Controller) ensureCiliumNetworkPolicy(ctx context.Context, req *ctrlv1.
 					ComponentCiliumNetworkPolicy(),
 				"ownerReferences": []interface{}{
 					map[string]interface{}{
-						"apiVersion":         "apps/v1",
-						"kind":               "ReplicaSet",
-						"name":               rs.Name,
-						"uid":                string(rs.UID),
+						"apiVersion":         owner.APIVersion,
+						"kind":               owner.Kind,
+						"name":               owner.Name,
+						"uid":                string(owner.UID),
 						"controller":         true,
 						"blockOwnerDeletion": true,
 					},

@@ -21,7 +21,7 @@ import (
 // to the control plane in real-time.
 //
 // The watch filters for pods with "managed-by: krane" and "component: deployment"
-// labels. On any pod event it finds the owning ReplicaSet, rebuilds the full
+// labels. On any pod event it finds the owning workload, rebuilds the full
 // deployment status, and reports it (deduplicated via fingerprinting).
 //
 // Events are processed concurrently (up to [maxPodWatchConcurrency]) so that a
@@ -120,7 +120,8 @@ func (c *Controller) drainPodWatch(ctx context.Context, w watch.Interface) {
 }
 
 // handlePodEvent processes a single pod watch event: finds the owning
-// ReplicaSet, builds deployment status, and reports it if changed.
+// workload through the pod's ReplicaSet, builds deployment status, and reports
+// it if changed.
 func (c *Controller) handlePodEvent(ctx context.Context, pod *corev1.Pod, eventType watch.EventType) {
 	eventTypeLabel := strings.ToLower(string(eventType))
 	c.lagRecorder.Observe(ctx, pod, eventType)
@@ -161,7 +162,19 @@ func (c *Controller) handlePodEvent(ctx context.Context, pod *corev1.Pod, eventT
 		return
 	}
 
-	status, err := c.buildDeploymentStatus(ctx, rs)
+	w, err := c.workloadForReplicaSet(ctx, rs)
+	if err != nil {
+		if k8serrors.IsNotFound(err) {
+			metrics.PodWatchEventsTotal.WithLabelValues("deployment", eventTypeLabel, "skipped_rs_gone").Inc()
+			logger.Info("pod watch: owning deployment not found, skipping", "pod", pod.Name, "replicaSet", rsName)
+			return
+		}
+		metrics.PodWatchEventsTotal.WithLabelValues("deployment", eventTypeLabel, "error").Inc()
+		logger.Error("pod watch: unable to resolve workload", "pod", pod.Name, "replicaSet", rsName, "error", err.Error())
+		return
+	}
+
+	status, err := c.buildDeploymentStatus(ctx, w)
 	if err != nil {
 		metrics.PodWatchEventsTotal.WithLabelValues("deployment", eventTypeLabel, "error").Inc()
 		logger.Error("pod watch: unable to build status", "error", err.Error(), "replicaSet", rsName)

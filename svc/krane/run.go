@@ -170,7 +170,7 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	// Cache for deduplicating deployment status reports. Entries auto-expire
-	// so deleted ReplicaSets don't leak memory.
+	// so deleted workloads don't leak memory.
 	fingerprintCache, err := cache.New(cache.Config[string, string]{
 		Fresh:    5 * time.Minute,
 		Stale:    10 * time.Minute,
@@ -229,6 +229,8 @@ func Run(ctx context.Context, cfg Config) error {
 		ObservedTransitions: deploymentTransitionsCache,
 		StorageClassName:    cfg.StorageClassName,
 		DisableGvisor:       cfg.DisableGvisor,
+
+		MaxConcurrentRollouts: cfg.MaxConcurrentRollouts,
 	})
 
 	// Start the unified syncer that consumes WatchDeploymentChanges and

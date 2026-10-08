@@ -16,19 +16,20 @@ import (
 	autoscalingv2 "k8s.io/api/autoscaling/v2"
 	corev1 "k8s.io/api/core/v1"
 	policyv1 "k8s.io/api/policy/v1"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
-// ApplyDeployment creates or updates a user workload as a Kubernetes ReplicaSet
+// ApplyDeployment creates or updates a user workload as a Kubernetes Deployment
 // with an associated HorizontalPodAutoscaler (HPA) and PodDisruptionBudget (PDB).
 //
-// The method uses server-side apply to create or update the ReplicaSet.
-// spec.replicas is omitted so the HPA owns the replica count. The HPA's
-// minReplicas determines the minimum capacity; users should set this high
-// enough to handle traffic during rollouts.
+// The method uses server-side apply to update the Deployment. spec.replicas
+// and spec.paused are omitted so the HPA owns the replica count and the
+// rollout gate owns when a template change rolls out. A legacy ReplicaSet with
+// the same name is adopted by the Deployment; see [Controller.createDeployment].
 //
 // After applying, it queries the resulting pods and reports their addresses and status
 // to the control plane so the routing layer knows where to send traffic.
@@ -38,8 +39,8 @@ import (
 // and Image must be non-empty; CpuMillicores and MemoryMib must be > 0.
 //
 // The namespace is created automatically if it doesn't exist. After the
-// ReplicaSet is applied a CiliumNetworkPolicy is installed in the same
-// namespace, owned by the ReplicaSet, that permits ingress only from
+// Deployment is applied a CiliumNetworkPolicy is installed in the same
+// namespace, owned by the Deployment, that permits ingress only from
 // frontline pods on the deployment's container port. Pods run under the
 // configured RuntimeClass, gVisor in production, since they execute untrusted
 // user code, and are scheduled on Karpenter-managed untrusted nodes with
@@ -86,12 +87,12 @@ func (c *Controller) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeplo
 
 	hasSecrets := len(plaintext) > 0
 
-	desired := c.buildReplicaSet(req, hasSecrets)
+	desired := c.buildDeployment(req, hasSecrets)
 
-	// Create the Secret and ServiceAccount before the ReplicaSet so they
+	// Create the Secret and ServiceAccount before the Deployment so they
 	// exist by the time pods are scheduled. This prevents the
 	// "serviceaccount not found" race condition. We patch ownerReferences
-	// onto them after the RS is created so K8s still garbage-collects them.
+	// onto them after the Deployment is created so K8s still garbage-collects them.
 	if hasSecrets {
 		if err := c.ensureDeploymentSecret(ctx, req.GetK8SNamespace(), req.GetDeploymentId(), plaintext); err != nil {
 			return fmt.Errorf("failed to ensure deployment secret: %w", err)
@@ -102,38 +103,35 @@ func (c *Controller) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeplo
 		}
 	}
 
-	client := c.clientSet.AppsV1().ReplicaSets(req.GetK8SNamespace())
-
-	patch, err := json.Marshal(desired)
+	applied, err := c.applyDeploymentObject(ctx, desired)
 	if err != nil {
-		return fmt.Errorf("failed to marshal replicaset: %w", err)
+		return err
 	}
-
-	applied, err := client.Patch(ctx, req.GetK8SName(), types.ApplyPatchType, patch, metav1.PatchOptions{
-		FieldManager: fieldManagerKrane,
-	})
-	if err != nil {
-		return fmt.Errorf("failed to apply replicaset: %w", err)
-	}
+	owner := deploymentOwnerRef(applied)
 
 	// Patch ownerReferences onto the Secret and SA so K8s garbage-collects
-	// them when the ReplicaSet is deleted.
+	// them when the Deployment is deleted.
 	if hasSecrets {
 		resName := deploymentResourcePrefix(req.GetDeploymentId())
-		if err := c.patchOwnerRef(ctx, req.GetK8SNamespace(), resName, replicaSetOwnerRef(applied)); err != nil {
+		if err := c.patchOwnerRef(ctx, req.GetK8SNamespace(), resName, owner); err != nil {
 			return fmt.Errorf("failed to patch owner references: %w", err)
 		}
 	}
 
-	if err := c.ensureHPAExists(ctx, req, applied); err != nil {
+	if err := c.ensureHPAExists(ctx, req, owner); err != nil {
 		return fmt.Errorf("failed to ensure HPA: %w", err)
 	}
 
-	if err := c.ensureCiliumNetworkPolicy(ctx, req, applied); err != nil {
+	if err := c.ensureCiliumNetworkPolicy(ctx, req, owner); err != nil {
 		return fmt.Errorf("failed to ensure cilium network policy: %w", err)
 	}
 
-	status, err := c.buildDeploymentStatus(ctx, applied)
+	status, err := c.buildDeploymentStatus(ctx, workload{
+		namespace:    applied.Namespace,
+		k8sName:      applied.Name,
+		deploymentID: req.GetDeploymentId(),
+		selector:     applied.Spec.Selector,
+	})
 	if err != nil {
 		return err
 	}
@@ -144,20 +142,92 @@ func (c *Controller) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeplo
 		return err
 	}
 
-	if err := c.ensurePodDisruptionBudget(ctx, req, applied); err != nil {
+	if err := c.ensurePodDisruptionBudget(ctx, req, owner); err != nil {
 		logger.Error("failed to ensure pod disruption budget", "deployment_id", req.GetDeploymentId(), "error", err)
 	}
 
 	return nil
 }
 
-// buildReplicaSet renders the desired ReplicaSet for a deployment request.
+// applyDeploymentObject creates the Deployment if it does not exist, then
+// server-side applies the desired spec.
+//
+// The apply forces ownership because the creating request, made by the
+// rollout gate's field manager, also set every field krane renders. Krane
+// stays the only writer of those fields; the gate keeps spec.paused and the
+// seeded spec.replicas, which krane never sends.
+func (c *Controller) applyDeploymentObject(ctx context.Context, desired *appsv1.Deployment) (*appsv1.Deployment, error) {
+	client := c.clientSet.AppsV1().Deployments(desired.Namespace)
+
+	_, err := client.Get(ctx, desired.Name, metav1.GetOptions{})
+	switch {
+	case k8serrors.IsNotFound(err):
+		if err := c.createDeployment(ctx, desired); err != nil {
+			return nil, err
+		}
+	case err != nil:
+		return nil, fmt.Errorf("failed to get deployment: %w", err)
+	}
+
+	patch, err := json.Marshal(desired)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal deployment: %w", err)
+	}
+
+	applied, err := client.Patch(ctx, desired.Name, types.ApplyPatchType, patch, metav1.PatchOptions{
+		FieldManager: fieldManagerKrane,
+		Force:        new(true),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to apply deployment: %w", err)
+	}
+
+	return applied, nil
+}
+
+// createDeployment creates the Deployment for a workload that has none.
+//
+// A new workload starts unpaused so its first pods come up at once; a paused
+// Deployment without a matching ReplicaSet runs no pods. A legacy ReplicaSet
+// with the same name is adopted instead: the Deployment starts paused, with
+// the ReplicaSet's replica count, so adoption restarts no pods and does not
+// scale the ReplicaSet to the default of one replica. If the rendered template
+// differs from the legacy one, the rollout gate rolls the workload later.
+func (c *Controller) createDeployment(ctx context.Context, desired *appsv1.Deployment) error {
+	initial := desired.DeepCopy()
+
+	legacy, err := c.clientSet.AppsV1().ReplicaSets(desired.Namespace).Get(ctx, desired.Name, metav1.GetOptions{})
+	switch {
+	case k8serrors.IsNotFound(err):
+	case err != nil:
+		return fmt.Errorf("failed to get legacy replicaset: %w", err)
+	case isLegacyReplicaSet(legacy):
+		initial.Spec.Replicas = legacy.Spec.Replicas
+		initial.Spec.Paused = true
+		logger.Info("adopting legacy replicaset", "namespace", desired.Namespace, "name", desired.Name)
+	}
+
+	_, err = c.clientSet.AppsV1().Deployments(desired.Namespace).Create(ctx, initial, metav1.CreateOptions{
+		FieldManager: fieldManagerRolloutGate,
+	})
+	if err != nil && !k8serrors.IsAlreadyExists(err) {
+		return fmt.Errorf("failed to create deployment: %w", err)
+	}
+
+	return nil
+}
+
+// buildDeployment renders the desired Deployment for a deployment request.
 //
 // It performs no I/O so the mapping from every ApplyDeployment proto field to
 // the Kubernetes object is unit-testable without a cluster (see apply_test.go).
 // hasSecrets indicates whether a per-deployment K8s Secret will be mounted via
 // envFrom; the caller computes it from the decrypted environment variables.
-func (c *Controller) buildReplicaSet(req *ctrlv1.ApplyDeployment, hasSecrets bool) *appsv1.ReplicaSet {
+//
+// The pod template must stay identical to what krane rendered for legacy
+// ReplicaSets, so a Deployment adopts an unchanged legacy ReplicaSet without
+// replacing its pods.
+func (c *Controller) buildDeployment(req *ctrlv1.ApplyDeployment, hasSecrets bool) *appsv1.Deployment {
 	usedLabels := deploymentLabels(req).
 		BuildID(req.GetBuildId()).
 		Platform(c.platform)
@@ -302,17 +372,20 @@ func (c *Controller) buildReplicaSet(req *ctrlv1.ApplyDeployment, hasSecrets boo
 
 	podSpec.ImagePullSecrets = c.imagePullSecrets
 
-	return &appsv1.ReplicaSet{
+	maxSurge := intstr.FromInt32(1)
+	maxUnavailable := intstr.FromInt32(0)
+
+	return &appsv1.Deployment{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "apps/v1",
-			Kind:       "ReplicaSet",
+			Kind:       "Deployment",
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      req.GetK8SName(),
 			Namespace: req.GetK8SNamespace(),
 			Labels:    usedLabels,
 		},
-		Spec: appsv1.ReplicaSetSpec{
+		Spec: appsv1.DeploymentSpec{
 			Selector: &metav1.LabelSelector{
 				MatchLabels: labels.New().DeploymentID(req.GetDeploymentId()),
 			},
@@ -323,6 +396,14 @@ func (c *Controller) buildReplicaSet(req *ctrlv1.ApplyDeployment, hasSecrets boo
 				},
 				Spec: podSpec,
 			},
+			Strategy: appsv1.DeploymentStrategy{
+				Type: appsv1.RollingUpdateDeploymentStrategyType,
+				RollingUpdate: &appsv1.RollingUpdateDeployment{
+					MaxSurge:       &maxSurge,
+					MaxUnavailable: &maxUnavailable,
+				},
+			},
+			RevisionHistoryLimit: new(revisionHistoryLimit),
 		},
 	}
 }
@@ -364,9 +445,9 @@ func unmarshalHealthcheck(data []byte) *dbtype.Healthcheck {
 }
 
 // ensureHPAExists creates or updates a HorizontalPodAutoscaler that scales the
-// deployment's ReplicaSet using the autoscaling policy from the control plane.
-// The HPA is owned by the ReplicaSet for automatic garbage collection.
-func (c *Controller) ensureHPAExists(ctx context.Context, req *ctrlv1.ApplyDeployment, rs *appsv1.ReplicaSet) error {
+// workload's Deployment using the autoscaling policy from the control plane.
+// The HPA is owned by the Deployment for automatic garbage collection.
+func (c *Controller) ensureHPAExists(ctx context.Context, req *ctrlv1.ApplyDeployment, owner metav1.OwnerReference) error {
 	client := c.clientSet.AutoscalingV2().HorizontalPodAutoscalers(req.GetK8SNamespace())
 
 	policy := req.GetAutoscaling()
@@ -424,13 +505,13 @@ func (c *Controller) ensureHPAExists(ctx context.Context, req *ctrlv1.ApplyDeplo
 			Name:            req.GetK8SName(),
 			Namespace:       req.GetK8SNamespace(),
 			Labels:          deploymentLabels(req),
-			OwnerReferences: []metav1.OwnerReference{replicaSetOwnerRef(rs)},
+			OwnerReferences: []metav1.OwnerReference{owner},
 		},
 		//nolint:exhaustruct
 		Spec: autoscalingv2.HorizontalPodAutoscalerSpec{
 			ScaleTargetRef: autoscalingv2.CrossVersionObjectReference{
 				APIVersion: "apps/v1",
-				Kind:       "ReplicaSet",
+				Kind:       "Deployment",
 				Name:       req.GetK8SName(),
 			},
 			MinReplicas: new(minReplicas),
@@ -459,12 +540,12 @@ func (c *Controller) ensureHPAExists(ctx context.Context, req *ctrlv1.ApplyDeplo
 
 // ensurePodDisruptionBudget creates or updates a PodDisruptionBudget that caps
 // voluntary disruptions (Karpenter consolidation, node drains, cluster upgrades)
-// of the deployment's pods. The PDB is owned by the ReplicaSet for automatic
+// of the deployment's pods. The PDB is owned by the Deployment for automatic
 // garbage collection.
-func (c *Controller) ensurePodDisruptionBudget(ctx context.Context, req *ctrlv1.ApplyDeployment, rs *appsv1.ReplicaSet) error {
+func (c *Controller) ensurePodDisruptionBudget(ctx context.Context, req *ctrlv1.ApplyDeployment, owner metav1.OwnerReference) error {
 	client := c.clientSet.PolicyV1().PodDisruptionBudgets(req.GetK8SNamespace())
 
-	desired := buildPodDisruptionBudget(req, rs)
+	desired := buildPodDisruptionBudget(req, owner)
 
 	patch, err := json.Marshal(desired)
 	if err != nil {
@@ -477,8 +558,8 @@ func (c *Controller) ensurePodDisruptionBudget(ctx context.Context, req *ctrlv1.
 	return err
 }
 
-// buildPodDisruptionBudget constructs the PDB for a deployment, owned by its
-// ReplicaSet and selecting pods by deployment ID.
+// buildPodDisruptionBudget constructs the PDB for a deployment, owned by
+// owner and selecting pods by deployment ID.
 //
 // maxUnavailable is the absolute integer 1, deliberately not a percentage: a
 // percentage maxUnavailable rounds down, so anything under 100% of a
@@ -489,7 +570,7 @@ func (c *Controller) ensurePodDisruptionBudget(ctx context.Context, req *ctrlv1.
 // through planned node churn. If a multi-replica deployment is already degraded,
 // the PDB can still block voluntary eviction; the untrusted NodePool
 // terminationGracePeriod is the bounded escape hatch for that case.
-func buildPodDisruptionBudget(req *ctrlv1.ApplyDeployment, rs *appsv1.ReplicaSet) *policyv1.PodDisruptionBudget {
+func buildPodDisruptionBudget(req *ctrlv1.ApplyDeployment, owner metav1.OwnerReference) *policyv1.PodDisruptionBudget {
 	maxUnavailable := intstr.FromInt32(1)
 	alwaysAllow := policyv1.AlwaysAllow
 
@@ -503,7 +584,7 @@ func buildPodDisruptionBudget(req *ctrlv1.ApplyDeployment, rs *appsv1.ReplicaSet
 			Name:            req.GetK8SName(),
 			Namespace:       req.GetK8SNamespace(),
 			Labels:          deploymentLabels(req),
-			OwnerReferences: []metav1.OwnerReference{replicaSetOwnerRef(rs)},
+			OwnerReferences: []metav1.OwnerReference{owner},
 		},
 		//nolint:exhaustruct
 		Spec: policyv1.PodDisruptionBudgetSpec{
@@ -528,12 +609,12 @@ func deploymentLabels(req *ctrlv1.ApplyDeployment) labels.Labels {
 		ComponentDeployment()
 }
 
-func replicaSetOwnerRef(rs *appsv1.ReplicaSet) metav1.OwnerReference {
+func deploymentOwnerRef(d *appsv1.Deployment) metav1.OwnerReference {
 	return metav1.OwnerReference{
 		APIVersion:         "apps/v1",
-		Kind:               "ReplicaSet",
-		Name:               rs.Name,
-		UID:                rs.UID,
+		Kind:               "Deployment",
+		Name:               d.Name,
+		UID:                d.UID,
 		Controller:         new(true),
 		BlockOwnerDeletion: new(true),
 	}

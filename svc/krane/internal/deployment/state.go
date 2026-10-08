@@ -7,12 +7,11 @@ import (
 	"strconv"
 
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
-	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// buildDeploymentStatus queries the pods belonging to a ReplicaSet and builds a
+// buildDeploymentStatus queries the pods belonging to a workload and builds a
 // status report for the control plane.
 //
 // The report includes each active pod's IP address, CPU and memory
@@ -20,46 +19,40 @@ import (
 // can't receive traffic yet. Failed and succeeded pods are also excluded because
 // the ReplicaSet replaces them but Kubernetes retains their objects for garbage
 // collection. Reporting them would retain a stale instance for every replacement.
-// The address format is "{pod-ip}:{port}" so instances are reachable from peered
-// clusters without relying on cluster-local DNS.
+// Terminating pods are excluded so a rollout stops routing to replaced pods
+// before they exit. The address format is "{pod-ip}:{port}" so instances are
+// reachable from peered clusters without relying on cluster-local DNS. The port
+// comes from each pod, because pods of two revisions coexist during a rollout.
 //
 // Pod phase is mapped to instance status: Running pods with ContainersReady=True
 // become STATUS_RUNNING, Pending pods and Running pods whose ContainersReady
 // condition is missing or False become STATUS_PENDING.
-func (c *Controller) buildDeploymentStatus(ctx context.Context, replicaset *appsv1.ReplicaSet) (*ctrlv1.ReportDeploymentStatusRequest, error) {
-	selector, err := metav1.LabelSelectorAsSelector(replicaset.Spec.Selector)
+func (c *Controller) buildDeploymentStatus(ctx context.Context, w workload) (*ctrlv1.ReportDeploymentStatusRequest, error) {
+	selector, err := metav1.LabelSelectorAsSelector(w.selector)
 	if err != nil {
 		return nil, err
 	}
 
-	pods, err := c.clientSet.CoreV1().Pods(replicaset.Namespace).List(ctx, metav1.ListOptions{
+	pods, err := c.clientSet.CoreV1().Pods(w.namespace).List(ctx, metav1.ListOptions{
 		LabelSelector: selector.String(),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to list pods: %w", err)
 	}
 
-	// Read the port from the ReplicaSet's container spec
-	containerPort := int32(8080)
-	if containers := replicaset.Spec.Template.Spec.Containers; len(containers) > 0 {
-		if ports := containers[0].Ports; len(ports) > 0 {
-			containerPort = ports[0].ContainerPort
-		}
-	}
-
 	update := &ctrlv1.ReportDeploymentStatusRequest_Update{
-		K8SName:   replicaset.Name,
+		K8SName:   w.k8sName,
 		Instances: make([]*ctrlv1.ReportDeploymentStatusRequest_Update_Instance, 0, len(pods.Items)),
 	}
 
 	for _, pod := range pods.Items {
-		if pod.Status.PodIP == "" {
+		if pod.Status.PodIP == "" || pod.DeletionTimestamp != nil {
 			continue
 		}
 
 		instance := &ctrlv1.ReportDeploymentStatusRequest_Update_Instance{
 			K8SName:       pod.GetName(),
-			Address:       net.JoinHostPort(pod.Status.PodIP, strconv.Itoa(int(containerPort))),
+			Address:       net.JoinHostPort(pod.Status.PodIP, strconv.Itoa(int(podContainerPort(&pod)))),
 			CpuMillicores: 0,
 			MemoryMib:     0,
 			Status:        ctrlv1.ReportDeploymentStatusRequest_Update_Instance_STATUS_UNSPECIFIED,
@@ -105,4 +98,13 @@ func (c *Controller) buildDeploymentStatus(ctx context.Context, replicaset *apps
 			Update: update,
 		},
 	}, nil
+}
+
+func podContainerPort(pod *corev1.Pod) int32 {
+	if containers := pod.Spec.Containers; len(containers) > 0 {
+		if ports := containers[0].Ports; len(ports) > 0 {
+			return ports[0].ContainerPort
+		}
+	}
+	return 8080
 }
