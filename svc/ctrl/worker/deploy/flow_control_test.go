@@ -42,6 +42,7 @@ func TestFlowControl(t *testing.T) {
 		gates:    map[string]chan struct{}{},
 		released: map[string]struct{}{},
 		called:   map[string]struct{}{},
+		children: map[string]string{},
 		parents:  map[string]error{},
 	}
 	cfg := containers.Restate(t, restate.Reflect(probe))
@@ -106,6 +107,16 @@ func TestFlowControl(t *testing.T) {
 		require.Never(t, func() bool { return probe.hasStarted(queued) }, time.Second, 50*time.Millisecond,
 			"the second callee must wait behind the first")
 
+		var queuedInvocation string
+		require.Eventually(t, func() bool {
+			queuedInvocation = probe.childInvocation(queued)
+			if queuedInvocation == "" {
+				return false
+			}
+			live, err := admin.FindLiveInvocations(ctx, []string{queuedInvocation})
+			return err == nil && live[queuedInvocation]
+		}, awaitBudget, 50*time.Millisecond, "the queued callee must be live in Restate before its caller is cancelled")
+
 		require.NoError(t, admin.CancelInvocation(ctx, queuedParent.Id()))
 
 		require.Eventually(t, func() bool {
@@ -115,6 +126,13 @@ func TestFlowControl(t *testing.T) {
 		_, parentErr := probe.parentResult(queued)
 		require.Error(t, parentErr)
 		require.True(t, restate.IsTerminalError(parentErr), "cancel must surface as a terminal error, got %v", parentErr)
+
+		// Restate cancels the callee through its own partition after the caller
+		// already sees the cancel, so free the slot only once the callee is gone
+		require.Eventually(t, func() bool {
+			live, err := admin.FindLiveInvocations(ctx, []string{queuedInvocation})
+			return err == nil && !live[queuedInvocation]
+		}, awaitBudget, 50*time.Millisecond, "the cancelled caller's queued callee was never removed")
 
 		probe.release(first)
 		require.Eventually(t, func() bool {
@@ -246,6 +264,7 @@ type FlowControlProbe struct {
 	gates    map[string]chan struct{}
 	released map[string]struct{}
 	called   map[string]struct{}
+	children map[string]string
 	parents  map[string]error
 }
 
@@ -258,9 +277,14 @@ func (p *FlowControlProbe) Run(ctx restate.WorkflowContext, req parentRequest) (
 	p.called[child] = struct{}{}
 	p.mu.Unlock()
 
-	_, err := restate.Workflow[string](ctx, probeService, child, "Hold", restate.WithScope(restateadmin.BuildConcurrencyScope)).
-		RequestFuture(holdRequest{Scope: restateadmin.BuildConcurrencyScope, LimitKey: req.LimitKey}, restate.WithLimitKey(req.LimitKey)).
-		Response()
+	future := restate.Workflow[string](ctx, probeService, child, "Hold", restate.WithScope(restateadmin.BuildConcurrencyScope)).
+		RequestFuture(holdRequest{Scope: restateadmin.BuildConcurrencyScope, LimitKey: req.LimitKey}, restate.WithLimitKey(req.LimitKey))
+	invocationID := future.GetInvocationId()
+	p.mu.Lock()
+	p.children[child] = invocationID
+	p.mu.Unlock()
+
+	_, err := future.Response()
 
 	p.mu.Lock()
 	p.parents[child] = err
@@ -394,6 +418,12 @@ func (p *FlowControlProbe) hasCalled(childKey string) bool {
 	defer p.mu.Unlock()
 	_, ok := p.called[childKey]
 	return ok
+}
+
+func (p *FlowControlProbe) childInvocation(childKey string) string {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	return p.children[childKey]
 }
 
 func (p *FlowControlProbe) parentResult(childKey string) (bool, error) {
