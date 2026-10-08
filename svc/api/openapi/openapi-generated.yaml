@@ -623,6 +623,122 @@ components:
                 data:
                     "$ref": "#/components/schemas/App"
             additionalProperties: false
+        V2CliApproveDeviceLoginRequestBody:
+            type: object
+            additionalProperties: false
+            required:
+                - userCode
+                - permissions
+            properties:
+                userCode:
+                    type: string
+                    minLength: 4
+                    maxLength: 32
+                name:
+                    type: string
+                    maxLength: 255
+                    description: Optional name for the root key.
+                permissions:
+                    type: array
+                    minItems: 1
+                    maxItems: 1000
+                    description: Permissions to grant. Each permission must be within the caller's existing permissions.
+                    items:
+                        type: string
+                        minLength: 1
+                        maxLength: 512
+        V2CliApproveDeviceLoginResponseBody:
+            type: object
+            additionalProperties: false
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    $ref: '#/components/schemas/Meta'
+                data:
+                    $ref: '#/components/schemas/EmptyResponse'
+        V2CliDenyDeviceLoginRequestBody:
+            type: object
+            additionalProperties: false
+            required:
+                - userCode
+            properties:
+                userCode:
+                    type: string
+                    minLength: 4
+                    maxLength: 32
+        V2CliDenyDeviceLoginResponseBody:
+            type: object
+            additionalProperties: false
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    $ref: '#/components/schemas/Meta'
+                data:
+                    $ref: '#/components/schemas/EmptyResponse'
+        V2CliGetDeviceLoginRequestBody:
+            type: object
+            additionalProperties: false
+            required:
+                - userCode
+            properties:
+                userCode:
+                    type: string
+                    minLength: 4
+                    maxLength: 32
+                    description: Code shown by `unkey login`.
+        V2CliGetDeviceLoginResponseBody:
+            type: object
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    $ref: '#/components/schemas/Meta'
+                data:
+                    $ref: '#/components/schemas/V2CliGetDeviceLoginResponseData'
+        V2CliPollDeviceLoginRequestBody:
+            type: object
+            additionalProperties: false
+            required:
+                - loginId
+            properties:
+                loginId:
+                    type: string
+                    minLength: 8
+                    maxLength: 48
+                    description: loginId from cli.startDeviceLogin.
+        V2CliPollDeviceLoginResponseBody:
+            type: object
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    $ref: '#/components/schemas/Meta'
+                data:
+                    $ref: '#/components/schemas/V2CliPollDeviceLoginResponseData'
+        V2CliStartDeviceLoginRequestBody:
+            type: object
+            additionalProperties: false
+            properties:
+                deviceName:
+                    type: string
+                    maxLength: 512
+                    description: Hostname or other label shown on the authorize page.
+        V2CliStartDeviceLoginResponseBody:
+            type: object
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    $ref: '#/components/schemas/Meta'
+                data:
+                    $ref: '#/components/schemas/V2CliStartDeviceLoginResponseData'
         V2DeployCreateDeploymentRequestBody:
             type: object
             required:
@@ -4896,6 +5012,95 @@ components:
                         branch of the connected repository.
                     example: main
             additionalProperties: false
+        V2CliGetDeviceLoginResponseData:
+            type: object
+            required:
+                - userCode
+                - status
+                - createdAt
+                - expiresAt
+            properties:
+                userCode:
+                    type: string
+                deviceName:
+                    type: string
+                    description: Label sent by the CLI. The requester chooses it, so do not trust it.
+                requesterIp:
+                    type: string
+                    description: IP address that started the login. Empty when the API could not determine it.
+                requesterUserAgent:
+                    type: string
+                    description: User agent of the client that started the login.
+                status:
+                    type: string
+                    description: pending, approved, consumed, denied, or expired.
+                createdAt:
+                    type: integer
+                    format: int64
+                    description: Unix millisecond time the login was started.
+                expiresAt:
+                    type: integer
+                    format: int64
+                    description: Unix millisecond expiry.
+        V2CliPollDeviceLoginResponseData:
+            type: object
+            required:
+                - status
+                - interval
+            properties:
+                status:
+                    type: string
+                    enum:
+                        - permissions_required
+                        - access_denied
+                        - expired_token
+                        - complete
+                    description: |
+                        `permissions_required` while the user has not approved the login yet. `access_denied` and `expired_token` are terminal. `complete` includes the root key.
+                interval:
+                    type: integer
+                    format: int64
+                    description: Seconds to wait before polling again.
+                detail:
+                    type: string
+                    description: Human-readable reason for a terminal status.
+                keyId:
+                    type: string
+                    description: Root key identifier. Present only when status is complete.
+                key:
+                    type: string
+                    x-unkey-redact: true
+                    description: Root key secret, returned only once. Present only when status is complete.
+        V2CliStartDeviceLoginResponseData:
+            type: object
+            required:
+                - loginId
+                - userCode
+                - verificationUri
+                - verificationUriComplete
+                - expiresIn
+                - interval
+            properties:
+                loginId:
+                    type: string
+                    description: Secret the CLI sends to cli.pollDeviceLogin. Do not display it.
+                userCode:
+                    type: string
+                    description: Code the user confirms in the browser.
+                verificationUri:
+                    type: string
+                    description: Dashboard page where the user enters the code.
+                verificationUriComplete:
+                    type: string
+                    description: Dashboard page with the code filled in.
+                expiresIn:
+                    type: integer
+                    format: int64
+                    description: Seconds until the login expires.
+                interval:
+                    type: integer
+                    format: int64
+                    description: Seconds to wait between polls.
         V2DeployGitCommit:
             type: object
             description: Optional git commit information
@@ -9711,6 +9916,233 @@ paths:
             tags:
                 - apps
             x-speakeasy-name-override: updateApp
+    /v2/cli.approveDeviceLogin:
+        post:
+            description: |
+                Stores the root-key permissions selected by the signed-in user.
+                The caller must be allowed to create root keys, and every permission must fit inside the caller's own permissions.
+                The root key is created later, when the CLI polls, and only with this exact set.
+            operationId: cli.approveDeviceLogin
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/V2CliApproveDeviceLoginRequestBody'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/V2CliApproveDeviceLoginResponseBody'
+                    description: Permissions stored.
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Invalid code or permission.
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Unauthorized
+                "403":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: The caller cannot grant these permissions.
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error.
+            summary: Approve CLI device login
+            tags:
+                - cli
+            x-speakeasy-ignore: true
+            x-speakeasy-name-override: approveDeviceLogin
+    /v2/cli.denyDeviceLogin:
+        post:
+            description: |
+                Denies a device login so the CLI does not receive a root key.
+            operationId: cli.denyDeviceLogin
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/V2CliDenyDeviceLoginRequestBody'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/V2CliDenyDeviceLoginResponseBody'
+                    description: Login denied.
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Unknown or closed login.
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Unauthorized
+                "403":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: Another account already approved this login.
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error.
+            summary: Deny CLI device login
+            tags:
+                - cli
+            x-speakeasy-ignore: true
+            x-speakeasy-name-override: denyDeviceLogin
+    /v2/cli.getDeviceLogin:
+        post:
+            description: |
+                Returns the device label, requester details, and status for a user code.
+                Requires a dashboard session.
+            operationId: cli.getDeviceLogin
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/V2CliGetDeviceLoginRequestBody'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/V2CliGetDeviceLoginResponseBody'
+                    description: Device login found.
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Unknown or invalid code.
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Unauthorized
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error.
+            summary: Get CLI device login
+            tags:
+                - cli
+            x-speakeasy-ignore: true
+            x-speakeasy-name-override: getDeviceLogin
+    /v2/cli.pollDeviceLogin:
+        post:
+            description: |
+                Polls a device login started by cli.startDeviceLogin.
+                While the user is confirming the code or choosing permissions, the status is `permissions_required`.
+                When both steps are done, the response includes a root key secret exactly once.
+                No authentication header is required. `loginId` is the secret. Requests are rate limited per IP address.
+            operationId: cli.pollDeviceLogin
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/V2CliPollDeviceLoginRequestBody'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/V2CliPollDeviceLoginResponseBody'
+                    description: Current login state. `complete` includes the root key secret.
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Unknown login.
+                "429":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/TooManyRequestsErrorResponse'
+                    description: Too many requests from this IP address.
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error, including when CLI login is not configured on this API.
+            security: []
+            summary: Poll CLI device login
+            tags:
+                - cli
+            x-speakeasy-ignore: true
+            x-speakeasy-name-override: pollDeviceLogin
+    /v2/cli.startDeviceLogin:
+        post:
+            description: |
+                Starts a device login for `unkey login`.
+                The response includes the user code and the dashboard URL where the user confirms it and chooses root-key permissions.
+                No authentication is required. Requests are rate limited per IP address.
+            operationId: cli.startDeviceLogin
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/V2CliStartDeviceLoginRequestBody'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/V2CliStartDeviceLoginResponseBody'
+                    description: Device login started.
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Invalid input.
+                "429":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/TooManyRequestsErrorResponse'
+                    description: Too many requests from this IP address.
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error, including when CLI login is not configured on this API.
+            security: []
+            summary: Start CLI device login
+            tags:
+                - cli
+            x-speakeasy-ignore: true
+            x-speakeasy-name-override: startDeviceLogin
     /v2/deploy.createDeployment:
         post:
             deprecated: true
@@ -18572,6 +19004,8 @@ tags:
       name: github
     - description: Workspace limits and usage operations
       name: workspace
+    - description: CLI device login
+      name: cli
 x-speakeasy-retries:
     backoff:
         exponent: 1.5

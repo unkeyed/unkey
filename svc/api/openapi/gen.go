@@ -395,6 +395,30 @@ func (e UpdateKeyCreditsRefillInterval) Valid() bool {
 	}
 }
 
+// Defines values for V2CliPollDeviceLoginResponseDataStatus.
+const (
+	AccessDenied        V2CliPollDeviceLoginResponseDataStatus = "access_denied"
+	Complete            V2CliPollDeviceLoginResponseDataStatus = "complete"
+	ExpiredToken        V2CliPollDeviceLoginResponseDataStatus = "expired_token"
+	PermissionsRequired V2CliPollDeviceLoginResponseDataStatus = "permissions_required"
+)
+
+// Valid indicates whether the value is a known member of the V2CliPollDeviceLoginResponseDataStatus enum.
+func (e V2CliPollDeviceLoginResponseDataStatus) Valid() bool {
+	switch e {
+	case AccessDenied:
+		return true
+	case Complete:
+		return true
+	case ExpiredToken:
+		return true
+	case PermissionsRequired:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for V2DeployGetDeploymentResponseDataStatus.
 const (
 	AWAITINGAPPROVAL V2DeployGetDeploymentResponseDataStatus = "AWAITING_APPROVAL"
@@ -3048,6 +3072,145 @@ type V2AppsUpdateAppResponseBody struct {
 
 	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
 	Meta Meta `json:"meta"`
+}
+
+// V2CliApproveDeviceLoginRequestBody defines model for V2CliApproveDeviceLoginRequestBody.
+type V2CliApproveDeviceLoginRequestBody struct {
+	// Name Optional name for the root key.
+	Name *string `json:"name,omitempty"`
+
+	// Permissions Permissions to grant. Each permission must be within the caller's existing permissions.
+	Permissions []string `json:"permissions"`
+	UserCode    string   `json:"userCode"`
+}
+
+// V2CliApproveDeviceLoginResponseBody defines model for V2CliApproveDeviceLoginResponseBody.
+type V2CliApproveDeviceLoginResponseBody struct {
+	// Data Empty response object by design. A successful response indicates this operation was successfully executed.
+	Data EmptyResponse `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// V2CliDenyDeviceLoginRequestBody defines model for V2CliDenyDeviceLoginRequestBody.
+type V2CliDenyDeviceLoginRequestBody struct {
+	UserCode string `json:"userCode"`
+}
+
+// V2CliDenyDeviceLoginResponseBody defines model for V2CliDenyDeviceLoginResponseBody.
+type V2CliDenyDeviceLoginResponseBody struct {
+	// Data Empty response object by design. A successful response indicates this operation was successfully executed.
+	Data EmptyResponse `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// V2CliGetDeviceLoginRequestBody defines model for V2CliGetDeviceLoginRequestBody.
+type V2CliGetDeviceLoginRequestBody struct {
+	// UserCode Code shown by `unkey login`.
+	UserCode string `json:"userCode"`
+}
+
+// V2CliGetDeviceLoginResponseBody defines model for V2CliGetDeviceLoginResponseBody.
+type V2CliGetDeviceLoginResponseBody struct {
+	Data V2CliGetDeviceLoginResponseData `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// V2CliGetDeviceLoginResponseData defines model for V2CliGetDeviceLoginResponseData.
+type V2CliGetDeviceLoginResponseData struct {
+	// CreatedAt Unix millisecond time the login was started.
+	CreatedAt int64 `json:"createdAt"`
+
+	// DeviceName Label sent by the CLI. The requester chooses it, so do not trust it.
+	DeviceName *string `json:"deviceName,omitempty"`
+
+	// ExpiresAt Unix millisecond expiry.
+	ExpiresAt int64 `json:"expiresAt"`
+
+	// RequesterIp IP address that started the login. Empty when the API could not determine it.
+	RequesterIp *string `json:"requesterIp,omitempty"`
+
+	// RequesterUserAgent User agent of the client that started the login.
+	RequesterUserAgent *string `json:"requesterUserAgent,omitempty"`
+
+	// Status pending, approved, consumed, denied, or expired.
+	Status   string `json:"status"`
+	UserCode string `json:"userCode"`
+}
+
+// V2CliPollDeviceLoginRequestBody defines model for V2CliPollDeviceLoginRequestBody.
+type V2CliPollDeviceLoginRequestBody struct {
+	// LoginId loginId from cli.startDeviceLogin.
+	LoginId string `json:"loginId"`
+}
+
+// V2CliPollDeviceLoginResponseBody defines model for V2CliPollDeviceLoginResponseBody.
+type V2CliPollDeviceLoginResponseBody struct {
+	Data V2CliPollDeviceLoginResponseData `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// V2CliPollDeviceLoginResponseData defines model for V2CliPollDeviceLoginResponseData.
+type V2CliPollDeviceLoginResponseData struct {
+	// Detail Human-readable reason for a terminal status.
+	Detail *string `json:"detail,omitempty"`
+
+	// Interval Seconds to wait before polling again.
+	Interval int64 `json:"interval"`
+
+	// Key Root key secret, returned only once. Present only when status is complete.
+	Key *string `json:"key,omitempty"`
+
+	// KeyId Root key identifier. Present only when status is complete.
+	KeyId *string `json:"keyId,omitempty"`
+
+	// Status `permissions_required` while the user has not approved the login yet. `access_denied` and `expired_token` are terminal. `complete` includes the root key.
+	Status V2CliPollDeviceLoginResponseDataStatus `json:"status"`
+}
+
+// V2CliPollDeviceLoginResponseDataStatus `permissions_required` while the user has not approved the login yet. `access_denied` and `expired_token` are terminal. `complete` includes the root key.
+type V2CliPollDeviceLoginResponseDataStatus string
+
+// V2CliStartDeviceLoginRequestBody defines model for V2CliStartDeviceLoginRequestBody.
+type V2CliStartDeviceLoginRequestBody struct {
+	// DeviceName Hostname or other label shown on the authorize page.
+	DeviceName *string `json:"deviceName,omitempty"`
+}
+
+// V2CliStartDeviceLoginResponseBody defines model for V2CliStartDeviceLoginResponseBody.
+type V2CliStartDeviceLoginResponseBody struct {
+	Data V2CliStartDeviceLoginResponseData `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// V2CliStartDeviceLoginResponseData defines model for V2CliStartDeviceLoginResponseData.
+type V2CliStartDeviceLoginResponseData struct {
+	// ExpiresIn Seconds until the login expires.
+	ExpiresIn int64 `json:"expiresIn"`
+
+	// Interval Seconds to wait between polls.
+	Interval int64 `json:"interval"`
+
+	// LoginId Secret the CLI sends to cli.pollDeviceLogin. Do not display it.
+	LoginId string `json:"loginId"`
+
+	// UserCode Code the user confirms in the browser.
+	UserCode string `json:"userCode"`
+
+	// VerificationUri Dashboard page where the user enters the code.
+	VerificationUri string `json:"verificationUri"`
+
+	// VerificationUriComplete Dashboard page with the code filled in.
+	VerificationUriComplete string `json:"verificationUriComplete"`
 }
 
 // V2DeployCreateDeploymentRequestBody Create a deployment from a pre-built Docker image
@@ -7267,6 +7430,21 @@ type AppsListAppsJSONRequestBody = V2AppsListAppsRequestBody
 
 // AppsUpdateAppJSONRequestBody defines body for AppsUpdateApp for application/json ContentType.
 type AppsUpdateAppJSONRequestBody = V2AppsUpdateAppRequestBody
+
+// CliApproveDeviceLoginJSONRequestBody defines body for CliApproveDeviceLogin for application/json ContentType.
+type CliApproveDeviceLoginJSONRequestBody = V2CliApproveDeviceLoginRequestBody
+
+// CliDenyDeviceLoginJSONRequestBody defines body for CliDenyDeviceLogin for application/json ContentType.
+type CliDenyDeviceLoginJSONRequestBody = V2CliDenyDeviceLoginRequestBody
+
+// CliGetDeviceLoginJSONRequestBody defines body for CliGetDeviceLogin for application/json ContentType.
+type CliGetDeviceLoginJSONRequestBody = V2CliGetDeviceLoginRequestBody
+
+// CliPollDeviceLoginJSONRequestBody defines body for CliPollDeviceLogin for application/json ContentType.
+type CliPollDeviceLoginJSONRequestBody = V2CliPollDeviceLoginRequestBody
+
+// CliStartDeviceLoginJSONRequestBody defines body for CliStartDeviceLogin for application/json ContentType.
+type CliStartDeviceLoginJSONRequestBody = V2CliStartDeviceLoginRequestBody
 
 // DeployCreateDeploymentJSONRequestBody defines body for DeployCreateDeployment for application/json ContentType.
 //

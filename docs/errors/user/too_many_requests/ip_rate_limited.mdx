@@ -1,0 +1,33 @@
+---
+title: "ip_rate_limited"
+sidebarTitle: "ip_rate_limited"
+description: "Your IP address is sending too many requests to an unauthenticated Unkey API endpoint."
+sources:
+  - pkg/codes/user_request.go
+  - svc/api/internal/middleware/errors.go
+  - svc/api/internal/clidevice/service.go
+---
+
+<Danger>`err:user:too_many_requests:ip_rate_limited`</Danger>
+
+Your IP address sent too many requests to an endpoint that needs no authentication, such as starting or polling `unkey login`. Nothing ran, so it's safe to retry. You get HTTP 429.
+
+```json Example response
+{
+  "meta": {
+    "requestId": "req_2c9a0jf23l4k567"
+  },
+  "error": {
+    "detail": "Too many CLI login requests from this address. Try again in a minute.",
+    "status": 429,
+    "title": "Too Many Requests",
+    "type": "/errors/user/too_many_requests/ip_rate_limited"
+  }
+}
+```
+
+## How to fix
+
+1. Wait a minute, then run `unkey login` again.
+2. If many people share one IP address, such as an office network, start logins one at a time.
+3. If it keeps happening, contact [support@unkey.com](mailto:support@unkey.com).

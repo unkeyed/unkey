@@ -1,0 +1,29 @@
+type: object
+required:
+  - loginId
+  - userCode
+  - verificationUri
+  - verificationUriComplete
+  - expiresIn
+  - interval
+properties:
+  loginId:
+    type: string
+    description: Secret the CLI sends to cli.pollDeviceLogin. Do not display it.
+  userCode:
+    type: string
+    description: Code the user confirms in the browser.
+  verificationUri:
+    type: string
+    description: Dashboard page where the user enters the code.
+  verificationUriComplete:
+    type: string
+    description: Dashboard page with the code filled in.
+  expiresIn:
+    type: integer
+    format: int64
+    description: Seconds until the login expires.
+  interval:
+    type: integer
+    format: int64
+    description: Seconds to wait between polls.
