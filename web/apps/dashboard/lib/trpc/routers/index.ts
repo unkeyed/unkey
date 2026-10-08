@@ -19,7 +19,6 @@ import { auditLogsSearch } from "./audit/llm-search";
 import { listAuditMembers } from "./audit/members";
 import { permissionsLlmSearch } from "./authorization/permissions/llm-search";
 import { queryPermissions } from "./authorization/permissions/query";
-import { updatePermission } from "./authorization/permissions/update";
 import { getConnectedKeysAndPerms } from "./authorization/roles/connected-keys-and-perms";
 import { queryKeys } from "./authorization/roles/keys/query-keys";
 import { searchKeys } from "./authorization/roles/keys/search-key";
@@ -202,7 +201,6 @@ export const router = t.router({
   authorization: t.router({
     permissions: t.router({
       query: queryPermissions,
-      update: updatePermission,
       llmSearch: permissionsLlmSearch,
     }),
     roles: t.router({
