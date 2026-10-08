@@ -18,7 +18,7 @@ func TestListUnknownProject(t *testing.T) {
 	h.Register(route)
 
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"environment.*.read_deployment"},
+		Permissions: []string{"unkey:v1:{workspaceID}:**#read"},
 	})
 
 	req := handler.Request{Project: rid(uid.New(uid.ProjectPrefix))}
@@ -35,7 +35,7 @@ func TestListProjectInAnotherWorkspace(t *testing.T) {
 	h.Register(route)
 
 	caller := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"environment.*.read_deployment"},
+		Permissions: []string{"unkey:v1:{workspaceID}:**#read"},
 	})
 	other := h.CreateTestDeploymentSetup()
 
@@ -64,7 +64,7 @@ func TestListUnknownApp(t *testing.T) {
 	h.Register(route)
 
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"environment.*.read_deployment"},
+		Permissions: []string{"unkey:v1:{workspaceID}:**#read"},
 	})
 
 	req := handler.Request{
@@ -84,7 +84,7 @@ func TestListUnknownEnvironment(t *testing.T) {
 	h.Register(route)
 
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"environment.*.read_deployment"},
+		Permissions: []string{"unkey:v1:{workspaceID}:**#read"},
 	})
 
 	req := handler.Request{

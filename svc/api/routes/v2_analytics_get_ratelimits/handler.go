@@ -58,14 +58,12 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	if err != nil {
 		return err
 	}
-	wildcard := rbac.T(rbac.Tuple{ResourceType: rbac.Ratelimit, ResourceID: "*", Action: rbac.ReadAnalytics})
-	hasLegacyWildcard := slices.Contains(p.Permissions, "ratelimit.*.read_analytics")
-	allowedNamespaceIDs := extractAllowedNamespaceIDs(p.Permissions)
 	logPermissions, hasWorkspaceWidePermission := extractLogPermissions(p.Permissions, p.AuthorizedWorkspaceID)
-	if !hasLegacyWildcard && len(allowedNamespaceIDs) == 0 && len(logPermissions) == 0 {
-		return p.Authorize(wildcard)
+	if len(logPermissions) == 0 {
+		return p.Authorize(rbac.U(ratelimitLogResource(p.AuthorizedWorkspaceID, "*", "*"), permissions.Read))
 	}
-	if !hasLegacyWildcard && !hasWorkspaceWidePermission && len(logPermissions) > 0 {
+	allowedNamespaceIDs := make([]string, 0)
+	if !hasWorkspaceWidePermission {
 		namespaceRows, queryErr := db.Query.ListRatelimitNamespaceOwnershipByWorkspace(ctx, h.DB.RO(), p.AuthorizedWorkspaceID)
 		if queryErr != nil {
 			return fault.Wrap(queryErr,
@@ -76,7 +74,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		allowedNamespaceIDs = append(allowedNamespaceIDs, authorizedNamespaceIDs(namespaceRows, logPermissions, p.AuthorizedWorkspaceID)...)
 	}
 	securityFilters := make([]queryparser.SecurityFilter, 0, 1)
-	if !hasLegacyWildcard && !hasWorkspaceWidePermission {
+	if !hasWorkspaceWidePermission {
 		securityFilters = append(securityFilters, queryparser.SecurityFilter{Column: "namespace_id", AllowedValues: allowedNamespaceIDs})
 	}
 	rows, err := analytics.Execute(ctx, h.AnalyticsConnectionManager, analytics.ExecuteRequest{
@@ -102,18 +100,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 	s.AddHeader("Content-Type", "application/json")
 	return s.Send(http.StatusOK, responseBytes)
-}
-
-func extractAllowedNamespaceIDs(permissions []string) []string {
-	namespaceIDs := make([]string, 0)
-	for _, permission := range permissions {
-		pattern := strings.Split(permission, ".")
-		if len(pattern) != 3 || pattern[0] != "ratelimit" || pattern[2] != "read_analytics" {
-			continue
-		}
-		namespaceIDs = append(namespaceIDs, pattern[1])
-	}
-	return namespaceIDs
 }
 
 func extractLogPermissions(permissionsToCheck []string, workspaceID string) ([]urn.V1, bool) {

@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -39,19 +38,19 @@ func TestGetApiInsufficientPermissions(t *testing.T) {
 		},
 		{
 			name:        "wrong api permission",
-			permissions: []string{"api.*.create_api"},
+			permissions: []string{fmt.Sprintf("unkey:v1:%s:projects/*/keyspaces/*#write", h.Resources().UserWorkspace.ID)},
 		},
 		{
 			name:        "wrong scope for specific api",
-			permissions: []string{fmt.Sprintf("api.%s.create_api", api.ID)},
+			permissions: []string{fmt.Sprintf("unkey:v1:%s:projects/%s/keyspaces/%s#write", h.Resources().UserWorkspace.ID, api.ProjectID, api.KeyAuthID.String)},
 		},
 		{
 			name:        "permission for different api",
-			permissions: []string{fmt.Sprintf("api.%s.read_api", uid.New(uid.APIPrefix))},
+			permissions: []string{fmt.Sprintf("unkey:v1:%s:projects/%s/keyspaces/ks_different#read", h.Resources().UserWorkspace.ID, api.ProjectID)},
 		},
 		{
 			name:        "multiple insufficient permissions",
-			permissions: []string{"key.*.create", "ratelimit.*.create", "identity.*.read"},
+			permissions: []string{fmt.Sprintf("unkey:v1:%s:projects/*/identities/*#read", h.Resources().UserWorkspace.ID), fmt.Sprintf("unkey:v1:%s:projects/*/ratelimits/namespaces/*#limit", h.Resources().UserWorkspace.ID)},
 		},
 	}
 
@@ -85,10 +84,10 @@ func TestGetApiInsufficientPermissions(t *testing.T) {
 	// Test with a valid key but from wrong workspace
 	t.Run("key from wrong workspace", func(t *testing.T) {
 		// Create another workspace
-		otherWorkspaceID := uid.New(uid.WorkspacePrefix)
+		otherWorkspaceID := "ws_other"
 
 		// Create key for other workspace with sufficient permissions
-		rootKey := h.CreateRootKey(otherWorkspaceID, "api.*.read_api")
+		rootKey := h.CreateRootKey(otherWorkspaceID, fmt.Sprintf("unkey:v1:%s:projects/*/keyspaces/*#read", otherWorkspaceID))
 		headers := http.Header{
 			"Content-Type":  {"application/json"},
 			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},

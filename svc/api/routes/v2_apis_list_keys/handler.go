@@ -110,18 +110,15 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	err = principal.Authorize(rbac.Or(
-		rbac.And(
-			rbac.U(
-				urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(api.KeyAuthProjectID).Keyspace(api.ApiKeyAuthID.String).Key("*"),
-				permissions.Read,
-			),
-			rbac.U(
-				urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(api.KeyAuthProjectID).Keyspace(api.ApiKeyAuthID.String),
-				permissions.Read,
-			),
+	err = principal.Authorize(rbac.And(
+		rbac.U(
+			urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(api.KeyAuthProjectID).Keyspace(api.ApiKeyAuthID.String).Key("*"),
+			permissions.Read,
 		),
-		ReadKeysPermissions(req.ApiId),
+		rbac.U(
+			urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(api.KeyAuthProjectID).Keyspace(api.ApiKeyAuthID.String),
+			permissions.Read,
+		),
 	))
 	if err != nil {
 		// Mask a read-authorization failure as 404 so that callers who lack read
@@ -144,21 +141,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			)
 		}
 
-		err = principal.Authorize(rbac.Or(
-			rbac.T(rbac.Tuple{
-				ResourceType: rbac.Api,
-				ResourceID:   "*",
-				Action:       rbac.DecryptKey,
-			}),
-			rbac.T(rbac.Tuple{
-				ResourceType: rbac.Api,
-				ResourceID:   api.ApiID,
-				Action:       rbac.DecryptKey,
-			}),
-			rbac.U(
-				urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(api.KeyAuthProjectID).Keyspace(api.ApiKeyAuthID.String).Key("*"),
-				permissions.Decrypt,
-			),
+		err = principal.Authorize(rbac.U(
+			urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(api.KeyAuthProjectID).Keyspace(api.ApiKeyAuthID.String).Key("*"),
+			permissions.Decrypt,
 		))
 		if err != nil {
 			return err

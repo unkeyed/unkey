@@ -11,7 +11,7 @@ func Test429_WorkspaceQueryQuota(t *testing.T) {
 	h := testutil.NewHarness(t, testutil.HarnessConfig{ClickHouse: true})
 	workspace := h.CreateWorkspace()
 	h.SetupAnalytics(workspace.ID, testutil.WithMaxQueriesPerWindow(1))
-	rootKey := h.CreateRootKey(workspace.ID, "project.*.read_runtime_logs")
+	rootKey := h.CreateRootKey(workspace.ID, "unkey:v1:"+(workspace.ID)+":**#*")
 	route := &Handler{AnalyticsConnectionManager: h.AnalyticsConnectionManager}
 	h.Register(route)
 

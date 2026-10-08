@@ -1,6 +1,7 @@
 package handler_test
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/oapi-codegen/nullable"
@@ -26,7 +27,10 @@ func TestUpdatePolicySuccessfully(t *testing.T) {
 	h.Register(listRoute)
 
 	workspace := h.Resources().UserWorkspace
-	rootKey := h.CreateRootKey(workspace.ID, "environment.*.update_policy", "environment.*.read_policies")
+	rootKey := h.CreateRootKey(workspace.ID,
+		fmt.Sprintf("unkey:v1:%s:projects/*/apps/*/environments/*/gateway/policies/*#write", workspace.ID),
+		fmt.Sprintf("unkey:v1:%s:projects/*/apps/*/environments/*/gateway/policies/*#read", workspace.ID),
+	)
 	headers := authHeaders(rootKey)
 
 	call := func(t *testing.T, req handler.Request) {

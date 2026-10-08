@@ -22,7 +22,7 @@ func TestGetDomainBadRequest(t *testing.T) {
 	h.Register(route)
 
 	seeded := seedDomain(t, h, nil)
-	rootKey := h.CreateRootKey(seeded.workspaceID, "environment.*.read_domain")
+	rootKey := h.CreateRootKey(seeded.workspaceID, "unkey:v1:"+(seeded.workspaceID)+":**#*")
 	headers := authHeaders(rootKey)
 
 	testCases := []struct {

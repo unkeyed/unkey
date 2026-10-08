@@ -2,6 +2,7 @@ package handler_test
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -24,7 +25,7 @@ func TestListPoliciesSuccessfully(t *testing.T) {
 	h.Register(route)
 
 	workspace := h.Resources().UserWorkspace
-	rootKey := h.CreateRootKey(workspace.ID, "environment.*.read_policies")
+	rootKey := h.CreateRootKey(workspace.ID, fmt.Sprintf("unkey:v1:%s:projects/*/apps/*/environments/*/gateway/policies/*#read", workspace.ID))
 	headers := authHeaders(rootKey)
 
 	call := func(t *testing.T, req handler.Request) testutil.TestResponse[handler.Response] {
@@ -283,7 +284,10 @@ func TestListPoliciesSuccessfully(t *testing.T) {
 
 		env := seedEnvironment(t, h)
 		api := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspace.ID, ProjectID: env.projectID})
-		writeKey := h.CreateRootKey(workspace.ID, "environment.*.set_policies")
+		writeKey := h.CreateRootKey(workspace.ID,
+			fmt.Sprintf("unkey:v1:%s:projects/%s/apps/%s/environments/%s/gateway/policies/*#write", env.workspaceID, env.projectID, env.appID, env.environmentID),
+			fmt.Sprintf("unkey:v1:%s:projects/%s/apps/%s/environments/%s/gateway/policies/*#delete", env.workspaceID, env.projectID, env.appID, env.environmentID),
+		)
 
 		writeRes := testutil.CallRoute[setpolicies.Request, setpolicies.Response](h, writeRoute, authHeaders(writeKey), setpolicies.Request{
 			Project:     env.projectID,
