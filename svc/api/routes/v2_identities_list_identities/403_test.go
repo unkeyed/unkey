@@ -46,9 +46,10 @@ func TestForbidden(t *testing.T) {
 
 	// Insert identity in default environment
 	defaultIdentityID := uid.New(uid.IdentityPrefix)
+	defaultExternalID := uid.New(uid.TestPrefix)
 	err = db.Query.InsertIdentity(ctx, tx, db.InsertIdentityParams{
 		ID:          defaultIdentityID,
-		ExternalID:  "test_user_default",
+		ExternalID:  defaultExternalID,
 		WorkspaceID: workspaceID,
 		ProjectID:   projectID,
 		Environment: "default",
@@ -59,9 +60,10 @@ func TestForbidden(t *testing.T) {
 
 	// Insert identity in production environment
 	prodIdentityID := uid.New(uid.IdentityPrefix)
+	prodExternalID := uid.New(uid.TestPrefix)
 	err = db.Query.InsertIdentity(ctx, tx, db.InsertIdentityParams{
 		ID:          prodIdentityID,
-		ExternalID:  "test_user_prod",
+		ExternalID:  prodExternalID,
 		WorkspaceID: workspaceID,
 		ProjectID:   projectID,
 		Environment: "production",
@@ -72,9 +74,10 @@ func TestForbidden(t *testing.T) {
 
 	// Insert identity in staging environment
 	stagingIdentityID := uid.New(uid.IdentityPrefix)
+	stagingExternalID := uid.New(uid.TestPrefix)
 	err = db.Query.InsertIdentity(ctx, tx, db.InsertIdentityParams{
 		ID:          stagingIdentityID,
-		ExternalID:  "test_user_staging",
+		ExternalID:  stagingExternalID,
 		WorkspaceID: workspaceID,
 		ProjectID:   projectID,
 		Environment: "staging",
@@ -130,7 +133,7 @@ func TestForbidden(t *testing.T) {
 		foundProd := false
 		for _, identity := range res.Body.Data {
 			// Should be able to see production identity
-			if identity.ExternalId == "test_user_prod" {
+			if identity.ExternalId == prodExternalID {
 				foundProd = true
 			}
 		}
@@ -162,13 +165,13 @@ func TestForbidden(t *testing.T) {
 		foundStaging := false
 
 		for _, identity := range res.Body.Data {
-			if identity.ExternalId == "test_user_default" {
+			if identity.ExternalId == defaultExternalID {
 				foundDefault = true
 			}
-			if identity.ExternalId == "test_user_prod" {
+			if identity.ExternalId == prodExternalID {
 				foundProd = true
 			}
-			if identity.ExternalId == "test_user_staging" {
+			if identity.ExternalId == stagingExternalID {
 				foundStaging = true
 			}
 		}
@@ -184,7 +187,7 @@ func TestForbidden(t *testing.T) {
 			"Content-Type":  {"application/json"},
 			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 		}
-		search := "test_user_prod"
+		search := prodExternalID
 
 		res := testutil.CallRoute[handler.Request, handler.Response](
 			h,

@@ -44,11 +44,14 @@ func TestGetActiveKeysUsage(t *testing.T) {
 		v.Source = schema.SourceGateway
 		return v
 	}
+	validKeyID := uid.New(uid.KeyPrefix)
+	rateLimitedKeyID := uid.New(uid.KeyPrefix)
+	repeatedKeyID := uid.New(uid.KeyPrefix)
 	rows := []schema.KeyVerification{
-		gateway("key_a", "VALID"),
-		gateway("key_b", "RATE_LIMITED"),
-		gateway("key_c", "VALID"),
-		gateway("key_c", "VALID"),
+		gateway(validKeyID, "VALID"),
+		gateway(rateLimitedKeyID, "RATE_LIMITED"),
+		gateway(repeatedKeyID, "VALID"),
+		gateway(repeatedKeyID, "VALID"),
 	}
 	api := createVerifications(workspaceID, 2, now, "VALID")
 	for i := range api {

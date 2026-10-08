@@ -130,7 +130,7 @@ func TestInvoiceCreated_IgnoresUnknownCustomer(t *testing.T) {
 	t.Cleanup(func() { require.NoError(t, database.Close()) })
 
 	h := &handler{db: database} //nolint:exhaustruct // restate/stripe unused on ignore path
-	err = h.invoiceCreated(context.Background(), webhook.Event{}, renewalInvoice("cus_no_deploy_workspace", "sub_test"))
+	err = h.invoiceCreated(context.Background(), webhook.Event{}, renewalInvoice(uid.New("cus"), uid.New("sub")))
 	require.ErrorIs(t, err, webhook.ErrIgnore)
 }
 
@@ -168,7 +168,7 @@ func TestInvoiceCreated_RejectsEmptyBillingReason(t *testing.T) {
 	t.Cleanup(func() { require.NoError(t, database.Close()) })
 
 	h := &handler{db: database} //nolint:exhaustruct // stripe/restate unused on ignore path
-	inv := renewalInvoice("cus_test", "sub_test")
+	inv := renewalInvoice(uid.New("cus"), uid.New("sub"))
 	inv.BillingReason = ""
 	err = h.invoiceCreated(context.Background(), webhook.Event{}, inv)
 	require.ErrorIs(t, err, webhook.ErrIgnore)
@@ -183,7 +183,7 @@ func TestFindDeployWorkspaceByStripeCustomerID_RequiresDeployPlan(t *testing.T) 
 	t.Cleanup(func() { require.NoError(t, database.Close()) })
 
 	_, err = database.FindDeployWorkspaceByStripeCustomerID(context.Background(), sql.NullString{
-		String: "cus_without_workspace",
+		String: uid.New("cus"),
 		Valid:  true,
 	})
 	require.True(t, db.IsNotFound(err))

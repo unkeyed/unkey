@@ -2,11 +2,13 @@ package clickhouse
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/uid"
 )
@@ -38,19 +40,49 @@ func TestGetBuildLogs(t *testing.T) {
 	}
 	insertStep := func(t *testing.T, target GetBuildLogsRequest, stepID, name string, startedAt, completedAt int64) {
 		t.Helper()
-		require.NoError(t, client.Exec(ctx,
-			"INSERT INTO default.build_steps_v1 (step_id, started_at, completed_at, workspace_id, project_id, deployment_id, name, cached, error, has_logs) VALUES (?, ?, ?, ?, ?, ?, ?, false, '', true)",
-			stepID, startedAt, completedAt, target.WorkspaceID, target.ProjectID, target.DeploymentID, name,
-		))
+		batch, err := client.conn.PrepareBatch(ctx, InsertQuery[schema.BuildStepV1]())
+		require.NoError(t, err)
+		require.NoError(t, batch.AppendStruct(&schema.BuildStepV1{
+			StartedAt:    startedAt,
+			CompletedAt:  completedAt,
+			WorkspaceID:  target.WorkspaceID,
+			ProjectID:    target.ProjectID,
+			DeploymentID: target.DeploymentID,
+			StepID:       stepID,
+			Name:         name,
+			Cached:       false,
+			Error:        "",
+			HasLogs:      true,
+		}))
+		require.NoError(t, batch.Send())
+	}
+	insertLogMessages := func(t *testing.T, target GetBuildLogsRequest, stepID string, fromSeq uint64, stderr bool, messages []string) {
+		t.Helper()
+		batch, err := client.conn.PrepareBatch(ctx, InsertQuery[schema.BuildStepLogV1]())
+		require.NoError(t, err)
+		for i, message := range messages {
+			require.NoError(t, batch.AppendStruct(&schema.BuildStepLogV1{
+				Time:         now,
+				WorkspaceID:  target.WorkspaceID,
+				ProjectID:    target.ProjectID,
+				DeploymentID: target.DeploymentID,
+				StepID:       stepID,
+				Message:      message,
+				Seq:          fromSeq + uint64(i),
+				Stderr:       stderr,
+			}))
+		}
+		require.NoError(t, batch.Send())
 	}
 	// insertLogs writes count entries with seq from fromSeq and messages
 	// "KEBAP 0" to "KEBAP <count-1>"
 	insertLogs := func(t *testing.T, target GetBuildLogsRequest, stepID string, fromSeq uint64, count int, stderr bool) {
 		t.Helper()
-		require.NoError(t, client.Exec(ctx,
-			"INSERT INTO default.build_step_logs_v1 (time, workspace_id, project_id, deployment_id, step_id, message, seq, stderr) SELECT toInt64(?), ?, ?, ?, ?, concat('KEBAP ', toString(number)), toUInt64(?) + number, ? FROM numbers(?)",
-			now, target.WorkspaceID, target.ProjectID, target.DeploymentID, stepID, fromSeq, stderr, count,
-		))
+		messages := make([]string, count)
+		for i := range messages {
+			messages[i] = fmt.Sprintf("KEBAP %d", i)
+		}
+		insertLogMessages(t, target, stepID, fromSeq, stderr, messages)
 	}
 	messages := func(entries []BuildLogEntry) []string {
 		out := make([]string, 0, len(entries))
@@ -145,10 +177,8 @@ func TestGetBuildLogs(t *testing.T) {
 		target := newTarget()
 		stepID := newStepID()
 		entryBytes := 400 * 1024
-		require.NoError(t, client.Exec(ctx,
-			"INSERT INTO default.build_step_logs_v1 (time, workspace_id, project_id, deployment_id, step_id, message, seq) SELECT toInt64(?), ?, ?, ?, ?, repeat('KEBA', intDiv(toUInt64(?), 4)), toUInt64(?) + number FROM numbers(4)",
-			now, target.WorkspaceID, target.ProjectID, target.DeploymentID, stepID, entryBytes, firstSeq,
-		))
+		message := strings.Repeat("KEBA", entryBytes/4)
+		insertLogMessages(t, target, stepID, firstSeq, false, []string{message, message, message, message})
 
 		res, err := client.GetBuildLogs(ctx, target)
 		require.NoError(t, err)

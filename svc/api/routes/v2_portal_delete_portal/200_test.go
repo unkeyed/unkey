@@ -14,6 +14,7 @@ import (
 
 	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/hash"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/portal"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
@@ -90,32 +91,19 @@ func portalExists(t *testing.T, h *testutil.Harness, workspaceID, target string)
 	return false
 }
 
-// liveSessions counts a portal's unrevoked sessions. Revocation is asserted
+// sessionByCookie reads the session row behind headers returned by
+// [testutil.Harness.CreatePortalSessionForPortal]. Revocation is asserted
 // against the column rather than through the session resolver, whose cache would
 // otherwise decide the result.
-func liveSessions(t *testing.T, h *testutil.Harness, portalID string) int {
+func sessionByCookie(t *testing.T, h *testutil.Harness, headers http.Header) db.PortalSession {
 	t.Helper()
 
-	var count int
-	require.NoError(t, h.DB.RO().QueryRowContext(context.Background(),
-		"SELECT COUNT(*) FROM portal_sessions WHERE portal_id = ? AND revoked_at IS NULL", portalID,
-	).Scan(&count))
-	return count
-}
-
-// sessionsFor counts a portal's session rows matching an extra predicate.
-//
-// Scoped on the portal id because the test database is shared between runs: an
-// external id or a slug can appear in rows this test never wrote, while a minted
-// portal id cannot.
-func sessionsFor(t *testing.T, h *testutil.Harness, portalID, predicate string) int {
-	t.Helper()
-
-	var count int
-	require.NoError(t, h.DB.RO().QueryRowContext(context.Background(),
-		"SELECT COUNT(*) FROM portal_sessions WHERE portal_id = ? AND "+predicate, portalID,
-	).Scan(&count))
-	return count
+	accessToken, ok := strings.CutPrefix(headers.Get("Cookie"), "portal_session=")
+	require.True(t, ok, "the headers must carry a portal_session cookie")
+	session, err := db.Query.FindPortalSessionByAccessTokenHash(context.Background(), h.DB.RW(),
+		sql.NullString{String: hash.Sha256(accessToken), Valid: true})
+	require.NoError(t, err)
+	return session
 }
 
 // countPortals counts portals in a workspace, so a rejected call can be shown to
@@ -244,22 +232,18 @@ func TestDeletePortalRevokesItsSessions(t *testing.T) {
 	mapping := keyspaceMapping(t, h, workspace.ID)
 	stored := h.SeedPortal(t, workspace.ID, "revoked", "revoked", mapping, nil, nil)
 
-	h.CreatePortalSessionForPortal(stored.ID, workspace.ID, "user_1", []string{mapping.ID}, []string{"keys:read"})
+	firstSession := h.CreatePortalSessionForPortal(stored.ID, workspace.ID, "user_1", []string{mapping.ID}, []string{"keys:read"})
 	h.CreatePortalSessionForPortal(stored.ID, workspace.ID, "user_2", []string{mapping.ID}, []string{"keys:read"})
 	// Guards the fixture: without a live session to lose, the assertion below
 	// would pass against a handler that revokes nothing.
-	require.Equal(t, 2, liveSessions(t, h, stored.ID), "the fixture must have live sessions to lose")
+	require.Equal(t, 2, h.CountLivePortalSessions(t, stored.ID, ""), "the fixture must have live sessions to lose")
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, request(stored.ID))
 	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
 
-	require.Equal(t, 0, liveSessions(t, h, stored.ID), "deleting a portal revokes its sessions")
+	require.Equal(t, 0, h.CountLivePortalSessions(t, stored.ID, ""), "deleting a portal revokes its sessions")
 
-	var revokedAt sql.NullInt64
-	require.NoError(t, h.DB.RO().QueryRowContext(context.Background(),
-		"SELECT revoked_at FROM portal_sessions WHERE portal_id = ? AND external_id = ?",
-		stored.ID, "user_1",
-	).Scan(&revokedAt))
+	revokedAt := sessionByCookie(t, h, firstSession).RevokedAt
 	require.True(t, revokedAt.Valid, "revoked_at is the durable record of the revocation")
 	require.Positive(t, revokedAt.Int64)
 }
@@ -277,14 +261,14 @@ func TestDeletePortalLeavesOtherPortalsSessionsAlone(t *testing.T) {
 
 	h.CreatePortalSessionForPortal(doomed.ID, workspace.ID, "user_1", []string{mapping.ID}, []string{"keys:read"})
 	h.CreatePortalSessionForPortal(bystander.ID, workspace.ID, "user_2", []string{mapping.ID}, []string{"keys:read"})
-	require.Equal(t, 1, liveSessions(t, h, doomed.ID))
-	require.Equal(t, 1, liveSessions(t, h, bystander.ID))
+	require.Equal(t, 1, h.CountLivePortalSessions(t, doomed.ID, ""))
+	require.Equal(t, 1, h.CountLivePortalSessions(t, bystander.ID, ""))
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, request(doomed.ID))
 	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
 
-	require.Equal(t, 0, liveSessions(t, h, doomed.ID))
-	require.Equal(t, 1, liveSessions(t, h, bystander.ID),
+	require.Equal(t, 0, h.CountLivePortalSessions(t, doomed.ID, ""))
+	require.Equal(t, 1, h.CountLivePortalSessions(t, bystander.ID, ""),
 		"another portal's sessions must be untouched")
 	require.True(t, portalExists(t, h, workspace.ID, bystander.ID))
 }
@@ -319,8 +303,8 @@ func TestDeletePortalThenRecreateSameSlug(t *testing.T) {
 
 	mapping := keyspaceMapping(t, h, workspace.ID)
 	original := h.SeedPortal(t, workspace.ID, "recycled", "recycled", mapping, nil, nil)
-	h.CreatePortalSessionForPortal(original.ID, workspace.ID, "user_1", []string{mapping.ID}, []string{"keys:read"})
-	require.Equal(t, 1, liveSessions(t, h, original.ID))
+	oldSession := h.CreatePortalSessionForPortal(original.ID, workspace.ID, "user_1", []string{mapping.ID}, []string{"keys:read"})
+	require.Equal(t, 1, h.CountLivePortalSessions(t, original.ID, ""))
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, request(original.ID))
 	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
@@ -331,13 +315,11 @@ func TestDeletePortalThenRecreateSameSlug(t *testing.T) {
 	replacement := h.SeedPortal(t, workspace.ID, "recycled", "recycled", mapping, nil, nil)
 	require.NotEqual(t, original.ID, replacement.ID, "the id is not reused")
 
-	// Queried by portal id, not by external id: the test database is shared, so an
-	// external id is not unique to this test while a minted portal id is.
-	require.Equal(t, 1, sessionsFor(t, h, original.ID, "revoked_at IS NOT NULL"),
-		"the old session still names the deleted portal, and stays revoked")
-	require.Equal(t, 0, sessionsFor(t, h, replacement.ID, "1 = 1"),
-		"the replacement inherits no sessions")
-	require.Equal(t, 0, liveSessions(t, h, replacement.ID))
+	old := sessionByCookie(t, h, oldSession)
+	require.Equal(t, original.ID, old.PortalID, "the old session still names the deleted portal")
+	require.True(t, old.RevokedAt.Valid, "the old session stays revoked")
+	require.NotEqual(t, replacement.ID, old.PortalID, "the replacement inherits no sessions")
+	require.Equal(t, 0, h.CountLivePortalSessions(t, replacement.ID, ""))
 }
 
 // The durable revocation has to actually stop an end user. The portal route

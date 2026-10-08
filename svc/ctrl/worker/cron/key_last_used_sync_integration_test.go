@@ -1,11 +1,13 @@
 package cron_test
 
 import (
+	"database/sql"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/require"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
+	pkgdb "github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/ctrl/integration/harness"
 	"github.com/unkeyed/unkey/svc/ctrl/integration/seed"
@@ -21,11 +23,18 @@ func TestRunKeyLastUsedSync_Integration(t *testing.T) {
 			WorkspaceID: ws.ID,
 		})
 		rootKeyID := uid.New(uid.KeyPrefix)
-		_, err := h.DB.RW().ExecContext(h.Ctx, `
-			INSERT INTO unkey_root_keys (id, workspace_id, hash, name, prefix, start, end, enabled, expires, created_at)
-			VALUES (?, ?, ?, NULL, ?, ?, ?, true, NULL, ?)
-		`, rootKeyID, ws.ID, uid.New("hash"), "unkey", "abcd", "wxyz", time.Now().UnixMilli())
-		require.NoError(t, err)
+		require.NoError(t, pkgdb.Query.InsertUnkeyRootKey(h.Ctx, h.DB.RW(), pkgdb.InsertUnkeyRootKeyParams{
+			ID:          rootKeyID,
+			WorkspaceID: ws.ID,
+			Hash:        uid.New("hash"),
+			Name:        sql.NullString{Valid: false},
+			Prefix:      "unkey",
+			Start:       "abcd",
+			End:         "wxyz",
+			Enabled:     true,
+			Expires:     sql.NullInt64{Valid: false},
+			CreatedAt:   time.Now().UnixMilli(),
+		}))
 
 		keyIDs := make([]string, 3)
 		for i := range keyIDs {
@@ -62,7 +71,7 @@ func TestRunKeyLastUsedSync_Integration(t *testing.T) {
 		})
 		h.ClickHouseSeed.InsertKeyLastUsed(h.Ctx, chRows)
 
-		_, err = callRunKeyLastUsedSync(h)
+		_, err := callRunKeyLastUsedSync(h)
 		require.NoError(t, err)
 
 		for i, keyID := range keyIDs {
@@ -73,11 +82,10 @@ func TestRunKeyLastUsedSync_Integration(t *testing.T) {
 				"key %s last_used_at %d should match ClickHouse Time floor %d", keyID, key.LastUsedAt, expectedMinute)
 		}
 
-		var lastUsedAt uint64
-		err = h.DB.RW().QueryRowContext(h.Ctx, "SELECT last_used_at FROM unkey_root_keys WHERE id = ?", rootKeyID).Scan(&lastUsedAt)
+		rootKey, err := pkgdb.Query.FindUnkeyRootKeyByID(h.Ctx, h.DB.RO(), rootKeyID)
 		require.NoError(t, err)
 		expectedMinute := (now / 60_000) * 60_000
-		require.GreaterOrEqual(t, int64(lastUsedAt), expectedMinute)
+		require.GreaterOrEqual(t, int64(rootKey.LastUsedAt), expectedMinute)
 	})
 
 	t.Run("does not regress last_used_at when MySQL is newer", func(t *testing.T) {

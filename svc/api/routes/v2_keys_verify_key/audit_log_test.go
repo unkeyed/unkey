@@ -9,6 +9,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/auditlog"
+	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_keys_verify_key"
@@ -46,7 +47,7 @@ func TestVerifyKey_WritesRootKeyAuditLog(t *testing.T) {
 	api := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspace.ID})
 	identity := h.CreateIdentity(seed.CreateIdentityRequest{
 		WorkspaceID: workspace.ID,
-		ExternalID:  "audit-log-identity",
+		ExternalID:  uid.New(uid.TestPrefix),
 	})
 	key := h.CreateKey(seed.CreateKeyRequest{
 		WorkspaceID: workspace.ID,

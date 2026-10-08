@@ -7,6 +7,7 @@ import (
 	"github.com/stretchr/testify/require"
 	logdrainv1 "github.com/unkeyed/unkey/gen/proto/logdrain/v1"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
+	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/logdrain/internal/source"
@@ -18,54 +19,77 @@ func TestKeyVerificationsRead_Payload(t *testing.T) {
 	client, err := clickhouse.New(clickhouse.Config{URL: cfg.HTTPDSN})
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, client.Close()) })
-	workspaceID := uid.New("workspace")
+	workspaceID := uid.New(uid.WorkspacePrefix)
+	requestID := uid.New(uid.RequestPrefix)
+	keySpaceID := uid.New(uid.KeySpacePrefix)
+	identityID := uid.New(uid.IdentityPrefix)
+	externalID := uid.New(uid.TestPrefix)
+	keyID := uid.New(uid.KeyPrefix)
+	appID := uid.New(uid.AppPrefix)
 	now := time.Now().UnixMilli()
-	require.NoError(t, client.Conn().Exec(t.Context(), `INSERT INTO key_verifications_raw_v2
-		(workspace_id, request_id, time, key_space_id, identity_id, external_id, key_id,
-		region, source, app_id, outcome, tags, spent_credits, latency)
-		VALUES (?, 'req_1', ?, 'ks_1', 'id_1', 'customer_1', 'key_1', 'eu-west-1',
-		'gateway', 'app_1', 'VALID', ['paid', 'production'], 7, 12.5)`, workspaceID, now-3600000))
+	insertKeyVerifications(t, client, schema.KeyVerification{
+		RequestID:    requestID,
+		Time:         now - 3600000,
+		WorkspaceID:  workspaceID,
+		KeySpaceID:   keySpaceID,
+		IdentityID:   identityID,
+		ExternalID:   externalID,
+		KeyID:        keyID,
+		Region:       "eu-west-1",
+		Source:       schema.SourceGateway,
+		AppID:        appID,
+		Outcome:      "VALID",
+		Tags:         []string{"paid", "production"},
+		SpentCredits: 7,
+		Latency:      12.5,
+	})
 	events, cursor, err := source.NewKeyVerifications(client).Read(t.Context(), workspaceID, source.Cursor{Time: now - 1}, time.Now().UnixMilli()+1000, 10, nil)
 	require.NoError(t, err)
 	require.Len(t, events, 1)
-	require.Equal(t, "req_1", events[0].EventID)
+	require.Equal(t, requestID, events[0].EventID)
 	require.Equal(t, "key_verifications", events[0].Stream)
 	require.Equal(t, now-3600000, events[0].Time)
 	require.GreaterOrEqual(t, cursor.Time, now)
 	require.Equal(t, events[0].EventID, cursor.EventID)
 	require.Equal(t, sink.KeyVerificationPayload{
-		RequestID:  "req_1",
-		KeySpaceID: "ks_1",
+		RequestID:  requestID,
+		KeySpaceID: keySpaceID,
 		Identity: &sink.KeyVerificationIdentity{
-			ID:         "id_1",
-			ExternalID: "customer_1",
+			ID:         identityID,
+			ExternalID: externalID,
 		},
-		KeyID:  "key_1",
+		KeyID:  keyID,
 		Region: "eu-west-1",
 		Source: sink.KeyVerificationSource{
-			Type:  "gateway",
-			AppID: "app_1",
+			Type:  schema.SourceGateway,
+			AppID: appID,
 		},
 		Outcome:      "VALID",
 		Tags:         []string{"paid", "production"},
 		SpentCredits: 7,
 	}, events[0].Payload)
 
-	require.NoError(t, client.Conn().Exec(t.Context(), `INSERT INTO key_verifications_raw_v2
-		(workspace_id, request_id, time, source, app_id, outcome)
-		VALUES (?, 'req_api', ?, 'api', 'ignored_app', 'NOT_FOUND')`, workspaceID, now))
+	apiRequestID := uid.New(uid.RequestPrefix)
+	insertKeyVerifications(t, client, schema.KeyVerification{
+		RequestID:   apiRequestID,
+		Time:        now,
+		WorkspaceID: workspaceID,
+		Source:      schema.SourceAPI,
+		AppID:       uid.New(uid.AppPrefix),
+		Outcome:     "NOT_FOUND",
+	})
 	filter := &logdrainv1.Config{Stream: &logdrainv1.Config_KeyVerifications{KeyVerifications: &logdrainv1.KeyVerificationStreamConfig{Outcomes: []string{"NOT_FOUND"}}}}
 	events, _, err = source.NewKeyVerifications(client).Read(t.Context(), workspaceID, source.Cursor{Time: now - 1}, time.Now().UnixMilli()+1000, 10, filter)
 	require.NoError(t, err)
 	require.Len(t, events, 1)
 	require.Equal(t, sink.KeyVerificationPayload{
-		RequestID:  "req_api",
+		RequestID:  apiRequestID,
 		KeySpaceID: "",
 		Identity:   nil,
 		KeyID:      "",
 		Region:     "",
 		Source: sink.KeyVerificationSource{
-			Type:  "api",
+			Type:  schema.SourceAPI,
 			AppID: "",
 		},
 		Outcome:      "NOT_FOUND",
@@ -74,13 +98,23 @@ func TestKeyVerificationsRead_Payload(t *testing.T) {
 	}, events[0].Payload)
 }
 
+func insertKeyVerifications(t *testing.T, client *clickhouse.Client, rows ...schema.KeyVerification) {
+	t.Helper()
+	batch, err := client.Conn().PrepareBatch(t.Context(), clickhouse.InsertQuery[schema.KeyVerification]())
+	require.NoError(t, err)
+	for i := range rows {
+		require.NoError(t, batch.AppendStruct(&rows[i]))
+	}
+	require.NoError(t, batch.Send())
+}
+
 func TestKeyVerificationsRead_FilteredCursorBounds(t *testing.T) {
 	cfg := containers.ClickHouse(t)
 	client, err := clickhouse.New(clickhouse.Config{URL: cfg.HTTPDSN})
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, client.Close()) })
-	workspaceID := uid.New("workspace")
-	otherWorkspaceID := uid.New("workspace")
+	workspaceID := uid.New(uid.WorkspacePrefix)
+	otherWorkspaceID := uid.New(uid.WorkspacePrefix)
 	now := time.Now().UnixMilli()
 	for _, row := range []struct {
 		workspace, id, outcome string
@@ -131,7 +165,7 @@ func TestKeyVerificationsRead_KeySpacesBeforeLimit(t *testing.T) {
 	client, err := clickhouse.New(clickhouse.Config{URL: cfg.HTTPDSN})
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, client.Close()) })
-	workspaceID := uid.New("workspace")
+	workspaceID := uid.New(uid.WorkspacePrefix)
 	now := time.Now().UnixMilli()
 	for _, row := range []struct{ id, keyspace, outcome string }{
 		{"a", "excluded", "RATE_LIMITED"},

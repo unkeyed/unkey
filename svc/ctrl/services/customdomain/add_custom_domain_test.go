@@ -172,11 +172,7 @@ func TestAddCustomDomainRollsBackWhenAuditInsertFails(t *testing.T) {
 	require.ErrorAs(t, err, &connectErr)
 	require.Equal(t, connect.CodeInternal, connectErr.Code())
 
-	require.Equal(t, 0, countRows(t, ctx, f.database.RW(), `
-		SELECT COUNT(*)
-		FROM custom_domains
-		WHERE workspace_id = ? AND domain = ?
-	`, f.workspaceID, f.domain))
+	requireNoCustomDomain(t, ctx, f.database, f.workspaceID, f.domain)
 
 	outboxRows, err := f.database.ListClickhouseOutboxByWorkspace(ctx, f.workspaceID)
 	require.NoError(t, err)
@@ -206,11 +202,7 @@ func TestAddCustomDomainEnforcesPlanAllowance(t *testing.T) {
 	require.Equal(t, connect.CodeResourceExhausted, connectErr.Code())
 
 	// Nothing was written for the refused request.
-	require.Equal(t, 0, countRows(t, ctx, f.database.RW(), `
-		SELECT COUNT(*)
-		FROM custom_domains
-		WHERE workspace_id = ? AND domain = ?
-	`, f.workspaceID, second))
+	requireNoCustomDomain(t, ctx, f.database, f.workspaceID, second)
 }
 
 // TestAddCustomDomainRejectsDuplicate pins the workspace-uniqueness pre-check. It
@@ -237,11 +229,7 @@ func TestAddCustomDomainRejectsDuplicate(t *testing.T) {
 			"the message must name the colliding domain")
 	}
 
-	require.Equal(t, 1, countRows(t, ctx, f.database.RW(), `
-		SELECT COUNT(*)
-		FROM custom_domains
-		WHERE workspace_id = ? AND domain = ?
-	`, f.workspaceID, f.domain))
+	requireCustomDomain(t, ctx, f.database, f.workspaceID, f.domain)
 }
 
 // TestAddCustomDomainConcurrentDuplicateReadsTheSame pins that a name lost to a
@@ -290,11 +278,7 @@ func TestAddCustomDomainConcurrentDuplicateReadsTheSame(t *testing.T) {
 	require.Equal(t, 1, succeeded, "exactly one create may win")
 	require.Equal(t, 1, rejected)
 
-	require.Equal(t, 1, countRows(t, ctx, f.database.RW(), `
-		SELECT COUNT(*)
-		FROM custom_domains
-		WHERE workspace_id = ? AND domain = ?
-	`, f.workspaceID, f.domain))
+	requireCustomDomain(t, ctx, f.database, f.workspaceID, f.domain)
 }
 
 // TestAddCustomDomainAllowanceIsWorkspaceWide pins that the allowance counts every
@@ -336,24 +320,16 @@ func TestAddCustomDomainAllowsSameDomainInAnotherWorkspace(t *testing.T) {
 	require.NotEqual(t, first.Msg.GetDomainId(), second.Msg.GetDomainId())
 
 	// Each workspace holds its own row for the name.
-	require.Equal(t, 1, countRows(t, ctx, f.database.RW(), `
-		SELECT COUNT(*)
-		FROM custom_domains
-		WHERE workspace_id = ? AND domain = ?
-	`, f.workspaceID, f.domain))
-	require.Equal(t, 1, countRows(t, ctx, f.database.RW(), `
-		SELECT COUNT(*)
-		FROM custom_domains
-		WHERE workspace_id = ? AND domain = ?
-	`, other.workspaceID, f.domain))
+	firstRow := requireCustomDomain(t, ctx, f.database, f.workspaceID, f.domain)
+	secondRow := requireCustomDomain(t, ctx, f.database, other.workspaceID, f.domain)
 
 	// Distinct CNAME targets: target_cname is globally unique, so a shared name must
 	// not produce a shared target.
-	require.Equal(t, 2, countRows(t, ctx, f.database.RW(), `
-		SELECT COUNT(DISTINCT target_cname)
-		FROM custom_domains
-		WHERE domain = ?
-	`, f.domain))
+	firstTarget, err := f.database.FindCustomDomainById(ctx, firstRow.ID)
+	require.NoError(t, err)
+	secondTarget, err := f.database.FindCustomDomainById(ctx, secondRow.ID)
+	require.NoError(t, err)
+	require.NotEqual(t, firstTarget.TargetCname, secondTarget.TargetCname)
 }
 
 // TestAddCustomDomainRefusesWorkspaceWithoutLimits pins the fail-closed choice.
@@ -681,20 +657,31 @@ func (s failingAuditLogService) Insert(ctx context.Context, tx db.DBTX, logs []a
 	require.Equal(s.t, s.environmentID, logs[0].Resources[0].Meta["environmentId"])
 
 	// The domain row is visible inside the transaction, proving both writes share it.
-	require.Equal(s.t, 1, countRows(s.t, ctx, tx, `
-		SELECT COUNT(*)
-		FROM custom_domains
-		WHERE id = ? AND workspace_id = ? AND domain = ?
-	`, logs[0].Resources[0].ID, s.workspaceID, s.domain))
+	row, err := db.NewQueries(tx).FindCustomDomainById(ctx, logs[0].Resources[0].ID)
+	require.NoError(s.t, err)
+	require.Equal(s.t, s.workspaceID, row.WorkspaceID)
+	require.Equal(s.t, s.domain, row.Domain)
 
 	return errInjectedAuditInsert
 }
 
-func countRows(t *testing.T, ctx context.Context, tx db.DBTX, query string, args ...any) int {
+func requireCustomDomain(t *testing.T, ctx context.Context, database db.Database, workspaceID, domain string) db.FindCustomDomainByWorkspaceAndDomainRow {
 	t.Helper()
 
-	var count int
-	err := tx.QueryRowContext(ctx, query, args...).Scan(&count)
+	row, err := database.FindCustomDomainByWorkspaceAndDomain(ctx, db.FindCustomDomainByWorkspaceAndDomainParams{
+		WorkspaceID: workspaceID,
+		Domain:      domain,
+	})
 	require.NoError(t, err)
-	return count
+	return row
+}
+
+func requireNoCustomDomain(t *testing.T, ctx context.Context, database db.Database, workspaceID, domain string) {
+	t.Helper()
+
+	_, err := database.FindCustomDomainByWorkspaceAndDomain(ctx, db.FindCustomDomainByWorkspaceAndDomainParams{
+		WorkspaceID: workspaceID,
+		Domain:      domain,
+	})
+	require.True(t, db.IsNotFound(err), "expected no custom domain, got %v", err)
 }

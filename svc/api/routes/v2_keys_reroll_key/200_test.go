@@ -1,6 +1,7 @@
 package handler_test
 
 import (
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -11,6 +12,8 @@ import (
 	"github.com/oapi-codegen/nullable"
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/hash"
+	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_keys_reroll_key"
@@ -49,7 +52,7 @@ func TestRerollKeySuccess(t *testing.T) {
 	require.NoError(t, err)
 	identity := h.CreateIdentity(seed.CreateIdentityRequest{
 		WorkspaceID: workspace.ID,
-		ExternalID:  "test_123",
+		ExternalID:  uid.New(uid.TestPrefix),
 		Meta:        identityMeta,
 		Ratelimits: []seed.CreateRatelimitRequest{
 			{
@@ -230,21 +233,24 @@ func TestRerollKeySuccess(t *testing.T) {
 
 		for _, testCase := range testCases {
 			t.Run(testCase.name, func(t *testing.T) {
-				key := h.CreateKey(seed.CreateKeyRequest{
-					WorkspaceID: workspace.ID,
+				keyID := uid.New(uid.KeyPrefix)
+				rawKey := uid.New("")
+				err := db.Query.InsertKey(t.Context(), h.DB.RW(), db.InsertKeyParams{
+					ID:          keyID,
 					KeySpaceID:  api.KeyAuthID.String,
+					WorkspaceID: workspace.ID,
+					CreatedAtM:  time.Now().UnixMilli(),
+					Hash:        hash.Sha256(rawKey),
+					Prefix:      testCase.prefix,
+					Start:       testCase.start,
+					End:         rawKey[len(rawKey)-4:],
+					Enabled:     true,
+					Name:        sql.NullString{String: "test-key", Valid: true},
 				})
-				_, err := h.DB.RW().ExecContext(
-					t.Context(),
-					"UPDATE `keys` SET `prefix` = ?, `start` = ? WHERE `id` = ?",
-					testCase.prefix,
-					testCase.start,
-					key.KeyID,
-				)
 				require.NoError(t, err)
 
 				res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
-					KeyId:      key.KeyID,
+					KeyId:      keyID,
 					Expiration: nullable.NewNullableWithValue(int64(0)),
 				})
 				require.Equal(t, http.StatusOK, res.Status, "response: %s", res.RawBody)

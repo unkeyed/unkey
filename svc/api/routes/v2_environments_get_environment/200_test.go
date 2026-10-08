@@ -143,13 +143,14 @@ func TestGetEnvironment(t *testing.T) {
 
 	t.Run("regions", func(t *testing.T) {
 		platform := strings.ToLower(strings.ReplaceAll(uid.New("test"), "_", "-"))
+		regionName := strings.ToLower(strings.ReplaceAll(uid.New("region"), "_", "-"))
 		require.NoError(t, db.Query.UpsertRegion(ctx, h.DB.RW(), db.UpsertRegionParams{
 			ID:       uid.New(uid.RegionPrefix),
-			Name:     "us-east-1",
+			Name:     regionName,
 			Platform: platform,
 		}))
 		region, err := db.Query.FindRegionByPlatformAndName(ctx, h.DB.RO(), db.FindRegionByPlatformAndNameParams{
-			Name:     "us-east-1",
+			Name:     regionName,
 			Platform: platform,
 		})
 		require.NoError(t, err)
@@ -186,7 +187,7 @@ func TestGetEnvironment(t *testing.T) {
 			require.NotNil(t, res.Body.Data.Regions)
 			regions := *res.Body.Data.Regions
 			require.Len(t, regions, 1)
-			require.Equal(t, "us-east-1", regions[0].Name)
+			require.Equal(t, regionName, regions[0].Name)
 			require.Equal(t, 3, regions[0].Replicas.Min)
 			require.Equal(t, 3, regions[0].Replicas.Max)
 		})
@@ -231,7 +232,7 @@ func TestGetEnvironment(t *testing.T) {
 			require.NotNil(t, res.Body.Data.Regions)
 			regions := *res.Body.Data.Regions
 			require.Len(t, regions, 1)
-			require.Equal(t, "us-east-1", regions[0].Name)
+			require.Equal(t, regionName, regions[0].Name)
 			require.Equal(t, 1, regions[0].Replicas.Min)
 			require.Equal(t, 5, regions[0].Replicas.Max)
 		})

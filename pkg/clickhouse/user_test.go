@@ -2,6 +2,7 @@ package clickhouse
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/url"
 	"testing"
@@ -10,6 +11,7 @@ import (
 	driver "github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/ClickHouse/clickhouse-go/v2/lib/chcol"
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/uid"
 )
@@ -140,6 +142,8 @@ func TestConfigureUser_HidesInternalColumns(t *testing.T) {
 	// One row per workspace, so column visibility and row-level isolation can be
 	// asserted against the same table.
 	now := time.Now().UnixMilli()
+	batch, err := admin.conn.PrepareBatch(ctx, InsertQuery[schema.FrontlineRequest]())
+	require.NoError(t, err)
 	for _, row := range []struct {
 		workspaceID string
 		path        string
@@ -147,13 +151,23 @@ func TestConfigureUser_HidesInternalColumns(t *testing.T) {
 		{workspaceID: workspaceID, path: "/kebap"},
 		{workspaceID: otherWorkspaceID, path: "/other"},
 	} {
-		err = admin.Exec(ctx,
-			"INSERT INTO default.frontline_requests_raw_v1 (request_id, time, workspace_id, project_id, app_id, environment_id, frontline_id, instance_address, platform, method, host, path, response_status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-			uid.New("req"), now, row.workspaceID, uid.New("proj"), uid.New("app"), uid.New("env"),
-			"frontline_secret", "10.1.2.3", "k8s", "GET", "example.com", row.path, 200,
-		)
-		require.NoError(t, err)
+		require.NoError(t, batch.AppendStruct(&schema.FrontlineRequest{
+			RequestID:       uid.New(uid.RequestPrefix),
+			Time:            now,
+			WorkspaceID:     row.workspaceID,
+			ProjectID:       uid.New(uid.ProjectPrefix),
+			AppID:           uid.New(uid.AppPrefix),
+			EnvironmentID:   uid.New(uid.EnvironmentPrefix),
+			FrontlineID:     uid.New(uid.FrontlinePrefix),
+			InstanceAddress: "10.1.2.3",
+			Platform:        "k8s",
+			Method:          "GET",
+			Host:            "example.com",
+			Path:            row.path,
+			ResponseStatus:  200,
+		}))
 	}
+	require.NoError(t, batch.Send())
 
 	workspaceURL, err := url.Parse(clickhouseConfig.HTTPDSN)
 	require.NoError(t, err)
@@ -535,6 +549,8 @@ func TestConfigureUser_HidesRuntimeLogInternalColumns(t *testing.T) {
 	// not empty. If a column were empty, a probe could get an empty result and
 	// look successful when ClickHouse did not refuse it.
 	now := time.Now().UnixMilli()
+	attributes, err := json.Marshal(map[string]string{"user_id": "usr_kebap"})
+	require.NoError(t, err)
 	for _, row := range []struct {
 		workspaceID string
 		message     string
@@ -544,9 +560,9 @@ func TestConfigureUser_HidesRuntimeLogInternalColumns(t *testing.T) {
 	} {
 		err = admin.Exec(ctx,
 			"INSERT INTO default.runtime_logs_raw_v1 (log_id, time, inserted_at, severity, message, workspace_id, project_id, environment_id, app_id, deployment_id, k8s_pod_name, region, platform, attributes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-			uid.New("log"), now, now, "info", row.message, row.workspaceID,
-			uid.New("proj"), uid.New("env"), uid.New("app"), uid.New("dep"),
-			"pod-abc-123", "local", "k8s", `{"user_id":"usr_kebap"}`,
+			uid.New(uid.TestPrefix), now, now, "info", row.message, row.workspaceID,
+			uid.New(uid.ProjectPrefix), uid.New(uid.EnvironmentPrefix), uid.New(uid.AppPrefix), uid.New(uid.DeploymentPrefix),
+			"pod-abc-123", "local", "k8s", string(attributes),
 		)
 		require.NoError(t, err)
 	}

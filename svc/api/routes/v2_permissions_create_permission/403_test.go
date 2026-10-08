@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_permissions_create_permission"
@@ -56,7 +57,7 @@ func TestAuthorizationErrors(t *testing.T) {
 	// Test case for wrong workspace
 	t.Run("wrong workspace", func(t *testing.T) {
 		// Use a non-existent workspace ID
-		otherWorkspaceID := "ws_nonexistent"
+		otherWorkspaceID := uid.New(uid.WorkspacePrefix)
 
 		// Create a root key for the other workspace with all permissions
 		rootKey := h.CreateRootKey(otherWorkspaceID, "rbac.*.create_permission")

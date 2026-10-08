@@ -592,7 +592,7 @@ func TestSuccess(t *testing.T) {
 	t.Run("key with identity ratelimit", func(t *testing.T) {
 		identity := h.CreateIdentity(seed.CreateIdentityRequest{
 			WorkspaceID: workspace.ID,
-			ExternalID:  "test-123",
+			ExternalID:  uid.New(uid.TestPrefix),
 			Ratelimits: []seed.CreateRatelimitRequest{
 				{
 					Name:        "tokens",

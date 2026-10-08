@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -109,7 +110,7 @@ func TestMultiLimit(t *testing.T) {
 		t.Run("key limits take precedence and pass", func(t *testing.T) {
 			identity := h.CreateIdentity(seed.CreateIdentityRequest{
 				WorkspaceID: workspace.ID,
-				ExternalID:  "test-precedence-pass",
+				ExternalID:  uid.New(uid.TestPrefix),
 				Ratelimits: []seed.CreateRatelimitRequest{
 					{
 						Name:        "limit1",
@@ -159,7 +160,7 @@ func TestMultiLimit(t *testing.T) {
 		t.Run("key limits take precedence and reject", func(t *testing.T) {
 			identity := h.CreateIdentity(seed.CreateIdentityRequest{
 				WorkspaceID: workspace.ID,
-				ExternalID:  "test-precedence-reject",
+				ExternalID:  uid.New(uid.TestPrefix),
 				Ratelimits: []seed.CreateRatelimitRequest{
 					{
 						Name:        "limit1-reject",
@@ -214,7 +215,7 @@ func TestMultiLimit(t *testing.T) {
 		t.Run("fallback identity limits still reject", func(t *testing.T) {
 			identity := h.CreateIdentity(seed.CreateIdentityRequest{
 				WorkspaceID: workspace.ID,
-				ExternalID:  "test-fallback",
+				ExternalID:  uid.New(uid.TestPrefix),
 				Ratelimits: []seed.CreateRatelimitRequest{
 					{
 						Name:        "limit1-fallback",
@@ -279,7 +280,7 @@ func TestMultiLimit(t *testing.T) {
 		t.Run("rate limit is shared across multiple keys", func(t *testing.T) {
 			identity := h.CreateIdentity(seed.CreateIdentityRequest{
 				WorkspaceID: workspace.ID,
-				ExternalID:  "test-shared",
+				ExternalID:  uid.New(uid.TestPrefix),
 				Ratelimits: []seed.CreateRatelimitRequest{
 					{
 						Name:        "100per10m",
@@ -389,7 +390,7 @@ func TestMultiLimit(t *testing.T) {
 		t.Run("should reject after identity limit hit", func(t *testing.T) {
 			identity := h.CreateIdentity(seed.CreateIdentityRequest{
 				WorkspaceID: workspace.ID,
-				ExternalID:  "test-identity-fallback",
+				ExternalID:  uid.New(uid.TestPrefix),
 				Ratelimits: []seed.CreateRatelimitRequest{
 					{
 						Name:        "tokens-identity",

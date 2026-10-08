@@ -11,6 +11,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
+	"github.com/unkeyed/unkey/pkg/uid"
 )
 
 // TestInstanceEventsInsertRoundTrip verifies that an InstanceEventV1 row
@@ -35,6 +36,13 @@ func TestInstanceEventsInsertRoundTrip(t *testing.T) {
 	require.NoError(t, conn.Ping(ctx))
 
 	now := time.Now().UnixMilli()
+	workspaceID := uid.New(uid.WorkspacePrefix)
+	projectID := uid.New(uid.ProjectPrefix)
+	appID := uid.New(uid.AppPrefix)
+	environmentID := uid.New(uid.EnvironmentPrefix)
+	oomDeploymentID := uid.New(uid.DeploymentPrefix)
+	waitingDeploymentID := uid.New(uid.DeploymentPrefix)
+	runningDeploymentID := uid.New(uid.DeploymentPrefix)
 
 	// Two rows: one with a populated attributes map (the OOMKilled case the
 	// dashboard renders alongside the exit reason), and one with an empty
@@ -55,11 +63,11 @@ func TestInstanceEventsInsertRoundTrip(t *testing.T) {
 	rows := []schema.InstanceEventV1{
 		{
 			Time:             now,
-			WorkspaceID:      "ws_test",
-			ProjectID:        "proj_test",
-			AppID:            "app_test",
-			EnvironmentID:    "env_test",
-			DeploymentID:     "dep_test_1",
+			WorkspaceID:      workspaceID,
+			ProjectID:        projectID,
+			AppID:            appID,
+			EnvironmentID:    environmentID,
+			DeploymentID:     oomDeploymentID,
 			PodUID:           "pod-uid-1",
 			PodName:          "pod-name-1",
 			NodeName:         "node-1",
@@ -78,11 +86,11 @@ func TestInstanceEventsInsertRoundTrip(t *testing.T) {
 		},
 		{
 			Time:             now,
-			WorkspaceID:      "ws_test",
-			ProjectID:        "proj_test",
-			AppID:            "app_test",
-			EnvironmentID:    "env_test",
-			DeploymentID:     "dep_test_2",
+			WorkspaceID:      workspaceID,
+			ProjectID:        projectID,
+			AppID:            appID,
+			EnvironmentID:    environmentID,
+			DeploymentID:     waitingDeploymentID,
 			PodUID:           "pod-uid-2",
 			PodName:          "pod-name-2",
 			NodeName:         "node-1",
@@ -103,11 +111,11 @@ func TestInstanceEventsInsertRoundTrip(t *testing.T) {
 			// time + attributes. Pinned here so the lifecycle-divider
 			// path the dashboard depends on stays insertable end-to-end.
 			Time:             now,
-			WorkspaceID:      "ws_test",
-			ProjectID:        "proj_test",
-			AppID:            "app_test",
-			EnvironmentID:    "env_test",
-			DeploymentID:     "dep_test_3",
+			WorkspaceID:      workspaceID,
+			ProjectID:        projectID,
+			AppID:            appID,
+			EnvironmentID:    environmentID,
+			DeploymentID:     runningDeploymentID,
 			PodUID:           "pod-uid-3",
 			PodName:          "pod-name-3",
 			NodeName:         "node-1",
@@ -155,7 +163,7 @@ func TestInstanceEventsInsertRoundTrip(t *testing.T) {
 				JSONExtractString(toJSONString(attributes), 'build_id') AS build_id,
 				JSONExtractString(toJSONString(attributes), 'memory_limit_mib') AS memory_limit_mib
 			FROM default.instance_events_raw_v1
-			WHERE deployment_id = ?`, "dep_test_1").
+			WHERE deployment_id = ?`, oomDeploymentID).
 			Scan(&gotKind, &gotReason, &gotExit, &gotImage, &gotImageID, &gotBuildID, &gotMemLimit)
 		require.NoError(t, err)
 		require.Equal(t, "terminated", gotKind)
@@ -173,7 +181,7 @@ func TestInstanceEventsInsertRoundTrip(t *testing.T) {
 		err := conn.QueryRow(ctx, `
 			SELECT event_kind, reason
 			FROM default.instance_events_raw_v1
-			WHERE deployment_id = ?`, "dep_test_2").Scan(&gotKind, &gotReason)
+			WHERE deployment_id = ?`, waitingDeploymentID).Scan(&gotKind, &gotReason)
 		require.NoError(t, err)
 		require.Equal(t, "waiting", gotKind)
 		require.Equal(t, "CrashLoopBackOff", gotReason)
@@ -190,7 +198,7 @@ func TestInstanceEventsInsertRoundTrip(t *testing.T) {
 		err := conn.QueryRow(ctx, `
 			SELECT event_kind, reason, exit_code
 			FROM default.instance_events_raw_v1
-			WHERE deployment_id = ?`, "dep_test_3").Scan(&gotKind, &gotReason, &gotExit)
+			WHERE deployment_id = ?`, runningDeploymentID).Scan(&gotKind, &gotReason, &gotExit)
 		require.NoError(t, err)
 		require.Equal(t, "running", gotKind)
 		require.Equal(t, "", gotReason)
@@ -207,7 +215,7 @@ func TestInstanceEventsInsertRoundTrip(t *testing.T) {
 		var got string
 		err := conn.QueryRow(ctx, `
 			SELECT attributes_text FROM default.instance_events_raw_v1
-			WHERE deployment_id = ?`, "dep_test_1").Scan(&got)
+			WHERE deployment_id = ?`, oomDeploymentID).Scan(&got)
 		require.NoError(t, err)
 
 		var parsed map[string]string

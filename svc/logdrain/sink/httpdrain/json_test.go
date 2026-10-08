@@ -12,7 +12,9 @@ import (
 )
 
 func TestDeliverJSONTreatsResponseBodyAsDiagnostic(t *testing.T) {
-	for _, responseBody := range []string{`{"code":9}`, "accepted"} {
+	rejection, err := json.Marshal(map[string]int{"code": 9})
+	require.NoError(t, err)
+	for _, responseBody := range []string{string(rejection), "accepted"} {
 		t.Run(responseBody, func(t *testing.T) {
 			var receivedBody []byte
 			var contentType string

@@ -62,7 +62,7 @@ func TestCrossWorkspaceForbidden(t *testing.T) {
 
 	// Create an identity in workspace B
 	identityB := uid.New(uid.IdentityPrefix)
-	externalID := "user_in_workspace_b"
+	externalID := uid.New(uid.TestPrefix)
 	err = db.Query.InsertIdentity(ctx, tx, db.InsertIdentityParams{
 		ID:          identityB,
 		ExternalID:  externalID,

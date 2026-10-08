@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_identities_update_identity"
@@ -66,7 +67,7 @@ func TestBadRequests(t *testing.T) {
 	})
 
 	t.Run("duplicate ratelimit names", func(t *testing.T) {
-		externalID := "identity_123"
+		externalID := uid.New(uid.TestPrefix)
 		ratelimits := []openapi.RatelimitRequest{
 			{
 				Name:      "api_calls",
@@ -93,7 +94,7 @@ func TestBadRequests(t *testing.T) {
 	})
 
 	t.Run("metadata too large", func(t *testing.T) {
-		externalID := "identity_123"
+		externalID := uid.New(uid.TestPrefix)
 
 		// Create a large metadata object (over 1MB)
 		largeString := strings.Repeat("a", 1024*1024)

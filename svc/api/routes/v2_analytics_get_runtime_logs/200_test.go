@@ -1,10 +1,12 @@
 package handler
 
 import (
+	"encoding/json"
 	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 )
 
@@ -116,10 +118,13 @@ func Test200_AttributesAreReadable(t *testing.T) {
 	h, route, workspaceID := newRoute(t, true)
 	rootKey := h.CreateRootKey(workspaceID, "project.*.read_runtime_logs")
 
+	userID := uid.New(uid.TestPrefix)
+	attributes, err := json.Marshal(map[string]string{"route": "/orders", "user_id": userID})
+	require.NoError(t, err)
 	insertLog(t, h, runtimeLog{
 		workspaceID: workspaceID,
 		message:     "order placed",
-		attributes:  `{"route":"/orders","user_id":"usr_kebap"}`,
+		attributes:  string(attributes),
 	})
 
 	t.Run("full attribute string", func(t *testing.T) {
@@ -128,7 +133,7 @@ func Test200_AttributesAreReadable(t *testing.T) {
 		})
 		require.Equal(t, 200, res.Status, "response: %s", res.RawBody)
 		require.Len(t, res.Body.Data, 1)
-		require.Contains(t, fmt.Sprint(res.Body.Data[0]["attributes_text"]), "usr_kebap")
+		require.Contains(t, fmt.Sprint(res.Body.Data[0]["attributes_text"]), userID)
 	})
 
 	// This query is the reason for the grant on JSONExtractString. To select

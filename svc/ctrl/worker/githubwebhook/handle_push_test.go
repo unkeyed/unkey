@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -18,6 +19,7 @@ import (
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/batch"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
+	pkgdb "github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/deploy/deployfail"
 	githubclient "github.com/unkeyed/unkey/pkg/github"
 	"github.com/unkeyed/unkey/pkg/mysql/sqlcomment"
@@ -294,9 +296,11 @@ func TestHandlePushKeepsInternalIdsOffTheCommitStatus(t *testing.T) {
 
 	// Dropping the granted plan is what makes Create answer NO_COMPUTE_PLAN,
 	// whose detail names the workspace.
-	_, err := h.database.RW().ExecContext(ctx,
-		"UPDATE workspace_billing SET plan_override = NULL WHERE workspace_id = ?", target.workspaceID)
-	require.NoError(t, err)
+	require.NoError(t, pkgdb.Query.UpsertWorkspaceBillingPlanOverride(ctx, h.database.RW(), pkgdb.UpsertWorkspaceBillingPlanOverrideParams{
+		WorkspaceID:  target.workspaceID,
+		PlanOverride: sql.NullString{Valid: false},
+		CreatedAtM:   time.Now().UnixMilli(),
+	}))
 
 	push := target.newPush(fixtureDefaultBranch, []string{fixtureMatchingFile})
 	h.push(t, ctx, push)
@@ -471,11 +475,12 @@ func (h *pushHarness) newTarget(t *testing.T, ctx context.Context) deployTarget 
 	})
 
 	// plan_override is a manually granted plan the entitlement gate accepts
-	// alongside the Stripe-synced one. No generated query writes it.
-	_, err := h.database.RW().ExecContext(ctx,
-		"UPDATE workspace_billing SET plan_override = ? WHERE workspace_id = ?",
-		"pro", workspace.ID)
-	require.NoError(t, err)
+	// alongside the Stripe-synced one.
+	require.NoError(t, pkgdb.Query.UpsertWorkspaceBillingPlanOverride(ctx, h.database.RW(), pkgdb.UpsertWorkspaceBillingPlanOverrideParams{
+		WorkspaceID:  workspace.ID,
+		PlanOverride: sql.NullString{Valid: true, String: "pro"},
+		CreatedAtM:   time.Now().UnixMilli(),
+	}))
 
 	return deployTarget{
 		workspaceID:    workspace.ID,
@@ -659,29 +664,44 @@ type deploymentRow struct {
 }
 
 func (h *pushHarness) listDeployments(ctx context.Context, appID string) ([]deploymentRow, error) {
-	rows, err := h.database.RO().QueryContext(ctx,
-		"SELECT id, environment_id, status, git_commit_sha, git_branch, git_commit_message, "+
-			"git_commit_author_handle, git_commit_author_avatar_url, git_commit_timestamp, "+
-			"pr_number, fork_repository_full_name, `trigger`, triggered_by, trigger_reason "+
-			"FROM deployments WHERE app_id = ? ORDER BY pk", appID)
+	app, err := h.database.FindAppById(ctx, appID)
 	if err != nil {
 		return nil, err
 	}
-	defer func() { _ = rows.Close() }()
-
-	var out []deploymentRow
-	for rows.Next() {
-		var row deploymentRow
-		if scanErr := rows.Scan(
-			&row.id, &row.environmentID, &row.status, &row.commitSHA, &row.branch, &row.commitMessage,
-			&row.authorHandle, &row.authorAvatar, &row.commitTimestamp,
-			&row.prNumber, &row.forkRepository, &row.trigger, &row.triggeredBy, &row.triggerReason,
-		); scanErr != nil {
-			return nil, scanErr
-		}
-		out = append(out, row)
+	deployments, err := pkgdb.Query.ListDeployments(ctx, h.database.RO(), pkgdb.ListDeploymentsParams{
+		WorkspaceID:     app.WorkspaceID,
+		ProjectID:       "",
+		AppID:           appID,
+		EnvironmentID:   "",
+		HasStatusFilter: false,
+		Statuses:        nil,
+		CursorID:        "",
+		Limit:           1000,
+	})
+	if err != nil {
+		return nil, err
 	}
-	return out, rows.Err()
+
+	out := make([]deploymentRow, 0, len(deployments))
+	for _, deployment := range slices.Backward(deployments) {
+		out = append(out, deploymentRow{
+			id:              deployment.ID,
+			environmentID:   deployment.EnvironmentID,
+			status:          string(deployment.Status),
+			commitSHA:       deployment.GitCommitSha,
+			branch:          deployment.GitBranch,
+			commitMessage:   deployment.GitCommitMessage,
+			authorHandle:    deployment.GitCommitAuthorHandle,
+			authorAvatar:    deployment.GitCommitAuthorAvatarUrl,
+			commitTimestamp: deployment.GitCommitTimestamp,
+			prNumber:        deployment.PrNumber,
+			forkRepository:  deployment.ForkRepositoryFullName,
+			trigger:         string(deployment.Trigger),
+			triggeredBy:     deployment.TriggeredBy,
+			triggerReason:   deployment.TriggerReason,
+		})
+	}
+	return out, nil
 }
 
 // awaitDeployment polls for the single deployments row of an app that satisfies

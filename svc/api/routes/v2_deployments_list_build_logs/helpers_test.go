@@ -2,10 +2,13 @@ package handler_test
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/clickhouse"
+	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/uid"
@@ -54,18 +57,42 @@ func createDeployment(h *testutil.Harness, setup testutil.DeploymentTestSetup) b
 // them directly so they are visible to the next query without a wait loop
 func insertStep(t *testing.T, h *testutil.Harness, target buildTarget, stepID, name string, startedAt int64) {
 	t.Helper()
-	require.NoError(t, h.ClickHouse.Exec(context.Background(),
-		"INSERT INTO default.build_steps_v1 (step_id, started_at, completed_at, workspace_id, project_id, deployment_id, name, cached, error, has_logs) VALUES (?, ?, ?, ?, ?, ?, ?, false, '', true)",
-		stepID, startedAt, startedAt+1, target.workspaceID, target.projectID, target.deploymentID, name,
-	))
+	ctx := context.Background()
+	batch, err := h.ClickHouse.Conn().PrepareBatch(ctx, clickhouse.InsertQuery[schema.BuildStepV1]())
+	require.NoError(t, err)
+	require.NoError(t, batch.AppendStruct(&schema.BuildStepV1{
+		StartedAt:    startedAt,
+		CompletedAt:  startedAt + 1,
+		WorkspaceID:  target.workspaceID,
+		ProjectID:    target.projectID,
+		DeploymentID: target.deploymentID,
+		StepID:       stepID,
+		Name:         name,
+		Cached:       false,
+		Error:        "",
+		HasLogs:      true,
+	}))
+	require.NoError(t, batch.Send())
 }
 
 // insertLogs writes count entries with seq from fromSeq and messages
 // "KEBAP 0" to "KEBAP <count-1>"
 func insertLogs(t *testing.T, h *testutil.Harness, target buildTarget, stepID string, time int64, fromSeq uint64, count int, stderr bool) {
 	t.Helper()
-	require.NoError(t, h.ClickHouse.Exec(context.Background(),
-		"INSERT INTO default.build_step_logs_v1 (time, workspace_id, project_id, deployment_id, step_id, message, seq, stderr) SELECT toInt64(?), ?, ?, ?, ?, concat('KEBAP ', toString(number)), toUInt64(?) + number, ? FROM numbers(?)",
-		time, target.workspaceID, target.projectID, target.deploymentID, stepID, fromSeq, stderr, count,
-	))
+	ctx := context.Background()
+	batch, err := h.ClickHouse.Conn().PrepareBatch(ctx, clickhouse.InsertQuery[schema.BuildStepLogV1]())
+	require.NoError(t, err)
+	for i := range count {
+		require.NoError(t, batch.AppendStruct(&schema.BuildStepLogV1{
+			Time:         time,
+			WorkspaceID:  target.workspaceID,
+			ProjectID:    target.projectID,
+			DeploymentID: target.deploymentID,
+			StepID:       stepID,
+			Message:      fmt.Sprintf("KEBAP %d", i),
+			Seq:          fromSeq + uint64(i),
+			Stderr:       stderr,
+		}))
+	}
+	require.NoError(t, batch.Send())
 }

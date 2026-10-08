@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -142,7 +143,7 @@ func TestKeyspaceNotFound(t *testing.T) {
 		"Authorization": {fmt.Sprintf("Bearer %s", setup.RootKey)},
 	}
 
-	nonexistentKeyspace := "ks_nonexistent"
+	nonexistentKeyspace := uid.New(uid.KeySpacePrefix)
 	req := handler.Request{
 		Project:         setup.Project.Slug,
 		App:             "default",

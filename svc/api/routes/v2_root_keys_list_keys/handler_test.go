@@ -1,6 +1,7 @@
 package handler_test
 
 import (
+	"database/sql"
 	"net/http"
 	"slices"
 	"strings"
@@ -10,6 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/array"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/hash"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
@@ -29,9 +31,18 @@ func TestListRootKeysPaginatesReadableNewKeys(t *testing.T) {
 	}
 	slices.Sort(ids)
 	for _, id := range ids {
-		key := h.CreateUnkeyRootKey(seed.CreateUnkeyRootKeyRequest{WorkspaceID: workspace.ID})
-		_, err := h.DB.RW().ExecContext(t.Context(), "UPDATE unkey_root_keys SET id = ? WHERE id = ?", id, key.KeyID)
-		require.NoError(t, err)
+		require.NoError(t, db.Query.InsertUnkeyRootKey(t.Context(), h.DB.RW(), db.InsertUnkeyRootKeyParams{
+			ID:          id,
+			WorkspaceID: workspace.ID,
+			Hash:        hash.Sha256(uid.New("")),
+			Name:        sql.NullString{},
+			Prefix:      "unkey",
+			Start:       "test",
+			End:         "test",
+			Enabled:     true,
+			Expires:     sql.NullInt64{},
+			CreatedAt:   time.Now().UnixMilli(),
+		}))
 	}
 	caller := h.CreateRootKey(workspace.ID,
 		"unkey:v1:"+workspace.ID+":rootKeys/"+ids[2]+"#read",
@@ -99,7 +110,11 @@ func TestListRootKeysIgnoresLegacyForeignAndDeletedKeys(t *testing.T) {
 	foreign := h.CreateWorkspace()
 	visible := h.CreateUnkeyRootKey(seed.CreateUnkeyRootKeyRequest{WorkspaceID: workspace.ID})
 	deleted := h.CreateUnkeyRootKey(seed.CreateUnkeyRootKeyRequest{WorkspaceID: workspace.ID})
-	_, err := h.DB.RW().ExecContext(t.Context(), "UPDATE unkey_root_keys SET deleted_at = 1 WHERE id = ?", deleted.KeyID)
+	_, err := db.Query.SoftDeleteUnkeyRootKey(t.Context(), h.DB.RW(), db.SoftDeleteUnkeyRootKeyParams{
+		Now:         sql.NullInt64{Int64: 1, Valid: true},
+		ID:          deleted.KeyID,
+		WorkspaceID: workspace.ID,
+	})
 	require.NoError(t, err)
 	h.CreateUnkeyRootKey(seed.CreateUnkeyRootKeyRequest{WorkspaceID: foreign.ID})
 	legacy := h.CreateKey(seed.CreateKeyRequest{WorkspaceID: h.Resources().RootWorkspace.ID, KeySpaceID: h.Resources().RootKeySpace.ID, ForWorkspaceID: &workspace.ID})
@@ -130,7 +145,7 @@ func TestListRootKeysValidatesRequestsAndReadAccess(t *testing.T) {
 		{"invalid cursor", read, map[string]any{"cursor": 42}, 400},
 		{"write only", "unkey:v1:" + workspace.ID + ":rootKeys/*#write", map[string]any{}, 200},
 		{"legacy only", "api.*.read_key", map[string]any{}, 200},
-		{"foreign workspace", "unkey:v1:ws_other:rootKeys/*#read", map[string]any{}, 200},
+		{"foreign workspace", "unkey:v1:" + uid.New(uid.WorkspacePrefix) + ":rootKeys/*#read", map[string]any{}, 200},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			caller := h.CreateRootKey(workspace.ID, tt.permission)

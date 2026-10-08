@@ -2,6 +2,7 @@ package handler_test
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"net/http"
 	"strings"
@@ -71,51 +72,48 @@ func seedEnvironment(t *testing.T, h *testutil.Harness) seededEnv {
 	}
 }
 
-// rawVar is a stored environment variable row, read directly so tests can assert
-// the type and delete protection that the response surfaces only as metadata.
-type rawVar struct {
-	value            string
-	varType          db.AppEnvironmentVariablesType
-	description      string
-	deleteProtection bool
-}
-
-func listRawVars(t *testing.T, h *testutil.Harness, environmentID string) map[string]rawVar {
+func listRawVars(t *testing.T, h *testutil.Harness, env seededEnv) map[string]db.ListAppEnvVarsByAppAndEnvRow {
 	t.Helper()
-	rows, err := h.DB.RO().QueryContext(context.Background(),
-		"SELECT `key`, value, `type`, COALESCE(description, ''), COALESCE(delete_protection, false) FROM app_environment_variables WHERE environment_id = ?",
-		environmentID)
+	rows, err := db.Query.ListAppEnvVarsByAppAndEnv(context.Background(), h.DB.RO(), db.ListAppEnvVarsByAppAndEnvParams{
+		AppID:         env.appID,
+		EnvironmentID: env.environmentID,
+		IDCursor:      "",
+		Limit:         1000,
+	})
 	require.NoError(t, err)
-	defer func() { _ = rows.Close() }()
 
-	out := make(map[string]rawVar)
-	for rows.Next() {
-		var key string
-		var v rawVar
-		require.NoError(t, rows.Scan(&key, &v.value, &v.varType, &v.description, &v.deleteProtection))
-		out[key] = v
+	out := make(map[string]db.ListAppEnvVarsByAppAndEnvRow, len(rows))
+	for _, row := range rows {
+		out[row.Key] = row
 	}
-	require.NoError(t, rows.Err())
 	return out
 }
 
 // seedVar inserts an existing variable directly, bypassing the handler, so tests
-// can set up pre-existing state (including delete-protected rows).
-func seedVar(t *testing.T, h *testutil.Harness, env seededEnv, key, value string, varType db.AppEnvironmentVariablesType, deleteProtection bool) {
+// can set up pre-existing state.
+func seedVar(t *testing.T, h *testutil.Harness, env seededEnv, key, value string, varType db.AppEnvironmentVariablesType) {
 	t.Helper()
-	seedVarFull(t, h, env, key, value, varType, "", deleteProtection)
+	err := db.Query.InsertAppEnvironmentVariable(context.Background(), h.DB.RW(), db.InsertAppEnvironmentVariableParams{
+		ID:            uid.New(uid.EnvironmentVariablePrefix),
+		WorkspaceID:   env.workspaceID,
+		AppID:         env.appID,
+		EnvironmentID: env.environmentID,
+		EnvKey:        key,
+		Value:         value,
+		Type:          varType,
+		Description:   sql.NullString{},
+		CreatedAt:     1,
+	})
+	require.NoError(t, err)
 }
 
-// seedVarFull is seedVar with an explicit description (empty string stored as NULL).
-func seedVarFull(t *testing.T, h *testutil.Harness, env seededEnv, key, value string, varType db.AppEnvironmentVariablesType, description string, deleteProtection bool) {
+// seedLegacyProtectedVar writes a delete-protected row with raw SQL because no
+// query sets delete_protection on environment variables anymore.
+func seedLegacyProtectedVar(t *testing.T, h *testutil.Harness, env seededEnv, key, value string, varType db.AppEnvironmentVariablesType) {
 	t.Helper()
-	var desc any
-	if description != "" {
-		desc = description
-	}
 	_, err := h.DB.RW().ExecContext(context.Background(),
-		"INSERT INTO app_environment_variables (id, workspace_id, app_id, environment_id, `key`, value, `type`, description, delete_protection, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-		uid.New(uid.EnvironmentVariablePrefix), env.workspaceID, env.appID, env.environmentID, key, value, varType, desc, deleteProtection, 1)
+		"INSERT INTO app_environment_variables (id, workspace_id, app_id, environment_id, `key`, value, `type`, delete_protection, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, true, ?)",
+		uid.New(uid.EnvironmentVariablePrefix), env.workspaceID, env.appID, env.environmentID, key, value, varType, 1)
 	require.NoError(t, err)
 }
 

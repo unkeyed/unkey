@@ -7,6 +7,7 @@ import (
 	"github.com/stretchr/testify/require"
 	logdrainv1 "github.com/unkeyed/unkey/gen/proto/logdrain/v1"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
+	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/logdrain/internal/source"
@@ -18,13 +19,30 @@ func TestRatelimitsRead_PayloadAndRepeatedChecks(t *testing.T) {
 	client, err := clickhouse.New(clickhouse.Config{URL: cfg.HTTPDSN})
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, client.Close()) })
-	workspace := uid.New("workspace")
+	workspace := uid.New(uid.WorkspacePrefix)
+	requestID := uid.New(uid.RequestPrefix)
+	namespaceID := uid.New(uid.RatelimitNamespacePrefix)
 	now := time.Now().UnixMilli()
-	require.NoError(t, client.Conn().Exec(t.Context(), `INSERT INTO ratelimits_raw_v2
-		(workspace_id, request_id, time, namespace_id, identifier, passed,
-		latency, override_id, limit, remaining, reset_at, tokens)
-		SELECT ?, 'req_1', ?, 'ns_1', 'customer@example.com', false, 1.5, '', 100, 0, ?, 3 FROM numbers(2)`,
-		workspace, now-3600000, now+60000))
+	check := schema.Ratelimit{
+		RequestID:   requestID,
+		Time:        now - 3600000,
+		WorkspaceID: workspace,
+		NamespaceID: namespaceID,
+		Identifier:  "customer@example.com",
+		Passed:      false,
+		Latency:     1.5,
+		OverrideID:  "",
+		Limit:       100,
+		Remaining:   0,
+		ResetAt:     now + 60000,
+		Tokens:      3,
+	}
+	batch, err := client.Conn().PrepareBatch(t.Context(), clickhouse.InsertQuery[schema.Ratelimit]())
+	require.NoError(t, err)
+	for range 2 {
+		require.NoError(t, batch.AppendStruct(&check))
+	}
+	require.NoError(t, batch.Send())
 	reader := source.NewRatelimits(client)
 	events, cursor, err := reader.Read(t.Context(), workspace, source.Cursor{Time: now - 1}, time.Now().UnixMilli()+1000, 2, nil)
 	require.NoError(t, err)
@@ -32,10 +50,10 @@ func TestRatelimitsRead_PayloadAndRepeatedChecks(t *testing.T) {
 	require.Equal(t, "ratelimits", events[0].Stream)
 	require.Equal(t, now-3600000, events[0].Time)
 	require.GreaterOrEqual(t, cursor.Time, now)
-	require.Equal(t, "req_1", cursor.EventID)
+	require.Equal(t, requestID, cursor.EventID)
 	require.Equal(t, sink.RatelimitPayload{
-		RequestID:   "req_1",
-		NamespaceID: "ns_1",
+		RequestID:   requestID,
+		NamespaceID: namespaceID,
 		Identifier:  "customer@example.com",
 		Passed:      false,
 		OverrideID:  "",
@@ -48,7 +66,7 @@ func TestRatelimitsRead_PayloadAndRepeatedChecks(t *testing.T) {
 	events, cursor, err = reader.Read(t.Context(), workspace, cursor, time.Now().UnixMilli()+1000, 1, nil)
 	require.NoError(t, err)
 	require.Empty(t, events)
-	require.Equal(t, "req_1", cursor.EventID)
+	require.Equal(t, requestID, cursor.EventID)
 }
 
 func TestRatelimitsRead_CombinedFiltersBeforeLimit(t *testing.T) {
@@ -56,7 +74,7 @@ func TestRatelimitsRead_CombinedFiltersBeforeLimit(t *testing.T) {
 	client, err := clickhouse.New(clickhouse.Config{URL: cfg.HTTPDSN})
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, client.Close()) })
-	workspace := uid.New("workspace")
+	workspace := uid.New(uid.WorkspacePrefix)
 	now := time.Now().UnixMilli()
 	for _, row := range []struct {
 		workspace, request, namespace, identifier string
@@ -66,7 +84,7 @@ func TestRatelimitsRead_CombinedFiltersBeforeLimit(t *testing.T) {
 		{workspace, "a", "other", "customer", false, now},
 		{workspace, "b", "ns", "other", true, now},
 		{workspace, "c", "ns", "customer", true, now},
-		{uid.New("workspace"), "d", "ns", "customer", false, now},
+		{uid.New(uid.WorkspacePrefix), "d", "ns", "customer", false, now},
 		{workspace, "e", "ns", "other", false, now},
 		{workspace, "f", "ns2", "customer2", false, now},
 		{workspace, "g", "ns", "customer", false, now + 1},

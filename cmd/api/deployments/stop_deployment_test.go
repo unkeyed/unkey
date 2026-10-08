@@ -26,8 +26,10 @@ func captureStatus[T any](t *testing.T, cmd *cli.Command, args string, status in
 		require.NoError(t, err)
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(status)
-		_, err = w.Write([]byte(`{"meta":{"requestId":"test"},"data":{}}`))
-		require.NoError(t, err)
+		require.NoError(t, json.NewEncoder(w).Encode(openapi.V2DeploymentsStopDeploymentResponseBody{
+			Meta: openapi.Meta{RequestId: "test"},
+			Data: openapi.EmptyResponse{},
+		}))
 	}))
 	t.Cleanup(srv.Close)
 	stdout := os.Stdout

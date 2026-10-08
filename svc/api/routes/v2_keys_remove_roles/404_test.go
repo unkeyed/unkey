@@ -129,7 +129,7 @@ func TestNotFoundErrors(t *testing.T) {
 		keyID := keyResponse.KeyID
 
 		// Use a non-existent role name
-		nonExistentRoleName := "non_existent_role_name"
+		nonExistentRoleName := uid.New(uid.TestPrefix)
 
 		req := handler.Request{
 			KeyId: keyID,
@@ -330,7 +330,7 @@ func TestNotFoundErrors(t *testing.T) {
 		require.NoError(t, err)
 
 		// Generate a non-existent role ID
-		nonExistentRoleName := "someRole"
+		nonExistentRoleName := uid.New(uid.TestPrefix)
 
 		req := handler.Request{
 			KeyId: keyID,

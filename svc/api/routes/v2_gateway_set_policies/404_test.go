@@ -2,11 +2,13 @@ package handler_test
 
 import (
 	"context"
+	"database/sql"
 	"net/http"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
@@ -74,9 +76,10 @@ func TestSetPoliciesNotFound(t *testing.T) {
 
 	t.Run("keyauth referencing a soft-deleted keyspace", func(t *testing.T) {
 		api := h.CreateApi(seed.CreateApiRequest{WorkspaceID: env.workspaceID, ProjectID: env.projectID})
-		_, err := h.DB.RW().ExecContext(context.Background(),
-			"UPDATE key_auth SET deleted_at_m = ? WHERE id = ?",
-			time.Now().UnixMilli(), api.KeyAuthID.String)
+		err := db.Query.SoftDeleteKeySpace(context.Background(), h.DB.RW(), db.SoftDeleteKeySpaceParams{
+			Now:        sql.NullInt64{Int64: time.Now().UnixMilli(), Valid: true},
+			KeySpaceID: api.KeyAuthID.String,
+		})
 		require.NoError(t, err)
 
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers,

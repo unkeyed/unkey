@@ -75,7 +75,7 @@ func TestDeletePortalAuthorizationMatrix(t *testing.T) {
 				"a masked denial must not disclose the portal slug")
 			require.True(t, portalExists(t, h, workspace.ID, stored.ID),
 				"a denied request must not delete")
-			require.Equal(t, 1, liveSessions(t, h, stored.ID),
+			require.Equal(t, 1, h.CountLivePortalSessions(t, stored.ID, ""),
 				"a denied request must not revoke a session")
 			require.Equal(t, auditBefore, countAuditEntriesMentioning(t, h, workspace.ID, "portal.delete"),
 				"a denied request must not write an audit entry")

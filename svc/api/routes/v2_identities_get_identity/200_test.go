@@ -37,7 +37,7 @@ func TestSuccess(t *testing.T) {
 	// Setup test data using testutil helper
 	ctx := context.Background()
 
-	externalID := "test_user_123"
+	externalID := uid.New(uid.TestPrefix)
 	// Create metadata
 	metaMap := map[string]any{
 		"name":    "Test User",
@@ -94,7 +94,7 @@ func TestSuccess(t *testing.T) {
 	t.Run("metadata is empty object when not set", func(t *testing.T) {
 		// Create a new identity without metadata
 		identityWithoutMetaID := uid.New(uid.IdentityPrefix)
-		externalIDWithoutMeta := "test_user_no_meta"
+		externalIDWithoutMeta := uid.New(uid.TestPrefix)
 
 		tx, err := h.DB.RW().Begin(ctx)
 		require.NoError(t, err)
@@ -132,7 +132,7 @@ func TestSuccess(t *testing.T) {
 	t.Run("ratelimits is empty array when none exist", func(t *testing.T) {
 		// Create a new identity without ratelimits
 		identityWithoutRatelimitsID := uid.New(uid.IdentityPrefix)
-		externalIDWithoutRatelimits := "test_user_no_ratelimits"
+		externalIDWithoutRatelimits := uid.New(uid.TestPrefix)
 
 		tx, err := h.DB.RW().Begin(ctx)
 		require.NoError(t, err)
@@ -168,7 +168,7 @@ func TestSuccess(t *testing.T) {
 	t.Run("retrieve identity with large metadata", func(t *testing.T) {
 		// Create an identity with large metadata
 		largeMetaIdentityID := uid.New(uid.IdentityPrefix)
-		largeMetaExternalID := "test_user_large_meta"
+		largeMetaExternalID := uid.New(uid.TestPrefix)
 
 		// Create large metadata map
 		largeMetaMap := map[string]interface{}{
@@ -272,7 +272,7 @@ func TestSuccess(t *testing.T) {
 	t.Run("retrieve identity with many rate limits", func(t *testing.T) {
 		// Create an identity with many rate limits
 		manyRateLimitsIdentityID := uid.New(uid.IdentityPrefix)
-		manyRateLimitsExternalID := "test_user_many_ratelimits"
+		manyRateLimitsExternalID := uid.New(uid.TestPrefix)
 
 		tx, err := h.DB.RW().Begin(ctx)
 		require.NoError(t, err)
@@ -355,7 +355,7 @@ func TestSuccess(t *testing.T) {
 	t.Run("retrieve recently created identity", func(t *testing.T) {
 		// Create a new identity
 		recentIdentityID := uid.New(uid.IdentityPrefix)
-		recentExternalID := "test_user_recent"
+		recentExternalID := uid.New(uid.TestPrefix)
 		creationTime := time.Now().UnixMilli()
 
 		tx, err := h.DB.RW().Begin(ctx)
@@ -393,8 +393,7 @@ func TestSuccess(t *testing.T) {
 		// Create identity and capture the internal ID
 		identity := h.CreateIdentity(seed.CreateIdentityRequest{
 			WorkspaceID: h.Resources().UserWorkspace.ID,
-			ExternalID:  "unkey_works",
-			Meta:        []byte("{}"),
+			ExternalID:  uid.New(uid.TestPrefix),
 		})
 
 		req := handler.Request{
@@ -402,13 +401,13 @@ func TestSuccess(t *testing.T) {
 		}
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 		require.Equal(t, http.StatusOK, res.Status)
-		require.Equal(t, "unkey_works", res.Body.Data.ExternalId)
+		require.Equal(t, identity.ExternalID, res.Body.Data.ExternalId)
 	})
 
 	t.Run("prefer internal ID over matching external ID", func(t *testing.T) {
 		internalIdentity := h.CreateIdentity(seed.CreateIdentityRequest{
 			WorkspaceID: h.Resources().UserWorkspace.ID,
-			ExternalID:  "internal_id_match",
+			ExternalID:  uid.New(uid.TestPrefix),
 		})
 		h.CreateIdentity(seed.CreateIdentityRequest{
 			WorkspaceID: h.Resources().UserWorkspace.ID,

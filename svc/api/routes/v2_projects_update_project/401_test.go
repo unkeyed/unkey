@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_projects_update_project"
 )
@@ -25,7 +26,7 @@ func TestUpdateProjectUnauthorized(t *testing.T) {
 		}
 
 		name := "New Name"
-		req := handler.Request{Project: "proj_1234abcd", Name: &name}
+		req := handler.Request{Project: uid.New(uid.ProjectPrefix), Name: &name}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 		require.Equal(t, http.StatusUnauthorized, res.Status, "expected 401, received: %s", res.RawBody)

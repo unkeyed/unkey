@@ -3,15 +3,20 @@ package handler_test
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"net/http"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/require"
 
+	portalservice "github.com/unkeyed/unkey/internal/services/portal"
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/hash"
+	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
+	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	exchangeCode "github.com/unkeyed/unkey/svc/api/routes/v2_portal_exchange_code"
 	listKeys "github.com/unkeyed/unkey/svc/api/routes/v2_portal_list_keys"
@@ -124,17 +129,16 @@ func TestRevokeSessionIsIdempotent(t *testing.T) {
 	workspace := h.Resources().UserWorkspace
 
 	stored, mapping := seedPortal(t, h, workspace.ID, "revoke-twice")
-	h.CreatePortalSessionForPortal(stored.ID, workspace.ID, "user_1", []string{mapping.ID}, []string{"keys:read"})
+	sessionHeaders := h.CreatePortalSessionForPortal(stored.ID, workspace.ID, "user_1", []string{mapping.ID}, []string{"keys:read"})
 
 	first := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, request(stored.ID, "user_1"))
 	require.Equal(t, http.StatusOK, first.Status, "expected 200, received: %s", first.RawBody)
 	require.Equal(t, int64(1), first.Body.Data.SessionsRevoked)
 
-	var sessionID string
-	var revokedAt int64
-	require.NoError(t, h.DB.RO().QueryRowContext(context.Background(),
-		"SELECT id, revoked_at FROM portal_sessions WHERE portal_id = ? AND external_id = ?", stored.ID, "user_1",
-	).Scan(&sessionID, &revokedAt))
+	revokedSession := sessionByCookie(t, h, sessionHeaders)
+	sessionID := revokedSession.ID
+	require.True(t, revokedSession.RevokedAt.Valid)
+	revokedAt := revokedSession.RevokedAt.Int64
 
 	h.Clock.Tick(time.Minute)
 
@@ -142,11 +146,9 @@ func TestRevokeSessionIsIdempotent(t *testing.T) {
 	require.Equal(t, http.StatusOK, second.Status, "expected 200, received: %s", second.RawBody)
 	require.Equal(t, int64(0), second.Body.Data.SessionsRevoked)
 
-	var after int64
-	require.NoError(t, h.DB.RO().QueryRowContext(context.Background(),
-		"SELECT revoked_at FROM portal_sessions WHERE portal_id = ? AND external_id = ?", stored.ID, "user_1",
-	).Scan(&after))
-	require.Equal(t, revokedAt, after, "an already-revoked row keeps its original timestamp")
+	after := sessionByCookie(t, h, sessionHeaders).RevokedAt
+	require.True(t, after.Valid)
+	require.Equal(t, revokedAt, after.Int64, "an already-revoked row keeps its original timestamp")
 
 	metas := revokeAuditMetas(t, h, stored.ID)
 	require.Len(t, metas, 1, "only the call that revoked something is audited")
@@ -175,10 +177,16 @@ func TestRevokeSessionOnDisabledPortal(t *testing.T) {
 	route, headers := newRoute(t, h, permission)
 	workspace := h.Resources().UserWorkspace
 
-	stored, mapping := seedPortal(t, h, workspace.ID, "revoke-disabled")
+	mapping, projectID := h.SeedKeyspaceMapping(t, workspace.ID)
+	stored := h.CreatePortal(seed.CreatePortalRequest{
+		WorkspaceID: workspace.ID,
+		ProjectID:   projectID,
+		Slug:        "revoke-disabled",
+		DisplayName: "revoke-disabled",
+		KeyAuthID:   sql.NullString{String: mapping.ID, Valid: true},
+		Enabled:     false,
+	})
 	h.CreatePortalSessionForPortal(stored.ID, workspace.ID, "user_1", []string{mapping.ID}, []string{"keys:read"})
-	_, err := h.DB.RW().ExecContext(context.Background(), "UPDATE portals SET enabled = false WHERE id = ?", stored.ID)
-	require.NoError(t, err)
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, request(stored.ID, "user_1"))
 	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
@@ -207,15 +215,12 @@ func TestRevokeSessionWritesRevokedStateToCache(t *testing.T) {
 	workspace := h.Resources().UserWorkspace
 
 	stored, mapping := seedPortal(t, h, workspace.ID, "revoke-cache")
-	h.CreatePortalSessionForPortal(stored.ID, workspace.ID, "user_1", []string{mapping.ID}, []string{"keys:read"})
+	sessionHeaders := h.CreatePortalSessionForPortal(stored.ID, workspace.ID, "user_1", []string{mapping.ID}, []string{"keys:read"})
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, request(stored.ID, "user_1"))
 	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
 
-	var tokenHash string
-	require.NoError(t, h.DB.RO().QueryRowContext(context.Background(),
-		"SELECT access_token_hash FROM portal_sessions WHERE portal_id = ? AND external_id = ?", stored.ID, "user_1",
-	).Scan(&tokenHash))
+	tokenHash := sessionByCookie(t, h, sessionHeaders).AccessTokenHash.String
 
 	cached, hit := h.Caches.PortalSession.Get(context.Background(), tokenHash)
 	require.Equal(t, cache.Hit, hit, "the revoked row must be cached")
@@ -236,11 +241,10 @@ func TestRevokeSessionAtTheSameClockTick(t *testing.T) {
 	require.Equal(t, http.StatusOK, first.Status, "expected 200, received: %s", first.RawBody)
 	require.Equal(t, int64(1), first.Body.Data.SessionsRevoked)
 
-	h.CreatePortalSessionForPortal(stored.ID, workspace.ID, "user_1", []string{mapping.ID}, []string{"keys:read"})
-	var newSessionID string
-	require.NoError(t, h.DB.RO().QueryRowContext(context.Background(),
-		"SELECT id FROM portal_sessions WHERE portal_id = ? AND external_id = ? AND revoked_at IS NULL", stored.ID, "user_1",
-	).Scan(&newSessionID))
+	newSession := sessionByCookie(t, h,
+		h.CreatePortalSessionForPortal(stored.ID, workspace.ID, "user_1", []string{mapping.ID}, []string{"keys:read"}))
+	require.False(t, newSession.RevokedAt.Valid)
+	newSessionID := newSession.ID
 
 	second := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, request(stored.ID, "user_1"))
 	require.Equal(t, http.StatusOK, second.Status, "expected 200, received: %s", second.RawBody)
@@ -297,12 +301,33 @@ func TestRevokeSessionTakesSessionsFromAnAheadClock(t *testing.T) {
 
 	stored, _ := seedPortal(t, h, workspace.ID, "revoke-ahead-clock")
 	expiresAt := h.Clock.Now().Add(time.Hour)
-	h.CreatePortalSessionInState(t, stored.ID, workspace.ID, "user_1", true, expiresAt)
-	_, err := h.DB.RW().ExecContext(context.Background(),
-		"UPDATE portal_sessions SET created_at = ? WHERE portal_id = ?",
-		h.Clock.Now().Add(time.Minute).UnixMilli(), stored.ID,
-	)
+	ctx := context.Background()
+	code := string(uid.PortalExchangeCodePrefix) + "_" + uid.Secure()
+	accessToken := string(uid.PortalAccessTokenPrefix) + "_" + uid.Secure()
+	scopes, err := json.Marshal(portalservice.Grant{KeyspaceIDs: []string{}, Scopes: []string{"keys:read"}})
 	require.NoError(t, err)
+	require.NoError(t, db.Query.InsertPortalSession(ctx, h.DB.RW(), db.InsertPortalSessionParams{
+		ID:                    uid.New(uid.PortalSessionPrefix),
+		WorkspaceID:           workspace.ID,
+		PortalID:              stored.ID,
+		ExternalID:            "user_1",
+		Scopes:                scopes,
+		ExchangeCodeHash:      hash.Sha256(code),
+		ExchangeCodeExpiresAt: expiresAt.UnixMilli(),
+		ReturnUrl:             sql.NullString{Valid: false, String: ""},
+		CreatedAt:             h.Clock.Now().Add(time.Minute).UnixMilli(),
+	}))
+	exchanged, err := db.Query.ExchangePortalSessionCode(ctx, h.DB.RW(), db.ExchangePortalSessionCodeParams{
+		AccessTokenHash:      sql.NullString{String: hash.Sha256(accessToken), Valid: true},
+		AccessTokenCreatedAt: sql.NullInt64{Int64: h.Clock.Now().UnixMilli(), Valid: true},
+		AccessTokenExpiresAt: sql.NullInt64{Int64: expiresAt.UnixMilli(), Valid: true},
+		ExchangeCodeHash:     hash.Sha256(code),
+		Now:                  h.Clock.Now().UnixMilli(),
+	})
+	require.NoError(t, err)
+	rows, err := exchanged.RowsAffected()
+	require.NoError(t, err)
+	require.Equal(t, int64(1), rows)
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, request(stored.ID, "user_1"))
 	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)

@@ -21,8 +21,8 @@ func TestAuditLogsRead_CursorBounds(t *testing.T) {
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, client.Close()) })
 	ctx := context.Background()
-	workspaceID := uid.New("workspace")
-	otherWorkspaceID := uid.New("workspace")
+	workspaceID := uid.New(uid.WorkspacePrefix)
+	otherWorkspaceID := uid.New(uid.WorkspacePrefix)
 	insertedAt := time.Now().Add(-time.Minute).UnixMilli()
 	occurredAt := time.Now().UTC().Truncate(time.Second).Add(-time.Hour + 123*time.Millisecond)
 
@@ -82,7 +82,7 @@ func TestAuditLogsRead_EventTypes(t *testing.T) {
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, client.Close()) })
 	ctx := context.Background()
-	workspaceID := uid.New("workspace")
+	workspaceID := uid.New(uid.WorkspacePrefix)
 	insertedAt := time.Now().Add(-time.Minute).UnixMilli()
 	t.Cleanup(func() {
 		require.NoError(t, client.Conn().Exec(ctx, `ALTER TABLE audit_logs_raw_v1 DELETE WHERE workspace_id = ? SETTINGS mutations_sync = 1`, workspaceID))

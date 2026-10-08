@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net"
@@ -15,6 +16,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
 func TestCommand_LocalDevDoesNotRequireProductionSettings(t *testing.T) {
@@ -62,7 +64,16 @@ func TestCommand_LocalDevAcceptsFileAndInlineConfig(t *testing.T) {
 			t.Errorf("root key was expanded more than once: %q", r.Header.Get("Authorization"))
 		}
 		w.Header().Set("Content-Type", "application/json")
-		_, err := io.WriteString(w, `{"data":{"valid":true,"code":"VALID","keyId":"key_orders","keyspaceId":"ks_orders","identity":{"externalId":"customer_42"}}}`)
+		err := json.NewEncoder(w).Encode(openapi.V2KeysVerifyKeyResponseBody{
+			Meta: openapi.Meta{RequestId: "test"},
+			Data: openapi.V2KeysVerifyKeyResponseData{
+				Valid:      true,
+				Code:       openapi.VALID,
+				KeyId:      "key_orders",
+				KeyspaceId: "ks_orders",
+				Identity:   &openapi.Identity{ExternalId: "customer_42"},
+			},
+		})
 		if err != nil {
 			t.Error(err)
 		}

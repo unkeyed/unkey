@@ -6,10 +6,12 @@ import (
 	"fmt"
 	"net/http"
 	"testing"
+	"time"
 
 	"connectrpc.com/connect"
 	"github.com/stretchr/testify/require"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
+	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/domain/domaingate"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/uid"
@@ -116,9 +118,17 @@ func TestCreateDomainMissingWorkspaceLimits(t *testing.T) {
 	route := &handler.Handler{DB: h.DB, CtrlClient: ctrlClient, LimitsCache: h.Caches.WorkspaceLimits}
 	h.Register(route)
 
-	env := seedEnvironment(t, h)
-	_, err := h.DB.RW().ExecContext(context.Background(), "DELETE FROM `limits` WHERE workspace_id = ?", env.workspaceID)
+	workspaceID := uid.New(uid.WorkspacePrefix)
+	err := db.Query.InsertWorkspace(context.Background(), h.DB.RW(), db.InsertWorkspaceParams{
+		ID:           workspaceID,
+		OrgID:        uid.New(uid.OrgPrefix),
+		Name:         uid.New(uid.TestPrefix),
+		Slug:         uid.New(uid.TestPrefix),
+		CreatedAt:    time.Now().UnixMilli(),
+		K8sNamespace: uid.DNS1035(),
+	})
 	require.NoError(t, err)
+	env := seedEnvironmentInWorkspace(t, h, workspaceID)
 	rootKey := h.CreateRootKey(env.workspaceID, "environment.*.create_domain")
 
 	res := testutil.CallRoute[handler.Request, openapi.InternalServerErrorResponse](h, route, authHeaders(rootKey), makeRequest(env, randomDomain()))

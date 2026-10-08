@@ -15,6 +15,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/db"
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
@@ -157,23 +158,39 @@ func TestGetLimitsWithoutComputePlanOrRequestsPerMinute(t *testing.T) {
 		"logsAuditRetentionDaysMax",
 		"logdrainsMax",
 	}, slices.Collect(maps.Keys(body.Data)))
-	require.JSONEq(t, `{"limit":null}`, string(body.Data["apiRequestsCountMaxPerMinute"]))
+	var requestsPerMinute map[string]any
+	require.NoError(t, json.Unmarshal(body.Data["apiRequestsCountMaxPerMinute"], &requestsPerMinute))
+	require.Equal(t, map[string]any{"limit": nil}, requestsPerMinute)
 	require.Equal(t, meteredLimit(1_000_000, 0), res.Body.Data.ApiBillableOperationsCountMaxPerMonth)
 }
 
-func createDeployment(t *testing.T, h *testutil.Harness, setup testutil.DeploymentTestSetup, cpuMillicores, memoryMib, storageMib int) db.Deployment {
+func createDeployment(t *testing.T, h *testutil.Harness, setup testutil.DeploymentTestSetup, cpuMillicores, memoryMib int32, storageMib uint32) db.Deployment {
 	t.Helper()
-	deployment := h.CreateDeployment(seed.CreateDeploymentRequest{
-		ID:            uid.New(uid.DeploymentPrefix),
-		WorkspaceID:   setup.Workspace.ID,
-		ProjectID:     setup.Project.ID,
-		AppID:         setup.App.ID,
-		EnvironmentID: setup.Environment.ID,
+	sentinelConfig, err := json.Marshal(map[string]any{})
+	require.NoError(t, err)
+	deploymentID := uid.New(uid.DeploymentPrefix)
+	err = db.Query.InsertDeployment(t.Context(), h.DB.RW(), db.InsertDeploymentParams{
+		ID:                            deploymentID,
+		K8sName:                       "test-" + deploymentID,
+		WorkspaceID:                   setup.Workspace.ID,
+		ProjectID:                     setup.Project.ID,
+		AppID:                         setup.App.ID,
+		EnvironmentID:                 setup.Environment.ID,
+		Source:                        db.DeploymentsSourceUnknown,
+		SentinelConfig:                sentinelConfig,
+		EncryptedEnvironmentVariables: []byte{},
+		Status:                        mysqltype.DeploymentsStatusPending,
+		CpuMillicores:                 cpuMillicores,
+		MemoryMib:                     memoryMib,
+		StorageMib:                    storageMib,
+		Port:                          8080,
+		ShutdownSignal:                db.DeploymentsShutdownSignalSIGTERM,
+		UpstreamProtocol:              db.DeploymentsUpstreamProtocolHttp1,
+		DeploymentTrigger:             db.DeploymentsTriggerUnknown,
+		CreatedAt:                     time.Now().UnixMilli(),
 	})
-	_, err := h.DB.RW().ExecContext(t.Context(),
-		"UPDATE deployments SET cpu_millicores = ?, memory_mib = ?, storage_mib = ? WHERE id = ?",
-		cpuMillicores, memoryMib, storageMib, deployment.ID,
-	)
+	require.NoError(t, err)
+	deployment, err := db.Query.FindDeploymentById(t.Context(), h.DB.RO(), deploymentID)
 	require.NoError(t, err)
 	return deployment
 }
@@ -194,9 +211,11 @@ func insertTopology(t *testing.T, h *testutil.Harness, workspaceID, deploymentID
 
 func insertLogdrain(t *testing.T, h *testutil.Harness, workspaceID string) {
 	t.Helper()
-	_, err := h.DB.RW().ExecContext(t.Context(),
+	config, err := json.Marshal(map[string]any{})
+	require.NoError(t, err)
+	_, err = h.DB.RW().ExecContext(t.Context(),
 		"INSERT INTO logdrains (id, workspace_id, name, stream, config, lease_id, fencing_token, created_at) VALUES (?, ?, ?, 'audit_logs', ?, '', '', ?)",
-		uid.New(uid.LogdrainPrefix), workspaceID, "KEBAP", []byte("{}"), time.Now().UnixMilli(),
+		uid.New(uid.LogdrainPrefix), workspaceID, "KEBAP", config, time.Now().UnixMilli(),
 	)
 	require.NoError(t, err)
 }
@@ -226,7 +245,9 @@ func TestGetLimitsReturnsNullForUnlimitedCustomDomains(t *testing.T) {
 		Data map[string]json.RawMessage `json:"data"`
 	}
 	require.NoError(t, json.Unmarshal([]byte(res.RawBody), &body))
-	require.JSONEq(t, `{"limit":null,"current":0}`, string(body.Data["customDomainsMax"]))
+	var customDomains map[string]any
+	require.NoError(t, json.Unmarshal(body.Data["customDomainsMax"], &customDomains))
+	require.Equal(t, map[string]any{"limit": nil, "current": float64(0)}, customDomains)
 }
 
 func limit(maximum int64) openapi.V2WorkspaceGetLimitsLimit {

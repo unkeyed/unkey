@@ -181,7 +181,7 @@ func TestCreateKeyWithOptionalFields(t *testing.T) {
 	// Test key creation with optional fields
 	name := "Test Key"
 	prefix := "test"
-	externalID := "user_123"
+	externalID := uid.New(uid.TestPrefix)
 	byteLength := 24
 	expires := int64(1704067200000) // Jan 1, 2024
 	enabled := true
@@ -325,7 +325,7 @@ func TestCreateKeyWithEncryption(t *testing.T) {
 	req := handler.Request{
 		ApiId:       api.ID,
 		Name:        &name,
-		ExternalId:  new("user_123"),
+		ExternalId:  new(uid.New(uid.TestPrefix)),
 		Enabled:     new(true),
 		Recoverable: new(true),
 	}
@@ -425,7 +425,7 @@ func TestCreateKeyConcurrentWithSameExternalId(t *testing.T) {
 	}
 
 	numConcurrent := 20
-	externalID := "user_concurrent_test"
+	externalID := uid.New(uid.TestPrefix)
 
 	var mu sync.Mutex
 	keyIDs := make([]string, 0, numConcurrent)

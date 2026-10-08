@@ -5,13 +5,13 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/require"
+	portalservice "github.com/unkeyed/unkey/internal/services/portal"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/hash"
 	"github.com/unkeyed/unkey/pkg/uid"
@@ -45,6 +45,14 @@ func callAsync(t *testing.T, h *testutil.Harness, route zen.Route, headers http.
 	return status
 }
 
+func grantJSON(t *testing.T, keyspaceIDs []string, scopes ...string) []byte {
+	t.Helper()
+
+	encoded, err := json.Marshal(portalservice.Grant{KeyspaceIDs: keyspaceIDs, Scopes: scopes})
+	require.NoError(t, err)
+	return encoded
+}
+
 // A mint that holds the portal lock makes a concurrent disable wait, so the
 // disable's revoke runs after the insert and catches the new session.
 func TestMintLockMakesDisableRevokeTheNewSession(t *testing.T) {
@@ -66,7 +74,7 @@ func TestMintLockMakesDisableRevokeTheNewSession(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, locked.Enabled)
 
-	disabled := callAsync(t, h, update, headers, map[string]any{"portal": portalID, "enabled": false})
+	disabled := callAsync(t, h, update, headers, updateportal.Request{Portal: portalID, Enabled: new(false)})
 	select {
 	case status := <-disabled:
 		t.Fatalf("the disable must wait for the mint's lock, but finished with %d", status)
@@ -79,7 +87,7 @@ func TestMintLockMakesDisableRevokeTheNewSession(t *testing.T) {
 		WorkspaceID:           workspace.ID,
 		PortalID:              portalID,
 		ExternalID:            "user_racing",
-		Scopes:                []byte(`{"keyspaceIds":[],"scopes":["keys:read"]}`),
+		Scopes:                grantJSON(t, nil, "keys:read"),
 		ExchangeCodeHash:      hash.Sha256(uid.Secure()),
 		ExchangeCodeExpiresAt: now.Add(15 * time.Minute).UnixMilli(),
 		ReturnUrl:             sql.NullString{Valid: false, String: ""},
@@ -108,7 +116,13 @@ func TestDisableLockMakesMintRefuse(t *testing.T) {
 	disable, err := h.DB.RW().Begin(ctx)
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = disable.Rollback() })
-	_, err = disable.ExecContext(ctx, "UPDATE portals SET enabled = false WHERE id = ?", portalID)
+	_, err = db.Query.UpdatePortal(ctx, disable, db.UpdatePortalParams{
+		EnabledSpecified: 1,
+		Enabled:          false,
+		UpdatedAt:        sql.NullInt64{Valid: true, Int64: h.Clock.Now().UnixMilli()},
+		WorkspaceID:      workspace.ID,
+		ID:               portalID,
+	})
 	require.NoError(t, err)
 	_, err = db.Query.RevokePortalSessionsByPortal(ctx, disable, db.RevokePortalSessionsByPortalParams{
 		RevokedAt:   sql.NullInt64{Valid: true, Int64: h.Clock.Now().UnixMilli()},
@@ -153,7 +167,13 @@ func TestRepointLockMakesMintRefuse(t *testing.T) {
 	repoint, err := h.DB.RW().Begin(ctx)
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = repoint.Rollback() })
-	_, err = repoint.ExecContext(ctx, "UPDATE portals SET key_auth_id = ? WHERE id = ?", newKeyspace.KeyAuthID.String, portalID)
+	_, err = db.Query.UpdatePortal(ctx, repoint, db.UpdatePortalParams{
+		KeyAuthIDSpecified: 1,
+		KeyAuthID:          newKeyspace.KeyAuthID,
+		UpdatedAt:          sql.NullInt64{Valid: true, Int64: h.Clock.Now().UnixMilli()},
+		WorkspaceID:        workspace.ID,
+		ID:                 portalID,
+	})
 	require.NoError(t, err)
 	_, err = db.Query.RevokePortalSessionsByPortal(ctx, repoint, db.RevokePortalSessionsByPortalParams{
 		RevokedAt:   sql.NullInt64{Valid: true, Int64: h.Clock.Now().UnixMilli()},
@@ -200,7 +220,7 @@ func TestMintLockMakesRepointRevokeTheNewSession(t *testing.T) {
 	_, err = db.Query.LockPortalForMint(ctx, mint, db.LockPortalForMintParams{ID: portalID, WorkspaceID: workspace.ID})
 	require.NoError(t, err)
 
-	repointed := callAsync(t, h, update, headers, map[string]any{"portal": portalID, "keyspaceId": newKeyspace.KeyAuthID.String})
+	repointed := callAsync(t, h, update, headers, updateportal.Request{Portal: portalID, KeyspaceId: new(newKeyspace.KeyAuthID.String)})
 	select {
 	case status := <-repointed:
 		t.Fatalf("the re-point must wait for the mint's lock, but finished with %d", status)
@@ -213,7 +233,7 @@ func TestMintLockMakesRepointRevokeTheNewSession(t *testing.T) {
 		WorkspaceID:           workspace.ID,
 		PortalID:              portalID,
 		ExternalID:            "user_repoint",
-		Scopes:                []byte(fmt.Sprintf(`{"keyspaceIds":[%q],"scopes":["keys:read"]}`, oldKeyspace.KeyAuthID.String)),
+		Scopes:                grantJSON(t, []string{oldKeyspace.KeyAuthID.String}, "keys:read"),
 		ExchangeCodeHash:      hash.Sha256(uid.Secure()),
 		ExchangeCodeExpiresAt: now.Add(15 * time.Minute).UnixMilli(),
 		ReturnUrl:             sql.NullString{Valid: false, String: ""},

@@ -41,12 +41,14 @@ func TestBillableExcludesGatewaySource(t *testing.T) {
 	verifications = append(verifications, createVerifications(workspaceID, 20, now, "INVALID")...)
 	// Gateway: 40 VALID, excluded from billing by source.
 	gatewayVerifications := createVerifications(workspaceID, 40, now, "VALID")
+	appA := uid.New(uid.AppPrefix)
+	appB := uid.New(uid.AppPrefix)
 	for i := range gatewayVerifications {
 		gatewayVerifications[i].Source = schema.SourceGateway
 		if i < 25 {
-			gatewayVerifications[i].AppID = "app_a"
+			gatewayVerifications[i].AppID = appA
 		} else {
-			gatewayVerifications[i].AppID = "app_b"
+			gatewayVerifications[i].AppID = appB
 		}
 	}
 	// Legacy root keys: 30 VALID, marked by an empty workspace ID but retaining
@@ -125,7 +127,7 @@ func TestBillableExcludesGatewaySource(t *testing.T) {
 
 		require.NoError(c, conn.QueryRow(ctx,
 			"SELECT sum(count) FROM default.key_verifications_per_month_v3 WHERE workspace_id = ? AND app_id = ?",
-			workspaceID, "app_a",
+			workspaceID, appA,
 		).Scan(&appCount))
 		assert.Equal(c, int64(25), appCount, "rollups must preserve the app attribution")
 
