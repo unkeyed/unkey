@@ -49,7 +49,7 @@ post:
             value:
               project: payments-service
               app: payments-api
-              branch: ["main"]
+              branch: ["main", "feature/checkout"]
               startTime: 1704067200000
               endTime: 1704672000000
   responses:

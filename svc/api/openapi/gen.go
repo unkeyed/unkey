@@ -891,10 +891,8 @@ type Deployment struct {
 	Environment string           `json:"environment"`
 	Error       *DeploymentError `json:"error,omitempty"`
 
-	// FinishedAt Unix timestamp in milliseconds when the last pipeline step ended.
-	// Omitted while the pipeline is still running, while any step is still
-	// open, or when no step was recorded. Waking a stopped deployment does not
-	// clear it.
+	// FinishedAt Unix timestamp in milliseconds when the deployment finished, successfully
+	// or not. Omitted while it is in progress.
 	//
 	//
 	// Example: 1704067260000
@@ -1147,24 +1145,20 @@ type DeploymentStatus string
 type DeploymentTrigger struct {
 	Actor *DeploymentTriggerActor `json:"actor,omitempty"`
 
-	// Via What started this deployment: `github` is a push or pull request, `api`
-	// is a direct API call, `cli` is the Unkey CLI, `dashboard` is the Unkey
-	// dashboard, and `unkey` is Unkey itself, for example a rebuild. `unknown`
-	// marks deployments created before Unkey recorded the trigger. Unkey sets
-	// `github` and `unkey` itself; `api`, `cli`, and `dashboard` are reported
-	// by the calling client, so do not rely on them for security decisions.
+	// Via What started this deployment: `github` (a push or pull request), `api`,
+	// `cli`, `dashboard`, or `unkey` (Unkey itself, for example a rebuild).
+	// `unknown` when it was not recorded. `api`, `cli` and `dashboard` are
+	// reported by the client.
 	//
 	//
 	// Example: github
 	Via DeploymentTriggerVia `json:"via"`
 }
 
-// DeploymentTriggerVia What started this deployment: `github` is a push or pull request, `api`
-// is a direct API call, `cli` is the Unkey CLI, `dashboard` is the Unkey
-// dashboard, and `unkey` is Unkey itself, for example a rebuild. `unknown`
-// marks deployments created before Unkey recorded the trigger. Unkey sets
-// `github` and `unkey` itself; `api`, `cli`, and `dashboard` are reported
-// by the calling client, so do not rely on them for security decisions.
+// DeploymentTriggerVia What started this deployment: `github` (a push or pull request), `api`,
+// `cli`, `dashboard`, or `unkey` (Unkey itself, for example a rebuild).
+// `unknown` when it was not recorded. `api`, `cli` and `dashboard` are
+// reported by the client.
 //
 // Example: github
 type DeploymentTriggerVia string
@@ -1178,20 +1172,18 @@ type DeploymentTriggerActor struct {
 	// Example: octocat
 	Id string `json:"id"`
 
-	// Type The kind of actor. `user` is a dashboard user, `root_key` is a root key,
-	// `github` is the GitHub user whose push or pull request event started the
-	// deployment, and `system` is Unkey itself.
-	// `unknown` means the actor id has a format Unkey does not recognize.
+	// Type `user` is a dashboard user, `root_key` a root key, `github` the GitHub
+	// user who pushed or opened the pull request, `system` Unkey itself.
+	// `unknown` when the actor isn't recognized.
 	//
 	//
 	// Example: github
 	Type DeploymentTriggerActorType `json:"type"`
 }
 
-// DeploymentTriggerActorType The kind of actor. `user` is a dashboard user, `root_key` is a root key,
-// `github` is the GitHub user whose push or pull request event started the
-// deployment, and `system` is Unkey itself.
-// `unknown` means the actor id has a format Unkey does not recognize.
+// DeploymentTriggerActorType `user` is a dashboard user, `root_key` a root key, `github` the GitHub
+// user who pushed or opened the pull request, `system` Unkey itself.
+// `unknown` when the actor isn't recognized.
 //
 // Example: github
 type DeploymentTriggerActorType string

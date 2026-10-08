@@ -5158,10 +5158,8 @@ components:
                     minimum: 0
                     maximum: 9223372036854775807
                     description: |
-                        Unix timestamp in milliseconds when the last pipeline step ended.
-                        Omitted while the pipeline is still running, while any step is still
-                        open, or when no step was recorded. Waking a stopped deployment does not
-                        clear it.
+                        Unix timestamp in milliseconds when the deployment finished, successfully
+                        or not. Omitted while it is in progress.
                     example: 1704067260000
                 domains:
                     type: array
@@ -5305,12 +5303,10 @@ components:
                         - dashboard
                         - unkey
                     description: |
-                        What started this deployment: `github` is a push or pull request, `api`
-                        is a direct API call, `cli` is the Unkey CLI, `dashboard` is the Unkey
-                        dashboard, and `unkey` is Unkey itself, for example a rebuild. `unknown`
-                        marks deployments created before Unkey recorded the trigger. Unkey sets
-                        `github` and `unkey` itself; `api`, `cli`, and `dashboard` are reported
-                        by the calling client, so do not rely on them for security decisions.
+                        What started this deployment: `github` (a push or pull request), `api`,
+                        `cli`, `dashboard`, or `unkey` (Unkey itself, for example a rebuild).
+                        `unknown` when it was not recorded. `api`, `cli` and `dashboard` are
+                        reported by the client.
                     example: github
                 actor:
                     "$ref": "#/components/schemas/DeploymentTriggerActor"
@@ -5418,10 +5414,9 @@ components:
                         - system
                         - unknown
                     description: |
-                        The kind of actor. `user` is a dashboard user, `root_key` is a root key,
-                        `github` is the GitHub user whose push or pull request event started the
-                        deployment, and `system` is Unkey itself.
-                        `unknown` means the actor id has a format Unkey does not recognize.
+                        `user` is a dashboard user, `root_key` a root key, `github` the GitHub
+                        user who pushed or opened the pull request, `system` Unkey itself.
+                        `unknown` when the actor isn't recognized.
                     example: github
                 id:
                     type: string
@@ -10378,6 +10373,7 @@ paths:
                                     app: payments-api
                                     branch:
                                         - main
+                                        - feature/checkout
                                     endTime: 1704672000000
                                     project: payments-service
                                     startTime: 1704067200000

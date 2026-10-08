@@ -77,10 +77,8 @@ properties:
     minimum: 0
     maximum: 9223372036854775807
     description: |
-      Unix timestamp in milliseconds when the last pipeline step ended.
-      Omitted while the pipeline is still running, while any step is still
-      open, or when no step was recorded. Waking a stopped deployment does not
-      clear it.
+      Unix timestamp in milliseconds when the deployment finished, successfully
+      or not. Omitted while it is in progress.
     example: 1704067260000
   domains:
     type: array
