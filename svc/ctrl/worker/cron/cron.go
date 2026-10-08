@@ -37,6 +37,7 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/keyrefill"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/quotacheck"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/ratelimitcleanup"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/resourcecleanup"
 
 	restate "github.com/restatedev/sdk-go"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
@@ -62,6 +63,7 @@ type Service struct {
 	keyRefill               *keyrefill.Handler
 	quotaCheck              *quotacheck.Handler
 	ratelimitCleanup        *ratelimitcleanup.Handler
+	resourceCleanup         *resourcecleanup.Handler
 }
 
 var _ hydrav1.CronServiceServer = (*Service)(nil)
@@ -92,6 +94,7 @@ type Heartbeats struct {
 	AuditLogExport     healthcheck.Heartbeat
 	AuditLogCleanup    healthcheck.Heartbeat
 	RatelimitCleanup   healthcheck.Heartbeat
+	ResourceCleanup    healthcheck.Heartbeat
 	DeployBillingPush  healthcheck.Heartbeat
 	DeployBillingClose healthcheck.Heartbeat
 	DeploySpendCheck   healthcheck.Heartbeat
@@ -164,6 +167,7 @@ func New(cfg Config) (*Service, error) {
 		assert.NotNil(cfg.Heartbeats.AuditLogExport, "Heartbeats.AuditLogExport must not be nil; use healthcheck.NewNoop()"),
 		assert.NotNil(cfg.Heartbeats.AuditLogCleanup, "Heartbeats.AuditLogCleanup must not be nil; use healthcheck.NewNoop()"),
 		assert.NotNil(cfg.Heartbeats.RatelimitCleanup, "Heartbeats.RatelimitCleanup must not be nil; use healthcheck.NewNoop()"),
+		assert.NotNil(cfg.Heartbeats.ResourceCleanup, "Heartbeats.ResourceCleanup must not be nil; use healthcheck.NewNoop()"),
 		assert.NotNil(cfg.Heartbeats.DeployBillingPush, "Heartbeats.DeployBillingPush must not be nil; use healthcheck.NewNoop()"),
 		assert.NotNil(cfg.Heartbeats.DeployBillingClose, "Heartbeats.DeployBillingClose must not be nil; use healthcheck.NewNoop()"),
 		assert.NotNil(cfg.Heartbeats.DeploySpendCheck, "Heartbeats.DeploySpendCheck must not be nil; use healthcheck.NewNoop()"),
@@ -174,6 +178,10 @@ func New(cfg Config) (*Service, error) {
 		cfg.Clock = clock.New()
 	}
 
+	resourceCleanupH, err := resourcecleanup.New(resourcecleanup.Config{DB: cfg.DB, Heartbeat: cfg.Heartbeats.ResourceCleanup})
+	if err != nil {
+		return nil, err
+	}
 	auditLogExportH, err := auditlogexport.New(auditlogexport.Config{
 		DB:         cfg.DB,
 		Clickhouse: cfg.Clickhouse,
@@ -343,7 +351,12 @@ func New(cfg Config) (*Service, error) {
 		keyRefill:                      keyRefillH,
 		quotaCheck:                     quotaCheckH,
 		ratelimitCleanup:               ratelimitCleanupH,
+		resourceCleanup:                resourceCleanupH,
 	}, nil
+}
+
+func (s *Service) RunResourceCleanup(ctx restate.ObjectContext, req *hydrav1.RunResourceCleanupRequest) (*hydrav1.RunResourceCleanupResponse, error) {
+	return s.resourceCleanup.Handle(ctx, req)
 }
 
 func (s *Service) RunAuditLogExport(

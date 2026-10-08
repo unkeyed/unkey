@@ -11,11 +11,9 @@ import (
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/audit"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/resourcecleanup"
 )
 
-// Delete removes an app by delegating environment cleanup to each environment's
-// virtual object, then deleting app-level resources and the app record itself.
-//
 // The app.delete audit log is written here as a durable step rather than on the
 // RPC that enqueued this workflow: a Restate enqueue can't share a transaction
 // with the audit insert, so writing it on the RPC path risked a
@@ -32,8 +30,6 @@ func (s *Service) Delete(
 
 	logger.Info("starting app deletion", "app_id", appID)
 
-	// Capture the app's metadata before the cascade deletes the row, so the
-	// audit log written at the end still has a name/slug to display.
 	app, err := restate.Run(ctx, func(runCtx restate.RunContext) (*db.App, error) {
 		app, err := s.db.FindAppById(runCtx, appID)
 		if db.IsNotFound(err) {
@@ -43,9 +39,6 @@ func (s *Service) Delete(
 	}, restate.WithName("find app"))
 	if err != nil {
 		return nil, fmt.Errorf("find app: %w", err)
-	}
-	if app == nil {
-		return &hydrav1.DeleteAppResponse{}, nil
 	}
 
 	if err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
@@ -77,27 +70,16 @@ func (s *Service) Delete(
 	}
 
 	if err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
-		return s.db.DeleteGithubRepoConnectionsByAppId(runCtx, appID)
-	}, restate.WithName("delete github repo connections")); err != nil {
-		return nil, fmt.Errorf("delete github repo connections: %w", err)
-	}
-
-	if err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
-		return s.db.DeleteAppSourceOciByAppId(runCtx, appID)
-	}, restate.WithName("delete OCI source")); err != nil {
-		return nil, fmt.Errorf("delete OCI source: %w", err)
-	}
-
-	if err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
-		return s.db.DeletePortalsByAppID(runCtx, sql.NullString{String: appID, Valid: true})
-	}, restate.WithName("delete app portals")); err != nil {
-		return nil, fmt.Errorf("delete app portals: %w", err)
-	}
-
-	if err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
 		return s.db.DeleteAppById(runCtx, appID)
 	}, restate.WithName("delete app")); err != nil {
 		return nil, fmt.Errorf("delete app: %w", err)
+	}
+
+	if err := resourcecleanup.Schedule(ctx); err != nil {
+		return nil, fmt.Errorf("schedule resource cleanup: %w", err)
+	}
+	if app == nil {
+		return &hydrav1.DeleteAppResponse{}, nil
 	}
 
 	if err := audit.Insert(ctx, s.auditlogs, audit.Event{
