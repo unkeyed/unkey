@@ -312,6 +312,49 @@ func (ns NullBillingSubscriptionsProduct) Value() (driver.Value, error) {
 	return string(ns.BillingSubscriptionsProduct), nil
 }
 
+type ConnectionAppTargetsSelectionMode string
+
+const (
+	ConnectionAppTargetsSelectionModeAutomatic   ConnectionAppTargetsSelectionMode = "automatic"
+	ConnectionAppTargetsSelectionModeEnvironment ConnectionAppTargetsSelectionMode = "environment"
+	ConnectionAppTargetsSelectionModeDeployment  ConnectionAppTargetsSelectionMode = "deployment"
+)
+
+func (e *ConnectionAppTargetsSelectionMode) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = ConnectionAppTargetsSelectionMode(s)
+	case string:
+		*e = ConnectionAppTargetsSelectionMode(s)
+	default:
+		return fmt.Errorf("unsupported scan type for ConnectionAppTargetsSelectionMode: %T", src)
+	}
+	return nil
+}
+
+type NullConnectionAppTargetsSelectionMode struct {
+	ConnectionAppTargetsSelectionMode ConnectionAppTargetsSelectionMode
+	Valid                             bool // Valid is true if ConnectionAppTargetsSelectionMode is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullConnectionAppTargetsSelectionMode) Scan(value interface{}) error {
+	if value == nil {
+		ns.ConnectionAppTargetsSelectionMode, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.ConnectionAppTargetsSelectionMode.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullConnectionAppTargetsSelectionMode) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.ConnectionAppTargetsSelectionMode), nil
+}
+
 type CustomDomainsChallengeType string
 
 const (
@@ -396,6 +439,49 @@ func (ns NullCustomDomainsVerificationStatus) Value() (driver.Value, error) {
 		return nil, nil
 	}
 	return string(ns.CustomDomainsVerificationStatus), nil
+}
+
+type DeploymentConnectionAppTargetsSelectionMode string
+
+const (
+	DeploymentConnectionAppTargetsSelectionModeAutomatic   DeploymentConnectionAppTargetsSelectionMode = "automatic"
+	DeploymentConnectionAppTargetsSelectionModeEnvironment DeploymentConnectionAppTargetsSelectionMode = "environment"
+	DeploymentConnectionAppTargetsSelectionModeDeployment  DeploymentConnectionAppTargetsSelectionMode = "deployment"
+)
+
+func (e *DeploymentConnectionAppTargetsSelectionMode) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = DeploymentConnectionAppTargetsSelectionMode(s)
+	case string:
+		*e = DeploymentConnectionAppTargetsSelectionMode(s)
+	default:
+		return fmt.Errorf("unsupported scan type for DeploymentConnectionAppTargetsSelectionMode: %T", src)
+	}
+	return nil
+}
+
+type NullDeploymentConnectionAppTargetsSelectionMode struct {
+	DeploymentConnectionAppTargetsSelectionMode DeploymentConnectionAppTargetsSelectionMode
+	Valid                                       bool // Valid is true if DeploymentConnectionAppTargetsSelectionMode is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullDeploymentConnectionAppTargetsSelectionMode) Scan(value interface{}) error {
+	if value == nil {
+		ns.DeploymentConnectionAppTargetsSelectionMode, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.DeploymentConnectionAppTargetsSelectionMode.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullDeploymentConnectionAppTargetsSelectionMode) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.DeploymentConnectionAppTargetsSelectionMode), nil
 }
 
 type DeploymentStepsStep string
@@ -899,12 +985,14 @@ type Deployment struct {
 	Port                          int32                             `db:"port"`
 	ShutdownSignal                DeploymentsShutdownSignal         `db:"shutdown_signal"`
 	UpstreamProtocol              DeploymentsUpstreamProtocol       `db:"upstream_protocol"`
+	Capabilities                  mysqltype.DeploymentCapabilities  `db:"capabilities"`
 	Healthcheck                   mysqltype.NullHealthcheck         `db:"healthcheck"`
 	PrNumber                      sql.NullInt64                     `db:"pr_number"`
 	ForkRepositoryFullName        sql.NullString                    `db:"fork_repository_full_name"`
 	GithubDeploymentID            sql.NullInt64                     `db:"github_deployment_id"`
 	InvocationID                  sql.NullString                    `db:"invocation_id"`
 	Status                        mysqltype.DeploymentsStatus       `db:"status"`
+	FirstReadyAt                  sql.NullInt64                     `db:"first_ready_at"`
 	Trigger                       DeploymentsTrigger                `db:"trigger"`
 	TriggeredBy                   sql.NullString                    `db:"triggered_by"`
 	TriggerReason                 sql.NullString                    `db:"trigger_reason"`

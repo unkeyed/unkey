@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -12,8 +13,10 @@ import (
 	restate "github.com/restatedev/sdk-go"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
+	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/auditlog"
+	"github.com/unkeyed/unkey/pkg/deploy/connections/app"
 	"github.com/unkeyed/unkey/pkg/deploy/deployfail"
 	"github.com/unkeyed/unkey/pkg/deploy/deploygate"
 	githubclient "github.com/unkeyed/unkey/pkg/github"
@@ -42,6 +45,9 @@ const (
 	forkRepositoryCharsMax = 256
 	triggeredByCharsMax    = 256
 	imageCharsMax          = 512
+
+	// Each batched statement stays below MySQL's 65,535 placeholders.
+	connectionBatchSize = 1000
 )
 
 // Create writes a deployment row and starts its pipeline. See the proto for the
@@ -67,7 +73,7 @@ func (w *Workflow) Create(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 		return nil, err
 	}
 
-	payload, rejection, err := w.validateAndBuildPayload(ctx, req, target, status)
+	payload, rejection, err := w.validateAndBuildPayload(ctx, deploymentID, req, target, status)
 	if err != nil {
 		return nil, err
 	}
@@ -213,12 +219,16 @@ type deployPayload struct {
 
 	// The deployment a rebuild reproduces. Empty otherwise.
 	RebuildSourceID string `json:"rebuild_source_id"`
+
+	Capabilities mysqltype.DeploymentCapabilities `json:"capabilities"`
+	Connections  []db.ListAppConnectionsByAppRow  `json:"connections"`
 }
 
 // validateAndBuildPayload decides every rejection, then resolves the source and
 // secrets into the complete [deployPayload].
 func (w *Workflow) validateAndBuildPayload(
 	ctx restate.Context,
+	deploymentID string,
 	req *hydrav1.DeployCreateRequest,
 	target *db.FindDeployTargetRow,
 	status mysqltype.DeploymentsStatus,
@@ -259,11 +269,22 @@ func (w *Workflow) validateAndBuildPayload(
 		prNumber := req.GetGit().GetPrNumber()
 		source := buildSource{Image: "", Git: nil}
 		secrets := []byte{}
+		var connections []db.ListAppConnectionsByAppRow
+		capabilities := mysqltype.DeploymentCapabilities{PrivateNetworking: false}
 
 		if willBuild {
-			var err error
-			if secrets, err = w.loadSecrets(runCtx, target.AppID, target.EnvironmentID); err != nil {
-				return payload, err
+			existing, err := w.db.FindDeploymentForCreate(runCtx, deploymentID)
+			switch {
+			case err == nil:
+				capabilities = existing.Capabilities
+				secrets = existing.EncryptedEnvironmentVariables
+			case db.IsNotFound(err):
+				capabilities.PrivateNetworking = true
+				if secrets, connections, err = w.loadSecrets(runCtx, *target, capabilities.PrivateNetworking); err != nil {
+					return payload, err
+				}
+			default:
+				return payload, fmt.Errorf("failed to look up deployment %s: %w", deploymentID, err)
 			}
 
 			resolved, err := w.resolveSource(runCtx, *target, req, commit)
@@ -292,6 +313,8 @@ func (w *Workflow) validateAndBuildPayload(
 		payload.Status = status
 		payload.CreatedAt = time.Now().UnixMilli()
 		payload.Secrets = secrets
+		payload.Capabilities = capabilities
+		payload.Connections = connections
 		payload.Command = target.Command
 		payload.PRNumber = prNumber
 		payload.Source = source
@@ -394,6 +417,7 @@ func (w *Workflow) insertDeployment(
 				Port:                          target.Port,
 				ShutdownSignal:                db.DeploymentsShutdownSignal(target.ShutdownSignal),
 				UpstreamProtocol:              db.DeploymentsUpstreamProtocol(target.UpstreamProtocol),
+				Capabilities:                  payload.Capabilities,
 				Healthcheck:                   target.Healthcheck,
 				PrNumber:                      sql.NullInt64{Int64: payload.PRNumber, Valid: payload.PRNumber != 0},
 				ForkRepositoryFullName:        sql.NullString{String: commit.ForkRepository, Valid: commit.ForkRepository != ""},
@@ -401,6 +425,10 @@ func (w *Workflow) insertDeployment(
 				TriggeredBy:                   sql.NullString{String: payload.TriggeredBy, Valid: payload.TriggeredBy != ""},
 				TriggerReason:                 sql.NullString{String: payload.TriggerReason, Valid: payload.TriggerReason != ""},
 			}); err != nil {
+				return err
+			}
+
+			if err := insertConnections(txCtx, tx, deploymentID, payload); err != nil {
 				return err
 			}
 
@@ -430,7 +458,7 @@ func (w *Workflow) insertDeployment(
 		// ran the checks above, and deploying it would skip the plan, spend
 		// and approval gates. That one fails.
 		if insertErr != nil && db.IsDuplicateKeyError(insertErr) {
-			existing, findErr := w.db.FindDeploymentAppAndStatus(runCtx, deploymentID)
+			existing, findErr := w.db.FindDeploymentForCreate(runCtx, deploymentID)
 			if findErr != nil || existing.AppID != target.AppID || existing.Status != payload.Status {
 				return restate.ToTerminalError(fmt.Errorf("deployment id %s is not available", deploymentID))
 			}
@@ -634,34 +662,173 @@ func triggerFromProto(trigger ctrlv1.DeploymentTrigger) db.DeploymentsTrigger {
 	}
 }
 
-func (w *Workflow) loadSecrets(ctx context.Context, appID, environmentID string) ([]byte, error) {
+func (w *Workflow) loadSecrets(ctx context.Context, target db.FindDeployTargetRow, privateNetworking bool) ([]byte, []db.ListAppConnectionsByAppRow, error) {
 	envVars, err := w.db.FindAppEnvVarsByAppAndEnv(ctx, db.FindAppEnvVarsByAppAndEnvParams{
-		AppID:         appID,
-		EnvironmentID: environmentID,
+		AppID:         target.AppID,
+		EnvironmentID: target.EnvironmentID,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("failed to fetch app environment variables: %w", err)
+		return nil, nil, fmt.Errorf("failed to fetch app environment variables: %w", err)
 	}
-	if len(envVars) == 0 {
+
+	var connections []db.ListAppConnectionsByAppRow
+	if privateNetworking {
+		connections, err = w.db.ListAppConnectionsByApp(ctx, db.ListAppConnectionsByAppParams{
+			WorkspaceID:   target.WorkspaceID,
+			ProjectID:     target.ProjectID,
+			AppID:         target.AppID,
+			EnvironmentID: target.EnvironmentID,
+		})
+		if err != nil {
+			return nil, nil, fmt.Errorf("failed to fetch app connections: %w", err)
+		}
+	}
+
+	secrets, err := w.buildSecretsBlob(ctx, target.EnvironmentID, envVars, connections)
+	return secrets, connections, err
+}
+
+func (w *Workflow) buildSecretsBlob(ctx context.Context, environmentID string, envVars []db.FindAppEnvVarsByAppAndEnvRow, connections []db.ListAppConnectionsByAppRow) ([]byte, error) {
+	if len(envVars) == 0 && len(connections) == 0 {
 		return []byte{}, nil
 	}
 
-	config := &ctrlv1.SecretsConfig{Secrets: make(map[string]string, len(envVars))}
+	config := &ctrlv1.SecretsConfig{Secrets: make(map[string]string, len(envVars)+len(connections))}
 	for _, ev := range envVars {
-		// An invalid key is corrupt stored data. No retry fixes it.
 		if !validation.IsValidEnvVarKey(ev.Key) {
 			return nil, restate.ToTerminalError(fmt.Errorf(
 				"environment variable key %q is invalid: %s", ev.Key, validation.ErrMsgInvalidEnvVarKey,
 			))
 		}
+
 		config.Secrets[ev.Key] = ev.Value
+	}
+
+	connectionValues := make(map[string]string, len(connections))
+	for _, connection := range connections {
+		key, host := app.HostVariable(connection.Name)
+		if !app.IsValidName(connection.Name) {
+			return nil, restate.ToTerminalError(fmt.Errorf("connection %q produces invalid or reserved environment variable %q", connection.Name, key))
+		}
+
+		connectionValues[key] = host
+	}
+
+	if len(connectionValues) > 0 {
+		if w.vault == nil {
+			return nil, restate.ToTerminalError(errors.New("vault is required to snapshot app connections"))
+		}
+
+		encrypted, encryptErr := w.vault.EncryptBulk(ctx, &vaultv1.EncryptBulkRequest{Keyring: environmentID, Items: connectionValues})
+		if encryptErr != nil {
+			return nil, fmt.Errorf("failed to encrypt app connection hostnames: %w", encryptErr)
+		}
+
+		for key := range connectionValues {
+			item, ok := encrypted.GetItems()[key]
+			if !ok || item.GetEncrypted() == "" {
+				return nil, restate.ToTerminalError(fmt.Errorf("vault omitted app connection environment variable %q", key))
+			}
+
+			config.Secrets[key] = item.GetEncrypted()
+		}
 	}
 
 	marshaled, err := protojson.Marshal(config)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal secrets config: %w", err)
 	}
+
 	return marshaled, nil
+}
+
+func insertConnections(ctx context.Context, tx db.DBTX, deploymentID string, payload deployPayload) error {
+	var pinned []string
+	for _, connection := range payload.Connections {
+		switch connection.SelectionMode.ConnectionAppTargetsSelectionMode {
+		case db.ConnectionAppTargetsSelectionModeAutomatic:
+			if connection.TargetEnvironmentID.Valid || connection.TargetDeploymentID.Valid {
+				return restate.TerminalErrorf("automatic connection %s has an explicit target", connection.ID)
+			}
+		case db.ConnectionAppTargetsSelectionModeEnvironment:
+			if !connection.TargetEnvironmentID.Valid || connection.TargetDeploymentID.Valid {
+				return restate.TerminalErrorf("connection %s has an invalid environment target", connection.ID)
+			}
+		case db.ConnectionAppTargetsSelectionModeDeployment:
+			if !connection.TargetDeploymentID.Valid || connection.TargetEnvironmentID.Valid {
+				return restate.TerminalErrorf("connection %s has an invalid deployment target", connection.ID)
+			}
+			pinned = append(pinned, connection.TargetDeploymentID.String)
+		default:
+			return restate.TerminalErrorf("connection %s has an invalid selection mode", connection.ID)
+		}
+	}
+
+	targetApps, err := lockConnectionTargets(ctx, db.NewQueries(tx), payload.Target, pinned)
+	if err != nil {
+		return err
+	}
+
+	connections := make([]db.InsertDeploymentConnectionParams, 0, len(payload.Connections))
+	targets := make([]db.InsertDeploymentConnectionAppTargetParams, 0, len(payload.Connections))
+	for _, connection := range payload.Connections {
+		mode := connection.SelectionMode.ConnectionAppTargetsSelectionMode
+		if mode == db.ConnectionAppTargetsSelectionModeDeployment && targetApps[connection.TargetDeploymentID.String] != connection.ResourceID {
+			return restate.TerminalErrorf("connection %s targets a deployment that is no longer running", connection.ID)
+		}
+		connections = append(connections, db.InsertDeploymentConnectionParams{
+			DeploymentID:  deploymentID,
+			ConnectionID:  connection.ID,
+			WorkspaceID:   payload.Target.WorkspaceID,
+			ProjectID:     payload.Target.ProjectID,
+			AppID:         payload.Target.AppID,
+			EnvironmentID: payload.Target.EnvironmentID,
+			ResourceType:  connection.ResourceType,
+			ResourceID:    connection.ResourceID,
+			Name:          connection.Name,
+			CreatedAt:     payload.CreatedAt,
+		})
+		targets = append(targets, db.InsertDeploymentConnectionAppTargetParams{
+			DeploymentID:        deploymentID,
+			ConnectionID:        connection.ID,
+			SelectionMode:       db.DeploymentConnectionAppTargetsSelectionMode(mode),
+			TargetEnvironmentID: connection.TargetEnvironmentID,
+			TargetDeploymentID:  connection.TargetDeploymentID,
+		})
+	}
+
+	bulk := db.NewBulkQueries(tx)
+	for chunk := range slices.Chunk(connections, connectionBatchSize) {
+		if err := bulk.InsertDeploymentConnections(ctx, chunk); err != nil {
+			return err
+		}
+	}
+	for chunk := range slices.Chunk(targets, connectionBatchSize) {
+		if err := bulk.InsertDeploymentConnectionAppTargets(ctx, chunk); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func lockConnectionTargets(ctx context.Context, queries *db.Queries, target db.FindDeployTargetRow, deploymentIDs []string) (map[string]string, error) {
+	slices.Sort(deploymentIDs)
+	deploymentIDs = slices.Compact(deploymentIDs)
+	apps := make(map[string]string, len(deploymentIDs))
+	for chunk := range slices.Chunk(deploymentIDs, connectionBatchSize) {
+		rows, err := queries.LockDeploymentConnectionTargets(ctx, db.LockDeploymentConnectionTargetsParams{
+			Ids:         chunk,
+			WorkspaceID: target.WorkspaceID,
+			ProjectID:   target.ProjectID,
+		})
+		if err != nil {
+			return nil, err
+		}
+		for _, row := range rows {
+			apps[row.ID] = row.AppID
+		}
+	}
+	return apps, nil
 }
 
 // trimBytes truncates s to at most bytesMax bytes on a rune boundary. Cutting

@@ -71,6 +71,7 @@ func (s *Seeder) cleanup() {
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 
+	require.NoError(s.t, s.DB.DeleteDeploymentConnectionsByWorkspaceIds(ctx, s.workspaceIDs))
 	require.NoError(s.t, s.DB.DeleteWorkspacesWithChildren(ctx, s.workspaceIDs))
 }
 
@@ -422,6 +423,11 @@ type CreateDeploymentRequest struct {
 	Source         db.DeploymentsSource
 	ImageRequested sql.NullString
 	ImageResolved  sql.NullString
+
+	Capabilities dbtype.DeploymentCapabilities
+
+	// Port defaults to 8080.
+	Port int32
 }
 
 func (s *Seeder) CreateDeployment(ctx context.Context, req CreateDeploymentRequest) db.Deployment {
@@ -438,6 +444,11 @@ func (s *Seeder) CreateDeployment(ctx context.Context, req CreateDeploymentReque
 	source := req.Source
 	if source == "" {
 		source = db.DeploymentsSourceUnknown
+	}
+
+	port := req.Port
+	if port == 0 {
+		port = 8080
 	}
 
 	err := s.DB.InsertDeployment(ctx, db.InsertDeploymentParams{
@@ -464,9 +475,10 @@ func (s *Seeder) CreateDeployment(ctx context.Context, req CreateDeploymentReque
 		StorageMib:                    0,
 		CreatedAt:                     createdAt,
 		UpdatedAt:                     req.UpdatedAt,
-		Port:                          8080,
+		Port:                          port,
 		ShutdownSignal:                db.DeploymentsShutdownSignalSIGINT,
 		UpstreamProtocol:              db.DeploymentsUpstreamProtocolHttp1,
+		Capabilities:                  req.Capabilities,
 		Healthcheck:                   dbtype.NullHealthcheck{Healthcheck: nil, Valid: false},
 		PrNumber:                      req.PrNumber,
 		ForkRepositoryFullName:        req.ForkRepositoryFullName,
@@ -489,6 +501,60 @@ func (s *Seeder) CreateDeployment(ctx context.Context, req CreateDeploymentReque
 	require.NoError(s.t, err)
 
 	return deployment
+}
+
+type CreateAppConnectionRequest struct {
+	WorkspaceID         string
+	ProjectID           string
+	CallerAppID         string
+	CallerEnvironmentID string
+	TargetAppID         string
+	Name                string
+
+	// ResourceType defaults to app.
+	ResourceType string
+
+	// Optional app target. An empty SelectionMode selects automatically.
+	SelectionMode       db.ConnectionAppTargetsSelectionMode
+	TargetEnvironmentID sql.NullString
+	TargetDeploymentID  sql.NullString
+}
+
+func (s *Seeder) CreateAppConnection(ctx context.Context, req CreateAppConnectionRequest) string {
+	s.t.Helper()
+	id := uid.New(uid.ConnectionPrefix)
+	resourceType := req.ResourceType
+	if resourceType == "" {
+		resourceType = "app"
+	}
+	mode := req.SelectionMode
+	if mode == "" {
+		mode = db.ConnectionAppTargetsSelectionModeAutomatic
+	}
+	err := db.Tx(ctx, s.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
+		queries := db.NewQueries(tx)
+		if err := queries.InsertAppConnection(ctx, db.InsertAppConnectionParams{
+			ID:            id,
+			WorkspaceID:   req.WorkspaceID,
+			ProjectID:     req.ProjectID,
+			AppID:         req.CallerAppID,
+			EnvironmentID: req.CallerEnvironmentID,
+			ResourceType:  resourceType,
+			ResourceID:    req.TargetAppID,
+			Name:          req.Name,
+			CreatedAt:     time.Now().UnixMilli(),
+		}); err != nil {
+			return err
+		}
+		return queries.InsertConnectionAppTarget(ctx, db.InsertConnectionAppTargetParams{
+			ConnectionID:        id,
+			SelectionMode:       mode,
+			TargetEnvironmentID: req.TargetEnvironmentID,
+			TargetDeploymentID:  req.TargetDeploymentID,
+		})
+	})
+	require.NoError(s.t, err)
+	return id
 }
 
 // CreateRootKey creates a root key with optional permissions
