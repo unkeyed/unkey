@@ -20,6 +20,7 @@ import (
 	"github.com/stretchr/testify/require"
 	logdrainv1 "github.com/unkeyed/unkey/gen/proto/logdrain/v1"
 	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
+	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/mysql/sqlcomment"
@@ -737,7 +738,7 @@ func insertAuditEvents(t *testing.T, conn ch.Conn, workspaceID string, events []
 			eventType = "integration.test"
 		}
 		err := conn.Exec(ctx, "INSERT INTO audit_logs_raw_v1 (workspace_id, bucket, event_id, event, time, inserted_at, source, description, actor_type, actor_id, actor_name, actor_meta, remote_ip, user_agent, meta, `targets.type`, `targets.id`, `targets.name`, `targets.meta`, correlation_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-			workspaceID, "integration", event.id, eventType, event.insertedAt, event.insertedAt, "platform", "integration test event", "user", "actor_1", "Integration Tester", event.actorMeta, "127.0.0.1", "integration-test", `{}`, event.targetTypes, event.targetIDs, event.targetNames, event.targetMetas, event.correlationID)
+			workspaceID, auditlog.BucketUnkeyMutations, event.id, eventType, event.insertedAt, event.insertedAt, "platform", "integration test event", "user", "actor_1", "Integration Tester", event.actorMeta, "127.0.0.1", "integration-test", `{}`, event.targetTypes, event.targetIDs, event.targetNames, event.targetMetas, event.correlationID)
 		require.NoError(t, err)
 	}
 }

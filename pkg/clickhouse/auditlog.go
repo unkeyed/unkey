@@ -85,11 +85,16 @@ func encodeAuditLogEvent(event auditlog.Event) (schema.AuditLogV1, error) {
 		source = auditlog.EventSourcePlatform
 	}
 
+	bucket, err := auditlog.ResolveBucket(event.Bucket)
+	if err != nil {
+		return schema.AuditLogV1{}, fmt.Errorf("resolve bucket event_id=%s: %w", event.EventID, err)
+	}
+
 	return schema.AuditLogV1{
 		EventID:       event.EventID,
 		Time:          event.Time,
 		WorkspaceID:   event.WorkspaceID,
-		Bucket:        event.Bucket,
+		Bucket:        bucket,
 		Source:        source,
 		Event:         event.Event,
 		Description:   event.Description,

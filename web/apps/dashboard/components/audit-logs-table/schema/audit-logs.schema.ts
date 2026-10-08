@@ -1,6 +1,8 @@
+import {
+  AUDIT_LOG_BUCKET_UNKEY_MUTATIONS,
+  dashboardAuditLogBucketSchema,
+} from "@unkey/schema/src/auditlog";
 import { z } from "zod";
-
-export const DEFAULT_BUCKET_NAME = "unkey_mutations";
 
 export const auditLogsQueryPayload = z.object({
   limit: z.number().int().positive().max(100).default(50),
@@ -8,7 +10,7 @@ export const auditLogsQueryPayload = z.object({
   startTime: z.number().int().optional(),
   endTime: z.number().int().optional(),
   since: z.string(),
-  bucket: z.string().default(DEFAULT_BUCKET_NAME),
+  bucket: dashboardAuditLogBucketSchema.default(AUDIT_LOG_BUCKET_UNKEY_MUTATIONS),
   events: z
     .object({
       filters: z.array(

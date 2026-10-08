@@ -2,6 +2,7 @@ import {
   parseAsFilterValueArray,
   parseAsRelativeTime,
 } from "@/components/logs/validation/utils/nuqs-parsers";
+import { isDashboardAuditLogBucket } from "@unkey/schema/src/auditlog";
 import { parseAsInteger, parseAsString, useQueryStates } from "nuqs";
 import { useCallback, useMemo } from "react";
 import type {
@@ -59,8 +60,7 @@ export const useFilters = () => {
       });
     });
 
-    // Handle bucket as string directly
-    if (searchParams.bucket) {
+    if (searchParams.bucket && isDashboardAuditLogBucket(searchParams.bucket)) {
       activeFilters.push({
         id: crypto.randomUUID(),
         field: "bucket",

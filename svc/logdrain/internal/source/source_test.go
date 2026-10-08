@@ -7,6 +7,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	logdrainv1 "github.com/unkeyed/unkey/gen/proto/logdrain/v1"
+	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/uid"
@@ -48,7 +49,7 @@ func TestAuditLogsRead_CursorBounds(t *testing.T) {
 	} {
 		require.NoError(t, client.Conn().Exec(ctx, `
 			INSERT INTO audit_logs_raw_v1 (workspace_id, bucket, event_id, time, inserted_at)
-			VALUES (?, 'audit', ?, ?, ?)
+			VALUES (?, 'unkey_mutations', ?, ?, ?)
 		`, event.workspaceID, event.id, occurredAt.UnixMilli(), event.insertedAt))
 	}
 
@@ -98,7 +99,7 @@ func TestAuditLogsRead_EventTypes(t *testing.T) {
 	} {
 		require.NoError(t, client.Conn().Exec(ctx, `
 			INSERT INTO audit_logs_raw_v1 (workspace_id, bucket, event_id, time, inserted_at, event)
-			VALUES (?, 'audit', ?, ?, ?, ?)
+			VALUES (?, 'unkey_mutations', ?, ?, ?, ?)
 		`, workspaceID, event.id, insertedAt, insertedAt, event.eventType))
 	}
 	auditLogs := source.NewAuditLogs(client)
@@ -124,4 +125,38 @@ func TestAuditLogsRead_EventTypes(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, page, 1)
 	require.Equal(t, "g", page[0].EventID)
+}
+
+// TestAuditLogsRead_DashboardBucketsOnly guarantees a log drain never exports
+// back office rows, even when the drain has no event type filter. Drains ship
+// data off platform, so a leak here cannot be recalled.
+func TestAuditLogsRead_DashboardBucketsOnly(t *testing.T) {
+	cfg := containers.ClickHouse(t)
+	client, err := clickhouse.New(clickhouse.Config{URL: cfg.HTTPDSN})
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, client.Close()) })
+	ctx := context.Background()
+	workspaceID := uid.New("workspace")
+	insertedAt := time.Now().Add(-time.Minute).UnixMilli()
+	t.Cleanup(func() {
+		require.NoError(t, client.Conn().Exec(ctx, `ALTER TABLE audit_logs_raw_v1 DELETE WHERE workspace_id = ? SETTINGS mutations_sync = 1`, workspaceID))
+	})
+	for _, event := range []struct{ id, bucket string }{
+		{"a", auditlog.BucketUnkeyMutations},
+		{"b", auditlog.BucketBackoffice},
+		{"c", auditlog.BucketUnkeyMutations},
+		{"d", "some_other_bucket"},
+	} {
+		require.NoError(t, client.Conn().Exec(ctx, `
+			INSERT INTO audit_logs_raw_v1 (workspace_id, bucket, event_id, time, inserted_at)
+			VALUES (?, ?, ?, ?, ?)
+		`, workspaceID, event.bucket, event.id, insertedAt, insertedAt))
+	}
+	auditLogs := source.NewAuditLogs(client)
+	page, cursor, err := auditLogs.Read(ctx, workspaceID, source.Cursor{Time: insertedAt}, insertedAt+1, 10, nil)
+	require.NoError(t, err)
+	require.Len(t, page, 2)
+	require.Equal(t, "a", page[0].EventID)
+	require.Equal(t, "c", page[1].EventID)
+	require.Equal(t, source.Cursor{Time: insertedAt, EventID: "c"}, cursor)
 }

@@ -1,4 +1,7 @@
-import { AUDIT_LOG_BUCKET } from "@/lib/audit";
+import {
+  AUDIT_LOG_BUCKET_UNKEY_MUTATIONS,
+  dashboardAuditLogBucketSchema,
+} from "@unkey/schema/src/auditlog";
 import { z } from "zod";
 
 export const auditLog = z.object({
@@ -68,7 +71,7 @@ export type AuditLogWithTargets = {
 
 export const auditQueryLogsParamsSchema = z.object({
   workspaceId: z.string(),
-  bucket: z.string().prefault(AUDIT_LOG_BUCKET),
+  bucket: dashboardAuditLogBucketSchema.prefault(AUDIT_LOG_BUCKET_UNKEY_MUTATIONS),
   limit: z.int(),
   startTime: z.int().optional(),
   endTime: z.int().optional(),

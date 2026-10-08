@@ -64,21 +64,29 @@ func TestAuditLogProjection(t *testing.T) {
 			correlation_id
 		FROM ` + table + `
 		WHERE workspace_id = 'projection_workspace'
+			AND bucket IN {buckets:Array(String)}
 			AND (inserted_at > {from_time:Int64} OR (inserted_at = {from_time:Int64} AND event_id > {from_id:String}))
 			AND inserted_at < {to:Int64}
 			AND (empty({event_types:Array(String)}) OR event IN {event_types:Array(String)})
 		ORDER BY inserted_at, event_id LIMIT 1000
 		SETTINGS min_table_rows_to_use_projection_index = 0`
+	allBuckets := make([]string, 0, rowCount/rowsPerBucket)
+	for i := range rowCount / rowsPerBucket {
+		allBuckets = append(allBuckets, strconv.Itoa(i))
+	}
 	for _, tt := range []struct {
 		name       string
+		buckets    []string
 		eventTypes []string
 		wantRows   int
 	}{
-		{name: "all event types", wantRows: 1000},
-		{name: "selected event type", eventTypes: []string{"key.create"}, wantRows: 535},
+		{name: "all event types", buckets: allBuckets, wantRows: 1000},
+		{name: "selected event type", buckets: allBuckets, eventTypes: []string{"key.create"}, wantRows: 535},
+		{name: "single bucket", buckets: []string{"15"}, wantRows: 1000},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := ch.Context(ctx, ch.WithParameters(ch.Parameters{
+				"buckets":     StringArrayParam(tt.buckets),
 				"from_time":   strconv.FormatInt(fromTime, 10),
 				"from_id":     fromID,
 				"to":          strconv.FormatInt(toExclusive, 10),

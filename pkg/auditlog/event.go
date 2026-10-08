@@ -1,5 +1,11 @@
 package auditlog
 
+import (
+	"slices"
+
+	"github.com/unkeyed/unkey/pkg/assert"
+)
+
 // Event is the canonical envelope JSON-encoded into the clickhouse_outbox
 // payload column. Both the writer (internal/services/auditlogs) and the
 // drainer (svc/ctrl/worker/cron RunAuditLogExport) marshal/unmarshal this shape.
@@ -56,6 +62,40 @@ const (
 	EventSourcePlatform = "platform"
 	EventSourceCustomer = "customer"
 )
+
+// Bucket values for Event.Bucket. BucketBackoffice holds staff actions
+// taken on a workspace from the back office. Dashboard and log drain readers
+// must restrict to DashboardBuckets so those rows never leak.
+const (
+	BucketUnkeyMutations = "unkey_mutations"
+	BucketBackoffice     = "unkey_backoffice"
+)
+
+// DashboardBuckets lists the buckets a workspace member may read
+// through the dashboard or export through a log drain.
+var DashboardBuckets = []string{BucketUnkeyMutations}
+
+// KnownBuckets lists every bucket a writer may emit.
+var KnownBuckets = []string{BucketUnkeyMutations, BucketBackoffice}
+
+// IsKnownBucket reports whether bucket is one of KnownBuckets.
+func IsKnownBucket(bucket string) bool {
+	return slices.Contains(KnownBuckets, bucket)
+}
+
+// ResolveBucket returns the bucket to store for an event. An empty bucket
+// resolves to BucketUnkeyMutations. Any other value outside KnownBuckets is
+// a programmer error and returns an assertion error, so a typo can never
+// create a bucket that no reader filters on.
+func ResolveBucket(bucket string) (string, error) {
+	if bucket == "" {
+		return BucketUnkeyMutations, nil
+	}
+	if err := assert.True(IsKnownBucket(bucket), "unknown audit log bucket"); err != nil {
+		return "", err
+	}
+	return bucket, nil
+}
 
 // OutboxVersionV1 is the `version` value the writer puts on every
 // clickhouse_outbox row that holds an Event. Drainers must include this
