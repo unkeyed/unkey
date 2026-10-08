@@ -73,8 +73,8 @@ spec:
                 "-e",
                 "SELECT COUNT(*) FROM workspaces",
               ]
-            periodSeconds: 5
-            failureThreshold: 60
+            periodSeconds: 1
+            failureThreshold: 300
           readinessProbe:
             exec:
               command: [
@@ -89,7 +89,7 @@ spec:
                 "SELECT COUNT(*) FROM workspaces",
               ]
             timeoutSeconds: 5
-            periodSeconds: 10
+            periodSeconds: 1
           livenessProbe:
             tcpSocket:
               port: mysql

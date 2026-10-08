@@ -35,6 +35,14 @@ local_resource(
 )
 
 local_resource(
+  'storage-provisioner',
+  'minikube addons disable storage-provisioner && kubectl apply -f k8s/manifests/storage-provisioner.yaml',
+  deps=['k8s/manifests/storage-provisioner.yaml'],
+  labels=['storage'],
+  allow_parallel=True,
+)
+
+local_resource(
   'rbac',
   'kubectl apply -f k8s/manifests/rbac.yaml',
   resource_deps=['namespace'],
@@ -337,7 +345,7 @@ for resource in mysql_resources:
             'checksum/init': str(local('shasum -a 256', stdin=encode_yaml(mysql_schema), quiet=True, echo_off=True)).split(' ')[0],
         }
 k8s_yaml(encode_yaml_stream(mysql_resources))
-k8s_resource('mysql', objects=['mysql-schema:configmap', 'vitess-pvc:persistentvolumeclaim'], port_forwards=['3306:33577', '33575:33575'], resource_deps=['namespace'], labels=['database'])
+k8s_resource('mysql', objects=['mysql-schema:configmap', 'vitess-pvc:persistentvolumeclaim'], port_forwards=['3306:33577', '33575:33575'], resource_deps=['namespace', 'storage-provisioner'], labels=['database'])
 
 local_resource(
     'seed',
@@ -368,7 +376,7 @@ for resource in clickhouse_resources:
             'checksum/init': str(local('shasum -a 256', stdin=str(encode_yaml(clickhouse_schema)) + str(read_file('init-clickhouse.sh')), quiet=True, echo_off=True)).split(' ')[0],
         }
 k8s_yaml(encode_yaml_stream(clickhouse_resources))
-k8s_resource('clickhouse', objects=['clickhouse-schema:configmap', 'clickhouse-init:configmap', 'clickhouse-pvc:persistentvolumeclaim'], port_forwards=['8123:8123','9000:9000'], resource_deps=['namespace'], labels=['database'])
+k8s_resource('clickhouse', objects=['clickhouse-schema:configmap', 'clickhouse-init:configmap', 'clickhouse-pvc:persistentvolumeclaim'], port_forwards=['8123:8123','9000:9000'], resource_deps=['namespace', 'storage-provisioner'], labels=['database'])
 
 # Vector Logs (collects logs from krane-managed deployments -> ClickHouse)
 k8s_yaml('k8s/manifests/vector-logs.yaml')
@@ -376,11 +384,11 @@ k8s_resource('vector-logs', objects=['vector-logs-config:configmap', 'vector-log
 
 # S3 (Garage) service
 k8s_yaml('k8s/manifests/s3.yaml')
-k8s_resource('s3', objects=['s3-config:configmap', 's3-pvc:persistentvolumeclaim'], port_forwards=['3902:3902', '3903:3903'], resource_deps=['namespace'], labels=['database'])
+k8s_resource('s3', objects=['s3-config:configmap', 's3-pvc:persistentvolumeclaim'], port_forwards=['3902:3902', '3903:3903'], resource_deps=['namespace', 'storage-provisioner'], labels=['database'])
 
 # Restate service
 k8s_yaml('k8s/manifests/restate.yaml')
-k8s_resource('restate', objects=['restate-pvc:persistentvolumeclaim'], port_forwards=['8080:8080', '9070:9070'], resource_deps=['namespace'], labels=['database'])
+k8s_resource('restate', objects=['restate-pvc:persistentvolumeclaim'], port_forwards=['8080:8080', '9070:9070'], resource_deps=['namespace', 'storage-provisioner'], labels=['database'])
 
 # Observability (Prometheus + OTEL Collector w/ Grafana)
 k8s_yaml('k8s/manifests/observability.yaml')
@@ -757,7 +765,7 @@ local_resource(
     resource_deps=['mysql', 'clickhouse', 'ctrl-api', 'api-sdk'] + stripe_secret_dep,
     labels=['unkey'],
     auto_init=True,
-    readiness_probe=probe(tcp_socket=tcp_socket_action(port=3000), period_secs=5, failure_threshold=30),
+    readiness_probe=probe(tcp_socket=tcp_socket_action(port=3000), period_secs=1, failure_threshold=150),
     links=['http://localhost:3000'],
     allow_parallel=True,
 )

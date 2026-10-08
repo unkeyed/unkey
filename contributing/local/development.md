@@ -92,6 +92,12 @@ cluster. Their SQL and initialization scripts mount from ConfigMaps, so Tilt
 does not rebuild or push database images. A fresh node still downloads the
 upstream images. Image pulls run in parallel.
 
+Tilt manages Minikube's storage provisioner instead of the built-in addon.
+The same provisioner uses the node's API endpoint directly, with its service
+account and TLS verification. This avoids a 30-second startup timeout when
+service networking is not ready. Existing PVCs and storage paths are unchanged.
+Keep the built-in `storage-provisioner` addon disabled while using Tilt.
+
 Minikube waits for the API server, kubelet, and node readiness. Tilt then checks
 Cilium, its policy CRDs, and CoreDNS before applying network policies. It does
 not wait for old application pods before starting Tilt, so Tilt can repair
