@@ -33,7 +33,7 @@ export function formSaveState({
   ]);
 }
 
-export type GroupSave<T> =
+type GroupSave<T> =
   | { status: "clean" }
   | { status: "saving" }
   | { status: "blocked"; reasons: string[] }
