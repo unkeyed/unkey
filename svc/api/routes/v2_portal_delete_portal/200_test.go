@@ -111,11 +111,9 @@ func sessionByCookie(t *testing.T, h *testutil.Harness, headers http.Header) db.
 func countPortals(t *testing.T, h *testutil.Harness, workspaceID string) int {
 	t.Helper()
 
-	var count int
-	require.NoError(t, h.DB.RO().QueryRowContext(context.Background(),
-		"SELECT COUNT(*) FROM portals WHERE workspace_id = ?", workspaceID,
-	).Scan(&count))
-	return count
+	count, err := db.Query.CountPortalsByWorkspace(context.Background(), h.DB.RO(), workspaceID)
+	require.NoError(t, err)
+	return int(count)
 }
 
 // countAuditEntriesMentioning counts outbox audit payloads referencing a string.

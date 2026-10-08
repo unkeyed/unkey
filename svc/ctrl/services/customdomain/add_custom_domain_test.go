@@ -340,12 +340,11 @@ func TestAddCustomDomainRefusesWorkspaceWithoutLimits(t *testing.T) {
 	ctx := context.Background()
 	f := newFixture(t, 0)
 
-	_, err := f.database.RW().ExecContext(ctx, "DELETE FROM `limits` WHERE workspace_id = ?", f.workspaceID)
-	require.NoError(t, err)
+	require.NoError(t, f.database.DeleteLimitsByWorkspaceId(ctx, f.workspaceID))
 
 	svc := f.newService(t)
 
-	_, err = svc.AddCustomDomain(ctx, f.request(f.domain))
+	_, err := svc.AddCustomDomain(ctx, f.request(f.domain))
 	require.Error(t, err)
 	var connectErr *connect.Error
 	require.ErrorAs(t, err, &connectErr)

@@ -13,6 +13,7 @@ import (
 	"github.com/stretchr/testify/require"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/email"
+	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auditlogs"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/workos"
@@ -69,7 +70,7 @@ func TestDeploySpendCheck_SuspendThenResume(t *testing.T) {
 	ctx := h.Context()
 
 	dep := h.CreateDeployment(ctx, CreateDeploymentRequest{
-		Region:       "us-east-1",
+		Region:       uid.DNS1035(12),
 		DesiredState: mysqltype.DeploymentsDesiredStateRunning,
 	})
 
@@ -175,7 +176,7 @@ func TestDeploySpendCheck_ResumeOnBudgetRemoved(t *testing.T) {
 	ctx := h.Context()
 
 	dep := h.CreateDeployment(ctx, CreateDeploymentRequest{
-		Region:       "us-east-1",
+		Region:       uid.DNS1035(12),
 		DesiredState: mysqltype.DeploymentsDesiredStateStopped,
 	})
 
@@ -221,7 +222,7 @@ func TestDeploySpendCheck_ResumeOnStopDisabled(t *testing.T) {
 	ctx := h.Context()
 
 	dep := h.CreateDeployment(ctx, CreateDeploymentRequest{
-		Region:       "us-east-1",
+		Region:       uid.DNS1035(12),
 		DesiredState: mysqltype.DeploymentsDesiredStateStopped,
 	})
 

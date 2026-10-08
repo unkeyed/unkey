@@ -29,13 +29,22 @@ func TestGatewayRequestsRead_ByteBoundedPrefix(t *testing.T) {
 	workspace := uid.New(uid.WorkspacePrefix)
 	now := time.Now().UnixMilli()
 	body := strings.Repeat("<", 1<<20)
+	var rows []gatewayRequestRow
 	for _, row := range []struct{ id, request, response string }{
 		{"a", body, body}, {"b", body, ""}, {"c", "tail", ""},
 	} {
-		require.NoError(t, client.Conn().Exec(t.Context(), `INSERT INTO frontline_requests_raw_v1
-			(workspace_id, request_id, inserted_at, time, request_body, response_body)
-			VALUES (?, ?, ?, ?, ?, ?)`, workspace, row.id, now, now, row.request, row.response))
+		rows = append(rows, gatewayRequestRow{
+			FrontlineRequest: schema.FrontlineRequest{
+				RequestID:    row.id,
+				Time:         now,
+				WorkspaceID:  workspace,
+				RequestBody:  row.request,
+				ResponseBody: row.response,
+			},
+			InsertedAt: now,
+		})
 	}
+	insertRows(t, client.Conn(), rows...)
 	reader := source.NewGatewayRequests(client)
 	queryID := uid.New("query")
 	ctx := ch.Context(t.Context(), ch.WithQueryID(queryID), ch.WithSettings(ch.Settings{"log_queries": 1}))
@@ -95,14 +104,22 @@ func TestGatewayRequestsRead_OversizedEventBlocksCursor(t *testing.T) {
 	t.Cleanup(func() { require.NoError(t, client.Close()) })
 	workspace := uid.New(uid.WorkspacePrefix)
 	now := time.Now().UnixMilli()
+	var rows []gatewayRequestRow
 	for _, row := range []struct {
 		id    string
 		bytes int
 	}{{"a", 5}, {"b", 3 << 20}, {"c", 7}} {
-		require.NoError(t, client.Conn().Exec(t.Context(), `INSERT INTO frontline_requests_raw_v1
-			(workspace_id, request_id, inserted_at, time, query_params)
-			VALUES (?, ?, ?, ?, map('captured', [?]))`, workspace, row.id, now, now, strings.Repeat("x", row.bytes)))
+		rows = append(rows, gatewayRequestRow{
+			FrontlineRequest: schema.FrontlineRequest{
+				RequestID:   row.id,
+				Time:        now,
+				WorkspaceID: workspace,
+				QueryParams: map[string][]string{"captured": {strings.Repeat("x", row.bytes)}},
+			},
+			InsertedAt: now,
+		})
 	}
+	insertRows(t, client.Conn(), rows...)
 	reader := source.NewGatewayRequests(client)
 	events, next, err := reader.Read(t.Context(), workspace, source.Cursor{Time: now}, now+1, 10_000, nil)
 	require.NoError(t, err)
@@ -139,11 +156,20 @@ func TestGatewayRequestsRead_KeepsCursorGroupsTogether(t *testing.T) {
 			t.Cleanup(func() { require.NoError(t, client.Close()) })
 			workspace := uid.New(uid.WorkspacePrefix)
 			now := time.Now().UnixMilli()
+			var rows []gatewayRequestRow
 			for i, id := range []string{"a", "b", "b", "c"} {
-				require.NoError(t, client.Conn().Exec(t.Context(), `INSERT INTO frontline_requests_raw_v1
-					(workspace_id, request_id, inserted_at, time, request_body, path)
-					VALUES (?, ?, ?, ?, ?, ?)`, workspace, id, now, now, strings.Repeat("x", tc.bytes), strconv.Itoa(i)))
+				rows = append(rows, gatewayRequestRow{
+					FrontlineRequest: schema.FrontlineRequest{
+						RequestID:   id,
+						Time:        now,
+						WorkspaceID: workspace,
+						Path:        strconv.Itoa(i),
+						RequestBody: strings.Repeat("x", tc.bytes),
+					},
+					InsertedAt: now,
+				})
 			}
+			insertRows(t, client.Conn(), rows...)
 			reader := source.NewGatewayRequests(client)
 			events, next, err := reader.Read(t.Context(), workspace, source.Cursor{Time: now}, now+1, tc.limit, nil)
 			require.NoError(t, err)
@@ -259,6 +285,7 @@ func TestGatewayRequestsRead_FilteredCursorBounds(t *testing.T) {
 	t.Cleanup(func() { require.NoError(t, client.Close()) })
 	workspace := uid.New(uid.WorkspacePrefix)
 	now := time.Now().UnixMilli()
+	var rows []gatewayRequestRow
 	for _, row := range []struct {
 		workspace, id string
 		insertedAt    int64
@@ -275,9 +302,17 @@ func TestGatewayRequestsRead_FilteredCursorBounds(t *testing.T) {
 		{workspace, "g", now + 2, 403},
 		{uid.New(uid.WorkspacePrefix), "h", now, 400},
 	} {
-		require.NoError(t, client.Conn().Exec(t.Context(), `INSERT INTO frontline_requests_raw_v1
-			(workspace_id, request_id, inserted_at, time, response_status) VALUES (?, ?, ?, ?, ?)`, row.workspace, row.id, row.insertedAt, now-60000, row.status))
+		rows = append(rows, gatewayRequestRow{
+			FrontlineRequest: schema.FrontlineRequest{
+				RequestID:      row.id,
+				Time:           now - 60000,
+				WorkspaceID:    row.workspace,
+				ResponseStatus: row.status,
+			},
+			InsertedAt: row.insertedAt,
+		})
 	}
+	insertRows(t, client.Conn(), rows...)
 	reader := source.NewGatewayRequests(client)
 	from := source.Cursor{Time: now, EventID: "a"}
 	filter := &logdrainv1.Config{Stream: &logdrainv1.Config_GatewayRequests{GatewayRequests: &logdrainv1.GatewayRequestStreamConfig{StatusClasses: []logdrainv1.HttpStatusClass{logdrainv1.HttpStatusClass_HTTP_STATUS_CLASS_4XX, logdrainv1.HttpStatusClass_HTTP_STATUS_CLASS_5XX}}}}
@@ -310,6 +345,7 @@ func TestGatewayRequestsRead_ResourceFiltersBeforeLimit(t *testing.T) {
 	t.Cleanup(func() { require.NoError(t, client.Close()) })
 	workspace := uid.New(uid.WorkspacePrefix)
 	now := time.Now().UnixMilli()
+	var rows []gatewayRequestRow
 	for _, row := range []struct {
 		id, project, app, environment string
 		status                        int32
@@ -321,10 +357,20 @@ func TestGatewayRequestsRead_ResourceFiltersBeforeLimit(t *testing.T) {
 		{"e", "project", "app", "env", 503},
 		{"f", "project", "app2", "env2", 502},
 	} {
-		require.NoError(t, client.Conn().Exec(t.Context(), `INSERT INTO frontline_requests_raw_v1
-			(workspace_id, request_id, inserted_at, time, project_id, app_id, environment_id, response_status)
-			VALUES (?, ?, ?, ?, ?, ?, ?, ?)`, workspace, row.id, now, now, row.project, row.app, row.environment, row.status))
+		rows = append(rows, gatewayRequestRow{
+			FrontlineRequest: schema.FrontlineRequest{
+				RequestID:      row.id,
+				Time:           now,
+				WorkspaceID:    workspace,
+				ProjectID:      row.project,
+				AppID:          row.app,
+				EnvironmentID:  row.environment,
+				ResponseStatus: row.status,
+			},
+			InsertedAt: now,
+		})
 	}
+	insertRows(t, client.Conn(), rows...)
 	filter := &logdrainv1.Config{Stream: &logdrainv1.Config_GatewayRequests{GatewayRequests: &logdrainv1.GatewayRequestStreamConfig{
 		StatusClasses: []logdrainv1.HttpStatusClass{logdrainv1.HttpStatusClass_HTTP_STATUS_CLASS_5XX}, ProjectIds: []string{"project"}, AppIds: []string{"app", "app2"}, EnvironmentIds: []string{"env", "env2"},
 	}}}

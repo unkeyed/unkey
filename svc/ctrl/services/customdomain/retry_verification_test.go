@@ -75,10 +75,10 @@ func TestRetryVerificationRestartsLongFailedDomain(t *testing.T) {
 	created, err := f.database.FindCustomDomainById(ctx, found.ID)
 	require.NoError(t, err)
 
-	_, err = f.database.RW().ExecContext(ctx,
-		"UPDATE custom_domains SET created_at = ? WHERE id = ?",
-		time.Now().Add(-30*24*time.Hour).UnixMilli(), created.ID)
-	require.NoError(t, err)
+	require.NoError(t, f.database.UpdateCustomDomainCreatedAt(ctx, db.UpdateCustomDomainCreatedAtParams{
+		CreatedAt: time.Now().Add(-30 * 24 * time.Hour).UnixMilli(),
+		ID:        created.ID,
+	}))
 
 	require.NoError(t, f.database.UpdateCustomDomainCheckAttempt(ctx, db.UpdateCustomDomainCheckAttemptParams{
 		ID:            created.ID,

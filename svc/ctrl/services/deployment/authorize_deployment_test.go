@@ -97,8 +97,9 @@ func TestAuthorizeDeploymentOCIStartsTheRun(t *testing.T) {
 	ctx := context.Background()
 	f := newAuthorizeFixture(t, ctx)
 
-	deployment := f.seedAwaitingApproval(ctx, seed.CreateDeploymentRequest{})
-	f.setImageRequested(ctx, deployment.ID, "index.docker.io/library/nginx:1.27")
+	deployment := f.seedAwaitingApproval(ctx, seed.CreateDeploymentRequest{
+		ImageRequested: sql.NullString{Valid: true, String: "index.docker.io/library/nginx:1.27"},
+	})
 
 	_, err := f.svc.AuthorizeDeployment(ctx, f.request(deployment.ID))
 	require.NoError(t, err)
@@ -267,8 +268,9 @@ func TestRevertAuthorizationLeavesAStartedRun(t *testing.T) {
 func TestAuthorizeDeploymentRefusesAnUntaggedImage(t *testing.T) {
 	ctx := context.Background()
 	f := newAuthorizeFixture(t, ctx)
-	deployment := f.seedAwaitingApproval(ctx, seed.CreateDeploymentRequest{})
-	f.setImageRequested(ctx, deployment.ID, "nginx")
+	deployment := f.seedAwaitingApproval(ctx, seed.CreateDeploymentRequest{
+		ImageRequested: sql.NullString{Valid: true, String: "nginx"},
+	})
 
 	_, err := f.svc.AuthorizeDeployment(ctx, f.request(deployment.ID))
 	require.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
@@ -484,12 +486,6 @@ func (f *authorizeFixture) seedGitAwaitingApproval(ctx context.Context) db.Deplo
 func (f *authorizeFixture) seedGit(ctx context.Context, status mysqltype.DeploymentsStatus) db.Deployment {
 	f.t.Helper()
 	return f.seedDeployment(ctx, status, gitDeploymentRequest())
-}
-
-func (f *authorizeFixture) setImageRequested(ctx context.Context, deploymentID, image string) {
-	f.t.Helper()
-	_, err := f.database.RW().ExecContext(ctx, "UPDATE deployments SET image_requested = ? WHERE id = ?", image, deploymentID)
-	require.NoError(f.t, err)
 }
 
 func (f *authorizeFixture) grantComputePlan(ctx context.Context) {

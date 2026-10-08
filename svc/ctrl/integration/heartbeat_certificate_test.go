@@ -144,10 +144,9 @@ func challengeStatus(ctx context.Context, t *testing.T, database db.Database, do
 
 func countCustomDomains(ctx context.Context, t *testing.T, database db.Database, domain string) int {
 	t.Helper()
-	var n int
-	err := database.RO().QueryRowContext(ctx, "SELECT COUNT(*) FROM custom_domains WHERE domain = ?", domain).Scan(&n)
+	n, err := database.CountCustomDomainsByDomain(ctx, domain)
 	require.NoError(t, err)
-	return n
+	return int(n)
 }
 
 func countAcmeChallenges(ctx context.Context, t *testing.T, database db.Database, domain, domainID string) int {

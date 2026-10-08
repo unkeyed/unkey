@@ -2,17 +2,15 @@ package handler_test
 
 import (
 	"context"
-	"database/sql"
-	"errors"
 	"fmt"
 	"net/http"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
+	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_identities_get_identity"
 )
@@ -48,35 +46,19 @@ func TestNotFound(t *testing.T) {
 	t.Run("deleted identity", func(t *testing.T) {
 		// Create an identity that we'll mark as deleted
 		ctx := context.Background()
-		deletedIdentityID := uid.New(uid.IdentityPrefix)
 		deletedExternalID := uid.New(uid.TestPrefix)
 
-		tx, err := h.DB.RW().Begin(ctx)
-		require.NoError(t, err)
-		defer func() {
-			err := tx.Rollback()
-			require.True(t, err == nil || errors.Is(err, sql.ErrTxDone), "unexpected rollback error: %v", err)
-		}()
-
-		// Insert the identity
-		err = db.Query.InsertIdentity(ctx, tx, db.InsertIdentityParams{
-			ID:          deletedIdentityID,
-			ExternalID:  deletedExternalID,
+		deletedIdentityID := h.CreateIdentity(seed.CreateIdentityRequest{
 			WorkspaceID: h.Resources().UserWorkspace.ID,
 			Environment: "default",
-			CreatedAt:   time.Now().UnixMilli(),
-			Meta:        []byte("{}"),
-		})
-		require.NoError(t, err)
+			ExternalID:  deletedExternalID,
+		}).ID
 
 		// Mark it as deleted
-		err = db.Query.SoftDeleteIdentity(ctx, tx, db.SoftDeleteIdentityParams{
+		err := db.Query.SoftDeleteIdentity(ctx, h.DB.RW(), db.SoftDeleteIdentityParams{
 			IdentityID:  deletedIdentityID,
 			WorkspaceID: h.Resources().UserWorkspace.ID,
 		})
-		require.NoError(t, err)
-
-		err = tx.Commit()
 		require.NoError(t, err)
 
 		// Try to retrieve the deleted identity by externalId

@@ -15,6 +15,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/projects"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
+	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_identities_list_identities"
 )
 
@@ -35,15 +36,8 @@ func TestSuccess(t *testing.T) {
 
 	// Setup test data
 	ctx := context.Background()
-	tx, err := h.DB.RW().Begin(ctx)
-	require.NoError(t, err)
-	defer func() {
-		err := tx.Rollback()
-		require.True(t, err == nil || errors.Is(err, sql.ErrTxDone), "unexpected rollback error: %v", err)
-	}()
-
 	workspaceID := h.Resources().UserWorkspace.ID
-	projectID, err := projects.EnsureDefaultProject(ctx, tx, workspaceID)
+	projectID, err := projects.EnsureDefaultProject(ctx, h.DB.RW(), workspaceID)
 	require.NoError(t, err)
 
 	// Create metadata
@@ -57,40 +51,30 @@ func TestSuccess(t *testing.T) {
 	const totalIdentities = 15
 	var externalIDs []string
 	for i := range totalIdentities {
-		identityID := uid.New(uid.IdentityPrefix)
 		externalID := "test_user_" + uid.New("") // Generate a unique ID
 
 		externalIDs = append(externalIDs, externalID)
 
-		err = db.Query.InsertIdentity(ctx, tx, db.InsertIdentityParams{
-			ID:          identityID,
-			ExternalID:  externalID,
-			WorkspaceID: workspaceID,
-			ProjectID:   projectID,
-			Environment: "default",
-			CreatedAt:   time.Now().UnixMilli(),
-			Meta:        metaBytes,
-		})
-		require.NoError(t, err)
-
 		// Add a ratelimit to every other identity
+		var ratelimits []seed.CreateRatelimitRequest
 		if i%2 == 0 {
-			ratelimitID := uid.New(uid.RatelimitPrefix)
-			err = db.Query.InsertIdentityRatelimit(ctx, tx, db.InsertIdentityRatelimitParams{
-				ID:          ratelimitID,
+			ratelimits = []seed.CreateRatelimitRequest{{
 				WorkspaceID: workspaceID,
-				IdentityID:  sql.NullString{String: identityID, Valid: true},
 				Name:        "api_calls",
 				Limit:       100,
 				Duration:    60000, // 1 minute
-				CreatedAt:   time.Now().UnixMilli(),
-			})
-			require.NoError(t, err)
+			}}
 		}
-	}
 
-	err = tx.Commit()
-	require.NoError(t, err)
+		h.CreateIdentity(seed.CreateIdentityRequest{
+			WorkspaceID: workspaceID,
+			ProjectID:   projectID,
+			Environment: "default",
+			ExternalID:  externalID,
+			Meta:        metaBytes,
+			Ratelimits:  ratelimits,
+		})
+	}
 
 	t.Run("basic listing with default settings", func(t *testing.T) {
 		req := handler.Request{}
@@ -183,36 +167,20 @@ func TestSuccess(t *testing.T) {
 	// Test for deleted identities
 	t.Run("deleted identities are excluded", func(t *testing.T) {
 		// Create a new identity
-		deletedIdentityID := uid.New(uid.IdentityPrefix)
 		deletedExternalID := uid.New(uid.TestPrefix)
-
-		tx, err := h.DB.RW().Begin(ctx)
-		require.NoError(t, err)
-		defer func() {
-			err := tx.Rollback()
-			require.True(t, err == nil || errors.Is(err, sql.ErrTxDone), "unexpected rollback error: %v", err)
-		}()
-
-		// Insert the identity
-		err = db.Query.InsertIdentity(ctx, tx, db.InsertIdentityParams{
-			ID:          deletedIdentityID,
-			ExternalID:  deletedExternalID,
+		deletedIdentityID := h.CreateIdentity(seed.CreateIdentityRequest{
 			WorkspaceID: workspaceID,
 			ProjectID:   projectID,
 			Environment: "default",
-			CreatedAt:   time.Now().UnixMilli(),
+			ExternalID:  deletedExternalID,
 			Meta:        metaBytes,
-		})
-		require.NoError(t, err)
+		}).ID
 
 		// Soft delete the identity
-		err = db.Query.SoftDeleteIdentity(ctx, tx, db.SoftDeleteIdentityParams{
+		err := db.Query.SoftDeleteIdentity(ctx, h.DB.RW(), db.SoftDeleteIdentityParams{
 			IdentityID:  deletedIdentityID,
 			WorkspaceID: workspaceID,
 		})
-		require.NoError(t, err)
-
-		err = tx.Commit()
 		require.NoError(t, err)
 
 		// Try to retrieve the identity in a listing
@@ -229,7 +197,6 @@ func TestSuccess(t *testing.T) {
 	// Test with Unicode characters
 	t.Run("identities with Unicode characters", func(t *testing.T) {
 		// Create an identity with Unicode characters
-		unicodeIdentityID := uid.New(uid.IdentityPrefix)
 		unicodeExternalID := "unicode-user-测试-🔑"
 
 		// Create metadata with Unicode characters
@@ -241,26 +208,13 @@ func TestSuccess(t *testing.T) {
 		unicodeMetaBytes, err := json.Marshal(unicodeMetaMap)
 		require.NoError(t, err)
 
-		tx, err := h.DB.RW().Begin(ctx)
-		require.NoError(t, err)
-		defer func() {
-			err := tx.Rollback()
-			require.True(t, err == nil || errors.Is(err, sql.ErrTxDone), "unexpected rollback error: %v", err)
-		}()
-
-		err = db.Query.InsertIdentity(ctx, tx, db.InsertIdentityParams{
-			ID:          unicodeIdentityID,
-			ExternalID:  unicodeExternalID,
+		h.CreateIdentity(seed.CreateIdentityRequest{
 			WorkspaceID: workspaceID,
 			ProjectID:   projectID,
 			Environment: "default",
-			CreatedAt:   time.Now().UnixMilli(),
+			ExternalID:  unicodeExternalID,
 			Meta:        unicodeMetaBytes,
 		})
-		require.NoError(t, err)
-
-		err = tx.Commit()
-		require.NoError(t, err)
 
 		// Query for all identities
 		req := handler.Request{}

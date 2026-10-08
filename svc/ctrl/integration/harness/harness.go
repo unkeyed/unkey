@@ -89,8 +89,9 @@ type Harness struct {
 type Option func(*harnessOpts)
 
 type harnessOpts struct {
-	timeout time.Duration
-	clock   clock.Clock
+	timeout       time.Duration
+	clock         clock.Clock
+	isolatedMySQL bool
 
 	billingUsageReader deploybilling.UsageReader
 	billingPusher      billingmeter.Pusher
@@ -110,6 +111,15 @@ func WithTimeout(timeout time.Duration) Option {
 func WithClock(c clock.Clock) Option {
 	return func(o *harnessOpts) {
 		o.clock = c
+	}
+}
+
+// WithIsolatedMySQL gives the harness a private MySQL instance instead of the
+// shared one. Use it for handlers that scan every workspace, such as fleet-wide
+// cron jobs, so rows left by other tests cannot change the result.
+func WithIsolatedMySQL() Option {
+	return func(o *harnessOpts) {
+		o.isolatedMySQL = true
 	}
 }
 
@@ -165,7 +175,11 @@ func New(t *testing.T, opts ...Option) *Harness {
 	go func() {
 		defer wg.Done()
 		s := time.Now()
-		mysqlCfg = containers.MySQL(t)
+		if o.isolatedMySQL {
+			mysqlCfg = containers.MySQLIsolated(t)
+		} else {
+			mysqlCfg = containers.MySQL(t)
+		}
 		t.Logf("MySQL started in %s", time.Since(s))
 	}()
 

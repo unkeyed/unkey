@@ -1,19 +1,14 @@
 package handler_test
 
 import (
-	"context"
-	"database/sql"
-	"errors"
 	"fmt"
 	"net/http"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/uid"
-	"github.com/unkeyed/unkey/svc/api/internal/projects"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
+	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_identities_list_identities"
 )
 
@@ -25,11 +20,9 @@ func TestCrossWorkspaceForbidden(t *testing.T) {
 
 	h.Register(route)
 
-	ctx := context.Background()
-
 	// Workspaces: we'll use the default user workspace and create a second one
 	workspaceA := h.Resources().UserWorkspace.ID
-	workspaceB := uid.New(uid.WorkspacePrefix)
+	workspaceB := h.CreateWorkspace().ID
 
 	// Create root key for workspace A with full permissions
 	rootKeyA := h.CreateRootKey(workspaceA, "identity.*.read_identity")
@@ -38,44 +31,13 @@ func TestCrossWorkspaceForbidden(t *testing.T) {
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKeyA)},
 	}
 
-	// Create a test identity in workspace B
-	tx, err := h.DB.RW().Begin(ctx)
-	require.NoError(t, err)
-	defer func() {
-		err := tx.Rollback()
-		require.True(t, err == nil || errors.Is(err, sql.ErrTxDone), "unexpected rollback error: %v", err)
-	}()
-
-	// First, create the workspace B
-	err = db.Query.InsertWorkspace(ctx, tx, db.InsertWorkspaceParams{
-		ID:           workspaceB,
-		Name:         "Test Workspace B",
-		Slug:         uid.New("slug"),
-		CreatedAt:    time.Now().UnixMilli(),
-		OrgID:        uid.New("org"),
-		K8sNamespace: uid.DNS1035(),
-	})
-	require.NoError(t, err)
-
-	projectB, err := projects.EnsureDefaultProject(ctx, tx, workspaceB)
-	require.NoError(t, err)
-
 	// Create an identity in workspace B
-	identityB := uid.New(uid.IdentityPrefix)
 	externalID := uid.New(uid.TestPrefix)
-	err = db.Query.InsertIdentity(ctx, tx, db.InsertIdentityParams{
-		ID:          identityB,
-		ExternalID:  externalID,
+	h.CreateIdentity(seed.CreateIdentityRequest{
 		WorkspaceID: workspaceB,
-		ProjectID:   projectB,
 		Environment: "default",
-		CreatedAt:   time.Now().UnixMilli(),
-		Meta:        []byte("{}"),
+		ExternalID:  externalID,
 	})
-	require.NoError(t, err)
-
-	err = tx.Commit()
-	require.NoError(t, err)
 
 	t.Run("cannot access identities from another workspace", func(t *testing.T) {
 		// Create a specific identity search query for workspaceB's identity

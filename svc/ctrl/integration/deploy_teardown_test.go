@@ -76,8 +76,9 @@ func TestDeployTeardown_ClearsCurrentAndStops(t *testing.T) {
 
 	tEnv := startTeardown(t, h.DB)
 
+	regionName := uid.DNS1035(12)
 	dep := h.CreateDeployment(ctx, CreateDeploymentRequest{
-		Region:       "us-east-1",
+		Region:       regionName,
 		DesiredState: mysqltype.DeploymentsDesiredStateRunning,
 	})
 
@@ -96,7 +97,7 @@ func TestDeployTeardown_ClearsCurrentAndStops(t *testing.T) {
 	// the drain cannot complete.
 	region, err := h.DB.FindRegionByPlatformAndName(ctx, db.FindRegionByPlatformAndNameParams{
 		Platform: "test",
-		Name:     "us-east-1",
+		Name:     regionName,
 	})
 	require.NoError(t, err)
 	err = h.DB.UpsertInstance(ctx, db.UpsertInstanceParams{
@@ -149,7 +150,7 @@ func TestDeployTeardown_NoInstancesDrainsImmediately(t *testing.T) {
 	tEnv := startTeardown(t, h.DB)
 
 	dep := h.CreateDeployment(ctx, CreateDeploymentRequest{
-		Region:       "us-east-1",
+		Region:       uid.DNS1035(12),
 		DesiredState: mysqltype.DeploymentsDesiredStateRunning,
 	})
 
@@ -183,7 +184,7 @@ func TestDeployTeardown_SuspendThenResume(t *testing.T) {
 	tEnv := startTeardown(t, h.DB)
 
 	dep := h.CreateDeployment(ctx, CreateDeploymentRequest{
-		Region:       "us-east-1",
+		Region:       uid.DNS1035(12),
 		DesiredState: mysqltype.DeploymentsDesiredStateRunning,
 	})
 

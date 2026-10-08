@@ -89,14 +89,7 @@ func TestSearchAtScale(t *testing.T) {
 func seedScaleIdentities(t *testing.T, ctx context.Context, h *testutil.Harness) {
 	t.Helper()
 
-	var seeded bool
-	err := h.DB.RO().QueryRowContext(ctx, `
-		SELECT EXISTS(SELECT 1 FROM workspaces WHERE id = ?)
-		AND (SELECT COUNT(*) FROM identities WHERE workspace_id = ?) = ?`,
-		scaleWorkspaceID, scaleWorkspaceID, scaleIdentities,
-	).Scan(&seeded)
-	require.NoError(t, err)
-	if seeded {
+	if scaleIdentitiesSeeded(t, ctx, h) {
 		seedScaleLimits(t, ctx, h)
 		return
 	}
@@ -111,12 +104,9 @@ func seedScaleIdentities(t *testing.T, ctx context.Context, h *testutil.Harness)
 	}()
 
 	// Drop leftovers from an interrupted run before reseeding
-	_, err = tx.ExecContext(ctx, "DELETE FROM identities WHERE workspace_id = ?", scaleWorkspaceID)
-	require.NoError(t, err)
-	_, err = tx.ExecContext(ctx, "DELETE FROM projects WHERE workspace_id = ?", scaleWorkspaceID)
-	require.NoError(t, err)
-	_, err = tx.ExecContext(ctx, "DELETE FROM workspaces WHERE id = ?", scaleWorkspaceID)
-	require.NoError(t, err)
+	require.NoError(t, db.Query.DeleteManyIdentitiesByWorkspaceID(ctx, tx, scaleWorkspaceID))
+	require.NoError(t, db.Query.DeleteManyProjectsByWorkspaceID(ctx, tx, scaleWorkspaceID))
+	require.NoError(t, db.Query.DeleteWorkspace(ctx, tx, scaleWorkspaceID))
 
 	err = db.Query.InsertWorkspace(ctx, tx, db.InsertWorkspaceParams{
 		ID:           scaleWorkspaceID,
@@ -145,6 +135,7 @@ func seedScaleIdentities(t *testing.T, ctx context.Context, h *testutil.Harness)
 	)
 	require.NoError(t, err)
 
+	// One server-side statement, because a million typed inserts would take minutes
 	_, err = tx.ExecContext(ctx, `
 		INSERT INTO identities (id, external_id, workspace_id, project_id, environment, deleted, created_at)
 		WITH RECURSIVE seq (n) AS (
@@ -170,6 +161,22 @@ func seedScaleIdentities(t *testing.T, ctx context.Context, h *testutil.Harness)
 	require.NoError(t, tx.Commit())
 	seedScaleLimits(t, ctx, h)
 	t.Logf("seeded %d identities in %s", scaleIdentities, time.Since(seedStart))
+}
+
+// scaleIdentitiesSeeded reports whether a previous run left the complete
+// fixture behind.
+func scaleIdentitiesSeeded(t *testing.T, ctx context.Context, h *testutil.Harness) bool {
+	t.Helper()
+
+	_, err := db.Query.FindWorkspaceByID(ctx, h.DB.RO(), scaleWorkspaceID)
+	if db.IsNotFound(err) {
+		return false
+	}
+	require.NoError(t, err)
+
+	count, err := db.Query.CountIdentitiesByWorkspace(ctx, h.DB.RO(), scaleWorkspaceID)
+	require.NoError(t, err)
+	return count == scaleIdentities
 }
 
 // seedScaleLimits ensures the scale workspace has the rows auth reads before

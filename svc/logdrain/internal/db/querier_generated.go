@@ -32,6 +32,33 @@ type Querier interface {
 	//  FROM logdrains d
 	//  GROUP BY d.status, d.stream
 	CountLogdrainsByStatus(ctx context.Context) ([]CountLogdrainsByStatusRow, error)
+	// DeleteLogdrain hard-deletes one drain. Only tests call it.
+	//
+	//  DELETE FROM logdrains
+	//  WHERE id = ?
+	DeleteLogdrain(ctx context.Context, id string) error
+	// FindLogdrainByID returns one drain regardless of status or lease. Only tests
+	// call it to observe delivery state.
+	//
+	//  SELECT
+	//    id,
+	//    workspace_id,
+	//    name,
+	//    stream,
+	//    config,
+	//    status,
+	//    consecutive_failures,
+	//    committed_offset_inserted_at,
+	//    committed_offset_event_id,
+	//    next_attempt_at,
+	//    lease_id,
+	//    fencing_token,
+	//    lease_expires_at,
+	//    created_at,
+	//    updated_at
+	//  FROM logdrains
+	//  WHERE id = ?
+	FindLogdrainByID(ctx context.Context, id string) (FindLogdrainByIDRow, error)
 	// GetLeasedAndDueLogdrain returns one due drain only while the caller still
 	// owns its database-time lease.
 	// The caller must use the same fencing token for every later state mutation.
@@ -52,6 +79,42 @@ type Querier interface {
 	//    AND d.lease_expires_at > CAST(UNIX_TIMESTAMP(NOW(3)) * 1000 AS SIGNED)
 	//    AND d.next_attempt_at <= CAST(UNIX_TIMESTAMP(NOW(3)) * 1000 AS SIGNED)
 	GetLeasedAndDueLogdrain(ctx context.Context, arg GetLeasedAndDueLogdrainParams) (GetLeasedAndDueLogdrainRow, error)
+	// InsertLogdrain creates a drain with every delivery-state column set
+	// explicitly. Only tests call it: the dashboard creates drains in production.
+	//
+	//  INSERT INTO logdrains (
+	//    id,
+	//    workspace_id,
+	//    name,
+	//    stream,
+	//    config,
+	//    status,
+	//    consecutive_failures,
+	//    committed_offset_inserted_at,
+	//    committed_offset_event_id,
+	//    next_attempt_at,
+	//    lease_id,
+	//    fencing_token,
+	//    lease_expires_at,
+	//    created_at
+	//  )
+	//  VALUES (
+	//    ?,
+	//    ?,
+	//    ?,
+	//    ?,
+	//    ?,
+	//    ?,
+	//    ?,
+	//    ?,
+	//    ?,
+	//    ?,
+	//    ?,
+	//    ?,
+	//    ?,
+	//    ?
+	//  )
+	InsertLogdrain(ctx context.Context, arg InsertLogdrainParams) error
 	// ListDueLogdrains returns running, due leases assigned to one service process.
 	// Database time controls both lease validity and retry scheduling.
 	//
@@ -119,6 +182,40 @@ type Querier interface {
 	//  WHERE lease_id = ?
 	//    AND lease_expires_at > CAST(UNIX_TIMESTAMP(NOW(3)) * 1000 AS SIGNED)
 	RefreshLogdrainLeases(ctx context.Context, arg RefreshLogdrainLeasesParams) (int64, error)
+	// UpdateLogdrainConfig replaces a drain's delivery config the way the
+	// dashboard does: it expires the lease so in-flight state writes fail and
+	// resets failure state. Only tests call it.
+	//
+	//  UPDATE logdrains
+	//  SET config = ?,
+	//    lease_expires_at = 0,
+	//    consecutive_failures = 0,
+	//    next_attempt_at = 0
+	//  WHERE id = ?
+	UpdateLogdrainConfig(ctx context.Context, arg UpdateLogdrainConfigParams) error
+	// UpdateLogdrainLeaseExpiry sets an absolute lease expiry without changing
+	// the owner or fencing token. Only tests call it.
+	//
+	//  UPDATE logdrains
+	//  SET lease_expires_at = ?
+	//  WHERE id = ?
+	UpdateLogdrainLeaseExpiry(ctx context.Context, arg UpdateLogdrainLeaseExpiryParams) error
+	// UpdateLogdrainNextAttemptAt sets the retry schedule and failure count, for
+	// example to skip the production retry backoff. Only tests call it.
+	//
+	//  UPDATE logdrains
+	//  SET next_attempt_at = ?,
+	//    consecutive_failures = ?
+	//  WHERE id = ?
+	UpdateLogdrainNextAttemptAt(ctx context.Context, arg UpdateLogdrainNextAttemptAtParams) error
+	// UpdateLogdrainStatus sets only the status. Unlike the dashboard, it keeps
+	// the lease and failure state so tests can isolate the status guards. Only
+	// tests call it.
+	//
+	//  UPDATE logdrains
+	//  SET status = ?
+	//  WHERE id = ?
+	UpdateLogdrainStatus(ctx context.Context, arg UpdateLogdrainStatusParams) error
 }
 
 var _ Querier = (*Queries)(nil)
