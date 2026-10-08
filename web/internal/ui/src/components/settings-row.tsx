@@ -107,7 +107,7 @@ function SettingsGroupContent({ className, children, ...props }: React.Component
             <Button
               variant="primary"
               size="sm"
-              className="ml-auto px-3 disabled:border-transparent disabled:bg-grayA-3 disabled:text-grayA-9"
+              className="ml-auto px-3 duration-200 ease-[ease] motion-reduce:transition-none disabled:border-transparent disabled:bg-grayA-3 disabled:text-grayA-9 after:transition-opacity after:duration-200 after:ease-[ease] motion-reduce:after:transition-none disabled:after:block disabled:after:opacity-0 aria-disabled:after:block aria-disabled:after:opacity-0"
               disabled={save.status !== "ready"}
               loading={save.status === "saving"}
               onClick={saveReady}
