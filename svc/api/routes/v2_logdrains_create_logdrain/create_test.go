@@ -23,6 +23,8 @@ func TestCreateHTTPFormatSupportsDelivery(t *testing.T) {
 		want   logdrainv1.HttpBodyFormat
 	}{
 		{name: "default", want: logdrainv1.HttpBodyFormat_HTTP_BODY_FORMAT_JSON},
+		{name: "explicit json", format: new(openapi.LogdrainHttpWriteFormat("json")), want: logdrainv1.HttpBodyFormat_HTTP_BODY_FORMAT_JSON},
+		{name: "ndjson", format: new(openapi.LogdrainHttpWriteFormat("ndjson")), want: logdrainv1.HttpBodyFormat_HTTP_BODY_FORMAT_NDJSON},
 		{name: "hec", format: new(openapi.LogdrainHttpWriteFormat("hec")), want: logdrainv1.HttpBodyFormat_HTTP_BODY_FORMAT_HEC},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
