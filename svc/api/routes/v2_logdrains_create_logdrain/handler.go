@@ -47,10 +47,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	if err != nil {
 		return err
 	}
-	if err := principal.Authorize(rbac.U(urn.V1{
-		WorkspaceID: principal.AuthorizedWorkspaceID,
-		Resource:    "logdrains/*",
-	}, permissions.Write)); err != nil {
+	if err := principal.Authorize(rbac.U(urn.New().Workspace(principal.AuthorizedWorkspaceID).Logdrain("*"), permissions.Write)); err != nil {
 		return err
 	}
 	limits, hit, err := h.LimitsCache.SWR(ctx, principal.AuthorizedWorkspaceID, func(ctx context.Context) (keysdb.Limit, error) {
