@@ -153,7 +153,7 @@ func TestWatchJoinsInFlightDispatchAfterStreamCloses(t *testing.T) {
 			Event: &ctrlv1.DeploymentChangeEvent_Deployment{
 				Deployment: &ctrlv1.DeploymentState{
 					State: &ctrlv1.DeploymentState_Delete{
-						Delete: &ctrlv1.DeleteDeployment{K8SNamespace: "workloads", K8SName: "deployment"},
+						Delete: &ctrlv1.DeleteDeployment{DeploymentId: "dep_test", K8SNamespace: "workloads", K8SName: "deployment"},
 					},
 				},
 			},
@@ -166,6 +166,11 @@ func TestWatchJoinsInFlightDispatchAfterStreamCloses(t *testing.T) {
 	reportCancelled := make(chan struct{})
 	drain := make(chan struct{})
 	client := &testutil.MockClusterClient{
+		GetDesiredDeploymentStateFunc: func(context.Context, *ctrlv1.GetDesiredDeploymentStateRequest) (*ctrlv1.DeploymentState, error) {
+			return &ctrlv1.DeploymentState{State: &ctrlv1.DeploymentState_Delete{
+				Delete: &ctrlv1.DeleteDeployment{DeploymentId: "dep_test", K8SNamespace: "workloads", K8SName: "deployment"},
+			}}, nil
+		},
 		SyncDesiredStateFunc: func(ctx context.Context, req *ctrlv1.SyncDesiredStateRequest) (*connect.ServerStreamForClient[ctrlv1.DeploymentChangeEvent], error) {
 			return streamClient.CallServerStream(ctx, connect.NewRequest(req))
 		},
