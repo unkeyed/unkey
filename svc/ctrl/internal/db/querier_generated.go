@@ -1769,6 +1769,19 @@ type Querier interface {
 	//    AND older.id != ?
 	//  ORDER BY older.created_at ASC
 	ListOlderActiveDeploymentsForDedup(ctx context.Context, arg ListOlderActiveDeploymentsForDedupParams) ([]ListOlderActiveDeploymentsForDedupRow, error)
+	// A missing deployment must not erase the region's removal obligation.
+	// An absent workspace leaves the namespace empty so Krane searches by deployment ID.
+	//
+	//  SELECT dt.pk, dt.deployment_id, COALESCE(w.k8s_namespace, '') AS k8s_namespace
+	//  FROM deployment_topology dt
+	//  LEFT JOIN deployments d ON d.id = dt.deployment_id
+	//  LEFT JOIN workspaces w ON w.id = dt.workspace_id
+	//  WHERE dt.region_id = ?
+	//    AND dt.pk > ?
+	//    AND d.id IS NULL
+	//  ORDER BY dt.pk
+	//  LIMIT ?
+	ListOrphanedDeploymentTopologiesByRegion(ctx context.Context, arg ListOrphanedDeploymentTopologiesByRegionParams) ([]ListOrphanedDeploymentTopologiesByRegionRow, error)
 	//ListPreviewEnvironments
 	//
 	//  SELECT environments.pk, environments.id, environments.workspace_id, environments.project_id, environments.app_id, environments.slug, environments.description, environments.kind, environments.delete_protection, environments.created_at, environments.updated_at, environments.deleting_at
@@ -2082,6 +2095,29 @@ type Querier interface {
 	//    AND status = 'pending'
 	//    AND invocation_id IS NULL
 	RevertDeploymentAuthorization(ctx context.Context, arg RevertDeploymentAuthorizationParams) (sql.Result, error)
+	// Missing environments still need their deployment shutdown workflow.
+	//
+	//  SELECT d.pk, d.environment_id, CAST((e.id IS NULL) AS SIGNED) AS orphaned
+	//  FROM (
+	//      SELECT deployments.pk, deployments.environment_id FROM deployments
+	//      WHERE deployments.pk > ?
+	//      ORDER BY deployments.pk LIMIT ?
+	//  ) d
+	//  LEFT JOIN environments e ON e.id = d.environment_id
+	//  ORDER BY d.pk
+	ScanDeploymentsForCleanup(ctx context.Context, arg ScanDeploymentsForCleanupParams) ([]ScanDeploymentsForCleanupRow, error)
+	// Page before checking parents so healthy rows cannot cause an unbounded scan.
+	//
+	//  SELECT e.pk, e.id, CAST((a.id IS NULL OR p.id IS NULL) AS SIGNED) AS orphaned
+	//  FROM (
+	//      SELECT environments.pk, environments.id, environments.app_id, environments.project_id FROM environments
+	//      WHERE environments.pk > ?
+	//      ORDER BY environments.pk LIMIT ?
+	//  ) e
+	//  LEFT JOIN apps a ON a.id = e.app_id
+	//  LEFT JOIN projects p ON p.id = e.project_id
+	//  ORDER BY e.pk
+	ScanEnvironmentsForCleanup(ctx context.Context, arg ScanEnvironmentsForCleanupParams) ([]ScanEnvironmentsForCleanupRow, error)
 	// Restores an app's current deployment on resume (the inverse of
 	// ClearAppCurrentDeployment, which teardown uses on suspend). Sets only
 	// current_deployment_id and updated_at_m; leaves is_rolled_back untouched.
