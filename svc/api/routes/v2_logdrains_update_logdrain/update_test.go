@@ -1,0 +1,153 @@
+package logdrains_test
+
+import (
+	"context"
+	"encoding/json"
+	"net/http"
+	"testing"
+
+	"github.com/stretchr/testify/require"
+	logdrainv1 "github.com/unkeyed/unkey/gen/proto/logdrain/v1"
+	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
+	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/svc/api/internal/testutil"
+	"github.com/unkeyed/unkey/svc/api/openapi"
+	createRoute "github.com/unkeyed/unkey/svc/api/routes/v2_logdrains_create_logdrain"
+	getRoute "github.com/unkeyed/unkey/svc/api/routes/v2_logdrains_get_logdrain"
+	updateRoute "github.com/unkeyed/unkey/svc/api/routes/v2_logdrains_update_logdrain"
+	"google.golang.org/protobuf/proto"
+)
+
+func TestUpdateResumesFailedDrainWithoutResettingCursor(t *testing.T) {
+	h := testutil.NewHarness(t)
+	create := createRoute.Handler{
+		DB:          h.DB,
+		Vault:       h.Vault,
+		Auditlogs:   h.Auditlogs,
+		Clock:       h.Clock,
+		LimitsCache: h.Caches.WorkspaceLimits,
+	}
+	update := &updateRoute.Handler{
+		DB:        h.DB,
+		Vault:     h.Vault,
+		Auditlogs: h.Auditlogs,
+		Clock:     h.Clock,
+	}
+	get := &getRoute.Handler{DB: h.DB}
+	h.Register(&create)
+	h.Register(update)
+	h.Register(get)
+	workspaceID := h.Resources().UserWorkspace.ID
+	_, err := h.DB.RW().ExecContext(context.Background(), "UPDATE `limits` SET logdrains_max = 1 WHERE workspace_id = ?", workspaceID)
+	require.NoError(t, err)
+	key := h.CreateRootKey(workspaceID, "unkey:v1:"+workspaceID+":**#*")
+	headers := http.Header{
+		"Authorization": {"Bearer " + key},
+		"Content-Type":  {"application/json"},
+	}
+	created := testutil.CallRoute[json.RawMessage, openapi.LogdrainMutationResponse](h, &create, headers, json.RawMessage(`{"name":"HTTP","stream":{"ratelimits":{"namespaceIds":["ns_keep"],"passed":[false]}},"destination":{"http":{"url":"https://logs.example.com","format":"hec","headers":[{"name":"Authorization","value":"secret"}]}}}`))
+	require.Equal(t, http.StatusOK, created.Status, "%s", created.RawBody)
+	id := created.Body.Data.Id
+	_, err = h.DB.RW().ExecContext(context.Background(), "UPDATE logdrains SET status = 'paused_by_failure', consecutive_failures = 8, next_attempt_at = 9000, lease_expires_at = 9999, committed_offset_inserted_at = 3456, committed_offset_event_id = 'event_keep' WHERE id = ?", id)
+	require.NoError(t, err)
+	_, err = h.DB.RW().ExecContext(context.Background(), "UPDATE `limits` SET logdrains_max = 0 WHERE workspace_id = ?", workspaceID)
+	require.NoError(t, err)
+	response := testutil.CallRoute[json.RawMessage, openapi.LogdrainMutationResponse](h, update, headers, json.RawMessage(`{"logdrainId":"`+id+`","batchSize":31,"filters":{"passed":[true]},"destination":{"http":{"format":"hec"}}}`))
+	require.Equal(t, http.StatusOK, response.Status, "%s", response.RawBody)
+	result := testutil.CallRoute[openapi.LogdrainIdRequest, openapi.LogdrainResponse](h, get, headers, openapi.LogdrainIdRequest{LogdrainId: id})
+	require.Equal(t, http.StatusOK, result.Status)
+	require.Equal(t, "running", string(result.Body.Data.Status))
+	require.Equal(t, int64(31), result.Body.Data.BatchSize)
+	require.Equal(t, []string{"ns_keep"}, *result.Body.Data.Filters.NamespaceIds)
+	require.Equal(t, []bool{true}, *result.Body.Data.Filters.Passed)
+	require.Equal(t, []string{"Authorization"}, result.Body.Data.Destination.Http.Headers)
+	require.Equal(t, openapi.LogdrainDestinationHttpFormatHec, result.Body.Data.Destination.Http.Format)
+	var lease, failures, next, offset int64
+	var event string
+	require.NoError(t, h.DB.RW().QueryRowContext(context.Background(), "SELECT lease_expires_at, consecutive_failures, next_attempt_at, committed_offset_inserted_at, committed_offset_event_id FROM logdrains WHERE id = ?", id).Scan(&lease, &failures, &next, &offset, &event))
+	require.Equal(t, []int64{0, 0, 0, 3456}, []int64{lease, failures, next, offset})
+	require.Equal(t, "event_keep", event)
+	var encoded []byte
+	require.NoError(t, h.DB.RW().QueryRowContext(t.Context(), "SELECT config FROM logdrains WHERE id = ?", id).Scan(&encoded))
+	var config logdrainv1.Config
+	require.NoError(t, proto.Unmarshal(encoded, &config))
+	secret, err := h.Vault.Decrypt(t.Context(), &vaultv1.DecryptRequest{
+		Keyring:   workspaceID,
+		Encrypted: config.GetHttp().GetHeaders()[0].GetEncryptedValue(),
+	})
+	require.NoError(t, err)
+	require.Equal(t, "secret", secret.GetPlaintext())
+
+	replaced := testutil.CallRoute[json.RawMessage, openapi.LogdrainMutationResponse](h, update, headers, json.RawMessage(`{"logdrainId":"`+id+`","destination":{"http":{"headers":[{"name":"X-Token","value":"replacement"}]}}}`))
+	require.Equal(t, http.StatusOK, replaced.Status, "%s", replaced.RawBody)
+	require.NoError(t, h.DB.RW().QueryRowContext(t.Context(), "SELECT config FROM logdrains WHERE id = ?", id).Scan(&encoded))
+	require.NoError(t, proto.Unmarshal(encoded, &config))
+	require.Len(t, config.GetHttp().GetHeaders(), 1)
+	require.Equal(t, "X-Token", config.GetHttp().GetHeaders()[0].GetName())
+	secret, err = h.Vault.Decrypt(t.Context(), &vaultv1.DecryptRequest{
+		Keyring:   workspaceID,
+		Encrypted: config.GetHttp().GetHeaders()[0].GetEncryptedValue(),
+	})
+	require.NoError(t, err)
+	require.Equal(t, "replacement", secret.GetPlaintext())
+
+	cleared := testutil.CallRoute[json.RawMessage, openapi.LogdrainMutationResponse](h, update, headers, json.RawMessage(`{"logdrainId":"`+id+`","destination":{"http":{"headers":[]}}}`))
+	require.Equal(t, http.StatusOK, cleared.Status, "%s", cleared.RawBody)
+	require.NoError(t, h.DB.RW().QueryRowContext(t.Context(), "SELECT config FROM logdrains WHERE id = ?", id).Scan(&encoded))
+	require.NoError(t, proto.Unmarshal(encoded, &config))
+	require.Empty(t, config.GetHttp().GetHeaders())
+}
+
+func TestUpdateDistinguishesUserPauseFromFailurePause(t *testing.T) {
+	h := testutil.NewHarness(t)
+	update := &updateRoute.Handler{
+		DB:        h.DB,
+		Vault:     h.Vault,
+		Auditlogs: h.Auditlogs,
+		Clock:     h.Clock,
+	}
+	get := &getRoute.Handler{DB: h.DB}
+	h.Register(update)
+	h.Register(get)
+	workspaceID := h.Resources().UserWorkspace.ID
+	key := h.CreateRootKey(workspaceID, "unkey:v1:"+workspaceID+":**#*")
+	headers := http.Header{
+		"Authorization": {"Bearer " + key},
+		"Content-Type":  {"application/json"},
+	}
+	config, err := proto.Marshal(&logdrainv1.Config{
+		Destination: &logdrainv1.Config_Http{
+			Http: &logdrainv1.HttpConfig{Url: "https://logs.example.com"},
+		},
+	})
+	require.NoError(t, err)
+	for _, tc := range []struct {
+		name     string
+		initial  string
+		patch    string
+		status   string
+		failures int
+	}{
+		{"rename preserves failure pause", "paused_by_failure", `"name":"Renamed"`, "paused_by_failure", 8},
+		{"delivery changes preserve user pause", "paused_by_user", `"batchSize":23`, "paused_by_user", 0},
+		{"explicit resume clears failures", "paused_by_user", `"status":"running"`, "running", 0},
+		{"explicit pause", "running", `"status":"paused_by_user"`, "paused_by_user", 8},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			id := uid.New("ld")
+			_, err := h.DB.RW().ExecContext(context.Background(), "INSERT INTO logdrains (id, workspace_id, name, stream, config, status, consecutive_failures, committed_offset_inserted_at, lease_id, fencing_token, created_at) VALUES (?, ?, 'Pause', 'audit_logs', ?, ?, 8, 4321, '', '', 123)", id, workspaceID, config, tc.initial)
+			require.NoError(t, err)
+			result := testutil.CallRoute[json.RawMessage, openapi.LogdrainMutationResponse](h, update, headers, json.RawMessage(`{"logdrainId":"`+id+`",`+tc.patch+`}`))
+			require.Equal(t, http.StatusOK, result.Status, "%s", result.RawBody)
+			read := testutil.CallRoute[openapi.LogdrainIdRequest, openapi.LogdrainResponse](h, get, headers, openapi.LogdrainIdRequest{LogdrainId: id})
+			require.Equal(t, http.StatusOK, read.Status)
+			require.Equal(t, tc.status, string(read.Body.Data.Status))
+			var failures int
+			var committedOffsetInsertedAt int64
+			err = h.DB.RW().QueryRowContext(t.Context(), "SELECT consecutive_failures, committed_offset_inserted_at FROM logdrains WHERE id = ?", id).Scan(&failures, &committedOffsetInsertedAt)
+			require.NoError(t, err)
+			require.Equal(t, tc.failures, failures)
+			require.Equal(t, int64(4321), committedOffsetInsertedAt)
+		})
+	}
+}

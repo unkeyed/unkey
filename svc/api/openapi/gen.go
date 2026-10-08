@@ -346,19 +346,19 @@ func (e KeyCreditsRefillInterval) Valid() bool {
 
 // Defines values for LogdrainStatus.
 const (
-	PausedByFailure LogdrainStatus = "paused_by_failure"
-	PausedByUser    LogdrainStatus = "paused_by_user"
-	Running         LogdrainStatus = "running"
+	LogdrainStatusPausedByFailure LogdrainStatus = "paused_by_failure"
+	LogdrainStatusPausedByUser    LogdrainStatus = "paused_by_user"
+	LogdrainStatusRunning         LogdrainStatus = "running"
 )
 
 // Valid indicates whether the value is a known member of the LogdrainStatus enum.
 func (e LogdrainStatus) Valid() bool {
 	switch e {
-	case PausedByFailure:
+	case LogdrainStatusPausedByFailure:
 		return true
-	case PausedByUser:
+	case LogdrainStatusPausedByUser:
 		return true
-	case Running:
+	case LogdrainStatusRunning:
 		return true
 	default:
 		return false
@@ -503,6 +503,24 @@ func (e UpdateKeyCreditsRefillInterval) Valid() bool {
 	case UpdateKeyCreditsRefillIntervalDaily:
 		return true
 	case UpdateKeyCreditsRefillIntervalMonthly:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for UpdateLogdrainRequestStatus.
+const (
+	UpdateLogdrainRequestStatusPausedByUser UpdateLogdrainRequestStatus = "paused_by_user"
+	UpdateLogdrainRequestStatusRunning      UpdateLogdrainRequestStatus = "running"
+)
+
+// Valid indicates whether the value is a known member of the UpdateLogdrainRequestStatus enum.
+func (e UpdateLogdrainRequestStatus) Valid() bool {
+	switch e {
+	case UpdateLogdrainRequestStatusPausedByUser:
+		return true
+	case UpdateLogdrainRequestStatusRunning:
 		return true
 	default:
 		return false
@@ -920,6 +938,7 @@ type CreateLogdrainRequest struct {
 	BatchSize *int64 `json:"batchSize,omitempty"`
 
 	// Destination Exactly one destination: an HTTP URL or an Axiom dataset and token.
+	// Updates preserve omitted fields and cannot change the destination kind.
 	Destination LogdrainDestinationWrite `json:"destination"`
 
 	// Name A human-readable name to identify this log drain.
@@ -2015,6 +2034,7 @@ type LogdrainDestination struct {
 type LogdrainDestinationHttpFormat string
 
 // LogdrainDestinationWrite Exactly one destination: an HTTP URL or an Axiom dataset and token.
+// Updates preserve omitted fields and cannot change the destination kind.
 type LogdrainDestinationWrite struct {
 	Axiom *LogdrainAxiomWrite `json:"axiom,omitempty"`
 	Http  *LogdrainHttpWrite  `json:"http,omitempty"`
@@ -2053,6 +2073,7 @@ type LogdrainHttpWrite struct {
 
 	// Headers Headers sent to the destination. Values are encrypted at rest. When
 	// supplied, this list replaces all headers; an empty list removes them.
+	// Omit headers to retain the entire list.
 	Headers *[]LogdrainHeaderWrite `json:"headers,omitempty"`
 
 	// Url HTTPS endpoint that receives POST requests. Embedded URL credentials are
@@ -2872,6 +2893,25 @@ type UpdateKeyCreditsRefill struct {
 //
 // Example: daily
 type UpdateKeyCreditsRefillInterval string
+
+// UpdateLogdrainRequest defines model for UpdateLogdrainRequest.
+type UpdateLogdrainRequest struct {
+	BatchSize *int64 `json:"batchSize,omitempty"`
+
+	// Destination Exactly one destination: an HTTP URL or an Axiom dataset and token.
+	// Updates preserve omitted fields and cannot change the destination kind.
+	Destination *LogdrainDestinationWrite `json:"destination,omitempty"`
+
+	// Filters Only filters for the selected stream are accepted. Empty arrays select all
+	// values. Nonempty dimensions are combined with AND.
+	Filters    *LogdrainFilters             `json:"filters,omitempty"`
+	LogdrainId string                       `json:"logdrainId"`
+	Name       *string                      `json:"name,omitempty"`
+	Status     *UpdateLogdrainRequestStatus `json:"status,omitempty"`
+}
+
+// UpdateLogdrainRequestStatus defines model for UpdateLogdrainRequest.Status.
+type UpdateLogdrainRequestStatus string
 
 // V2AnalyticsGetGatewayRequestsRequestBody defines model for V2AnalyticsGetGatewayRequestsRequestBody.
 type V2AnalyticsGetGatewayRequestsRequestBody struct {
@@ -7707,6 +7747,9 @@ type LogdrainsGetLogdrainJSONRequestBody = LogdrainIdRequest
 
 // LogdrainsListLogdrainsJSONRequestBody defines body for LogdrainsListLogdrains for application/json ContentType.
 type LogdrainsListLogdrainsJSONRequestBody = ListLogdrainsRequest
+
+// LogdrainsUpdateLogdrainJSONRequestBody defines body for LogdrainsUpdateLogdrain for application/json ContentType.
+type LogdrainsUpdateLogdrainJSONRequestBody = UpdateLogdrainRequest
 
 // PermissionsCreatePermissionJSONRequestBody defines body for PermissionsCreatePermission for application/json ContentType.
 type PermissionsCreatePermissionJSONRequestBody = V2PermissionsCreatePermissionRequestBody

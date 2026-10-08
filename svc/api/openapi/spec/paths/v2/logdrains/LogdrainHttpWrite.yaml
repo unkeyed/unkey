@@ -25,5 +25,6 @@ properties:
     description: |
       Headers sent to the destination. Values are encrypted at rest. When
       supplied, this list replaces all headers; an empty list removes them.
+      Omit headers to retain the entire list.
     items:
       $ref: LogdrainHeaderWrite.yaml

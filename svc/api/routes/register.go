@@ -10,6 +10,7 @@ import (
 	v2Logdrains "github.com/unkeyed/unkey/svc/api/routes/v2_logdrains_create_logdrain"
 	v2LogdrainsGetLogdrain "github.com/unkeyed/unkey/svc/api/routes/v2_logdrains_get_logdrain"
 	v2LogdrainsListLogdrains "github.com/unkeyed/unkey/svc/api/routes/v2_logdrains_list_logdrains"
+	v2LogdrainsUpdateLogdrain "github.com/unkeyed/unkey/svc/api/routes/v2_logdrains_update_logdrain"
 
 	pprofRoute "github.com/unkeyed/unkey/pkg/pprof"
 
@@ -212,6 +213,12 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 	})
 	srv.RegisterRoute(protectedMiddlewares, &v2LogdrainsGetLogdrain.Handler{DB: svc.Database})
 	srv.RegisterRoute(protectedMiddlewares, &v2LogdrainsListLogdrains.Handler{DB: svc.Database})
+	srv.RegisterRoute(protectedMiddlewares, &v2LogdrainsUpdateLogdrain.Handler{
+		DB:        svc.Database,
+		Vault:     svc.Vault,
+		Auditlogs: svc.Auditlogs,
+		Clock:     svc.Clock,
+	})
 
 	// ---------------------------------------------------------------------------
 	// pprof (internal profiling endpoints)
