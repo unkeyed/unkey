@@ -1,0 +1,15 @@
+type: object
+properties:
+  period:
+    "$ref": "./V2WorkspaceGetUsageRequestPeriod.yaml"
+additionalProperties: false
+examples:
+  currentMonth:
+    summary: Current month to date
+    value: {}
+  pastMonth:
+    summary: A past month
+    value:
+      period:
+        year: 2026
+        month: 9

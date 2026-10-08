@@ -1,6 +1,7 @@
 "use client";
 
 import { collection } from "@/lib/collections";
+import { refetchProjectApps } from "@/lib/collections/deploy/apps";
 import type { CustomDomain } from "@/lib/collections/deploy/custom-domains";
 import {
   type DeploymentStatus,
@@ -213,7 +214,7 @@ export const ProjectDataProvider = ({
     intervalMs: pollIntervalMs(deploymentStatus.waiting, hasSettlingDeployment),
     enabled: true,
   });
-  useCollectionPolling(() => collection.apps.utils.refetch(), {
+  useCollectionPolling(() => refetchProjectApps(projectId), {
     intervalMs: pollIntervalMs(liveDeployment.waiting, false),
     enabled: appId !== undefined,
   });

@@ -4,6 +4,10 @@ import type { DrainDetail } from "../drain-schema";
 import { useDrainSettings } from "./use-drain-settings";
 
 const update = vi.hoisted(() => vi.fn());
+vi.mock("@tanstack/react-query", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@tanstack/react-query")>()),
+  useQueryClient: () => ({ invalidateQueries: vi.fn() }),
+}));
 vi.mock("@/lib/trpc/client", () => ({
   trpc: {
     useUtils: () => ({ logdrain: { list: { invalidate: vi.fn() }, get: { invalidate: vi.fn() } } }),

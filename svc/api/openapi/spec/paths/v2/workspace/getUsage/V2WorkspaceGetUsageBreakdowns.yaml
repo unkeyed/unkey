@@ -1,0 +1,23 @@
+type: object
+description: The totals split by environment and by app.
+required:
+  - byEnvironment
+  - byApp
+properties:
+  byEnvironment:
+    type: array
+    description: |
+      One row per environment with compute usage in the period, most
+      `compute.cpuSeconds` first, then by project id and environment id.
+      Empty when nothing ran.
+    items:
+      "$ref": "./V2WorkspaceGetUsageByEnvironmentRow.yaml"
+  byApp:
+    type: array
+    description: |
+      One row per app whose gateway verified keys in the period, and one row
+      without `app` for keys that have no app id. Most `gateway.activeKeys`
+      first, then by app id. Empty when no keys were verified.
+    items:
+      "$ref": "./V2WorkspaceGetUsageByAppRow.yaml"
+additionalProperties: false
