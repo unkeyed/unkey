@@ -777,6 +777,27 @@ type AppSourceOci struct {
 	UpdatedAt      sql.NullInt64 `db:"updated_at"`
 }
 
+type CliDeviceLogin struct {
+	Pk                  uint64         `db:"pk"`
+	ID                  string         `db:"id"`
+	UserCode            string         `db:"user_code"`
+	PollIntervalSeconds int32          `db:"poll_interval_seconds"`
+	ExpiresAt           int64          `db:"expires_at"`
+	Status              string         `db:"status"`
+	DeviceName          sql.NullString `db:"device_name"`
+	RequesterIp         sql.NullString `db:"requester_ip"`
+	RequesterUserAgent  sql.NullString `db:"requester_user_agent"`
+	WorkspaceID         sql.NullString `db:"workspace_id"`
+	ApproverUserID      sql.NullString `db:"approver_user_id"`
+	ApproverName        sql.NullString `db:"approver_name"`
+	ApproverRoles       []byte         `db:"approver_roles"`
+	Permissions         []byte         `db:"permissions"`
+	KeyName             sql.NullString `db:"key_name"`
+	KeyID               sql.NullString `db:"key_id"`
+	CreatedAt           int64          `db:"created_at"`
+	ApprovedAt          sql.NullInt64  `db:"approved_at"`
+}
+
 type Deployment struct {
 	Pk                            uint64                            `db:"pk"`
 	ID                            string                            `db:"id"`
