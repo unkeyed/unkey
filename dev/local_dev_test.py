@@ -5,6 +5,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import time
 import unittest
 
 
@@ -19,7 +20,7 @@ class LocalDevTest(unittest.TestCase):
         cls.root = Path(cls.temporary.name)
         cls.dev = cls.root / "dev"
         cls.dev.mkdir()
-        for name in ("Tiltfile", "Dockerfile.binary", "Dockerfile.mysql", "Dockerfile.clickhouse", "start-cluster.sh", "stripe-webhook-secret.mjs"):
+        for name in ("Tiltfile", "Dockerfile.binary", "Dockerfile.mysql", "Dockerfile.clickhouse", "start-cluster.sh", "stripe-webhook-secret.sh"):
             shutil.copyfile(ROOT / "dev" / name, cls.dev / name)
         (cls.dev / "k8s").symlink_to(ROOT / "dev/k8s", target_is_directory=True)
         cls.dashboard_env = cls.root / "web/apps/dashboard/.env"
@@ -43,8 +44,10 @@ class LocalDevTest(unittest.TestCase):
             "elif name == 'stripe':\n"
             "    if args == ['config', '--list']: print('account_id = stale')\n"
             "    elif args == ['listen', '--print-secret', '--skip-update']:\n"
+            "        if os.environ.get('STRIPE_TEST_PID_FILE'): pathlib.Path(os.environ['STRIPE_TEST_PID_FILE']).write_text(str(os.getpid()))\n"
             "        time.sleep(float(os.environ.get('STRIPE_TEST_DELAY', '0')))\n"
             "        print(os.environ.get('STRIPE_TEST_SECRET', ''))\n"
+            "        sys.exit(int(os.environ.get('STRIPE_TEST_EXIT', '0')))\n"
             "    else: sys.exit(18)\n"
             "elif name == 'kubectl' and args[:5] == ['-n', 'kube-system', 'patch', 'configmap', 'cilium-config']:\n"
             "    print(os.environ.get('CONFIG_VERSION', '41'), end='')\n"
@@ -155,15 +158,39 @@ class LocalDevTest(unittest.TestCase):
 
     def test_missing_stripe_cli_is_optional(self):
         result = self.command(
-            [shutil.which("node"), str(ROOT / "dev/stripe-webhook-secret.mjs")],
+            [shutil.which("bash"), str(ROOT / "dev/stripe-webhook-secret.sh")],
             PATH=str(self.root / "missing-bin"),
         )
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(result.stdout, "")
 
+    def test_stripe_check_is_bounded_and_cleans_up(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            pid_file = self.root / "stripe.pid"
+            for delay in ("0", "10"):
+                with self.subTest(delay=delay):
+                    start = time.monotonic()
+                    result = self.command(
+                        ["bash", str(ROOT / "dev/stripe-webhook-secret.sh")],
+                        TMPDIR=temporary,
+                        STRIPE_TEST_PID_FILE=str(pid_file),
+                        STRIPE_TEST_DELAY=delay,
+                        STRIPE_TEST_SECRET="whsec_fixture",
+                    )
+                    elapsed = time.monotonic() - start
+                    self.assertEqual(result.returncode, 0, result.stderr)
+                    self.assertEqual(result.stdout, "whsec_fixture" if delay == "0" else "")
+                    self.assertLess(elapsed, 3 if delay == "0" else 8)
+                    if delay == "10":
+                        self.assertGreaterEqual(elapsed, 4.5)
+                    with self.assertRaises(ProcessLookupError):
+                        os.kill(int(pid_file.read_text()), 0)
+                    self.assertEqual(list(Path(temporary).iterdir()), [])
+
     def test_failed_stripe_auth_or_invalid_secret_does_not_overwrite_env(self):
         for env in (
             {"FAIL_COMMAND": "stripe"},
+            {"STRIPE_TEST_SECRET": "whsec_fixture", "STRIPE_TEST_EXIT": "17"},
             {"STRIPE_TEST_SECRET": ""},
             {"STRIPE_TEST_SECRET": "not-a-secret"},
             {"STRIPE_TEST_SECRET": "whsec_bad&secret"},

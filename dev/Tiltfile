@@ -233,8 +233,8 @@ local_resource(
     allow_parallel=True,
 )
 
-watch_file('stripe-webhook-secret.mjs')
-stripe_webhook_secret = str(local('node stripe-webhook-secret.mjs', quiet=True, echo_off=True)).strip()
+watch_file('stripe-webhook-secret.sh')
+stripe_webhook_secret = str(local('bash stripe-webhook-secret.sh', quiet=True, echo_off=True)).strip()
 stripe_secret_dep = []
 if stripe_webhook_secret:
     local_resource(
