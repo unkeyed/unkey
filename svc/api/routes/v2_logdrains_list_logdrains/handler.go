@@ -37,10 +37,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Limit:       limit,
 		})
 	}, func(row db.Logdrain) bool {
-		return rbac.Check(rbac.U(urn.V1{
-			WorkspaceID: row.WorkspaceID,
-			Resource:    "logdrains/" + row.ID,
-		}, permissions.Read), principal.Permissions) == nil
+		return rbac.Check(rbac.U(urn.New().Workspace(row.WorkspaceID).Logdrain(row.ID), permissions.Read), principal.Permissions) == nil
 	}, func(row db.Logdrain) string { return row.ID })
 	if err != nil {
 		return fault.Wrap(err, fault.Code(codes.App.Internal.ServiceUnavailable.URN()), fault.Public("Failed to retrieve log drains."))
