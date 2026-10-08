@@ -159,16 +159,12 @@ export const ProjectDataProvider = ({
         .join(","),
     [projectId],
   );
-  // A poll refetches only the subsets on screen and skips "load more" pages:
-  // new and moving deployments sit on the first page. The last two key
-  // segments are the page boundary and offset, both null for a first page.
   // Active branches only move when a deployment does
   const pollDeployments = useCallback(async () => {
     const before = readDeploymentStates();
     await collectionsQueryClient.refetchQueries({
       queryKey: ["deployments", projectId],
       type: "active",
-      predicate: (query) => query.queryKey.slice(-2).every((segment) => segment === null),
     });
     if (readDeploymentStates() !== before) {
       trpcUtils.deploy.deployment.listActiveBranches.invalidate();
