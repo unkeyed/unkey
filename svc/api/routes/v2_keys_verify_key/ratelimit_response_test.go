@@ -26,7 +26,7 @@ func TestRatelimitResponse(t *testing.T) {
 	h.Register(route)
 
 	workspace := h.Resources().UserWorkspace
-	rootKey := h.CreateRootKey(workspace.ID, "api.*.verify_key")
+	rootKey := h.CreateRootKey(workspace.ID, fmt.Sprintf("unkey:v1:%s:projects/*/keyspaces/*/keys/*#verify", workspace.ID))
 	api := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspace.ID})
 
 	headers := http.Header{

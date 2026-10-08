@@ -59,11 +59,12 @@ func TestAuthorizationErrors(t *testing.T) {
 	})
 
 	permissionID := uid.New(uid.TestPrefix)
+	permissionSlug := uid.New("documents.read.auth403")
 	err := db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
 		PermissionID: permissionID,
 		WorkspaceID:  workspace.ID,
-		Name:         "documents.read.auth403",
-		Slug:         "documents.read.auth403",
+		Name:         permissionSlug,
+		Slug:         permissionSlug,
 		Description:  dbtype.NullString{Valid: true, String: "Read documents permission"},
 	})
 	require.NoError(t, err)
@@ -75,7 +76,7 @@ func TestAuthorizationErrors(t *testing.T) {
 
 	t.Run("root key without required permissions", func(t *testing.T) {
 		// Create root key without the required permission
-		insufficientRootKey := h.CreateRootKey(workspace.ID, "some.other.permission")
+		insufficientRootKey := h.CreateRootKey(workspace.ID, fmt.Sprintf("unkey:v1:%s:projects/%s/keyspaces/%s/keys/%s#read", workspace.ID, api.ProjectID, api.KeyAuthID.String, key.KeyID))
 
 		headers := http.Header{
 			"Content-Type":  {"application/json"},
@@ -96,7 +97,7 @@ func TestAuthorizationErrors(t *testing.T) {
 
 	t.Run("root key with partial permissions", func(t *testing.T) {
 		// Create root key with related but insufficient permission
-		partialRootKey := h.CreateRootKey(workspace.ID, "api.read.update_key")
+		partialRootKey := h.CreateRootKey(workspace.ID, fmt.Sprintf("unkey:v1:%s:projects/%s/keyspaces/%s/keys/%s#read", workspace.ID, api.ProjectID, api.KeyAuthID.String, key.KeyID))
 
 		headers := http.Header{
 			"Content-Type":  {"application/json"},
@@ -146,7 +147,7 @@ func TestAuthorizationErrors(t *testing.T) {
 		})
 
 		// Create root key for original workspace (authorized for workspace.ID, not otherWorkspaceID)
-		authorizedRootKey := h.CreateRootKey(workspace.ID, "api.*.update_key", "rbac.*.add_permission_to_key")
+		authorizedRootKey := h.CreateRootKey(workspace.ID, fmt.Sprintf("unkey:v1:%s:projects/%s/keyspaces/%s/keys/%s#write", workspace.ID, api.ProjectID, api.KeyAuthID.String, key.KeyID))
 
 		reqWithOtherKey := handler.Request{
 			KeyId:       diffKey.KeyID,

@@ -31,7 +31,7 @@ func TestRerollKeySuccess(t *testing.T) {
 
 	h.Register(route)
 
-	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "api.*.create_key", "api.*.encrypt_key")
+	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, rootKeyGrant(h.Resources().UserWorkspace.ID, "*", "*", "*", "write"), rootKeyGrant(h.Resources().UserWorkspace.ID, "*", "*", "*", "encrypt"))
 
 	api := h.CreateApi(seed.CreateApiRequest{
 		WorkspaceID:   h.Resources().UserWorkspace.ID,

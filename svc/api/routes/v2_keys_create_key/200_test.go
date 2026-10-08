@@ -41,7 +41,7 @@ func TestCreateKeySuccess(t *testing.T) {
 		WorkspaceID: h.Resources().UserWorkspace.ID,
 	})
 
-	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "api.*.create_key")
+	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, rootKeyGrant(h.Resources().UserWorkspace.ID, api.ProjectID, api.KeyAuthID.String, "write"))
 
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
@@ -112,45 +112,6 @@ func TestCreateKeyWithURNPermission(t *testing.T) {
 	require.Equal(t, api.KeyAuthID.String, key.KeyAuthID)
 }
 
-func TestCreateKeyWithLegacyAPIPermission(t *testing.T) {
-	t.Parallel()
-
-	h := testutil.NewHarness(t)
-	ctx := context.Background()
-
-	route := &handler.Handler{
-		DB:        h.DB,
-		Keys:      h.Keys,
-		Auditlogs: h.Auditlogs,
-		Vault:     h.Vault,
-	}
-
-	h.Register(route)
-
-	api := h.CreateApi(seed.CreateApiRequest{
-		WorkspaceID: h.Resources().UserWorkspace.ID,
-	})
-	rootKey := h.CreateRootKey(
-		h.Resources().UserWorkspace.ID,
-		fmt.Sprintf("api.%s.create_key", api.ID),
-	)
-	headers := http.Header{
-		"Content-Type":  {"application/json"},
-		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
-	}
-
-	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
-		ApiId: api.ID,
-	})
-	require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
-	require.NotNil(t, res.Body)
-	require.NotEmpty(t, res.Body.Data.KeyId)
-
-	key, err := db.Query.FindKeyByID(ctx, h.DB.RO(), res.Body.Data.KeyId)
-	require.NoError(t, err)
-	require.Equal(t, api.KeyAuthID.String, key.KeyAuthID)
-}
-
 func TestCreateKeyWithOptionalFields(t *testing.T) {
 	t.Parallel()
 
@@ -171,7 +132,7 @@ func TestCreateKeyWithOptionalFields(t *testing.T) {
 		WorkspaceID: h.Resources().UserWorkspace.ID,
 	})
 
-	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "api.*.create_key")
+	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, rootKeyGrant(h.Resources().UserWorkspace.ID, api.ProjectID, api.KeyAuthID.String, "write"))
 
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
@@ -243,7 +204,7 @@ func TestCreateKeyWithExistingIdentityDoesNotWaitForIdentityWriteLock(t *testing
 		WorkspaceID: workspace.ID,
 		ExternalID:  externalID,
 	})
-	rootKey := h.CreateRootKey(workspace.ID, "api.*.create_key")
+	rootKey := h.CreateRootKey(workspace.ID, rootKeyGrant(workspace.ID, api.ProjectID, api.KeyAuthID.String, "write"))
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
@@ -310,8 +271,8 @@ func TestCreateKeyWithEncryption(t *testing.T) {
 
 	rootKey := h.CreateRootKey(
 		h.Resources().UserWorkspace.ID,
-		"api.*.create_key",
-		"api.*.encrypt_key",
+		rootKeyGrant(h.Resources().UserWorkspace.ID, api.ProjectID, api.KeyAuthID.String, "write"),
+		rootKeyGrant(h.Resources().UserWorkspace.ID, api.ProjectID, api.KeyAuthID.String, "encrypt"),
 	)
 
 	headers := http.Header{
@@ -417,7 +378,7 @@ func TestCreateKeyConcurrentWithSameExternalId(t *testing.T) {
 		WorkspaceID: h.Resources().UserWorkspace.ID,
 	})
 
-	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "api.*.create_key")
+	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, rootKeyGrant(h.Resources().UserWorkspace.ID, api.ProjectID, api.KeyAuthID.String, "write"))
 
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
@@ -497,7 +458,7 @@ func TestCreateKeyWithCreditsRemainingNull(t *testing.T) {
 		WorkspaceID: h.Resources().UserWorkspace.ID,
 	})
 
-	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "api.*.create_key")
+	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, rootKeyGrant(h.Resources().UserWorkspace.ID, api.ProjectID, api.KeyAuthID.String, "write"))
 
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
@@ -699,7 +660,7 @@ func TestCreateKeyWithRolesAndPermissions(t *testing.T) {
 
 	workspaceID := h.Resources().UserWorkspace.ID
 	api := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspaceID})
-	rootKey := h.CreateRootKey(workspaceID, "api.*.create_key")
+	rootKey := h.CreateRootKey(workspaceID, rootKeyGrant(workspaceID, api.ProjectID, api.KeyAuthID.String, "write"))
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},

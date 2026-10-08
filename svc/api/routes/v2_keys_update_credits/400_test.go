@@ -44,7 +44,7 @@ func TestKeyUpdateCreditsBadRequest(t *testing.T) {
 	keyID := keyResponse.KeyID
 
 	// Create root key with read permissions
-	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "api.*.update_key")
+	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, rootKeyGrant(h.Resources().UserWorkspace.ID, api.ProjectID, api.KeyAuthID.String, "*", "write"))
 
 	headers := http.Header{
 		"Content-Type":  {"application/json"},

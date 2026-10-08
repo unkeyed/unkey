@@ -129,16 +129,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	// because the key does not exist until after the operation succeeds. The
 	// tuple legs accept legacy API-scoped grants until those are migrated.
 	err = principal.Authorize(rbac.Or(
-		rbac.T(rbac.Tuple{
-			ResourceType: rbac.Api,
-			ResourceID:   req.ApiId,
-			Action:       rbac.CreateKey,
-		}),
-		rbac.T(rbac.Tuple{
-			ResourceType: rbac.Api,
-			ResourceID:   "*",
-			Action:       rbac.CreateKey,
-		}),
+
 		rbac.U(
 			urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(keySpaceProjectID).Keyspace(api.KeyAuthID.String).Key("*"),
 			permissions.Write,
@@ -221,16 +212,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 
 		err = principal.Authorize(rbac.Or(
-			rbac.T(rbac.Tuple{
-				ResourceType: rbac.Api,
-				ResourceID:   "*",
-				Action:       rbac.EncryptKey,
-			}),
-			rbac.T(rbac.Tuple{
-				ResourceType: rbac.Api,
-				ResourceID:   api.ID,
-				Action:       rbac.EncryptKey,
-			}),
+
 			rbac.U(
 				urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(keySpace.ProjectID).Keyspace(keySpace.ID).Key("*"),
 				permissions.Write,

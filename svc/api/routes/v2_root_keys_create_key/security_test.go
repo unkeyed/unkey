@@ -37,7 +37,6 @@ func TestCreateRejectsBroaderOrInvalidGrantsWithoutWrites(t *testing.T) {
 		{"one keyspace cannot grant all keyspaces", []string{grant}, []string{allKeys}, 403},
 		{"project wildcard cannot grant all projects", []string{"unkey:v1:" + p.AuthorizedWorkspaceID + ":projects/" + api.ProjectID + "/**#decrypt"}, []string{allKeys}, 403},
 		{"narrow grants cannot grant global", []string{grant}, []string{global}, 403},
-		{"legacy star cannot grant portal sessions", []string{"*"}, []string{"unkey:v1:" + p.AuthorizedWorkspaceID + ":projects/" + api.ProjectID + "/portals/portal_one/sessions/*#write"}, 403},
 		{"action must be contained", []string{scope + "/keys/*#read"}, []string{grant}, 403},
 		{"foreign caller scope is rejected", []string{strings.Replace(grant, p.AuthorizedWorkspaceID, foreign.WorkspaceID, 1)}, []string{grant}, 403},
 		{"foreign URN is rejected", []string{global}, []string{strings.Replace(grant, p.AuthorizedWorkspaceID, foreign.WorkspaceID, 1)}, 400},

@@ -32,7 +32,7 @@ func TestValidationErrors(t *testing.T) {
 
 	// Create a workspace and root key
 	workspace := h.Resources().UserWorkspace
-	rootKey := h.CreateRootKey(workspace.ID, "api.*.update_key", "rbac.*.add_permission_to_key")
+	rootKey := h.CreateRootKey(workspace.ID, fmt.Sprintf("unkey:v1:%s:projects/*/keyspaces/*/keys/*#write", workspace.ID))
 
 	// Set up request headers
 	headers := http.Header{
@@ -173,11 +173,12 @@ func TestValidationErrors(t *testing.T) {
 	t.Run("permission missing both id and name", func(t *testing.T) {
 		// Create a permission for valid structure
 		permissionID := uid.New(uid.TestPrefix)
+		permissionSlug := uid.New("documents.read.validation")
 		err = db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
 			PermissionID: permissionID,
 			WorkspaceID:  workspace.ID,
-			Name:         "documents.read.validation",
-			Slug:         "documents.read.validation",
+			Name:         permissionSlug,
+			Slug:         permissionSlug,
 			Description:  dbtype.NullString{Valid: true, String: "Read documents permission"},
 		})
 		require.NoError(t, err)

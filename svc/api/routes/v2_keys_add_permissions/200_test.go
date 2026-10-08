@@ -28,7 +28,7 @@ func TestSuccess(t *testing.T) {
 
 	// Create a workspace and root key
 	workspace := h.Resources().UserWorkspace
-	rootKey := h.CreateRootKey(workspace.ID, "api.*.update_key", "rbac.*.add_permission_to_key", "rbac.*.create_permission")
+	rootKey := h.CreateRootKey(workspace.ID, fmt.Sprintf("unkey:v1:%s:projects/*/keyspaces/*/keys/*#write", workspace.ID))
 
 	// Set up request headers
 	headers := http.Header{
@@ -380,7 +380,7 @@ func TestAddPermissionsConcurrent(t *testing.T) {
 	h.Register(route)
 
 	workspace := h.Resources().UserWorkspace
-	rootKey := h.CreateRootKey(workspace.ID, "api.*.update_key", "rbac.*.add_permission_to_key", "rbac.*.create_permission")
+	rootKey := h.CreateRootKey(workspace.ID, fmt.Sprintf("unkey:v1:%s:projects/*/keyspaces/*/keys/*#write", workspace.ID))
 
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
