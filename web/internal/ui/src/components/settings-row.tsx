@@ -5,6 +5,13 @@ import { cn } from "../lib/utils";
 import { Button } from "./buttons/button";
 import { type GroupSave, type SaveState, resolveGroupSave } from "./settings-save";
 
+const saveButtonClasses = cn(
+  "ml-auto px-3 duration-200 ease-[ease] motion-reduce:transition-none",
+  "disabled:border-transparent disabled:bg-grayA-3 disabled:text-grayA-9",
+  "after:transition-opacity after:duration-200 after:ease-[ease] motion-reduce:after:transition-none",
+  "disabled:after:block disabled:after:opacity-0 aria-disabled:after:block aria-disabled:after:opacity-0",
+);
+
 type Member = {
   dirty: boolean;
   saveState: SaveState;
@@ -107,7 +114,7 @@ function SettingsGroupContent({ className, children, ...props }: React.Component
             <Button
               variant="primary"
               size="sm"
-              className="ml-auto px-3 duration-200 ease-[ease] motion-reduce:transition-none disabled:border-transparent disabled:bg-grayA-3 disabled:text-grayA-9 after:transition-opacity after:duration-200 after:ease-[ease] motion-reduce:after:transition-none disabled:after:block disabled:after:opacity-0 aria-disabled:after:block aria-disabled:after:opacity-0"
+              className={saveButtonClasses}
               disabled={save.status !== "ready"}
               loading={save.status === "saving"}
               onClick={saveReady}
@@ -129,11 +136,9 @@ function SaveStatus({ save }: { save: GroupSave<Member> }) {
     case "saving":
       return null;
     case "blocked":
-      return (
-        <span className="truncate text-xs text-gray-11">
-          {save.reasons.length > 0 ? save.reasons.join(" ") : "Can't save these changes yet"}
-        </span>
-      );
+      return save.reasons.length > 0 ? (
+        <span className="text-xs text-gray-11">{save.reasons.join(" ")}</span>
+      ) : null;
     case "ready":
       return save.submit.length < save.dirty ? (
         <span className="text-xs text-gray-11">
