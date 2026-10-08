@@ -15,7 +15,12 @@ function CopyInput({ className, value, toastMessage = value, ...props }: CopyInp
     <InputGroup data-slot="copy-input" className={className}>
       <InputGroupInput readOnly value={value} className="text-gray-11" {...props} />
       <InputGroupAddon align="inline-end">
-        <CopyButton value={value} variant="ghost" toastMessage={toastMessage} />
+        <CopyButton
+          value={value}
+          variant="ghost"
+          toastMessage={toastMessage}
+          className="text-gray-9 hover:text-gray-12"
+        />
       </InputGroupAddon>
     </InputGroup>
   );

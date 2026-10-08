@@ -8,6 +8,8 @@ import {
   fieldBaseClasses,
   fieldFrameVariants,
   fieldInvalidClasses,
+  fieldReadOnlyClasses,
+  fieldReadOnlyFrameClasses,
   fieldSurfaceClasses,
 } from "./input-group";
 
@@ -17,6 +19,7 @@ const inputVariants = cva(
     "block w-full appearance-none px-[calc(--spacing(3.5)-1px)] py-[calc(--spacing(2.5)-1px)] sm:px-[calc(--spacing(3)-1px)] sm:py-[calc(--spacing(1.5)-1px)]",
     "text-base/6 sm:text-sm/6 placeholder:text-grayA-8 disabled:cursor-not-allowed",
     fieldInvalidClasses,
+    fieldReadOnlyClasses,
   ],
   {
     variants: {
@@ -40,7 +43,10 @@ type InputProps = DocumentedInputProps &
 
 function Input({ className, wrapperClassName, variant, ref, ...props }: InputProps) {
   return (
-    <span data-slot="control" className={cn(fieldFrameVariants({ variant }), wrapperClassName)}>
+    <span
+      data-slot="control"
+      className={cn(fieldFrameVariants({ variant }), fieldReadOnlyFrameClasses, wrapperClassName)}
+    >
       <input ref={ref} className={cn(inputVariants({ variant }), className)} {...props} />
     </span>
   );

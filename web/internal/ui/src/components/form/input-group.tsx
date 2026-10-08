@@ -51,6 +51,11 @@ const fieldSurfaceClasses = {
 
 const fieldInvalidClasses = "aria-invalid:border-error-9 aria-invalid:hover:border-error-10";
 
+const fieldReadOnlyFrameClasses =
+  "has-[[readonly]]:before:bg-grayA-3 has-[[readonly]]:before:shadow-none";
+
+const fieldReadOnlyClasses = "read-only:hover:border-grayA-4 dark:read-only:bg-transparent";
+
 const fieldGroupInvalidClasses =
   "has-aria-invalid:border-error-9 has-aria-invalid:hover:border-error-10";
 
@@ -58,6 +63,8 @@ const inputGroupVariants = cva(
   [
     "flex h-9 w-full items-center has-[textarea]:h-auto has-disabled:cursor-not-allowed",
     "before:inset-0 after:-inset-px",
+    fieldReadOnlyFrameClasses,
+    "has-[[readonly]]:hover:border-grayA-4 dark:has-[[readonly]]:bg-transparent",
     fieldBaseClasses,
     fieldGroupInvalidClasses,
   ],
@@ -168,6 +175,8 @@ export {
   fieldBaseClasses,
   fieldFrameVariants,
   fieldInvalidClasses,
+  fieldReadOnlyClasses,
+  fieldReadOnlyFrameClasses,
   fieldSurfaceClasses,
   type DocumentedInputGroupAddonProps,
   type DocumentedInputGroupProps,

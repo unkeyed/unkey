@@ -5,6 +5,8 @@ import {
   fieldBaseClasses,
   fieldFrameVariants,
   fieldInvalidClasses,
+  fieldReadOnlyClasses,
+  fieldReadOnlyFrameClasses,
   fieldSurfaceClasses,
 } from "./input-group";
 
@@ -14,6 +16,7 @@ const textareaVariants = cva(
     "block min-h-9 w-full appearance-none px-[calc(--spacing(3.5)-1px)] py-[calc(--spacing(2.5)-1px)] sm:px-[calc(--spacing(3)-1px)] sm:py-[calc(--spacing(1.5)-1px)]",
     "text-base/6 sm:text-sm/6 placeholder:text-grayA-8 disabled:cursor-not-allowed",
     fieldInvalidClasses,
+    fieldReadOnlyClasses,
   ],
   {
     variants: {
@@ -37,7 +40,10 @@ type TextareaProps = DocumentedTextareaProps &
 
 function Textarea({ className, wrapperClassName, variant, ref, ...props }: TextareaProps) {
   return (
-    <span data-slot="control" className={cn(fieldFrameVariants({ variant }), wrapperClassName)}>
+    <span
+      data-slot="control"
+      className={cn(fieldFrameVariants({ variant }), fieldReadOnlyFrameClasses, wrapperClassName)}
+    >
       <textarea ref={ref} className={cn(textareaVariants({ variant }), className)} {...props} />
     </span>
   );
