@@ -18,7 +18,7 @@ func FormatError(err error) string {
 	}
 
 	if unauthorized, ok := errors.AsType[*apierrors.UnauthorizedErrorResponse](err); ok {
-		return fmt.Sprintf("Authentication failed: %s\n\nCheck your root key or run 'unkey auth login'", unauthorized.Error_.GetDetail())
+		return fmt.Sprintf("Authentication failed: %s\n\nCheck your root key or run 'unkey login'", unauthorized.Error_.GetDetail())
 	}
 
 	if notFound, ok := errors.AsType[*apierrors.NotFoundErrorResponse](err); ok {

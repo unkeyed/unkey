@@ -192,6 +192,7 @@
                   "platform/cli/overview",
                   "platform/cli/install",
                   "platform/cli/authentication",
+                  "platform/cli/login",
                   "platform/cli/output-and-flags",
                   "platform/cli/auth/login"
                 ]
@@ -1296,6 +1297,10 @@
     {
       "destination": "/api-management/cli/analytics/get-verifications",
       "source": "/cli/analytics/get-verifications"
+    },
+    {
+      "destination": "/platform/cli/login",
+      "source": "/cli/login"
     },
     {
       "destination": "/platform/cli/auth/login",
