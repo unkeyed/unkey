@@ -25,7 +25,7 @@ func TestToResponseError(t *testing.T) {
 	}
 
 	t.Run("failed deployment reports classified error", func(t *testing.T) {
-		got := ToResponse(Input{
+		got := toResponse(Input{
 			Deployment: failedDep,
 			Steps: []db.DeploymentStep{
 				{Step: db.DeploymentStepsStepDeploying, Error: sql.NullString{Valid: true, String: deployfail.MsgNoSchedulableRegions}},
@@ -38,12 +38,12 @@ func TestToResponseError(t *testing.T) {
 	t.Run("non-failed deployment has no error", func(t *testing.T) {
 		readyDep := failedDep
 		readyDep.Status = mysqltype.DeploymentsStatusReady
-		got := ToResponse(Input{Deployment: readyDep})
+		got := toResponse(Input{Deployment: readyDep})
 		require.Nil(t, got.Error)
 	})
 
 	t.Run("nil domains become an empty slice, not null", func(t *testing.T) {
-		got := ToResponse(Input{Deployment: failedDep, Domains: nil})
+		got := toResponse(Input{Deployment: failedDep, Domains: nil})
 		require.NotNil(t, got.Domains)
 		require.Empty(t, *got.Domains)
 	})
@@ -55,12 +55,12 @@ func TestToResponseRegions(t *testing.T) {
 	dep := db.ListDeploymentsRow{ID: uid.New(uid.DeploymentPrefix), Status: mysqltype.DeploymentsStatusReady}
 
 	t.Run("populated regions pass through", func(t *testing.T) {
-		got := ToResponse(Input{Deployment: dep, Regions: []string{"us-east-1", "eu-west-1"}})
+		got := toResponse(Input{Deployment: dep, Regions: []string{"us-east-1", "eu-west-1"}})
 		require.Equal(t, []string{"us-east-1", "eu-west-1"}, got.Regions)
 	})
 
 	t.Run("nil regions become an empty slice, not null", func(t *testing.T) {
-		got := ToResponse(Input{Deployment: dep, Regions: nil})
+		got := toResponse(Input{Deployment: dep, Regions: nil})
 		require.NotNil(t, got.Regions)
 		require.Empty(t, got.Regions)
 	})
@@ -68,7 +68,7 @@ func TestToResponseRegions(t *testing.T) {
 
 func TestToResponseSource(t *testing.T) {
 	t.Run("git-sourced sets git, not OCI compatibility field", func(t *testing.T) {
-		got := ToResponse(Input{Deployment: db.ListDeploymentsRow{
+		got := toResponse(Input{Deployment: db.ListDeploymentsRow{
 			ID:           uid.New(uid.DeploymentPrefix),
 			Source:       db.DeploymentsSourceGit,
 			GitCommitSha: sql.NullString{Valid: true, String: "9f2c1a7d3b"},
@@ -86,7 +86,7 @@ func TestToResponseSource(t *testing.T) {
 	})
 
 	t.Run("OCI-sourced sets compatibility field, not git", func(t *testing.T) {
-		got := ToResponse(Input{Deployment: db.ListDeploymentsRow{
+		got := toResponse(Input{Deployment: db.ListDeploymentsRow{
 			ID:             uid.New(uid.DeploymentPrefix),
 			Source:         db.DeploymentsSourceOci,
 			ImageRequested: sql.NullString{Valid: true, String: "ghcr.io/acme/api:v1.2.3"},
@@ -100,7 +100,7 @@ func TestToResponseSource(t *testing.T) {
 	})
 
 	t.Run("unresolved OCI image omits resolvedImage", func(t *testing.T) {
-		got := ToResponse(Input{Deployment: db.ListDeploymentsRow{
+		got := toResponse(Input{Deployment: db.ListDeploymentsRow{
 			ID:             uid.New(uid.DeploymentPrefix),
 			Source:         db.DeploymentsSourceOci,
 			ImageRequested: sql.NullString{Valid: true, String: "ghcr.io/acme/api:v1.2.3"},
@@ -110,7 +110,7 @@ func TestToResponseSource(t *testing.T) {
 	})
 
 	t.Run("git metadata passes through", func(t *testing.T) {
-		got := ToResponse(Input{Deployment: db.ListDeploymentsRow{
+		got := toResponse(Input{Deployment: db.ListDeploymentsRow{
 			ID:                       uid.New(uid.DeploymentPrefix),
 			Source:                   db.DeploymentsSourceGit,
 			GitCommitSha:             sql.NullString{Valid: true, String: "9f2c1a7d3b"},
@@ -133,7 +133,7 @@ func TestToResponseSource(t *testing.T) {
 	})
 
 	t.Run("resolved image is used when requested image is absent", func(t *testing.T) {
-		got := ToResponse(Input{Deployment: db.ListDeploymentsRow{
+		got := toResponse(Input{Deployment: db.ListDeploymentsRow{
 			ID:            uid.New(uid.DeploymentPrefix),
 			Source:        db.DeploymentsSourceOci,
 			ImageResolved: sql.NullString{Valid: true, String: "ghcr.io/acme/api@sha256:resolved"},
@@ -143,7 +143,7 @@ func TestToResponseSource(t *testing.T) {
 	})
 
 	t.Run("invalid requested image falls back to resolved image", func(t *testing.T) {
-		got := ToResponse(Input{Deployment: db.ListDeploymentsRow{
+		got := toResponse(Input{Deployment: db.ListDeploymentsRow{
 			ID:             uid.New(uid.DeploymentPrefix),
 			Source:         db.DeploymentsSourceOci,
 			ImageRequested: sql.NullString{Valid: false, String: "ghcr.io/acme/api:invalid"},
@@ -154,7 +154,7 @@ func TestToResponseSource(t *testing.T) {
 	})
 
 	t.Run("git without metadata omits optional fields", func(t *testing.T) {
-		got := ToResponse(Input{Deployment: db.ListDeploymentsRow{
+		got := toResponse(Input{Deployment: db.ListDeploymentsRow{
 			ID:           uid.New(uid.DeploymentPrefix),
 			Source:       db.DeploymentsSourceGit,
 			GitCommitSha: sql.NullString{Valid: true, String: "abc"},
@@ -163,7 +163,7 @@ func TestToResponseSource(t *testing.T) {
 	})
 
 	t.Run("unknown source remains neutral", func(t *testing.T) {
-		got := ToResponse(Input{Deployment: db.ListDeploymentsRow{
+		got := toResponse(Input{Deployment: db.ListDeploymentsRow{
 			ID:             uid.New(uid.DeploymentPrefix),
 			GitCommitSha:   sql.NullString{Valid: true, String: "abc"},
 			Source:         db.DeploymentsSourceUnknown,
@@ -175,7 +175,7 @@ func TestToResponseSource(t *testing.T) {
 	})
 
 	t.Run("unsupported source remains neutral", func(t *testing.T) {
-		got := ToResponse(Input{Deployment: db.ListDeploymentsRow{
+		got := toResponse(Input{Deployment: db.ListDeploymentsRow{
 			ID:             uid.New(uid.DeploymentPrefix),
 			Source:         db.DeploymentsSource("future_source"),
 			GitCommitSha:   sql.NullString{Valid: true, String: "abc"},
@@ -199,21 +199,21 @@ func TestToResponseIsCurrent(t *testing.T) {
 	}
 
 	t.Run("app points here", func(t *testing.T) {
-		got := ToResponse(Input{Deployment: dep, State: current(dep.ID)})
+		got := toResponse(Input{Deployment: dep, State: current(dep.ID)})
 		require.True(t, got.IsCurrent)
 	})
 	t.Run("app points here even when rolled back (still serves traffic)", func(t *testing.T) {
 		state := current(dep.ID)
 		state.AppIsRolledBack = true
-		got := ToResponse(Input{Deployment: dep, State: state})
+		got := toResponse(Input{Deployment: dep, State: state})
 		require.True(t, got.IsCurrent)
 	})
 	t.Run("app points elsewhere", func(t *testing.T) {
-		got := ToResponse(Input{Deployment: dep, State: current(uid.New(uid.DeploymentPrefix))})
+		got := toResponse(Input{Deployment: dep, State: current(uid.New(uid.DeploymentPrefix))})
 		require.False(t, got.IsCurrent)
 	})
 	t.Run("app has no current deployment", func(t *testing.T) {
-		got := ToResponse(Input{Deployment: dep, State: current("")})
+		got := toResponse(Input{Deployment: dep, State: current("")})
 		require.False(t, got.IsCurrent)
 	})
 }
@@ -240,7 +240,7 @@ func TestToResponseTrigger(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			got := ToResponse(Input{Deployment: db.ListDeploymentsRow{
+			got := toResponse(Input{Deployment: db.ListDeploymentsRow{
 				ID:          uid.New(uid.DeploymentPrefix),
 				Trigger:     tc.trigger,
 				TriggeredBy: tc.triggeredBy,
@@ -274,7 +274,7 @@ func TestToResponseFinishedAt(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			got := ToResponse(Input{Deployment: db.ListDeploymentsRow{ID: uid.New(uid.DeploymentPrefix), Status: tc.status}, Steps: tc.steps})
+			got := toResponse(Input{Deployment: db.ListDeploymentsRow{ID: uid.New(uid.DeploymentPrefix), Status: tc.status}, Steps: tc.steps})
 			require.Equal(t, tc.want, got.FinishedAt)
 		})
 	}

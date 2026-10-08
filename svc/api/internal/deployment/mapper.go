@@ -1,6 +1,8 @@
 package deployment
 
 import (
+	"context"
+	"database/sql"
 	"strings"
 
 	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
@@ -19,7 +21,67 @@ type Input struct {
 	Domains    []string
 }
 
-func ToResponse(in Input) openapi.Deployment {
+func ToResponse(ctx context.Context, database db.DBTX, workspaceID string, row db.ListDeploymentsRow) (openapi.Deployment, error) {
+	responses, err := ToResponses(ctx, database, workspaceID, []db.ListDeploymentsRow{row})
+	if err != nil {
+		return openapi.Deployment{}, err //nolint:exhaustruct // no response on error
+	}
+	return responses[0], nil
+}
+
+// ToResponses loads the state, steps, regions, and domains of rows in four
+// queries, whatever the number of rows, and maps each row to its response
+func ToResponses(ctx context.Context, database db.DBTX, workspaceID string, rows []db.ListDeploymentsRow) ([]openapi.Deployment, error) {
+	if len(rows) == 0 {
+		return []openapi.Deployment{}, nil
+	}
+	ids := make([]string, len(rows))
+	for i, row := range rows {
+		ids[i] = row.ID
+	}
+
+	states, err := db.Query.ListDeploymentEnvAndAppState(ctx, database, db.ListDeploymentEnvAndAppStateParams{WorkspaceID: workspaceID, DeploymentIds: ids})
+	if err != nil {
+		return nil, err
+	}
+	steps, err := db.Query.ListDeploymentStepsByIds(ctx, database, db.ListDeploymentStepsByIdsParams{WorkspaceID: workspaceID, DeploymentIds: ids})
+	if err != nil {
+		return nil, err
+	}
+	regions, err := db.Query.ListDeploymentRegionsByIds(ctx, database, db.ListDeploymentRegionsByIdsParams{WorkspaceID: workspaceID, DeploymentIds: ids})
+	if err != nil {
+		return nil, err
+	}
+	domains, err := db.Query.ListDeploymentDomainsByIds(ctx, database, db.ListDeploymentDomainsByIdsParams{WorkspaceID: workspaceID, DeploymentIds: ids})
+	if err != nil {
+		return nil, err
+	}
+
+	inputs := make(map[string]*Input, len(rows))
+	for _, row := range rows {
+		inputs[row.ID] = &Input{Deployment: row, State: db.ListDeploymentEnvAndAppStateRow{}, Steps: nil, Regions: nil, Domains: nil} //nolint:exhaustruct // zero state when the join misses
+	}
+	for _, s := range states {
+		inputs[s.DeploymentID].State = s
+	}
+	for _, s := range steps {
+		inputs[s.DeploymentID].Steps = append(inputs[s.DeploymentID].Steps, s)
+	}
+	for _, r := range regions {
+		inputs[r.DeploymentID].Regions = append(inputs[r.DeploymentID].Regions, r.Region)
+	}
+	for _, d := range domains {
+		inputs[d.DeploymentID].Domains = append(inputs[d.DeploymentID].Domains, d.Domain)
+	}
+
+	responses := make([]openapi.Deployment, len(rows))
+	for i, row := range rows {
+		responses[i] = toResponse(*inputs[row.ID])
+	}
+	return responses, nil
+}
+
+func toResponse(in Input) openapi.Deployment {
 	d := in.Deployment
 
 	command := []string(d.Command)
@@ -84,34 +146,19 @@ func ToResponse(in Input) openapi.Deployment {
 		if d.GitCommitSha.Valid && d.GitCommitSha.String != "" {
 			git := openapi.DeploymentGit{
 				CommitSha:              d.GitCommitSha.String,
-				Branch:                 nil,
-				CommitMessage:          nil,
+				Branch:                 optionalString(d.GitBranch),
+				CommitMessage:          optionalString(d.GitCommitMessage),
 				CommitTimestamp:        nil,
-				AuthorHandle:           nil,
-				AuthorAvatarUrl:        nil,
+				AuthorHandle:           optionalString(d.GitCommitAuthorHandle),
+				AuthorAvatarUrl:        optionalString(d.GitCommitAuthorAvatarUrl),
 				PrNumber:               nil,
-				ForkRepositoryFullName: nil,
-			}
-			if d.GitBranch.Valid && d.GitBranch.String != "" {
-				git.Branch = new(d.GitBranch.String)
-			}
-			if d.GitCommitMessage.Valid && d.GitCommitMessage.String != "" {
-				git.CommitMessage = new(d.GitCommitMessage.String)
+				ForkRepositoryFullName: optionalString(d.ForkRepositoryFullName),
 			}
 			if d.GitCommitTimestamp.Valid && d.GitCommitTimestamp.Int64 > 0 {
 				git.CommitTimestamp = new(d.GitCommitTimestamp.Int64)
 			}
-			if d.GitCommitAuthorHandle.Valid && d.GitCommitAuthorHandle.String != "" {
-				git.AuthorHandle = new(d.GitCommitAuthorHandle.String)
-			}
-			if d.GitCommitAuthorAvatarUrl.Valid && d.GitCommitAuthorAvatarUrl.String != "" {
-				git.AuthorAvatarUrl = new(d.GitCommitAuthorAvatarUrl.String)
-			}
 			if d.PrNumber.Valid && d.PrNumber.Int64 > 0 {
 				git.PrNumber = new(int(d.PrNumber.Int64))
-			}
-			if d.ForkRepositoryFullName.Valid && d.ForkRepositoryFullName.String != "" {
-				git.ForkRepositoryFullName = new(d.ForkRepositoryFullName.String)
 			}
 			dep.Git = &git
 		}
@@ -121,11 +168,7 @@ func ToResponse(in Input) openapi.Deployment {
 			image = d.ImageResolved
 		}
 		if image.Valid && image.String != "" {
-			docker := openapi.DeploymentDocker{Image: image.String, ResolvedImage: nil}
-			if d.ImageResolved.Valid && d.ImageResolved.String != "" {
-				docker.ResolvedImage = new(d.ImageResolved.String)
-			}
-			dep.Docker = &docker
+			dep.Docker = &openapi.DeploymentDocker{Image: image.String, ResolvedImage: optionalString(d.ImageResolved)}
 		}
 	case db.DeploymentsSourceUnknown:
 	}
@@ -201,4 +244,11 @@ func finishedAt(status mysqltype.DeploymentsStatus, steps []db.DeploymentStep) *
 		return nil
 	}
 	return new(latest)
+}
+
+func optionalString(v sql.NullString) *string {
+	if !v.Valid || v.String == "" {
+		return nil
+	}
+	return new(v.String)
 }

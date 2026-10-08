@@ -10,51 +10,6 @@ import (
 	"strings"
 )
 
-const listDeploymentRegions = `-- name: ListDeploymentRegions :many
-SELECT DISTINCT r.name AS region
-FROM deployment_topology dt
-JOIN regions r ON dt.region_id = r.id
-WHERE dt.workspace_id = ?
-  AND dt.deployment_id = ?
-ORDER BY r.name
-`
-
-type ListDeploymentRegionsParams struct {
-	WorkspaceID  string `db:"workspace_id"`
-	DeploymentID string `db:"deployment_id"`
-}
-
-// ListDeploymentRegions
-//
-//	SELECT DISTINCT r.name AS region
-//	FROM deployment_topology dt
-//	JOIN regions r ON dt.region_id = r.id
-//	WHERE dt.workspace_id = ?
-//	  AND dt.deployment_id = ?
-//	ORDER BY r.name
-func (q *Queries) ListDeploymentRegions(ctx context.Context, db DBTX, arg ListDeploymentRegionsParams) ([]string, error) {
-	rows, err := db.QueryContext(ctx, listDeploymentRegions, arg.WorkspaceID, arg.DeploymentID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []string
-	for rows.Next() {
-		var region string
-		if err := rows.Scan(&region); err != nil {
-			return nil, err
-		}
-		items = append(items, region)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
 const listDeploymentRegionsByIds = `-- name: ListDeploymentRegionsByIds :many
 SELECT DISTINCT dt.deployment_id AS deployment_id, r.name AS region
 FROM deployment_topology dt

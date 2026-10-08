@@ -334,8 +334,10 @@ func TestListDeployments_ScopedURNGetsRequestErrors(t *testing.T) {
 	rootKey := h.CreateRootKey(setup.Workspace.ID, deploymentPermission(setup.Workspace.ID, setup.Project.ID, "*", "*", "*", "read"))
 
 	for name, req := range map[string]handler.Request{
-		"branch without app": {Project: rid(setup.Project.ID), Branch: &[]string{"main"}},
-		"empty time range":   {Project: rid(setup.Project.ID), StartTime: new(int64(2)), EndTime: new(int64(1))},
+		"app without project":     {App: rid(setup.App.ID)},
+		"environment without app": {Project: rid(setup.Project.ID), Environment: rid(setup.Environment.ID)},
+		"branch without app":      {Project: rid(setup.Project.ID), Branch: &[]string{"main"}},
+		"empty time range":        {Project: rid(setup.Project.ID), StartTime: new(int64(2)), EndTime: new(int64(1))},
 	} {
 		t.Run(name, func(t *testing.T) {
 			res := testutil.CallRoute[handler.Request, map[string]any](h, route, authHeaders(rootKey), req)

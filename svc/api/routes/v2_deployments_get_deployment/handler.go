@@ -43,7 +43,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	dep, err := db.Query.FindDeploymentById(ctx, h.DB.RO(), req.DeploymentId)
+	dep, err := db.Query.FindDeploymentByIdAndWorkspace(ctx, h.DB.RO(), db.FindDeploymentByIdAndWorkspaceParams{
+		ID:          req.DeploymentId,
+		WorkspaceID: principal.AuthorizedWorkspaceID,
+	})
 	if err != nil && !db.IsNotFound(err) {
 		return fault.Wrap(
 			err,
@@ -52,10 +55,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			fault.Public("Failed to retrieve deployment."),
 		)
 	}
-
-	// FindDeploymentById is not workspace-scoped, so a match in another workspace
-	// is masked as not found to avoid leaking a deployment's existence.
-	if db.IsNotFound(err) || dep.WorkspaceID != principal.AuthorizedWorkspaceID {
+	if db.IsNotFound(err) {
 		return fault.New(
 			"deployment not found",
 			fault.Code(codes.Data.Deployment.NotFound.URN()),
@@ -77,53 +77,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	states, err := db.Query.ListDeploymentEnvAndAppState(ctx, h.DB.RO(), db.ListDeploymentEnvAndAppStateParams{
-		WorkspaceID:   principal.AuthorizedWorkspaceID,
-		DeploymentIds: []string{dep.ID},
-	})
-	if err != nil {
-		return fault.Wrap(
-			err,
-			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Internal("database error"),
-			fault.Public("Failed to retrieve deployment."),
-		)
-	}
-	var state db.ListDeploymentEnvAndAppStateRow //nolint:exhaustruct // zero value when the join misses
-	if len(states) > 0 {
-		state = states[0]
-	}
-
-	steps, err := db.Query.ListDeploymentStepsByIds(ctx, h.DB.RO(), db.ListDeploymentStepsByIdsParams{
-		WorkspaceID:   principal.AuthorizedWorkspaceID,
-		DeploymentIds: []string{dep.ID},
-	})
-	if err != nil {
-		return fault.Wrap(
-			err,
-			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Internal("database error"),
-			fault.Public("Failed to retrieve deployment."),
-		)
-	}
-
-	domains, err := db.Query.ListDeploymentDomains(ctx, h.DB.RO(), db.ListDeploymentDomainsParams{
-		WorkspaceID:  principal.AuthorizedWorkspaceID,
-		DeploymentID: dep.ID,
-	})
-	if err != nil {
-		return fault.Wrap(
-			err,
-			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Internal("database error"),
-			fault.Public("Failed to retrieve deployment."),
-		)
-	}
-
-	regions, err := db.Query.ListDeploymentRegions(ctx, h.DB.RO(), db.ListDeploymentRegionsParams{
-		WorkspaceID:  principal.AuthorizedWorkspaceID,
-		DeploymentID: dep.ID,
-	})
+	data, err := deployment.ToResponse(ctx, h.DB.RO(), principal.AuthorizedWorkspaceID, db.ListDeploymentsRow(dep))
 	if err != nil {
 		return fault.Wrap(
 			err,
@@ -137,39 +91,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		Meta: openapi.Meta{
 			RequestId: s.RequestID(),
 		},
-		Data: deployment.ToResponse(deployment.Input{
-			Deployment: db.ListDeploymentsRow{
-				ID:                       dep.ID,
-				Source:                   dep.Source,
-				ImageRequested:           dep.ImageRequested,
-				ImageResolved:            dep.ImageResolved,
-				GitCommitSha:             dep.GitCommitSha,
-				GitBranch:                dep.GitBranch,
-				GitCommitMessage:         dep.GitCommitMessage,
-				GitCommitAuthorHandle:    dep.GitCommitAuthorHandle,
-				GitCommitAuthorAvatarUrl: dep.GitCommitAuthorAvatarUrl,
-				GitCommitTimestamp:       dep.GitCommitTimestamp,
-				CpuMillicores:            dep.CpuMillicores,
-				MemoryMib:                dep.MemoryMib,
-				StorageMib:               dep.StorageMib,
-				DesiredState:             dep.DesiredState,
-				Command:                  dep.Command,
-				Port:                     dep.Port,
-				ShutdownSignal:           dep.ShutdownSignal,
-				UpstreamProtocol:         dep.UpstreamProtocol,
-				Healthcheck:              dep.Healthcheck,
-				PrNumber:                 dep.PrNumber,
-				ForkRepositoryFullName:   dep.ForkRepositoryFullName,
-				Status:                   dep.Status,
-				Trigger:                  dep.Trigger,
-				TriggeredBy:              dep.TriggeredBy,
-				CreatedAt:                dep.CreatedAt,
-				UpdatedAt:                dep.UpdatedAt,
-			},
-			State:   state,
-			Steps:   steps,
-			Regions: regions,
-			Domains: domains,
-		}),
+		Data: data,
 	})
 }

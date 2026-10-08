@@ -15,7 +15,7 @@ import (
 )
 
 const listDeployments = `-- name: ListDeployments :many
-SELECT d.id, d.source, d.image_requested, d.image_resolved, d.git_commit_sha, d.git_branch, d.git_commit_message, d.git_commit_author_handle, d.git_commit_author_avatar_url, d.git_commit_timestamp, d.cpu_millicores, d.memory_mib, d.storage_mib, d.desired_state, d.command, d.port, d.shutdown_signal, d.upstream_protocol, d.healthcheck, d.pr_number, d.fork_repository_full_name, d.status, d.` + "`" + `trigger` + "`" + `, d.triggered_by, d.created_at, d.updated_at FROM ` + "`" + `deployments` + "`" + ` d
+SELECT d.id, d.project_id, d.app_id, d.environment_id, d.source, d.image_requested, d.image_resolved, d.git_commit_sha, d.git_branch, d.git_commit_message, d.git_commit_author_handle, d.git_commit_author_avatar_url, d.git_commit_timestamp, d.cpu_millicores, d.memory_mib, d.storage_mib, d.desired_state, d.command, d.port, d.shutdown_signal, d.upstream_protocol, d.healthcheck, d.pr_number, d.fork_repository_full_name, d.status, d.` + "`" + `trigger` + "`" + `, d.triggered_by, d.created_at, d.updated_at FROM ` + "`" + `deployments` + "`" + ` d
 WHERE d.workspace_id = ?
   AND (? = '' OR d.project_id = ?)
   AND (? = '' OR d.app_id = ?)
@@ -58,6 +58,9 @@ type ListDeploymentsParams struct {
 
 type ListDeploymentsRow struct {
 	ID                       string                            `db:"id"`
+	ProjectID                string                            `db:"project_id"`
+	AppID                    string                            `db:"app_id"`
+	EnvironmentID            string                            `db:"environment_id"`
 	Source                   DeploymentsSource                 `db:"source"`
 	ImageRequested           sql.NullString                    `db:"image_requested"`
 	ImageResolved            sql.NullString                    `db:"image_resolved"`
@@ -87,15 +90,11 @@ type ListDeploymentsRow struct {
 
 // has_status_filter and has_branch_filter gate their clauses; without them sqlc
 // renders an empty set as IN (NULL), which matches nothing.
-// Rows come newest first by created_at, the time the dashboard sorts and filters
-// by. pk is insertion order and can disagree with created_at, which would make
-// pages under a time filter skip or repeat rows, so pk only breaks ties within a
-// millisecond. The cursor names a deployment and resumes at its
-// (created_at, pk), inclusive. MySQL cannot range-scan a row comparison, so the
-// separate created_at bound lets the (app|project|workspace, created_at) index
-// seek to the cursor instead of walking every newer row
+// Newest first; pk breaks ties within a millisecond. The cursor resumes at its
+// row's (created_at, pk), inclusive. The plain created_at bound lets the index
+// seek, MySQL cannot range-scan the row comparison
 //
-//	SELECT d.id, d.source, d.image_requested, d.image_resolved, d.git_commit_sha, d.git_branch, d.git_commit_message, d.git_commit_author_handle, d.git_commit_author_avatar_url, d.git_commit_timestamp, d.cpu_millicores, d.memory_mib, d.storage_mib, d.desired_state, d.command, d.port, d.shutdown_signal, d.upstream_protocol, d.healthcheck, d.pr_number, d.fork_repository_full_name, d.status, d.`trigger`, d.triggered_by, d.created_at, d.updated_at FROM `deployments` d
+//	SELECT d.id, d.project_id, d.app_id, d.environment_id, d.source, d.image_requested, d.image_resolved, d.git_commit_sha, d.git_branch, d.git_commit_message, d.git_commit_author_handle, d.git_commit_author_avatar_url, d.git_commit_timestamp, d.cpu_millicores, d.memory_mib, d.storage_mib, d.desired_state, d.command, d.port, d.shutdown_signal, d.upstream_protocol, d.healthcheck, d.pr_number, d.fork_repository_full_name, d.status, d.`trigger`, d.triggered_by, d.created_at, d.updated_at FROM `deployments` d
 //	WHERE d.workspace_id = ?
 //	  AND (? = '' OR d.project_id = ?)
 //	  AND (? = '' OR d.app_id = ?)
@@ -167,6 +166,9 @@ func (q *Queries) ListDeployments(ctx context.Context, db DBTX, arg ListDeployme
 		var i ListDeploymentsRow
 		if err := rows.Scan(
 			&i.ID,
+			&i.ProjectID,
+			&i.AppID,
+			&i.EnvironmentID,
 			&i.Source,
 			&i.ImageRequested,
 			&i.ImageResolved,
