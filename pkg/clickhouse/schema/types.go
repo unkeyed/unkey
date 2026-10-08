@@ -2,6 +2,7 @@ package schema
 
 import (
 	"encoding/json"
+	"time"
 )
 
 // Source values identify where a [KeyVerification] originated. Billing
@@ -409,4 +410,95 @@ type LogdrainDeliveryV1 struct {
 	ResponseStatus    int32  `ch:"response_status" json:"response_status"`
 	ResponseBody      string `ch:"response_body" json:"response_body"`
 	Error             string `ch:"error" json:"error"`
+}
+
+// RuntimeLogV1 represents one customer deployment log line in
+// runtime_logs_raw_v1. Vector is the only production writer of this table;
+// Go code uses this struct to seed tests and backfills. ClickHouse assigns
+// inserted_at and expires_at, and materializes attributes_text.
+//
+//unkey:table default.runtime_logs_raw_v1
+type RuntimeLogV1 struct {
+	Time          int64  `ch:"time" json:"time"`
+	LogID         string `ch:"log_id" json:"log_id"`
+	Severity      string `ch:"severity" json:"severity"`
+	Message       string `ch:"message" json:"message"`
+	WorkspaceID   string `ch:"workspace_id" json:"workspace_id"`
+	ProjectID     string `ch:"project_id" json:"project_id"`
+	EnvironmentID string `ch:"environment_id" json:"environment_id"`
+	AppID         string `ch:"app_id" json:"app_id"`
+	DeploymentID  string `ch:"deployment_id" json:"deployment_id"`
+	K8sPodName    string `ch:"k8s_pod_name" json:"k8s_pod_name"`
+	Region        string `ch:"region" json:"region"`
+	Platform      string `ch:"platform" json:"platform"`
+	// Attributes must hold a JSON object. Use {} for a log without
+	// attributes because ClickHouse cannot parse an empty value as JSON.
+	Attributes json.RawMessage `ch:"attributes" json:"attributes"`
+}
+
+// InstanceUsagePerHourV1 is a partial row of instance_usage_per_hour_v1.
+// Refreshable materialized views are the only production writers of this
+// table; tests use this struct to seed hourly usage directly. Omitted columns
+// take their server defaults.
+//
+//unkey:table default.instance_usage_per_hour_v1
+type InstanceUsagePerHourV1 struct {
+	Time                     time.Time `ch:"time" json:"time"`
+	WorkspaceID              string    `ch:"workspace_id" json:"workspace_id"`
+	ProjectID                string    `ch:"project_id" json:"project_id"`
+	AppID                    string    `ch:"app_id" json:"app_id"`
+	EnvironmentID            string    `ch:"environment_id" json:"environment_id"`
+	ResourceType             string    `ch:"resource_type" json:"resource_type"`
+	ResourceID               string    `ch:"resource_id" json:"resource_id"`
+	ContainerUID             string    `ch:"container_uid" json:"container_uid"`
+	InstanceID               string    `ch:"instance_id" json:"instance_id"`
+	CPUSeconds               float64   `ch:"cpu_seconds" json:"cpu_seconds"`
+	MemoryGiBHours           float64   `ch:"memory_gib_hours" json:"memory_gib_hours"`
+	DiskGiBHours             float64   `ch:"disk_gib_hours" json:"disk_gib_hours"`
+	NetworkEgressPublicBytes int64     `ch:"network_egress_public_bytes" json:"network_egress_public_bytes"`
+}
+
+// KeyVerificationsPerMonthV3 is a partial row of key_verifications_per_month_v3.
+// Materialized views are the only production writers of this table; tests use
+// this struct to seed monthly aggregates directly. Omitted columns, including
+// the latency aggregate states, take their server defaults.
+//
+//unkey:table default.key_verifications_per_month_v3
+type KeyVerificationsPerMonthV3 struct {
+	Time        time.Time `ch:"time" json:"time"`
+	WorkspaceID string    `ch:"workspace_id" json:"workspace_id"`
+	KeySpaceID  string    `ch:"key_space_id" json:"key_space_id"`
+	IdentityID  string    `ch:"identity_id" json:"identity_id"`
+	ExternalID  string    `ch:"external_id" json:"external_id"`
+	KeyID       string    `ch:"key_id" json:"key_id"`
+	Outcome     string    `ch:"outcome" json:"outcome"`
+	Source      string    `ch:"source" json:"source"`
+	AppID       string    `ch:"app_id" json:"app_id"`
+	Tags        []string  `ch:"tags" json:"tags"`
+	Count       int64     `ch:"count" json:"count"`
+}
+
+// BillableVerificationsPerMonthV2 is one row of
+// billable_verifications_per_month_v2. A materialized view is the only
+// production writer of this table; tests use this struct to seed billable
+// counts directly.
+//
+//unkey:table default.billable_verifications_per_month_v2
+type BillableVerificationsPerMonthV2 struct {
+	Year        int16  `ch:"year" json:"year"`
+	Month       int8   `ch:"month" json:"month"`
+	WorkspaceID string `ch:"workspace_id" json:"workspace_id"`
+	Count       int64  `ch:"count" json:"count"`
+}
+
+// BillableRatelimitsPerMonthV2 is one row of billable_ratelimits_per_month_v2.
+// A materialized view is the only production writer of this table; tests use
+// this struct to seed billable counts directly.
+//
+//unkey:table default.billable_ratelimits_per_month_v2
+type BillableRatelimitsPerMonthV2 struct {
+	Year        int16  `ch:"year" json:"year"`
+	Month       int8   `ch:"month" json:"month"`
+	WorkspaceID string `ch:"workspace_id" json:"workspace_id"`
+	Count       int64  `ch:"count" json:"count"`
 }

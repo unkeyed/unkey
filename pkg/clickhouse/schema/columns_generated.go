@@ -101,3 +101,53 @@ func (LogdrainDeliveryV1) Table() string {
 func (LogdrainDeliveryV1) InsertColumns() string {
 	return "`workspace_id`, `drain_id`, `stream`, `time`, `outcome`, `events`, `webhook_duration_ms`, `request_body_bytes`, `response_status`, `response_body`, `error`"
 }
+
+// Table implements [Row].
+func (RuntimeLogV1) Table() string {
+	return "default.runtime_logs_raw_v1"
+}
+
+// InsertColumns implements [Row]; derived from RuntimeLogV1's ch tags.
+func (RuntimeLogV1) InsertColumns() string {
+	return "`time`, `log_id`, `severity`, `message`, `workspace_id`, `project_id`, `environment_id`, `app_id`, `deployment_id`, `k8s_pod_name`, `region`, `platform`, `attributes`"
+}
+
+// Table implements [Row].
+func (InstanceUsagePerHourV1) Table() string {
+	return "default.instance_usage_per_hour_v1"
+}
+
+// InsertColumns implements [Row]; derived from InstanceUsagePerHourV1's ch tags.
+func (InstanceUsagePerHourV1) InsertColumns() string {
+	return "`time`, `workspace_id`, `project_id`, `app_id`, `environment_id`, `resource_type`, `resource_id`, `container_uid`, `instance_id`, `cpu_seconds`, `memory_gib_hours`, `disk_gib_hours`, `network_egress_public_bytes`"
+}
+
+// Table implements [Row].
+func (KeyVerificationsPerMonthV3) Table() string {
+	return "default.key_verifications_per_month_v3"
+}
+
+// InsertColumns implements [Row]; derived from KeyVerificationsPerMonthV3's ch tags.
+func (KeyVerificationsPerMonthV3) InsertColumns() string {
+	return "`time`, `workspace_id`, `key_space_id`, `identity_id`, `external_id`, `key_id`, `outcome`, `source`, `app_id`, `tags`, `count`"
+}
+
+// Table implements [Row].
+func (BillableVerificationsPerMonthV2) Table() string {
+	return "default.billable_verifications_per_month_v2"
+}
+
+// InsertColumns implements [Row]; derived from BillableVerificationsPerMonthV2's ch tags.
+func (BillableVerificationsPerMonthV2) InsertColumns() string {
+	return "`year`, `month`, `workspace_id`, `count`"
+}
+
+// Table implements [Row].
+func (BillableRatelimitsPerMonthV2) Table() string {
+	return "default.billable_ratelimits_per_month_v2"
+}
+
+// InsertColumns implements [Row]; derived from BillableRatelimitsPerMonthV2's ch tags.
+func (BillableRatelimitsPerMonthV2) InsertColumns() string {
+	return "`year`, `month`, `workspace_id`, `count`"
+}

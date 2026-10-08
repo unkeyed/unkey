@@ -2,6 +2,7 @@ package cron_test
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"sync"
 	"testing"
@@ -15,6 +16,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/ctrl/integration/harness"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/billingmeter"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/invoicecloser"
 )
 
@@ -275,19 +277,20 @@ func (f *fakeCloser) didFinalize(invoiceID string) bool {
 func seedBillableWorkspace(t *testing.T, h *harness.Harness, customerID, subscriptionID string) string {
 	t.Helper()
 	ws := h.Seed.CreateWorkspace(h.Ctx)
-	_, err := h.DB.RW().ExecContext(
-		h.Ctx,
-		"UPDATE workspace_billing SET plan = ?, stripe_customer_id = ? WHERE workspace_id = ?",
-		"pro", customerID, ws.ID,
-	)
-	require.NoError(t, err)
+	require.NoError(t, h.DB.SetWorkspaceDeployPlan(h.Ctx, db.SetWorkspaceDeployPlanParams{
+		Plan:        sql.NullString{Valid: true, String: "pro"},
+		WorkspaceID: ws.ID,
+	}))
+	require.NoError(t, h.DB.SetWorkspaceStripeCustomerId(h.Ctx, db.SetWorkspaceStripeCustomerIdParams{
+		StripeCustomerID: sql.NullString{Valid: true, String: customerID},
+		WorkspaceID:      ws.ID,
+	}))
 	if subscriptionID != "" {
-		_, err = h.DB.RW().ExecContext(
-			h.Ctx,
-			"INSERT INTO billing_subscriptions (workspace_id, product, stripe_subscription_id) VALUES (?, 'compute', ?)",
-			ws.ID, subscriptionID,
-		)
-		require.NoError(t, err)
+		require.NoError(t, h.DB.InsertBillingSubscription(h.Ctx, db.InsertBillingSubscriptionParams{
+			WorkspaceID:          ws.ID,
+			Product:              db.BillingSubscriptionsProductCompute,
+			StripeSubscriptionID: subscriptionID,
+		}))
 	}
 	return ws.ID
 }

@@ -140,10 +140,12 @@ func TestUpdateSettingsRejectsAmbiguousRegionNames(t *testing.T) {
 			env := seedEnvironment(t, h)
 			regionName := uid.New("local")
 			seedRegions(t, h, regionName)
-			_, err := h.DB.RW().ExecContext(ctx,
-				"INSERT INTO regions (id, name, platform, can_schedule) VALUES (?, ?, 'dev', ?)",
-				uid.New(uid.RegionPrefix), regionName, canSchedule)
-			require.NoError(t, err)
+			require.NoError(t, db.Query.UpsertRegionWithCanSchedule(ctx, h.DB.RW(), db.UpsertRegionWithCanScheduleParams{
+				ID:          uid.New(uid.RegionPrefix),
+				Name:        regionName,
+				Platform:    "dev",
+				CanSchedule: canSchedule,
+			}))
 
 			rootKey := h.CreateRootKey(env.workspaceID, "environment.*.update_environment")
 			res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, authHeaders(rootKey), handler.Request{

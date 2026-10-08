@@ -2,12 +2,15 @@ package handler
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/clickhouse"
+	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 )
@@ -38,14 +41,13 @@ type runtimeLog struct {
 	message       string
 	attributes    string
 	time          int64
-	insertedAt    int64
 }
 
 // insertLog writes one row and returns it with all its values.
 //
 // Vector is the only producer of this table. Thus there is no Go writer and no
-// batch buffer. This Exec goes directly to ClickHouse, and the row is visible to
-// the next query. A test therefore needs no wait loop.
+// batch buffer. This batch goes directly to ClickHouse, and the row is visible
+// to the next query. A test therefore needs no wait loop.
 //
 // platform and k8s_pod_name get a value that is not empty. If they were empty, a
 // probe in the tests for the column permission could get an empty result and look
@@ -77,19 +79,25 @@ func insertLog(t *testing.T, h *testutil.Harness, row runtimeLog) runtimeLog {
 	if row.time == 0 {
 		row.time = time.Now().UnixMilli()
 	}
-	if row.insertedAt == 0 {
-		row.insertedAt = time.Now().UnixMilli()
-	}
 
-	err := h.ClickHouse.Exec(context.Background(),
-		"INSERT INTO default.runtime_logs_raw_v1 (log_id, time, inserted_at, severity, message, "+
-			"workspace_id, project_id, environment_id, app_id, deployment_id, k8s_pod_name, region, "+
-			"platform, attributes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-		row.logID, row.time, row.insertedAt, row.severity, row.message,
-		row.workspaceID, row.projectID, row.environmentID, row.appID, row.deploymentID,
-		"pod-"+uid.New("rep"), "local", "k8s", row.attributes,
-	)
+	batch, err := h.ClickHouse.Conn().PrepareBatch(context.Background(), clickhouse.InsertQuery[schema.RuntimeLogV1]())
 	require.NoError(t, err)
+	require.NoError(t, batch.AppendStruct(&schema.RuntimeLogV1{
+		Time:          row.time,
+		LogID:         row.logID,
+		Severity:      row.severity,
+		Message:       row.message,
+		WorkspaceID:   row.workspaceID,
+		ProjectID:     row.projectID,
+		EnvironmentID: row.environmentID,
+		AppID:         row.appID,
+		DeploymentID:  row.deploymentID,
+		K8sPodName:    "pod-" + uid.New("rep"),
+		Region:        "local",
+		Platform:      "k8s",
+		Attributes:    json.RawMessage(row.attributes),
+	}))
+	require.NoError(t, batch.Send())
 
 	return row
 }

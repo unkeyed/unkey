@@ -141,16 +141,12 @@ func TestCreateKeyRejectsIdentityFromAnotherProject(t *testing.T) {
 	})
 	keyProjectAPI := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspace.ID, ProjectID: keyProject.ID})
 	externalID := uid.New(uid.TestPrefix)
-	err := db.Query.InsertIdentity(t.Context(), h.DB.RW(), db.InsertIdentityParams{
-		ID:          uid.New(uid.IdentityPrefix),
-		ExternalID:  externalID,
+	h.CreateIdentity(seed.CreateIdentityRequest{
 		WorkspaceID: workspace.ID,
 		ProjectID:   otherProjectAPI.ProjectID,
 		Environment: "default",
-		CreatedAt:   time.Now().UnixMilli(),
-		Meta:        []byte("{}"),
+		ExternalID:  externalID,
 	})
-	require.NoError(t, err)
 
 	rootKey := h.CreateRootKey(workspace.ID, createKeyPermission(workspace.ID, keyProject.ID, keyProjectAPI.KeyAuthID.String))
 	res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, http.Header{

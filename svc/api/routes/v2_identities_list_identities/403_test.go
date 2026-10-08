@@ -1,19 +1,14 @@
 package handler_test
 
 import (
-	"context"
-	"database/sql"
-	"errors"
 	"fmt"
 	"net/http"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/uid"
-	"github.com/unkeyed/unkey/svc/api/internal/projects"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
+	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_identities_list_identities"
 )
@@ -32,62 +27,25 @@ func TestForbidden(t *testing.T) {
 	}
 
 	// Create test identities in different environments
-	ctx := context.Background()
-	tx, err := h.DB.RW().Begin(ctx)
-	require.NoError(t, err)
-	defer func() {
-		err := tx.Rollback()
-		require.True(t, err == nil || errors.Is(err, sql.ErrTxDone), "unexpected rollback error: %v", err)
-	}()
-
 	workspaceID := h.Resources().UserWorkspace.ID
-	projectID, err := projects.EnsureDefaultProject(ctx, tx, workspaceID)
-	require.NoError(t, err)
-
-	// Insert identity in default environment
-	defaultIdentityID := uid.New(uid.IdentityPrefix)
 	defaultExternalID := uid.New(uid.TestPrefix)
-	err = db.Query.InsertIdentity(ctx, tx, db.InsertIdentityParams{
-		ID:          defaultIdentityID,
-		ExternalID:  defaultExternalID,
+	h.CreateIdentity(seed.CreateIdentityRequest{
 		WorkspaceID: workspaceID,
-		ProjectID:   projectID,
 		Environment: "default",
-		CreatedAt:   time.Now().UnixMilli(),
-		Meta:        []byte("{}"),
+		ExternalID:  defaultExternalID,
 	})
-	require.NoError(t, err)
-
-	// Insert identity in production environment
-	prodIdentityID := uid.New(uid.IdentityPrefix)
 	prodExternalID := uid.New(uid.TestPrefix)
-	err = db.Query.InsertIdentity(ctx, tx, db.InsertIdentityParams{
-		ID:          prodIdentityID,
-		ExternalID:  prodExternalID,
+	prodIdentityID := h.CreateIdentity(seed.CreateIdentityRequest{
 		WorkspaceID: workspaceID,
-		ProjectID:   projectID,
 		Environment: "production",
-		CreatedAt:   time.Now().UnixMilli(),
-		Meta:        []byte("{}"),
-	})
-	require.NoError(t, err)
-
-	// Insert identity in staging environment
-	stagingIdentityID := uid.New(uid.IdentityPrefix)
+		ExternalID:  prodExternalID,
+	}).ID
 	stagingExternalID := uid.New(uid.TestPrefix)
-	err = db.Query.InsertIdentity(ctx, tx, db.InsertIdentityParams{
-		ID:          stagingIdentityID,
-		ExternalID:  stagingExternalID,
+	h.CreateIdentity(seed.CreateIdentityRequest{
 		WorkspaceID: workspaceID,
-		ProjectID:   projectID,
 		Environment: "staging",
-		CreatedAt:   time.Now().UnixMilli(),
-		Meta:        []byte("{}"),
+		ExternalID:  stagingExternalID,
 	})
-	require.NoError(t, err)
-
-	err = tx.Commit()
-	require.NoError(t, err)
 
 	// Register the route
 	h.Register(route)

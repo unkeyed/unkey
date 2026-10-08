@@ -1,18 +1,14 @@
 package handler_test
 
 import (
-	"context"
-	"database/sql"
-	"errors"
 	"fmt"
 	"net/http"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
+	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_identities_get_identity"
 )
@@ -32,44 +28,19 @@ func TestForbidden(t *testing.T) {
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 	}
 
-	// Create test identity
-	ctx := context.Background()
-	tx, err := h.DB.RW().Begin(ctx)
-	require.NoError(t, err)
-	defer func() {
-		err := tx.Rollback()
-		require.True(t, err == nil || errors.Is(err, sql.ErrTxDone), "unexpected rollback error: %v", err)
-	}()
-
 	workspaceID := h.Resources().UserWorkspace.ID
-	identityID := uid.New(uid.IdentityPrefix)
-	otherIdentityID := uid.New(uid.IdentityPrefix)
 	externalID := uid.New(uid.TestPrefix)
 
-	// Insert test identity
-	err = db.Query.InsertIdentity(ctx, tx, db.InsertIdentityParams{
-		ID:          identityID,
+	h.CreateIdentity(seed.CreateIdentityRequest{
+		WorkspaceID: workspaceID,
+		Environment: "default",
 		ExternalID:  externalID,
+	})
+	otherIdentityID := h.CreateIdentity(seed.CreateIdentityRequest{
 		WorkspaceID: workspaceID,
 		Environment: "default",
-		CreatedAt:   time.Now().UnixMilli(),
-		Meta:        []byte("{}"),
-	})
-	require.NoError(t, err)
-
-	// Insert another test identity
-	err = db.Query.InsertIdentity(ctx, tx, db.InsertIdentityParams{
-		ID:          otherIdentityID,
 		ExternalID:  uid.New(uid.TestPrefix),
-		WorkspaceID: workspaceID,
-		Environment: "default",
-		CreatedAt:   time.Now().UnixMilli(),
-		Meta:        []byte("{}"),
-	})
-	require.NoError(t, err)
-
-	err = tx.Commit()
-	require.NoError(t, err)
+	}).ID
 
 	t.Run("no permission to read any identity", func(t *testing.T) {
 		// The rootKey has no permissions, so it should fail

@@ -13,6 +13,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
+	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_identities_create_identity"
 )
@@ -35,17 +36,12 @@ func TestCreateIdentitySuccessfully(t *testing.T) {
 
 	// Create a identity via DB
 	t.Run("insert identity via DB", func(t *testing.T) {
-		identityID := uid.New(uid.IdentityPrefix)
 		externalTestID := uid.New("test_external_id")
-		err := db.Query.InsertIdentity(ctx, h.DB.RW(), db.InsertIdentityParams{
-			ID:          identityID,
-			ExternalID:  externalTestID,
+		identityID := h.CreateIdentity(seed.CreateIdentityRequest{
 			WorkspaceID: h.Resources().UserWorkspace.ID,
-			Meta:        []byte("{}"),
-			CreatedAt:   time.Now().UnixMilli(),
 			Environment: "default",
-		})
-		require.NoError(t, err)
+			ExternalID:  externalTestID,
+		}).ID
 
 		identity, err := db.Query.FindIdentityByID(ctx, h.DB.RO(), db.FindIdentityByIDParams{
 			IdentityID:  identityID,
@@ -58,17 +54,12 @@ func TestCreateIdentitySuccessfully(t *testing.T) {
 
 	// Create a identity with ratelimits via DB
 	t.Run("insert identity via DB and add ratelimits", func(t *testing.T) {
-		identityID := uid.New(uid.IdentityPrefix)
 		externalTestID := uid.New("test_external_id")
-		err := db.Query.InsertIdentity(ctx, h.DB.RW(), db.InsertIdentityParams{
-			ID:          identityID,
-			ExternalID:  externalTestID,
+		identityID := h.CreateIdentity(seed.CreateIdentityRequest{
 			WorkspaceID: h.Resources().UserWorkspace.ID,
-			Meta:        []byte("{}"),
-			CreatedAt:   time.Now().UnixMilli(),
 			Environment: "default",
-		})
-		require.NoError(t, err)
+			ExternalID:  externalTestID,
+		}).ID
 
 		identity, err := db.Query.FindIdentityByID(ctx, h.DB.RO(), db.FindIdentityByIDParams{
 			IdentityID:  identityID,

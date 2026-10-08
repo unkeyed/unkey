@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 	logdrainv1 "github.com/unkeyed/unkey/gen/proto/logdrain/v1"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
+	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/logdrain/internal/source"
@@ -31,11 +32,21 @@ func TestRuntimeLogsRead_Payload(t *testing.T) {
 	})
 	require.NoError(t, err)
 	now := time.Now().UnixMilli()
-	require.NoError(t, client.Conn().Exec(t.Context(), `INSERT INTO runtime_logs_raw_v1
-		(workspace_id, log_id, time, severity, message, attributes, project_id, app_id,
-		environment_id, deployment_id, region, k8s_pod_name, platform)
-		VALUES (?, ?, ?, 'fatal', 'Payment failed', ?, ?, ?, ?, ?, 'eu-west-1', 'internal-pod', 'aws')`,
-		workspace, logID, now-3600000, string(attributes), projectID, appID, environmentID, deploymentID))
+	insertRows(t, client.Conn(), schema.RuntimeLogV1{
+		Time:          now - 3600000,
+		LogID:         logID,
+		Severity:      "fatal",
+		Message:       "Payment failed",
+		WorkspaceID:   workspace,
+		ProjectID:     projectID,
+		EnvironmentID: environmentID,
+		AppID:         appID,
+		DeploymentID:  deploymentID,
+		K8sPodName:    "internal-pod",
+		Region:        "eu-west-1",
+		Platform:      "aws",
+		Attributes:    attributes,
+	})
 	events, cursor, err := source.NewRuntimeLogs(client).Read(t.Context(), workspace, source.Cursor{Time: now - 1}, time.Now().UnixMilli()+1000, 10, nil)
 	require.NoError(t, err)
 	require.Len(t, events, 1)
@@ -63,6 +74,7 @@ func TestRuntimeLogsRead_FilteredCursorBounds(t *testing.T) {
 	t.Cleanup(func() { require.NoError(t, client.Close()) })
 	workspace := uid.New(uid.WorkspacePrefix)
 	now := time.Now().UnixMilli()
+	var rows []runtimeLogRow
 	for _, row := range []struct {
 		workspace, id, project, app, environment, severity string
 		insertedAt                                         int64
@@ -76,10 +88,21 @@ func TestRuntimeLogsRead_FilteredCursorBounds(t *testing.T) {
 		{workspace, "g", "project", "app2", "env2", "warn", now},
 		{workspace, "a", "project", "app", "env", "error", now + 1},
 	} {
-		require.NoError(t, client.Conn().Exec(t.Context(), `INSERT INTO runtime_logs_raw_v1
-			(workspace_id, log_id, inserted_at, time, project_id, app_id, environment_id, severity)
-			VALUES (?, ?, ?, ?, ?, ?, ?, ?)`, row.workspace, row.id, row.insertedAt, now-60000, row.project, row.app, row.environment, row.severity))
+		rows = append(rows, runtimeLogRow{
+			RuntimeLogV1: schema.RuntimeLogV1{
+				Time:          now - 60000,
+				LogID:         row.id,
+				Severity:      row.severity,
+				WorkspaceID:   row.workspace,
+				ProjectID:     row.project,
+				EnvironmentID: row.environment,
+				AppID:         row.app,
+				Attributes:    json.RawMessage("{}"),
+			},
+			InsertedAt: row.insertedAt,
+		})
 	}
+	insertRows(t, client.Conn(), rows...)
 	filter := &logdrainv1.Config{Stream: &logdrainv1.Config_RuntimeLogs{RuntimeLogs: &logdrainv1.RuntimeLogStreamConfig{
 		Severities: []string{"error", "warn"}, ProjectIds: []string{"project"}, AppIds: []string{"app", "app2"}, EnvironmentIds: []string{"env", "env2"},
 	}}}

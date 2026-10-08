@@ -129,26 +129,21 @@ func TestCreateAppRollsBackWhenAuditInsertFails(t *testing.T) {
 		Slug:      slug,
 	})
 	require.True(t, db.IsNotFound(err), "expected no app, got %v", err)
-	require.Equal(t, 0, countRows(t, ctx, database.RW(), `
-		SELECT COUNT(*)
-		FROM environments
-		WHERE workspace_id = ? AND project_id = ?
-	`, workspaceID, project.ID))
-	require.Equal(t, 0, countRows(t, ctx, database.RW(), `
-		SELECT COUNT(*)
-		FROM app_build_settings
-		WHERE workspace_id = ?
-	`, workspaceID))
-	require.Equal(t, 0, countRows(t, ctx, database.RW(), `
-		SELECT COUNT(*)
-		FROM app_runtime_settings
-		WHERE workspace_id = ?
-	`, workspaceID))
-	require.Equal(t, 0, countRows(t, ctx, database.RW(), `
-		SELECT COUNT(*)
-		FROM app_regional_settings
-		WHERE workspace_id = ?
-	`, workspaceID))
+	environmentCount, err := database.CountEnvironmentsByWorkspaceAndProject(ctx, db.CountEnvironmentsByWorkspaceAndProjectParams{
+		WorkspaceID: workspaceID,
+		ProjectID:   project.ID,
+	})
+	require.NoError(t, err)
+	require.Zero(t, environmentCount)
+	buildSettingsCount, err := database.CountAppBuildSettingsByWorkspaceId(ctx, workspaceID)
+	require.NoError(t, err)
+	require.Zero(t, buildSettingsCount)
+	runtimeSettingsCount, err := database.CountAppRuntimeSettingsByWorkspaceId(ctx, workspaceID)
+	require.NoError(t, err)
+	require.Zero(t, runtimeSettingsCount)
+	regionalSettingsCount, err := database.CountAppRegionalSettingsByWorkspaceId(ctx, workspaceID)
+	require.NoError(t, err)
+	require.Zero(t, regionalSettingsCount)
 
 	outboxRows, err := database.ListClickhouseOutboxByWorkspace(ctx, workspaceID)
 	require.NoError(t, err)
@@ -349,20 +344,12 @@ func (s failingAuditLogService) Insert(ctx context.Context, tx db.DBTX, logs []a
 		require.Equal(s.t, s.workspaceID, settings.WorkspaceID)
 	}
 
-	require.Equal(s.t, 2, countRows(s.t, ctx, tx, `
-		SELECT COUNT(*)
-		FROM app_regional_settings
-		WHERE app_id = ? AND workspace_id = ?
-	`, appID, s.workspaceID))
+	regionalSettingsCount, err := db.NewQueries(tx).CountAppRegionalSettingsByWorkspaceAndApp(ctx, db.CountAppRegionalSettingsByWorkspaceAndAppParams{
+		WorkspaceID: s.workspaceID,
+		AppID:       appID,
+	})
+	require.NoError(s.t, err)
+	require.Equal(s.t, int64(2), regionalSettingsCount)
 
 	return errInjectedAuditInsert
-}
-
-func countRows(t *testing.T, ctx context.Context, tx db.DBTX, query string, args ...any) int {
-	t.Helper()
-
-	var count int
-	err := tx.QueryRowContext(ctx, query, args...).Scan(&count)
-	require.NoError(t, err)
-	return count
 }

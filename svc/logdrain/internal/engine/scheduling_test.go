@@ -129,9 +129,9 @@ func assertDueSchedule(t *testing.T, commit db.RecordLogdrainSuccessParams, comm
 	rows, err = queries.RecordLogdrainSuccess(t.Context(), commit)
 	require.NoError(t, err)
 	require.EqualValues(t, 1, rows)
-	var nextAttempt int64
-	require.NoError(t, conn.QueryRowContext(t.Context(), "SELECT next_attempt_at FROM logdrains WHERE id = ?", drainID).Scan(&nextAttempt))
-	require.Equal(t, committedAt.Add(delay).UnixMilli(), nextAttempt)
+	drain, err := queries.FindLogdrainByID(t.Context(), drainID)
+	require.NoError(t, err)
+	require.Equal(t, committedAt.Add(delay).UnixMilli(), drain.NextAttemptAt)
 	for elapsed := time.Duration(0); elapsed < delay; elapsed += 5 * time.Second {
 		_, err = conn.ExecContext(t.Context(), "SET timestamp = ?", committedAt.Add(elapsed).Unix())
 		require.NoError(t, err)

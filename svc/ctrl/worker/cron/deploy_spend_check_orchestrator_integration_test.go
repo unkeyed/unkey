@@ -22,17 +22,19 @@ func seedBudgetedWorkspace(
 ) string {
 	t.Helper()
 	ws := h.Seed.CreateWorkspace(h.Ctx)
-	_, err := h.DB.RW().ExecContext(
-		h.Ctx,
-		`UPDATE workspace_billing SET
-			plan = ?,
-			stripe_customer_id = ?,
-			spend_budget_cents = ?,
-			spend_budget_stop = ?
-		WHERE workspace_id = ?`,
-		"pro", customerID, budgetCents, true, ws.ID,
-	)
-	require.NoError(t, err)
+	require.NoError(t, h.DB.SetWorkspaceDeployPlan(h.Ctx, db.SetWorkspaceDeployPlanParams{
+		Plan:        sql.NullString{Valid: true, String: "pro"},
+		WorkspaceID: ws.ID,
+	}))
+	require.NoError(t, h.DB.SetWorkspaceStripeCustomerId(h.Ctx, db.SetWorkspaceStripeCustomerIdParams{
+		StripeCustomerID: sql.NullString{Valid: true, String: customerID},
+		WorkspaceID:      ws.ID,
+	}))
+	require.NoError(t, h.DB.SetWorkspaceDeploySpendBudget(h.Ctx, db.SetWorkspaceDeploySpendBudgetParams{
+		SpendBudgetCents: sql.NullInt64{Valid: true, Int64: budgetCents},
+		SpendBudgetStop:  true,
+		WorkspaceID:      ws.ID,
+	}))
 	clearBudgetOnCleanup(t, h, ws.ID)
 	return ws.ID
 }
@@ -43,9 +45,11 @@ func seedBudgetedWorkspace(
 func clearBudgetOnCleanup(t *testing.T, h *harness.Harness, workspaceID string) {
 	t.Helper()
 	t.Cleanup(func() {
-		_, err := h.DB.RW().ExecContext(h.Ctx,
-			`UPDATE workspace_billing SET spend_budget_cents = NULL WHERE workspace_id = ?`, workspaceID)
-		require.NoError(t, err)
+		require.NoError(t, h.DB.SetWorkspaceDeploySpendBudget(h.Ctx, db.SetWorkspaceDeploySpendBudgetParams{
+			SpendBudgetCents: sql.NullInt64{Valid: false},
+			SpendBudgetStop:  false,
+			WorkspaceID:      workspaceID,
+		}))
 	})
 }
 

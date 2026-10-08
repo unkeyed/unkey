@@ -93,16 +93,12 @@ func TestUpdateKeyRejectsIdentityFromAnotherProject(t *testing.T) {
 	keyProjectAPI := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspace.ID, ProjectID: keyProject.ID})
 	key := h.CreateKey(seed.CreateKeyRequest{WorkspaceID: workspace.ID, KeySpaceID: keyProjectAPI.KeyAuthID.String})
 	externalID := uid.New(uid.TestPrefix)
-	err := db.Query.InsertIdentity(t.Context(), h.DB.RW(), db.InsertIdentityParams{
-		ID:          uid.New(uid.IdentityPrefix),
-		ExternalID:  externalID,
+	h.CreateIdentity(seed.CreateIdentityRequest{
 		WorkspaceID: workspace.ID,
 		ProjectID:   otherProjectAPI.ProjectID,
 		Environment: "default",
-		CreatedAt:   time.Now().UnixMilli(),
-		Meta:        []byte("{}"),
+		ExternalID:  externalID,
 	})
-	require.NoError(t, err)
 
 	writeKey := fmt.Sprintf("unkey:v1:%s:projects/%s/keyspaces/%s/keys/%s#write", workspace.ID, keyProject.ID, keyProjectAPI.KeyAuthID.String, key.KeyID)
 	rootKey := h.CreateRootKey(workspace.ID, writeKey)

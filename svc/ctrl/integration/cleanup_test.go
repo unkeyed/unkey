@@ -3,7 +3,6 @@
 package integration
 
 import (
-	"context"
 	"database/sql"
 	"encoding/json"
 	"testing"
@@ -224,32 +223,33 @@ func TestProjectDeletion_CleansUpAllData(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	// Queries to verify each table has exactly one row before deletion
-	// and zero rows after deletion.
+	// Each table has exactly one row before deletion and zero rows after.
 	checks := []struct {
-		query string
-		arg   string
+		table string
+		count func() (int64, error)
 	}{
-		{"SELECT COUNT(*) FROM projects WHERE id = ?", project.ID},
-		{"SELECT COUNT(*) FROM apps WHERE id = ?", app.ID},
-		{"SELECT COUNT(*) FROM environments WHERE app_id = ?", app.ID},
-		{"SELECT COUNT(*) FROM deployments WHERE app_id = ?", app.ID},
-		{"SELECT COUNT(*) FROM deployment_topology WHERE deployment_id = ?", deployment.ID},
-		{"SELECT COUNT(*) FROM cilium_network_policies WHERE app_id = ?", app.ID},
-		{"SELECT COUNT(*) FROM frontline_routes WHERE app_id = ?", app.ID},
-		{"SELECT COUNT(*) FROM github_repo_connections WHERE app_id = ?", app.ID},
-		{"SELECT COUNT(*) FROM app_source_oci WHERE app_id = ?", app.ID},
-		{"SELECT COUNT(*) FROM deployment_steps WHERE deployment_id = ?", deployment.ID},
-		{"SELECT COUNT(*) FROM app_build_settings WHERE app_id = ?", app.ID},
-		{"SELECT COUNT(*) FROM app_runtime_settings WHERE app_id = ?", app.ID},
-		{"SELECT COUNT(*) FROM app_regional_settings WHERE app_id = ?", app.ID},
-		{"SELECT COUNT(*) FROM app_environment_variables WHERE app_id = ?", app.ID},
+		{"projects", func() (int64, error) { return h.DB.CountProjectsById(ctx, project.ID) }},
+		{"apps", func() (int64, error) { return h.DB.CountAppsById(ctx, app.ID) }},
+		{"environments", func() (int64, error) { return h.DB.CountEnvironmentsByAppId(ctx, app.ID) }},
+		{"deployments", func() (int64, error) { return h.DB.CountDeploymentsByAppId(ctx, app.ID) }},
+		{"deployment_topology", func() (int64, error) { return h.DB.CountDeploymentTopologiesByDeploymentId(ctx, deployment.ID) }},
+		{"cilium_network_policies", func() (int64, error) { return h.DB.CountCiliumNetworkPoliciesByAppId(ctx, app.ID) }},
+		{"frontline_routes", func() (int64, error) { return h.DB.CountFrontlineRoutesByAppId(ctx, app.ID) }},
+		{"github_repo_connections", func() (int64, error) { return h.DB.CountGithubRepoConnectionsByAppId(ctx, app.ID) }},
+		{"app_source_oci", func() (int64, error) { return h.DB.CountAppSourceOciByAppId(ctx, app.ID) }},
+		{"deployment_steps", func() (int64, error) { return h.DB.CountDeploymentStepsByDeploymentId(ctx, deployment.ID) }},
+		{"app_build_settings", func() (int64, error) { return h.DB.CountAppBuildSettingsByAppId(ctx, app.ID) }},
+		{"app_runtime_settings", func() (int64, error) { return h.DB.CountAppRuntimeSettingsByAppId(ctx, app.ID) }},
+		{"app_regional_settings", func() (int64, error) { return h.DB.CountAppRegionalSettingsByAppId(ctx, app.ID) }},
+		{"app_environment_variables", func() (int64, error) { return h.DB.CountAppEnvironmentVariablesByAppId(ctx, app.ID) }},
 	}
 
 	// --- Verify all rows exist before deletion ---
 
 	for _, c := range checks {
-		require.Equal(t, 1, countRows(t, ctx, h.DB, c.query, c.arg))
+		n, err := c.count()
+		require.NoError(t, err)
+		require.Equal(t, int64(1), n, c.table)
 	}
 
 	// --- Trigger deletion via Restate ingress ---
@@ -262,20 +262,10 @@ func TestProjectDeletion_CleansUpAllData(t *testing.T) {
 	// The app handler fires off environment deletions via .Send() (also async).
 	// Poll each table until it's empty.
 	for _, c := range checks {
-		c := c
 		require.Eventually(t, func() bool {
-			return countRows(t, ctx, h.DB, c.query, c.arg) == 0
-		}, 30*time.Second, 250*time.Millisecond, "timed out waiting for: %s", c.query)
+			n, err := c.count()
+			require.NoError(t, err)
+			return n == 0
+		}, 30*time.Second, 250*time.Millisecond, "timed out waiting for %s to be empty", c.table)
 	}
-}
-
-// countRows executes a query that returns a single COUNT(*) value.
-//
-//nolint:gosec // queries are test constants, not user input
-func countRows(t *testing.T, ctx context.Context, database db.Database, query string, args ...any) int {
-	t.Helper()
-	var count int
-	err := database.RO().QueryRowContext(ctx, query, args...).Scan(&count)
-	require.NoError(t, err)
-	return count
 }

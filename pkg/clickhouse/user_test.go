@@ -551,6 +551,8 @@ func TestConfigureUser_HidesRuntimeLogInternalColumns(t *testing.T) {
 	now := time.Now().UnixMilli()
 	attributes, err := json.Marshal(map[string]string{"user_id": "usr_kebap"})
 	require.NoError(t, err)
+	batch, err := admin.conn.PrepareBatch(ctx, InsertQuery[schema.RuntimeLogV1]())
+	require.NoError(t, err)
 	for _, row := range []struct {
 		workspaceID string
 		message     string
@@ -558,14 +560,23 @@ func TestConfigureUser_HidesRuntimeLogInternalColumns(t *testing.T) {
 		{workspaceID: workspaceID, message: "kebap served"},
 		{workspaceID: otherWorkspaceID, message: "other workspace log"},
 	} {
-		err = admin.Exec(ctx,
-			"INSERT INTO default.runtime_logs_raw_v1 (log_id, time, inserted_at, severity, message, workspace_id, project_id, environment_id, app_id, deployment_id, k8s_pod_name, region, platform, attributes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-			uid.New(uid.TestPrefix), now, now, "info", row.message, row.workspaceID,
-			uid.New(uid.ProjectPrefix), uid.New(uid.EnvironmentPrefix), uid.New(uid.AppPrefix), uid.New(uid.DeploymentPrefix),
-			"pod-abc-123", "local", "k8s", string(attributes),
-		)
-		require.NoError(t, err)
+		require.NoError(t, batch.AppendStruct(&schema.RuntimeLogV1{
+			Time:          now,
+			LogID:         uid.New(uid.TestPrefix),
+			Severity:      "info",
+			Message:       row.message,
+			WorkspaceID:   row.workspaceID,
+			ProjectID:     uid.New(uid.ProjectPrefix),
+			EnvironmentID: uid.New(uid.EnvironmentPrefix),
+			AppID:         uid.New(uid.AppPrefix),
+			DeploymentID:  uid.New(uid.DeploymentPrefix),
+			K8sPodName:    "pod-abc-123",
+			Region:        "local",
+			Platform:      "k8s",
+			Attributes:    attributes,
+		}))
 	}
+	require.NoError(t, batch.Send())
 
 	workspaceURL, err := url.Parse(clickhouseConfig.HTTPDSN)
 	require.NoError(t, err)

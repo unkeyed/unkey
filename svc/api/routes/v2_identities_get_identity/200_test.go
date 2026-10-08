@@ -1,10 +1,7 @@
 package handler_test
 
 import (
-	"context"
-	"database/sql"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -12,7 +9,6 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
@@ -33,9 +29,6 @@ func TestSuccess(t *testing.T) {
 		"Content-Type":  {"application/json"},
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 	}
-
-	// Setup test data using testutil helper
-	ctx := context.Background()
 
 	externalID := uid.New(uid.TestPrefix)
 	// Create metadata
@@ -93,29 +86,12 @@ func TestSuccess(t *testing.T) {
 
 	t.Run("metadata is empty object when not set", func(t *testing.T) {
 		// Create a new identity without metadata
-		identityWithoutMetaID := uid.New(uid.IdentityPrefix)
 		externalIDWithoutMeta := uid.New(uid.TestPrefix)
-
-		tx, err := h.DB.RW().Begin(ctx)
-		require.NoError(t, err)
-		defer func() {
-			err := tx.Rollback()
-			require.True(t, err == nil || errors.Is(err, sql.ErrTxDone), "unexpected rollback error: %v", err)
-		}()
-
-		err = db.Query.InsertIdentity(ctx, tx, db.InsertIdentityParams{
-			ID:          identityWithoutMetaID,
-			ExternalID:  externalIDWithoutMeta,
+		h.CreateIdentity(seed.CreateIdentityRequest{
 			WorkspaceID: h.Resources().UserWorkspace.ID,
-
 			Environment: "default",
-			CreatedAt:   time.Now().UnixMilli(),
-			Meta:        []byte("{}"),
+			ExternalID:  externalIDWithoutMeta,
 		})
-		require.NoError(t, err)
-
-		err = tx.Commit()
-		require.NoError(t, err)
 
 		req := handler.Request{
 			Identity: externalIDWithoutMeta,
@@ -131,29 +107,12 @@ func TestSuccess(t *testing.T) {
 
 	t.Run("ratelimits is empty array when none exist", func(t *testing.T) {
 		// Create a new identity without ratelimits
-		identityWithoutRatelimitsID := uid.New(uid.IdentityPrefix)
 		externalIDWithoutRatelimits := uid.New(uid.TestPrefix)
-
-		tx, err := h.DB.RW().Begin(ctx)
-		require.NoError(t, err)
-		defer func() {
-			err := tx.Rollback()
-			require.True(t, err == nil || errors.Is(err, sql.ErrTxDone), "unexpected rollback error: %v", err)
-		}()
-
-		err = db.Query.InsertIdentity(ctx, tx, db.InsertIdentityParams{
-			ID:          identityWithoutRatelimitsID,
-			ExternalID:  externalIDWithoutRatelimits,
+		h.CreateIdentity(seed.CreateIdentityRequest{
 			WorkspaceID: h.Resources().UserWorkspace.ID,
-
 			Environment: "default",
-			CreatedAt:   time.Now().UnixMilli(),
-			Meta:        []byte("{}"),
+			ExternalID:  externalIDWithoutRatelimits,
 		})
-		require.NoError(t, err)
-
-		err = tx.Commit()
-		require.NoError(t, err)
 
 		req := handler.Request{
 			Identity: externalIDWithoutRatelimits,
@@ -167,7 +126,6 @@ func TestSuccess(t *testing.T) {
 
 	t.Run("retrieve identity with large metadata", func(t *testing.T) {
 		// Create an identity with large metadata
-		largeMetaIdentityID := uid.New(uid.IdentityPrefix)
 		largeMetaExternalID := uid.New(uid.TestPrefix)
 
 		// Create large metadata map
@@ -223,26 +181,12 @@ func TestSuccess(t *testing.T) {
 		require.NoError(t, err)
 		require.Greater(t, len(largeMetaBytes), 1000, "Metadata should be sufficiently large")
 
-		tx, err := h.DB.RW().Begin(ctx)
-		require.NoError(t, err)
-		defer func() {
-			err := tx.Rollback()
-			require.True(t, err == nil || errors.Is(err, sql.ErrTxDone), "unexpected rollback error: %v", err)
-		}()
-
-		err = db.Query.InsertIdentity(ctx, tx, db.InsertIdentityParams{
-			ID:          largeMetaIdentityID,
-			ExternalID:  largeMetaExternalID,
+		h.CreateIdentity(seed.CreateIdentityRequest{
 			WorkspaceID: h.Resources().UserWorkspace.ID,
-
 			Environment: "default",
-			CreatedAt:   time.Now().UnixMilli(),
+			ExternalID:  largeMetaExternalID,
 			Meta:        largeMetaBytes,
 		})
-		require.NoError(t, err)
-
-		err = tx.Commit()
-		require.NoError(t, err)
 
 		// Retrieve the identity
 		req := handler.Request{
@@ -271,26 +215,7 @@ func TestSuccess(t *testing.T) {
 
 	t.Run("retrieve identity with many rate limits", func(t *testing.T) {
 		// Create an identity with many rate limits
-		manyRateLimitsIdentityID := uid.New(uid.IdentityPrefix)
 		manyRateLimitsExternalID := uid.New(uid.TestPrefix)
-
-		tx, err := h.DB.RW().Begin(ctx)
-		require.NoError(t, err)
-		defer func() {
-			err := tx.Rollback()
-			require.True(t, err == nil || errors.Is(err, sql.ErrTxDone), "unexpected rollback error: %v", err)
-		}()
-
-		err = db.Query.InsertIdentity(ctx, tx, db.InsertIdentityParams{
-			ID:          manyRateLimitsIdentityID,
-			ExternalID:  manyRateLimitsExternalID,
-			WorkspaceID: h.Resources().UserWorkspace.ID,
-
-			Environment: "default",
-			CreatedAt:   time.Now().UnixMilli(),
-			Meta:        []byte("{}"),
-		})
-		require.NoError(t, err)
 
 		// Create 10 rate limits for the identity
 		rateLimits := []struct {
@@ -310,22 +235,21 @@ func TestSuccess(t *testing.T) {
 			{"search_queries", 100, 60 * 1000},
 		}
 
+		ratelimitRequests := make([]seed.CreateRatelimitRequest, 0, len(rateLimits))
 		for _, rl := range rateLimits {
-			err = db.Query.InsertIdentityRatelimit(ctx, tx, db.InsertIdentityRatelimitParams{
-				ID:          uid.New(uid.RatelimitPrefix),
+			ratelimitRequests = append(ratelimitRequests, seed.CreateRatelimitRequest{
 				WorkspaceID: h.Resources().UserWorkspace.ID,
-
-				IdentityID: sql.NullString{String: manyRateLimitsIdentityID, Valid: true},
-				Name:       rl.name,
-				Limit:      rl.limit,
-				Duration:   rl.duration,
-				CreatedAt:  time.Now().UnixMilli(),
+				Name:        rl.name,
+				Limit:       rl.limit,
+				Duration:    rl.duration,
 			})
-			require.NoError(t, err)
 		}
-
-		err = tx.Commit()
-		require.NoError(t, err)
+		h.CreateIdentity(seed.CreateIdentityRequest{
+			WorkspaceID: h.Resources().UserWorkspace.ID,
+			Environment: "default",
+			ExternalID:  manyRateLimitsExternalID,
+			Ratelimits:  ratelimitRequests,
+		})
 
 		// Retrieve the identity
 		req := handler.Request{
@@ -354,29 +278,12 @@ func TestSuccess(t *testing.T) {
 
 	t.Run("retrieve recently created identity", func(t *testing.T) {
 		// Create a new identity
-		recentIdentityID := uid.New(uid.IdentityPrefix)
 		recentExternalID := uid.New(uid.TestPrefix)
-		creationTime := time.Now().UnixMilli()
-
-		tx, err := h.DB.RW().Begin(ctx)
-		require.NoError(t, err)
-		defer func() {
-			err := tx.Rollback()
-			require.True(t, err == nil || errors.Is(err, sql.ErrTxDone), "unexpected rollback error: %v", err)
-		}()
-
-		err = db.Query.InsertIdentity(ctx, tx, db.InsertIdentityParams{
-			ID:          recentIdentityID,
-			ExternalID:  recentExternalID,
+		h.CreateIdentity(seed.CreateIdentityRequest{
 			WorkspaceID: h.Resources().UserWorkspace.ID,
 			Environment: "default",
-			CreatedAt:   creationTime,
-			Meta:        []byte("{}"),
+			ExternalID:  recentExternalID,
 		})
-		require.NoError(t, err)
-
-		err = tx.Commit()
-		require.NoError(t, err)
 
 		// Immediately retrieve the identity
 		req := handler.Request{

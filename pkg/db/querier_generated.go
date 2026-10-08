@@ -10,12 +10,86 @@ import (
 )
 
 type Querier interface {
+	// CountClickhouseOutboxByWorkspace counts every clickhouse_outbox row in a workspace. Intended
+	// for tests that prove a failed call wrote nothing.
+	//
+	//  SELECT COUNT(*)
+	//  FROM clickhouse_outbox
+	//  WHERE workspace_id = ?
+	CountClickhouseOutboxByWorkspace(ctx context.Context, db DBTX, workspaceID string) (int64, error)
 	// Covered by unique_domain_workspace_idx, which leads on workspace_id.
 	//
 	//  SELECT COUNT(*)
 	//  FROM custom_domains
 	//  WHERE workspace_id = ?
 	CountCustomDomainsByWorkspace(ctx context.Context, db DBTX, workspaceID string) (int64, error)
+	// CountIdentitiesByWorkspace counts every identity row in a workspace,
+	// including soft-deleted ones. Intended for tests.
+	//
+	//  SELECT COUNT(*)
+	//  FROM identities
+	//  WHERE workspace_id = ?
+	CountIdentitiesByWorkspace(ctx context.Context, db DBTX, workspaceID string) (int64, error)
+	// CountKeyPermissionsByWorkspace counts every keys_permissions row in a workspace. Intended
+	// for tests that prove a failed call wrote nothing.
+	//
+	//  SELECT COUNT(*)
+	//  FROM keys_permissions
+	//  WHERE workspace_id = ?
+	CountKeyPermissionsByWorkspace(ctx context.Context, db DBTX, workspaceID string) (int64, error)
+	// CountKeysByWorkspace counts every keys row in a workspace. Intended
+	// for tests that prove a failed call wrote nothing.
+	//
+	//  SELECT COUNT(*)
+	//  FROM `keys`
+	//  WHERE workspace_id = ?
+	CountKeysByWorkspace(ctx context.Context, db DBTX, workspaceID string) (int64, error)
+	// CountLivePortalSessionsByPortal counts a portal's unrevoked sessions,
+	// restricted to one end user when external_id is non-empty. Intended for
+	// tests.
+	//
+	//  SELECT COUNT(*)
+	//  FROM portal_sessions
+	//  WHERE portal_id = ?
+	//    AND revoked_at IS NULL
+	//    AND (? = '' OR external_id = ?)
+	CountLivePortalSessionsByPortal(ctx context.Context, db DBTX, arg CountLivePortalSessionsByPortalParams) (int64, error)
+	// CountPermissionsByWorkspace counts every permissions row in a workspace. Intended
+	// for tests that prove a failed call wrote nothing.
+	//
+	//  SELECT COUNT(*)
+	//  FROM permissions
+	//  WHERE workspace_id = ?
+	CountPermissionsByWorkspace(ctx context.Context, db DBTX, workspaceID string) (int64, error)
+	// CountPortalSessionsByExternalID counts every session minted for one end user
+	// in a workspace, in any state. Intended for tests.
+	//
+	//  SELECT COUNT(*)
+	//  FROM portal_sessions
+	//  WHERE workspace_id = ?
+	//    AND external_id = ?
+	CountPortalSessionsByExternalID(ctx context.Context, db DBTX, arg CountPortalSessionsByExternalIDParams) (int64, error)
+	// CountPortalsByWorkspace counts the portals in a workspace. Intended for
+	// tests that prove a rejected call wrote or deleted nothing.
+	//
+	//  SELECT COUNT(*)
+	//  FROM portals
+	//  WHERE workspace_id = ?
+	CountPortalsByWorkspace(ctx context.Context, db DBTX, workspaceID string) (int64, error)
+	// CountUnkeyPermissionsByWorkspace counts every unkey_principal_permissions row in a workspace. Intended
+	// for tests that prove a failed call wrote nothing.
+	//
+	//  SELECT COUNT(*)
+	//  FROM unkey_principal_permissions
+	//  WHERE workspace_id = ?
+	CountUnkeyPermissionsByWorkspace(ctx context.Context, db DBTX, workspaceID string) (int64, error)
+	// CountUnkeyRootKeysByWorkspace counts every unkey_root_keys row in a workspace. Intended
+	// for tests that prove a failed call wrote nothing.
+	//
+	//  SELECT COUNT(*)
+	//  FROM unkey_root_keys
+	//  WHERE workspace_id = ?
+	CountUnkeyRootKeysByWorkspace(ctx context.Context, db DBTX, workspaceID string) (int64, error)
 	//DeleteAllKeyPermissionsByKeyID
 	//
 	//  DELETE FROM keys_permissions
@@ -74,6 +148,18 @@ type Querier interface {
 	//  LEFT JOIN encrypted_keys ek ON k.id = ek.key_id
 	//  WHERE k.id = ?
 	DeleteKeyByID(ctx context.Context, db DBTX, id string) error
+	// DeleteLimitByWorkspaceID removes a workspace's limits row. Intended for
+	// tests of workspaces without configured limits.
+	//
+	//  DELETE FROM `limits`
+	//  WHERE workspace_id = ?
+	DeleteLimitByWorkspaceID(ctx context.Context, db DBTX, workspaceID string) error
+	// DeleteManyIdentitiesByWorkspaceID hard deletes every identity in a
+	// workspace. Intended for tests that reset reusable fixtures.
+	//
+	//  DELETE FROM identities
+	//  WHERE workspace_id = ?
+	DeleteManyIdentitiesByWorkspaceID(ctx context.Context, db DBTX, workspaceID string) error
 	//DeleteManyKeyPermissionByKeyAndPermissionIDs
 	//
 	//  DELETE FROM keys_permissions
@@ -94,6 +180,12 @@ type Querier interface {
 	//  DELETE FROM keys_roles
 	//  WHERE role_id = ?
 	DeleteManyKeyRolesByRoleID(ctx context.Context, db DBTX, roleID string) error
+	// DeleteManyProjectsByWorkspaceID hard deletes every project in a workspace.
+	// Intended for tests that reset reusable fixtures.
+	//
+	//  DELETE FROM projects
+	//  WHERE workspace_id = ?
+	DeleteManyProjectsByWorkspaceID(ctx context.Context, db DBTX, workspaceID string) error
 	//DeleteManyRatelimitsByIDs
 	//
 	//  DELETE FROM ratelimits WHERE id IN (/*SLICE:ids*/?)
@@ -155,6 +247,12 @@ type Querier interface {
 	//      AND principal_type = ?
 	//      AND principal_id = ?
 	DeleteUnkeyPermissionsByPrincipal(ctx context.Context, db DBTX, arg DeleteUnkeyPermissionsByPrincipalParams) error
+	// DeleteWorkspace hard deletes a workspace row without touching its
+	// resources. Intended for tests that reset reusable fixtures.
+	//
+	//  DELETE FROM workspaces
+	//  WHERE id = ?
+	DeleteWorkspace(ctx context.Context, db DBTX, id string) error
 	// Removes every Stripe subscription row for a workspace. Paired with
 	// ResetWorkspaceBilling by the `unkey dev stripe reset` tooling.
 	//
@@ -1655,6 +1753,20 @@ type Querier interface {
 	//      ?
 	//  )
 	InsertFrontlineRoute(ctx context.Context, db DBTX, arg InsertFrontlineRouteParams) error
+	// InsertGithubAppInstallation links a GitHub App installation to a workspace.
+	// Intended for tests: the dashboard's GitHub callback writes this table in
+	// production.
+	//
+	//  INSERT INTO github_app_installations (
+	//      workspace_id,
+	//      installation_id,
+	//      created_at
+	//  ) VALUES (
+	//      ?,
+	//      ?,
+	//      ?
+	//  )
+	InsertGithubAppInstallation(ctx context.Context, db DBTX, arg InsertGithubAppInstallationParams) error
 	//InsertGithubRepoConnection
 	//
 	//  INSERT INTO github_repo_connections (
@@ -1885,6 +1997,29 @@ type Querier interface {
 	//      0
 	//  )
 	InsertKeySpace(ctx context.Context, db DBTX, arg InsertKeySpaceParams) error
+	// InsertLogdrain creates a running log drain with no lease. Intended for
+	// tests: the dashboard creates log drains in production.
+	//
+	//  INSERT INTO logdrains (
+	//      id,
+	//      workspace_id,
+	//      name,
+	//      stream,
+	//      config,
+	//      lease_id,
+	//      fencing_token,
+	//      created_at
+	//  ) VALUES (
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      '',
+	//      '',
+	//      ?
+	//  )
+	InsertLogdrain(ctx context.Context, db DBTX, arg InsertLogdrainParams) error
 	//InsertPermission
 	//
 	//  INSERT INTO permissions (
@@ -3404,6 +3539,13 @@ type Querier interface {
 	//
 	//  UPDATE `key_auth` SET store_encrypted_keys = ? WHERE id = ?
 	UpdateKeySpaceKeyEncryption(ctx context.Context, db DBTX, arg UpdateKeySpaceKeyEncryptionParams) error
+	// UpdateLogdrainsMax sets how many log drains a workspace may configure.
+	// Intended for tests: UpsertLimit leaves logdrains_max at its default.
+	//
+	//  UPDATE `limits`
+	//  SET logdrains_max = ?
+	//  WHERE workspace_id = ?
+	UpdateLogdrainsMax(ctx context.Context, db DBTX, arg UpdateLogdrainsMaxParams) error
 	// Updates a portal's mutable fields, scoped to the workspace so one workspace can
 	// never mutate another's portal.
 	//
@@ -3515,6 +3657,14 @@ type Querier interface {
 	//      AND workspace_id = ?
 	//      AND deleted_at IS NULL
 	UpdateUnkeyRootKeyExpiration(ctx context.Context, db DBTX, arg UpdateUnkeyRootKeyExpirationParams) error
+	// UpdateUnkeyRootKeyLastUsedAt records when a new-format root key was last
+	// used. Intended for tests.
+	//
+	//  UPDATE unkey_root_keys
+	//  SET last_used_at = ?
+	//  WHERE id = ?
+	//      AND workspace_id = ?
+	UpdateUnkeyRootKeyLastUsedAt(ctx context.Context, db DBTX, arg UpdateUnkeyRootKeyLastUsedAtParams) error
 	//UpdateWorkspaceEnabled
 	//
 	//  UPDATE `workspaces`
@@ -3793,6 +3943,25 @@ type Querier interface {
 	//  )
 	//  ON DUPLICATE KEY UPDATE name = name
 	UpsertRegion(ctx context.Context, db DBTX, arg UpsertRegionParams) error
+	// UpsertRegionWithCanSchedule inserts a region with an explicit can_schedule
+	// flag, or overwrites the flag if the region already exists. Intended for
+	// tests: production registers regions through UpsertRegion and leaves
+	// can_schedule at its default.
+	//
+	//  INSERT INTO regions (
+	//  	id,
+	//  	name,
+	//  	platform,
+	//  	can_schedule
+	//  )
+	//  VALUES (
+	//  	?,
+	//  	?,
+	//  	?,
+	//  	?
+	//  )
+	//  ON DUPLICATE KEY UPDATE can_schedule = ?
+	UpsertRegionWithCanSchedule(ctx context.Context, db DBTX, arg UpsertRegionWithCanScheduleParams) error
 	// UpsertWorkspace seeds local workspaces while preserving fields that local tooling does not manage.
 	// New rows receive a caller-generated Kubernetes namespace; existing rows retain their namespace.
 	//
