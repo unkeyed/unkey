@@ -122,7 +122,7 @@ const buttonVariants = cva(
           "dark:bg-white dark:text-black dark:hover:after:bg-black/5 dark:active:after:bg-black/5",
           "[&_svg]:text-white/60 hover:[&_svg]:text-white/80 active:[&_svg]:text-white/80",
           "dark:[&_svg]:text-black/55 dark:hover:[&_svg]:text-black/40 dark:active:[&_svg]:text-black/40",
-          "disabled:[&_svg]:text-grayA-8",
+          "disabled:[&_svg]:text-grayA-8 dark:disabled:[&_svg]:text-grayA-8",
         ],
       },
       {
