@@ -78,7 +78,7 @@ it("refreshes a list that was still loading when a drain was created", async () 
   await waitFor(() => expect(result.current.list.isFetching).toBe(true));
   result.current.create.mutate({
     name: "Logs",
-    stream: "audit_logs",
+    stream: { auditLogs: {} },
     destination: { http: { url: "https://logs.example.com" } },
   });
   await waitFor(() => expect(result.current.list.data).toEqual([{ id: "ld_created" }]));
