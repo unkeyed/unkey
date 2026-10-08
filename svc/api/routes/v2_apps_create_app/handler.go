@@ -222,6 +222,15 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		defaultBranch := githubapp.DefaultBranch(resolved.Repository.DefaultBranch, req.Git.DefaultBranch)
 
 		err = db.TxRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
+			if _, err := db.Query.LockActiveApp(ctx, tx, appID); err != nil {
+				if db.IsNotFound(err) {
+					return fault.New("app not found",
+						fault.Code(codes.Data.App.NotFound.URN()),
+						fault.Public("The requested app does not exist."),
+					)
+				}
+				return fault.Wrap(err, fault.Internal("lock active app"))
+			}
 			now := time.Now().UnixMilli()
 			if txErr := db.Query.UpsertGithubRepoConnection(ctx, tx, db.UpsertGithubRepoConnectionParams{
 				WorkspaceID:        principal.AuthorizedWorkspaceID,

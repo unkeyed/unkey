@@ -184,7 +184,14 @@ func (s *Service) AddCustomDomain(
 	now := time.Now().UnixMilli()
 
 	err = db.TxRetry(ctx, s.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
-		if txErr := db.NewQueries(tx).InsertCustomDomain(txCtx, db.InsertCustomDomainParams{
+		q := db.NewQueries(tx)
+		if _, txErr := q.LockActiveEnvironment(txCtx, req.Msg.GetEnvironmentId()); txErr != nil {
+			if db.IsNotFound(txErr) {
+				return connect.NewError(connect.CodeNotFound, fmt.Errorf("environment not found"))
+			}
+			return connect.NewError(connect.CodeInternal, fmt.Errorf("lock active environment: %w", txErr))
+		}
+		if txErr := q.InsertCustomDomain(txCtx, db.InsertCustomDomainParams{
 			ID:                    domainID,
 			WorkspaceID:           req.Msg.GetWorkspaceId(),
 			ProjectID:             req.Msg.GetProjectId(),
@@ -250,7 +257,7 @@ func (s *Service) AddCustomDomain(
 			return connect.NewError(connect.CodeInternal, fmt.Errorf("failed to trigger verification workflow: %w", sendErr))
 		}
 
-		if txErr := db.NewQueries(tx).UpdateCustomDomainInvocationID(txCtx, db.UpdateCustomDomainInvocationIDParams{
+		if txErr := q.UpdateCustomDomainInvocationID(txCtx, db.UpdateCustomDomainInvocationIDParams{
 			ID:           domainID,
 			InvocationID: sql.NullString{Valid: true, String: sendResp.Id()},
 			UpdatedAt:    sql.NullInt64{Valid: true, Int64: now},
