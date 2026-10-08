@@ -30,10 +30,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	if err != nil {
 		return err
 	}
-	if err := principal.Authorize(rbac.U(urn.V1{
-		WorkspaceID: principal.AuthorizedWorkspaceID,
-		Resource:    "logdrains/" + req.LogdrainId,
-	}, permissions.Read)); err != nil {
+	if err := principal.Authorize(rbac.U(urn.New().Workspace(principal.AuthorizedWorkspaceID).Logdrain(req.LogdrainId), permissions.Read)); err != nil {
 		return err
 	}
 	row, err := db.Query.FindLogdrain(ctx, h.DB.RO(), db.FindLogdrainParams{
