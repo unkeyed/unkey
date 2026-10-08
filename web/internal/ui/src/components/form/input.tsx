@@ -8,7 +8,7 @@ import { fieldBaseClasses, fieldInvalidClasses, fieldSurfaceClasses } from "./in
 
 const inputVariants = cva(
   [
-    "flex h-9 w-full px-2 py-2 disabled:cursor-not-allowed disabled:opacity-50 placeholder:text-grayA-8",
+    "flex h-9 w-full px-3 py-2 disabled:cursor-not-allowed disabled:opacity-50 placeholder:text-grayA-8",
     fieldBaseClasses,
     fieldInvalidClasses,
   ],
