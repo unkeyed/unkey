@@ -12,7 +12,9 @@ import (
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
-	logdrains "github.com/unkeyed/unkey/svc/api/routes/v2_logdrains"
+	getRoute "github.com/unkeyed/unkey/svc/api/routes/v2_logdrains_get_logdrain"
+	listRoute "github.com/unkeyed/unkey/svc/api/routes/v2_logdrains_list_logdrains"
+	updateRoute "github.com/unkeyed/unkey/svc/api/routes/v2_logdrains_update_logdrain"
 )
 
 func TestLogdrainsRequireAuthenticationAndPermission(t *testing.T) {
@@ -33,10 +35,10 @@ func TestLogdrainsRequireAuthenticationAndPermission(t *testing.T) {
 		body    string
 		foreign bool
 	}{
-		{&logdrains.Get{DB: h.DB}, `{"logdrainId":"` + foreignID + `"}`, true},
-		{&logdrains.List{DB: h.DB}, `{}`, false},
+		{&getRoute.Handler{DB: h.DB}, `{"logdrainId":"` + foreignID + `"}`, true},
+		{&listRoute.Handler{DB: h.DB}, `{}`, false},
 		{
-			&logdrains.Update{
+			&updateRoute.Handler{
 				DB:        h.DB,
 				Vault:     h.Vault,
 				Auditlogs: h.Auditlogs,
