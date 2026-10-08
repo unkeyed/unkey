@@ -2,11 +2,7 @@ import { and, db, desc, eq, isNotNull, lt, ne, or, sql } from "@/lib/db";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { deployments, environments } from "@unkey/db/src/schema";
 import { z } from "zod";
-import {
-  deploymentListSelect,
-  excludeSkipped,
-  normalizeDeploymentRow,
-} from "./deployment-query-helpers";
+import { excludeSkipped } from "./deployment-query-helpers";
 
 const MAX_LIMIT = 100;
 
@@ -46,7 +42,26 @@ export const listActiveBranches = workspaceProcedure
       .as("ranked");
 
     const rows = await db
-      .select(deploymentListSelect)
+      .select({
+        id: deployments.id,
+        projectId: deployments.projectId,
+        appId: deployments.appId,
+        environmentId: deployments.environmentId,
+        status: deployments.status,
+        desiredState: deployments.desiredState,
+        source: deployments.source,
+        gitCommitSha: deployments.gitCommitSha,
+        gitBranch: deployments.gitBranch,
+        gitCommitMessage: deployments.gitCommitMessage,
+        gitCommitAuthorHandle: deployments.gitCommitAuthorHandle,
+        gitCommitAuthorAvatarUrl: deployments.gitCommitAuthorAvatarUrl,
+        prNumber: deployments.prNumber,
+        forkRepositoryFullName: deployments.forkRepositoryFullName,
+        requestedImage: deployments.imageRequested,
+        resolvedImage: deployments.imageResolved,
+        trigger: deployments.trigger,
+        createdAt: deployments.createdAt,
+      })
       .from(deployments)
       .innerJoin(ranked, eq(ranked.id, deployments.id))
       .innerJoin(environments, eq(environments.id, deployments.environmentId))
@@ -78,7 +93,12 @@ export const listActiveBranches = workspaceProcedure
     }
 
     return {
-      branches: branchRows.map((row) => ({ ...row, ...normalizeDeploymentRow(row) })),
+      branches: branchRows.map((row) => ({
+        ...row,
+        gitBranch: row.gitBranch ?? "",
+        gitCommitAuthorAvatarUrl:
+          row.gitCommitAuthorAvatarUrl ?? "https://github.com/identicons/dummy-user.png",
+      })),
       nextCursor,
     };
   });
