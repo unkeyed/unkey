@@ -63,8 +63,7 @@ export function BrandColorField({
       </label>
       <Input
         aria-label="Primary color"
-        wrapperClassName="w-[96px]"
-        className="font-mono uppercase"
+        className="w-[96px] font-mono uppercase"
         value={color}
         placeholder={DEFAULT_BRAND_COLOR}
         maxLength={7}

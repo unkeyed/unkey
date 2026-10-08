@@ -15,7 +15,6 @@ import {
   InputGroupAddon,
   InputGroupInput,
   fieldBaseClasses,
-  fieldFrameVariants,
   fieldInvalidClasses,
   fieldSurfaceClasses,
 } from "./input-group";
@@ -25,7 +24,7 @@ const comboboxTriggerVariants = cva(
     "flex h-9 w-full items-center justify-between gap-2 px-3 text-left font-normal",
     fieldBaseClasses,
     fieldInvalidClasses,
-    "disabled:cursor-not-allowed",
+    "disabled:cursor-not-allowed disabled:opacity-50",
   ],
   {
     variants: {
@@ -37,9 +36,7 @@ const comboboxTriggerVariants = cva(
   },
 );
 
-type DocumentedComboboxTriggerProps = VariantProps<typeof comboboxTriggerVariants> & {
-  wrapperClassName?: string;
-};
+type DocumentedComboboxTriggerProps = VariantProps<typeof comboboxTriggerVariants>;
 
 const ComboboxRoot = ComboboxPrimitive.Root;
 const ComboboxValue = ComboboxPrimitive.Value;
@@ -56,21 +53,13 @@ type ComboboxTriggerProps = ComboboxPrimitive.Trigger.Props &
     ref?: React.Ref<React.ComponentRef<typeof ComboboxPrimitive.Trigger>>;
   };
 
-function ComboboxTrigger({
-  className,
-  wrapperClassName,
-  variant,
-  ref,
-  ...props
-}: ComboboxTriggerProps) {
+function ComboboxTrigger({ className, variant, ref, ...props }: ComboboxTriggerProps) {
   return (
-    <span data-slot="control" className={cn(fieldFrameVariants({ variant }), wrapperClassName)}>
-      <ComboboxPrimitive.Trigger
-        ref={ref}
-        className={cn(comboboxTriggerVariants({ variant }), className)}
-        {...props}
-      />
-    </span>
+    <ComboboxPrimitive.Trigger
+      ref={ref}
+      className={cn(comboboxTriggerVariants({ variant }), className)}
+      {...props}
+    />
   );
 }
 
