@@ -22,6 +22,19 @@ type Querier interface {
 	//  WHERE id = ?
 	//    AND current_deployment_id = ?
 	ClearAppCurrentDeployment(ctx context.Context, arg ClearAppCurrentDeploymentParams) error
+	//ClearInstanceWaiting
+	//
+	//  UPDATE instances
+	//  SET container_status = JSON_SET(
+	//  	JSON_REMOVE(container_status, '$.waiting'),
+	//  	'$.restartCount', CAST(? AS UNSIGNED),
+	//  	'$.statusObservedAt', CAST(? AS UNSIGNED)
+	//  )
+	//  WHERE k8s_name = ?
+	//  	AND region_id = ?
+	//  	AND COALESCE(CAST(JSON_VALUE(container_status, '$.statusObservedAt') AS UNSIGNED), 0) <= CAST(? AS UNSIGNED)
+	//  	AND CAST(JSON_VALUE(container_status, '$.restartCount') AS UNSIGNED) <= CAST(? AS UNSIGNED)
+	ClearInstanceWaiting(ctx context.Context, arg ClearInstanceWaitingParams) error
 	// Clears the local Deploy entitlement mirror on cancel. Leaves the Stripe
 	// linkage (customer/subscription) intact: a mixed subscription keeps running for
 	// the API plan, and a Deploy-only subscription cancels at period end. After this
@@ -601,11 +614,11 @@ type Querier interface {
 	FindDeploymentAppAndStatus(ctx context.Context, id string) (FindDeploymentAppAndStatusRow, error)
 	//FindDeploymentById
 	//
-	//  SELECT deployments.pk, deployments.id, deployments.k8s_name, deployments.workspace_id, deployments.project_id, deployments.environment_id, deployments.app_id, deployments.source, deployments.image_requested, deployments.image_resolved, deployments.build_id, deployments.git_commit_sha, deployments.git_branch, deployments.git_commit_message, deployments.git_commit_author_handle, deployments.git_commit_author_avatar_url, deployments.git_commit_timestamp, deployments.sentinel_config, deployments.cpu_millicores, deployments.memory_mib, deployments.storage_mib, deployments.desired_state, deployments.encrypted_environment_variables, deployments.command, deployments.port, deployments.shutdown_signal, deployments.upstream_protocol, deployments.healthcheck, deployments.pr_number, deployments.fork_repository_full_name, deployments.github_deployment_id, deployments.invocation_id, deployments.status, deployments.`trigger`, deployments.triggered_by, deployments.trigger_reason, deployments.created_at, deployments.updated_at FROM `deployments` WHERE id = ?
+	//  SELECT deployments.pk, deployments.id, deployments.k8s_name, deployments.workspace_id, deployments.project_id, deployments.environment_id, deployments.app_id, deployments.source, deployments.image_requested, deployments.image_resolved, deployments.build_id, deployments.git_commit_sha, deployments.git_branch, deployments.git_commit_message, deployments.git_commit_author_handle, deployments.git_commit_author_avatar_url, deployments.git_commit_timestamp, deployments.sentinel_config, deployments.cpu_millicores, deployments.memory_mib, deployments.storage_mib, deployments.desired_state, deployments.encrypted_environment_variables, deployments.command, deployments.port, deployments.shutdown_signal, deployments.upstream_protocol, deployments.healthcheck, deployments.last_pod_failure, deployments.pr_number, deployments.fork_repository_full_name, deployments.github_deployment_id, deployments.invocation_id, deployments.status, deployments.`trigger`, deployments.triggered_by, deployments.trigger_reason, deployments.created_at, deployments.updated_at FROM `deployments` WHERE id = ?
 	FindDeploymentById(ctx context.Context, id string) (Deployment, error)
 	//FindDeploymentByK8sName
 	//
-	//  SELECT deployments.pk, deployments.id, deployments.k8s_name, deployments.workspace_id, deployments.project_id, deployments.environment_id, deployments.app_id, deployments.source, deployments.image_requested, deployments.image_resolved, deployments.build_id, deployments.git_commit_sha, deployments.git_branch, deployments.git_commit_message, deployments.git_commit_author_handle, deployments.git_commit_author_avatar_url, deployments.git_commit_timestamp, deployments.sentinel_config, deployments.cpu_millicores, deployments.memory_mib, deployments.storage_mib, deployments.desired_state, deployments.encrypted_environment_variables, deployments.command, deployments.port, deployments.shutdown_signal, deployments.upstream_protocol, deployments.healthcheck, deployments.pr_number, deployments.fork_repository_full_name, deployments.github_deployment_id, deployments.invocation_id, deployments.status, deployments.`trigger`, deployments.triggered_by, deployments.trigger_reason, deployments.created_at, deployments.updated_at FROM `deployments` WHERE k8s_name = ?
+	//  SELECT deployments.pk, deployments.id, deployments.k8s_name, deployments.workspace_id, deployments.project_id, deployments.environment_id, deployments.app_id, deployments.source, deployments.image_requested, deployments.image_resolved, deployments.build_id, deployments.git_commit_sha, deployments.git_branch, deployments.git_commit_message, deployments.git_commit_author_handle, deployments.git_commit_author_avatar_url, deployments.git_commit_timestamp, deployments.sentinel_config, deployments.cpu_millicores, deployments.memory_mib, deployments.storage_mib, deployments.desired_state, deployments.encrypted_environment_variables, deployments.command, deployments.port, deployments.shutdown_signal, deployments.upstream_protocol, deployments.healthcheck, deployments.last_pod_failure, deployments.pr_number, deployments.fork_repository_full_name, deployments.github_deployment_id, deployments.invocation_id, deployments.status, deployments.`trigger`, deployments.triggered_by, deployments.trigger_reason, deployments.created_at, deployments.updated_at FROM `deployments` WHERE k8s_name = ?
 	FindDeploymentByK8sName(ctx context.Context, k8sName string) (Deployment, error)
 	//FindDeploymentForBuild
 	//
@@ -1778,7 +1791,7 @@ type Querier interface {
 	ListDeployBillingCustomers(ctx context.Context) ([]ListDeployBillingCustomersRow, error)
 	//ListDeploymentsByEnvironmentIdAndStatus
 	//
-	//  SELECT deployments.pk, deployments.id, deployments.k8s_name, deployments.workspace_id, deployments.project_id, deployments.environment_id, deployments.app_id, deployments.source, deployments.image_requested, deployments.image_resolved, deployments.build_id, deployments.git_commit_sha, deployments.git_branch, deployments.git_commit_message, deployments.git_commit_author_handle, deployments.git_commit_author_avatar_url, deployments.git_commit_timestamp, deployments.sentinel_config, deployments.cpu_millicores, deployments.memory_mib, deployments.storage_mib, deployments.desired_state, deployments.encrypted_environment_variables, deployments.command, deployments.port, deployments.shutdown_signal, deployments.upstream_protocol, deployments.healthcheck, deployments.pr_number, deployments.fork_repository_full_name, deployments.github_deployment_id, deployments.invocation_id, deployments.status, deployments.`trigger`, deployments.triggered_by, deployments.trigger_reason, deployments.created_at, deployments.updated_at FROM `deployments`
+	//  SELECT deployments.pk, deployments.id, deployments.k8s_name, deployments.workspace_id, deployments.project_id, deployments.environment_id, deployments.app_id, deployments.source, deployments.image_requested, deployments.image_resolved, deployments.build_id, deployments.git_commit_sha, deployments.git_branch, deployments.git_commit_message, deployments.git_commit_author_handle, deployments.git_commit_author_avatar_url, deployments.git_commit_timestamp, deployments.sentinel_config, deployments.cpu_millicores, deployments.memory_mib, deployments.storage_mib, deployments.desired_state, deployments.encrypted_environment_variables, deployments.command, deployments.port, deployments.shutdown_signal, deployments.upstream_protocol, deployments.healthcheck, deployments.last_pod_failure, deployments.pr_number, deployments.fork_repository_full_name, deployments.github_deployment_id, deployments.invocation_id, deployments.status, deployments.`trigger`, deployments.triggered_by, deployments.trigger_reason, deployments.created_at, deployments.updated_at FROM `deployments`
 	//  WHERE environment_id = ?
 	//    AND status = ?
 	//    AND created_at < ?
@@ -2027,63 +2040,81 @@ type Querier interface {
 	//    updated_at = ?
 	//  WHERE id = ?
 	ReassignFrontlineRoute(ctx context.Context, arg ReassignFrontlineRouteParams) error
-	// Records that kubelet has put a container into CrashLoopBackOff by setting
-	// container_status.waiting.reason. The lastTerminationState carries the
-	// most recent exit info and is left untouched — the dashboard renders both
-	// the underlying exit and the "currently throttling" indicator together.
+	//ReconcileInstanceContainerStatus
 	//
-	// Called once per (pod_uid, container_name, restart_count) when krane sees
-	// the waiting container reach the BackOff state. The next terminated event
-	// (or a successful start) will remove $.waiting via RecordInstanceExit.
+	//  UPDATE instances
+	//  SET container_status = JSON_SET(
+	//  	CASE WHEN CAST(? AS CHAR) = ''
+	//  		THEN JSON_REMOVE(container_status, '$.waiting')
+	//  		ELSE JSON_SET(container_status, '$.waiting', JSON_OBJECT(
+	//  			'reason', CAST(? AS CHAR),
+	//  			'message', CAST(? AS CHAR)
+	//  		))
+	//  	END,
+	//  	'$.restartCount', CAST(? AS UNSIGNED),
+	//  	'$.statusObservedAt', CAST(? AS UNSIGNED)
+	//  )
+	//  WHERE k8s_name = ?
+	//  	AND region_id = ?
+	//  	AND COALESCE(CAST(JSON_VALUE(container_status, '$.statusObservedAt') AS UNSIGNED), 0) <= CAST(? AS UNSIGNED)
+	ReconcileInstanceContainerStatus(ctx context.Context, arg ReconcileInstanceContainerStatusParams) error
+	//RecordDeploymentPodFailure
 	//
-	// Out-of-order events are dropped via the restartCount guard: a delayed
-	// crashloop RPC from an earlier container life cannot flip the waiting
-	// reason back after RecordInstanceExit has already advanced restartCount
-	// and removed $.waiting.
+	//  UPDATE deployments
+	//  SET last_pod_failure = JSON_OBJECT(
+	//    'podUid', CAST(? AS CHAR),
+	//    'podName', CAST(? AS CHAR),
+	//    'regionId', CAST(? AS CHAR),
+	//    'reason', CAST(? AS CHAR),
+	//    'message', CAST(? AS CHAR),
+	//    'observedAt', CAST(? AS UNSIGNED)
+	//  )
+	//  WHERE id = ?
+	//    AND workspace_id = ?
+	//    AND COALESCE(CAST(JSON_VALUE(last_pod_failure, '$.observedAt') AS UNSIGNED), 0) < CAST(? AS UNSIGNED)
+	RecordDeploymentPodFailure(ctx context.Context, arg RecordDeploymentPodFailureParams) error
+	//RecordInstanceExit
+	//
+	//  UPDATE instances
+	//  SET container_status = JSON_SET(
+	//  	CASE
+	//  		WHEN COALESCE(CAST(JSON_VALUE(container_status, '$.statusObservedAt') AS UNSIGNED), 0) <= CAST(? AS UNSIGNED)
+	//  			AND CAST(JSON_VALUE(container_status, '$.restartCount') AS UNSIGNED) <= CAST(? AS UNSIGNED)
+	//  		THEN JSON_SET(
+	//  			JSON_REMOVE(container_status, '$.waiting'),
+	//  			'$.restartCount', CAST(? AS UNSIGNED),
+	//  			'$.statusObservedAt', CAST(? AS UNSIGNED)
+	//  		)
+	//  		ELSE container_status
+	//  	END,
+	//  	'$.lastTerminationState', JSON_OBJECT(
+	//  		'exitCode', CAST(? AS SIGNED),
+	//  		'signal', CAST(? AS SIGNED),
+	//  		'reason', CAST(? AS CHAR),
+	//  		'finishedAt', CAST(? AS UNSIGNED)
+	//  	)
+	//  )
+	//  WHERE k8s_name = ?
+	//  	AND region_id = ?
+	//  	AND COALESCE(CAST(JSON_VALUE(container_status, '$.lastTerminationState.finishedAt') AS UNSIGNED), 0) < CAST(? AS UNSIGNED)
+	RecordInstanceExit(ctx context.Context, arg RecordInstanceExitParams) error
+	//RecordInstanceWaiting
 	//
 	//  UPDATE instances
 	//  SET container_status = JSON_SET(
 	//  	container_status,
-	//  	'$.waiting', JSON_OBJECT('reason', 'CrashLoopBackOff')
+	//  	'$.restartCount', CAST(? AS UNSIGNED),
+	//  	'$.statusObservedAt', CAST(? AS UNSIGNED),
+	//  	'$.waiting', JSON_OBJECT(
+	//  		'reason', ?,
+	//  		'message', ?
+	//  	)
 	//  )
 	//  WHERE k8s_name = ?
 	//  	AND region_id = ?
+	//  	AND COALESCE(CAST(JSON_VALUE(container_status, '$.statusObservedAt') AS UNSIGNED), 0) <= CAST(? AS UNSIGNED)
 	//  	AND CAST(JSON_VALUE(container_status, '$.restartCount') AS UNSIGNED) <= CAST(? AS UNSIGNED)
-	RecordInstanceCrashLoopBackOff(ctx context.Context, arg RecordInstanceCrashLoopBackOffParams) error
-	// Denormalizes the most recent container exit info onto the instances row's
-	// container_status JSON. Called by ctrl when krane reports an
-	// event_kind='terminated' event.
-	//
-	// The caller computes the full new ContainerStatus value (restartCount,
-	// lastTerminationState, no waiting) and passes it in one typed param. The
-	// WHERE clause inspects the row's *existing* container_status to drop
-	// delayed events; once the guard passes, the new value fully replaces the
-	// old (including clearing $.waiting, since a fresh exit ends any prior
-	// crashloop window).
-	//
-	// Out-of-order events from krane are dropped via a lexicographic
-	// (restartCount, finishedAt) tuple comparison: an incoming row only wins
-	// if its (restartCount, finishedAt) pair is strictly greater than the
-	// pair already on the row. The previous OR-of-clauses formulation let a
-	// delayed terminated event from restart_count-1 sneak past via the
-	// finishedAt branch and regress the row after restart_count had already
-	// advanced.
-	//
-	//  UPDATE instances
-	//  SET container_status = ?
-	//  WHERE k8s_name = ?
-	//  	AND region_id = ?
-	//  	AND (
-	//  		CAST(JSON_VALUE(container_status, '$.restartCount') AS UNSIGNED) < CAST(? AS UNSIGNED)
-	//  		OR (
-	//  			CAST(JSON_VALUE(container_status, '$.restartCount') AS UNSIGNED) = CAST(? AS UNSIGNED)
-	//  			AND (
-	//  				JSON_VALUE(container_status, '$.lastTerminationState.finishedAt') IS NULL
-	//  				OR CAST(JSON_VALUE(container_status, '$.lastTerminationState.finishedAt') AS UNSIGNED) < CAST(? AS UNSIGNED)
-	//  			)
-	//  		)
-	//  	)
-	RecordInstanceExit(ctx context.Context, arg RecordInstanceExitParams) error
+	RecordInstanceWaiting(ctx context.Context, arg RecordInstanceWaitingParams) error
 	// RefillKeysByIDs sets remaining_requests to refill_amount for the given keys.
 	// This is a bulk operation to minimize database round trips.
 	//

@@ -1,14 +1,3 @@
-// Container lifecycle event capture: walks pod.Status, mirrors each
-// container's corev1.ContainerState into an InstanceEvent.state oneof, and
-// ships the events to ctrl via ReportInstanceEvents. Surfaces user-actionable
-// failures (OOMKilled, exit codes, crashloops) the gateway can't currently
-// report, and lets the logs viewer draw lifecycle dividers between runs.
-//
-// This runs alongside reportDeploymentStatus on every pod-watch tick.
-// reportDeploymentStatus produces a coarse instance summary (Running /
-// Pending / Failed); this file produces fine-grained per-container life
-// events for the dashboard timeline.
-
 package deployment
 
 import (
@@ -35,6 +24,7 @@ const (
 	eventKindRunning    = "running"
 	eventKindTerminated = "terminated"
 	eventKindWaiting    = "waiting"
+	observedAtAttribute = "status_observed_at_unix_nano"
 
 	// fingerprintMessageMax bounds the message bytes used in the
 	// event_fingerprint hash. Long stack traces make every retry of the
@@ -43,11 +33,7 @@ const (
 	fingerprintMessageMax = 200
 )
 
-// reportInstanceEvents walks the pod's container statuses, builds the set of
-// events not yet seen for this (pod_uid, container_name, restart_count,
-// state) tuple, and ships them in a single batched RPC. Best-effort: errors
-// are logged and surfaced as metrics but do not fail the caller.
-func (c *Controller) reportInstanceEvents(ctx context.Context, pod *corev1.Pod) {
+func (c *Controller) reportInstanceEvents(ctx context.Context, pod *corev1.Pod, observedAtUnixNano int64) {
 	if c.eventDedup == nil {
 		return // not configured (tests or environments without ctrl-CH wiring)
 	}
@@ -59,6 +45,10 @@ func (c *Controller) reportInstanceEvents(ctx context.Context, pod *corev1.Pod) 
 
 	fresh := make([]*ctrlv1.InstanceEvent, 0, len(candidates))
 	for _, ev := range candidates {
+		if ev.Attributes == nil {
+			ev.Attributes = map[string]string{}
+		}
+		ev.Attributes[observedAtAttribute] = strconv.FormatInt(observedAtUnixNano, 10)
 		key := dedupKey(ev)
 		if _, hit := c.eventDedup.Get(ctx, key); hit == cache.Hit {
 			metrics.InstanceEventsDedupDroppedTotal.WithLabelValues(eventKindOf(ev)).Inc()
@@ -105,21 +95,6 @@ func (c *Controller) reportInstanceEvents(ctx context.Context, pod *corev1.Pod) 
 	}
 }
 
-// scanInstanceEvents inspects a pod's container statuses and returns one
-// event per (container, life, state) tuple we should report. Pure function,
-// no I/O.
-//
-// For each ContainerStatus and InitContainerStatus we look at:
-//   - State.Running: emit a Running event for the current life. Idempotent
-//     across pod-watch ticks via the dedupe cache.
-//   - State.Terminated: the current container life ended at restart_count.
-//   - LastTerminationState.Terminated: the previous life ended at
-//     (restart_count - 1) and the container has since restarted. Skipped
-//     when restart_count == 0 because there is no prior life to describe.
-//   - State.Waiting with reason=CrashLoopBackOff: kubelet has put the
-//     container in a backoff window. Emit one event per restart_count
-//     value so the dashboard can render "kubelet is throttling" alongside
-//     the underlying exit.
 func scanInstanceEvents(pod *corev1.Pod) []*ctrlv1.InstanceEvent {
 	if pod == nil {
 		return nil
@@ -137,20 +112,70 @@ func scanInstanceEvents(pod *corev1.Pod) []*ctrlv1.InstanceEvent {
 
 	out := make([]*ctrlv1.InstanceEvent, 0, len(statuses))
 	for _, cs := range statuses {
-		if r := cs.State.Running; r != nil {
-			out = append(out, buildRunningEvent(pod, tenant, cs, r.StartedAt.UnixMilli()))
-		}
 		if t := cs.State.Terminated; t != nil {
 			out = append(out, buildTerminatedEvent(pod, tenant, cs, cs.RestartCount, t))
 		}
 		if cs.RestartCount > 0 && cs.LastTerminationState.Terminated != nil {
 			out = append(out, buildTerminatedEvent(pod, tenant, cs, cs.RestartCount-1, cs.LastTerminationState.Terminated))
 		}
-		if w := cs.State.Waiting; w != nil && w.Reason == "CrashLoopBackOff" {
+		if r := cs.State.Running; r != nil {
+			out = append(out, buildRunningEvent(pod, tenant, cs, r.StartedAt.UnixMilli()))
+		}
+		if w := cs.State.Waiting; isActionableWaiting(w) {
 			out = append(out, buildWaitingEvent(pod, tenant, cs, w))
 		}
 	}
+
+	if pod.Status.Phase == corev1.PodFailed {
+		reason := pod.Status.Reason
+		if reason == "" {
+			reason = "PodFailed"
+		}
+		event := buildWaitingEvent(pod, tenant, primaryContainerStatus(pod, statuses), &corev1.ContainerStateWaiting{
+			Reason:  reason,
+			Message: pod.Status.Message,
+		})
+		event.Attributes["pod_phase"] = string(corev1.PodFailed)
+		out = append(out, event)
+	}
+	for _, condition := range pod.Status.Conditions {
+		if condition.Type == corev1.PodScheduled && condition.Status == corev1.ConditionFalse && condition.Reason == corev1.PodReasonUnschedulable {
+			out = append(out, buildWaitingEvent(pod, tenant, primaryContainerStatus(pod, statuses), &corev1.ContainerStateWaiting{
+				Reason:  condition.Reason,
+				Message: condition.Message,
+			}))
+			break
+		}
+	}
 	return out
+}
+
+func isActionableWaiting(waiting *corev1.ContainerStateWaiting) bool {
+	if waiting == nil || waiting.Reason == "" {
+		return false
+	}
+	switch waiting.Reason {
+	case "ContainerCreating", "PodInitializing":
+		return false
+	default:
+		return true
+	}
+}
+
+func primaryContainerStatus(pod *corev1.Pod, statuses []corev1.ContainerStatus) corev1.ContainerStatus {
+	if len(pod.Spec.Containers) > 0 {
+		primary := pod.Spec.Containers[0]
+		for _, status := range statuses {
+			if status.Name == primary.Name {
+				return status
+			}
+		}
+		return corev1.ContainerStatus{Name: primary.Name, Image: primary.Image}
+	}
+	if len(statuses) > 0 {
+		return statuses[0]
+	}
+	return corev1.ContainerStatus{Name: "pod"}
 }
 
 // tenantContext bundles the workspace/project/app/environment/deployment
@@ -350,13 +375,13 @@ func fingerprint(imageID string, exitCode int32, reason, message string) string 
 	return hex.EncodeToString(h[:])
 }
 
-// dedupKey is the in-memory dedupe identity for an event. Mirrors the
-// ClickHouse insert dedupe constraint.
 func dedupKey(ev *ctrlv1.InstanceEvent) string {
 	return strings.Join([]string{
 		ev.GetPodUid(),
 		ev.GetContainerName(),
 		strconv.FormatInt(int64(ev.GetRestartCount()), 10),
 		eventKindOf(ev),
+		reasonOf(ev),
+		ev.GetAttributes()["pod_phase"],
 	}, "|")
 }

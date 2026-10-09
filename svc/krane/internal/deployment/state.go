@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"strconv"
+	"time"
 
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	appsv1 "k8s.io/api/apps/v1"
@@ -15,14 +16,6 @@ import (
 // buildDeploymentStatus queries the pods belonging to a ReplicaSet and builds a
 // status report for the control plane.
 //
-// The report includes each active pod's IP address, CPU and memory
-// limits, and health status. Pods without an IP address are excluded since they
-// can't receive traffic yet. Failed and succeeded pods are also excluded because
-// the ReplicaSet replaces them but Kubernetes retains their objects for garbage
-// collection. Reporting them would retain a stale instance for every replacement.
-// The address format is "{pod-ip}:{port}" so instances are reachable from peered
-// clusters without relying on cluster-local DNS.
-//
 // Pod phase is mapped to instance status: Running pods with ContainersReady=True
 // become STATUS_RUNNING, Pending pods and Running pods whose ContainersReady
 // condition is missing or False become STATUS_PENDING.
@@ -32,6 +25,7 @@ func (c *Controller) buildDeploymentStatus(ctx context.Context, replicaset *apps
 		return nil, err
 	}
 
+	observedAtUnixNano := time.Now().UnixNano()
 	pods, err := c.clientSet.CoreV1().Pods(replicaset.Namespace).List(ctx, metav1.ListOptions{
 		LabelSelector: selector.String(),
 	})
@@ -53,16 +47,16 @@ func (c *Controller) buildDeploymentStatus(ctx context.Context, replicaset *apps
 	}
 
 	for _, pod := range pods.Items {
-		if pod.Status.PodIP == "" {
-			continue
-		}
-
 		instance := &ctrlv1.ReportDeploymentStatusRequest_Update_Instance{
-			K8SName:       pod.GetName(),
-			Address:       net.JoinHostPort(pod.Status.PodIP, strconv.Itoa(int(containerPort))),
-			CpuMillicores: 0,
-			MemoryMib:     0,
-			Status:        ctrlv1.ReportDeploymentStatusRequest_Update_Instance_STATUS_UNSPECIFIED,
+			K8SName:              pod.GetName(),
+			Address:              "",
+			CpuMillicores:        0,
+			MemoryMib:            0,
+			Status:               ctrlv1.ReportDeploymentStatusRequest_Update_Instance_STATUS_UNSPECIFIED,
+			ContainerObservation: observeContainerStatus(&pod, observedAtUnixNano),
+		}
+		if pod.Status.PodIP != "" {
+			instance.Address = net.JoinHostPort(pod.Status.PodIP, strconv.Itoa(int(containerPort)))
 		}
 		if containers := pod.Spec.Containers; len(containers) > 0 {
 			if limits := containers[0].Resources.Limits; limits != nil {
@@ -105,4 +99,38 @@ func (c *Controller) buildDeploymentStatus(ctx context.Context, replicaset *apps
 			Update: update,
 		},
 	}, nil
+}
+
+func observeContainerStatus(pod *corev1.Pod, observedAtUnixNano int64) *ctrlv1.ContainerObservation {
+	var observation *ctrlv1.ContainerObservation
+	for _, status := range pod.Status.ContainerStatuses {
+		if status.Name != "deployment" || (status.State.Running == nil && status.State.Waiting == nil && status.State.Terminated == nil) {
+			continue
+		}
+		observation = &ctrlv1.ContainerObservation{
+			RestartCount:       status.RestartCount,
+			ObservedAtUnixNano: observedAtUnixNano,
+		}
+		if waiting := status.State.Waiting; isActionableWaiting(waiting) {
+			observation.Waiting = &ctrlv1.Waiting{Reason: waiting.Reason, Message: waiting.Message}
+		}
+		for _, exit := range []*corev1.ContainerStateTerminated{status.LastTerminationState.Terminated, status.State.Terminated} {
+			if exit == nil || exit.ExitCode == 0 || exit.FinishedAt.IsZero() || exit.FinishedAt.UnixMilli() <= observation.LastFailureFinishedAt {
+				continue
+			}
+			observation.LastFailure = &ctrlv1.Terminated{ExitCode: exit.ExitCode, Signal: exit.Signal, Reason: exit.Reason, Message: exit.Message}
+			observation.LastFailureFinishedAt = exit.FinishedAt.UnixMilli()
+		}
+		break
+	}
+	for _, condition := range pod.Status.Conditions {
+		if condition.Type == corev1.PodScheduled && condition.Status == corev1.ConditionFalse && condition.Reason == corev1.PodReasonUnschedulable {
+			if observation == nil {
+				observation = &ctrlv1.ContainerObservation{ObservedAtUnixNano: observedAtUnixNano}
+			}
+			observation.Waiting = &ctrlv1.Waiting{Reason: condition.Reason, Message: condition.Message}
+			break
+		}
+	}
+	return observation
 }
