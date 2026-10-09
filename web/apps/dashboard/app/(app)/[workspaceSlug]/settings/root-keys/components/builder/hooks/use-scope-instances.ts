@@ -2,6 +2,7 @@
 
 import { useProjectEnvironments } from "@/hooks/use-project-environments";
 import { useProjectsWithApps } from "@/hooks/use-projects-with-apps";
+import { useEveryNamespace } from "@/lib/queries/ratelimit-namespaces";
 import { trpc } from "@/lib/trpc/client";
 import type { ResourceScope } from "../lib/catalogue.types";
 import { environmentLabel } from "../lib/policy-view";
@@ -26,7 +27,9 @@ export function useScopeInstances(scope: ResourceScope): ScopeInstances {
   const keyspaces = trpc.deploy.environmentSettings.getAvailableKeyspaces.useQuery(undefined, {
     enabled: scope === "keyspaces",
   });
-  const namespaces = trpc.ratelimit.namespace.list.useQuery(undefined, {
+  const namespaces = useEveryNamespace({ enabled: scope === "ratelimit-namespaces" });
+  // Every namespace lives in the workspace default project
+  const defaultProject = trpc.deploy.project.getDefault.useQuery(undefined, {
     enabled: scope === "ratelimit-namespaces",
   });
 
@@ -75,14 +78,18 @@ export function useScopeInstances(scope: ResourceScope): ScopeInstances {
         })),
         isLoading: keyspaces.isLoading,
       };
-    case "ratelimit-namespaces":
+    case "ratelimit-namespaces": {
+      const defaultProjectId = defaultProject.data?.id;
       return {
-        instances: (namespaces.data ?? []).map((namespace) => ({
-          id: `projects/${namespace.projectId}/ratelimits/namespaces/${namespace.id}`,
-          label: namespace.name,
-        })),
-        isLoading: namespaces.isLoading,
+        instances: defaultProjectId
+          ? (namespaces.data ?? []).map((namespace) => ({
+              id: `projects/${defaultProjectId}/ratelimits/namespaces/${namespace.id}`,
+              label: namespace.name,
+            }))
+          : [],
+        isLoading: namespaces.isLoading || defaultProject.isLoading,
       };
+    }
   }
 }
 
