@@ -24,8 +24,9 @@ import (
 )
 
 // TestDeleteCancelsProgressingDeploymentsAndAuditsThem pins that the cascade
-// drops every deployment row, while only a progressing deployment gets a
-// deployment.cancel audit entry carrying the deletion's actor.
+// drops every deployment row and saved deployment connection, while only a
+// progressing deployment gets a deployment.cancel audit entry carrying the
+// deletion's actor.
 func TestDeleteCancelsProgressingDeploymentsAndAuditsThem(t *testing.T) {
 	ctx := context.Background()
 
@@ -77,6 +78,17 @@ func TestDeleteCancelsProgressingDeploymentsAndAuditsThem(t *testing.T) {
 		Status:        mysqltype.DeploymentsStatusReady,
 	})
 
+	connectionID := uid.New(uid.ConnectionPrefix)
+	require.NoError(t, database.InsertDeploymentConnection(ctx, db.InsertDeploymentConnectionParams{
+		DeploymentID: finished.ID, ConnectionID: connectionID, WorkspaceID: workspaceID, ProjectID: project.ID,
+		AppID: app.ID, EnvironmentID: env.ID, ResourceType: "app", ResourceID: app.ID,
+		Name: "self", CreatedAt: time.Now().UnixMilli(),
+	}))
+	require.NoError(t, database.InsertDeploymentConnectionAppTarget(ctx, db.InsertDeploymentConnectionAppTargetParams{
+		DeploymentID: finished.ID, ConnectionID: connectionID,
+		SelectionMode: db.DeploymentConnectionAppTargetsSelectionModeAutomatic,
+	}))
+
 	// A well-formed invocation id that never existed: the admin API answers
 	// 404, which CancelInvocation treats as "already finished", so the handler
 	// proceeds. A malformed id would draw a 400 instead and retry forever.
@@ -114,6 +126,12 @@ func TestDeleteCancelsProgressingDeploymentsAndAuditsThem(t *testing.T) {
 	require.True(t, db.IsNotFound(err), "the cascade must drop the building deployment")
 	_, err = database.FindDeploymentById(ctx, finished.ID)
 	require.True(t, db.IsNotFound(err), "the cascade must drop the finished deployment")
+	saved, err := database.CountDeploymentConnectionsByDeploymentId(ctx, finished.ID)
+	require.NoError(t, err)
+	require.Zero(t, saved, "the cascade must drop the saved deployment connections")
+	targets, err := database.CountDeploymentConnectionAppTargetsByDeploymentId(ctx, finished.ID)
+	require.NoError(t, err)
+	require.Zero(t, targets, "the cascade must drop the saved app targets")
 
 	require.Equal(t, 1, countAudits(t, ctx, database, workspaceID, auditlog.DeploymentCancelEvent, building.ID, actorID),
 		"a progressing deployment killed by the deletion must be audited with the deletion's actor")

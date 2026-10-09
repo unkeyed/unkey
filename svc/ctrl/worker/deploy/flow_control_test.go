@@ -1,13 +1,19 @@
 package deploy
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"net/http"
 	"sync"
 	"testing"
 	"time"
 
 	restate "github.com/restatedev/sdk-go"
 	"github.com/restatedev/sdk-go/ingress"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
@@ -104,6 +110,12 @@ func TestFlowControl(t *testing.T) {
 		require.NoError(t, err)
 		require.Eventually(t, func() bool { return probe.hasCalled(queued) }, awaitBudget, 50*time.Millisecond,
 			"the second caller never issued its call")
+		require.EventuallyWithT(t, func(c *assert.CollectT) {
+			status, found, err := holdInvocationStatus(ctx, cfg.AdminURL, queued)
+			require.NoError(c, err)
+			require.True(c, found)
+			require.Equal(c, "pending", status)
+		}, awaitBudget, 50*time.Millisecond, "the second callee never queued behind the first")
 		require.Never(t, func() bool { return probe.hasStarted(queued) }, time.Second, 50*time.Millisecond,
 			"the second callee must wait behind the first")
 
@@ -126,6 +138,12 @@ func TestFlowControl(t *testing.T) {
 		_, parentErr := probe.parentResult(queued)
 		require.Error(t, parentErr)
 		require.True(t, restate.IsTerminalError(parentErr), "cancel must surface as a terminal error, got %v", parentErr)
+		require.EventuallyWithT(t, func(c *assert.CollectT) {
+			_, found, err := holdInvocationStatus(ctx, cfg.AdminURL, queued)
+			require.NoError(c, err)
+			require.False(c, found)
+		}, awaitBudget, 50*time.Millisecond, "Restate never removed the cancelled callee")
+		require.False(t, probe.hasStarted(queued), "the cancelled callee started before Restate removed it")
 
 		// Restate cancels the callee through its own partition after the caller
 		// already sees the cancel, so free the slot only once the callee is gone
@@ -431,4 +449,53 @@ func (p *FlowControlProbe) parentResult(childKey string) (bool, error) {
 	defer p.mu.Unlock()
 	err, ok := p.parents[childKey]
 	return ok, err
+}
+
+// holdInvocationStatus queries Restate's sys_invocation table directly because
+// pkg/restate/admin has no reader for invocations by service key and handler.
+func holdInvocationStatus(ctx context.Context, adminURL, key string) (status string, found bool, err error) {
+	ctx, cancel := context.WithTimeout(ctx, awaitBudget)
+	defer cancel()
+
+	query, err := json.Marshal(map[string]string{"query": fmt.Sprintf(
+		"select status from sys_invocation where target_service_name = '%s' and target_service_key = '%s' and target_handler_name = 'Hold'",
+		probeService, key,
+	)})
+	if err != nil {
+		return "", false, err
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, adminURL+"/query", bytes.NewReader(query))
+	if err != nil {
+		return "", false, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return "", false, err
+	}
+	defer func() { err = errors.Join(err, resp.Body.Close()) }()
+	if resp.StatusCode != http.StatusOK {
+		return "", false, fmt.Errorf("query Hold invocation %s: status %d", key, resp.StatusCode)
+	}
+
+	var result struct {
+		Rows []struct {
+			Status string `json:"status"`
+		} `json:"rows"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return "", false, err
+	}
+
+	switch len(result.Rows) {
+	case 0:
+		return "", false, nil
+	case 1:
+		return result.Rows[0].Status, true, nil
+	default:
+		return "", false, fmt.Errorf("found %d Hold invocations for %s, want at most 1", len(result.Rows), key)
+	}
 }
