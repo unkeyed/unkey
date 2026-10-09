@@ -379,3 +379,21 @@ func TestBuildDeployment_GvisorToggle(t *testing.T) {
 	dep = c.buildDeployment(fullApplyRequest(t), true)
 	require.Nil(t, dep.Spec.Template.Spec.RuntimeClassName)
 }
+
+// TestBuildDeployment_PreStopDrain checks that a pod with the default shutdown
+// signal keeps serving after it starts terminating, until frontline has
+// reloaded its instance list.
+func TestBuildDeployment_PreStopDrain(t *testing.T) {
+	for _, signal := range []string{"", "SIGTERM"} {
+		t.Run("signal="+signal, func(t *testing.T) {
+			req := fullApplyRequest(t)
+			req.ShutdownSignal = signal
+
+			c := mainContainer(t, testController().buildDeployment(req, false))
+			require.NotNil(t, c.Lifecycle)
+			require.NotNil(t, c.Lifecycle.PreStop)
+			require.Equal(t, &corev1.SleepAction{Seconds: preStopDrainSeconds}, c.Lifecycle.PreStop.Sleep)
+			require.Nil(t, c.Lifecycle.PreStop.Exec)
+		})
+	}
+}

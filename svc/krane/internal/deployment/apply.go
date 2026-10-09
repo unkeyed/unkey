@@ -325,6 +325,12 @@ func (c *Controller) buildDeployment(req *ctrlv1.ApplyDeployment, hasSecrets boo
 		container.ReadinessProbe = probe
 	}
 
+	container.Lifecycle = &corev1.Lifecycle{
+		PreStop: &corev1.LifecycleHandler{
+			Sleep: &corev1.SleepAction{Seconds: preStopDrainSeconds},
+		},
+	}
+
 	// For non-SIGTERM shutdown signals, use a preStop lifecycle hook
 	// since K8s always sends SIGTERM natively
 	if req.GetShutdownSignal() != "" && req.GetShutdownSignal() != "SIGTERM" {
