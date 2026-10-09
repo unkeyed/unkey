@@ -1,0 +1,49 @@
+type: object
+required:
+  - role
+properties:
+  role:
+    type: string
+    minLength: 1
+    maxLength: 128
+    description: |
+      The role to update. Pass the role ID (`role_...`) or its current name.
+    example: role_1234567890abcdef
+  name:
+    type: string
+    minLength: 1
+    # See createRole for why role names cap at 128 and have no character pattern
+    maxLength: 128
+    description: |
+      New name for the role. The name must be unique in your workspace.
+      Omit this field to keep the current name.
+    example: support.readonly
+  description:
+    type:
+      - string
+      - "null"
+    maxLength: 512
+    description: |
+      New description for the role.
+      Omit this field to keep the current description. Send null or an empty string to remove it.
+    example: Read-only access for customer support
+additionalProperties: false
+examples:
+  rename:
+    summary: Rename a role by ID
+    description: Change only the name, locating the role by its ID
+    value:
+      role: role_1234567890abcdef
+      name: support.readonly
+  describeByName:
+    summary: Change a description by name
+    description: Locate the role by its current name and set a new description
+    value:
+      role: support.readonly
+      description: Read-only access for customer support
+  clearDescription:
+    summary: Remove a description
+    description: Clear the description and keep the name
+    value:
+      role: role_1234567890abcdef
+      description: null
