@@ -7,12 +7,35 @@ type QueryState<T> = { data?: T; isError: boolean };
 
 let apiQuery: QueryState<{ currentApi: { projectId: string } }> = { isError: false };
 let identityQuery: QueryState<{ projectId: string }> = { isError: false };
-let defaultProjectQuery: { data?: { id: string } | null; isLoading: boolean; isError: boolean } = {
-  isLoading: true,
-  isError: false,
-};
+let projects: {
+  rows: Row[];
+  isLoading: boolean;
+  isError: boolean;
+} = { rows: [], isLoading: true, isError: false };
 const apiCalls: QueryCall[] = [];
 const identityCalls: QueryCall[] = [];
+
+type Row = { id: string; isDefault: boolean };
+type Stage = {
+  rows: Row[];
+  where: (predicate: (row: { project: Row }) => boolean) => Stage;
+};
+
+function stage(current: Row[]): Stage {
+  return {
+    rows: current,
+    where: (predicate) => stage(current.filter((row) => predicate({ project: row }))),
+  };
+}
+
+vi.mock("@/lib/collections", () => ({ collection: { projects: {} } }));
+vi.mock("@tanstack/react-db", () => ({
+  eq: (left: unknown, right: unknown) => left === right,
+  useLiveQuery: (build: (q: { from: () => Stage }) => Stage | null) => {
+    const built = build({ from: () => stage(projects.rows) });
+    return { data: built?.rows, isLoading: projects.isLoading, isError: projects.isError };
+  },
+}));
 
 vi.mock("@/lib/trpc/client", () => ({
   trpc: {
@@ -21,14 +44,6 @@ vi.mock("@/lib/trpc/client", () => ({
         useQuery: (input: Record<string, string>, options: { enabled: boolean }) => {
           apiCalls.push({ input, options });
           return options.enabled ? apiQuery : { isError: false };
-        },
-      },
-    },
-    deploy: {
-      project: {
-        getDefault: {
-          useQuery: (_input: undefined, options: { enabled: boolean }) =>
-            options.enabled ? defaultProjectQuery : { isLoading: false, isError: false },
         },
       },
     },
@@ -55,7 +70,7 @@ const identity: ProjectResource = { type: "identity", identityId: "id_1" };
 beforeEach(() => {
   apiQuery = { isError: false };
   identityQuery = { isError: false };
-  defaultProjectQuery = { isLoading: true, isError: false };
+  projects = { rows: [], isLoading: true, isError: false };
   apiCalls.length = 0;
   identityCalls.length = 0;
 });
@@ -74,7 +89,14 @@ describe("useResourceProjectId", () => {
   });
 
   it("resolves a namespace to the workspace default project", () => {
-    defaultProjectQuery = { data: { id: "proj_2" }, isLoading: false, isError: false };
+    projects = {
+      rows: [
+        { id: "proj_other", isDefault: false },
+        { id: "proj_2", isDefault: true },
+      ],
+      isLoading: false,
+      isError: false,
+    };
     expect(ownerOf(namespace)).toEqual({ state: "resolved", projectId: "proj_2" });
   });
 
@@ -93,14 +115,14 @@ describe("useResourceProjectId", () => {
   it("is unknown when the lookup fails", () => {
     apiQuery = { isError: true };
     identityQuery = { isError: true };
-    defaultProjectQuery = { isLoading: false, isError: true };
+    projects = { rows: [], isLoading: false, isError: true };
     expect(ownerOf(api)).toEqual({ state: "unknown" });
     expect(ownerOf(namespace)).toEqual({ state: "unknown" });
     expect(ownerOf(identity)).toEqual({ state: "unknown" });
   });
 
   it("is unknown when the workspace has no default project", () => {
-    defaultProjectQuery = { data: null, isLoading: false, isError: false };
+    projects = { rows: [{ id: "proj_other", isDefault: false }], isLoading: false, isError: false };
     expect(ownerOf(namespace)).toEqual({ state: "unknown" });
   });
 });
