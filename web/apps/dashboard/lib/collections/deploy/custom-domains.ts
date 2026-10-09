@@ -1,10 +1,18 @@
 "use client";
 import { routes } from "@/lib/navigation/routes";
 import { getErrorMessage, getErrorToast, getUnkeyClient } from "@/lib/unkey-client";
-import { parseLoadSubsetOptions, queryCollectionOptions } from "@tanstack/query-db-collection";
+import {
+  type QueryCollectionUtils,
+  parseLoadSubsetOptions,
+  queryCollectionOptions,
+} from "@tanstack/query-db-collection";
 import { createCollection } from "@tanstack/react-db";
-import type { Domain as ApiDomain, DnsRecord } from "@unkey/api/models/components";
-import { ConflictErrorResponse, ForbiddenErrorResponse } from "@unkey/api/models/errors";
+import type { Domain as ApiDomain } from "@unkey/api/models/components";
+import {
+  BadRequestErrorResponse,
+  ConflictErrorResponse,
+  ForbiddenErrorResponse,
+} from "@unkey/api/models/errors";
 import { toast } from "@unkey/ui";
 import { z } from "zod";
 import { queryClient } from "../client";
@@ -17,9 +25,7 @@ const dnsRecordSchema = z.object({
   type: z.enum(["CNAME", "ALIAS", "TXT"]),
   name: z.string(),
   value: z.string(),
-  ttl: z.number(),
   verified: z.boolean(),
-  note: z.string().nullable(),
 });
 
 const schema = z.object({
@@ -49,7 +55,11 @@ export type VerificationStatus = z.infer<typeof verificationStatusSchema>;
  * IMPORTANT: All queries MUST filter by projectId:
  * .where(({ customDomain }) => eq(customDomain.projectId, projectId))
  */
-export const customDomains = createCollection<CustomDomain, string>(
+export const customDomains = createCollection<
+  CustomDomain,
+  string,
+  QueryCollectionUtils<CustomDomain, string>
+>(
   queryCollectionOptions({
     queryClient,
     syncMode: "on-demand",
@@ -92,15 +102,13 @@ export const customDomains = createCollection<CustomDomain, string>(
 
       toast.promise(mutation, {
         loading: "Adding domain...",
-        success: (data) => ({
-          message: "Domain added",
-          description: dnsSetupHint(data.data.dnsRecords),
-          duration: 10_000,
-        }),
+        success: "Domain added",
         error: (err) => {
-          // The banner in the card shows the details and the actions.
           if (isCustomDomainLimitError(err)) {
             return { message: "Custom domain limit reached" };
+          }
+          if (isInvalidDomainError(err)) {
+            return { message: "Invalid domain" };
           }
           if (isDomainConflictError(err)) {
             return {
@@ -127,7 +135,6 @@ export const customDomains = createCollection<CustomDomain, string>(
       });
 
       await mutation;
-      await customDomains.utils.refetch();
     },
     onDelete: async ({ transaction }) => {
       const original = transaction.mutations[0].original;
@@ -151,6 +158,11 @@ export function isCustomDomainLimitError(error: unknown): boolean {
     error instanceof ForbiddenErrorResponse &&
     error.error.type.endsWith("/custom_domain_limit_exceeded")
   );
+}
+
+/** The server's hostname rule also rejects public suffixes, which the client cannot know. */
+export function isInvalidDomainError(error: unknown): boolean {
+  return error instanceof BadRequestErrorResponse && error.error.type.endsWith("/invalid_input");
 }
 
 export async function retryDomainVerification({ domain }: { domain: string }): Promise<void> {
@@ -183,18 +195,11 @@ async function openOwningApp(domain: string, workspaceSlug: string): Promise<str
     return null;
   }
 
-  return routes.projects.apps.settings({
+  return routes.projects.apps.domains({
     workspaceSlug,
     projectId: owner.data.projectId,
     appId: owner.data.appId,
   });
-}
-
-function dnsSetupHint(records: DnsRecord[]): string {
-  const routing = records.find((record) => record.type !== "TXT");
-  return routing
-    ? `Add a ${routing.type} record pointing to ${routing.value}`
-    : "Add the DNS records shown below";
 }
 
 async function listAllDomains(projectId: string): Promise<ApiDomain[]> {
@@ -225,9 +230,7 @@ function toCustomDomain(domain: ApiDomain): CustomDomain {
       type: record.type,
       name: record.name,
       value: record.value,
-      ttl: record.ttl,
       verified: record.verified,
-      note: record.note ?? null,
     })),
     verificationError: domain.verificationError ?? null,
     domainConnectProvider: domain.domainConnect?.provider ?? null,
