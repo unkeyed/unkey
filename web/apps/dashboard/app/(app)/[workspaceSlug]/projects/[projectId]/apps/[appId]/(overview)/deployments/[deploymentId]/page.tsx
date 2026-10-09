@@ -16,6 +16,7 @@ import { DeploymentProgress } from "./(deployment-progress)/deployment-progress"
 import { DeploymentSkipped } from "./(deployment-progress)/deployment-skipped";
 import { FailedDeploymentBanner } from "./(deployment-progress)/failed-deployment-banner";
 import { DeploymentNetworkSection } from "./(overview)/components/sections/deployment-network-section";
+import { ConnectionPinsNotice } from "./connection-pins-notice";
 import { DeploymentSuccessBanner } from "./deployment-success-banner";
 import { useDeployment } from "./layout-provider";
 import { useDeploymentStatus } from "./use-deployment-status";
@@ -116,6 +117,7 @@ export default function DeploymentOverview() {
         />
       )}
       <DeploymentInfo statusOverride={derivedStatus} />
+      <ConnectionPinsNotice />
       {view}
       <DeploymentApproval
         isOpen={awaitingApproval}
