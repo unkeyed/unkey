@@ -570,9 +570,7 @@ func (w *Workflow) postAwaitingApprovalStatus(
 		return
 	}
 
-	logURL := fmt.Sprintf("%s/%s/projects/%s/deployments/%s",
-		w.dashboardURL, payload.Target.WorkspaceSlug, req.GetProjectId(), deploymentID,
-	)
+	logURL := w.deploymentURL(payload.Target.WorkspaceSlug, req.GetProjectId(), req.GetAppId(), deploymentID)
 
 	err := restate.RunVoid(ctx, func(_ restate.RunContext) error {
 		return w.github.CreateCommitStatus(

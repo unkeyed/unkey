@@ -89,8 +89,7 @@ func (GitHubDeploymentState) EnumDescriptor() ([]byte, []int) {
 }
 
 // GitHubStatusInitRequest carries all context the virtual object needs to
-// create the GitHub deployment and PR comment. The deploy workflow populates
-// this after the build step so the commit SHA is resolved.
+// report a deployment.
 type GitHubStatusInitRequest struct {
 	state            protoimpl.MessageState `protogen:"open.v1"`
 	InstallationId   int64                  `protobuf:"varint,1,opt,name=installation_id,json=installationId,proto3" json:"installation_id,omitempty"`
