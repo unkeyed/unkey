@@ -1,13 +1,13 @@
+import type { Policy } from "@/lib/collections/deploy/policies.schema";
 import { describe, expect, it } from "vitest";
-import { fromPolicy, policyFormSchema, toPolicy } from "./schema";
-import type { Policy, PolicyFormValues } from "./schema";
+import { fromPolicy, policyFormSchema, toPolicy } from "..";
+import type { PolicyFormValues } from "..";
 
 function firewallWithRemoteIp(operator: "in" | "notIn", ranges: string): PolicyFormValues {
   return {
     type: "firewall",
     name: "office only",
-    environmentId: "__all__",
-    matchConditions: [{ id: "1", type: "remoteIp", operator, ranges }],
+    matchConditions: [{ type: "remoteIp", operator, value: ranges }],
     action: "ACTION_DENY",
   };
 }
@@ -25,7 +25,7 @@ describe("remote ip condition", () => {
     expect(wire.match).toEqual([{ remoteIp: { notIn: ["198.51.100.0/24"] } }]);
   });
 
-  it("deserializes a stored notIn match into one range per line", () => {
+  it("deserializes a stored notIn match into one comma separated line", () => {
     const stored: Policy = {
       id: "pol_1",
       name: "office only",
@@ -34,9 +34,9 @@ describe("remote ip condition", () => {
       match: [{ remoteIp: { notIn: ["198.51.100.0/24", "203.0.113.7/32"] } }],
       firewall: { action: "ACTION_DENY" },
     };
-    const form = fromPolicy(stored, "__all__");
+    const form = fromPolicy(stored);
     expect(form.matchConditions).toMatchObject([
-      { type: "remoteIp", operator: "notIn", ranges: "198.51.100.0/24\n203.0.113.7/32" },
+      { type: "remoteIp", operator: "notIn", value: "198.51.100.0/24, 203.0.113.7/32" },
     ]);
   });
 

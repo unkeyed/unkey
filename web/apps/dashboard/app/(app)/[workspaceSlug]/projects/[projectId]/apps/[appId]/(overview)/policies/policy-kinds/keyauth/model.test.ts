@@ -1,6 +1,6 @@
+import type { PolicyInput } from "@/lib/collections/deploy/policies.schema";
 import { describe, expect, it } from "vitest";
-import { fromPolicy, policyFormSchema, toPolicy } from "./schema";
-import type { Policy } from "./schema";
+import { fromPolicy, policyFormSchema, toPolicy } from "../index";
 
 // Exercises the keyauth credits override: the form accepts 0 and positive
 // integers, rejects negatives, and round-trips the value to/from the wire.
@@ -8,7 +8,6 @@ function keyauthWithCredits(credits: unknown) {
   return {
     type: "keyauth" as const,
     name: "p",
-    environmentId: "__all__",
     matchConditions: [],
     keyspaceIds: ["ks_1"],
     locations: [],
@@ -41,20 +40,19 @@ describe("keyauth credits override", () => {
 
   it("serializes a 0 credits override onto the wire", () => {
     const parsed = policyFormSchema.parse(keyauthWithCredits(0));
-    const wire = toPolicy(parsed) as Extract<Policy, { type: "keyauth" }>;
+    const wire = toPolicy(parsed) as Extract<PolicyInput, { type: "keyauth" }>;
     expect(wire.keyauth.credits).toBe(0);
   });
 
   it("omits credits from the wire when unset", () => {
     const parsed = policyFormSchema.parse(keyauthWithCredits(undefined));
-    const wire = toPolicy(parsed) as Extract<Policy, { type: "keyauth" }>;
+    const wire = toPolicy(parsed) as Extract<PolicyInput, { type: "keyauth" }>;
     expect(wire.keyauth.credits).toBeUndefined();
   });
 
   it("round-trips a credits override through the wire form", () => {
     const parsed = policyFormSchema.parse(keyauthWithCredits(3));
-    const wire = toPolicy(parsed) as Policy;
-    const back = fromPolicy(wire, "__all__");
+    const back = fromPolicy({ ...toPolicy(parsed), id: "pol_1" });
     expect(back.type).toBe("keyauth");
     if (back.type === "keyauth") {
       expect(back.credits).toBe(3);
