@@ -6,6 +6,10 @@ import * as z from "zod/v3";
 import { safeParse } from "../../lib/schemas.js";
 import { Result as SafeParseResult } from "../../types/fp.js";
 import { SDKValidationError } from "../errors/sdkvalidationerror.js";
+import {
+  DeploymentGitAuthor,
+  DeploymentGitAuthor$inboundSchema,
+} from "./deploymentgitauthor.js";
 
 export type DeploymentGit = {
   /**
@@ -24,29 +28,18 @@ export type DeploymentGit = {
    * Unix timestamp in milliseconds when the commit was authored. Omitted when unknown.
    */
   commitTimestamp?: number | undefined;
-  /**
-   * The handle of the person who triggered the deployment from git: the
-   *
-   * @remarks
-   * GitHub login of the user who pushed or updated the pull request, or the
-   * handle the client sent. Omitted when unknown.
-   */
-  authorHandle?: string | undefined;
-  /**
-   * The avatar URL for `authorHandle`. Omitted when unknown.
-   */
-  authorAvatarUrl?: string | undefined;
+  author?: DeploymentGitAuthor | undefined;
   /**
    * The pull request number this deployment was built for. Omitted when the commit is not part of a pull request.
    */
   prNumber?: number | undefined;
   /**
-   * The `owner/repo` name of the fork the pull request comes from. Omitted
+   * The `owner/repo` name of the fork this deployment was built from. Omitted
    *
    * @remarks
-   * when the pull request is not from a fork.
+   * when it was built from the app's connected repository.
    */
-  forkRepositoryFullName?: string | undefined;
+  forkRepository?: string | undefined;
 };
 
 /** @internal */
@@ -59,10 +52,9 @@ export const DeploymentGit$inboundSchema: z.ZodType<
   branch: z.string().optional(),
   commitMessage: z.string().optional(),
   commitTimestamp: z.number().int().optional(),
-  authorHandle: z.string().optional(),
-  authorAvatarUrl: z.string().optional(),
+  author: DeploymentGitAuthor$inboundSchema.optional(),
   prNumber: z.number().int().optional(),
-  forkRepositoryFullName: z.string().optional(),
+  forkRepository: z.string().optional(),
 });
 
 export function deploymentGitFromJSON(

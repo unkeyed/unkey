@@ -19,6 +19,7 @@ export * from "./deploymentdocker.js";
 export * from "./deploymenterror.js";
 export * from "./deploymenterrorcode.js";
 export * from "./deploymentgit.js";
+export * from "./deploymentgitauthor.js";
 export * from "./deploymentruntime.js";
 export * from "./deploymentsourcedeployment.js";
 export * from "./deploymentsourcegit.js";
