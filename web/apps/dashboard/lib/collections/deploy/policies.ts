@@ -1,12 +1,18 @@
 "use client";
 
 import { getErrorToast, getUnkeyClient } from "@/lib/unkey-client";
-import { parseLoadSubsetOptions, queryCollectionOptions } from "@tanstack/query-db-collection";
+import {
+  type QueryCollectionUtils,
+  parseLoadSubsetOptions,
+  queryCollectionOptions,
+} from "@tanstack/query-db-collection";
 import { createCollection } from "@tanstack/react-db";
 import { toast } from "@unkey/ui";
 import { queryClient } from "../client";
+import type { LoadSource } from "../use-collection-load";
+import { ENVIRONMENT_KINDS, type EnvironmentKind } from "./environments";
 import { trackSave } from "./pending-redeploy";
-import { type Policy, fromWirePolicy } from "./policies.schema";
+import { type Policy, type PolicyInput, fromWirePolicy } from "./policies.schema";
 import { extractStringFilter } from "./utils";
 
 /** A Policy plus the identifiers every gateway call is scoped by. */
@@ -20,16 +26,33 @@ export type PolicyRow = Policy & {
 export const rowKey = (environmentId: string, policyId: string) => `${environmentId}::${policyId}`;
 
 /**
+ * Each environment is its own subset, and any subset that loads clears the
+ * collection's isError, so a failure is read from the environment's query.
+ * Clearing the collection's error refetches every subset.
+ */
+export function policyListLoad(environmentId: string): LoadSource {
+  return {
+    get isError() {
+      return queryClient.getQueryState(["policies", environmentId])?.status === "error";
+    },
+    clearError: () => policies.utils.clearError(),
+  };
+}
+
+/**
  * Gateway policies collection. It holds one row for each (environment, policy).
  *
  * IMPORTANT: All queries MUST filter by projectId, appId, and environmentId.
  * `listPolicies` reads one environment, so each environment is its own subset
  * and its own request. The two environments of a page load in parallel.
  *
- * Only edits run through it. Insert, delete and reorder go through
- * `replacePolicyLists` instead.
+ * It is read only. Every write goes through `writePolicies`.
  */
-export const policies = createCollection<PolicyRow, string>(
+export const policies = createCollection<
+  PolicyRow,
+  string,
+  QueryCollectionUtils<PolicyRow, string>
+>(
   queryCollectionOptions({
     queryClient,
     queryKey: (opts) => {
@@ -69,26 +92,6 @@ export const policies = createCollection<PolicyRow, string>(
     },
     getKey: (row) => rowKey(row.environmentId, row.id),
     id: "policies",
-    onUpdate: async ({ transaction }) => {
-      const mutations = transaction.mutations.map((m) =>
-        getUnkeyClient().gateway.updatePolicy({
-          ...m.changes,
-          project: m.modified.projectId,
-          app: m.modified.appId,
-          environment: m.modified.environmentId,
-          policyId: m.modified.id,
-        }),
-      );
-      const all = Promise.all(mutations);
-      const plural = mutations.length > 1;
-      toast.promise(all, {
-        loading: plural ? "Updating policies..." : "Updating policy...",
-        success: plural ? "Policies updated" : "Policy updated",
-        error: (err) =>
-          getErrorToast(err, plural ? "Failed to update policies" : "Failed to update policy"),
-      });
-      await trackSave(all);
-    },
   }),
 );
 
@@ -97,21 +100,23 @@ export type PolicyListReplacement = {
   projectId: string;
   appId: string;
   /** The environment's complete list, in evaluation order. */
-  policies: PolicyRow[];
+  policies: PolicyInput[];
 };
 
+export type PolicyListToast = { loading: string; success: string; error: string };
+
 /**
- * Replaces whole policy lists. Insert, delete and reorder have no endpoint of
- * their own, so each sends an environment's full list, which the caller already
- * renders. Batched, so one action across both environments emits a single toast.
+ * Replaces whole policy lists. `setPolicies` is the only write that covers
+ * insert, delete and reorder, and it assigns every policy a new id. Batched,
+ * so one action across both environments emits a single toast.
  *
- * The new list shows when the refetch lands. Do not write `_order` into the
- * collection to show it sooner: live queries order by `_order`, and rewriting it
- * on every row at once duplicated all of them.
+ * Settles once the refetch lands, so the next edit reads current lists. Do not
+ * write `_order` into the collection to show the new list sooner: live queries
+ * order by `_order`, and rewriting it on every row at once duplicated all of them.
  */
 export async function replacePolicyLists(
   replacements: PolicyListReplacement[],
-  labels: { loading: string; success: string; error: string },
+  labels: PolicyListToast,
 ): Promise<void> {
   if (replacements.length === 0) {
     return;
@@ -135,8 +140,108 @@ export async function replacePolicyLists(
     await trackSave(promise);
   } finally {
     // Also on failure: one environment can be written while the other is not.
-    for (const r of replacements) {
-      queryClient.invalidateQueries({ queryKey: ["policies", r.environmentId] });
-    }
+    // "all" so a queued edit still reads fresh lists after the page unmounted.
+    await Promise.all(
+      replacements.map((r) =>
+        queryClient.invalidateQueries({
+          queryKey: ["policies", r.environmentId],
+          refetchType: "all",
+        }),
+      ),
+    );
   }
 }
+
+export type PolicyLists = Record<EnvironmentKind, PolicyRow[]>;
+
+export type PolicyScope = {
+  projectId: string;
+  appId: string;
+  environments: Record<EnvironmentKind, string>;
+};
+
+export type PolicyEditResult =
+  | { type: "write"; lists: Partial<Record<EnvironmentKind, PolicyInput[]>> }
+  | { type: "reject"; message: string };
+
+export type PolicyEdit = (lists: PolicyLists) => PolicyEditResult;
+
+type PolicyRead = { type: "lists"; lists: PolicyLists } | { type: "reject"; message: string };
+
+type PolicyWriterIo = {
+  read: (scope: PolicyScope) => PolicyRead;
+  write: (replacements: PolicyListReplacement[], labels: PolicyListToast) => Promise<void>;
+  notify: (message: string) => void;
+};
+
+const ENVIRONMENT_MISSING = "Couldn't find the environment. Reload the page and try again.";
+const LISTS_OUT_OF_DATE = "Policies are out of date. Reload and try again.";
+
+/**
+ * Runs edits one after another. Each edit reads the lists after the previous
+ * write's refetch, so no write undoes another and no edit holds a stale id.
+ * Resolves true once the write landed, false when the edit was rejected or
+ * the write failed.
+ */
+export function createPolicyWriter(io: PolicyWriterIo) {
+  let chain: Promise<unknown> = Promise.resolve();
+  return (scope: PolicyScope, edit: PolicyEdit, labels: PolicyListToast): Promise<boolean> => {
+    const run = chain.then(async () => {
+      const read = io.read(scope);
+      if (read.type === "reject") {
+        io.notify(read.message);
+        return false;
+      }
+      const result = edit(read.lists);
+      if (result.type === "reject") {
+        io.notify(result.message);
+        return false;
+      }
+      const replacements = ENVIRONMENT_KINDS.flatMap((env) => {
+        const policies = result.lists[env];
+        return policies
+          ? [
+              {
+                environmentId: scope.environments[env],
+                projectId: scope.projectId,
+                appId: scope.appId,
+                policies,
+              },
+            ]
+          : [];
+      });
+      if (replacements.length === 0) {
+        return true;
+      }
+      try {
+        await io.write(replacements, labels);
+        return true;
+      } catch {
+        return false;
+      }
+    });
+    chain = run.catch(() => undefined);
+    return run;
+  };
+}
+
+// The collection syncs from the query cache on a later tick, so the cache is
+// the only source that is current right after `replacePolicyLists` settles.
+function readCachedLists({ environments }: PolicyScope): PolicyRead {
+  const production = queryClient.getQueryState<PolicyRow[]>(["policies", environments.production]);
+  const preview = queryClient.getQueryState<PolicyRow[]>(["policies", environments.preview]);
+  if (!production?.data || !preview?.data) {
+    return { type: "reject", message: ENVIRONMENT_MISSING };
+  }
+  // A refetch that failed after a write leaves the old ids in the cache.
+  if ([production, preview].some((s) => s.isInvalidated || s.status === "error")) {
+    return { type: "reject", message: LISTS_OUT_OF_DATE };
+  }
+  return { type: "lists", lists: { production: production.data, preview: preview.data } };
+}
+
+export const writePolicies = createPolicyWriter({
+  read: readCachedLists,
+  write: replacePolicyLists,
+  notify: (message) => toast.error(message),
+});
