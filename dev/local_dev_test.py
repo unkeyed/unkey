@@ -24,6 +24,7 @@ class LocalDevTest(unittest.TestCase):
             shutil.copyfile(ROOT / "dev" / name, cls.dev / name)
         (cls.dev / "k8s").symlink_to(ROOT / "dev/k8s", target_is_directory=True)
         (cls.root / "pkg").symlink_to(ROOT / "pkg", target_is_directory=True)
+        (cls.root / ".mise").symlink_to(ROOT / ".mise", target_is_directory=True)
         cls.dashboard_env = cls.root / "web/apps/dashboard/.env"
         cls.dashboard_env.parent.mkdir(parents=True)
         cls.bin = cls.root / "mock-bin"
@@ -39,7 +40,15 @@ class LocalDevTest(unittest.TestCase):
             "    log.write(json.dumps([name, *args]) + '\\n')\n"
             "if os.environ.get('FAIL_COMMAND') in (name, ' '.join([name, *args])):\n"
             "    sys.exit(17)\n"
-            "if name == 'go':\n"
+            "if name == 'mise':\n"
+            "    if args == ['env', '--json']: print(json.dumps({'PATH': os.environ.get('MISE_TEST_PATH', os.environ['PATH']), 'GOTOOLCHAIN': 'local'}))\n"
+            "    elif args == ['which', 'kubectl']: print(pathlib.Path(sys.argv[0]).parent / 'kubectl')\n"
+            "    else: sys.exit(18)\n"
+            "elif name == 'sudo':\n"
+            "    if args == ['-v']: sys.exit(0)\n"
+            "    if args == ['-n', 'true']: sys.exit(1)\n"
+            "    os.execvpe(args[0], args, dict(os.environ, PATH='/usr/bin:/bin'))\n"
+            "elif name == 'go':\n"
             "    if args == ['env', 'GOARCH']: print('amd64')\n"
             "    else: sys.exit(1)\n"
             "elif name == 'stripe':\n"
@@ -60,7 +69,7 @@ class LocalDevTest(unittest.TestCase):
             "    print(os.environ.get('CLUSTER', '{\"registry\": \"ctlptl-registry\", \"status\": {\"localRegistryHosting\": {\"host\": \"localhost:5000\"}}}'))\n"
         )
         stub.chmod(0o755)
-        for name in ("go", "stripe", "kubectl", "ctlptl", "minikube", "tilt", "docker", "pnpm"):
+        for name in ("mise", "sudo", "go", "stripe", "kubectl", "ctlptl", "minikube", "tilt", "docker", "pnpm"):
             (cls.bin / name).symlink_to(stub)
         cls.env = dict(os.environ, PATH=f"{cls.bin}:{os.environ['PATH']}", COMMAND_LOG=str(cls.log), MINIKUBE_HOME=str(cls.root / "minikube-home"))
         tilt = shutil.which("tilt")
@@ -105,6 +114,33 @@ class LocalDevTest(unittest.TestCase):
 
     def update_command(self, manifests, name):
         return manifests[name]["DeployTarget"]["UpdateCmdSpec"]["args"]
+
+    def test_direct_tilt_uses_mise_tools_during_evaluation_and_updates(self):
+        with tempfile.TemporaryDirectory(dir=self.root) as directory:
+            for name in ("stripe", "kubectl", "go", "helm"):
+                executable = Path(directory) / name
+                executable.write_text("#!/bin/sh\necho 'wrong tool from inherited PATH' >&2\nexit 41\n")
+                executable.chmod(0o755)
+            env = {
+                "PATH": f"{directory}:{self.env['PATH']}",
+                "MISE_TEST_PATH": self.env["PATH"],
+                "STRIPE_TEST_SECRET": "whsec_" + "fixture",
+            }
+            manifests, _ = self.evaluate(**env)
+            self.assertIn("stripe-listen-dashboard", manifests)
+            result = subprocess.run(
+                [shutil.which("tilt"), "ci", "--port", "0", "--timeout", "30s",
+                 "-f", str(self.dev / "Tiltfile"), "--", "namespace"],
+                cwd=self.root, env=dict(self.env, **env), capture_output=True, text=True, timeout=60,
+            )
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertIn(["kubectl", "apply", "-f", "k8s/manifests/namespace.yaml"], self.calls())
+
+    def test_tunnel_uses_pinned_kubectl_when_sudo_resets_path(self):
+        result = self.command(["bash", str(ROOT / ".mise/tasks/tunnel")], FAIL_COMMAND="kubectl")
+        self.assertEqual(result.returncode, 17, result.stderr)
+        self.assertIn(["sudo", str(self.bin / "kubectl"), "port-forward", "-n", "frontline", "svc/frontline", "443:443", "80:80"], self.calls())
+        self.assertIn(["kubectl", "port-forward", "-n", "frontline", "svc/frontline", "443:443", "80:80"], self.calls())
 
     def test_selected_service_includes_dependencies_without_unrelated_services(self):
         self.assertEqual(self.api_enabled, {
