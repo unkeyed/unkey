@@ -36,11 +36,12 @@ export default function AppSetupPage() {
   const [appDetails, setAppDetails] = useState<AppDetails | null>(null);
   const [deploymentId, setDeploymentId] = useState<string | null>(null);
 
-  const { bypass } = usePreventLeave(!deploymentId);
+  const projectHref = routes.projects.detail({ workspaceSlug: workspace.slug, projectId });
+  const { bypass } = usePreventLeave(!deploymentId, projectHref);
 
   const handleSkipGithubSetup = () => {
     bypass();
-    router.replace(routes.projects.detail({ workspaceSlug: workspace.slug, projectId }));
+    router.replace(projectHref);
   };
 
   return (

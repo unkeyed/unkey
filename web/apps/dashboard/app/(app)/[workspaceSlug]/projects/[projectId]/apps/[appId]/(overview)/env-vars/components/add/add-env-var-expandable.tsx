@@ -39,7 +39,9 @@ import { EnvVarRow } from "./env-var-row";
 import { type EnvVarsFormValues, createEmptyEntry, envVarsSchema, findConflicts } from "./schema";
 
 import { usePreventLeave } from "@/hooks/use-prevent-leave";
+import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { trackSave } from "@/lib/collections/deploy/environment-settings";
+import { routes } from "@/lib/navigation/routes";
 
 type AddEnvVarExpandableProps = {
   projectId: string;
@@ -126,7 +128,8 @@ export const AddEnvVarExpandable = ({
   const { ref: formRef, isDragging, importFile } = useDropZone(reset, trigger, getValues);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  usePreventLeave(isOpen);
+  const workspace = useWorkspaceNavigation();
+  usePreventLeave(isOpen, routes.projects.detail({ workspaceSlug: workspace.slug, projectId }));
 
   useEffect(
     function purgeLegacyPersistedDraft() {
