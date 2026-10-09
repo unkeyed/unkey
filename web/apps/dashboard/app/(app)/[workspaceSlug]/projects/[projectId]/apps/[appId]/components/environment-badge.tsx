@@ -23,7 +23,7 @@ type EnvironmentBadgeProps = {
 const BASE_CLASS =
   "inline-flex h-5.5 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md border px-2 text-xs leading-none";
 const OUTLINED_CLASS = "text-gray-12";
-const LIVE_CLASS = "border-transparent bg-info-11 text-white dark:bg-info-9 dark:text-gray-1";
+const LIVE_CLASS = "border-info-7 bg-info-3 font-medium text-info-12 dark:bg-info-4";
 const ROLLED_BACK_FROM_CLASS = "border-transparent bg-errorA-3 text-error-11";
 
 export function EnvironmentBadge({

@@ -10,7 +10,7 @@ import {
 import { type FlagCode, mapRegionToFlag } from "../network/utils";
 import {
   type DeploymentListSelection,
-  computeLastExit,
+  lastExitsByDeployment,
   mapInstanceRow,
   normalizeDeploymentRow,
 } from "./deployment-query-helpers";
@@ -19,8 +19,44 @@ export async function enrichDeploymentRows(
   workspaceId: string,
   deploymentRows: DeploymentListSelection[],
 ) {
+  const details = await loadDeploymentDetails(workspaceId, deploymentRows);
+  return deploymentRows.map((deployment) => ({
+    ...deployment,
+    ...normalizeDeploymentRow(deployment),
+    ...(details.get(deployment.id) ?? EMPTY_DETAILS),
+  }));
+}
+
+export type DeploymentDetails = {
+  instances: ReturnType<typeof mapInstanceRow>[];
+  buildEndedAt: number | null;
+  lastExit: LastExit | null;
+  desiredInstanceCount: number;
+  desiredRegions: {
+    region: { id: string; name: string; platform: string };
+    flagCode: FlagCode;
+  }[];
+  hasOpenApiSpec: boolean;
+};
+
+const EMPTY_DETAILS: DeploymentDetails = {
+  instances: [],
+  buildEndedAt: null,
+  lastExit: null,
+  desiredInstanceCount: 0,
+  desiredRegions: [],
+  hasOpenApiSpec: false,
+};
+
+// The runtime state of deployments that the public API does not expose:
+// instances, desired regions, the last container exit, build timing, and
+// whether an OpenAPI spec was captured
+export async function loadDeploymentDetails(
+  workspaceId: string,
+  deploymentRows: { id: string; appId: string; environmentId: string }[],
+): Promise<Map<string, DeploymentDetails>> {
   if (deploymentRows.length === 0) {
-    return [];
+    return new Map();
   }
 
   const deploymentIds = deploymentRows.map((d) => d.id);
@@ -91,10 +127,6 @@ export async function enrichDeploymentRows(
 
   const specSet = new Set(specRows.map((s) => s.deploymentId));
   const instancesByDeployment = new Map<string, ReturnType<typeof mapInstanceRow>[]>();
-  // Group raw rows per deployment so the header "OOMKilled · exit=137"
-  // badge can be derived with the shared computeLastExit helper, the same
-  // logic getById uses for the single-deployment view.
-  const rowsByDeployment = new Map<string, typeof instanceRows>();
   for (const row of instanceRows) {
     const entry = mapInstanceRow(row);
     const list = instancesByDeployment.get(row.deploymentId);
@@ -103,20 +135,8 @@ export async function enrichDeploymentRows(
     } else {
       instancesByDeployment.set(row.deploymentId, [entry]);
     }
-    const rows = rowsByDeployment.get(row.deploymentId);
-    if (rows) {
-      rows.push(row);
-    } else {
-      rowsByDeployment.set(row.deploymentId, [row]);
-    }
   }
-  const lastExitByDeployment = new Map<string, LastExit>();
-  for (const [deploymentId, rows] of rowsByDeployment) {
-    const lastExit = computeLastExit(rows);
-    if (lastExit) {
-      lastExitByDeployment.set(deploymentId, lastExit);
-    }
-  }
+  const lastExitByDeployment = lastExitsByDeployment(instanceRows);
 
   const desiredStateByAppEnv = new Map<
     string,
@@ -147,18 +167,20 @@ export async function enrichDeploymentRows(
     }
   }
 
-  return deploymentRows.map(({ appId, ...deployment }) => {
-    const desired = desiredStateByAppEnv.get(`${appId}:${deployment.environmentId}`);
-    return {
-      ...deployment,
-      appId,
-      ...normalizeDeploymentRow(deployment),
-      instances: instancesByDeployment.get(deployment.id) ?? [],
-      buildEndedAt: buildEndedAtByDeployment.get(deployment.id) ?? null,
-      lastExit: lastExitByDeployment.get(deployment.id) ?? null,
-      desiredInstanceCount: desired?.desiredInstanceCount ?? 0,
-      desiredRegions: desired?.desiredRegions ?? [],
-      hasOpenApiSpec: specSet.has(deployment.id),
-    };
-  });
+  return new Map(
+    deploymentRows.map((deployment): [string, DeploymentDetails] => {
+      const desired = desiredStateByAppEnv.get(`${deployment.appId}:${deployment.environmentId}`);
+      return [
+        deployment.id,
+        {
+          instances: instancesByDeployment.get(deployment.id) ?? [],
+          buildEndedAt: buildEndedAtByDeployment.get(deployment.id) ?? null,
+          lastExit: lastExitByDeployment.get(deployment.id) ?? null,
+          desiredInstanceCount: desired?.desiredInstanceCount ?? 0,
+          desiredRegions: desired?.desiredRegions ?? [],
+          hasOpenApiSpec: specSet.has(deployment.id),
+        },
+      ];
+    }),
+  );
 }

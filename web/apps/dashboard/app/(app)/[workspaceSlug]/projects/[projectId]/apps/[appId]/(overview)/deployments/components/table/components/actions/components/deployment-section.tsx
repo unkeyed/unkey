@@ -1,9 +1,9 @@
-import type { Deployment } from "@/lib/collections";
+import type { DeploymentSummary } from "@/lib/collections";
 import { DeploymentCard } from "./deployment-card";
 
 type DeploymentSectionProps = {
   title: string;
-  deployment: Deployment;
+  deployment: DeploymentSummary;
   isCurrent: boolean;
 };
 

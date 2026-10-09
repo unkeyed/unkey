@@ -2,7 +2,7 @@
 
 import { useDeployActionGate } from "@/app/(app)/[workspaceSlug]/projects/_components/hooks/use-deploy-action-gate";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import { type Deployment, collection } from "@/lib/collections";
+import { type DeploymentSummary, collection } from "@/lib/collections";
 import { isDeploymentInFlight } from "@/lib/collections/deploy/deployment-status";
 import { ENVIRONMENT_KIND } from "@/lib/collections/deploy/environments";
 import {
@@ -22,6 +22,7 @@ import { ActiveDeploymentCardEmpty } from "../../../components/active-deployment
 import { getDomainPriority } from "../../../components/domain-priority";
 import { useAppId, useProjectData } from "../../data-provider";
 import { useAppCurrentDeployment } from "../../hooks/use-app-current-deployment";
+import { useRecentDeployments } from "../../hooks/use-recent-deployments";
 import { CreateDeploymentButton } from "../../navigations/create-deployment-button";
 import { AppProductionCardSkeleton } from "./app-production-card-skeleton";
 import { BuildInProgressChart, ProductionCardChart } from "./card-chart";
@@ -47,8 +48,8 @@ const UndoRollbackDialog = dynamic(
 );
 
 export function AppProductionCard() {
-  const { projectId, deployments, environments, customDomains, isDeploymentsLoading } =
-    useProjectData();
+  const { projectId, environments, customDomains } = useProjectData();
+  const { deployments, isLoading: isDeploymentsLoading } = useRecentDeployments();
   const appId = useAppId();
   const workspace = useWorkspaceNavigation();
   const { gated, openPaywall, planGate } = useDeployActionGate();
@@ -71,9 +72,28 @@ export function AppProductionCard() {
   const latestProductionDeployment = productionEnvironmentId
     ? deployments.find((d) => d.environmentId === productionEnvironmentId)
     : undefined;
+  // Without a live deployment the card shows the latest production one, which
+  // needs its instances, so it loads by id like the current deployment
+  const fallbackDeploymentId =
+    !currentDeploymentId && latestProductionDeployment ? latestProductionDeployment.id : null;
+  const fallbackDeploymentQuery = useLiveQuery(
+    (q) =>
+      fallbackDeploymentId
+        ? q
+            .from({ deployment: collection.deployments })
+            .where(({ deployment }) =>
+              and(
+                eq(deployment.projectId, projectId),
+                eq(deployment.appId, appId),
+                eq(deployment.id, fallbackDeploymentId),
+              ),
+            )
+        : null,
+    [projectId, appId, fallbackDeploymentId],
+  );
 
-  const deployment = currentDeployment ?? latestProductionDeployment;
-  const [rollbackTargetSnapshot, setRollbackTargetSnapshot] = useState<Deployment>();
+  const deployment = currentDeployment ?? fallbackDeploymentQuery.data?.[0];
+  const [rollbackTargetSnapshot, setRollbackTargetSnapshot] = useState<DeploymentSummary>();
   const isCurrent = Boolean(currentDeployment);
   const newerDeployment =
     deployment &&
@@ -107,7 +127,12 @@ export function AppProductionCard() {
       (newerDeployment ? isDeploymentInFlight(newerDeployment.status) : false),
   });
 
-  if (isDeploymentsLoading || isCurrentDeploymentLoading || liveDomainsQuery.isLoading) {
+  if (
+    isDeploymentsLoading ||
+    isCurrentDeploymentLoading ||
+    fallbackDeploymentQuery.isLoading ||
+    liveDomainsQuery.isLoading
+  ) {
     return <AppProductionCardSkeleton />;
   }
 
@@ -138,7 +163,7 @@ export function AppProductionCard() {
   });
 
   const rollbackTarget = previousRollbackTarget(deployments, deployment);
-  const undoCandidates = isRolledBack
+  const undoCandidates: DeploymentSummary[] = isRolledBack
     ? [...rollbackCandidates(deployments, deployment), deployment].sort(
         (a, b) => b.createdAt - a.createdAt,
       )

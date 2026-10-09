@@ -16,26 +16,57 @@ import {
   ResourceListContent,
   ResourceListFooter,
 } from "@unkey/ui";
+import { useMemo } from "react";
 import { useProjectData } from "../../data-provider";
 import { useAppCurrentDeployment } from "../../hooks/use-app-current-deployment";
+import {
+  type DeploymentListFilter,
+  buildDeploymentListInput,
+} from "../hooks/deployment-list-input";
 import { useDeployments } from "../hooks/use-deployments";
 import { useFilters } from "../hooks/use-filters";
 import { DeploymentRow } from "./deployment-row";
 import { DeploymentsSkeleton } from "./deployments-skeleton";
 
 export function DeploymentsCardList() {
-  const {
-    rows,
-    isLoading,
-    isError,
-    refetch,
-    isFiltered,
-    hasNextPage,
-    isFetchingNextPage,
-    fetchNextPage,
-  } = useDeployments();
-  const { updateFilters } = useFilters();
-  const { projectId } = useProjectData();
+  const { filters, isFiltered, updateFilters } = useFilters();
+  const { environments, isEnvironmentsLoading } = useProjectData();
+  const { filter, cannotMatch } = useMemo(
+    () => buildDeploymentListInput(filters, environments),
+    [filters, environments],
+  );
+
+  if (isEnvironmentsLoading) {
+    return <DeploymentsSkeleton />;
+  }
+  if (cannotMatch) {
+    return (
+      <ResourceListContent>
+        <NoMatchingDeployments onClear={() => updateFilters([])} />
+      </ResourceListContent>
+    );
+  }
+  return (
+    <DeploymentsCardListResults
+      filter={filter}
+      isFiltered={isFiltered}
+      onClearFilters={() => updateFilters([])}
+    />
+  );
+}
+
+function DeploymentsCardListResults({
+  filter,
+  isFiltered,
+  onClearFilters,
+}: {
+  filter: DeploymentListFilter;
+  isFiltered: boolean;
+  onClearFilters: () => void;
+}) {
+  const { rows, isLoading, isError, hasNextPage, isFetchingNextPage, fetchNextPage } =
+    useDeployments(filter);
+  const { projectId, refetchDeployments } = useProjectData();
   const { app, currentDeployment, isRolledBack } = useAppCurrentDeployment();
   const workspace = useWorkspaceNavigation();
 
@@ -58,7 +89,7 @@ export function DeploymentsCardList() {
           <span role="alert" className="text-error-11 text-sm">
             We couldn't load deployments.
           </span>
-          <Button size="md" variant="outline" onClick={() => refetch()}>
+          <Button size="md" variant="outline" onClick={() => refetchDeployments()}>
             Retry
           </Button>
         </div>
@@ -70,22 +101,7 @@ export function DeploymentsCardList() {
     return (
       <ResourceListContent>
         {isFiltered ? (
-          <EmptyState frame="none">
-            <EmptyStateIcon>
-              <IconSquareBulletListOutline18 />
-            </EmptyStateIcon>
-            <EmptyStateHeader>
-              <EmptyStateTitle>No deployments match these filters</EmptyStateTitle>
-              <EmptyStateDescription>
-                Widen the environment, status, branch or time range to see more deployments.
-              </EmptyStateDescription>
-            </EmptyStateHeader>
-            <EmptyStateActions>
-              <Button size="md" variant="outline" onClick={() => updateFilters([])}>
-                Clear filters
-              </Button>
-            </EmptyStateActions>
-          </EmptyState>
+          <NoMatchingDeployments onClear={onClearFilters} />
         ) : (
           <EmptyState frame="none">
             <EmptyStateIcon>
@@ -154,5 +170,26 @@ export function DeploymentsCardList() {
         </ResourceListFooter>
       )}
     </ResourceListContent>
+  );
+}
+
+function NoMatchingDeployments({ onClear }: { onClear: () => void }) {
+  return (
+    <EmptyState frame="none">
+      <EmptyStateIcon>
+        <IconSquareBulletListOutline18 />
+      </EmptyStateIcon>
+      <EmptyStateHeader>
+        <EmptyStateTitle>No deployments match these filters</EmptyStateTitle>
+        <EmptyStateDescription>
+          Widen the environment, status, branch or time range to see more deployments.
+        </EmptyStateDescription>
+      </EmptyStateHeader>
+      <EmptyStateActions>
+        <Button size="md" variant="outline" onClick={onClear}>
+          Clear filters
+        </Button>
+      </EmptyStateActions>
+    </EmptyState>
   );
 }

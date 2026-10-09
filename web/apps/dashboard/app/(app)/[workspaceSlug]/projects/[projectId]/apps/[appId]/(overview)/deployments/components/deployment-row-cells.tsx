@@ -1,7 +1,7 @@
 "use client";
 
 import { Avatar } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/git-avatar";
-import type { Deployment, Environment } from "@/lib/collections";
+import type { Deployment, DeploymentSummary, Environment } from "@/lib/collections";
 import { DEPLOYMENT_STATUS_LABELS } from "@/lib/collections/deploy/deployment-status";
 import { imageRefTag } from "@/lib/docker-image-ref";
 import { githubUrl } from "@/lib/github-url";
@@ -46,7 +46,7 @@ function Interactive({ children, className }: { children: ReactNode; className?:
   );
 }
 
-export function IdChip({ deployment, href }: { deployment: Deployment; href: Route }) {
+export function IdChip({ deployment, href }: { deployment: DeploymentSummary; href: Route }) {
   return (
     <InfoTooltip
       content={DEPLOYMENT_STATUS_LABELS[deployment.status]}
@@ -66,7 +66,7 @@ export function IdChip({ deployment, href }: { deployment: Deployment; href: Rou
 
 type Origin = { icon: FC<IconProps>; label: string; tooltip: string };
 
-const ORIGINS: Record<Deployment["trigger"], Origin | "git"> = {
+const ORIGINS: Record<DeploymentSummary["trigger"], Origin | "git"> = {
   github: "git",
   unknown: "git",
   cli: {
@@ -91,12 +91,12 @@ const ORIGINS: Record<Deployment["trigger"], Origin | "git"> = {
   },
 };
 
-function nonGitOrigin(deployment: Deployment): Origin | undefined {
+function nonGitOrigin(deployment: DeploymentSummary): Origin | undefined {
   const origin = ORIGINS[deployment.trigger];
   return origin === "git" ? undefined : origin;
 }
 
-export function OriginCell({ deployment }: { deployment: Deployment }) {
+export function OriginCell({ deployment }: { deployment: DeploymentSummary }) {
   const origin = nonGitOrigin(deployment);
   if (!origin) {
     return null;
@@ -119,7 +119,7 @@ export function SourceChip({
   deployment,
   repoFullName,
 }: {
-  deployment: Deployment;
+  deployment: DeploymentSummary;
   repoFullName: string | null;
 }) {
   const origin = nonGitOrigin(deployment);
@@ -208,7 +208,7 @@ export function CommitSha({
   deployment,
   repoFullName,
 }: {
-  deployment: Deployment;
+  deployment: DeploymentSummary;
   repoFullName: string | null;
 }) {
   if (deployment.source !== "git" || !deployment.gitCommitSha) {
@@ -256,7 +256,7 @@ export function AuthorCell({
   deployment,
   withHandle = false,
 }: {
-  deployment: Deployment;
+  deployment: DeploymentSummary;
   withHandle?: boolean;
 }) {
   if (deployment.source !== "git" || nonGitOrigin(deployment)) {
@@ -298,9 +298,9 @@ export function RowMenu({
   currentDeployment,
   isRolledBack,
 }: {
-  deployment: Deployment;
+  deployment: DeploymentSummary & Pick<Deployment, "desiredState">;
   environment: Environment | undefined;
-  currentDeployment: Deployment | undefined;
+  currentDeployment: DeploymentSummary | undefined;
   isRolledBack: boolean;
 }) {
   return (

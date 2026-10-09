@@ -1,4 +1,5 @@
 import {
+  DEPLOYMENT_STATUSES,
   type DeploymentStatus,
   type DeploymentStatusGroup,
   expandDeploymentStatusGroups,
@@ -8,21 +9,25 @@ import type { Environment } from "@/lib/collections/deploy/environments";
 import { getTimestampFromRelative } from "@/lib/duration";
 import type { DeploymentListFilterValue } from "../filters.schema";
 
-export type DeploymentListInput = {
-  statuses?: DeploymentStatus[];
-  environmentIds?: string[];
-  branches?: string[];
+// startTime is inclusive and endTime exclusive, matching the API
+export type DeploymentListFilter = {
+  statuses: DeploymentStatus[];
+  environmentId?: string;
+  branches: string[];
   startTime?: number;
   endTime?: number;
 };
 
 export type DeploymentListFilterInput = {
-  input: DeploymentListInput;
-  // A filter names an environment slug this app does not have or a status
-  // that does not exist, so nothing can match. The caller renders the empty
-  // state instead of querying.
+  filter: DeploymentListFilter;
+  // A filter names an environment slug this app does not have, a status that
+  // does not exist, or an empty time range, so nothing can match. The caller
+  // renders the empty state instead of querying.
   cannotMatch: boolean;
 };
+
+// Without picked statuses the list shows everything but skipped pushes.
+const DEFAULT_STATUSES = DEPLOYMENT_STATUSES.filter((status) => status !== "skipped");
 
 // Status values the previous filter bar wrote into URLs, mapped onto the
 // groups that replaced them so old bookmarks keep working.
@@ -58,11 +63,11 @@ export function buildDeploymentListInput(
   const statusValues = stringValues(filters, "status").map(
     (value) => LEGACY_STATUS_GROUPS[value] ?? value,
   );
-  const groups = statusValues.filter(isDeploymentStatusGroup);
+  const groups = [...new Set(statusValues.filter(isDeploymentStatusGroup))];
   const statuses = expandDeploymentStatusGroups(groups);
 
   const slugs = stringValues(filters, "environment");
-  const environmentIds = environments.filter((e) => slugs.includes(e.slug)).map((e) => e.id);
+  const matched = environments.filter((e) => slugs.includes(e.slug));
 
   const branches = stringValues(filters, "branch");
 
@@ -80,16 +85,21 @@ export function buildDeploymentListInput(
       ? Math.max(sinceStart, explicitStart)
       : (sinceStart ?? explicitStart);
 
+  // Each app has one environment per kind, so picking every environment is the
+  // same as picking none
+  const environmentId = matched.length === 1 ? matched[0]?.id : undefined;
+
   return {
-    input: {
-      ...(statuses.length > 0 && { statuses }),
-      ...(environmentIds.length > 0 && { environmentIds }),
-      ...(branches.length > 0 && { branches }),
+    filter: {
+      statuses: statuses.length > 0 ? statuses : DEFAULT_STATUSES,
+      ...(environmentId !== undefined && { environmentId }),
+      branches,
       ...(startTime !== undefined && { startTime }),
       ...(endTime !== undefined && { endTime }),
     },
     cannotMatch:
-      (slugs.length > 0 && environmentIds.length === 0) ||
-      (statusValues.length > 0 && groups.length === 0),
+      (slugs.length > 0 && matched.length === 0) ||
+      (statusValues.length > 0 && groups.length === 0) ||
+      (startTime !== undefined && endTime !== undefined && startTime >= endTime),
   };
 }

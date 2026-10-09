@@ -24,7 +24,6 @@ export function DeploymentInfo({ statusOverride }: DeploymentInfoProps) {
 
   return (
     <ActiveDeploymentCard
-      deploymentId={deployment.id}
       deployment={deployment}
       isCurrent={isCurrent}
       isRolledBack={isRolledBack}
