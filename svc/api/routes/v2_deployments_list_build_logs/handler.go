@@ -43,7 +43,7 @@ func (h *Handler) Path() string {
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	// Build output can echo secrets and a poll can return about 1 MiB, so the
 	// response body must not be copied into api_requests_raw_v2
-	s.DisableClickHouseLogging()
+	s.SkipRequestLog()
 
 	principal, err := s.GetPrincipal()
 	if err != nil {

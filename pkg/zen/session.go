@@ -143,12 +143,13 @@ func (s *Session) GetPrincipal() (*principal.Principal, error) {
 	return s.principal, nil
 }
 
-// DisableClickHouseLogging prevents this request from being logged to ClickHouse.
+// SkipRequestLog prevents this request from being logged to ClickHouse.
 // By default, all requests are logged to ClickHouse unless explicitly disabled.
+// Audit logging is unaffected.
 //
 // This is useful for internal endpoints like health checks, OpenAPI specs,
 // or requests that should not appear in analytics.
-func (s *Session) DisableClickHouseLogging() {
+func (s *Session) SkipRequestLog() {
 	s.logRequestToClickHouse = false
 }
 
