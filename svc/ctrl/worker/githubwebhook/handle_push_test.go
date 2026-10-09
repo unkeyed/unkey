@@ -675,6 +675,10 @@ func (h *pushHarness) listDeployments(ctx context.Context, appID string) ([]depl
 		EnvironmentID:   "",
 		HasStatusFilter: false,
 		Statuses:        nil,
+		HasBranchFilter: false,
+		Branches:        nil,
+		StartTime:       sql.NullInt64{Valid: false},
+		EndTime:         sql.NullInt64{Valid: false},
 		CursorID:        "",
 		Limit:           1000,
 	})
@@ -683,7 +687,11 @@ func (h *pushHarness) listDeployments(ctx context.Context, appID string) ([]depl
 	}
 
 	out := make([]deploymentRow, 0, len(deployments))
-	for _, deployment := range slices.Backward(deployments) {
+	for _, listed := range slices.Backward(deployments) {
+		deployment, err := pkgdb.Query.FindDeploymentById(ctx, h.database.RO(), listed.ID)
+		if err != nil {
+			return nil, err
+		}
 		out = append(out, deploymentRow{
 			id:              deployment.ID,
 			environmentID:   deployment.EnvironmentID,

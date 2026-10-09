@@ -1563,6 +1563,10 @@ func (h *createHarness) countDeployments(t *testing.T, ctx context.Context) int 
 		EnvironmentID:   "",
 		HasStatusFilter: false,
 		Statuses:        nil,
+		HasBranchFilter: false,
+		Branches:        nil,
+		StartTime:       sql.NullInt64{Valid: false},
+		EndTime:         sql.NullInt64{Valid: false},
 		CursorID:        "",
 		Limit:           1000,
 	})
