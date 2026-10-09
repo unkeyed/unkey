@@ -11,6 +11,7 @@ CREATE TABLE `apps` (
 	`delete_protection` boolean DEFAULT false,
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
+	`deleted_at_m` bigint,
 	CONSTRAINT `apps_pk` PRIMARY KEY(`pk`),
 	CONSTRAINT `apps_id_unique` UNIQUE(`id`),
 	CONSTRAINT `apps_project_slug_idx` UNIQUE(`project_id`,`slug`)

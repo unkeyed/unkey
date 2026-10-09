@@ -15,6 +15,8 @@ FROM environments
 JOIN apps a ON environments.app_id = a.id AND environments.workspace_id = a.workspace_id
 JOIN projects p ON a.project_id = p.id AND a.workspace_id = p.workspace_id
 WHERE environments.workspace_id = ?
+  AND p.deleted_at_m IS NULL
+  AND a.deleted_at_m IS NULL
   AND (p.id = ? OR p.slug = ?)
   AND (a.id = ? OR a.slug = ?)
   AND (environments.id = ? OR environments.slug = ?)
@@ -35,6 +37,8 @@ type FindEnvironmentByIdentifiersParams struct {
 //	JOIN apps a ON environments.app_id = a.id AND environments.workspace_id = a.workspace_id
 //	JOIN projects p ON a.project_id = p.id AND a.workspace_id = p.workspace_id
 //	WHERE environments.workspace_id = ?
+//	  AND p.deleted_at_m IS NULL
+//	  AND a.deleted_at_m IS NULL
 //	  AND (p.id = ? OR p.slug = ?)
 //	  AND (a.id = ? OR a.slug = ?)
 //	  AND (environments.id = ? OR environments.slug = ?)

@@ -18,16 +18,17 @@ SELECT
 FROM (
     SELECT p1.id, p1.workspace_id
     FROM projects p1
-    WHERE p1.workspace_id = ? AND p1.id = ?
+    WHERE p1.workspace_id = ? AND p1.id = ? AND p1.deleted_at_m IS NULL
     UNION ALL
     SELECT p2.id, p2.workspace_id
     FROM projects p2
-    WHERE p2.workspace_id = ? AND p2.slug = ?
+    WHERE p2.workspace_id = ? AND p2.slug = ? AND p2.deleted_at_m IS NULL
     LIMIT 1
 ) p
 LEFT JOIN apps a
     ON a.project_id = p.id
     AND a.workspace_id = p.workspace_id
+    AND a.deleted_at_m IS NULL
     AND (a.id = ? OR a.slug = ?)
 LEFT JOIN environments e
     ON e.app_id = a.id
@@ -63,16 +64,17 @@ type ResolveDeploymentScopeRow struct {
 //	FROM (
 //	    SELECT p1.id, p1.workspace_id
 //	    FROM projects p1
-//	    WHERE p1.workspace_id = ? AND p1.id = ?
+//	    WHERE p1.workspace_id = ? AND p1.id = ? AND p1.deleted_at_m IS NULL
 //	    UNION ALL
 //	    SELECT p2.id, p2.workspace_id
 //	    FROM projects p2
-//	    WHERE p2.workspace_id = ? AND p2.slug = ?
+//	    WHERE p2.workspace_id = ? AND p2.slug = ? AND p2.deleted_at_m IS NULL
 //	    LIMIT 1
 //	) p
 //	LEFT JOIN apps a
 //	    ON a.project_id = p.id
 //	    AND a.workspace_id = p.workspace_id
+//	    AND a.deleted_at_m IS NULL
 //	    AND (a.id = ? OR a.slug = ?)
 //	LEFT JOIN environments e
 //	    ON e.app_id = a.id

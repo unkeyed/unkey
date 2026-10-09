@@ -2,7 +2,7 @@ import { relations } from "drizzle-orm";
 import { mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
 import { apps } from "./apps";
 import { deleteProtection } from "./util/delete_protection";
-import { lifecycleDates } from "./util/lifecycle_dates";
+import { lifecycleDates, lifecycleDatesMigration } from "./util/lifecycle_dates";
 import { workspaces } from "./workspaces";
 
 import { deployments } from "./deployments";
@@ -25,6 +25,7 @@ export const projects = mysqlTable(
 
     ...deleteProtection,
     ...lifecycleDates,
+    deletedAtM: lifecycleDatesMigration.deletedAtM,
   },
   (table) => [uniqueIndex("workspace_slug_idx").on(table.workspaceId, table.slug)],
 );

@@ -10,10 +10,12 @@ import (
 )
 
 const findAppByProjectAndIdOrSlug = `-- name: FindAppByProjectAndIdOrSlug :one
-SELECT a.pk, a.id, a.workspace_id, a.project_id, a.name, a.slug, a.source_type, a.current_deployment_id, a.is_rolled_back, a.delete_protection, a.created_at, a.updated_at
+SELECT a.pk, a.id, a.workspace_id, a.project_id, a.name, a.slug, a.source_type, a.current_deployment_id, a.is_rolled_back, a.delete_protection, a.created_at, a.updated_at, a.deleted_at_m
 FROM apps a
 JOIN projects p ON a.project_id = p.id AND a.workspace_id = p.workspace_id
 WHERE a.workspace_id = ?
+  AND a.deleted_at_m IS NULL
+  AND p.deleted_at_m IS NULL
   AND (p.id = ? OR p.slug = ?)
   AND (a.id = ? OR a.slug = ?)
 LIMIT 1
@@ -27,10 +29,12 @@ type FindAppByProjectAndIdOrSlugParams struct {
 
 // FindAppByProjectAndIdOrSlug
 //
-//	SELECT a.pk, a.id, a.workspace_id, a.project_id, a.name, a.slug, a.source_type, a.current_deployment_id, a.is_rolled_back, a.delete_protection, a.created_at, a.updated_at
+//	SELECT a.pk, a.id, a.workspace_id, a.project_id, a.name, a.slug, a.source_type, a.current_deployment_id, a.is_rolled_back, a.delete_protection, a.created_at, a.updated_at, a.deleted_at_m
 //	FROM apps a
 //	JOIN projects p ON a.project_id = p.id AND a.workspace_id = p.workspace_id
 //	WHERE a.workspace_id = ?
+//	  AND a.deleted_at_m IS NULL
+//	  AND p.deleted_at_m IS NULL
 //	  AND (p.id = ? OR p.slug = ?)
 //	  AND (a.id = ? OR a.slug = ?)
 //	LIMIT 1
@@ -56,6 +60,7 @@ func (q *Queries) FindAppByProjectAndIdOrSlug(ctx context.Context, db DBTX, arg 
 		&i.DeleteProtection,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.DeletedAtM,
 	)
 	return i, err
 }

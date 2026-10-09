@@ -17,6 +17,8 @@ FROM environments e
 JOIN apps a ON a.id = e.app_id AND a.project_id = e.project_id AND a.workspace_id = e.workspace_id
 JOIN projects p ON p.id = a.project_id AND p.workspace_id = e.workspace_id
 WHERE e.workspace_id = sqlc.arg(workspace_id)
+  AND p.deleted_at_m IS NULL
+  AND a.deleted_at_m IS NULL
   AND e.id = sqlc.arg(environment)
   AND (sqlc.arg(project) = '' OR p.id = sqlc.arg(project) OR p.slug = sqlc.arg(project))
   AND (sqlc.arg(app) = '' OR a.id = sqlc.arg(app) OR a.slug = sqlc.arg(app))
@@ -26,6 +28,8 @@ FROM environments e
 JOIN apps a ON a.id = e.app_id AND a.project_id = e.project_id AND a.workspace_id = e.workspace_id
 JOIN projects p ON p.id = a.project_id AND p.workspace_id = e.workspace_id
 WHERE e.workspace_id = sqlc.arg(workspace_id)
+  AND p.deleted_at_m IS NULL
+  AND a.deleted_at_m IS NULL
   AND e.slug = sqlc.arg(environment)
   AND e.id <> sqlc.arg(environment)
   AND (sqlc.arg(project) = '' OR p.id = sqlc.arg(project) OR p.slug = sqlc.arg(project))

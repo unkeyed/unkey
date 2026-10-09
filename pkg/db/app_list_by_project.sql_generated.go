@@ -31,6 +31,7 @@ FROM apps
 LEFT JOIN github_repo_connections grc ON grc.app_id = apps.id
 LEFT JOIN app_source_oci aso ON aso.app_id = apps.id
 WHERE apps.project_id = ?
+  AND apps.deleted_at_m IS NULL
   AND apps.id >= ?
   -- search is a pre-escaped LIKE pattern built by mysql.SearchContains; NULL disables the filter
   AND (? IS NULL OR LOWER(apps.id) LIKE LOWER(?) OR LOWER(apps.name) LIKE LOWER(?) OR LOWER(apps.slug) LIKE LOWER(?))
@@ -85,6 +86,7 @@ type ListAppsByProjectRow struct {
 //	LEFT JOIN github_repo_connections grc ON grc.app_id = apps.id
 //	LEFT JOIN app_source_oci aso ON aso.app_id = apps.id
 //	WHERE apps.project_id = ?
+//	  AND apps.deleted_at_m IS NULL
 //	  AND apps.id >= ?
 //	  -- search is a pre-escaped LIKE pattern built by mysql.SearchContains; NULL disables the filter
 //	  AND (? IS NULL OR LOWER(apps.id) LIKE LOWER(?) OR LOWER(apps.name) LIKE LOWER(?) OR LOWER(apps.slug) LIKE LOWER(?))

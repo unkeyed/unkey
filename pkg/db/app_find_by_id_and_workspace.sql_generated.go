@@ -13,6 +13,7 @@ const findAppByIdAndWorkspace = `-- name: FindAppByIdAndWorkspace :one
 SELECT id, project_id FROM apps
 WHERE id = ?
   AND workspace_id = ?
+  AND deleted_at_m IS NULL
 `
 
 type FindAppByIdAndWorkspaceParams struct {
@@ -40,6 +41,7 @@ type FindAppByIdAndWorkspaceRow struct {
 //	SELECT id, project_id FROM apps
 //	WHERE id = ?
 //	  AND workspace_id = ?
+//	  AND deleted_at_m IS NULL
 func (q *Queries) FindAppByIdAndWorkspace(ctx context.Context, db DBTX, arg FindAppByIdAndWorkspaceParams) (FindAppByIdAndWorkspaceRow, error) {
 	row := db.QueryRowContext(ctx, findAppByIdAndWorkspace, arg.ID, arg.WorkspaceID)
 	var i FindAppByIdAndWorkspaceRow

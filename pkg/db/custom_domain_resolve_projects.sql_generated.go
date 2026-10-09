@@ -13,6 +13,7 @@ const resolveCustomDomainProjects = `-- name: ResolveCustomDomainProjects :many
 SELECT p.id
 FROM projects p
 WHERE p.workspace_id = ?
+  AND p.deleted_at_m IS NULL
   AND (p.id = ? OR p.slug = ?)
 `
 
@@ -34,6 +35,7 @@ type ResolveCustomDomainProjectsParams struct {
 //	SELECT p.id
 //	FROM projects p
 //	WHERE p.workspace_id = ?
+//	  AND p.deleted_at_m IS NULL
 //	  AND (p.id = ? OR p.slug = ?)
 func (q *Queries) ResolveCustomDomainProjects(ctx context.Context, db DBTX, arg ResolveCustomDomainProjectsParams) ([]string, error) {
 	rows, err := db.QueryContext(ctx, resolveCustomDomainProjects, arg.WorkspaceID, arg.Project, arg.Project)

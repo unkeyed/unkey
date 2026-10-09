@@ -8,6 +8,7 @@ CREATE TABLE `projects` (
 	`delete_protection` boolean DEFAULT false,
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
+	`deleted_at_m` bigint,
 	CONSTRAINT `projects_pk` PRIMARY KEY(`pk`),
 	CONSTRAINT `projects_id_unique` UNIQUE(`id`),
 	CONSTRAINT `workspace_slug_idx` UNIQUE(`workspace_id`,`slug`)

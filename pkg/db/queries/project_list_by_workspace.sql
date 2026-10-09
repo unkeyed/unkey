@@ -9,6 +9,7 @@ SELECT
     updated_at
 FROM projects
 WHERE workspace_id = sqlc.arg(workspace_id)
+  AND deleted_at_m IS NULL
   -- The default project is an internal ownership container, not a user-visible project.
   AND BINARY slug != 'default'
   AND id >= sqlc.arg(id_cursor)

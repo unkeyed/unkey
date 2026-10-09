@@ -778,6 +778,7 @@ type App struct {
 	DeleteProtection    sql.NullBool   `db:"delete_protection"`
 	CreatedAt           int64          `db:"created_at"`
 	UpdatedAt           sql.NullInt64  `db:"updated_at"`
+	DeletedAtM          sql.NullInt64  `db:"deleted_at_m"`
 }
 
 type AppBuildSetting struct {
@@ -1045,6 +1046,7 @@ type Project struct {
 	DeleteProtection sql.NullBool   `db:"delete_protection"`
 	CreatedAt        int64          `db:"created_at"`
 	UpdatedAt        sql.NullInt64  `db:"updated_at"`
+	DeletedAtM       sql.NullInt64  `db:"deleted_at_m"`
 }
 
 type Ratelimit struct {

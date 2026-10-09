@@ -2,7 +2,9 @@ package handler
 
 import (
 	"context"
+	"database/sql"
 	"net/http"
+	"time"
 
 	restateingress "github.com/restatedev/sdk-go/ingress"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
@@ -10,6 +12,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
+	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/urn"
@@ -119,6 +122,20 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 			fault.Internal("failed to submit app deletion to Restate"),
 			fault.Public("Failed to delete app."),
+		)
+	}
+
+	// Marked after Send on purpose: a mark without a workflow would hide the
+	// app forever, while a workflow without a mark only leaves it visible until
+	// the worker deletes it.
+	err = db.Query.SoftDeleteApp(ctx, h.DB.RW(), db.SoftDeleteAppParams{
+		AppID: app.ID,
+		Now:   sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+	})
+	if err != nil {
+		logger.Error("failed to mark app as deleted after submitting deletion",
+			"app_id", app.ID,
+			"error", err.Error(),
 		)
 	}
 

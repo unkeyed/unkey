@@ -16,6 +16,7 @@ SELECT
   apps.slug
 FROM apps
 WHERE apps.project_id = ?
+  AND apps.deleted_at_m IS NULL
   AND apps.slug = ?
 `
 
@@ -38,6 +39,7 @@ type FindAppByProjectAndSlugRow struct {
 //	  apps.slug
 //	FROM apps
 //	WHERE apps.project_id = ?
+//	  AND apps.deleted_at_m IS NULL
 //	  AND apps.slug = ?
 func (q *Queries) FindAppByProjectAndSlug(ctx context.Context, db DBTX, arg FindAppByProjectAndSlugParams) (FindAppByProjectAndSlugRow, error) {
 	row := db.QueryRowContext(ctx, findAppByProjectAndSlug, arg.ProjectID, arg.Slug)
