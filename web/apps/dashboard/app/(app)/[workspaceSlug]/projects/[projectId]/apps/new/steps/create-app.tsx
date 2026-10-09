@@ -3,7 +3,7 @@ import { useDeployActionGate } from "@/app/(app)/[workspaceSlug]/projects/_compo
 import { createAppRequestSchema } from "@/lib/collections/deploy/apps";
 import { slugify } from "@/lib/slugify";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Button, FormInput, useStepWizard } from "@unkey/ui";
+import { Button, FormInput, useReportUnsavedChanges, useStepWizard } from "@unkey/ui";
 import { useForm } from "react-hook-form";
 import type { z } from "zod";
 import { OnboardingLinks } from "../onboarding-links";
@@ -26,12 +26,13 @@ export const CreateAppStep = ({ onAppDetailsSubmitted }: CreateAppStepProps) => 
     register,
     handleSubmit,
     setValue,
-    formState: { errors, isSubmitting, isValid },
+    formState: { errors, isSubmitting, isValid, isDirty },
   } = useForm<AppDetails>({
     resolver: zodResolver(formSchema),
     defaultValues: { name: "", slug: "" },
     mode: "onChange",
   });
+  useReportUnsavedChanges(isDirty);
 
   const onSubmitForm = (values: AppDetails) => {
     if (gated) {

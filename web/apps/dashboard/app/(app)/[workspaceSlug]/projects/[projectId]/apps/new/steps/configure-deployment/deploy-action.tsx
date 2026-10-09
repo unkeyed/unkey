@@ -1,29 +1,35 @@
 "use client";
 
+import {
+  useAppId,
+  useProjectData,
+} from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/data-provider";
 import { useDeployActionGate } from "@/app/(app)/[workspaceSlug]/projects/_components/hooks/use-deploy-action-gate";
 import { collection } from "@/lib/collections";
 import { ENVIRONMENT_KIND } from "@/lib/collections/deploy/environments";
 import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
 import { useMutation } from "@tanstack/react-query";
 import { Button, toast, useStepWizard } from "@unkey/ui";
-import { useProjectData } from "../../[appId]/(overview)/data-provider";
+
+type DeployState = "loading" | "dirty" | "ready";
+
+const DEPLOY_STATE: Record<DeployState, { disabled: boolean; note: string }> = {
+  loading: { disabled: true, note: "Loading your deployment settings" },
+  dirty: { disabled: true, note: "Save your changes to deploy" },
+  ready: { disabled: false, note: "We'll build your image, provision infrastructure, and more." },
+};
 
 type DeployActionProps = {
-  projectId: string;
-  appId: string;
-  disabled?: boolean;
+  state: DeployState;
   onDeploymentCreated: (deploymentId: string) => void;
 };
 
-export const DeployAction = ({
-  projectId,
-  appId,
-  disabled,
-  onDeploymentCreated,
-}: DeployActionProps) => {
+export function DeployAction({ state, onDeploymentCreated }: DeployActionProps) {
+  const { disabled, note } = DEPLOY_STATE[state];
   const { goTo } = useStepWizard();
   const { gated, openPaywall, planGate } = useDeployActionGate();
-  const { environments, refetchDeployments } = useProjectData();
+  const { projectId, environments, refetchDeployments } = useProjectData();
+  const appId = useAppId();
   const productionEnvironment = environments.find(
     (environment) => environment.kind === ENVIRONMENT_KIND.production,
   );
@@ -66,10 +72,8 @@ export const DeployAction = ({
       >
         Deploy
       </Button>
-      <span className="text-gray-10 text-sm text-center">
-        We'll build your image, provision infrastructure, and more.
-      </span>
+      <span className="text-gray-10 text-sm text-center">{note}</span>
       {planGate}
     </div>
   );
-};
+}
