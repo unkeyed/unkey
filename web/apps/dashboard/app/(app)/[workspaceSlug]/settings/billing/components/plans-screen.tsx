@@ -22,7 +22,7 @@ import {
 import Link from "next/link";
 import { type ReactNode, useState } from "react";
 import { ApiPlans } from "./api-plans";
-import { CREDITS_INFO, CREDITS_LINK_HREF, CREDITS_LINK_LABEL } from "./compute-plan-copy";
+import { CREDITS_LINK_HREF, CREDITS_LINK_LABEL, planCreditsCopy } from "./compute-plan-copy";
 import { ComputePlans } from "./compute-plans";
 import {
   type PaywallProduct,
@@ -108,6 +108,7 @@ export function PlansScreen({ open, onOpenChange, reason, from = "billing" }: Pl
         from={from}
         manage={copy.manage}
         onChanged={close}
+        signupCreditClaimed={subscriptionQuery.data?.signupCreditClaimed}
       />
     ),
     api: (
@@ -151,7 +152,7 @@ export function PlansScreen({ open, onOpenChange, reason, from = "billing" }: Pl
                     className={activeProduct === "compute" ? undefined : "invisible"}
                   >
                     {" "}
-                    {CREDITS_INFO}{" "}
+                    {planCreditsCopy()}{" "}
                     <a
                       href={CREDITS_LINK_HREF}
                       target="_blank"

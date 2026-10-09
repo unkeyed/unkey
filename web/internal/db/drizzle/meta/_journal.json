@@ -8,6 +8,13 @@
       "when": 1756630515466,
       "tag": "0000_dazzling_colonel_america",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1791420133874,
+      "tag": "0002_compute_signup_credit_claims",
+      "breakpoints": true
     }
   ]
 }

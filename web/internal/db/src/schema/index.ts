@@ -9,6 +9,7 @@ export * from "./identity";
 export * from "./limits";
 export * from "./workspace_billing";
 export * from "./billing_subscriptions";
+export * from "./compute_signup_credit_claims";
 export * from "./clickhouse_outbox";
 export * from "./environments";
 export * from "./clickhouse_workspace_settings";

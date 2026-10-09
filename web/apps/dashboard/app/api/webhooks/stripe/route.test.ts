@@ -7,6 +7,7 @@ const mocks = vi.hoisted(() => ({
   customersRetrieve: vi.fn(),
   deployBillingConfig: vi.fn(),
   detectDeployPlan: vi.fn(),
+  handlePaymentMethodAttached: vi.fn(),
   pricesRetrieve: vi.fn(),
   productsRetrieve: vi.fn(),
 }));
@@ -46,6 +47,9 @@ vi.mock("@/lib/stripe/computeAlerts", () => ({
 vi.mock("@/lib/stripe/deployBilling", () => ({
   deployBillingConfig: mocks.deployBillingConfig,
   findApiItem: (_config: unknown, items: unknown[]) => items[0],
+}));
+vi.mock("@/lib/stripe/computeSignupCredit", () => ({
+  handlePaymentMethodAttached: mocks.handlePaymentMethodAttached,
 }));
 vi.mock("@/lib/stripe/deployCredits", () => ({
   grantDeployCreditsForInvoice: vi.fn(),
@@ -110,6 +114,62 @@ beforeEach(() => {
   });
   mocks.productsRetrieve.mockResolvedValue({ id: "prod_api", name: "API Pro" });
   mocks.alertCustomerLifecycle.mockResolvedValue("sent");
+});
+
+function signedRequest(body = "{}"): Request {
+  return new Request("https://app.unkey.com/api/webhooks/stripe", {
+    method: "POST",
+    headers: { "stripe-signature": "signed" },
+    body,
+  });
+}
+
+describe("payment_method.attached", () => {
+  it("rejects a missing signature before granting a signup credit", async () => {
+    const response = await POST(
+      new Request("https://app.unkey.com/api/webhooks/stripe", {
+        method: "POST",
+        body: "{}",
+      }),
+    );
+
+    expect(response.status).toBe(400);
+    expect(mocks.constructEvent).not.toHaveBeenCalled();
+    expect(mocks.handlePaymentMethodAttached).not.toHaveBeenCalled();
+  });
+
+  it("rejects an invalid signature before granting a signup credit", async () => {
+    mocks.constructEvent.mockImplementation(() => {
+      throw new Error("bad signature");
+    });
+
+    const response = await POST(signedRequest());
+
+    expect(response.status).toBe(400);
+    expect(mocks.handlePaymentMethodAttached).not.toHaveBeenCalled();
+  });
+
+  it("grants only after the webhook signature verifies", async () => {
+    mocks.constructEvent.mockReturnValue({
+      id: "evt_pm",
+      type: "payment_method.attached",
+      data: { object: { id: "pm_card", object: "payment_method" } },
+    });
+    mocks.handlePaymentMethodAttached.mockResolvedValue({
+      granted: true,
+      transactionId: "cbtxn_signup",
+      amountCents: 500,
+    });
+
+    const response = await POST(signedRequest());
+
+    expect(mocks.handlePaymentMethodAttached).toHaveBeenCalledOnce();
+    expect(response.headers.get("X-Unkey-Webhook-Result")).toBe("signup_credit_granted");
+    await expect(response.json()).resolves.toMatchObject({
+      eventId: "evt_pm",
+      result: "signup_credit_granted",
+    });
+  });
 });
 
 describe("customer.subscription.created", () => {

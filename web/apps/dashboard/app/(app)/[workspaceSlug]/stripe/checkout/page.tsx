@@ -6,6 +6,19 @@ import { formatDollars } from "@/lib/fmt";
 import { DEPLOY_CHECKOUT_ORIGINS, routes } from "@/lib/navigation/routes";
 import { getStripeClient } from "@/lib/stripe";
 import { subscriptionIdsByProduct } from "@/lib/stripe/billingSubscriptions";
+import {
+  ComputeSignupCheckoutError,
+  type DeployCheckoutCredit,
+  deployCardSetupSuccessUrl,
+  deployCheckoutCustomerId,
+  deployCheckoutSubmitMessage,
+  prepareDeployCheckoutCredit,
+} from "@/lib/stripe/computeSignupCheckout";
+import {
+  COMPUTE_SIGNUP_CREDIT_CENTS,
+  ComputeSignupCreditRetryError,
+  signupWorkosUserId,
+} from "@/lib/stripe/computeSignupCredit";
 import { createSubscriptionCheckout } from "@/lib/stripe/createSubscriptionCheckout";
 import { deployBillingConfig, deployCheckoutLineItems } from "@/lib/stripe/deployBilling";
 import { DEPLOY_PLANS } from "@/lib/stripe/deployPlan";
@@ -29,19 +42,26 @@ export const dynamic = "force-dynamic";
 const CHECKOUT_INTENTS = ["payment", "deploy"] as const;
 
 export default async function StripeRedirect(props: {
-  searchParams: Promise<{ intent?: string; plan?: string; from?: string; returnTo?: string }>;
+  searchParams: Promise<{
+    intent?: string;
+    plan?: string;
+    from?: string;
+    returnTo?: string;
+    setup_session_id?: string;
+  }>;
 }) {
   const {
     intent: rawIntent,
     plan: rawPlan,
     from: rawFrom,
     returnTo: rawReturnTo,
+    setup_session_id: setupSessionId,
   } = await props.searchParams;
   const intent = CHECKOUT_INTENTS.find((known) => known === rawIntent);
   const plan = DEPLOY_PLANS.find((known) => known === rawPlan);
   const from = DEPLOY_CHECKOUT_ORIGINS.find((known) => known === rawFrom);
 
-  const { orgId, role } = await getAuth();
+  const { orgId, role, userId } = await getAuth();
 
   if (!orgId) {
     // route-guard-ignore: pre-existing unauthenticated redirect, left untouched
@@ -127,9 +147,11 @@ export default async function StripeRedirect(props: {
   // finalize for real (PDF included). One clock per customer, since a clock
   // carries at most a handful of customers and advances them together. Reuse
   // an existing workspace customer first so Checkout can show its saved cards
-  // and API and Compute remain under the same Stripe customer.
+  // and API and Compute remain under the same Stripe customer. A return from
+  // card setup already has that customer on the setup session. Minting another
+  // clocked customer on that load would fail the session customer check.
   let devClockedCustomerId: string | undefined;
-  if (!existingCustomerId && stripeEnv()?.STRIPE_DEV_TEST_CLOCK === "true") {
+  if (!existingCustomerId && !setupSessionId && stripeEnv()?.STRIPE_DEV_TEST_CLOCK === "true") {
     const clock = await stripe.testHelpers.testClocks.create({
       frozen_time: Math.floor(Date.now() / 1000),
       name: ws.slug,
@@ -144,7 +166,11 @@ export default async function StripeRedirect(props: {
   // customer. This path is also used to replace a bad vaulted card; creating a
   // new customer there would strand the existing API subscription on the old
   // customer and make the portal appear to lose one of the products.
-  const checkoutCustomerId = existingCustomerId ?? devClockedCustomerId;
+  const checkoutCustomerId = deployCheckoutCustomerId({
+    existingCustomerId,
+    devClockedCustomerId,
+    setupSessionId,
+  });
 
   // Create a selected Compute plan in subscription-mode Checkout even when the
   // customer already has a saved card, so Stripe shows the plan and can handle
@@ -183,49 +209,94 @@ export default async function StripeRedirect(props: {
 
   let session: Stripe.Checkout.Session;
   if (deployConfig && plan) {
-    // Resolve the selected plan's fee so the credits message names the right
-    // amount (credits equal the fee). Omit the message rather than fail the
-    // session if the price can't be resolved.
-    let submitMessage: string | undefined;
+    const payer = signupWorkosUserId(userId);
+    let creditStep: DeployCheckoutCredit;
     try {
-      const price = await stripe.prices.retrieve(deployConfig.planFeePriceIds[plan]);
-      if (price.unit_amount != null) {
-        const amount = formatDollars(price.unit_amount);
-        // Credits equal the plan fee actually charged on each invoice
-        // (netDeployFee sums the fee lines), so they are prorated at checkout
-        // and full each month. Word the message as "credits match the charge"
-        // rather than a fixed number, since Stripe itself shows the prorated
-        // amount due today and we do not recompute its proration here.
-        submitMessage = `Your plan fee is matched by usage credits: ${amount} each month, and a prorated first charge is matched by the same amount in credits.`;
+      creditStep = await prepareDeployCheckoutCredit(stripe, {
+        workspaceId: ws.id,
+        workosUserId: userId,
+        customerId: checkoutCustomerId,
+        setupSessionId,
+        nowMs: Date.now(),
+      });
+    } catch (error) {
+      if (error instanceof ComputeSignupCreditRetryError) {
+        return checkoutMessage(
+          "Applying your credit",
+          "Your $5 Compute credit is still being applied. Refresh this page to continue checkout.",
+        );
       }
-    } catch {
-      // Non-fatal: proceed without the credits message.
+      if (error instanceof ComputeSignupCheckoutError) {
+        return checkoutMessage("Checkout unavailable", error.message);
+      }
+      throw error;
     }
 
-    const destination = await createSubscriptionCheckout(stripe, {
-      workspaceId: ws.id,
-      product: "compute",
-      customerId: checkoutCustomerId,
-      lineItems: deployCheckoutLineItems(deployConfig, plan),
-      successUrl,
-      ...(submitMessage ? { customText: { submit: { message: submitMessage } } } : {}),
-      ...(devClockedCustomerId
-        ? {}
-        : {
-            idempotencyKey: `deploy-checkout:${ws.id}:${plan}:${from ?? ""}:${checkoutCustomerId ?? "new"}`,
-          }),
-    });
-    if (destination.kind === "success") {
-      return redirect(destination.url as Route);
+    if (creditStep.step === "collect_card" && payer) {
+      session = await stripe.checkout.sessions.create({
+        client_reference_id: ws.id,
+        billing_address_collection: "auto",
+        mode: "setup",
+        payment_method_types: ["card"],
+        success_url: deployCardSetupSuccessUrl({
+          baseUrl,
+          workspaceSlug: ws.slug,
+          plan,
+          from,
+          returnTo: returnPath ?? undefined,
+        }),
+        currency: "USD",
+        setup_intent_data: { metadata: { workos_user_id: payer } },
+        ...(checkoutCustomerId
+          ? { customer: checkoutCustomerId }
+          : { customer_creation: "always" as const }),
+      });
+    } else {
+      const subscribeCustomerId =
+        creditStep.step === "subscribe" ? creditStep.customerId : checkoutCustomerId;
+      let planFee: string | undefined;
+      try {
+        const price = await stripe.prices.retrieve(deployConfig.planFeePriceIds[plan]);
+        if (price.unit_amount != null) {
+          planFee = formatDollars(price.unit_amount);
+        }
+      } catch {
+        // The plan fee is Stripe's number. Checkout still proceeds.
+      }
+      const submitMessage = deployCheckoutSubmitMessage({
+        announceSignupCredit: creditStep.step === "subscribe" && creditStep.announceSignupCredit,
+        signupCredit: formatDollars(COMPUTE_SIGNUP_CREDIT_CENTS),
+        planFee,
+      });
+
+      const destination = await createSubscriptionCheckout(stripe, {
+        workspaceId: ws.id,
+        product: "compute",
+        ...(subscribeCustomerId ? { customerId: subscribeCustomerId } : {}),
+        lineItems: deployCheckoutLineItems(deployConfig, plan),
+        successUrl,
+        ...(payer ? { workosUserId: payer } : {}),
+        ...(submitMessage ? { customText: { submit: { message: submitMessage } } } : {}),
+        ...(devClockedCustomerId
+          ? {}
+          : {
+              idempotencyKey: `deploy-checkout:${ws.id}:${plan}:${from ?? ""}:${subscribeCustomerId ?? ""}`,
+            }),
+      });
+      if (destination.kind === "success") {
+        return redirect(destination.url as Route);
+      }
+      session = destination.session;
     }
-    session = destination.session;
   } else {
     session = await stripe.checkout.sessions.create({
       client_reference_id: ws.id,
       billing_address_collection: "auto",
       mode: "setup",
+      payment_method_types: ["card"],
       success_url: successUrl,
       currency: "USD",
+      setup_intent_data: { metadata: { workos_user_id: signupWorkosUserId(userId) ?? userId } },
       ...(checkoutCustomerId
         ? { customer: checkoutCustomerId }
         : { customer_creation: "always" as const }),
@@ -252,4 +323,19 @@ export default async function StripeRedirect(props: {
   }
 
   return redirect(session.url as Route);
+}
+
+function checkoutMessage(title: string, description: string) {
+  return (
+    <PageContainer>
+      <PageBody>
+        <EmptyState>
+          <EmptyStateHeader>
+            <EmptyStateTitle>{title}</EmptyStateTitle>
+            <EmptyStateDescription>{description}</EmptyStateDescription>
+          </EmptyStateHeader>
+        </EmptyState>
+      </PageBody>
+    </PageContainer>
+  );
 }

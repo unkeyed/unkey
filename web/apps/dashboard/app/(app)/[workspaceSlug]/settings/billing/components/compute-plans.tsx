@@ -30,7 +30,7 @@ import { cn } from "cn";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { CancelComputeDialog, CancelPlanLink } from "./cancel-actions";
-import { PLAN_BLURBS } from "./compute-plan-copy";
+import { FIRST_INVOICE_CREDIT_NOTE, PLAN_BLURBS, firstInvoiceCents } from "./compute-plan-copy";
 import { ADMIN_ONLY_TOOLTIP } from "./constants";
 
 const CHANGE_NOTE =
@@ -45,6 +45,8 @@ type ComputePlansProps = {
   from: DeployCheckoutOrigin;
   manage: boolean;
   onChanged: () => void;
+  /** Undefined while the subscription query is loading, so the discount stays hidden. */
+  signupCreditClaimed: boolean | undefined;
 };
 
 export function ComputePlans({
@@ -56,7 +58,9 @@ export function ComputePlans({
   from,
   manage,
   onChanged,
+  signupCreditClaimed,
 }: ComputePlansProps) {
+  const showSignupCredit = signupCreditClaimed === false;
   const workspace = useWorkspaceNavigation();
   const router = useRouter();
   const pathname = usePathname();
@@ -137,6 +141,7 @@ export function ComputePlans({
             card={card}
             isAdmin={isAdmin}
             checkoutPlan={checkoutPlan}
+            showSignupCredit={showSignupCredit}
             onSelect={select}
           />
         ))}
@@ -181,11 +186,13 @@ function PlanCard({
   card,
   isAdmin,
   checkoutPlan,
+  showSignupCredit,
   onSelect,
 }: {
   card: PlanCardState;
   isAdmin: boolean;
   checkoutPlan: DeployPlan | null;
+  showSignupCredit: boolean;
   onSelect: (option: DeployPlanOption) => void;
 }) {
   const { action } = card;
@@ -201,8 +208,8 @@ function PlanCard({
         <span className="text-gray-11 text-sm">{PLAN_BLURBS[card.plan]}</span>
       </div>
 
-      <div className="flex h-9 items-baseline gap-1">
-        <PlanPriceLabel price={card.price} />
+      <div className={cn("flex items-baseline gap-1", showSignupCredit ? "min-h-9" : "h-9")}>
+        <PlanPriceLabel price={card.price} showSignupCredit={showSignupCredit} />
       </div>
 
       <Button
@@ -228,20 +235,46 @@ function PlanCard({
   );
 }
 
-function PlanPriceLabel({ price }: { price: PlanPrice }) {
+function PlanPriceLabel({
+  price,
+  showSignupCredit,
+}: {
+  price: PlanPrice;
+  showSignupCredit: boolean;
+}) {
   return match(price)
     .with({ type: "loading" }, () => <Skeleton className="h-8 w-20 self-center rounded-md" />)
     .with({ type: "contact" }, () => (
       <span className="font-semibold text-3xl text-gray-12">Contact us</span>
     ))
-    .with({ type: "amount" }, ({ cents, interval }) => (
-      <>
-        <span className="font-semibold text-3xl text-gray-12 tabular-nums">
-          {formatDollars(cents)}
-        </span>
-        <span className="text-gray-11 text-sm">{interval === "year" ? "/yr" : "/mo"}</span>
-      </>
-    ))
+    .with({ type: "amount" }, ({ cents, interval }) => {
+      const regular = (
+        <>
+          <span
+            className={cn(
+              "font-semibold text-3xl tabular-nums",
+              showSignupCredit ? "text-gray-9 line-through decoration-gray-8" : "text-gray-12",
+            )}
+          >
+            {formatDollars(cents)}
+          </span>
+          <span className="text-gray-11 text-sm">{interval === "year" ? "/yr" : "/mo"}</span>
+        </>
+      );
+      if (!showSignupCredit) {
+        return regular;
+      }
+      const timing = interval === "year" ? "first invoice" : "first month";
+      return (
+        <div className="flex flex-col gap-1">
+          <div className="flex items-baseline gap-1">{regular}</div>
+          <p className="text-gray-12 text-sm tabular-nums">
+            {`${timing} ${formatDollars(firstInvoiceCents(cents))}`}
+          </p>
+          <p className="text-gray-11 text-xs leading-4">{FIRST_INVOICE_CREDIT_NOTE}</p>
+        </div>
+      );
+    })
     .exhaustive();
 }
 
