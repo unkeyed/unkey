@@ -7,10 +7,8 @@ import { useEffect, useRef, useState } from "react";
 const DEBOUNCE_MS = 300;
 const MAX_LENGTH = 256;
 
-// Keeps the box responsive while the URL — and the query keyed off it — only
-// moves once typing pauses. Clearing and Escape skip the wait.
-function useDebouncedQueryState(key: string, delay: number) {
-  const [committed, setCommitted] = useQueryState(
+export function useResourceSearch(key: string) {
+  return useQueryState(
     key,
     parseAsString.withDefault("").withOptions({
       history: "replace",
@@ -18,6 +16,12 @@ function useDebouncedQueryState(key: string, delay: number) {
       clearOnDefault: true,
     }),
   );
+}
+
+// Keeps the box responsive while the URL — and the query keyed off it — only
+// moves once typing pauses. Clearing and Escape skip the wait.
+function useDebouncedQueryState(key: string, delay: number) {
+  const [committed, setCommitted] = useResourceSearch(key);
   const [text, setText] = useState(committed);
   const [seen, setSeen] = useState(committed);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);

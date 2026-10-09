@@ -1,16 +1,7 @@
 "use client";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
-import {
-  FormInput,
-  SettingsForm,
-  SettingsRow,
-  SettingsRowContent,
-  SettingsRowDescription,
-  SettingsRowHeader,
-  SettingsRowTitle,
-  formSaveState,
-} from "@unkey/ui";
+import { FormInput, SettingsForm, SettingsRow, formSaveState } from "@unkey/ui";
 import type { Resolver } from "react-hook-form";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
@@ -79,37 +70,31 @@ export const UpdateApiName: React.FC<Props> = ({ api }) => {
       dirty={isDirty}
       saveState={formSaveState({ isSubmitting, isValid, isDirty })}
     >
-      <SettingsRow>
-        <SettingsRowHeader>
-          <SettingsRowTitle>Name</SettingsRowTitle>
-          <SettingsRowDescription>
-            Change the name of your keyspace. This is only visible to you and your team.
-          </SettingsRowDescription>
-        </SettingsRowHeader>
-        <SettingsRowContent>
-          <input type="hidden" name="apiId" value={api.id} />
-          <input type="hidden" name="workspaceId" value={api.workspaceId} />
+      <SettingsRow
+        title="Name"
+        description="Change the name of your keyspace. This is only visible to you and your team."
+      >
+        <input type="hidden" name="apiId" value={api.id} />
+        <input type="hidden" name="workspaceId" value={api.workspaceId} />
 
-          <Controller
-            control={control}
-            name="apiName"
-            render={({ field }) => (
-              <FormInput
-                {...field}
-                aria-label="Name"
-                placeholder="my-keyspace"
-                className="max-w-(--setting-w)"
-                error={errors.apiName?.message}
-                onChange={(e) => {
-                  if (e.target.value === "") {
-                    return;
-                  }
-                  field.onChange(e);
-                }}
-              />
-            )}
-          />
-        </SettingsRowContent>
+        <Controller
+          control={control}
+          name="apiName"
+          render={({ field }) => (
+            <FormInput
+              {...field}
+              aria-label="Name"
+              placeholder="my-keyspace"
+              error={errors.apiName?.message}
+              onChange={(e) => {
+                if (e.target.value === "") {
+                  return;
+                }
+                field.onChange(e);
+              }}
+            />
+          )}
+        />
       </SettingsRow>
     </SettingsForm>
   );

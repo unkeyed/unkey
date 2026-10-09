@@ -15,10 +15,6 @@ import {
   SettingsGroup,
   SettingsGroupContent,
   SettingsRow,
-  SettingsRowContent,
-  SettingsRowDescription,
-  SettingsRowHeader,
-  SettingsRowTitle,
   SettingsZoneRow,
   formSaveState,
   toast,
@@ -111,38 +107,23 @@ export const SettingsClient = ({ namespaceId }: Props) => {
               isDirty,
             })}
           >
-            <SettingsRow>
-              <SettingsRowHeader>
-                <SettingsRowTitle>Namespace name</SettingsRowTitle>
-                <SettingsRowDescription>
-                  Used in API calls. Changing this may cause rate limit requests to be rejected.
-                </SettingsRowDescription>
-              </SettingsRowHeader>
-              <SettingsRowContent>
-                <Input
-                  aria-label="Namespace name"
-                  placeholder="Namespace name"
-                  value={namespaceName ?? ""}
-                  className="max-w-(--setting-w)"
-                  onChange={(e) => setNamespaceName(e.target.value)}
-                />
-              </SettingsRowContent>
+            <SettingsRow
+              title="Namespace name"
+              description="Used in API calls. Changing this may cause rate limit requests to be rejected."
+            >
+              <Input
+                aria-label="Namespace name"
+                placeholder="Namespace name"
+                value={namespaceName ?? ""}
+                onChange={(e) => setNamespaceName(e.target.value)}
+              />
             </SettingsRow>
           </SettingsForm>
-          <SettingsRow>
-            <SettingsRowHeader>
-              <SettingsRowTitle>Namespace ID</SettingsRowTitle>
-              <SettingsRowDescription>
-                An identifier for the namespace, used in some API calls.
-              </SettingsRowDescription>
-            </SettingsRowHeader>
-            <SettingsRowContent>
-              <CopyInput
-                value={namespace.id}
-                aria-label="Namespace ID"
-                className="max-w-(--setting-w)"
-              />
-            </SettingsRowContent>
+          <SettingsRow
+            title="Namespace ID"
+            description="An identifier for the namespace, used in some API calls."
+          >
+            <CopyInput value={namespace.id} aria-label="Namespace ID" />
           </SettingsRow>
         </SettingsGroupContent>
       </SettingsGroup>

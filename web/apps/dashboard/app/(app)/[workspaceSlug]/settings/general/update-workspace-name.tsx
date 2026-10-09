@@ -3,17 +3,7 @@ import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { trpc } from "@/lib/trpc/client";
 import { useWorkspace } from "@/providers/workspace-provider";
 import { zodResolver } from "@hookform/resolvers/zod";
-import {
-  FormInput,
-  SettingsForm,
-  SettingsRow,
-  SettingsRowContent,
-  SettingsRowDescription,
-  SettingsRowHeader,
-  SettingsRowTitle,
-  formSaveState,
-  toast,
-} from "@unkey/ui";
+import { FormInput, SettingsForm, SettingsRow, formSaveState, toast } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
@@ -107,27 +97,21 @@ export function UpdateWorkspaceName() {
 
   return (
     <SettingsForm dirty={isDirty} onSubmit={handleSubmit(onSubmit)} saveState={saveState}>
-      <SettingsRow>
-        <SettingsRowHeader>
-          <SettingsRowTitle>Workspace Name</SettingsRowTitle>
-          <SettingsRowDescription>
-            Not customer-facing. Choose a name that is easy to recognize.
-          </SettingsRowDescription>
-        </SettingsRowHeader>
-        <SettingsRowContent>
-          <input type="hidden" name="workspaceId" value={workspace?.id} />
-          <FormInput
-            aria-label="Workspace Name"
-            className="max-w-(--setting-w)"
-            placeholder="Workspace Name"
-            minLength={3}
-            maxLength={50}
-            description={adminRequired}
-            error={errors.workspaceName?.message}
-            {...register("workspaceName")}
-            disabled={!isAdmin}
-          />
-        </SettingsRowContent>
+      <SettingsRow
+        title="Workspace Name"
+        description="Not customer-facing. Choose a name that is easy to recognize."
+      >
+        <input type="hidden" name="workspaceId" value={workspace?.id} />
+        <FormInput
+          aria-label="Workspace Name"
+          placeholder="Workspace Name"
+          minLength={3}
+          maxLength={50}
+          description={adminRequired}
+          error={errors.workspaceName?.message}
+          {...register("workspaceName")}
+          disabled={!isAdmin}
+        />
       </SettingsRow>
     </SettingsForm>
   );

@@ -10,10 +10,6 @@ import {
   SettingsGroup,
   SettingsGroupContent,
   SettingsRow,
-  SettingsRowContent,
-  SettingsRowDescription,
-  SettingsRowHeader,
-  SettingsRowTitle,
   formSaveState,
 } from "@unkey/ui";
 import { useForm, useWatch } from "react-hook-form";
@@ -28,16 +24,11 @@ export function UpdateProjectSettings({ project }: { project: Project }) {
     return (
       <SettingsGroup>
         <SettingsGroupContent>
-          <SettingsRow>
-            <SettingsRowHeader>
-              <SettingsRowTitle>Project name</SettingsRowTitle>
-              <SettingsRowDescription>
-                The default project is named after your workspace. Rename it in workspace settings.
-              </SettingsRowDescription>
-            </SettingsRowHeader>
-            <SettingsRowContent>
-              <span className="text-sm text-gray-12">{workspace.name}</span>
-            </SettingsRowContent>
+          <SettingsRow
+            title="Project name"
+            description="The default project is named after your workspace. Rename it in workspace settings."
+          >
+            <span className="text-sm text-gray-12">{workspace.name}</span>
           </SettingsRow>
         </SettingsGroupContent>
       </SettingsGroup>
@@ -77,21 +68,14 @@ function ProjectNameRow({ project }: { project: Project }) {
 
   return (
     <SettingsForm dirty={isDirty} onSubmit={handleSubmit(onSubmit)} saveState={saveState}>
-      <SettingsRow>
-        <SettingsRowHeader>
-          <SettingsRowTitle>Project name</SettingsRowTitle>
-          <SettingsRowDescription>A descriptive name for your project.</SettingsRowDescription>
-        </SettingsRowHeader>
-        <SettingsRowContent>
-          <FormInput
-            aria-label="Project name"
-            requirement="required"
-            placeholder="My Awesome Project"
-            className="max-w-(--setting-w)"
-            error={errors.name?.message}
-            {...register("name")}
-          />
-        </SettingsRowContent>
+      <SettingsRow title="Project name" description="A descriptive name for your project.">
+        <FormInput
+          aria-label="Project name"
+          requirement="required"
+          placeholder="My Awesome Project"
+          error={errors.name?.message}
+          {...register("name")}
+        />
       </SettingsRow>
     </SettingsForm>
   );

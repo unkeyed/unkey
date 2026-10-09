@@ -5,16 +5,7 @@ import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
-import {
-  FormInput,
-  SettingsForm,
-  SettingsRow,
-  SettingsRowContent,
-  SettingsRowDescription,
-  SettingsRowHeader,
-  SettingsRowTitle,
-  formSaveState,
-} from "@unkey/ui";
+import { FormInput, SettingsForm, SettingsRow, formSaveState } from "@unkey/ui";
 import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
 import { keyBytesSchema } from "../../_components/create-key/create-key.schema";
@@ -85,32 +76,26 @@ export const DefaultBytes: React.FC<Props> = ({ keyAuth, apiId }) => {
       dirty={isDirty}
       saveState={formSaveState({ isSubmitting, isValid, isDirty })}
     >
-      <SettingsRow>
-        <SettingsRowHeader>
-          <SettingsRowTitle>Default Bytes</SettingsRowTitle>
-          <SettingsRowDescription>
-            Sets the default byte size for keys under this keyspace. Must be between 16 and 255.
-          </SettingsRowDescription>
-        </SettingsRowHeader>
-        <SettingsRowContent>
-          <input type="hidden" name="keyAuthId" value={keyAuth.id} />
+      <SettingsRow
+        title="Default Bytes"
+        description="Sets the default byte size for keys under this keyspace. Must be between 16 and 255."
+      >
+        <input type="hidden" name="keyAuthId" value={keyAuth.id} />
 
-          <Controller
-            control={control}
-            name="defaultBytes"
-            render={({ field }) => (
-              <FormInput
-                {...field}
-                aria-label="Default Bytes"
-                className="max-w-(--setting-w)"
-                autoComplete="off"
-                type="text"
-                error={errors.defaultBytes?.message}
-                onChange={(e) => field.onChange(Number(e.target.value.replace(/\D/g, "")))}
-              />
-            )}
-          />
-        </SettingsRowContent>
+        <Controller
+          control={control}
+          name="defaultBytes"
+          render={({ field }) => (
+            <FormInput
+              {...field}
+              aria-label="Default Bytes"
+              autoComplete="off"
+              type="text"
+              error={errors.defaultBytes?.message}
+              onChange={(e) => field.onChange(Number(e.target.value.replace(/\D/g, "")))}
+            />
+          )}
+        />
       </SettingsRow>
     </SettingsForm>
   );

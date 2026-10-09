@@ -5,16 +5,7 @@ import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
-import {
-  FormInput,
-  SettingsForm,
-  SettingsRow,
-  SettingsRowContent,
-  SettingsRowDescription,
-  SettingsRowHeader,
-  SettingsRowTitle,
-  formSaveState,
-} from "@unkey/ui";
+import { FormInput, SettingsForm, SettingsRow, formSaveState } from "@unkey/ui";
 import type { Resolver } from "react-hook-form";
 import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
@@ -89,37 +80,30 @@ export const DefaultPrefix: React.FC<Props> = ({ keyAuth, apiId }) => {
       dirty={isDirty}
       saveState={formSaveState({ isSubmitting, isValid, isDirty })}
     >
-      <SettingsRow>
-        <SettingsRowHeader>
-          <SettingsRowTitle>Default Prefix</SettingsRowTitle>
-          <SettingsRowDescription>
-            Sets the default prefix for keys under this keyspace. A trailing underscore is added
-            automatically.
-          </SettingsRowDescription>
-        </SettingsRowHeader>
-        <SettingsRowContent>
-          <input type="hidden" name="keyAuthId" value={keyAuth.id} />
+      <SettingsRow
+        title="Default Prefix"
+        description="Sets the default prefix for keys under this keyspace. A trailing underscore is added automatically."
+      >
+        <input type="hidden" name="keyAuthId" value={keyAuth.id} />
 
-          <Controller
-            control={control}
-            name="defaultPrefix"
-            render={({ field }) => (
-              <FormInput
-                {...field}
-                aria-label="Default Prefix"
-                className="max-w-(--setting-w)"
-                autoComplete="off"
-                error={errors.defaultPrefix?.message}
-                onBlur={(e) => {
-                  if (e.target.value === "") {
-                    return;
-                  }
-                  field.onBlur();
-                }}
-              />
-            )}
-          />
-        </SettingsRowContent>
+        <Controller
+          control={control}
+          name="defaultPrefix"
+          render={({ field }) => (
+            <FormInput
+              {...field}
+              aria-label="Default Prefix"
+              autoComplete="off"
+              error={errors.defaultPrefix?.message}
+              onBlur={(e) => {
+                if (e.target.value === "") {
+                  return;
+                }
+                field.onBlur();
+              }}
+            />
+          )}
+        />
       </SettingsRow>
     </SettingsForm>
   );
