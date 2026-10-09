@@ -8,15 +8,20 @@ import {
 
 export type Env = EnvironmentKind;
 
+/** `id` is empty while the environment is unknown. */
+export type PolicyEnvs = Record<Env, { id: string; slug: string }>;
+
 /**
  * One row of the merged list. It holds up to two environment copies of one
  * policy.
  *
  * `key` identifies the row. It is the policy match key for most rows, because
  * each copy has its own server id and the match key is the only value they
- * share. If a match key occurs more than one time in one environment, the key
- * uses an id. `key` is opaque: read a policy from it with `policyInEnv`, and
- * render `name` instead.
+ * share. A row whose name is blank or repeats in its environment is keyed by
+ * its environment, position and match key instead. Ids change on every write,
+ * so an id key would not find the row for an edit queued behind another one.
+ * `key` is opaque: read a policy from it with `policyInEnv`, and render `name`
+ * instead.
  */
 export type MergedPolicy = {
   key: string;
@@ -38,7 +43,7 @@ export function mergePolicies(production: PolicyRow[], preview: PolicyRow[]): Me
   );
   const pairedMatchKeys = new Set<string>();
 
-  const result: MergedPolicy[] = production.map((p) => {
+  const result: MergedPolicy[] = production.map((p, index) => {
     const matchKey = policyMatchKey(p.type, p.name);
     const unique = pairable(p, inProduction);
     const partner = unique ? pairablePreview.get(matchKey) : undefined;
@@ -46,7 +51,7 @@ export function mergePolicies(production: PolicyRow[], preview: PolicyRow[]): Me
       pairedMatchKeys.add(matchKey);
     }
     return {
-      key: unique ? matchKey : `production:${p.id}`,
+      key: unique ? matchKey : positionKey("production", index, matchKey),
       name: p.name,
       type: p.type,
       production: p,
@@ -54,13 +59,13 @@ export function mergePolicies(production: PolicyRow[], preview: PolicyRow[]): Me
     };
   });
 
-  for (const p of preview) {
+  for (const [index, p] of preview.entries()) {
     const matchKey = policyMatchKey(p.type, p.name);
     if (pairedMatchKeys.has(matchKey)) {
       continue;
     }
     result.push({
-      key: pairable(p, inPreview) ? matchKey : `preview:${p.id}`,
+      key: pairable(p, inPreview) ? matchKey : positionKey("preview", index, matchKey),
       name: p.name,
       type: p.type,
       production: null,
@@ -70,6 +75,8 @@ export function mergePolicies(production: PolicyRow[], preview: PolicyRow[]): Me
 
   return result;
 }
+
+const positionKey = (env: Env, index: number, matchKey: string) => `${env}#${index}#${matchKey}`;
 
 function countByMatchKey(policies: PolicyRow[]): Map<string, number> {
   const counts = new Map<string, number>();

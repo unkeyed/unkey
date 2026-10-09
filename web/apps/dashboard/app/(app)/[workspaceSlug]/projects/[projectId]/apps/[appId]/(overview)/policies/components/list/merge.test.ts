@@ -74,10 +74,13 @@ describe("mergePolicies", () => {
     expect(merged.every((m) => m.production === null || m.preview === null)).toBe(true);
   });
 
-  it("falls back to an id-based key for a true in-environment duplicate", () => {
+  it("falls back to a position key for a true in-environment duplicate", () => {
     const merged = mergePolicies([firewall("pol_a1", "Dup"), firewall("pol_a2", "Dup")], []);
 
-    expect(merged.map((m) => m.key).sort()).toEqual(["production:pol_a1", "production:pol_a2"]);
+    expect(merged.map((m) => m.key)).toEqual([
+      "production#0#firewall:Dup",
+      "production#1#firewall:Dup",
+    ]);
   });
 
   it("appends preview-only policies after all production rows", () => {
@@ -140,8 +143,8 @@ describe("name folding", () => {
   });
 });
 
-// The row actions read a policy from a key. A duplicate match key gets an id
-// key, so the reader must accept both key shapes.
+// The row actions read a policy from a key. A duplicate match key gets a
+// position key, so the reader must accept both key shapes.
 describe("policyInEnv", () => {
   it("resolves a row keyed by its match key in each environment", () => {
     const merged = mergePolicies([firewall("pol_a1", "KEBAP")], [firewall("pol_b1", "KEBAP")]);
@@ -151,11 +154,22 @@ describe("policyInEnv", () => {
     expect(policyInEnv(merged, key, "preview")?.id).toBe("pol_b1");
   });
 
-  it("resolves an id-keyed duplicate-name row that a name lookup would miss", () => {
+  it("resolves a position-keyed duplicate-name row that a name lookup would miss", () => {
     const merged = mergePolicies([firewall("pol_a1", "Dup"), firewall("pol_a2", "Dup")], []);
+    const key = "production#1#firewall:Dup";
 
-    expect(policyInEnv(merged, "production:pol_a2", "production")?.id).toBe("pol_a2");
-    expect(policyInEnv(merged, "production:pol_a2", "preview")).toBeNull();
+    expect(policyInEnv(merged, key, "production")?.id).toBe("pol_a2");
+    expect(policyInEnv(merged, key, "preview")).toBeNull();
+  });
+
+  it("keeps a position key across new ids, and drops it once another policy takes the place", () => {
+    const key = mergePolicies([firewall("pol_a1", "A"), firewall("pol_a2", "")], [])[1].key;
+
+    const rewritten = mergePolicies([firewall("pol_b1", "A"), firewall("pol_b2", "")], []);
+    expect(policyInEnv(rewritten, key, "production")?.id).toBe("pol_b2");
+
+    const shifted = mergePolicies([firewall("pol_c1", ""), firewall("pol_c2", "A")], []);
+    expect(policyInEnv(shifted, key, "production")).toBeNull();
   });
 
   it("returns null for an environment the row does not exist in", () => {
@@ -171,9 +185,9 @@ describe("policyInEnv", () => {
 
 // The form rejects a spaces-only name, the API accepts one.
 describe("blank names", () => {
-  it("keys a blank name by id", () => {
+  it("keys a blank name by its place", () => {
     const merged = mergePolicies([firewall("pol_a1", "   ")], [firewall("pol_b1", "   ")]);
-    expect(merged.map((m) => m.key)).toEqual(["production:pol_a1", "preview:pol_b1"]);
+    expect(merged.map((m) => m.key)).toEqual(["production#0#firewall:", "preview#0#firewall:"]);
   });
 
   it("does not pair two unrelated unnamed policies across environments", () => {
