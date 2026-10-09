@@ -1,6 +1,7 @@
 import type { CustomDomain, Domain } from "@/lib/collections";
 import {
   type DisplayDomain,
+  byStickyRank,
   customDisplayDomain,
   platformDisplayDomain,
   withoutCustomDomainRoutes,
@@ -36,33 +37,14 @@ export function getDomainPriority(ctx: DomainPriorityContext): DomainPriorityRes
     ctx.domains,
     ctx.customDomains,
   )
-    .sort((a, b) => a.fullyQualifiedDomainName.localeCompare(b.fullyQualifiedDomainName))
+    .toSorted(
+      (a, b) =>
+        byStickyRank(a, b) || a.fullyQualifiedDomainName.localeCompare(b.fullyQualifiedDomainName),
+    )
     .map(platformDisplayDomain);
 
-  const stickyLive = platformDisplayDomains.filter(
-    (d) => d.source === "platform" && d.domain.sticky === "live",
-  );
-  const stickyBranch = platformDisplayDomains.filter(
-    (d) => d.source === "platform" && d.domain.sticky === "branch",
-  );
-  const restPlatform = platformDisplayDomains.filter(
-    (d) => d.source === "platform" && d.domain.sticky !== "live" && d.domain.sticky !== "branch",
-  );
-
-  const all: ReadonlyArray<DisplayDomain> = [
-    ...customDisplayDomains,
-    ...stickyLive,
-    ...stickyBranch,
-    ...restPlatform,
-  ];
-
-  const primary =
-    customDisplayDomains[0] ??
-    platformDisplayDomains.find((d) => d.source === "platform" && d.domain.sticky === "live") ??
-    platformDisplayDomains.find((d) => d.source === "platform" && d.domain.sticky === "branch") ??
-    platformDisplayDomains[0] ??
-    null;
-
+  const all: ReadonlyArray<DisplayDomain> = [...customDisplayDomains, ...platformDisplayDomains];
+  const primary = all[0] ?? null;
   const additional = primary ? all.filter((d) => d.id !== primary.id) : [];
 
   return { primary, additional, all };

@@ -34,14 +34,25 @@ export function withoutCustomDomainRoutes<D extends Pick<Domain, "fullyQualified
   return domains.filter((d) => !custom.has(d.fullyQualifiedDomainName));
 }
 
+const STICKY_RANK: Record<Domain["sticky"], number> = {
+  live: 0,
+  branch: 1,
+  environment: 2,
+  deployment: 2,
+  none: 2,
+};
+
+export function byStickyRank(a: Pick<Domain, "sticky">, b: Pick<Domain, "sticky">): number {
+  return STICKY_RANK[a.sticky] - STICKY_RANK[b.sticky];
+}
+
 export function listedPlatformDomains(
   domains: ReadonlyArray<Domain>,
   customDomains: ReadonlyArray<CustomDomain>,
 ): ListedPlatformDomain[] {
-  const routes = withoutCustomDomainRoutes(domains, customDomains);
-  return (["live", "environment"] as const).flatMap((sticky) =>
-    routes.filter((d): d is ListedPlatformDomain => d.sticky === sticky),
-  );
+  return withoutCustomDomainRoutes(domains, customDomains)
+    .filter((d): d is ListedPlatformDomain => d.sticky === "live" || d.sticky === "environment")
+    .toSorted(byStickyRank);
 }
 
 export function customDisplayDomain(customDomain: CustomDomain): DisplayDomainCustom {
