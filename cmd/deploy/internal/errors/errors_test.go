@@ -19,7 +19,7 @@ func TestFormatPermissionError(t *testing.T) {
 			apiErr: &apierrors.ForbiddenErrorResponse{
 				Meta: components.Meta{},
 				Error_: components.BaseError{
-					Detail: "Missing one of these permissions: ['{ project.*.generate_upload_url []}']",
+					Detail: "Missing one of these permissions: ['unkey:v1:ws_test:projects/*#write']",
 					Title:  "Insufficient Permissions",
 					Type:   "https://unkey.com/docs/errors/unkey/authorization/insufficient_permissions",
 					Status: 403,
@@ -249,7 +249,7 @@ func TestFormatError(t *testing.T) {
 			err: &apierrors.ForbiddenErrorResponse{
 				Meta: components.Meta{},
 				Error_: components.BaseError{
-					Detail: "Missing one of these permissions: ['{ project.*.create_deployment []}']",
+					Detail: "Missing one of these permissions: ['unkey:v1:ws_test:projects/*/apps/*/environments/*/deployments/*#write']",
 					Type:   "https://unkey.com/docs/errors/unkey/authorization/insufficient_permissions",
 					Status: 403,
 				},

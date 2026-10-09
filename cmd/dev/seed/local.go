@@ -72,9 +72,6 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 	projectSlug := fmt.Sprintf("%s-api", slug)
 	projectName := fmt.Sprintf("%s API", titleCase)
 	appID := uid.New(uid.AppPrefix)
-	rootWorkspaceID := "ws_unkey"
-	rootKeySpaceID := fmt.Sprintf("ks_%s_root_keys", slug)
-	rootApiID := "api_unkey"
 	userKeySpaceID := fmt.Sprintf("ks_%s", slug)
 	userApiID := fmt.Sprintf("api_%s", slug)
 
@@ -110,15 +107,6 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 				BetaFeatures: json.RawMessage(`{}`),
 				K8sNamespace: uid.DNS1035(),
 			},
-			{
-				ID:           rootWorkspaceID,
-				OrgID:        fmt.Sprintf("user_%s", slug),
-				Name:         "Unkey",
-				Slug:         fmt.Sprintf("unkey-%s", slug),
-				CreatedAtM:   now,
-				BetaFeatures: json.RawMessage(`{}`),
-				K8sNamespace: uid.DNS1035(),
-			},
 		})
 		if err != nil {
 			return fmt.Errorf("failed to create workspaces: %w", err)
@@ -133,10 +121,6 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 			return fmt.Errorf("failed to create workspace billing: %w", err)
 		}
 
-		rootDefaultProjectID, err := ensureDefaultProject(ctx, tx, rootWorkspaceID, now)
-		if err != nil {
-			return fmt.Errorf("failed to ensure root default project: %w", err)
-		}
 		userDefaultProjectID, err := ensureDefaultProject(ctx, tx, workspaceID, now)
 		if err != nil {
 			return fmt.Errorf("failed to ensure user default project: %w", err)
@@ -375,38 +359,12 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 				CustomDomainsMax:                      0,
 				AutoscalingReplicasMax:                0,
 			},
-			{
-				WorkspaceID:                           rootWorkspaceID,
-				ApiBillableOperationsCountMaxPerMonth: 150_000,
-				ApiRequestsCountMaxPerMinute:          sql.NullInt32{}, //nolint:exhaustruct
-				LogsRetentionDaysMax:                  7,
-				LogsAuditRetentionDaysMax:             30,
-				TeamEnabled:                           false,
-				CpuCoresMax:                           10,
-				CpuCoresMaxPerInstance:                2,
-				MemoryMibMax:                          20_480,
-				MemoryMibMaxPerInstance:               4_096,
-				StorageMibMax:                         51_200,
-				StorageMibMaxPerInstance:              10_240,
-				BuildsConcurrentMax:                   1,
-				CustomDomainsMax:                      0,
-				AutoscalingReplicasMax:                0,
-			},
 		})
 		if err != nil {
 			return fmt.Errorf("failed to create limits: %w", err)
 		}
 
 		err = db.BulkQuery.UpsertKeySpace(ctx, tx, []db.UpsertKeySpaceParams{
-			{
-				ID:                 rootKeySpaceID,
-				WorkspaceID:        rootWorkspaceID,
-				ProjectID:          rootDefaultProjectID,
-				CreatedAtM:         now,
-				DefaultPrefix:      sql.NullString{String: "unkey", Valid: true},
-				DefaultBytes:       sql.NullInt32{Int32: 16, Valid: true},
-				StoreEncryptedKeys: false,
-			},
 			{
 				ID:                 userKeySpaceID,
 				WorkspaceID:        workspaceID,
@@ -423,16 +381,6 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 
 		err = db.BulkQuery.InsertApis(ctx, tx, []db.InsertApiParams{
 			{
-				ID:          rootApiID,
-				Name:        "Unkey",
-				WorkspaceID: rootWorkspaceID,
-				ProjectID:   rootDefaultProjectID,
-				AuthType:    db.NullApisAuthType{Valid: true, ApisAuthType: db.ApisAuthTypeKey},
-				IpWhitelist: sql.NullString{},
-				KeyAuthID:   sql.NullString{String: rootKeySpaceID, Valid: true},
-				CreatedAtM:  now,
-			},
-			{
 				ID:          userApiID,
 				Name:        fmt.Sprintf("%s API", titleCase),
 				WorkspaceID: workspaceID,
@@ -447,111 +395,32 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 			return fmt.Errorf("failed to create APIs: %w", err)
 		}
 
-		err = db.Query.InsertKey(ctx, tx, db.InsertKeyParams{
-			ID:                 rootKeyID,
-			KeySpaceID:         rootKeySpaceID,
-			Hash:               keyResult.Hash,
-			Prefix:             "unkey",
-			Start:              keyResult.Start,
-			End:                keyResult.Key[len(keyResult.Key)-4:],
-			WorkspaceID:        rootWorkspaceID,
-			ForWorkspaceID:     sql.NullString{String: workspaceID, Valid: true},
-			Name:               sql.NullString{String: fmt.Sprintf("%s Dev Root Key", titleCase), Valid: true},
-			IdentityID:         sql.NullString{},
-			Meta:               sql.NullString{},
-			Expires:            sql.NullTime{},
-			CreatedAtM:         now,
-			Enabled:            true,
-			RemainingRequests:  sql.NullInt64{},
-			RefillDay:          sql.NullInt16{},
-			RefillAmount:       sql.NullInt64{},
-			PendingMigrationID: sql.NullString{},
+		err = db.Query.InsertUnkeyRootKey(ctx, tx, db.InsertUnkeyRootKeyParams{
+			ID:          rootKeyID,
+			WorkspaceID: workspaceID,
+			Hash:        keyResult.Hash,
+			Name:        sql.NullString{String: fmt.Sprintf("%s Dev Root Key", titleCase), Valid: true},
+			Prefix:      "unkey",
+			Start:       keyResult.Start,
+			End:         keyResult.Key[len(keyResult.Key)-4:],
+			Enabled:     true,
+			Expires:     sql.NullInt64{},
+			CreatedAt:   now,
 		})
 		if err != nil && !db.IsDuplicateKeyError(err) {
 			return fmt.Errorf("failed to create root key: %w", err)
 		}
 
-		allPermissions := []string{
-			"api.*.create_api",
-			"api.*.read_api",
-			"api.*.delete_api",
-			"api.*.create_key",
-			"api.*.read_key",
-			"api.*.update_key",
-			"api.*.delete_key",
-			"api.*.verify_key",
-			"api.*.decrypt_key",
-			"api.*.encrypt_key",
-			"api.*.read_analytics",
-			"identity.*.create_identity",
-			"identity.*.read_identity",
-			"identity.*.update_identity",
-			"identity.*.delete_identity",
-			"rbac.*.create_permission",
-			"rbac.*.read_permission",
-			"rbac.*.delete_permission",
-			"rbac.*.create_role",
-			"rbac.*.read_role",
-			"rbac.*.delete_role",
-			"rbac.*.add_permission_to_key",
-			"rbac.*.remove_permission_from_key",
-			"rbac.*.add_role_to_key",
-			"rbac.*.remove_role_from_key",
-			"ratelimit.*.create_namespace",
-			"ratelimit.*.limit",
-			"ratelimit.*.read_override",
-			"ratelimit.*.set_override",
-			"workspace.*.read_workspace",
-			"environment.*.create_deployment",
-			"environment.*.read_deployment",
-			"project.*.generate_upload_url",
-			"project.*.create_deployment",
-			"project.*.read_deployment",
-			// Portal management plus session minting. The seeded root key needs
-			// these so a locally seeded portal keeps working now that
-			// portal.createSession is gated.
-			"portal.*.create_portal",
-			"portal.*.read_portal",
-			"portal.*.update_portal",
-			"portal.*.delete_portal",
-			"portal.*.create_portal_session",
-		}
-
-		permissionParams := make([]db.InsertPermissionParams, len(allPermissions))
-		permissionIDs := make([]string, len(allPermissions))
-		for i, perm := range allPermissions {
-			permID := uid.New(uid.PermissionPrefix)
-			permissionIDs[i] = permID
-			permissionParams[i] = db.InsertPermissionParams{
-				PermissionID: permID,
-				WorkspaceID:  rootWorkspaceID,
-				ProjectID:    rootDefaultProjectID,
-				Name:         perm,
-				Slug:         perm,
-				Description:  dbtype.NullString{Valid: false, String: ""},
-				CreatedAtM:   now,
-			}
-		}
-
-		err = db.BulkQuery.InsertPermissions(ctx, tx, permissionParams)
+		err = db.Query.InsertUnkeyPermission(ctx, tx, db.InsertUnkeyPermissionParams{
+			ID:            uid.New(uid.PermissionPrefix),
+			WorkspaceID:   workspaceID,
+			PrincipalType: db.UnkeyPrincipalPermissionsPrincipalTypeRootKey,
+			PrincipalID:   rootKeyID,
+			Slug:          fmt.Sprintf("unkey:v1:%s:**#*", workspaceID),
+			CreatedAt:     now,
+		})
 		if err != nil && !db.IsDuplicateKeyError(err) {
-			return fmt.Errorf("failed to insert permissions: %w", err)
-		}
-
-		keyPermissionParams := make([]db.InsertKeyPermissionParams, len(allPermissions))
-		for i := range allPermissions {
-			keyPermissionParams[i] = db.InsertKeyPermissionParams{
-				KeyID:        rootKeyID,
-				PermissionID: permissionIDs[i],
-				WorkspaceID:  rootWorkspaceID,
-				CreatedAt:    now,
-				UpdatedAt:    sql.NullInt64{},
-			}
-		}
-
-		err = db.BulkQuery.InsertKeyPermissions(ctx, tx, keyPermissionParams)
-		if err != nil && !db.IsDuplicateKeyError(err) {
-			return fmt.Errorf("failed to insert key permissions: %w", err)
+			return fmt.Errorf("failed to insert root key permission: %w", err)
 		}
 
 		// Optionally seed a portal, branding included.
