@@ -3,6 +3,17 @@ import { computeSignupCreditClaims as claims } from "@unkey/db/src/schema";
 
 export type ComputeSignupCreditClaim = typeof claims.$inferSelect;
 
+const claimColumns = {
+  pk: claims.pk,
+  cardFingerprint: claims.cardFingerprint,
+  workspaceId: claims.workspaceId,
+  stripeCustomerId: claims.stripeCustomerId,
+  stripeBalanceTransactionId: claims.stripeBalanceTransactionId,
+  workosUserId: claims.workosUserId,
+  attemptId: claims.attemptId,
+  createdAt: claims.createdAt,
+};
+
 export type ClaimKey = {
   attemptId: string;
   workspaceId: string;
@@ -33,7 +44,7 @@ export async function findClaimByWorkspace(
   workspaceId: string,
 ): Promise<ComputeSignupCreditClaim | null> {
   const rows = await primaryDb
-    .select()
+    .select(claimColumns)
     .from(claims)
     .where(eq(claims.workspaceId, workspaceId))
     .limit(1);
@@ -42,7 +53,7 @@ export async function findClaimByWorkspace(
 
 export async function findClaimConflicts(identity: ClaimIdentity): Promise<ClaimConflicts> {
   const rows = await primaryDb
-    .select()
+    .select(claimColumns)
     .from(claims)
     .where(
       or(
