@@ -41,6 +41,11 @@ actions:
   - target: $["components"]["schemas"]["V2PermissionsUpdatePermissionRequestBody"]["properties"]["description"]
     update:
       nullable: true
+  - target: $["components"]["schemas"]["V2PermissionsUpdateRoleRequestBody"]["properties"]["description"]["type"]
+    update: string
+  - target: $["components"]["schemas"]["V2PermissionsUpdateRoleRequestBody"]["properties"]["description"]
+    update:
+      nullable: true
   - target: $["components"]["schemas"]["V2KeysUpdateKeyRequestBody"]["properties"]["name"]["type"]
     update: string
   - target: $["components"]["schemas"]["V2KeysUpdateKeyRequestBody"]["properties"]["name"]

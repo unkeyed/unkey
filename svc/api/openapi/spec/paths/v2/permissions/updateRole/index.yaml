@@ -1,0 +1,166 @@
+post:
+  tags:
+    - permissions
+  summary: Update role
+  description: |
+    Update the name or description of a role, identified by its ID or name.
+
+    Omitted fields keep their current values. A request with no fields to update returns the stored role without a write.
+
+    This endpoint does not change the role's permissions or keys. Use `permissions.setRolePermissions`, `keys.addRoles`, and `keys.removeRoles` for those.
+
+    **Important**: Keys keep the role after a rename. Requests that name the role, such as `keys.addRoles`, must use the new name. Key verification can return the old name for a short time while caches refresh. A name that another role in your workspace already uses returns 409.
+
+    **Required Permissions**
+
+    Your root key must have the following permission:
+    - `unkey:v1:<workspace_id>:projects/<project_id>/rbac/roles/<role_id>#write`
+  operationId: permissions.updateRole
+  x-speakeasy-name-override: UpdateRole
+  x-unkey-idempotency: idempotent
+  security:
+    - bearer: []
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2PermissionsUpdateRoleRequestBody.yaml"
+        examples:
+          rename:
+            summary: Rename a role by ID
+            description: Change only the name, locating the role by its ID
+            value:
+              role: role_1234567890abcdef
+              name: support.readonly
+          describeByName:
+            summary: Change a description by name
+            description: Locate the role by its current name and set a new description
+            value:
+              role: support.readonly
+              description: Read-only access for customer support
+          clearDescription:
+            summary: Remove a description
+            description: Clear the description and keep the name
+            value:
+              role: role_1234567890abcdef
+              description: null
+  responses:
+    "200":
+      description: Role updated successfully
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2PermissionsUpdateRoleResponseBody.yaml"
+          examples:
+            updated:
+              summary: Updated role
+              value:
+                meta:
+                  requestId: req_1234abcd
+                data:
+                  id: role_1234567890abcdef
+                  name: support.readonly
+                  description: Read-only access for customer support
+    "400":
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/BadRequestErrorResponse.yaml"
+          examples:
+            emptyName:
+              summary: Name is empty
+              value:
+                meta:
+                  requestId: req_1234abcd
+                error:
+                  title: Bad Request
+                  detail: POST request body for '/v2/permissions.updateRole' failed to validate schema
+                  status: 400
+                  type: https://unkey.com/docs/errors/unkey/application/invalid_input
+                  errors:
+                    - location: /properties/name/minLength
+                      message: "minLength: got 0, want 1"
+    "401":
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
+          examples:
+            missingKey:
+              summary: Missing root key
+              value:
+                meta:
+                  requestId: req_1234abcd
+                error:
+                  title: Unauthorized
+                  detail: You must provide a valid root key in the Authorization header in this format 'Bearer unkey_xxx'
+                  status: 401
+                  type: https://unkey.com/docs/errors/unkey/authentication/missing
+    "403":
+      description: Forbidden - The root key or the workspace is disabled. A key that lacks the required permission gets 404 instead.
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/ForbiddenErrorResponse.yaml"
+          examples:
+            keyDisabled:
+              summary: Root key disabled
+              value:
+                meta:
+                  requestId: req_1234abcd
+                error:
+                  title: Forbidden
+                  detail: The key is disabled.
+                  status: 403
+                  type: https://unkey.com/docs/errors/unkey/authorization/key_disabled
+    "404":
+      description: |
+        Not Found - The role does not exist in your workspace, or your root key lacks write access to it.
+        Both cases return the same response, so a root key cannot learn which roles exist.
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/NotFoundErrorResponse.yaml"
+          examples:
+            roleNotFound:
+              summary: Role not found
+              value:
+                meta:
+                  requestId: req_1234abcd
+                error:
+                  title: Not Found
+                  detail: The requested role does not exist.
+                  status: 404
+                  type: https://unkey.com/docs/errors/unkey/data/role_not_found
+    "409":
+      description: Conflict - Another role in the workspace already uses this name
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/ConflictErrorResponse.yaml"
+          examples:
+            nameTaken:
+              summary: Name already in use
+              value:
+                meta:
+                  requestId: req_1234abcd
+                error:
+                  title: Conflict
+                  detail: A role with name 'support.readonly' already exists in this workspace.
+                  status: 409
+                  type: https://unkey.com/docs/errors/unkey/data/role_already_exists
+    "429":
+      description: Too Many Requests
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/TooManyRequestsErrorResponse.yaml"
+    "500":
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/InternalServerErrorResponse.yaml"

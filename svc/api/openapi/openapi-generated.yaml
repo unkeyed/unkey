@@ -3195,6 +3195,47 @@ components:
                 data:
                     "$ref": "#/components/schemas/Permission"
             additionalProperties: false
+        V2PermissionsUpdateRoleRequestBody:
+            type: object
+            required:
+                - role
+            properties:
+                role:
+                    type: string
+                    minLength: 1
+                    maxLength: 128
+                    description: |
+                        The role to update. Pass the role ID (`role_...`) or its current name.
+                    example: role_1234567890abcdef
+                name:
+                    type: string
+                    minLength: 1
+                    maxLength: 128
+                    description: |
+                        New name for the role. The name must be unique in your workspace.
+                        Omit this field to keep the current name.
+                    example: support.readonly
+                description:
+                    type:
+                        - string
+                        - "null"
+                    maxLength: 512
+                    description: |
+                        New description for the role.
+                        Omit this field to keep the current description. Send null or an empty string to remove it.
+                    example: Read-only access for customer support
+            additionalProperties: false
+        V2PermissionsUpdateRoleResponseBody:
+            type: object
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    "$ref": "#/components/schemas/Meta"
+                data:
+                    "$ref": "#/components/schemas/V2PermissionsUpdateRoleResponseData"
+            additionalProperties: false
         V2PortalCreatePortalRequestBody:
             type: object
             required:
@@ -7507,6 +7548,27 @@ components:
             description: Complete list of permissions now directly assigned to the role.
             items:
                 "$ref": "#/components/schemas/Permission"
+        V2PermissionsUpdateRoleResponseData:
+            type: object
+            required:
+                - id
+                - name
+            properties:
+                id:
+                    type: string
+                    description: The ID of the updated role.
+                    example: role_1234567890abcdef
+                name:
+                    type: string
+                    description: The name of the role after the update.
+                    example: support.readonly
+                description:
+                    type: string
+                    description: The description of the role after the update. Omitted when the role has no description.
+                    example: Read-only access for customer support
+                    x-go-type-skip-optional-pointer: true
+                    x-go-type-skip-optional-pointer-with-omitzero: true
+            additionalProperties: false
         PortalKeyspaceId:
             type: string
             minLength: 1
@@ -15844,6 +15906,173 @@ paths:
             tags:
                 - permissions
             x-speakeasy-name-override: UpdatePermission
+            x-unkey-idempotency: idempotent
+    /v2/permissions.updateRole:
+        post:
+            description: |
+                Update the name or description of a role, identified by its ID or name.
+
+                Omitted fields keep their current values. A request with no fields to update returns the stored role without a write.
+
+                This endpoint does not change the role's permissions or keys. Use `permissions.setRolePermissions`, `keys.addRoles`, and `keys.removeRoles` for those.
+
+                **Important**: Keys keep the role after a rename. Requests that name the role, such as `keys.addRoles`, must use the new name. Key verification can return the old name for a short time while caches refresh. A name that another role in your workspace already uses returns 409.
+
+                **Required Permissions**
+
+                Your root key must have the following permission:
+                - `unkey:v1:<workspace_id>:projects/<project_id>/rbac/roles/<role_id>#write`
+            operationId: permissions.updateRole
+            requestBody:
+                content:
+                    application/json:
+                        examples:
+                            clearDescription:
+                                description: Clear the description and keep the name
+                                summary: Remove a description
+                                value:
+                                    description: null
+                                    role: role_1234567890abcdef
+                            describeByName:
+                                description: Locate the role by its current name and set a new description
+                                summary: Change a description by name
+                                value:
+                                    description: Read-only access for customer support
+                                    role: support.readonly
+                            rename:
+                                description: Change only the name, locating the role by its ID
+                                summary: Rename a role by ID
+                                value:
+                                    name: support.readonly
+                                    role: role_1234567890abcdef
+                        schema:
+                            $ref: '#/components/schemas/V2PermissionsUpdateRoleRequestBody'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            examples:
+                                updated:
+                                    summary: Updated role
+                                    value:
+                                        data:
+                                            description: Read-only access for customer support
+                                            id: role_1234567890abcdef
+                                            name: support.readonly
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/V2PermissionsUpdateRoleResponseBody'
+                    description: Role updated successfully
+                "400":
+                    content:
+                        application/json:
+                            examples:
+                                emptyName:
+                                    summary: Name is empty
+                                    value:
+                                        error:
+                                            detail: POST request body for '/v2/permissions.updateRole' failed to validate schema
+                                            errors:
+                                                - location: /properties/name/minLength
+                                                  message: 'minLength: got 0, want 1'
+                                            status: 400
+                                            title: Bad Request
+                                            type: https://unkey.com/docs/errors/unkey/application/invalid_input
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Bad request
+                "401":
+                    content:
+                        application/json:
+                            examples:
+                                missingKey:
+                                    summary: Missing root key
+                                    value:
+                                        error:
+                                            detail: You must provide a valid root key in the Authorization header in this format 'Bearer unkey_xxx'
+                                            status: 401
+                                            title: Unauthorized
+                                            type: https://unkey.com/docs/errors/unkey/authentication/missing
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Unauthorized
+                "403":
+                    content:
+                        application/json:
+                            examples:
+                                keyDisabled:
+                                    summary: Root key disabled
+                                    value:
+                                        error:
+                                            detail: The key is disabled.
+                                            status: 403
+                                            title: Forbidden
+                                            type: https://unkey.com/docs/errors/unkey/authorization/key_disabled
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: Forbidden - The root key or the workspace is disabled. A key that lacks the required permission gets 404 instead.
+                "404":
+                    content:
+                        application/json:
+                            examples:
+                                roleNotFound:
+                                    summary: Role not found
+                                    value:
+                                        error:
+                                            detail: The requested role does not exist.
+                                            status: 404
+                                            title: Not Found
+                                            type: https://unkey.com/docs/errors/unkey/data/role_not_found
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/NotFoundErrorResponse'
+                    description: |
+                        Not Found - The role does not exist in your workspace, or your root key lacks write access to it.
+                        Both cases return the same response, so a root key cannot learn which roles exist.
+                "409":
+                    content:
+                        application/json:
+                            examples:
+                                nameTaken:
+                                    summary: Name already in use
+                                    value:
+                                        error:
+                                            detail: A role with name 'support.readonly' already exists in this workspace.
+                                            status: 409
+                                            title: Conflict
+                                            type: https://unkey.com/docs/errors/unkey/data/role_already_exists
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/ConflictErrorResponse'
+                    description: Conflict - Another role in the workspace already uses this name
+                "429":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/TooManyRequestsErrorResponse'
+                    description: Too Many Requests
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error
+            security:
+                - bearer: []
+            summary: Update role
+            tags:
+                - permissions
+            x-speakeasy-name-override: UpdateRole
             x-unkey-idempotency: idempotent
     /v2/portal.createPortal:
         post:

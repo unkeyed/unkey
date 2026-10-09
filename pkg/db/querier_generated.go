@@ -3107,14 +3107,24 @@ type Querier interface {
 	//    AND workspace_id = ?
 	//  FOR UPDATE
 	LockPortalForMint(ctx context.Context, db DBTX, arg LockPortalForMintParams) (LockPortalForMintRow, error)
-	//LockRoleByIDOrNameAndWorkspaceID
+	//LockRoleByIdOrName
 	//
-	//  SELECT id, project_id, name
-	//  FROM roles
-	//  WHERE workspace_id = ?
-	//    AND (id = ? OR name = ?)
-	//  FOR UPDATE
-	LockRoleByIDOrNameAndWorkspaceID(ctx context.Context, db DBTX, arg LockRoleByIDOrNameAndWorkspaceIDParams) (LockRoleByIDOrNameAndWorkspaceIDRow, error)
+	//  (
+	//      SELECT r1.id, r1.project_id, r1.name, r1.description, 0 AS lookup_priority
+	//      FROM roles r1
+	//      WHERE r1.workspace_id = ? AND r1.id = ?
+	//      FOR UPDATE
+	//  )
+	//  UNION ALL
+	//  (
+	//      SELECT r2.id, r2.project_id, r2.name, r2.description, 1 AS lookup_priority
+	//      FROM roles r2
+	//      WHERE r2.workspace_id = ? AND r2.name = ?
+	//      FOR UPDATE
+	//  )
+	//  ORDER BY lookup_priority
+	//  LIMIT 1
+	LockRoleByIdOrName(ctx context.Context, db DBTX, arg LockRoleByIdOrNameParams) (LockRoleByIdOrNameRow, error)
 	// Returns the highest pk among one end user's sessions on a portal, or 0 when
 	// there are none. Read on the primary before revoking in batches, it bounds the
 	// revoke to sessions that already exist: pk is assigned at insert, so a session
@@ -3674,6 +3684,16 @@ type Querier interface {
 	//  WHERE
 	//      id = ?
 	UpdateRatelimit(ctx context.Context, db DBTX, arg UpdateRatelimitParams) error
+	//UpdateRole
+	//
+	//  UPDATE roles
+	//  SET
+	//      name = ?,
+	//      description = ?,
+	//      updated_at_m = ?
+	//  WHERE workspace_id = ?
+	//    AND id = ?
+	UpdateRole(ctx context.Context, db DBTX, arg UpdateRoleParams) error
 	// UpdateUnkeyRootKey changes mutable fields on a live new-format root key.
 	//
 	//  UPDATE unkey_root_keys SET
