@@ -1,5 +1,7 @@
+import { toast } from "@unkey/ui";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { type PolicyRow, replacePolicyLists, rowKey } from "./policies";
+import { queryClient } from "../client";
+import { type PolicyRow, replacePolicyLists, rowKey, writePolicies } from "./policies";
 import { type Policy, fromWirePolicy, policyMatchKey } from "./policies.schema";
 
 const LABELS = { loading: "Saving...", success: "Saved", error: "Failed" };
@@ -126,6 +128,49 @@ describe("replacePolicyLists", () => {
   });
 });
 
+describe("writePolicies", () => {
+  const scope = {
+    projectId: "proj_KEBAP",
+    appId: "app_KEBAP",
+    environments: { production: "env_prod", preview: "env_prev" },
+  };
+  const clearProduction = () => ({ type: "write" as const, lists: { production: [] } });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+    queryClient.clear();
+  });
+
+  it("refuses to write before both environments are loaded", async () => {
+    const requests = captureRequests();
+    const error = vi.spyOn(toast, "error");
+    queryClient.setQueryData(["policies", "env_prod"], [firewallRow("pol_1", "A", "env_prod", 0)]);
+
+    expect(await writePolicies(scope, clearProduction, LABELS)).toBe(false);
+    expect(requests).toHaveLength(0);
+    expect(error).toHaveBeenCalledWith(
+      "Couldn't find the environment. Reload the page and try again.",
+    );
+  });
+
+  it("rejects the next edit when the refetch after a write failed", async () => {
+    const requests = captureRequests();
+    const error = vi.spyOn(toast, "error");
+    queryClient.setQueryDefaults(["policies"], { retry: false });
+    queryClient.setQueryData(["policies", "env_prod"], [firewallRow("pol_1", "A", "env_prod", 0)]);
+    queryClient.setQueryData(["policies", "env_prev"], []);
+
+    const first = writePolicies(scope, clearProduction, LABELS);
+    const second = writePolicies(scope, clearProduction, LABELS);
+
+    expect(await first).toBe(true);
+    expect(await second).toBe(false);
+    expect(requests).toHaveLength(1);
+    expect(error).toHaveBeenCalledWith("Policies are out of date. Reload and try again.");
+  });
+});
+
 describe("policyMatchKey", () => {
   it("separates two types that share a name", () => {
     expect(policyMatchKey("firewall", "Guard")).not.toBe(policyMatchKey("ratelimit", "Guard"));
@@ -161,5 +206,19 @@ describe("fromWirePolicy remoteIp match", () => {
     ).toThrow();
     expect(() => fromWirePolicy(wire({}))).toThrow();
     expect(() => fromWirePolicy(wire({ in: [] }))).toThrow();
+  });
+});
+
+describe("fromWirePolicy variant", () => {
+  it("names the policy type after the variant field it carries", () => {
+    expect(fromWirePolicy({ id: "p", name: "Spec", enabled: true, openapi: {} }).type).toBe(
+      "openapi",
+    );
+  });
+
+  it("rejects a policy with no known variant field", () => {
+    expect(() => fromWirePolicy({ id: "p", name: "x", enabled: true, waf: {} })).toThrow(
+      "unknown gateway policy variant",
+    );
   });
 });
