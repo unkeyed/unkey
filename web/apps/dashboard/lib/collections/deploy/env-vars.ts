@@ -1,12 +1,22 @@
 "use client";
-import { parseLoadSubsetOptions, queryCollectionOptions } from "@tanstack/query-db-collection";
+import {
+  type QueryCollectionUtils,
+  parseLoadSubsetOptions,
+  queryCollectionOptions,
+} from "@tanstack/query-db-collection";
 import { createCollection } from "@tanstack/react-db";
 
+import { plural } from "@/lib/fmt";
+import type {
+  AddEnvVarsInput,
+  AddEnvVarsResult,
+} from "@/lib/trpc/routers/deploy/env-vars/add-plan";
 import { getErrorToast, getUnkeyClient } from "@/lib/unkey-client";
 import type { EnvironmentVariable } from "@unkey/api/models/components";
 import { toast } from "@unkey/ui";
 import { z } from "zod";
-import { queryClient } from "../client";
+import { queryClient, trpcClient } from "../client";
+import { listAppEnvironments } from "./app-environments";
 import { trackSave } from "./pending-redeploy";
 import { extractStringFilter } from "./utils";
 
@@ -34,7 +44,7 @@ export type EnvVar = z.infer<typeof schema>;
  * IMPORTANT: All queries MUST filter by projectId and appId:
  * .where(({ v }) => and(eq(v.projectId, projectId), eq(v.appId, appId)))
  */
-export const envVars = createCollection<EnvVar, string>(
+export const envVars = createCollection<EnvVar, string, QueryCollectionUtils<EnvVar, string>>(
   queryCollectionOptions({
     queryClient,
     queryKey: (opts) => {
@@ -57,10 +67,7 @@ export const envVars = createCollection<EnvVar, string>(
 
       // The API lists the variables of one environment, so get the app's
       // environments first.
-      const { data: appEnvironments } = await getUnkeyClient().environments.listEnvironments({
-        project: projectId,
-        app: appId,
-      });
+      const appEnvironments = await listAppEnvironments(projectId, appId);
 
       const perEnvironment = await Promise.all(
         appEnvironments.map(async (environment) => {
@@ -76,7 +83,7 @@ export const envVars = createCollection<EnvVar, string>(
     onUpdate: async ({ transaction }) => {
       const { original, modified } = transaction.mutations[0];
 
-      const mutation = renameAwareSet(original, modified).catch(async (err) => {
+      const mutation = updateVariable(original, modified).catch(async (err) => {
         await envVars.utils.refetch().catch(() => {});
         throw err;
       });
@@ -85,12 +92,9 @@ export const envVars = createCollection<EnvVar, string>(
         loading: "Updating environment variable...",
         success: "Environment variable updated",
         error: (err) =>
-          getErrorToast(
-            err,
-            "Failed to update environment variable",
-            // The fallback carries the message of the rename check below.
-            err instanceof Error ? err.message : undefined,
-          ),
+          err instanceof RenameAppliedError
+            ? envVarErrorToast(err.cause, `Renamed to ${err.newKey}, but the value change failed`)
+            : envVarErrorToast(err, "Failed to update environment variable"),
       });
 
       await trackSave(mutation);
@@ -98,6 +102,7 @@ export const envVars = createCollection<EnvVar, string>(
     onDelete: async ({ transaction }) => {
       const originals = transaction.mutations.map((m) => m.original);
       const count = originals.length;
+      const noun = count === 1 ? "Environment variable" : plural(count, "environment variable");
 
       const mutation = removeVariables(originals).catch(async (err) => {
         await envVars.utils.refetch().catch(() => {});
@@ -105,10 +110,10 @@ export const envVars = createCollection<EnvVar, string>(
       });
 
       toast.promise(mutation, {
-        loading: `Deleting ${count === 1 ? "environment variable" : `${count} environment variables`}...`,
-        success: `${count === 1 ? "Environment variable" : `${count} environment variables`} deleted`,
+        loading: `Deleting ${noun.toLowerCase()}...`,
+        success: `${noun} deleted`,
         error: (err) =>
-          getErrorToast(err, `Failed to delete environment variable${count === 1 ? "" : "s"}`),
+          envVarErrorToast(err, `Failed to delete ${plural(count, "environment variable")}`),
       });
 
       await trackSave(mutation);
@@ -162,52 +167,40 @@ async function listAllVariables(
   return all;
 }
 
-/** Lists the keys already set in the given environments. */
-export async function listExistingKeys(
-  projectId: string,
-  appId: string,
-  environmentIds: string[],
-): Promise<{ key: string; environmentId: string }[]> {
-  const perEnvironment = await Promise.all(
-    environmentIds.map(async (environmentId) => {
-      const variables = await listAllVariables(projectId, appId, environmentId);
-      return variables.map((v) => ({ key: v.key, environmentId }));
-    }),
-  );
+export type VariableInput = AddEnvVarsInput["variables"][number];
 
-  return perEnvironment.flat();
+export async function addVariables(input: AddEnvVarsInput): Promise<AddEnvVarsResult> {
+  const result = await trpcClient.deploy.envVar.add.mutate(input);
+  if (result.status === "added") {
+    await trackSave(envVars.utils.refetch().catch(() => undefined));
+  }
+  return result;
 }
 
-export type VariableInput = {
-  key: string;
-  value: string;
-  kind: EnvVar["type"];
-  description?: string;
-};
+export function envVarErrorToast(
+  err: unknown,
+  message: string,
+): { message: string; description: string } {
+  return getErrorToast(err, message, err instanceof Error ? err.message : undefined);
+}
 
-// The API rejects a request with more variables than this. Larger writes are
-// sent in parts, and each part commits on its own.
-const MAX_VARIABLES_PER_REQUEST = 50;
-
-/**
- * Upserts variables in one environment. The API writes each entry exactly as
- * sent and merges nothing, so send the kind and the description every time.
- */
-export async function setVariables(
-  projectId: string,
-  appId: string,
-  environmentId: string,
-  variables: VariableInput[],
-): Promise<void> {
-  for (let i = 0; i < variables.length; i += MAX_VARIABLES_PER_REQUEST) {
-    await getUnkeyClient().environments.setEnvironmentVariables({
-      project: projectId,
-      app: appId,
-      environment: environmentId,
-      variables: variables.slice(i, i + MAX_VARIABLES_PER_REQUEST),
+export async function makeVariablesSensitive(variables: EnvVar[]): Promise<number> {
+  const [first] = variables;
+  if (!first) {
+    return 0;
+  }
+  try {
+    const { updated } = await trpcClient.deploy.envVar.makeSensitive.mutate({
+      appId: first.appId,
+      targets: variables.map((v) => ({ environmentId: v.environmentId, key: v.key })),
     });
+    return updated;
+  } finally {
+    await envVars.utils.refetch().catch(() => {});
   }
 }
+
+const MAX_VARIABLES_PER_REQUEST = 50;
 
 /** Removes variables by key. Sends one request for each environment. */
 async function removeVariables(variables: EnvVar[]): Promise<void> {
@@ -236,48 +229,63 @@ async function removeVariables(variables: EnvVar[]): Promise<void> {
   );
 }
 
-/**
- * Writes the modified variable, then removes the old key after a rename. The
- * two steps are not atomic. If the second fails, both keys stay.
- *
- * A write replaces the whole variable and the API refuses neither a key that is
- * in use nor a value older than the stored one, so both cases need the current
- * rows of the target environment. Reading them costs a request, so this reads
- * only when the edit can actually hit one of the two.
- */
-async function renameAwareSet(original: EnvVar, modified: EnvVar): Promise<unknown> {
-  const moved = modified.key !== original.key || modified.environmentId !== original.environmentId;
-  // An untouched field still gets written back, which would undo a change made
-  // elsewhere since this page loaded.
-  const keepsLoadedValue = original.type === "recoverable" && modified.value === original.value;
+export class RenameAppliedError extends Error {
+  constructor(
+    readonly newKey: string,
+    override readonly cause: unknown,
+  ) {
+    super(cause instanceof Error ? cause.message : "The value change failed");
+  }
+}
+
+export async function updateVariable(original: EnvVar, modified: EnvVar): Promise<void> {
+  if (modified.key === original.key) {
+    return writeVariable(original, modified);
+  }
+  await trpcClient.deploy.envVar.rename.mutate({
+    appId: modified.appId,
+    environmentIds: [modified.environmentId],
+    key: original.key,
+    newKey: modified.key,
+  });
+  try {
+    await writeVariable(original, modified);
+  } catch (err) {
+    throw new RenameAppliedError(modified.key, err);
+  }
+}
+
+async function writeVariable(original: EnvVar, modified: EnvVar): Promise<void> {
+  const valueChanged = modified.value !== original.value;
+  if (
+    !valueChanged &&
+    modified.type === original.type &&
+    modified.description === original.description
+  ) {
+    return;
+  }
 
   let value = modified.value;
-  if (moved || keepsLoadedValue) {
-    const target = await listAllVariables(
+  if (!valueChanged) {
+    const stored = await listAllVariables(
       modified.projectId,
       modified.appId,
       modified.environmentId,
     );
-    if (moved && target.some((v) => v.key === modified.key)) {
-      throw new Error(`A variable named "${modified.key}" already exists in this environment.`);
-    }
-    if (keepsLoadedValue) {
-      value = target.find((v) => v.key === original.key)?.value ?? value;
-    }
+    value = stored.find((v) => v.key === modified.key)?.value ?? value;
   }
 
-  await setVariables(modified.projectId, modified.appId, modified.environmentId, [
-    {
-      key: modified.key,
-      value,
-      kind: modified.type,
-      description: modified.description ?? undefined,
-    },
-  ]);
-
-  if (moved) {
-    await removeVariables([original]);
-  }
-
-  return undefined;
+  await getUnkeyClient().environments.setEnvironmentVariables({
+    project: modified.projectId,
+    app: modified.appId,
+    environment: modified.environmentId,
+    variables: [
+      {
+        key: modified.key,
+        value,
+        kind: modified.type,
+        description: modified.description ?? undefined,
+      },
+    ],
+  });
 }
