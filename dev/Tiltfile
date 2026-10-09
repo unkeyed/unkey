@@ -1,3 +1,9 @@
+for key, value in decode_json(local(['mise', 'env', '--json'], dir='..', quiet=True, echo_off=True)).items():
+    os.putenv(key, value)
+
+watch_file('../.mise/config.toml')
+watch_file('../.mise/mise.lock')
+
 load('ext://namespace', 'namespace_create')
 load('ext://secret', 'secret_create_generic')
 load('ext://helm_remote', 'helm_remote')
@@ -320,7 +326,7 @@ local_resource(
 # Frontline TLS certificates - generates certs with mkcert if they don't exist
 local_resource(
     'frontline-certs',
-    'if [ ! -f ./certs/unkey.local.crt ]; then echo "Generating TLS certificates..." && command -v mkcert >/dev/null || { echo "ERROR: mkcert not found. Install with: brew install mkcert"; exit 1; } && mkcert -install && mkdir -p ./certs && mkcert -cert-file ./certs/unkey.local.crt -key-file ./certs/unkey.local.key "*.unkey.local" "unkey.local" "localhost" && echo "*.crt" > ./certs/.gitignore && echo "*.key" >> ./certs/.gitignore; fi && kubectl -n frontline create configmap frontline-certs --from-file=./certs/unkey.local.crt --from-file=./certs/unkey.local.key -o yaml --dry-run=client | kubectl apply -f -',
+    'if [ ! -f ./certs/unkey.local.crt ]; then echo "Generating TLS certificates..." && command -v mkcert >/dev/null || { echo "ERROR: mkcert not found. Install with: mise install"; exit 1; } && mkcert -install && mkdir -p ./certs && mkcert -cert-file ./certs/unkey.local.crt -key-file ./certs/unkey.local.key "*.unkey.local" "unkey.local" "localhost" && echo "*.crt" > ./certs/.gitignore && echo "*.key" >> ./certs/.gitignore; fi && kubectl -n frontline create configmap frontline-certs --from-file=./certs/unkey.local.crt --from-file=./certs/unkey.local.key -o yaml --dry-run=client | kubectl apply -f -',
     resource_deps=['namespace'],
     labels=['setup'],
     allow_parallel=True,
@@ -801,10 +807,10 @@ Tips:
 - Press 'r' to manually trigger rebuilds
 - Exit Tilt with Ctrl+C, then use 'mise run down' to stop Minikube and keep data
 - Stripe webhook forwarding starts automatically when the Stripe CLI is authenticated
-- Use 'tilt logs <service>' to view specific service logs
+- Use 'mise exec -- tilt logs <service>' to view specific service logs
 
 Frontline (HTTPS on *.unkey.local):
-- Run 'sudo minikube tunnel' in a separate terminal to bind ports 80/443
+- Run 'mise run tunnel' in a separate terminal to bind ports 80/443
 - Then access https://app.unkey.local (requires DNS setup via setup-wildcard-dns.sh)
 
 """)
