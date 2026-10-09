@@ -2,10 +2,11 @@
 
 import { useProjectScope } from "@/hooks/use-project-scope";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import { collection } from "@/lib/collections";
+import { trpcClient } from "@/lib/collections/client";
 import { routes } from "@/lib/navigation/routes";
+import { useInvalidateNamespaces } from "@/lib/queries/ratelimit-namespaces";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Button, DialogContainer, Input, Loading } from "@unkey/ui";
+import { Button, DialogContainer, Input, Loading, toast } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import { Suspense } from "react";
 import { useForm } from "react-hook-form";
@@ -36,8 +37,14 @@ export const DeleteNamespaceDialog = ({
   const router = useRouter();
   const workspace = useWorkspaceNavigation();
   const scope = useProjectScope();
+  const invalidateNamespaces = useInvalidateNamespaces();
 
-  const { register, handleSubmit, watch } = useForm<FormValues>({
+  const {
+    register,
+    handleSubmit,
+    watch,
+    formState: { isSubmitting },
+  } = useForm<FormValues>({
     mode: "onChange",
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -47,10 +54,20 @@ export const DeleteNamespaceDialog = ({
   const isValid = watch("name") === namespace.name;
 
   const onSubmit = async () => {
-    collection.ratelimitNamespaces.delete(namespace.id);
+    const mutation = trpcClient.ratelimit.namespace.delete.mutate({ namespaceId: namespace.id });
+    toast.promise(mutation, {
+      loading: "Deleting namespace...",
+      success: "Namespace deleted",
+      error: "Failed to delete namespace",
+    });
+    try {
+      await mutation;
+    } catch (error) {
+      console.error("Failed to delete namespace", error);
+      return;
+    }
+    await invalidateNamespaces();
     router.push(routes.ratelimits.list({ workspaceSlug: workspace.slug, ...scope }));
-
-    //await deleteNamespace.mutateAsync({ namespaceId: namespace.id });
   };
   return (
     <Suspense fallback={<Loading type="spinner" />}>
@@ -66,7 +83,8 @@ export const DeleteNamespaceDialog = ({
               variant="primary"
               color="danger"
               size="xlg"
-              disabled={!isValid}
+              disabled={!isValid || isSubmitting}
+              loading={isSubmitting}
               className="w-full rounded-lg"
             >
               Delete Namespace

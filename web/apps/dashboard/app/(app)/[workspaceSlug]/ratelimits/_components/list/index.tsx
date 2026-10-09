@@ -1,6 +1,5 @@
 import { StatsListCardSkeleton } from "@/components/stats-list-card/skeleton";
-import { collection } from "@/lib/collections";
-import { ilike, useLiveQuery } from "@tanstack/react-db";
+import { useNamespaces } from "@/lib/queries/ratelimit-namespaces";
 import { IconBook2Outline18, IconGaugeOutline18 } from "@unkey/icons";
 import {
   Button,
@@ -34,14 +33,13 @@ export const NamespaceList = () => {
 
   const nameFilter = filters.find((filter) => filter.field === "query")?.value ?? "";
 
-  const { data: namespaces, isLoading: namespacesLoading } = useLiveQuery(
-    (q) =>
-      q
-        .from({ namespace: collection.ratelimitNamespaces })
-        .where(({ namespace }) => ilike(namespace.name, `%${nameFilter}%`))
-        .orderBy(({ namespace }) => namespace.id, "desc"),
-    [nameFilter],
-  );
+  const {
+    namespaces,
+    isLoading: namespacesLoading,
+    hasNextPage,
+    isFetchingNextPage,
+    fetchNextPage,
+  } = useNamespaces({ search: String(nameFilter).trim() });
 
   const namespaceIds = useMemo(() => namespaces.map((ns) => ns.id), [namespaces]);
   const { timeseriesByNamespace, isLoading, isError } = useBatchRatelimitTimeseries(namespaceIds);
@@ -95,16 +93,29 @@ export const NamespaceList = () => {
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 w-full">
-      {namespaces.map((namespace) => (
-        <NamespaceCard
-          namespace={namespace}
-          key={namespace.id}
-          timeseries={timeseriesByNamespace[namespace.id]}
-          isLoading={isLoading}
-          isError={isError}
-        />
-      ))}
+    <div className="flex flex-col items-center gap-6 w-full">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 w-full">
+        {namespaces.map((namespace) => (
+          <NamespaceCard
+            namespace={namespace}
+            key={namespace.id}
+            timeseries={timeseriesByNamespace[namespace.id]}
+            isLoading={isLoading}
+            isError={isError}
+          />
+        ))}
+      </div>
+      {hasNextPage ? (
+        <Button
+          size="md"
+          variant="outline"
+          disabled={isFetchingNextPage}
+          loading={isFetchingNextPage}
+          onClick={() => fetchNextPage()}
+        >
+          Load more
+        </Button>
+      ) : null}
     </div>
   );
 };
