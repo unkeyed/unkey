@@ -1,5 +1,6 @@
 import { routes } from "@/lib/navigation/routes";
 import type Stripe from "stripe";
+import { bindWorkspaceStripeCustomer } from "./bindWorkspaceStripeCustomer";
 import {
   type ComputeSignupCreditResult,
   ComputeSignupCreditRetryError,
@@ -178,6 +179,26 @@ async function cardFromSetupSession(
   };
 }
 
+async function workspaceSetupCard(
+  stripe: Stripe,
+  input: { workspaceId: string; workosUserId: string; customerId?: string; setupSessionId: string },
+): Promise<{ customerId: string; card: GrantCard; intentUserId: string | null }> {
+  const setup = await cardFromSetupSession(
+    stripe,
+    input.setupSessionId,
+    input.workspaceId,
+    input.customerId,
+  );
+  if (!input.customerId) {
+    await bindWorkspaceStripeCustomer({
+      workspaceId: input.workspaceId,
+      stripeCustomerId: setup.customerId,
+      userId: input.workosUserId,
+    });
+  }
+  return setup;
+}
+
 function announceCredit(credit: ComputeSignupCreditResult | null): boolean {
   return credit?.granted === true;
 }
@@ -248,6 +269,13 @@ export async function prepareDeployCheckoutCredit(
   const payer = signupWorkosUserId(input.workosUserId);
   const claim = await findClaimByWorkspace(input.workspaceId);
   if (claim?.stripeBalanceTransactionId) {
+    if (!input.customerId) {
+      await bindWorkspaceStripeCustomer({
+        workspaceId: input.workspaceId,
+        stripeCustomerId: claim.stripeCustomerId,
+        userId: input.workosUserId,
+      });
+    }
     return {
       step: "subscribe",
       customerId: claim.stripeCustomerId,
@@ -259,22 +287,18 @@ export async function prepareDeployCheckoutCredit(
     if (!input.setupSessionId) {
       return subscribeWithoutCredit(input.customerId);
     }
-    const setup = await cardFromSetupSession(
-      stripe,
-      input.setupSessionId,
-      input.workspaceId,
-      input.customerId,
-    );
+    const setup = await workspaceSetupCard(stripe, {
+      ...input,
+      setupSessionId: input.setupSessionId,
+    });
     return subscribeWithoutCredit(setup.customerId);
   }
 
   if (input.setupSessionId) {
-    const setup = await cardFromSetupSession(
-      stripe,
-      input.setupSessionId,
-      input.workspaceId,
-      input.customerId,
-    );
+    const setup = await workspaceSetupCard(stripe, {
+      ...input,
+      setupSessionId: input.setupSessionId,
+    });
     const intentPayer = signupWorkosUserId(setup.intentUserId);
     if (!intentPayer || intentPayer !== payer) {
       return subscribeWithoutCredit(setup.customerId);

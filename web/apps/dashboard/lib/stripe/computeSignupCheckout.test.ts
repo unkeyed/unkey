@@ -11,6 +11,10 @@ vi.mock("@/lib/db", () => ({
   db: { query: {} },
 }));
 
+const bindWorkspaceStripeCustomer = vi.hoisted(() => vi.fn());
+
+vi.mock("./bindWorkspaceStripeCustomer", () => ({ bindWorkspaceStripeCustomer }));
+
 const claimFake = vi.hoisted(() => {
   type FakeClaimState = {
     rows: ComputeSignupCreditClaim[];
@@ -290,6 +294,7 @@ const base = {
 
 beforeEach(() => {
   claimFake.resetFakeClaims();
+  bindWorkspaceStripeCustomer.mockReset();
 });
 
 describe("deployCheckoutCustomerId", () => {
@@ -374,6 +379,7 @@ describe("prepareDeployCheckoutCredit", () => {
       credit: null,
       announceSignupCredit: false,
     });
+    expect(bindWorkspaceStripeCustomer).not.toHaveBeenCalled();
     expect(creates).toEqual([]);
     if (result.step === "subscribe") {
       expect(
@@ -386,6 +392,23 @@ describe("prepareDeployCheckoutCredit", () => {
         "Your plan fee is matched by usage credits: $20.00 each month, and a prorated first charge is matched by the same amount in credits.",
       );
     }
+  });
+
+  it("binds the claimed customer when the workspace has none", async () => {
+    claimFake
+      .resetFakeClaims()
+      .rows.push(
+        claim({ stripeCustomerId: "cus_credited", stripeBalanceTransactionId: "cbtxn_done" }),
+      );
+    const { stripe } = stripeStub();
+
+    await prepareDeployCheckoutCredit(stripe, { ...base, setupSessionId: "cs_setup" });
+
+    expect(bindWorkspaceStripeCustomer).toHaveBeenCalledWith({
+      workspaceId: "ws_1",
+      stripeCustomerId: "cus_credited",
+      userId: "user_payer",
+    });
   });
 
   it("collects a card when the workspace has no customer", async () => {
@@ -501,6 +524,11 @@ describe("prepareDeployCheckoutCredit", () => {
       announceSignupCredit: true,
       credit: { granted: true, amountCents: 500 },
     });
+    expect(bindWorkspaceStripeCustomer).toHaveBeenCalledWith({
+      workspaceId: "ws_1",
+      stripeCustomerId: "cus_new",
+      userId: "user_payer",
+    });
     expect(creates[0]?.params).toMatchObject({ amount: -500 });
   });
 
@@ -603,6 +631,7 @@ describe("prepareDeployCheckoutCredit", () => {
         setupSessionId: "cs_setup",
       }),
     ).rejects.toBeInstanceOf(ComputeSignupCheckoutError);
+    expect(bindWorkspaceStripeCustomer).not.toHaveBeenCalled();
   });
 
   it("rejects a setup session for a different customer", async () => {
@@ -622,6 +651,7 @@ describe("prepareDeployCheckoutCredit", () => {
         setupSessionId: "cs_setup",
       }),
     ).rejects.toThrow("This card setup session is for a different customer.");
+    expect(bindWorkspaceStripeCustomer).not.toHaveBeenCalled();
   });
 
   it("skips the credit and still subscribes when the workos user id is invalid", async () => {
@@ -674,6 +704,11 @@ describe("prepareDeployCheckoutCredit", () => {
       customerId: "cus_new",
       credit: null,
       announceSignupCredit: false,
+    });
+    expect(bindWorkspaceStripeCustomer).toHaveBeenCalledWith({
+      workspaceId: "ws_1",
+      stripeCustomerId: "cus_new",
+      userId: "user_payer",
     });
     expect(creates).toEqual([]);
   });
