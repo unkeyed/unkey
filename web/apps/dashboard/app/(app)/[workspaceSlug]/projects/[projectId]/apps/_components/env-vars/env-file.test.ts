@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseEnvText } from "./use-drop-zone";
+import { parseEnvText } from "./env-file";
 
 describe("parseEnvText", () => {
   it("parses simple key=value pairs and skips blanks and comments", () => {
