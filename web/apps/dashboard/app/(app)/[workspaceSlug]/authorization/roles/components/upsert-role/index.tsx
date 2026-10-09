@@ -153,7 +153,12 @@ export const UpsertRoleDialog = ({
     };
 
     if (submissionData.roleId) {
-      updateRole.mutate({ ...submissionData, roleId: submissionData.roleId });
+      updateRole.mutate({
+        ...submissionData,
+        roleId: submissionData.roleId,
+        initialKeyIds: existingRole?.keyIds ?? [],
+        initialPermissionIds: existingRole?.permissionIds ?? [],
+      });
     } else {
       createRole.mutate(submissionData);
     }
