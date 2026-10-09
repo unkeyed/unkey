@@ -1290,6 +1290,17 @@ type Cluster struct {
 	LastHeartbeatAt uint64         `db:"last_heartbeat_at"`
 }
 
+type ComputeSignupCreditClaim struct {
+	Pk                         uint64         `db:"pk"`
+	CardFingerprint            string         `db:"card_fingerprint"`
+	WorkspaceID                string         `db:"workspace_id"`
+	StripeCustomerID           string         `db:"stripe_customer_id"`
+	StripeBalanceTransactionID sql.NullString `db:"stripe_balance_transaction_id"`
+	WorkosUserID               string         `db:"workos_user_id"`
+	AttemptID                  string         `db:"attempt_id"`
+	CreatedAt                  int64          `db:"created_at"`
+}
+
 type CustomDomain struct {
 	Pk                    uint64                          `db:"pk"`
 	ID                    string                          `db:"id"`
