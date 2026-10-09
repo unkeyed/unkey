@@ -10,19 +10,49 @@ import { fieldBaseClasses, fieldInvalidClasses, fieldSurfaceClasses } from "./in
 
 const selectTriggerVariants = cva(
   [
-    "flex h-9 w-full items-center justify-between disabled:cursor-not-allowed disabled:opacity-50 placeholder:text-grayA-8",
+    "flex w-full items-center justify-between disabled:cursor-not-allowed disabled:opacity-50 placeholder:text-grayA-8",
     fieldBaseClasses,
     fieldInvalidClasses,
   ],
   {
     variants: {
       variant: fieldSurfaceClasses,
+      size: {
+        md: "h-9",
+        sm: "h-8 whitespace-nowrap",
+      },
     },
     defaultVariants: {
       variant: "default",
+      size: "md",
     },
   },
 );
+
+// Goes after the caller's className, so the chevron always keeps its room.
+const selectPaddingVariants = cva("px-3", {
+  variants: {
+    size: {
+      md: "py-2 pr-9",
+      sm: "pr-8",
+    },
+  },
+  defaultVariants: {
+    size: "md",
+  },
+});
+
+const selectChevronVariants = cva("absolute text-gray-11", {
+  variants: {
+    size: {
+      md: "right-3 size-4",
+      sm: "right-2 size-3.5",
+    },
+  },
+  defaultVariants: {
+    size: "md",
+  },
+});
 
 const selectWrapperVariants = cva("relative flex items-center w-full", {
   variants: {
@@ -48,12 +78,17 @@ export type DocumentedSelectProps = VariantProps<typeof selectTriggerVariants> &
 
 const Select = SelectPrimitive.Root;
 const SelectGroup = SelectPrimitive.Group;
-const SelectValue = SelectPrimitive.Value;
+function SelectValue({ className, ...props }: SelectPrimitive.Value.Props) {
+  return (
+    <SelectPrimitive.Value className={cn("flex min-w-0 items-center", className)} {...props} />
+  );
+}
 
 function SelectTrigger({
   className,
   children,
   variant,
+  size,
   leftIcon,
   wrapperClassName,
   rightIcon,
@@ -71,10 +106,9 @@ function SelectTrigger({
       <SelectPrimitive.Trigger
         ref={ref}
         className={cn(
-          selectTriggerVariants({ variant, className }),
-          "px-3 py-2",
+          selectTriggerVariants({ variant, size, className }),
+          selectPaddingVariants({ size }),
           leftIcon && "pl-9",
-          "pr-9", // Always have space for the chevron icon
         )}
         {...props}
       >
@@ -82,7 +116,7 @@ function SelectTrigger({
         <SelectPrimitive.Icon
           render={
             (rightIcon as React.ReactElement) || (
-              <IconChevronDownOutline18 className="absolute text-gray-11 right-3 w-4 h-4" />
+              <IconChevronDownOutline18 className={selectChevronVariants({ size })} />
             )
           }
         />
@@ -124,7 +158,7 @@ function SelectContent({
         <SelectPrimitive.Popup
           ref={ref}
           className={cn(
-            "isolate z-50 relative overflow-hidden rounded-lg bg-raised text-gray-12 shadow-floating min-w-(--anchor-width) origin-(--transform-origin)",
+            "isolate relative overflow-hidden rounded-lg bg-raised text-gray-12 shadow-floating min-w-(--anchor-width) origin-(--transform-origin)",
             popupTransition,
             "data-[side=bottom]:data-starting-style:-translate-y-1 data-[side=top]:data-starting-style:translate-y-1 data-[side=left]:data-starting-style:translate-x-1 data-[side=right]:data-starting-style:-translate-x-1",
             className,
@@ -178,7 +212,9 @@ function SelectItem({
         </SelectPrimitive.ItemIndicator>
       </span>
 
-      <SelectPrimitive.ItemText>{children}</SelectPrimitive.ItemText>
+      <SelectPrimitive.ItemText className="flex min-w-0 items-center">
+        {children}
+      </SelectPrimitive.ItemText>
     </SelectPrimitive.Item>
   );
 }
