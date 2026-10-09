@@ -2,6 +2,7 @@
 
 import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
 import { collection } from "@/lib/collections";
+import type { EnvVar } from "@/lib/collections/deploy/env-vars";
 import {
   IconCloneOutline18,
   IconDotsOutline18,
@@ -11,43 +12,24 @@ import {
 import { Button, ConfirmPopover, toast } from "@unkey/ui";
 import { useRef, useState } from "react";
 
-type EnvVarActionMenuProps = {
-  envVarId: string;
-  value: string;
-  variableKey: string;
-  type: "writeonly" | "recoverable";
-  onEdit: () => void;
-};
-
-export function EnvVarActionMenu({
-  envVarId,
-  value,
-  variableKey,
-  type,
-  onEdit,
-}: EnvVarActionMenuProps) {
+export function EnvVarActionMenu({ envVar, onEdit }: { envVar: EnvVar; onEdit: () => void }) {
+  const { id: envVarId, value, key: variableKey, type } = envVar;
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
-  const deleteButtonRef = useRef<HTMLButtonElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
 
   const menuItems: MenuItem[] = [
     {
       id: "edit",
       label: "Edit",
       icon: <IconPenWriting3Outline18 className="size-3.5" />,
-      onClick: (e) => {
-        e.stopPropagation();
-        onEdit();
-      },
+      onClick: onEdit,
     },
     {
       id: "delete",
       label: "Delete",
       icon: <IconTrashOutline18 className="size-3.5" />,
       divider: true,
-      onClick: (e) => {
-        e.stopPropagation();
-        setIsDeleteConfirmOpen(true);
-      },
+      onClick: () => setIsDeleteConfirmOpen(true),
     },
     {
       id: "copy",
@@ -55,8 +37,7 @@ export function EnvVarActionMenu({
       icon: <IconCloneOutline18 className="size-3.5" />,
       disabled: type === "writeonly",
       tooltip: type === "writeonly" ? "Write-only variables cannot be copied" : undefined,
-      onClick: async (e) => {
-        e.stopPropagation();
+      onClick: async () => {
         try {
           await navigator.clipboard.writeText(`${variableKey}=${value}`);
           toast.success("Copied to clipboard");
@@ -71,30 +52,25 @@ export function EnvVarActionMenu({
     <>
       <TableActionPopover items={menuItems}>
         <Button
-          ref={deleteButtonRef}
+          ref={triggerRef}
           variant="outline"
           className="size-5 [&_svg]:size-3 rounded-sm border-transparent group-hover:border-strong"
-          onClick={(e) => e.stopPropagation()}
         >
           <IconDotsOutline18 className="group-hover:text-gray-12 text-gray-11" />
         </Button>
       </TableActionPopover>
 
-      {/* Stop clicks inside the popover (e.g. Cancel) from bubbling up to the
-          row, which would otherwise open the edit form. */}
-      <div onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
-        <ConfirmPopover
-          isOpen={isDeleteConfirmOpen}
-          onOpenChange={setIsDeleteConfirmOpen}
-          onConfirm={() => collection.envVars.delete([envVarId])}
-          triggerRef={deleteButtonRef}
-          title="Confirm deletion"
-          description={`This will permanently delete "${variableKey}". This action cannot be undone.`}
-          confirmButtonText="Delete variable"
-          cancelButtonText="Cancel"
-          variant="danger"
-        />
-      </div>
+      <ConfirmPopover
+        isOpen={isDeleteConfirmOpen}
+        onOpenChange={setIsDeleteConfirmOpen}
+        onConfirm={() => collection.envVars.delete([envVarId])}
+        triggerRef={triggerRef}
+        title="Confirm deletion"
+        description={`This will permanently delete "${variableKey}". This action cannot be undone.`}
+        confirmButtonText="Delete variable"
+        cancelButtonText="Cancel"
+        variant="danger"
+      />
     </>
   );
 }
