@@ -22,6 +22,10 @@ import { longblob } from "./util/longblob";
 import { primaryKey } from "./util/primary_key";
 import { workspaces } from "./workspaces";
 
+export type DeploymentCapabilities = {
+  private_networking?: boolean;
+};
+
 export const deployments = mysqlTable(
   "deployments",
   {
@@ -88,6 +92,11 @@ export const deployments = mysqlTable(
     // Protocol Frontline uses to proxy to the instance (snapshotted from app_runtime_settings)
     upstreamProtocol: mysqlEnum("upstream_protocol", ["http1", "h2c"]).notNull().default("http1"),
 
+    capabilities: json("capabilities")
+      .$type<DeploymentCapabilities>()
+      .notNull()
+      .default(sql`('{}')`),
+
     // HTTP healthcheck configuration (null = no healthcheck)
     healthcheck: json("healthcheck").$type<import("./app_runtime_settings").Healthcheck>(),
 
@@ -124,6 +133,11 @@ export const deployments = mysqlTable(
       .notNull()
       .default("pending"),
 
+    // Preview selection excludes deployments that never reached ready. Preserve
+    // this after stop/failure so an unavailable newer deployment does not cause
+    // connections to silently fall back to an older deployment.
+    firstReadyAt: bigint("first_ready_at", { mode: "number" }),
+
     // What surface triggered this deployment.
     // "unknown" is used for historical rows inserted before this column existed.
     trigger: mysqlEnum("trigger", ["unknown", "github", "api", "cli", "dashboard", "unkey"])
@@ -149,6 +163,14 @@ export const deployments = mysqlTable(
     index("project_created_at_idx").on(table.projectId, table.createdAt),
     index("status_idx").on(table.status),
     index("app_created_at_idx").on(table.appId, table.createdAt),
+    index("app_environment_created_idx").on(
+      table.appId,
+      table.environmentId,
+      table.createdAt,
+      table.id,
+    ),
+    index("app_branch_created_idx").on(table.appId, table.gitBranch, table.createdAt, table.id),
+    index("desired_state_status_id_idx").on(table.desiredState, table.status, table.id),
   ],
 );
 

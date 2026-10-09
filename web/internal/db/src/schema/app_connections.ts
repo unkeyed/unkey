@@ -1,0 +1,36 @@
+import { index, mysqlTable, uniqueIndex } from "drizzle-orm/mysql-core";
+import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
+import { id } from "./util/id";
+import { lifecycleDates } from "./util/lifecycle_dates";
+import { primaryKey } from "./util/primary_key";
+
+// Editable connection defaults for one app environment. Deployment creation
+// copies them into deploymentConnections, so changing or removing a default
+// never changes a deployment that already exists.
+export const appConnections = mysqlTable(
+  "app_connections",
+  {
+    pk: primaryKey(),
+    id: id("id").notNull().unique(),
+    workspaceId: id("workspace_id").notNull(),
+    projectId: id("project_id").notNull(),
+    appId: id("app_id").notNull(),
+    environmentId: id("environment_id").notNull(),
+    resourceType: caseSensitiveVarchar("resource_type", { length: 32 }).notNull(),
+    resourceId: id("resource_id").notNull(),
+    name: caseSensitiveVarchar("name", { length: 63 }).notNull(),
+    ...lifecycleDates,
+  },
+  (table) => [
+    uniqueIndex("app_connections_app_name_idx").on(table.appId, table.environmentId, table.name),
+    uniqueIndex("app_connections_app_resource_idx").on(
+      table.appId,
+      table.environmentId,
+      table.resourceType,
+      table.resourceId,
+    ),
+    index("app_connections_project_idx").on(table.projectId),
+    index("app_connections_resource_idx").on(table.resourceType, table.resourceId),
+    index("app_connections_workspace_idx").on(table.workspaceId, table.resourceType),
+  ],
+);
