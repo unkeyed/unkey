@@ -781,7 +781,7 @@ local_resource(
 if stripe_webhook_secret:
     local_resource(
         'stripe-listen-dashboard',
-        serve_cmd='stripe listen --forward-to http://localhost:3000/api/webhooks/stripe',
+        serve_cmd='stripe listen --events customer.subscription.created,customer.subscription.updated,customer.subscription.deleted,checkout.session.completed,checkout.session.async_payment_succeeded,invoice.payment_failed,invoice.paid,invoice.payment_succeeded --forward-to http://localhost:3000/api/webhooks/stripe',
         resource_deps=['dashboard'],
         labels=['unkey'],
         auto_init=True,
@@ -789,7 +789,7 @@ if stripe_webhook_secret:
     )
     local_resource(
         'stripe-listen-ctrl',
-        serve_cmd='stripe listen --forward-to http://localhost:7091/webhooks/stripe',
+        serve_cmd='stripe listen --events invoice.created --forward-to http://localhost:7091/webhooks/stripe',
         resource_deps=['ctrl-api'],
         labels=['unkey'],
         auto_init=True,

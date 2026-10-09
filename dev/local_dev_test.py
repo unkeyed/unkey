@@ -1,6 +1,7 @@
 import json
 import os
 from pathlib import Path
+import shlex
 import shutil
 import subprocess
 import sys
@@ -192,6 +193,21 @@ class LocalDevTest(unittest.TestCase):
             self.assertIn("stripe-webhook-secret", self.stripe[name]["ResourceDependencies"])
         for listener, consumer in (("stripe-listen-dashboard", "dashboard"), ("stripe-listen-ctrl", "ctrl-api")):
             self.assertEqual(self.stripe[listener]["ResourceDependencies"], [consumer])
+
+    def test_stripe_listeners_explicitly_select_supported_snapshot_events(self):
+        events = {
+            "stripe-listen-dashboard": {
+                "customer.subscription.created", "customer.subscription.updated", "customer.subscription.deleted",
+                "checkout.session.completed", "checkout.session.async_payment_succeeded",
+                "invoice.payment_failed", "invoice.paid", "invoice.payment_succeeded",
+            },
+            "stripe-listen-ctrl": {"invoice.created"},
+        }
+        for listener, expected in events.items():
+            with self.subTest(listener=listener):
+                command = shlex.split(self.stripe[listener]["DeployTarget"]["ServeCmd"]["Argv"][-1])
+                self.assertIn("--events", command)
+                self.assertEqual(set(command[command.index("--events") + 1].split(",")), expected)
 
     def test_missing_stripe_cli_is_optional(self):
         result = self.command(
