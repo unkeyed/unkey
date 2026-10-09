@@ -1,8 +1,9 @@
+import { insertAuditLogs } from "@/lib/audit";
 import { and, db, eq, inArray, schema } from "@/lib/db";
 import { envVarKeySchema } from "@/lib/schemas/env-var";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { workspaceProcedure } from "../../../trpc";
+import { ratelimit, withRatelimit, workspaceProcedure } from "../../../trpc";
 
 // Renames a variable across environments in one statement.
 //
@@ -11,6 +12,7 @@ import { workspaceProcedure } from "../../../trpc";
 // API never returns for a writeonly variable. It also cannot refuse a rename
 // onto a key that is in use. This changes only the key column.
 export const renameEnvVars = workspaceProcedure
+  .use(withRatelimit(ratelimit.update))
   .input(
     z.object({
       appId: z.string().min(1),
@@ -35,6 +37,7 @@ export const renameEnvVars = workspaceProcedure
           inArray(schema.appEnvironmentVariables.environmentId, environmentIds),
         ),
         columns: { id: true },
+        with: { environment: { columns: { id: true, slug: true } } },
       });
 
       if (targets.length === 0) {
@@ -63,20 +66,41 @@ export const renameEnvVars = workspaceProcedure
         });
       }
 
-      const result = await db
-        .update(schema.appEnvironmentVariables)
-        .set({ key: input.newKey })
-        .where(
-          and(
-            inArray(
-              schema.appEnvironmentVariables.id,
-              targets.map((t) => t.id),
+      return await db.transaction(async (tx) => {
+        const result = await tx
+          .update(schema.appEnvironmentVariables)
+          .set({ key: input.newKey })
+          .where(
+            and(
+              inArray(
+                schema.appEnvironmentVariables.id,
+                targets.map((t) => t.id),
+              ),
+              eq(schema.appEnvironmentVariables.workspaceId, ctx.workspace.id),
             ),
-            eq(schema.appEnvironmentVariables.workspaceId, ctx.workspace.id),
-          ),
+          );
+
+        await insertAuditLogs(
+          tx,
+          targets.map(({ environment }) => ({
+            workspaceId: ctx.workspace.id,
+            actor: { type: "user", id: ctx.user.id },
+            event: "environment.update",
+            description: `Renamed environment variable ${input.key} to ${input.newKey} for environment ${environment.id}`,
+            resources: [
+              {
+                type: "environment",
+                id: environment.id,
+                name: environment.slug,
+                meta: { key: input.newKey, previousKey: input.key },
+              },
+            ],
+            context: { location: ctx.audit.location, userAgent: ctx.audit.userAgent },
+          })),
         );
 
-      return { updated: result[0].affectedRows };
+        return { updated: result[0].affectedRows };
+      });
     } catch (error) {
       if (error instanceof TRPCError) {
         throw error;
