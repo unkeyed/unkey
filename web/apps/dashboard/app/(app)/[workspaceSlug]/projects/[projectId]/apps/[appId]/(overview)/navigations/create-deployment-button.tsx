@@ -37,6 +37,7 @@ import { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
 import { useAppId, useProjectData } from "../data-provider";
+import { useRecentDeployments } from "../hooks/use-recent-deployments";
 import { parseForkRef } from "./parse-fork-ref";
 
 // Soft cap on the past-image list; older images are still deployable by
@@ -114,7 +115,7 @@ export const CreateDeploymentButton = ({
   const router = useRouter();
   const params = useParams<{ workspaceSlug: string }>();
   const [isOpen, setIsOpen] = useState(defaultOpen ?? false);
-  const { projectId, environments, deployments, refetchDeployments } = useProjectData();
+  const { projectId, environments, refetchDeployments } = useProjectData();
   const appId = useAppId();
   const { gated, openPaywall, planGate } = useDeployActionGate();
 
@@ -150,6 +151,7 @@ export const CreateDeploymentButton = ({
         .with("oci", () => ({ isGitApp: false, isImageApp: true }))
         .exhaustive()
     : { isGitApp: false, isImageApp: false };
+  const { deployments } = useRecentDeployments({ enabled: isOpen && sourceFlags.isImageApp });
   const { isGitApp, isImageApp } = sourceFlags;
 
   const installations = trpc.github.getInstallations.useQuery(

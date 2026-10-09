@@ -1,56 +1,42 @@
 import type { Deployment } from "@/lib/collections";
 import type { Environment } from "@/lib/collections/deploy/environments";
-import { trpc } from "@/lib/trpc/client";
-import { useMemo } from "react";
+import { useLiveInfiniteQuery } from "@tanstack/react-db";
 import { useAppId, useProjectData } from "../../data-provider";
-import { buildDeploymentListInput } from "./deployment-list-input";
-import { useFilters } from "./use-filters";
-
-const PAGE_SIZE = 25;
+import { DEPLOYMENTS_PAGE_SIZE, deploymentsTableQueryFor } from "../../data-provider-queries";
+import type { DeploymentListFilter } from "./deployment-list-input";
 
 export type DeploymentListRow = {
   deployment: Deployment;
   environment: Environment | undefined;
 };
 
-export function useDeployments() {
+export function useDeployments(filter: DeploymentListFilter) {
   const { projectId, environments, isEnvironmentsLoading } = useProjectData();
   const appId = useAppId();
-  const { filters, isFiltered } = useFilters();
 
-  const { input, cannotMatch } = useMemo(
-    () => buildDeploymentListInput(filters, environments),
-    [filters, environments],
-  );
-
-  const query = trpc.deploy.deployment.list.useInfiniteQuery(
-    { projectId, appId, ...input, limit: PAGE_SIZE },
+  const query = useLiveInfiniteQuery(
+    deploymentsTableQueryFor(projectId, appId, filter),
     {
-      enabled: !isEnvironmentsLoading && !cannotMatch,
-      // Filters are part of the query input, so a change starts a new query;
-      // the previous rows stay on screen instead of a skeleton flash.
-      keepPreviousData: true,
-      getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
+      pageSize: DEPLOYMENTS_PAGE_SIZE,
+      getNextPageParam: (lastPage, allPages) =>
+        lastPage.length === DEPLOYMENTS_PAGE_SIZE ? allPages.length : undefined,
     },
+    [projectId, appId, JSON.stringify(filter)],
   );
 
-  const rows = useMemo((): DeploymentListRow[] => {
-    const environmentById = new Map(environments.map((e) => [e.id, e]));
-    return (query.data?.pages ?? []).flatMap((page) =>
-      page.deployments.map((deployment) => ({
-        deployment,
-        environment: environmentById.get(deployment.environmentId),
-      })),
-    );
-  }, [query.data, environments]);
+  const environmentById = new Map(environments.map((e) => [e.id, e]));
+  const rows = query.data.map(
+    (deployment): DeploymentListRow => ({
+      deployment,
+      environment: environmentById.get(deployment.environmentId),
+    }),
+  );
 
   return {
     rows,
-    isLoading: isEnvironmentsLoading || query.isInitialLoading,
+    isLoading: isEnvironmentsLoading || query.isLoading,
     isError: query.isError,
-    refetch: query.refetch,
-    isFiltered,
-    hasNextPage: query.hasNextPage ?? false,
+    hasNextPage: query.hasNextPage,
     isFetchingNextPage: query.isFetchingNextPage,
     fetchNextPage: query.fetchNextPage,
   };

@@ -1,6 +1,6 @@
 "use client";
 
-import type { Deployment } from "@/lib/collections";
+import type { DeploymentSummary } from "@/lib/collections";
 import { shortenId } from "@/lib/shorten-id";
 import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
 import { useMutation } from "@tanstack/react-query";
@@ -15,7 +15,7 @@ import { useProjectData } from "../../data-provider";
 type UndoRollbackDialogProps = {
   isOpen: boolean;
   onClose: () => void;
-  deployments: Deployment[];
+  deployments: DeploymentSummary[];
   currentDeploymentId: string;
 };
 
@@ -95,7 +95,7 @@ export function UndoRollbackDialog({
 }
 
 type DeploymentOptionProps = {
-  deployment: Deployment;
+  deployment: DeploymentSummary;
   isCurrent: boolean;
   selected: boolean;
   onSelect: () => void;
@@ -159,7 +159,7 @@ function DeploymentOption({ deployment, isCurrent, selected, onSelect }: Deploym
   );
 }
 
-function DeploymentSource({ deployment }: { deployment: Deployment }) {
+function DeploymentSource({ deployment }: { deployment: DeploymentSummary }) {
   return match(deployment.source)
     .with("oci", () => (
       <span className="flex items-center gap-1.5 min-w-0">

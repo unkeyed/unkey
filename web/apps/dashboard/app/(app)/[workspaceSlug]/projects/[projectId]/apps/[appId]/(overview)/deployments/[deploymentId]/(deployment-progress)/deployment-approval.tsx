@@ -1,6 +1,6 @@
 "use client";
 
-import type { Deployment } from "@/lib/collections/deploy/deployments";
+import type { DeploymentSummary } from "@/lib/collections/deploy/deployments";
 import { githubUrl } from "@/lib/github-url";
 import { trpc } from "@/lib/trpc/client";
 import { IconShieldAlertOutline18 } from "@unkey/icons";
@@ -15,7 +15,7 @@ const chipLinkClass =
 type DeploymentApprovalProps = {
   isOpen: boolean;
   onClose: () => void;
-  deployment: Deployment;
+  deployment: DeploymentSummary;
 };
 
 export function DeploymentApproval({ isOpen, onClose, deployment }: DeploymentApprovalProps) {

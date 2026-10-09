@@ -2,8 +2,9 @@
 
 import { LoadingState } from "@/components/loading-state";
 import { TOP_NAV_HEIGHT } from "@/components/navigation/top-nav";
-import { type Deployment, deploymentSchema } from "@/lib/collections/deploy/deployments";
-import { trpc } from "@/lib/trpc/client";
+import { collection } from "@/lib/collections";
+import type { Deployment } from "@/lib/collections/deploy/deployments";
+import { and, eq, useLiveQuery } from "@tanstack/react-db";
 import { notFound, useParams } from "next/navigation";
 import { createContext, useContext } from "react";
 import { useProjectData } from "../../data-provider";
@@ -32,16 +33,22 @@ export const DeploymentLayoutProvider = ({
     throw new Error("DeploymentLayoutProvider requires a deploymentId (via prop or route params)");
   }
 
-  const { getDeploymentById, isDeploymentsLoading, projectId } = useProjectData();
-  const deployment = getDeploymentById(deploymentId);
+  const { projectId } = useProjectData();
+  // A single-id query loads the row with its instances however old it is, and
+  // the provider's refetch keeps it live while the deployment builds
+  const deploymentQuery = useLiveQuery(
+    (q) =>
+      q
+        .from({ deployment: collection.deployments })
+        .where(({ deployment }) =>
+          and(eq(deployment.projectId, projectId), eq(deployment.id, deploymentId)),
+        ),
+    [projectId, deploymentId],
+  );
 
-  const { data: fetchedDeployment, isLoading: isFetchingById } =
-    trpc.deploy.deployment.getById.useQuery({ deploymentId, projectId }, { enabled: !deployment });
-
-  const parsed = fetchedDeployment ? deploymentSchema.safeParse(fetchedDeployment) : undefined;
-  const resolved = deployment ?? (parsed?.success ? parsed.data : undefined);
+  const resolved = deploymentQuery.data?.[0];
   if (!resolved) {
-    if (isDeploymentsLoading || isFetchingById) {
+    if (deploymentQuery.isLoading) {
       return (
         <div className="flex flex-col" style={{ height: `calc(100dvh - ${TOP_NAV_HEIGHT}px)` }}>
           <LoadingState message="Loading deployment..." />

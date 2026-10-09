@@ -1,7 +1,7 @@
 "use client";
 
 import { useDeployActionGate } from "@/app/(app)/[workspaceSlug]/projects/_components/hooks/use-deploy-action-gate";
-import type { Deployment } from "@/lib/collections";
+import type { DeploymentSummary } from "@/lib/collections";
 import { ENVIRONMENT_KIND } from "@/lib/collections/deploy/environments";
 import { previousRollbackTarget } from "@/lib/collections/deploy/rollback";
 import { IconArrowDottedRotateAnticlockwiseOutline18 } from "@unkey/icons";
@@ -10,6 +10,7 @@ import dynamic from "next/dynamic";
 import { useState } from "react";
 import { useProjectData } from "../../data-provider";
 import { useAppCurrentDeployment } from "../../hooks/use-app-current-deployment";
+import { useRecentDeployments } from "../../hooks/use-recent-deployments";
 import { useDeployment } from "./layout-provider";
 
 const RollbackDialog = dynamic(
@@ -20,11 +21,12 @@ const RollbackDialog = dynamic(
 
 export function InstantRollbackRow() {
   const { deployment } = useDeployment();
-  const { deployments, environments } = useProjectData();
+  const { environments } = useProjectData();
+  const { deployments } = useRecentDeployments();
   const { app, isRolledBack } = useAppCurrentDeployment();
   const { gated, openPaywall, planGate } = useDeployActionGate();
   const [rollbackOpen, setRollbackOpen] = useState(false);
-  const [dialogTarget, setDialogTarget] = useState<Deployment>();
+  const [dialogTarget, setDialogTarget] = useState<DeploymentSummary>();
 
   const environment = environments.find((e) => e.id === deployment.environmentId);
   const isLiveProduction =
@@ -33,7 +35,7 @@ export function InstantRollbackRow() {
     !isRolledBack;
   const target = isLiveProduction ? previousRollbackTarget(deployments, deployment) : undefined;
 
-  const openRollback = (next: Deployment) => {
+  const openRollback = (next: DeploymentSummary) => {
     if (gated) {
       openPaywall();
       return;
