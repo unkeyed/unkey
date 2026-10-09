@@ -21,6 +21,7 @@ func TestListNamespacesPermissions(t *testing.T) {
 	namespace := seedNamespace(t, h, workspace.ID, uid.New("KEBAP"))
 	namespaces := urn.New().Workspace(workspace.ID).Project("*").RatelimitNamespace("*")
 	otherWorkspaceNamespaces := urn.New().Workspace(h.CreateWorkspace().ID).Project("*").RatelimitNamespace("*")
+	otherProject := urn.New().Workspace(workspace.ID).Project(uid.New(uid.ProjectPrefix))
 
 	testCases := []struct {
 		name        string
@@ -40,6 +41,8 @@ func TestListNamespacesPermissions(t *testing.T) {
 		{name: "write", permissions: []string{fmt.Sprintf("%s#write", namespaces)}, shouldPass: false},
 		{name: "override read", permissions: []string{fmt.Sprintf("%s#read", urn.New().Workspace(workspace.ID).Project("*").RatelimitNamespace("*").Override("*"))}, shouldPass: false},
 		{name: "other workspace", permissions: []string{fmt.Sprintf("%s#read", otherWorkspaceNamespaces)}, shouldPass: false},
+		{name: "other project namespaces", permissions: []string{fmt.Sprintf("%s#read", otherProject.RatelimitNamespace("*"))}, shouldPass: false},
+		{name: "everything in other project", permissions: []string{fmt.Sprintf("%s/**#read", otherProject)}, shouldPass: false},
 	}
 
 	for _, tc := range testCases {
@@ -50,6 +53,7 @@ func TestListNamespacesPermissions(t *testing.T) {
 				require.Equal(t, http.StatusForbidden, res.Status, "expected 403, received: %s", res.RawBody)
 				require.Contains(t, res.RawBody, fmt.Sprintf("%s#read", namespaces))
 				require.NotContains(t, res.RawBody, namespace.id)
+				require.NotContains(t, res.RawBody, namespace.projectID)
 				return
 			}
 			require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
