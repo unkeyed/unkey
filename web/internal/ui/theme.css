@@ -347,7 +347,7 @@ When to use certain tokens:
   --color-background: var(--color-gray-1);
   --background-color-raised: oklch(1 0 0);
   --background-color-table-header: oklch(0.9734 0 0);
-  --border-color-input: var(--color-grayA-4);
+  --border-color-input: var(--color-grayA-5);
   --border-color-strong: var(--color-grayA-7);
 }
 
