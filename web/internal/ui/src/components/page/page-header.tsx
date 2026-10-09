@@ -1,3 +1,6 @@
+import { mergeProps } from "@base-ui/react/merge-props";
+import { useRender } from "@base-ui/react/use-render";
+import { IconChevronLeftOutline12 } from "@unkey/icons";
 import type * as React from "react";
 import { cn } from "../../lib/utils";
 
@@ -17,6 +20,30 @@ function PageHeader({ className, ...props }: React.ComponentProps<"div">) {
 
 function PageHeaderContent({ className, ...props }: React.ComponentProps<"div">) {
   return <div className={cn("flex flex-col gap-0.5 min-w-0", className)} {...props} />;
+}
+
+type PageHeaderBackProps = useRender.ComponentProps<"a">;
+
+function PageHeaderBack({ className, render, children, ...props }: PageHeaderBackProps) {
+  return useRender({
+    defaultTagName: "a",
+    render,
+    props: mergeProps<"a">(
+      {
+        className: cn(
+          "-ml-1 flex w-fit items-center gap-1 rounded-md px-1 py-0.5 text-sm text-gray-10 transition-colors hover:text-gray-12 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-grayA-7",
+          className,
+        ),
+        children: (
+          <>
+            <IconChevronLeftOutline12 />
+            {children}
+          </>
+        ),
+      },
+      props,
+    ),
+  });
 }
 
 function PageHeaderTitle({ className, ...props }: React.ComponentProps<"h1">) {
@@ -45,4 +72,11 @@ function PageHeaderActions({ className, ...props }: React.ComponentProps<"div">)
   return <div className={cn("flex flex-wrap items-center gap-2 shrink-0", className)} {...props} />;
 }
 
-export { PageHeader, PageHeaderContent, PageHeaderTitle, PageHeaderDescription, PageHeaderActions };
+export {
+  PageHeader,
+  PageHeaderContent,
+  PageHeaderBack,
+  PageHeaderTitle,
+  PageHeaderDescription,
+  PageHeaderActions,
+};

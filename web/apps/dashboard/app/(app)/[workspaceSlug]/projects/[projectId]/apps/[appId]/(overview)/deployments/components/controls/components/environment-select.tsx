@@ -34,7 +34,7 @@ export function EnvironmentSelect() {
     <Select
       value={currentValue}
       items={[
-        { value: "all", label: "All Environments" },
+        { value: "all", label: "All environments" },
         ...environments.map((env) => ({
           value: env.slug,
           label: env.slug.charAt(0).toUpperCase() + env.slug.slice(1),
@@ -51,10 +51,10 @@ export function EnvironmentSelect() {
         leftIcon={<IconLayers3Outline18 className="size-3.5 text-gray-9" />}
         rightIcon={<IconChevronDownOutline18 className="size-3.5 absolute right-2" />}
       >
-        <SelectValue placeholder="All Environments" />
+        <SelectValue placeholder="All environments" />
       </SelectTrigger>
       <SelectContent>
-        <SelectItem value="all">All Environments</SelectItem>
+        <SelectItem value="all">All environments</SelectItem>
         {environments.map((env) => (
           <SelectItem key={env.id} value={env.slug}>
             {env.slug.charAt(0).toUpperCase() + env.slug.slice(1)}

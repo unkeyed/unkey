@@ -27,7 +27,6 @@ type OriginNode = BaseNode & {
 type RegionNode = BaseNode & {
   metadata: {
     type: "region";
-    flagCode: "us" | "de" | "au" | "jp" | "in" | "br" | "local";
     instances: number;
     health: HealthStatus;
   };
@@ -72,21 +71,6 @@ function isSkeletonNode(node: DeploymentNode): node is SkeletonNode {
   return node.metadata.type === "skeleton";
 }
 
-type RegionInfo = {
-  name: string;
-  location: string;
-};
-
-const REGION_INFO: Record<RegionNode["metadata"]["flagCode"], RegionInfo> = {
-  us: { name: "US East", location: "N. Virginia" },
-  de: { name: "EU Central", location: "Frankfurt" },
-  au: { name: "AP Southeast", location: "Sydney" },
-  jp: { name: "AP Northeast", location: "Tokyo" },
-  in: { name: "AP South", location: "Mumbai" },
-  br: { name: "SA East", location: "São Paulo" },
-  local: { name: "Local", location: "Local" },
-} as const;
-
 const DEFAULT_NODE_WIDTH = 230;
 type NodeSize = { width: number; height: number };
 /**
@@ -107,7 +91,6 @@ export type {
   InstanceNode,
   SkeletonNode,
   HealthStatus,
-  RegionInfo,
   BaseMetrics,
 };
 
@@ -117,6 +100,5 @@ export {
   isInstanceNode,
   isSkeletonNode,
   DEFAULT_NODE_WIDTH,
-  REGION_INFO,
   NODE_SIZES,
 };

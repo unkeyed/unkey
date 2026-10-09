@@ -102,9 +102,7 @@ function renderDeploymentNode(
     if (!parent || !isRegionNode(parent)) {
       throw new Error("Instance node requires parent region");
     }
-    return (
-      <InstanceNode node={node} flagCode={parent.metadata.flagCode} deploymentId={deploymentId} />
-    );
+    return <InstanceNode node={node} region={parent.label} deploymentId={deploymentId} />;
   }
 
   // This will yell at you if you don't handle a node type

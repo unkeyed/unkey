@@ -6,7 +6,9 @@ import {
   ResourceListContent,
   ResourceListItem,
   Skeleton,
+  badgeVariants,
 } from "@unkey/ui";
+import { cn } from "cn";
 import Link from "next/link";
 import type { AppRowData } from "./app-row-model";
 import { AppActionsButton, DeployedAgo, LinkOrText, SourceIcon, SourceLabel } from "./app-source";
@@ -95,7 +97,7 @@ function AppsTableRow({ row, projectId }: { row: AppRowData; projectId: string }
         {row.source === "git" && deployment?.branch ? (
           <LinkOrText
             href={row.branchUrl}
-            className="relative z-10 inline-block max-w-full truncate rounded-sm bg-gray-3 px-1 align-middle font-mono text-2xs leading-4 ring-1 ring-grayA-4"
+            className={cn(badgeVariants({ variant: "code" }), "relative z-10 text-inherit")}
           >
             {deployment.branch}
           </LinkOrText>

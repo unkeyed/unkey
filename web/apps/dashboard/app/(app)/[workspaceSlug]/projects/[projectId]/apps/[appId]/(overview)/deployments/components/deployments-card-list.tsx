@@ -95,9 +95,8 @@ export function DeploymentsCardList() {
               <EmptyStateTitle>No Active Deployments</EmptyStateTitle>
               <EmptyStateDescription>
                 {app?.sourceType === "oci"
-                  ? "Deploy the configured image or enter another image reference to get started."
-                  : "Push to your connected repository or trigger a manual deployment to get started."}{" "}
-                Cancelled, skipped, superseded, and stopped deployments are hidden by default.
+                  ? "Deploy the configured image or enter another image reference."
+                  : "Push to your connected repository or trigger a manual deployment."}
               </EmptyStateDescription>
             </EmptyStateHeader>
             <EmptyStateActions>

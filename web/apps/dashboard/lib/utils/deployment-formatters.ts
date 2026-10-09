@@ -14,6 +14,10 @@ export function formatTooltipPercent(p: number): string {
   return p < 1 ? `${p.toFixed(2)}%` : p < 10 ? `${p.toFixed(1)}%` : `${Math.round(p)}%`;
 }
 
+function trimmed(n: number): string {
+  return String(Number(n.toFixed(2)));
+}
+
 export function formatCpuParts(millicores: number): FormattedParts {
   if (millicores === 0) {
     return { value: "—", unit: "" };
@@ -30,8 +34,8 @@ export function formatCpuParts(millicores: number): FormattedParts {
   if (millicores === 1000) {
     return { value: "1", unit: "vCPU" };
   }
-  if (millicores >= 1000 && millicores % 1000 === 0) {
-    return { value: `${millicores / 1000}`, unit: "vCPU" };
+  if (millicores >= 1000 && millicores % 250 === 0) {
+    return { value: trimmed(millicores / 1000), unit: "vCPU" };
   }
   return { value: `${millicores}m`, unit: "vCPU" };
 }
@@ -40,8 +44,11 @@ export function formatMemoryParts(mib: number): FormattedParts {
   if (mib === 0) {
     return { value: "—", unit: "" };
   }
+  if (mib >= 1024 && mib % 256 === 0) {
+    return { value: trimmed(mib / 1024), unit: "GiB" };
+  }
   if (mib >= 1024) {
-    return { value: `${(mib / 1024).toFixed(mib % 1024 === 0 ? 0 : 1)}`, unit: "GiB" };
+    return { value: (mib / 1024).toFixed(1), unit: "GiB" };
   }
   return { value: `${mib}`, unit: "MiB" };
 }
@@ -54,6 +61,22 @@ export function formatStorageParts(mib: number): FormattedParts {
     return { value: `${(mib / 1024).toFixed(mib % 1024 === 0 ? 0 : 1)}`, unit: "GiB" };
   }
   return { value: `${mib}`, unit: "MiB" };
+}
+
+function joinParts({ value, unit }: FormattedParts): string {
+  return unit ? `${value} ${unit}` : value;
+}
+
+export function formatCpu(millicores: number): string {
+  return joinParts(formatCpuParts(millicores));
+}
+
+export function formatMemory(mib: number): string {
+  return joinParts(formatMemoryParts(mib));
+}
+
+export function formatStorage(mib: number): string {
+  return joinParts(formatStorageParts(mib));
 }
 
 // Pick a binary unit (B/s, KiB/s, MiB/s, GiB/s) based on the magnitude.
