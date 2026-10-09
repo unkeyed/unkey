@@ -1,66 +1,22 @@
-import { IconDotsOutline18, IconGripDotsVerticalOutline18 } from "@unkey/icons";
-import { Button, Skeleton } from "@unkey/ui";
+import { ResourceListBody, ResourceListContent, ResourceListItem, Skeleton } from "@unkey/ui";
+import { cn } from "cn";
+import { POLICY_COLUMNS, PoliciesListHeader } from "./row";
 
-/**
- * Loading skeleton for PoliciesList. Mirrors the row layout in
- * row.tsx exactly so the list doesn't shift when real data lands.
- */
-export function PoliciesListSkeleton({ rows = 10 }: { rows?: number }) {
+export function PoliciesListSkeleton() {
   return (
-    <div className="border bg-raised rounded-lg overflow-hidden">
-      <div>
-        {Array.from({ length: rows }).map((_, i) => (
-          // biome-ignore lint/suspicious/noArrayIndexKey: skeleton items are static placeholders with no stable id
-          <PolicyRowSkeleton key={`skeleton-${i}`} index={i} isLast={i === rows - 1} />
+    <ResourceListContent aria-busy="true">
+      <PoliciesListHeader />
+      <ResourceListBody aria-hidden="true">
+        {Array.from({ length: 3 }, (_, i) => `skeleton-${i}`).map((key) => (
+          <ResourceListItem key={key} className={cn(POLICY_COLUMNS, "h-12 px-4")}>
+            <Skeleton className="size-6 rounded-md" />
+            <Skeleton className="h-3 w-32" />
+            <Skeleton className="h-3 w-20" />
+            <Skeleton className="h-3 w-56" />
+            <span />
+          </ResourceListItem>
         ))}
-      </div>
-    </div>
-  );
-}
-
-function PolicyRowSkeleton({ index, isLast }: { index: number; isLast: boolean }) {
-  return (
-    <div className={isLast ? undefined : "border-b"}>
-      <div className="flex items-center">
-        {/* Step number */}
-        <div className="w-10 shrink-0 py-5 pl-4 flex items-center">
-          <div className="size-6 rounded-full border bg-grayA-2 text-gray-10 flex items-center justify-center text-2xs font-medium">
-            {index + 1}
-          </div>
-        </div>
-
-        {/* Drag handle */}
-        <div className="w-10 shrink-0 flex items-center justify-center py-5">
-          <IconGripDotsVerticalOutline18 className="size-4 opacity-20" />
-        </div>
-
-        {/* Name */}
-        <div className="flex-4 min-w-0 py-5 flex items-center pr-5">
-          <Skeleton className="h-[13px] w-32" />
-        </div>
-
-        {/* Type */}
-        <div className="flex-4 min-w-0 py-5 flex items-center pr-3">
-          <Skeleton className="h-[13px] w-16" />
-        </div>
-
-        {/* Env badges */}
-        <div className="flex-2 min-w-0 py-5 flex items-center gap-1.5 pr-3">
-          <Skeleton className="h-[22px] w-full rounded-full border border-dashed bg-grayA-2" />
-          <Skeleton className="h-[22px] w-full rounded-full border border-dashed bg-grayA-2" />
-        </div>
-
-        {/* Actions */}
-        <div className="w-12 shrink-0 py-5 flex items-center justify-end pr-4">
-          <Button
-            variant="outline"
-            className="size-5 [&_svg]:size-3 rounded-sm border-transparent"
-            disabled
-          >
-            <IconDotsOutline18 className="text-gray-11 opacity-30" />
-          </Button>
-        </div>
-      </div>
-    </div>
+      </ResourceListBody>
+    </ResourceListContent>
   );
 }
