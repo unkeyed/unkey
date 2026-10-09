@@ -70,6 +70,13 @@ export const projectRoutes = {
       );
     },
 
+    domains(scope: AppScope): Route {
+      return buildRoute(
+        "/[workspaceSlug]/projects/[projectId]/apps/[appId]/domains",
+        appParams(scope),
+      );
+    },
+
     envVars(scope: AppScope): Route {
       return buildRoute(
         "/[workspaceSlug]/projects/[projectId]/apps/[appId]/env-vars",

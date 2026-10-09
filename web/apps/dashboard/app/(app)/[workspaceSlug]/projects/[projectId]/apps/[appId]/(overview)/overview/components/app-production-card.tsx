@@ -173,14 +173,7 @@ export function AppProductionCard() {
 
   const addCustomDomainHref =
     primary?.source === "platform"
-      ? {
-          pathname: routes.projects.apps.settings({
-            workspaceSlug: workspace.slug,
-            projectId,
-            appId,
-          }),
-          hash: "custom-domains",
-        }
+      ? routes.projects.apps.domains({ workspaceSlug: workspace.slug, projectId, appId })
       : null;
 
   const ctx: ProductionCardContextValue = {
