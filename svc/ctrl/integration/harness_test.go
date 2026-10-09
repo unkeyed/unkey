@@ -5,12 +5,13 @@ import (
 
 	"github.com/stretchr/testify/require"
 	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
+	"github.com/unkeyed/unkey/pkg/uid"
 )
 
 func TestCreateDeploymentResolvedImage(t *testing.T) {
 	h := New(t)
 	deployment := h.CreateDeployment(h.Context(), CreateDeploymentRequest{
-		Region:       "us-east-1",
+		Region:       uid.DNS1035(12),
 		DesiredState: mysqltype.DeploymentsDesiredStateRunning,
 	})
 

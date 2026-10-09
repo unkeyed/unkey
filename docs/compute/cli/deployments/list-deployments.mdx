@@ -76,9 +76,9 @@ Every `unkey api` command accepts these; [CLI output and shared flags](/platform
 
 ## Required permissions
 
-Your root key needs `environment.*.read_deployment`.
+Your root key needs `unkey:v1:<workspace_id>:projects/<project_id>/apps/<app_id>/environments/<environment_id>/deployments/*#read`, with `*` for every level you don't filter by.
 
-A grant for a single environment isn't enough, because the list spans environments.
+The permission must cover every deployment the filters select. A grant for one environment isn't enough for a list that spans more environments.
 
 Without a matching permission the API answers 403 and the CLI prints `Permission denied:` followed by the detail. See [Root key permissions](/platform/root-keys/permissions) for the full catalog.
 

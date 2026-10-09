@@ -1,0 +1,166 @@
+post:
+  tags:
+    - permissions
+  summary: Update permission
+  description: |
+    Update the name, slug, or description of a permission, identified by its ID or slug.
+
+    Omitted fields keep their current values. A request with no fields to update returns the stored permission without a write.
+
+    **Important**: Keys and roles reference the permission by ID, so they keep the permission after a slug change. Key verification can return the old slug for a short time while caches refresh. A slug that another permission in your workspace already uses returns 409.
+
+    **Required Permissions**
+
+    Your root key must have the following permission:
+    - `unkey:v1:<workspace_id>:projects/<project_id>/rbac/permissions/<permission_id>#write`
+  operationId: permissions.updatePermission
+  x-speakeasy-name-override: UpdatePermission
+  x-unkey-idempotency: idempotent
+  security:
+    - bearer: []
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2PermissionsUpdatePermissionRequestBody.yaml"
+        examples:
+          rename:
+            summary: Rename a permission by ID
+            description: Change only the display name, locating the permission by its ID
+            value:
+              permission: perm_1234567890abcdef
+              name: Read documents
+          changeSlug:
+            summary: Change a permission slug by slug
+            description: Locate the permission by its current slug and assign a new one
+            value:
+              permission: documents-read
+              slug: documents.read
+          clearDescription:
+            summary: Remove a description
+            description: Clear the description and keep the name and slug
+            value:
+              permission: perm_1234567890abcdef
+              description: null
+  responses:
+    "200":
+      description: Permission updated successfully
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2PermissionsUpdatePermissionResponseBody.yaml"
+          examples:
+            updated:
+              summary: Updated permission
+              value:
+                meta:
+                  requestId: req_1234abcd
+                data:
+                  id: perm_1234567890abcdef
+                  name: Read documents
+                  slug: documents.read
+                  description: Allows reading document resources
+    "400":
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/BadRequestErrorResponse.yaml"
+          examples:
+            invalidSlug:
+              summary: Slug has invalid characters
+              value:
+                meta:
+                  requestId: req_1234abcd
+                error:
+                  title: Bad Request
+                  detail: POST request body for '/v2/permissions.updatePermission' failed to validate schema
+                  status: 400
+                  type: https://unkey.com/docs/errors/unkey/application/invalid_input
+                  errors:
+                    - location: body.slug
+                      message: "does not match pattern '^[a-zA-Z0-9_:\\-\\.\\*]+$'"
+                      fix: "Use only letters, numbers, and the characters _ : - . *"
+    "401":
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
+          examples:
+            missingKey:
+              summary: Missing root key
+              value:
+                meta:
+                  requestId: req_1234abcd
+                error:
+                  title: Unauthorized
+                  detail: You must provide a valid root key in the Authorization header in this format 'Bearer unkey_xxx'
+                  status: 401
+                  type: https://unkey.com/docs/errors/unkey/authentication/missing
+    "403":
+      description: Forbidden - The root key or the workspace is disabled. A key that lacks the required permission gets 404 instead.
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/ForbiddenErrorResponse.yaml"
+          examples:
+            keyDisabled:
+              summary: Root key disabled
+              value:
+                meta:
+                  requestId: req_1234abcd
+                error:
+                  title: Forbidden
+                  detail: The key is disabled.
+                  status: 403
+                  type: https://unkey.com/docs/errors/unkey/authorization/key_disabled
+    "404":
+      description: |
+        Not Found - The permission does not exist in your workspace, or your root key lacks write access to it.
+        Both cases return the same response, so a root key cannot learn which permissions exist.
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/NotFoundErrorResponse.yaml"
+          examples:
+            permissionNotFound:
+              summary: Permission not found
+              value:
+                meta:
+                  requestId: req_1234abcd
+                error:
+                  title: Not Found
+                  detail: The requested permission does not exist.
+                  status: 404
+                  type: https://unkey.com/docs/errors/unkey/data/permission_not_found
+    "409":
+      description: Conflict - Another permission in the workspace already uses this slug
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/ConflictErrorResponse.yaml"
+          examples:
+            slugTaken:
+              summary: Slug already in use
+              value:
+                meta:
+                  requestId: req_1234abcd
+                error:
+                  title: Conflict
+                  detail: A permission with slug 'documents.read' already exists in this workspace.
+                  status: 409
+                  type: https://unkey.com/docs/errors/unkey/data/permission_already_exists
+    "429":
+      description: Too Many Requests
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/TooManyRequestsErrorResponse.yaml"
+    "500":
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/InternalServerErrorResponse.yaml"

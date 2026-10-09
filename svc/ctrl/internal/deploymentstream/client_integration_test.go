@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"math"
 	"testing"
 	"time"
 
@@ -40,7 +41,10 @@ func TestWatch_VitessDeletesFilteringAndResume(t *testing.T) {
 			return nil
 		}},
 		{name: "hard delete", remove: func(ctx context.Context, database db.Database, rows []topologyRow) error {
-			_, err := database.RW().ExecContext(ctx, "DELETE FROM deployment_topology WHERE region_id IN (?, ?)", rows[0].regionID, rows[1].regionID)
+			_, err := database.DeleteDeploymentTopologiesByRegionIds(ctx, db.DeleteDeploymentTopologiesByRegionIdsParams{
+				RegionIds: []string{rows[0].regionID, rows[1].regionID},
+				Limit:     math.MaxInt32,
+			})
 			return err
 		}},
 	} {
@@ -52,7 +56,10 @@ func TestWatch_VitessDeletesFilteringAndResume(t *testing.T) {
 			region := uid.New(uid.RegionPrefix)
 			otherRegion := region + "_other"
 			t.Cleanup(func() {
-				_, err := database.RW().ExecContext(context.Background(), "DELETE FROM deployment_topology WHERE region_id IN (?, ?)", region, otherRegion)
+				_, err := database.DeleteDeploymentTopologiesByRegionIds(context.Background(), db.DeleteDeploymentTopologiesByRegionIdsParams{
+					RegionIds: []string{region, otherRegion},
+					Limit:     math.MaxInt32,
+				})
 				require.NoError(t, err)
 			})
 			ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
@@ -127,9 +134,10 @@ func TestWatch_VitessRetriesFailedDeliveryAndResumesPartialSnapshot(t *testing.T
 	region := uid.New(uid.RegionPrefix)
 	t.Cleanup(func() {
 		for {
-			result, err := database.RW().ExecContext(context.Background(), "DELETE FROM deployment_topology WHERE region_id = ? LIMIT 5000", region)
-			require.NoError(t, err)
-			deleted, err := result.RowsAffected()
+			deleted, err := database.DeleteDeploymentTopologiesByRegionIds(context.Background(), db.DeleteDeploymentTopologiesByRegionIdsParams{
+				RegionIds: []string{region},
+				Limit:     5000,
+			})
 			require.NoError(t, err)
 			if deleted == 0 {
 				break

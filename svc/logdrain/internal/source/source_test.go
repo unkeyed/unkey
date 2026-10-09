@@ -7,6 +7,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	logdrainv1 "github.com/unkeyed/unkey/gen/proto/logdrain/v1"
+	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/uid"
@@ -25,13 +26,7 @@ func TestAuditLogsRead_CursorBounds(t *testing.T) {
 	otherWorkspaceID := uid.New(uid.WorkspacePrefix)
 	insertedAt := time.Now().Add(-time.Minute).UnixMilli()
 	occurredAt := time.Now().UTC().Truncate(time.Second).Add(-time.Hour + 123*time.Millisecond)
-
-	t.Cleanup(func() {
-		require.NoError(t, client.Conn().Exec(ctx, `
-			ALTER TABLE audit_logs_raw_v1 DELETE
-			WHERE workspace_id IN (?, ?) SETTINGS mutations_sync = 1
-		`, workspaceID, otherWorkspaceID))
-	})
+	var rows []auditLogRow
 	for _, event := range []struct {
 		workspaceID string
 		id          string
@@ -46,11 +41,14 @@ func TestAuditLogsRead_CursorBounds(t *testing.T) {
 		{workspaceID, "e", insertedAt + 2},
 		{otherWorkspaceID, "z", insertedAt},
 	} {
-		require.NoError(t, client.Conn().Exec(ctx, `
-			INSERT INTO audit_logs_raw_v1 (workspace_id, bucket, event_id, time, inserted_at)
-			VALUES (?, 'audit', ?, ?, ?)
-		`, event.workspaceID, event.id, occurredAt.UnixMilli(), event.insertedAt))
+		rows = append(rows, auditRow(t, auditlog.Event{
+			EventID:     event.id,
+			Time:        occurredAt.UnixMilli(),
+			WorkspaceID: event.workspaceID,
+			Bucket:      "audit",
+		}, event.insertedAt))
 	}
+	insertRows(t, client.Conn(), rows...)
 
 	auditLogs := source.NewAuditLogs(client)
 	cursor := source.Cursor{Time: insertedAt, EventID: "b"}
@@ -84,9 +82,7 @@ func TestAuditLogsRead_EventTypes(t *testing.T) {
 	ctx := context.Background()
 	workspaceID := uid.New(uid.WorkspacePrefix)
 	insertedAt := time.Now().Add(-time.Minute).UnixMilli()
-	t.Cleanup(func() {
-		require.NoError(t, client.Conn().Exec(ctx, `ALTER TABLE audit_logs_raw_v1 DELETE WHERE workspace_id = ? SETTINGS mutations_sync = 1`, workspaceID))
-	})
+	var rows []auditLogRow
 	for _, event := range []struct{ id, eventType string }{
 		{"a", "key.verify"},
 		{"b", "key.create"},
@@ -96,11 +92,15 @@ func TestAuditLogsRead_EventTypes(t *testing.T) {
 		{"f", "key.verify"},
 		{"g", `custom.'\event`},
 	} {
-		require.NoError(t, client.Conn().Exec(ctx, `
-			INSERT INTO audit_logs_raw_v1 (workspace_id, bucket, event_id, time, inserted_at, event)
-			VALUES (?, 'audit', ?, ?, ?, ?)
-		`, workspaceID, event.id, insertedAt, insertedAt, event.eventType))
+		rows = append(rows, auditRow(t, auditlog.Event{
+			EventID:     event.id,
+			Time:        insertedAt,
+			WorkspaceID: workspaceID,
+			Bucket:      "audit",
+			Event:       event.eventType,
+		}, insertedAt))
 	}
+	insertRows(t, client.Conn(), rows...)
 	auditLogs := source.NewAuditLogs(client)
 	from := source.Cursor{Time: insertedAt}
 	filter := &logdrainv1.Config{Stream: &logdrainv1.Config_AuditLogs{AuditLogs: &logdrainv1.AuditLogStreamConfig{EventTypes: []string{"key.create", "key.delete"}}}}
@@ -124,4 +124,11 @@ func TestAuditLogsRead_EventTypes(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, page, 1)
 	require.Equal(t, "g", page[0].EventID)
+}
+
+func auditRow(t *testing.T, event auditlog.Event, insertedAt int64) auditLogRow {
+	t.Helper()
+	encoded, err := clickhouse.EncodeAuditLogEvents([]auditlog.Event{event})
+	require.NoError(t, err)
+	return auditLogRow{AuditLogV1: encoded[0], InsertedAt: insertedAt}
 }

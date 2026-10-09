@@ -323,10 +323,18 @@ type CreateAppRequest struct {
 	ProjectID   string
 	Name        string
 	Slug        string
+
+	// SourceType defaults to unknown when empty.
+	SourceType db.AppsSourceType
 }
 
 func (s *Seeder) CreateApp(ctx context.Context, req CreateAppRequest) db.App {
 	now := time.Now().UnixMilli()
+
+	sourceType := req.SourceType
+	if sourceType == "" {
+		sourceType = db.AppsSourceTypeUnknown
+	}
 
 	err := s.DB.InsertApp(ctx, db.InsertAppParams{
 		ID:               req.ID,
@@ -334,7 +342,7 @@ func (s *Seeder) CreateApp(ctx context.Context, req CreateAppRequest) db.App {
 		ProjectID:        req.ProjectID,
 		Name:             req.Name,
 		Slug:             req.Slug,
-		SourceType:       db.AppsSourceTypeUnknown,
+		SourceType:       sourceType,
 		DeleteProtection: sql.NullBool{Valid: true, Bool: false},
 		CreatedAt:        now,
 		UpdatedAt:        sql.NullInt64{Valid: false},
@@ -408,6 +416,12 @@ type CreateDeploymentRequest struct {
 	// Optional fork provenance, for tests that rebuild a fork PR's deployment.
 	PrNumber               sql.NullInt64
 	ForkRepositoryFullName sql.NullString
+
+	// Optional image provenance. Source defaults to unknown when empty, and
+	// ImageResolved stays NULL unless set.
+	Source         db.DeploymentsSource
+	ImageRequested sql.NullString
+	ImageResolved  sql.NullString
 }
 
 func (s *Seeder) CreateDeployment(ctx context.Context, req CreateDeploymentRequest) db.Deployment {
@@ -421,6 +435,11 @@ func (s *Seeder) CreateDeployment(ctx context.Context, req CreateDeploymentReque
 		createdAt = time.Now().UnixMilli()
 	}
 
+	source := req.Source
+	if source == "" {
+		source = db.DeploymentsSourceUnknown
+	}
+
 	err := s.DB.InsertDeployment(ctx, db.InsertDeploymentParams{
 		ID:                            id,
 		K8sName:                       uid.New("k8s"),
@@ -428,8 +447,8 @@ func (s *Seeder) CreateDeployment(ctx context.Context, req CreateDeploymentReque
 		ProjectID:                     req.ProjectID,
 		AppID:                         req.AppID,
 		EnvironmentID:                 req.EnvironmentID,
-		Source:                        db.DeploymentsSourceUnknown,
-		ImageRequested:                sql.NullString{Valid: false},
+		Source:                        source,
+		ImageRequested:                req.ImageRequested,
 		GitCommitSha:                  req.GitCommitSha,
 		GitBranch:                     req.GitBranch,
 		SentinelConfig:                []byte("{}"),
@@ -456,6 +475,15 @@ func (s *Seeder) CreateDeployment(ctx context.Context, req CreateDeploymentReque
 		TriggerReason:                 sql.NullString{Valid: false},
 	})
 	require.NoError(s.t, err)
+
+	if req.ImageResolved.Valid {
+		err = s.DB.UpdateDeploymentImage(ctx, db.UpdateDeploymentImageParams{
+			ImageResolved: req.ImageResolved,
+			UpdatedAt:     req.UpdatedAt,
+			ID:            id,
+		})
+		require.NoError(s.t, err)
+	}
 
 	deployment, err := s.DB.FindDeploymentById(ctx, id)
 	require.NoError(s.t, err)

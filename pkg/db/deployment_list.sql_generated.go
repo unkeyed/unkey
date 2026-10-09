@@ -7,23 +7,37 @@ package db
 
 import (
 	"context"
+	"database/sql"
 	"strings"
 
+	dbtype "github.com/unkeyed/unkey/pkg/db/types"
 	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 )
 
 const listDeployments = `-- name: ListDeployments :many
-SELECT d.pk, d.id, d.k8s_name, d.workspace_id, d.project_id, d.environment_id, d.app_id, d.source, d.image_requested, d.image_resolved, d.build_id, d.git_commit_sha, d.git_branch, d.git_commit_message, d.git_commit_author_handle, d.git_commit_author_avatar_url, d.git_commit_timestamp, d.sentinel_config, d.cpu_millicores, d.memory_mib, d.storage_mib, d.desired_state, d.encrypted_environment_variables, d.command, d.port, d.shutdown_signal, d.upstream_protocol, d.healthcheck, d.pr_number, d.fork_repository_full_name, d.github_deployment_id, d.invocation_id, d.status, d.` + "`" + `trigger` + "`" + `, d.triggered_by, d.trigger_reason, d.created_at, d.updated_at FROM ` + "`" + `deployments` + "`" + ` d
+SELECT d.id, d.project_id, d.app_id, d.environment_id, d.source, d.image_requested, d.image_resolved, d.git_commit_sha, d.git_branch, d.git_commit_message, d.git_commit_author_handle, d.git_commit_author_avatar_url, d.git_commit_timestamp, d.cpu_millicores, d.memory_mib, d.storage_mib, d.desired_state, d.command, d.port, d.shutdown_signal, d.upstream_protocol, d.healthcheck, d.pr_number, d.fork_repository_full_name, d.status, d.` + "`" + `trigger` + "`" + `, d.triggered_by, d.created_at, d.updated_at FROM ` + "`" + `deployments` + "`" + ` d
 WHERE d.workspace_id = ?
   AND (? = '' OR d.project_id = ?)
   AND (? = '' OR d.app_id = ?)
   AND (? = '' OR d.environment_id = ?)
   AND (? = FALSE OR d.status IN (/*SLICE:statuses*/?))
+  AND (? = FALSE OR d.git_branch IN (/*SLICE:branches*/?))
+  AND (? IS NULL OR d.created_at >= ?)
+  AND (? IS NULL OR d.created_at < ?)
   AND (
     ? = ''
-    OR d.pk <= (SELECT c.pk FROM ` + "`" + `deployments` + "`" + ` c WHERE c.id = ?)
+    OR (
+      d.created_at <= (
+        SELECT c.created_at FROM ` + "`" + `deployments` + "`" + ` c
+        WHERE c.id = ? AND c.workspace_id = ?
+      )
+      AND (d.created_at, d.pk) <= (
+        SELECT c.created_at, c.pk FROM ` + "`" + `deployments` + "`" + ` c
+        WHERE c.id = ? AND c.workspace_id = ?
+      )
+    )
   )
-ORDER BY d.pk DESC
+ORDER BY d.created_at DESC, d.pk DESC
 LIMIT ?
 `
 
@@ -34,26 +48,77 @@ type ListDeploymentsParams struct {
 	EnvironmentID   string                        `db:"environment_id"`
 	HasStatusFilter interface{}                   `db:"has_status_filter"`
 	Statuses        []mysqltype.DeploymentsStatus `db:"statuses"`
+	HasBranchFilter interface{}                   `db:"has_branch_filter"`
+	Branches        []sql.NullString              `db:"branches"`
+	StartTime       sql.NullInt64                 `db:"start_time"`
+	EndTime         sql.NullInt64                 `db:"end_time"`
 	CursorID        string                        `db:"cursor_id"`
 	Limit           int32                         `db:"limit"`
 }
 
-// has_status_filter gates the status clause; without it sqlc renders an empty
-// status set as IN (NULL), which matches nothing.
+type ListDeploymentsRow struct {
+	ID                       string                            `db:"id"`
+	ProjectID                string                            `db:"project_id"`
+	AppID                    string                            `db:"app_id"`
+	EnvironmentID            string                            `db:"environment_id"`
+	Source                   DeploymentsSource                 `db:"source"`
+	ImageRequested           sql.NullString                    `db:"image_requested"`
+	ImageResolved            sql.NullString                    `db:"image_resolved"`
+	GitCommitSha             sql.NullString                    `db:"git_commit_sha"`
+	GitBranch                sql.NullString                    `db:"git_branch"`
+	GitCommitMessage         sql.NullString                    `db:"git_commit_message"`
+	GitCommitAuthorHandle    sql.NullString                    `db:"git_commit_author_handle"`
+	GitCommitAuthorAvatarUrl sql.NullString                    `db:"git_commit_author_avatar_url"`
+	GitCommitTimestamp       sql.NullInt64                     `db:"git_commit_timestamp"`
+	CpuMillicores            int32                             `db:"cpu_millicores"`
+	MemoryMib                int32                             `db:"memory_mib"`
+	StorageMib               uint32                            `db:"storage_mib"`
+	DesiredState             mysqltype.DeploymentsDesiredState `db:"desired_state"`
+	Command                  dbtype.StringSlice                `db:"command"`
+	Port                     int32                             `db:"port"`
+	ShutdownSignal           DeploymentsShutdownSignal         `db:"shutdown_signal"`
+	UpstreamProtocol         DeploymentsUpstreamProtocol       `db:"upstream_protocol"`
+	Healthcheck              dbtype.NullHealthcheck            `db:"healthcheck"`
+	PrNumber                 sql.NullInt64                     `db:"pr_number"`
+	ForkRepositoryFullName   sql.NullString                    `db:"fork_repository_full_name"`
+	Status                   mysqltype.DeploymentsStatus       `db:"status"`
+	Trigger                  DeploymentsTrigger                `db:"trigger"`
+	TriggeredBy              sql.NullString                    `db:"triggered_by"`
+	CreatedAt                int64                             `db:"created_at"`
+	UpdatedAt                sql.NullInt64                     `db:"updated_at"`
+}
+
+// has_status_filter and has_branch_filter gate their clauses; without them sqlc
+// renders an empty set as IN (NULL), which matches nothing.
+// Newest first; pk breaks ties within a millisecond. The cursor resumes at its
+// row's (created_at, pk), inclusive. The plain created_at bound lets the index
+// seek, MySQL cannot range-scan the row comparison
 //
-//	SELECT d.pk, d.id, d.k8s_name, d.workspace_id, d.project_id, d.environment_id, d.app_id, d.source, d.image_requested, d.image_resolved, d.build_id, d.git_commit_sha, d.git_branch, d.git_commit_message, d.git_commit_author_handle, d.git_commit_author_avatar_url, d.git_commit_timestamp, d.sentinel_config, d.cpu_millicores, d.memory_mib, d.storage_mib, d.desired_state, d.encrypted_environment_variables, d.command, d.port, d.shutdown_signal, d.upstream_protocol, d.healthcheck, d.pr_number, d.fork_repository_full_name, d.github_deployment_id, d.invocation_id, d.status, d.`trigger`, d.triggered_by, d.trigger_reason, d.created_at, d.updated_at FROM `deployments` d
+//	SELECT d.id, d.project_id, d.app_id, d.environment_id, d.source, d.image_requested, d.image_resolved, d.git_commit_sha, d.git_branch, d.git_commit_message, d.git_commit_author_handle, d.git_commit_author_avatar_url, d.git_commit_timestamp, d.cpu_millicores, d.memory_mib, d.storage_mib, d.desired_state, d.command, d.port, d.shutdown_signal, d.upstream_protocol, d.healthcheck, d.pr_number, d.fork_repository_full_name, d.status, d.`trigger`, d.triggered_by, d.created_at, d.updated_at FROM `deployments` d
 //	WHERE d.workspace_id = ?
 //	  AND (? = '' OR d.project_id = ?)
 //	  AND (? = '' OR d.app_id = ?)
 //	  AND (? = '' OR d.environment_id = ?)
 //	  AND (? = FALSE OR d.status IN (/*SLICE:statuses*/?))
+//	  AND (? = FALSE OR d.git_branch IN (/*SLICE:branches*/?))
+//	  AND (? IS NULL OR d.created_at >= ?)
+//	  AND (? IS NULL OR d.created_at < ?)
 //	  AND (
 //	    ? = ''
-//	    OR d.pk <= (SELECT c.pk FROM `deployments` c WHERE c.id = ?)
+//	    OR (
+//	      d.created_at <= (
+//	        SELECT c.created_at FROM `deployments` c
+//	        WHERE c.id = ? AND c.workspace_id = ?
+//	      )
+//	      AND (d.created_at, d.pk) <= (
+//	        SELECT c.created_at, c.pk FROM `deployments` c
+//	        WHERE c.id = ? AND c.workspace_id = ?
+//	      )
+//	    )
 //	  )
-//	ORDER BY d.pk DESC
+//	ORDER BY d.created_at DESC, d.pk DESC
 //	LIMIT ?
-func (q *Queries) ListDeployments(ctx context.Context, db DBTX, arg ListDeploymentsParams) ([]Deployment, error) {
+func (q *Queries) ListDeployments(ctx context.Context, db DBTX, arg ListDeploymentsParams) ([]ListDeploymentsRow, error) {
 	query := listDeployments
 	var queryParams []interface{}
 	queryParams = append(queryParams, arg.WorkspaceID)
@@ -72,41 +137,51 @@ func (q *Queries) ListDeployments(ctx context.Context, db DBTX, arg ListDeployme
 	} else {
 		query = strings.Replace(query, "/*SLICE:statuses*/?", "NULL", 1)
 	}
+	queryParams = append(queryParams, arg.HasBranchFilter)
+	if len(arg.Branches) > 0 {
+		for _, v := range arg.Branches {
+			queryParams = append(queryParams, v)
+		}
+		query = strings.Replace(query, "/*SLICE:branches*/?", strings.Repeat(",?", len(arg.Branches))[1:], 1)
+	} else {
+		query = strings.Replace(query, "/*SLICE:branches*/?", "NULL", 1)
+	}
+	queryParams = append(queryParams, arg.StartTime)
+	queryParams = append(queryParams, arg.StartTime)
+	queryParams = append(queryParams, arg.EndTime)
+	queryParams = append(queryParams, arg.EndTime)
 	queryParams = append(queryParams, arg.CursorID)
 	queryParams = append(queryParams, arg.CursorID)
+	queryParams = append(queryParams, arg.WorkspaceID)
+	queryParams = append(queryParams, arg.CursorID)
+	queryParams = append(queryParams, arg.WorkspaceID)
 	queryParams = append(queryParams, arg.Limit)
 	rows, err := db.QueryContext(ctx, query, queryParams...)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Deployment
+	var items []ListDeploymentsRow
 	for rows.Next() {
-		var i Deployment
+		var i ListDeploymentsRow
 		if err := rows.Scan(
-			&i.Pk,
 			&i.ID,
-			&i.K8sName,
-			&i.WorkspaceID,
 			&i.ProjectID,
-			&i.EnvironmentID,
 			&i.AppID,
+			&i.EnvironmentID,
 			&i.Source,
 			&i.ImageRequested,
 			&i.ImageResolved,
-			&i.BuildID,
 			&i.GitCommitSha,
 			&i.GitBranch,
 			&i.GitCommitMessage,
 			&i.GitCommitAuthorHandle,
 			&i.GitCommitAuthorAvatarUrl,
 			&i.GitCommitTimestamp,
-			&i.SentinelConfig,
 			&i.CpuMillicores,
 			&i.MemoryMib,
 			&i.StorageMib,
 			&i.DesiredState,
-			&i.EncryptedEnvironmentVariables,
 			&i.Command,
 			&i.Port,
 			&i.ShutdownSignal,
@@ -114,12 +189,9 @@ func (q *Queries) ListDeployments(ctx context.Context, db DBTX, arg ListDeployme
 			&i.Healthcheck,
 			&i.PrNumber,
 			&i.ForkRepositoryFullName,
-			&i.GithubDeploymentID,
-			&i.InvocationID,
 			&i.Status,
 			&i.Trigger,
 			&i.TriggeredBy,
-			&i.TriggerReason,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 		); err != nil {

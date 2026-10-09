@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"slices"
 	"strings"
 	"sync"
 	"testing"
@@ -56,11 +57,12 @@ func TestCancelAbortsDeployments(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	failedSteps, err := pkgdb.Query.ListFailedDeploymentStepsByIds(ctx, f.database.RO(), pkgdb.ListFailedDeploymentStepsByIdsParams{
+	steps, err := pkgdb.Query.ListDeploymentStepsByIds(ctx, f.database.RO(), pkgdb.ListDeploymentStepsByIdsParams{
 		WorkspaceID:   building.WorkspaceID,
 		DeploymentIds: []string{building.ID},
 	})
 	require.NoError(t, err)
+	failedSteps := slices.DeleteFunc(steps, func(s pkgdb.DeploymentStep) bool { return s.Error.String == "" })
 	require.Len(t, failedSteps, 1)
 	require.Equal(t, "KEBAP", failedSteps[0].Error.String, "the in-flight step must carry the cancel reason")
 

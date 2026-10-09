@@ -13,6 +13,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
+	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_identities_update_identity"
 	"golang.org/x/sync/errgroup"
@@ -37,8 +38,6 @@ func TestSuccess(t *testing.T) {
 	ctx := context.Background()
 
 	workspaceID := h.Resources().UserWorkspace.ID
-	identityID := uid.New(uid.IdentityPrefix)
-	otherIdentityID := uid.New(uid.IdentityPrefix)
 	externalID := uid.New(uid.TestPrefix)
 	otherExternalID := uid.New(uid.TestPrefix)
 
@@ -53,25 +52,17 @@ func TestSuccess(t *testing.T) {
 	require.NoError(t, err)
 
 	// Insert test identities
-	err = db.Query.InsertIdentity(ctx, h.DB.RW(), db.InsertIdentityParams{
-		ID:          identityID,
+	identityID := h.CreateIdentity(seed.CreateIdentityRequest{
+		WorkspaceID: workspaceID,
+		Environment: "default",
 		ExternalID:  externalID,
-		WorkspaceID: workspaceID,
-		Environment: "default",
-		CreatedAt:   time.Now().UnixMilli(),
 		Meta:        metaBytes,
-	})
-	require.NoError(t, err)
-
-	err = db.Query.InsertIdentity(ctx, h.DB.RW(), db.InsertIdentityParams{
-		ID:          otherIdentityID,
-		ExternalID:  otherExternalID,
+	}).ID
+	h.CreateIdentity(seed.CreateIdentityRequest{
 		WorkspaceID: workspaceID,
 		Environment: "default",
-		CreatedAt:   time.Now().UnixMilli(),
-		Meta:        []byte("{}"),
+		ExternalID:  otherExternalID,
 	})
-	require.NoError(t, err)
 
 	// Insert test ratelimits for the first identity
 	ratelimitID1 := uid.New(uid.RatelimitPrefix)
@@ -289,18 +280,12 @@ func TestUpdateIdentityConcurrentRatelimits(t *testing.T) {
 	}
 
 	workspaceID := h.Resources().UserWorkspace.ID
-	identityID := uid.New(uid.IdentityPrefix)
 	externalID := uid.New(uid.TestPrefix)
-
-	err := db.Query.InsertIdentity(ctx, h.DB.RW(), db.InsertIdentityParams{
-		ID:          identityID,
-		ExternalID:  externalID,
+	h.CreateIdentity(seed.CreateIdentityRequest{
 		WorkspaceID: workspaceID,
 		Environment: "default",
-		CreatedAt:   time.Now().UnixMilli(),
-		Meta:        []byte("{}"),
+		ExternalID:  externalID,
 	})
-	require.NoError(t, err)
 
 	numConcurrent := 10
 
@@ -336,7 +321,7 @@ func TestUpdateIdentityConcurrentRatelimits(t *testing.T) {
 		})
 	}
 
-	err = g.Wait()
+	err := g.Wait()
 	require.NoError(t, err, "All concurrent updates should succeed without deadlock")
 
 	// Verify identity still exists
@@ -365,7 +350,6 @@ func TestBulkIdentityUpdateDeadlock(t *testing.T) {
 	t.Parallel()
 
 	h := testutil.NewHarness(t)
-	ctx := context.Background()
 
 	route := &handler.Handler{
 		DB:        h.DB,
@@ -388,35 +372,25 @@ func TestBulkIdentityUpdateDeadlock(t *testing.T) {
 	// attached, so the concurrent update phase hits the upsert path.
 	identities := make([]testIdentity, numIdentities)
 	for i := range numIdentities {
-		id := uid.New(uid.IdentityPrefix)
 		externalID := fmt.Sprintf("deadlock_test_%d_%s", i, uid.New("test"))
-		err := db.Query.InsertIdentity(ctx, h.DB.RW(), db.InsertIdentityParams{
-			ID:          id,
-			ExternalID:  externalID,
-			WorkspaceID: workspaceID,
-			Environment: "default",
-			CreatedAt:   time.Now().UnixMilli(),
-			Meta:        []byte("{}"),
-		})
-		require.NoError(t, err)
-
-		seedRL := make([]db.InsertIdentityRatelimitParams, len(rlNames))
+		seedRL := make([]seed.CreateRatelimitRequest, len(rlNames))
 		for j, name := range rlNames {
-			seedRL[j] = db.InsertIdentityRatelimitParams{
-				ID:          uid.New(uid.RatelimitPrefix),
+			seedRL[j] = seed.CreateRatelimitRequest{
 				WorkspaceID: workspaceID,
-				IdentityID:  sql.NullString{String: id, Valid: true},
 				Name:        name,
 				Limit:       100,
 				Duration:    60000,
-				CreatedAt:   time.Now().UnixMilli(),
 				AutoApply:   true,
 			}
 		}
-		err = db.BulkQuery.InsertIdentityRatelimits(ctx, h.DB.RW(), seedRL)
-		require.NoError(t, err)
+		identity := h.CreateIdentity(seed.CreateIdentityRequest{
+			WorkspaceID: workspaceID,
+			Environment: "default",
+			ExternalID:  externalID,
+			Ratelimits:  seedRL,
+		})
 
-		identities[i] = testIdentity{id: id, externalID: externalID}
+		identities[i] = testIdentity{id: identity.ID, externalID: externalID}
 	}
 
 	// Warm up the validator cache with one request.

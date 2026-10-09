@@ -10,51 +10,6 @@ import (
 	"strings"
 )
 
-const listDeploymentDomains = `-- name: ListDeploymentDomains :many
-SELECT r.fully_qualified_domain_name AS domain
-FROM frontline_routes r
-JOIN deployments d ON r.deployment_id = d.id
-WHERE d.workspace_id = ?
-  AND r.deployment_id = ?
-ORDER BY r.fully_qualified_domain_name
-`
-
-type ListDeploymentDomainsParams struct {
-	WorkspaceID  string `db:"workspace_id"`
-	DeploymentID string `db:"deployment_id"`
-}
-
-// ListDeploymentDomains
-//
-//	SELECT r.fully_qualified_domain_name AS domain
-//	FROM frontline_routes r
-//	JOIN deployments d ON r.deployment_id = d.id
-//	WHERE d.workspace_id = ?
-//	  AND r.deployment_id = ?
-//	ORDER BY r.fully_qualified_domain_name
-func (q *Queries) ListDeploymentDomains(ctx context.Context, db DBTX, arg ListDeploymentDomainsParams) ([]string, error) {
-	rows, err := db.QueryContext(ctx, listDeploymentDomains, arg.WorkspaceID, arg.DeploymentID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []string
-	for rows.Next() {
-		var domain string
-		if err := rows.Scan(&domain); err != nil {
-			return nil, err
-		}
-		items = append(items, domain)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
 const listDeploymentDomainsByIds = `-- name: ListDeploymentDomainsByIds :many
 SELECT r.deployment_id AS deployment_id, r.fully_qualified_domain_name AS domain
 FROM frontline_routes r

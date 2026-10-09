@@ -116,6 +116,7 @@ func TestKeyVerificationsRead_FilteredCursorBounds(t *testing.T) {
 	workspaceID := uid.New(uid.WorkspacePrefix)
 	otherWorkspaceID := uid.New(uid.WorkspacePrefix)
 	now := time.Now().UnixMilli()
+	var rows []keyVerificationRow
 	for _, row := range []struct {
 		workspace, id, outcome string
 		insertedAt             int64
@@ -130,10 +131,18 @@ func TestKeyVerificationsRead_FilteredCursorBounds(t *testing.T) {
 		{workspaceID, "f", "RATE_LIMITED", now + 2},
 		{otherWorkspaceID, "g", "RATE_LIMITED", now},
 	} {
-		require.NoError(t, client.Conn().Exec(t.Context(), `INSERT INTO key_verifications_raw_v2
-			(workspace_id, request_id, inserted_at, time, outcome)
-			VALUES (?, ?, ?, ?, ?)`, row.workspace, row.id, row.insertedAt, now-60000, row.outcome))
+		rows = append(rows, keyVerificationRow{
+			KeyVerification: schema.KeyVerification{
+				RequestID:   row.id,
+				Time:        now - 60000,
+				WorkspaceID: row.workspace,
+				Source:      schema.SourceAPI,
+				Outcome:     row.outcome,
+			},
+			InsertedAt: row.insertedAt,
+		})
 	}
+	insertRows(t, client.Conn(), rows...)
 	reader := source.NewKeyVerifications(client)
 	from := source.Cursor{Time: now, EventID: "a"}
 	filter := &logdrainv1.Config{Stream: &logdrainv1.Config_KeyVerifications{KeyVerifications: &logdrainv1.KeyVerificationStreamConfig{Outcomes: []string{"RATE_LIMITED", "EXPIRED"}}}}
@@ -167,6 +176,7 @@ func TestKeyVerificationsRead_KeySpacesBeforeLimit(t *testing.T) {
 	t.Cleanup(func() { require.NoError(t, client.Close()) })
 	workspaceID := uid.New(uid.WorkspacePrefix)
 	now := time.Now().UnixMilli()
+	var rows []keyVerificationRow
 	for _, row := range []struct{ id, keyspace, outcome string }{
 		{"a", "excluded", "RATE_LIMITED"},
 		{"b", "selected", "VALID"},
@@ -174,10 +184,19 @@ func TestKeyVerificationsRead_KeySpacesBeforeLimit(t *testing.T) {
 		{"d", "also_selected", "RATE_LIMITED"},
 		{"e", "excluded", "RATE_LIMITED"},
 	} {
-		require.NoError(t, client.Conn().Exec(t.Context(), `INSERT INTO key_verifications_raw_v2
-			(workspace_id, request_id, inserted_at, time, key_space_id, outcome)
-			VALUES (?, ?, ?, ?, ?, ?)`, workspaceID, row.id, now, now, row.keyspace, row.outcome))
+		rows = append(rows, keyVerificationRow{
+			KeyVerification: schema.KeyVerification{
+				RequestID:   row.id,
+				Time:        now,
+				WorkspaceID: workspaceID,
+				KeySpaceID:  row.keyspace,
+				Source:      schema.SourceAPI,
+				Outcome:     row.outcome,
+			},
+			InsertedAt: now,
+		})
 	}
+	insertRows(t, client.Conn(), rows...)
 	reader := source.NewKeyVerifications(client)
 	filter := &logdrainv1.Config{Stream: &logdrainv1.Config_KeyVerifications{KeyVerifications: &logdrainv1.KeyVerificationStreamConfig{
 		KeySpaceIds: []string{"selected", "also_selected"},

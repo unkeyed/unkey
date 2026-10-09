@@ -10,12 +10,86 @@ import (
 )
 
 type Querier interface {
+	// CountClickhouseOutboxByWorkspace counts every clickhouse_outbox row in a workspace. Intended
+	// for tests that prove a failed call wrote nothing.
+	//
+	//  SELECT COUNT(*)
+	//  FROM clickhouse_outbox
+	//  WHERE workspace_id = ?
+	CountClickhouseOutboxByWorkspace(ctx context.Context, db DBTX, workspaceID string) (int64, error)
 	// Covered by unique_domain_workspace_idx, which leads on workspace_id.
 	//
 	//  SELECT COUNT(*)
 	//  FROM custom_domains
 	//  WHERE workspace_id = ?
 	CountCustomDomainsByWorkspace(ctx context.Context, db DBTX, workspaceID string) (int64, error)
+	// CountIdentitiesByWorkspace counts every identity row in a workspace,
+	// including soft-deleted ones. Intended for tests.
+	//
+	//  SELECT COUNT(*)
+	//  FROM identities
+	//  WHERE workspace_id = ?
+	CountIdentitiesByWorkspace(ctx context.Context, db DBTX, workspaceID string) (int64, error)
+	// CountKeyPermissionsByWorkspace counts every keys_permissions row in a workspace. Intended
+	// for tests that prove a failed call wrote nothing.
+	//
+	//  SELECT COUNT(*)
+	//  FROM keys_permissions
+	//  WHERE workspace_id = ?
+	CountKeyPermissionsByWorkspace(ctx context.Context, db DBTX, workspaceID string) (int64, error)
+	// CountKeysByWorkspace counts every keys row in a workspace. Intended
+	// for tests that prove a failed call wrote nothing.
+	//
+	//  SELECT COUNT(*)
+	//  FROM `keys`
+	//  WHERE workspace_id = ?
+	CountKeysByWorkspace(ctx context.Context, db DBTX, workspaceID string) (int64, error)
+	// CountLivePortalSessionsByPortal counts a portal's unrevoked sessions,
+	// restricted to one end user when external_id is non-empty. Intended for
+	// tests.
+	//
+	//  SELECT COUNT(*)
+	//  FROM portal_sessions
+	//  WHERE portal_id = ?
+	//    AND revoked_at IS NULL
+	//    AND (? = '' OR external_id = ?)
+	CountLivePortalSessionsByPortal(ctx context.Context, db DBTX, arg CountLivePortalSessionsByPortalParams) (int64, error)
+	// CountPermissionsByWorkspace counts every permissions row in a workspace. Intended
+	// for tests that prove a failed call wrote nothing.
+	//
+	//  SELECT COUNT(*)
+	//  FROM permissions
+	//  WHERE workspace_id = ?
+	CountPermissionsByWorkspace(ctx context.Context, db DBTX, workspaceID string) (int64, error)
+	// CountPortalSessionsByExternalID counts every session minted for one end user
+	// in a workspace, in any state. Intended for tests.
+	//
+	//  SELECT COUNT(*)
+	//  FROM portal_sessions
+	//  WHERE workspace_id = ?
+	//    AND external_id = ?
+	CountPortalSessionsByExternalID(ctx context.Context, db DBTX, arg CountPortalSessionsByExternalIDParams) (int64, error)
+	// CountPortalsByWorkspace counts the portals in a workspace. Intended for
+	// tests that prove a rejected call wrote or deleted nothing.
+	//
+	//  SELECT COUNT(*)
+	//  FROM portals
+	//  WHERE workspace_id = ?
+	CountPortalsByWorkspace(ctx context.Context, db DBTX, workspaceID string) (int64, error)
+	// CountUnkeyPermissionsByWorkspace counts every unkey_principal_permissions row in a workspace. Intended
+	// for tests that prove a failed call wrote nothing.
+	//
+	//  SELECT COUNT(*)
+	//  FROM unkey_principal_permissions
+	//  WHERE workspace_id = ?
+	CountUnkeyPermissionsByWorkspace(ctx context.Context, db DBTX, workspaceID string) (int64, error)
+	// CountUnkeyRootKeysByWorkspace counts every unkey_root_keys row in a workspace. Intended
+	// for tests that prove a failed call wrote nothing.
+	//
+	//  SELECT COUNT(*)
+	//  FROM unkey_root_keys
+	//  WHERE workspace_id = ?
+	CountUnkeyRootKeysByWorkspace(ctx context.Context, db DBTX, workspaceID string) (int64, error)
 	//DeleteAllKeyPermissionsByKeyID
 	//
 	//  DELETE FROM keys_permissions
@@ -74,6 +148,18 @@ type Querier interface {
 	//  LEFT JOIN encrypted_keys ek ON k.id = ek.key_id
 	//  WHERE k.id = ?
 	DeleteKeyByID(ctx context.Context, db DBTX, id string) error
+	// DeleteLimitByWorkspaceID removes a workspace's limits row. Intended for
+	// tests of workspaces without configured limits.
+	//
+	//  DELETE FROM `limits`
+	//  WHERE workspace_id = ?
+	DeleteLimitByWorkspaceID(ctx context.Context, db DBTX, workspaceID string) error
+	// DeleteManyIdentitiesByWorkspaceID hard deletes every identity in a
+	// workspace. Intended for tests that reset reusable fixtures.
+	//
+	//  DELETE FROM identities
+	//  WHERE workspace_id = ?
+	DeleteManyIdentitiesByWorkspaceID(ctx context.Context, db DBTX, workspaceID string) error
 	//DeleteManyKeyPermissionByKeyAndPermissionIDs
 	//
 	//  DELETE FROM keys_permissions
@@ -94,6 +180,12 @@ type Querier interface {
 	//  DELETE FROM keys_roles
 	//  WHERE role_id = ?
 	DeleteManyKeyRolesByRoleID(ctx context.Context, db DBTX, roleID string) error
+	// DeleteManyProjectsByWorkspaceID hard deletes every project in a workspace.
+	// Intended for tests that reset reusable fixtures.
+	//
+	//  DELETE FROM projects
+	//  WHERE workspace_id = ?
+	DeleteManyProjectsByWorkspaceID(ctx context.Context, db DBTX, workspaceID string) error
 	//DeleteManyRatelimitsByIDs
 	//
 	//  DELETE FROM ratelimits WHERE id IN (/*SLICE:ids*/?)
@@ -155,6 +247,12 @@ type Querier interface {
 	//      AND principal_type = ?
 	//      AND principal_id = ?
 	DeleteUnkeyPermissionsByPrincipal(ctx context.Context, db DBTX, arg DeleteUnkeyPermissionsByPrincipalParams) error
+	// DeleteWorkspace hard deletes a workspace row without touching its
+	// resources. Intended for tests that reset reusable fixtures.
+	//
+	//  DELETE FROM workspaces
+	//  WHERE id = ?
+	DeleteWorkspace(ctx context.Context, db DBTX, id string) error
 	// Removes every Stripe subscription row for a workspace. Paired with
 	// ResetWorkspaceBilling by the `unkey dev stripe reset` tooling.
 	//
@@ -424,6 +522,12 @@ type Querier interface {
 	//
 	//  SELECT deployments.pk, deployments.id, deployments.k8s_name, deployments.workspace_id, deployments.project_id, deployments.environment_id, deployments.app_id, deployments.source, deployments.image_requested, deployments.image_resolved, deployments.build_id, deployments.git_commit_sha, deployments.git_branch, deployments.git_commit_message, deployments.git_commit_author_handle, deployments.git_commit_author_avatar_url, deployments.git_commit_timestamp, deployments.sentinel_config, deployments.cpu_millicores, deployments.memory_mib, deployments.storage_mib, deployments.desired_state, deployments.encrypted_environment_variables, deployments.command, deployments.port, deployments.shutdown_signal, deployments.upstream_protocol, deployments.healthcheck, deployments.pr_number, deployments.fork_repository_full_name, deployments.github_deployment_id, deployments.invocation_id, deployments.status, deployments.`trigger`, deployments.triggered_by, deployments.trigger_reason, deployments.created_at, deployments.updated_at FROM `deployments` WHERE id = ?
 	FindDeploymentById(ctx context.Context, db DBTX, id string) (Deployment, error)
+	// Selects the same columns as ListDeployments, so a row converts to
+	// ListDeploymentsRow for the shared response mapper
+	//
+	//  SELECT d.id, d.project_id, d.app_id, d.environment_id, d.source, d.image_requested, d.image_resolved, d.git_commit_sha, d.git_branch, d.git_commit_message, d.git_commit_author_handle, d.git_commit_author_avatar_url, d.git_commit_timestamp, d.cpu_millicores, d.memory_mib, d.storage_mib, d.desired_state, d.command, d.port, d.shutdown_signal, d.upstream_protocol, d.healthcheck, d.pr_number, d.fork_repository_full_name, d.status, d.`trigger`, d.triggered_by, d.created_at, d.updated_at FROM `deployments` d
+	//  WHERE d.id = ? AND d.workspace_id = ?
+	FindDeploymentByIdAndWorkspace(ctx context.Context, db DBTX, arg FindDeploymentByIdAndWorkspaceParams) (FindDeploymentByIdAndWorkspaceRow, error)
 	//FindDeploymentWithEnvironment
 	//
 	//  SELECT d.pk, d.id, d.k8s_name, d.workspace_id, d.project_id, d.environment_id, d.app_id, d.source, d.image_requested, d.image_resolved, d.build_id, d.git_commit_sha, d.git_branch, d.git_commit_message, d.git_commit_author_handle, d.git_commit_author_avatar_url, d.git_commit_timestamp, d.sentinel_config, d.cpu_millicores, d.memory_mib, d.storage_mib, d.desired_state, d.encrypted_environment_variables, d.command, d.port, d.shutdown_signal, d.upstream_protocol, d.healthcheck, d.pr_number, d.fork_repository_full_name, d.github_deployment_id, d.invocation_id, d.status, d.`trigger`, d.triggered_by, d.trigger_reason, d.created_at, d.updated_at, e.slug AS environment_slug, e.kind AS environment_kind
@@ -968,11 +1072,20 @@ type Querier interface {
 	// FindPermissionByIdOrSlug resolves a permission within a workspace so the
 	// caller can authorize access against the permission's actual project.
 	//
-	//  SELECT permissions.pk, permissions.id, permissions.workspace_id, permissions.project_id, permissions.name, permissions.slug, permissions.description, permissions.created_at_m, permissions.updated_at_m
-	//  FROM permissions
-	//  WHERE workspace_id = ?
-	//    AND (id = ? OR slug = ?)
-	FindPermissionByIdOrSlug(ctx context.Context, db DBTX, arg FindPermissionByIdOrSlugParams) (Permission, error)
+	//  (
+	//      SELECT p1.pk, p1.id, p1.workspace_id, p1.project_id, p1.name, p1.slug, p1.description, p1.created_at_m, p1.updated_at_m, 0 AS lookup_priority
+	//      FROM permissions p1
+	//      WHERE p1.workspace_id = ? AND p1.id = ?
+	//  )
+	//  UNION ALL
+	//  (
+	//      SELECT p2.pk, p2.id, p2.workspace_id, p2.project_id, p2.name, p2.slug, p2.description, p2.created_at_m, p2.updated_at_m, 1 AS lookup_priority
+	//      FROM permissions p2
+	//      WHERE p2.workspace_id = ? AND p2.slug = ?
+	//  )
+	//  ORDER BY lookup_priority
+	//  LIMIT 1
+	FindPermissionByIdOrSlug(ctx context.Context, db DBTX, arg FindPermissionByIdOrSlugParams) (FindPermissionByIdOrSlugRow, error)
 	//FindPermissionByNameAndWorkspaceID
 	//
 	//  SELECT permissions.pk, permissions.id, permissions.workspace_id, permissions.project_id, permissions.name, permissions.slug, permissions.description, permissions.created_at_m, permissions.updated_at_m
@@ -1655,6 +1768,20 @@ type Querier interface {
 	//      ?
 	//  )
 	InsertFrontlineRoute(ctx context.Context, db DBTX, arg InsertFrontlineRouteParams) error
+	// InsertGithubAppInstallation links a GitHub App installation to a workspace.
+	// Intended for tests: the dashboard's GitHub callback writes this table in
+	// production.
+	//
+	//  INSERT INTO github_app_installations (
+	//      workspace_id,
+	//      installation_id,
+	//      created_at
+	//  ) VALUES (
+	//      ?,
+	//      ?,
+	//      ?
+	//  )
+	InsertGithubAppInstallation(ctx context.Context, db DBTX, arg InsertGithubAppInstallationParams) error
 	//InsertGithubRepoConnection
 	//
 	//  INSERT INTO github_repo_connections (
@@ -1885,6 +2012,29 @@ type Querier interface {
 	//      0
 	//  )
 	InsertKeySpace(ctx context.Context, db DBTX, arg InsertKeySpaceParams) error
+	// InsertLogdrain creates a running log drain with no lease. Intended for
+	// tests: the dashboard creates log drains in production.
+	//
+	//  INSERT INTO logdrains (
+	//      id,
+	//      workspace_id,
+	//      name,
+	//      stream,
+	//      config,
+	//      lease_id,
+	//      fencing_token,
+	//      created_at
+	//  ) VALUES (
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      '',
+	//      '',
+	//      ?
+	//  )
+	InsertLogdrain(ctx context.Context, db DBTX, arg InsertLogdrainParams) error
 	//InsertPermission
 	//
 	//  INSERT INTO permissions (
@@ -2271,15 +2421,6 @@ type Querier interface {
 	//  ORDER BY cd.id ASC
 	//  LIMIT ?
 	ListCustomDomains(ctx context.Context, db DBTX, arg ListCustomDomainsParams) ([]ListCustomDomainsRow, error)
-	//ListDeploymentDomains
-	//
-	//  SELECT r.fully_qualified_domain_name AS domain
-	//  FROM frontline_routes r
-	//  JOIN deployments d ON r.deployment_id = d.id
-	//  WHERE d.workspace_id = ?
-	//    AND r.deployment_id = ?
-	//  ORDER BY r.fully_qualified_domain_name
-	ListDeploymentDomains(ctx context.Context, db DBTX, arg ListDeploymentDomainsParams) ([]string, error)
 	//ListDeploymentDomainsByIds
 	//
 	//  SELECT r.deployment_id AS deployment_id, r.fully_qualified_domain_name AS domain
@@ -2306,15 +2447,6 @@ type Querier interface {
 	//  WHERE d.workspace_id = ?
 	//    AND d.id IN (/*SLICE:deployment_ids*/?)
 	ListDeploymentEnvAndAppState(ctx context.Context, db DBTX, arg ListDeploymentEnvAndAppStateParams) ([]ListDeploymentEnvAndAppStateRow, error)
-	//ListDeploymentRegions
-	//
-	//  SELECT DISTINCT r.name AS region
-	//  FROM deployment_topology dt
-	//  JOIN regions r ON dt.region_id = r.id
-	//  WHERE dt.workspace_id = ?
-	//    AND dt.deployment_id = ?
-	//  ORDER BY r.name
-	ListDeploymentRegions(ctx context.Context, db DBTX, arg ListDeploymentRegionsParams) ([]string, error)
 	//ListDeploymentRegionsByIds
 	//
 	//  SELECT DISTINCT dt.deployment_id AS deployment_id, r.name AS region
@@ -2324,22 +2456,44 @@ type Querier interface {
 	//    AND dt.deployment_id IN (/*SLICE:deployment_ids*/?)
 	//  ORDER BY dt.deployment_id, r.name
 	ListDeploymentRegionsByIds(ctx context.Context, db DBTX, arg ListDeploymentRegionsByIdsParams) ([]ListDeploymentRegionsByIdsRow, error)
-	// has_status_filter gates the status clause; without it sqlc renders an empty
-	// status set as IN (NULL), which matches nothing.
+	//ListDeploymentStepsByIds
 	//
-	//  SELECT d.pk, d.id, d.k8s_name, d.workspace_id, d.project_id, d.environment_id, d.app_id, d.source, d.image_requested, d.image_resolved, d.build_id, d.git_commit_sha, d.git_branch, d.git_commit_message, d.git_commit_author_handle, d.git_commit_author_avatar_url, d.git_commit_timestamp, d.sentinel_config, d.cpu_millicores, d.memory_mib, d.storage_mib, d.desired_state, d.encrypted_environment_variables, d.command, d.port, d.shutdown_signal, d.upstream_protocol, d.healthcheck, d.pr_number, d.fork_repository_full_name, d.github_deployment_id, d.invocation_id, d.status, d.`trigger`, d.triggered_by, d.trigger_reason, d.created_at, d.updated_at FROM `deployments` d
+	//  SELECT deployment_steps.pk, deployment_steps.workspace_id, deployment_steps.project_id, deployment_steps.environment_id, deployment_steps.deployment_id, deployment_steps.app_id, deployment_steps.step, deployment_steps.started_at, deployment_steps.ended_at, deployment_steps.error FROM deployment_steps
+	//  WHERE workspace_id = ?
+	//    AND deployment_id IN (/*SLICE:deployment_ids*/?)
+	//  ORDER BY deployment_id, started_at ASC
+	ListDeploymentStepsByIds(ctx context.Context, db DBTX, arg ListDeploymentStepsByIdsParams) ([]DeploymentStep, error)
+	// has_status_filter and has_branch_filter gate their clauses; without them sqlc
+	// renders an empty set as IN (NULL), which matches nothing.
+	// Newest first; pk breaks ties within a millisecond. The cursor resumes at its
+	// row's (created_at, pk), inclusive. The plain created_at bound lets the index
+	// seek, MySQL cannot range-scan the row comparison
+	//
+	//  SELECT d.id, d.project_id, d.app_id, d.environment_id, d.source, d.image_requested, d.image_resolved, d.git_commit_sha, d.git_branch, d.git_commit_message, d.git_commit_author_handle, d.git_commit_author_avatar_url, d.git_commit_timestamp, d.cpu_millicores, d.memory_mib, d.storage_mib, d.desired_state, d.command, d.port, d.shutdown_signal, d.upstream_protocol, d.healthcheck, d.pr_number, d.fork_repository_full_name, d.status, d.`trigger`, d.triggered_by, d.created_at, d.updated_at FROM `deployments` d
 	//  WHERE d.workspace_id = ?
 	//    AND (? = '' OR d.project_id = ?)
 	//    AND (? = '' OR d.app_id = ?)
 	//    AND (? = '' OR d.environment_id = ?)
 	//    AND (? = FALSE OR d.status IN (/*SLICE:statuses*/?))
+	//    AND (? = FALSE OR d.git_branch IN (/*SLICE:branches*/?))
+	//    AND (? IS NULL OR d.created_at >= ?)
+	//    AND (? IS NULL OR d.created_at < ?)
 	//    AND (
 	//      ? = ''
-	//      OR d.pk <= (SELECT c.pk FROM `deployments` c WHERE c.id = ?)
+	//      OR (
+	//        d.created_at <= (
+	//          SELECT c.created_at FROM `deployments` c
+	//          WHERE c.id = ? AND c.workspace_id = ?
+	//        )
+	//        AND (d.created_at, d.pk) <= (
+	//          SELECT c.created_at, c.pk FROM `deployments` c
+	//          WHERE c.id = ? AND c.workspace_id = ?
+	//        )
+	//      )
 	//    )
-	//  ORDER BY d.pk DESC
+	//  ORDER BY d.created_at DESC, d.pk DESC
 	//  LIMIT ?
-	ListDeployments(ctx context.Context, db DBTX, arg ListDeploymentsParams) ([]Deployment, error)
+	ListDeployments(ctx context.Context, db DBTX, arg ListDeploymentsParams) ([]ListDeploymentsRow, error)
 	//ListDirectPermissionsByKeyID
 	//
 	//  SELECT p.pk, p.id, p.workspace_id, p.project_id, p.name, p.slug, p.description, p.created_at_m, p.updated_at_m
@@ -2365,14 +2519,6 @@ type Querier interface {
 	//  WHERE app_id = ?
 	//  ORDER BY id ASC
 	ListEnvironmentsByApp(ctx context.Context, db DBTX, appID string) ([]Environment, error)
-	//ListFailedDeploymentStepsByIds
-	//
-	//  SELECT deployment_steps.pk, deployment_steps.workspace_id, deployment_steps.project_id, deployment_steps.environment_id, deployment_steps.deployment_id, deployment_steps.app_id, deployment_steps.step, deployment_steps.started_at, deployment_steps.ended_at, deployment_steps.error FROM deployment_steps
-	//  WHERE workspace_id = ?
-	//    AND deployment_id IN (/*SLICE:deployment_ids*/?)
-	//    AND error IS NOT NULL AND error != ''
-	//  ORDER BY deployment_id, started_at ASC
-	ListFailedDeploymentStepsByIds(ctx context.Context, db DBTX, arg ListFailedDeploymentStepsByIdsParams) ([]DeploymentStep, error)
 	// ListIdentities returns one page of a project's identities with their
 	// ratelimits aggregated into a JSON array (empty array when none exist).
 	// Pagination is cursor-based: ORDER BY i.id ASC with i.id >= id_cursor makes
@@ -2932,6 +3078,24 @@ type Querier interface {
 	//  LIMIT ?
 	//  FOR UPDATE
 	LockLivePortalSessionsByExternalID(ctx context.Context, db DBTX, arg LockLivePortalSessionsByExternalIDParams) ([]PortalSession, error)
+	//LockPermissionByIdOrSlug
+	//
+	//  (
+	//      SELECT p1.id, p1.project_id, p1.name, p1.slug, p1.description, 0 AS lookup_priority
+	//      FROM permissions p1
+	//      WHERE p1.workspace_id = ? AND p1.id = ?
+	//      FOR UPDATE
+	//  )
+	//  UNION ALL
+	//  (
+	//      SELECT p2.id, p2.project_id, p2.name, p2.slug, p2.description, 1 AS lookup_priority
+	//      FROM permissions p2
+	//      WHERE p2.workspace_id = ? AND p2.slug = ?
+	//      FOR UPDATE
+	//  )
+	//  ORDER BY lookup_priority
+	//  LIMIT 1
+	LockPermissionByIdOrSlug(ctx context.Context, db DBTX, arg LockPermissionByIdOrSlugParams) (LockPermissionByIdOrSlugRow, error)
 	// Locks the portal row while a session is minted. Disabling, re-pointing, and
 	// deleting a portal all write this row before revoking its sessions, so the
 	// lock orders a mint before or after them: either the revoke sees the new
@@ -3404,6 +3568,24 @@ type Querier interface {
 	//
 	//  UPDATE `key_auth` SET store_encrypted_keys = ? WHERE id = ?
 	UpdateKeySpaceKeyEncryption(ctx context.Context, db DBTX, arg UpdateKeySpaceKeyEncryptionParams) error
+	// UpdateLogdrainsMax sets how many log drains a workspace may configure.
+	// Intended for tests: UpsertLimit leaves logdrains_max at its default.
+	//
+	//  UPDATE `limits`
+	//  SET logdrains_max = ?
+	//  WHERE workspace_id = ?
+	UpdateLogdrainsMax(ctx context.Context, db DBTX, arg UpdateLogdrainsMaxParams) error
+	//UpdatePermission
+	//
+	//  UPDATE permissions
+	//  SET
+	//      name = ?,
+	//      slug = ?,
+	//      description = ?,
+	//      updated_at_m = ?
+	//  WHERE workspace_id = ?
+	//    AND id = ?
+	UpdatePermission(ctx context.Context, db DBTX, arg UpdatePermissionParams) error
 	// Updates a portal's mutable fields, scoped to the workspace so one workspace can
 	// never mutate another's portal.
 	//
@@ -3515,6 +3697,14 @@ type Querier interface {
 	//      AND workspace_id = ?
 	//      AND deleted_at IS NULL
 	UpdateUnkeyRootKeyExpiration(ctx context.Context, db DBTX, arg UpdateUnkeyRootKeyExpirationParams) error
+	// UpdateUnkeyRootKeyLastUsedAt records when a new-format root key was last
+	// used. Intended for tests.
+	//
+	//  UPDATE unkey_root_keys
+	//  SET last_used_at = ?
+	//  WHERE id = ?
+	//      AND workspace_id = ?
+	UpdateUnkeyRootKeyLastUsedAt(ctx context.Context, db DBTX, arg UpdateUnkeyRootKeyLastUsedAtParams) error
 	//UpdateWorkspaceEnabled
 	//
 	//  UPDATE `workspaces`
@@ -3793,6 +3983,25 @@ type Querier interface {
 	//  )
 	//  ON DUPLICATE KEY UPDATE name = name
 	UpsertRegion(ctx context.Context, db DBTX, arg UpsertRegionParams) error
+	// UpsertRegionWithCanSchedule inserts a region with an explicit can_schedule
+	// flag, or overwrites the flag if the region already exists. Intended for
+	// tests: production registers regions through UpsertRegion and leaves
+	// can_schedule at its default.
+	//
+	//  INSERT INTO regions (
+	//  	id,
+	//  	name,
+	//  	platform,
+	//  	can_schedule
+	//  )
+	//  VALUES (
+	//  	?,
+	//  	?,
+	//  	?,
+	//  	?
+	//  )
+	//  ON DUPLICATE KEY UPDATE can_schedule = ?
+	UpsertRegionWithCanSchedule(ctx context.Context, db DBTX, arg UpsertRegionWithCanScheduleParams) error
 	// UpsertWorkspace seeds local workspaces while preserving fields that local tooling does not manage.
 	// New rows receive a caller-generated Kubernetes namespace; existing rows retain their namespace.
 	//

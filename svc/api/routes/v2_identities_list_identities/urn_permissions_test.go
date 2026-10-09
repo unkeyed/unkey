@@ -1,14 +1,11 @@
 package handler_test
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
@@ -32,16 +29,12 @@ func TestListIdentities_AuthorizesCanonicalURNPermission(t *testing.T) {
 		Slug:        uid.New("other"),
 	})
 	otherExternalID := uid.New(uid.TestPrefix)
-	err := db.Query.InsertIdentity(context.Background(), h.DB.RW(), db.InsertIdentityParams{
-		ID:          uid.New(uid.IdentityPrefix),
-		ExternalID:  otherExternalID,
+	h.CreateIdentity(seed.CreateIdentityRequest{
 		WorkspaceID: workspaceID,
 		ProjectID:   otherProjectID,
 		Environment: "default",
-		CreatedAt:   time.Now().UnixMilli(),
-		Meta:        []byte("{}"),
+		ExternalID:  otherExternalID,
 	})
-	require.NoError(t, err)
 	rootKey := h.CreateRootKey(workspaceID, fmt.Sprintf("unkey:v1:%s:projects/%s/identities/*#read", workspaceID, identity.ProjectID))
 	headers := http.Header{
 		"Content-Type":  {"application/json"},

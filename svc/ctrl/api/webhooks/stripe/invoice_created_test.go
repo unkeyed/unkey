@@ -212,16 +212,23 @@ func TestInvoiceCreated_IgnoresMismatchedSubscription(t *testing.T) {
 		CreatedAt:    time.Now().UnixMilli(),
 		K8sNamespace: uid.DNS1035(),
 	}))
-	_, err = database.RW().ExecContext(context.Background(),
-		`INSERT INTO workspace_billing (workspace_id, plan, stripe_customer_id) VALUES (?, ?, ?)`,
-		wsID, "pro", customerID,
-	)
-	require.NoError(t, err)
-	_, err = database.RW().ExecContext(context.Background(),
-		`INSERT INTO billing_subscriptions (workspace_id, product, stripe_subscription_id) VALUES (?, 'compute', ?)`,
-		wsID, subID,
-	)
-	require.NoError(t, err)
+	require.NoError(t, database.InsertWorkspaceBilling(context.Background(), db.InsertWorkspaceBillingParams{
+		WorkspaceID: wsID,
+		CreatedAt:   time.Now().UnixMilli(),
+	}))
+	require.NoError(t, database.SetWorkspaceDeployPlan(context.Background(), db.SetWorkspaceDeployPlanParams{
+		Plan:        sql.NullString{Valid: true, String: "pro"},
+		WorkspaceID: wsID,
+	}))
+	require.NoError(t, database.SetWorkspaceStripeCustomerId(context.Background(), db.SetWorkspaceStripeCustomerIdParams{
+		StripeCustomerID: sql.NullString{Valid: true, String: customerID},
+		WorkspaceID:      wsID,
+	}))
+	require.NoError(t, database.InsertBillingSubscription(context.Background(), db.InsertBillingSubscriptionParams{
+		WorkspaceID:          wsID,
+		Product:              db.BillingSubscriptionsProductCompute,
+		StripeSubscriptionID: subID,
+	}))
 
 	h := &handler{db: database} //nolint:exhaustruct // stripe/restate unused on ignore path
 	err = h.invoiceCreated(context.Background(), webhook.Event{}, renewalInvoice(customerID, "sub_other_product"))

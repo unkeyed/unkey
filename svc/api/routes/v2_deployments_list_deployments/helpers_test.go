@@ -1,6 +1,9 @@
 package handler_test
 
 import (
+	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"net/http"
 
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
@@ -25,4 +28,9 @@ func authHeaders(rootKey string) http.Header {
 func rid(s string) *openapi.ResourceIdentifier {
 	r := openapi.ResourceIdentifier(s)
 	return &r
+}
+
+// readDeployments grants read on every deployment in the workspace.
+func readDeployments(workspaceID string) string {
+	return rbac.U(urn.New().Workspace(workspaceID).Project("*").App("*").Environment("*").Deployment("*"), permissions.Read).Value
 }

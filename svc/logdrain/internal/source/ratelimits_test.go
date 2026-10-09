@@ -76,6 +76,7 @@ func TestRatelimitsRead_CombinedFiltersBeforeLimit(t *testing.T) {
 	t.Cleanup(func() { require.NoError(t, client.Close()) })
 	workspace := uid.New(uid.WorkspacePrefix)
 	now := time.Now().UnixMilli()
+	var rows []ratelimitRow
 	for _, row := range []struct {
 		workspace, request, namespace, identifier string
 		passed                                    bool
@@ -89,10 +90,20 @@ func TestRatelimitsRead_CombinedFiltersBeforeLimit(t *testing.T) {
 		{workspace, "f", "ns2", "customer2", false, now},
 		{workspace, "g", "ns", "customer", false, now + 1},
 	} {
-		require.NoError(t, client.Conn().Exec(t.Context(), `INSERT INTO ratelimits_raw_v2
-			(workspace_id, request_id, time, inserted_at, namespace_id, identifier, passed, override_id)
-			VALUES (?, ?, ?, ?, ?, ?, ?, 'override_1')`, row.workspace, row.request, now-60000, row.insertedAt, row.namespace, row.identifier, row.passed))
+		rows = append(rows, ratelimitRow{
+			Ratelimit: schema.Ratelimit{
+				RequestID:   row.request,
+				Time:        now - 60000,
+				WorkspaceID: row.workspace,
+				NamespaceID: row.namespace,
+				Identifier:  row.identifier,
+				Passed:      row.passed,
+				OverrideID:  "override_1",
+			},
+			InsertedAt: row.insertedAt,
+		})
 	}
+	insertRows(t, client.Conn(), rows...)
 	filter := &logdrainv1.Config{Stream: &logdrainv1.Config_Ratelimits{Ratelimits: &logdrainv1.RatelimitStreamConfig{
 		NamespaceIds: []string{"ns", "ns2"}, Passed: []bool{false},
 	}}}

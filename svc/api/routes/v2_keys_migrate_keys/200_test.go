@@ -95,16 +95,12 @@ func TestMigrateKeysSuccess(t *testing.T) {
 
 	t.Run("rejects identity from another project", func(t *testing.T) {
 		externalID := uid.New(uid.TestPrefix)
-		err := db.Query.InsertIdentity(ctx, h.DB.RW(), db.InsertIdentityParams{
-			ID:          uid.New(uid.IdentityPrefix),
-			ExternalID:  externalID,
+		h.CreateIdentity(seed.CreateIdentityRequest{
 			WorkspaceID: workspaceID,
 			ProjectID:   defaultAPI.ProjectID,
 			Environment: "default",
-			CreatedAt:   time.Now().UnixMilli(),
-			Meta:        []byte("{}"),
+			ExternalID:  externalID,
 		})
-		require.NoError(t, err)
 
 		key, err := prefixedapikey.GenerateAPIKey(&prefixedapikey.GenerateAPIKeyOptions{KeyPrefix: "unkeyed"})
 		require.NoError(t, err)

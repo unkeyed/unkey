@@ -738,6 +738,9 @@ func (s *Seeder) CreateRatelimit(ctx context.Context, req CreateRatelimitRequest
 // WorkspaceID are required.
 type CreateIdentityRequest struct {
 	WorkspaceID string
+	// ProjectID defaults to the workspace's default project when empty.
+	ProjectID   string
+	Environment string
 	ExternalID  string
 	Meta        []byte
 	Ratelimits  []CreateRatelimitRequest
@@ -747,7 +750,10 @@ type CreateIdentityRequest struct {
 // is nil or empty, it defaults to "{}". Any rate limits in Ratelimits are created
 // and linked to this identity.
 func (s *Seeder) CreateIdentity(ctx context.Context, req CreateIdentityRequest) db.Identity {
-	projectID := s.defaultProjectID(ctx, req.WorkspaceID)
+	projectID := req.ProjectID
+	if projectID == "" {
+		projectID = s.defaultProjectID(ctx, req.WorkspaceID)
+	}
 	metaBytes := []byte("{}")
 	if len(req.Meta) > 0 {
 		metaBytes = req.Meta
@@ -762,7 +768,7 @@ func (s *Seeder) CreateIdentity(ctx context.Context, req CreateIdentityRequest) 
 		ExternalID:  req.ExternalID,
 		WorkspaceID: req.WorkspaceID,
 		ProjectID:   projectID,
-		Environment: "",
+		Environment: req.Environment,
 		CreatedAt:   time.Now().UnixMilli(),
 		Meta:        metaBytes,
 	})
@@ -779,7 +785,7 @@ func (s *Seeder) CreateIdentity(ctx context.Context, req CreateIdentityRequest) 
 		ExternalID:  req.ExternalID,
 		WorkspaceID: req.WorkspaceID,
 		ProjectID:   projectID,
-		Environment: "",
+		Environment: req.Environment,
 		Meta:        metaBytes,
 		Deleted:     false,
 		CreatedAt:   time.Now().UnixMilli(),
@@ -865,6 +871,17 @@ type CreateDeploymentRequest struct {
 	GitCommitAuthorAvatar  string
 	GitCommitTimestamp     int64
 	ForkRepositoryFullName string
+	PrNumber               int64
+	ImageRequested         string
+	ImageResolved          string
+	Trigger                db.DeploymentsTrigger
+	TriggeredBy            string
+	CreatedAt              int64
+	// CpuMillicores defaults to 250 when zero.
+	CpuMillicores int32
+	// MemoryMib defaults to 256 when zero.
+	MemoryMib  int32
+	StorageMib uint32
 }
 
 // CreateDeployment creates a deployment within a project and environment.
@@ -883,7 +900,23 @@ func (s *Seeder) CreateDeployment(ctx context.Context, req CreateDeploymentReque
 		source = db.DeploymentsSourceUnknown
 	}
 
-	createdAt := time.Now().UnixMilli()
+	cpuMillicores := req.CpuMillicores
+	if cpuMillicores == 0 {
+		cpuMillicores = 250
+	}
+	memoryMib := req.MemoryMib
+	if memoryMib == 0 {
+		memoryMib = 256
+	}
+
+	trigger := req.Trigger
+	if trigger == "" {
+		trigger = db.DeploymentsTriggerUnknown
+	}
+	createdAt := req.CreatedAt
+	if createdAt == 0 {
+		createdAt = time.Now().UnixMilli()
+	}
 	err := db.Query.InsertDeployment(ctx, s.DB.RW(), db.InsertDeploymentParams{
 		ID:                            req.ID,
 		K8sName:                       "test-" + req.ID,
@@ -892,7 +925,7 @@ func (s *Seeder) CreateDeployment(ctx context.Context, req CreateDeploymentReque
 		AppID:                         req.AppID,
 		EnvironmentID:                 req.EnvironmentID,
 		Source:                        source,
-		ImageRequested:                sql.NullString{Valid: false},
+		ImageRequested:                sql.NullString{String: req.ImageRequested, Valid: req.ImageRequested != ""},
 		GitCommitSha:                  sql.NullString{String: req.GitCommitSha, Valid: req.GitCommitSha != ""},
 		GitBranch:                     sql.NullString{String: req.GitBranch, Valid: req.GitBranch != ""},
 		SentinelConfig:                []byte("{}"),
@@ -903,27 +936,40 @@ func (s *Seeder) CreateDeployment(ctx context.Context, req CreateDeploymentReque
 		EncryptedEnvironmentVariables: []byte{},
 		Command:                       nil,
 		Status:                        status,
-		CpuMillicores:                 250,
-		MemoryMib:                     256,
-		StorageMib:                    0,
+		CpuMillicores:                 cpuMillicores,
+		MemoryMib:                     memoryMib,
+		StorageMib:                    req.StorageMib,
 		Port:                          8080,
 		ShutdownSignal:                db.DeploymentsShutdownSignalSIGTERM,
 		UpstreamProtocol:              db.DeploymentsUpstreamProtocolHttp1,
 		Healthcheck:                   dbtype.NullHealthcheck{Healthcheck: nil, Valid: false},
-		PrNumber:                      sql.NullInt64{Int64: 0, Valid: false},
+		PrNumber:                      sql.NullInt64{Int64: req.PrNumber, Valid: req.PrNumber != 0},
 		ForkRepositoryFullName:        sql.NullString{String: req.ForkRepositoryFullName, Valid: req.ForkRepositoryFullName != ""},
-		DeploymentTrigger:             db.DeploymentsTriggerUnknown,
-		TriggeredBy:                   sql.NullString{Valid: false},
+		DeploymentTrigger:             trigger,
+		TriggeredBy:                   sql.NullString{String: req.TriggeredBy, Valid: req.TriggeredBy != ""},
 		TriggerReason:                 sql.NullString{Valid: false},
 		CreatedAt:                     createdAt,
 		UpdatedAt:                     sql.NullInt64{Valid: false},
 	})
 	require.NoError(s.t, err)
 
+	if req.ImageResolved != "" {
+		err = db.Query.UpdateDeploymentImage(ctx, s.DB.RW(), db.UpdateDeploymentImageParams{
+			ImageResolved: sql.NullString{String: req.ImageResolved, Valid: true},
+			UpdatedAt:     sql.NullInt64{Valid: false},
+			ID:            req.ID,
+		})
+		require.NoError(s.t, err)
+	}
+
 	// InsertDeployment does not take desired_state (it defaults to running), so a
 	// test that needs a stopped deployment sets it here.
 	if req.DesiredState != "" {
-		_, err = s.DB.RW().ExecContext(ctx, "UPDATE deployments SET desired_state = ? WHERE id = ?", req.DesiredState, req.ID)
+		err = db.Query.UpdateDeploymentDesiredState(ctx, s.DB.RW(), db.UpdateDeploymentDesiredStateParams{
+			DesiredState: req.DesiredState,
+			UpdatedAt:    sql.NullInt64{Int64: 0, Valid: false},
+			ID:           req.ID,
+		})
 		require.NoError(s.t, err)
 	}
 

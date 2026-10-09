@@ -1,0 +1,25 @@
+type: object
+required:
+  - type
+  - id
+properties:
+  type:
+    type: string
+    enum:
+      - user
+      - root_key
+      - github
+      - system
+      - unknown
+    description: |
+      `user` is a dashboard user, `root_key` a root key, `github` the GitHub
+      user who pushed or opened the pull request, `system` Unkey itself.
+      `unknown` when the actor isn't recognized.
+    example: github
+  id:
+    type: string
+    description: |
+      The actor's identifier: a user id, a root key id, a GitHub login, or
+      `unkey-ops` for Unkey itself.
+    example: octocat
+additionalProperties: false

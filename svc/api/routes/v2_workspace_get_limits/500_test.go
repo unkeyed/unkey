@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
@@ -18,8 +19,7 @@ func TestGetLimitsWithoutLimitsRow(t *testing.T) {
 
 	workspace := h.CreateWorkspace()
 	rootKey := h.CreateRootKey(workspace.ID, fmt.Sprintf("unkey:v1:%s:limits#read", workspace.ID))
-	_, err := h.DB.RW().ExecContext(t.Context(), "DELETE FROM limits WHERE workspace_id = ?", workspace.ID)
-	require.NoError(t, err)
+	require.NoError(t, db.Query.DeleteLimitByWorkspaceID(t.Context(), h.DB.RW(), workspace.ID))
 
 	req := httptest.NewRequest(route.Method(), route.Path(), nil)
 	req.Header = bearer(rootKey)

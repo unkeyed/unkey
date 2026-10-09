@@ -34,7 +34,7 @@ import { Result } from "../types/fp.js";
  *
  * Use hierarchical naming patterns like `documents.read`, `admin.users.delete`, or `billing.invoices.create` for clear organization.
  *
- * **Important:** Permission names must be unique within the workspace. Once created, permissions are immediately available for assignment.
+ * **Important:** Permission slugs must be unique within the workspace. Names do not need to be unique. Once created, permissions are immediately available for assignment.
  *
  * **Required Permissions**
  *

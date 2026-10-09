@@ -59,7 +59,7 @@ func TestCreateWritesRowAndStartsDeploy(t *testing.T) {
 	require.Equal(t, "root_KEBAP", row.TriggeredBy.String, "triggered_by is the actor id")
 
 	step := h.queuedStep(t, ctx, deploymentID)
-	require.Nil(t, step, "the queued step must still be open when Deploy has not run")
+	require.False(t, step.EndedAt.Valid, "the queued step must still be open when Deploy has not run")
 
 	sent := h.awaitDeploy(t, deploymentID)
 	image, ok := sent.GetSource().(*hydrav1.DeployRequest_OciImage)
@@ -328,8 +328,7 @@ func TestCreateFromExistingDeployment(t *testing.T) {
 		ctx := context.Background()
 		h := newCreateHarness(t, ctx)
 
-		source := h.commitDeployment(t, ctx)
-		h.setDeploymentImages(t, ctx, source.ID, db.DeploymentsSourceGit, fixtureImage)
+		source := h.commitDeployment(t, ctx, db.DeploymentsSourceGit, fixtureImage)
 
 		deploymentID := uid.New(uid.DeploymentPrefix)
 		require.Equal(t, hydrav1.CreateOutcome_CREATE_OUTCOME_CREATED,
@@ -347,8 +346,7 @@ func TestCreateFromExistingDeployment(t *testing.T) {
 		ctx := context.Background()
 		h := newCreateHarness(t, ctx)
 
-		source := h.commitDeployment(t, ctx)
-		h.setDeploymentImages(t, ctx, source.ID, db.DeploymentsSourceGit, fixtureImage)
+		source := h.commitDeployment(t, ctx, db.DeploymentsSourceGit, fixtureImage)
 
 		req := h.existingRequest(source.ID, false)
 		req.Trigger.Source = ctrlv1.DeploymentTrigger_DEPLOYMENT_TRIGGER_UNKEY
@@ -365,8 +363,7 @@ func TestCreateFromExistingDeployment(t *testing.T) {
 		h := newCreateHarness(t, ctx)
 		h.connectRepo(t, ctx)
 
-		source := h.commitDeployment(t, ctx)
-		h.setDeploymentImages(t, ctx, source.ID, db.DeploymentsSourceOci, fixtureImage)
+		source := h.commitDeployment(t, ctx, db.DeploymentsSourceOci, fixtureImage)
 
 		deploymentID := uid.New(uid.DeploymentPrefix)
 		h.create(t, ctx, deploymentID, h.existingRequest(source.ID, false))
@@ -384,8 +381,7 @@ func TestCreateFromExistingDeployment(t *testing.T) {
 		h := newCreateHarness(t, ctx)
 
 		digest := "ghcr.io/unkey/kebap@sha256:" + strings.Repeat("ab", 32)
-		source := h.imageDeployment(t, ctx, 0)
-		h.setDeploymentImages(t, ctx, source.ID, db.DeploymentsSourceOci, digest)
+		source := h.sourcedImageDeployment(t, ctx, 0, db.DeploymentsSourceOci, digest)
 
 		deploymentID := uid.New(uid.DeploymentPrefix)
 		h.create(t, ctx, deploymentID, h.existingRequest(source.ID, false))
@@ -402,8 +398,7 @@ func TestCreateFromExistingDeployment(t *testing.T) {
 		ctx := context.Background()
 		h := newCreateHarness(t, ctx)
 
-		source := h.imageDeployment(t, ctx, 0)
-		h.setDeploymentImages(t, ctx, source.ID, db.DeploymentsSourceUnknown, "nginx")
+		source := h.sourcedImageDeployment(t, ctx, 0, db.DeploymentsSourceUnknown, "nginx")
 
 		deploymentID := uid.New(uid.DeploymentPrefix)
 		h.create(t, ctx, deploymentID, h.existingRequest(source.ID, false))
@@ -706,8 +701,7 @@ func TestCreateWithoutSourceReusesTheImageOfAGitDeployment(t *testing.T) {
 	ctx := context.Background()
 	h := newCreateHarness(t, ctx)
 
-	current := h.commitDeployment(t, ctx)
-	h.setDeploymentImages(t, ctx, current.ID, db.DeploymentsSourceGit, fixtureImage)
+	current := h.commitDeployment(t, ctx, db.DeploymentsSourceGit, fixtureImage)
 	h.setCurrentDeployment(t, ctx, current.ID)
 
 	req := h.imageRequest()
@@ -880,8 +874,7 @@ func TestCreateSkipIgnoresEnvironmentDeployability(t *testing.T) {
 func TestCreateFollowsAppSource(t *testing.T) {
 	t.Run("an OCI app deploys its configured image", func(t *testing.T) {
 		ctx := context.Background()
-		h := newCreateHarness(t, ctx)
-		h.setAppSource(t, ctx, db.AppsSourceTypeOci)
+		h := newCreateHarnessWithAppSource(t, ctx, db.AppsSourceTypeOci)
 		h.seedOciSource(t, ctx, "ghcr.io/unkey/kebap:v2")
 		h.dropBuildSettings(t, ctx)
 
@@ -906,8 +899,7 @@ func TestCreateFollowsAppSource(t *testing.T) {
 
 	t.Run("an OCI app with no image configured", func(t *testing.T) {
 		ctx := context.Background()
-		h := newCreateHarness(t, ctx)
-		h.setAppSource(t, ctx, db.AppsSourceTypeOci)
+		h := newCreateHarnessWithAppSource(t, ctx, db.AppsSourceTypeOci)
 
 		req := h.imageRequest()
 		req.Source = nil
@@ -920,8 +912,7 @@ func TestCreateFollowsAppSource(t *testing.T) {
 	// A connection may linger on an app switched to OCI. The declared source wins.
 	t.Run("an OCI app refuses a git commit", func(t *testing.T) {
 		ctx := context.Background()
-		h := newCreateHarness(t, ctx)
-		h.setAppSource(t, ctx, db.AppsSourceTypeOci)
+		h := newCreateHarnessWithAppSource(t, ctx, db.AppsSourceTypeOci)
 		h.connectRepo(t, ctx)
 
 		resp := h.create(t, ctx, uid.New(uid.DeploymentPrefix), h.gitRequest())
@@ -933,8 +924,7 @@ func TestCreateFollowsAppSource(t *testing.T) {
 	// "redeploy what is running" for an app whose repository was disconnected.
 	t.Run("a git app without a repository connection is refused", func(t *testing.T) {
 		ctx := context.Background()
-		h := newCreateHarness(t, ctx)
-		h.setAppSource(t, ctx, db.AppsSourceTypeGit)
+		h := newCreateHarnessWithAppSource(t, ctx, db.AppsSourceTypeGit)
 
 		current := h.imageDeployment(t, ctx, time.Now().Add(-time.Hour).UnixMilli())
 		h.setCurrentDeployment(t, ctx, current.ID)
@@ -949,8 +939,7 @@ func TestCreateFollowsAppSource(t *testing.T) {
 
 	t.Run("a git app without build settings is refused", func(t *testing.T) {
 		ctx := context.Background()
-		h := newCreateHarness(t, ctx)
-		h.setAppSource(t, ctx, db.AppsSourceTypeGit)
+		h := newCreateHarnessWithAppSource(t, ctx, db.AppsSourceTypeGit)
 		h.connectRepo(t, ctx)
 		h.dropBuildSettings(t, ctx)
 
@@ -986,8 +975,7 @@ func TestCreateNormalizesImageReference(t *testing.T) {
 // own column is a placeholder on new apps.
 func TestDeployTargetCarriesSourceColumns(t *testing.T) {
 	ctx := context.Background()
-	h := newCreateHarness(t, ctx)
-	h.setAppSource(t, ctx, db.AppsSourceTypeGit)
+	h := newCreateHarnessWithAppSource(t, ctx, db.AppsSourceTypeGit)
 	h.connectRepoWithDefaultBranch(t, ctx, sql.NullString{Valid: true, String: "release"})
 
 	target, err := h.database.FindDeployTarget(ctx, db.FindDeployTargetParams{
@@ -1066,8 +1054,7 @@ func TestCreateDedupsOnlyTheBranchTheCallerNamed(t *testing.T) {
 
 	t.Run("a git build supersedes its branch", func(t *testing.T) {
 		ctx := context.Background()
-		h := newCreateHarness(t, ctx)
-		h.setAppSource(t, ctx, db.AppsSourceTypeGit)
+		h := newCreateHarnessWithAppSource(t, ctx, db.AppsSourceTypeGit)
 		h.connectRepo(t, ctx)
 		sibling := h.queuedSibling(t, ctx, "main", time.Now().UnixMilli()-30_000)
 
@@ -1300,8 +1287,13 @@ func TestMain(m *testing.M) {
 
 func newCreateHarness(t *testing.T, ctx context.Context) *createHarness {
 	t.Helper()
+	return newCreateHarnessWithAppSource(t, ctx, db.AppsSourceTypeUnknown)
+}
 
-	database, fixture := newDeployFixture(t, ctx)
+func newCreateHarnessWithAppSource(t *testing.T, ctx context.Context, appSource db.AppsSourceType) *createHarness {
+	t.Helper()
+
+	database, fixture := newDeployFixtureWithAppSource(t, ctx, appSource)
 
 	sharedCreateDeploy.once.Do(func() {
 		shared, err := db.New(containers.MySQL(t).DSN, sqlcomment.Disabled())
@@ -1458,7 +1450,20 @@ func (h *createHarness) existingRequest(sourceID string, requireLatest bool) *hy
 // is what a redeploy falls back to when there is no commit to rebuild.
 func (h *createHarness) imageDeployment(t *testing.T, ctx context.Context, createdAt int64) db.Deployment {
 	t.Helper()
-	row := h.seeder.CreateDeployment(ctx, seed.CreateDeploymentRequest{
+	return h.sourcedImageDeployment(t, ctx, createdAt, db.DeploymentsSourceUnknown, fixtureImage)
+}
+
+// sourcedImageDeployment is an image deployment that records the source and
+// resolved image Create and Deploy wrote for it.
+func (h *createHarness) sourcedImageDeployment(
+	t *testing.T,
+	ctx context.Context,
+	createdAt int64,
+	source db.DeploymentsSource,
+	resolved string,
+) db.Deployment {
+	t.Helper()
+	return h.seeder.CreateDeployment(ctx, seed.CreateDeploymentRequest{
 		ID:            uid.New(uid.DeploymentPrefix),
 		WorkspaceID:   h.workspaceID,
 		ProjectID:     h.projectID,
@@ -1466,13 +1471,10 @@ func (h *createHarness) imageDeployment(t *testing.T, ctx context.Context, creat
 		EnvironmentID: h.environmentID,
 		Status:        mysqltype.DeploymentsStatusReady,
 		CreatedAt:     createdAt,
-	})
-	require.NoError(t, h.database.UpdateDeploymentImage(ctx, db.UpdateDeploymentImageParams{
-		ImageResolved: sql.NullString{Valid: true, String: fixtureImage},
 		UpdatedAt:     sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
-		ID:            row.ID,
-	}))
-	return row
+		Source:        source,
+		ImageResolved: sql.NullString{Valid: true, String: resolved},
+	})
 }
 
 // imageDeploymentOnBranch is an image deployment that recorded the branch its
@@ -1480,7 +1482,7 @@ func (h *createHarness) imageDeployment(t *testing.T, ctx context.Context, creat
 // create that carried a commit.
 func (h *createHarness) imageDeploymentOnBranch(t *testing.T, ctx context.Context, branch string, createdAt int64) db.Deployment {
 	t.Helper()
-	row := h.seeder.CreateDeployment(ctx, seed.CreateDeploymentRequest{
+	return h.seeder.CreateDeployment(ctx, seed.CreateDeploymentRequest{
 		ID:               uid.New(uid.DeploymentPrefix),
 		WorkspaceID:      h.workspaceID,
 		ProjectID:        h.projectID,
@@ -1491,13 +1493,9 @@ func (h *createHarness) imageDeploymentOnBranch(t *testing.T, ctx context.Contex
 		GitBranch:        sql.NullString{Valid: true, String: branch},
 		GitCommitSha:     sql.NullString{Valid: true, String: fixtureCommitSHA},
 		GitCommitMessage: sql.NullString{Valid: true, String: fixtureCommitMessage},
+		UpdatedAt:        sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+		ImageResolved:    sql.NullString{Valid: true, String: fixtureImage},
 	})
-	require.NoError(t, h.database.UpdateDeploymentImage(ctx, db.UpdateDeploymentImageParams{
-		ImageResolved: sql.NullString{Valid: true, String: fixtureImage},
-		UpdatedAt:     sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
-		ID:            row.ID,
-	}))
-	return row
 }
 
 // queuedSibling is a deployment still in the build queue on a branch, which is
@@ -1565,6 +1563,10 @@ func (h *createHarness) countDeployments(t *testing.T, ctx context.Context) int 
 		EnvironmentID:   "",
 		HasStatusFilter: false,
 		Statuses:        nil,
+		HasBranchFilter: false,
+		Branches:        nil,
+		StartTime:       sql.NullInt64{Valid: false},
+		EndTime:         sql.NullInt64{Valid: false},
 		CursorID:        "",
 		Limit:           1000,
 	})
@@ -1572,14 +1574,14 @@ func (h *createHarness) countDeployments(t *testing.T, ctx context.Context) int 
 	return len(rows)
 }
 
-// queuedStep returns the queued step's ended_at, or nil while it is still open.
-func (h *createHarness) queuedStep(t *testing.T, ctx context.Context, deploymentID string) *int64 {
+func (h *createHarness) queuedStep(t *testing.T, ctx context.Context, deploymentID string) db.DeploymentStep {
 	t.Helper()
-	var endedAt *int64
-	require.NoError(t, h.database.RO().QueryRowContext(ctx,
-		"SELECT ended_at FROM deployment_steps WHERE deployment_id = ? AND step = 'queued'", deploymentID,
-	).Scan(&endedAt))
-	return endedAt
+	step, err := h.database.FindDeploymentStepByDeploymentAndStep(ctx, db.FindDeploymentStepByDeploymentAndStepParams{
+		DeploymentID: deploymentID,
+		Step:         db.DeploymentStepsStepQueued,
+	})
+	require.NoError(t, err)
+	return step
 }
 
 // countAudits counts audit events of one kind naming one deployment. Audit logs
@@ -1651,9 +1653,10 @@ func (h *createHarness) setCurrentDeployment(t *testing.T, ctx context.Context, 
 
 func (h *createHarness) backdate(t *testing.T, ctx context.Context, deploymentID string, createdAt int64) {
 	t.Helper()
-	_, err := h.database.RW().ExecContext(ctx,
-		"UPDATE deployments SET created_at = ? WHERE id = ?", createdAt, deploymentID)
-	require.NoError(t, err)
+	require.NoError(t, h.database.UpdateDeploymentCreatedAt(ctx, db.UpdateDeploymentCreatedAtParams{
+		CreatedAt: createdAt,
+		ID:        deploymentID,
+	}))
 }
 
 func (h *createHarness) grantComputePlan(t *testing.T, ctx context.Context) {
@@ -1748,8 +1751,10 @@ func (h *createHarness) newApp(t *testing.T, ctx context.Context) deployFixture 
 	}
 }
 
-// commitDeployment is a row that records the commit it was built from.
-func (h *createHarness) commitDeployment(t *testing.T, ctx context.Context) db.Deployment {
+// commitDeployment is a row that records the commit it was built from, plus
+// what Create and Deploy record about its image, so it can stand in for a row
+// that ran.
+func (h *createHarness) commitDeployment(t *testing.T, ctx context.Context, source db.DeploymentsSource, resolved string) db.Deployment {
 	t.Helper()
 	return h.seeder.CreateDeployment(ctx, seed.CreateDeploymentRequest{
 		ID:               uid.New(uid.DeploymentPrefix),
@@ -1761,31 +1766,9 @@ func (h *createHarness) commitDeployment(t *testing.T, ctx context.Context) db.D
 		GitCommitSha:     sql.NullString{Valid: true, String: fixtureCommitSHA},
 		GitBranch:        sql.NullString{Valid: true, String: "main"},
 		GitCommitMessage: sql.NullString{Valid: true, String: fixtureCommitMessage},
+		Source:           source,
+		ImageResolved:    sql.NullString{Valid: true, String: resolved},
 	})
-}
-
-// setDeploymentImages writes what Create and Deploy record about a row's image,
-// so a seeded row can stand in for one that ran. An empty resolved image leaves
-// the column NULL, as on rows from before Deploy pinned digests.
-func (h *createHarness) setDeploymentImages(
-	t *testing.T,
-	ctx context.Context,
-	deploymentID string,
-	source db.DeploymentsSource,
-	resolved string,
-) {
-	t.Helper()
-	_, err := h.database.RW().ExecContext(ctx,
-		"UPDATE deployments SET source = ?, image_resolved = ? WHERE id = ?",
-		string(source), resolved, deploymentID)
-	require.NoError(t, err)
-}
-
-func (h *createHarness) setAppSource(t *testing.T, ctx context.Context, sourceType db.AppsSourceType) {
-	t.Helper()
-	_, err := h.database.RW().ExecContext(ctx,
-		"UPDATE apps SET source_type = ? WHERE id = ?", string(sourceType), h.appID)
-	require.NoError(t, err)
 }
 
 func (h *createHarness) seedOciSource(t *testing.T, ctx context.Context, image string) {
