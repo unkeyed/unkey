@@ -5,6 +5,7 @@
 import { ratelimitDeleteOverride } from "../funcs/ratelimitDeleteOverride.js";
 import { ratelimitGetOverride } from "../funcs/ratelimitGetOverride.js";
 import { ratelimitLimit } from "../funcs/ratelimitLimit.js";
+import { ratelimitListNamespaces } from "../funcs/ratelimitListNamespaces.js";
 import { ratelimitListOverrides } from "../funcs/ratelimitListOverrides.js";
 import { ratelimitMultiLimit } from "../funcs/ratelimitMultiLimit.js";
 import { ratelimitSetOverride } from "../funcs/ratelimitSetOverride.js";
@@ -82,6 +83,35 @@ export class Ratelimit extends ClientSDK {
     options?: RequestOptions,
   ): Promise<components.V2RatelimitLimitResponseBody> {
     return unwrapAsync(ratelimitLimit(
+      this,
+      request,
+      options,
+    ));
+  }
+
+  /**
+   * List ratelimit namespaces
+   *
+   * @remarks
+   * Retrieve a paginated list of the rate limit namespaces in your workspace.
+   *
+   * Use this to find the namespaces your services rate limit against, for example to build an admin view or to look up a namespace ID. Results are ordered newest first and returned in pages. When `hasMore` is true, pass the returned `cursor` to fetch the next page.
+   *
+   * Deleted namespaces are not returned. The list contains only the namespaces your root key can read.
+   *
+   * **Required Permissions**
+   *
+   * Your root key must have one of the following permissions:
+   * - `unkey:v1:<workspace_id>:projects/* /ratelimits/namespaces/*#read` (to read every namespace)
+   * - `unkey:v1:<workspace_id>:projects/<project_id>/ratelimits/namespaces/<namespace_id>#read` (to read a specific namespace)
+   */
+  async listNamespaces(
+    request: components.V2RatelimitListNamespacesRequestBody,
+    options?: RequestOptions,
+  ): Promise<
+    PageIterator<operations.RatelimitListNamespacesResponse, { cursor: string }>
+  > {
+    return unwrapResultIterator(ratelimitListNamespaces(
       this,
       request,
       options,
