@@ -1,120 +1,86 @@
 "use client";
 
+import { ResourceSearchInput } from "@/components/resource-search-input";
 import {
   IconBarsFilterOutline18,
   IconChevronDownOutline18,
   IconLayers3Outline18,
-  IconMagnifierOutline18,
 } from "@unkey/icons";
 import {
-  InputGroup,
-  InputGroupAddon,
-  InputGroupInput,
+  ResourceListHeader,
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from "@unkey/ui";
+import { EnvironmentSelect } from "../../../../../_components/env-vars/shared/environment-select";
 
-const SORT_OPTIONS = ["last-updated", "name-asc"] as const;
-export type SortOption = (typeof SORT_OPTIONS)[number];
-export type EnvironmentFilter = "all" | string;
+export const ENV_VARS_SEARCH_KEY = "search";
+
+const SORT_LABELS = {
+  "last-updated": "Newest",
+  "name-asc": "Name A-Z",
+} as const;
+export type SortOption = keyof typeof SORT_LABELS;
+const SORT_OPTIONS = Object.entries(SORT_LABELS).map(([value, label]) => ({ value, label }));
 
 function isSortOption(value: string): value is SortOption {
-  return (SORT_OPTIONS as readonly string[]).includes(value);
+  return value in SORT_LABELS;
 }
 
 type EnvVarsToolbarProps = {
-  searchQuery: string;
-  onSearchChange: (value: string) => void;
-  environmentFilter: EnvironmentFilter;
-  onEnvironmentFilterChange: (value: EnvironmentFilter) => void;
-  environments: { id: string; slug: string }[];
+  environmentFilter: string;
+  onEnvironmentFilterChange: (value: string) => void;
   sortBy: SortOption;
   onSortChange: (value: SortOption) => void;
 };
 
 export function EnvVarsToolbar({
-  searchQuery,
-  onSearchChange,
   environmentFilter,
   onEnvironmentFilterChange,
-  environments,
   sortBy,
   onSortChange,
 }: EnvVarsToolbarProps) {
   return (
-    <div className="flex flex-col md:flex-row items-stretch gap-2">
-      <div className="flex-[50%]">
-        <InputGroup className="w-full bg-gray-1">
-          <InputGroupAddon className="pointer-events-none">
-            <IconMagnifierOutline18 className="size-4 text-gray-9" />
-          </InputGroupAddon>
-          <InputGroupInput
-            placeholder="Search..."
-            value={searchQuery}
-            onChange={(e) => onSearchChange(e.target.value)}
-            className="h-9 text-sm"
-          />
-        </InputGroup>
-      </div>
-      <div className="flex-[25%] max-w-[184px]">
-        <Select
-          value={environmentFilter}
-          items={[
-            { value: "all", label: "All Environments" },
-            ...environments.map((env) => ({ value: env.id, label: env.slug })),
-          ]}
-          onValueChange={(value) => {
-            if (value !== null) {
-              onEnvironmentFilterChange(value);
-            }
-          }}
+    <ResourceListHeader>
+      <ResourceSearchInput
+        queryKey={ENV_VARS_SEARCH_KEY}
+        label="Search environment variables"
+        placeholder="Search by key"
+      />
+      <EnvironmentSelect
+        value={environmentFilter}
+        onValueChange={onEnvironmentFilterChange}
+        wrapperClassName="md:w-46"
+        className="h-8 w-full bg-gray-1"
+        leftIcon={<IconLayers3Outline18 className="size-3.5 text-gray-9" />}
+      />
+      <Select
+        value={sortBy}
+        items={SORT_OPTIONS}
+        onValueChange={(v) => {
+          if (v !== null && isSortOption(v)) {
+            onSortChange(v);
+          }
+        }}
+      >
+        <SelectTrigger
+          wrapperClassName="md:w-46"
+          className="h-8 w-full bg-gray-1"
+          leftIcon={<IconBarsFilterOutline18 className="size-3.5 text-gray-9" />}
+          rightIcon={<IconChevronDownOutline18 className="size-3.5 absolute right-2" />}
         >
-          <SelectTrigger
-            className="h-9 w-full bg-gray-1"
-            leftIcon={<IconLayers3Outline18 className="size-3.5 text-gray-9" />}
-            rightIcon={<IconChevronDownOutline18 className="size-3.5 absolute right-2" />}
-          >
-            <SelectValue placeholder="All Environments" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Environments</SelectItem>
-            {environments.map((env) => (
-              <SelectItem key={env.id} value={env.id} className="capitalize">
-                {env.slug}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-      <div className="flex-[25%] max-w-[184px]">
-        <Select
-          value={sortBy}
-          items={[
-            { value: "last-updated", label: "Last Updated" },
-            { value: "name-asc", label: "Name A-Z" },
-          ]}
-          onValueChange={(v) => {
-            if (v !== null && isSortOption(v)) {
-              onSortChange(v);
-            }
-          }}
-        >
-          <SelectTrigger
-            className="h-9 w-full bg-gray-1"
-            leftIcon={<IconBarsFilterOutline18 className="size-3.5 text-gray-9" />}
-            rightIcon={<IconChevronDownOutline18 className="size-3.5 absolute right-2" />}
-          >
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="last-updated">Last Updated</SelectItem>
-            <SelectItem value="name-asc">Name A-Z</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-    </div>
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {SORT_OPTIONS.map((option) => (
+            <SelectItem key={option.value} value={option.value}>
+              {option.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </ResourceListHeader>
   );
 }

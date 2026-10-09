@@ -1,35 +1,21 @@
-import { IconDotsOutline12 } from "@unkey/icons";
-import { Skeleton } from "@unkey/ui";
+import { ResourceListBody, ResourceListContent, ResourceListItem, Skeleton } from "@unkey/ui";
+
+const ROWS = ["a", "b", "c", "d", "e", "f"];
 
 export function EnvVarsSkeleton() {
   return (
-    <div className="border bg-raised rounded-lg overflow-hidden divide-y divide-grayA-4">
-      {Array.from({ length: 10 }).map((_, i) => (
-        // biome-ignore lint/suspicious/noArrayIndexKey: skeleton items don't need stable keys
-        <div key={i} className="flex items-center h-17.5">
-          <div className="pl-4 w-8 shrink-0" />
-          <div className="flex-4 min-w-0 py-3.5 flex items-center">
-            <div className="flex items-center gap-3 px-4 w-full">
-              <div className="flex flex-col gap-2 min-w-0 flex-1">
-                <Skeleton className="h-[14px] w-32" />
-                <Skeleton className="h-3 w-20" />
-              </div>
-            </div>
-          </div>
-          <div className="flex-4 min-w-0 py-3.5 flex items-center">
-            <div className="flex items-center gap-2">
-              <Skeleton className="size-5 rounded-md shrink-0" />
-              <Skeleton className="h-[14px] w-24" />
-            </div>
-          </div>
-          <div className="flex-2 min-w-0 py-3.5 flex items-center pr-3">
-            <Skeleton className="h-[22px] w-16 rounded-md" />
-          </div>
-          <div className="w-12 shrink-0 py-3.5 pr-4 flex items-center justify-end">
-            <IconDotsOutline12 className="text-gray-11 opacity-50" />
-          </div>
-        </div>
-      ))}
-    </div>
+    <ResourceListContent aria-busy="true">
+      <ResourceListBody aria-hidden="true">
+        {ROWS.map((key) => (
+          <ResourceListItem key={key} className="flex h-12 items-center gap-4 px-4">
+            <Skeleton className="size-6 shrink-0 rounded-md" />
+            <Skeleton className="h-3 w-40" />
+            <Skeleton className="h-3 w-24" />
+            <Skeleton className="ml-auto h-3 w-20" />
+            <Skeleton className="h-3 w-24" />
+          </ResourceListItem>
+        ))}
+      </ResourceListBody>
+    </ResourceListContent>
   );
 }

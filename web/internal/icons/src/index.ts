@@ -23,7 +23,6 @@ export * from "./icons/bookmark-fill-18";
 export * from "./icons/bookmark-outline-18";
 export * from "./icons/brackets-curly-outline-12";
 export * from "./icons/brackets-curly-outline-18";
-export * from "./icons/brackets-square-dots-outline-18";
 export * from "./icons/bucket-outline-18";
 export * from "./icons/calendar-clock-outline-18";
 export * from "./icons/calendar-event-outline-18";
