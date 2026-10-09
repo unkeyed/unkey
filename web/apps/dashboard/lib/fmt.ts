@@ -3,7 +3,7 @@ export function formatNumber(n: number): string {
 }
 
 export function plural(count: number, noun: string): string {
-  return `${count} ${noun}${count === 1 ? "" : "s"}`;
+  return `${count.toLocaleString("en")} ${noun}${count === 1 ? "" : "s"}`;
 }
 
 /** Grouped number with up to one decimal: 1234.5 -> "1,234.5". For usage quantities. */
