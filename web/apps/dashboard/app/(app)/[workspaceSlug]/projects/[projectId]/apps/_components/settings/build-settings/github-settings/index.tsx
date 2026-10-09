@@ -8,7 +8,6 @@ import { trpc } from "@/lib/trpc/client";
 import { match } from "@unkey/match";
 import { toast } from "@unkey/ui";
 import { useCallback } from "react";
-import { SelectedConfig } from "../../shared/selected-config";
 import { GitHubConnected } from "./github-connected";
 import { GitHubNoRepo } from "./github-no-repo";
 import { ComboboxSkeleton, GitHubSettingCard, ManageGitHubAppLink, RepoNameLabel } from "./shared";
@@ -27,10 +26,9 @@ type GitHubConnectionState =
 
 type GitHubProps = {
   readOnly?: boolean;
-  onBeforeNavigate?: () => void;
 };
 
-export const GitHub = ({ readOnly = false, onBeforeNavigate }: GitHubProps) => {
+export const GitHub = ({ readOnly = false }: GitHubProps) => {
   const { projectId } = useProjectData();
   const appId = useAppId();
 
@@ -45,12 +43,11 @@ export const GitHub = ({ readOnly = false, onBeforeNavigate }: GitHubProps) => {
         appId,
         returnTo: "settings",
       });
-      onBeforeNavigate?.();
       window.location.href = `https://github.com/apps/${process.env.NEXT_PUBLIC_GITHUB_APP_NAME}/installations/new?state=${encodeURIComponent(state)}`;
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to start GitHub install");
     }
-  }, [projectId, appId, prepareInstallation, onBeforeNavigate]);
+  }, [projectId, appId, prepareInstallation]);
 
   const { data, isLoading } = trpc.github.getInstallations.useQuery(
     { projectId, appId },
@@ -79,17 +76,19 @@ export const GitHub = ({ readOnly = false, onBeforeNavigate }: GitHubProps) => {
 
   return match(connectionState)
     .with({ status: "loading" }, () => (
-      <GitHubSettingCard chevronState="disabled">
+      <GitHubSettingCard>
         <ComboboxSkeleton />
       </GitHubSettingCard>
     ))
     .with({ status: "no-app" }, ({ onInstall: install }) => (
-      <GitHubSettingCard chevronState="disabled">
-        <ManageGitHubAppLink
-          onInstall={install}
-          variant="outline"
-          className="px-2.5 py-3 text-gray-12 font-medium text-sm hover:bg-grayA-2"
-        />
+      <GitHubSettingCard>
+        <div className="flex items-center">
+          <ManageGitHubAppLink
+            onInstall={install}
+            variant="outline"
+            className="px-2.5 py-3 text-gray-12 font-medium text-sm hover:bg-grayA-2"
+          />
+        </div>
       </GitHubSettingCard>
     ))
     .with({ status: "no-repo" }, ({ appId, onInstall: install }) => (
@@ -98,8 +97,8 @@ export const GitHub = ({ readOnly = false, onBeforeNavigate }: GitHubProps) => {
     .with({ status: "connected" }, ({ appId, repoFullName, onInstall: install }) => {
       if (readOnly) {
         return (
-          <GitHubSettingCard chevronState="disabled">
-            <SelectedConfig label={<RepoNameLabel fullName={repoFullName} />} />
+          <GitHubSettingCard>
+            <RepoNameLabel fullName={repoFullName} />
           </GitHubSettingCard>
         );
       }
