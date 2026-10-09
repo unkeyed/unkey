@@ -1,18 +1,14 @@
 "use client";
 
 import { FormCombobox } from "@/components/ui/form-combobox";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { IconEyeOutline18, IconPlusOutline18 } from "@unkey/icons";
-import { FormInput, firstMatchingSaveState } from "@unkey/ui";
-import { cn } from "cn";
+import { sameJson } from "@/lib/utils/same-json";
+import { IconPlusOutline18 } from "@unkey/icons";
+import { FormInput, SettingsForm, SettingsRow } from "@unkey/ui";
 import { useCallback, useRef } from "react";
-import { useFieldArray, useForm, useWatch } from "react-hook-form";
+import { useFieldArray } from "react-hook-form";
 import { z } from "zod";
-import { useEnvironmentSettings } from "../../environment-provider";
-import { useUpdateAllEnvironments } from "../../hooks/use-update-all-environments";
-import { SettingDescription, SettingField } from "../shared/form-blocks";
-import { FormSettingCard } from "../shared/form-setting-card";
-import { RemoveButton } from "../shared/remove-button";
+import { RemoveButton } from "../../remove-button";
+import { useSettingForm } from "../hooks/use-setting-form";
 import { useRepoTree } from "./use-repo-tree";
 
 const watchPathsSchema = z.object({
@@ -30,37 +26,23 @@ const watchPathsSchema = z.object({
 
 type WatchPathsForm = z.infer<typeof watchPathsSchema>;
 
-function toFormPaths(paths: string[]): { value: string }[] {
-  return paths.map((p) => ({ value: p }));
-}
-
 function fromFormPaths(paths: { value: string }[]): string[] {
   return paths.map((p) => p.value).filter(Boolean);
 }
 
-function changed<T>(a: T, b: T): boolean {
-  return JSON.stringify(a) !== JSON.stringify(b);
-}
-
-export const WatchPaths = () => {
-  const { settings } = useEnvironmentSettings();
-  const defaultPaths = settings.watchPaths ?? [];
-  const updateAllEnvironments = useUpdateAllEnvironments();
-  const { watchPathSuggestions } = useRepoTree();
-
-  const {
-    register,
-    handleSubmit,
-    formState: { isValid, isSubmitting, errors },
-    control,
-    reset,
-    setValue,
-    trigger,
-  } = useForm<WatchPathsForm>({
-    resolver: zodResolver(watchPathsSchema),
-    mode: "onChange",
-    defaultValues: { paths: toFormPaths(defaultPaths) },
+export function WatchPaths() {
+  const { settings, form, formProps } = useSettingForm({
+    schema: watchPathsSchema,
+    read: (s) => ({ paths: s.watchPaths.map((value) => ({ value })) }),
+    write: (draft, values) => {
+      draft.watchPaths = fromFormPaths(values.paths);
+    },
+    isEqual: (current: WatchPathsForm, saved: WatchPathsForm) =>
+      sameJson(fromFormPaths(current.paths), fromFormPaths(saved.paths)),
   });
+  const { watchPathSuggestions } = useRepoTree();
+  const { control, register, setValue, trigger } = form;
+  const { errors } = form.formState;
 
   const { fields, append, remove } = useFieldArray({
     control,
@@ -92,9 +74,8 @@ export const WatchPaths = () => {
     inputRefs.current.get(fields.length)?.focus();
   }, [append, fields.length]);
 
-  const currentPaths = useWatch({ control, name: "paths" });
-  const currentValues = fromFormPaths(currentPaths ?? []);
-  const hasChanges = changed(defaultPaths, currentValues);
+  const currentPaths = form.watch("paths");
+  const currentValues = fromFormPaths(currentPaths);
   const rootWatchPath =
     settings.dockerContext && settings.dockerContext !== "."
       ? `${settings.dockerContext}/**`
@@ -124,70 +105,34 @@ export const WatchPaths = () => {
       disabled: currentValues.includes(path),
     }));
 
-  const addWatchPath = useCallback(
-    (value: string) => {
-      if (!value || currentValues.includes(value)) {
-        return;
-      }
+  const addWatchPath = (value: string) => {
+    if (!value || currentValues.includes(value)) {
+      return;
+    }
 
-      const emptyIndex = currentPaths?.findIndex((path) => !path.value) ?? -1;
-      if (emptyIndex >= 0) {
-        setValue(`paths.${emptyIndex}.value`, value, { shouldValidate: true });
-        return;
-      }
-      // useFieldArray's append() doesn't run the resolver, unlike setValue's
-      // shouldValidate above, so the newly appended field needs an explicit trigger.
-      const newIndex = fields.length;
-      append({ value });
-      trigger(`paths.${newIndex}.value`);
-    },
-    [append, currentPaths, currentValues, fields.length, setValue, trigger],
-  );
-
-  const saveState = firstMatchingSaveState([
-    [isSubmitting, { status: "saving" }],
-    [!isValid, { status: "disabled" }],
-    [!hasChanges, { status: "disabled", reason: "No changes to save" }],
-  ]);
-
-  const onSubmit = async (values: WatchPathsForm) => {
-    const watchPaths = fromFormPaths(values.paths);
-    updateAllEnvironments((draft) => {
-      draft.watchPaths = watchPaths;
-    });
-    reset({ paths: toFormPaths(watchPaths) });
+    const emptyIndex = currentPaths.findIndex((path) => !path.value);
+    if (emptyIndex >= 0) {
+      setValue(`paths.${emptyIndex}.value`, value, { shouldValidate: true });
+      return;
+    }
+    // useFieldArray's append() doesn't run the resolver, unlike setValue's
+    // shouldValidate above, so the newly appended field needs an explicit trigger.
+    const newIndex = fields.length;
+    append({ value });
+    trigger(`paths.${newIndex}.value`);
   };
 
-  const displayValue =
-    defaultPaths.length > 0 ? (
-      <span className="flex items-center gap-1 truncate">
-        <span className="truncate">{defaultPaths[0]}</span>
-        {defaultPaths.length > 1 && (
-          <span className="shrink-0 text-gray-9">+{defaultPaths.length - 1}</span>
-        )}
-      </span>
-    ) : (
-      "All files (no filter)"
-    );
-
   return (
-    <FormSettingCard
-      icon={<IconEyeOutline18 className="text-gray-12" />}
-      title="Watch paths"
-      description="Only trigger deployments when files matching these glob patterns change. Leave empty to deploy on all changes."
-      displayValue={displayValue}
-      onSubmit={handleSubmit(onSubmit)}
-      saveState={saveState}
-    >
-      <SettingField>
-        <span className="text-gray-11 text-sm flex items-center">Watch paths</span>
+    <SettingsForm {...formProps}>
+      <SettingsRow title="Watch paths" description="Only deploy when these files change.">
         {fields.map((field, index) => {
           const { ref: rhfRef, ...fieldProps } = register(`paths.${index}.value`);
           return (
             <div key={field.id} className="flex items-start gap-2">
               <FormInput
+                data-1p-ignore
                 className="flex-1 [&_input]:font-mono"
-                placeholder="e.g. src/** or services/api/**"
+                placeholder="src/**"
                 error={errors.paths?.[index]?.value?.message}
                 {...fieldProps}
                 ref={(el: HTMLInputElement | null) => {
@@ -199,15 +144,16 @@ export const WatchPaths = () => {
                     e.preventDefault();
                     appendAndFocus();
                   }
-                  if (e.key === "Backspace" && !currentPaths?.[index]?.value) {
+                  if (e.key === "Backspace" && !currentPaths[index]?.value) {
                     e.preventDefault();
                     removeAndFocus(index);
                   }
                 }}
               />
               <RemoveButton
+                label="Remove watch path"
                 onClick={() => removeAndFocus(index)}
-                className={cn("shrink-0 transition-opacity duration-150")}
+                className="shrink-0 transition-opacity duration-150"
               />
             </div>
           );
@@ -220,15 +166,16 @@ export const WatchPaths = () => {
           leftIcon={<IconPlusOutline18 />}
           searchPlaceholder="Search suggestions or enter a glob..."
           emptyMessage={<div className="mt-2">No suggested watch paths detected</div>}
-          placeholder={<span className="text-grayA-8">Add a watch path...</span>}
+          placeholder={
+            <span className="text-grayA-8">
+              {fields.length === 0 ? "All files" : "Add a watch path..."}
+            </span>
+          }
         />
-      </SettingField>
-      <SettingDescription>
-        Glob patterns (e.g. src/**, **/*.go). Deployments are skipped when no changed files match.
-      </SettingDescription>
-    </FormSettingCard>
+      </SettingsRow>
+    </SettingsForm>
   );
-};
+}
 
 // Mirrors doublestar.ValidatePattern (github.com/bmatcuk/doublestar/v4,
 // validate.go): a pure syntax check for balanced [ ] / { } and a non-trailing

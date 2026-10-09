@@ -1,31 +1,11 @@
-import { Github } from "@unkey/icons";
-import { Button, type ChevronState, SettingCard, Skeleton } from "@unkey/ui";
+import { Button, SettingsRow, Skeleton } from "@unkey/ui";
 
-export const GitHubSettingCard = ({
-  children,
-  expandable,
-  chevronState,
-}: {
-  children: React.ReactNode;
-  expandable?: React.ReactNode;
-  chevronState: ChevronState;
-}) => (
-  <SettingCard
-    className="px-4 py-[18px] "
-    icon={<Github className="text-gray-12" />}
-    title="Repository"
-    description="Source repository for this deployment"
-    border="top"
-    contentWidth="w-full @2xl:w-[320px] justify-end"
-    expandable={expandable}
-    chevronState={chevronState}
-  >
-    {children}
-  </SettingCard>
+export const GitHubSettingCard = ({ children }: { children: React.ReactNode }) => (
+  <SettingsRow title="Repository">{children}</SettingsRow>
 );
 
 export const ComboboxSkeleton = () => (
-  <div className="w-[185px] h-7 rounded-lg border bg-raised flex items-center justify-between px-3 py-2">
+  <div className="w-full h-9 rounded-lg border bg-raised flex items-center justify-between px-3 py-2">
     <div className="flex gap-1.5 items-center">
       <Skeleton className="h-3.5 w-16 rounded" />
       <Skeleton className="h-3.5 w-24 rounded" />
@@ -37,8 +17,7 @@ export const ComboboxSkeleton = () => (
 export const RepoNameLabel = ({ fullName }: { fullName: string }) => {
   const [handle, repoName] = fullName.split("/");
   return (
-    // This max-w-[185px] and w-[185px] in ComboboxSkeleton should match
-    <div className="max-w-[185px] truncate">
+    <div className="min-w-0 truncate">
       <span className="text-sm text-gray-12 font-medium">{handle}</span>
       <span className="text-sm text-gray-11">/{repoName}</span>
     </div>
