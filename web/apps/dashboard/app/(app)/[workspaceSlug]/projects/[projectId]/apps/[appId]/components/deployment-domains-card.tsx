@@ -19,12 +19,13 @@ import {
   PopoverTrigger,
   SettingCard,
   SettingCardGroup,
+  SettingsGroup,
+  SettingsGroupTitle,
   Skeleton,
 } from "@unkey/ui";
 import { type ReactNode, useState } from "react";
 import { useProjectData } from "../(overview)/data-provider";
 import { useDeployment } from "../(overview)/deployments/[deploymentId]/layout-provider";
-import { SettingsGroup } from "../(overview)/settings/components/shared/settings-group";
 import { getDomainPriority } from "./domain-priority";
 import { GlowIcon } from "./glow-icon";
 import { TagBadge } from "./tag-badge";
@@ -162,11 +163,11 @@ export function DeploymentDomainsCard({
 
 function DomainsGroup({ children }: { children: ReactNode }) {
   return (
-    <SettingsGroup
-      icon={<IconEarthOutline18 className="size-3.5" />}
-      title={<span className="font-medium text-gray-12 text-sm leading-4">Domains</span>}
-      hideChevron
-    >
+    <SettingsGroup>
+      <SettingsGroupTitle className="flex items-center gap-2.5 px-1 text-sm leading-4">
+        <IconEarthOutline18 className="size-3.5 text-gray-9" />
+        Domains
+      </SettingsGroupTitle>
       {children}
     </SettingsGroup>
   );
