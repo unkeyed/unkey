@@ -2,8 +2,6 @@
 
 import { collection } from "@/lib/collections";
 import { trpc } from "@/lib/trpc/client";
-import { and, eq, useLiveQuery } from "@tanstack/react-db";
-import { match } from "@unkey/match";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -17,36 +15,13 @@ import {
   toast,
 } from "@unkey/ui";
 import { useState } from "react";
-import { useAppId, useProjectData } from "../../data-provider";
+import { useBuildSource } from "../../../../_components/settings/hooks/use-build-source";
 
 export function DisconnectGitHub() {
-  const { projectId } = useProjectData();
-  const appId = useAppId();
+  const { appId, repositoryFullName } = useBuildSource();
   const utils = trpc.useUtils();
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [pendingRepo, setPendingRepo] = useState<string | null>(null);
-  const appQuery = useLiveQuery(
-    (q) =>
-      q
-        .from({ app: collection.apps })
-        .where(({ app }) => and(eq(app.projectId, projectId), eq(app.id, appId))),
-    [projectId, appId],
-  );
-  const app = appQuery.data?.[0];
-  const shouldLoadGitHub = app
-    ? match(app.sourceType)
-        .with("git", () => true)
-        .with("oci", () => false)
-        .with("unknown", () => Boolean(app.repositoryFullName))
-        .exhaustive()
-    : false;
-
-  const { data } = trpc.github.getInstallations.useQuery(
-    { projectId, appId },
-    { enabled: shouldLoadGitHub, staleTime: 0 },
-  );
-
-  const repositoryFullName = data?.repoConnection?.repositoryFullName;
 
   const disconnectRepoMutation = trpc.github.disconnectRepo.useMutation({
     onSuccess: async () => {
@@ -62,10 +37,10 @@ export function DisconnectGitHub() {
 
   return (
     <>
-      {shouldLoadGitHub && repositoryFullName ? (
+      {repositoryFullName ? (
         <SettingsZoneRow
           title="Disconnect repository"
-          description="Deployments will no longer be triggered by pushes to this repository."
+          description="Pushes to this repository stop triggering deployments."
           action={{
             label: "Disconnect repository",
             onClick: () => {

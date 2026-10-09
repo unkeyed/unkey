@@ -1,48 +1,36 @@
 "use client";
 
-import { usePreventLeave } from "@/hooks/use-prevent-leave";
-import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import { routes } from "@/lib/navigation/routes";
-import {
-  PageBody,
-  PageContainer,
-  PageHeader,
-  PageHeaderContent,
-  PageHeaderTitle,
-  SettingsDangerZone,
-} from "@unkey/ui";
-import { useProjectData } from "../data-provider";
+import { LoadError } from "@/components/load-error";
+import { collection } from "@/lib/collections";
+import { useCollectionLoad } from "@/lib/collections/use-collection-load";
+import { SettingsDangerZone, SettingsGroup, SettingsGroupContent, SettingsGroups } from "@unkey/ui";
+import { useApp } from "../../../_components/settings/hooks/use-app";
+import { SettingsSkeleton } from "../../../_components/settings/settings-skeleton";
+import { AppName } from "./components/app-name";
 import { DeleteApp } from "./components/delete-app";
 import { DisconnectGitHub } from "./components/disconnect-github";
-import { DeploymentSettings } from "./deployment-settings";
-import { EnvironmentSettingsProvider } from "./environment-provider";
-import { useScrollToHash } from "./hooks/use-scroll-to-hash";
 
-export default function SettingsPage() {
-  const workspace = useWorkspaceNavigation();
-  const { projectId } = useProjectData();
-  const { bypass } = usePreventLeave(
-    true,
-    routes.projects.detail({ workspaceSlug: workspace.slug, projectId }),
-  );
-  useScrollToHash();
+export default function GeneralSettingsPage() {
+  const { app, isLoading } = useApp();
+  const appsLoad = useCollectionLoad(collection.apps.utils);
+  if (!app) {
+    if (appsLoad.failed && !isLoading) {
+      return <LoadError title="Could not load this app" onRetry={appsLoad.retry} />;
+    }
+    return <SettingsSkeleton />;
+  }
 
   return (
-    <PageContainer>
-      <PageHeader>
-        <PageHeaderContent>
-          <PageHeaderTitle>App Settings</PageHeaderTitle>
-        </PageHeaderContent>
-      </PageHeader>
-      <PageBody>
-        <EnvironmentSettingsProvider>
-          <DeploymentSettings onBeforeNavigate={bypass} />
-        </EnvironmentSettingsProvider>
-        <SettingsDangerZone>
-          <DisconnectGitHub />
-          <DeleteApp />
-        </SettingsDangerZone>
-      </PageBody>
-    </PageContainer>
+    <SettingsGroups>
+      <SettingsGroup>
+        <SettingsGroupContent>
+          <AppName appId={app.id} name={app.name} />
+        </SettingsGroupContent>
+      </SettingsGroup>
+      <SettingsDangerZone>
+        <DisconnectGitHub />
+        <DeleteApp />
+      </SettingsDangerZone>
+    </SettingsGroups>
   );
 }
