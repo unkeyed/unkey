@@ -696,14 +696,16 @@ func TestListDeploymentFields(t *testing.T) {
 	t.Run("git deployment", func(t *testing.T) {
 		d := byID[gitDep.ID]
 		require.Equal(t, &openapi.DeploymentGit{
-			CommitSha:              "9f2c1a7",
-			Branch:                 new("main"),
-			CommitMessage:          new("add KEBAP endpoint"),
-			CommitTimestamp:        new(int64(1_704_067_100_000)),
-			AuthorHandle:           new("octocat"),
-			AuthorAvatarUrl:        new("https://avatars.githubusercontent.com/u/1"),
-			PrNumber:               new(412),
-			ForkRepositoryFullName: new("octocat/kebap"),
+			CommitSha:       "9f2c1a7",
+			Branch:          new("main"),
+			CommitMessage:   new("add KEBAP endpoint"),
+			CommitTimestamp: new(int64(1_704_067_100_000)),
+			Author: &openapi.DeploymentGitAuthor{
+				Handle:    "octocat",
+				AvatarUrl: new("https://avatars.githubusercontent.com/u/1"),
+			},
+			PrNumber:       new(412),
+			ForkRepository: new("octocat/kebap"),
 		}, d.Git)
 		require.Equal(t, openapi.DeploymentTrigger{
 			Via:   openapi.DeploymentTriggerViaCli,

@@ -122,14 +122,27 @@ func TestToResponseSource(t *testing.T) {
 			ForkRepositoryFullName:   sql.NullString{Valid: true, String: "dana/payments-api"},
 		}})
 		require.Equal(t, &openapi.DeploymentGit{
-			CommitSha:              "9f2c1a7d3b",
-			CommitMessage:          new("KEBAP: retry on 429"),
-			CommitTimestamp:        new(int64(1704067100000)),
-			AuthorHandle:           new("dana"),
-			AuthorAvatarUrl:        new("https://avatars.githubusercontent.com/u/1"),
-			PrNumber:               new(412),
-			ForkRepositoryFullName: new("dana/payments-api"),
+			CommitSha:       "9f2c1a7d3b",
+			CommitMessage:   new("KEBAP: retry on 429"),
+			CommitTimestamp: new(int64(1704067100000)),
+			Author: &openapi.DeploymentGitAuthor{
+				Handle:    "dana",
+				AvatarUrl: new("https://avatars.githubusercontent.com/u/1"),
+			},
+			PrNumber:       new(412),
+			ForkRepository: new("dana/payments-api"),
 		}, got.Git)
+	})
+
+	t.Run("avatar without a handle omits the author", func(t *testing.T) {
+		got := toResponse(Input{Deployment: db.ListDeploymentsRow{
+			ID:                       uid.New(uid.DeploymentPrefix),
+			Source:                   db.DeploymentsSourceGit,
+			GitCommitSha:             sql.NullString{Valid: true, String: "9f2c1a7d3b"},
+			GitCommitAuthorAvatarUrl: sql.NullString{Valid: true, String: "https://avatars.githubusercontent.com/u/1"},
+		}})
+		require.NotNil(t, got.Git)
+		require.Nil(t, got.Git.Author)
 	})
 
 	t.Run("resolved image is used when requested image is absent", func(t *testing.T) {

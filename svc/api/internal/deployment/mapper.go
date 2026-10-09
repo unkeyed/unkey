@@ -155,14 +155,19 @@ func toResponse(in Input) openapi.Deployment {
 	case db.DeploymentsSourceGit:
 		if d.GitCommitSha.Valid && d.GitCommitSha.String != "" {
 			git := openapi.DeploymentGit{
-				CommitSha:              d.GitCommitSha.String,
-				Branch:                 optionalString(d.GitBranch),
-				CommitMessage:          optionalString(d.GitCommitMessage),
-				CommitTimestamp:        nil,
-				AuthorHandle:           optionalString(d.GitCommitAuthorHandle),
-				AuthorAvatarUrl:        optionalString(d.GitCommitAuthorAvatarUrl),
-				PrNumber:               nil,
-				ForkRepositoryFullName: optionalString(d.ForkRepositoryFullName),
+				CommitSha:       d.GitCommitSha.String,
+				Branch:          optionalString(d.GitBranch),
+				CommitMessage:   optionalString(d.GitCommitMessage),
+				CommitTimestamp: nil,
+				Author:          nil,
+				PrNumber:        nil,
+				ForkRepository:  optionalString(d.ForkRepositoryFullName),
+			}
+			if d.GitCommitAuthorHandle.Valid && d.GitCommitAuthorHandle.String != "" {
+				git.Author = &openapi.DeploymentGitAuthor{
+					Handle:    d.GitCommitAuthorHandle.String,
+					AvatarUrl: optionalString(d.GitCommitAuthorAvatarUrl),
+				}
 			}
 			if d.GitCommitTimestamp.Valid && d.GitCommitTimestamp.Int64 > 0 {
 				git.CommitTimestamp = new(d.GitCommitTimestamp.Int64)

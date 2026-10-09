@@ -5249,27 +5249,22 @@ components:
                     maximum: 9223372036854775807
                     description: Unix timestamp in milliseconds when the commit was authored. Omitted when unknown.
                     example: 1704067100000
-                authorHandle:
-                    type: string
+                author:
+                    "$ref": "#/components/schemas/DeploymentGitAuthor"
                     description: |
-                        The handle of the person who triggered the deployment from git: the
-                        GitHub login of the user who pushed or updated the pull request, or the
-                        handle the client sent. Omitted when unknown.
-                    example: octocat
-                authorAvatarUrl:
-                    type: string
-                    description: The avatar URL for `authorHandle`. Omitted when unknown.
-                    example: https://avatars.githubusercontent.com/u/583231
+                        The person who triggered the deployment from git: the GitHub user who
+                        pushed or updated the pull request, or the author the client sent.
+                        Omitted when unknown.
                 prNumber:
                     type: integer
                     minimum: 1
                     description: The pull request number this deployment was built for. Omitted when the commit is not part of a pull request.
                     example: 412
-                forkRepositoryFullName:
+                forkRepository:
                     type: string
                     description: |
-                        The `owner/repo` name of the fork the pull request comes from. Omitted
-                        when the pull request is not from a fork.
+                        The `owner/repo` name of the fork this deployment was built from. Omitted
+                        when it was built from the app's connected repository.
                     example: octocat/payments-api
             additionalProperties: false
         DeploymentDocker:
@@ -5398,6 +5393,20 @@ components:
                     "$ref": "#/components/schemas/EnvironmentHealthcheck"
                     description: |
                         HTTP health probe configuration. Omitted when no healthcheck is configured.
+            additionalProperties: false
+        DeploymentGitAuthor:
+            type: object
+            required:
+                - handle
+            properties:
+                handle:
+                    type: string
+                    description: The GitHub login, or the handle the client sent.
+                    example: octocat
+                avatarUrl:
+                    type: string
+                    description: The avatar URL for `handle`. Omitted when unknown.
+                    example: https://avatars.githubusercontent.com/u/583231
             additionalProperties: false
         DeploymentTriggerActor:
             type: object

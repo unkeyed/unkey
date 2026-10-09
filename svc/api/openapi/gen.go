@@ -997,18 +997,7 @@ type DeploymentErrorCode string
 
 // DeploymentGit defines model for DeploymentGit.
 type DeploymentGit struct {
-	// AuthorAvatarUrl The avatar URL for `authorHandle`. Omitted when unknown.
-	//
-	// Example: https://avatars.githubusercontent.com/u/583231
-	AuthorAvatarUrl *string `json:"authorAvatarUrl,omitempty"`
-
-	// AuthorHandle The handle of the person who triggered the deployment from git: the
-	// GitHub login of the user who pushed or updated the pull request, or the
-	// handle the client sent. Omitted when unknown.
-	//
-	//
-	// Example: octocat
-	AuthorHandle *string `json:"authorHandle,omitempty"`
+	Author *DeploymentGitAuthor `json:"author,omitempty"`
 
 	// Branch The git branch this deployment was built from. Omitted when unknown.
 	//
@@ -1030,17 +1019,30 @@ type DeploymentGit struct {
 	// Example: 1704067100000
 	CommitTimestamp *int64 `json:"commitTimestamp,omitempty"`
 
-	// ForkRepositoryFullName The `owner/repo` name of the fork the pull request comes from. Omitted
-	// when the pull request is not from a fork.
+	// ForkRepository The `owner/repo` name of the fork this deployment was built from. Omitted
+	// when it was built from the app's connected repository.
 	//
 	//
 	// Example: octocat/payments-api
-	ForkRepositoryFullName *string `json:"forkRepositoryFullName,omitempty"`
+	ForkRepository *string `json:"forkRepository,omitempty"`
 
 	// PrNumber The pull request number this deployment was built for. Omitted when the commit is not part of a pull request.
 	//
 	// Example: 412
 	PrNumber *int `json:"prNumber,omitempty"`
+}
+
+// DeploymentGitAuthor defines model for DeploymentGitAuthor.
+type DeploymentGitAuthor struct {
+	// AvatarUrl The avatar URL for `handle`. Omitted when unknown.
+	//
+	// Example: https://avatars.githubusercontent.com/u/583231
+	AvatarUrl *string `json:"avatarUrl,omitempty"`
+
+	// Handle The GitHub login, or the handle the client sent.
+	//
+	// Example: octocat
+	Handle string `json:"handle"`
 }
 
 // DeploymentRuntime defines model for DeploymentRuntime.
