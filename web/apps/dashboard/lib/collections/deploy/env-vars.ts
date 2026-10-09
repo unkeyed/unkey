@@ -7,7 +7,7 @@ import type { EnvironmentVariable } from "@unkey/api/models/components";
 import { toast } from "@unkey/ui";
 import { z } from "zod";
 import { queryClient } from "../client";
-import { trackSave } from "./environment-settings";
+import { trackSave } from "./pending-redeploy";
 import { extractStringFilter } from "./utils";
 
 const schema = z.object({

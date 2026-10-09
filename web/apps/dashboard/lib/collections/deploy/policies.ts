@@ -5,7 +5,7 @@ import { parseLoadSubsetOptions, queryCollectionOptions } from "@tanstack/query-
 import { createCollection } from "@tanstack/react-db";
 import { toast } from "@unkey/ui";
 import { queryClient } from "../client";
-import { trackSave } from "./environment-settings";
+import { trackSave } from "./pending-redeploy";
 import { type Policy, fromWirePolicy } from "./policies.schema";
 import { extractStringFilter } from "./utils";
 
