@@ -2,7 +2,7 @@
 
 import { IconChevronRightOutline12 } from "@unkey/icons";
 import * as React from "react";
-import { cn } from "../lib/utils";
+import { cn, findScrollParent } from "../lib/utils";
 import { Button } from "./buttons/button";
 import { InfoTooltip } from "./info-tooltip";
 
@@ -133,7 +133,10 @@ function SettingCard({
           }
           const overflow = inner.getBoundingClientRect().bottom - window.innerHeight;
           if (overflow > 0) {
-            findScrollParent(inner).scrollBy({ top: overflow + 16, behavior: "smooth" });
+            (findScrollParent(inner) ?? window).scrollBy({
+              top: overflow + 16,
+              behavior: "smooth",
+            });
           }
         },
         { once: true },
@@ -240,21 +243,6 @@ function SettingCard({
       )}
     </div>
   );
-}
-
-// Source - https://stackoverflow.com/a/78682259
-// Posted by dgropp
-const scrollStyles = ["scroll", "auto"];
-function findScrollParent(element: HTMLElement | null): HTMLElement | Window {
-  const parent = element?.parentElement;
-  if (!parent) {
-    return window;
-  }
-  const { overflowY } = getComputedStyle(parent);
-  if (scrollStyles.includes(overflowY)) {
-    return parent;
-  }
-  return findScrollParent(parent);
 }
 
 SettingCard.displayName = "SettingCard";
