@@ -1,44 +1,50 @@
 "use client";
 
-import { IconPlusOutline18 } from "@unkey/icons";
 import {
-  Button,
   PageBody,
   PageContainer,
   PageHeader,
   PageHeaderActions,
   PageHeaderContent,
-  PageHeaderDescription,
   PageHeaderTitle,
 } from "@unkey/ui";
 import { useState } from "react";
-import { EnvVarsBody } from "./deployment-env-vars";
+import { ALL_ENVIRONMENTS } from "../../../_components/env-vars/shared/environment-select";
+import { useAppId, useProjectData } from "../data-provider";
+import { AddEnvVarsButton } from "./components/add/add-env-vars-button";
+import { EnvVarsList } from "./components/list/env-vars-list";
+import { EnvVarsToolbar, type SortOption } from "./components/toolbar/env-vars-toolbar";
 
 export default function EnvVarsPage() {
-  const [isAddOpen, setIsAddOpen] = useState(false);
+  const { projectId, environments } = useProjectData();
+  const appId = useAppId();
+  const [environmentFilter, setEnvironmentFilter] = useState(ALL_ENVIRONMENTS);
+  const [sortBy, setSortBy] = useState<SortOption>("last-updated");
 
   return (
     <PageContainer>
       <PageHeader>
         <PageHeaderContent>
-          <PageHeaderTitle>Environment Variables</PageHeaderTitle>
-          <PageHeaderDescription>
-            Store API keys, tokens, and config securely. Changes apply on next deploy.
-          </PageHeaderDescription>
+          <PageHeaderTitle>Environment variables</PageHeaderTitle>
         </PageHeaderContent>
         <PageHeaderActions>
-          <Button
-            size="md"
-            onClick={() => setIsAddOpen((prev) => !prev)}
-            variant={isAddOpen ? "outline" : "primary"}
-          >
-            <IconPlusOutline18 />
-            Add environment variable
-          </Button>
+          <AddEnvVarsButton />
         </PageHeaderActions>
       </PageHeader>
       <PageBody>
-        <EnvVarsBody isAddOpen={isAddOpen} onCloseAdd={() => setIsAddOpen(false)} />
+        <EnvVarsToolbar
+          environmentFilter={environmentFilter}
+          onEnvironmentFilterChange={setEnvironmentFilter}
+          sortBy={sortBy}
+          onSortChange={setSortBy}
+        />
+        <EnvVarsList
+          projectId={projectId}
+          appId={appId}
+          environments={environments}
+          environmentFilter={environmentFilter}
+          sortBy={sortBy}
+        />
       </PageBody>
     </PageContainer>
   );

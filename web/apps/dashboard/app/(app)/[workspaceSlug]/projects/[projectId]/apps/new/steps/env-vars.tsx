@@ -2,8 +2,19 @@
 
 import { IconChevronLeftOutline18 } from "@unkey/icons";
 import { Button, useStepWizard } from "@unkey/ui";
-import { ProjectDataProvider } from "../../[appId]/(overview)/data-provider";
-import { DeploymentEnvVars } from "../../[appId]/(overview)/env-vars/deployment-env-vars";
+import { useState } from "react";
+import {
+  ProjectDataProvider,
+  useAppId,
+  useProjectData,
+} from "../../[appId]/(overview)/data-provider";
+import { AddEnvVarsButton } from "../../[appId]/(overview)/env-vars/components/add/add-env-vars-button";
+import { EnvVarsList } from "../../[appId]/(overview)/env-vars/components/list/env-vars-list";
+import {
+  EnvVarsToolbar,
+  type SortOption,
+} from "../../[appId]/(overview)/env-vars/components/toolbar/env-vars-toolbar";
+import { ALL_ENVIRONMENTS } from "../../_components/env-vars/shared/environment-select";
 import { DeployAction } from "./deploy-action";
 
 type EnvVarsStepProps = {
@@ -39,3 +50,31 @@ export const EnvVarsStep = ({ projectId, appId, onDeploymentCreated }: EnvVarsSt
     </>
   );
 };
+
+function DeploymentEnvVars() {
+  const { projectId, environments } = useProjectData();
+  const appId = useAppId();
+  const [environmentFilter, setEnvironmentFilter] = useState(ALL_ENVIRONMENTS);
+  const [sortBy, setSortBy] = useState<SortOption>("last-updated");
+
+  return (
+    <div className="flex flex-col gap-5">
+      <div className="flex justify-end">
+        <AddEnvVarsButton />
+      </div>
+      <EnvVarsToolbar
+        environmentFilter={environmentFilter}
+        onEnvironmentFilterChange={setEnvironmentFilter}
+        sortBy={sortBy}
+        onSortChange={setSortBy}
+      />
+      <EnvVarsList
+        projectId={projectId}
+        appId={appId}
+        environments={environments}
+        environmentFilter={environmentFilter}
+        sortBy={sortBy}
+      />
+    </div>
+  );
+}
