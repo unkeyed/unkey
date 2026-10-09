@@ -15,7 +15,7 @@ import {
   SecondaryNavTitle,
 } from "@unkey/ui";
 import Link from "next/link";
-import { useSelectedLayoutSegments } from "next/navigation";
+import { useParams, useSelectedLayoutSegments } from "next/navigation";
 import type { ReactNode } from "react";
 import { useAppId, useProjectData } from "../data-provider";
 import {
@@ -31,7 +31,8 @@ export default function AppSettingsLayout({ children }: { children: ReactNode })
   const { projectId } = useProjectData();
   const appId = useAppId();
   const active = activeSection(useSelectedLayoutSegments());
-  const { back, title, description } = settingsHeader(active);
+  const { environment } = useParams<{ environment?: string }>();
+  const { back, title, description } = settingsHeader(active, environment);
   const scope = { workspaceSlug: workspace.slug, projectId, appId };
 
   return (

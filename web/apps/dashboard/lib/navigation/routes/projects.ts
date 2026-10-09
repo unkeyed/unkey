@@ -11,8 +11,12 @@ import { type WorkspaceScope, buildRoute } from "./shared";
 type ProjectScope = WorkspaceScope & { projectId: string };
 export type AppScope = ProjectScope & { appId: string };
 
-export const APP_SETTINGS_PAGES = ["build", "runtime", "advanced"] as const;
+export const APP_SETTINGS_PAGES = ["build", "runtime", "environments", "advanced"] as const;
 export type AppSettingsPage = (typeof APP_SETTINGS_PAGES)[number];
+
+type AppSettingsTarget =
+  | { page?: Exclude<AppSettingsPage, "environments"> }
+  | { page: "environments"; environment?: string };
 
 export const projectRoutes = {
   list({ workspaceSlug, new: isNew }: WorkspaceScope & { new?: boolean }): Route {
@@ -66,8 +70,14 @@ export const projectRoutes = {
       );
     },
 
-    settings(target: AppScope & { page?: AppSettingsPage }): Route {
+    settings(target: AppScope & AppSettingsTarget): Route {
       const params = appParams(target);
+      if (target.page === "environments" && target.environment) {
+        return buildRoute(
+          "/[workspaceSlug]/projects/[projectId]/apps/[appId]/settings/environments/[environment]",
+          { ...params, environment: target.environment },
+        );
+      }
       if (target.page) {
         return buildRoute(
           `/[workspaceSlug]/projects/[projectId]/apps/[appId]/settings/${target.page}`,

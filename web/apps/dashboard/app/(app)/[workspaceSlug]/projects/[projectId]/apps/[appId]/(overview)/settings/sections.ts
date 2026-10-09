@@ -8,6 +8,10 @@ export const SETTINGS_SECTIONS: Record<SettingsSection, { label: string; descrip
   general: { label: "General" },
   build: { label: "Build" },
   runtime: { label: "Runtime" },
+  environments: {
+    label: "Environments",
+    description: "Configure how each environment deploys and runs.",
+  },
   advanced: { label: "Advanced" },
 };
 
@@ -21,7 +25,17 @@ export function sectionPage(section: SettingsSection): AppSettingsPage | undefin
 
 type SettingsHeader = { back?: AppSettingsPage; title: string; description?: string };
 
-export function settingsHeader(section: SettingsSection): SettingsHeader {
+export function environmentName(slug: string): string {
+  return slug.charAt(0).toUpperCase() + slug.slice(1);
+}
+
+export function settingsHeader(
+  section: SettingsSection,
+  environmentSlug: string | undefined,
+): SettingsHeader {
+  if (section === "environments" && environmentSlug) {
+    return { back: "environments", title: environmentName(environmentSlug) };
+  }
   const { label, description } = SETTINGS_SECTIONS[section];
   return { title: label, description };
 }
