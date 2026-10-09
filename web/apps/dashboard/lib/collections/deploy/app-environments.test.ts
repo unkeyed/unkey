@@ -15,7 +15,7 @@ vi.mock("../client", async () => {
   return { queryClient: new QueryClient() };
 });
 
-const { listAppEnvironments, markAppEnvironmentsChanged } = await import("./app-environments");
+const { listAppEnvironments, refetchAppEnvironments } = await import("./app-environments");
 
 function portOf(environments: Awaited<ReturnType<typeof listAppEnvironments>>) {
   return environments[0]?.runtime?.port;
@@ -24,12 +24,13 @@ function portOf(environments: Awaited<ReturnType<typeof listAppEnvironments>>) {
 describe("listAppEnvironments", () => {
   it("reads again after a write, even while an older request is in flight", async () => {
     serverPort = 8080;
+    await listAppEnvironments("proj", "app_b");
     const beforeWrite = listAppEnvironments("proj", "app_b");
     await new Promise((resolve) => setTimeout(resolve, 10));
     serverPort = 9090;
-    markAppEnvironmentsChanged("proj", "app_b");
+    void refetchAppEnvironments("proj", "app_b");
 
     expect(portOf(await listAppEnvironments("proj", "app_b"))).toBe(9090);
-    await beforeWrite;
+    expect(portOf(await beforeWrite)).toBe(9090);
   });
 });
