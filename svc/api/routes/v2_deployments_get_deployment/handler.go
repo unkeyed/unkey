@@ -4,8 +4,6 @@ import (
 	"context"
 	"net/http"
 
-	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
-
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
@@ -45,7 +43,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	dep, err := db.Query.FindDeploymentById(ctx, h.DB.RO(), req.DeploymentId)
+	dep, err := db.Query.FindDeploymentByIdAndWorkspace(ctx, h.DB.RO(), db.FindDeploymentByIdAndWorkspaceParams{
+		ID:          req.DeploymentId,
+		WorkspaceID: principal.AuthorizedWorkspaceID,
+	})
 	if err != nil && !db.IsNotFound(err) {
 		return fault.Wrap(
 			err,
@@ -54,10 +55,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			fault.Public("Failed to retrieve deployment."),
 		)
 	}
-
-	// FindDeploymentById is not workspace-scoped, so a match in another workspace
-	// is masked as not found to avoid leaking a deployment's existence.
-	if db.IsNotFound(err) || dep.WorkspaceID != principal.AuthorizedWorkspaceID {
+	if db.IsNotFound(err) {
 		return fault.New(
 			"deployment not found",
 			fault.Code(codes.Data.Deployment.NotFound.URN()),
@@ -66,21 +64,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	err = principal.Authorize(rbac.Or(
-		rbac.T(rbac.Tuple{
-			ResourceType: rbac.Environment,
-			ResourceID:   "*",
-			Action:       rbac.ReadDeployment,
-		}),
-		rbac.T(rbac.Tuple{
-			ResourceType: rbac.Environment,
-			ResourceID:   dep.EnvironmentID,
-			Action:       rbac.ReadDeployment,
-		}),
-		rbac.U(
-			urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(dep.ProjectID).App(dep.AppID).Environment(dep.EnvironmentID).Deployment(dep.ID),
-			permissions.Read,
-		),
+	err = principal.Authorize(rbac.U(
+		urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(dep.ProjectID).App(dep.AppID).Environment(dep.EnvironmentID).Deployment(dep.ID),
+		permissions.Read,
 	))
 	if err != nil {
 		return fault.New(
@@ -91,56 +77,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	states, err := db.Query.ListDeploymentEnvAndAppState(ctx, h.DB.RO(), db.ListDeploymentEnvAndAppStateParams{
-		WorkspaceID:   principal.AuthorizedWorkspaceID,
-		DeploymentIds: []string{dep.ID},
-	})
-	if err != nil {
-		return fault.Wrap(
-			err,
-			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Internal("database error"),
-			fault.Public("Failed to retrieve deployment."),
-		)
-	}
-	var state db.ListDeploymentEnvAndAppStateRow //nolint:exhaustruct // zero value when the join misses
-	if len(states) > 0 {
-		state = states[0]
-	}
-
-	var steps []db.DeploymentStep
-	if dep.Status == mysqltype.DeploymentsStatusFailed {
-		steps, err = db.Query.ListFailedDeploymentStepsByIds(ctx, h.DB.RO(), db.ListFailedDeploymentStepsByIdsParams{
-			WorkspaceID:   principal.AuthorizedWorkspaceID,
-			DeploymentIds: []string{dep.ID},
-		})
-		if err != nil {
-			return fault.Wrap(
-				err,
-				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.Internal("database error"),
-				fault.Public("Failed to retrieve deployment."),
-			)
-		}
-	}
-
-	domains, err := db.Query.ListDeploymentDomains(ctx, h.DB.RO(), db.ListDeploymentDomainsParams{
-		WorkspaceID:  principal.AuthorizedWorkspaceID,
-		DeploymentID: dep.ID,
-	})
-	if err != nil {
-		return fault.Wrap(
-			err,
-			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Internal("database error"),
-			fault.Public("Failed to retrieve deployment."),
-		)
-	}
-
-	regions, err := db.Query.ListDeploymentRegions(ctx, h.DB.RO(), db.ListDeploymentRegionsParams{
-		WorkspaceID:  principal.AuthorizedWorkspaceID,
-		DeploymentID: dep.ID,
-	})
+	data, err := deployment.ToResponse(ctx, h.DB.RO(), principal.AuthorizedWorkspaceID, db.ListDeploymentsRow(dep))
 	if err != nil {
 		return fault.Wrap(
 			err,
@@ -154,12 +91,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		Meta: openapi.Meta{
 			RequestId: s.RequestID(),
 		},
-		Data: deployment.ToResponse(deployment.Input{
-			Deployment: dep,
-			State:      state,
-			Steps:      steps,
-			Regions:    regions,
-			Domains:    domains,
-		}),
+		Data: data,
 	})
 }

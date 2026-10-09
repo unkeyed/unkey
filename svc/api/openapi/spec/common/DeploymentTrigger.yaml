@@ -1,0 +1,24 @@
+type: object
+required:
+  - via
+properties:
+  via:
+    type: string
+    enum:
+      - unknown
+      - github
+      - api
+      - cli
+      - dashboard
+      - unkey
+    description: |
+      What started this deployment: `github` (a push or pull request), `api`,
+      `cli`, `dashboard`, or `unkey` (Unkey itself, for example a rebuild).
+      `unknown` when it was not recorded. `api`, `cli` and `dashboard` are
+      reported by the client.
+    example: github
+  actor:
+    "$ref": "./DeploymentTriggerActor.yaml"
+    description: |
+      Who started this deployment. Omitted when no actor was recorded.
+additionalProperties: false

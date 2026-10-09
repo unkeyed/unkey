@@ -97,7 +97,7 @@ If you'd rather bring an image you built yourself, see [Deploy a container image
 </Steps>
 
 <Visibility for="agents">
-  The same flow through the API, with a root key in `Authorization: Bearer`. Each call is an HTTP `POST` to `https://api.unkey.com/v2/...` with a JSON body. Required permissions: `project.*.create_project`, `workspace.*.install_github`, `project.*.create_app`, `app.*.connect_repository` (only when `createApp` carries a `git.repository`), `environment.*.create_deployment`, and `environment.*.read_deployment`.
+  The same flow through the API, with a root key in `Authorization: Bearer`. Each call is an HTTP `POST` to `https://api.unkey.com/v2/...` with a JSON body. Required permissions: `project.*.create_project`, `workspace.*.install_github`, `project.*.create_app`, `app.*.connect_repository` (only when `createApp` carries a `git.repository`), `environment.*.create_deployment`, and `unkey:v1:<workspace_id>:projects/*/apps/*/environments/*/deployments/*#read`.
 
   <CodeGroup>
     ```bash Create the project

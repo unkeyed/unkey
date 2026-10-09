@@ -17,9 +17,8 @@ func TestListUnknownProject(t *testing.T) {
 	route := newRoute(h)
 	h.Register(route)
 
-	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"environment.*.read_deployment"},
-	})
+	setup := h.CreateTestDeploymentSetup()
+	setup.RootKey = h.CreateRootKey(setup.Workspace.ID, readDeployments(setup.Workspace.ID))
 
 	req := handler.Request{Project: rid(uid.New(uid.ProjectPrefix))}
 
@@ -34,9 +33,8 @@ func TestListProjectInAnotherWorkspace(t *testing.T) {
 	route := newRoute(h)
 	h.Register(route)
 
-	caller := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"environment.*.read_deployment"},
-	})
+	caller := h.CreateTestDeploymentSetup()
+	caller.RootKey = h.CreateRootKey(caller.Workspace.ID, readDeployments(caller.Workspace.ID))
 	other := h.CreateTestDeploymentSetup()
 
 	h.CreateDeployment(seed.CreateDeploymentRequest{
@@ -63,9 +61,8 @@ func TestListUnknownApp(t *testing.T) {
 	route := newRoute(h)
 	h.Register(route)
 
-	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"environment.*.read_deployment"},
-	})
+	setup := h.CreateTestDeploymentSetup()
+	setup.RootKey = h.CreateRootKey(setup.Workspace.ID, readDeployments(setup.Workspace.ID))
 
 	req := handler.Request{
 		Project: rid(setup.Project.Slug),
@@ -83,9 +80,8 @@ func TestListUnknownEnvironment(t *testing.T) {
 	route := newRoute(h)
 	h.Register(route)
 
-	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"environment.*.read_deployment"},
-	})
+	setup := h.CreateTestDeploymentSetup()
+	setup.RootKey = h.CreateRootKey(setup.Workspace.ID, readDeployments(setup.Workspace.ID))
 
 	req := handler.Request{
 		Project:     rid(setup.Project.Slug),

@@ -522,6 +522,12 @@ type Querier interface {
 	//
 	//  SELECT deployments.pk, deployments.id, deployments.k8s_name, deployments.workspace_id, deployments.project_id, deployments.environment_id, deployments.app_id, deployments.source, deployments.image_requested, deployments.image_resolved, deployments.build_id, deployments.git_commit_sha, deployments.git_branch, deployments.git_commit_message, deployments.git_commit_author_handle, deployments.git_commit_author_avatar_url, deployments.git_commit_timestamp, deployments.sentinel_config, deployments.cpu_millicores, deployments.memory_mib, deployments.storage_mib, deployments.desired_state, deployments.encrypted_environment_variables, deployments.command, deployments.port, deployments.shutdown_signal, deployments.upstream_protocol, deployments.healthcheck, deployments.pr_number, deployments.fork_repository_full_name, deployments.github_deployment_id, deployments.invocation_id, deployments.status, deployments.`trigger`, deployments.triggered_by, deployments.trigger_reason, deployments.created_at, deployments.updated_at FROM `deployments` WHERE id = ?
 	FindDeploymentById(ctx context.Context, db DBTX, id string) (Deployment, error)
+	// Selects the same columns as ListDeployments, so a row converts to
+	// ListDeploymentsRow for the shared response mapper
+	//
+	//  SELECT d.id, d.project_id, d.app_id, d.environment_id, d.source, d.image_requested, d.image_resolved, d.git_commit_sha, d.git_branch, d.git_commit_message, d.git_commit_author_handle, d.git_commit_author_avatar_url, d.git_commit_timestamp, d.cpu_millicores, d.memory_mib, d.storage_mib, d.desired_state, d.command, d.port, d.shutdown_signal, d.upstream_protocol, d.healthcheck, d.pr_number, d.fork_repository_full_name, d.status, d.`trigger`, d.triggered_by, d.created_at, d.updated_at FROM `deployments` d
+	//  WHERE d.id = ? AND d.workspace_id = ?
+	FindDeploymentByIdAndWorkspace(ctx context.Context, db DBTX, arg FindDeploymentByIdAndWorkspaceParams) (FindDeploymentByIdAndWorkspaceRow, error)
 	//FindDeploymentWithEnvironment
 	//
 	//  SELECT d.pk, d.id, d.k8s_name, d.workspace_id, d.project_id, d.environment_id, d.app_id, d.source, d.image_requested, d.image_resolved, d.build_id, d.git_commit_sha, d.git_branch, d.git_commit_message, d.git_commit_author_handle, d.git_commit_author_avatar_url, d.git_commit_timestamp, d.sentinel_config, d.cpu_millicores, d.memory_mib, d.storage_mib, d.desired_state, d.encrypted_environment_variables, d.command, d.port, d.shutdown_signal, d.upstream_protocol, d.healthcheck, d.pr_number, d.fork_repository_full_name, d.github_deployment_id, d.invocation_id, d.status, d.`trigger`, d.triggered_by, d.trigger_reason, d.created_at, d.updated_at, e.slug AS environment_slug, e.kind AS environment_kind
@@ -2406,15 +2412,6 @@ type Querier interface {
 	//  ORDER BY cd.id ASC
 	//  LIMIT ?
 	ListCustomDomains(ctx context.Context, db DBTX, arg ListCustomDomainsParams) ([]ListCustomDomainsRow, error)
-	//ListDeploymentDomains
-	//
-	//  SELECT r.fully_qualified_domain_name AS domain
-	//  FROM frontline_routes r
-	//  JOIN deployments d ON r.deployment_id = d.id
-	//  WHERE d.workspace_id = ?
-	//    AND r.deployment_id = ?
-	//  ORDER BY r.fully_qualified_domain_name
-	ListDeploymentDomains(ctx context.Context, db DBTX, arg ListDeploymentDomainsParams) ([]string, error)
 	//ListDeploymentDomainsByIds
 	//
 	//  SELECT r.deployment_id AS deployment_id, r.fully_qualified_domain_name AS domain
@@ -2441,15 +2438,6 @@ type Querier interface {
 	//  WHERE d.workspace_id = ?
 	//    AND d.id IN (/*SLICE:deployment_ids*/?)
 	ListDeploymentEnvAndAppState(ctx context.Context, db DBTX, arg ListDeploymentEnvAndAppStateParams) ([]ListDeploymentEnvAndAppStateRow, error)
-	//ListDeploymentRegions
-	//
-	//  SELECT DISTINCT r.name AS region
-	//  FROM deployment_topology dt
-	//  JOIN regions r ON dt.region_id = r.id
-	//  WHERE dt.workspace_id = ?
-	//    AND dt.deployment_id = ?
-	//  ORDER BY r.name
-	ListDeploymentRegions(ctx context.Context, db DBTX, arg ListDeploymentRegionsParams) ([]string, error)
 	//ListDeploymentRegionsByIds
 	//
 	//  SELECT DISTINCT dt.deployment_id AS deployment_id, r.name AS region
@@ -2459,22 +2447,44 @@ type Querier interface {
 	//    AND dt.deployment_id IN (/*SLICE:deployment_ids*/?)
 	//  ORDER BY dt.deployment_id, r.name
 	ListDeploymentRegionsByIds(ctx context.Context, db DBTX, arg ListDeploymentRegionsByIdsParams) ([]ListDeploymentRegionsByIdsRow, error)
-	// has_status_filter gates the status clause; without it sqlc renders an empty
-	// status set as IN (NULL), which matches nothing.
+	//ListDeploymentStepsByIds
 	//
-	//  SELECT d.pk, d.id, d.k8s_name, d.workspace_id, d.project_id, d.environment_id, d.app_id, d.source, d.image_requested, d.image_resolved, d.build_id, d.git_commit_sha, d.git_branch, d.git_commit_message, d.git_commit_author_handle, d.git_commit_author_avatar_url, d.git_commit_timestamp, d.sentinel_config, d.cpu_millicores, d.memory_mib, d.storage_mib, d.desired_state, d.encrypted_environment_variables, d.command, d.port, d.shutdown_signal, d.upstream_protocol, d.healthcheck, d.pr_number, d.fork_repository_full_name, d.github_deployment_id, d.invocation_id, d.status, d.`trigger`, d.triggered_by, d.trigger_reason, d.created_at, d.updated_at FROM `deployments` d
+	//  SELECT deployment_steps.pk, deployment_steps.workspace_id, deployment_steps.project_id, deployment_steps.environment_id, deployment_steps.deployment_id, deployment_steps.app_id, deployment_steps.step, deployment_steps.started_at, deployment_steps.ended_at, deployment_steps.error FROM deployment_steps
+	//  WHERE workspace_id = ?
+	//    AND deployment_id IN (/*SLICE:deployment_ids*/?)
+	//  ORDER BY deployment_id, started_at ASC
+	ListDeploymentStepsByIds(ctx context.Context, db DBTX, arg ListDeploymentStepsByIdsParams) ([]DeploymentStep, error)
+	// has_status_filter and has_branch_filter gate their clauses; without them sqlc
+	// renders an empty set as IN (NULL), which matches nothing.
+	// Newest first; pk breaks ties within a millisecond. The cursor resumes at its
+	// row's (created_at, pk), inclusive. The plain created_at bound lets the index
+	// seek, MySQL cannot range-scan the row comparison
+	//
+	//  SELECT d.id, d.project_id, d.app_id, d.environment_id, d.source, d.image_requested, d.image_resolved, d.git_commit_sha, d.git_branch, d.git_commit_message, d.git_commit_author_handle, d.git_commit_author_avatar_url, d.git_commit_timestamp, d.cpu_millicores, d.memory_mib, d.storage_mib, d.desired_state, d.command, d.port, d.shutdown_signal, d.upstream_protocol, d.healthcheck, d.pr_number, d.fork_repository_full_name, d.status, d.`trigger`, d.triggered_by, d.created_at, d.updated_at FROM `deployments` d
 	//  WHERE d.workspace_id = ?
 	//    AND (? = '' OR d.project_id = ?)
 	//    AND (? = '' OR d.app_id = ?)
 	//    AND (? = '' OR d.environment_id = ?)
 	//    AND (? = FALSE OR d.status IN (/*SLICE:statuses*/?))
+	//    AND (? = FALSE OR d.git_branch IN (/*SLICE:branches*/?))
+	//    AND (? IS NULL OR d.created_at >= ?)
+	//    AND (? IS NULL OR d.created_at < ?)
 	//    AND (
 	//      ? = ''
-	//      OR d.pk <= (SELECT c.pk FROM `deployments` c WHERE c.id = ?)
+	//      OR (
+	//        d.created_at <= (
+	//          SELECT c.created_at FROM `deployments` c
+	//          WHERE c.id = ? AND c.workspace_id = ?
+	//        )
+	//        AND (d.created_at, d.pk) <= (
+	//          SELECT c.created_at, c.pk FROM `deployments` c
+	//          WHERE c.id = ? AND c.workspace_id = ?
+	//        )
+	//      )
 	//    )
-	//  ORDER BY d.pk DESC
+	//  ORDER BY d.created_at DESC, d.pk DESC
 	//  LIMIT ?
-	ListDeployments(ctx context.Context, db DBTX, arg ListDeploymentsParams) ([]Deployment, error)
+	ListDeployments(ctx context.Context, db DBTX, arg ListDeploymentsParams) ([]ListDeploymentsRow, error)
 	//ListDirectPermissionsByKeyID
 	//
 	//  SELECT p.pk, p.id, p.workspace_id, p.project_id, p.name, p.slug, p.description, p.created_at_m, p.updated_at_m
@@ -2500,14 +2510,6 @@ type Querier interface {
 	//  WHERE app_id = ?
 	//  ORDER BY id ASC
 	ListEnvironmentsByApp(ctx context.Context, db DBTX, appID string) ([]Environment, error)
-	//ListFailedDeploymentStepsByIds
-	//
-	//  SELECT deployment_steps.pk, deployment_steps.workspace_id, deployment_steps.project_id, deployment_steps.environment_id, deployment_steps.deployment_id, deployment_steps.app_id, deployment_steps.step, deployment_steps.started_at, deployment_steps.ended_at, deployment_steps.error FROM deployment_steps
-	//  WHERE workspace_id = ?
-	//    AND deployment_id IN (/*SLICE:deployment_ids*/?)
-	//    AND error IS NOT NULL AND error != ''
-	//  ORDER BY deployment_id, started_at ASC
-	ListFailedDeploymentStepsByIds(ctx context.Context, db DBTX, arg ListFailedDeploymentStepsByIdsParams) ([]DeploymentStep, error)
 	// ListIdentities returns one page of a project's identities with their
 	// ratelimits aggregated into a JSON array (empty array when none exist).
 	// Pagination is cursor-based: ORDER BY i.id ASC with i.id >= id_cursor makes

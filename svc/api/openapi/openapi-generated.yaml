@@ -816,7 +816,7 @@ components:
                     "$ref": "#/components/schemas/ResourceIdentifier"
                     description: |
                         Restrict results to a single project, identified by its ID or slug.
-                        Required when filtering by `app` or `environment`.
+                        Required when filtering by `app`, `environment`, or `branch`.
                 app:
                     "$ref": "#/components/schemas/ResourceIdentifier"
                     description: |
@@ -836,6 +836,37 @@ components:
                         Restrict results to deployments in any of the given lifecycle statuses.
                         Omit to return deployments in every status.
                     example: ["ready", "failed"]
+                branch:
+                    type: array
+                    maxItems: 50
+                    items:
+                        type: string
+                        minLength: 1
+                        maxLength: 256
+                    description: |
+                        Restrict results to deployments built from any of the given git branches.
+                        Requires `project` and `app` to also be set. Omit or pass an empty list to
+                        return deployments from every branch.
+                    example: ["main", "feature/checkout"]
+                startTime:
+                    type: integer
+                    format: int64
+                    minimum: 0
+                    maximum: 9223372036854775807
+                    description: |
+                        Return only deployments created at or after this unix timestamp in
+                        milliseconds (inclusive).
+                    example: 1704067200000
+                endTime:
+                    type: integer
+                    format: int64
+                    minimum: 0
+                    maximum: 9223372036854775807
+                    description: |
+                        Return only deployments created before this unix timestamp in
+                        milliseconds (exclusive). Must be later than `startTime` when both are
+                        set.
+                    example: 1704672000000
                 limit:
                     type: integer
                     description: |
@@ -5058,6 +5089,7 @@ components:
                 - project
                 - availableActions
                 - regions
+                - trigger
                 - runtime
                 - createdAt
             properties:
@@ -5096,6 +5128,10 @@ components:
                     "$ref": "#/components/schemas/DeploymentDocker"
                     description: |
                         Compatibility field present for OCI image-sourced deployments. Mutually exclusive with `git`.
+                trigger:
+                    "$ref": "#/components/schemas/DeploymentTrigger"
+                    description: |
+                        What started this deployment and who started it.
                 availableActions:
                     type: array
                     items:
@@ -5116,6 +5152,15 @@ components:
                     "$ref": "#/components/schemas/DeploymentError"
                     description: |
                         Why the deployment failed. Present only when `status` is `failed`.
+                finishedAt:
+                    type: integer
+                    format: int64
+                    minimum: 0
+                    maximum: 9223372036854775807
+                    description: |
+                        Unix timestamp in milliseconds when the deployment finished, successfully
+                        or not. Omitted while it is in progress.
+                    example: 1704067260000
                 domains:
                     type: array
                     items:
@@ -5193,6 +5238,34 @@ components:
                     type: string
                     description: The git branch this deployment was built from. Omitted when unknown.
                     example: main
+                commitMessage:
+                    type: string
+                    description: The commit message. Omitted when unknown.
+                    example: "fix: retry on 429"
+                commitTimestamp:
+                    type: integer
+                    format: int64
+                    minimum: 0
+                    maximum: 9223372036854775807
+                    description: Unix timestamp in milliseconds when the commit was authored. Omitted when unknown.
+                    example: 1704067100000
+                author:
+                    "$ref": "#/components/schemas/DeploymentGitAuthor"
+                    description: |
+                        The person who triggered the deployment from git: the GitHub user who
+                        pushed or updated the pull request, or the author the client sent.
+                        Omitted when unknown.
+                prNumber:
+                    type: integer
+                    minimum: 1
+                    description: The pull request number this deployment was built for. Omitted when the commit is not part of a pull request.
+                    example: 412
+                forkRepository:
+                    type: string
+                    description: |
+                        The `owner/repo` name of the fork this deployment was built from. Omitted
+                        when it was built from the app's connected repository.
+                    example: octocat/payments-api
             additionalProperties: false
         DeploymentDocker:
             type: object
@@ -5203,6 +5276,37 @@ components:
                     type: string
                     description: The OCI image reference requested for this deployment.
                     example: ghcr.io/acme/api:v1.2.3
+                resolvedImage:
+                    type: string
+                    description: |
+                        The image reference pinned to its sha256 digest. Omitted until Unkey
+                        resolves the image.
+                    example: ghcr.io/acme/api@sha256:3f1d9c0b7e2a4c8f5b6d1e0a9c8b7f6e5d4c3b2a1f0e9d8c7b6a5f4e3d2c1b0a
+            additionalProperties: false
+        DeploymentTrigger:
+            type: object
+            required:
+                - via
+            properties:
+                via:
+                    type: string
+                    enum:
+                        - unknown
+                        - github
+                        - api
+                        - cli
+                        - dashboard
+                        - unkey
+                    description: |
+                        What started this deployment: `github` (a push or pull request), `api`,
+                        `cli`, `dashboard`, or `unkey` (Unkey itself, for example a rebuild).
+                        `unknown` when it was not recorded. `api`, `cli` and `dashboard` are
+                        reported by the client.
+                    example: github
+                actor:
+                    "$ref": "#/components/schemas/DeploymentTriggerActor"
+                    description: |
+                        Who started this deployment. Omitted when no actor was recorded.
             additionalProperties: false
         DeploymentAction:
             type: string
@@ -5289,6 +5393,46 @@ components:
                     "$ref": "#/components/schemas/EnvironmentHealthcheck"
                     description: |
                         HTTP health probe configuration. Omitted when no healthcheck is configured.
+            additionalProperties: false
+        DeploymentGitAuthor:
+            type: object
+            required:
+                - handle
+            properties:
+                handle:
+                    type: string
+                    description: The GitHub login, or the handle the client sent.
+                    example: octocat
+                avatarUrl:
+                    type: string
+                    description: The avatar URL for `handle`. Omitted when unknown.
+                    example: https://avatars.githubusercontent.com/u/583231
+            additionalProperties: false
+        DeploymentTriggerActor:
+            type: object
+            required:
+                - type
+                - id
+            properties:
+                type:
+                    type: string
+                    enum:
+                        - user
+                        - root_key
+                        - github
+                        - system
+                        - unknown
+                    description: |
+                        `user` is a dashboard user, `root_key` a root key, `github` the GitHub
+                        user who pushed or opened the pull request, `system` Unkey itself.
+                        `unknown` when the actor isn't recognized.
+                    example: github
+                id:
+                    type: string
+                    description: |
+                        The actor's identifier: a user id, a root key id, a GitHub login, or
+                        `unkey-ops` for Unkey itself.
+                    example: octocat
             additionalProperties: false
         DeploymentErrorCode:
             type: string
@@ -9931,9 +10075,9 @@ paths:
 
                 **Required Permissions**
 
-                Your root key must have one of the following permissions:
-                - `environment.*.read_deployment` (to read deployments in any environment)
-                - `environment.<environment_id>.read_deployment` (to read deployments in a specific environment)
+                Your root key must have this permission:
+                - `unkey:v1:<workspace_id>:projects/<project_id>/apps/<app_id>/environments/<environment_id>/deployments/<deployment_id>#read`
+                  (use `*` for any level)
             operationId: deployments.getDeployment
             requestBody:
                 content:
@@ -10210,22 +10354,38 @@ paths:
             description: |
                 Retrieve a paginated list of deployments within a workspace, newest first.
 
-                Filter by project, app, environment, and lifecycle status. All filters are
-                optional; with none set, every deployment in the workspace is returned.
-                Filters nest: `app` requires `project`, and `environment` requires both
-                `project` and `app`. Results are paginated; when `hasMore` is true, pass the
-                returned `cursor` to fetch the next page.
+                Filter by project, app, environment, lifecycle status, git branch, and
+                creation time. All filters are optional; with none set, every deployment in
+                the workspace is returned. Filters nest: `app` requires `project`, and
+                `environment` and `branch` require both `project` and `app`. Results are
+                paginated; when `hasMore` is true, pass the returned `cursor` to fetch the
+                next page.
 
                 **Required Permissions**
 
-                Your root key must have the `environment.*.read_deployment` permission.
-                Listing spans environments, so a grant on a single environment is not
-                sufficient.
+                Your root key must have this permission:
+                - `unkey:v1:<workspace_id>:projects/<project_id>/apps/<app_id>/environments/<environment_id>/deployments/*#read`
+                  (use `*` for every level you do not filter by)
+
+                The permission must cover every deployment the filters select: a grant on
+                one environment is not sufficient for a request that spans more than that
+                environment.
             operationId: deployments.listDeployments
             requestBody:
                 content:
                     application/json:
                         examples:
+                            byBranchAndTime:
+                                description: Restrict to branches of one app, created within a week
+                                summary: List an app's deployments for some branches in a time window
+                                value:
+                                    app: payments-api
+                                    branch:
+                                        - main
+                                        - feature/checkout
+                                    endTime: 1704672000000
+                                    project: payments-service
+                                    startTime: 1704067200000
                             byEnvironment:
                                 description: Restrict to one environment, providing the full hierarchy
                                 summary: List an environment's deployments
@@ -10313,7 +10473,7 @@ paths:
                                     summary: Missing required permission
                                     value:
                                         error:
-                                            detail: Your root key requires the 'environment.*.read_deployment' permission to perform this operation
+                                            detail: You cannot read deployments in the requested scope. Grant read on projects/<project>/apps/<app>/environments/<environment>/deployments/* with * for every level you do not filter by.
                                             status: 403
                                             title: Forbidden
                                             type: forbidden
@@ -10321,7 +10481,7 @@ paths:
                                             requestId: req_1234abcd
                             schema:
                                 $ref: '#/components/schemas/ForbiddenErrorResponse'
-                    description: Forbidden - Insufficient permissions (requires `environment.*.read_deployment`)
+                    description: Forbidden - Insufficient permissions to read deployments in the requested scope
                 "404":
                     content:
                         application/json:
