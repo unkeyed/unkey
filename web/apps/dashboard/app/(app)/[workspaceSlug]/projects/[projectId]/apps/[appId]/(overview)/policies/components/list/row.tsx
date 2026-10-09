@@ -1,64 +1,62 @@
 "use client";
 
+import { EnvironmentLabel } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/_components/environment-label";
 import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
-import { Switch } from "@/components/ui/switch";
-import type { Policy } from "@/lib/collections/deploy/policies.schema";
 import {
   IconDotsOutline18,
   IconGripDotsVerticalOutline18,
   IconPenWriting3Outline18,
   IconTrashOutline18,
 } from "@unkey/icons";
-import { Button, ConfirmPopover } from "@unkey/ui";
+import { match } from "@unkey/match";
+import { Button, ConfirmPopover, InfoTooltip, ResourceListItem, ResourceListRow } from "@unkey/ui";
 import { cn } from "cn";
 import { useRef, useState } from "react";
+import type { PolicySwitches } from "../../hooks/policy-switches";
+import { POLICY_KINDS } from "../../policy-kinds";
+import type { MergedPolicy, PolicyEnvs } from "./merge";
+import { type PolicyEnvBadge, policyRowState } from "./row-state";
 
-type MergedPolicyRow = {
-  key: string;
-  name: string;
-  type: Policy["type"];
-  production: Policy | null;
-  preview: Policy | null;
-};
+export const POLICY_COLUMNS =
+  "grid grid-cols-[56px_minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1fr)_32px] items-center gap-4";
+
+export function PoliciesListHeader() {
+  return (
+    <div
+      className={cn(
+        POLICY_COLUMNS,
+        "border-b bg-table-header px-4 py-[7px] text-xs font-medium text-gray-12",
+      )}
+    >
+      <span>Order</span>
+      <span>Name</span>
+      <span>Type</span>
+      <span>Environments</span>
+      <span />
+    </div>
+  );
+}
 
 type PolicyRowProps = {
-  policy: MergedPolicyRow;
+  policy: MergedPolicy;
+  switches: PolicySwitches;
   index: number;
-  isLast: boolean;
+  envs: PolicyEnvs;
   isDragOver: boolean;
-  productionSlug: string;
-  previewSlug: string;
-  onToggleProduction: (key: string) => void;
-  onTogglePreview: (key: string) => void;
-  onAddToProduction: (key: string) => void;
-  onAddToPreview: (key: string) => void;
   onDelete: (key: string) => void;
-  onEdit: (policy: Policy) => void;
+  onEdit: (key: string) => void;
   onDragStart: (index: number) => void;
   onDragOver: (index: number) => void;
   onDrop: (index: number) => void;
   onDragEnd: () => void;
 };
 
-const POLICY_TYPE_LABELS: Record<Policy["type"], string> = {
-  keyauth: "Key Auth",
-  ratelimit: "Rate Limit",
-  firewall: "Firewall",
-  openapi: "OpenAPI Validation",
-  logging: "Logging",
-};
-
 export function PolicyRow({
   policy,
+  switches,
   index,
-  isLast,
+  envs,
   isDragOver,
-  productionSlug,
-  previewSlug,
-  onToggleProduction,
-  onTogglePreview,
-  onAddToProduction,
-  onAddToPreview,
   onDelete,
   onEdit,
   onDragStart,
@@ -67,8 +65,13 @@ export function PolicyRow({
   onDragEnd,
 }: PolicyRowProps) {
   const fromHandle = useRef(false);
-  const deleteButtonRef = useRef<HTMLButtonElement>(null);
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+  const kind = POLICY_KINDS[policy.type];
+  const state = policyRowState(switches, envs);
+  const dim = state.dimmed && "opacity-55";
+
+  const edit = () => onEdit(policy.key);
 
   const menuItems: MenuItem[] = [
     {
@@ -78,10 +81,7 @@ export function PolicyRow({
       divider: true,
       onClick: (e) => {
         e.stopPropagation();
-        const target = policy.production ?? policy.preview;
-        if (target) {
-          onEdit(target);
-        }
+        edit();
       },
     },
     {
@@ -95,11 +95,8 @@ export function PolicyRow({
     },
   ];
 
-  const isActiveAnywhere =
-    (policy.production?.enabled ?? false) || (policy.preview?.enabled ?? false);
-
   return (
-    <div
+    <ResourceListItem
       draggable
       onDragStart={(e) => {
         if (!fromHandle.current) {
@@ -123,167 +120,96 @@ export function PolicyRow({
         fromHandle.current = false;
         onDragEnd();
       }}
-      className={cn(
-        // If text under the pointer is selected, the browser drags the
-        // selection and not this row. It then shows a large page area.
-        "select-none",
-        !isLast && "border-b",
-        isDragOver && "bg-grayA-3",
-      )}
+      // If text under the pointer is selected, the browser drags the selection
+      // and not this row. It then shows a large page area.
+      className={cn("select-none", isDragOver && "bg-grayA-3")}
     >
-      <div className={cn(!isActiveAnywhere && "opacity-55")}>
-        {/* biome-ignore lint/a11y/useSemanticElements: intentionally a div (not a native button) so the nested drag-handle and action buttons remain valid HTML */}
-        <div
-          role="button"
-          tabIndex={0}
-          className="group flex items-center hover:bg-grayA-2 transition-colors cursor-pointer w-full text-left"
-          onClick={() => {
-            const target = policy.production ?? policy.preview;
-            if (target) {
-              onEdit(target);
-            }
-          }}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ") {
-              e.preventDefault();
-              const target = policy.production ?? policy.preview;
-              if (target) {
-                onEdit(target);
-              }
-            }
-          }}
-        >
-          {/* Step number */}
-          <div className="w-10 shrink-0 py-5 pl-4 flex items-center">
-            <div
-              className={cn(
-                "size-6 rounded-full border flex items-center justify-center text-2xs font-medium",
-                isActiveAnywhere
-                  ? "bg-info-3 border-info-7 text-info-11"
-                  : "bg-grayA-2 text-gray-10",
-              )}
-            >
-              {index + 1}
-            </div>
-          </div>
-
-          {/* Drag handle */}
+      <ResourceListRow
+        label={`Edit ${policy.name}`}
+        onActivate={edit}
+        className={cn(POLICY_COLUMNS, "group text-left")}
+      >
+        <span className={cn("flex items-center gap-2", dim)}>
+          <span className="flex size-6 shrink-0 items-center justify-center rounded-md border bg-raised text-xs font-medium tabular-nums text-gray-12">
+            {index + 1}
+          </span>
           <button
             type="button"
-            className="w-10 shrink-0 flex items-center justify-center py-5 cursor-grab active:cursor-grabbing touch-none"
+            aria-label={`Drag to reorder ${policy.name}`}
+            className="relative flex h-6 w-4 cursor-grab touch-none items-center justify-center text-gray-9 hover:text-gray-11 active:cursor-grabbing disabled:cursor-not-allowed disabled:opacity-50"
             onMouseDown={() => {
               fromHandle.current = true;
             }}
-            onClick={(e) => e.stopPropagation()}
           >
-            <IconGripDotsVerticalOutline18 className="size-4 opacity-40 hover:opacity-70" />
+            <IconGripDotsVerticalOutline18 className="size-3.5" />
           </button>
+        </span>
 
-          {/* Name */}
-          <div className="flex-4 min-w-0 py-5 flex items-center pr-5">
-            <span
-              className={cn(
-                "text-sm truncate",
-                policy.name ? "text-gray-12" : "text-gray-9 italic",
-              )}
+        <span className={cn("truncate text-sm font-medium text-gray-12", dim)}>{policy.name}</span>
+
+        <span className={cn("flex min-w-0 items-center gap-1.5 text-sm text-gray-11", dim)}>
+          <kind.Icon className="size-3.5 shrink-0" />
+          <span className="truncate">{kind.label}</span>
+        </span>
+
+        <span className="flex items-center gap-4">
+          {state.environments.map((badge) => (
+            <EnvBadge key={badge.env} badge={badge} />
+          ))}
+        </span>
+
+        <span className="relative flex justify-end">
+          <TableActionPopover items={menuItems}>
+            <Button
+              ref={menuButtonRef}
+              variant="outline"
+              aria-label={`Actions for ${policy.name}`}
+              className="size-5 rounded-sm border-transparent [&_svg]:size-3 group-hover:border-strong"
             >
-              {policy.name || "Untitled policy"}
-            </span>
-          </div>
-
-          {/* Type */}
-          <div className="flex-4 min-w-0 py-5 flex items-center pr-3">
-            <span className="text-sm text-gray-11 truncate">{POLICY_TYPE_LABELS[policy.type]}</span>
-          </div>
-
-          {/* Env badges */}
-          <div className="flex-3 min-w-0 py-5 flex items-center gap-3 pr-3">
-            <EnvSwitch
-              policyKey={policy.key}
-              slug={productionSlug}
-              envPolicy={policy.production}
-              onToggle={onToggleProduction}
-              onAdd={onAddToProduction}
-            />
-            <EnvSwitch
-              policyKey={policy.key}
-              slug={previewSlug}
-              envPolicy={policy.preview}
-              onToggle={onTogglePreview}
-              onAdd={onAddToPreview}
-            />
-          </div>
-
-          {/* Actions */}
-          <div className="w-12 shrink-0 py-5 flex items-center justify-end pr-4">
-            <TableActionPopover items={menuItems}>
-              <Button
-                ref={deleteButtonRef}
-                variant="outline"
-                className="size-5 [&_svg]:size-3 rounded-sm border-transparent group-hover:border-strong"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <IconDotsOutline18 className="group-hover:text-gray-12 text-gray-11" />
-              </Button>
-            </TableActionPopover>
-
-            <ConfirmPopover
-              isOpen={isDeleteConfirmOpen}
-              onOpenChange={setIsDeleteConfirmOpen}
-              onConfirm={() => onDelete(policy.key)}
-              triggerRef={deleteButtonRef}
-              title="Confirm deletion"
-              description={`This will permanently delete "${policy.name}". This action cannot be undone.`}
-              confirmButtonText="Delete policy"
-              cancelButtonText="Cancel"
-              variant="danger"
-            />
-          </div>
-        </div>
-      </div>
-    </div>
+              <IconDotsOutline18 className="text-gray-11 group-hover:text-gray-12" />
+            </Button>
+          </TableActionPopover>
+        </span>
+      </ResourceListRow>
+      <ConfirmPopover
+        isOpen={isDeleteConfirmOpen}
+        onOpenChange={setIsDeleteConfirmOpen}
+        onConfirm={() => onDelete(policy.key)}
+        triggerRef={menuButtonRef}
+        title="Confirm deletion"
+        description={`Permanently delete "${policy.name}" from every environment?`}
+        confirmButtonText="Delete policy"
+        cancelButtonText="Cancel"
+        variant="danger"
+        popoverProps={{ align: "end" }}
+      />
+    </ResourceListItem>
   );
 }
 
-function EnvSwitch({
-  policyKey,
-  slug,
-  envPolicy,
-  onToggle,
-  onAdd,
-}: {
-  policyKey: string;
-  slug: string;
-  envPolicy: Policy | null;
-  onToggle: (key: string) => void;
-  onAdd: (key: string) => void;
-}) {
-  if (envPolicy !== null) {
-    return (
-      <span
-        className="flex items-center gap-2 shrink-0"
-        onClick={(e) => e.stopPropagation()}
-        onKeyDown={(e) => e.stopPropagation()}
-      >
-        <span className="text-sm text-gray-11 capitalize whitespace-nowrap">{slug}</span>
-        <Switch checked={envPolicy.enabled} onCheckedChange={() => onToggle(policyKey)} size="sm" />
+function EnvBadge({ badge }: { badge: PolicyEnvBadge }) {
+  const environment = { slug: badge.slug, kind: badge.env };
+  return match(badge)
+    .with({ enabled: true }, () => (
+      <span className="flex">
+        <EnvironmentLabel environment={environment} />
       </span>
-    );
-  }
-
-  return (
-    <button
-      type="button"
-      className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border border-dashed text-gray-8 hover:text-gray-10 hover:border-strong transition-all cursor-pointer w-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-grayA-6 focus-visible:ring-offset-1"
-      onClick={(e) => {
-        e.stopPropagation();
-        onAdd(policyKey);
-      }}
-    >
-      <span className="flex-shrink-0">+</span>
-      <span className="truncate capitalize">{slug}</span>
-    </button>
-  );
+    ))
+    .with({ enabled: false }, () => (
+      <InfoTooltip
+        asChild
+        position={{ side: "top" }}
+        content="Requests skip this policy here. Open the policy to turn it on."
+      >
+        <span className="relative flex items-center gap-1.5">
+          <EnvironmentLabel environment={environment} className="text-gray-9" />
+          <span className="rounded-sm border border-grayA-4 px-1 text-2xs leading-4 text-gray-10">
+            Off
+          </span>
+        </span>
+      </InfoTooltip>
+    ))
+    .exhaustive();
 }
 
 /**
@@ -294,16 +220,15 @@ function EnvSwitch({
  * React replaces that node while the drag runs. A copy on `document.body` is
  * outside the render tree, so nothing replaces it.
  */
-function setRowDragImage(e: React.DragEvent<HTMLDivElement>) {
+function setRowDragImage(e: React.DragEvent<HTMLLIElement>) {
   const source = e.currentTarget;
   const { width, height } = source.getBoundingClientRect();
-  const clone = source.cloneNode(true) as HTMLElement;
+  const clone = source.cloneNode(true);
+  if (!(clone instanceof HTMLElement)) {
+    return;
+  }
 
-  // A row draws only its bottom divider. The list container draws the frame
-  // and the corners. The copy is outside that container, so give the copy a
-  // frame and a background.
-  clone.classList.remove("border-b");
-  clone.classList.add("rounded-lg", "bg-raised", "shadow-floating");
+  clone.classList.add("rounded-lg", "bg-raised", "shadow-floating", "list-none");
 
   clone.style.position = "fixed";
   // Keep the copy off-screen but laid out. The browser captures a blank
