@@ -14,3 +14,5 @@ CREATE TABLE `ratelimit_namespaces` (
 
 CREATE INDEX `ratelimit_namespaces_project_id_idx` ON `ratelimit_namespaces` (`project_id`);
 
+CREATE INDEX `ratelimit_namespaces_workspace_id_idx` ON `ratelimit_namespaces` (`workspace_id`);
+

@@ -2860,6 +2860,25 @@ type Querier interface {
 	//  FROM ratelimit_namespaces
 	//  WHERE workspace_id = ?
 	ListRatelimitNamespaceOwnershipByWorkspace(ctx context.Context, db DBTX, workspaceID string) ([]ListRatelimitNamespaceOwnershipByWorkspaceRow, error)
+	// Newest first. The workspace_id index is stored as (workspace_id, pk), so it
+	// serves both the range and the order. The cursor resumes at its row's pk, inclusive
+	//
+	//  SELECT ns.id, ns.project_id, ns.name, ns.created_at_m, ns.updated_at_m
+	//  FROM ratelimit_namespaces ns
+	//  WHERE ns.workspace_id = ?
+	//    AND ns.deleted_at_m IS NULL
+	//    AND (
+	//      ? = ''
+	//      OR ns.pk <= (
+	//        SELECT c.pk FROM ratelimit_namespaces c
+	//        WHERE c.id = ? AND c.workspace_id = ?
+	//      )
+	//    )
+	//    -- search is a pre-escaped LIKE pattern built by mysql.SearchContains; NULL disables the filter
+	//    AND (? IS NULL OR LOWER(ns.id) LIKE LOWER(?) OR LOWER(ns.name) LIKE LOWER(?))
+	//  ORDER BY ns.pk DESC
+	//  LIMIT ?
+	ListRatelimitNamespaces(ctx context.Context, db DBTX, arg ListRatelimitNamespacesParams) ([]ListRatelimitNamespacesRow, error)
 	//ListRatelimitOverridesByNamespaceID
 	//
 	//  SELECT ratelimit_overrides.pk, ratelimit_overrides.id, ratelimit_overrides.workspace_id, ratelimit_overrides.namespace_id, ratelimit_overrides.identifier, ratelimit_overrides.`limit`, ratelimit_overrides.duration, ratelimit_overrides.created_at_m, ratelimit_overrides.updated_at_m, ratelimit_overrides.deleted_at_m FROM ratelimit_overrides
