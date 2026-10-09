@@ -17,15 +17,30 @@ import (
 // Not-found errors are ignored since the desired end state (resource gone) is
 // already achieved. After deletion, the method reports the deletion to the control
 // plane so it can update routing tables and stop sending traffic to this deployment.
-func (c *Controller) DeleteDeployment(ctx context.Context, req *ctrlv1.DeleteDeployment) (retErr error) {
+func (c *Controller) DeleteDeployment(ctx context.Context, req *ctrlv1.DeleteDeployment) error {
+	unlock := c.deploymentLocks.Lock(req.GetK8SNamespace() + "/" + req.GetK8SName())
+	defer unlock()
+	return c.deleteDeploymentLocked(ctx, req)
+}
+
+func (c *Controller) deleteDeploymentLocked(ctx context.Context, req *ctrlv1.DeleteDeployment) (retErr error) {
 	defer func() { metrics.RecordReconcile("deployment", "delete", retErr) }()
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	logger.Info("deleting deployment",
 		"namespace", req.GetK8SNamespace(),
 		"name", req.GetK8SName(),
 	)
 
-	err := c.clientSet.AppsV1().ReplicaSets(req.GetK8SNamespace()).Delete(ctx, req.GetK8SName(), metav1.DeleteOptions{})
+	err := c.clientSet.AppsV1().ReplicaSets(req.GetK8SNamespace()).Delete(ctx, req.GetK8SName(), metav1.DeleteOptions{
+		PropagationPolicy: new(metav1.DeletePropagationForeground),
+	})
 	if err != nil && !apierrors.IsNotFound(err) {
+		return err
+	}
+
+	if err := c.deleteUnownedCiliumPolicy(ctx, req.GetK8SNamespace(), req.GetK8SName()); err != nil {
 		return err
 	}
 
