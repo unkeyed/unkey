@@ -22,7 +22,6 @@ export type Permission = {
    * @remarks
    * Should be descriptive enough for developers to understand what access it grants.
    * Use clear, semantic names that reflect the resources or actions being permitted.
-   * Names must be unique within your workspace to avoid confusion and conflicts.
    */
   name: string;
   /**

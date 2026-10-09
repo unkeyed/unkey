@@ -27,32 +27,33 @@ import { APICall, APIPromise } from "../types/async.js";
 import { Result } from "../types/fp.js";
 
 /**
- * Create permission
+ * Update permission
  *
  * @remarks
- * Create a new permission to define specific actions or capabilities in your RBAC system. Permissions can be assigned directly to API keys or included in roles.
+ * Update the name, slug, or description of a permission, identified by its ID or slug.
  *
- * Use hierarchical naming patterns like `documents.read`, `admin.users.delete`, or `billing.invoices.create` for clear organization.
+ * Omitted fields keep their current values. A request with no fields to update returns the stored permission without a write.
  *
- * **Important:** Permission slugs must be unique within the workspace. Names do not need to be unique. Once created, permissions are immediately available for assignment.
+ * **Important**: Keys and roles reference the permission by ID, so they keep the permission after a slug change. Key verification can return the old slug for a short time while caches refresh. A slug that another permission in your workspace already uses returns 409.
  *
  * **Required Permissions**
  *
  * Your root key must have the following permission:
- * - `rbac.*.create_permission`
+ * - `unkey:v1:<workspace_id>:projects/<project_id>/rbac/permissions/<permission_id>#write`
  *
  * If set, this operation will use {@link Security.rootKey} from the global security.
  */
-export function permissionsCreatePermission(
+export function permissionsUpdatePermission(
   client: UnkeyCore,
-  request: components.V2PermissionsCreatePermissionRequestBody,
+  request: components.V2PermissionsUpdatePermissionRequestBody,
   options?: RequestOptions,
 ): APIPromise<
   Result<
-    components.V2PermissionsCreatePermissionResponseBody,
+    components.V2PermissionsUpdatePermissionResponseBody,
     | errors.BadRequestErrorResponse
     | errors.UnauthorizedErrorResponse
     | errors.ForbiddenErrorResponse
+    | errors.NotFoundErrorResponse
     | errors.ConflictErrorResponse
     | errors.TooManyRequestsErrorResponse
     | errors.InternalServerErrorResponse
@@ -75,15 +76,16 @@ export function permissionsCreatePermission(
 
 async function $do(
   client: UnkeyCore,
-  request: components.V2PermissionsCreatePermissionRequestBody,
+  request: components.V2PermissionsUpdatePermissionRequestBody,
   options?: RequestOptions,
 ): Promise<
   [
     Result<
-      components.V2PermissionsCreatePermissionResponseBody,
+      components.V2PermissionsUpdatePermissionResponseBody,
       | errors.BadRequestErrorResponse
       | errors.UnauthorizedErrorResponse
       | errors.ForbiddenErrorResponse
+      | errors.NotFoundErrorResponse
       | errors.ConflictErrorResponse
       | errors.TooManyRequestsErrorResponse
       | errors.InternalServerErrorResponse
@@ -102,7 +104,7 @@ async function $do(
   const parsed = safeParse(
     request,
     (value) =>
-      components.V2PermissionsCreatePermissionRequestBody$outboundSchema.parse(
+      components.V2PermissionsUpdatePermissionRequestBody$outboundSchema.parse(
         value,
       ),
     "Input validation failed",
@@ -113,7 +115,7 @@ async function $do(
   const payload = parsed.value;
   const body = encodeJSON("body", payload, { explode: true });
 
-  const path = pathToFunc("/v2/permissions.createPermission")();
+  const path = pathToFunc("/v2/permissions.updatePermission")();
 
   const headers = new Headers(compactMap({
     "Content-Type": "application/json",
@@ -127,7 +129,7 @@ async function $do(
   const context = {
     options: client._options,
     baseURL: options?.serverURL ?? client._baseURL ?? "",
-    operationID: "permissions.createPermission",
+    operationID: "permissions.updatePermission",
     oAuth2Scopes: null,
 
     resolvedSecurity: requestSecurity,
@@ -181,10 +183,11 @@ async function $do(
   };
 
   const [result] = await M.match<
-    components.V2PermissionsCreatePermissionResponseBody,
+    components.V2PermissionsUpdatePermissionResponseBody,
     | errors.BadRequestErrorResponse
     | errors.UnauthorizedErrorResponse
     | errors.ForbiddenErrorResponse
+    | errors.NotFoundErrorResponse
     | errors.ConflictErrorResponse
     | errors.TooManyRequestsErrorResponse
     | errors.InternalServerErrorResponse
@@ -199,15 +202,14 @@ async function $do(
   >(
     M.json(
       200,
-      components.V2PermissionsCreatePermissionResponseBody$inboundSchema,
+      components.V2PermissionsUpdatePermissionResponseBody$inboundSchema,
     ),
     M.jsonErr(400, errors.BadRequestErrorResponse$inboundSchema),
     M.jsonErr(401, errors.UnauthorizedErrorResponse$inboundSchema),
     M.jsonErr(403, errors.ForbiddenErrorResponse$inboundSchema),
+    M.jsonErr(404, errors.NotFoundErrorResponse$inboundSchema),
     M.jsonErr(409, errors.ConflictErrorResponse$inboundSchema),
-    M.jsonErr(429, errors.TooManyRequestsErrorResponse$inboundSchema, {
-      ctype: "application/problem+json",
-    }),
+    M.jsonErr(429, errors.TooManyRequestsErrorResponse$inboundSchema),
     M.jsonErr(500, errors.InternalServerErrorResponse$inboundSchema),
     M.fail("4XX"),
     M.fail("5XX"),

@@ -11,6 +11,7 @@ import { permissionsGetRole } from "../funcs/permissionsGetRole.js";
 import { permissionsListPermissions } from "../funcs/permissionsListPermissions.js";
 import { permissionsListRoles } from "../funcs/permissionsListRoles.js";
 import { permissionsSetRolePermissions } from "../funcs/permissionsSetRolePermissions.js";
+import { permissionsUpdatePermission } from "../funcs/permissionsUpdatePermission.js";
 import { ClientSDK, RequestOptions } from "../lib/sdks.js";
 import * as components from "../models/components/index.js";
 import * as operations from "../models/operations/index.js";
@@ -26,7 +27,7 @@ export class Permissions extends ClientSDK {
    *
    * Use hierarchical naming patterns like `documents.read`, `admin.users.delete`, or `billing.invoices.create` for clear organization.
    *
-   * **Important:** Permission names must be unique within the workspace. Once created, permissions are immediately available for assignment.
+   * **Important:** Permission slugs must be unique within the workspace. Names do not need to be unique. Once created, permissions are immediately available for assignment.
    *
    * **Required Permissions**
    *
@@ -239,6 +240,32 @@ export class Permissions extends ClientSDK {
     options?: RequestOptions,
   ): Promise<components.V2PermissionsSetRolePermissionsResponseBody> {
     return unwrapAsync(permissionsSetRolePermissions(
+      this,
+      request,
+      options,
+    ));
+  }
+
+  /**
+   * Update permission
+   *
+   * @remarks
+   * Update the name, slug, or description of a permission, identified by its ID or slug.
+   *
+   * Omitted fields keep their current values. A request with no fields to update returns the stored permission without a write.
+   *
+   * **Important**: Keys and roles reference the permission by ID, so they keep the permission after a slug change. Key verification can return the old slug for a short time while caches refresh. A slug that another permission in your workspace already uses returns 409.
+   *
+   * **Required Permissions**
+   *
+   * Your root key must have the following permission:
+   * - `unkey:v1:<workspace_id>:projects/<project_id>/rbac/permissions/<permission_id>#write`
+   */
+  async updatePermission(
+    request: components.V2PermissionsUpdatePermissionRequestBody,
+    options?: RequestOptions,
+  ): Promise<components.V2PermissionsUpdatePermissionResponseBody> {
+    return unwrapAsync(permissionsUpdatePermission(
       this,
       request,
       options,
