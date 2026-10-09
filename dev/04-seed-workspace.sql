@@ -9,6 +9,7 @@ INSERT INTO workspaces (
   org_id,
   name,
   slug,
+  k8s_namespace,
   created_at_m,
   beta_features
 ) VALUES (
@@ -16,6 +17,7 @@ INSERT INTO workspaces (
   'user_REPLACE_ME',
   'Unkey',
   'unkey',
+  'unkey-local-root',
   UNIX_TIMESTAMP() * 1000,
   '{}'
 ) ON DUPLICATE KEY UPDATE created_at_m = UNIX_TIMESTAMP() * 1000;

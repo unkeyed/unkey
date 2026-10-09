@@ -4,11 +4,11 @@
 #MISE raw=true
 set -euo pipefail
 
-ctlptl apply -f ./dev/cluster.orb.yaml
-tilt up \
+bash ./dev/start-cluster.sh ./dev/cluster.orb.yaml
+exec tilt up \
   --file ./dev/Tiltfile \
   --host 0.0.0.0 \
   --port "${PORT:-10350}" \
   --stream \
   -- \
-  --orb=true
+  --orb=true "$@"

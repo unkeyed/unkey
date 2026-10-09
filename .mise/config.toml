@@ -14,65 +14,65 @@ task.run_auto_install = false
 GOTOOLCHAIN = "local"
 
 [tools]
-node = "24.19.0"
-go = "1.27.1"
+node = "24.21.0"
+go = "1.27.2"
 "github:dprint/dprint" = "0.51.1"
 "github:bufbuild/buf" = "1.64.0"
-"github:jqlang/jq" = "jq-1.8.1"
-"github:tilt-dev/tilt" = "0.37.3"
-"github:tilt-dev/ctlptl" = "0.9.3"
+"github:jqlang/jq" = "jq-1.8.2"
+"github:tilt-dev/tilt" = "0.37.8"
+"github:tilt-dev/ctlptl" = "0.9.6"
 "github:FiloSottile/mkcert" = "1.4.4"
 "github:planetscale/cli" = "0.284.0"
 "github:depot/cli" = "2.101.67"
 "github:chronark/rask" = "0.7.0"
 "github:golangci/golangci-lint" = "2.13.2"
 "github:goreleaser/goreleaser-pro" = "2.15.4"
-"github:pnpm/pnpm" = "11.5.0"
+"github:pnpm/pnpm" = "11.28.5"
 "github:speakeasy-api/speakeasy" = "1.790.1"
 # Mintlify CLI for the product docs site (docs); see mise tasks docs-*.
 "npm:mint" = "4.2.866"
 # stripe CLI: only used by the local-dev billing-flow runbooks (stripe login /
 # stripe listen). The pricing tool itself is pure SDK and does not need it.
-"aqua:stripe/stripe-cli" = "1.42.13"
+"aqua:stripe/stripe-cli" = "1.53.1"
 
 [tools."github:kubernetes/minikube"]
-version = "1.38.1"
+version = "1.39.0"
 rename_exe = "minikube"
 
 [tools."http:kubectl"]
-version = "1.34.8"
+version = "1.37.1"
 bin = "kubectl"
 
 [tools."http:kubectl".platforms]
-linux-arm64 = { url = "https://dl.k8s.io/release/v1.34.8/bin/linux/arm64/kubectl", checksum = "sha256:4c9fe1f717738950c638c38056130a8db5075e6413ae36d8687221a240cdf88b" }
-linux-arm64-musl = { url = "https://dl.k8s.io/release/v1.34.8/bin/linux/arm64/kubectl", checksum = "sha256:4c9fe1f717738950c638c38056130a8db5075e6413ae36d8687221a240cdf88b" }
-linux-x64 = { url = "https://dl.k8s.io/release/v1.34.8/bin/linux/amd64/kubectl", checksum = "sha256:f6249132865c13abe3c9dd5038f5da65849cb86eee1608c001831504e481aa8c" }
-linux-x64-musl = { url = "https://dl.k8s.io/release/v1.34.8/bin/linux/amd64/kubectl", checksum = "sha256:f6249132865c13abe3c9dd5038f5da65849cb86eee1608c001831504e481aa8c" }
-macos-arm64 = { url = "https://dl.k8s.io/release/v1.34.8/bin/darwin/arm64/kubectl", checksum = "sha256:173e101c8f9f195ea16771a1262313ea4c916d4d517f72902b0afd57f61c1917" }
-macos-x64 = { url = "https://dl.k8s.io/release/v1.34.8/bin/darwin/amd64/kubectl", checksum = "sha256:149be66a64b26c59a7bf5037a895b8ecb244d8224d84f533584457355a44520b" }
-windows-x64 = { url = "https://dl.k8s.io/release/v1.34.8/bin/windows/amd64/kubectl.exe", checksum = "sha256:35bc3cb7050f6d39436e6c486c65e2d2d6198988b10c5e76b58b8c929373a7fa", bin = "kubectl.exe" }
+linux-arm64 = { url = "https://dl.k8s.io/release/v1.37.1/bin/linux/arm64/kubectl", checksum = "sha256:ff749f4b78d9c4f1ec87307df9b50119ed819e2094aa9810cb9acffc3286c8c7" }
+linux-arm64-musl = { url = "https://dl.k8s.io/release/v1.37.1/bin/linux/arm64/kubectl", checksum = "sha256:ff749f4b78d9c4f1ec87307df9b50119ed819e2094aa9810cb9acffc3286c8c7" }
+linux-x64 = { url = "https://dl.k8s.io/release/v1.37.1/bin/linux/amd64/kubectl", checksum = "sha256:65691ff77eb6fa44c908b77a1082c9f092c3b9733b5cefabec0d1104890e21a8" }
+linux-x64-musl = { url = "https://dl.k8s.io/release/v1.37.1/bin/linux/amd64/kubectl", checksum = "sha256:65691ff77eb6fa44c908b77a1082c9f092c3b9733b5cefabec0d1104890e21a8" }
+macos-arm64 = { url = "https://dl.k8s.io/release/v1.37.1/bin/darwin/arm64/kubectl", checksum = "sha256:fd65982c97ddad3106754b69ffa196d0e543aa591930ae52aed1adfb92f8c77f" }
+macos-x64 = { url = "https://dl.k8s.io/release/v1.37.1/bin/darwin/amd64/kubectl", checksum = "sha256:6851381c486ff6edd691623e3d65c87cb9a5b02887ff8fbbb38d8a031b748387" }
+windows-x64 = { url = "https://dl.k8s.io/release/v1.37.1/bin/windows/amd64/kubectl.exe", checksum = "sha256:14b93c4916a6f37a06fbc1f46b0a1d2404c4f9741be09f00d6caf8af3b05f1d3", bin = "kubectl.exe" }
 
 [tools."http:helm"]
-version = "3.21.0"
+version = "3.22.0"
 
 [tools."http:helm".platforms]
-linux-arm64 = { url = "https://get.helm.sh/helm-v3.21.0-linux-arm64.tar.gz", checksum = "sha256:8de5a0c9a47431e59fd560e91e0779c8cf9316c383da7efb84128a4c339ecb2d", bin = "linux-arm64/helm" }
-linux-arm64-musl = { url = "https://get.helm.sh/helm-v3.21.0-linux-arm64.tar.gz", checksum = "sha256:8de5a0c9a47431e59fd560e91e0779c8cf9316c383da7efb84128a4c339ecb2d", bin = "linux-arm64/helm" }
-linux-x64 = { url = "https://get.helm.sh/helm-v3.21.0-linux-amd64.tar.gz", checksum = "sha256:0093eb572e3d2380f094df162ddb525e219249de88957afe24cfbb19632acd36", bin = "linux-amd64/helm" }
-linux-x64-musl = { url = "https://get.helm.sh/helm-v3.21.0-linux-amd64.tar.gz", checksum = "sha256:0093eb572e3d2380f094df162ddb525e219249de88957afe24cfbb19632acd36", bin = "linux-amd64/helm" }
-macos-arm64 = { url = "https://get.helm.sh/helm-v3.21.0-darwin-arm64.tar.gz", checksum = "sha256:68bfbdc022c543a2a022597b20298216877e98abe6e4a345d3ecf114d79cae5f", bin = "darwin-arm64/helm" }
-macos-x64 = { url = "https://get.helm.sh/helm-v3.21.0-darwin-amd64.tar.gz", checksum = "sha256:8bc0c1f85f8738cc3cda4a2cc73047145bcdcb1f4d9cdcc29073037bfb22fa2e", bin = "darwin-amd64/helm" }
-windows-x64 = { url = "https://get.helm.sh/helm-v3.21.0-windows-amd64.zip", checksum = "sha256:3ea6b8383e6c0b7ce45d06a5746313b8e9225edd88d42f4f64582ff3792d7b55", bin = "windows-amd64/helm.exe" }
+linux-arm64 = { url = "https://get.helm.sh/helm-v3.22.0-linux-arm64.tar.gz", checksum = "sha256:f14e804dfee240f55525b667488fe9adca349e63e00c9af634c0beb1421ac310", bin = "linux-arm64/helm" }
+linux-arm64-musl = { url = "https://get.helm.sh/helm-v3.22.0-linux-arm64.tar.gz", checksum = "sha256:f14e804dfee240f55525b667488fe9adca349e63e00c9af634c0beb1421ac310", bin = "linux-arm64/helm" }
+linux-x64 = { url = "https://get.helm.sh/helm-v3.22.0-linux-amd64.tar.gz", checksum = "sha256:1e4ab49e429626cf6c6958d914248b78c9730803c2751b87627e171dc800e7bb", bin = "linux-amd64/helm" }
+linux-x64-musl = { url = "https://get.helm.sh/helm-v3.22.0-linux-amd64.tar.gz", checksum = "sha256:1e4ab49e429626cf6c6958d914248b78c9730803c2751b87627e171dc800e7bb", bin = "linux-amd64/helm" }
+macos-arm64 = { url = "https://get.helm.sh/helm-v3.22.0-darwin-arm64.tar.gz", checksum = "sha256:4c9982a6cdeb458b60258df66b55398ca5b19293f6877faffe2909ad6f23dfe0", bin = "darwin-arm64/helm" }
+macos-x64 = { url = "https://get.helm.sh/helm-v3.22.0-darwin-amd64.tar.gz", checksum = "sha256:bd1d09f316558dda23698527859600936fed1371021ce0f2272d66b2fdcfa69c", bin = "darwin-amd64/helm" }
+windows-x64 = { url = "https://get.helm.sh/helm-v3.22.0-windows-amd64.zip", checksum = "sha256:899615865726d39f9b245e71e848c5bf4adc7ed33a8c43ede660facb48151b43", bin = "windows-amd64/helm.exe" }
 
 [tools."http:ngrok"]
-version = "3.39.4"
+version = "3.39.11"
 bin = "ngrok"
 
 [tools."http:ngrok".platforms]
-linux-arm64 = { url = "https://bin.equinox.io/a/iX6VpNRLBbs/ngrok-v3-3.39.4-linux-arm64.tar.gz" }
-linux-arm64-musl = { url = "https://bin.equinox.io/a/iX6VpNRLBbs/ngrok-v3-3.39.4-linux-arm64.tar.gz" }
-linux-x64 = { url = "https://bin.equinox.io/a/rXi2K8HzgJ/ngrok-v3-3.39.4-linux-amd64.tar.gz" }
-linux-x64-musl = { url = "https://bin.equinox.io/a/rXi2K8HzgJ/ngrok-v3-3.39.4-linux-amd64.tar.gz" }
-macos-arm64 = { url = "https://bin.equinox.io/a/koVh3r9rKG7/ngrok-v3-3.39.4-darwin-arm64.zip" }
-macos-x64 = { url = "https://bin.equinox.io/a/dVNWNC8tgwQ/ngrok-v3-3.39.4-darwin-amd64.zip" }
-windows-x64 = { url = "https://bin.equinox.io/a/gK2xcZtiEuC/ngrok-v3-3.39.4-windows-amd64.zip", bin = "ngrok.exe" }
+linux-arm64 = { url = "https://bin.equinox.io/a/dg26hrkwY2F/ngrok-v3-3.39.11-linux-arm64.tar.gz", checksum = "sha256:3b6ba05a9d9585c34157fa0819fa95cdb13839f5b506b9e63204705cf7f79e29" }
+linux-arm64-musl = { url = "https://bin.equinox.io/a/dg26hrkwY2F/ngrok-v3-3.39.11-linux-arm64.tar.gz", checksum = "sha256:3b6ba05a9d9585c34157fa0819fa95cdb13839f5b506b9e63204705cf7f79e29" }
+linux-x64 = { url = "https://bin.equinox.io/a/5Mrhp7gRDVb/ngrok-v3-3.39.11-linux-amd64.tar.gz", checksum = "sha256:cec0b4997fcc5f529dfc74bac89050354d11a915f968720600039738fdf330cf" }
+linux-x64-musl = { url = "https://bin.equinox.io/a/5Mrhp7gRDVb/ngrok-v3-3.39.11-linux-amd64.tar.gz", checksum = "sha256:cec0b4997fcc5f529dfc74bac89050354d11a915f968720600039738fdf330cf" }
+macos-arm64 = { url = "https://bin.equinox.io/a/dy27whJwwmb/ngrok-v3-3.39.11-darwin-arm64.zip", checksum = "sha256:9324a6552d74e25d5bdfdbedc4b32422c96f044fda37877498ad8ef10bddf7f7" }
+macos-x64 = { url = "https://bin.equinox.io/a/8QQF2ciKqxM/ngrok-v3-3.39.11-darwin-amd64.zip", checksum = "sha256:c6b9b3d9184fc08c33fb8b181d9f241d8f5d61162a0be0521b6dfc1f11813a96" }
+windows-x64 = { url = "https://bin.equinox.io/a/P2eJimSQ97/ngrok-v3-3.39.11-windows-amd64.zip", checksum = "sha256:699bbf1932ec43a573b764bd03e6568efa2c4e45955eb3cc2089c19bb4be4464", bin = "ngrok.exe" }

@@ -63,6 +63,61 @@ Start the full development setup:
 mise run dev
 ```
 
+To run one service and its dependencies, pass its Tilt resource name:
+
+```bash
+mise run dev -- api
+```
+
+This starts the API, its databases, and required setup without compiling the
+control plane or starting the dashboard. You can pass multiple resource names.
+Selecting `krane` still includes its Cilium policies and storage dependencies.
+To change the selection without restarting Tilt:
+
+```bash
+mise exec -- tilt args -- api
+```
+
+Tilt builds `@unkey/api` before starting the dashboard and rebuilds it when SDK
+source files change. The dashboard picks up the compiled output without a
+manual SDK build. SDK build failures appear in the `api-sdk` resource.
+
+Independent updates run in parallel, with up to 16 active Tilt updates.
+`seed-compile` builds the host CLI while MySQL starts. `seed` then writes the
+fixtures without blocking unrelated updates. Both steps have separate timings
+in Tilt.
+
+MySQL and ClickHouse pull their pinned upstream images directly into the
+cluster. Their SQL and initialization scripts mount from ConfigMaps, so Tilt
+does not rebuild or push database images. A fresh node still downloads the
+upstream images. Image pulls run in parallel.
+
+Tilt manages Minikube's storage provisioner instead of the built-in addon.
+The same provisioner uses the node's API endpoint directly, with its service
+account and TLS verification. This avoids a 30-second startup timeout when
+service networking is not ready. Existing PVCs and storage paths are unchanged.
+Keep the built-in `storage-provisioner` addon disabled while using Tilt.
+
+Minikube waits for the API server, kubelet, and node readiness. Tilt then checks
+Cilium, its policy CRDs, and CoreDNS before applying network policies. It does
+not wait for old application pods before starting Tilt, so Tilt can repair
+failed deployments and reactivate TopoLVM volumes after a restart.
+
+An existing Minikube profile is reused, not reapplied through `ctlptl`.
+Changes to `dev/cluster.yaml` apply only when creating a cluster, because
+`ctlptl apply` can delete a cluster when its configuration changes. To adopt
+cluster configuration changes, explicitly reset it using the command below.
+
+The toolchain pins Minikube 1.39.0 and kubectl 1.37.1. Fresh local and orb
+clusters use Kubernetes 1.37.0, the newest version built into Minikube 1.39.0.
+Newer versions require a GitHub version check on every start, including resume,
+which can fail when GitHub rate-limits the request.
+
+Run `mise install` after pulling toolchain changes. Existing clusters are not
+upgraded automatically. kubectl 1.37 is outside the supported version range for
+a Kubernetes 1.34 cluster; upgrade that cluster deliberately or reset it after
+saving any data you need.
+
 Local deployments use in-cluster BuildKit Jobs by default and don't require Depot credentials. To test the Depot backend, copy `dev/.env.depot.example` to `dev/.env.depot` and set both values to your Depot token before starting the environment.
 
 You get:
@@ -97,8 +152,21 @@ Tilt generates trusted TLS certificates using mkcert and Frontline terminates TL
 
 ## Stop the development environment
 
+Exit Tilt with Ctrl+C to stop local processes and port forwards, then stop
+Minikube:
+
 ```bash
 mise run down
+```
+
+This preserves the cluster, images, and local data. Run `mise run dev` to resume.
+Do not use `tilt down` for a routine stop: it deletes Kubernetes resources,
+including persistent volume claims.
+
+To reset the cluster and delete its local data, exit Tilt and run:
+
+```bash
+mise exec -- minikube delete -p minikube
 ```
 
 ## Environment configuration
@@ -145,18 +213,22 @@ catalog), so you only add two values:
 - `STRIPE_SECRET_KEY` - a test-mode key (`sk_test_...`) from the shared sandbox.
 - `STRIPE_WEBHOOK_SECRET` - the signing secret for forwarded webhook events.
 
-If the stripe CLI is logged in (`stripe login`), `tilt up` handles webhook
-forwarding for you: it runs `stripe listen` against both the dashboard
-(`localhost:3000/api/webhooks/stripe`) and ctrl-api
-(`localhost:7091/webhooks/stripe`), and writes the shared `STRIPE_WEBHOOK_SECRET`
-into both `web/apps/dashboard/.env` and `dev/.env.stripe`. No manual step needed.
-
-If the CLI is not logged in, forward events and copy the printed `whsec_...`
-yourself:
+Stripe webhook forwarding starts automatically when the Stripe CLI can obtain
+a valid signing secret. For billing development, authenticate before starting:
 
 ```bash
-stripe listen --forward-to http://localhost:3000/api/webhooks/stripe
+mise exec -- stripe login
+mise run dev
 ```
+
+This runs `stripe listen` against both the dashboard
+(`localhost:3000/api/webhooks/stripe`) and ctrl-api
+(`localhost:7091/webhooks/stripe`). Tilt writes the shared `STRIPE_WEBHOOK_SECRET`
+into both `web/apps/dashboard/.env` and `dev/.env.stripe` before starting its
+consumers. A missing CLI, authentication failure, invalid secret, or a check
+that takes more than five seconds skips forwarding without blocking startup.
+Existing credentials stay unchanged and still load from `dev/.env.stripe`.
+After logging in, reload Tilt to retry the check.
 
 To set up a fresh Stripe sandbox (products, meters, prices), follow the catalog
 guide in the infra repo: <a href="https://github.com/unkeyed/infra/blob/main/docs/services/stripe-billing.md" target="_blank">Stripe Billing</a>.
@@ -170,7 +242,7 @@ Each is optional: a missing file disables that piece and never breaks startup.
   - `STRIPE_SECRET_KEY` - test-mode key for the hourly usage push and the
     month-end invoice finalize.
   - `STRIPE_WEBHOOK_SECRET` - the close webhook's signing secret, written
-    automatically by `tilt up` when the stripe CLI is logged in (as above).
+    automatically when the Stripe CLI is available and authenticated (as above).
   - `STRIPE_DEPLOY_*_LOOKUP_KEY` - the price lookup_keys `CancelDeploy` uses to
     find a subscription's Deploy items. Same handles the dashboard uses; empty
     disables cancel.

@@ -26,8 +26,7 @@ spec:
               command:
                 - redis-cli
                 - ping
-            initialDelaySeconds: 5
-            periodSeconds: 5
+            periodSeconds: 1
           livenessProbe:
             exec:
               command:

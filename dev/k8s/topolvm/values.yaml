@@ -31,6 +31,9 @@ webhook:
 controller:
   replicaCount: 1
 
+snapshot:
+  enabled: false
+
 # Run lvmd as a sidecar in the topolvm-node DaemonSet rather than as a host
 # systemd unit. The minikube node container doesn't have systemd configured
 # for arbitrary unit installs, so the in-DaemonSet path is the only viable one.
@@ -50,5 +53,4 @@ node:
   tolerations:
     - operator: Exists
 
-storageClasses: []  # we ship our own (dev/k8s/topolvm/storageclass.yaml) so the
-                    # name and reclaim policy are explicit.
+storageClasses: []

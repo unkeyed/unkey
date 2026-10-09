@@ -61,8 +61,7 @@ spec:
             httpGet:
               path: /health/ready
               port: 8060
-            initialDelaySeconds: 2
-            periodSeconds: 5
+            periodSeconds: 1
           resources:
             requests:
               memory: "64Mi"
