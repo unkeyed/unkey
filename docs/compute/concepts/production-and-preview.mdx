@@ -67,9 +67,11 @@ We stop deployments for you in these cases. A stopped preview deployment can be 
 | Trigger | What stops | When |
 | --- | --- | --- |
 | New live production deployment, or a promote | The previous live deployment | 30 minutes later |
-| New preview deployment on a branch | The deployment that was on that branch domain | 1 minute later |
+| New preview deployment on a branch | The deployment that was on that branch domain | 1 minute later, or 30 minutes when an [app connection](/compute/networking/private-networking#connect-to-another-app) from a running deployment of another app follows it |
 | Preview deployment gets no requests | That deployment | After 1 hour idle |
 | You stop it | A `ready` preview deployment | Right away |
+
+We don't stop a deployment automatically while an app connection pins it with a **Specific deployment** target. See [Pinned deployments keep running](/compute/networking/private-networking#pinned-deployments-keep-running).
 
 ## What callers see during a switch
 

@@ -113,6 +113,8 @@ At build time, your variables are available as described in [Build-time secrets]
 | `UNKEY_GIT_COMMIT_MESSAGE` | The commit message. Empty for image deployments. |
 | `UNKEY_INSTANCE_ID` | The instance's own ID. |
 | `UNKEY_EPHEMERAL_DISK_PATH` | `/data`, only when the environment has ephemeral disk. |
+| `UNKEY_PRIVATE_DOMAIN` | Private hostname for this deployment's own instances, without a scheme or port. Only set when the deployment has [private DNS](/compute/networking/private-networking#reach-instances-of-the-same-deployment). |
+| `<NAME>_HOST` | One per [app connection](/compute/networking/private-networking#hostnames-and-variables) saved in the deployment, such as `PAYMENTS_HOST=payments.unkey.internal`. |
 
 If one of your variables has the same name as one of these, ours wins. `KUBERNETES_SERVICE_HOST` and the other `KUBERNETES_*` variables some libraries look for are set to empty strings.
 

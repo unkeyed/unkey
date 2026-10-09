@@ -592,6 +592,7 @@
                   "compute/concepts/projects-apps-environments",
                   "compute/concepts/deployments",
                   "compute/concepts/production-and-preview",
+                  "compute/concepts/connections",
                   "compute/concepts/instances-and-autoscaling",
                   "compute/concepts/regions"
                 ]
@@ -623,7 +624,13 @@
                   "compute/networking/custom-domains",
                   "compute/networking/request-lifecycle",
                   "compute/networking/websockets",
-                  "compute/networking/private-networking"
+                  {
+                    "group": "Private networking",
+                    "pages": [
+                      "compute/networking/private-networking",
+                      "compute/networking/private-networking/troubleshooting"
+                    ]
+                  }
                 ]
               },
               {
