@@ -3,45 +3,27 @@
 import type { DiscardChangesDialogProps } from "@unkey/ui";
 import type { Route } from "next";
 import { useRouter } from "next/navigation";
-import { createContext, use, useCallback, useEffect, useRef, useState } from "react";
-
-const SENTINEL_KEY = "unkeyPreventLeaveSentinel";
+import { useEffect, useEffectEvent, useRef, useState } from "react";
+import {
+  type LeaveEvent,
+  type LeavePhase,
+  SENTINEL_STATE,
+  isLeaveSentinel,
+  leavingLinkHref,
+  nextLeaveStep,
+} from "./prevent-leave-model";
 
 // Neither popstate nor pagehide within this window means there is no entry to go back to.
 const BACK_FALLBACK_DELAY_MS = 300;
 
 type Leave = { kind: "back" } | { kind: "link"; href: string };
 
-export function isLeaveSentinel(state: unknown): boolean {
-  return typeof state === "object" && state !== null && SENTINEL_KEY in state;
+function sentinelOnTop(): boolean {
+  return isLeaveSentinel(window.history.state);
 }
 
 function pushSentinel() {
-  window.history.pushState({ [SENTINEL_KEY]: true }, "", window.location.href);
-}
-
-export function leavingLinkHref(event: MouseEvent): string | null {
-  if (
-    event.defaultPrevented ||
-    event.button !== 0 ||
-    event.metaKey ||
-    event.ctrlKey ||
-    event.shiftKey ||
-    event.altKey
-  ) {
-    return null;
-  }
-  const anchor = event.target instanceof Element ? event.target.closest("a[href]") : null;
-  if (!(anchor instanceof HTMLAnchorElement) || anchor.target === "_blank") {
-    return null;
-  }
-  if (anchor.hasAttribute("download")) {
-    return null;
-  }
-  const url = new URL(anchor.href, window.location.href);
-  const samePage =
-    url.origin === window.location.origin && url.pathname === window.location.pathname;
-  return samePage ? null : anchor.href;
+  window.history.pushState(SENTINEL_STATE, "", window.location.href);
 }
 
 export function usePreventLeave(
@@ -50,148 +32,116 @@ export function usePreventLeave(
 ): {
   bypass: () => void;
   navigate: (href: Route) => void;
-  leavePrompt: DiscardChangesDialogProps;
+  prompt: DiscardChangesDialogProps;
 } {
   const router = useRouter();
-  const skipNextRef = useRef(false);
-  const leavingRef = useRef(false);
-  const poppingSentinelRef = useRef(false);
+  const phaseRef = useRef<LeavePhase>("idle");
   const fallbackTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  const [leave, setLeave] = useState<Leave | null>(null);
+  const [pending, setPending] = useState<Leave | null>(null);
 
-  // Allows exactly the next beforeunload event through (e.g. an OAuth redirect)
-  // without disabling the guard permanently. The flag auto-resets on the next
-  // tick so the guard stays active for everything else.
-  const bypass = useCallback(() => {
-    skipNextRef.current = true;
-    setTimeout(() => {
-      skipNextRef.current = false;
-    }, 0);
-  }, []);
+  const send = (event: LeaveEvent, nativeEvent?: Event) => {
+    const step = nextLeaveStep(phaseRef.current, event);
+    phaseRef.current = step.phase;
+    for (const effect of step.effects) {
+      switch (effect) {
+        case "pushSentinel":
+          pushSentinel();
+          break;
+        case "historyBack":
+          window.history.back();
+          break;
+        case "blockUnload":
+          nativeEvent?.preventDefault();
+          break;
+        case "askBack":
+          setPending({ kind: "back" });
+          break;
+        case "closePrompt":
+          setPending(null);
+          break;
+        case "armFallback":
+          fallbackTimerRef.current = setTimeout(
+            () => send({ type: "fallbackElapsed" }),
+            BACK_FALLBACK_DELAY_MS,
+          );
+          break;
+        case "disarmFallback":
+          clearTimeout(fallbackTimerRef.current);
+          break;
+        case "goToFallback":
+          router.replace(fallbackHref);
+          break;
+      }
+    }
+  };
+  const sendFromListener = useEffectEvent(send);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: Biome 1.9 does not know useEffectEvent, whose result must stay out of the deps
   useEffect(() => {
     if (!enabled) {
       return;
     }
-
-    const stopLeaving = () => {
-      clearTimeout(fallbackTimerRef.current);
-      leavingRef.current = false;
-    };
-
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (skipNextRef.current || leavingRef.current) {
-        return;
-      }
-      e.preventDefault();
-    };
-
-    const handlePopState = (event: PopStateEvent) => {
-      if (leavingRef.current) {
-        stopLeaving();
-        return;
-      }
-      if (poppingSentinelRef.current) {
-        poppingSentinelRef.current = false;
-        pushSentinel();
-        return;
-      }
-      if (skipNextRef.current) {
-        return;
-      }
-      if (isLeaveSentinel(event.state)) {
-        setLeave(null);
-        return;
-      }
-      setLeave({ kind: "back" });
-    };
-
-    const handleClick = (event: MouseEvent) => {
+    const onBeforeUnload = (event: BeforeUnloadEvent) =>
+      sendFromListener({ type: "beforeunload" }, event);
+    const onPopState = (event: PopStateEvent) =>
+      sendFromListener({ type: "popstate", sentinel: isLeaveSentinel(event.state) });
+    const onPageHide = () => sendFromListener({ type: "pagehide" });
+    const onClick = (event: MouseEvent) => {
       const href = leavingLinkHref(event);
       if (href === null) {
         return;
       }
       event.preventDefault();
-      setLeave({ kind: "link", href });
+      setPending({ kind: "link", href });
     };
 
-    if (!isLeaveSentinel(window.history.state)) {
-      poppingSentinelRef.current = false;
-      pushSentinel();
-    }
-    window.addEventListener("beforeunload", handleBeforeUnload);
-    window.addEventListener("popstate", handlePopState);
-    window.addEventListener("pagehide", stopLeaving);
-    document.addEventListener("click", handleClick, true);
+    sendFromListener({ type: "guardOn", sentinelOnTop: sentinelOnTop() });
+    window.addEventListener("beforeunload", onBeforeUnload);
+    window.addEventListener("popstate", onPopState);
+    window.addEventListener("pagehide", onPageHide);
+    document.addEventListener("click", onClick, true);
 
     return () => {
-      const leaving = leavingRef.current;
-      stopLeaving();
-      window.removeEventListener("beforeunload", handleBeforeUnload);
-      window.removeEventListener("popstate", handlePopState);
-      window.removeEventListener("pagehide", stopLeaving);
-      document.removeEventListener("click", handleClick, true);
-      if (isLeaveSentinel(window.history.state) && !leaving) {
-        poppingSentinelRef.current = true;
-        window.history.back();
-      }
+      window.removeEventListener("beforeunload", onBeforeUnload);
+      window.removeEventListener("popstate", onPopState);
+      window.removeEventListener("pagehide", onPageHide);
+      document.removeEventListener("click", onClick, true);
+      sendFromListener({ type: "guardOff", sentinelOnTop: sentinelOnTop() });
     };
   }, [enabled]);
 
-  const discard = (pending: Leave) => {
-    leavingRef.current = true;
-    if (pending.kind === "link") {
-      const url = new URL(pending.href);
-      if (url.origin !== window.location.origin) {
-        window.location.assign(pending.href);
-        return;
-      }
-      router.replace(`${url.pathname}${url.search}${url.hash}` as Route);
+  const discard = (leave: Leave) => {
+    setPending(null);
+    if (leave.kind === "back") {
+      send({ type: "leaveBack" });
       return;
     }
-    fallbackTimerRef.current = setTimeout(() => {
-      leavingRef.current = false;
-      router.replace(fallbackHref);
-    }, BACK_FALLBACK_DELAY_MS);
-    window.history.back();
+    send({ type: "leave" });
+    const url = new URL(leave.href);
+    if (url.origin !== window.location.origin) {
+      window.location.assign(leave.href);
+      return;
+    }
+    router.replace(`${url.pathname}${url.search}${url.hash}` as Route);
   };
 
-  const navigate = useCallback(
-    (href: Route) => {
+  return {
+    bypass: () => send({ type: "leave" }),
+    navigate: (href) => {
       if (enabled) {
-        setLeave({ kind: "link", href: new URL(href, window.location.href).href });
+        setPending({ kind: "link", href: new URL(href, window.location.href).href });
       } else {
         router.push(href);
       }
     },
-    [enabled, router],
-  );
-
-  return {
-    bypass,
-    navigate,
-    leavePrompt: {
-      open: leave !== null,
-      onKeepEditing: () => {
-        setLeave(null);
-        if (!isLeaveSentinel(window.history.state)) {
-          pushSentinel();
-        }
-      },
+    prompt: {
+      open: pending !== null,
+      onKeepEditing: () => send({ type: "keepEditing", sentinelOnTop: sentinelOnTop() }),
       onDiscard: () => {
-        if (leave) {
-          setLeave(null);
-          discard(leave);
+        if (pending) {
+          discard(pending);
         }
       },
     },
   };
-}
-
-export const GuardedNavigateContext = createContext<((href: Route) => void) | null>(null);
-
-export function useGuardedNavigate(): (href: Route) => void {
-  const navigate = use(GuardedNavigateContext);
-  const router = useRouter();
-  return navigate ?? ((href) => router.push(href));
 }

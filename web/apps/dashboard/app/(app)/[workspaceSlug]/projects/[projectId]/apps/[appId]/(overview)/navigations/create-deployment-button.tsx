@@ -2,8 +2,8 @@
 
 import { useDeployActionGate } from "@/app/(app)/[workspaceSlug]/projects/_components/hooks/use-deploy-action-gate";
 import { RepoDisplay } from "@/app/(app)/[workspaceSlug]/projects/_components/list/repo-display";
+import { useGuardedNavigate } from "@/components/leave-guard";
 import { NavbarActionButton } from "@/components/navigation/action-button";
-import { useGuardedNavigate } from "@/hooks/use-prevent-leave";
 import { collection } from "@/lib/collections";
 import { UnsupportedDeployRefError, parseDeployRef } from "@/lib/deploy-ref";
 import { sanitizeImageRef, validateImageRef } from "@/lib/docker-image-ref";

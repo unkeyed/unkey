@@ -1,11 +1,12 @@
 "use client";
+import { LeaveGuard, useLeaveBypass } from "@/components/leave-guard";
 import { OnboardingStepContainer } from "@/components/onboarding/step-container";
 import { OnboardingStepHeader } from "@/components/onboarding/step-header";
-import { usePreventLeave } from "@/hooks/use-prevent-leave";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
-import { DiscardChangesDialog, StepWizard } from "@unkey/ui";
+import { StepWizard, useReportUnsavedChanges } from "@unkey/ui";
+import type { Route } from "next";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { ChooseSourceStep } from "./steps/choose-source";
@@ -16,13 +17,22 @@ import { EnvVarsStep } from "./steps/env-vars";
 import { SelectRepo } from "./steps/select-repo";
 
 export default function AppSetupPage() {
+  const params = useParams();
+  const workspace = useWorkspaceNavigation();
+  const projectId = typeof params?.projectId === "string" ? params.projectId : "";
+  const projectHref = routes.projects.detail({ workspaceSlug: workspace.slug, projectId });
+
+  return (
+    <LeaveGuard fallbackHref={projectHref}>
+      <AppSetup projectId={projectId} projectHref={projectHref} />
+    </LeaveGuard>
+  );
+}
+
+function AppSetup({ projectId, projectHref }: { projectId: string; projectHref: Route }) {
   const { data: context } = trpc.deploy.project.creationContext.useQuery();
   const searchParams = useSearchParams();
-  const params = useParams();
   const router = useRouter();
-  const workspace = useWorkspaceNavigation();
-
-  const projectId = typeof params?.projectId === "string" ? params.projectId : "";
 
   // Step id to start the wizard at (e.g. "select-repo"). When the GitHub
   // callback redirects here, earlier steps are already complete so we skip ahead.
@@ -36,8 +46,8 @@ export default function AppSetupPage() {
   const [appDetails, setAppDetails] = useState<AppDetails | null>(null);
   const [deploymentId, setDeploymentId] = useState<string | null>(null);
 
-  const projectHref = routes.projects.detail({ workspaceSlug: workspace.slug, projectId });
-  const { bypass, leavePrompt } = usePreventLeave(!deploymentId, projectHref);
+  useReportUnsavedChanges(!deploymentId);
+  const bypass = useLeaveBypass();
 
   const handleSkipGithubSetup = () => {
     bypass();
@@ -45,81 +55,78 @@ export default function AppSetupPage() {
   };
 
   return (
-    <>
-      <DiscardChangesDialog {...leavePrompt} />
-      <StepWizard.Root defaultStepId={initialStep}>
-        <StepWizard.Step id="create-app" label="Create app">
+    <StepWizard.Root defaultStepId={initialStep}>
+      <StepWizard.Step id="create-app" label="Create app">
+        <OnboardingStepContainer>
+          {deployYourAppHeader}
+          <CreateAppStep onAppDetailsSubmitted={setAppDetails} />
+        </OnboardingStepContainer>
+      </StepWizard.Step>
+      <StepWizard.Step id="choose-source" label="Choose source">
+        {appDetails ? (
           <OnboardingStepContainer>
             {deployYourAppHeader}
-            <CreateAppStep onAppDetailsSubmitted={setAppDetails} />
+            <ChooseSourceStep
+              projectId={projectId}
+              appDetails={appDetails}
+              onAppCreated={setAppId}
+              onBeforeNavigate={bypass}
+            />
           </OnboardingStepContainer>
-        </StepWizard.Step>
-        <StepWizard.Step id="choose-source" label="Choose source">
-          {appDetails ? (
-            <OnboardingStepContainer>
-              {deployYourAppHeader}
-              <ChooseSourceStep
-                projectId={projectId}
-                appDetails={appDetails}
-                onAppCreated={setAppId}
-                onBeforeNavigate={bypass}
-              />
-            </OnboardingStepContainer>
-          ) : null}
-        </StepWizard.Step>
-        <StepWizard.Step id="select-repo" label="Select repository" kind="optional">
-          {appId ? (
-            <OnboardingStepContainer>
-              <OnboardingStepHeader
-                title="Select a repository"
-                subtitle={
-                  <>
-                    Choose a repository and a branch containing your app.
-                    <br />
-                    We'll detect how to build it automatically.
-                  </>
-                }
-              />
-              <SelectRepo
-                projectId={projectId}
-                appId={appId}
-                onBeforeNavigate={bypass}
-                hasGithubInstallation={context?.hasGithubInstallation ?? false}
-                onSkip={handleSkipGithubSetup}
-              />
-            </OnboardingStepContainer>
-          ) : null}
-        </StepWizard.Step>
-        <StepWizard.Step id="configure-deployment" label="Configure deployment">
-          {appId ? (
-            <OnboardingStepContainer>
-              <OnboardingStepHeader
-                title="Configure deployment"
-                subtitle="Review the defaults. Edit anything you'd like to adjust."
-                allowBack
-              />
-              <ConfigureDeploymentStep projectId={projectId} appId={appId} />
-            </OnboardingStepContainer>
-          ) : null}
-        </StepWizard.Step>
-        <StepWizard.Step id="configure-env-vars" label="Configure environment variables">
-          {appId ? (
-            <OnboardingStepContainer>
-              <EnvVarsStep
-                projectId={projectId}
-                appId={appId}
-                onDeploymentCreated={setDeploymentId}
-              />
-            </OnboardingStepContainer>
-          ) : null}
-        </StepWizard.Step>
-        <StepWizard.Step id="deploying" label="Deploying" preventBack>
-          {appId && deploymentId ? (
-            <DeploymentLiveStep projectId={projectId} appId={appId} deploymentId={deploymentId} />
-          ) : null}
-        </StepWizard.Step>
-      </StepWizard.Root>
-    </>
+        ) : null}
+      </StepWizard.Step>
+      <StepWizard.Step id="select-repo" label="Select repository" kind="optional">
+        {appId ? (
+          <OnboardingStepContainer>
+            <OnboardingStepHeader
+              title="Select a repository"
+              subtitle={
+                <>
+                  Choose a repository and a branch containing your app.
+                  <br />
+                  We'll detect how to build it automatically.
+                </>
+              }
+            />
+            <SelectRepo
+              projectId={projectId}
+              appId={appId}
+              onBeforeNavigate={bypass}
+              hasGithubInstallation={context?.hasGithubInstallation ?? false}
+              onSkip={handleSkipGithubSetup}
+            />
+          </OnboardingStepContainer>
+        ) : null}
+      </StepWizard.Step>
+      <StepWizard.Step id="configure-deployment" label="Configure deployment">
+        {appId ? (
+          <OnboardingStepContainer>
+            <OnboardingStepHeader
+              title="Configure deployment"
+              subtitle="Review the defaults. Edit anything you'd like to adjust."
+              allowBack
+            />
+            <ConfigureDeploymentStep projectId={projectId} appId={appId} />
+          </OnboardingStepContainer>
+        ) : null}
+      </StepWizard.Step>
+      <StepWizard.Step id="configure-env-vars" label="Configure environment variables">
+        {appId ? (
+          <OnboardingStepContainer>
+            <EnvVarsStep
+              projectId={projectId}
+              appId={appId}
+              onDeploymentCreated={setDeploymentId}
+            />
+          </OnboardingStepContainer>
+        ) : null}
+      </StepWizard.Step>
+      <StepWizard.Step id="deploying" label="Deploying" preventBack>
+        {appId && deploymentId ? (
+          <DeploymentLiveStep projectId={projectId} appId={appId} deploymentId={deploymentId} />
+        ) : null}
+      </StepWizard.Step>
+    </StepWizard.Root>
   );
 }
 
