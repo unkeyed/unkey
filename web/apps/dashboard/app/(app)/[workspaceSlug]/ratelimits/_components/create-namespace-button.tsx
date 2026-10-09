@@ -1,6 +1,7 @@
 "use client";
 
-import { queryClient, trpcClient } from "@/lib/collections/client";
+import { trpcClient } from "@/lib/collections/client";
+import { useInvalidateNamespaces } from "@/lib/queries/ratelimit-namespaces";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { IconPlusOutline18 } from "@unkey/icons";
 import { Button, DialogContainer, FormInput, toast } from "@unkey/ui";
@@ -25,6 +26,7 @@ type FormValues = z.infer<typeof formSchema>;
 export const CreateNamespaceButton = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const invalidateNamespaces = useInvalidateNamespaces();
 
   const {
     register,
@@ -55,9 +57,7 @@ export const CreateNamespaceButton = () => {
 
         await mutation;
 
-        // Ensure queries are invalidated and refetched before closing
-        await queryClient.invalidateQueries({ queryKey: ["ratelimitNamespaces"] });
-        await queryClient.refetchQueries({ queryKey: ["ratelimitNamespaces"] });
+        await invalidateNamespaces();
 
         reset();
         setIsOpen(false);

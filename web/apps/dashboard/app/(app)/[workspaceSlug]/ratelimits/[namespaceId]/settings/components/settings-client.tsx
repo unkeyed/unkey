@@ -1,7 +1,8 @@
 "use client";
 
-import { collection } from "@/lib/collections";
-import { eq, useLiveQuery } from "@tanstack/react-db";
+import { trpcClient } from "@/lib/collections/client";
+import { useInvalidateNamespaces, useNamespace } from "@/lib/queries/ratelimit-namespaces";
+import { getUnkeyClient } from "@/lib/unkey-client";
 import {
   CopyInput,
   EmptyState,
@@ -34,14 +35,9 @@ type Props = {
 
 export const SettingsClient = ({ namespaceId }: Props) => {
   const [isNamespaceNameDeleteModalOpen, setIsNamespaceNameDeleteModalOpen] = useState(false);
+  const invalidateNamespaces = useInvalidateNamespaces();
 
-  const { data, isLoading } = useLiveQuery((q) =>
-    q
-      .from({ namespace: collection.ratelimitNamespaces })
-      .where(({ namespace }) => eq(namespace.id, namespaceId)),
-  );
-
-  const namespace = data.at(0);
+  const { data: namespace, isLoading } = useNamespace(namespaceId);
 
   const [namespaceName, setNamespaceName] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -71,28 +67,37 @@ export const SettingsClient = ({ namespaceId }: Props) => {
 
   const isDirty = namespaceName !== null && namespaceName.trim() !== namespace.name.trim();
 
-  const handleUpdateName = () => {
+  const handleUpdateName = async () => {
     if (!isDirty || !namespaceName) {
       return toast.error("Please provide a different name before saving.");
     }
-    let error = "";
-    collection.ratelimitNamespaces.forEach((ns) => {
-      if (ns.id !== namespaceId && namespaceName === ns.name) {
-        error = "Another namespace already has this name";
-        return;
-      }
-    });
-    if (error) {
-      return toast.error(error);
-    }
-
     setIsSaving(true);
-    const tx = collection.ratelimitNamespaces.update(namespace.id, (draft) => {
-      draft.name = namespaceName;
-    });
-    const stopSaving = () => setIsSaving(false);
-    const failureAlreadyToastedByCollection = stopSaving;
-    tx.isPersisted.promise.then(stopSaving, failureAlreadyToastedByCollection);
+    try {
+      const sameName = await getUnkeyClient()
+        .ratelimit.listNamespaces({ search: namespaceName, limit: 100 })
+        .catch((error: unknown) => {
+          toast.error("Failed to update namespace");
+          throw error;
+        });
+      if (sameName.result.data.some((ns) => ns.id !== namespaceId && ns.name === namespaceName)) {
+        return toast.error("Another namespace already has this name");
+      }
+      const mutation = trpcClient.ratelimit.namespace.update.name.mutate({
+        namespaceId,
+        name: namespaceName,
+      });
+      toast.promise(mutation, {
+        loading: "Updating namespace...",
+        success: "Namespace updated",
+        error: "Failed to update namespace",
+      });
+      await mutation;
+      await invalidateNamespaces();
+    } catch (error) {
+      console.error("Failed to update namespace", error);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
