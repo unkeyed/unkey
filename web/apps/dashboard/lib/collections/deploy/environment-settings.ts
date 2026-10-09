@@ -1,15 +1,21 @@
 "use client";
 import { getErrorToast, getUnkeyClient } from "@/lib/unkey-client";
-import { parseLoadSubsetOptions, queryCollectionOptions } from "@tanstack/query-db-collection";
+import { sameJson } from "@/lib/utils/same-json";
+import {
+  type QueryCollectionUtils,
+  parseLoadSubsetOptions,
+  queryCollectionOptions,
+} from "@tanstack/query-db-collection";
 import { createCollection } from "@tanstack/react-db";
 import type {
   Environment,
   V2EnvironmentsUpdateSettingsRequestBody,
 } from "@unkey/api/models/components";
 import { toast } from "@unkey/ui";
-import { useSyncExternalStore } from "react";
 import { z } from "zod";
 import { queryClient } from "../client";
+import { listAppEnvironments, markAppEnvironmentsChanged } from "./app-environments";
+import { appliesOnNextDeploy, trackSave } from "./pending-redeploy";
 import { extractStringFilter } from "./utils";
 
 const healthcheckSchema = z
@@ -68,7 +74,11 @@ const schema = z.object({
  *   eq(s.environmentId, environmentId),
  * ))
  */
-export const environmentSettings = createCollection<EnvironmentSettings, string>(
+export const environmentSettings = createCollection<
+  EnvironmentSettings,
+  string,
+  QueryCollectionUtils<EnvironmentSettings, string>
+>(
   queryCollectionOptions({
     queryClient,
     queryKey: (opts) => {
@@ -89,22 +99,17 @@ export const environmentSettings = createCollection<EnvironmentSettings, string>
 
       // One request carries the settings of every environment in the app, so
       // selecting one environment costs no extra round trip.
-      const result = await getUnkeyClient().environments.listEnvironments({
-        project: projectId,
-        app: appId,
-      });
+      const data = await listAppEnvironments(projectId, appId);
 
-      return result.data.map((env) => flattenEnvironment(projectId, appId, env));
+      return data.map((env) => flattenEnvironment(projectId, appId, env));
     },
     getKey: (item) => item.environmentId,
     id: "environmentSettings",
     onUpdate: async ({ transaction }) => {
-      const silent = transaction.metadata?.silent === true;
       // A transaction can carry one environment or every environment of an app,
       // so send them together and report the outcome once.
       await dispatchSettingsMutations(
         transaction.mutations.map((m) => ({ original: m.original, modified: m.modified })),
-        silent,
       );
     },
   }),
@@ -126,11 +131,13 @@ export const ENVIRONMENT_SETTINGS_DEFAULTS = {
   storageMib: 0,
   shutdownSignal: "SIGTERM",
   upstreamProtocol: "http1",
+  healthcheck: {
+    intervalSeconds: 10,
+    timeoutSeconds: 5,
+    failureThreshold: 3,
+    initialDelaySeconds: 0,
+  },
 } as const;
-
-function changed<T>(a: T, b: T): boolean {
-  return JSON.stringify(a) !== JSON.stringify(b);
-}
 
 function flattenEnvironment(
   projectId: string,
@@ -158,10 +165,11 @@ function flattenEnvironment(
       ? {
           method: runtime.healthcheck.method,
           path: runtime.healthcheck.path,
-          intervalSeconds: runtime.healthcheck.intervalSeconds ?? 10,
-          timeoutSeconds: runtime.healthcheck.timeoutSeconds ?? 5,
-          failureThreshold: runtime.healthcheck.failureThreshold ?? 3,
-          initialDelaySeconds: runtime.healthcheck.initialDelaySeconds ?? 0,
+          intervalSeconds: runtime.healthcheck.intervalSeconds ?? d.healthcheck.intervalSeconds,
+          timeoutSeconds: runtime.healthcheck.timeoutSeconds ?? d.healthcheck.timeoutSeconds,
+          failureThreshold: runtime.healthcheck.failureThreshold ?? d.healthcheck.failureThreshold,
+          initialDelaySeconds:
+            runtime.healthcheck.initialDelaySeconds ?? d.healthcheck.initialDelaySeconds,
         }
       : null,
     regions: (env.regions ?? []).map((r) => ({
@@ -217,7 +225,7 @@ export function buildSettingsUpdate(
     dirty = true;
   }
 
-  if (changed(original.watchPaths, modified.watchPaths)) {
+  if (!sameJson(original.watchPaths, modified.watchPaths)) {
     body.watchPaths = modified.watchPaths;
     dirty = true;
   }
@@ -242,12 +250,12 @@ export function buildSettingsUpdate(
     dirty = true;
   }
 
-  if (changed(original.command, modified.command)) {
+  if (!sameJson(original.command, modified.command)) {
     body.command = modified.command;
     dirty = true;
   }
 
-  if (changed(original.healthcheck, modified.healthcheck)) {
+  if (!sameJson(original.healthcheck, modified.healthcheck)) {
     body.healthcheck = modified.healthcheck;
     dirty = true;
   }
@@ -264,7 +272,7 @@ export function buildSettingsUpdate(
 
   // The API rejects an empty list, because an environment must have one region
   // or more.
-  if (modified.regions.length > 0 && changed(original.regions, modified.regions)) {
+  if (modified.regions.length > 0 && !sameJson(original.regions, modified.regions)) {
     body.regions = modified.regions.map((r) => ({
       name: r.name,
       replicas: { min: r.replicasMin, max: r.replicasMax },
@@ -280,42 +288,53 @@ export function buildSettingsUpdate(
  * bails before configuring deployment still has usable settings instead of the
  * empty placeholders it starts with.
  */
-export function applyDefaultSettings(
+export async function applyDefaultSettings(
   projectId: string,
   appId: string,
-  environmentId: string,
+  environmentIds: string[],
   regionNames: string[],
-): Promise<unknown> {
+): Promise<void> {
   const d = ENVIRONMENT_SETTINGS_DEFAULTS;
+  const client = getUnkeyClient();
 
-  return getUnkeyClient().environments.updateSettings({
-    project: projectId,
-    app: appId,
-    environment: environmentId,
-    autoDeploy: d.autoDeploy,
-    dockerfile: null,
-    rootDirectory: d.dockerContext,
-    buildCommand: null,
-    watchPaths: [],
-    port: d.port,
-    vCpus: d.cpuMillicores / 1000,
-    memoryMib: d.memoryMib,
-    storageMib: d.storageMib,
-    command: [],
-    healthcheck: null,
-    upstreamProtocol: d.upstreamProtocol,
-    openapiSpecPath: null,
-    // The API rejects an empty list, so keep the regions if the available ones
-    // have not loaded.
-    ...(regionNames.length > 0
-      ? { regions: regionNames.map((name) => ({ name, replicas: { min: 1, max: 1 } })) }
-      : {}),
-  });
+  const results = await Promise.allSettled(
+    environmentIds.map((environmentId) =>
+      client.environments.updateSettings({
+        project: projectId,
+        app: appId,
+        environment: environmentId,
+        autoDeploy: d.autoDeploy,
+        dockerfile: null,
+        rootDirectory: d.dockerContext,
+        buildCommand: null,
+        watchPaths: [],
+        port: d.port,
+        vCpus: d.cpuMillicores / 1000,
+        memoryMib: d.memoryMib,
+        storageMib: d.storageMib,
+        command: [],
+        healthcheck: null,
+        upstreamProtocol: d.upstreamProtocol,
+        openapiSpecPath: null,
+        // The API rejects an empty list, so keep the regions if the available ones
+        // have not loaded.
+        ...(regionNames.length > 0
+          ? { regions: regionNames.map((name) => ({ name, replicas: { min: 1, max: 1 } })) }
+          : {}),
+      }),
+    ),
+  );
+  markAppEnvironmentsChanged(projectId, appId);
+  const failure = results.find(
+    (result): result is PromiseRejectedResult => result.status === "rejected",
+  );
+  if (failure) {
+    throw failure.reason;
+  }
 }
 
 async function dispatchSettingsMutations(
   changes: { original: EnvironmentSettings; modified: EnvironmentSettings }[],
-  silent = false,
 ): Promise<void> {
   const bodies = changes
     .map(({ original, modified }) => buildSettingsUpdate(original, modified))
@@ -326,80 +345,32 @@ async function dispatchSettingsMutations(
   }
 
   const client = getUnkeyClient();
-  const mutation = Promise.all(bodies.map((body) => client.environments.updateSettings(body)));
-
-  if (!silent) {
-    toast.promise(mutation, {
-      loading: "Saving settings...",
-      success: "Settings updated",
-      error: (err) => getErrorToast(err, "Failed to update settings"),
-    });
-  }
-  await trackSave(mutation);
-}
-
-/**
- * Store for tracking in-flight and completed collection saves.
- *
- * Shared by environment-settings and env-vars collections so the
- * pending-redeploy banner reacts to mutations from either source.
- */
-const saveStore = {
-  pendingSaves: 0,
-  savedCount: 0,
-  dismissedAtCount: 0,
-  listeners: new Set<() => void>(),
-  notify() {
-    for (const cb of this.listeners) {
-      cb();
+  const mutation = Promise.allSettled(
+    bodies.map((body) => client.environments.updateSettings(body)),
+  ).then((results) => {
+    const apps = new Map(bodies.map((body) => [`${body.project}:${body.app}`, body]));
+    for (const { project, app } of apps.values()) {
+      markAppEnvironmentsChanged(project, app);
     }
-  },
-  subscribe(cb: () => void): () => void {
-    this.listeners.add(cb);
-    return () => {
-      this.listeners.delete(cb);
-    };
-  },
-  dismiss() {
-    this.dismissedAtCount = this.savedCount;
-    this.notify();
-  },
-};
+    const failure = results.find(
+      (result): result is PromiseRejectedResult => result.status === "rejected",
+    );
+    if (failure) {
+      // Rollback drops every optimistic row, so reload the environments that did save.
+      void environmentSettings.utils.refetch();
+      throw failure.reason;
+    }
+  });
 
-export function trackSave<T>(promise: Promise<T>): Promise<T> {
-  saveStore.pendingSaves++;
-  saveStore.notify();
-  return promise.then(
-    (result) => {
-      saveStore.savedCount++;
-      saveStore.pendingSaves--;
-      saveStore.notify();
-      return result;
-    },
-    (err) => {
-      saveStore.pendingSaves--;
-      saveStore.notify();
-      throw err;
-    },
-  );
-}
-
-export function useSettingsIsSaving(): boolean {
-  return useSyncExternalStore(
-    (cb) => saveStore.subscribe(cb),
-    () => saveStore.pendingSaves > 0,
-  );
-}
-
-/** Returns true when there are saves the user hasn't dismissed yet. Survives navigation. */
-export function useSettingsBannerVisible(): boolean {
-  return useSyncExternalStore(
-    (cb) => saveStore.subscribe(cb),
-    () => saveStore.savedCount > saveStore.dismissedAtCount,
-  );
-}
-
-/** Dismisses the pending-redeploy banner until a new save occurs. */
-export function dismissSettingsBanner(): void {
-  saveStore.dismiss();
+  // A save that takes effect now is confirmed by the row that made it.
+  if (!bodies.some(appliesOnNextDeploy)) {
+    await mutation;
+    return;
+  }
+  toast.promise(mutation, {
+    loading: "Saving settings...",
+    success: "Settings updated",
+    error: (err) => getErrorToast(err, "Failed to update settings"),
+  });
+  await trackSave(mutation);
 }

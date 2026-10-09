@@ -40,7 +40,7 @@ import { type EnvVarsFormValues, createEmptyEntry, envVarsSchema, findConflicts 
 
 import { usePreventLeave } from "@/hooks/use-prevent-leave";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import { trackSave } from "@/lib/collections/deploy/environment-settings";
+import { trackSave } from "@/lib/collections/deploy/pending-redeploy";
 import { routes } from "@/lib/navigation/routes";
 
 type AddEnvVarExpandableProps = {

@@ -1,11 +1,16 @@
 import { getErrorToast, getUnkeyClient } from "@/lib/unkey-client";
-import { parseLoadSubsetOptions, queryCollectionOptions } from "@tanstack/query-db-collection";
+import {
+  type QueryCollectionUtils,
+  parseLoadSubsetOptions,
+  queryCollectionOptions,
+} from "@tanstack/query-db-collection";
 import { createCollection } from "@tanstack/react-db";
 import { NotFoundErrorResponse } from "@unkey/api/models/errors";
 import { toast } from "@unkey/ui";
 import { z } from "zod";
 import { queryClient, trpcClient } from "../client";
 import { DEPLOYMENT_STATUSES } from "./deployment-status";
+import { trackSave } from "./pending-redeploy";
 import { extractStringValues } from "./utils";
 
 const schema = z.object({
@@ -71,7 +76,7 @@ export type CreateAppRequestSchema = z.infer<typeof createAppRequestSchema>;
  * IMPORTANT: All queries MUST filter by projectId with eq or inArray:
  * .where(({ app }) => eq(app.projectId, projectId))
  */
-export const apps = createCollection<App, string>(
+export const apps = createCollection<App, string, QueryCollectionUtils<App, string>>(
   queryCollectionOptions({
     queryClient,
     queryKey: (opts) => {
@@ -111,6 +116,33 @@ export const apps = createCollection<App, string>(
       });
 
       await deleteMutation;
+    },
+    onUpdate: async ({ transaction }) => {
+      const client = getUnkeyClient();
+      const mutation = Promise.all(
+        transaction.mutations.map(({ original, changes }) =>
+          client.apps.updateApp({
+            project: original.projectId,
+            app: original.id,
+            name: changes.name,
+            oci: changes.imageReference ? { image: changes.imageReference } : undefined,
+          }),
+        ),
+      );
+      toast.promise(mutation, {
+        loading: "Saving app...",
+        success: "App updated",
+        error: (err) => getErrorToast(err, "Failed to update app"),
+      });
+      // A new image only runs on the next deployment.
+      if (transaction.mutations.some(({ changes }) => changes.imageReference !== undefined)) {
+        await trackSave(mutation);
+      } else {
+        await mutation;
+      }
+      apps.utils.writeUpdate(transaction.mutations.map(({ modified }) => modified));
+      // Only the edited fields change on the server, so the written rows are already current.
+      return { refetch: false };
     },
     onInsert: async ({ transaction }) => {
       const { changes } = transaction.mutations[0];
