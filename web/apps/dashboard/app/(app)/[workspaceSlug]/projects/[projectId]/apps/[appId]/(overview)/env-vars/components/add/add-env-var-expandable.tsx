@@ -34,7 +34,7 @@ import { useDropZone } from "../../hooks/use-drop-zone";
 import { EnvVarRow } from "./env-var-row";
 import { type EnvVarsFormValues, createEmptyEntry, envVarsSchema, findConflicts } from "./schema";
 
-import { trackSave } from "@/lib/collections/deploy/environment-settings";
+import { trackSave } from "@/lib/collections/deploy/pending-redeploy";
 
 type AddEnvVarExpandableProps = {
   projectId: string;
