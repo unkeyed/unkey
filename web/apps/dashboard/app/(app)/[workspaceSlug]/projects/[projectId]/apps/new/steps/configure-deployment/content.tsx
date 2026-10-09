@@ -6,6 +6,7 @@ import {
   UpstreamProtocol,
 } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/_components/settings/advanced-settings/upstream-protocol";
 import { BuildSettings } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/_components/settings/build-settings/build-settings";
+import { ComputeSettings } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/_components/settings/compute/compute-settings";
 import { useEnvironmentSettings } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/_components/settings/environment-provider";
 import { Command } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/_components/settings/runtime-settings/command";
 import { Healthcheck } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/_components/settings/runtime-settings/healthcheck";
@@ -22,6 +23,7 @@ export function ConfigureDeploymentContent() {
     <div className="w-225">
       <SettingsGroups pendingNote={NEXT_DEPLOY} className="gap-4 p-0">
         <BuildSettings githubReadOnly />
+        <ComputeSettings />
         <SettingsGroupCollapsible
           title="Runtime"
           description="Port, start command and health check. The defaults suit most apps."

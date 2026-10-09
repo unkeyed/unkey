@@ -10,6 +10,7 @@ import { useBuildSource } from "../../../../../_components/settings/hooks/use-bu
 import { SettingsSkeleton } from "../../../../../_components/settings/settings-skeleton";
 import { useProjectData } from "../../../data-provider";
 import { branchFor } from "../branch";
+import { ComputeOverview } from "./compute-overview";
 import { BranchTracking, EnvironmentDomains } from "./environment-groups";
 
 export default function EnvironmentSettingsPage() {
@@ -32,6 +33,7 @@ export default function EnvironmentSettingsPage() {
   return (
     <EnvironmentSettingsScope environmentId={environment.id}>
       <SettingsGroups>
+        <ComputeOverview />
         <EnvironmentDomains environment={environment} />
         {hasRepository ? (
           <BranchTracking
