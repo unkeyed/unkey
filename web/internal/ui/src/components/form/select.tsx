@@ -17,41 +17,19 @@ const selectTriggerVariants = cva(
   {
     variants: {
       variant: fieldSurfaceClasses,
-      size: {
-        md: "h-9",
-        sm: "h-8 whitespace-nowrap",
-      },
     },
     defaultVariants: {
       variant: "default",
-      size: "md",
     },
   },
 );
 
-const selectPaddingVariants = cva("px-3", {
-  variants: {
-    size: {
-      md: "py-2 pr-9",
-      sm: "pr-8",
-    },
-  },
-  defaultVariants: {
-    size: "md",
-  },
-});
+type SelectSize = "md" | "sm";
 
-const selectChevronVariants = cva("absolute text-gray-11", {
-  variants: {
-    size: {
-      md: "right-3 size-4",
-      sm: "right-2 size-3.5",
-    },
-  },
-  defaultVariants: {
-    size: "md",
-  },
-});
+const SELECT_SIZES: Record<SelectSize, { trigger: string; padding: string; chevron: string }> = {
+  md: { trigger: "h-9", padding: "py-2 pr-9", chevron: "right-3 size-4" },
+  sm: { trigger: "h-8 whitespace-nowrap", padding: "pr-8", chevron: "right-2 size-3.5" },
+};
 
 const selectWrapperVariants = cva("relative flex items-center w-full", {
   variants: {
@@ -70,6 +48,7 @@ const selectWrapperVariants = cva("relative flex items-center w-full", {
 
 // Types
 export type DocumentedSelectProps = VariantProps<typeof selectTriggerVariants> & {
+  size?: SelectSize;
   leftIcon?: React.ReactNode;
   rightIcon?: React.ReactNode;
   wrapperClassName?: string;
@@ -87,7 +66,7 @@ function SelectTrigger({
   className,
   children,
   variant,
-  size,
+  size = "md",
   leftIcon,
   wrapperClassName,
   rightIcon,
@@ -105,8 +84,9 @@ function SelectTrigger({
       <SelectPrimitive.Trigger
         ref={ref}
         className={cn(
-          selectTriggerVariants({ variant, size, className }),
-          selectPaddingVariants({ size }),
+          selectTriggerVariants({ variant, className: [SELECT_SIZES[size].trigger, className] }),
+          "px-3",
+          SELECT_SIZES[size].padding,
           leftIcon && "pl-9",
         )}
         {...props}
@@ -115,7 +95,9 @@ function SelectTrigger({
         <SelectPrimitive.Icon
           render={
             (rightIcon as React.ReactElement) || (
-              <IconChevronDownOutline18 className={selectChevronVariants({ size })} />
+              <IconChevronDownOutline18
+                className={cn("absolute text-gray-11", SELECT_SIZES[size].chevron)}
+              />
             )
           }
         />
