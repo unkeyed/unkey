@@ -78,7 +78,7 @@ func TestGetUsageAcceptsDashboardRoles(t *testing.T) {
 				Type:                  authprincipal.TypeJWT,
 				Source:                authprincipal.JWTSource{Roles: []string{role}},
 				AuthorizedWorkspaceID: workspaceID,
-			}})
+			}}, nil)
 			stack := append([]zen.Middleware{}, h.PublicMiddleware()...)
 			stack = append(stack, func(next zen.HandleFunc) zen.HandleFunc {
 				return func(ctx context.Context, s *zen.Session) error {

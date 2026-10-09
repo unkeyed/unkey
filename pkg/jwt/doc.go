@@ -121,8 +121,8 @@
 // # Interoperability
 //
 // Tokens produced by this package are compatible with [github.com/golang-jwt/jwt/v5]
-// and other standard JWT libraries. The Audience claim is serialized as a JSON array;
-// tokens from libraries that serialize single audiences as strings will fail to parse.
+// and other standard JWT libraries. The Audience claim is serialized as a JSON array.
+// Verification accepts that array and also a single audience encoded as a JSON string.
 //
 // # Limitations
 //

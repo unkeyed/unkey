@@ -11,13 +11,15 @@ import (
 
 // NewRoleMappingResolver adds WorkOS role mapping to a verified JWT resolver.
 // The provider config selects this behavior without inferring it from the issuer.
-func NewRoleMappingResolver(inner auth.Resolver) auth.Resolver {
-	return resolverWithRoles{resolver: inner}
+// ceiling is an optional permission cap in resource#action form. Nil means no cap.
+func NewRoleMappingResolver(inner auth.Resolver, ceiling []string) auth.Resolver {
+	return resolverWithRoles{resolver: inner, ceiling: ceiling}
 }
 
 // resolverWithRoles maps verified WorkOS roles to API permissions.
 type resolverWithRoles struct {
 	resolver auth.Resolver
+	ceiling  []string
 }
 
 // Resolve delegates token verification and then maps roles for JWT principals.
@@ -35,6 +37,14 @@ func (r resolverWithRoles) Resolve(ctx context.Context, sess *zen.Session) (*pri
 		return nil, err
 	}
 
-	p.Permissions = permissionsForRoles(p.AuthorizedWorkspaceID, source.Roles)
+	permissions, err := applyPermissionCeiling(
+		p.AuthorizedWorkspaceID,
+		permissionsForRoles(p.AuthorizedWorkspaceID, source.Roles),
+		r.ceiling,
+	)
+	if err != nil {
+		return nil, err
+	}
+	p.Permissions = permissions
 	return p, nil
 }

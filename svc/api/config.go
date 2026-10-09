@@ -6,6 +6,7 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/unkeyed/unkey/pkg/auth/workos"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/config"
 	"github.com/unkeyed/unkey/pkg/counter"
@@ -104,8 +105,14 @@ type JWTAuthConfig struct {
 
 	// Provider selects role mapping after JWT verification. Empty leaves the
 	// principal without role-derived permissions. "workos" maps the roles claim
-	// to API permissions.
+	// to API permissions. A workos entry requires Audience.
 	Provider string `toml:"provider"`
+
+	// PermissionCeiling narrows WorkOS role permissions to these resource#action
+	// patterns. Nil means no cap. An empty list is rejected. Patterns use the
+	// same wildcard rules as role grants and are bound to the token's workspace
+	// at request time. The ceiling never adds a permission the role lacks.
+	PermissionCeiling []string `toml:"permission_ceiling"`
 }
 
 // authConfig marks JWTAuthConfig as a member of the [AuthConfig] union.
@@ -191,16 +198,17 @@ func (a *AuthConfigs) UnmarshalTOML(v any) error {
 // decodeJWTAuthConfig parses one type="jwt" auth table, rejecting unknown
 // fields and wrong field types at load time.
 func decodeJWTAuthConfig(i int, raw map[string]any) (JWTAuthConfig, error) {
-	if err := rejectUnknownAuthFields(i, raw, "type", "issuer", "audience", "secrets", "jwks_url", "provider"); err != nil {
+	if err := rejectUnknownAuthFields(i, raw, "type", "issuer", "audience", "secrets", "jwks_url", "provider", "permission_ceiling"); err != nil {
 		return JWTAuthConfig{}, err
 	}
 
 	auth := JWTAuthConfig{
-		Issuer:   "",
-		Audience: "",
-		Secrets:  nil,
-		JWKSURL:  "",
-		Provider: "",
+		Issuer:            "",
+		Audience:          "",
+		Secrets:           nil,
+		JWKSURL:           "",
+		Provider:          "",
+		PermissionCeiling: nil,
 	}
 	if rawIssuer, ok := raw["issuer"]; ok {
 		issuer, ok := rawIssuer.(string)
@@ -236,6 +244,16 @@ func decodeJWTAuthConfig(i int, raw map[string]any) (JWTAuthConfig, error) {
 			return JWTAuthConfig{}, fmt.Errorf("auth[%d].provider must be a string", i)
 		}
 		auth.Provider = provider
+	}
+	if rawCeiling, ok := raw["permission_ceiling"]; ok {
+		ceiling, err := decodeStringSlice(rawCeiling)
+		if err != nil {
+			return JWTAuthConfig{}, fmt.Errorf("auth[%d].permission_ceiling must be a string array", i)
+		}
+		if ceiling == nil {
+			ceiling = []string{}
+		}
+		auth.PermissionCeiling = ceiling
 	}
 	return auth, nil
 }
@@ -471,6 +489,18 @@ func (c *Config) Validate() error {
 			}
 			if auth.Provider != "" && auth.Provider != jwtProviderWorkOS {
 				return fmt.Errorf("auth[%d].provider must be %q when set", i, jwtProviderWorkOS)
+			}
+			if auth.Provider == jwtProviderWorkOS && strings.TrimSpace(auth.Audience) == "" {
+				return fmt.Errorf("auth[%d] provider %q requires audience", i, jwtProviderWorkOS)
+			}
+			if auth.PermissionCeiling != nil && auth.Provider != jwtProviderWorkOS {
+				return fmt.Errorf("auth[%d].permission_ceiling requires provider %q", i, jwtProviderWorkOS)
+			}
+			if auth.PermissionCeiling != nil && len(auth.PermissionCeiling) == 0 {
+				return fmt.Errorf("auth[%d].permission_ceiling must not be empty; omit it for no cap", i)
+			}
+			if err := workos.ValidatePermissionCeiling(auth.PermissionCeiling); err != nil {
+				return fmt.Errorf("auth[%d]: %w", i, err)
 			}
 		case PortalSessionAuthConfig:
 		case RootKeyAuthConfig:

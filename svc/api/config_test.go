@@ -176,14 +176,16 @@ func TestConfig_ValidateAcceptsWorkOSProvider(t *testing.T) {
 			name: "JWKS",
 			auth: JWTAuthConfig{
 				Issuer:   "https://auth.acme.com",
+				Audience: "https://mcp.unkey.com/mcp/v2",
 				JWKSURL:  "https://auth.acme.com/.well-known/jwks.json",
 				Provider: "workos",
 			},
 		},
 		{
-			name: "HS256",
+			name: "dashboard HS256",
 			auth: JWTAuthConfig{
 				Issuer:   "app.unkey.com",
+				Audience: "api.unkey.com",
 				Secrets:  []string{strings.Repeat("a", 32)},
 				Provider: "workos",
 			},
@@ -441,4 +443,152 @@ func TestConfig_ValidateRequiresRestateCredentials(t *testing.T) {
 			require.ErrorContains(t, err, test.wantErr)
 		})
 	}
+}
+
+// TestConfig_ValidateWorkOSAudienceAndCeiling guarantees a WorkOS entry cannot
+// omit its audience, and that a permission ceiling is either absent or a list
+// of real resource#action patterns. The dashboard HS256 entry keeps its
+// audience and has no ceiling.
+func TestConfig_ValidateWorkOSAudienceAndCeiling(t *testing.T) {
+	t.Parallel()
+
+	httpsJWKS := "https://beautiful-day-63-staging.authkit.app/oauth2/jwks"
+	tests := []struct {
+		name    string
+		auth    AuthConfigs
+		wantErr string
+	}{
+		{
+			name: "empty workos audience",
+			auth: AuthConfigs{JWTAuthConfig{
+				Issuer:   "https://beautiful-day-63-staging.authkit.app",
+				Audience: "",
+				JWKSURL:  httpsJWKS,
+				Provider: "workos",
+			}},
+			wantErr: "requires audience",
+		},
+		{
+			name: "empty ceiling",
+			auth: AuthConfigs{JWTAuthConfig{
+				Issuer:            "https://beautiful-day-63-staging.authkit.app",
+				Audience:          "https://mcp.unkey.com/mcp/compute",
+				JWKSURL:           httpsJWKS,
+				Provider:          "workos",
+				PermissionCeiling: []string{},
+			}},
+			wantErr: "must not be empty",
+		},
+		{
+			name: "bad ceiling pattern",
+			auth: AuthConfigs{JWTAuthConfig{
+				Issuer:            "https://beautiful-day-63-staging.authkit.app",
+				Audience:          "https://mcp.unkey.com/mcp/compute",
+				JWKSURL:           httpsJWKS,
+				Provider:          "workos",
+				PermissionCeiling: []string{"nope"},
+			}},
+			wantErr: "permission_ceiling",
+		},
+		{
+			name: "ceiling without workos",
+			auth: AuthConfigs{JWTAuthConfig{
+				Issuer:            "app.unkey.com",
+				Audience:          "api.unkey.com",
+				Secrets:           []string{strings.Repeat("a", 32)},
+				PermissionCeiling: []string{"projects/*#read"},
+			}},
+			wantErr: "permission_ceiling requires provider",
+		},
+		{
+			name: "two audiences and a compute ceiling",
+			auth: AuthConfigs{
+				JWTAuthConfig{
+					Issuer:   "app.unkey.com",
+					Audience: "api.unkey.com",
+					Secrets:  []string{strings.Repeat("a", 32)},
+					Provider: "workos",
+				},
+				JWTAuthConfig{
+					Issuer:   "https://beautiful-day-63-staging.authkit.app",
+					Audience: "https://mcp.unkey.com/mcp/v2",
+					JWKSURL:  httpsJWKS,
+					Provider: "workos",
+				},
+				JWTAuthConfig{
+					Issuer:            "https://beautiful-day-63-staging.authkit.app",
+					Audience:          "https://mcp.unkey.com/mcp/compute",
+					JWKSURL:           httpsJWKS,
+					Provider:          "workos",
+					PermissionCeiling: []string{"projects/*#read"},
+				},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			cfg := &Config{
+				Auth: tt.auth,
+				Restate: RestateConfig{
+					URL:    "https://restate.example.com",
+					APIKey: "restate-test-key",
+				},
+			}
+			err := cfg.Validate()
+			if tt.wantErr == "" {
+				require.NoError(t, err)
+				return
+			}
+			require.ErrorContains(t, err, tt.wantErr)
+		})
+	}
+}
+
+// TestConfig_LoadWorkOSMCPEntries guarantees two WorkOS JWKS entries with
+// distinct audiences, and a Compute ceiling only on the second, load from TOML.
+func TestConfig_LoadWorkOSMCPEntries(t *testing.T) {
+	t.Parallel()
+
+	cfg, err := sharedconfig.LoadBytes[Config]([]byte(`
+redis_url = "redis://redis:6379"
+
+[[auth]]
+type = "jwt"
+provider = "workos"
+issuer = "https://beautiful-day-63-staging.authkit.app"
+jwks_url = "https://beautiful-day-63-staging.authkit.app/oauth2/jwks"
+audience = "https://mcp.unkey.com/mcp/v2"
+
+[[auth]]
+type = "jwt"
+provider = "workos"
+issuer = "https://beautiful-day-63-staging.authkit.app"
+jwks_url = "https://beautiful-day-63-staging.authkit.app/oauth2/jwks"
+audience = "https://mcp.unkey.com/mcp/compute"
+permission_ceiling = ["projects/*#read", "projects/*#write"]
+
+[database]
+primary = "unkey:password@tcp(mysql:3306)/unkey"
+
+[control]
+url = "http://control:7091"
+token = "control-token"
+
+[restate]
+url = "https://restate.example.com"
+api_key = "restate-test-key"
+`))
+	require.NoError(t, err)
+	require.Len(t, cfg.Auth, 2)
+	v2, ok := cfg.Auth[0].(JWTAuthConfig)
+	require.True(t, ok)
+	require.Equal(t, "https://mcp.unkey.com/mcp/v2", v2.Audience)
+	require.Nil(t, v2.PermissionCeiling)
+	compute, ok := cfg.Auth[1].(JWTAuthConfig)
+	require.True(t, ok)
+	require.Equal(t, "https://mcp.unkey.com/mcp/compute", compute.Audience)
+	require.Equal(t, []string{"projects/*#read", "projects/*#write"}, compute.PermissionCeiling)
 }

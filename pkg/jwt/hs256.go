@@ -207,6 +207,10 @@ func (v *HS256Verifier[T]) Verify(token string, at ...time.Time) (T, error) {
 	if err != nil {
 		return claims, fmt.Errorf("invalid payload encoding: %w", err)
 	}
+	payloadJSON, err = normalizeAudience(payloadJSON)
+	if err != nil {
+		return claims, err
+	}
 
 	if err := json.Unmarshal(payloadJSON, &claims); err != nil {
 		return claims, fmt.Errorf("invalid payload JSON: %w", err)

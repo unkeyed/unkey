@@ -406,7 +406,7 @@ func Run(ctx context.Context, cfg Config) error {
 				return fmt.Errorf("unable to create JWT auth resolver from auth[%d]: %w", i, jwtErr)
 			}
 			if authConfig.Provider == jwtProviderWorkOS {
-				jwtResolver = authworkos.NewRoleMappingResolver(jwtResolver)
+				jwtResolver = authworkos.NewRoleMappingResolver(jwtResolver, authConfig.PermissionCeiling)
 			}
 			authResolvers = append(authResolvers, jwtResolver)
 		case PortalSessionAuthConfig:

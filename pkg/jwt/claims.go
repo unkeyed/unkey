@@ -64,8 +64,8 @@ type RegisteredClaims struct {
 	// is typically a service name or URL. A token should only be accepted if the
 	// verifying service is in this list.
 	//
-	// This field serializes as a JSON array. Tokens from libraries that serialize
-	// single audiences as a bare string (without array brackets) will fail to parse.
+	// This field serializes as a JSON array. Verification also accepts a single
+	// audience encoded as a JSON string, which is what WorkOS Connect emits.
 	Audience []string `json:"aud,omitempty"`
 
 	// ExpiresAt is the Unix timestamp (seconds since epoch) after which the JWT
