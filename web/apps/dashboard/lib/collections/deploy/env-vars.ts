@@ -167,48 +167,7 @@ async function listAllVariables(
   return all;
 }
 
-/** Lists the keys already set in the given environments. */
-export async function listExistingKeys(
-  projectId: string,
-  appId: string,
-  environmentIds: string[],
-): Promise<{ key: string; environmentId: string }[]> {
-  const perEnvironment = await Promise.all(
-    environmentIds.map(async (environmentId) => {
-      const variables = await listAllVariables(projectId, appId, environmentId);
-      return variables.map((v) => ({ key: v.key, environmentId }));
-    }),
-  );
-
-  return perEnvironment.flat();
-}
-
-export type VariableInput = {
-  key: string;
-  value: string;
-  kind: EnvVar["type"];
-  description?: string;
-};
-
-/**
- * Upserts variables in one environment. The API writes each entry exactly as
- * sent and merges nothing, so send the kind and the description every time.
- */
-export async function setVariables(
-  projectId: string,
-  appId: string,
-  environmentId: string,
-  variables: VariableInput[],
-): Promise<void> {
-  for (let i = 0; i < variables.length; i += MAX_VARIABLES_PER_REQUEST) {
-    await getUnkeyClient().environments.setEnvironmentVariables({
-      project: projectId,
-      app: appId,
-      environment: environmentId,
-      variables: variables.slice(i, i + MAX_VARIABLES_PER_REQUEST),
-    });
-  }
-}
+export type VariableInput = AddEnvVarsInput["variables"][number];
 
 export async function addVariables(input: AddEnvVarsInput): Promise<AddEnvVarsResult> {
   const result = await trpcClient.deploy.envVar.add.mutate(input);

@@ -1,129 +1,93 @@
 import { collection } from "@/lib/collections";
-import type { EnvVar } from "@/lib/collections/deploy/env-vars";
-import { trpc } from "@/lib/trpc/client";
+import {
+  type EnvVar,
+  envVarErrorToast,
+  makeVariablesSensitive,
+} from "@/lib/collections/deploy/env-vars";
+import { plural } from "@/lib/fmt";
+import { useMutation } from "@tanstack/react-query";
 import { toast } from "@unkey/ui";
-import { useCallback, useRef, useState } from "react";
-import type { DisplayRow } from "../components/list/env-var-item-row";
+import { useState } from "react";
 
-function getRowIds(row: DisplayRow): string[] {
-  return row.kind === "single" ? [row.item.id] : row.items.map((i) => i.id);
-}
-
-export function useRowSelection(displayRows: DisplayRow[], envVars: EnvVar[] | undefined) {
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const lastClickedIndexRef = useRef<number | null>(null);
-
-  const resolveSelection = useCallback(
-    () => (envVars ?? []).filter((item) => selectedIds.has(item.id)),
-    [envVars, selectedIds],
-  );
-
-  const toggleRowSelection = useCallback(
-    (rowIndex: number, shiftKey: boolean) => {
-      setSelectedIds((prev) => {
-        const next = new Set(prev);
-        const row = displayRows[rowIndex];
-        if (!row) {
-          return prev;
-        }
-
-        // Shift+click: select entire range from last clicked row
-        // Normal click: toggle row, deselect if all IDs selected, select otherwise
-        if (shiftKey && lastClickedIndexRef.current !== null) {
-          const start = Math.min(lastClickedIndexRef.current, rowIndex);
-          const end = Math.max(lastClickedIndexRef.current, rowIndex);
-          for (let i = start; i <= end; i++) {
-            const r = displayRows[i];
-            if (r) {
-              for (const id of getRowIds(r)) {
-                next.add(id);
-              }
-            }
-          }
-        } else {
-          const ids = getRowIds(row);
-          const allSelected = ids.every((id) => next.has(id));
-          for (const id of ids) {
-            if (allSelected) {
-              next.delete(id);
-            } else {
-              next.add(id);
-            }
-          }
-        }
-
-        lastClickedIndexRef.current = rowIndex;
-        return next;
-      });
-    },
-    [displayRows],
-  );
-
-  const isRowSelected = useCallback(
-    (row: DisplayRow): boolean | "partial" => {
-      const ids = getRowIds(row);
-      const selectedCount = ids.filter((id) => selectedIds.has(id)).length;
-      if (selectedCount === 0) {
-        return false;
-      }
-      return selectedCount === ids.length ? true : "partial";
-    },
-    [selectedIds],
-  );
-
-  const handleBulkDelete = useCallback(() => {
-    const ids = resolveSelection().map((item) => item.id);
-    if (ids.length === 0) {
-      setSelectedIds(new Set());
-      return;
-    }
-    collection.envVars.delete(ids);
+/** `filterKey` names the visible set. Changing it clears the selection, so no hidden row stays selected. */
+export function useRowSelection(rows: EnvVar[], filterKey: string) {
+  const [selectedIds, setSelectedIds] = useState<ReadonlySet<string>>(new Set());
+  const [anchorId, setAnchorId] = useState<string | null>(null);
+  const [selectionFilterKey, setSelectionFilterKey] = useState(filterKey);
+  if (selectionFilterKey !== filterKey) {
+    setSelectionFilterKey(filterKey);
     setSelectedIds(new Set());
-  }, [resolveSelection]);
+    setAnchorId(null);
+  }
+  const selected = rows.filter((row) => selectedIds.has(row.id));
 
-  const toggleItemSelection = useCallback((itemId: string) => {
+  const clearSelection = () => {
+    setSelectedIds(new Set());
+    setAnchorId(null);
+  };
+
+  const toggleRowSelection = (id: string, shiftKey: boolean) => {
+    const index = rows.findIndex((row) => row.id === id);
+    const anchorIndex = shiftKey ? rows.findIndex((row) => row.id === anchorId) : -1;
+    setAnchorId(id);
     setSelectedIds((prev) => {
       const next = new Set(prev);
-      if (next.has(itemId)) {
-        next.delete(itemId);
-      } else {
-        next.add(itemId);
+      if (index !== -1 && anchorIndex !== -1) {
+        for (const row of rows.slice(
+          Math.min(anchorIndex, index),
+          Math.max(anchorIndex, index) + 1,
+        )) {
+          next.add(row.id);
+        }
+      } else if (!next.delete(id)) {
+        next.add(id);
       }
       return next;
     });
-  }, []);
+  };
 
-  const makeSensitiveMutation = trpc.deploy.envVar.makeSensitive.useMutation();
+  const handleBulkDelete = () => {
+    if (selected.length > 0) {
+      collection.envVars.delete(selected.map((item) => item.id));
+    }
+    clearSelection();
+  };
 
-  const handleBulkMakeSensitive = useCallback(async () => {
-    const recoverable = resolveSelection().filter((item) => item.type === "recoverable");
-    if (recoverable.length === 0) {
-      toast.info("No recoverable variables are selected");
-      setSelectedIds(new Set());
+  const makeSensitive = useMutation({
+    mutationFn: makeVariablesSensitive,
+    onSuccess: (updated) => {
+      toast.success(`Marked ${plural(updated, "variable")} as sensitive`);
+    },
+    onError: (err) => {
+      const { message, description } = envVarErrorToast(
+        err,
+        "Failed to mark variables as sensitive",
+      );
+      toast.error(message, { description });
+    },
+    onSettled: clearSelection,
+  });
+
+  const handleBulkMakeSensitive = () => {
+    if (makeSensitive.isLoading) {
       return;
     }
-    try {
-      const { updated } = await makeSensitiveMutation.mutateAsync({
-        appId: recoverable[0].appId,
-        targets: recoverable.map((v) => ({ environmentId: v.environmentId, key: v.key })),
-      });
-      toast.success(`Marked ${updated} variable${updated === 1 ? "" : "s"} as sensitive`);
-    } catch {
-      toast.error("Failed to mark variables as sensitive");
+    const recoverable = selected.filter((item) => item.type === "recoverable");
+    if (recoverable.length === 0) {
+      toast.info("No recoverable variables are selected");
+      clearSelection();
+      return;
     }
-    await collection.envVars.utils.refetch().catch(() => {});
-    setSelectedIds(new Set());
-  }, [resolveSelection, makeSensitiveMutation.mutateAsync]);
-
-  const clearSelection = useCallback(() => setSelectedIds(new Set()), []);
+    makeSensitive.mutate(recoverable);
+  };
 
   return {
     selectedIds,
+    selectedCount: selected.length,
     toggleRowSelection,
-    toggleItemSelection,
-    isRowSelected,
     handleBulkDelete,
     handleBulkMakeSensitive,
+    isMakingSensitive: makeSensitive.isLoading,
     clearSelection,
   };
 }
