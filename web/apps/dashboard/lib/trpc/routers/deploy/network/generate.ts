@@ -7,7 +7,6 @@ import type {
 import { workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { mapRegionToFlag } from "./utils";
 
 const healthStatusSchema = z.enum(["normal", "unhealthy", "health_syncing", "unknown", "disabled"]);
 
@@ -80,7 +79,6 @@ export const generateDeploymentTree = workspaceProcedure
             direction: input.instanceDirection ?? "horizontal",
             metadata: {
               type: "region",
-              flagCode: mapRegionToFlag(regionId),
               instances: instanceCount,
               health: regionHealth,
             },

@@ -1,5 +1,6 @@
 "use client";
 
+import { RegionFlag } from "@/components/region-flag";
 import { imageRefDisplay } from "@/lib/docker-image-ref";
 import { githubUrl } from "@/lib/github-url";
 import {
@@ -19,7 +20,6 @@ import {
 } from "../../../components/deployment-status-dot";
 import { DottedLink } from "../../../components/dotted-link";
 import { Avatar } from "../../../components/git-avatar";
-import { RegionFlag } from "../../../components/region-flag";
 import { useProductionCard } from "./production-card-context";
 import { STATUS_META } from "./status";
 
@@ -148,7 +148,7 @@ export function ProductionCardMetadata() {
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
             {regions.map((r) => (
               <span key={r.region.id} className="flex items-center gap-1.5 text-sm text-gray-12">
-                <RegionFlag flagCode={r.flagCode} size="xs" shape="circle" />
+                <RegionFlag region={r.region.name} size="xs" shape="circle" />
                 {r.region.name}
               </span>
             ))}

@@ -1,10 +1,9 @@
 "use client";
 
 import { useRuntimeLogsFilters } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/(project)/(deploy-data)/logs/hooks/use-runtime-logs-filters";
-import { RegionFlag } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/region-flag";
 import { FilterCheckbox } from "@/components/logs/checkbox/filter-checkbox";
+import { RegionFlag } from "@/components/region-flag";
 import { trpc } from "@/lib/trpc/client";
-import { mapRegionToFlag } from "@/lib/trpc/routers/deploy/network/utils";
 import { Skeleton } from "@unkey/ui";
 import { useMemo } from "react";
 
@@ -54,12 +53,7 @@ export function RuntimeLogsRegionFilter() {
       selectionMode="multiple"
       renderOptionContent={(option) => (
         <>
-          <RegionFlag
-            flagCode={mapRegionToFlag(option.region)}
-            size="xs"
-            shape="circle"
-            className="[&_img]:size-3"
-          />
+          <RegionFlag region={option.region} size="xs" shape="circle" className="[&_img]:size-3" />
           <span className="text-gray-12 text-xs font-mono">{option.label}</span>
         </>
       )}
