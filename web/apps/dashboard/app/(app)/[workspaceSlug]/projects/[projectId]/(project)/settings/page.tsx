@@ -19,7 +19,7 @@ export default function ProjectSettingsPage() {
     <PageContainer>
       <PageHeader className="max-w-[920px]">
         <PageHeaderContent>
-          <PageHeaderTitle>Project Settings</PageHeaderTitle>
+          <PageHeaderTitle>Project settings</PageHeaderTitle>
         </PageHeaderContent>
       </PageHeader>
       <SettingsGroups>
