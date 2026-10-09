@@ -1,9 +1,129 @@
 import type Stripe from "stripe";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import type * as Claims from "./computeSignupCreditClaims";
+import type {
+  ClaimIdentity,
+  ClaimKey,
+  ComputeSignupCreditClaim,
+} from "./computeSignupCreditClaims";
 
 vi.mock("@/lib/db", () => ({
   db: { query: {} },
 }));
+
+const claimFake = vi.hoisted(() => {
+  type FakeClaimState = {
+    rows: ComputeSignupCreditClaim[];
+    nextPk: number;
+    failStamp: boolean;
+    beforeTakeOver: (() => Promise<void> | void) | null;
+  };
+
+  const fakeClaims: FakeClaimState = {
+    rows: [],
+    nextPk: 1,
+    failStamp: false,
+    beforeTakeOver: null,
+  };
+
+  function resetFakeClaims(): FakeClaimState {
+    fakeClaims.rows = [];
+    fakeClaims.nextPk = 1;
+    fakeClaims.failStamp = false;
+    fakeClaims.beforeTakeOver = null;
+    return fakeClaims;
+  }
+
+  function collides(row: ClaimIdentity, pk?: number): boolean {
+    return fakeClaims.rows.some(
+      (existing) =>
+        existing.pk !== pk &&
+        (existing.workspaceId === row.workspaceId ||
+          existing.cardFingerprint === row.cardFingerprint ||
+          existing.workosUserId === row.workosUserId),
+    );
+  }
+
+  function matchesKey(row: ComputeSignupCreditClaim, claim: ClaimKey): boolean {
+    return (
+      row.attemptId === claim.attemptId &&
+      row.workspaceId === claim.workspaceId &&
+      row.cardFingerprint === claim.cardFingerprint &&
+      row.workosUserId === claim.workosUserId &&
+      row.stripeBalanceTransactionId === null
+    );
+  }
+
+  const fakeClaimFunctions = {
+    findClaimByWorkspace: async (workspaceId) =>
+      fakeClaims.rows.find((row) => row.workspaceId === workspaceId) ?? null,
+
+    findClaimConflicts: async (identity) => ({
+      byWorkspace: fakeClaims.rows.find((row) => row.workspaceId === identity.workspaceId) ?? null,
+      byFingerprint:
+        fakeClaims.rows.find((row) => row.cardFingerprint === identity.cardFingerprint) ?? null,
+      byUser: fakeClaims.rows.find((row) => row.workosUserId === identity.workosUserId) ?? null,
+    }),
+
+    hasClaimForWorkspaceOrUser: async (workspaceId, workosUserId) =>
+      fakeClaims.rows.some(
+        (row) => row.workspaceId === workspaceId || row.workosUserId === workosUserId,
+      ),
+
+    insertClaim: async (row) => {
+      if (collides(row)) {
+        return "duplicate";
+      }
+      fakeClaims.rows.push({
+        ...row,
+        pk: fakeClaims.nextPk++,
+        stripeBalanceTransactionId: row.stripeBalanceTransactionId ?? null,
+      });
+      return "inserted";
+    },
+
+    takeOverClaim: async (seen, next) => {
+      const row = fakeClaims.rows.find((existing) => existing.pk === seen.pk);
+      const stillSeen = () =>
+        row !== undefined &&
+        row.attemptId === seen.attemptId &&
+        row.stripeBalanceTransactionId === null;
+      if (!row || !stillSeen()) {
+        return false;
+      }
+      if (fakeClaims.beforeTakeOver) {
+        const hook = fakeClaims.beforeTakeOver;
+        fakeClaims.beforeTakeOver = null;
+        await hook();
+      }
+      if (!stillSeen() || collides(next, row.pk)) {
+        return false;
+      }
+      Object.assign(row, next);
+      return true;
+    },
+
+    setClaimTransactionId: async (claim, transactionId) => {
+      if (fakeClaims.failStamp) {
+        return false;
+      }
+      const row = fakeClaims.rows.find((existing) => matchesKey(existing, claim));
+      if (!row) {
+        return false;
+      }
+      row.stripeBalanceTransactionId = transactionId;
+      return true;
+    },
+
+    deleteClaimAttempt: async (claim) => {
+      fakeClaims.rows = fakeClaims.rows.filter((row) => !matchesKey(row, claim));
+    },
+  } satisfies typeof Claims;
+
+  return { resetFakeClaims, fakeClaimFunctions };
+});
+
+vi.mock("./computeSignupCreditClaims", () => claimFake.fakeClaimFunctions);
 
 vi.mock("@/lib/env", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/env")>();
@@ -18,7 +138,6 @@ import {
   prepareDeployCheckoutCredit,
 } from "./computeSignupCheckout";
 import { ComputeSignupCreditRetryError } from "./computeSignupCredit";
-import type { ComputeSignupCreditClaim } from "./computeSignupCreditClaims";
 
 const NOW_MS = 1_700_000_000_000;
 
@@ -34,105 +153,6 @@ function claim(overrides: Partial<ComputeSignupCreditClaim> = {}): ComputeSignup
     createdAt: NOW_MS,
     ...overrides,
   };
-}
-
-class MemoryStore {
-  rows: ComputeSignupCreditClaim[] = [];
-  private nextPk = 1;
-
-  async findByWorkspace(workspaceId: string) {
-    return this.rows.find((row) => row.workspaceId === workspaceId) ?? null;
-  }
-
-  async findByFingerprint(fingerprint: string) {
-    return this.rows.find((row) => row.cardFingerprint === fingerprint) ?? null;
-  }
-
-  async findByUser(workosUserId: string) {
-    return this.rows.find((row) => row.workosUserId === workosUserId) ?? null;
-  }
-
-  async existsForWorkspaceOrUser(workspaceId: string, workosUserId: string) {
-    return this.rows.some(
-      (row) => row.workspaceId === workspaceId || row.workosUserId === workosUserId,
-    );
-  }
-
-  async insert(row: {
-    cardFingerprint: string;
-    workspaceId: string;
-    stripeCustomerId: string;
-    workosUserId: string;
-    createdAt: number;
-    attemptId: string;
-  }) {
-    if (
-      this.rows.some(
-        (existing) =>
-          existing.workspaceId === row.workspaceId ||
-          existing.cardFingerprint === row.cardFingerprint ||
-          existing.workosUserId === row.workosUserId,
-      )
-    ) {
-      return "duplicate" as const;
-    }
-    this.rows.push({
-      ...row,
-      pk: this.nextPk,
-      stripeBalanceTransactionId: null,
-    });
-    this.nextPk += 1;
-    return "inserted" as const;
-  }
-
-  async claimAttempt(attempt: {
-    pk: number;
-    seenAttemptId: string;
-    attemptId: string;
-    createdAt: number;
-    workspaceId: string;
-    cardFingerprint: string;
-    workosUserId: string;
-    stripeCustomerId: string;
-  }) {
-    const row = this.rows.find((existing) => existing.pk === attempt.pk);
-    if (!row || row.attemptId !== attempt.seenAttemptId || row.stripeBalanceTransactionId) {
-      return false;
-    }
-    row.attemptId = attempt.attemptId;
-    row.createdAt = attempt.createdAt;
-    row.workspaceId = attempt.workspaceId;
-    row.cardFingerprint = attempt.cardFingerprint;
-    row.workosUserId = attempt.workosUserId;
-    row.stripeCustomerId = attempt.stripeCustomerId;
-    return true;
-  }
-
-  async setTransactionId(input: {
-    workspaceId: string;
-    cardFingerprint: string;
-    workosUserId: string;
-    attemptId: string;
-    transactionId: string;
-  }) {
-    const row = this.rows.find(
-      (existing) =>
-        existing.workspaceId === input.workspaceId &&
-        existing.cardFingerprint === input.cardFingerprint &&
-        existing.workosUserId === input.workosUserId &&
-        existing.attemptId === input.attemptId &&
-        existing.stripeBalanceTransactionId === null,
-    );
-    if (!row) {
-      return 0;
-    }
-    row.stripeBalanceTransactionId = input.transactionId;
-    return 1;
-  }
-
-  async deleteAttempt() {
-    return undefined;
-  }
 }
 
 type Card = {
@@ -268,6 +288,10 @@ const base = {
   nowMs: NOW_MS,
 };
 
+beforeEach(() => {
+  claimFake.resetFakeClaims();
+});
+
 describe("deployCheckoutCustomerId", () => {
   it("reuses the setup session customer instead of a clock customer minted on return", () => {
     expect(
@@ -330,7 +354,7 @@ describe("deployCardSetupSuccessUrl", () => {
 
 describe("prepareDeployCheckoutCredit", () => {
   it("skips the card step when the workspace already claimed the credit", async () => {
-    const store = new MemoryStore();
+    const store = claimFake.resetFakeClaims();
     store.rows.push(
       claim({
         stripeCustomerId: "cus_credited",
@@ -342,7 +366,6 @@ describe("prepareDeployCheckoutCredit", () => {
     const result = await prepareDeployCheckoutCredit(stripe, {
       ...base,
       customerId: "cus_other",
-      store,
     });
 
     expect(result).toEqual({
@@ -368,13 +391,12 @@ describe("prepareDeployCheckoutCredit", () => {
   it("collects a card when the workspace has no customer", async () => {
     const { stripe } = stripeStub();
 
-    await expect(
-      prepareDeployCheckoutCredit(stripe, { ...base, store: new MemoryStore() }),
-    ).resolves.toEqual({ step: "collect_card" });
+    await expect(prepareDeployCheckoutCredit(stripe, { ...base })).resolves.toEqual({
+      step: "collect_card",
+    });
   });
 
   it("grants from an eligible saved card before subscribe", async () => {
-    const store = new MemoryStore();
     const { stripe, creates } = stripeStub({
       defaultPaymentMethodId: "pm_credit",
       cards: [
@@ -396,7 +418,6 @@ describe("prepareDeployCheckoutCredit", () => {
     const result = await prepareDeployCheckoutCredit(stripe, {
       ...base,
       customerId: "cus_1",
-      store,
     });
 
     expect(result.step).toBe("subscribe");
@@ -447,7 +468,6 @@ describe("prepareDeployCheckoutCredit", () => {
     const result = await prepareDeployCheckoutCredit(stripe, {
       ...base,
       customerId: "cus_1",
-      store: new MemoryStore(),
     });
 
     expect(result).toMatchObject({
@@ -461,7 +481,6 @@ describe("prepareDeployCheckoutCredit", () => {
   });
 
   it("grants the returned card, then subscribes on that customer", async () => {
-    const store = new MemoryStore();
     const { stripe, creates } = stripeStub({
       setupSession: setupSession({
         id: "pm_new",
@@ -474,7 +493,6 @@ describe("prepareDeployCheckoutCredit", () => {
     const result = await prepareDeployCheckoutCredit(stripe, {
       ...base,
       setupSessionId: "cs_setup",
-      store,
     });
 
     expect(result).toMatchObject({
@@ -499,7 +517,6 @@ describe("prepareDeployCheckoutCredit", () => {
     const result = await prepareDeployCheckoutCredit(stripe, {
       ...base,
       setupSessionId: "cs_setup",
-      store: new MemoryStore(),
     });
 
     expect(result).toMatchObject({
@@ -512,7 +529,7 @@ describe("prepareDeployCheckoutCredit", () => {
   });
 
   it("subscribes without a second credit when the card fingerprint is already claimed", async () => {
-    const store = new MemoryStore();
+    const store = claimFake.resetFakeClaims();
     store.rows.push(
       claim({
         pk: 7,
@@ -535,7 +552,6 @@ describe("prepareDeployCheckoutCredit", () => {
     const result = await prepareDeployCheckoutCredit(stripe, {
       ...base,
       setupSessionId: "cs_setup",
-      store,
     });
 
     expect(result).toEqual({
@@ -560,7 +576,6 @@ describe("prepareDeployCheckoutCredit", () => {
       ...base,
       customerId: "cus_eur",
       setupSessionId: "cs_setup",
-      store: new MemoryStore(),
     });
 
     expect(result).toMatchObject({
@@ -586,7 +601,6 @@ describe("prepareDeployCheckoutCredit", () => {
       prepareDeployCheckoutCredit(stripe, {
         ...base,
         setupSessionId: "cs_setup",
-        store: new MemoryStore(),
       }),
     ).rejects.toBeInstanceOf(ComputeSignupCheckoutError);
   });
@@ -606,7 +620,6 @@ describe("prepareDeployCheckoutCredit", () => {
         ...base,
         customerId: "cus_clock",
         setupSessionId: "cs_setup",
-        store: new MemoryStore(),
       }),
     ).rejects.toThrow("This card setup session is for a different customer.");
   });
@@ -621,7 +634,6 @@ describe("prepareDeployCheckoutCredit", () => {
         ...base,
         workosUserId: "user_local_admin",
         customerId: "cus_1",
-        store: new MemoryStore(),
       }),
     ).resolves.toEqual({
       step: "subscribe",
@@ -635,7 +647,6 @@ describe("prepareDeployCheckoutCredit", () => {
       prepareDeployCheckoutCredit(stripe, {
         ...base,
         workosUserId: "user_local_admin",
-        store: new MemoryStore(),
       }),
     ).resolves.toEqual({
       step: "subscribe",
@@ -656,7 +667,6 @@ describe("prepareDeployCheckoutCredit", () => {
     const result = await prepareDeployCheckoutCredit(stripe, {
       ...base,
       setupSessionId: "cs_setup",
-      store: new MemoryStore(),
     });
 
     expect(result).toEqual({
@@ -683,7 +693,6 @@ describe("prepareDeployCheckoutCredit", () => {
     const result = await prepareDeployCheckoutCredit(stripe, {
       ...base,
       setupSessionId: "cs_setup",
-      store: new MemoryStore(),
     });
 
     expect(result).toEqual({
@@ -710,7 +719,6 @@ describe("prepareDeployCheckoutCredit", () => {
       prepareDeployCheckoutCredit(stripe, {
         ...base,
         customerId: "cus_1",
-        store: new MemoryStore(),
       }),
     ).rejects.toBeInstanceOf(ComputeSignupCreditRetryError);
   });
@@ -728,7 +736,6 @@ describe("prepareDeployCheckoutCredit", () => {
     const result = await prepareDeployCheckoutCredit(stripe, {
       ...base,
       customerId: "cus_1",
-      store: new MemoryStore(),
     });
 
     expect(result).toMatchObject({

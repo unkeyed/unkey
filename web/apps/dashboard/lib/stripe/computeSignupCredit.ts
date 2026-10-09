@@ -5,9 +5,15 @@ import Stripe from "stripe";
 import { z } from "zod";
 import { COMPUTE_SIGNUP_CREDIT_CENTS } from "./computeSignupCreditAmount";
 import {
+  type ClaimIdentity,
+  type ClaimKey,
   type ComputeSignupCreditClaim,
-  type ComputeSignupCreditClaimStore,
-  drizzleComputeSignupCreditClaimStore,
+  deleteClaimAttempt,
+  findClaimByWorkspace,
+  findClaimConflicts,
+  insertClaim,
+  setClaimTransactionId,
+  takeOverClaim,
 } from "./computeSignupCreditClaims";
 
 export { COMPUTE_SIGNUP_CREDIT_CENTS };
@@ -57,7 +63,6 @@ export type ComputeSignupCreditInput = {
 };
 
 type AttachedDeps = {
-  store?: ComputeSignupCreditClaimStore;
   nowSeconds?: number;
   resolveUserId?: (input: {
     customerId: string;
@@ -229,19 +234,11 @@ export async function resolveSignupWorkspaceId(
 }
 
 type AcquireResult =
-  | { status: "held"; claim: HeldClaim }
+  | { status: "held"; claim: ClaimKey }
   | { status: "fingerprint_used" }
   | { status: "user_used" }
   | { status: "workspace_credited"; transactionId: string }
   | { status: "conflict" };
-
-type HeldClaim = {
-  pk: number;
-  attemptId: string;
-  workspaceId: string;
-  fingerprint: string;
-  workosUserId: string;
-};
 
 function createStoredNothing(error: unknown): boolean {
   if (!(error instanceof Stripe.errors.StripeInvalidRequestError)) {
@@ -256,73 +253,25 @@ function createStoredNothing(error: unknown): boolean {
   );
 }
 
-async function holdAttempt(
-  store: ComputeSignupCreditClaimStore,
-  row: ComputeSignupCreditClaim,
-  workspaceId: string,
-  stripeCustomerId: string,
-  fingerprint: string,
-  workosUserId: string,
-  nowMs: number,
-): Promise<HeldClaim | undefined> {
-  const attemptId = randomUUID();
-  const won = await store.claimAttempt({
-    pk: row.pk,
-    seenAttemptId: row.attemptId,
-    attemptId,
-    createdAt: nowMs,
-    workspaceId,
-    cardFingerprint: fingerprint,
-    workosUserId,
-    stripeCustomerId,
-  });
-  if (!won) {
-    return undefined;
-  }
-  return { pk: row.pk, attemptId, workspaceId, fingerprint, workosUserId };
-}
-
 async function acquireClaim(
-  store: ComputeSignupCreditClaimStore,
-  workspaceId: string,
+  identity: ClaimIdentity,
   customerId: string,
-  fingerprint: string,
-  workosUserId: string,
   nowMs: number,
   creditForCustomer: SignupCreditLookup,
 ): Promise<AcquireResult> {
-  const insertedAttempt = randomUUID();
-  const inserted = await store.insert({
-    cardFingerprint: fingerprint,
-    workspaceId,
+  const { workspaceId, cardFingerprint: fingerprint, workosUserId } = identity;
+  const attemptId = randomUUID();
+  const inserted = await insertClaim({
+    ...identity,
     stripeCustomerId: customerId,
-    workosUserId,
     createdAt: nowMs,
-    attemptId: insertedAttempt,
+    attemptId,
   });
   if (inserted === "inserted") {
-    const row = await store.findByFingerprint(fingerprint);
-    if (!row || row.attemptId !== insertedAttempt || row.workosUserId !== workosUserId) {
-      throw new ComputeSignupCreditRetryError("signup credit claim was lost after insert");
-    }
-    const held = await holdAttempt(
-      store,
-      row,
-      workspaceId,
-      customerId,
-      fingerprint,
-      workosUserId,
-      nowMs,
-    );
-    if (!held) {
-      throw new ComputeSignupCreditRetryError("signup credit claim is in progress");
-    }
-    return { status: "held", claim: held };
+    return { status: "held", claim: { ...identity, attemptId } };
   }
 
-  const byWorkspace = await store.findByWorkspace(workspaceId);
-  const byFingerprint = await store.findByFingerprint(fingerprint);
-  const byUser = await store.findByUser(workosUserId);
+  const { byWorkspace, byFingerprint, byUser } = await findClaimConflicts(identity);
   if (!byWorkspace && !byFingerprint && !byUser) {
     throw new ComputeSignupCreditRetryError("signup credit claim conflicted but no row was found");
   }
@@ -360,41 +309,24 @@ async function acquireClaim(
   if (nowMs - sameCard.createdAt < UNFINISHED_CLAIM_STALE_MS) {
     throw new ComputeSignupCreditRetryError("signup credit claim is in progress");
   }
-  const judgedAttemptId = sameCard.attemptId;
-  const judgedPk = sameCard.pk;
 
   const hidden = await creditForCustomer(sameCard.stripeCustomerId);
-  const current = await store.findByWorkspace(workspaceId);
-  if (!sameTupleAttempt(current, judgedPk, judgedAttemptId, fingerprint, workosUserId, nowMs)) {
+  const current = await findClaimByWorkspace(workspaceId);
+  if (!sameTupleAttempt(current, sameCard, nowMs)) {
     throw new ComputeSignupCreditRetryError("signup credit claim is in progress");
   }
   if (hidden && creditCoversRow(hidden, current)) {
-    const held = await holdAttempt(
-      store,
-      current,
-      workspaceId,
-      current.stripeCustomerId,
-      fingerprint,
-      workosUserId,
-      nowMs,
-    );
-    if (!held) {
-      throw new ComputeSignupCreditRetryError("signup credit claim is in progress");
-    }
-    await recordTransaction(store, held, hidden.id);
+    await recordTransaction({ ...identity, attemptId: current.attemptId }, hidden.id);
     return { status: "workspace_credited", transactionId: hidden.id };
   }
 
-  const held = await holdAttempt(
-    store,
-    current,
-    workspaceId,
-    customerId,
-    fingerprint,
-    workosUserId,
-    nowMs,
-  );
-  if (!held) {
+  const held = { ...identity, attemptId: randomUUID() };
+  const won = await takeOverClaim(current, {
+    ...held,
+    stripeCustomerId: customerId,
+    createdAt: nowMs,
+  });
+  if (!won) {
     throw new ComputeSignupCreditRetryError("signup credit claim is in progress");
   }
   return { status: "held", claim: held };
@@ -402,51 +334,36 @@ async function acquireClaim(
 
 function sameTupleAttempt(
   current: ComputeSignupCreditClaim | null,
-  judgedPk: number,
-  judgedAttemptId: string,
-  fingerprint: string,
-  workosUserId: string,
+  judged: ComputeSignupCreditClaim,
   nowMs: number,
 ): current is ComputeSignupCreditClaim {
   return (
     current !== null &&
-    current.pk === judgedPk &&
-    current.attemptId === judgedAttemptId &&
-    current.cardFingerprint === fingerprint &&
-    current.workosUserId === workosUserId &&
+    current.pk === judged.pk &&
+    current.attemptId === judged.attemptId &&
+    current.cardFingerprint === judged.cardFingerprint &&
+    current.workosUserId === judged.workosUserId &&
     current.stripeBalanceTransactionId === null &&
     nowMs - current.createdAt >= UNFINISHED_CLAIM_STALE_MS
   );
 }
 
-async function recordTransaction(
-  store: ComputeSignupCreditClaimStore,
-  held: HeldClaim,
-  transactionId: string,
-): Promise<void> {
-  const updated = await store.setTransactionId({
-    workspaceId: held.workspaceId,
-    cardFingerprint: held.fingerprint,
-    workosUserId: held.workosUserId,
-    attemptId: held.attemptId,
-    transactionId,
-  });
-  if (updated === 1) {
+async function recordTransaction(held: ClaimKey, transactionId: string): Promise<void> {
+  if (await setClaimTransactionId(held, transactionId)) {
     return;
   }
-  const row = await store.findByWorkspace(held.workspaceId);
+  const row = await findClaimByWorkspace(held.workspaceId);
   if (
     row?.stripeBalanceTransactionId &&
-    row.cardFingerprint === held.fingerprint &&
+    row.cardFingerprint === held.cardFingerprint &&
     row.workosUserId === held.workosUserId &&
-    row.workspaceId === held.workspaceId &&
     row.attemptId === held.attemptId
   ) {
     return;
   }
   console.error("Compute signup credit claim conflict while recording the balance transaction", {
     workspaceId: held.workspaceId,
-    cardFingerprint: held.fingerprint,
+    cardFingerprint: held.cardFingerprint,
     attemptId: held.attemptId,
     transactionId,
   });
@@ -456,7 +373,6 @@ async function recordTransaction(
 }
 
 async function stampListedCredit(
-  store: ComputeSignupCreditClaimStore,
   workspaceId: string,
   customerId: string,
   workosUserId: string,
@@ -468,81 +384,43 @@ async function stampListedCredit(
     return;
   }
   const creditedUser = signupWorkosUserId(credit.metadata?.[USER_METADATA_KEY]) ?? workosUserId;
-  const byWorkspace = await store.findByWorkspace(workspaceId);
-  if (
-    byWorkspace?.stripeBalanceTransactionId &&
-    byWorkspace.cardFingerprint === fingerprint &&
-    byWorkspace.workosUserId === creditedUser
-  ) {
-    return;
-  }
+  const identity = { workspaceId, cardFingerprint: fingerprint, workosUserId: creditedUser };
+  const { byWorkspace, byFingerprint, byUser } = await findClaimConflicts(identity);
   const sameRow =
     byWorkspace?.cardFingerprint === fingerprint && byWorkspace.workosUserId === creditedUser
       ? byWorkspace
       : null;
-  if (sameRow?.stripeBalanceTransactionId) {
+  if (sameRow) {
+    if (sameRow.stripeBalanceTransactionId === null) {
+      await recordTransaction({ ...identity, attemptId: sameRow.attemptId }, credit.id);
+    }
     return;
   }
-  if (!sameRow) {
-    const byFingerprint = await store.findByFingerprint(fingerprint);
-    const byUser = await store.findByUser(creditedUser);
-    if (byWorkspace || byFingerprint || byUser) {
-      console.error("Compute signup credit left unfinished for manual reconcile", {
-        workspaceId,
-        cardFingerprint: fingerprint,
-        workosUserId: creditedUser,
-        existingAttemptId:
-          byWorkspace?.attemptId ?? byFingerprint?.attemptId ?? byUser?.attemptId ?? null,
-      });
-      return;
-    }
-    const attemptId = randomUUID();
-    const inserted = await store.insert({
-      cardFingerprint: fingerprint,
+  if (byWorkspace || byFingerprint || byUser) {
+    console.error("Compute signup credit left unfinished for manual reconcile", {
       workspaceId,
-      stripeCustomerId: customerId,
+      cardFingerprint: fingerprint,
       workosUserId: creditedUser,
-      createdAt: nowMs,
-      attemptId,
+      existingAttemptId:
+        byWorkspace?.attemptId ?? byFingerprint?.attemptId ?? byUser?.attemptId ?? null,
     });
-    if (inserted !== "inserted") {
-      console.error("Compute signup credit left unfinished for manual reconcile", {
-        workspaceId,
-        cardFingerprint: fingerprint,
-        workosUserId: creditedUser,
-      });
-      return;
-    }
-  }
-  const row = sameRow ?? (await store.findByWorkspace(workspaceId));
-  if (
-    !row ||
-    row.stripeBalanceTransactionId !== null ||
-    row.cardFingerprint !== fingerprint ||
-    row.workosUserId !== creditedUser ||
-    row.workspaceId !== workspaceId
-  ) {
     return;
   }
-  const held = await holdAttempt(
-    store,
-    row,
-    workspaceId,
-    row.stripeCustomerId,
-    fingerprint,
-    creditedUser,
-    nowMs,
-  );
-  if (!held) {
-    throw new ComputeSignupCreditRetryError("signup credit claim is in progress");
+  const inserted = await insertClaim({
+    ...identity,
+    stripeCustomerId: customerId,
+    stripeBalanceTransactionId: credit.id,
+    createdAt: nowMs,
+    attemptId: randomUUID(),
+  });
+  if (inserted !== "inserted") {
+    console.error("Compute signup credit left unfinished for manual reconcile", identity);
   }
-  await recordTransaction(store, held, credit.id);
 }
 
 export async function grantComputeSignupCredit(
   stripe: Stripe,
   input: ComputeSignupCreditInput,
-  store: ComputeSignupCreditClaimStore = drizzleComputeSignupCreditClaimStore,
 ): Promise<ComputeSignupCreditResult> {
   const eligibility = signupCardEligibility(input.fingerprint);
   if (!eligibility.eligible) {
@@ -558,7 +436,6 @@ export async function grantComputeSignupCredit(
   const existing = await existingSignupCredit(stripe, input.customerId, identity);
   if (existing) {
     await stampListedCredit(
-      store,
       input.workspaceId,
       input.customerId,
       input.workosUserId,
@@ -569,11 +446,12 @@ export async function grantComputeSignupCredit(
   }
 
   const acquired = await acquireClaim(
-    store,
-    input.workspaceId,
+    {
+      workspaceId: input.workspaceId,
+      cardFingerprint: input.fingerprint,
+      workosUserId: input.workosUserId,
+    },
     input.customerId,
-    input.fingerprint,
-    input.workosUserId,
     input.nowMs,
     (customerId) => existingSignupCredit(stripe, customerId, identity),
   );
@@ -595,12 +473,7 @@ export async function grantComputeSignupCredit(
   const held = acquired.claim;
 
   if (customer.deleted) {
-    await store.deleteAttempt({
-      attemptId: held.attemptId,
-      workspaceId: held.workspaceId,
-      cardFingerprint: held.fingerprint,
-      workosUserId: held.workosUserId,
-    });
+    await deleteClaimAttempt(held);
     return { granted: false, reason: "customer deleted" };
   }
 
@@ -623,33 +496,24 @@ export async function grantComputeSignupCredit(
     );
   } catch (error) {
     if (isIdempotencyError(error)) {
-      const credit = await existingSignupCredit(stripe, input.customerId, {
-        cardFingerprint: held.fingerprint,
-        workosUserId: held.workosUserId,
-      });
-      const heldRow = await store.findByWorkspace(held.workspaceId);
-      if (!credit || !heldRow || !creditCoversRow(credit, heldRow)) {
+      const credit = await existingSignupCredit(stripe, input.customerId, held);
+      if (!credit) {
         // Keep the row. Deleting it would free the unique keys, and after this
         // workspace key expires another customer can be paid a second -$5.
         throw new ComputeSignupCreditRetryError(
           "signup credit create conflicted and no balance transaction exists",
         );
       }
-      await recordTransaction(store, held, credit.id);
+      await recordTransaction(held, credit.id);
       return { granted: false, reason: `already credited (${credit.id})` };
     }
     if (createStoredNothing(error)) {
-      await store.deleteAttempt({
-        attemptId: held.attemptId,
-        workspaceId: held.workspaceId,
-        cardFingerprint: held.fingerprint,
-        workosUserId: held.workosUserId,
-      });
+      await deleteClaimAttempt(held);
     }
     throw error;
   }
 
-  await recordTransaction(store, held, created.id);
+  await recordTransaction(held, created.id);
   return {
     granted: true,
     transactionId: created.id,
@@ -964,15 +828,11 @@ export async function handlePaymentMethodAttached(
     return { granted: false, reason: "signup user not found" };
   }
 
-  return grantComputeSignupCredit(
-    stripe,
-    {
-      workspaceId: workspace.workspaceId,
-      customerId,
-      fingerprint: eligibility.fingerprint,
-      workosUserId,
-      nowMs: nowSeconds * 1000,
-    },
-    deps.store,
-  );
+  return grantComputeSignupCredit(stripe, {
+    workspaceId: workspace.workspaceId,
+    customerId,
+    fingerprint: eligibility.fingerprint,
+    workosUserId,
+    nowMs: nowSeconds * 1000,
+  });
 }

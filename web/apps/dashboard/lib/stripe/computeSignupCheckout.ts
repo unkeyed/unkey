@@ -7,10 +7,7 @@ import {
   signupCardEligibility,
   signupWorkosUserId,
 } from "./computeSignupCredit";
-import {
-  type ComputeSignupCreditClaimStore,
-  drizzleComputeSignupCreditClaimStore,
-} from "./computeSignupCreditClaims";
+import { findClaimByWorkspace } from "./computeSignupCreditClaims";
 import type { DeployPlan } from "./deployPlan";
 
 export class ComputeSignupCheckoutError extends Error {
@@ -196,7 +193,6 @@ function subscribeWithoutCredit(customerId: string | undefined): DeployCheckoutC
 
 async function grantForCard(
   stripe: Stripe,
-  store: ComputeSignupCreditClaimStore,
   input: {
     workspaceId: string;
     customerId: string;
@@ -205,22 +201,17 @@ async function grantForCard(
     card: GrantCard;
   },
 ): Promise<ComputeSignupCreditResult> {
-  return grantComputeSignupCredit(
-    stripe,
-    {
-      workspaceId: input.workspaceId,
-      customerId: input.customerId,
-      fingerprint: input.card.fingerprint,
-      workosUserId: input.workosUserId,
-      nowMs: input.nowMs,
-    },
-    store,
-  );
+  return grantComputeSignupCredit(stripe, {
+    workspaceId: input.workspaceId,
+    customerId: input.customerId,
+    fingerprint: input.card.fingerprint,
+    workosUserId: input.workosUserId,
+    nowMs: input.nowMs,
+  });
 }
 
 async function grantOrContinue(
   stripe: Stripe,
-  store: ComputeSignupCreditClaimStore,
   input: {
     workspaceId: string;
     customerId: string;
@@ -230,7 +221,7 @@ async function grantOrContinue(
   },
 ): Promise<ComputeSignupCreditResult | null> {
   try {
-    return await grantForCard(stripe, store, input);
+    return await grantForCard(stripe, input);
   } catch (error) {
     if (error instanceof ComputeSignupCreditRetryError) {
       throw error;
@@ -252,12 +243,10 @@ export async function prepareDeployCheckoutCredit(
     customerId?: string;
     setupSessionId?: string;
     nowMs: number;
-    store?: ComputeSignupCreditClaimStore;
   },
 ): Promise<DeployCheckoutCredit> {
   const payer = signupWorkosUserId(input.workosUserId);
-  const store = input.store ?? drizzleComputeSignupCreditClaimStore;
-  const claim = await store.findByWorkspace(input.workspaceId);
+  const claim = await findClaimByWorkspace(input.workspaceId);
   if (claim?.stripeBalanceTransactionId) {
     return {
       step: "subscribe",
@@ -290,7 +279,7 @@ export async function prepareDeployCheckoutCredit(
     if (!intentPayer || intentPayer !== payer) {
       return subscribeWithoutCredit(setup.customerId);
     }
-    const credit = await grantOrContinue(stripe, store, {
+    const credit = await grantOrContinue(stripe, {
       workspaceId: input.workspaceId,
       customerId: setup.customerId,
       workosUserId: intentPayer,
@@ -314,7 +303,7 @@ export async function prepareDeployCheckoutCredit(
   }
   // The balance is customer-level, so when setup is skipped the paying card
   // may differ from the graded card. James accepts this.
-  const credit = await grantOrContinue(stripe, store, {
+  const credit = await grantOrContinue(stripe, {
     workspaceId: input.workspaceId,
     customerId: input.customerId,
     workosUserId: payer,

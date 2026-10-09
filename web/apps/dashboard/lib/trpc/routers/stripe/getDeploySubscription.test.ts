@@ -15,7 +15,7 @@ type Query = (opts: {
 
 const state = vi.hoisted(() => ({
   query: null as Query | null,
-  existsForWorkspaceOrUser: vi.fn(),
+  hasClaimForWorkspaceOrUser: vi.fn(),
   logOperation: vi.fn(),
 }));
 
@@ -24,9 +24,7 @@ vi.mock("@/lib/logging", () => ({
 }));
 
 vi.mock("@/lib/stripe/computeSignupCreditClaims", () => ({
-  drizzleComputeSignupCreditClaimStore: {
-    existsForWorkspaceOrUser: state.existsForWorkspaceOrUser,
-  },
+  hasClaimForWorkspaceOrUser: state.hasClaimForWorkspaceOrUser,
 }));
 
 vi.mock("../../trpc", () => ({
@@ -60,40 +58,40 @@ describe("getDeploySubscription", () => {
   });
 
   it("returns signupCreditClaimed true when this workspace already has a claim", async () => {
-    state.existsForWorkspaceOrUser.mockResolvedValue(true);
+    state.hasClaimForWorkspaceOrUser.mockResolvedValue(true);
 
     await expect(run("pro", "ws_claimed", "user_other")).resolves.toEqual({
       plan: "pro",
       signupCreditClaimed: true,
     });
-    expect(state.existsForWorkspaceOrUser).toHaveBeenCalledWith("ws_claimed", "user_other");
+    expect(state.hasClaimForWorkspaceOrUser).toHaveBeenCalledWith("ws_claimed", "user_other");
     expect(state.logOperation).not.toHaveBeenCalled();
     expect(getDeploySubscription).toBe(state.query);
   });
 
   it("returns signupCreditClaimed true when this user claimed on another workspace", async () => {
-    state.existsForWorkspaceOrUser.mockResolvedValue(true);
+    state.hasClaimForWorkspaceOrUser.mockResolvedValue(true);
 
     await expect(run("pro", "ws_new", "user_claimed")).resolves.toEqual({
       plan: "pro",
       signupCreditClaimed: true,
     });
-    expect(state.existsForWorkspaceOrUser).toHaveBeenCalledWith("ws_new", "user_claimed");
+    expect(state.hasClaimForWorkspaceOrUser).toHaveBeenCalledWith("ws_new", "user_claimed");
   });
 
   it("returns signupCreditClaimed false for a user and workspace with no claim", async () => {
-    state.existsForWorkspaceOrUser.mockResolvedValue(false);
+    state.hasClaimForWorkspaceOrUser.mockResolvedValue(false);
 
     await expect(run("starter", "ws_new", "user_new")).resolves.toEqual({
       plan: "starter",
       signupCreditClaimed: false,
     });
-    expect(state.existsForWorkspaceOrUser).toHaveBeenCalledWith("ws_new", "user_new");
+    expect(state.hasClaimForWorkspaceOrUser).toHaveBeenCalledWith("ws_new", "user_new");
     expect(state.logOperation).not.toHaveBeenCalled();
   });
 
   it("returns the plan with signupCreditClaimed false when the claim read throws", async () => {
-    state.existsForWorkspaceOrUser.mockRejectedValue(new Error("primary unavailable"));
+    state.hasClaimForWorkspaceOrUser.mockRejectedValue(new Error("primary unavailable"));
 
     await expect(run("business")).resolves.toEqual({
       plan: "business",

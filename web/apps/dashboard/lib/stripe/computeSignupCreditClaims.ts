@@ -1,241 +1,125 @@
-import { and, db, eq, isDuplicateKeyError, isNull, or, schema } from "@/lib/db";
+import { and, db, eq, isDuplicateKeyError, isNull, or, primaryDb } from "@/lib/db";
+import { computeSignupCreditClaims as claims } from "@unkey/db/src/schema";
 
-export type ComputeSignupCreditClaim = {
-  pk: number;
-  cardFingerprint: string;
-  workspaceId: string;
-  stripeCustomerId: string;
-  stripeBalanceTransactionId: string | null;
-  workosUserId: string;
-  attemptId: string;
-  createdAt: number;
-};
+export type ComputeSignupCreditClaim = typeof claims.$inferSelect;
 
-export type ClaimAttempt = {
-  pk: number;
-  seenAttemptId: string;
+export type ClaimKey = {
   attemptId: string;
-  createdAt: number;
   workspaceId: string;
   cardFingerprint: string;
   workosUserId: string;
-  stripeCustomerId: string;
 };
 
-export type ComputeSignupCreditClaimStore = {
-  findByWorkspace(workspaceId: string): Promise<ComputeSignupCreditClaim | null>;
-  findByFingerprint(fingerprint: string): Promise<ComputeSignupCreditClaim | null>;
-  findByUser(workosUserId: string): Promise<ComputeSignupCreditClaim | null>;
-  existsForWorkspaceOrUser(workspaceId: string, workosUserId: string): Promise<boolean>;
-  insert(row: {
-    cardFingerprint: string;
-    workspaceId: string;
-    stripeCustomerId: string;
-    workosUserId: string;
-    createdAt: number;
-    attemptId: string;
-  }): Promise<"inserted" | "duplicate">;
-  claimAttempt(attempt: ClaimAttempt): Promise<boolean>;
-  setTransactionId(input: {
-    workspaceId: string;
-    cardFingerprint: string;
-    workosUserId: string;
-    attemptId: string;
-    transactionId: string;
-  }): Promise<number>;
-  deleteAttempt(claim: {
-    attemptId: string;
-    workspaceId: string;
-    cardFingerprint: string;
-    workosUserId: string;
-  }): Promise<void>;
+export type ClaimIdentity = Omit<ClaimKey, "attemptId">;
+
+export type ClaimConflicts = {
+  byWorkspace: ComputeSignupCreditClaim | null;
+  byFingerprint: ComputeSignupCreditClaim | null;
+  byUser: ComputeSignupCreditClaim | null;
 };
 
-function primary(): typeof db {
-  if ("$primary" in db) {
-    return db.$primary as typeof db;
-  }
-  return db;
+function matchesKey(claim: ClaimKey) {
+  return and(
+    eq(claims.attemptId, claim.attemptId),
+    eq(claims.workspaceId, claim.workspaceId),
+    eq(claims.cardFingerprint, claim.cardFingerprint),
+    eq(claims.workosUserId, claim.workosUserId),
+    isNull(claims.stripeBalanceTransactionId),
+  );
 }
 
-function toClaim(
-  row: typeof schema.computeSignupCreditClaims.$inferSelect,
-): ComputeSignupCreditClaim {
+// Claim reads feed compare-and-swap on attempt_id right after writes, so they must not hit a lagging replica.
+export async function findClaimByWorkspace(
+  workspaceId: string,
+): Promise<ComputeSignupCreditClaim | null> {
+  const rows = await primaryDb
+    .select()
+    .from(claims)
+    .where(eq(claims.workspaceId, workspaceId))
+    .limit(1);
+  return rows[0] ?? null;
+}
+
+export async function findClaimConflicts(identity: ClaimIdentity): Promise<ClaimConflicts> {
+  const rows = await primaryDb
+    .select()
+    .from(claims)
+    .where(
+      or(
+        eq(claims.workspaceId, identity.workspaceId),
+        eq(claims.cardFingerprint, identity.cardFingerprint),
+        eq(claims.workosUserId, identity.workosUserId),
+      ),
+    )
+    .limit(3);
   return {
-    pk: row.pk,
-    cardFingerprint: row.cardFingerprint,
-    workspaceId: row.workspaceId,
-    stripeCustomerId: row.stripeCustomerId,
-    stripeBalanceTransactionId: row.stripeBalanceTransactionId,
-    workosUserId: row.workosUserId,
-    attemptId: row.attemptId,
-    createdAt: row.createdAt,
+    byWorkspace: rows.find((row) => row.workspaceId === identity.workspaceId) ?? null,
+    byFingerprint: rows.find((row) => row.cardFingerprint === identity.cardFingerprint) ?? null,
+    byUser: rows.find((row) => row.workosUserId === identity.workosUserId) ?? null,
   };
 }
 
-function affectedRows(result: unknown): number {
-  if (
-    Array.isArray(result) &&
-    result[0] &&
-    typeof result[0] === "object" &&
-    "affectedRows" in result[0]
-  ) {
-    const rows = result[0].affectedRows;
-    return typeof rows === "number" ? rows : 0;
-  }
-  if (result && typeof result === "object" && "affectedRows" in result) {
-    const rows = result.affectedRows;
-    return typeof rows === "number" ? rows : 0;
-  }
-  return 0;
+export async function hasClaimForWorkspaceOrUser(
+  workspaceId: string,
+  workosUserId: string,
+): Promise<boolean> {
+  const rows = await db
+    .select({ pk: claims.pk })
+    .from(claims)
+    .where(or(eq(claims.workspaceId, workspaceId), eq(claims.workosUserId, workosUserId)))
+    .limit(1);
+  return rows.length > 0;
 }
 
-export const drizzleComputeSignupCreditClaimStore: ComputeSignupCreditClaimStore = {
-  async findByWorkspace(workspaceId) {
-    const claim = schema.computeSignupCreditClaims;
-    const rows = await primary()
-      .select({
-        pk: claim.pk,
-        cardFingerprint: claim.cardFingerprint,
-        workspaceId: claim.workspaceId,
-        stripeCustomerId: claim.stripeCustomerId,
-        stripeBalanceTransactionId: claim.stripeBalanceTransactionId,
-        workosUserId: claim.workosUserId,
-        attemptId: claim.attemptId,
-        createdAt: claim.createdAt,
-      })
-      .from(claim)
-      .where(eq(claim.workspaceId, workspaceId))
-      .limit(1);
-    const row = rows[0];
-    return row ? toClaim(row) : null;
-  },
-
-  // One read. workspace_id and workos_user_id are each unique, so either match is the claim.
-  async existsForWorkspaceOrUser(workspaceId, workosUserId) {
-    const claim = schema.computeSignupCreditClaims;
-    const rows = await primary()
-      .select({ pk: claim.pk })
-      .from(claim)
-      .where(or(eq(claim.workspaceId, workspaceId), eq(claim.workosUserId, workosUserId)))
-      .limit(1);
-    return rows.length > 0;
-  },
-
-  async findByFingerprint(fingerprint) {
-    const claim = schema.computeSignupCreditClaims;
-    const rows = await primary()
-      .select({
-        pk: claim.pk,
-        cardFingerprint: claim.cardFingerprint,
-        workspaceId: claim.workspaceId,
-        stripeCustomerId: claim.stripeCustomerId,
-        stripeBalanceTransactionId: claim.stripeBalanceTransactionId,
-        workosUserId: claim.workosUserId,
-        attemptId: claim.attemptId,
-        createdAt: claim.createdAt,
-      })
-      .from(claim)
-      .where(eq(claim.cardFingerprint, fingerprint))
-      .limit(1);
-    const row = rows[0];
-    return row ? toClaim(row) : null;
-  },
-
-  async findByUser(workosUserId) {
-    const claim = schema.computeSignupCreditClaims;
-    const rows = await primary()
-      .select({
-        pk: claim.pk,
-        cardFingerprint: claim.cardFingerprint,
-        workspaceId: claim.workspaceId,
-        stripeCustomerId: claim.stripeCustomerId,
-        stripeBalanceTransactionId: claim.stripeBalanceTransactionId,
-        workosUserId: claim.workosUserId,
-        attemptId: claim.attemptId,
-        createdAt: claim.createdAt,
-      })
-      .from(claim)
-      .where(eq(claim.workosUserId, workosUserId))
-      .limit(1);
-    const row = rows[0];
-    return row ? toClaim(row) : null;
-  },
-
-  async insert(row) {
-    try {
-      await primary().insert(schema.computeSignupCreditClaims).values({
-        cardFingerprint: row.cardFingerprint,
-        workspaceId: row.workspaceId,
-        stripeCustomerId: row.stripeCustomerId,
-        workosUserId: row.workosUserId,
-        createdAt: row.createdAt,
-        attemptId: row.attemptId,
-      });
-      return "inserted";
-    } catch (error) {
-      if (isDuplicateKeyError(error)) {
-        return "duplicate";
-      }
-      throw error;
+export async function insertClaim(
+  row: Omit<typeof claims.$inferInsert, "pk">,
+): Promise<"inserted" | "duplicate"> {
+  try {
+    await db.insert(claims).values(row);
+    return "inserted";
+  } catch (error) {
+    if (isDuplicateKeyError(error)) {
+      return "duplicate";
     }
-  },
+    throw error;
+  }
+}
 
-  async claimAttempt(attempt) {
-    try {
-      const result = await primary()
-        .update(schema.computeSignupCreditClaims)
-        .set({
-          attemptId: attempt.attemptId,
-          createdAt: attempt.createdAt,
-          workspaceId: attempt.workspaceId,
-          cardFingerprint: attempt.cardFingerprint,
-          workosUserId: attempt.workosUserId,
-          stripeCustomerId: attempt.stripeCustomerId,
-        })
-        .where(
-          and(
-            eq(schema.computeSignupCreditClaims.pk, attempt.pk),
-            eq(schema.computeSignupCreditClaims.attemptId, attempt.seenAttemptId),
-            isNull(schema.computeSignupCreditClaims.stripeBalanceTransactionId),
-          ),
-        );
-      return affectedRows(result) === 1;
-    } catch (error) {
-      if (isDuplicateKeyError(error)) {
-        return false;
-      }
-      throw error;
-    }
-  },
-
-  async setTransactionId(input) {
-    const result = await primary()
-      .update(schema.computeSignupCreditClaims)
-      .set({ stripeBalanceTransactionId: input.transactionId })
+export async function takeOverClaim(
+  seen: Pick<ComputeSignupCreditClaim, "pk" | "attemptId">,
+  next: ClaimKey & { stripeCustomerId: string; createdAt: number },
+): Promise<boolean> {
+  try {
+    const result = await db
+      .update(claims)
+      .set(next)
       .where(
         and(
-          eq(schema.computeSignupCreditClaims.workspaceId, input.workspaceId),
-          eq(schema.computeSignupCreditClaims.cardFingerprint, input.cardFingerprint),
-          eq(schema.computeSignupCreditClaims.workosUserId, input.workosUserId),
-          eq(schema.computeSignupCreditClaims.attemptId, input.attemptId),
-          isNull(schema.computeSignupCreditClaims.stripeBalanceTransactionId),
+          eq(claims.pk, seen.pk),
+          eq(claims.attemptId, seen.attemptId),
+          isNull(claims.stripeBalanceTransactionId),
         ),
       );
-    return affectedRows(result);
-  },
+    return result[0].affectedRows === 1;
+  } catch (error) {
+    if (isDuplicateKeyError(error)) {
+      return false;
+    }
+    throw error;
+  }
+}
 
-  async deleteAttempt(claim) {
-    await primary()
-      .delete(schema.computeSignupCreditClaims)
-      .where(
-        and(
-          eq(schema.computeSignupCreditClaims.attemptId, claim.attemptId),
-          eq(schema.computeSignupCreditClaims.workspaceId, claim.workspaceId),
-          eq(schema.computeSignupCreditClaims.cardFingerprint, claim.cardFingerprint),
-          eq(schema.computeSignupCreditClaims.workosUserId, claim.workosUserId),
-          isNull(schema.computeSignupCreditClaims.stripeBalanceTransactionId),
-        ),
-      );
-  },
-};
+export async function setClaimTransactionId(
+  claim: ClaimKey,
+  transactionId: string,
+): Promise<boolean> {
+  const result = await db
+    .update(claims)
+    .set({ stripeBalanceTransactionId: transactionId })
+    .where(matchesKey(claim));
+  return result[0].affectedRows === 1;
+}
+
+export async function deleteClaimAttempt(claim: ClaimKey): Promise<void> {
+  await db.delete(claims).where(matchesKey(claim));
+}

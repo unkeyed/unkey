@@ -1,5 +1,11 @@
 import Stripe from "stripe";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type * as Claims from "./computeSignupCreditClaims";
+import type {
+  ClaimIdentity,
+  ClaimKey,
+  ComputeSignupCreditClaim,
+} from "./computeSignupCreditClaims";
 
 const mocks = vi.hoisted(() => ({
   billingFindFirst: vi.fn(),
@@ -16,6 +22,120 @@ vi.mock("@/lib/db", () => ({
   },
 }));
 
+const claimFake = vi.hoisted(() => {
+  type FakeClaimState = {
+    rows: ComputeSignupCreditClaim[];
+    nextPk: number;
+    failStamp: boolean;
+    beforeTakeOver: (() => Promise<void> | void) | null;
+  };
+
+  const fakeClaims: FakeClaimState = {
+    rows: [],
+    nextPk: 1,
+    failStamp: false,
+    beforeTakeOver: null,
+  };
+
+  function resetFakeClaims(): FakeClaimState {
+    fakeClaims.rows = [];
+    fakeClaims.nextPk = 1;
+    fakeClaims.failStamp = false;
+    fakeClaims.beforeTakeOver = null;
+    return fakeClaims;
+  }
+
+  function collides(row: ClaimIdentity, pk?: number): boolean {
+    return fakeClaims.rows.some(
+      (existing) =>
+        existing.pk !== pk &&
+        (existing.workspaceId === row.workspaceId ||
+          existing.cardFingerprint === row.cardFingerprint ||
+          existing.workosUserId === row.workosUserId),
+    );
+  }
+
+  function matchesKey(row: ComputeSignupCreditClaim, claim: ClaimKey): boolean {
+    return (
+      row.attemptId === claim.attemptId &&
+      row.workspaceId === claim.workspaceId &&
+      row.cardFingerprint === claim.cardFingerprint &&
+      row.workosUserId === claim.workosUserId &&
+      row.stripeBalanceTransactionId === null
+    );
+  }
+
+  const fakeClaimFunctions = {
+    findClaimByWorkspace: async (workspaceId) =>
+      fakeClaims.rows.find((row) => row.workspaceId === workspaceId) ?? null,
+
+    findClaimConflicts: async (identity) => ({
+      byWorkspace: fakeClaims.rows.find((row) => row.workspaceId === identity.workspaceId) ?? null,
+      byFingerprint:
+        fakeClaims.rows.find((row) => row.cardFingerprint === identity.cardFingerprint) ?? null,
+      byUser: fakeClaims.rows.find((row) => row.workosUserId === identity.workosUserId) ?? null,
+    }),
+
+    hasClaimForWorkspaceOrUser: async (workspaceId, workosUserId) =>
+      fakeClaims.rows.some(
+        (row) => row.workspaceId === workspaceId || row.workosUserId === workosUserId,
+      ),
+
+    insertClaim: async (row) => {
+      if (collides(row)) {
+        return "duplicate";
+      }
+      fakeClaims.rows.push({
+        ...row,
+        pk: fakeClaims.nextPk++,
+        stripeBalanceTransactionId: row.stripeBalanceTransactionId ?? null,
+      });
+      return "inserted";
+    },
+
+    takeOverClaim: async (seen, next) => {
+      const row = fakeClaims.rows.find((existing) => existing.pk === seen.pk);
+      const stillSeen = () =>
+        row !== undefined &&
+        row.attemptId === seen.attemptId &&
+        row.stripeBalanceTransactionId === null;
+      if (!row || !stillSeen()) {
+        return false;
+      }
+      if (fakeClaims.beforeTakeOver) {
+        const hook = fakeClaims.beforeTakeOver;
+        fakeClaims.beforeTakeOver = null;
+        await hook();
+      }
+      if (!stillSeen() || collides(next, row.pk)) {
+        return false;
+      }
+      Object.assign(row, next);
+      return true;
+    },
+
+    setClaimTransactionId: async (claim, transactionId) => {
+      if (fakeClaims.failStamp) {
+        return false;
+      }
+      const row = fakeClaims.rows.find((existing) => matchesKey(existing, claim));
+      if (!row) {
+        return false;
+      }
+      row.stripeBalanceTransactionId = transactionId;
+      return true;
+    },
+
+    deleteClaimAttempt: async (claim) => {
+      fakeClaims.rows = fakeClaims.rows.filter((row) => !matchesKey(row, claim));
+    },
+  } satisfies typeof Claims;
+
+  return { resetFakeClaims, fakeClaimFunctions };
+});
+
+vi.mock("./computeSignupCreditClaims", () => claimFake.fakeClaimFunctions);
+
 vi.mock("@/lib/env", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/env")>();
   return { ...actual, stripeEnv: mocks.stripeEnv };
@@ -31,7 +151,6 @@ import {
   resolveSignupWorkosUserId,
   signupCardEligibility,
 } from "./computeSignupCredit";
-import type { ComputeSignupCreditClaim } from "./computeSignupCreditClaims";
 
 const NOW_SECONDS = 1_700_000_000;
 const NOW_MS = NOW_SECONDS * 1000;
@@ -92,147 +211,6 @@ type StoredPaymentMethod = {
     wallet: { type: string } | null;
   } | null;
 };
-
-class MemoryClaimStore {
-  rows: ComputeSignupCreditClaim[] = [];
-  failStamp = false;
-  beforeClaim: (() => Promise<void> | void) | null = null;
-  private nextPk = 1;
-
-  async findByWorkspace(workspaceId: string) {
-    return this.rows.find((row) => row.workspaceId === workspaceId) ?? null;
-  }
-
-  async findByFingerprint(fingerprint: string) {
-    return this.rows.find((row) => row.cardFingerprint === fingerprint) ?? null;
-  }
-
-  async findByUser(workosUserId: string) {
-    return this.rows.find((row) => row.workosUserId === workosUserId) ?? null;
-  }
-
-  async existsForWorkspaceOrUser(workspaceId: string, workosUserId: string) {
-    return this.rows.some(
-      (row) => row.workspaceId === workspaceId || row.workosUserId === workosUserId,
-    );
-  }
-
-  async insert(row: {
-    cardFingerprint: string;
-    workspaceId: string;
-    stripeCustomerId: string;
-    workosUserId: string;
-    createdAt: number;
-    attemptId: string;
-  }) {
-    if (
-      this.rows.some(
-        (existing) =>
-          existing.workspaceId === row.workspaceId ||
-          existing.cardFingerprint === row.cardFingerprint ||
-          existing.workosUserId === row.workosUserId,
-      )
-    ) {
-      return "duplicate" as const;
-    }
-    this.rows.push({
-      ...row,
-      pk: this.nextPk++,
-      stripeBalanceTransactionId: null,
-    });
-    return "inserted" as const;
-  }
-
-  async claimAttempt(attempt: {
-    pk: number;
-    seenAttemptId: string;
-    attemptId: string;
-    createdAt: number;
-    workspaceId: string;
-    cardFingerprint: string;
-    workosUserId: string;
-    stripeCustomerId: string;
-  }) {
-    const row = this.rows.find((existing) => existing.pk === attempt.pk);
-    if (
-      !row ||
-      row.attemptId !== attempt.seenAttemptId ||
-      row.stripeBalanceTransactionId !== null
-    ) {
-      return false;
-    }
-    if (this.beforeClaim) {
-      const hook = this.beforeClaim;
-      this.beforeClaim = null;
-      await hook();
-    }
-    if (row.attemptId !== attempt.seenAttemptId || row.stripeBalanceTransactionId !== null) {
-      return false;
-    }
-    const workspaceTaken = this.rows.some(
-      (existing) => existing.pk !== row.pk && existing.workspaceId === attempt.workspaceId,
-    );
-    const fingerprintTaken = this.rows.some(
-      (existing) => existing.pk !== row.pk && existing.cardFingerprint === attempt.cardFingerprint,
-    );
-    const userTaken = this.rows.some(
-      (existing) => existing.pk !== row.pk && existing.workosUserId === attempt.workosUserId,
-    );
-    if (workspaceTaken || fingerprintTaken || userTaken) {
-      return false;
-    }
-    row.attemptId = attempt.attemptId;
-    row.createdAt = attempt.createdAt;
-    row.workspaceId = attempt.workspaceId;
-    row.cardFingerprint = attempt.cardFingerprint;
-    row.workosUserId = attempt.workosUserId;
-    row.stripeCustomerId = attempt.stripeCustomerId;
-    return true;
-  }
-
-  async setTransactionId(input: {
-    workspaceId: string;
-    cardFingerprint: string;
-    workosUserId: string;
-    attemptId: string;
-    transactionId: string;
-  }) {
-    if (this.failStamp) {
-      return 0;
-    }
-    const row = this.rows.find(
-      (existing) =>
-        existing.workspaceId === input.workspaceId &&
-        existing.cardFingerprint === input.cardFingerprint &&
-        existing.workosUserId === input.workosUserId &&
-        existing.attemptId === input.attemptId &&
-        existing.stripeBalanceTransactionId === null,
-    );
-    if (!row) {
-      return 0;
-    }
-    row.stripeBalanceTransactionId = input.transactionId;
-    return 1;
-  }
-
-  async deleteAttempt(claim: {
-    attemptId: string;
-    workspaceId: string;
-    cardFingerprint: string;
-    workosUserId: string;
-  }) {
-    this.rows = this.rows.filter(
-      (row) =>
-        !(
-          row.attemptId === claim.attemptId &&
-          row.workspaceId === claim.workspaceId &&
-          row.cardFingerprint === claim.cardFingerprint &&
-          row.workosUserId === claim.workosUserId &&
-          row.stripeBalanceTransactionId === null
-        ),
-    );
-  }
-}
 
 class FakeStripe {
   transactions: StoredTransaction[] = [];
@@ -426,8 +404,12 @@ function input(overrides: Partial<ComputeSignupCreditInput> = {}): ComputeSignup
 function ready() {
   const fake = new FakeStripe();
   fake.addCustomer("cus_test");
-  return { fake, store: new MemoryClaimStore(), stripe: fake.client() };
+  return { fake, store: claimFake.resetFakeClaims(), stripe: fake.client() };
 }
+
+beforeEach(() => {
+  claimFake.resetFakeClaims();
+});
 
 describe("signupCardEligibility", () => {
   it("accepts a card fingerprint", () => {
@@ -453,7 +435,7 @@ describe("grantComputeSignupCredit", () => {
   it("credits the customer balance by $5 with a workspace idempotency key", async () => {
     const { fake, store, stripe } = ready();
 
-    const result = await grantComputeSignupCredit(stripe, input(), store);
+    const result = await grantComputeSignupCredit(stripe, input());
 
     expect(result).toEqual({
       granted: true,
@@ -485,8 +467,8 @@ describe("grantComputeSignupCredit", () => {
   it("does not credit again when the same webhook is delivered twice", async () => {
     const { fake, store, stripe } = ready();
 
-    const first = await grantComputeSignupCredit(stripe, input(), store);
-    const second = await grantComputeSignupCredit(stripe, input(), store);
+    const first = await grantComputeSignupCredit(stripe, input());
+    const second = await grantComputeSignupCredit(stripe, input());
 
     expect(first).toMatchObject({ granted: true, transactionId: "cbtxn_1" });
     expect(second).toEqual({
@@ -498,9 +480,9 @@ describe("grantComputeSignupCredit", () => {
   });
 
   it("refuses a card fingerprint that already credited another workspace", async () => {
-    const { fake, store, stripe } = ready();
+    const { fake, stripe } = ready();
     fake.addCustomer("cus_b");
-    await grantComputeSignupCredit(stripe, input(), store);
+    await grantComputeSignupCredit(stripe, input());
 
     const result = await grantComputeSignupCredit(
       stripe,
@@ -509,7 +491,6 @@ describe("grantComputeSignupCredit", () => {
         customerId: "cus_b",
         workosUserId: "user_999",
       }),
-      store,
     );
 
     expect(result).toEqual({
@@ -522,7 +503,7 @@ describe("grantComputeSignupCredit", () => {
   it("does not credit a second workspace of the same user with a new card", async () => {
     const { fake, store, stripe } = ready();
     fake.addCustomer("cus_b");
-    await grantComputeSignupCredit(stripe, input(), store);
+    await grantComputeSignupCredit(stripe, input());
 
     const result = await grantComputeSignupCredit(
       stripe,
@@ -531,7 +512,6 @@ describe("grantComputeSignupCredit", () => {
         customerId: "cus_b",
         fingerprint: "fpOTHER999",
       }),
-      store,
     );
 
     expect(result).toEqual({
@@ -545,12 +525,11 @@ describe("grantComputeSignupCredit", () => {
   it("does not credit a second workspace of the same user with the same card", async () => {
     const { fake, store, stripe } = ready();
     fake.addCustomer("cus_b");
-    await grantComputeSignupCredit(stripe, input(), store);
+    await grantComputeSignupCredit(stripe, input());
 
     const result = await grantComputeSignupCredit(
       stripe,
       input({ workspaceId: "ws_b", customerId: "cus_b" }),
-      store,
     );
 
     expect(result).toEqual({
@@ -587,7 +566,7 @@ describe("grantComputeSignupCredit", () => {
       },
     });
 
-    const result = await grantComputeSignupCredit(stripe, input(), store);
+    const result = await grantComputeSignupCredit(stripe, input());
 
     expect(result).toEqual({
       granted: false,
@@ -616,7 +595,7 @@ describe("grantComputeSignupCredit", () => {
       });
     };
 
-    await expect(grantComputeSignupCredit(stripe, input(), store)).rejects.toBeInstanceOf(
+    await expect(grantComputeSignupCredit(stripe, input())).rejects.toBeInstanceOf(
       ComputeSignupCreditRetryError,
     );
     expect(store.rows).toHaveLength(1);
@@ -624,7 +603,7 @@ describe("grantComputeSignupCredit", () => {
 
     fake.addCustomer("cus_b");
     await expect(
-      grantComputeSignupCredit(stripe, input({ customerId: "cus_b" }), store),
+      grantComputeSignupCredit(stripe, input({ customerId: "cus_b" })),
     ).rejects.toBeInstanceOf(ComputeSignupCreditRetryError);
     expect(fake.transactions).toHaveLength(0);
     expect(store.rows).toHaveLength(1);
@@ -641,7 +620,7 @@ describe("grantComputeSignupCredit", () => {
       });
     };
 
-    await expect(grantComputeSignupCredit(stripe, input(), store)).rejects.toBeInstanceOf(
+    await expect(grantComputeSignupCredit(stripe, input())).rejects.toBeInstanceOf(
       Stripe.errors.StripeAPIError,
     );
     expect(store.rows).toHaveLength(1);
@@ -658,7 +637,7 @@ describe("grantComputeSignupCredit", () => {
       });
     };
 
-    await expect(grantComputeSignupCredit(stripe, input(), store)).rejects.toBeInstanceOf(
+    await expect(grantComputeSignupCredit(stripe, input())).rejects.toBeInstanceOf(
       Stripe.errors.StripeInvalidRequestError,
     );
     expect(store.rows).toHaveLength(0);
@@ -669,7 +648,7 @@ describe("grantComputeSignupCredit", () => {
     store.failStamp = true;
     const errorLog = vi.spyOn(console, "error").mockImplementation(() => undefined);
 
-    await expect(grantComputeSignupCredit(stripe, input(), store)).rejects.toBeInstanceOf(
+    await expect(grantComputeSignupCredit(stripe, input())).rejects.toBeInstanceOf(
       ComputeSignupCreditRetryError,
     );
     expect(fake.transactions).toHaveLength(1);
@@ -699,7 +678,7 @@ describe("grantComputeSignupCredit", () => {
       },
     });
 
-    const result = await grantComputeSignupCredit(stripe, input(), store);
+    const result = await grantComputeSignupCredit(stripe, input());
 
     expect(result).toEqual({
       granted: false,
@@ -762,7 +741,7 @@ describe("grantComputeSignupCredit", () => {
       createdAt: NOW_MS - 2 * HOUR_MS,
     });
 
-    const result = await grantComputeSignupCredit(stripe, input(), store);
+    const result = await grantComputeSignupCredit(stripe, input());
 
     expect(result).toEqual({
       granted: false,
@@ -779,24 +758,20 @@ describe("grantComputeSignupCredit", () => {
   });
 
   it("does not resume a fresh attempt, then credits once the attempt is stale", async () => {
-    const { fake, store, stripe } = ready();
+    const { fake, stripe } = ready();
     fake.onCreate = () => {
       throw new Error("crash before stripe accepts the balance transaction");
     };
 
-    await expect(grantComputeSignupCredit(stripe, input(), store)).rejects.toThrow(
+    await expect(grantComputeSignupCredit(stripe, input())).rejects.toThrow(
       "crash before stripe accepts the balance transaction",
     );
-    await expect(grantComputeSignupCredit(stripe, input(), store)).rejects.toBeInstanceOf(
+    await expect(grantComputeSignupCredit(stripe, input())).rejects.toBeInstanceOf(
       ComputeSignupCreditRetryError,
     );
     expect(fake.creates).toHaveLength(0);
 
-    const retry = await grantComputeSignupCredit(
-      stripe,
-      input({ nowMs: NOW_MS + 2 * HOUR_MS }),
-      store,
-    );
+    const retry = await grantComputeSignupCredit(stripe, input({ nowMs: NOW_MS + 2 * HOUR_MS }));
     expect(retry).toMatchObject({ granted: true, transactionId: "cbtxn_1" });
     expect(fake.creates).toHaveLength(1);
   });
@@ -828,7 +803,7 @@ describe("grantComputeSignupCredit", () => {
     ];
     store.rows.push(...rows);
 
-    const result = await grantComputeSignupCredit(stripe, input(), store);
+    const result = await grantComputeSignupCredit(stripe, input());
 
     expect(result).toEqual({
       granted: false,
@@ -867,7 +842,6 @@ describe("grantComputeSignupCredit", () => {
         workosUserId: "user_taker",
         nowMs: NOW_MS + 72 * HOUR_MS,
       }),
-      store,
     );
 
     expect(result).toEqual({
@@ -897,7 +871,7 @@ describe("grantComputeSignupCredit", () => {
       createdAt: NOW_MS - 2 * HOUR_MS,
     });
 
-    const result = await grantComputeSignupCredit(stripe, input(), store);
+    const result = await grantComputeSignupCredit(stripe, input());
 
     expect(result).toMatchObject({ granted: true, transactionId: "cbtxn_1" });
     expect(store.rows[0]).toMatchObject({
@@ -931,7 +905,7 @@ describe("grantComputeSignupCredit", () => {
       row.createdAt = NOW_MS;
     };
 
-    await expect(grantComputeSignupCredit(stripe, input(), store)).rejects.toBeInstanceOf(
+    await expect(grantComputeSignupCredit(stripe, input())).rejects.toBeInstanceOf(
       ComputeSignupCreditRetryError,
     );
     expect(fake.transactions).toHaveLength(0);
@@ -957,12 +931,12 @@ describe("grantComputeSignupCredit", () => {
       attemptId: "attempt-seen",
       createdAt: NOW_MS - 2 * HOUR_MS,
     });
-    store.beforeClaim = async () => {
-      const other = await grantComputeSignupCredit(stripe, input(), store);
+    store.beforeTakeOver = async () => {
+      const other = await grantComputeSignupCredit(stripe, input());
       expect(other).toMatchObject({ granted: true });
     };
 
-    await expect(grantComputeSignupCredit(stripe, input(), store)).rejects.toBeInstanceOf(
+    await expect(grantComputeSignupCredit(stripe, input())).rejects.toBeInstanceOf(
       ComputeSignupCreditRetryError,
     );
     expect(fake.transactions).toHaveLength(1);
@@ -972,7 +946,9 @@ describe("grantComputeSignupCredit", () => {
     const { fake, store, stripe } = ready();
     fake.addCustomer("cus_b");
     fake.addCustomer("cus_c");
-    store.beforeClaim = async () => {
+    let raced = false;
+    fake.onCreate = async () => {
+      raced = true;
       await expect(
         grantComputeSignupCredit(
           stripe,
@@ -981,7 +957,6 @@ describe("grantComputeSignupCredit", () => {
             customerId: "cus_c",
             fingerprint: "fpOTHER999",
           }),
-          store,
         ),
       ).resolves.toEqual({
         granted: false,
@@ -996,9 +971,9 @@ describe("grantComputeSignupCredit", () => {
         customerId: "cus_b",
         fingerprint: "fpNEW999",
       }),
-      store,
     );
 
+    expect(raced).toBe(true);
     expect(result).toMatchObject({ granted: true });
     expect(fake.transactions).toHaveLength(1);
     expect(store.rows).toHaveLength(1);
@@ -1015,7 +990,7 @@ describe("grantComputeSignupCredit", () => {
       }
     };
 
-    await expect(grantComputeSignupCredit(stripe, input(), store)).rejects.toBeInstanceOf(
+    await expect(grantComputeSignupCredit(stripe, input())).rejects.toBeInstanceOf(
       ComputeSignupCreditRetryError,
     );
     expect(fake.transactions).toHaveLength(1);
@@ -1026,7 +1001,7 @@ describe("grantComputeSignupCredit", () => {
     const { fake, store, stripe } = ready();
     fake.addCustomer("cus_eur", {}, NOW_SECONDS - 10, "eur");
 
-    const result = await grantComputeSignupCredit(stripe, input({ customerId: "cus_eur" }), store);
+    const result = await grantComputeSignupCredit(stripe, input({ customerId: "cus_eur" }));
 
     expect(result).toMatchObject({ granted: true, amountCents: 500 });
     expect(fake.creates).toEqual([expect.objectContaining({ amount: -500, currency: "usd" })]);
@@ -1043,7 +1018,7 @@ describe("grantComputeSignupCredit", () => {
       });
     };
 
-    await expect(grantComputeSignupCredit(stripe, input(), store)).rejects.toBeInstanceOf(
+    await expect(grantComputeSignupCredit(stripe, input())).rejects.toBeInstanceOf(
       Stripe.errors.StripeInvalidRequestError,
     );
     expect(store.rows).toHaveLength(0);
@@ -1057,7 +1032,6 @@ describe("grantComputeSignupCredit", () => {
         fingerprint: "fpOTHER999",
         nowMs: NOW_MS + 72 * HOUR_MS,
       }),
-      store,
     );
 
     expect(other).toMatchObject({ granted: true });
@@ -1076,7 +1050,7 @@ describe("grantComputeSignupCredit", () => {
     fake.onCreate = async () => {
       const attemptId = store.rows[0]?.attemptId;
       await expect(
-        grantComputeSignupCredit(stripe, input({ customerId: "cus_eur" }), store),
+        grantComputeSignupCredit(stripe, input({ customerId: "cus_eur" })),
       ).rejects.toBeInstanceOf(ComputeSignupCreditRetryError);
       expect(store.rows).toEqual([
         expect.objectContaining({
@@ -1087,7 +1061,7 @@ describe("grantComputeSignupCredit", () => {
       expect(fake.transactions).toHaveLength(0);
     };
 
-    const created = await grantComputeSignupCredit(stripe, input(), store);
+    const created = await grantComputeSignupCredit(stripe, input());
 
     expect(created).toMatchObject({ granted: true, transactionId: "cbtxn_1", amountCents: 500 });
     expect(fake.transactions).toEqual([
@@ -1108,7 +1082,6 @@ describe("grantComputeSignupCredit", () => {
         customerId: "cus_b",
         nowMs: NOW_MS + 72 * HOUR_MS,
       }),
-      store,
     );
 
     expect(later).toEqual({ granted: false, reason: "already credited (cbtxn_1)" });
@@ -1131,7 +1104,7 @@ describe("grantComputeSignupCredit", () => {
     });
 
     await expect(
-      grantComputeSignupCredit(stripe, input({ customerId: "cus_eur" }), store),
+      grantComputeSignupCredit(stripe, input({ customerId: "cus_eur" })),
     ).rejects.toBeInstanceOf(ComputeSignupCreditRetryError);
     expect(fake.creates).toHaveLength(0);
     expect(store.rows).toEqual([
@@ -1148,7 +1121,6 @@ describe("grantComputeSignupCredit", () => {
         customerId: "cus_usd",
         nowMs: NOW_MS + 2 * HOUR_MS,
       }),
-      store,
     );
 
     expect(resumed).toMatchObject({ granted: true, transactionId: "cbtxn_1" });
@@ -1185,7 +1157,7 @@ describe("grantComputeSignupCredit", () => {
     });
 
     await expect(
-      grantComputeSignupCredit(stripe, input({ customerId: "cus_eur" }), store),
+      grantComputeSignupCredit(stripe, input({ customerId: "cus_eur" })),
     ).rejects.toBeInstanceOf(ComputeSignupCreditRetryError);
     expect(fake.creates).toHaveLength(0);
     expect(store.rows).toEqual([
@@ -1202,7 +1174,6 @@ describe("grantComputeSignupCredit", () => {
         customerId: "cus_usd",
         nowMs: NOW_MS + 2 * HOUR_MS,
       }),
-      store,
     );
 
     expect(resumed).toEqual({ granted: false, reason: "already credited (cbtxn_landed)" });
@@ -1222,7 +1193,6 @@ describe("grantComputeSignupCredit", () => {
         fingerprint: "fpOTHER999",
         nowMs: NOW_MS + 72 * HOUR_MS,
       }),
-      store,
     );
 
     expect(later).toEqual({ granted: false, reason: "workos user already credited" });
@@ -1244,7 +1214,7 @@ describe("grantComputeSignupCredit", () => {
       createdAt: NOW_MS,
     });
 
-    const result = await grantComputeSignupCredit(stripe, input({ customerId: "cus_eur" }), store);
+    const result = await grantComputeSignupCredit(stripe, input({ customerId: "cus_eur" }));
 
     expect(result).toEqual({ granted: false, reason: "already credited (cbtxn_done)" });
     expect(store.rows).toEqual([
@@ -1280,7 +1250,7 @@ describe("handlePaymentMethodAttached", () => {
         wallet: card.wallet ?? null,
       },
     });
-    const store = new MemoryClaimStore();
+    const store = claimFake.resetFakeClaims();
     mocks.stripeEnv.mockReturnValue({ STRIPE_SECRET_KEY: "sk_test" });
     mocks.billingFindFirst.mockResolvedValue({
       workspaceId: "ws_123",
@@ -1301,21 +1271,21 @@ describe("handlePaymentMethodAttached", () => {
         object: "payment_method",
         ...(customer !== undefined ? { customer } : {}),
       },
-      { store: setup.store, nowSeconds: NOW_SECONDS, resolveUserId },
+      { nowSeconds: NOW_SECONDS, resolveUserId },
     );
   }
 
   it("credits a prepaid card and a wallet card", async () => {
     const prepaid = attached({ fingerprint: "fpPrepaid", funding: "prepaid" });
+    await expect(handle(prepaid)).resolves.toMatchObject({ granted: true, amountCents: 500 });
+    expect(prepaid.fake.creates[0]).toMatchObject({ amount: -500, currency: "usd" });
+
     const wallet = attached({
       fingerprint: "fpWallet",
       funding: "credit",
       wallet: { type: "apple_pay" },
     });
-
-    await expect(handle(prepaid)).resolves.toMatchObject({ granted: true, amountCents: 500 });
     await expect(handle(wallet)).resolves.toMatchObject({ granted: true, amountCents: 500 });
-    expect(prepaid.fake.creates[0]).toMatchObject({ amount: -500, currency: "usd" });
     expect(wallet.fake.creates[0]).toMatchObject({ amount: -500, currency: "usd" });
   });
 
@@ -1610,7 +1580,7 @@ describe("resolveSignupWorkosUserId", () => {
   });
 
   it("grants a later subscription card after a card with no fingerprint", async () => {
-    const { fake, store, stripe } = ready();
+    const { fake, stripe } = ready();
     fake.paymentMethods.set("pm_blank", {
       id: "pm_blank",
       object: "payment_method",
@@ -1633,7 +1603,7 @@ describe("resolveSignupWorkosUserId", () => {
     const refused = await handlePaymentMethodAttached(
       stripe,
       { id: "pm_blank", object: "payment_method" },
-      { store, nowSeconds: NOW_SECONDS },
+      { nowSeconds: NOW_SECONDS },
     );
     expect(refused).toEqual({ granted: false, reason: "card has no fingerprint" });
     expect(fake.creates).toHaveLength(0);
@@ -1664,7 +1634,7 @@ describe("resolveSignupWorkosUserId", () => {
       handlePaymentMethodAttached(
         stripe,
         { id: "pm_checkout", object: "payment_method" },
-        { store, nowSeconds: NOW_SECONDS + 30 },
+        { nowSeconds: NOW_SECONDS + 30 },
       ),
     ).rejects.toBeInstanceOf(ComputeSignupCreditRetryError);
     expect(fake.creates).toHaveLength(0);
@@ -1682,7 +1652,7 @@ describe("resolveSignupWorkosUserId", () => {
     const granted = await handlePaymentMethodAttached(
       stripe,
       { id: "pm_checkout", object: "payment_method" },
-      { store, nowSeconds: NOW_SECONDS + 40 },
+      { nowSeconds: NOW_SECONDS + 40 },
     );
     expect(granted).toMatchObject({
       granted: true,
