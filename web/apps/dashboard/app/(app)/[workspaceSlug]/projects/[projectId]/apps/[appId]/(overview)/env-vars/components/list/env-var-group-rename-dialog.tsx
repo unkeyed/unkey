@@ -2,7 +2,7 @@
 
 import type { ActionComponentProps } from "@/components/logs/table-action.popover";
 import { collection } from "@/lib/collections";
-import { trackSave } from "@/lib/collections/deploy/environment-settings";
+import { trackSave } from "@/lib/collections/deploy/pending-redeploy";
 import { envVarKeySchema } from "@/lib/schemas/env-var";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";

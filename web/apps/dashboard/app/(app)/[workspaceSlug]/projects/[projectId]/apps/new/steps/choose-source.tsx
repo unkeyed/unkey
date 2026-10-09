@@ -78,10 +78,11 @@ export const ChooseSourceStep = ({
           const regionNames = regions
             .filter((region) => region.canSchedule)
             .map((region) => region.name);
-          await Promise.all(
-            appEnvironments.map((environment) =>
-              applyDefaultSettings(projectId, appId, environment.id, regionNames),
-            ),
+          await applyDefaultSettings(
+            projectId,
+            appId,
+            appEnvironments.map((environment) => environment.id),
+            regionNames,
           );
         } catch (error) {
           toast.error("Failed to initialize settings", {
