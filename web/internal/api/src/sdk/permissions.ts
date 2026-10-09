@@ -12,6 +12,7 @@ import { permissionsListPermissions } from "../funcs/permissionsListPermissions.
 import { permissionsListRoles } from "../funcs/permissionsListRoles.js";
 import { permissionsSetRolePermissions } from "../funcs/permissionsSetRolePermissions.js";
 import { permissionsUpdatePermission } from "../funcs/permissionsUpdatePermission.js";
+import { permissionsUpdateRole } from "../funcs/permissionsUpdateRole.js";
 import { ClientSDK, RequestOptions } from "../lib/sdks.js";
 import * as components from "../models/components/index.js";
 import * as operations from "../models/operations/index.js";
@@ -266,6 +267,34 @@ export class Permissions extends ClientSDK {
     options?: RequestOptions,
   ): Promise<components.V2PermissionsUpdatePermissionResponseBody> {
     return unwrapAsync(permissionsUpdatePermission(
+      this,
+      request,
+      options,
+    ));
+  }
+
+  /**
+   * Update role
+   *
+   * @remarks
+   * Update the name or description of a role, identified by its ID or name.
+   *
+   * Omitted fields keep their current values. A request with no fields to update returns the stored role without a write.
+   *
+   * This endpoint does not change the role's permissions or keys. Use `permissions.setRolePermissions`, `keys.addRoles`, and `keys.removeRoles` for those.
+   *
+   * **Important**: Keys keep the role after a rename. Requests that name the role, such as `keys.addRoles`, must use the new name. Key verification can return the old name for a short time while caches refresh. A name that another role in your workspace already uses returns 409.
+   *
+   * **Required Permissions**
+   *
+   * Your root key must have the following permission:
+   * - `unkey:v1:<workspace_id>:projects/<project_id>/rbac/roles/<role_id>#write`
+   */
+  async updateRole(
+    request: components.V2PermissionsUpdateRoleRequestBody,
+    options?: RequestOptions,
+  ): Promise<components.V2PermissionsUpdateRoleResponseBody> {
+    return unwrapAsync(permissionsUpdateRole(
       this,
       request,
       options,

@@ -5837,6 +5837,55 @@ type V2PermissionsUpdatePermissionResponseBody struct {
 	Meta Meta `json:"meta"`
 }
 
+// V2PermissionsUpdateRoleRequestBody defines model for V2PermissionsUpdateRoleRequestBody.
+type V2PermissionsUpdateRoleRequestBody struct {
+	// Description New description for the role.
+	// Omit this field to keep the current description. Send null or an empty string to remove it.
+	//
+	//
+	// Example: Read-only access for customer support
+	Description nullable.Nullable[string] `json:"description,omitempty"`
+
+	// Name New name for the role. The name must be unique in your workspace.
+	// Omit this field to keep the current name.
+	//
+	//
+	// Example: support.readonly
+	Name *string `json:"name,omitempty"`
+
+	// Role The role to update. Pass the role ID (`role_...`) or its current name.
+	//
+	//
+	// Example: role_1234567890abcdef
+	Role string `json:"role"`
+}
+
+// V2PermissionsUpdateRoleResponseBody defines model for V2PermissionsUpdateRoleResponseBody.
+type V2PermissionsUpdateRoleResponseBody struct {
+	Data V2PermissionsUpdateRoleResponseData `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// V2PermissionsUpdateRoleResponseData defines model for V2PermissionsUpdateRoleResponseData.
+type V2PermissionsUpdateRoleResponseData struct {
+	// Description The description of the role after the update. Omitted when the role has no description.
+	//
+	// Example: Read-only access for customer support
+	Description string `json:"description,omitempty"`
+
+	// Id The ID of the updated role.
+	//
+	// Example: role_1234567890abcdef
+	Id string `json:"id"`
+
+	// Name The name of the role after the update.
+	//
+	// Example: support.readonly
+	Name string `json:"name"`
+}
+
 // V2PortalCreatePortalRequestBody defines model for V2PortalCreatePortalRequestBody.
 type V2PortalCreatePortalRequestBody struct {
 	// AppId The id of the app this portal serves keys for. Must belong to your workspace.
@@ -7651,6 +7700,9 @@ type PermissionsSetRolePermissionsJSONRequestBody = V2PermissionsSetRolePermissi
 
 // PermissionsUpdatePermissionJSONRequestBody defines body for PermissionsUpdatePermission for application/json ContentType.
 type PermissionsUpdatePermissionJSONRequestBody = V2PermissionsUpdatePermissionRequestBody
+
+// PermissionsUpdateRoleJSONRequestBody defines body for PermissionsUpdateRole for application/json ContentType.
+type PermissionsUpdateRoleJSONRequestBody = V2PermissionsUpdateRoleRequestBody
 
 // PortalCreatePortalJSONRequestBody defines body for PortalCreatePortal for application/json ContentType.
 type PortalCreatePortalJSONRequestBody = V2PortalCreatePortalRequestBody
