@@ -1,5 +1,6 @@
+// @vitest-environment node
 import type { TRPCError } from "@trpc/server";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 type Context = {
   workspace: { id: string; slug: string };
@@ -7,11 +8,13 @@ type Context = {
   audit: { location: string; userAgent: string };
 };
 
-type RegisterInput = {
-  state: string;
-  installationId?: number;
-  code?: string;
-};
+type RegisterInput =
+  | {
+      state: string;
+      installationId?: number;
+      code?: string;
+    }
+  | { relayTransaction: string; handoff: string };
 
 type RegisterResult =
   | { status: "authorization_required"; authorizationUrl: string }
@@ -29,7 +32,9 @@ type RegisterResolver = (opts: {
   input: RegisterInput;
 }) => Promise<RegisterResult>;
 
-type PrepareWorkspaceResolver = (opts: { ctx: Context }) => Promise<{ state: string }>;
+type PrepareWorkspaceResolver = (opts: { ctx: Context }) => Promise<{
+  state: string;
+}>;
 
 type InstallationRow = {
   pk: number;
@@ -49,6 +54,7 @@ const state = vi.hoisted(() => ({
   checkedInstallationIds: [] as number[],
   canAccessInstallation: true,
   exchangeError: null as Error | null,
+  transactionError: false,
 }));
 
 vi.mock("@/lib/db", () => {
@@ -58,7 +64,10 @@ vi.mock("@/lib/db", () => {
     installationId: "installationId",
   } as const;
 
-  const eq = (column: InstallationColumn, value: unknown): Predicate => ({ column, value });
+  const eq = (column: InstallationColumn, value: unknown): Predicate => ({
+    column,
+    value,
+  });
   const and = (...predicates: Predicate[]): Predicate => ({ predicates });
   const matches = (row: InstallationRow, predicate: Predicate): boolean =>
     "predicates" in predicate
@@ -93,9 +102,15 @@ vi.mock("@/lib/db", () => {
         },
       },
       transaction: async <T>(fn: (tx: unknown) => Promise<T>): Promise<T> => {
+        if (state.transactionError) {
+          throw new Error("database unavailable");
+        }
         const tx = {
           insert: () => ({
-            values: (binding: { workspaceId: string; installationId: number }) => ({
+            values: (binding: {
+              workspaceId: string;
+              installationId: number;
+            }) => ({
               onDuplicateKeyUpdate: async () => {
                 state.inserted.push({
                   workspaceId: binding.workspaceId,
@@ -113,6 +128,15 @@ vi.mock("@/lib/db", () => {
 
 vi.mock("@/lib/audit", () => ({
   insertAuditLogs: async () => undefined,
+}));
+
+const browserCookies = vi.hoisted(() => new Map<string, string>());
+vi.mock("next/headers", () => ({
+  cookies: async () => ({
+    get: (name: string) =>
+      browserCookies.has(name) ? { value: browserCookies.get(name) } : undefined,
+    set: (name: string, value: string) => browserCookies.set(name, value),
+  }),
 }));
 
 vi.mock("@/lib/env", () => ({
@@ -192,7 +216,20 @@ function registerInstallation(input: RegisterInput): Promise<RegisterResult> {
 }
 
 describe("registerInstallation", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+  });
   beforeEach(() => {
+    vi.stubEnv("DASHBOARD_BASE_URL", "https://dashboard.example.com");
+    vi.stubEnv("NEXT_PUBLIC_GITHUB_APP_NAME", "test-app");
+    vi.stubEnv("GITHUB_INSTALL_RELAY_URL", "");
+    vi.stubEnv("GITHUB_INSTALL_RELAY_TOKEN", "");
+    vi.stubEnv("GITHUB_INSTALL_RELAY_ADMIN_TOKEN", "");
+    state.transactionError = false;
+    browserCookies.clear();
     state.rows = [{ pk: 1, workspaceId: "ws_source", installationId: 42 }];
     state.inserted = [];
     state.exchangedCodes = [];
@@ -231,13 +268,17 @@ describe("registerInstallation", () => {
     expect(authorizationUrl.origin).toBe("https://github.com");
     expect(authorizationUrl.pathname).toBe("/login/oauth/authorize");
     expect(authorizationUrl.searchParams.get("client_id")).toBe("github-client-id");
+    expect(authorizationUrl.searchParams.has("redirect_uri")).toBe(false);
 
     const refreshedState = authorizationUrl.searchParams.get("state");
     if (!refreshedState) {
       throw new Error("Authorization URL did not include state");
     }
 
-    await registerInstallation({ state: refreshedState, code: "fresh-oauth-code" });
+    await registerInstallation({
+      state: refreshedState,
+      code: "fresh-oauth-code",
+    });
 
     expect(state.checkedInstallationIds).toEqual([42]);
     expect(state.inserted).toEqual([{ workspaceId: "ws_destination", installationId: 42 }]);
@@ -247,7 +288,10 @@ describe("registerInstallation", () => {
     state.rows = [{ pk: 1, workspaceId: "ws_destination", installationId: 42 }];
     const signedState = await prepareWorkspaceState();
 
-    await registerInstallation({ state: signedState.state, installationId: 42 });
+    await registerInstallation({
+      state: signedState.state,
+      installationId: 42,
+    });
 
     expect(state.exchangedCodes).toEqual([]);
     expect(state.checkedInstallationIds).toEqual([]);
@@ -290,7 +334,9 @@ describe("registerInstallation", () => {
 
     await expect(
       registerInstallation({ state: forgedState, code: "oauth-code" }),
-    ).rejects.toMatchObject({ code: "BAD_REQUEST" } satisfies Partial<TRPCError>);
+    ).rejects.toMatchObject({
+      code: "BAD_REQUEST",
+    } satisfies Partial<TRPCError>);
     expect(state.exchangedCodes).toEqual([]);
     expect(state.inserted).toEqual([]);
   });
@@ -317,7 +363,9 @@ describe("registerInstallation", () => {
         installationId: 99,
         code: "oauth-code",
       }),
-    ).rejects.toMatchObject({ code: "BAD_REQUEST" } satisfies Partial<TRPCError>);
+    ).rejects.toMatchObject({
+      code: "BAD_REQUEST",
+    } satisfies Partial<TRPCError>);
     expect(state.exchangedCodes).toEqual([]);
     expect(state.inserted).toEqual([]);
   });
@@ -334,11 +382,101 @@ describe("registerInstallation", () => {
           installationId: 42,
           code: "fake-code",
         }),
-      ).rejects.toMatchObject({ code: "BAD_REQUEST" } satisfies Partial<TRPCError>);
+      ).rejects.toMatchObject({
+        code: "BAD_REQUEST",
+      } satisfies Partial<TRPCError>);
     } finally {
       consoleError.mockRestore();
     }
     expect(state.checkedInstallationIds).toEqual([]);
+    expect(state.inserted).toEqual([]);
+  });
+
+  it.each(["malformed", "tampered", "user", "workspace", "expired"])(
+    "rejects %s state before OAuth or writes",
+    async (scenario) => {
+      vi.useFakeTimers();
+      const signed = await prepareWorkspaceState();
+      let raw = signed.state;
+      if (scenario === "malformed") {
+        raw = "not-json";
+      }
+      if (scenario === "tampered") {
+        raw = raw.replace("ws_destination", "ws_attacker");
+      }
+      if (scenario === "expired") {
+        vi.advanceTimersByTime(15 * 60 * 1000);
+      }
+      const ctx = {
+        ...context,
+        user: { id: scenario === "user" ? "other-user" : context.user.id },
+        workspace: {
+          ...context.workspace,
+          id: scenario === "workspace" ? "other-workspace" : context.workspace.id,
+        },
+      };
+      const resolver = state.inputMutationResolvers[1];
+      if (!resolver) {
+        throw new Error("Missing resolver");
+      }
+      await expect(
+        resolver({
+          ctx,
+          input: { state: raw, installationId: 42, code: "code" },
+        }),
+      ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+      expect(state.exchangedCodes).toEqual([]);
+      expect(state.inserted).toEqual([]);
+    },
+  );
+
+  it("retries a verified relay handoff after a database failure, then clears the browser binding", async () => {
+    const signed = await prepareWorkspaceState();
+    const transaction = "t".repeat(43);
+    const cookie = `__Host-github-install-${transaction}`;
+    browserCookies.set(cookie, "b".repeat(43));
+    vi.stubEnv("GITHUB_INSTALL_RELAY_URL", "https://relay.example.com");
+    vi.stubEnv("GITHUB_INSTALL_RELAY_TOKEN", "r".repeat(43));
+    const fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        state: signed.state,
+        installationId: 42,
+        origin: "https://dashboard.example.com",
+      }),
+    });
+    vi.stubGlobal("fetch", fetch);
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+    state.transactionError = true;
+    const input = { relayTransaction: transaction, handoff: "h".repeat(43) };
+    await expect(registerInstallation(input)).rejects.toMatchObject({
+      code: "INTERNAL_SERVER_ERROR",
+    });
+    expect(browserCookies.get(cookie)).toBe("b".repeat(43));
+    state.transactionError = false;
+    await expect(registerInstallation(input)).resolves.toMatchObject({
+      status: "registered",
+    });
+    expect(state.exchangedCodes).toEqual([]);
+    expect(state.inserted).toEqual([{ workspaceId: "ws_destination", installationId: 42 }]);
+    expect(browserCookies.get(cookie)).toBe("");
+    await expect(registerInstallation(input)).rejects.toMatchObject({
+      code: "BAD_REQUEST",
+    });
+    expect(fetch).toHaveBeenCalledTimes(2);
+  });
+
+  it("does not accept direct callbacks when the environment requires a relay", async () => {
+    const signed = await prepareWorkspaceState();
+    vi.stubEnv("GITHUB_INSTALL_RELAY_URL", "https://relay.example.com");
+    vi.stubEnv("GITHUB_INSTALL_RELAY_TOKEN", "r".repeat(43));
+    await expect(
+      registerInstallation({
+        state: signed.state,
+        installationId: 42,
+        code: "code",
+      }),
+    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
     expect(state.inserted).toEqual([]);
   });
 });

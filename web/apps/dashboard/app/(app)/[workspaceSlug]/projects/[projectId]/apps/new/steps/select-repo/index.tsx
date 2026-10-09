@@ -46,9 +46,12 @@ export const SelectRepo = ({
   const prepareInstallation = trpc.github.prepareInstallation.useMutation();
   const handleInstallClick = async () => {
     try {
-      const { state } = await prepareInstallation.mutateAsync({ projectId, appId });
+      const { url } = await prepareInstallation.mutateAsync({
+        projectId,
+        appId,
+      });
       onBeforeNavigate?.();
-      window.location.href = `https://github.com/apps/${process.env.NEXT_PUBLIC_GITHUB_APP_NAME}/installations/new?state=${encodeURIComponent(state)}`;
+      window.location.href = url;
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to start GitHub install");
     }
@@ -227,7 +230,12 @@ export const SelectRepo = ({
             ref={parentRef}
             className="mt-3 border rounded-lg bg-raised min-w-[var(--repo-list-w)] max-h-[462px] overflow-y-auto"
           >
-            <div style={{ height: `${virtualizer.getTotalSize()}px`, position: "relative" }}>
+            <div
+              style={{
+                height: `${virtualizer.getTotalSize()}px`,
+                position: "relative",
+              }}
+            >
               {virtualizer.getVirtualItems().map((virtualRow) => {
                 const repo = filteredRepos[virtualRow.index];
                 return (

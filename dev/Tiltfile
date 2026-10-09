@@ -570,7 +570,7 @@ k8s_resource(
 
 # ─── GitHub webhook tunnel (ngrok -> ctrl-api) ─────────────────────────────
 # Auto-updates the GitHub App webhook URL when credentials are present.
-if has_github_credentials:
+if has_github_credentials and not os.getenv('GITHUB_INSTALL_RELAY_URL') and os.getenv('GITHUB_INSTALL_RELAY_WEBHOOKS') != 'true':
     local_resource(
         'github-tunnel',
         serve_cmd='cd .. && go run ./build/cli dev github tunnel',
@@ -578,6 +578,21 @@ if has_github_credentials:
         labels=['unkey'],
         auto_init=True,
         links=['http://localhost:4040'],
+    )
+
+if os.getenv('GITHUB_INSTALL_RELAY_WEBHOOKS') == 'true':
+    local_resource(
+        'github-relay-events',
+        serve_cmd='''
+          if [ -z "${DASHBOARD_BASE_URL+x}" ] && [ -f ../web/apps/dashboard/.env.local ]; then
+            export DASHBOARD_BASE_URL="$(source ../web/apps/dashboard/.env.local; printf '%s' "$DASHBOARD_BASE_URL")"
+          fi
+          cd .. && mise exec -- go run ./build/cli dev github relay-events
+        ''',
+        resource_deps=['ctrl-api'],
+        deps=['../cmd/dev/github/relay.go', '../web/apps/dashboard/.env.local'],
+        labels=['unkey'],
+        auto_init=True,
     )
 
 # ─── Frontline (TLS termination proxy for *.unkey.local) ───────────────────
@@ -688,7 +703,9 @@ local_resource(
       set -a
       [ -f ./.env.github ] && source ./.env.github
       [ -f ./.github-private-key.pem ] && export UNKEY_GITHUB_PRIVATE_KEY_PEM="$(cat ./.github-private-key.pem)"
-      export GITHUB_APP_ID="$UNKEY_GITHUB_APP_ID"
+      if [ -n "$UNKEY_GITHUB_APP_ID" ]; then
+        export GITHUB_APP_ID="$UNKEY_GITHUB_APP_ID"
+      fi
       export PORT=3000
       set +a
       cd ../web && pnpm --filter=@unkey/dashboard dev
