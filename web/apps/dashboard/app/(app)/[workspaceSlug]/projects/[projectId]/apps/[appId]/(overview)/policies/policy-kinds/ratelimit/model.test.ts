@@ -1,6 +1,7 @@
+import type { Policy } from "@/lib/collections/deploy/policies.schema";
 import { describe, expect, it } from "vitest";
-import { fromPolicy, policyFormSchema, toPolicy } from "./schema";
-import type { Policy, PolicyFormValues } from "./schema";
+import { fromPolicy, policyFormSchema, toPolicy } from "../index";
+import type { PolicyFormValues } from "../index";
 
 // Exercises the keyauth ratelimit override validation. The Go verify path honors
 // three override shapes (cost alone, inline limit+duration, and limit+duration+cost)
@@ -10,12 +11,11 @@ function keyauthWithRatelimit(rl: Record<string, unknown>) {
   return {
     type: "keyauth" as const,
     name: "p",
-    environmentId: "__all__",
     matchConditions: [],
     keyspaceIds: ["ks_1"],
     locations: [],
     permissionQuery: "",
-    ratelimits: [{ id: "1", name: "expensive", ...rl }],
+    ratelimits: [{ name: "expensive", ...rl }],
   };
 }
 
@@ -61,12 +61,11 @@ describe("keyauth ratelimit override", () => {
 });
 
 function ratelimitForm(
-  identifiers: { id: string; source: "remoteIp" | "header" | "path"; value: string }[],
+  identifiers: { source: "remoteIp" | "header" | "path"; value: string }[],
 ): PolicyFormValues {
   return {
     type: "ratelimit",
     name: "rl",
-    environmentId: "__all__",
     matchConditions: [],
     limit: 100,
     windowMs: 60000,
@@ -79,7 +78,7 @@ function ratelimitForm(
 // identifier can be removed later.
 describe("ratelimit identifier serialization", () => {
   it("serializes one row to a one-entry identifiers array", () => {
-    const wire = toPolicy(ratelimitForm([{ id: "1", source: "remoteIp", value: "" }]));
+    const wire = toPolicy(ratelimitForm([{ source: "remoteIp", value: "" }]));
     expect(wire).not.toHaveProperty("ratelimit.identifier");
     expect(wire).toMatchObject({
       type: "ratelimit",
@@ -90,8 +89,8 @@ describe("ratelimit identifier serialization", () => {
   it("serializes multiple rows in order", () => {
     const wire = toPolicy(
       ratelimitForm([
-        { id: "1", source: "header", value: "x-client-id" },
-        { id: "2", source: "path", value: "" },
+        { source: "header", value: "x-client-id" },
+        { source: "path", value: "" },
       ]),
     );
     expect(wire).toMatchObject({
@@ -107,7 +106,7 @@ describe("ratelimit identifier serialization", () => {
       type: "ratelimit",
       ratelimit: { limit: 100, windowMs: 60000, identifier: { path: {} } },
     };
-    const form = fromPolicy(stored, "__all__");
+    const form = fromPolicy(stored);
     expect(form).toMatchObject({
       type: "ratelimit",
       identifiers: [{ source: "path", value: "" }],
@@ -126,7 +125,7 @@ describe("ratelimit identifier serialization", () => {
         identifiers: [{ authenticatedSubject: {} }, { header: { name: "x-tenant" } }],
       },
     };
-    const form = fromPolicy(stored, "__all__");
+    const form = fromPolicy(stored);
     expect(form).toMatchObject({
       type: "ratelimit",
       identifiers: [
