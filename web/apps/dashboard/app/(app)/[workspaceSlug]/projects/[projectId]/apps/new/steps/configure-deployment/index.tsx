@@ -8,13 +8,20 @@ import { ConfigureDeploymentFallback } from "./fallback";
 type ConfigureDeploymentStepProps = {
   projectId: string;
   appId: string;
+  onDeploymentCreated: (deploymentId: string) => void;
 };
 
-export function ConfigureDeploymentStep({ projectId, appId }: ConfigureDeploymentStepProps) {
+export function ConfigureDeploymentStep({
+  projectId,
+  appId,
+  onDeploymentCreated,
+}: ConfigureDeploymentStepProps) {
   return (
     <ProjectDataProvider projectId={projectId} appId={appId}>
-      <EnvironmentSettingsProvider fallback={<ConfigureDeploymentFallback />}>
-        <ConfigureDeploymentContent />
+      <EnvironmentSettingsProvider
+        fallback={<ConfigureDeploymentFallback onDeploymentCreated={onDeploymentCreated} />}
+      >
+        <ConfigureDeploymentContent onDeploymentCreated={onDeploymentCreated} />
       </EnvironmentSettingsProvider>
     </ProjectDataProvider>
   );

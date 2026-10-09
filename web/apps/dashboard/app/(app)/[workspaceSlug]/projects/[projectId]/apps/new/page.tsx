@@ -5,14 +5,18 @@ import { usePreventLeave } from "@/hooks/use-prevent-leave";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
-import { DiscardChangesDialog, StepWizard } from "@unkey/ui";
+import {
+  DiscardChangesDialog,
+  StepWizard,
+  UnsavedChangesScope,
+  useUnsavedChanges,
+} from "@unkey/ui";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { ChooseSourceStep } from "./steps/choose-source";
 import { ConfigureDeploymentStep } from "./steps/configure-deployment";
 import { type AppDetails, CreateAppStep } from "./steps/create-app";
 import { DeploymentLiveStep } from "./steps/deployment-live";
-import { EnvVarsStep } from "./steps/env-vars";
 import { SelectRepo } from "./steps/select-repo";
 
 export default function AppSetupPage() {
@@ -37,7 +41,9 @@ export default function AppSetupPage() {
   const [deploymentId, setDeploymentId] = useState<string | null>(null);
 
   const projectHref = routes.projects.detail({ workspaceSlug: workspace.slug, projectId });
-  const { bypass, leavePrompt } = usePreventLeave(!deploymentId, projectHref);
+  const { isDirty, report } = useUnsavedChanges();
+  const hasWork = isDirty || appId !== null;
+  const { bypass, leavePrompt } = usePreventLeave(hasWork && !deploymentId, projectHref);
 
   const handleSkipGithubSetup = () => {
     bypass();
@@ -47,78 +53,66 @@ export default function AppSetupPage() {
   return (
     <>
       <DiscardChangesDialog {...leavePrompt} />
-      <StepWizard.Root defaultStepId={initialStep}>
-        <StepWizard.Step id="create-app" label="Create app">
-          <OnboardingStepContainer>
-            {deployYourAppHeader}
-            <CreateAppStep onAppDetailsSubmitted={setAppDetails} />
-          </OnboardingStepContainer>
-        </StepWizard.Step>
-        <StepWizard.Step id="choose-source" label="Choose source">
-          {appDetails ? (
+      <UnsavedChangesScope report={report}>
+        <StepWizard.Root defaultStepId={initialStep}>
+          <StepWizard.Step id="create-app" label="Create app">
             <OnboardingStepContainer>
               {deployYourAppHeader}
-              <ChooseSourceStep
-                projectId={projectId}
-                appDetails={appDetails}
-                onAppCreated={setAppId}
-                onBeforeNavigate={bypass}
-              />
+              <CreateAppStep onAppDetailsSubmitted={setAppDetails} />
             </OnboardingStepContainer>
-          ) : null}
-        </StepWizard.Step>
-        <StepWizard.Step id="select-repo" label="Select repository" kind="optional">
-          {appId ? (
-            <OnboardingStepContainer>
-              <OnboardingStepHeader
-                title="Select a repository"
-                subtitle={
-                  <>
-                    Choose a repository and a branch containing your app.
-                    <br />
-                    We'll detect how to build it automatically.
-                  </>
-                }
-              />
-              <SelectRepo
-                projectId={projectId}
-                appId={appId}
-                onBeforeNavigate={bypass}
-                hasGithubInstallation={context?.hasGithubInstallation ?? false}
-                onSkip={handleSkipGithubSetup}
-              />
-            </OnboardingStepContainer>
-          ) : null}
-        </StepWizard.Step>
-        <StepWizard.Step id="configure-deployment" label="Configure deployment">
-          {appId ? (
-            <OnboardingStepContainer>
-              <OnboardingStepHeader
-                title="Configure deployment"
-                subtitle="Review the defaults. Edit anything you'd like to adjust."
-                allowBack
-              />
-              <ConfigureDeploymentStep projectId={projectId} appId={appId} />
-            </OnboardingStepContainer>
-          ) : null}
-        </StepWizard.Step>
-        <StepWizard.Step id="configure-env-vars" label="Configure environment variables">
-          {appId ? (
-            <OnboardingStepContainer>
-              <EnvVarsStep
+          </StepWizard.Step>
+          <StepWizard.Step id="choose-source" label="Choose source">
+            {appDetails ? (
+              <OnboardingStepContainer>
+                {deployYourAppHeader}
+                <ChooseSourceStep
+                  projectId={projectId}
+                  appDetails={appDetails}
+                  onAppCreated={setAppId}
+                  onBeforeNavigate={bypass}
+                />
+              </OnboardingStepContainer>
+            ) : null}
+          </StepWizard.Step>
+          <StepWizard.Step id="select-repo" label="Select repository" kind="optional">
+            {appId ? (
+              <OnboardingStepContainer>
+                <OnboardingStepHeader
+                  title="Select a repository"
+                  subtitle={
+                    <>
+                      Choose a repository and a branch containing your app.
+                      <br />
+                      We'll detect how to build it automatically.
+                    </>
+                  }
+                />
+                <SelectRepo
+                  projectId={projectId}
+                  appId={appId}
+                  onBeforeNavigate={bypass}
+                  hasGithubInstallation={context?.hasGithubInstallation ?? false}
+                  onSkip={handleSkipGithubSetup}
+                />
+              </OnboardingStepContainer>
+            ) : null}
+          </StepWizard.Step>
+          <StepWizard.Step id="configure-deployment" label="Configure deployment">
+            {appId ? (
+              <ConfigureDeploymentStep
                 projectId={projectId}
                 appId={appId}
                 onDeploymentCreated={setDeploymentId}
               />
-            </OnboardingStepContainer>
-          ) : null}
-        </StepWizard.Step>
-        <StepWizard.Step id="deploying" label="Deploying" preventBack>
-          {appId && deploymentId ? (
-            <DeploymentLiveStep projectId={projectId} appId={appId} deploymentId={deploymentId} />
-          ) : null}
-        </StepWizard.Step>
-      </StepWizard.Root>
+            ) : null}
+          </StepWizard.Step>
+          <StepWizard.Step id="deploying" label="Deploying" preventBack>
+            {appId && deploymentId ? (
+              <DeploymentLiveStep projectId={projectId} appId={appId} deploymentId={deploymentId} />
+            ) : null}
+          </StepWizard.Step>
+        </StepWizard.Root>
+      </UnsavedChangesScope>
     </>
   );
 }
