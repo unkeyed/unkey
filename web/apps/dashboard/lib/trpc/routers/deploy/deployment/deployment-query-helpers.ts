@@ -2,7 +2,6 @@ import type { InstanceStatus } from "@/lib/collections/deploy/instance-status";
 import { type InferSelectModel, ne } from "@/lib/db";
 import type { LastExit } from "@/lib/types/deploy";
 import { type ContainerStatus, deployments } from "@unkey/db/src/schema";
-import { mapRegionToFlag } from "../network/utils";
 
 // A skipped row records a push the platform declined to build at all (watch
 // paths didn't match, auto-deploy off). Nothing was ever deployed, so the
@@ -67,7 +66,6 @@ export function mapInstanceRow(row: {
       name: row.regionName,
       platform: row.regionPlatform,
     },
-    flagCode: mapRegionToFlag(row.regionName),
     status: row.status,
   };
 }
