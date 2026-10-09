@@ -2,95 +2,95 @@
 
 import { collection } from "@/lib/collections";
 import { ENVIRONMENT_KIND } from "@/lib/collections/deploy/environments";
-import type { PolicyRow } from "@/lib/collections/deploy/policies";
+import { policyListLoad } from "@/lib/collections/deploy/policies";
+import { useCollectionLoad } from "@/lib/collections/use-collection-load";
 import { and, eq, useLiveQuery } from "@tanstack/react-db";
 import { useMemo } from "react";
 import { useAppId, useProjectData } from "../../data-provider";
-import { type Env, type MergedPolicy, mergePolicies } from "../components/list/merge";
+import { type MergedPolicy, type PolicyEnvs, mergePolicies } from "../components/list/merge";
 
-type PoliciesData = {
-  productionId: string;
-  previewId: string;
-  productionSlug: string;
-  previewSlug: string;
+export type PoliciesView =
+  | { type: "error" }
+  | { type: "loading" }
+  | { type: "empty" }
+  | { type: "list" };
+
+export type PoliciesData = {
+  envs: PolicyEnvs;
   merged: MergedPolicy[];
-  /**
-   * Each environment's rows in its own evaluation order. Writes need this, not
-   * `merged`: `merged` follows production, so building preview's list from it
-   * would reorder preview.
-   */
-  rowsByEnv: Record<Env, PolicyRow[]>;
-  isLoading: boolean;
-  isError: boolean;
+  view: PoliciesView;
+  retry: () => void;
+  canWrite: boolean;
 };
 
 export function usePoliciesData(): PoliciesData {
   const { environments, projectId, isEnvironmentsLoading } = useProjectData();
   const appId = useAppId();
 
-  const production = environments.find((e) => e.kind === ENVIRONMENT_KIND.production);
-  const preview = environments.find((e) => e.kind === ENVIRONMENT_KIND.preview);
+  const productionEnv = environments.find((e) => e.kind === ENVIRONMENT_KIND.production);
+  const previewEnv = environments.find((e) => e.kind === ENVIRONMENT_KIND.preview);
 
-  const productionId = production?.id ?? "";
-  const previewId = preview?.id ?? "";
-  const productionSlug = production?.slug ?? ENVIRONMENT_KIND.production;
-  const previewSlug = preview?.slug ?? ENVIRONMENT_KIND.preview;
+  const productionId = productionEnv?.id ?? null;
+  const previewId = previewEnv?.id ?? null;
 
-  const {
-    data: productionRows,
-    isLoading: isLoadingProduction,
-    isError: isErrorProduction,
-  } = useLiveQuery(
+  const production = usePolicyRows(projectId, appId, productionId);
+  const preview = usePolicyRows(projectId, appId, previewId);
+  const productionRows = production.data;
+  const previewRows = preview.data;
+
+  const merged = useMemo(
+    () => mergePolicies(productionRows ?? [], previewRows ?? []),
+    [productionRows, previewRows],
+  );
+
+  const { failed: listFailed, retry } = useCollectionLoad(
+    ...[productionId, previewId].filter((id) => id !== null).map(policyListLoad),
+  );
+  const isLoading = isEnvironmentsLoading || production.isLoading || preview.isLoading;
+  const isError = production.isError || preview.isError || listFailed;
+
+  const envs = useMemo(
+    () => ({
+      production: { id: productionId, slug: productionEnv?.slug ?? ENVIRONMENT_KIND.production },
+      preview: { id: previewId, slug: previewEnv?.slug ?? ENVIRONMENT_KIND.preview },
+    }),
+    [productionId, previewId, productionEnv?.slug, previewEnv?.slug],
+  );
+
+  return {
+    envs,
+    merged,
+    view: policiesView(isError, isLoading, merged.length),
+    retry,
+    canWrite: !isLoading && !isError && productionId !== null && previewId !== null,
+  };
+}
+
+function policiesView(isError: boolean, isLoading: boolean, count: number): PoliciesView {
+  if (isError) {
+    return { type: "error" };
+  }
+  if (isLoading) {
+    return { type: "loading" };
+  }
+  return count === 0 ? { type: "empty" } : { type: "list" };
+}
+
+function usePolicyRows(projectId: string, appId: string, environmentId: string | null) {
+  return useLiveQuery(
     (q) =>
-      productionId
+      environmentId !== null
         ? q
             .from({ p: collection.policies })
             .where(({ p }) =>
               and(
                 eq(p.projectId, projectId),
                 eq(p.appId, appId),
-                eq(p.environmentId, productionId),
+                eq(p.environmentId, environmentId),
               ),
             )
             .orderBy(({ p }) => p._order)
         : null,
-    [projectId, appId, productionId],
+    [projectId, appId, environmentId],
   );
-
-  const {
-    data: previewRows,
-    isLoading: isLoadingPreview,
-    isError: isErrorPreview,
-  } = useLiveQuery(
-    (q) =>
-      previewId
-        ? q
-            .from({ p: collection.policies })
-            .where(({ p }) =>
-              and(eq(p.projectId, projectId), eq(p.appId, appId), eq(p.environmentId, previewId)),
-            )
-            .orderBy(({ p }) => p._order)
-        : null,
-    [projectId, appId, previewId],
-  );
-
-  const merged = useMemo(
-    () => mergePolicies(productionRows ?? [], previewRows ?? []),
-    [productionRows, previewRows],
-  );
-  const rowsByEnv = useMemo(
-    () => ({ production: productionRows ?? [], preview: previewRows ?? [] }),
-    [productionRows, previewRows],
-  );
-
-  return {
-    productionId,
-    previewId,
-    productionSlug,
-    previewSlug,
-    merged,
-    rowsByEnv,
-    isLoading: isEnvironmentsLoading || isLoadingProduction || isLoadingPreview,
-    isError: isErrorProduction || isErrorPreview,
-  };
 }
