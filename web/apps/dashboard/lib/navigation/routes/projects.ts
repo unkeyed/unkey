@@ -9,7 +9,7 @@ import type { Route } from "next";
 import { type WorkspaceScope, buildRoute } from "./shared";
 
 type ProjectScope = WorkspaceScope & { projectId: string };
-type AppScope = ProjectScope & { appId: string };
+export type AppScope = ProjectScope & { appId: string };
 
 export const projectRoutes = {
   list({ workspaceSlug, new: isNew }: WorkspaceScope & { new?: boolean }): Route {

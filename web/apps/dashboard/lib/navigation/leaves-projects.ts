@@ -49,7 +49,7 @@ export function buildWorkspaceSections(
     },
     {
       key: "audit",
-      label: "Audit Log",
+      label: "Audit log",
       href: routes.audit.list({ workspaceSlug: slug }),
       icon: IconInputSearchOutline18,
       isActive: top === "audit",
@@ -123,7 +123,7 @@ export function buildProjectLinks(
     },
     {
       key: "settings",
-      label: "Project Settings",
+      label: "Project settings",
       href: routes.projects.settings(scope),
       icon: IconGearOutline18,
       isActive: page === "settings",
