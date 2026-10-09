@@ -152,17 +152,22 @@ function SettingsGroupBody({ values, children }: { values: Member[]; children: R
   );
 }
 
+function SettingsGroupShell({ className, ...props }: React.ComponentProps<"div">) {
+  return (
+    <div
+      className={cn("@container border rounded-lg overflow-hidden bg-raised", className)}
+      {...props}
+    />
+  );
+}
+
 function SettingsGroupContent({ className, children, ...props }: React.ComponentProps<"div">) {
   const { context, values } = useSettingsGroupMembers();
   return (
     <SettingsGroupContext.Provider value={context}>
-      <div
-        data-slot="settings-group-content"
-        className={cn("@container border rounded-lg overflow-hidden bg-raised", className)}
-        {...props}
-      >
+      <SettingsGroupShell data-slot="settings-group-content" className={className} {...props}>
         <SettingsGroupBody values={values}>{children}</SettingsGroupBody>
-      </div>
+      </SettingsGroupShell>
     </SettingsGroupContext.Provider>
   );
 }
@@ -186,8 +191,9 @@ function SettingsGroupCollapsible({
   return (
     <SettingsGroupContext.Provider value={context}>
       <Collapsible.Root
+        render={<SettingsGroupShell />}
         data-slot="settings-group-collapsible"
-        className={cn("@container border rounded-lg overflow-hidden bg-raised", className)}
+        className={className}
         {...props}
       >
         <Collapsible.Trigger className="group flex w-full items-center gap-4 px-5 py-4 text-left transition-colors hover:bg-grayA-2 focus-visible:outline-hidden focus-visible:ring-3 focus-visible:ring-inset focus-visible:ring-gray-5">
