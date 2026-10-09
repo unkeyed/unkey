@@ -41,6 +41,7 @@ import { listDeploymentHeadlines } from "./deploy/deployment/list-headlines";
 import { getDeploymentRuntimeLogs } from "./deploy/deployment/runtime-logs";
 import { listDomains } from "./deploy/domains/list";
 import { listDisplayDomains } from "./deploy/domains/list-display-domains";
+import { addEnvVars } from "./deploy/env-vars/add";
 import { makeSensitive } from "./deploy/env-vars/make-sensitive";
 import { renameEnvVars } from "./deploy/env-vars/rename";
 import { getAvailableKeyspaces } from "./deploy/environment-settings/get-available-keyspaces";
@@ -299,8 +300,9 @@ export const router = t.router({
       }),
     }),
     envVar: t.router({
-      rename: renameEnvVars,
+      add: addEnvVars,
       makeSensitive,
+      rename: renameEnvVars,
     }),
     domain: t.router({
       list: listDomains,
