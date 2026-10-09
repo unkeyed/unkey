@@ -2,6 +2,10 @@ export function formatNumber(n: number): string {
   return Intl.NumberFormat("en", { notation: "compact" }).format(n);
 }
 
+export function plural(count: number, noun: string): string {
+  return `${count} ${noun}${count === 1 ? "" : "s"}`;
+}
+
 /** Grouped number with up to one decimal: 1234.5 -> "1,234.5". For usage quantities. */
 /**
  * Compact quantity for dense usage readouts, kept to ~3 significant figures so
