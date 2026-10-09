@@ -177,7 +177,7 @@ var fieldAssertions = map[string]func(t *testing.T, dep *appsv1.Deployment){
 		require.NotNil(t, c.Lifecycle)
 		require.NotNil(t, c.Lifecycle.PreStop)
 		require.NotNil(t, c.Lifecycle.PreStop.Exec)
-		require.Contains(t, c.Lifecycle.PreStop.Exec.Command, "-SIGINT")
+		require.Contains(t, c.Lifecycle.PreStop.Exec.Command[2], "kill -s INT 1")
 	},
 	"healthcheck": func(t *testing.T, dep *appsv1.Deployment) {
 		c := mainContainer(t, dep)
@@ -394,6 +394,28 @@ func TestBuildDeployment_PreStopDrain(t *testing.T) {
 			require.NotNil(t, c.Lifecycle.PreStop)
 			require.Equal(t, &corev1.SleepAction{Seconds: preStopDrainSeconds}, c.Lifecycle.PreStop.Sleep)
 			require.Nil(t, c.Lifecycle.PreStop.Exec)
+		})
+	}
+}
+
+func TestPreStopHandler(t *testing.T) {
+	sleepOnly := &corev1.LifecycleHandler{Sleep: &corev1.SleepAction{Seconds: preStopDrainSeconds}}
+	for _, tt := range []struct {
+		signal string
+		want   *corev1.LifecycleHandler
+	}{
+		{"", sleepOnly},
+		{"SIGTERM", sleepOnly},
+		{"SIGQUIT; rm -rf /", sleepOnly},
+		{"SIGINT", &corev1.LifecycleHandler{Exec: &corev1.ExecAction{Command: []string{
+			"sh", "-c", "sleep 15; kill -s INT 1; while kill -0 1 2>/dev/null; do sleep 1; done",
+		}}}},
+		{"SIGQUIT", &corev1.LifecycleHandler{Exec: &corev1.ExecAction{Command: []string{
+			"sh", "-c", "sleep 15; kill -s QUIT 1; while kill -0 1 2>/dev/null; do sleep 1; done",
+		}}}},
+	} {
+		t.Run(tt.signal, func(t *testing.T) {
+			require.Equal(t, tt.want, preStopHandler(tt.signal))
 		})
 	}
 }

@@ -4,7 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"regexp"
 	"strconv"
+	"strings"
 
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/pkg/assert"
@@ -325,23 +327,7 @@ func (c *Controller) buildDeployment(req *ctrlv1.ApplyDeployment, hasSecrets boo
 		container.ReadinessProbe = probe
 	}
 
-	container.Lifecycle = &corev1.Lifecycle{
-		PreStop: &corev1.LifecycleHandler{
-			Sleep: &corev1.SleepAction{Seconds: preStopDrainSeconds},
-		},
-	}
-
-	// For non-SIGTERM shutdown signals, use a preStop lifecycle hook
-	// since K8s always sends SIGTERM natively
-	if req.GetShutdownSignal() != "" && req.GetShutdownSignal() != "SIGTERM" {
-		container.Lifecycle = &corev1.Lifecycle{
-			PreStop: &corev1.LifecycleHandler{
-				Exec: &corev1.ExecAction{
-					Command: []string{"kill", fmt.Sprintf("-%s", req.GetShutdownSignal()), "1"},
-				},
-			},
-		}
-	}
+	container.Lifecycle = &corev1.Lifecycle{PreStop: preStopHandler(req.GetShutdownSignal())}
 
 	// Mount the deployment secret as env vars if present
 	if hasSecrets {
@@ -412,6 +398,24 @@ func (c *Controller) buildDeployment(req *ctrlv1.ApplyDeployment, hasSecrets boo
 			RevisionHistoryLimit: new(revisionHistoryLimit),
 		},
 	}
+}
+
+var signalNamePattern = regexp.MustCompile(`^[A-Z0-9]+$`)
+
+// preStopHandler keeps a terminating pod serving for preStopDrainSeconds.
+//
+// Kubernetes stops containers with SIGTERM, so a custom shutdown signal is sent
+// from the hook through the shell, whose kill builtin works in images without
+// a kill binary. The hook then waits for PID 1 to exit, because the kubelet
+// sends SIGTERM as soon as the hook returns.
+func preStopHandler(shutdownSignal string) *corev1.LifecycleHandler {
+	name := strings.TrimPrefix(shutdownSignal, "SIG")
+	if name == "" || name == "TERM" || !signalNamePattern.MatchString(name) {
+		return &corev1.LifecycleHandler{Sleep: &corev1.SleepAction{Seconds: preStopDrainSeconds}}
+	}
+
+	script := fmt.Sprintf("sleep %d; kill -s %s 1; while kill -0 1 2>/dev/null; do sleep 1; done", preStopDrainSeconds, name)
+	return &corev1.LifecycleHandler{Exec: &corev1.ExecAction{Command: []string{"sh", "-c", script}}}
 }
 
 // buildProbeHandler creates the K8s probe handler based on the healthcheck method.
