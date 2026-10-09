@@ -12,10 +12,10 @@ when the request is authenticated. The v2 audience has no ceiling. The
 Compute audience uses the developer role's Compute resources and excludes
 keyspaces, identities, ratelimits, rbac, portals, limits, and usage.
 
-`projects/*/apps/*/environments/*/variables/*#read` lets the viewer role call
+`projects/*/apps/*/environments/*/variables/*#read` stays in the Compute
+permission ceiling below. Viewer, developer, and admin roles can call
 `environments.listEnvironmentVariables`, which returns decrypted recoverable
-values. Whether a read-only MCP ceiling should drop that pattern is not
-decided here.
+values. That is intentional: secrets stay readable through MCP.
 
 ## Staging
 
