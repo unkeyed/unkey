@@ -80,7 +80,7 @@ func TestApplyDeploymentObject_KeepsGateDecision(t *testing.T) {
 	_, err := ctrl.applyDeploymentObject(t.Context(), ctrl.buildDeployment(fullApplyRequest(t), false))
 	require.NoError(t, err)
 
-	ctrl.setRolloutState(t.Context(), getDeployment(t, ctrl), false, true)
+	ctrl.setRolloutState(t.Context(), getDeployment(t, ctrl), rolloutState{slot: true})
 
 	_, err = ctrl.applyDeploymentObject(t.Context(), ctrl.buildDeployment(fullApplyRequest(t), false))
 	require.NoError(t, err)

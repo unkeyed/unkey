@@ -13,13 +13,15 @@ import (
 
 type rolloutFixture func(d *appsv1.Deployment)
 
+var gateNow = time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+
 func gateDeployment(name string, ageMinutes int, fixtures ...rolloutFixture) appsv1.Deployment {
 	d := appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace:         "ns",
 			Name:              name,
 			Generation:        2,
-			CreationTimestamp: metav1.NewTime(time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC).Add(-time.Duration(ageMinutes) * time.Minute)),
+			CreationTimestamp: metav1.NewTime(gateNow.Add(-time.Duration(ageMinutes) * time.Minute)),
 		},
 		Spec: appsv1.DeploymentSpec{Replicas: new(int32(2)), Paused: true},
 		Status: appsv1.DeploymentStatus{
@@ -60,6 +62,22 @@ func stalled(d *appsv1.Deployment) {
 	}}
 }
 
+func stalledAgo(age time.Duration) rolloutFixture {
+	return func(d *appsv1.Deployment) {
+		d.Annotations = map[string]string{
+			rolloutStalledTemplateAnnotation: podTemplateHash(d),
+			rolloutStalledAtAnnotation:       gateNow.Add(-age).Format(time.RFC3339),
+		}
+	}
+}
+
+func stalledOnOtherTemplate(d *appsv1.Deployment) {
+	d.Annotations = map[string]string{
+		rolloutStalledTemplateAnnotation: "other-template",
+		rolloutStalledAtAnnotation:       gateNow.Format(time.RFC3339),
+	}
+}
+
 func names(deployments []*appsv1.Deployment) []string {
 	out := make([]string, 0, len(deployments))
 	for _, d := range deployments {
@@ -73,12 +91,14 @@ func TestPlanRollouts(t *testing.T) {
 		name           string
 		deployments    []appsv1.Deployment
 		maxConcurrent  int
+		stall          []string
 		finish         []string
 		admit          []string
 		admitUnhealthy []string
 		slotsHeld      int
 		stalled        int
 		waiting        int
+		halted         bool
 	}{
 		{
 			name:          "idle deployments need nothing",
@@ -110,15 +130,64 @@ func TestPlanRollouts(t *testing.T) {
 			waiting:       1,
 		},
 		{
-			name: "stalled rollout holds its slot",
+			name: "stalled rollout is paused and keeps its slot until then",
 			deployments: []appsv1.Deployment{
 				gateDeployment("stuck", 1, unpaused, withSlot, rollingOut, stalled),
 				gateDeployment("next", 1, templateChanged),
 			},
-			maxConcurrent: 1,
+			maxConcurrent: 2,
+			stall:         []string{"stuck"},
+			admit:         []string{"next"},
+			slotsHeld:     1,
+		},
+		{
+			name: "recently stalled template does not roll again",
+			deployments: []appsv1.Deployment{
+				gateDeployment("stuck", 1, templateChanged, stalledAgo(10*time.Minute)),
+			},
+			maxConcurrent: 5,
+			stalled:       1,
+		},
+		{
+			name: "stalled template rolls again after the retry delay",
+			deployments: []appsv1.Deployment{
+				gateDeployment("stuck", 1, templateChanged, stalledAgo(7*time.Hour)),
+			},
+			maxConcurrent: 5,
+			admit:         []string{"stuck"},
+		},
+		{
+			name: "new template after a stall rolls at once",
+			deployments: []appsv1.Deployment{
+				gateDeployment("fixed", 1, templateChanged, stalledOnOtherTemplate),
+			},
+			maxConcurrent: 5,
+			admit:         []string{"fixed"},
+		},
+		{
+			name: "halts when the limit of rollouts stalled within the window",
+			deployments: []appsv1.Deployment{
+				gateDeployment("stuck-a", 1, templateChanged, stalledAgo(10*time.Minute)),
+				gateDeployment("stuck-b", 1, unpaused, withSlot, rollingOut, stalled),
+				gateDeployment("next", 1, templateChanged),
+				gateDeployment("broken", 1, templateChanged, unavailable),
+			},
+			maxConcurrent: 2,
+			stall:         []string{"stuck-b"},
 			slotsHeld:     1,
 			stalled:       1,
-			waiting:       1,
+			waiting:       2,
+			halted:        true,
+		},
+		{
+			name: "older stalls do not halt the gate",
+			deployments: []appsv1.Deployment{
+				gateDeployment("stuck", 1, templateChanged, stalledAgo(2*time.Hour)),
+				gateDeployment("next", 1, templateChanged),
+			},
+			maxConcurrent: 1,
+			admit:         []string{"next"},
+			stalled:       1,
 		},
 		{
 			name: "unhealthy waiting deployments roll without a slot",
@@ -160,14 +229,16 @@ func TestPlanRollouts(t *testing.T) {
 		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
-			plan := planRollouts(tt.deployments, tt.maxConcurrent)
+			plan := planRollouts(tt.deployments, tt.maxConcurrent, gateNow)
 
+			require.ElementsMatch(t, tt.stall, names(plan.stall), "stall")
 			require.ElementsMatch(t, tt.finish, names(plan.finish), "finish")
 			require.Equal(t, tt.admit, nilIfEmpty(names(plan.admit)), "admit")
 			require.Equal(t, tt.admitUnhealthy, nilIfEmpty(names(plan.admitUnhealthy)), "admitUnhealthy")
 			require.Equal(t, tt.slotsHeld, plan.slotsHeld, "slotsHeld")
 			require.Equal(t, tt.stalled, plan.stalled, "stalled")
 			require.Equal(t, tt.waiting, plan.waiting, "waiting")
+			require.Equal(t, tt.halted, plan.halted, "halted")
 		})
 	}
 }
@@ -184,17 +255,25 @@ func TestSetRolloutState(t *testing.T) {
 	client := fake.NewClientset(&d)
 	ctrl := &Controller{clientSet: client}
 
-	ctrl.setRolloutState(t.Context(), &d, false, true)
+	ctrl.setRolloutState(t.Context(), &d, rolloutState{slot: true})
 
 	got, err := client.AppsV1().Deployments("ns").Get(t.Context(), "dep", metav1.GetOptions{})
 	require.NoError(t, err)
 	require.False(t, got.Spec.Paused)
 	require.True(t, holdsRolloutSlot(got))
 
-	ctrl.setRolloutState(t.Context(), got, true, false)
+	ctrl.setRolloutState(t.Context(), got, rolloutState{paused: true, stalledTemplate: podTemplateHash(got), stalledAt: gateNow})
 
 	got, err = client.AppsV1().Deployments("ns").Get(t.Context(), "dep", metav1.GetOptions{})
 	require.NoError(t, err)
 	require.True(t, got.Spec.Paused)
 	require.NotContains(t, got.Annotations, rolloutSlotAnnotation)
+	require.True(t, stalledWithin(got, gateNow.Add(time.Minute), stalledRolloutRetryAfter))
+
+	ctrl.setRolloutState(t.Context(), got, rolloutState{paused: true})
+
+	got, err = client.AppsV1().Deployments("ns").Get(t.Context(), "dep", metav1.GetOptions{})
+	require.NoError(t, err)
+	require.NotContains(t, got.Annotations, rolloutStalledTemplateAnnotation)
+	require.NotContains(t, got.Annotations, rolloutStalledAtAnnotation)
 }

@@ -77,9 +77,9 @@ var (
 	// RolloutGateWorkloads reports workloads by rollout gate state.
 	//
 	// Labels:
-	//   - "state": "rolling" (holds a slot), "stalled" (holds a slot and
-	//     exceeded its progress deadline), or "waiting" (template changed,
-	//     no slot yet)
+	//   - "state": "rolling" (holds a slot), "stalled" (exceeded its
+	//     progress deadline, paused until a new template or a retry), or
+	//     "waiting" (template changed, no slot yet)
 	RolloutGateWorkloads = lazy.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: "unkey",
