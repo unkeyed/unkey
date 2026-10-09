@@ -1,5 +1,6 @@
 "use client";
 
+import { plural } from "@/lib/fmt";
 import { IconEyeSlashOutline18, IconTrashOutline18, IconXmarkOutline18 } from "@unkey/icons";
 import { Button, ConfirmPopover } from "@unkey/ui";
 import { cn } from "cn";
@@ -7,6 +8,7 @@ import { useRef, useState } from "react";
 
 type EnvVarSelectionBarProps = {
   selectedCount: number;
+  isMakingSensitive: boolean;
   onDelete: () => void;
   onMakeSensitive: () => void;
   onClearSelection: () => void;
@@ -14,6 +16,7 @@ type EnvVarSelectionBarProps = {
 
 export function EnvVarSelectionBar({
   selectedCount,
+  isMakingSensitive,
   onDelete,
   onMakeSensitive,
   onClearSelection,
@@ -48,6 +51,8 @@ export function EnvVarSelectionBar({
                 className="font-medium text-sm [&_svg]:size-3.5"
                 onClick={() => setIsSensitiveConfirmOpen(true)}
                 ref={sensitiveButtonRef}
+                loading={isMakingSensitive}
+                disabled={isMakingSensitive}
               >
                 <IconEyeSlashOutline18 className="size-3" />
                 Make Sensitive
@@ -76,7 +81,7 @@ export function EnvVarSelectionBar({
         onConfirm={onMakeSensitive}
         triggerRef={sensitiveButtonRef}
         title="Mark as sensitive"
-        description={`This will permanently hide the values of ${selectedCount} variable${selectedCount > 1 ? "s" : ""}. They cannot be revealed afterwards. This action cannot be undone.`}
+        description={`This will permanently hide the values of ${plural(selectedCount, "variable")}. They cannot be revealed afterwards. This action cannot be undone.`}
         confirmButtonText="Mark as sensitive"
         cancelButtonText="Cancel"
         variant="danger"
@@ -88,8 +93,8 @@ export function EnvVarSelectionBar({
         onConfirm={onDelete}
         triggerRef={deleteButtonRef}
         title="Confirm deletion"
-        description={`This will permanently delete ${selectedCount} environment variable${selectedCount > 1 ? "s" : ""}. This action cannot be undone.`}
-        confirmButtonText={`Delete variable${selectedCount > 1 ? "s" : ""}`}
+        description={`This will permanently delete ${plural(selectedCount, "environment variable")}. This action cannot be undone.`}
+        confirmButtonText={selectedCount === 1 ? "Delete variable" : "Delete variables"}
         cancelButtonText="Cancel"
         variant="danger"
       />
