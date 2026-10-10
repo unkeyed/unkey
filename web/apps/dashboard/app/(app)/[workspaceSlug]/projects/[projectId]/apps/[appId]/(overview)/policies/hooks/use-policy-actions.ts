@@ -8,14 +8,14 @@ import {
 } from "@/lib/collections/deploy/policies";
 import type { PolicyInput } from "@/lib/collections/deploy/policies.schema";
 import { useMemo } from "react";
-import type { Env, PolicyEnvs, PolicyRowKey } from "../components/list/merge";
 import {
   insertPolicy,
   removePolicy,
   reorderPolicies,
   setEnabled,
   updatePolicy,
-} from "./policy-edits";
+} from "../model/edits";
+import type { Env, PolicyEnvs, PolicyRowKey } from "../model/merge";
 
 type Args = { envs: PolicyEnvs; projectId: string; appId: string };
 

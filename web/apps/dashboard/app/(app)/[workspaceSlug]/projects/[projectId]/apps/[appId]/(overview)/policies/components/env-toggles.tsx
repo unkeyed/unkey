@@ -5,7 +5,7 @@ import { Switch } from "@/components/ui/switch";
 import { ENVIRONMENT_KINDS } from "@/lib/collections/deploy/environments";
 import { InfoTooltip } from "@unkey/ui";
 import type { PolicySwitches } from "../hooks/policy-switches";
-import type { Env, MergedPolicy, PolicyEnvs, PolicyRowKey } from "./list/merge";
+import type { Env, MergedPolicy, PolicyEnvs, PolicyRowKey } from "../model/merge";
 
 export function PolicyEnvironmentToggles({
   policy,

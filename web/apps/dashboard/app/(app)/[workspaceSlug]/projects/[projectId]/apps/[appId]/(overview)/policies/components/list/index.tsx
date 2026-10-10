@@ -3,7 +3,7 @@
 import { ResourceListBody } from "@unkey/ui";
 import { useCallback, useState } from "react";
 import type { PolicySwitches } from "../../hooks/policy-switches";
-import type { MergedPolicy, PolicyEnvs, PolicyRowKey } from "./merge";
+import type { MergedPolicy, PolicyEnvs, PolicyRowKey } from "../../model/merge";
 import { PoliciesListHeader, PolicyRow } from "./row";
 
 type PoliciesListProps = {

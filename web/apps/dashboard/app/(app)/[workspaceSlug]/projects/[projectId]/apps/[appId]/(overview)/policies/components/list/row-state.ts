@@ -1,6 +1,6 @@
 import { ENVIRONMENT_KINDS } from "@/lib/collections/deploy/environments";
 import type { PolicySwitches } from "../../hooks/policy-switches";
-import type { Env, PolicyEnvs } from "./merge";
+import type { Env, PolicyEnvs } from "../../model/merge";
 
 export type PolicyEnvBadge = { env: Env; slug: string; enabled: boolean };
 

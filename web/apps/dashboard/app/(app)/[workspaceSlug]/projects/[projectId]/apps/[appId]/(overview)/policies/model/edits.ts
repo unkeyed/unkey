@@ -7,8 +7,8 @@ import {
   type PolicyRowKey,
   mergePolicies,
   policyInEnv,
-} from "../components/list/merge";
-import { movePolicy } from "../components/list/reorder";
+} from "./merge";
+import { movePolicy } from "./reorder";
 
 const AT_CAPACITY = `An environment holds at most ${POLICY_LIMITS.maxPolicies} policies.`;
 const GONE = "This policy no longer exists.";

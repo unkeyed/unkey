@@ -8,6 +8,8 @@ import { IconChevronDownOutline18 } from "@unkey/icons";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@unkey/ui";
 import { type ReactNode, useId, useState } from "react";
 import { useForm } from "react-hook-form";
+import { duplicateNameError } from "../../model/duplicate-name";
+import type { Env, PolicyEnvs } from "../../model/merge";
 import {
   type PolicyFormValues,
   type PolicyType,
@@ -15,8 +17,6 @@ import {
   policyFormSchema,
   toPolicy,
 } from "../../policy-kinds";
-import type { Env, PolicyEnvs } from "../list/merge";
-import { duplicateNameError } from "./duplicate-name";
 import { PolicyForm } from "./policy-form";
 
 type EnvironmentTarget = "all" | Env;

@@ -5,10 +5,10 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
 import { useForm, useFormState } from "react-hook-form";
 import type { PolicySwitches } from "../../hooks/policy-switches";
+import { duplicateNameError } from "../../model/duplicate-name";
+import type { Env, MergedPolicy, PolicyEnvs, PolicyRowKey } from "../../model/merge";
 import { type PolicyFormValues, fromPolicy, policyFormSchema, toPolicy } from "../../policy-kinds";
 import { PolicyEnvironmentToggles } from "../env-toggles";
-import type { Env, MergedPolicy, PolicyEnvs, PolicyRowKey } from "../list/merge";
-import { duplicateNameError } from "./duplicate-name";
 import { PolicyForm } from "./policy-form";
 
 type EditPolicyPanelProps = {

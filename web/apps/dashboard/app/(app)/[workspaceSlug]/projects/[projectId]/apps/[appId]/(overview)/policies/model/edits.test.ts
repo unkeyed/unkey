@@ -8,24 +8,13 @@ import {
 import type { PolicyInput } from "@/lib/collections/deploy/policies.schema";
 import { describe, expect, it } from "vitest";
 import {
-  type Env,
-  type MergedPolicy,
-  type PolicyRowKey,
-  mergePolicies,
-} from "../components/list/merge";
-import {
-  insertPolicy,
-  removePolicy,
-  reorderPolicies,
-  setEnabled,
-  updatePolicy,
-} from "./policy-edits";
-import {
   NO_PENDING_SWITCHES,
   type PendingSwitchEvent,
   policySwitches,
   reducePendingSwitches,
-} from "./policy-switches";
+} from "../hooks/policy-switches";
+import { insertPolicy, removePolicy, reorderPolicies, setEnabled, updatePolicy } from "./edits";
+import { type Env, type MergedPolicy, type PolicyRowKey, mergePolicies } from "./merge";
 
 const LABELS = { loading: "Saving...", success: "Saved", error: "Failed" };
 const SCOPE: PolicyScope = {

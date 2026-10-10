@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import type { PolicyRowKey } from "../components/list/merge";
+import type { PolicyRowKey } from "../model/merge";
 
 export type PolicyPanel = { type: "add" } | { type: "edit"; key: PolicyRowKey } | { type: "guide" };
 

@@ -1,5 +1,5 @@
 import { match } from "@unkey/match";
-import type { Env, MergedPolicy, PolicyRowKey } from "../components/list/merge";
+import type { Env, MergedPolicy, PolicyRowKey } from "../model/merge";
 
 export type PolicySwitches = Record<Env, boolean>;
 

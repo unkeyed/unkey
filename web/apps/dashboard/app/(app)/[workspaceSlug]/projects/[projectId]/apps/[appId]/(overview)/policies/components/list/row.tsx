@@ -13,8 +13,8 @@ import { Button, ConfirmPopover, InfoTooltip, ResourceListItem, ResourceListRow 
 import { cn } from "cn";
 import { useRef, useState } from "react";
 import type { PolicySwitches } from "../../hooks/policy-switches";
+import type { MergedPolicy, PolicyEnvs, PolicyRowKey } from "../../model/merge";
 import { POLICY_KINDS } from "../../policy-kinds";
-import type { MergedPolicy, PolicyEnvs, PolicyRowKey } from "./merge";
 import { type PolicyEnvBadge, policyRowState } from "./row-state";
 
 export const POLICY_COLUMNS =

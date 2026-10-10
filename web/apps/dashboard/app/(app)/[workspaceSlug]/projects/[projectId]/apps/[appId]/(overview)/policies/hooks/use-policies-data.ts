@@ -7,7 +7,7 @@ import { useCollectionLoad } from "@/lib/collections/use-collection-load";
 import { and, eq, useLiveQuery } from "@tanstack/react-db";
 import { useMemo } from "react";
 import { useAppId, useProjectData } from "../../data-provider";
-import { type MergedPolicy, type PolicyEnvs, mergePolicies } from "../components/list/merge";
+import { type MergedPolicy, type PolicyEnvs, mergePolicies } from "../model/merge";
 
 export type PoliciesView =
   | { type: "error" }

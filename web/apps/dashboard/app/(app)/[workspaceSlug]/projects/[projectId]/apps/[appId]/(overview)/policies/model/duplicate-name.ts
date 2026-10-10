@@ -1,5 +1,5 @@
 import { policyMatchKey } from "@/lib/collections/deploy/policies.schema";
-import { POLICY_KINDS, type PolicyType } from "../../policy-kinds";
+import { POLICY_KINDS, type PolicyType } from "../policy-kinds";
 
 type Named = { type: PolicyType; name: string };
 

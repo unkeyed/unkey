@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useReducer, useRef, useState } from "react";
-import type { Env, MergedPolicy, PolicyRowKey } from "../components/list/merge";
+import type { Env, MergedPolicy, PolicyRowKey } from "../model/merge";
 import {
   NO_PENDING_SWITCHES,
   type PolicySwitches,
