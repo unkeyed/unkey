@@ -147,6 +147,7 @@ export function DomainsPage() {
           <AddDomainDialog
             isOpen={add.open}
             onSettled={add.onSettled}
+            onCancel={add.onCancel}
             environments={environments}
             defaultEnvironmentId={add.defaultEnvironment.id}
           />

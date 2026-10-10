@@ -15,8 +15,7 @@ export function useDomainsPage() {
     useProjectData();
   const load = useCollectionLoad(collection.domains.utils, collection.customDomains.utils);
   const [search, setSearch] = useResourceSearch(SEARCH_KEY);
-  const [page, setPage] = useState({ search, limit: PAGE_SIZE });
-  const limit = page.search === search ? page.limit : PAGE_SIZE;
+  const { limit, loadMore } = usePageLimitPerSearch(search);
   const [addOpen, setAddOpen] = useState(false);
   const [limitMessage, setLimitMessage] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<ReadonlySet<string>>(new Set());
@@ -46,7 +45,7 @@ export function useDomainsPage() {
     searchKey: SEARCH_KEY,
     expanded,
     toggle,
-    loadMore: () => setPage({ search, limit: limit + PAGE_SIZE }),
+    loadMore,
     clearSearch: () => setSearch(null),
     retry: load.retry,
     limitMessage,
@@ -65,9 +64,15 @@ export function useDomainsPage() {
             setExpanded((prev) => new Set(prev).add(domain));
           })
           .with({ kind: "limitReached" }, ({ message }) => setLimitMessage(message))
-          .with({ kind: "cancelled" }, () => {})
           .exhaustive();
       },
+      onCancel: () => setAddOpen(false),
     },
   };
+}
+
+function usePageLimitPerSearch(search: string) {
+  const [shown, setShown] = useState({ forSearch: search, limit: PAGE_SIZE });
+  const limit = shown.forSearch === search ? shown.limit : PAGE_SIZE;
+  return { limit, loadMore: () => setShown({ forSearch: search, limit: limit + PAGE_SIZE }) };
 }

@@ -9,6 +9,7 @@ import { type AddDomainOutcome, useAddDomain } from "./use-add-domain";
 type AddDomainDialogProps = {
   isOpen: boolean;
   onSettled: (outcome: AddDomainOutcome) => void;
+  onCancel: () => void;
   environments: Environment[];
   defaultEnvironmentId: string;
 };
@@ -16,10 +17,11 @@ type AddDomainDialogProps = {
 export function AddDomainDialog({
   isOpen,
   onSettled,
+  onCancel,
   environments,
   defaultEnvironmentId,
 }: AddDomainDialogProps) {
-  const { form, submit, cancel } = useAddDomain({ defaultEnvironmentId, onSettled });
+  const { form, submit, cancel } = useAddDomain({ defaultEnvironmentId, onSettled, onCancel });
   const {
     control,
     register,

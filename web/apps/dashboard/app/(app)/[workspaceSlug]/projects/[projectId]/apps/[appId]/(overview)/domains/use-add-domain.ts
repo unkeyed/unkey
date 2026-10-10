@@ -10,15 +10,15 @@ import { type CustomDomainFormValues, customDomainSchema } from "./schema";
 
 export type AddDomainOutcome =
   | { kind: "added"; domain: string }
-  | { kind: "limitReached"; message: string }
-  | { kind: "cancelled" };
+  | { kind: "limitReached"; message: string };
 
 type Args = {
   defaultEnvironmentId: string;
   onSettled: (outcome: AddDomainOutcome) => void;
+  onCancel: () => void;
 };
 
-export function useAddDomain({ defaultEnvironmentId, onSettled }: Args) {
+export function useAddDomain({ defaultEnvironmentId, onSettled, onCancel }: Args) {
   const { projectId, customDomains } = useProjectData();
   const appId = useAppId();
   const workspace = useWorkspaceNavigation();
@@ -29,8 +29,10 @@ export function useAddDomain({ defaultEnvironmentId, onSettled }: Args) {
     defaultValues: { environmentId: defaultEnvironmentId, domain: "" },
   });
 
+  const resetForm = () => form.reset({ environmentId: defaultEnvironmentId, domain: "" });
+
   const settle = (outcome: AddDomainOutcome) => {
-    form.reset({ environmentId: defaultEnvironmentId, domain: "" });
+    resetForm();
     onSettled(outcome);
   };
 
@@ -69,5 +71,10 @@ export function useAddDomain({ defaultEnvironmentId, onSettled }: Args) {
     }
   });
 
-  return { form, submit, cancel: () => settle({ kind: "cancelled" }) };
+  const cancel = () => {
+    resetForm();
+    onCancel();
+  };
+
+  return { form, submit, cancel };
 }
