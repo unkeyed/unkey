@@ -18,6 +18,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/deploy/deployfail"
 	"github.com/unkeyed/unkey/pkg/deploy/imageref"
+	"github.com/unkeyed/unkey/pkg/deploy/privatenetwork"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/logger"
 	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
@@ -61,6 +62,8 @@ const (
 	// so attempts-based bounding alone is too coarse here — we also want a
 	// hard total-time ceiling. Whichever bound fires first wins.
 	buildImageRetryCeiling = 30 * time.Minute
+
+	previewSpinDownDelay = time.Minute
 )
 
 // Deploy executes a full deployment workflow for a new application version.
@@ -276,10 +279,27 @@ func (w *Workflow) Deploy(ctx restate.WorkflowContext, req *hydrav1.DeployReques
 			}
 			if promotionSkipReason == hydrav1.AutomaticPromotionSkipReason_AUTOMATIC_PROMOTION_SKIP_REASON_NEWER_DEPLOYMENT {
 				if err := restate.RunVoid(stepCtx, func(runCtx restate.RunContext) error {
-					return w.db.UpdateDeploymentStatus(runCtx, db.UpdateDeploymentStatusParams{
-						ID:        deployment.ID,
-						Status:    mysqltype.DeploymentsStatusSuperseded,
-						UpdatedAt: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+					return db.Tx(runCtx, w.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
+						queries := db.NewQueries(tx)
+						_, err := queries.LockDeploymentWithApp(txCtx, deployment.ID)
+						if err != nil {
+							return err
+						}
+						pinned, err := queries.ExistsAppConnectionPinningDeployment(txCtx, db.ExistsAppConnectionPinningDeploymentParams{
+							DeploymentID: sql.NullString{String: deployment.ID, Valid: true},
+						})
+						if err != nil {
+							return err
+						}
+						if pinned {
+							return nil
+						}
+
+						return queries.UpdateDeploymentStatus(txCtx, db.UpdateDeploymentStatusParams{
+							ID:        deployment.ID,
+							Status:    mysqltype.DeploymentsStatusSuperseded,
+							UpdatedAt: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+						})
 					})
 				}, restate.WithName("marking skipped automatic promotion as superseded"), restate.WithMaxRetryAttempts(runMaxAttempts)); err != nil {
 					return fault.Wrap(err, fault.Public("Deployment completed but superseded status could not be saved."))
@@ -728,8 +748,8 @@ func (w *Workflow) spinDownPreviousDeployments(
 	ctx restate.ObjectContext,
 	deployment db.FindDeploymentForDeployRow,
 ) error {
-	previousDeploymentIDs, err := restate.Run(ctx, func(ctx restate.RunContext) ([]string, error) {
-		return w.db.ListRunningDeploymentsByBranch(ctx, db.ListRunningDeploymentsByBranchParams{
+	previousDeploymentIDs, err := restate.Run(ctx, func(stepCtx restate.RunContext) ([]string, error) {
+		return w.db.ListRunningDeploymentsByBranch(stepCtx, db.ListRunningDeploymentsByBranchParams{
 			GitBranch:       deployment.GitBranch,
 			WorkspaceID:     deployment.WorkspaceID,
 			ProjectID:       deployment.ProjectID,
@@ -741,13 +761,27 @@ func (w *Workflow) spinDownPreviousDeployments(
 	if err != nil {
 		return err
 	}
+
+	usedDeploymentIDs, err := restate.Run(ctx, func(stepCtx restate.RunContext) ([]string, error) {
+		return w.db.ListPreviewDeploymentsUsedByAppConnections(stepCtx, previousDeploymentIDs)
+	})
+	if err != nil {
+		return err
+	}
+	usedDeployments := make(map[string]struct{}, len(usedDeploymentIDs))
+	for _, deploymentID := range usedDeploymentIDs {
+		usedDeployments[deploymentID] = struct{}{}
+	}
+
 	for _, previousDeploymentID := range previousDeploymentIDs {
+		_, isUsed := usedDeployments[previousDeploymentID]
 		_, err := hydrav1.NewDeploymentServiceClient(ctx, previousDeploymentID).
 			ScheduleDesiredStateChange().Request(
 			&hydrav1.ScheduleDesiredStateChangeRequest{
-				DelayMillis: time.Minute.Milliseconds(), // give frontline a graceperiod to clear their caches
-				State:       hydrav1.DeploymentDesiredState_DEPLOYMENT_DESIRED_STATE_STOPPED,
-				Overwrite:   false, // do not overwrite a previously scheduled transition
+				DelayMillis:      previewReplacementDelay(isUsed).Milliseconds(),
+				State:            hydrav1.DeploymentDesiredState_DEPLOYMENT_DESIRED_STATE_STOPPED,
+				Overwrite:        false,
+				DeferWhilePinned: true,
 			},
 			restate.WithIdempotencyKey(previousDeploymentID),
 		)
@@ -757,6 +791,13 @@ func (w *Workflow) spinDownPreviousDeployments(
 	}
 
 	return nil
+}
+
+func previewReplacementDelay(usedByAppConnection bool) time.Duration {
+	if usedByAppConnection {
+		return privatenetwork.ReplacementOverlap
+	}
+	return previewSpinDownDelay
 }
 
 func (w *Workflow) swapLiveDeployment(
@@ -780,8 +821,9 @@ func (w *Workflow) swapLiveDeployment(
 		_, err = hydrav1.NewDeploymentServiceClient(ctx, deployment.ID).
 			ScheduleDesiredStateChange().Request(
 			&hydrav1.ScheduleDesiredStateChangeRequest{
-				State:     hydrav1.DeploymentDesiredState_DEPLOYMENT_DESIRED_STATE_STOPPED,
-				Overwrite: true,
+				State:            hydrav1.DeploymentDesiredState_DEPLOYMENT_DESIRED_STATE_STOPPED,
+				Overwrite:        true,
+				DeferWhilePinned: true,
 			},
 			restate.WithIdempotencyKey("automatic-promotion-skipped:"+deployment.ID),
 		)
@@ -800,9 +842,10 @@ func (w *Workflow) swapLiveDeployment(
 		_, err = hydrav1.NewDeploymentServiceClient(ctx, swapResp.GetPreviousDeploymentId()).
 			ScheduleDesiredStateChange().Request(
 			&hydrav1.ScheduleDesiredStateChangeRequest{
-				DelayMillis: (30 * time.Minute).Milliseconds(),
-				State:       hydrav1.DeploymentDesiredState_DEPLOYMENT_DESIRED_STATE_STOPPED,
-				Overwrite:   true,
+				DelayMillis:      privatenetwork.ReplacementOverlap.Milliseconds(),
+				State:            hydrav1.DeploymentDesiredState_DEPLOYMENT_DESIRED_STATE_STOPPED,
+				Overwrite:        true,
+				DeferWhilePinned: true,
 			},
 			restate.WithIdempotencyKey(swapResp.GetPreviousDeploymentId()),
 		)

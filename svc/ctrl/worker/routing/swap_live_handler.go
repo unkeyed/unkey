@@ -28,6 +28,22 @@ func (s *Service) SwapLiveDeployment(
 	req *hydrav1.SwapLiveDeploymentRequest,
 ) (*hydrav1.SwapLiveDeploymentResponse, error) {
 	deploymentID := req.GetDeploymentId()
+	environmentID := restate.Key(ctx)
+
+	err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
+		target, err := s.db.FindDeploymentWithEnvironmentAndApp(runCtx, deploymentID)
+		if err != nil {
+			return fmt.Errorf("find target deployment environment: %w", err)
+		}
+		if target.EnvironmentID != environmentID || !target.EnvironmentKind.IsProduction() {
+			return restate.ToTerminalError(fmt.Errorf("target deployment must belong to the keyed production environment"), restate.WithErrorCode(400))
+		}
+
+		return nil
+	}, restate.WithName("validate live deployment target"))
+	if err != nil {
+		return nil, err
+	}
 
 	// Journal the current deployment before the mutating transaction. If the
 	// transaction commits but its result is lost, Restate replays this value so

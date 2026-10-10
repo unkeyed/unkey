@@ -91,8 +91,6 @@ func (s *Service) loadDeployments(ctx restate.ObjectContext, deploymentIDs ...st
 	return deployments, nil
 }
 
-// findStickyRouteIDs returns the environment and live routes. None is a caller
-// error: there is nothing to move.
 func (s *Service) findStickyRouteIDs(ctx restate.ObjectContext, environmentID string) ([]string, error) {
 	routeIDs, err := restate.Run(ctx, func(runCtx restate.RunContext) ([]string, error) {
 		routes, err := s.db.FindFrontlineRoutesByEnvironmentAndSticky(runCtx, db.FindFrontlineRoutesByEnvironmentAndStickyParams{
@@ -113,10 +111,6 @@ func (s *Service) findStickyRouteIDs(ctx restate.ObjectContext, environmentID st
 	}, restate.WithName("find sticky routes"), restate.WithMaxRetryAttempts(runMaxAttempts))
 	if err != nil {
 		return nil, fmt.Errorf("find sticky routes: %w", err)
-	}
-
-	if len(routeIDs) == 0 {
-		return nil, restate.ToTerminalError(fmt.Errorf("environment %s has no sticky routes", environmentID), restate.WithErrorCode(400))
 	}
 	return routeIDs, nil
 }

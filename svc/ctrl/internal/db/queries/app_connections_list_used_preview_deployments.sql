@@ -1,0 +1,42 @@
+-- name: ListPreviewDeploymentsUsedByAppConnections :many
+SELECT target.id
+FROM deployments target
+INNER JOIN environments target_env ON target_env.id = target.environment_id
+    AND target_env.app_id = target.app_id
+    AND target_env.kind = 'preview'
+WHERE target.id IN (sqlc.slice(deployment_ids))
+    AND target.status = 'ready'
+    AND target.desired_state = 'running'
+    AND EXISTS (
+        SELECT 1
+        FROM deployment_connections b
+        INNER JOIN deployment_connection_app_targets t
+            ON t.deployment_id = b.deployment_id AND t.connection_id = b.connection_id
+        INNER JOIN deployments caller ON caller.id = b.deployment_id
+            AND caller.workspace_id = b.workspace_id
+            AND caller.project_id = b.project_id
+            AND caller.app_id = b.app_id
+            AND caller.environment_id = b.environment_id
+        INNER JOIN environments caller_env ON caller_env.id = caller.environment_id
+            AND caller_env.app_id = caller.app_id
+        WHERE b.resource_type = 'app'
+            AND b.resource_id = target.app_id
+            AND b.workspace_id = target.workspace_id
+            AND b.project_id = target.project_id
+            AND caller.desired_state = 'running'
+            AND caller.status IN ('pending', 'starting', 'building', 'deploying', 'network', 'finalizing', 'ready')
+            AND JSON_CONTAINS(caller.capabilities, 'true', '$.private_networking')
+            AND (
+                (t.selection_mode = 'environment' AND t.target_environment_id = target.environment_id)
+                OR (
+                    t.selection_mode = 'automatic'
+                    AND caller_env.kind = 'preview'
+                    AND caller.source = 'git'
+                    AND COALESCE(caller.git_branch, '') <> ''
+                    AND target.source = 'git'
+                    AND target.git_branch = caller.git_branch
+                    AND COALESCE(target.fork_repository_full_name, '') = COALESCE(caller.fork_repository_full_name, '')
+                )
+            )
+    )
+ORDER BY target.id;
