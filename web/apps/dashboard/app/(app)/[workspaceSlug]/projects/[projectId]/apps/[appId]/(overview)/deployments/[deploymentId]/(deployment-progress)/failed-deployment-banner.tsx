@@ -1,7 +1,7 @@
 import type { Deployment } from "@/lib/collections/deploy/deployments";
 import { useBillingUIUpgrades } from "@/lib/flags/use-billing-ui-upgrades";
 import { routes } from "@/lib/navigation/routes";
-import type { AppScope, AppSettingsPage } from "@/lib/navigation/routes/projects";
+import type { AppScope, AppSettingsTarget } from "@/lib/navigation/routes/projects";
 import { match } from "@unkey/match";
 import {
   AlertBanner,
@@ -18,21 +18,35 @@ import { RedeployDialog } from "../../components/table/components/actions/redepl
 import type { StepsData } from "./deployment-progress";
 import { LIMITS_DOCS_URL, limitFailure } from "./limit-failure";
 
-const SETTINGS_HINTS: ReadonlyArray<{ pattern: string; page: AppSettingsPage }> = [
+type SettingsHint = "build" | "environment";
+
+const HINT_TARGET: Record<
+  SettingsHint,
+  (environmentSlug: string | undefined) => AppSettingsTarget
+> = {
+  build: () => ({ page: "build" }),
+  environment: (environment) => ({ page: "environments", environment }),
+};
+
+const SETTINGS_HINTS: ReadonlyArray<{ pattern: string; hint: SettingsHint }> = [
   // Dockerfile path / docker context (from build.go extractUserBuildError)
-  { pattern: "check that the file path is correct", page: "build" },
-  { pattern: "dockerfile appears to be empty", page: "build" },
-  { pattern: "build target stage was not found", page: "build" },
-  { pattern: "check the root directory", page: "build" },
+  { pattern: "check that the file path is correct", hint: "build" },
+  { pattern: "dockerfile appears to be empty", hint: "build" },
+  { pattern: "build target stage was not found", hint: "build" },
+  { pattern: "check the root directory", hint: "build" },
   // Region configuration (from deploy_handler.go createTopologies)
-  { pattern: "configure at least one region", page: "environments" },
+  { pattern: "configure at least one region", hint: "environment" },
   // Git branch (from deploy_handler.go buildImage)
-  { pattern: "git branch could not be resolved", page: "build" },
+  { pattern: "git branch could not be resolved", hint: "build" },
 ];
 
-function settingsPageFor(error: string): AppSettingsPage | undefined {
+function settingsTargetFor(
+  error: string,
+  environmentSlug: string | undefined,
+): AppSettingsTarget | undefined {
   const lower = error.toLowerCase();
-  return SETTINGS_HINTS.find((hint) => lower.includes(hint.pattern))?.page;
+  const found = SETTINGS_HINTS.find(({ pattern }) => lower.includes(pattern));
+  return found ? HINT_TARGET[found.hint](environmentSlug) : undefined;
 }
 
 type StepKey = keyof NonNullable<StepsData>;
@@ -71,9 +85,11 @@ export function FailedDeploymentBanner({
 }) {
   const [redeployOpen, setRedeployOpen] = useState(false);
   const errorMessage = (stepsData && firstStepError(stepsData)) ?? "Deployment failed";
-  const settingsPage = settingsPageFor(errorMessage);
   const { environments } = useProjectData();
-  const environmentSlug = environments.find((e) => e.id === deployment.environmentId)?.slug;
+  const settingsTarget = settingsTargetFor(
+    errorMessage,
+    environments.find((e) => e.id === deployment.environmentId)?.slug,
+  );
   const billingUpgrades = useBillingUIUpgrades();
   const limit = billingUpgrades ? limitFailure(errorMessage) : null;
   const actions = stepsData == null ? "loading" : limit ? "limit" : "generic";
@@ -92,20 +108,10 @@ export function FailedDeploymentBanner({
               </Link>
             </>
           )}
-          {settingsPage && (
+          {settingsTarget && (
             <>
               {" "}
-              <Link
-                href={
-                  settingsPage === "environments"
-                    ? routes.projects.apps.settings({
-                        ...appScope,
-                        page: "environments",
-                        environment: environmentSlug,
-                      })
-                    : routes.projects.apps.settings({ ...appScope, page: settingsPage })
-                }
-              >
+              <Link href={routes.projects.apps.settings({ ...appScope, ...settingsTarget })}>
                 Go to Settings
               </Link>
             </>
