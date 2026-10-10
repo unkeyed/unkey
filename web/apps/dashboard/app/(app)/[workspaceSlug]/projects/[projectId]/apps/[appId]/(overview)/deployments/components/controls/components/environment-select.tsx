@@ -2,6 +2,7 @@
 
 import { IconChevronDownOutline18, IconLayers3Outline18 } from "@unkey/icons";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@unkey/ui";
+import { environmentName } from "../../../../../../_components/environment-label";
 import { useProjectData } from "../../../../data-provider";
 import { useFilters } from "../../../hooks/use-filters";
 
@@ -37,7 +38,7 @@ export function EnvironmentSelect() {
         { value: "all", label: "All environments" },
         ...environments.map((env) => ({
           value: env.slug,
-          label: env.slug.charAt(0).toUpperCase() + env.slug.slice(1),
+          label: environmentName(env.slug),
         })),
       ]}
       onValueChange={(newValue) => {
@@ -57,7 +58,7 @@ export function EnvironmentSelect() {
         <SelectItem value="all">All environments</SelectItem>
         {environments.map((env) => (
           <SelectItem key={env.id} value={env.slug}>
-            {env.slug.charAt(0).toUpperCase() + env.slug.slice(1)}
+            {environmentName(env.slug)}
           </SelectItem>
         ))}
       </SelectContent>

@@ -1,4 +1,5 @@
 import { APP_SETTINGS_PAGES, type AppSettingsPage } from "@/lib/navigation/routes/projects";
+import { environmentName } from "../../../_components/environment-label";
 
 export type SettingsSection = "general" | AppSettingsPage;
 
@@ -24,10 +25,6 @@ export function sectionPage(section: SettingsSection): AppSettingsPage | undefin
 }
 
 type SettingsHeader = { back?: AppSettingsPage; title: string; description?: string };
-
-export function environmentName(slug: string): string {
-  return slug.charAt(0).toUpperCase() + slug.slice(1);
-}
 
 export function settingsHeader(
   section: SettingsSection,
