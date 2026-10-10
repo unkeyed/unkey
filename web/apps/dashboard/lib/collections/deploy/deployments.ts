@@ -134,7 +134,23 @@ const DEFAULT_AVATAR_URL = "https://github.com/identicons/dummy-user.png";
 type DeploymentDetailsById = Awaited<
   ReturnType<typeof trpcClient.deploy.deployment.listDetails.query>
 >;
-type DeploymentDetails = DeploymentDetailsById[string];
+type RowDetails = Pick<
+  Deployment,
+  | "projectId"
+  | "appId"
+  | "environmentId"
+  | "hasOpenApiSpec"
+  | "desiredState"
+  | "instances"
+  | "desiredInstanceCount"
+  | "desiredRegions"
+  | "triggerReason"
+  | "lastExit"
+>;
+
+// Once a row in one of these statuses has no instances left, nothing changes its
+// details, so a refetch keeps the held details instead of asking again
+const SETTLED_DETAIL_STATUSES = new Set<DeploymentStatus>(["superseded", "cancelled", "skipped"]);
 
 // Subsets of one page load resolve within milliseconds of each other, so their
 // detail lookups wait a moment and share one request
@@ -170,7 +186,7 @@ function loadDeploymentDetails(ids: string[]): Promise<DeploymentDetailsById> {
 
 function toDeployment(
   deployment: ApiDeployment,
-  details: DeploymentDetails,
+  details: RowDetails,
   projectId: string,
 ): Deployment {
   const { git, docker, runtime } = deployment;
@@ -232,8 +248,10 @@ function extractNumberFilter(filters: ParsedFilter[], fieldName: string, operato
 // loads that row on its own, however old it is.
 function readDeploymentSubset(opts: LoadSubsetOptions | undefined) {
   const { filters, limit } = parseLoadSubsetOptions(opts);
-  const lastKey = opts?.cursor?.lastKey;
   const inclusiveEnd = extractNumberFilter(filters, "createdAt", "lte");
+  const [boundary] = opts?.cursor?.whereFrom
+    ? parseLoadSubsetOptions({ where: opts.cursor.whereFrom }).filters
+    : [];
   return {
     limit,
     projectId: extractStringFilter(filters, "projectId"),
@@ -248,7 +266,12 @@ function readDeploymentSubset(opts: LoadSubsetOptions | undefined) {
     endTime:
       extractNumberFilter(filters, "createdAt", "lt") ??
       (inclusiveEnd === undefined ? undefined : inclusiveEnd + 1),
-    cursor: typeof lastKey === "string" ? lastKey : undefined,
+    // Load more names the createdAt of the last row on screen; the next page is
+    // everything created at or before it
+    before:
+      boundary?.field.at(-1) === "createdAt" && typeof boundary.value === "number"
+        ? boundary.value
+        : undefined,
     offset: opts?.offset !== undefined && opts.offset > 0 ? opts.offset : undefined,
   };
 }
@@ -274,11 +297,8 @@ function listKey(subset: DeploymentSubset): string {
 // nothing left to load
 const exhaustedLists = new Set<string>();
 
-// A grown window (load more) can arrive as an offset instead of a cursor. The
-// API pages by id, so the cursor is the row this tab already holds at that
-// offset, in the same newest-first order the live queries use
-function cursorAtOffset(subset: DeploymentSubset, offset: number): string | undefined {
-  const held = [...deployments.values()]
+function heldRows(subset: DeploymentSubset): Deployment[] {
+  return [...deployments.values()]
     .filter(
       (d) =>
         d.projectId === subset.projectId &&
@@ -290,7 +310,6 @@ function cursorAtOffset(subset: DeploymentSubset, offset: number): string | unde
         (subset.endTime === undefined || d.createdAt < subset.endTime),
     )
     .sort((a, b) => b.createdAt - a.createdAt);
-  return held[offset - 1]?.id;
 }
 
 async function fetchDeploymentRows(subset: DeploymentSubset): Promise<ApiDeployment[]> {
@@ -308,19 +327,28 @@ async function fetchDeploymentRows(subset: DeploymentSubset): Promise<ApiDeploym
     }
   }
 
-  const isNextPage = subset.cursor !== undefined || subset.offset !== undefined;
+  const isNextPage = subset.before !== undefined || subset.offset !== undefined;
   if (isNextPage && exhaustedLists.has(listKey(subset))) {
     return [];
   }
-  const cursor =
-    subset.cursor ??
-    (subset.offset === undefined ? undefined : cursorAtOffset(subset, subset.offset));
-  if (subset.offset !== undefined && cursor === undefined) {
+  const held = isNextPage ? heldRows(subset) : [];
+  // A grown window without a boundary names only an offset into the rows on
+  // screen; the row there gives the boundary
+  const before =
+    subset.before ??
+    (subset.offset === undefined
+      ? undefined
+      : held[Math.min(subset.offset, held.length) - 1]?.createdAt);
+  if (isNextPage && before === undefined) {
     return [];
   }
-  // The API cursor includes the row it names, so a cursor page asks for one
-  // extra row and drops it
-  const limit = Math.min((subset.limit ?? API_PAGE_LIMIT) + (cursor ? 1 : 0), API_PAGE_LIMIT);
+  // Rows created in the same millisecond as the boundary may sit on either
+  // side of it, so a next page asks again for the ones already held
+  const tied = held.filter((d) => d.createdAt === before).length;
+  // useLiveInfiniteQuery holds one row past the first page to know whether a
+  // next page exists; fetching it here saves a second request for that row
+  const lookahead = isNextPage ? 0 : 1;
+  const limit = Math.min((subset.limit ?? API_PAGE_LIMIT) + tied + lookahead, API_PAGE_LIMIT);
   const response = await getUnkeyClient().deployments.listDeployments({
     project: subset.projectId,
     app: subset.appId,
@@ -331,16 +359,18 @@ async function fetchDeploymentRows(subset: DeploymentSubset): Promise<ApiDeploym
     status: subset.statuses.length > 0 ? subset.statuses : undefined,
     branch: subset.appId !== undefined && subset.branches.length > 0 ? subset.branches : undefined,
     startTime: subset.startTime,
-    endTime: subset.endTime,
+    endTime:
+      before === undefined
+        ? subset.endTime
+        : Math.min(subset.endTime ?? Number.POSITIVE_INFINITY, before + 1),
     limit,
-    cursor,
   });
   if (response.result.pagination.hasMore) {
     exhaustedLists.delete(listKey(subset));
   } else {
     exhaustedLists.add(listKey(subset));
   }
-  return response.result.data.filter((d) => d.id !== cursor);
+  return response.result.data;
 }
 
 /**
@@ -366,14 +396,14 @@ export const deployments = createCollection<Deployment, string>(
             subset.startTime ?? null,
             subset.endTime ?? null,
             subset.limit ?? null,
+            subset.before ?? null,
             subset.offset ?? null,
-            subset.cursor ?? null,
           ]
         : ["deployments"];
     },
     retry: 3,
     syncMode: "on-demand",
-    queryFn: async (ctx) => {
+    queryFn: async (ctx): Promise<Deployment[]> => {
       const subset = readDeploymentSubset(ctx.meta?.loadSubsetOptions);
       const { projectId } = subset;
       if (!projectId) {
@@ -384,9 +414,21 @@ export const deployments = createCollection<Deployment, string>(
       if (rows.length === 0) {
         return [];
       }
-      const details = await loadDeploymentDetails(rows.map((d) => d.id));
+      const held = new Map(
+        rows.flatMap((row) => {
+          const known = deployments.get(row.id);
+          return known &&
+            known.status === row.status &&
+            known.instances.length === 0 &&
+            SETTLED_DETAIL_STATUSES.has(row.status)
+            ? [[row.id, known] as const]
+            : [];
+        }),
+      );
+      const missing = rows.filter((row) => !held.has(row.id)).map((row) => row.id);
+      const details = missing.length > 0 ? await loadDeploymentDetails(missing) : {};
       return rows.flatMap((row) => {
-        const detail = details[row.id];
+        const detail = details[row.id] ?? held.get(row.id);
         return detail?.projectId === projectId ? [toDeployment(row, detail, projectId)] : [];
       });
     },

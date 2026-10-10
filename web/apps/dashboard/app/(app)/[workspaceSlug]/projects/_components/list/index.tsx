@@ -8,6 +8,7 @@ import { IconDotsOutline18, IconTriangleWarningOutline18 } from "@unkey/icons";
 import { AlertBanner, AlertBannerActions, AlertBannerDescription, Button } from "@unkey/ui";
 import { useState } from "react";
 import { warmProjectPage } from "../../[projectId]/_components/apps-list/queries";
+import { useWarmAppPage } from "../../[projectId]/apps/[appId]/(overview)/hooks/use-warm-app-page";
 import { DeployPlanGateDialog } from "../deploy-plan-gate-dialog";
 import { useDeployGate } from "../hooks/use-deploy-gate";
 import { ProjectActions } from "./project-actions";
@@ -79,12 +80,23 @@ export const ProjectsList = () => {
 function ProjectListCard({ project, name }: { project: Project; name: string }) {
   const { ref, isNear } = useNearViewport<HTMLDivElement>();
   const { apps, isLoading } = useProjectCard(project.id, { nearViewport: isNear });
+  const { warmApp, cancelWarm } = useWarmAppPage();
+  // Warming every app of a project would load a deployment list per app, so only
+  // a project with a single app warms the app the visit leads on to
+  const warmNextPages = () => {
+    warmProjectPage(project.id);
+    const onlyApp = apps.length === 1 ? apps[0] : undefined;
+    if (onlyApp) {
+      warmApp(project.id, onlyApp.id);
+    }
+  };
   return (
     <div
       ref={ref}
       className="h-full"
-      onPointerEnter={() => warmProjectPage(project.id)}
-      onFocusCapture={() => warmProjectPage(project.id)}
+      onPointerEnter={warmNextPages}
+      onPointerLeave={cancelWarm}
+      onFocusCapture={warmNextPages}
     >
       <ProjectCard
         projectId={project.id}

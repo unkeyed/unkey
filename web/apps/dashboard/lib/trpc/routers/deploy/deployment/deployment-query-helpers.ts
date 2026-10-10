@@ -1,5 +1,5 @@
 import type { InstanceStatus } from "@/lib/collections/deploy/instance-status";
-import { type InferSelectModel, ne } from "@/lib/db";
+import { ne } from "@/lib/db";
 import type { LastExit } from "@/lib/types/deploy";
 import { type ContainerStatus, deployments } from "@unkey/db/src/schema";
 import { mapRegionToFlag } from "../network/utils";
@@ -11,47 +11,6 @@ import { mapRegionToFlag } from "../network/utils";
 export function excludeSkipped() {
   return ne(deployments.status, "skipped");
 }
-
-export const deploymentSelectFields = {
-  id: deployments.id,
-  projectId: deployments.projectId,
-  environmentId: deployments.environmentId,
-  source: deployments.source,
-  requestedImage: deployments.imageRequested,
-  gitCommitSha: deployments.gitCommitSha,
-  gitBranch: deployments.gitBranch,
-  gitCommitMessage: deployments.gitCommitMessage,
-  gitCommitAuthorHandle: deployments.gitCommitAuthorHandle,
-  gitCommitAuthorAvatarUrl: deployments.gitCommitAuthorAvatarUrl,
-  gitCommitTimestamp: deployments.gitCommitTimestamp,
-  prNumber: deployments.prNumber,
-  forkRepositoryFullName: deployments.forkRepositoryFullName,
-  resolvedImage: deployments.imageResolved,
-  status: deployments.status,
-  desiredState: deployments.desiredState,
-  trigger: deployments.trigger,
-  triggeredBy: deployments.triggeredBy,
-  triggerReason: deployments.triggerReason,
-  cpuMillicores: deployments.cpuMillicores,
-  memoryMib: deployments.memoryMib,
-  storageMib: deployments.storageMib,
-  port: deployments.port,
-  upstreamProtocol: deployments.upstreamProtocol,
-  healthcheck: deployments.healthcheck,
-  shutdownSignal: deployments.shutdownSignal,
-  createdAt: deployments.createdAt,
-  updatedAt: deployments.updatedAt,
-} as const;
-
-export const deploymentListSelect = {
-  ...deploymentSelectFields,
-  appId: deployments.appId,
-} as const;
-
-export type DeploymentListSelection = Pick<
-  InferSelectModel<typeof deployments>,
-  Exclude<keyof typeof deploymentListSelect, "requestedImage" | "resolvedImage">
-> & { requestedImage: string | null; resolvedImage: string | null };
 
 export function mapInstanceRow(row: {
   id: string;
@@ -135,23 +94,4 @@ export function lastExitsByDeployment(
     }
   }
   return lastExits;
-}
-
-export function normalizeDeploymentRow(deployment: {
-  source: "unknown" | "git" | "oci";
-  gitBranch: string | null;
-  prNumber: number | null;
-  forkRepositoryFullName: string | null;
-  gitCommitAuthorAvatarUrl: string | null;
-  gitCommitTimestamp: number | null;
-}) {
-  return {
-    source: deployment.source,
-    gitBranch: deployment.gitBranch ?? "",
-    prNumber: deployment.prNumber ?? null,
-    forkRepositoryFullName: deployment.forkRepositoryFullName ?? null,
-    gitCommitAuthorAvatarUrl:
-      deployment.gitCommitAuthorAvatarUrl ?? "https://github.com/identicons/dummy-user.png",
-    gitCommitTimestamp: deployment.gitCommitTimestamp,
-  };
 }

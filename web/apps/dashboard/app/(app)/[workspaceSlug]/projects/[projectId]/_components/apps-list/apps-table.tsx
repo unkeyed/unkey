@@ -1,3 +1,4 @@
+import { useWarmAppPage } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/hooks/use-warm-app-page";
 import { DeploymentStatusIndicator } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/deployment-status-dot";
 import { DEPLOYMENT_STATUS_LABELS } from "@/lib/collections/deploy/deployment-status";
 import {
@@ -65,10 +66,18 @@ function AppsTableHeader() {
 
 function AppsTableRow({ row, projectId }: { row: AppRowData; projectId: string }) {
   const { app, deployment } = row;
+  const { warmApp, cancelWarm } = useWarmAppPage();
 
   return (
     <ResourceListItem className="grid grid-cols-[minmax(0,1.2fr)_minmax(0,1.2fr)_minmax(0,1.5fr)_minmax(0,0.8fr)_minmax(0,0.9fr)_32px] items-center gap-4 h-12 px-4 text-xs text-gray-12 transition-colors hover:bg-grayA-2">
-      <Link href={row.href} className="absolute inset-0 z-0" aria-label={`View ${app.name}`} />
+      <Link
+        href={row.href}
+        className="absolute inset-0 z-0"
+        aria-label={`View ${app.name}`}
+        onPointerEnter={() => warmApp(projectId, app.id)}
+        onPointerLeave={cancelWarm}
+        onFocus={() => warmApp(projectId, app.id)}
+      />
       <span className="flex min-w-0 items-center gap-2.5">
         <span className="flex size-6 shrink-0 items-center justify-center rounded-md border bg-raised">
           <SourceIcon source={row.source} className="size-3 text-gray-12" />
