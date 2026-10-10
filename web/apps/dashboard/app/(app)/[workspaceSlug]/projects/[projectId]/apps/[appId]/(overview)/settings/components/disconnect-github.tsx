@@ -18,7 +18,7 @@ import { useState } from "react";
 import { useBuildSource } from "../../../../_components/settings/hooks/use-build-source";
 
 export function DisconnectGitHub() {
-  const { appId, repositoryFullName } = useBuildSource();
+  const { appId, repositoryFullName } = useBuildSource({ staleTime: 0 });
   const utils = trpc.useUtils();
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [pendingRepo, setPendingRepo] = useState<string | null>(null);
