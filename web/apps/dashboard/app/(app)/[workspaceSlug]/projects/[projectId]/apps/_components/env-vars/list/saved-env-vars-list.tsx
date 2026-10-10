@@ -10,10 +10,6 @@ export function SavedEnvVarsList({ envVars }: { envVars: EnvVar[] }) {
   const { environments } = useProjectData();
   const [editingId, setEditingId] = useState<string | null>(null);
 
-  if (envVars.length === 0) {
-    return null;
-  }
-
   const items = withEnvironments(envVars, environments).sort(compareByName);
 
   return (
