@@ -7,20 +7,10 @@ import {
   SettingsRowTitle,
 } from "@unkey/ui";
 import { z } from "zod";
-import { useSettingForm } from "../hooks/use-setting-form";
-
-const portSchema = z.object({
-  port: z.number().int().min(1).max(65535),
-});
+import { useSettingField } from "../hooks/use-setting-form";
 
 export function Port() {
-  const { form, formProps } = useSettingForm({
-    schema: portSchema,
-    read: (s) => ({ port: s.port }),
-    write: (draft, values) => {
-      draft.port = values.port;
-    },
-  });
+  const { form, formProps } = useSettingField("port", z.number().int().min(1).max(65535));
   const error = form.formState.errors.port;
 
   return (

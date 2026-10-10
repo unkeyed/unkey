@@ -8,41 +8,32 @@ import {
 } from "@unkey/ui";
 import { useMemo } from "react";
 import { z } from "zod";
-import { useSettingForm } from "../hooks/use-setting-form";
+import { useSettingField } from "../hooks/use-setting-form";
 import { pathHint, pathInputVariant } from "./path-hint";
 import { pathHintMessage } from "./path-hint-message";
 import { useRepoTree } from "./use-repo-tree";
 
 const dockerContextSegment = /^[A-Za-z0-9._-]+$/;
 
-const rootDirectorySchema = z.object({
-  dockerContext: z
-    .string()
-    .min(1, "Enter a root directory or use '.' for the repository root.")
-    .refine(
-      (path) =>
-        path === "." ||
-        (path === path.trim() &&
-          !path.startsWith("/") &&
-          !path.includes("\\") &&
-          path
-            .split("/")
-            .every(
-              (segment) =>
-                segment !== "." && segment !== ".." && dockerContextSegment.test(segment),
-            )),
-      "Enter a relative path like 'api' or 'services/api'. Do not start with '/' or './'.",
-    ),
-});
+const dockerContextSchema = z
+  .string()
+  .min(1, "Enter a root directory or use '.' for the repository root.")
+  .refine(
+    (path) =>
+      path === "." ||
+      (path === path.trim() &&
+        !path.startsWith("/") &&
+        !path.includes("\\") &&
+        path
+          .split("/")
+          .every(
+            (segment) => segment !== "." && segment !== ".." && dockerContextSegment.test(segment),
+          )),
+    "Enter a relative path like 'api' or 'services/api'. Do not start with '/' or './'.",
+  );
 
 export function RootDirectory() {
-  const { form, formProps } = useSettingForm({
-    schema: rootDirectorySchema,
-    read: (s) => ({ dockerContext: s.dockerContext }),
-    write: (draft, values) => {
-      draft.dockerContext = values.dockerContext;
-    },
-  });
+  const { form, formProps } = useSettingField("dockerContext", dockerContextSchema);
   const { branch, validatePath, findCaseInsensitiveMatch, rootDirectorySuggestions } =
     useRepoTree();
 

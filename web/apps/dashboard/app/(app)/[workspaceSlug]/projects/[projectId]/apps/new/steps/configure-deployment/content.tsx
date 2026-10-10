@@ -63,8 +63,7 @@ function runtimeSummary({ port, command, healthcheck }: EnvironmentSettings): st
 }
 
 function advancedSummary({ upstreamProtocol, openapiSpecPath }: EnvironmentSettings): string {
-  const protocol = PROTOCOLS.find((option) => option.value === upstreamProtocol);
   const spec =
     openapiSpecPath === null || openapiSpecPath.trim() === "" ? "No OpenAPI spec" : openapiSpecPath;
-  return protocol ? `${protocol.label} · ${spec}` : spec;
+  return `${PROTOCOLS[upstreamProtocol].label} · ${spec}`;
 }

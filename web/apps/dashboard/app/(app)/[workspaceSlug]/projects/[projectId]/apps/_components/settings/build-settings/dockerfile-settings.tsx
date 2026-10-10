@@ -8,23 +8,13 @@ import {
 } from "@unkey/ui";
 import { useMemo } from "react";
 import { z } from "zod";
-import { useSettingForm } from "../hooks/use-setting-form";
+import { useSettingField } from "../hooks/use-setting-form";
 import { pathHint, pathInputVariant } from "./path-hint";
 import { pathHintMessage } from "./path-hint-message";
 import { useRepoTree } from "./use-repo-tree";
 
-const dockerfileSchema = z.object({
-  dockerfile: z.string(),
-});
-
 export function Dockerfile() {
-  const { settings, form, formProps } = useSettingForm({
-    schema: dockerfileSchema,
-    read: (s) => ({ dockerfile: s.dockerfile }),
-    write: (draft, values) => {
-      draft.dockerfile = values.dockerfile;
-    },
-  });
+  const { settings, form, formProps } = useSettingField("dockerfile", z.string());
   const { dockerContext } = settings;
   const { branch, validateDockerfilePath, findDockerfileCaseMatch, getDockerfilesForContext } =
     useRepoTree();

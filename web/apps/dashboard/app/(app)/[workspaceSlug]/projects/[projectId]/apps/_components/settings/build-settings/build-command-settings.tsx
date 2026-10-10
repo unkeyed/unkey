@@ -9,20 +9,11 @@ import {
 } from "@unkey/ui";
 import { z } from "zod";
 import { useEnvironmentSettings } from "../environment-provider";
-import { useSettingForm } from "../hooks/use-setting-form";
-
-const buildCommandSchema = z.object({
-  buildCommand: z.string().max(1000),
-});
+import { useSettingField } from "../hooks/use-setting-form";
 
 export function BuildCommand() {
   const dockerfileConfigured = useEnvironmentSettings().settings.dockerfile.trim() !== "";
-  const { form, formProps } = useSettingForm({
-    schema: buildCommandSchema,
-    read: (s) => ({ buildCommand: s.buildCommand }),
-    write: (draft, values) => {
-      draft.buildCommand = values.buildCommand;
-    },
+  const { form, formProps } = useSettingField("buildCommand", z.string().max(1000), {
     blockedReason: dockerfileConfigured
       ? "Not used with a Dockerfile build. Remove the Dockerfile to build automatically."
       : undefined,

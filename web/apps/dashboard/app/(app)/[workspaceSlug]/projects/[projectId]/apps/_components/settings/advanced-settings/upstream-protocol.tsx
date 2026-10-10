@@ -1,5 +1,6 @@
 "use client";
 
+import type { EnvironmentSettings } from "@/lib/collections/deploy/environment-settings";
 import { Radio } from "@base-ui/react/radio";
 import { RadioGroup } from "@base-ui/react/radio-group";
 import {
@@ -12,25 +13,18 @@ import {
 } from "@unkey/ui";
 import { Controller } from "react-hook-form";
 import { z } from "zod";
-import { useSettingForm } from "../hooks/use-setting-form";
+import { useSettingField } from "../hooks/use-setting-form";
 
-export const PROTOCOLS = [
-  { value: "http1", label: "HTTP/1.1", hint: "Works with every server." },
-  { value: "h2c", label: "HTTP/2 (h2c)", hint: "Cleartext HTTP/2. For gRPC and streaming." },
-] as const;
-
-const schema = z.object({
-  upstreamProtocol: z.enum(["http1", "h2c"]),
-});
+export const PROTOCOLS: Record<
+  EnvironmentSettings["upstreamProtocol"],
+  { label: string; hint: string }
+> = {
+  http1: { label: "HTTP/1.1", hint: "Works with every server." },
+  h2c: { label: "HTTP/2 (h2c)", hint: "Cleartext HTTP/2. For gRPC and streaming." },
+};
 
 export function UpstreamProtocol() {
-  const { form, formProps } = useSettingForm({
-    schema,
-    read: (s) => ({ upstreamProtocol: s.upstreamProtocol }),
-    write: (draft, values) => {
-      draft.upstreamProtocol = values.upstreamProtocol;
-    },
-  });
+  const { form, formProps } = useSettingField("upstreamProtocol", z.enum(["http1", "h2c"]));
 
   return (
     <SettingsForm {...formProps}>
@@ -58,18 +52,13 @@ export function UpstreamProtocol() {
               <RadioGroup
                 aria-label="Upstream protocol"
                 value={field.value}
-                onValueChange={(value) => {
-                  const protocol = PROTOCOLS.find((option) => option.value === value);
-                  if (protocol) {
-                    field.onChange(protocol.value);
-                  }
-                }}
+                onValueChange={field.onChange}
                 className="grid max-w-(--setting-w) gap-3 sm:grid-cols-2"
               >
-                {PROTOCOLS.map((protocol) => (
+                {Object.entries(PROTOCOLS).map(([value, protocol]) => (
                   <Radio.Root
-                    key={protocol.value}
-                    value={protocol.value}
+                    key={value}
+                    value={value}
                     className="group flex items-start gap-3 rounded-lg border border-grayA-5 p-3.5 text-left transition-colors hover:border-grayA-7 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-gray-7 data-checked:border-gray-12 data-checked:bg-grayA-2 data-checked:ring-1 data-checked:ring-gray-12"
                   >
                     <span className="mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-full border border-grayA-7 group-data-checked:border-gray-12 group-data-checked:bg-gray-12">
