@@ -23,6 +23,7 @@ export function useAddEnvVarsForm({ onAdded }: { onAdded?: () => void } = {}) {
   const targetEnvironmentIds =
     environmentId === ALL_ENVIRONMENTS ? environments.map((e) => e.id) : [environmentId];
 
+  const canSubmit = targetEnvironmentIds.length > 0;
   const isDirty = draft.rows.some((row) => !isBlankRow(row));
   const reset = () => {
     draft.reset();
@@ -70,7 +71,7 @@ export function useAddEnvVarsForm({ onAdded }: { onAdded?: () => void } = {}) {
       draft.showErrors(parsed.errors);
       return;
     }
-    if (parsed.variables.length === 0 || targetEnvironmentIds.length === 0 || add.isLoading) {
+    if (parsed.variables.length === 0 || !canSubmit || add.isLoading) {
       return;
     }
     if (parsed.variables.length > MAX_VARIABLES) {
@@ -91,7 +92,7 @@ export function useAddEnvVarsForm({ onAdded }: { onAdded?: () => void } = {}) {
     draft,
     environmentId,
     setEnvironmentId,
-    targetEnvironmentIds,
+    canSubmit,
     isDirty,
     isPending: add.isLoading,
     reset,

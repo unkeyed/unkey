@@ -83,7 +83,7 @@ function EnvVarsGroup() {
         dirty={form.isDirty}
         saveState={formSaveState({
           isSubmitting: form.isPending,
-          isValid: form.targetEnvironmentIds.length > 0,
+          isValid: form.canSubmit,
           isDirty: form.isDirty,
         })}
         onSubmit={form.onSubmit}
