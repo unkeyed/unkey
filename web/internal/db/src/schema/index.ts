@@ -22,9 +22,13 @@ export * from "./app_source_oci";
 export * from "./app_build_settings";
 export * from "./app_runtime_settings";
 export * from "./app_regional_settings";
+export * from "./app_connections";
+export * from "./connection_app_targets";
 
 export * from "./app_environment_variables";
 export * from "./deployments";
+export * from "./deployment_connections";
+export * from "./deployment_connection_app_targets";
 export * from "./openapi_specs";
 export * from "./deployment_steps";
 export * from "./deployment_topology";

@@ -26,12 +26,14 @@ CREATE TABLE `deployments` (
 	`port` int NOT NULL DEFAULT 8080,
 	`shutdown_signal` enum('SIGTERM','SIGINT','SIGQUIT','SIGKILL') NOT NULL DEFAULT 'SIGTERM',
 	`upstream_protocol` enum('http1','h2c') NOT NULL DEFAULT 'http1',
+	`capabilities` json NOT NULL DEFAULT ('{}'),
 	`healthcheck` json,
 	`pr_number` bigint,
 	`fork_repository_full_name` varchar(256),
 	`github_deployment_id` bigint,
 	`invocation_id` varchar(256),
 	`status` enum('pending','starting','building','deploying','network','finalizing','ready','failed','skipped','awaiting_approval','stopped','superseded','cancelled') NOT NULL DEFAULT 'pending',
+	`first_ready_at` bigint,
 	`trigger` enum('unknown','github','api','cli','dashboard','unkey') NOT NULL DEFAULT 'unknown',
 	`triggered_by` varchar(256),
 	`trigger_reason` varchar(512),
@@ -50,4 +52,10 @@ CREATE INDEX `project_created_at_idx` ON `deployments` (`project_id`,`created_at
 CREATE INDEX `status_idx` ON `deployments` (`status`);
 
 CREATE INDEX `app_created_at_idx` ON `deployments` (`app_id`,`created_at`);
+
+CREATE INDEX `app_environment_created_idx` ON `deployments` (`app_id`,`environment_id`,`created_at`,`id`);
+
+CREATE INDEX `app_branch_created_idx` ON `deployments` (`app_id`,`git_branch`,`created_at`,`id`);
+
+CREATE INDEX `desired_state_status_id_idx` ON `deployments` (`desired_state`,`status`,`id`);
 
