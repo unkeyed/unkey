@@ -1,6 +1,6 @@
 import { toast } from "@unkey/ui";
 import { type ClipboardEvent, type DragEvent, useState } from "react";
-import { type EnvEntry, parseEnvText } from "../env-file";
+import { type EnvEntry, parseEnvText, pastedEntries } from "../env-file";
 
 const isEnvFile = (file: File) =>
   file.name.endsWith(".env") || file.type === "text/plain" || file.type === "";
@@ -56,13 +56,15 @@ export function useDropZone(onEntries: (entries: EnvEntry[]) => void) {
         return;
       }
       const file = e.clipboardData.files[0];
-      const text = e.clipboardData.getData("text/plain");
       if (file && isEnvFile(file)) {
         e.preventDefault();
         importFile(file);
-      } else if (text.includes("\n") && text.includes("=")) {
+        return;
+      }
+      const entries = pastedEntries(e.clipboardData.getData("text/plain"));
+      if (entries.length > 0) {
         e.preventDefault();
-        importText(text);
+        onEntries(entries);
       }
     },
   };
