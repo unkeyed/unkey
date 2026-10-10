@@ -37,6 +37,7 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auditlogs"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/deploymentstream"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/privatenetwork"
 	"github.com/unkeyed/unkey/svc/ctrl/services/acme"
 	"github.com/unkeyed/unkey/svc/ctrl/services/app"
 	"github.com/unkeyed/unkey/svc/ctrl/services/cluster"
@@ -180,8 +181,15 @@ func Run(ctx context.Context, cfg Config) error {
 		r.Defer(chClient.Close)
 	}
 
+	privateNetwork, err := privatenetwork.New(privatenetwork.Config{Database: database, VStream: cfg.VStream, Clock: clk})
+	if err != nil {
+		return fmt.Errorf("unable to configure private network catalogs: %w", err)
+	}
+	r.Go(privateNetwork.Run)
+
 	c, err := cluster.New(cluster.Config{
 		DeploymentStream: deploymentStream,
+		PrivateNetwork:   privateNetwork,
 		Database:         database,
 		Restate:          restateClient,
 		RestateAdmin:     restateAdminClient,
