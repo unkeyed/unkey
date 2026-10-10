@@ -3,22 +3,27 @@ package labels
 import (
 	"fmt"
 	"strings"
+
+	"github.com/unkeyed/unkey/pkg/deploy/privatenetwork"
 )
 
 // Label key constants for krane resources.
 // These are the single source of truth for label keys used across the codebase.
 const (
-	LabelKeyWorkspaceID     = "unkey.com/workspace.id"
-	LabelKeyProjectID       = "unkey.com/project.id"
-	LabelKeyAppID           = "unkey.com/app.id"
-	LabelKeyEnvironmentID   = "unkey.com/environment.id"
-	LabelKeyDeploymentID    = "unkey.com/deployment.id"
-	LabelKeyBuildID         = "unkey.com/build.id"
-	LabelKeyNetworkPolicyID = "unkey.com/networkpolicy.id"
-	LabelKeyPlatform        = "unkey.com/platform"
-	LabelKeyManagedBy       = "app.kubernetes.io/managed-by"
-	LabelKeyComponent       = "app.kubernetes.io/component"
-	LabelKeyNamespace       = "io.kubernetes.pod.namespace"
+	LabelKeyWorkspaceID        = privatenetwork.WorkspaceLabel
+	LabelKeyProjectID          = privatenetwork.ProjectLabel
+	LabelKeyAppID              = privatenetwork.AppLabel
+	LabelKeyEnvironmentID      = privatenetwork.EnvironmentLabel
+	LabelKeyEnvironmentKind    = privatenetwork.EnvironmentKindLabel
+	LabelKeyDeploymentID       = privatenetwork.DeploymentLabel
+	LabelKeyCallerDeploymentID = privatenetwork.CallerDeploymentLabel
+	LabelKeyConnectionID       = privatenetwork.ConnectionLabel
+	LabelKeyBuildID            = "unkey.com/build.id"
+	LabelKeyNetworkPolicyID    = "unkey.com/networkpolicy.id"
+	LabelKeyPlatform           = "unkey.com/platform"
+	LabelKeyManagedBy          = privatenetwork.ManagedByLabel
+	LabelKeyComponent          = privatenetwork.ComponentLabel
+	LabelKeyNamespace          = "io.kubernetes.pod.namespace"
 )
 
 // Labels represents a map of Kubernetes labels for krane resources.
@@ -127,6 +132,22 @@ func (l Labels) ComponentCiliumNetworkPolicy() Labels {
 	return l
 }
 
+// Component sets the "app.kubernetes.io/component" label to component.
+func (l Labels) Component(component string) Labels {
+	l[LabelKeyComponent] = component
+	return l
+}
+
+// Matches reports whether other contains every label in l.
+func (l Labels) Matches(other map[string]string) bool {
+	for key, value := range l {
+		if got, ok := other[key]; !ok || got != value {
+			return false
+		}
+	}
+	return true
+}
+
 // ProjectID adds project ID label to the label set.
 //
 // This method sets the "unkey.com/project.id" label for identifying
@@ -144,6 +165,12 @@ func (l Labels) ProjectID(id string) Labels {
 // for method chaining.
 func (l Labels) EnvironmentID(id string) Labels {
 	l[LabelKeyEnvironmentID] = id
+	return l
+}
+
+// EnvironmentKind adds the canonical environment kind label.
+func (l Labels) EnvironmentKind(kind string) Labels {
+	l[LabelKeyEnvironmentKind] = kind
 	return l
 }
 
