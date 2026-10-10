@@ -9,7 +9,7 @@ import { EnvironmentSettingsScope } from "../../../../../_components/settings/en
 import { useBuildSource } from "../../../../../_components/settings/hooks/use-build-source";
 import { SettingsSkeleton } from "../../../../../_components/settings/settings-skeleton";
 import { useProjectData } from "../../../data-provider";
-import { branchFor } from "../branch";
+import { trackedBranch } from "../branch";
 import { ComputeOverview } from "./compute-overview";
 import { BranchTracking, EnvironmentDomains } from "./environment-groups";
 
@@ -38,7 +38,7 @@ export default function EnvironmentSettingsPage() {
         {hasRepository ? (
           <BranchTracking
             environment={environment}
-            branch={branchFor(environment, hasRepository, defaultBranch)}
+            branch={trackedBranch(environment, defaultBranch)}
           />
         ) : null}
       </SettingsGroups>
