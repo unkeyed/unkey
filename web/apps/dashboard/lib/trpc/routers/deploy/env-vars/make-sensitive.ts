@@ -1,7 +1,8 @@
-import { and, db, eq, or, schema } from "@/lib/db";
-import { TRPCError } from "@trpc/server";
+import { insertAuditLogs } from "@/lib/audit";
+import { and, db, eq, inArray, or, schema } from "@/lib/db";
 import { z } from "zod";
-import { workspaceProcedure } from "../../../trpc";
+import { ratelimit, withRatelimit, workspaceProcedure } from "../../../trpc";
+import { envVarAuditLogs, toEnvVarWriteError } from "./env-var-write";
 
 // Converts recoverable variables to writeonly. The change is one way.
 //
@@ -10,6 +11,7 @@ import { workspaceProcedure } from "../../../trpc";
 // again only to relabel it. This changes the type column and keeps the
 // ciphertext.
 export const makeSensitive = workspaceProcedure
+  .use(withRatelimit(ratelimit.update))
   .input(
     z.object({
       appId: z.string().min(1),
@@ -25,11 +27,9 @@ export const makeSensitive = workspaceProcedure
   )
   .mutation(async ({ ctx, input }) => {
     try {
-      const result = await db
-        .update(schema.appEnvironmentVariables)
-        .set({ type: "writeonly" })
-        .where(
-          and(
+      return await db.transaction(async (tx) => {
+        const targets = await tx.query.appEnvironmentVariables.findMany({
+          where: and(
             eq(schema.appEnvironmentVariables.workspaceId, ctx.workspace.id),
             eq(schema.appEnvironmentVariables.appId, input.appId),
             eq(schema.appEnvironmentVariables.type, "recoverable"),
@@ -42,17 +42,44 @@ export const makeSensitive = workspaceProcedure
               ),
             ),
           ),
+          columns: { id: true, key: true },
+          with: { environment: { columns: { id: true, slug: true } } },
+        });
+        if (targets.length === 0) {
+          return { updated: 0 };
+        }
+
+        const result = await tx
+          .update(schema.appEnvironmentVariables)
+          .set({ type: "writeonly" })
+          .where(
+            and(
+              eq(schema.appEnvironmentVariables.workspaceId, ctx.workspace.id),
+              eq(schema.appEnvironmentVariables.type, "recoverable"),
+              inArray(
+                schema.appEnvironmentVariables.id,
+                targets.map((t) => t.id),
+              ),
+            ),
+          );
+
+        await insertAuditLogs(
+          tx,
+          envVarAuditLogs({
+            workspaceId: ctx.workspace.id,
+            userId: ctx.user.id,
+            context: { location: ctx.audit.location, userAgent: ctx.audit.userAgent },
+            changes: targets.map(({ environment, key }) => ({
+              action: "makeSensitive" as const,
+              environment,
+              key,
+            })),
+          }),
         );
 
-      return { updated: result[0].affectedRows };
-    } catch (error) {
-      if (error instanceof TRPCError) {
-        throw error;
-      }
-
-      throw new TRPCError({
-        code: "INTERNAL_SERVER_ERROR",
-        message: "Failed to mark environment variable(s) as sensitive",
+        return { updated: result[0].affectedRows };
       });
+    } catch (error) {
+      throw toEnvVarWriteError(error, "Failed to mark environment variable(s) as sensitive");
     }
   });
