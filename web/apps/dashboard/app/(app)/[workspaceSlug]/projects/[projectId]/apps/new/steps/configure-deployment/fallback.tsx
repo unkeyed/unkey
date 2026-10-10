@@ -10,7 +10,7 @@ export function ConfigureDeploymentFallback({
   return (
     <ConfigureFrame>
       <SettingsSkeleton className="p-0" />
-      <DeployAction state="loading" onDeploymentCreated={onDeploymentCreated} />
+      <DeployAction loading onDeploymentCreated={onDeploymentCreated} />
     </ConfigureFrame>
   );
 }

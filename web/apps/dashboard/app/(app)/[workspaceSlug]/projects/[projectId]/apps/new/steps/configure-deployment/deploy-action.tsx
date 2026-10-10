@@ -6,33 +6,62 @@ import {
 } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/data-provider";
 import { useDeployActionGate } from "@/app/(app)/[workspaceSlug]/projects/_components/hooks/use-deploy-action-gate";
 import { collection } from "@/lib/collections";
-import { ENVIRONMENT_KIND } from "@/lib/collections/deploy/environments";
+import { ENVIRONMENT_KIND, type Environment } from "@/lib/collections/deploy/environments";
 import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
 import { useMutation } from "@tanstack/react-query";
 import { Button, toast, useStepWizard } from "@unkey/ui";
 
-type DeployState = "loading" | "dirty" | "ready";
+type DeployState =
+  | { kind: "loading" }
+  | { kind: "no-environment" }
+  | { kind: "dirty" }
+  | { kind: "ready"; environmentSlug: string };
 
-const DEPLOY_STATE: Record<DeployState, { disabled: boolean; note: string }> = {
+const DEPLOY_STATE: Record<DeployState["kind"], { disabled: boolean; note: string }> = {
   loading: { disabled: true, note: "Loading your deployment settings" },
+  "no-environment": { disabled: true, note: "This app has no production environment to deploy to" },
   dirty: { disabled: true, note: "Save your changes to deploy" },
   ready: { disabled: false, note: "We'll build your image, provision infrastructure, and more." },
 };
 
+function resolveDeployState({
+  loading,
+  dirty,
+  environments,
+}: {
+  loading: boolean;
+  dirty: boolean;
+  environments: Environment[];
+}): DeployState {
+  if (loading) {
+    return { kind: "loading" };
+  }
+  const production = environments.find(
+    (environment) => environment.kind === ENVIRONMENT_KIND.production,
+  );
+  if (!production) {
+    return { kind: "no-environment" };
+  }
+  return dirty ? { kind: "dirty" } : { kind: "ready", environmentSlug: production.slug };
+}
+
 type DeployActionProps = {
-  state: DeployState;
+  loading?: boolean;
+  dirty?: boolean;
   onDeploymentCreated: (deploymentId: string) => void;
 };
 
-export function DeployAction({ state, onDeploymentCreated }: DeployActionProps) {
-  const { disabled, note } = DEPLOY_STATE[state];
+export function DeployAction({
+  loading = false,
+  dirty = false,
+  onDeploymentCreated,
+}: DeployActionProps) {
   const { goTo } = useStepWizard();
   const { gated, openPaywall, planGate } = useDeployActionGate();
   const { projectId, environments, refetchDeployments } = useProjectData();
   const appId = useAppId();
-  const productionEnvironment = environments.find(
-    (environment) => environment.kind === ENVIRONMENT_KIND.production,
-  );
+  const state = resolveDeployState({ loading, dirty, environments });
+  const { disabled, note } = DEPLOY_STATE[state.kind];
 
   const deploy = useMutation({
     mutationFn: async (environment: string) => {
@@ -64,11 +93,15 @@ export function DeployAction({ state, onDeploymentCreated }: DeployActionProps) 
         variant="primary"
         size="xlg"
         className="rounded-lg"
-        disabled={deploy.isLoading || disabled || !productionEnvironment}
+        disabled={deploy.isLoading || disabled}
         loading={deploy.isLoading}
-        onClick={() =>
-          gated ? openPaywall() : productionEnvironment && deploy.mutate(productionEnvironment.slug)
-        }
+        onClick={() => {
+          if (gated) {
+            openPaywall();
+          } else if (state.kind === "ready") {
+            deploy.mutate(state.environmentSlug);
+          }
+        }}
       >
         Deploy
       </Button>

@@ -48,7 +48,7 @@ export function ConfigureDeploymentContent({
           <SettingsPageCollapsible page={ADVANCED_SETTINGS} />
         </SettingsGroups>
       </UnsavedChangesScope>
-      <DeployAction state={isDirty ? "dirty" : "ready"} onDeploymentCreated={onDeploymentCreated} />
+      <DeployAction dirty={isDirty} onDeploymentCreated={onDeploymentCreated} />
     </ConfigureFrame>
   );
 }
