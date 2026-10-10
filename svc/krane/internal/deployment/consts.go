@@ -11,6 +11,16 @@ const (
 	// so field ownership/conflict detection is tracked per manager.
 	fieldManagerKrane = "krane"
 
+	fieldManagerRolloutGate = "krane-rollout-gate"
+
+	revisionHistoryLimit int32 = 1
+
+	// preStopDrainSeconds delays SIGTERM after a pod starts terminating. Krane
+	// drops terminating pods from its status report at once, but frontline
+	// routes from an instance cache that stays fresh for 10 seconds, so the
+	// pod must keep serving until frontline has reloaded the instance list.
+	preStopDrainSeconds int64 = 15
+
 	// CustomerNodeClass is the Karpenter nodepool name for untrusted customer
 	// workloads. Nodes in this pool have additional isolation and monitoring.
 	CustomerNodeClass = "untrusted"

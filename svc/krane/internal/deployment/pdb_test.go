@@ -24,15 +24,15 @@ func TestBuildPodDisruptionBudget(t *testing.T) {
 		K8SName:       "dep-123",
 		K8SNamespace:  "customer-ns",
 	}
-	rs := &appsv1.ReplicaSet{
+	d := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "dep-123",
-			UID:  types.UID("rs-uid-123"),
+			UID:  types.UID("deployment-uid-123"),
 		},
 	}
 	alwaysAllow := policyv1.AlwaysAllow
 
-	pdb := buildPodDisruptionBudget(req, rs)
+	pdb := buildPodDisruptionBudget(req, deploymentOwnerRef(d))
 
 	// maxUnavailable must be the absolute integer 1, never a percentage: a
 	// percentage rounds down and would compute 0 allowed disruptions for a
@@ -49,12 +49,11 @@ func TestBuildPodDisruptionBudget(t *testing.T) {
 		pdb.Spec.Selector.MatchLabels,
 	)
 
-	// Owned by the ReplicaSet so it is garbage-collected with the deployment.
 	require.Len(t, pdb.OwnerReferences, 1)
 	owner := pdb.OwnerReferences[0]
-	require.Equal(t, "ReplicaSet", owner.Kind)
-	require.Equal(t, rs.Name, owner.Name)
-	require.Equal(t, rs.UID, owner.UID)
+	require.Equal(t, "Deployment", owner.Kind)
+	require.Equal(t, d.Name, owner.Name)
+	require.Equal(t, d.UID, owner.UID)
 	require.NotNil(t, owner.Controller)
 	require.True(t, *owner.Controller)
 

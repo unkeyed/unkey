@@ -74,6 +74,22 @@ var (
 		},
 	)
 
+	// RolloutGateWorkloads reports workloads by rollout gate state.
+	//
+	// Labels:
+	//   - "state": "rolling" (holds a slot), "stalled" (exceeded its
+	//     progress deadline, paused until a new template or a retry), or
+	//     "waiting" (template changed, no slot yet)
+	RolloutGateWorkloads = lazy.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Namespace: "unkey",
+			Subsystem: "krane",
+			Name:      "rollout_gate_workloads",
+			Help:      "Workloads by rollout gate state.",
+		},
+		[]string{"state"},
+	)
+
 	// LastSuccessfulCheckpointUnixSeconds records when Krane last saved a token
 	// after applying all earlier events.
 	LastSuccessfulCheckpointUnixSeconds = lazy.NewGauge(

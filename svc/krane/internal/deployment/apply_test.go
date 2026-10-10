@@ -12,7 +12,7 @@ import (
 )
 
 // Sentinel values for every ApplyDeployment field. Each is distinctive so the
-// assertions can prove the value reached the rendered ReplicaSet.
+// assertions can prove the value reached the rendered Deployment.
 const (
 	testNamespace        = "test-ns"
 	testK8sName          = "test-k8s-name"
@@ -91,10 +91,10 @@ func testController() *Controller {
 	}
 }
 
-func mainContainer(t *testing.T, rs *appsv1.ReplicaSet) corev1.Container {
+func mainContainer(t *testing.T, dep *appsv1.Deployment) corev1.Container {
 	t.Helper()
-	require.Len(t, rs.Spec.Template.Spec.Containers, 1, "expected exactly one container")
-	return rs.Spec.Template.Spec.Containers[0]
+	require.Len(t, dep.Spec.Template.Spec.Containers, 1, "expected exactly one container")
+	return dep.Spec.Template.Spec.Containers[0]
 }
 
 func envValue(c corev1.Container, name string) (string, bool) {
@@ -115,127 +115,127 @@ func hasLabelValue(labels map[string]string, want string) bool {
 	return false
 }
 
-var fieldAssertions = map[string]func(t *testing.T, rs *appsv1.ReplicaSet){
-	"k8s_namespace": func(t *testing.T, rs *appsv1.ReplicaSet) {
-		require.Equal(t, testNamespace, rs.Namespace)
+var fieldAssertions = map[string]func(t *testing.T, dep *appsv1.Deployment){
+	"k8s_namespace": func(t *testing.T, dep *appsv1.Deployment) {
+		require.Equal(t, testNamespace, dep.Namespace)
 	},
-	"k8s_name": func(t *testing.T, rs *appsv1.ReplicaSet) {
-		require.Equal(t, testK8sName, rs.Name)
-		require.Equal(t, testK8sName+"-", rs.Spec.Template.GenerateName)
+	"k8s_name": func(t *testing.T, dep *appsv1.Deployment) {
+		require.Equal(t, testK8sName, dep.Name)
+		require.Equal(t, testK8sName+"-", dep.Spec.Template.GenerateName)
 	},
-	"workspace_id": func(t *testing.T, rs *appsv1.ReplicaSet) {
-		require.True(t, hasLabelValue(rs.Labels, testWorkspaceID), "workspace_id must appear as a label")
+	"workspace_id": func(t *testing.T, dep *appsv1.Deployment) {
+		require.True(t, hasLabelValue(dep.Labels, testWorkspaceID), "workspace_id must appear as a label")
 	},
-	"project_id": func(t *testing.T, rs *appsv1.ReplicaSet) {
-		require.True(t, hasLabelValue(rs.Labels, testProjectID), "project_id must appear as a label")
+	"project_id": func(t *testing.T, dep *appsv1.Deployment) {
+		require.True(t, hasLabelValue(dep.Labels, testProjectID), "project_id must appear as a label")
 	},
-	"environment_id": func(t *testing.T, rs *appsv1.ReplicaSet) {
-		require.True(t, hasLabelValue(rs.Labels, testEnvironmentID), "environment_id must appear as a label")
+	"environment_id": func(t *testing.T, dep *appsv1.Deployment) {
+		require.True(t, hasLabelValue(dep.Labels, testEnvironmentID), "environment_id must appear as a label")
 	},
-	"deployment_id": func(t *testing.T, rs *appsv1.ReplicaSet) {
-		require.True(t, hasLabelValue(rs.Labels, testDeploymentID), "deployment_id must appear as a label")
-		require.Equal(t, testDeploymentID, rs.Spec.Selector.MatchLabels[labelDeploymentIDKey(t)])
-		v, ok := envValue(mainContainer(t, rs), "UNKEY_DEPLOYMENT_ID")
+	"deployment_id": func(t *testing.T, dep *appsv1.Deployment) {
+		require.True(t, hasLabelValue(dep.Labels, testDeploymentID), "deployment_id must appear as a label")
+		require.Equal(t, testDeploymentID, dep.Spec.Selector.MatchLabels[labelDeploymentIDKey(t)])
+		v, ok := envValue(mainContainer(t, dep), "UNKEY_DEPLOYMENT_ID")
 		require.True(t, ok)
 		require.Equal(t, testDeploymentID, v)
 	},
-	"image": func(t *testing.T, rs *appsv1.ReplicaSet) {
-		require.Equal(t, testImage, mainContainer(t, rs).Image)
+	"image": func(t *testing.T, dep *appsv1.Deployment) {
+		require.Equal(t, testImage, mainContainer(t, dep).Image)
 	},
-	"cpu_millicores": func(t *testing.T, rs *appsv1.ReplicaSet) {
-		cpu := mainContainer(t, rs).Resources.Limits[corev1.ResourceCPU]
+	"cpu_millicores": func(t *testing.T, dep *appsv1.Deployment) {
+		cpu := mainContainer(t, dep).Resources.Limits[corev1.ResourceCPU]
 		require.Equal(t, "1", cpu.String(), "1000m CPU limit normalizes to 1")
 	},
-	"memory_mib": func(t *testing.T, rs *appsv1.ReplicaSet) {
-		mem := mainContainer(t, rs).Resources.Limits[corev1.ResourceMemory]
+	"memory_mib": func(t *testing.T, dep *appsv1.Deployment) {
+		mem := mainContainer(t, dep).Resources.Limits[corev1.ResourceMemory]
 		require.Equal(t, "512Mi", mem.String())
 	},
-	"build_id": func(t *testing.T, rs *appsv1.ReplicaSet) {
-		require.True(t, hasLabelValue(rs.Labels, testBuildID), "build_id must appear as a label")
+	"build_id": func(t *testing.T, dep *appsv1.Deployment) {
+		require.True(t, hasLabelValue(dep.Labels, testBuildID), "build_id must appear as a label")
 	},
-	"encrypted_environment_variables": func(t *testing.T, rs *appsv1.ReplicaSet) {
-		// Decrypted into a K8s Secret outside buildReplicaSet; its effect here is
+	"encrypted_environment_variables": func(t *testing.T, dep *appsv1.Deployment) {
+		// Decrypted into a K8s Secret outside buildDeployment; its effect here is
 		// the envFrom secretRef mount, gated on hasSecrets.
-		c := mainContainer(t, rs)
+		c := mainContainer(t, dep)
 		require.Len(t, c.EnvFrom, 1, "secret env vars must be mounted via envFrom")
 		require.NotNil(t, c.EnvFrom[0].SecretRef)
 	},
-	"command": func(t *testing.T, rs *appsv1.ReplicaSet) {
-		require.Equal(t, testCommand, mainContainer(t, rs).Command,
+	"command": func(t *testing.T, dep *appsv1.Deployment) {
+		require.Equal(t, testCommand, mainContainer(t, dep).Command,
 			"command override must be applied to the container")
 	},
-	"port": func(t *testing.T, rs *appsv1.ReplicaSet) {
-		c := mainContainer(t, rs)
+	"port": func(t *testing.T, dep *appsv1.Deployment) {
+		c := mainContainer(t, dep)
 		require.Len(t, c.Ports, 1)
 		require.Equal(t, testPort, c.Ports[0].ContainerPort)
 		v, ok := envValue(c, "PORT")
 		require.True(t, ok)
 		require.Equal(t, "8080", v)
 	},
-	"shutdown_signal": func(t *testing.T, rs *appsv1.ReplicaSet) {
-		c := mainContainer(t, rs)
+	"shutdown_signal": func(t *testing.T, dep *appsv1.Deployment) {
+		c := mainContainer(t, dep)
 		require.NotNil(t, c.Lifecycle)
 		require.NotNil(t, c.Lifecycle.PreStop)
 		require.NotNil(t, c.Lifecycle.PreStop.Exec)
-		require.Contains(t, c.Lifecycle.PreStop.Exec.Command, "-SIGINT")
+		require.Contains(t, c.Lifecycle.PreStop.Exec.Command[2], "kill -s INT 1")
 	},
-	"healthcheck": func(t *testing.T, rs *appsv1.ReplicaSet) {
-		c := mainContainer(t, rs)
+	"healthcheck": func(t *testing.T, dep *appsv1.Deployment) {
+		c := mainContainer(t, dep)
 		require.NotNil(t, c.LivenessProbe)
 		require.NotNil(t, c.ReadinessProbe)
 		require.NotNil(t, c.LivenessProbe.HTTPGet)
 		require.Equal(t, testHealthcheckPath, c.LivenessProbe.HTTPGet.Path)
 	},
-	"app_id": func(t *testing.T, rs *appsv1.ReplicaSet) {
-		require.True(t, hasLabelValue(rs.Labels, testAppID), "app_id must appear as a label")
+	"app_id": func(t *testing.T, dep *appsv1.Deployment) {
+		require.True(t, hasLabelValue(dep.Labels, testAppID), "app_id must appear as a label")
 	},
-	"environment_slug": func(t *testing.T, rs *appsv1.ReplicaSet) {
-		v, ok := envValue(mainContainer(t, rs), "UNKEY_ENVIRONMENT_SLUG")
+	"environment_slug": func(t *testing.T, dep *appsv1.Deployment) {
+		v, ok := envValue(mainContainer(t, dep), "UNKEY_ENVIRONMENT_SLUG")
 		require.True(t, ok)
 		require.Equal(t, testEnvironmentSlug, v)
 	},
-	"region": func(t *testing.T, rs *appsv1.ReplicaSet) {
-		v, ok := envValue(mainContainer(t, rs), "UNKEY_REGION")
+	"region": func(t *testing.T, dep *appsv1.Deployment) {
+		v, ok := envValue(mainContainer(t, dep), "UNKEY_REGION")
 		require.True(t, ok)
 		require.Equal(t, testRegion, v)
 	},
-	"git_commit_sha": func(t *testing.T, rs *appsv1.ReplicaSet) {
-		v, ok := envValue(mainContainer(t, rs), "UNKEY_GIT_COMMIT_SHA")
+	"git_commit_sha": func(t *testing.T, dep *appsv1.Deployment) {
+		v, ok := envValue(mainContainer(t, dep), "UNKEY_GIT_COMMIT_SHA")
 		require.True(t, ok)
 		require.Equal(t, testGitCommitSha, v)
 	},
-	"git_branch": func(t *testing.T, rs *appsv1.ReplicaSet) {
-		v, ok := envValue(mainContainer(t, rs), "UNKEY_GIT_BRANCH")
+	"git_branch": func(t *testing.T, dep *appsv1.Deployment) {
+		v, ok := envValue(mainContainer(t, dep), "UNKEY_GIT_BRANCH")
 		require.True(t, ok)
 		require.Equal(t, testGitBranch, v)
 	},
-	"git_repo": func(t *testing.T, rs *appsv1.ReplicaSet) {
-		v, ok := envValue(mainContainer(t, rs), "UNKEY_GIT_REPO")
+	"git_repo": func(t *testing.T, dep *appsv1.Deployment) {
+		v, ok := envValue(mainContainer(t, dep), "UNKEY_GIT_REPO")
 		require.True(t, ok)
 		require.Equal(t, testGitRepo, v)
 	},
-	"git_commit_message": func(t *testing.T, rs *appsv1.ReplicaSet) {
-		v, ok := envValue(mainContainer(t, rs), "UNKEY_GIT_COMMIT_MESSAGE")
+	"git_commit_message": func(t *testing.T, dep *appsv1.Deployment) {
+		v, ok := envValue(mainContainer(t, dep), "UNKEY_GIT_COMMIT_MESSAGE")
 		require.True(t, ok)
 		require.Equal(t, testGitCommitMessage, v)
 	},
-	"autoscaling": func(t *testing.T, rs *appsv1.ReplicaSet) {
-		constraints := rs.Spec.Template.Spec.TopologySpreadConstraints
+	"autoscaling": func(t *testing.T, dep *appsv1.Deployment) {
+		constraints := dep.Spec.Template.Spec.TopologySpreadConstraints
 		require.Len(t, constraints, 3)
 		require.Equal(t, corev1.DoNotSchedule, constraints[2].WhenUnsatisfiable)
 		require.Equal(t, int32(2), constraints[2].MaxSkew)
 		require.Equal(t, new(int32(3)), constraints[2].MinDomains)
 	},
-	"ephemeral_storage": func(t *testing.T, rs *appsv1.ReplicaSet) {
+	"ephemeral_storage": func(t *testing.T, dep *appsv1.Deployment) {
 		var found bool
-		for _, vol := range rs.Spec.Template.Spec.Volumes {
+		for _, vol := range dep.Spec.Template.Spec.Volumes {
 			if vol.Name == "data" && vol.Ephemeral != nil {
 				found = true
 			}
 		}
 		require.True(t, found, "ephemeral_storage must produce a generic ephemeral volume")
 		var mounted bool
-		for _, m := range mainContainer(t, rs).VolumeMounts {
+		for _, m := range mainContainer(t, dep).VolumeMounts {
 			if m.MountPath == "/data" {
 				mounted = true
 			}
@@ -249,8 +249,8 @@ var fieldAssertions = map[string]func(t *testing.T, rs *appsv1.ReplicaSet){
 // the label package's internal key string.
 func labelDeploymentIDKey(t *testing.T) string {
 	t.Helper()
-	rs := testController().buildReplicaSet(fullApplyRequest(t), true)
-	for k, v := range rs.Spec.Selector.MatchLabels {
+	dep := testController().buildDeployment(fullApplyRequest(t), true)
+	for k, v := range dep.Spec.Selector.MatchLabels {
 		if v == testDeploymentID {
 			return k
 		}
@@ -259,14 +259,12 @@ func labelDeploymentIDKey(t *testing.T) string {
 	return ""
 }
 
-// TestBuildReplicaSet_WiresProtoFields renders a fully-populated request and
-// asserts each proto field surfaces in the ReplicaSet.
-func TestBuildReplicaSet_WiresProtoFields(t *testing.T) {
-	rs := testController().buildReplicaSet(fullApplyRequest(t), true /* hasSecrets */)
+func TestBuildDeployment_WiresProtoFields(t *testing.T) {
+	dep := testController().buildDeployment(fullApplyRequest(t), true)
 
 	for field, assert := range fieldAssertions {
 		t.Run(field, func(t *testing.T) {
-			assert(t, rs)
+			assert(t, dep)
 		})
 	}
 }
@@ -280,7 +278,7 @@ func TestApplyDeploymentFieldCoverage(t *testing.T) {
 	}
 }
 
-func TestBuildReplicaSet_TopologySpread(t *testing.T) {
+func TestBuildDeployment_TopologySpread(t *testing.T) {
 	for _, tt := range []struct {
 		name        string
 		minReplicas uint32
@@ -301,9 +299,9 @@ func TestBuildReplicaSet_TopologySpread(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			req := fullApplyRequest(t)
 			req.Autoscaling = &ctrlv1.AutoscalingPolicy{MinReplicas: tt.minReplicas, MaxReplicas: tt.maxReplicas}
-			rs := testController().buildReplicaSet(req, false)
-			require.Nil(t, rs.Spec.Replicas)
-			constraints := rs.Spec.Template.Spec.TopologySpreadConstraints
+			dep := testController().buildDeployment(req, false)
+			require.Nil(t, dep.Spec.Replicas)
+			constraints := dep.Spec.Template.Spec.TopologySpreadConstraints
 
 			deploymentLabels := map[string]string{"unkey.com/deployment.id": testDeploymentID}
 			if tt.hardMaxSkew > 0 {
@@ -341,43 +339,83 @@ func TestBuildReplicaSet_TopologySpread(t *testing.T) {
 				"app.kubernetes.io/component":  "deployment",
 			}, zone.LabelSelector.MatchLabels)
 
-			for _, constraint := range rs.Spec.Template.Spec.TopologySpreadConstraints {
+			for _, constraint := range dep.Spec.Template.Spec.TopologySpreadConstraints {
 				for label, value := range constraint.LabelSelector.MatchLabels {
-					require.Equal(t, value, rs.Spec.Template.Labels[label])
+					require.Equal(t, value, dep.Spec.Template.Labels[label])
 				}
 			}
 		})
 	}
 }
 
-// TestBuildReplicaSet_NoCommandUsesImageEntrypoint verifies the safe default:
+// TestBuildDeployment_NoCommandUsesImageEntrypoint verifies the safe default:
 // when no command override is provided, the container command stays nil so the
 // image's ENTRYPOINT/CMD runs.
-func TestBuildReplicaSet_NoCommandUsesImageEntrypoint(t *testing.T) {
+func TestBuildDeployment_NoCommandUsesImageEntrypoint(t *testing.T) {
 	req := fullApplyRequest(t)
 	req.Command = nil
 
-	rs := testController().buildReplicaSet(req, true)
-	require.Nil(t, mainContainer(t, rs).Command)
+	dep := testController().buildDeployment(req, true)
+	require.Nil(t, mainContainer(t, dep).Command)
 }
 
-// TestBuildReplicaSet_NoSecretsOmitsEnvFrom verifies that without secrets the
+// TestBuildDeployment_NoSecretsOmitsEnvFrom verifies that without secrets the
 // container has no envFrom mount and the pod uses no dedicated service account.
-func TestBuildReplicaSet_NoSecretsOmitsEnvFrom(t *testing.T) {
-	rs := testController().buildReplicaSet(fullApplyRequest(t), false)
-	require.Empty(t, mainContainer(t, rs).EnvFrom)
-	require.Empty(t, rs.Spec.Template.Spec.ServiceAccountName)
+func TestBuildDeployment_NoSecretsOmitsEnvFrom(t *testing.T) {
+	dep := testController().buildDeployment(fullApplyRequest(t), false)
+	require.Empty(t, mainContainer(t, dep).EnvFrom)
+	require.Empty(t, dep.Spec.Template.Spec.ServiceAccountName)
 }
 
-// TestBuildReplicaSet_GvisorToggle pins both ends: pods are sandboxed by
+// TestBuildDeployment_GvisorToggle pins both ends: pods are sandboxed by
 // default, and disabling it leaves them on the node's default runtime rather
 // than naming a RuntimeClass the node may not have.
-func TestBuildReplicaSet_GvisorToggle(t *testing.T) {
-	rs := testController().buildReplicaSet(fullApplyRequest(t), true)
-	require.Equal(t, new(runtimeClassGvisor), rs.Spec.Template.Spec.RuntimeClassName)
+func TestBuildDeployment_GvisorToggle(t *testing.T) {
+	dep := testController().buildDeployment(fullApplyRequest(t), true)
+	require.Equal(t, new(runtimeClassGvisor), dep.Spec.Template.Spec.RuntimeClassName)
 
 	c := testController()
 	c.disableGvisor = true
-	rs = c.buildReplicaSet(fullApplyRequest(t), true)
-	require.Nil(t, rs.Spec.Template.Spec.RuntimeClassName)
+	dep = c.buildDeployment(fullApplyRequest(t), true)
+	require.Nil(t, dep.Spec.Template.Spec.RuntimeClassName)
+}
+
+// TestBuildDeployment_PreStopDrain checks that a pod with the default shutdown
+// signal keeps serving after it starts terminating, until frontline has
+// reloaded its instance list.
+func TestBuildDeployment_PreStopDrain(t *testing.T) {
+	for _, signal := range []string{"", "SIGTERM"} {
+		t.Run("signal="+signal, func(t *testing.T) {
+			req := fullApplyRequest(t)
+			req.ShutdownSignal = signal
+
+			c := mainContainer(t, testController().buildDeployment(req, false))
+			require.NotNil(t, c.Lifecycle)
+			require.NotNil(t, c.Lifecycle.PreStop)
+			require.Equal(t, &corev1.SleepAction{Seconds: preStopDrainSeconds}, c.Lifecycle.PreStop.Sleep)
+			require.Nil(t, c.Lifecycle.PreStop.Exec)
+		})
+	}
+}
+
+func TestPreStopHandler(t *testing.T) {
+	sleepOnly := &corev1.LifecycleHandler{Sleep: &corev1.SleepAction{Seconds: preStopDrainSeconds}}
+	for _, tt := range []struct {
+		signal string
+		want   *corev1.LifecycleHandler
+	}{
+		{"", sleepOnly},
+		{"SIGTERM", sleepOnly},
+		{"SIGQUIT; rm -rf /", sleepOnly},
+		{"SIGINT", &corev1.LifecycleHandler{Exec: &corev1.ExecAction{Command: []string{
+			"sh", "-c", "sleep 15; kill -s INT 1; while kill -0 1 2>/dev/null; do sleep 1; done",
+		}}}},
+		{"SIGQUIT", &corev1.LifecycleHandler{Exec: &corev1.ExecAction{Command: []string{
+			"sh", "-c", "sleep 15; kill -s QUIT 1; while kill -0 1 2>/dev/null; do sleep 1; done",
+		}}}},
+	} {
+		t.Run(tt.signal, func(t *testing.T) {
+			require.Equal(t, tt.want, preStopHandler(tt.signal))
+		})
+	}
 }
