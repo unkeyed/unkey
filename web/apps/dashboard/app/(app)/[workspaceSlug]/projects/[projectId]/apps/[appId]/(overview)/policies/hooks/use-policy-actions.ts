@@ -9,7 +9,12 @@ import {
   rowKey,
 } from "@/lib/collections/deploy/policies";
 import { POLICY_ERRORS, type PolicyInput } from "@/lib/collections/deploy/policies.schema";
-import { type QueueStrategy, queueStrategy, usePacedMutations } from "@tanstack/react-db";
+import {
+  type QueueStrategy,
+  type Transaction,
+  queueStrategy,
+  usePacedMutations,
+} from "@tanstack/react-db";
 import { match } from "@unkey/match";
 import { toast } from "@unkey/ui";
 import { useState } from "react";
@@ -19,6 +24,7 @@ import {
   insertPolicy,
   removePolicy,
   reorderPolicies,
+  replacesList,
   setEnabled,
   updatePolicy,
 } from "../model/edits";
@@ -27,6 +33,7 @@ import type { Env, PolicyEnvs } from "../model/merge";
 type Args = { envs: PolicyEnvs; projectId: string; appId: string };
 
 export type PolicyActions = {
+  replacingList: boolean;
   setEnabled: (key: string, env: Env, enabled: boolean) => Promise<boolean>;
   reorder: (fromKey: string, toKey: string) => Promise<boolean>;
   save: (policy: PolicyInput, envs: readonly Env[]) => Promise<boolean>;
@@ -82,6 +89,16 @@ export function usePolicyActions({ envs, projectId, appId }: Args): PolicyAction
   const update = usePolicyWrite(strategy, TOASTS.update);
   const remove = usePolicyWrite(strategy, TOASTS.delete);
   const reorder = usePolicyWrite(strategy, TOASTS.reorder);
+  const [replacing, setReplacing] = useState<ReadonlySet<Transaction<PolicyRow>>>(new Set());
+
+  const trackReplace = (tx: Transaction<PolicyRow>) => {
+    setReplacing((prev) => new Set(prev).add(tx));
+    void tx.isPersisted.promise
+      .catch(() => undefined)
+      .finally(() =>
+        setReplacing((prev) => new Set([...prev].filter((pending) => pending !== tx))),
+      );
+  };
 
   const run = async (
     write: ReturnType<typeof usePolicyWrite>,
@@ -104,13 +121,23 @@ export function usePolicyActions({ envs, projectId, appId }: Args): PolicyAction
     if (result.ops.length === 0) {
       return true;
     }
-    return write(result.ops).isPersisted.promise.then(
+    const replaces = replacesList(result.ops);
+    // An in-place write queued behind a list replace targets ids the replace retires.
+    if (!replaces && replacing.size > 0) {
+      return false;
+    }
+    const tx = write(result.ops);
+    if (replaces) {
+      trackReplace(tx);
+    }
+    return tx.isPersisted.promise.then(
       () => true,
       () => false,
     );
   };
 
   return {
+    replacingList: replacing.size > 0,
     setEnabled: (key, env, enabled) => run(update, setEnabled(key, env, enabled)),
     reorder: (fromKey, toKey) => run(reorder, reorderPolicies(fromKey, toKey)),
     save: (policy, targets) => run(add, insertPolicy(policy, targets)),

@@ -31,6 +31,10 @@ export type PolicyEditResult =
 
 export type PolicyEdit = (lists: PolicyLists, scope: PolicyListsScope) => PolicyEditResult;
 
+export function replacesList(ops: readonly PolicyOp[]): boolean {
+  return ops.some((op) => op.type !== "update" || "_order" in op.patch);
+}
+
 const reject = (message: string): PolicyEditResult => ({ type: "reject", message });
 const apply = (ops: PolicyOp[]): PolicyEditResult => ({ type: "apply", ops });
 

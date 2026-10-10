@@ -8,6 +8,7 @@ import {
   insertPolicy,
   removePolicy,
   reorderPolicies,
+  replacesList,
   setEnabled,
   updatePolicy,
 } from "./edits";
@@ -196,5 +197,19 @@ describe("reorderPolicies", () => {
     expect(ops(reorderPolicies(keyOf(state, "B"), keyOf(state, "A")), state)).toEqual([
       { type: "update", row: state.production[1], patch: { _order: -1 } },
     ]);
+  });
+});
+
+describe("replacesList", () => {
+  it("marks add, delete, reorder and copy as list replaces, and toggles and edits as in place", () => {
+    const state = lists([firewall("A"), firewall("B")], []);
+    const a = keyOf(state, "A");
+
+    expect(replacesList(ops(insertPolicy(firewall("C"), ["production"]), state))).toBe(true);
+    expect(replacesList(ops(removePolicy(a), state))).toBe(true);
+    expect(replacesList(ops(reorderPolicies(keyOf(state, "B"), a), state))).toBe(true);
+    expect(replacesList(ops(setEnabled(a, "preview", true), state))).toBe(true);
+    expect(replacesList(ops(setEnabled(a, "production", false), state))).toBe(false);
+    expect(replacesList(ops(updatePolicy(a, firewall("A2")), state))).toBe(false);
   });
 });

@@ -8,12 +8,20 @@ import { PoliciesListHeader, PolicyRow } from "./row";
 type PoliciesListProps = {
   envs: PolicyEnvs;
   merged: MergedPolicy[];
+  reorderDisabled: boolean;
   onReorder: (fromKey: string, toKey: string) => void;
   onDelete: (key: string) => void;
   onEdit: (key: string) => void;
 };
 
-export function PoliciesList({ envs, merged, onReorder, onDelete, onEdit }: PoliciesListProps) {
+export function PoliciesList({
+  envs,
+  merged,
+  reorderDisabled,
+  onReorder,
+  onDelete,
+  onEdit,
+}: PoliciesListProps) {
   const [dragSrcIndex, setDragSrcIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 
@@ -53,6 +61,7 @@ export function PoliciesList({ envs, merged, onReorder, onDelete, onEdit }: Poli
             index={i}
             envs={envs}
             isDragOver={dragOverIndex === i}
+            dragDisabled={reorderDisabled}
             onDelete={onDelete}
             onEdit={onEdit}
             onDragStart={handleDragStart}

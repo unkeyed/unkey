@@ -173,7 +173,8 @@ async function page(environment: string, production: PolicyInput[]) {
     }
     return rowKey(found.environmentId, found.id);
   };
-  return { write, shown, keyOf };
+  const onChange = (listener: () => void) => list.subscribeChanges(listener);
+  return { write, shown, keyOf, onChange };
 }
 
 describe("queued policy writes", () => {
@@ -202,25 +203,27 @@ describe("queued policy writes", () => {
     expect(shown()).toEqual(["A (off)"]);
   });
 
-  it("lands a toggle queued behind a reorder on the ids the reorder regenerated", async () => {
-    const { write, shown, keyOf } = await page("env_reorder", [
+  it("shows no row twice when a toggle waits for the reorder before it, as the page enforces", async () => {
+    const { write, shown, keyOf, onChange } = await page("env_reorder", [
       firewall("Auth"),
       firewall("Limit"),
     ]);
+    const seen: string[][] = [];
+    onChange(() => seen.push(shown()));
 
     const reorder = write(() =>
       policies.update(keyOf("Limit"), (d) => {
         d._order = -1;
       }),
     );
+    expect(shown()).toEqual(["Limit", "Auth"]);
+    await reorder.isPersisted.promise;
+
     const toggle = write(() =>
       policies.update(keyOf("Auth"), (d) => {
         d.enabled = false;
       }),
     );
-    expect(shown()).toEqual(["Limit", "Auth (off)"]);
-
-    await reorder.isPersisted.promise;
     await toggle.isPersisted.promise;
 
     expect(server.env_reorder.map((p) => `${p.name}${p.enabled ? "" : " (off)"}`)).toEqual([
@@ -228,6 +231,7 @@ describe("queued policy writes", () => {
       "Auth (off)",
     ]);
     await vi.waitFor(() => expect(shown()).toEqual(["Limit", "Auth (off)"]));
+    expect(seen.every((rows) => rows.length === 2)).toBe(true);
   });
 });
 

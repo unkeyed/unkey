@@ -11,9 +11,11 @@ export function PolicyEnvironmentToggles({
   envs,
   onToggle,
   dirty,
+  locked,
 }: {
   policy: MergedPolicy;
   dirty: boolean;
+  locked: boolean;
   envs: PolicyEnvs;
   onToggle: (env: Env, enabled: boolean) => void;
 }) {
@@ -35,7 +37,7 @@ export function PolicyEnvironmentToggles({
                 <Switch
                   size="sm"
                   checked={policy[env]?.enabled ?? false}
-                  disabled={dirty}
+                  disabled={dirty || locked}
                   aria-label={`Run ${policy.name} in ${slug}`}
                   onCheckedChange={(checked) => onToggle(env, checked)}
                 />

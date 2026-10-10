@@ -16,12 +16,14 @@ type EditPolicyPanelProps = {
   onClose: () => void;
   otherMatchKeys: string[];
   row: MergedPolicy | undefined;
+  locked: boolean;
   onUpdate: (key: string, policy: PolicyInput) => Promise<boolean>;
   onSetEnabled: (key: string, env: Env, enabled: boolean) => Promise<boolean>;
 };
 
 export function EditPolicyPanel({
   row,
+  locked,
   envs,
   isOpen,
   onClose,
@@ -62,6 +64,7 @@ export function EditPolicyPanel({
       onClose={onClose}
       form={form}
       onSubmit={onSubmit}
+      submitDisabled={locked}
     >
       <div className="flex flex-col gap-1.5">
         <span className="text-sm font-medium text-gray-12">Environments</span>
@@ -69,6 +72,7 @@ export function EditPolicyPanel({
           policy={live}
           envs={envs}
           dirty={isDirty}
+          locked={locked}
           onToggle={(env, enabled) => void onSetEnabled(live.key, env, enabled)}
         />
       </div>

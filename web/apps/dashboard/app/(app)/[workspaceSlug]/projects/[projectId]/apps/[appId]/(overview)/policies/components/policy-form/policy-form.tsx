@@ -50,6 +50,7 @@ export function PolicyForm({
   form,
   onSubmit,
   onTypeChange,
+  submitDisabled = false,
   children,
 }: {
   title: string;
@@ -59,6 +60,7 @@ export function PolicyForm({
   form: UseFormReturn<PolicyFormValues>;
   onSubmit: (values: PolicyFormValues) => void | Promise<void>;
   onTypeChange?: (type: PolicyType) => void;
+  submitDisabled?: boolean;
   children: ReactNode;
 }) {
   const [configOpen, setConfigOpen] = useState(false);
@@ -138,6 +140,7 @@ export function PolicyForm({
                   size="sm"
                   className="px-3"
                   loading={form.formState.isSubmitting}
+                  disabled={submitDisabled}
                 >
                   {submitLabel}
                 </Button>

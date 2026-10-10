@@ -33,6 +33,7 @@ type PolicyRowProps = {
   index: number;
   envs: PolicyEnvs;
   isDragOver: boolean;
+  dragDisabled: boolean;
   onDelete: (key: string) => void;
   onEdit: (key: string) => void;
   onDragStart: (index: number) => void;
@@ -46,6 +47,7 @@ export function PolicyRow({
   index,
   envs,
   isDragOver,
+  dragDisabled,
   onDelete,
   onEdit,
   onDragStart,
@@ -131,6 +133,7 @@ export function PolicyRow({
           <button
             type="button"
             aria-label={`Drag to reorder ${policy.name}`}
+            disabled={dragDisabled}
             className="relative flex h-6 w-4 cursor-grab touch-none items-center justify-center text-gray-9 hover:text-gray-11 active:cursor-grabbing disabled:cursor-not-allowed disabled:opacity-50"
             onMouseDown={() => {
               fromHandle.current = true;

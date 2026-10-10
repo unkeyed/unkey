@@ -89,6 +89,7 @@ export default function PoliciesPage() {
                 <PoliciesList
                   envs={envs}
                   merged={merged}
+                  reorderDisabled={actions.replacingList}
                   onReorder={actions.reorder}
                   onDelete={actions.delete}
                   onEdit={(key) => panels.open({ type: "edit", key })}
@@ -120,6 +121,7 @@ export default function PoliciesPage() {
                 isOpen={panels.isOpen}
                 onClose={panels.close}
                 otherMatchKeys={otherMatchKeys(merged, key)}
+                locked={actions.replacingList}
                 onUpdate={actions.update}
                 onSetEnabled={actions.setEnabled}
               />
