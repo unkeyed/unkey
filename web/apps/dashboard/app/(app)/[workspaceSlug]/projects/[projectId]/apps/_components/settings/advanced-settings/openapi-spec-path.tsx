@@ -17,7 +17,7 @@ const openapiSpecPathSchema = z.object({
 });
 
 export function OpenapiSpecPath() {
-  const { settings, update, form, formProps } = useSettingForm({
+  const { settings, form, formProps, submit } = useSettingForm({
     schema: openapiSpecPathSchema,
     read: (s) => ({ openapiSpecPath: s.openapiSpecPath ?? "" }),
     write: (draft, values) => {
@@ -28,9 +28,8 @@ export function OpenapiSpecPath() {
   const error = form.formState.errors.openapiSpecPath;
 
   const handleRemove = () => {
-    update((draft) => {
-      draft.openapiSpecPath = null;
-    });
+    form.setValue("openapiSpecPath", "");
+    void submit();
   };
 
   return (
