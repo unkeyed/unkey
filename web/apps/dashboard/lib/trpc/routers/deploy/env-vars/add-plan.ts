@@ -1,4 +1,3 @@
-import type { UnkeyAuditLog } from "@/lib/audit";
 import { envVarKeySchema, envVarValueSchema } from "@/lib/schemas/env-var";
 import { z } from "zod";
 
@@ -30,10 +29,6 @@ export type AddEnvVarsResult =
   | { status: "taken"; keys: string[] }
   | { status: "added"; count: number };
 
-export function takenKeys(existing: { key: string }[]): string[] {
-  return [...new Set(existing.map((row) => row.key))].sort();
-}
-
 export type EncryptedVariable = Variable & { id: string; ciphertext: string };
 
 export function envVarRows({
@@ -57,31 +52,4 @@ export function envVarRows({
     type: v.kind,
     description: null,
   }));
-}
-
-export function envVarAuditLogs({
-  workspaceId,
-  userId,
-  context,
-  environments,
-  keys,
-}: {
-  workspaceId: string;
-  userId: string;
-  context: UnkeyAuditLog["context"];
-  environments: { id: string; slug: string }[];
-  keys: string[];
-}): UnkeyAuditLog[] {
-  return environments.flatMap((environment) =>
-    keys.map((key) => ({
-      workspaceId,
-      actor: { type: "user", id: userId },
-      event: "environment.update",
-      description: `Set environment variable ${key} for environment ${environment.id}`,
-      resources: [
-        { type: "environment", id: environment.id, name: environment.slug, meta: { key } },
-      ],
-      context,
-    })),
-  );
 }

@@ -9,10 +9,9 @@ import {
   type AddEnvVarsResult,
   type EncryptedVariable,
   addEnvVarsInput,
-  envVarAuditLogs,
   envVarRows,
-  takenKeys,
 } from "./add-plan";
+import { envVarAuditLogs, lockAndFindTakenKeys, toEnvVarWriteError } from "./env-var-write";
 
 const vault = createVaultClient(VaultService);
 
@@ -58,24 +57,13 @@ export const addEnvVars = workspaceProcedure
       );
 
       return await db.transaction(async (tx) => {
-        await tx
-          .select({ id: schema.environments.id })
-          .from(schema.environments)
-          .where(inArray(schema.environments.id, environmentIds))
-          .for("update");
-
-        const existing = await tx
-          .select({ key: schema.appEnvironmentVariables.key })
-          .from(schema.appEnvironmentVariables)
-          .where(
-            and(
-              eq(schema.appEnvironmentVariables.appId, input.appId),
-              inArray(schema.appEnvironmentVariables.environmentId, environmentIds),
-              inArray(schema.appEnvironmentVariables.key, keys),
-            ),
-          );
-        if (existing.length > 0) {
-          return { status: "taken", keys: takenKeys(existing) };
+        const taken = await lockAndFindTakenKeys(tx, {
+          appId: input.appId,
+          environmentIds,
+          keys,
+        });
+        if (taken.length > 0) {
+          return { status: "taken", keys: taken };
         }
 
         await tx.insert(schema.appEnvironmentVariables).values(encrypted.flat());
@@ -85,20 +73,14 @@ export const addEnvVars = workspaceProcedure
             workspaceId: ctx.workspace.id,
             userId: ctx.user.id,
             context: { location: ctx.audit.location, userAgent: ctx.audit.userAgent },
-            environments,
-            keys,
+            changes: environments.flatMap((environment) =>
+              keys.map((key) => ({ action: "set" as const, environment, key })),
+            ),
           }),
         );
         return { status: "added", count: keys.length };
       });
     } catch (error) {
-      if (error instanceof TRPCError) {
-        throw error;
-      }
-      console.error("Failed to add environment variables", error);
-      throw new TRPCError({
-        code: "INTERNAL_SERVER_ERROR",
-        message: "Failed to add environment variables",
-      });
+      throw toEnvVarWriteError(error, "Failed to add environment variables");
     }
   });
