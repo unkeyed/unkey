@@ -55,15 +55,17 @@ export function useSettingForm<TValues extends FieldValues>({
 }: {
   schema: z.ZodType<TValues, TValues>;
   read: (settings: EnvironmentSettings) => TValues;
-  write: (draft: EnvironmentSettings, values: TValues) => void;
+  write: (draft: EnvironmentSettings, values: TValues, saved: TValues) => void;
   isEqual?: (current: TValues, saved: TValues) => boolean;
   blockedReason?: string;
 }) {
   const context = useEnvironmentSettings();
+  const saved = read(context.settings);
   const form = useSavableForm({
     ...options,
-    values: read(context.settings),
-    save: (submitted) => context.update((draft) => write(draft, submitted)).isPersisted.promise,
+    values: saved,
+    save: (submitted) =>
+      context.update((draft) => write(draft, submitted, saved)).isPersisted.promise,
   });
 
   return { ...context, ...form };

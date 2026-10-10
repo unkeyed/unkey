@@ -3,6 +3,7 @@
 import { FanOut } from "@/components/fan-out";
 import { Logomark } from "@/components/logomark";
 import { RegionFlag } from "@/components/region-flag";
+import type { EnvironmentSettings } from "@/lib/collections/deploy/environment-settings";
 import { sizeLabel } from "@/lib/compute/sizing";
 import { regionInfo } from "@/lib/regions";
 import { formatCpu, formatMemory, formatStorage } from "@/lib/utils/deployment-formatters";
@@ -14,23 +15,20 @@ import {
 } from "@unkey/icons";
 import { Badge } from "@unkey/ui";
 import type { ReactNode } from "react";
-import {
-  type ComputeValues,
-  formatReplicas,
-} from "../../../../../_components/settings/compute/draft";
+import { formatReplicas, readCompute } from "../../../../../_components/settings/compute/draft";
 
 const NODE_W = 208;
 const NODE_GAP = 24;
 
 type VizProps = {
-  values: ComputeValues;
+  settings: EnvironmentSettings;
   unavailable: ReadonlySet<string>;
 };
 
-export function RegionViz({ values, unavailable }: VizProps) {
-  const n = Math.max(values.regions.length, 1);
-  const specs = [
-    ["Instances", IconLayers3Outline18, formatReplicas(values.replicas)],
+export function RegionViz({ settings, unavailable }: VizProps) {
+  const values = readCompute(settings);
+  const n = Math.max(settings.regions.length, 1);
+  const size = [
     ["CPU", IconMicrochipOutline18, formatCpu(values.cpuMillicores)],
     ["RAM", IconRamOutline18, formatMemory(values.memoryMib)],
     ["Disk", IconHardDriveOutline18, formatStorage(values.storageMib)],
@@ -41,7 +39,7 @@ export function RegionViz({ values, unavailable }: VizProps) {
         className="mx-auto flex w-full flex-col"
         style={{ maxWidth: n * NODE_W + (n - 1) * NODE_GAP }}
       >
-        {values.regions.length > 1 ? (
+        {settings.regions.length > 1 ? (
           <>
             <div className="mx-auto flex items-center gap-2 rounded-lg bg-raised px-3 py-2 shadow-sm ring-1 ring-grayA-5">
               <Logomark className="size-6 rounded-md bg-grayA-3" />
@@ -50,16 +48,24 @@ export function RegionViz({ values, unavailable }: VizProps) {
                 <span className="text-2xs text-gray-10">Routes to the nearest region</span>
               </span>
             </div>
-            <FanOut targets={values.regions.length} className="h-10 w-full" />
+            <FanOut targets={settings.regions.length} className="h-10 w-full" />
           </>
         ) : null}
         <div
           className="grid"
           style={{ gridTemplateColumns: `repeat(${n}, minmax(0, 1fr))`, columnGap: NODE_GAP }}
         >
-          {values.regions.map((name) => {
+          {settings.regions.map(({ name, replicasMin, replicasMax }) => {
             const region = regionInfo(name);
             const blocked = unavailable.has(name);
+            const specs = [
+              [
+                "Instances",
+                IconLayers3Outline18,
+                formatReplicas({ min: replicasMin, max: replicasMax }),
+              ],
+              ...size,
+            ] as const;
             return (
               <div
                 key={name}

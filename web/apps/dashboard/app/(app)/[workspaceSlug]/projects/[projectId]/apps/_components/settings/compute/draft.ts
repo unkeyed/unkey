@@ -1,4 +1,5 @@
 import type { EnvironmentSettings } from "@/lib/collections/deploy/environment-settings";
+import { sameJson } from "@/lib/utils/same-json";
 import { z } from "zod";
 
 export const computeSchema = z.object({
@@ -30,13 +31,24 @@ export function readCompute(settings: EnvironmentSettings): ComputeValues {
   };
 }
 
-export function writeCompute(target: EnvironmentSettings, values: ComputeValues): void {
+/**
+ * The form edits one replica range, but each region stores its own. Regions
+ * keep their replicas unless the user changed the range.
+ */
+export function writeCompute(
+  target: EnvironmentSettings,
+  values: ComputeValues,
+  saved: ComputeValues,
+): void {
+  const replicasChanged = !sameJson(values.replicas, saved.replicas);
+  const current = new Map(target.regions.map((r) => [r.name, r]));
   target.cpuMillicores = values.cpuMillicores;
   target.memoryMib = values.memoryMib;
   target.storageMib = values.storageMib;
-  target.regions = values.regions.map((name) => ({
-    name,
-    replicasMin: values.replicas.min,
-    replicasMax: values.replicas.max,
-  }));
+  target.regions = values.regions.map((name) => {
+    const region = current.get(name);
+    return region && !replicasChanged
+      ? { name, replicasMin: region.replicasMin, replicasMax: region.replicasMax }
+      : { name, replicasMin: values.replicas.min, replicasMax: values.replicas.max };
+  });
 }

@@ -29,7 +29,6 @@ import { RegionViz } from "../../components/compute/region-viz";
 export function ComputeOverview() {
   const { settings } = useEnvironmentSettings();
   const regionsQuery = trpc.deploy.environmentSettings.getAvailableRegions.useQuery();
-  const values = readCompute(settings);
   const [configuring, setConfiguring] = useState(false);
   const close = () => setConfiguring(false);
 
@@ -44,8 +43,10 @@ export function ComputeOverview() {
       </div>
       <SettingsGroupContent>
         <RegionViz
-          values={values}
-          unavailable={new Set(unschedulableIn(availableFrom(regionsQuery), values.regions))}
+          settings={settings}
+          unavailable={
+            new Set(unschedulableIn(availableFrom(regionsQuery), readCompute(settings).regions))
+          }
         />
       </SettingsGroupContent>
       <SlidePanel isOpen={configuring} onClose={close}>
