@@ -119,26 +119,19 @@ export const apps = createCollection<App, string, QueryCollectionUtils<App, stri
     },
     onUpdate: async ({ transaction }) => {
       const client = getUnkeyClient();
-      const mutation = Promise.all(
-        transaction.mutations.map(({ original, changes }) =>
-          client.apps.updateApp({
-            project: original.projectId,
-            app: original.id,
-            name: changes.name,
-            oci: changes.imageReference ? { image: changes.imageReference } : undefined,
-          }),
-        ),
-      );
+      const requests = transaction.mutations.map(({ original, changes }) => ({
+        project: original.projectId,
+        app: original.id,
+        name: changes.name,
+        oci: changes.imageReference ? { image: changes.imageReference } : undefined,
+      }));
+      const mutation = Promise.all(requests.map((request) => client.apps.updateApp(request)));
       toast.promise(mutation, {
         loading: "Saving app...",
         success: "App updated",
         error: (err) => getErrorToast(err, "Failed to update app"),
       });
-      if (transaction.mutations.some(({ changes }) => changes.imageReference !== undefined)) {
-        await trackSave(mutation);
-      } else {
-        await mutation;
-      }
+      await (requests.some((request) => request.oci) ? trackSave(mutation) : mutation);
       apps.utils.writeUpdate(transaction.mutations.map(({ modified }) => modified));
       return { refetch: false };
     },
