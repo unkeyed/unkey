@@ -5,7 +5,6 @@ import {
   type VerificationStatus,
   retryDomainVerification,
 } from "@/lib/collections/deploy/custom-domains";
-import type { Environment } from "@/lib/collections/deploy/environments";
 import {
   IconChevronDownOutline12,
   IconCircleCheckOutline18,
@@ -30,8 +29,9 @@ import { cn } from "cn";
 import { useRef, useState } from "react";
 import { EnvironmentLabel } from "../../../_components/environment-label";
 import { RemoveButton } from "../../../_components/remove-button";
-import type { DisplayDomain, DisplayDomainCustom } from "../../components/display-domain";
+import type { DisplayDomainCustom } from "../../components/display-domain";
 import { DnsRecordTable } from "./dns-record-table";
+import type { DomainListItem } from "./model";
 import { ProviderIcon } from "./provider-icon";
 
 type RowStatus = VerificationStatus | "platform";
@@ -84,13 +84,12 @@ export function DomainColumns({ activate, className, ...props }: DomainColumnsPr
 }
 
 type DomainRowProps = {
-  domain: DisplayDomain;
-  environment?: Environment;
+  item: DomainListItem;
   expanded: boolean;
   onToggle: () => void;
 };
 
-export function DomainRow({ domain, environment, expanded, onToggle }: DomainRowProps) {
+export function DomainRow({ item: { domain, environment }, expanded, onToggle }: DomainRowProps) {
   return match(domain)
     .with({ source: "custom" }, (display) => (
       <CustomDomainRow
@@ -119,7 +118,7 @@ function DomainCells({
   hostname: string;
   url: string;
   status: RowStatus;
-  environment?: Environment;
+  environment: DomainListItem["environment"];
 }) {
   const { icon, label, labelClassName } = statusConfig[status];
   return (
@@ -150,7 +149,7 @@ function CustomDomainRow({
   onToggle,
 }: {
   display: DisplayDomainCustom;
-  environment?: Environment;
+  environment: DomainListItem["environment"];
   expanded: boolean;
   onToggle: () => void;
 }) {

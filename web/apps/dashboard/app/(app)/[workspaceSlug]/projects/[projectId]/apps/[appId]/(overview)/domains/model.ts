@@ -18,20 +18,33 @@ export function domainsPageList(
   ];
 }
 
-export function filterDomains(
+type DomainEnvironment = Pick<Environment, "id" | "slug" | "kind">;
+
+export type DomainListItem = {
+  domain: DisplayDomain;
+  environment: DomainEnvironment | undefined;
+};
+
+function withEnvironments(
   list: ReadonlyArray<DisplayDomain>,
+  environments: ReadonlyArray<DomainEnvironment>,
+): DomainListItem[] {
+  const byId = new Map(environments.map((e) => [e.id, e]));
+  return list.map((domain) => ({ domain, environment: byId.get(domain.environmentId) }));
+}
+
+function filterDomains(
+  items: ReadonlyArray<DomainListItem>,
   search: string,
-  environments: ReadonlyArray<Pick<Environment, "id" | "slug">>,
-): ReadonlyArray<DisplayDomain> {
+): ReadonlyArray<DomainListItem> {
   const query = search.trim().toLowerCase();
   if (!query) {
-    return list;
+    return items;
   }
-  const slugs = new Map(environments.map((e) => [e.id, e.slug.toLowerCase()]));
-  return list.filter(
-    (d) =>
-      d.hostname.toLowerCase().includes(query) ||
-      (slugs.get(d.environmentId)?.includes(query) ?? false),
+  return items.filter(
+    ({ domain, environment }) =>
+      domain.hostname.toLowerCase().includes(query) ||
+      (environment?.slug.toLowerCase().includes(query) ?? false),
   );
 }
 
@@ -40,7 +53,7 @@ export type DomainsView =
   | { state: "failed" }
   | { state: "empty" }
   | { state: "no-match"; search: string }
-  | { state: "list"; domains: ReadonlyArray<DisplayDomain>; hasMore: boolean };
+  | { state: "list"; domains: ReadonlyArray<DomainListItem>; hasMore: boolean };
 
 export function domainsView({
   isLoading,
@@ -55,7 +68,7 @@ export function domainsView({
   failed: boolean;
   domains: ReadonlyArray<Domain>;
   customDomains: ReadonlyArray<CustomDomain>;
-  environments: ReadonlyArray<Pick<Environment, "id" | "slug">>;
+  environments: ReadonlyArray<DomainEnvironment>;
   search: string;
   limit: number;
 }): DomainsView {
@@ -69,7 +82,7 @@ export function domainsView({
   if (list.length === 0) {
     return { state: "empty" };
   }
-  const matches = filterDomains(list, search, environments);
+  const matches = filterDomains(withEnvironments(list, environments), search);
   if (matches.length === 0) {
     return { state: "no-match", search: search.trim() };
   }

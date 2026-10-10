@@ -74,7 +74,7 @@ describe("domainsView", () => {
     failed: false,
     domains: [],
     customDomains: [],
-    environments: [{ id: "env_prod", slug: "production" }],
+    environments: [{ id: "env_prod", slug: "production", kind: "production" as const }],
     search: "",
     limit: 25,
   };
@@ -86,5 +86,26 @@ describe("domainsView", () => {
 
   it("is empty without domains even while searching", () => {
     expect(domainsView({ ...base, search: "api" })).toEqual({ state: "empty" });
+  });
+
+  it("attaches each environment and searches by its slug", () => {
+    const view = domainsView({
+      ...base,
+      customDomains: [
+        customDomain("api.acme.dev", "env_prod"),
+        customDomain("x.acme.dev", "env_gone"),
+      ],
+      search: "PROD",
+    });
+    expect(view).toEqual({
+      state: "list",
+      domains: [
+        expect.objectContaining({
+          domain: expect.objectContaining({ hostname: "api.acme.dev" }),
+          environment: base.environments[0],
+        }),
+      ],
+      hasMore: false,
+    });
   });
 });

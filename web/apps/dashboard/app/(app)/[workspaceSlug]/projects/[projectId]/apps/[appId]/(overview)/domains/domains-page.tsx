@@ -108,13 +108,12 @@ export function DomainsPage() {
                 <>
                   <DomainsHeader />
                   <ResourceListBody>
-                    {list.map((d) => (
+                    {list.map((item) => (
                       <DomainRow
-                        key={d.hostname}
-                        domain={d}
-                        expanded={expanded.has(d.hostname)}
-                        onToggle={() => toggle(d.hostname)}
-                        environment={environments.find((e) => e.id === d.environmentId)}
+                        key={item.domain.hostname}
+                        item={item}
+                        expanded={expanded.has(item.domain.hostname)}
+                        onToggle={() => toggle(item.domain.hostname)}
                       />
                     ))}
                   </ResourceListBody>
