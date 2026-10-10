@@ -12,7 +12,7 @@ export function useStorageChoice({
   limits,
   onChange,
 }: { values: ComputeValues; limits: ComputeLimits; onChange: SetCompute }) {
-  const [pickedCustom, setPickedCustom] = useState(() => !onStorageTable(values.storageMib));
+  const [pickedCustom, setPickedCustom] = useState(false);
   const custom = pickedCustom || !onStorageTable(values.storageMib);
   const pick = (next: string) => {
     setPickedCustom(next === CUSTOM_VALUE);

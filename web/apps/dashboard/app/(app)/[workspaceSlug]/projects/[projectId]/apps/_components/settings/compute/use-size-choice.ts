@@ -1,6 +1,6 @@
 "use client";
 
-import { CUSTOM_SIZE_LABEL, PRESETS, presetFor, sizeChoice } from "@/lib/compute/sizing";
+import { CUSTOM_SIZE_LABEL, PRESETS, sizeChoice } from "@/lib/compute/sizing";
 import { useState } from "react";
 import type { ComputeValues } from "./draft";
 import type { SetCompute } from "./use-compute";
@@ -11,13 +11,11 @@ export function useSizeChoice({
   values,
   onChange,
 }: { values: ComputeValues; onChange: SetCompute }) {
-  const [custom, setCustom] = useState(
-    () => presetFor(values.cpuMillicores, values.memoryMib) === undefined,
-  );
-  const choice = sizeChoice(values, custom);
+  const [pickedCustom, setPickedCustom] = useState(false);
+  const choice = sizeChoice(values, pickedCustom);
   const pick = (value: string) => {
     const preset = PRESETS.find((p) => p.id === value);
-    setCustom(preset === undefined);
+    setPickedCustom(preset === undefined);
     if (preset) {
       onChange("cpuMillicores", preset.cpuMillicores);
       onChange("memoryMib", preset.memoryMib);
