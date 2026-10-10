@@ -27,6 +27,13 @@ export const POLICY_LIMITS = {
   maxRemoteIpEntries: 100,
 } as const;
 
+export const POLICY_ERRORS = {
+  gone: "This policy no longer exists.",
+  sharedName: "Another policy of this type has the same name. Rename one of them first.",
+  atCapacity: `An environment holds at most ${POLICY_LIMITS.maxPolicies} policies.`,
+  environmentMissing: "Couldn't find the environment. Reload the page and try again.",
+} as const;
+
 // protojson emits int64 fields as JSON strings (proto3 JSON mapping), while
 // the dashboard writes plain numbers. Accept both, normalize to number.
 const wireInt64 = z

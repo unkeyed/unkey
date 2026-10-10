@@ -4,9 +4,8 @@ import type { PolicyInput } from "@/lib/collections/deploy/policies.schema";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
 import { useForm, useFormState } from "react-hook-form";
-import type { PolicySwitches } from "../../hooks/policy-switches";
 import { duplicateNameError } from "../../model/duplicate-name";
-import type { Env, MergedPolicy, PolicyEnvs, PolicyRowKey } from "../../model/merge";
+import type { Env, MergedPolicy, PolicyEnvs } from "../../model/merge";
 import { type PolicyFormValues, fromPolicy, policyFormSchema, toPolicy } from "../../policy-kinds";
 import { PolicyEnvironmentToggles } from "../env-toggles";
 import { PolicyForm } from "./policy-form";
@@ -15,22 +14,20 @@ type EditPolicyPanelProps = {
   envs: PolicyEnvs;
   isOpen: boolean;
   onClose: () => void;
-  existingMatchKeys: string[];
+  otherMatchKeys: string[];
   row: MergedPolicy | undefined;
-  switchesOf: (policy: MergedPolicy) => PolicySwitches;
-  onUpdate: (key: PolicyRowKey, policy: PolicyInput) => void;
-  onToggleEnv: (key: PolicyRowKey, env: Env) => void;
+  onUpdate: (key: string, policy: PolicyInput) => Promise<boolean>;
+  onSetEnabled: (key: string, env: Env, enabled: boolean) => Promise<boolean>;
 };
 
 export function EditPolicyPanel({
   row,
-  switchesOf,
   envs,
   isOpen,
   onClose,
-  existingMatchKeys,
+  otherMatchKeys,
   onUpdate,
-  onToggleEnv,
+  onSetEnabled,
 }: EditPolicyPanelProps) {
   const [rowAtOpen] = useState(row);
   const policy = rowAtOpen?.production ?? rowAtOpen?.preview;
@@ -44,15 +41,18 @@ export function EditPolicyPanel({
     return null;
   }
 
-  const onSubmit = (values: PolicyFormValues) => {
-    const duplicate = duplicateNameError(values, existingMatchKeys, rowAtOpen);
+  const onSubmit = async (values: PolicyFormValues) => {
+    const duplicate = duplicateNameError(values, otherMatchKeys);
     if (duplicate) {
       form.setError("name", { type: "manual", message: duplicate });
       return;
     }
-    onUpdate(rowAtOpen.key, toPolicy(values));
-    onClose();
+    if (await onUpdate(rowAtOpen.key, toPolicy(values))) {
+      onClose();
+    }
   };
+
+  const live = row ?? rowAtOpen;
 
   return (
     <PolicyForm
@@ -66,11 +66,10 @@ export function EditPolicyPanel({
       <div className="flex flex-col gap-1.5">
         <span className="text-sm font-medium text-gray-12">Environments</span>
         <PolicyEnvironmentToggles
-          policy={row ?? rowAtOpen}
-          switches={switchesOf(row ?? rowAtOpen)}
+          policy={live}
           envs={envs}
           dirty={isDirty}
-          onToggle={onToggleEnv}
+          onToggle={(env, enabled) => void onSetEnabled(live.key, env, enabled)}
         />
       </div>
     </PolicyForm>

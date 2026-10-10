@@ -1,5 +1,5 @@
 import type { EnvironmentKind } from "@/lib/collections/deploy/environments";
-import type { PolicyRow } from "@/lib/collections/deploy/policies";
+import { type PolicyRow, rowKey } from "@/lib/collections/deploy/policies";
 import {
   type Policy,
   normalizePolicyName,
@@ -10,12 +10,8 @@ export type Env = EnvironmentKind;
 
 export type PolicyEnvs = Record<Env, { id: string | null; slug: string }>;
 
-declare const policyRowKeyBrand: unique symbol;
-
-export type PolicyRowKey = string & { readonly [policyRowKeyBrand]: true };
-
 export type MergedPolicy = {
-  key: PolicyRowKey;
+  key: string;
   name: string;
   type: Policy["type"];
   production: PolicyRow | null;
@@ -34,7 +30,7 @@ export function mergePolicies(production: PolicyRow[], preview: PolicyRow[]): Me
   );
   const pairedMatchKeys = new Set<string>();
 
-  const result: MergedPolicy[] = production.map((p, index) => {
+  const result: MergedPolicy[] = production.map((p) => {
     const matchKey = policyMatchKey(p.type, p.name);
     const unique = pairable(p, inProduction);
     const partner = unique ? pairablePreview.get(matchKey) : undefined;
@@ -42,7 +38,7 @@ export function mergePolicies(production: PolicyRow[], preview: PolicyRow[]): Me
       pairedMatchKeys.add(matchKey);
     }
     return {
-      key: rowKey(unique ? matchKey : positionKey("production", index, matchKey)),
+      key: unique ? matchKey : rowKey(p.environmentId, p.id),
       name: p.name,
       type: p.type,
       production: p,
@@ -50,13 +46,13 @@ export function mergePolicies(production: PolicyRow[], preview: PolicyRow[]): Me
     };
   });
 
-  for (const [index, p] of preview.entries()) {
+  for (const p of preview) {
     const matchKey = policyMatchKey(p.type, p.name);
     if (pairedMatchKeys.has(matchKey)) {
       continue;
     }
     result.push({
-      key: rowKey(pairable(p, inPreview) ? matchKey : positionKey("preview", index, matchKey)),
+      key: pairable(p, inPreview) ? matchKey : rowKey(p.environmentId, p.id),
       name: p.name,
       type: p.type,
       production: null,
@@ -67,10 +63,6 @@ export function mergePolicies(production: PolicyRow[], preview: PolicyRow[]): Me
   return result;
 }
 
-const rowKey = (key: string) => key as PolicyRowKey;
-
-const positionKey = (env: Env, index: number, matchKey: string) => `${env}#${index}#${matchKey}`;
-
 function countByMatchKey(policies: PolicyRow[]): Map<string, number> {
   const counts = new Map<string, number>();
   for (const p of policies) {
@@ -80,6 +72,6 @@ function countByMatchKey(policies: PolicyRow[]): Map<string, number> {
   return counts;
 }
 
-export function policyInEnv(merged: MergedPolicy[], key: PolicyRowKey, env: Env): PolicyRow | null {
+export function policyInEnv(merged: MergedPolicy[], key: string, env: Env): PolicyRow | null {
   return merged.find((m) => m.key === key)?.[env] ?? null;
 }

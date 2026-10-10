@@ -2,6 +2,7 @@
 
 import { EnvironmentLabel } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/_components/environment-label";
 import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
+import { ENVIRONMENT_KINDS } from "@/lib/collections/deploy/environments";
 import {
   IconDotsOutline18,
   IconGripDotsVerticalOutline18,
@@ -12,10 +13,8 @@ import { match } from "@unkey/match";
 import { Button, ConfirmPopover, InfoTooltip, ResourceListItem, ResourceListRow } from "@unkey/ui";
 import { cn } from "cn";
 import { useRef, useState } from "react";
-import type { PolicySwitches } from "../../hooks/policy-switches";
-import type { MergedPolicy, PolicyEnvs, PolicyRowKey } from "../../model/merge";
+import type { Env, MergedPolicy, PolicyEnvs } from "../../model/merge";
 import { POLICY_KINDS } from "../../policy-kinds";
-import { type PolicyEnvBadge, policyRowState } from "./row-state";
 
 export const POLICY_COLUMNS =
   "grid grid-cols-[56px_minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1fr)_32px] items-center gap-4";
@@ -39,12 +38,11 @@ export function PoliciesListHeader() {
 
 type PolicyRowProps = {
   policy: MergedPolicy;
-  switches: PolicySwitches;
   index: number;
   envs: PolicyEnvs;
   isDragOver: boolean;
-  onDelete: (key: PolicyRowKey) => void;
-  onEdit: (key: PolicyRowKey) => void;
+  onDelete: (key: string) => void;
+  onEdit: (key: string) => void;
   onDragStart: (index: number) => void;
   onDragOver: (index: number) => void;
   onDrop: (index: number) => void;
@@ -53,7 +51,6 @@ type PolicyRowProps = {
 
 export function PolicyRow({
   policy,
-  switches,
   index,
   envs,
   isDragOver,
@@ -68,8 +65,14 @@ export function PolicyRow({
   const menuButtonRef = useRef<HTMLButtonElement>(null);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const kind = POLICY_KINDS[policy.type];
-  const state = policyRowState(switches, envs);
-  const dim = state.dimmed && "opacity-55";
+  const badges = ENVIRONMENT_KINDS.map(
+    (env): PolicyEnvBadge => ({
+      env,
+      slug: envs[env].slug,
+      enabled: policy[env]?.enabled ?? false,
+    }),
+  );
+  const dim = badges.every((badge) => !badge.enabled) && "opacity-55";
 
   const edit = () => onEdit(policy.key);
 
@@ -153,7 +156,7 @@ export function PolicyRow({
         </span>
 
         <span className="flex items-center gap-4">
-          {state.environments.map((badge) => (
+          {badges.map((badge) => (
             <EnvBadge key={badge.env} badge={badge} />
           ))}
         </span>
@@ -186,6 +189,8 @@ export function PolicyRow({
     </ResourceListItem>
   );
 }
+
+type PolicyEnvBadge = { env: Env; slug: string; enabled: boolean };
 
 function EnvBadge({ badge }: { badge: PolicyEnvBadge }) {
   const environment = { slug: badge.slug, kind: badge.env };

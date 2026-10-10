@@ -1,114 +1,157 @@
 import { ENVIRONMENT_KINDS } from "@/lib/collections/deploy/environments";
-import type { PolicyEdit, PolicyEditResult, PolicyLists } from "@/lib/collections/deploy/policies";
-import { POLICY_LIMITS, type PolicyInput } from "@/lib/collections/deploy/policies.schema";
+import { type PolicyRow, toPolicyInput } from "@/lib/collections/deploy/policies";
 import {
-  type Env,
-  type MergedPolicy,
-  type PolicyRowKey,
-  mergePolicies,
-  policyInEnv,
-} from "./merge";
+  POLICY_ERRORS,
+  POLICY_LIMITS,
+  type PolicyInput,
+  policyMatchKey,
+} from "@/lib/collections/deploy/policies.schema";
+import { duplicateNameError, otherMatchKeys } from "./duplicate-name";
+import { type Env, type MergedPolicy, mergePolicies, policyInEnv } from "./merge";
 import { movePolicy } from "./reorder";
 
-const AT_CAPACITY = `An environment holds at most ${POLICY_LIMITS.maxPolicies} policies.`;
-const GONE = "This policy no longer exists.";
-const SHARED_NAME = "Another policy of this type has the same name. Rename one of them first.";
+export type PolicyLists = Record<Env, PolicyRow[]>;
 
-type Lists = Partial<Record<Env, PolicyInput[]>>;
+export type PolicyListsScope = {
+  projectId: string;
+  appId: string;
+  environments: Record<Env, string>;
+};
+
+export type PolicyPatch = PolicyInput | { enabled: boolean } | { _order: number };
+
+export type PolicyOp =
+  | { type: "insert"; row: PolicyRow }
+  | { type: "update"; row: PolicyRow; patch: PolicyPatch }
+  | { type: "delete"; row: PolicyRow };
+
+export type PolicyEditResult =
+  | { type: "apply"; ops: PolicyOp[] }
+  | { type: "reject"; message: string };
+
+export type PolicyEdit = (lists: PolicyLists, scope: PolicyListsScope) => PolicyEditResult;
 
 const reject = (message: string): PolicyEditResult => ({ type: "reject", message });
-
-function write(envs: readonly Env[], rows: (env: Env) => PolicyInput[]): PolicyEditResult {
-  const lists: Lists = {};
-  for (const env of envs) {
-    lists[env] = rows(env);
-  }
-  return { type: "write", lists };
-}
+const apply = (ops: PolicyOp[]): PolicyEditResult => ({ type: "apply", ops });
 
 const merge = (lists: PolicyLists): MergedPolicy[] =>
   mergePolicies(lists.production, lists.preview);
 
-const envsWith = (merged: MergedPolicy[], key: PolicyRowKey): Env[] =>
-  ENVIRONMENT_KINDS.filter((env) => policyInEnv(merged, key, env) !== null);
+const copiesOf = (merged: MergedPolicy[], key: string): PolicyRow[] =>
+  ENVIRONMENT_KINDS.flatMap((env) => policyInEnv(merged, key, env) ?? []);
+
+const atCapacity = (lists: PolicyLists, envs: readonly Env[]) =>
+  envs.some((env) => lists[env].length >= POLICY_LIMITS.maxPolicies);
+
+function newRow(
+  policy: PolicyInput,
+  env: Env,
+  lists: PolicyLists,
+  scope: PolicyListsScope,
+): PolicyRow {
+  return {
+    ...policy,
+    id: `new:${policyMatchKey(policy.type, policy.name)}`,
+    environmentId: scope.environments[env],
+    projectId: scope.projectId,
+    appId: scope.appId,
+    _order: (lists[env].at(-1)?._order ?? -1) + 1,
+  };
+}
 
 export function insertPolicy(policy: PolicyInput, targets: readonly Env[]): PolicyEdit {
-  return (lists) => {
-    if (targets.some((env) => lists[env].length >= POLICY_LIMITS.maxPolicies)) {
-      return reject(AT_CAPACITY);
+  return (lists, scope) => {
+    if (atCapacity(lists, targets)) {
+      return reject(POLICY_ERRORS.atCapacity);
     }
-    return write(targets, (env) => [...lists[env], policy]);
+    const duplicate = duplicateNameError(policy, otherMatchKeys(merge(lists), null));
+    if (duplicate) {
+      return reject(duplicate);
+    }
+    return apply(
+      targets.map((env) => ({ type: "insert", row: newRow(policy, env, lists, scope) })),
+    );
   };
 }
 
-export function setEnabled(key: PolicyRowKey, env: Env, enabled: boolean): PolicyEdit {
-  return (lists) => {
+export function setEnabled(key: string, env: Env, enabled: boolean): PolicyEdit {
+  return (lists, scope) => {
     const merged = merge(lists);
-    const policy = policyInEnv(merged, key, env);
-    if (policy) {
-      return write([env], () =>
-        lists[env].map((row) => (row.id === policy.id ? { ...row, enabled } : row)),
+    const copy = policyInEnv(merged, key, env);
+    if (copy) {
+      return apply(
+        copy.enabled === enabled ? [] : [{ type: "update", row: copy, patch: { enabled } }],
       );
     }
-    const source = policyInEnv(merged, key, env === "production" ? "preview" : "production");
+    const [source] = copiesOf(merged, key);
     if (!source) {
-      return reject(GONE);
+      return reject(POLICY_ERRORS.gone);
     }
     if (!enabled) {
-      return write([], () => []);
+      return apply([]);
     }
-    if (lists[env].length >= POLICY_LIMITS.maxPolicies) {
-      return reject(AT_CAPACITY);
+    if (atCapacity(lists, [env])) {
+      return reject(POLICY_ERRORS.atCapacity);
     }
-    const copy = { ...source, enabled };
-    const next = { ...lists, [env]: [...lists[env], copy] };
-    if (policyInEnv(merge(next), key, env) !== copy) {
-      return reject(SHARED_NAME);
+    if (duplicateNameError(source, otherMatchKeys(merged, key))) {
+      return reject(POLICY_ERRORS.sharedName);
     }
-    return write([env], () => next[env]);
+    const policy = { ...toPolicyInput(source), enabled };
+    return apply([{ type: "insert", row: newRow(policy, env, lists, scope) }]);
   };
 }
 
-export function updatePolicy(key: PolicyRowKey, policy: PolicyInput): PolicyEdit {
+export function updatePolicy(key: string, policy: PolicyInput): PolicyEdit {
   return (lists) => {
     const merged = merge(lists);
-    const envs = envsWith(merged, key);
-    if (envs.length === 0) {
-      return reject(GONE);
+    const copies = copiesOf(merged, key);
+    if (copies.length === 0) {
+      return reject(POLICY_ERRORS.gone);
     }
-    return write(envs, (env) => {
-      const id = policyInEnv(merged, key, env)?.id;
-      return lists[env].map((row) => (row.id === id ? { ...policy, enabled: row.enabled } : row));
-    });
+    const duplicate = duplicateNameError(policy, otherMatchKeys(merged, key));
+    if (duplicate) {
+      return reject(duplicate);
+    }
+    return apply(
+      copies.map((row) => ({ type: "update", row, patch: { ...policy, enabled: row.enabled } })),
+    );
   };
 }
 
-export function removePolicy(key: PolicyRowKey): PolicyEdit {
+export function removePolicy(key: string): PolicyEdit {
   return (lists) => {
-    const merged = merge(lists);
-    const envs = envsWith(merged, key);
-    if (envs.length === 0) {
-      return reject(GONE);
+    const copies = copiesOf(merge(lists), key);
+    if (copies.length === 0) {
+      return reject(POLICY_ERRORS.gone);
     }
-    return write(envs, (env) => {
-      const id = policyInEnv(merged, key, env)?.id;
-      return lists[env].filter((row) => row.id !== id);
-    });
+    return apply(copies.map((row) => ({ type: "delete", row })));
   };
 }
 
-export function reorderPolicies(fromKey: PolicyRowKey, toKey: PolicyRowKey): PolicyEdit {
+function orderBetween(rows: PolicyRow[], index: number): number {
+  const before = rows[index - 1]?._order;
+  const after = rows[index + 1]?._order;
+  if (before === undefined) {
+    return (after ?? 0) - 1;
+  }
+  return after === undefined ? before + 1 : (before + after) / 2;
+}
+
+export function reorderPolicies(fromKey: string, toKey: string): PolicyEdit {
   return (lists) => {
     const merged = merge(lists);
     const from = merged.findIndex((m) => m.key === fromKey);
     const to = merged.findIndex((m) => m.key === toKey);
     if (from < 0 || to < 0) {
-      return reject(GONE);
+      return reject(POLICY_ERRORS.gone);
     }
-    const moved = movePolicy(merged, lists, from, to);
-    return write(
-      moved.map(({ env }) => env),
-      (env) => moved.find((m) => m.env === env)?.rows ?? lists[env],
+    const moved = merged[from];
+    return apply(
+      movePolicy(merged, lists, from, to).flatMap(({ env, rows }): PolicyOp[] => {
+        const row = moved[env];
+        const index = rows.findIndex((r) => r === row);
+        return row ? [{ type: "update", row, patch: { _order: orderBetween(rows, index) } }] : [];
+      }),
     );
   };
 }

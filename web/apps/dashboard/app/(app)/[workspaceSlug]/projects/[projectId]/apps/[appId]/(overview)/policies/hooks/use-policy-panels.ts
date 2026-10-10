@@ -1,9 +1,8 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import type { PolicyRowKey } from "../model/merge";
 
-export type PolicyPanel = { type: "add" } | { type: "edit"; key: PolicyRowKey } | { type: "guide" };
+export type PolicyPanel = { type: "add" } | { type: "edit"; key: string } | { type: "guide" };
 
 type PanelState = { panel: PolicyPanel; session: number; isOpen: boolean };
 

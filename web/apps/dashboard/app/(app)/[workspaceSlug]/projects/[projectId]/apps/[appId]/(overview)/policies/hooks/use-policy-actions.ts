@@ -1,30 +1,37 @@
 "use client";
 
 import {
-  type PolicyEdit,
   type PolicyListToast,
-  type PolicyScope,
-  writePolicies,
+  type PolicyRow,
+  persistPolicyMutations,
+  policies,
+  policyList,
+  rowKey,
 } from "@/lib/collections/deploy/policies";
-import type { PolicyInput } from "@/lib/collections/deploy/policies.schema";
-import { useMemo } from "react";
+import { POLICY_ERRORS, type PolicyInput } from "@/lib/collections/deploy/policies.schema";
+import { type QueueStrategy, queueStrategy, usePacedMutations } from "@tanstack/react-db";
+import { match } from "@unkey/match";
+import { toast } from "@unkey/ui";
+import { useState } from "react";
 import {
+  type PolicyEdit,
+  type PolicyOp,
   insertPolicy,
   removePolicy,
   reorderPolicies,
   setEnabled,
   updatePolicy,
 } from "../model/edits";
-import type { Env, PolicyEnvs, PolicyRowKey } from "../model/merge";
+import type { Env, PolicyEnvs } from "../model/merge";
 
 type Args = { envs: PolicyEnvs; projectId: string; appId: string };
 
 export type PolicyActions = {
-  setEnabled: (key: PolicyRowKey, env: Env, enabled: boolean) => Promise<boolean>;
-  reorder: (fromKey: PolicyRowKey, toKey: PolicyRowKey) => Promise<boolean>;
+  setEnabled: (key: string, env: Env, enabled: boolean) => Promise<boolean>;
+  reorder: (fromKey: string, toKey: string) => Promise<boolean>;
   save: (policy: PolicyInput, envs: readonly Env[]) => Promise<boolean>;
-  update: (key: PolicyRowKey, policy: PolicyInput) => Promise<boolean>;
-  delete: (key: PolicyRowKey) => Promise<boolean>;
+  update: (key: string, policy: PolicyInput) => Promise<boolean>;
+  delete: (key: string) => Promise<boolean>;
 };
 
 const TOASTS = {
@@ -46,20 +53,68 @@ const TOASTS = {
   },
 } satisfies Record<string, PolicyListToast>;
 
+function applyOps(ops: PolicyOp[]) {
+  for (const op of ops) {
+    const key = rowKey(op.row.environmentId, op.row.id);
+    match(op)
+      .with({ type: "insert" }, ({ row }) => policies.insert(row))
+      .with({ type: "update" }, ({ patch }) =>
+        policies.update(key, (draft) => {
+          Object.assign(draft, patch);
+        }),
+      )
+      .with({ type: "delete" }, () => policies.delete(key))
+      .exhaustive();
+  }
+}
+
+function usePolicyWrite(strategy: QueueStrategy, labels: PolicyListToast) {
+  return usePacedMutations<PolicyOp[], PolicyRow>({
+    strategy,
+    onMutate: applyOps,
+    mutationFn: ({ transaction }) => persistPolicyMutations(transaction.mutations, labels),
+  });
+}
+
 export function usePolicyActions({ envs, projectId, appId }: Args): PolicyActions {
-  return useMemo(() => {
-    const scope: PolicyScope = {
-      projectId,
-      appId,
-      environments: { production: envs.production.id, preview: envs.preview.id },
-    };
-    const run = (edit: PolicyEdit, labels: PolicyListToast) => writePolicies(scope, edit, labels);
-    return {
-      setEnabled: (key, env, enabled) => run(setEnabled(key, env, enabled), TOASTS.update),
-      reorder: (fromKey, toKey) => run(reorderPolicies(fromKey, toKey), TOASTS.reorder),
-      save: (policy, targets) => run(insertPolicy(policy, targets), TOASTS.add),
-      update: (key, policy) => run(updatePolicy(key, policy), TOASTS.update),
-      delete: (key) => run(removePolicy(key), TOASTS.delete),
-    };
-  }, [envs, projectId, appId]);
+  const [strategy] = useState(() => queueStrategy());
+  const add = usePolicyWrite(strategy, TOASTS.add);
+  const update = usePolicyWrite(strategy, TOASTS.update);
+  const remove = usePolicyWrite(strategy, TOASTS.delete);
+  const reorder = usePolicyWrite(strategy, TOASTS.reorder);
+
+  const run = async (
+    write: ReturnType<typeof usePolicyWrite>,
+    edit: PolicyEdit,
+  ): Promise<boolean> => {
+    const production = envs.production.id;
+    const preview = envs.preview.id;
+    if (production === null || preview === null) {
+      toast.error(POLICY_ERRORS.environmentMissing);
+      return false;
+    }
+    const result = edit(
+      { production: policyList(production), preview: policyList(preview) },
+      { projectId, appId, environments: { production, preview } },
+    );
+    if (result.type === "reject") {
+      toast.error(result.message);
+      return false;
+    }
+    if (result.ops.length === 0) {
+      return true;
+    }
+    return write(result.ops).isPersisted.promise.then(
+      () => true,
+      () => false,
+    );
+  };
+
+  return {
+    setEnabled: (key, env, enabled) => run(update, setEnabled(key, env, enabled)),
+    reorder: (fromKey, toKey) => run(reorder, reorderPolicies(fromKey, toKey)),
+    save: (policy, targets) => run(add, insertPolicy(policy, targets)),
+    update: (key, policy) => run(update, updatePolicy(key, policy)),
+    delete: (key) => run(remove, removePolicy(key)),
+  };
 }

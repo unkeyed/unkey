@@ -4,21 +4,18 @@ import { EnvironmentLabel } from "@/app/(app)/[workspaceSlug]/projects/[projectI
 import { Switch } from "@/components/ui/switch";
 import { ENVIRONMENT_KINDS } from "@/lib/collections/deploy/environments";
 import { InfoTooltip } from "@unkey/ui";
-import type { PolicySwitches } from "../hooks/policy-switches";
-import type { Env, MergedPolicy, PolicyEnvs, PolicyRowKey } from "../model/merge";
+import type { Env, MergedPolicy, PolicyEnvs } from "../model/merge";
 
 export function PolicyEnvironmentToggles({
   policy,
-  switches,
   envs,
   onToggle,
   dirty,
 }: {
   policy: MergedPolicy;
-  switches: PolicySwitches;
   dirty: boolean;
   envs: PolicyEnvs;
-  onToggle: (key: PolicyRowKey, env: Env) => void;
+  onToggle: (env: Env, enabled: boolean) => void;
 }) {
   return (
     <div className="divide-y divide-grayA-4 rounded-lg border">
@@ -37,10 +34,10 @@ export function PolicyEnvironmentToggles({
               <span className="flex">
                 <Switch
                   size="sm"
-                  checked={switches[env]}
+                  checked={policy[env]?.enabled ?? false}
                   disabled={dirty}
                   aria-label={`Run ${policy.name} in ${slug}`}
-                  onCheckedChange={() => onToggle(policy.key, env)}
+                  onCheckedChange={(checked) => onToggle(env, checked)}
                 />
               </span>
             </InfoTooltip>

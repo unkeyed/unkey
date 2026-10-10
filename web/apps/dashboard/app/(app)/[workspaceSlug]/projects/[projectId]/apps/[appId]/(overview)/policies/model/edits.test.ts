@@ -1,23 +1,19 @@
-import {
-  type PolicyListReplacement,
-  type PolicyLists,
-  type PolicyRow,
-  type PolicyScope,
-  createPolicyWriter,
-} from "@/lib/collections/deploy/policies";
-import type { PolicyInput } from "@/lib/collections/deploy/policies.schema";
+import type { PolicyRow } from "@/lib/collections/deploy/policies";
+import { POLICY_ERRORS, type PolicyInput } from "@/lib/collections/deploy/policies.schema";
 import { describe, expect, it } from "vitest";
 import {
-  NO_PENDING_SWITCHES,
-  type PendingSwitchEvent,
-  policySwitches,
-  reducePendingSwitches,
-} from "../hooks/policy-switches";
-import { insertPolicy, removePolicy, reorderPolicies, setEnabled, updatePolicy } from "./edits";
-import { type Env, type MergedPolicy, type PolicyRowKey, mergePolicies } from "./merge";
+  type PolicyEdit,
+  type PolicyListsScope,
+  type PolicyOp,
+  insertPolicy,
+  removePolicy,
+  reorderPolicies,
+  setEnabled,
+  updatePolicy,
+} from "./edits";
+import { type Env, mergePolicies } from "./merge";
 
-const LABELS = { loading: "Saving...", success: "Saved", error: "Failed" };
-const SCOPE: PolicyScope = {
+const SCOPE: PolicyListsScope = {
   projectId: "proj_KEBAP",
   appId: "app_KEBAP",
   environments: { production: "env_prod", preview: "env_prev" },
@@ -27,414 +23,178 @@ function firewall(name: string, enabled = true): PolicyInput {
   return { name, enabled, type: "firewall", firewall: { action: "ACTION_DENY" } };
 }
 
-const key = (name: string): PolicyRowKey =>
-  mergePolicies(
-    [
-      {
-        ...firewall(name),
-        id: "pol_key",
-        environmentId: "env_prod",
-        projectId: SCOPE.projectId,
-        appId: SCOPE.appId,
-      },
-    ],
-    [],
-  )[0].key;
-
-function fakeGateway(initial: Record<"production" | "preview", PolicyInput[]>) {
-  let nextId = 0;
-  const stored: PolicyLists = { production: [], preview: [] };
-  const writes: PolicyListReplacement[][] = [];
-  const notices: string[] = [];
-  const pending: { answer: () => void; fail: () => void }[] = [];
-
-  const store = (environmentId: string, policies: PolicyInput[]) => {
-    const env = environmentId === "env_prod" ? "production" : "preview";
-    stored[env] = policies.map(
+function lists(production: PolicyInput[], preview: PolicyInput[]): Record<Env, PolicyRow[]> {
+  const rows = (env: Env, policies: PolicyInput[]) =>
+    policies.map(
       (p, index): PolicyRow => ({
         ...p,
-        id: `pol_${++nextId}`,
-        environmentId,
+        id: `pol_${env}_${index}`,
+        environmentId: SCOPE.environments[env],
         projectId: SCOPE.projectId,
         appId: SCOPE.appId,
         _order: index,
       }),
     );
-  };
-  store("env_prod", initial.production);
-  store("env_prev", initial.preview);
-
-  const write = createPolicyWriter({
-    read: () => ({
-      type: "lists",
-      lists: { production: [...stored.production], preview: [...stored.preview] },
-    }),
-    write: (replacements) =>
-      new Promise<void>((resolve, reject) => {
-        pending.push({
-          answer: () => {
-            writes.push(replacements);
-            for (const r of replacements) {
-              store(r.environmentId, r.policies);
-            }
-            resolve();
-          },
-          fail: () => reject(new Error("gateway down")),
-        });
-      }),
-    notify: (message) => notices.push(message),
-  });
-
-  return {
-    write,
-    writes,
-    notices,
-    stored,
-    serverAnswers: () => settleNext(() => pending.shift()?.answer()),
-    serverFails: () => settleNext(() => pending.shift()?.fail()),
-  };
+  return { production: rows("production", production), preview: rows("preview", preview) };
 }
 
-async function settleNext(settle: () => void) {
-  await Promise.resolve();
-  settle();
-  for (let i = 0; i < 4; i++) {
-    await Promise.resolve();
+const keyOf = (state: Record<Env, PolicyRow[]>, name: string) => {
+  const row = mergePolicies(state.production, state.preview).find((m) => m.name === name);
+  if (!row) {
+    throw new Error(`no policy named ${name}`);
   }
+  return row.key;
+};
+
+function ops(edit: PolicyEdit, state: Record<Env, PolicyRow[]>): PolicyOp[] {
+  const result = edit(state, SCOPE);
+  if (result.type === "reject") {
+    throw new Error(result.message);
+  }
+  return result.ops;
 }
 
-const names = (rows: { name: string; enabled: boolean }[]) =>
-  rows.map((r) => `${r.name}${r.enabled ? "" : " (off)"}`);
+const rejection = (edit: PolicyEdit, state: Record<Env, PolicyRow[]>) => {
+  const result = edit(state, SCOPE);
+  return result.type === "reject" ? result.message : null;
+};
 
-describe("policy writer", () => {
-  it("runs edits in order, each against the lists the previous write left behind", async () => {
-    const gw = fakeGateway({ production: [firewall("A"), firewall("B")], preview: [] });
+describe("insertPolicy", () => {
+  it("adds a row at the end of each target environment", () => {
+    const state = lists([firewall("A")], []);
 
-    const first = gw.write(SCOPE, removePolicy(key("A")), LABELS);
-    const second = gw.write(SCOPE, insertPolicy(firewall("C"), ["production"]), LABELS);
-    await gw.serverAnswers();
-    await gw.serverAnswers();
-
-    expect(await first).toBe(true);
-    expect(await second).toBe(true);
-    expect(gw.writes.map((w) => w[0].policies.map((p) => p.name))).toEqual([["B"], ["B", "C"]]);
-    expect(names(gw.stored.production)).toEqual(["B", "C"]);
-  });
-
-  it("a toggle and an edit queued during a reorder both land on the regenerated ids", async () => {
-    const gw = fakeGateway({
-      production: [firewall("Auth"), firewall("Limit")],
-      preview: [firewall("Auth")],
-    });
-    const before = gw.stored.production.map((r) => r.id);
-
-    const reorder = gw.write(SCOPE, reorderPolicies(key("Limit"), key("Auth")), LABELS);
-    const toggle = gw.write(SCOPE, setEnabled(key("Auth"), "production", false), LABELS);
-    const edit = gw.write(
-      SCOPE,
-      updatePolicy(key("Auth"), {
-        ...firewall("Auth v2"),
-        match: [{ path: { path: { prefix: "/v2" } } }],
-      }),
-      LABELS,
-    );
-    await gw.serverAnswers();
-    await gw.serverAnswers();
-    await gw.serverAnswers();
-
-    expect([await reorder, await toggle, await edit]).toEqual([true, true, true]);
-    expect(gw.notices).toEqual([]);
-    expect(gw.stored.production.map((r) => r.id)).not.toEqual(before);
-    expect(names(gw.stored.production)).toEqual(["Limit", "Auth v2 (off)"]);
-    expect(gw.stored.production[1].match).toEqual([{ path: { path: { prefix: "/v2" } } }]);
-    expect(names(gw.stored.preview)).toEqual(["Auth v2"]);
-  });
-
-  it("rejects an edit to a policy that an earlier queued delete removed", async () => {
-    const gw = fakeGateway({ production: [firewall("A")], preview: [] });
-
-    const remove = gw.write(SCOPE, removePolicy(key("A")), LABELS);
-    const toggle = gw.write(SCOPE, setEnabled(key("A"), "production", false), LABELS);
-    await gw.serverAnswers();
-    await gw.serverAnswers();
-
-    expect(await remove).toBe(true);
-    expect(await toggle).toBe(false);
-    expect(gw.notices).toEqual(["This policy no longer exists."]);
-    expect(gw.writes).toHaveLength(1);
-  });
-
-  it("turning a policy on where it is absent copies it there, and the two merge into one", async () => {
-    const gw = fakeGateway({ production: [firewall("A")], preview: [firewall("X")] });
-
-    const copy = gw.write(SCOPE, setEnabled(key("A"), "preview", true), LABELS);
-    await gw.serverAnswers();
-
-    expect(await copy).toBe(true);
-    expect(names(gw.stored.preview)).toEqual(["X", "A"]);
-    expect(names(gw.stored.production)).toEqual(["A"]);
-    const merged = mergePolicies(gw.stored.production, gw.stored.preview);
-    expect(merged.map((m) => [m.name, m.production?.enabled, m.preview?.enabled])).toEqual([
-      ["A", true, true],
-      ["X", undefined, true],
+    expect(ops(insertPolicy(firewall("B"), ["production", "preview"]), state)).toEqual([
+      {
+        type: "insert",
+        row: expect.objectContaining({ name: "B", environmentId: "env_prod", _order: 1 }),
+      },
+      {
+        type: "insert",
+        row: expect.objectContaining({ name: "B", environmentId: "env_prev", _order: 0 }),
+      },
     ]);
   });
 
-  it("turning a policy off keeps its copy, so turning it on again keeps its place", async () => {
-    const gw = fakeGateway({ production: [], preview: [firewall("A"), firewall("B")] });
-
-    const off = gw.write(SCOPE, setEnabled(key("A"), "preview", false), LABELS);
-    const on = gw.write(SCOPE, setEnabled(key("A"), "preview", true), LABELS);
-    await gw.serverAnswers();
-    expect(names(gw.stored.preview)).toEqual(["A (off)", "B"]);
-    await gw.serverAnswers();
-
-    expect([await off, await on]).toEqual([true, true]);
-    expect(names(gw.stored.preview)).toEqual(["A", "B"]);
-  });
-
-  it("turning a policy off where it is absent writes nothing", async () => {
-    const gw = fakeGateway({ production: [firewall("A")], preview: [] });
-
-    expect(await gw.write(SCOPE, setEnabled(key("A"), "preview", false), LABELS)).toBe(true);
-    expect(gw.writes).toEqual([]);
-  });
-
-  it("refuses to copy a policy whose name repeats, since the copy would not pair", async () => {
-    const gw = fakeGateway({
-      production: [firewall("Auth"), firewall("Auth", false)],
-      preview: [firewall("Auth")],
-    });
-    const second = mergePolicies(gw.stored.production, gw.stored.preview)[1];
-
-    const copy = gw.write(SCOPE, setEnabled(second.key, "preview", true), LABELS);
-
-    expect(await copy).toBe(false);
-    expect(gw.notices).toEqual([
-      "Another policy of this type has the same name. Rename one of them first.",
-    ]);
-    expect(gw.writes).toHaveLength(0);
-  });
-
-  it("rejects an insert past the environment's capacity without writing", async () => {
-    const gw = fakeGateway({
-      production: Array.from({ length: 50 }, (_, i) => firewall(`P${i}`)),
-      preview: [],
-    });
-
-    const insert = gw.write(
-      SCOPE,
-      insertPolicy(firewall("One more"), ["production", "preview"]),
-      LABELS,
+  it("rejects an insert past the environment's capacity", () => {
+    const state = lists(
+      Array.from({ length: 50 }, (_, i) => firewall(`P${i}`)),
+      [],
     );
 
-    expect(await insert).toBe(false);
-    expect(gw.notices).toEqual(["An environment holds at most 50 policies."]);
-    expect(gw.writes).toHaveLength(0);
+    expect(rejection(insertPolicy(firewall("One more"), ["production"]), state)).toBe(
+      POLICY_ERRORS.atCapacity,
+    );
   });
 
-  it("reports a failed write and keeps serving the edits behind it", async () => {
-    const gw = fakeGateway({ production: [firewall("A")], preview: [] });
-    let failures = 0;
-    const flaky = createPolicyWriter({
-      read: () => ({ type: "lists", lists: gw.stored }),
-      write: () => Promise.reject(new Error(`boom ${++failures}`)),
-      notify: () => undefined,
-    });
+  it("rejects a second policy of the same type and name, also one still being added", () => {
+    const state = lists([], []);
+    const [first] = ops(insertPolicy(firewall("Auth"), ["preview"]), state);
+    if (first.type !== "insert") {
+      throw new Error("expected an insert");
+    }
+    state.preview.push(first.row);
 
-    const failed = flaky(SCOPE, removePolicy(key("A")), LABELS);
-    const next = flaky(SCOPE, setEnabled(key("A"), "production", false), LABELS);
-
-    expect(await failed).toBe(false);
-    expect(await next).toBe(false);
-    expect(failures).toBe(2);
+    expect(rejection(insertPolicy(firewall("Auth "), ["production"]), state)).toMatch(
+      /already exists/,
+    );
   });
 });
 
-function switchesPage(gw: ReturnType<typeof fakeGateway>) {
-  let pending = NO_PENDING_SWITCHES;
-  let clicks = 0;
-  const dispatch = (event: PendingSwitchEvent) => {
-    pending = reducePendingSwitches(pending, event);
-  };
-  const find = (match: (m: MergedPolicy) => boolean) => {
-    const policy = mergePolicies(gw.stored.production, gw.stored.preview).find(match);
-    if (!policy) {
-      throw new Error("no such policy");
-    }
-    return policy;
-  };
-  const clickKey = (policyKey: PolicyRowKey, env: Env) => {
-    const policy = find((m) => m.key === policyKey);
-    const on = !policySwitches(policy, pending)[env];
-    const click = ++clicks;
-    dispatch({ type: "click", key: policyKey, env, on, click });
-    return gw
-      .write(SCOPE, setEnabled(policyKey, env, on), LABELS)
-      .then((ok) => dispatch({ type: "settle", key: policyKey, env, click, ok }));
-  };
-  return {
-    shown: (name: string) =>
-      policySwitches(
-        find((m) => m.name === name),
-        pending,
-      ),
-    shownKey: (policyKey: PolicyRowKey) =>
-      policySwitches(
-        find((m) => m.key === policyKey),
-        pending,
-      ),
-    click: (name: string, env: Env) => clickKey(find((m) => m.name === name).key, env),
-    clickKey,
-    listsSync: () => dispatch({ type: "sync" }),
-  };
-}
+describe("setEnabled", () => {
+  it("updates the copy in place when the environment has one", () => {
+    const state = lists([firewall("A")], [firewall("A")]);
 
-describe("policy switches", () => {
-  it("flips at once and keeps the flip once the write lands", async () => {
-    const gw = fakeGateway({ production: [firewall("A")], preview: [firewall("A")] });
-    const page = switchesPage(gw);
-
-    const click = page.click("A", "production");
-    expect(page.shown("A")).toEqual({ production: false, preview: true });
-    expect(gw.writes).toHaveLength(0);
-
-    await gw.serverAnswers();
-    await click;
-    expect(page.shown("A")).toEqual({ production: false, preview: true });
-
-    page.listsSync();
-    expect(page.shown("A")).toEqual({ production: false, preview: true });
-    expect(names(gw.stored.production)).toEqual(["A (off)"]);
-  });
-
-  it("rolls back to the server state when the write fails", async () => {
-    const gw = fakeGateway({ production: [firewall("A")], preview: [] });
-    const page = switchesPage(gw);
-
-    const click = page.click("A", "production");
-    expect(page.shown("A")).toEqual({ production: false, preview: false });
-
-    await gw.serverFails();
-    await click;
-    expect(page.shown("A")).toEqual({ production: true, preview: false });
-    expect(names(gw.stored.production)).toEqual(["A"]);
-  });
-
-  it("two fast clicks on one switch end where the last click left it", async () => {
-    const gw = fakeGateway({ production: [firewall("A")], preview: [] });
-    const page = switchesPage(gw);
-
-    const first = page.click("A", "production");
-    const second = page.click("A", "production");
-    expect(page.shown("A")).toEqual({ production: true, preview: false });
-
-    await gw.serverAnswers();
-    await first;
-    expect(page.shown("A")).toEqual({ production: true, preview: false });
-    await gw.serverAnswers();
-    await second;
-    page.listsSync();
-
-    expect(page.shown("A")).toEqual({ production: true, preview: false });
-    expect(gw.writes.map((w) => names(w[0].policies))).toEqual([["A (off)"], ["A"]]);
-  });
-
-  it("two fast clicks on an unnamed policy both land", async () => {
-    const gw = fakeGateway({ production: [firewall("A"), firewall("")], preview: [] });
-    const page = switchesPage(gw);
-    const unnamed = mergePolicies(gw.stored.production, gw.stored.preview)[1].key;
-
-    const first = page.clickKey(unnamed, "production");
-    const second = page.clickKey(unnamed, "production");
-    await gw.serverAnswers();
-    await first;
-    await gw.serverAnswers();
-    await second;
-    page.listsSync();
-
-    expect(gw.notices).toEqual([]);
-    expect(gw.writes.map((w) => names(w[0].policies))).toEqual([
-      ["A", " (off)"],
-      ["A", ""],
+    expect(ops(setEnabled(keyOf(state, "A"), "preview", false), state)).toEqual([
+      { type: "update", row: state.preview[0], patch: { enabled: false } },
     ]);
-    expect(page.shownKey(unnamed)).toEqual({ production: true, preview: false });
   });
 
-  it("a failed first click does not undo a second click that landed", async () => {
-    const gw = fakeGateway({ production: [firewall("A")], preview: [] });
-    const page = switchesPage(gw);
+  it("writes nothing when the copy already has that state", () => {
+    const state = lists([firewall("A")], []);
 
-    const first = page.click("A", "production");
-    const second = page.click("A", "production");
-
-    await gw.serverFails();
-    await first;
-    expect(page.shown("A")).toEqual({ production: true, preview: false });
-    await gw.serverAnswers();
-    await second;
-    page.listsSync();
-
-    expect(page.shown("A")).toEqual({ production: true, preview: false });
-    expect(names(gw.stored.production)).toEqual(["A"]);
+    expect(ops(setEnabled(keyOf(state, "A"), "production", true), state)).toEqual([]);
+    expect(ops(setEnabled(keyOf(state, "A"), "preview", false), state)).toEqual([]);
   });
 
-  it("fast clicks on two policies each land", async () => {
-    const gw = fakeGateway({
-      production: [firewall("A"), firewall("B")],
-      preview: [firewall("B")],
+  it("copies the policy into an environment where it is absent", () => {
+    const state = lists([{ ...firewall("A"), match: [{ path: { path: { prefix: "/v1" } } }] }], []);
+
+    const [copy] = ops(setEnabled(keyOf(state, "A"), "preview", true), state);
+
+    expect(copy).toEqual({
+      type: "insert",
+      row: expect.objectContaining({
+        name: "A",
+        enabled: true,
+        environmentId: "env_prev",
+        match: [{ path: { path: { prefix: "/v1" } } }],
+      }),
     });
-    const page = switchesPage(gw);
-
-    const a = page.click("A", "production");
-    const b = page.click("B", "preview");
-    expect([page.shown("A"), page.shown("B")]).toEqual([
-      { production: false, preview: false },
-      { production: true, preview: false },
-    ]);
-
-    await gw.serverAnswers();
-    await gw.serverAnswers();
-    await Promise.all([a, b]);
-    page.listsSync();
-
-    expect([page.shown("A"), page.shown("B")]).toEqual([
-      { production: false, preview: false },
-      { production: true, preview: false },
-    ]);
-    expect(names(gw.stored.production)).toEqual(["A (off)", "B"]);
-    expect(names(gw.stored.preview)).toEqual(["B (off)"]);
   });
 
-  it("turning a switch on where the policy is absent shows on at once and lands as one policy", async () => {
-    const gw = fakeGateway({ production: [firewall("A")], preview: [] });
-    const page = switchesPage(gw);
+  it("refuses to copy a policy whose name repeats, since the copy would not pair", () => {
+    const state = lists([firewall("Auth"), firewall("Auth", false)], []);
+    const second = mergePolicies(state.production, state.preview)[1].key;
 
-    const click = page.click("A", "preview");
-    expect(page.shown("A")).toEqual({ production: true, preview: true });
-    expect(gw.writes).toHaveLength(0);
-
-    await gw.serverAnswers();
-    await click;
-    page.listsSync();
-
-    expect(page.shown("A")).toEqual({ production: true, preview: true });
-    expect(mergePolicies(gw.stored.production, gw.stored.preview)).toHaveLength(1);
+    expect(rejection(setEnabled(second, "preview", true), state)).toBe(POLICY_ERRORS.sharedName);
   });
 
-  it("rolls back a switch the edit rejects", async () => {
-    const gw = fakeGateway({
-      production: [firewall("Auth"), firewall("Auth", false)],
-      preview: [],
-    });
-    const page = switchesPage(gw);
-    const second = mergePolicies(gw.stored.production, gw.stored.preview)[1];
+  it("rejects a toggle on a policy that is gone", () => {
+    expect(rejection(setEnabled("firewall:A", "production", false), lists([], []))).toBe(
+      POLICY_ERRORS.gone,
+    );
+  });
+});
 
-    const click = page.clickKey(second.key, "preview");
-    expect(page.shownKey(second.key)).toEqual({ production: false, preview: true });
+describe("updatePolicy", () => {
+  it("writes the new values to every copy and keeps each copy's on or off state", () => {
+    const state = lists([firewall("Auth")], [firewall("Auth", false)]);
+    const next = { ...firewall("Auth v2"), match: [{ path: { path: { prefix: "/v2" } } }] };
 
-    await click;
-    expect(page.shownKey(second.key)).toEqual({ production: false, preview: false });
-    expect(gw.writes).toEqual([]);
+    expect(ops(updatePolicy(keyOf(state, "Auth"), next), state)).toEqual([
+      { type: "update", row: state.production[0], patch: { ...next, enabled: true } },
+      { type: "update", row: state.preview[0], patch: { ...next, enabled: false } },
+    ]);
+  });
+
+  it("rejects a rename onto another policy of the same type", () => {
+    const state = lists([firewall("Auth"), firewall("Limit")], []);
+
+    expect(rejection(updatePolicy(keyOf(state, "Auth"), firewall("Limit")), state)).toMatch(
+      /already exists/,
+    );
+  });
+});
+
+describe("removePolicy", () => {
+  it("deletes the copy in every environment", () => {
+    const state = lists([firewall("A")], [firewall("A")]);
+
+    expect(ops(removePolicy(keyOf(state, "A")), state)).toEqual([
+      { type: "delete", row: state.production[0] },
+      { type: "delete", row: state.preview[0] },
+    ]);
+  });
+});
+
+describe("reorderPolicies", () => {
+  it("gives the moved row an order between its new neighbours in each environment", () => {
+    const state = lists(
+      [firewall("A"), firewall("B"), firewall("C")],
+      [firewall("X"), firewall("B"), firewall("C")],
+    );
+
+    expect(ops(reorderPolicies(keyOf(state, "C"), keyOf(state, "B")), state)).toEqual([
+      { type: "update", row: state.production[2], patch: { _order: 0.5 } },
+      { type: "update", row: state.preview[2], patch: { _order: 0.5 } },
+    ]);
+  });
+
+  it("moves a row to the top below zero", () => {
+    const state = lists([firewall("A"), firewall("B")], []);
+
+    expect(ops(reorderPolicies(keyOf(state, "B"), keyOf(state, "A")), state)).toEqual([
+      { type: "update", row: state.production[1], patch: { _order: -1 } },
+    ]);
   });
 });

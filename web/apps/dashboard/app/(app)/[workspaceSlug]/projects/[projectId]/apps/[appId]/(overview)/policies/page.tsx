@@ -1,6 +1,5 @@
 "use client";
 import { LoadError } from "@/components/load-error";
-import { policyMatchKey } from "@/lib/collections/deploy/policies.schema";
 import { IconCircleInfoOutline18, IconPlusOutline18, IconShieldGlobeOutline18 } from "@unkey/icons";
 import { match } from "@unkey/match";
 import {
@@ -28,7 +27,7 @@ import { EditPolicyPanel } from "./components/policy-form/edit-policy-panel";
 import { usePoliciesData } from "./hooks/use-policies-data";
 import { usePolicyActions } from "./hooks/use-policy-actions";
 import { usePolicyPanels } from "./hooks/use-policy-panels";
-import { usePolicySwitches } from "./hooks/use-policy-switches";
+import { otherMatchKeys } from "./model/duplicate-name";
 
 export default function PoliciesPage() {
   const { projectId } = useProjectData();
@@ -36,11 +35,8 @@ export default function PoliciesPage() {
   const data = usePoliciesData();
   const { envs, merged, canWrite } = data;
   const actions = usePolicyActions({ envs, projectId, appId });
-  const switches = usePolicySwitches(merged, actions.setEnabled);
   const panels = usePolicyPanels();
   const openAdd = () => panels.open({ type: "add" });
-
-  const existingMatchKeys = merged.map((m) => policyMatchKey(m.type, m.name));
 
   return (
     <PageContainer>
@@ -93,7 +89,6 @@ export default function PoliciesPage() {
                 <PoliciesList
                   envs={envs}
                   merged={merged}
-                  switchesOf={switches.switchesOf}
                   onReorder={actions.reorder}
                   onDelete={actions.delete}
                   onEdit={(key) => panels.open({ type: "edit", key })}
@@ -113,7 +108,7 @@ export default function PoliciesPage() {
                 envs={envs}
                 isOpen={panels.isOpen}
                 onClose={panels.close}
-                existingMatchKeys={existingMatchKeys}
+                otherMatchKeys={otherMatchKeys(merged, null)}
                 onSave={actions.save}
               />
             ))
@@ -124,10 +119,9 @@ export default function PoliciesPage() {
                 envs={envs}
                 isOpen={panels.isOpen}
                 onClose={panels.close}
-                existingMatchKeys={existingMatchKeys}
+                otherMatchKeys={otherMatchKeys(merged, key)}
                 onUpdate={actions.update}
-                switchesOf={switches.switchesOf}
-                onToggleEnv={switches.toggle}
+                onSetEnabled={actions.setEnabled}
               />
             ))
             .exhaustive()}

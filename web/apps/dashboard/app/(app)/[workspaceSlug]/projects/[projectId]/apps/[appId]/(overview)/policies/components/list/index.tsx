@@ -2,27 +2,18 @@
 
 import { ResourceListBody } from "@unkey/ui";
 import { useCallback, useState } from "react";
-import type { PolicySwitches } from "../../hooks/policy-switches";
-import type { MergedPolicy, PolicyEnvs, PolicyRowKey } from "../../model/merge";
+import type { MergedPolicy, PolicyEnvs } from "../../model/merge";
 import { PoliciesListHeader, PolicyRow } from "./row";
 
 type PoliciesListProps = {
   envs: PolicyEnvs;
   merged: MergedPolicy[];
-  switchesOf: (policy: MergedPolicy) => PolicySwitches;
-  onReorder: (fromKey: PolicyRowKey, toKey: PolicyRowKey) => void;
-  onDelete: (key: PolicyRowKey) => void;
-  onEdit: (key: PolicyRowKey) => void;
+  onReorder: (fromKey: string, toKey: string) => void;
+  onDelete: (key: string) => void;
+  onEdit: (key: string) => void;
 };
 
-export function PoliciesList({
-  envs,
-  merged,
-  switchesOf,
-  onReorder,
-  onDelete,
-  onEdit,
-}: PoliciesListProps) {
+export function PoliciesList({ envs, merged, onReorder, onDelete, onEdit }: PoliciesListProps) {
   const [dragSrcIndex, setDragSrcIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 
@@ -59,7 +50,6 @@ export function PoliciesList({
           <PolicyRow
             key={policy.key}
             policy={policy}
-            switches={switchesOf(policy)}
             index={i}
             envs={envs}
             isDragOver={dragOverIndex === i}

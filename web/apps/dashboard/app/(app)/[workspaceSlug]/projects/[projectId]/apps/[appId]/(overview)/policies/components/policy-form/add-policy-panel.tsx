@@ -33,13 +33,13 @@ export function AddPolicyPanel({
   envs,
   isOpen,
   onClose,
-  existingMatchKeys,
+  otherMatchKeys,
   onSave,
 }: {
   envs: PolicyEnvs;
   isOpen: boolean;
   onClose: () => void;
-  existingMatchKeys: string[];
+  otherMatchKeys: string[];
   onSave: (policy: PolicyInput, envs: readonly Env[]) => Promise<boolean>;
 }) {
   const environmentSelectId = useId();
@@ -77,7 +77,7 @@ export function AddPolicyPanel({
   };
 
   const onSubmit = async (values: PolicyFormValues) => {
-    const duplicate = duplicateNameError(values, existingMatchKeys, null);
+    const duplicate = duplicateNameError(values, otherMatchKeys);
     if (duplicate) {
       form.setError("name", { type: "manual", message: duplicate });
       return;

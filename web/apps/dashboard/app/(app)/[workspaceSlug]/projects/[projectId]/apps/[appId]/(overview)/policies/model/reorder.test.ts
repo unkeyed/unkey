@@ -13,6 +13,7 @@ function firewall(id: string, name: string): PolicyRow {
     environmentId: "env_1",
     projectId: "proj_KEBAP",
     appId: "app_KEBAP",
+    _order: 0,
   };
 }
 
