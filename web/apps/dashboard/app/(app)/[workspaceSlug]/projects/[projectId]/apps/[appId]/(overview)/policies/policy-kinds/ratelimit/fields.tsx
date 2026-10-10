@@ -3,16 +3,7 @@
 import { DurationInput } from "@/components/ui/duration-input";
 import { POLICY_LIMITS } from "@/lib/collections/deploy/policies.schema";
 import { formatMs } from "@/lib/ms";
-import { IconChevronDownOutline18 } from "@unkey/icons";
-import {
-  FormDescription,
-  FormInput,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@unkey/ui";
+import { FormDescription, FormInput, FormSelect } from "@unkey/ui";
 import type React from "react";
 import {
   useController,
@@ -130,37 +121,15 @@ export function RateLimitFields() {
           return (
             <div key={field.id} className="flex flex-col gap-1">
               <div className="flex items-center gap-2">
-                <div className="w-48 shrink-0">
-                  <Select
-                    value={row.source}
-                    items={IDENTIFIER_SOURCE_OPTIONS}
-                    onValueChange={(v) => {
-                      const source = rateLimitIdentifierSourceSchema.options.find((s) => s === v);
-                      if (source) {
-                        updateRow(index, { ...row, source, value: "" });
-                      }
-                    }}
-                  >
-                    <SelectTrigger
-                      aria-label="Identifier source"
-                      className="shrink-0 whitespace-pre"
-                      rightIcon={<IconChevronDownOutline18 className="size-3.5 absolute right-2" />}
-                    >
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {IDENTIFIER_SOURCE_OPTIONS.map((opt) => (
-                        <SelectItem
-                          key={opt.value}
-                          value={opt.value}
-                          className="shrink-0 whitespace-pre"
-                        >
-                          {opt.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                <FormSelect
+                  aria-label="Identifier source"
+                  options={IDENTIFIER_SOURCE_OPTIONS}
+                  value={row.source}
+                  onValueChange={(source) => updateRow(index, { ...row, source, value: "" })}
+                  className="w-48 shrink-0"
+                  triggerClassName="shrink-0 whitespace-pre"
+                  itemClassName="shrink-0 whitespace-pre"
+                />
                 {value !== null ? (
                   <FormInput
                     placeholder={value.placeholder}

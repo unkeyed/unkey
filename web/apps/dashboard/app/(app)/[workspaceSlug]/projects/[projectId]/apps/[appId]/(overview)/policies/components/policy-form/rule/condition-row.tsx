@@ -2,7 +2,7 @@
 
 import { httpMethodSchema } from "@/lib/collections/deploy/policies.schema";
 import { match } from "@unkey/match";
-import { Input, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@unkey/ui";
+import { FormSelect, Input } from "@unkey/ui";
 import { cn } from "cn";
 import { useState } from "react";
 import { useFormContext, useFormState, useWatch } from "react-hook-form";
@@ -39,32 +39,20 @@ function ConditionValue({
   return match(field)
     .with({ type: "none" }, () => <span className="min-w-0 flex-1" />)
     .with({ type: "methods" }, ({ condition, ariaLabel, placeholder }) => (
-      <Select
+      <FormSelect<(typeof METHOD_OPTIONS)[number]["value"]>
         multiple
+        size="sm"
+        aria-label={ariaLabel}
+        aria-invalid={invalid}
+        placeholder={placeholder}
+        options={METHOD_OPTIONS}
         value={condition.methods}
-        items={METHOD_OPTIONS}
         onValueChange={(methods) => onChange({ ...condition, methods })}
-      >
-        <SelectTrigger
-          size="sm"
-          aria-label={ariaLabel}
-          aria-invalid={invalid}
-          wrapperClassName="min-w-0 flex-1"
-          className="font-mono text-xs"
-        >
-          <SelectValue
-            placeholder={placeholder}
-            className="block truncate data-placeholder:font-sans data-placeholder:text-grayA-8"
-          />
-        </SelectTrigger>
-        <SelectContent>
-          {METHOD_OPTIONS.map((o) => (
-            <SelectItem key={o.value} value={o.value} className="font-mono text-xs">
-              {o.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+        className="min-w-0 flex-1"
+        triggerClassName="font-mono text-xs"
+        valueClassName="block truncate data-placeholder:font-sans data-placeholder:text-grayA-8"
+        itemClassName="font-mono text-xs"
+      />
     ))
     .with({ type: "text" }, ({ condition, ariaLabel, placeholder }) => (
       <Input
@@ -114,26 +102,14 @@ function OperatorField({
       <span className={cn(width, "shrink-0 px-1 text-sm text-gray-11")}>{label}</span>
     ))
     .with({ type: "select" }, ({ value, options }) => (
-      <Select
+      <FormSelect
+        size="sm"
+        aria-label="Operator"
+        options={options}
         value={value}
-        items={options}
-        onValueChange={(op) => {
-          if (op !== null) {
-            onChange(op);
-          }
-        }}
-      >
-        <SelectTrigger size="sm" aria-label="Operator" wrapperClassName={cn(width, "shrink-0")}>
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          {options.map((o) => (
-            <SelectItem key={o.value} value={o.value}>
-              {o.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+        onValueChange={onChange}
+        className={cn(width, "shrink-0")}
+      />
     ))
     .exhaustive();
 }
@@ -212,27 +188,17 @@ export function ConditionRow({
     <RuleRow>
       <div className="flex h-12 items-center gap-2 pr-2 pl-3">
         <RuleLabel>{label}</RuleLabel>
-        <Select
+        <FormSelect
+          size="sm"
+          aria-label="Condition field"
+          options={CONDITION_TYPES}
           value={condition.type}
-          items={CONDITION_TYPES}
           onValueChange={(type) => {
-            if (type !== null) {
-              setErrorsHiddenThroughSubmit(formState.submitCount);
-              patch(getDefaultCondition(type));
-            }
+            setErrorsHiddenThroughSubmit(formState.submitCount);
+            patch(getDefaultCondition(type));
           }}
-        >
-          <SelectTrigger size="sm" aria-label="Condition field" wrapperClassName="w-32 shrink-0">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {CONDITION_TYPES.map((o) => (
-              <SelectItem key={o.value} value={o.value}>
-                {o.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          className="w-32 shrink-0"
+        />
         {state.name.type === "name" ? (
           <ConditionName field={state.name} error={nameError} onChange={patch} />
         ) : (

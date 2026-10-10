@@ -16,17 +16,9 @@ import { useRef, useState } from "react";
 import type { Env, MergedPolicy, PolicyEnvs } from "../../model/merge";
 import { POLICY_KINDS } from "../../policy-kinds";
 
-export const POLICY_COLUMNS =
-  "grid grid-cols-[56px_minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1fr)_32px] items-center gap-4";
-
 export function PoliciesListHeader() {
   return (
-    <div
-      className={cn(
-        POLICY_COLUMNS,
-        "border-b bg-table-header px-4 py-[7px] text-xs font-medium text-gray-12",
-      )}
-    >
+    <div className="grid grid-cols-[56px_minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1fr)_32px] items-center gap-4 border-b bg-table-header px-4 py-[7px] text-xs font-medium text-gray-12">
       <span>Order</span>
       <span>Name</span>
       <span>Type</span>
@@ -130,7 +122,7 @@ export function PolicyRow({
       <ResourceListRow
         label={`Edit ${policy.name}`}
         onActivate={edit}
-        className={cn(POLICY_COLUMNS, "group text-left")}
+        className="group grid grid-cols-[56px_minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1fr)_32px] items-center gap-4 text-left"
       >
         <span className={cn("flex items-center gap-2", dim)}>
           <span className="flex size-6 shrink-0 items-center justify-center rounded-md border bg-raised text-xs font-medium tabular-nums text-gray-12">

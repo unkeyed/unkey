@@ -4,9 +4,8 @@ import { EnvironmentLabel } from "@/app/(app)/[workspaceSlug]/projects/[projectI
 import { ENVIRONMENT_KINDS } from "@/lib/collections/deploy/environments";
 import type { PolicyInput } from "@/lib/collections/deploy/policies.schema";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { IconChevronDownOutline18 } from "@unkey/icons";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@unkey/ui";
-import { type ReactNode, useId, useState } from "react";
+import { FormSelect, type FormSelectOption } from "@unkey/ui";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { duplicateNameError } from "../../model/duplicate-name";
 import type { Env, PolicyEnvs } from "../../model/merge";
@@ -21,14 +20,6 @@ import { PolicyForm } from "./policy-form";
 
 type EnvironmentTarget = "all" | Env;
 
-type EnvironmentOption = { value: EnvironmentTarget; label: string; content: ReactNode };
-
-const ALL_OPTION: EnvironmentOption = {
-  value: "all",
-  label: "All environments",
-  content: "All environments",
-};
-
 export function AddPolicyPanel({
   envs,
   isOpen,
@@ -42,14 +33,12 @@ export function AddPolicyPanel({
   otherMatchKeys: string[];
   onSave: (policy: PolicyInput, envs: readonly Env[]) => Promise<boolean>;
 }) {
-  const environmentSelectId = useId();
   const [target, setTarget] = useState<EnvironmentTarget>("all");
-  const environmentOptions: EnvironmentOption[] = [
-    ALL_OPTION,
+  const environmentOptions: FormSelectOption<EnvironmentTarget>[] = [
+    { value: "all", label: "All environments" },
     ...ENVIRONMENT_KINDS.map((kind) => ({
       value: kind,
-      label: envs[kind].slug,
-      content: (
+      label: (
         <EnvironmentLabel
           environment={{ kind, slug: envs[kind].slug }}
           className="text-sm text-gray-12"
@@ -57,8 +46,6 @@ export function AddPolicyPanel({
       ),
     })),
   ];
-
-  const selected = environmentOptions.find((option) => option.value === target) ?? ALL_OPTION;
 
   const form = useForm<PolicyFormValues>({
     resolver: zodResolver(policyFormSchema),
@@ -101,35 +88,13 @@ export function AddPolicyPanel({
       onSubmit={onSubmit}
       onTypeChange={changeType}
     >
-      <div className="flex flex-col gap-1.5">
-        <label htmlFor={environmentSelectId} className="text-sm font-medium text-gray-12">
-          Environment
-        </label>
-        <Select
-          value={target}
-          onValueChange={(value) => {
-            if (value !== null) {
-              setTarget(value);
-            }
-          }}
-          items={environmentOptions.map(({ value, label }) => ({ value, label }))}
-        >
-          <SelectTrigger
-            id={environmentSelectId}
-            wrapperClassName="w-60"
-            rightIcon={<IconChevronDownOutline18 className="size-3.5 absolute right-2" />}
-          >
-            <SelectValue placeholder="Select environment">{selected.content}</SelectValue>
-          </SelectTrigger>
-          <SelectContent>
-            {environmentOptions.map((option) => (
-              <SelectItem key={option.value} value={option.value}>
-                {option.content}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+      <FormSelect
+        label="Environment"
+        options={environmentOptions}
+        value={target}
+        onValueChange={setTarget}
+        className="w-60"
+      />
     </PolicyForm>
   );
 }

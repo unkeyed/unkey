@@ -15,7 +15,7 @@ import {
   SlidePanelTitle,
 } from "@unkey/ui";
 import Link from "next/link";
-import { type ReactNode, useState } from "react";
+import { type ReactNode, useRef, useState } from "react";
 import { Controller, FormProvider, type UseFormReturn, useFormState } from "react-hook-form";
 import {
   POLICY_KINDS,
@@ -29,8 +29,8 @@ import { RuleCard } from "./rule";
 
 const TYPE_OPTIONS = POLICY_TYPES.map((type) => ({ value: type, label: POLICY_KINDS[type].label }));
 
-function focusFirstError() {
-  const container = document.querySelector('[aria-invalid="true"], [data-error="true"]');
+function focusFirstError(form: HTMLFormElement | null) {
+  const container = form?.querySelector('[aria-invalid="true"], [data-error="true"]');
   if (!(container instanceof HTMLElement)) {
     return;
   }
@@ -62,6 +62,7 @@ export function PolicyForm({
   children: ReactNode;
 }) {
   const [configOpen, setConfigOpen] = useState(false);
+  const formRef = useRef<HTMLFormElement>(null);
   const { isDirty } = useFormState({ control: form.control });
 
   return (
@@ -76,11 +77,12 @@ export function PolicyForm({
       <SlidePanelContent>
         <FormProvider {...form}>
           <form
+            ref={formRef}
             onSubmit={form.handleSubmit(onSubmit, (errors) => {
               if (hasConfigErrors(form.getValues("type"), errors)) {
                 setConfigOpen(true);
               }
-              setTimeout(focusFirstError, 0);
+              setTimeout(() => focusFirstError(formRef.current), 0);
             })}
             className="flex h-full flex-col"
           >
@@ -107,12 +109,7 @@ export function PolicyForm({
                       label="Type"
                       options={TYPE_OPTIONS}
                       value={field.value}
-                      onValueChange={(next) => {
-                        const type = POLICY_TYPES.find((t) => t === next);
-                        if (onTypeChange && type) {
-                          onTypeChange(type);
-                        }
-                      }}
+                      onValueChange={(type) => onTypeChange?.(type)}
                       disabled={!onTypeChange}
                     />
                   )}
