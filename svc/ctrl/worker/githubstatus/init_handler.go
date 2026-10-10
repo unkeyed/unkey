@@ -18,8 +18,6 @@ const (
 	statePRNumber       = "pr_number"
 )
 
-// Init creates the GitHub deployment and PR comment, persisting their IDs in
-// Restate state. It is called once per deployment, after the build step.
 func (s *Service) Init(ctx restate.ObjectContext, req *hydrav1.GitHubStatusInitRequest) (*hydrav1.GitHubStatusInitResponse, error) {
 	if req.GetInstallationId() == 0 || req.GetRepo() == "" {
 		return &hydrav1.GitHubStatusInitResponse{}, nil
@@ -29,6 +27,7 @@ func (s *Service) Init(ctx restate.ObjectContext, req *hydrav1.GitHubStatusInitR
 	restate.Set(ctx, stateConfig, req)
 
 	deploymentID := restate.Key(ctx)
+	s.reportCommitStatus(ctx, req, "pending", "Deployment queued")
 
 	// --- GitHub Deployment ---
 	ghDeploymentID := req.GetExistingGithubDeploymentId()

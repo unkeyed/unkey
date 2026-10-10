@@ -153,7 +153,13 @@ func (w *Workflow) Deploy(ctx restate.WorkflowContext, req *hydrav1.DeployReques
 		}
 	}
 
+	ghStatus := w.initGitHubStatus(ctx, deployment)
+
 	if err = w.resolveOrBuildImage(ctx, req, deployment); err != nil {
+		ghStatus.ReportStatus(&hydrav1.GitHubStatusReportRequest{
+			State:       hydrav1.GitHubDeploymentState_GITHUB_DEPLOYMENT_STATE_FAILURE,
+			Description: "Build or image preparation failed",
+		})
 		// A failed resolve keeps its own message. A Build's does not survive
 		// the Restate service boundary, so it falls back to the generic one
 		reason := fault.UserFacingMessage(err)
@@ -182,17 +188,23 @@ func (w *Workflow) Deploy(ctx restate.WorkflowContext, req *hydrav1.DeployReques
 		return found, err
 	}, restate.WithName("loading deployment"), restate.WithMaxRetryAttempts(runMaxAttempts))
 	if err != nil {
+		ghStatus.ReportStatus(&hydrav1.GitHubStatusReportRequest{
+			State:       hydrav1.GitHubDeploymentState_GITHUB_DEPLOYMENT_STATE_ERROR,
+			Description: "Could not load deployment after build",
+		})
 		return nil, fault.Wrap(err, fault.Public("Failed to read from database. Please try again."))
 	}
 	if deployment.Status.IsTerminal() {
+		ghStatus.ReportStatus(&hydrav1.GitHubStatusReportRequest{
+			State:       hydrav1.GitHubDeploymentState_GITHUB_DEPLOYMENT_STATE_ERROR,
+			Description: "Deployment stopped: " + string(deployment.Status),
+		})
 		logger.Info("deployment became terminal during build, not deploying",
 			"deployment_id", deployment.ID,
 			"status", deployment.Status,
 		)
 		return &hydrav1.DeployResponse{}, nil
 	}
-
-	ghStatus := w.initGitHubStatus(ctx, deployment)
 
 	ghStatus.ReportStatus(&hydrav1.GitHubStatusReportRequest{
 		State:       hydrav1.GitHubDeploymentState_GITHUB_DEPLOYMENT_STATE_IN_PROGRESS,
@@ -878,7 +890,7 @@ func (w *Workflow) initGitHubStatus(
 	envLabel := formatEnvironmentLabel(deployment.ProjectSlug, deployment.AppSlug, deployment.EnvironmentSlug)
 	prefix := formatDomainPrefix(deployment.ProjectSlug, deployment.AppSlug)
 	envURL := fmt.Sprintf("https://%s-%s-%s.%s", prefix, deployment.EnvironmentSlug, deployment.WorkspaceSlug, w.defaultDomain)
-	logURL := fmt.Sprintf("%s/%s/projects/%s/deployments/%s", w.dashboardURL, deployment.WorkspaceSlug, deployment.ProjectID, deployment.ID)
+	logURL := w.deploymentURL(deployment.WorkspaceSlug, deployment.ProjectID, deployment.AppID, deployment.ID)
 
 	var existingGHDeploymentID int64
 	if deployment.GithubDeploymentID.Valid {
@@ -907,6 +919,11 @@ func (w *Workflow) initGitHubStatus(
 	})
 
 	return reporter
+}
+
+func (w *Workflow) deploymentURL(workspaceSlug, projectID, appID, deploymentID string) string {
+	return fmt.Sprintf("%s/%s/projects/%s/apps/%s/deployments/%s",
+		strings.TrimRight(w.dashboardURL, "/"), workspaceSlug, projectID, appID, deploymentID)
 }
 
 // formatEnvironmentLabel builds a human-readable label like "project - env"
