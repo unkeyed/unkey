@@ -14,7 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@unkey/ui";
-import { EnvironmentSelect } from "../../../../../_components/env-vars/shared/environment-select";
+import { EnvironmentSelect } from "../../environment-select";
 
 export const ENV_VARS_SEARCH_KEY = "search";
 

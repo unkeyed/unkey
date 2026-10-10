@@ -1,26 +1,25 @@
 "use client";
 
+import type { EnvVar } from "@/lib/collections/deploy/env-vars";
 import { plural } from "@/lib/fmt";
 import { IconEyeSlashOutline18, IconTrashOutline18, IconXmarkOutline18 } from "@unkey/icons";
 import { Button, ConfirmPopover } from "@unkey/ui";
 import { cn } from "cn";
 import { useRef, useState } from "react";
-
-type EnvVarSelectionBarProps = {
-  selectedCount: number;
-  isMakingSensitive: boolean;
-  onDelete: () => void;
-  onMakeSensitive: () => void;
-  onClearSelection: () => void;
-};
+import { useBulkEnvVarActions } from "./use-bulk-env-var-actions";
 
 export function EnvVarSelectionBar({
-  selectedCount,
-  isMakingSensitive,
-  onDelete,
-  onMakeSensitive,
+  selected,
   onClearSelection,
-}: EnvVarSelectionBarProps) {
+}: {
+  selected: EnvVar[];
+  onClearSelection: () => void;
+}) {
+  const { deleteSelected, makeSelectedSensitive, isMakingSensitive } = useBulkEnvVarActions(
+    selected,
+    onClearSelection,
+  );
+  const selectedCount = selected.length;
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [isSensitiveConfirmOpen, setIsSensitiveConfirmOpen] = useState(false);
   const deleteButtonRef = useRef<HTMLButtonElement>(null);
@@ -78,7 +77,7 @@ export function EnvVarSelectionBar({
       <ConfirmPopover
         isOpen={isSensitiveConfirmOpen}
         onOpenChange={setIsSensitiveConfirmOpen}
-        onConfirm={onMakeSensitive}
+        onConfirm={makeSelectedSensitive}
         triggerRef={sensitiveButtonRef}
         title="Mark as sensitive"
         description={`This will permanently hide the values of ${plural(selectedCount, "variable")}. They cannot be revealed afterwards. This action cannot be undone.`}
@@ -90,7 +89,7 @@ export function EnvVarSelectionBar({
       <ConfirmPopover
         isOpen={isDeleteConfirmOpen}
         onOpenChange={setIsDeleteConfirmOpen}
-        onConfirm={onDelete}
+        onConfirm={deleteSelected}
         triggerRef={deleteButtonRef}
         title="Confirm deletion"
         description={`This will permanently delete ${plural(selectedCount, "environment variable")}. This action cannot be undone.`}

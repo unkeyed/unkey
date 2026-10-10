@@ -10,10 +10,7 @@ import {
   SlidePanelTitle,
 } from "@unkey/ui";
 import { useState } from "react";
-import {
-  AddEnvVarsFields,
-  useAddEnvVarsForm,
-} from "../../../../../_components/env-vars/add/add-env-vars-fields";
+import { AddEnvVarsFields, useAddEnvVarsForm } from "./add-env-vars-fields";
 
 export function AddEnvVarsButton() {
   const [isOpen, setIsOpen] = useState(false);

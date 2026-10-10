@@ -11,6 +11,11 @@ import { EnvVarValueCell } from "./env-var-value-cell";
 
 export type EnvVarItem = EnvVar & { environment: Environment | undefined };
 
+export function withEnvironments(envVars: EnvVar[], environments: Environment[]): EnvVarItem[] {
+  const environmentsById = new Map(environments.map((env) => [env.id, env]));
+  return envVars.map((v) => ({ ...v, environment: environmentsById.get(v.environmentId) }));
+}
+
 export function compareByName(a: EnvVarItem, b: EnvVarItem): number {
   return (
     a.key.localeCompare(b.key) ||

@@ -18,17 +18,13 @@ import {
   ResourceListItem,
 } from "@unkey/ui";
 import { useCallback, useMemo, useState } from "react";
-import {
-  type EnvVarItem,
-  EnvVarRow,
-  compareByName,
-} from "../../../../../_components/env-vars/list/env-var-row";
-import { ALL_ENVIRONMENTS } from "../../../../../_components/env-vars/shared/environment-select";
-import { useRowSelection } from "../../hooks/use-row-selection";
-import { useVirtualList } from "../../hooks/use-virtual-list";
-import { EnvVarsSkeleton } from "../shared/env-vars-skeleton";
+import { ALL_ENVIRONMENTS } from "../../environment-select";
 import { ENV_VARS_SEARCH_KEY, type SortOption } from "../toolbar/env-vars-toolbar";
+import { type EnvVarItem, EnvVarRow, compareByName, withEnvironments } from "./env-var-row";
 import { EnvVarSelectionBar } from "./env-var-selection-bar";
+import { EnvVarsSkeleton } from "./env-vars-skeleton";
+import { useRowSelection } from "./use-row-selection";
+import { useVirtualList } from "./use-virtual-list";
 
 type EmptyReason = "search" | "environment" | "none";
 
@@ -86,26 +82,19 @@ export function EnvVarsList({
       return [];
     }
     const query = searchQuery.toLowerCase();
-    const environmentsById = new Map(environments.map((env) => [env.id, env]));
+    const filtered = envVarData.filter(
+      (v) =>
+        (!query || v.key.toLowerCase().includes(query)) &&
+        (environmentFilter === ALL_ENVIRONMENTS || v.environmentId === environmentFilter),
+    );
 
-    const filtered = envVarData
-      .filter(
-        (v) =>
-          (!query || v.key.toLowerCase().includes(query)) &&
-          (environmentFilter === ALL_ENVIRONMENTS || v.environmentId === environmentFilter),
-      )
-      .map((v) => ({ ...v, environment: environmentsById.get(v.environmentId) }));
-
-    return filtered.sort(
+    return withEnvironments(filtered, environments).sort(
       sortBy === "name-asc"
         ? compareByName
         : (a, b) => b.createdAt - a.createdAt || compareByName(a, b),
     );
   }, [envVarData, environments, searchQuery, environmentFilter, sortBy]);
 
-  const selection = useRowSelection(rows, JSON.stringify([searchQuery, environmentFilter]));
-
-  const { virtualizer, listRefCallback, scrollMargin } = useVirtualList(rows);
   const envVarsLoad = useCollectionLoad(collection.envVars.utils);
 
   if (envVarsLoad.failed) {
@@ -132,6 +121,34 @@ export function EnvVarsList({
   }
 
   return (
+    <EnvVarRows
+      key={`${searchQuery}|${environmentFilter}`}
+      rows={rows}
+      searchQuery={searchQuery}
+      editingId={editingId}
+      onEdit={setEditingId}
+      onCloseEdit={closeEdit}
+    />
+  );
+}
+
+function EnvVarRows({
+  rows,
+  searchQuery,
+  editingId,
+  onEdit,
+  onCloseEdit,
+}: {
+  rows: EnvVarItem[];
+  searchQuery: string;
+  editingId: string | null;
+  onEdit: (id: string) => void;
+  onCloseEdit: () => void;
+}) {
+  const selection = useRowSelection(rows);
+  const { virtualizer, listRefCallback, scrollMargin } = useVirtualList(rows);
+
+  return (
     <>
       <ResourceListContent ref={listRefCallback}>
         <ResourceListBody style={{ height: virtualizer.getTotalSize(), position: "relative" }}>
@@ -154,11 +171,11 @@ export function EnvVarsList({
                   item={item}
                   searchQuery={searchQuery}
                   isEditing={editingId === item.id}
-                  onEdit={() => setEditingId(item.id)}
-                  onCloseEdit={closeEdit}
+                  onEdit={() => onEdit(item.id)}
+                  onCloseEdit={onCloseEdit}
                   selection={{
                     isSelected: selection.selectedIds.has(item.id),
-                    hasSelection: selection.selectedCount > 0,
+                    hasSelection: selection.selected.length > 0,
                     onToggle: (shiftKey) => selection.toggleRowSelection(item.id, shiftKey),
                   }}
                 />
@@ -168,10 +185,7 @@ export function EnvVarsList({
         </ResourceListBody>
       </ResourceListContent>
       <EnvVarSelectionBar
-        selectedCount={selection.selectedCount}
-        isMakingSensitive={selection.isMakingSensitive}
-        onDelete={selection.handleBulkDelete}
-        onMakeSensitive={selection.handleBulkMakeSensitive}
+        selected={selection.selected}
         onClearSelection={selection.clearSelection}
       />
     </>

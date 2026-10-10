@@ -2,8 +2,8 @@ import type { Environment } from "@/lib/collections/deploy/environments";
 import { IconChevronDownOutline18 } from "@unkey/icons";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@unkey/ui";
 import type { ComponentProps } from "react";
-import { useProjectData } from "../../../[appId]/(overview)/data-provider";
-import { EnvironmentLabel } from "../../environment-label";
+import { useProjectData } from "../[appId]/(overview)/data-provider";
+import { EnvironmentLabel } from "./environment-label";
 
 export const ALL_ENVIRONMENTS = "all";
 

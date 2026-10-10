@@ -4,7 +4,7 @@ import { useMutation } from "@tanstack/react-query";
 import { FormField, toast } from "@unkey/ui";
 import { type FormEvent, useState } from "react";
 import { useAppId, useProjectData } from "../../../[appId]/(overview)/data-provider";
-import { ALL_ENVIRONMENTS, EnvironmentSelect } from "../shared/environment-select";
+import { ALL_ENVIRONMENTS, EnvironmentSelect } from "../../environment-select";
 import { useVariableRows } from "../variables-table/use-variable-rows";
 import { conflictErrors, isBlankRow, parseVariableRows } from "../variables-table/variable-rows";
 import { VariablesTable } from "../variables-table/variables-table";
