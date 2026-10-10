@@ -1,3 +1,4 @@
+import { branchDomainPattern } from "@/lib/branch-domain";
 import type { CustomDomain } from "@/lib/collections/deploy/custom-domains";
 import type { Domain } from "@/lib/collections/deploy/domains";
 import type { Environment, EnvironmentKind } from "@/lib/collections/deploy/environments";
@@ -38,24 +39,6 @@ export function environmentDomains(
       assignment: PLATFORM_ASSIGNMENT[d.sticky],
     }));
   return [...custom, ...platform];
-}
-
-export function branchDomainPattern(
-  environmentHostname: string,
-  environmentSlug: string,
-  workspaceSlug: string,
-): string | null {
-  const dot = environmentHostname.indexOf(".");
-  if (dot === -1) {
-    return null;
-  }
-  const label = environmentHostname.slice(0, dot);
-  const suffix = `-${environmentSlug}-${workspaceSlug}`;
-  if (!label.endsWith(suffix) || label.length === suffix.length) {
-    return null;
-  }
-  const prefix = label.slice(0, -suffix.length);
-  return `${prefix}-git-<branch>-${workspaceSlug}${environmentHostname.slice(dot)}`;
 }
 
 export function environmentPanelDomains(

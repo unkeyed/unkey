@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { branchDomainPattern } from "./model";
+import { branchDomainPattern } from "./branch-domain";
 
 describe("branchDomainPattern", () => {
   it("swaps the environment slug for the branch placeholder", () => {
