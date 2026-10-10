@@ -68,6 +68,18 @@ const WIRE_FIXTURES: Record<string, Policy> = {
       ],
     },
   },
+  "case-insensitive matchers": {
+    id: "pol_ignore_case",
+    name: "Tenant block",
+    enabled: true,
+    match: [
+      { path: { path: { prefix: "/V1/", ignoreCase: true } } },
+      { header: { name: "X-Tenant", value: { exact: "acme", ignoreCase: true } } },
+      { queryParam: { name: "region", value: { regex: "^eu-", ignoreCase: true } } },
+    ],
+    type: "firewall",
+    firewall: { action: "ACTION_DENY" },
+  },
   firewall: {
     id: "pol_firewall",
     name: "Office only",
@@ -150,6 +162,19 @@ describe("policy wire format", () => {
     };
     expect(JSON.stringify(toPolicy(fromPolicy(fromApi(stored))))).toBe(
       '{"name":"Auth","enabled":true,"match":[],"type":"keyauth","keyauth":{"keyspaces":["ks_1"],"locations":[],"permissionQuery":""}}',
+    );
+  });
+
+  it("writes a stored ratelimit with the legacy single identifier as an identifiers list", () => {
+    const stored: Policy = {
+      id: "pol_ratelimit",
+      name: "Legacy",
+      enabled: true,
+      type: "ratelimit",
+      ratelimit: { limit: 10, windowMs: 1000, identifier: { remoteIp: {} } },
+    };
+    expect(JSON.stringify(toPolicy(fromPolicy(fromApi(stored))))).toBe(
+      '{"name":"Legacy","enabled":true,"match":[],"type":"ratelimit","ratelimit":{"limit":10,"windowMs":1000,"identifiers":[{"remoteIp":{}}]}}',
     );
   });
 

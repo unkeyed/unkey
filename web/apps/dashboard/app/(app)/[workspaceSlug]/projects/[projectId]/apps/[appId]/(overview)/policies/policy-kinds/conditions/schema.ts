@@ -4,7 +4,6 @@ import {
   type StringMatch,
   type StringMatchMode,
   httpMethodSchema,
-  matchExprSchema,
   stringMatchModeSchema,
   stringMatchValueSchema,
 } from "@/lib/collections/deploy/policies.schema";
@@ -13,10 +12,13 @@ import { z } from "zod";
 
 const namedOperatorSchema = z.enum([...stringMatchModeSchema.options, "present"]);
 
+const ignoreCase = z.boolean().optional();
+
 const pathConditionSchema = z.object({
   type: z.literal("path"),
   operator: stringMatchModeSchema,
   value: stringMatchValueSchema,
+  ignoreCase,
 });
 
 const methodConditionSchema = z.object({
@@ -30,6 +32,7 @@ const headerConditionSchema = z.object({
   name: z.string().min(1, "Header name is required"),
   operator: namedOperatorSchema,
   value: z.string(),
+  ignoreCase,
 });
 
 const queryParamConditionSchema = z.object({
@@ -37,6 +40,7 @@ const queryParamConditionSchema = z.object({
   name: z.string().min(1, "Param name is required"),
   operator: namedOperatorSchema,
   value: z.string(),
+  ignoreCase,
 });
 
 const remoteIpConditionSchema = z.object({
@@ -85,29 +89,32 @@ export type ConditionType = MatchConditionFormValues["type"];
 export type ConditionOf<T extends ConditionType> = Extract<MatchConditionFormValues, { type: T }>;
 export type ConditionOperator = MatchConditionFormValues["operator"];
 
-function toStringMatch(mode: StringMatchMode, value: string): StringMatch {
-  return match(mode)
+type StringMatchFields = { operator: StringMatchMode; value: string; ignoreCase?: boolean };
+
+function toStringMatch({ operator, value, ignoreCase }: StringMatchFields): StringMatch {
+  const base = ignoreCase ? { ignoreCase } : {};
+  return match(operator)
     .returnType<StringMatch>()
-    .with("exact", () => ({ exact: value }))
-    .with("prefix", () => ({ prefix: value }))
-    .with("regex", () => ({ regex: value }))
+    .with("exact", () => ({ exact: value, ...base }))
+    .with("prefix", () => ({ prefix: value, ...base }))
+    .with("regex", () => ({ regex: value, ...base }))
     .exhaustive();
 }
 
 export function toMatchExpr(condition: MatchConditionFormValues): MatchExpr {
   return match(condition)
     .returnType<MatchExpr>()
-    .with({ type: "path" }, (c) => ({ path: { path: toStringMatch(c.operator, c.value) } }))
+    .with({ type: "path" }, (c) => ({ path: { path: toStringMatch(c) } }))
     .with({ type: "method" }, (c) => ({ method: { methods: c.methods } }))
     .with({ type: "header" }, (c) =>
       c.operator === "present"
         ? { header: { name: c.name, present: true } }
-        : { header: { name: c.name, value: toStringMatch(c.operator, c.value) } },
+        : { header: { name: c.name, value: toStringMatch({ ...c, operator: c.operator }) } },
     )
     .with({ type: "queryParam" }, (c) =>
       c.operator === "present"
         ? { queryParam: { name: c.name, present: true } }
-        : { queryParam: { name: c.name, value: toStringMatch(c.operator, c.value) } },
+        : { queryParam: { name: c.name, value: toStringMatch({ ...c, operator: c.operator }) } },
     )
     .with({ type: "remoteIp" }, (c) =>
       c.operator === "in"
@@ -117,23 +124,20 @@ export function toMatchExpr(condition: MatchConditionFormValues): MatchExpr {
     .exhaustive();
 }
 
-function fromStringMatch(sm: StringMatch): { operator: StringMatchMode; value: string } {
+function fromStringMatch(sm: StringMatch): StringMatchFields {
+  const base = sm.ignoreCase ? { ignoreCase: true } : {};
   return match(sm)
-    .returnType<{ operator: StringMatchMode; value: string }>()
-    .with({ exact: P.string }, (s) => ({ operator: "exact", value: s.exact }))
-    .with({ prefix: P.string }, (s) => ({ operator: "prefix", value: s.prefix }))
-    .with({ regex: P.string }, (s) => ({ operator: "regex", value: s.regex }))
+    .returnType<StringMatchFields>()
+    .with({ exact: P.string }, (s) => ({ ...base, operator: "exact", value: s.exact }))
+    .with({ prefix: P.string }, (s) => ({ ...base, operator: "prefix", value: s.prefix }))
+    .with({ regex: P.string }, (s) => ({ ...base, operator: "regex", value: s.regex }))
     .exhaustive();
 }
 
 const PRESENT = { operator: "present", value: "" } as const;
 
-export function fromMatchExpr(raw: unknown): MatchConditionFormValues | null {
-  const parsed = matchExprSchema.safeParse(raw);
-  if (!parsed.success) {
-    return null;
-  }
-  return match(parsed.data)
+export function fromMatchExpr(expr: MatchExpr): MatchConditionFormValues {
+  return match(expr)
     .returnType<MatchConditionFormValues>()
     .with({ path: P._ }, (e) => ({ type: "path", ...fromStringMatch(e.path.path) }))
     .with({ method: P._ }, (e) => ({

@@ -67,7 +67,7 @@ export function toPolicy(values: PolicyFormValues): PolicyInput {
 export function fromPolicy(policy: Policy): PolicyFormValues {
   return {
     name: policy.name,
-    matchConditions: (policy.match ?? []).map(fromMatchExpr).filter((c) => c !== null),
+    matchConditions: (policy.match ?? []).map(fromMatchExpr),
     ...kindOf(policy.type).fromWire(policy),
   };
 }
