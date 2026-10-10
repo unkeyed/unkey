@@ -32,7 +32,7 @@ const ratelimitIdentifierRowSchema = z
 
 export type RatelimitIdentifierRowValues = z.infer<typeof ratelimitIdentifierRowSchema>;
 
-export const ratelimitFormSchema = z.object({
+const ratelimitFormSchema = z.object({
   ...sharedFormFields,
   type: z.literal("ratelimit"),
   limit: z.number().int().min(1, "Limit must be at least 1"),
@@ -45,7 +45,8 @@ export const ratelimitFormSchema = z.object({
 
 export type RatelimitFormValues = z.infer<typeof ratelimitFormSchema>;
 
-export const ratelimit: PolicyKindModel<"ratelimit", RatelimitFormValues> = {
+export const ratelimit = {
+  formSchema: ratelimitFormSchema,
   label: "Rate Limit",
   Icon: IconGaugeOutline18,
   does: "Counts requests by client IP, header, path or identity. To count by identity, put a Key Auth above it.",
@@ -74,7 +75,7 @@ export const ratelimit: PolicyKindModel<"ratelimit", RatelimitFormValues> = {
   }),
   summary: (v) =>
     `${plural(v.limit, "request")} per ${formatMs(v.windowMs)} · ${identifiersText(v.identifiers)}`,
-};
+} satisfies PolicyKindModel<"ratelimit", RatelimitFormValues>;
 
 function toRateLimitIdentifier(
   source: RateLimitIdentifierSource,

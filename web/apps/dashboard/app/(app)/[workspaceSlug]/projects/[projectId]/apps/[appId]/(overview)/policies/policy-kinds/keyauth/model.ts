@@ -69,7 +69,7 @@ const keyauthRatelimitFormSchema = z.discriminatedUnion("override", [
 
 export type KeyauthRatelimitFormValues = z.infer<typeof keyauthRatelimitFormSchema>;
 
-export const keyauthFormSchema = z.object({
+const keyauthFormSchema = z.object({
   ...sharedFormFields,
   type: z.literal("keyauth"),
   keyspaceIds: z
@@ -84,7 +84,8 @@ export const keyauthFormSchema = z.object({
 
 export type KeyauthFormValues = z.infer<typeof keyauthFormSchema>;
 
-export const keyauth: PolicyKindModel<"keyauth", KeyauthFormValues> = {
+export const keyauth = {
+  formSchema: keyauthFormSchema,
   label: "Key Auth",
   Icon: IconKey2Outline18,
   does: "Checks the API key against your keyspaces. A valid key sets the identity. Only the first matching Key Auth runs.",
@@ -154,10 +155,10 @@ export const keyauth: PolicyKindModel<"keyauth", KeyauthFormValues> = {
     ),
     credits: p.keyauth.credits,
   }),
-  summary: (v) => keyauthSummary(v, {}),
-};
+  summary: (v, { keyspaceNames }) => keyauthSummary(v, keyspaceNames),
+} satisfies PolicyKindModel<"keyauth", KeyauthFormValues>;
 
-export function keyauthSummary(
+function keyauthSummary(
   v: KindFields<KeyauthFormValues>,
   keyspaceNames: Readonly<Record<string, string>>,
 ): string {

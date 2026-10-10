@@ -2,40 +2,46 @@ import type { Policy, PolicyInput, PolicyType } from "@/lib/collections/deploy/p
 import type { FieldErrors } from "react-hook-form";
 import { z } from "zod";
 import { fromMatchExpr, toMatchExpr } from "./conditions/schema";
-import { firewall, firewallFormSchema } from "./firewall/model";
-import { keyauth, keyauthFormSchema } from "./keyauth/model";
-import { logging, loggingFormSchema } from "./logging/model";
-import { openapi, openapiFormSchema } from "./openapi/model";
-import { ratelimit, ratelimitFormSchema } from "./ratelimit/model";
-import { sharedFormFields } from "./shared";
-import type { PolicyKindModel } from "./types";
+import { firewall } from "./firewall/model";
+import { keyauth } from "./keyauth/model";
+import { logging } from "./logging/model";
+import { openapi } from "./openapi/model";
+import { ratelimit } from "./ratelimit/model";
+import type { PolicyKindModel, SummaryContext } from "./types";
 
 export type { PolicyType } from "@/lib/collections/deploy/policies.schema";
 
-export const policyFormSchema = z.discriminatedUnion("type", [
-  keyauthFormSchema,
-  ratelimitFormSchema,
-  firewallFormSchema,
-  openapiFormSchema,
-  loggingFormSchema,
-]);
-export type PolicyFormValues = z.infer<typeof policyFormSchema>;
-
-type FormMap = { [T in PolicyType]: Extract<PolicyFormValues, { type: T }> };
-
-export const POLICY_KINDS: { [T in PolicyType]: PolicyKindModel<T, FormMap[T]> } = {
+const KIND_MODELS = {
   keyauth,
   ratelimit,
   firewall,
   openapi,
   logging,
-};
+} satisfies Record<PolicyType, unknown>;
 
 function isPolicyType(key: string): key is PolicyType {
-  return Object.hasOwn(POLICY_KINDS, key);
+  return Object.hasOwn(KIND_MODELS, key);
 }
 
-export const POLICY_TYPES: readonly PolicyType[] = Object.keys(POLICY_KINDS).filter(isPolicyType);
+export const POLICY_TYPES: readonly PolicyType[] = Object.keys(KIND_MODELS).filter(isPolicyType);
+
+function nonEmpty<T>(items: readonly T[]): [T, ...T[]] {
+  const [first, ...rest] = items;
+  if (first === undefined) {
+    throw new Error("no policy kinds");
+  }
+  return [first, ...rest];
+}
+
+export const policyFormSchema = z.discriminatedUnion(
+  "type",
+  nonEmpty(POLICY_TYPES.map((type) => KIND_MODELS[type].formSchema)),
+);
+export type PolicyFormValues = z.infer<typeof policyFormSchema>;
+
+type FormMap = { [T in PolicyType]: Extract<PolicyFormValues, { type: T }> };
+
+export const POLICY_KINDS: { [T in PolicyType]: PolicyKindModel<T, FormMap[T]> } = KIND_MODELS;
 
 export function getDefaultValues(type: PolicyType): PolicyFormValues {
   return {
@@ -51,8 +57,8 @@ function kindOf<T extends PolicyType>(type: T): PolicyKindModel<T, FormMap[T]> {
   return POLICY_KINDS[type];
 }
 
-export function summarize(values: PolicyFormValues): string {
-  return kindOf(values.type).summary(values);
+export function summarize(values: PolicyFormValues, context: SummaryContext): string {
+  return kindOf(values.type).summary(values, context);
 }
 
 export function toPolicy(values: PolicyFormValues): PolicyInput {
@@ -72,8 +78,6 @@ export function fromPolicy(policy: Policy): PolicyFormValues {
   };
 }
 
-const SHARED_FIELDS: ReadonlySet<string> = new Set([...Object.keys(sharedFormFields), "type"]);
-
-export function hasConfigErrors(errors: FieldErrors<PolicyFormValues>): boolean {
-  return Object.keys(errors).some((key) => !SHARED_FIELDS.has(key));
+export function hasConfigErrors(type: PolicyType, errors: FieldErrors<PolicyFormValues>): boolean {
+  return Object.keys(POLICY_KINDS[type].defaults()).some((field) => field in errors);
 }

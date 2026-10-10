@@ -1,5 +1,6 @@
 import type { Policy, PolicyType } from "@/lib/collections/deploy/policies.schema";
 import type { IconKey2Outline18 } from "@unkey/icons";
+import type { z } from "zod";
 import type { SharedFormField } from "./shared";
 
 export const POLICY_DOCS_URL = "https://www.unkey.com/docs/compute/gateway/policies";
@@ -25,7 +26,10 @@ export type WireBody<T extends PolicyType> = T extends PolicyType
 
 export type KindFields<Form> = Form extends unknown ? Omit<Form, SharedFormField> : never;
 
+export type SummaryContext = { keyspaceNames: Readonly<Record<string, string>> };
+
 export type PolicyKindModel<T extends PolicyType, Form> = {
+  formSchema: z.ZodType<Form>;
   label: string;
   Icon: typeof IconKey2Outline18;
   does: string;
@@ -33,5 +37,5 @@ export type PolicyKindModel<T extends PolicyType, Form> = {
   defaults: () => KindFields<Form>;
   toWire: (values: Form) => WireBody<T>;
   fromWire: (policy: WireOf<T>) => KindFields<Form>;
-  summary: (values: KindFields<Form>) => string;
+  summary: (values: KindFields<Form>, context: SummaryContext) => string;
 };

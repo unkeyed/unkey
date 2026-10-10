@@ -3,14 +3,15 @@ import { z } from "zod";
 import { sharedFormFields } from "../shared";
 import type { PolicyKindModel } from "../types";
 
-export const openapiFormSchema = z.object({
+const openapiFormSchema = z.object({
   ...sharedFormFields,
   type: z.literal("openapi"),
 });
 
 type OpenapiFormValues = z.infer<typeof openapiFormSchema>;
 
-export const openapi: PolicyKindModel<"openapi", OpenapiFormValues> = {
+export const openapi = {
+  formSchema: openapiFormSchema,
   label: "OpenAPI Validation",
   Icon: IconFileSettingsOutline18,
   does: "Checks the request against your OpenAPI spec.",
@@ -19,4 +20,4 @@ export const openapi: PolicyKindModel<"openapi", OpenapiFormValues> = {
   toWire: () => ({ type: "openapi", openapi: {} }),
   fromWire: () => ({ type: "openapi" }),
   summary: () => "Auto-scraped spec",
-};
+} satisfies PolicyKindModel<"openapi", OpenapiFormValues>;

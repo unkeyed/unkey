@@ -1,20 +1,12 @@
 "use client";
 
 import { FormInput } from "@unkey/ui";
-import { useController, useFormContext, useWatch } from "react-hook-form";
+import { useController, useFormContext } from "react-hook-form";
 import { CreditCostField } from "./credits-field";
 import { KeyspacesField } from "./keyspaces-field";
 import { KeyLocationField } from "./location-field";
-import { type KeyauthFormValues, keyauthSummary } from "./model";
+import type { KeyauthFormValues } from "./model";
 import { KeyRatelimitsField } from "./ratelimits-field";
-import { useKeyspaceNames } from "./use-keyspace-names";
-
-export function KeyAuthSummary() {
-  const { control, getValues } = useFormContext<KeyauthFormValues>();
-  useWatch({ control });
-  const keyspaceNames = useKeyspaceNames();
-  return keyauthSummary(getValues(), keyspaceNames);
-}
 
 export function KeyAuthFields() {
   return (

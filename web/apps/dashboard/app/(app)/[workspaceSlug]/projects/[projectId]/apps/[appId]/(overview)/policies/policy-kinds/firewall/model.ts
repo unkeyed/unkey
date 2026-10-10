@@ -4,7 +4,7 @@ import { z } from "zod";
 import { sharedFormFields } from "../shared";
 import { type PolicyKindModel, statusLabel } from "../types";
 
-export const firewallFormSchema = z.object({
+const firewallFormSchema = z.object({
   ...sharedFormFields,
   type: z.literal("firewall"),
   action: firewallActionSchema,
@@ -12,7 +12,8 @@ export const firewallFormSchema = z.object({
 
 type FirewallFormValues = z.infer<typeof firewallFormSchema>;
 
-export const firewall: PolicyKindModel<"firewall", FirewallFormValues> = {
+export const firewall = {
+  formSchema: firewallFormSchema,
   label: "Firewall",
   Icon: IconBanOutline18,
   does: "Blocks every request that matches its conditions.",
@@ -21,4 +22,4 @@ export const firewall: PolicyKindModel<"firewall", FirewallFormValues> = {
   toWire: (v) => ({ type: "firewall", firewall: { action: v.action } }),
   fromWire: (p) => ({ type: "firewall", action: p.firewall.action }),
   summary: () => `Deny with ${statusLabel(403)}`,
-};
+} satisfies PolicyKindModel<"firewall", FirewallFormValues>;

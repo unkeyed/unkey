@@ -3,7 +3,7 @@ import { z } from "zod";
 import { sharedFormFields } from "../shared";
 import type { KindFields, PolicyKindModel } from "../types";
 
-export const loggingFormSchema = z.object({
+const loggingFormSchema = z.object({
   ...sharedFormFields,
   type: z.literal("logging"),
   requestHeaders: z.boolean(),
@@ -31,7 +31,8 @@ export const LOGGING_FIELDS: readonly LoggingField[] = [
   { name: "query", label: "Query string", summary: "query" },
 ];
 
-export const logging: PolicyKindModel<"logging", LoggingFormValues> = {
+export const logging = {
+  formSchema: loggingFormSchema,
   label: "Logging",
   Icon: IconSquareBulletListOutline18,
   does: "Saves headers, query parameters or bodies of matching requests to the request log.",
@@ -67,4 +68,4 @@ export const logging: PolicyKindModel<"logging", LoggingFormValues> = {
     const on = LOGGING_FIELDS.filter(({ name }) => v[name]).map(({ summary }) => summary);
     return on.length > 0 ? on.join(", ") : "Default fields only";
   },
-};
+} satisfies PolicyKindModel<"logging", LoggingFormValues>;

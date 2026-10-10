@@ -7,7 +7,7 @@ import { cn } from "cn";
 import { useFieldArray, useFormContext, useWatch } from "react-hook-form";
 import { POLICY_KINDS, type PolicyFormValues } from "../../../policy-kinds";
 import { getDefaultCondition } from "../../../policy-kinds/conditions/kinds";
-import { KindSummary, POLICY_KIND_UI } from "../../../policy-kinds/fields";
+import { KindSummary, POLICY_KIND_FIELDS } from "../../../policy-kinds/fields";
 import { RejectionTags } from "../../rejections";
 import { ConditionRow } from "./condition-row";
 import { RuleLabel, RuleRow } from "./rule-row";
@@ -23,7 +23,7 @@ export function RuleCard({
   const type = useWatch({ control, name: "type" });
   const { fields, append, remove } = useFieldArray({ control, name: "matchConditions" });
   const { Icon, label, rejects } = POLICY_KINDS[type];
-  const { Fields } = POLICY_KIND_UI[type];
+  const Fields = POLICY_KIND_FIELDS[type];
   const OpenFields = configOpen ? Fields : null;
   const atCap = fields.length >= POLICY_LIMITS.maxMatchExprsPerPolicy;
 
@@ -76,7 +76,7 @@ export function RuleCard({
             <Icon className="size-3.5 shrink-0 text-gray-11" />
             <span className="shrink-0 text-sm font-medium text-gray-12">{label}</span>
             <span className="min-w-0 flex-1 truncate text-xs text-gray-11">
-              · <KindSummary type={type} />
+              · <KindSummary />
             </span>
             {Fields ? (
               <IconChevronDownOutline18

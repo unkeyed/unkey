@@ -77,7 +77,7 @@ export function PolicyForm({
         <FormProvider {...form}>
           <form
             onSubmit={form.handleSubmit(onSubmit, (errors) => {
-              if (hasConfigErrors(errors)) {
+              if (hasConfigErrors(form.getValues("type"), errors)) {
                 setConfigOpen(true);
               }
               setTimeout(focusFirstError, 0);

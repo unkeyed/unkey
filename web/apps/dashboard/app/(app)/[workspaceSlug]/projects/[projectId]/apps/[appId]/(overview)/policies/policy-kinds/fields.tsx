@@ -4,32 +4,24 @@ import type { PolicyType } from "@/lib/collections/deploy/policies.schema";
 import type { ComponentType } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
 import { type PolicyFormValues, summarize } from ".";
-import { KeyAuthFields, KeyAuthSummary } from "./keyauth/fields";
+import { KeyAuthFields } from "./keyauth/fields";
+import { useKeyspaceNames } from "./keyauth/use-keyspace-names";
 import { LoggingFields } from "./logging/fields";
 import { OpenApiFields } from "./openapi/fields";
 import { RateLimitFields } from "./ratelimit/fields";
 
-type KindUi = {
-  Fields: ComponentType | null;
-  Summary?: ComponentType;
+export const POLICY_KIND_FIELDS: Record<PolicyType, ComponentType | null> = {
+  keyauth: KeyAuthFields,
+  ratelimit: RateLimitFields,
+  firewall: null,
+  openapi: OpenApiFields,
+  logging: LoggingFields,
 };
 
-export const POLICY_KIND_UI: Record<PolicyType, KindUi> = {
-  keyauth: { Fields: KeyAuthFields, Summary: KeyAuthSummary },
-  ratelimit: { Fields: RateLimitFields },
-  firewall: { Fields: null },
-  openapi: { Fields: OpenApiFields },
-  logging: { Fields: LoggingFields },
-};
-
-function ModelSummary() {
+export function KindSummary() {
   const { control, getValues } = useFormContext<PolicyFormValues>();
   // useWatch re-renders on every change; getValues gives the typed snapshot.
   useWatch({ control });
-  return summarize(getValues());
-}
-
-export function KindSummary({ type }: { type: PolicyType }) {
-  const Summary = POLICY_KIND_UI[type].Summary ?? ModelSummary;
-  return <Summary />;
+  const keyspaceNames = useKeyspaceNames();
+  return summarize(getValues(), { keyspaceNames });
 }
