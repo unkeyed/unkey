@@ -40,7 +40,7 @@ import { AddDomainDialog } from "./add-domain-dialog";
 import { DomainColumns, DomainRow } from "./domain-row";
 import { useDomainsPage } from "./use-domains-page";
 
-export function CustomDomainsPage() {
+export function DomainsPage() {
   const {
     view,
     environments,

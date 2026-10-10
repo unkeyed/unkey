@@ -3,8 +3,8 @@ import { collection } from "@/lib/collections";
 import { useCollectionLoad } from "@/lib/collections/use-collection-load";
 import { match } from "@unkey/match";
 import { useState } from "react";
-import { useProjectData } from "../../data-provider";
-import { domainsView } from "../model";
+import { useProjectData } from "../data-provider";
+import { domainsView } from "./model";
 import type { AddDomainOutcome } from "./use-add-domain";
 
 const PAGE_SIZE = 25;

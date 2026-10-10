@@ -1,3 +1,1 @@
-"use client";
-
-export { CustomDomainsPage as default } from "./custom-domains";
+export { DomainsPage as default } from "./domains-page";

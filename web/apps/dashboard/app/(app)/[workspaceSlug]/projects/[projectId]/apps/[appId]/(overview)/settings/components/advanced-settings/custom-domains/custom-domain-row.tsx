@@ -17,7 +17,7 @@ import { Badge, Button, ConfirmPopover, Tooltip, TooltipContent, TooltipTrigger 
 import { cn } from "cn";
 import { useRef, useState } from "react";
 import { RemoveButton } from "../../../../../../_components/remove-button";
-import { ProviderIcon } from "../../../../domains/custom-domains/provider-icon";
+import { ProviderIcon } from "../../../../domains/provider-icon";
 import { DnsRecordTable } from "./dns-record-table";
 
 type CustomDomainRowProps = {

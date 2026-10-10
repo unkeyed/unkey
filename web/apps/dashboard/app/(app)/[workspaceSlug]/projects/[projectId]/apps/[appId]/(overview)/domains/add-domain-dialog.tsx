@@ -3,7 +3,7 @@
 import type { Environment } from "@/lib/collections/deploy/environments";
 import { Button, DialogContainer, FormInput, FormSelect } from "@unkey/ui";
 import { Controller } from "react-hook-form";
-import { EnvironmentLabel } from "../../../../_components/environment-label";
+import { EnvironmentLabel } from "../../../_components/environment-label";
 import { type AddDomainOutcome, useAddDomain } from "./use-add-domain";
 
 type AddDomainDialogProps = {

@@ -28,9 +28,9 @@ import {
 } from "@unkey/ui";
 import { cn } from "cn";
 import { useRef, useState } from "react";
-import { EnvironmentLabel } from "../../../../_components/environment-label";
-import { RemoveButton } from "../../../../_components/remove-button";
-import type { DisplayDomain, DisplayDomainCustom } from "../../../components/display-domain";
+import { EnvironmentLabel } from "../../../_components/environment-label";
+import { RemoveButton } from "../../../_components/remove-button";
+import type { DisplayDomain, DisplayDomainCustom } from "../../components/display-domain";
 import { DnsRecordTable } from "./dns-record-table";
 import { ProviderIcon } from "./provider-icon";
 

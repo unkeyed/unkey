@@ -5,7 +5,7 @@ import { getErrorMessage } from "@/lib/unkey-client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { match } from "@unkey/match";
 import { useForm } from "react-hook-form";
-import { useAppId, useProjectData } from "../../data-provider";
+import { useAppId, useProjectData } from "../data-provider";
 import { type CustomDomainFormValues, customDomainSchema } from "./schema";
 
 export type AddDomainOutcome =
