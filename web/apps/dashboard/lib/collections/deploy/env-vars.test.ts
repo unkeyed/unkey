@@ -17,7 +17,8 @@ vi.mock("../client", async () => {
   };
 });
 
-const { RenameAppliedError, addVariables, envVars, updateVariable } = await import("./env-vars");
+const { RenameAppliedError, WRITEONLY_VALUE_REQUIRED, addVariables, envVars, updateVariable } =
+  await import("./env-vars");
 const refetch = vi.spyOn(envVars.utils, "refetch").mockResolvedValue([]);
 
 const input = {
@@ -102,5 +103,37 @@ describe("updateVariable", () => {
       "taken",
     );
     expect(setEnvironmentVariables).not.toHaveBeenCalled();
+  });
+
+  it("refuses a note change on a writeonly variable without a new value", async () => {
+    rename.mockClear();
+    setEnvironmentVariables.mockClear();
+    const writeonly = { ...original, value: "", type: "writeonly" as const };
+
+    await expect(
+      updateVariable(writeonly, { ...writeonly, key: "NEW", description: "rotate monthly" }),
+    ).rejects.toThrow(WRITEONLY_VALUE_REQUIRED);
+    expect(rename).not.toHaveBeenCalled();
+    expect(setEnvironmentVariables).not.toHaveBeenCalled();
+  });
+
+  it("renames a writeonly variable without writing a value", async () => {
+    setEnvironmentVariables.mockClear();
+    rename.mockResolvedValueOnce({});
+    const writeonly = { ...original, value: "", type: "writeonly" as const };
+
+    await updateVariable(writeonly, { ...writeonly, key: "NEW" });
+
+    expect(setEnvironmentVariables).not.toHaveBeenCalled();
+  });
+
+  it("sends the known value when only the note of a recoverable variable changes", async () => {
+    setEnvironmentVariables.mockResolvedValueOnce({});
+
+    await updateVariable(original, { ...original, description: "rotate monthly" });
+
+    expect(setEnvironmentVariables.mock.lastCall?.[0].variables).toEqual([
+      { key: "OLD", value: "1", kind: "recoverable", description: "rotate monthly" },
+    ]);
   });
 });

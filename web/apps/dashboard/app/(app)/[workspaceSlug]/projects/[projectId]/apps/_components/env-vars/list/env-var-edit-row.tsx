@@ -2,7 +2,7 @@
 
 import { Switch } from "@/components/ui/switch";
 import { collection } from "@/lib/collections";
-import type { EnvVar } from "@/lib/collections/deploy/env-vars";
+import { type EnvVar, WRITEONLY_VALUE_REQUIRED } from "@/lib/collections/deploy/env-vars";
 import { envVarKeySchema, envVarValueSchema } from "@/lib/schemas/env-var";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { IconCircleInfoOutline18 } from "@unkey/icons";
@@ -52,9 +52,7 @@ export function EnvVarEditRow({ envVar, onClose }: { envVar: EnvVar; onClose: ()
     (values: EditEnvVarFormValues) => {
       if (isWriteonly && !values.value) {
         if ((values.description || "") !== (note ?? "")) {
-          setError("value", {
-            message: "Type the new value to save a change to a sensitive variable.",
-          });
+          setError("value", { message: WRITEONLY_VALUE_REQUIRED });
           return;
         }
         if (values.key === variableKey) {

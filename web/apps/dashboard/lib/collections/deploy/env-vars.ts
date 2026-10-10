@@ -172,7 +172,7 @@ export type VariableInput = AddEnvVarsInput["variables"][number];
 export async function addVariables(input: AddEnvVarsInput): Promise<AddEnvVarsResult> {
   const result = await trpcClient.deploy.envVar.add.mutate(input);
   if (result.status === "added") {
-    await trackSave(envVars.utils.refetch().catch(() => undefined));
+    await trackSave(envVars.utils.refetch().catch(() => {}));
   }
   return result;
 }
@@ -238,54 +238,47 @@ export class RenameAppliedError extends Error {
   }
 }
 
-export async function updateVariable(original: EnvVar, modified: EnvVar): Promise<void> {
-  if (modified.key === original.key) {
-    return writeVariable(original, modified);
-  }
-  await trpcClient.deploy.envVar.rename.mutate({
-    appId: modified.appId,
-    environmentIds: [modified.environmentId],
-    key: original.key,
-    newKey: modified.key,
-  });
-  try {
-    await writeVariable(original, modified);
-  } catch (err) {
-    throw new RenameAppliedError(modified.key, err);
-  }
-}
+export const WRITEONLY_VALUE_REQUIRED =
+  "Type the new value to save a change to a sensitive variable.";
 
-async function writeVariable(original: EnvVar, modified: EnvVar): Promise<void> {
+export async function updateVariable(original: EnvVar, modified: EnvVar): Promise<void> {
   const valueChanged = modified.value !== original.value;
-  if (
-    !valueChanged &&
-    modified.type === original.type &&
-    modified.description === original.description
-  ) {
+  const otherFieldsChanged =
+    modified.type !== original.type || modified.description !== original.description;
+  if (original.type === "writeonly" && otherFieldsChanged && !valueChanged) {
+    throw new Error(WRITEONLY_VALUE_REQUIRED);
+  }
+
+  if (modified.key !== original.key) {
+    await trpcClient.deploy.envVar.rename.mutate({
+      appId: modified.appId,
+      environmentIds: [modified.environmentId],
+      key: original.key,
+      newKey: modified.key,
+    });
+  }
+  if (!valueChanged && !otherFieldsChanged) {
     return;
   }
 
-  let value = modified.value;
-  if (!valueChanged) {
-    const stored = await listAllVariables(
-      modified.projectId,
-      modified.appId,
-      modified.environmentId,
-    );
-    value = stored.find((v) => v.key === modified.key)?.value ?? value;
+  try {
+    await getUnkeyClient().environments.setEnvironmentVariables({
+      project: modified.projectId,
+      app: modified.appId,
+      environment: modified.environmentId,
+      variables: [
+        {
+          key: modified.key,
+          value: modified.value,
+          kind: modified.type,
+          description: modified.description ?? undefined,
+        },
+      ],
+    });
+  } catch (err) {
+    if (modified.key === original.key) {
+      throw err;
+    }
+    throw new RenameAppliedError(modified.key, err);
   }
-
-  await getUnkeyClient().environments.setEnvironmentVariables({
-    project: modified.projectId,
-    app: modified.appId,
-    environment: modified.environmentId,
-    variables: [
-      {
-        key: modified.key,
-        value,
-        kind: modified.type,
-        description: modified.description ?? undefined,
-      },
-    ],
-  });
 }
