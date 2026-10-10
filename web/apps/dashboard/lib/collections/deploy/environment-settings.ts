@@ -297,32 +297,39 @@ export async function applyDefaultSettings(
   const d = ENVIRONMENT_SETTINGS_DEFAULTS;
   const client = getUnkeyClient();
 
-  const results = await Promise.allSettled(
-    environmentIds.map((environmentId) =>
-      client.environments.updateSettings({
-        project: projectId,
-        app: appId,
-        environment: environmentId,
-        autoDeploy: d.autoDeploy,
-        dockerfile: null,
-        rootDirectory: d.dockerContext,
-        buildCommand: null,
-        watchPaths: [],
-        port: d.port,
-        vCpus: d.cpuMillicores / 1000,
-        memoryMib: d.memoryMib,
-        storageMib: d.storageMib,
-        command: [],
-        healthcheck: null,
-        upstreamProtocol: d.upstreamProtocol,
-        openapiSpecPath: null,
-        ...(regionNames.length > 0
-          ? { regions: regionNames.map((name) => ({ name, replicas: { min: 1, max: 1 } })) }
-          : {}),
-      }),
-    ),
-  );
-  void refetchAppEnvironments(projectId, appId);
+  try {
+    await settleAll(
+      environmentIds.map((environmentId) =>
+        client.environments.updateSettings({
+          project: projectId,
+          app: appId,
+          environment: environmentId,
+          autoDeploy: d.autoDeploy,
+          dockerfile: null,
+          rootDirectory: d.dockerContext,
+          buildCommand: null,
+          watchPaths: [],
+          port: d.port,
+          vCpus: d.cpuMillicores / 1000,
+          memoryMib: d.memoryMib,
+          storageMib: d.storageMib,
+          command: [],
+          healthcheck: null,
+          upstreamProtocol: d.upstreamProtocol,
+          openapiSpecPath: null,
+          ...(regionNames.length > 0
+            ? { regions: regionNames.map((name) => ({ name, replicas: { min: 1, max: 1 } })) }
+            : {}),
+        }),
+      ),
+    );
+  } finally {
+    void refetchAppEnvironments(projectId, appId);
+  }
+}
+
+async function settleAll(promises: ReadonlyArray<Promise<unknown>>): Promise<void> {
+  const results = await Promise.allSettled(promises);
   const failure = results.find(
     (result): result is PromiseRejectedResult => result.status === "rejected",
   );
@@ -343,31 +350,23 @@ async function dispatchSettingsMutations(
   }
 
   const client = getUnkeyClient();
-  const mutation = Promise.allSettled(
-    bodies.map((body) => client.environments.updateSettings(body)),
-  ).then((results) => {
-    const apps = new Map(bodies.map((body) => [`${body.project}:${body.app}`, body]));
-    for (const { project, app } of apps.values()) {
-      void refetchAppEnvironments(project, app);
-    }
-    const failure = results.find(
-      (result): result is PromiseRejectedResult => result.status === "rejected",
-    );
-    if (failure) {
-      // Rollback drops every optimistic row, so reload the environments that did save.
+  const mutation = settleAll(bodies.map((body) => client.environments.updateSettings(body)))
+    .finally(() => {
+      const apps = new Map(bodies.map((body) => [`${body.project}:${body.app}`, body]));
+      for (const { project, app } of apps.values()) {
+        void refetchAppEnvironments(project, app);
+      }
+    })
+    .catch((error: unknown) => {
+      // A failed transaction skips the collection's own refetch, so reload the environments that did save.
       void environmentSettings.utils.refetch();
-      throw failure.reason;
-    }
-  });
+      throw error;
+    });
 
-  if (!bodies.some(appliesOnNextDeploy)) {
-    await mutation;
-    return;
-  }
   toast.promise(mutation, {
     loading: "Saving settings...",
     success: "Settings updated",
     error: (err) => getErrorToast(err, "Failed to update settings"),
   });
-  await trackSave(mutation);
+  await (bodies.some(appliesOnNextDeploy) ? trackSave(mutation) : mutation);
 }

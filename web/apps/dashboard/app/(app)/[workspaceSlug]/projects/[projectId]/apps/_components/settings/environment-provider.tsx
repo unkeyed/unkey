@@ -14,7 +14,10 @@ type SettingsTransaction = ReturnType<typeof collection.environmentSettings.upda
 
 type EnvironmentSettingsContextType = {
   settings: EnvironmentSettings;
-  update: (updater: (draft: EnvironmentSettings) => void) => SettingsTransaction;
+  update: (
+    updater: (draft: EnvironmentSettings) => void,
+    config?: { optimistic: boolean },
+  ) => SettingsTransaction;
 };
 
 type ScopeProps = PropsWithChildren<{ fallback?: ReactNode }>;
@@ -99,8 +102,13 @@ function SettingsContext({
 
   // One transaction for every target: the collection refetches after each
   // transaction settles, so one per environment would multiply the reads.
-  const update = (updater: (draft: EnvironmentSettings) => void) =>
-    collection.environmentSettings.update(targetIds, (drafts) => drafts.forEach(updater));
+  // Saves are not optimistic by default, so a failed save leaves the row and the form's edits alone.
+  const update: EnvironmentSettingsContextType["update"] = (updater, config) =>
+    collection.environmentSettings.update(
+      targetIds,
+      { optimistic: config?.optimistic ?? false },
+      (drafts) => drafts.forEach(updater),
+    );
 
   return (
     <EnvironmentSettingsContext.Provider value={{ settings, update }}>

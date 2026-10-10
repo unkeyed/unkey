@@ -20,7 +20,7 @@ export function AppName({ appId, name }: { appId: string; name: string }) {
     values: { name },
     isEqual: (current, saved) => current.name.trim() === saved.name,
     save: (values) =>
-      collection.apps.update(appId, (draft) => {
+      collection.apps.update(appId, { optimistic: false }, (draft) => {
         draft.name = values.name;
       }).isPersisted.promise,
   });

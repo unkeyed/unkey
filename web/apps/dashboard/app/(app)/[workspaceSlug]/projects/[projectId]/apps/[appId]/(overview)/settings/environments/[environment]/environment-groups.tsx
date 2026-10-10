@@ -23,7 +23,6 @@ import {
 import Link from "next/link";
 import { useAppId, useProjectData } from "../../../data-provider";
 import { AutoDeploy } from "../../components/build-settings/auto-deploy-settings";
-import { environmentName } from "../../sections";
 import type { Branch } from "../branch";
 import { BranchLabel } from "../branch-label";
 import { type DomainAssignment, environmentPanelDomains } from "../model";
@@ -57,7 +56,7 @@ export function BranchTracking({
             <BranchLabel branch={branch} className="w-fit" />
           </SettingsRowContent>
         </SettingsRow>
-        <AutoDeploy environmentName={environmentName(environment.slug)} />
+        <AutoDeploy />
       </SettingsGroupContent>
     </SettingsGroup>
   );

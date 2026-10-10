@@ -31,7 +31,7 @@ const { environmentSettings } = await import("./environment-settings");
 const scope = { project: "proj_1", app: "app_1", environment: "env_prod" };
 
 describe("environmentSettings update", () => {
-  it("leaves an auto-deploy save to its row and toasts a save that applies on the next deploy", async () => {
+  it("toasts every save, including one that does not apply on the next deploy", async () => {
     const query = createLiveQueryCollection((q) =>
       q
         .from({ s: environmentSettings })
@@ -45,13 +45,13 @@ describe("environmentSettings update", () => {
     });
     await immediate.isPersisted.promise;
     expect(updateSettings).toHaveBeenLastCalledWith({ ...scope, autoDeploy: false });
-    expect(toastPromise).not.toHaveBeenCalled();
+    expect(toastPromise).toHaveBeenCalledTimes(1);
 
-    const loud = environmentSettings.update("env_prod", (d) => {
+    const nextDeploy = environmentSettings.update("env_prod", (d) => {
       d.port = 3000;
     });
-    await loud.isPersisted.promise;
-    expect(toastPromise).toHaveBeenCalledTimes(1);
+    await nextDeploy.isPersisted.promise;
+    expect(toastPromise).toHaveBeenCalledTimes(2);
   });
 
   it("reloads every environment and toasts once when one environment fails to save", async () => {
@@ -59,10 +59,13 @@ describe("environmentSettings update", () => {
     toastPromise.mockClear();
     const reads = listEnvironments.mock.calls.length;
 
-    const tx = environmentSettings.update(["env_prod", "env_prev"], (drafts) =>
-      drafts.forEach((d) => {
-        d.port = 4000;
-      }),
+    const tx = environmentSettings.update(
+      ["env_prod", "env_prev"],
+      { optimistic: false },
+      (drafts) =>
+        drafts.forEach((d) => {
+          d.port = 4000;
+        }),
     );
     await expect(tx.isPersisted.promise).rejects.toThrow("rejected");
 

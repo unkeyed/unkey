@@ -22,7 +22,7 @@ export function OCIImage({ appId, imageReference }: { appId: string; imageRefere
     schema: ociImageFormSchema,
     values: { imageReference },
     save: (values) =>
-      collection.apps.update(appId, (draft) => {
+      collection.apps.update(appId, { optimistic: false }, (draft) => {
         draft.imageReference = values.imageReference;
       }).isPersisted.promise,
   });
