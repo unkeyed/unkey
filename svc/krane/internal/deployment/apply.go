@@ -220,6 +220,9 @@ func (c *Controller) buildReplicaSet(req *ctrlv1.ApplyDeployment, hasSecrets boo
 			VolumeSource: corev1.VolumeSource{
 				Ephemeral: &corev1.EphemeralVolumeSource{
 					VolumeClaimTemplate: &corev1.PersistentVolumeClaimTemplate{
+						ObjectMeta: metav1.ObjectMeta{
+							Labels: usedLabels,
+						},
 						Spec: corev1.PersistentVolumeClaimSpec{
 							AccessModes:      []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
 							StorageClassName: new(c.storageClassName),
