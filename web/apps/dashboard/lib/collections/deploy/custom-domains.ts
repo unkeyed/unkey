@@ -13,6 +13,7 @@ import {
   ConflictErrorResponse,
   ForbiddenErrorResponse,
 } from "@unkey/api/models/errors";
+import { match } from "@unkey/match";
 import { toast } from "@unkey/ui";
 import { z } from "zod";
 import { queryClient } from "../client";
@@ -103,15 +104,11 @@ export const customDomains = createCollection<
       toast.promise(mutation, {
         loading: "Adding domain...",
         success: "Domain added",
-        error: (err) => {
-          if (isCustomDomainLimitError(err)) {
-            return { message: "Custom domain limit reached" };
-          }
-          if (isInvalidDomainError(err)) {
-            return { message: "Invalid domain" };
-          }
-          if (isDomainConflictError(err)) {
-            return {
+        error: (err) =>
+          match(customDomainErrorKind(err))
+            .with("limit", () => ({ message: "Custom domain limit reached" }))
+            .with("invalid", () => ({ message: "Invalid domain" }))
+            .with("conflict", () => ({
               message: "Domain already in use",
               description: getErrorMessage(err),
               ...(insertMeta.success && {
@@ -128,10 +125,9 @@ export const customDomains = createCollection<
                   },
                 },
               }),
-            };
-          }
-          return getErrorToast(err, "Failed to add domain");
-        },
+            }))
+            .with("unknown", () => getErrorToast(err, "Failed to add domain"))
+            .exhaustive(),
       });
 
       await mutation;
@@ -153,16 +149,20 @@ export const customDomains = createCollection<
   }),
 );
 
-export function isCustomDomainLimitError(error: unknown): boolean {
-  return (
-    error instanceof ForbiddenErrorResponse &&
-    error.error.type.endsWith("/custom_domain_limit_exceeded")
-  );
-}
+export type CustomDomainErrorKind = "limit" | "invalid" | "conflict" | "unknown";
 
-/** The server's hostname rule also rejects public suffixes, which the client cannot know. */
-export function isInvalidDomainError(error: unknown): boolean {
-  return error instanceof BadRequestErrorResponse && error.error.type.endsWith("/invalid_input");
+const ERROR_KINDS = [
+  ["limit", ForbiddenErrorResponse, "custom_domain_limit_exceeded"],
+  // The server's hostname rule also rejects public suffixes, which the client cannot know.
+  ["invalid", BadRequestErrorResponse, "invalid_input"],
+  ["conflict", ConflictErrorResponse, "domain_already_exists"],
+] as const;
+
+export function customDomainErrorKind(error: unknown): CustomDomainErrorKind {
+  const rule = ERROR_KINDS.find(
+    ([, ErrorClass, code]) => error instanceof ErrorClass && error.error.type.endsWith(`/${code}`),
+  );
+  return rule?.[0] ?? "unknown";
 }
 
 export async function retryDomainVerification({ domain }: { domain: string }): Promise<void> {
@@ -176,12 +176,6 @@ export async function retryDomainVerification({ domain }: { domain: string }): P
 
   await mutation;
   await customDomains.utils.refetch();
-}
-
-function isDomainConflictError(error: unknown): boolean {
-  return (
-    error instanceof ConflictErrorResponse && error.error.type.endsWith("/domain_already_exists")
-  );
 }
 
 // getDomain resolves any domain in the workspace and 404s for the rest, so a

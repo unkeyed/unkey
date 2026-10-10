@@ -1,11 +1,9 @@
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { collection } from "@/lib/collections";
-import {
-  isCustomDomainLimitError,
-  isInvalidDomainError,
-} from "@/lib/collections/deploy/custom-domains";
+import { customDomainErrorKind } from "@/lib/collections/deploy/custom-domains";
 import { getErrorMessage } from "@/lib/unkey-client";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { match } from "@unkey/match";
 import { useForm } from "react-hook-form";
 import { useAppId, useProjectData } from "../../data-provider";
 import { type CustomDomainFormValues, customDomainSchema } from "./schema";
@@ -62,15 +60,12 @@ export function useAddDomain({ defaultEnvironmentId, onSettled }: Args) {
       await tx.isPersisted.promise;
       settle({ kind: "added", domain });
     } catch (err) {
-      if (isCustomDomainLimitError(err)) {
-        settle({ kind: "limitReached", message: getErrorMessage(err) });
-        return;
-      }
-      if (isInvalidDomainError(err)) {
-        form.setError("domain", { message: getErrorMessage(err) });
-        return;
-      }
-      console.error("Failed to add custom domain", err);
+      match(customDomainErrorKind(err))
+        .with("limit", () => settle({ kind: "limitReached", message: getErrorMessage(err) }))
+        .with("invalid", () => form.setError("domain", { message: getErrorMessage(err) }))
+        .with("conflict", () => console.error("Failed to add custom domain", err))
+        .with("unknown", () => console.error("Failed to add custom domain", err))
+        .exhaustive();
     }
   });
 
