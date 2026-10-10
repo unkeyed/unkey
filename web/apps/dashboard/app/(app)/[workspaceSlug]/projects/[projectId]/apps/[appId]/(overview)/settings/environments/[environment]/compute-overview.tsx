@@ -21,10 +21,10 @@ import {
 import { useState } from "react";
 import { ComputeFields } from "../../../../../_components/settings/compute/compute-fields";
 import { readCompute } from "../../../../../_components/settings/compute/draft";
+import { RegionViz } from "../../../../../_components/settings/compute/region-viz";
 import { availableFrom, unschedulableIn } from "../../../../../_components/settings/compute/status";
 import { useCompute } from "../../../../../_components/settings/compute/use-compute";
 import { useEnvironmentSettings } from "../../../../../_components/settings/environment-provider";
-import { RegionViz } from "../../components/compute/region-viz";
 
 export function ComputeOverview() {
   const { settings } = useEnvironmentSettings();

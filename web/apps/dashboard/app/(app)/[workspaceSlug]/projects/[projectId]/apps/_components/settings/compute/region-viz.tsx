@@ -15,7 +15,7 @@ import {
 } from "@unkey/icons";
 import { Badge } from "@unkey/ui";
 import type { ReactNode } from "react";
-import { formatReplicas, readCompute } from "../../../../../_components/settings/compute/draft";
+import { formatReplicas, readCompute } from "./draft";
 
 const NODE_W = 208;
 const NODE_GAP = 24;

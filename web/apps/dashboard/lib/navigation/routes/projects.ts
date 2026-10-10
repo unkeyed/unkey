@@ -78,11 +78,17 @@ export const projectRoutes = {
           { ...params, environment: target.environment },
         );
       }
-      if (target.page) {
+      if (target.page === "environments") {
         return buildRoute(
-          `/[workspaceSlug]/projects/[projectId]/apps/[appId]/settings/${target.page}`,
+          "/[workspaceSlug]/projects/[projectId]/apps/[appId]/settings/environments",
           params,
         );
+      }
+      if (target.page) {
+        return buildRoute("/[workspaceSlug]/projects/[projectId]/apps/[appId]/settings/[page]", {
+          ...params,
+          page: target.page,
+        });
       }
       return buildRoute("/[workspaceSlug]/projects/[projectId]/apps/[appId]/settings", params);
     },

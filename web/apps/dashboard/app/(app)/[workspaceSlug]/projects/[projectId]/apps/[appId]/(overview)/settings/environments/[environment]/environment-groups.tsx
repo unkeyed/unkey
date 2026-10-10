@@ -22,10 +22,10 @@ import {
 } from "@unkey/ui";
 import Link from "next/link";
 import { useAppId, useProjectData } from "../../../data-provider";
-import { AutoDeploy } from "../../components/build-settings/auto-deploy-settings";
 import type { Branch } from "../branch";
 import { BranchLabel } from "../branch-label";
 import { type DomainAssignment, environmentPanelDomains } from "../model";
+import { AutoDeploy } from "./auto-deploy";
 
 const ASSIGNMENT_LABEL: Record<DomainAssignment, string> = {
   live: "Live deployment",
