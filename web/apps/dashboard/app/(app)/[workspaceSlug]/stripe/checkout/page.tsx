@@ -224,6 +224,7 @@ export default async function StripeRedirect(props: {
       client_reference_id: ws.id,
       billing_address_collection: "auto",
       mode: "setup",
+      allow_promotion_codes: true,
       success_url: successUrl,
       currency: "USD",
       ...(checkoutCustomerId
