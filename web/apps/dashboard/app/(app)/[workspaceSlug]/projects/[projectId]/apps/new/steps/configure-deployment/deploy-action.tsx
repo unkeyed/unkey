@@ -72,9 +72,9 @@ export function DeployAction({
       });
       return { deploymentId: res.data.deploymentId };
     },
-    onSuccess: async (data) => {
+    onSuccess: (data) => {
       refetchDeployments();
-      await collection.apps.utils.refetch();
+      collection.apps.utils.refetch().catch(() => undefined);
       toast.success("Deployment triggered", {
         description: "Your app is being built and deployed",
       });
