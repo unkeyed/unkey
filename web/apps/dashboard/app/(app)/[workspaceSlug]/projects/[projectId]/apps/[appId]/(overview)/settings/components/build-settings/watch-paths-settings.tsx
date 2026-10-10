@@ -8,11 +8,11 @@ import { cn } from "cn";
 import { useCallback, useRef } from "react";
 import { useFieldArray, useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
+import { RemoveButton } from "../../../../../_components/remove-button";
 import { useEnvironmentSettings } from "../../environment-provider";
 import { useUpdateAllEnvironments } from "../../hooks/use-update-all-environments";
 import { SettingDescription, SettingField } from "../shared/form-blocks";
 import { FormSettingCard } from "../shared/form-setting-card";
-import { RemoveButton } from "../shared/remove-button";
 import { useRepoTree } from "./use-repo-tree";
 
 const watchPathsSchema = z.object({
@@ -206,6 +206,7 @@ export const WatchPaths = () => {
                 }}
               />
               <RemoveButton
+                label="Remove watch path"
                 onClick={() => removeAndFocus(index)}
                 className={cn("shrink-0 transition-opacity duration-150")}
               />

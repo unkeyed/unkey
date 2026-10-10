@@ -13,11 +13,11 @@ import {
 } from "@unkey/ui";
 import { useEffect } from "react";
 import { Controller, useForm } from "react-hook-form";
+import { RemoveButton } from "../../../../../../_components/remove-button";
 import { useEnvironmentSettings } from "../../../environment-provider";
 import { useUpdateAllEnvironments } from "../../../hooks/use-update-all-environments";
 import { SettingField } from "../../shared/form-blocks";
 import { FormSettingCard } from "../../shared/form-setting-card";
-import { RemoveButton } from "../../shared/remove-button";
 import { MethodBadge } from "./method-badge";
 import { HTTP_METHODS, type HealthcheckFormValues, healthcheckSchema } from "./schema";
 import { intervalToSeconds, secondsToInterval } from "./utils";
@@ -140,7 +140,9 @@ export const Healthcheck = () => {
             error={errors.interval?.message}
             {...register("interval")}
           />
-          {healthcheck && <RemoveButton onClick={handleRemove} className="shrink-0" />}
+          {healthcheck && (
+            <RemoveButton label="Remove health check" onClick={handleRemove} className="shrink-0" />
+          )}
         </div>
       </SettingField>
     </FormSettingCard>
