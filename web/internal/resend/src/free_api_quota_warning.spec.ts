@@ -22,7 +22,7 @@ test("free API quota warning uses the approved copy", async () => {
   );
   expect(text).toContain("Nothing is being rate limited yet. Requests are still going through.");
   expect(text).toContain(
-    "If this workspace stays on the free plan, we'll start rate limiting it once it passes that limit. Upgrading to a paid API plan raises the limit and avoids that.",
+    "If this workspace stays on the free plan, we'll start rate limiting it in 3 business days. Upgrading to a paid API plan raises the limit and avoids that.",
   );
   expect(text).toContain("Upgrade plan");
   expect(text).toContain("https://app.unkey.com/acme/settings/billing");

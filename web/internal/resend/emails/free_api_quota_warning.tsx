@@ -33,8 +33,8 @@ export function FreeApiQuotaWarning({ workspaceName, used, limit, billingUrl, ye
       </Text>
       <Text>Nothing is being rate limited yet. Requests are still going through.</Text>
       <Text>
-        If this workspace stays on the free plan, we&apos;ll start rate limiting it once it passes
-        that limit. Upgrading to a paid API plan raises the limit and avoids that.
+        If this workspace stays on the free plan, we&apos;ll start rate limiting it in 3 business
+        days. Upgrading to a paid API plan raises the limit and avoids that.
       </Text>
 
       <Section className="text-center py-3">
