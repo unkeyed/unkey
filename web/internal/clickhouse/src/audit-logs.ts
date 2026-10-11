@@ -1,7 +1,10 @@
+import { Err, Ok, type Result } from "@unkey/error";
 import { z } from "zod";
+import type { QueryError } from "./client/error";
 import type { Querier } from "./client/interface";
 
 const TABLE = "default.audit_logs_raw_v1";
+const EMPTY_JSON = "{}";
 
 export const auditLogsRequestSchema = z.object({
   workspaceId: z.string(),
@@ -15,6 +18,13 @@ export const auditLogsRequestSchema = z.object({
 });
 
 export type AuditLogsRequest = z.infer<typeof auditLogsRequestSchema>;
+
+const auditLogJsonLookupSchema = z.object({
+  workspaceId: z.string(),
+  bucketId: z.string(),
+  times: z.array(z.int()),
+  eventIds: z.array(z.string()),
+});
 
 // workspace_id and bucket are intentionally omitted: they're always equal
 // to the query filter values and selecting `any(workspace_id) AS workspaceId`
@@ -37,6 +47,24 @@ export const auditLogRow = z.object({
 
 export type AuditLogRow = z.infer<typeof auditLogRow>;
 
+const auditLogPageRow = auditLogRow.omit({
+  actorMeta: true,
+  meta: true,
+  targets: true,
+});
+
+type AuditLogPageRow = z.infer<typeof auditLogPageRow>;
+
+const auditLogJsonRow = auditLogRow.pick({
+  eventId: true,
+  time: true,
+  actorMeta: true,
+  meta: true,
+  targets: true,
+});
+
+type AuditLogJsonRow = z.infer<typeof auditLogJsonRow>;
+
 export function getAuditLogs(ch: Querier) {
   return (args: AuditLogsRequest) => {
     // Conditions are built per-call rather than wrapped in CASE WHEN so CH
@@ -54,11 +82,10 @@ export function getAuditLogs(ch: Querier) {
     }
     const filterConditions = conditions.join(" AND ");
 
-    // Targets are Nested(type, id, name, meta) — already grouped per
-    // event_id in the table layout — so no GROUP BY / ARRAY JOIN
-    // gymnastics needed. Map the four parallel arrays to row tuples
-    // for the schema's [type, id, name, meta] shape.
-    const logsQuery = ch.query({
+    // No JSON columns here. ORDER BY matches the primary key after the
+    // workspace and bucket equalities, so read-in-order stops after LIMIT
+    // rows instead of sorting the retention window.
+    const pageQuery = ch.query({
       query: `
         SELECT
           event_id AS eventId,
@@ -68,9 +95,26 @@ export function getAuditLogs(ch: Querier) {
           actor_type AS actorType,
           actor_id AS actorId,
           actor_name AS actorName,
-          toJSONString(actor_meta) AS actorMeta,
           remote_ip AS remoteIp,
-          user_agent AS userAgent,
+          user_agent AS userAgent
+        FROM ${TABLE}
+        WHERE ${filterConditions}
+        ORDER BY time DESC, event_id DESC
+        LIMIT {limit: Int} OFFSET {offset: Int}
+        SETTINGS optimize_read_in_order = 1`,
+      params: auditLogsRequestSchema,
+      schema: auditLogPageRow,
+    });
+
+    // Targets are Nested(type, id, name, meta), already grouped per event.
+    // time is the third primary-key column, so this lookup reads the page's
+    // granules. The pair match drops other events that share those timestamps.
+    const jsonQuery = ch.query({
+      query: `
+        SELECT
+          event_id AS eventId,
+          time,
+          toJSONString(actor_meta) AS actorMeta,
           toJSONString(meta) AS meta,
           arrayMap(
             (targetType, targetId, targetName, targetMeta) ->
@@ -78,11 +122,19 @@ export function getAuditLogs(ch: Querier) {
             \`targets.type\`, \`targets.id\`, \`targets.name\`, \`targets.meta\`
           ) AS targets
         FROM ${TABLE}
-        WHERE ${filterConditions}
-        ORDER BY time DESC, event_id DESC
-        LIMIT {limit: Int} OFFSET {offset: Int}`,
-      params: auditLogsRequestSchema,
-      schema: auditLogRow,
+        WHERE workspace_id = {workspaceId: String}
+          AND bucket = {bucketId: String}
+          AND time IN {times: Array(Int64)}
+          AND (time, event_id) IN (
+            SELECT
+              tupleElement(pair, 1),
+              tupleElement(pair, 2)
+            FROM (
+              SELECT arrayJoin(arrayZip({times: Array(Int64)}, {eventIds: Array(String)})) AS pair
+            )
+          )`,
+      params: auditLogJsonLookupSchema,
+      schema: auditLogJsonRow,
     });
 
     // count() over countDistinct(event_id): event_id is row-identity and the
@@ -99,8 +151,62 @@ export function getAuditLogs(ch: Querier) {
     });
 
     return {
-      getLogsQuery: () => logsQuery(args),
+      getLogsQuery: (): Promise<Result<AuditLogRow[], QueryError>> =>
+        loadAuditLogPage(pageQuery, jsonQuery, args),
       getTotalQuery: () => totalQuery(args),
     };
   };
+}
+
+async function loadAuditLogPage(
+  pageQuery: (args: AuditLogsRequest) => Promise<Result<AuditLogPageRow[], QueryError>>,
+  jsonQuery: (args: {
+    workspaceId: string;
+    bucketId: string;
+    times: number[];
+    eventIds: string[];
+  }) => Promise<Result<AuditLogJsonRow[], QueryError>>,
+  args: AuditLogsRequest,
+): Promise<Result<AuditLogRow[], QueryError>> {
+  const page = await pageQuery(args);
+  if (page.err) {
+    return Err(page.err);
+  }
+  if (page.val.length === 0) {
+    return Ok([]);
+  }
+
+  const json = await jsonQuery({
+    workspaceId: args.workspaceId,
+    bucketId: args.bucketId,
+    times: page.val.map((row) => row.time),
+    eventIds: page.val.map((row) => row.eventId),
+  });
+  if (json.err) {
+    return Err(json.err);
+  }
+
+  const byTime = new Map<number, Map<string, AuditLogJsonRow>>();
+  for (const row of json.val) {
+    let byId = byTime.get(row.time);
+    if (!byId) {
+      byId = new Map();
+      byTime.set(row.time, byId);
+    }
+    if (!byId.has(row.eventId)) {
+      byId.set(row.eventId, row);
+    }
+  }
+
+  return Ok(
+    page.val.map((row) => {
+      const jsonRow = byTime.get(row.time)?.get(row.eventId);
+      return {
+        ...row,
+        actorMeta: jsonRow?.actorMeta ?? EMPTY_JSON,
+        meta: jsonRow?.meta ?? EMPTY_JSON,
+        targets: jsonRow?.targets ?? [],
+      };
+    }),
+  );
 }
