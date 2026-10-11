@@ -19,7 +19,7 @@ sources:
 import { ProductLink } from "/snippets/product-link.jsx";
 import RootKeyPrereq from "/snippets/root-key-prereq.mdx";
 
-Issue API keys for your public API with `keys.createKey`, then verify each request with `keys.verifyKey`. Both are HTTPS calls to `api.unkey.com`, from whatever language and host you already use. If you already have keys in your own database, [Migrating keys](/api-management/keys/migrating-keys) imports the hashes so users keep the same keys, and you stop storing the plaintext.
+Issue API keys for your public API with `keys.createKey`, then verify each request with `keys.verifyKey`. Both are HTTPS calls to `api.unkey.com`, from whatever language and host you already use. If you already have keys in your own database, [Migrating keys](/api-management/keys/migrating-keys) shows how to import the hashes, so users keep the same keys and you stop storing the plaintext.
 
 Create a keyspace, issue a key, and <Tooltip tip="Key verification: keys.verifyKey hashes the presented key, finds it, runs the configured checks, and reports whether it is valid and why not. Not domain verification or the Compute gateway policy.">verify</Tooltip> it from your backend.
 

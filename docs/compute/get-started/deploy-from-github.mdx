@@ -28,9 +28,9 @@ sources:
 ---
 
 
-You can deploy an app straight from a GitHub repository, and Unkey deploys from GitHub on every push. Connect the repository, and Unkey tracks its default branch unless you pick another one. A push to that branch creates a production <Tooltip tip="One built and running version of an app in one environment.">deployment</Tooltip>. A push to any other branch creates a preview deployment. Open the deployment in the dashboard and wait until its status is `ready`. It is then live on a `unkey.app` domain.
+You can deploy an app straight from a GitHub repository, and Unkey deploys on every push. Connect the repository and Unkey tracks its default branch, unless you pick another one. A push to that branch creates a production <Tooltip tip="One built and running version of an app in one environment.">deployment</Tooltip>. A push to any other branch creates a preview deployment. Open the deployment in the dashboard and wait for its status to be `ready`. Then it's live on a `unkey.app` domain.
 
-That is the default, with auto deploy on and no watch paths. Turn auto deploy off, or set watch paths, and a push can be recorded as `skipped` instead of built. A pull request from a fork waits in `awaiting_approval` until a project member approves it.
+That's the default, with auto deploy on and no watch paths. If you turn auto deploy off or set watch paths, a push can be recorded as `skipped` instead of built. A pull request from a fork waits in `awaiting_approval` until a project member approves it.
 
 An <Tooltip tip="A Compute app: a deployable service inside a project. Not 'your application' in general.">app</Tooltip> deploys and serves traffic. By the end of this guide you have a project, an app connected to the repository, and a production deployment.
 

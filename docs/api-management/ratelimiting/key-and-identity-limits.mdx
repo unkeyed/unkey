@@ -19,9 +19,9 @@ sources:
   - web/internal/api/src/sdk/keys.ts
 ---
 
-Put a rate limit and a monthly request quota on each customer's API key, and `keys.verifyKey` enforces both. One call checks the key, the sliding-window limit, and the credit balance. You don't run Redis. Change a customer's numbers with `keys.updateKey`. No deploy needed.
+Put a rate limit and a monthly request quota on each customer's API key, and `keys.verifyKey` enforces both. One call checks the key, the sliding-window limit, and the credit balance, with no Redis to run. To change a customer's numbers, call `keys.updateKey`. No deploy needed.
 
-The rate limit is a named window on the key, such as 100 requests per 60,000 milliseconds. The monthly quota is credits: `credits.refill.interval` of `monthly` refills the balance on `refillDay`. When the window is used up, `data.code` is `RATE_LIMITED`. When credits can't cover the request, `data.code` is `USAGE_EXCEEDED`. The HTTP status from Unkey is still 200. Your server returns 429.
+The rate limit is a named window on the key, such as 100 requests per 60,000 milliseconds. The monthly quota is credits. Set `credits.refill.interval` to `monthly` and the balance refills on `refillDay`. When the window is used up, `data.code` is `RATE_LIMITED`. When credits can't cover the request, `data.code` is `USAGE_EXCEEDED`. Unkey still returns HTTP 200, and your server returns the 429.
 
 ```typescript
 import { Unkey } from "@unkey/api";
@@ -50,7 +50,7 @@ export async function handler(request: Request) {
 }
 ```
 
-`Retry-After` is seconds. <a href="https://www.rfc-editor.org/rfc/rfc6585#section-4" target="_blank">RFC 6585</a> defines 429 and that header. `reset` on each checked limit is Unix milliseconds. Unkey does not set `Retry-After` or `X-RateLimit-*` on `keys.verifyKey`. Which headers Unkey does send, including on the Compute gateway, is on [Rate limiting](/api-management/ratelimiting/overview#what-a-limited-request-looks-like).
+`Retry-After` is in seconds, and <a href="https://www.rfc-editor.org/rfc/rfc6585#section-4" target="_blank">RFC 6585</a> defines both 429 and that header. `reset` on each checked limit is Unix milliseconds. `keys.verifyKey` doesn't set `Retry-After` or `X-RateLimit-*`. Which headers Unkey does send, including on the Compute gateway, is on [Rate limiting](/api-management/ratelimiting/overview#what-a-limited-request-looks-like).
 
 A limit on an identity counts every key linked to that customer together. A limit on a key counts that key alone.
 

@@ -14,9 +14,9 @@ sources:
 import { versions } from "/snippets/versions.mdx";
 import RootKeyPrereq from "/snippets/root-key-prereq.mdx";
 
-Use `@unkey/ratelimit` (version {versions.tsRatelimit}) to rate limit a Next.js route, an Express handler, or any other TypeScript server without running Redis. You pass a user id, a customer id, or an IP address. Unkey keeps the counters. The old Next.js and Express rate limit quickstarts point here.
+Use `@unkey/ratelimit` (version {versions.tsRatelimit}) to rate limit a Next.js route, an Express handler, or any other TypeScript server. You pass a user id, a customer id, or an IP address, and Unkey keeps the counters, so there's no Redis to run. The old Next.js and Express rate limit quickstarts point here.
 
-The package wraps `ratelimit.limit`. You set the namespace and limit once, so each check is one line. It answers from memory for identifiers that are already blocked, and it returns a fallback answer if the API takes too long. It does not issue API keys. For a limit stored on a key, including a monthly credit quota, see [Key and identity rate limits](/api-management/ratelimiting/key-and-identity-limits).
+The package wraps `ratelimit.limit`. You set the namespace and limit once, so each check is one line. It answers from memory for identifiers that are already blocked, and it returns a fallback answer if the API takes too long. It doesn't issue API keys. For a limit stored on a key, including a monthly credit quota, see [Key and identity rate limits](/api-management/ratelimiting/key-and-identity-limits).
 
 <RootKeyPrereq />
 
@@ -77,7 +77,7 @@ const limiter = new Ratelimit({
 
 ## Use it
 
-The same `limiter` works in a Next.js route handler and in Express. `limit` returns `{ success, limit, remaining, reset }`. Unkey's HTTP response to your server is 200 even when `success` is `false`. Your handler returns `429 Too Many Requests`. <a href="https://www.rfc-editor.org/rfc/rfc6585#section-4" target="_blank">RFC 6585</a> defines that status and allows `Retry-After` in seconds. `reset` is Unix milliseconds. This package does not set rate limit headers for you.
+The same `limiter` works in a Next.js route handler and in Express. `limit` returns `{ success, limit, remaining, reset }`. Unkey's HTTP response to your server is 200 even when `success` is `false`, so your handler is the one that returns `429 Too Many Requests`. <a href="https://www.rfc-editor.org/rfc/rfc6585#section-4" target="_blank">RFC 6585</a> defines that status and allows `Retry-After` in seconds. `reset` is Unix milliseconds. This package doesn't set rate limit headers for you.
 
 ```typescript app/api/search/route.ts
 export async function POST(request: Request) {
