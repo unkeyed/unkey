@@ -15,6 +15,7 @@ import type React from "react";
 import { Resend } from "resend";
 import ComputeBudgetAlert from "../emails/compute_budget_alert";
 import ComputeBudgetStopped from "../emails/compute_budget_stopped";
+import FreeApiQuotaWarning from "../emails/free_api_quota_warning";
 
 type TemplateSync = {
   // alias is how svc/ctrl refers to the template; it must not change once a
@@ -70,6 +71,28 @@ const templates: TemplateSync[] = [
       { key: "WORKSPACE_NAME", fallbackValue: "Your workspace" },
       { key: "USAGE", fallbackValue: "$0" },
       { key: "BUDGET", fallbackValue: "$0" },
+      { key: "BILLING_URL", fallbackValue: "https://app.unkey.com" },
+      { key: "YEAR", fallbackValue: "2026" },
+    ],
+  },
+  {
+    alias: "free-api-quota-warning",
+    name: "Free API quota warning",
+    subject: "{{{WORKSPACE_NAME}}} is over its free API limit",
+    from: "James | Unkey <james@updates.unkey.com>",
+    element: (
+      <FreeApiQuotaWarning
+        workspaceName="{{{WORKSPACE_NAME}}}"
+        used="{{{USED}}}"
+        limit="{{{LIMIT}}}"
+        billingUrl="{{{BILLING_URL}}}"
+        year="{{{YEAR}}}"
+      />
+    ),
+    variables: [
+      { key: "WORKSPACE_NAME", fallbackValue: "Your workspace" },
+      { key: "USED", fallbackValue: "0" },
+      { key: "LIMIT", fallbackValue: "0" },
       { key: "BILLING_URL", fallbackValue: "https://app.unkey.com" },
       { key: "YEAR", fallbackValue: "2026" },
     ],

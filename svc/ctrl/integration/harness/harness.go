@@ -241,6 +241,9 @@ func New(t *testing.T, opts ...Option) *Harness {
 		RatelimitDB:               ratelimitdb.New(database.RW(), database.RO()),
 		RestateRules:              restateRules,
 		SlackQuotaCheckWebhookURL: "",
+		// Free quota warning stays off in the harness. The daily job's Slack
+		// behavior is what these tests cover.
+		QuotaWarningEmailMode: "off",
 		// Deploy billing is a no-op by default (nil reader + empty Stripe key);
 		// WithDeployBilling injects fakes for tests that exercise the push/close.
 		BillingUsageReader: o.billingUsageReader,

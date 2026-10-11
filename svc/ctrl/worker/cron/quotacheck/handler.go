@@ -1,7 +1,8 @@
 // Package quotacheck implements the CronService.RunQuotaCheck handler.
 // The handler queries workspace usage from ClickHouse and sends Slack
-// notifications for newly exceeded quotas. Keyed by billing period
-// (e.g. "2026-01"); state tracks notified workspaces so a daily
+// notifications for newly exceeded quotas. When configured, it also sends
+// one free-tier warning email per workspace per month. Keyed by billing
+// period (e.g. "2026-01"); state tracks notified workspaces so a daily
 // re-trigger doesn't spam.
 package quotacheck
 
@@ -17,11 +18,13 @@ import (
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/billingperiod"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
+	"github.com/unkeyed/unkey/pkg/email"
 	"github.com/unkeyed/unkey/pkg/healthcheck"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/restate/restateutil"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/slack"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/workos"
 	"golang.org/x/text/language"
 	"golang.org/x/text/message"
 	"golang.org/x/text/number"
@@ -30,6 +33,21 @@ import (
 // stateKeyNotifiedWorkspaces tracks per-workspace last-notified
 // timestamps within a billing period (VO state).
 const stateKeyNotifiedWorkspaces = "notified_workspaces"
+
+// stateKeyFreeQuotaWarningSent tracks when the free-tier warning email was
+// sent, per workspace, on the same monthly object as the Slack map. It is a
+// separate map: the Slack map includes paid workspaces and allows a weekly
+// reminder. The email map is written only after a live send succeeds.
+const stateKeyFreeQuotaWarningSent = "free_quota_warning_sent"
+
+// freeQuotaWarningTemplate is the published Resend template alias. The
+// template owns the subject and the sender.
+const freeQuotaWarningTemplate = "free-api-quota-warning"
+
+// emailRunMaxAttempts bounds WorkOS and Resend retries inside one quota
+// check. A workspace that still fails is logged and left unmarked so the
+// next day's run tries again, without failing the Slack report.
+const emailRunMaxAttempts = 5
 
 // minUsageThreshold is the minimum usage to consider for quota checks.
 // Workspaces below this threshold are skipped since the minimum paid
@@ -67,14 +85,34 @@ type Config struct {
 	// SlackWebhookURL is the Slack webhook for quota-exceeded
 	// notifications. Empty disables Slack notifications.
 	SlackWebhookURL string
+	// EmailMode is off, dry_run, or live. Empty and any other value are off.
+	EmailMode string
+	// ResendConfigured is true when a Resend API key is set. live without it
+	// behaves as off: the noop sender would otherwise look like a successful
+	// send and the backlog would be marked as emailed.
+	ResendConfigured bool
+	// Admins resolves active WorkOS admin emails. Must not be nil; use
+	// workos.NewNoop() when no API key is configured.
+	Admins workos.Resolver
+	// Email sends the warning. Must not be nil; use email.NewNoop() when no
+	// Resend key is configured.
+	Email email.Sender
+	// BillingBaseURL is the dashboard origin used in the upgrade link, the
+	// same value the Compute budget email uses.
+	BillingBaseURL string
 }
 
 // Handler executes RunQuotaCheck.
 type Handler struct {
-	db              db.Database
-	clickhouse      clickhouse.ClickHouse
-	heartbeat       healthcheck.Heartbeat
-	slackWebhookURL string
+	db               db.Database
+	clickhouse       clickhouse.ClickHouse
+	heartbeat        healthcheck.Heartbeat
+	slackWebhookURL  string
+	emailMode        emailMode
+	resendConfigured bool
+	admins           workos.Resolver
+	email            email.Sender
+	billingBaseURL   string
 }
 
 // New constructs a Handler.
@@ -83,14 +121,21 @@ func New(cfg Config) (*Handler, error) {
 		assert.NotNil(cfg.DB, "DB must not be nil"),
 		assert.NotNil(cfg.Clickhouse, "Clickhouse must not be nil; use clickhouse.NewNoop() if unavailable"),
 		assert.NotNil(cfg.Heartbeat, "Heartbeat must not be nil; use healthcheck.NewNoop()"),
+		assert.NotNil(cfg.Admins, "Admins must not be nil; use workos.NewNoop() when no API key is configured"),
+		assert.NotNil(cfg.Email, "Email must not be nil; use email.NewNoop() when no Resend key is configured"),
 	); err != nil {
 		return nil, err
 	}
 	return &Handler{
-		db:              cfg.DB,
-		clickhouse:      cfg.Clickhouse,
-		heartbeat:       cfg.Heartbeat,
-		slackWebhookURL: cfg.SlackWebhookURL,
+		db:               cfg.DB,
+		clickhouse:       cfg.Clickhouse,
+		heartbeat:        cfg.Heartbeat,
+		slackWebhookURL:  cfg.SlackWebhookURL,
+		emailMode:        parseEmailMode(cfg.EmailMode),
+		resendConfigured: cfg.ResendConfigured,
+		admins:           cfg.Admins,
+		email:            cfg.Email,
+		billingBaseURL:   cfg.BillingBaseURL,
 	}, nil
 }
 
@@ -124,6 +169,27 @@ func (h *Handler) Handle(
 		return nil, fmt.Errorf("get current time: %w", err)
 	}
 	now := nowTime.Unix()
+
+	// live with no Resend key must not mark anyone. Log it on every run so a
+	// misconfigured deploy does not look like a quiet success.
+	if h.emailMode == emailModeLive && !h.resendConfigured {
+		logger.Error("free API quota warning emails are DISABLED: quota_warning_email_mode is live but no resend api key is configured; behaving as off")
+	}
+	emailMode := h.activeEmailMode()
+	// Read the email map only when email is actually in play. off must keep
+	// the same Restate journal as the Slack-only handler so an in-flight
+	// invocation can replay across a deploy that still has the mode off.
+	var warningSentAt map[string]int64
+	if emailMode != emailModeOff {
+		warningSentAt, err = restate.Get[map[string]int64](ctx, stateKeyFreeQuotaWarningSent)
+		if err != nil {
+			return nil, fmt.Errorf("get free quota warning state: %w", err)
+		}
+		if warningSentAt == nil {
+			warningSentAt = make(map[string]int64)
+		}
+	}
+	var warningsSent, warningsDryRun, warningsSkipped int
 
 	usageAboveThreshold, err := restate.Run(ctx, func(rc restate.RunContext) (map[string]int64, error) {
 		return h.clickhouse.GetBillableUsageAboveThreshold(rc, p.Year, int(p.Month), minUsageThreshold)
@@ -164,45 +230,54 @@ func (h *Handler) Handle(
 				logger.Info("progress", "count", workspacesChecked)
 			}
 
+			usage := usageAboveThreshold[ws.ID]
 			if !ws.Enabled {
+				warningsSkipped += h.noteSkip(emailMode, ws, usage, skipReasonDisabled)
 				continue
 			}
 			if !ws.RequestsPerMonth.Valid {
+				warningsSkipped += h.noteSkip(emailMode, ws, usage, skipReasonMissingCap)
 				continue
 			}
-
-			usage := usageAboveThreshold[ws.ID]
 			if usage < ws.RequestsPerMonth.Int64 {
 				continue
 			}
 
 			lastNotified := notifiedAt[ws.ID]
 			isFollowUp := lastNotified > 0
+			slackDue := true
 			if isFollowUp {
 				timeSinceLastNotification := time.Duration(now-lastNotified) * time.Second
 				if timeSinceLastNotification < followUpInterval {
-					continue
+					slackDue = false
 				}
 			}
 
-			e := exceededWorkspace{
-				Workspace:  ws,
-				Used:       usage,
-				IsFollowUp: isFollowUp,
-			}
-
-			if h.slackWebhookURL != "" {
-				_, notifyErr := restate.Run(ctx, func(rc restate.RunContext) (restate.Void, error) {
-					return restate.Void{}, sendSlackNotification(rc, h.slackWebhookURL, e)
-				}, restate.WithName("notify "+ws.ID))
-				if notifyErr != nil {
-					return nil, fmt.Errorf("failed to send notification: %w", notifyErr)
+			if slackDue {
+				e := exceededWorkspace{
+					Workspace:  ws,
+					Used:       usage,
+					IsFollowUp: isFollowUp,
 				}
+
+				if h.slackWebhookURL != "" {
+					_, notifyErr := restate.Run(ctx, func(rc restate.RunContext) (restate.Void, error) {
+						return restate.Void{}, sendSlackNotification(rc, h.slackWebhookURL, e)
+					}, restate.WithName("notify "+ws.ID))
+					if notifyErr != nil {
+						return nil, fmt.Errorf("failed to send notification: %w", notifyErr)
+					}
+				}
+
+				exceeded = append(exceeded, e)
+				notifiedAt[ws.ID] = now
+				newlyNotified = append(newlyNotified, ws.ID)
 			}
 
-			exceeded = append(exceeded, e)
-			notifiedAt[ws.ID] = now
-			newlyNotified = append(newlyNotified, ws.ID)
+			sent, dry, skipped := h.considerFreeQuotaWarning(ctx, emailMode, billingPeriod, nowTime, warningSentAt, ws, usage)
+			warningsSent += sent
+			warningsDryRun += dry
+			warningsSkipped += skipped
 		}
 	}
 
@@ -215,6 +290,9 @@ func (h *Handler) Handle(
 		"workspaces_checked", workspacesChecked,
 		"workspaces_exceeded", len(exceeded),
 		"notifications_sent", len(newlyNotified),
+		"quota_warnings_sent", warningsSent,
+		"quota_warnings_dry_run", warningsDryRun,
+		"quota_warnings_skipped", warningsSkipped,
 	)
 
 	if _, err := restate.Run(ctx, func(rc restate.RunContext) (restate.Void, error) {

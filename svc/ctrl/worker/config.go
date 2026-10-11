@@ -361,8 +361,15 @@ type Config struct {
 
 	// WorkOSAPIKey authenticates the spend-cap check's lookup of org admin
 	// emails (budget-alert recipients). Empty resolves no recipients, so the
-	// check logs crossings but sends no email.
+	// check logs crossings but sends no email. The free API quota warning
+	// uses the same lookup.
 	WorkOSAPIKey string `toml:"workos_api_key"`
+
+	// QuotaWarningEmailMode controls the free API quota warning sent by the
+	// daily quota check. off (the default, and the kill switch) is Slack only.
+	// dry_run logs who would be emailed and sends nothing. live sends one
+	// email per free workspace per month. Do not set live in this repository.
+	QuotaWarningEmailMode string `toml:"quota_warning_email_mode" config:"default=off,oneof=off|dry_run|live"`
 
 	// Clock provides time operations for testing and scheduling.
 	// Use clock.New() for production deployments.

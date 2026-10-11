@@ -574,6 +574,7 @@ func Run(ctx context.Context, cfg Config) error {
 		RatelimitDB:               ratelimitdb.New(database.RW(), database.RO()),
 		RestateRules:              restateAdminClient,
 		SlackQuotaCheckWebhookURL: cfg.Slack.QuotaCheckWebhookURL,
+		QuotaWarningEmailMode:     cfg.QuotaWarningEmailMode,
 		BillingUsageReader:        billingUsageReader,
 		StripeSecretKey:           cfg.Billing.StripeSecretKey,
 		// Derived from StripeSecretKey; only tests inject these directly.

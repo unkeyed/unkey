@@ -16,39 +16,63 @@ SELECT
    w.id,
    w.org_id,
    w.name,
+   w.slug,
+   w.enabled,
+   w.deleted_at_m,
+   w.subscriptions,
    b.stripe_customer_id,
    b.tier,
-   w.enabled,
-   l.api_billable_operations_count_max_per_month AS requests_per_month
+   l.api_billable_operations_count_max_per_month AS requests_per_month,
+   l.api_requests_count_max_per_minute,
+   s.stripe_subscription_id AS api_subscription_id
 FROM ` + "`" + `workspaces` + "`" + ` w
 LEFT JOIN ` + "`" + `limits` + "`" + ` l ON l.workspace_id = w.id
 LEFT JOIN ` + "`" + `workspace_billing` + "`" + ` b ON b.workspace_id = w.id
+LEFT JOIN ` + "`" + `billing_subscriptions` + "`" + ` s
+   ON s.workspace_id = w.id AND s.product = 'api'
 WHERE w.id IN (/*SLICE:workspace_ids*/?)
 `
 
 type GetWorkspacesForQuotaCheckByIDsRow struct {
-	ID               string         `db:"id"`
-	OrgID            string         `db:"org_id"`
-	Name             string         `db:"name"`
-	StripeCustomerID sql.NullString `db:"stripe_customer_id"`
-	Tier             sql.NullString `db:"tier"`
-	Enabled          bool           `db:"enabled"`
-	RequestsPerMonth sql.NullInt64  `db:"requests_per_month"`
+	ID                           string         `db:"id"`
+	OrgID                        string         `db:"org_id"`
+	Name                         string         `db:"name"`
+	Slug                         string         `db:"slug"`
+	Enabled                      bool           `db:"enabled"`
+	DeletedAtM                   sql.NullInt64  `db:"deleted_at_m"`
+	Subscriptions                []byte         `db:"subscriptions"`
+	StripeCustomerID             sql.NullString `db:"stripe_customer_id"`
+	Tier                         sql.NullString `db:"tier"`
+	RequestsPerMonth             sql.NullInt64  `db:"requests_per_month"`
+	ApiRequestsCountMaxPerMinute sql.NullInt32  `db:"api_requests_count_max_per_minute"`
+	ApiSubscriptionID            sql.NullString `db:"api_subscription_id"`
 }
 
-// GetWorkspacesForQuotaCheckByIDs
+// Rows for workspaces already over the ClickHouse usage floor.
+// api_requests_count_max_per_minute is the workspace API throttle: NULL means
+// there is no throttle, and any stored value, including zero, is already
+// enforced. api_subscription_id is set only when billing_subscriptions has a
+// row with product 'api'. subscriptions is the legacy custom-pricing blob;
+// NULL or an empty object means the workspace is on the current billing path.
 //
 //	SELECT
 //	   w.id,
 //	   w.org_id,
 //	   w.name,
+//	   w.slug,
+//	   w.enabled,
+//	   w.deleted_at_m,
+//	   w.subscriptions,
 //	   b.stripe_customer_id,
 //	   b.tier,
-//	   w.enabled,
-//	   l.api_billable_operations_count_max_per_month AS requests_per_month
+//	   l.api_billable_operations_count_max_per_month AS requests_per_month,
+//	   l.api_requests_count_max_per_minute,
+//	   s.stripe_subscription_id AS api_subscription_id
 //	FROM `workspaces` w
 //	LEFT JOIN `limits` l ON l.workspace_id = w.id
 //	LEFT JOIN `workspace_billing` b ON b.workspace_id = w.id
+//	LEFT JOIN `billing_subscriptions` s
+//	   ON s.workspace_id = w.id AND s.product = 'api'
 //	WHERE w.id IN (/*SLICE:workspace_ids*/?)
 func (q *Queries) GetWorkspacesForQuotaCheckByIDs(ctx context.Context, workspaceIds []string) ([]GetWorkspacesForQuotaCheckByIDsRow, error) {
 	query := getWorkspacesForQuotaCheckByIDs
@@ -73,10 +97,15 @@ func (q *Queries) GetWorkspacesForQuotaCheckByIDs(ctx context.Context, workspace
 			&i.ID,
 			&i.OrgID,
 			&i.Name,
+			&i.Slug,
+			&i.Enabled,
+			&i.DeletedAtM,
+			&i.Subscriptions,
 			&i.StripeCustomerID,
 			&i.Tier,
-			&i.Enabled,
 			&i.RequestsPerMonth,
+			&i.ApiRequestsCountMaxPerMinute,
+			&i.ApiSubscriptionID,
 		); err != nil {
 			return nil, err
 		}

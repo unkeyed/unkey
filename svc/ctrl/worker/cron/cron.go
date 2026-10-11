@@ -117,6 +117,10 @@ type Config struct {
 	// notifications. Empty disables Slack notifications.
 	SlackQuotaCheckWebhookURL string
 
+	// QuotaWarningEmailMode is off, dry_run, or live for the free API quota
+	// warning. Empty means off (Slack only).
+	QuotaWarningEmailMode string
+
 	// BillingUsageReader reads month-to-date Deploy usage for the billing
 	// push. Pass the concrete *clickhouse.Client (the meter query is not on
 	// the ClickHouse interface). Nil disables the push.
@@ -195,11 +199,43 @@ func New(cfg Config) (*Service, error) {
 	if err != nil {
 		return nil, err
 	}
+	// The alert email uses a real Resend sender only when a key is configured;
+	// otherwise it logs. Likewise WorkOS resolves recipients only with a key.
+	// Budget alerts and the free quota warning share this sender and resolver.
+	// Budget alerts use the published template's own sender and subject, so the
+	// send leaves From empty; no default From to pass.
+	var alertSender email.Sender = email.NewNoop()
+	resendConfigured := cfg.ResendAPIKey != ""
+	if resendConfigured {
+		alertSender = email.NewResend(cfg.ResendAPIKey, "")
+	} else {
+		// Deliberately loud: without a Resend key every budget alert and
+		// suspension notice is silently dropped, so customers hit their spend
+		// cap with no warning.
+		logger.Error("deploy spend-cap alert emails are DISABLED: no resend api key configured")
+	}
+	// Real-or-noop wiring matches the billing pusher and invoice closer:
+	// this is where the implementation is decided, not inside the package.
+	var admins workos.Resolver = workos.NewNoop()
+	if cfg.WorkOSAPIKey != "" {
+		admins = workos.New(cfg.WorkOSAPIKey)
+	} else {
+		logger.Error("deploy spend-cap alert recipients are DISABLED: no workos api key configured; alerts resolve no admins")
+	}
+	if cfg.QuotaWarningEmailMode == "live" && !resendConfigured {
+		logger.Error("free API quota warning emails are DISABLED: quota_warning_email_mode is live but no resend api key is configured; behaving as off")
+	}
+
 	quotaCheckH, err := quotacheck.New(quotacheck.Config{
-		DB:              cfg.DB,
-		Clickhouse:      cfg.Clickhouse,
-		Heartbeat:       cfg.Heartbeats.QuotaCheck,
-		SlackWebhookURL: cfg.SlackQuotaCheckWebhookURL,
+		DB:               cfg.DB,
+		Clickhouse:       cfg.Clickhouse,
+		Heartbeat:        cfg.Heartbeats.QuotaCheck,
+		SlackWebhookURL:  cfg.SlackQuotaCheckWebhookURL,
+		EmailMode:        cfg.QuotaWarningEmailMode,
+		ResendConfigured: resendConfigured,
+		Admins:           admins,
+		Email:            alertSender,
+		BillingBaseURL:   cfg.BillingBaseURL,
 	})
 	if err != nil {
 		return nil, err
@@ -296,27 +332,6 @@ func New(cfg Config) (*Service, error) {
 	})
 	if err != nil {
 		return nil, err
-	}
-	// The alert email uses a real Resend sender only when a key is configured;
-	// otherwise it logs. Likewise WorkOS resolves recipients only with a key.
-	// Budget alerts use the published template's own sender and subject, so the
-	// send leaves From empty; no default From to pass.
-	var alertSender email.Sender = email.NewNoop()
-	if cfg.ResendAPIKey != "" {
-		alertSender = email.NewResend(cfg.ResendAPIKey, "")
-	} else {
-		// Deliberately loud, same as the billing pusher above: without a
-		// Resend key every budget alert and suspension notice is silently
-		// dropped, so customers hit their spend cap with no warning.
-		logger.Error("deploy spend-cap alert emails are DISABLED: no resend api key configured")
-	}
-	// Same real-or-noop wiring as the pusher, closer, and email sender above:
-	// this is where the implementation is decided, not inside the package.
-	var admins workos.Resolver = workos.NewNoop()
-	if cfg.WorkOSAPIKey != "" {
-		admins = workos.New(cfg.WorkOSAPIKey)
-	} else {
-		logger.Error("deploy spend-cap alert recipients are DISABLED: no workos api key configured; alerts resolve no admins")
 	}
 	deploySpendCheckWorkH, err := deployspendcheck.NewCheckHandler(deployspendcheck.CheckConfig{
 		DB:             cfg.DB,

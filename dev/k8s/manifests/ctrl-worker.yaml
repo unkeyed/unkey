@@ -70,6 +70,10 @@ data:
     [email]
     resend_api_key = "${RESEND_API_KEY}"
 
+    # Free API quota warning on the daily quota check. off is Slack only.
+    # dry_run logs candidates and sends nothing. live sends. Leave this off.
+    quota_warning_email_mode = "off"
+
     # GitHub App credentials for authenticating with the GitHub API.
     # app_id is resolved at runtime via os.ExpandEnv from the github-credentials secret.
     # Without a valid app_id the generated JWT has issuer "0" and GitHub returns 401.
