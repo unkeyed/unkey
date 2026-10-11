@@ -1229,8 +1229,16 @@
       "source": "/api-reference/rpc"
     },
     {
+      "destination": "/api-management/api-reference/keys/verify-api-key",
+      "source": "/api-reference/v2/keys/verify-api-key"
+    },
+    {
       "destination": "/api-management/analytics/overview",
       "source": "/apis/features/analytics"
+    },
+    {
+      "destination": "/api-management/keys/credits-and-refill",
+      "source": "/apis/features/remaining"
     },
     {
       "destination": "/platform/workspace/audit-logs/overview",
