@@ -3,6 +3,11 @@ import type { Querier } from "./client/interface";
 
 const TABLE = "default.audit_logs_raw_v1";
 
+// Dashboard pages are 50 rows; audit/fetch.ts allows 200. ClickHouse's default
+// lazy-materialization cap is 10, so a page this size decodes JSON for the
+// whole scan.
+const LAZY_MATERIALIZATION_MAX_LIMIT = 200;
+
 export const auditLogsRequestSchema = z.object({
   workspaceId: z.string(),
   bucketId: z.string(),
@@ -58,6 +63,12 @@ export function getAuditLogs(ch: Querier) {
     // event_id in the table layout — so no GROUP BY / ARRAY JOIN
     // gymnastics needed. Map the four parallel arrays to row tuples
     // for the schema's [type, id, name, meta] shape.
+    //
+    // Lazy materialization decodes actor_meta, meta, and targets.meta only
+    // after ORDER BY + LIMIT. ClickHouse skips that for an in-order read with
+    // no residual filter, which is the unfiltered primary-key scan, so
+    // read-in-order stays off.
+    // https://clickhouse.com/docs/optimize/lazy-materialization
     const logsQuery = ch.query({
       query: `
         SELECT
@@ -80,7 +91,11 @@ export function getAuditLogs(ch: Querier) {
         FROM ${TABLE}
         WHERE ${filterConditions}
         ORDER BY time DESC, event_id DESC
-        LIMIT {limit: Int} OFFSET {offset: Int}`,
+        LIMIT {limit: Int} OFFSET {offset: Int}
+        SETTINGS
+          optimize_read_in_order = 0,
+          query_plan_optimize_lazy_materialization = 1,
+          query_plan_max_limit_for_lazy_materialization = ${LAZY_MATERIALIZATION_MAX_LIMIT}`,
       params: auditLogsRequestSchema,
       schema: auditLogRow,
     });
