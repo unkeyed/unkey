@@ -21,6 +21,7 @@ import {
   setRowActions,
   setRowsActions,
   toggleRowAction,
+  toggleRowsAction,
 } from "./policy";
 
 describe("newPolicy", () => {
@@ -81,6 +82,34 @@ describe("selection helpers", () => {
     const rows = catalogueRows(workspaceCatalogue);
     const selection = setRowsActions(setRowsActions({}, rows, ["read"]), rows, []);
     expect(selection).toEqual({});
+  });
+
+  it("toggles a group column without changing other grants or unsupported rows", () => {
+    const rows = catalogueRows(environmentsCatalogue).filter((row) =>
+      ["deployment", "deployment_log", "deployment_build_log"].includes(row.id),
+    );
+    const selection = {
+      deployment: ["read"],
+      deployment_log: ["read"],
+      identity: ["delete"],
+    } satisfies Parameters<typeof toggleRowsAction>[0];
+
+    const withWrite = toggleRowsAction(selection, rows, "write", true);
+    expect(withWrite).toEqual({
+      deployment: ["read", "write"],
+      deployment_log: ["read"],
+      identity: ["delete"],
+    });
+    expect(toggleRowsAction(withWrite, rows, "read", false)).toEqual({
+      deployment: ["write"],
+      identity: ["delete"],
+    });
+    expect(toggleRowsAction(withWrite, rows, "write", false)).toEqual(selection);
+    expect(selection).toEqual({
+      deployment: ["read"],
+      deployment_log: ["read"],
+      identity: ["delete"],
+    });
   });
 });
 

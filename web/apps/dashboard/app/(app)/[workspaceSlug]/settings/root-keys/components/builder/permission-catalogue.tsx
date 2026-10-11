@@ -2,20 +2,28 @@
 
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { IconChevronRightOutline18 } from "@unkey/icons";
-import { Input } from "@unkey/ui";
-import { useState } from "react";
+import { Checkbox, Input } from "@unkey/ui";
+import { useId, useState } from "react";
 import { catalogueRows } from "./lib/catalogue";
 import {
+  ACTIONS,
   type Action,
   type CatalogueGroup,
   type PermissionRow,
   type PermissionSelection,
   type ScopeCatalogue,
   offeredActions,
+  rowOffers,
 } from "./lib/catalogue.types";
-import { countSelectedActions, rowActions, setRowsActions, toggleRowAction } from "./lib/policy";
+import {
+  countSelectedActions,
+  rowActions,
+  setRowsActions,
+  toggleRowAction,
+  toggleRowsAction,
+} from "./lib/policy";
 import { PermissionCatalogueBulkMenu } from "./permission-catalogue-bulk-menu";
-import { PermissionCatalogueRow } from "./permission-catalogue-row";
+import { ACTION_LABELS, PermissionCatalogueRow } from "./permission-catalogue-row";
 
 type PermissionCatalogueProps = {
   catalogue: ScopeCatalogue;
@@ -75,6 +83,9 @@ export function PermissionCatalogue({ catalogue, value, onChange }: PermissionCa
           }
           const selected = countSelectedActions(value, group.rows);
           const total = group.rows.reduce((sum, row) => sum + offeredActions(row).length, 0);
+          const columns = ACTIONS.filter((action) =>
+            group.rows.some((row) => rowOffers(row, action)),
+          );
 
           return (
             <Collapsible
@@ -82,16 +93,24 @@ export function PermissionCatalogue({ catalogue, value, onChange }: PermissionCa
               open={query.length > 0 || !closedGroups.includes(group.id)}
               onOpenChange={(open) => toggleGroup(group.id, open)}
             >
-              <CollapsibleTrigger className="flex items-center gap-3 w-full py-2.5 [&[data-panel-open]>svg]:rotate-90">
-                <IconChevronRightOutline18
-                  className="size-3 transition-transform duration-200 text-gray-11"
-                  aria-hidden="true"
+              <div className="flex flex-wrap items-center justify-between gap-x-4">
+                <CollapsibleTrigger className="flex flex-1 min-w-40 items-center gap-3 py-2.5 [&[data-panel-open]>svg]:rotate-90">
+                  <IconChevronRightOutline18
+                    className="size-3 shrink-0 transition-transform duration-200 text-gray-11"
+                    aria-hidden="true"
+                  />
+                  <span className="text-sm text-gray-12">{group.label}</span>
+                  <span className="ml-auto text-xs text-gray-9 tabular-nums">
+                    {selected}/{total}
+                  </span>
+                </CollapsibleTrigger>
+                <PermissionGroupActions
+                  group={group}
+                  columns={columns}
+                  value={value}
+                  onChange={onChange}
                 />
-                <span className="text-sm text-gray-12">{group.label}</span>
-                <span className="ml-auto text-xs text-gray-9 tabular-nums">
-                  {selected}/{total}
-                </span>
-              </CollapsibleTrigger>
+              </div>
               <CollapsibleContent>
                 <div className="flex flex-col pl-6 pb-2">
                   {rows.map((row) => (
@@ -99,6 +118,7 @@ export function PermissionCatalogue({ catalogue, value, onChange }: PermissionCa
                       key={row.id}
                       row={row}
                       actions={rowActions(value, row.id)}
+                      columns={columns}
                       onToggle={(action, next) =>
                         onChange(toggleRowAction(value, row.id, action, next))
                       }
@@ -114,6 +134,51 @@ export function PermissionCatalogue({ catalogue, value, onChange }: PermissionCa
       {query.length > 0 && visible.size === 0 ? (
         <span className="text-xs text-gray-10">No permissions match “{search.trim()}”.</span>
       ) : null}
+    </div>
+  );
+}
+
+function PermissionGroupActions({
+  group,
+  columns,
+  value,
+  onChange,
+}: {
+  group: CatalogueGroup;
+  columns: readonly Action[];
+  value: PermissionSelection;
+  onChange: (selection: PermissionSelection) => void;
+}) {
+  const id = useId();
+  return (
+    <div className="flex items-center gap-4 shrink-0 ml-auto py-2.5">
+      {columns.map((action) => {
+        const eligible = group.rows.filter((row) => rowOffers(row, action));
+        const picked = eligible.filter((row) => rowActions(value, row.id).includes(action));
+        const checkboxId = `${id}-${action}`;
+        return (
+          <div key={action} className="flex items-center gap-2">
+            <Checkbox
+              id={checkboxId}
+              size="md"
+              aria-label={`${ACTION_LABELS[action]} all permissions in ${group.label}`}
+              checked={
+                picked.length === eligible.length
+                  ? true
+                  : picked.length > 0
+                    ? "indeterminate"
+                    : false
+              }
+              onCheckedChange={(next) =>
+                onChange(toggleRowsAction(value, group.rows, action, next === true))
+              }
+            />
+            <label htmlFor={checkboxId} className="cursor-pointer select-none text-xs text-gray-12">
+              {ACTION_LABELS[action]}
+            </label>
+          </div>
+        );
+      })}
     </div>
   );
 }
