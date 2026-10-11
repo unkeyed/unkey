@@ -294,6 +294,7 @@ export default async function StripeRedirect(props: {
       billing_address_collection: "auto",
       mode: "setup",
       payment_method_types: ["card"],
+      allow_promotion_codes: true,
       success_url: successUrl,
       currency: "USD",
       setup_intent_data: { metadata: { workos_user_id: signupWorkosUserId(userId) ?? userId } },
