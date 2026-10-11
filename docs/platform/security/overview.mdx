@@ -4,6 +4,10 @@ sidebarTitle: "Overview"
 description: "See how Unkey protects your keys and workspace and what you can turn on."
 sources:
   - pkg/hash/sha256.go
+  - pkg/encryption/aes.go
+  - svc/api/routes/v2_keys_create_key/handler.go
+  - svc/vault/internal/vault/rpc_encrypt.go
+  - internal/services/keys/create_v1.go
   - web/apps/dashboard/lib/auth/roles.ts
   - web/apps/dashboard/lib/trpc/trpc.ts
   - web/apps/dashboard/lib/trpc/routers/workspace/changeName.ts
@@ -12,11 +16,25 @@ sources:
   - SECURITY.md
 ---
 
-You hand Unkey keys that open your production systems. Here's how we protect them, and what you can turn on.
+Unkey stores every API key and root key as a SHA-256 hash, so you can issue and verify keys without keeping a homegrown key table. A copy of the database is not a list of working keys. This page covers that storage, and what you can turn on around it.
 
-## How we protect you
+## How Unkey stores API keys
 
-**Keys are never stored in plaintext.** We keep only a SHA-256 hash of every API key and root key. A copy of our database doesn't yield working keys, and we can't show you a key again after you create it. If you need to read a key back later, you opt in per keyspace. See [Key storage](/platform/security/key-storage).
+Unkey does not store the API key. On create, it hashes the full key string with SHA-256 and stores the hash as standard base64, not hex. Verification hashes the key your user sent and compares the two strings. There is no salt. The plaintext is returned once, in the create response, and is not kept.
+
+See the <a href="https://cheatsheetseries.owasp.org/cheatsheets/Secrets_Management_Cheat_Sheet.html" target="_blank">OWASP Secrets Management Cheat Sheet</a> and the <a href="https://cheatsheetseries.owasp.org/cheatsheets/REST_Security_Cheat_Sheet.html" target="_blank">OWASP REST Security Cheat Sheet</a>, which cover hashing and storing secrets you only need to verify. SHA-256 here is a fast hash of a random key, not a password hash such as bcrypt or Argon2.
+
+If a keyspace must show a key again, you opt in to an encrypted copy beside the hash. That copy is AES-256-GCM. The keyring is the workspace, and only a root key with decrypt permission can read the key back. Verification still uses the hash. See [Key storage](/platform/security/key-storage) and [Recovering keys](/api-management/security/recovering-keys).
+
+## Should you build your own API key system?
+
+You can. What moves to Unkey is generating the random key, storing only the hash, and checking it on each request. `keys.createKey` issues the key. `keys.verifyKey` checks enabled, expiry, credits, rate limits, permissions, and the IP allow list. [Migrating keys](/api-management/keys/migrating-keys) imports hashes you already have, when the format matches.
+
+You still run your API, unless you deploy it on Compute. You still decide the HTTP status you return to your users. You stop maintaining the keys table, the hash comparison, and, if you use Unkey for them, the rate-limit counters and the monthly credit balance.
+
+## How Unkey protects the workspace
+
+Two controls apply to the workspace itself, separate from how keys are stored.
 
 **Access is scoped.** A root key only works in the workspace that issued it, and every endpoint needs a specific permission. Dashboard users are either an admin or a developer. A developer who tries an admin-only action gets `This action requires admin privileges.` See [Team](/platform/workspace/team).
 

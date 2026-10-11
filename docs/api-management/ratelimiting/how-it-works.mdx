@@ -9,9 +9,41 @@ sources:
   - internal/services/keys/validation.go
   - svc/api/routes/v2_ratelimit_limit/handler.go
   - svc/api/openapi/spec/paths/v2/ratelimit/limit/V2RatelimitLimitResponseData.yaml
+  - svc/api/openapi/spec/paths/v2/keys/verifyKey/V2KeysVerifyKeyResponseData.yaml
+  - web/internal/api/src/sdk/ratelimit.ts
 ---
 
-Every Unkey rate limit works the same way, whether you call `ratelimit.limit` or attach it to a key. Here's how requests are counted, what the response means, and how exact the counts are.
+Unkey counts requests for you, per identifier, so you can rate limit a public API without running Redis. Call `ratelimit.limit` with a user id or customer id, or put the limit on an API key and read it from `keys.verifyKey`. Both use the same sliding window.
+
+When the identifier is over the limit, Unkey still returns HTTP 200. `ratelimit.limit` sets `data.success` to `false`. `keys.verifyKey` sets `data.code` to `RATE_LIMITED`. Your server returns `429 Too Many Requests` to the caller, with `Retry-After` in seconds. <a href="https://www.rfc-editor.org/rfc/rfc6585#section-4" target="_blank">RFC 6585</a> defines that status. `reset` in the body is Unix milliseconds. Header names Unkey itself sends are on [Rate limiting](/api-management/ratelimiting/overview#what-a-limited-request-looks-like).
+
+```typescript
+import { Unkey } from "@unkey/api";
+
+const unkey = new Unkey({ rootKey: process.env.UNKEY_ROOT_KEY });
+
+export async function handler(request: Request) {
+  const userId = request.headers.get("x-user-id") ?? "anonymous";
+  const result = await unkey.ratelimit.limit({
+    namespace: "api.requests",
+    identifier: userId,
+    limit: 100,
+    duration: 60_000,
+  });
+
+  if (!result.data.success) {
+    const retryAfter = Math.max(1, Math.ceil((result.data.reset - Date.now()) / 1000));
+    return new Response("Too many requests", {
+      status: 429,
+      headers: { "Retry-After": String(retryAfter) },
+    });
+  }
+
+  return new Response("ok");
+}
+```
+
+A monthly total tied to an API key is credits, not this window. See [Credits and refill](/api-management/keys/credits-and-refill). The rest of this page is how the count is computed.
 
 ## How requests are counted
 

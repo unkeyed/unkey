@@ -27,7 +27,7 @@ A <Tooltip tip="One built and running version of an app in one environment.">dep
 
 ## Create a deployment
 
-A push to a connected GitHub repository creates one for you. See [GitHub integration](/compute/build/github).
+A push to a connected GitHub repository creates one for you. With auto deploy on and no watch paths, Unkey deploys from GitHub on every push: the default branch becomes a production deployment, and any other branch becomes a preview deployment. Watch it on the deployment page. The status moves through `pending`, `building`, and `deploying` to `ready`, and the page lists the domains. See [Deploy from GitHub](/compute/get-started/deploy-from-github) and [GitHub integration](/compute/build/github).
 
 To deploy by hand, open the app and click **Create Deployment**, or click **Redeploy** on an existing deployment. From the CLI or API, use [`unkey api deployments create-deployment`](/compute/cli/deployments/create-deployment) or `deployments.createDeployment` with the project, app, and environment. With no source, a git app builds its default branch and an image app deploys its default image. To deploy something else, pass one source:
 

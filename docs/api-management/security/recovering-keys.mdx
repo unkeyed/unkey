@@ -8,13 +8,17 @@ sources:
   - svc/api/routes/v2_apis_list_keys/handler.go
   - pkg/rbac/permissions.go
   - pkg/hash/sha256.go
+  - pkg/encryption/aes.go
+  - svc/vault/internal/vault/rpc_encrypt.go
 ---
+
+Every API key is stored as a SHA-256 hash of the full key string, standard base64, with no salt. Verification hashes the presented key and compares the hashes. Unkey does not keep the plaintext unless you turn on recovery for that key. See the <a href="https://cheatsheetseries.owasp.org/cheatsheets/Secrets_Management_Cheat_Sheet.html" target="_blank">OWASP Secrets Management Cheat Sheet</a> and the <a href="https://cheatsheetseries.owasp.org/cheatsheets/REST_Security_Cheat_Sheet.html" target="_blank">OWASP REST Security Cheat Sheet</a>, which cover hashing and storing secrets you only need to verify. SHA-256 here is not a password hash.
 
 Recoverable keys let you show a key again after it's created. That comes with extra risk, so turn recovery on only when you need it: a dashboard that must show a key again, a migration that moves keys, or a support flow that reads a key back for a customer. By default you see a key only once, when it's created, and that's the right setup for most products. For the steps, see [Recoverable keys](/api-management/keys/recoverable-keys).
 
-## What changes
+## How the encrypted copy is stored
 
-A recoverable key is still verified by its hash. We also store an encrypted copy, using encryption keys unique to your workspace, and `keys.getKey` and `apis.listKeys` decrypt it when you pass `decrypt: true`.
+A recoverable key is still verified by its hash. Beside the hash, Unkey stores an AES-256-GCM ciphertext of the key. The data key is 32 bytes, the nonce is 12 bytes, and the keyring is the workspace, so another workspace cannot decrypt it. `keys.getKey` and `apis.listKeys` decrypt it only when you pass `decrypt: true`, and only with a root key that has `decrypt_key`.
 
 A key is only recoverable if its keyspace has **Store encrypted keys** turned on (ask [support@unkey.com](mailto:support@unkey.com)) and the key was created with `recoverable: true` after that. Older keys can't be recovered.
 

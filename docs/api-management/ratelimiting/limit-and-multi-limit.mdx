@@ -14,11 +14,42 @@ sources:
   - internal/services/ratelimit/doc.go
   - pkg/zen/middleware_metrics.go
   - web/internal/db/src/schema/ratelimit.ts
+  - web/internal/api/src/sdk/ratelimit.ts
 ---
 
 import RootKeyPrereq from "/snippets/root-key-prereq.mdx";
 
-Use `ratelimit.limit` to check one identifier against one limit. Use `ratelimit.multiLimit` to run up to 100 checks in one call, counted only if they all pass. You send the limit and duration with each call, so the rules live in your code. To change the rule for particular identifiers without a deploy, use [overrides](/api-management/ratelimiting/overrides).
+Call `ratelimit.limit` to rate limit a public API by user id, customer id, or IP address, without running Redis. Unkey keeps the counters. You send the limit and the window on each call, and you return HTTP 429 when `data.success` is `false`.
+
+`ratelimit.multiLimit` runs up to 100 checks in one call, and counts them only if they all pass. The rules live in your code. To change the rule for particular identifiers without a deploy, use [overrides](/api-management/ratelimiting/overrides). A monthly total tied to an API key is credits, not this window. See [Key and identity rate limits](/api-management/ratelimiting/key-and-identity-limits).
+
+```typescript
+import { Unkey } from "@unkey/api";
+
+const unkey = new Unkey({ rootKey: process.env.UNKEY_ROOT_KEY });
+
+export async function handler(request: Request) {
+  const userId = request.headers.get("x-user-id") ?? "anonymous";
+  const { data } = await unkey.ratelimit.limit({
+    namespace: "api.requests",
+    identifier: userId,
+    limit: 100,
+    duration: 60_000,
+  });
+
+  if (!data.success) {
+    const retryAfter = Math.max(1, Math.ceil((data.reset - Date.now()) / 1000));
+    return new Response("Too many requests", {
+      status: 429,
+      headers: { "Retry-After": String(retryAfter) },
+    });
+  }
+
+  return new Response("ok");
+}
+```
+
+The endpoint returns HTTP 200 either way. `data.reset` is Unix milliseconds. `Retry-After` is seconds, which is what <a href="https://www.rfc-editor.org/rfc/rfc6585#section-4" target="_blank">RFC 6585</a> allows on a 429. Unkey does not set `Retry-After` or `X-RateLimit-*` on this endpoint. The full header list, including what the Compute gateway sends, is on [Rate limiting](/api-management/ratelimiting/overview#what-a-limited-request-looks-like).
 
 <RootKeyPrereq />
 
