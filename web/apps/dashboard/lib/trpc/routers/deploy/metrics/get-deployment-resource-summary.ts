@@ -1,8 +1,8 @@
 import { clickhouse } from "@/lib/clickhouse";
-import { db } from "@/lib/db";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
+import { requireOwnedDeployment } from "./require-owned-deployment";
 
 export const getDeploymentResourceSummary = workspaceProcedure
   .use(withRatelimit(ratelimit.read))
@@ -13,15 +13,12 @@ export const getDeploymentResourceSummary = workspaceProcedure
     }),
   )
   .query(async ({ ctx, input }) => {
-    const resource = await db.query.deployments.findFirst({
-      where: (table, { eq, and }) =>
-        and(eq(table.id, input.resourceId), eq(table.workspaceId, ctx.workspace.id)),
-      columns: { id: true },
-    });
-
-    if (!resource) {
-      throw new TRPCError({ code: "NOT_FOUND", message: "Resource not found" });
-    }
+    await requireOwnedDeployment(
+      ctx.deploymentOwnership,
+      ctx.workspace.id,
+      input.resourceId,
+      "Resource not found",
+    );
 
     const result = await clickhouse.resources.summary({
       workspaceId: ctx.workspace.id,

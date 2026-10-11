@@ -1,8 +1,8 @@
 import { clickhouse } from "@/lib/clickhouse";
-import { db } from "@/lib/db";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
+import { requireOwnedDeployment } from "./require-owned-deployment";
 
 export const getDeploymentRpsMetrics = workspaceProcedure
   .use(withRatelimit(ratelimit.read))
@@ -13,21 +13,12 @@ export const getDeploymentRpsMetrics = workspaceProcedure
   )
   .query(async ({ ctx, input }) => {
     try {
-      const deployment = await db.query.deployments.findFirst({
-        where: (table, { eq, and }) =>
-          and(eq(table.id, input.deploymentId), eq(table.workspaceId, ctx.workspace.id)),
-        columns: {
-          projectId: true,
-          environmentId: true,
-        },
-      });
-
-      if (!deployment) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Deployment not found",
-        });
-      }
+      const deployment = await requireOwnedDeployment(
+        ctx.deploymentOwnership,
+        ctx.workspace.id,
+        input.deploymentId,
+        "Deployment not found",
+      );
 
       const result = await clickhouse.frontline.rps.timeseries({
         workspaceId: ctx.workspace.id,
