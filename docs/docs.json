@@ -2873,6 +2873,118 @@
       "source": "/security/root-keys"
     },
     {
+      "destination": "/platform/api/errors",
+      "source": "/api-reference/errors/code/BAD_REQUEST"
+    },
+    {
+      "destination": "/platform/api/errors",
+      "source": "/api-reference/errors/code/CONFLICT"
+    },
+    {
+      "destination": "/platform/api/errors",
+      "source": "/api-reference/errors/code/DELETE_PROTECTED"
+    },
+    {
+      "destination": "/platform/api/errors",
+      "source": "/api-reference/errors/code/DISABLED"
+    },
+    {
+      "destination": "/platform/api/errors",
+      "source": "/api-reference/errors/code/EXPIRED"
+    },
+    {
+      "destination": "/platform/api/errors",
+      "source": "/api-reference/errors/code/FORBIDDEN"
+    },
+    {
+      "destination": "/platform/api/errors",
+      "source": "/api-reference/errors/code/INSUFFICIENT_PERMISSIONS"
+    },
+    {
+      "destination": "/platform/api/errors",
+      "source": "/api-reference/errors/code/INTERNAL_SERVER_ERROR"
+    },
+    {
+      "destination": "/platform/api/errors",
+      "source": "/api-reference/errors/code/INVALID_KEY_TYPE"
+    },
+    {
+      "destination": "/platform/api/errors",
+      "source": "/api-reference/errors/code/KEY_USAGE_EXCEEDED"
+    },
+    {
+      "destination": "/platform/api/errors",
+      "source": "/api-reference/errors/code/NOT_FOUND"
+    },
+    {
+      "destination": "/platform/api/errors",
+      "source": "/api-reference/errors/code/NOT_UNIQUE"
+    },
+    {
+      "destination": "/platform/api/errors",
+      "source": "/api-reference/errors/code/PRECONDITION_FAILED"
+    },
+    {
+      "destination": "/platform/api/errors",
+      "source": "/api-reference/errors/code/RATELIMITED"
+    },
+    {
+      "destination": "/platform/api/errors",
+      "source": "/api-reference/errors/code/TOO_MANY_REQUESTS"
+    },
+    {
+      "destination": "/platform/api/errors",
+      "source": "/api-reference/errors/code/UNAUTHORIZED"
+    },
+    {
+      "destination": "/api-management/cookbook/fastapi-auth",
+      "source": "/cookbook/python-fastapi-ratelimit"
+    },
+    {
+      "destination": "/api-management/guides/python",
+      "source": "/cookbook/python-flask-auth"
+    },
+    {
+      "destination": "/api-management/sdks/typescript/api",
+      "source": "/libraries/js/apis/get"
+    },
+    {
+      "destination": "/api-management/sdks/typescript/api",
+      "source": "/libraries/js/apis/list-keys"
+    },
+    {
+      "destination": "/api-management/sdks/typescript/api",
+      "source": "/libraries/js/keys/create"
+    },
+    {
+      "destination": "/api-management/sdks/typescript/api",
+      "source": "/libraries/js/keys/revoke"
+    },
+    {
+      "destination": "/api-management/sdks/typescript/api",
+      "source": "/libraries/js/keys/update"
+    },
+    {
+      "destination": "/api-management/sdks/typescript/api",
+      "source": "/libraries/js/keys/verify"
+    },
+    {
+      "destination": "/api-management/sdks/typescript/api",
+      "source": "/libraries/js/overview"
+    },
+    {
+      "destination": "/compute/gateway/policies",
+      "source": "/platform/sentinel/policies/ip-rules"
+    },
+    {
+      "destination": "/compute/gateway/policies",
+      "source": "/platform/sentinel/policies/jwt"
+    },
+    {
+      "destination": "/compute/gateway/principal",
+      "source": "/platform/sentinel/principal/sources/jwt"
+    },
+    {
       "destination": "/api-management/api-reference/apis/:slug*",
       "source": "/api-reference/v2/apis/:slug*"
     },
