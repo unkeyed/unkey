@@ -79,6 +79,7 @@ describe("createSubscriptionCheckout", () => {
           billing_mode: { type: "classic" },
           proration_behavior: "create_prorations",
         },
+        allow_promotion_codes: true,
         success_url: baseInput.successUrl,
       });
     },
