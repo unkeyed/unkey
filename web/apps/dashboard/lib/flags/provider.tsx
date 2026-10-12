@@ -1,26 +1,10 @@
 "use client";
 
-import { type ReactNode, createContext, useContext } from "react";
-import type { Flags } from "./resolve";
+import { useWorkspace } from "@/providers/workspace-provider";
+import * as flags from ".";
+import { useFlag as resolveFlag } from "../workspace-flags";
 
-const FlagsContext = createContext<Flags | null>(null);
-
-export function FlagsProvider({ value, children }: { value: Flags; children: ReactNode }) {
-  return <FlagsContext.Provider value={value}>{children}</FlagsContext.Provider>;
-}
-
-export function useFlag<K extends keyof Flags>(key: K): Flags[K] {
-  const ctx = useContext(FlagsContext);
-  if (!ctx) {
-    throw new Error("useFlag must be used inside FlagsProvider");
-  }
-  return ctx[key];
-}
-
-export function useFlags(): Flags {
-  const ctx = useContext(FlagsContext);
-  if (!ctx) {
-    throw new Error("useFlags must be used inside FlagsProvider");
-  }
-  return ctx;
+export function useFlag(key: keyof typeof flags): boolean {
+  const { workspace } = useWorkspace();
+  return resolveFlag({ workspace, flag: flags[key] });
 }

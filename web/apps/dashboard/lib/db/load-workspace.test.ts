@@ -1,31 +1,33 @@
-import type { FieldPacket, QueryOptions, QueryResult } from "mysql2";
-import { expect, it, vi } from "vitest";
+import { beforeEach, expect, it, vi } from "vitest";
 import { loadWorkspace } from "./load-workspace";
 
-const mocks = vi.hoisted(() => ({
-  query:
-    vi.fn<(options: QueryOptions, values: unknown[]) => Promise<[QueryResult, FieldPacket[]]>>(),
+const mocks = vi.hoisted(() => ({ findFirst: vi.fn() }));
+
+vi.mock("@/lib/db", () => ({
+  db: { query: { workspaces: { findFirst: mocks.findFirst } } },
 }));
 
-vi.mock("@/lib/db", async () => {
-  const { drizzle, schema } = await import("@unkey/db");
-  const { createPool } = await import("mysql2");
-  const pool = createPool({}).promise();
-  vi.spyOn(pool, "query").mockImplementation(mocks.query);
-  return { db: drizzle(pool, { schema, mode: "default" }) };
-});
+beforeEach(() => vi.resetAllMocks());
 
-it("loads the session workspace and scoped flags with one regular joined query", async () => {
-  mocks.query.mockResolvedValue([[], []]);
-  expect(await loadWorkspace("org_owned")).toBeUndefined();
-  expect(mocks.query).toHaveBeenCalledTimes(1);
-  const call = mocks.query.mock.calls[0];
-  expect(call?.[1]).toEqual(["org_owned"]);
-  const sql = call?.[0].sql;
-  expect(sql).toContain("left join `flags` on true");
-  expect(sql).toContain("`flag_overrides`.`workspace_id` = `workspaces`.`id`");
-  expect(sql).toContain("`flag_overrides`.`flag_slug` = `flags`.`slug`");
-  expect(sql).toContain("`workspaces`.`org_id` = ?");
-  expect(sql).toContain("`workspaces`.`deleted_at_m` is null");
-  expect(sql).not.toContain("JSON_OBJECTAGG");
+it("uses database values before code fallbacks and returns only requested flags", async () => {
+  mocks.findFirst.mockResolvedValue({
+    id: "ws_owned",
+    billing: null,
+    billingSubscriptions: [],
+    flags: { disabled: 0, enabled: 1, unrequested: 1 },
+  });
+
+  const workspace = await loadWorkspace("org_owned", [
+    { slug: "disabled", defaultValue: true },
+    { slug: "enabled", defaultValue: false },
+    { slug: "missing", defaultValue: true },
+    { slug: "constructor", defaultValue: false },
+  ]);
+
+  expect(workspace?.flags).toEqual({
+    disabled: false,
+    enabled: true,
+    missing: true,
+    constructor: false,
+  });
 });

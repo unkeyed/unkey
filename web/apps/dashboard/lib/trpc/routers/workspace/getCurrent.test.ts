@@ -2,15 +2,19 @@ import { initTRPC } from "@trpc/server";
 import { beforeEach, expect, it, vi } from "vitest";
 import { getCurrentWorkspace } from "./getCurrent";
 
-const mocks = vi.hoisted(() => ({ where: vi.fn() }));
+const mocks = vi.hoisted(() => ({ findFirst: vi.fn() }));
+
+const defaults = {
+  "hello-world": false,
+  "deploy-billing": false,
+  "billing-ui-upgrades": false,
+  "show-darksouls-success-banner": false,
+  "projects-nav": false,
+  "portal-management": false,
+};
 
 vi.mock("@/lib/db", () => ({
-  db: {
-    select: () => {
-      const query = { from: () => query, leftJoin: () => query, where: mocks.where };
-      return query;
-    },
-  },
+  db: { query: { workspaces: { findFirst: mocks.findFirst } } },
 }));
 
 vi.mock("../../trpc", async () => {
@@ -38,22 +42,19 @@ it("returns flags already loaded with the workspace", async () => {
   expect(result).toEqual(workspace);
 });
 
-it("returns flags from the fallback workspace query", async () => {
-  mocks.where.mockResolvedValue([
-    {
-      workspace: { id: "ws_fallback" },
-      limits: null,
-      billing: null,
-      subscription: null,
-      flag: { slug: "preview", defaultValue: false },
-      override: { value: true },
-    },
-  ]);
+it("returns the fallback workspace without unregistered flags", async () => {
+  mocks.findFirst.mockResolvedValue({
+    id: "ws_fallback",
+    limits: null,
+    billing: null,
+    billingSubscriptions: [],
+    flags: { "projects-nav": 1, preview: 1 },
+  });
   const result = await router.createCaller({ tenant: { id: "org_session" } }).getCurrent();
-  expect(result).toMatchObject({ id: "ws_fallback", flags: { preview: true } });
+  expect(result).toMatchObject({ id: "ws_fallback", flags: { ...defaults, "projects-nav": true } });
 });
 
-it("preserves billing and flag values without duplicating subscriptions across joined rows", async () => {
+it("preserves billing values from the workspace query", async () => {
   const billing = {
     tier: "Pro",
     stripeCustomerId: "cus_owned",
@@ -67,29 +68,20 @@ it("preserves billing and flag values without duplicating subscriptions across j
     { product: "api", stripeSubscriptionId: "sub_api" },
     { product: "compute", stripeSubscriptionId: "sub_compute" },
   ];
-  mocks.where.mockResolvedValue(
-    subscriptions.flatMap((subscription) =>
-      [
-        { flag: { slug: "disabled", defaultValue: true }, override: { value: false } },
-        { flag: { slug: "enabled", defaultValue: false }, override: { value: true } },
-        { flag: { slug: "inherited", defaultValue: true }, override: null },
-        { flag: { slug: "private", defaultValue: false }, override: null },
-      ].map((flag) => ({
-        workspace: { id: "ws_owned" },
-        limits: { teamEnabled: true },
-        billing,
-        subscription,
-        ...flag,
-      })),
-    ),
-  );
+  mocks.findFirst.mockResolvedValue({
+    id: "ws_owned",
+    limits: { teamEnabled: true },
+    billing,
+    billingSubscriptions: subscriptions,
+    flags: {},
+  });
   const result = await router.createCaller({ tenant: { id: "org_session" } }).getCurrent();
   expect(result).toEqual({
     id: "ws_owned",
     limits: { teamEnabled: true },
     billing,
     billingSubscriptions: subscriptions,
-    flags: { disabled: false, enabled: true, inherited: true, private: false },
+    flags: defaults,
     tier: "Pro",
     stripeCustomerId: "cus_owned",
     stripeSubscriptionId: "sub_api",
@@ -103,23 +95,20 @@ it("preserves billing and flag values without duplicating subscriptions across j
 });
 
 it("keeps a workspace with no flags, billing, subscriptions, or limits", async () => {
-  mocks.where.mockResolvedValue([
-    {
-      workspace: { id: "ws_empty" },
-      limits: null,
-      billing: null,
-      subscription: null,
-      flag: null,
-      override: null,
-    },
-  ]);
+  mocks.findFirst.mockResolvedValue({
+    id: "ws_empty",
+    limits: null,
+    billing: null,
+    billingSubscriptions: [],
+    flags: {},
+  });
   const result = await router.createCaller({ tenant: { id: "org_session" } }).getCurrent();
   expect(result).toEqual({
     id: "ws_empty",
     limits: null,
     billing: null,
     billingSubscriptions: [],
-    flags: {},
+    flags: defaults,
     tier: "Free",
     stripeCustomerId: null,
     stripeSubscriptionId: null,

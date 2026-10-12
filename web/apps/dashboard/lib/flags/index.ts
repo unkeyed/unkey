@@ -1,84 +1,31 @@
-import { flag } from "flags/next";
-import { type Entities, adapter, identify } from "./plumbing";
+import type { WorkspaceFlag } from "../workspace-flags";
 
-// Feature flag registry. To add a flag: declare it here with `flag<T, Entities>({...})`,
-// then register it in ./resolve.ts so the FlagsProvider exposes it to client components.
-
-export const helloWorld = flag<boolean, Entities>({
-  key: "hello-world",
-  description: "Smoke test for the flags pipeline",
+export const helloWorld = {
+  slug: "hello-world",
   defaultValue: false,
-  options: [
-    { value: false, label: "Off" },
-    { value: true, label: "On" },
-  ],
-  identify,
-  adapter: adapter(),
-});
+} as const satisfies WorkspaceFlag;
 
-// deployBilling gates the entire Unkey Deploy billing UI (subscribe / change /
-// cancel, usage, credits). Defaults off so prod shows nothing until we flip
-// workspaces in for the GA rollout.
-export const deployBilling = flag<boolean, Entities>({
-  key: "deploy-billing",
-  description: "Show the Unkey Deploy billing UI. Off until GA rollout.",
+export const deployBilling = {
+  slug: "deploy-billing",
   defaultValue: false,
-  options: [
-    { value: false, label: "Off" },
-    { value: true, label: "On" },
-  ],
-  identify,
-  adapter: adapter(),
-});
+} as const satisfies WorkspaceFlag;
 
-export const billingUIUpgrades = flag<boolean, Entities>({
-  key: "billing-ui-upgrades",
-  description: "Show the split Billing / Usage / Limits settings pages. Requires deploy-billing.",
+export const billingUIUpgrades = {
+  slug: "billing-ui-upgrades",
   defaultValue: false,
-  options: [
-    { value: false, label: "Off" },
-    { value: true, label: "On" },
-  ],
-  identify,
-  adapter: adapter(),
-});
+} as const satisfies WorkspaceFlag;
 
-export const showDarksoulsSuccessBanner = flag<boolean, Entities>({
-  key: "show-darksouls-success-banner",
-  description: "Show the animated deployment success easter egg.",
+export const showDarksoulsSuccessBanner = {
+  slug: "show-darksouls-success-banner",
   defaultValue: false,
-  options: [
-    { value: false, label: "Off" },
-    { value: true, label: "On" },
-  ],
-  identify,
-  adapter: adapter(),
-});
+} as const satisfies WorkspaceFlag;
 
-export const projectsNav = flag<boolean, Entities>({
-  key: "projects-nav",
-  description:
-    "Use the projects-first navigation (sidebar, breadcrumbs, landing redirect). Off until rollout.",
+export const projectsNav = {
+  slug: "projects-nav",
   defaultValue: false,
-  options: [
-    { value: false, label: "Off" },
-    { value: true, label: "On" },
-  ],
-  identify,
-  adapter: adapter(),
-});
+} as const satisfies WorkspaceFlag;
 
-// portalManagement gates the portal configuration page and its sidebar nav
-// item. Off until portal GA so it can be developed and merged without being
-// visible. Enable per-workspace to roll out to internal workspaces first.
-export const portalManagement = flag<boolean, Entities>({
-  key: "portal-management",
-  description: "Show the portal configuration page in the dashboard sidebar. Off until portal GA.",
+export const portalManagement = {
+  slug: "portal-management",
   defaultValue: false,
-  options: [
-    { value: false, label: "Off" },
-    { value: true, label: "On" },
-  ],
-  identify,
-  adapter: adapter(),
-});
+} as const satisfies WorkspaceFlag;

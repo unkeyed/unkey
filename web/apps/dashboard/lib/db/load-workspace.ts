@@ -1,60 +1,55 @@
-import { and, eq, isNull, schema, sql } from "@unkey/db";
+import { sql } from "@unkey/db";
+import { z } from "zod";
 import { db } from "../db";
+import * as workspaceFlags from "../flags";
 import { subscriptionIdsByProduct } from "../stripe/billingSubscriptions";
+import { type WorkspaceFlag, useFlag } from "../workspace-flags";
 
-export async function loadWorkspace(orgId: string) {
-  const rows = await db
-    .select({
-      workspace: schema.workspaces,
-      limits: schema.limits,
-      billing: schema.workspaceBilling,
-      subscription: schema.billingSubscriptions,
-      flag: { slug: schema.flags.slug, defaultValue: schema.flags.defaultValue },
-      override: { value: schema.flagOverrides.value },
-    })
-    .from(schema.workspaces)
-    .leftJoin(schema.limits, eq(schema.limits.workspaceId, schema.workspaces.id))
-    .leftJoin(
-      schema.workspaceBilling,
-      eq(schema.workspaceBilling.workspaceId, schema.workspaces.id),
-    )
-    .leftJoin(
-      schema.billingSubscriptions,
-      eq(schema.billingSubscriptions.workspaceId, schema.workspaces.id),
-    )
-    .leftJoin(schema.flags, sql`true`)
-    .leftJoin(
-      schema.flagOverrides,
-      and(
-        eq(schema.flagOverrides.workspaceId, schema.workspaces.id),
-        eq(schema.flagOverrides.flagSlug, schema.flags.slug),
-      ),
-    )
-    .where(and(eq(schema.workspaces.orgId, orgId), isNull(schema.workspaces.deletedAtM)));
+const flagValues = z.record(
+  z.string(),
+  z.union([z.literal(0), z.literal(1)]).transform((value) => value === 1),
+);
 
-  const first = rows[0];
-  if (!first) {
+export async function loadWorkspace(
+  orgId: string,
+  requestedFlags: readonly WorkspaceFlag[] = Object.values(workspaceFlags),
+) {
+  const workspace = await db.query.workspaces.findFirst({
+    where: (workspace, { and, eq, isNull }) =>
+      and(eq(workspace.orgId, orgId), isNull(workspace.deletedAtM)),
+    with: { limits: true, billing: true, billingSubscriptions: true },
+    extras: {
+      // Explicit identifiers keep Drizzle from dropping the outer table qualifier.
+      flags: sql<unknown>`(
+        SELECT COALESCE(JSON_OBJECTAGG(f.slug, COALESCE(o.value, f.default_value)), JSON_OBJECT())
+        FROM flags AS f
+        LEFT JOIN flag_overrides AS o
+          ON o.flag_slug = f.slug
+          AND o.workspace_id = ${sql.identifier("workspaces")}.${sql.identifier("id")}
+        WHERE ${
+          requestedFlags.length > 0
+            ? sql`f.slug IN (${sql.join(
+                requestedFlags.map((flag) => sql`${flag.slug}`),
+                sql`, `,
+              )})`
+            : sql`FALSE`
+        }
+      )`.as("flags"),
+    },
+  });
+  if (!workspace) {
     return undefined;
   }
 
-  const flags = new Map<string, boolean>();
-  const subscriptions = new Map<string, typeof schema.billingSubscriptions.$inferSelect>();
-  for (const row of rows) {
-    if (row.flag) {
-      flags.set(row.flag.slug, row.override?.value ?? row.flag.defaultValue);
-    }
-    if (row.subscription) {
-      subscriptions.set(row.subscription.product, row.subscription);
-    }
-  }
-  const billingSubscriptions = [...subscriptions.values()];
-  const { workspace, limits, billing } = first;
+  const { billing, billingSubscriptions } = workspace;
+  const flags = flagValues.parse(
+    typeof workspace.flags === "string" ? JSON.parse(workspace.flags) : workspace.flags,
+  );
   return {
     ...workspace,
-    limits,
-    billing,
-    billingSubscriptions,
-    flags: Object.fromEntries(flags),
+    flags: Object.fromEntries(
+      requestedFlags.map((flag) => [flag.slug, useFlag({ workspace: { flags }, flag })]),
+    ),
     tier: billing?.tier ?? "Free",
     stripeCustomerId: billing?.stripeCustomerId ?? null,
     ...subscriptionIdsByProduct(billingSubscriptions),
