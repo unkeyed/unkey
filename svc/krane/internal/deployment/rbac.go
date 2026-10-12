@@ -21,12 +21,10 @@ func (c *Controller) ensureDeploymentServiceAccount(ctx context.Context, namespa
 	commonLabels := labels.New().DeploymentID(deploymentID).ManagedByKrane()
 
 	sa := &corev1.ServiceAccount{
-		TypeMeta: metav1.TypeMeta{APIVersion: "v1", Kind: "ServiceAccount"},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      saName,
-			Namespace: namespace,
-			Labels:    commonLabels,
-		},
+		APIVersion: "v1", Kind: "ServiceAccount",
+		Name:                         saName,
+		Namespace:                    namespace,
+		Labels:                       commonLabels,
 		AutomountServiceAccountToken: new(false),
 	}
 	if err := serverSideApplyResource(ctx, c.clientSet.CoreV1().RESTClient(), "serviceaccounts", namespace, saName, sa); err != nil {

@@ -43,16 +43,12 @@ func (c *Controller) ensureRegistryPullSecret(ctx context.Context, namespace str
 	dockerConfigJSON := c.registry.dockerConfigJSON
 
 	secret := &corev1.Secret{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: "v1",
-			Kind:       "Secret",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      registryPullSecretName,
-			Namespace: namespace,
-			Labels:    labels.New().ManagedByKrane(),
-		},
-		Type: corev1.SecretTypeDockerConfigJson,
+		APIVersion: "v1",
+		Kind:       "Secret",
+		Name:       registryPullSecretName,
+		Namespace:  namespace,
+		Labels:     labels.New().ManagedByKrane(),
+		Type:       corev1.SecretTypeDockerConfigJson,
 		Data: map[string][]byte{
 			corev1.DockerConfigJsonKey: dockerConfigJSON,
 		},
