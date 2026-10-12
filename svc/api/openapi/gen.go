@@ -2980,9 +2980,9 @@ type V2ApisListKeysRequestBody struct {
 	// Balance between response size and number of pagination calls needed.
 	Limit *int `json:"limit,omitempty"`
 
-	// RevalidateKeysCache Deprecated. Accepted for backward compatibility and has no effect.
-	// Keys are always read from the primary database, regardless of this value.
-	// Deprecated: this property has been marked as deprecated upstream, but no `x-deprecated-reason` was set
+	// RevalidateKeysCache When true, reads keys and their identities from the primary database to avoid replica lag.
+	// When false or omitted, reads from a replica, which may not reflect recent changes.
+	// Primary reads can have higher latency, depending on your region.
 	RevalidateKeysCache *bool `json:"revalidateKeysCache,omitempty"`
 }
 

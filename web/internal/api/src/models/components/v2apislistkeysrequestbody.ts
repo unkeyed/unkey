@@ -45,12 +45,11 @@ export type V2ApisListKeysRequestBody = {
    */
   decrypt?: boolean | undefined;
   /**
-   * Deprecated. Accepted for backward compatibility and has no effect.
+   * When true, reads keys and their identities from the primary database to avoid replica lag.
    *
    * @remarks
-   * Keys are always read from the primary database, regardless of this value.
-   *
-   * @deprecated field: This will be removed in a future release, please migrate away from it as soon as possible.
+   * When false or omitted, reads from a replica, which may not reflect recent changes.
+   * Primary reads can have higher latency, depending on your region.
    */
   revalidateKeysCache?: boolean | undefined;
 };
@@ -82,7 +81,5 @@ export const V2ApisListKeysRequestBody$outboundSchema: z.ZodType<
 export function v2ApisListKeysRequestBodyToJSON(
   v2ApisListKeysRequestBody: V2ApisListKeysRequestBody,
 ): string {
-  return JSON.stringify(
-    V2ApisListKeysRequestBody$outboundSchema.parse(v2ApisListKeysRequestBody),
-  );
+  return JSON.stringify(V2ApisListKeysRequestBody$outboundSchema.parse(v2ApisListKeysRequestBody));
 }

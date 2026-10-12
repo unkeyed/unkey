@@ -399,10 +399,10 @@ components:
                 revalidateKeysCache:
                     type: boolean
                     default: false
-                    deprecated: true
                     description: |-
-                        Deprecated. Accepted for backward compatibility and has no effect.
-                        Keys are always read from the primary database, regardless of this value.
+                        When true, reads keys and their identities from the primary database to avoid replica lag.
+                        When false or omitted, reads from a replica, which may not reflect recent changes.
+                        Primary reads can have higher latency, depending on your region.
             additionalProperties: false
         V2ApisListKeysResponseBody:
             type: object

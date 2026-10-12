@@ -29,7 +29,8 @@ func (d laggingDatabase) RO() *db.Replica {
 	return d.replica
 }
 
-func TestListKeysReadsPrimaryRegardlessOfRevalidateFlag(t *testing.T) {
+func TestListKeysRoutesReadsByRevalidateFlag(t *testing.T) {
+	ctx := context.Background()
 	h := testutil.NewHarness(t)
 	replicaConfig := containers.MySQLIsolated(t)
 	replica, err := db.New(db.Config{
@@ -66,22 +67,60 @@ func TestListKeysReadsPrimaryRegardlessOfRevalidateFlag(t *testing.T) {
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 	}
 
-	for name, revalidate := range map[string]*bool{"omitted": nil, "false": new(false), "true": new(true)} {
-		for filterName, externalID := range map[string]*string{"all": nil, "externalId": &identity.ExternalID} {
-			t.Run(name+"/"+filterName, func(t *testing.T) {
-				res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
-					ApiId:               api.ID,
-					ExternalId:          externalID,
-					RevalidateKeysCache: revalidate,
-				})
-				require.Equal(t, http.StatusOK, res.Status, "%s", res.RawBody)
-				require.Len(t, res.Body.Data, 1)
-				require.Equal(t, key.KeyID, res.Body.Data[0].KeyId)
-				require.NotNil(t, res.Body.Data[0].Identity)
-				require.Equal(t, identity.ExternalID, res.Body.Data[0].Identity.ExternalId)
-				require.False(t, res.Body.Pagination.HasMore)
-			})
+	for _, apiReplicated := range []bool{false, true} {
+		if apiReplicated {
+			require.NoError(t, db.Query.InsertKeySpace(ctx, replica.RW(), db.InsertKeySpaceParams{
+				ID:          api.KeyAuthID.String,
+				WorkspaceID: workspace.ID,
+				ProjectID:   api.ProjectID,
+				CreatedAtM:  api.CreatedAtM,
+			}))
+			require.NoError(t, db.Query.InsertApi(ctx, replica.RW(), db.InsertApiParams{
+				ID:          api.ID,
+				Name:        api.Name,
+				WorkspaceID: workspace.ID,
+				ProjectID:   api.ProjectID,
+				AuthType:    api.AuthType,
+				KeyAuthID:   api.KeyAuthID,
+				CreatedAtM:  api.CreatedAtM,
+			}))
 		}
+		t.Run(fmt.Sprintf("api_replicated=%t", apiReplicated), func(t *testing.T) {
+			route.ApiCache.Clear(ctx)
+			for _, tc := range []struct {
+				name       string
+				revalidate *bool
+			}{
+				{name: "omitted", revalidate: nil},
+				{name: "false", revalidate: new(false)},
+				{name: "true", revalidate: new(true)},
+			} {
+				for filterName, externalID := range map[string]*string{"all": nil, "externalId": &identity.ExternalID} {
+					t.Run(tc.name+"/"+filterName, func(t *testing.T) {
+						res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
+							ApiId:               api.ID,
+							ExternalId:          externalID,
+							RevalidateKeysCache: tc.revalidate,
+						})
+						readPrimary := tc.revalidate != nil && *tc.revalidate
+						if !apiReplicated && !readPrimary {
+							require.Equal(t, http.StatusNotFound, res.Status, "%s", res.RawBody)
+							return
+						}
+						require.Equal(t, http.StatusOK, res.Status, "%s", res.RawBody)
+						require.False(t, res.Body.Pagination.HasMore)
+						if !readPrimary {
+							require.Empty(t, res.Body.Data)
+							return
+						}
+						require.Len(t, res.Body.Data, 1)
+						require.Equal(t, key.KeyID, res.Body.Data[0].KeyId)
+						require.NotNil(t, res.Body.Data[0].Identity)
+						require.Equal(t, identity.ExternalID, res.Body.Data[0].Identity.ExternalId)
+					})
+				}
+			}
+		})
 	}
 }
 

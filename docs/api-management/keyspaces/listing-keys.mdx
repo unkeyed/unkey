@@ -14,7 +14,7 @@ import RootKeyPrereq from "/snippets/root-key-prereq.mdx";
 
 Use `apis.listKeys` to list the keys in a keyspace, up to 100 per page. It's handy for a "your API keys" screen, for finding every key a user owns, or for auditing a keyspace. It only returns the full key for recoverable keys, and only when you ask.
 
-Keys are read from the primary database, including when you filter by `externalId`. The deprecated `revalidateKeysCache` parameter is accepted for backward compatibility and has no effect.
+By default, keys are read from a replica, which may not reflect recent changes. Set `revalidateKeysCache: true` to read keys and their identities from the primary database instead, including when you filter by `externalId`. Primary reads can have higher latency, depending on your region.
 
 <RootKeyPrereq />
 
@@ -42,6 +42,10 @@ A missing permission isn't a 403. You get HTTP 404 [`err:unkey:data:api_not_foun
 
 <ParamField body="decrypt" type="boolean" default="false">
   Include `plaintext` for keys created with `recoverable: true`. Requires the decrypt permission and a keyspace with encrypted storage enabled. See [Recoverable keys](/api-management/keys/recoverable-keys).
+</ParamField>
+
+<ParamField body="revalidateKeysCache" type="boolean" default="false">
+  Read from the primary database to avoid replica lag. This can increase latency.
 </ParamField>
 
 ```bash

@@ -46,7 +46,7 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/apis/lis
 			cli.String("cursor", "Pagination cursor from a previous response.", cli.MutuallyExclusive("body")),
 			cli.String("external-id", "Filter keys by external ID.", cli.MutuallyExclusive("body")),
 			cli.Bool("decrypt", "Include the plaintext key value in the response.", cli.Default(false), cli.MutuallyExclusive("body")),
-			cli.Bool("revalidate-keys-cache", "Deprecated. Accepted for backward compatibility and has no effect.", cli.Default(false), cli.MutuallyExclusive("body")),
+			cli.Bool("revalidate-keys-cache", "Read from the primary database to avoid replica lag, at potentially higher latency.", cli.Default(false), cli.MutuallyExclusive("body")),
 		},
 		Action: func(ctx context.Context, cmd *cli.Command) error {
 			client, err := util.CreateClient(cmd)

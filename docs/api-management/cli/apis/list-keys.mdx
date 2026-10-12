@@ -43,7 +43,7 @@ unkey api apis list-keys --api-id=<api id> [flags]
 </ParamField>
 
 <ParamField body="--revalidate-keys-cache" type="boolean" default="false">
-  Deprecated. Accepted for backward compatibility and has no effect. Keys are always read from the primary database.
+  When true, reads keys and their identities from the primary database to avoid replica lag. When false or omitted, reads from a replica, which may not reflect recent changes. Primary reads can have higher latency, depending on your region.
 </ParamField>
 
 ### Shared flags
