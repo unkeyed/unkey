@@ -5,6 +5,7 @@ generate:
   models: true
 
 output-options:
+  skip-prune: true
   nullable-type: true
   overlay:
     path: overlay.yaml

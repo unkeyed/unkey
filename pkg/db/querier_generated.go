@@ -54,6 +54,11 @@ type Querier interface {
 	//    AND revoked_at IS NULL
 	//    AND (? = '' OR external_id = ?)
 	CountLivePortalSessionsByPortal(ctx context.Context, db DBTX, arg CountLivePortalSessionsByPortalParams) (int64, error)
+	// Counts all configured drains, including paused drains, against the allowance.
+	// This ordinary read does not serialize concurrent creates; capacity may overshoot.
+	//
+	//  SELECT COUNT(*) FROM logdrains WHERE workspace_id = ?
+	CountLogdrainsByWorkspace(ctx context.Context, db DBTX, workspaceID string) (int64, error)
 	// CountPermissionsByWorkspace counts every permissions row in a workspace. Intended
 	// for tests that prove a failed call wrote nothing.
 	//
@@ -2012,28 +2017,11 @@ type Querier interface {
 	//      0
 	//  )
 	InsertKeySpace(ctx context.Context, db DBTX, arg InsertKeySpaceParams) error
-	// InsertLogdrain creates a running log drain with no lease. Intended for
-	// tests: the dashboard creates log drains in production.
+	// The caller has checked capacity; concurrent creates may exceed the allowance.
+	// Initialize the cursor at creation time so historical records are not exported.
 	//
-	//  INSERT INTO logdrains (
-	//      id,
-	//      workspace_id,
-	//      name,
-	//      stream,
-	//      config,
-	//      lease_id,
-	//      fencing_token,
-	//      created_at
-	//  ) VALUES (
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      '',
-	//      '',
-	//      ?
-	//  )
+	//  INSERT INTO logdrains (id, workspace_id, name, stream, config, committed_offset_inserted_at, lease_id, fencing_token, created_at, updated_at)
+	//  VALUES (?, ?, ?, ?, ?, ?, '', '', ?, ?)
 	InsertLogdrain(ctx context.Context, db DBTX, arg InsertLogdrainParams) error
 	//InsertPermission
 	//

@@ -240,6 +240,26 @@ func TestRootKeyResource(t *testing.T) {
 	require.Equal(t, value, resource.String())
 }
 
+func TestLogdrainResource(t *testing.T) {
+	t.Parallel()
+
+	for _, tt := range []struct {
+		id   string
+		want string
+	}{
+		{"ld_123", "unkey:v1:ws_123:logdrains/ld_123"},
+		{"*", "unkey:v1:ws_123:logdrains/*"},
+	} {
+		t.Run(tt.id, func(t *testing.T) {
+			value := New().Workspace("ws_123").Logdrain(tt.id).String()
+			require.Equal(t, tt.want, value)
+			resource, err := ParseV1(value)
+			require.NoError(t, err)
+			require.Equal(t, tt.want, resource.String())
+		})
+	}
+}
+
 // TestLimitsResource guarantees the workspace builder and parser agree that
 // limits identifies the workspace's limits resource
 func TestLimitsResource(t *testing.T) {
