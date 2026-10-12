@@ -31,11 +31,11 @@ func TestForbidden(t *testing.T) {
 	workspaceID := h.Resources().UserWorkspace.ID
 	externalID := uid.New(uid.TestPrefix)
 
-	h.CreateIdentity(seed.CreateIdentityRequest{
+	identityID := h.CreateIdentity(seed.CreateIdentityRequest{
 		WorkspaceID: workspaceID,
 		Environment: "default",
 		ExternalID:  externalID,
-	})
+	}).ID
 	otherIdentityID := h.CreateIdentity(seed.CreateIdentityRequest{
 		WorkspaceID: workspaceID,
 		Environment: "default",
