@@ -5,5 +5,11 @@
 set -euo pipefail
 
 ctlptl apply -f ./dev/cluster.yaml
+# minikube v1.38.1 bundles Cilium 1.19.0, which fails on Linux 7.2 kernels (cilium/cilium#48016).
+helm upgrade --install --take-ownership cilium cilium --repo https://helm.cilium.io --version 1.19.8 \
+  --namespace kube-system --wait \
+  --set operator.replicas=1 \
+  --set ipam.operator.clusterPoolIPv4PodCIDRList=10.244.0.0/16
+kubectl -n kube-system rollout status daemonset cilium --timeout=5m
 minikube addons enable metrics-server
 tilt up -f ./dev/Tiltfile
