@@ -13,6 +13,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	k8slabels "k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 )
 
@@ -47,10 +48,7 @@ func (c *Controller) runRolloutGateLoop(ctx context.Context) {
 }
 
 func (c *Controller) gateRollouts(ctx context.Context, now time.Time) {
-	var deployments []appsv1.Deployment
-	err := c.forEachDeploymentPage(ctx, func(page []appsv1.Deployment) {
-		deployments = append(deployments, page...)
-	})
+	deployments, err := c.deployments.List(k8slabels.Everything())
 	if err != nil {
 		logger.Error("rollout gate: unable to list deployments", "error", err.Error())
 		return
@@ -105,12 +103,11 @@ type rolloutPlan struct {
 	halted        bool
 }
 
-func planRollouts(deployments []appsv1.Deployment, maxConcurrent int, now time.Time) rolloutPlan {
+func planRollouts(deployments []*appsv1.Deployment, maxConcurrent int, now time.Time) rolloutPlan {
 	var plan rolloutPlan
 	var waitingHealthy, waitingUnhealthy []*appsv1.Deployment
 
-	for i := range deployments {
-		d := &deployments[i]
+	for _, d := range deployments {
 		switch {
 		case !d.Spec.Paused:
 			if holdsRolloutSlot(d) {
