@@ -8,6 +8,8 @@ import (
 
 	"github.com/unkeyed/unkey/internal/services/ratelimit"
 	"github.com/unkeyed/unkey/internal/services/usagelimiter"
+	"github.com/unkeyed/unkey/pkg/codes"
+	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/otel/tracing"
 	"github.com/unkeyed/unkey/pkg/ptr"
@@ -167,12 +169,16 @@ func (k *KeyVerifier) withRateLimits(ctx context.Context, specifiedLimits []open
 
 		dbRl, exists := k.ratelimitConfigs[rl.Name]
 		if !exists {
-			return &RatelimitNotConfiguredError{
+			err := &RatelimitNotConfiguredError{
 				Name:       rl.Name,
 				KeyID:      k.Key.ID,
 				IdentityID: k.Key.IdentityID.String,
 				ExternalID: k.Key.ExternalID.String,
 			}
+			return fault.Wrap(err,
+				fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
+				fault.Public(err.Error()),
+			)
 		}
 
 		identifier := k.Key.ID

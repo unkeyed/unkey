@@ -2,11 +2,9 @@ package middleware
 
 import (
 	"context"
-	"errors"
 	"net/http"
 	"strings"
 
-	"github.com/unkeyed/unkey/internal/services/keys"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/logger"
@@ -78,6 +76,12 @@ func WithObservability(renderer errorpage.Renderer) zen.Middleware {
 					urn = codes.Frontline.Internal.InternalServerError.URN()
 				}
 
+				code, parseErr := codes.ParseURN(urn)
+				if parseErr != nil {
+					logger.Error("failed to parse error code", "error", parseErr.Error())
+					code = codes.Frontline.Internal.InternalServerError
+				}
+
 				// Attribution domain for the metric: an explicit fault.Category
 				// override if set, else the category segment of the URN. Errors
 				// that carry neither are unattributed — default to platform so
@@ -86,18 +90,6 @@ func WithObservability(renderer errorpage.Renderer) zen.Middleware {
 					domain = string(cat)
 				} else {
 					domain = string(codes.CategoryPlatform)
-				}
-
-				if _, ok := errors.AsType[*keys.RatelimitNotConfiguredError](err); ok {
-					code := codes.Frontline.Internal.RatelimitNotConfigured
-					urn = code.URN()
-					domain = string(code.Category)
-				}
-
-				code, parseErr := codes.ParseURN(urn)
-				if parseErr != nil {
-					logger.Error("failed to parse error code", "error", parseErr.Error())
-					code = codes.Frontline.Internal.InternalServerError
 				}
 
 				pageInfo := getErrorPageInfoFrontline(urn)
