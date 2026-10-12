@@ -51,6 +51,9 @@ type frontlineInternal struct {
 	// InvalidConfiguration represents a 422 error - the deployment's policy configuration could not be parsed.
 	// This is the config author's fault, not frontline's, hence the config domain rather than platform.
 	InvalidConfiguration Code
+
+	// RatelimitNotConfigured represents a 422 error when a policy requires a named rate limit absent from both the key and its identity, without an inline override.
+	RatelimitNotConfigured Code
 }
 
 // frontlineAuth defines errors raised by the policy engine while authenticating
@@ -128,9 +131,10 @@ var Frontline = UnkeyFrontlineErrors{
 		SpendLimitReached:         Code{SystemFrontline, CategoryCapacity, "spend_limit_reached"},
 	},
 	Internal: frontlineInternal{
-		InternalServerError:  Code{SystemFrontline, CategoryPlatform, "internal_server_error"},
-		ConfigLoadFailed:     Code{SystemFrontline, CategoryPlatform, "config_load_failed"},
-		InvalidConfiguration: Code{SystemFrontline, CategoryConfig, "invalid_configuration"},
+		InternalServerError:    Code{SystemFrontline, CategoryPlatform, "internal_server_error"},
+		ConfigLoadFailed:       Code{SystemFrontline, CategoryPlatform, "config_load_failed"},
+		InvalidConfiguration:   Code{SystemFrontline, CategoryConfig, "invalid_configuration"},
+		RatelimitNotConfigured: Code{SystemFrontline, CategoryConfig, "ratelimit_not_configured"},
 	},
 	Auth: frontlineAuth{
 		MissingCredentials:      Code{SystemFrontline, CategoryClient, "missing_credentials"},

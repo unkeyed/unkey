@@ -3,6 +3,7 @@ package policies_test
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -30,9 +31,11 @@ import (
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/zen"
+	"github.com/unkeyed/unkey/svc/frontline/internal/errorpage"
 	"github.com/unkeyed/unkey/svc/frontline/internal/policies"
 	"github.com/unkeyed/unkey/svc/frontline/internal/policies/keyauth"
 	"github.com/unkeyed/unkey/svc/frontline/internal/policies/principal"
+	"github.com/unkeyed/unkey/svc/frontline/middleware"
 )
 
 const testAppID = "app_test"
@@ -943,10 +946,7 @@ func TestKeyAuth_EnforcesNamedKeyRatelimit(t *testing.T) {
 	})
 }
 
-// TestKeyAuth_NamedRatelimitNotFound rejects requests when the policy
-// references a named limit that does not exist on the key and provides no
-// inline override.
-func TestKeyAuth_NamedRatelimitNotFound(t *testing.T) {
+func TestKeyAuth_NamedRatelimitNotFoundReturns422(t *testing.T) {
 	h := newTestHarness(t)
 	ctx := context.Background()
 	s := h.seed(ctx)
@@ -966,11 +966,41 @@ func TestKeyAuth_NamedRatelimitNotFound(t *testing.T) {
 		},
 	}
 
-	req := httptest.NewRequest(http.MethodGet, "/", nil)
-	req.Header.Set("Authorization", "Bearer "+s.RawKey)
-	sess := newSession(t, req)
-	_, err := h.engine.Evaluate(ctx, sess, req, s.WorkspaceID, policies)
-	require.Error(t, err)
+	for _, tt := range []struct {
+		name string
+		key  seedResult
+	}{
+		{name: "without identity", key: s},
+		{name: "with identity", key: h.seedKeyWithIdentity(ctx, s.WorkspaceID, s.KeySpaceID)},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			req := httptest.NewRequest(http.MethodGet, "/", nil)
+			req.Header.Set("Authorization", "Bearer "+tt.key.RawKey)
+			req.Header.Set("Accept", "application/json")
+			sess, recorder := newSessionWithRecorder(t, req)
+			var evaluationErr error
+			handler := middleware.WithObservability(errorpage.NewRenderer())(func(ctx context.Context, sess *zen.Session) error {
+				result, err := h.engine.Evaluate(ctx, sess, req, s.WorkspaceID, policies)
+				require.Nil(t, result.Principal)
+				evaluationErr = err
+				return err
+			})
+			require.NoError(t, handler(ctx, sess))
+			require.Equal(t, http.StatusUnprocessableEntity, recorder.Code)
+
+			var body middleware.ErrorResponse
+			require.NoError(t, json.Unmarshal(recorder.Body.Bytes(), &body))
+			require.Equal(t, "err:frontline:config:ratelimit_not_configured", body.Error.Code)
+			require.Contains(t, body.Error.Message, "rate limit")
+			require.Contains(t, body.Error.Message, "not configured")
+			require.Equal(t, sess.RequestID(), body.Meta.RequestID)
+			require.NotContains(t, recorder.Body.String(), tt.key.KeyID)
+			require.NotContains(t, recorder.Body.String(), tt.key.RawKey)
+			category, ok := fault.GetCategory(evaluationErr)
+			require.True(t, ok)
+			require.Equal(t, codes.CategoryConfig, category)
+		})
+	}
 }
 
 // TestKeyAuth_InlineRatelimitOverride enforces an inline limit defined entirely

@@ -56,6 +56,7 @@ func TestGetErrorPageInfoFrontline_StatusMapping(t *testing.T) {
 		// Deployment's own config is invalid — caller-side (422), not a 5xx
 		// frontline fault.
 		{codes.Frontline.Internal.InvalidConfiguration.URN(), http.StatusUnprocessableEntity},
+		{codes.Frontline.Internal.RatelimitNotConfigured.URN(), http.StatusUnprocessableEntity},
 
 		// Genuine server-side faults — 5xx is correct.
 		{codes.Frontline.Routing.DeploymentSelectionFailed.URN(), http.StatusInternalServerError},

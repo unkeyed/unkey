@@ -367,7 +367,8 @@
                       {
                         "group": "Config",
                         "pages": [
-                          "errors/frontline/config/invalid_configuration"
+                          "errors/frontline/config/invalid_configuration",
+                          "errors/frontline/config/ratelimit_not_configured"
                         ]
                       },
                       {
