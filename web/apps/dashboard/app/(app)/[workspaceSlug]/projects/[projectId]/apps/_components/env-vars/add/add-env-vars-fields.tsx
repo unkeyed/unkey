@@ -1,5 +1,6 @@
 import { addVariables, envVarErrorToast } from "@/lib/collections/deploy/env-vars";
 import { plural } from "@/lib/fmt";
+import { MAX_VARIABLES } from "@/lib/trpc/routers/deploy/env-vars/add-plan";
 import { useMutation } from "@tanstack/react-query";
 import { FormField, toast } from "@unkey/ui";
 import { type FormEvent, useState } from "react";
@@ -51,6 +52,12 @@ export function useAddEnvVarsForm({ onAdded }: { onAdded?: () => void } = {}) {
       return;
     }
     if (parsed.variables.length === 0 || targetEnvironmentIds.length === 0 || add.isLoading) {
+      return;
+    }
+    if (parsed.variables.length > MAX_VARIABLES) {
+      toast.error(`Add at most ${plural(MAX_VARIABLES, "variable")} at once`, {
+        description: `Remove ${plural(parsed.variables.length - MAX_VARIABLES, "row")}, then save again.`,
+      });
       return;
     }
     add.mutate({ appId, environmentIds: targetEnvironmentIds, variables: parsed.variables });

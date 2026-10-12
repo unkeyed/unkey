@@ -1,7 +1,7 @@
 import { envVarKeySchema, envVarValueSchema } from "@/lib/schemas/env-var";
 import { z } from "zod";
 
-const MAX_VARIABLES = 200;
+export const MAX_VARIABLES = 200;
 
 export const addEnvVarsInput = z.object({
   appId: z.string().min(1),

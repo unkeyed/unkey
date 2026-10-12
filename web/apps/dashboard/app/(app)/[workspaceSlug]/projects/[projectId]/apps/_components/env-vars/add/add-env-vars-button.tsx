@@ -17,6 +17,9 @@ export function AddEnvVarsButton() {
   const close = () => setIsOpen(false);
   const form = useAddEnvVarsForm({ onAdded: close });
   const resetAndClose = () => {
+    if (form.isPending) {
+      return;
+    }
     form.reset();
     close();
   };
