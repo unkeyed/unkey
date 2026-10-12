@@ -80,7 +80,7 @@ func TestUpdateIdentityAuthorization(t *testing.T) {
 
 	t.Run("with permission to update identity", func(t *testing.T) {
 		workspaceID := h.Resources().UserWorkspace.ID
-		externalID := "test_user_403"
+		externalID := uid.New(uid.TestPrefix)
 		h.CreateIdentity(seed.CreateIdentityRequest{
 			WorkspaceID: workspaceID,
 			ExternalID:  externalID,

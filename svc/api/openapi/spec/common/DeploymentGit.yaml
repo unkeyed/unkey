@@ -10,4 +10,32 @@ properties:
     type: string
     description: The git branch this deployment was built from. Omitted when unknown.
     example: main
+  commitMessage:
+    type: string
+    description: The commit message. Omitted when unknown.
+    example: "fix: retry on 429"
+  commitTimestamp:
+    type: integer
+    format: int64
+    minimum: 0
+    maximum: 9223372036854775807
+    description: Unix timestamp in milliseconds when the commit was authored. Omitted when unknown.
+    example: 1704067100000
+  author:
+    "$ref": "./DeploymentGitAuthor.yaml"
+    description: |
+      The person who triggered the deployment from git: the GitHub user who
+      pushed or updated the pull request, or the author the client sent.
+      Omitted when unknown.
+  prNumber:
+    type: integer
+    minimum: 1
+    description: The pull request number this deployment was built for. Omitted when the commit is not part of a pull request.
+    example: 412
+  forkRepository:
+    type: string
+    description: |
+      The `owner/repo` name of the fork this deployment was built from. Omitted
+      when it was built from the app's connected repository.
+    example: octocat/payments-api
 additionalProperties: false

@@ -18,7 +18,6 @@ import {
   PageHeaderActions,
   PageHeaderContent,
   PageHeaderTitle,
-  Skeleton,
 } from "@unkey/ui";
 import Link from "next/link";
 import type { ReactNode } from "react";
@@ -96,17 +95,13 @@ export function DeployBillingClientV2() {
             </EmptyStateDescription>
           </EmptyStateHeader>
         </EmptyState>
-      ) : billingInfo ? (
+      ) : (
         <PlansCard
           isAdmin={isAdmin}
           hasPaymentMethod={hasPaymentMethod}
           workspaceSlug={workspace.slug}
-          products={billingInfo.products}
-          subscription={subscription}
-          currentProductId={billingInfo.currentProductId}
+          billing={billingInfo}
         />
-      ) : (
-        <Skeleton className="h-[140px] w-full rounded-lg" />
       )}
 
       {deploySubscription?.plan ? (

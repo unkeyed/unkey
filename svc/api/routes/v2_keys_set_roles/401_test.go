@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_keys_set_roles"
@@ -23,8 +24,8 @@ func TestAuthenticationErrors(t *testing.T) {
 
 	// Create a valid request
 	req := handler.Request{
-		KeyId: "key_123",
-		Roles: []string{"role_123"},
+		KeyId: uid.New(uid.KeyPrefix),
+		Roles: []string{uid.New(uid.RolePrefix)},
 	}
 
 	// Test case for missing authorization header

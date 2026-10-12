@@ -16,9 +16,8 @@ func TestUnauthorized(t *testing.T) {
 	route := newRoute(h)
 	h.Register(route)
 
-	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"unkey:v1:{workspaceID}:**#read"},
-	})
+	setup := h.CreateTestDeploymentSetup()
+	setup.RootKey = h.CreateRootKey(setup.Workspace.ID, readDeployments(setup.Workspace.ID))
 
 	dep := h.CreateDeployment(seed.CreateDeploymentRequest{
 		ID:            uid.New(uid.DeploymentPrefix),

@@ -73,7 +73,7 @@ func TestNotFoundErrors(t *testing.T) {
 
 	// Test case for non-existent key ID
 	t.Run("non-existent key ID", func(t *testing.T) {
-		nonExistentKeyID := "key_nonexistent123456789"
+		nonExistentKeyID := uid.New(uid.KeyPrefix)
 
 		req := handler.Request{
 			KeyId: nonExistentKeyID,
@@ -97,7 +97,7 @@ func TestNotFoundErrors(t *testing.T) {
 
 	// Test case for non-existent role ID
 	t.Run("non-existent role ID", func(t *testing.T) {
-		nonExistentRoleID := "role_nonexistent123456789"
+		nonExistentRoleID := uid.New(uid.RolePrefix)
 
 		req := handler.Request{
 			KeyId: validKeyID,
@@ -121,7 +121,7 @@ func TestNotFoundErrors(t *testing.T) {
 
 	// Test case for non-existent role name
 	t.Run("non-existent role name", func(t *testing.T) {
-		nonExistentRoleName := "nonexistent-role-name"
+		nonExistentRoleName := uid.New(uid.TestPrefix)
 
 		req := handler.Request{
 			KeyId: validKeyID,
@@ -280,7 +280,7 @@ func TestNotFoundErrors(t *testing.T) {
 
 	// Test case for multiple non-existent roles (first one should fail)
 	t.Run("multiple roles with first one non-existent", func(t *testing.T) {
-		nonExistentRoleID := "role_first_nonexistent"
+		nonExistentRoleID := uid.New(uid.RolePrefix)
 
 		req := handler.Request{
 			KeyId: validKeyID,

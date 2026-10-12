@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -253,7 +254,7 @@ func TestRatelimitResponse(t *testing.T) {
 		// This tests that the rate limit name is included in the identifier to prevent shared counters
 		identity := h.CreateIdentity(seed.CreateIdentityRequest{
 			WorkspaceID: workspace.ID,
-			ExternalID:  "user_with_multiple_limits",
+			ExternalID:  uid.New(uid.TestPrefix),
 			Ratelimits: []seed.CreateRatelimitRequest{
 				{
 					Name:        "api_requests",

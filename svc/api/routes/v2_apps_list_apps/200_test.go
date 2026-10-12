@@ -119,7 +119,7 @@ func TestListAppsSuccessfully(t *testing.T) {
 	t.Run("non-existent cursor returns 200 without error", func(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
 			Project: project.Slug,
-			Cursor:  new("app_doesnotexist"),
+			Cursor:  new(uid.New(uid.AppPrefix)),
 		})
 		require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
 		require.NotNil(t, res.Body.Pagination)

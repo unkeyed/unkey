@@ -24,6 +24,7 @@ const (
 	ClusterPrefix             Prefix = "cls"
 	RegionPrefix              Prefix = "rgn"
 	OrgPrefix                 Prefix = "org"
+	LogdrainPrefix            Prefix = "ld"
 
 	// Portal prefixes
 	PortalExchangeCodePrefix Prefix = "pec"
