@@ -670,13 +670,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				})
 			}
 			if identityBefore.Valid && identityBefore != update.IdentityID {
-				keyAuditLog.Targets = append(keyAuditLog.Targets, auditlog.AuditLogTarget{
-					Type:        auditlog.IdentityTargetType,
-					ID:          identityBefore.String,
-					DisplayName: "",
-					Name:        "",
-					Meta:        map[string]any{},
-				})
+				keyAuditLog.Targets[0].Meta["identityIdBefore"] = identityBefore.String
 			}
 			auditLogs = append(auditLogs, keyAuditLog)
 

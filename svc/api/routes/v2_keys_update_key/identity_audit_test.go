@@ -38,18 +38,19 @@ func TestUpdateKeyAuditsIdentityEndpoints(t *testing.T) {
 	}
 
 	for _, tt := range []struct {
-		name       string
-		initial    *string
-		externalID nullable.Nullable[string]
-		identityID string
-		targetIDs  []string
+		name             string
+		initial          *string
+		externalID       nullable.Nullable[string]
+		identityID       string
+		targetIDs        []string
+		identityIDBefore string
 	}{
-		{"assign", nil, nullable.NewNullableWithValue(newIdentity.ExternalID), newIdentity.ID, []string{newIdentity.ID}},
-		{"replace", &oldIdentity.ID, nullable.NewNullableWithValue(newIdentity.ExternalID), newIdentity.ID, []string{oldIdentity.ID, newIdentity.ID}},
-		{"remove", &oldIdentity.ID, nullable.NewNullNullable[string](), "", []string{oldIdentity.ID}},
-		{"unchanged assignment", &oldIdentity.ID, nullable.NewNullableWithValue(oldIdentity.ExternalID), oldIdentity.ID, []string{oldIdentity.ID}},
-		{"omitted identity", &oldIdentity.ID, nullable.Nullable[string]{}, oldIdentity.ID, nil},
-		{"remove absent identity", nil, nullable.NewNullNullable[string](), "", nil},
+		{"assign", nil, nullable.NewNullableWithValue(newIdentity.ExternalID), newIdentity.ID, []string{newIdentity.ID}, ""},
+		{"replace", &oldIdentity.ID, nullable.NewNullableWithValue(newIdentity.ExternalID), newIdentity.ID, []string{newIdentity.ID}, oldIdentity.ID},
+		{"remove", &oldIdentity.ID, nullable.NewNullNullable[string](), "", nil, oldIdentity.ID},
+		{"unchanged assignment", &oldIdentity.ID, nullable.NewNullableWithValue(oldIdentity.ExternalID), oldIdentity.ID, []string{oldIdentity.ID}, ""},
+		{"omitted identity", &oldIdentity.ID, nullable.Nullable[string]{}, oldIdentity.ID, nil, ""},
+		{"remove absent identity", nil, nullable.NewNullNullable[string](), "", nil, ""},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			key := h.CreateKey(seed.CreateKeyRequest{
@@ -71,6 +72,13 @@ func TestUpdateKeyAuditsIdentityEndpoints(t *testing.T) {
 			for _, target := range logs[0].Targets {
 				if target.Type == "identity" {
 					identityIDs = append(identityIDs, target.ID)
+				}
+				if target.Type == "key" {
+					if tt.identityIDBefore == "" {
+						require.NotContains(t, target.Meta, "identityIdBefore")
+					} else {
+						require.Equal(t, map[string]any{"identityIdBefore": tt.identityIDBefore}, target.Meta)
+					}
 				}
 			}
 			require.ElementsMatch(t, tt.targetIDs, identityIDs)
