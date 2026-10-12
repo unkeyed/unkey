@@ -1,7 +1,6 @@
 "use client";
 
 import { FormCombobox } from "@/components/ui/form-combobox";
-import { sameJson } from "@/lib/utils/same-json";
 import { IconPlusOutline18 } from "@unkey/icons";
 import {
   FormInput,
@@ -32,8 +31,6 @@ const watchPathsSchema = z.object({
   ),
 });
 
-type WatchPathsForm = z.infer<typeof watchPathsSchema>;
-
 function fromFormPaths(paths: { value: string }[]): string[] {
   return paths.map((p) => p.value).filter(Boolean);
 }
@@ -45,8 +42,6 @@ export function WatchPaths() {
     write: (draft, values) => {
       draft.watchPaths = fromFormPaths(values.paths);
     },
-    isEqual: (current: WatchPathsForm, saved: WatchPathsForm) =>
-      sameJson(fromFormPaths(current.paths), fromFormPaths(saved.paths)),
   });
   const { watchPathSuggestions } = useRepoTree();
   const { control, register, setValue, trigger } = form;
@@ -76,11 +71,6 @@ export function WatchPaths() {
     },
     [remove],
   );
-
-  const appendAndFocus = useCallback(() => {
-    append({ value: "" });
-    inputRefs.current.get(fields.length)?.focus();
-  }, [append, fields.length]);
 
   const currentPaths = form.watch("paths");
   const currentValues = fromFormPaths(currentPaths);
@@ -153,10 +143,6 @@ export function WatchPaths() {
                     setInputRef(index, el);
                   }}
                   onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      appendAndFocus();
-                    }
                     if (e.key === "Backspace" && !currentPaths[index]?.value) {
                       e.preventDefault();
                       removeAndFocus(index);

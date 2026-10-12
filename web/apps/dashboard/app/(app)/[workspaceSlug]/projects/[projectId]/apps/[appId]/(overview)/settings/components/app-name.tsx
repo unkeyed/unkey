@@ -18,7 +18,6 @@ export function AppName({ appId, name }: { appId: string; name: string }) {
   const { form, formProps } = useSavableForm({
     schema: appNameSchema,
     values: { name },
-    isEqual: (current, saved) => current.name.trim() === saved.name,
     save: (values) =>
       collection.apps.update(appId, { optimistic: false }, (draft) => {
         draft.name = values.name;
@@ -37,7 +36,7 @@ export function AppName({ appId, name }: { appId: string; name: string }) {
             aria-label="App name"
             className="max-w-(--setting-w)"
             error={form.formState.errors.name?.message}
-            {...form.register("name")}
+            {...form.register("name", { setValueAs: (value: string) => value.trim() })}
           />
         </SettingsRowContent>
       </SettingsRow>
