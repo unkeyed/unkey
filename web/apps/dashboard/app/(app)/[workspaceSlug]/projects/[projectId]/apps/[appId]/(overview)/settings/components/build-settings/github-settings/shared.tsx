@@ -1,3 +1,4 @@
+import { trpc } from "@/lib/trpc/client";
 import { Github } from "@unkey/icons";
 import { Button, type ChevronState, SettingCard, Skeleton } from "@unkey/ui";
 
@@ -55,15 +56,21 @@ export const ManageGitHubAppLink = ({
   variant?: "outline" | "ghost" | "primary";
   className?: string;
   text?: React.ReactNode;
-}) => (
-  <Button
-    variant={variant}
-    className={className}
-    onClick={(e) => {
-      e.preventDefault();
-      void onInstall();
-    }}
-  >
-    <span className="text-sm">{text}</span>
-  </Button>
-);
+}) => {
+  const configuration = trpc.github.configuration.useQuery();
+  return (
+    <Button
+      variant={variant}
+      className={className}
+      disabled={!configuration.data?.available}
+      onClick={(e) => {
+        e.preventDefault();
+        void onInstall();
+      }}
+    >
+      <span className="text-sm">
+        {configuration.data?.available === false ? "GitHub unavailable" : text}
+      </span>
+    </Button>
+  );
+};
