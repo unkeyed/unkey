@@ -120,14 +120,18 @@ func TestUpdatePolicySuccessfully(t *testing.T) {
 		req.Match = nullable.NewNullableWithValue([]openapi.MatchExpr{
 			{Path: &openapi.PathMatch{Path: openapi.StringMatch{Prefix: new("/internal/")}}},
 			{Method: &openapi.MethodMatch{Methods: []openapi.MethodMatchMethods{"GET"}}},
+			{Header: &openapi.FieldMatch{Name: "X-Debug", Present: new(false)}},
+			{QueryParam: &openapi.FieldMatch{Name: "debug", Present: new(false)}},
 		})
 		call(t, req)
 
 		policies := list(t, env)
 		match := ptr.SafeDeref(policies[0].Match)
-		require.Len(t, match, 2)
+		require.Len(t, match, 4)
 		require.Equal(t, new("/internal/"), match[0].Path.Path.Prefix)
 		require.Equal(t, []openapi.MethodMatchMethods{"GET"}, match[1].Method.Methods)
+		require.Equal(t, &openapi.FieldMatch{Name: "X-Debug", Present: new(false)}, match[2].Header)
+		require.Equal(t, &openapi.FieldMatch{Name: "debug", Present: new(false)}, match[3].QueryParam)
 	})
 
 	t.Run("null match clears expressions", func(t *testing.T) {

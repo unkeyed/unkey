@@ -182,7 +182,7 @@ func TestListPoliciesSuccessfully(t *testing.T) {
 		require.Equal(t, []openapi.MethodMatchMethods{"GET", "POST"}, match[1].Method.Methods)
 		require.NotNil(t, match[2].Header)
 		require.Equal(t, "X-Debug", match[2].Header.Name)
-		require.Equal(t, new(openapi.FieldMatchPresent(true)), match[2].Header.Present)
+		require.Equal(t, new(true), match[2].Header.Present)
 		require.Nil(t, match[2].Header.Value)
 		require.NotNil(t, match[3].QueryParam)
 		require.Equal(t, "v", match[3].QueryParam.Name)
@@ -298,6 +298,10 @@ func TestListPoliciesSuccessfully(t *testing.T) {
 					Name:    "require key",
 					Enabled: true,
 					Keyauth: &openapi.KeyauthPolicy{Keyspaces: []string{api.KeyAuthID.String}},
+					Match: &[]openapi.MatchExpr{
+						{Header: &openapi.FieldMatch{Name: "X-Debug", Present: new(false)}},
+						{QueryParam: &openapi.FieldMatch{Name: "debug", Present: new(false)}},
+					},
 				},
 				{
 					Name:     "deny",
@@ -315,6 +319,10 @@ func TestListPoliciesSuccessfully(t *testing.T) {
 		require.True(t, res.Body.Data[0].Enabled)
 		require.NotNil(t, res.Body.Data[0].Keyauth)
 		require.Equal(t, []string{api.KeyAuthID.String}, res.Body.Data[0].Keyauth.Keyspaces)
+		require.Equal(t, &[]openapi.MatchExpr{
+			{Header: &openapi.FieldMatch{Name: "X-Debug", Present: new(false)}},
+			{QueryParam: &openapi.FieldMatch{Name: "debug", Present: new(false)}},
+		}, res.Body.Data[0].Match)
 
 		require.Equal(t, "deny", res.Body.Data[1].Name)
 		require.False(t, res.Body.Data[1].Enabled)

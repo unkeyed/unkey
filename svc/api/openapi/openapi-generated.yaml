@@ -6621,9 +6621,7 @@ components:
                     maxLength: 256
                 present:
                     type: boolean
-                    enum:
-                        - true
-                    description: Matches when the field is present, regardless of value.
+                    description: Matches when the field is present if true, or absent if false, regardless of value.
                 value:
                     "$ref": "#/components/schemas/StringMatch"
             additionalProperties: false
@@ -13631,7 +13629,7 @@ paths:
                                             requestId: req_01H9TQPP77V5E48E9SH0BG0ZQX
                             schema:
                                 $ref: '#/components/schemas/V2IdentitiesCreateIdentityResponseBody'
-                    description: ""
+                    description: Identity created successfully.
                 "400":
                     content:
                         application/json:
@@ -15313,7 +15311,7 @@ paths:
                                             requestId: req_01H9TQPP77V5E48E9SH0BG0ZQX
                             schema:
                                 $ref: '#/components/schemas/InternalServerErrorResponse'
-                    description: ""
+                    description: Service is in a degraded state. Some functionality may be limited.
                 "500":
                     content:
                         application/json:

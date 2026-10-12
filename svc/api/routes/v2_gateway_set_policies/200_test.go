@@ -225,7 +225,7 @@ func TestSetPoliciesSuccessfully(t *testing.T) {
 		apiA := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspace.ID, ProjectID: env.projectID})
 		apiB := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspace.ID, ProjectID: env.projectID})
 
-		present := openapi.FieldMatchPresent(true)
+		present := true
 		kitchenSink := openapi.Policy{
 			Name:    "kitchen-sink",
 			Enabled: true,

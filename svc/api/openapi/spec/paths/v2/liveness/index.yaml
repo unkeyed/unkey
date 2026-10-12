@@ -35,6 +35,7 @@ get:
       description: |
         Service is healthy and ready to process requests. Returns 'OK' message for normal operation.
     "412":
+      description: Service is in a degraded state. Some functionality may be limited.
       content:
         application/json:
           schema:
