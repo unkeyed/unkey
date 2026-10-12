@@ -2,9 +2,9 @@
 
 import { useWorkspace } from "@/providers/workspace-provider";
 import * as flags from ".";
+import { resolveFlag } from "../workspace-flags";
 
 export function useFlag(key: keyof typeof flags): boolean {
   const { workspace } = useWorkspace();
-  const flag = flags[key];
-  return workspace?.flags[flag.slug] ?? flag.defaultValue;
+  return resolveFlag({ workspace, flag: flags[key] });
 }
