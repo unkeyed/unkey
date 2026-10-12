@@ -1225,8 +1225,16 @@
       "source": "/api-reference/rpc"
     },
     {
+      "destination": "/api-management/api-reference/keys/verify-api-key",
+      "source": "/api-reference/v2/keys/verify-api-key"
+    },
+    {
       "destination": "/api-management/analytics/overview",
       "source": "/apis/features/analytics"
+    },
+    {
+      "destination": "/api-management/keys/credits-and-refill",
+      "source": "/apis/features/remaining"
     },
     {
       "destination": "/platform/workspace/audit-logs/overview",
@@ -1911,6 +1919,1110 @@
     {
       "destination": "/platform/ai-coding/other-clients",
       "source": "/ai-code-gen/windsurf"
+    },
+    {
+      "destination": "/api-management/analytics/overview",
+      "source": "/analytics/api"
+    },
+    {
+      "destination": "/api-management/analytics/overview",
+      "source": "/analytics/getting-started"
+    },
+    {
+      "destination": "/api-management/analytics/overview",
+      "source": "/analytics/overview"
+    },
+    {
+      "destination": "/api-management/analytics/examples",
+      "source": "/analytics/query-examples"
+    },
+    {
+      "destination": "/api-management/analytics/restrictions-and-quotas",
+      "source": "/analytics/query-restrictions"
+    },
+    {
+      "destination": "/api-management/analytics/query-language",
+      "source": "/analytics/quick-reference"
+    },
+    {
+      "destination": "/api-management/analytics/overview",
+      "source": "/analytics/quickstarts"
+    },
+    {
+      "destination": "/api-management/analytics/tables/key-verifications",
+      "source": "/analytics/schema-reference"
+    },
+    {
+      "destination": "/api-management/analytics/troubleshooting",
+      "source": "/analytics/troubleshooting"
+    },
+    {
+      "destination": "/api-management/api-reference/analytics/query-key-verification-data",
+      "source": "/api-reference/analytics/get_verifications"
+    },
+    {
+      "destination": "/api-management/api-reference/apis/create-api-namespace",
+      "source": "/api-reference/apis/create"
+    },
+    {
+      "destination": "/api-management/api-reference/apis/delete-api-namespace",
+      "source": "/api-reference/apis/delete"
+    },
+    {
+      "destination": "/api-management/api-reference/keys/delete-api-keys",
+      "source": "/api-reference/apis/delete-keys"
+    },
+    {
+      "destination": "/api-management/api-reference/apis/get-api-namespace",
+      "source": "/api-reference/apis/get"
+    },
+    {
+      "destination": "/api-management/api-reference/apis/list-api-keys",
+      "source": "/api-reference/apis/list-keys"
+    },
+    {
+      "destination": "/platform/api/authentication",
+      "source": "/api-reference/authentication"
+    },
+    {
+      "destination": "/errors/overview",
+      "source": "/api-reference/errors-v2/overview"
+    },
+    {
+      "destination": "/errors/unkey/application/assertion_failed",
+      "source": "/api-reference/errors-v2/unkey/application/assertion_failed"
+    },
+    {
+      "destination": "/errors/unkey/application/invalid_input",
+      "source": "/api-reference/errors-v2/unkey/application/invalid_input"
+    },
+    {
+      "destination": "/errors/unkey/application/protected_resource",
+      "source": "/api-reference/errors-v2/unkey/application/protected_resource"
+    },
+    {
+      "destination": "/errors/unkey/application/service_unavailable",
+      "source": "/api-reference/errors-v2/unkey/application/service_unavailable"
+    },
+    {
+      "destination": "/errors/unkey/application/unexpected_error",
+      "source": "/api-reference/errors-v2/unkey/application/unexpected_error"
+    },
+    {
+      "destination": "/errors/unkey/authentication/key_not_found",
+      "source": "/api-reference/errors-v2/unkey/authentication/key_not_found"
+    },
+    {
+      "destination": "/errors/unkey/authentication/malformed",
+      "source": "/api-reference/errors-v2/unkey/authentication/malformed"
+    },
+    {
+      "destination": "/errors/unkey/authentication/missing",
+      "source": "/api-reference/errors-v2/unkey/authentication/missing"
+    },
+    {
+      "destination": "/errors/unkey/authorization/forbidden",
+      "source": "/api-reference/errors-v2/unkey/authorization/forbidden"
+    },
+    {
+      "destination": "/errors/unkey/authorization/insufficient_permissions",
+      "source": "/api-reference/errors-v2/unkey/authorization/insufficient_permissions"
+    },
+    {
+      "destination": "/errors/unkey/authorization/key_disabled",
+      "source": "/api-reference/errors-v2/unkey/authorization/key_disabled"
+    },
+    {
+      "destination": "/errors/unkey/authorization/workspace_disabled",
+      "source": "/api-reference/errors-v2/unkey/authorization/workspace_disabled"
+    },
+    {
+      "destination": "/errors/unkey/data/api_not_found",
+      "source": "/api-reference/errors-v2/unkey/data/api_not_found"
+    },
+    {
+      "destination": "/errors/unkey/data/audit_log_not_found",
+      "source": "/api-reference/errors-v2/unkey/data/audit_log_not_found"
+    },
+    {
+      "destination": "/errors/unkey/data/identity_already_exists",
+      "source": "/api-reference/errors-v2/unkey/data/identity_already_exists"
+    },
+    {
+      "destination": "/errors/unkey/data/identity_not_found",
+      "source": "/api-reference/errors-v2/unkey/data/identity_not_found"
+    },
+    {
+      "destination": "/errors/unkey/data/key_auth_not_found",
+      "source": "/api-reference/errors-v2/unkey/data/key_auth_not_found"
+    },
+    {
+      "destination": "/errors/unkey/data/key_not_found",
+      "source": "/api-reference/errors-v2/unkey/data/key_not_found"
+    },
+    {
+      "destination": "/errors/unkey/data/permission_not_found",
+      "source": "/api-reference/errors-v2/unkey/data/permission_not_found"
+    },
+    {
+      "destination": "/errors/unkey/data/ratelimit_namespace_not_found",
+      "source": "/api-reference/errors-v2/unkey/data/ratelimit_namespace_not_found"
+    },
+    {
+      "destination": "/errors/unkey/data/ratelimit_override_not_found",
+      "source": "/api-reference/errors-v2/unkey/data/ratelimit_override_not_found"
+    },
+    {
+      "destination": "/errors/unkey/data/role_not_found",
+      "source": "/api-reference/errors-v2/unkey/data/role_not_found"
+    },
+    {
+      "destination": "/errors/unkey/data/workspace_not_found",
+      "source": "/api-reference/errors-v2/unkey/data/workspace_not_found"
+    },
+    {
+      "destination": "/errors/user/bad_request/permissions_query_syntax_error",
+      "source": "/api-reference/errors-v2/user/bad_request/permissions_query_syntax_error"
+    },
+    {
+      "destination": "/platform/api/errors",
+      "source": "/api-reference/errors/introduction"
+    },
+    {
+      "destination": "/api-management/api-reference/keys/add-key-permissions",
+      "source": "/api-reference/keys/add-permissions"
+    },
+    {
+      "destination": "/api-management/api-reference/keys/add-key-roles",
+      "source": "/api-reference/keys/add-roles"
+    },
+    {
+      "destination": "/api-management/api-reference/keys/create-api-key",
+      "source": "/api-reference/keys/create"
+    },
+    {
+      "destination": "/api-management/api-reference/keys/delete-api-keys",
+      "source": "/api-reference/keys/delete"
+    },
+    {
+      "destination": "/api-management/api-reference/keys/get-api-key",
+      "source": "/api-reference/keys/get"
+    },
+    {
+      "destination": "/api-management/api-reference/keys/remove-key-permissions",
+      "source": "/api-reference/keys/remove-permissions"
+    },
+    {
+      "destination": "/api-management/api-reference/keys/remove-key-roles",
+      "source": "/api-reference/keys/remove-role"
+    },
+    {
+      "destination": "/api-management/api-reference/keys/remove-key-roles",
+      "source": "/api-reference/keys/remove-roles"
+    },
+    {
+      "destination": "/api-management/api-reference/keys/delete-api-keys",
+      "source": "/api-reference/keys/revoke"
+    },
+    {
+      "destination": "/api-management/api-reference/keys/set-key-permissions",
+      "source": "/api-reference/keys/set-permissions"
+    },
+    {
+      "destination": "/api-management/api-reference/keys/set-key-roles",
+      "source": "/api-reference/keys/set-roles"
+    },
+    {
+      "destination": "/api-management/api-reference/keys/update-key-settings",
+      "source": "/api-reference/keys/update"
+    },
+    {
+      "destination": "/api-management/api-reference/keys/update-key-credits",
+      "source": "/api-reference/keys/update-remaining"
+    },
+    {
+      "destination": "/api-management/api-reference/analytics/query-key-verification-data",
+      "source": "/api-reference/keys/verifications"
+    },
+    {
+      "destination": "/api-management/api-reference/keys/verify-api-key",
+      "source": "/api-reference/keys/verify"
+    },
+    {
+      "destination": "/api-management/api-reference/keys/get-api-key-by-hash",
+      "source": "/api-reference/keys/whoami"
+    },
+    {
+      "destination": "/api-management/api-reference/keys/migrate-api-keys",
+      "source": "/api-reference/migrations/create-keys"
+    },
+    {
+      "destination": "/api-management/api-reference/ratelimit/delete-ratelimit-override",
+      "source": "/api-reference/ratelimits/delete-override"
+    },
+    {
+      "destination": "/api-management/api-reference/ratelimit/get-ratelimit-override",
+      "source": "/api-reference/ratelimits/get-override"
+    },
+    {
+      "destination": "/api-management/api-reference/ratelimit/apply-rate-limiting",
+      "source": "/api-reference/ratelimits/limit"
+    },
+    {
+      "destination": "/api-management/api-reference/ratelimit/list-ratelimit-overrides",
+      "source": "/api-reference/ratelimits/list-overrides"
+    },
+    {
+      "destination": "/api-management/api-reference/ratelimit/set-ratelimit-override",
+      "source": "/api-reference/ratelimits/set-override"
+    },
+    {
+      "destination": "/api-management/api-reference/analytics/query-key-verification-data",
+      "source": "/api-reference/v1/analytics/get-verification-analytics"
+    },
+    {
+      "destination": "/api-management/api-reference/apis/create-api-namespace",
+      "source": "/api-reference/v1/apis/create-api-namespace"
+    },
+    {
+      "destination": "/api-management/api-reference/keys/delete-api-keys",
+      "source": "/api-reference/v1/apis/delete-api-keys"
+    },
+    {
+      "destination": "/api-management/api-reference/apis/delete-api-namespace",
+      "source": "/api-reference/v1/apis/delete-api-namespace"
+    },
+    {
+      "destination": "/api-management/api-reference/apis/get-api-namespace",
+      "source": "/api-reference/v1/apis/get-api-namespace"
+    },
+    {
+      "destination": "/api-management/api-reference/apis/list-api-keys",
+      "source": "/api-reference/v1/apis/list-api-keys"
+    },
+    {
+      "destination": "/platform/api/authentication",
+      "source": "/api-reference/v1/authentication"
+    },
+    {
+      "destination": "/api-management/api-reference/identities/create-identity",
+      "source": "/api-reference/v1/identities/create-identity"
+    },
+    {
+      "destination": "/api-management/api-reference/identities/delete-identity",
+      "source": "/api-reference/v1/identities/delete-identity"
+    },
+    {
+      "destination": "/api-management/api-reference/identities/get-identity",
+      "source": "/api-reference/v1/identities/get-identity"
+    },
+    {
+      "destination": "/api-management/api-reference/identities/list-identities",
+      "source": "/api-reference/v1/identities/list-identities"
+    },
+    {
+      "destination": "/api-management/api-reference/identities/update-identity",
+      "source": "/api-reference/v1/identities/update-identity"
+    },
+    {
+      "destination": "/api-management/api-reference/keys/add-key-permissions",
+      "source": "/api-reference/v1/keys/add-key-permissions"
+    },
+    {
+      "destination": "/api-management/api-reference/keys/add-key-roles",
+      "source": "/api-reference/v1/keys/add-key-roles"
+    },
+    {
+      "destination": "/api-management/api-reference/keys/create-api-key",
+      "source": "/api-reference/v1/keys/create-api-key"
+    },
+    {
+      "destination": "/api-management/api-reference/keys/delete-api-keys",
+      "source": "/api-reference/v1/keys/delete-api-key"
+    },
+    {
+      "destination": "/api-management/api-reference/keys/get-api-key",
+      "source": "/api-reference/v1/keys/get-api-key"
+    },
+    {
+      "destination": "/api-management/api-reference/keys/get-api-key-by-hash",
+      "source": "/api-reference/v1/keys/get-key-information"
+    },
+    {
+      "destination": "/api-management/api-reference/keys/remove-key-permissions",
+      "source": "/api-reference/v1/keys/remove-key-permissions"
+    },
+    {
+      "destination": "/api-management/api-reference/keys/remove-key-roles",
+      "source": "/api-reference/v1/keys/remove-key-roles"
+    },
+    {
+      "destination": "/api-management/api-reference/keys/set-key-permissions",
+      "source": "/api-reference/v1/keys/set-key-permissions"
+    },
+    {
+      "destination": "/api-management/api-reference/keys/set-key-roles",
+      "source": "/api-reference/v1/keys/set-key-roles"
+    },
+    {
+      "destination": "/api-management/api-reference/keys/update-key-credits",
+      "source": "/api-reference/v1/keys/update-key-credits"
+    },
+    {
+      "destination": "/api-management/api-reference/keys/update-key-settings",
+      "source": "/api-reference/v1/keys/update-key-settings"
+    },
+    {
+      "destination": "/api-management/api-reference/keys/verify-api-key",
+      "source": "/api-reference/v1/keys/verify-api-key"
+    },
+    {
+      "destination": "/api-management/api-reference/keys/migrate-api-keys",
+      "source": "/api-reference/v1/migrations/migrate-keys"
+    },
+    {
+      "destination": "/platform/api/overview",
+      "source": "/api-reference/v1/overview"
+    },
+    {
+      "destination": "/api-management/api-reference/permissions/create-permission",
+      "source": "/api-reference/v1/permissions/create-permission"
+    },
+    {
+      "destination": "/api-management/api-reference/permissions/create-role",
+      "source": "/api-reference/v1/permissions/create-role"
+    },
+    {
+      "destination": "/api-management/api-reference/permissions/delete-permission",
+      "source": "/api-reference/v1/permissions/delete-permission"
+    },
+    {
+      "destination": "/api-management/api-reference/permissions/delete-role",
+      "source": "/api-reference/v1/permissions/delete-role"
+    },
+    {
+      "destination": "/api-management/api-reference/permissions/get-permission",
+      "source": "/api-reference/v1/permissions/get-permission"
+    },
+    {
+      "destination": "/api-management/api-reference/permissions/get-role",
+      "source": "/api-reference/v1/permissions/get-role"
+    },
+    {
+      "destination": "/api-management/api-reference/permissions/list-permissions",
+      "source": "/api-reference/v1/permissions/list-permissions"
+    },
+    {
+      "destination": "/api-management/api-reference/permissions/list-roles",
+      "source": "/api-reference/v1/permissions/list-roles"
+    },
+    {
+      "destination": "/api-management/api-reference/ratelimit/apply-rate-limiting",
+      "source": "/api-reference/v1/ratelimits/check-rate-limit"
+    },
+    {
+      "destination": "/api-management/api-reference/ratelimit/delete-ratelimit-override",
+      "source": "/api-reference/v1/ratelimits/delete-rate-limit-override"
+    },
+    {
+      "destination": "/api-management/api-reference/ratelimit/get-ratelimit-override",
+      "source": "/api-reference/v1/ratelimits/get-rate-limit-override"
+    },
+    {
+      "destination": "/api-management/api-reference/ratelimit/list-ratelimit-overrides",
+      "source": "/api-reference/v1/ratelimits/list-rate-limit-overrides"
+    },
+    {
+      "destination": "/api-management/api-reference/ratelimit/set-ratelimit-override",
+      "source": "/api-reference/v1/ratelimits/set-rate-limit-override"
+    },
+    {
+      "destination": "/compute/api-reference/analytics/query-gateway-request-data",
+      "source": "/api-reference/v2/analytics/query-gateway-request-data"
+    },
+    {
+      "destination": "/api-management/api-reference/analytics/query-key-verification-data",
+      "source": "/api-reference/v2/analytics/query-key-verification-data"
+    },
+    {
+      "destination": "/api-management/api-reference/analytics/query-rate-limit-data",
+      "source": "/api-reference/v2/analytics/query-rate-limit-data"
+    },
+    {
+      "destination": "/compute/api-reference/analytics/query-runtime-log-data",
+      "source": "/api-reference/v2/analytics/query-runtime-log-data"
+    },
+    {
+      "destination": "/platform/api/authentication",
+      "source": "/api-reference/v2/auth"
+    },
+    {
+      "destination": "/compute/api-reference/deployments/create-deployment",
+      "source": "/api-reference/v2/deploy/create-deployment"
+    },
+    {
+      "destination": "/compute/api-reference/deployments/get-deployment",
+      "source": "/api-reference/v2/deploy/get-deployment"
+    },
+    {
+      "destination": "/compute/api-reference/deployments/create-deployment",
+      "source": "/api-reference/v2/deployments/create-deployment"
+    },
+    {
+      "destination": "/compute/api-reference/deployments/get-deployment",
+      "source": "/api-reference/v2/deployments/get-deployment"
+    },
+    {
+      "destination": "/compute/api-reference/deployments/list-deployments",
+      "source": "/api-reference/v2/deployments/list-deployments"
+    },
+    {
+      "destination": "/compute/api-reference/deployments/promote-deployment",
+      "source": "/api-reference/v2/deployments/promote-deployment"
+    },
+    {
+      "destination": "/compute/api-reference/deployments/rollback-deployment",
+      "source": "/api-reference/v2/deployments/rollback-deployment"
+    },
+    {
+      "destination": "/compute/api-reference/deployments/start-deployment",
+      "source": "/api-reference/v2/deployments/start-deployment"
+    },
+    {
+      "destination": "/compute/api-reference/deployments/stop-deployment",
+      "source": "/api-reference/v2/deployments/stop-deployment"
+    },
+    {
+      "destination": "/platform/api/errors",
+      "source": "/api-reference/v2/errors"
+    },
+    {
+      "destination": "/platform/api/overview",
+      "source": "/api-reference/v2/overview"
+    },
+    {
+      "destination": "/platform/api/rpc-convention",
+      "source": "/api-reference/v2/rpc"
+    },
+    {
+      "destination": "/api-management/authorization/roles-and-permissions",
+      "source": "/apis/features/authorization/example"
+    },
+    {
+      "destination": "/api-management/authorization/overview",
+      "source": "/apis/features/authorization/introduction"
+    },
+    {
+      "destination": "/api-management/authorization/roles-and-permissions",
+      "source": "/apis/features/authorization/roles-and-permissions"
+    },
+    {
+      "destination": "/api-management/authorization/permission-queries",
+      "source": "/apis/features/authorization/verifying"
+    },
+    {
+      "destination": "/api-management/keys/enable-disable-delete",
+      "source": "/apis/features/enabled"
+    },
+    {
+      "destination": "/api-management/keys/metadata-and-tags",
+      "source": "/apis/features/environments"
+    },
+    {
+      "destination": "/api-management/ratelimiting/key-and-identity-limits",
+      "source": "/apis/features/ratelimiting"
+    },
+    {
+      "destination": "/api-management/ratelimiting/how-it-works",
+      "source": "/apis/features/ratelimiting/modes"
+    },
+    {
+      "destination": "/api-management/ratelimiting/key-and-identity-limits",
+      "source": "/apis/features/ratelimiting/overview"
+    },
+    {
+      "destination": "/api-management/keys/credits-and-refill",
+      "source": "/apis/features/refill"
+    },
+    {
+      "destination": "/api-management/keys/rerolling-keys",
+      "source": "/apis/features/rerolling-key"
+    },
+    {
+      "destination": "/api-management/keys/enable-disable-delete",
+      "source": "/apis/features/revocation"
+    },
+    {
+      "destination": "/api-management/keys/expiration",
+      "source": "/apis/features/temp-keys"
+    },
+    {
+      "destination": "/api-management/keyspaces/settings",
+      "source": "/apis/features/whitelist"
+    },
+    {
+      "destination": "/api-management/index",
+      "source": "/apis/introduction"
+    },
+    {
+      "destination": "/api-management/guides/bun",
+      "source": "/apis/quickstart/bun"
+    },
+    {
+      "destination": "/api-management/guides/express",
+      "source": "/apis/quickstart/express"
+    },
+    {
+      "destination": "/api-management/guides/nextjs",
+      "source": "/apis/quickstart/nextjs"
+    },
+    {
+      "destination": "/platform/workspace/log-drains",
+      "source": "/audit-log/log-drains"
+    },
+    {
+      "destination": "/api-management/identities/overview",
+      "source": "/concepts/identities/overview"
+    },
+    {
+      "destination": "/api-management/identities/shared-rate-limits",
+      "source": "/concepts/identities/quickstart"
+    },
+    {
+      "destination": "/api-management/identities/shared-rate-limits",
+      "source": "/concepts/identities/ratelimits"
+    },
+    {
+      "destination": "/api-management/analytics/overview",
+      "source": "/features/analytics"
+    },
+    {
+      "destination": "/platform/workspace/audit-logs/overview",
+      "source": "/features/audit-log"
+    },
+    {
+      "destination": "/api-management/authorization/roles-and-permissions",
+      "source": "/features/authorization/example"
+    },
+    {
+      "destination": "/api-management/authorization/overview",
+      "source": "/features/authorization/introduction"
+    },
+    {
+      "destination": "/api-management/authorization/roles-and-permissions",
+      "source": "/features/authorization/roles-and-permissions"
+    },
+    {
+      "destination": "/api-management/authorization/permission-queries",
+      "source": "/features/authorization/verifying"
+    },
+    {
+      "destination": "/api-management/keys/enable-disable-delete",
+      "source": "/features/enabled"
+    },
+    {
+      "destination": "/api-management/keys/metadata-and-tags",
+      "source": "/features/environments"
+    },
+    {
+      "destination": "/api-management/ratelimiting/key-and-identity-limits",
+      "source": "/features/ratelimiting"
+    },
+    {
+      "destination": "/api-management/keys/credits-and-refill",
+      "source": "/features/refill"
+    },
+    {
+      "destination": "/api-management/keys/credits-and-refill",
+      "source": "/features/remaining"
+    },
+    {
+      "destination": "/api-management/keys/enable-disable-delete",
+      "source": "/features/revocation"
+    },
+    {
+      "destination": "/api-management/keys/expiration",
+      "source": "/features/temp-keys"
+    },
+    {
+      "destination": "/api-management/keyspaces/settings",
+      "source": "/features/whitelist"
+    },
+    {
+      "destination": "/",
+      "source": "/integrations/vercel"
+    },
+    {
+      "destination": "/api-management/sdks/go",
+      "source": "/libraries/go/api/get"
+    },
+    {
+      "destination": "/api-management/sdks/go",
+      "source": "/libraries/go/api/list"
+    },
+    {
+      "destination": "/api-management/sdks/go",
+      "source": "/libraries/go/apis/get"
+    },
+    {
+      "destination": "/api-management/sdks/go",
+      "source": "/libraries/go/apis/list-keys"
+    },
+    {
+      "destination": "/api-management/sdks/go",
+      "source": "/libraries/go/apis/overview"
+    },
+    {
+      "destination": "/api-management/sdks/go",
+      "source": "/libraries/go/functions/create"
+    },
+    {
+      "destination": "/api-management/sdks/go",
+      "source": "/libraries/go/functions/revoke"
+    },
+    {
+      "destination": "/api-management/sdks/go",
+      "source": "/libraries/go/functions/update"
+    },
+    {
+      "destination": "/api-management/sdks/go",
+      "source": "/libraries/go/functions/verify"
+    },
+    {
+      "destination": "/api-management/sdks/go",
+      "source": "/libraries/go/keys/create"
+    },
+    {
+      "destination": "/api-management/sdks/go",
+      "source": "/libraries/go/keys/delete"
+    },
+    {
+      "destination": "/api-management/sdks/go",
+      "source": "/libraries/go/keys/get"
+    },
+    {
+      "destination": "/api-management/sdks/go",
+      "source": "/libraries/go/keys/get-verifications"
+    },
+    {
+      "destination": "/api-management/sdks/go",
+      "source": "/libraries/go/keys/update"
+    },
+    {
+      "destination": "/api-management/sdks/go",
+      "source": "/libraries/go/keys/update-remaining"
+    },
+    {
+      "destination": "/api-management/sdks/go",
+      "source": "/libraries/go/keys/verify"
+    },
+    {
+      "destination": "/api-management/sdks/go",
+      "source": "/libraries/go/ratelimits/limit"
+    },
+    {
+      "destination": "/api-management/sdks/python",
+      "source": "/libraries/py/async"
+    },
+    {
+      "destination": "/api-management/sdks/python",
+      "source": "/libraries/py/services/apis"
+    },
+    {
+      "destination": "/api-management/sdks/python",
+      "source": "/libraries/py/services/identities"
+    },
+    {
+      "destination": "/api-management/sdks/python",
+      "source": "/libraries/py/services/keys"
+    },
+    {
+      "destination": "/api-management/sdks/python",
+      "source": "/libraries/py/services/migrations"
+    },
+    {
+      "destination": "/api-management/sdks/python",
+      "source": "/libraries/py/services/permissions"
+    },
+    {
+      "destination": "/api-management/sdks/python",
+      "source": "/libraries/py/services/ratelimits"
+    },
+    {
+      "destination": "/api-management/sdks/typescript/cache",
+      "source": "/libraries/ts/cache"
+    },
+    {
+      "destination": "/api-management/sdks/typescript/ratelimit",
+      "source": "/libraries/ts/ratelimit"
+    },
+    {
+      "destination": "/api-management/sdks/typescript/api",
+      "source": "/libraries/ts/sdk/analytics/get"
+    },
+    {
+      "destination": "/api-management/sdks/typescript/api",
+      "source": "/libraries/ts/sdk/apis/create"
+    },
+    {
+      "destination": "/api-management/sdks/typescript/api",
+      "source": "/libraries/ts/sdk/apis/delete"
+    },
+    {
+      "destination": "/api-management/sdks/typescript/api",
+      "source": "/libraries/ts/sdk/apis/get"
+    },
+    {
+      "destination": "/api-management/sdks/typescript/api",
+      "source": "/libraries/ts/sdk/apis/list-keys"
+    },
+    {
+      "destination": "/api-management/sdks/typescript/api",
+      "source": "/libraries/ts/sdk/identities/create-identity"
+    },
+    {
+      "destination": "/api-management/sdks/typescript/api",
+      "source": "/libraries/ts/sdk/identities/delete-identity"
+    },
+    {
+      "destination": "/api-management/sdks/typescript/api",
+      "source": "/libraries/ts/sdk/identities/get-identity"
+    },
+    {
+      "destination": "/api-management/sdks/typescript/api",
+      "source": "/libraries/ts/sdk/identities/list-identity"
+    },
+    {
+      "destination": "/api-management/sdks/typescript/api",
+      "source": "/libraries/ts/sdk/identities/update-identity"
+    },
+    {
+      "destination": "/api-management/sdks/typescript/api",
+      "source": "/libraries/ts/sdk/keys/add-permission"
+    },
+    {
+      "destination": "/api-management/sdks/typescript/api",
+      "source": "/libraries/ts/sdk/keys/add-roles"
+    },
+    {
+      "destination": "/api-management/sdks/typescript/api",
+      "source": "/libraries/ts/sdk/keys/create"
+    },
+    {
+      "destination": "/api-management/sdks/typescript/api",
+      "source": "/libraries/ts/sdk/keys/delete"
+    },
+    {
+      "destination": "/api-management/sdks/typescript/api",
+      "source": "/libraries/ts/sdk/keys/get"
+    },
+    {
+      "destination": "/api-management/sdks/typescript/api",
+      "source": "/libraries/ts/sdk/keys/remove-permission"
+    },
+    {
+      "destination": "/api-management/sdks/typescript/api",
+      "source": "/libraries/ts/sdk/keys/remove-roles"
+    },
+    {
+      "destination": "/api-management/sdks/typescript/api",
+      "source": "/libraries/ts/sdk/keys/revoke"
+    },
+    {
+      "destination": "/api-management/sdks/typescript/api",
+      "source": "/libraries/ts/sdk/keys/set-permission"
+    },
+    {
+      "destination": "/api-management/sdks/typescript/api",
+      "source": "/libraries/ts/sdk/keys/set-roles"
+    },
+    {
+      "destination": "/api-management/sdks/typescript/api",
+      "source": "/libraries/ts/sdk/keys/update"
+    },
+    {
+      "destination": "/api-management/sdks/typescript/api",
+      "source": "/libraries/ts/sdk/keys/update-remaining"
+    },
+    {
+      "destination": "/api-management/sdks/typescript/api",
+      "source": "/libraries/ts/sdk/keys/verifications"
+    },
+    {
+      "destination": "/api-management/sdks/typescript/api",
+      "source": "/libraries/ts/sdk/keys/verify"
+    },
+    {
+      "destination": "/api-management/sdks/typescript/api",
+      "source": "/libraries/ts/sdk/migrations/migrate-to-unkey"
+    },
+    {
+      "destination": "/api-management/sdks/typescript/api",
+      "source": "/libraries/ts/sdk/overview"
+    },
+    {
+      "destination": "/api-management/sdks/typescript/api",
+      "source": "/libraries/ts/sdk/permissions/create-permission"
+    },
+    {
+      "destination": "/api-management/sdks/typescript/api",
+      "source": "/libraries/ts/sdk/permissions/create-role"
+    },
+    {
+      "destination": "/api-management/sdks/typescript/api",
+      "source": "/libraries/ts/sdk/permissions/delete-permission"
+    },
+    {
+      "destination": "/api-management/sdks/typescript/api",
+      "source": "/libraries/ts/sdk/permissions/delete-role"
+    },
+    {
+      "destination": "/api-management/sdks/typescript/api",
+      "source": "/libraries/ts/sdk/permissions/get-permission"
+    },
+    {
+      "destination": "/api-management/sdks/typescript/api",
+      "source": "/libraries/ts/sdk/permissions/get-role"
+    },
+    {
+      "destination": "/api-management/sdks/typescript/api",
+      "source": "/libraries/ts/sdk/ratelimits/limit"
+    },
+    {
+      "destination": "/api-management/sdks/typescript/api",
+      "source": "/libraries/ts/sdk/ratelimits/overrides/delete-override"
+    },
+    {
+      "destination": "/api-management/sdks/typescript/api",
+      "source": "/libraries/ts/sdk/ratelimits/overrides/get-override"
+    },
+    {
+      "destination": "/api-management/sdks/typescript/api",
+      "source": "/libraries/ts/sdk/ratelimits/overrides/list-overrides"
+    },
+    {
+      "destination": "/api-management/sdks/typescript/api",
+      "source": "/libraries/ts/sdk/ratelimits/overrides/set-override"
+    },
+    {
+      "destination": "/api-management/keys/migrating-keys",
+      "source": "/migrations/introduction"
+    },
+    {
+      "destination": "/api-management/keys/migrating-keys",
+      "source": "/migrations/keys"
+    },
+    {
+      "destination": "/compute/get-started/plans",
+      "source": "/platform/workspaces/compute-billing"
+    },
+    {
+      "destination": "/api-management/guides/bun",
+      "source": "/quickstart/bun"
+    },
+    {
+      "destination": "/api-management/guides/express",
+      "source": "/quickstart/express"
+    },
+    {
+      "destination": "/api-management/guides/express",
+      "source": "/quickstart/expresss"
+    },
+    {
+      "destination": "/api-management/guides/nextjs",
+      "source": "/quickstart/nextjs"
+    },
+    {
+      "destination": "/api-management/get-started/quickstart",
+      "source": "/quickstart/onboarding"
+    },
+    {
+      "destination": "/api-management/guides/bun",
+      "source": "/quickstart/typescript/bun"
+    },
+    {
+      "destination": "/api-management/guides/express",
+      "source": "/quickstart/typescript/express"
+    },
+    {
+      "destination": "/api-management/ratelimiting/overrides",
+      "source": "/ratelimiting/automated-overrides"
+    },
+    {
+      "destination": "/api-management/ratelimiting/overview",
+      "source": "/ratelimiting/introduction"
+    },
+    {
+      "destination": "/api-management/ratelimiting/how-it-works",
+      "source": "/ratelimiting/modes"
+    },
+    {
+      "destination": "/api-management/ratelimiting/overrides",
+      "source": "/ratelimiting/overrides"
+    },
+    {
+      "destination": "/platform/security/overview",
+      "source": "/security"
+    },
+    {
+      "destination": "/platform/root-keys/overview",
+      "source": "/security/root-keys"
+    },
+    {
+      "destination": "/platform/api/errors",
+      "source": "/api-reference/errors/code/BAD_REQUEST"
+    },
+    {
+      "destination": "/platform/api/errors",
+      "source": "/api-reference/errors/code/CONFLICT"
+    },
+    {
+      "destination": "/platform/api/errors",
+      "source": "/api-reference/errors/code/DELETE_PROTECTED"
+    },
+    {
+      "destination": "/platform/api/errors",
+      "source": "/api-reference/errors/code/DISABLED"
+    },
+    {
+      "destination": "/platform/api/errors",
+      "source": "/api-reference/errors/code/EXPIRED"
+    },
+    {
+      "destination": "/platform/api/errors",
+      "source": "/api-reference/errors/code/FORBIDDEN"
+    },
+    {
+      "destination": "/platform/api/errors",
+      "source": "/api-reference/errors/code/INSUFFICIENT_PERMISSIONS"
+    },
+    {
+      "destination": "/platform/api/errors",
+      "source": "/api-reference/errors/code/INTERNAL_SERVER_ERROR"
+    },
+    {
+      "destination": "/platform/api/errors",
+      "source": "/api-reference/errors/code/INVALID_KEY_TYPE"
+    },
+    {
+      "destination": "/platform/api/errors",
+      "source": "/api-reference/errors/code/KEY_USAGE_EXCEEDED"
+    },
+    {
+      "destination": "/platform/api/errors",
+      "source": "/api-reference/errors/code/NOT_FOUND"
+    },
+    {
+      "destination": "/platform/api/errors",
+      "source": "/api-reference/errors/code/NOT_UNIQUE"
+    },
+    {
+      "destination": "/platform/api/errors",
+      "source": "/api-reference/errors/code/PRECONDITION_FAILED"
+    },
+    {
+      "destination": "/platform/api/errors",
+      "source": "/api-reference/errors/code/RATELIMITED"
+    },
+    {
+      "destination": "/platform/api/errors",
+      "source": "/api-reference/errors/code/TOO_MANY_REQUESTS"
+    },
+    {
+      "destination": "/platform/api/errors",
+      "source": "/api-reference/errors/code/UNAUTHORIZED"
+    },
+    {
+      "destination": "/api-management/cookbook/fastapi-auth",
+      "source": "/cookbook/python-fastapi-ratelimit"
+    },
+    {
+      "destination": "/api-management/guides/python",
+      "source": "/cookbook/python-flask-auth"
+    },
+    {
+      "destination": "/api-management/sdks/typescript/api",
+      "source": "/libraries/js/apis/get"
+    },
+    {
+      "destination": "/api-management/sdks/typescript/api",
+      "source": "/libraries/js/apis/list-keys"
+    },
+    {
+      "destination": "/api-management/sdks/typescript/api",
+      "source": "/libraries/js/keys/create"
+    },
+    {
+      "destination": "/api-management/sdks/typescript/api",
+      "source": "/libraries/js/keys/revoke"
+    },
+    {
+      "destination": "/api-management/sdks/typescript/api",
+      "source": "/libraries/js/keys/update"
+    },
+    {
+      "destination": "/api-management/sdks/typescript/api",
+      "source": "/libraries/js/keys/verify"
+    },
+    {
+      "destination": "/api-management/sdks/typescript/api",
+      "source": "/libraries/js/overview"
+    },
+    {
+      "destination": "/compute/gateway/policies",
+      "source": "/platform/sentinel/policies/ip-rules"
+    },
+    {
+      "destination": "/compute/gateway/policies",
+      "source": "/platform/sentinel/policies/jwt"
+    },
+    {
+      "destination": "/compute/gateway/principal",
+      "source": "/platform/sentinel/principal/sources/jwt"
+    },
+    {
+      "destination": "/api-management/api-reference/apis/:slug*",
+      "source": "/api-reference/v2/apis/:slug*"
+    },
+    {
+      "destination": "/compute/api-reference/apps/:slug*",
+      "source": "/api-reference/v2/apps/:slug*"
+    },
+    {
+      "destination": "/compute/api-reference/domains/:slug*",
+      "source": "/api-reference/v2/domains/:slug*"
+    },
+    {
+      "destination": "/compute/api-reference/environments/:slug*",
+      "source": "/api-reference/v2/environments/:slug*"
+    },
+    {
+      "destination": "/compute/api-reference/gateway/:slug*",
+      "source": "/api-reference/v2/gateway/:slug*"
+    },
+    {
+      "destination": "/compute/api-reference/github/:slug*",
+      "source": "/api-reference/v2/github/:slug*"
+    },
+    {
+      "destination": "/api-management/api-reference/identities/:slug*",
+      "source": "/api-reference/v2/identities/:slug*"
+    },
+    {
+      "destination": "/api-management/api-reference/keys/:slug*",
+      "source": "/api-reference/v2/keys/:slug*"
+    },
+    {
+      "destination": "/api-management/api-reference/permissions/:slug*",
+      "source": "/api-reference/v2/permissions/:slug*"
+    },
+    {
+      "destination": "/compute/api-reference/projects/:slug*",
+      "source": "/api-reference/v2/projects/:slug*"
+    },
+    {
+      "destination": "/api-management/api-reference/ratelimit/:slug*",
+      "source": "/api-reference/v2/ratelimit/:slug*"
     },
     {
       "destination": "/api-management/api-reference/apis/:slug*",

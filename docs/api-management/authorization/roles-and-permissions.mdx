@@ -53,6 +53,7 @@ The response has `permissionId` (`perm_...`). A duplicate slug fails with HTTP 4
 
 - `permissions.getPermission` takes the ID or slug.
 - `permissions.listPermissions` takes `limit` (1 to 100, default 100), `cursor` (up to 1024 characters), and `search` (up to 256 characters, matched against ID, name, slug, or description, ignoring case).
+- `permissions.updatePermission` takes the ID or slug in `permission`, plus any of `name`, `slug`, and `description`. Omitted fields stay unchanged, and `description: null` removes the description. It needs `unkey:v1:<workspace_id>:projects/<project_id>/rbac/permissions/<permission_id>#write`. A slug that another permission already uses fails with HTTP 409. Keys and roles keep the permission after a slug change. Key verification can return the old slug for a short time while caches refresh.
 - `permissions.deletePermission` deletes the permission and removes it from every role and key.
 
 ## Roles
@@ -81,6 +82,8 @@ curl -X POST https://api.unkey.com/v2/permissions.createRole \
 ```
 
 The response has `roleId` (`role_...`). A duplicate name fails with HTTP 409 [`err:unkey:data:role_already_exists`](/errors/unkey/data/role_already_exists). `permissions.getRole` and `permissions.listRoles` return roles with their permissions. `permissions.deleteRole` deletes the role, and keys lose its permissions unless they get them another way.
+
+`permissions.updateRole` takes the ID or name in `role`, plus any of `name` and `description`. Omitted fields stay unchanged, and `description: null` removes the description. It needs `unkey:v1:<workspace_id>:projects/<project_id>/rbac/roles/<role_id>#write`. A name that another role already uses fails with HTTP 409. Keys keep the role after a rename, but requests that name the role, such as `keys.addRoles`, must use the new name. Key verification can return the old name for a short time while caches refresh.
 
 ### Change a role's permissions
 

@@ -16,11 +16,12 @@ sources:
   - pkg/deploy/deployfail/messages.go
   - svc/ctrl/worker/deploy/build_handler.go
   - svc/ctrl/worker/cron/buildlimitsync/handler.go
+  - svc/api/routes/v2_workspace_get_limits/handler.go
 ---
 
 Your Compute plan sets how much CPU, memory, and disk your <Tooltip tip="A Compute app: a deployable service inside a project. Not 'your application' in general.">apps</Tooltip> can use. Here's each limit, when we check it, and what you see when you hit it. The full workspace table, including API Management, is on [Limits](/platform/billing/limits).
 
-**Settings > Limits** shows these limits with your current usage once you have a Compute plan. A limit you've reached shows the banner "You've reached a limit".
+**Settings > Limits** shows these limits with your current usage once you have a Compute plan. A limit you've reached shows the banner "You've reached a limit". To read the same limits and usage from code, call `workspace.getLimits` with a root key that has `unkey:v1:{workspace_id}:limits#read`.
 
 <Frame>
   <img src="/images/dashboard/compute--configure-limits--limits.png" alt="Limits settings page showing API management, logs, and Compute limits with current usage bars" />

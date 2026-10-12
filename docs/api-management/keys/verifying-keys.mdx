@@ -20,7 +20,9 @@ sources:
 
 import RootKeyPrereq from "/snippets/root-key-prereq.mdx";
 
-Call `keys.verifyKey` on every request that carries a key. Send the key exactly as your user sent it. Unkey runs the checks set on the key, plus any you add to the request, and returns one answer. The response is HTTP 200 for every outcome, so read `data.valid` and `data.code`, not the status code.
+Verify an API key for your public API by calling `keys.verifyKey` with the key your user sent. This is the API Management endpoint. Use it when your own server, not the Compute gateway, decides whether the request is allowed.
+
+Send the key exactly as your user sent it. Unkey runs the checks set on the key, plus any you add to the request, and returns one answer. The response is HTTP 200 for every outcome, including an invalid key, a rate limit, and a used-up credit balance. Read `data.valid` and `data.code`, not the status code. Your server then returns 401 or 429 to the caller. See [Rate limiting](/api-management/ratelimiting/overview#what-a-limited-request-looks-like) for `Retry-After`.
 
 <RootKeyPrereq />
 

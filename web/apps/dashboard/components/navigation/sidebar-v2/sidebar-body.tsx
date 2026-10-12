@@ -1,6 +1,8 @@
 "use client";
 
+import { warmDeploymentsTable } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/data-provider-queries";
 import { useApiKeyAuthId } from "@/hooks/use-api-key-auth-id";
+import { usePrefetchWorkspaceUsage } from "@/hooks/use-prefetch-workspace-usage";
 import { useSectionContext } from "@/hooks/use-section-context";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { useFlag } from "@/lib/flags/provider";
@@ -15,6 +17,7 @@ import {
   buildProjectLinks as buildProjectsNavProjectLinks,
   buildWorkspaceSections as buildProjectsNavWorkspaceSections,
 } from "@/lib/navigation/leaves-projects";
+import { routes } from "@/lib/navigation/routes";
 import { useWorkspace } from "@/providers/workspace-provider";
 import { useSelectedLayoutSegments } from "next/navigation";
 import { NavLinkList } from "./nav-link-list";
@@ -31,6 +34,7 @@ export function SidebarBody() {
   const portalManagement = useFlag("portalManagement");
   const projectsNav = useFlag("projectsNav");
   const { user } = useWorkspace();
+  const prefetchUsage = usePrefetchWorkspaceUsage();
 
   const workspaceSections = (segs: string[]) =>
     projectsNav
@@ -48,10 +52,16 @@ export function SidebarBody() {
       case "settings":
       case "authorization":
         return workspaceSections(segments);
-      case "project":
-        return context.appId
-          ? buildAppLinks(slug, context.projectId, context.appId, segments)
-          : projectLinks(slug, context.projectId, segments);
+      case "project": {
+        const { projectId, appId } = context;
+        return appId
+          ? buildAppLinks(slug, projectId, appId, segments).map((link) =>
+              link.key === "deployments"
+                ? { ...link, onIntent: () => warmDeploymentsTable(projectId, appId) }
+                : link,
+            )
+          : projectLinks(slug, projectId, segments);
+      }
       case "api":
         return buildApiLinks(
           { workspaceSlug: slug, apiId: context.apiId, projectId: context.projectId },
@@ -71,5 +81,13 @@ export function SidebarBody() {
     }
   })();
 
-  return <NavLinkList links={links} />;
+  const settingsHref = routes.settings.general({ workspaceSlug: slug });
+
+  return (
+    <NavLinkList
+      links={links.map((link) =>
+        link.href === settingsHref ? { ...link, onIntent: prefetchUsage } : link,
+      )}
+    />
+  );
 }

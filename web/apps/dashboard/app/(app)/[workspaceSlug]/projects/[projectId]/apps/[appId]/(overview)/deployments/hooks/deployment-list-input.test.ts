@@ -1,3 +1,4 @@
+import { DEPLOYMENT_STATUSES } from "@/lib/collections/deploy/deployment-status";
 import type { Environment } from "@/lib/collections/deploy/environments";
 import { describe, expect, test } from "vitest";
 import type { DeploymentListFilterValue } from "../filters.schema";
@@ -14,19 +15,19 @@ const filter = (
 ): DeploymentListFilterValue => ({ id: `${field}:${value}`, field, operator: "is", value });
 
 describe("buildDeploymentListInput", () => {
-  test("no filters yields an empty input", () => {
+  test("no filters asks for every status except skipped", () => {
     expect(buildDeploymentListInput([], environments)).toEqual({
-      input: {},
+      filter: { statuses: DEPLOYMENT_STATUSES.filter((s) => s !== "skipped"), branches: [] },
       cannotMatch: false,
     });
   });
 
   test("expands status groups into raw statuses", () => {
-    const { input } = buildDeploymentListInput(
+    const { filter: listFilter } = buildDeploymentListInput(
       [filter("status", "building"), filter("status", "ready")],
       environments,
     );
-    expect(input.statuses).toEqual([
+    expect(listFilter.statuses).toEqual([
       "starting",
       "building",
       "deploying",
@@ -37,11 +38,11 @@ describe("buildDeploymentListInput", () => {
   });
 
   test("maps the previous filter bar's status values onto their groups", () => {
-    const { input } = buildDeploymentListInput(
-      [filter("status", "deploying"), filter("status", "pending")],
+    const { filter: listFilter } = buildDeploymentListInput(
+      [filter("status", "deploying"), filter("status", "network"), filter("status", "pending")],
       environments,
     );
-    expect(input.statuses).toEqual([
+    expect(listFilter.statuses).toEqual([
       "starting",
       "building",
       "deploying",
@@ -51,45 +52,51 @@ describe("buildDeploymentListInput", () => {
     ]);
   });
 
-  test("keeps skipped separate from cancelled", () => {
-    const { input } = buildDeploymentListInput([filter("status", "skipped")], environments);
-    expect(input.statuses).toEqual(["skipped"]);
+  test("sends the skipped group unchanged", () => {
+    const { filter: listFilter } = buildDeploymentListInput(
+      [filter("status", "skipped")],
+      environments,
+    );
+    expect(listFilter.statuses).toEqual(["skipped"]);
   });
 
   test("flags a status that is not a group as unable to match", () => {
     const result = buildDeploymentListInput([filter("status", "constructor")], environments);
-    expect(result.input.statuses).toBeUndefined();
     expect(result.cannotMatch).toBe(true);
   });
 
-  test("resolves environment slugs to ids", () => {
-    const { input, cannotMatch } = buildDeploymentListInput(
+  test("resolves a single environment slug to its id", () => {
+    const { filter: listFilter, cannotMatch } = buildDeploymentListInput(
       [filter("environment", "production")],
       environments,
     );
-    expect(input.environmentIds).toEqual(["env_prod"]);
+    expect(listFilter.environmentId).toBe("env_prod");
     expect(cannotMatch).toBe(false);
   });
 
   test("flags an environment slug this app does not have", () => {
     const result = buildDeploymentListInput([filter("environment", "staging")], environments);
-    expect(result.input.environmentIds).toBeUndefined();
+    expect(result.filter.environmentId).toBeUndefined();
     expect(result.cannotMatch).toBe(true);
   });
 
   test("passes branches and explicit time bounds through", () => {
-    const { input } = buildDeploymentListInput(
+    const { filter: listFilter } = buildDeploymentListInput(
       [filter("branch", "main"), filter("startTime", 1_000), filter("endTime", 2_000)],
       environments,
     );
-    expect(input).toEqual({ branches: ["main"], startTime: 1_000, endTime: 2_000 });
+    expect(listFilter).toMatchObject({ branches: ["main"], startTime: 1_000, endTime: 2_000 });
   });
 
   test("turns a relative window into a start time floored to the minute", () => {
     const now = 1_700_000_000_123;
-    const { input } = buildDeploymentListInput([filter("since", "1h")], environments, now);
+    const { filter: listFilter } = buildDeploymentListInput(
+      [filter("since", "1h")],
+      environments,
+      now,
+    );
     const expected = Math.floor((now - 60 * 60 * 1000) / 60_000) * 60_000;
-    expect(input.startTime).toBe(expected);
+    expect(listFilter.startTime).toBe(expected);
   });
 
   test.each([
@@ -98,17 +105,21 @@ describe("buildDeploymentListInput", () => {
     ["1w2d3h30m", "2026-09-19T09:04:00Z"],
   ])("converts the URL relative window %s", (since, expected) => {
     const now = Date.parse("2026-09-28T12:34:56.789Z");
-    const { input } = buildDeploymentListInput([filter("since", since)], environments, now);
-    expect(input.startTime).toBe(Date.parse(expected));
+    const { filter: listFilter } = buildDeploymentListInput(
+      [filter("since", since)],
+      environments,
+      now,
+    );
+    expect(listFilter.startTime).toBe(Date.parse(expected));
   });
 
   test("keeps the later of an explicit start and a relative window", () => {
     const now = 1_700_000_000_000;
-    const { input } = buildDeploymentListInput(
+    const { filter: listFilter } = buildDeploymentListInput(
       [filter("since", "1h"), filter("startTime", now)],
       environments,
       now,
     );
-    expect(input.startTime).toBe(now);
+    expect(listFilter.startTime).toBe(now);
   });
 });

@@ -133,22 +133,24 @@ func TestPermissionStoragePreservesCase(t *testing.T) {
 	require.ElementsMatch(t, requested, stored)
 }
 
-func snapshot(t *testing.T, h *testutil.Harness) []int {
+func snapshot(t *testing.T, h *testutil.Harness) []int64 {
 	t.Helper()
-	var counts []int
+	rootWorkspaceID := h.LegacyRootResources().Workspace.ID
+	userWorkspaceID := h.Resources().UserWorkspace.ID
+	var counts []int64
 	for _, query := range []struct {
-		sql  string
-		args []any
+		count       func(context.Context, db.DBTX, string) (int64, error)
+		workspaceID string
 	}{
-		{"SELECT COUNT(*) FROM `keys`", nil},
-		{"SELECT COUNT(*) FROM unkey_root_keys WHERE workspace_id = ?", []any{h.Resources().UserWorkspace.ID}},
-		{"SELECT COUNT(*) FROM permissions", nil},
-		{"SELECT COUNT(*) FROM keys_permissions", nil},
-		{"SELECT COUNT(*) FROM unkey_principal_permissions WHERE workspace_id = ?", []any{h.Resources().UserWorkspace.ID}},
-		{"SELECT COUNT(*) FROM clickhouse_outbox WHERE workspace_id = ?", []any{h.Resources().UserWorkspace.ID}},
+		{db.Query.CountKeysByWorkspace, rootWorkspaceID},
+		{db.Query.CountUnkeyRootKeysByWorkspace, userWorkspaceID},
+		{db.Query.CountPermissionsByWorkspace, rootWorkspaceID},
+		{db.Query.CountKeyPermissionsByWorkspace, rootWorkspaceID},
+		{db.Query.CountUnkeyPermissionsByWorkspace, userWorkspaceID},
+		{db.Query.CountClickhouseOutboxByWorkspace, userWorkspaceID},
 	} {
-		var count int
-		require.NoError(t, h.DB.RO().QueryRowContext(t.Context(), query.sql, query.args...).Scan(&count))
+		count, err := query.count(t.Context(), h.DB.RO(), query.workspaceID)
+		require.NoError(t, err)
 		counts = append(counts, count)
 	}
 	return counts

@@ -17,18 +17,22 @@ sources:
 
 import RootKeyPrereq from "/snippets/root-key-prereq.mdx";
 
-If your app already has API keys in production, you can move them to Unkey without asking users to replace them. You send us the hash of each key, never the key itself, and your users keep using the keys they have. We agree on the hash format with you first.
+Move homegrown API keys to Unkey by sending the hash of each key, never the key itself. Users keep the keys they already have. After the import, your backend calls `keys.verifyKey` instead of looking keys up in your own table.
+
+After the move, you no longer store plaintext keys or write the hash comparison. If you switch those checks over too, you also stop running your own rate-limit counters and monthly usage counters. You still run your API, unless you deploy it on Compute, and you still return 401 and 429 to your users. Unkey stores a SHA-256 hash of the full key, base64 encoded, and compares that on verification. See [How Unkey stores API keys](/platform/security/overview#how-unkey-stores-api-keys).
+
+Agree the hash format with Unkey before the import. The two formats are below.
 
 ## Get a migration ID
 
-Email [support@unkey.com](mailto:support@unkey.com) with your workspace ID, the system the keys come from, and how they're hashed, and we'll send you a `migrationId`. We support two hash formats today.
+Email [support@unkey.com](mailto:support@unkey.com) with your workspace ID, the system the keys come from, and how they're hashed. Support sends a `migrationId`. Two hash formats work today.
 
 | Algorithm | What you send as `hash` | Verification |
 | --- | --- | --- |
 | `sha256` | SHA-256 of the full key string, **base64** encoded. This is Unkey's native format. | Works immediately with a plain `keys.verifyKey`; no `migrationId` needed at verify time. |
 | `github.com/seamapi/prefixed-api-key` | SHA-256 of the key's long token only, **hex** encoded, as that library stores it. Keys look like `prefix_shortToken_longToken`. | Send `migrationId` on `keys.verifyKey` until each key has been verified once. After that the key verifies without it. |
 
-Keys hashed any other way, such as bcrypt or a salted hash, can't be imported from the hash alone. Tell support, and we'll plan the migration another way.
+Keys hashed any other way, such as bcrypt or a salted hash, can't be imported from the hash alone. Tell support, and the migration needs another plan.
 
 ### Hash the keys yourself
 

@@ -1,6 +1,7 @@
 package handler_test
 
 import (
+	"database/sql"
 	"net/http"
 	"slices"
 	"strings"
@@ -10,6 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/array"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/hash"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
@@ -29,9 +31,18 @@ func TestListRootKeysPaginatesReadableNewKeys(t *testing.T) {
 	}
 	slices.Sort(ids)
 	for _, id := range ids {
-		key := h.CreateUnkeyRootKey(seed.CreateUnkeyRootKeyRequest{WorkspaceID: workspace.ID})
-		_, err := h.DB.RW().ExecContext(t.Context(), "UPDATE unkey_root_keys SET id = ? WHERE id = ?", id, key.KeyID)
-		require.NoError(t, err)
+		require.NoError(t, db.Query.InsertUnkeyRootKey(t.Context(), h.DB.RW(), db.InsertUnkeyRootKeyParams{
+			ID:          id,
+			WorkspaceID: workspace.ID,
+			Hash:        hash.Sha256(uid.New("")),
+			Name:        sql.NullString{},
+			Prefix:      "unkey",
+			Start:       "test",
+			End:         "test",
+			Enabled:     true,
+			Expires:     sql.NullInt64{},
+			CreatedAt:   time.Now().UnixMilli(),
+		}))
 	}
 	caller := h.CreateRootKey(workspace.ID,
 		"unkey:v1:"+workspace.ID+":rootKeys/"+ids[2]+"#read",
@@ -59,9 +70,12 @@ func TestListRootKeysReturnsNewMetadataAndPermissions(t *testing.T) {
 	key := h.CreateUnkeyRootKey(seed.CreateUnkeyRootKeyRequest{
 		WorkspaceID: workspace.ID, Name: &name, Disabled: true, Expires: &expires, Permissions: []string{permission},
 	})
-	lastUsedAt := int64(1600000000456)
-	_, err := h.DB.RW().ExecContext(t.Context(), "UPDATE unkey_root_keys SET last_used_at = ? WHERE id = ?", lastUsedAt, key.KeyID)
-	require.NoError(t, err)
+	const lastUsedAt = 1600000000456
+	require.NoError(t, db.Query.UpdateUnkeyRootKeyLastUsedAt(t.Context(), h.DB.RW(), db.UpdateUnkeyRootKeyLastUsedAtParams{
+		LastUsedAt:  lastUsedAt,
+		ID:          key.KeyID,
+		WorkspaceID: workspace.ID,
+	}))
 	for _, row := range []struct {
 		workspaceID   string
 		principalType db.UnkeyPrincipalPermissionsPrincipalType
@@ -84,7 +98,7 @@ func TestListRootKeysReturnsNewMetadataAndPermissions(t *testing.T) {
 	require.Equal(t, []string{permission}, item.Permissions)
 	require.Equal(t, "", item.Name.MustGet())
 	require.Equal(t, expires.UnixMilli(), item.Expires.MustGet())
-	require.Equal(t, lastUsedAt, item.LastUsedAt)
+	require.Equal(t, int64(lastUsedAt), item.LastUsedAt)
 	require.False(t, item.Enabled)
 	require.NotContains(t, res.RawBody, key.Key)
 	require.NotContains(t, res.RawBody, `"hash"`)
@@ -99,7 +113,11 @@ func TestListRootKeysIgnoresLegacyForeignAndDeletedKeys(t *testing.T) {
 	foreign := h.CreateWorkspace()
 	visible := h.CreateUnkeyRootKey(seed.CreateUnkeyRootKeyRequest{WorkspaceID: workspace.ID})
 	deleted := h.CreateUnkeyRootKey(seed.CreateUnkeyRootKeyRequest{WorkspaceID: workspace.ID})
-	_, err := h.DB.RW().ExecContext(t.Context(), "UPDATE unkey_root_keys SET deleted_at = 1 WHERE id = ?", deleted.KeyID)
+	_, err := db.Query.SoftDeleteUnkeyRootKey(t.Context(), h.DB.RW(), db.SoftDeleteUnkeyRootKeyParams{
+		Now:         sql.NullInt64{Int64: 1, Valid: true},
+		ID:          deleted.KeyID,
+		WorkspaceID: workspace.ID,
+	})
 	require.NoError(t, err)
 	h.CreateUnkeyRootKey(seed.CreateUnkeyRootKeyRequest{WorkspaceID: foreign.ID})
 	legacyResources := h.LegacyRootResources()
@@ -130,7 +148,7 @@ func TestListRootKeysValidatesRequestsAndReadAccess(t *testing.T) {
 		{"workspace input", read, map[string]any{"workspaceId": workspace.ID}, 400},
 		{"invalid cursor", read, map[string]any{"cursor": 42}, 400},
 		{"write only", "unkey:v1:" + workspace.ID + ":rootKeys/*#write", map[string]any{}, 200},
-		{"foreign workspace", "unkey:v1:ws_other:rootKeys/*#read", map[string]any{}, 200},
+		{"foreign workspace", "unkey:v1:" + uid.New(uid.WorkspacePrefix) + ":rootKeys/*#read", map[string]any{}, 200},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			caller := h.CreateRootKey(workspace.ID, tt.permission)

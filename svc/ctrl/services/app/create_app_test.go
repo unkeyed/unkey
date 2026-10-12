@@ -10,7 +10,9 @@ import (
 	"github.com/stretchr/testify/require"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/pkg/auditlog"
+	pkgdb "github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/mysql/sqlcomment"
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/ctrl/integration/seed"
@@ -122,31 +124,26 @@ func TestCreateAppRollsBackWhenAuditInsertFails(t *testing.T) {
 	require.ErrorAs(t, err, &connectErr)
 	require.Equal(t, connect.CodeInternal, connectErr.Code())
 
-	require.Equal(t, 0, countRows(t, ctx, database.RW(), `
-		SELECT COUNT(*)
-		FROM apps
-		WHERE workspace_id = ? AND project_id = ? AND slug = ?
-	`, workspaceID, project.ID, slug))
-	require.Equal(t, 0, countRows(t, ctx, database.RW(), `
-		SELECT COUNT(*)
-		FROM environments
-		WHERE workspace_id = ? AND project_id = ?
-	`, workspaceID, project.ID))
-	require.Equal(t, 0, countRows(t, ctx, database.RW(), `
-		SELECT COUNT(*)
-		FROM app_build_settings
-		WHERE workspace_id = ?
-	`, workspaceID))
-	require.Equal(t, 0, countRows(t, ctx, database.RW(), `
-		SELECT COUNT(*)
-		FROM app_runtime_settings
-		WHERE workspace_id = ?
-	`, workspaceID))
-	require.Equal(t, 0, countRows(t, ctx, database.RW(), `
-		SELECT COUNT(*)
-		FROM app_regional_settings
-		WHERE workspace_id = ?
-	`, workspaceID))
+	_, err = pkgdb.Query.FindAppByProjectAndSlug(ctx, database.RW(), pkgdb.FindAppByProjectAndSlugParams{
+		ProjectID: project.ID,
+		Slug:      slug,
+	})
+	require.True(t, db.IsNotFound(err), "expected no app, got %v", err)
+	environmentCount, err := database.CountEnvironmentsByWorkspaceAndProject(ctx, db.CountEnvironmentsByWorkspaceAndProjectParams{
+		WorkspaceID: workspaceID,
+		ProjectID:   project.ID,
+	})
+	require.NoError(t, err)
+	require.Zero(t, environmentCount)
+	buildSettingsCount, err := database.CountAppBuildSettingsByWorkspaceId(ctx, workspaceID)
+	require.NoError(t, err)
+	require.Zero(t, buildSettingsCount)
+	runtimeSettingsCount, err := database.CountAppRuntimeSettingsByWorkspaceId(ctx, workspaceID)
+	require.NoError(t, err)
+	require.Zero(t, runtimeSettingsCount)
+	regionalSettingsCount, err := database.CountAppRegionalSettingsByWorkspaceId(ctx, workspaceID)
+	require.NoError(t, err)
+	require.Zero(t, regionalSettingsCount)
 
 	outboxRows, err := database.ListClickhouseOutboxByWorkspace(ctx, workspaceID)
 	require.NoError(t, err)
@@ -209,9 +206,15 @@ func TestCreateAndUpdateOciAppSource(t *testing.T) {
 	createdSource, err := database.FindAppSourceOciByAppId(ctx, appID)
 	require.NoError(t, err)
 	require.Equal(t, "index.docker.io/library/nginx:1.27", createdSource.ImageReference)
-	require.Equal(t, 2, countRows(t, ctx, database.RO(), "SELECT COUNT(*) FROM environments WHERE app_id = ?", appID))
-	require.Equal(t, 2, countRows(t, ctx, database.RO(), "SELECT COUNT(*) FROM app_runtime_settings WHERE app_id = ?", appID))
-	require.Equal(t, 0, countRows(t, ctx, database.RO(), "SELECT COUNT(*) FROM app_build_settings WHERE app_id = ?", appID))
+	environments, err := pkgdb.Query.ListEnvironmentsByApp(ctx, database.RO(), appID)
+	require.NoError(t, err)
+	require.Len(t, environments, 2)
+	runtimeSettings, err := pkgdb.Query.ListAppRuntimeSettingsByApp(ctx, database.RO(), appID)
+	require.NoError(t, err)
+	require.Len(t, runtimeSettings, 2)
+	buildSettings, err := pkgdb.Query.ListAppBuildSettingsByApp(ctx, database.RO(), appID)
+	require.NoError(t, err)
+	require.Empty(t, buildSettings)
 
 	updateReq := connect.NewRequest(&ctrlv1.UpdateOciImageSourceRequest{
 		WorkspaceId:    workspaceID,
@@ -308,45 +311,45 @@ func (s failingAuditLogService) Insert(ctx context.Context, tx db.DBTX, logs []a
 	require.Equal(s.t, s.projectID, logs[0].Resources[0].Meta["projectId"])
 
 	appID := logs[0].Resources[0].ID
-	require.Equal(s.t, 1, countRows(s.t, ctx, tx, `
-		SELECT COUNT(*)
-		FROM apps
-		WHERE id = ? AND workspace_id = ? AND project_id = ? AND slug = ?
-	`, appID, s.workspaceID, s.projectID, s.appSlug))
-	require.Equal(s.t, 2, countRows(s.t, ctx, tx, `
-		SELECT COUNT(*)
-		FROM environments
-		WHERE app_id = ? AND workspace_id = ? AND project_id = ?
-	`, appID, s.workspaceID, s.projectID))
-	require.Equal(s.t, 1, countRows(s.t, ctx, tx, `
-		SELECT COUNT(*)
-		FROM environments
-		WHERE app_id = ? AND kind = 'production'
-	`, appID))
-	require.Equal(s.t, 2, countRows(s.t, ctx, tx, `
-		SELECT COUNT(*)
-		FROM app_build_settings
-		WHERE app_id = ? AND workspace_id = ?
-	`, appID, s.workspaceID))
-	require.Equal(s.t, 2, countRows(s.t, ctx, tx, `
-		SELECT COUNT(*)
-		FROM app_runtime_settings
-		WHERE app_id = ? AND workspace_id = ?
-	`, appID, s.workspaceID))
-	require.Equal(s.t, 2, countRows(s.t, ctx, tx, `
-		SELECT COUNT(*)
-		FROM app_regional_settings
-		WHERE app_id = ? AND workspace_id = ?
-	`, appID, s.workspaceID))
+	app, err := db.NewQueries(tx).FindAppById(ctx, appID)
+	require.NoError(s.t, err)
+	require.Equal(s.t, s.workspaceID, app.WorkspaceID)
+	require.Equal(s.t, s.projectID, app.ProjectID)
+	require.Equal(s.t, s.appSlug, app.Slug)
+
+	environments, err := pkgdb.Query.ListEnvironmentsByApp(ctx, tx, appID)
+	require.NoError(s.t, err)
+	require.Len(s.t, environments, 2)
+	production := 0
+	for _, environment := range environments {
+		require.Equal(s.t, s.workspaceID, environment.WorkspaceID)
+		require.Equal(s.t, s.projectID, environment.ProjectID)
+		if environment.Kind == mysqltype.EnvironmentKindProduction {
+			production++
+		}
+	}
+	require.Equal(s.t, 1, production)
+
+	buildSettings, err := pkgdb.Query.ListAppBuildSettingsByApp(ctx, tx, appID)
+	require.NoError(s.t, err)
+	require.Len(s.t, buildSettings, 2)
+	for _, settings := range buildSettings {
+		require.Equal(s.t, s.workspaceID, settings.WorkspaceID)
+	}
+
+	runtimeSettings, err := pkgdb.Query.ListAppRuntimeSettingsByApp(ctx, tx, appID)
+	require.NoError(s.t, err)
+	require.Len(s.t, runtimeSettings, 2)
+	for _, settings := range runtimeSettings {
+		require.Equal(s.t, s.workspaceID, settings.WorkspaceID)
+	}
+
+	regionalSettingsCount, err := db.NewQueries(tx).CountAppRegionalSettingsByWorkspaceAndApp(ctx, db.CountAppRegionalSettingsByWorkspaceAndAppParams{
+		WorkspaceID: s.workspaceID,
+		AppID:       appID,
+	})
+	require.NoError(s.t, err)
+	require.Equal(s.t, int64(2), regionalSettingsCount)
 
 	return errInjectedAuditInsert
-}
-
-func countRows(t *testing.T, ctx context.Context, tx db.DBTX, query string, args ...any) int {
-	t.Helper()
-
-	var count int
-	err := tx.QueryRowContext(ctx, query, args...).Scan(&count)
-	require.NoError(t, err)
-	return count
 }
