@@ -27,7 +27,7 @@ go = "1.27.2"
 "github:chronark/rask" = "0.7.0"
 "github:golangci/golangci-lint" = "2.13.2"
 "github:goreleaser/goreleaser-pro" = "2.15.4"
-"github:pnpm/pnpm" = "11.28.5"
+"github:pnpm/pnpm" = { version = "11.28.5", platforms.macos-x64.asset_pattern = "pnpm-darwin-x64.tar.gz" }
 "github:speakeasy-api/speakeasy" = "1.790.1"
 # Mintlify CLI for the product docs site (docs); see mise tasks docs-*.
 "npm:mint" = "4.2.866"

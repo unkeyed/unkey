@@ -450,17 +450,18 @@ url = "https://github.com/pnpm/pnpm/releases/download/v11.28.5/pnpm-darwin-arm64
 url_api = "https://api.github.com/repos/pnpm/pnpm/releases/assets/613990816"
 provenance = "github-attestations"
 
-[tools."github:pnpm/pnpm"."platforms.macos-x64"]
-checksum = "sha256:153b59922fb95d2f18e9c436255cd5a82b78458e8f8b6025dad8d6e83cc97a50"
-url = "https://github.com/pnpm/pnpm/releases/download/v11.28.5/source-maps.tgz"
-url_api = "https://api.github.com/repos/pnpm/pnpm/releases/assets/613990815"
-provenance = "github-attestations"
-
 [tools."github:pnpm/pnpm"."platforms.windows-x64"]
 checksum = "sha256:15880e6931e775a159ac9ad7fabcc26429fe41b207df9f9a902234e16b355192"
 url = "https://github.com/pnpm/pnpm/releases/download/v11.28.5/pnpm-win32-x64.zip"
 url_api = "https://api.github.com/repos/pnpm/pnpm/releases/assets/613990827"
 provenance = "github-attestations"
+
+[[tools."github:pnpm/pnpm"]]
+version = "11.28.5"
+backend = "github:pnpm/pnpm"
+
+[tools."github:pnpm/pnpm".options]
+asset_pattern = "pnpm-darwin-x64.tar.gz"
 
 [[tools."github:speakeasy-api/speakeasy"]]
 version = "1.790.1"

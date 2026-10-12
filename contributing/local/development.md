@@ -108,15 +108,22 @@ Changes to `dev/cluster.yaml` apply only when creating a cluster, because
 `ctlptl apply` can delete a cluster when its configuration changes. To adopt
 cluster configuration changes, explicitly reset it using the command below.
 
-The toolchain pins Minikube 1.39.0 and kubectl 1.37.1. Fresh local and orb
-clusters use Kubernetes 1.37.0, the newest version built into Minikube 1.39.0.
-Newer versions require a GitHub version check on every start, including resume,
-which can fail when GitHub rate-limits the request.
+The toolchain pins Minikube 1.39.0, Kubernetes/kubectl 1.36.4, and Cilium 1.20.2.
+Kubernetes 1.36.4 is built into Minikube's version list, avoiding a remote
+version lookup during startup. Cilium and Hubble use manifests generated from
+the same chart with `mise exec -- bash dev/generate-cilium.sh`. Orbs use bridge
+networking and the matching CiliumNetworkPolicy CRD without policy enforcement.
 
-Run `mise install` after pulling toolchain changes. Existing clusters are not
-upgraded automatically. kubectl 1.37 is outside the supported version range for
-a Kubernetes 1.34 cluster; upgrade that cluster deliberately or reset it after
-saving any data you need.
+Startup rejects profiles with a different Kubernetes version or CNI mode.
+Existing clusters are not upgraded or deleted automatically. Save any data
+you need before an explicit reset.
+
+Run `mise install --locked --yes` after pulling toolchain changes. The web
+dependency task installs pinned Node and pnpm if needed and invokes pnpm
+directly, without falling back to Corepack. Installation failures stop the task
+without weakening lockfile or provenance checks. pnpm 11.28.5 publishes no
+Intel macOS standalone binary; this pin supports Apple Silicon Macs, not Intel
+Macs. Don't regenerate a lock entry pointing to `source-maps.tgz`.
 
 Local deployments use in-cluster BuildKit Jobs by default and don't require Depot credentials. To test the Depot backend, copy `dev/.env.depot.example` to `dev/.env.depot` and set both values to your Depot token before starting the environment.
 

@@ -47,6 +47,9 @@ class LocalDevTest(unittest.TestCase):
             "if name == 'mise':\n"
             "    if args == ['env', '--json']: print(json.dumps({'PATH': os.environ.get('MISE_TEST_PATH', os.environ['PATH']), 'GOTOOLCHAIN': 'local'}))\n"
             "    elif args == ['which', 'kubectl']: print(pathlib.Path(sys.argv[0]).parent / 'kubectl')\n"
+            "    elif args == ['install', '--locked', '--yes', 'node', 'github:pnpm/pnpm']: pass\n"
+            "    elif args == ['which', 'pnpm', '--tool', 'github:pnpm/pnpm']: print(pathlib.Path(sys.argv[0]).parent / 'pinned-pnpm')\n"
+            "    elif args[:2] == ['exec', '--']: os.execv(args[2], args[2:])\n"
             "    else: sys.exit(18)\n"
             "elif name == 'sudo':\n"
             "    if args == ['-v']: sys.exit(0)\n"
@@ -71,7 +74,7 @@ class LocalDevTest(unittest.TestCase):
             "    print(os.environ.get('CLUSTER', '{\"registry\": \"ctlptl-registry\", \"status\": {\"localRegistryHosting\": {\"host\": \"localhost:5000\"}}}'))\n"
         )
         stub.chmod(0o755)
-        for name in ("mise", "sudo", "go", "stripe", "kubectl", "ctlptl", "minikube", "tilt", "docker", "pnpm"):
+        for name in ("mise", "sudo", "go", "stripe", "kubectl", "ctlptl", "minikube", "tilt", "docker", "pnpm", "pinned-pnpm"):
             (cls.bin / name).symlink_to(stub)
         cls.env = dict(os.environ, PATH=f"{cls.bin}:{os.environ['PATH']}", COMMAND_LOG=str(cls.log), MINIKUBE_HOME=str(cls.root / "minikube-home"))
         tilt = shutil.which("tilt")
@@ -116,6 +119,21 @@ class LocalDevTest(unittest.TestCase):
 
     def update_command(self, manifests, name):
         return manifests[name]["DeployTarget"]["UpdateCmdSpec"]["args"]
+
+    def test_install_web_never_falls_back_to_corepack(self):
+        for failing in (
+            "pnpm",
+            "mise install --locked --yes node github:pnpm/pnpm",
+            "mise which pnpm --tool github:pnpm/pnpm",
+        ):
+            with self.subTest(failing=failing):
+                self.log.write_text("")
+                result = self.command(["bash", str(ROOT / ".mise/tasks/install-web")], FAIL_COMMAND=failing)
+                self.assertEqual(result.returncode, 0 if failing == "pnpm" else 17, result.stderr)
+                calls = self.calls()
+                self.assertFalse(any(call[0] == "pnpm" for call in calls))
+                installs = [call for call in calls if call[0] == "pinned-pnpm"]
+                self.assertEqual(installs, [["pinned-pnpm", "--dir=web", "install", "--recursive", "--frozen-lockfile"]] if failing == "pnpm" else [])
 
     def test_direct_tilt_uses_mise_tools_during_evaluation_and_updates(self):
         with tempfile.TemporaryDirectory(dir=self.root) as directory:
