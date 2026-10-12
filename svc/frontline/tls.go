@@ -46,7 +46,7 @@ func buildTlsConfig(cfg Config, certManager certmanager.Service) (*tls.Config, e
 
 		logger.Info("TLS configured with dynamic certificate manager")
 
-		//nolint:exhaustruct
+		//nolint:exhaustruct_v5
 		return &tls.Config{
 			GetCertificate: func(hello *tls.ClientHelloInfo) (*tls.Certificate, error) {
 				return certManager.GetCertificate(context.Background(), hello.ServerName)

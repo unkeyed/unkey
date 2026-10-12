@@ -288,7 +288,7 @@ func TestGlobalPush_EmitsRowsInUniqueKeyOrder(t *testing.T) {
 
 	for attempt := range 20 {
 		recorder := &recordingGlobalCounterDB{}
-		svc := &service{ //nolint:exhaustruct // test only needs global push dependencies
+		svc := &service{ //nolint:exhaustruct_v5 // test only needs global push dependencies
 			clock:                clock.NewTestClock(),
 			region:               "region-a",
 			db:                   rldb.New(recorder, recorder),
@@ -296,7 +296,7 @@ func TestGlobalPush_EmitsRowsInUniqueKeyOrder(t *testing.T) {
 		}
 
 		for _, key := range keys {
-			entry := &counterEntry{} //nolint:exhaustruct // only push eligibility fields matter here
+			entry := &counterEntry{} //nolint:exhaustruct_v5 // only push eligibility fields matter here
 			entry.val.Store(10)
 			entry.globalPushThreshold.Store(1)
 			svc.counters.Store(key, entry)
@@ -395,7 +395,7 @@ func TestGlobalPush_RetriesDeadlock(t *testing.T) {
 }
 
 func newGlobalPushOnlyService(db rldb.DBTX, region string) *service {
-	return &service{ //nolint:exhaustruct // test only needs global push dependencies
+	return &service{ //nolint:exhaustruct_v5 // test only needs global push dependencies
 		clock:                clock.NewTestClock(),
 		region:               region,
 		db:                   rldb.New(db, db),
@@ -404,7 +404,7 @@ func newGlobalPushOnlyService(db rldb.DBTX, region string) *service {
 }
 
 func newGlobalPullOnlyService(env *integrationTestEnv, clk clock.Clock, region string) *service {
-	return &service{ //nolint:exhaustruct // test only needs global pull dependencies
+	return &service{ //nolint:exhaustruct_v5 // test only needs global pull dependencies
 		clock:  clk,
 		region: region,
 		db:     env.rldb,
@@ -412,7 +412,7 @@ func newGlobalPullOnlyService(env *integrationTestEnv, clk clock.Clock, region s
 }
 
 func storePushableCounter(svc *service, key counterKey) *counterEntry {
-	entry := &counterEntry{} //nolint:exhaustruct // only push eligibility fields matter here
+	entry := &counterEntry{} //nolint:exhaustruct_v5 // only push eligibility fields matter here
 	entry.val.Store(10)
 	entry.globalPushThreshold.Store(1)
 	svc.counters.Store(key, entry)

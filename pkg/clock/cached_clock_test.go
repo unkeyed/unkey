@@ -123,6 +123,6 @@ func TestCachedClock(t *testing.T) {
 	})
 
 	t.Run("CachedClock implements Clock interface", func(t *testing.T) {
-		var _ Clock = &CachedClock{} // nolint:exhaustruct
+		var _ Clock = &CachedClock{} // nolint:exhaustruct_v5
 	})
 }

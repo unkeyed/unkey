@@ -83,7 +83,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Meta: openapi.Meta{
 				RequestId: s.RequestID(),
 			},
-			// nolint:exhaustruct
+			// nolint:exhaustruct_v5
 			Data: openapi.V2KeysVerifyKeyResponseData{
 				Code:  openapi.NOTFOUND,
 				Valid: false,
@@ -97,7 +97,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Meta: openapi.Meta{
 				RequestId: s.RequestID(),
 			},
-			// nolint:exhaustruct
+			// nolint:exhaustruct_v5
 			Data: openapi.V2KeysVerifyKeyResponseData{
 				Code:  openapi.NOTFOUND,
 				Valid: false,
@@ -128,7 +128,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Meta: openapi.Meta{
 				RequestId: s.RequestID(),
 			},
-			// nolint:exhaustruct
+			// nolint:exhaustruct_v5
 			Data: openapi.V2KeysVerifyKeyResponseData{
 				Code:  openapi.NOTFOUND,
 				Valid: false,
@@ -279,7 +279,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	// A keyspace mismatch returns NOT_FOUND but leaves the loaded key intact.
 	// Clear its response metadata so it cannot reveal that the key exists.
 	if key.Status == keys.StatusNotFound {
-		// nolint:exhaustruct
+		// nolint:exhaustruct_v5
 		keyData = openapi.V2KeysVerifyKeyResponseData{Code: openapi.NOTFOUND, Valid: false}
 	}
 

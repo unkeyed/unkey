@@ -35,7 +35,7 @@ func (v *Verifier) Verify(r *http.Request) (webhook.Event, error) {
 	// drift into a total webhook outage. Verification stays strict on the
 	// signature; handlers are expected to parse the raw payload minimally,
 	// reading only fields that are stable across Stripe API versions.
-	//nolint:exhaustruct // defaults are correct for everything else
+	//nolint:exhaustruct_v5 // defaults are correct for everything else
 	event, err := stripewebhook.ConstructEventWithOptions(
 		body,
 		r.Header.Get("Stripe-Signature"),

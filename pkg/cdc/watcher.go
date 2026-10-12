@@ -45,7 +45,7 @@ func New(cfg Config) (*Watcher, error) {
 	if _, err := vstreamFilter(cfg.Rules); err != nil {
 		return nil, err
 	}
-	transport := credentials.NewTLS(&tls.Config{MinVersion: tls.VersionTLS12}) //nolint:exhaustruct // Use system roots and secure TLS defaults.
+	transport := credentials.NewTLS(&tls.Config{MinVersion: tls.VersionTLS12}) //nolint:exhaustruct_v5 // Use system roots and secure TLS defaults.
 	if cfg.Insecure {
 		transport = insecure.NewCredentials()
 	}
@@ -95,11 +95,11 @@ func (c *Watcher) Watch(ctx context.Context, token []byte, send func(Event) erro
 	if err != nil {
 		return err
 	}
-	stream, err := c.client.VStream(ctx, &vtgate.VStreamRequest{ //nolint:exhaustruct // Leave unrelated protobuf options at their defaults.
+	stream, err := c.client.VStream(ctx, &vtgate.VStreamRequest{ //nolint:exhaustruct_v5 // Leave unrelated protobuf options at their defaults.
 		TabletType: topodata.TabletType_PRIMARY,
 		Vgtid:      position,
 		Filter:     filter,
-		Flags:      &vtgate.VStreamFlags{HeartbeatInterval: 5}, //nolint:exhaustruct // Do not enable transaction chunking or optional stream features.
+		Flags:      &vtgate.VStreamFlags{HeartbeatInterval: 5}, //nolint:exhaustruct_v5 // Do not enable transaction chunking or optional stream features.
 	})
 	if err != nil {
 		return err
@@ -151,7 +151,7 @@ func (c *Watcher) receive(ctx context.Context, responses <-chan streamResult) (*
 // Invalid tokens return nil and an error wrapping [ErrInvalidToken].
 func (c *Watcher) position(token []byte) (*binlog.VGtid, error) {
 	if len(token) == 0 {
-		return &binlog.VGtid{ShardGtids: []*binlog.ShardGtid{{Keyspace: c.keyspace}}}, nil
+		return &binlog.VGtid{ShardGtids: []*binlog.ShardGtid{{Keyspace: c.keyspace, Shard: "", Gtid: "", TablePKs: nil}}}, nil
 	}
 	var saved resumeToken
 	if err := json.Unmarshal(token, &saved); err != nil {

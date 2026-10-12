@@ -46,7 +46,7 @@ func TestBufferAuditLog_SkipsNonRootPrincipal(t *testing.T) {
 		require.Zero(t, eventCountFlushed.Load())
 	})
 
-	h := &Handler{DirectAuditLogs: directAuditLogs} //nolint:exhaustruct
+	h := &Handler{DirectAuditLogs: directAuditLogs} //nolint:exhaustruct_v5
 	p := &principal.Principal{
 		Version: principal.Version,
 		Subject: principal.Subject{
@@ -63,8 +63,8 @@ func TestBufferAuditLog_SkipsNonRootPrincipal(t *testing.T) {
 		AuthorizedWorkspaceID: "ws_123",
 		Permissions:           nil,
 	}
-	key := &keys.KeyVerifier{ //nolint:exhaustruct
-		Key: keysdb.FindKeyForVerificationRow{ID: "key_123"}, //nolint:exhaustruct
+	key := &keys.KeyVerifier{ //nolint:exhaustruct_v5
+		Key: keysdb.FindKeyForVerificationRow{ID: "key_123"}, //nolint:exhaustruct_v5
 	}
 
 	h.bufferAuditLog(sess, p, key, 0)

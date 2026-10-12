@@ -17,13 +17,13 @@ func TestBuildGitContextURL(t *testing.T) {
 	}{
 		{
 			name: "branch push uses commit sha on base repo",
-			//nolint:exhaustruct
+			//nolint:exhaustruct_v5
 			params: gitBuildParams{Repository: "acme/app", CommitSHA: "deadbeef"},
 			want:   "https://github.com/acme/app.git#deadbeef",
 		},
 		{
 			name: "fork PR fetches refs/pull from BASE repo, not the fork",
-			//nolint:exhaustruct
+			//nolint:exhaustruct_v5
 			params: gitBuildParams{Repository: "acme/app", ForkRepository: "attacker/app", CommitSHA: "deadbeef", PrNumber: 42},
 			// GitHub serves refs/pull/<n>/head only on the base repo. Using the
 			// fork here (the old bug) produced an unresolvable URL.
@@ -31,31 +31,31 @@ func TestBuildGitContextURL(t *testing.T) {
 		},
 		{
 			name: "fork ref deployed by concrete SHA fetches from the fork",
-			//nolint:exhaustruct
+			//nolint:exhaustruct_v5
 			params: gitBuildParams{Repository: "acme/app", ForkRepository: "contributor/app", CommitSHA: "cafebabe"},
 			want:   "https://github.com/contributor/app.git#cafebabe",
 		},
 		{
 			name: "context subdir is appended",
-			//nolint:exhaustruct
+			//nolint:exhaustruct_v5
 			params: gitBuildParams{Repository: "acme/app", CommitSHA: "deadbeef", ContextPath: "services/api"},
 			want:   "https://github.com/acme/app.git#deadbeef:services/api",
 		},
 		{
 			name: "fork PR with subdir still targets base repo",
-			//nolint:exhaustruct
+			//nolint:exhaustruct_v5
 			params: gitBuildParams{Repository: "acme/app", ForkRepository: "attacker/app", CommitSHA: "deadbeef", PrNumber: 7, ContextPath: "svc"},
 			want:   "https://github.com/acme/app.git#refs/pull/7/head:svc",
 		},
 		{
 			name: "dot context means root",
-			//nolint:exhaustruct
+			//nolint:exhaustruct_v5
 			params: gitBuildParams{Repository: "acme/app", CommitSHA: "deadbeef", ContextPath: "."},
 			want:   "https://github.com/acme/app.git#deadbeef",
 		},
 		{
 			name: "leading slash stripped",
-			//nolint:exhaustruct
+			//nolint:exhaustruct_v5
 			params: gitBuildParams{Repository: "acme/app", CommitSHA: "deadbeef", ContextPath: "/services/api"},
 			want:   "https://github.com/acme/app.git#deadbeef:services/api",
 		},

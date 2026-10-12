@@ -163,7 +163,7 @@ func TestMetadata_InvalidHeaderDoesNotBlockRegionalRequest(t *testing.T) {
 	t.Parallel()
 
 	stub := &recordingProxy{regionBody: "served-by-peer-region"}
-	//nolint:exhaustruct
+	//nolint:exhaustruct_v5
 	decision := router.RouteDecision{
 		Destination:         router.DestinationRemoteRegion,
 		RemoteRegionAddress: "us-west-2.aws",
@@ -299,7 +299,7 @@ func startBackend(t *testing.T, h http.HandlerFunc) (string, func()) {
 	t.Helper()
 	ln, err := net.Listen("tcp", "127.0.0.1:0")
 	require.NoError(t, err)
-	//nolint:exhaustruct
+	//nolint:exhaustruct_v5
 	srv := &http.Server{Handler: h}
 	go func() { _ = srv.Serve(ln) }()
 	return ln.Addr().String(), func() {
@@ -355,7 +355,7 @@ func localDecision(addrs ...string) router.RouteDecision {
 			Address: addr,
 		}
 	}
-	//nolint:exhaustruct
+	//nolint:exhaustruct_v5
 	return router.RouteDecision{
 		Destination:      router.DestinationLocalInstance,
 		DeploymentID:     "dep_test",
@@ -384,7 +384,7 @@ func startFrontlineWithH2CIngress(t *testing.T, decision router.RouteDecision, p
 	require.NoError(t, err)
 
 	if proxySvc == nil {
-		//nolint:exhaustruct
+		//nolint:exhaustruct_v5
 		ps, err := proxy.New(proxy.Config{
 			InstanceID:         "test-instance",
 			Platform:           "test",
@@ -407,7 +407,7 @@ func startFrontlineWithH2CIngress(t *testing.T, decision router.RouteDecision, p
 		Metadata:      metadata,
 	}
 
-	//nolint:exhaustruct
+	//nolint:exhaustruct_v5
 	zenSrv, err := zen.New(zen.Config{
 		ReadTimeout:        -1,
 		WriteTimeout:       -1,

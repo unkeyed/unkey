@@ -31,7 +31,7 @@ func NewTestClock(now ...time.Time) *TestClock {
 	if len(now) == 0 {
 		now = append(now, time.Now())
 	}
-	return &TestClock{mu: sync.RWMutex{}, now: now[0]} //nolint:exhaustruct
+	return &TestClock{mu: sync.RWMutex{}, now: now[0]} //nolint:exhaustruct_v5
 }
 
 // Ensure TestClock implements the Clock interface
@@ -113,7 +113,7 @@ func (c *TestClock) NewTicker(d time.Duration) Ticker {
 	}
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	t := &testTicker{ //nolint:exhaustruct // stopMu and stopped take their zero values
+	t := &testTicker{ //nolint:exhaustruct_v5 // stopMu and stopped take their zero values
 		parent:   c,
 		period:   d,
 		nextFire: c.now.Add(d),

@@ -274,7 +274,7 @@ func TestRerollKeySuccess(t *testing.T) {
 			WorkspaceID: workspace.ID,
 			Disabled:    false,
 			KeySpaceID:  api.KeyAuthID.String,
-		}) // nolint:exhaustruct
+		}) // nolint:exhaustruct_v5
 
 		req := handler.Request{
 			KeyId:      key.KeyID,
@@ -311,7 +311,7 @@ func TestRerollKeySuccess(t *testing.T) {
 		key := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID: workspace.ID,
 			KeySpaceID:  api.KeyAuthID.String,
-		}) // nolint:exhaustruct
+		})
 
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{KeyId: key.KeyID, Expiration: nullable.NewNullNullable[int64]()})
 		require.Equal(t, 200, res.Status)
@@ -329,7 +329,7 @@ func TestRerollKeySuccess(t *testing.T) {
 			WorkspaceID: workspace.ID,
 			KeySpaceID:  api.KeyAuthID.String,
 			Expires:     &expires,
-		}) // nolint:exhaustruct
+		})
 
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{KeyId: key.KeyID, Expiration: nullable.NewNullNullable[int64]()})
 		require.Equal(t, 200, res.Status)

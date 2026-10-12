@@ -129,7 +129,7 @@ func (h *CaptureHandler) Find(t *testing.T, msg string) slog.Record {
 		}
 	}
 	t.Fatalf("no record with message %q (captured %d records)", msg, len(h.records))
-	return slog.Record{} //nolint:exhaustruct // unreachable; t.Fatalf aborts the test
+	return slog.Record{} //nolint:exhaustruct_v5 // unreachable; t.Fatalf aborts the test
 }
 
 // FlatAttrs collapses a record's attributes into key→value, flattening

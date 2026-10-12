@@ -257,7 +257,7 @@ func cacheLegacyRootKey(row keysdb.FindLegacyRootKeyForAuthenticationRow) (keysd
 
 // asCachedKey adapts root-key data to the shared lifecycle validator.
 func asCachedKey(rootKey keysdb.CachedRootKeyData) keysdb.CachedKeyData {
-	//nolint:exhaustruct
+	//nolint:exhaustruct_v5
 	return keysdb.CachedKeyData{
 		FindKeyForVerificationRow: keysdb.FindKeyForVerificationRow{
 			ID:                  rootKey.ID,
@@ -308,7 +308,7 @@ func (s *service) newKeyVerifier(sess *zen.Session, key keysdb.CachedKeyData, hi
 	err = loadErr
 	if err != nil {
 		if mysql.IsNotFound(err) {
-			// nolint:exhaustruct
+			// nolint:exhaustruct_v5
 			return &KeyVerifier{
 				Status:    StatusNotFound,
 				message:   "key does not exist",
@@ -327,7 +327,7 @@ func (s *service) newKeyVerifier(sess *zen.Session, key keysdb.CachedKeyData, hi
 	}
 
 	if hit == cache.Null {
-		// nolint:exhaustruct
+		// nolint:exhaustruct_v5
 		return &KeyVerifier{
 			Status:    StatusNotFound,
 			message:   "key does not exist",
@@ -340,7 +340,7 @@ func (s *service) newKeyVerifier(sess *zen.Session, key keysdb.CachedKeyData, hi
 
 	// ForWorkspace set but that doesn't exist
 	if key.ForWorkspaceID.Valid && !key.ForWorkspaceEnabled.Valid {
-		// nolint:exhaustruct
+		// nolint:exhaustruct_v5
 		return &KeyVerifier{
 			Status:    StatusWorkspaceNotFound,
 			message:   "workspace not found",
@@ -353,7 +353,7 @@ func (s *service) newKeyVerifier(sess *zen.Session, key keysdb.CachedKeyData, hi
 
 	// Workspace is disabled or the key is not allowed to be used for workspace operations
 	if !key.WorkspaceEnabled || (key.ForWorkspaceEnabled.Valid && !key.ForWorkspaceEnabled.Bool) {
-		// nolint:exhaustruct
+		// nolint:exhaustruct_v5
 		kv = &KeyVerifier{
 			Status:                StatusWorkspaceDisabled,
 			message:               "workspace is disabled",

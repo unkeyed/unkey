@@ -53,7 +53,7 @@ func newClient(cmd *cli.Command) (*stripesdk.Client, error) {
 	}
 
 	return stripesdk.NewClient(key, stripesdk.WithBackends(stripesdk.NewBackendsWithConfig(&stripesdk.BackendConfig{
-		//nolint:exhaustruct // defaults are fine for everything but the logger
+		//nolint:exhaustruct_v5 // defaults are fine for everything but the logger
 		// Every error is returned and rendered by the command itself; the
 		// SDK's default stderr printer would double-report them, raw and ugly.
 		LeveledLogger: &stripesdk.LeveledLogger{Level: stripesdk.LevelNull},

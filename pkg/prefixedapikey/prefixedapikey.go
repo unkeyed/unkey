@@ -58,7 +58,7 @@ func padStart(str string, length int, padChar string) string {
 func GenerateAPIKey(opts *GenerateAPIKeyOptions) (*APIKey, error) {
 	// Set default values if not provided
 	if opts == nil {
-		// nolint:exhaustruct
+		// nolint:exhaustruct_v5
 		opts = &GenerateAPIKeyOptions{}
 	}
 	if opts.KeyPrefix == "" {

@@ -25,7 +25,7 @@ type Input struct {
 func ToResponse(ctx context.Context, database *db.Replica, workspaceID string, row db.ListDeploymentsRow) (openapi.Deployment, error) {
 	responses, err := ToResponses(ctx, database, workspaceID, []db.ListDeploymentsRow{row})
 	if err != nil {
-		return openapi.Deployment{}, err //nolint:exhaustruct // no response on error
+		return openapi.Deployment{}, err //nolint:exhaustruct_v5 // no response on error
 	}
 	return responses[0], nil
 }
@@ -69,7 +69,7 @@ func ToResponses(ctx context.Context, database *db.Replica, workspaceID string, 
 
 	inputs := make(map[string]*Input, len(rows))
 	for _, row := range rows {
-		inputs[row.ID] = &Input{Deployment: row, State: db.ListDeploymentEnvAndAppStateRow{}, Steps: nil, Regions: nil, Domains: nil} //nolint:exhaustruct // zero state when the join misses
+		inputs[row.ID] = &Input{Deployment: row, State: db.ListDeploymentEnvAndAppStateRow{}, Steps: nil, Regions: nil, Domains: nil} //nolint:exhaustruct_v5 // zero state when the join misses
 	}
 	for _, s := range states {
 		inputs[s.DeploymentID].State = s

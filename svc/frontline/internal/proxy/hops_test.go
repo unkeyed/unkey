@@ -23,7 +23,7 @@ const testMetadataSigningKey = "000102030405060708090a0b0c0d0e0f1011121314151617
 func TestNew_RequiresMetadata(t *testing.T) {
 	t.Parallel()
 
-	//nolint:exhaustruct
+	//nolint:exhaustruct_v5
 	svc, err := New(Config{})
 	require.ErrorContains(t, err, "metadata codec is required")
 	require.Nil(t, svc)
@@ -35,7 +35,7 @@ func TestNew_RejectsNegativeMaxHops(t *testing.T) {
 	metadata, err := meta.New(testMetadataSigningKey)
 	require.NoError(t, err)
 
-	//nolint:exhaustruct
+	//nolint:exhaustruct_v5
 	svc, err := New(Config{
 		MaxHops:  -1,
 		Metadata: metadata,
@@ -50,7 +50,7 @@ func TestForwardToRegion_RejectsHopLimit(t *testing.T) {
 	clk := clock.New()
 	metadata, err := meta.New(testMetadataSigningKey)
 	require.NoError(t, err)
-	//nolint:exhaustruct
+	//nolint:exhaustruct_v5
 	svc, err := New(Config{
 		InstanceID: "frontline_1",
 		Platform:   "aws",
@@ -64,7 +64,7 @@ func TestForwardToRegion_RejectsHopLimit(t *testing.T) {
 
 	req := httptest.NewRequest(http.MethodGet, "https://api.example.com", nil)
 	w := httptest.NewRecorder()
-	//nolint:exhaustruct
+	//nolint:exhaustruct_v5
 	sess := &zen.Session{}
 	require.NoError(t, sess.Init(w, req, 0))
 
@@ -83,7 +83,7 @@ func TestForwardToRegion_AllowsLastHop(t *testing.T) {
 	metadata, err := meta.New(testMetadataSigningKey)
 	require.NoError(t, err)
 	transport, recorder := newMetadataTransport(t, metadata)
-	//nolint:exhaustruct
+	//nolint:exhaustruct_v5
 	svc := &service{
 		instanceID: "frontline_3",
 		platform:   "aws",
@@ -115,7 +115,7 @@ func TestForwardToRegion_AppendsMetadataAtEachHop(t *testing.T) {
 	require.NoError(t, err)
 	transport, recorder := newMetadataTransport(t, metadata)
 
-	//nolint:exhaustruct
+	//nolint:exhaustruct_v5
 	first := &service{
 		instanceID: "frontline_1",
 		platform:   "aws",
@@ -147,7 +147,7 @@ func TestForwardToRegion_AppendsMetadataAtEachHop(t *testing.T) {
 
 	incomingHops := recorder.seen[0].Hops
 	secondNow := clk.Tick(250 * time.Millisecond)
-	//nolint:exhaustruct
+	//nolint:exhaustruct_v5
 	second := &service{
 		instanceID: "frontline_2",
 		platform:   "aws",
@@ -193,7 +193,7 @@ func TestForwardToRegion_PreservesDuplicateRegions(t *testing.T) {
 	metadata, err := meta.New(testMetadataSigningKey)
 	require.NoError(t, err)
 	transport, recorder := newMetadataTransport(t, metadata)
-	//nolint:exhaustruct
+	//nolint:exhaustruct_v5
 	svc := &service{
 		instanceID: "frontline_2",
 		platform:   "aws",
@@ -238,7 +238,7 @@ func (t *metadataTransport) RoundTrip(req *http.Request) (*http.Response, error)
 	}
 	t.seen = append(t.seen, metadata)
 	t.tokens = append(t.tokens, token)
-	//nolint:exhaustruct
+	//nolint:exhaustruct_v5
 	return &http.Response{
 		StatusCode: http.StatusOK,
 		Header:     make(http.Header),
@@ -249,7 +249,7 @@ func (t *metadataTransport) RoundTrip(req *http.Request) (*http.Response, error)
 
 func newProxySession(t *testing.T, req *http.Request) *zen.Session {
 	t.Helper()
-	//nolint:exhaustruct
+	//nolint:exhaustruct_v5
 	sess := &zen.Session{}
 	require.NoError(t, sess.Init(httptest.NewRecorder(), req, 0))
 	return sess

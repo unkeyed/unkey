@@ -182,7 +182,7 @@ func New(config Config) (*Server, error) {
 	}
 	srv.Handler = s
 	if config.EnableH2C {
-		//nolint:exhaustruct
+		//nolint:exhaustruct_v5
 		srv.Handler = h2c.NewHandler(s, &http2.Server{})
 	}
 	return s, nil

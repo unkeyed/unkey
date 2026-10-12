@@ -19,7 +19,7 @@ func TestInstanceDirector_RemovesMetadata(t *testing.T) {
 	clk := clock.NewTestClock(now)
 	metadata, err := meta.New(testMetadataSigningKey)
 	require.NoError(t, err)
-	//nolint:exhaustruct
+	//nolint:exhaustruct_v5
 	svc := &service{
 		instanceID: "frontline_1",
 		platform:   "aws",
@@ -48,7 +48,7 @@ func TestRegionDirector_SetsMetadata(t *testing.T) {
 	clk := clock.NewTestClock(now)
 	metadata, err := meta.New(testMetadataSigningKey)
 	require.NoError(t, err)
-	//nolint:exhaustruct
+	//nolint:exhaustruct_v5
 	svc := &service{
 		instanceID: "frontline_1",
 		platform:   "aws",
@@ -93,7 +93,7 @@ func newDirectorSession(t *testing.T) (*http.Request, *zen.Session) {
 
 	req := httptest.NewRequest(http.MethodGet, "https://example.com", nil)
 	w := httptest.NewRecorder()
-	//nolint:exhaustruct
+	//nolint:exhaustruct_v5
 	sess := &zen.Session{}
 	require.NoError(t, sess.Init(w, req, 0))
 	return req, sess

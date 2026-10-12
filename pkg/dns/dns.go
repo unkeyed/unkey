@@ -48,7 +48,7 @@ func newResolver(server string, timeout time.Duration) *net.Resolver {
 		PreferGo:     true,
 		StrictErrors: false,
 		Dial: func(ctx context.Context, network, _ string) (net.Conn, error) {
-			d := net.Dialer{} //nolint:exhaustruct
+			d := net.Dialer{} //nolint:exhaustruct_v5
 			d.Timeout = timeout
 			return d.DialContext(ctx, network, server)
 		},
