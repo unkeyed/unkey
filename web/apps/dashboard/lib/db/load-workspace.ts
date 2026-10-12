@@ -2,8 +2,8 @@ import { sql } from "@unkey/db";
 import { z } from "zod";
 import { db } from "../db";
 import * as workspaceFlags from "../flags";
+import type { WorkspaceFlag } from "../flags";
 import { subscriptionIdsByProduct } from "../stripe/billingSubscriptions";
-import { type WorkspaceFlag, useFlag } from "../workspace-flags";
 
 const flagValues = z.record(
   z.string(),
@@ -48,7 +48,10 @@ export async function loadWorkspace(
   return {
     ...workspace,
     flags: Object.fromEntries(
-      requestedFlags.map((flag) => [flag.slug, useFlag({ workspace: { flags }, flag })]),
+      requestedFlags.map((flag) => {
+        const value = flags[flag.slug];
+        return [flag.slug, typeof value === "boolean" ? value : flag.defaultValue];
+      }),
     ),
     tier: billing?.tier ?? "Free",
     stripeCustomerId: billing?.stripeCustomerId ?? null,

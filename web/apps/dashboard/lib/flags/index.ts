@@ -1,4 +1,7 @@
-import type { WorkspaceFlag } from "../workspace-flags";
+export type WorkspaceFlag = {
+  readonly slug: string;
+  readonly defaultValue: boolean;
+};
 
 export const helloWorld = {
   slug: "hello-world",
